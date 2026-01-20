@@ -1,0 +1,209 @@
+---
+alwaysApply: true
+---
+
+# Carta - Visual Software Architecture Editor
+
+## Project Overview
+
+Carta is a node-based visual editor for designing software architecture. Users can create, connect, and configure software components (called "Constructs") in a visual canvas, then compile the entire design into text output that can be fed into AI coding tools.
+
+**Core Goal**: Bridge the gap between high-level architecture design and AI-assisted code generation by providing a visual interface that produces structured, machine-readable specifications.
+
+## Key Libraries & Technologies
+
+- **React 19.2** - UI framework
+- **@xyflow/react 12.10** (React Flow) - Node-based visual editor with drag-drop, connections, and pan/zoom
+- **Vite 7.2** - Build tool and dev server
+- **TypeScript 5.9** - Type safety
+- **Tailwind CSS** - Utility-first styling
+- **Zustand 5.0** - State management (used by React Flow)
+- **LocalStorage** - Persistence for canvas state and user schemas
+
+## Architecture: Separation of Concerns
+
+The system is designed with **three decoupled layers** that can evolve independently:
+
+### 1. Visual Editor Layer (`src/App.tsx`, `src/components/`)
+- Manages the React Flow canvas (nodes, edges, viewport)
+- Handles user interactions (drag, connect, select, copy/paste)
+- Provides UI controls (toolbar, context menus, node controls)
+- Implements undo/redo functionality
+- **Does NOT know** how to render specific construct types or compile them
+
+#### UI Layout (IDE-style)
+The application uses a split-panel layout similar to JetBrains IDEs:
+
+```
+┌─────────────────────────────────────────┐
+│               Header                     │
+│  (project title, import/export)          │
+├─────────────────────────────────────────┤
+│                                          │
+│               Map                        │
+│  (ReactFlow canvas, zoom controls,       │
+│   add construct, node interactions)      │
+│                                          │
+├─────────────────────────────────────────┤
+│ Tabs │         Dock Content              │
+│      │                                   │
+│ [V]  │  - ConstructViewer (selected node)│
+│ [C]  │  - ConstructEditor (schema CRUD)  │
+│ [D]  │  - DeployablesEditor (CRUD)       │
+└─────────────────────────────────────────┘
+```
+
+**Components:**
+- **App** - Owns the layout, manages view state, handles import/export
+- **Header** - Project title (editable), import/export buttons
+- **Map** - ReactFlow canvas with zoom controls, node operations, context menus
+- **Dock** - Bottom panel shell with left-side tabs for switching views
+  - **ConstructViewer** - Shows/edits fields of selected construct
+  - **ConstructEditor** - CRUD for construct schemas
+  - **DeployablesEditor** - CRUD for deployables
+
+**State Flow:**
+- `selectedNodeIds` lifted to App, shared between Map and Dock
+- Node data passed via props from App to Dock views
+- Prop drilling preferred over Context for simplicity
+
+### 2. Construct Registry Layer (`src/constructs/`)
+- Central registry (`registry.ts`) that stores all construct type definitions
+- Schema system (`types.ts`) defines structure of constructs via `ConstructSchema` interface
+- Built-in schemas (`schemas/`) for common constructs: REST Controller, Database, Table, Implementation Details
+- User-defined schemas stored in localStorage via `storage.ts`
+- Schema Editor (`components/ConstructEditor.tsx`, `SchemaEditor.tsx`) allows users to create custom constructs
+- **Does NOT know** about React Flow or how nodes are rendered
+
+### 3. Compiler Layer (`src/constructs/compiler/`)
+- Transforms visual canvas into text output
+- Format-specific compilers in `formatters/`: OpenAPI, DBML, JSON
+- Reads construct schemas to determine compilation format
+- Groups nodes by type and applies appropriate formatters
+- **Does NOT know** about the visual editor or how constructs were created
+
+## Why This Separation Matters
+
+1. **Visual Editor** can add new features (multi-select, keyboard shortcuts, themes) without touching construct logic
+2. **Construct Registry** can add new construct types without modifying the editor or compiler
+3. **Compiler** can add new output formats without changing how constructs are defined or rendered
+4. **User-defined constructs** work seamlessly because all three layers interact through well-defined interfaces
+
+## Key Concepts
+
+### Construct Schema
+A `ConstructSchema` defines a construct TYPE (e.g., "REST Controller", "Database Table"). It includes:
+- Type identifier, display name, category, color
+- Field definitions (text, dropdown, table, code, connection types)
+- Compilation configuration (format, template, section header)
+- Optional description (shown in compiled output as AI context)
+
+### Construct Instance
+A React Flow node containing:
+- Reference to its schema type
+- User-given name
+- Field values (the actual data entered by the user)
+- UI state (expanded/collapsed, renaming)
+
+### Deployables
+**Deployables** are logical groupings that allow users to organize constructs into deployment units. Each construct can be assigned to a deployable (or "none"), helping AI tools understand which components should be deployed together.
+
+Examples of deployables:
+- API Service (contains controllers, models, middleware)
+- Database Layer (contains tables, migrations, connection logic)
+- UI Application (contains components, routes, assets)
+- CDK Stack (contains infrastructure definitions)
+
+Deployables are compiled into the output as metadata, helping AI tools generate code that respects deployment boundaries.
+
+### AI-Friendly Semantic Linking
+
+Carta produces **AI-optimized output** that goes beyond basic JSON representation:
+
+#### Semantic Identifiers
+Instead of cryptic numeric IDs, constructs get **semantic IDs** that are meaningful to both humans and AI:
+- `"controller-user-api"` instead of `"6"`
+- `"database-user-table"` instead of `"7"`
+- `"service-auth-jwt"` instead of `"12"`
+
+These identifiers follow a consistent `{type}-{name}` pattern with normalization.
+
+#### Relationship Metadata
+The compiler analyzes all connections (edges) and adds bidirectional relationship metadata:
+```json
+{
+  "id": "controller-user-api",
+  "references": ["database-user-table", "service-auth-jwt"],
+  "type": "controller",
+  "name": "User API"
+}
+```
+
+```json
+{
+  "id": "database-user-table",
+  "referencedBy": ["controller-user-api"],
+  "type": "database",
+  "name": "User Table"
+}
+```
+
+This allows AI tools to:
+1. **Understand Dependencies**: Know which components depend on others
+2. **Generate Code Structure**: Create appropriate import statements and initialization order
+3. **Respect Deployment Boundaries**: Group related constructs within deployables
+4. **Navigate Relationships**: Traverse the architecture graph bidirectionally
+
+#### Compilation Process
+1. **Visual Design** → User creates nodes and connections in the canvas
+2. **Relationship Analysis** → Compiler analyzes edges to build dependency maps
+3. **Semantic Enhancement** → Nodes get semantic IDs and relationship metadata
+4. **Structured Output** → JSON output with AI-friendly identifiers and relationship context
+
+### Dynamic Rendering
+`ConstructNode.tsx` is a single generic component that:
+1. Receives a construct instance (node data)
+2. Fetches its schema from the registry
+3. Dynamically renders fields based on the schema
+4. Works for ANY construct type (built-in or user-defined)
+
+## Data Flow
+
+```
+User adds node → Registry provides schema → Visual editor creates node instance
+User edits fields → Node data updated → Saved to localStorage
+User assigns deployable → Construct gets deployable grouping
+User connects nodes → Creates relationship metadata for AI compilation
+User clicks Compile → Compiler analyzes relationships → Adds semantic IDs → Generates AI-friendly output
+User opens Construct Editor → Can view/edit schemas → Saves to localStorage → Registry updates → New types available in main editor
+```
+
+## File Structure
+
+### Layout Components
+- `/src/App.tsx` - Root component, owns layout and coordinates state
+- `/src/components/Header.tsx` - Project title and import/export controls
+- `/src/components/Map.tsx` - ReactFlow canvas with node operations
+- `/src/components/Dock.tsx` - Bottom panel shell with tabbed views
+
+### Dock Views
+- `/src/components/ConstructViewer.tsx` - View/edit selected construct fields
+- `/src/components/ConstructEditor.tsx` - CRUD for construct schemas
+- `/src/components/DeployablesEditor.tsx` - CRUD for deployables
+
+### Other Components
+- `/src/components/ConstructNode.tsx` - Generic node renderer for constructs
+- `/src/components/` - Modals, menus, field editors
+
+### Domain Logic
+- `/src/constructs/types.ts` - Core TypeScript interfaces
+- `/src/constructs/registry.ts` - Singleton registry for schemas
+- `/src/constructs/storage.ts` - LocalStorage persistence
+- `/src/constructs/schemas/` - Built-in construct definitions
+- `/src/constructs/compiler/` - Compilation engine and formatters
+- `/src/constructs/deployables.ts` - Deployable management system
+
+### Utilities
+- `/src/utils/cartaFile.ts` - Export/import utilities with semantic ID generation
+- `/src/hooks/` - Custom React hooks (undo/redo)
+- `/src/index.css` - Tailwind + custom styles
