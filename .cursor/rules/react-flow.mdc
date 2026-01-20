@@ -1,0 +1,81 @@
+---
+description: React Flow best practices - main entry point
+globs: ["**/*.tsx", "**/*.ts", "**/*.jsx", "**/*.js"]
+---
+
+# React Flow Best Practices
+
+Use `@xyflow/react` with required CSS: `import '@xyflow/react/dist/style.css'`
+
+## Critical Rules
+
+1. **Define nodeTypes/edgeTypes OUTSIDE components**
+2. **Never mutate** node/edge objects
+3. **Use utility classes**: `nodrag`, `nopan`, `nowheel`
+4. **Hide handles** with `visibility: hidden`, never `display: none`
+5. **Multiple handles** need unique `id` props
+6. **Parent nodes** must appear before children
+
+## Detailed Rules Directory
+
+Reference these files from `.rules/react-flow` for comprehensive guidance:
+
+| File | When to use |
+|------|-------------|
+| `01-setup-and-basics.md` | Initial setup, node/edge structure |
+| `02-state-management.md` | Controlled/uncontrolled, Zustand, ReactFlowProvider |
+| `03-custom-nodes.md` | Custom node components |
+| `04-custom-edges.md` | Custom edge components |
+| `05-handles.md` | Handle configuration |
+| `06-performance.md` | Optimization techniques |
+| `07-typescript.md` | TypeScript patterns |
+| `08-subflows-and-grouping.md` | Parent-child nodes |
+| `09-common-errors.md` | Troubleshooting |
+| `10-advanced-patterns.md` | SSR, data flow, theming |
+
+## Quick Patterns
+
+### Setup
+```jsx
+import { ReactFlow } from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
+
+<div style={{ width: '100vw', height: '100vh' }}>
+  <ReactFlow nodes={nodes} edges={edges} />
+</div>
+```
+
+### Controlled Flow
+```jsx
+const [nodes, setNodes] = useState(initialNodes);
+const [edges, setEdges] = useState(initialEdges);
+const onNodesChange = useCallback((changes) => setNodes((nds) => applyNodeChanges(changes, nds)), []);
+const onEdgesChange = useCallback((changes) => setEdges((eds) => applyEdgeChanges(changes, eds)), []);
+const onConnect = useCallback((params) => setEdges((eds) => addEdge(params, eds)), []);
+```
+
+### Custom Node
+```jsx
+const CustomNode = memo(({ data }) => (
+  <>
+    <Handle type="target" position={Position.Top} />
+    <div>{data.label}</div>
+    <Handle type="source" position={Position.Bottom} />
+  </>
+));
+
+const nodeTypes = { custom: CustomNode }; // OUTSIDE component!
+```
+
+### Interactive Elements
+```jsx
+<input className="nodrag" />
+<button className="nodrag nopan">Click</button>
+```
+
+## Common Errors
+
+- "zustand provider" → Wrap with `<ReactFlowProvider>`
+- "nodeTypes object" warning → Define outside component
+- "Node type not found" → Match type string to key exactly
+- Edges not showing → Import CSS, add handles
