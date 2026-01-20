@@ -63,21 +63,6 @@ class ConstructRegistry {
   }
 
   /**
-   * Get schemas filtered by category
-   */
-  getSchemasByCategory(category: string): ConstructSchema[] {
-    return this.getAllSchemas().filter(s => s.category === category);
-  }
-
-  /**
-   * Get all unique categories
-   */
-  getCategories(): string[] {
-    const categories = new Set(this.getAllSchemas().map(s => s.category));
-    return Array.from(categories);
-  }
-
-  /**
    * Get only user-defined schemas
    */
   getUserSchemas(): ConstructSchema[] {
@@ -134,13 +119,12 @@ class ConstructRegistry {
    */
   private validateSchema(schema: unknown): schema is ConstructSchema {
     if (!schema || typeof schema !== 'object') return false;
-    
+
     const s = schema as Record<string, unknown>;
-    
+
     return (
       typeof s.type === 'string' &&
       typeof s.displayName === 'string' &&
-      typeof s.category === 'string' &&
       typeof s.color === 'string' &&
       Array.isArray(s.fields) &&
       s.compilation !== undefined

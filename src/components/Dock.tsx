@@ -80,23 +80,25 @@ export default function Dock({ selectedNodes, deployables, onDeployablesChange, 
   };
 
   return (
-    <div className="bg-surface flex" style={{ height }}>
+    <div className="bg-surface-depth-3 flex" style={{ height }}>
       {/* Left tabs */}
-      <div className="w-12 bg-surface-alt border-r flex flex-col items-center">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveView(tab.id)}
-            title={tab.label}
-            className={`w-10 h-10 flex items-center justify-center rounded-lg transition-colors ${
-              activeView === tab.id
-                ? 'bg-accent-muted text-accent'
-                : 'text-content-muted hover:bg-border-subtle hover:text-content'
-            }`}
-          >
-            {tab.icon}
-          </button>
-        ))}
+      <div className="w-14 bg-surface-depth-1 flex flex-col items-center py-2 px-1.5">
+        <div className="bg-surface-depth-2 rounded-xl p-1.5 flex flex-col gap-1.5">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveView(tab.id)}
+              title={tab.label}
+              className={`w-10 h-10 flex items-center justify-center rounded-lg transition-all ${
+                activeView === tab.id
+                  ? 'bg-accent/30 text-accent ring-2 ring-accent/60 shadow-sm shadow-accent/20'
+                  : 'text-content-muted hover:bg-surface-depth-3/50 hover:text-content'
+              }`}
+            >
+              {tab.icon}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Content area */}

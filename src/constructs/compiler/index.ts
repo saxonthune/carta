@@ -1,6 +1,7 @@
 import type { Node, Edge } from '@xyflow/react';
 import { registry } from '../registry';
 import { deployableRegistry } from '../deployables';
+import { getPortsForSchema } from '../ports';
 import type { ConstructNodeData, CompilationFormat, Deployable } from '../types';
 import { formatOpenAPI } from './formatters/openapi';
 import { formatJSON } from './formatters/json';
@@ -47,6 +48,12 @@ export class CompilerEngine {
       sections.push(deployablesSection);
     }
 
+    // Add connection graph section
+    const connectionGraphSection = this.compileConnectionGraph(nodes);
+    if (connectionGraphSection) {
+      sections.push(connectionGraphSection);
+    }
+
     // Enhance nodes with relationship metadata
     const nodesWithRelationships = this.addRelationshipMetadata(nodes, edges);
 
@@ -55,7 +62,7 @@ export class CompilerEngine {
 
     for (const [type, typeNodes] of Object.entries(grouped)) {
       const schema = registry.getSchema(type);
-      
+
       if (!schema) {
         // Unknown type - use JSON
         sections.push(`# Unknown Type: ${type}\n${formatJSON(typeNodes, simpleEdges, {} as any)}`);
@@ -140,6 +147,76 @@ ${deployablesJson}
     }
 
     return grouped;
+  }
+
+  /**
+   * Compile port and connection information for a node
+   * Returns a human-readable description of the node's relationships
+   */
+  private compileNodeRelationships(data: ConstructNodeData): string[] {
+    const relationships: string[] = [];
+    const schema = registry.getSchema(data.constructType);
+    const ports = getPortsForSchema(schema?.ports);
+
+    if (data.connections && data.connections.length > 0) {
+      for (const conn of data.connections) {
+        const port = ports.find(p => p.id === conn.portId);
+        const portLabel = port?.label || conn.portId;
+        const directionDesc = this.getDirectionDescription(port?.direction || 'bidi');
+        relationships.push(`${directionDesc} (via ${portLabel}): ${conn.targetSemanticId}`);
+      }
+    }
+
+    return relationships;
+  }
+
+  /**
+   * Get human-readable description for a port direction
+   */
+  private getDirectionDescription(direction: string): string {
+    switch (direction) {
+      case 'out': return 'References';
+      case 'in': return 'Referenced by';
+      case 'child': return 'Is child of';
+      case 'parent': return 'Is parent of';
+      case 'bidi': return 'Links to';
+      default: return 'Connected to';
+    }
+  }
+
+  /**
+   * Compile connection graph summary
+   */
+  private compileConnectionGraph(nodes: Node[]): string | null {
+    const nodesWithConnections = nodes.filter(n => {
+      const data = n.data as ConstructNodeData;
+      return data.connections && data.connections.length > 0;
+    });
+
+    if (nodesWithConnections.length === 0) return null;
+
+    const connectionLines: string[] = [];
+
+    for (const node of nodesWithConnections) {
+      const data = node.data as ConstructNodeData;
+      const semanticId = data.semanticId || `${data.constructType}-unnamed`;
+
+      const relationships = this.compileNodeRelationships(data);
+      if (relationships.length > 0) {
+        connectionLines.push(`${semanticId}:`);
+        relationships.forEach(r => connectionLines.push(`  - ${r}`));
+      }
+    }
+
+    if (connectionLines.length === 0) return null;
+
+    return `# Connection Graph
+
+The following constructs have explicit connections defined:
+
+\`\`\`
+${connectionLines.join('\n')}
+\`\`\``;
   }
 
   /**

@@ -2,15 +2,19 @@ import type { ConstructSchema } from '../types';
 
 /**
  * REST Controller Schema
- * 
+ *
  * Represents an API endpoint with route, HTTP method, parameters, and response.
  * Compiles to OpenAPI format.
  */
 export const controllerSchema: ConstructSchema = {
   type: 'controller',
   displayName: 'REST Controller',
-  category: 'api',
   color: '#6366f1',
+  ports: [
+    { id: 'flow-in', direction: 'in', position: 'left', offset: 50, label: 'Flow In' },
+    { id: 'flow-out', direction: 'out', position: 'right', offset: 50, label: 'Flow Out' },
+    { id: 'data-source', direction: 'out', position: 'bottom', offset: 50, label: 'Data Source' },
+  ],
   fields: [
     {
       name: 'route',

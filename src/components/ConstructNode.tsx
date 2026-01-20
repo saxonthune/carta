@@ -2,18 +2,37 @@ import { memo, useState, useEffect, useRef, useCallback } from 'react';
 import { Handle, Position, NodeResizer } from '@xyflow/react';
 import { registry } from '../constructs/registry';
 import { fieldRenderers } from './fields';
-import type { ConstructNodeData } from '../constructs/types';
+import { getPortsForSchema, getHandleType, getPortColor } from '../constructs/ports';
+import type { ConstructNodeData, PortConfig, PortPosition } from '../constructs/types';
 
 interface ConstructNodeComponentProps {
   data: ConstructNodeData;
   selected?: boolean;
 }
 
+// Map port position to React Flow Position
+const positionMap: Record<PortPosition, Position> = {
+  left: Position.Left,
+  right: Position.Right,
+  top: Position.Top,
+  bottom: Position.Bottom,
+};
+
+// Calculate handle style for offset positioning
+function getHandlePositionStyle(position: PortPosition, offset: number): React.CSSProperties {
+  if (position === 'left' || position === 'right') {
+    return { top: `${offset}%`, transform: 'translateY(-50%)' };
+  }
+  return { left: `${offset}%`, transform: 'translateX(-50%)' };
+}
+
 const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => {
   const schema = registry.getSchema(data.constructType);
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(data.name);
+  const [hoveredPort, setHoveredPort] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const nodeRef = useRef<HTMLDivElement>(null);
 
   const {
     isExpanded = false,
@@ -71,15 +90,38 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
   if (!schema) {
     return (
       <div className="bg-danger-muted border-2 border-danger rounded-lg min-w-[250px] p-2 text-sm text-content">
-        <Handle type="target" position={Position.Left} className="!bg-accent !w-2 !h-2" />
+        <Handle type="target" position={Position.Left} id="flow-in" className="port-handle !w-3 !h-3" />
         <div>Unknown construct type: {data.constructType}</div>
-        <Handle type="source" position={Position.Right} className="!bg-accent !w-2 !h-2" />
+        <Handle type="source" position={Position.Right} id="flow-out" className="port-handle !w-3 !h-3" />
       </div>
     );
   }
 
+  // Get ports from schema or use defaults
+  const ports = getPortsForSchema(schema.ports);
+
+  // Calculate tooltip position based on port position
+  const getTooltipPosition = (port: PortConfig): React.CSSProperties => {
+    const base: React.CSSProperties = {
+      position: 'absolute',
+      whiteSpace: 'nowrap',
+      zIndex: 1000,
+    };
+    switch (port.position) {
+      case 'left':
+        return { ...base, left: -8, top: `${port.offset}%`, transform: 'translateX(-100%) translateY(-50%)' };
+      case 'right':
+        return { ...base, right: -8, top: `${port.offset}%`, transform: 'translateX(100%) translateY(-50%)' };
+      case 'top':
+        return { ...base, top: -8, left: `${port.offset}%`, transform: 'translateY(-100%) translateX(-50%)' };
+      case 'bottom':
+        return { ...base, bottom: -8, left: `${port.offset}%`, transform: 'translateY(100%) translateX(-50%)' };
+    }
+  };
+
   return (
     <div
+      ref={nodeRef}
       className={`bg-surface border-2 rounded-lg w-full h-full text-[13px] text-content shadow-md overflow-hidden relative flex flex-col ${isExpanded ? 'min-w-[300px]' : 'min-w-[250px]'} ${selected ? 'border-accent shadow-[0_0_0_2px_var(--color-accent)]' : 'border'}`}
     >
       {selected && (
@@ -91,7 +133,33 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
         />
       )}
 
-      <Handle type="target" position={Position.Left} className="!bg-accent !w-2 !h-2" />
+      {/* Dynamic port handles */}
+      {ports.map((port) => (
+        <Handle
+          key={port.id}
+          id={port.id}
+          type={getHandleType(port.direction)}
+          position={positionMap[port.position]}
+          className="port-handle !w-3.5 !h-3.5 !rounded !border-2 !border-white"
+          style={{
+            ...getHandlePositionStyle(port.position, port.offset),
+            backgroundColor: getPortColor(port.direction),
+          }}
+          data-direction={port.direction}
+          onMouseEnter={() => setHoveredPort(port.id)}
+          onMouseLeave={() => setHoveredPort(null)}
+        />
+      ))}
+
+      {/* Port tooltip */}
+      {hoveredPort && (
+        <div
+          className="bg-surface-elevated text-content text-xs px-2 py-1 rounded shadow-lg border pointer-events-none"
+          style={getTooltipPosition(ports.find(p => p.id === hoveredPort)!)}
+        >
+          {ports.find(p => p.id === hoveredPort)?.label}
+        </div>
+      )}
 
       <div
         className="flex items-center justify-center gap-1.5 px-2 py-1 text-white cursor-move select-none border-b border-white/20 w-full shrink-0"
@@ -208,8 +276,6 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
           })}
         </div>
       )}
-
-      <Handle type="source" position={Position.Right} className="!bg-accent !w-2 !h-2" />
     </div>
   );
 });

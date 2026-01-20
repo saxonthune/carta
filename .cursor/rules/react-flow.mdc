@@ -16,6 +16,8 @@ Use `@xyflow/react` with required CSS: `import '@xyflow/react/dist/style.css'`
 5. **Multiple handles** need unique `id` props
 6. **Parent nodes** must appear before children
 
+**For port semantics and connection model:** See `ports-and-connections.mdc`
+
 ## Detailed Rules Directory
 
 Reference these files from `.rules/react-flow` for comprehensive guidance:

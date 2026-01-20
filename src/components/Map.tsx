@@ -24,7 +24,7 @@ import AddConstructMenu from './AddConstructMenu';
 import DeployableBackground from './DeployableBackground';
 import { useUndoRedo } from '../hooks/useUndoRedo';
 import { generateSemanticId } from '../utils/cartaFile';
-import type { ConstructSchema, ConstructValues, Deployable } from '../constructs/types';
+import type { ConstructSchema, ConstructValues, Deployable, ConnectionValue, ConstructNodeData } from '../constructs/types';
 
 const nodeTypes = {
   custom: CustomNode,
@@ -129,12 +129,95 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     onNodesEdgesChange(nodes, edges);
   }, [nodes, edges, onNodesEdgesChange]);
 
+  // Helper to get semanticId from a node
+  const getNodeSemanticId = useCallback((nodeId: string): string | null => {
+    const node = nodes.find(n => n.id === nodeId);
+    if (!node || node.type !== 'construct') return null;
+    const data = node.data as ConstructNodeData;
+    return data.semanticId || generateSemanticId(data.constructType, data.name);
+  }, [nodes]);
+
   const onConnect: OnConnect = useCallback(
     (params) => {
       takeSnapshot();
+
+      // Store connection on source node's data
+      if (params.source && params.sourceHandle && params.target && params.targetHandle) {
+        const targetSemanticId = getNodeSemanticId(params.target);
+        if (targetSemanticId) {
+          const newConnection: ConnectionValue = {
+            portId: params.sourceHandle,
+            targetSemanticId,
+            targetPortId: params.targetHandle,
+          };
+
+          setNodes((nds) =>
+            nds.map((node) => {
+              if (node.id === params.source && node.type === 'construct') {
+                const data = node.data as ConstructNodeData;
+                const existingConnections = data.connections || [];
+                // Avoid duplicates
+                const alreadyExists = existingConnections.some(
+                  c => c.portId === newConnection.portId &&
+                       c.targetSemanticId === newConnection.targetSemanticId &&
+                       c.targetPortId === newConnection.targetPortId
+                );
+                if (alreadyExists) return node;
+
+                return {
+                  ...node,
+                  data: {
+                    ...data,
+                    connections: [...existingConnections, newConnection],
+                  },
+                };
+              }
+              return node;
+            })
+          );
+        }
+      }
+
+      // Also add edge for visual rendering
       setEdges((eds) => addEdge(params, eds));
     },
-    [setEdges, takeSnapshot]
+    [setEdges, setNodes, takeSnapshot, getNodeSemanticId]
+  );
+
+  // Handle edge deletion - remove connection data from nodes
+  const handleEdgesDelete = useCallback(
+    (deletedEdges: Edge[]) => {
+      setNodes((nds) =>
+        nds.map((node) => {
+          if (node.type !== 'construct') return node;
+          const data = node.data as ConstructNodeData;
+          if (!data.connections || data.connections.length === 0) return node;
+
+          // Find edges that were deleted from this node
+          const edgesFromThisNode = deletedEdges.filter(e => e.source === node.id);
+          if (edgesFromThisNode.length === 0) return node;
+
+          // Remove connections that match deleted edges
+          const updatedConnections = data.connections.filter(conn => {
+            return !edgesFromThisNode.some(edge =>
+              edge.sourceHandle === conn.portId &&
+              edge.targetHandle === conn.targetPortId
+            );
+          });
+
+          if (updatedConnections.length === data.connections.length) return node;
+
+          return {
+            ...node,
+            data: {
+              ...data,
+              connections: updatedConnections,
+            },
+          };
+        })
+      );
+    },
+    [setNodes]
   );
 
   const addConstruct = useCallback(
@@ -450,6 +533,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        onEdgesDelete={handleEdgesDelete}
         onConnect={onConnect}
         onSelectionChange={handleSelectionChange}
         onPaneContextMenu={onPaneContextMenu}

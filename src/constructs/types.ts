@@ -13,6 +13,51 @@ export interface Deployable {
   color?: string;  // Optional color for visual grouping
 }
 
+// ============================================
+// Port System Types
+// ============================================
+
+/**
+ * Port direction determines valid connection pairings
+ * - 'in': Receives flow from 'out' or 'bidi' ports
+ * - 'out': Sends flow to 'in' or 'bidi' ports
+ * - 'parent': Connected by 'child' ports (hierarchy)
+ * - 'child': Connects to 'parent' ports (hierarchy)
+ * - 'bidi': Bidirectional, can connect to any compatible port
+ */
+export type PortDirection = 'in' | 'out' | 'parent' | 'child' | 'bidi';
+
+/**
+ * Position of a port on the construct node
+ */
+export type PortPosition = 'left' | 'right' | 'top' | 'bottom';
+
+/**
+ * Port configuration on a construct schema
+ * Defines where handles appear and how they connect
+ */
+export interface PortConfig {
+  id: string;                    // Unique within construct, e.g., 'fk_target'
+  direction: PortDirection;
+  position: PortPosition;
+  offset: number;                // 0-100% along the edge
+  label: string;                 // Display name shown on hover
+
+  // Future type system hooks
+  dataType?: string;
+  accepts?: string[];
+}
+
+/**
+ * Connection stored on a construct instance
+ * Represents a link from this construct's port to another construct's port
+ */
+export interface ConnectionValue {
+  portId: string;                // Which port on this construct
+  targetSemanticId: string;      // Connected construct's semanticId
+  targetPortId: string;          // Which port on target construct
+}
+
 /**
  * Column definition for table fields
  */
@@ -63,11 +108,11 @@ export interface CompilationConfig {
 export interface ConstructSchema {
   type: string;              // Unique identifier: 'controller', 'db_table', etc.
   displayName: string;       // Human-readable name
-  category: string;          // For grouping: 'api', 'data', 'infra'
   color: string;             // Node border/accent color
   icon?: string;             // Optional icon identifier
   description?: string;      // Description shown during compilation (AI context)
   fields: FieldDefinition[];
+  ports?: PortConfig[];      // Port configurations for connections
   compilation: CompilationConfig;
   isBuiltIn?: boolean;       // true for built-in schemas, false for user-defined
 }
@@ -96,6 +141,8 @@ export interface ConstructNodeData {
   semanticId?: string;       // AI-friendly identifier: 'controller-user-api'
   values: ConstructValues;   // Field values
   deployableId?: string | null; // Deployable grouping (null/undefined means "none")
+  // Port-based connections
+  connections?: ConnectionValue[]; // Connections from this construct's ports
   // Relationship metadata for AI consumption
   references?: string[];     // Semantic IDs this construct references
   referencedBy?: string[];   // Semantic IDs that reference this construct

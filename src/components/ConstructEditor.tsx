@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { registry } from '../constructs/registry';
 import { schemaStorage } from '../constructs/storage';
-import SchemaEditor from './SchemaEditor';
+import ConstructDetailsEditor from './ConstructDetailsEditor';
 import type { ConstructSchema } from '../constructs/types';
 
 interface ConstructEditorProps {
@@ -65,7 +65,7 @@ export default function ConstructEditor({ onBack }: ConstructEditorProps) {
   const isFullScreen = !!onBack;
 
   return (
-    <div className={`flex flex-col bg-surface text-content ${isFullScreen ? 'w-screen h-screen' : 'w-full h-full'}`}>
+    <div className={`flex flex-col bg-surface-depth-3 text-content ${isFullScreen ? 'w-screen h-screen' : 'w-full h-full'}`}>
       {isFullScreen && (
         <div className="flex items-center px-5 py-3 bg-surface-elevated border-b gap-4">
           <button
@@ -83,8 +83,8 @@ export default function ConstructEditor({ onBack }: ConstructEditorProps) {
       )}
 
       <div className="flex flex-1 overflow-hidden">
-        <div className={`bg-surface-elevated border-r flex flex-col ${isFullScreen ? 'w-[280px]' : 'w-[200px]'}`}>
-          <div className={`flex justify-between items-center border-b ${isFullScreen ? 'p-4' : 'px-3 py-2'}`}>
+        <div className={`bg-surface-depth-1 flex flex-col ${isFullScreen ? 'w-[280px]' : 'w-[200px]'}`}>
+          <div className={`flex justify-between items-center ${isFullScreen ? 'p-4' : 'px-3 py-2'}`}>
             <h2 className="m-0 text-sm font-semibold text-content-muted uppercase tracking-wide">Constructs</h2>
             <button
               className={`bg-accent border-none rounded text-white font-medium cursor-pointer hover:bg-accent-hover transition-colors ${isFullScreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'}`}
@@ -94,13 +94,18 @@ export default function ConstructEditor({ onBack }: ConstructEditorProps) {
             </button>
           </div>
 
-          <div className={`flex-1 overflow-y-auto ${isFullScreen ? 'p-2' : 'p-1'}`}>
-            <div className={isFullScreen ? 'mb-4' : 'mb-2'}>
-              <h3 className={`m-0 text-[11px] font-semibold uppercase text-content-muted tracking-wide ${isFullScreen ? 'px-3 py-2' : 'px-2 py-1'}`}>Built-in</h3>
+          <div className={`flex-1 overflow-y-auto flex flex-col gap-2 ${isFullScreen ? 'px-2 pb-2' : 'px-1.5 pb-1.5'}`}>
+            {/* Built-in section island */}
+            <div className={`bg-surface-depth-2 rounded-xl ${isFullScreen ? 'p-2' : 'p-1.5'}`}>
+              <h3 className={`m-0 text-[11px] font-semibold uppercase text-content-muted tracking-wide ${isFullScreen ? 'px-2 py-2' : 'px-2 py-1'}`}>Built-in</h3>
               {builtInSchemas.map(schema => (
                 <button
                   key={schema.type}
-                  className={`flex items-center w-full bg-transparent border-transparent rounded-md text-content cursor-pointer text-left gap-2 hover:bg-surface-alt transition-all ${selectedType === schema.type ? 'bg-surface-alt border-accent' : ''} ${isFullScreen ? 'px-3 py-2.5 text-sm' : 'px-2 py-1.5 text-xs'}`}
+                  className={`flex items-center w-full rounded-lg cursor-pointer text-left gap-2 transition-all ${
+                    selectedType === schema.type 
+                      ? 'bg-accent/30 text-accent ring-2 ring-accent/60 shadow-sm shadow-accent/20' 
+                      : 'text-content bg-transparent hover:bg-surface-depth-3/50'
+                  } ${isFullScreen ? 'px-3 py-2.5 text-sm' : 'px-2 py-1.5 text-xs'}`}
                   onClick={() => handleSelectSchema(schema.type)}
                 >
                   <span
@@ -108,20 +113,25 @@ export default function ConstructEditor({ onBack }: ConstructEditorProps) {
                     style={{ backgroundColor: schema.color }}
                   />
                   <span className="flex-1 truncate">{schema.displayName}</span>
-                  <span className="text-[10px] px-1.5 py-0.5 bg-surface-alt rounded text-content-muted shrink-0">Built-in</span>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded shrink-0 ${selectedType === schema.type ? 'bg-accent/20 text-accent' : 'bg-surface-depth-3 text-content-muted'}`}>Built-in</span>
                 </button>
               ))}
             </div>
 
-            <div className={isFullScreen ? 'mb-4' : 'mb-2'}>
-              <h3 className={`m-0 text-[11px] font-semibold uppercase text-content-muted tracking-wide ${isFullScreen ? 'px-3 py-2' : 'px-2 py-1'}`}>Custom</h3>
+            {/* Custom section island */}
+            <div className={`bg-surface-depth-2 rounded-xl ${isFullScreen ? 'p-2' : 'p-1.5'}`}>
+              <h3 className={`m-0 text-[11px] font-semibold uppercase text-content-muted tracking-wide ${isFullScreen ? 'px-2 py-2' : 'px-2 py-1'}`}>Custom</h3>
               {userSchemas.length === 0 ? (
-                <p className={`text-content-muted italic ${isFullScreen ? 'px-3 text-sm' : 'px-2 text-xs'}`}>No custom constructs yet</p>
+                <p className={`text-content-muted italic ${isFullScreen ? 'px-2 text-sm' : 'px-2 text-xs'}`}>No custom constructs yet</p>
               ) : (
                 userSchemas.map(schema => (
                   <button
                     key={schema.type}
-                    className={`flex items-center w-full bg-transparent border-transparent rounded-md text-content cursor-pointer text-left gap-2 hover:bg-surface-alt transition-all ${selectedType === schema.type ? 'bg-surface-alt border-accent' : ''} ${isFullScreen ? 'px-3 py-2.5 text-sm' : 'px-2 py-1.5 text-xs'}`}
+                    className={`flex items-center w-full rounded-lg cursor-pointer text-left gap-2 transition-all ${
+                      selectedType === schema.type 
+                        ? 'bg-accent/30 text-accent ring-2 ring-accent/60 shadow-sm shadow-accent/20' 
+                        : 'text-content bg-transparent hover:bg-surface-depth-3/50'
+                    } ${isFullScreen ? 'px-3 py-2.5 text-sm' : 'px-2 py-1.5 text-xs'}`}
                     onClick={() => handleSelectSchema(schema.type)}
                   >
                     <span
@@ -136,9 +146,9 @@ export default function ConstructEditor({ onBack }: ConstructEditorProps) {
           </div>
         </div>
 
-        <div className={`flex-1 overflow-hidden bg-surface ${isFullScreen ? 'p-6' : 'p-3'}`}>
+        <div className={`flex-1 overflow-hidden bg-surface-depth-3 ${isFullScreen ? 'p-6' : 'p-3'}`}>
           {isCreatingNew ? (
-            <SchemaEditor
+            <ConstructDetailsEditor
               schema={null}
               isNew={true}
               onSave={handleSaveSchema}
@@ -146,7 +156,7 @@ export default function ConstructEditor({ onBack }: ConstructEditorProps) {
               onDelete={() => {}}
             />
           ) : selectedSchema ? (
-            <SchemaEditor
+            <ConstructDetailsEditor
               schema={selectedSchema}
               isNew={false}
               onSave={handleSaveSchema}

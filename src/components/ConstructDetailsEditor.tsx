@@ -1,31 +1,38 @@
 import { useState, useCallback, useEffect } from 'react';
 import { registry } from '../constructs/registry';
 import FieldDefinitionEditor from './FieldDefinitionEditor';
-import type { ConstructSchema, FieldDefinition, CompilationFormat } from '../constructs/types';
+import type { ConstructSchema, FieldDefinition, CompilationFormat, PortConfig, PortDirection, PortPosition } from '../constructs/types';
 
-interface SchemaEditorProps {
-  schema: ConstructSchema | null;
+interface ConstructDetailsEditorProps {
+  construct: ConstructSchema | null;
   isNew: boolean;
-  onSave: (schema: ConstructSchema, isNew: boolean) => void;
+  onSave: (construct: ConstructSchema, isNew: boolean) => void;
   onCancel: () => void;
   onDelete: (type: string) => void;
 }
 
 const COMPILATION_FORMATS: CompilationFormat[] = ['json', 'openapi', 'dbml', 'custom'];
-const CATEGORIES = ['api', 'data', 'infra', 'other'];
 const DEFAULT_COLORS = [
   '#6366f1', '#8b5cf6', '#ec4899', '#ef4444',
   '#f97316', '#eab308', '#22c55e', '#14b8a6',
   '#06b6d4', '#3b82f6', '#64748b', '#1e293b'
 ];
 
+const PORT_DIRECTIONS: PortDirection[] = ['in', 'out', 'parent', 'child', 'bidi'];
+const PORT_POSITIONS: PortPosition[] = ['left', 'right', 'top', 'bottom'];
+
 const createEmptySchema = (): ConstructSchema => ({
   type: '',
   displayName: '',
-  category: 'other',
   color: '#6366f1',
   description: '',
   fields: [],
+  ports: [
+    { id: 'parent', direction: 'parent', position: 'top', offset: 50, label: 'Parent' },
+    { id: 'child', direction: 'child', position: 'bottom', offset: 50, label: 'Children' },
+    { id: 'flow-in', direction: 'in', position: 'left', offset: 50, label: 'Flow In' },
+    { id: 'flow-out', direction: 'out', position: 'right', offset: 50, label: 'Flow Out' },
+  ],
   compilation: {
     format: 'json',
     sectionHeader: ''
@@ -33,15 +40,15 @@ const createEmptySchema = (): ConstructSchema => ({
   isBuiltIn: false
 });
 
-export default function SchemaEditor({
-  schema,
+export default function ConstructDetailsEditor({
+  construct,
   isNew,
   onSave,
   onCancel,
   onDelete
-}: SchemaEditorProps) {
+}: ConstructDetailsEditorProps) {
   const [formData, setFormData] = useState<ConstructSchema>(
-    schema || createEmptySchema()
+    construct || createEmptySchema()
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [expandedFieldIndex, setExpandedFieldIndex] = useState<number | null>(null);
@@ -49,10 +56,10 @@ export default function SchemaEditor({
   const isReadOnly = formData.isBuiltIn === true;
 
   useEffect(() => {
-    setFormData(schema || createEmptySchema());
+    setFormData(construct || createEmptySchema());
     setErrors({});
     setExpandedFieldIndex(null);
-  }, [schema]);
+  }, [construct]);
 
   const validateForm = useCallback((): boolean => {
     const newErrors: Record<string, string> = {};
@@ -67,10 +74,6 @@ export default function SchemaEditor({
 
     if (!formData.displayName.trim()) {
       newErrors.displayName = 'Display name is required';
-    }
-
-    if (!formData.category.trim()) {
-      newErrors.category = 'Category is required';
     }
 
     setErrors(newErrors);
@@ -139,6 +142,39 @@ export default function SchemaEditor({
     setExpandedFieldIndex(newIndex);
   };
 
+  // Port management functions
+  const addPort = () => {
+    if (isReadOnly) return;
+    const ports = formData.ports || [];
+    const newPort: PortConfig = {
+      id: `port_${ports.length + 1}`,
+      direction: 'bidi',
+      position: 'right',
+      offset: 50,
+      label: `Port ${ports.length + 1}`,
+    };
+    setFormData(prev => ({
+      ...prev,
+      ports: [...(prev.ports || []), newPort]
+    }));
+  };
+
+  const updatePort = (index: number, updates: Partial<PortConfig>) => {
+    if (isReadOnly) return;
+    setFormData(prev => ({
+      ...prev,
+      ports: (prev.ports || []).map((p, i) => i === index ? { ...p, ...updates } : p)
+    }));
+  };
+
+  const removePort = (index: number) => {
+    if (isReadOnly) return;
+    setFormData(prev => ({
+      ...prev,
+      ports: (prev.ports || []).filter((_, i) => i !== index)
+    }));
+  };
+
   return (
     <div className="h-full flex flex-col">
       <div className="flex items-center gap-3 mb-4 shrink-0">
@@ -183,42 +219,26 @@ export default function SchemaEditor({
               {errors.displayName && <span className="block mt-1 text-xs text-danger">{errors.displayName}</span>}
             </div>
 
-            <div className="grid grid-cols-2 gap-3 mb-3">
-              <div>
-                <label className="block mb-1 text-sm font-medium text-content">Category</label>
-                <select
-                  className="w-full px-2.5 py-2 bg-surface rounded-md text-content text-sm focus:outline-none focus:border-accent transition-colors"
-                  value={formData.category}
-                  onChange={(e) => updateField('category', e.target.value)}
-                  disabled={isReadOnly}
-                >
-                  {CATEGORIES.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block mb-1 text-sm font-medium text-content">Color</label>
-                <div className="flex flex-wrap gap-1 items-center">
-                  {DEFAULT_COLORS.slice(0, 6).map(color => (
-                    <button
-                      key={color}
-                      type="button"
-                      className={`w-6 h-6 border-2 border-transparent rounded cursor-pointer transition-all hover:scale-110 ${formData.color === color ? 'border-white shadow-[0_0_0_2px_#6366f1]' : ''} ${isReadOnly ? 'cursor-not-allowed opacity-50' : ''}`}
-                      style={{ backgroundColor: color }}
-                      onClick={() => updateField('color', color)}
-                      disabled={isReadOnly}
-                    />
-                  ))}
-                  <input
-                    type="color"
-                    className="w-6 h-6 p-0 border-none rounded cursor-pointer"
-                    value={formData.color}
-                    onChange={(e) => updateField('color', e.target.value)}
+            <div className="mb-3">
+              <label className="block mb-1 text-sm font-medium text-content">Color</label>
+              <div className="flex flex-wrap gap-1 items-center">
+                {DEFAULT_COLORS.slice(0, 6).map(color => (
+                  <button
+                    key={color}
+                    type="button"
+                    className={`w-6 h-6 border-2 border-transparent rounded cursor-pointer transition-all hover:scale-110 ${formData.color === color ? 'border-white shadow-[0_0_0_2px_#6366f1]' : ''} ${isReadOnly ? 'cursor-not-allowed opacity-50' : ''}`}
+                    style={{ backgroundColor: color }}
+                    onClick={() => updateField('color', color)}
                     disabled={isReadOnly}
                   />
-                </div>
+                ))}
+                <input
+                  type="color"
+                  className="w-6 h-6 p-0 border-none rounded cursor-pointer"
+                  value={formData.color}
+                  onChange={(e) => updateField('color', e.target.value)}
+                  disabled={isReadOnly}
+                />
               </div>
             </div>
 
@@ -271,6 +291,90 @@ export default function SchemaEditor({
                 />
               </div>
             </div>
+          </div>
+
+          {/* Ports Configuration */}
+          <div className="bg-surface-elevated rounded-lg p-4">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="m-0 text-sm font-semibold text-content-muted uppercase tracking-wide">Ports</h3>
+              {!isReadOnly && (
+                <button
+                  className="px-2.5 py-1 bg-surface-alt rounded text-content text-xs cursor-pointer hover:bg-content-muted transition-colors"
+                  onClick={addPort}
+                >
+                  + Add Port
+                </button>
+              )}
+            </div>
+
+            {(!formData.ports || formData.ports.length === 0) ? (
+              <p className="text-content-muted text-sm italic m-0">No ports defined (defaults will be used)</p>
+            ) : (
+              <div className="flex flex-col gap-2 max-h-[200px] overflow-y-auto">
+                {formData.ports.map((port, index) => (
+                  <div key={index} className="bg-surface p-2 rounded border flex flex-col gap-2">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        className="flex-1 px-2 py-1 bg-surface-alt rounded text-content text-xs focus:outline-none"
+                        value={port.id}
+                        onChange={(e) => updatePort(index, { id: e.target.value })}
+                        placeholder="Port ID"
+                        disabled={isReadOnly}
+                      />
+                      <input
+                        type="text"
+                        className="flex-1 px-2 py-1 bg-surface-alt rounded text-content text-xs focus:outline-none"
+                        value={port.label}
+                        onChange={(e) => updatePort(index, { label: e.target.value })}
+                        placeholder="Label"
+                        disabled={isReadOnly}
+                      />
+                      {!isReadOnly && (
+                        <button
+                          className="px-2 py-1 text-danger text-xs hover:bg-danger-muted rounded"
+                          onClick={() => removePort(index)}
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <select
+                        className="flex-1 px-2 py-1 bg-surface-alt rounded text-content text-xs focus:outline-none"
+                        value={port.direction}
+                        onChange={(e) => updatePort(index, { direction: e.target.value as PortDirection })}
+                        disabled={isReadOnly}
+                      >
+                        {PORT_DIRECTIONS.map(dir => (
+                          <option key={dir} value={dir}>{dir}</option>
+                        ))}
+                      </select>
+                      <select
+                        className="flex-1 px-2 py-1 bg-surface-alt rounded text-content text-xs focus:outline-none"
+                        value={port.position}
+                        onChange={(e) => updatePort(index, { position: e.target.value as PortPosition })}
+                        disabled={isReadOnly}
+                      >
+                        {PORT_POSITIONS.map(pos => (
+                          <option key={pos} value={pos}>{pos}</option>
+                        ))}
+                      </select>
+                      <input
+                        type="number"
+                        className="w-16 px-2 py-1 bg-surface-alt rounded text-content text-xs focus:outline-none"
+                        value={port.offset}
+                        onChange={(e) => updatePort(index, { offset: Math.max(0, Math.min(100, parseInt(e.target.value) || 0)) })}
+                        min={0}
+                        max={100}
+                        placeholder="Offset %"
+                        disabled={isReadOnly}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

@@ -157,3 +157,13 @@ function CustomNode({ id }) {
   );
 }
 ```
+
+## Carta-Specific: Port Model
+
+For Carta's semantic port system (port types, connection storage, relationship semantics), see:
+**`.cursor/rules/ports-and-connections.mdc`**
+
+Key differences from vanilla React Flow:
+- Handles are generated dynamically from `schema.ports`
+- Connection data stored on construct, not just as edge
+- Port types (`in`, `out`, `parent`, `child`, `bidi`) determine semantics
