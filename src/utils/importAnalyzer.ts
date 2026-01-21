@@ -68,27 +68,34 @@ export interface ImportAnalysis {
 }
 
 /**
- * Options for what to import
+ * Options for what to import - tracks individual items
  */
 export interface ImportOptions {
-  schemas: boolean;
-  nodes: boolean;
-  deployables: boolean;
+  schemas: Set<string>; // Set of schema types to import
+  nodes: Set<string>;   // Set of node IDs to import
+  deployables: Set<string>; // Set of deployable IDs to import
 }
 
 /**
- * Default import options
+ * Default import options - selects all items
  */
-export const defaultImportOptions: ImportOptions = {
-  schemas: true,
-  nodes: false,
-  deployables: false,
+export const defaultImportOptions = (analysis: ImportAnalysis): ImportOptions => {
+  return {
+    schemas: new Set(analysis.schemas.items.map(s => s.item.type)),
+    nodes: new Set(analysis.nodes.items.map(n => n.item.id)),
+    deployables: new Set(analysis.deployables.items.map(d => d.item.id)),
+  };
 };
 
 /**
  * Analyze a CartaFile for import preview
  */
-export function analyzeImport(file: CartaFile, fileName: string): ImportAnalysis {
+export function analyzeImport(
+  file: CartaFile,
+  fileName: string,
+  currentNodes: Node[] = [],
+  currentDeployables: Deployable[] = []
+): ImportAnalysis {
   // Analyze schemas
   const analyzedSchemas: AnalyzedSchema[] = file.customSchemas.map(schema => {
     const existing = registry.getSchema(schema.type);
@@ -104,19 +111,43 @@ export function analyzeImport(file: CartaFile, fileName: string): ImportAnalysis
   const schemasNew = analyzedSchemas.filter(s => s.status === 'new').length;
   const schemasConflicts = analyzedSchemas.filter(s => s.status === 'conflict').length;
 
-  // Analyze nodes (for future use)
-  const analyzedNodes: AnalyzedNode[] = file.nodes.map(node => ({
-    item: node as Node<ConstructNodeData>,
-    status: 'new' as ItemStatus,
-  }));
+  // Analyze nodes by checking for semanticId conflicts
+  const analyzedNodes: AnalyzedNode[] = file.nodes.map(node => {
+    const nodeData = node.data as ConstructNodeData;
+    const semanticId = nodeData.semanticId;
+    
+    // Check if a node with the same semanticId already exists
+    const existingNode = currentNodes.find(n => {
+      const existing = n.data as ConstructNodeData;
+      return existing.semanticId === semanticId;
+    });
 
-  // Analyze deployables (for future use)
-  const analyzedDeployables: AnalyzedDeployable[] = file.deployables.map(dep => ({
-    item: dep,
-    status: 'new' as ItemStatus,
-  }));
+    return {
+      item: node as Node<ConstructNodeData>,
+      status: existingNode ? 'conflict' : 'new',
+      existingItem: existingNode as Node<ConstructNodeData> | undefined,
+    };
+  });
 
-  const hasConflicts = schemasConflicts > 0;
+  const nodesNew = analyzedNodes.filter(n => n.status === 'new').length;
+  const nodesConflicts = analyzedNodes.filter(n => n.status === 'conflict').length;
+
+  // Analyze deployables by checking for id conflicts
+  const analyzedDeployables: AnalyzedDeployable[] = file.deployables.map(dep => {
+    // Check if a deployable with the same id already exists
+    const existingDeployable = currentDeployables.find(d => d.id === dep.id);
+
+    return {
+      item: dep,
+      status: existingDeployable ? 'conflict' : 'new',
+      existingItem: existingDeployable,
+    };
+  });
+
+  const deployablesNew = analyzedDeployables.filter(d => d.status === 'new').length;
+  const deployablesConflicts = analyzedDeployables.filter(d => d.status === 'conflict').length;
+
+  const hasConflicts = schemasConflicts > 0 || nodesConflicts > 0 || deployablesConflicts > 0;
 
   return {
     fileName,
@@ -133,16 +164,16 @@ export function analyzeImport(file: CartaFile, fileName: string): ImportAnalysis
       items: analyzedNodes,
       summary: {
         total: analyzedNodes.length,
-        new: analyzedNodes.length,
-        conflicts: 0,
+        new: nodesNew,
+        conflicts: nodesConflicts,
       },
     },
     deployables: {
       items: analyzedDeployables,
       summary: {
         total: analyzedDeployables.length,
-        new: analyzedDeployables.length,
-        conflicts: 0,
+        new: deployablesNew,
+        conflicts: deployablesConflicts,
       },
     },
     edges: {

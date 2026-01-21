@@ -90,9 +90,10 @@ export interface MapProps {
   onNodesEdgesChange: (nodes: Node[], edges: Edge[]) => void;
   onSelectionChange?: (selectedNodes: Node[]) => void;
   nodeUpdateRef?: React.MutableRefObject<((nodeId: string, updates: Partial<ConstructNodeData>) => void) | null>;
+  importRef?: React.MutableRefObject<((nodes: Node[], edges: Edge[]) => void) | null>;
 }
 
-export default function Map({ deployables, onDeployablesChange, title, onNodesEdgesChange, onSelectionChange, nodeUpdateRef }: MapProps) {
+export default function Map({ deployables, onDeployablesChange, title, onNodesEdgesChange, onSelectionChange, nodeUpdateRef, importRef }: MapProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
@@ -126,6 +127,58 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
       nodeUpdateRef.current = handleNodeUpdate;
     }
   }, [nodeUpdateRef, handleNodeUpdate]);
+
+  // Import nodes and edges with ID remapping
+  const handleImportNodes = useCallback(
+    (importedNodes: Node[], importedEdges: Edge[]) => {
+      takeSnapshot();
+
+      // Build a mapping from old node IDs to new ones
+      const idMap: Record<string, string> = {};
+      const newNodes: Node[] = [];
+
+      // Create new IDs for imported nodes
+      importedNodes.forEach((node) => {
+        const newId = String(nodeId++);
+        idMap[node.id] = newId;
+
+        // Remap the node's position and data, preserving semanticId and connections
+        const newNode: Node = {
+          ...node,
+          id: newId,
+          position: {
+            x: (node.position?.x || 0) + 50, // Slight offset to avoid overlap
+            y: (node.position?.y || 0) + 50,
+          },
+        };
+
+        newNodes.push(newNode);
+      });
+
+      // Remap edges to use new node IDs
+      const newEdges: Edge[] = importedEdges.map((edge) => ({
+        ...edge,
+        id: `edge-${Math.random()}`, // Generate new edge IDs
+        source: idMap[edge.source] || edge.source,
+        target: idMap[edge.target] || edge.target,
+      }));
+
+      // Update nodeId in localStorage
+      setNodeId(nodeId);
+
+      // Merge with existing nodes and edges
+      setNodes((nds) => [...nds, ...newNodes]);
+      setEdges((eds) => [...eds, ...newEdges]);
+    },
+    [takeSnapshot, setNodes, setEdges]
+  );
+
+  // Set the import ref so parent can call this function
+  useEffect(() => {
+    if (importRef) {
+      importRef.current = handleImportNodes;
+    }
+  }, [importRef, handleImportNodes]);
 
   useEffect(() => {
     const saveState = () => {
@@ -631,8 +684,9 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
         onPaneClick={onPaneClick}
         nodeTypes={nodeTypes}
         defaultEdgeOptions={defaultEdgeOptions}
+        panOnDrag={[1, 2]}
         selectionOnDrag
-        selectionMode={SelectionMode.Partial}
+        selectionMode={SelectionMode.Full}
         fitView
       >
         <Controls position="top-left">
