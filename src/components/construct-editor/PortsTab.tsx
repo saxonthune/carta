@@ -8,6 +8,12 @@ interface PortsTabProps {
   removePort: (index: number) => void;
 }
 
+// Convert string to snake_case while preserving special characters like '#'
+// (e.g., "My Port" → "my_port", "Port #1" → "port_#1")
+function toSnakeCase(str: string): string {
+  return str.toLowerCase().replace(/\s+/g, '_');
+}
+
 const PORT_DIRECTIONS: PortDirection[] = ['in', 'out', 'parent', 'child', 'bidi'];
 const PORT_POSITIONS: PortPosition[] = ['left', 'right', 'top', 'bottom'];
 
@@ -49,9 +55,8 @@ export default function PortsTab({
         <div className="flex flex-col gap-3">
           {formData.ports.map((port, index) => (
             <div key={index} className="bg-surface p-3 rounded border border-surface-alt">
-              {/* Header with port number and delete button */}
+              {/* Header with delete button */}
               <div className="flex justify-between items-center mb-2">
-                <div className="text-xs font-semibold text-content-muted">Port #{index + 1}</div>
                 {!isReadOnly && (
                   <button
                     className="px-2 py-1 text-danger text-xs hover:bg-danger-muted rounded transition-colors"
@@ -67,26 +72,13 @@ export default function PortsTab({
               <div className="grid grid-cols-2 gap-2 mb-3">
                 <div>
                   <label className="block text-xs font-medium text-content-muted mb-1">
-                    Port ID <span className="text-danger">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full px-2 py-1.5 bg-surface-alt rounded text-content text-xs focus:outline-none focus:ring-1 focus:ring-primary"
-                    value={port.id}
-                    onChange={(e) => updatePort(index, { id: e.target.value })}
-                    placeholder="e.g., 'input', 'output'"
-                    disabled={isReadOnly}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-content-muted mb-1">
                     Display Label <span className="text-danger">*</span>
                   </label>
                   <input
                     type="text"
                     className="w-full px-2 py-1.5 bg-surface-alt rounded text-content text-xs focus:outline-none focus:ring-1 focus:ring-primary"
                     value={port.label}
-                    onChange={(e) => updatePort(index, { label: e.target.value })}
+                    onChange={(e) => updatePort(index, { label: e.target.value, id: toSnakeCase(e.target.value) })}
                     placeholder="e.g., 'Input Data', 'Output'"
                     disabled={isReadOnly}
                   />

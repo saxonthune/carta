@@ -57,11 +57,6 @@ export default function ConstructEditor({ onBack }: ConstructEditorProps) {
     setSelectedType(null);
   }, [refreshSchemas]);
 
-  const handleCancel = () => {
-    setSelectedType(null);
-    setIsCreatingNew(false);
-  };
-
   const isFullScreen = !!onBack;
 
   return (
@@ -152,7 +147,6 @@ export default function ConstructEditor({ onBack }: ConstructEditorProps) {
               construct={null}
               isNew={true}
               onSave={handleSaveSchema}
-              onCancel={handleCancel}
               onDelete={() => {}}
             />
           ) : selectedSchema ? (
@@ -160,7 +154,6 @@ export default function ConstructEditor({ onBack }: ConstructEditorProps) {
               construct={selectedSchema}
               isNew={false}
               onSave={handleSaveSchema}
-              onCancel={handleCancel}
               onDelete={handleDeleteSchema}
             />
           ) : (

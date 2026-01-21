@@ -339,7 +339,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
         }
       });
 
-      const nodeName = `${schema.displayName} ${id}`;
+      const nodeName = schema.displayName;
       const semanticId = generateSemanticId(schema.type, nodeName);
 
       const newNode: Node = {

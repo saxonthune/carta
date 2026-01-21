@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { ReactFlowProvider } from '@xyflow/react';
 import ConstructNode from '../ConstructNode';
 import type { ConstructSchema, ConstructNodeData } from '../../constructs/types';
 
@@ -48,12 +49,14 @@ export default function PreviewTab({ formData }: PreviewTabProps) {
         <h3 className="m-0 mb-3 text-sm font-semibold text-content-muted uppercase tracking-wide">Node Preview</h3>
         <div className="flex items-center justify-center p-4 bg-surface-depth-3 rounded-lg min-h-[200px]">
           {formData.type ? (
-            <div style={{ width: '300px', height: 'auto' }}>
-              <ConstructNode
-                data={mockNodeData}
-                selected={false}
-              />
-            </div>
+            <ReactFlowProvider>
+              <div style={{ width: '300px', height: 'auto' }}>
+                <ConstructNode
+                  data={mockNodeData}
+                  selected={false}
+                />
+              </div>
+            </ReactFlowProvider>
           ) : (
             <p className="text-content-muted text-sm italic">Define a type to preview the node</p>
           )}

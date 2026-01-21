@@ -45,7 +45,6 @@ export default function FieldsTab({
               <FieldDefinitionEditor
                 key={index}
                 field={field}
-                index={index}
                 isExpanded={expandedFieldIndex === index}
                 isReadOnly={isReadOnly}
                 onToggleExpand={() => setExpandedFieldIndex(

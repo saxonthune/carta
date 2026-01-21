@@ -1,9 +1,14 @@
 import { useState } from 'react';
 import type { FieldDefinition, DataKind, DisplayHint } from '../constructs/types';
 
+// Convert string to snake_case while preserving special characters like '#'
+// (e.g., "My Cool Field" → "my_cool_field", "API #1" → "api_#1")
+function toSnakeCase(str: string): string {
+  return str.toLowerCase().replace(/\s+/g, '_');
+}
+
 interface FieldDefinitionEditorProps {
   field: FieldDefinition;
-  index: number;
   isExpanded: boolean;
   isReadOnly: boolean;
   onToggleExpand: () => void;
@@ -34,7 +39,6 @@ const DISPLAY_HINTS: { value: DisplayHint | ''; label: string }[] = [
 
 export default function FieldDefinitionEditor({
   field,
-  index,
   isExpanded,
   isReadOnly,
   onToggleExpand,
@@ -49,6 +53,12 @@ export default function FieldDefinitionEditor({
 
   const updateField = (updates: Partial<FieldDefinition>) => {
     if (isReadOnly) return;
+    
+    // If label is being updated, auto-derive name from it
+    if (updates.label) {
+      updates.name = toSnakeCase(updates.label);
+    }
+    
     onChange({ ...field, ...updates });
   };
 
@@ -66,13 +76,12 @@ export default function FieldDefinitionEditor({
   };
 
   return (
-    <div className={`bg-surface rounded-md overflow-hidden ${isExpanded ? 'border-accent' : 'border'}`}>
+    <div className="bg-surface rounded-md overflow-hidden">
       <div
         className="flex justify-between items-center px-4 py-3 cursor-pointer hover:bg-surface-elevated transition-colors"
         onClick={onToggleExpand}
       >
         <div className="flex items-center gap-3">
-          <span className="text-xs text-content-muted font-medium">#{index + 1}</span>
           <span className="text-sm font-medium text-content">{field.label || field.name}</span>
           <span className="text-xs px-2 py-0.5 bg-surface-alt rounded text-content-muted">{field.type}</span>
         </div>
@@ -111,19 +120,7 @@ export default function FieldDefinitionEditor({
       </div>
 
       {isExpanded && (
-        <div className="p-4 bg-surface-elevated border-t border">
-          <div className="mb-3">
-            <label className="block mb-1.5 text-xs font-medium text-content-muted">Field Name (internal)</label>
-            <input
-              type="text"
-              className="w-full px-3 py-2 bg-surface rounded text-content text-sm focus:outline-none focus:border-accent disabled:opacity-60 disabled:cursor-not-allowed"
-              value={field.name}
-              onChange={(e) => updateField({ name: e.target.value.toLowerCase().replace(/\s+/g, '_') })}
-              placeholder="field_name"
-              disabled={isReadOnly}
-            />
-          </div>
-
+        <div className="p-4 bg-surface-elevated">
           <div className="mb-3">
             <label className="block mb-1.5 text-xs font-medium text-content-muted">Label (display)</label>
             <input
@@ -151,7 +148,7 @@ export default function FieldDefinitionEditor({
           </div>
 
           {field.type === 'string' && (
-            <div className="mb-3">
+            <div className="mb-3 hidden">
               <label className="block mb-1.5 text-xs font-medium text-content-muted">Display Hint</label>
               <select
                 className="w-full px-3 py-2 bg-surface rounded text-content text-sm focus:outline-none focus:border-accent disabled:opacity-60 disabled:cursor-not-allowed"
@@ -204,7 +201,7 @@ export default function FieldDefinitionEditor({
           </div>
 
           {field.type === 'enum' && (
-            <div className="mt-4 pt-4 border-t border">
+            <div className="mt-4 pt-4">
               <label className="block mb-2 text-xs font-medium text-content-muted">Options</label>
               <div className="flex flex-wrap gap-1.5 mb-2">
                 {(field.options || []).map((opt, i) => (

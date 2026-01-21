@@ -1,17 +1,22 @@
 import { useState, useCallback, useEffect } from 'react';
 import { registry } from '../constructs/registry';
-import BasicInfoTab from './construct-editor/BasicInfoTab';
+import OverviewTab from './construct-editor/OverviewTab';
 import CompilationTab from './construct-editor/CompilationTab';
 import PortsTab from './construct-editor/PortsTab';
 import FieldsTab from './construct-editor/FieldsTab';
 import PreviewTab from './construct-editor/PreviewTab';
 import type { ConstructSchema, FieldDefinition, PortConfig } from '../constructs/types';
 
+// Convert string to snake_case while preserving special characters like '#'
+// (e.g., "My Cool Construct" → "my_cool_construct", "API #1" → "api_#1")
+function toSnakeCase(str: string): string {
+  return str.toLowerCase().replace(/\s+/g, '_');
+}
+
 interface ConstructDetailsEditorProps {
   construct: ConstructSchema | null;
   isNew: boolean;
   onSave: (construct: ConstructSchema, isNew: boolean) => void;
-  onCancel: () => void;
   onDelete: (type: string) => void;
 }
 
@@ -40,7 +45,6 @@ export default function ConstructDetailsEditor({
   construct,
   isNew,
   onSave,
-  onCancel,
   onDelete
 }: ConstructDetailsEditorProps) {
   const [formData, setFormData] = useState<ConstructSchema>(
@@ -64,16 +68,16 @@ export default function ConstructDetailsEditor({
   const validateForm = useCallback((): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.type.trim()) {
-      newErrors.type = 'Type identifier is required';
-    } else if (!/^[a-z][a-z0-9_]*$/.test(formData.type)) {
-      newErrors.type = 'Type must start with lowercase letter and contain only lowercase letters, numbers, underscores';
-    } else if (isNew && registry.hasSchema(formData.type)) {
-      newErrors.type = 'A construct with this type already exists';
-    }
-
     if (!formData.displayName.trim()) {
       newErrors.displayName = 'Display name is required';
+    }
+    
+    // Derive type from displayName
+    const derivedType = toSnakeCase(formData.displayName);
+    if (!derivedType) {
+      newErrors.displayName = 'Display name must contain at least one alphanumeric character';
+    } else if (isNew && registry.hasSchema(derivedType)) {
+      newErrors.displayName = 'A construct with this display name already exists';
     }
 
     setErrors(newErrors);
@@ -96,7 +100,17 @@ export default function ConstructDetailsEditor({
 
   const updateField = (key: keyof ConstructSchema, value: unknown) => {
     if (isReadOnly) return;
-    setFormData(prev => ({ ...prev, [key]: value }));
+    
+    if (key === 'displayName' && typeof value === 'string') {
+      // Auto-sync type when displayName changes
+      setFormData(prev => ({ 
+        ...prev, 
+        displayName: value,
+        type: toSnakeCase(value)
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, [key]: value }));
+    }
   };
 
   const addField = () => {
@@ -145,13 +159,12 @@ export default function ConstructDetailsEditor({
   // Port management functions
   const addPort = () => {
     if (isReadOnly) return;
-    const ports = formData.ports || [];
     const newPort: PortConfig = {
-      id: `port_${ports.length + 1}`,
+      id: 'port',
       direction: 'bidi',
       position: 'right',
       offset: 50,
-      label: `Port ${ports.length + 1}`,
+      label: 'Port',
     };
     setFormData(prev => ({
       ...prev,
@@ -214,11 +227,31 @@ export default function ConstructDetailsEditor({
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex items-center gap-3 mb-0 shrink-0">
-        <h2 className="m-0 text-xl font-semibold text-content">{isNew ? 'Create New Construct' : formData.displayName}</h2>
-        {isReadOnly && (
-          <span className="px-2.5 py-1 bg-surface-elevated rounded text-xs text-content-muted">Read-only (Built-in)</span>
-        )}
+      <div className="flex items-center justify-between gap-3 mb-0 shrink-0 pb-3 border-b">
+        <div className="flex items-center gap-3">
+          <h2 className="m-0 text-xl font-semibold text-content">{isNew ? 'Create New Construct' : formData.displayName}</h2>
+          {isReadOnly && (
+            <span className="px-2.5 py-1 bg-surface-elevated rounded text-xs text-content-muted">Read-only (Built-in)</span>
+          )}
+        </div>
+        <div className="flex gap-2">
+          {!isReadOnly && !isNew && (
+            <button
+              className="px-3 py-1.5 bg-transparent border border-danger rounded text-danger text-sm font-medium cursor-pointer hover:bg-danger hover:text-white transition-all"
+              onClick={handleDelete}
+            >
+              Delete
+            </button>
+          )}
+          {!isReadOnly && (
+            <button
+              className="px-3 py-1.5 bg-accent border-none rounded text-white text-sm font-medium cursor-pointer hover:bg-accent-hover transition-colors"
+              onClick={handleSave}
+            >
+              {isNew ? 'Create' : 'Save'}
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="flex-1 min-h-0 flex gap-3">
@@ -245,11 +278,10 @@ export default function ConstructDetailsEditor({
         {/* Content Area */}
         <div className="flex-1 bg-surface-depth-3 p-1 overflow-y-auto min-h-0 rounded-xl">
           {activeTab === 'basic' && (
-            <BasicInfoTab
+            <OverviewTab
               formData={formData}
               errors={errors}
               isReadOnly={isReadOnly}
-              isNew={isNew}
               updateField={updateField}
             />
           )}
@@ -283,33 +315,6 @@ export default function ConstructDetailsEditor({
           )}
           {activeTab === 'preview' && (
             <PreviewTab formData={formData} />
-          )}
-        </div>
-      </div>
-
-      <div className="flex justify-between items-center mt-4 pt-2 border-t shrink-0">
-        {!isReadOnly && !isNew && (
-          <button
-            className="px-5 py-2.5 bg-transparent border-danger rounded-md text-danger text-sm font-medium cursor-pointer hover:bg-danger hover:text-white transition-all"
-            onClick={handleDelete}
-          >
-            Delete Construct
-          </button>
-        )}
-        <div className="flex gap-3 ml-auto">
-          <button
-            className="px-5 py-2.5 bg-transparent rounded-md text-content text-sm font-medium cursor-pointer hover:bg-surface-alt transition-colors"
-            onClick={onCancel}
-          >
-            Cancel
-          </button>
-          {!isReadOnly && (
-            <button
-              className="px-5 py-2.5 bg-accent border-none rounded-md text-white text-sm font-medium cursor-pointer hover:bg-accent-hover transition-colors"
-              onClick={handleSave}
-            >
-              {isNew ? 'Create Construct' : 'Save Changes'}
-            </button>
           )}
         </div>
       </div>
