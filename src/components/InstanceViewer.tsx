@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, type ReactNode } from 'react';
 import type { Node } from '@xyflow/react';
 import { registry } from '../constructs/registry';
 import { fieldRenderers } from './fields';
@@ -46,7 +46,7 @@ export default function InstanceViewer({ node, deployables, onNodeUpdate }: Inst
     );
   }
 
-  const tabs: { id: ViewerTab; label: string; icon: JSX.Element }[] = [
+  const tabs: { id: ViewerTab; label: string; icon: ReactNode }[] = [
     { 
       id: 'details', 
       label: 'Details', 

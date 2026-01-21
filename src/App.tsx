@@ -1,9 +1,9 @@
 import { useCallback, useState, useRef, useEffect } from 'react';
 import { ReactFlowProvider, type Node, type Edge } from '@xyflow/react';
-import ImportConfirmDialog from './components/ImportConfirmDialog';
+import ImportPreviewModal from './components/ImportPreviewModal';
 import CompileModal from './components/CompileModal';
 import Header from './components/Header';
-import Map, { initialNodes, initialEdges, initialTitle, getNodeId, setNodeId, STORAGE_KEY } from './components/Map';
+import Map, { initialNodes, initialEdges, initialTitle, getNodeId } from './components/Map';
 import Dock from './components/Dock';
 import Footer from './components/Footer';
 import { compiler } from './constructs/compiler';
@@ -12,6 +12,7 @@ import { schemaStorage } from './constructs/storage';
 import { registry } from './constructs/registry';
 import { deployableRegistry } from './constructs/deployables';
 import { exportProject, importProject, generateSemanticId, type CartaFile } from './utils/cartaFile';
+import { analyzeImport, type ImportAnalysis, type ImportOptions } from './utils/importAnalyzer';
 import type { ConstructValues, Deployable, ConstructNodeData } from './constructs/types';
 
 registerBuiltInSchemas();
@@ -20,7 +21,7 @@ deployableRegistry.loadFromLocalStorage();
 
 function App() {
   const [deployables, setDeployables] = useState<Deployable[]>(() => deployableRegistry.getAll());
-  const [importConfirm, setImportConfirm] = useState<{ file: File; data: CartaFile } | null>(null);
+  const [importPreview, setImportPreview] = useState<{ data: CartaFile; analysis: ImportAnalysis } | null>(null);
   const [compileOutput, setCompileOutput] = useState<string | null>(null);
   const [title, setTitle] = useState<string>(initialTitle);
   const [selectedNodes, setSelectedNodes] = useState<Node[]>([]);
@@ -79,48 +80,33 @@ function App() {
   const handleImport = useCallback(async (file: File) => {
     try {
       const data = await importProject(file);
-      setImportConfirm({ file, data });
+      const analysis = analyzeImport(data, file.name);
+      setImportPreview({ data, analysis });
     } catch (error) {
       alert(`Failed to import file: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }, []);
 
-  const handleImportConfirm = useCallback(() => {
-    if (!importConfirm) return;
+  const handleImportConfirm = useCallback((options: ImportOptions) => {
+    if (!importPreview) return;
 
-    const { data } = importConfirm;
+    const { data } = importPreview;
 
-    // Update the module-level nodeId
-    setNodeId(data.nodeId);
+    // Import schemas if selected
+    if (options.schemas && data.customSchemas.length > 0) {
+      registry.replaceUserSchemas(data.customSchemas);
+      schemaStorage.saveToLocalStorage();
+    }
 
-    // Update deployables
-    deployableRegistry.importDeployables(data.deployables);
-    refreshDeployables();
+    // For now, nodes and deployables require full import (future: selective)
+    // When enabled, these would import incrementally without page reload
 
-    // Update custom schemas
-    registry.replaceUserSchemas(data.customSchemas);
-    schemaStorage.saveToLocalStorage();
-
-    // Update localStorage with the new state
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({
-        nodes: data.nodes,
-        edges: data.edges,
-        nodeId: data.nodeId,
-        title: data.title,
-      })
-    );
-
-    // Close the dialog and reload to apply changes
-    setImportConfirm(null);
-    
-    // Reload the page to reinitialize with new state
-    window.location.reload();
-  }, [importConfirm, refreshDeployables]);
+    // Close the modal
+    setImportPreview(null);
+  }, [importPreview]);
 
   const handleImportCancel = useCallback(() => {
-    setImportConfirm(null);
+    setImportPreview(null);
   }, []);
 
   const handleCompile = useCallback(() => {
@@ -195,9 +181,9 @@ function App() {
         />
         <Footer />
       </div>
-      {importConfirm && (
-        <ImportConfirmDialog
-          fileName={importConfirm.file.name}
+      {importPreview && (
+        <ImportPreviewModal
+          analysis={importPreview.analysis}
           onConfirm={handleImportConfirm}
           onCancel={handleImportCancel}
         />
