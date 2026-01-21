@@ -190,6 +190,19 @@ export default function FieldDefinitionEditor({
             />
           </div>
 
+          <div className="mb-3">
+            <label className="flex items-center gap-2 text-xs font-medium text-content-muted cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={field.displayInMap ?? false}
+                onChange={(e) => updateField({ displayInMap: e.target.checked })}
+                disabled={isReadOnly}
+                className="w-4 h-4 accent-[var(--color-accent)] disabled:opacity-60 disabled:cursor-not-allowed"
+              />
+              Display in Map
+            </label>
+          </div>
+
           {field.type === 'enum' && (
             <div className="mt-4 pt-4 border-t border">
               <label className="block mb-2 text-xs font-medium text-content-muted">Options</label>

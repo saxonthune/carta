@@ -151,9 +151,9 @@ body,
 
 /* Port handle styling */
 .port-handle {
-  width: 14px !important;
-  height: 14px !important;
-  border-radius: 4px !important;
+  width: 21px !important;
+  height: 21px !important;
+  border-radius: 6px !important;
   border: 2px solid white !important;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }

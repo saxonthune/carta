@@ -101,6 +101,7 @@ export interface FieldDefinition {
   displayHint?: DisplayHint; // For string type presentation
   default?: unknown;
   placeholder?: string;
+  displayInMap?: boolean;    // Show this field in the map node summary
 }
 
 /**
