@@ -92,9 +92,10 @@ export interface MapProps {
   title: string;
   onNodesEdgesChange: (nodes: Node[], edges: Edge[]) => void;
   onSelectionChange?: (selectedNodes: Node[]) => void;
+  nodeUpdateRef?: React.MutableRefObject<((nodeId: string, updates: Partial<ConstructNodeData>) => void) | null>;
 }
 
-export default function Map({ deployables, onDeployablesChange, title, onNodesEdgesChange, onSelectionChange }: MapProps) {
+export default function Map({ deployables, onDeployablesChange, title, onNodesEdgesChange, onSelectionChange, nodeUpdateRef }: MapProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
@@ -107,6 +108,27 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
 
   // Suppress unused variable warning - onDeployablesChange is passed to children
   void onDeployablesChange;
+
+  // Expose node update function via ref
+  const handleNodeUpdate = useCallback(
+    (nodeId: string, updates: Partial<ConstructNodeData>) => {
+      setNodes((nds) =>
+        nds.map((node) =>
+          node.id === nodeId
+            ? { ...node, data: { ...node.data, ...updates } }
+            : node
+        )
+      );
+    },
+    [setNodes]
+  );
+
+  // Set the ref so parent can call this function
+  useEffect(() => {
+    if (nodeUpdateRef) {
+      nodeUpdateRef.current = handleNodeUpdate;
+    }
+  }, [nodeUpdateRef, handleNodeUpdate]);
 
   useEffect(() => {
     const saveState = () => {

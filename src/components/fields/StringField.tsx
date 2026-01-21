@@ -14,7 +14,7 @@ export default function StringField({ field, value, onChange }: StringFieldProps
       <div className="flex flex-col gap-1">
         <label className="text-[11px] font-semibold text-content-muted uppercase">{field.label}</label>
         <textarea
-          className={`nodrag w-full px-2.5 py-1.5 rounded text-sm text-content bg-surface resize-y leading-relaxed outline-none focus:border-accent focus:shadow-[0_0_0_2px_rgba(99,102,241,0.1)] transition-colors ${hint === 'code' ? 'font-mono' : ''}`}
+          className={`nodrag w-full px-2.5 py-1.5 rounded text-sm text-content bg-surface resize-y leading-relaxed outline-none focus:ring-2 focus:ring-accent/60 focus:shadow-[0_0_0_2px_rgba(99,102,241,0.1)] transition-all border border-transparent ${hint === 'code' ? 'font-mono' : ''}`}
           value={value || ''}
           onChange={(e) => onChange(e.target.value)}
           placeholder={field.placeholder}
@@ -30,7 +30,7 @@ export default function StringField({ field, value, onChange }: StringFieldProps
         <label className="text-[11px] font-semibold text-content-muted uppercase">{field.label}</label>
         <input
           type="color"
-          className="nodrag h-10 w-full rounded cursor-pointer outline-none focus:border-accent focus:shadow-[0_0_0_2px_rgba(99,102,241,0.1)] transition-colors"
+          className="nodrag h-10 w-full rounded cursor-pointer outline-none focus:ring-2 focus:ring-accent/60 focus:shadow-[0_0_0_2px_rgba(99,102,241,0.1)] transition-all border border-transparent"
           value={value || '#000000'}
           onChange={(e) => onChange(e.target.value)}
         />
@@ -43,7 +43,7 @@ export default function StringField({ field, value, onChange }: StringFieldProps
       <label className="text-[11px] font-semibold text-content-muted uppercase">{field.label}</label>
       <input
         type={hint === 'password' ? 'password' : hint === 'url' ? 'url' : 'text'}
-        className="nodrag px-2.5 py-1.5 rounded text-sm text-content bg-surface outline-none focus:border-accent focus:shadow-[0_0_0_2px_rgba(99,102,241,0.1)] transition-colors"
+        className="nodrag px-2.5 py-1.5 rounded text-sm text-content bg-surface outline-none focus:ring-2 focus:ring-accent/60 focus:shadow-[0_0_0_2px_rgba(99,102,241,0.1)] transition-all border border-transparent"
         value={value || ''}
         onChange={(e) => onChange(e.target.value)}
         placeholder={field.placeholder}

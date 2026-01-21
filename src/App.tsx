@@ -12,7 +12,7 @@ import { schemaStorage } from './constructs/storage';
 import { registry } from './constructs/registry';
 import { deployableRegistry } from './constructs/deployables';
 import { exportProject, importProject, generateSemanticId, type CartaFile } from './utils/cartaFile';
-import type { ConstructValues, Deployable } from './constructs/types';
+import type { ConstructValues, Deployable, ConstructNodeData } from './constructs/types';
 
 registerBuiltInSchemas();
 schemaStorage.loadFromLocalStorage();
@@ -28,6 +28,7 @@ function App() {
   const [isResizing, setIsResizing] = useState(false);
   const nodesEdgesRef = useRef<{ nodes: Node[]; edges: Edge[] }>({ nodes: initialNodes, edges: initialEdges });
   const containerRef = useRef<HTMLDivElement>(null);
+  const nodeUpdateRef = useRef<((nodeId: string, updates: Partial<ConstructNodeData>) => void) | null>(null);
 
   const refreshDeployables = useCallback(() => {
     setDeployables(deployableRegistry.getAll());
@@ -39,6 +40,12 @@ function App() {
 
   const handleSelectionChange = useCallback((nodes: Node[]) => {
     setSelectedNodes(nodes);
+  }, []);
+
+  const handleNodeUpdate = useCallback((nodeId: string, updates: Partial<ConstructNodeData>) => {
+    if (nodeUpdateRef.current) {
+      nodeUpdateRef.current(nodeId, updates);
+    }
   }, []);
 
   const handleExport = useCallback(() => {
@@ -170,6 +177,7 @@ function App() {
               title={title}
               onNodesEdgesChange={handleNodesEdgesChange}
               onSelectionChange={handleSelectionChange}
+              nodeUpdateRef={nodeUpdateRef}
             />
           </ReactFlowProvider>
         </div>
@@ -182,6 +190,7 @@ function App() {
           selectedNodes={selectedNodes}
           deployables={deployables}
           onDeployablesChange={refreshDeployables}
+          onNodeUpdate={handleNodeUpdate}
           height={dockHeight}
         />
         <Footer />

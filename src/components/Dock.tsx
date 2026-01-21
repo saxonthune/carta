@@ -1,7 +1,8 @@
 import { useState, type ReactNode } from 'react';
 import ConstructEditor from './ConstructEditor';
 import DeployablesEditor from './DeployablesEditor';
-import type { Deployable } from '../constructs/types';
+import InstanceViewer from './InstanceViewer';
+import type { Deployable, ConstructNodeData } from '../constructs/types';
 import type { Node } from '@xyflow/react';
 
 export type DockView = 'viewer' | 'constructs' | 'deployables';
@@ -10,15 +11,12 @@ interface DockProps {
   selectedNodes: Node[];
   deployables: Deployable[];
   onDeployablesChange: () => void;
+  onNodeUpdate: (nodeId: string, updates: Partial<ConstructNodeData>) => void;
   height?: number;
 }
 
-export default function Dock({ selectedNodes, deployables, onDeployablesChange, height = 256 }: DockProps) {
+export default function Dock({ selectedNodes, deployables, onDeployablesChange, onNodeUpdate, height = 256 }: DockProps) {
   const [activeView, setActiveView] = useState<DockView>('viewer');
-
-  // Suppress unused for now - will be used by ConstructViewer
-  void selectedNodes;
-  void deployables;
 
   const tabs: { id: DockView; label: string; icon: ReactNode }[] = [
     {
@@ -54,20 +52,25 @@ export default function Dock({ selectedNodes, deployables, onDeployablesChange, 
   const renderContent = () => {
     switch (activeView) {
       case 'viewer':
+        if (selectedNodes.length === 0) {
+          return (
+            <div className="p-4 text-content-muted">
+              <p>Select a construct on the map to view its details.</p>
+            </div>
+          );
+        }
+        if (selectedNodes.length === 1) {
+          return (
+            <InstanceViewer
+              node={selectedNodes[0]}
+              deployables={deployables}
+              onNodeUpdate={onNodeUpdate}
+            />
+          );
+        }
         return (
           <div className="p-4 text-content-muted">
-            {selectedNodes.length === 0 ? (
-              <p>Select a construct on the map to view its details.</p>
-            ) : selectedNodes.length === 1 ? (
-              <div>
-                <h3 className="font-semibold text-content mb-2">
-                  {(selectedNodes[0].data as { name?: string }).name || 'Unnamed'}
-                </h3>
-                <p className="text-sm">Construct viewer coming soon...</p>
-              </div>
-            ) : (
-              <p>{selectedNodes.length} constructs selected</p>
-            )}
+            <p>{selectedNodes.length} constructs selected</p>
           </div>
         );
       case 'constructs':
