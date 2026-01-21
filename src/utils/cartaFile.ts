@@ -1,5 +1,6 @@
 import type { Node, Edge } from '@xyflow/react';
 import type { Deployable, ConstructSchema } from '../constructs/types';
+import type { ExportOptions } from './exportAnalyzer';
 
 /**
  * Version of the .carta file format
@@ -63,19 +64,29 @@ export function generateSemanticId(constructType: string, name: string): string 
 /**
  * Export project data to a .carta file
  */
-export function exportProject(data: Omit<CartaFile, 'version' | 'exportedAt'>): void {
+export function exportProject(data: Omit<CartaFile, 'version' | 'exportedAt'>, options?: ExportOptions): void {
+  // Apply export options to filter data
+  const filteredData: Omit<CartaFile, 'version' | 'exportedAt'> = {
+    title: data.title,
+    nodeId: data.nodeId,
+    nodes: options?.nodes !== false ? data.nodes : [],
+    edges: options?.nodes !== false ? data.edges : [],
+    deployables: options?.deployables !== false ? data.deployables : [],
+    customSchemas: options?.schemas !== false ? data.customSchemas : [],
+  };
+
   const cartaFile: CartaFile = {
     version: CARTA_FILE_VERSION,
-    ...data,
+    ...filteredData,
     exportedAt: new Date().toISOString(),
   };
 
   const json = JSON.stringify(cartaFile, null, 2);
   const blob = new Blob([json], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
-  
+
   const filename = `${toKebabCase(data.title) || 'untitled'}.carta`;
-  
+
   const a = document.createElement('a');
   a.href = url;
   a.download = filename;

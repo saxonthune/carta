@@ -1,6 +1,7 @@
 import { useCallback, useState, useRef, useEffect } from 'react';
 import { ReactFlowProvider, type Node, type Edge } from '@xyflow/react';
 import ImportPreviewModal from './components/ImportPreviewModal';
+import ExportPreviewModal from './components/ExportPreviewModal';
 import CompileModal from './components/CompileModal';
 import Header from './components/Header';
 import Map, { initialNodes, initialEdges, initialTitle, getNodeId } from './components/Map';
@@ -13,6 +14,7 @@ import { registry } from './constructs/registry';
 import { deployableRegistry } from './constructs/deployables';
 import { exportProject, importProject, generateSemanticId, type CartaFile } from './utils/cartaFile';
 import { analyzeImport, type ImportAnalysis, type ImportOptions } from './utils/importAnalyzer';
+import { analyzeExport, type ExportAnalysis, type ExportOptions } from './utils/exportAnalyzer';
 import type { ConstructValues, Deployable, ConstructNodeData } from './constructs/types';
 
 registerBuiltInSchemas();
@@ -22,6 +24,7 @@ deployableRegistry.loadFromLocalStorage();
 function App() {
   const [deployables, setDeployables] = useState<Deployable[]>(() => deployableRegistry.getAll());
   const [importPreview, setImportPreview] = useState<{ data: CartaFile; analysis: ImportAnalysis } | null>(null);
+  const [exportPreview, setExportPreview] = useState<ExportAnalysis | null>(null);
   const [compileOutput, setCompileOutput] = useState<string | null>(null);
   const [title, setTitle] = useState<string>(initialTitle);
   const [selectedNodes, setSelectedNodes] = useState<Node[]>([]);
@@ -51,6 +54,13 @@ function App() {
 
   const handleExport = useCallback(() => {
     const { nodes, edges } = nodesEdgesRef.current;
+    const userSchemas = registry.getUserSchemas();
+    const analysis = analyzeExport(title, nodes, edges, deployableRegistry.getAll(), userSchemas);
+    setExportPreview(analysis);
+  }, [title]);
+
+  const handleExportConfirm = useCallback((options: ExportOptions) => {
+    const { nodes, edges } = nodesEdgesRef.current;
     // Ensure all nodes have semanticIds before export
     const nodesWithSemanticIds = nodes.map(node => {
       const nodeData = node.data as ConstructValues & { constructType?: string; name?: string; semanticId?: string };
@@ -74,8 +84,14 @@ function App() {
       edges,
       deployables: deployableRegistry.getAll(),
       customSchemas: registry.getUserSchemas(),
-    });
+    }, options);
+
+    setExportPreview(null);
   }, [title]);
+
+  const handleExportCancel = useCallback(() => {
+    setExportPreview(null);
+  }, []);
 
   const handleImport = useCallback(async (file: File) => {
     try {
@@ -186,6 +202,13 @@ function App() {
           analysis={importPreview.analysis}
           onConfirm={handleImportConfirm}
           onCancel={handleImportCancel}
+        />
+      )}
+      {exportPreview && (
+        <ExportPreviewModal
+          analysis={exportPreview}
+          onConfirm={handleExportConfirm}
+          onCancel={handleExportCancel}
         />
       )}
       {compileOutput && (
