@@ -15,8 +15,7 @@ export const builtInSchemas: ConstructSchema[] = [
     ports: [
       { id: 'flow-in', direction: 'in', position: 'left', offset: 50, label: 'Flow In' },
       { id: 'flow-out', direction: 'out', position: 'right', offset: 50, label: 'Flow Out' },
-      { id: 'data-source', direction: 'out', position: 'bottom', offset: 50, label: 'Data Source' },
-      { id: 'child', direction: 'child', position: 'bottom', offset: 25, label: 'Parameters' },
+      { id: 'parent', direction: 'parent', position: 'bottom', offset: 50, label: 'Models' },
     ],
     fields: [
       {
@@ -96,10 +95,16 @@ export const builtInSchemas: ConstructSchema[] = [
     ],
     fields: [
       {
-        name: 'indexes',
-        label: 'Indexes',
+        name: 'columns',
+        label: 'Columns',
         type: 'string',
-        placeholder: 'e.g., (email) [unique]',
+        placeholder: 'e.g., email VARCHAR(255)',
+      },
+      {
+        name: 'constraints',
+        label: 'Constraints',
+        type: 'string',
+        placeholder: 'e.g., (email) [unique], (age) [not null]',
       },
     ],
     compilation: {
@@ -125,20 +130,99 @@ export const builtInSchemas: ConstructSchema[] = [
     compilation: { format: 'json' },
   },
 
-  // API Parameter
+  // API Model
   {
-    type: 'api-parameter',
-    displayName: 'API Parameter',
+    type: 'api-model',
+    displayName: 'API Model',
     color: '#6366f1',
-    description: 'A parameter for an API endpoint',
+    description: 'Request or response model for an API endpoint',
     fields: [
-      { name: 'name', label: 'Name', type: 'string' },
-      { name: 'location', label: 'Location', type: 'enum', options: ['path', 'query', 'header', 'body'] },
-      { name: 'dataType', label: 'Type', type: 'enum', options: ['string', 'number', 'boolean', 'object', 'array'] },
-      { name: 'required', label: 'Required', type: 'boolean', default: false },
+      { 
+        name: 'modelType', 
+        label: 'Model Type', 
+        type: 'enum', 
+        options: ['request', 'response'],
+        default: 'request',
+        displayInMap: true,
+      },
+      {
+        name: 'data',
+        label: 'Data',
+        type: 'string',
+        placeholder: 'Describe the data structure',
+      },
     ],
     ports: [
-      { id: 'parent', direction: 'parent', position: 'top', offset: 50, label: 'Controller' },
+      { id: 'child', direction: 'child', position: 'top', offset: 50, label: 'Controller' },
+    ],
+    compilation: { format: 'json' },
+  },
+
+  // UI Event
+  {
+    type: 'ui-event',
+    displayName: 'UI Event',
+    color: '#10b981',
+    description: 'A user interaction or event in the UI',
+    fields: [
+      {
+        name: 'trigger',
+        label: 'Trigger',
+        type: 'string',
+        placeholder: 'What triggers this event?',
+      },
+      { 
+        name: 'description', 
+        label: 'Description', 
+        type: 'string',
+        placeholder: 'Describe the event or user action',
+      },
+    ],
+    ports: [
+      { id: 'child', direction: 'child', position: 'left', offset: 50, label: 'Events' },
+      { id: 'flow-out', direction: 'out', position: 'right', offset: 50, label: 'Flow Out' },
+    ],
+    compilation: { format: 'json' },
+  },
+
+  // UI Screen
+  {
+    type: 'ui-screen',
+    displayName: 'UI Screen',
+    color: '#3b82f6',
+    description: 'A screen or view in the user interface',
+    fields: [
+      { 
+        name: 'description', 
+        label: 'Description', 
+        type: 'string',
+        placeholder: 'Describe the screen or view',
+      },
+    ],
+    ports: [
+      { id: 'flow-in', direction: 'in', position: 'left', offset: 50, label: 'Flow In' },
+      { id: 'parent', direction: 'parent', position: 'right', offset: 50, label: 'Events' },
+    ],
+    compilation: { format: 'json' },
+  },
+
+  // User Story
+  {
+    type: 'user-story',
+    displayName: 'User Story',
+    color: '#10b981',
+    description: 'A user story or requirement',
+    fields: [
+      { 
+        name: 'description', 
+        label: 'Description', 
+        type: 'string',
+        placeholder: 'As a [user], I want [goal] so that [benefit]',
+        displayInMap: true,
+      },
+    ],
+    ports: [
+      { id: 'flow-out', direction: 'out', position: 'right', offset: 50, label: 'Flow Out' },
     ],
     compilation: { format: 'json' },
   },

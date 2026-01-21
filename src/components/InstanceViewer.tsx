@@ -24,12 +24,13 @@ export default function InstanceViewer({ node, deployables, onNodeUpdate }: Inst
   }, [node.id, onNodeUpdate]);
 
   const handleFieldChange = useCallback((fieldName: string, value: unknown) => {
+    const currentData = node.data as ConstructNodeData;
     const newValues: ConstructValues = {
-      ...data.values,
+      ...currentData.values,
       [fieldName]: value,
     };
     onNodeUpdate(node.id, { values: newValues });
-  }, [node.id, data.values, onNodeUpdate]);
+  }, [node, onNodeUpdate]);
 
   const handleDeployableChange = useCallback((deployableId: string | null) => {
     onNodeUpdate(node.id, { deployableId });

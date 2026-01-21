@@ -75,6 +75,7 @@ interface ContextMenuState {
   y: number;
   type: ContextMenuType;
   nodeId?: string;
+  edgeId?: string;
 }
 
 interface AddMenuState {
@@ -339,6 +340,20 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     setSelectedNodeIds([]);
   }, [selectedNodeIds, setNodes, setEdges, takeSnapshot]);
 
+  const deleteEdge = useCallback(
+    (edgeIdToDelete: string) => {
+      takeSnapshot();
+      const edgeToDelete = edges.find((e) => e.id === edgeIdToDelete);
+      if (edgeToDelete) {
+        // Remove from edges array
+        setEdges((eds) => eds.filter((e) => e.id !== edgeIdToDelete));
+        // Remove connection data from nodes
+        handleEdgesDelete([edgeToDelete]);
+      }
+    },
+    [edges, setEdges, handleEdgesDelete, takeSnapshot]
+  );
+
   const renameNode = useCallback(
     (nodeIdToRename: string, newName: string) => {
       setNodes((nds) =>
@@ -481,6 +496,14 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     [onSelectionChange]
   );
 
+  // Update parent with fresh node data whenever nodes change (to keep InstanceViewer in sync)
+  useEffect(() => {
+    if (selectedNodeIds.length > 0) {
+      const selectedNodes = nodes.filter((n) => selectedNodeIds.includes(n.id));
+      onSelectionChange?.(selectedNodes);
+    }
+  }, [nodes, selectedNodeIds, onSelectionChange]);
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
@@ -555,6 +578,19 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     []
   );
 
+  const onEdgeContextMenu = useCallback(
+    (event: React.MouseEvent, edge: Edge) => {
+      event.preventDefault();
+      setContextMenu({
+        x: event.clientX,
+        y: event.clientY,
+        type: 'edge',
+        edgeId: edge.id,
+      });
+    },
+    []
+  );
+
   const closeContextMenu = useCallback(() => {
     setContextMenu(null);
   }, []);
@@ -591,6 +627,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
         onSelectionChange={handleSelectionChange}
         onPaneContextMenu={onPaneContextMenu}
         onNodeContextMenu={onNodeContextMenu}
+        onEdgeContextMenu={onEdgeContextMenu}
         onPaneClick={onPaneClick}
         nodeTypes={nodeTypes}
         defaultEdgeOptions={defaultEdgeOptions}
@@ -648,10 +685,12 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
           y={contextMenu.y}
           type={contextMenu.type}
           nodeId={contextMenu.nodeId}
+          edgeId={contextMenu.edgeId}
           selectedCount={selectedNodeIds.length}
           onAddNode={addNode}
           onDeleteNode={deleteNode}
           onDeleteSelected={deleteSelectedNodes}
+          onDeleteEdge={deleteEdge}
           onCopyNodes={copyNodes}
           onPasteNodes={pasteNodes}
           canPaste={clipboard.length > 0}

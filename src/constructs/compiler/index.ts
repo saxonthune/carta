@@ -1,7 +1,6 @@
 import type { Node, Edge } from '@xyflow/react';
 import { registry } from '../registry';
 import { deployableRegistry } from '../deployables';
-import { getPortsForSchema } from '../ports';
 import type { ConstructNodeData, CompilationFormat, Deployable } from '../types';
 import { formatOpenAPI } from './formatters/openapi';
 import { formatJSON } from './formatters/json';
@@ -49,10 +48,10 @@ export class CompilerEngine {
       sections.push(deployablesSection);
     }
 
-    // Add connection graph section
-    const connectionGraphSection = this.compileConnectionGraph(nodes);
-    if (connectionGraphSection) {
-      sections.push(connectionGraphSection);
+    // Add schemas section listing all used construct types
+    const schemasSection = this.compileSchemas(nodes);
+    if (schemasSection) {
+      sections.push(schemasSection);
     }
 
     // Enhance nodes with relationship metadata
@@ -61,24 +60,37 @@ export class CompilerEngine {
     // Extract all node data for passing to formatters
     const allNodeData = nodesWithRelationships.map(n => n.data as ConstructNodeData);
 
-    // Group nodes by construct type
-    const grouped = this.groupByType(nodesWithRelationships);
+    // Group nodes by deployment group
+    const grouped = this.groupByDeployment(nodesWithRelationships);
 
-    for (const [type, typeNodes] of Object.entries(grouped)) {
-      const schema = registry.getSchema(type);
+    for (const [deploymentKey, deploymentNodes] of Object.entries(grouped)) {
+      const deploymentName = this.getDeploymentName(deploymentKey);
+      const header = `# Deployment: ${deploymentName}`;
 
-      if (!schema) {
-        // Unknown type - use JSON
-        sections.push(`# Unknown Type: ${type}\n${formatJSON(typeNodes, simpleEdges, {} as any, allNodeData)}`);
-        continue;
+      // Group by type within deployment
+      const typeGroups = this.groupByType(deploymentNodes);
+      const typeOutputs: string[] = [];
+
+      for (const [type, typeNodes] of Object.entries(typeGroups)) {
+        const schema = registry.getSchema(type);
+
+        if (!schema) {
+          // Unknown type - use JSON
+          typeOutputs.push(`## Type: ${type}\n${formatJSON(typeNodes, simpleEdges, {} as any, allNodeData)}`);
+          continue;
+        }
+
+        const formatter = formatters[schema.compilation.format] || formatJSON;
+        const typeHeader = `## ${schema.displayName}`;
+        const content = formatter(typeNodes, simpleEdges, schema, allNodeData);
+
+        if (content.trim()) {
+          typeOutputs.push(`${typeHeader}\n\n${content}`);
+        }
       }
 
-      const formatter = formatters[schema.compilation.format] || formatJSON;
-      const header = schema.compilation.sectionHeader || `# ${schema.displayName}`;
-      const content = formatter(typeNodes, simpleEdges, schema, allNodeData);
-
-      if (content.trim()) {
-        sections.push(`${header}\n\n${content}`);
+      if (typeOutputs.length > 0) {
+        sections.push(`${header}\n\n${typeOutputs.join('\n\n')}`);
       }
     }
 
@@ -135,6 +147,97 @@ ${deployablesJson}
   }
 
   /**
+   * Compile schemas section
+   * Lists all used construct schemas and their descriptions
+   */
+  private compileSchemas(nodes: Node[]): string | null {
+    // Find all unique construct types used
+    const usedTypes = new Set<string>();
+    for (const node of nodes) {
+      const data = node.data as ConstructNodeData;
+      if (data.constructType) {
+        usedTypes.add(data.constructType);
+      }
+    }
+
+    if (usedTypes.size === 0) return null;
+
+    // Get schemas and their descriptions
+    const schemas = Array.from(usedTypes)
+      .map(type => {
+        const schema = registry.getSchema(type);
+        return schema ? {
+          type: schema.type,
+          displayName: schema.displayName,
+          description: schema.description || 'No description provided',
+          ...(schema.ports && schema.ports.length > 0 && {
+            ports: schema.ports.map(p => ({
+              id: p.id,
+              label: p.label,
+              direction: p.direction,
+              position: p.position,
+              offset: p.offset,
+            }))
+          }),
+        } : null;
+      })
+      .filter(s => s !== null)
+      .sort((a, b) => {
+        // Sort by display name
+        return a!.displayName.localeCompare(b!.displayName);
+      });
+
+    if (schemas.length === 0) return null;
+
+    const schemasJson = JSON.stringify(
+      {
+        schemas: schemas,
+      },
+      null,
+      2
+    );
+
+    return `# Construct Schemas
+
+The following construct types are used in this architecture. These definitions help AI tools understand the purpose and structure of each construct.
+
+\`\`\`json
+${schemasJson}
+\`\`\``;
+  }
+
+  /**
+   * Group nodes by deployment group
+   */
+  private groupByDeployment(nodes: Node[]): Record<string, Node[]> {
+    const grouped: Record<string, Node[]> = {};
+
+    for (const node of nodes) {
+      const data = node.data as ConstructNodeData;
+      const deploymentKey = data.deployableId || '__unassigned__';
+
+      if (!grouped[deploymentKey]) {
+        grouped[deploymentKey] = [];
+      }
+      grouped[deploymentKey].push(node);
+    }
+
+    return grouped;
+  }
+
+  /**
+   * Get human-readable deployment name
+   */
+  private getDeploymentName(deploymentKey: string): string {
+    if (deploymentKey === '__unassigned__') {
+      return 'Unassigned';
+    }
+
+    const deployable = deployableRegistry.get(deploymentKey);
+    return deployable ? deployable.name : deploymentKey;
+  }
+
+  /**
    * Group nodes by their construct type
    */
   private groupByType(nodes: Node[]): Record<string, ConstructNodeData[]> {
@@ -151,76 +254,6 @@ ${deployablesJson}
     }
 
     return grouped;
-  }
-
-  /**
-   * Compile port and connection information for a node
-   * Returns a human-readable description of the node's relationships
-   */
-  private compileNodeRelationships(data: ConstructNodeData): string[] {
-    const relationships: string[] = [];
-    const schema = registry.getSchema(data.constructType);
-    const ports = getPortsForSchema(schema?.ports);
-
-    if (data.connections && data.connections.length > 0) {
-      for (const conn of data.connections) {
-        const port = ports.find(p => p.id === conn.portId);
-        const portLabel = port?.label || conn.portId;
-        const directionDesc = this.getDirectionDescription(port?.direction || 'bidi');
-        relationships.push(`${directionDesc} (via ${portLabel}): ${conn.targetSemanticId}`);
-      }
-    }
-
-    return relationships;
-  }
-
-  /**
-   * Get human-readable description for a port direction
-   */
-  private getDirectionDescription(direction: string): string {
-    switch (direction) {
-      case 'out': return 'References';
-      case 'in': return 'Referenced by';
-      case 'child': return 'Is child of';
-      case 'parent': return 'Is parent of';
-      case 'bidi': return 'Links to';
-      default: return 'Connected to';
-    }
-  }
-
-  /**
-   * Compile connection graph summary
-   */
-  private compileConnectionGraph(nodes: Node[]): string | null {
-    const nodesWithConnections = nodes.filter(n => {
-      const data = n.data as ConstructNodeData;
-      return data.connections && data.connections.length > 0;
-    });
-
-    if (nodesWithConnections.length === 0) return null;
-
-    const connectionLines: string[] = [];
-
-    for (const node of nodesWithConnections) {
-      const data = node.data as ConstructNodeData;
-      const semanticId = data.semanticId || `${data.constructType}-unnamed`;
-
-      const relationships = this.compileNodeRelationships(data);
-      if (relationships.length > 0) {
-        connectionLines.push(`${semanticId}:`);
-        relationships.forEach(r => connectionLines.push(`  - ${r}`));
-      }
-    }
-
-    if (connectionLines.length === 0) return null;
-
-    return `# Connection Graph
-
-The following constructs have explicit connections defined:
-
-\`\`\`
-${connectionLines.join('\n')}
-\`\`\``;
   }
 
   /**
