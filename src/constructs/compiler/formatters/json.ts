@@ -8,7 +8,8 @@ import type { ConstructNodeData, ConstructSchema } from '../../types';
 export function formatJSON(
   nodes: ConstructNodeData[],
   _edges: Array<{ source: string; target: string }>,
-  _schema: ConstructSchema
+  _schema: ConstructSchema,
+  _allNodes?: ConstructNodeData[]
 ): string {
   const output = nodes.map((node) => ({
     id: node.semanticId || `${node.constructType}-${node.name.toLowerCase().replace(/\s+/g, '-')}`,

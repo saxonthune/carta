@@ -18,14 +18,14 @@ export const databaseSchema: ConstructSchema = {
     {
       name: 'engine',
       label: 'Engine',
-      type: 'dropdown',
+      type: 'enum',
       options: ['PostgreSQL', 'MySQL', 'SQLite', 'SQL Server', 'MongoDB'],
       default: 'PostgreSQL',
     },
     {
       name: 'note',
       label: 'Note',
-      type: 'text',
+      type: 'string',
       placeholder: 'Description of this database',
     },
   ],

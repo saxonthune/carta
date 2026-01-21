@@ -1,20 +1,21 @@
-import type { FieldType } from '../../constructs/types';
-import TextField from './TextField';
-import DropdownField from './DropdownField';
-import TableField from './TableField';
-import CodeField from './CodeField';
+import type { DataKind } from '../../constructs/types';
+import StringField from './StringField';
+import NumberField from './NumberField';
+import BooleanField from './BooleanField';
+import DateField from './DateField';
+import EnumField from './EnumField';
 
-export { TextField, DropdownField, TableField, CodeField };
+export { StringField, NumberField, BooleanField, DateField, EnumField };
 
 /**
- * Field renderer registry - maps field types to their components
+ * Field renderer registry - maps data kinds to their components
  */
-export const fieldRenderers: Record<FieldType, React.ComponentType<any>> = {
-  text: TextField,
-  dropdown: DropdownField,
-  table: TableField,
-  connection: TextField, // Placeholder - will be implemented later
-  code: CodeField,
+export const fieldRenderers: Record<DataKind, React.ComponentType<any>> = {
+  string: StringField,
+  number: NumberField,
+  boolean: BooleanField,
+  date: DateField,
+  enum: EnumField,
 };
 
 export default fieldRenderers;

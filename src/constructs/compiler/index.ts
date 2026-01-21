@@ -10,7 +10,8 @@ import { formatDBML } from './formatters/dbml';
 type FormatterFn = (
   nodes: ConstructNodeData[],
   edges: Array<{ source: string; target: string }>,
-  schema: any
+  schema: any,
+  allNodes?: ConstructNodeData[]
 ) => string;
 
 /**
@@ -57,6 +58,9 @@ export class CompilerEngine {
     // Enhance nodes with relationship metadata
     const nodesWithRelationships = this.addRelationshipMetadata(nodes, edges);
 
+    // Extract all node data for passing to formatters
+    const allNodeData = nodesWithRelationships.map(n => n.data as ConstructNodeData);
+
     // Group nodes by construct type
     const grouped = this.groupByType(nodesWithRelationships);
 
@@ -65,13 +69,13 @@ export class CompilerEngine {
 
       if (!schema) {
         // Unknown type - use JSON
-        sections.push(`# Unknown Type: ${type}\n${formatJSON(typeNodes, simpleEdges, {} as any)}`);
+        sections.push(`# Unknown Type: ${type}\n${formatJSON(typeNodes, simpleEdges, {} as any, allNodeData)}`);
         continue;
       }
 
       const formatter = formatters[schema.compilation.format] || formatJSON;
       const header = schema.compilation.sectionHeader || `# ${schema.displayName}`;
-      const content = formatter(typeNodes, simpleEdges, schema);
+      const content = formatter(typeNodes, simpleEdges, schema, allNodeData);
 
       if (content.trim()) {
         sections.push(`${header}\n\n${content}`);

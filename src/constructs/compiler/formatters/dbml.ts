@@ -1,25 +1,26 @@
-import type { ConstructNodeData, ConstructSchema, TableRow } from '../../types';
+import type { ConstructNodeData, ConstructSchema } from '../../types';
 
 /**
  * DBML Formatter
  * Compiles database and table constructs to DBML format
- * 
+ *
  * DBML (Database Markup Language) is a DSL for defining database schemas.
  * See: https://dbml.dbdiagram.io/docs/
  */
 export function formatDBML(
   nodes: ConstructNodeData[],
   edges: Array<{ source: string; target: string }>,
-  schema: ConstructSchema
+  schema: ConstructSchema,
+  allNodes?: ConstructNodeData[]
 ): string {
   // Handle database nodes - output project header
   if (schema.type === 'database') {
     return formatDatabases(nodes);
   }
-  
+
   // Handle table nodes - output table definitions and refs
   if (schema.type === 'table') {
-    return formatTables(nodes, edges);
+    return formatTables(nodes, edges, allNodes);
   }
   
   // Fallback for unknown types
@@ -58,7 +59,8 @@ function formatDatabases(nodes: ConstructNodeData[]): string {
  */
 function formatTables(
   nodes: ConstructNodeData[],
-  edges: Array<{ source: string; target: string }>
+  edges: Array<{ source: string; target: string }>,
+  allNodes?: ConstructNodeData[]
 ): string {
   const outputs: string[] = [];
   
@@ -72,30 +74,37 @@ function formatTables(
   
   for (const node of nodes) {
     const tableName = node.name.toLowerCase().replace(/\s+/g, '_');
-    const columns = (node.values.columns as TableRow[]) || [];
     const indexes = node.values.indexes as string;
-    
+
+    // Find child column constructs
+    const childColumns = allNodes
+      ? allNodes.filter(n =>
+          n.constructType === 'column' &&
+          n.connections?.some(c => c.targetSemanticId === node.semanticId && c.portId === 'parent')
+        )
+      : [];
+
     const lines = [`Table ${tableName} {`];
-    
-    // Add columns
-    for (const col of columns) {
-      if (!col.name) continue;
-      
-      const colName = col.name as string;
-      const colType = (col.type as string) || 'varchar';
+
+    // Add columns from child constructs
+    for (const col of childColumns) {
+      const colName = col.values.name as string;
+      if (!colName) continue;
+
+      const colType = (col.values.dataType as string) || 'varchar';
       const constraints: string[] = [];
-      
-      if (col.pk) {
+
+      if (col.values.primaryKey) {
         constraints.push('pk');
       }
-      if (col.nullable === false) {
+      if (col.values.nullable === false) {
         constraints.push('not null');
       }
-      
-      const constraintStr = constraints.length > 0 
-        ? ` [${constraints.join(', ')}]` 
+
+      const constraintStr = constraints.length > 0
+        ? ` [${constraints.join(', ')}]`
         : '';
-      
+
       lines.push(`  ${colName} ${colType}${constraintStr}`);
     }
     

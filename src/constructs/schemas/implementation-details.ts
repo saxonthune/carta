@@ -17,7 +17,8 @@ export const implementationDetailsSchema: ConstructSchema = {
     {
       name: 'details',
       label: 'Details',
-      type: 'code',
+      type: 'string',
+      displayHint: 'code',
       placeholder: 'Enter implementation details, notes, or documentation here...',
       default: '',
     },

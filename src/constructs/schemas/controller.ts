@@ -14,44 +14,33 @@ export const controllerSchema: ConstructSchema = {
     { id: 'flow-in', direction: 'in', position: 'left', offset: 50, label: 'Flow In' },
     { id: 'flow-out', direction: 'out', position: 'right', offset: 50, label: 'Flow Out' },
     { id: 'data-source', direction: 'out', position: 'bottom', offset: 50, label: 'Data Source' },
+    { id: 'child', direction: 'child', position: 'bottom', offset: 25, label: 'Parameters' },
   ],
   fields: [
     {
       name: 'route',
       label: 'Route',
-      type: 'text',
+      type: 'string',
       default: '/api/',
       placeholder: '/api/users/{id}'
     },
     {
       name: 'verb',
       label: 'Method',
-      type: 'dropdown',
+      type: 'enum',
       options: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
       default: 'GET'
     },
     {
       name: 'summary',
       label: 'Summary',
-      type: 'text',
+      type: 'string',
       placeholder: 'Brief description of this endpoint'
-    },
-    {
-      name: 'params',
-      label: 'Parameters',
-      type: 'table',
-      columns: [
-        { name: 'name', label: 'Name', type: 'text' },
-        { name: 'in', label: 'Location', type: 'dropdown', options: ['path', 'query', 'header', 'body'] },
-        { name: 'type', label: 'Type', type: 'dropdown', options: ['string', 'number', 'integer', 'boolean', 'array', 'object'] },
-        { name: 'required', label: 'Required', type: 'boolean' }
-      ],
-      default: []
     },
     {
       name: 'responseType',
       label: 'Response Type',
-      type: 'dropdown',
+      type: 'enum',
       options: ['object', 'array', 'string', 'number', 'boolean', 'void'],
       default: 'object'
     }

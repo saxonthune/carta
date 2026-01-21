@@ -149,7 +149,7 @@ export default function ConstructEditor({ onBack }: ConstructEditorProps) {
         <div className={`flex-1 overflow-hidden bg-surface-depth-3 ${isFullScreen ? 'p-6' : 'p-3'}`}>
           {isCreatingNew ? (
             <ConstructDetailsEditor
-              schema={null}
+              construct={null}
               isNew={true}
               onSave={handleSaveSchema}
               onCancel={handleCancel}
@@ -157,7 +157,7 @@ export default function ConstructEditor({ onBack }: ConstructEditorProps) {
             />
           ) : selectedSchema ? (
             <ConstructDetailsEditor
-              schema={selectedSchema}
+              construct={selectedSchema}
               isNew={false}
               onSave={handleSaveSchema}
               onCancel={handleCancel}

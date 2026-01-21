@@ -104,7 +104,7 @@ export default function ConstructDetailsEditor({
     const newField: FieldDefinition = {
       name: `field_${formData.fields.length + 1}`,
       label: `Field ${formData.fields.length + 1}`,
-      type: 'text',
+      type: 'string',
       placeholder: ''
     };
     setFormData(prev => ({

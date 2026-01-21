@@ -59,19 +59,35 @@ export interface ConnectionValue {
 }
 
 /**
- * Column definition for table fields
+ * M2 primitive data types
  */
-export interface ColumnDef {
+export type DataKind = 'string' | 'number' | 'boolean' | 'date' | 'enum';
+
+/**
+ * Display hints for string type presentation
+ */
+export type DisplayHint = 'multiline' | 'code' | 'password' | 'url' | 'color';
+
+/**
+ * Base interface for registry items
+ */
+export interface RegistryItem {
+  id: string;
   name: string;
-  label: string;
-  type?: 'text' | 'dropdown' | 'boolean';
-  options?: string[]; // For dropdown columns
+  description?: string;
 }
 
 /**
- * Field types supported by the visual editor
+ * Generic registry interface
  */
-export type FieldType = 'text' | 'dropdown' | 'table' | 'connection' | 'code';
+export interface Registry<T extends RegistryItem> {
+  get(id: string): T | undefined;
+  getAll(): T[];
+  add(item: Omit<T, 'id'>): T;
+  update(id: string, updates: Partial<T>): T | undefined;
+  remove(id: string): boolean;
+  clear(): void;
+}
 
 /**
  * Definition of a single field within a construct schema
@@ -79,10 +95,10 @@ export type FieldType = 'text' | 'dropdown' | 'table' | 'connection' | 'code';
 export interface FieldDefinition {
   name: string;
   label: string;
-  type: FieldType;
-  options?: string[];        // For dropdown type
-  columns?: ColumnDef[];     // For table type
-  connectionType?: string;   // For connection type (links to another construct type)
+  type: DataKind;            // Changed from FieldType
+  description?: string;      // AI compilation context
+  options?: string[];        // For enum type
+  displayHint?: DisplayHint; // For string type presentation
   default?: unknown;
   placeholder?: string;
 }
@@ -115,14 +131,6 @@ export interface ConstructSchema {
   ports?: PortConfig[];      // Port configurations for connections
   compilation: CompilationConfig;
   isBuiltIn?: boolean;       // true for built-in schemas, false for user-defined
-}
-
-/**
- * Table row data for table fields
- */
-export interface TableRow {
-  id: string;
-  [key: string]: unknown;
 }
 
 /**
