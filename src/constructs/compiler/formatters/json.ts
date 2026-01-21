@@ -8,13 +8,15 @@ import type { ConstructNodeData, ConstructSchema } from '../../types';
 export function formatJSON(
   nodes: ConstructNodeData[],
   _edges: Array<{ source: string; target: string }>,
-  _schema: ConstructSchema
+  _schema: ConstructSchema,
+  _allNodes?: ConstructNodeData[]
 ): string {
   const output = nodes.map((node) => ({
     id: node.semanticId || `${node.constructType}-${node.name.toLowerCase().replace(/\s+/g, '-')}`,
     type: node.constructType,
     name: node.name,
     deployableId: node.deployableId || null,
+    ...(node.connections && node.connections.length > 0 && { connections: node.connections }),
     ...(node.references && node.references.length > 0 && { references: node.references }),
     ...(node.referencedBy && node.referencedBy.length > 0 && { referencedBy: node.referencedBy }),
     ...node.values,

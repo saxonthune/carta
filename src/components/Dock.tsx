@@ -1,7 +1,8 @@
 import { useState, type ReactNode } from 'react';
 import ConstructEditor from './ConstructEditor';
 import DeployablesEditor from './DeployablesEditor';
-import type { Deployable } from '../constructs/types';
+import InstanceViewer from './InstanceViewer';
+import type { Deployable, ConstructNodeData } from '../constructs/types';
 import type { Node } from '@xyflow/react';
 
 export type DockView = 'viewer' | 'constructs' | 'deployables';
@@ -10,15 +11,12 @@ interface DockProps {
   selectedNodes: Node[];
   deployables: Deployable[];
   onDeployablesChange: () => void;
+  onNodeUpdate: (nodeId: string, updates: Partial<ConstructNodeData>) => void;
   height?: number;
 }
 
-export default function Dock({ selectedNodes, deployables, onDeployablesChange, height = 256 }: DockProps) {
+export default function Dock({ selectedNodes, deployables, onDeployablesChange, onNodeUpdate, height = 256 }: DockProps) {
   const [activeView, setActiveView] = useState<DockView>('viewer');
-
-  // Suppress unused for now - will be used by ConstructViewer
-  void selectedNodes;
-  void deployables;
 
   const tabs: { id: DockView; label: string; icon: ReactNode }[] = [
     {
@@ -54,20 +52,25 @@ export default function Dock({ selectedNodes, deployables, onDeployablesChange, 
   const renderContent = () => {
     switch (activeView) {
       case 'viewer':
+        if (selectedNodes.length === 0) {
+          return (
+            <div className="p-4 text-content-muted">
+              <p>Select a construct on the map to view its details.</p>
+            </div>
+          );
+        }
+        if (selectedNodes.length === 1) {
+          return (
+            <InstanceViewer
+              node={selectedNodes[0]}
+              deployables={deployables}
+              onNodeUpdate={onNodeUpdate}
+            />
+          );
+        }
         return (
           <div className="p-4 text-content-muted">
-            {selectedNodes.length === 0 ? (
-              <p>Select a construct on the map to view its details.</p>
-            ) : selectedNodes.length === 1 ? (
-              <div>
-                <h3 className="font-semibold text-content mb-2">
-                  {(selectedNodes[0].data as { name?: string }).name || 'Unnamed'}
-                </h3>
-                <p className="text-sm">Construct viewer coming soon...</p>
-              </div>
-            ) : (
-              <p>{selectedNodes.length} constructs selected</p>
-            )}
+            <p>{selectedNodes.length} constructs selected</p>
           </div>
         );
       case 'constructs':
@@ -80,23 +83,25 @@ export default function Dock({ selectedNodes, deployables, onDeployablesChange, 
   };
 
   return (
-    <div className="bg-surface flex" style={{ height }}>
+    <div className="bg-surface-depth-3 flex" style={{ height }}>
       {/* Left tabs */}
-      <div className="w-12 bg-surface-alt border-r flex flex-col items-center">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveView(tab.id)}
-            title={tab.label}
-            className={`w-10 h-10 flex items-center justify-center rounded-lg transition-colors ${
-              activeView === tab.id
-                ? 'bg-accent-muted text-accent'
-                : 'text-content-muted hover:bg-border-subtle hover:text-content'
-            }`}
-          >
-            {tab.icon}
-          </button>
-        ))}
+      <div className="w-14 bg-surface-depth-1 flex flex-col items-center py-2 px-1.5">
+        <div className="bg-surface-depth-2 rounded-xl p-1.5 flex flex-col gap-1.5">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveView(tab.id)}
+              title={tab.label}
+              className={`w-10 h-10 flex items-center justify-center rounded-lg transition-all ${
+                activeView === tab.id
+                  ? 'bg-accent/30 text-accent ring-2 ring-accent/60 shadow-sm shadow-accent/20'
+                  : 'text-content-muted hover:bg-surface-depth-3/50 hover:text-content'
+              }`}
+            >
+              {tab.icon}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Content area */}

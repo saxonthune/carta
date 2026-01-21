@@ -1,0 +1,134 @@
+---
+description: Port and connection model design philosophy
+globs: ["**/constructs/**", "**/components/ConstructNode*", "**/components/SchemaEditor*", "**/compiler/**"]
+---
+
+# Port & Connection Model Design Philosophy
+
+## Core Principle: Symmetric Storage, Asymmetric Interpretation
+
+Connections are **symmetric in storage** but **asymmetric in interpretation**. The edge itself carries no metadata—direction and meaning derive entirely from **which construct owns which port type**.
+
+## Port Types
+
+Five built-in port directions:
+
+| Direction | Purpose | Typical Position |
+|-----------|---------|------------------|
+| `in` | Receives flow | Left |
+| `out` | Emits flow | Right |
+| `parent` | Has children | Bottom |
+| `child` | Belongs to parent | Top |
+| `bidi` | Symmetric association | Any |
+
+## Valid Port Pairings
+
+Only these combinations form valid connections:
+
+- `out` ↔ `in` (directional flow)
+- `child` ↔ `parent` (hierarchy)
+- `bidi` ↔ `bidi` (symmetric)
+- `bidi` ↔ `in` (flexible source)
+- `out` ↔ `bidi` (flexible target)
+
+## Design Decisions
+
+### 1. No Edge Metadata
+All connection data lives on the **construct instance**, not the edge. Edges are purely visual.
+
+```typescript
+// Connection stored on source construct
+interface ConnectionValue {
+  portId: string;           // Which port on this construct
+  targetSemanticId: string; // Connected construct's semanticId
+  targetPortId: string;     // Which port on target
+}
+
+interface ConstructNodeData {
+  // ...other fields
+  connections: ConnectionValue[];
+}
+```
+
+### 2. Inverse is Always Derivable
+You never define `(A → B)` and `(B → A)` separately. A single relationship definition covers both:
+
+- "Database contains Table" ⟺ "Table belongs to Database"
+- "Constraint references Table" ⟺ "Table is referenced by Constraint"
+
+If you need different meanings for `(A,B)` vs `(B,A)`, **use different construct types**.
+
+### 3. Port Configuration is Per-Schema
+All instances of a construct type share the same ports. Port customization happens in the Schema Editor, not on individual canvas nodes.
+
+```typescript
+interface PortConfig {
+  id: string;                    // Unique within construct
+  direction: PortDirection;
+  position: 'left' | 'right' | 'top' | 'bottom';
+  offset: number;                // 0-100% along edge
+  label: string;
+
+  // Future type system
+  dataType?: string;
+  accepts?: string[];
+}
+```
+
+### 4. Future Type System Hooks
+Ports include optional `dataType` and `accepts` fields for future type validation. Today they're ignored; tomorrow they enable:
+
+- Port validates connections based on dataType compatibility
+- Dynamic dropdowns based on connected construct's fields
+- Compile-time warnings for mismatched types
+
+## Relationship Semantics in Compilation
+
+The compiler generates human-readable relationship descriptions:
+
+```typescript
+{
+  semanticId: 'constraint-fk-orders-users',
+  ports: [
+    { id: 'child', direction: 'child', label: 'Parent' },
+    { id: 'fk-target', direction: 'out', label: 'References' },
+  ],
+  connections: [
+    { portId: 'child', targetSemanticId: 'table-orders', targetPortId: 'parent' },
+    { portId: 'fk-target', targetSemanticId: 'table-users', targetPortId: 'link-in' },
+  ],
+  relationships: [
+    'Is child of: table-orders',
+    'References (via fk-target): table-users',
+  ],
+}
+```
+
+## Test Case: Database Schema
+
+The model should easily express:
+
+```
+Database (parent of tables)
+    └── Table (child of DB, parent of constraints)
+            └── Constraint (child of table, flow-out to referenced table)
+```
+
+- **Database**: `child` port (bottom) for tables
+- **Table**: `parent` port (top), `child` port (bottom), `in` port (left) for incoming references
+- **Constraint**: `parent` port (top), `out` port (right) for FK target
+
+Foreign key details (source column, target column) live in **construct fields**, not on the connection.
+
+## Necessary and Sufficient
+
+The goal is **minimal primitives** that express all needed relationships:
+
+1. Don't add features unless they enable something impossible before
+2. Don't duplicate semantics (if port types give direction, edges don't need it)
+3. Prefer structural meaning (port ownership) over explicit metadata
+
+## References
+
+- Academic field: **Metamodeling**, **Domain-Specific Languages**, **Knowledge Graphs**
+- Key resource: "Building Knowledge Graphs: A Practitioner's Guide" (Barrasa & Webber, 2023)

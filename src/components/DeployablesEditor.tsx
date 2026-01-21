@@ -81,7 +81,7 @@ export default function DeployablesEditor({ onBack, onDeployablesChange }: Deplo
   const isFullScreen = !!onBack;
 
   return (
-    <div className={`flex flex-col bg-surface text-content ${isFullScreen ? 'w-screen h-screen' : 'w-full h-full'}`}>
+    <div className={`flex flex-col bg-surface-depth-3 text-content ${isFullScreen ? 'w-screen h-screen' : 'w-full h-full'}`}>
       {/* Header - only show in full screen mode */}
       {isFullScreen && (
         <div className="flex items-center px-5 py-3 bg-surface-elevated border-b gap-4">
@@ -115,8 +115,8 @@ export default function DeployablesEditor({ onBack, onDeployablesChange }: Deplo
 
       <div className="flex flex-1 overflow-hidden">
         {/* Left sidebar - Deployables list */}
-        <div className={`bg-surface-elevated border-r flex flex-col ${isFullScreen ? 'w-[280px]' : 'w-[200px]'}`}>
-          <div className={`flex justify-between items-center border-b ${isFullScreen ? 'p-4' : 'px-3 py-2'}`}>
+        <div className={`bg-surface-depth-1 flex flex-col ${isFullScreen ? 'w-[280px]' : 'w-[200px]'}`}>
+          <div className={`flex justify-between items-center ${isFullScreen ? 'p-4' : 'px-3 py-2'}`}>
             <h2 className="m-0 text-sm font-semibold text-content-muted uppercase tracking-wide">Deployables</h2>
             <button
               className={`bg-accent border-none rounded text-white font-medium cursor-pointer hover:bg-accent-hover transition-colors ${isFullScreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'}`}
@@ -126,32 +126,37 @@ export default function DeployablesEditor({ onBack, onDeployablesChange }: Deplo
             </button>
           </div>
 
-          <div className={`flex-1 overflow-y-auto ${isFullScreen ? 'p-2' : 'p-1'}`}>
-            {deployables.length === 0 ? (
-              <p className={`text-content-muted italic text-center ${isFullScreen ? 'px-3 py-4 text-sm' : 'px-2 py-2 text-xs'}`}>
-                No deployables yet. Click "Add New" to create one.
-              </p>
-            ) : (
-              deployables.map(deployable => (
-                <button
-                  key={deployable.id}
-                  className={`flex flex-col w-full bg-transparent border-transparent rounded-md text-content cursor-pointer text-left hover:bg-surface-alt transition-all ${
-                    selectedId === deployable.id ? 'bg-surface-alt border-accent' : ''
-                  } ${isFullScreen ? 'px-3 py-2.5 text-sm gap-1' : 'px-2 py-1.5 text-xs gap-0.5'}`}
-                  onClick={() => handleSelectDeployable(deployable.id)}
-                >
-                  <span className="font-medium truncate">{deployable.name}</span>
-                  {deployable.description && (
-                    <span className={`text-content-muted line-clamp-2 ${isFullScreen ? 'text-xs' : 'text-[10px]'}`}>{deployable.description}</span>
-                  )}
-                </button>
-              ))
-            )}
+          <div className={`flex-1 overflow-y-auto ${isFullScreen ? 'px-2 pb-2' : 'px-1.5 pb-1.5'}`}>
+            {/* Deployables island */}
+            <div className={`bg-surface-depth-2 rounded-xl ${isFullScreen ? 'p-2' : 'p-1.5'}`}>
+              {deployables.length === 0 ? (
+                <p className={`text-content-muted italic text-center ${isFullScreen ? 'px-2 py-3 text-sm' : 'px-2 py-2 text-xs'}`}>
+                  No deployables yet
+                </p>
+              ) : (
+                deployables.map(deployable => (
+                  <button
+                    key={deployable.id}
+                    className={`flex flex-col w-full rounded-lg cursor-pointer text-left transition-all ${
+                      selectedId === deployable.id 
+                        ? 'bg-accent/30 text-accent ring-2 ring-accent/60 shadow-sm shadow-accent/20' 
+                        : 'text-content bg-transparent hover:bg-surface-depth-3/50'
+                    } ${isFullScreen ? 'px-3 py-2.5 text-sm gap-1' : 'px-2 py-1.5 text-xs gap-0.5'}`}
+                    onClick={() => handleSelectDeployable(deployable.id)}
+                  >
+                    <span className="font-medium truncate">{deployable.name}</span>
+                    {deployable.description && (
+                      <span className={`line-clamp-2 ${selectedId === deployable.id ? 'text-accent/80' : 'text-content-muted'} ${isFullScreen ? 'text-xs' : 'text-[10px]'}`}>{deployable.description}</span>
+                    )}
+                  </button>
+                ))
+              )}
+            </div>
           </div>
         </div>
 
         {/* Right panel - Edit form */}
-        <div className={`flex-1 overflow-y-auto bg-surface ${isFullScreen ? 'p-6' : 'p-3'}`}>
+        <div className={`flex-1 overflow-y-auto bg-surface-depth-3 ${isFullScreen ? 'p-6' : 'p-3'}`}>
           {isCreatingNew || selectedDeployable ? (
             <div className={isFullScreen ? 'max-w-2xl' : ''}>
               <h2 className={`font-semibold text-content ${isFullScreen ? 'text-lg mb-6' : 'text-base mb-3'}`}>

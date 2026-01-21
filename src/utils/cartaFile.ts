@@ -1,5 +1,6 @@
 import type { Node, Edge } from '@xyflow/react';
 import type { Deployable, ConstructSchema } from '../constructs/types';
+import type { ExportOptions } from './exportAnalyzer';
 
 /**
  * Version of the .carta file format
@@ -63,19 +64,29 @@ export function generateSemanticId(constructType: string, name: string): string 
 /**
  * Export project data to a .carta file
  */
-export function exportProject(data: Omit<CartaFile, 'version' | 'exportedAt'>): void {
+export function exportProject(data: Omit<CartaFile, 'version' | 'exportedAt'>, options?: ExportOptions): void {
+  // Apply export options to filter data
+  const filteredData: Omit<CartaFile, 'version' | 'exportedAt'> = {
+    title: data.title,
+    nodeId: data.nodeId,
+    nodes: options?.nodes !== false ? data.nodes : [],
+    edges: options?.nodes !== false ? data.edges : [],
+    deployables: options?.deployables !== false ? data.deployables : [],
+    customSchemas: options?.schemas !== false ? data.customSchemas : [],
+  };
+
   const cartaFile: CartaFile = {
     version: CARTA_FILE_VERSION,
-    ...data,
+    ...filteredData,
     exportedAt: new Date().toISOString(),
   };
 
   const json = JSON.stringify(cartaFile, null, 2);
   const blob = new Blob([json], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
-  
+
   const filename = `${toKebabCase(data.title) || 'untitled'}.carta`;
-  
+
   const a = document.createElement('a');
   a.href = url;
   a.download = filename;
@@ -164,6 +175,25 @@ export function validateCartaFile(data: unknown): CartaFile {
     if (typeof n.id !== 'string' || !n.position || typeof n.type !== 'string') {
       throw new Error('Invalid file: node missing required fields (id, position, type)');
     }
+    // Validate connections if present
+    if (n.data && typeof n.data === 'object') {
+      const data = n.data as Record<string, unknown>;
+      if (data.connections !== undefined) {
+        if (!Array.isArray(data.connections)) {
+          throw new Error(`Invalid file: node "${n.id}" has invalid connections (must be array)`);
+        }
+        for (const conn of data.connections as unknown[]) {
+          if (!conn || typeof conn !== 'object') {
+            throw new Error(`Invalid file: node "${n.id}" has invalid connection structure`);
+          }
+          const c = conn as Record<string, unknown>;
+          if (typeof c.portId !== 'string' || typeof c.targetSemanticId !== 'string' ||
+              typeof c.targetPortId !== 'string') {
+            throw new Error(`Invalid file: node "${n.id}" has connection missing required fields`);
+          }
+        }
+      }
+    }
   }
   
   // Validate edges have required fields
@@ -194,10 +224,36 @@ export function validateCartaFile(data: unknown): CartaFile {
       throw new Error('Invalid file: invalid schema structure');
     }
     const s = schema as Record<string, unknown>;
-    if (typeof s.type !== 'string' || typeof s.displayName !== 'string' || 
-        typeof s.category !== 'string' || typeof s.color !== 'string' ||
-        !Array.isArray(s.fields) || !s.compilation) {
+    if (typeof s.type !== 'string' || typeof s.displayName !== 'string' ||
+        typeof s.color !== 'string' || !Array.isArray(s.fields) || !s.compilation) {
       throw new Error('Invalid file: schema missing required fields');
+    }
+    // Validate ports if present
+    if (s.ports !== undefined) {
+      if (!Array.isArray(s.ports)) {
+        throw new Error(`Invalid file: schema "${s.type}" has invalid ports (must be array)`);
+      }
+      for (const port of s.ports as unknown[]) {
+        if (!port || typeof port !== 'object') {
+          throw new Error(`Invalid file: schema "${s.type}" has invalid port structure`);
+        }
+        const p = port as Record<string, unknown>;
+        if (typeof p.id !== 'string' || typeof p.direction !== 'string' ||
+            typeof p.position !== 'string' || typeof p.offset !== 'number' ||
+            typeof p.label !== 'string') {
+          throw new Error(`Invalid file: schema "${s.type}" has port missing required fields (id, direction, position, offset, label)`);
+        }
+        // Validate direction enum
+        const validDirections = ['in', 'out', 'parent', 'child', 'bidi'];
+        if (!validDirections.includes(p.direction as string)) {
+          throw new Error(`Invalid file: schema "${s.type}" has port with invalid direction "${p.direction}"`);
+        }
+        // Validate position enum
+        const validPositions = ['left', 'right', 'top', 'bottom'];
+        if (!validPositions.includes(p.position as string)) {
+          throw new Error(`Invalid file: schema "${s.type}" has port with invalid position "${p.position}"`);
+        }
+      }
     }
   }
   

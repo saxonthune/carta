@@ -8,10 +8,10 @@ import {
   useEdgesState,
   useReactFlow,
   addEdge,
-  MarkerType,
   SelectionMode,
   type Node,
   type Edge,
+  type Connection,
   type OnConnect,
   type OnSelectionChangeParams,
   BackgroundVariant,
@@ -24,7 +24,9 @@ import AddConstructMenu from './AddConstructMenu';
 import DeployableBackground from './DeployableBackground';
 import { useUndoRedo } from '../hooks/useUndoRedo';
 import { generateSemanticId } from '../utils/cartaFile';
-import type { ConstructSchema, ConstructValues, Deployable } from '../constructs/types';
+import type { ConstructSchema, ConstructValues, Deployable, ConnectionValue, ConstructNodeData } from '../constructs/types';
+import { registry } from '../constructs/registry';
+import { canConnect, getPortsForSchema } from '../constructs/ports';
 
 const nodeTypes = {
   custom: CustomNode,
@@ -32,12 +34,6 @@ const nodeTypes = {
 };
 
 const defaultEdgeOptions = {
-  markerEnd: {
-    type: MarkerType.ArrowClosed,
-    width: 20,
-    height: 20,
-    color: '#6366f1',
-  },
   style: {
     strokeWidth: 2,
     stroke: '#6366f1',
@@ -79,6 +75,7 @@ interface ContextMenuState {
   y: number;
   type: ContextMenuType;
   nodeId?: string;
+  edgeId?: string;
 }
 
 interface AddMenuState {
@@ -92,9 +89,10 @@ export interface MapProps {
   title: string;
   onNodesEdgesChange: (nodes: Node[], edges: Edge[]) => void;
   onSelectionChange?: (selectedNodes: Node[]) => void;
+  nodeUpdateRef?: React.MutableRefObject<((nodeId: string, updates: Partial<ConstructNodeData>) => void) | null>;
 }
 
-export default function Map({ deployables, onDeployablesChange, title, onNodesEdgesChange, onSelectionChange }: MapProps) {
+export default function Map({ deployables, onDeployablesChange, title, onNodesEdgesChange, onSelectionChange, nodeUpdateRef }: MapProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
@@ -102,11 +100,32 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
   const [renamingNodeId, setRenamingNodeId] = useState<string | null>(null);
   const [clipboard, setClipboard] = useState<Node[]>([]);
-  const { screenToFlowPosition } = useReactFlow();
+  const { screenToFlowPosition, getNodes } = useReactFlow();
   const { undo, redo, canUndo, canRedo, takeSnapshot } = useUndoRedo();
 
   // Suppress unused variable warning - onDeployablesChange is passed to children
   void onDeployablesChange;
+
+  // Expose node update function via ref
+  const handleNodeUpdate = useCallback(
+    (nodeId: string, updates: Partial<ConstructNodeData>) => {
+      setNodes((nds) =>
+        nds.map((node) =>
+          node.id === nodeId
+            ? { ...node, data: { ...node.data, ...updates } }
+            : node
+        )
+      );
+    },
+    [setNodes]
+  );
+
+  // Set the ref so parent can call this function
+  useEffect(() => {
+    if (nodeUpdateRef) {
+      nodeUpdateRef.current = handleNodeUpdate;
+    }
+  }, [nodeUpdateRef, handleNodeUpdate]);
 
   useEffect(() => {
     const saveState = () => {
@@ -129,12 +148,129 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     onNodesEdgesChange(nodes, edges);
   }, [nodes, edges, onNodesEdgesChange]);
 
+  // Helper to get semanticId from a node
+  const getNodeSemanticId = useCallback((nodeId: string): string | null => {
+    const node = nodes.find(n => n.id === nodeId);
+    if (!node || node.type !== 'construct') return null;
+    const data = node.data as ConstructNodeData;
+    return data.semanticId || generateSemanticId(data.constructType, data.name);
+  }, [nodes]);
+
+  const isValidConnection = useCallback((connection: Edge | Connection): boolean => {
+    const { source, target, sourceHandle, targetHandle } = connection;
+
+    // no self-connections and no same-construct connections
+    if (!source || !target) return false;
+    if (source === target) return false;
+
+    // If handles are missing, we can't validate ports safely
+    if (!sourceHandle || !targetHandle) return false;
+
+    const currentNodes = getNodes();
+    const sourceNode = currentNodes.find((n) => n.id === source);
+    const targetNode = currentNodes.find((n) => n.id === target);
+    if (!sourceNode || !targetNode) return false;
+
+    // Only validate port semantics for construct nodes; other node types fall back to default behavior
+    if (sourceNode.type !== 'construct' || targetNode.type !== 'construct') return true;
+
+    const sourceData = sourceNode.data as ConstructNodeData;
+    const targetData = targetNode.data as ConstructNodeData;
+    const sourceSchema = registry.getSchema(sourceData.constructType);
+    const targetSchema = registry.getSchema(targetData.constructType);
+    if (!sourceSchema || !targetSchema) return false;
+
+    const sourcePorts = getPortsForSchema(sourceSchema.ports);
+    const targetPorts = getPortsForSchema(targetSchema.ports);
+    const sourcePort = sourcePorts.find((p) => p.id === sourceHandle);
+    const targetPort = targetPorts.find((p) => p.id === targetHandle);
+    if (!sourcePort || !targetPort) return false;
+
+    // Rules 3, 4, 5: direction pairings (child->parent, out->in, bidi->bidi)
+    return canConnect(sourcePort.direction, targetPort.direction);
+  }, [getNodes]);
+
   const onConnect: OnConnect = useCallback(
     (params) => {
       takeSnapshot();
+
+      // Store connection on source node's data
+      if (params.source && params.sourceHandle && params.target && params.targetHandle) {
+        const targetSemanticId = getNodeSemanticId(params.target);
+        if (targetSemanticId) {
+          const newConnection: ConnectionValue = {
+            portId: params.sourceHandle,
+            targetSemanticId,
+            targetPortId: params.targetHandle,
+          };
+
+          setNodes((nds) =>
+            nds.map((node) => {
+              if (node.id === params.source && node.type === 'construct') {
+                const data = node.data as ConstructNodeData;
+                const existingConnections = data.connections || [];
+                // Avoid duplicates
+                const alreadyExists = existingConnections.some(
+                  c => c.portId === newConnection.portId &&
+                       c.targetSemanticId === newConnection.targetSemanticId &&
+                       c.targetPortId === newConnection.targetPortId
+                );
+                if (alreadyExists) return node;
+
+                return {
+                  ...node,
+                  data: {
+                    ...data,
+                    connections: [...existingConnections, newConnection],
+                  },
+                };
+              }
+              return node;
+            })
+          );
+        }
+      }
+
+      // Also add edge for visual rendering
       setEdges((eds) => addEdge(params, eds));
     },
-    [setEdges, takeSnapshot]
+    [setEdges, setNodes, takeSnapshot, getNodeSemanticId]
+  );
+
+  // Handle edge deletion - remove connection data from nodes
+  const handleEdgesDelete = useCallback(
+    (deletedEdges: Edge[]) => {
+      setNodes((nds) =>
+        nds.map((node) => {
+          if (node.type !== 'construct') return node;
+          const data = node.data as ConstructNodeData;
+          if (!data.connections || data.connections.length === 0) return node;
+
+          // Find edges that were deleted from this node
+          const edgesFromThisNode = deletedEdges.filter(e => e.source === node.id);
+          if (edgesFromThisNode.length === 0) return node;
+
+          // Remove connections that match deleted edges
+          const updatedConnections = data.connections.filter(conn => {
+            return !edgesFromThisNode.some(edge =>
+              edge.sourceHandle === conn.portId &&
+              edge.targetHandle === conn.targetPortId
+            );
+          });
+
+          if (updatedConnections.length === data.connections.length) return node;
+
+          return {
+            ...node,
+            data: {
+              ...data,
+              connections: updatedConnections,
+            },
+          };
+        })
+      );
+    },
+    [setNodes]
   );
 
   const addConstruct = useCallback(
@@ -203,6 +339,20 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     );
     setSelectedNodeIds([]);
   }, [selectedNodeIds, setNodes, setEdges, takeSnapshot]);
+
+  const deleteEdge = useCallback(
+    (edgeIdToDelete: string) => {
+      takeSnapshot();
+      const edgeToDelete = edges.find((e) => e.id === edgeIdToDelete);
+      if (edgeToDelete) {
+        // Remove from edges array
+        setEdges((eds) => eds.filter((e) => e.id !== edgeIdToDelete));
+        // Remove connection data from nodes
+        handleEdgesDelete([edgeToDelete]);
+      }
+    },
+    [edges, setEdges, handleEdgesDelete, takeSnapshot]
+  );
 
   const renameNode = useCallback(
     (nodeIdToRename: string, newName: string) => {
@@ -346,6 +496,14 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     [onSelectionChange]
   );
 
+  // Update parent with fresh node data whenever nodes change (to keep InstanceViewer in sync)
+  useEffect(() => {
+    if (selectedNodeIds.length > 0) {
+      const selectedNodes = nodes.filter((n) => selectedNodeIds.includes(n.id));
+      onSelectionChange?.(selectedNodes);
+    }
+  }, [nodes, selectedNodeIds, onSelectionChange]);
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
@@ -420,6 +578,19 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     []
   );
 
+  const onEdgeContextMenu = useCallback(
+    (event: React.MouseEvent, edge: Edge) => {
+      event.preventDefault();
+      setContextMenu({
+        x: event.clientX,
+        y: event.clientY,
+        type: 'edge',
+        edgeId: edge.id,
+      });
+    },
+    []
+  );
+
   const closeContextMenu = useCallback(() => {
     setContextMenu(null);
   }, []);
@@ -450,10 +621,13 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        onEdgesDelete={handleEdgesDelete}
         onConnect={onConnect}
+        isValidConnection={isValidConnection}
         onSelectionChange={handleSelectionChange}
         onPaneContextMenu={onPaneContextMenu}
         onNodeContextMenu={onNodeContextMenu}
+        onEdgeContextMenu={onEdgeContextMenu}
         onPaneClick={onPaneClick}
         nodeTypes={nodeTypes}
         defaultEdgeOptions={defaultEdgeOptions}
@@ -511,10 +685,12 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
           y={contextMenu.y}
           type={contextMenu.type}
           nodeId={contextMenu.nodeId}
+          edgeId={contextMenu.edgeId}
           selectedCount={selectedNodeIds.length}
           onAddNode={addNode}
           onDeleteNode={deleteNode}
           onDeleteSelected={deleteSelectedNodes}
+          onDeleteEdge={deleteEdge}
           onCopyNodes={copyNodes}
           onPasteNodes={pasteNodes}
           canPaste={clipboard.length > 0}

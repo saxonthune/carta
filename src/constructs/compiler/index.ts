@@ -9,7 +9,8 @@ import { formatDBML } from './formatters/dbml';
 type FormatterFn = (
   nodes: ConstructNodeData[],
   edges: Array<{ source: string; target: string }>,
-  schema: any
+  schema: any,
+  allNodes?: ConstructNodeData[]
 ) => string;
 
 /**
@@ -47,27 +48,49 @@ export class CompilerEngine {
       sections.push(deployablesSection);
     }
 
+    // Add schemas section listing all used construct types
+    const schemasSection = this.compileSchemas(nodes);
+    if (schemasSection) {
+      sections.push(schemasSection);
+    }
+
     // Enhance nodes with relationship metadata
     const nodesWithRelationships = this.addRelationshipMetadata(nodes, edges);
 
-    // Group nodes by construct type
-    const grouped = this.groupByType(nodesWithRelationships);
+    // Extract all node data for passing to formatters
+    const allNodeData = nodesWithRelationships.map(n => n.data as ConstructNodeData);
 
-    for (const [type, typeNodes] of Object.entries(grouped)) {
-      const schema = registry.getSchema(type);
-      
-      if (!schema) {
-        // Unknown type - use JSON
-        sections.push(`# Unknown Type: ${type}\n${formatJSON(typeNodes, simpleEdges, {} as any)}`);
-        continue;
+    // Group nodes by deployment group
+    const grouped = this.groupByDeployment(nodesWithRelationships);
+
+    for (const [deploymentKey, deploymentNodes] of Object.entries(grouped)) {
+      const deploymentName = this.getDeploymentName(deploymentKey);
+      const header = `# Deployment: ${deploymentName}`;
+
+      // Group by type within deployment
+      const typeGroups = this.groupByType(deploymentNodes);
+      const typeOutputs: string[] = [];
+
+      for (const [type, typeNodes] of Object.entries(typeGroups)) {
+        const schema = registry.getSchema(type);
+
+        if (!schema) {
+          // Unknown type - use JSON
+          typeOutputs.push(`## Type: ${type}\n${formatJSON(typeNodes, simpleEdges, {} as any, allNodeData)}`);
+          continue;
+        }
+
+        const formatter = formatters[schema.compilation.format] || formatJSON;
+        const typeHeader = `## ${schema.displayName}`;
+        const content = formatter(typeNodes, simpleEdges, schema, allNodeData);
+
+        if (content.trim()) {
+          typeOutputs.push(`${typeHeader}\n\n${content}`);
+        }
       }
 
-      const formatter = formatters[schema.compilation.format] || formatJSON;
-      const header = schema.compilation.sectionHeader || `# ${schema.displayName}`;
-      const content = formatter(typeNodes, simpleEdges, schema);
-
-      if (content.trim()) {
-        sections.push(`${header}\n\n${content}`);
+      if (typeOutputs.length > 0) {
+        sections.push(`${header}\n\n${typeOutputs.join('\n\n')}`);
       }
     }
 
@@ -121,6 +144,96 @@ The following deployables define logical groupings. When generating code, group 
 \`\`\`json
 ${deployablesJson}
 \`\`\``;
+  }
+
+  /**
+   * Compile schemas section
+   * Lists all used construct schemas and their descriptions
+   */
+  private compileSchemas(nodes: Node[]): string | null {
+    // Find all unique construct types used
+    const usedTypes = new Set<string>();
+    for (const node of nodes) {
+      const data = node.data as ConstructNodeData;
+      if (data.constructType) {
+        usedTypes.add(data.constructType);
+      }
+    }
+
+    if (usedTypes.size === 0) return null;
+
+    // Get schemas and their descriptions
+    const schemas = Array.from(usedTypes)
+      .map(type => {
+        const schema = registry.getSchema(type);
+        return schema ? {
+          type: schema.type,
+          displayName: schema.displayName,
+          description: schema.description || 'No description provided',
+          ...(schema.ports && schema.ports.length > 0 && {
+            ports: schema.ports.map(p => ({
+              id: p.id,
+              label: p.label,
+              direction: p.direction,
+              ...(p.description && { description: p.description }),
+            }))
+          }),
+        } : null;
+      })
+      .filter(s => s !== null)
+      .sort((a, b) => {
+        // Sort by display name
+        return a!.displayName.localeCompare(b!.displayName);
+      });
+
+    if (schemas.length === 0) return null;
+
+    const schemasJson = JSON.stringify(
+      {
+        schemas: schemas,
+      },
+      null,
+      2
+    );
+
+    return `# Construct Schemas
+
+The following construct types are used in this architecture. These definitions help AI tools understand the purpose and structure of each construct.
+
+\`\`\`json
+${schemasJson}
+\`\`\``;
+  }
+
+  /**
+   * Group nodes by deployment group
+   */
+  private groupByDeployment(nodes: Node[]): Record<string, Node[]> {
+    const grouped: Record<string, Node[]> = {};
+
+    for (const node of nodes) {
+      const data = node.data as ConstructNodeData;
+      const deploymentKey = data.deployableId || '__unassigned__';
+
+      if (!grouped[deploymentKey]) {
+        grouped[deploymentKey] = [];
+      }
+      grouped[deploymentKey].push(node);
+    }
+
+    return grouped;
+  }
+
+  /**
+   * Get human-readable deployment name
+   */
+  private getDeploymentName(deploymentKey: string): string {
+    if (deploymentKey === '__unassigned__') {
+      return 'Unassigned';
+    }
+
+    const deployable = deployableRegistry.get(deploymentKey);
+    return deployable ? deployable.name : deploymentKey;
   }
 
   /**

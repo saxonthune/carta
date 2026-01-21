@@ -1,4 +1,4 @@
-import type { ConstructNodeData, ConstructSchema, TableRow } from '../../types';
+import type { ConstructNodeData, ConstructSchema } from '../../types';
 
 /**
  * OpenAPI Formatter
@@ -7,7 +7,8 @@ import type { ConstructNodeData, ConstructSchema, TableRow } from '../../types';
 export function formatOpenAPI(
   nodes: ConstructNodeData[],
   _edges: Array<{ source: string; target: string }>,
-  _schema: ConstructSchema
+  _schema: ConstructSchema,
+  allNodes?: ConstructNodeData[]
 ): string {
   if (nodes.length === 0) return '';
 
@@ -17,18 +18,26 @@ export function formatOpenAPI(
     const route = (node.values.route as string) || '/api/unknown';
     const verb = ((node.values.verb as string) || 'GET').toLowerCase();
     const summary = (node.values.summary as string) || node.name;
-    const params = (node.values.params as TableRow[]) || [];
     const responseType = (node.values.responseType as string) || 'object';
 
-    // Build parameters
+    // Find child api-parameter constructs
+    const childParams = allNodes
+      ? allNodes.filter(n =>
+          n.constructType === 'api-parameter' &&
+          n.connections?.some(c => c.targetSemanticId === node.semanticId && c.portId === 'parent')
+        )
+      : [];
+
+    // Build parameters from child constructs
     const paramLines: string[] = [];
-    for (const param of params) {
-      if (param.name) {
-        paramLines.push(`      - name: ${param.name}`);
-        paramLines.push(`        in: ${param.in || 'query'}`);
-        paramLines.push(`        required: ${param.required || false}`);
+    for (const param of childParams) {
+      const paramName = param.values.name as string;
+      if (paramName) {
+        paramLines.push(`      - name: ${paramName}`);
+        paramLines.push(`        in: ${(param.values.location as string) || 'query'}`);
+        paramLines.push(`        required: ${param.values.required || false}`);
         paramLines.push(`        schema:`);
-        paramLines.push(`          type: ${param.type || 'string'}`);
+        paramLines.push(`          type: ${(param.values.dataType as string) || 'string'}`);
       }
     }
 

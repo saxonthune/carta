@@ -1,16 +1,18 @@
 import { useCallback, useEffect, useRef } from 'react';
 
-export type ContextMenuType = 'pane' | 'node';
+export type ContextMenuType = 'pane' | 'node' | 'edge';
 
 interface ContextMenuProps {
   x: number;
   y: number;
   type: ContextMenuType;
   nodeId?: string;
+  edgeId?: string;
   selectedCount: number;
   onAddNode: (x: number, y: number) => void;
   onDeleteNode: (nodeId: string) => void;
   onDeleteSelected: () => void;
+  onDeleteEdge?: (edgeId: string) => void;
   onCopyNodes: (nodeIds?: string[]) => void;
   onPasteNodes: (x: number, y: number) => void;
   canPaste: boolean;
@@ -22,10 +24,12 @@ export default function ContextMenu({
   y,
   type,
   nodeId,
+  edgeId,
   selectedCount,
   onAddNode,
   onDeleteNode,
   onDeleteSelected,
+  onDeleteEdge,
   onCopyNodes,
   onPasteNodes,
   canPaste,
@@ -70,6 +74,13 @@ export default function ContextMenu({
     onPasteNodes(x, y);
     onClose();
   }, [x, y, onPasteNodes, onClose]);
+
+  const handleDeleteEdge = useCallback(() => {
+    if (edgeId && onDeleteEdge) {
+      onDeleteEdge(edgeId);
+    }
+    onClose();
+  }, [edgeId, onDeleteEdge, onClose]);
 
   const showMultipleSelected = selectedCount > 1;
 
@@ -121,6 +132,14 @@ export default function ContextMenu({
             </button>
           )}
         </>
+      )}
+      {type === 'edge' && (
+        <button
+          className="block w-full px-4 py-2.5 border-none bg-white text-red-600 text-sm text-left cursor-pointer hover:bg-red-50 transition-colors"
+          onClick={handleDeleteEdge}
+        >
+          Delete Connection
+        </button>
       )}
     </div>
   );

@@ -1,0 +1,188 @@
+---
+description: Three-level metamodel architecture
+globs: ["**/constructs/**", "**/components/fields/**", "**/components/FieldDefinitionEditor*"]
+---
+
+# Metamodel Design: Three-Level Architecture
+
+Carta uses a classic three-level metamodel (M2/M1/M0) to provide flexibility while maintaining type safety.
+
+## Levels Overview
+
+```
+M2 (Designer-fixed)     M1 (User-defined)           M0 (Instances)
+─────────────────────   ─────────────────────────   ─────────────────────
+DataKind: string,       Registries:                 ConstructInstance:
+  number, boolean,        - Constructs                - type → Construct
+  date, enum              - Deployables               - deployable? → Deployable
+                                                      - values: {field → value}
+PortDirection: in,      Construct:                    - connections[]
+  out, parent,            - name, description
+  child, bidi             - fields[]
+                          - ports[]
+```
+
+## M2: Fixed Primitives
+
+These types are fixed at design time and cannot be changed by users.
+
+### DataKind
+The five primitive data types for field values:
+
+| Kind | Description | Example Values |
+|------|-------------|----------------|
+| `string` | Text data | "Hello", "/api/users" |
+| `number` | Numeric data | 42, 3.14 |
+| `boolean` | True/false | true, false |
+| `date` | Date values | "2024-01-15" |
+| `enum` | Fixed choices | "GET", "POST", "PUT" |
+
+### DisplayHint
+Presentation hints for string fields (optional):
+
+| Hint | Renders As |
+|------|------------|
+| (none) | Single-line input |
+| `multiline` | Textarea |
+| `code` | Monospace textarea |
+| `password` | Password input |
+| `url` | URL input |
+| `color` | Color picker |
+
+### PortDirection
+See `ports-and-connections.mdc` for details.
+
+## M1: User-Defined Schemas
+
+Users define construct types via the Schema Editor. Each construct schema specifies:
+
+```typescript
+interface ConstructSchema {
+  type: string;              // Unique identifier
+  displayName: string;       // Human-readable name
+  color: string;             // Visual accent
+  description?: string;      // AI compilation context
+  fields: FieldDefinition[]; // Data fields
+  ports?: PortConfig[];      // Connection points
+  compilation: CompilationConfig;
+}
+```
+
+### FieldDefinition
+
+```typescript
+interface FieldDefinition {
+  name: string;           // Internal key
+  label: string;          // Display label
+  type: DataKind;         // One of the M2 primitives
+  description?: string;   // AI context for compilation
+  options?: string[];     // For enum type only
+  displayHint?: DisplayHint; // For string type only
+  default?: unknown;
+  placeholder?: string;
+}
+```
+
+## M0: Construct Instances
+
+Instances live on the React Flow canvas as nodes:
+
+```typescript
+interface ConstructNodeData {
+  constructType: string;     // References schema.type
+  name: string;              // User-given instance name
+  semanticId?: string;       // AI-friendly identifier
+  values: ConstructValues;   // Field values
+  connections?: ConnectionValue[];
+  deployableId?: string | null;
+}
+```
+
+## Design Principles
+
+### 1. No Embedded Tables
+Previously, fields like `params` (on Controller) or `columns` (on Table) used a `table` field type with embedded rows.
+
+**New approach:** Use child constructs connected via parent-child ports.
+
+```
+Old: Controller.params = [{name: "id", in: "path", ...}]
+New: Controller ←─parent─ ApiParameter instances
+```
+
+Benefits:
+- Visual representation of structure
+- Consistent editing experience
+- Reusable parameter/column definitions
+- Cleaner separation of concerns
+
+### 2. DataKind is Exhaustive
+Every field must have exactly one of the five DataKinds. There are no "special" field types like `table` or `connection`.
+
+### 3. DisplayHint is Optional
+DisplayHint only affects rendering, not data storage. A `string` field with `displayHint: 'code'` stores the same data as one without—just renders differently.
+
+### 4. Description for AI Context
+The `description` field on both schemas and field definitions provides context for AI compilation. Use it to explain what the field represents semantically.
+
+## Child Construct Patterns
+
+### API Parameter (child of Controller)
+```typescript
+{
+  type: 'api-parameter',
+  fields: [
+    { name: 'name', type: 'string' },
+    { name: 'location', type: 'enum', options: ['path', 'query', 'header', 'body'] },
+    { name: 'dataType', type: 'enum', options: ['string', 'number', 'boolean', 'object', 'array'] },
+    { name: 'required', type: 'boolean' },
+  ],
+  ports: [{ id: 'parent', direction: 'parent', ... }],
+}
+```
+
+### Column (child of Table)
+```typescript
+{
+  type: 'column',
+  fields: [
+    { name: 'name', type: 'string' },
+    { name: 'dataType', type: 'enum', options: ['VARCHAR', 'INT', ...] },
+    { name: 'primaryKey', type: 'boolean' },
+    { name: 'nullable', type: 'boolean' },
+  ],
+  ports: [{ id: 'parent', direction: 'parent', ... }],
+}
+```
+
+## Compiler Integration
+
+Formatters find child constructs by traversing connections:
+
+```typescript
+// Find child parameters for a controller
+const childParams = allNodes.filter(n =>
+  n.constructType === 'api-parameter' &&
+  n.connections?.some(c =>
+    c.targetSemanticId === controller.semanticId &&
+    c.portId === 'parent'
+  )
+);
+```
+
+## Registry Pattern
+
+Both Construct schemas and Deployables use the generic `Registry<T>` interface:
+
+```typescript
+interface Registry<T extends RegistryItem> {
+  get(id: string): T | undefined;
+  getAll(): T[];
+  add(item: Omit<T, 'id'>): T;
+  update(id: string, updates: Partial<T>): T | undefined;
+  remove(id: string): boolean;
+  clear(): void;
+}
+```
+
+See `registry-base.ts` for the `BaseRegistry` implementation with localStorage persistence.

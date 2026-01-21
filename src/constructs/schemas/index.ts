@@ -1,17 +1,13 @@
 import { registry } from '../registry';
-import { controllerSchema } from './controller';
-import { databaseSchema } from './database';
-import { tableSchema } from './table';
-import { implementationDetailsSchema } from './implementation-details';
+import { builtInSchemas } from './built-ins';
 
 /**
  * Register all built-in schemas
  */
 export function registerBuiltInSchemas(): void {
-  registry.registerSchema(controllerSchema);
-  registry.registerSchema(databaseSchema);
-  registry.registerSchema(tableSchema);
-  registry.registerSchema(implementationDetailsSchema);
+  for (const schema of builtInSchemas) {
+    registry.registerSchema(schema);
+  }
 }
 
-export { controllerSchema, databaseSchema, tableSchema, implementationDetailsSchema };
+export { builtInSchemas };
