@@ -93,6 +93,21 @@ export default function PortsTab({
                 </div>
               </div>
 
+              {/* Description Section */}
+              <div className="mb-3">
+                <label className="block text-xs font-medium text-content-muted mb-1">
+                  Description
+                </label>
+                <textarea
+                  className="w-full px-2 py-1.5 bg-surface-alt rounded text-content text-xs focus:outline-none focus:ring-1 focus:ring-primary resize-none"
+                  value={port.description || ''}
+                  onChange={(e) => updatePort(index, { description: e.target.value })}
+                  placeholder="Describe what this port is used for (appears in compiled output)"
+                  disabled={isReadOnly}
+                  rows={2}
+                />
+              </div>
+
               {/* Connection & Layout Section */}
               <div className="grid grid-cols-3 gap-2">
                 <div>

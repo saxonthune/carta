@@ -175,8 +175,7 @@ ${deployablesJson}
               id: p.id,
               label: p.label,
               direction: p.direction,
-              position: p.position,
-              offset: p.offset,
+              ...(p.description && { description: p.description }),
             }))
           }),
         } : null;

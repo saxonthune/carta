@@ -42,6 +42,7 @@ export interface PortConfig {
   position: PortPosition;
   offset: number;                // 0-100% along the edge
   label: string;                 // Display name shown on hover
+  description?: string;          // Usage description for compiled output
 
   // Future type system hooks
   dataType?: string;
