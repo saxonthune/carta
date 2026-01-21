@@ -38,7 +38,7 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
 
   if (!schema) {
     return (
-      <div className="bg-danger-muted border-2 border-danger rounded-lg min-w-[250px] p-2 text-sm text-content">
+      <div className="bg-danger-muted border-2 border-danger rounded-lg min-w-[250px] p-2 text-node-lg text-content">
         <Handle type="target" position={Position.Left} id="flow-in" className="port-handle" />
         <div>Unknown construct type: {data.constructType}</div>
         <Handle type="source" position={Position.Right} id="flow-out" className="port-handle" />
@@ -80,7 +80,7 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
 
   return (
     <div
-      className={`bg-surface border-[3px] rounded-lg w-full h-full text-[13px] text-content shadow-md overflow-visible relative flex flex-col min-w-[250px] ${selected ? 'border-accent shadow-[0_0_0_2px_var(--color-accent)]' : 'border'}`}
+      className={`bg-surface border-[3px] rounded-lg w-full h-full text-node-base text-content shadow-md overflow-visible relative flex flex-col min-w-[250px] ${selected ? 'border-accent shadow-[0_0_0_2px_var(--color-accent)]' : 'border'}`}
     >
       {selected && (
         <NodeResizer
@@ -112,7 +112,7 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
       {/* Port tooltip */}
       {hoveredPort && (
         <div
-          className="bg-surface-elevated text-content text-xs px-2 py-1 rounded shadow-lg border pointer-events-none"
+          className="bg-surface-elevated text-content text-node-sm px-2 py-1 rounded shadow-lg border pointer-events-none"
           style={getTooltipPosition(ports.find(p => p.id === hoveredPort)!)}
         >
           {ports.find(p => p.id === hoveredPort)?.label}
@@ -134,15 +134,15 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
           <line x1="3" y1="12" x2="21" y2="12" />
           <line x1="3" y1="18" x2="21" y2="18" />
         </svg>
-        <span className="text-[11px] opacity-80 uppercase">{schema.displayName}</span>
+        <span className="text-node-xs opacity-80 uppercase">{schema.displayName}</span>
       </div>
 
       <div className="px-2 py-1 bg-surface shrink-0">
-        <div className="text-[11px] text-content-muted uppercase tracking-wide">Name</div>
-        <div className="text-sm text-content font-medium leading-tight">{data.name}</div>
+        <div className="text-node-xs text-content-muted uppercase tracking-wide">Name</div>
+        <div className="text-node-lg text-content font-medium leading-tight">{data.name}</div>
       </div>
 
-      <div className="px-2 py-1.5 text-xs text-content-muted flex-1 overflow-y-auto min-h-0">
+      <div className="px-2 py-1.5 text-node-sm text-content-muted flex-1 overflow-y-auto min-h-0">
         {mapFields.length === 0 ? (
           <div></div>
         ) : (
