@@ -8,10 +8,10 @@ import {
   useEdgesState,
   useReactFlow,
   addEdge,
-  MarkerType,
   SelectionMode,
   type Node,
   type Edge,
+  type Connection,
   type OnConnect,
   type OnSelectionChangeParams,
   BackgroundVariant,
@@ -25,6 +25,8 @@ import DeployableBackground from './DeployableBackground';
 import { useUndoRedo } from '../hooks/useUndoRedo';
 import { generateSemanticId } from '../utils/cartaFile';
 import type { ConstructSchema, ConstructValues, Deployable, ConnectionValue, ConstructNodeData } from '../constructs/types';
+import { registry } from '../constructs/registry';
+import { canConnect, getPortsForSchema } from '../constructs/ports';
 
 const nodeTypes = {
   custom: CustomNode,
@@ -32,12 +34,6 @@ const nodeTypes = {
 };
 
 const defaultEdgeOptions = {
-  markerEnd: {
-    type: MarkerType.ArrowClosed,
-    width: 20,
-    height: 20,
-    color: '#6366f1',
-  },
   style: {
     strokeWidth: 2,
     stroke: '#6366f1',
@@ -103,7 +99,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
   const [renamingNodeId, setRenamingNodeId] = useState<string | null>(null);
   const [clipboard, setClipboard] = useState<Node[]>([]);
-  const { screenToFlowPosition } = useReactFlow();
+  const { screenToFlowPosition, getNodes } = useReactFlow();
   const { undo, redo, canUndo, canRedo, takeSnapshot } = useUndoRedo();
 
   // Suppress unused variable warning - onDeployablesChange is passed to children
@@ -158,6 +154,40 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     const data = node.data as ConstructNodeData;
     return data.semanticId || generateSemanticId(data.constructType, data.name);
   }, [nodes]);
+
+  const isValidConnection = useCallback((connection: Edge | Connection): boolean => {
+    const { source, target, sourceHandle, targetHandle } = connection;
+
+    // no self-connections and no same-construct connections
+    if (!source || !target) return false;
+    if (source === target) return false;
+
+    // If handles are missing, we can't validate ports safely
+    if (!sourceHandle || !targetHandle) return false;
+
+    const currentNodes = getNodes();
+    const sourceNode = currentNodes.find((n) => n.id === source);
+    const targetNode = currentNodes.find((n) => n.id === target);
+    if (!sourceNode || !targetNode) return false;
+
+    // Only validate port semantics for construct nodes; other node types fall back to default behavior
+    if (sourceNode.type !== 'construct' || targetNode.type !== 'construct') return true;
+
+    const sourceData = sourceNode.data as ConstructNodeData;
+    const targetData = targetNode.data as ConstructNodeData;
+    const sourceSchema = registry.getSchema(sourceData.constructType);
+    const targetSchema = registry.getSchema(targetData.constructType);
+    if (!sourceSchema || !targetSchema) return false;
+
+    const sourcePorts = getPortsForSchema(sourceSchema.ports);
+    const targetPorts = getPortsForSchema(targetSchema.ports);
+    const sourcePort = sourcePorts.find((p) => p.id === sourceHandle);
+    const targetPort = targetPorts.find((p) => p.id === targetHandle);
+    if (!sourcePort || !targetPort) return false;
+
+    // Rules 3, 4, 5: direction pairings (child->parent, out->in, bidi->bidi)
+    return canConnect(sourcePort.direction, targetPort.direction);
+  }, [getNodes]);
 
   const onConnect: OnConnect = useCallback(
     (params) => {
@@ -557,6 +587,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
         onEdgesChange={onEdgesChange}
         onEdgesDelete={handleEdgesDelete}
         onConnect={onConnect}
+        isValidConnection={isValidConnection}
         onSelectionChange={handleSelectionChange}
         onPaneContextMenu={onPaneContextMenu}
         onNodeContextMenu={onNodeContextMenu}

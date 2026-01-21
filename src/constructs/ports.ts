@@ -30,19 +30,17 @@ export const VALID_PAIRINGS: [PortDirection, PortDirection][] = [
   ['out', 'in'],
   ['child', 'parent'],
   ['bidi', 'bidi'],
+  // Bidi ports are compatible with flow ports
   ['bidi', 'in'],
-  ['out', 'bidi'],
+  ['bidi', 'out'],
 ];
 
 /**
  * Check if two port directions can be connected
  */
 export function canConnect(sourceDirection: PortDirection, targetDirection: PortDirection): boolean {
-  return VALID_PAIRINGS.some(
-    ([src, tgt]) =>
-      (src === sourceDirection && tgt === targetDirection) ||
-      (src === targetDirection && tgt === sourceDirection)
-  );
+  // Ordered pairing: source -> target
+  return VALID_PAIRINGS.some(([src, tgt]) => src === sourceDirection && tgt === targetDirection);
 }
 
 /**
