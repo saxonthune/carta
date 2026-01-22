@@ -1,7 +1,8 @@
-import { useState, useCallback, type ReactNode } from 'react';
+import { useState, useCallback } from 'react';
 import type { Node } from '@xyflow/react';
 import { registry } from '../constructs/registry';
 import { fieldRenderers } from './fields';
+import TabBar, { type Tab } from './ui/TabBar';
 import type { ConstructNodeData, Deployable, ConstructValues } from '../constructs/types';
 
 interface InstanceEditorProps {
@@ -47,10 +48,10 @@ export default function InstanceEditor({ node, deployables, onNodeUpdate }: Inst
     );
   }
 
-  const tabs: { id: ViewerTab; label: string; icon: ReactNode }[] = [
-    { 
-      id: 'details', 
-      label: 'Details', 
+  const tabs: Tab<ViewerTab>[] = [
+    {
+      id: 'details',
+      label: 'Details',
       icon: (
         <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
@@ -58,9 +59,9 @@ export default function InstanceEditor({ node, deployables, onNodeUpdate }: Inst
         </svg>
       )
     },
-    { 
-      id: 'connections', 
-      label: 'Connections', 
+    {
+      id: 'connections',
+      label: 'Connections',
       icon: (
         <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M17 8l4 4-4 4M3 12h18" />
@@ -92,25 +93,11 @@ export default function InstanceEditor({ node, deployables, onNodeUpdate }: Inst
 
       {/* Content with tabs */}
       <div className="flex-1 min-h-0 flex gap-3 p-3">
-        {/* Vertical Tab Bar */}
-        <div className="bg-surface-depth-1 flex flex-col w-[110px] shrink-0 p-2 gap-1 rounded-xl">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              className={`flex flex-row items-center justify-start gap-2 p-1 rounded-lg cursor-pointer transition-all ${
-                activeTab === tab.id
-                  ? 'bg-accent/30 text-accent ring-2 ring-accent/60 shadow-sm shadow-accent/20'
-                  : 'text-content bg-transparent hover:bg-surface-depth-3/50'
-              }`}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              <div className="w-4 h-4 shrink-0">
-                {tab.icon}
-              </div>
-              <span className="text-[12px] font-medium leading-tight">{tab.label}</span>
-            </button>
-          ))}
-        </div>
+        <TabBar
+          tabs={tabs}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        />
 
         {/* Content Area */}
         <div className="flex-1 bg-surface-depth-3 p-4 overflow-y-auto min-h-0 rounded-xl">

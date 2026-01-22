@@ -5,6 +5,7 @@ import CompilationTab from './construct-editor/CompilationTab';
 import PortsTab from './construct-editor/PortsTab';
 import FieldsTab from './construct-editor/FieldsTab';
 import PreviewTab from './construct-editor/PreviewTab';
+import TabBar, { type Tab } from './ui/TabBar';
 import type { ConstructSchema, FieldDefinition, PortConfig } from '../constructs/types';
 
 // Convert string to snake_case while preserving special characters like '#'
@@ -215,26 +216,26 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
     }));
   };
 
-  const tabs = [
-    { id: 'basic' as EditorTab, label: 'Overview', icon: (
+  const tabs: Tab<EditorTab>[] = [
+    { id: 'basic', label: 'Overview', icon: (
       <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <path d="M12 2L2 7l10 5 10-5-10-5z"/>
         <path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
       </svg>
     )},
-    { id: 'compilation' as EditorTab, label: 'Compile', icon: (
+    { id: 'compilation', label: 'Compile', icon: (
       <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <polyline points="16 18 22 12 16 6"/>
         <polyline points="8 6 2 12 8 18"/>
       </svg>
     )},
-    { id: 'ports' as EditorTab, label: 'Ports', icon: (
+    { id: 'ports', label: 'Ports', icon: (
       <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <circle cx="12" cy="12" r="3"/>
         <path d="M12 1v6m0 6v6M1 12h6m6 0h6"/>
       </svg>
     )},
-    { id: 'fields' as EditorTab, label: 'Fields', icon: (
+    { id: 'fields', label: 'Fields', icon: (
       <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <line x1="8" y1="6" x2="21" y2="6"/>
         <line x1="8" y1="12" x2="21" y2="12"/>
@@ -244,7 +245,7 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
         <line x1="3" y1="18" x2="3.01" y2="18"/>
       </svg>
     )},
-    { id: 'preview' as EditorTab, label: 'Preview', icon: (
+    { id: 'preview', label: 'Preview', icon: (
       <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
         <circle cx="12" cy="12" r="3"/>
@@ -285,25 +286,11 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
       </div>
 
       <div className="flex-1 min-h-0 flex gap-3">
-        {/* Vertical Tab Bar */}
-        <div className="bg-surface-depth-1 flex flex-col w-[110px] shrink-0 p-2 gap-1 rounded-xl">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              className={`flex flex-row items-center justify-start gap-2 p-1 rounded-lg cursor-pointer transition-all ${
-                activeTab === tab.id
-                  ? 'bg-accent/30 text-accent ring-2 ring-accent/60 shadow-sm shadow-accent/20'
-                  : 'text-content bg-transparent hover:bg-surface-depth-3/50'
-              }`}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              <div className="w-4 h-4 shrink-0">
-                {tab.icon}
-              </div>
-              <span className="text-[12px] font-medium leading-tight">{tab.label}</span>
-            </button>
-          ))}
-        </div>
+        <TabBar
+          tabs={tabs}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        />
 
         {/* Content Area */}
         <div className="flex-1 bg-surface-depth-3 p-1 overflow-y-auto min-h-0 rounded-xl">

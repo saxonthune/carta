@@ -2,6 +2,8 @@ import { useState, useCallback, useEffect, useRef, forwardRef, useImperativeHand
 import { registry } from '../constructs/registry';
 import { schemaStorage } from '../constructs/storage';
 import ConstructDetailsEditor from './ConstructDetailsEditor';
+import { useDirtyStateGuard } from '../hooks/useDirtyStateGuard';
+import ConfirmationModal from './ui/ConfirmationModal';
 import type { ConstructSchema } from '../constructs/types';
 
 interface ConstructEditorProps {
@@ -14,14 +16,38 @@ const ConstructEditor = forwardRef<{ save: () => void }, ConstructEditorProps>(
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [isCreatingNew, setIsCreatingNew] = useState(false);
   const [schemas, setSchemas] = useState(() => registry.getAllSchemas());
-  const [isDirty, setIsDirty] = useState(false);
-  const [pendingSelection, setPendingSelection] = useState<string | null>(null);
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const detailsEditorRef = useRef<{ save: () => void } | null>(null);
 
   const refreshSchemas = useCallback(() => {
     setSchemas(registry.getAllSchemas());
   }, []);
+
+  const handleDetailsEditorSave = useCallback(() => {
+    detailsEditorRef.current?.save();
+  }, []);
+
+  const handleSwitch = useCallback((pending: string) => {
+    if (pending === '__new__') {
+      setSelectedType(null);
+      setIsCreatingNew(true);
+    } else {
+      setSelectedType(pending);
+      setIsCreatingNew(false);
+    }
+  }, []);
+
+  const {
+    isDirty,
+    setIsDirty,
+    showConfirmModal,
+    guardedSelect,
+    confirmSave,
+    confirmDiscard,
+    confirmCancel,
+  } = useDirtyStateGuard<string>({
+    onSave: handleDetailsEditorSave,
+    onSwitch: handleSwitch,
+  });
 
   // Notify parent when dirty state changes
   useEffect(() => {
@@ -31,10 +57,9 @@ const ConstructEditor = forwardRef<{ save: () => void }, ConstructEditorProps>(
   // Expose save method via ref for parent (Dock) to trigger from confirmation modal
   useImperativeHandle(ref, () => ({
     save: () => {
-      // Call the save method on the ConstructDetailsEditor via its ref
       detailsEditorRef.current?.save();
     }
-  }), [detailsEditorRef]);
+  }), []);
 
   const builtInSchemas = schemas.filter(s => s.isBuiltIn);
   const userSchemas = schemas.filter(s => !s.isBuiltIn);
@@ -42,23 +67,11 @@ const ConstructEditor = forwardRef<{ save: () => void }, ConstructEditorProps>(
   const selectedSchema = selectedType ? registry.getSchema(selectedType) : null;
 
   const handleSelectSchema = (type: string) => {
-    if (isDirty) {
-      setPendingSelection(type);
-      setShowConfirmModal(true);
-      return;
-    }
-    setSelectedType(type);
-    setIsCreatingNew(false);
+    guardedSelect(type);
   };
 
   const handleAddNew = () => {
-    if (isDirty) {
-      setPendingSelection('__new__');
-      setShowConfirmModal(true);
-      return;
-    }
-    setSelectedType(null);
-    setIsCreatingNew(true);
+    guardedSelect('__new__');
   };
 
   const handleSaveSchema = useCallback((schema: ConstructSchema, isNew: boolean) => {
@@ -85,40 +98,6 @@ const ConstructEditor = forwardRef<{ save: () => void }, ConstructEditorProps>(
     refreshSchemas();
     setSelectedType(null);
   }, [refreshSchemas]);
-
-  const handleConfirmSave = () => {
-    detailsEditorRef.current?.save();
-    setShowConfirmModal(false);
-    // After save, proceed to pending selection
-    setTimeout(() => {
-      if (pendingSelection === '__new__') {
-        setSelectedType(null);
-        setIsCreatingNew(true);
-      } else if (pendingSelection) {
-        setSelectedType(pendingSelection);
-        setIsCreatingNew(false);
-      }
-      setPendingSelection(null);
-    }, 0);
-  };
-
-  const handleConfirmDiscard = () => {
-    setIsDirty(false);
-    setShowConfirmModal(false);
-    if (pendingSelection === '__new__') {
-      setSelectedType(null);
-      setIsCreatingNew(true);
-    } else if (pendingSelection) {
-      setSelectedType(pendingSelection);
-      setIsCreatingNew(false);
-    }
-    setPendingSelection(null);
-  };
-
-  const handleConfirmCancel = () => {
-    setShowConfirmModal(false);
-    setPendingSelection(null);
-  };
 
   const isFullScreen = !!onBack;
 
@@ -231,39 +210,13 @@ const ConstructEditor = forwardRef<{ save: () => void }, ConstructEditorProps>(
         </div>
       </div>
 
-      {/* Confirmation Modal */}
-      {showConfirmModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-surface-elevated rounded-lg shadow-lg max-w-sm mx-4">
-            <div className="p-6">
-              <h3 className="text-lg font-semibold text-content mb-2">Unsaved Changes</h3>
-              <p className="text-content-muted text-sm mb-6">
-                You have unsaved changes. Do you want to discard them and switch to a different construct?
-              </p>
-              <div className="flex gap-3 justify-end">
-                <button
-                  className="px-4 py-2 rounded-md text-content bg-surface-depth-3 hover:bg-surface-depth-2 transition-colors text-sm font-medium cursor-pointer"
-                  onClick={handleConfirmCancel}
-                >
-                  Cancel
-                </button>
-                <button
-                  className="px-4 py-2 rounded-md text-white bg-danger hover:bg-danger/80 transition-colors text-sm font-medium cursor-pointer"
-                  onClick={handleConfirmDiscard}
-                >
-                  Discard
-                </button>
-                <button
-                  className="px-4 py-2 rounded-md text-white bg-accent hover:bg-accent-hover transition-colors text-sm font-medium cursor-pointer"
-                  onClick={handleConfirmSave}
-                >
-                  Save Changes
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmationModal
+        isOpen={showConfirmModal}
+        message="You have unsaved changes. Do you want to discard them and switch to a different construct?"
+        onCancel={confirmCancel}
+        onDiscard={confirmDiscard}
+        onSave={confirmSave}
+      />
     </div>
   );
   }
