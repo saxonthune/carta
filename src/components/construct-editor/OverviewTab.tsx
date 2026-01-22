@@ -9,7 +9,6 @@ function toSnakeCase(str: string): string {
 interface OverviewTabProps {
   formData: ConstructSchema;
   errors: Record<string, string>;
-  isReadOnly: boolean;
   updateField: (key: keyof ConstructSchema, value: unknown) => void;
 }
 
@@ -22,7 +21,6 @@ const DEFAULT_COLORS = [
 export default function OverviewTab({
   formData,
   errors,
-  isReadOnly,
   updateField
 }: OverviewTabProps) {
   return (
@@ -37,7 +35,6 @@ export default function OverviewTab({
           value={formData.displayName}
           onChange={(e) => updateField('displayName', e.target.value)}
           placeholder="My Construct"
-          disabled={isReadOnly}
         />
         {formData.displayName && (
           <span className="block mt-1 text-[11px] text-content-muted">Type ID: {toSnakeCase(formData.displayName)}</span>
@@ -52,10 +49,9 @@ export default function OverviewTab({
             <button
               key={color}
               type="button"
-              className={`w-6 h-6 border-2 border-transparent rounded cursor-pointer transition-all hover:scale-110 ${formData.color === color ? 'border-white shadow-[0_0_0_2px_#6366f1]' : ''} ${isReadOnly ? 'cursor-not-allowed opacity-50' : ''}`}
+              className={`w-6 h-6 border-2 border-transparent rounded cursor-pointer transition-all hover:scale-110 ${formData.color === color ? 'border-white shadow-[0_0_0_2px_#6366f1]' : ''}`}
               style={{ backgroundColor: color }}
               onClick={() => updateField('color', color)}
-              disabled={isReadOnly}
             />
           ))}
           <input
@@ -63,7 +59,6 @@ export default function OverviewTab({
             className="w-6 h-6 p-0 border-none rounded cursor-pointer"
             value={formData.color}
             onChange={(e) => updateField('color', e.target.value)}
-            disabled={isReadOnly}
           />
         </div>
       </div>
@@ -76,7 +71,6 @@ export default function OverviewTab({
           onChange={(e) => updateField('description', e.target.value)}
           placeholder="Describe what this construct represents..."
           rows={4}
-          disabled={isReadOnly}
         />
       </div>
     </div>

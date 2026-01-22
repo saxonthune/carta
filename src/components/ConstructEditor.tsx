@@ -61,9 +61,6 @@ const ConstructEditor = forwardRef<{ save: () => void }, ConstructEditorProps>(
     }
   }), []);
 
-  const builtInSchemas = schemas.filter(s => s.isBuiltIn);
-  const userSchemas = schemas.filter(s => !s.isBuiltIn);
-
   const selectedSchema = selectedType ? registry.getSchema(selectedType) : null;
 
   const handleSelectSchema = (type: string) => {
@@ -76,12 +73,9 @@ const ConstructEditor = forwardRef<{ save: () => void }, ConstructEditorProps>(
 
   const handleSaveSchema = useCallback((schema: ConstructSchema, isNew: boolean) => {
     if (isNew) {
-      registry.registerUserSchema(schema);
+      registry.registerSchema(schema);
     } else {
-      if (!schema.isBuiltIn) {
-        registry.removeUserSchema(schema.type);
-        registry.registerUserSchema(schema);
-      }
+      registry.registerSchema(schema);
     }
     schemaStorage.saveToLocalStorage();
     refreshSchemas();
@@ -90,14 +84,31 @@ const ConstructEditor = forwardRef<{ save: () => void }, ConstructEditorProps>(
   }, [refreshSchemas]);
 
   const handleDeleteSchema = useCallback((type: string) => {
-    if (registry.getSchema(type)?.isBuiltIn) {
-      return;
-    }
-    registry.removeUserSchema(type);
+    registry.removeSchema(type);
     schemaStorage.saveToLocalStorage();
     refreshSchemas();
     setSelectedType(null);
   }, [refreshSchemas]);
+
+  // Notify parent when dirty state changes
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
+
+  // Handle Delete key to delete selected schema
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Delete' && selectedType && !isCreatingNew && !isDirty) {
+        const schema = registry.getSchema(selectedType);
+        if (schema && window.confirm(`Are you sure you want to delete "${schema.displayName}"? This cannot be undone.`)) {
+          handleDeleteSchema(selectedType);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedType, isCreatingNew, isDirty, handleDeleteSchema]);
 
   const isFullScreen = !!onBack;
 
@@ -132,36 +143,11 @@ const ConstructEditor = forwardRef<{ save: () => void }, ConstructEditorProps>(
           </div>
 
           <div className={`flex-1 overflow-y-auto flex flex-col gap-2 ${isFullScreen ? 'px-2 pb-2' : 'px-1.5 pb-1.5'}`}>
-            {/* Built-in section island */}
-            <div className={`bg-surface-depth-2 rounded-xl ${isFullScreen ? 'p-2' : 'p-1.5'}`}>
-              <h3 className={`m-0 text-[11px] font-semibold uppercase text-content-muted tracking-wide ${isFullScreen ? 'px-2 py-2' : 'px-2 py-1'}`}>Built-in</h3>
-              {builtInSchemas.map(schema => (
-                <button
-                  key={schema.type}
-                  className={`flex items-center w-full rounded-lg cursor-pointer text-left gap-2 transition-all ${
-                    selectedType === schema.type 
-                      ? 'bg-accent/30 text-accent ring-2 ring-accent/60 shadow-sm shadow-accent/20' 
-                      : 'text-content bg-transparent hover:bg-surface-depth-3/50'
-                  } ${isFullScreen ? 'px-3 py-2.5 text-sm' : 'px-2 py-1.5 text-xs'}`}
-                  onClick={() => handleSelectSchema(schema.type)}
-                >
-                  <span
-                    className="w-3 h-3 rounded-sm shrink-0"
-                    style={{ backgroundColor: schema.color }}
-                  />
-                  <span className="flex-1 truncate">{schema.displayName}</span>
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded shrink-0 ${selectedType === schema.type ? 'bg-accent/20 text-accent' : 'bg-surface-depth-3 text-content-muted'}`}>Built-in</span>
-                </button>
-              ))}
-            </div>
-
-            {/* Custom section island */}
-            <div className={`bg-surface-depth-2 rounded-xl ${isFullScreen ? 'p-2' : 'p-1.5'}`}>
-              <h3 className={`m-0 text-[11px] font-semibold uppercase text-content-muted tracking-wide ${isFullScreen ? 'px-2 py-2' : 'px-2 py-1'}`}>Custom</h3>
-              {userSchemas.length === 0 ? (
-                <p className={`text-content-muted italic ${isFullScreen ? 'px-2 text-sm' : 'px-2 text-xs'}`}>No custom constructs yet</p>
-              ) : (
-                userSchemas.map(schema => (
+            {schemas.length === 0 ? (
+              <p className={`text-content-muted italic ${isFullScreen ? 'px-2 text-sm' : 'px-2 text-xs'}`}>No constructs available</p>
+            ) : (
+              <div className={`bg-surface-depth-2 rounded-xl ${isFullScreen ? 'p-2' : 'p-1.5'}`}>
+                {schemas.map(schema => (
                   <button
                     key={schema.type}
                     className={`flex items-center w-full rounded-lg cursor-pointer text-left gap-2 transition-all ${
@@ -177,9 +163,9 @@ const ConstructEditor = forwardRef<{ save: () => void }, ConstructEditorProps>(
                     />
                     <span className="flex-1 truncate">{schema.displayName}</span>
                   </button>
-                ))
-              )}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

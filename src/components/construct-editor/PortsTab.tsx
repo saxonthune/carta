@@ -2,7 +2,6 @@ import type { ConstructSchema, PortConfig, PortDirection, PortPosition } from '.
 
 interface PortsTabProps {
   formData: ConstructSchema;
-  isReadOnly: boolean;
   addPort: () => void;
   updatePort: (index: number, updates: Partial<PortConfig>) => void;
   removePort: (index: number) => void;
@@ -27,7 +26,6 @@ const PORT_DIRECTION_DESCRIPTIONS: Record<PortDirection, string> = {
 
 export default function PortsTab({
   formData,
-  isReadOnly,
   addPort,
   updatePort,
   removePort
@@ -39,7 +37,7 @@ export default function PortsTab({
           <h3 className="m-0 text-sm font-semibold text-content-muted uppercase tracking-wide">Ports Configuration</h3>
           <p className="text-xs text-content-muted mt-1 mb-0">Define connection points for this construct type</p>
         </div>
-        {!isReadOnly && (
+        {(
           <button
             className="px-2.5 py-1 bg-surface-alt rounded text-content text-xs cursor-pointer hover:bg-content-muted transition-colors"
             onClick={addPort}
@@ -57,15 +55,13 @@ export default function PortsTab({
             <div key={index} className="bg-surface p-3 rounded border border-surface-alt">
               {/* Header with delete button */}
               <div className="flex justify-between items-center mb-2">
-                {!isReadOnly && (
-                  <button
-                    className="px-2 py-1 border text-danger text-xs hover:bg-danger-muted rounded transition-colors"
-                    onClick={() => removePort(index)}
-                    title="Remove port"
-                  >
-                    Remove
-                  </button>
-                )}
+                <button
+                  className="px-2 py-1 border text-danger text-xs hover:bg-danger-muted rounded transition-colors"
+                  onClick={() => removePort(index)}
+                  title="Remove port"
+                >
+                  Remove
+                </button>
               </div>
 
               {/* Identification Section */}
@@ -80,7 +76,6 @@ export default function PortsTab({
                     value={port.label}
                     onChange={(e) => updatePort(index, { label: e.target.value, id: toSnakeCase(e.target.value) })}
                     placeholder="e.g., 'Input Data', 'Output'"
-                    disabled={isReadOnly}
                   />
                 </div>
               </div>
@@ -95,7 +90,6 @@ export default function PortsTab({
                   value={port.description || ''}
                   onChange={(e) => updatePort(index, { description: e.target.value })}
                   placeholder="Describe what this port is used for (appears in compiled output)"
-                  disabled={isReadOnly}
                   rows={2}
                 />
               </div>
@@ -110,7 +104,6 @@ export default function PortsTab({
                     className="w-full px-2 py-1.5 bg-surface-alt rounded text-content text-xs focus:outline-none focus:ring-1 focus:ring-primary"
                     value={port.direction}
                     onChange={(e) => updatePort(index, { direction: e.target.value as PortDirection })}
-                    disabled={isReadOnly}
                     title={PORT_DIRECTION_DESCRIPTIONS[port.direction]}
                   >
                     {PORT_DIRECTIONS.map(dir => (
@@ -129,7 +122,6 @@ export default function PortsTab({
                     className="w-full px-2 py-1.5 bg-surface-alt rounded text-content text-xs focus:outline-none focus:ring-1 focus:ring-primary"
                     value={port.position}
                     onChange={(e) => updatePort(index, { position: e.target.value as PortPosition })}
-                    disabled={isReadOnly}
                   >
                     {PORT_POSITIONS.map(pos => (
                       <option key={pos} value={pos}>{pos}</option>
@@ -149,7 +141,6 @@ export default function PortsTab({
                     min={0}
                     max={100}
                     placeholder="0-100"
-                    disabled={isReadOnly}
                   />
                   <p className="text-xs text-content-muted mt-1 mb-0">Along edge</p>
                 </div>

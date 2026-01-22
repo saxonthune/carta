@@ -7,6 +7,7 @@ interface HeaderProps {
   onImport: (file: File) => void;
   onCompile: () => void;
   onClear?: (mode: 'instances' | 'all') => void;
+  onRestoreDefaultSchemas?: () => void;
 }
 
 const getInitialTheme = (): 'light' | 'dark' | 'warm' => {
@@ -16,7 +17,7 @@ const getInitialTheme = (): 'light' | 'dark' | 'warm' => {
   return prefersDark ? 'dark' : 'light';
 };
 
-export default function Header({ title, onTitleChange, onExport, onImport, onCompile, onClear }: HeaderProps) {
+export default function Header({ title, onTitleChange, onExport, onImport, onCompile, onClear, onRestoreDefaultSchemas }: HeaderProps) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState(title);
   const [theme, setTheme] = useState<'light' | 'dark' | 'warm'>(() => {
@@ -27,6 +28,7 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
   const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
   const [isSettingsMenuOpen, setIsSettingsMenuOpen] = useState(false);
   const [clearWarningMode, setClearWarningMode] = useState<'menu' | null>(null);
+  const [restoreWarningMode, setRestoreWarningMode] = useState<'menu' | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const themeMenuRef = useRef<HTMLDivElement>(null);
   const settingsMenuRef = useRef<HTMLDivElement>(null);
@@ -230,7 +232,13 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
             </svg>
           </button>
           {isSettingsMenuOpen && (
-            <div className="absolute right-0 top-full mt-1 bg-surface border border-subtle rounded-lg shadow-lg overflow-hidden z-50 min-w-[140px]">
+            <div className="absolute right-0 top-full mt-1 bg-surface border border-subtle rounded-lg shadow-lg overflow-hidden z-50 min-w-[200px]">
+              <button
+                className="w-full text-left px-4 py-2.5 text-sm cursor-pointer text-content hover:bg-surface-alt transition-colors border-none bg-surface"
+                onClick={() => setRestoreWarningMode('menu')}
+              >
+                Restore Default Schemas
+              </button>
               <button
                 className="w-full text-left px-4 py-2.5 text-sm cursor-pointer text-content hover:bg-surface-alt transition-colors border-none bg-surface"
                 onClick={() => handleClear()}
@@ -289,6 +297,56 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
                 onClick={() => confirmClear('all')}
               >
                 Clear Everything
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Restore Default Schemas Modal */}
+      {restoreWarningMode && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1001]" onClick={() => setRestoreWarningMode(null)}>
+          <div className="bg-surface rounded-xl w-[90%] max-w-[400px] flex flex-col shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-subtle">
+              <div>
+                <h2 className="m-0 text-lg text-content font-semibold">Restore default schemas</h2>
+              </div>
+              <button
+                className="w-8 h-8 border-none rounded-md bg-transparent text-content-subtle text-2xl cursor-pointer flex items-center justify-center hover:bg-surface-alt hover:text-content"
+                onClick={() => setRestoreWarningMode(null)}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-5">
+              <p className="text-content text-sm mb-2">
+                This will add any missing default schemas to your workspace.
+              </p>
+              <p className="text-content-muted text-xs">
+                Existing schemas with matching types will be overwritten. This action cannot be undone.
+              </p>
+            </div>
+
+            {/* Footer */}
+            <div className="flex gap-2 justify-end px-5 py-4 border-t border-subtle">
+              <button
+                className="px-5 py-2.5 rounded-md bg-surface text-content text-sm font-medium cursor-pointer hover:bg-surface-alt transition-colors"
+                onClick={() => setRestoreWarningMode(null)}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-5 py-2.5 border-none rounded-md bg-indigo-500 text-white text-sm font-medium cursor-pointer hover:bg-indigo-600 transition-colors"
+                onClick={() => {
+                  onRestoreDefaultSchemas?.();
+                  setRestoreWarningMode(null);
+                  setIsSettingsMenuOpen(false);
+                }}
+              >
+                Restore
               </button>
             </div>
           </div>

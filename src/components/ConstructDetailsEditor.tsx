@@ -40,8 +40,7 @@ const createEmptySchema = (): ConstructSchema => ({
   compilation: {
     format: 'json',
     sectionHeader: ''
-  },
-  isBuiltIn: false
+  }
 });
 
 const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetailsEditorProps>(
@@ -59,8 +58,6 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
   const [expandedFieldIndex, setExpandedFieldIndex] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<EditorTab>('basic');
   const [isDirty, setIsDirty] = useState(false);
-
-  const isReadOnly = formData.isBuiltIn === true;
 
   // Reset form state when construct prop changes
   useEffect(() => {
@@ -109,11 +106,10 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
   }, [formData, isNew]);
 
   const handleSave = useCallback(() => {
-    if (isReadOnly) return;
     if (validateForm()) {
       onSave(formData, isNew);
     }
-  }, [formData, isNew, isReadOnly, onSave, validateForm]);
+  }, [formData, isNew, onSave, validateForm]);
 
   // Expose save method via ref for parent to trigger from confirmation modal
   useImperativeHandle(ref, () => ({
@@ -121,15 +117,12 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
   }), [handleSave]);
 
   const handleDelete = () => {
-    if (isReadOnly) return;
     if (confirm(`Are you sure you want to delete "${formData.displayName}"?`)) {
       onDelete(formData.type);
     }
   };
 
   const updateField = (key: keyof ConstructSchema, value: unknown) => {
-    if (isReadOnly) return;
-    
     if (key === 'displayName' && typeof value === 'string') {
       // Auto-sync type when displayName changes
       setFormData(prev => ({ 
@@ -143,7 +136,6 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
   };
 
   const addField = () => {
-    if (isReadOnly) return;
     const newField: FieldDefinition = {
       name: `field_${formData.fields.length + 1}`,
       label: `Field ${formData.fields.length + 1}`,
@@ -158,7 +150,6 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
   };
 
   const updateFieldDefinition = (index: number, field: FieldDefinition) => {
-    if (isReadOnly) return;
     setFormData(prev => ({
       ...prev,
       fields: prev.fields.map((f, i) => i === index ? field : f)
@@ -166,7 +157,6 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
   };
 
   const removeField = (index: number) => {
-    if (isReadOnly) return;
     setFormData(prev => ({
       ...prev,
       fields: prev.fields.filter((_, i) => i !== index)
@@ -175,7 +165,6 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
   };
 
   const moveField = (index: number, direction: 'up' | 'down') => {
-    if (isReadOnly) return;
     const newIndex = direction === 'up' ? index - 1 : index + 1;
     if (newIndex < 0 || newIndex >= formData.fields.length) return;
 
@@ -187,7 +176,6 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
 
   // Port management functions
   const addPort = () => {
-    if (isReadOnly) return;
     const newPort: PortConfig = {
       id: 'port',
       direction: 'bidi',
@@ -202,7 +190,6 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
   };
 
   const updatePort = (index: number, updates: Partial<PortConfig>) => {
-    if (isReadOnly) return;
     setFormData(prev => ({
       ...prev,
       ports: (prev.ports || []).map((p, i) => i === index ? { ...p, ...updates } : p)
@@ -210,7 +197,6 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
   };
 
   const removePort = (index: number) => {
-    if (isReadOnly) return;
     setFormData(prev => ({
       ...prev,
       ports: (prev.ports || []).filter((_, i) => i !== index)
@@ -219,7 +205,6 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
 
   // Suggested related constructs management functions
   const addSuggestedRelated = () => {
-    if (isReadOnly) return;
     const newRelated: SuggestedRelatedConstruct = {
       constructType: '',
       // fromPortId and toPortId left undefined initially
@@ -231,7 +216,6 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
   };
 
   const updateSuggestedRelated = (index: number, updates: Partial<SuggestedRelatedConstruct>) => {
-    if (isReadOnly) return;
     setFormData(prev => ({
       ...prev,
       suggestedRelated: (prev.suggestedRelated || []).map((r, i) => i === index ? { ...r, ...updates } : r)
@@ -239,7 +223,6 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
   };
 
   const removeSuggestedRelated = (index: number) => {
-    if (isReadOnly) return;
     setFormData(prev => ({
       ...prev,
       suggestedRelated: (prev.suggestedRelated || []).filter((_, i) => i !== index)
@@ -296,15 +279,12 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
       <div className="flex items-center justify-between gap-3 mb-0 shrink-0 pb-3 border-b">
         <div className="flex items-center gap-3">
           <h2 className="m-0 text-xl font-semibold text-content">{isNew ? 'Create New Construct' : formData.displayName}</h2>
-          {isReadOnly && (
-            <span className="px-2.5 py-1 bg-surface-elevated rounded text-xs text-content-muted">Read-only (Built-in)</span>
-          )}
-          {isDirty && !isReadOnly && (
+          {isDirty && (
             <span className="px-2.5 py-1 bg-surface-elevated rounded text-xs text-content-muted">• Unsaved changes</span>
           )}
         </div>
         <div className="flex gap-2">
-          {!isReadOnly && !isNew && (
+          {!isNew && (
             <button
               className="px-3 py-1.5 bg-transparent border border-danger rounded text-danger text-sm font-medium cursor-pointer hover:bg-danger hover:text-white transition-all"
               onClick={handleDelete}
@@ -312,14 +292,12 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
               Delete
             </button>
           )}
-          {!isReadOnly && (
-            <button
-              className="px-3 py-1.5 bg-accent border-none rounded text-white text-sm font-medium cursor-pointer hover:bg-accent-hover transition-colors"
-              onClick={handleSave}
-            >
-              {isNew ? 'Create' : 'Save'}
-            </button>
-          )}
+          <button
+            className="px-3 py-1.5 bg-accent border-none rounded text-white text-sm font-medium cursor-pointer hover:bg-accent-hover transition-colors"
+            onClick={handleSave}
+          >
+            {isNew ? 'Create' : 'Save'}
+          </button>
         </div>
       </div>
 
@@ -336,21 +314,18 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
             <OverviewTab
               formData={formData}
               errors={errors}
-              isReadOnly={isReadOnly}
               updateField={updateField}
             />
           )}
           {activeTab === 'compilation' && (
             <CompilationTab
               formData={formData}
-              isReadOnly={isReadOnly}
               updateField={updateField}
             />
           )}
           {activeTab === 'ports' && (
             <PortsTab
               formData={formData}
-              isReadOnly={isReadOnly}
               addPort={addPort}
               updatePort={updatePort}
               removePort={removePort}
@@ -359,7 +334,6 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
           {activeTab === 'fields' && (
             <FieldsTab
               formData={formData}
-              isReadOnly={isReadOnly}
               expandedFieldIndex={expandedFieldIndex}
               addField={addField}
               updateFieldDefinition={updateFieldDefinition}
@@ -371,7 +345,6 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
           {activeTab === 'related' && (
             <RelatedTab
               formData={formData}
-              isReadOnly={isReadOnly}
               addSuggestedRelated={addSuggestedRelated}
               updateSuggestedRelated={updateSuggestedRelated}
               removeSuggestedRelated={removeSuggestedRelated}

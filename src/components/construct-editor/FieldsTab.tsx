@@ -3,7 +3,6 @@ import type { ConstructSchema, FieldDefinition } from '../../constructs/types';
 
 interface FieldsTabProps {
   formData: ConstructSchema;
-  isReadOnly: boolean;
   expandedFieldIndex: number | null;
   addField: () => void;
   updateFieldDefinition: (index: number, field: FieldDefinition) => void;
@@ -14,7 +13,6 @@ interface FieldsTabProps {
 
 export default function FieldsTab({
   formData,
-  isReadOnly,
   expandedFieldIndex,
   addField,
   updateFieldDefinition,
@@ -26,14 +24,12 @@ export default function FieldsTab({
     <div className="bg-surface-elevated rounded-lg p-4 flex flex-col h-full">
       <div className="flex justify-between items-center mb-3 shrink-0">
         <h3 className="m-0 text-sm font-semibold text-content-muted uppercase tracking-wide">Fields Definition</h3>
-        {!isReadOnly && (
-          <button
-            className="px-2.5 py-1 bg-surface-alt rounded text-content text-xs cursor-pointer hover:bg-content-muted transition-colors"
-            onClick={addField}
-          >
-            + Add Field
-          </button>
-        )}
+        <button
+          className="px-2.5 py-1 bg-surface-alt rounded text-content text-xs cursor-pointer hover:bg-content-muted transition-colors"
+          onClick={addField}
+        >
+          + Add Field
+        </button>
       </div>
 
       {formData.fields.length === 0 ? (
@@ -46,7 +42,6 @@ export default function FieldsTab({
                 key={index}
                 field={field}
                 isExpanded={expandedFieldIndex === index}
-                isReadOnly={isReadOnly}
                 onToggleExpand={() => setExpandedFieldIndex(
                   expandedFieldIndex === index ? null : index
                 )}

@@ -4,7 +4,6 @@ import type { ConstructSchema, SuggestedRelatedConstruct } from '../../construct
 
 interface RelatedTabProps {
   formData: ConstructSchema;
-  isReadOnly: boolean;
   addSuggestedRelated: () => void;
   updateSuggestedRelated: (index: number, updates: Partial<SuggestedRelatedConstruct>) => void;
   removeSuggestedRelated: (index: number) => void;
@@ -12,7 +11,6 @@ interface RelatedTabProps {
 
 export default function RelatedTab({
   formData,
-  isReadOnly,
   addSuggestedRelated,
   updateSuggestedRelated,
   removeSuggestedRelated
@@ -31,7 +29,7 @@ export default function RelatedTab({
             Define construct types that commonly relate to this one. These appear in the right-click "Add Related" menu.
           </p>
         </div>
-        {!isReadOnly && (
+        {(
           <button
             className="px-2.5 py-1 bg-surface-alt rounded text-content text-xs cursor-pointer hover:bg-content-muted transition-colors"
             onClick={addSuggestedRelated}
@@ -65,15 +63,13 @@ export default function RelatedTab({
                       {relatedSchema?.displayName || related.constructType}
                     </span>
                   </div>
-                  {!isReadOnly && (
-                    <button
-                      className="px-2 py-1 border text-danger text-xs hover:bg-danger-muted rounded transition-colors"
-                      onClick={() => removeSuggestedRelated(index)}
-                      title="Remove suggestion"
-                    >
-                      Remove
-                    </button>
-                  )}
+                  <button
+                    className="px-2 py-1 border text-danger text-xs hover:bg-danger-muted rounded transition-colors"
+                    onClick={() => removeSuggestedRelated(index)}
+                    title="Remove suggestion"
+                  >
+                    Remove
+                  </button>
                 </div>
 
                 {/* Configuration */}
@@ -86,7 +82,6 @@ export default function RelatedTab({
                       className="w-full px-2 py-1.5 bg-surface-alt rounded text-content text-xs focus:outline-none focus:ring-1 focus:ring-primary"
                       value={related.constructType}
                       onChange={(e) => updateSuggestedRelated(index, { constructType: e.target.value, toPortId: undefined })}
-                      disabled={isReadOnly}
                     >
                       <option value="">Select a construct type...</option>
                       {availableSchemas.map(schema => (
@@ -107,7 +102,6 @@ export default function RelatedTab({
                         className="w-full px-2 py-1.5 bg-surface-alt rounded text-content text-xs focus:outline-none focus:ring-1 focus:ring-primary"
                         value={related.fromPortId || ''}
                         onChange={(e) => updateSuggestedRelated(index, { fromPortId: e.target.value || undefined })}
-                        disabled={isReadOnly}
                       >
                         <option value="">(No connection)</option>
                         {ports.map(port => (
@@ -126,7 +120,7 @@ export default function RelatedTab({
                         className="w-full px-2 py-1.5 bg-surface-alt rounded text-content text-xs focus:outline-none focus:ring-1 focus:ring-primary"
                         value={related.toPortId || ''}
                         onChange={(e) => updateSuggestedRelated(index, { toPortId: e.target.value || undefined })}
-                        disabled={isReadOnly || !related.constructType}
+                        disabled={!related.constructType}
                       >
                         <option value="">(No connection)</option>
                         {relatedSchema?.ports?.map(port => (
@@ -176,7 +170,6 @@ export default function RelatedTab({
                     value={related.label || ''}
                     onChange={(e) => updateSuggestedRelated(index, { label: e.target.value || undefined })}
                     placeholder={relatedSchema?.displayName || 'Custom label for menu'}
-                    disabled={isReadOnly}
                   />
                 </div>
 

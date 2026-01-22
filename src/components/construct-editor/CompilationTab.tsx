@@ -2,7 +2,6 @@ import type { ConstructSchema, CompilationFormat } from '../../constructs/types'
 
 interface CompilationTabProps {
   formData: ConstructSchema;
-  isReadOnly: boolean;
   updateField: (key: keyof ConstructSchema, value: unknown) => void;
 }
 
@@ -10,7 +9,6 @@ const COMPILATION_FORMATS: CompilationFormat[] = ['json', 'custom'];
 
 export default function CompilationTab({
   formData,
-  isReadOnly,
   updateField
 }: CompilationTabProps) {
   return (
@@ -26,7 +24,6 @@ export default function CompilationTab({
             ...formData.compilation,
             format: e.target.value as CompilationFormat
           })}
-          disabled={isReadOnly}
         >
           {COMPILATION_FORMATS.map(format => (
             <option key={format} value={format}>{format.toUpperCase()}</option>
@@ -45,7 +42,6 @@ export default function CompilationTab({
             sectionHeader: e.target.value
           })}
           placeholder="# My Section"
-          disabled={isReadOnly}
         />
       </div>
     </div>

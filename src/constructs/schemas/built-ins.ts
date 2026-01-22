@@ -46,6 +46,14 @@ export const builtInSchemas: ConstructSchema[] = [
         default: 'object',
       },
     ],
+    suggestedRelated: [
+      {
+        constructType: 'database',
+        fromPortId: 'flow-out',
+        toPortId: 'link-in',
+        label: 'Connect to Database'
+      }
+    ],
     compilation: {
       format: 'json',
       sectionHeader: '# REST Endpoints',
@@ -76,6 +84,20 @@ export const builtInSchemas: ConstructSchema[] = [
         placeholder: 'Description of this database',
       },
     ],
+    suggestedRelated: [
+      {
+        constructType: 'controller',
+        fromPortId: 'link-in',
+        toPortId: 'flow-out',
+        label: 'Add REST Controller'
+      },
+      {
+        constructType: 'table',
+        fromPortId: 'child',
+        toPortId: 'parent',
+        label: 'Add Table'
+      }
+    ],
     compilation: {
       format: 'json',
       sectionHeader: '# Database Schema',
@@ -91,7 +113,7 @@ export const builtInSchemas: ConstructSchema[] = [
       { id: 'parent', direction: 'parent', position: 'top', offset: 50, label: 'Database', description: 'Database that owns this table' },
       { id: 'link-in', direction: 'in', position: 'left', offset: 50, label: 'Referenced By', description: 'Tables or constructs that reference this table' },
       { id: 'link-out', direction: 'out', position: 'right', offset: 50, label: 'References', description: 'Tables or constructs this table references' },
-      { id: 'child', direction: 'child', position: 'bottom', offset: 75, label: 'Columns', description: 'Columns that belong to this table' },
+      { id: 'child', direction: 'child', position: 'bottom', offset: 75, label: 'Attributes & Constraints', description: 'Attributes and constraints that belong to this table' },
     ],
     fields: [
       {
@@ -107,17 +129,37 @@ export const builtInSchemas: ConstructSchema[] = [
         placeholder: 'e.g., (email) [unique], (age) [not null]',
       },
     ],
+    suggestedRelated: [
+      {
+        constructType: 'database',
+        fromPortId: 'parent',
+        toPortId: 'child',
+        label: 'Add to Database'
+      },
+      {
+        constructType: 'db-attribute',
+        fromPortId: 'child',
+        toPortId: 'parent',
+        label: 'Add Attribute'
+      },
+      {
+        constructType: 'constraint',
+        fromPortId: 'child',
+        toPortId: 'parent',
+        label: 'Add Constraint'
+      }
+    ],
     compilation: {
       format: 'json',
     },
   },
 
-  // Column
+  // DB Attribute
   {
-    type: 'column',
-    displayName: 'Column',
+    type: 'db-attribute',
+    displayName: 'DB Attribute',
     color: '#8b5cf6',
-    description: 'A database table column',
+    description: 'A database table attribute/column',
     fields: [
       { name: 'name', label: 'Name', type: 'string' },
       { name: 'dataType', label: 'Type', type: 'enum', options: ['VARCHAR', 'INT', 'BIGINT', 'BOOLEAN', 'DATE', 'TIMESTAMP', 'TEXT', 'JSON'] },
@@ -125,7 +167,41 @@ export const builtInSchemas: ConstructSchema[] = [
       { name: 'nullable', label: 'Nullable', type: 'boolean', default: true },
     ],
     ports: [
-      { id: 'parent', direction: 'parent', position: 'top', offset: 50, label: 'Table', description: 'Table that owns this column' },
+      { id: 'parent', direction: 'parent', position: 'top', offset: 50, label: 'Table', description: 'Table that owns this attribute' },
+    ],
+    suggestedRelated: [
+      {
+        constructType: 'table',
+        fromPortId: 'parent',
+        toPortId: 'child',
+        label: 'Add to Table'
+      }
+    ],
+    compilation: { format: 'json' },
+  },
+
+  // Constraint
+  {
+    type: 'constraint',
+    displayName: 'Constraint',
+    color: '#a78bfa',
+    description: 'A database constraint (unique, foreign key, check, etc.)',
+    fields: [
+      { name: 'name', label: 'Name', type: 'string', placeholder: 'e.g., fk_user_profile' },
+      { name: 'constraintType', label: 'Type', type: 'enum', options: ['PRIMARY KEY', 'UNIQUE', 'FOREIGN KEY', 'CHECK', 'NOT NULL', 'DEFAULT'], default: 'UNIQUE' },
+      { name: 'columns', label: 'Columns', type: 'string', placeholder: 'e.g., user_id, profile_id' },
+      { name: 'definition', label: 'Definition', type: 'string', displayHint: 'code', placeholder: 'Detailed constraint definition' },
+    ],
+    ports: [
+      { id: 'parent', direction: 'parent', position: 'top', offset: 50, label: 'Table', description: 'Table that owns this constraint' },
+    ],
+    suggestedRelated: [
+      {
+        constructType: 'table',
+        fromPortId: 'parent',
+        toPortId: 'child',
+        label: 'Add to Table'
+      }
     ],
     compilation: { format: 'json' },
   },
@@ -155,6 +231,14 @@ export const builtInSchemas: ConstructSchema[] = [
     ports: [
       { id: 'child', direction: 'child', position: 'top', offset: 50, label: 'Controller', description: 'Controller endpoint that uses this model' },
     ],
+    suggestedRelated: [
+      {
+        constructType: 'controller',
+        fromPortId: 'child',
+        toPortId: 'parent',
+        label: 'Add to Controller'
+      }
+    ],
     compilation: { format: 'json' },
   },
 
@@ -182,6 +266,14 @@ export const builtInSchemas: ConstructSchema[] = [
       { id: 'child', direction: 'child', position: 'left', offset: 50, label: 'Events', description: 'Child events that originate from this event' },
       { id: 'flow-out', direction: 'out', position: 'right', offset: 50, label: 'Flow Out', description: 'Next UI flow that follows this event' },
     ],
+    suggestedRelated: [
+      {
+        constructType: 'ui-screen',
+        fromPortId: 'child',
+        toPortId: 'parent',
+        label: 'Add to UI Screen'
+      }
+    ],
     compilation: { format: 'json' },
   },
 
@@ -203,6 +295,20 @@ export const builtInSchemas: ConstructSchema[] = [
       { id: 'flow-in', direction: 'in', position: 'left', offset: 50, label: 'Flow In', description: 'Incoming UI flow into this screen' },
       { id: 'parent', direction: 'parent', position: 'right', offset: 50, label: 'Events', description: 'Events that belong to this screen' },
     ],
+    suggestedRelated: [
+      {
+        constructType: 'user-story',
+        fromPortId: 'flow-in',
+        toPortId: 'flow-out',
+        label: 'Connect from User Story'
+      },
+      {
+        constructType: 'ui-event',
+        fromPortId: 'parent',
+        toPortId: 'child',
+        label: 'Add Event'
+      }
+    ],
     compilation: { format: 'json' },
   },
 
@@ -223,6 +329,14 @@ export const builtInSchemas: ConstructSchema[] = [
     ],
     ports: [
       { id: 'flow-out', direction: 'out', position: 'right', offset: 50, label: 'Flow Out', description: 'Outcome or follow-on user story' },
+    ],
+    suggestedRelated: [
+      {
+        constructType: 'ui-screen',
+        fromPortId: 'flow-out',
+        toPortId: 'flow-in',
+        label: 'Connect to UI Screen'
+      }
     ],
     compilation: { format: 'json' },
   },

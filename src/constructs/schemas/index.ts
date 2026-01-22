@@ -2,9 +2,9 @@ import { registry } from '../registry';
 import { builtInSchemas } from './built-ins';
 
 /**
- * Register all built-in schemas
+ * Seed default schemas on first load if no schemas exist
  */
-export function registerBuiltInSchemas(): void {
+export function seedDefaultSchemas(): void {
   for (const schema of builtInSchemas) {
     registry.registerSchema(schema);
   }

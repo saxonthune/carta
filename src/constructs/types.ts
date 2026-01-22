@@ -162,7 +162,6 @@ export interface ConstructSchema {
   ports?: PortConfig[];      // Port configurations for connections
   suggestedRelated?: SuggestedRelatedConstruct[]; // Suggested related constructs for quick-add
   compilation: CompilationConfig;
-  isBuiltIn?: boolean;       // true for built-in schemas, false for user-defined
 }
 
 /**

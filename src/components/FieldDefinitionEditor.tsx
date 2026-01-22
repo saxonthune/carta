@@ -10,7 +10,6 @@ function toSnakeCase(str: string): string {
 interface FieldDefinitionEditorProps {
   field: FieldDefinition;
   isExpanded: boolean;
-  isReadOnly: boolean;
   onToggleExpand: () => void;
   onChange: (field: FieldDefinition) => void;
   onRemove: () => void;
@@ -40,7 +39,6 @@ const DISPLAY_HINTS: { value: DisplayHint | ''; label: string }[] = [
 export default function FieldDefinitionEditor({
   field,
   isExpanded,
-  isReadOnly,
   onToggleExpand,
   onChange,
   onRemove,
@@ -52,8 +50,6 @@ export default function FieldDefinitionEditor({
   const [newOption, setNewOption] = useState('');
 
   const updateField = (updates: Partial<FieldDefinition>) => {
-    if (isReadOnly) return;
-    
     // If label is being updated, auto-derive name from it
     if (updates.label) {
       updates.name = toSnakeCase(updates.label);
@@ -63,14 +59,13 @@ export default function FieldDefinitionEditor({
   };
 
   const addOption = () => {
-    if (!newOption.trim() || isReadOnly) return;
+    if (!newOption.trim()) return;
     const options = field.options || [];
     updateField({ options: [...options, newOption.trim()] });
     setNewOption('');
   };
 
   const removeOption = (optionIndex: number) => {
-    if (isReadOnly) return;
     const options = field.options || [];
     updateField({ options: options.filter((_, i) => i !== optionIndex) });
   };
@@ -86,33 +81,31 @@ export default function FieldDefinitionEditor({
           <span className="text-xs px-2 py-0.5 bg-surface-alt rounded text-content-muted">{field.type}</span>
         </div>
         <div className="flex items-center gap-1">
-          {!isReadOnly && (
-            <>
-              <button
-                className="w-7 h-7 flex items-center justify-center bg-transparent rounded text-content-muted cursor-pointer text-sm hover:bg-surface-alt hover:text-content transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                onClick={(e) => { e.stopPropagation(); onMoveUp(); }}
-                disabled={!canMoveUp}
-                title="Move Up"
-              >
-                ↑
-              </button>
-              <button
-                className="w-7 h-7 flex items-center justify-center bg-transparent rounded text-content-muted cursor-pointer text-sm hover:bg-surface-alt hover:text-content transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                onClick={(e) => { e.stopPropagation(); onMoveDown(); }}
-                disabled={!canMoveDown}
-                title="Move Down"
-              >
-                ↓
-              </button>
-              <button
-                className="w-7 h-7 flex items-center justify-center bg-transparent rounded text-content-muted cursor-pointer text-sm hover:bg-danger hover:border-danger hover:text-white transition-all"
-                onClick={(e) => { e.stopPropagation(); onRemove(); }}
-                title="Remove Field"
-              >
-                ×
-              </button>
-            </>
-          )}
+          <>
+            <button
+              className="w-7 h-7 flex items-center justify-center bg-transparent rounded text-content-muted cursor-pointer text-sm hover:bg-surface-alt hover:text-content transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              onClick={(e) => { e.stopPropagation(); onMoveUp(); }}
+              disabled={!canMoveUp}
+              title="Move Up"
+            >
+              ↑
+            </button>
+            <button
+              className="w-7 h-7 flex items-center justify-center bg-transparent rounded text-content-muted cursor-pointer text-sm hover:bg-surface-alt hover:text-content transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              onClick={(e) => { e.stopPropagation(); onMoveDown(); }}
+              disabled={!canMoveDown}
+              title="Move Down"
+            >
+              ↓
+            </button>
+            <button
+              className="w-7 h-7 flex items-center justify-center bg-transparent rounded text-content-muted cursor-pointer text-sm hover:bg-danger hover:border-danger hover:text-white transition-all"
+              onClick={(e) => { e.stopPropagation(); onRemove(); }}
+              title="Remove Field"
+            >
+              ×
+            </button>
+          </>
           <span className="w-6 h-6 flex items-center justify-center text-content-muted text-base ml-2">
             {isExpanded ? '−' : '+'}
           </span>
@@ -125,21 +118,19 @@ export default function FieldDefinitionEditor({
             <label className="block mb-1.5 text-xs font-medium text-content-muted">Label (display)</label>
             <input
               type="text"
-              className="w-full px-3 py-2 bg-surface rounded text-content text-sm focus:outline-none focus:border-accent disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full px-3 py-2 bg-surface rounded text-content text-sm focus:outline-none focus:border-accent"
               value={field.label}
               onChange={(e) => updateField({ label: e.target.value })}
               placeholder="Field Label"
-              disabled={isReadOnly}
             />
           </div>
 
           <div className="mb-3">
             <label className="block mb-1.5 text-xs font-medium text-content-muted">Type</label>
             <select
-              className="w-full px-3 py-2 bg-surface rounded text-content text-sm focus:outline-none focus:border-accent disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full px-3 py-2 bg-surface rounded text-content text-sm focus:outline-none focus:border-accent"
               value={field.type}
               onChange={(e) => updateField({ type: e.target.value as DataKind })}
-              disabled={isReadOnly}
             >
               {DATA_KINDS.map(ft => (
                 <option key={ft.value} value={ft.value}>{ft.label}</option>
@@ -151,10 +142,9 @@ export default function FieldDefinitionEditor({
             <div className="mb-3 hidden">
               <label className="block mb-1.5 text-xs font-medium text-content-muted">Display Hint</label>
               <select
-                className="w-full px-3 py-2 bg-surface rounded text-content text-sm focus:outline-none focus:border-accent disabled:opacity-60 disabled:cursor-not-allowed"
+                className="w-full px-3 py-2 bg-surface rounded text-content text-sm focus:outline-none focus:border-accent"
                 value={field.displayHint || ''}
                 onChange={(e) => updateField({ displayHint: (e.target.value || undefined) as DisplayHint | undefined })}
-                disabled={isReadOnly}
               >
                 {DISPLAY_HINTS.map(dh => (
                   <option key={dh.value} value={dh.value}>{dh.label}</option>
@@ -166,12 +156,11 @@ export default function FieldDefinitionEditor({
           <div className="mb-3">
             <label className="block mb-1.5 text-xs font-medium text-content-muted">Description (AI context)</label>
             <textarea
-              className="w-full px-3 py-2 bg-surface rounded text-content text-sm focus:outline-none focus:border-accent disabled:opacity-60 disabled:cursor-not-allowed resize-y"
+              className="w-full px-3 py-2 bg-surface rounded text-content text-sm focus:outline-none focus:border-accent resize-y"
               value={field.description || ''}
               onChange={(e) => updateField({ description: e.target.value })}
               placeholder="Describe this field's purpose for AI compilation..."
               rows={2}
-              disabled={isReadOnly}
             />
           </div>
 
@@ -179,11 +168,10 @@ export default function FieldDefinitionEditor({
             <label className="block mb-1.5 text-xs font-medium text-content-muted">Placeholder</label>
             <input
               type="text"
-              className="w-full px-3 py-2 bg-surface rounded text-content text-sm focus:outline-none focus:border-accent disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full px-3 py-2 bg-surface rounded text-content text-sm focus:outline-none focus:border-accent"
               value={field.placeholder || ''}
               onChange={(e) => updateField({ placeholder: e.target.value })}
               placeholder="Enter placeholder text..."
-              disabled={isReadOnly}
             />
           </div>
 
@@ -193,8 +181,7 @@ export default function FieldDefinitionEditor({
                 type="checkbox"
                 checked={field.displayInMap ?? false}
                 onChange={(e) => updateField({ displayInMap: e.target.checked })}
-                disabled={isReadOnly}
-                className="w-4 h-4 accent-[var(--color-accent)] disabled:opacity-60 disabled:cursor-not-allowed"
+                className="w-4 h-4 accent-[var(--color-accent)]"
               />
               Display in Map
             </label>
@@ -207,19 +194,16 @@ export default function FieldDefinitionEditor({
                 {(field.options || []).map((opt, i) => (
                   <div key={i} className="flex items-center gap-1 px-2 py-1 bg-surface-alt rounded text-sm text-content">
                     <span>{opt}</span>
-                    {!isReadOnly && (
-                      <button
-                        className="w-4 h-4 flex items-center justify-center bg-transparent border-none rounded-full text-content-muted cursor-pointer text-sm hover:bg-danger hover:text-white"
-                        onClick={() => removeOption(i)}
-                      >
-                        ×
-                      </button>
-                    )}
+                    <button
+                      className="w-4 h-4 flex items-center justify-center bg-transparent border-none rounded-full text-content-muted cursor-pointer text-sm hover:bg-danger hover:text-white"
+                      onClick={() => removeOption(i)}
+                    >
+                      ×
+                    </button>
                   </div>
                 ))}
               </div>
-              {!isReadOnly && (
-                <div className="flex gap-2">
+              <div className="flex gap-2">
                   <input
                     type="text"
                     className="flex-1 px-2.5 py-1.5 bg-surface rounded text-content text-sm focus:outline-none focus:border-accent"
@@ -235,7 +219,6 @@ export default function FieldDefinitionEditor({
                     Add
                   </button>
                 </div>
-              )}
             </div>
           )}
         </div>

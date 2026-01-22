@@ -8,7 +8,7 @@ import Map, { initialNodes, initialEdges, initialTitle, getNodeId } from './comp
 import Dock, { type DockView } from './components/Dock';
 import Footer from './components/Footer';
 import { compiler } from './constructs/compiler';
-import { registerBuiltInSchemas } from './constructs/schemas';
+import { seedDefaultSchemas, builtInSchemas } from './constructs/schemas';
 import { schemaStorage } from './constructs/storage';
 import { registry } from './constructs/registry';
 import { deployableRegistry } from './constructs/deployables';
@@ -17,8 +17,13 @@ import { analyzeImport, type ImportAnalysis, type ImportOptions } from './utils/
 import { analyzeExport, type ExportAnalysis, type ExportOptions } from './utils/exportAnalyzer';
 import type { ConstructValues, Deployable, ConstructNodeData } from './constructs/types';
 
-registerBuiltInSchemas();
-schemaStorage.loadFromLocalStorage();
+// Initialize schemas: load from localStorage, or seed defaults if this is first load
+const hasStoredSchemas = schemaStorage.loadFromLocalStorage() > 0;
+if (!hasStoredSchemas) {
+  seedDefaultSchemas();
+  schemaStorage.saveToLocalStorage();
+}
+
 deployableRegistry.loadFromLocalStorage();
 
 const MIN_DOCK_HEIGHT = 100;
@@ -185,13 +190,24 @@ function App() {
       // Reload to reflect changes
       window.location.reload();
     } else {
-      // Clear everything: nodes, edges, custom schemas, and deployables
+      // Clear everything: nodes, edges, all schemas, and deployables
       localStorage.removeItem('react-flow-state');
-      localStorage.removeItem('carta-user-schemas');
+      localStorage.removeItem('carta-schemas');
       localStorage.removeItem('carta-deployables');
       // Reload to reflect changes
       window.location.reload();
     }
+  }, []);
+
+  const handleRestoreDefaultSchemas = useCallback(() => {
+    // Clear registry and import fresh defaults
+    registry.clearAllSchemas();
+    registry.replaceSchemas(builtInSchemas);
+    schemaStorage.saveToLocalStorage();
+    
+    // Notify user and reload to reflect changes
+    alert('Default schemas restored successfully!');
+    window.location.reload();
   }, []);
 
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
@@ -241,6 +257,7 @@ function App() {
         onImport={handleImport}
         onCompile={handleCompile}
         onClear={handleClear}
+        onRestoreDefaultSchemas={handleRestoreDefaultSchemas}
       />
       <div ref={containerRef} className="flex-1 min-h-0 flex flex-col">
         <div className="flex-1 min-h-0">

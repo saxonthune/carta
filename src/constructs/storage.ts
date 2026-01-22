@@ -1,37 +1,37 @@
 import { registry } from './registry';
 import type { ConstructSchema } from './types';
 
-const USER_SCHEMAS_KEY = 'carta-user-schemas';
+const SCHEMAS_KEY = 'carta-schemas';
 
 /**
- * Schema Storage - Handles persistence of user-defined schemas
+ * Schema Storage - Handles persistence of all schemas
  */
 export const schemaStorage = {
   /**
-   * Save user schemas to localStorage
+   * Save all schemas to localStorage
    */
   saveToLocalStorage(): void {
     try {
-      const schemas = registry.getUserSchemas();
-      localStorage.setItem(USER_SCHEMAS_KEY, JSON.stringify(schemas));
+      const schemas = registry.getAllSchemas();
+      localStorage.setItem(SCHEMAS_KEY, JSON.stringify(schemas));
     } catch (error) {
       console.error('Failed to save schemas to localStorage:', error);
     }
   },
 
   /**
-   * Load user schemas from localStorage and register them
+   * Load schemas from localStorage and register them
    */
   loadFromLocalStorage(): number {
     try {
-      const saved = localStorage.getItem(USER_SCHEMAS_KEY);
+      const saved = localStorage.getItem(SCHEMAS_KEY);
       if (!saved) return 0;
 
       const schemas: ConstructSchema[] = JSON.parse(saved);
       let count = 0;
 
       for (const schema of schemas) {
-        registry.registerUserSchema(schema);
+        registry.registerSchema(schema);
         count++;
       }
 
@@ -43,17 +43,30 @@ export const schemaStorage = {
   },
 
   /**
-   * Clear user schemas from localStorage
+   * Check if any schemas are stored in localStorage
+   */
+  hasStoredSchemas(): boolean {
+    try {
+      const saved = localStorage.getItem(SCHEMAS_KEY);
+      return saved !== null && saved.length > 0;
+    } catch (error) {
+      console.error('Failed to check stored schemas:', error);
+      return false;
+    }
+  },
+
+  /**
+   * Clear schemas from localStorage
    */
   clearLocalStorage(): void {
-    localStorage.removeItem(USER_SCHEMAS_KEY);
+    localStorage.removeItem(SCHEMAS_KEY);
   },
 
   /**
    * Export schemas to a downloadable JSON file
    */
   exportToFile(filename: string = 'construct-schemas.json'): void {
-    const json = registry.exportUserSchemas();
+    const json = registry.exportSchemas();
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     
@@ -75,7 +88,7 @@ export const schemaStorage = {
       
       reader.onload = (e) => {
         const content = e.target?.result as string;
-        const result = registry.importUserSchemas(content);
+        const result = registry.importSchemas(content);
         
         if (result.success) {
           this.saveToLocalStorage(); // Persist imported schemas
@@ -96,7 +109,7 @@ export const schemaStorage = {
    * Import schemas from a JSON string
    */
   importFromString(json: string): { success: boolean; count: number; errors: string[] } {
-    const result = registry.importUserSchemas(json);
+    const result = registry.importSchemas(json);
     
     if (result.success) {
       this.saveToLocalStorage();
