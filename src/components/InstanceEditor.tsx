@@ -4,6 +4,7 @@ import { registry } from '../constructs/registry';
 import { fieldRenderers } from './fields';
 import TabBar, { type Tab } from './ui/TabBar';
 import type { ConstructNodeData, Deployable, ConstructValues } from '../constructs/types';
+import { generateSemanticId } from '../utils/cartaFile';
 
 interface InstanceEditorProps {
   node: Node;
@@ -21,8 +22,9 @@ export default function InstanceEditor({ node, deployables, onNodeUpdate }: Inst
 
   const handleNameChange = useCallback((newName: string) => {
     setNameValue(newName);
-    onNodeUpdate(node.id, { name: newName });
-  }, [node.id, onNodeUpdate]);
+    const newSemanticId = generateSemanticId(data.constructType, newName);
+    onNodeUpdate(node.id, { name: newName, semanticId: newSemanticId });
+  }, [node.id, data.constructType, onNodeUpdate]);
 
   const handleFieldChange = useCallback((fieldName: string, value: unknown) => {
     const currentData = node.data as ConstructNodeData;

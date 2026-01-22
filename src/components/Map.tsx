@@ -111,13 +111,34 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
   // Expose node update function via ref
   const handleNodeUpdate = useCallback(
     (nodeId: string, updates: Partial<ConstructNodeData>) => {
-      setNodes((nds) =>
-        nds.map((node) =>
-          node.id === nodeId
-            ? { ...node, data: { ...node.data, ...updates } }
-            : node
-        )
-      );
+      setNodes((nds) => {
+        // If semantic ID is changing, we need to update all connections that reference it
+        const oldSemanticId = updates.semanticId
+          ? (nds.find(n => n.id === nodeId)?.data as ConstructNodeData | undefined)?.semanticId
+          : undefined;
+
+        return nds.map((node) => {
+          if (node.id === nodeId) {
+            // Update the target node
+            return { ...node, data: { ...node.data, ...updates } };
+          } else if (oldSemanticId && updates.semanticId && node.type === 'construct') {
+            // Update connections in other nodes that reference the old semantic ID
+            const data = node.data as ConstructNodeData;
+            if (data.connections && data.connections.length > 0) {
+              const updatedConnections = data.connections.map(conn =>
+                conn.targetSemanticId === oldSemanticId
+                  ? { ...conn, targetSemanticId: updates.semanticId! }
+                  : conn
+              );
+              // Only update if something changed
+              if (updatedConnections.some((c, i) => c !== data.connections![i])) {
+                return { ...node, data: { ...data, connections: updatedConnections } };
+              }
+            }
+          }
+          return node;
+        });
+      });
     },
     [setNodes]
   );
