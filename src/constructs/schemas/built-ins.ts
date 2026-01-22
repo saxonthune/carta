@@ -47,8 +47,8 @@ export const builtInSchemas: ConstructSchema[] = [
       },
     ],
     compilation: {
-      format: 'openapi',
-      sectionHeader: '# OpenAPI Paths',
+      format: 'json',
+      sectionHeader: '# REST Endpoints',
     },
   },
 
@@ -77,8 +77,8 @@ export const builtInSchemas: ConstructSchema[] = [
       },
     ],
     compilation: {
-      format: 'dbml',
-      sectionHeader: '# Database Schema (DBML)',
+      format: 'json',
+      sectionHeader: '# Database Schema',
     },
   },
 
@@ -108,7 +108,7 @@ export const builtInSchemas: ConstructSchema[] = [
       },
     ],
     compilation: {
-      format: 'dbml',
+      format: 'json',
     },
   },
 

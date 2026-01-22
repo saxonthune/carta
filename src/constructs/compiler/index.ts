@@ -2,9 +2,7 @@ import type { Node, Edge } from '@xyflow/react';
 import { registry } from '../registry';
 import { deployableRegistry } from '../deployables';
 import type { ConstructNodeData, CompilationFormat, Deployable } from '../types';
-import { formatOpenAPI } from './formatters/openapi';
 import { formatJSON } from './formatters/json';
-import { formatDBML } from './formatters/dbml';
 
 type FormatterFn = (
   nodes: ConstructNodeData[],
@@ -17,8 +15,6 @@ type FormatterFn = (
  * Format handlers registry
  */
 const formatters: Record<CompilationFormat, FormatterFn> = {
-  openapi: formatOpenAPI,
-  dbml: formatDBML,
   json: formatJSON,
   custom: formatJSON,  // Custom uses JSON by default, can use template if provided
 };

@@ -108,7 +108,7 @@ export interface FieldDefinition {
 /**
  * Compilation format types
  */
-export type CompilationFormat = 'openapi' | 'dbml' | 'json' | 'custom';
+export type CompilationFormat = 'json' | 'custom';
 
 /**
  * Configuration for how a construct compiles to output

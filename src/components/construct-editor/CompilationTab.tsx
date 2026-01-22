@@ -6,7 +6,7 @@ interface CompilationTabProps {
   updateField: (key: keyof ConstructSchema, value: unknown) => void;
 }
 
-const COMPILATION_FORMATS: CompilationFormat[] = ['json', 'openapi', 'dbml', 'custom'];
+const COMPILATION_FORMATS: CompilationFormat[] = ['json', 'custom'];
 
 export default function CompilationTab({
   formData,
