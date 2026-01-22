@@ -1,7 +1,7 @@
-import { useState, type ReactNode } from 'react';
+import { useState, useRef, type ReactNode } from 'react';
 import ConstructEditor from './ConstructEditor';
 import DeployablesEditor from './DeployablesEditor';
-import InstanceViewer from './InstanceViewer';
+import InstanceEditor from './InstanceEditor';
 import type { Deployable, ConstructNodeData } from '../constructs/types';
 import type { Node } from '@xyflow/react';
 
@@ -13,15 +13,67 @@ interface DockProps {
   onDeployablesChange: () => void;
   onNodeUpdate: (nodeId: string, updates: Partial<ConstructNodeData>) => void;
   height?: number;
+  activeView: DockView;
+  onActiveViewChange: (view: DockView) => void;
 }
 
-export default function Dock({ selectedNodes, deployables, onDeployablesChange, onNodeUpdate, height = 256 }: DockProps) {
-  const [activeView, setActiveView] = useState<DockView>('viewer');
+export default function Dock({ selectedNodes, deployables, onDeployablesChange, onNodeUpdate, height = 256, activeView, onActiveViewChange }: DockProps) {
+  const [constructsDirty, setConstructsDirty] = useState(false);
+  const [deployablesDirty, setDeployablesDirty] = useState(false);
+  const [pendingView, setPendingView] = useState<DockView | null>(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const constructsEditorRef = useRef<{ save: () => void } | null>(null);
+  const deployablesEditorRef = useRef<{ save: () => void } | null>(null);
+
+  const handleTabClick = (tabId: DockView) => {
+    // Check if current tab has unsaved changes
+    const currentTabDirty = activeView === 'constructs' ? constructsDirty : activeView === 'deployables' ? deployablesDirty : false;
+
+    if (currentTabDirty && tabId !== activeView) {
+      setPendingView(tabId);
+      setShowConfirmModal(true);
+      return;
+    }
+    onActiveViewChange(tabId);
+  };
+
+  const handleConfirmSave = () => {
+    // Trigger save in the current editor
+    if (activeView === 'constructs') {
+      constructsEditorRef.current?.save();
+    } else if (activeView === 'deployables') {
+      deployablesEditorRef.current?.save();
+    }
+    setShowConfirmModal(false);
+    // After save, proceed to pending view
+    setTimeout(() => {
+      if (pendingView) {
+        onActiveViewChange(pendingView);
+      }
+      setPendingView(null);
+    }, 0);
+  };
+
+  const handleConfirmDiscard = () => {
+    if (pendingView) {
+      onActiveViewChange(pendingView);
+    }
+    setShowConfirmModal(false);
+    setPendingView(null);
+    // Reset dirty states
+    if (activeView === 'constructs') setConstructsDirty(false);
+    if (activeView === 'deployables') setDeployablesDirty(false);
+  };
+
+  const handleConfirmCancel = () => {
+    setShowConfirmModal(false);
+    setPendingView(null);
+  };
 
   const tabs: { id: DockView; label: string; icon: ReactNode }[] = [
     {
       id: 'viewer',
-      label: 'Viewer',
+      label: 'Editor',
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
           <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -61,7 +113,7 @@ export default function Dock({ selectedNodes, deployables, onDeployablesChange, 
         }
         if (selectedNodes.length === 1) {
           return (
-            <InstanceViewer
+            <InstanceEditor
               node={selectedNodes[0]}
               deployables={deployables}
               onNodeUpdate={onNodeUpdate}
@@ -74,9 +126,9 @@ export default function Dock({ selectedNodes, deployables, onDeployablesChange, 
           </div>
         );
       case 'constructs':
-        return <ConstructEditor />;
+        return <ConstructEditor ref={constructsEditorRef} onDirtyChange={setConstructsDirty} />;
       case 'deployables':
-        return <DeployablesEditor onDeployablesChange={onDeployablesChange} />;
+        return <DeployablesEditor ref={deployablesEditorRef} onDeployablesChange={onDeployablesChange} onDirtyChange={setDeployablesDirty} />;
       default:
         return null;
     }
@@ -90,7 +142,7 @@ export default function Dock({ selectedNodes, deployables, onDeployablesChange, 
           {tabs.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveView(tab.id)}
+              onClick={() => handleTabClick(tab.id)}
               title={tab.label}
               className={`w-10 h-10 flex items-center justify-center rounded-lg transition-all ${
                 activeView === tab.id
@@ -108,6 +160,40 @@ export default function Dock({ selectedNodes, deployables, onDeployablesChange, 
       <div className="flex-1 overflow-auto">
         {renderContent()}
       </div>
+
+      {/* Confirmation Modal */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-surface-elevated rounded-lg shadow-lg max-w-sm mx-4">
+            <div className="p-6">
+              <h3 className="text-lg font-semibold text-content mb-2">Unsaved Changes</h3>
+              <p className="text-content-muted text-sm mb-6">
+                You have unsaved changes. Do you want to discard them and switch to a different tab?
+              </p>
+              <div className="flex gap-3 justify-end">
+                <button
+                  className="px-4 py-2 rounded-md text-content bg-surface-depth-3 hover:bg-surface-depth-2 transition-colors text-sm font-medium cursor-pointer"
+                  onClick={handleConfirmCancel}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="px-4 py-2 rounded-md text-white bg-danger hover:bg-danger/80 transition-colors text-sm font-medium cursor-pointer"
+                  onClick={handleConfirmDiscard}
+                >
+                  Discard
+                </button>
+                <button
+                  className="px-4 py-2 rounded-md text-white bg-accent hover:bg-accent-hover transition-colors text-sm font-medium cursor-pointer"
+                  onClick={handleConfirmSave}
+                >
+                  Save Changes
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

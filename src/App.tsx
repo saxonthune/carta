@@ -5,7 +5,7 @@ import ExportPreviewModal from './components/ExportPreviewModal';
 import CompileModal from './components/CompileModal';
 import Header from './components/Header';
 import Map, { initialNodes, initialEdges, initialTitle, getNodeId } from './components/Map';
-import Dock from './components/Dock';
+import Dock, { type DockView } from './components/Dock';
 import Footer from './components/Footer';
 import { compiler } from './constructs/compiler';
 import { registerBuiltInSchemas } from './constructs/schemas';
@@ -33,6 +33,7 @@ function App() {
   const [selectedNodes, setSelectedNodes] = useState<Node[]>([]);
   const [dockHeight, setDockHeight] = useState(256);
   const [isResizing, setIsResizing] = useState(false);
+  const [activeView, setActiveView] = useState<DockView>('viewer');
   const nodesEdgesRef = useRef<{ nodes: Node[]; edges: Edge[] }>({ nodes: initialNodes, edges: initialEdges });
   const containerRef = useRef<HTMLDivElement>(null);
   const nodeUpdateRef = useRef<((nodeId: string, updates: Partial<ConstructNodeData>) => void) | null>(null);
@@ -48,6 +49,11 @@ function App() {
 
   const handleSelectionChange = useCallback((nodes: Node[]) => {
     setSelectedNodes(nodes);
+  }, []);
+
+  const handleNodeDoubleClick = useCallback((_nodeId: string) => {
+    // Switch to viewer tab (node is already selected by Map's onSelectionChange)
+    setActiveView('viewer');
   }, []);
 
   const handleNodeUpdate = useCallback((nodeId: string, updates: Partial<ConstructNodeData>) => {
@@ -245,6 +251,7 @@ function App() {
               title={title}
               onNodesEdgesChange={handleNodesEdgesChange}
               onSelectionChange={handleSelectionChange}
+              onNodeDoubleClick={handleNodeDoubleClick}
               nodeUpdateRef={nodeUpdateRef}
               importRef={importRef}
             />
@@ -262,6 +269,8 @@ function App() {
           onDeployablesChange={refreshDeployables}
           onNodeUpdate={handleNodeUpdate}
           height={dockHeight}
+          activeView={activeView}
+          onActiveViewChange={setActiveView}
         />
         <Footer />
       </div>

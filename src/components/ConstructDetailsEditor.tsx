@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { registry } from '../constructs/registry';
 import OverviewTab from './construct-editor/OverviewTab';
 import CompilationTab from './construct-editor/CompilationTab';
@@ -18,6 +18,7 @@ interface ConstructDetailsEditorProps {
   isNew: boolean;
   onSave: (construct: ConstructSchema, isNew: boolean) => void;
   onDelete: (type: string) => void;
+  onDirtyChange?: (isDirty: boolean) => void;
 }
 
 type EditorTab = 'basic' | 'compilation' | 'ports' | 'fields' | 'preview';
@@ -41,18 +42,21 @@ const createEmptySchema = (): ConstructSchema => ({
   isBuiltIn: false
 });
 
-export default function ConstructDetailsEditor({
-  construct,
-  isNew,
-  onSave,
-  onDelete
-}: ConstructDetailsEditorProps) {
+const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetailsEditorProps>(
+  function ConstructDetailsEditor({
+    construct,
+    isNew,
+    onSave,
+    onDelete,
+    onDirtyChange
+  }, ref) {
   const [formData, setFormData] = useState<ConstructSchema>(
     construct || createEmptySchema()
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [expandedFieldIndex, setExpandedFieldIndex] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<EditorTab>('basic');
+  const [isDirty, setIsDirty] = useState(false);
 
   const isReadOnly = formData.isBuiltIn === true;
 
@@ -63,7 +67,25 @@ export default function ConstructDetailsEditor({
     setErrors({});
     setExpandedFieldIndex(null);
     setActiveTab('basic');
+    setIsDirty(false);
   }, [construct]);
+
+  // Check if form has unsaved changes
+  useEffect(() => {
+    if (!construct) {
+      // For new constructs, check if user has entered any meaningful data
+      const hasContent = formData.displayName.trim() !== '' || (formData.description?.trim() ?? '') !== '';
+      setIsDirty(hasContent);
+      return;
+    }
+    const isDifferent = JSON.stringify(formData) !== JSON.stringify(construct);
+    setIsDirty(isDifferent);
+  }, [formData, construct]);
+
+  // Notify parent when dirty state changes
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
 
   const validateForm = useCallback((): boolean => {
     const newErrors: Record<string, string> = {};
@@ -71,7 +93,7 @@ export default function ConstructDetailsEditor({
     if (!formData.displayName.trim()) {
       newErrors.displayName = 'Display name is required';
     }
-    
+
     // Derive type from displayName
     const derivedType = toSnakeCase(formData.displayName);
     if (!derivedType) {
@@ -84,12 +106,17 @@ export default function ConstructDetailsEditor({
     return Object.keys(newErrors).length === 0;
   }, [formData, isNew]);
 
-  const handleSave = () => {
+  const handleSave = useCallback(() => {
     if (isReadOnly) return;
     if (validateForm()) {
       onSave(formData, isNew);
     }
-  };
+  }, [formData, isNew, isReadOnly, onSave, validateForm]);
+
+  // Expose save method via ref for parent to trigger from confirmation modal
+  useImperativeHandle(ref, () => ({
+    save: handleSave
+  }), [handleSave]);
 
   const handleDelete = () => {
     if (isReadOnly) return;
@@ -233,6 +260,9 @@ export default function ConstructDetailsEditor({
           {isReadOnly && (
             <span className="px-2.5 py-1 bg-surface-elevated rounded text-xs text-content-muted">Read-only (Built-in)</span>
           )}
+          {isDirty && !isReadOnly && (
+            <span className="px-2.5 py-1 bg-surface-elevated rounded text-xs text-content-muted">• Unsaved changes</span>
+          )}
         </div>
         <div className="flex gap-2">
           {!isReadOnly && !isNew && (
@@ -320,4 +350,9 @@ export default function ConstructDetailsEditor({
       </div>
     </div>
   );
-}
+  }
+);
+
+ConstructDetailsEditor.displayName = 'ConstructDetailsEditor';
+
+export default ConstructDetailsEditor;

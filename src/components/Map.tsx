@@ -89,11 +89,12 @@ export interface MapProps {
   title: string;
   onNodesEdgesChange: (nodes: Node[], edges: Edge[]) => void;
   onSelectionChange?: (selectedNodes: Node[]) => void;
+  onNodeDoubleClick?: (nodeId: string) => void;
   nodeUpdateRef?: React.MutableRefObject<((nodeId: string, updates: Partial<ConstructNodeData>) => void) | null>;
   importRef?: React.MutableRefObject<((nodes: Node[], edges: Edge[]) => void) | null>;
 }
 
-export default function Map({ deployables, onDeployablesChange, title, onNodesEdgesChange, onSelectionChange, nodeUpdateRef, importRef }: MapProps) {
+export default function Map({ deployables, onDeployablesChange, title, onNodesEdgesChange, onSelectionChange, onNodeDoubleClick, nodeUpdateRef, importRef }: MapProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
@@ -549,7 +550,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     [onSelectionChange]
   );
 
-  // Update parent with fresh node data whenever nodes change (to keep InstanceViewer in sync)
+  // Update parent with fresh node data whenever nodes change (to keep InstanceEditor in sync)
   useEffect(() => {
     if (selectedNodeIds.length > 0) {
       const selectedNodes = nodes.filter((n) => selectedNodeIds.includes(n.id));
@@ -661,7 +662,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
       onRename: (newName: string) => renameNode(node.id, newName),
       onValuesChange: (values: ConstructValues) => updateNodeValues(node.id, values),
       onToggleExpand: () => toggleNodeExpand(node.id),
-      onDoubleClick: () => setRenamingNodeId(node.id),
+      onDoubleClick: () => onNodeDoubleClick?.(node.id),
       deployables,
       onDeployableChange: (deployableId: string | null) => updateNodeDeployable(node.id, deployableId),
     },
