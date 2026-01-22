@@ -69,8 +69,8 @@ function App() {
 
   const handleExport = useCallback(() => {
     const { nodes, edges } = nodesEdgesRef.current;
-    const userSchemas = registry.getUserSchemas();
-    const analysis = analyzeExport(title, nodes, edges, deployableRegistry.getAll(), userSchemas);
+    const allSchemas = registry.getAllSchemas();
+    const analysis = analyzeExport(title, nodes, edges, deployableRegistry.getAll(), allSchemas);
     setExportPreview(analysis);
   }, [title]);
 
@@ -98,7 +98,7 @@ function App() {
       nodes: nodesWithSemanticIds,
       edges,
       deployables: deployableRegistry.getAll(),
-      customSchemas: registry.getUserSchemas(),
+      customSchemas: registry.getAllSchemas(),
     }, options);
 
     setExportPreview(null);
@@ -127,7 +127,7 @@ function App() {
     if (options.schemas.size > 0 && data.customSchemas.length > 0) {
       const schemasToImport = data.customSchemas.filter(s => options.schemas.has(s.type));
       if (schemasToImport.length > 0) {
-        registry.replaceUserSchemas(schemasToImport);
+        registry.replaceSchemas(schemasToImport);
         schemaStorage.saveToLocalStorage();
       }
     }
