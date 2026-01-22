@@ -661,6 +661,13 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     [onSelectionChange]
   );
 
+  const handleNodeDoubleClick = useCallback(
+    (_event: React.MouseEvent, node: Node) => {
+      onNodeDoubleClick?.(node.id);
+    },
+    [onNodeDoubleClick]
+  );
+
   // Update parent with fresh node data whenever nodes change (to keep InstanceEditor in sync)
   useEffect(() => {
     if (selectedNodeIds.length > 0) {
@@ -773,7 +780,6 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
       onRename: (newName: string) => renameNode(node.id, newName),
       onValuesChange: (values: ConstructValues) => updateNodeValues(node.id, values),
       onToggleExpand: () => toggleNodeExpand(node.id),
-      onDoubleClick: () => onNodeDoubleClick?.(node.id),
       deployables,
       onDeployableChange: (deployableId: string | null) => updateNodeDeployable(node.id, deployableId),
     },
@@ -790,6 +796,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
         onConnect={onConnect}
         isValidConnection={isValidConnection}
         onSelectionChange={handleSelectionChange}
+        onNodeDoubleClick={handleNodeDoubleClick}
         onPaneContextMenu={onPaneContextMenu}
         onNodeContextMenu={onNodeContextMenu}
         onEdgeContextMenu={onEdgeContextMenu}
