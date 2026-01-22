@@ -13,6 +13,18 @@ export interface Deployable {
   color?: string;  // Optional color for visual grouping
 }
 
+/**
+ * Visual grouping of nodes on canvas (not included in compilation)
+ * Nodes reference groups via groupId, groups don't track nodeIds
+ */
+export interface CanvasGroup {
+  id: string;
+  label: string;
+  color?: string;
+  collapsed?: boolean;
+  position?: { x: number; y: number };
+}
+
 // ============================================
 // Port System Types
 // ============================================
@@ -44,9 +56,26 @@ export interface PortConfig {
   label: string;                 // Display name shown on hover
   description?: string;          // Usage description for compiled output
 
-  // Future type system hooks
+  // Type hints for UX (soft suggestions)
+  suggestedTypes?: string[];     // Construct types for quick-add menus
+  suggestedPorts?: string[];     // Port IDs that commonly connect here
+
+  // Future: strict constraints
+  // allowedTypes?: string[];
+  // allowedPorts?: string[];
+
   dataType?: string;
-  accepts?: string[];
+}
+
+/**
+ * Suggested related construct for schema-level quick-add menus
+ * Defines a construct type that commonly relates to this construct type
+ */
+export interface SuggestedRelatedConstruct {
+  constructType: string;         // Construct type to suggest (references ConstructSchema.type)
+  fromPortId?: string;           // Optional: port on THIS construct (source)
+  toPortId?: string;             // Optional: port on the RELATED construct (target)
+  label?: string;                // Optional: custom label for the menu (defaults to displayName)
 }
 
 /**
@@ -131,6 +160,7 @@ export interface ConstructSchema {
   description?: string;      // Description shown during compilation (AI context)
   fields: FieldDefinition[];
   ports?: PortConfig[];      // Port configurations for connections
+  suggestedRelated?: SuggestedRelatedConstruct[]; // Suggested related constructs for quick-add
   compilation: CompilationConfig;
   isBuiltIn?: boolean;       // true for built-in schemas, false for user-defined
 }
@@ -151,6 +181,7 @@ export interface ConstructNodeData {
   semanticId?: string;       // AI-friendly identifier: 'controller-user-api'
   values: ConstructValues;   // Field values
   deployableId?: string | null; // Deployable grouping (null/undefined means "none")
+  groupId?: string;              // Visual canvas group (not compiled)
   // Port-based connections
   connections?: ConnectionValue[]; // Connections from this construct's ports
   // Relationship metadata for AI consumption

@@ -18,7 +18,7 @@ import {
 } from '@xyflow/react';
 import CustomNode from '../CustomNode';
 import ConstructNode from './ConstructNode';
-import ContextMenu, { type ContextMenuType } from '../ContextMenu';
+import ContextMenu, { type ContextMenuType, type RelatedConstructOption } from '../ContextMenu';
 import NodeControls from '../NodeControls';
 import AddConstructMenu from './AddConstructMenu';
 import DeployableBackground from './DeployableBackground';
@@ -358,6 +358,117 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
       setNodes((nds) => [...nds, newNode]);
     },
     [setNodes, screenToFlowPosition, takeSnapshot]
+  );
+
+  // Get related constructs options for a node
+  const getRelatedConstructsForNode = useCallback(
+    (nodeIdToCheck: string): RelatedConstructOption[] => {
+      const node = nodes.find(n => n.id === nodeIdToCheck);
+      if (!node || node.type !== 'construct') return [];
+
+      const data = node.data as ConstructNodeData;
+      const schema = registry.getSchema(data.constructType);
+      if (!schema || !schema.suggestedRelated || schema.suggestedRelated.length === 0) return [];
+
+      const result: RelatedConstructOption[] = [];
+      for (const related of schema.suggestedRelated) {
+        const relatedSchema = registry.getSchema(related.constructType);
+        if (relatedSchema) {
+          result.push({
+            constructType: related.constructType,
+            displayName: relatedSchema.displayName,
+            color: relatedSchema.color,
+            fromPortId: related.fromPortId,
+            toPortId: related.toPortId,
+            label: related.label,
+          });
+        }
+      }
+      return result;
+    },
+    [nodes]
+  );
+
+  // Add a related construct near the source node and optionally connect them
+  const addRelatedConstruct = useCallback(
+    (sourceNodeId: string, constructType: string, fromPortId?: string, toPortId?: string) => {
+      const sourceNode = nodes.find(n => n.id === sourceNodeId);
+      if (!sourceNode) return;
+
+      const schema = registry.getSchema(constructType);
+      if (!schema) return;
+
+      takeSnapshot();
+
+      // Position the new node to the right of the source node
+      const newPosition = {
+        x: sourceNode.position.x + 320,
+        y: sourceNode.position.y,
+      };
+
+      const id = String(nodeId++);
+      const values: ConstructValues = {};
+      schema.fields.forEach((field) => {
+        if (field.default !== undefined) {
+          values[field.name] = field.default;
+        }
+      });
+
+      const nodeName = schema.displayName;
+      const semanticId = generateSemanticId(schema.type, nodeName);
+
+      const newNode: Node = {
+        id,
+        type: 'construct',
+        position: newPosition,
+        data: {
+          constructType: schema.type,
+          name: nodeName,
+          semanticId,
+          values,
+          isExpanded: true,
+        },
+      };
+
+      // If both ports are specified, create connection using explicit pair
+      if (fromPortId && toPortId) {
+        // Create the connection on the source node
+        const newConnection: ConnectionValue = {
+          portId: fromPortId,
+          targetSemanticId: semanticId,
+          targetPortId: toPortId,
+        };
+
+        // Also create an edge for visual rendering
+        setNodes((nds) => [
+          ...nds.map(n => {
+            if (n.id === sourceNodeId && n.type === 'construct') {
+              const data = n.data as ConstructNodeData;
+              return {
+                ...n,
+                data: {
+                  ...data,
+                  connections: [...(data.connections || []), newConnection],
+                },
+              };
+            }
+            return n;
+          }),
+          newNode,
+        ]);
+        setEdges((eds) => addEdge({
+          source: sourceNodeId,
+          target: id,
+          sourceHandle: fromPortId,
+          targetHandle: toPortId,
+        }, eds));
+        return;
+      }
+
+      // If no ports specified, just add the node
+      setNodes((nds) => [...nds, newNode]);
+    },
+    [nodes, setNodes, setEdges, takeSnapshot]
   );
 
   const addNode = useCallback(
@@ -742,12 +853,14 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
           nodeId={contextMenu.nodeId}
           edgeId={contextMenu.edgeId}
           selectedCount={selectedNodeIds.length}
+          relatedConstructs={contextMenu.nodeId ? getRelatedConstructsForNode(contextMenu.nodeId) : undefined}
           onAddNode={addNode}
           onDeleteNode={deleteNode}
           onDeleteSelected={deleteSelectedNodes}
           onDeleteEdge={deleteEdge}
           onCopyNodes={copyNodes}
           onPasteNodes={pasteNodes}
+          onAddRelatedConstruct={contextMenu.nodeId ? (constructType, fromPortId, toPortId) => addRelatedConstruct(contextMenu.nodeId!, constructType, fromPortId, toPortId) : undefined}
           canPaste={clipboard.length > 0}
           onClose={closeContextMenu}
         />

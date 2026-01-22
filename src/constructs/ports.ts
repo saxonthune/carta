@@ -25,14 +25,19 @@ export const BUILT_IN_PORTS: PortTypeDefinition[] = [
 /**
  * Valid connection pairings between port directions
  * [source direction, target direction]
+ * Includes bidirectional pairings so connections work in both directions
  */
 export const VALID_PAIRINGS: [PortDirection, PortDirection][] = [
   ['out', 'in'],
+  ['in', 'out'],
   ['child', 'parent'],
+  ['parent', 'child'],
   ['bidi', 'bidi'],
   // Bidi ports are compatible with flow ports
   ['bidi', 'in'],
+  ['in', 'bidi'],
   ['bidi', 'out'],
+  ['out', 'bidi'],
 ];
 
 /**

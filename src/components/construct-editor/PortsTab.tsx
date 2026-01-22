@@ -59,11 +59,11 @@ export default function PortsTab({
               <div className="flex justify-between items-center mb-2">
                 {!isReadOnly && (
                   <button
-                    className="px-2 py-1 text-danger text-xs hover:bg-danger-muted rounded transition-colors"
+                    className="px-2 py-1 border text-danger text-xs hover:bg-danger-muted rounded transition-colors"
                     onClick={() => removePort(index)}
                     title="Remove port"
                   >
-                    × Remove
+                    Remove
                   </button>
                 )}
               </div>

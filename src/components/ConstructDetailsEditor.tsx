@@ -5,8 +5,9 @@ import CompilationTab from './construct-editor/CompilationTab';
 import PortsTab from './construct-editor/PortsTab';
 import FieldsTab from './construct-editor/FieldsTab';
 import PreviewTab from './construct-editor/PreviewTab';
+import RelatedTab from './construct-editor/RelatedTab';
 import TabBar, { type Tab } from './ui/TabBar';
-import type { ConstructSchema, FieldDefinition, PortConfig } from '../constructs/types';
+import type { ConstructSchema, FieldDefinition, PortConfig, SuggestedRelatedConstruct } from '../constructs/types';
 
 // Convert string to snake_case while preserving special characters like '#'
 // (e.g., "My Cool Construct" → "my_cool_construct", "API #1" → "api_#1")
@@ -22,7 +23,7 @@ interface ConstructDetailsEditorProps {
   onDirtyChange?: (isDirty: boolean) => void;
 }
 
-type EditorTab = 'basic' | 'compilation' | 'ports' | 'fields' | 'preview';
+type EditorTab = 'basic' | 'compilation' | 'ports' | 'fields' | 'related' | 'preview';
 
 const createEmptySchema = (): ConstructSchema => ({
   type: '',
@@ -216,6 +217,35 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
     }));
   };
 
+  // Suggested related constructs management functions
+  const addSuggestedRelated = () => {
+    if (isReadOnly) return;
+    const newRelated: SuggestedRelatedConstruct = {
+      constructType: '',
+      // fromPortId and toPortId left undefined initially
+    };
+    setFormData(prev => ({
+      ...prev,
+      suggestedRelated: [...(prev.suggestedRelated || []), newRelated]
+    }));
+  };
+
+  const updateSuggestedRelated = (index: number, updates: Partial<SuggestedRelatedConstruct>) => {
+    if (isReadOnly) return;
+    setFormData(prev => ({
+      ...prev,
+      suggestedRelated: (prev.suggestedRelated || []).map((r, i) => i === index ? { ...r, ...updates } : r)
+    }));
+  };
+
+  const removeSuggestedRelated = (index: number) => {
+    if (isReadOnly) return;
+    setFormData(prev => ({
+      ...prev,
+      suggestedRelated: (prev.suggestedRelated || []).filter((_, i) => i !== index)
+    }));
+  };
+
   const tabs: Tab<EditorTab>[] = [
     { id: 'basic', label: 'Overview', icon: (
       <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -243,6 +273,14 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
         <line x1="3" y1="6" x2="3.01" y2="6"/>
         <line x1="3" y1="12" x2="3.01" y2="12"/>
         <line x1="3" y1="18" x2="3.01" y2="18"/>
+      </svg>
+    )},
+    { id: 'related', label: 'Related', icon: (
+      <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <circle cx="5" cy="12" r="3"/>
+        <circle cx="19" cy="6" r="3"/>
+        <circle cx="19" cy="18" r="3"/>
+        <path d="M8 12h4M12 12l4-4M12 12l4 4"/>
       </svg>
     )},
     { id: 'preview', label: 'Preview', icon: (
@@ -328,6 +366,15 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
               removeField={removeField}
               moveField={moveField}
               setExpandedFieldIndex={setExpandedFieldIndex}
+            />
+          )}
+          {activeTab === 'related' && (
+            <RelatedTab
+              formData={formData}
+              isReadOnly={isReadOnly}
+              addSuggestedRelated={addSuggestedRelated}
+              updateSuggestedRelated={updateSuggestedRelated}
+              removeSuggestedRelated={removeSuggestedRelated}
             />
           )}
           {activeTab === 'preview' && (
