@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { ReactFlowProvider } from '@xyflow/react';
 import ConstructNode from '../ConstructNode';
 import type { ConstructSchema, ConstructNodeData } from '../../constructs/types';
 
@@ -10,7 +11,6 @@ export default function PreviewTab({ formData }: PreviewTabProps) {
   // Mock node data for preview
   const mockNodeData: ConstructNodeData = useMemo(() => ({
     constructType: formData.type || 'preview',
-    name: 'Sample Instance',
     semanticId: `${formData.type || 'preview'}-sample`,
     values: formData.fields.reduce((acc, f) => ({ ...acc, [f.name]: f.default || '' }), {}),
     connections: [],
@@ -21,10 +21,9 @@ export default function PreviewTab({ formData }: PreviewTabProps) {
   // Generate compiled preview
   const compiledPreview = useMemo(() => {
     if (!formData.type) return 'No type defined yet';
-    
+
     const sampleData = {
-      id: 'sample-1',
-      name: 'Sample Instance',
+      id: `${formData.type}-sample`,
       type: formData.type,
       ...formData.fields.reduce((acc, f) => ({ ...acc, [f.name]: f.default || `sample_${f.name}` }), {}),
     };
@@ -33,7 +32,7 @@ export default function PreviewTab({ formData }: PreviewTabProps) {
       Object.assign(sampleData, {
         ports: formData.ports.map(p => ({
           id: p.id,
-          direction: p.direction,
+          portType: p.portType,
           label: p.label,
         })),
       });
@@ -48,12 +47,14 @@ export default function PreviewTab({ formData }: PreviewTabProps) {
         <h3 className="m-0 mb-3 text-sm font-semibold text-content-muted uppercase tracking-wide">Node Preview</h3>
         <div className="flex items-center justify-center p-4 bg-surface-depth-3 rounded-lg min-h-[200px]">
           {formData.type ? (
-            <div style={{ width: '300px', height: 'auto' }}>
-              <ConstructNode
-                data={mockNodeData}
-                selected={false}
-              />
-            </div>
+            <ReactFlowProvider>
+              <div style={{ width: '300px', height: 'auto' }}>
+                <ConstructNode
+                  data={mockNodeData}
+                  selected={false}
+                />
+              </div>
+            </ReactFlowProvider>
           ) : (
             <p className="text-content-muted text-sm italic">Define a type to preview the node</p>
           )}

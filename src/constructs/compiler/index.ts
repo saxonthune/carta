@@ -2,9 +2,7 @@ import type { Node, Edge } from '@xyflow/react';
 import { registry } from '../registry';
 import { deployableRegistry } from '../deployables';
 import type { ConstructNodeData, CompilationFormat, Deployable } from '../types';
-import { formatOpenAPI } from './formatters/openapi';
 import { formatJSON } from './formatters/json';
-import { formatDBML } from './formatters/dbml';
 
 type FormatterFn = (
   nodes: ConstructNodeData[],
@@ -17,8 +15,6 @@ type FormatterFn = (
  * Format handlers registry
  */
 const formatters: Record<CompilationFormat, FormatterFn> = {
-  openapi: formatOpenAPI,
-  dbml: formatDBML,
   json: formatJSON,
   custom: formatJSON,  // Custom uses JSON by default, can use template if provided
 };
@@ -174,7 +170,7 @@ ${deployablesJson}
             ports: schema.ports.map(p => ({
               id: p.id,
               label: p.label,
-              direction: p.direction,
+              portType: p.portType,
               ...(p.description && { description: p.description }),
             }))
           }),
@@ -264,8 +260,7 @@ ${schemasJson}
     const nodeIdToSemanticId = new Map<string, string>();
     for (const node of nodes) {
       const data = node.data as ConstructNodeData;
-      const semanticId = data.semanticId || `${data.constructType}-${data.name.toLowerCase().replace(/\s+/g, '-')}`;
-      nodeIdToSemanticId.set(node.id, semanticId);
+      nodeIdToSemanticId.set(node.id, data.semanticId);
     }
 
     // Create maps for relationships

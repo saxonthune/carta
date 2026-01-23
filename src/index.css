@@ -176,23 +176,23 @@ body,
   box-shadow: 0 0 8px rgba(99, 102, 241, 0.5);
 }
 
-/* Handle colors by direction - fallback if inline style not applied */
-.react-flow__handle[data-direction="in"] {
+/* Handle colors by port type - fallback if inline style not applied */
+.react-flow__handle[data-port-type="flow-in"] {
   background: #3b82f6 !important;
 }
 
-.react-flow__handle[data-direction="out"] {
+.react-flow__handle[data-port-type="flow-out"] {
   background: #22c55e !important;
 }
 
-.react-flow__handle[data-direction="parent"] {
+.react-flow__handle[data-port-type="parent"] {
   background: #f59e0b !important;
 }
 
-.react-flow__handle[data-direction="child"] {
+.react-flow__handle[data-port-type="child"] {
   background: #f59e0b !important;
 }
 
-.react-flow__handle[data-direction="bidi"] {
+.react-flow__handle[data-port-type="symmetric"] {
   background: #8b5cf6 !important;
 }

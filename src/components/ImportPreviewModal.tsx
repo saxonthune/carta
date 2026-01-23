@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { ImportAnalysis, ImportOptions, AnalyzedSchema } from '../utils/importAnalyzer';
+import type { ImportAnalysis, ImportOptions, AnalyzedSchema, AnalyzedNode, AnalyzedDeployable } from '../utils/importAnalyzer';
 import { defaultImportOptions } from '../utils/importAnalyzer';
 
 interface ImportPreviewModalProps {
@@ -8,28 +8,104 @@ interface ImportPreviewModalProps {
   onCancel: () => void;
 }
 
-function SchemaItem({ schema }: { schema: AnalyzedSchema }) {
+function SchemaItem({ schema, selected, onToggle }: { schema: AnalyzedSchema; selected: boolean; onToggle: () => void }) {
   return (
-    <div className="flex items-center justify-between py-1.5 px-2 text-sm">
-      <div className="flex items-center gap-2">
+    <label className="flex items-center gap-3 py-1.5 px-2 text-sm cursor-pointer hover:bg-surface-alt">
+      <input
+        type="checkbox"
+        checked={selected}
+        onChange={onToggle}
+        className="w-4 h-4 accent-accent"
+      />
+      <div className="flex items-center gap-2 flex-1 min-w-0">
         <div
-          className="w-3 h-3 rounded-full"
+          className="w-3 h-3 rounded-full flex-shrink-0"
           style={{ backgroundColor: schema.item.color }}
         />
-        <span className="text-content">{schema.item.displayName}</span>
+        <span className="text-content truncate">{schema.item.displayName}</span>
         <span className="text-content-muted text-xs">({schema.item.type})</span>
       </div>
       {schema.status === 'conflict' && (
-        <span className="px-1.5 py-0.5 text-xs bg-amber-100 text-amber-700 rounded">
+        <span className="px-1.5 py-0.5 text-xs bg-amber-100 text-amber-700 rounded flex-shrink-0">
           conflict
         </span>
       )}
       {schema.status === 'new' && (
-        <span className="px-1.5 py-0.5 text-xs bg-green-100 text-green-700 rounded">
+        <span className="px-1.5 py-0.5 text-xs bg-green-100 text-green-700 rounded flex-shrink-0">
           new
         </span>
       )}
-    </div>
+    </label>
+  );
+}
+
+function InstanceItem({ instance, analysis, selected, onToggle }: { instance: AnalyzedNode; analysis: ImportAnalysis; selected: boolean; onToggle: () => void }) {
+  const nodeData = instance.item.data as any;
+  
+  // Find the schema from the analysis's file schemas
+  const schema = analysis.schemas.items.find(
+    s => s.item.type === nodeData.constructType
+  )?.item;
+  
+  return (
+    <label className="flex items-center gap-3 py-1.5 px-2 text-sm cursor-pointer hover:bg-surface-alt">
+      <input
+        type="checkbox"
+        checked={selected}
+        onChange={onToggle}
+        className="w-4 h-4 accent-accent"
+      />
+      <div className="flex items-center gap-2 flex-1 min-w-0">
+        {schema && (
+          <div
+            className="w-3 h-3 rounded-full flex-shrink-0"
+            style={{ backgroundColor: schema.color }}
+          />
+        )}
+        <span className="text-content truncate">{nodeData.semanticId}</span>
+        <span className="text-content-muted text-xs">({nodeData.constructType})</span>
+      </div>
+      {instance.status === 'conflict' && (
+        <span className="px-1.5 py-0.5 text-xs bg-amber-100 text-amber-700 rounded flex-shrink-0">
+          conflict
+        </span>
+      )}
+      {instance.status === 'new' && (
+        <span className="px-1.5 py-0.5 text-xs bg-green-100 text-green-700 rounded flex-shrink-0">
+          new
+        </span>
+      )}
+    </label>
+  );
+}
+
+function DeployableItem({ deployable, selected, onToggle }: { deployable: AnalyzedDeployable; selected: boolean; onToggle: () => void }) {
+  return (
+    <label className="flex items-center gap-3 py-1.5 px-2 text-sm cursor-pointer hover:bg-surface-alt">
+      <input
+        type="checkbox"
+        checked={selected}
+        onChange={onToggle}
+        className="w-4 h-4 accent-accent"
+      />
+      <div className="flex items-center gap-2 flex-1 min-w-0">
+        <div
+          className="w-3 h-3 rounded-full flex-shrink-0"
+          style={{ backgroundColor: deployable.item.color || '#6b7280' }}
+        />
+        <span className="text-content truncate">{deployable.item.name}</span>
+      </div>
+      {deployable.status === 'conflict' && (
+        <span className="px-1.5 py-0.5 text-xs bg-amber-100 text-amber-700 rounded flex-shrink-0">
+          conflict
+        </span>
+      )}
+      {deployable.status === 'new' && (
+        <span className="px-1.5 py-0.5 text-xs bg-green-100 text-green-700 rounded flex-shrink-0">
+          new
+        </span>
+      )}
+    </label>
   );
 }
 
@@ -38,14 +114,90 @@ export default function ImportPreviewModal({
   onConfirm,
   onCancel,
 }: ImportPreviewModalProps) {
-  const [options, setOptions] = useState<ImportOptions>(defaultImportOptions);
-  const [schemasExpanded, setSchemasExpanded] = useState(false);
+  const [options, setOptions] = useState<ImportOptions>(defaultImportOptions(analysis));
+  const [schemasExpanded, setSchemasExpanded] = useState(true);
+  const [instancesExpanded, setInstancesExpanded] = useState(true);
+  const [deployablesExpanded, setDeployablesExpanded] = useState(true);
 
-  const handleToggle = (key: keyof ImportOptions) => {
-    setOptions(prev => ({ ...prev, [key]: !prev[key] }));
+  const toggleSchema = (schemaType: string) => {
+    setOptions(prev => {
+      const newSchemas = new Set(prev.schemas);
+      if (newSchemas.has(schemaType)) {
+        newSchemas.delete(schemaType);
+      } else {
+        newSchemas.add(schemaType);
+      }
+      return { ...prev, schemas: newSchemas };
+    });
   };
 
-  const hasSelectedAnything = options.schemas || options.nodes || options.deployables;
+  const toggleInstance = (nodeId: string) => {
+    setOptions(prev => {
+      const newNodes = new Set(prev.nodes);
+      if (newNodes.has(nodeId)) {
+        newNodes.delete(nodeId);
+      } else {
+        newNodes.add(nodeId);
+      }
+      return { ...prev, nodes: newNodes };
+    });
+  };
+
+  const toggleDeployable = (deployableId: string) => {
+    setOptions(prev => {
+      const newDeployables = new Set(prev.deployables);
+      if (newDeployables.has(deployableId)) {
+        newDeployables.delete(deployableId);
+      } else {
+        newDeployables.add(deployableId);
+      }
+      return { ...prev, deployables: newDeployables };
+    });
+  };
+
+  const selectAllSchemas = () => {
+    setOptions(prev => ({
+      ...prev,
+      schemas: new Set(analysis.schemas.items.map(s => s.item.type))
+    }));
+  };
+
+  const deselectAllSchemas = () => {
+    setOptions(prev => ({
+      ...prev,
+      schemas: new Set()
+    }));
+  };
+
+  const selectAllInstances = () => {
+    setOptions(prev => ({
+      ...prev,
+      nodes: new Set(analysis.nodes.items.map(n => n.item.id))
+    }));
+  };
+
+  const deselectAllInstances = () => {
+    setOptions(prev => ({
+      ...prev,
+      nodes: new Set()
+    }));
+  };
+
+  const selectAllDeployables = () => {
+    setOptions(prev => ({
+      ...prev,
+      deployables: new Set(analysis.deployables.items.map(d => d.item.id))
+    }));
+  };
+
+  const deselectAllDeployables = () => {
+    setOptions(prev => ({
+      ...prev,
+      deployables: new Set()
+    }));
+  };
+
+  const hasSelectedAnything = options.schemas.size > 0 || options.nodes.size > 0 || options.deployables.size > 0;
 
   return (
     <div
@@ -100,102 +252,184 @@ export default function ImportPreviewModal({
           {/* Categories */}
           <div className="space-y-3">
             {/* Schemas */}
-            <div className="border rounded-lg overflow-hidden">
-              <label className="flex items-center gap-3 p-3 cursor-pointer hover:bg-surface-alt">
-                <input
-                  type="checkbox"
-                  checked={options.schemas}
-                  onChange={() => handleToggle('schemas')}
-                  disabled={analysis.schemas.summary.total === 0}
-                  className="w-4 h-4 accent-accent"
-                />
-                <div className="flex-1 flex items-center justify-between">
+            <div className="bg-surface-depth-2 rounded-lg overflow-hidden">
+              <button
+                type="button"
+                className="w-full flex items-center gap-3 p-3 cursor-pointer hover:bg-surface-alt text-left"
+                onClick={() => setSchemasExpanded(!schemasExpanded)}
+              >
+                <svg
+                  className={`w-4 h-4 text-content-muted transition-transform flex-shrink-0 ${schemasExpanded ? 'rotate-180' : ''}`}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+                <div className="flex-1 min-w-0">
                   <span className="text-content font-medium">Construct Schemas</span>
-                  <div className="flex items-center gap-2">
-                    {analysis.schemas.summary.conflicts > 0 && (
-                      <span className="px-1.5 py-0.5 text-xs bg-amber-100 text-amber-700 rounded">
-                        {analysis.schemas.summary.conflicts} conflict{analysis.schemas.summary.conflicts !== 1 ? 's' : ''}
-                      </span>
-                    )}
-                    <span className="text-content-muted text-sm">
-                      ({analysis.schemas.summary.total})
-                    </span>
-                    {analysis.schemas.summary.total > 0 && (
-                      <button
-                        type="button"
-                        className="p-1 hover:bg-surface-alt rounded"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setSchemasExpanded(!schemasExpanded);
-                        }}
-                      >
-                        <svg
-                          className={`w-4 h-4 text-content-muted transition-transform ${schemasExpanded ? 'rotate-180' : ''}`}
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                        >
-                          <polyline points="6 9 12 15 18 9" />
-                        </svg>
-                      </button>
-                    )}
-                  </div>
                 </div>
-              </label>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {analysis.schemas.summary.conflicts > 0 && (
+                    <span className="px-1.5 py-0.5 text-xs bg-amber-100 text-amber-700 rounded">
+                      {analysis.schemas.summary.conflicts} conflict{analysis.schemas.summary.conflicts !== 1 ? 's' : ''}
+                    </span>
+                  )}
+                  <span className="text-content-muted text-sm">
+                    ({options.schemas.size}/{analysis.schemas.summary.total})
+                  </span>
+                </div>
+              </button>
               {schemasExpanded && analysis.schemas.items.length > 0 && (
-                <div className="border-t bg-surface-alt/50">
+                <div className="bg-surface-depth-3">
+                  <div className="flex gap-2 p-2 bg-surface-depth-2">
+                    <button
+                      type="button"
+                      onClick={selectAllSchemas}
+                      className="flex-1 px-2 py-1 text-xs bg-accent text-white rounded hover:bg-accent-hover"
+                    >
+                      All
+                    </button>
+                    <button
+                      type="button"
+                      onClick={deselectAllSchemas}
+                      className="flex-1 px-2 py-1 text-xs bg-surface-alt text-content rounded hover:bg-surface hover:text-content"
+                    >
+                      None
+                    </button>
+                  </div>
                   {analysis.schemas.items.map((schema) => (
-                    <SchemaItem key={schema.item.type} schema={schema} />
+                    <SchemaItem
+                      key={schema.item.type}
+                      schema={schema}
+                      selected={options.schemas.has(schema.item.type)}
+                      onToggle={() => toggleSchema(schema.item.type)}
+                    />
                   ))}
                 </div>
               )}
             </div>
 
-            {/* Nodes - disabled for now */}
-            <div className="border rounded-lg opacity-60">
-              <label className="flex items-center gap-3 p-3 cursor-not-allowed">
-                <input
-                  type="checkbox"
-                  checked={false}
-                  disabled
-                  className="w-4 h-4"
-                />
-                <div className="flex-1 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-content font-medium">Nodes</span>
-                    <span className="px-1.5 py-0.5 text-xs bg-gray-100 text-gray-600 rounded">
-                      Coming soon
+            {/* Instances */}
+            <div className="bg-surface-depth-2 rounded-lg overflow-hidden">
+              <button
+                type="button"
+                className="w-full flex items-center gap-3 p-3 cursor-pointer hover:bg-surface-alt text-left"
+                onClick={() => setInstancesExpanded(!instancesExpanded)}
+              >
+                <svg
+                  className={`w-4 h-4 text-content-muted transition-transform flex-shrink-0 ${instancesExpanded ? 'rotate-180' : ''}`}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+                <div className="flex-1 min-w-0">
+                  <span className="text-content font-medium">Instances</span>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {analysis.nodes.summary.conflicts > 0 && (
+                    <span className="px-1.5 py-0.5 text-xs bg-amber-100 text-amber-700 rounded">
+                      {analysis.nodes.summary.conflicts} conflict{analysis.nodes.summary.conflicts !== 1 ? 's' : ''}
                     </span>
-                  </div>
+                  )}
                   <span className="text-content-muted text-sm">
-                    ({analysis.nodes.summary.total})
+                    ({options.nodes.size}/{analysis.nodes.summary.total})
                   </span>
                 </div>
-              </label>
+              </button>
+              {instancesExpanded && analysis.nodes.items.length > 0 && (
+                <div className="bg-surface-depth-3">
+                  <div className="flex gap-2 p-2 bg-surface-depth-2">
+                    <button
+                      type="button"
+                      onClick={selectAllInstances}
+                      className="flex-1 px-2 py-1 text-xs bg-accent text-white rounded hover:bg-accent-hover"
+                    >
+                      All
+                    </button>
+                    <button
+                      type="button"
+                      onClick={deselectAllInstances}
+                      className="flex-1 px-2 py-1 text-xs bg-surface-alt text-content rounded hover:bg-surface hover:text-content"
+                    >
+                      None
+                    </button>
+                  </div>
+                  {analysis.nodes.items.map((instance) => (
+                    <InstanceItem
+                      key={instance.item.id}
+                      instance={instance}
+                      analysis={analysis}
+                      selected={options.nodes.has(instance.item.id)}
+                      onToggle={() => toggleInstance(instance.item.id)}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* Deployables - disabled for now */}
-            <div className="border rounded-lg opacity-60">
-              <label className="flex items-center gap-3 p-3 cursor-not-allowed">
-                <input
-                  type="checkbox"
-                  checked={false}
-                  disabled
-                  className="w-4 h-4"
-                />
-                <div className="flex-1 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-content font-medium">Deployables</span>
-                    <span className="px-1.5 py-0.5 text-xs bg-gray-100 text-gray-600 rounded">
-                      Coming soon
+            {/* Deployables */}
+            <div className="bg-surface-depth-2 rounded-lg overflow-hidden">
+              <button
+                type="button"
+                className="w-full flex items-center gap-3 p-3 cursor-pointer hover:bg-surface-alt text-left"
+                onClick={() => setDeployablesExpanded(!deployablesExpanded)}
+              >
+                <svg
+                  className={`w-4 h-4 text-content-muted transition-transform flex-shrink-0 ${deployablesExpanded ? 'rotate-180' : ''}`}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+                <div className="flex-1 min-w-0">
+                  <span className="text-content font-medium">Deployables</span>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {analysis.deployables.summary.conflicts > 0 && (
+                    <span className="px-1.5 py-0.5 text-xs bg-amber-100 text-amber-700 rounded">
+                      {analysis.deployables.summary.conflicts} conflict{analysis.deployables.summary.conflicts !== 1 ? 's' : ''}
                     </span>
-                  </div>
+                  )}
                   <span className="text-content-muted text-sm">
-                    ({analysis.deployables.summary.total})
+                    ({options.deployables.size}/{analysis.deployables.summary.total})
                   </span>
                 </div>
-              </label>
+              </button>
+              {deployablesExpanded && analysis.deployables.items.length > 0 && (
+                <div className="bg-surface-depth-3">
+                  <div className="flex gap-2 p-2 bg-surface-depth-2">
+                    <button
+                      type="button"
+                      onClick={selectAllDeployables}
+                      className="flex-1 px-2 py-1 text-xs bg-accent text-white rounded hover:bg-accent-hover"
+                    >
+                      All
+                    </button>
+                    <button
+                      type="button"
+                      onClick={deselectAllDeployables}
+                      className="flex-1 px-2 py-1 text-xs bg-surface-alt text-content rounded hover:bg-surface hover:text-content"
+                    >
+                      None
+                    </button>
+                  </div>
+                  {analysis.deployables.items.map((deployable) => (
+                    <DeployableItem
+                      key={deployable.item.id}
+                      deployable={deployable}
+                      selected={options.deployables.has(deployable.item.id)}
+                      onToggle={() => toggleDeployable(deployable.item.id)}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

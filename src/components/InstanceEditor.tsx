@@ -1,10 +1,12 @@
-import { useState, useCallback, type ReactNode } from 'react';
+import { useState, useCallback } from 'react';
 import type { Node } from '@xyflow/react';
 import { registry } from '../constructs/registry';
 import { fieldRenderers } from './fields';
+import TabBar, { type Tab } from './ui/TabBar';
 import type { ConstructNodeData, Deployable, ConstructValues } from '../constructs/types';
+import { getDisplayName } from '../utils/displayUtils';
 
-interface InstanceViewerProps {
+interface InstanceEditorProps {
   node: Node;
   deployables: Deployable[];
   onNodeUpdate: (nodeId: string, updates: Partial<ConstructNodeData>) => void;
@@ -12,15 +14,15 @@ interface InstanceViewerProps {
 
 type ViewerTab = 'details' | 'connections';
 
-export default function InstanceViewer({ node, deployables, onNodeUpdate }: InstanceViewerProps) {
+export default function InstanceEditor({ node, deployables, onNodeUpdate }: InstanceEditorProps) {
   const data = node.data as ConstructNodeData;
   const schema = registry.getSchema(data.constructType);
-  const [nameValue, setNameValue] = useState(data.name);
+  const [semanticIdValue, setSemanticIdValue] = useState(data.semanticId);
   const [activeTab, setActiveTab] = useState<ViewerTab>('details');
 
-  const handleNameChange = useCallback((newName: string) => {
-    setNameValue(newName);
-    onNodeUpdate(node.id, { name: newName });
+  const handleSemanticIdChange = useCallback((newSemanticId: string) => {
+    setSemanticIdValue(newSemanticId);
+    onNodeUpdate(node.id, { semanticId: newSemanticId });
   }, [node.id, onNodeUpdate]);
 
   const handleFieldChange = useCallback((fieldName: string, value: unknown) => {
@@ -47,10 +49,10 @@ export default function InstanceViewer({ node, deployables, onNodeUpdate }: Inst
     );
   }
 
-  const tabs: { id: ViewerTab; label: string; icon: ReactNode }[] = [
-    { 
-      id: 'details', 
-      label: 'Details', 
+  const tabs: Tab<ViewerTab>[] = [
+    {
+      id: 'details',
+      label: 'Details',
       icon: (
         <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
@@ -58,9 +60,9 @@ export default function InstanceViewer({ node, deployables, onNodeUpdate }: Inst
         </svg>
       )
     },
-    { 
-      id: 'connections', 
-      label: 'Connections', 
+    {
+      id: 'connections',
+      label: 'Connections',
       icon: (
         <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M17 8l4 4-4 4M3 12h18" />
@@ -86,31 +88,17 @@ export default function InstanceViewer({ node, deployables, onNodeUpdate }: Inst
           <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
           <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
         </svg>
-        <span className="text-sm font-semibold">Instance Viewer</span>
+        <span className="text-sm font-semibold">Instance Editor</span>
         <span className="text-xs opacity-75">• {schema.displayName}</span>
       </div>
 
       {/* Content with tabs */}
       <div className="flex-1 min-h-0 flex gap-3 p-3">
-        {/* Vertical Tab Bar */}
-        <div className="bg-surface-depth-1 flex flex-col w-[110px] shrink-0 p-2 gap-1 rounded-xl">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              className={`flex flex-row items-center justify-start gap-2 p-1 rounded-lg cursor-pointer transition-all ${
-                activeTab === tab.id
-                  ? 'bg-accent/30 text-accent ring-2 ring-accent/60 shadow-sm shadow-accent/20'
-                  : 'text-content bg-transparent hover:bg-surface-depth-3/50'
-              }`}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              <div className="w-4 h-4 shrink-0">
-                {tab.icon}
-              </div>
-              <span className="text-[12px] font-medium leading-tight">{tab.label}</span>
-            </button>
-          ))}
-        </div>
+        <TabBar
+          tabs={tabs}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        />
 
         {/* Content Area */}
         <div className="flex-1 bg-surface-depth-3 p-4 overflow-y-auto min-h-0 rounded-xl">
@@ -120,28 +108,26 @@ export default function InstanceViewer({ node, deployables, onNodeUpdate }: Inst
                 {/* Instance Info Island */}
                 <div className="bg-surface-depth-2 rounded-xl p-3">
                   <h3 className="text-xs font-semibold text-content-muted uppercase mb-3">Instance Info</h3>
-                  
-                  {/* Name field */}
+
+                  {/* Display name (read-only, derived) */}
                   <div className="flex flex-col gap-1 mb-3">
-                    <label className="text-[11px] font-semibold text-content-muted uppercase">Name</label>
-                    <input
-                      type="text"
-                      className="px-2.5 py-1.5 rounded text-sm text-content bg-surface outline-none focus:ring-2 focus:ring-accent/60 focus:shadow-[0_0_0_2px_rgba(99,102,241,0.1)] transition-all border border-transparent"
-                      value={nameValue}
-                      onChange={(e) => handleNameChange(e.target.value)}
-                      placeholder="Enter instance name"
-                    />
+                    <label className="text-[11px] font-semibold text-content-muted uppercase">Display Name</label>
+                    <div className="px-2.5 py-1.5 rounded text-sm text-content bg-surface-alt">
+                      {getDisplayName(data, schema)}
+                    </div>
                   </div>
 
-                  {/* Semantic ID (read-only) */}
-                  {data.semanticId && (
-                    <div className="flex flex-col gap-1 mb-3">
-                      <label className="text-[11px] font-semibold text-content-muted uppercase">Semantic ID</label>
-                      <div className="px-2.5 py-1.5 rounded text-sm text-content-subtle bg-surface-alt font-mono text-xs">
-                        {data.semanticId}
-                      </div>
-                    </div>
-                  )}
+                  {/* Semantic ID (editable) */}
+                  <div className="flex flex-col gap-1 mb-3">
+                    <label className="text-[11px] font-semibold text-content-muted uppercase">Semantic ID</label>
+                    <input
+                      type="text"
+                      className="px-2.5 py-1.5 rounded text-sm text-content bg-surface outline-none focus:ring-2 focus:ring-accent/60 focus:shadow-[0_0_0_2px_rgba(99,102,241,0.1)] transition-all border border-transparent font-mono text-xs"
+                      value={semanticIdValue}
+                      onChange={(e) => handleSemanticIdChange(e.target.value)}
+                      placeholder="e.g., controller-user-api"
+                    />
+                  </div>
 
                   {/* Deployable selector */}
                   <div className="flex flex-col gap-1">

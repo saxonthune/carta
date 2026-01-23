@@ -1,60 +1,20 @@
-import type { PortConfig, PortDirection, PortPosition } from './types';
+import type { PortConfig, PortPosition } from './types';
+import { portRegistry } from './portRegistry';
 
 /**
- * Port type definition for the port registry
+ * Check if two port types can be connected
+ * Delegates to the port registry
  */
-export interface PortTypeDefinition {
-  id: string;
-  direction: PortDirection;
-  defaultPosition: PortPosition;
-  label: string;
-  color: string;
+export function canConnect(sourcePortType: string, targetPortType: string): boolean {
+  return portRegistry.canConnect(sourcePortType, targetPortType);
 }
 
 /**
- * Built-in port types that can be used by any construct
+ * Get the color for a port type
+ * Delegates to the port registry
  */
-export const BUILT_IN_PORTS: PortTypeDefinition[] = [
-  { id: 'flow-in', direction: 'in', defaultPosition: 'left', label: 'Flow In', color: '#3b82f6' },
-  { id: 'flow-out', direction: 'out', defaultPosition: 'right', label: 'Flow Out', color: '#22c55e' },
-  { id: 'parent', direction: 'parent', defaultPosition: 'top', label: 'Parent', color: '#f59e0b' },
-  { id: 'child', direction: 'child', defaultPosition: 'bottom', label: 'Children', color: '#f59e0b' },
-  { id: 'link', direction: 'bidi', defaultPosition: 'right', label: 'Link', color: '#8b5cf6' },
-];
-
-/**
- * Valid connection pairings between port directions
- * [source direction, target direction]
- */
-export const VALID_PAIRINGS: [PortDirection, PortDirection][] = [
-  ['out', 'in'],
-  ['child', 'parent'],
-  ['bidi', 'bidi'],
-  // Bidi ports are compatible with flow ports
-  ['bidi', 'in'],
-  ['bidi', 'out'],
-];
-
-/**
- * Check if two port directions can be connected
- */
-export function canConnect(sourceDirection: PortDirection, targetDirection: PortDirection): boolean {
-  // Ordered pairing: source -> target
-  return VALID_PAIRINGS.some(([src, tgt]) => src === sourceDirection && tgt === targetDirection);
-}
-
-/**
- * Get the color for a port direction
- */
-export function getPortColor(direction: PortDirection): string {
-  switch (direction) {
-    case 'in': return '#3b82f6';    // Blue
-    case 'out': return '#22c55e';   // Green
-    case 'parent': return '#f59e0b'; // Amber
-    case 'child': return '#f59e0b';  // Amber
-    case 'bidi': return '#8b5cf6';   // Purple
-    default: return '#6b7280';       // Gray
-  }
+export function getPortColor(portType: string): string {
+  return portRegistry.getColor(portType);
 }
 
 /**
@@ -62,8 +22,8 @@ export function getPortColor(direction: PortDirection): string {
  * Provides backwards compatibility with existing canvas data
  */
 export const DEFAULT_PORTS: PortConfig[] = [
-  { id: 'flow-in', direction: 'in', position: 'left', offset: 50, label: 'Flow In' },
-  { id: 'flow-out', direction: 'out', position: 'right', offset: 50, label: 'Flow Out' },
+  { id: 'flow-in', portType: 'flow-in', position: 'left', offset: 50, label: 'Flow In' },
+  { id: 'flow-out', portType: 'flow-out', position: 'right', offset: 50, label: 'Flow Out' },
 ];
 
 /**
@@ -77,38 +37,39 @@ export function getPortsForSchema(ports?: PortConfig[]): PortConfig[] {
 }
 
 /**
- * Create a port config from a built-in port type
+ * Create a port config from a port type
  */
-export function createPortFromType(typeId: string, overrides?: Partial<PortConfig>): PortConfig | null {
-  const portType = BUILT_IN_PORTS.find(p => p.id === typeId);
-  if (!portType) return null;
+export function createPortFromType(portTypeId: string, overrides?: Partial<PortConfig>): PortConfig | null {
+  const portDef = portRegistry.get(portTypeId);
+  if (!portDef) return null;
 
   return {
-    id: portType.id,
-    direction: portType.direction,
-    position: portType.defaultPosition,
+    id: portTypeId,
+    portType: portTypeId,
+    position: portDef.defaultPosition,
     offset: 50,
-    label: portType.label,
+    label: portDef.label,
     ...overrides,
   };
 }
 
 /**
- * Determine React Flow handle type from port direction
+ * Determine React Flow handle type from port type
  * 'target' handles receive connections, 'source' handles initiate them
  */
-export function getHandleType(direction: PortDirection): 'source' | 'target' {
-  switch (direction) {
-    case 'in':
+export function getHandleType(portType: string): 'source' | 'target' {
+  // Flow-in and parent are receivers (targets)
+  // Flow-out, child, and symmetric are initiators (sources)
+  switch (portType) {
+    case 'flow-in':
     case 'parent':
       return 'target';
-    case 'out':
+    case 'flow-out':
     case 'child':
-      return 'source';
-    case 'bidi':
-      // Bidi ports can be both - we'll use source but allow connections to them
+    case 'symmetric':
       return 'source';
     default:
+      // For unknown port types, default to source
       return 'source';
   }
 }

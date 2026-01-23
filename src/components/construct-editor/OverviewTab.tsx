@@ -1,10 +1,14 @@
 import type { ConstructSchema } from '../../constructs/types';
 
-interface BasicInfoTabProps {
+// Convert string to snake_case while preserving special characters like '#'
+// (e.g., "My Cool Construct" → "my_cool_construct", "API #1" → "api_#1")
+function toSnakeCase(str: string): string {
+  return str.toLowerCase().replace(/\s+/g, '_');
+}
+
+interface OverviewTabProps {
   formData: ConstructSchema;
   errors: Record<string, string>;
-  isReadOnly: boolean;
-  isNew: boolean;
   updateField: (key: keyof ConstructSchema, value: unknown) => void;
 }
 
@@ -14,32 +18,14 @@ const DEFAULT_COLORS = [
   '#06b6d4', '#3b82f6', '#64748b', '#1e293b'
 ];
 
-export default function BasicInfoTab({
+export default function OverviewTab({
   formData,
   errors,
-  isReadOnly,
-  isNew,
   updateField
-}: BasicInfoTabProps) {
+}: OverviewTabProps) {
   return (
     <div className="bg-surface-elevated rounded-lg p-4">
-      <h3 className="m-0 mb-3 text-sm font-semibold text-content-muted uppercase tracking-wide">Basic Information</h3>
-
-      <div className="mb-3">
-        <label className="block mb-1 text-sm font-medium text-content">
-          Type Identifier
-          <span className="block text-[11px] font-normal text-content-muted">Unique ID (e.g., "my_construct")</span>
-        </label>
-        <input
-          type="text"
-          className={`w-full px-2.5 py-2 bg-surface rounded-md text-content text-sm focus:outline-none focus:border-accent transition-colors ${errors.type ? '!border-danger' : ''}`}
-          value={formData.type}
-          onChange={(e) => updateField('type', e.target.value.toLowerCase())}
-          placeholder="my_construct"
-          disabled={isReadOnly || !isNew}
-        />
-        {errors.type && <span className="block mt-1 text-xs text-danger">{errors.type}</span>}
-      </div>
+      <h3 className="m-0 mb-3 text-sm font-semibold text-content-muted uppercase tracking-wide">Overview</h3>
 
       <div className="mb-3">
         <label className="block mb-1 text-sm font-medium text-content">Display Name</label>
@@ -49,8 +35,10 @@ export default function BasicInfoTab({
           value={formData.displayName}
           onChange={(e) => updateField('displayName', e.target.value)}
           placeholder="My Construct"
-          disabled={isReadOnly}
         />
+        {formData.displayName && (
+          <span className="block mt-1 text-[11px] text-content-muted">Type ID: {toSnakeCase(formData.displayName)}</span>
+        )}
         {errors.displayName && <span className="block mt-1 text-xs text-danger">{errors.displayName}</span>}
       </div>
 
@@ -61,10 +49,9 @@ export default function BasicInfoTab({
             <button
               key={color}
               type="button"
-              className={`w-6 h-6 border-2 border-transparent rounded cursor-pointer transition-all hover:scale-110 ${formData.color === color ? 'border-white shadow-[0_0_0_2px_#6366f1]' : ''} ${isReadOnly ? 'cursor-not-allowed opacity-50' : ''}`}
+              className={`w-6 h-6 border-2 border-transparent rounded cursor-pointer transition-all hover:scale-110 ${formData.color === color ? 'border-white shadow-[0_0_0_2px_#6366f1]' : ''}`}
               style={{ backgroundColor: color }}
               onClick={() => updateField('color', color)}
-              disabled={isReadOnly}
             />
           ))}
           <input
@@ -72,7 +59,6 @@ export default function BasicInfoTab({
             className="w-6 h-6 p-0 border-none rounded cursor-pointer"
             value={formData.color}
             onChange={(e) => updateField('color', e.target.value)}
-            disabled={isReadOnly}
           />
         </div>
       </div>
@@ -85,7 +71,6 @@ export default function BasicInfoTab({
           onChange={(e) => updateField('description', e.target.value)}
           placeholder="Describe what this construct represents..."
           rows={4}
-          disabled={isReadOnly}
         />
       </div>
     </div>

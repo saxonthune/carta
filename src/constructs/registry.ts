@@ -10,7 +10,6 @@ import type { ConstructSchema } from './types';
 class ConstructRegistry {
   private static instance: ConstructRegistry;
   private schemas: Map<string, ConstructSchema> = new Map();
-  private userSchemaTypes: Set<string> = new Set();
 
   private constructor() {}
 
@@ -22,27 +21,18 @@ class ConstructRegistry {
   }
 
   /**
-   * Register a built-in schema
+   * Register a schema (all schemas are equal - no built-in distinction)
    */
   registerSchema(schema: ConstructSchema): void {
-    this.schemas.set(schema.type, { ...schema, isBuiltIn: true });
+    this.schemas.set(schema.type, schema);
   }
 
   /**
-   * Register a user-defined schema
+   * Remove a schema
    */
-  registerUserSchema(schema: ConstructSchema): void {
-    this.schemas.set(schema.type, { ...schema, isBuiltIn: false });
-    this.userSchemaTypes.add(schema.type);
-  }
-
-  /**
-   * Remove a user-defined schema
-   */
-  removeUserSchema(type: string): boolean {
-    if (this.userSchemaTypes.has(type)) {
+  removeSchema(type: string): boolean {
+    if (this.schemas.has(type)) {
       this.schemas.delete(type);
-      this.userSchemaTypes.delete(type);
       return true;
     }
     return false;
@@ -63,32 +53,16 @@ class ConstructRegistry {
   }
 
   /**
-   * Get only user-defined schemas
+   * Export all schemas as JSON string
    */
-  getUserSchemas(): ConstructSchema[] {
-    return Array.from(this.userSchemaTypes)
-      .map(type => this.schemas.get(type))
-      .filter((s): s is ConstructSchema => s !== undefined);
+  exportSchemas(): string {
+    return JSON.stringify(this.getAllSchemas(), null, 2);
   }
 
   /**
-   * Get only built-in schemas
+   * Import schemas from JSON string
    */
-  getBuiltInSchemas(): ConstructSchema[] {
-    return this.getAllSchemas().filter(s => s.isBuiltIn);
-  }
-
-  /**
-   * Export user schemas as JSON string
-   */
-  exportUserSchemas(): string {
-    return JSON.stringify(this.getUserSchemas(), null, 2);
-  }
-
-  /**
-   * Import user schemas from JSON string
-   */
-  importUserSchemas(json: string): { success: boolean; count: number; errors: string[] } {
+  importSchemas(json: string): { success: boolean; count: number; errors: string[] } {
     const errors: string[] = [];
     let count = 0;
 
@@ -101,7 +75,7 @@ class ConstructRegistry {
 
       for (const schema of schemas) {
         if (this.validateSchema(schema)) {
-          this.registerUserSchema(schema);
+          this.registerSchema(schema);
           count++;
         } else {
           errors.push(`Invalid schema: ${schema.type || 'unknown'}`);
@@ -139,30 +113,27 @@ class ConstructRegistry {
   }
 
   /**
-   * Clear all user schemas (for testing/reset)
+   * Clear all schemas (for reset)
    */
-  clearUserSchemas(): void {
-    for (const type of this.userSchemaTypes) {
-      this.schemas.delete(type);
-    }
-    this.userSchemaTypes.clear();
+  clearAllSchemas(): void {
+    this.schemas.clear();
   }
 
   /**
-   * Replace all user schemas - clears existing and imports new ones
-   * Used when importing a .carta project file
+   * Replace all schemas
+   * Used when importing a .carta project file or restoring defaults
    */
-  replaceUserSchemas(schemas: ConstructSchema[]): { success: boolean; count: number; errors: string[] } {
+  replaceSchemas(schemas: ConstructSchema[]): { success: boolean; count: number; errors: string[] } {
     const errors: string[] = [];
     let count = 0;
 
-    // Clear existing user schemas
-    this.clearUserSchemas();
+    // Clear existing schemas
+    this.clearAllSchemas();
 
     // Import new schemas
     for (const schema of schemas) {
       if (this.validateSchema(schema)) {
-        this.registerUserSchema(schema);
+        this.registerSchema(schema);
         count++;
       } else {
         errors.push(`Invalid schema: ${(schema as { type?: string })?.type || 'unknown'}`);

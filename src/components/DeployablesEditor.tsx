@@ -1,13 +1,17 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { deployableRegistry } from '../constructs/deployables';
+import { useDirtyStateGuard } from '../hooks/useDirtyStateGuard';
+import ConfirmationModal from './ui/ConfirmationModal';
 import type { Deployable } from '../constructs/types';
 
 interface DeployablesEditorProps {
   onBack?: () => void;
   onDeployablesChange?: () => void;
+  onDirtyChange?: (isDirty: boolean) => void;
 }
 
-export default function DeployablesEditor({ onBack, onDeployablesChange }: DeployablesEditorProps) {
+const DeployablesEditor = forwardRef<{ save: () => void }, DeployablesEditorProps>(
+  function DeployablesEditor({ onBack, onDeployablesChange, onDirtyChange }, ref) {
   const [deployables, setDeployables] = useState<Deployable[]>(() => deployableRegistry.getAll());
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isCreatingNew, setIsCreatingNew] = useState(false);
@@ -22,29 +26,6 @@ export default function DeployablesEditor({ onBack, onDeployablesChange }: Deplo
   }, [onDeployablesChange]);
 
   const selectedDeployable = selectedId ? deployableRegistry.get(selectedId) : null;
-
-  // Sync form state when selection changes
-  useEffect(() => {
-    if (selectedDeployable) {
-      setEditName(selectedDeployable.name);
-      setEditDescription(selectedDeployable.description);
-    } else if (isCreatingNew) {
-      setEditName('');
-      setEditDescription('');
-    }
-  }, [selectedDeployable, isCreatingNew]);
-
-  const handleSelectDeployable = (id: string) => {
-    setSelectedId(id);
-    setIsCreatingNew(false);
-  };
-
-  const handleAddNew = () => {
-    setSelectedId(null);
-    setIsCreatingNew(true);
-    setEditName('');
-    setEditDescription('');
-  };
 
   const handleSave = useCallback(() => {
     if (!editName.trim()) return;
@@ -63,9 +44,78 @@ export default function DeployablesEditor({ onBack, onDeployablesChange }: Deplo
     }
   }, [editName, editDescription, isCreatingNew, selectedId, refreshDeployables]);
 
+  const handleSwitch = useCallback((pending: string) => {
+    if (pending === '__new__') {
+      setSelectedId(null);
+      setIsCreatingNew(true);
+      setEditName('');
+      setEditDescription('');
+    } else {
+      setSelectedId(pending);
+      setIsCreatingNew(false);
+    }
+  }, []);
+
+  const {
+    isDirty,
+    setIsDirty,
+    showConfirmModal,
+    guardedSelect,
+    confirmSave,
+    confirmDiscard,
+    confirmCancel,
+  } = useDirtyStateGuard<string>({
+    onSave: handleSave,
+    onSwitch: handleSwitch,
+  });
+
+  // Check if form has unsaved changes
+  useEffect(() => {
+    if (isCreatingNew) {
+      setIsDirty(editName.trim() !== '' || editDescription.trim() !== '');
+    } else if (selectedDeployable) {
+      setIsDirty(
+        editName !== selectedDeployable.name ||
+        editDescription !== selectedDeployable.description
+      );
+    } else {
+      setIsDirty(false);
+    }
+  }, [editName, editDescription, selectedDeployable, isCreatingNew, setIsDirty]);
+
+  // Notify parent when dirty state changes
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
+
+  // Sync form state when selection changes
+  useEffect(() => {
+    if (selectedDeployable) {
+      setEditName(selectedDeployable.name);
+      setEditDescription(selectedDeployable.description);
+    } else if (isCreatingNew) {
+      setEditName('');
+      setEditDescription('');
+    }
+    setIsDirty(false);
+  }, [selectedDeployable, isCreatingNew, setIsDirty]);
+
+  const handleSelectDeployable = (id: string) => {
+    guardedSelect(id);
+  };
+
+  const handleAddNew = () => {
+    guardedSelect('__new__');
+  };
+
+  // Expose save method via ref for parent (Dock) to trigger from confirmation modal
+  useImperativeHandle(ref, () => ({
+    save: handleSave
+  }), [handleSave]);
+
   const handleDelete = useCallback(() => {
     if (!selectedId) return;
-    
+
     if (confirm('Are you sure you want to delete this deployable? Constructs assigned to it will become unassigned.')) {
       deployableRegistry.remove(selectedId);
       refreshDeployables();
@@ -76,6 +126,7 @@ export default function DeployablesEditor({ onBack, onDeployablesChange }: Deplo
   const handleCancel = () => {
     setSelectedId(null);
     setIsCreatingNew(false);
+    setIsDirty(false);
   };
 
   const isFullScreen = !!onBack;
@@ -194,7 +245,7 @@ export default function DeployablesEditor({ onBack, onDeployablesChange }: Deplo
                 </div>
 
                 {/* Action buttons */}
-                <div className={`flex gap-2 border-t ${isFullScreen ? 'pt-4 mt-2' : 'pt-2 mt-1'}`}>
+                <div className={`flex gap-2 border-t ${isFullScreen ? 'pt-4 mt-2' : 'pt-2 mt-1'} items-center`}>
                   <button
                     className={`bg-accent border-none rounded-md text-white font-medium cursor-pointer hover:bg-accent-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${isFullScreen ? 'px-4 py-2 text-sm' : 'px-3 py-1.5 text-xs'}`}
                     onClick={handleSave}
@@ -202,6 +253,11 @@ export default function DeployablesEditor({ onBack, onDeployablesChange }: Deplo
                   >
                     {isCreatingNew ? 'Create' : 'Save'}
                   </button>
+                  {isDirty && (
+                    <span className={`text-content-muted ${isFullScreen ? 'text-xs' : 'text-[10px]'}`}>
+                      • Unsaved changes
+                    </span>
+                  )}
                   <button
                     className={`bg-transparent rounded-md text-content font-medium cursor-pointer hover:bg-surface-alt transition-colors ${isFullScreen ? 'px-4 py-2 text-sm' : 'px-3 py-1.5 text-xs'}`}
                     onClick={handleCancel}
@@ -226,6 +282,20 @@ export default function DeployablesEditor({ onBack, onDeployablesChange }: Deplo
           )}
         </div>
       </div>
+
+      <ConfirmationModal
+        isOpen={showConfirmModal}
+        message="You have unsaved changes. Do you want to discard them and switch to a different deployable?"
+        onCancel={confirmCancel}
+        onDiscard={confirmDiscard}
+        onSave={confirmSave}
+        saveDisabled={!editName.trim()}
+      />
     </div>
   );
-}
+  }
+);
+
+DeployablesEditor.displayName = 'DeployablesEditor';
+
+export default DeployablesEditor;

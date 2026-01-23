@@ -12,9 +12,8 @@ export function formatJSON(
   _allNodes?: ConstructNodeData[]
 ): string {
   const output = nodes.map((node) => ({
-    id: node.semanticId || `${node.constructType}-${node.name.toLowerCase().replace(/\s+/g, '-')}`,
+    id: node.semanticId,
     type: node.constructType,
-    name: node.name,
     deployableId: node.deployableId || null,
     ...(node.connections && node.connections.length > 0 && { connections: node.connections }),
     ...(node.references && node.references.length > 0 && { references: node.references }),

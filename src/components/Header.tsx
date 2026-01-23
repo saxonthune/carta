@@ -6,6 +6,8 @@ interface HeaderProps {
   onExport: () => void;
   onImport: (file: File) => void;
   onCompile: () => void;
+  onClear?: (mode: 'instances' | 'all') => void;
+  onRestoreDefaultSchemas?: () => void;
 }
 
 const getInitialTheme = (): 'light' | 'dark' | 'warm' => {
@@ -15,7 +17,7 @@ const getInitialTheme = (): 'light' | 'dark' | 'warm' => {
   return prefersDark ? 'dark' : 'light';
 };
 
-export default function Header({ title, onTitleChange, onExport, onImport, onCompile }: HeaderProps) {
+export default function Header({ title, onTitleChange, onExport, onImport, onCompile, onClear, onRestoreDefaultSchemas }: HeaderProps) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState(title);
   const [theme, setTheme] = useState<'light' | 'dark' | 'warm'>(() => {
@@ -24,8 +26,12 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
     return initialTheme;
   });
   const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
+  const [isSettingsMenuOpen, setIsSettingsMenuOpen] = useState(false);
+  const [clearWarningMode, setClearWarningMode] = useState<'menu' | null>(null);
+  const [restoreWarningMode, setRestoreWarningMode] = useState<'menu' | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const themeMenuRef = useRef<HTMLDivElement>(null);
+  const settingsMenuRef = useRef<HTMLDivElement>(null);
 
   // Close theme menu when clicking outside
   useEffect(() => {
@@ -33,13 +39,16 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
       if (themeMenuRef.current && !themeMenuRef.current.contains(event.target as Node)) {
         setIsThemeMenuOpen(false);
       }
+      if (settingsMenuRef.current && !settingsMenuRef.current.contains(event.target as Node)) {
+        setIsSettingsMenuOpen(false);
+      }
     };
 
-    if (isThemeMenuOpen) {
+    if (isThemeMenuOpen || isSettingsMenuOpen) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
-  }, [isThemeMenuOpen]);
+  }, [isThemeMenuOpen, isSettingsMenuOpen]);
 
   const changeTheme = (newTheme: 'light' | 'dark' | 'warm') => {
     setTheme(newTheme);
@@ -118,6 +127,18 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
       onImport(file);
     }
     event.target.value = '';
+  };
+
+  const handleClear = () => {
+    setClearWarningMode('menu');
+    setIsSettingsMenuOpen(false);
+  };
+
+  const confirmClear = (mode: 'instances' | 'all') => {
+    if (onClear) {
+      onClear(mode);
+    }
+    setClearWarningMode(null);
   };
 
   return (
@@ -199,7 +220,138 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
         >
           Compile
         </button>
+        <div className="relative" ref={settingsMenuRef}>
+          <button
+            className="w-9 h-9 flex items-center justify-center rounded-lg cursor-pointer text-content-muted hover:bg-surface-alt hover:text-content transition-colors"
+            onClick={() => setIsSettingsMenuOpen(!isSettingsMenuOpen)}
+            title="Settings"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m5.08-5.08l4.24-4.24" />
+            </svg>
+          </button>
+          {isSettingsMenuOpen && (
+            <div className="absolute right-0 top-full mt-1 bg-surface border border-subtle rounded-lg shadow-lg overflow-hidden z-50 min-w-[200px]">
+              <button
+                className="w-full text-left px-4 py-2.5 text-sm cursor-pointer text-content hover:bg-surface-alt transition-colors border-none bg-surface"
+                onClick={() => setRestoreWarningMode('menu')}
+              >
+                Restore Default Schemas
+              </button>
+              <button
+                className="w-full text-left px-4 py-2.5 text-sm cursor-pointer text-content hover:bg-surface-alt transition-colors border-none bg-surface"
+                onClick={() => handleClear()}
+              >
+                Clear
+              </button>
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Clear Warning Modal */}
+      {clearWarningMode && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1001]" onClick={() => setClearWarningMode(null)}>
+          <div className="bg-surface rounded-xl w-[90%] max-w-[400px] flex flex-col shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-subtle">
+              <div>
+                <h2 className="m-0 text-lg text-content font-semibold">Clear workspace</h2>
+              </div>
+              <button
+                className="w-8 h-8 border-none rounded-md bg-transparent text-content-subtle text-2xl cursor-pointer flex items-center justify-center hover:bg-surface-alt hover:text-content"
+                onClick={() => setClearWarningMode(null)}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-5">
+              <p className="text-content text-sm mb-4">
+                Choose what to clear:
+              </p>
+              <ul className="text-content-muted text-xs space-y-2 ml-4">
+                <li className="list-disc"><strong>Clear Instances:</strong> Delete all instances and connections. Custom schemas and deployables preserved.</li>
+                <li className="list-disc"><strong>Clear Everything:</strong> Delete all instances, schemas, and deployables. This cannot be undone.</li>
+              </ul>
+            </div>
+
+            {/* Footer */}
+            <div className="flex gap-2 justify-end px-5 py-4 border-t border-subtle">
+              <button
+                className="px-5 py-2.5 rounded-md bg-surface text-content text-sm font-medium cursor-pointer hover:bg-surface-alt transition-colors"
+                onClick={() => setClearWarningMode(null)}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-5 py-2.5 border-none rounded-md bg-amber-500 text-white text-sm font-medium cursor-pointer hover:bg-amber-600 transition-colors"
+                onClick={() => confirmClear('instances')}
+              >
+                Clear Instances
+              </button>
+              <button
+                className="px-5 py-2.5 border-none rounded-md bg-red-500 text-white text-sm font-medium cursor-pointer hover:bg-red-600 transition-colors"
+                onClick={() => confirmClear('all')}
+              >
+                Clear Everything
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Restore Default Schemas Modal */}
+      {restoreWarningMode && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1001]" onClick={() => setRestoreWarningMode(null)}>
+          <div className="bg-surface rounded-xl w-[90%] max-w-[400px] flex flex-col shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-subtle">
+              <div>
+                <h2 className="m-0 text-lg text-content font-semibold">Restore default schemas</h2>
+              </div>
+              <button
+                className="w-8 h-8 border-none rounded-md bg-transparent text-content-subtle text-2xl cursor-pointer flex items-center justify-center hover:bg-surface-alt hover:text-content"
+                onClick={() => setRestoreWarningMode(null)}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-5">
+              <p className="text-content text-sm mb-2">
+                This will add any missing default schemas to your workspace.
+              </p>
+              <p className="text-content-muted text-xs">
+                Existing schemas with matching types will be overwritten. This action cannot be undone.
+              </p>
+            </div>
+
+            {/* Footer */}
+            <div className="flex gap-2 justify-end px-5 py-4 border-t border-subtle">
+              <button
+                className="px-5 py-2.5 rounded-md bg-surface text-content text-sm font-medium cursor-pointer hover:bg-surface-alt transition-colors"
+                onClick={() => setRestoreWarningMode(null)}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-5 py-2.5 border-none rounded-md bg-indigo-500 text-white text-sm font-medium cursor-pointer hover:bg-indigo-600 transition-colors"
+                onClick={() => {
+                  onRestoreDefaultSchemas?.();
+                  setRestoreWarningMode(null);
+                  setIsSettingsMenuOpen(false);
+                }}
+              >
+                Restore
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 }

@@ -15,11 +15,13 @@ M2 (Designer-fixed)     M1 (User-defined)           M0 (Instances)
 DataKind: string,       Registries:                 ConstructInstance:
   number, boolean,        - Constructs                - type → Construct
   date, enum              - Deployables               - deployable? → Deployable
-                                                      - values: {field → value}
-PortDirection: in,      Construct:                    - connections[]
-  out, parent,            - name, description
-  child, bidi             - fields[]
-                          - ports[]
+                          - Ports                     - semanticId (required)
+PortDefinition:                                       - values: {field → value}
+  flow-in, flow-out,   Construct:                    - connections[]
+  parent, child,         - displayName, description
+  symmetric              - displayField
+                         - fields[]
+                         - ports[]
 ```
 
 ## M2: Fixed Primitives
@@ -49,8 +51,27 @@ Presentation hints for string fields (optional):
 | `url` | URL input |
 | `color` | Color picker |
 
-### PortDirection
-See `ports-and-connections.mdc` for details.
+### PortDefinition
+Fixed port types with compatibility rules (see `ports-and-connections.mdc`):
+
+| Port Type | Compatible With | Default Position |
+|-----------|-----------------|------------------|
+| `flow-in` | flow-out, symmetric | left |
+| `flow-out` | flow-in, symmetric | right |
+| `parent` | child, symmetric | top |
+| `child` | parent, symmetric | bottom |
+| `symmetric` | any | right |
+
+```typescript
+interface PortDefinition {
+  id: string;              // 'flow-in', 'flow-out', etc.
+  label: string;
+  description: string;
+  compatibleWith?: string[]; // undefined = any port
+  defaultPosition: PortPosition;
+  color: string;
+}
+```
 
 ## M1: User-Defined Schemas
 
@@ -62,9 +83,26 @@ interface ConstructSchema {
   displayName: string;       // Human-readable name
   color: string;             // Visual accent
   description?: string;      // AI compilation context
+  displayField?: string;     // Field to use as node title
   fields: FieldDefinition[]; // Data fields
   ports?: PortConfig[];      // Connection points
   compilation: CompilationConfig;
+}
+```
+
+### displayField
+Specifies which field's value to show as the node title. If not set or empty, falls back to `semanticId`.
+
+```typescript
+// Controller schema with displayField
+{
+  type: 'controller',
+  displayName: 'REST Controller',
+  displayField: 'route',  // Node title shows the route value
+  fields: [
+    { name: 'route', type: 'string', ... },
+    ...
+  ]
 }
 ```
 
@@ -83,6 +121,22 @@ interface FieldDefinition {
 }
 ```
 
+### PortConfig
+
+```typescript
+interface PortConfig {
+  id: string;                    // Unique within construct
+  portType: string;              // References PortDefinition.id
+  position: PortPosition;
+  offset: number;
+  label: string;
+  description?: string;
+  suggestedTypes?: string[];
+  suggestedPorts?: string[];
+  dataType?: string;
+}
+```
+
 ## M0: Construct Instances
 
 Instances live on the React Flow canvas as nodes:
@@ -90,13 +144,17 @@ Instances live on the React Flow canvas as nodes:
 ```typescript
 interface ConstructNodeData {
   constructType: string;     // References schema.type
-  name: string;              // User-given instance name
-  semanticId?: string;       // AI-friendly identifier
+  semanticId: string;        // Required, primary identifier
   values: ConstructValues;   // Field values
   connections?: ConnectionValue[];
   deployableId?: string | null;
+  isExpanded?: boolean;
 }
 ```
+
+**Note:** There is no `name` field. Node titles are derived using:
+1. `displayField` value from schema (if set and has value)
+2. `semanticId` as fallback
 
 ## Design Principles
 
@@ -125,19 +183,23 @@ DisplayHint only affects rendering, not data storage. A `string` field with `dis
 ### 4. Description for AI Context
 The `description` field on both schemas and field definitions provides context for AI compilation. Use it to explain what the field represents semantically.
 
+### 5. Semantic ID is Primary Identifier
+`semanticId` is always required and serves as the primary identifier for constructs. Generated automatically with pattern `{type}-{timestamp}{random}`.
+
 ## Child Construct Patterns
 
 ### API Parameter (child of Controller)
 ```typescript
 {
   type: 'api-parameter',
+  displayField: 'name',
   fields: [
     { name: 'name', type: 'string' },
     { name: 'location', type: 'enum', options: ['path', 'query', 'header', 'body'] },
     { name: 'dataType', type: 'enum', options: ['string', 'number', 'boolean', 'object', 'array'] },
     { name: 'required', type: 'boolean' },
   ],
-  ports: [{ id: 'parent', direction: 'parent', ... }],
+  ports: [{ id: 'parent', portType: 'parent', ... }],
 }
 ```
 
@@ -145,13 +207,14 @@ The `description` field on both schemas and field definitions provides context f
 ```typescript
 {
   type: 'column',
+  displayField: 'name',
   fields: [
     { name: 'name', type: 'string' },
     { name: 'dataType', type: 'enum', options: ['VARCHAR', 'INT', ...] },
     { name: 'primaryKey', type: 'boolean' },
     { name: 'nullable', type: 'boolean' },
   ],
-  ports: [{ id: 'parent', direction: 'parent', ... }],
+  ports: [{ id: 'parent', portType: 'parent', ... }],
 }
 ```
 
@@ -186,3 +249,36 @@ interface Registry<T extends RegistryItem> {
 ```
 
 See `registry-base.ts` for the `BaseRegistry` implementation with localStorage persistence.
+
+## Port Registry
+
+The `PortRegistry` manages port type definitions and validates connections:
+
+```typescript
+// src/constructs/portRegistry.ts
+export class PortRegistry {
+  get(id: string): PortDefinition | undefined;
+  getAll(): PortDefinition[];
+  canConnect(sourcePortType: string, targetPortType: string): boolean;
+  getColor(portType: string): string;
+}
+
+export const portRegistry = new PortRegistry();
+```
+
+## Display Utilities
+
+Node titles are computed via helper function:
+
+```typescript
+// src/utils/displayUtils.ts
+export function getDisplayName(
+  data: ConstructNodeData,
+  schema: ConstructSchema | undefined
+): string {
+  if (schema?.displayField && data.values[schema.displayField]) {
+    return String(data.values[schema.displayField]);
+  }
+  return data.semanticId;
+}
+```

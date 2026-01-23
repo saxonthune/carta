@@ -18,7 +18,7 @@ import {
 } from '@xyflow/react';
 import CustomNode from '../CustomNode';
 import ConstructNode from './ConstructNode';
-import ContextMenu, { type ContextMenuType } from '../ContextMenu';
+import ContextMenu, { type ContextMenuType, type RelatedConstructOption } from '../ContextMenu';
 import NodeControls from '../NodeControls';
 import AddConstructMenu from './AddConstructMenu';
 import DeployableBackground from './DeployableBackground';
@@ -89,10 +89,12 @@ export interface MapProps {
   title: string;
   onNodesEdgesChange: (nodes: Node[], edges: Edge[]) => void;
   onSelectionChange?: (selectedNodes: Node[]) => void;
+  onNodeDoubleClick?: (nodeId: string) => void;
   nodeUpdateRef?: React.MutableRefObject<((nodeId: string, updates: Partial<ConstructNodeData>) => void) | null>;
+  importRef?: React.MutableRefObject<((nodes: Node[], edges: Edge[]) => void) | null>;
 }
 
-export default function Map({ deployables, onDeployablesChange, title, onNodesEdgesChange, onSelectionChange, nodeUpdateRef }: MapProps) {
+export default function Map({ deployables, onDeployablesChange, title, onNodesEdgesChange, onSelectionChange, onNodeDoubleClick, nodeUpdateRef, importRef }: MapProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
@@ -109,13 +111,34 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
   // Expose node update function via ref
   const handleNodeUpdate = useCallback(
     (nodeId: string, updates: Partial<ConstructNodeData>) => {
-      setNodes((nds) =>
-        nds.map((node) =>
-          node.id === nodeId
-            ? { ...node, data: { ...node.data, ...updates } }
-            : node
-        )
-      );
+      setNodes((nds) => {
+        // If semantic ID is changing, we need to update all connections that reference it
+        const oldSemanticId = updates.semanticId
+          ? (nds.find(n => n.id === nodeId)?.data as ConstructNodeData | undefined)?.semanticId
+          : undefined;
+
+        return nds.map((node) => {
+          if (node.id === nodeId) {
+            // Update the target node
+            return { ...node, data: { ...node.data, ...updates } };
+          } else if (oldSemanticId && updates.semanticId && node.type === 'construct') {
+            // Update connections in other nodes that reference the old semantic ID
+            const data = node.data as ConstructNodeData;
+            if (data.connections && data.connections.length > 0) {
+              const updatedConnections = data.connections.map(conn =>
+                conn.targetSemanticId === oldSemanticId
+                  ? { ...conn, targetSemanticId: updates.semanticId! }
+                  : conn
+              );
+              // Only update if something changed
+              if (updatedConnections.some((c, i) => c !== data.connections![i])) {
+                return { ...node, data: { ...data, connections: updatedConnections } };
+              }
+            }
+          }
+          return node;
+        });
+      });
     },
     [setNodes]
   );
@@ -126,6 +149,58 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
       nodeUpdateRef.current = handleNodeUpdate;
     }
   }, [nodeUpdateRef, handleNodeUpdate]);
+
+  // Import nodes and edges with ID remapping
+  const handleImportNodes = useCallback(
+    (importedNodes: Node[], importedEdges: Edge[]) => {
+      takeSnapshot();
+
+      // Build a mapping from old node IDs to new ones
+      const idMap: Record<string, string> = {};
+      const newNodes: Node[] = [];
+
+      // Create new IDs for imported nodes
+      importedNodes.forEach((node) => {
+        const newId = String(nodeId++);
+        idMap[node.id] = newId;
+
+        // Remap the node's position and data, preserving semanticId and connections
+        const newNode: Node = {
+          ...node,
+          id: newId,
+          position: {
+            x: (node.position?.x || 0) + 50, // Slight offset to avoid overlap
+            y: (node.position?.y || 0) + 50,
+          },
+        };
+
+        newNodes.push(newNode);
+      });
+
+      // Remap edges to use new node IDs
+      const newEdges: Edge[] = importedEdges.map((edge) => ({
+        ...edge,
+        id: `edge-${Math.random()}`, // Generate new edge IDs
+        source: idMap[edge.source] || edge.source,
+        target: idMap[edge.target] || edge.target,
+      }));
+
+      // Update nodeId in localStorage
+      setNodeId(nodeId);
+
+      // Merge with existing nodes and edges
+      setNodes((nds) => [...nds, ...newNodes]);
+      setEdges((eds) => [...eds, ...newEdges]);
+    },
+    [takeSnapshot, setNodes, setEdges]
+  );
+
+  // Set the import ref so parent can call this function
+  useEffect(() => {
+    if (importRef) {
+      importRef.current = handleImportNodes;
+    }
+  }, [importRef, handleImportNodes]);
 
   useEffect(() => {
     const saveState = () => {
@@ -153,7 +228,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     const node = nodes.find(n => n.id === nodeId);
     if (!node || node.type !== 'construct') return null;
     const data = node.data as ConstructNodeData;
-    return data.semanticId || generateSemanticId(data.constructType, data.name);
+    return data.semanticId;
   }, [nodes]);
 
   const isValidConnection = useCallback((connection: Edge | Connection): boolean => {
@@ -186,8 +261,8 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     const targetPort = targetPorts.find((p) => p.id === targetHandle);
     if (!sourcePort || !targetPort) return false;
 
-    // Rules 3, 4, 5: direction pairings (child->parent, out->in, bidi->bidi)
-    return canConnect(sourcePort.direction, targetPort.direction);
+    // Validate port type compatibility via registry
+    return canConnect(sourcePort.portType, targetPort.portType);
   }, [getNodes]);
 
   const onConnect: OnConnect = useCallback(
@@ -286,8 +361,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
         }
       });
 
-      const nodeName = `${schema.displayName} ${id}`;
-      const semanticId = generateSemanticId(schema.type, nodeName);
+      const semanticId = generateSemanticId(schema.type);
 
       const newNode: Node = {
         id,
@@ -295,7 +369,6 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
         position,
         data: {
           constructType: schema.type,
-          name: nodeName,
           semanticId,
           values,
           isExpanded: true,
@@ -304,6 +377,115 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
       setNodes((nds) => [...nds, newNode]);
     },
     [setNodes, screenToFlowPosition, takeSnapshot]
+  );
+
+  // Get related constructs options for a node
+  const getRelatedConstructsForNode = useCallback(
+    (nodeIdToCheck: string): RelatedConstructOption[] => {
+      const node = nodes.find(n => n.id === nodeIdToCheck);
+      if (!node || node.type !== 'construct') return [];
+
+      const data = node.data as ConstructNodeData;
+      const schema = registry.getSchema(data.constructType);
+      if (!schema || !schema.suggestedRelated || schema.suggestedRelated.length === 0) return [];
+
+      const result: RelatedConstructOption[] = [];
+      for (const related of schema.suggestedRelated) {
+        const relatedSchema = registry.getSchema(related.constructType);
+        if (relatedSchema) {
+          result.push({
+            constructType: related.constructType,
+            displayName: relatedSchema.displayName,
+            color: relatedSchema.color,
+            fromPortId: related.fromPortId,
+            toPortId: related.toPortId,
+            label: related.label,
+          });
+        }
+      }
+      return result;
+    },
+    [nodes]
+  );
+
+  // Add a related construct near the source node and optionally connect them
+  const addRelatedConstruct = useCallback(
+    (sourceNodeId: string, constructType: string, fromPortId?: string, toPortId?: string) => {
+      const sourceNode = nodes.find(n => n.id === sourceNodeId);
+      if (!sourceNode) return;
+
+      const schema = registry.getSchema(constructType);
+      if (!schema) return;
+
+      takeSnapshot();
+
+      // Position the new node to the right of the source node
+      const newPosition = {
+        x: sourceNode.position.x + 320,
+        y: sourceNode.position.y,
+      };
+
+      const id = String(nodeId++);
+      const values: ConstructValues = {};
+      schema.fields.forEach((field) => {
+        if (field.default !== undefined) {
+          values[field.name] = field.default;
+        }
+      });
+
+      const semanticId = generateSemanticId(schema.type);
+
+      const newNode: Node = {
+        id,
+        type: 'construct',
+        position: newPosition,
+        data: {
+          constructType: schema.type,
+          semanticId,
+          values,
+          isExpanded: true,
+        },
+      };
+
+      // If both ports are specified, create connection using explicit pair
+      if (fromPortId && toPortId) {
+        // Create the connection on the source node
+        const newConnection: ConnectionValue = {
+          portId: fromPortId,
+          targetSemanticId: semanticId,
+          targetPortId: toPortId,
+        };
+
+        // Also create an edge for visual rendering
+        setNodes((nds) => [
+          ...nds.map(n => {
+            if (n.id === sourceNodeId && n.type === 'construct') {
+              const data = n.data as ConstructNodeData;
+              return {
+                ...n,
+                data: {
+                  ...data,
+                  connections: [...(data.connections || []), newConnection],
+                },
+              };
+            }
+            return n;
+          }),
+          newNode,
+        ]);
+        setEdges((eds) => addEdge({
+          source: sourceNodeId,
+          target: id,
+          sourceHandle: fromPortId,
+          targetHandle: toPortId,
+        }, eds));
+        return;
+      }
+
+      // If no ports specified, just add the node
+      setNodes((nds) => [...nds, newNode]);
+    },
+    [nodes, setNodes, setEdges, takeSnapshot]
   );
 
   const addNode = useCallback(
@@ -355,7 +537,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
   );
 
   const renameNode = useCallback(
-    (nodeIdToRename: string, newName: string) => {
+    (nodeIdToRename: string, newSemanticId: string) => {
       setNodes((nds) =>
         nds.map((n) => {
           if (n.id !== nodeIdToRename) return n;
@@ -363,12 +545,12 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
           if (n.type === 'construct') {
             return {
               ...n,
-              data: { ...n.data, name: newName },
+              data: { ...n.data, semanticId: newSemanticId },
             };
           }
           return {
             ...n,
-            data: { ...n.data, label: newName },
+            data: { ...n.data, label: newSemanticId },
           };
         })
       );
@@ -454,11 +636,10 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
           y: basePosition.y + offsetY,
         };
 
-        const originalName = clipNode.data.name || clipNode.data.label || 'Node';
-        const newName = clipNode.data.name ? `${originalName} (copy)` : undefined;
-        const semanticId = (clipNode.data.constructType && typeof clipNode.data.constructType === 'string' && newName)
-          ? generateSemanticId(clipNode.data.constructType, newName)
-          : undefined;
+        // Generate new semantic ID for the copy
+        const newSemanticId = (clipNode.data.constructType && typeof clipNode.data.constructType === 'string')
+          ? generateSemanticId(clipNode.data.constructType)
+          : `copy-${newId}`;
 
         return {
           ...clipNode,
@@ -467,9 +648,8 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
           selected: false,
           data: {
             ...clipNode.data,
-            name: newName,
-            label: clipNode.data.label ? `${originalName} (copy)` : undefined,
-            semanticId,
+            label: clipNode.data.label ? `${clipNode.data.label} (copy)` : undefined,
+            semanticId: newSemanticId,
           },
         };
       });
@@ -496,7 +676,14 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     [onSelectionChange]
   );
 
-  // Update parent with fresh node data whenever nodes change (to keep InstanceViewer in sync)
+  const handleNodeDoubleClick = useCallback(
+    (_event: React.MouseEvent, node: Node) => {
+      onNodeDoubleClick?.(node.id);
+    },
+    [onNodeDoubleClick]
+  );
+
+  // Update parent with fresh node data whenever nodes change (to keep InstanceEditor in sync)
   useEffect(() => {
     if (selectedNodeIds.length > 0) {
       const selectedNodes = nodes.filter((n) => selectedNodeIds.includes(n.id));
@@ -608,7 +795,6 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
       onRename: (newName: string) => renameNode(node.id, newName),
       onValuesChange: (values: ConstructValues) => updateNodeValues(node.id, values),
       onToggleExpand: () => toggleNodeExpand(node.id),
-      onDoubleClick: () => setRenamingNodeId(node.id),
       deployables,
       onDeployableChange: (deployableId: string | null) => updateNodeDeployable(node.id, deployableId),
     },
@@ -625,14 +811,16 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
         onConnect={onConnect}
         isValidConnection={isValidConnection}
         onSelectionChange={handleSelectionChange}
+        onNodeDoubleClick={handleNodeDoubleClick}
         onPaneContextMenu={onPaneContextMenu}
         onNodeContextMenu={onNodeContextMenu}
         onEdgeContextMenu={onEdgeContextMenu}
         onPaneClick={onPaneClick}
         nodeTypes={nodeTypes}
         defaultEdgeOptions={defaultEdgeOptions}
+        panOnDrag={[1, 2]}
         selectionOnDrag
-        selectionMode={SelectionMode.Partial}
+        selectionMode={SelectionMode.Full}
         fitView
       >
         <Controls position="top-left">
@@ -687,12 +875,14 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
           nodeId={contextMenu.nodeId}
           edgeId={contextMenu.edgeId}
           selectedCount={selectedNodeIds.length}
+          relatedConstructs={contextMenu.nodeId ? getRelatedConstructsForNode(contextMenu.nodeId) : undefined}
           onAddNode={addNode}
           onDeleteNode={deleteNode}
           onDeleteSelected={deleteSelectedNodes}
           onDeleteEdge={deleteEdge}
           onCopyNodes={copyNodes}
           onPasteNodes={pasteNodes}
+          onAddRelatedConstruct={contextMenu.nodeId ? (constructType, fromPortId, toPortId) => addRelatedConstruct(contextMenu.nodeId!, constructType, fromPortId, toPortId) : undefined}
           canPaste={clipboard.length > 0}
           onClose={closeContextMenu}
         />
