@@ -62,7 +62,7 @@ function InstanceItem({ instance, analysis, selected, onToggle }: { instance: An
             style={{ backgroundColor: schema.color }}
           />
         )}
-        <span className="text-content truncate">{nodeData.name}</span>
+        <span className="text-content truncate">{nodeData.semanticId}</span>
         <span className="text-content-muted text-xs">({nodeData.constructType})</span>
       </div>
       {instance.status === 'conflict' && (

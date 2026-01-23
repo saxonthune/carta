@@ -78,9 +78,9 @@ function App() {
     const { nodes, edges } = nodesEdgesRef.current;
     // Ensure all nodes have semanticIds before export
     const nodesWithSemanticIds = nodes.map(node => {
-      const nodeData = node.data as ConstructValues & { constructType?: string; name?: string; semanticId?: string };
+      const nodeData = node.data as ConstructValues & { constructType?: string; semanticId?: string };
       if (!nodeData.semanticId) {
-        const semanticId = generateSemanticId(nodeData.constructType || 'unknown', nodeData.name || 'unnamed');
+        const semanticId = generateSemanticId(nodeData.constructType || 'unknown');
         return {
           ...node,
           data: {

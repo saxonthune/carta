@@ -11,7 +11,6 @@ export default function PreviewTab({ formData }: PreviewTabProps) {
   // Mock node data for preview
   const mockNodeData: ConstructNodeData = useMemo(() => ({
     constructType: formData.type || 'preview',
-    name: 'Sample Instance',
     semanticId: `${formData.type || 'preview'}-sample`,
     values: formData.fields.reduce((acc, f) => ({ ...acc, [f.name]: f.default || '' }), {}),
     connections: [],
@@ -22,10 +21,9 @@ export default function PreviewTab({ formData }: PreviewTabProps) {
   // Generate compiled preview
   const compiledPreview = useMemo(() => {
     if (!formData.type) return 'No type defined yet';
-    
+
     const sampleData = {
-      id: 'sample-1',
-      name: 'Sample Instance',
+      id: `${formData.type}-sample`,
       type: formData.type,
       ...formData.fields.reduce((acc, f) => ({ ...acc, [f.name]: f.default || `sample_${f.name}` }), {}),
     };
@@ -34,7 +32,7 @@ export default function PreviewTab({ formData }: PreviewTabProps) {
       Object.assign(sampleData, {
         ports: formData.ports.map(p => ({
           id: p.id,
-          direction: p.direction,
+          portType: p.portType,
           label: p.label,
         })),
       });

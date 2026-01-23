@@ -12,10 +12,11 @@ export const builtInSchemas: ConstructSchema[] = [
     type: 'controller',
     displayName: 'REST Controller',
     color: '#6366f1',
+    displayField: 'route',
     ports: [
-      { id: 'flow-in', direction: 'in', position: 'left', offset: 50, label: 'Flow In', description: 'Incoming request flow from upstream' },
-      { id: 'flow-out', direction: 'out', position: 'right', offset: 50, label: 'Flow Out', description: 'Downstream flow to services or handlers' },
-      { id: 'parent', direction: 'parent', position: 'bottom', offset: 50, label: 'Models', description: 'Owns API request/response models' },
+      { id: 'flow-in', portType: 'flow-in', position: 'left', offset: 50, label: 'Flow In', description: 'Incoming request flow from upstream' },
+      { id: 'flow-out', portType: 'flow-out', position: 'right', offset: 50, label: 'Flow Out', description: 'Downstream flow to services or handlers' },
+      { id: 'parent', portType: 'parent', position: 'bottom', offset: 50, label: 'Models', description: 'Owns API request/response models' },
     ],
     fields: [
       {
@@ -65,9 +66,10 @@ export const builtInSchemas: ConstructSchema[] = [
     type: 'database',
     displayName: 'Database',
     color: '#f59e0b',
+    displayField: 'engine',
     ports: [
-      { id: 'child', direction: 'child', position: 'bottom', offset: 50, label: 'Tables', description: 'Tables that belong to this database' },
-      { id: 'link-in', direction: 'in', position: 'left', offset: 50, label: 'Referenced By', description: 'External constructs referencing this database' },
+      { id: 'child', portType: 'child', position: 'bottom', offset: 50, label: 'Tables', description: 'Tables that belong to this database' },
+      { id: 'link-in', portType: 'flow-in', position: 'left', offset: 50, label: 'Referenced By', description: 'External constructs referencing this database' },
     ],
     fields: [
       {
@@ -109,13 +111,20 @@ export const builtInSchemas: ConstructSchema[] = [
     type: 'table',
     displayName: 'Table',
     color: '#8b5cf6',
+    displayField: 'tableName',
     ports: [
-      { id: 'parent', direction: 'parent', position: 'top', offset: 50, label: 'Database', description: 'Database that owns this table' },
-      { id: 'link-in', direction: 'in', position: 'left', offset: 50, label: 'Referenced By', description: 'Tables or constructs that reference this table' },
-      { id: 'link-out', direction: 'out', position: 'right', offset: 50, label: 'References', description: 'Tables or constructs this table references' },
-      { id: 'child', direction: 'child', position: 'bottom', offset: 75, label: 'Attributes & Constraints', description: 'Attributes and constraints that belong to this table' },
+      { id: 'parent', portType: 'parent', position: 'top', offset: 50, label: 'Database', description: 'Database that owns this table' },
+      { id: 'link-in', portType: 'flow-in', position: 'left', offset: 50, label: 'Referenced By', description: 'Tables or constructs that reference this table' },
+      { id: 'link-out', portType: 'flow-out', position: 'right', offset: 50, label: 'References', description: 'Tables or constructs this table references' },
+      { id: 'child', portType: 'child', position: 'bottom', offset: 75, label: 'Attributes & Constraints', description: 'Attributes and constraints that belong to this table' },
     ],
     fields: [
+      {
+        name: 'tableName',
+        label: 'Table Name',
+        type: 'string',
+        placeholder: 'e.g., users, orders',
+      },
       {
         name: 'columns',
         label: 'Columns',
@@ -160,6 +169,7 @@ export const builtInSchemas: ConstructSchema[] = [
     displayName: 'DB Attribute',
     color: '#8b5cf6',
     description: 'A database table attribute/column',
+    displayField: 'name',
     fields: [
       { name: 'name', label: 'Name', type: 'string' },
       { name: 'dataType', label: 'Type', type: 'enum', options: ['VARCHAR', 'INT', 'BIGINT', 'BOOLEAN', 'DATE', 'TIMESTAMP', 'TEXT', 'JSON'] },
@@ -167,7 +177,7 @@ export const builtInSchemas: ConstructSchema[] = [
       { name: 'nullable', label: 'Nullable', type: 'boolean', default: true },
     ],
     ports: [
-      { id: 'parent', direction: 'parent', position: 'top', offset: 50, label: 'Table', description: 'Table that owns this attribute' },
+      { id: 'parent', portType: 'parent', position: 'top', offset: 50, label: 'Table', description: 'Table that owns this attribute' },
     ],
     suggestedRelated: [
       {
@@ -186,6 +196,7 @@ export const builtInSchemas: ConstructSchema[] = [
     displayName: 'Constraint',
     color: '#a78bfa',
     description: 'A database constraint (unique, foreign key, check, etc.)',
+    displayField: 'name',
     fields: [
       { name: 'name', label: 'Name', type: 'string', placeholder: 'e.g., fk_user_profile' },
       { name: 'constraintType', label: 'Type', type: 'enum', options: ['PRIMARY KEY', 'UNIQUE', 'FOREIGN KEY', 'CHECK', 'NOT NULL', 'DEFAULT'], default: 'UNIQUE' },
@@ -193,7 +204,7 @@ export const builtInSchemas: ConstructSchema[] = [
       { name: 'definition', label: 'Definition', type: 'string', displayHint: 'code', placeholder: 'Detailed constraint definition' },
     ],
     ports: [
-      { id: 'parent', direction: 'parent', position: 'top', offset: 50, label: 'Table', description: 'Table that owns this constraint' },
+      { id: 'parent', portType: 'parent', position: 'top', offset: 50, label: 'Table', description: 'Table that owns this constraint' },
     ],
     suggestedRelated: [
       {
@@ -212,11 +223,18 @@ export const builtInSchemas: ConstructSchema[] = [
     displayName: 'API Model',
     color: '#6366f1',
     description: 'Request or response model for an API endpoint',
+    displayField: 'modelName',
     fields: [
-      { 
-        name: 'modelType', 
-        label: 'Model Type', 
-        type: 'enum', 
+      {
+        name: 'modelName',
+        label: 'Model Name',
+        type: 'string',
+        placeholder: 'e.g., CreateUserRequest, UserResponse',
+      },
+      {
+        name: 'modelType',
+        label: 'Model Type',
+        type: 'enum',
         options: ['request', 'response'],
         default: 'request',
         displayInMap: true,
@@ -229,7 +247,7 @@ export const builtInSchemas: ConstructSchema[] = [
       },
     ],
     ports: [
-      { id: 'child', direction: 'child', position: 'top', offset: 50, label: 'Controller', description: 'Controller endpoint that uses this model' },
+      { id: 'child', portType: 'child', position: 'top', offset: 50, label: 'Controller', description: 'Controller endpoint that uses this model' },
     ],
     suggestedRelated: [
       {
@@ -248,23 +266,30 @@ export const builtInSchemas: ConstructSchema[] = [
     displayName: 'UI Event',
     color: '#10b981',
     description: 'A user interaction or event in the UI',
+    displayField: 'eventName',
     fields: [
+      {
+        name: 'eventName',
+        label: 'Event Name',
+        type: 'string',
+        placeholder: 'e.g., Click Submit, Load Page',
+      },
       {
         name: 'trigger',
         label: 'Trigger',
         type: 'string',
         placeholder: 'What triggers this event?',
       },
-      { 
-        name: 'description', 
-        label: 'Description', 
+      {
+        name: 'description',
+        label: 'Description',
         type: 'string',
         placeholder: 'Describe the event or user action',
       },
     ],
     ports: [
-      { id: 'child', direction: 'child', position: 'left', offset: 50, label: 'Events', description: 'Child events that originate from this event' },
-      { id: 'flow-out', direction: 'out', position: 'right', offset: 50, label: 'Flow Out', description: 'Next UI flow that follows this event' },
+      { id: 'child', portType: 'child', position: 'left', offset: 50, label: 'Events', description: 'Child events that originate from this event' },
+      { id: 'flow-out', portType: 'flow-out', position: 'right', offset: 50, label: 'Flow Out', description: 'Next UI flow that follows this event' },
     ],
     suggestedRelated: [
       {
@@ -283,17 +308,24 @@ export const builtInSchemas: ConstructSchema[] = [
     displayName: 'UI Screen',
     color: '#3b82f6',
     description: 'A screen or view in the user interface',
+    displayField: 'screenName',
     fields: [
-      { 
-        name: 'description', 
-        label: 'Description', 
+      {
+        name: 'screenName',
+        label: 'Screen Name',
+        type: 'string',
+        placeholder: 'e.g., Login, Dashboard, Profile',
+      },
+      {
+        name: 'description',
+        label: 'Description',
         type: 'string',
         placeholder: 'Describe the screen or view',
       },
     ],
     ports: [
-      { id: 'flow-in', direction: 'in', position: 'left', offset: 50, label: 'Flow In', description: 'Incoming UI flow into this screen' },
-      { id: 'parent', direction: 'parent', position: 'right', offset: 50, label: 'Events', description: 'Events that belong to this screen' },
+      { id: 'flow-in', portType: 'flow-in', position: 'left', offset: 50, label: 'Flow In', description: 'Incoming UI flow into this screen' },
+      { id: 'parent', portType: 'parent', position: 'right', offset: 50, label: 'Events', description: 'Events that belong to this screen' },
     ],
     suggestedRelated: [
       {
@@ -318,17 +350,24 @@ export const builtInSchemas: ConstructSchema[] = [
     displayName: 'User Story',
     color: '#10b981',
     description: 'A user story or requirement',
+    displayField: 'title',
     fields: [
-      { 
-        name: 'description', 
-        label: 'Description', 
+      {
+        name: 'title',
+        label: 'Title',
+        type: 'string',
+        placeholder: 'e.g., User Login, Create Account',
+      },
+      {
+        name: 'description',
+        label: 'Description',
         type: 'string',
         placeholder: 'As a [user], I want [goal] so that [benefit]',
         displayInMap: true,
       },
     ],
     ports: [
-      { id: 'flow-out', direction: 'out', position: 'right', offset: 50, label: 'Flow Out', description: 'Outcome or follow-on user story' },
+      { id: 'flow-out', portType: 'flow-out', position: 'right', offset: 50, label: 'Flow Out', description: 'Outcome or follow-on user story' },
     ],
     suggestedRelated: [
       {
@@ -346,8 +385,9 @@ export const builtInSchemas: ConstructSchema[] = [
     type: 'implementation-details',
     displayName: 'Implementation Details',
     color: '#6b7280',
+    displayField: 'details',
     ports: [
-      { id: 'link', direction: 'bidi', position: 'left', offset: 50, label: 'Related To', description: 'Bidirectional relationship to related constructs' },
+      { id: 'link', portType: 'symmetric', position: 'left', offset: 50, label: 'Related To', description: 'Bidirectional relationship to related constructs' },
     ],
     fields: [
       {

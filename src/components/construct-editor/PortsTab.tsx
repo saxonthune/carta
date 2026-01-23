@@ -1,4 +1,5 @@
-import type { ConstructSchema, PortConfig, PortDirection, PortPosition } from '../../constructs/types';
+import type { ConstructSchema, PortConfig, PortPosition } from '../../constructs/types';
+import { portRegistry } from '../../constructs/portRegistry';
 
 interface PortsTabProps {
   formData: ConstructSchema;
@@ -13,16 +14,10 @@ function toSnakeCase(str: string): string {
   return str.toLowerCase().replace(/\s+/g, '_');
 }
 
-const PORT_DIRECTIONS: PortDirection[] = ['in', 'out', 'parent', 'child', 'bidi'];
 const PORT_POSITIONS: PortPosition[] = ['left', 'right', 'top', 'bottom'];
 
-const PORT_DIRECTION_DESCRIPTIONS: Record<PortDirection, string> = {
-  'in': 'Receives connections from out/bidi ports',
-  'out': 'Sends connections to in/bidi ports',
-  'parent': 'Parent in hierarchy (receives child connections)',
-  'child': 'Child in hierarchy (connects to parent)',
-  'bidi': 'Bidirectional (connects to any compatible port)'
-};
+// Get port types from registry
+const getPortTypes = () => portRegistry.getAll();
 
 export default function PortsTab({
   formData,
@@ -30,6 +25,8 @@ export default function PortsTab({
   updatePort,
   removePort
 }: PortsTabProps) {
+  const portTypes = getPortTypes();
+
   return (
     <div className="bg-surface-elevated rounded-lg p-4">
       <div className="flex justify-between items-center mb-3">
@@ -98,20 +95,20 @@ export default function PortsTab({
               <div className="grid grid-cols-3 gap-2">
                 <div>
                   <label className="block text-xs font-medium text-content-muted mb-1">
-                    Direction <span className="text-danger">*</span>
+                    Port Type <span className="text-danger">*</span>
                   </label>
                   <select
                     className="w-full px-2 py-1.5 bg-surface-alt rounded text-content text-xs focus:outline-none focus:ring-1 focus:ring-primary"
-                    value={port.direction}
-                    onChange={(e) => updatePort(index, { direction: e.target.value as PortDirection })}
-                    title={PORT_DIRECTION_DESCRIPTIONS[port.direction]}
+                    value={port.portType}
+                    onChange={(e) => updatePort(index, { portType: e.target.value })}
+                    title={portTypes.find(pt => pt.id === port.portType)?.description}
                   >
-                    {PORT_DIRECTIONS.map(dir => (
-                      <option key={dir} value={dir}>{dir}</option>
+                    {portTypes.map(pt => (
+                      <option key={pt.id} value={pt.id}>{pt.label}</option>
                     ))}
                   </select>
                   <p className="text-xs text-content-muted mt-1 mb-0 italic">
-                    {PORT_DIRECTION_DESCRIPTIONS[port.direction]}
+                    {portTypes.find(pt => pt.id === port.portType)?.description || 'Select a port type'}
                   </p>
                 </div>
                 <div>
@@ -149,7 +146,7 @@ export default function PortsTab({
               {/* Current Values Summary */}
               <div className="mt-2 pt-2 border-t border-surface-alt">
                 <div className="text-xs text-content-muted">
-                  <span className="font-medium">Current:</span> {port.id} ({port.label}) • {port.direction} • {port.position} edge @ {port.offset}%
+                  <span className="font-medium">Current:</span> {port.id} ({port.label}) • {port.portType} • {port.position} edge @ {port.offset}%
                 </div>
               </div>
             </div>

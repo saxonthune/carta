@@ -106,7 +106,7 @@ export default function RelatedTab({
                         <option value="">(No connection)</option>
                         {ports.map(port => (
                           <option key={port.id} value={port.id}>
-                            {port.label} ({port.direction})
+                            {port.label} ({port.portType})
                           </option>
                         ))}
                       </select>
@@ -125,7 +125,7 @@ export default function RelatedTab({
                         <option value="">(No connection)</option>
                         {relatedSchema?.ports?.map(port => (
                           <option key={port.id} value={port.id}>
-                            {port.label} ({port.direction})
+                            {port.label} ({port.portType})
                           </option>
                         ))}
                       </select>
@@ -144,14 +144,14 @@ export default function RelatedTab({
                       {related.fromPortId && related.toPortId && (() => {
                         const fromPort = ports.find(p => p.id === related.fromPortId);
                         const toPort = relatedSchema?.ports?.find(p => p.id === related.toPortId);
-                        const isValid = fromPort && toPort && canConnect(fromPort.direction, toPort.direction);
+                        const isValid = fromPort && toPort && canConnect(fromPort.portType, toPort.portType);
                         return isValid ? (
                           <p className="text-content-muted m-0">
-                            ✓ Valid pairing: {fromPort.direction} → {toPort.direction}
+                            ✓ Valid pairing: {fromPort.portType} → {toPort.portType}
                           </p>
                         ) : (
                           <p className="text-danger m-0">
-                            ✗ Invalid pairing: {fromPort?.direction || '?'} cannot connect to {toPort?.direction || '?'}
+                            ✗ Invalid pairing: {fromPort?.portType || '?'} cannot connect to {toPort?.portType || '?'}
                           </p>
                         );
                       })()}

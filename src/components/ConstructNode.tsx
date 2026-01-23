@@ -2,6 +2,7 @@ import { memo, useState } from 'react';
 import { Handle, Position, NodeResizer } from '@xyflow/react';
 import { registry } from '../constructs/registry';
 import { getPortsForSchema, getHandleType, getPortColor } from '../constructs/ports';
+import { getDisplayName } from '../utils/displayUtils';
 import type { ConstructNodeData, PortConfig, PortPosition } from '../constructs/types';
 
 interface ConstructNodeComponentProps {
@@ -96,14 +97,14 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
         <Handle
           key={port.id}
           id={port.id}
-          type={getHandleType(port.direction)}
+          type={getHandleType(port.portType)}
           position={positionMap[port.position]}
           className="port-handle"
           style={{
             ...getHandlePositionStyle(port.position, port.offset),
-            backgroundColor: getPortColor(port.direction),
+            backgroundColor: getPortColor(port.portType),
           }}
-          data-direction={port.direction}
+          data-port-type={port.portType}
           onMouseEnter={() => setHoveredPort(port.id)}
           onMouseLeave={() => setHoveredPort(null)}
         />
@@ -138,8 +139,8 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
       </div>
 
       <div className="px-2 py-1 bg-surface shrink-0">
-        <div className="text-node-xs text-content-muted uppercase tracking-wide">Name</div>
-        <div className="text-node-lg text-content font-medium leading-tight">{data.name}</div>
+        <div className="text-node-xs text-content-muted uppercase tracking-wide">ID</div>
+        <div className="text-node-lg text-content font-medium leading-tight">{getDisplayName(data, schema)}</div>
       </div>
 
       <div className="px-2 py-1.5 text-node-sm text-content-muted flex-1 overflow-y-auto min-h-0">

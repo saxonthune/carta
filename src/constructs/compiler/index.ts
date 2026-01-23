@@ -170,7 +170,7 @@ ${deployablesJson}
             ports: schema.ports.map(p => ({
               id: p.id,
               label: p.label,
-              direction: p.direction,
+              portType: p.portType,
               ...(p.description && { description: p.description }),
             }))
           }),
@@ -260,8 +260,7 @@ ${schemasJson}
     const nodeIdToSemanticId = new Map<string, string>();
     for (const node of nodes) {
       const data = node.data as ConstructNodeData;
-      const semanticId = data.semanticId || `${data.constructType}-${data.name.toLowerCase().replace(/\s+/g, '-')}`;
-      nodeIdToSemanticId.set(node.id, semanticId);
+      nodeIdToSemanticId.set(node.id, data.semanticId);
     }
 
     // Create maps for relationships

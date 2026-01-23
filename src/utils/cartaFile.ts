@@ -4,8 +4,9 @@ import type { ExportOptions } from './exportAnalyzer';
 
 /**
  * Version of the .carta file format
+ * Version 2: Changed port direction to portType (flow-in, flow-out, parent, child, symmetric)
  */
-export const CARTA_FILE_VERSION = 1;
+export const CARTA_FILE_VERSION = 2;
 
 /**
  * Structure of a .carta project file
@@ -36,29 +37,19 @@ export function toKebabCase(str: string): string {
 
 /**
  * Generate a semantic ID for AI consumption
- * Combines construct type and name into a readable identifier
- * "User Controller" -> "controller-user"
+ * Creates a unique identifier based on construct type and timestamp
  */
-export function generateSemanticId(constructType: string, name: string): string {
-  // Normalize the name: lowercase, replace spaces with hyphens, remove special chars
-  const normalizedName = name
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')  // Remove special characters except spaces and hyphens
-    .replace(/\s+/g, '-')          // Replace spaces with hyphens
-    .replace(/-+/g, '-')           // Replace multiple hyphens with single
-    .replace(/^-+|-+$/g, '');      // Remove leading/trailing hyphens
-
-  // Normalize the type: lowercase, remove underscores
+export function generateSemanticId(constructType: string): string {
+  // Normalize the type: lowercase, replace underscores with hyphens
   const normalizedType = constructType
     .toLowerCase()
     .replace(/_/g, '-');
 
-  // Combine: type-name (e.g., "controller-user-api")
-  const semanticId = `${normalizedType}-${normalizedName}`;
+  // Generate a short unique suffix using timestamp + random
+  const timestamp = Date.now().toString(36).slice(-4);
+  const random = Math.random().toString(36).slice(-3);
 
-  // Ensure it's not empty and has reasonable length
-  return semanticId || `${normalizedType}-unnamed`;
+  return `${normalizedType}-${timestamp}${random}`;
 }
 
 /**
@@ -238,15 +229,15 @@ export function validateCartaFile(data: unknown): CartaFile {
           throw new Error(`Invalid file: schema "${s.type}" has invalid port structure`);
         }
         const p = port as Record<string, unknown>;
-        if (typeof p.id !== 'string' || typeof p.direction !== 'string' ||
+        if (typeof p.id !== 'string' || typeof p.portType !== 'string' ||
             typeof p.position !== 'string' || typeof p.offset !== 'number' ||
             typeof p.label !== 'string') {
-          throw new Error(`Invalid file: schema "${s.type}" has port missing required fields (id, direction, position, offset, label)`);
+          throw new Error(`Invalid file: schema "${s.type}" has port missing required fields (id, portType, position, offset, label)`);
         }
-        // Validate direction enum
-        const validDirections = ['in', 'out', 'parent', 'child', 'bidi'];
-        if (!validDirections.includes(p.direction as string)) {
-          throw new Error(`Invalid file: schema "${s.type}" has port with invalid direction "${p.direction}"`);
+        // Validate portType enum
+        const validPortTypes = ['flow-in', 'flow-out', 'parent', 'child', 'symmetric'];
+        if (!validPortTypes.includes(p.portType as string)) {
+          throw new Error(`Invalid file: schema "${s.type}" has port with invalid portType "${p.portType}"`);
         }
         // Validate position enum
         const validPositions = ['left', 'right', 'top', 'bottom'];

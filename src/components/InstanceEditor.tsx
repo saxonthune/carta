@@ -4,7 +4,7 @@ import { registry } from '../constructs/registry';
 import { fieldRenderers } from './fields';
 import TabBar, { type Tab } from './ui/TabBar';
 import type { ConstructNodeData, Deployable, ConstructValues } from '../constructs/types';
-import { generateSemanticId } from '../utils/cartaFile';
+import { getDisplayName } from '../utils/displayUtils';
 
 interface InstanceEditorProps {
   node: Node;
@@ -17,14 +17,13 @@ type ViewerTab = 'details' | 'connections';
 export default function InstanceEditor({ node, deployables, onNodeUpdate }: InstanceEditorProps) {
   const data = node.data as ConstructNodeData;
   const schema = registry.getSchema(data.constructType);
-  const [nameValue, setNameValue] = useState(data.name);
+  const [semanticIdValue, setSemanticIdValue] = useState(data.semanticId);
   const [activeTab, setActiveTab] = useState<ViewerTab>('details');
 
-  const handleNameChange = useCallback((newName: string) => {
-    setNameValue(newName);
-    const newSemanticId = generateSemanticId(data.constructType, newName);
-    onNodeUpdate(node.id, { name: newName, semanticId: newSemanticId });
-  }, [node.id, data.constructType, onNodeUpdate]);
+  const handleSemanticIdChange = useCallback((newSemanticId: string) => {
+    setSemanticIdValue(newSemanticId);
+    onNodeUpdate(node.id, { semanticId: newSemanticId });
+  }, [node.id, onNodeUpdate]);
 
   const handleFieldChange = useCallback((fieldName: string, value: unknown) => {
     const currentData = node.data as ConstructNodeData;
@@ -109,28 +108,26 @@ export default function InstanceEditor({ node, deployables, onNodeUpdate }: Inst
                 {/* Instance Info Island */}
                 <div className="bg-surface-depth-2 rounded-xl p-3">
                   <h3 className="text-xs font-semibold text-content-muted uppercase mb-3">Instance Info</h3>
-                  
-                  {/* Name field */}
+
+                  {/* Display name (read-only, derived) */}
                   <div className="flex flex-col gap-1 mb-3">
-                    <label className="text-[11px] font-semibold text-content-muted uppercase">Name</label>
-                    <input
-                      type="text"
-                      className="px-2.5 py-1.5 rounded text-sm text-content bg-surface outline-none focus:ring-2 focus:ring-accent/60 focus:shadow-[0_0_0_2px_rgba(99,102,241,0.1)] transition-all border border-transparent"
-                      value={nameValue}
-                      onChange={(e) => handleNameChange(e.target.value)}
-                      placeholder="Enter instance name"
-                    />
+                    <label className="text-[11px] font-semibold text-content-muted uppercase">Display Name</label>
+                    <div className="px-2.5 py-1.5 rounded text-sm text-content bg-surface-alt">
+                      {getDisplayName(data, schema)}
+                    </div>
                   </div>
 
-                  {/* Semantic ID (read-only) */}
-                  {data.semanticId && (
-                    <div className="flex flex-col gap-1 mb-3">
-                      <label className="text-[11px] font-semibold text-content-muted uppercase">Semantic ID</label>
-                      <div className="px-2.5 py-1.5 rounded text-sm text-content-subtle bg-surface-alt font-mono text-xs">
-                        {data.semanticId}
-                      </div>
-                    </div>
-                  )}
+                  {/* Semantic ID (editable) */}
+                  <div className="flex flex-col gap-1 mb-3">
+                    <label className="text-[11px] font-semibold text-content-muted uppercase">Semantic ID</label>
+                    <input
+                      type="text"
+                      className="px-2.5 py-1.5 rounded text-sm text-content bg-surface outline-none focus:ring-2 focus:ring-accent/60 focus:shadow-[0_0_0_2px_rgba(99,102,241,0.1)] transition-all border border-transparent font-mono text-xs"
+                      value={semanticIdValue}
+                      onChange={(e) => handleSemanticIdChange(e.target.value)}
+                      placeholder="e.g., controller-user-api"
+                    />
+                  </div>
 
                   {/* Deployable selector */}
                   <div className="flex flex-col gap-1">

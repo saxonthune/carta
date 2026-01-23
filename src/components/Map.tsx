@@ -228,7 +228,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     const node = nodes.find(n => n.id === nodeId);
     if (!node || node.type !== 'construct') return null;
     const data = node.data as ConstructNodeData;
-    return data.semanticId || generateSemanticId(data.constructType, data.name);
+    return data.semanticId;
   }, [nodes]);
 
   const isValidConnection = useCallback((connection: Edge | Connection): boolean => {
@@ -261,8 +261,8 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     const targetPort = targetPorts.find((p) => p.id === targetHandle);
     if (!sourcePort || !targetPort) return false;
 
-    // Rules 3, 4, 5: direction pairings (child->parent, out->in, bidi->bidi)
-    return canConnect(sourcePort.direction, targetPort.direction);
+    // Validate port type compatibility via registry
+    return canConnect(sourcePort.portType, targetPort.portType);
   }, [getNodes]);
 
   const onConnect: OnConnect = useCallback(
@@ -361,8 +361,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
         }
       });
 
-      const nodeName = schema.displayName;
-      const semanticId = generateSemanticId(schema.type, nodeName);
+      const semanticId = generateSemanticId(schema.type);
 
       const newNode: Node = {
         id,
@@ -370,7 +369,6 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
         position,
         data: {
           constructType: schema.type,
-          name: nodeName,
           semanticId,
           values,
           isExpanded: true,
@@ -435,8 +433,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
         }
       });
 
-      const nodeName = schema.displayName;
-      const semanticId = generateSemanticId(schema.type, nodeName);
+      const semanticId = generateSemanticId(schema.type);
 
       const newNode: Node = {
         id,
@@ -444,7 +441,6 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
         position: newPosition,
         data: {
           constructType: schema.type,
-          name: nodeName,
           semanticId,
           values,
           isExpanded: true,
@@ -541,7 +537,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
   );
 
   const renameNode = useCallback(
-    (nodeIdToRename: string, newName: string) => {
+    (nodeIdToRename: string, newSemanticId: string) => {
       setNodes((nds) =>
         nds.map((n) => {
           if (n.id !== nodeIdToRename) return n;
@@ -549,12 +545,12 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
           if (n.type === 'construct') {
             return {
               ...n,
-              data: { ...n.data, name: newName },
+              data: { ...n.data, semanticId: newSemanticId },
             };
           }
           return {
             ...n,
-            data: { ...n.data, label: newName },
+            data: { ...n.data, label: newSemanticId },
           };
         })
       );
@@ -640,11 +636,10 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
           y: basePosition.y + offsetY,
         };
 
-        const originalName = clipNode.data.name || clipNode.data.label || 'Node';
-        const newName = clipNode.data.name ? `${originalName} (copy)` : undefined;
-        const semanticId = (clipNode.data.constructType && typeof clipNode.data.constructType === 'string' && newName)
-          ? generateSemanticId(clipNode.data.constructType, newName)
-          : undefined;
+        // Generate new semantic ID for the copy
+        const newSemanticId = (clipNode.data.constructType && typeof clipNode.data.constructType === 'string')
+          ? generateSemanticId(clipNode.data.constructType)
+          : `copy-${newId}`;
 
         return {
           ...clipNode,
@@ -653,9 +648,8 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
           selected: false,
           data: {
             ...clipNode.data,
-            name: newName,
-            label: clipNode.data.label ? `${originalName} (copy)` : undefined,
-            semanticId,
+            label: clipNode.data.label ? `${clipNode.data.label} (copy)` : undefined,
+            semanticId: newSemanticId,
           },
         };
       });

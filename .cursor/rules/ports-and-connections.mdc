@@ -11,25 +11,64 @@ Connections are **symmetric in storage** but **asymmetric in interpretation**. T
 
 ## Port Types
 
-Five built-in port directions:
+Five built-in port types defined in `PortDefinition` (M2 layer):
 
-| Direction | Purpose | Typical Position |
-|-----------|---------|------------------|
-| `in` | Receives flow | Left |
-| `out` | Emits flow | Right |
-| `parent` | Has children | Bottom |
-| `child` | Belongs to parent | Top |
-| `bidi` | Symmetric association | Any |
+| Port Type | Purpose | Default Position | Color |
+|-----------|---------|------------------|-------|
+| `flow-in` | Receives flow | Left | #3b82f6 (blue) |
+| `flow-out` | Emits flow | Right | #22c55e (green) |
+| `parent` | Has children | Top | #f59e0b (amber) |
+| `child` | Belongs to parent | Bottom | #f59e0b (amber) |
+| `symmetric` | Symmetric association | Right | #8b5cf6 (purple) |
 
-## Valid Port Pairings
+## Compatibility-Based Validation
 
-Only these combinations form valid connections:
+Port connections are validated using compatibility lists:
 
-- `out` ↔ `in` (directional flow)
-- `child` ↔ `parent` (hierarchy)
-- `bidi` ↔ `bidi` (symmetric)
-- `bidi` ↔ `in` (flexible source)
-- `out` ↔ `bidi` (flexible target)
+```typescript
+interface PortDefinition {
+  id: string;
+  label: string;
+  description: string;
+  compatibleWith?: string[];  // undefined = any port
+  defaultPosition: PortPosition;
+  color: string;
+}
+```
+
+| Port Type | Compatible With |
+|-----------|-----------------|
+| `flow-in` | `flow-out`, `symmetric` |
+| `flow-out` | `flow-in`, `symmetric` |
+| `parent` | `child`, `symmetric` |
+| `child` | `parent`, `symmetric` |
+| `symmetric` | any (compatibleWith: undefined) |
+
+Validation is bidirectional—if A can connect to B, then B can connect to A.
+
+## Port Registry
+
+The `PortRegistry` class manages port definitions:
+
+```typescript
+// src/constructs/portRegistry.ts
+export const DEFAULT_PORT_DEFINITIONS: PortDefinition[] = [
+  { id: 'flow-in', label: 'Flow In', ... },
+  { id: 'flow-out', label: 'Flow Out', ... },
+  { id: 'parent', label: 'Parent', ... },
+  { id: 'child', label: 'Child', ... },
+  { id: 'symmetric', label: 'Link', ... },
+];
+
+export class PortRegistry {
+  canConnect(sourcePortType: string, targetPortType: string): boolean;
+  getColor(portType: string): string;
+  get(id: string): PortDefinition | undefined;
+  getAll(): PortDefinition[];
+}
+
+export const portRegistry = new PortRegistry();
+```
 
 ## Design Decisions
 
@@ -64,19 +103,21 @@ All instances of a construct type share the same ports. Port customization happe
 ```typescript
 interface PortConfig {
   id: string;                    // Unique within construct
-  direction: PortDirection;
+  portType: string;              // References PortDefinition.id
   position: 'left' | 'right' | 'top' | 'bottom';
   offset: number;                // 0-100% along edge
   label: string;
+  description?: string;
 
-  // Future type system
+  // Type system hooks
   dataType?: string;
-  accepts?: string[];
+  suggestedTypes?: string[];
+  suggestedPorts?: string[];
 }
 ```
 
 ### 4. Future Type System Hooks
-Ports include optional `dataType` and `accepts` fields for future type validation. Today they're ignored; tomorrow they enable:
+Ports include optional `dataType`, `suggestedTypes`, and `suggestedPorts` fields for future type validation. Today they're ignored; tomorrow they enable:
 
 - Port validates connections based on dataType compatibility
 - Dynamic dropdowns based on connected construct's fields
@@ -90,12 +131,12 @@ The compiler generates human-readable relationship descriptions:
 {
   semanticId: 'constraint-fk-orders-users',
   ports: [
-    { id: 'child', direction: 'child', label: 'Parent' },
-    { id: 'fk-target', direction: 'out', label: 'References' },
+    { id: 'child', portType: 'child', label: 'Parent' },
+    { id: 'fk-target', portType: 'flow-out', label: 'References' },
   ],
   connections: [
     { portId: 'child', targetSemanticId: 'table-orders', targetPortId: 'parent' },
-    { portId: 'fk-target', targetSemanticId: 'table-users', targetPortId: 'link-in' },
+    { portId: 'fk-target', targetSemanticId: 'table-users', targetPortId: 'flow-in' },
   ],
   relationships: [
     'Is child of: table-orders',
@@ -115,10 +156,22 @@ Database (parent of tables)
 ```
 
 - **Database**: `child` port (bottom) for tables
-- **Table**: `parent` port (top), `child` port (bottom), `in` port (left) for incoming references
-- **Constraint**: `parent` port (top), `out` port (right) for FK target
+- **Table**: `parent` port (top), `child` port (bottom), `flow-in` port (left) for incoming references
+- **Constraint**: `parent` port (top), `flow-out` port (right) for FK target
 
 Foreign key details (source column, target column) live in **construct fields**, not on the connection.
+
+## CSS Styling
+
+Port handles are styled via data attributes:
+
+```css
+.react-flow__handle[data-port-type="flow-in"] { background: #3b82f6 !important; }
+.react-flow__handle[data-port-type="flow-out"] { background: #22c55e !important; }
+.react-flow__handle[data-port-type="parent"] { background: #f59e0b !important; }
+.react-flow__handle[data-port-type="child"] { background: #f59e0b !important; }
+.react-flow__handle[data-port-type="symmetric"] { background: #8b5cf6 !important; }
+```
 
 ## Necessary and Sufficient
 

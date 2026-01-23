@@ -70,6 +70,7 @@ The application uses a split-panel layout similar to JetBrains IDEs:
 ### 2. Construct Registry Layer (`src/constructs/`)
 - Central registry (`registry.ts`) that stores all construct type definitions
 - Schema system (`types.ts`) defines structure of constructs via `ConstructSchema` interface
+- Port registry (`portRegistry.ts`) defines port types and validates connections
 - Built-in schemas (`schemas/`) for common constructs: REST Controller, Database, Table, Implementation Details
 - User-defined schemas stored in localStorage via `storage.ts`
 - Schema Editor (`components/ConstructEditor.tsx`, `SchemaEditor.tsx`) allows users to create custom constructs
@@ -95,16 +96,19 @@ The application uses a split-panel layout similar to JetBrains IDEs:
 A `ConstructSchema` defines a construct TYPE (e.g., "REST Controller", "Database Table"). It includes:
 - Type identifier, display name, category, color
 - Field definitions (text, dropdown, table, code, connection types)
+- `displayField` - which field's value to show as node title
 - Compilation configuration (format, template, section header)
 - Optional description (shown in compiled output as AI context)
 
 ### Construct Instance
 A React Flow node containing:
 - Reference to its schema type
-- User-given name
+- `semanticId` - required unique identifier (e.g., "controller-abc123")
 - Field values (the actual data entered by the user)
 - Connections array (port-to-port links to other constructs)
-- UI state (expanded/collapsed, renaming)
+- UI state (expanded/collapsed)
+
+**Note:** There is no `name` field. Node titles are derived from either the `displayField` value or `semanticId`.
 
 ### Deployables
 **Deployables** are logical groupings that allow users to organize constructs into deployment units. Each construct can be assigned to a deployable (or "none"), helping AI tools understand which components should be deployed together.
@@ -123,42 +127,37 @@ Deployables are compiled into the output as metadata, helping AI tools generate 
 
 Constructs connect via **ports**—typed attachment points that determine relationship semantics:
 
-- **Port types**: `in`, `out`, `parent`, `child`, `bidi`
-- **Valid pairings**: `out→in`, `child→parent`, `bidi→bidi`
+- **Port types**: `flow-in`, `flow-out`, `parent`, `child`, `symmetric`
+- **Compatibility-based validation**: Each port type defines which other types it can connect to
 - **Storage**: All connection data lives on constructs, not edges
 - **Interpretation**: Direction derives from port ownership, not edge metadata
 
-Example: A `Constraint` with an `out` port connecting to a `Table`'s `in` port means "Constraint references Table" (and inversely, "Table is referenced by Constraint").
+Example: A `Constraint` with a `flow-out` port connecting to a `Table`'s `flow-in` port means "Constraint references Table" (and inversely, "Table is referenced by Constraint").
 
 ### AI-Friendly Semantic Linking
 
 Carta produces **AI-optimized output** that goes beyond basic JSON representation:
 
 #### Semantic Identifiers
-Instead of cryptic numeric IDs, constructs get **semantic IDs** that are meaningful to both humans and AI:
-- `"controller-user-api"` instead of `"6"`
-- `"database-user-table"` instead of `"7"`
-- `"service-auth-jwt"` instead of `"12"`
-
-These identifiers follow a consistent `{type}-{name}` pattern with normalization.
+Constructs get **semantic IDs** that are meaningful to both humans and AI:
+- `"controller-abc123"` - Generated from type + timestamp + random suffix
+- Used as primary identifier throughout the system
 
 #### Relationship Metadata
 The compiler analyzes all connections (edges) and adds bidirectional relationship metadata:
 ```json
 {
-  "id": "controller-user-api",
-  "references": ["database-user-table", "service-auth-jwt"],
-  "type": "controller",
-  "name": "User API"
+  "id": "controller-abc123",
+  "references": ["database-xyz789", "service-def456"],
+  "type": "controller"
 }
 ```
 
 ```json
 {
-  "id": "database-user-table",
-  "referencedBy": ["controller-user-api"],
-  "type": "database",
-  "name": "User Table"
+  "id": "database-xyz789",
+  "referencedBy": ["controller-abc123"],
+  "type": "database"
 }
 ```
 
@@ -178,16 +177,17 @@ This allows AI tools to:
 `ConstructNode.tsx` is a single generic component that:
 1. Receives a construct instance (node data)
 2. Fetches its schema from the registry
-3. Dynamically renders fields based on the schema
-4. Works for ANY construct type (built-in or user-defined)
+3. Uses `getDisplayName()` to derive node title from displayField or semanticId
+4. Dynamically renders fields based on the schema
+5. Works for ANY construct type (built-in or user-defined)
 
 ## Data Flow
 
 ```
-User adds node → Registry provides schema (incl. ports) → Visual editor creates node instance
+User adds node → Registry provides schema (incl. ports) → Visual editor creates node instance with semanticId
 User edits fields → Node data updated → Saved to localStorage
 User assigns deployable → Construct gets deployable grouping
-User drags port to port → Connection stored on source construct → Edge rendered visually
+User drags port to port → portRegistry.canConnect() validates → Connection stored on source construct → Edge rendered
 User clicks Compile → Compiler reads connections → Generates relationship semantics → AI-friendly output
 User opens Construct Editor → Can view/edit schemas + ports → Saves to localStorage → New types available
 ```
@@ -212,9 +212,10 @@ User opens Construct Editor → Can view/edit schemas + ports → Saves to local
 - `/src/components/` - Modals, menus, field editors
 
 ### Domain Logic
-- `/src/constructs/types.ts` - Core TypeScript interfaces (incl. PortConfig, ConnectionValue)
+- `/src/constructs/types.ts` - Core TypeScript interfaces (organized by M2/M1/M0 layers)
 - `/src/constructs/registry.ts` - Singleton registry for schemas
-- `/src/constructs/ports.ts` - Port type registry and valid pairings
+- `/src/constructs/portRegistry.ts` - Port type definitions and connection validation
+- `/src/constructs/ports.ts` - Built-in port configurations
 - `/src/constructs/storage.ts` - LocalStorage persistence
 - `/src/constructs/schemas/` - Built-in construct definitions
 - `/src/constructs/compiler/` - Compilation engine and formatters
@@ -222,5 +223,6 @@ User opens Construct Editor → Can view/edit schemas + ports → Saves to local
 
 ### Utilities
 - `/src/utils/cartaFile.ts` - Export/import utilities with semantic ID generation
+- `/src/utils/displayUtils.ts` - `getDisplayName()` helper for node titles
 - `/src/hooks/` - Custom React hooks (undo/redo)
 - `/src/index.css` - Tailwind + custom styles

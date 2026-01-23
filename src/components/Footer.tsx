@@ -1,7 +1,9 @@
+import pkg from '../../package.json';
+
 export default function Footer() {
   return (
     <div className="h-6 bg-surface-alt border-t flex items-center justify-between px-2 shrink-0">
-      <span className="text-[11px] text-content-muted">Carta 0.1.0. © 2026 Saxon Thune</span>
+      <span className="text-[11px] text-content-muted">Carta {pkg.version}. © 2026 Saxon Thune</span>
       <div className="flex items-center gap-3">
         <a
           href="https://github.com/saxonthune/carta"
