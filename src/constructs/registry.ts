@@ -1,15 +1,18 @@
 import type { ConstructSchema } from './types';
+import { getDocumentState } from '../stores/documentStore';
 
 /**
- * ConstructRegistry - Singleton that manages available construct schemas
- * 
+ * ConstructRegistry - Facade over document store for schema management
+ *
  * This is the central registry where all construct types are registered.
  * The visual editor queries this to know how to render nodes.
  * The compiler queries this to know how to compile nodes.
+ *
+ * Note: All data is stored in the unified document store. This class
+ * provides a familiar API for components while delegating to the store.
  */
 class ConstructRegistry {
   private static instance: ConstructRegistry;
-  private schemas: Map<string, ConstructSchema> = new Map();
 
   private constructor() {}
 
@@ -24,32 +27,28 @@ class ConstructRegistry {
    * Register a schema (all schemas are equal - no built-in distinction)
    */
   registerSchema(schema: ConstructSchema): void {
-    this.schemas.set(schema.type, schema);
+    getDocumentState().addSchema(schema);
   }
 
   /**
    * Remove a schema
    */
   removeSchema(type: string): boolean {
-    if (this.schemas.has(type)) {
-      this.schemas.delete(type);
-      return true;
-    }
-    return false;
+    return getDocumentState().removeSchema(type);
   }
 
   /**
    * Get a schema by type
    */
   getSchema(type: string): ConstructSchema | undefined {
-    return this.schemas.get(type);
+    return getDocumentState().getSchema(type);
   }
 
   /**
    * Get all registered schemas
    */
   getAllSchemas(): ConstructSchema[] {
-    return Array.from(this.schemas.values());
+    return getDocumentState().schemas;
   }
 
   /**
@@ -68,7 +67,7 @@ class ConstructRegistry {
 
     try {
       const schemas = JSON.parse(json);
-      
+
       if (!Array.isArray(schemas)) {
         return { success: false, count: 0, errors: ['Invalid format: expected array of schemas'] };
       }
@@ -109,14 +108,14 @@ class ConstructRegistry {
    * Check if a type exists
    */
   hasSchema(type: string): boolean {
-    return this.schemas.has(type);
+    return getDocumentState().getSchema(type) !== undefined;
   }
 
   /**
    * Clear all schemas (for reset)
    */
   clearAllSchemas(): void {
-    this.schemas.clear();
+    getDocumentState().setSchemas([]);
   }
 
   /**

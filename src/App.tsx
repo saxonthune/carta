@@ -4,27 +4,24 @@ import ImportPreviewModal from './components/ImportPreviewModal';
 import ExportPreviewModal from './components/ExportPreviewModal';
 import CompileModal from './components/CompileModal';
 import Header from './components/Header';
-import Map, { initialNodes, initialEdges, initialTitle, getNodeId } from './components/Map';
+import Map from './components/Map';
 import Dock, { type DockView } from './components/Dock';
 import Footer from './components/Footer';
 import { compiler } from './constructs/compiler';
 import { seedDefaultSchemas, builtInSchemas } from './constructs/schemas';
-import { schemaStorage } from './constructs/storage';
 import { registry } from './constructs/registry';
 import { deployableRegistry } from './constructs/deployables';
+import { useDocumentStore, getDocumentState } from './stores/documentStore';
 import { exportProject, importProject, generateSemanticId, type CartaFile } from './utils/cartaFile';
 import { analyzeImport, type ImportAnalysis, type ImportOptions } from './utils/importAnalyzer';
 import { analyzeExport, type ExportAnalysis, type ExportOptions } from './utils/exportAnalyzer';
-import type { ConstructValues, Deployable, ConstructNodeData } from './constructs/types';
+import type { ConstructValues, Deployable } from './constructs/types';
 
-// Initialize schemas: load from localStorage, or seed defaults if this is first load
-const hasStoredSchemas = schemaStorage.loadFromLocalStorage() > 0;
-if (!hasStoredSchemas) {
+// Initialize schemas: seed defaults if this is first load (store handles loading)
+const initialDocState = getDocumentState();
+if (initialDocState.schemas.length === 0) {
   seedDefaultSchemas();
-  schemaStorage.saveToLocalStorage();
 }
-
-deployableRegistry.loadFromLocalStorage();
 
 const MIN_DOCK_HEIGHT = 100;
 const MAX_DOCK_HEIGHT_RATIO = 0.7;
@@ -34,15 +31,15 @@ function App() {
   const [importPreview, setImportPreview] = useState<{ data: CartaFile; analysis: ImportAnalysis } | null>(null);
   const [exportPreview, setExportPreview] = useState<ExportAnalysis | null>(null);
   const [compileOutput, setCompileOutput] = useState<string | null>(null);
-  const [title, setTitle] = useState<string>(initialTitle);
+  const [title, setTitle] = useState<string>(initialDocState.title);
   const [selectedNodes, setSelectedNodes] = useState<Node[]>([]);
   const [dockHeight, setDockHeight] = useState(256);
   const [isResizing, setIsResizing] = useState(false);
   const [activeView, setActiveView] = useState<DockView>('viewer');
-  const nodesEdgesRef = useRef<{ nodes: Node[]; edges: Edge[] }>({ nodes: initialNodes, edges: initialEdges });
+  const nodesEdgesRef = useRef<{ nodes: Node[]; edges: Edge[] }>({ nodes: initialDocState.nodes, edges: initialDocState.edges });
   const containerRef = useRef<HTMLDivElement>(null);
-  const nodeUpdateRef = useRef<((nodeId: string, updates: Partial<ConstructNodeData>) => void) | null>(null);
   const importRef = useRef<((nodes: Node[], edges: Edge[]) => void) | null>(null);
+  const { updateNode } = useDocumentStore();
 
   const refreshDeployables = useCallback(() => {
     setDeployables(deployableRegistry.getAll());
@@ -59,12 +56,6 @@ function App() {
   const handleNodeDoubleClick = useCallback((_nodeId: string) => {
     // Switch to viewer tab (node is already selected by Map's onSelectionChange)
     setActiveView('viewer');
-  }, []);
-
-  const handleNodeUpdate = useCallback((nodeId: string, updates: Partial<ConstructNodeData>) => {
-    if (nodeUpdateRef.current) {
-      nodeUpdateRef.current(nodeId, updates);
-    }
   }, []);
 
   const handleExport = useCallback(() => {
@@ -94,7 +85,6 @@ function App() {
 
     exportProject({
       title,
-      nodeId: getNodeId(),
       nodes: nodesWithSemanticIds,
       edges,
       deployables: deployableRegistry.getAll(),
@@ -128,7 +118,7 @@ function App() {
       const schemasToImport = data.customSchemas.filter(s => options.schemas.has(s.type));
       if (schemasToImport.length > 0) {
         registry.replaceSchemas(schemasToImport);
-        schemaStorage.saveToLocalStorage();
+        // Auto-saved by document store
       }
     }
 
@@ -170,18 +160,20 @@ function App() {
   }, []);
 
   const handleClear = useCallback((mode: 'instances' | 'all') => {
+    const STORAGE_KEY = 'carta-document';
     if (mode === 'instances') {
-      // Clear only nodes and edges from localStorage, preserve schemas and deployables
-      const saved = localStorage.getItem('react-flow-state');
+      // Clear only nodes and edges, preserve schemas and deployables
+      const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         try {
           const state = JSON.parse(saved);
-          // Clear nodes and edges but keep nodeId and title
-          localStorage.setItem('react-flow-state', JSON.stringify({
+          // Clear nodes and edges but keep title, schemas, and deployables
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({
             nodes: [],
             edges: [],
-            nodeId: state.nodeId || 1,
-            title: state.title || 'Untitled Project'
+            title: state.title || 'Untitled Project',
+            schemas: state.schemas || [],
+            deployables: state.deployables || [],
           }));
         } catch (e) {
           console.error('Failed to clear instances:', e);
@@ -190,11 +182,9 @@ function App() {
       // Reload to reflect changes
       window.location.reload();
     } else {
-      // Clear everything: nodes, edges, all schemas, and deployables
-      localStorage.removeItem('react-flow-state');
-      localStorage.removeItem('carta-schemas');
-      localStorage.removeItem('carta-deployables');
-      // Reload to reflect changes
+      // Clear everything
+      localStorage.removeItem(STORAGE_KEY);
+      // Reload to reflect changes (will seed default schemas on reload)
       window.location.reload();
     }
   }, []);
@@ -203,8 +193,8 @@ function App() {
     // Clear registry and import fresh defaults
     registry.clearAllSchemas();
     registry.replaceSchemas(builtInSchemas);
-    schemaStorage.saveToLocalStorage();
-    
+    // Auto-saved by document store
+
     // Notify user and reload to reflect changes
     alert('Default schemas restored successfully!');
     window.location.reload();
@@ -269,7 +259,6 @@ function App() {
               onNodesEdgesChange={handleNodesEdgesChange}
               onSelectionChange={handleSelectionChange}
               onNodeDoubleClick={handleNodeDoubleClick}
-              nodeUpdateRef={nodeUpdateRef}
               importRef={importRef}
             />
           </ReactFlowProvider>
@@ -284,7 +273,7 @@ function App() {
           selectedNodes={selectedNodes}
           deployables={deployables}
           onDeployablesChange={refreshDeployables}
-          onNodeUpdate={handleNodeUpdate}
+          onNodeUpdate={updateNode}
           height={dockHeight}
           activeView={activeView}
           onActiveViewChange={setActiveView}

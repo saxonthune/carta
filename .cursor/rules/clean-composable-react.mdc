@@ -1,0 +1,873 @@
+---
+description: Clean, composable React architecture with separation of concerns
+globs: ["**/*.tsx", "**/*.ts", "**/*.jsx", "**/*.js"]
+---
+
+# Clean Composable React Architecture
+
+Build React applications with clear separation of concerns: UI components render, hooks manage state and effects, services handle business logic. Each piece does one thing well and composes with others.
+
+## Core Principles
+
+| Principle | Application |
+|-----------|-------------|
+| Single Responsibility | Each hook/component/service does one thing well |
+| Dependency Injection | Pass dependencies via props or context, not hardcoded imports |
+| Interface Segregation | Create focused TypeScript interfaces for each concern |
+| Command/Query Separation | Separate data mutations from data reads |
+| Repository Pattern | Service classes abstract data access from components |
+
+## The Three-Layer Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  UI Layer (Components)                                  │
+│  - Presentational components (pure rendering)           │
+│  - Container components (orchestration)                 │
+└─────────────────────────────────────────────────────────┘
+                          ▼
+┌─────────────────────────────────────────────────────────┐
+│  State Layer (Hooks & Stores)                           │
+│  - Custom hooks (encapsulated logic)                    │
+│  - Global stores (shared state)                         │
+│  - React Query (server state)                           │
+└─────────────────────────────────────────────────────────┘
+                          ▼
+┌─────────────────────────────────────────────────────────┐
+│  Service Layer (Business Logic)                         │
+│  - API services (data access)                           │
+│  - Validation services (rules)                          │
+│  - Utility functions (transformations)                  │
+└─────────────────────────────────────────────────────────┘
+```
+
+## Why Separation Matters
+
+**Without separation**: Logic is scattered across components, making code hard to test, reuse, and reason about. Changes ripple unpredictably.
+
+**With separation**: Each layer has a clear job. Components become simple. Business logic is testable in isolation. Patterns emerge that make the codebase predictable.
+
+---
+
+# Refactoring Strategy: Bottom-Up
+
+Start with leaf components (bottom of the component tree) and work upward. This minimizes risk, delivers quick wins, and creates reusable building blocks.
+
+| Benefit | Explanation |
+|---------|-------------|
+| Lower risk | Leaf components have fewer dependencies; breaking one doesn't cascade |
+| Immediate wins | Small refactors show value quickly |
+| Incremental | No need to halt feature development |
+| Pattern discovery | You'll learn what abstractions your codebase actually needs |
+
+---
+
+# Layer 1: Custom Hooks
+
+Treat custom hooks as encapsulated units of behavior. Each hook manages one concern.
+
+## Before: Mixed Concerns
+```typescript
+const ProductCard = ({ product, onAddToCart, onFavorite }) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleAddToCart = async () => {
+    setIsLoading(true);
+    try {
+      await cartService.add(product.id);
+      onAddToCart(product);
+      analytics.track('add_to_cart', { productId: product.id });
+      showNotification('Added to cart!');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="product-card">
+      {/* Complex JSX with too many responsibilities */}
+    </div>
+  );
+};
+```
+
+## After: Extracted Hook
+```typescript
+// hooks/useAddToCart.ts
+interface UseAddToCartResult {
+  addToCart: (productId: string) => Promise<{ success: boolean; error?: string }>;
+  isLoading: boolean;
+  error: string | null;
+}
+
+const useAddToCart = (): UseAddToCartResult => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const addToCart = async (productId: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      await cartService.add(productId);
+      return { success: true };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      setError(message);
+      return { success: false, error: message };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return { addToCart, isLoading, error };
+};
+```
+
+## After: Clean Component
+```typescript
+const ProductCard = ({ product }: { product: Product }) => {
+  const { addToCart, isLoading, error } = useAddToCart();
+  const { isFavorite, toggleFavorite } = useFavorite(product.id);
+
+  const handleAddToCart = async () => {
+    const result = await addToCart(product.id);
+    if (result.success) {
+      showNotification('Added to cart!');
+    }
+  };
+
+  return (
+    <ProductCardView
+      product={product}
+      onAddToCart={handleAddToCart}
+      onFavorite={toggleFavorite}
+      isLoading={isLoading}
+      error={error}
+      isFavorite={isFavorite}
+    />
+  );
+};
+```
+
+---
+
+# Layer 2: Presentational Components
+
+Extract pure UI components that receive all data via props. No hooks, no side effects, just rendering.
+
+```typescript
+interface ProductCardViewProps {
+  product: Product;
+  onAddToCart: () => void;
+  onFavorite: () => void;
+  isLoading: boolean;
+  error: string | null;
+  isFavorite: boolean;
+}
+
+const ProductCardView = ({
+  product,
+  onAddToCart,
+  onFavorite,
+  isLoading,
+  error,
+  isFavorite
+}: ProductCardViewProps) => (
+  <div className="product-card">
+    <ProductImage src={product.image} alt={product.title} />
+    <ProductInfo title={product.title} price={product.price} rating={product.rating} />
+    <ProductActions
+      onAddToCart={onAddToCart}
+      onFavorite={onFavorite}
+      isLoading={isLoading}
+      error={error}
+      isFavorite={isFavorite}
+    />
+  </div>
+);
+```
+
+## Container/Presenter Pattern
+
+Separate data management from rendering:
+
+```typescript
+// containers/UserListContainer.tsx - handles data and logic
+const UserListContainer = () => {
+  const { users, loading, fetchUsers } = useUserStore();
+  const { userService } = useServices();
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const handleDelete = async (id: string) => {
+    await userService.delete(id);
+    fetchUsers();
+  };
+
+  return (
+    <UserListView
+      users={users}
+      loading={loading}
+      onDelete={handleDelete}
+    />
+  );
+};
+
+// components/UserListView.tsx - pure presentation
+const UserListView: React.FC<UserListViewProps> = ({
+  users,
+  loading,
+  onDelete
+}) => {
+  if (loading) return <Spinner />;
+
+  return (
+    <div>
+      {users.map(user => (
+        <UserCard
+          key={user.id}
+          user={user}
+          onDelete={() => onDelete(user.id)}
+        />
+      ))}
+    </div>
+  );
+};
+```
+
+---
+
+# Layer 3: Service Classes
+
+Extract API and business logic into testable service classes with clear interfaces.
+
+```typescript
+// services/user.service.ts
+export interface IUserService {
+  getAll(): Promise<User[]>;
+  getById(id: string): Promise<User>;
+  create(user: CreateUserDto): Promise<User>;
+  update(id: string, user: UpdateUserDto): Promise<User>;
+  delete(id: string): Promise<void>;
+}
+
+export class UserService implements IUserService {
+  constructor(private httpClient: HttpClient) {}
+
+  async getAll(): Promise<User[]> {
+    const response = await this.httpClient.get<User[]>('/api/users');
+    return response.data;
+  }
+
+  async getById(id: string): Promise<User> {
+    const response = await this.httpClient.get<User>(`/api/users/${id}`);
+    return response.data;
+  }
+
+  async create(user: CreateUserDto): Promise<User> {
+    const response = await this.httpClient.post<User>('/api/users', user);
+    return response.data;
+  }
+
+  async update(id: string, user: UpdateUserDto): Promise<User> {
+    const response = await this.httpClient.put<User>(`/api/users/${id}`, user);
+    return response.data;
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.httpClient.delete(`/api/users/${id}`);
+  }
+}
+
+// Validation as a separate service
+export class ValidationService {
+  static validateEmail(email: string): boolean {
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return regex.test(email);
+  }
+
+  static validatePassword(password: string): string[] {
+    const errors: string[] = [];
+    if (password.length < 8) errors.push('Password must be at least 8 characters');
+    if (!/[A-Z]/.test(password)) errors.push('Password must contain an uppercase letter');
+    return errors;
+  }
+}
+```
+
+---
+
+# State Management Patterns
+
+## Zustand for Global State
+
+Use Zustand stores for shared application state:
+
+```typescript
+// store/userStore.ts
+import { create } from 'zustand';
+
+interface UserState {
+  users: User[];
+  loading: boolean;
+  fetchUsers: () => Promise<void>;
+  addUser: (user: User) => void;
+  removeUser: (id: string) => void;
+}
+
+export const useUserStore = create<UserState>((set) => ({
+  users: [],
+  loading: false,
+  fetchUsers: async () => {
+    set({ loading: true });
+    const users = await userService.getAll();
+    set({ users, loading: false });
+  },
+  addUser: (user) => set((state) => ({
+    users: [...state.users, user]
+  })),
+  removeUser: (id) => set((state) => ({
+    users: state.users.filter(u => u.id !== id)
+  }))
+}));
+```
+
+## Context as Dependency Injection
+
+Use React Context to inject services, enabling testing and swappable implementations:
+
+```typescript
+// services/ServiceProvider.tsx
+interface Services {
+  userService: IUserService;
+  analyticsService: IAnalyticsService;
+  validationService: IValidationService;
+}
+
+const ServiceContext = createContext<Services>(null!);
+
+export const ServiceProvider: React.FC<{ services: Services; children: ReactNode }> = ({
+  services,
+  children
+}) => (
+  <ServiceContext.Provider value={services}>
+    {children}
+  </ServiceContext.Provider>
+);
+
+export const useServices = () => useContext(ServiceContext);
+
+// Usage in app
+const App = () => (
+  <ServiceProvider services={{
+    userService: new UserService(httpClient),
+    analyticsService: new AnalyticsService(),
+    validationService: new ValidationService()
+  }}>
+    <MainApp />
+  </ServiceProvider>
+);
+
+// Usage in component - now testable with mock services
+const UserProfile = () => {
+  const { userService } = useServices();
+  // ...
+};
+```
+
+## useReducer for Complex State Logic
+
+When state transitions are complex, use reducers to make logic explicit and testable:
+
+```typescript
+// reducers/userReducer.ts
+interface UserState {
+  users: User[];
+  selectedUser: User | null;
+  filter: FilterOptions;
+  status: 'idle' | 'loading' | 'succeeded' | 'failed';
+  error: string | null;
+}
+
+type UserAction =
+  | { type: 'FETCH_REQUEST' }
+  | { type: 'FETCH_SUCCESS'; payload: User[] }
+  | { type: 'FETCH_FAILURE'; error: string }
+  | { type: 'SET_FILTER'; payload: FilterOptions }
+  | { type: 'SELECT_USER'; payload: User };
+
+const userReducer = (state: UserState, action: UserAction): UserState => {
+  switch (action.type) {
+    case 'FETCH_REQUEST':
+      return { ...state, status: 'loading', error: null };
+    case 'FETCH_SUCCESS':
+      return { ...state, status: 'succeeded', users: action.payload };
+    case 'FETCH_FAILURE':
+      return { ...state, status: 'failed', error: action.error };
+    case 'SET_FILTER':
+      return { ...state, filter: action.payload };
+    case 'SELECT_USER':
+      return { ...state, selectedUser: action.payload };
+    default:
+      return state;
+  }
+};
+
+// Wrap in a custom hook for clean API
+const useUsers = () => {
+  const [state, dispatch] = useReducer(userReducer, initialState);
+
+  const actions = useMemo(() => ({
+    fetchUsers: async () => {
+      dispatch({ type: 'FETCH_REQUEST' });
+      try {
+        const users = await userService.getAll();
+        dispatch({ type: 'FETCH_SUCCESS', payload: users });
+      } catch (error) {
+        dispatch({ type: 'FETCH_FAILURE', error: error.message });
+      }
+    },
+    setFilter: (filter: FilterOptions) => {
+      dispatch({ type: 'SET_FILTER', payload: filter });
+    },
+    selectUser: (user: User) => {
+      dispatch({ type: 'SELECT_USER', payload: user });
+    }
+  }), []);
+
+  return { state, actions };
+};
+```
+
+## React Query for Server State
+
+Separates server state (cached, async) from client state (synchronous, local):
+
+```typescript
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+
+const UsersPage = () => {
+  const queryClient = useQueryClient();
+
+  // Encapsulates fetching, caching, retry, background refresh
+  const { data: users, isLoading, error } = useQuery({
+    queryKey: ['users'],
+    queryFn: () => userService.getAll()
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => userService.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    }
+  });
+
+  return (
+    <UserList
+      users={users ?? []}
+      loading={isLoading}
+      onDelete={deleteMutation.mutate}
+    />
+  );
+};
+```
+
+---
+
+# Event-Driven Architecture
+
+For cross-cutting concerns (analytics, logging, notifications), use an event bus:
+
+```typescript
+// events/EventBus.ts
+type EventHandler<T = unknown> = (payload: T) => void;
+
+class EventBus {
+  private listeners = new Map<string, EventHandler[]>();
+
+  on<T>(event: string, handler: EventHandler<T>): () => void {
+    if (!this.listeners.has(event)) {
+      this.listeners.set(event, []);
+    }
+    this.listeners.get(event)!.push(handler as EventHandler);
+    return () => this.off(event, handler);
+  }
+
+  off<T>(event: string, handler: EventHandler<T>): void {
+    const handlers = this.listeners.get(event);
+    if (handlers) {
+      const index = handlers.indexOf(handler as EventHandler);
+      if (index > -1) handlers.splice(index, 1);
+    }
+  }
+
+  emit<T>(event: string, payload?: T): void {
+    this.listeners.get(event)?.forEach(handler => handler(payload));
+  }
+}
+
+export const eventBus = new EventBus();
+
+// Analytics hook subscribes to events
+const useAnalytics = () => {
+  useEffect(() => {
+    return eventBus.on('USER_ACTION', (payload: { event: string; data: unknown }) => {
+      analytics.track(payload.event, payload.data);
+    });
+  }, []);
+};
+
+// Components emit events without knowing who listens
+const ProductCard = ({ product }) => {
+  const handleAddToCart = () => {
+    addToCart(product.id);
+    eventBus.emit('USER_ACTION', {
+      event: 'add_to_cart',
+      data: { productId: product.id }
+    });
+  };
+};
+```
+
+---
+
+# Feature-Based Organization
+
+Structure code by feature domain, not by file type:
+
+```
+src/
+  features/
+    users/
+      components/
+        UserList.tsx
+        UserForm.tsx
+        UserCard.tsx
+      hooks/
+        useUsers.ts
+        useUserForm.ts
+      services/
+        userService.ts
+        userMapper.ts
+      types/
+        user.types.ts
+      utils/
+        userValidation.ts
+      index.ts          # Public API for feature
+    products/
+    cart/
+    checkout/
+  shared/
+    components/         # Reusable UI primitives
+    hooks/              # Cross-cutting hooks
+    services/           # Shared services
+    utils/              # Shared utilities
+  app/
+    App.tsx
+    routes.tsx
+```
+
+**Benefits:**
+- Related code lives together
+- Features can be developed independently
+- Easy to find everything related to a feature
+- Clear boundaries for code ownership
+
+---
+
+# Composing Hooks
+
+Build complex behavior by composing simple hooks:
+
+```typescript
+const useProduct = (productId: string) => {
+  const { data: product, isLoading, error, refetch } = useCachedQuery({
+    key: `product-${productId}`,
+    fetcher: () => productService.getById(productId)
+  });
+
+  const { addToCart, isLoading: isAddingToCart } = useAddToCart();
+  const { isFavorite, toggleFavorite } = useFavorite(productId);
+
+  const handleAddToCart = useCallback(async () => {
+    if (!product) return { success: false, error: 'No product' };
+    const result = await addToCart(product.id);
+    if (result.success) {
+      eventBus.emit('USER_ACTION', { event: 'add_to_cart', data: { productId: product.id } });
+    }
+    return result;
+  }, [product, addToCart]);
+
+  return {
+    product,
+    isLoading,
+    error,
+    refetch,
+    addToCart: handleAddToCart,
+    isAddingToCart,
+    isFavorite,
+    toggleFavorite
+  };
+};
+
+// Component becomes trivial
+const ProductPage = ({ productId }: { productId: string }) => {
+  const { product, isLoading, error, addToCart, isFavorite, toggleFavorite } = useProduct(productId);
+
+  if (isLoading) return <ProductSkeleton />;
+  if (error) return <ProductError error={error} />;
+  if (!product) return <ProductNotFound />;
+
+  return (
+    <ProductView
+      product={product}
+      onAddToCart={addToCart}
+      isFavorite={isFavorite}
+      onToggleFavorite={toggleFavorite}
+    />
+  );
+};
+```
+
+---
+
+# Refactoring Order
+
+1. **UI primitives** - Buttons, inputs, modals, cards (no dependencies)
+2. **Feature components** - ProductCard, UserProfile, CartItem (extract logic to hooks)
+3. **Shared hooks** - `useLocalStorage`, `useFetch`, `useForm` (utility belt)
+4. **Services** - API clients, validation, formatters (testable business logic)
+5. **Container components** - Pages, layouts (now compose cleanly)
+6. **State management** - Introduce stores only when hooks aren't enough
+
+---
+
+# When NOT to Refactor
+
+| Scenario | Why Skip |
+|----------|----------|
+| Stable code that works | If it ain't broke and rarely changes, leave it |
+| Scheduled for deletion | Don't polish code that's being removed |
+| True one-offs | Not everything needs abstraction |
+| During incident response | Fix the bug first, refactor later |
+
+---
+
+# Co-location vs Centralization
+
+| Location | When to Use |
+|----------|-------------|
+| Near component (`components/ProductCard/useProductCard.ts`) | Hook is specific to one component |
+| Feature folder (`features/cart/hooks/useCart.ts`) | Shared within a feature domain |
+| Shared folder (`shared/hooks/useLocalStorage.ts`) | Used by 2+ unrelated features |
+
+**Rule of thumb**: Start co-located, move to shared when you need it elsewhere.
+
+---
+
+# TypeScript Discipline
+
+## Type Hook Returns Explicitly
+```typescript
+// Good: explicit return type
+const useCart = (): UseCartResult => { ... }
+
+// Avoid: inferred return type can leak implementation details
+const useCart = () => { ... }
+```
+
+## Create Interfaces for Services
+```typescript
+// Define the contract
+interface ProductService {
+  getById(id: string): Promise<Product>;
+  search(query: string): Promise<Product[]>;
+}
+
+// Implementation can change without affecting consumers
+class ProductServiceImpl implements ProductService { ... }
+```
+
+## Avoid `any` During Extraction
+```typescript
+// Bad: losing type safety
+const handleError = (err: any) => setError(err.message);
+
+// Good: proper error handling
+const handleError = (err: unknown) => {
+  const message = err instanceof Error ? err.message : 'Unknown error';
+  setError(message);
+};
+```
+
+---
+
+# Testing Strategy
+
+## Write Tests As You Extract
+
+```typescript
+// Test the hook in isolation
+describe('useAddToCart', () => {
+  it('sets loading state during request', async () => {
+    const { result } = renderHook(() => useAddToCart());
+
+    const promise = act(() => result.current.addToCart('product-1'));
+    expect(result.current.isLoading).toBe(true);
+
+    await promise;
+    expect(result.current.isLoading).toBe(false);
+  });
+
+  it('returns error on failure', async () => {
+    cartService.add = jest.fn().mockRejectedValue(new Error('Network error'));
+
+    const { result } = renderHook(() => useAddToCart());
+    const response = await act(() => result.current.addToCart('product-1'));
+
+    expect(response.success).toBe(false);
+    expect(result.current.error).toBe('Network error');
+  });
+});
+
+// Service tests are pure unit tests
+describe('ValidationService', () => {
+  it('validates email format', () => {
+    expect(ValidationService.validateEmail('test@example.com')).toBe(true);
+    expect(ValidationService.validateEmail('invalid')).toBe(false);
+  });
+});
+```
+
+## Keep Old Code Working During Transition
+
+```typescript
+const ProductCard = (props: ProductCardProps) => {
+  if (useFeatureFlag('new-product-card')) {
+    return <ProductCardRefactored {...props} />;
+  }
+  return <ProductCardLegacy {...props} />;
+};
+```
+
+---
+
+# Performance Considerations
+
+## Don't Optimize Prematurely
+
+```typescript
+// Only add useCallback when:
+// 1. Passing to memoized children
+// 2. Used in dependency arrays
+// 3. Profiler shows it's needed
+
+// Unnecessary (no memoized children)
+const handleClick = useCallback(() => doThing(), []);
+
+// Necessary (passed to React.memo component)
+const handleClick = useCallback(() => doThing(), []);
+return <MemoizedButton onClick={handleClick} />;
+```
+
+## Use React.memo Strategically
+
+```typescript
+// Good candidate: receives primitive/stable props, renders often
+const ProductCardView = memo(({ product, onAddToCart }: Props) => (
+  // ...
+));
+
+// Poor candidate: receives new object props each render
+const ProductList = memo(({ filters }: { filters: { category: string } }) => (
+  // filters object is new each render, memo is useless
+));
+```
+
+---
+
+# Error Resilience
+
+## Add Error Boundaries During Refactoring
+
+```typescript
+const ProductSection = () => (
+  <ErrorBoundary fallback={<ProductSectionError />}>
+    <ProductList />
+  </ErrorBoundary>
+);
+
+class ErrorBoundary extends Component<Props, State> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    errorReporting.capture(error, info);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback;
+    }
+    return this.props.children;
+  }
+}
+```
+
+## Graceful Degradation
+
+```typescript
+const useProducts = () => {
+  const { data, error, isLoading } = useSWR('/api/products', fetcher);
+
+  return {
+    products: data ?? [],
+    error,
+    isLoading,
+    isEmpty: !isLoading && (data?.length ?? 0) === 0
+  };
+};
+```
+
+---
+
+# Risk Management
+
+## Low-Risk First Steps
+1. Create a `hooks/` folder and extract ONE hook from your messiest component
+2. Create a `services/` folder and move ONE API call to a service class
+3. Create a `components/ui/` folder and extract ONE pure UI component
+
+## Quick Wins That Demonstrate Value
+- Extract a `useLocalStorage` hook (immediate reuse across components)
+- Create a `Button` component with variants (visible UI consistency)
+- Extract a `formatCurrency` utility (demonstrates separation of concerns)
+
+## What to Avoid Initially
+- Don't introduce a global state manager until you need it
+- Don't rewrite entire pages at once
+- Don't change routing or folder structure radically
+- Don't refactor and add features simultaneously
+
+---
+
+# Practical Checklist
+
+For each component you refactor:
+
+- [ ] Can I extract logic into a custom hook?
+- [ ] Can I split this into smaller components?
+- [ ] Can I move business logic to a service class?
+- [ ] Is this component doing one thing well?
+- [ ] Have I written tests for extracted code?
+- [ ] Are TypeScript types explicit and correct?
+- [ ] Is error handling in place?
+- [ ] Does it compose well with other pieces?

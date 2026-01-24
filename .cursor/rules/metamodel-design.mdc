@@ -3,6 +3,20 @@ description: Three-level metamodel architecture
 globs: ["**/constructs/**", "**/components/fields/**", "**/components/FieldDefinitionEditor*"]
 ---
 
+# The Dual-Mandate
+
+Carta's design must fulfill two objectives in tension:
+
+**1. Properly Bounded Modeling Capability**
+Users must be able to model any domain (software architecture, sentence diagramming, circuits) at any granularity (abstract to highly detailed). The M2 primitives must be flexible enough to express diverse domains, yet restrictive enough that users don't drown in options or create muddled models. There is a "sweet spot" between too permissive and too restrictive.
+
+**2. Semantically Sufficient Compilation**
+The model state must compile to instructions an AI agent can act on—generating code, explanations, or other artifacts. This requires sufficient semantic data to differentiate instances, relationships, and schema. If an AI cannot produce quality output, the failure is either: (a) compilation lost structure, (b) the user didn't add enough meaning (but had the capability to), or (c) the metamodel was too complex to use effectively.
+
+**Design decisions must satisfy both objectives.** When evaluating changes, ask: Does this expand modeling capability without adding confusion? Does this preserve or enhance semantic clarity in compilation?
+
+---
+
 # Metamodel Design: Three-Level Architecture
 
 Carta uses a classic three-level metamodel (M2/M1/M0) to provide flexibility while maintaining type safety.

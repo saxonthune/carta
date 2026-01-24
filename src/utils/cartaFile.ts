@@ -14,7 +14,6 @@ export const CARTA_FILE_VERSION = 2;
 export interface CartaFile {
   version: number;
   title: string;
-  nodeId: number;
   nodes: Node[];
   edges: Edge[];
   deployables: Deployable[];
@@ -59,7 +58,6 @@ export function exportProject(data: Omit<CartaFile, 'version' | 'exportedAt'>, o
   // Apply export options to filter data
   const filteredData: Omit<CartaFile, 'version' | 'exportedAt'> = {
     title: data.title,
-    nodeId: data.nodeId,
     nodes: options?.nodes !== false ? data.nodes : [],
     edges: options?.nodes !== false ? data.edges : [],
     deployables: options?.deployables !== false ? data.deployables : [],
@@ -136,11 +134,7 @@ export function validateCartaFile(data: unknown): CartaFile {
   if (typeof obj.title !== 'string') {
     throw new Error('Invalid file: missing or invalid title');
   }
-  
-  if (typeof obj.nodeId !== 'number') {
-    throw new Error('Invalid file: missing or invalid nodeId');
-  }
-  
+
   if (!Array.isArray(obj.nodes)) {
     throw new Error('Invalid file: missing or invalid nodes array');
   }
@@ -251,7 +245,6 @@ export function validateCartaFile(data: unknown): CartaFile {
   return {
     version: obj.version as number,
     title: obj.title as string,
-    nodeId: obj.nodeId as number,
     nodes: obj.nodes as Node[],
     edges: obj.edges as Edge[],
     deployables: obj.deployables as Deployable[],

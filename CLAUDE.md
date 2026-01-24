@@ -14,15 +14,75 @@ Detailed guidance lives in `.cursor/`:
 | `.cursor/rules/react-flow.mdc` | React Flow patterns, handles, node types |
 | `.cursor/rules/ports-and-connections.mdc` | Port model, connection semantics, relationship design |
 | `.cursor/rules/metamodel-design.mdc` | Three-level metamodel (M2/M1/M0) |
+| `.cursor/rules/clean-composable-react.mdc` | React patterns, hooks, state management |
+| `.cursor/rules/yjs-collaboration.mdc` | Yjs collaboration preparation |
+
+## Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Document Store (Zustand)                src/stores/        │
+│  - nodes[], edges[], title                                  │
+│  - schemas[] (M1 construct definitions)                     │
+│  - deployables[] (logical groupings)                        │
+│  - Node IDs: UUID via crypto.randomUUID()                   │
+│  - Auto-saves to localStorage ('carta-document')            │
+│  → Future: swap localStorage adapter for Yjs Y.Doc          │
+└─────────────────────────────────────────────────────────────┘
+           ↓
+┌─────────────────────────────────────────────────────────────┐
+│  Service Layer (Registry Facades)        src/constructs/    │
+│  - registry → schema CRUD (delegates to store)              │
+│  - deployableRegistry → deployable CRUD (delegates to store)│
+│  - These maintain API compatibility while store owns data   │
+└─────────────────────────────────────────────────────────────┘
+           ↓
+┌─────────────────────────────────────────────────────────────┐
+│  Hooks Layer                             src/hooks/         │
+│  - useDocumentStore() → document state access               │
+│  - useGraphOperations() → add/delete/update nodes           │
+│  - useConnections() → connection management                 │
+│  - useClipboard() → copy/paste (local state)                │
+│  - useKeyboardShortcuts() → keyboard handling               │
+│  - useUndoRedo() → undo/redo history                        │
+└─────────────────────────────────────────────────────────────┘
+           ↓
+┌─────────────────────────────────────────────────────────────┐
+│  Components (UI only)                    src/components/    │
+│  - Map.tsx → React Flow bindings, context menus             │
+│  - App.tsx → orchestration, modals, layout                  │
+│  - ConstructNode.tsx → node rendering                       │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `src/stores/documentStore.ts` | Zustand store: nodes, edges, title, schemas, deployables |
+| `src/stores/adapters/types.ts` | DocumentAdapter interface for Yjs migration |
+| `src/constructs/registry.ts` | Schema facade (delegates to store) |
+| `src/constructs/deployables.ts` | Deployable facade (delegates to store) |
+| `src/hooks/useGraphOperations.ts` | Node CRUD: addConstruct, deleteNode, renameNode, etc. |
+| `src/hooks/useConnections.ts` | Connection logic: onConnect, handleEdgesDelete, validation |
+| `src/hooks/useClipboard.ts` | Copy/paste (local state, not collaborative) |
+| `src/hooks/useKeyboardShortcuts.ts` | Keyboard shortcut handling |
+| `src/components/Map.tsx` | React Flow canvas, UI event handlers |
 
 ## Key Design Principles
 
-### Three-Layer Architecture
-1. **Visual Editor** (`components/`) - React Flow canvas, UI interactions
-2. **Construct Registry** (`constructs/`) - Schema definitions, types
-3. **Compiler** (`constructs/compiler/`) - Output generation
+### The Dual-Mandate
+All design decisions must balance two objectives:
+1. **Properly bounded modeling capability** — flexible enough for any domain, restrictive enough to prevent muddled models
+2. **Semantically sufficient compilation** — state must compile to AI-actionable instructions with enough meaning to generate quality output
 
-Layers are decoupled. Changes to one shouldn't require changes to others.
+When evaluating changes, ask: Does this expand capability without confusion? Does this preserve semantic clarity? See `.cursor/rules/metamodel-design.mdc` for full details.
+
+### State Management
+- **Document state** lives in Zustand store (`useDocumentStore`)
+- **UI state** (selection, menus, modals) stays in component useState
+- **No ref patterns** for cross-component communication—use store directly
+- Store auto-saves to localStorage with 500ms debounce
 
 ### Port & Connection Model
 **Consult:** `.cursor/rules/ports-and-connections.mdc`
@@ -38,21 +98,20 @@ Layers are decoupled. Changes to one shouldn't require changes to others.
 - `semanticId` is required, auto-generated as `{type}-{timestamp}{random}`
 - Use `getDisplayName(data, schema)` from `src/utils/displayUtils.ts`
 
-### When Adding New Construct Types
-1. Define schema in `src/constructs/schemas/`
-2. Include `ports: PortConfig[]` with `portType` (not `direction`)
-3. Set `displayField` to the field that should show as node title
-4. Set appropriate `compilation` config
-5. Register in `src/constructs/schemas/index.ts`
-
-### When Modifying Connection Behavior
-1. Read ports-and-connections.mdc first
-2. Connection data stored in `ConstructNodeData.connections[]`
-3. Edges sync bidirectionally with connection data
-4. Use `portRegistry.canConnect()` for validation
-5. Compiler reads connections to generate relationship metadata
-
 ## Common Tasks
+
+### Modify graph operations (add/delete/update nodes)
+```
+src/hooks/useGraphOperations.ts   → Node CRUD operations
+src/stores/documentStore.ts       → updateNode with semantic ID cascade
+```
+
+### Modify connection behavior
+```
+src/hooks/useConnections.ts       → onConnect, handleEdgesDelete, isValidConnection
+src/constructs/ports.ts           → Built-in port configurations
+src/constructs/portRegistry.ts    → Port definitions, canConnect()
+```
 
 ### Add a built-in construct type
 ```
@@ -73,13 +132,16 @@ src/utils/displayUtils.ts          → Node title derivation
 src/index.css                      → Styling (handles, colors)
 ```
 
-### Update port/connection behavior
+### Modify keyboard shortcuts
 ```
-src/constructs/types.ts            → PortConfig, PortDefinition types
-src/constructs/portRegistry.ts     → Port definitions, canConnect()
-src/constructs/ports.ts            → Built-in port configurations
-src/components/ConstructNode.tsx   → Handle rendering
-src/components/Map.tsx             → onConnect handler
+src/hooks/useKeyboardShortcuts.ts  → All keyboard handlers
+```
+
+### Prepare for Yjs collaboration
+```
+src/stores/adapters/types.ts              → DocumentAdapter interface
+src/stores/adapters/localStorageAdapter.ts → Current implementation
+# Future: create yjsAdapter.ts implementing same interface
 ```
 
 ## Testing Checklist
@@ -91,3 +153,5 @@ When modifying constructs or connections:
 - [ ] Compilation output includes ports and relationships
 - [ ] Import/export preserves port configurations
 - [ ] Node titles display from displayField or semanticId
+- [ ] Undo/redo works for all graph operations
+- [ ] Copy/paste preserves node data with new IDs
