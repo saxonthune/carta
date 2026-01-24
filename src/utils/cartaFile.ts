@@ -1,12 +1,14 @@
 import type { Node, Edge } from '@xyflow/react';
-import type { Deployable, ConstructSchema } from '../constructs/types';
+import type { Deployable, ConstructSchema, PortSchema } from '../constructs/types';
+import { DEFAULT_PORT_SCHEMAS } from '../constructs/portRegistry';
 import type { ExportOptions } from './exportAnalyzer';
 
 /**
  * Version of the .carta file format
+ * Version 3: Added portSchemas array for port type definitions and customization
  * Version 2: Changed port direction to portType (flow-in, flow-out, parent, child, symmetric)
  */
-export const CARTA_FILE_VERSION = 2;
+export const CARTA_FILE_VERSION = 3;
 
 /**
  * Structure of a .carta project file
@@ -18,6 +20,7 @@ export interface CartaFile {
   edges: Edge[];
   deployables: Deployable[];
   customSchemas: ConstructSchema[];
+  portSchemas?: PortSchema[];  // Optional for backwards compatibility with v2 files
   exportedAt: string;
 }
 
@@ -62,6 +65,7 @@ export function exportProject(data: Omit<CartaFile, 'version' | 'exportedAt'>, o
     edges: options?.nodes !== false ? data.edges : [],
     deployables: options?.deployables !== false ? data.deployables : [],
     customSchemas: options?.schemas !== false ? data.customSchemas : [],
+    portSchemas: options?.portSchemas !== false ? data.portSchemas : [],
   };
 
   const cartaFile: CartaFile = {
@@ -241,7 +245,38 @@ export function validateCartaFile(data: unknown): CartaFile {
       }
     }
   }
-  
+
+  // Validate portSchemas if present (optional for backwards compatibility with v2 files)
+  let portSchemas: PortSchema[] = DEFAULT_PORT_SCHEMAS;
+  if (obj.portSchemas !== undefined) {
+    if (!Array.isArray(obj.portSchemas)) {
+      throw new Error('Invalid file: portSchemas must be an array');
+    }
+    for (const ps of obj.portSchemas as unknown[]) {
+      if (!ps || typeof ps !== 'object') {
+        throw new Error('Invalid file: invalid portSchema structure');
+      }
+      const p = ps as Record<string, unknown>;
+      if (typeof p.id !== 'string' || typeof p.displayName !== 'string' ||
+          typeof p.semanticDescription !== 'string' || typeof p.polarity !== 'string' ||
+          !Array.isArray(p.compatibleWith) || typeof p.defaultPosition !== 'string' ||
+          typeof p.color !== 'string') {
+        throw new Error(`Invalid file: portSchema missing required fields (id, displayName, semanticDescription, polarity, compatibleWith, defaultPosition, color)`);
+      }
+      // Validate polarity enum
+      const validPolarities = ['source', 'sink', 'bidirectional'];
+      if (!validPolarities.includes(p.polarity as string)) {
+        throw new Error(`Invalid file: portSchema "${p.id}" has invalid polarity "${p.polarity}"`);
+      }
+      // Validate defaultPosition enum
+      const validPositions = ['left', 'right', 'top', 'bottom'];
+      if (!validPositions.includes(p.defaultPosition as string)) {
+        throw new Error(`Invalid file: portSchema "${p.id}" has invalid defaultPosition "${p.defaultPosition}"`);
+      }
+    }
+    portSchemas = obj.portSchemas as PortSchema[];
+  }
+
   return {
     version: obj.version as number,
     title: obj.title as string,
@@ -249,6 +284,7 @@ export function validateCartaFile(data: unknown): CartaFile {
     edges: obj.edges as Edge[],
     deployables: obj.deployables as Deployable[],
     customSchemas: obj.customSchemas as ConstructSchema[],
+    portSchemas,
     exportedAt: (obj.exportedAt as string) || new Date().toISOString(),
   };
 }

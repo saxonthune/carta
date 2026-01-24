@@ -1,6 +1,6 @@
 ---
 description: Three-level metamodel architecture
-globs: ["**/constructs/**", "**/components/fields/**", "**/components/FieldDefinitionEditor*"]
+globs: ["**/constructs/**", "**/components/fields/**", "**/components/FieldSchemaEditor*", "**/components/PortSchemaEditor*"]
 ---
 
 # The Dual-Mandate
@@ -29,13 +29,18 @@ M2 (Designer-fixed)     M1 (User-defined)           M0 (Instances)
 DataKind: string,       Registries:                 ConstructInstance:
   number, boolean,        - Constructs                - type → Construct
   date, enum              - Deployables               - deployable? → Deployable
-                          - Ports                     - semanticId (required)
-PortDefinition:                                       - values: {field → value}
-  flow-in, flow-out,   Construct:                    - connections[]
-  parent, child,         - displayName, description
-  symmetric              - displayField
-                         - fields[]
-                         - ports[]
+                          - Port Schemas              - semanticId (required)
+Polarity: source,                                     - values: {field → value}
+  sink,                PortSchema:                    - connections[]
+  bidirectional          - polarity
+                         - compatibleWith (wildcards)
+                         - defaultPosition
+
+                       Construct:
+                         - displayName, description
+                         - displayField
+                         - fields: FieldSchema[]
+                         - ports: PortConfig[]
 ```
 
 ## M2: Fixed Primitives
@@ -65,27 +70,49 @@ Presentation hints for string fields (optional):
 | `url` | URL input |
 | `color` | Color picker |
 
-### PortDefinition
-Fixed port types with compatibility rules (see `ports-and-connections.mdc`):
+### Polarity
+Polarity determines connection direction semantics:
 
-| Port Type | Compatible With | Default Position |
-|-----------|-----------------|------------------|
-| `flow-in` | flow-out, symmetric | left |
-| `flow-out` | flow-in, symmetric | right |
-| `parent` | child, symmetric | top |
-| `child` | parent, symmetric | bottom |
-| `symmetric` | any | right |
+| Polarity | Meaning | Examples |
+|----------|---------|----------|
+| `source` | Initiates connections | flow-out, parent, forward |
+| `sink` | Receives connections | flow-in, child, intercept |
+| `bidirectional` | Can both initiate and receive | symmetric |
+
+**Validation rules:**
+- source → source: BLOCKED
+- sink → sink: BLOCKED
+- source → sink: ALLOWED
+- sink → source: ALLOWED (user dragged backward)
+- bidirectional → any: ALLOWED
+
+### PortSchema (M1 Layer)
+Port schemas are now user-editable M1 entities (like ConstructSchema):
+
+| Port Type | Polarity | Compatible With | Default Position |
+|-----------|----------|-----------------|------------------|
+| `flow-in` | sink | flow-out, forward | left |
+| `flow-out` | source | flow-in, intercept | right |
+| `parent` | source | child, intercept | bottom |
+| `child` | sink | parent, forward | top |
+| `symmetric` | bidirectional | * (wildcard) | right |
+| `intercept` | sink | *source* (wildcard) | left |
+| `forward` | source | *sink* (wildcard) | right |
 
 ```typescript
-interface PortDefinition {
-  id: string;              // 'flow-in', 'flow-out', etc.
-  label: string;
-  description: string;
-  compatibleWith?: string[]; // undefined = any port
+interface PortSchema {
+  id: string;                    // 'flow-in', 'flow-out', etc.
+  displayName: string;
+  semanticDescription: string;   // AI compilation context
+  polarity: Polarity;
+  compatibleWith: string[];      // port IDs or wildcards: '*', '*source*', '*sink*'
+  expectedComplement?: string;   // UI hint only
   defaultPosition: PortPosition;
   color: string;
 }
 ```
+
+Port schemas are stored in the document store and editable via the Ports tab.
 
 ## M1: User-Defined Schemas
 
@@ -98,7 +125,7 @@ interface ConstructSchema {
   color: string;             // Visual accent
   description?: string;      // AI compilation context
   displayField?: string;     // Field to use as node title
-  fields: FieldDefinition[]; // Data fields
+  fields: FieldSchema[];     // Data fields
   ports?: PortConfig[];      // Connection points
   compilation: CompilationConfig;
 }
@@ -120,10 +147,10 @@ Specifies which field's value to show as the node title. If not set or empty, fa
 }
 ```
 
-### FieldDefinition
+### FieldSchema
 
 ```typescript
-interface FieldDefinition {
+interface FieldSchema {
   name: string;           // Internal key
   label: string;          // Display label
   type: DataKind;         // One of the M2 primitives
@@ -132,6 +159,7 @@ interface FieldDefinition {
   displayHint?: DisplayHint; // For string type only
   default?: unknown;
   placeholder?: string;
+  displayInMap?: boolean; // Show this field in the map node summary
 }
 ```
 
@@ -266,19 +294,28 @@ See `registry-base.ts` for the `BaseRegistry` implementation with localStorage p
 
 ## Port Registry
 
-The `PortRegistry` manages port type definitions and validates connections:
+The `PortRegistry` manages port schemas with polarity-based validation:
 
 ```typescript
 // src/constructs/portRegistry.ts
 export class PortRegistry {
-  get(id: string): PortDefinition | undefined;
-  getAll(): PortDefinition[];
-  canConnect(sourcePortType: string, targetPortType: string): boolean;
+  get(id: string): PortSchema | undefined;
+  getAll(): PortSchema[];
+  setSchemas(schemas: PortSchema[]): void;  // Sync with document store
+  canConnect(fromPortType: string, toPortType: string): boolean;  // Polarity-based
   getColor(portType: string): string;
+  register(schema: PortSchema): void;
+  remove(id: string): boolean;
+  getDefaultPosition(portType: string): PortPosition;
 }
 
 export const portRegistry = new PortRegistry();
+
+// Sync registry with document store
+export async function syncWithDocumentStore(): Promise<void>;
 ```
+
+Port schemas are stored in the document store alongside construct schemas and deployables. Users can create custom port types via the Ports tab.
 
 ## Display Utilities
 

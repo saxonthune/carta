@@ -61,6 +61,7 @@ The application uses a split-panel layout similar to JetBrains IDEs:
   - **ConstructViewer** - Shows/edits fields of selected construct
   - **ConstructEditor** - CRUD for construct schemas
   - **DeployablesEditor** - CRUD for deployables
+  - **PortSchemaEditor** - CRUD for port schemas (port type definitions)
 
 **State Flow:**
 - `selectedNodeIds` lifted to App, shared between Map and Dock
@@ -69,11 +70,12 @@ The application uses a split-panel layout similar to JetBrains IDEs:
 
 ### 2. Construct Registry Layer (`src/constructs/`)
 - Central registry (`registry.ts`) that stores all construct type definitions
-- Schema system (`types.ts`) defines structure of constructs via `ConstructSchema` interface
-- Port registry (`portRegistry.ts`) defines port types and validates connections
+- Schema system (`types.ts`) defines structure via `ConstructSchema`, `PortSchema`, `FieldSchema` interfaces
+- Port registry (`portRegistry.ts`) manages port schemas with polarity-based validation
 - Built-in schemas (`schemas/`) for common constructs: REST Controller, Database, Table, Implementation Details
-- User-defined schemas stored in localStorage via `storage.ts`
-- Schema Editor (`components/ConstructEditor.tsx`, `SchemaEditor.tsx`) allows users to create custom constructs
+- User-defined schemas and port schemas stored in document store
+- Schema Editor (`components/ConstructEditor.tsx`) allows users to create custom constructs
+- Port Schema Editor (`components/PortSchemaEditor.tsx`) allows users to create custom port types
 - **Does NOT know** about React Flow or how nodes are rendered
 
 ### 3. Compiler Layer (`src/constructs/compiler/`)
@@ -127,12 +129,15 @@ Deployables are compiled into the output as metadata, helping AI tools generate 
 
 Constructs connect via **ports**—typed attachment points that determine relationship semantics:
 
-- **Port types**: `flow-in`, `flow-out`, `parent`, `child`, `symmetric`
-- **Compatibility-based validation**: Each port type defines which other types it can connect to
+- **Port schemas**: Define port types with polarity (`source`, `sink`, `bidirectional`)
+- **Built-in ports**: `flow-in`, `flow-out`, `parent`, `child`, `symmetric`, `intercept`, `forward`
+- **Polarity-based validation**: Prevents invalid connections (source-source, sink-sink)
+- **Wildcard support**: `*`, `*source*`, `*sink*` for flexible compatibility rules
 - **Storage**: All connection data lives on constructs, not edges
-- **Interpretation**: Direction derives from port ownership, not edge metadata
+- **Interpretation**: Direction derives from port ownership and polarity, not edge metadata
+- **User-extensible**: Port schemas stored in document store, editable via Ports tab
 
-Example: A `Constraint` with a `flow-out` port connecting to a `Table`'s `flow-in` port means "Constraint references Table" (and inversely, "Table is referenced by Constraint").
+Example: A `Constraint` with a `flow-out` port (source polarity) connecting to a `Table`'s `flow-in` port (sink polarity) means "Constraint references Table" (and inversely, "Table is referenced by Constraint").
 
 ### AI-Friendly Semantic Linking
 
@@ -212,14 +217,13 @@ User opens Construct Editor → Can view/edit schemas + ports → Saves to local
 - `/src/components/` - Modals, menus, field editors
 
 ### Domain Logic
-- `/src/constructs/types.ts` - Core TypeScript interfaces (organized by M2/M1/M0 layers)
+- `/src/constructs/types.ts` - Core TypeScript interfaces: PortSchema, FieldSchema, Polarity, CartaDocument, DocumentAdapter
 - `/src/constructs/registry.ts` - Singleton registry for schemas
-- `/src/constructs/portRegistry.ts` - Port type definitions and connection validation
-- `/src/constructs/ports.ts` - Built-in port configurations
-- `/src/constructs/storage.ts` - LocalStorage persistence
+- `/src/constructs/portRegistry.ts` - Port schema registry with polarity-based validation, wildcard matching
 - `/src/constructs/schemas/` - Built-in construct definitions
 - `/src/constructs/compiler/` - Compilation engine and formatters
 - `/src/constructs/deployables.ts` - Deployable management system
+- `/src/stores/documentStore.ts` - Zustand store: nodes, edges, schemas, deployables, portSchemas
 
 ### Utilities
 - `/src/utils/cartaFile.ts` - Export/import utilities with semantic ID generation

@@ -1,5 +1,4 @@
 import { registry } from './registry';
-import type { ConstructSchema } from './types';
 
 /**
  * Schema Storage - File import/export utilities

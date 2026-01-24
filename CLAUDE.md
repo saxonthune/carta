@@ -25,6 +25,7 @@ Detailed guidance lives in `.cursor/`:
 │  - nodes[], edges[], title                                  │
 │  - schemas[] (M1 construct definitions)                     │
 │  - deployables[] (logical groupings)                        │
+│  - portSchemas[] (M1 port type definitions)                 │
 │  - Node IDs: UUID via crypto.randomUUID()                   │
 │  - Auto-saves to localStorage ('carta-document')            │
 │  → Future: swap localStorage adapter for Yjs Y.Doc          │
@@ -34,6 +35,7 @@ Detailed guidance lives in `.cursor/`:
 │  Service Layer (Registry Facades)        src/constructs/    │
 │  - registry → schema CRUD (delegates to store)              │
 │  - deployableRegistry → deployable CRUD (delegates to store)│
+│  - portRegistry → port schema registry with validation      │
 │  - These maintain API compatibility while store owns data   │
 └─────────────────────────────────────────────────────────────┘
            ↓
@@ -52,6 +54,8 @@ Detailed guidance lives in `.cursor/`:
 │  - Map.tsx → React Flow bindings, context menus             │
 │  - App.tsx → orchestration, modals, layout                  │
 │  - ConstructNode.tsx → node rendering                       │
+│  - Dock.tsx → bottom panel with Viewer/Constructs/Deploy/   │
+│              Ports tabs                                     │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -59,15 +63,17 @@ Detailed guidance lives in `.cursor/`:
 
 | File | Purpose |
 |------|---------|
-| `src/stores/documentStore.ts` | Zustand store: nodes, edges, title, schemas, deployables |
-| `src/stores/adapters/types.ts` | DocumentAdapter interface for Yjs migration |
+| `src/stores/documentStore.ts` | Zustand store: nodes, edges, title, schemas, deployables, portSchemas |
+| `src/constructs/types.ts` | Core type definitions: PortSchema, FieldSchema, DocumentAdapter, CartaDocument, Polarity |
 | `src/constructs/registry.ts` | Schema facade (delegates to store) |
 | `src/constructs/deployables.ts` | Deployable facade (delegates to store) |
+| `src/constructs/portRegistry.ts` | Port schema registry with polarity-based validation, wildcard support |
 | `src/hooks/useGraphOperations.ts` | Node CRUD: addConstruct, deleteNode, renameNode, etc. |
 | `src/hooks/useConnections.ts` | Connection logic: onConnect, handleEdgesDelete, validation |
 | `src/hooks/useClipboard.ts` | Copy/paste (local state, not collaborative) |
 | `src/hooks/useKeyboardShortcuts.ts` | Keyboard shortcut handling |
 | `src/components/Map.tsx` | React Flow canvas, UI event handlers |
+| `src/components/PortSchemaEditor.tsx` | Two-panel editor for port schemas |
 
 ## Key Design Principles
 
@@ -88,10 +94,13 @@ When evaluating changes, ask: Does this expand capability without confusion? Doe
 **Consult:** `.cursor/rules/ports-and-connections.mdc`
 
 - Edges have **no metadata**—all data lives on constructs
-- **Port types** (`flow-in`, `flow-out`, `parent`, `child`, `symmetric`) determine connection meaning
-- Compatibility-based validation via `portRegistry.canConnect()`
+- **Port schemas** define port types with polarity (`source`, `sink`, `bidirectional`)
+- **Built-in ports**: `flow-in`, `flow-out`, `parent`, `child`, `symmetric`, `intercept`, `forward`
+- Polarity-based validation via `portRegistry.canConnect()` prevents incompatible connections
+- Wildcard support in `compatibleWith`: `*`, `*source*`, `*sink*`, `*bidirectional*`
 - Inverse relationships are **derivable**, never duplicated
 - Port configuration is **per-schema**, not per-instance
+- Port schemas stored in document store, user-editable via Ports tab
 
 ### Construct Identity
 - **No `name` field** on instances—titles come from schema's `displayField` or `semanticId`
@@ -109,8 +118,8 @@ src/stores/documentStore.ts       → updateNode with semantic ID cascade
 ### Modify connection behavior
 ```
 src/hooks/useConnections.ts       → onConnect, handleEdgesDelete, isValidConnection
-src/constructs/ports.ts           → Built-in port configurations
-src/constructs/portRegistry.ts    → Port definitions, canConnect()
+src/constructs/portRegistry.ts    → Port schema definitions, polarity-based canConnect()
+src/stores/documentStore.ts       → Port schema CRUD (add/update/remove)
 ```
 
 ### Add a built-in construct type
@@ -137,9 +146,16 @@ src/index.css                      → Styling (handles, colors)
 src/hooks/useKeyboardShortcuts.ts  → All keyboard handlers
 ```
 
+### Edit port schemas (port types)
+```
+src/components/PortSchemaEditor.tsx        → Port schema CRUD UI
+src/constructs/portRegistry.ts             → Port validation and registry logic
+src/stores/documentStore.ts                → Port schema persistence
+```
+
 ### Prepare for Yjs collaboration
 ```
-src/stores/adapters/types.ts              → DocumentAdapter interface
+src/constructs/types.ts                   → DocumentAdapter interface (includes port schemas)
 src/stores/adapters/localStorageAdapter.ts → Current implementation
 # Future: create yjsAdapter.ts implementing same interface
 ```
@@ -148,10 +164,13 @@ src/stores/adapters/localStorageAdapter.ts → Current implementation
 
 When modifying constructs or connections:
 - [ ] Can create construct with custom ports in Schema Editor
+- [ ] Can create/edit port schemas in Ports tab
+- [ ] Port polarity validation works correctly (source-source blocked, etc.)
+- [ ] Wildcard compatibility rules work (`*`, `*source*`, `*sink*`)
 - [ ] Handles appear at correct positions on canvas
 - [ ] Connections store on source construct's `connections[]`
 - [ ] Compilation output includes ports and relationships
-- [ ] Import/export preserves port configurations
+- [ ] Import/export preserves port configurations and port schemas (v3 file format)
 - [ ] Node titles display from displayField or semanticId
 - [ ] Undo/redo works for all graph operations
 - [ ] Copy/paste preserves node data with new IDs

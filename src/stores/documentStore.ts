@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { Node, Edge } from '@xyflow/react';
-import type { ConstructNodeData, ConstructSchema, Deployable } from '../constructs/types';
+import type { ConstructNodeData, ConstructSchema, Deployable, PortSchema } from '../constructs/types';
+import { DEFAULT_PORT_SCHEMAS } from '../constructs/portRegistry';
 
 // Storage keys
 const NEW_STORAGE_KEY = 'carta-document';
@@ -20,6 +21,9 @@ interface DocumentState {
   // M1: Schemas (was in registry singleton)
   schemas: ConstructSchema[];
 
+  // M1: Port Schemas (port type registry)
+  portSchemas: PortSchema[];
+
   // Deployables (was in deployableRegistry singleton)
   deployables: Deployable[];
 
@@ -36,6 +40,14 @@ interface DocumentState {
   addSchema: (schema: ConstructSchema) => void;
   updateSchema: (type: string, updates: Partial<ConstructSchema>) => void;
   removeSchema: (type: string) => boolean;
+
+  // Actions - Port Schemas
+  getPortSchema: (id: string) => PortSchema | undefined;
+  getPortSchemas: () => PortSchema[];
+  setPortSchemas: (schemas: PortSchema[]) => void;
+  addPortSchema: (schema: PortSchema) => void;
+  updatePortSchema: (id: string, updates: Partial<PortSchema>) => void;
+  removePortSchema: (id: string) => boolean;
 
   // Actions - Deployables
   getDeployable: (id: string) => Deployable | undefined;
@@ -87,6 +99,7 @@ function loadInitialState(): {
   edges: Edge[];
   title: string;
   schemas: ConstructSchema[];
+  portSchemas: PortSchema[];
   deployables: Deployable[];
 } {
   try {
@@ -99,6 +112,7 @@ function loadInitialState(): {
         edges: parsed.edges || [],
         title: parsed.title || 'Untitled Project',
         schemas: parsed.schemas || [],
+        portSchemas: parsed.portSchemas || DEFAULT_PORT_SCHEMAS,
         deployables: parsed.deployables || [],
       };
     }
@@ -116,6 +130,7 @@ function loadInitialState(): {
       let edges: Edge[] = [];
       let title = 'Untitled Project';
       let schemas: ConstructSchema[] = [];
+      let portSchemas = DEFAULT_PORT_SCHEMAS;
       let deployables: Deployable[] = [];
 
       if (oldGraphData) {
@@ -136,7 +151,7 @@ function loadInitialState(): {
       // Save to new unified key
       localStorage.setItem(
         NEW_STORAGE_KEY,
-        JSON.stringify({ nodes, edges, title, schemas, deployables })
+        JSON.stringify({ nodes, edges, title, schemas, portSchemas, deployables })
       );
 
       // Remove old keys
@@ -146,7 +161,7 @@ function loadInitialState(): {
 
       console.log('Migration complete. Old storage keys removed.');
 
-      return { nodes, edges, title, schemas, deployables };
+      return { nodes, edges, title, schemas, portSchemas, deployables };
     }
   } catch (error) {
     console.error('Failed to load state from localStorage:', error);
@@ -158,6 +173,7 @@ function loadInitialState(): {
     edges: [],
     title: 'Untitled Project',
     schemas: [],
+    portSchemas: DEFAULT_PORT_SCHEMAS,
     deployables: [],
   };
 }
@@ -170,6 +186,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   edges: initialState.edges,
   title: initialState.title,
   schemas: initialState.schemas,
+  portSchemas: initialState.portSchemas,
   deployables: initialState.deployables,
 
   // Actions - Graph
@@ -263,6 +280,43 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     return exists;
   },
 
+  // Actions - Port Schemas
+  getPortSchema: (id) => {
+    return get().portSchemas.find((s) => s.id === id);
+  },
+
+  getPortSchemas: () => {
+    return get().portSchemas;
+  },
+
+  setPortSchemas: (schemas) => {
+    set({ portSchemas: schemas });
+  },
+
+  addPortSchema: (schema) => {
+    set((state) => ({
+      portSchemas: [...state.portSchemas.filter((s) => s.id !== schema.id), schema],
+    }));
+  },
+
+  updatePortSchema: (id, updates) => {
+    set((state) => ({
+      portSchemas: state.portSchemas.map((s) =>
+        s.id === id ? { ...s, ...updates } : s
+      ),
+    }));
+  },
+
+  removePortSchema: (id) => {
+    const exists = get().portSchemas.some((s) => s.id === id);
+    if (exists) {
+      set((state) => ({
+        portSchemas: state.portSchemas.filter((s) => s.id !== id),
+      }));
+    }
+    return exists;
+  },
+
   // Actions - Deployables
   getDeployable: (id) => {
     return get().deployables.find((d) => d.id === id);
@@ -308,12 +362,13 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       edges: loaded.edges,
       title: loaded.title,
       schemas: loaded.schemas,
+      portSchemas: loaded.portSchemas,
       deployables: loaded.deployables,
     });
   },
 
   saveToStorage: () => {
-    const { nodes, edges, title, schemas, deployables } = get();
+    const { nodes, edges, title, schemas, portSchemas, deployables } = get();
     try {
       localStorage.setItem(
         NEW_STORAGE_KEY,
@@ -322,6 +377,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
           edges,
           title,
           schemas,
+          portSchemas,
           deployables,
         })
       );
@@ -352,6 +408,7 @@ useDocumentStore.subscribe((state, prevState) => {
     state.edges !== prevState.edges ||
     state.title !== prevState.title ||
     state.schemas !== prevState.schemas ||
+    state.portSchemas !== prevState.portSchemas ||
     state.deployables !== prevState.deployables
   ) {
     if (saveTimeout) {

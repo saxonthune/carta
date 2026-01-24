@@ -7,7 +7,7 @@ import FieldsTab from './construct-editor/FieldsTab';
 import PreviewTab from './construct-editor/PreviewTab';
 import RelatedTab from './construct-editor/RelatedTab';
 import TabBar, { type Tab } from './ui/TabBar';
-import type { ConstructSchema, FieldDefinition, PortConfig, SuggestedRelatedConstruct } from '../constructs/types';
+import type { ConstructSchema, FieldSchema, PortConfig, SuggestedRelatedConstruct } from '../constructs/types';
 
 // Convert string to snake_case while preserving special characters like '#'
 // (e.g., "My Cool Construct" → "my_cool_construct", "API #1" → "api_#1")
@@ -136,7 +136,7 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
   };
 
   const addField = () => {
-    const newField: FieldDefinition = {
+    const newField: FieldSchema = {
       name: `field_${formData.fields.length + 1}`,
       label: `Field ${formData.fields.length + 1}`,
       type: 'string',
@@ -149,7 +149,7 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
     setExpandedFieldIndex(formData.fields.length);
   };
 
-  const updateFieldDefinition = (index: number, field: FieldDefinition) => {
+  const updateFieldDefinition = (index: number, field: FieldSchema) => {
     setFormData(prev => ({
       ...prev,
       fields: prev.fields.map((f, i) => i === index ? field : f)

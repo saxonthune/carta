@@ -11,6 +11,7 @@ import { compiler } from './constructs/compiler';
 import { seedDefaultSchemas, builtInSchemas } from './constructs/schemas';
 import { registry } from './constructs/registry';
 import { deployableRegistry } from './constructs/deployables';
+import { syncWithDocumentStore } from './constructs/portRegistry';
 import { useDocumentStore, getDocumentState } from './stores/documentStore';
 import { exportProject, importProject, generateSemanticId, type CartaFile } from './utils/cartaFile';
 import { analyzeImport, type ImportAnalysis, type ImportOptions } from './utils/importAnalyzer';
@@ -22,6 +23,9 @@ const initialDocState = getDocumentState();
 if (initialDocState.schemas.length === 0) {
   seedDefaultSchemas();
 }
+
+// Initialize port registry from document store
+syncWithDocumentStore();
 
 const MIN_DOCK_HEIGHT = 100;
 const MAX_DOCK_HEIGHT_RATIO = 0.7;
@@ -40,6 +44,18 @@ function App() {
   const containerRef = useRef<HTMLDivElement>(null);
   const importRef = useRef<((nodes: Node[], edges: Edge[]) => void) | null>(null);
   const { updateNode } = useDocumentStore();
+
+  // Subscribe to portSchemas changes and sync registry
+  useEffect(() => {
+    let prevPortSchemas = useDocumentStore.getState().portSchemas;
+    const unsubscribe = useDocumentStore.subscribe((state) => {
+      if (state.portSchemas !== prevPortSchemas) {
+        prevPortSchemas = state.portSchemas;
+        syncWithDocumentStore();
+      }
+    });
+    return unsubscribe;
+  }, []);
 
   const refreshDeployables = useCallback(() => {
     setDeployables(deployableRegistry.getAll());

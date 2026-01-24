@@ -1,6 +1,6 @@
 import type { Node, Edge } from '@xyflow/react';
 import type { DocumentAdapter, AdapterOptions } from './types';
-import type { ConstructSchema, Deployable } from '../../constructs/types';
+import type { ConstructSchema, Deployable, PortSchema } from '../../constructs/types';
 import { useDocumentStore, getDocumentState } from '../documentStore';
 
 /**
@@ -57,13 +57,22 @@ export function createLocalStorageAdapter(_options: AdapterOptions = {}): Docume
       return getDocumentState().getDeployable(id);
     },
 
+    // State access - Port Schemas
+    getPortSchemas(): PortSchema[] {
+      return getDocumentState().getPortSchemas();
+    },
+
+    getPortSchema(id: string): PortSchema | undefined {
+      return getDocumentState().getPortSchema(id);
+    },
+
     // Mutations - Graph
     setNodes(nodesOrUpdater) {
-      getDocumentState().setNodes(nodesOrUpdater);
+      getDocumentState().setNodes(nodesOrUpdater as Node[] | ((prev: Node[]) => Node[]));
     },
 
     setEdges(edgesOrUpdater) {
-      getDocumentState().setEdges(edgesOrUpdater);
+      getDocumentState().setEdges(edgesOrUpdater as Edge[] | ((prev: Edge[]) => Edge[]));
     },
 
     setTitle(title) {
@@ -110,6 +119,23 @@ export function createLocalStorageAdapter(_options: AdapterOptions = {}): Docume
 
     removeDeployable(id) {
       return getDocumentState().removeDeployable(id);
+    },
+
+    // Mutations - Port Schemas
+    setPortSchemas(schemas) {
+      getDocumentState().setPortSchemas(schemas);
+    },
+
+    addPortSchema(schema) {
+      getDocumentState().addPortSchema(schema);
+    },
+
+    updatePortSchema(id, updates) {
+      getDocumentState().updatePortSchema(id, updates);
+    },
+
+    removePortSchema(id) {
+      return getDocumentState().removePortSchema(id);
     },
 
     transaction<T>(fn: () => T): T {

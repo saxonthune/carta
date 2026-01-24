@@ -1,7 +1,7 @@
-import type { FieldDefinition } from '../../constructs/types';
+import type { FieldSchema } from '../../constructs/types';
 
 interface NumberFieldProps {
-  field: FieldDefinition;
+  field: FieldSchema;
   value: number | undefined;
   onChange: (value: number | undefined) => void;
 }

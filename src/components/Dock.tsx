@@ -1,13 +1,14 @@
 import { useState, useRef } from 'react';
 import ConstructEditor from './ConstructEditor';
 import DeployablesEditor from './DeployablesEditor';
+import PortSchemaEditor from './PortSchemaEditor';
 import InstanceEditor from './InstanceEditor';
 import ConfirmationModal from './ui/ConfirmationModal';
 import TabBar, { type Tab } from './ui/TabBar';
 import type { Deployable, ConstructNodeData } from '../constructs/types';
 import type { Node } from '@xyflow/react';
 
-export type DockView = 'viewer' | 'constructs' | 'deployables';
+export type DockView = 'viewer' | 'constructs' | 'deployables' | 'ports';
 
 interface DockProps {
   selectedNodes: Node[];
@@ -22,14 +23,20 @@ interface DockProps {
 export default function Dock({ selectedNodes, deployables, onDeployablesChange, onNodeUpdate, height = 256, activeView, onActiveViewChange }: DockProps) {
   const [constructsDirty, setConstructsDirty] = useState(false);
   const [deployablesDirty, setDeployablesDirty] = useState(false);
+  const [portsDirty, setPortsDirty] = useState(false);
   const [pendingView, setPendingView] = useState<DockView | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const constructsEditorRef = useRef<{ save: () => void } | null>(null);
   const deployablesEditorRef = useRef<{ save: () => void } | null>(null);
+  const portsEditorRef = useRef<{ save: () => void } | null>(null);
 
   const handleTabClick = (tabId: DockView) => {
     // Check if current tab has unsaved changes
-    const currentTabDirty = activeView === 'constructs' ? constructsDirty : activeView === 'deployables' ? deployablesDirty : false;
+    const currentTabDirty =
+      activeView === 'constructs' ? constructsDirty :
+      activeView === 'deployables' ? deployablesDirty :
+      activeView === 'ports' ? portsDirty :
+      false;
 
     if (currentTabDirty && tabId !== activeView) {
       setPendingView(tabId);
@@ -45,6 +52,8 @@ export default function Dock({ selectedNodes, deployables, onDeployablesChange, 
       constructsEditorRef.current?.save();
     } else if (activeView === 'deployables') {
       deployablesEditorRef.current?.save();
+    } else if (activeView === 'ports') {
+      portsEditorRef.current?.save();
     }
     setShowConfirmModal(false);
     // After save, proceed to pending view
@@ -65,6 +74,7 @@ export default function Dock({ selectedNodes, deployables, onDeployablesChange, 
     // Reset dirty states
     if (activeView === 'constructs') setConstructsDirty(false);
     if (activeView === 'deployables') setDeployablesDirty(false);
+    if (activeView === 'ports') setPortsDirty(false);
   };
 
   const handleConfirmCancel = () => {
@@ -101,6 +111,20 @@ export default function Dock({ selectedNodes, deployables, onDeployablesChange, 
         </svg>
       ),
     },
+    {
+      id: 'ports',
+      label: 'Ports',
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-full h-full">
+          <circle cx="12" cy="12" r="1"/>
+          <path d="M12 2v5m0 10v5M2 12h5m10 0h5"/>
+          <circle cx="5" cy="5" r="1"/>
+          <circle cx="19" cy="5" r="1"/>
+          <circle cx="5" cy="19" r="1"/>
+          <circle cx="19" cy="19" r="1"/>
+        </svg>
+      ),
+    },
   ];
 
   const renderContent = () => {
@@ -131,6 +155,8 @@ export default function Dock({ selectedNodes, deployables, onDeployablesChange, 
         return <ConstructEditor ref={constructsEditorRef} onDirtyChange={setConstructsDirty} />;
       case 'deployables':
         return <DeployablesEditor ref={deployablesEditorRef} onDeployablesChange={onDeployablesChange} onDirtyChange={setDeployablesDirty} />;
+      case 'ports':
+        return <PortSchemaEditor ref={portsEditorRef} onDirtyChange={setPortsDirty} />;
       default:
         return null;
     }

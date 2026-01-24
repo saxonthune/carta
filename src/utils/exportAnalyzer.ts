@@ -27,6 +27,7 @@ export interface ExportOptions {
   schemas: boolean;
   nodes: boolean;
   deployables: boolean;
+  portSchemas?: boolean;
 }
 
 /**

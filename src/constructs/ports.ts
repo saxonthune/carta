@@ -48,30 +48,23 @@ export function createPortFromType(portTypeId: string, overrides?: Partial<PortC
     portType: portTypeId,
     position: portDef.defaultPosition,
     offset: 50,
-    label: portDef.label,
+    label: portDef.displayName,
     ...overrides,
   };
 }
 
 /**
- * Determine React Flow handle type from port type
+ * Determine React Flow handle type from port type using polarity
  * 'target' handles receive connections, 'source' handles initiate them
  */
 export function getHandleType(portType: string): 'source' | 'target' {
-  // Flow-in and parent are receivers (targets)
-  // Flow-out, child, and symmetric are initiators (sources)
-  switch (portType) {
-    case 'flow-in':
-    case 'parent':
-      return 'target';
-    case 'flow-out':
-    case 'child':
-    case 'symmetric':
-      return 'source';
-    default:
-      // For unknown port types, default to source
-      return 'source';
-  }
+  const schema = portRegistry.get(portType);
+  if (!schema) return 'source';
+
+  // source polarity = React Flow 'source' handle (can initiate connections)
+  // sink polarity = React Flow 'target' handle (receives connections)
+  // bidirectional = 'source' (can initiate, also receives)
+  return schema.polarity === 'sink' ? 'target' : 'source';
 }
 
 /**
