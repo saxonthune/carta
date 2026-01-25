@@ -5,7 +5,8 @@ import ExportPreviewModal from './components/ExportPreviewModal';
 import CompileModal from './components/CompileModal';
 import Header from './components/Header';
 import Map from './components/Map';
-import Dock, { type DockView } from './components/Dock';
+import Drawer from './components/Drawer';
+import { type DrawerTab } from './components/DrawerTabs';
 import Footer from './components/Footer';
 import { compiler } from './constructs/compiler';
 import { builtInConstructSchemas, builtInPortSchemas, builtInSchemaGroups } from './constructs/schemas';
@@ -21,9 +22,6 @@ import type { ConstructValues } from './constructs/types';
 import { AISidebar } from './ai';
 
 // Note: Schema initialization is now handled by DocumentProvider
-
-const MIN_DOCK_HEIGHT = 100;
-const MAX_DOCK_HEIGHT_RATIO = 0.7;
 
 function App() {
   const { adapter } = useDocumentContext();
@@ -41,10 +39,9 @@ function App() {
   const [importPreview, setImportPreview] = useState<{ data: CartaFile; analysis: ImportAnalysis } | null>(null);
   const [exportPreview, setExportPreview] = useState<ExportAnalysis | null>(null);
   const [compileOutput, setCompileOutput] = useState<string | null>(null);
-  const [selectedNodes, setSelectedNodes] = useState<Node[]>([]);
-  const [dockHeight, setDockHeight] = useState(256);
-  const [isResizing, setIsResizing] = useState(false);
-  const [activeView, setActiveView] = useState<DockView>('constructs');
+  const [_selectedNodes, setSelectedNodes] = useState<Node[]>([]);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerTab, setDrawerTab] = useState<DrawerTab>('constructs');
   const [aiSidebarOpen, setAiSidebarOpen] = useState(false);
   const [aiSidebarWidth] = useState(400);
   const nodesEdgesRef = useRef<{ nodes: Node[]; edges: Edge[] }>({ nodes: [], edges: [] });
@@ -85,10 +82,10 @@ function App() {
     setSelectedNodes(nodes);
   }, []);
 
-  const handleNodeDoubleClick = useCallback((_nodeId: string) => {
-    // Switch to viewer tab (node is already selected by Map's onSelectionChange)
-    setActiveView('viewer');
-  }, []);
+  const handleNodeDoubleClick = useCallback((nodeId: string) => {
+    // Toggle expand on the node instead of opening dock
+    updateNode(nodeId, { isExpanded: true });
+  }, [updateNode]);
 
   const handleExport = useCallback(() => {
     const { nodes, edges } = nodesEdgesRef.current;
@@ -235,44 +232,6 @@ function App() {
     // Changes propagate automatically via Yjs subscription - no reload needed
   }, [adapter]);
 
-  const handleResizeStart = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsResizing(true);
-  }, []);
-
-  const handleResizeMove = useCallback((e: MouseEvent) => {
-    if (!isResizing || !containerRef.current) return;
-    const containerRect = containerRef.current.getBoundingClientRect();
-    const newHeight = containerRect.bottom - e.clientY;
-    // Clamp between MIN_DOCK_HEIGHT and MAX_DOCK_HEIGHT_RATIO of container
-    const maxHeight = containerRect.height * MAX_DOCK_HEIGHT_RATIO;
-    setDockHeight(Math.max(MIN_DOCK_HEIGHT, Math.min(newHeight, maxHeight)));
-  }, [isResizing]);
-
-  const handleResizeEnd = useCallback(() => {
-    setIsResizing(false);
-  }, []);
-
-  const handleResizeBarDoubleClick = useCallback(() => {
-    if (!containerRef.current) return;
-    const containerRect = containerRef.current.getBoundingClientRect();
-    const maxHeight = containerRect.height * MAX_DOCK_HEIGHT_RATIO;
-    // Toggle between minimum and maximum heights
-    setDockHeight(dockHeight >= maxHeight - 10 ? MIN_DOCK_HEIGHT : maxHeight);
-  }, [dockHeight]);
-
-  // Attach mouse listeners for resizing
-  useEffect(() => {
-    if (isResizing) {
-      window.addEventListener('mousemove', handleResizeMove);
-      window.addEventListener('mouseup', handleResizeEnd);
-      return () => {
-        window.removeEventListener('mousemove', handleResizeMove);
-        window.removeEventListener('mouseup', handleResizeEnd);
-      };
-    }
-  }, [isResizing, handleResizeMove, handleResizeEnd]);
-
   return (
     <div className="h-screen flex flex-col">
       <Header
@@ -302,23 +261,20 @@ function App() {
             />
           </ReactFlowProvider>
         </div>
-        {/* Resize handle */}
-        <div
-          className={`h-1 bg-gray-200 hover:bg-indigo-400 cursor-row-resize transition-colors ${isResizing ? 'bg-indigo-500' : ''}`}
-          onMouseDown={handleResizeStart}
-          onDoubleClick={handleResizeBarDoubleClick}
-        />
-        <Dock
-          selectedNodes={selectedNodes}
-          deployables={deployables}
-          onDeployablesChange={refreshDeployables}
-          onNodeUpdate={updateNode}
-          height={dockHeight}
-          activeView={activeView}
-          onActiveViewChange={setActiveView}
-        />
         <Footer />
       </div>
+
+      {/* Drawer system */}
+      <Drawer
+        isOpen={drawerOpen}
+        onOpen={() => setDrawerOpen(true)}
+        onClose={() => setDrawerOpen(false)}
+        activeTab={drawerTab}
+        onActiveTabChange={setDrawerTab}
+        onDeployablesChange={refreshDeployables}
+      />
+
+      {/* Modals */}
       {importPreview && (
         <ImportPreviewModal
           analysis={importPreview.analysis}

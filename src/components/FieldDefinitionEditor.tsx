@@ -179,11 +179,11 @@ export default function FieldDefinitionEditor({
             <label className="flex items-center gap-2 text-xs font-medium text-content-muted cursor-pointer select-none">
               <input
                 type="checkbox"
-                checked={field.displayInMap ?? false}
-                onChange={(e) => updateField({ displayInMap: e.target.checked })}
+                checked={field.showInCollapsed ?? false}
+                onChange={(e) => updateField({ showInCollapsed: e.target.checked })}
                 className="w-4 h-4 accent-[var(--color-accent)]"
               />
-              Display in Map
+              Show in Collapsed
             </label>
           </div>
 

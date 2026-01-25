@@ -78,7 +78,7 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
   // Get ports from schema or use defaults
   const ports = getPortsForSchema(schema.ports);
 
-  const mapFields = schema.fields.filter((f) => f.displayInMap);
+  const mapFields = schema.fields.filter((f) => f.showInCollapsed);
   const formatValue = (value: unknown) => {
     if (value === null || value === undefined || value === '') return '—';
     if (typeof value === 'object') {
@@ -111,7 +111,7 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
 
   return (
     <div
-      className={`bg-surface border-[3px] rounded-lg w-full h-full text-node-base text-content shadow-md overflow-visible relative flex flex-col min-w-[250px] ${selected ? 'border-accent shadow-[0_0_0_2px_var(--color-accent)]' : 'border'}`}
+      className={`bg-surface border-[3px] rounded-lg w-full h-full text-node-base text-content shadow-md overflow-visible relative flex flex-col ${data.isExpanded ? 'min-w-[350px]' : 'min-w-[250px]'} ${selected ? 'border-accent shadow-[0_0_0_2px_var(--color-accent)]' : 'border'}`}
     >
       {selected && (
         <NodeResizer
@@ -159,21 +159,41 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
       })()}
 
       <div
-        className="flex items-center justify-center gap-1.5 px-2 py-1 text-white cursor-move select-none border-b border-white/20 w-full shrink-0"
+        className="flex items-center justify-between gap-1.5 px-2 py-1 text-white cursor-move select-none border-b border-white/20 w-full shrink-0"
         style={{ backgroundColor: schema.color }}
       >
-        <svg
-          className="w-5 h-5 opacity-60"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-        >
-          <line x1="3" y1="6" x2="21" y2="6" />
-          <line x1="3" y1="12" x2="21" y2="12" />
-          <line x1="3" y1="18" x2="21" y2="18" />
-        </svg>
-        <span className="text-node-xs opacity-80 uppercase">{schema.displayName}</span>
+        <div className="flex items-center gap-1.5">
+          <svg
+            className="w-5 h-5 opacity-60"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <line x1="3" y1="12" x2="21" y2="12" />
+            <line x1="3" y1="18" x2="21" y2="18" />
+          </svg>
+          <span className="text-node-xs opacity-80 uppercase">{schema.displayName}</span>
+        </div>
+        {data.onToggleExpand && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              data.onToggleExpand?.();
+            }}
+            className="opacity-70 hover:opacity-100 transition-opacity flex-shrink-0"
+            title={data.isExpanded ? "Collapse" : "Expand"}
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              {data.isExpanded ? (
+                <path d="M18 15l-6-6-6 6" />
+              ) : (
+                <path d="M6 9l6 6 6-6" />
+              )}
+            </svg>
+          </button>
+        )}
       </div>
 
       <div className="px-2 py-1 bg-surface shrink-0">
@@ -181,22 +201,113 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
         <div className="text-node-lg text-content font-medium leading-tight">{getDisplayName(data, schema)}</div>
       </div>
 
-      <div className="px-2 py-1.5 text-node-sm text-content-muted flex-1 overflow-y-auto min-h-0">
-        {mapFields.length === 0 ? (
-          <div></div>
-        ) : (
-          <div className="flex flex-col gap-1">
-            {mapFields.map((field) => (
-              <div key={field.name} className="flex gap-1 justify-between">
-                <span className="text-content-subtle">{field.label}:</span>
-                <span className="text-content font-medium text-right max-w-[70%] truncate">
-                  {formatValue(data.values[field.name] ?? field.default)}
-                </span>
-              </div>
-            ))}
+      {!data.isExpanded && (
+        <div className="px-2 py-1.5 text-node-sm text-content-muted flex-1 overflow-y-auto min-h-0">
+          {mapFields.length === 0 ? (
+            <div></div>
+          ) : (
+            <div className="flex flex-col gap-1">
+              {mapFields.map((field) => (
+                <div key={field.name} className="flex gap-1 justify-between">
+                  <span className="text-content-subtle">{field.label}:</span>
+                  <span className="text-content font-medium text-right max-w-[70%] truncate">
+                    {formatValue(data.values[field.name] ?? field.default)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {data.isExpanded && (
+        <div className="px-2 py-2 bg-surface-depth-1 flex flex-col gap-2 max-h-[400px] overflow-y-auto flex-1">
+          {/* Deployable dropdown */}
+          {data.deployables && data.deployables.length > 0 && (
+            <div>
+              <label className="text-node-xs text-content-muted uppercase tracking-wide">Deployable</label>
+              <select
+                className="w-full px-2 py-1 bg-surface rounded text-node-sm text-content border border-content-muted/20"
+                value={data.deployableId || ''}
+                onChange={(e) => data.onDeployableChange?.(e.target.value || null)}
+              >
+                <option value="">None</option>
+                {data.deployables.map((d) => (
+                  <option key={d.id} value={d.id}>{d.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Semantic ID - editable when expanded */}
+          <div>
+            <label className="text-node-xs text-content-muted uppercase tracking-wide">ID</label>
+            <input
+              type="text"
+              className="w-full px-2 py-1 bg-surface rounded text-node-sm text-content border border-content-muted/20"
+              value={getDisplayName(data, schema)}
+              disabled
+              title="Semantic ID (read-only)"
+            />
           </div>
-        )}
-      </div>
+
+          {/* All schema fields */}
+          {schema.fields.map((field) => (
+            <div key={field.name}>
+              <label className="text-node-xs text-content-muted uppercase tracking-wide">{field.label}</label>
+              {field.type === 'boolean' ? (
+                <div className="flex items-center gap-2 mt-1">
+                  <input
+                    type="checkbox"
+                    checked={!!data.values[field.name]}
+                    onChange={(e) => data.onValuesChange?.({ ...data.values, [field.name]: e.target.checked })}
+                    className="w-4 h-4 cursor-pointer"
+                  />
+                  <span className="text-node-sm text-content">{field.label}</span>
+                </div>
+              ) : field.type === 'enum' && field.options ? (
+                <select
+                  className="w-full px-2 py-1 bg-surface rounded text-node-sm text-content border border-content-muted/20"
+                  value={String(data.values[field.name] ?? field.default ?? '')}
+                  onChange={(e) => data.onValuesChange?.({ ...data.values, [field.name]: e.target.value })}
+                >
+                  <option value="">Select...</option>
+                  {field.options.map((opt) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              ) : field.displayHint === 'multiline' || field.displayHint === 'code' ? (
+                <textarea
+                  className="w-full px-2 py-1 bg-surface rounded text-node-sm text-content border border-content-muted/20 resize-y min-h-[60px] font-mono text-xs"
+                  value={String(data.values[field.name] ?? field.default ?? '')}
+                  onChange={(e) => data.onValuesChange?.({ ...data.values, [field.name]: e.target.value })}
+                  placeholder={field.placeholder}
+                />
+              ) : (
+                <input
+                  type={field.type === 'number' ? 'number' : 'text'}
+                  className="w-full px-2 py-1 bg-surface rounded text-node-sm text-content border border-content-muted/20"
+                  value={String(data.values[field.name] ?? field.default ?? '')}
+                  onChange={(e) => data.onValuesChange?.({ ...data.values, [field.name]: field.type === 'number' ? Number(e.target.value) : e.target.value })}
+                  placeholder={field.placeholder}
+                />
+              )}
+            </div>
+          ))}
+
+          {/* Connections (read-only) */}
+          {data.connections && data.connections.length > 0 && (
+            <div>
+              <label className="text-node-xs text-content-muted uppercase tracking-wide">Connections</label>
+              <div className="text-node-sm text-content-muted bg-surface rounded px-2 py-1 border border-content-muted/20">
+                {data.connections.map((c, i) => (
+                  <div key={i} className="truncate text-xs">{c.portId} → {c.targetSemanticId}</div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 });

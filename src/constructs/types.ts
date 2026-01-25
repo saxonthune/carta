@@ -88,7 +88,7 @@ export interface FieldSchema {
   displayHint?: DisplayHint; // For string type presentation
   default?: unknown;
   placeholder?: string;
-  displayInMap?: boolean;    // Show this field in the map node summary
+  showInCollapsed?: boolean;    // Show this field when node is collapsed on canvas
 }
 
 

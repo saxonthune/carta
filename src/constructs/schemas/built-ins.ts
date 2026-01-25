@@ -369,7 +369,7 @@ export const builtInConstructSchemas: ConstructSchema[] = [
         description: 'Whether this is a request or response model',
         options: ['request', 'response'],
         default: 'request',
-        displayInMap: true,
+        showInCollapsed: true,
       },
       {
         name: 'data',
@@ -506,7 +506,7 @@ export const builtInConstructSchemas: ConstructSchema[] = [
         type: 'string',
         description: 'Full user story in "As a X, I want Y, so that Z" format',
         placeholder: 'As a [user], I want [goal] so that [benefit]',
-        displayInMap: true,
+        showInCollapsed: true,
       },
     ],
     ports: [

@@ -15,6 +15,7 @@ interface PortSchemaDetailsEditorProps {
   onSave: (schema: PortSchema, isNew: boolean) => void;
   onDelete: (id: string) => void;
   onDirtyChange?: (isDirty: boolean) => void;
+  compact?: boolean;
 }
 
 const createEmptySchema = (): PortSchema => ({
@@ -52,7 +53,8 @@ const PortSchemaDetailsEditor = forwardRef<{ save: () => void }, PortSchemaDetai
     isNew,
     onSave,
     onDelete,
-    onDirtyChange
+    onDirtyChange,
+    compact = false
   }, ref) {
   const { getPortSchemas } = useDocument();
   const [formData, setFormData] = useState<PortSchema>(
@@ -144,25 +146,29 @@ const PortSchemaDetailsEditor = forwardRef<{ save: () => void }, PortSchemaDetai
   };
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="flex items-center justify-between gap-3 mb-0 shrink-0 pb-3 border-b">
-        <div className="flex items-center gap-3">
-          <h2 className="m-0 text-xl font-semibold text-content">{isNew ? 'Create New Port Schema' : formData.displayName}</h2>
+    <div className={`h-full flex flex-col ${compact ? 'p-3' : ''}`}>
+      <div className={`flex items-center justify-between gap-2 mb-0 shrink-0 border-b ${compact ? 'pb-2' : 'pb-3 gap-3'}`}>
+        <div className="flex items-center gap-2 min-w-0">
+          <h2 className={`m-0 font-semibold text-content truncate ${compact ? 'text-sm' : 'text-xl'}`}>
+            {isNew ? 'New Port Schema' : formData.displayName}
+          </h2>
           {isDirty && (
-            <span className="px-2.5 py-1 bg-surface-elevated rounded text-xs text-content-muted">• Unsaved changes</span>
+            <span className={`shrink-0 bg-surface-elevated rounded text-content-muted ${compact ? 'text-[10px] px-1.5 py-0.5' : 'px-2.5 py-1 text-xs'}`}>
+              • Unsaved
+            </span>
           )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 shrink-0">
           {!isNew && (
             <button
-              className="px-3 py-1.5 bg-transparent border border-danger rounded text-danger text-sm font-medium cursor-pointer hover:bg-danger hover:text-white transition-all"
+              className={`bg-transparent border border-danger rounded text-danger font-medium cursor-pointer hover:bg-danger hover:text-white transition-all ${compact ? 'px-2 py-1 text-xs' : 'px-3 py-1.5 text-sm'}`}
               onClick={handleDelete}
             >
               Delete
             </button>
           )}
           <button
-            className="px-3 py-1.5 bg-accent border-none rounded text-white text-sm font-medium cursor-pointer hover:bg-accent-hover transition-colors"
+            className={`bg-accent border-none rounded text-white font-medium cursor-pointer hover:bg-accent-hover transition-colors ${compact ? 'px-2 py-1 text-xs' : 'px-3 py-1.5 text-sm'}`}
             onClick={handleSave}
           >
             {isNew ? 'Create' : 'Save'}
@@ -171,25 +177,25 @@ const PortSchemaDetailsEditor = forwardRef<{ save: () => void }, PortSchemaDetai
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        <div className="bg-surface-elevated rounded-lg p-4">
+        <div className={`bg-surface-elevated rounded-lg ${compact ? 'p-2 mt-2' : 'p-4'}`}>
           {/* Display Name */}
-          <div className="mb-3">
-            <label className="block mb-1 text-sm font-medium text-content">Display Name</label>
+          <div className={compact ? 'mb-2' : 'mb-3'}>
+            <label className={`block mb-1 font-medium text-content ${compact ? 'text-xs' : 'text-sm'}`}>Display Name</label>
             <input
               type="text"
-              className={`w-full px-2.5 py-2 bg-surface rounded-md text-content text-sm focus:outline-none focus:border-accent transition-colors ${errors.displayName ? '!border-danger' : ''}`}
+              className={`w-full bg-surface rounded-md text-content focus:outline-none focus:border-accent transition-colors ${compact ? 'px-2 py-1.5 text-xs' : 'px-2.5 py-2 text-sm'} ${errors.displayName ? '!border-danger' : ''}`}
               value={formData.displayName}
               onChange={(e) => updateField('displayName', e.target.value)}
               placeholder="Flow In"
             />
             {formData.displayName && (
-              <span className="block mt-1 text-[11px] text-content-muted">ID: {toKebabCase(formData.displayName)}</span>
+              <span className="block mt-1 text-[10px] text-content-muted">ID: {toKebabCase(formData.displayName)}</span>
             )}
-            {errors.displayName && <span className="block mt-1 text-xs text-danger">{errors.displayName}</span>}
+            {errors.displayName && <span className="block mt-1 text-[10px] text-danger">{errors.displayName}</span>}
           </div>
 
           {/* ID (read-only for existing) */}
-          {!isNew && (
+          {!isNew && !compact && (
             <div className="mb-3">
               <label className="block mb-1 text-sm font-medium text-content">ID</label>
               <input
@@ -202,93 +208,125 @@ const PortSchemaDetailsEditor = forwardRef<{ save: () => void }, PortSchemaDetai
           )}
 
           {/* Semantic Description */}
-          <div className="mb-3">
-            <label className="block mb-1 text-sm font-medium text-content">Semantic Description</label>
+          <div className={compact ? 'mb-2' : 'mb-3'}>
+            <label className={`block mb-1 font-medium text-content ${compact ? 'text-xs' : 'text-sm'}`}>Description</label>
             <textarea
-              className="w-full px-2.5 py-2 bg-surface rounded-md text-content text-sm resize-none focus:outline-none focus:border-accent transition-colors"
+              className={`w-full bg-surface rounded-md text-content resize-none focus:outline-none focus:border-accent transition-colors ${compact ? 'px-2 py-1.5 text-xs' : 'px-2.5 py-2 text-sm'}`}
               value={formData.semanticDescription}
               onChange={(e) => updateField('semanticDescription', e.target.value)}
-              placeholder="Describe what this port type represents for AI compilation..."
-              rows={3}
+              placeholder="Describe what this port type represents..."
+              rows={compact ? 2 : 3}
             />
           </div>
 
-          {/* Polarity */}
-          <div className="mb-3">
-            <label className="block mb-1 text-sm font-medium text-content">Polarity</label>
-            <select
-              className="w-full px-2.5 py-2 bg-surface rounded-md text-content text-sm focus:outline-none focus:border-accent"
-              value={formData.polarity}
-              onChange={(e) => updateField('polarity', e.target.value as Polarity)}
-            >
-              {POLARITY_OPTIONS.map(opt => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
-          </div>
+          {/* Polarity & Position in compact mode */}
+          {compact ? (
+            <div className="flex gap-2 mb-2">
+              <div className="flex-1">
+                <label className="block mb-1 text-xs font-medium text-content">Polarity</label>
+                <select
+                  className="w-full px-2 py-1.5 bg-surface rounded-md text-content text-xs focus:outline-none focus:border-accent"
+                  value={formData.polarity}
+                  onChange={(e) => updateField('polarity', e.target.value as Polarity)}
+                >
+                  {POLARITY_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex-1">
+                <label className="block mb-1 text-xs font-medium text-content">Position</label>
+                <select
+                  className="w-full px-2 py-1.5 bg-surface rounded-md text-content text-xs focus:outline-none focus:border-accent"
+                  value={formData.defaultPosition}
+                  onChange={(e) => updateField('defaultPosition', e.target.value as PortPosition)}
+                >
+                  {POSITION_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Polarity */}
+              <div className="mb-3">
+                <label className="block mb-1 text-sm font-medium text-content">Polarity</label>
+                <select
+                  className="w-full px-2.5 py-2 bg-surface rounded-md text-content text-sm focus:outline-none focus:border-accent"
+                  value={formData.polarity}
+                  onChange={(e) => updateField('polarity', e.target.value as Polarity)}
+                >
+                  {POLARITY_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Default Position */}
+              <div className="mb-3">
+                <label className="block mb-1 text-sm font-medium text-content">Default Position</label>
+                <select
+                  className="w-full px-2.5 py-2 bg-surface rounded-md text-content text-sm focus:outline-none focus:border-accent"
+                  value={formData.defaultPosition}
+                  onChange={(e) => updateField('defaultPosition', e.target.value as PortPosition)}
+                >
+                  {POSITION_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+            </>
+          )}
 
           {/* Color */}
-          <div className="mb-3">
-            <label className="block mb-1 text-sm font-medium text-content">Color</label>
+          <div className={compact ? 'mb-2' : 'mb-3'}>
+            <label className={`block mb-1 font-medium text-content ${compact ? 'text-xs' : 'text-sm'}`}>Color</label>
             <div className="flex flex-wrap gap-1 items-center">
-              {DEFAULT_COLORS.slice(0, 6).map(color => (
+              {DEFAULT_COLORS.slice(0, compact ? 4 : 6).map(color => (
                 <button
                   key={color}
                   type="button"
-                  className={`w-6 h-6 border-2 border-transparent rounded cursor-pointer transition-all hover:scale-110 ${formData.color === color ? 'border-white shadow-[0_0_0_2px_#6366f1]' : ''}`}
+                  className={`border-2 border-transparent rounded cursor-pointer transition-all hover:scale-110 ${compact ? 'w-5 h-5' : 'w-6 h-6'} ${formData.color === color ? 'border-white shadow-[0_0_0_2px_#6366f1]' : ''}`}
                   style={{ backgroundColor: color }}
                   onClick={() => updateField('color', color)}
                 />
               ))}
               <input
                 type="color"
-                className="w-6 h-6 p-0 border-none rounded cursor-pointer"
+                className={`p-0 border-none rounded cursor-pointer ${compact ? 'w-5 h-5' : 'w-6 h-6'}`}
                 value={formData.color}
                 onChange={(e) => updateField('color', e.target.value)}
               />
             </div>
           </div>
 
-          {/* Default Position */}
-          <div className="mb-3">
-            <label className="block mb-1 text-sm font-medium text-content">Default Position</label>
-            <select
-              className="w-full px-2.5 py-2 bg-surface rounded-md text-content text-sm focus:outline-none focus:border-accent"
-              value={formData.defaultPosition}
-              onChange={(e) => updateField('defaultPosition', e.target.value as PortPosition)}
-            >
-              {POSITION_OPTIONS.map(opt => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
-          </div>
-
           {/* Compatible With */}
-          <div className="mb-3">
-            <label className="block mb-1 text-sm font-medium text-content">Compatible With</label>
-            <p className="text-xs text-content-muted mb-2">Specify which port IDs can connect. Use patterns like '*source*', '*sink*', or '*' for all.</p>
+          <div className={compact ? 'mb-2' : 'mb-3'}>
+            <label className={`block mb-1 font-medium text-content ${compact ? 'text-xs' : 'text-sm'}`}>Compatible With</label>
+            {!compact && <p className="text-xs text-content-muted mb-2">Specify which port IDs can connect. Use patterns like '*source*', '*sink*', or '*' for all.</p>}
             <div className="flex gap-2 mb-2">
               <input
                 type="text"
-                className="flex-1 px-2.5 py-2 bg-surface rounded-md text-content text-sm focus:outline-none focus:border-accent"
+                className={`flex-1 bg-surface rounded-md text-content focus:outline-none focus:border-accent ${compact ? 'px-2 py-1.5 text-xs' : 'px-2.5 py-2 text-sm'}`}
                 value={newCompatibleWith}
                 onChange={(e) => setNewCompatibleWith(e.target.value)}
-                placeholder="e.g., flow-out, *source*, or *"
+                placeholder={compact ? 'e.g., *source*' : 'e.g., flow-out, *source*, or *'}
                 onKeyDown={(e) => e.key === 'Enter' && addCompatibleWith()}
               />
               <button
-                className="px-3 py-2 bg-surface-alt rounded text-content text-sm cursor-pointer hover:bg-content-muted transition-colors"
+                className={`bg-surface-alt rounded text-content cursor-pointer hover:bg-content-muted transition-colors ${compact ? 'px-2 py-1.5 text-xs' : 'px-3 py-2 text-sm'}`}
                 onClick={addCompatibleWith}
               >
                 Add
               </button>
             </div>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-1">
               {formData.compatibleWith.map(value => (
-                <div key={value} className="flex items-center gap-1 px-2 py-1 bg-surface-alt rounded text-sm text-content">
+                <div key={value} className={`flex items-center gap-1 bg-surface-alt rounded text-content ${compact ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-1 text-sm'}`}>
                   <span>{value}</span>
                   <button
-                    className="w-4 h-4 flex items-center justify-center bg-transparent border-none rounded-full text-content-muted cursor-pointer text-sm hover:bg-danger hover:text-white"
+                    className="w-3.5 h-3.5 flex items-center justify-center bg-transparent border-none rounded-full text-content-muted cursor-pointer text-xs hover:bg-danger hover:text-white"
                     onClick={() => removeCompatibleWith(value)}
                   >
                     ×
@@ -298,30 +336,34 @@ const PortSchemaDetailsEditor = forwardRef<{ save: () => void }, PortSchemaDetai
             </div>
           </div>
 
-          {/* Expected Complement */}
-          <div className="mb-3">
-            <label className="block mb-1 text-sm font-medium text-content">Expected Complement</label>
-            <p className="text-xs text-content-muted mb-2">Optional: another port ID that commonly connects to this one (for UI hints only)</p>
-            <select
-              className="w-full px-2.5 py-2 bg-surface rounded-md text-content text-sm focus:outline-none focus:border-accent"
-              value={formData.expectedComplement || ''}
-              onChange={(e) => updateField('expectedComplement', e.target.value || undefined)}
-            >
-              <option value="">None</option>
-              {allPortSchemas
-                .filter(s => s.id !== formData.id)
-                .map(schema => (
-                  <option key={schema.id} value={schema.id}>{schema.displayName}</option>
-                ))}
-            </select>
-          </div>
+          {/* Expected Complement - hide in compact mode */}
+          {!compact && (
+            <div className="mb-3">
+              <label className="block mb-1 text-sm font-medium text-content">Expected Complement</label>
+              <p className="text-xs text-content-muted mb-2">Optional: another port ID that commonly connects to this one (for UI hints only)</p>
+              <select
+                className="w-full px-2.5 py-2 bg-surface rounded-md text-content text-sm focus:outline-none focus:border-accent"
+                value={formData.expectedComplement || ''}
+                onChange={(e) => updateField('expectedComplement', e.target.value || undefined)}
+              >
+                <option value="">None</option>
+                {allPortSchemas
+                  .filter(s => s.id !== formData.id)
+                  .map(schema => (
+                    <option key={schema.id} value={schema.id}>{schema.displayName}</option>
+                  ))}
+              </select>
+            </div>
+          )}
 
-          {/* Group */}
-          <SchemaGroupSelector
-            value={formData.groupId}
-            onChange={(groupId) => updateField('groupId', groupId)}
-            label="Group"
-          />
+          {/* Group - hide in compact mode */}
+          {!compact && (
+            <SchemaGroupSelector
+              value={formData.groupId}
+              onChange={(groupId) => updateField('groupId', groupId)}
+              label="Group"
+            />
+          )}
         </div>
       </div>
     </div>

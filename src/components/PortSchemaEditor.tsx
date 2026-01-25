@@ -3,6 +3,7 @@ import { useDocument } from '../hooks/useDocument';
 import PortSchemaDetailsEditor from './PortSchemaDetailsEditor';
 import { useDirtyStateGuard } from '../hooks/useDirtyStateGuard';
 import ConfirmationModal from './ui/ConfirmationModal';
+import CollapsibleSelector from './ui/CollapsibleSelector';
 import type { PortSchema } from '../constructs/types';
 
 interface PortSchemaEditorProps {
@@ -12,7 +13,6 @@ interface PortSchemaEditorProps {
 
 const PortSchemaEditor = forwardRef<{ save: () => void }, PortSchemaEditorProps>(
   function PortSchemaEditor({ onBack, onDirtyChange }, ref) {
-  // Use reactive portSchemas from useDocument - updates automatically when adapter changes
   const { portSchemas: schemas, addPortSchema, updatePortSchema, removePortSchema } = useDocument();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isCreatingNew, setIsCreatingNew] = useState(false);
@@ -45,12 +45,10 @@ const PortSchemaEditor = forwardRef<{ save: () => void }, PortSchemaEditorProps>
     onSwitch: handleSwitch,
   });
 
-  // Notify parent when dirty state changes
   useEffect(() => {
     onDirtyChange?.(isDirty);
   }, [isDirty, onDirtyChange]);
 
-  // Expose save method via ref for parent (Dock) to trigger from confirmation modal
   useImperativeHandle(ref, () => ({
     save: () => {
       detailsEditorRef.current?.save();
@@ -73,18 +71,15 @@ const PortSchemaEditor = forwardRef<{ save: () => void }, PortSchemaEditorProps>
     } else {
       updatePortSchema(schema.id, schema);
     }
-    // No need to refresh - schemas updates automatically via useDocument subscription
     setSelectedId(schema.id);
     setIsCreatingNew(false);
   }, [addPortSchema, updatePortSchema]);
 
   const handleDeleteSchema = useCallback((id: string) => {
     removePortSchema(id);
-    // No need to refresh - schemas updates automatically via useDocument subscription
     setSelectedId(null);
   }, [removePortSchema]);
 
-  // Handle Delete key to delete selected schema
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Delete' && selectedId && !isCreatingNew && !isDirty) {
@@ -101,49 +96,119 @@ const PortSchemaEditor = forwardRef<{ save: () => void }, PortSchemaEditorProps>
 
   const isFullScreen = !!onBack;
 
-  return (
-    <div className={`flex flex-col bg-surface-depth-3 text-content ${isFullScreen ? 'w-screen h-screen' : 'w-full h-full'}`}>
-      {isFullScreen && (
-        <div className="flex items-center px-5 py-3 bg-surface-elevated border-b gap-4">
-          <button
-            className="flex items-center gap-2 px-4 py-2 bg-transparent rounded-md text-content cursor-pointer text-sm hover:bg-surface-alt hover:border-subtle transition-all"
-            onClick={onBack}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-[18px] h-[18px]">
-              <path d="M19 12H5M12 19l-7-7 7-7" />
-            </svg>
-            Back to Map
-          </button>
-          <h1 className="text-xl font-semibold text-content m-0">Port Schema Editor</h1>
-          <div className="flex-1" />
+  // Sidebar layout (drawer mode)
+  if (!isFullScreen) {
+    return (
+      <div className="flex flex-col h-full bg-surface-depth-3 text-content gap-3">
+        {/* Collapsible list */}
+        <CollapsibleSelector<PortSchema>
+          title="Port Schemas"
+          items={schemas}
+          selectedId={selectedId}
+          onSelect={handleSelectSchema}
+          onAdd={handleAddNew}
+          emptyMessage="No port schemas"
+          renderItem={(item) => (
+            <div className="flex items-center gap-2 px-2 py-1.5">
+              <span
+                className="w-3 h-3 rounded-full shrink-0"
+                style={{ backgroundColor: item.color }}
+              />
+              <span className="text-xs truncate">{item.displayName}</span>
+            </div>
+          )}
+          renderSelectedSummary={(item) => (
+            <div className="flex items-center gap-2">
+              <span
+                className="w-3 h-3 rounded-full shrink-0"
+                style={{ backgroundColor: item.color }}
+              />
+              <span className="text-xs truncate">{item.displayName}</span>
+            </div>
+          )}
+        />
+
+        {/* Details editor */}
+        <div className="flex-1 overflow-y-auto bg-surface-depth-2 rounded-lg">
+          {isCreatingNew ? (
+            <PortSchemaDetailsEditor
+              ref={detailsEditorRef}
+              portSchema={null}
+              isNew={true}
+              onSave={handleSaveSchema}
+              onDelete={() => {}}
+              onDirtyChange={setIsDirty}
+              compact
+            />
+          ) : selectedSchema ? (
+            <PortSchemaDetailsEditor
+              ref={detailsEditorRef}
+              portSchema={selectedSchema}
+              isNew={false}
+              onSave={handleSaveSchema}
+              onDelete={handleDeleteSchema}
+              onDirtyChange={setIsDirty}
+              compact
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full text-content-muted text-xs p-4">
+              <p>Select a port schema to edit</p>
+            </div>
+          )}
         </div>
-      )}
+
+        <ConfirmationModal
+          isOpen={showConfirmModal}
+          message="You have unsaved changes. Discard?"
+          onCancel={confirmCancel}
+          onDiscard={confirmDiscard}
+          onSave={confirmSave}
+        />
+      </div>
+    );
+  }
+
+  // Full-screen layout
+  return (
+    <div className="flex flex-col bg-surface-depth-3 text-content w-screen h-screen">
+      <div className="flex items-center px-5 py-3 bg-surface-elevated border-b gap-4">
+        <button
+          className="flex items-center gap-2 px-4 py-2 bg-transparent rounded-md text-content cursor-pointer text-sm hover:bg-surface-alt transition-all"
+          onClick={onBack}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-[18px] h-[18px]">
+            <path d="M19 12H5M12 19l-7-7 7-7" />
+          </svg>
+          Back to Map
+        </button>
+        <h1 className="text-xl font-semibold text-content m-0">Port Schema Editor</h1>
+      </div>
 
       <div className="flex flex-1 overflow-hidden">
-        <div className={`bg-surface-depth-1 flex flex-col ${isFullScreen ? 'w-[280px]' : 'w-[200px]'}`}>
-          <div className={`flex justify-between items-center ${isFullScreen ? 'p-4' : 'px-3 py-2'}`}>
+        <div className="w-[280px] bg-surface-depth-1 flex flex-col">
+          <div className="flex justify-between items-center p-4">
             <h2 className="m-0 text-sm font-semibold text-content-muted uppercase tracking-wide">Port Schemas</h2>
             <button
-              className={`bg-accent border-none rounded text-white font-medium cursor-pointer hover:bg-accent-hover transition-colors ${isFullScreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'}`}
+              className="px-3 py-1.5 text-sm bg-accent border-none rounded text-white font-medium cursor-pointer hover:bg-accent-hover transition-colors"
               onClick={handleAddNew}
             >
               + Add
             </button>
           </div>
 
-          <div className={`flex-1 overflow-y-auto flex flex-col gap-2 ${isFullScreen ? 'px-2 pb-2' : 'px-1.5 pb-1.5'}`}>
+          <div className="flex-1 overflow-y-auto px-2 pb-2">
             {schemas.length === 0 ? (
-              <p className={`text-content-muted italic ${isFullScreen ? 'px-2 text-sm' : 'px-2 text-xs'}`}>No port schemas available</p>
+              <p className="px-2 text-sm text-content-muted italic">No port schemas available</p>
             ) : (
-              <div className={`bg-surface-depth-2 rounded-xl ${isFullScreen ? 'p-2' : 'p-1.5'}`}>
+              <div className="bg-surface-depth-2 rounded-xl p-2">
                 {schemas.map(schema => (
                   <button
                     key={schema.id}
-                    className={`flex items-center w-full rounded-lg cursor-pointer text-left gap-2 transition-all ${
+                    className={`flex items-center w-full rounded-lg cursor-pointer text-left gap-2 transition-all px-3 py-2.5 text-sm ${
                       selectedId === schema.id
                         ? 'bg-accent/30 text-accent ring-2 ring-accent/60 shadow-sm shadow-accent/20'
                         : 'text-content bg-transparent hover:bg-surface-depth-3/50'
-                    } ${isFullScreen ? 'px-3 py-2.5 text-sm' : 'px-2 py-1.5 text-xs'}`}
+                    }`}
                     onClick={() => handleSelectSchema(schema.id)}
                   >
                     <span
@@ -158,7 +223,7 @@ const PortSchemaEditor = forwardRef<{ save: () => void }, PortSchemaEditorProps>
           </div>
         </div>
 
-        <div className={`flex-1 overflow-hidden bg-surface-depth-3 ${isFullScreen ? 'p-6' : 'p-3'}`}>
+        <div className="flex-1 overflow-hidden bg-surface-depth-3 p-6">
           {isCreatingNew ? (
             <PortSchemaDetailsEditor
               ref={detailsEditorRef}
@@ -178,8 +243,8 @@ const PortSchemaEditor = forwardRef<{ save: () => void }, PortSchemaEditorProps>
               onDirtyChange={setIsDirty}
             />
           ) : (
-            <div className={`flex items-center justify-center h-full text-content-muted ${isFullScreen ? 'text-[15px]' : 'text-sm'}`}>
-              <p>Select a port schema to view or edit, or click "Add New" to create a custom port schema.</p>
+            <div className="flex items-center justify-center h-full text-content-muted text-[15px]">
+              <p>Select a port schema to view or edit, or click "Add New" to create one.</p>
             </div>
           )}
         </div>
@@ -187,7 +252,7 @@ const PortSchemaEditor = forwardRef<{ save: () => void }, PortSchemaEditorProps>
 
       <ConfirmationModal
         isOpen={showConfirmModal}
-        message="You have unsaved changes. Do you want to discard them and switch to a different port schema?"
+        message="You have unsaved changes. Discard?"
         onCancel={confirmCancel}
         onDiscard={confirmDiscard}
         onSave={confirmSave}
