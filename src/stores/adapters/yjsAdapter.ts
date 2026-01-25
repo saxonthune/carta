@@ -10,7 +10,6 @@ import type {
   PortSchema,
   SchemaGroup,
 } from '../../constructs/types';
-import { DEFAULT_PORT_SCHEMAS } from '../../constructs/portRegistry';
 
 /**
  * Options for creating a Yjs adapter
@@ -153,13 +152,8 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       if (mode === 'shared' && roomId && !ymeta.has('roomId')) {
         ymeta.set('roomId', roomId);
       }
-
-      // Initialize default port schemas if none exist
-      if (yportSchemas.size === 0) {
-        for (const ps of DEFAULT_PORT_SCHEMAS) {
-          yportSchemas.set(ps.id, objectToYMap(ps));
-        }
-      }
+      // Note: Default port schemas are seeded in DocumentContext (same as construct schemas)
+      // This ensures SKIP_BUILTIN_SEED_KEY is respected after Clear Everything
     }, 'init');
   };
 

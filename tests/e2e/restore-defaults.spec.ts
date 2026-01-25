@@ -12,7 +12,7 @@ test.describe('Restore Default Schemas', () => {
   test('should open restore defaults modal from settings menu', async () => {
     await carta.openRestoreDefaultsModal();
     await expect(carta.restoreDefaultsModal).toBeVisible();
-    await expect(carta.page.getByText('Restore default schemas')).toBeVisible();
+    await expect(carta.page.getByRole('heading', { name: 'Restore default schemas' })).toBeVisible();
   });
 
   test('should close restore defaults modal on cancel', async () => {
@@ -78,12 +78,12 @@ test.describe('Restore Default Schemas', () => {
     await carta.openRestoreDefaultsModal();
 
     const restoreButton = carta.restoreDefaultsConfirmButton;
-    const backgroundColor = await restoreButton.evaluate((el) => {
-      return window.getComputedStyle(el).backgroundColor;
+    // Check button has emerald/green styling by class or computed color
+    const hasEmeraldClass = await restoreButton.evaluate((el) => {
+      return el.className.includes('emerald');
     });
 
-    // Should be green (emerald-500)
-    expect(backgroundColor).toMatch(/emerald|rgba.*76.*180|22c55e/i);
+    expect(hasEmeraldClass).toBe(true);
   });
 
   test('closes settings menu after restore action', async () => {

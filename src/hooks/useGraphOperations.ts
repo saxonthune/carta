@@ -1,7 +1,6 @@
 import { useCallback } from 'react';
 import { useReactFlow, addEdge, type Node } from '@xyflow/react';
 import { useDocument } from './useDocument';
-import { useUndoRedo } from './useUndoRedo';
 import { generateSemanticId } from '../utils/cartaFile';
 import type { ConstructSchema, ConstructValues, ConnectionValue, ConstructNodeData } from '../constructs/types';
 
@@ -28,11 +27,9 @@ export function useGraphOperations(options: UseGraphOperationsOptions): UseGraph
   const { selectedNodeIds, setSelectedNodeIds, setRenamingNodeId, setAddMenu } = options;
   const { nodes, setNodes, setEdges, getNextNodeId, getSchema } = useDocument();
   const { screenToFlowPosition } = useReactFlow();
-  const { takeSnapshot } = useUndoRedo();
 
   const addConstruct = useCallback(
     (schema: ConstructSchema, x: number, y: number) => {
-      takeSnapshot();
       const position = screenToFlowPosition({ x, y });
       const id = getNextNodeId();
 
@@ -58,7 +55,7 @@ export function useGraphOperations(options: UseGraphOperationsOptions): UseGraph
       };
       setNodes((nds) => [...nds, newNode]);
     },
-    [setNodes, screenToFlowPosition, takeSnapshot, getNextNodeId]
+    [setNodes, screenToFlowPosition, , getNextNodeId]
   );
 
   // Add a related construct near the source node and optionally connect them
@@ -69,8 +66,6 @@ export function useGraphOperations(options: UseGraphOperationsOptions): UseGraph
 
       const schema = getSchema(constructType);
       if (!schema) return;
-
-      takeSnapshot();
 
       // Position the new node to the right of the source node
       const newPosition = {
@@ -139,7 +134,7 @@ export function useGraphOperations(options: UseGraphOperationsOptions): UseGraph
       // If no ports specified, just add the node
       setNodes((nds) => [...nds, newNode]);
     },
-    [nodes, setNodes, setEdges, takeSnapshot, getNextNodeId, getSchema]
+    [nodes, setNodes, setEdges, , getNextNodeId, getSchema]
   );
 
   const addNode = useCallback(
@@ -155,26 +150,24 @@ export function useGraphOperations(options: UseGraphOperationsOptions): UseGraph
 
   const deleteNode = useCallback(
     (nodeIdToDelete: string) => {
-      takeSnapshot();
       setNodes((nds) => nds.filter((n) => n.id !== nodeIdToDelete));
       setEdges((eds) =>
         eds.filter((e) => e.source !== nodeIdToDelete && e.target !== nodeIdToDelete)
       );
       setSelectedNodeIds((ids) => ids.filter((id) => id !== nodeIdToDelete));
     },
-    [setNodes, setEdges, takeSnapshot, setSelectedNodeIds]
+    [setNodes, setEdges, , setSelectedNodeIds]
   );
 
   const deleteSelectedNodes = useCallback(() => {
     if (selectedNodeIds.length === 0) return;
-    takeSnapshot();
     const idsToDelete = new Set(selectedNodeIds);
     setNodes((nds) => nds.filter((n) => !idsToDelete.has(n.id)));
     setEdges((eds) =>
       eds.filter((e) => !idsToDelete.has(e.source) && !idsToDelete.has(e.target))
     );
     setSelectedNodeIds([]);
-  }, [selectedNodeIds, setNodes, setEdges, takeSnapshot, setSelectedNodeIds]);
+  }, [selectedNodeIds, setNodes, setEdges, , setSelectedNodeIds]);
 
   const renameNode = useCallback(
     (nodeIdToRename: string, newSemanticId: string) => {

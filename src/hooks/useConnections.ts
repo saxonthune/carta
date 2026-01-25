@@ -1,7 +1,6 @@
 import { useCallback } from 'react';
 import { useReactFlow, addEdge, type Edge, type Connection, type OnConnect } from '@xyflow/react';
 import { useDocument } from './useDocument';
-import { useUndoRedo } from './useUndoRedo';
 import { canConnect, getPortsForSchema } from '../constructs/ports';
 import type { ConnectionValue, ConstructNodeData } from '../constructs/types';
 
@@ -15,7 +14,6 @@ export interface UseConnectionsResult {
 export function useConnections(): UseConnectionsResult {
   const { nodes, setNodes, setEdges, getSchema } = useDocument();
   const { getNodes } = useReactFlow();
-  const { takeSnapshot } = useUndoRedo();
 
   // Helper to get semanticId from a node
   const getNodeSemanticId = useCallback((nodeId: string): string | null => {
@@ -61,8 +59,6 @@ export function useConnections(): UseConnectionsResult {
 
   const onConnect: OnConnect = useCallback(
     (params) => {
-      takeSnapshot();
-
       // Store connection on source node's data
       if (params.source && params.sourceHandle && params.target && params.targetHandle) {
         const targetSemanticId = getNodeSemanticId(params.target);
@@ -103,7 +99,7 @@ export function useConnections(): UseConnectionsResult {
       // Also add edge for visual rendering
       setEdges((eds) => addEdge(params, eds));
     },
-    [setEdges, setNodes, takeSnapshot, getNodeSemanticId]
+    [setEdges, setNodes, getNodeSemanticId]
   );
 
   // Handle edge deletion - remove connection data from nodes

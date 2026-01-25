@@ -7,8 +7,6 @@ interface UseUndoRedoReturn {
   redo: () => void;
   canUndo: boolean;
   canRedo: boolean;
-  /** @deprecated No-op with Yjs - snapshots are automatic via transactions */
-  takeSnapshot: () => void;
 }
 
 /**
@@ -76,21 +74,11 @@ export function useUndoRedo(): UseUndoRedoReturn {
     undoManagerRef.current?.redo();
   }, []);
 
-  /**
-   * No-op with Yjs - snapshots are automatic via transactions.
-   * Kept for backwards compatibility with existing code.
-   * @deprecated
-   */
-  const takeSnapshot = useCallback(() => {
-    // Yjs handles snapshots automatically via transactions with 'user' origin
-  }, []);
-
   return {
     undo,
     redo,
     canUndo,
     canRedo,
-    takeSnapshot,
   };
 }
 

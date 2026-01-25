@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useReactFlow, type Node } from '@xyflow/react';
 import { useDocument } from './useDocument';
-import { useUndoRedo } from './useUndoRedo';
 import { generateSemanticId } from '../utils/cartaFile';
 
 interface UseClipboardOptions {
@@ -19,7 +18,6 @@ export function useClipboard(options: UseClipboardOptions): UseClipboardResult {
   const { selectedNodeIds } = options;
   const { nodes, setNodes, getNextNodeId } = useDocument();
   const { screenToFlowPosition } = useReactFlow();
-  const { takeSnapshot } = useUndoRedo();
   const [clipboard, setClipboard] = useState<Node[]>([]);
 
   const copyNodes = useCallback(
@@ -38,8 +36,6 @@ export function useClipboard(options: UseClipboardOptions): UseClipboardResult {
   const pasteNodes = useCallback(
     (x?: number, y?: number) => {
       if (clipboard.length === 0) return;
-
-      takeSnapshot();
 
       const minX = Math.min(...clipboard.map((n) => n.position.x));
       const minY = Math.min(...clipboard.map((n) => n.position.y));
@@ -80,7 +76,7 @@ export function useClipboard(options: UseClipboardOptions): UseClipboardResult {
 
       setNodes((nds) => [...nds, ...newNodes]);
     },
-    [clipboard, setNodes, screenToFlowPosition, takeSnapshot, getNextNodeId]
+    [clipboard, setNodes, screenToFlowPosition, getNextNodeId]
   );
 
   return {

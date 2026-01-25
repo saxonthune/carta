@@ -2,8 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback, type React
 import * as Y from 'yjs';
 import type { DocumentAdapter } from '../stores/adapters/types';
 import { createYjsAdapter, type YjsAdapterOptions } from '../stores/adapters/yjsAdapter';
-import { builtInConstructSchemas, builtInSchemaGroups } from '../constructs/schemas';
-import { SKIP_BUILTIN_SEED_KEY } from '../hooks/useClearDocument';
+import { builtInConstructSchemas, builtInSchemaGroups, builtInPortSchemas } from '../constructs/schemas';
 
 /**
  * Document context value
@@ -83,19 +82,28 @@ export function DocumentProvider({
       currentAdapter = yjsAdapter;
       await yjsAdapter.initialize();
 
-      // Seed default schemas and groups if document is empty (unless user just cleared everything)
-      const skipSeed = sessionStorage.getItem(SKIP_BUILTIN_SEED_KEY);
-      if (skipSeed) {
-        sessionStorage.removeItem(SKIP_BUILTIN_SEED_KEY);
-      } else if (yjsAdapter.getSchemas().length === 0) {
-        // Seed schema groups first (so construct schemas can reference them)
-        for (const group of builtInSchemaGroups) {
-          yjsAdapter.addSchemaGroup(group);
-        }
-        // Then seed construct schemas
-        for (const schema of builtInConstructSchemas) {
-          yjsAdapter.addSchema(schema);
-        }
+      // Seed default schemas/groups/ports ONLY on first-ever initialization
+      // After that, the document stays as the user left it (even if empty after Clear Everything)
+      // The "initialized" flag is stored in the document itself (single source of truth)
+      const isInitialized = yjsAdapter.ydoc.getMap('meta').get('initialized') as boolean | undefined;
+
+      if (!isInitialized) {
+        yjsAdapter.transaction(() => {
+          // Seed schema groups first (so construct schemas can reference them)
+          for (const group of builtInSchemaGroups) {
+            yjsAdapter.addSchemaGroup(group);
+          }
+          // Then seed construct schemas
+          for (const schema of builtInConstructSchemas) {
+            yjsAdapter.addSchema(schema);
+          }
+          // Seed port schemas
+          for (const portSchema of builtInPortSchemas) {
+            yjsAdapter.addPortSchema(portSchema);
+          }
+          // Mark document as initialized (stored in Yjs, persisted to IndexedDB)
+          yjsAdapter.ydoc.getMap('meta').set('initialized', true);
+        }, 'init');
       }
 
       // Connect to WebSocket if shared mode

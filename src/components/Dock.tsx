@@ -182,7 +182,7 @@ export default function Dock({ selectedNodes, deployables, onDeployablesChange, 
   };
 
   return (
-    <div className="bg-surface-depth-3 flex" style={{ height }}>
+    <div data-testid="dock" className="bg-surface-depth-3 flex" style={{ height }}>
       <TabBar
         tabs={tabs}
         activeTab={activeView}

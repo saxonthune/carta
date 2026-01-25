@@ -60,9 +60,8 @@ export interface UseDocumentResult {
 }
 
 /**
- * Hook providing document state and operations through the adapter.
- * This is a drop-in replacement for useDocumentStore that works with
- * either the legacy localStorage adapter or the Yjs adapter.
+ * Hook providing document state and operations through the Yjs adapter.
+ * This is the primary hook for accessing and modifying document state.
  */
 export function useDocument(): UseDocumentResult {
   const { adapter } = useDocumentContext();

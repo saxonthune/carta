@@ -1,9 +1,6 @@
 import { useCallback } from 'react';
 import { useDocumentContext } from '../contexts/DocumentContext';
 
-// Key used to flag that user intentionally cleared everything (skip re-seeding built-ins)
-export const SKIP_BUILTIN_SEED_KEY = 'carta-skip-builtin-seed';
-
 export function useClearDocument() {
   const { adapter } = useDocumentContext();
 
@@ -21,8 +18,6 @@ export function useClearDocument() {
         adapter.setDeployables([]);
         adapter.setPortSchemas([]);
         adapter.setSchemaGroups([]);
-        // Flag to prevent re-seeding built-in schemas on reload
-        sessionStorage.setItem(SKIP_BUILTIN_SEED_KEY, 'true');
       }
     });
     // No reload needed - Yjs subscription propagates changes automatically

@@ -85,8 +85,7 @@ test.describe('Default State and Clear/Restore Workflow', () => {
   });
 
   test.describe('Clear Everything', () => {
-    // BUG: Clear Everything doesn't actually clear schemas from the Yjs store
-    test.skip('should empty all construct schemas', async ({ page }) => {
+    test('should empty all construct schemas', async ({ page }) => {
       // First verify schemas exist
       await carta.switchDockTab('constructs');
       await page.waitForTimeout(300);
@@ -106,8 +105,7 @@ test.describe('Default State and Clear/Restore Workflow', () => {
       await expect(page.getByRole('button', { name: 'Database' })).not.toBeVisible();
     });
 
-    // BUG: Clear Everything doesn't actually clear port schemas from the Yjs store
-    test.skip('should empty all port schemas', async ({ page }) => {
+    test('should empty all port schemas', async ({ page }) => {
       // First verify port schemas exist
       await carta.switchDockTab('ports');
       await page.waitForTimeout(300);
@@ -167,8 +165,7 @@ test.describe('Default State and Clear/Restore Workflow', () => {
   });
 
   test.describe('Clear Everything and Restore Defaults', () => {
-    // BUG: Clear + Restore workflow doesn't work - clear doesn't clear, restore doesn't restore
-    test.skip('should restore built-in construct schemas after clear and restore', async ({ page }) => {
+    test('should restore built-in construct schemas after clear and restore', async ({ page }) => {
       // First clear everything
       await carta.openClearModal();
       await carta.clearEverything();
@@ -184,16 +181,16 @@ test.describe('Default State and Clear/Restore Workflow', () => {
       await carta.confirmRestoreDefaults();
       await page.waitForTimeout(500);
 
-      // Verify built-ins are restored
+      // Verify built-ins are restored (use .first() for Database since there's also a Database group)
       await carta.switchDockTab('constructs');
       await page.waitForTimeout(300);
       await expect(page.getByRole('button', { name: 'REST Controller' })).toBeVisible();
-      await expect(page.getByRole('button', { name: 'Database' })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Database' }).first()).toBeVisible();
       await expect(page.getByRole('button', { name: 'Table' })).toBeVisible();
       await expect(page.getByRole('button', { name: 'User Story' })).toBeVisible();
     });
 
-    test.skip('should restore built-in port schemas after clear and restore', async ({ page }) => {
+    test('should restore built-in port schemas after clear and restore', async ({ page }) => {
       // First clear everything
       await carta.openClearModal();
       await carta.clearEverything();
@@ -218,7 +215,7 @@ test.describe('Default State and Clear/Restore Workflow', () => {
       await expect(page.getByRole('button', { name: 'Child' })).toBeVisible();
     });
 
-    test.skip('should restore built-in schema groups after clear and restore', async ({ page }) => {
+    test('should restore built-in schema groups after clear and restore', async ({ page }) => {
       // First clear everything
       await carta.openClearModal();
       await carta.clearEverything();
@@ -240,16 +237,16 @@ test.describe('Default State and Clear/Restore Workflow', () => {
       await expect(page.getByRole('button', { name: 'Software Architecture' })).toBeVisible();
     });
 
-    test.skip('should use clear and restore button in one action', async ({ page }) => {
+    test('should use clear and restore button in one action', async ({ page }) => {
       // Use the combined clear and restore button
       await carta.clearAndRestoreDefaults();
       await page.waitForTimeout(500);
 
-      // Verify built-ins are present
+      // Verify built-ins are present (use .first() for Database since there's also a Database group)
       await carta.switchDockTab('constructs');
       await page.waitForTimeout(300);
       await expect(page.getByRole('button', { name: 'REST Controller' })).toBeVisible();
-      await expect(page.getByRole('button', { name: 'Database' })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Database' }).first()).toBeVisible();
     });
 
     test('should have no instances after clear and restore', async ({ page }) => {

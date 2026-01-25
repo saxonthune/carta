@@ -12,15 +12,11 @@ interface PortSchemaEditorProps {
 
 const PortSchemaEditor = forwardRef<{ save: () => void }, PortSchemaEditorProps>(
   function PortSchemaEditor({ onBack, onDirtyChange }, ref) {
-  const { getPortSchemas, addPortSchema, updatePortSchema, removePortSchema } = useDocument();
+  // Use reactive portSchemas from useDocument - updates automatically when adapter changes
+  const { portSchemas: schemas, addPortSchema, updatePortSchema, removePortSchema } = useDocument();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isCreatingNew, setIsCreatingNew] = useState(false);
-  const [schemas, setSchemas] = useState<PortSchema[]>(() => getPortSchemas());
   const detailsEditorRef = useRef<{ save: () => void } | null>(null);
-
-  const refreshSchemas = useCallback(() => {
-    setSchemas(getPortSchemas());
-  }, [getPortSchemas]);
 
   const handleDetailsEditorSave = useCallback(() => {
     detailsEditorRef.current?.save();
@@ -77,21 +73,16 @@ const PortSchemaEditor = forwardRef<{ save: () => void }, PortSchemaEditorProps>
     } else {
       updatePortSchema(schema.id, schema);
     }
-    refreshSchemas();
+    // No need to refresh - schemas updates automatically via useDocument subscription
     setSelectedId(schema.id);
     setIsCreatingNew(false);
-  }, [refreshSchemas, addPortSchema, updatePortSchema]);
+  }, [addPortSchema, updatePortSchema]);
 
   const handleDeleteSchema = useCallback((id: string) => {
     removePortSchema(id);
-    refreshSchemas();
+    // No need to refresh - schemas updates automatically via useDocument subscription
     setSelectedId(null);
-  }, [refreshSchemas, removePortSchema]);
-
-  // Subscribe to port schemas changes
-  useEffect(() => {
-    setSchemas(getPortSchemas());
-  }, [getPortSchemas]);
+  }, [removePortSchema]);
 
   // Handle Delete key to delete selected schema
   useEffect(() => {

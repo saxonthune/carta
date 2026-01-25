@@ -82,7 +82,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
   const [addMenu, setAddMenu] = useState<AddMenuState | null>(null);
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
   const [renamingNodeId, setRenamingNodeId] = useState<string | null>(null);
-  const { undo, redo, canUndo, canRedo, takeSnapshot } = useUndoRedo();
+  const { undo, redo, canUndo, canRedo } = useUndoRedo();
 
   // Suppress unused variable warnings - these are passed through for compatibility
   void onDeployablesChange;
@@ -139,8 +139,6 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
   // Import nodes and edges with ID remapping
   const handleImportNodes = useCallback(
     (importedNodes: Node[], importedEdges: Edge[]) => {
-      takeSnapshot();
-
       // Build a mapping from old node IDs to new ones
       const idMap: Record<string, string> = {};
       const newNodes: Node[] = [];
@@ -175,7 +173,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
       setNodes((nds) => [...nds, ...newNodes]);
       setEdges((eds) => [...eds, ...newEdges]);
     },
-    [takeSnapshot, setNodes, setEdges, getNextNodeId]
+    [setNodes, setEdges, getNextNodeId]
   );
 
   // Set the import ref so parent can call this function
@@ -225,7 +223,6 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
   // Context menu specific edge deletion
   const deleteEdge = useCallback(
     (edgeIdToDelete: string) => {
-      takeSnapshot();
       const edgeToDelete = edges.find((e) => e.id === edgeIdToDelete);
       if (edgeToDelete) {
         // Remove from edges array
@@ -234,7 +231,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
         handleEdgesDelete([edgeToDelete]);
       }
     },
-    [edges, setEdges, handleEdgesDelete, takeSnapshot]
+    [edges, setEdges, handleEdgesDelete]
   );
 
   const handleSelectionChange = useCallback(
