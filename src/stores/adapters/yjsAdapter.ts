@@ -229,6 +229,10 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       return (ymeta.get('title') as string) || 'Untitled Project';
     },
 
+    getDescription(): string {
+      return (ymeta.get('description') as string) || '';
+    },
+
     // State access - Schemas
     getSchemas(): ConstructSchema[] {
       const schemas: ConstructSchema[] = [];
@@ -325,6 +329,12 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     setTitle(title: string) {
       ydoc.transact(() => {
         ymeta.set('title', title);
+      }, 'user');
+    },
+
+    setDescription(description: string) {
+      ydoc.transact(() => {
+        ymeta.set('description', description);
       }, 'user');
     },
 
@@ -548,6 +558,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       return {
         version: (ymeta.get('version') as number) || 3,
         title: this.getTitle(),
+        description: this.getDescription(),
         nodes: this.getNodes(),
         edges: this.getEdges(),
         schemas: this.getSchemas(),

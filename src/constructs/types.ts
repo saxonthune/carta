@@ -254,6 +254,7 @@ export interface Formatter {
 export interface CartaDocument {
   version: number;
   title: string;
+  description?: string;
   nodes: unknown[];           // Node<ConstructNodeData>[] - using unknown to avoid @xyflow/react import
   edges: unknown[];           // Edge[] - using unknown to avoid @xyflow/react import
   schemas: ConstructSchema[];
@@ -277,6 +278,7 @@ export interface DocumentAdapter {
   getNodes(): unknown[];
   getEdges(): unknown[];
   getTitle(): string;
+  getDescription(): string;
 
   // State access - Schemas
   getSchemas(): ConstructSchema[];
@@ -298,6 +300,7 @@ export interface DocumentAdapter {
   setNodes(nodes: unknown[] | ((prev: unknown[]) => unknown[])): void;
   setEdges(edges: unknown[] | ((prev: unknown[]) => unknown[])): void;
   setTitle(title: string): void;
+  setDescription(description: string): void;
   generateNodeId(): string;
   updateNode(nodeId: string, updates: Partial<ConstructNodeData>): void;
 

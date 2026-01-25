@@ -1,6 +1,7 @@
 {
   "version": 3,
   "title": "Carta Test Scenarios",
+  "description": "Example scenarios demonstrating various Carta features and construct types.",
   "nodes": [
     {
       "id": "1",

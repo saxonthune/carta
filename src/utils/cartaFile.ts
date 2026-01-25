@@ -16,6 +16,7 @@ export const CARTA_FILE_VERSION = 3;
 export interface CartaFile {
   version: number;
   title: string;
+  description?: string;
   nodes: Node[];
   edges: Edge[];
   deployables: Deployable[];
@@ -61,6 +62,7 @@ export function exportProject(data: Omit<CartaFile, 'version' | 'exportedAt'>, o
   // Apply export options to filter data
   const filteredData: Omit<CartaFile, 'version' | 'exportedAt'> = {
     title: data.title,
+    description: data.description,
     nodes: options?.nodes !== false ? data.nodes : [],
     edges: options?.nodes !== false ? data.edges : [],
     deployables: options?.deployables !== false ? data.deployables : [],
@@ -95,7 +97,7 @@ export function exportProject(data: Omit<CartaFile, 'version' | 'exportedAt'>, o
 export async function importProject(file: File): Promise<CartaFile> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    
+
     reader.onload = (e) => {
       try {
         const content = e.target?.result as string;
@@ -106,13 +108,21 @@ export async function importProject(file: File): Promise<CartaFile> {
         reject(error);
       }
     };
-    
+
     reader.onerror = () => {
       reject(new Error('Failed to read file'));
     };
-    
+
     reader.readAsText(file);
   });
+}
+
+/**
+ * Parse and validate a .carta file from raw string content
+ */
+export function importProjectFromString(content: string): CartaFile {
+  const data = JSON.parse(content);
+  return validateCartaFile(data);
 }
 
 /**
@@ -280,6 +290,7 @@ export function validateCartaFile(data: unknown): CartaFile {
   return {
     version: obj.version as number,
     title: obj.title as string,
+    description: (obj.description as string | undefined),
     nodes: obj.nodes as Node[],
     edges: obj.edges as Edge[],
     deployables: obj.deployables as Deployable[],

@@ -11,6 +11,7 @@ export interface UseDocumentResult {
   nodes: Node[];
   edges: Edge[];
   title: string;
+  description: string;
   schemas: ConstructSchema[];
   portSchemas: PortSchema[];
   deployables: Deployable[];
@@ -19,6 +20,7 @@ export interface UseDocumentResult {
   setNodes: (nodes: Node[] | ((prev: Node[]) => Node[])) => void;
   setEdges: (edges: Edge[] | ((prev: Edge[]) => Edge[])) => void;
   setTitle: (title: string) => void;
+  setDescription: (description: string) => void;
   getNextNodeId: () => string;
   updateNode: (nodeId: string, updates: Partial<ConstructNodeData>) => void;
 
@@ -70,6 +72,7 @@ export function useDocument(): UseDocumentResult {
   const [nodes, setNodesState] = useState<Node[]>(() => adapter.getNodes() as Node[]);
   const [edges, setEdgesState] = useState<Edge[]>(() => adapter.getEdges() as Edge[]);
   const [title, setTitleState] = useState<string>(() => adapter.getTitle());
+  const [description, setDescriptionState] = useState<string>(() => adapter.getDescription());
   const [schemas, setSchemasState] = useState<ConstructSchema[]>(() => adapter.getSchemas());
   const [portSchemas, setPortSchemasState] = useState<PortSchema[]>(() => adapter.getPortSchemas());
   const [deployables, setDeployablesState] = useState<Deployable[]>(() => adapter.getDeployables());
@@ -81,6 +84,7 @@ export function useDocument(): UseDocumentResult {
       setNodesState(adapter.getNodes() as Node[]);
       setEdgesState(adapter.getEdges() as Edge[]);
       setTitleState(adapter.getTitle());
+      setDescriptionState(adapter.getDescription());
       setSchemasState(adapter.getSchemas());
       setPortSchemasState(adapter.getPortSchemas());
       setDeployablesState(adapter.getDeployables());
@@ -107,6 +111,13 @@ export function useDocument(): UseDocumentResult {
   const setTitle = useCallback(
     (newTitle: string) => {
       adapter.setTitle(newTitle);
+    },
+    [adapter]
+  );
+
+  const setDescription = useCallback(
+    (newDescription: string) => {
+      adapter.setDescription(newDescription);
     },
     [adapter]
   );
@@ -266,6 +277,7 @@ export function useDocument(): UseDocumentResult {
       nodes,
       edges,
       title,
+      description,
       schemas,
       portSchemas,
       deployables,
@@ -273,6 +285,7 @@ export function useDocument(): UseDocumentResult {
       setNodes,
       setEdges,
       setTitle,
+      setDescription,
       getNextNodeId,
       updateNode,
       getSchema,
@@ -303,6 +316,7 @@ export function useDocument(): UseDocumentResult {
       nodes,
       edges,
       title,
+      description,
       schemas,
       portSchemas,
       deployables,
@@ -310,6 +324,7 @@ export function useDocument(): UseDocumentResult {
       setNodes,
       setEdges,
       setTitle,
+      setDescription,
       getNextNodeId,
       updateNode,
       getSchema,

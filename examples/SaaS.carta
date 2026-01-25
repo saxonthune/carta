@@ -1,6 +1,7 @@
 {
   "version": 3,
   "title": "Friendship.AI",
+  "description": "A social networking SaaS application with user management, subscriptions, and order processing.",
   "nodes": [
     {
       "id": "1",

@@ -1,16 +1,22 @@
 import { useState, useRef, useEffect } from 'react';
 import { useDocumentContext } from '../contexts/DocumentContext';
 import ConnectionStatus from './ConnectionStatus';
+import ExamplesModal from './ExamplesModal';
+import ProjectInfoModal from './ProjectInfoModal';
+import { getExamples, type Example } from '../utils/examples';
 
 interface HeaderProps {
   title: string;
+  description: string;
   onTitleChange: (title: string) => void;
+  onDescriptionChange: (description: string) => void;
   onExport: () => void;
   onImport: (file: File) => void;
   onCompile: () => void;
   onClear?: (mode: 'instances' | 'all') => void;
   onRestoreDefaultSchemas?: () => void;
   onToggleAI?: () => void;
+  onLoadExample?: (example: Example) => void;
 }
 
 const getInitialTheme = (): 'light' | 'dark' | 'warm' => {
@@ -20,10 +26,8 @@ const getInitialTheme = (): 'light' | 'dark' | 'warm' => {
   return prefersDark ? 'dark' : 'light';
 };
 
-export default function Header({ title, onTitleChange, onExport, onImport, onCompile, onClear, onRestoreDefaultSchemas, onToggleAI }: HeaderProps) {
+export default function Header({ title, description, onTitleChange, onDescriptionChange, onExport, onImport, onCompile, onClear, onRestoreDefaultSchemas, onToggleAI, onLoadExample }: HeaderProps) {
   const { mode, roomId, connectToRoom, localMode } = useDocumentContext();
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [editedTitle, setEditedTitle] = useState(title);
   const [theme, setTheme] = useState<'light' | 'dark' | 'warm'>(() => {
     const initialTheme = getInitialTheme();
     document.documentElement.setAttribute('data-theme', initialTheme);
@@ -32,6 +36,8 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
   const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
   const [isSettingsMenuOpen, setIsSettingsMenuOpen] = useState(false);
   const [isShareMenuOpen, setIsShareMenuOpen] = useState(false);
+  const [isProjectInfoModalOpen, setIsProjectInfoModalOpen] = useState(false);
+  const [isExamplesModalOpen, setIsExamplesModalOpen] = useState(false);
   const [clearWarningMode, setClearWarningMode] = useState<'menu' | null>(null);
   const [restoreWarningMode, setRestoreWarningMode] = useState<'menu' | null>(null);
   const [shareRoomId, setShareRoomId] = useState('');
@@ -40,6 +46,8 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
   const themeMenuRef = useRef<HTMLDivElement>(null);
   const settingsMenuRef = useRef<HTMLDivElement>(null);
   const shareMenuRef = useRef<HTMLDivElement>(null);
+
+  const examples = getExamples();
 
   // Close menus when clicking outside
   useEffect(() => {
@@ -125,26 +133,6 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
     }
   };
 
-  const handleTitleClick = () => {
-    setEditedTitle(title);
-    setIsEditingTitle(true);
-  };
-
-  const handleTitleBlur = () => {
-    onTitleChange(editedTitle);
-    setIsEditingTitle(false);
-  };
-
-  const handleTitleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      onTitleChange(editedTitle);
-      setIsEditingTitle(false);
-    } else if (e.key === 'Escape') {
-      setEditedTitle(title);
-      setIsEditingTitle(false);
-    }
-  };
-
   const handleImportClick = () => {
     fileInputRef.current?.click();
   };
@@ -176,24 +164,13 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
       </div>
 
       <div className="flex items-center justify-center">
-        {isEditingTitle ? (
-          <input
-            type="text"
-            className="text-lg font-semibold text-content border-2 border-accent rounded px-2 py-1 outline-none min-w-[200px] bg-surface"
-            value={editedTitle}
-            onChange={(e) => setEditedTitle(e.target.value)}
-            onBlur={handleTitleBlur}
-            onKeyDown={handleTitleKeyDown}
-            autoFocus
-          />
-        ) : (
-          <h1
-            className="m-0 text-lg font-semibold text-content cursor-pointer px-2 py-1 rounded hover:bg-surface-alt transition-colors"
-            onClick={handleTitleClick}
-          >
-            {title}
-          </h1>
-        )}
+        <h1
+          className="m-0 text-lg font-semibold text-content cursor-pointer px-2 py-1 rounded hover:bg-surface-alt transition-colors"
+          onClick={() => setIsProjectInfoModalOpen(true)}
+          title="Click to edit project info"
+        >
+          {title}
+        </h1>
       </div>
 
       <div className="flex gap-2 items-center justify-end">
@@ -350,6 +327,17 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
           </button>
           {isSettingsMenuOpen && (
             <div data-testid="settings-menu" className="absolute right-0 top-full mt-1 bg-surface border border-subtle rounded-lg shadow-lg overflow-hidden z-50 min-w-[200px]">
+              {examples.length > 0 && onLoadExample && (
+                <button
+                  className="w-full text-left px-4 py-2 text-sm cursor-pointer text-content hover:bg-surface-alt transition-colors border-none bg-surface"
+                  onClick={() => {
+                    setIsExamplesModalOpen(true);
+                    setIsSettingsMenuOpen(false);
+                  }}
+                >
+                  Load Example
+                </button>
+              )}
               <button
                 className="w-full text-left px-4 py-2 text-sm cursor-pointer text-content hover:bg-surface-alt transition-colors border-none bg-surface"
                 onClick={() => setRestoreWarningMode('menu')}
@@ -477,6 +465,31 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
             </div>
           </div>
         </div>
+      )}
+
+      {/* Project Info Modal */}
+      {isProjectInfoModalOpen && (
+        <ProjectInfoModal
+          title={title}
+          description={description}
+          onSave={(newTitle, newDescription) => {
+            onTitleChange(newTitle);
+            onDescriptionChange(newDescription);
+          }}
+          onClose={() => setIsProjectInfoModalOpen(false)}
+        />
+      )}
+
+      {/* Examples Modal */}
+      {isExamplesModalOpen && onLoadExample && (
+        <ExamplesModal
+          examples={examples}
+          onSelect={(example) => {
+            onLoadExample(example);
+            setIsExamplesModalOpen(false);
+          }}
+          onClose={() => setIsExamplesModalOpen(false)}
+        />
       )}
     </header>
   );

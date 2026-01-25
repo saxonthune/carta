@@ -13,7 +13,8 @@ import { syncWithDocumentStore } from './constructs/portRegistry';
 import { useDocument } from './hooks/useDocument';
 import { useClearDocument } from './hooks/useClearDocument';
 import { useDocumentContext } from './contexts/DocumentContext';
-import { exportProject, importProject, generateSemanticId, type CartaFile } from './utils/cartaFile';
+import { exportProject, importProject, importProjectFromString, generateSemanticId, type CartaFile } from './utils/cartaFile';
+import type { Example } from './utils/examples';
 import { analyzeImport, type ImportAnalysis, type ImportOptions } from './utils/importAnalyzer';
 import { analyzeExport, type ExportAnalysis, type ExportOptions } from './utils/exportAnalyzer';
 import type { ConstructValues } from './constructs/types';
@@ -27,16 +28,19 @@ const MAX_DOCK_HEIGHT_RATIO = 0.7;
 function App() {
   const { adapter } = useDocumentContext();
   const {
+    title,
+    description,
     schemas,
     deployables,
     updateNode,
+    setTitle,
+    setDescription,
     setSchemas,
     setDeployables,
   } = useDocument();
   const [importPreview, setImportPreview] = useState<{ data: CartaFile; analysis: ImportAnalysis } | null>(null);
   const [exportPreview, setExportPreview] = useState<ExportAnalysis | null>(null);
   const [compileOutput, setCompileOutput] = useState<string | null>(null);
-  const [title, setTitle] = useState<string>(() => adapter.getTitle());
   const [selectedNodes, setSelectedNodes] = useState<Node[]>([]);
   const [dockHeight, setDockHeight] = useState(256);
   const [isResizing, setIsResizing] = useState(false);
@@ -112,6 +116,7 @@ function App() {
 
     exportProject({
       title,
+      description,
       nodes: nodesWithSemanticIds,
       edges,
       deployables,
@@ -119,7 +124,7 @@ function App() {
     }, options);
 
     setExportPreview(null);
-  }, [title, deployables, schemas]);
+  }, [title, description, deployables, schemas]);
 
   const handleExportCancel = useCallback(() => {
     setExportPreview(null);
@@ -132,6 +137,16 @@ function App() {
       setImportPreview({ data, analysis });
     } catch (error) {
       alert(`Failed to import file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }, [deployables, schemas]);
+
+  const handleLoadExample = useCallback((example: Example) => {
+    try {
+      const data = importProjectFromString(example.content);
+      const analysis = analyzeImport(data, example.filename, nodesEdgesRef.current.nodes, deployables, schemas);
+      setImportPreview({ data, analysis });
+    } catch (error) {
+      alert(`Failed to load example: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }, [deployables, schemas]);
 
@@ -149,6 +164,14 @@ function App() {
       adapter.setDeployables([]);
       adapter.setPortSchemas([]);
     });
+
+    // Set title and description from imported file
+    if (data.title) {
+      setTitle(data.title);
+    }
+    if (data.description) {
+      setDescription(data.description);
+    }
 
     // Import selected schemas
     if (options.schemas.size > 0 && data.customSchemas.length > 0) {
@@ -182,7 +205,7 @@ function App() {
 
     // Close the modal
     setImportPreview(null);
-  }, [importPreview, adapter, setSchemas, setDeployables]);
+  }, [importPreview, adapter, setTitle, setDescription, setSchemas, setDeployables]);
 
   const handleImportCancel = useCallback(() => {
     setImportPreview(null);
@@ -254,13 +277,16 @@ function App() {
     <div className="h-screen flex flex-col">
       <Header
         title={title}
+        description={description}
         onTitleChange={setTitle}
+        onDescriptionChange={setDescription}
         onExport={handleExport}
         onImport={handleImport}
         onCompile={handleCompile}
         onClear={clearDocument}
         onRestoreDefaultSchemas={handleRestoreDefaultSchemas}
         onToggleAI={() => setAiSidebarOpen(!aiSidebarOpen)}
+        onLoadExample={handleLoadExample}
       />
       <div ref={containerRef} className="flex-1 min-h-0 flex flex-col">
         <div className="flex-1 min-h-0">
