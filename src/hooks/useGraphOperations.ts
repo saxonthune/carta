@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useReactFlow, addEdge, type Node } from '@xyflow/react';
-import { useDocumentStore } from '../stores/documentStore';
+import { useDocument } from './useDocument';
 import { useUndoRedo } from './useUndoRedo';
 import { generateSemanticId } from '../utils/cartaFile';
 import { registry } from '../constructs/registry';
@@ -27,7 +27,7 @@ export interface UseGraphOperationsResult {
 
 export function useGraphOperations(options: UseGraphOperationsOptions): UseGraphOperationsResult {
   const { selectedNodeIds, setSelectedNodeIds, setRenamingNodeId, setAddMenu } = options;
-  const { nodes, setNodes, setEdges, getNextNodeId } = useDocumentStore();
+  const { nodes, setNodes, setEdges, getNextNodeId } = useDocument();
   const { screenToFlowPosition } = useReactFlow();
   const { takeSnapshot } = useUndoRedo();
 

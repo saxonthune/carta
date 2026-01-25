@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
-import { useDocumentStore } from '../stores/documentStore';
+import { useDocument } from '../hooks/useDocument';
 import type { PortSchema, Polarity, PortPosition } from '../constructs/types';
 
 // Convert string to kebab-case for IDs
@@ -53,6 +53,7 @@ const PortSchemaDetailsEditor = forwardRef<{ save: () => void }, PortSchemaDetai
     onDelete,
     onDirtyChange
   }, ref) {
+  const { getPortSchemas } = useDocument();
   const [formData, setFormData] = useState<PortSchema>(
     portSchema || createEmptySchema()
   );
@@ -60,7 +61,7 @@ const PortSchemaDetailsEditor = forwardRef<{ save: () => void }, PortSchemaDetai
   const [isDirty, setIsDirty] = useState(false);
   const [newCompatibleWith, setNewCompatibleWith] = useState('');
 
-  const allPortSchemas = useDocumentStore(state => state.getPortSchemas());
+  const allPortSchemas = getPortSchemas();
 
   // Reset form state when portSchema prop changes
   useEffect(() => {

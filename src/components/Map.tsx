@@ -14,7 +14,7 @@ import {
   type EdgeChange,
   BackgroundVariant,
 } from '@xyflow/react';
-import { useDocumentStore } from '../stores/documentStore';
+import { useDocument } from '../hooks/useDocument';
 import CustomNode from '../CustomNode';
 import ConstructNode from './ConstructNode';
 import ContextMenu, { type ContextMenuType, type RelatedConstructOption } from '../ContextMenu';
@@ -65,7 +65,7 @@ export interface MapProps {
 }
 
 export default function Map({ deployables, onDeployablesChange, title, onNodesEdgesChange, onSelectionChange, onNodeDoubleClick, importRef }: MapProps) {
-  const { nodes, edges, setNodes, setEdges, getNextNodeId } = useDocumentStore();
+  const { nodes, edges, setNodes, setEdges, getNextNodeId } = useDocument();
 
   // Create React Flow change handlers that work with the store
   const onNodesChange = useCallback((changes: NodeChange[]) => {

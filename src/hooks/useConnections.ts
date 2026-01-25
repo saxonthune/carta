@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useReactFlow, addEdge, type Edge, type Connection, type OnConnect } from '@xyflow/react';
-import { useDocumentStore } from '../stores/documentStore';
+import { useDocument } from './useDocument';
 import { useUndoRedo } from './useUndoRedo';
 import { registry } from '../constructs/registry';
 import { canConnect, getPortsForSchema } from '../constructs/ports';
@@ -14,7 +14,7 @@ export interface UseConnectionsResult {
 }
 
 export function useConnections(): UseConnectionsResult {
-  const { nodes, setNodes, setEdges } = useDocumentStore();
+  const { nodes, setNodes, setEdges } = useDocument();
   const { getNodes } = useReactFlow();
   const { takeSnapshot } = useUndoRedo();
 

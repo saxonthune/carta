@@ -17,8 +17,9 @@ Carta is a node-based visual editor for designing software architecture. Users c
 - **Vite 7.2** - Build tool and dev server
 - **TypeScript 5.9** - Type safety
 - **Tailwind CSS** - Utility-first styling
-- **Zustand 5.0** - State management (used by React Flow)
-- **LocalStorage** - Persistence for canvas state and user schemas
+- **Yjs** - CRDT-based state management with collaborative editing support
+- **y-indexeddb** - Local persistence layer for Yjs documents
+- **y-websocket** (optional) - WebSocket provider for real-time collaboration
 
 ## Architecture: Separation of Concerns
 
@@ -69,11 +70,11 @@ The application uses a split-panel layout similar to JetBrains IDEs:
 - Prop drilling preferred over Context for simplicity
 
 ### 2. Construct Registry Layer (`src/constructs/`)
-- Central registry (`registry.ts`) that stores all construct type definitions
+- Central registry (`registry.ts`) that syncs with Yjs adapter for all construct type definitions
 - Schema system (`types.ts`) defines structure via `ConstructSchema`, `PortSchema`, `FieldSchema` interfaces
 - Port registry (`portRegistry.ts`) manages port schemas with polarity-based validation
-- Built-in schemas (`schemas/`) for common constructs: REST Controller, Database, Table, Implementation Details
-- User-defined schemas and port schemas stored in document store
+- Built-in schemas (`schemas/built-ins.ts`) for common constructs with builtInConstructSchemas and builtInPortSchemas arrays
+- User-defined schemas and port schemas stored in Yjs document
 - Schema Editor (`components/ConstructEditor.tsx`) allows users to create custom constructs
 - Port Schema Editor (`components/PortSchemaEditor.tsx`) allows users to create custom port types
 - **Does NOT know** about React Flow or how nodes are rendered
@@ -190,11 +191,12 @@ This allows AI tools to:
 
 ```
 User adds node → Registry provides schema (incl. ports) → Visual editor creates node instance with semanticId
-User edits fields → Node data updated → Saved to localStorage
+User edits fields → Node data updated → Synced to Yjs Y.Doc → Persisted to IndexedDB
 User assigns deployable → Construct gets deployable grouping
 User drags port to port → portRegistry.canConnect() validates → Connection stored on source construct → Edge rendered
 User clicks Compile → Compiler reads connections → Generates relationship semantics → AI-friendly output
-User opens Construct Editor → Can view/edit schemas + ports → Saves to localStorage → New types available
+User opens Construct Editor → Can view/edit schemas + ports → Saves to Yjs Y.Doc → New types available
+User imports file → Document cleared → New data loaded (like Excalidraw)
 ```
 
 **Connection flow detail:** See `.cursor/rules/ports-and-connections.mdc`
@@ -218,12 +220,13 @@ User opens Construct Editor → Can view/edit schemas + ports → Saves to local
 
 ### Domain Logic
 - `/src/constructs/types.ts` - Core TypeScript interfaces: PortSchema, FieldSchema, Polarity, CartaDocument, DocumentAdapter
-- `/src/constructs/registry.ts` - Singleton registry for schemas
+- `/src/constructs/registry.ts` - Singleton registry for schemas (syncs with Yjs adapter)
 - `/src/constructs/portRegistry.ts` - Port schema registry with polarity-based validation, wildcard matching
-- `/src/constructs/schemas/` - Built-in construct definitions
+- `/src/constructs/schemas/built-ins.ts` - Built-in construct and port schema definitions
 - `/src/constructs/compiler/` - Compilation engine and formatters
 - `/src/constructs/deployables.ts` - Deployable management system
-- `/src/stores/documentStore.ts` - Zustand store: nodes, edges, schemas, deployables, portSchemas
+- `/src/contexts/DocumentContext.tsx` - Document provider managing Yjs adapter lifecycle
+- `/src/stores/adapters/yjsAdapter.ts` - Yjs implementation of DocumentAdapter interface
 
 ### Utilities
 - `/src/utils/cartaFile.ts` - Export/import utilities with semantic ID generation

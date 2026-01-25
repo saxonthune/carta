@@ -1,5 +1,5 @@
 import type { ConstructSchema, PortConfig, PortPosition } from '../../constructs/types';
-import { useDocumentStore } from '../../stores/documentStore';
+import { useDocument } from '../../hooks/useDocument';
 
 interface PortsTabProps {
   formData: ConstructSchema;
@@ -22,7 +22,8 @@ export default function PortsTab({
   updatePort,
   removePort
 }: PortsTabProps) {
-  const portSchemas = useDocumentStore(state => state.getPortSchemas());
+  const { getPortSchemas } = useDocument();
+  const portSchemas = getPortSchemas();
 
   return (
     <div className="bg-surface-elevated rounded-lg p-4">

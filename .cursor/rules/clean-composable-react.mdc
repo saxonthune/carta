@@ -304,37 +304,29 @@ export class ValidationService {
 
 # State Management Patterns
 
-## Zustand for Global State
+## Yjs for Collaborative State
 
-Use Zustand stores for shared application state:
+Carta uses Yjs for all document state management with CRDT-based conflict resolution:
 
 ```typescript
-// store/userStore.ts
-import { create } from 'zustand';
+// contexts/DocumentContext.tsx
+import * as Y from 'yjs';
+import { createYjsAdapter } from '../stores/adapters/yjsAdapter';
 
-interface UserState {
-  users: User[];
-  loading: boolean;
-  fetchUsers: () => Promise<void>;
-  addUser: (user: User) => void;
-  removeUser: (id: string) => void;
-}
+// Document state is stored in Y.Doc with typed shared types
+const ydoc = new Y.Doc();
+const ynodes = ydoc.getMap('nodes');
+const yedges = ydoc.getMap('edges');
 
-export const useUserStore = create<UserState>((set) => ({
-  users: [],
-  loading: false,
-  fetchUsers: async () => {
-    set({ loading: true });
-    const users = await userService.getAll();
-    set({ users, loading: false });
-  },
-  addUser: (user) => set((state) => ({
-    users: [...state.users, user]
-  })),
-  removeUser: (id) => set((state) => ({
-    users: state.users.filter(u => u.id !== id)
-  }))
-}));
+// Access via DocumentAdapter interface for abstraction
+const adapter = createYjsAdapter({ mode: 'local', roomId: 'carta-local' });
+const nodes = adapter.getNodes();
+
+// Mutations are transactional
+adapter.transaction(() => {
+  adapter.setNodes([]);
+  adapter.setEdges([]);
+}, 'user');
 ```
 
 ## Context as Dependency Injection

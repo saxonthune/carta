@@ -1,78 +1,10 @@
 import type { PortSchema } from './types';
+import { builtInPortSchemas } from './schemas/built-ins';
 
 /**
- * Default port schemas with polarity-based connection semantics
- * These define the reusable port types and their connection rules
+ * Default port schemas - re-exported from built-ins for backwards compatibility
  */
-export const DEFAULT_PORT_SCHEMAS: PortSchema[] = [
-  {
-    id: 'flow-in',
-    displayName: 'Flow In',
-    semanticDescription: 'Receives data or control flow',
-    polarity: 'sink',
-    compatibleWith: ['flow-out', 'forward'],
-    expectedComplement: 'flow-out',
-    defaultPosition: 'left',
-    color: '#3b82f6',
-  },
-  {
-    id: 'flow-out',
-    displayName: 'Flow Out',
-    semanticDescription: 'Sends data or control flow',
-    polarity: 'source',
-    compatibleWith: ['flow-in', 'intercept'],
-    expectedComplement: 'flow-in',
-    defaultPosition: 'right',
-    color: '#22c55e',
-  },
-  {
-    id: 'parent',
-    displayName: 'Parent',
-    semanticDescription: 'Contains or owns the connected construct',
-    polarity: 'source',
-    compatibleWith: ['child', 'intercept'],
-    expectedComplement: 'child',
-    defaultPosition: 'bottom',
-    color: '#8b5cf6',
-  },
-  {
-    id: 'child',
-    displayName: 'Child',
-    semanticDescription: 'Is contained by or owned by the connected construct',
-    polarity: 'sink',
-    compatibleWith: ['parent', 'forward'],
-    expectedComplement: 'parent',
-    defaultPosition: 'top',
-    color: '#8b5cf6',
-  },
-  {
-    id: 'symmetric',
-    displayName: 'Link',
-    semanticDescription: 'Bidirectional peer connection',
-    polarity: 'bidirectional',
-    compatibleWith: ['*'],
-    defaultPosition: 'right',
-    color: '#64748b',
-  },
-  {
-    id: 'intercept',
-    displayName: 'Intercept',
-    semanticDescription: 'Pass-through input accepting any outgoing connection',
-    polarity: 'sink',
-    compatibleWith: ['*source*'],
-    defaultPosition: 'left',
-    color: '#f59e0b',
-  },
-  {
-    id: 'forward',
-    displayName: 'Forward',
-    semanticDescription: 'Pass-through output connecting to any incoming port',
-    polarity: 'source',
-    compatibleWith: ['*sink*'],
-    defaultPosition: 'right',
-    color: '#f59e0b',
-  },
-];
+export const DEFAULT_PORT_SCHEMAS: PortSchema[] = builtInPortSchemas;
 
 /**
  * Port Registry - manages port schemas and connection validation

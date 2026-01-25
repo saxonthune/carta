@@ -4,6 +4,18 @@
 
 Carta is a visual software architecture editor using React Flow. Users create "Constructs" (typed nodes), connect them, and compile to AI-readable output.
 
+## Development Philosophy
+
+**IMPORTANT: Backwards Compatibility is NOT a Concern**
+
+This codebase is in active development. When refactoring or improving patterns:
+- Remove old patterns completely—don't maintain them alongside new ones
+- Update all references to use the new approach
+- Don't preserve deprecated code paths "just in case"
+- Simplicity and clarity take priority over backwards compatibility
+
+Adding compatibility layers creates unnecessary complexity. Clean, modern patterns are preferred over supporting legacy approaches.
+
 ## Cursor Rules
 
 Detailed guidance lives in `.cursor/`:
@@ -21,14 +33,14 @@ Detailed guidance lives in `.cursor/`:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  Document Store (Zustand)                src/stores/        │
+│  Document Store (Yjs Y.Doc)              src/stores/        │
 │  - nodes[], edges[], title                                  │
 │  - schemas[] (M1 construct definitions)                     │
 │  - deployables[] (logical groupings)                        │
 │  - portSchemas[] (M1 port type definitions)                 │
 │  - Node IDs: UUID via crypto.randomUUID()                   │
-│  - Auto-saves to localStorage ('carta-document')            │
-│  → Future: swap localStorage adapter for Yjs Y.Doc          │
+│  - Persists to IndexedDB via y-indexeddb                    │
+│  - Optional WebSocket sync for collaboration                │
 └─────────────────────────────────────────────────────────────┘
            ↓
 ┌─────────────────────────────────────────────────────────────┐
@@ -63,13 +75,17 @@ Detailed guidance lives in `.cursor/`:
 
 | File | Purpose |
 |------|---------|
-| `src/stores/documentStore.ts` | Zustand store: nodes, edges, title, schemas, deployables, portSchemas |
+| `src/contexts/DocumentContext.tsx` | Document provider: manages Yjs adapter lifecycle |
+| `src/stores/adapters/yjsAdapter.ts` | Yjs implementation of DocumentAdapter interface |
 | `src/constructs/types.ts` | Core type definitions: PortSchema, FieldSchema, DocumentAdapter, CartaDocument, Polarity |
-| `src/constructs/registry.ts` | Schema facade (delegates to store) |
-| `src/constructs/deployables.ts` | Deployable facade (delegates to store) |
+| `src/constructs/schemas/index.ts` | Built-in schema exports: builtInConstructSchemas, builtInPortSchemas |
+| `src/constructs/schemas/built-ins.ts` | Default port schema definitions |
+| `src/constructs/registry.ts` | Schema facade (syncs with adapter) |
+| `src/constructs/deployables.ts` | Deployable facade (syncs with adapter) |
 | `src/constructs/portRegistry.ts` | Port schema registry with polarity-based validation, wildcard support |
 | `src/hooks/useGraphOperations.ts` | Node CRUD: addConstruct, deleteNode, renameNode, etc. |
 | `src/hooks/useConnections.ts` | Connection logic: onConnect, handleEdgesDelete, validation |
+| `src/hooks/useUndoRedo.ts` | Y.UndoManager wrapper for undo/redo (local, not shared) |
 | `src/hooks/useClipboard.ts` | Copy/paste (local state, not collaborative) |
 | `src/hooks/useKeyboardShortcuts.ts` | Keyboard shortcut handling |
 | `src/components/Map.tsx` | React Flow canvas, UI event handlers |
@@ -85,10 +101,12 @@ All design decisions must balance two objectives:
 When evaluating changes, ask: Does this expand capability without confusion? Does this preserve semantic clarity? See `.cursor/rules/metamodel-design.mdc` for full details.
 
 ### State Management
-- **Document state** lives in Zustand store (`useDocumentStore`)
+- **Document state** lives in Yjs Y.Doc via DocumentAdapter interface
 - **UI state** (selection, menus, modals) stays in component useState
-- **No ref patterns** for cross-component communication—use store directly
-- Store auto-saves to localStorage with 500ms debounce
+- **No ref patterns** for cross-component communication—use adapter directly
+- Yjs auto-syncs to IndexedDB via y-indexeddb provider
+- Undo/redo uses Y.UndoManager (local per-user, not shared)
+- Optional WebSocket provider for real-time collaboration
 
 ### Port & Connection Model
 **Consult:** `.cursor/rules/ports-and-connections.mdc`
@@ -112,20 +130,20 @@ When evaluating changes, ask: Does this expand capability without confusion? Doe
 ### Modify graph operations (add/delete/update nodes)
 ```
 src/hooks/useGraphOperations.ts   → Node CRUD operations
-src/stores/documentStore.ts       → updateNode with semantic ID cascade
+src/stores/adapters/yjsAdapter.ts → updateNode with semantic ID cascade
 ```
 
 ### Modify connection behavior
 ```
 src/hooks/useConnections.ts       → onConnect, handleEdgesDelete, isValidConnection
 src/constructs/portRegistry.ts    → Port schema definitions, polarity-based canConnect()
-src/stores/documentStore.ts       → Port schema CRUD (add/update/remove)
+src/stores/adapters/yjsAdapter.ts → Port schema CRUD (add/update/remove)
 ```
 
 ### Add a built-in construct type
 ```
-src/constructs/schemas/{name}.ts  → Define ConstructSchema
-src/constructs/schemas/index.ts   → Register with registry
+src/constructs/schemas/built-ins.ts → Add to builtInConstructSchemas array
+src/constructs/schemas/index.ts     → Exports builtInConstructSchemas
 ```
 
 ### Modify compilation output
@@ -150,14 +168,16 @@ src/hooks/useKeyboardShortcuts.ts  → All keyboard handlers
 ```
 src/components/PortSchemaEditor.tsx        → Port schema CRUD UI
 src/constructs/portRegistry.ts             → Port validation and registry logic
-src/stores/documentStore.ts                → Port schema persistence
+src/stores/adapters/yjsAdapter.ts          → Port schema persistence
+src/constructs/schemas/built-ins.ts        → Default port schema definitions
 ```
 
-### Prepare for Yjs collaboration
+### Modify collaboration behavior
 ```
-src/constructs/types.ts                   → DocumentAdapter interface (includes port schemas)
-src/stores/adapters/localStorageAdapter.ts → Current implementation
-# Future: create yjsAdapter.ts implementing same interface
+src/contexts/DocumentContext.tsx           → Document provider lifecycle
+src/stores/adapters/yjsAdapter.ts          → Yjs adapter implementation
+src/hooks/useUndoRedo.ts                   → Y.UndoManager configuration
+src/main.tsx                               → VITE_LOCAL_MODE feature flag
 ```
 
 ## Testing Checklist
@@ -170,7 +190,10 @@ When modifying constructs or connections:
 - [ ] Handles appear at correct positions on canvas
 - [ ] Connections store on source construct's `connections[]`
 - [ ] Compilation output includes ports and relationships
-- [ ] Import/export preserves port configurations and port schemas (v3 file format)
+- [ ] Import clears existing document before loading (like Excalidraw)
+- [ ] Export preserves port configurations and port schemas (v3 file format)
 - [ ] Node titles display from displayField or semanticId
-- [ ] Undo/redo works for all graph operations
+- [ ] Undo/redo works for all graph operations (local, not shared)
 - [ ] Copy/paste preserves node data with new IDs
+- [ ] IndexedDB persists state across page reloads
+- [ ] WebSocket collaboration syncs changes between clients (when enabled)

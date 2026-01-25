@@ -1,7 +1,6 @@
 {
-  "version": 1,
+  "version": 3,
   "title": "Friendship.AI",
-  "nodeId": 21,
   "nodes": [
     {
       "id": "1",
@@ -12,7 +11,6 @@
       },
       "data": {
         "constructType": "controller",
-        "name": "USERS",
         "semanticId": "controller-users",
         "values": {
           "route": "/api/users",
@@ -45,7 +43,6 @@
       },
       "data": {
         "constructType": "database",
-        "name": "Friendship",
         "semanticId": "database-database",
         "values": {
           "engine": "PostgreSQL"
@@ -81,7 +78,6 @@
       },
       "data": {
         "constructType": "table",
-        "name": "API Model",
         "semanticId": "table-api-model",
         "values": {},
         "isExpanded": true,
@@ -125,7 +121,6 @@
       },
       "data": {
         "constructType": "db-attribute",
-        "name": "UserId",
         "semanticId": "db-attribute-userid",
         "values": {
           "primaryKey": true,
@@ -152,7 +147,6 @@
       },
       "data": {
         "constructType": "db-attribute",
-        "name": "CreatedOn",
         "semanticId": "db-attribute-createdon",
         "values": {
           "primaryKey": true,
@@ -179,7 +173,6 @@
       },
       "data": {
         "constructType": "table",
-        "name": "Orders",
         "semanticId": "table-orders",
         "values": {},
         "isExpanded": true,
@@ -218,7 +211,6 @@
       },
       "data": {
         "constructType": "db-attribute",
-        "name": "OrderID",
         "semanticId": "db-attribute-orderid",
         "values": {
           "primaryKey": true,
@@ -245,7 +237,6 @@
       },
       "data": {
         "constructType": "db-attribute",
-        "name": "UserId",
         "semanticId": "db-attribute-userid",
         "values": {
           "primaryKey": false,
@@ -271,7 +262,6 @@
       },
       "data": {
         "constructType": "constraint",
-        "name": "FK UserId",
         "semanticId": "constraint-fk-userid",
         "values": {
           "constraintType": "UNIQUE"
@@ -302,7 +292,6 @@
       },
       "data": {
         "constructType": "user-story",
-        "name": "User can create an account",
         "semanticId": "user-story-user-can-create-an-account",
         "values": {},
         "isExpanded": true,
@@ -330,7 +319,6 @@
       },
       "data": {
         "constructType": "ui-screen",
-        "name": "Signup Screen",
         "semanticId": "ui-screen-signup-screen",
         "values": {},
         "isExpanded": true,
@@ -362,7 +350,6 @@
       },
       "data": {
         "constructType": "ui-event",
-        "name": "submit new user",
         "semanticId": "ui-event-submit-new-user",
         "values": {},
         "isExpanded": true,
@@ -396,7 +383,6 @@
       },
       "data": {
         "constructType": "user-story",
-        "name": "User can order a subscription",
         "semanticId": "user-story-user-can-order-a-subscription",
         "values": {},
         "isExpanded": true,
@@ -429,7 +415,6 @@
       },
       "data": {
         "constructType": "ui-screen",
-        "name": "Subscription checkout",
         "semanticId": "ui-screen-subscription-checkout",
         "values": {},
         "isExpanded": true,
@@ -461,7 +446,6 @@
       },
       "data": {
         "constructType": "ui-event",
-        "name": "submit order",
         "semanticId": "ui-event-submit-order",
         "values": {
           "description": "Get User ID, then submit order"
@@ -507,7 +491,6 @@
       },
       "data": {
         "constructType": "controller",
-        "name": "ORDERS",
         "semanticId": "controller-orders",
         "values": {
           "route": "/api/orders",
@@ -540,7 +523,6 @@
       },
       "data": {
         "constructType": "controller",
-        "name": "USERS",
         "semanticId": "controller-users",
         "values": {
           "route": "/api/users",
@@ -573,7 +555,6 @@
       },
       "data": {
         "constructType": "api-model",
-        "name": "API Model",
         "semanticId": "api-model-api-model",
         "values": {
           "modelType": "request",
@@ -811,7 +792,7 @@
       "color": "#06b6d4"
     }
   ],
-  "customSchemas": [
+  "schemas": [
     {
       "type": "controller",
       "displayName": "REST Controller",
@@ -819,7 +800,7 @@
       "ports": [
         {
           "id": "flow-in",
-          "direction": "in",
+          "portType": "flow-in",
           "position": "left",
           "offset": 50,
           "label": "Flow In",
@@ -827,7 +808,7 @@
         },
         {
           "id": "flow-out",
-          "direction": "out",
+          "portType": "flow-out",
           "position": "right",
           "offset": 50,
           "label": "Flow Out",
@@ -835,7 +816,7 @@
         },
         {
           "id": "parent",
-          "direction": "parent",
+          "portType": "parent",
           "position": "bottom",
           "offset": 50,
           "label": "Models",
@@ -905,7 +886,7 @@
       "ports": [
         {
           "id": "child",
-          "direction": "child",
+          "portType": "parent",
           "position": "bottom",
           "offset": 50,
           "label": "Tables",
@@ -913,7 +894,7 @@
         },
         {
           "id": "link-in",
-          "direction": "in",
+          "portType": "flow-in",
           "position": "left",
           "offset": 50,
           "label": "Referenced By",
@@ -967,7 +948,7 @@
       "ports": [
         {
           "id": "parent",
-          "direction": "parent",
+          "portType": "child",
           "position": "top",
           "offset": 50,
           "label": "Database",
@@ -975,7 +956,7 @@
         },
         {
           "id": "link-in",
-          "direction": "in",
+          "portType": "flow-in",
           "position": "left",
           "offset": 50,
           "label": "Referenced By",
@@ -983,7 +964,7 @@
         },
         {
           "id": "link-out",
-          "direction": "out",
+          "portType": "flow-out",
           "position": "right",
           "offset": 50,
           "label": "References",
@@ -991,7 +972,7 @@
         },
         {
           "id": "child",
-          "direction": "child",
+          "portType": "parent",
           "position": "bottom",
           "offset": 75,
           "label": "Attributes & Constraints",
@@ -1079,7 +1060,7 @@
       "ports": [
         {
           "id": "parent",
-          "direction": "parent",
+          "portType": "child",
           "position": "top",
           "offset": 50,
           "label": "Table",
@@ -1087,7 +1068,7 @@
         },
         {
           "id": "foreign_constraint_of",
-          "direction": "in",
+          "portType": "flow-in",
           "position": "right",
           "offset": 50,
           "label": "Foreign Constraint of"
@@ -1148,7 +1129,7 @@
       "ports": [
         {
           "id": "parent",
-          "direction": "parent",
+          "portType": "child",
           "position": "top",
           "offset": 50,
           "label": "Table",
@@ -1156,7 +1137,7 @@
         },
         {
           "id": "related_to",
-          "direction": "out",
+          "portType": "flow-out",
           "position": "left",
           "offset": 50,
           "label": "Related To",
@@ -1202,7 +1183,7 @@
       "ports": [
         {
           "id": "child",
-          "direction": "child",
+          "portType": "child",
           "position": "top",
           "offset": 50,
           "label": "Controller",
@@ -1243,7 +1224,7 @@
       "ports": [
         {
           "id": "child",
-          "direction": "child",
+          "portType": "child",
           "position": "left",
           "offset": 50,
           "label": "Events",
@@ -1251,7 +1232,7 @@
         },
         {
           "id": "flow-out",
-          "direction": "out",
+          "portType": "flow-out",
           "position": "right",
           "offset": 50,
           "label": "Flow Out",
@@ -1286,7 +1267,7 @@
       "ports": [
         {
           "id": "flow-in",
-          "direction": "in",
+          "portType": "flow-in",
           "position": "left",
           "offset": 50,
           "label": "Flow In",
@@ -1294,7 +1275,7 @@
         },
         {
           "id": "parent",
-          "direction": "parent",
+          "portType": "parent",
           "position": "right",
           "offset": 50,
           "label": "Events",
@@ -1336,7 +1317,7 @@
       "ports": [
         {
           "id": "flow-out",
-          "direction": "out",
+          "portType": "flow-out",
           "position": "right",
           "offset": 50,
           "label": "Flow Out",
@@ -1362,7 +1343,7 @@
       "ports": [
         {
           "id": "link",
-          "direction": "bidi",
+          "portType": "symmetric",
           "position": "left",
           "offset": 50,
           "label": "Related To",
@@ -1385,5 +1366,73 @@
       }
     }
   ],
-  "exportedAt": "2026-01-22T15:14:48.002Z"
+  "portSchemas": [
+    {
+      "id": "flow-in",
+      "displayName": "Flow In",
+      "semanticDescription": "Receives data or control flow",
+      "polarity": "sink",
+      "compatibleWith": ["flow-out", "forward"],
+      "expectedComplement": "flow-out",
+      "defaultPosition": "left",
+      "color": "#3b82f6"
+    },
+    {
+      "id": "flow-out",
+      "displayName": "Flow Out",
+      "semanticDescription": "Sends data or control flow",
+      "polarity": "source",
+      "compatibleWith": ["flow-in", "intercept"],
+      "expectedComplement": "flow-in",
+      "defaultPosition": "right",
+      "color": "#22c55e"
+    },
+    {
+      "id": "parent",
+      "displayName": "Parent",
+      "semanticDescription": "Contains or owns the connected construct",
+      "polarity": "source",
+      "compatibleWith": ["child", "intercept"],
+      "expectedComplement": "child",
+      "defaultPosition": "bottom",
+      "color": "#8b5cf6"
+    },
+    {
+      "id": "child",
+      "displayName": "Child",
+      "semanticDescription": "Is contained by or owned by the connected construct",
+      "polarity": "sink",
+      "compatibleWith": ["parent", "forward"],
+      "expectedComplement": "parent",
+      "defaultPosition": "top",
+      "color": "#8b5cf6"
+    },
+    {
+      "id": "symmetric",
+      "displayName": "Link",
+      "semanticDescription": "Bidirectional peer connection",
+      "polarity": "bidirectional",
+      "compatibleWith": ["*"],
+      "defaultPosition": "right",
+      "color": "#64748b"
+    },
+    {
+      "id": "intercept",
+      "displayName": "Intercept",
+      "semanticDescription": "Pass-through input accepting any outgoing connection",
+      "polarity": "sink",
+      "compatibleWith": ["*source*"],
+      "defaultPosition": "left",
+      "color": "#f59e0b"
+    },
+    {
+      "id": "forward",
+      "displayName": "Forward",
+      "semanticDescription": "Pass-through output connecting to any incoming port",
+      "polarity": "source",
+      "compatibleWith": ["*sink*"],
+      "defaultPosition": "right",
+      "color": "#f59e0b"
+    }
+  ]
 }

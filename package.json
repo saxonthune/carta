@@ -6,15 +6,19 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:local": "VITE_LOCAL_MODE=true vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "collab-server": "HOST=localhost PORT=1234 npx y-websocket"
   },
   "dependencies": {
     "@xyflow/react": "^12.10.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "uuid": "^13.0.0",
+    "y-indexeddb": "^9.0.12",
+    "yjs": "^13.6.29",
     "zustand": "^5.0.10"
   },
   "devDependencies": {
@@ -32,6 +36,7 @@
     "tailwindcss": "^4.1.18",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",
-    "vite": "^7.2.4"
+    "vite": "^7.2.4",
+    "y-websocket": "^3.0.0"
   }
 }

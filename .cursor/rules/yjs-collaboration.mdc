@@ -1,9 +1,34 @@
 ---
-description: Yjs CRDT library for real-time collaborative editing
+description: Yjs CRDT library for real-time collaborative editing - NOW FULLY INTEGRATED
 globs: ["**/*.tsx", "**/*.ts", "**/*.jsx", "**/*.js"]
 ---
 
 # Yjs Real-Time Collaboration
+
+## CURRENT STATUS: FULLY INTEGRATED
+
+Carta now uses Yjs for ALL state management. Key points:
+
+- **No localStorage adapter** - Removed completely
+- **No legacy mode** - Only 'local' and 'shared' modes exist
+- **Always Yjs** - State always flows through Y.Doc with y-indexeddb persistence
+- **Feature flag** - `VITE_LOCAL_MODE=true` hides collaboration UI (Share button, connection status)
+- **Undo/Redo** - Uses Y.UndoManager (local per-user, not shared across clients)
+- **Import flow** - Clears entire document before importing (like Excalidraw)
+
+## Architecture
+
+```
+DocumentProvider (src/contexts/DocumentContext.tsx)
+    ↓
+YjsAdapter (src/stores/adapters/yjsAdapter.ts)
+    ↓
+Y.Doc (always active)
+    ↓
+y-indexeddb (local persistence)
+    ↓
+y-websocket (optional, for shared mode)
+```
 
 Yjs is a CRDT (Conflict-free Replicated Data Type) library for building collaborative applications. Changes sync automatically across clients without conflicts.
 

@@ -1,2 +1,2 @@
 export type { DocumentAdapter, AdapterOptions } from './types';
-export { createLocalStorageAdapter } from './localStorageAdapter';
+export { createYjsAdapter, type YjsAdapterOptions } from './yjsAdapter';

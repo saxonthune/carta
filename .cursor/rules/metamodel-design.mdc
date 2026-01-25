@@ -290,7 +290,7 @@ interface Registry<T extends RegistryItem> {
 }
 ```
 
-See `registry-base.ts` for the `BaseRegistry` implementation with localStorage persistence.
+Registries sync with Yjs adapter for persistence. Port schemas and construct schemas are stored in the Y.Doc.
 
 ## Port Registry
 

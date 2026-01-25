@@ -1,115 +1,95 @@
-import { useCallback, useState } from 'react';
-import { useReactFlow, type Node, type Edge } from '@xyflow/react';
-
-interface HistoryState {
-  nodes: Node[];
-  edges: Edge[];
-}
-
-interface UseUndoRedoOptions {
-  maxHistorySize?: number;
-}
+import { useCallback, useEffect, useRef, useState } from 'react';
+import * as Y from 'yjs';
+import { useDocumentContext } from '../contexts/DocumentContext';
 
 interface UseUndoRedoReturn {
   undo: () => void;
   redo: () => void;
   canUndo: boolean;
   canRedo: boolean;
+  /** @deprecated No-op with Yjs - snapshots are automatic via transactions */
   takeSnapshot: () => void;
 }
 
 /**
- * Hook for managing undo/redo functionality in React Flow
- * 
+ * Hook for managing undo/redo functionality using Y.UndoManager.
+ *
+ * Uses Y.UndoManager to track changes with 'user' origin.
+ * Each user has their own local undo stack (not shared).
+ * MCP changes with 'ai-mcp' origin won't be tracked.
+ *
  * Usage:
- * 1. Call takeSnapshot() before any undoable operation
- * 2. Use undo() and redo() to navigate history
- * 3. Use canUndo/canRedo to enable/disable UI buttons
+ * - Use undo() and redo() to navigate history
+ * - Use canUndo/canRedo to enable/disable UI buttons
+ * - No manual snapshot needed - changes are tracked automatically via Yjs transactions
  */
-export function useUndoRedo(options: UseUndoRedoOptions = {}): UseUndoRedoReturn {
-  const { maxHistorySize = 100 } = options;
-  const { getNodes, getEdges, setNodes, setEdges } = useReactFlow();
+export function useUndoRedo(): UseUndoRedoReturn {
+  const { ydoc } = useDocumentContext();
 
-  const [past, setPast] = useState<HistoryState[]>([]);
-  const [future, setFuture] = useState<HistoryState[]>([]);
+  // Yjs UndoManager state
+  const undoManagerRef = useRef<Y.UndoManager | null>(null);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
 
-  /**
-   * Take a snapshot of the current state before making changes
-   */
-  const takeSnapshot = useCallback(() => {
-    const nodes = getNodes();
-    const edges = getEdges();
+  // Set up Y.UndoManager
+  useEffect(() => {
+    const ynodes = ydoc.getMap('nodes');
+    const yedges = ydoc.getMap('edges');
 
-    setPast((prevPast) => {
-      const newPast = [...prevPast, { nodes, edges }];
-      // Limit history size
-      if (newPast.length > maxHistorySize) {
-        newPast.shift();
-      }
-      return newPast;
+    // Create UndoManager that tracks 'user' origin changes
+    // MCP changes with 'ai-mcp' origin won't be tracked
+    const undoManager = new Y.UndoManager([ynodes, yedges], {
+      trackedOrigins: new Set(['user']),
     });
 
-    // Clear future when new action is taken
-    setFuture([]);
-  }, [getNodes, getEdges, maxHistorySize]);
+    undoManagerRef.current = undoManager;
+
+    // Update canUndo/canRedo state
+    const updateState = () => {
+      setCanUndo(undoManager.canUndo());
+      setCanRedo(undoManager.canRedo());
+    };
+
+    undoManager.on('stack-item-added', updateState);
+    undoManager.on('stack-item-popped', updateState);
+    undoManager.on('stack-cleared', updateState);
+
+    updateState();
+
+    return () => {
+      undoManager.destroy();
+      undoManagerRef.current = null;
+    };
+  }, [ydoc]);
 
   /**
    * Undo the last action
    */
   const undo = useCallback(() => {
-    if (past.length === 0) return;
-
-    const currentNodes = getNodes();
-    const currentEdges = getEdges();
-
-    // Get the previous state
-    const previous = past[past.length - 1];
-
-    // Move current state to future
-    setFuture((prevFuture) => [
-      ...prevFuture,
-      { nodes: currentNodes, edges: currentEdges },
-    ]);
-
-    // Remove from past
-    setPast((prevPast) => prevPast.slice(0, -1));
-
-    // Restore the previous state
-    setNodes(previous.nodes);
-    setEdges(previous.edges);
-  }, [past, getNodes, getEdges, setNodes, setEdges]);
+    undoManagerRef.current?.undo();
+  }, []);
 
   /**
    * Redo the last undone action
    */
   const redo = useCallback(() => {
-    if (future.length === 0) return;
+    undoManagerRef.current?.redo();
+  }, []);
 
-    const currentNodes = getNodes();
-    const currentEdges = getEdges();
-
-    // Get the next state
-    const next = future[future.length - 1];
-
-    // Move current state to past
-    setPast((prevPast) => [
-      ...prevPast,
-      { nodes: currentNodes, edges: currentEdges },
-    ]);
-
-    // Remove from future
-    setFuture((prevFuture) => prevFuture.slice(0, -1));
-
-    // Restore the next state
-    setNodes(next.nodes);
-    setEdges(next.edges);
-  }, [future, getNodes, getEdges, setNodes, setEdges]);
+  /**
+   * No-op with Yjs - snapshots are automatic via transactions.
+   * Kept for backwards compatibility with existing code.
+   * @deprecated
+   */
+  const takeSnapshot = useCallback(() => {
+    // Yjs handles snapshots automatically via transactions with 'user' origin
+  }, []);
 
   return {
     undo,
     redo,
-    canUndo: past.length > 0,
-    canRedo: future.length > 0,
+    canUndo,
+    canRedo,
     takeSnapshot,
   };
 }

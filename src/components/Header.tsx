@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
+import { useDocumentContext } from '../contexts/DocumentContext';
+import ConnectionStatus from './ConnectionStatus';
 
 interface HeaderProps {
   title: string;
@@ -18,6 +20,7 @@ const getInitialTheme = (): 'light' | 'dark' | 'warm' => {
 };
 
 export default function Header({ title, onTitleChange, onExport, onImport, onCompile, onClear, onRestoreDefaultSchemas }: HeaderProps) {
+  const { mode, roomId, connectToRoom, localMode } = useDocumentContext();
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState(title);
   const [theme, setTheme] = useState<'light' | 'dark' | 'warm'>(() => {
@@ -27,13 +30,17 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
   });
   const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
   const [isSettingsMenuOpen, setIsSettingsMenuOpen] = useState(false);
+  const [isShareMenuOpen, setIsShareMenuOpen] = useState(false);
   const [clearWarningMode, setClearWarningMode] = useState<'menu' | null>(null);
   const [restoreWarningMode, setRestoreWarningMode] = useState<'menu' | null>(null);
+  const [shareRoomId, setShareRoomId] = useState('');
+  const [shareServerUrl, setShareServerUrl] = useState('ws://localhost:1234');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const themeMenuRef = useRef<HTMLDivElement>(null);
   const settingsMenuRef = useRef<HTMLDivElement>(null);
+  const shareMenuRef = useRef<HTMLDivElement>(null);
 
-  // Close theme menu when clicking outside
+  // Close menus when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (themeMenuRef.current && !themeMenuRef.current.contains(event.target as Node)) {
@@ -42,13 +49,33 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
       if (settingsMenuRef.current && !settingsMenuRef.current.contains(event.target as Node)) {
         setIsSettingsMenuOpen(false);
       }
+      if (shareMenuRef.current && !shareMenuRef.current.contains(event.target as Node)) {
+        setIsShareMenuOpen(false);
+      }
     };
 
-    if (isThemeMenuOpen || isSettingsMenuOpen) {
+    if (isThemeMenuOpen || isSettingsMenuOpen || isShareMenuOpen) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
-  }, [isThemeMenuOpen, isSettingsMenuOpen]);
+  }, [isThemeMenuOpen, isSettingsMenuOpen, isShareMenuOpen]);
+
+  // Copy room URL to clipboard
+  const handleCopyRoomUrl = () => {
+    if (roomId) {
+      const url = `${window.location.origin}${window.location.pathname}?room=${roomId}`;
+      navigator.clipboard.writeText(url);
+      setIsShareMenuOpen(false);
+    }
+  };
+
+  // Start sharing (create room)
+  const handleStartSharing = async () => {
+    if (!connectToRoom) return;
+    const newRoomId = shareRoomId.trim() || `carta-${Date.now()}`;
+    await connectToRoom(newRoomId, shareServerUrl);
+    setIsShareMenuOpen(false);
+  };
 
   const changeTheme = (newTheme: 'light' | 'dark' | 'warm') => {
     setTheme(newTheme);
@@ -172,6 +199,76 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
           onChange={handleFileSelect}
           className="hidden"
         />
+        {/* Connection Status */}
+        {!localMode && <ConnectionStatus />}
+
+        {/* Share button and menu */}
+        {!localMode && (
+          <div className="relative" ref={shareMenuRef}>
+            {mode === 'shared' && roomId ? (
+              <button
+                className="px-4 py-2 text-sm font-medium bg-indigo-500 text-white border-none rounded-lg cursor-pointer shadow-sm hover:bg-indigo-600 hover:-translate-y-0.5 transition-all"
+                onClick={handleCopyRoomUrl}
+                title="Copy room URL"
+              >
+                Copy Link
+              </button>
+            ) : (
+              <button
+                className="px-4 py-2 text-sm font-medium bg-indigo-500 text-white border-none rounded-lg cursor-pointer shadow-sm hover:bg-indigo-600 hover:-translate-y-0.5 transition-all"
+                onClick={() => setIsShareMenuOpen(!isShareMenuOpen)}
+                title="Share document"
+              >
+                Share
+              </button>
+            )}
+            {isShareMenuOpen && (
+              <div className="absolute right-0 top-full mt-1 bg-surface border border-subtle rounded-lg shadow-lg overflow-hidden z-50 min-w-[280px]">
+                <div className="px-4 py-3 border-b border-subtle">
+                  <div className="text-sm font-medium text-content">Start Collaboration</div>
+                  <div className="text-xs text-content-muted mt-1">Share this document with others in real-time</div>
+                </div>
+                <div className="p-4 space-y-3">
+                  <div>
+                    <label className="block text-xs text-content-muted mb-1">Room ID (optional)</label>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 rounded-md border border-subtle bg-surface text-content text-sm focus:outline-none focus:border-accent"
+                      placeholder="Auto-generated if empty"
+                      value={shareRoomId}
+                      onChange={(e) => setShareRoomId(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-content-muted mb-1">Server URL</label>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 rounded-md border border-subtle bg-surface text-content text-sm focus:outline-none focus:border-accent"
+                      placeholder="ws://localhost:1234"
+                      value={shareServerUrl}
+                      onChange={(e) => setShareServerUrl(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end px-4 py-3 border-t border-subtle gap-2">
+                  <button
+                    className="px-4 py-2 text-sm rounded-md bg-surface text-content hover:bg-surface-alt transition-colors"
+                    onClick={() => setIsShareMenuOpen(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="px-4 py-2 text-sm font-medium border-none rounded-md bg-indigo-500 text-white cursor-pointer hover:bg-indigo-600 transition-colors"
+                    onClick={handleStartSharing}
+                  >
+                    Start Sharing
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="relative" ref={themeMenuRef}>
           <button
             className="w-9 h-9 flex items-center justify-center rounded-lg cursor-pointer text-content-muted hover:bg-surface-alt hover:text-content transition-colors"

@@ -301,10 +301,18 @@ export interface DocumentAdapter {
   removePortSchema(id: string): boolean;
 
   // Batched operations (for Yjs transact)
-  transaction<T>(fn: () => T): T;
+  // origin parameter allows MCP attribution (e.g., 'user' vs 'ai-mcp')
+  transaction<T>(fn: () => T, origin?: string): T;
 
   // Subscriptions for observing changes
   subscribe(listener: () => void): () => void;
+
+  // Serialization for MCP and export
+  toJSON(): CartaDocument;
+
+  // Optional collaboration methods (only on Yjs adapter)
+  getConnectionStatus?(): 'disconnected' | 'connecting' | 'connected';
+  getConnectedClients?(): number;
 }
 
 /**

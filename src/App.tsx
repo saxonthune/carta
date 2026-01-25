@@ -8,54 +8,57 @@ import Map from './components/Map';
 import Dock, { type DockView } from './components/Dock';
 import Footer from './components/Footer';
 import { compiler } from './constructs/compiler';
-import { seedDefaultSchemas, builtInSchemas } from './constructs/schemas';
+import { builtInConstructSchemas } from './constructs/schemas';
 import { registry } from './constructs/registry';
 import { deployableRegistry } from './constructs/deployables';
 import { syncWithDocumentStore } from './constructs/portRegistry';
-import { useDocumentStore, getDocumentState } from './stores/documentStore';
+import { useDocument } from './hooks/useDocument';
+import { useDocumentContext } from './contexts/DocumentContext';
 import { exportProject, importProject, generateSemanticId, type CartaFile } from './utils/cartaFile';
 import { analyzeImport, type ImportAnalysis, type ImportOptions } from './utils/importAnalyzer';
 import { analyzeExport, type ExportAnalysis, type ExportOptions } from './utils/exportAnalyzer';
 import type { ConstructValues, Deployable } from './constructs/types';
 
-// Initialize schemas: seed defaults if this is first load (store handles loading)
-const initialDocState = getDocumentState();
-if (initialDocState.schemas.length === 0) {
-  seedDefaultSchemas();
-}
-
-// Initialize port registry from document store
-syncWithDocumentStore();
+// Note: Schema initialization is now handled by DocumentProvider
 
 const MIN_DOCK_HEIGHT = 100;
 const MAX_DOCK_HEIGHT_RATIO = 0.7;
 
 function App() {
+  const { adapter } = useDocumentContext();
   const [deployables, setDeployables] = useState<Deployable[]>(() => deployableRegistry.getAll());
   const [importPreview, setImportPreview] = useState<{ data: CartaFile; analysis: ImportAnalysis } | null>(null);
   const [exportPreview, setExportPreview] = useState<ExportAnalysis | null>(null);
   const [compileOutput, setCompileOutput] = useState<string | null>(null);
-  const [title, setTitle] = useState<string>(initialDocState.title);
+  const [title, setTitle] = useState<string>(() => adapter.getTitle());
   const [selectedNodes, setSelectedNodes] = useState<Node[]>([]);
   const [dockHeight, setDockHeight] = useState(256);
   const [isResizing, setIsResizing] = useState(false);
   const [activeView, setActiveView] = useState<DockView>('viewer');
-  const nodesEdgesRef = useRef<{ nodes: Node[]; edges: Edge[] }>({ nodes: initialDocState.nodes, edges: initialDocState.edges });
+  const nodesEdgesRef = useRef<{ nodes: Node[]; edges: Edge[] }>({ nodes: [], edges: [] });
   const containerRef = useRef<HTMLDivElement>(null);
   const importRef = useRef<((nodes: Node[], edges: Edge[]) => void) | null>(null);
-  const { updateNode } = useDocumentStore();
+  const { updateNode } = useDocument();
 
-  // Subscribe to portSchemas changes and sync registry
+  // Initialize refs on mount
   useEffect(() => {
-    let prevPortSchemas = useDocumentStore.getState().portSchemas;
-    const unsubscribe = useDocumentStore.subscribe((state) => {
-      if (state.portSchemas !== prevPortSchemas) {
-        prevPortSchemas = state.portSchemas;
-        syncWithDocumentStore();
-      }
+    nodesEdgesRef.current = {
+      nodes: adapter.getNodes() as Node[],
+      edges: adapter.getEdges() as Edge[],
+    };
+  }, [adapter]);
+
+  // Sync port registry on mount and when portSchemas change
+  useEffect(() => {
+    // Initial sync
+    syncWithDocumentStore();
+
+    // Subscribe to adapter changes
+    const unsubscribe = adapter.subscribe(() => {
+      syncWithDocumentStore();
     });
     return unsubscribe;
-  }, []);
+  }, [adapter]);
 
   const refreshDeployables = useCallback(() => {
     setDeployables(deployableRegistry.getAll());
@@ -129,6 +132,16 @@ function App() {
 
     const { data } = importPreview;
 
+    // Clear existing document state before importing (like Excalidraw)
+    // Use transaction for atomic update
+    adapter.transaction(() => {
+      adapter.setNodes([]);
+      adapter.setEdges([]);
+      adapter.setSchemas([]);
+      adapter.setDeployables([]);
+      adapter.setPortSchemas([]);
+    });
+
     // Import selected schemas
     if (options.schemas.size > 0 && data.customSchemas.length > 0) {
       const schemasToImport = data.customSchemas.filter(s => options.schemas.has(s.type));
@@ -155,7 +168,7 @@ function App() {
       const edgesToImport = data.edges.filter(
         e => importedNodeIds.has(e.source) && importedNodeIds.has(e.target)
       );
-      
+
       if (nodesToImport.length > 0) {
         importRef.current(nodesToImport, edgesToImport);
       }
@@ -163,7 +176,7 @@ function App() {
 
     // Close the modal
     setImportPreview(null);
-  }, [importPreview, refreshDeployables]);
+  }, [importPreview, refreshDeployables, adapter]);
 
   const handleImportCancel = useCallback(() => {
     setImportPreview(null);
@@ -208,7 +221,7 @@ function App() {
   const handleRestoreDefaultSchemas = useCallback(() => {
     // Clear registry and import fresh defaults
     registry.clearAllSchemas();
-    registry.replaceSchemas(builtInSchemas);
+    registry.replaceSchemas(builtInConstructSchemas);
     // Auto-saved by document store
 
     // Notify user and reload to reflect changes

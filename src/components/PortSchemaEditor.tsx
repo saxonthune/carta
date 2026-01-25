@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
-import { useDocumentStore } from '../stores/documentStore';
+import { useDocument } from '../hooks/useDocument';
 import PortSchemaDetailsEditor from './PortSchemaDetailsEditor';
 import { useDirtyStateGuard } from '../hooks/useDirtyStateGuard';
 import ConfirmationModal from './ui/ConfirmationModal';
@@ -12,14 +12,15 @@ interface PortSchemaEditorProps {
 
 const PortSchemaEditor = forwardRef<{ save: () => void }, PortSchemaEditorProps>(
   function PortSchemaEditor({ onBack, onDirtyChange }, ref) {
+  const { getPortSchemas, addPortSchema, updatePortSchema, removePortSchema } = useDocument();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isCreatingNew, setIsCreatingNew] = useState(false);
-  const [schemas, setSchemas] = useState<PortSchema[]>(() => useDocumentStore.getState().getPortSchemas());
+  const [schemas, setSchemas] = useState<PortSchema[]>(() => getPortSchemas());
   const detailsEditorRef = useRef<{ save: () => void } | null>(null);
 
   const refreshSchemas = useCallback(() => {
-    setSchemas(useDocumentStore.getState().getPortSchemas());
-  }, []);
+    setSchemas(getPortSchemas());
+  }, [getPortSchemas]);
 
   const handleDetailsEditorSave = useCallback(() => {
     detailsEditorRef.current?.save();
@@ -72,32 +73,25 @@ const PortSchemaEditor = forwardRef<{ save: () => void }, PortSchemaEditorProps>
 
   const handleSaveSchema = useCallback((schema: PortSchema, isNew: boolean) => {
     if (isNew) {
-      useDocumentStore.getState().addPortSchema(schema);
+      addPortSchema(schema);
     } else {
-      useDocumentStore.getState().updatePortSchema(schema.id, schema);
+      updatePortSchema(schema.id, schema);
     }
     refreshSchemas();
     setSelectedId(schema.id);
     setIsCreatingNew(false);
-  }, [refreshSchemas]);
+  }, [refreshSchemas, addPortSchema, updatePortSchema]);
 
   const handleDeleteSchema = useCallback((id: string) => {
-    useDocumentStore.getState().removePortSchema(id);
+    removePortSchema(id);
     refreshSchemas();
     setSelectedId(null);
-  }, [refreshSchemas]);
+  }, [refreshSchemas, removePortSchema]);
 
-  // Subscribe to store changes
+  // Subscribe to port schemas changes
   useEffect(() => {
-    let prevPortSchemas = useDocumentStore.getState().portSchemas;
-    const unsubscribe = useDocumentStore.subscribe((state) => {
-      if (state.portSchemas !== prevPortSchemas) {
-        prevPortSchemas = state.portSchemas;
-        setSchemas(state.portSchemas);
-      }
-    });
-    return unsubscribe;
-  }, []);
+    setSchemas(getPortSchemas());
+  }, [getPortSchemas]);
 
   // Handle Delete key to delete selected schema
   useEffect(() => {
