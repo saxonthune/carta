@@ -14,7 +14,7 @@ Run this command to audit the application UI for styling inconsistencies:
 ## Scope
 
 This audit covers **application UI only**:
-- Headers, panels, docks
+- Headers, panels, drawer
 - Buttons, forms, menus
 - Modals, dialogs
 - Editor chrome
@@ -42,7 +42,7 @@ Then audit the main UI components:
 
 ```
 src/components/Header.tsx
-src/components/Dock.tsx
+src/components/Drawer.tsx
 src/components/ui/*.tsx
 src/components/*Editor.tsx
 src/components/*Modal.tsx

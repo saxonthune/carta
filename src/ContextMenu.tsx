@@ -13,6 +13,9 @@ export interface RelatedConstructOption {
   groupId?: string;
 }
 
+// Delay before closing submenus (allows diagonal mouse movement)
+const SUBMENU_CLOSE_DELAY = 100;
+
 interface ContextMenuProps {
   x: number;
   y: number;
@@ -61,6 +64,45 @@ export default function ContextMenu({
   const menuRef = useRef<HTMLDivElement>(null);
   const [showRelatedSubmenu, setShowRelatedSubmenu] = useState(false);
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
+  const relatedSubmenuTimeout = useRef<number | null>(null);
+  const groupSubmenuTimeout = useRef<number | null>(null);
+
+  // Clear timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (relatedSubmenuTimeout.current) clearTimeout(relatedSubmenuTimeout.current);
+      if (groupSubmenuTimeout.current) clearTimeout(groupSubmenuTimeout.current);
+    };
+  }, []);
+
+  const handleRelatedSubmenuEnter = useCallback(() => {
+    if (relatedSubmenuTimeout.current) {
+      clearTimeout(relatedSubmenuTimeout.current);
+      relatedSubmenuTimeout.current = null;
+    }
+    setShowRelatedSubmenu(true);
+  }, []);
+
+  const handleRelatedSubmenuLeave = useCallback(() => {
+    relatedSubmenuTimeout.current = window.setTimeout(() => {
+      setShowRelatedSubmenu(false);
+      setExpandedGroup(null);
+    }, SUBMENU_CLOSE_DELAY);
+  }, []);
+
+  const handleGroupEnter = useCallback((groupId: string) => {
+    if (groupSubmenuTimeout.current) {
+      clearTimeout(groupSubmenuTimeout.current);
+      groupSubmenuTimeout.current = null;
+    }
+    setExpandedGroup(groupId);
+  }, []);
+
+  const handleGroupLeave = useCallback(() => {
+    groupSubmenuTimeout.current = window.setTimeout(() => {
+      setExpandedGroup(null);
+    }, SUBMENU_CLOSE_DELAY);
+  }, []);
 
   // Group related constructs by their groupId
   const groupedRelated = useMemo((): GroupedRelated[] => {
@@ -189,11 +231,8 @@ export default function ContextMenu({
           {!showMultipleSelected && hasRelatedConstructs && (
             <div
               className="relative"
-              onMouseEnter={() => setShowRelatedSubmenu(true)}
-              onMouseLeave={() => {
-                setShowRelatedSubmenu(false);
-                setExpandedGroup(null);
-              }}
+              onMouseEnter={handleRelatedSubmenuEnter}
+              onMouseLeave={handleRelatedSubmenuLeave}
             >
               <button
                 className="block w-full px-4 py-2.5 border-none bg-white text-gray-800 text-sm text-left cursor-pointer hover:bg-gray-100 transition-colors flex items-center justify-between"
@@ -204,44 +243,47 @@ export default function ContextMenu({
                 </svg>
               </button>
               {showRelatedSubmenu && (
-                <div className="absolute left-full top-0 bg-white rounded-lg shadow-lg overflow-hidden min-w-[180px]">
+                <div className="absolute left-full top-0 bg-white rounded-lg shadow-lg min-w-[180px]">
                   {hasMultipleGroups ? (
                     // Render grouped submenus
-                    groupedRelated.map((groupData, groupIndex) => (
-                      <div
-                        key={groupData.group?.id || 'ungrouped'}
-                        className="relative"
-                        onMouseEnter={() => setExpandedGroup(groupData.group?.id || 'ungrouped')}
-                        onMouseLeave={() => setExpandedGroup(null)}
-                      >
-                        <button
-                          className="block w-full px-4 py-2.5 border-none bg-white text-gray-800 text-sm text-left cursor-pointer hover:bg-gray-100 transition-colors flex items-center justify-between"
-                          style={groupData.group ? { borderLeft: `3px solid ${groupData.group.color}` } : undefined}
+                    groupedRelated.map((groupData, groupIndex) => {
+                      const groupKey = groupData.group?.id || 'ungrouped';
+                      return (
+                        <div
+                          key={groupKey}
+                          className="relative"
+                          onMouseEnter={() => handleGroupEnter(groupKey)}
+                          onMouseLeave={handleGroupLeave}
                         >
-                          <span>{groupData.group?.name || 'Other'} ({groupData.items.length})</span>
-                          <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <polyline points="9 18 15 12 9 6" />
-                          </svg>
-                        </button>
-                        {expandedGroup === (groupData.group?.id || 'ungrouped') && (
-                          <div className="absolute left-full top-0 bg-white rounded-lg shadow-lg overflow-hidden min-w-[180px]">
-                            {groupData.items.map((related, index) => (
-                              <button
-                                key={index}
-                                className="block w-full px-4 py-2.5 border-none border-l-[3px] border-l-transparent bg-white text-gray-800 text-sm text-left cursor-pointer hover:bg-gray-100 transition-colors"
-                                style={{ borderLeftColor: related.color }}
-                                onClick={() => handleAddRelatedConstruct(related.constructType, related.fromPortId, related.toPortId)}
-                              >
-                                {related.label || related.displayName}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                        {groupIndex < groupedRelated.length - 1 && (
-                          <div className="border-t border-gray-100 my-0.5" />
-                        )}
-                      </div>
-                    ))
+                          <button
+                            className="block w-full px-4 py-2.5 border-none bg-white text-gray-800 text-sm text-left cursor-pointer hover:bg-gray-100 transition-colors flex items-center justify-between"
+                            style={groupData.group ? { borderLeft: `3px solid ${groupData.group.color}` } : undefined}
+                          >
+                            <span>{groupData.group?.name || 'Other'} ({groupData.items.length})</span>
+                            <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <polyline points="9 18 15 12 9 6" />
+                            </svg>
+                          </button>
+                          {expandedGroup === groupKey && (
+                            <div className="absolute left-full top-0 bg-white rounded-lg shadow-lg min-w-[180px]">
+                              {groupData.items.map((related, index) => (
+                                <button
+                                  key={index}
+                                  className="block w-full px-4 py-2.5 border-none border-l-[3px] border-l-transparent bg-white text-gray-800 text-sm text-left cursor-pointer hover:bg-gray-100 transition-colors"
+                                  style={{ borderLeftColor: related.color }}
+                                  onClick={() => handleAddRelatedConstruct(related.constructType, related.fromPortId, related.toPortId)}
+                                >
+                                  {related.label || related.displayName}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                          {groupIndex < groupedRelated.length - 1 && (
+                            <div className="border-t border-gray-100 my-0.5" />
+                          )}
+                        </div>
+                      );
+                    })
                   ) : (
                     // Render flat list (no groups or single ungrouped set)
                     relatedConstructs!.map((related, index) => (

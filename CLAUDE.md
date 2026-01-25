@@ -148,8 +148,8 @@ Uses sonnet (needs to reliably spawn sub-agents). Delegates heavy work to sub-ag
 │  - Map.tsx → React Flow bindings, context menus             │
 │  - App.tsx → orchestration, modals, layout                  │
 │  - ConstructNode.tsx → node rendering                       │
-│  - Dock.tsx → bottom panel with Viewer/Constructs/Deploy/   │
-│              Ports tabs                                     │
+│  - Drawer.tsx → right-side panel with Constructs/Ports/     │
+│                Groups/Deployables tabs                      │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -282,6 +282,18 @@ src/components/ProjectInfoModal.tsx        → Edit project title and descriptio
 src/components/ExamplesModal.tsx           → Load example projects from bundled .carta files
 src/utils/examples.ts                      → Load examples using Vite's import.meta.glob
 ```
+
+## Testing Requirements
+
+**All tests must pass before committing changes.**
+
+Run the test suites:
+```bash
+npm run test          # Integration tests (Vitest)
+npm run test:e2e      # E2E tests (Playwright)
+```
+
+If tests fail after your changes, fix them before proceeding.
 
 ## Testing Checklist
 

@@ -61,8 +61,7 @@ App.tsx
 ├── Map.tsx                       # React Flow canvas
 │   ├── ConstructNode.tsx         # Node rendering, port tooltips
 │   └── DeployableBackground.tsx
-├── Dock.tsx                      # Bottom panel
-│   ├── InstanceEditor.tsx        # Node properties
+├── Drawer.tsx                    # Right-side panel with floating tabs
 │   ├── ConstructEditor.tsx       # Schema CRUD
 │   ├── SchemaGroupEditor.tsx     # Groups tab
 │   ├── PortSchemaEditor.tsx      # Ports tab

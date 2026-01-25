@@ -42,22 +42,16 @@ test.describe('Restore Default Schemas', () => {
     // Wait for modal to close
     await expect(carta.restoreDefaultsModal).not.toBeVisible();
 
-    // Wait for schemas to be restored
-    await page.waitForTimeout(500);
+    // Open the Constructs tab in the drawer to verify schemas
+    await carta.openDrawerTab('constructs');
+    await carta.waitForDrawerContent();
 
-    // Open the Constructs tab in the dock to verify schemas
-    await carta.switchDockTab('constructs');
-
-    // Wait for the dock content to load
-    await page.waitForTimeout(500);
-
-    // Verify that built-in schemas are present
-    // Check for a few key built-in schemas by looking for their display names
-    const dockContent = page.locator('.bg-surface-depth-2');
-    await expect(dockContent).toContainText('REST Controller');
-    await expect(dockContent).toContainText('Database');
-    await expect(dockContent).toContainText('Table');
-    await expect(dockContent).toContainText('User Story');
+    // Verify that built-in schemas are present using the drawer content
+    const drawerContent = carta.getDrawerContent();
+    await expect(drawerContent).toContainText('REST Controller');
+    await expect(drawerContent).toContainText('Database');
+    await expect(drawerContent).toContainText('Table');
+    await expect(drawerContent).toContainText('User Story');
   });
 
   test('restores built-in port schemas when confirmed', async ({ page }) => {
@@ -68,24 +62,19 @@ test.describe('Restore Default Schemas', () => {
     // Wait for modal to close
     await expect(carta.restoreDefaultsModal).not.toBeVisible();
 
-    // Wait for port schemas to be restored
-    await page.waitForTimeout(500);
-
-    // Open the Ports tab in the dock
-    await carta.switchDockTab('ports');
-
-    // Wait for the dock content to load
-    await page.waitForTimeout(500);
+    // Open the Ports tab in the drawer
+    await carta.openDrawerTab('ports');
+    await carta.waitForDrawerContent();
 
     // Verify that built-in port schemas are present
-    const dockContent = page.locator('.bg-surface-depth-2');
+    const drawerContent = carta.getDrawerContent();
 
     // Check for key built-in port schemas
-    await expect(dockContent).toContainText('Flow In');
-    await expect(dockContent).toContainText('Flow Out');
-    await expect(dockContent).toContainText('Parent');
-    await expect(dockContent).toContainText('Child');
-    await expect(dockContent).toContainText('Link');
+    await expect(drawerContent).toContainText('Flow In');
+    await expect(drawerContent).toContainText('Flow Out');
+    await expect(drawerContent).toContainText('Parent');
+    await expect(drawerContent).toContainText('Child');
+    await expect(drawerContent).toContainText('Link');
   });
 
   test('modal shows warning about overwriting existing schemas', async () => {
@@ -121,22 +110,18 @@ test.describe('Restore Default Schemas', () => {
     await carta.confirmRestoreDefaults();
     await expect(carta.restoreDefaultsModal).not.toBeVisible();
 
-    await page.waitForTimeout(500);
-
     // Restore defaults second time
     await carta.openRestoreDefaultsModal();
     await carta.confirmRestoreDefaults();
     await expect(carta.restoreDefaultsModal).not.toBeVisible();
 
-    await page.waitForTimeout(500);
-
     // Verify schemas are still present and correct
-    await carta.switchDockTab('constructs');
-    await page.waitForTimeout(500);
+    await carta.openDrawerTab('constructs');
+    await carta.waitForDrawerContent();
 
-    const dockContent = page.locator('.bg-surface-depth-2');
-    await expect(dockContent).toContainText('REST Controller');
-    await expect(dockContent).toContainText('Database');
+    const drawerContent = carta.getDrawerContent();
+    await expect(drawerContent).toContainText('REST Controller');
+    await expect(drawerContent).toContainText('Database');
   });
 
   test('settings menu closes after restoring defaults', async ({ page }) => {

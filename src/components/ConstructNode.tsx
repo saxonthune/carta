@@ -159,7 +159,7 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
       })()}
 
       <div
-        className="flex items-center justify-between gap-1.5 px-2 py-1 text-white cursor-move select-none border-b border-white/20 w-full shrink-0"
+        className="node-drag-handle flex items-center justify-between gap-1.5 px-2 py-1 text-white cursor-move select-none border-b border-white/20 w-full shrink-0"
         style={{ backgroundColor: schema.color }}
       >
         <div className="flex items-center gap-1.5">

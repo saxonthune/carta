@@ -21,7 +21,7 @@ Before auditing, read these files:
 
 Focus on these areas:
 - `src/components/Header.tsx` - Main header bar
-- `src/components/Dock.tsx` - Bottom panel
+- `src/components/Drawer.tsx` - Right-side panel with floating tabs
 - `src/components/ui/*.tsx` - Reusable UI components
 - `src/components/*Editor.tsx` - Editor panels
 - `src/components/*Modal.tsx` - Modal dialogs

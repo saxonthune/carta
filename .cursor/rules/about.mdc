@@ -33,7 +33,7 @@ The system is designed with **three decoupled layers** that can evolve independe
 - **Does NOT know** how to render specific construct types or compile them
 
 #### UI Layout (IDE-style)
-The application uses a split-panel layout similar to JetBrains IDEs:
+The application uses a split-panel layout with a right-side drawer:
 
 ```
 ┌─────────────────────────────────────────┐
@@ -45,13 +45,13 @@ The application uses a split-panel layout similar to JetBrains IDEs:
 │  (ReactFlow canvas, zoom controls,       │
 │   add construct, node interactions)      │
 │                                          │
-├─────────────────────────────────────────┤
-│ Tabs │         Dock Content              │
-│      │                                   │
-│ [V]  │  - ConstructViewer (selected node)│
-│ [C]  │  - ConstructEditor (schema CRUD)  │
-│ [D]  │  - DeployablesEditor (CRUD)       │
-└─────────────────────────────────────────┘
+│                              ┌───────────┤
+│                              │ [C] Drawer│
+│                              │ [P] Tabs  │
+│                              │ [G] Float │
+│                              │ [D] Right │
+│                              │           │
+└──────────────────────────────┴───────────┘
 ```
 
 **Components:**
@@ -60,16 +60,16 @@ The application uses a split-panel layout similar to JetBrains IDEs:
   - **ProjectInfoModal** - Edit project title and description
   - **ExamplesModal** - Load bundled example .carta files from `/examples/` directory
 - **Map** - ReactFlow canvas with zoom controls, node operations, context menus
-- **Dock** - Bottom panel shell with left-side tabs for switching views
-  - **ConstructViewer** - Shows/edits fields of selected construct
+- **Drawer** - Right-side slide-out panel with floating tab buttons
   - **ConstructEditor** - CRUD for construct schemas
-  - **DeployablesEditor** - CRUD for deployables
   - **PortSchemaEditor** - CRUD for port schemas (port type definitions)
+  - **SchemaGroupEditor** - CRUD for schema grouping
+  - **DeployablesEditor** - CRUD for deployables
 
 **State Flow:**
-- `selectedNodeIds` lifted to App, shared between Map and Dock
-- Node data passed via props from App to Dock views
-- Prop drilling preferred over Context for simplicity
+- `selectedNodeIds` lifted to App, shared between Map and Drawer
+- Drawer slides in from right with backdrop overlay
+- Floating tab buttons remain visible even when drawer is closed
 
 ### 2. Document Adapter Layer (`src/stores/`)
 - DocumentAdapter interface defines contract for all state operations
@@ -212,15 +212,17 @@ User imports file → Document cleared via adapter → New data loaded (like Exc
 - `/src/App.tsx` - Root component, owns layout and coordinates state
 - `/src/components/Header.tsx` - Project title and import/export controls
 - `/src/components/Map.tsx` - ReactFlow canvas with node operations
-- `/src/components/Dock.tsx` - Bottom panel shell with tabbed views
+- `/src/components/Drawer.tsx` - Right-side slide-out panel with floating tabs
+- `/src/components/DrawerTabs.tsx` - Tab type definitions for drawer navigation
 
 ### Header Components
 - `/src/components/ProjectInfoModal.tsx` - Modal for editing project title and description
 - `/src/components/ExamplesModal.tsx` - Modal for loading bundled example projects
 
-### Dock Views
-- `/src/components/ConstructViewer.tsx` - View/edit selected construct fields
+### Drawer Views
 - `/src/components/ConstructEditor.tsx` - CRUD for construct schemas
+- `/src/components/PortSchemaEditor.tsx` - CRUD for port schemas
+- `/src/components/SchemaGroupEditor.tsx` - CRUD for schema grouping
 - `/src/components/DeployablesEditor.tsx` - CRUD for deployables
 
 ### Other Components
@@ -242,3 +244,14 @@ User imports file → Document cleared via adapter → New data loaded (like Exc
 - `/src/utils/examples.ts` - Load bundled example .carta files using Vite's import.meta.glob
 - `/src/hooks/` - Custom React hooks (undo/redo)
 - `/src/index.css` - Tailwind + custom styles
+
+## Testing
+
+**All tests must pass before committing changes.**
+
+```bash
+npm run test          # Integration tests (Vitest)
+npm run test:e2e      # E2E tests (Playwright)
+```
+
+If tests fail after your changes, fix them before proceeding.

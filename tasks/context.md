@@ -14,8 +14,7 @@ App.tsx
 │   ├── ConstructNode.tsx         # Node rendering, port handles, tooltips
 │   │   └── Handle (per port)     # Port connection points, hover state
 │   └── DeployableBackground.tsx  # Colored regions for deployables
-├── Dock.tsx                      # Bottom panel with tabs
-│   ├── InstanceEditor.tsx        # Selected node properties (Editor tab)
+├── Drawer.tsx                    # Right-side panel with floating tabs
 │   ├── ConstructEditor.tsx       # Schema CRUD (Constructs tab)
 │   │   └── GroupedSchemaList.tsx # Grouped schema listing
 │   ├── SchemaGroupEditor.tsx     # Group management (Groups tab)
@@ -53,7 +52,7 @@ When user references a file, check the tree to find the actual component handlin
 
 **UI Components:**
 - `src/components/Header.tsx` - Top bar, settings, export/import
-- `src/components/Dock.tsx` - Bottom panel, tabs
+- `src/components/Drawer.tsx` - Right-side panel with floating tabs
 - `src/components/ConstructNode.tsx` - Node rendering, port handles, port hover tooltips
 - `src/components/Map.tsx` - React Flow canvas, context menus, drag-drop
 
@@ -80,6 +79,11 @@ When user references a file, check the tree to find the actual component handlin
 ## Recent Changes
 <!-- Update this after significant work -->
 
+- Removed Dock.tsx - Replaced with Drawer.tsx (right-side slide-out panel)
+- Drawer uses floating tab buttons instead of bottom panel tabs
+- Context menu "Add Related" submenu fixed (hover delay, overflow clipping)
+- E2E test helpers updated (CartaPage.ts uses drawerPanel instead of dock)
+- New integration tests added for context menu functionality
 - Removed Zustand - Yjs is now single source of truth
 - Removed singleton registries (registry.ts, deployables.ts)
 - All state access via useDocument() hook through adapter

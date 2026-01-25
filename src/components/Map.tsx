@@ -34,6 +34,9 @@ const nodeTypes = {
   construct: ConstructNode,
 };
 
+// Restrict dragging to header only - allows clicking fields to edit
+const NODE_DRAG_HANDLE = '.node-drag-handle';
+
 const defaultEdgeOptions = {
   style: {
     strokeWidth: 2,
@@ -309,6 +312,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
 
   const nodesWithCallbacks = nodes.map((node) => ({
     ...node,
+    dragHandle: NODE_DRAG_HANDLE,
     data: {
       ...node.data,
       isRenaming: node.id === renamingNodeId,
@@ -338,6 +342,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
         onPaneClick={onPaneClick}
         nodeTypes={nodeTypes}
         defaultEdgeOptions={defaultEdgeOptions}
+        nodeDragThreshold={5}
         panOnDrag={[1, 2]}
         selectionOnDrag
         selectionMode={SelectionMode.Full}

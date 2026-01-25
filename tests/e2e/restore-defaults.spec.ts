@@ -35,15 +35,7 @@ test.describe('Restore Default Schemas', () => {
   });
 
   test('should restore defaults when confirm is clicked', async ({ page }) => {
-    // First, let's go to the constructs tab to check available schemas
-    await carta.openDock();
-    await carta.switchDockTab('constructs');
-
-    // Get initial schema count from the constructs list
-    const initialSchemaElements = await page.locator('[data-testid="schema-item"]').count();
-
-    // If we need to verify restoration happened, we check constructs tab
-    // The restoration is internal to the Yjs store, so we verify through UI state
+    // Open the restore defaults modal and confirm
     await carta.openRestoreDefaultsModal();
     await carta.confirmRestoreDefaults();
 
@@ -52,6 +44,13 @@ test.describe('Restore Default Schemas', () => {
 
     // App should still be functional
     await expect(page.locator('[data-testid="settings-menu-button"]')).toBeVisible();
+
+    // Verify schemas were restored by opening constructs tab
+    await carta.openDrawerTab('constructs');
+    await carta.waitForDrawerContent();
+
+    const drawerContent = carta.getDrawerContent();
+    await expect(drawerContent).toContainText('Constructs');
   });
 
   test('settings menu shows restore default schemas option', async () => {

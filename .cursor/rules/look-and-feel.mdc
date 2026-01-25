@@ -122,10 +122,10 @@ className={`... ${
 
 ### Component Examples
 
-**Dock.tsx**:
-- Level 1: Tab bar container (`bg-surface-depth-1`)
-- Level 2: Tab island (`bg-surface-depth-2`)
-- Level 3: Content area (`bg-surface-depth-3`)
+**Drawer.tsx**:
+- Floating tabs: Use accent highlighting for active tab (`bg-accent/30`, `ring-2 ring-accent/60`)
+- Drawer panel: `bg-surface-depth-1` for main panel background
+- Content area: Each tab's content uses appropriate depth levels
 
 **ConstructEditor.tsx**:
 - Level 1: Left sidebar (`bg-surface-depth-1`)

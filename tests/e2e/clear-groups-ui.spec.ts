@@ -11,16 +11,16 @@ test.describe('Clear Functionality - Schema Groups UI', () => {
 
   test('schema groups tab should show empty state after clearing everything', async ({ page }) => {
     // First, navigate to the Groups tab to verify initial state
-    await carta.switchDockTab('groups');
+    await carta.openDrawerTab('groups');
+    await carta.waitForDrawerContent();
 
-    // Wait for the Groups tab content to load
-    await page.waitForSelector('text=Schema Groups', { timeout: 5000 });
+    const drawerContent = carta.getDrawerContent();
 
     // Initially should have built-in groups (software architecture, etc.)
-    // Look specifically for group items within the schema groups container
-    const groupsContainer = page.locator('text=Schema Groups').locator('..').locator('..');
-    const initialGroupItems = await groupsContainer.locator('button:has-text("Software Architecture")').count();
-    expect(initialGroupItems).toBeGreaterThan(0);
+    await expect(drawerContent).toContainText('Software Architecture');
+
+    // Close drawer before opening settings menu (backdrop blocks clicks)
+    await carta.closeDrawer();
 
     // Now clear everything
     await carta.openClearModal();
@@ -30,25 +30,31 @@ test.describe('Clear Functionality - Schema Groups UI', () => {
     await expect(carta.clearModal).not.toBeVisible();
 
     // Wait a moment for Yjs to propagate changes
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(300);
 
-    // Verify Groups tab shows empty state (should already be on Groups tab)
-    // Should now show "No schema groups available" message
-    await expect(page.getByText('No schema groups available')).toBeVisible();
+    // Re-open the Groups tab to verify empty state
+    await carta.openDrawerTab('groups');
+    await carta.waitForDrawerContent();
+
+    // Should now show "No schema groups" message (empty message from CollapsibleSelector)
+    await expect(drawerContent).toContainText('No schema groups');
 
     // Verify Software Architecture group is gone
-    await expect(page.getByText('Software Architecture')).not.toBeVisible();
+    await expect(drawerContent).not.toContainText('Software Architecture');
   });
 
   test('schema groups tab should preserve groups when clearing only instances', async ({ page }) => {
     // Navigate to the Groups tab
-    await carta.switchDockTab('groups');
+    await carta.openDrawerTab('groups');
+    await carta.waitForDrawerContent();
 
-    // Wait for content to load
-    await page.waitForSelector('text=Schema Groups', { timeout: 5000 });
+    const drawerContent = carta.getDrawerContent();
 
     // Verify Software Architecture group exists initially
-    await expect(page.getByText('Software Architecture')).toBeVisible();
+    await expect(drawerContent).toContainText('Software Architecture');
+
+    // Close drawer before opening settings menu
+    await carta.closeDrawer();
 
     // Clear only instances
     await carta.openClearModal();
@@ -57,25 +63,29 @@ test.describe('Clear Functionality - Schema Groups UI', () => {
     // Wait for the modal to close
     await expect(carta.clearModal).not.toBeVisible();
 
-    // Wait for page to stabilize
-    await page.waitForTimeout(500);
+    // Re-open Groups tab to verify groups preserved
+    await carta.openDrawerTab('groups');
+    await carta.waitForDrawerContent();
 
-    // Verify Groups tab still has groups (should already be on Groups tab)
-    await expect(page.getByText('Software Architecture')).toBeVisible();
+    // Verify Groups tab still has groups
+    await expect(drawerContent).toContainText('Software Architecture');
 
     // Should NOT show empty state message
-    await expect(page.getByText('No schema groups available')).not.toBeVisible();
+    await expect(drawerContent).not.toContainText('No schema groups');
   });
 
   test('clear everything and restore defaults should restore schema groups', async ({ page }) => {
     // Navigate to the Groups tab
-    await carta.switchDockTab('groups');
+    await carta.openDrawerTab('groups');
+    await carta.waitForDrawerContent();
 
-    // Wait for content to load
-    await page.waitForSelector('text=Schema Groups', { timeout: 5000 });
+    const drawerContent = carta.getDrawerContent();
 
     // Verify Software Architecture group exists initially
-    await expect(page.getByText('Software Architecture')).toBeVisible();
+    await expect(drawerContent).toContainText('Software Architecture');
+
+    // Close drawer before opening settings menu
+    await carta.closeDrawer();
 
     // Clear everything and restore defaults
     await carta.clearAndRestoreDefaults();
@@ -84,12 +94,16 @@ test.describe('Clear Functionality - Schema Groups UI', () => {
     await expect(carta.clearModal).not.toBeVisible();
 
     // Wait for Yjs to propagate changes
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(300);
 
-    // Verify Groups tab has groups again (should already be on Groups tab)
-    await expect(page.getByText('Software Architecture')).toBeVisible();
-    await expect(page.getByText('Database')).toBeVisible();
-    await expect(page.getByText('API')).toBeVisible();
-    await expect(page.getByText('UI')).toBeVisible();
+    // Re-open Groups tab to verify groups restored
+    await carta.openDrawerTab('groups');
+    await carta.waitForDrawerContent();
+
+    // Verify Groups tab has groups again
+    await expect(drawerContent).toContainText('Software Architecture');
+    await expect(drawerContent).toContainText('Database');
+    await expect(drawerContent).toContainText('API');
+    await expect(drawerContent).toContainText('UI');
   });
 });
