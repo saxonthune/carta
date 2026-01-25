@@ -13,6 +13,7 @@ import { registry } from './constructs/registry';
 import { deployableRegistry } from './constructs/deployables';
 import { syncWithDocumentStore } from './constructs/portRegistry';
 import { useDocument } from './hooks/useDocument';
+import { useClearDocument } from './hooks/useClearDocument';
 import { useDocumentContext } from './contexts/DocumentContext';
 import { exportProject, importProject, generateSemanticId, type CartaFile } from './utils/cartaFile';
 import { analyzeImport, type ImportAnalysis, type ImportOptions } from './utils/importAnalyzer';
@@ -42,6 +43,7 @@ function App() {
   const containerRef = useRef<HTMLDivElement>(null);
   const importRef = useRef<((nodes: Node[], edges: Edge[]) => void) | null>(null);
   const { updateNode } = useDocument();
+  const { clearDocument } = useClearDocument();
 
   // Initialize refs on mount
   useEffect(() => {
@@ -191,36 +193,6 @@ function App() {
     setCompileOutput(output);
   }, []);
 
-  const handleClear = useCallback((mode: 'instances' | 'all') => {
-    const STORAGE_KEY = 'carta-document';
-    if (mode === 'instances') {
-      // Clear only nodes and edges, preserve schemas and deployables
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        try {
-          const state = JSON.parse(saved);
-          // Clear nodes and edges but keep title, schemas, and deployables
-          localStorage.setItem(STORAGE_KEY, JSON.stringify({
-            nodes: [],
-            edges: [],
-            title: state.title || 'Untitled Project',
-            schemas: state.schemas || [],
-            deployables: state.deployables || [],
-          }));
-        } catch (e) {
-          console.error('Failed to clear instances:', e);
-        }
-      }
-      // Reload to reflect changes
-      window.location.reload();
-    } else {
-      // Clear everything
-      localStorage.removeItem(STORAGE_KEY);
-      // Reload to reflect changes (will seed default schemas on reload)
-      window.location.reload();
-    }
-  }, []);
-
   const handleRestoreDefaultSchemas = useCallback(() => {
     // Clear registry and import fresh defaults
     registry.clearAllSchemas();
@@ -278,7 +250,7 @@ function App() {
         onExport={handleExport}
         onImport={handleImport}
         onCompile={handleCompile}
-        onClear={handleClear}
+        onClear={clearDocument}
         onRestoreDefaultSchemas={handleRestoreDefaultSchemas}
         onToggleAI={() => setAiSidebarOpen(!aiSidebarOpen)}
       />

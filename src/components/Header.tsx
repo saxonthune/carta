@@ -329,6 +329,7 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
         )}
         <div className="relative" ref={settingsMenuRef}>
           <button
+            data-testid="settings-menu-button"
             className="w-9 h-9 flex items-center justify-center rounded-lg cursor-pointer text-content-muted hover:bg-surface-alt hover:text-content transition-colors"
             onClick={() => setIsSettingsMenuOpen(!isSettingsMenuOpen)}
             title="Settings"
@@ -339,7 +340,7 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
             </svg>
           </button>
           {isSettingsMenuOpen && (
-            <div className="absolute right-0 top-full mt-1 bg-surface border border-subtle rounded-lg shadow-lg overflow-hidden z-50 min-w-[200px]">
+            <div data-testid="settings-menu" className="absolute right-0 top-full mt-1 bg-surface border border-subtle rounded-lg shadow-lg overflow-hidden z-50 min-w-[200px]">
               <button
                 className="w-full text-left px-4 py-2.5 text-sm cursor-pointer text-content hover:bg-surface-alt transition-colors border-none bg-surface"
                 onClick={() => setRestoreWarningMode('menu')}
@@ -347,6 +348,7 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
                 Restore Default Schemas
               </button>
               <button
+                data-testid="settings-clear-button"
                 className="w-full text-left px-4 py-2.5 text-sm cursor-pointer text-content hover:bg-surface-alt transition-colors border-none bg-surface"
                 onClick={() => handleClear()}
               >
@@ -359,7 +361,7 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
 
       {/* Clear Warning Modal */}
       {clearWarningMode && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1001]" onClick={() => setClearWarningMode(null)}>
+        <div data-testid="clear-modal" className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1001]" onClick={() => setClearWarningMode(null)}>
           <div className="bg-surface rounded-xl w-[90%] max-w-[400px] flex flex-col shadow-2xl" onClick={(e) => e.stopPropagation()}>
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-subtle">
@@ -388,18 +390,21 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
             {/* Footer */}
             <div className="flex gap-2 justify-end px-5 py-4 border-t border-subtle">
               <button
+                data-testid="clear-cancel-button"
                 className="px-5 py-2.5 rounded-md bg-surface text-content text-sm font-medium cursor-pointer hover:bg-surface-alt transition-colors"
                 onClick={() => setClearWarningMode(null)}
               >
                 Cancel
               </button>
               <button
+                data-testid="clear-instances-button"
                 className="px-5 py-2.5 border-none rounded-md bg-amber-500 text-white text-sm font-medium cursor-pointer hover:bg-amber-600 transition-colors"
                 onClick={() => confirmClear('instances')}
               >
                 Clear Instances
               </button>
               <button
+                data-testid="clear-everything-button"
                 className="px-5 py-2.5 border-none rounded-md bg-red-500 text-white text-sm font-medium cursor-pointer hover:bg-red-600 transition-colors"
                 onClick={() => confirmClear('all')}
               >

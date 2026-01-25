@@ -42,6 +42,8 @@ export interface DocumentProviderProps {
   serverUrl?: string;
   /** When true, hides collaboration UI (Share button, connection status) */
   localMode?: boolean;
+  /** Skip IndexedDB persistence (for testing) */
+  skipPersistence?: boolean;
 }
 
 /**
@@ -53,6 +55,7 @@ export function DocumentProvider({
   roomId,
   serverUrl = 'ws://localhost:1234',
   localMode = false,
+  skipPersistence = false,
 }: DocumentProviderProps) {
   const [adapter, setAdapter] = useState<DocumentAdapter | null>(null);
   const [mode, setMode] = useState<'local' | 'shared'>('local');
@@ -72,6 +75,7 @@ export function DocumentProvider({
         mode: roomId ? 'shared' : 'local',
         roomId: roomId || 'carta-local',
         serverUrl: roomId ? serverUrl : undefined,
+        skipPersistence,
       };
 
       // Create Yjs adapter
@@ -108,7 +112,7 @@ export function DocumentProvider({
         currentAdapter.dispose();
       }
     };
-  }, [roomId, serverUrl]);
+  }, [roomId, serverUrl, skipPersistence]);
 
   // Connect to room (for switching from local to shared mode)
   const connectToRoom = useCallback(

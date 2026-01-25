@@ -18,6 +18,8 @@ export interface YjsAdapterOptions {
   mode: 'local' | 'shared';
   roomId?: string;
   serverUrl?: string;
+  /** Skip IndexedDB persistence (for testing) */
+  skipPersistence?: boolean;
 }
 
 /**
@@ -154,18 +156,20 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     ydoc,
 
     async initialize(): Promise<void> {
-      // Set up IndexedDB persistence
-      const dbName = roomId || 'carta-local';
-      indexeddbProvider = new IndexeddbPersistence(dbName, ydoc);
+      // Set up IndexedDB persistence (unless skipped for testing)
+      if (!options.skipPersistence) {
+        const dbName = roomId || 'carta-local';
+        indexeddbProvider = new IndexeddbPersistence(dbName, ydoc);
 
-      // Wait for initial sync
-      await new Promise<void>((resolve) => {
-        if (indexeddbProvider!.synced) {
-          resolve();
-        } else {
-          indexeddbProvider!.on('synced', () => resolve());
-        }
-      });
+        // Wait for initial sync
+        await new Promise<void>((resolve) => {
+          if (indexeddbProvider!.synced) {
+            resolve();
+          } else {
+            indexeddbProvider!.on('synced', () => resolve());
+          }
+        });
+      }
 
       // Initialize defaults after loading from IndexedDB
       initializeDefaults();
