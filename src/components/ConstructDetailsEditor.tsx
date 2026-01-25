@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useDocument } from '../hooks/useDocument';
 import OverviewTab from './construct-editor/OverviewTab';
-import CompilationTab from './construct-editor/CompilationTab';
 import PortsTab from './construct-editor/PortsTab';
 import FieldsTab from './construct-editor/FieldsTab';
 import PreviewTab from './construct-editor/PreviewTab';
@@ -23,7 +22,7 @@ interface ConstructDetailsEditorProps {
   onDirtyChange?: (isDirty: boolean) => void;
 }
 
-type EditorTab = 'basic' | 'compilation' | 'ports' | 'fields' | 'related' | 'preview';
+type EditorTab = 'basic' | 'ports' | 'fields' | 'related' | 'preview';
 
 const createEmptySchema = (): ConstructSchema => ({
   type: '',
@@ -237,12 +236,6 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
         <path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
       </svg>
     )},
-    { id: 'compilation', label: 'Compile', icon: (
-      <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <polyline points="16 18 22 12 16 6"/>
-        <polyline points="8 6 2 12 8 18"/>
-      </svg>
-    )},
     { id: 'ports', label: 'Ports', icon: (
       <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <circle cx="12" cy="12" r="3"/>
@@ -315,12 +308,6 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
             <OverviewTab
               formData={formData}
               errors={errors}
-              updateField={updateField}
-            />
-          )}
-          {activeTab === 'compilation' && (
-            <CompilationTab
-              formData={formData}
               updateField={updateField}
             />
           )}

@@ -56,7 +56,9 @@ The application uses a split-panel layout similar to JetBrains IDEs:
 
 **Components:**
 - **App** - Owns the layout, manages view state, handles import/export
-- **Header** - Project title (editable), import/export buttons
+- **Header** - Project title (click to edit via modal), import/export buttons, theme selector, settings menu with "Load Example" option
+  - **ProjectInfoModal** - Edit project title and description
+  - **ExamplesModal** - Load bundled example .carta files from `/examples/` directory
 - **Map** - ReactFlow canvas with zoom controls, node operations, context menus
 - **Dock** - Bottom panel shell with left-side tabs for switching views
   - **ConstructViewer** - Shows/edits fields of selected construct
@@ -212,6 +214,10 @@ User imports file → Document cleared via adapter → New data loaded (like Exc
 - `/src/components/Map.tsx` - ReactFlow canvas with node operations
 - `/src/components/Dock.tsx` - Bottom panel shell with tabbed views
 
+### Header Components
+- `/src/components/ProjectInfoModal.tsx` - Modal for editing project title and description
+- `/src/components/ExamplesModal.tsx` - Modal for loading bundled example projects
+
 ### Dock Views
 - `/src/components/ConstructViewer.tsx` - View/edit selected construct fields
 - `/src/components/ConstructEditor.tsx` - CRUD for construct schemas
@@ -233,5 +239,6 @@ User imports file → Document cleared via adapter → New data loaded (like Exc
 ### Utilities
 - `/src/utils/cartaFile.ts` - Export/import utilities with semantic ID generation
 - `/src/utils/displayUtils.ts` - `getDisplayName()` helper for node titles
+- `/src/utils/examples.ts` - Load bundled example .carta files using Vite's import.meta.glob
 - `/src/hooks/` - Custom React hooks (undo/redo)
 - `/src/index.css` - Tailwind + custom styles

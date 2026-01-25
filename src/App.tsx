@@ -44,7 +44,7 @@ function App() {
   const [selectedNodes, setSelectedNodes] = useState<Node[]>([]);
   const [dockHeight, setDockHeight] = useState(256);
   const [isResizing, setIsResizing] = useState(false);
-  const [activeView, setActiveView] = useState<DockView>('viewer');
+  const [activeView, setActiveView] = useState<DockView>('constructs');
   const [aiSidebarOpen, setAiSidebarOpen] = useState(false);
   const [aiSidebarWidth] = useState(400);
   const nodesEdgesRef = useRef<{ nodes: Node[]; edges: Edge[] }>({ nodes: [], edges: [] });

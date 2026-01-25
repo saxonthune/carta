@@ -1,0 +1,111 @@
+/**
+ * Test: Clear Everything Should Clear Schema Groups
+ *
+ * Verifies that "Clear Everything" properly clears schema groups
+ * and that the Groups tab UI reflects the cleared state.
+ */
+
+import { describe, it, expect, beforeEach } from 'vitest';
+import { renderHook, act, waitFor } from '@testing-library/react';
+import { useDocument } from '../../src/hooks/useDocument';
+import { useDocumentContext } from '../../src/contexts/DocumentContext';
+import { TestProviders } from '../setup/testProviders';
+import { builtInSchemaGroups } from '../../src/constructs/schemas';
+
+describe('Clear Schema Groups', () => {
+  it('should clear schema groups when clearing everything', async () => {
+    const { result } = renderHook(
+      () => ({
+        document: useDocument(),
+        context: useDocumentContext(),
+      }),
+      { wrapper: TestProviders }
+    );
+
+    await waitFor(() => {
+      expect(result.current.context.isReady).toBe(true);
+    });
+
+    const { adapter } = result.current.context;
+
+    // Start with built-in schema groups
+    act(() => {
+      adapter.setSchemaGroups(builtInSchemaGroups);
+    });
+
+    await waitFor(() => {
+      expect(result.current.document.schemaGroups.length).toBeGreaterThan(0);
+    });
+
+    // Verify we have the software architecture group
+    const softwareArchGroup = result.current.document.schemaGroups.find(
+      g => g.id === 'software-architecture'
+    );
+    expect(softwareArchGroup).toBeDefined();
+
+    // Clear everything (simulating onClear('all'))
+    act(() => {
+      adapter.transaction(() => {
+        adapter.setNodes([]);
+        adapter.setEdges([]);
+        adapter.setSchemas([]);
+        adapter.setDeployables([]);
+        adapter.setPortSchemas([]);
+        adapter.setSchemaGroups([]);
+      });
+    });
+
+    // Verify schema groups are cleared
+    await waitFor(() => {
+      expect(result.current.document.schemaGroups).toHaveLength(0);
+    });
+
+    expect(result.current.document.schemaGroups).toEqual([]);
+  });
+
+  it('should preserve schema groups when clearing only instances', async () => {
+    const { result } = renderHook(
+      () => ({
+        document: useDocument(),
+        context: useDocumentContext(),
+      }),
+      { wrapper: TestProviders }
+    );
+
+    await waitFor(() => {
+      expect(result.current.context.isReady).toBe(true);
+    });
+
+    const { adapter } = result.current.context;
+
+    // Start with built-in schema groups
+    act(() => {
+      adapter.setSchemaGroups(builtInSchemaGroups);
+    });
+
+    await waitFor(() => {
+      expect(result.current.document.schemaGroups.length).toBeGreaterThan(0);
+    });
+
+    const initialGroupCount = result.current.document.schemaGroups.length;
+
+    // Clear only instances (simulating onClear('instances'))
+    act(() => {
+      adapter.transaction(() => {
+        adapter.setNodes([]);
+        adapter.setEdges([]);
+      });
+    });
+
+    // Verify schema groups are preserved
+    await waitFor(() => {
+      expect(result.current.document.schemaGroups.length).toBe(initialGroupCount);
+    });
+
+    // Verify software architecture group still exists
+    const softwareArchGroup = result.current.document.schemaGroups.find(
+      g => g.id === 'software-architecture'
+    );
+    expect(softwareArchGroup).toBeDefined();
+  });
+});

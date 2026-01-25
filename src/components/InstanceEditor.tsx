@@ -15,11 +15,13 @@ interface InstanceEditorProps {
 type ViewerTab = 'details' | 'connections';
 
 export default function InstanceEditor({ node, deployables, onNodeUpdate }: InstanceEditorProps) {
-  const { getSchema } = useDocument();
+  const { getSchema, addDeployable } = useDocument();
   const data = node.data as ConstructNodeData;
   const schema = getSchema(data.constructType);
   const [semanticIdValue, setSemanticIdValue] = useState(data.semanticId);
   const [activeTab, setActiveTab] = useState<ViewerTab>('details');
+  const [showAddDeployable, setShowAddDeployable] = useState(false);
+  const [newDeployableName, setNewDeployableName] = useState('');
 
   const handleSemanticIdChange = useCallback((newSemanticId: string) => {
     setSemanticIdValue(newSemanticId);
@@ -38,6 +40,28 @@ export default function InstanceEditor({ node, deployables, onNodeUpdate }: Inst
   const handleDeployableChange = useCallback((deployableId: string | null) => {
     onNodeUpdate(node.id, { deployableId });
   }, [node.id, onNodeUpdate]);
+
+  const handleAddDeployable = useCallback(() => {
+    if (newDeployableName.trim()) {
+      const newDeployable = addDeployable({
+        name: newDeployableName.trim(),
+        description: '',
+      });
+      onNodeUpdate(node.id, { deployableId: newDeployable.id });
+      setNewDeployableName('');
+      setShowAddDeployable(false);
+    }
+  }, [newDeployableName, addDeployable, onNodeUpdate, node.id]);
+
+  const handleAddDeployableKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddDeployable();
+    } else if (e.key === 'Escape') {
+      setShowAddDeployable(false);
+      setNewDeployableName('');
+    }
+  }, [handleAddDeployable]);
 
   if (!schema) {
     return (
@@ -131,34 +155,76 @@ export default function InstanceEditor({ node, deployables, onNodeUpdate }: Inst
                   </div>
 
                   {/* Deployable selector */}
-                  <div className="flex flex-col gap-1">
+                  <div className="flex flex-col gap-1 relative">
                     <label className="text-[11px] font-semibold text-content-muted uppercase">Deployable</label>
-                    <div className="flex items-center gap-2 px-2.5 py-1.5 rounded bg-surface border border-transparent focus-within:ring-2 focus-within:ring-accent/60 transition-all">
-                      <svg
-                        className="w-4 h-4 text-content-subtle shrink-0"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
+
+                    {/* Add deployable inline form */}
+                    {showAddDeployable && (
+                      <div className="mb-2 bg-surface-depth-1 rounded-lg p-2 border border-accent/30 shadow-sm">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            className="flex-1 px-2 py-1 text-xs rounded bg-surface text-content outline-none focus:ring-2 focus:ring-accent/60 transition-all border border-subtle"
+                            placeholder="Deployable name"
+                            value={newDeployableName}
+                            onChange={(e) => setNewDeployableName(e.target.value)}
+                            onKeyDown={handleAddDeployableKeyDown}
+                            autoFocus
+                          />
+                          <button
+                            className="px-3 py-1 text-xs font-medium rounded bg-accent text-white hover:bg-accent-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            onClick={handleAddDeployable}
+                            disabled={!newDeployableName.trim()}
+                          >
+                            Add
+                          </button>
+                          <button
+                            className="px-2 py-1 text-xs rounded text-content-muted hover:text-content hover:bg-surface-alt transition-colors"
+                            onClick={() => {
+                              setShowAddDeployable(false);
+                              setNewDeployableName('');
+                            }}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 flex items-center gap-2 px-2.5 py-1.5 rounded bg-surface border border-transparent focus-within:ring-2 focus-within:ring-accent/60 transition-all">
+                        <svg
+                          className="w-4 h-4 text-content-subtle shrink-0"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        >
+                          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                          <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                          <line x1="12" y1="22.08" x2="12" y2="12" />
+                        </svg>
+                        <select
+                          className={`flex-1 bg-transparent outline-none text-sm cursor-pointer ${
+                            !data.deployableId ? 'text-content-subtle italic' : 'text-content'
+                          }`}
+                          value={data.deployableId || ''}
+                          onChange={(e) => handleDeployableChange(e.target.value || null)}
+                        >
+                          <option value="" className="italic text-content-subtle">None</option>
+                          {deployables.map((d) => (
+                            <option key={d.id} value={d.id} className="not-italic text-content">
+                              {d.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <button
+                        className="text-xs text-accent hover:text-accent-hover font-medium cursor-pointer hover:underline transition-colors"
+                        onClick={() => setShowAddDeployable(!showAddDeployable)}
                       >
-                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-                        <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-                        <line x1="12" y1="22.08" x2="12" y2="12" />
-                      </svg>
-                      <select
-                        className={`flex-1 bg-transparent outline-none text-sm cursor-pointer ${
-                          !data.deployableId ? 'text-content-subtle italic' : 'text-content'
-                        }`}
-                        value={data.deployableId || ''}
-                        onChange={(e) => handleDeployableChange(e.target.value || null)}
-                      >
-                        <option value="" className="italic text-content-subtle">None</option>
-                        {deployables.map((d) => (
-                          <option key={d.id} value={d.id} className="not-italic text-content">
-                            {d.name}
-                          </option>
-                        ))}
-                      </select>
+                        + Add
+                      </button>
                     </div>
                   </div>
                 </div>

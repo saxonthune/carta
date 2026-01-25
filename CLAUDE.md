@@ -41,6 +41,7 @@ Launch these agents with "launch {agent-name}" to run them in the background.
 | `task-master` | Spawns parallel agents per task | "launch task-master" - large tasks |
 | `style-nag` | Audits and fixes UI styling issues | After UI changes, or periodically |
 | `test-builder` | Creates integration/E2E tests | When adding test coverage |
+| `documentation-nag` | Keeps docs in sync with code | After significant code changes |
 
 ### batch-executor (recommended)
 
@@ -81,6 +82,17 @@ Creates integration tests (Vitest) and E2E tests (Playwright):
 **Does NOT write:** Unit tests
 
 **Config:** `.claude/agents/test-builder.md`
+
+### documentation-nag
+
+Keeps documentation synchronized with code changes:
+- `CLAUDE.md` - Key files, common tasks, architecture
+- `.cursor/rules/about.mdc` - Component tree, file structure
+- `tasks/context.md` - Quick reference for task agents
+
+**Scope:** Structural changes, new components, new patterns.
+
+**Config:** `.claude/agents/documentation-nag.md`
 
 ### task-master
 
@@ -158,8 +170,12 @@ Uses sonnet (needs to reliably spawn sub-agents). Delegates heavy work to sub-ag
 | `src/hooks/useClipboard.ts` | Copy/paste (local state, not collaborative) |
 | `src/hooks/useKeyboardShortcuts.ts` | Keyboard shortcut handling |
 | `src/components/Map.tsx` | React Flow canvas, UI event handlers |
+| `src/components/Header.tsx` | Project header with title, import/export, settings menu |
+| `src/components/ProjectInfoModal.tsx` | Modal for editing project title and description |
+| `src/components/ExamplesModal.tsx` | Modal for loading example projects |
 | `src/components/PortSchemaEditor.tsx` | Two-panel editor for port schemas |
 | `src/constructs/compiler/index.ts` | Compiler engine that takes schemas/deployables as parameters |
+| `src/utils/examples.ts` | Utility to load bundled example .carta files |
 
 ## Key Design Principles
 
@@ -259,6 +275,14 @@ src/hooks/useUndoRedo.ts                   → Y.UndoManager configuration
 src/main.tsx                               → VITE_LOCAL_MODE feature flag
 ```
 
+### Modify header behavior or add modals
+```
+src/components/Header.tsx                  → Header controls: title, export/import, settings, theme
+src/components/ProjectInfoModal.tsx        → Edit project title and description
+src/components/ExamplesModal.tsx           → Load example projects from bundled .carta files
+src/utils/examples.ts                      → Load examples using Vite's import.meta.glob
+```
+
 ## Testing Checklist
 
 When modifying constructs or connections:
@@ -276,3 +300,7 @@ When modifying constructs or connections:
 - [ ] Copy/paste preserves node data with new IDs
 - [ ] IndexedDB persists state across page reloads
 - [ ] WebSocket collaboration syncs changes between clients (when enabled)
+- [ ] Project title click opens ProjectInfoModal to edit title and description
+- [ ] Settings menu shows "Load Example" when examples are available
+- [ ] ExamplesModal displays all .carta files from `/examples/` directory
+- [ ] Loading an example clears existing document and imports example data
