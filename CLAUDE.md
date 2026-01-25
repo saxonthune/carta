@@ -28,6 +28,76 @@ Detailed guidance lives in `.cursor/`:
 | `.cursor/rules/metamodel-design.mdc` | Three-level metamodel (M2/M1/M0) |
 | `.cursor/rules/clean-composable-react.mdc` | React patterns, hooks, state management |
 | `.cursor/rules/yjs-collaboration.mdc` | Yjs collaboration preparation |
+| `.cursor/rules/look-and-feel.mdc` | Visual depth system, island patterns |
+| `.cursor/rules/styling-best-practices.mdc` | UI styling standards, spacing, buttons, colors |
+
+## Custom Agents
+
+Launch these agents with "launch {agent-name}" to run them in the background.
+
+| Agent | Purpose | When to use |
+|-------|---------|-------------|
+| `batch-executor` | Processes all tasks sequentially | "process tasks" - small/medium tasks |
+| `task-master` | Spawns parallel agents per task | "launch task-master" - large tasks |
+| `style-nag` | Audits and fixes UI styling issues | After UI changes, or periodically |
+| `test-builder` | Creates integration/E2E tests | When adding test coverage |
+
+### batch-executor (recommended)
+
+Processes all pending tasks sequentially. Handles impl, tests, or both.
+
+```bash
+./tasks/maketask fix button color
+./tasks/maketask add tooltip + test
+./tasks/prepare
+# "process tasks"
+```
+
+- Reads `.claude/skills/testing.md` when writing tests
+- More token-efficient than spawning multiple agents
+- Good for small/medium tasks
+
+**Config:** `.claude/agents/batch-executor.md`
+
+### style-nag
+
+Audits application UI for styling inconsistencies:
+- Spacing violations (non-4px-based values)
+- Button hierarchy issues (too many primary buttons competing)
+- Color misuse (semantic mismatches, competing saturated colors)
+- Typography inconsistencies
+- Touch target violations
+
+**Scope:** Application chrome only. Does NOT audit user-created content.
+
+**Config:** `.claude/agents/style-nag.md`
+
+### test-builder
+
+Creates integration tests (Vitest) and E2E tests (Playwright):
+- Integration: Hook logic, state management, adapter behavior
+- E2E: User workflows, UI interactions, persistence
+
+**Does NOT write:** Unit tests
+
+**Config:** `.claude/agents/test-builder.md`
+
+### task-master
+
+Processes task files in `/tasks/inputs/` and delegates to appropriate agents:
+- **TEST tasks** → `test-builder` (sonnet model)
+- **IMPLEMENTATION tasks** → `task-executor` (haiku model)
+
+Uses sonnet (needs to reliably spawn sub-agents). Delegates heavy work to sub-agents (haiku/sonnet).
+
+**Usage:**
+```bash
+./tasks/maketask your task description  # Add task
+./tasks/prepare                          # Concat context (saves tokens)
+# Then: "launch task-master"
+```
+
+**Config:** `.claude/agents/task-master.md`
 
 ## Architecture Overview
 

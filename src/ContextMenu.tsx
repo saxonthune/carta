@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
+import type { SchemaGroup } from './constructs/types';
 
 export type ContextMenuType = 'pane' | 'node' | 'edge';
 
@@ -9,6 +10,7 @@ export interface RelatedConstructOption {
   fromPortId?: string;
   toPortId?: string;
   label?: string;
+  groupId?: string;
 }
 
 interface ContextMenuProps {
@@ -19,6 +21,7 @@ interface ContextMenuProps {
   edgeId?: string;
   selectedCount: number;
   relatedConstructs?: RelatedConstructOption[];
+  schemaGroups?: SchemaGroup[];
   onAddNode: (x: number, y: number) => void;
   onDeleteNode: (nodeId: string) => void;
   onDeleteSelected: () => void;
@@ -30,6 +33,12 @@ interface ContextMenuProps {
   onClose: () => void;
 }
 
+// Group related constructs by their groupId
+interface GroupedRelated {
+  group: SchemaGroup | null;
+  items: RelatedConstructOption[];
+}
+
 export default function ContextMenu({
   x,
   y,
@@ -38,6 +47,7 @@ export default function ContextMenu({
   edgeId,
   selectedCount,
   relatedConstructs,
+  schemaGroups = [],
   onAddNode,
   onDeleteNode,
   onDeleteSelected,
@@ -50,6 +60,44 @@ export default function ContextMenu({
 }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const [showRelatedSubmenu, setShowRelatedSubmenu] = useState(false);
+  const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
+
+  // Group related constructs by their groupId
+  const groupedRelated = useMemo((): GroupedRelated[] => {
+    if (!relatedConstructs || relatedConstructs.length === 0) return [];
+
+    const groupMap = new Map<string | null, RelatedConstructOption[]>();
+
+    // Build lookup for groups
+    const groupLookup = new Map(schemaGroups.map(g => [g.id, g]));
+
+    for (const item of relatedConstructs) {
+      const key = item.groupId || null;
+      if (!groupMap.has(key)) {
+        groupMap.set(key, []);
+      }
+      groupMap.get(key)!.push(item);
+    }
+
+    // Convert to array, with grouped items first, then ungrouped
+    const result: GroupedRelated[] = [];
+    for (const [groupId, items] of groupMap) {
+      if (groupId) {
+        const group = groupLookup.get(groupId) || null;
+        result.push({ group, items });
+      }
+    }
+    // Add ungrouped items at the end
+    const ungrouped = groupMap.get(null);
+    if (ungrouped) {
+      result.push({ group: null, items: ungrouped });
+    }
+
+    return result;
+  }, [relatedConstructs, schemaGroups]);
+
+  // Determine if we need nested submenus (multiple groups)
+  const hasMultipleGroups = groupedRelated.length > 1 || (groupedRelated.length === 1 && groupedRelated[0].group !== null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -142,7 +190,10 @@ export default function ContextMenu({
             <div
               className="relative"
               onMouseEnter={() => setShowRelatedSubmenu(true)}
-              onMouseLeave={() => setShowRelatedSubmenu(false)}
+              onMouseLeave={() => {
+                setShowRelatedSubmenu(false);
+                setExpandedGroup(null);
+              }}
             >
               <button
                 className="block w-full px-4 py-2.5 border-none bg-white text-gray-800 text-sm text-left cursor-pointer hover:bg-gray-100 transition-colors flex items-center justify-between"
@@ -153,17 +204,57 @@ export default function ContextMenu({
                 </svg>
               </button>
               {showRelatedSubmenu && (
-                <div className="absolute left-full top-0 bg-white shadow-lg overflow-hidden min-w-[180px] ml-1">
-                  {relatedConstructs!.map((related, index) => (
-                    <button
-                      key={index}
-                      className="block w-full px-4 py-2.5 border-none border-l-[3px] border-l-transparent bg-white text-gray-800 text-sm text-left cursor-pointer hover:bg-gray-100 transition-colors"
-                      style={{ borderLeftColor: related.color }}
-                      onClick={() => handleAddRelatedConstruct(related.constructType, related.fromPortId, related.toPortId)}
-                    >
-                      {related.label || related.displayName}
-                    </button>
-                  ))}
+                <div className="absolute left-full top-0 bg-white rounded-lg shadow-lg overflow-hidden min-w-[180px]">
+                  {hasMultipleGroups ? (
+                    // Render grouped submenus
+                    groupedRelated.map((groupData, groupIndex) => (
+                      <div
+                        key={groupData.group?.id || 'ungrouped'}
+                        className="relative"
+                        onMouseEnter={() => setExpandedGroup(groupData.group?.id || 'ungrouped')}
+                        onMouseLeave={() => setExpandedGroup(null)}
+                      >
+                        <button
+                          className="block w-full px-4 py-2.5 border-none bg-white text-gray-800 text-sm text-left cursor-pointer hover:bg-gray-100 transition-colors flex items-center justify-between"
+                          style={groupData.group ? { borderLeft: `3px solid ${groupData.group.color}` } : undefined}
+                        >
+                          <span>{groupData.group?.name || 'Other'} ({groupData.items.length})</span>
+                          <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polyline points="9 18 15 12 9 6" />
+                          </svg>
+                        </button>
+                        {expandedGroup === (groupData.group?.id || 'ungrouped') && (
+                          <div className="absolute left-full top-0 bg-white rounded-lg shadow-lg overflow-hidden min-w-[180px]">
+                            {groupData.items.map((related, index) => (
+                              <button
+                                key={index}
+                                className="block w-full px-4 py-2.5 border-none border-l-[3px] border-l-transparent bg-white text-gray-800 text-sm text-left cursor-pointer hover:bg-gray-100 transition-colors"
+                                style={{ borderLeftColor: related.color }}
+                                onClick={() => handleAddRelatedConstruct(related.constructType, related.fromPortId, related.toPortId)}
+                              >
+                                {related.label || related.displayName}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        {groupIndex < groupedRelated.length - 1 && (
+                          <div className="border-t border-gray-100 my-0.5" />
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    // Render flat list (no groups or single ungrouped set)
+                    relatedConstructs!.map((related, index) => (
+                      <button
+                        key={index}
+                        className="block w-full px-4 py-2.5 border-none border-l-[3px] border-l-transparent bg-white text-gray-800 text-sm text-left cursor-pointer hover:bg-gray-100 transition-colors"
+                        style={{ borderLeftColor: related.color }}
+                        onClick={() => handleAddRelatedConstruct(related.constructType, related.fromPortId, related.toPortId)}
+                      >
+                        {related.label || related.displayName}
+                      </button>
+                    ))
+                  )}
                 </div>
               )}
             </div>

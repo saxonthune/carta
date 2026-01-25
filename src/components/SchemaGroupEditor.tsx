@@ -40,15 +40,15 @@ interface SchemaGroupEditorProps {
 
 const SchemaGroupEditor = forwardRef<{ save: () => void }, SchemaGroupEditorProps>(
   function SchemaGroupEditor({ onBack, onDirtyChange }, ref) {
-  const { getSchemaGroups, addSchemaGroup, updateSchemaGroup, removeSchemaGroup } = useDocument();
+  const { schemaGroups, addSchemaGroup, updateSchemaGroup, removeSchemaGroup } = useDocument();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isCreatingNew, setIsCreatingNew] = useState(false);
-  const [groups, setGroups] = useState<SchemaGroup[]>(() => getSchemaGroups());
+  const [groups, setGroups] = useState<SchemaGroup[]>(() => schemaGroups);
   const detailsEditorRef = useRef<{ save: () => void } | null>(null);
 
   const refreshGroups = useCallback(() => {
-    setGroups(getSchemaGroups());
-  }, [getSchemaGroups]);
+    setGroups(schemaGroups);
+  }, [schemaGroups]);
 
   const handleDetailsEditorSave = useCallback(() => {
     detailsEditorRef.current?.save();
@@ -116,10 +116,10 @@ const SchemaGroupEditor = forwardRef<{ save: () => void }, SchemaGroupEditorProp
     setSelectedId(null);
   }, [refreshGroups, removeSchemaGroup]);
 
-  // Subscribe to schema groups changes
+  // Sync local state with schema groups from useDocument hook
   useEffect(() => {
-    setGroups(getSchemaGroups());
-  }, [getSchemaGroups]);
+    setGroups(schemaGroups);
+  }, [schemaGroups]);
 
   // Handle Delete key to delete selected group
   useEffect(() => {

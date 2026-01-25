@@ -75,7 +75,7 @@ export default function InstanceEditor({ node, deployables, onNodeUpdate }: Inst
     <div className="h-full flex flex-col overflow-hidden">
       {/* Schema header with color accent */}
       <div
-        className="flex items-center gap-2 px-4 py-2.5 text-white border-b border-white/20 shrink-0"
+        className="flex items-center gap-2 px-4 py-2 text-white border-b border-white/20 shrink-0"
         style={{ backgroundColor: schema.color }}
       >
         <svg

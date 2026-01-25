@@ -20,6 +20,7 @@ export function useClearDocument() {
         adapter.setSchemas([]);
         adapter.setDeployables([]);
         adapter.setPortSchemas([]);
+        adapter.setSchemaGroups([]);
         // Flag to prevent re-seeding built-in schemas on reload
         sessionStorage.setItem(SKIP_BUILTIN_SEED_KEY, 'true');
       }

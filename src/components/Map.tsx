@@ -15,6 +15,7 @@ import {
   BackgroundVariant,
 } from '@xyflow/react';
 import { useDocument } from '../hooks/useDocument';
+import { useDocumentContext } from '../contexts/DocumentContext';
 import CustomNode from '../CustomNode';
 import ConstructNode from './ConstructNode';
 import ContextMenu, { type ContextMenuType, type RelatedConstructOption } from '../ContextMenu';
@@ -66,6 +67,8 @@ export interface MapProps {
 
 export default function Map({ deployables, onDeployablesChange, title, onNodesEdgesChange, onSelectionChange, onNodeDoubleClick, importRef }: MapProps) {
   const { nodes, edges, setNodes, setEdges, getNextNodeId } = useDocument();
+  const { adapter } = useDocumentContext();
+  const schemaGroups = adapter.getSchemaGroups();
 
   // Create React Flow change handlers that work with the store
   const onNodesChange = useCallback((changes: NodeChange[]) => {
@@ -211,6 +214,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
             fromPortId: related.fromPortId,
             toPortId: related.toPortId,
             label: related.label,
+            groupId: relatedSchema.groupId,
           });
         }
       }
@@ -396,6 +400,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
           edgeId={contextMenu.edgeId}
           selectedCount={selectedNodeIds.length}
           relatedConstructs={contextMenu.nodeId ? getRelatedConstructsForNode(contextMenu.nodeId) : undefined}
+          schemaGroups={schemaGroups}
           onAddNode={addNode}
           onDeleteNode={deleteNode}
           onDeleteSelected={deleteSelectedNodes}

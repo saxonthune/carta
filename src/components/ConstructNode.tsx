@@ -1,9 +1,12 @@
-import { memo, useState } from 'react';
+import { memo, useState, useEffect, useRef } from 'react';
 import { Handle, Position, NodeResizer } from '@xyflow/react';
 import { registry } from '../constructs/registry';
 import { getPortsForSchema, getHandleType, getPortColor } from '../constructs/ports';
 import { getDisplayName } from '../utils/displayUtils';
 import type { ConstructNodeData, PortConfig, PortPosition } from '../constructs/types';
+
+// Long hover delay in milliseconds
+const LONG_HOVER_DELAY = 800;
 
 interface ConstructNodeComponentProps {
   data: ConstructNodeData;
@@ -36,6 +39,30 @@ function getHandlePositionStyle(position: PortPosition, offset: number): React.C
 const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => {
   const schema = registry.getSchema(data.constructType);
   const [hoveredPort, setHoveredPort] = useState<string | null>(null);
+  const [showExtendedTooltip, setShowExtendedTooltip] = useState(false);
+  const hoverTimerRef = useRef<number | null>(null);
+
+  // Clear timer on unmount
+  useEffect(() => {
+    return () => {
+      if (hoverTimerRef.current) {
+        window.clearTimeout(hoverTimerRef.current);
+      }
+    };
+  }, []);
+
+  // Start/reset long hover timer when hoveredPort changes
+  useEffect(() => {
+    setShowExtendedTooltip(false);
+    if (hoverTimerRef.current) {
+      window.clearTimeout(hoverTimerRef.current);
+    }
+    if (hoveredPort) {
+      hoverTimerRef.current = window.setTimeout(() => {
+        setShowExtendedTooltip(true);
+      }, LONG_HOVER_DELAY);
+    }
+  }, [hoveredPort]);
 
   if (!schema) {
     return (
@@ -61,11 +88,13 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
   };
 
   // Calculate tooltip position based on port position
-  const getTooltipPosition = (port: PortConfig): React.CSSProperties => {
+  const getTooltipPosition = (port: PortConfig, extended: boolean): React.CSSProperties => {
     const base: React.CSSProperties = {
       position: 'absolute',
-      whiteSpace: 'nowrap',
       zIndex: 1000,
+      // Extended tooltip needs wrapping for description
+      whiteSpace: extended ? 'normal' : 'nowrap',
+      maxWidth: extended ? '200px' : 'none',
     };
     switch (port.position) {
       case 'left':
@@ -111,14 +140,22 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
       ))}
 
       {/* Port tooltip */}
-      {hoveredPort && (
-        <div
-          className="bg-surface-elevated text-content text-node-sm px-2 py-1 rounded shadow-lg border pointer-events-none"
-          style={getTooltipPosition(ports.find(p => p.id === hoveredPort)!)}
-        >
-          {ports.find(p => p.id === hoveredPort)?.label}
-        </div>
-      )}
+      {hoveredPort && (() => {
+        const port = ports.find(p => p.id === hoveredPort);
+        if (!port) return null;
+        const hasDescription = showExtendedTooltip && port.description;
+        return (
+          <div
+            className="bg-surface-elevated text-content text-node-sm px-2 py-1 rounded shadow-lg border pointer-events-none"
+            style={getTooltipPosition(port, !!hasDescription)}
+          >
+            <div className="font-medium">{port.label}</div>
+            {hasDescription && (
+              <div className="text-content-muted text-node-xs mt-1">{port.description}</div>
+            )}
+          </div>
+        );
+      })()}
 
       <div
         className="flex items-center justify-center gap-1.5 px-2 py-1 text-white cursor-move select-none border-b border-white/20 w-full shrink-0"

@@ -18,6 +18,15 @@ export class CartaPage {
   readonly clearInstancesButton: Locator;
   readonly clearEverythingButton: Locator;
 
+  // Restore defaults modal elements
+  readonly restoreDefaultsModal: Locator;
+  readonly restoreDefaultsCancelButton: Locator;
+  readonly restoreDefaultsConfirmButton: Locator;
+
+  // Dock elements
+  readonly dock: Locator;
+  readonly dockTabs: Locator;
+
   constructor(page: Page) {
     this.page = page;
 
@@ -31,6 +40,15 @@ export class CartaPage {
     this.clearCancelButton = page.getByTestId('clear-cancel-button');
     this.clearInstancesButton = page.getByTestId('clear-instances-button');
     this.clearEverythingButton = page.getByTestId('clear-everything-button');
+
+    // Restore defaults modal elements - use the modal content div that stops propagation
+    this.restoreDefaultsModal = page.locator('div.bg-surface.rounded-xl').filter({ has: page.getByRole('heading', { name: 'Restore default schemas' }) });
+    this.restoreDefaultsCancelButton = this.restoreDefaultsModal.getByRole('button', { name: 'Cancel' });
+    this.restoreDefaultsConfirmButton = this.restoreDefaultsModal.getByRole('button', { name: 'Restore' });
+
+    // Dock elements
+    this.dock = page.locator('[data-testid="dock"]');
+    this.dockTabs = page.locator('[data-testid="dock-tabs"]');
   }
 
   async goto() {
@@ -77,5 +95,38 @@ export class CartaPage {
   async getNodeCount(): Promise<number> {
     const nodes = this.page.locator('.react-flow__node');
     return nodes.count();
+  }
+
+  async openRestoreDefaultsModal() {
+    await this.openSettingsMenu();
+    await this.page.getByText('Restore Default Schemas').click();
+    await expect(this.restoreDefaultsModal).toBeVisible();
+  }
+
+  async closeRestoreDefaultsModalWithCancel() {
+    await this.restoreDefaultsCancelButton.click();
+    await expect(this.restoreDefaultsModal).not.toBeVisible();
+  }
+
+  async closeRestoreDefaultsModalWithBackdrop() {
+    // Click on the backdrop overlay (the fixed inset-0 div with bg-black/50)
+    const backdrop = this.page.locator('.fixed.inset-0.bg-black\\/50').filter({ has: this.page.getByRole('heading', { name: 'Restore default schemas' }) });
+    await backdrop.click({ position: { x: 10, y: 10 } });
+    await expect(this.restoreDefaultsModal).not.toBeVisible();
+  }
+
+  async confirmRestoreDefaults() {
+    await this.restoreDefaultsConfirmButton.click();
+  }
+
+  async openDock() {
+    // Dock should already be visible, but ensure it's there
+    await expect(this.dock).toBeVisible();
+  }
+
+  async switchDockTab(tabName: 'viewer' | 'constructs' | 'deploy' | 'ports') {
+    // Click on the tab by text content
+    const tabButton = this.page.getByRole('button').filter({ hasText: tabName });
+    await tabButton.click();
   }
 }

@@ -2,8 +2,10 @@ import { useState, useCallback, useEffect, useRef, forwardRef, useImperativeHand
 import { registry } from '../constructs/registry';
 import { schemaStorage } from '../constructs/storage';
 import ConstructDetailsEditor from './ConstructDetailsEditor';
+import GroupedSchemaList from './ui/GroupedSchemaList';
 import { useDirtyStateGuard } from '../hooks/useDirtyStateGuard';
 import ConfirmationModal from './ui/ConfirmationModal';
+import { useDocument } from '../hooks/useDocument';
 import type { ConstructSchema } from '../constructs/types';
 
 interface ConstructEditorProps {
@@ -13,6 +15,7 @@ interface ConstructEditorProps {
 
 const ConstructEditor = forwardRef<{ save: () => void }, ConstructEditorProps>(
   function ConstructEditor({ onBack, onDirtyChange }, ref) {
+  const { schemaGroups } = useDocument();
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [isCreatingNew, setIsCreatingNew] = useState(false);
   const [schemas, setSchemas] = useState(() => registry.getAllSchemas());
@@ -143,29 +146,13 @@ const ConstructEditor = forwardRef<{ save: () => void }, ConstructEditorProps>(
           </div>
 
           <div className={`flex-1 overflow-y-auto flex flex-col gap-2 ${isFullScreen ? 'px-2 pb-2' : 'px-1.5 pb-1.5'}`}>
-            {schemas.length === 0 ? (
-              <p className={`text-content-muted italic ${isFullScreen ? 'px-2 text-sm' : 'px-2 text-xs'}`}>No constructs available</p>
-            ) : (
-              <div className={`bg-surface-depth-2 rounded-xl ${isFullScreen ? 'p-2' : 'p-1.5'}`}>
-                {schemas.map(schema => (
-                  <button
-                    key={schema.type}
-                    className={`flex items-center w-full rounded-lg cursor-pointer text-left gap-2 transition-all ${
-                      selectedType === schema.type 
-                        ? 'bg-accent/30 text-accent ring-2 ring-accent/60 shadow-sm shadow-accent/20' 
-                        : 'text-content bg-transparent hover:bg-surface-depth-3/50'
-                    } ${isFullScreen ? 'px-3 py-2.5 text-sm' : 'px-2 py-1.5 text-xs'}`}
-                    onClick={() => handleSelectSchema(schema.type)}
-                  >
-                    <span
-                      className="w-3 h-3 rounded-sm shrink-0"
-                      style={{ backgroundColor: schema.color }}
-                    />
-                    <span className="flex-1 truncate">{schema.displayName}</span>
-                  </button>
-                ))}
-              </div>
-            )}
+            <GroupedSchemaList
+              schemas={schemas}
+              schemaGroups={schemaGroups}
+              selectedType={selectedType}
+              onSelectSchema={handleSelectSchema}
+              isFullScreen={isFullScreen}
+            />
           </div>
         </div>
 

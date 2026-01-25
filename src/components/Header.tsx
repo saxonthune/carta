@@ -212,7 +212,7 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
           <div className="relative" ref={shareMenuRef}>
             {mode === 'shared' && roomId ? (
               <button
-                className="px-4 py-2 text-sm font-medium bg-indigo-500 text-white border-none rounded-lg cursor-pointer shadow-sm hover:bg-indigo-600 hover:-translate-y-0.5 transition-all"
+                className="px-4 py-2 text-sm font-medium bg-surface text-content border border-border rounded-lg cursor-pointer hover:bg-surface-alt transition-colors"
                 onClick={handleCopyRoomUrl}
                 title="Copy room URL"
               >
@@ -220,7 +220,7 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
               </button>
             ) : (
               <button
-                className="px-4 py-2 text-sm font-medium bg-indigo-500 text-white border-none rounded-lg cursor-pointer shadow-sm hover:bg-indigo-600 hover:-translate-y-0.5 transition-all"
+                className="px-4 py-2 text-sm font-medium bg-surface text-content border border-border rounded-lg cursor-pointer hover:bg-surface-alt transition-colors"
                 onClick={() => setIsShareMenuOpen(!isShareMenuOpen)}
                 title="Share document"
               >
@@ -263,7 +263,7 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
                     Cancel
                   </button>
                   <button
-                    className="px-4 py-2 text-sm font-medium border-none rounded-md bg-indigo-500 text-white cursor-pointer hover:bg-indigo-600 transition-colors"
+                    className="px-4 py-2 text-sm font-medium border-none rounded-md bg-emerald-500 text-white cursor-pointer hover:bg-emerald-600 transition-colors"
                     onClick={handleStartSharing}
                   >
                     Start Sharing
@@ -287,7 +287,7 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
               {(['light', 'dark', 'warm'] as const).map((themeName) => (
                 <button
                   key={themeName}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm cursor-pointer transition-colors text-left border-none ${
+                  className={`w-full flex items-center gap-3 px-4 py-2 text-sm cursor-pointer transition-colors text-left border-none ${
                     theme === themeName
                       ? 'bg-accent text-white'
                       : 'bg-surface text-content hover:bg-surface-alt'
@@ -302,21 +302,21 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
           )}
         </div>
         <button
-          className="px-4 py-2 text-sm font-medium bg-content-muted text-white border-none rounded-lg cursor-pointer shadow-sm hover:bg-content hover:-translate-y-0.5 transition-all"
+          className="px-4 py-2 text-sm font-medium bg-surface text-content border border-border rounded-lg cursor-pointer hover:bg-surface-alt transition-colors"
           onClick={onExport}
           title="Export project to .carta file"
         >
           Export
         </button>
         <button
-          className="px-4 py-2 text-sm font-medium bg-content-muted text-white border-none rounded-lg cursor-pointer shadow-sm hover:bg-content hover:-translate-y-0.5 transition-all"
+          className="px-4 py-2 text-sm font-medium bg-surface text-content border border-border rounded-lg cursor-pointer hover:bg-surface-alt transition-colors"
           onClick={handleImportClick}
           title="Import project from .carta file"
         >
           Import
         </button>
         <button
-          className="px-4 py-2 text-sm font-medium bg-emerald-500 text-white border-none rounded-lg cursor-pointer shadow-sm hover:bg-emerald-600 hover:-translate-y-0.5 transition-all"
+          className="px-4 py-2 text-sm font-medium bg-emerald-500 text-white border-none rounded-lg cursor-pointer hover:bg-emerald-600 transition-colors"
           onClick={onCompile}
           title="Compile project"
         >
@@ -324,11 +324,16 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
         </button>
         {onToggleAI && (
           <button
-            className="px-4 py-2 text-sm font-medium bg-indigo-500 text-white border-none rounded-lg cursor-pointer shadow-sm hover:bg-indigo-600 hover:-translate-y-0.5 transition-all"
+            className="w-9 h-9 flex items-center justify-center rounded-lg cursor-pointer text-content-muted hover:bg-surface-alt hover:text-content transition-colors"
             onClick={onToggleAI}
             title="Open AI Assistant"
           >
-            AI
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 2a4 4 0 0 1 4 4v1h1a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3v-8a3 3 0 0 1 3-3h1V6a4 4 0 0 1 4-4z" />
+              <circle cx="9" cy="13" r="1.5" />
+              <circle cx="15" cy="13" r="1.5" />
+              <path d="M9 17h6" />
+            </svg>
           </button>
         )}
         <div className="relative" ref={settingsMenuRef}>
@@ -346,14 +351,14 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
           {isSettingsMenuOpen && (
             <div data-testid="settings-menu" className="absolute right-0 top-full mt-1 bg-surface border border-subtle rounded-lg shadow-lg overflow-hidden z-50 min-w-[200px]">
               <button
-                className="w-full text-left px-4 py-2.5 text-sm cursor-pointer text-content hover:bg-surface-alt transition-colors border-none bg-surface"
+                className="w-full text-left px-4 py-2 text-sm cursor-pointer text-content hover:bg-surface-alt transition-colors border-none bg-surface"
                 onClick={() => setRestoreWarningMode('menu')}
               >
                 Restore Default Schemas
               </button>
               <button
                 data-testid="settings-clear-button"
-                className="w-full text-left px-4 py-2.5 text-sm cursor-pointer text-content hover:bg-surface-alt transition-colors border-none bg-surface"
+                className="w-full text-left px-4 py-2 text-sm cursor-pointer text-content hover:bg-surface-alt transition-colors border-none bg-surface"
                 onClick={() => handleClear()}
               >
                 Clear
@@ -368,51 +373,56 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
         <div data-testid="clear-modal" className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1001]" onClick={() => setClearWarningMode(null)}>
           <div className="bg-surface rounded-xl w-[90%] max-w-[400px] flex flex-col shadow-2xl" onClick={(e) => e.stopPropagation()}>
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-subtle">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-subtle">
               <div>
                 <h2 className="m-0 text-lg text-content font-semibold">Clear workspace</h2>
               </div>
               <button
-                className="w-8 h-8 border-none rounded-md bg-transparent text-content-subtle text-2xl cursor-pointer flex items-center justify-center hover:bg-surface-alt hover:text-content"
+                className="w-9 h-9 border-none rounded-md bg-transparent text-content-subtle text-2xl cursor-pointer flex items-center justify-center hover:bg-surface-alt hover:text-content"
                 onClick={() => setClearWarningMode(null)}
               >
                 ×
               </button>
             </div>
 
-            {/* Content */}
-            <div className="p-5">
-              <p className="text-content text-sm mb-4">
-                Choose what to clear:
-              </p>
-              <ul className="text-content-muted text-xs space-y-2 ml-4">
-                <li className="list-disc"><strong>Clear Instances:</strong> Delete all instances and connections. Custom schemas and deployables preserved.</li>
-                <li className="list-disc"><strong>Clear Everything:</strong> Delete all instances, schemas, and deployables. This cannot be undone.</li>
-              </ul>
-            </div>
-
-            {/* Footer */}
-            <div className="flex gap-2 justify-end px-5 py-4 border-t border-subtle">
-              <button
-                data-testid="clear-cancel-button"
-                className="px-5 py-2.5 rounded-md bg-surface text-content text-sm font-medium cursor-pointer hover:bg-surface-alt transition-colors"
-                onClick={() => setClearWarningMode(null)}
-              >
-                Cancel
-              </button>
+            {/* Content - Vertical list of options */}
+            <div className="p-4 flex flex-col gap-2">
               <button
                 data-testid="clear-instances-button"
-                className="px-5 py-2.5 border-none rounded-md bg-amber-500 text-white text-sm font-medium cursor-pointer hover:bg-amber-600 transition-colors"
+                className="w-full text-left px-4 py-3 rounded-lg border border-subtle bg-surface hover:bg-surface-alt transition-colors cursor-pointer"
                 onClick={() => confirmClear('instances')}
               >
-                Clear Instances
+                <div className="text-sm font-medium text-content">Clear Instances</div>
+                <div className="text-xs text-content-muted mt-0.5">Delete all instances and connections. Custom schemas and deployables preserved.</div>
               </button>
+
               <button
                 data-testid="clear-everything-button"
-                className="px-5 py-2.5 border-none rounded-md bg-red-500 text-white text-sm font-medium cursor-pointer hover:bg-red-600 transition-colors"
+                className="w-full text-left px-4 py-3 rounded-lg border border-amber-500/50 bg-surface hover:bg-amber-500/10 transition-colors cursor-pointer"
                 onClick={() => confirmClear('all')}
               >
-                Clear Everything
+                <div className="text-sm font-medium text-amber-600">Clear Everything</div>
+                <div className="text-xs text-content-muted mt-0.5">Delete all instances, schemas, and deployables. This cannot be undone.</div>
+              </button>
+
+              <button
+                data-testid="clear-and-restore-button"
+                className="w-full text-left px-4 py-3 rounded-lg border border-red-500/50 bg-surface hover:bg-red-500/10 transition-colors cursor-pointer"
+                onClick={() => {
+                  confirmClear('all');
+                  onRestoreDefaultSchemas?.();
+                }}
+              >
+                <div className="text-sm font-medium text-red-600">Clear Everything and Restore Defaults</div>
+                <div className="text-xs text-content-muted mt-0.5">Delete everything and restore built-in schemas. Fresh start with defaults.</div>
+              </button>
+
+              <button
+                data-testid="clear-cancel-button"
+                className="w-full text-left px-4 py-3 rounded-lg border border-subtle bg-surface hover:bg-surface-alt transition-colors cursor-pointer mt-2"
+                onClick={() => setClearWarningMode(null)}
+              >
+                <div className="text-sm font-medium text-content-muted">Cancel</div>
               </button>
             </div>
           </div>
@@ -424,12 +434,12 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1001]" onClick={() => setRestoreWarningMode(null)}>
           <div className="bg-surface rounded-xl w-[90%] max-w-[400px] flex flex-col shadow-2xl" onClick={(e) => e.stopPropagation()}>
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-subtle">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-subtle">
               <div>
                 <h2 className="m-0 text-lg text-content font-semibold">Restore default schemas</h2>
               </div>
               <button
-                className="w-8 h-8 border-none rounded-md bg-transparent text-content-subtle text-2xl cursor-pointer flex items-center justify-center hover:bg-surface-alt hover:text-content"
+                className="w-9 h-9 border-none rounded-md bg-transparent text-content-subtle text-2xl cursor-pointer flex items-center justify-center hover:bg-surface-alt hover:text-content"
                 onClick={() => setRestoreWarningMode(null)}
               >
                 ×
@@ -437,7 +447,7 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
             </div>
 
             {/* Content */}
-            <div className="p-5">
+            <div className="p-4">
               <p className="text-content text-sm mb-2">
                 This will add any missing default schemas to your workspace.
               </p>
@@ -447,15 +457,15 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
             </div>
 
             {/* Footer */}
-            <div className="flex gap-2 justify-end px-5 py-4 border-t border-subtle">
+            <div className="flex gap-2 justify-end px-4 py-3 border-t border-subtle">
               <button
-                className="px-5 py-2.5 rounded-md bg-surface text-content text-sm font-medium cursor-pointer hover:bg-surface-alt transition-colors"
+                className="px-4 py-2 rounded-md bg-surface text-content text-sm font-medium cursor-pointer hover:bg-surface-alt transition-colors"
                 onClick={() => setRestoreWarningMode(null)}
               >
                 Cancel
               </button>
               <button
-                className="px-5 py-2.5 border-none rounded-md bg-indigo-500 text-white text-sm font-medium cursor-pointer hover:bg-indigo-600 transition-colors"
+                className="px-4 py-2 border-none rounded-md bg-emerald-500 text-white text-sm font-medium cursor-pointer hover:bg-emerald-600 transition-colors"
                 onClick={() => {
                   onRestoreDefaultSchemas?.();
                   setRestoreWarningMode(null);

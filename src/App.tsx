@@ -8,7 +8,7 @@ import Map from './components/Map';
 import Dock, { type DockView } from './components/Dock';
 import Footer from './components/Footer';
 import { compiler } from './constructs/compiler';
-import { builtInConstructSchemas } from './constructs/schemas';
+import { builtInConstructSchemas, builtInPortSchemas, builtInSchemaGroups } from './constructs/schemas';
 import { registry } from './constructs/registry';
 import { deployableRegistry } from './constructs/deployables';
 import { syncWithDocumentStore } from './constructs/portRegistry';
@@ -194,11 +194,23 @@ function App() {
   }, []);
 
   const handleRestoreDefaultSchemas = useCallback(() => {
-    // Clear registry and import fresh defaults
-    registry.clearAllSchemas();
-    registry.replaceSchemas(builtInConstructSchemas);
+    // Restore all defaults in a single transaction
+    adapter.transaction(() => {
+      // Clear and restore construct schemas
+      registry.clearAllSchemas();
+      registry.replaceSchemas(builtInConstructSchemas);
+
+      // Restore port schemas
+      adapter.setPortSchemas(builtInPortSchemas);
+
+      // Restore schema groups
+      adapter.setSchemaGroups(builtInSchemaGroups);
+    });
+
+    // Sync port registry with new port schemas
+    syncWithDocumentStore();
     // Changes propagate automatically via Yjs subscription - no reload needed
-  }, []);
+  }, [adapter]);
 
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
