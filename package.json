@@ -10,7 +10,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "collab-server": "HOST=localhost PORT=1234 npx y-websocket"
+    "collab-server": "HOST=localhost PORT=1234 npx @y/websocket-server"
   },
   "dependencies": {
     "@xyflow/react": "^12.10.0",
@@ -29,6 +29,7 @@
     "@types/react-dom": "^19.2.3",
     "@types/uuid": "^10.0.0",
     "@vitejs/plugin-react": "^5.1.1",
+    "@y/websocket-server": "^0.1.1",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",

@@ -10,6 +10,7 @@ interface HeaderProps {
   onCompile: () => void;
   onClear?: (mode: 'instances' | 'all') => void;
   onRestoreDefaultSchemas?: () => void;
+  onToggleAI?: () => void;
 }
 
 const getInitialTheme = (): 'light' | 'dark' | 'warm' => {
@@ -19,7 +20,7 @@ const getInitialTheme = (): 'light' | 'dark' | 'warm' => {
   return prefersDark ? 'dark' : 'light';
 };
 
-export default function Header({ title, onTitleChange, onExport, onImport, onCompile, onClear, onRestoreDefaultSchemas }: HeaderProps) {
+export default function Header({ title, onTitleChange, onExport, onImport, onCompile, onClear, onRestoreDefaultSchemas, onToggleAI }: HeaderProps) {
   const { mode, roomId, connectToRoom, localMode } = useDocumentContext();
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState(title);
@@ -317,6 +318,15 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
         >
           Compile
         </button>
+        {onToggleAI && (
+          <button
+            className="px-4 py-2 text-sm font-medium bg-indigo-500 text-white border-none rounded-lg cursor-pointer shadow-sm hover:bg-indigo-600 hover:-translate-y-0.5 transition-all"
+            onClick={onToggleAI}
+            title="Open AI Assistant"
+          >
+            AI
+          </button>
+        )}
         <div className="relative" ref={settingsMenuRef}>
           <button
             className="w-9 h-9 flex items-center justify-center rounded-lg cursor-pointer text-content-muted hover:bg-surface-alt hover:text-content transition-colors"

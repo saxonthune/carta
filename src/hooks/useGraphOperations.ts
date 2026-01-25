@@ -128,6 +128,7 @@ export function useGraphOperations(options: UseGraphOperationsOptions): UseGraph
           newNode,
         ]);
         setEdges((eds) => addEdge({
+          id: `edge-${sourceNodeId}-${fromPortId}-${id}-${toPortId}`,
           source: sourceNodeId,
           target: id,
           sourceHandle: fromPortId,

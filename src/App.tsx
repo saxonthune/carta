@@ -18,6 +18,7 @@ import { exportProject, importProject, generateSemanticId, type CartaFile } from
 import { analyzeImport, type ImportAnalysis, type ImportOptions } from './utils/importAnalyzer';
 import { analyzeExport, type ExportAnalysis, type ExportOptions } from './utils/exportAnalyzer';
 import type { ConstructValues, Deployable } from './constructs/types';
+import { AISidebar } from './ai';
 
 // Note: Schema initialization is now handled by DocumentProvider
 
@@ -35,6 +36,8 @@ function App() {
   const [dockHeight, setDockHeight] = useState(256);
   const [isResizing, setIsResizing] = useState(false);
   const [activeView, setActiveView] = useState<DockView>('viewer');
+  const [aiSidebarOpen, setAiSidebarOpen] = useState(false);
+  const [aiSidebarWidth] = useState(400);
   const nodesEdgesRef = useRef<{ nodes: Node[]; edges: Edge[] }>({ nodes: [], edges: [] });
   const containerRef = useRef<HTMLDivElement>(null);
   const importRef = useRef<((nodes: Node[], edges: Edge[]) => void) | null>(null);
@@ -277,6 +280,7 @@ function App() {
         onCompile={handleCompile}
         onClear={handleClear}
         onRestoreDefaultSchemas={handleRestoreDefaultSchemas}
+        onToggleAI={() => setAiSidebarOpen(!aiSidebarOpen)}
       />
       <div ref={containerRef} className="flex-1 min-h-0 flex flex-col">
         <div className="flex-1 min-h-0">
@@ -329,6 +333,11 @@ function App() {
           onClose={() => setCompileOutput(null)}
         />
       )}
+      <AISidebar
+        isOpen={aiSidebarOpen}
+        onToggle={() => setAiSidebarOpen(!aiSidebarOpen)}
+        width={aiSidebarWidth}
+      />
     </div>
   );
 }
