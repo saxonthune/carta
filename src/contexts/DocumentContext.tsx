@@ -2,8 +2,9 @@ import { createContext, useContext, useState, useEffect, useCallback, type React
 import * as Y from 'yjs';
 import type { DocumentAdapter } from '../stores/adapters/types';
 import { createYjsAdapter, type YjsAdapterOptions } from '../stores/adapters/yjsAdapter';
-import { builtInConstructSchemas } from '../constructs/schemas';
+import { builtInConstructSchemas, builtInSchemaGroups } from '../constructs/schemas';
 import { registry } from '../constructs/registry';
+import { SKIP_BUILTIN_SEED_KEY } from '../hooks/useClearDocument';
 
 /**
  * Document context value
@@ -83,8 +84,16 @@ export function DocumentProvider({
       currentAdapter = yjsAdapter;
       await yjsAdapter.initialize();
 
-      // Seed default schemas if document is empty
-      if (yjsAdapter.getSchemas().length === 0) {
+      // Seed default schemas and groups if document is empty (unless user just cleared everything)
+      const skipSeed = sessionStorage.getItem(SKIP_BUILTIN_SEED_KEY);
+      if (skipSeed) {
+        sessionStorage.removeItem(SKIP_BUILTIN_SEED_KEY);
+      } else if (yjsAdapter.getSchemas().length === 0) {
+        // Seed schema groups first (so construct schemas can reference them)
+        for (const group of builtInSchemaGroups) {
+          yjsAdapter.addSchemaGroup(group);
+        }
+        // Then seed construct schemas
         for (const schema of builtInConstructSchemas) {
           yjsAdapter.addSchema(schema);
         }

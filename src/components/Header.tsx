@@ -170,8 +170,12 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
   };
 
   return (
-    <header className="h-12 bg-surface border-b flex items-center justify-between px-0 shrink-0">
-      <div className="flex items-center">
+    <header className="h-12 bg-surface border-b grid grid-cols-[1fr_auto_1fr] items-center px-0 shrink-0">
+      <div className="flex items-center justify-start">
+        {/* Left spacer - keeps title centered */}
+      </div>
+
+      <div className="flex items-center justify-center">
         {isEditingTitle ? (
           <input
             type="text"
@@ -192,7 +196,7 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
         )}
       </div>
 
-      <div className="flex gap-2 items-center">
+      <div className="flex gap-2 items-center justify-end">
         <input
           ref={fileInputRef}
           type="file"
@@ -335,8 +339,8 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
             title="Settings"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
               <circle cx="12" cy="12" r="3" />
-              <path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m5.08-5.08l4.24-4.24" />
             </svg>
           </button>
           {isSettingsMenuOpen && (

@@ -8,6 +8,7 @@ import type {
   ConstructNodeData,
   Deployable,
   PortSchema,
+  SchemaGroup,
 } from '../../constructs/types';
 import { DEFAULT_PORT_SCHEMAS } from '../../constructs/portRegistry';
 
@@ -31,6 +32,7 @@ export interface YjsAdapterOptions {
  *   'schemas': Y.Map<type, Y.Map>      // O(1) by type
  *   'deployables': Y.Map<id, Y.Map>
  *   'portSchemas': Y.Map<id, Y.Map>
+ *   'schemaGroups': Y.Map<id, Y.Map>
  * }
  */
 
@@ -83,6 +85,13 @@ function generateDeployableColor(): string {
 }
 
 /**
+ * Generate a schema group ID
+ */
+function generateSchemaGroupId(): string {
+  return 'grp_' + Math.random().toString(36).substring(2, 11);
+}
+
+/**
  * Yjs-based document adapter for collaborative editing.
  *
  * Modes:
@@ -106,6 +115,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
   const yschemas = ydoc.getMap<Y.Map<unknown>>('schemas');
   const ydeployables = ydoc.getMap<Y.Map<unknown>>('deployables');
   const yportSchemas = ydoc.getMap<Y.Map<unknown>>('portSchemas');
+  const yschemaGroups = ydoc.getMap<Y.Map<unknown>>('schemaGroups');
 
   // Persistence
   let indexeddbProvider: IndexeddbPersistence | null = null;
@@ -128,6 +138,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     yschemas.observeDeep(notifyListeners);
     ydeployables.observeDeep(notifyListeners);
     yportSchemas.observeDeep(notifyListeners);
+    yschemaGroups.observeDeep(notifyListeners);
   };
 
   // Initialize with default values if empty
@@ -186,6 +197,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       yschemas.unobserveDeep(notifyListeners);
       ydeployables.unobserveDeep(notifyListeners);
       yportSchemas.unobserveDeep(notifyListeners);
+      yschemaGroups.unobserveDeep(notifyListeners);
 
       // Clean up providers
       if (indexeddbProvider) {
@@ -266,6 +278,21 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       const yschema = yportSchemas.get(id);
       if (!yschema) return undefined;
       return yMapToObject<PortSchema>(yschema);
+    },
+
+    // State access - Schema Groups
+    getSchemaGroups(): SchemaGroup[] {
+      const groups: SchemaGroup[] = [];
+      yschemaGroups.forEach((ygroup) => {
+        groups.push(yMapToObject<SchemaGroup>(ygroup));
+      });
+      return groups;
+    },
+
+    getSchemaGroup(id: string): SchemaGroup | undefined {
+      const ygroup = yschemaGroups.get(id);
+      if (!ygroup) return undefined;
+      return yMapToObject<SchemaGroup>(ygroup);
     },
 
     // Mutations - Graph
@@ -455,6 +482,58 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       return exists;
     },
 
+    // Mutations - Schema Groups
+    setSchemaGroups(groups: SchemaGroup[]) {
+      ydoc.transact(() => {
+        yschemaGroups.clear();
+        for (const group of groups) {
+          yschemaGroups.set(group.id, objectToYMap(group as unknown as Record<string, unknown>));
+        }
+      }, 'user');
+    },
+
+    addSchemaGroup(group: Omit<SchemaGroup, 'id'>): SchemaGroup {
+      const id = generateSchemaGroupId();
+      const newGroup: SchemaGroup = { ...group, id };
+      ydoc.transact(() => {
+        yschemaGroups.set(id, objectToYMap(newGroup as unknown as Record<string, unknown>));
+      }, 'user');
+      return newGroup;
+    },
+
+    updateSchemaGroup(id: string, updates: Partial<SchemaGroup>) {
+      ydoc.transact(() => {
+        const ygroup = yschemaGroups.get(id);
+        if (!ygroup) return;
+        const current = yMapToObject<SchemaGroup>(ygroup);
+        yschemaGroups.set(id, objectToYMap({ ...current, ...updates } as unknown as Record<string, unknown>));
+      }, 'user');
+    },
+
+    removeSchemaGroup(id: string): boolean {
+      const exists = yschemaGroups.has(id);
+      if (exists) {
+        ydoc.transact(() => {
+          // Clear groupId from schemas that reference this group
+          yschemas.forEach((yschema, schemaType) => {
+            const schema = yMapToObject<ConstructSchema>(yschema);
+            if (schema.groupId === id) {
+              yschemas.set(schemaType, objectToYMap({ ...schema, groupId: undefined } as unknown as Record<string, unknown>));
+            }
+          });
+          // Clear groupId from port schemas that reference this group
+          yportSchemas.forEach((yportSchema, portId) => {
+            const portSchema = yMapToObject<PortSchema>(yportSchema);
+            if (portSchema.groupId === id) {
+              yportSchemas.set(portId, objectToYMap({ ...portSchema, groupId: undefined } as unknown as Record<string, unknown>));
+            }
+          });
+          yschemaGroups.delete(id);
+        }, 'user');
+      }
+      return exists;
+    },
+
     // Transaction with origin for MCP attribution
     transaction<T>(fn: () => T, origin: string = 'user'): T {
       let result: T;
@@ -480,6 +559,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
         schemas: this.getSchemas(),
         deployables: this.getDeployables(),
         portSchemas: this.getPortSchemas(),
+        schemaGroups: this.getSchemaGroups(),
       };
     },
 

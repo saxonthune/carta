@@ -2,13 +2,14 @@ import { useState, useRef } from 'react';
 import ConstructEditor from './ConstructEditor';
 import DeployablesEditor from './DeployablesEditor';
 import PortSchemaEditor from './PortSchemaEditor';
+import SchemaGroupEditor from './SchemaGroupEditor';
 import InstanceEditor from './InstanceEditor';
 import ConfirmationModal from './ui/ConfirmationModal';
 import TabBar, { type Tab } from './ui/TabBar';
 import type { Deployable, ConstructNodeData } from '../constructs/types';
 import type { Node } from '@xyflow/react';
 
-export type DockView = 'viewer' | 'constructs' | 'deployables' | 'ports';
+export type DockView = 'viewer' | 'constructs' | 'groups' | 'deployables' | 'ports';
 
 interface DockProps {
   selectedNodes: Node[];
@@ -24,11 +25,14 @@ export default function Dock({ selectedNodes, deployables, onDeployablesChange, 
   const [constructsDirty, setConstructsDirty] = useState(false);
   const [deployablesDirty, setDeployablesDirty] = useState(false);
   const [portsDirty, setPortsDirty] = useState(false);
+  const [groupsDirty, setGroupsDirty] = useState(false);
   const [pendingView, setPendingView] = useState<DockView | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const constructsEditorRef = useRef<{ save: () => void } | null>(null);
   const deployablesEditorRef = useRef<{ save: () => void } | null>(null);
   const portsEditorRef = useRef<{ save: () => void } | null>(null);
+  const groupsEditorRef = useRef<{ save: () => void } | null>(null);
 
   const handleTabClick = (tabId: DockView) => {
     // Check if current tab has unsaved changes
@@ -36,6 +40,7 @@ export default function Dock({ selectedNodes, deployables, onDeployablesChange, 
       activeView === 'constructs' ? constructsDirty :
       activeView === 'deployables' ? deployablesDirty :
       activeView === 'ports' ? portsDirty :
+      activeView === 'groups' ? groupsDirty :
       false;
 
     if (currentTabDirty && tabId !== activeView) {
@@ -54,6 +59,8 @@ export default function Dock({ selectedNodes, deployables, onDeployablesChange, 
       deployablesEditorRef.current?.save();
     } else if (activeView === 'ports') {
       portsEditorRef.current?.save();
+    } else if (activeView === 'groups') {
+      groupsEditorRef.current?.save();
     }
     setShowConfirmModal(false);
     // After save, proceed to pending view
@@ -75,6 +82,7 @@ export default function Dock({ selectedNodes, deployables, onDeployablesChange, 
     if (activeView === 'constructs') setConstructsDirty(false);
     if (activeView === 'deployables') setDeployablesDirty(false);
     if (activeView === 'ports') setPortsDirty(false);
+    if (activeView === 'groups') setGroupsDirty(false);
   };
 
   const handleConfirmCancel = () => {
@@ -103,11 +111,11 @@ export default function Dock({ selectedNodes, deployables, onDeployablesChange, 
       ),
     },
     {
-      id: 'deployables',
-      label: 'Deployables',
+      id: 'groups',
+      label: 'Groups',
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-full h-full">
-          <path d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+          <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
         </svg>
       ),
     },
@@ -122,6 +130,15 @@ export default function Dock({ selectedNodes, deployables, onDeployablesChange, 
           <circle cx="19" cy="5" r="1"/>
           <circle cx="5" cy="19" r="1"/>
           <circle cx="19" cy="19" r="1"/>
+        </svg>
+      ),
+    },
+    {
+      id: 'deployables',
+      label: 'Deployables',
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-full h-full">
+          <path d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
         </svg>
       ),
     },
@@ -153,6 +170,8 @@ export default function Dock({ selectedNodes, deployables, onDeployablesChange, 
         );
       case 'constructs':
         return <ConstructEditor ref={constructsEditorRef} onDirtyChange={setConstructsDirty} />;
+      case 'groups':
+        return <SchemaGroupEditor ref={groupsEditorRef} onDirtyChange={setGroupsDirty} />;
       case 'deployables':
         return <DeployablesEditor ref={deployablesEditorRef} onDeployablesChange={onDeployablesChange} onDirtyChange={setDeployablesDirty} />;
       case 'ports':
@@ -168,7 +187,9 @@ export default function Dock({ selectedNodes, deployables, onDeployablesChange, 
         tabs={tabs}
         activeTab={activeView}
         onTabChange={handleTabClick}
-        variant="icon-only"
+        variant={sidebarCollapsed ? 'icon-only' : 'icon-label'}
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
       />
 
       {/* Content area */}

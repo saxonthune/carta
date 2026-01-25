@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useDocument } from '../hooks/useDocument';
+import SchemaGroupSelector from './ui/SchemaGroupSelector';
 import type { PortSchema, Polarity, PortPosition } from '../constructs/types';
 
 // Convert string to kebab-case for IDs
@@ -314,6 +315,13 @@ const PortSchemaDetailsEditor = forwardRef<{ save: () => void }, PortSchemaDetai
                 ))}
             </select>
           </div>
+
+          {/* Group */}
+          <SchemaGroupSelector
+            value={formData.groupId}
+            onChange={(groupId) => updateField('groupId', groupId)}
+            label="Group"
+          />
         </div>
       </div>
     </div>

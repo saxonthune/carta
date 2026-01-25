@@ -197,11 +197,7 @@ function App() {
     // Clear registry and import fresh defaults
     registry.clearAllSchemas();
     registry.replaceSchemas(builtInConstructSchemas);
-    // Auto-saved by document store
-
-    // Notify user and reload to reflect changes
-    alert('Default schemas restored successfully!');
-    window.location.reload();
+    // Changes propagate automatically via Yjs subscription - no reload needed
   }, []);
 
   const handleResizeStart = useCallback((e: React.MouseEvent) => {

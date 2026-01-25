@@ -1,5 +1,5 @@
 import { registry } from '../registry';
-import { builtInConstructSchemas, builtInPortSchemas } from './built-ins';
+import { builtInConstructSchemas, builtInPortSchemas, builtInSchemaGroups } from './built-ins';
 
 /**
  * Seed default schemas on first load if no schemas exist
@@ -10,4 +10,4 @@ export function seedDefaultSchemas(): void {
   }
 }
 
-export { builtInConstructSchemas, builtInPortSchemas };
+export { builtInConstructSchemas, builtInPortSchemas, builtInSchemaGroups };

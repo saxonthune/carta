@@ -1,0 +1,16 @@
+#!/bin/bash
+
+TASK_DIR="./tasks/inputs"
+
+# Ensure tasks directory exists
+mkdir -p "$TASK_DIR"
+
+# Find the lowest available number
+n=1
+while [[ -f "$TASK_DIR/$n.txt" ]]; do
+    ((n++))
+done
+
+# Write the task
+echo "$*" > "$TASK_DIR/$n.txt"
+echo "Created $TASK_DIR/$n.txt"

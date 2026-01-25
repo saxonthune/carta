@@ -47,6 +47,7 @@ export interface PortSchema {
   expectedComplement?: string;   // UI hint only (context menus), not validation
   defaultPosition: PortPosition;
   color: string;
+  groupId?: string;              // References SchemaGroup.id for hierarchical organization
 }
 
 
@@ -149,6 +150,7 @@ export interface ConstructSchema {
   ports?: PortConfig[];      // Port configurations for connections
   suggestedRelated?: SuggestedRelatedConstruct[]; // Suggested related constructs for quick-add
   compilation: CompilationConfig;
+  groupId?: string;          // References SchemaGroup.id for hierarchical organization
 }
 
 // ===== M0: INSTANCE DATA =====
@@ -208,6 +210,18 @@ export interface Deployable {
 }
 
 /**
+ * Schema group - Hierarchical grouping for construct and port schemas
+ * Uses flat storage with parent references for nesting (e.g., "Software Architecture > AWS > Lambda")
+ */
+export interface SchemaGroup {
+  id: string;
+  name: string;
+  parentId?: string;    // undefined = root level
+  color?: string;
+  description?: string;
+}
+
+/**
  * Visual grouping of nodes on canvas (not included in compilation)
  * Nodes reference groups via groupId, groups don't track nodeIds
  */
@@ -245,6 +259,7 @@ export interface CartaDocument {
   schemas: ConstructSchema[];
   deployables: Deployable[];
   portSchemas: PortSchema[];
+  schemaGroups: SchemaGroup[];
 }
 
 // ===== PERSISTENCE =====
@@ -275,6 +290,10 @@ export interface DocumentAdapter {
   getPortSchemas(): PortSchema[];
   getPortSchema(id: string): PortSchema | undefined;
 
+  // State access - Schema Groups
+  getSchemaGroups(): SchemaGroup[];
+  getSchemaGroup(id: string): SchemaGroup | undefined;
+
   // Mutations - Graph (will become Y.Doc transactions in Yjs)
   setNodes(nodes: unknown[] | ((prev: unknown[]) => unknown[])): void;
   setEdges(edges: unknown[] | ((prev: unknown[]) => unknown[])): void;
@@ -299,6 +318,12 @@ export interface DocumentAdapter {
   addPortSchema(portSchema: PortSchema): void;
   updatePortSchema(id: string, updates: Partial<PortSchema>): void;
   removePortSchema(id: string): boolean;
+
+  // Mutations - Schema Groups
+  setSchemaGroups(groups: SchemaGroup[]): void;
+  addSchemaGroup(group: Omit<SchemaGroup, 'id'>): SchemaGroup;
+  updateSchemaGroup(id: string, updates: Partial<SchemaGroup>): void;
+  removeSchemaGroup(id: string): boolean;
 
   // Batched operations (for Yjs transact)
   // origin parameter allows MCP attribution (e.g., 'user' vs 'ai-mcp')

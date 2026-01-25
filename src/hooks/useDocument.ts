@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { Node, Edge } from '@xyflow/react';
 import { useDocumentContext } from '../contexts/DocumentContext';
-import type { ConstructSchema, ConstructNodeData, Deployable, PortSchema } from '../constructs/types';
+import type { ConstructSchema, ConstructNodeData, Deployable, PortSchema, SchemaGroup } from '../constructs/types';
 
 /**
  * Interface matching useDocumentStore for backward compatibility
@@ -44,6 +44,17 @@ export interface UseDocumentResult {
   updateDeployable: (id: string, updates: Partial<Deployable>) => void;
   removeDeployable: (id: string) => boolean;
 
+  // State - Schema Groups
+  schemaGroups: SchemaGroup[];
+
+  // Actions - Schema Groups
+  getSchemaGroup: (id: string) => SchemaGroup | undefined;
+  getSchemaGroups: () => SchemaGroup[];
+  setSchemaGroups: (groups: SchemaGroup[]) => void;
+  addSchemaGroup: (group: Omit<SchemaGroup, 'id'>) => SchemaGroup;
+  updateSchemaGroup: (id: string, updates: Partial<SchemaGroup>) => void;
+  removeSchemaGroup: (id: string) => boolean;
+
   // For import operations
   importNodes: (nodes: Node[], edges: Edge[]) => void;
 }
@@ -63,6 +74,7 @@ export function useDocument(): UseDocumentResult {
   const [schemas, setSchemasState] = useState<ConstructSchema[]>(() => adapter.getSchemas());
   const [portSchemas, setPortSchemasState] = useState<PortSchema[]>(() => adapter.getPortSchemas());
   const [deployables, setDeployablesState] = useState<Deployable[]>(() => adapter.getDeployables());
+  const [schemaGroups, setSchemaGroupsState] = useState<SchemaGroup[]>(() => adapter.getSchemaGroups());
 
   // Subscribe to adapter changes
   useEffect(() => {
@@ -73,6 +85,7 @@ export function useDocument(): UseDocumentResult {
       setSchemasState(adapter.getSchemas());
       setPortSchemasState(adapter.getPortSchemas());
       setDeployablesState(adapter.getDeployables());
+      setSchemaGroupsState(adapter.getSchemaGroups());
     });
     return unsubscribe;
   }, [adapter]);
@@ -206,6 +219,38 @@ export function useDocument(): UseDocumentResult {
     [adapter]
   );
 
+  // Schema Group actions
+  const getSchemaGroup = useCallback(
+    (id: string) => adapter.getSchemaGroup(id),
+    [adapter]
+  );
+
+  const getSchemaGroups = useCallback(() => adapter.getSchemaGroups(), [adapter]);
+
+  const setSchemaGroups = useCallback(
+    (groups: SchemaGroup[]) => {
+      adapter.setSchemaGroups(groups);
+    },
+    [adapter]
+  );
+
+  const addSchemaGroup = useCallback(
+    (group: Omit<SchemaGroup, 'id'>) => adapter.addSchemaGroup(group),
+    [adapter]
+  );
+
+  const updateSchemaGroup = useCallback(
+    (id: string, updates: Partial<SchemaGroup>) => {
+      adapter.updateSchemaGroup(id, updates);
+    },
+    [adapter]
+  );
+
+  const removeSchemaGroup = useCallback(
+    (id: string) => adapter.removeSchemaGroup(id),
+    [adapter]
+  );
+
   // Import operation
   const importNodes = useCallback(
     (newNodes: Node[], newEdges: Edge[]) => {
@@ -225,6 +270,7 @@ export function useDocument(): UseDocumentResult {
       schemas,
       portSchemas,
       deployables,
+      schemaGroups,
       setNodes,
       setEdges,
       setTitle,
@@ -246,6 +292,12 @@ export function useDocument(): UseDocumentResult {
       addDeployable,
       updateDeployable,
       removeDeployable,
+      getSchemaGroup,
+      getSchemaGroups,
+      setSchemaGroups,
+      addSchemaGroup,
+      updateSchemaGroup,
+      removeSchemaGroup,
       importNodes,
     }),
     [
@@ -255,6 +307,7 @@ export function useDocument(): UseDocumentResult {
       schemas,
       portSchemas,
       deployables,
+      schemaGroups,
       setNodes,
       setEdges,
       setTitle,
@@ -276,6 +329,12 @@ export function useDocument(): UseDocumentResult {
       addDeployable,
       updateDeployable,
       removeDeployable,
+      getSchemaGroup,
+      getSchemaGroups,
+      setSchemaGroups,
+      addSchemaGroup,
+      updateSchemaGroup,
+      removeSchemaGroup,
       importNodes,
     ]
   );

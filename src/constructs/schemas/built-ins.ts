@@ -1,4 +1,40 @@
-import type { ConstructSchema, PortSchema } from '../types';
+import type { ConstructSchema, PortSchema, SchemaGroup } from '../types';
+
+/**
+ * Built-in Schema Groups
+ *
+ * Default hierarchical grouping for construct and port schemas.
+ * Uses flat storage with parentId references.
+ */
+export const builtInSchemaGroups: SchemaGroup[] = [
+  {
+    id: 'software-architecture',
+    name: 'Software Architecture',
+    color: '#6366f1',
+    description: 'Core software architecture constructs',
+  },
+  {
+    id: 'database',
+    name: 'Database',
+    parentId: 'software-architecture',
+    color: '#f59e0b',
+    description: 'Database schema and table constructs',
+  },
+  {
+    id: 'api',
+    name: 'API',
+    parentId: 'software-architecture',
+    color: '#6366f1',
+    description: 'API endpoint and model constructs',
+  },
+  {
+    id: 'ui',
+    name: 'UI',
+    parentId: 'software-architecture',
+    color: '#3b82f6',
+    description: 'User interface constructs',
+  },
+];
 
 /**
  * Built-in Port Schemas
@@ -89,6 +125,7 @@ export const builtInConstructSchemas: ConstructSchema[] = [
     displayName: 'REST Controller',
     color: '#6366f1',
     description: 'HTTP REST API endpoint controller',
+    groupId: 'api',
     displayField: 'route',
     ports: [
       { id: 'flow-in', portType: 'flow-in', position: 'left', offset: 50, label: 'Flow In', description: 'Incoming request flow from upstream' },
@@ -148,6 +185,7 @@ export const builtInConstructSchemas: ConstructSchema[] = [
     displayName: 'Database',
     color: '#f59e0b',
     description: 'Database instance or schema container',
+    groupId: 'database',
     displayField: 'engine',
     ports: [
       { id: 'child', portType: 'child', position: 'bottom', offset: 50, label: 'Tables', description: 'Tables that belong to this database' },
@@ -196,6 +234,7 @@ export const builtInConstructSchemas: ConstructSchema[] = [
     displayName: 'Table',
     color: '#8b5cf6',
     description: 'Database table or entity',
+    groupId: 'database',
     displayField: 'tableName',
     ports: [
       { id: 'parent', portType: 'parent', position: 'top', offset: 50, label: 'Database', description: 'Database that owns this table' },
@@ -257,6 +296,7 @@ export const builtInConstructSchemas: ConstructSchema[] = [
     displayName: 'DB Attribute',
     color: '#8b5cf6',
     description: 'A database table attribute/column',
+    groupId: 'database',
     displayField: 'name',
     fields: [
       { name: 'name', label: 'Name', type: 'string', description: 'Column name' },
@@ -284,6 +324,7 @@ export const builtInConstructSchemas: ConstructSchema[] = [
     displayName: 'Constraint',
     color: '#a78bfa',
     description: 'A database constraint (unique, foreign key, check, etc.)',
+    groupId: 'database',
     displayField: 'name',
     fields: [
       { name: 'name', label: 'Name', type: 'string', description: 'Constraint name identifier', placeholder: 'e.g., fk_user_profile' },
@@ -311,6 +352,7 @@ export const builtInConstructSchemas: ConstructSchema[] = [
     displayName: 'API Model',
     color: '#6366f1',
     description: 'Request or response model for an API endpoint',
+    groupId: 'api',
     displayField: 'modelName',
     fields: [
       {
@@ -357,6 +399,7 @@ export const builtInConstructSchemas: ConstructSchema[] = [
     displayName: 'UI Event',
     color: '#10b981',
     description: 'A user interaction or event in the UI',
+    groupId: 'ui',
     displayField: 'eventName',
     fields: [
       {
@@ -402,6 +445,7 @@ export const builtInConstructSchemas: ConstructSchema[] = [
     displayName: 'UI Screen',
     color: '#3b82f6',
     description: 'A screen or view in the user interface',
+    groupId: 'ui',
     displayField: 'screenName',
     fields: [
       {
@@ -446,6 +490,7 @@ export const builtInConstructSchemas: ConstructSchema[] = [
     displayName: 'User Story',
     color: '#10b981',
     description: 'A user story or requirement',
+    groupId: 'software-architecture',
     displayField: 'title',
     fields: [
       {

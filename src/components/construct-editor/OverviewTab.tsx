@@ -1,4 +1,5 @@
 import type { ConstructSchema } from '../../constructs/types';
+import SchemaGroupSelector from '../ui/SchemaGroupSelector';
 
 // Convert string to snake_case while preserving special characters like '#'
 // (e.g., "My Cool Construct" → "my_cool_construct", "API #1" → "api_#1")
@@ -63,7 +64,7 @@ export default function OverviewTab({
         </div>
       </div>
 
-      <div>
+      <div className="mb-3">
         <label className="block mb-1 text-sm font-medium text-content">Description</label>
         <textarea
           className="w-full px-2.5 py-2 bg-surface rounded-md text-content text-sm resize-none focus:outline-none focus:border-accent transition-colors"
@@ -73,6 +74,12 @@ export default function OverviewTab({
           rows={4}
         />
       </div>
+
+      <SchemaGroupSelector
+        value={formData.groupId}
+        onChange={(groupId) => updateField('groupId', groupId)}
+        label="Group"
+      />
     </div>
   );
 }

@@ -109,7 +109,7 @@ export default function ContextMenu({
   return (
     <div
       ref={menuRef}
-      className="absolute z-[1000] bg-white rounded-lg shadow-lg min-w-[150px]"
+      className="fixed z-[1000] bg-white rounded-lg shadow-lg min-w-[150px]"
       style={{ left: x, top: y }}
     >
       {type === 'pane' && (
