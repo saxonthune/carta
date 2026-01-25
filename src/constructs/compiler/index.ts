@@ -1,7 +1,5 @@
 import type { Node, Edge } from '@xyflow/react';
-import { registry } from '../registry';
-import { deployableRegistry } from '../deployables';
-import type { ConstructNodeData, CompilationFormat, Deployable } from '../types';
+import type { ConstructNodeData, CompilationFormat, Deployable, ConstructSchema } from '../types';
 import { formatJSON } from './formatters/json';
 
 type FormatterFn = (
@@ -20,16 +18,37 @@ const formatters: Record<CompilationFormat, FormatterFn> = {
 };
 
 /**
+ * Options for compilation - all dependencies passed explicitly
+ */
+export interface CompileOptions {
+  schemas: ConstructSchema[];
+  deployables: Deployable[];
+}
+
+/**
  * CompilerEngine
- * 
+ *
  * Transforms the visual graph (nodes + edges) into text output.
  * Each construct type can have its own compilation format.
+ *
+ * This is a pure function - all dependencies are passed as parameters,
+ * making it easy to test and reason about.
  */
 export class CompilerEngine {
   /**
    * Compile all nodes to a single output string
+   * @param nodes - Graph nodes to compile
+   * @param edges - Graph edges
+   * @param options - Schemas and deployables for context
    */
-  compile(nodes: Node[], edges: Edge[]): string {
+  compile(nodes: Node[], edges: Edge[], options: CompileOptions): string {
+    const { schemas, deployables } = options;
+
+    // Helper to find schema by type
+    const getSchema = (type: string) => schemas.find(s => s.type === type);
+
+    // Helper to find deployable by id
+    const getDeployable = (id: string) => deployables.find(d => d.id === id);
     const sections: string[] = [];
 
     // Convert edges to simple format
@@ -39,13 +58,13 @@ export class CompilerEngine {
     }));
 
     // Add deployables section at the top if any exist
-    const deployablesSection = this.compileDeployables(nodes);
+    const deployablesSection = this.compileDeployables(nodes, deployables);
     if (deployablesSection) {
       sections.push(deployablesSection);
     }
 
     // Add schemas section listing all used construct types
-    const schemasSection = this.compileSchemas(nodes);
+    const schemasSection = this.compileSchemas(nodes, getSchema);
     if (schemasSection) {
       sections.push(schemasSection);
     }
@@ -60,7 +79,7 @@ export class CompilerEngine {
     const grouped = this.groupByDeployment(nodesWithRelationships);
 
     for (const [deploymentKey, deploymentNodes] of Object.entries(grouped)) {
-      const deploymentName = this.getDeploymentName(deploymentKey);
+      const deploymentName = this.getDeploymentName(deploymentKey, getDeployable);
       const header = `# Deployment: ${deploymentName}`;
 
       // Group by type within deployment
@@ -68,7 +87,7 @@ export class CompilerEngine {
       const typeOutputs: string[] = [];
 
       for (const [type, typeNodes] of Object.entries(typeGroups)) {
-        const schema = registry.getSchema(type);
+        const schema = getSchema(type);
 
         if (!schema) {
           // Unknown type - use JSON
@@ -101,8 +120,7 @@ export class CompilerEngine {
    * Compile deployables section
    * Outputs metadata about deployable groupings used in the diagram
    */
-  private compileDeployables(nodes: Node[]): string | null {
-    const allDeployables = deployableRegistry.getAll();
+  private compileDeployables(nodes: Node[], allDeployables: Deployable[]): string | null {
     if (allDeployables.length === 0) return null;
 
     // Find which deployables are actually used
@@ -146,7 +164,10 @@ ${deployablesJson}
    * Compile schemas section
    * Lists all used construct schemas and their descriptions
    */
-  private compileSchemas(nodes: Node[]): string | null {
+  private compileSchemas(
+    nodes: Node[],
+    getSchema: (type: string) => ConstructSchema | undefined
+  ): string | null {
     // Find all unique construct types used
     const usedTypes = new Set<string>();
     for (const node of nodes) {
@@ -161,7 +182,7 @@ ${deployablesJson}
     // Get schemas and their descriptions
     const schemas = Array.from(usedTypes)
       .map(type => {
-        const schema = registry.getSchema(type);
+        const schema = getSchema(type);
         return schema ? {
           type: schema.type,
           displayName: schema.displayName,
@@ -223,12 +244,15 @@ ${schemasJson}
   /**
    * Get human-readable deployment name
    */
-  private getDeploymentName(deploymentKey: string): string {
+  private getDeploymentName(
+    deploymentKey: string,
+    getDeployable: (id: string) => Deployable | undefined
+  ): string {
     if (deploymentKey === '__unassigned__') {
       return 'Unassigned';
     }
 
-    const deployable = deployableRegistry.get(deploymentKey);
+    const deployable = getDeployable(deploymentKey);
     return deployable ? deployable.name : deploymentKey;
   }
 

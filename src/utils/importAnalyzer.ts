@@ -1,7 +1,6 @@
 import type { Node } from '@xyflow/react';
 import type { CartaFile } from './cartaFile';
 import type { ConstructSchema, Deployable, ConstructNodeData } from '../constructs/types';
-import { registry } from '../constructs/registry';
 import { builtInConstructSchemas } from '../constructs/schemas/built-ins';
 
 // Set of built-in schema types for quick lookup
@@ -98,11 +97,12 @@ export function analyzeImport(
   file: CartaFile,
   fileName: string,
   currentNodes: Node[] = [],
-  currentDeployables: Deployable[] = []
+  currentDeployables: Deployable[] = [],
+  currentSchemas: ConstructSchema[] = []
 ): ImportAnalysis {
   // Analyze schemas
   const analyzedSchemas: AnalyzedSchema[] = file.customSchemas.map(schema => {
-    const existing = registry.getSchema(schema.type);
+    const existing = currentSchemas.find(s => s.type === schema.type);
     // Check if it's a user schema (not built-in) with the same type
     const isConflict = existing && !BUILT_IN_TYPES.has(schema.type);
     return {

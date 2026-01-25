@@ -3,7 +3,6 @@ import * as Y from 'yjs';
 import type { DocumentAdapter } from '../stores/adapters/types';
 import { createYjsAdapter, type YjsAdapterOptions } from '../stores/adapters/yjsAdapter';
 import { builtInConstructSchemas, builtInSchemaGroups } from '../constructs/schemas';
-import { registry } from '../constructs/registry';
 import { SKIP_BUILTIN_SEED_KEY } from '../hooks/useClearDocument';
 
 /**
@@ -149,29 +148,6 @@ export function DocumentProvider({
       setCurrentRoomId(undefined);
     }
   }, [adapter]);
-
-  // Sync registry with Yjs adapter schemas (for backward compatibility)
-  useEffect(() => {
-    if (!adapter || !isReady) return;
-
-    // Initial sync
-    const schemas = adapter.getSchemas();
-    registry.clearAllSchemas();
-    for (const schema of schemas) {
-      registry.registerSchema(schema);
-    }
-
-    // Subscribe to changes
-    const unsubscribe = adapter.subscribe(() => {
-      const newSchemas = adapter.getSchemas();
-      registry.clearAllSchemas();
-      for (const schema of newSchemas) {
-        registry.registerSchema(schema);
-      }
-    });
-
-    return unsubscribe;
-  }, [adapter, isReady]);
 
   if (!adapter || !isReady || !ydoc) {
     // Loading state

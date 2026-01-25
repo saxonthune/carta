@@ -2,7 +2,6 @@ import { useCallback } from 'react';
 import { useReactFlow, addEdge, type Edge, type Connection, type OnConnect } from '@xyflow/react';
 import { useDocument } from './useDocument';
 import { useUndoRedo } from './useUndoRedo';
-import { registry } from '../constructs/registry';
 import { canConnect, getPortsForSchema } from '../constructs/ports';
 import type { ConnectionValue, ConstructNodeData } from '../constructs/types';
 
@@ -14,7 +13,7 @@ export interface UseConnectionsResult {
 }
 
 export function useConnections(): UseConnectionsResult {
-  const { nodes, setNodes, setEdges } = useDocument();
+  const { nodes, setNodes, setEdges, getSchema } = useDocument();
   const { getNodes } = useReactFlow();
   const { takeSnapshot } = useUndoRedo();
 
@@ -46,8 +45,8 @@ export function useConnections(): UseConnectionsResult {
 
     const sourceData = sourceNode.data as ConstructNodeData;
     const targetData = targetNode.data as ConstructNodeData;
-    const sourceSchema = registry.getSchema(sourceData.constructType);
-    const targetSchema = registry.getSchema(targetData.constructType);
+    const sourceSchema = getSchema(sourceData.constructType);
+    const targetSchema = getSchema(targetData.constructType);
     if (!sourceSchema || !targetSchema) return false;
 
     const sourcePorts = getPortsForSchema(sourceSchema.ports);
@@ -58,7 +57,7 @@ export function useConnections(): UseConnectionsResult {
 
     // Validate port type compatibility via registry
     return canConnect(sourcePort.portType, targetPort.portType);
-  }, [getNodes]);
+  }, [getNodes, getSchema]);
 
   const onConnect: OnConnect = useCallback(
     (params) => {

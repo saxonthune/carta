@@ -108,22 +108,22 @@ Uses sonnet (needs to reliably spawn sub-agents). Delegates heavy work to sub-ag
 │  - schemas[] (M1 construct definitions)                     │
 │  - deployables[] (logical groupings)                        │
 │  - portSchemas[] (M1 port type definitions)                 │
+│  - schemaGroups[] (schema grouping metadata)                │
 │  - Node IDs: UUID via crypto.randomUUID()                   │
 │  - Persists to IndexedDB via y-indexeddb                    │
 │  - Optional WebSocket sync for collaboration                │
 └─────────────────────────────────────────────────────────────┘
            ↓
 ┌─────────────────────────────────────────────────────────────┐
-│  Service Layer (Registry Facades)        src/constructs/    │
-│  - registry → schema CRUD (delegates to store)              │
-│  - deployableRegistry → deployable CRUD (delegates to store)│
-│  - portRegistry → port schema registry with validation      │
-│  - These maintain API compatibility while store owns data   │
+│  DocumentAdapter Interface               src/stores/        │
+│  - adapters/yjsAdapter.ts → Yjs implementation              │
+│  - DocumentContext → manages adapter lifecycle              │
+│  - All state operations go through adapter methods          │
 └─────────────────────────────────────────────────────────────┘
            ↓
 ┌─────────────────────────────────────────────────────────────┐
 │  Hooks Layer                             src/hooks/         │
-│  - useDocumentStore() → document state access               │
+│  - useDocument() → document state access and operations     │
 │  - useGraphOperations() → add/delete/update nodes           │
 │  - useConnections() → connection management                 │
 │  - useClipboard() → copy/paste (local state)                │
@@ -147,12 +147,11 @@ Uses sonnet (needs to reliably spawn sub-agents). Delegates heavy work to sub-ag
 |------|---------|
 | `src/contexts/DocumentContext.tsx` | Document provider: manages Yjs adapter lifecycle |
 | `src/stores/adapters/yjsAdapter.ts` | Yjs implementation of DocumentAdapter interface |
-| `src/constructs/types.ts` | Core type definitions: PortSchema, FieldSchema, DocumentAdapter, CartaDocument, Polarity |
+| `src/constructs/types.ts` | Core type definitions: PortSchema, FieldSchema, DocumentAdapter, CartaDocument, Polarity, SchemaGroup |
 | `src/constructs/schemas/index.ts` | Built-in schema exports: builtInConstructSchemas, builtInPortSchemas |
-| `src/constructs/schemas/built-ins.ts` | Default port schema definitions |
-| `src/constructs/registry.ts` | Schema facade (syncs with adapter) |
-| `src/constructs/deployables.ts` | Deployable facade (syncs with adapter) |
+| `src/constructs/schemas/built-ins.ts` | Default construct and port schema definitions |
 | `src/constructs/portRegistry.ts` | Port schema registry with polarity-based validation, wildcard support |
+| `src/hooks/useDocument.ts` | Primary hook for accessing document state and operations via adapter |
 | `src/hooks/useGraphOperations.ts` | Node CRUD: addConstruct, deleteNode, renameNode, etc. |
 | `src/hooks/useConnections.ts` | Connection logic: onConnect, handleEdgesDelete, validation |
 | `src/hooks/useUndoRedo.ts` | Y.UndoManager wrapper for undo/redo (local, not shared) |
@@ -160,6 +159,7 @@ Uses sonnet (needs to reliably spawn sub-agents). Delegates heavy work to sub-ag
 | `src/hooks/useKeyboardShortcuts.ts` | Keyboard shortcut handling |
 | `src/components/Map.tsx` | React Flow canvas, UI event handlers |
 | `src/components/PortSchemaEditor.tsx` | Two-panel editor for port schemas |
+| `src/constructs/compiler/index.ts` | Compiler engine that takes schemas/deployables as parameters |
 
 ## Key Design Principles
 
@@ -171,12 +171,15 @@ All design decisions must balance two objectives:
 When evaluating changes, ask: Does this expand capability without confusion? Does this preserve semantic clarity? See `.cursor/rules/metamodel-design.mdc` for full details.
 
 ### State Management
-- **Document state** lives in Yjs Y.Doc via DocumentAdapter interface
+- **Single source of truth**: Yjs Y.Doc is the only state store
+- **Access pattern**: Components use `useDocument()` hook to access state via adapter
+- **Document state** (nodes, edges, schemas, deployables, port schemas) lives in Yjs Y.Doc
 - **UI state** (selection, menus, modals) stays in component useState
-- **No ref patterns** for cross-component communication—use adapter directly
+- **Adapter interface**: All state operations go through DocumentAdapter methods
 - Yjs auto-syncs to IndexedDB via y-indexeddb provider
 - Undo/redo uses Y.UndoManager (local per-user, not shared)
 - Optional WebSocket provider for real-time collaboration
+- **No singleton registries**: Schema and deployable data accessed through adapter, not global imports
 
 ### Port & Connection Model
 **Consult:** `.cursor/rules/ports-and-connections.mdc`
@@ -218,8 +221,14 @@ src/constructs/schemas/index.ts     → Exports builtInConstructSchemas
 
 ### Modify compilation output
 ```
-src/constructs/compiler/index.ts           → Main compiler logic
+src/constructs/compiler/index.ts           → Main compiler logic (takes schemas/deployables as params)
 src/constructs/compiler/formatters/*.ts    → Format-specific output
+```
+
+### Access schemas or deployables
+```
+src/hooks/useDocument.ts                   → Use this hook to get schemas/deployables from adapter
+components: const { schemas, deployables } = useDocument()
 ```
 
 ### Change node appearance

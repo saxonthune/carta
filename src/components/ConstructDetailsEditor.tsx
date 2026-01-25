@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
-import { registry } from '../constructs/registry';
+import { useDocument } from '../hooks/useDocument';
 import OverviewTab from './construct-editor/OverviewTab';
 import CompilationTab from './construct-editor/CompilationTab';
 import PortsTab from './construct-editor/PortsTab';
@@ -51,6 +51,7 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
     onDelete,
     onDirtyChange
   }, ref) {
+  const { getSchema } = useDocument();
   const [formData, setFormData] = useState<ConstructSchema>(
     construct || createEmptySchema()
   );
@@ -97,7 +98,7 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
     const derivedType = toSnakeCase(formData.displayName);
     if (!derivedType) {
       newErrors.displayName = 'Display name must contain at least one alphanumeric character';
-    } else if (isNew && registry.hasSchema(derivedType)) {
+    } else if (isNew && getSchema(derivedType) !== undefined) {
       newErrors.displayName = 'A construct with this display name already exists';
     }
 

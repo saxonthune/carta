@@ -33,8 +33,9 @@ When user references a file, check the tree to find the actual component handlin
 ### Key Directories
 - `src/components/` - React components (UI)
 - `src/hooks/` - Custom hooks (useDocument, useGraphOperations, useConnections)
-- `src/constructs/` - Domain logic (registry, portRegistry, compiler)
-- `src/stores/adapters/` - Yjs adapter
+- `src/constructs/` - Domain logic (portRegistry, compiler, schemas)
+- `src/stores/adapters/` - Yjs adapter implementation
+- `src/contexts/` - React context providers (DocumentContext)
 - `tests/integration/` - Vitest integration tests
 - `tests/e2e/` - Playwright E2E tests
 
@@ -79,6 +80,9 @@ When user references a file, check the tree to find the actual component handlin
 ## Recent Changes
 <!-- Update this after significant work -->
 
+- Removed Zustand - Yjs is now single source of truth
+- Removed singleton registries (registry.ts, deployables.ts)
+- All state access via useDocument() hook through adapter
 - Schema grouping feature added
 - Style audit completed (spacing, button hierarchy)
 - Test infrastructure set up (Vitest + Playwright)

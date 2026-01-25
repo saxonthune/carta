@@ -47,6 +47,25 @@ Build React applications with clear separation of concerns: UI components render
 
 **With separation**: Each layer has a clear job. Components become simple. Business logic is testable in isolation. Patterns emerge that make the codebase predictable.
 
+## The Goal: Low Long-Term Maintenance Cost
+
+The purpose of clean code is **minimizing total maintenance cost over the lifetime of the codebase**. Every architectural decision should be evaluated against this goal.
+
+| Short-term "easy" | Long-term cost |
+|-------------------|----------------|
+| Global singletons | Hidden dependencies, sync bugs between systems |
+| Multiple sources of truth | State drift, debugging nightmares |
+| Quick hacks with TODOs | Tech debt compounds; the TODO never gets done |
+| Skipping tests | Regressions multiply; refactoring becomes scary |
+
+**Prefer solutions that:**
+- Have a single source of truth for each piece of state
+- Make dependencies explicit (pass as parameters, not global imports)
+- Delete dead code rather than keeping "just in case"
+- Are boring and predictable over clever and magical
+
+When choosing between a quick fix and a proper solution, ask: "What will maintenance look like in 6 months?" If the quick fix creates ongoing friction, do it right now.
+
 ---
 
 # Refactoring Strategy: Bottom-Up
@@ -306,28 +325,30 @@ export class ValidationService {
 
 ## Yjs for Collaborative State
 
-Carta uses Yjs for all document state management with CRDT-based conflict resolution:
+Carta uses Yjs as the single source of truth for all document state with CRDT-based conflict resolution:
 
 ```typescript
-// contexts/DocumentContext.tsx
-import * as Y from 'yjs';
-import { createYjsAdapter } from '../stores/adapters/yjsAdapter';
+// Access document state via useDocument() hook
+import { useDocument } from '../hooks/useDocument';
 
-// Document state is stored in Y.Doc with typed shared types
-const ydoc = new Y.Doc();
-const ynodes = ydoc.getMap('nodes');
-const yedges = ydoc.getMap('edges');
+const MyComponent = () => {
+  // All state accessed through adapter
+  const { nodes, edges, schemas, deployables, setNodes, addSchema } = useDocument();
 
-// Access via DocumentAdapter interface for abstraction
-const adapter = createYjsAdapter({ mode: 'local', roomId: 'carta-local' });
-const nodes = adapter.getNodes();
+  // Mutations go through adapter methods
+  const handleAddNode = () => {
+    setNodes(prev => [...prev, newNode]);
+  };
 
-// Mutations are transactional
-adapter.transaction(() => {
-  adapter.setNodes([]);
-  adapter.setEdges([]);
-}, 'user');
+  return <div>...</div>;
+};
 ```
+
+Key principles:
+- **Single source of truth**: Yjs Y.Doc contains all document state
+- **No dual state**: No Zustand, no global singletons alongside Yjs
+- **Access via hook**: Components use `useDocument()` to access adapter
+- **Adapter abstraction**: DocumentAdapter interface decouples from Yjs internals
 
 ## Context as Dependency Injection
 

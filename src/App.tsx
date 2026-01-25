@@ -9,8 +9,6 @@ import Dock, { type DockView } from './components/Dock';
 import Footer from './components/Footer';
 import { compiler } from './constructs/compiler';
 import { builtInConstructSchemas, builtInPortSchemas, builtInSchemaGroups } from './constructs/schemas';
-import { registry } from './constructs/registry';
-import { deployableRegistry } from './constructs/deployables';
 import { syncWithDocumentStore } from './constructs/portRegistry';
 import { useDocument } from './hooks/useDocument';
 import { useClearDocument } from './hooks/useClearDocument';
@@ -18,7 +16,7 @@ import { useDocumentContext } from './contexts/DocumentContext';
 import { exportProject, importProject, generateSemanticId, type CartaFile } from './utils/cartaFile';
 import { analyzeImport, type ImportAnalysis, type ImportOptions } from './utils/importAnalyzer';
 import { analyzeExport, type ExportAnalysis, type ExportOptions } from './utils/exportAnalyzer';
-import type { ConstructValues, Deployable } from './constructs/types';
+import type { ConstructValues } from './constructs/types';
 import { AISidebar } from './ai';
 
 // Note: Schema initialization is now handled by DocumentProvider
@@ -28,7 +26,13 @@ const MAX_DOCK_HEIGHT_RATIO = 0.7;
 
 function App() {
   const { adapter } = useDocumentContext();
-  const [deployables, setDeployables] = useState<Deployable[]>(() => deployableRegistry.getAll());
+  const {
+    schemas,
+    deployables,
+    updateNode,
+    setSchemas,
+    setDeployables,
+  } = useDocument();
   const [importPreview, setImportPreview] = useState<{ data: CartaFile; analysis: ImportAnalysis } | null>(null);
   const [exportPreview, setExportPreview] = useState<ExportAnalysis | null>(null);
   const [compileOutput, setCompileOutput] = useState<string | null>(null);
@@ -42,7 +46,6 @@ function App() {
   const nodesEdgesRef = useRef<{ nodes: Node[]; edges: Edge[] }>({ nodes: [], edges: [] });
   const containerRef = useRef<HTMLDivElement>(null);
   const importRef = useRef<((nodes: Node[], edges: Edge[]) => void) | null>(null);
-  const { updateNode } = useDocument();
   const { clearDocument } = useClearDocument();
 
   // Initialize refs on mount
@@ -56,17 +59,18 @@ function App() {
   // Sync port registry on mount and when portSchemas change
   useEffect(() => {
     // Initial sync
-    syncWithDocumentStore();
+    syncWithDocumentStore(adapter.getPortSchemas());
 
     // Subscribe to adapter changes
     const unsubscribe = adapter.subscribe(() => {
-      syncWithDocumentStore();
+      syncWithDocumentStore(adapter.getPortSchemas());
     });
     return unsubscribe;
   }, [adapter]);
 
+  // No-op for compatibility with existing props
   const refreshDeployables = useCallback(() => {
-    setDeployables(deployableRegistry.getAll());
+    // Deployables now update automatically via useDocument
   }, []);
 
   const handleNodesEdgesChange = useCallback((nodes: Node[], edges: Edge[]) => {
@@ -84,10 +88,9 @@ function App() {
 
   const handleExport = useCallback(() => {
     const { nodes, edges } = nodesEdgesRef.current;
-    const allSchemas = registry.getAllSchemas();
-    const analysis = analyzeExport(title, nodes, edges, deployableRegistry.getAll(), allSchemas);
+    const analysis = analyzeExport(title, nodes, edges, deployables, schemas);
     setExportPreview(analysis);
-  }, [title]);
+  }, [title, deployables, schemas]);
 
   const handleExportConfirm = useCallback((options: ExportOptions) => {
     const { nodes, edges } = nodesEdgesRef.current;
@@ -111,12 +114,12 @@ function App() {
       title,
       nodes: nodesWithSemanticIds,
       edges,
-      deployables: deployableRegistry.getAll(),
-      customSchemas: registry.getAllSchemas(),
+      deployables,
+      customSchemas: schemas,
     }, options);
 
     setExportPreview(null);
-  }, [title]);
+  }, [title, deployables, schemas]);
 
   const handleExportCancel = useCallback(() => {
     setExportPreview(null);
@@ -125,12 +128,12 @@ function App() {
   const handleImport = useCallback(async (file: File) => {
     try {
       const data = await importProject(file);
-      const analysis = analyzeImport(data, file.name, nodesEdgesRef.current.nodes, deployables);
+      const analysis = analyzeImport(data, file.name, nodesEdgesRef.current.nodes, deployables, schemas);
       setImportPreview({ data, analysis });
     } catch (error) {
       alert(`Failed to import file: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-  }, [deployables]);
+  }, [deployables, schemas]);
 
   const handleImportConfirm = useCallback((options: ImportOptions) => {
     if (!importPreview) return;
@@ -151,8 +154,7 @@ function App() {
     if (options.schemas.size > 0 && data.customSchemas.length > 0) {
       const schemasToImport = data.customSchemas.filter(s => options.schemas.has(s.type));
       if (schemasToImport.length > 0) {
-        registry.replaceSchemas(schemasToImport);
-        // Auto-saved by document store
+        setSchemas(schemasToImport);
       }
     }
 
@@ -160,8 +162,7 @@ function App() {
     if (options.deployables.size > 0 && data.deployables.length > 0) {
       const deployablesToImport = data.deployables.filter(d => options.deployables.has(d.id));
       if (deployablesToImport.length > 0) {
-        deployableRegistry.importDeployables(deployablesToImport);
-        refreshDeployables();
+        setDeployables(deployablesToImport);
       }
     }
 
@@ -181,7 +182,7 @@ function App() {
 
     // Close the modal
     setImportPreview(null);
-  }, [importPreview, refreshDeployables, adapter]);
+  }, [importPreview, adapter, setSchemas, setDeployables]);
 
   const handleImportCancel = useCallback(() => {
     setImportPreview(null);
@@ -189,16 +190,15 @@ function App() {
 
   const handleCompile = useCallback(() => {
     const { nodes, edges } = nodesEdgesRef.current;
-    const output = compiler.compile(nodes, edges);
+    const output = compiler.compile(nodes, edges, { schemas, deployables });
     setCompileOutput(output);
-  }, []);
+  }, [schemas, deployables]);
 
   const handleRestoreDefaultSchemas = useCallback(() => {
     // Restore all defaults in a single transaction
     adapter.transaction(() => {
       // Clear and restore construct schemas
-      registry.clearAllSchemas();
-      registry.replaceSchemas(builtInConstructSchemas);
+      adapter.setSchemas(builtInConstructSchemas);
 
       // Restore port schemas
       adapter.setPortSchemas(builtInPortSchemas);
@@ -208,7 +208,7 @@ function App() {
     });
 
     // Sync port registry with new port schemas
-    syncWithDocumentStore();
+    syncWithDocumentStore(builtInPortSchemas);
     // Changes propagate automatically via Yjs subscription - no reload needed
   }, [adapter]);
 
@@ -303,6 +303,8 @@ function App() {
       {exportPreview && (
         <ExportPreviewModal
           analysis={exportPreview}
+          edges={nodesEdgesRef.current.edges}
+          portSchemas={adapter.getPortSchemas()}
           onConfirm={handleExportConfirm}
           onCancel={handleExportCancel}
         />

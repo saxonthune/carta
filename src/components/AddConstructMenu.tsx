@@ -1,5 +1,5 @@
 import { useCallback, useRef, useEffect } from 'react';
-import { registry } from '../constructs/registry';
+import { useDocument } from '../hooks/useDocument';
 import type { ConstructSchema } from '../constructs/types';
 
 interface AddConstructMenuProps {
@@ -16,7 +16,7 @@ export default function AddConstructMenu({
   onClose,
 }: AddConstructMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
-  const schemas = registry.getAllSchemas();
+  const { schemas } = useDocument();
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {

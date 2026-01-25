@@ -1,6 +1,4 @@
 import { useState, useCallback, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
-import { registry } from '../constructs/registry';
-import { schemaStorage } from '../constructs/storage';
 import ConstructDetailsEditor from './ConstructDetailsEditor';
 import GroupedSchemaList from './ui/GroupedSchemaList';
 import { useDirtyStateGuard } from '../hooks/useDirtyStateGuard';
@@ -15,15 +13,10 @@ interface ConstructEditorProps {
 
 const ConstructEditor = forwardRef<{ save: () => void }, ConstructEditorProps>(
   function ConstructEditor({ onBack, onDirtyChange }, ref) {
-  const { schemaGroups } = useDocument();
+  const { schemas, schemaGroups, getSchema, addSchema, removeSchema } = useDocument();
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [isCreatingNew, setIsCreatingNew] = useState(false);
-  const [schemas, setSchemas] = useState(() => registry.getAllSchemas());
   const detailsEditorRef = useRef<{ save: () => void } | null>(null);
-
-  const refreshSchemas = useCallback(() => {
-    setSchemas(registry.getAllSchemas());
-  }, []);
 
   const handleDetailsEditorSave = useCallback(() => {
     detailsEditorRef.current?.save();
@@ -64,7 +57,7 @@ const ConstructEditor = forwardRef<{ save: () => void }, ConstructEditorProps>(
     }
   }), []);
 
-  const selectedSchema = selectedType ? registry.getSchema(selectedType) : null;
+  const selectedSchema = selectedType ? getSchema(selectedType) : null;
 
   const handleSelectSchema = (type: string) => {
     guardedSelect(type);
@@ -74,24 +67,17 @@ const ConstructEditor = forwardRef<{ save: () => void }, ConstructEditorProps>(
     guardedSelect('__new__');
   };
 
-  const handleSaveSchema = useCallback((schema: ConstructSchema, isNew: boolean) => {
-    if (isNew) {
-      registry.registerSchema(schema);
-    } else {
-      registry.registerSchema(schema);
-    }
-    schemaStorage.saveToLocalStorage();
-    refreshSchemas();
+  const handleSaveSchema = useCallback((schema: ConstructSchema, _isNew: boolean) => {
+    // addSchema handles both new and existing (upsert behavior)
+    addSchema(schema);
     setSelectedType(schema.type);
     setIsCreatingNew(false);
-  }, [refreshSchemas]);
+  }, [addSchema]);
 
   const handleDeleteSchema = useCallback((type: string) => {
-    registry.removeSchema(type);
-    schemaStorage.saveToLocalStorage();
-    refreshSchemas();
+    removeSchema(type);
     setSelectedType(null);
-  }, [refreshSchemas]);
+  }, [removeSchema]);
 
   // Notify parent when dirty state changes
   useEffect(() => {
@@ -102,7 +88,7 @@ const ConstructEditor = forwardRef<{ save: () => void }, ConstructEditorProps>(
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Delete' && selectedType && !isCreatingNew && !isDirty) {
-        const schema = registry.getSchema(selectedType);
+        const schema = getSchema(selectedType);
         if (schema && window.confirm(`Are you sure you want to delete "${schema.displayName}"? This cannot be undone.`)) {
           handleDeleteSchema(selectedType);
         }
@@ -111,7 +97,7 @@ const ConstructEditor = forwardRef<{ save: () => void }, ConstructEditorProps>(
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedType, isCreatingNew, isDirty, handleDeleteSchema]);
+  }, [selectedType, isCreatingNew, isDirty, handleDeleteSchema, getSchema]);
 
   const isFullScreen = !!onBack;
 

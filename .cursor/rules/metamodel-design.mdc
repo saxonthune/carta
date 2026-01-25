@@ -26,13 +26,14 @@ Carta uses a classic three-level metamodel (M2/M1/M0) to provide flexibility whi
 ```
 M2 (Designer-fixed)     M1 (User-defined)           M0 (Instances)
 ─────────────────────   ─────────────────────────   ─────────────────────
-DataKind: string,       Registries:                 ConstructInstance:
-  number, boolean,        - Constructs                - type → Construct
+DataKind: string,       Stored in Yjs Y.Doc:        ConstructInstance:
+  number, boolean,        - Construct schemas         - type → Construct
   date, enum              - Deployables               - deployable? → Deployable
                           - Port Schemas              - semanticId (required)
-Polarity: source,                                     - values: {field → value}
-  sink,                PortSchema:                    - connections[]
-  bidirectional          - polarity
+Polarity: source,         - Schema Groups             - values: {field → value}
+  sink,                                               - connections[]
+  bidirectional        PortSchema:
+                         - polarity
                          - compatibleWith (wildcards)
                          - defaultPosition
 
@@ -275,33 +276,32 @@ const childParams = allNodes.filter(n =>
 );
 ```
 
-## Registry Pattern
+## State Access Pattern
 
-Both Construct schemas and Deployables use the generic `Registry<T>` interface:
+All document state (schemas, deployables, port schemas, nodes, edges) is accessed via the `useDocument()` hook:
 
 ```typescript
-interface Registry<T extends RegistryItem> {
-  get(id: string): T | undefined;
-  getAll(): T[];
-  add(item: Omit<T, 'id'>): T;
-  update(id: string, updates: Partial<T>): T | undefined;
-  remove(id: string): boolean;
-  clear(): void;
-}
+// In any component
+const { schemas, deployables, portSchemas, getSchema, addSchema } = useDocument();
+
+// All operations go through adapter methods
+addSchema(newSchema);
+const schema = getSchema('my-type');
 ```
 
-Registries sync with Yjs adapter for persistence. Port schemas and construct schemas are stored in the Y.Doc.
+No singleton registries—all state flows through the DocumentAdapter interface implemented by YjsAdapter. Port schemas and construct schemas are stored in the Y.Doc.
 
 ## Port Registry
 
-The `PortRegistry` manages port schemas with polarity-based validation:
+The `PortRegistry` manages port schemas with polarity-based validation. It receives schemas as a parameter (not a singleton):
 
 ```typescript
 // src/constructs/portRegistry.ts
 export class PortRegistry {
+  constructor(schemas: PortSchema[] = DEFAULT_PORT_SCHEMAS);
   get(id: string): PortSchema | undefined;
   getAll(): PortSchema[];
-  setSchemas(schemas: PortSchema[]): void;  // Sync with document store
+  setSchemas(schemas: PortSchema[]): void;  // Update internal schemas
   canConnect(fromPortType: string, toPortType: string): boolean;  // Polarity-based
   getColor(portType: string): string;
   register(schema: PortSchema): void;
@@ -311,11 +311,17 @@ export class PortRegistry {
 
 export const portRegistry = new PortRegistry();
 
-// Sync registry with document store
-export async function syncWithDocumentStore(): Promise<void>;
+// Sync registry with document portSchemas
+export function syncWithDocumentStore(portSchemas?: PortSchema[]): void;
 ```
 
-Port schemas are stored in the document store alongside construct schemas and deployables. Users can create custom port types via the Ports tab.
+Port schemas are stored in the Yjs document alongside construct schemas and deployables. Components access them via `useDocument()`:
+
+```typescript
+const { portSchemas, addPortSchema, updatePortSchema } = useDocument();
+```
+
+Users can create custom port types via the Ports tab.
 
 ## Display Utilities
 

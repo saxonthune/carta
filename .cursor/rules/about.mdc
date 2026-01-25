@@ -69,11 +69,13 @@ The application uses a split-panel layout similar to JetBrains IDEs:
 - Node data passed via props from App to Dock views
 - Prop drilling preferred over Context for simplicity
 
-### 2. Construct Registry Layer (`src/constructs/`)
-- Central registry (`registry.ts`) that syncs with Yjs adapter for all construct type definitions
-- Schema system (`types.ts`) defines structure via `ConstructSchema`, `PortSchema`, `FieldSchema` interfaces
-- Port registry (`portRegistry.ts`) manages port schemas with polarity-based validation
-- Built-in schemas (`schemas/built-ins.ts`) for common constructs with builtInConstructSchemas and builtInPortSchemas arrays
+### 2. Document Adapter Layer (`src/stores/`)
+- DocumentAdapter interface defines contract for all state operations
+- YjsAdapter (`adapters/yjsAdapter.ts`) implements adapter using Yjs Y.Doc
+- DocumentContext (`contexts/DocumentContext.tsx`) manages adapter lifecycle
+- Schema system (`constructs/types.ts`) defines structure via `ConstructSchema`, `PortSchema`, `FieldSchema` interfaces
+- Port registry (`constructs/portRegistry.ts`) manages port schemas with polarity-based validation (receives schemas as parameter)
+- Built-in schemas (`constructs/schemas/built-ins.ts`) for common constructs with builtInConstructSchemas and builtInPortSchemas arrays
 - User-defined schemas and port schemas stored in Yjs document
 - Schema Editor (`components/ConstructEditor.tsx`) allows users to create custom constructs
 - Port Schema Editor (`components/PortSchemaEditor.tsx`) allows users to create custom port types
@@ -81,10 +83,11 @@ The application uses a split-panel layout similar to JetBrains IDEs:
 
 ### 3. Compiler Layer (`src/constructs/compiler/`)
 - Transforms visual canvas into text output
+- Pure function - takes schemas and deployables as explicit parameters
 - Format-specific compilers in `formatters/`: JSON
-- Reads construct schemas to determine compilation format
 - Groups nodes by type and applies appropriate formatters
 - **Does NOT know** about the visual editor or how constructs were created
+- **No global state**: All dependencies passed as function parameters
 
 ## Why This Separation Matters
 
@@ -190,13 +193,13 @@ This allows AI tools to:
 ## Data Flow
 
 ```
-User adds node → Registry provides schema (incl. ports) → Visual editor creates node instance with semanticId
-User edits fields → Node data updated → Synced to Yjs Y.Doc → Persisted to IndexedDB
-User assigns deployable → Construct gets deployable grouping
+User adds node → useDocument() fetches schema from adapter → Visual editor creates node instance with semanticId
+User edits fields → Node data updated → Synced to Yjs Y.Doc via adapter → Persisted to IndexedDB
+User assigns deployable → Construct gets deployable grouping → Stored in adapter
 User drags port to port → portRegistry.canConnect() validates → Connection stored on source construct → Edge rendered
-User clicks Compile → Compiler reads connections → Generates relationship semantics → AI-friendly output
-User opens Construct Editor → Can view/edit schemas + ports → Saves to Yjs Y.Doc → New types available
-User imports file → Document cleared → New data loaded (like Excalidraw)
+User clicks Compile → Compiler receives schemas/deployables as params → Generates relationship semantics → AI-friendly output
+User opens Construct Editor → Can view/edit schemas + ports → Saves to Yjs Y.Doc via adapter → New types available
+User imports file → Document cleared via adapter → New data loaded (like Excalidraw)
 ```
 
 **Connection flow detail:** See `.cursor/rules/ports-and-connections.mdc`
@@ -219,14 +222,13 @@ User imports file → Document cleared → New data loaded (like Excalidraw)
 - `/src/components/` - Modals, menus, field editors
 
 ### Domain Logic
-- `/src/constructs/types.ts` - Core TypeScript interfaces: PortSchema, FieldSchema, Polarity, CartaDocument, DocumentAdapter
-- `/src/constructs/registry.ts` - Singleton registry for schemas (syncs with Yjs adapter)
-- `/src/constructs/portRegistry.ts` - Port schema registry with polarity-based validation, wildcard matching
+- `/src/constructs/types.ts` - Core TypeScript interfaces: PortSchema, FieldSchema, Polarity, CartaDocument, DocumentAdapter, SchemaGroup
+- `/src/constructs/portRegistry.ts` - Port schema registry with polarity-based validation, wildcard matching (accepts schemas as param)
 - `/src/constructs/schemas/built-ins.ts` - Built-in construct and port schema definitions
-- `/src/constructs/compiler/` - Compilation engine and formatters
-- `/src/constructs/deployables.ts` - Deployable management system
+- `/src/constructs/compiler/` - Compilation engine (pure functions with explicit parameters)
 - `/src/contexts/DocumentContext.tsx` - Document provider managing Yjs adapter lifecycle
 - `/src/stores/adapters/yjsAdapter.ts` - Yjs implementation of DocumentAdapter interface
+- `/src/hooks/useDocument.ts` - Primary hook for accessing all document state and operations
 
 ### Utilities
 - `/src/utils/cartaFile.ts` - Export/import utilities with semantic ID generation

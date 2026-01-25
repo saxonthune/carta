@@ -7,11 +7,14 @@ globs: ["**/*.tsx", "**/*.ts", "**/*.jsx", "**/*.js"]
 
 ## CURRENT STATUS: FULLY INTEGRATED
 
-Carta now uses Yjs for ALL state management. Key points:
+Carta now uses Yjs as the single source of truth for ALL state management. Key points:
 
+- **Single source of truth** - Yjs Y.Doc is the only state store (no Zustand, no dual state)
 - **No localStorage adapter** - Removed completely
 - **No legacy mode** - Only 'local' and 'shared' modes exist
 - **Always Yjs** - State always flows through Y.Doc with y-indexeddb persistence
+- **Access pattern** - Components use `useDocument()` hook to access state via DocumentAdapter
+- **No singleton registries** - Removed registry.ts, deployables.ts singletons
 - **Feature flag** - `VITE_LOCAL_MODE=true` hides collaboration UI (Share button, connection status)
 - **Undo/Redo** - Uses Y.UndoManager (local per-user, not shared across clients)
 - **Import flow** - Clears entire document before importing (like Excalidraw)
@@ -19,16 +22,22 @@ Carta now uses Yjs for ALL state management. Key points:
 ## Architecture
 
 ```
-DocumentProvider (src/contexts/DocumentContext.tsx)
+Components
+    ↓
+useDocument() hook (src/hooks/useDocument.ts)
+    ↓
+DocumentContext (src/contexts/DocumentContext.tsx)
     ↓
 YjsAdapter (src/stores/adapters/yjsAdapter.ts)
     ↓
-Y.Doc (always active)
+Y.Doc (always active, single source of truth)
     ↓
 y-indexeddb (local persistence)
     ↓
 y-websocket (optional, for shared mode)
 ```
+
+All state operations flow through the adapter interface. No direct access to singleton registries.
 
 Yjs is a CRDT (Conflict-free Replicated Data Type) library for building collaborative applications. Changes sync automatically across clients without conflicts.
 

@@ -1,8 +1,7 @@
 import { useState, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
-import { deployableRegistry } from '../constructs/deployables';
+import { useDocument } from '../hooks/useDocument';
 import { useDirtyStateGuard } from '../hooks/useDirtyStateGuard';
 import ConfirmationModal from './ui/ConfirmationModal';
-import type { Deployable } from '../constructs/types';
 
 interface DeployablesEditorProps {
   onBack?: () => void;
@@ -12,7 +11,13 @@ interface DeployablesEditorProps {
 
 const DeployablesEditor = forwardRef<{ save: () => void }, DeployablesEditorProps>(
   function DeployablesEditor({ onBack, onDeployablesChange, onDirtyChange }, ref) {
-  const [deployables, setDeployables] = useState<Deployable[]>(() => deployableRegistry.getAll());
+  const {
+    deployables,
+    getDeployable,
+    addDeployable,
+    updateDeployable,
+    removeDeployable,
+  } = useDocument();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isCreatingNew, setIsCreatingNew] = useState(false);
 
@@ -21,28 +26,31 @@ const DeployablesEditor = forwardRef<{ save: () => void }, DeployablesEditorProp
   const [editDescription, setEditDescription] = useState('');
 
   const refreshDeployables = useCallback(() => {
-    setDeployables(deployableRegistry.getAll());
+    // Deployables now update automatically via useDocument
     onDeployablesChange?.();
   }, [onDeployablesChange]);
 
-  const selectedDeployable = selectedId ? deployableRegistry.get(selectedId) : null;
+  const selectedDeployable = selectedId ? getDeployable(selectedId) : null;
 
   const handleSave = useCallback(() => {
     if (!editName.trim()) return;
 
     if (isCreatingNew) {
-      const newDeployable = deployableRegistry.add(editName.trim(), editDescription.trim());
+      const newDeployable = addDeployable({
+        name: editName.trim(),
+        description: editDescription.trim(),
+      });
       refreshDeployables();
       setSelectedId(newDeployable.id);
       setIsCreatingNew(false);
     } else if (selectedId) {
-      deployableRegistry.update(selectedId, {
+      updateDeployable(selectedId, {
         name: editName.trim(),
         description: editDescription.trim(),
       });
       refreshDeployables();
     }
-  }, [editName, editDescription, isCreatingNew, selectedId, refreshDeployables]);
+  }, [editName, editDescription, isCreatingNew, selectedId, refreshDeployables, addDeployable, updateDeployable]);
 
   const handleSwitch = useCallback((pending: string) => {
     if (pending === '__new__') {
@@ -117,11 +125,11 @@ const DeployablesEditor = forwardRef<{ save: () => void }, DeployablesEditorProp
     if (!selectedId) return;
 
     if (confirm('Are you sure you want to delete this deployable? Constructs assigned to it will become unassigned.')) {
-      deployableRegistry.remove(selectedId);
+      removeDeployable(selectedId);
       refreshDeployables();
       setSelectedId(null);
     }
-  }, [selectedId, refreshDeployables]);
+  }, [selectedId, refreshDeployables, removeDeployable]);
 
   const handleCancel = () => {
     setSelectedId(null);

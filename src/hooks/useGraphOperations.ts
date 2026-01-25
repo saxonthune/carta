@@ -3,7 +3,6 @@ import { useReactFlow, addEdge, type Node } from '@xyflow/react';
 import { useDocument } from './useDocument';
 import { useUndoRedo } from './useUndoRedo';
 import { generateSemanticId } from '../utils/cartaFile';
-import { registry } from '../constructs/registry';
 import type { ConstructSchema, ConstructValues, ConnectionValue, ConstructNodeData } from '../constructs/types';
 
 interface UseGraphOperationsOptions {
@@ -27,7 +26,7 @@ export interface UseGraphOperationsResult {
 
 export function useGraphOperations(options: UseGraphOperationsOptions): UseGraphOperationsResult {
   const { selectedNodeIds, setSelectedNodeIds, setRenamingNodeId, setAddMenu } = options;
-  const { nodes, setNodes, setEdges, getNextNodeId } = useDocument();
+  const { nodes, setNodes, setEdges, getNextNodeId, getSchema } = useDocument();
   const { screenToFlowPosition } = useReactFlow();
   const { takeSnapshot } = useUndoRedo();
 
@@ -68,7 +67,7 @@ export function useGraphOperations(options: UseGraphOperationsOptions): UseGraph
       const sourceNode = nodes.find(n => n.id === sourceNodeId);
       if (!sourceNode) return;
 
-      const schema = registry.getSchema(constructType);
+      const schema = getSchema(constructType);
       if (!schema) return;
 
       takeSnapshot();
@@ -140,7 +139,7 @@ export function useGraphOperations(options: UseGraphOperationsOptions): UseGraph
       // If no ports specified, just add the node
       setNodes((nds) => [...nds, newNode]);
     },
-    [nodes, setNodes, setEdges, takeSnapshot, getNextNodeId]
+    [nodes, setNodes, setEdges, takeSnapshot, getNextNodeId, getSchema]
   );
 
   const addNode = useCallback(

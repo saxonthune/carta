@@ -17,7 +17,6 @@ import { useDocument } from '../../src/hooks/useDocument';
 import { useDocumentContext } from '../../src/contexts/DocumentContext';
 import { TestProviders } from '../setup/testProviders';
 import { builtInConstructSchemas, builtInPortSchemas, builtInSchemaGroups } from '../../src/constructs/schemas';
-import { registry } from '../../src/constructs/registry';
 import { createTestNode } from '../setup/testHelpers';
 
 describe('Restore Default Schemas', () => {
@@ -42,7 +41,7 @@ describe('Restore Default Schemas', () => {
       // Clear everything first to start fresh
       act(() => {
         adapter.transaction(() => {
-          registry.clearAllSchemas();
+          adapter.setSchemas([]);
           adapter.setNodes([]);
           adapter.setEdges([]);
           adapter.setDeployables([]);
@@ -63,8 +62,8 @@ describe('Restore Default Schemas', () => {
       // Act: Restore all defaults (simulating handleRestoreDefaultSchemas)
       act(() => {
         adapter.transaction(() => {
-          registry.clearAllSchemas();
-          registry.replaceSchemas(builtInConstructSchemas);
+          adapter.setSchemas([]);
+          adapter.setSchemas(builtInConstructSchemas);
           adapter.setPortSchemas(builtInPortSchemas);
           adapter.setSchemaGroups(builtInSchemaGroups);
         });
@@ -106,7 +105,7 @@ describe('Restore Default Schemas', () => {
       // Clear defaults
       act(() => {
         adapter.transaction(() => {
-          registry.clearAllSchemas();
+          adapter.setSchemas([]);
           adapter.setPortSchemas([]);
           adapter.setSchemaGroups([]);
         });
@@ -119,8 +118,8 @@ describe('Restore Default Schemas', () => {
       // Restore defaults
       act(() => {
         adapter.transaction(() => {
-          registry.clearAllSchemas();
-          registry.replaceSchemas(builtInConstructSchemas);
+          adapter.setSchemas([]);
+          adapter.setSchemas(builtInConstructSchemas);
           adapter.setPortSchemas(builtInPortSchemas);
           adapter.setSchemaGroups(builtInSchemaGroups);
         });
@@ -283,8 +282,8 @@ describe('Restore Default Schemas', () => {
       };
 
       act(() => {
-        registry.clearAllSchemas();
-        registry.replaceSchemas([customController]);
+        adapter.setSchemas([]);
+        adapter.setSchemas([customController]);
       });
 
       await waitFor(() => {
@@ -298,8 +297,8 @@ describe('Restore Default Schemas', () => {
       // Restore defaults (which replaces all)
       act(() => {
         adapter.transaction(() => {
-          registry.clearAllSchemas();
-          registry.replaceSchemas(builtInConstructSchemas);
+          adapter.setSchemas([]);
+          adapter.setSchemas(builtInConstructSchemas);
         });
       });
 
@@ -345,7 +344,7 @@ describe('Restore Default Schemas', () => {
       // Clear schemas but keep nodes
       act(() => {
         adapter.transaction(() => {
-          registry.clearAllSchemas();
+          adapter.setSchemas([]);
           adapter.setPortSchemas([]);
           adapter.setSchemaGroups([]);
         });
@@ -360,8 +359,8 @@ describe('Restore Default Schemas', () => {
       // Restore defaults
       act(() => {
         adapter.transaction(() => {
-          registry.clearAllSchemas();
-          registry.replaceSchemas(builtInConstructSchemas);
+          adapter.setSchemas([]);
+          adapter.setSchemas(builtInConstructSchemas);
           adapter.setPortSchemas(builtInPortSchemas);
           adapter.setSchemaGroups(builtInSchemaGroups);
         });
@@ -403,7 +402,7 @@ describe('Restore Default Schemas', () => {
       act(() => {
         adapter.setTitle(testTitle);
         adapter.transaction(() => {
-          registry.clearAllSchemas();
+          adapter.setSchemas([]);
           adapter.setPortSchemas([]);
         });
       });
@@ -415,8 +414,8 @@ describe('Restore Default Schemas', () => {
       // Restore defaults
       act(() => {
         adapter.transaction(() => {
-          registry.clearAllSchemas();
-          registry.replaceSchemas(builtInConstructSchemas);
+          adapter.setSchemas([]);
+          adapter.setSchemas(builtInConstructSchemas);
           adapter.setPortSchemas(builtInPortSchemas);
           adapter.setSchemaGroups(builtInSchemaGroups);
         });
@@ -446,7 +445,7 @@ describe('Restore Default Schemas', () => {
       // Start with truly empty document
       act(() => {
         adapter.transaction(() => {
-          registry.clearAllSchemas();
+          adapter.setSchemas([]);
           adapter.setPortSchemas([]);
           adapter.setSchemaGroups([]);
         });
@@ -460,8 +459,8 @@ describe('Restore Default Schemas', () => {
       expect(() => {
         act(() => {
           adapter.transaction(() => {
-            registry.clearAllSchemas();
-            registry.replaceSchemas(builtInConstructSchemas);
+            adapter.setSchemas([]);
+            adapter.setSchemas(builtInConstructSchemas);
             adapter.setPortSchemas(builtInPortSchemas);
             adapter.setSchemaGroups(builtInSchemaGroups);
           });
@@ -494,8 +493,8 @@ describe('Restore Default Schemas', () => {
       // First restore
       act(() => {
         adapter.transaction(() => {
-          registry.clearAllSchemas();
-          registry.replaceSchemas(builtInConstructSchemas);
+          adapter.setSchemas([]);
+          adapter.setSchemas(builtInConstructSchemas);
           adapter.setPortSchemas(builtInPortSchemas);
           adapter.setSchemaGroups(builtInSchemaGroups);
         });
@@ -510,7 +509,7 @@ describe('Restore Default Schemas', () => {
       // Clear and restore again
       act(() => {
         adapter.transaction(() => {
-          registry.clearAllSchemas();
+          adapter.setSchemas([]);
           adapter.setPortSchemas([]);
           adapter.setSchemaGroups([]);
         });
@@ -522,8 +521,8 @@ describe('Restore Default Schemas', () => {
 
       act(() => {
         adapter.transaction(() => {
-          registry.clearAllSchemas();
-          registry.replaceSchemas(builtInConstructSchemas);
+          adapter.setSchemas([]);
+          adapter.setSchemas(builtInConstructSchemas);
           adapter.setPortSchemas(builtInPortSchemas);
           adapter.setSchemaGroups(builtInSchemaGroups);
         });

@@ -116,19 +116,12 @@ export const portRegistry = new PortRegistry();
 export default portRegistry;
 
 /**
- * Sync port registry with document store
- * Updates the registry's internal schemas from the current document store state
- * Should be called on app initialization and whenever portSchemas in the store change
- *
- * Uses lazy import to avoid circular dependencies at module load time
+ * Sync port registry with provided port schemas
+ * Updates the registry's internal schemas
+ * Should be called on app initialization and whenever portSchemas change
  */
-export async function syncWithDocumentStore(): Promise<void> {
-  try {
-    const { useDocumentStore } = await import('../stores/documentStore');
-    const store = useDocumentStore.getState();
-    const portSchemas = store.getPortSchemas();
+export function syncWithDocumentStore(portSchemas?: PortSchema[]): void {
+  if (portSchemas) {
     portRegistry.setSchemas(portSchemas);
-  } catch (error) {
-    console.error('Failed to sync port registry with document store:', error);
   }
 }

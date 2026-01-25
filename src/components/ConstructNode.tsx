@@ -1,6 +1,6 @@
 import { memo, useState, useEffect, useRef } from 'react';
 import { Handle, Position, NodeResizer } from '@xyflow/react';
-import { registry } from '../constructs/registry';
+import { useDocument } from '../hooks/useDocument';
 import { getPortsForSchema, getHandleType, getPortColor } from '../constructs/ports';
 import { getDisplayName } from '../utils/displayUtils';
 import type { ConstructNodeData, PortConfig, PortPosition } from '../constructs/types';
@@ -37,7 +37,8 @@ function getHandlePositionStyle(position: PortPosition, offset: number): React.C
 }
 
 const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => {
-  const schema = registry.getSchema(data.constructType);
+  const { getSchema } = useDocument();
+  const schema = getSchema(data.constructType);
   const [hoveredPort, setHoveredPort] = useState<string | null>(null);
   const [showExtendedTooltip, setShowExtendedTooltip] = useState(false);
   const hoverTimerRef = useRef<number | null>(null);

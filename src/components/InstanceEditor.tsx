@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import type { Node } from '@xyflow/react';
-import { registry } from '../constructs/registry';
+import { useDocument } from '../hooks/useDocument';
 import { fieldRenderers } from './fields';
 import TabBar, { type Tab } from './ui/TabBar';
 import type { ConstructNodeData, Deployable, ConstructValues } from '../constructs/types';
@@ -15,8 +15,9 @@ interface InstanceEditorProps {
 type ViewerTab = 'details' | 'connections';
 
 export default function InstanceEditor({ node, deployables, onNodeUpdate }: InstanceEditorProps) {
+  const { getSchema } = useDocument();
   const data = node.data as ConstructNodeData;
-  const schema = registry.getSchema(data.constructType);
+  const schema = getSchema(data.constructType);
   const [semanticIdValue, setSemanticIdValue] = useState(data.semanticId);
   const [activeTab, setActiveTab] = useState<ViewerTab>('details');
 

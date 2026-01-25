@@ -124,9 +124,23 @@ export class CartaPage {
     await expect(this.dock).toBeVisible();
   }
 
-  async switchDockTab(tabName: 'viewer' | 'constructs' | 'deploy' | 'ports') {
-    // Click on the tab by text content
-    const tabButton = this.page.getByRole('button').filter({ hasText: tabName });
+  async switchDockTab(tabName: 'viewer' | 'constructs' | 'groups' | 'ports' | 'deployables') {
+    // Map display names to match the TabBar labels
+    const labelMap: Record<string, string> = {
+      viewer: 'Editor',
+      constructs: 'Constructs',
+      groups: 'Groups',
+      ports: 'Ports',
+      deployables: 'Deployables',
+    };
+    const label = labelMap[tabName] || tabName;
+    const tabButton = this.page.getByRole('button').filter({ hasText: label });
     await tabButton.click();
+  }
+
+  async clearAndRestoreDefaults() {
+    await this.openClearModal();
+    // Click "Clear Everything and Restore Defaults"
+    await this.page.getByTestId('clear-and-restore-button').click();
   }
 }

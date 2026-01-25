@@ -97,16 +97,24 @@ export class PortRegistry {
 
 export const portRegistry = new PortRegistry();
 
-// Sync registry with document store
-export async function syncWithDocumentStore(): Promise<void>;
+// Sync registry with document portSchemas
+export function syncWithDocumentStore(portSchemas?: PortSchema[]): void;
 ```
 
 ### Document Store Integration
-Port schemas are stored in the document store alongside constructs and deployables. The port registry syncs with the store on initialization and when schemas change. This enables:
+Port schemas are stored in the Yjs document alongside constructs and deployables. The port registry receives schemas as a parameter and updates its internal state. Components access port schemas via `useDocument()`:
+
+```typescript
+const { portSchemas } = useDocument();
+// Sync registry when schemas change
+syncWithDocumentStore(portSchemas);
+```
+
+This enables:
 - User-defined port types
-- Persistence across sessions
+- Persistence across sessions via IndexedDB
 - Export/import of custom port schemas
-- Collaborative editing (future Yjs integration)
+- Collaborative editing via Yjs
 
 ## Design Decisions
 

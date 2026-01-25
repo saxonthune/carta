@@ -28,7 +28,6 @@ import { useConnections } from '../hooks/useConnections';
 import { useClipboard } from '../hooks/useClipboard';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import type { ConstructValues, Deployable, ConstructNodeData } from '../constructs/types';
-import { registry } from '../constructs/registry';
 
 const nodeTypes = {
   custom: CustomNode,
@@ -66,7 +65,7 @@ export interface MapProps {
 }
 
 export default function Map({ deployables, onDeployablesChange, title, onNodesEdgesChange, onSelectionChange, onNodeDoubleClick, importRef }: MapProps) {
-  const { nodes, edges, setNodes, setEdges, getNextNodeId } = useDocument();
+  const { nodes, edges, setNodes, setEdges, getNextNodeId, getSchema } = useDocument();
   const { adapter } = useDocumentContext();
   const schemaGroups = adapter.getSchemaGroups();
 
@@ -200,12 +199,12 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
       if (!node || node.type !== 'construct') return [];
 
       const data = node.data as ConstructNodeData;
-      const schema = registry.getSchema(data.constructType);
+      const schema = getSchema(data.constructType);
       if (!schema || !schema.suggestedRelated || schema.suggestedRelated.length === 0) return [];
 
       const result: RelatedConstructOption[] = [];
       for (const related of schema.suggestedRelated) {
-        const relatedSchema = registry.getSchema(related.constructType);
+        const relatedSchema = getSchema(related.constructType);
         if (relatedSchema) {
           result.push({
             constructType: related.constructType,
@@ -220,7 +219,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
       }
       return result;
     },
-    [nodes]
+    [nodes, getSchema]
   );
 
   // Context menu specific edge deletion

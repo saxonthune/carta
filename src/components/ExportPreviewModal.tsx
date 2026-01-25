@@ -1,10 +1,14 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import type { Edge } from '@xyflow/react';
 import type { ExportAnalysis, ExportOptions } from '../utils/exportAnalyzer';
 import { defaultExportOptions } from '../utils/exportAnalyzer';
-import type { ConstructSchema } from '../constructs/types';
+import type { ConstructSchema, PortSchema } from '../constructs/types';
+import { CARTA_FILE_VERSION, type CartaFile } from '../utils/cartaFile';
 
 interface ExportPreviewModalProps {
   analysis: ExportAnalysis;
+  edges: Edge[];
+  portSchemas: PortSchema[];
   onConfirm: (options: ExportOptions) => void;
   onCancel: () => void;
 }
@@ -26,17 +30,35 @@ function SchemaItem({ schema }: { schema: ConstructSchema }) {
 
 export default function ExportPreviewModal({
   analysis,
+  edges,
+  portSchemas,
   onConfirm,
   onCancel,
 }: ExportPreviewModalProps) {
   const [options, setOptions] = useState<ExportOptions>(defaultExportOptions);
   const [schemasExpanded, setSchemasExpanded] = useState(false);
+  const [showRawPreview, setShowRawPreview] = useState(false);
 
   const handleToggle = (key: keyof ExportOptions) => {
     setOptions(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
   const hasSelectedAnything = options.schemas || options.nodes || options.deployables;
+
+  // Generate the raw CartaFile JSON for preview
+  const rawJson = useMemo(() => {
+    const cartaFile: CartaFile = {
+      version: CARTA_FILE_VERSION,
+      title: analysis.title,
+      nodes: options.nodes ? analysis.nodes.items : [],
+      edges: options.nodes ? edges : [],
+      deployables: options.deployables ? analysis.deployables.items : [],
+      customSchemas: options.schemas ? analysis.schemas.items : [],
+      portSchemas: portSchemas,
+      exportedAt: new Date().toISOString(),
+    };
+    return JSON.stringify(cartaFile, null, 2);
+  }, [analysis, edges, portSchemas, options]);
 
   return (
     <div
@@ -63,110 +85,126 @@ export default function ExportPreviewModal({
 
         {/* Content */}
         <div className="p-4 overflow-y-auto flex-1">
-          <div className="space-y-3">
-            {/* Schemas */}
-            <div className="border rounded-lg overflow-hidden">
-              <label className="flex items-center gap-3 p-3 cursor-pointer hover:bg-surface-alt">
-                <input
-                  type="checkbox"
-                  checked={options.schemas}
-                  onChange={() => handleToggle('schemas')}
-                  disabled={analysis.schemas.count === 0}
-                  className="w-4 h-4 accent-accent"
-                />
-                <div className="flex-1 flex items-center justify-between">
-                  <span className="text-content font-medium">Construct Schemas</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-content-muted text-sm">
-                      ({analysis.schemas.count})
-                    </span>
-                    {analysis.schemas.count > 0 && (
-                      <button
-                        type="button"
-                        className="p-1 hover:bg-surface-alt rounded"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setSchemasExpanded(!schemasExpanded);
-                        }}
-                      >
-                        <svg
-                          className={`w-4 h-4 text-content-muted transition-transform ${schemasExpanded ? 'rotate-180' : ''}`}
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
+          {showRawPreview ? (
+            <div className="h-full flex flex-col">
+              <pre className="flex-1 p-3 bg-surface-alt rounded-lg text-xs text-content font-mono overflow-auto max-h-[400px] whitespace-pre-wrap break-all">
+                {rawJson}
+              </pre>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {/* Schemas */}
+              <div className="border rounded-lg overflow-hidden">
+                <label className="flex items-center gap-3 p-3 cursor-pointer hover:bg-surface-alt">
+                  <input
+                    type="checkbox"
+                    checked={options.schemas}
+                    onChange={() => handleToggle('schemas')}
+                    disabled={analysis.schemas.count === 0}
+                    className="w-4 h-4 accent-accent"
+                  />
+                  <div className="flex-1 flex items-center justify-between">
+                    <span className="text-content font-medium">Construct Schemas</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-content-muted text-sm">
+                        ({analysis.schemas.count})
+                      </span>
+                      {analysis.schemas.count > 0 && (
+                        <button
+                          type="button"
+                          className="p-1 hover:bg-surface-alt rounded"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setSchemasExpanded(!schemasExpanded);
+                          }}
                         >
-                          <polyline points="6 9 12 15 18 9" />
-                        </svg>
-                      </button>
-                    )}
+                          <svg
+                            className={`w-4 h-4 text-content-muted transition-transform ${schemasExpanded ? 'rotate-180' : ''}`}
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                          >
+                            <polyline points="6 9 12 15 18 9" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </label>
-              {schemasExpanded && analysis.schemas.items.length > 0 && (
-                <div className="border-t bg-surface-alt/50">
-                  {analysis.schemas.items.map((schema) => (
-                    <SchemaItem key={schema.type} schema={schema} />
-                  ))}
-                </div>
-              )}
-            </div>
+                </label>
+                {schemasExpanded && analysis.schemas.items.length > 0 && (
+                  <div className="border-t bg-surface-alt/50">
+                    {analysis.schemas.items.map((schema) => (
+                      <SchemaItem key={schema.type} schema={schema} />
+                    ))}
+                  </div>
+                )}
+              </div>
 
-            {/* Instances */}
-            <div className="border rounded-lg overflow-hidden">
-              <label className="flex items-center gap-3 p-3 cursor-pointer hover:bg-surface-alt">
-                <input
-                  type="checkbox"
-                  checked={options.nodes}
-                  onChange={() => handleToggle('nodes')}
-                  disabled={analysis.nodes.count === 0 && analysis.edgeCount === 0}
-                  className="w-4 h-4 accent-accent"
-                />
-                <div className="flex-1 flex items-center justify-between">
-                  <span className="text-content font-medium">Instances</span>
-                  <span className="text-content-muted text-sm">
-                    ({analysis.nodes.count} nodes, {analysis.edgeCount} edges)
-                  </span>
-                </div>
-              </label>
-            </div>
+              {/* Instances */}
+              <div className="border rounded-lg overflow-hidden">
+                <label className="flex items-center gap-3 p-3 cursor-pointer hover:bg-surface-alt">
+                  <input
+                    type="checkbox"
+                    checked={options.nodes}
+                    onChange={() => handleToggle('nodes')}
+                    disabled={analysis.nodes.count === 0 && analysis.edgeCount === 0}
+                    className="w-4 h-4 accent-accent"
+                  />
+                  <div className="flex-1 flex items-center justify-between">
+                    <span className="text-content font-medium">Instances</span>
+                    <span className="text-content-muted text-sm">
+                      ({analysis.nodes.count} nodes, {analysis.edgeCount} edges)
+                    </span>
+                  </div>
+                </label>
+              </div>
 
-            {/* Deployables */}
-            <div className="border rounded-lg overflow-hidden">
-              <label className="flex items-center gap-3 p-3 cursor-pointer hover:bg-surface-alt">
-                <input
-                  type="checkbox"
-                  checked={options.deployables}
-                  onChange={() => handleToggle('deployables')}
-                  disabled={analysis.deployables.count === 0}
-                  className="w-4 h-4 accent-accent"
-                />
-                <div className="flex-1 flex items-center justify-between">
-                  <span className="text-content font-medium">Deployables</span>
-                  <span className="text-content-muted text-sm">
-                    ({analysis.deployables.count})
-                  </span>
-                </div>
-              </label>
+              {/* Deployables */}
+              <div className="border rounded-lg overflow-hidden">
+                <label className="flex items-center gap-3 p-3 cursor-pointer hover:bg-surface-alt">
+                  <input
+                    type="checkbox"
+                    checked={options.deployables}
+                    onChange={() => handleToggle('deployables')}
+                    disabled={analysis.deployables.count === 0}
+                    className="w-4 h-4 accent-accent"
+                  />
+                  <div className="flex-1 flex items-center justify-between">
+                    <span className="text-content font-medium">Deployables</span>
+                    <span className="text-content-muted text-sm">
+                      ({analysis.deployables.count})
+                    </span>
+                  </div>
+                </label>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Footer */}
-        <div className="flex gap-2 justify-end px-4 py-3 border-t border">
+        <div className="flex gap-2 justify-between px-4 py-3 border-t border">
           <button
-            className="px-4 py-2 rounded-md bg-surface text-content text-sm font-medium cursor-pointer hover:bg-surface-alt transition-colors"
-            onClick={onCancel}
+            className="px-4 py-2 rounded-md bg-surface text-content text-sm font-medium cursor-pointer hover:bg-surface-alt transition-colors border border-border"
+            onClick={() => setShowRawPreview(!showRawPreview)}
           >
-            Cancel
+            {showRawPreview ? 'Back' : 'Preview Raw'}
           </button>
-          <button
-            className="px-4 py-2 border-none rounded-md bg-emerald-500 text-white text-sm font-medium cursor-pointer hover:bg-emerald-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            onClick={() => onConfirm(options)}
-            disabled={!hasSelectedAnything}
-          >
-            Export Selected
-          </button>
+          <div className="flex gap-2">
+            <button
+              className="px-4 py-2 rounded-md bg-surface text-content text-sm font-medium cursor-pointer hover:bg-surface-alt transition-colors"
+              onClick={onCancel}
+            >
+              Cancel
+            </button>
+            <button
+              className="px-4 py-2 border-none rounded-md bg-emerald-500 text-white text-sm font-medium cursor-pointer hover:bg-emerald-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => onConfirm(options)}
+              disabled={!hasSelectedAnything}
+            >
+              Export Selected
+            </button>
+          </div>
         </div>
       </div>
     </div>
