@@ -1,12 +1,15 @@
 {
-  "version": 3,
+  "version": 4,
   "title": "Carta Test Scenarios",
   "description": "Example scenarios demonstrating various Carta features and construct types.",
   "nodes": [
     {
       "id": "1",
       "type": "construct",
-      "position": { "x": -600, "y": 100 },
+      "position": {
+        "x": -600,
+        "y": 100
+      },
       "data": {
         "constructType": "requirement",
         "semanticId": "requirement-clear-document",
@@ -21,7 +24,10 @@
     {
       "id": "2",
       "type": "construct",
-      "position": { "x": -200, "y": 50 },
+      "position": {
+        "x": -200,
+        "y": 50
+      },
       "data": {
         "constructType": "test-scenario",
         "semanticId": "test-clear-everything",
@@ -53,7 +59,10 @@
     {
       "id": "3",
       "type": "construct",
-      "position": { "x": -600, "y": 300 },
+      "position": {
+        "x": -600,
+        "y": 300
+      },
       "data": {
         "constructType": "fixture",
         "semanticId": "fixture-document-with-content",
@@ -68,7 +77,10 @@
     {
       "id": "4",
       "type": "construct",
-      "position": { "x": 200, "y": 50 },
+      "position": {
+        "x": 200,
+        "y": 50
+      },
       "data": {
         "constructType": "test-step",
         "semanticId": "step-open-menu",
@@ -90,7 +102,10 @@
     {
       "id": "5",
       "type": "construct",
-      "position": { "x": 500, "y": 50 },
+      "position": {
+        "x": 500,
+        "y": 50
+      },
       "data": {
         "constructType": "test-step",
         "semanticId": "step-click-clear",
@@ -112,7 +127,10 @@
     {
       "id": "6",
       "type": "construct",
-      "position": { "x": 800, "y": 50 },
+      "position": {
+        "x": 800,
+        "y": 50
+      },
       "data": {
         "constructType": "test-step",
         "semanticId": "step-confirm-clear-everything",
@@ -134,7 +152,10 @@
     {
       "id": "7",
       "type": "construct",
-      "position": { "x": 1100, "y": 50 },
+      "position": {
+        "x": 1100,
+        "y": 50
+      },
       "data": {
         "constructType": "assertion",
         "semanticId": "assertion-nodes-cleared",
@@ -158,7 +179,10 @@
     {
       "id": "8",
       "type": "construct",
-      "position": { "x": 1400, "y": 50 },
+      "position": {
+        "x": 1400,
+        "y": 50
+      },
       "data": {
         "constructType": "assertion",
         "semanticId": "assertion-title-preserved",
@@ -175,7 +199,10 @@
     {
       "id": "9",
       "type": "construct",
-      "position": { "x": -200, "y": 250 },
+      "position": {
+        "x": -200,
+        "y": 250
+      },
       "data": {
         "constructType": "test-scenario",
         "semanticId": "test-clear-instances-only",
@@ -266,7 +293,35 @@
     }
   ],
   "deployables": [],
-  "schemas": [
+  "portSchemas": [
+    {
+      "id": "flow-in",
+      "displayName": "Flow In",
+      "semanticDescription": "Receives data or control flow",
+      "polarity": "sink",
+      "compatibleWith": [
+        "flow-out",
+        "forward"
+      ],
+      "expectedComplement": "flow-out",
+      "defaultPosition": "left",
+      "color": "#3b82f6"
+    },
+    {
+      "id": "flow-out",
+      "displayName": "Flow Out",
+      "semanticDescription": "Sends data or control flow",
+      "polarity": "source",
+      "compatibleWith": [
+        "flow-in",
+        "intercept"
+      ],
+      "expectedComplement": "flow-in",
+      "defaultPosition": "right",
+      "color": "#22c55e"
+    }
+  ],
+  "customSchemas": [
     {
       "type": "requirement",
       "displayName": "Requirement",
@@ -324,7 +379,11 @@
           "name": "priority",
           "label": "Priority",
           "type": "enum",
-          "options": ["smoke", "regression", "edge-case"],
+          "options": [
+            "smoke",
+            "regression",
+            "edge-case"
+          ],
           "default": "regression",
           "displayInMap": true
         },
@@ -383,7 +442,14 @@
           "name": "actionType",
           "label": "Type",
           "type": "enum",
-          "options": ["click", "type", "drag", "keyboard", "wait", "hover"],
+          "options": [
+            "click",
+            "type",
+            "drag",
+            "keyboard",
+            "wait",
+            "hover"
+          ],
           "default": "click",
           "displayInMap": true
         },
@@ -436,7 +502,14 @@
           "name": "type",
           "label": "Type",
           "type": "enum",
-          "options": ["visible", "hidden", "text", "count", "attribute", "state"],
+          "options": [
+            "visible",
+            "hidden",
+            "text",
+            "count",
+            "attribute",
+            "state"
+          ],
           "default": "visible",
           "displayInMap": true
         },
@@ -454,7 +527,13 @@
           "name": "comparator",
           "label": "Comparator",
           "type": "enum",
-          "options": ["equals", "contains", "matches", "gt", "lt"],
+          "options": [
+            "equals",
+            "contains",
+            "matches",
+            "gt",
+            "lt"
+          ],
           "default": "equals"
         }
       ],
@@ -521,26 +600,6 @@
       ]
     }
   ],
-  "portSchemas": [
-    {
-      "id": "flow-in",
-      "displayName": "Flow In",
-      "semanticDescription": "Receives data or control flow",
-      "polarity": "sink",
-      "compatibleWith": ["flow-out", "forward"],
-      "expectedComplement": "flow-out",
-      "defaultPosition": "left",
-      "color": "#3b82f6"
-    },
-    {
-      "id": "flow-out",
-      "displayName": "Flow Out",
-      "semanticDescription": "Sends data or control flow",
-      "polarity": "source",
-      "compatibleWith": ["flow-in", "intercept"],
-      "expectedComplement": "flow-in",
-      "defaultPosition": "right",
-      "color": "#22c55e"
-    }
-  ]
+  "schemaGroups": [],
+  "exportedAt": "2025-01-25T00:00:00.000Z"
 }

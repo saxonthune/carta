@@ -12,6 +12,7 @@ export function createTestNode(options: {
   semanticId?: string;
   values?: Record<string, unknown>;
   connections?: ConstructNodeData['connections'];
+  deployableId?: string | null;
 }): Node {
   const id = options.id ?? crypto.randomUUID();
   const constructType = options.type ?? 'Task';
@@ -25,8 +26,9 @@ export function createTestNode(options: {
       constructType,
       semanticId,
       values: options.values ?? {},
-      isExpanded: true,
+      isExpanded: false,
       connections: options.connections ?? [],
+      deployableId: options.deployableId ?? null,
     } satisfies ConstructNodeData,
   };
 }

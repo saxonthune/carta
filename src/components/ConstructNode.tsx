@@ -2,11 +2,13 @@ import { memo, useState, useEffect, useRef } from 'react';
 import { Handle, Position, NodeResizer } from '@xyflow/react';
 import { useDocument } from '../hooks/useDocument';
 import { getPortsForSchema, getHandleType, getPortColor } from '../constructs/ports';
-import { getDisplayName } from '../utils/displayUtils';
 import type { ConstructNodeData, PortConfig, PortPosition } from '../constructs/types';
 
 // Long hover delay in milliseconds
 const LONG_HOVER_DELAY = 800;
+
+// Special value for "Add new..." deployable option
+const ADD_NEW_DEPLOYABLE = '__ADD_NEW__';
 
 interface ConstructNodeComponentProps {
   data: ConstructNodeData;
@@ -37,11 +39,18 @@ function getHandlePositionStyle(position: PortPosition, offset: number): React.C
 }
 
 const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => {
-  const { getSchema } = useDocument();
+  const { getSchema, addDeployable } = useDocument();
   const schema = getSchema(data.constructType);
   const [hoveredPort, setHoveredPort] = useState<string | null>(null);
   const [showExtendedTooltip, setShowExtendedTooltip] = useState(false);
   const hoverTimerRef = useRef<number | null>(null);
+
+  // New deployable modal state
+  const [showNewDeployableModal, setShowNewDeployableModal] = useState(false);
+  const [newDeployableName, setNewDeployableName] = useState('');
+  const [newDeployableDescription, setNewDeployableDescription] = useState('');
+  const modalRef = useRef<HTMLDivElement>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   // Clear timer on unmount
   useEffect(() => {
@@ -87,6 +96,78 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
     }
     return String(value);
   };
+
+  // Handle deployable change - show modal if "Add new..." is selected
+  const handleDeployableChange = (value: string) => {
+    if (value === ADD_NEW_DEPLOYABLE) {
+      setShowNewDeployableModal(true);
+      setNewDeployableName('');
+      setNewDeployableDescription('');
+    } else {
+      data.onDeployableChange?.(value || null);
+    }
+  };
+
+  // Create new deployable and assign to this node
+  const handleCreateDeployable = () => {
+    if (!newDeployableName.trim()) return;
+
+    const newDeployable = addDeployable({
+      name: newDeployableName.trim(),
+      description: newDeployableDescription.trim(),
+    });
+
+    data.onDeployableChange?.(newDeployable.id);
+    setShowNewDeployableModal(false);
+  };
+
+  // Close modal without creating
+  const handleCancelNewDeployable = () => {
+    setShowNewDeployableModal(false);
+  };
+
+  // Focus name input when modal opens
+  useEffect(() => {
+    if (showNewDeployableModal && nameInputRef.current) {
+      nameInputRef.current.focus();
+    }
+  }, [showNewDeployableModal]);
+
+  // Handle keyboard shortcuts for modal
+  useEffect(() => {
+    if (!showNewDeployableModal) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        handleCancelNewDeployable();
+      } else if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleCreateDeployable();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showNewDeployableModal, newDeployableName, newDeployableDescription]);
+
+  // Handle click outside modal
+  useEffect(() => {
+    if (!showNewDeployableModal) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
+        handleCancelNewDeployable();
+      }
+    };
+
+    // Use setTimeout to avoid closing immediately on the same click that opened it
+    setTimeout(() => {
+      document.addEventListener('mousedown', handleClickOutside);
+    }, 0);
+
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showNewDeployableModal]);
 
   // Calculate tooltip position based on port position
   const getTooltipPosition = (port: PortConfig, extended: boolean): React.CSSProperties => {
@@ -182,10 +263,10 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
               e.stopPropagation();
               data.onToggleExpand?.();
             }}
-            className="opacity-70 hover:opacity-100 transition-opacity flex-shrink-0"
+            className="opacity-90 hover:opacity-100 transition-all flex-shrink-0 bg-black/20 hover:bg-black/30 rounded-full p-1 shadow-md"
             title={data.isExpanded ? "Collapse" : "Expand"}
           >
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               {data.isExpanded ? (
                 <path d="M18 15l-6-6-6 6" />
               ) : (
@@ -194,11 +275,6 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
             </svg>
           </button>
         )}
-      </div>
-
-      <div className="px-2 py-1 bg-surface shrink-0">
-        <div className="text-node-xs text-content-muted uppercase tracking-wide">ID</div>
-        <div className="text-node-lg text-content font-medium leading-tight">{getDisplayName(data, schema)}</div>
       </div>
 
       {!data.isExpanded && (
@@ -221,35 +297,74 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
       )}
 
       {data.isExpanded && (
-        <div className="px-2 py-2 bg-surface-depth-1 flex flex-col gap-2 max-h-[400px] overflow-y-auto flex-1">
+        <div className="px-2 py-2 bg-surface-depth-1 flex flex-col gap-2">
           {/* Deployable dropdown */}
-          {data.deployables && data.deployables.length > 0 && (
-            <div>
+          {data.deployables && (
+            <div className="relative">
               <label className="text-node-xs text-content-muted uppercase tracking-wide">Deployable</label>
               <select
                 className="w-full px-2 py-1 bg-surface rounded text-node-sm text-content border border-content-muted/20"
                 value={data.deployableId || ''}
-                onChange={(e) => data.onDeployableChange?.(e.target.value || null)}
+                onChange={(e) => handleDeployableChange(e.target.value)}
               >
-                <option value="">None</option>
+                <option value="">—</option>
                 {data.deployables.map((d) => (
                   <option key={d.id} value={d.id}>{d.name}</option>
                 ))}
+                <option value={ADD_NEW_DEPLOYABLE}>+ Add new...</option>
               </select>
+
+              {/* New Deployable Modal */}
+              {showNewDeployableModal && (
+                <div
+                  ref={modalRef}
+                  className="absolute top-full left-0 mt-1 bg-surface-elevated border border-content-muted/20 rounded-lg shadow-lg p-3 z-50 min-w-[280px]"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex justify-between items-center mb-2">
+                    <div className="text-node-sm font-medium text-content">New Deployable</div>
+                    <button
+                      className="text-content-muted hover:text-content text-node-lg leading-none"
+                      onClick={handleCancelNewDeployable}
+                      title="Cancel"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <div>
+                      <label className="text-node-xs text-content-muted uppercase tracking-wide">Name</label>
+                      <input
+                        ref={nameInputRef}
+                        type="text"
+                        className="w-full px-2 py-1 bg-surface rounded text-node-sm text-content border border-content-muted/20"
+                        value={newDeployableName}
+                        onChange={(e) => setNewDeployableName(e.target.value)}
+                        placeholder="Deployable name"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-node-xs text-content-muted uppercase tracking-wide">Description</label>
+                      <textarea
+                        className="w-full px-2 py-1 bg-surface rounded text-node-sm text-content border border-content-muted/20 resize-none"
+                        rows={2}
+                        value={newDeployableDescription}
+                        onChange={(e) => setNewDeployableDescription(e.target.value)}
+                        placeholder="Description (optional)"
+                      />
+                    </div>
+                    <button
+                      className="w-full px-3 py-2 text-node-sm font-medium bg-accent hover:bg-accent-hover text-white rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                      onClick={handleCreateDeployable}
+                      disabled={!newDeployableName.trim()}
+                    >
+                      Create
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
-
-          {/* Semantic ID - editable when expanded */}
-          <div>
-            <label className="text-node-xs text-content-muted uppercase tracking-wide">ID</label>
-            <input
-              type="text"
-              className="w-full px-2 py-1 bg-surface rounded text-node-sm text-content border border-content-muted/20"
-              value={getDisplayName(data, schema)}
-              disabled
-              title="Semantic ID (read-only)"
-            />
-          </div>
 
           {/* All schema fields */}
           {schema.fields.map((field) => (
@@ -294,6 +409,28 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
               )}
             </div>
           ))}
+
+          {/* Identity display (read-only) */}
+          <div>
+            <label className="text-node-xs text-content-muted uppercase tracking-wide">Semantic ID</label>
+            <input
+              type="text"
+              className="w-full px-2 py-1 bg-surface rounded text-node-sm text-content border border-content-muted/20"
+              value={data.semanticId}
+              disabled
+              title="Human/AI-readable identifier (used in connections and compilation)"
+            />
+          </div>
+          <div>
+            <label className="text-node-xs text-content-muted uppercase tracking-wide">Technical ID</label>
+            <input
+              type="text"
+              className="w-full px-2 py-1 bg-surface rounded text-node-xs text-content-muted border border-content-muted/20 font-mono"
+              value={data.nodeId || '—'}
+              disabled
+              title="Immutable UUID (used internally by React Flow and Yjs)"
+            />
+          </div>
 
           {/* Connections (read-only) */}
           {data.connections && data.connections.length > 0 && (

@@ -18,7 +18,8 @@ import { exportProject, importProject, importProjectFromString, generateSemantic
 import type { Example } from './utils/examples';
 import { analyzeImport, type ImportAnalysis, type ImportOptions } from './utils/importAnalyzer';
 import { analyzeExport, type ExportAnalysis, type ExportOptions } from './utils/exportAnalyzer';
-import type { ConstructValues } from './constructs/types';
+import { importDocument, type ImportConfig } from './utils/documentImporter';
+import type { ConstructValues, ConstructSchema } from './constructs/types';
 import { AISidebar } from './ai';
 
 // Note: Schema initialization is now handled by DocumentProvider
@@ -30,13 +31,13 @@ function App() {
     description,
     schemas,
     deployables,
+    schemaGroups,
     updateNode,
     setTitle,
     setDescription,
-    setSchemas,
-    setDeployables,
   } = useDocument();
   const [importPreview, setImportPreview] = useState<{ data: CartaFile; analysis: ImportAnalysis } | null>(null);
+  const [pendingImport, setPendingImport] = useState<{ data: CartaFile; config: ImportConfig; schemasToImport: ConstructSchema[] } | null>(null);
   const [exportPreview, setExportPreview] = useState<ExportAnalysis | null>(null);
   const [compileOutput, setCompileOutput] = useState<string | null>(null);
   const [_selectedNodes, setSelectedNodes] = useState<Node[]>([]);
@@ -46,7 +47,6 @@ function App() {
   const [aiSidebarWidth] = useState(400);
   const nodesEdgesRef = useRef<{ nodes: Node[]; edges: Edge[] }>({ nodes: [], edges: [] });
   const containerRef = useRef<HTMLDivElement>(null);
-  const importRef = useRef<((nodes: Node[], edges: Edge[]) => void) | null>(null);
   const { clearDocument } = useClearDocument();
 
   // Initialize refs on mount
@@ -69,6 +69,19 @@ function App() {
     return unsubscribe;
   }, [adapter]);
 
+  // Process pending import in useEffect to stay within React's lifecycle
+  useEffect(() => {
+    if (!pendingImport) return;
+
+    const { data, config, schemasToImport } = pendingImport;
+
+    // Clear the pending flag first
+    setPendingImport(null);
+
+    // Call pure function - no hooks, just adapter manipulation
+    importDocument(adapter, data, config, schemasToImport);
+  }, [pendingImport, adapter]);
+
   // No-op for compatibility with existing props
   const refreshDeployables = useCallback(() => {
     // Deployables now update automatically via useDocument
@@ -89,12 +102,14 @@ function App() {
 
   const handleExport = useCallback(() => {
     const { nodes, edges } = nodesEdgesRef.current;
-    const analysis = analyzeExport(title, nodes, edges, deployables, schemas);
+    const portSchemas = adapter.getPortSchemas();
+    const analysis = analyzeExport(title, description, nodes, edges, deployables, schemas, portSchemas, schemaGroups);
     setExportPreview(analysis);
-  }, [title, deployables, schemas]);
+  }, [title, description, deployables, schemas, schemaGroups, adapter]);
 
   const handleExportConfirm = useCallback((options: ExportOptions) => {
     const { nodes, edges } = nodesEdgesRef.current;
+    const portSchemas = adapter.getPortSchemas();
     // Ensure all nodes have semanticIds before export
     const nodesWithSemanticIds = nodes.map(node => {
       const nodeData = node.data as ConstructValues & { constructType?: string; semanticId?: string };
@@ -118,10 +133,12 @@ function App() {
       edges,
       deployables,
       customSchemas: schemas,
+      portSchemas,
+      schemaGroups,
     }, options);
 
     setExportPreview(null);
-  }, [title, description, deployables, schemas]);
+  }, [title, description, deployables, schemas, schemaGroups, adapter]);
 
   const handleExportCancel = useCallback(() => {
     setExportPreview(null);
@@ -150,59 +167,25 @@ function App() {
   const handleImportConfirm = useCallback((options: ImportOptions) => {
     if (!importPreview) return;
 
-    const { data } = importPreview;
+    const { data, analysis } = importPreview;
 
-    // Clear existing document state before importing (like Excalidraw)
-    // Use transaction for atomic update
-    adapter.transaction(() => {
-      adapter.setNodes([]);
-      adapter.setEdges([]);
-      adapter.setSchemas([]);
-      adapter.setDeployables([]);
-      adapter.setPortSchemas([]);
-    });
+    // Get schemas that will be imported (needed for edge normalization)
+    const schemasToImport = analysis.schemas.items
+      .filter(s => options.schemas.has(s.item.type))
+      .map(s => s.item);
 
-    // Set title and description from imported file
-    if (data.title) {
-      setTitle(data.title);
-    }
-    if (data.description) {
-      setDescription(data.description);
-    }
+    // Convert ImportOptions to ImportConfig
+    const config: ImportConfig = {
+      schemas: options.schemas,
+      nodes: options.nodes,
+      deployables: options.deployables,
+    };
 
-    // Import selected schemas
-    if (options.schemas.size > 0 && data.customSchemas.length > 0) {
-      const schemasToImport = data.customSchemas.filter(s => options.schemas.has(s.type));
-      if (schemasToImport.length > 0) {
-        setSchemas(schemasToImport);
-      }
-    }
-
-    // Import selected deployables
-    if (options.deployables.size > 0 && data.deployables.length > 0) {
-      const deployablesToImport = data.deployables.filter(d => options.deployables.has(d.id));
-      if (deployablesToImport.length > 0) {
-        setDeployables(deployablesToImport);
-      }
-    }
-
-    // Import selected nodes and edges
-    if (options.nodes.size > 0 && data.nodes.length > 0 && importRef.current) {
-      const nodesToImport = data.nodes.filter(n => options.nodes.has(n.id));
-      // Filter edges to only include those between imported nodes
-      const importedNodeIds = new Set(nodesToImport.map(n => n.id));
-      const edgesToImport = data.edges.filter(
-        e => importedNodeIds.has(e.source) && importedNodeIds.has(e.target)
-      );
-
-      if (nodesToImport.length > 0) {
-        importRef.current(nodesToImport, edgesToImport);
-      }
-    }
-
-    // Close the modal
+    // Set pending import flag and close modal
+    // The actual import will happen in useEffect
+    setPendingImport({ data, config, schemasToImport });
     setImportPreview(null);
-  }, [importPreview, adapter, setTitle, setDescription, setSchemas, setDeployables]);
+  }, [importPreview]);
 
   const handleImportCancel = useCallback(() => {
     setImportPreview(null);
@@ -257,7 +240,6 @@ function App() {
               onNodesEdgesChange={handleNodesEdgesChange}
               onSelectionChange={handleSelectionChange}
               onNodeDoubleClick={handleNodeDoubleClick}
-              importRef={importRef}
             />
           </ReactFlowProvider>
         </div>
@@ -286,7 +268,6 @@ function App() {
         <ExportPreviewModal
           analysis={exportPreview}
           edges={nodesEdgesRef.current.edges}
-          portSchemas={adapter.getPortSchemas()}
           onConfirm={handleExportConfirm}
           onCancel={handleExportCancel}
         />

@@ -224,6 +224,11 @@ export default function ImportPreviewModal({
 
         {/* Content */}
         <div className="p-4 overflow-y-auto flex-1">
+          {/* Description if present */}
+          {analysis.description && (
+            <p className="text-sm text-content-muted mb-4">{analysis.description}</p>
+          )}
+
           {/* Conflict warning */}
           {analysis.hasConflicts && (
             <div className="flex items-start gap-3 mb-4 p-3 bg-amber-50 rounded-lg border border-amber-200">
@@ -431,6 +436,33 @@ export default function ImportPreviewModal({
                 </div>
               )}
             </div>
+
+            {/* Read-only info: Port Schemas, Schema Groups, Edges */}
+            {(analysis.portSchemas.count > 0 || analysis.schemaGroups.count > 0 || analysis.edges.count > 0) && (
+              <div className="bg-surface-depth-2 rounded-lg p-3">
+                <div className="text-xs text-content-muted uppercase tracking-wide mb-2">Also Included</div>
+                <div className="flex flex-wrap gap-3 text-sm">
+                  {analysis.portSchemas.count > 0 && (
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2 h-2 rounded-full bg-violet-400" />
+                      <span className="text-content">{analysis.portSchemas.count} port type{analysis.portSchemas.count !== 1 ? 's' : ''}</span>
+                    </div>
+                  )}
+                  {analysis.schemaGroups.count > 0 && (
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2 h-2 rounded-full bg-blue-400" />
+                      <span className="text-content">{analysis.schemaGroups.count} schema group{analysis.schemaGroups.count !== 1 ? 's' : ''}</span>
+                    </div>
+                  )}
+                  {analysis.edges.count > 0 && (
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2 h-2 rounded-full bg-slate-400" />
+                      <span className="text-content">{analysis.edges.count} connection{analysis.edges.count !== 1 ? 's' : ''}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

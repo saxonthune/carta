@@ -2,13 +2,12 @@ import { useState, useMemo } from 'react';
 import type { Edge } from '@xyflow/react';
 import type { ExportAnalysis, ExportOptions } from '../utils/exportAnalyzer';
 import { defaultExportOptions } from '../utils/exportAnalyzer';
-import type { ConstructSchema, PortSchema } from '../constructs/types';
+import type { ConstructSchema } from '../constructs/types';
 import { CARTA_FILE_VERSION, type CartaFile } from '../utils/cartaFile';
 
 interface ExportPreviewModalProps {
   analysis: ExportAnalysis;
   edges: Edge[];
-  portSchemas: PortSchema[];
   onConfirm: (options: ExportOptions) => void;
   onCancel: () => void;
 }
@@ -31,34 +30,37 @@ function SchemaItem({ schema }: { schema: ConstructSchema }) {
 export default function ExportPreviewModal({
   analysis,
   edges,
-  portSchemas,
   onConfirm,
   onCancel,
 }: ExportPreviewModalProps) {
   const [options, setOptions] = useState<ExportOptions>(defaultExportOptions);
   const [schemasExpanded, setSchemasExpanded] = useState(false);
+  const [portSchemasExpanded, setPortSchemasExpanded] = useState(false);
+  const [schemaGroupsExpanded, setSchemaGroupsExpanded] = useState(false);
   const [showRawPreview, setShowRawPreview] = useState(false);
 
   const handleToggle = (key: keyof ExportOptions) => {
     setOptions(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const hasSelectedAnything = options.schemas || options.nodes || options.deployables;
+  const hasSelectedAnything = options.schemas || options.nodes || options.deployables || options.portSchemas || options.schemaGroups;
 
   // Generate the raw CartaFile JSON for preview
   const rawJson = useMemo(() => {
     const cartaFile: CartaFile = {
       version: CARTA_FILE_VERSION,
       title: analysis.title,
+      description: analysis.description || undefined,
       nodes: options.nodes ? analysis.nodes.items : [],
       edges: options.nodes ? edges : [],
       deployables: options.deployables ? analysis.deployables.items : [],
       customSchemas: options.schemas ? analysis.schemas.items : [],
-      portSchemas: portSchemas,
+      portSchemas: options.portSchemas ? analysis.portSchemas.items : [],
+      schemaGroups: options.schemaGroups ? analysis.schemaGroups.items : [],
       exportedAt: new Date().toISOString(),
     };
     return JSON.stringify(cartaFile, null, 2);
-  }, [analysis, edges, portSchemas, options]);
+  }, [analysis, edges, options]);
 
   return (
     <div
@@ -177,6 +179,124 @@ export default function ExportPreviewModal({
                     </span>
                   </div>
                 </label>
+              </div>
+
+              {/* Port Schemas */}
+              <div className="border rounded-lg overflow-hidden">
+                <label className="flex items-center gap-3 p-3 cursor-pointer hover:bg-surface-alt">
+                  <input
+                    type="checkbox"
+                    checked={options.portSchemas}
+                    onChange={() => handleToggle('portSchemas')}
+                    disabled={analysis.portSchemas.count === 0}
+                    className="w-4 h-4 accent-accent"
+                  />
+                  <div className="flex-1 flex items-center justify-between">
+                    <span className="text-content font-medium">Port Schemas</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-content-muted text-sm">
+                        ({analysis.portSchemas.count})
+                      </span>
+                      {analysis.portSchemas.count > 0 && (
+                        <button
+                          type="button"
+                          className="p-1 hover:bg-surface-alt rounded"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setPortSchemasExpanded(!portSchemasExpanded);
+                          }}
+                        >
+                          <svg
+                            className={`w-4 h-4 text-content-muted transition-transform ${portSchemasExpanded ? 'rotate-180' : ''}`}
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                          >
+                            <polyline points="6 9 12 15 18 9" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </label>
+                {portSchemasExpanded && analysis.portSchemas.items.length > 0 && (
+                  <div className="border-t bg-surface-alt/50">
+                    {analysis.portSchemas.items.map((portSchema) => (
+                      <div key={portSchema.id} className="flex items-center justify-between py-1.5 px-2 text-sm">
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: portSchema.color }}
+                          />
+                          <span className="text-content">{portSchema.displayName}</span>
+                          <span className="text-content-muted text-xs">({portSchema.polarity})</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Schema Groups */}
+              <div className="border rounded-lg overflow-hidden">
+                <label className="flex items-center gap-3 p-3 cursor-pointer hover:bg-surface-alt">
+                  <input
+                    type="checkbox"
+                    checked={options.schemaGroups}
+                    onChange={() => handleToggle('schemaGroups')}
+                    disabled={analysis.schemaGroups.count === 0}
+                    className="w-4 h-4 accent-accent"
+                  />
+                  <div className="flex-1 flex items-center justify-between">
+                    <span className="text-content font-medium">Schema Groups</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-content-muted text-sm">
+                        ({analysis.schemaGroups.count})
+                      </span>
+                      {analysis.schemaGroups.count > 0 && (
+                        <button
+                          type="button"
+                          className="p-1 hover:bg-surface-alt rounded"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setSchemaGroupsExpanded(!schemaGroupsExpanded);
+                          }}
+                        >
+                          <svg
+                            className={`w-4 h-4 text-content-muted transition-transform ${schemaGroupsExpanded ? 'rotate-180' : ''}`}
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                          >
+                            <polyline points="6 9 12 15 18 9" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </label>
+                {schemaGroupsExpanded && analysis.schemaGroups.items.length > 0 && (
+                  <div className="border-t bg-surface-alt/50">
+                    {analysis.schemaGroups.items.map((group) => (
+                      <div key={group.id} className="flex items-center justify-between py-1.5 px-2 text-sm">
+                        <div className="flex items-center gap-2">
+                          {group.color && (
+                            <div
+                              className="w-3 h-3 rounded-full"
+                              style={{ backgroundColor: group.color }}
+                            />
+                          )}
+                          <span className="text-content">{group.name}</span>
+                          {group.parentId && (
+                            <span className="text-content-muted text-xs">(nested)</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}

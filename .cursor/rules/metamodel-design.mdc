@@ -226,8 +226,10 @@ DisplayHint only affects rendering, not data storage. A `string` field with `dis
 ### 4. Description for AI Context
 The `description` field on both schemas and field definitions provides context for AI compilation. Use it to explain what the field represents semantically.
 
-### 5. Semantic ID is Primary Identifier
-`semanticId` is always required and serves as the primary identifier for constructs. Generated automatically with pattern `{type}-{timestamp}{random}`.
+### 5. Dual Identity System
+Construct instances use two separate identifiers:
+- **Technical ID** (`Node.id`): Immutable UUID from `crypto.randomUUID()`, used internally by React Flow and Yjs as the Y.Map key. Never exposed to users, never changes.
+- **Semantic ID** (`semanticId`): Human/AI-readable identifier used in connections and compilation. Generated as `{type}-{timestamp}{random}` (e.g., "controller-1738004567abc"). Can be changed by users, which triggers cascade updates to all referencing connections (see `yjsAdapter.ts:350-377`).
 
 ## Child Construct Patterns
 

@@ -1,7 +1,8 @@
 import { useCallback } from 'react';
-import { useReactFlow, addEdge, type Node } from '@xyflow/react';
+import { useReactFlow, useUpdateNodeInternals, type Node } from '@xyflow/react';
 import { useDocument } from './useDocument';
 import { generateSemanticId } from '../utils/cartaFile';
+import { getHandleType } from '../constructs/ports';
 import type { ConstructSchema, ConstructValues, ConnectionValue, ConstructNodeData } from '../constructs/types';
 
 interface UseGraphOperationsOptions {
@@ -25,8 +26,9 @@ export interface UseGraphOperationsResult {
 
 export function useGraphOperations(options: UseGraphOperationsOptions): UseGraphOperationsResult {
   const { selectedNodeIds, setSelectedNodeIds, setRenamingNodeId, setAddMenu } = options;
-  const { nodes, setNodes, setEdges, getNextNodeId, getSchema } = useDocument();
+  const { nodes, setNodes, setEdges, getNextNodeId, getSchema, updateNode } = useDocument();
   const { screenToFlowPosition } = useReactFlow();
+  const updateNodeInternals = useUpdateNodeInternals();
 
   const addConstruct = useCallback(
     (schema: ConstructSchema, x: number, y: number) => {
@@ -50,12 +52,12 @@ export function useGraphOperations(options: UseGraphOperationsOptions): UseGraph
           constructType: schema.type,
           semanticId,
           values,
-          isExpanded: true,
+          isExpanded: false,
         },
       };
       setNodes((nds) => [...nds, newNode]);
     },
-    [setNodes, screenToFlowPosition, , getNextNodeId]
+    [setNodes, screenToFlowPosition, getNextNodeId]
   );
 
   // Add a related construct near the source node and optionally connect them
@@ -91,50 +93,77 @@ export function useGraphOperations(options: UseGraphOperationsOptions): UseGraph
           constructType: schema.type,
           semanticId,
           values,
-          isExpanded: true,
+          isExpanded: false,
         },
       };
 
       // If both ports are specified, create connection using explicit pair
       if (fromPortId && toPortId) {
-        // Create the connection on the source node
+        // Determine edge direction based on port polarity
+        // React Flow edges must go from type="source" handle to type="target" handle
+        // getHandleType returns 'source' for source/bidirectional polarity, 'target' for sink polarity
+        const sourceData = sourceNode.data as ConstructNodeData;
+        const sourceSchema = getSchema(sourceData.constructType);
+        const sourcePort = sourceSchema?.ports?.find(p => p.id === fromPortId);
+        const fromHandleType = sourcePort ? getHandleType(sourcePort.portType) : 'source';
+
+        // If fromPort is a target handle (sink polarity), we need to flip the edge direction
+        // The "from" node becomes the edge target, and the new node becomes the edge source
+        const edgeFlipped = fromHandleType === 'target';
+
+        // Connection data always records the semantic relationship (from original source's perspective)
         const newConnection: ConnectionValue = {
           portId: fromPortId,
           targetSemanticId: semanticId,
           targetPortId: toPortId,
         };
 
-        // Also create an edge for visual rendering
-        setNodes((nds) => [
-          ...nds.map(n => {
-            if (n.id === sourceNodeId && n.type === 'construct') {
-              const data = n.data as ConstructNodeData;
-              return {
-                ...n,
-                data: {
-                  ...data,
-                  connections: [...(data.connections || []), newConnection],
-                },
-              };
-            }
-            return n;
-          }),
-          newNode,
-        ]);
-        setEdges((eds) => addEdge({
-          id: `edge-${sourceNodeId}-${fromPortId}-${id}-${toPortId}`,
-          source: sourceNodeId,
-          target: id,
-          sourceHandle: fromPortId,
-          targetHandle: toPortId,
-        }, eds));
+        // Step 1: Add ONLY the new node (don't touch existing nodes)
+        // This preserves React Flow's handle registrations on existing nodes
+        setNodes((nds) => [...nds, newNode]);
+
+        // Step 2: Update source node's connections via surgical update
+        // This uses Yjs's updateNode which doesn't clear/replace, preserving handles
+        updateNode(sourceNodeId, {
+          connections: [...(sourceData.connections || []), newConnection],
+        });
+
+        // Step 3: Create the edge after React Flow has rendered the new node
+        // Use requestAnimationFrame to wait for browser paint + React Flow update
+        requestAnimationFrame(() => {
+          // Update internals for both nodes to ensure handles are registered
+          updateNodeInternals([sourceNodeId, id]);
+
+          // Create edge on next frame after internals are updated
+          requestAnimationFrame(() => {
+            // Edge direction depends on port polarity
+            const edge = edgeFlipped
+              ? {
+                  // Flipped: new node is source, original node is target
+                  id: `edge-${id}-${toPortId}-${sourceNodeId}-${fromPortId}`,
+                  source: id,
+                  target: sourceNodeId,
+                  sourceHandle: toPortId,
+                  targetHandle: fromPortId,
+                }
+              : {
+                  // Normal: original node is source, new node is target
+                  id: `edge-${sourceNodeId}-${fromPortId}-${id}-${toPortId}`,
+                  source: sourceNodeId,
+                  target: id,
+                  sourceHandle: fromPortId,
+                  targetHandle: toPortId,
+                };
+            setEdges((eds) => [...eds, edge]);
+          });
+        });
         return;
       }
 
       // If no ports specified, just add the node
       setNodes((nds) => [...nds, newNode]);
     },
-    [nodes, setNodes, setEdges, , getNextNodeId, getSchema]
+    [nodes, setNodes, setEdges, getNextNodeId, getSchema, updateNodeInternals, updateNode]
   );
 
   const addNode = useCallback(
@@ -156,7 +185,7 @@ export function useGraphOperations(options: UseGraphOperationsOptions): UseGraph
       );
       setSelectedNodeIds((ids) => ids.filter((id) => id !== nodeIdToDelete));
     },
-    [setNodes, setEdges, , setSelectedNodeIds]
+    [setNodes, setEdges, setSelectedNodeIds]
   );
 
   const deleteSelectedNodes = useCallback(() => {
@@ -167,7 +196,7 @@ export function useGraphOperations(options: UseGraphOperationsOptions): UseGraph
       eds.filter((e) => !idsToDelete.has(e.source) && !idsToDelete.has(e.target))
     );
     setSelectedNodeIds([]);
-  }, [selectedNodeIds, setNodes, setEdges, , setSelectedNodeIds]);
+  }, [selectedNodeIds, setNodes, setEdges, setSelectedNodeIds]);
 
   const renameNode = useCallback(
     (nodeIdToRename: string, newSemanticId: string) => {

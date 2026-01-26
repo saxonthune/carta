@@ -13,6 +13,13 @@ export interface RelatedConstructOption {
   groupId?: string;
 }
 
+export interface ConstructOption {
+  constructType: string;
+  displayName: string;
+  color: string;
+  groupId?: string;
+}
+
 // Delay before closing submenus (allows diagonal mouse movement)
 const SUBMENU_CLOSE_DELAY = 100;
 
@@ -24,8 +31,10 @@ interface ContextMenuProps {
   edgeId?: string;
   selectedCount: number;
   relatedConstructs?: RelatedConstructOption[];
+  constructOptions?: ConstructOption[];
   schemaGroups?: SchemaGroup[];
   onAddNode: (x: number, y: number) => void;
+  onAddConstruct?: (constructType: string, x: number, y: number) => void;
   onDeleteNode: (nodeId: string) => void;
   onDeleteSelected: () => void;
   onDeleteEdge?: (edgeId: string) => void;
@@ -50,8 +59,10 @@ export default function ContextMenu({
   edgeId,
   selectedCount,
   relatedConstructs,
+  constructOptions,
   schemaGroups = [],
   onAddNode,
+  onAddConstruct,
   onDeleteNode,
   onDeleteSelected,
   onDeleteEdge,
@@ -63,15 +74,21 @@ export default function ContextMenu({
 }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const [showRelatedSubmenu, setShowRelatedSubmenu] = useState(false);
+  const [showConstructSubmenu, setShowConstructSubmenu] = useState(false);
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
+  const [expandedConstructGroup, setExpandedConstructGroup] = useState<string | null>(null);
   const relatedSubmenuTimeout = useRef<number | null>(null);
+  const constructSubmenuTimeout = useRef<number | null>(null);
   const groupSubmenuTimeout = useRef<number | null>(null);
+  const constructGroupSubmenuTimeout = useRef<number | null>(null);
 
   // Clear timeouts on unmount
   useEffect(() => {
     return () => {
       if (relatedSubmenuTimeout.current) clearTimeout(relatedSubmenuTimeout.current);
+      if (constructSubmenuTimeout.current) clearTimeout(constructSubmenuTimeout.current);
       if (groupSubmenuTimeout.current) clearTimeout(groupSubmenuTimeout.current);
+      if (constructGroupSubmenuTimeout.current) clearTimeout(constructGroupSubmenuTimeout.current);
     };
   }, []);
 
@@ -90,6 +107,21 @@ export default function ContextMenu({
     }, SUBMENU_CLOSE_DELAY);
   }, []);
 
+  const handleConstructSubmenuEnter = useCallback(() => {
+    if (constructSubmenuTimeout.current) {
+      clearTimeout(constructSubmenuTimeout.current);
+      constructSubmenuTimeout.current = null;
+    }
+    setShowConstructSubmenu(true);
+  }, []);
+
+  const handleConstructSubmenuLeave = useCallback(() => {
+    constructSubmenuTimeout.current = window.setTimeout(() => {
+      setShowConstructSubmenu(false);
+      setExpandedConstructGroup(null);
+    }, SUBMENU_CLOSE_DELAY);
+  }, []);
+
   const handleGroupEnter = useCallback((groupId: string) => {
     if (groupSubmenuTimeout.current) {
       clearTimeout(groupSubmenuTimeout.current);
@@ -101,6 +133,20 @@ export default function ContextMenu({
   const handleGroupLeave = useCallback(() => {
     groupSubmenuTimeout.current = window.setTimeout(() => {
       setExpandedGroup(null);
+    }, SUBMENU_CLOSE_DELAY);
+  }, []);
+
+  const handleConstructGroupEnter = useCallback((groupId: string) => {
+    if (constructGroupSubmenuTimeout.current) {
+      clearTimeout(constructGroupSubmenuTimeout.current);
+      constructGroupSubmenuTimeout.current = null;
+    }
+    setExpandedConstructGroup(groupId);
+  }, []);
+
+  const handleConstructGroupLeave = useCallback(() => {
+    constructGroupSubmenuTimeout.current = window.setTimeout(() => {
+      setExpandedConstructGroup(null);
     }, SUBMENU_CLOSE_DELAY);
   }, []);
 
@@ -138,8 +184,48 @@ export default function ContextMenu({
     return result;
   }, [relatedConstructs, schemaGroups]);
 
+  // Group construct options by their groupId
+  interface GroupedConstructs {
+    group: SchemaGroup | null;
+    items: ConstructOption[];
+  }
+
+  const groupedConstructs = useMemo((): GroupedConstructs[] => {
+    if (!constructOptions || constructOptions.length === 0) return [];
+
+    const groupMap = new Map<string | null, ConstructOption[]>();
+
+    // Build lookup for groups
+    const groupLookup = new Map(schemaGroups.map(g => [g.id, g]));
+
+    for (const item of constructOptions) {
+      const key = item.groupId || null;
+      if (!groupMap.has(key)) {
+        groupMap.set(key, []);
+      }
+      groupMap.get(key)!.push(item);
+    }
+
+    // Convert to array, with grouped items first, then ungrouped
+    const result: GroupedConstructs[] = [];
+    for (const [groupId, items] of groupMap) {
+      if (groupId) {
+        const group = groupLookup.get(groupId) || null;
+        result.push({ group, items });
+      }
+    }
+    // Add ungrouped items at the end
+    const ungrouped = groupMap.get(null);
+    if (ungrouped) {
+      result.push({ group: null, items: ungrouped });
+    }
+
+    return result;
+  }, [constructOptions, schemaGroups]);
+
   // Determine if we need nested submenus (multiple groups)
   const hasMultipleGroups = groupedRelated.length > 1 || (groupedRelated.length === 1 && groupedRelated[0].group !== null);
+  const hasMultipleConstructGroups = groupedConstructs.length > 1 || (groupedConstructs.length === 1 && groupedConstructs[0].group !== null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -193,8 +279,16 @@ export default function ContextMenu({
     onClose();
   }, [onAddRelatedConstruct, onClose]);
 
+  const handleAddConstruct = useCallback((constructType: string) => {
+    if (onAddConstruct) {
+      onAddConstruct(constructType, x, y);
+    }
+    onClose();
+  }, [onAddConstruct, x, y, onClose]);
+
   const showMultipleSelected = selectedCount > 1;
   const hasRelatedConstructs = relatedConstructs && relatedConstructs.length > 0;
+  const hasConstructOptions = constructOptions && constructOptions.length > 0;
 
   return (
     <div
@@ -204,12 +298,86 @@ export default function ContextMenu({
     >
       {type === 'pane' && (
         <>
-          <button
-            className="block w-full px-4 py-2.5 border-none bg-white text-gray-800 text-sm text-left cursor-pointer hover:bg-gray-100 transition-colors"
-            onClick={handleAddNode}
-          >
-            + Add Node Here
-          </button>
+          {hasConstructOptions ? (
+            <div
+              className="relative"
+              onMouseEnter={handleConstructSubmenuEnter}
+              onMouseLeave={handleConstructSubmenuLeave}
+            >
+              <button
+                className="block w-full px-4 py-2.5 border-none bg-white text-gray-800 text-sm text-left cursor-pointer hover:bg-gray-100 transition-colors flex items-center justify-between"
+              >
+                <span>Add Node Here {constructOptions!.length > 0 ? `(${constructOptions!.length})` : ''}</span>
+                <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </button>
+              {showConstructSubmenu && (
+                <div className="absolute left-full top-0 bg-white rounded-lg shadow-lg min-w-[180px]">
+                  {hasMultipleConstructGroups ? (
+                    // Render grouped submenus
+                    groupedConstructs.map((groupData, groupIndex) => {
+                      const groupKey = groupData.group?.id || 'ungrouped';
+                      return (
+                        <div
+                          key={groupKey}
+                          className="relative"
+                          onMouseEnter={() => handleConstructGroupEnter(groupKey)}
+                          onMouseLeave={handleConstructGroupLeave}
+                        >
+                          <button
+                            className="block w-full px-4 py-2.5 border-none bg-white text-gray-800 text-sm text-left cursor-pointer hover:bg-gray-100 transition-colors flex items-center justify-between"
+                            style={groupData.group ? { borderLeft: `3px solid ${groupData.group.color}` } : undefined}
+                          >
+                            <span>{groupData.group?.name || 'Other'} ({groupData.items.length})</span>
+                            <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <polyline points="9 18 15 12 9 6" />
+                            </svg>
+                          </button>
+                          {expandedConstructGroup === groupKey && (
+                            <div className="absolute left-full top-0 bg-white rounded-lg shadow-lg min-w-[180px]">
+                              {groupData.items.map((construct, index) => (
+                                <button
+                                  key={index}
+                                  className="block w-full px-4 py-2.5 border-none border-l-[3px] border-l-transparent bg-white text-gray-800 text-sm text-left cursor-pointer hover:bg-gray-100 transition-colors"
+                                  style={{ borderLeftColor: construct.color }}
+                                  onClick={() => handleAddConstruct(construct.constructType)}
+                                >
+                                  {construct.displayName}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                          {groupIndex < groupedConstructs.length - 1 && (
+                            <div className="border-t border-gray-100 my-0.5" />
+                          )}
+                        </div>
+                      );
+                    })
+                  ) : (
+                    // Render flat list (no groups or single ungrouped set)
+                    constructOptions!.map((construct, index) => (
+                      <button
+                        key={index}
+                        className="block w-full px-4 py-2.5 border-none border-l-[3px] border-l-transparent bg-white text-gray-800 text-sm text-left cursor-pointer hover:bg-gray-100 transition-colors"
+                        style={{ borderLeftColor: construct.color }}
+                        onClick={() => handleAddConstruct(construct.constructType)}
+                      >
+                        {construct.displayName}
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            <button
+              className="block w-full px-4 py-2.5 border-none bg-white text-gray-800 text-sm text-left cursor-pointer hover:bg-gray-100 transition-colors"
+              onClick={handleAddNode}
+            >
+              + Add Node Here
+            </button>
+          )}
           {canPaste && (
             <button
               className="block w-full px-4 py-2.5 border-none bg-white text-gray-800 text-sm text-left cursor-pointer hover:bg-gray-100 transition-colors"

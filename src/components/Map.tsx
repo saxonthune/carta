@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useMemo } from 'react';
 import {
   ReactFlow,
   Controls,
@@ -64,11 +64,10 @@ export interface MapProps {
   onNodesEdgesChange: (nodes: Node[], edges: Edge[]) => void;
   onSelectionChange?: (selectedNodes: Node[]) => void;
   onNodeDoubleClick?: (nodeId: string) => void;
-  importRef?: React.MutableRefObject<((nodes: Node[], edges: Edge[]) => void) | null>;
 }
 
-export default function Map({ deployables, onDeployablesChange, title, onNodesEdgesChange, onSelectionChange, onNodeDoubleClick, importRef }: MapProps) {
-  const { nodes, edges, setNodes, setEdges, getNextNodeId, getSchema } = useDocument();
+export default function Map({ deployables, onDeployablesChange, title, onNodesEdgesChange, onSelectionChange, onNodeDoubleClick }: MapProps) {
+  const { nodes, edges, setNodes, setEdges, getSchema } = useDocument();
   const { adapter } = useDocumentContext();
   const schemaGroups = adapter.getSchemaGroups();
 
@@ -86,6 +85,9 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
   const [renamingNodeId, setRenamingNodeId] = useState<string | null>(null);
   const { undo, redo, canUndo, canRedo } = useUndoRedo();
+
+  // Track mouse movement for context menu detection
+  const [mouseDownPos, setMouseDownPos] = useState<{ x: number; y: number } | null>(null);
 
   // Suppress unused variable warnings - these are passed through for compatibility
   void onDeployablesChange;
@@ -139,54 +141,8 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     startRename,
   });
 
-  // Import nodes and edges with ID remapping
-  const handleImportNodes = useCallback(
-    (importedNodes: Node[], importedEdges: Edge[]) => {
-      // Build a mapping from old node IDs to new ones
-      const idMap: Record<string, string> = {};
-      const newNodes: Node[] = [];
-
-      // Create new IDs for imported nodes
-      importedNodes.forEach((node) => {
-        const newId = getNextNodeId();
-        idMap[node.id] = newId;
-
-        // Remap the node's position and data, preserving semanticId and connections
-        const newNode: Node = {
-          ...node,
-          id: newId,
-          position: {
-            x: (node.position?.x || 0) + 50, // Slight offset to avoid overlap
-            y: (node.position?.y || 0) + 50,
-          },
-        };
-
-        newNodes.push(newNode);
-      });
-
-      // Remap edges to use new node IDs
-      const newEdges: Edge[] = importedEdges.map((edge) => ({
-        ...edge,
-        id: `edge-${Math.random()}`, // Generate new edge IDs
-        source: idMap[edge.source] || edge.source,
-        target: idMap[edge.target] || edge.target,
-      }));
-
-      // Merge with existing nodes and edges
-      setNodes((nds) => [...nds, ...newNodes]);
-      setEdges((eds) => [...eds, ...newEdges]);
-    },
-    [setNodes, setEdges, getNextNodeId]
-  );
-
-  // Set the import ref so parent can call this function
-  useEffect(() => {
-    if (importRef) {
-      importRef.current = handleImportNodes;
-    }
-  }, [importRef, handleImportNodes]);
-
   // Note: localStorage persistence is now handled by the document store's subscriber
+  // Note: Import is now handled directly in App.tsx via adapter to avoid hook issues
 
   // Notify parent of nodes/edges changes for export
   useEffect(() => {
@@ -223,6 +179,17 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     [nodes, getSchema]
   );
 
+  // Get all construct options for pane menu
+  const { schemas } = useDocument();
+  const allConstructOptions = useMemo(() => {
+    return schemas.map(schema => ({
+      constructType: schema.type,
+      displayName: schema.displayName,
+      color: schema.color,
+      groupId: schema.groupId,
+    }));
+  }, [schemas]);
+
   // Context menu specific edge deletion
   const deleteEdge = useCallback(
     (edgeIdToDelete: string) => {
@@ -235,6 +202,17 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
       }
     },
     [edges, setEdges, handleEdgesDelete]
+  );
+
+  // Handle adding construct from pane context menu
+  const handleAddConstructFromMenu = useCallback(
+    (constructType: string, x: number, y: number) => {
+      const schema = getSchema(constructType);
+      if (schema) {
+        addConstruct(schema, x, y);
+      }
+    },
+    [getSchema, addConstruct]
   );
 
   const handleSelectionChange = useCallback(
@@ -266,40 +244,104 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
   const onPaneContextMenu = useCallback(
     (event: MouseEvent | React.MouseEvent) => {
       event.preventDefault();
-      setContextMenu({
-        x: event.clientX,
-        y: event.clientY,
-        type: 'pane',
-      });
+
+      // Only show context menu if mouse hasn't moved significantly
+      // If mouseDownPos is null, show menu anyway (event timing edge case)
+      let shouldShowMenu = true;
+
+      if (mouseDownPos) {
+        const dx = Math.abs(event.clientX - mouseDownPos.x);
+        const dy = Math.abs(event.clientY - mouseDownPos.y);
+        const threshold = 5; // pixels
+
+        if (dx >= threshold || dy >= threshold) {
+          shouldShowMenu = false;
+        }
+      }
+
+      if (shouldShowMenu) {
+        setContextMenu({
+          x: event.clientX,
+          y: event.clientY,
+          type: 'pane',
+        });
+      }
+
+      setMouseDownPos(null);
     },
-    []
+    [mouseDownPos]
   );
 
   const onNodeContextMenu = useCallback(
     (event: React.MouseEvent, node: Node) => {
       event.preventDefault();
-      setContextMenu({
-        x: event.clientX,
-        y: event.clientY,
-        type: 'node',
-        nodeId: node.id,
-      });
+
+      // Only show context menu if mouse hasn't moved significantly
+      // If mouseDownPos is null, show menu anyway (event timing edge case)
+      let shouldShowMenu = true;
+
+      if (mouseDownPos) {
+        const dx = Math.abs(event.clientX - mouseDownPos.x);
+        const dy = Math.abs(event.clientY - mouseDownPos.y);
+        const threshold = 5; // pixels
+
+        if (dx >= threshold || dy >= threshold) {
+          shouldShowMenu = false;
+        }
+      }
+
+      if (shouldShowMenu) {
+        setContextMenu({
+          x: event.clientX,
+          y: event.clientY,
+          type: 'node',
+          nodeId: node.id,
+        });
+      }
+
+      setMouseDownPos(null);
     },
-    []
+    [mouseDownPos]
   );
 
   const onEdgeContextMenu = useCallback(
     (event: React.MouseEvent, edge: Edge) => {
       event.preventDefault();
-      setContextMenu({
-        x: event.clientX,
-        y: event.clientY,
-        type: 'edge',
-        edgeId: edge.id,
-      });
+
+      // Only show context menu if mouse hasn't moved significantly
+      // If mouseDownPos is null, show menu anyway (event timing edge case)
+      let shouldShowMenu = true;
+
+      if (mouseDownPos) {
+        const dx = Math.abs(event.clientX - mouseDownPos.x);
+        const dy = Math.abs(event.clientY - mouseDownPos.y);
+        const threshold = 5; // pixels
+
+        if (dx >= threshold || dy >= threshold) {
+          shouldShowMenu = false;
+        }
+      }
+
+      if (shouldShowMenu) {
+        setContextMenu({
+          x: event.clientX,
+          y: event.clientY,
+          type: 'edge',
+          edgeId: edge.id,
+        });
+      }
+
+      setMouseDownPos(null);
     },
-    []
+    [mouseDownPos]
   );
+
+  const onMouseDown = useCallback((event: React.MouseEvent) => {
+    // Track mouse position on right-click
+    if (event.button === 2) {
+      setMouseDownPos({ x: event.clientX, y: event.clientY });
+    }
+  }, []);
 
   const closeContextMenu = useCallback(() => {
     setContextMenu(null);
@@ -315,6 +357,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     dragHandle: NODE_DRAG_HANDLE,
     data: {
       ...node.data,
+      nodeId: node.id, // Pass technical UUID for display
       isRenaming: node.id === renamingNodeId,
       onRename: (newName: string) => renameNode(node.id, newName),
       onValuesChange: (values: ConstructValues) => updateNodeValues(node.id, values),
@@ -340,6 +383,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
         onNodeContextMenu={onNodeContextMenu}
         onEdgeContextMenu={onEdgeContextMenu}
         onPaneClick={onPaneClick}
+        onMouseDown={onMouseDown}
         nodeTypes={nodeTypes}
         defaultEdgeOptions={defaultEdgeOptions}
         nodeDragThreshold={5}
@@ -401,8 +445,10 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
           edgeId={contextMenu.edgeId}
           selectedCount={selectedNodeIds.length}
           relatedConstructs={contextMenu.nodeId ? getRelatedConstructsForNode(contextMenu.nodeId) : undefined}
+          constructOptions={contextMenu.type === 'pane' ? allConstructOptions : undefined}
           schemaGroups={schemaGroups}
           onAddNode={addNode}
+          onAddConstruct={handleAddConstructFromMenu}
           onDeleteNode={deleteNode}
           onDeleteSelected={deleteSelectedNodes}
           onDeleteEdge={deleteEdge}

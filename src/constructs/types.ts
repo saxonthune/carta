@@ -174,10 +174,14 @@ export interface ConnectionValue {
 
 /**
  * Data stored in a React Flow node for constructs
+ *
+ * Identity: Nodes have TWO identifiers:
+ * - Node.id (UUID): Immutable technical key for React Flow and Yjs (not stored here, lives on Node object)
+ * - semanticId: Mutable, human/AI-readable identifier for connections and compilation
  */
 export interface ConstructNodeData {
   constructType: string;     // References ConstructSchema.type
-  semanticId: string;        // Primary identifier: 'controller-user-api'
+  semanticId: string;        // Human/AI-readable identifier (e.g., 'controller-user-api')
   values: ConstructValues;   // Field values
   deployableId?: string | null; // Deployable grouping (null/undefined means "none")
   groupId?: string;              // Visual canvas group (not compiled)
@@ -187,6 +191,7 @@ export interface ConstructNodeData {
   references?: string[];     // Semantic IDs this construct references
   referencedBy?: string[];   // Semantic IDs that reference this construct
   // UI state
+  nodeId?: string;           // Technical UUID (passed from Map for display purposes)
   isExpanded?: boolean;
   onValuesChange?: (values: ConstructValues) => void;
   onToggleExpand?: () => void;
