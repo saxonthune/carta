@@ -1,0 +1,12 @@
+services:
+  mongodb:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - carta-mongo-data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: carta
+
+volumes:
+  carta-mongo-data:

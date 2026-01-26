@@ -146,8 +146,10 @@ export function createWebSocketServer(httpServer: Server, documentService: Docum
           return;
         }
 
-        // Apply update
-        const updatedDoc = await documentService.updateDocument(documentId, patch);
+        // Apply update - extract only valid update fields
+        const { title, nodes, edges, deployables, customSchemas } = patch as Partial<Record<string, unknown>>;
+        const validPatch = { title, nodes, edges, deployables, customSchemas };
+        const updatedDoc = await documentService.updateDocument(documentId, validPatch as Parameters<typeof documentService.updateDocument>[1]);
         if (!updatedDoc) {
           sendMessage(ws, {
             type: 'error',

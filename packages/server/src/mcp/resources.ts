@@ -2,7 +2,7 @@
  * MCP Resource definitions and handlers for Carta guides
  */
 
-import { GUIDES, METAMODEL_GUIDE, ANALYSIS_GUIDE } from '@carta/core';
+import { GUIDES, METAMODEL_GUIDE, ANALYSIS_GUIDE } from './guides.js';
 
 /**
  * Resource definition for MCP

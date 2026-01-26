@@ -103,6 +103,11 @@ const CreateDeployableSchema = z.object({
 export function getToolDefinitions() {
   return [
     {
+      name: 'carta_list_active_rooms',
+      description: 'List rooms with active browser connections (Yjs collaboration mode only)',
+      inputSchema: z.object({}).shape,
+    },
+    {
       name: 'carta_list_documents',
       description: 'List all Carta documents',
       inputSchema: z.object({}).shape,
@@ -202,6 +207,7 @@ type ToolHandler = (args: Record<string, unknown>) => Promise<unknown>;
  * Tool handlers interface with specific tool names
  */
 export interface ToolHandlers {
+  carta_list_active_rooms: ToolHandler;
   carta_list_documents: ToolHandler;
   carta_get_document: ToolHandler;
   carta_create_document: ToolHandler;
@@ -223,10 +229,40 @@ export interface ToolHandlers {
 }
 
 /**
+ * Options for creating tool handlers
+ */
+export interface ToolHandlerOptions {
+  collabApiUrl?: string;
+}
+
+/**
  * Create tool handlers
  */
-export function createToolHandlers(documentService: DocumentService): ToolHandlers {
+export function createToolHandlers(
+  documentService: DocumentService,
+  options: ToolHandlerOptions = {}
+): ToolHandlers {
+  const collabApiUrl = options.collabApiUrl || process.env.CARTA_COLLAB_API_URL || 'http://localhost:1234';
+
   return {
+    carta_list_active_rooms: async () => {
+      try {
+        const response = await fetch(`${collabApiUrl}/rooms`);
+        if (!response.ok) {
+          return { error: `Failed to fetch rooms: ${response.statusText}` };
+        }
+        const { rooms } = (await response.json()) as {
+          rooms: Array<{ roomId: string; clientCount: number }>;
+        };
+        return { rooms };
+      } catch (error) {
+        return {
+          error: `Failed to connect to collab server at ${collabApiUrl}. Is it running?`,
+          hint: 'Start the collab server with: npm run collab-server',
+        };
+      }
+    },
+
     carta_list_documents: async () => {
       const documents = await documentService.listDocuments();
       return { documents };
