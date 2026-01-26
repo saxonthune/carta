@@ -4,6 +4,8 @@
  *
  * This server exposes Carta functionality via the Model Context Protocol,
  * allowing AI agents to read, analyze, and modify Carta documents.
+ *
+ * All operations communicate with the collab server via HTTP REST API.
  */
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
@@ -15,9 +17,6 @@ import {
   ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 
-import { FileSystemAdapter, YjsStorageAdapter } from '../storage/index.js';
-import type { StorageAdapter } from '../storage/index.js';
-import { DocumentService } from '../documents/index.js';
 import { getToolDefinitions, createToolHandlers } from './tools.js';
 import { getResourceDefinitions, getResourceContent } from './resources.js';
 
@@ -26,24 +25,13 @@ import { getResourceDefinitions, getResourceContent } from './resources.js';
  * This is for CLI/Claude Desktop integration
  */
 async function main() {
-  // Determine storage mode from environment
-  const storageMode = process.env.CARTA_STORAGE_MODE || 'file';
-  const collabUrl = process.env.CARTA_COLLAB_URL || 'ws://localhost:1234';
+  // Get collab server URL from environment
   const collabApiUrl = process.env.CARTA_COLLAB_API_URL || 'http://localhost:1234';
-  const dataDir = process.env.CARTA_DATA_DIR || './data';
 
-  // Initialize storage adapter based on mode
-  let storage: StorageAdapter;
-  if (storageMode === 'yjs') {
-    console.error(`Carta MCP server using Yjs storage (${collabUrl})`);
-    storage = new YjsStorageAdapter(collabUrl, collabApiUrl);
-  } else {
-    console.error(`Carta MCP server using file storage (${dataDir})`);
-    storage = new FileSystemAdapter(dataDir);
-  }
+  console.error(`Carta MCP server using HTTP API (${collabApiUrl})`);
 
-  const documentService = new DocumentService(storage);
-  const toolHandlers = createToolHandlers(documentService, { collabApiUrl });
+  // Create tool handlers that use HTTP API
+  const toolHandlers = createToolHandlers({ collabApiUrl });
 
   // Create MCP server with tools AND resources capabilities
   const server = new Server(

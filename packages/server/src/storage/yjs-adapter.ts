@@ -7,6 +7,7 @@
 
 import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
+import { WebSocket } from 'ws';
 import { CURRENT_FORMAT_VERSION } from '@carta/core';
 import type { CartaDocument, DocumentMetadata, CartaNode, CartaEdge, Deployable, ConstructSchema } from '@carta/core';
 import type { StorageAdapter } from './types.js';
@@ -71,7 +72,10 @@ export class YjsStorageAdapter implements StorageAdapter {
 
     // Create new Y.Doc and connect
     const ydoc = new Y.Doc();
-    const provider = new WebsocketProvider(this.serverUrl, roomId, ydoc);
+    console.error(`[YjsAdapter] Creating WebsocketProvider for ${this.serverUrl}/${roomId}`);
+    const provider = new WebsocketProvider(this.serverUrl, roomId, ydoc, {
+      WebSocketPolyfill: WebSocket as any,
+    });
 
     const connection: RoomConnection = {
       ydoc,
@@ -83,10 +87,16 @@ export class YjsStorageAdapter implements StorageAdapter {
     // Wait for initial sync
     await new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => {
+        console.error(`[YjsAdapter] Timeout waiting for sync on room: ${roomId}`);
         reject(new Error(`Timeout connecting to room: ${roomId}`));
       }, 10000);
 
+      provider.on('status', (event: { status: string }) => {
+        console.error(`[YjsAdapter] WebSocket status for ${roomId}: ${event.status}`);
+      });
+
       provider.on('sync', (isSynced: boolean) => {
+        console.error(`[YjsAdapter] Sync event for ${roomId}: ${isSynced}`);
         if (isSynced) {
           clearTimeout(timeout);
           connection.synced = true;
@@ -95,6 +105,7 @@ export class YjsStorageAdapter implements StorageAdapter {
       });
 
       provider.on('connection-error', (event: Event) => {
+        console.error(`[YjsAdapter] Connection error for ${roomId}:`, event);
         clearTimeout(timeout);
         reject(new Error(`WebSocket connection error: ${event.type}`));
       });
@@ -222,10 +233,12 @@ export class YjsStorageAdapter implements StorageAdapter {
 
   async loadDocument(id: string): Promise<CartaDocument | null> {
     try {
+      console.error(`[YjsAdapter] Attempting to connect to room: ${id}`);
       const connection = await this.connectToRoom(id);
+      console.error(`[YjsAdapter] Successfully connected to room: ${id}`);
       return this.extractDocument(connection);
     } catch (error) {
-      console.error(`Failed to load document from room ${id}:`, error);
+      console.error(`[YjsAdapter] Failed to load document from room ${id}:`, error);
       return null;
     }
   }

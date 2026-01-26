@@ -1,10 +1,11 @@
 /**
  * MCP Tool definitions for Carta
+ *
+ * All tools communicate with the collab server via HTTP REST API.
  */
 
 import { z } from 'zod';
 import { portRegistry as defaultPortRegistry } from '@carta/core';
-import type { DocumentService } from '../documents/index.js';
 
 // Schemas for tool inputs
 const DocumentIdSchema = z.object({
@@ -178,7 +179,7 @@ export function getToolDefinitions() {
     {
       name: 'carta_list_port_types',
       description: 'List available port types and their compatibility rules',
-      inputSchema: z.object({}).shape,
+      inputSchema: DocumentIdSchema.shape,
     },
     {
       name: 'carta_list_deployables',
@@ -236,192 +237,238 @@ export interface ToolHandlerOptions {
 }
 
 /**
- * Create tool handlers
+ * Create tool handlers that communicate via HTTP with the collab server
  */
-export function createToolHandlers(
-  documentService: DocumentService,
-  options: ToolHandlerOptions = {}
-): ToolHandlers {
-  const collabApiUrl = options.collabApiUrl || process.env.CARTA_COLLAB_API_URL || 'http://localhost:1234';
+export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandlers {
+  const apiUrl = options.collabApiUrl || process.env.CARTA_COLLAB_API_URL || 'http://localhost:1234';
+
+  /**
+   * Make HTTP request to collab server API
+   */
+  async function apiRequest<T>(
+    method: string,
+    path: string,
+    body?: unknown
+  ): Promise<{ data?: T; error?: string }> {
+    try {
+      const response = await fetch(`${apiUrl}${path}`, {
+        method,
+        headers: body ? { 'Content-Type': 'application/json' } : undefined,
+        body: body ? JSON.stringify(body) : undefined,
+      });
+
+      const data = (await response.json()) as T & { error?: string };
+
+      if (!response.ok) {
+        return { error: data.error || `HTTP ${response.status}: ${response.statusText}` };
+      }
+
+      return { data };
+    } catch (error) {
+      return {
+        error: `Failed to connect to collab server at ${apiUrl}. Is it running?`,
+      };
+    }
+  }
 
   return {
     carta_list_active_rooms: async () => {
-      try {
-        const response = await fetch(`${collabApiUrl}/rooms`);
-        if (!response.ok) {
-          return { error: `Failed to fetch rooms: ${response.statusText}` };
-        }
-        const { rooms } = (await response.json()) as {
-          rooms: Array<{ roomId: string; clientCount: number }>;
-        };
-        return { rooms };
-      } catch (error) {
-        return {
-          error: `Failed to connect to collab server at ${collabApiUrl}. Is it running?`,
-          hint: 'Start the collab server with: npm run collab-server',
-        };
+      const result = await apiRequest<{ rooms: Array<{ roomId: string; clientCount: number }> }>(
+        'GET',
+        '/api/rooms'
+      );
+      if (result.error) {
+        return { error: result.error, hint: 'Start the collab server with: npm run collab-server' };
       }
+      return result.data;
     },
 
     carta_list_documents: async () => {
-      const documents = await documentService.listDocuments();
-      return { documents };
+      const result = await apiRequest<{ documents: unknown[] }>('GET', '/api/documents');
+      if (result.error) return { error: result.error };
+      return result.data;
     },
 
     carta_get_document: async (args) => {
       const { documentId } = DocumentIdSchema.parse(args);
-      const document = await documentService.getDocument(documentId);
-      if (!document) {
-        return { error: `Document not found: ${documentId}` };
-      }
-      return { document };
+      const result = await apiRequest<{ document: unknown }>(
+        'GET',
+        `/api/documents/${encodeURIComponent(documentId)}`
+      );
+      if (result.error) return { error: result.error };
+      return result.data;
     },
 
     carta_create_document: async (args) => {
       const { title } = CreateDocumentSchema.parse(args);
-      const document = await documentService.createDocument(title);
-      return { document };
+      const result = await apiRequest<{ document: unknown }>('POST', '/api/documents', { title });
+      if (result.error) return { error: result.error };
+      return result.data;
     },
 
     carta_list_schemas: async (args) => {
       const { documentId } = DocumentIdSchema.parse(args);
-      const schemas = await documentService.listSchemas(documentId);
-      return { schemas };
+      const result = await apiRequest<{ schemas: unknown[] }>(
+        'GET',
+        `/api/documents/${encodeURIComponent(documentId)}/schemas`
+      );
+      if (result.error) return { error: result.error };
+      return result.data;
     },
 
     carta_get_schema: async (args) => {
       const { documentId, type } = z
-        .object({
-          documentId: z.string(),
-          type: z.string(),
-        })
+        .object({ documentId: z.string(), type: z.string() })
         .parse(args);
-      const schema = await documentService.getSchema(documentId, type);
-      if (!schema) {
-        return { error: `Schema not found: ${type}` };
-      }
-      return { schema };
+      const result = await apiRequest<{ schema: unknown }>(
+        'GET',
+        `/api/documents/${encodeURIComponent(documentId)}/schemas/${encodeURIComponent(type)}`
+      );
+      if (result.error) return { error: result.error };
+      return result.data;
     },
 
     carta_create_schema: async (args) => {
       const input = CreateSchemaInputSchema.parse(args);
-      const schema = await documentService.createSchema(input.documentId, {
-        type: input.type,
-        displayName: input.displayName,
-        color: input.color,
-        description: input.description,
-        displayField: input.displayField,
-        fields: input.fields,
-        ports: input.ports,
-        compilation: { format: 'json' },
-      });
-      if (!schema) {
-        return { error: 'Failed to create schema (document not found or type exists)' };
-      }
-      return { schema };
+      const result = await apiRequest<{ schema: unknown }>(
+        'POST',
+        `/api/documents/${encodeURIComponent(input.documentId)}/schemas`,
+        {
+          type: input.type,
+          displayName: input.displayName,
+          color: input.color,
+          description: input.description,
+          displayField: input.displayField,
+          fields: input.fields,
+          ports: input.ports,
+        }
+      );
+      if (result.error) return { error: result.error };
+      return result.data;
     },
 
     carta_list_constructs: async (args) => {
       const { documentId } = DocumentIdSchema.parse(args);
-      const constructs = await documentService.listConstructs(documentId);
-      return { constructs: constructs.map((c) => c.data) };
+      const result = await apiRequest<{ constructs: unknown[] }>(
+        'GET',
+        `/api/documents/${encodeURIComponent(documentId)}/constructs`
+      );
+      if (result.error) return { error: result.error };
+      return result.data;
     },
 
     carta_get_construct: async (args) => {
       const { documentId, semanticId } = GetConstructSchema.parse(args);
-      const construct = await documentService.getConstruct(documentId, semanticId);
-      if (!construct) {
-        return { error: `Construct not found: ${semanticId}` };
-      }
-      return { construct: construct.data };
+      const result = await apiRequest<{ construct: unknown }>(
+        'GET',
+        `/api/documents/${encodeURIComponent(documentId)}/constructs/${encodeURIComponent(semanticId)}`
+      );
+      if (result.error) return { error: result.error };
+      return result.data;
     },
 
     carta_create_construct: async (args) => {
       const { documentId, constructType, values, x, y } = CreateConstructSchema.parse(args);
-      const construct = await documentService.createConstruct(
-        documentId,
-        constructType,
-        values || {},
-        { x: x || 100, y: y || 100 }
+      const result = await apiRequest<{ construct: unknown }>(
+        'POST',
+        `/api/documents/${encodeURIComponent(documentId)}/constructs`,
+        { constructType, values, x, y }
       );
-      if (!construct) {
-        return { error: 'Failed to create construct (document not found)' };
-      }
-      return { construct: construct.data };
+      if (result.error) return { error: result.error };
+      return result.data;
     },
 
     carta_update_construct: async (args) => {
       const { documentId, semanticId, values, deployableId } = UpdateConstructSchema.parse(args);
-      const updates: Record<string, unknown> = {};
-      if (values !== undefined) updates.values = values;
-      if (deployableId !== undefined) updates.deployableId = deployableId;
-
-      const construct = await documentService.updateConstruct(documentId, semanticId, updates);
-      if (!construct) {
-        return { error: `Construct not found: ${semanticId}` };
-      }
-      return { construct: construct.data };
+      const result = await apiRequest<{ construct: unknown }>(
+        'PATCH',
+        `/api/documents/${encodeURIComponent(documentId)}/constructs/${encodeURIComponent(semanticId)}`,
+        { values, deployableId }
+      );
+      if (result.error) return { error: result.error };
+      return result.data;
     },
 
     carta_delete_construct: async (args) => {
       const { documentId, semanticId } = DeleteConstructSchema.parse(args);
-      const deleted = await documentService.deleteConstruct(documentId, semanticId);
-      return { deleted };
+      const result = await apiRequest<{ deleted: boolean }>(
+        'DELETE',
+        `/api/documents/${encodeURIComponent(documentId)}/constructs/${encodeURIComponent(semanticId)}`
+      );
+      if (result.error) return { error: result.error };
+      return result.data;
     },
 
     carta_connect_constructs: async (args) => {
       const input = ConnectConstructsSchema.parse(args);
-      const edge = await documentService.connectConstructs(
-        input.documentId,
-        input.sourceSemanticId,
-        input.sourcePortId,
-        input.targetSemanticId,
-        input.targetPortId
+      const result = await apiRequest<{ edge: unknown }>(
+        'POST',
+        `/api/documents/${encodeURIComponent(input.documentId)}/connections`,
+        {
+          sourceSemanticId: input.sourceSemanticId,
+          sourcePortId: input.sourcePortId,
+          targetSemanticId: input.targetSemanticId,
+          targetPortId: input.targetPortId,
+        }
       );
-      if (!edge) {
-        return { error: 'Failed to connect constructs' };
-      }
-      return { edge };
+      if (result.error) return { error: result.error };
+      return result.data;
     },
 
     carta_disconnect_constructs: async (args) => {
       const input = DisconnectConstructsSchema.parse(args);
-      const disconnected = await documentService.disconnectConstructs(
-        input.documentId,
-        input.sourceSemanticId,
-        input.sourcePortId,
-        input.targetSemanticId
+      const result = await apiRequest<{ disconnected: boolean }>(
+        'DELETE',
+        `/api/documents/${encodeURIComponent(input.documentId)}/connections`,
+        {
+          sourceSemanticId: input.sourceSemanticId,
+          sourcePortId: input.sourcePortId,
+          targetSemanticId: input.targetSemanticId,
+        }
       );
-      return { disconnected };
+      if (result.error) return { error: result.error };
+      return result.data;
     },
 
-    carta_list_port_types: async () => {
-      const portTypes = defaultPortRegistry.getAll();
-      return { portTypes };
+    carta_list_port_types: async (args) => {
+      const { documentId } = DocumentIdSchema.parse(args);
+      const result = await apiRequest<{ portTypes: unknown[] }>(
+        'GET',
+        `/api/documents/${encodeURIComponent(documentId)}/port-types`
+      );
+      if (result.error) return { error: result.error };
+      return result.data;
     },
 
     carta_list_deployables: async (args) => {
       const { documentId } = DocumentIdSchema.parse(args);
-      const deployables = await documentService.listDeployables(documentId);
-      return { deployables };
+      const result = await apiRequest<{ deployables: unknown[] }>(
+        'GET',
+        `/api/documents/${encodeURIComponent(documentId)}/deployables`
+      );
+      if (result.error) return { error: result.error };
+      return result.data;
     },
 
     carta_create_deployable: async (args) => {
       const { documentId, name, description, color } = CreateDeployableSchema.parse(args);
-      const deployable = await documentService.createDeployable(documentId, name, description, color);
-      if (!deployable) {
-        return { error: 'Failed to create deployable (document not found)' };
-      }
-      return { deployable };
+      const result = await apiRequest<{ deployable: unknown }>(
+        'POST',
+        `/api/documents/${encodeURIComponent(documentId)}/deployables`,
+        { name, description, color }
+      );
+      if (result.error) return { error: result.error };
+      return result.data;
     },
 
     carta_compile: async (args) => {
       const { documentId } = DocumentIdSchema.parse(args);
-      const output = await documentService.compile(documentId);
-      if (output === null) {
-        return { error: 'Failed to compile (document not found)' };
-      }
-      return { output };
+      const result = await apiRequest<{ output: string }>(
+        'GET',
+        `/api/documents/${encodeURIComponent(documentId)}/compile`
+      );
+      if (result.error) return { error: result.error };
+      return result.data;
     },
   };
 }

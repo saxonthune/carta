@@ -2,6 +2,7 @@
  * Carta Server - Main entry point
  *
  * Provides REST API and WebSocket endpoints for Carta document management.
+ * This server proxies requests to the collab server's HTTP API.
  */
 
 import express from 'express';
@@ -13,12 +14,15 @@ import { createToolHandlers } from './mcp/index.js';
 
 const PORT = parseInt(process.env.PORT || '3001', 10);
 const DATA_DIR = process.env.CARTA_DATA_DIR || './data';
+const COLLAB_API_URL = process.env.CARTA_COLLAB_API_URL || 'http://localhost:1234';
 
 async function main() {
-  // Initialize storage and services
+  // Initialize storage and services (for WebSocket fallback)
   const storage = new FileSystemAdapter(DATA_DIR);
   const documentService = new DocumentService(storage);
-  const toolHandlers = createToolHandlers(documentService);
+
+  // Tool handlers now use HTTP API to collab server
+  const toolHandlers = createToolHandlers({ collabApiUrl: COLLAB_API_URL });
 
   // Create Express app
   const app = express();
@@ -230,9 +234,9 @@ async function main() {
     }
   });
 
-  app.get('/api/port-types', async (_req, res) => {
+  app.get('/api/documents/:id/port-types', async (req, res) => {
     try {
-      const result = await toolHandlers.carta_list_port_types({});
+      const result = await toolHandlers.carta_list_port_types({ documentId: req.params.id });
       res.json(result);
     } catch (error) {
       res.status(500).json({ error: String(error) });

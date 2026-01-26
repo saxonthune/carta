@@ -2,7 +2,7 @@
 /**
  * Carta Collaboration Server
  *
- * WebSocket server for Yjs document synchronization with HTTP API for room discovery.
+ * WebSocket server for Yjs document synchronization with HTTP REST API.
  * Supports optional MongoDB persistence via y-mongodb-provider.
  *
  * Usage:
@@ -24,6 +24,8 @@ import * as encoding from 'lib0/encoding';
 import * as decoding from 'lib0/decoding';
 import * as syncProtocol from 'y-protocols/sync';
 import { MongodbPersistence } from 'y-mongodb-provider';
+import { portRegistry } from '@carta/core';
+import * as docOps from './doc-operations.js';
 
 const PORT = parseInt(process.env.PORT || '1234', 10);
 const HOST = process.env.HOST || '0.0.0.0';
@@ -239,12 +241,44 @@ async function setupWSConnection(conn: WebSocket, docName: string): Promise<void
 }
 
 /**
+ * Parse JSON body from request
+ */
+async function parseJsonBody<T>(req: http.IncomingMessage): Promise<T> {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    req.on('data', (chunk) => (body += chunk));
+    req.on('end', () => {
+      try {
+        resolve(body ? JSON.parse(body) : ({} as T));
+      } catch {
+        reject(new Error('Invalid JSON'));
+      }
+    });
+  });
+}
+
+/**
+ * Send JSON response
+ */
+function sendJson(res: http.ServerResponse, status: number, data: unknown): void {
+  res.writeHead(status, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(data, null, 2));
+}
+
+/**
+ * Send error response
+ */
+function sendError(res: http.ServerResponse, status: number, message: string, code?: string): void {
+  sendJson(res, status, { error: message, code });
+}
+
+/**
  * Handle HTTP requests
  */
-function handleHttpRequest(req: http.IncomingMessage, res: http.ServerResponse): void {
+async function handleHttpRequest(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') {
@@ -254,32 +288,361 @@ function handleHttpRequest(req: http.IncomingMessage, res: http.ServerResponse):
   }
 
   const url = new URL(req.url || '/', `http://${req.headers.host}`);
+  const path = url.pathname;
+  const method = req.method || 'GET';
 
-  if (url.pathname === '/rooms' && req.method === 'GET') {
-    // Room discovery endpoint
-    const rooms = Array.from(docs.entries()).map(([roomId, docState]) => ({
-      roomId,
-      clientCount: docState.conns.size,
-    }));
+  try {
+    // ===== LEGACY ENDPOINTS =====
 
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ rooms }));
-    return;
+    if (path === '/rooms' && method === 'GET') {
+      // Room discovery endpoint (legacy)
+      const rooms = Array.from(docs.entries()).map(([roomId, docState]) => ({
+        roomId,
+        clientCount: docState.conns.size,
+      }));
+      sendJson(res, 200, { rooms });
+      return;
+    }
+
+    if (path === '/health' && method === 'GET') {
+      sendJson(res, 200, {
+        status: 'ok',
+        rooms: docs.size,
+        persistence: mdb ? 'mongodb' : 'memory',
+      });
+      return;
+    }
+
+    // ===== API ENDPOINTS =====
+
+    // GET /api/rooms - List active rooms
+    if (path === '/api/rooms' && method === 'GET') {
+      const rooms = Array.from(docs.entries()).map(([roomId, docState]) => ({
+        roomId,
+        clientCount: docState.conns.size,
+      }));
+      sendJson(res, 200, { rooms });
+      return;
+    }
+
+    // GET /api/documents - List all documents (active rooms)
+    if (path === '/api/documents' && method === 'GET') {
+      const documents = Array.from(docs.entries()).map(([roomId, docState]) => {
+        const doc = docOps.extractDocument(docState.doc, roomId);
+        return {
+          id: roomId,
+          title: doc.title,
+          version: doc.version,
+          updatedAt: doc.updatedAt,
+          nodeCount: doc.nodes.length,
+        };
+      });
+      sendJson(res, 200, { documents });
+      return;
+    }
+
+    // POST /api/documents - Create new document
+    if (path === '/api/documents' && method === 'POST') {
+      const body = await parseJsonBody<{ title?: string }>(req);
+      const title = body.title || 'Untitled Project';
+      const roomId = `doc_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+      const docState = await getYDoc(roomId);
+      const ymeta = docState.doc.getMap('meta');
+      docState.doc.transact(() => {
+        ymeta.set('title', title);
+        ymeta.set('version', 3);
+      }, 'mcp');
+
+      const document = docOps.extractDocument(docState.doc, roomId);
+      sendJson(res, 201, { document });
+      return;
+    }
+
+    // GET /api/documents/:id - Get document
+    const docMatch = path.match(/^\/api\/documents\/([^/]+)$/);
+    if (docMatch && method === 'GET') {
+      const roomId = docMatch[1]!;
+      const docState = await getYDoc(roomId);
+      const document = docOps.extractDocument(docState.doc, roomId);
+      sendJson(res, 200, { document });
+      return;
+    }
+
+    // GET /api/documents/:id/constructs - List constructs
+    const constructsMatch = path.match(/^\/api\/documents\/([^/]+)\/constructs$/);
+    if (constructsMatch && method === 'GET') {
+      const roomId = constructsMatch[1]!;
+      const docState = await getYDoc(roomId);
+      const constructs = docOps.listConstructs(docState.doc);
+      sendJson(res, 200, { constructs: constructs.map((c) => c.data) });
+      return;
+    }
+
+    // POST /api/documents/:id/constructs - Create construct
+    if (constructsMatch && method === 'POST') {
+      const roomId = constructsMatch[1]!;
+      const body = await parseJsonBody<{
+        constructType: string;
+        values?: Record<string, unknown>;
+        x?: number;
+        y?: number;
+      }>(req);
+
+      if (!body.constructType) {
+        sendError(res, 400, 'constructType is required', 'MISSING_FIELD');
+        return;
+      }
+
+      const docState = await getYDoc(roomId);
+      const construct = docOps.createConstruct(
+        docState.doc,
+        body.constructType,
+        body.values || {},
+        { x: body.x || 100, y: body.y || 100 }
+      );
+      sendJson(res, 201, { construct: construct.data });
+      return;
+    }
+
+    // GET /api/documents/:id/constructs/:semanticId - Get construct
+    const constructMatch = path.match(/^\/api\/documents\/([^/]+)\/constructs\/([^/]+)$/);
+    if (constructMatch && method === 'GET') {
+      const roomId = constructMatch[1]!;
+      const semanticId = decodeURIComponent(constructMatch[2]!);
+      const docState = await getYDoc(roomId);
+      const construct = docOps.getConstruct(docState.doc, semanticId);
+      if (!construct) {
+        sendError(res, 404, `Construct not found: ${semanticId}`, 'NOT_FOUND');
+        return;
+      }
+      sendJson(res, 200, { construct: construct.data });
+      return;
+    }
+
+    // PATCH /api/documents/:id/constructs/:semanticId - Update construct
+    if (constructMatch && method === 'PATCH') {
+      const roomId = constructMatch[1]!;
+      const semanticId = decodeURIComponent(constructMatch[2]!);
+      const body = await parseJsonBody<{
+        values?: Record<string, unknown>;
+        deployableId?: string | null;
+      }>(req);
+
+      const docState = await getYDoc(roomId);
+      const construct = docOps.updateConstruct(docState.doc, semanticId, body);
+      if (!construct) {
+        sendError(res, 404, `Construct not found: ${semanticId}`, 'NOT_FOUND');
+        return;
+      }
+      sendJson(res, 200, { construct: construct.data });
+      return;
+    }
+
+    // DELETE /api/documents/:id/constructs/:semanticId - Delete construct
+    if (constructMatch && method === 'DELETE') {
+      const roomId = constructMatch[1]!;
+      const semanticId = decodeURIComponent(constructMatch[2]!);
+      const docState = await getYDoc(roomId);
+      const deleted = docOps.deleteConstruct(docState.doc, semanticId);
+      sendJson(res, 200, { deleted });
+      return;
+    }
+
+    // POST /api/documents/:id/connections - Connect constructs
+    const connectionsMatch = path.match(/^\/api\/documents\/([^/]+)\/connections$/);
+    if (connectionsMatch && method === 'POST') {
+      const roomId = connectionsMatch[1]!;
+      const body = await parseJsonBody<{
+        sourceSemanticId: string;
+        sourcePortId: string;
+        targetSemanticId: string;
+        targetPortId: string;
+      }>(req);
+
+      if (!body.sourceSemanticId || !body.sourcePortId || !body.targetSemanticId || !body.targetPortId) {
+        sendError(res, 400, 'Missing required fields', 'MISSING_FIELD');
+        return;
+      }
+
+      const docState = await getYDoc(roomId);
+      const edge = docOps.connect(
+        docState.doc,
+        body.sourceSemanticId,
+        body.sourcePortId,
+        body.targetSemanticId,
+        body.targetPortId
+      );
+      if (!edge) {
+        sendError(res, 400, 'Failed to connect constructs', 'CONNECT_FAILED');
+        return;
+      }
+      sendJson(res, 201, { edge });
+      return;
+    }
+
+    // DELETE /api/documents/:id/connections - Disconnect constructs
+    if (connectionsMatch && method === 'DELETE') {
+      const roomId = connectionsMatch[1]!;
+      const body = await parseJsonBody<{
+        sourceSemanticId: string;
+        sourcePortId: string;
+        targetSemanticId: string;
+      }>(req);
+
+      if (!body.sourceSemanticId || !body.sourcePortId || !body.targetSemanticId) {
+        sendError(res, 400, 'Missing required fields', 'MISSING_FIELD');
+        return;
+      }
+
+      const docState = await getYDoc(roomId);
+      const disconnected = docOps.disconnect(
+        docState.doc,
+        body.sourceSemanticId,
+        body.sourcePortId,
+        body.targetSemanticId
+      );
+      sendJson(res, 200, { disconnected });
+      return;
+    }
+
+    // GET /api/documents/:id/schemas - List schemas
+    const schemasMatch = path.match(/^\/api\/documents\/([^/]+)\/schemas$/);
+    if (schemasMatch && method === 'GET') {
+      const roomId = schemasMatch[1]!;
+      const docState = await getYDoc(roomId);
+      const schemas = docOps.listSchemas(docState.doc);
+      sendJson(res, 200, { schemas });
+      return;
+    }
+
+    // POST /api/documents/:id/schemas - Create schema
+    if (schemasMatch && method === 'POST') {
+      const roomId = schemasMatch[1]!;
+      const body = await parseJsonBody<{
+        type: string;
+        displayName: string;
+        color: string;
+        description?: string;
+        displayField?: string;
+        fields: Array<{
+          name: string;
+          label: string;
+          type: string;
+          description?: string;
+          options?: string[];
+          default?: unknown;
+          placeholder?: string;
+        }>;
+        ports?: Array<{
+          id: string;
+          portType: string;
+          position: string;
+          offset: number;
+          label: string;
+          description?: string;
+        }>;
+      }>(req);
+
+      if (!body.type || !body.displayName || !body.color || !body.fields) {
+        sendError(res, 400, 'Missing required fields', 'MISSING_FIELD');
+        return;
+      }
+
+      const docState = await getYDoc(roomId);
+      const schema = docOps.createSchema(docState.doc, {
+        type: body.type,
+        displayName: body.displayName,
+        color: body.color,
+        description: body.description,
+        displayField: body.displayField,
+        fields: body.fields as any,
+        ports: body.ports as any,
+        compilation: { format: 'json' },
+      });
+
+      if (!schema) {
+        sendError(res, 400, 'Schema type already exists', 'ALREADY_EXISTS');
+        return;
+      }
+      sendJson(res, 201, { schema });
+      return;
+    }
+
+    // GET /api/documents/:id/schemas/:type - Get schema
+    const schemaMatch = path.match(/^\/api\/documents\/([^/]+)\/schemas\/([^/]+)$/);
+    if (schemaMatch && method === 'GET') {
+      const roomId = schemaMatch[1]!;
+      const type = decodeURIComponent(schemaMatch[2]!);
+      const docState = await getYDoc(roomId);
+      const schema = docOps.getSchema(docState.doc, type);
+      if (!schema) {
+        sendError(res, 404, `Schema not found: ${type}`, 'NOT_FOUND');
+        return;
+      }
+      sendJson(res, 200, { schema });
+      return;
+    }
+
+    // GET /api/documents/:id/deployables - List deployables
+    const deployablesMatch = path.match(/^\/api\/documents\/([^/]+)\/deployables$/);
+    if (deployablesMatch && method === 'GET') {
+      const roomId = deployablesMatch[1]!;
+      const docState = await getYDoc(roomId);
+      const deployables = docOps.listDeployables(docState.doc);
+      sendJson(res, 200, { deployables });
+      return;
+    }
+
+    // POST /api/documents/:id/deployables - Create deployable
+    if (deployablesMatch && method === 'POST') {
+      const roomId = deployablesMatch[1]!;
+      const body = await parseJsonBody<{
+        name: string;
+        description: string;
+        color?: string;
+      }>(req);
+
+      if (!body.name || !body.description) {
+        sendError(res, 400, 'name and description are required', 'MISSING_FIELD');
+        return;
+      }
+
+      const docState = await getYDoc(roomId);
+      const deployable = docOps.createDeployable(
+        docState.doc,
+        body.name,
+        body.description,
+        body.color
+      );
+      sendJson(res, 201, { deployable });
+      return;
+    }
+
+    // GET /api/documents/:id/compile - Compile document
+    const compileMatch = path.match(/^\/api\/documents\/([^/]+)\/compile$/);
+    if (compileMatch && method === 'GET') {
+      const roomId = compileMatch[1]!;
+      const docState = await getYDoc(roomId);
+      const output = docOps.compile(docState.doc);
+      sendJson(res, 200, { output });
+      return;
+    }
+
+    // GET /api/documents/:id/port-types - List port types
+    const portTypesMatch = path.match(/^\/api\/documents\/([^/]+)\/port-types$/);
+    if (portTypesMatch && method === 'GET') {
+      const portTypes = portRegistry.getAll();
+      sendJson(res, 200, { portTypes });
+      return;
+    }
+
+    // Not found
+    sendError(res, 404, 'Not found', 'NOT_FOUND');
+  } catch (err) {
+    console.error('[Collab] HTTP error:', err);
+    sendError(res, 500, String(err), 'INTERNAL_ERROR');
   }
-
-  if (url.pathname === '/health' && req.method === 'GET') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
-      status: 'ok',
-      rooms: docs.size,
-      persistence: mdb ? 'mongodb' : 'memory'
-    }));
-    return;
-  }
-
-  // Not found
-  res.writeHead(404, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({ error: 'Not found' }));
 }
 
 /**
@@ -288,8 +651,14 @@ function handleHttpRequest(req: http.IncomingMessage, res: http.ServerResponse):
 async function startServer(): Promise<void> {
   await initPersistence();
 
-  // Create HTTP server
-  const server = http.createServer(handleHttpRequest);
+  // Create HTTP server (wrap async handler)
+  const server = http.createServer((req, res) => {
+    handleHttpRequest(req, res).catch((err) => {
+      console.error('[Collab] Unhandled HTTP error:', err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Internal server error' }));
+    });
+  });
 
   // Create WebSocket server
   const wss = new WebSocketServer({ server });
@@ -305,7 +674,7 @@ async function startServer(): Promise<void> {
   server.listen(PORT, HOST, () => {
     console.log(`[Collab] Carta collaboration server running on ${HOST}:${PORT}`);
     console.log(`[Collab] WebSocket: ws://${HOST}:${PORT}/<room-name>`);
-    console.log(`[Collab] Room discovery: http://${HOST}:${PORT}/rooms`);
+    console.log(`[Collab] REST API: http://${HOST}:${PORT}/api/documents`);
     console.log(`[Collab] Health check: http://${HOST}:${PORT}/health`);
   });
 
