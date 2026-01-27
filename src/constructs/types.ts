@@ -24,20 +24,32 @@ export type PortPosition = 'left' | 'right' | 'top' | 'bottom';
  */
 export type CompilationFormat = 'json' | 'custom';
 
-// ===== M2: PORT REGISTRY =====
+/**
+ * Port polarity - determines connection direction semantics
+ * - 'source': initiates connections (like flow-out, parent)
+ * - 'sink': receives connections (like flow-in, child)
+ * - 'bidirectional': can both initiate and receive (like symmetric)
+ */
+export type Polarity = 'source' | 'sink' | 'bidirectional';
+
+// ===== M1: PORT SCHEMA =====
 
 /**
- * Port definition for the port type registry
- * Defines a reusable port type with its connection compatibility rules
+ * Port schema for the port type registry (M1 blueprint)
+ * Defines a reusable port type with its polarity and connection compatibility rules
  */
-export interface PortDefinition {
+export interface PortSchema {
   id: string;                    // 'flow-in', 'flow-out', 'parent', 'child', 'symmetric'
-  label: string;
-  description: string;
-  compatibleWith?: string[];     // Port type IDs this can connect to; undefined = any
+  displayName: string;
+  semanticDescription: string;   // AI compilation context
+  polarity: Polarity;
+  compatibleWith: string[];      // port IDs or wildcards: '*source*', '*sink*', '*'
+  expectedComplement?: string;   // UI hint only (context menus), not validation
   defaultPosition: PortPosition;
   color: string;
+  groupId?: string;              // References SchemaGroup.id for hierarchical organization
 }
+
 
 // ===== M1: REGISTRY INFRASTRUCTURE =====
 
@@ -65,19 +77,20 @@ export interface Registry<T extends RegistryItem> {
 // ===== M1: FIELD & COMPILATION =====
 
 /**
- * Definition of a single field within a construct schema
+ * M1 schema for a single field within a construct schema
  */
-export interface FieldDefinition {
+export interface FieldSchema {
   name: string;
   label: string;
-  type: DataKind;            // Changed from FieldType
+  type: DataKind;
   description?: string;      // AI compilation context
   options?: string[];        // For enum type
   displayHint?: DisplayHint; // For string type presentation
   default?: unknown;
   placeholder?: string;
-  displayInMap?: boolean;    // Show this field in the map node summary
+  showInCollapsed?: boolean;    // Show this field when node is collapsed on canvas
 }
+
 
 /**
  * Configuration for how a construct compiles to output
@@ -133,10 +146,11 @@ export interface ConstructSchema {
   icon?: string;             // Optional icon identifier
   description?: string;      // Description shown during compilation (AI context)
   displayField?: string;     // Field name to use as node title (fallback: semanticId)
-  fields: FieldDefinition[];
+  fields: FieldSchema[];
   ports?: PortConfig[];      // Port configurations for connections
   suggestedRelated?: SuggestedRelatedConstruct[]; // Suggested related constructs for quick-add
   compilation: CompilationConfig;
+  groupId?: string;          // References SchemaGroup.id for hierarchical organization
 }
 
 // ===== M0: INSTANCE DATA =====
@@ -160,10 +174,14 @@ export interface ConnectionValue {
 
 /**
  * Data stored in a React Flow node for constructs
+ *
+ * Identity: Nodes have TWO identifiers:
+ * - Node.id (UUID): Immutable technical key for React Flow and Yjs (not stored here, lives on Node object)
+ * - semanticId: Mutable, human/AI-readable identifier for connections and compilation
  */
 export interface ConstructNodeData {
   constructType: string;     // References ConstructSchema.type
-  semanticId: string;        // Primary identifier: 'controller-user-api'
+  semanticId: string;        // Human/AI-readable identifier (e.g., 'controller-user-api')
   values: ConstructValues;   // Field values
   deployableId?: string | null; // Deployable grouping (null/undefined means "none")
   groupId?: string;              // Visual canvas group (not compiled)
@@ -173,6 +191,7 @@ export interface ConstructNodeData {
   references?: string[];     // Semantic IDs this construct references
   referencedBy?: string[];   // Semantic IDs that reference this construct
   // UI state
+  nodeId?: string;           // Technical UUID (passed from Map for display purposes)
   isExpanded?: boolean;
   onValuesChange?: (values: ConstructValues) => void;
   onToggleExpand?: () => void;
@@ -193,6 +212,18 @@ export interface Deployable {
   name: string;
   description: string;
   color?: string;  // Optional color for visual grouping
+}
+
+/**
+ * Schema group - Hierarchical grouping for construct and port schemas
+ * Uses flat storage with parent references for nesting (e.g., "Software Architecture > AWS > Lambda")
+ */
+export interface SchemaGroup {
+  id: string;
+  name: string;
+  parentId?: string;    // undefined = root level
+  color?: string;
+  description?: string;
 }
 
 /**
@@ -217,4 +248,109 @@ export interface Formatter {
     edges: Array<{ source: string; target: string }>,
     schema: ConstructSchema
   ): string;
+}
+
+// ===== DOCUMENT =====
+
+/**
+ * Complete Carta document structure
+ * Represents the full state of a project
+ */
+export interface CartaDocument {
+  version: number;
+  title: string;
+  description?: string;
+  nodes: unknown[];           // Node<ConstructNodeData>[] - using unknown to avoid @xyflow/react import
+  edges: unknown[];           // Edge[] - using unknown to avoid @xyflow/react import
+  schemas: ConstructSchema[];
+  deployables: Deployable[];
+  portSchemas: PortSchema[];
+  schemaGroups: SchemaGroup[];
+}
+
+// ===== PERSISTENCE =====
+
+/**
+ * Document adapter interface for abstracting persistence layer.
+ * Currently implemented with localStorage, future: Yjs Y.Doc
+ */
+export interface DocumentAdapter {
+  // Load/save lifecycle
+  initialize(): Promise<void>;
+  dispose(): void;
+
+  // State access - Graph
+  getNodes(): unknown[];
+  getEdges(): unknown[];
+  getTitle(): string;
+  getDescription(): string;
+
+  // State access - Schemas
+  getSchemas(): ConstructSchema[];
+  getSchema(type: string): ConstructSchema | undefined;
+
+  // State access - Deployables
+  getDeployables(): Deployable[];
+  getDeployable(id: string): Deployable | undefined;
+
+  // State access - Port Schemas
+  getPortSchemas(): PortSchema[];
+  getPortSchema(id: string): PortSchema | undefined;
+
+  // State access - Schema Groups
+  getSchemaGroups(): SchemaGroup[];
+  getSchemaGroup(id: string): SchemaGroup | undefined;
+
+  // Mutations - Graph (will become Y.Doc transactions in Yjs)
+  setNodes(nodes: unknown[] | ((prev: unknown[]) => unknown[])): void;
+  setEdges(edges: unknown[] | ((prev: unknown[]) => unknown[])): void;
+  setTitle(title: string): void;
+  setDescription(description: string): void;
+  generateNodeId(): string;
+  updateNode(nodeId: string, updates: Partial<ConstructNodeData>): void;
+
+  // Mutations - Schemas
+  setSchemas(schemas: ConstructSchema[]): void;
+  addSchema(schema: ConstructSchema): void;
+  updateSchema(type: string, updates: Partial<ConstructSchema>): void;
+  removeSchema(type: string): boolean;
+
+  // Mutations - Deployables
+  setDeployables(deployables: Deployable[]): void;
+  addDeployable(deployable: Omit<Deployable, 'id'>): Deployable;
+  updateDeployable(id: string, updates: Partial<Deployable>): void;
+  removeDeployable(id: string): boolean;
+
+  // Mutations - Port Schemas
+  setPortSchemas(portSchemas: PortSchema[]): void;
+  addPortSchema(portSchema: PortSchema): void;
+  updatePortSchema(id: string, updates: Partial<PortSchema>): void;
+  removePortSchema(id: string): boolean;
+
+  // Mutations - Schema Groups
+  setSchemaGroups(groups: SchemaGroup[]): void;
+  addSchemaGroup(group: Omit<SchemaGroup, 'id'>): SchemaGroup;
+  updateSchemaGroup(id: string, updates: Partial<SchemaGroup>): void;
+  removeSchemaGroup(id: string): boolean;
+
+  // Batched operations (for Yjs transact)
+  // origin parameter allows MCP attribution (e.g., 'user' vs 'ai-mcp')
+  transaction<T>(fn: () => T, origin?: string): T;
+
+  // Subscriptions for observing changes
+  subscribe(listener: () => void): () => void;
+
+  // Serialization for MCP and export
+  toJSON(): CartaDocument;
+
+  // Optional collaboration methods (only on Yjs adapter)
+  getConnectionStatus?(): 'disconnected' | 'connecting' | 'connected';
+  getConnectedClients?(): number;
+}
+
+/**
+ * Options for creating an adapter
+ */
+export interface AdapterOptions {
+  storageKey?: string;
 }

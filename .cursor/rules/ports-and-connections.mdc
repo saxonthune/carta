@@ -11,64 +11,110 @@ Connections are **symmetric in storage** but **asymmetric in interpretation**. T
 
 ## Port Types
 
-Five built-in port types defined in `PortDefinition` (M2 layer):
+Seven built-in port schemas defined in `PortSchema` (M1 layer):
 
-| Port Type | Purpose | Default Position | Color |
-|-----------|---------|------------------|-------|
-| `flow-in` | Receives flow | Left | #3b82f6 (blue) |
-| `flow-out` | Emits flow | Right | #22c55e (green) |
-| `parent` | Has children | Top | #f59e0b (amber) |
-| `child` | Belongs to parent | Bottom | #f59e0b (amber) |
-| `symmetric` | Symmetric association | Right | #8b5cf6 (purple) |
+| Port Type | Purpose | Polarity | Default Position | Color |
+|-----------|---------|----------|------------------|-------|
+| `flow-in` | Receives flow | sink | Left | #3b82f6 (blue) |
+| `flow-out` | Emits flow | source | Right | #22c55e (green) |
+| `parent` | Has children | source | Bottom | #8b5cf6 (violet) |
+| `child` | Belongs to parent | sink | Top | #8b5cf6 (violet) |
+| `symmetric` | Bidirectional peer | bidirectional | Right | #64748b (slate) |
+| `intercept` | Pass-through input | sink | Left | #f59e0b (amber) |
+| `forward` | Pass-through output | source | Right | #f59e0b (amber) |
 
-## Compatibility-Based Validation
+## Polarity-Based Validation
 
-Port connections are validated using compatibility lists:
+Port connections are validated using polarity and compatibility rules:
 
 ```typescript
-interface PortDefinition {
+interface PortSchema {
   id: string;
-  label: string;
-  description: string;
-  compatibleWith?: string[];  // undefined = any port
+  displayName: string;
+  semanticDescription: string;
+  polarity: 'source' | 'sink' | 'bidirectional';
+  compatibleWith: string[];  // port IDs or wildcards
+  expectedComplement?: string;  // UI hint, not validation
   defaultPosition: PortPosition;
   color: string;
 }
 ```
 
-| Port Type | Compatible With |
-|-----------|-----------------|
-| `flow-in` | `flow-out`, `symmetric` |
-| `flow-out` | `flow-in`, `symmetric` |
-| `parent` | `child`, `symmetric` |
-| `child` | `parent`, `symmetric` |
-| `symmetric` | any (compatibleWith: undefined) |
+### Polarity Rules
+- **source → source**: BLOCKED (both initiate)
+- **sink → sink**: BLOCKED (both receive)
+- **source → sink**: ALLOWED (normal flow)
+- **sink → source**: ALLOWED (user dragged backward)
+- **bidirectional → any**: ALLOWED
+- **any → bidirectional**: ALLOWED
+
+### Compatibility Table
+
+| Port Type | Polarity | Compatible With |
+|-----------|----------|-----------------|
+| `flow-in` | sink | `flow-out`, `forward` |
+| `flow-out` | source | `flow-in`, `intercept` |
+| `parent` | source | `child`, `intercept` |
+| `child` | sink | `parent`, `forward` |
+| `symmetric` | bidirectional | `*` (wildcard) |
+| `intercept` | sink | `*source*` (wildcard) |
+| `forward` | source | `*sink*` (wildcard) |
+
+### Wildcard Support
+- `*`: matches any port schema
+- `*source*`: matches all ports with `polarity: 'source'`
+- `*sink*`: matches all ports with `polarity: 'sink'`
+- `*bidirectional*`: matches all ports with `polarity: 'bidirectional'`
 
 Validation is bidirectional—if A can connect to B, then B can connect to A.
 
 ## Port Registry
 
-The `PortRegistry` class manages port definitions:
+The `PortRegistry` class manages port schemas with polarity-based validation:
 
 ```typescript
 // src/constructs/portRegistry.ts
-export const DEFAULT_PORT_DEFINITIONS: PortDefinition[] = [
-  { id: 'flow-in', label: 'Flow In', ... },
-  { id: 'flow-out', label: 'Flow Out', ... },
-  { id: 'parent', label: 'Parent', ... },
-  { id: 'child', label: 'Child', ... },
-  { id: 'symmetric', label: 'Link', ... },
+export const DEFAULT_PORT_SCHEMAS: PortSchema[] = [
+  { id: 'flow-in', displayName: 'Flow In', polarity: 'sink', ... },
+  { id: 'flow-out', displayName: 'Flow Out', polarity: 'source', ... },
+  { id: 'parent', displayName: 'Parent', polarity: 'source', ... },
+  { id: 'child', displayName: 'Child', polarity: 'sink', ... },
+  { id: 'symmetric', displayName: 'Link', polarity: 'bidirectional', ... },
+  { id: 'intercept', displayName: 'Intercept', polarity: 'sink', ... },
+  { id: 'forward', displayName: 'Forward', polarity: 'source', ... },
 ];
 
 export class PortRegistry {
-  canConnect(sourcePortType: string, targetPortType: string): boolean;
+  canConnect(fromPortType: string, toPortType: string): boolean;
   getColor(portType: string): string;
-  get(id: string): PortDefinition | undefined;
-  getAll(): PortDefinition[];
+  get(id: string): PortSchema | undefined;
+  getAll(): PortSchema[];
+  setSchemas(schemas: PortSchema[]): void;  // Sync with document store
+  register(schema: PortSchema): void;
+  remove(id: string): boolean;
+  getDefaultPosition(portType: string): PortPosition;
 }
 
 export const portRegistry = new PortRegistry();
+
+// Sync registry with document portSchemas
+export function syncWithDocumentStore(portSchemas?: PortSchema[]): void;
 ```
+
+### Document Store Integration
+Port schemas are stored in the Yjs document alongside constructs and deployables. The port registry receives schemas as a parameter and updates its internal state. Components access port schemas via `useDocument()`:
+
+```typescript
+const { portSchemas } = useDocument();
+// Sync registry when schemas change
+syncWithDocumentStore(portSchemas);
+```
+
+This enables:
+- User-defined port types
+- Persistence across sessions via IndexedDB
+- Export/import of custom port schemas
+- Collaborative editing via Yjs
 
 ## Design Decisions
 
@@ -166,11 +212,13 @@ Foreign key details (source column, target column) live in **construct fields**,
 Port handles are styled via data attributes:
 
 ```css
-.react-flow__handle[data-port-type="flow-in"] { background: #3b82f6 !important; }
-.react-flow__handle[data-port-type="flow-out"] { background: #22c55e !important; }
-.react-flow__handle[data-port-type="parent"] { background: #f59e0b !important; }
-.react-flow__handle[data-port-type="child"] { background: #f59e0b !important; }
-.react-flow__handle[data-port-type="symmetric"] { background: #8b5cf6 !important; }
+.react-flow__handle[data-port-type="flow-in"] { background: #3b82f6 !important; }     /* blue */
+.react-flow__handle[data-port-type="flow-out"] { background: #22c55e !important; }    /* green */
+.react-flow__handle[data-port-type="parent"] { background: #8b5cf6 !important; }      /* violet */
+.react-flow__handle[data-port-type="child"] { background: #8b5cf6 !important; }       /* violet */
+.react-flow__handle[data-port-type="symmetric"] { background: #64748b !important; }   /* slate */
+.react-flow__handle[data-port-type="intercept"] { background: #f59e0b !important; }   /* amber */
+.react-flow__handle[data-port-type="forward"] { background: #f59e0b !important; }     /* amber */
 ```
 
 ## Necessary and Sufficient

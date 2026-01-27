@@ -1,21 +1,21 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useMemo } from 'react';
 import {
   ReactFlow,
   Controls,
   ControlButton,
   Background,
-  useNodesState,
-  useEdgesState,
-  useReactFlow,
-  addEdge,
+  applyNodeChanges,
+  applyEdgeChanges,
   SelectionMode,
   type Node,
   type Edge,
-  type Connection,
-  type OnConnect,
   type OnSelectionChangeParams,
+  type NodeChange,
+  type EdgeChange,
   BackgroundVariant,
 } from '@xyflow/react';
+import { useDocument } from '../hooks/useDocument';
+import { useDocumentContext } from '../contexts/DocumentContext';
 import CustomNode from '../CustomNode';
 import ConstructNode from './ConstructNode';
 import ContextMenu, { type ContextMenuType, type RelatedConstructOption } from '../ContextMenu';
@@ -23,15 +23,19 @@ import NodeControls from '../NodeControls';
 import AddConstructMenu from './AddConstructMenu';
 import DeployableBackground from './DeployableBackground';
 import { useUndoRedo } from '../hooks/useUndoRedo';
-import { generateSemanticId } from '../utils/cartaFile';
-import type { ConstructSchema, ConstructValues, Deployable, ConnectionValue, ConstructNodeData } from '../constructs/types';
-import { registry } from '../constructs/registry';
-import { canConnect, getPortsForSchema } from '../constructs/ports';
+import { useGraphOperations } from '../hooks/useGraphOperations';
+import { useConnections } from '../hooks/useConnections';
+import { useClipboard } from '../hooks/useClipboard';
+import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
+import type { ConstructValues, Deployable, ConstructNodeData } from '../constructs/types';
 
 const nodeTypes = {
   custom: CustomNode,
   construct: ConstructNode,
 };
+
+// Restrict dragging to header only - allows clicking fields to edit
+const NODE_DRAG_HANDLE = '.node-drag-handle';
 
 const defaultEdgeOptions = {
   style: {
@@ -39,36 +43,6 @@ const defaultEdgeOptions = {
     stroke: '#6366f1',
   },
 };
-
-export const STORAGE_KEY = 'react-flow-state';
-
-const loadState = () => {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      const { nodes, edges, nodeId, title } = JSON.parse(saved);
-      return { nodes, edges, nodeId, title };
-    }
-  } catch (error) {
-    console.error('Failed to load state:', error);
-  }
-  return null;
-};
-
-const savedState = loadState();
-
-export const initialNodes: Node[] = savedState?.nodes || [];
-export const initialEdges: Edge[] = savedState?.edges || [];
-export const initialTitle: string = savedState?.title || 'Untitled Project';
-let nodeId = savedState?.nodeId || 1;
-
-export function getNodeId(): number {
-  return nodeId;
-}
-
-export function setNodeId(id: number): void {
-  nodeId = id;
-}
 
 interface ContextMenuState {
   x: number;
@@ -90,308 +64,104 @@ export interface MapProps {
   onNodesEdgesChange: (nodes: Node[], edges: Edge[]) => void;
   onSelectionChange?: (selectedNodes: Node[]) => void;
   onNodeDoubleClick?: (nodeId: string) => void;
-  nodeUpdateRef?: React.MutableRefObject<((nodeId: string, updates: Partial<ConstructNodeData>) => void) | null>;
-  importRef?: React.MutableRefObject<((nodes: Node[], edges: Edge[]) => void) | null>;
 }
 
-export default function Map({ deployables, onDeployablesChange, title, onNodesEdgesChange, onSelectionChange, onNodeDoubleClick, nodeUpdateRef, importRef }: MapProps) {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+export default function Map({ deployables, onDeployablesChange, title, onNodesEdgesChange, onSelectionChange, onNodeDoubleClick }: MapProps) {
+  const { nodes, edges, setNodes, setEdges, getSchema } = useDocument();
+  const { adapter } = useDocumentContext();
+  const schemaGroups = adapter.getSchemaGroups();
+
+  // Create React Flow change handlers that work with the store
+  const onNodesChange = useCallback((changes: NodeChange[]) => {
+    setNodes((nds) => applyNodeChanges(changes, nds));
+  }, [setNodes]);
+
+  const onEdgesChange = useCallback((changes: EdgeChange[]) => {
+    setEdges((eds) => applyEdgeChanges(changes, eds));
+  }, [setEdges]);
+
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [addMenu, setAddMenu] = useState<AddMenuState | null>(null);
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
   const [renamingNodeId, setRenamingNodeId] = useState<string | null>(null);
-  const [clipboard, setClipboard] = useState<Node[]>([]);
-  const { screenToFlowPosition, getNodes } = useReactFlow();
-  const { undo, redo, canUndo, canRedo, takeSnapshot } = useUndoRedo();
+  const { undo, redo, canUndo, canRedo } = useUndoRedo();
 
-  // Suppress unused variable warning - onDeployablesChange is passed to children
+  // Track mouse movement for context menu detection
+  const [mouseDownPos, setMouseDownPos] = useState<{ x: number; y: number } | null>(null);
+
+  // Suppress unused variable warnings - these are passed through for compatibility
   void onDeployablesChange;
+  void title; // Title is now managed by the document store
 
-  // Expose node update function via ref
-  const handleNodeUpdate = useCallback(
-    (nodeId: string, updates: Partial<ConstructNodeData>) => {
-      setNodes((nds) => {
-        // If semantic ID is changing, we need to update all connections that reference it
-        const oldSemanticId = updates.semanticId
-          ? (nds.find(n => n.id === nodeId)?.data as ConstructNodeData | undefined)?.semanticId
-          : undefined;
+  // Use extracted hooks
+  const {
+    isValidConnection,
+    onConnect,
+    handleEdgesDelete
+  } = useConnections();
 
-        return nds.map((node) => {
-          if (node.id === nodeId) {
-            // Update the target node
-            return { ...node, data: { ...node.data, ...updates } };
-          } else if (oldSemanticId && updates.semanticId && node.type === 'construct') {
-            // Update connections in other nodes that reference the old semantic ID
-            const data = node.data as ConstructNodeData;
-            if (data.connections && data.connections.length > 0) {
-              const updatedConnections = data.connections.map(conn =>
-                conn.targetSemanticId === oldSemanticId
-                  ? { ...conn, targetSemanticId: updates.semanticId! }
-                  : conn
-              );
-              // Only update if something changed
-              if (updatedConnections.some((c, i) => c !== data.connections![i])) {
-                return { ...node, data: { ...data, connections: updatedConnections } };
-              }
-            }
-          }
-          return node;
-        });
-      });
-    },
-    [setNodes]
-  );
+  const {
+    copyNodes,
+    pasteNodes,
+    canPaste
+  } = useClipboard({ selectedNodeIds });
 
-  // Set the ref so parent can call this function
-  useEffect(() => {
-    if (nodeUpdateRef) {
-      nodeUpdateRef.current = handleNodeUpdate;
+  const {
+    addConstruct,
+    addRelatedConstruct,
+    addNode,
+    deleteNode,
+    deleteSelectedNodes,
+    renameNode,
+    updateNodeValues,
+    toggleNodeExpand,
+    updateNodeDeployable,
+  } = useGraphOperations({
+    selectedNodeIds,
+    setSelectedNodeIds,
+    setRenamingNodeId,
+    setAddMenu,
+  });
+
+  const startRename = useCallback(() => {
+    if (selectedNodeIds.length === 1) {
+      setRenamingNodeId(selectedNodeIds[0]);
     }
-  }, [nodeUpdateRef, handleNodeUpdate]);
+  }, [selectedNodeIds]);
 
-  // Import nodes and edges with ID remapping
-  const handleImportNodes = useCallback(
-    (importedNodes: Node[], importedEdges: Edge[]) => {
-      takeSnapshot();
+  // Use keyboard shortcuts hook
+  useKeyboardShortcuts({
+    selectedNodeIds,
+    canPaste,
+    undo,
+    redo,
+    copyNodes,
+    pasteNodes,
+    deleteSelectedNodes,
+    startRename,
+  });
 
-      // Build a mapping from old node IDs to new ones
-      const idMap: Record<string, string> = {};
-      const newNodes: Node[] = [];
-
-      // Create new IDs for imported nodes
-      importedNodes.forEach((node) => {
-        const newId = String(nodeId++);
-        idMap[node.id] = newId;
-
-        // Remap the node's position and data, preserving semanticId and connections
-        const newNode: Node = {
-          ...node,
-          id: newId,
-          position: {
-            x: (node.position?.x || 0) + 50, // Slight offset to avoid overlap
-            y: (node.position?.y || 0) + 50,
-          },
-        };
-
-        newNodes.push(newNode);
-      });
-
-      // Remap edges to use new node IDs
-      const newEdges: Edge[] = importedEdges.map((edge) => ({
-        ...edge,
-        id: `edge-${Math.random()}`, // Generate new edge IDs
-        source: idMap[edge.source] || edge.source,
-        target: idMap[edge.target] || edge.target,
-      }));
-
-      // Update nodeId in localStorage
-      setNodeId(nodeId);
-
-      // Merge with existing nodes and edges
-      setNodes((nds) => [...nds, ...newNodes]);
-      setEdges((eds) => [...eds, ...newEdges]);
-    },
-    [takeSnapshot, setNodes, setEdges]
-  );
-
-  // Set the import ref so parent can call this function
-  useEffect(() => {
-    if (importRef) {
-      importRef.current = handleImportNodes;
-    }
-  }, [importRef, handleImportNodes]);
-
-  useEffect(() => {
-    const saveState = () => {
-      try {
-        localStorage.setItem(
-          STORAGE_KEY,
-          JSON.stringify({ nodes, edges, nodeId, title })
-        );
-      } catch (error) {
-        console.error('Failed to save state:', error);
-      }
-    };
-
-    const timeoutId = setTimeout(saveState, 500);
-    return () => clearTimeout(timeoutId);
-  }, [nodes, edges, title]);
+  // Note: localStorage persistence is now handled by the document store's subscriber
+  // Note: Import is now handled directly in App.tsx via adapter to avoid hook issues
 
   // Notify parent of nodes/edges changes for export
   useEffect(() => {
     onNodesEdgesChange(nodes, edges);
   }, [nodes, edges, onNodesEdgesChange]);
 
-  // Helper to get semanticId from a node
-  const getNodeSemanticId = useCallback((nodeId: string): string | null => {
-    const node = nodes.find(n => n.id === nodeId);
-    if (!node || node.type !== 'construct') return null;
-    const data = node.data as ConstructNodeData;
-    return data.semanticId;
-  }, [nodes]);
-
-  const isValidConnection = useCallback((connection: Edge | Connection): boolean => {
-    const { source, target, sourceHandle, targetHandle } = connection;
-
-    // no self-connections and no same-construct connections
-    if (!source || !target) return false;
-    if (source === target) return false;
-
-    // If handles are missing, we can't validate ports safely
-    if (!sourceHandle || !targetHandle) return false;
-
-    const currentNodes = getNodes();
-    const sourceNode = currentNodes.find((n) => n.id === source);
-    const targetNode = currentNodes.find((n) => n.id === target);
-    if (!sourceNode || !targetNode) return false;
-
-    // Only validate port semantics for construct nodes; other node types fall back to default behavior
-    if (sourceNode.type !== 'construct' || targetNode.type !== 'construct') return true;
-
-    const sourceData = sourceNode.data as ConstructNodeData;
-    const targetData = targetNode.data as ConstructNodeData;
-    const sourceSchema = registry.getSchema(sourceData.constructType);
-    const targetSchema = registry.getSchema(targetData.constructType);
-    if (!sourceSchema || !targetSchema) return false;
-
-    const sourcePorts = getPortsForSchema(sourceSchema.ports);
-    const targetPorts = getPortsForSchema(targetSchema.ports);
-    const sourcePort = sourcePorts.find((p) => p.id === sourceHandle);
-    const targetPort = targetPorts.find((p) => p.id === targetHandle);
-    if (!sourcePort || !targetPort) return false;
-
-    // Validate port type compatibility via registry
-    return canConnect(sourcePort.portType, targetPort.portType);
-  }, [getNodes]);
-
-  const onConnect: OnConnect = useCallback(
-    (params) => {
-      takeSnapshot();
-
-      // Store connection on source node's data
-      if (params.source && params.sourceHandle && params.target && params.targetHandle) {
-        const targetSemanticId = getNodeSemanticId(params.target);
-        if (targetSemanticId) {
-          const newConnection: ConnectionValue = {
-            portId: params.sourceHandle,
-            targetSemanticId,
-            targetPortId: params.targetHandle,
-          };
-
-          setNodes((nds) =>
-            nds.map((node) => {
-              if (node.id === params.source && node.type === 'construct') {
-                const data = node.data as ConstructNodeData;
-                const existingConnections = data.connections || [];
-                // Avoid duplicates
-                const alreadyExists = existingConnections.some(
-                  c => c.portId === newConnection.portId &&
-                       c.targetSemanticId === newConnection.targetSemanticId &&
-                       c.targetPortId === newConnection.targetPortId
-                );
-                if (alreadyExists) return node;
-
-                return {
-                  ...node,
-                  data: {
-                    ...data,
-                    connections: [...existingConnections, newConnection],
-                  },
-                };
-              }
-              return node;
-            })
-          );
-        }
-      }
-
-      // Also add edge for visual rendering
-      setEdges((eds) => addEdge(params, eds));
-    },
-    [setEdges, setNodes, takeSnapshot, getNodeSemanticId]
-  );
-
-  // Handle edge deletion - remove connection data from nodes
-  const handleEdgesDelete = useCallback(
-    (deletedEdges: Edge[]) => {
-      setNodes((nds) =>
-        nds.map((node) => {
-          if (node.type !== 'construct') return node;
-          const data = node.data as ConstructNodeData;
-          if (!data.connections || data.connections.length === 0) return node;
-
-          // Find edges that were deleted from this node
-          const edgesFromThisNode = deletedEdges.filter(e => e.source === node.id);
-          if (edgesFromThisNode.length === 0) return node;
-
-          // Remove connections that match deleted edges
-          const updatedConnections = data.connections.filter(conn => {
-            return !edgesFromThisNode.some(edge =>
-              edge.sourceHandle === conn.portId &&
-              edge.targetHandle === conn.targetPortId
-            );
-          });
-
-          if (updatedConnections.length === data.connections.length) return node;
-
-          return {
-            ...node,
-            data: {
-              ...data,
-              connections: updatedConnections,
-            },
-          };
-        })
-      );
-    },
-    [setNodes]
-  );
-
-  const addConstruct = useCallback(
-    (schema: ConstructSchema, x: number, y: number) => {
-      takeSnapshot();
-      const position = screenToFlowPosition({ x, y });
-      const id = String(nodeId++);
-
-      const values: ConstructValues = {};
-      schema.fields.forEach((field) => {
-        if (field.default !== undefined) {
-          values[field.name] = field.default;
-        }
-      });
-
-      const semanticId = generateSemanticId(schema.type);
-
-      const newNode: Node = {
-        id,
-        type: 'construct',
-        position,
-        data: {
-          constructType: schema.type,
-          semanticId,
-          values,
-          isExpanded: true,
-        },
-      };
-      setNodes((nds) => [...nds, newNode]);
-    },
-    [setNodes, screenToFlowPosition, takeSnapshot]
-  );
-
-  // Get related constructs options for a node
+  // Get related constructs options for a node (context menu specific)
   const getRelatedConstructsForNode = useCallback(
     (nodeIdToCheck: string): RelatedConstructOption[] => {
       const node = nodes.find(n => n.id === nodeIdToCheck);
       if (!node || node.type !== 'construct') return [];
 
       const data = node.data as ConstructNodeData;
-      const schema = registry.getSchema(data.constructType);
+      const schema = getSchema(data.constructType);
       if (!schema || !schema.suggestedRelated || schema.suggestedRelated.length === 0) return [];
 
       const result: RelatedConstructOption[] = [];
       for (const related of schema.suggestedRelated) {
-        const relatedSchema = registry.getSchema(related.constructType);
+        const relatedSchema = getSchema(related.constructType);
         if (relatedSchema) {
           result.push({
             constructType: related.constructType,
@@ -400,131 +170,29 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
             fromPortId: related.fromPortId,
             toPortId: related.toPortId,
             label: related.label,
+            groupId: relatedSchema.groupId,
           });
         }
       }
       return result;
     },
-    [nodes]
+    [nodes, getSchema]
   );
 
-  // Add a related construct near the source node and optionally connect them
-  const addRelatedConstruct = useCallback(
-    (sourceNodeId: string, constructType: string, fromPortId?: string, toPortId?: string) => {
-      const sourceNode = nodes.find(n => n.id === sourceNodeId);
-      if (!sourceNode) return;
+  // Get all construct options for pane menu
+  const { schemas } = useDocument();
+  const allConstructOptions = useMemo(() => {
+    return schemas.map(schema => ({
+      constructType: schema.type,
+      displayName: schema.displayName,
+      color: schema.color,
+      groupId: schema.groupId,
+    }));
+  }, [schemas]);
 
-      const schema = registry.getSchema(constructType);
-      if (!schema) return;
-
-      takeSnapshot();
-
-      // Position the new node to the right of the source node
-      const newPosition = {
-        x: sourceNode.position.x + 320,
-        y: sourceNode.position.y,
-      };
-
-      const id = String(nodeId++);
-      const values: ConstructValues = {};
-      schema.fields.forEach((field) => {
-        if (field.default !== undefined) {
-          values[field.name] = field.default;
-        }
-      });
-
-      const semanticId = generateSemanticId(schema.type);
-
-      const newNode: Node = {
-        id,
-        type: 'construct',
-        position: newPosition,
-        data: {
-          constructType: schema.type,
-          semanticId,
-          values,
-          isExpanded: true,
-        },
-      };
-
-      // If both ports are specified, create connection using explicit pair
-      if (fromPortId && toPortId) {
-        // Create the connection on the source node
-        const newConnection: ConnectionValue = {
-          portId: fromPortId,
-          targetSemanticId: semanticId,
-          targetPortId: toPortId,
-        };
-
-        // Also create an edge for visual rendering
-        setNodes((nds) => [
-          ...nds.map(n => {
-            if (n.id === sourceNodeId && n.type === 'construct') {
-              const data = n.data as ConstructNodeData;
-              return {
-                ...n,
-                data: {
-                  ...data,
-                  connections: [...(data.connections || []), newConnection],
-                },
-              };
-            }
-            return n;
-          }),
-          newNode,
-        ]);
-        setEdges((eds) => addEdge({
-          source: sourceNodeId,
-          target: id,
-          sourceHandle: fromPortId,
-          targetHandle: toPortId,
-        }, eds));
-        return;
-      }
-
-      // If no ports specified, just add the node
-      setNodes((nds) => [...nds, newNode]);
-    },
-    [nodes, setNodes, setEdges, takeSnapshot]
-  );
-
-  const addNode = useCallback(
-    (x?: number, y?: number) => {
-      if (x !== undefined && y !== undefined) {
-        setAddMenu({ x, y });
-      } else {
-        setAddMenu({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
-      }
-    },
-    []
-  );
-
-  const deleteNode = useCallback(
-    (nodeIdToDelete: string) => {
-      takeSnapshot();
-      setNodes((nds) => nds.filter((n) => n.id !== nodeIdToDelete));
-      setEdges((eds) =>
-        eds.filter((e) => e.source !== nodeIdToDelete && e.target !== nodeIdToDelete)
-      );
-      setSelectedNodeIds((ids) => ids.filter((id) => id !== nodeIdToDelete));
-    },
-    [setNodes, setEdges, takeSnapshot]
-  );
-
-  const deleteSelectedNodes = useCallback(() => {
-    if (selectedNodeIds.length === 0) return;
-    takeSnapshot();
-    const idsToDelete = new Set(selectedNodeIds);
-    setNodes((nds) => nds.filter((n) => !idsToDelete.has(n.id)));
-    setEdges((eds) =>
-      eds.filter((e) => !idsToDelete.has(e.source) && !idsToDelete.has(e.target))
-    );
-    setSelectedNodeIds([]);
-  }, [selectedNodeIds, setNodes, setEdges, takeSnapshot]);
-
+  // Context menu specific edge deletion
   const deleteEdge = useCallback(
     (edgeIdToDelete: string) => {
-      takeSnapshot();
       const edgeToDelete = edges.find((e) => e.id === edgeIdToDelete);
       if (edgeToDelete) {
         // Remove from edges array
@@ -533,137 +201,19 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
         handleEdgesDelete([edgeToDelete]);
       }
     },
-    [edges, setEdges, handleEdgesDelete, takeSnapshot]
+    [edges, setEdges, handleEdgesDelete]
   );
 
-  const renameNode = useCallback(
-    (nodeIdToRename: string, newSemanticId: string) => {
-      setNodes((nds) =>
-        nds.map((n) => {
-          if (n.id !== nodeIdToRename) return n;
-
-          if (n.type === 'construct') {
-            return {
-              ...n,
-              data: { ...n.data, semanticId: newSemanticId },
-            };
-          }
-          return {
-            ...n,
-            data: { ...n.data, label: newSemanticId },
-          };
-        })
-      );
-      setRenamingNodeId(null);
-    },
-    [setNodes]
-  );
-
-  const updateNodeValues = useCallback(
-    (nodeIdToUpdate: string, newValues: ConstructValues) => {
-      setNodes((nds) =>
-        nds.map((n) =>
-          n.id === nodeIdToUpdate
-            ? { ...n, data: { ...n.data, values: newValues } }
-            : n
-        )
-      );
-    },
-    [setNodes]
-  );
-
-  const toggleNodeExpand = useCallback(
-    (nodeIdToToggle: string) => {
-      setNodes((nds) =>
-        nds.map((n) =>
-          n.id === nodeIdToToggle
-            ? { ...n, data: { ...n.data, isExpanded: !n.data.isExpanded } }
-            : n
-        )
-      );
-    },
-    [setNodes]
-  );
-
-  const updateNodeDeployable = useCallback(
-    (nodeIdToUpdate: string, deployableId: string | null) => {
-      setNodes((nds) =>
-        nds.map((n) =>
-          n.id === nodeIdToUpdate
-            ? { ...n, data: { ...n.data, deployableId } }
-            : n
-        )
-      );
-    },
-    [setNodes]
-  );
-
-  const copyNodes = useCallback(
-    (nodeIdsToCopy?: string[]) => {
-      const ids = nodeIdsToCopy || selectedNodeIds;
-      if (ids.length === 0) return;
-
-      const nodesToCopy = nodes.filter((n) => ids.includes(n.id));
-      if (nodesToCopy.length > 0) {
-        setClipboard(JSON.parse(JSON.stringify(nodesToCopy)));
+  // Handle adding construct from pane context menu
+  const handleAddConstructFromMenu = useCallback(
+    (constructType: string, x: number, y: number) => {
+      const schema = getSchema(constructType);
+      if (schema) {
+        addConstruct(schema, x, y);
       }
     },
-    [nodes, selectedNodeIds]
+    [getSchema, addConstruct]
   );
-
-  const pasteNodes = useCallback(
-    (x?: number, y?: number) => {
-      if (clipboard.length === 0) return;
-
-      takeSnapshot();
-
-      const minX = Math.min(...clipboard.map((n) => n.position.x));
-      const minY = Math.min(...clipboard.map((n) => n.position.y));
-
-      const basePosition =
-        x !== undefined && y !== undefined
-          ? screenToFlowPosition({ x, y })
-          : { x: minX + 50, y: minY + 50 };
-
-      const newNodes: Node[] = clipboard.map((clipNode) => {
-        const newId = String(nodeId++);
-
-        const offsetX = clipNode.position.x - minX;
-        const offsetY = clipNode.position.y - minY;
-
-        const position = {
-          x: basePosition.x + offsetX,
-          y: basePosition.y + offsetY,
-        };
-
-        // Generate new semantic ID for the copy
-        const newSemanticId = (clipNode.data.constructType && typeof clipNode.data.constructType === 'string')
-          ? generateSemanticId(clipNode.data.constructType)
-          : `copy-${newId}`;
-
-        return {
-          ...clipNode,
-          id: newId,
-          position,
-          selected: false,
-          data: {
-            ...clipNode.data,
-            label: clipNode.data.label ? `${clipNode.data.label} (copy)` : undefined,
-            semanticId: newSemanticId,
-          },
-        };
-      });
-
-      setNodes((nds) => [...nds, ...newNodes]);
-    },
-    [clipboard, setNodes, screenToFlowPosition, takeSnapshot]
-  );
-
-  const startRename = useCallback(() => {
-    if (selectedNodeIds.length === 1) {
-      setRenamingNodeId(selectedNodeIds[0]);
-    }
-  }, [selectedNodeIds]);
 
   const handleSelectionChange = useCallback(
     ({ nodes: selectedNodes }: OnSelectionChangeParams) => {
@@ -691,92 +241,107 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     }
   }, [nodes, selectedNodeIds, onSelectionChange]);
 
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
-        return;
-      }
-
-      if ((event.ctrlKey || event.metaKey) && event.key === 'z' && !event.shiftKey) {
-        event.preventDefault();
-        undo();
-        return;
-      }
-
-      if ((event.ctrlKey || event.metaKey) && (event.key === 'y' || (event.key === 'z' && event.shiftKey))) {
-        event.preventDefault();
-        redo();
-        return;
-      }
-
-      if ((event.ctrlKey || event.metaKey) && event.key === 'c') {
-        if (selectedNodeIds.length > 0) {
-          event.preventDefault();
-          copyNodes();
-        }
-        return;
-      }
-
-      if ((event.ctrlKey || event.metaKey) && event.key === 'v') {
-        if (clipboard.length > 0) {
-          event.preventDefault();
-          pasteNodes();
-        }
-        return;
-      }
-
-      if (selectedNodeIds.length === 0) return;
-
-      if (event.key === 'Delete' || event.key === 'Backspace') {
-        event.preventDefault();
-        deleteSelectedNodes();
-      } else if (event.key === 'F2' && selectedNodeIds.length === 1) {
-        event.preventDefault();
-        startRename();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedNodeIds, deleteSelectedNodes, startRename, undo, redo, copyNodes, pasteNodes, clipboard]);
-
   const onPaneContextMenu = useCallback(
     (event: MouseEvent | React.MouseEvent) => {
       event.preventDefault();
-      setContextMenu({
-        x: event.clientX,
-        y: event.clientY,
-        type: 'pane',
-      });
+
+      // Only show context menu if mouse hasn't moved significantly
+      // If mouseDownPos is null, show menu anyway (event timing edge case)
+      let shouldShowMenu = true;
+
+      if (mouseDownPos) {
+        const dx = Math.abs(event.clientX - mouseDownPos.x);
+        const dy = Math.abs(event.clientY - mouseDownPos.y);
+        const threshold = 5; // pixels
+
+        if (dx >= threshold || dy >= threshold) {
+          shouldShowMenu = false;
+        }
+      }
+
+      if (shouldShowMenu) {
+        setContextMenu({
+          x: event.clientX,
+          y: event.clientY,
+          type: 'pane',
+        });
+      }
+
+      setMouseDownPos(null);
     },
-    []
+    [mouseDownPos]
   );
 
   const onNodeContextMenu = useCallback(
     (event: React.MouseEvent, node: Node) => {
       event.preventDefault();
-      setContextMenu({
-        x: event.clientX,
-        y: event.clientY,
-        type: 'node',
-        nodeId: node.id,
-      });
+
+      // Only show context menu if mouse hasn't moved significantly
+      // If mouseDownPos is null, show menu anyway (event timing edge case)
+      let shouldShowMenu = true;
+
+      if (mouseDownPos) {
+        const dx = Math.abs(event.clientX - mouseDownPos.x);
+        const dy = Math.abs(event.clientY - mouseDownPos.y);
+        const threshold = 5; // pixels
+
+        if (dx >= threshold || dy >= threshold) {
+          shouldShowMenu = false;
+        }
+      }
+
+      if (shouldShowMenu) {
+        setContextMenu({
+          x: event.clientX,
+          y: event.clientY,
+          type: 'node',
+          nodeId: node.id,
+        });
+      }
+
+      setMouseDownPos(null);
     },
-    []
+    [mouseDownPos]
   );
 
   const onEdgeContextMenu = useCallback(
     (event: React.MouseEvent, edge: Edge) => {
       event.preventDefault();
-      setContextMenu({
-        x: event.clientX,
-        y: event.clientY,
-        type: 'edge',
-        edgeId: edge.id,
-      });
+
+      // Only show context menu if mouse hasn't moved significantly
+      // If mouseDownPos is null, show menu anyway (event timing edge case)
+      let shouldShowMenu = true;
+
+      if (mouseDownPos) {
+        const dx = Math.abs(event.clientX - mouseDownPos.x);
+        const dy = Math.abs(event.clientY - mouseDownPos.y);
+        const threshold = 5; // pixels
+
+        if (dx >= threshold || dy >= threshold) {
+          shouldShowMenu = false;
+        }
+      }
+
+      if (shouldShowMenu) {
+        setContextMenu({
+          x: event.clientX,
+          y: event.clientY,
+          type: 'edge',
+          edgeId: edge.id,
+        });
+      }
+
+      setMouseDownPos(null);
     },
-    []
+    [mouseDownPos]
   );
+
+  const onMouseDown = useCallback((event: React.MouseEvent) => {
+    // Track mouse position on right-click
+    if (event.button === 2) {
+      setMouseDownPos({ x: event.clientX, y: event.clientY });
+    }
+  }, []);
 
   const closeContextMenu = useCallback(() => {
     setContextMenu(null);
@@ -789,8 +354,10 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
 
   const nodesWithCallbacks = nodes.map((node) => ({
     ...node,
+    dragHandle: NODE_DRAG_HANDLE,
     data: {
       ...node.data,
+      nodeId: node.id, // Pass technical UUID for display
       isRenaming: node.id === renamingNodeId,
       onRename: (newName: string) => renameNode(node.id, newName),
       onValuesChange: (values: ConstructValues) => updateNodeValues(node.id, values),
@@ -816,8 +383,10 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
         onNodeContextMenu={onNodeContextMenu}
         onEdgeContextMenu={onEdgeContextMenu}
         onPaneClick={onPaneClick}
+        onMouseDown={onMouseDown}
         nodeTypes={nodeTypes}
         defaultEdgeOptions={defaultEdgeOptions}
+        nodeDragThreshold={5}
         panOnDrag={[1, 2]}
         selectionOnDrag
         selectionMode={SelectionMode.Full}
@@ -876,14 +445,17 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
           edgeId={contextMenu.edgeId}
           selectedCount={selectedNodeIds.length}
           relatedConstructs={contextMenu.nodeId ? getRelatedConstructsForNode(contextMenu.nodeId) : undefined}
+          constructOptions={contextMenu.type === 'pane' ? allConstructOptions : undefined}
+          schemaGroups={schemaGroups}
           onAddNode={addNode}
+          onAddConstruct={handleAddConstructFromMenu}
           onDeleteNode={deleteNode}
           onDeleteSelected={deleteSelectedNodes}
           onDeleteEdge={deleteEdge}
           onCopyNodes={copyNodes}
           onPasteNodes={pasteNodes}
           onAddRelatedConstruct={contextMenu.nodeId ? (constructType, fromPortId, toPortId) => addRelatedConstruct(contextMenu.nodeId!, constructType, fromPortId, toPortId) : undefined}
-          canPaste={clipboard.length > 0}
+          canPaste={canPaste}
           onClose={closeContextMenu}
         />
       )}

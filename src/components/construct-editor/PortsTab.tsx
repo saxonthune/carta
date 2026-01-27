@@ -1,5 +1,5 @@
 import type { ConstructSchema, PortConfig, PortPosition } from '../../constructs/types';
-import { portRegistry } from '../../constructs/portRegistry';
+import { useDocument } from '../../hooks/useDocument';
 
 interface PortsTabProps {
   formData: ConstructSchema;
@@ -16,16 +16,14 @@ function toSnakeCase(str: string): string {
 
 const PORT_POSITIONS: PortPosition[] = ['left', 'right', 'top', 'bottom'];
 
-// Get port types from registry
-const getPortTypes = () => portRegistry.getAll();
-
 export default function PortsTab({
   formData,
   addPort,
   updatePort,
   removePort
 }: PortsTabProps) {
-  const portTypes = getPortTypes();
+  const { getPortSchemas } = useDocument();
+  const portSchemas = getPortSchemas();
 
   return (
     <div className="bg-surface-elevated rounded-lg p-4">
@@ -101,14 +99,14 @@ export default function PortsTab({
                     className="w-full px-2 py-1.5 bg-surface-alt rounded text-content text-xs focus:outline-none focus:ring-1 focus:ring-primary"
                     value={port.portType}
                     onChange={(e) => updatePort(index, { portType: e.target.value })}
-                    title={portTypes.find(pt => pt.id === port.portType)?.description}
+                    title={portSchemas.find(ps => ps.id === port.portType)?.semanticDescription}
                   >
-                    {portTypes.map(pt => (
-                      <option key={pt.id} value={pt.id}>{pt.label}</option>
+                    {portSchemas.map(ps => (
+                      <option key={ps.id} value={ps.id}>{ps.displayName}</option>
                     ))}
                   </select>
                   <p className="text-xs text-content-muted mt-1 mb-0 italic">
-                    {portTypes.find(pt => pt.id === port.portType)?.description || 'Select a port type'}
+                    {portSchemas.find(ps => ps.id === port.portType)?.semanticDescription || 'Select a port type'}
                   </p>
                 </div>
                 <div>

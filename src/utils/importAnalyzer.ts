@@ -1,11 +1,10 @@
 import type { Node } from '@xyflow/react';
 import type { CartaFile } from './cartaFile';
-import type { ConstructSchema, Deployable, ConstructNodeData } from '../constructs/types';
-import { registry } from '../constructs/registry';
-import { builtInSchemas } from '../constructs/schemas/built-ins';
+import type { ConstructSchema, Deployable, ConstructNodeData, PortSchema, SchemaGroup } from '../constructs/types';
+import { builtInConstructSchemas } from '../constructs/schemas/built-ins';
 
 // Set of built-in schema types for quick lookup
-const BUILT_IN_TYPES = new Set(builtInSchemas.map(s => s.type));
+const BUILT_IN_TYPES = new Set(builtInConstructSchemas.map(s => s.type));
 
 /**
  * Status of an analyzed item
@@ -62,11 +61,16 @@ export interface AnalyzedCategory<T> {
 export interface ImportAnalysis {
   fileName: string;
   title: string;
+  description?: string;
 
   schemas: AnalyzedCategory<AnalyzedSchema>;
   nodes: AnalyzedCategory<AnalyzedNode>;
   deployables: AnalyzedCategory<AnalyzedDeployable>;
   edges: { count: number };
+
+  // These are always imported (not selectable) but shown for information
+  portSchemas: { items: PortSchema[]; count: number };
+  schemaGroups: { items: SchemaGroup[]; count: number };
 
   hasConflicts: boolean;
 }
@@ -98,11 +102,12 @@ export function analyzeImport(
   file: CartaFile,
   fileName: string,
   currentNodes: Node[] = [],
-  currentDeployables: Deployable[] = []
+  currentDeployables: Deployable[] = [],
+  currentSchemas: ConstructSchema[] = []
 ): ImportAnalysis {
   // Analyze schemas
   const analyzedSchemas: AnalyzedSchema[] = file.customSchemas.map(schema => {
-    const existing = registry.getSchema(schema.type);
+    const existing = currentSchemas.find(s => s.type === schema.type);
     // Check if it's a user schema (not built-in) with the same type
     const isConflict = existing && !BUILT_IN_TYPES.has(schema.type);
     return {
@@ -156,6 +161,7 @@ export function analyzeImport(
   return {
     fileName,
     title: file.title,
+    description: file.description,
     schemas: {
       items: analyzedSchemas,
       summary: {
@@ -182,6 +188,15 @@ export function analyzeImport(
     },
     edges: {
       count: file.edges.length,
+    },
+    // Port schemas and schema groups are always imported (required for proper functioning)
+    portSchemas: {
+      items: file.portSchemas || [],
+      count: file.portSchemas?.length || 0,
+    },
+    schemaGroups: {
+      items: file.schemaGroups || [],
+      count: file.schemaGroups?.length || 0,
     },
     hasConflicts,
   };

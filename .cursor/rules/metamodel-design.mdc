@@ -1,6 +1,20 @@
 ---
 description: Three-level metamodel architecture
-globs: ["**/constructs/**", "**/components/fields/**", "**/components/FieldDefinitionEditor*"]
+globs: ["**/constructs/**", "**/components/fields/**", "**/components/FieldSchemaEditor*", "**/components/PortSchemaEditor*"]
+---
+
+# The Dual-Mandate
+
+Carta's design must fulfill two objectives in tension:
+
+**1. Properly Bounded Modeling Capability**
+Users must be able to model any domain (software architecture, sentence diagramming, circuits) at any granularity (abstract to highly detailed). The M2 primitives must be flexible enough to express diverse domains, yet restrictive enough that users don't drown in options or create muddled models. There is a "sweet spot" between too permissive and too restrictive.
+
+**2. Semantically Sufficient Compilation**
+The model state must compile to instructions an AI agent can act on—generating code, explanations, or other artifacts. This requires sufficient semantic data to differentiate instances, relationships, and schema. If an AI cannot produce quality output, the failure is either: (a) compilation lost structure, (b) the user didn't add enough meaning (but had the capability to), or (c) the metamodel was too complex to use effectively.
+
+**Design decisions must satisfy both objectives.** When evaluating changes, ask: Does this expand modeling capability without adding confusion? Does this preserve or enhance semantic clarity in compilation?
+
 ---
 
 # Metamodel Design: Three-Level Architecture
@@ -12,16 +26,22 @@ Carta uses a classic three-level metamodel (M2/M1/M0) to provide flexibility whi
 ```
 M2 (Designer-fixed)     M1 (User-defined)           M0 (Instances)
 ─────────────────────   ─────────────────────────   ─────────────────────
-DataKind: string,       Registries:                 ConstructInstance:
-  number, boolean,        - Constructs                - type → Construct
+DataKind: string,       Stored in Yjs Y.Doc:        ConstructInstance:
+  number, boolean,        - Construct schemas         - type → Construct
   date, enum              - Deployables               - deployable? → Deployable
-                          - Ports                     - semanticId (required)
-PortDefinition:                                       - values: {field → value}
-  flow-in, flow-out,   Construct:                    - connections[]
-  parent, child,         - displayName, description
-  symmetric              - displayField
-                         - fields[]
-                         - ports[]
+                          - Port Schemas              - semanticId (required)
+Polarity: source,         - Schema Groups             - values: {field → value}
+  sink,                                               - connections[]
+  bidirectional        PortSchema:
+                         - polarity
+                         - compatibleWith (wildcards)
+                         - defaultPosition
+
+                       Construct:
+                         - displayName, description
+                         - displayField
+                         - fields: FieldSchema[]
+                         - ports: PortConfig[]
 ```
 
 ## M2: Fixed Primitives
@@ -51,27 +71,49 @@ Presentation hints for string fields (optional):
 | `url` | URL input |
 | `color` | Color picker |
 
-### PortDefinition
-Fixed port types with compatibility rules (see `ports-and-connections.mdc`):
+### Polarity
+Polarity determines connection direction semantics:
 
-| Port Type | Compatible With | Default Position |
-|-----------|-----------------|------------------|
-| `flow-in` | flow-out, symmetric | left |
-| `flow-out` | flow-in, symmetric | right |
-| `parent` | child, symmetric | top |
-| `child` | parent, symmetric | bottom |
-| `symmetric` | any | right |
+| Polarity | Meaning | Examples |
+|----------|---------|----------|
+| `source` | Initiates connections | flow-out, parent, forward |
+| `sink` | Receives connections | flow-in, child, intercept |
+| `bidirectional` | Can both initiate and receive | symmetric |
+
+**Validation rules:**
+- source → source: BLOCKED
+- sink → sink: BLOCKED
+- source → sink: ALLOWED
+- sink → source: ALLOWED (user dragged backward)
+- bidirectional → any: ALLOWED
+
+### PortSchema (M1 Layer)
+Port schemas are now user-editable M1 entities (like ConstructSchema):
+
+| Port Type | Polarity | Compatible With | Default Position |
+|-----------|----------|-----------------|------------------|
+| `flow-in` | sink | flow-out, forward | left |
+| `flow-out` | source | flow-in, intercept | right |
+| `parent` | source | child, intercept | bottom |
+| `child` | sink | parent, forward | top |
+| `symmetric` | bidirectional | * (wildcard) | right |
+| `intercept` | sink | *source* (wildcard) | left |
+| `forward` | source | *sink* (wildcard) | right |
 
 ```typescript
-interface PortDefinition {
-  id: string;              // 'flow-in', 'flow-out', etc.
-  label: string;
-  description: string;
-  compatibleWith?: string[]; // undefined = any port
+interface PortSchema {
+  id: string;                    // 'flow-in', 'flow-out', etc.
+  displayName: string;
+  semanticDescription: string;   // AI compilation context
+  polarity: Polarity;
+  compatibleWith: string[];      // port IDs or wildcards: '*', '*source*', '*sink*'
+  expectedComplement?: string;   // UI hint only
   defaultPosition: PortPosition;
   color: string;
 }
 ```
+
+Port schemas are stored in the document store and editable via the Ports tab.
 
 ## M1: User-Defined Schemas
 
@@ -84,7 +126,7 @@ interface ConstructSchema {
   color: string;             // Visual accent
   description?: string;      // AI compilation context
   displayField?: string;     // Field to use as node title
-  fields: FieldDefinition[]; // Data fields
+  fields: FieldSchema[];     // Data fields
   ports?: PortConfig[];      // Connection points
   compilation: CompilationConfig;
 }
@@ -106,10 +148,10 @@ Specifies which field's value to show as the node title. If not set or empty, fa
 }
 ```
 
-### FieldDefinition
+### FieldSchema
 
 ```typescript
-interface FieldDefinition {
+interface FieldSchema {
   name: string;           // Internal key
   label: string;          // Display label
   type: DataKind;         // One of the M2 primitives
@@ -118,6 +160,7 @@ interface FieldDefinition {
   displayHint?: DisplayHint; // For string type only
   default?: unknown;
   placeholder?: string;
+  displayInMap?: boolean; // Show this field in the map node summary
 }
 ```
 
@@ -183,8 +226,10 @@ DisplayHint only affects rendering, not data storage. A `string` field with `dis
 ### 4. Description for AI Context
 The `description` field on both schemas and field definitions provides context for AI compilation. Use it to explain what the field represents semantically.
 
-### 5. Semantic ID is Primary Identifier
-`semanticId` is always required and serves as the primary identifier for constructs. Generated automatically with pattern `{type}-{timestamp}{random}`.
+### 5. Dual Identity System
+Construct instances use two separate identifiers:
+- **Technical ID** (`Node.id`): Immutable UUID from `crypto.randomUUID()`, used internally by React Flow and Yjs as the Y.Map key. Never exposed to users, never changes.
+- **Semantic ID** (`semanticId`): Human/AI-readable identifier used in connections and compilation. Generated as `{type}-{timestamp}{random}` (e.g., "controller-1738004567abc"). Can be changed by users, which triggers cascade updates to all referencing connections (see `yjsAdapter.ts:350-377`).
 
 ## Child Construct Patterns
 
@@ -233,38 +278,52 @@ const childParams = allNodes.filter(n =>
 );
 ```
 
-## Registry Pattern
+## State Access Pattern
 
-Both Construct schemas and Deployables use the generic `Registry<T>` interface:
+All document state (schemas, deployables, port schemas, nodes, edges) is accessed via the `useDocument()` hook:
 
 ```typescript
-interface Registry<T extends RegistryItem> {
-  get(id: string): T | undefined;
-  getAll(): T[];
-  add(item: Omit<T, 'id'>): T;
-  update(id: string, updates: Partial<T>): T | undefined;
-  remove(id: string): boolean;
-  clear(): void;
-}
+// In any component
+const { schemas, deployables, portSchemas, getSchema, addSchema } = useDocument();
+
+// All operations go through adapter methods
+addSchema(newSchema);
+const schema = getSchema('my-type');
 ```
 
-See `registry-base.ts` for the `BaseRegistry` implementation with localStorage persistence.
+No singleton registries—all state flows through the DocumentAdapter interface implemented by YjsAdapter. Port schemas and construct schemas are stored in the Y.Doc.
 
 ## Port Registry
 
-The `PortRegistry` manages port type definitions and validates connections:
+The `PortRegistry` manages port schemas with polarity-based validation. It receives schemas as a parameter (not a singleton):
 
 ```typescript
 // src/constructs/portRegistry.ts
 export class PortRegistry {
-  get(id: string): PortDefinition | undefined;
-  getAll(): PortDefinition[];
-  canConnect(sourcePortType: string, targetPortType: string): boolean;
+  constructor(schemas: PortSchema[] = DEFAULT_PORT_SCHEMAS);
+  get(id: string): PortSchema | undefined;
+  getAll(): PortSchema[];
+  setSchemas(schemas: PortSchema[]): void;  // Update internal schemas
+  canConnect(fromPortType: string, toPortType: string): boolean;  // Polarity-based
   getColor(portType: string): string;
+  register(schema: PortSchema): void;
+  remove(id: string): boolean;
+  getDefaultPosition(portType: string): PortPosition;
 }
 
 export const portRegistry = new PortRegistry();
+
+// Sync registry with document portSchemas
+export function syncWithDocumentStore(portSchemas?: PortSchema[]): void;
 ```
+
+Port schemas are stored in the Yjs document alongside construct schemas and deployables. Components access them via `useDocument()`:
+
+```typescript
+const { portSchemas, addPortSchema, updatePortSchema } = useDocument();
+```
+
+Users can create custom port types via the Ports tab.
 
 ## Display Utilities
 

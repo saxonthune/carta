@@ -17,8 +17,9 @@ Carta is a node-based visual editor for designing software architecture. Users c
 - **Vite 7.2** - Build tool and dev server
 - **TypeScript 5.9** - Type safety
 - **Tailwind CSS** - Utility-first styling
-- **Zustand 5.0** - State management (used by React Flow)
-- **LocalStorage** - Persistence for canvas state and user schemas
+- **Yjs** - CRDT-based state management with collaborative editing support
+- **y-indexeddb** - Local persistence layer for Yjs documents
+- **y-websocket** (optional) - WebSocket provider for real-time collaboration
 
 ## Architecture: Separation of Concerns
 
@@ -32,7 +33,7 @@ The system is designed with **three decoupled layers** that can evolve independe
 - **Does NOT know** how to render specific construct types or compile them
 
 #### UI Layout (IDE-style)
-The application uses a split-panel layout similar to JetBrains IDEs:
+The application uses a split-panel layout with a right-side drawer:
 
 ```
 ┌─────────────────────────────────────────┐
@@ -44,44 +45,54 @@ The application uses a split-panel layout similar to JetBrains IDEs:
 │  (ReactFlow canvas, zoom controls,       │
 │   add construct, node interactions)      │
 │                                          │
-├─────────────────────────────────────────┤
-│ Tabs │         Dock Content              │
-│      │                                   │
-│ [V]  │  - ConstructViewer (selected node)│
-│ [C]  │  - ConstructEditor (schema CRUD)  │
-│ [D]  │  - DeployablesEditor (CRUD)       │
-└─────────────────────────────────────────┘
+│                              ┌───────────┤
+│                              │ [C] Drawer│
+│                              │ [P] Tabs  │
+│                              │ [G] Float │
+│                              │ [D] Right │
+│                              │           │
+└──────────────────────────────┴───────────┘
 ```
 
 **Components:**
-- **App** - Owns the layout, manages view state, handles import/export
-- **Header** - Project title (editable), import/export buttons
+- **App** - Owns the layout, manages view state, handles import/export, shows DocumentBrowserModal when required
+- **Header** - Project title (click to edit via modal), import/export buttons, theme selector, settings menu, Share button (server mode only)
+  - **ProjectInfoModal** - Edit project title and description
+  - **ExamplesModal** - Load bundled example .carta files from `/examples/` directory
+  - **DocumentBrowserModal** - Browse/create/select documents in server mode, required mode when ?doc= missing
+  - **ConnectionStatus** - Connection status indicator (server mode only)
 - **Map** - ReactFlow canvas with zoom controls, node operations, context menus
-- **Dock** - Bottom panel shell with left-side tabs for switching views
-  - **ConstructViewer** - Shows/edits fields of selected construct
+- **Drawer** - Right-side slide-out panel with floating tab buttons
   - **ConstructEditor** - CRUD for construct schemas
+  - **PortSchemaEditor** - CRUD for port schemas (port type definitions)
+  - **SchemaGroupEditor** - CRUD for schema grouping
   - **DeployablesEditor** - CRUD for deployables
 
 **State Flow:**
-- `selectedNodeIds` lifted to App, shared between Map and Dock
-- Node data passed via props from App to Dock views
-- Prop drilling preferred over Context for simplicity
+- `selectedNodeIds` lifted to App, shared between Map and Drawer
+- Drawer slides in from right with backdrop overlay
+- Floating tab buttons remain visible even when drawer is closed
 
-### 2. Construct Registry Layer (`src/constructs/`)
-- Central registry (`registry.ts`) that stores all construct type definitions
-- Schema system (`types.ts`) defines structure of constructs via `ConstructSchema` interface
-- Port registry (`portRegistry.ts`) defines port types and validates connections
-- Built-in schemas (`schemas/`) for common constructs: REST Controller, Database, Table, Implementation Details
-- User-defined schemas stored in localStorage via `storage.ts`
-- Schema Editor (`components/ConstructEditor.tsx`, `SchemaEditor.tsx`) allows users to create custom constructs
+### 2. Document Adapter Layer (`src/stores/`)
+- DocumentAdapter interface defines contract for all state operations
+- YjsAdapter (`adapters/yjsAdapter.ts`) implements adapter using Yjs Y.Doc
+- DocumentContext (`contexts/DocumentContext.tsx`) manages adapter lifecycle and mode detection (static vs server)
+- Schema system (`constructs/types.ts`) defines structure via `ConstructSchema`, `PortSchema`, `FieldSchema` interfaces
+- Port registry (`constructs/portRegistry.ts`) manages port schemas with polarity-based validation (receives schemas as parameter)
+- Built-in schemas (`constructs/schemas/built-ins.ts`) for common constructs with builtInConstructSchemas and builtInPortSchemas arrays
+- User-defined schemas and port schemas stored in Yjs document
+- Schema Editor (`components/ConstructEditor.tsx`) allows users to create custom constructs
+- Port Schema Editor (`components/PortSchemaEditor.tsx`) allows users to create custom port types
+- **Hosting modes**: Static (single local document) or Server (collaboration with ?doc= routing)
 - **Does NOT know** about React Flow or how nodes are rendered
 
 ### 3. Compiler Layer (`src/constructs/compiler/`)
 - Transforms visual canvas into text output
+- Pure function - takes schemas and deployables as explicit parameters
 - Format-specific compilers in `formatters/`: JSON
-- Reads construct schemas to determine compilation format
 - Groups nodes by type and applies appropriate formatters
 - **Does NOT know** about the visual editor or how constructs were created
+- **No global state**: All dependencies passed as function parameters
 
 ## Why This Separation Matters
 
@@ -127,12 +138,15 @@ Deployables are compiled into the output as metadata, helping AI tools generate 
 
 Constructs connect via **ports**—typed attachment points that determine relationship semantics:
 
-- **Port types**: `flow-in`, `flow-out`, `parent`, `child`, `symmetric`
-- **Compatibility-based validation**: Each port type defines which other types it can connect to
+- **Port schemas**: Define port types with polarity (`source`, `sink`, `bidirectional`)
+- **Built-in ports**: `flow-in`, `flow-out`, `parent`, `child`, `symmetric`, `intercept`, `forward`
+- **Polarity-based validation**: Prevents invalid connections (source-source, sink-sink)
+- **Wildcard support**: `*`, `*source*`, `*sink*` for flexible compatibility rules
 - **Storage**: All connection data lives on constructs, not edges
-- **Interpretation**: Direction derives from port ownership, not edge metadata
+- **Interpretation**: Direction derives from port ownership and polarity, not edge metadata
+- **User-extensible**: Port schemas stored in document store, editable via Ports tab
 
-Example: A `Constraint` with a `flow-out` port connecting to a `Table`'s `flow-in` port means "Constraint references Table" (and inversely, "Table is referenced by Constraint").
+Example: A `Constraint` with a `flow-out` port (source polarity) connecting to a `Table`'s `flow-in` port (sink polarity) means "Constraint references Table" (and inversely, "Table is referenced by Constraint").
 
 ### AI-Friendly Semantic Linking
 
@@ -184,12 +198,13 @@ This allows AI tools to:
 ## Data Flow
 
 ```
-User adds node → Registry provides schema (incl. ports) → Visual editor creates node instance with semanticId
-User edits fields → Node data updated → Saved to localStorage
-User assigns deployable → Construct gets deployable grouping
+User adds node → useDocument() fetches schema from adapter → Visual editor creates node instance with semanticId
+User edits fields → Node data updated → Synced to Yjs Y.Doc via adapter → Persisted to IndexedDB
+User assigns deployable → Construct gets deployable grouping → Stored in adapter
 User drags port to port → portRegistry.canConnect() validates → Connection stored on source construct → Edge rendered
-User clicks Compile → Compiler reads connections → Generates relationship semantics → AI-friendly output
-User opens Construct Editor → Can view/edit schemas + ports → Saves to localStorage → New types available
+User clicks Compile → Compiler receives schemas/deployables as params → Generates relationship semantics → AI-friendly output
+User opens Construct Editor → Can view/edit schemas + ports → Saves to Yjs Y.Doc via adapter → New types available
+User imports file → Document cleared via adapter → New data loaded (like Excalidraw)
 ```
 
 **Connection flow detail:** See `.cursor/rules/ports-and-connections.mdc`
@@ -200,11 +215,19 @@ User opens Construct Editor → Can view/edit schemas + ports → Saves to local
 - `/src/App.tsx` - Root component, owns layout and coordinates state
 - `/src/components/Header.tsx` - Project title and import/export controls
 - `/src/components/Map.tsx` - ReactFlow canvas with node operations
-- `/src/components/Dock.tsx` - Bottom panel shell with tabbed views
+- `/src/components/Drawer.tsx` - Right-side slide-out panel with floating tabs
+- `/src/components/DrawerTabs.tsx` - Tab type definitions for drawer navigation
 
-### Dock Views
-- `/src/components/ConstructViewer.tsx` - View/edit selected construct fields
+### Header Components
+- `/src/components/ProjectInfoModal.tsx` - Modal for editing project title and description
+- `/src/components/ExamplesModal.tsx` - Modal for loading bundled example projects
+- `/src/components/DocumentBrowserModal.tsx` - Document browser/selector (server mode)
+- `/src/components/ConnectionStatus.tsx` - Connection status indicator (server mode)
+
+### Drawer Views
 - `/src/components/ConstructEditor.tsx` - CRUD for construct schemas
+- `/src/components/PortSchemaEditor.tsx` - CRUD for port schemas
+- `/src/components/SchemaGroupEditor.tsx` - CRUD for schema grouping
 - `/src/components/DeployablesEditor.tsx` - CRUD for deployables
 
 ### Other Components
@@ -212,17 +235,29 @@ User opens Construct Editor → Can view/edit schemas + ports → Saves to local
 - `/src/components/` - Modals, menus, field editors
 
 ### Domain Logic
-- `/src/constructs/types.ts` - Core TypeScript interfaces (organized by M2/M1/M0 layers)
-- `/src/constructs/registry.ts` - Singleton registry for schemas
-- `/src/constructs/portRegistry.ts` - Port type definitions and connection validation
-- `/src/constructs/ports.ts` - Built-in port configurations
-- `/src/constructs/storage.ts` - LocalStorage persistence
-- `/src/constructs/schemas/` - Built-in construct definitions
-- `/src/constructs/compiler/` - Compilation engine and formatters
-- `/src/constructs/deployables.ts` - Deployable management system
+- `/src/constructs/types.ts` - Core TypeScript interfaces: PortSchema, FieldSchema, Polarity, CartaDocument, DocumentAdapter, SchemaGroup
+- `/src/constructs/portRegistry.ts` - Port schema registry with polarity-based validation, wildcard matching (accepts schemas as param)
+- `/src/constructs/schemas/built-ins.ts` - Built-in construct and port schema definitions
+- `/src/constructs/compiler/` - Compilation engine (pure functions with explicit parameters)
+- `/src/contexts/DocumentContext.tsx` - Document provider managing Yjs adapter lifecycle
+- `/src/stores/adapters/yjsAdapter.ts` - Yjs implementation of DocumentAdapter interface
+- `/src/hooks/useDocument.ts` - Primary hook for accessing all document state and operations
 
 ### Utilities
 - `/src/utils/cartaFile.ts` - Export/import utilities with semantic ID generation
 - `/src/utils/displayUtils.ts` - `getDisplayName()` helper for node titles
+- `/src/utils/examples.ts` - Load bundled example .carta files using Vite's import.meta.glob
 - `/src/hooks/` - Custom React hooks (undo/redo)
+- `/src/main.tsx` - Entry point, configures staticMode from VITE_STATIC_MODE env var
 - `/src/index.css` - Tailwind + custom styles
+
+## Testing
+
+**All tests must pass before committing changes.**
+
+```bash
+npm run test          # Integration tests (Vitest)
+npm run test:e2e      # E2E tests (Playwright)
+```
+
+If tests fail after your changes, fix them before proceeding.

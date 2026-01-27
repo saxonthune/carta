@@ -1,7 +1,7 @@
-import type { FieldDefinition } from '../../constructs/types';
+import type { FieldSchema } from '../../constructs/types';
 
 interface BooleanFieldProps {
-  field: FieldDefinition;
+  field: FieldSchema;
   value: boolean;
   onChange: (value: boolean) => void;
 }

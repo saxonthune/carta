@@ -1,7 +1,7 @@
-import type { FieldDefinition } from '../../constructs/types';
+import type { FieldSchema } from '../../constructs/types';
 
 interface DateFieldProps {
-  field: FieldDefinition;
+  field: FieldSchema;
   value: string;
   onChange: (value: string) => void;
 }

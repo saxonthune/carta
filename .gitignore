@@ -22,3 +22,12 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Task queue (background agent processing)
+/tasks/inputs/
+/tasks/outputs/
+/tasks/failures/
+/tasks/clarifications/
+
+/test-results/*
+/playwright-report/*

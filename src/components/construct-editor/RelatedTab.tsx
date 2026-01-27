@@ -1,4 +1,4 @@
-import { registry } from '../../constructs/registry';
+import { useDocument } from '../../hooks/useDocument';
 import { canConnect } from '../../constructs/ports';
 import type { ConstructSchema, SuggestedRelatedConstruct } from '../../constructs/types';
 
@@ -15,7 +15,7 @@ export default function RelatedTab({
   updateSuggestedRelated,
   removeSuggestedRelated
 }: RelatedTabProps) {
-  const allSchemas = registry.getAllSchemas();
+  const { schemas: allSchemas, getSchema } = useDocument();
   // Filter out the current construct type from suggestions
   const availableSchemas = allSchemas.filter(s => s.type !== formData.type);
   const ports = formData.ports || [];
@@ -47,7 +47,7 @@ export default function RelatedTab({
       ) : (
         <div className="flex flex-col gap-3">
           {formData.suggestedRelated.map((related, index) => {
-            const relatedSchema = registry.getSchema(related.constructType);
+            const relatedSchema = getSchema(related.constructType);
             return (
               <div key={index} className="bg-surface p-3 rounded border border-surface-alt">
                 {/* Header with delete button */}

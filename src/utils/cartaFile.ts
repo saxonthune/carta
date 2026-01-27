@@ -1,12 +1,11 @@
 import type { Node, Edge } from '@xyflow/react';
-import type { Deployable, ConstructSchema } from '../constructs/types';
+import type { Deployable, ConstructSchema, PortSchema, SchemaGroup } from '../constructs/types';
 import type { ExportOptions } from './exportAnalyzer';
 
 /**
- * Version of the .carta file format
- * Version 2: Changed port direction to portType (flow-in, flow-out, parent, child, symmetric)
+ * Version of the .carta file format (v4)
  */
-export const CARTA_FILE_VERSION = 2;
+export const CARTA_FILE_VERSION = 4;
 
 /**
  * Structure of a .carta project file
@@ -14,11 +13,13 @@ export const CARTA_FILE_VERSION = 2;
 export interface CartaFile {
   version: number;
   title: string;
-  nodeId: number;
+  description?: string;
   nodes: Node[];
   edges: Edge[];
   deployables: Deployable[];
   customSchemas: ConstructSchema[];
+  portSchemas: PortSchema[];
+  schemaGroups: SchemaGroup[];
   exportedAt: string;
 }
 
@@ -59,11 +60,13 @@ export function exportProject(data: Omit<CartaFile, 'version' | 'exportedAt'>, o
   // Apply export options to filter data
   const filteredData: Omit<CartaFile, 'version' | 'exportedAt'> = {
     title: data.title,
-    nodeId: data.nodeId,
+    description: data.description,
     nodes: options?.nodes !== false ? data.nodes : [],
     edges: options?.nodes !== false ? data.edges : [],
     deployables: options?.deployables !== false ? data.deployables : [],
     customSchemas: options?.schemas !== false ? data.customSchemas : [],
+    portSchemas: options?.portSchemas !== false ? data.portSchemas : [],
+    schemaGroups: options?.schemaGroups !== false ? data.schemaGroups : [],
   };
 
   const cartaFile: CartaFile = {
@@ -93,7 +96,7 @@ export function exportProject(data: Omit<CartaFile, 'version' | 'exportedAt'>, o
 export async function importProject(file: File): Promise<CartaFile> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    
+
     reader.onload = (e) => {
       try {
         const content = e.target?.result as string;
@@ -104,13 +107,21 @@ export async function importProject(file: File): Promise<CartaFile> {
         reject(error);
       }
     };
-    
+
     reader.onerror = () => {
       reject(new Error('Failed to read file'));
     };
-    
+
     reader.readAsText(file);
   });
+}
+
+/**
+ * Parse and validate a .carta file from raw string content
+ */
+export function importProjectFromString(content: string): CartaFile {
+  const data = JSON.parse(content);
+  return validateCartaFile(data);
 }
 
 /**
@@ -136,11 +147,7 @@ export function validateCartaFile(data: unknown): CartaFile {
   if (typeof obj.title !== 'string') {
     throw new Error('Invalid file: missing or invalid title');
   }
-  
-  if (typeof obj.nodeId !== 'number') {
-    throw new Error('Invalid file: missing or invalid nodeId');
-  }
-  
+
   if (!Array.isArray(obj.nodes)) {
     throw new Error('Invalid file: missing or invalid nodes array');
   }
@@ -247,15 +254,62 @@ export function validateCartaFile(data: unknown): CartaFile {
       }
     }
   }
-  
+
+  // Validate portSchemas (required)
+  if (!Array.isArray(obj.portSchemas)) {
+    throw new Error('Invalid file: missing or invalid portSchemas array');
+  }
+  for (const ps of obj.portSchemas as unknown[]) {
+    if (!ps || typeof ps !== 'object') {
+      throw new Error('Invalid file: invalid portSchema structure');
+    }
+    const p = ps as Record<string, unknown>;
+    if (typeof p.id !== 'string' || typeof p.displayName !== 'string' ||
+        typeof p.semanticDescription !== 'string' || typeof p.polarity !== 'string' ||
+        !Array.isArray(p.compatibleWith) || typeof p.defaultPosition !== 'string' ||
+        typeof p.color !== 'string') {
+      throw new Error(`Invalid file: portSchema missing required fields (id, displayName, semanticDescription, polarity, compatibleWith, defaultPosition, color)`);
+    }
+    // Validate polarity enum
+    const validPolarities = ['source', 'sink', 'bidirectional'];
+    if (!validPolarities.includes(p.polarity as string)) {
+      throw new Error(`Invalid file: portSchema "${p.id}" has invalid polarity "${p.polarity}"`);
+    }
+    // Validate defaultPosition enum
+    const validPositions = ['left', 'right', 'top', 'bottom'];
+    if (!validPositions.includes(p.defaultPosition as string)) {
+      throw new Error(`Invalid file: portSchema "${p.id}" has invalid defaultPosition "${p.defaultPosition}"`);
+    }
+  }
+
+  // Validate schemaGroups (required)
+  if (!Array.isArray(obj.schemaGroups)) {
+    throw new Error('Invalid file: missing or invalid schemaGroups array');
+  }
+  for (const sg of obj.schemaGroups as unknown[]) {
+    if (!sg || typeof sg !== 'object') {
+      throw new Error('Invalid file: invalid schemaGroup structure');
+    }
+    const g = sg as Record<string, unknown>;
+    if (typeof g.id !== 'string' || typeof g.name !== 'string') {
+      throw new Error(`Invalid file: schemaGroup missing required fields (id, name)`);
+    }
+    // Validate optional parentId is string if present
+    if (g.parentId !== undefined && typeof g.parentId !== 'string') {
+      throw new Error(`Invalid file: schemaGroup "${g.id}" has invalid parentId (must be string)`);
+    }
+  }
+
   return {
     version: obj.version as number,
     title: obj.title as string,
-    nodeId: obj.nodeId as number,
+    description: (obj.description as string | undefined),
     nodes: obj.nodes as Node[],
     edges: obj.edges as Edge[],
     deployables: obj.deployables as Deployable[],
     customSchemas: obj.customSchemas as ConstructSchema[],
+    portSchemas: obj.portSchemas as PortSchema[],
+    schemaGroups: obj.schemaGroups as SchemaGroup[],
     exportedAt: (obj.exportedAt as string) || new Date().toISOString(),
   };
 }

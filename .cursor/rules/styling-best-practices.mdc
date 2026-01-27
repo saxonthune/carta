@@ -1,0 +1,278 @@
+# Styling Best Practices for Carta
+
+This document covers UI/UX styling standards for Carta as a productivity tool. These rules apply to the **application UI only** - user-created content (node colors, schema definitions, etc.) can be styled however users prefer.
+
+## Spacing System
+
+Use a consistent 4px-based spacing scale. Never use arbitrary values.
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `1` | 4px | Icon-to-text gaps, tight internal spacing |
+| `2` | 8px | Related items (buttons in a group), list item gaps |
+| `3` | 12px | List item padding, small section gaps |
+| `4` | 16px | Section padding, panel padding (compact) |
+| `6` | 24px | Panel padding (normal), major section gaps |
+| `8` | 32px | Large section separation |
+
+### Spacing Anti-Patterns
+
+**Avoid:**
+- Mixed spacing values in the same context (e.g., `py-2` and `py-2.5` on similar buttons)
+- Arbitrary values like `px-5` (20px) when `px-4` (16px) or `px-6` (24px) would work
+- Inconsistent padding between similar components
+
+**Prefer:**
+- Consistent spacing within component families
+- Padding that matches the spacing scale
+- `gap-*` over margin for flex/grid layouts
+
+## Button Hierarchy
+
+Buttons should have clear visual hierarchy based on importance.
+
+### Primary Actions (1-2 per view)
+- Filled background with brand/action color
+- Used for: Main CTA (Compile, Save, Create)
+```tsx
+className="px-4 py-2 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600"
+```
+
+### Secondary Actions
+- Muted/outline style, less visual weight
+- Used for: Export, Import, Cancel
+```tsx
+className="px-4 py-2 bg-surface text-content border border-border rounded-lg hover:bg-surface-alt"
+```
+
+### Tertiary/Icon Actions
+- Icon-only or very subtle
+- Used for: Settings, Theme toggle, overflow menus
+```tsx
+className="w-9 h-9 flex items-center justify-center rounded-lg text-content-muted hover:bg-surface-alt hover:text-content"
+```
+
+### Destructive Actions
+- Red/danger coloring, often secondary style until confirmed
+```tsx
+className="px-4 py-2 text-danger border border-danger/50 rounded-lg hover:bg-danger/10"
+```
+
+### Anti-Patterns
+
+**Avoid:**
+- Multiple saturated/primary-colored buttons competing for attention
+- All buttons looking the same regardless of importance
+- Inconsistent button sizing (some `py-2`, others `py-2.5`)
+
+## Touch Targets
+
+Interactive elements must have adequate hit areas for usability.
+
+| Element | Minimum Size |
+|---------|-------------|
+| Icon buttons | 36x36px (`w-9 h-9`) |
+| Text buttons | 36px height (`py-2` with text) |
+| List items | 40px height minimum |
+| Port handles | 21px with hover expansion |
+
+## Color Usage
+
+### Semantic Colors
+
+Use colors consistently for their semantic meaning:
+
+| Color | Meaning | Usage |
+|-------|---------|-------|
+| `accent` (indigo) | Interactive, selected, focus | Links, selected items, focus rings |
+| `emerald/green` | Success, positive action | Compile, Save, Success states |
+| `amber/yellow` | Warning, caution | Warnings, pending states |
+| `danger/red` | Error, destructive | Delete, errors, validation failures |
+| `content-muted` | De-emphasized | Secondary text, disabled states |
+
+### Anti-Patterns
+
+**Avoid:**
+- Using accent color for too many things (dilutes its meaning)
+- Multiple different saturated colors competing for attention
+- Colors that don't match their semantic meaning
+
+## Typography
+
+### Text Sizes (UI)
+
+| Token | Size | Usage |
+|-------|------|-------|
+| `text-2xs` | 11px | Badges, tiny labels |
+| `text-xs` | 12px | Secondary labels, metadata |
+| `text-sm` | 14px | Body text, form labels |
+| `text-base` | 15px | Primary content |
+| `text-lg` | 18px | Section headers |
+| `text-xl` | 20px | Page titles |
+
+### Font Weight
+
+- `font-normal` (400): Body text
+- `font-medium` (500): Labels, buttons, emphasis
+- `font-semibold` (600): Headings, important labels
+
+## Form Controls
+
+### Input Fields
+
+Consistent styling for all form inputs:
+
+```tsx
+className="w-full px-3 py-2 rounded-md border border-subtle bg-surface text-content text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+```
+
+### Labels
+
+```tsx
+className="block text-xs text-content-muted mb-1"
+```
+
+### Validation States
+
+- Error: `border-danger text-danger`
+- Success: `border-emerald-500`
+- Focused: `border-accent ring-1 ring-accent`
+
+## Modal Design
+
+### Structure
+
+```
+┌──────────────────────────────────────┐
+│ Header (border-b)                     │
+│   Title + Close button               │
+├──────────────────────────────────────┤
+│ Content (scrollable if needed)       │
+│   - Main content                     │
+│   - Forms, options, etc.             │
+├──────────────────────────────────────┤
+│ Footer (border-t)                    │
+│   Cancel (left/secondary)   Primary  │
+└──────────────────────────────────────┘
+```
+
+### Standard Spacing
+
+- Header: `px-5 py-4`
+- Content: `p-5` or `p-4` for compact
+- Footer: `px-5 py-4 flex justify-end gap-2`
+
+## Dropdown Menus
+
+### Positioning
+
+- Absolute positioned from trigger
+- `top-full mt-1` for downward dropdowns
+- `z-50` for proper stacking
+
+### Item Styling
+
+```tsx
+className="w-full text-left px-4 py-2.5 text-sm text-content hover:bg-surface-alt transition-colors border-none bg-surface cursor-pointer"
+```
+
+### Selected State
+
+```tsx
+className="bg-accent text-white"
+```
+
+## Transitions
+
+### Standard Transitions
+
+- Color/background: `transition-colors` (150ms default)
+- Transform: `transition-transform` (150ms)
+- All properties: `transition-all` (use sparingly)
+
+### Hover Transforms
+
+Only use for emphasis, not for every element:
+
+```tsx
+// Good - primary action button
+className="hover:-translate-y-0.5"
+
+// Avoid - on every button/item
+```
+
+## Accessibility
+
+### Focus States
+
+All interactive elements must have visible focus:
+
+```tsx
+className="focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+```
+
+### Contrast
+
+- Body text on surface: minimum 4.5:1
+- Large text/headings: minimum 3:1
+- Interactive elements: minimum 3:1
+
+### Screen Reader
+
+- Use semantic HTML elements
+- Add `aria-label` for icon-only buttons
+- Use `sr-only` class for visually hidden labels
+
+## Checklist for Style Review
+
+When reviewing component styling:
+
+- [ ] Spacing uses consistent 4px-based scale
+- [ ] Button hierarchy is clear (primary/secondary/tertiary)
+- [ ] Touch targets meet minimum sizes
+- [ ] Colors match their semantic meaning
+- [ ] Only 1-2 primary actions per view
+- [ ] Form controls have consistent styling
+- [ ] Focus states are visible
+- [ ] Hover states provide feedback without being distracting
+- [ ] No competing saturated colors
+- [ ] Typography follows the scale
+
+## Common Fixes
+
+### Too many prominent buttons
+
+Before:
+```tsx
+<button className="bg-indigo-500 text-white">Share</button>
+<button className="bg-emerald-500 text-white">Compile</button>
+<button className="bg-indigo-500 text-white">AI</button>
+```
+
+After:
+```tsx
+<button className="bg-surface text-content border hover:bg-surface-alt">Share</button>
+<button className="bg-emerald-500 text-white">Compile</button>
+<button className="text-content-muted hover:text-content">AI</button>
+```
+
+### Inconsistent spacing
+
+Before:
+```tsx
+<div className="px-5 py-4">Header</div>
+<div className="p-4">Content</div>
+<div className="px-5 py-3">Footer</div>
+```
+
+After:
+```tsx
+<div className="px-4 py-3">Header</div>
+<div className="p-4">Content</div>
+<div className="px-4 py-3">Footer</div>
+```
+
+### Missing button hierarchy
+
+Before: All buttons look the same
+After: Primary action stands out, others recede

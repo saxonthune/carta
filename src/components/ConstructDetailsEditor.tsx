@@ -1,13 +1,11 @@
 import { useState, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
-import { registry } from '../constructs/registry';
+import { useDocument } from '../hooks/useDocument';
 import OverviewTab from './construct-editor/OverviewTab';
-import CompilationTab from './construct-editor/CompilationTab';
 import PortsTab from './construct-editor/PortsTab';
 import FieldsTab from './construct-editor/FieldsTab';
-import PreviewTab from './construct-editor/PreviewTab';
 import RelatedTab from './construct-editor/RelatedTab';
 import TabBar, { type Tab } from './ui/TabBar';
-import type { ConstructSchema, FieldDefinition, PortConfig, SuggestedRelatedConstruct } from '../constructs/types';
+import type { ConstructSchema, FieldSchema, PortConfig, SuggestedRelatedConstruct } from '../constructs/types';
 
 // Convert string to snake_case while preserving special characters like '#'
 // (e.g., "My Cool Construct" → "my_cool_construct", "API #1" → "api_#1")
@@ -21,9 +19,10 @@ interface ConstructDetailsEditorProps {
   onSave: (construct: ConstructSchema, isNew: boolean) => void;
   onDelete: (type: string) => void;
   onDirtyChange?: (isDirty: boolean) => void;
+  compact?: boolean;
 }
 
-type EditorTab = 'basic' | 'compilation' | 'ports' | 'fields' | 'related' | 'preview';
+type EditorTab = 'basic' | 'ports' | 'fields' | 'related';
 
 const createEmptySchema = (): ConstructSchema => ({
   type: '',
@@ -49,8 +48,10 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
     isNew,
     onSave,
     onDelete,
-    onDirtyChange
+    onDirtyChange,
+    compact = false
   }, ref) {
+  const { getSchema } = useDocument();
   const [formData, setFormData] = useState<ConstructSchema>(
     construct || createEmptySchema()
   );
@@ -97,7 +98,7 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
     const derivedType = toSnakeCase(formData.displayName);
     if (!derivedType) {
       newErrors.displayName = 'Display name must contain at least one alphanumeric character';
-    } else if (isNew && registry.hasSchema(derivedType)) {
+    } else if (isNew && getSchema(derivedType) !== undefined) {
       newErrors.displayName = 'A construct with this display name already exists';
     }
 
@@ -136,7 +137,7 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
   };
 
   const addField = () => {
-    const newField: FieldDefinition = {
+    const newField: FieldSchema = {
       name: `field_${formData.fields.length + 1}`,
       label: `Field ${formData.fields.length + 1}`,
       type: 'string',
@@ -149,7 +150,7 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
     setExpandedFieldIndex(formData.fields.length);
   };
 
-  const updateFieldDefinition = (index: number, field: FieldDefinition) => {
+  const updateFieldDefinition = (index: number, field: FieldSchema) => {
     setFormData(prev => ({
       ...prev,
       fields: prev.fields.map((f, i) => i === index ? field : f)
@@ -236,12 +237,6 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
         <path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
       </svg>
     )},
-    { id: 'compilation', label: 'Compile', icon: (
-      <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <polyline points="16 18 22 12 16 6"/>
-        <polyline points="8 6 2 12 8 18"/>
-      </svg>
-    )},
     { id: 'ports', label: 'Ports', icon: (
       <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <circle cx="12" cy="12" r="3"/>
@@ -266,13 +261,98 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
         <path d="M8 12h4M12 12l4-4M12 12l4 4"/>
       </svg>
     )},
-    { id: 'preview', label: 'Preview', icon: (
-      <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-        <circle cx="12" cy="12" r="3"/>
-      </svg>
-    )},
   ];
+
+  // Compact mode: horizontal tabs instead of vertical TabBar
+  if (compact) {
+    return (
+      <div className="h-full flex flex-col p-3">
+        <div className="flex items-center justify-between gap-2 mb-0 shrink-0 pb-2 border-b">
+          <div className="flex items-center gap-2 min-w-0">
+            <h2 className="m-0 text-sm font-semibold text-content truncate">
+              {isNew ? 'New Construct' : formData.displayName}
+            </h2>
+            {isDirty && (
+              <span className="shrink-0 text-[10px] px-1.5 py-0.5 bg-surface-elevated rounded text-content-muted">
+                • Unsaved
+              </span>
+            )}
+          </div>
+          <div className="flex gap-2 shrink-0">
+            {!isNew && (
+              <button
+                className="px-2 py-1 text-xs bg-transparent border border-danger rounded text-danger font-medium cursor-pointer hover:bg-danger hover:text-white transition-all"
+                onClick={handleDelete}
+              >
+                Delete
+              </button>
+            )}
+            <button
+              className="px-2 py-1 text-xs bg-accent border-none rounded text-white font-medium cursor-pointer hover:bg-accent-hover transition-colors"
+              onClick={handleSave}
+            >
+              {isNew ? 'Create' : 'Save'}
+            </button>
+          </div>
+        </div>
+
+        {/* Horizontal tabs for compact mode */}
+        <div className="flex gap-1 py-2 border-b border-border shrink-0">
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              className={`px-2 py-1 text-[10px] rounded transition-colors ${
+                activeTab === tab.id
+                  ? 'bg-accent/20 text-accent font-medium'
+                  : 'text-content-muted hover:bg-surface-depth-1'
+              }`}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Content Area */}
+        <div className="flex-1 overflow-y-auto min-h-0 mt-2">
+          {activeTab === 'basic' && (
+            <OverviewTab
+              formData={formData}
+              errors={errors}
+              updateField={updateField}
+            />
+          )}
+          {activeTab === 'ports' && (
+            <PortsTab
+              formData={formData}
+              addPort={addPort}
+              updatePort={updatePort}
+              removePort={removePort}
+            />
+          )}
+          {activeTab === 'fields' && (
+            <FieldsTab
+              formData={formData}
+              expandedFieldIndex={expandedFieldIndex}
+              addField={addField}
+              updateFieldDefinition={updateFieldDefinition}
+              removeField={removeField}
+              moveField={moveField}
+              setExpandedFieldIndex={setExpandedFieldIndex}
+            />
+          )}
+          {activeTab === 'related' && (
+            <RelatedTab
+              formData={formData}
+              addSuggestedRelated={addSuggestedRelated}
+              updateSuggestedRelated={updateSuggestedRelated}
+              removeSuggestedRelated={removeSuggestedRelated}
+            />
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full flex flex-col">
@@ -317,12 +397,6 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
               updateField={updateField}
             />
           )}
-          {activeTab === 'compilation' && (
-            <CompilationTab
-              formData={formData}
-              updateField={updateField}
-            />
-          )}
           {activeTab === 'ports' && (
             <PortsTab
               formData={formData}
@@ -349,9 +423,6 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
               updateSuggestedRelated={updateSuggestedRelated}
               removeSuggestedRelated={removeSuggestedRelated}
             />
-          )}
-          {activeTab === 'preview' && (
-            <PreviewTab formData={formData} />
           )}
         </div>
       </div>

@@ -1,11 +1,11 @@
 import FieldDefinitionEditor from '../FieldDefinitionEditor';
-import type { ConstructSchema, FieldDefinition } from '../../constructs/types';
+import type { ConstructSchema, FieldSchema } from '../../constructs/types';
 
 interface FieldsTabProps {
   formData: ConstructSchema;
   expandedFieldIndex: number | null;
   addField: () => void;
-  updateFieldDefinition: (index: number, field: FieldDefinition) => void;
+  updateFieldDefinition: (index: number, field: FieldSchema) => void;
   removeField: (index: number) => void;
   moveField: (index: number, direction: 'up' | 'down') => void;
   setExpandedFieldIndex: (index: number | null) => void;

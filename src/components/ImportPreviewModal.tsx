@@ -209,13 +209,13 @@ export default function ImportPreviewModal({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border">
+        <div className="flex items-center justify-between px-4 py-3 border-b border">
           <div>
             <h2 className="m-0 text-lg text-content">Import Preview</h2>
             <p className="m-0 text-sm text-content-muted mt-0.5">{analysis.title}</p>
           </div>
           <button
-            className="w-8 h-8 border-none rounded-md bg-transparent text-content-subtle text-2xl cursor-pointer flex items-center justify-center hover:bg-surface-alt hover:text-content"
+            className="w-9 h-9 border-none rounded-md bg-transparent text-content-subtle text-2xl cursor-pointer flex items-center justify-center hover:bg-surface-alt hover:text-content"
             onClick={onCancel}
           >
             ×
@@ -223,7 +223,12 @@ export default function ImportPreviewModal({
         </div>
 
         {/* Content */}
-        <div className="p-5 overflow-y-auto flex-1">
+        <div className="p-4 overflow-y-auto flex-1">
+          {/* Description if present */}
+          {analysis.description && (
+            <p className="text-sm text-content-muted mb-4">{analysis.description}</p>
+          )}
+
           {/* Conflict warning */}
           {analysis.hasConflicts && (
             <div className="flex items-start gap-3 mb-4 p-3 bg-amber-50 rounded-lg border border-amber-200">
@@ -287,14 +292,14 @@ export default function ImportPreviewModal({
                     <button
                       type="button"
                       onClick={selectAllSchemas}
-                      className="flex-1 px-2 py-1 text-xs bg-accent text-white rounded hover:bg-accent-hover"
+                      className="flex-1 px-2 py-1 text-xs bg-surface-alt text-content rounded hover:bg-surface-depth-3 transition-colors"
                     >
                       All
                     </button>
                     <button
                       type="button"
                       onClick={deselectAllSchemas}
-                      className="flex-1 px-2 py-1 text-xs bg-surface-alt text-content rounded hover:bg-surface hover:text-content"
+                      className="flex-1 px-2 py-1 text-xs bg-surface-alt text-content rounded hover:bg-surface-depth-3 transition-colors"
                     >
                       None
                     </button>
@@ -347,14 +352,14 @@ export default function ImportPreviewModal({
                     <button
                       type="button"
                       onClick={selectAllInstances}
-                      className="flex-1 px-2 py-1 text-xs bg-accent text-white rounded hover:bg-accent-hover"
+                      className="flex-1 px-2 py-1 text-xs bg-surface-alt text-content rounded hover:bg-surface-depth-3 transition-colors"
                     >
                       All
                     </button>
                     <button
                       type="button"
                       onClick={deselectAllInstances}
-                      className="flex-1 px-2 py-1 text-xs bg-surface-alt text-content rounded hover:bg-surface hover:text-content"
+                      className="flex-1 px-2 py-1 text-xs bg-surface-alt text-content rounded hover:bg-surface-depth-3 transition-colors"
                     >
                       None
                     </button>
@@ -408,14 +413,14 @@ export default function ImportPreviewModal({
                     <button
                       type="button"
                       onClick={selectAllDeployables}
-                      className="flex-1 px-2 py-1 text-xs bg-accent text-white rounded hover:bg-accent-hover"
+                      className="flex-1 px-2 py-1 text-xs bg-surface-alt text-content rounded hover:bg-surface-depth-3 transition-colors"
                     >
                       All
                     </button>
                     <button
                       type="button"
                       onClick={deselectAllDeployables}
-                      className="flex-1 px-2 py-1 text-xs bg-surface-alt text-content rounded hover:bg-surface hover:text-content"
+                      className="flex-1 px-2 py-1 text-xs bg-surface-alt text-content rounded hover:bg-surface-depth-3 transition-colors"
                     >
                       None
                     </button>
@@ -431,19 +436,46 @@ export default function ImportPreviewModal({
                 </div>
               )}
             </div>
+
+            {/* Read-only info: Port Schemas, Schema Groups, Edges */}
+            {(analysis.portSchemas.count > 0 || analysis.schemaGroups.count > 0 || analysis.edges.count > 0) && (
+              <div className="bg-surface-depth-2 rounded-lg p-3">
+                <div className="text-xs text-content-muted uppercase tracking-wide mb-2">Also Included</div>
+                <div className="flex flex-wrap gap-3 text-sm">
+                  {analysis.portSchemas.count > 0 && (
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2 h-2 rounded-full bg-violet-400" />
+                      <span className="text-content">{analysis.portSchemas.count} port type{analysis.portSchemas.count !== 1 ? 's' : ''}</span>
+                    </div>
+                  )}
+                  {analysis.schemaGroups.count > 0 && (
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2 h-2 rounded-full bg-blue-400" />
+                      <span className="text-content">{analysis.schemaGroups.count} schema group{analysis.schemaGroups.count !== 1 ? 's' : ''}</span>
+                    </div>
+                  )}
+                  {analysis.edges.count > 0 && (
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2 h-2 rounded-full bg-slate-400" />
+                      <span className="text-content">{analysis.edges.count} connection{analysis.edges.count !== 1 ? 's' : ''}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Footer */}
-        <div className="flex gap-2 justify-end px-5 py-4 border-t border">
+        <div className="flex gap-2 justify-end px-4 py-3 border-t border">
           <button
-            className="px-5 py-2.5 rounded-md bg-surface text-content text-sm font-medium cursor-pointer hover:bg-surface-alt transition-colors"
+            className="px-4 py-2 rounded-md bg-surface text-content text-sm font-medium cursor-pointer hover:bg-surface-alt transition-colors"
             onClick={onCancel}
           >
             Cancel
           </button>
           <button
-            className="px-5 py-2.5 border-none rounded-md bg-accent text-white text-sm font-medium cursor-pointer hover:bg-accent-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 border-none rounded-md bg-emerald-500 text-white text-sm font-medium cursor-pointer hover:bg-emerald-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={() => onConfirm(options)}
             disabled={!hasSelectedAnything}
           >

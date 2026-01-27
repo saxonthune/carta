@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { FieldDefinition, DataKind, DisplayHint } from '../constructs/types';
+import type { FieldSchema, DataKind, DisplayHint } from '../constructs/types';
 
 // Convert string to snake_case while preserving special characters like '#'
 // (e.g., "My Cool Field" → "my_cool_field", "API #1" → "api_#1")
@@ -8,10 +8,10 @@ function toSnakeCase(str: string): string {
 }
 
 interface FieldDefinitionEditorProps {
-  field: FieldDefinition;
+  field: FieldSchema;
   isExpanded: boolean;
   onToggleExpand: () => void;
-  onChange: (field: FieldDefinition) => void;
+  onChange: (field: FieldSchema) => void;
   onRemove: () => void;
   onMoveUp: () => void;
   onMoveDown: () => void;
@@ -49,7 +49,7 @@ export default function FieldDefinitionEditor({
 }: FieldDefinitionEditorProps) {
   const [newOption, setNewOption] = useState('');
 
-  const updateField = (updates: Partial<FieldDefinition>) => {
+  const updateField = (updates: Partial<FieldSchema>) => {
     // If label is being updated, auto-derive name from it
     if (updates.label) {
       updates.name = toSnakeCase(updates.label);
@@ -179,11 +179,11 @@ export default function FieldDefinitionEditor({
             <label className="flex items-center gap-2 text-xs font-medium text-content-muted cursor-pointer select-none">
               <input
                 type="checkbox"
-                checked={field.displayInMap ?? false}
-                onChange={(e) => updateField({ displayInMap: e.target.checked })}
+                checked={field.showInCollapsed ?? false}
+                onChange={(e) => updateField({ showInCollapsed: e.target.checked })}
                 className="w-4 h-4 accent-[var(--color-accent)]"
               />
-              Display in Map
+              Show in Collapsed
             </label>
           </div>
 

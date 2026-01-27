@@ -3,49 +3,99 @@ import { ReactFlowProvider, type Node, type Edge } from '@xyflow/react';
 import ImportPreviewModal from './components/ImportPreviewModal';
 import ExportPreviewModal from './components/ExportPreviewModal';
 import CompileModal from './components/CompileModal';
+import DocumentBrowserModal from './components/DocumentBrowserModal';
 import Header from './components/Header';
-import Map, { initialNodes, initialEdges, initialTitle, getNodeId } from './components/Map';
-import Dock, { type DockView } from './components/Dock';
+import Map from './components/Map';
+import Drawer from './components/Drawer';
+import { type DrawerTab } from './components/DrawerTabs';
 import Footer from './components/Footer';
 import { compiler } from './constructs/compiler';
-import { seedDefaultSchemas, builtInSchemas } from './constructs/schemas';
-import { schemaStorage } from './constructs/storage';
-import { registry } from './constructs/registry';
-import { deployableRegistry } from './constructs/deployables';
-import { exportProject, importProject, generateSemanticId, type CartaFile } from './utils/cartaFile';
+import { builtInConstructSchemas, builtInPortSchemas, builtInSchemaGroups } from './constructs/schemas';
+import { syncWithDocumentStore } from './constructs/portRegistry';
+import { useDocument } from './hooks/useDocument';
+import { useClearDocument } from './hooks/useClearDocument';
+import { useDocumentContext } from './contexts/DocumentContext';
+import { exportProject, importProject, importProjectFromString, generateSemanticId, type CartaFile } from './utils/cartaFile';
+import type { Example } from './utils/examples';
 import { analyzeImport, type ImportAnalysis, type ImportOptions } from './utils/importAnalyzer';
 import { analyzeExport, type ExportAnalysis, type ExportOptions } from './utils/exportAnalyzer';
-import type { ConstructValues, Deployable, ConstructNodeData } from './constructs/types';
+import { importDocument, type ImportConfig } from './utils/documentImporter';
+import type { ConstructValues, ConstructSchema } from './constructs/types';
+import { AISidebar } from './ai';
 
-// Initialize schemas: load from localStorage, or seed defaults if this is first load
-const hasStoredSchemas = schemaStorage.loadFromLocalStorage() > 0;
-if (!hasStoredSchemas) {
-  seedDefaultSchemas();
-  schemaStorage.saveToLocalStorage();
-}
-
-deployableRegistry.loadFromLocalStorage();
-
-const MIN_DOCK_HEIGHT = 100;
-const MAX_DOCK_HEIGHT_RATIO = 0.7;
+// Note: Schema initialization is now handled by DocumentProvider
 
 function App() {
-  const [deployables, setDeployables] = useState<Deployable[]>(() => deployableRegistry.getAll());
+  const { adapter, needsDocumentSelection } = useDocumentContext();
+
+  // In server mode without a ?doc= param, show forced document selection
+  if (needsDocumentSelection) {
+    return (
+      <div className="h-screen flex flex-col bg-surface">
+        <DocumentBrowserModal required onClose={() => {}} />
+      </div>
+    );
+  }
+
+  const {
+    title,
+    description,
+    schemas,
+    deployables,
+    schemaGroups,
+    updateNode,
+    setTitle,
+    setDescription,
+  } = useDocument();
   const [importPreview, setImportPreview] = useState<{ data: CartaFile; analysis: ImportAnalysis } | null>(null);
+  const [pendingImport, setPendingImport] = useState<{ data: CartaFile; config: ImportConfig; schemasToImport: ConstructSchema[] } | null>(null);
   const [exportPreview, setExportPreview] = useState<ExportAnalysis | null>(null);
   const [compileOutput, setCompileOutput] = useState<string | null>(null);
-  const [title, setTitle] = useState<string>(initialTitle);
-  const [selectedNodes, setSelectedNodes] = useState<Node[]>([]);
-  const [dockHeight, setDockHeight] = useState(256);
-  const [isResizing, setIsResizing] = useState(false);
-  const [activeView, setActiveView] = useState<DockView>('viewer');
-  const nodesEdgesRef = useRef<{ nodes: Node[]; edges: Edge[] }>({ nodes: initialNodes, edges: initialEdges });
+  const [_selectedNodes, setSelectedNodes] = useState<Node[]>([]);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerTab, setDrawerTab] = useState<DrawerTab>('constructs');
+  const [aiSidebarOpen, setAiSidebarOpen] = useState(false);
+  const [aiSidebarWidth] = useState(400);
+  const nodesEdgesRef = useRef<{ nodes: Node[]; edges: Edge[] }>({ nodes: [], edges: [] });
   const containerRef = useRef<HTMLDivElement>(null);
-  const nodeUpdateRef = useRef<((nodeId: string, updates: Partial<ConstructNodeData>) => void) | null>(null);
-  const importRef = useRef<((nodes: Node[], edges: Edge[]) => void) | null>(null);
+  const { clearDocument } = useClearDocument();
 
+  // Initialize refs on mount
+  useEffect(() => {
+    nodesEdgesRef.current = {
+      nodes: adapter.getNodes() as Node[],
+      edges: adapter.getEdges() as Edge[],
+    };
+  }, [adapter]);
+
+  // Sync port registry on mount and when portSchemas change
+  useEffect(() => {
+    // Initial sync
+    syncWithDocumentStore(adapter.getPortSchemas());
+
+    // Subscribe to adapter changes
+    const unsubscribe = adapter.subscribe(() => {
+      syncWithDocumentStore(adapter.getPortSchemas());
+    });
+    return unsubscribe;
+  }, [adapter]);
+
+  // Process pending import in useEffect to stay within React's lifecycle
+  useEffect(() => {
+    if (!pendingImport) return;
+
+    const { data, config, schemasToImport } = pendingImport;
+
+    // Clear the pending flag first
+    setPendingImport(null);
+
+    // Call pure function - no hooks, just adapter manipulation
+    importDocument(adapter, data, config, schemasToImport);
+  }, [pendingImport, adapter]);
+
+  // No-op for compatibility with existing props
   const refreshDeployables = useCallback(() => {
-    setDeployables(deployableRegistry.getAll());
+    // Deployables now update automatically via useDocument
   }, []);
 
   const handleNodesEdgesChange = useCallback((nodes: Node[], edges: Edge[]) => {
@@ -56,26 +106,21 @@ function App() {
     setSelectedNodes(nodes);
   }, []);
 
-  const handleNodeDoubleClick = useCallback((_nodeId: string) => {
-    // Switch to viewer tab (node is already selected by Map's onSelectionChange)
-    setActiveView('viewer');
-  }, []);
-
-  const handleNodeUpdate = useCallback((nodeId: string, updates: Partial<ConstructNodeData>) => {
-    if (nodeUpdateRef.current) {
-      nodeUpdateRef.current(nodeId, updates);
-    }
-  }, []);
+  const handleNodeDoubleClick = useCallback((nodeId: string) => {
+    // Toggle expand on the node instead of opening dock
+    updateNode(nodeId, { isExpanded: true });
+  }, [updateNode]);
 
   const handleExport = useCallback(() => {
     const { nodes, edges } = nodesEdgesRef.current;
-    const allSchemas = registry.getAllSchemas();
-    const analysis = analyzeExport(title, nodes, edges, deployableRegistry.getAll(), allSchemas);
+    const portSchemas = adapter.getPortSchemas();
+    const analysis = analyzeExport(title, description, nodes, edges, deployables, schemas, portSchemas, schemaGroups);
     setExportPreview(analysis);
-  }, [title]);
+  }, [title, description, deployables, schemas, schemaGroups, adapter]);
 
   const handleExportConfirm = useCallback((options: ExportOptions) => {
     const { nodes, edges } = nodesEdgesRef.current;
+    const portSchemas = adapter.getPortSchemas();
     // Ensure all nodes have semanticIds before export
     const nodesWithSemanticIds = nodes.map(node => {
       const nodeData = node.data as ConstructValues & { constructType?: string; semanticId?: string };
@@ -94,15 +139,17 @@ function App() {
 
     exportProject({
       title,
-      nodeId: getNodeId(),
+      description,
       nodes: nodesWithSemanticIds,
       edges,
-      deployables: deployableRegistry.getAll(),
-      customSchemas: registry.getAllSchemas(),
+      deployables,
+      customSchemas: schemas,
+      portSchemas,
+      schemaGroups,
     }, options);
 
     setExportPreview(null);
-  }, [title]);
+  }, [title, description, deployables, schemas, schemaGroups, adapter]);
 
   const handleExportCancel = useCallback(() => {
     setExportPreview(null);
@@ -111,53 +158,45 @@ function App() {
   const handleImport = useCallback(async (file: File) => {
     try {
       const data = await importProject(file);
-      const analysis = analyzeImport(data, file.name, nodesEdgesRef.current.nodes, deployables);
+      const analysis = analyzeImport(data, file.name, nodesEdgesRef.current.nodes, deployables, schemas);
       setImportPreview({ data, analysis });
     } catch (error) {
       alert(`Failed to import file: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-  }, [deployables]);
+  }, [deployables, schemas]);
+
+  const handleLoadExample = useCallback((example: Example) => {
+    try {
+      const data = importProjectFromString(example.content);
+      const analysis = analyzeImport(data, example.filename, nodesEdgesRef.current.nodes, deployables, schemas);
+      setImportPreview({ data, analysis });
+    } catch (error) {
+      alert(`Failed to load example: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }, [deployables, schemas]);
 
   const handleImportConfirm = useCallback((options: ImportOptions) => {
     if (!importPreview) return;
 
-    const { data } = importPreview;
+    const { data, analysis } = importPreview;
 
-    // Import selected schemas
-    if (options.schemas.size > 0 && data.customSchemas.length > 0) {
-      const schemasToImport = data.customSchemas.filter(s => options.schemas.has(s.type));
-      if (schemasToImport.length > 0) {
-        registry.replaceSchemas(schemasToImport);
-        schemaStorage.saveToLocalStorage();
-      }
-    }
+    // Get schemas that will be imported (needed for edge normalization)
+    const schemasToImport = analysis.schemas.items
+      .filter(s => options.schemas.has(s.item.type))
+      .map(s => s.item);
 
-    // Import selected deployables
-    if (options.deployables.size > 0 && data.deployables.length > 0) {
-      const deployablesToImport = data.deployables.filter(d => options.deployables.has(d.id));
-      if (deployablesToImport.length > 0) {
-        deployableRegistry.importDeployables(deployablesToImport);
-        refreshDeployables();
-      }
-    }
+    // Convert ImportOptions to ImportConfig
+    const config: ImportConfig = {
+      schemas: options.schemas,
+      nodes: options.nodes,
+      deployables: options.deployables,
+    };
 
-    // Import selected nodes and edges
-    if (options.nodes.size > 0 && data.nodes.length > 0 && importRef.current) {
-      const nodesToImport = data.nodes.filter(n => options.nodes.has(n.id));
-      // Filter edges to only include those between imported nodes
-      const importedNodeIds = new Set(nodesToImport.map(n => n.id));
-      const edgesToImport = data.edges.filter(
-        e => importedNodeIds.has(e.source) && importedNodeIds.has(e.target)
-      );
-      
-      if (nodesToImport.length > 0) {
-        importRef.current(nodesToImport, edgesToImport);
-      }
-    }
-
-    // Close the modal
+    // Set pending import flag and close modal
+    // The actual import will happen in useEffect
+    setPendingImport({ data, config, schemasToImport });
     setImportPreview(null);
-  }, [importPreview, refreshDeployables]);
+  }, [importPreview]);
 
   const handleImportCancel = useCallback(() => {
     setImportPreview(null);
@@ -165,99 +204,42 @@ function App() {
 
   const handleCompile = useCallback(() => {
     const { nodes, edges } = nodesEdgesRef.current;
-    const output = compiler.compile(nodes, edges);
+    const output = compiler.compile(nodes, edges, { schemas, deployables });
     setCompileOutput(output);
-  }, []);
-
-  const handleClear = useCallback((mode: 'instances' | 'all') => {
-    if (mode === 'instances') {
-      // Clear only nodes and edges from localStorage, preserve schemas and deployables
-      const saved = localStorage.getItem('react-flow-state');
-      if (saved) {
-        try {
-          const state = JSON.parse(saved);
-          // Clear nodes and edges but keep nodeId and title
-          localStorage.setItem('react-flow-state', JSON.stringify({
-            nodes: [],
-            edges: [],
-            nodeId: state.nodeId || 1,
-            title: state.title || 'Untitled Project'
-          }));
-        } catch (e) {
-          console.error('Failed to clear instances:', e);
-        }
-      }
-      // Reload to reflect changes
-      window.location.reload();
-    } else {
-      // Clear everything: nodes, edges, all schemas, and deployables
-      localStorage.removeItem('react-flow-state');
-      localStorage.removeItem('carta-schemas');
-      localStorage.removeItem('carta-deployables');
-      // Reload to reflect changes
-      window.location.reload();
-    }
-  }, []);
+  }, [schemas, deployables]);
 
   const handleRestoreDefaultSchemas = useCallback(() => {
-    // Clear registry and import fresh defaults
-    registry.clearAllSchemas();
-    registry.replaceSchemas(builtInSchemas);
-    schemaStorage.saveToLocalStorage();
-    
-    // Notify user and reload to reflect changes
-    alert('Default schemas restored successfully!');
-    window.location.reload();
-  }, []);
+    // Restore all defaults in a single transaction
+    adapter.transaction(() => {
+      // Clear and restore construct schemas
+      adapter.setSchemas(builtInConstructSchemas);
 
-  const handleResizeStart = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsResizing(true);
-  }, []);
+      // Restore port schemas
+      adapter.setPortSchemas(builtInPortSchemas);
 
-  const handleResizeMove = useCallback((e: MouseEvent) => {
-    if (!isResizing || !containerRef.current) return;
-    const containerRect = containerRef.current.getBoundingClientRect();
-    const newHeight = containerRect.bottom - e.clientY;
-    // Clamp between MIN_DOCK_HEIGHT and MAX_DOCK_HEIGHT_RATIO of container
-    const maxHeight = containerRect.height * MAX_DOCK_HEIGHT_RATIO;
-    setDockHeight(Math.max(MIN_DOCK_HEIGHT, Math.min(newHeight, maxHeight)));
-  }, [isResizing]);
+      // Restore schema groups
+      adapter.setSchemaGroups(builtInSchemaGroups);
+    });
 
-  const handleResizeEnd = useCallback(() => {
-    setIsResizing(false);
-  }, []);
-
-  const handleResizeBarDoubleClick = useCallback(() => {
-    if (!containerRef.current) return;
-    const containerRect = containerRef.current.getBoundingClientRect();
-    const maxHeight = containerRect.height * MAX_DOCK_HEIGHT_RATIO;
-    // Toggle between minimum and maximum heights
-    setDockHeight(dockHeight >= maxHeight - 10 ? MIN_DOCK_HEIGHT : maxHeight);
-  }, [dockHeight]);
-
-  // Attach mouse listeners for resizing
-  useEffect(() => {
-    if (isResizing) {
-      window.addEventListener('mousemove', handleResizeMove);
-      window.addEventListener('mouseup', handleResizeEnd);
-      return () => {
-        window.removeEventListener('mousemove', handleResizeMove);
-        window.removeEventListener('mouseup', handleResizeEnd);
-      };
-    }
-  }, [isResizing, handleResizeMove, handleResizeEnd]);
+    // Sync port registry with new port schemas
+    syncWithDocumentStore(builtInPortSchemas);
+    // Changes propagate automatically via Yjs subscription - no reload needed
+  }, [adapter]);
 
   return (
     <div className="h-screen flex flex-col">
       <Header
         title={title}
+        description={description}
         onTitleChange={setTitle}
+        onDescriptionChange={setDescription}
         onExport={handleExport}
         onImport={handleImport}
         onCompile={handleCompile}
-        onClear={handleClear}
+        onClear={clearDocument}
         onRestoreDefaultSchemas={handleRestoreDefaultSchemas}
+        onToggleAI={() => setAiSidebarOpen(!aiSidebarOpen)}
+        onLoadExample={handleLoadExample}
       />
       <div ref={containerRef} className="flex-1 min-h-0 flex flex-col">
         <div className="flex-1 min-h-0">
@@ -269,28 +251,23 @@ function App() {
               onNodesEdgesChange={handleNodesEdgesChange}
               onSelectionChange={handleSelectionChange}
               onNodeDoubleClick={handleNodeDoubleClick}
-              nodeUpdateRef={nodeUpdateRef}
-              importRef={importRef}
             />
           </ReactFlowProvider>
         </div>
-        {/* Resize handle */}
-        <div
-          className={`h-1 bg-gray-200 hover:bg-indigo-400 cursor-row-resize transition-colors ${isResizing ? 'bg-indigo-500' : ''}`}
-          onMouseDown={handleResizeStart}
-          onDoubleClick={handleResizeBarDoubleClick}
-        />
-        <Dock
-          selectedNodes={selectedNodes}
-          deployables={deployables}
-          onDeployablesChange={refreshDeployables}
-          onNodeUpdate={handleNodeUpdate}
-          height={dockHeight}
-          activeView={activeView}
-          onActiveViewChange={setActiveView}
-        />
         <Footer />
       </div>
+
+      {/* Drawer system */}
+      <Drawer
+        isOpen={drawerOpen}
+        onOpen={() => setDrawerOpen(true)}
+        onClose={() => setDrawerOpen(false)}
+        activeTab={drawerTab}
+        onActiveTabChange={setDrawerTab}
+        onDeployablesChange={refreshDeployables}
+      />
+
+      {/* Modals */}
       {importPreview && (
         <ImportPreviewModal
           analysis={importPreview.analysis}
@@ -301,6 +278,7 @@ function App() {
       {exportPreview && (
         <ExportPreviewModal
           analysis={exportPreview}
+          edges={nodesEdgesRef.current.edges}
           onConfirm={handleExportConfirm}
           onCancel={handleExportCancel}
         />
@@ -311,6 +289,11 @@ function App() {
           onClose={() => setCompileOutput(null)}
         />
       )}
+      <AISidebar
+        isOpen={aiSidebarOpen}
+        onToggle={() => setAiSidebarOpen(!aiSidebarOpen)}
+        width={aiSidebarWidth}
+      />
     </div>
   );
 }

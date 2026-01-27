@@ -1,13 +1,23 @@
 import { useState, useRef, useEffect } from 'react';
+import { useDocumentContext } from '../contexts/DocumentContext';
+import ConnectionStatus from './ConnectionStatus';
+import DocumentBrowserModal from './DocumentBrowserModal';
+import ExamplesModal from './ExamplesModal';
+import ProjectInfoModal from './ProjectInfoModal';
+import { getExamples, type Example } from '../utils/examples';
 
 interface HeaderProps {
   title: string;
+  description: string;
   onTitleChange: (title: string) => void;
+  onDescriptionChange: (description: string) => void;
   onExport: () => void;
   onImport: (file: File) => void;
   onCompile: () => void;
   onClear?: (mode: 'instances' | 'all') => void;
   onRestoreDefaultSchemas?: () => void;
+  onToggleAI?: () => void;
+  onLoadExample?: (example: Example) => void;
 }
 
 const getInitialTheme = (): 'light' | 'dark' | 'warm' => {
@@ -17,9 +27,8 @@ const getInitialTheme = (): 'light' | 'dark' | 'warm' => {
   return prefersDark ? 'dark' : 'light';
 };
 
-export default function Header({ title, onTitleChange, onExport, onImport, onCompile, onClear, onRestoreDefaultSchemas }: HeaderProps) {
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [editedTitle, setEditedTitle] = useState(title);
+export default function Header({ title, description, onTitleChange, onDescriptionChange, onExport, onImport, onCompile, onClear, onRestoreDefaultSchemas, onToggleAI, onLoadExample }: HeaderProps) {
+  const { mode, documentId, connectToDocument, staticMode } = useDocumentContext();
   const [theme, setTheme] = useState<'light' | 'dark' | 'warm'>(() => {
     const initialTheme = getInitialTheme();
     document.documentElement.setAttribute('data-theme', initialTheme);
@@ -27,13 +36,22 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
   });
   const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
   const [isSettingsMenuOpen, setIsSettingsMenuOpen] = useState(false);
+  const [isShareMenuOpen, setIsShareMenuOpen] = useState(false);
+  const [isProjectInfoModalOpen, setIsProjectInfoModalOpen] = useState(false);
+  const [isExamplesModalOpen, setIsExamplesModalOpen] = useState(false);
+  const [isDocBrowserOpen, setIsDocBrowserOpen] = useState(false);
   const [clearWarningMode, setClearWarningMode] = useState<'menu' | null>(null);
   const [restoreWarningMode, setRestoreWarningMode] = useState<'menu' | null>(null);
+  const [shareDocumentId, setShareDocumentId] = useState('');
+  const [shareServerUrl, setShareServerUrl] = useState('ws://localhost:1234');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const themeMenuRef = useRef<HTMLDivElement>(null);
   const settingsMenuRef = useRef<HTMLDivElement>(null);
+  const shareMenuRef = useRef<HTMLDivElement>(null);
 
-  // Close theme menu when clicking outside
+  const examples = getExamples();
+
+  // Close menus when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (themeMenuRef.current && !themeMenuRef.current.contains(event.target as Node)) {
@@ -42,13 +60,33 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
       if (settingsMenuRef.current && !settingsMenuRef.current.contains(event.target as Node)) {
         setIsSettingsMenuOpen(false);
       }
+      if (shareMenuRef.current && !shareMenuRef.current.contains(event.target as Node)) {
+        setIsShareMenuOpen(false);
+      }
     };
 
-    if (isThemeMenuOpen || isSettingsMenuOpen) {
+    if (isThemeMenuOpen || isSettingsMenuOpen || isShareMenuOpen) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
-  }, [isThemeMenuOpen, isSettingsMenuOpen]);
+  }, [isThemeMenuOpen, isSettingsMenuOpen, isShareMenuOpen]);
+
+  // Copy document URL to clipboard
+  const handleCopyDocumentUrl = () => {
+    if (documentId) {
+      const url = `${window.location.origin}${window.location.pathname}?doc=${documentId}`;
+      navigator.clipboard.writeText(url);
+      setIsShareMenuOpen(false);
+    }
+  };
+
+  // Start sharing (create shared document)
+  const handleStartSharing = async () => {
+    if (!connectToDocument) return;
+    const newDocumentId = shareDocumentId.trim() || `carta-${Date.now()}`;
+    await connectToDocument(newDocumentId, shareServerUrl);
+    setIsShareMenuOpen(false);
+  };
 
   const changeTheme = (newTheme: 'light' | 'dark' | 'warm') => {
     setTheme(newTheme);
@@ -97,26 +135,6 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
     }
   };
 
-  const handleTitleClick = () => {
-    setEditedTitle(title);
-    setIsEditingTitle(true);
-  };
-
-  const handleTitleBlur = () => {
-    onTitleChange(editedTitle);
-    setIsEditingTitle(false);
-  };
-
-  const handleTitleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      onTitleChange(editedTitle);
-      setIsEditingTitle(false);
-    } else if (e.key === 'Escape') {
-      setEditedTitle(title);
-      setIsEditingTitle(false);
-    }
-  };
-
   const handleImportClick = () => {
     fileInputRef.current?.click();
   };
@@ -142,29 +160,33 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
   };
 
   return (
-    <header className="h-12 bg-surface border-b flex items-center justify-between px-0 shrink-0">
-      <div className="flex items-center">
-        {isEditingTitle ? (
-          <input
-            type="text"
-            className="text-lg font-semibold text-content border-2 border-accent rounded px-2 py-1 outline-none min-w-[200px] bg-surface"
-            value={editedTitle}
-            onChange={(e) => setEditedTitle(e.target.value)}
-            onBlur={handleTitleBlur}
-            onKeyDown={handleTitleKeyDown}
-            autoFocus
-          />
-        ) : (
-          <h1
-            className="m-0 text-lg font-semibold text-content cursor-pointer px-2 py-1 rounded hover:bg-surface-alt transition-colors"
-            onClick={handleTitleClick}
+    <header className="h-12 bg-surface border-b grid grid-cols-[1fr_auto_1fr] items-center px-0 shrink-0">
+      <div className="flex items-center justify-start pl-2">
+        {/* Document browser button - only in collaboration mode */}
+        {!staticMode && (
+          <button
+            className="w-9 h-9 flex items-center justify-center rounded-lg cursor-pointer text-content-muted hover:bg-surface-alt hover:text-content transition-colors"
+            onClick={() => setIsDocBrowserOpen(true)}
+            title="Browse documents"
           >
-            {title}
-          </h1>
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+            </svg>
+          </button>
         )}
       </div>
 
-      <div className="flex gap-2 items-center">
+      <div className="flex items-center justify-center">
+        <h1
+          className="m-0 text-lg font-semibold text-content cursor-pointer px-2 py-1 rounded hover:bg-surface-alt transition-colors"
+          onClick={() => setIsProjectInfoModalOpen(true)}
+          title="Click to edit project info"
+        >
+          {title}
+        </h1>
+      </div>
+
+      <div className="flex gap-2 items-center justify-end">
         <input
           ref={fileInputRef}
           type="file"
@@ -172,6 +194,76 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
           onChange={handleFileSelect}
           className="hidden"
         />
+        {/* Connection Status */}
+        {!staticMode && <ConnectionStatus />}
+
+        {/* Share button and menu */}
+        {!staticMode && (
+          <div className="relative" ref={shareMenuRef}>
+            {mode === 'shared' && documentId ? (
+              <button
+                className="px-4 py-2 text-sm font-medium bg-surface text-content border border-border rounded-lg cursor-pointer hover:bg-surface-alt transition-colors"
+                onClick={handleCopyDocumentUrl}
+                title="Copy link"
+              >
+                Copy Link
+              </button>
+            ) : (
+              <button
+                className="px-4 py-2 text-sm font-medium bg-surface text-content border border-border rounded-lg cursor-pointer hover:bg-surface-alt transition-colors"
+                onClick={() => setIsShareMenuOpen(!isShareMenuOpen)}
+                title="Share document"
+              >
+                Share
+              </button>
+            )}
+            {isShareMenuOpen && (
+              <div className="absolute right-0 top-full mt-1 bg-surface border border-subtle rounded-lg shadow-lg overflow-hidden z-50 min-w-[280px]">
+                <div className="px-4 py-3 border-b border-subtle">
+                  <div className="text-sm font-medium text-content">Start Collaboration</div>
+                  <div className="text-xs text-content-muted mt-1">Share this document with others in real-time</div>
+                </div>
+                <div className="p-4 space-y-3">
+                  <div>
+                    <label className="block text-xs text-content-muted mb-1">Document ID (optional)</label>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 rounded-md border border-subtle bg-surface text-content text-sm focus:outline-none focus:border-accent"
+                      placeholder="Auto-generated if empty"
+                      value={shareDocumentId}
+                      onChange={(e) => setShareDocumentId(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-content-muted mb-1">Server URL</label>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 rounded-md border border-subtle bg-surface text-content text-sm focus:outline-none focus:border-accent"
+                      placeholder="ws://localhost:1234"
+                      value={shareServerUrl}
+                      onChange={(e) => setShareServerUrl(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end px-4 py-3 border-t border-subtle gap-2">
+                  <button
+                    className="px-4 py-2 text-sm rounded-md bg-surface text-content hover:bg-surface-alt transition-colors"
+                    onClick={() => setIsShareMenuOpen(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="px-4 py-2 text-sm font-medium border-none rounded-md bg-emerald-500 text-white cursor-pointer hover:bg-emerald-600 transition-colors"
+                    onClick={handleStartSharing}
+                  >
+                    Start Sharing
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="relative" ref={themeMenuRef}>
           <button
             className="w-9 h-9 flex items-center justify-center rounded-lg cursor-pointer text-content-muted hover:bg-surface-alt hover:text-content transition-colors"
@@ -185,7 +277,7 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
               {(['light', 'dark', 'warm'] as const).map((themeName) => (
                 <button
                   key={themeName}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm cursor-pointer transition-colors text-left border-none ${
+                  className={`w-full flex items-center gap-3 px-4 py-2 text-sm cursor-pointer transition-colors text-left border-none ${
                     theme === themeName
                       ? 'bg-accent text-white'
                       : 'bg-surface text-content hover:bg-surface-alt'
@@ -200,47 +292,74 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
           )}
         </div>
         <button
-          className="px-4 py-2 text-sm font-medium bg-content-muted text-white border-none rounded-lg cursor-pointer shadow-sm hover:bg-content hover:-translate-y-0.5 transition-all"
+          className="px-4 py-2 text-sm font-medium bg-surface text-content border border-border rounded-lg cursor-pointer hover:bg-surface-alt transition-colors"
           onClick={onExport}
           title="Export project to .carta file"
         >
           Export
         </button>
         <button
-          className="px-4 py-2 text-sm font-medium bg-content-muted text-white border-none rounded-lg cursor-pointer shadow-sm hover:bg-content hover:-translate-y-0.5 transition-all"
+          className="px-4 py-2 text-sm font-medium bg-surface text-content border border-border rounded-lg cursor-pointer hover:bg-surface-alt transition-colors"
           onClick={handleImportClick}
           title="Import project from .carta file"
         >
           Import
         </button>
         <button
-          className="px-4 py-2 text-sm font-medium bg-emerald-500 text-white border-none rounded-lg cursor-pointer shadow-sm hover:bg-emerald-600 hover:-translate-y-0.5 transition-all"
+          className="px-4 py-2 text-sm font-medium bg-emerald-500 text-white border-none rounded-lg cursor-pointer hover:bg-emerald-600 transition-colors"
           onClick={onCompile}
           title="Compile project"
         >
           Compile
         </button>
+        {onToggleAI && (
+          <button
+            className="w-9 h-9 flex items-center justify-center rounded-lg cursor-pointer text-content-muted hover:bg-surface-alt hover:text-content transition-colors"
+            onClick={onToggleAI}
+            title="Open AI Assistant"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 2a4 4 0 0 1 4 4v1h1a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3v-8a3 3 0 0 1 3-3h1V6a4 4 0 0 1 4-4z" />
+              <circle cx="9" cy="13" r="1.5" />
+              <circle cx="15" cy="13" r="1.5" />
+              <path d="M9 17h6" />
+            </svg>
+          </button>
+        )}
         <div className="relative" ref={settingsMenuRef}>
           <button
+            data-testid="settings-menu-button"
             className="w-9 h-9 flex items-center justify-center rounded-lg cursor-pointer text-content-muted hover:bg-surface-alt hover:text-content transition-colors"
             onClick={() => setIsSettingsMenuOpen(!isSettingsMenuOpen)}
             title="Settings"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
               <circle cx="12" cy="12" r="3" />
-              <path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m5.08-5.08l4.24-4.24" />
             </svg>
           </button>
           {isSettingsMenuOpen && (
-            <div className="absolute right-0 top-full mt-1 bg-surface border border-subtle rounded-lg shadow-lg overflow-hidden z-50 min-w-[200px]">
+            <div data-testid="settings-menu" className="absolute right-0 top-full mt-1 bg-surface border border-subtle rounded-lg shadow-lg overflow-hidden z-50 min-w-[200px]">
+              {examples.length > 0 && onLoadExample && (
+                <button
+                  className="w-full text-left px-4 py-2 text-sm cursor-pointer text-content hover:bg-surface-alt transition-colors border-none bg-surface"
+                  onClick={() => {
+                    setIsExamplesModalOpen(true);
+                    setIsSettingsMenuOpen(false);
+                  }}
+                >
+                  Load Example
+                </button>
+              )}
               <button
-                className="w-full text-left px-4 py-2.5 text-sm cursor-pointer text-content hover:bg-surface-alt transition-colors border-none bg-surface"
+                className="w-full text-left px-4 py-2 text-sm cursor-pointer text-content hover:bg-surface-alt transition-colors border-none bg-surface"
                 onClick={() => setRestoreWarningMode('menu')}
               >
                 Restore Default Schemas
               </button>
               <button
-                className="w-full text-left px-4 py-2.5 text-sm cursor-pointer text-content hover:bg-surface-alt transition-colors border-none bg-surface"
+                data-testid="settings-clear-button"
+                className="w-full text-left px-4 py-2 text-sm cursor-pointer text-content hover:bg-surface-alt transition-colors border-none bg-surface"
                 onClick={() => handleClear()}
               >
                 Clear
@@ -252,51 +371,59 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
 
       {/* Clear Warning Modal */}
       {clearWarningMode && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1001]" onClick={() => setClearWarningMode(null)}>
+        <div data-testid="clear-modal" className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1001]" onClick={() => setClearWarningMode(null)}>
           <div className="bg-surface rounded-xl w-[90%] max-w-[400px] flex flex-col shadow-2xl" onClick={(e) => e.stopPropagation()}>
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-subtle">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-subtle">
               <div>
                 <h2 className="m-0 text-lg text-content font-semibold">Clear workspace</h2>
               </div>
               <button
-                className="w-8 h-8 border-none rounded-md bg-transparent text-content-subtle text-2xl cursor-pointer flex items-center justify-center hover:bg-surface-alt hover:text-content"
+                className="w-9 h-9 border-none rounded-md bg-transparent text-content-subtle text-2xl cursor-pointer flex items-center justify-center hover:bg-surface-alt hover:text-content"
                 onClick={() => setClearWarningMode(null)}
               >
                 ×
               </button>
             </div>
 
-            {/* Content */}
-            <div className="p-5">
-              <p className="text-content text-sm mb-4">
-                Choose what to clear:
-              </p>
-              <ul className="text-content-muted text-xs space-y-2 ml-4">
-                <li className="list-disc"><strong>Clear Instances:</strong> Delete all instances and connections. Custom schemas and deployables preserved.</li>
-                <li className="list-disc"><strong>Clear Everything:</strong> Delete all instances, schemas, and deployables. This cannot be undone.</li>
-              </ul>
-            </div>
-
-            {/* Footer */}
-            <div className="flex gap-2 justify-end px-5 py-4 border-t border-subtle">
+            {/* Content - Vertical list of options */}
+            <div className="p-4 flex flex-col gap-2">
               <button
-                className="px-5 py-2.5 rounded-md bg-surface text-content text-sm font-medium cursor-pointer hover:bg-surface-alt transition-colors"
-                onClick={() => setClearWarningMode(null)}
-              >
-                Cancel
-              </button>
-              <button
-                className="px-5 py-2.5 border-none rounded-md bg-amber-500 text-white text-sm font-medium cursor-pointer hover:bg-amber-600 transition-colors"
+                data-testid="clear-instances-button"
+                className="w-full text-left px-4 py-3 rounded-lg border border-subtle bg-surface hover:bg-surface-alt transition-colors cursor-pointer"
                 onClick={() => confirmClear('instances')}
               >
-                Clear Instances
+                <div className="text-sm font-medium text-content">Clear Instances</div>
+                <div className="text-xs text-content-muted mt-0.5">Delete all instances and connections. Custom schemas and deployables preserved.</div>
               </button>
+
               <button
-                className="px-5 py-2.5 border-none rounded-md bg-red-500 text-white text-sm font-medium cursor-pointer hover:bg-red-600 transition-colors"
+                data-testid="clear-everything-button"
+                className="w-full text-left px-4 py-3 rounded-lg border border-amber-500/50 bg-surface hover:bg-amber-500/10 transition-colors cursor-pointer"
                 onClick={() => confirmClear('all')}
               >
-                Clear Everything
+                <div className="text-sm font-medium text-amber-600">Clear Everything</div>
+                <div className="text-xs text-content-muted mt-0.5">Delete all instances, schemas, and deployables. This cannot be undone.</div>
+              </button>
+
+              <button
+                data-testid="clear-and-restore-button"
+                className="w-full text-left px-4 py-3 rounded-lg border border-red-500/50 bg-surface hover:bg-red-500/10 transition-colors cursor-pointer"
+                onClick={() => {
+                  confirmClear('all');
+                  onRestoreDefaultSchemas?.();
+                }}
+              >
+                <div className="text-sm font-medium text-red-600">Clear Everything and Restore Defaults</div>
+                <div className="text-xs text-content-muted mt-0.5">Delete everything and restore built-in schemas. Fresh start with defaults.</div>
+              </button>
+
+              <button
+                data-testid="clear-cancel-button"
+                className="w-full text-left px-4 py-3 rounded-lg border border-subtle bg-surface hover:bg-surface-alt transition-colors cursor-pointer mt-2"
+                onClick={() => setClearWarningMode(null)}
+              >
+                <div className="text-sm font-medium text-content-muted">Cancel</div>
               </button>
             </div>
           </div>
@@ -308,12 +435,12 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1001]" onClick={() => setRestoreWarningMode(null)}>
           <div className="bg-surface rounded-xl w-[90%] max-w-[400px] flex flex-col shadow-2xl" onClick={(e) => e.stopPropagation()}>
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-subtle">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-subtle">
               <div>
                 <h2 className="m-0 text-lg text-content font-semibold">Restore default schemas</h2>
               </div>
               <button
-                className="w-8 h-8 border-none rounded-md bg-transparent text-content-subtle text-2xl cursor-pointer flex items-center justify-center hover:bg-surface-alt hover:text-content"
+                className="w-9 h-9 border-none rounded-md bg-transparent text-content-subtle text-2xl cursor-pointer flex items-center justify-center hover:bg-surface-alt hover:text-content"
                 onClick={() => setRestoreWarningMode(null)}
               >
                 ×
@@ -321,7 +448,7 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
             </div>
 
             {/* Content */}
-            <div className="p-5">
+            <div className="p-4">
               <p className="text-content text-sm mb-2">
                 This will add any missing default schemas to your workspace.
               </p>
@@ -331,15 +458,15 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
             </div>
 
             {/* Footer */}
-            <div className="flex gap-2 justify-end px-5 py-4 border-t border-subtle">
+            <div className="flex gap-2 justify-end px-4 py-3 border-t border-subtle">
               <button
-                className="px-5 py-2.5 rounded-md bg-surface text-content text-sm font-medium cursor-pointer hover:bg-surface-alt transition-colors"
+                className="px-4 py-2 rounded-md bg-surface text-content text-sm font-medium cursor-pointer hover:bg-surface-alt transition-colors"
                 onClick={() => setRestoreWarningMode(null)}
               >
                 Cancel
               </button>
               <button
-                className="px-5 py-2.5 border-none rounded-md bg-indigo-500 text-white text-sm font-medium cursor-pointer hover:bg-indigo-600 transition-colors"
+                className="px-4 py-2 border-none rounded-md bg-emerald-500 text-white text-sm font-medium cursor-pointer hover:bg-emerald-600 transition-colors"
                 onClick={() => {
                   onRestoreDefaultSchemas?.();
                   setRestoreWarningMode(null);
@@ -351,6 +478,36 @@ export default function Header({ title, onTitleChange, onExport, onImport, onCom
             </div>
           </div>
         </div>
+      )}
+
+      {/* Project Info Modal */}
+      {isProjectInfoModalOpen && (
+        <ProjectInfoModal
+          title={title}
+          description={description}
+          onSave={(newTitle, newDescription) => {
+            onTitleChange(newTitle);
+            onDescriptionChange(newDescription);
+          }}
+          onClose={() => setIsProjectInfoModalOpen(false)}
+        />
+      )}
+
+      {/* Examples Modal */}
+      {isExamplesModalOpen && onLoadExample && (
+        <ExamplesModal
+          examples={examples}
+          onSelect={(example) => {
+            onLoadExample(example);
+            setIsExamplesModalOpen(false);
+          }}
+          onClose={() => setIsExamplesModalOpen(false)}
+        />
+      )}
+
+      {/* Document Browser Modal */}
+      {isDocBrowserOpen && (
+        <DocumentBrowserModal onClose={() => setIsDocBrowserOpen(false)} />
       )}
     </header>
   );
