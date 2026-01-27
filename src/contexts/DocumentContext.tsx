@@ -10,14 +10,16 @@ import { builtInConstructSchemas, builtInSchemaGroups, builtInPortSchemas } from
 export interface DocumentContextValue {
   adapter: DocumentAdapter;
   mode: 'local' | 'shared';
-  roomId?: string;
+  documentId?: string;
   isReady: boolean;
   ydoc: Y.Doc;
   /** When true, collaboration UI should be hidden */
-  localMode: boolean;
-  // Actions (only available when not in localMode)
-  connectToRoom?: (roomId: string, serverUrl: string) => Promise<void>;
-  disconnectFromRoom?: () => void;
+  staticMode: boolean;
+  /** When true, user must select a document before proceeding (server mode without ?doc= param) */
+  needsDocumentSelection: boolean;
+  // Actions (only available when not in staticMode)
+  connectToDocument?: (documentId: string, serverUrl: string) => Promise<void>;
+  disconnectFromDocument?: () => void;
 }
 
 const DocumentContext = createContext<DocumentContextValue | null>(null);
@@ -35,12 +37,12 @@ export function useDocumentContext(): DocumentContextValue {
 
 export interface DocumentProviderProps {
   children: ReactNode;
-  /** Room ID for shared mode (can come from URL) */
-  roomId?: string;
-  /** WebSocket server URL for shared mode */
+  /** Document ID for server mode (comes from ?doc= URL param) */
+  documentId?: string;
+  /** WebSocket server URL for server mode */
   serverUrl?: string;
   /** When true, hides collaboration UI (Share button, connection status) */
-  localMode?: boolean;
+  staticMode?: boolean;
   /** Skip IndexedDB persistence (for testing) */
   skipPersistence?: boolean;
 }
@@ -51,29 +53,37 @@ export interface DocumentProviderProps {
  */
 export function DocumentProvider({
   children,
-  roomId,
+  documentId,
   serverUrl = 'ws://localhost:1234',
-  localMode = false,
+  staticMode = false,
   skipPersistence = false,
 }: DocumentProviderProps) {
   const [adapter, setAdapter] = useState<DocumentAdapter | null>(null);
   const [mode, setMode] = useState<'local' | 'shared'>('local');
-  const [currentRoomId, setCurrentRoomId] = useState<string | undefined>(roomId);
+  const [currentDocumentId, setCurrentDocumentId] = useState<string | undefined>(documentId);
   const [isReady, setIsReady] = useState(false);
   const [ydoc, setYdoc] = useState<Y.Doc | null>(null);
 
+  // In server mode without a document ID, user must select a document first
+  const needsDocumentSelection = !staticMode && !documentId;
+
   // Initialize Yjs adapter
   useEffect(() => {
+    // Don't initialize adapter if user needs to select a document first
+    if (needsDocumentSelection) {
+      return;
+    }
+
     let mounted = true;
     let currentAdapter: ReturnType<typeof createYjsAdapter> | null = null;
 
     const initAdapter = async () => {
       // Determine Yjs adapter options
-      // Always use 'carta-local' for continue-last behavior (like Excalidraw)
+      // Always use 'carta-local' for continue-last behavior in local mode (like Excalidraw)
       const options: YjsAdapterOptions = {
-        mode: roomId ? 'shared' : 'local',
-        roomId: roomId || 'carta-local',
-        serverUrl: roomId ? serverUrl : undefined,
+        mode: documentId ? 'shared' : 'local',
+        roomId: documentId || 'carta-local',
+        serverUrl: documentId ? serverUrl : undefined,
         skipPersistence,
       };
 
@@ -106,16 +116,16 @@ export function DocumentProvider({
         }, 'init');
       }
 
-      // Connect to WebSocket if shared mode
-      if (roomId && serverUrl) {
-        await yjsAdapter.connectToRoom(roomId, serverUrl);
+      // Connect to WebSocket if server mode with document ID
+      if (documentId && serverUrl) {
+        await yjsAdapter.connectToRoom(documentId, serverUrl);
       }
 
       if (mounted) {
         setAdapter(yjsAdapter);
         setYdoc(yjsAdapter.ydoc);
-        setMode(roomId ? 'shared' : 'local');
-        setCurrentRoomId(roomId);
+        setMode(documentId ? 'shared' : 'local');
+        setCurrentDocumentId(documentId);
         setIsReady(true);
       }
     };
@@ -128,34 +138,48 @@ export function DocumentProvider({
         currentAdapter.dispose();
       }
     };
-  }, [roomId, serverUrl, skipPersistence]);
+  }, [documentId, serverUrl, skipPersistence, needsDocumentSelection]);
 
-  // Connect to room (for switching from local to shared mode)
-  const connectToRoom = useCallback(
-    async (newRoomId: string, newServerUrl: string) => {
+  // Connect to document (for switching from local to shared mode)
+  const connectToDocument = useCallback(
+    async (newDocumentId: string, newServerUrl: string) => {
       if (!adapter) return;
 
       const yjsAdapter = adapter as ReturnType<typeof createYjsAdapter>;
       if (yjsAdapter.connectToRoom) {
-        await yjsAdapter.connectToRoom(newRoomId, newServerUrl);
+        await yjsAdapter.connectToRoom(newDocumentId, newServerUrl);
         setMode('shared');
-        setCurrentRoomId(newRoomId);
+        setCurrentDocumentId(newDocumentId);
       }
     },
     [adapter]
   );
 
-  // Disconnect from room
-  const disconnectFromRoom = useCallback(() => {
+  // Disconnect from document
+  const disconnectFromDocument = useCallback(() => {
     if (!adapter) return;
 
     const yjsAdapter = adapter as ReturnType<typeof createYjsAdapter>;
     if (yjsAdapter.disconnectFromRoom) {
       yjsAdapter.disconnectFromRoom();
       setMode('local');
-      setCurrentRoomId(undefined);
+      setCurrentDocumentId(undefined);
     }
   }, [adapter]);
+
+  // If user needs to select a document, provide a minimal context for the selection modal
+  if (needsDocumentSelection) {
+    const minimalValue: DocumentContextValue = {
+      adapter: null as unknown as DocumentAdapter, // Will not be accessed
+      mode: 'local',
+      documentId: undefined,
+      isReady: false,
+      ydoc: null as unknown as Y.Doc, // Will not be accessed
+      staticMode,
+      needsDocumentSelection: true,
+    };
+    return <DocumentContext.Provider value={minimalValue}>{children}</DocumentContext.Provider>;
+  }
 
   if (!adapter || !isReady || !ydoc) {
     // Loading state
@@ -169,12 +193,13 @@ export function DocumentProvider({
   const value: DocumentContextValue = {
     adapter,
     mode,
-    roomId: currentRoomId,
+    documentId: currentDocumentId,
     isReady,
     ydoc,
-    localMode,
-    connectToRoom: !localMode ? connectToRoom : undefined,
-    disconnectFromRoom: !localMode ? disconnectFromRoom : undefined,
+    staticMode,
+    needsDocumentSelection: false,
+    connectToDocument: !staticMode ? connectToDocument : undefined,
+    disconnectFromDocument: !staticMode ? disconnectFromDocument : undefined,
   };
 
   return <DocumentContext.Provider value={value}>{children}</DocumentContext.Provider>;

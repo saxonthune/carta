@@ -56,7 +56,7 @@ const { result } = renderHook(
 
 The `TestProviders` wrapper:
 - Uses `skipPersistence={true}` to avoid IndexedDB in jsdom
-- Uses `localMode={true}` to skip WebSocket connections
+- Uses `staticMode={true}` to skip WebSocket connections
 - Wraps with `ReactFlowProvider` for canvas-related hooks
 
 ### Testing Hooks with the Adapter

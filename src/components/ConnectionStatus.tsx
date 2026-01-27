@@ -6,7 +6,7 @@ import { useDocumentContext } from '../contexts/DocumentContext';
  * Shows connection state and connected user count.
  */
 export default function ConnectionStatus() {
-  const { mode, adapter, roomId } = useDocumentContext();
+  const { mode, adapter, documentId } = useDocumentContext();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
   const [clientCount, setClientCount] = useState(0);
@@ -74,7 +74,7 @@ export default function ConnectionStatus() {
       <button
         className="flex items-center gap-2 px-3 py-1.5 rounded-lg cursor-pointer text-content-muted hover:bg-surface-alt hover:text-content transition-colors"
         onClick={() => setIsMenuOpen(!isMenuOpen)}
-        title={connectionStatus === 'connected' ? `Room: ${roomId}` : getStatusLabel()}
+        title={connectionStatus === 'connected' ? `Document: ${documentId}` : getStatusLabel()}
       >
         {/* Status dot */}
         <span className={`w-2 h-2 rounded-full ${getStatusColor()}`} />
@@ -104,10 +104,10 @@ export default function ConnectionStatus() {
             </div>
           </div>
 
-          {mode === 'shared' && roomId && (
+          {mode === 'shared' && documentId && (
             <div className="px-4 py-3 border-b border-subtle">
-              <div className="text-xs text-content-muted mb-1">Room ID</div>
-              <div className="text-sm text-content font-mono break-all">{roomId}</div>
+              <div className="text-xs text-content-muted mb-1">Document</div>
+              <div className="text-sm text-content font-mono break-all">{documentId}</div>
             </div>
           )}
 

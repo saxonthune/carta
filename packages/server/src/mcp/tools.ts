@@ -16,6 +16,15 @@ const CreateDocumentSchema = z.object({
   title: z.string().describe('Document title'),
 });
 
+const DeleteDocumentSchema = z.object({
+  documentId: z.string().describe('The document ID to delete'),
+});
+
+const RenameDocumentSchema = z.object({
+  documentId: z.string().describe('The document ID'),
+  title: z.string().describe('New document title'),
+});
+
 const CreateConstructSchema = z.object({
   documentId: z.string().describe('The document ID'),
   constructType: z.string().describe('The type of construct to create'),
@@ -104,8 +113,8 @@ const CreateDeployableSchema = z.object({
 export function getToolDefinitions() {
   return [
     {
-      name: 'carta_list_active_rooms',
-      description: 'List rooms with active browser connections (Yjs collaboration mode only)',
+      name: 'carta_list_active_documents',
+      description: 'List documents with active browser connections (Yjs collaboration mode only)',
       inputSchema: z.object({}).shape,
     },
     {
@@ -122,6 +131,16 @@ export function getToolDefinitions() {
       name: 'carta_create_document',
       description: 'Create a new Carta document',
       inputSchema: CreateDocumentSchema.shape,
+    },
+    {
+      name: 'carta_delete_document',
+      description: 'Delete a Carta document by ID',
+      inputSchema: DeleteDocumentSchema.shape,
+    },
+    {
+      name: 'carta_rename_document',
+      description: 'Rename a Carta document',
+      inputSchema: RenameDocumentSchema.shape,
     },
     {
       name: 'carta_list_schemas',
@@ -208,10 +227,12 @@ type ToolHandler = (args: Record<string, unknown>) => Promise<unknown>;
  * Tool handlers interface with specific tool names
  */
 export interface ToolHandlers {
-  carta_list_active_rooms: ToolHandler;
+  carta_list_active_documents: ToolHandler;
   carta_list_documents: ToolHandler;
   carta_get_document: ToolHandler;
   carta_create_document: ToolHandler;
+  carta_delete_document: ToolHandler;
+  carta_rename_document: ToolHandler;
   carta_list_schemas: ToolHandler;
   carta_get_schema: ToolHandler;
   carta_create_schema: ToolHandler;
@@ -272,8 +293,8 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
   }
 
   return {
-    carta_list_active_rooms: async () => {
-      const result = await apiRequest<{ rooms: Array<{ roomId: string; clientCount: number }> }>(
+    carta_list_active_documents: async () => {
+      const result = await apiRequest<{ documents: Array<{ documentId: string; clientCount: number }> }>(
         'GET',
         '/api/rooms'
       );
@@ -302,6 +323,27 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
     carta_create_document: async (args) => {
       const { title } = CreateDocumentSchema.parse(args);
       const result = await apiRequest<{ document: unknown }>('POST', '/api/documents', { title });
+      if (result.error) return { error: result.error };
+      return result.data;
+    },
+
+    carta_delete_document: async (args) => {
+      const { documentId } = DeleteDocumentSchema.parse(args);
+      const result = await apiRequest<{ deleted: boolean }>(
+        'DELETE',
+        `/api/documents/${encodeURIComponent(documentId)}`
+      );
+      if (result.error) return { error: result.error };
+      return result.data;
+    },
+
+    carta_rename_document: async (args) => {
+      const { documentId, title } = RenameDocumentSchema.parse(args);
+      const result = await apiRequest<{ document: unknown }>(
+        'PATCH',
+        `/api/documents/${encodeURIComponent(documentId)}`,
+        { title }
+      );
       if (result.error) return { error: result.error };
       return result.data;
     },

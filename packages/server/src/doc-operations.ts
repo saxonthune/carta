@@ -26,6 +26,19 @@ import type {
 const MCP_ORIGIN = 'mcp';
 
 /**
+ * Safely get a value from either a Y.Map or plain object.
+ * After certain Yjs operations, data structures may be plain objects
+ * rather than Y.Map instances.
+ */
+function safeGet(value: Y.Map<unknown> | Record<string, unknown> | undefined, key: string): unknown {
+  if (!value) return undefined;
+  if (value instanceof Y.Map) {
+    return value.get(key);
+  }
+  return (value as Record<string, unknown>)[key];
+}
+
+/**
  * Convert a Y.Map to a plain object (shallow)
  */
 export function yMapToObject<T>(ymap: Y.Map<unknown>): T {
@@ -171,8 +184,8 @@ export function updateConstruct(
   let foundYnode: Y.Map<unknown> | null = null;
 
   ynodes.forEach((ynode, id) => {
-    const data = ynode.get('data') as Y.Map<unknown> | undefined;
-    if (data && data.get('semanticId') === semanticId) {
+    const data = ynode.get('data') as Y.Map<unknown> | Record<string, unknown> | undefined;
+    if (data && safeGet(data, 'semanticId') === semanticId) {
       foundId = id;
       foundYnode = ynode;
     }
@@ -214,8 +227,8 @@ export function deleteConstruct(ydoc: Y.Doc, semanticId: string): boolean {
   let foundId: string | null = null;
 
   ynodes.forEach((ynode, id) => {
-    const data = ynode.get('data') as Y.Map<unknown> | undefined;
-    if (data && data.get('semanticId') === semanticId) {
+    const data = ynode.get('data') as Y.Map<unknown> | Record<string, unknown> | undefined;
+    if (data && safeGet(data, 'semanticId') === semanticId) {
       foundId = id;
     }
   });
@@ -236,15 +249,24 @@ export function deleteConstruct(ydoc: Y.Doc, semanticId: string): boolean {
 
     // Remove connections referencing this node from other nodes
     ynodes.forEach((ynode) => {
-      const ydata = ynode.get('data') as Y.Map<unknown> | undefined;
+      const ydata = ynode.get('data') as Y.Map<unknown> | Record<string, unknown> | undefined;
       if (ydata) {
-        const yconns = ydata.get('connections') as Y.Array<Y.Map<unknown>> | undefined;
-        if (yconns) {
+        const yconns = safeGet(ydata, 'connections') as Y.Array<unknown> | unknown[] | undefined;
+        if (yconns && Array.isArray(yconns)) {
+          // Plain array - filter out connections to deleted node
+          const filtered = yconns.filter((conn) => {
+            const c = conn as Record<string, unknown>;
+            return c.targetSemanticId !== semanticId;
+          });
+          if (ydata instanceof Y.Map) {
+            ydata.set('connections', deepPlainToY(filtered));
+          }
+        } else if (yconns instanceof Y.Array) {
           // Find indices to remove (in reverse to avoid shifting issues)
           const indicesToRemove: number[] = [];
           for (let i = 0; i < yconns.length; i++) {
-            const conn = yconns.get(i) as Y.Map<unknown>;
-            if (conn && conn.get('targetSemanticId') === semanticId) {
+            const conn = yconns.get(i) as Y.Map<unknown> | Record<string, unknown>;
+            if (conn && safeGet(conn, 'targetSemanticId') === semanticId) {
               indicesToRemove.push(i);
             }
           }
@@ -284,12 +306,12 @@ export function connect(
   let sourceYdata: Y.Map<unknown> | null = null;
 
   ynodes.forEach((ynode, id) => {
-    const ydata = ynode.get('data') as Y.Map<unknown> | undefined;
+    const ydata = ynode.get('data') as Y.Map<unknown> | Record<string, unknown> | undefined;
     if (ydata) {
-      const sid = ydata.get('semanticId');
+      const sid = safeGet(ydata, 'semanticId');
       if (sid === sourceSemanticId) {
         sourceNodeId = id;
-        sourceYdata = ydata;
+        sourceYdata = ydata as Y.Map<unknown>;
       }
       if (sid === targetSemanticId) {
         targetNodeId = id;
@@ -352,12 +374,12 @@ export function disconnect(
   let sourceYdata: Y.Map<unknown> | null = null;
 
   ynodes.forEach((ynode, id) => {
-    const ydata = ynode.get('data') as Y.Map<unknown> | undefined;
+    const ydata = ynode.get('data') as Y.Map<unknown> | Record<string, unknown> | undefined;
     if (ydata) {
-      const sid = ydata.get('semanticId');
+      const sid = safeGet(ydata, 'semanticId');
       if (sid === sourceSemanticId) {
         sourceNodeId = id;
-        sourceYdata = ydata;
+        sourceYdata = ydata as Y.Map<unknown>;
       }
       if (sid === targetSemanticId) {
         targetNodeId = id;
@@ -369,18 +391,27 @@ export function disconnect(
 
   ydoc.transact(() => {
     // Remove connection from source node
-    const yconns = sourceYdata!.get('connections') as Y.Array<Y.Map<unknown>> | undefined;
-    if (yconns) {
+    const yconns = safeGet(sourceYdata!, 'connections') as Y.Array<unknown> | unknown[] | undefined;
+    if (yconns instanceof Y.Array) {
       for (let i = yconns.length - 1; i >= 0; i--) {
-        const conn = yconns.get(i) as Y.Map<unknown>;
+        const conn = yconns.get(i) as Y.Map<unknown> | Record<string, unknown>;
         if (
           conn &&
-          conn.get('portId') === sourcePortId &&
-          conn.get('targetSemanticId') === targetSemanticId
+          safeGet(conn, 'portId') === sourcePortId &&
+          safeGet(conn, 'targetSemanticId') === targetSemanticId
         ) {
           yconns.delete(i, 1);
           break;
         }
+      }
+    } else if (Array.isArray(yconns)) {
+      // Plain array - filter and replace
+      const filtered = yconns.filter((conn) => {
+        const c = conn as Record<string, unknown>;
+        return !(c.portId === sourcePortId && c.targetSemanticId === targetSemanticId);
+      });
+      if (sourceYdata instanceof Y.Map) {
+        sourceYdata.set('connections', deepPlainToY(filtered));
       }
     }
 

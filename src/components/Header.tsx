@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useDocumentContext } from '../contexts/DocumentContext';
 import ConnectionStatus from './ConnectionStatus';
+import DocumentBrowserModal from './DocumentBrowserModal';
 import ExamplesModal from './ExamplesModal';
 import ProjectInfoModal from './ProjectInfoModal';
 import { getExamples, type Example } from '../utils/examples';
@@ -27,7 +28,7 @@ const getInitialTheme = (): 'light' | 'dark' | 'warm' => {
 };
 
 export default function Header({ title, description, onTitleChange, onDescriptionChange, onExport, onImport, onCompile, onClear, onRestoreDefaultSchemas, onToggleAI, onLoadExample }: HeaderProps) {
-  const { mode, roomId, connectToRoom, localMode } = useDocumentContext();
+  const { mode, documentId, connectToDocument, staticMode } = useDocumentContext();
   const [theme, setTheme] = useState<'light' | 'dark' | 'warm'>(() => {
     const initialTheme = getInitialTheme();
     document.documentElement.setAttribute('data-theme', initialTheme);
@@ -38,9 +39,10 @@ export default function Header({ title, description, onTitleChange, onDescriptio
   const [isShareMenuOpen, setIsShareMenuOpen] = useState(false);
   const [isProjectInfoModalOpen, setIsProjectInfoModalOpen] = useState(false);
   const [isExamplesModalOpen, setIsExamplesModalOpen] = useState(false);
+  const [isDocBrowserOpen, setIsDocBrowserOpen] = useState(false);
   const [clearWarningMode, setClearWarningMode] = useState<'menu' | null>(null);
   const [restoreWarningMode, setRestoreWarningMode] = useState<'menu' | null>(null);
-  const [shareRoomId, setShareRoomId] = useState('');
+  const [shareDocumentId, setShareDocumentId] = useState('');
   const [shareServerUrl, setShareServerUrl] = useState('ws://localhost:1234');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const themeMenuRef = useRef<HTMLDivElement>(null);
@@ -69,20 +71,20 @@ export default function Header({ title, description, onTitleChange, onDescriptio
     }
   }, [isThemeMenuOpen, isSettingsMenuOpen, isShareMenuOpen]);
 
-  // Copy room URL to clipboard
-  const handleCopyRoomUrl = () => {
-    if (roomId) {
-      const url = `${window.location.origin}${window.location.pathname}?room=${roomId}`;
+  // Copy document URL to clipboard
+  const handleCopyDocumentUrl = () => {
+    if (documentId) {
+      const url = `${window.location.origin}${window.location.pathname}?doc=${documentId}`;
       navigator.clipboard.writeText(url);
       setIsShareMenuOpen(false);
     }
   };
 
-  // Start sharing (create room)
+  // Start sharing (create shared document)
   const handleStartSharing = async () => {
-    if (!connectToRoom) return;
-    const newRoomId = shareRoomId.trim() || `carta-${Date.now()}`;
-    await connectToRoom(newRoomId, shareServerUrl);
+    if (!connectToDocument) return;
+    const newDocumentId = shareDocumentId.trim() || `carta-${Date.now()}`;
+    await connectToDocument(newDocumentId, shareServerUrl);
     setIsShareMenuOpen(false);
   };
 
@@ -159,8 +161,19 @@ export default function Header({ title, description, onTitleChange, onDescriptio
 
   return (
     <header className="h-12 bg-surface border-b grid grid-cols-[1fr_auto_1fr] items-center px-0 shrink-0">
-      <div className="flex items-center justify-start">
-        {/* Left spacer - keeps title centered */}
+      <div className="flex items-center justify-start pl-2">
+        {/* Document browser button - only in collaboration mode */}
+        {!staticMode && (
+          <button
+            className="w-9 h-9 flex items-center justify-center rounded-lg cursor-pointer text-content-muted hover:bg-surface-alt hover:text-content transition-colors"
+            onClick={() => setIsDocBrowserOpen(true)}
+            title="Browse documents"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+            </svg>
+          </button>
+        )}
       </div>
 
       <div className="flex items-center justify-center">
@@ -182,16 +195,16 @@ export default function Header({ title, description, onTitleChange, onDescriptio
           className="hidden"
         />
         {/* Connection Status */}
-        {!localMode && <ConnectionStatus />}
+        {!staticMode && <ConnectionStatus />}
 
         {/* Share button and menu */}
-        {!localMode && (
+        {!staticMode && (
           <div className="relative" ref={shareMenuRef}>
-            {mode === 'shared' && roomId ? (
+            {mode === 'shared' && documentId ? (
               <button
                 className="px-4 py-2 text-sm font-medium bg-surface text-content border border-border rounded-lg cursor-pointer hover:bg-surface-alt transition-colors"
-                onClick={handleCopyRoomUrl}
-                title="Copy room URL"
+                onClick={handleCopyDocumentUrl}
+                title="Copy link"
               >
                 Copy Link
               </button>
@@ -212,13 +225,13 @@ export default function Header({ title, description, onTitleChange, onDescriptio
                 </div>
                 <div className="p-4 space-y-3">
                   <div>
-                    <label className="block text-xs text-content-muted mb-1">Room ID (optional)</label>
+                    <label className="block text-xs text-content-muted mb-1">Document ID (optional)</label>
                     <input
                       type="text"
                       className="w-full px-3 py-2 rounded-md border border-subtle bg-surface text-content text-sm focus:outline-none focus:border-accent"
                       placeholder="Auto-generated if empty"
-                      value={shareRoomId}
-                      onChange={(e) => setShareRoomId(e.target.value)}
+                      value={shareDocumentId}
+                      onChange={(e) => setShareDocumentId(e.target.value)}
                     />
                   </div>
                   <div>
@@ -490,6 +503,11 @@ export default function Header({ title, description, onTitleChange, onDescriptio
           }}
           onClose={() => setIsExamplesModalOpen(false)}
         />
+      )}
+
+      {/* Document Browser Modal */}
+      {isDocBrowserOpen && (
+        <DocumentBrowserModal onClose={() => setIsDocBrowserOpen(false)} />
       )}
     </header>
   );

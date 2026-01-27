@@ -369,6 +369,38 @@ async function handleHttpRequest(req: http.IncomingMessage, res: http.ServerResp
       return;
     }
 
+    // DELETE /api/documents/:id - Delete document
+    if (docMatch && method === 'DELETE') {
+      const roomId = docMatch[1]!;
+      // Remove from docs Map
+      docs.delete(roomId);
+      // Clear from MongoDB if enabled
+      if (mdb) {
+        try {
+          await mdb.clearDocument(roomId);
+        } catch (err) {
+          console.warn(`[Collab] Failed to clear document ${roomId} from MongoDB:`, err);
+        }
+      }
+      sendJson(res, 200, { deleted: true });
+      return;
+    }
+
+    // PATCH /api/documents/:id - Rename document
+    if (docMatch && method === 'PATCH') {
+      const roomId = docMatch[1]!;
+      const body = await parseJsonBody<{ title?: string }>(req);
+      const docState = await getYDoc(roomId);
+      docState.doc.transact(() => {
+        if (body.title !== undefined) {
+          docState.doc.getMap('meta').set('title', body.title);
+        }
+      }, 'mcp');
+      const document = docOps.extractDocument(docState.doc, roomId);
+      sendJson(res, 200, { document });
+      return;
+    }
+
     // GET /api/documents/:id/constructs - List constructs
     const constructsMatch = path.match(/^\/api\/documents\/([^/]+)\/constructs$/);
     if (constructsMatch && method === 'GET') {

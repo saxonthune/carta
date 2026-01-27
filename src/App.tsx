@@ -3,6 +3,7 @@ import { ReactFlowProvider, type Node, type Edge } from '@xyflow/react';
 import ImportPreviewModal from './components/ImportPreviewModal';
 import ExportPreviewModal from './components/ExportPreviewModal';
 import CompileModal from './components/CompileModal';
+import DocumentBrowserModal from './components/DocumentBrowserModal';
 import Header from './components/Header';
 import Map from './components/Map';
 import Drawer from './components/Drawer';
@@ -25,7 +26,17 @@ import { AISidebar } from './ai';
 // Note: Schema initialization is now handled by DocumentProvider
 
 function App() {
-  const { adapter } = useDocumentContext();
+  const { adapter, needsDocumentSelection } = useDocumentContext();
+
+  // In server mode without a ?doc= param, show forced document selection
+  if (needsDocumentSelection) {
+    return (
+      <div className="h-screen flex flex-col bg-surface">
+        <DocumentBrowserModal required onClose={() => {}} />
+      </div>
+    );
+  }
+
   const {
     title,
     description,

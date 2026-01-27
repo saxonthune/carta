@@ -13,7 +13,7 @@ interface TestProvidersProps {
 export function TestProviders({ children }: TestProvidersProps) {
   return (
     <ReactFlowProvider>
-      <DocumentProvider localMode={true} skipPersistence={true}>
+      <DocumentProvider staticMode={true} skipPersistence={true}>
         {children}
       </DocumentProvider>
     </ReactFlowProvider>
@@ -26,7 +26,7 @@ export function TestProviders({ children }: TestProvidersProps) {
  */
 export function DocumentTestProvider({ children }: TestProvidersProps) {
   return (
-    <DocumentProvider localMode={true} skipPersistence={true}>
+    <DocumentProvider staticMode={true} skipPersistence={true}>
       {children}
     </DocumentProvider>
   );

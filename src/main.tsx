@@ -4,18 +4,19 @@ import './index.css'
 import App from './App.tsx'
 import { DocumentProvider } from './contexts/DocumentContext'
 
-// Check for room ID in URL params for shared mode
+// Check for document ID in URL params for server mode
 const urlParams = new URLSearchParams(window.location.search);
-const roomId = urlParams.get('room') || undefined;
+const documentId = urlParams.get('doc') || undefined;
 
-// Local mode hides collaboration features (Share button, connection status)
-const localMode = import.meta.env.VITE_LOCAL_MODE === 'true';
+// Static mode: single document in IndexedDB, no server required (like Excalidraw)
+// Server mode: documents stored on server with collaboration features
+const staticMode = import.meta.env.VITE_STATIC_MODE === 'true';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <DocumentProvider
-      roomId={roomId}
-      localMode={localMode}
+      documentId={documentId}
+      staticMode={staticMode}
     >
       <App />
     </DocumentProvider>
