@@ -15,7 +15,8 @@ Carta now uses Yjs as the single source of truth for ALL state management. Key p
 - **Always Yjs** - State always flows through Y.Doc with y-indexeddb persistence
 - **Access pattern** - Components use `useDocument()` hook to access state via DocumentAdapter
 - **No singleton registries** - Removed registry.ts, deployables.ts singletons
-- **Feature flag** - `VITE_LOCAL_MODE=true` hides collaboration UI (Share button, connection status)
+- **Hosting modes** - `VITE_STATIC_MODE=true` (static mode: single local document) or false (server mode: collaboration)
+- **URL routing** - Server mode uses `?doc={documentId}` parameter for document selection
 - **Undo/Redo** - Uses Y.UndoManager (local per-user, not shared across clients)
 - **Import flow** - Clears entire document before importing (like Excalidraw)
 
@@ -64,7 +65,7 @@ import { WebsocketProvider } from 'y-websocket'
 const ydoc = new Y.Doc()
 
 // Connect to sync server
-const provider = new WebsocketProvider('wss://your-server.com', 'room-name', ydoc)
+const provider = new WebsocketProvider('wss://your-server.com', 'document-id', ydoc)
 
 // Get shared types (created on first access)
 const yarray = ydoc.getArray('my-array')
@@ -326,10 +327,10 @@ const indexeddb = new IndexeddbPersistence('doc-id', ydoc)
 indexeddb.whenSynced.then(() => console.log('Loaded from IndexedDB'))
 
 // Sync via WebSocket
-const websocket = new WebsocketProvider('wss://server.com', 'room', ydoc)
+const websocket = new WebsocketProvider('wss://server.com', 'document-id', ydoc)
 
 // P2P sync (works without server)
-const webrtc = new WebrtcProvider('room', ydoc)
+const webrtc = new WebrtcProvider('document-id', ydoc)
 ```
 
 ---
@@ -508,7 +509,7 @@ const useYArray = <T>(yarray: Y.Array<T>): T[] => {
 ```typescript
 import { WebsocketProvider } from 'y-websocket'
 
-const provider = new WebsocketProvider(url, room, ydoc)
+const provider = new WebsocketProvider(url, documentId, ydoc)
 const awareness = provider.awareness
 
 // Set local state

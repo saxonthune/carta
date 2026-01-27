@@ -9,7 +9,9 @@ React Flow visual editor with Yjs state management.
 
 ```
 App.tsx
-├── Header.tsx                    # Title, export/import, settings menu, theme
+├── Header.tsx                    # Title, export/import, settings menu, theme, Share (server mode)
+│   ├── ConnectionStatus.tsx      # Connection indicator (server mode only)
+│   └── DocumentBrowserModal.tsx  # Document browser/selector (server mode)
 ├── Map.tsx                       # React Flow canvas, context menus
 │   ├── ConstructNode.tsx         # Node rendering, port handles, tooltips
 │   │   └── Handle (per port)     # Port connection points, hover state
@@ -24,6 +26,8 @@ App.tsx
     ├── CompileModal.tsx          # Compilation output
     ├── ExportPreviewModal.tsx    # Export preview
     ├── ImportPreviewModal.tsx    # Import preview
+    ├── ProjectInfoModal.tsx      # Edit project metadata
+    ├── ExamplesModal.tsx         # Load example projects
     └── ConfirmationModal.tsx     # Generic confirm dialog
 ```
 
@@ -51,7 +55,9 @@ When user references a file, check the tree to find the actual component handlin
 - `src/constructs/portRegistry.ts` - Port validation
 
 **UI Components:**
-- `src/components/Header.tsx` - Top bar, settings, export/import
+- `src/components/Header.tsx` - Top bar, settings, export/import, Share (server mode)
+- `src/components/ConnectionStatus.tsx` - Connection indicator (server mode only)
+- `src/components/DocumentBrowserModal.tsx` - Document browser (server mode, required when ?doc= missing)
 - `src/components/Drawer.tsx` - Right-side panel with floating tabs
 - `src/components/ConstructNode.tsx` - Node rendering, port handles, port hover tooltips
 - `src/components/Map.tsx` - React Flow canvas, context menus, drag-drop
@@ -79,17 +85,19 @@ When user references a file, check the tree to find the actual component handlin
 ## Recent Changes
 <!-- Update this after significant work -->
 
+- URL routing: "room" → "doc" terminology (?room= → ?doc=)
+- Hosting modes: "localMode" → "staticMode" (VITE_LOCAL_MODE → VITE_STATIC_MODE)
+- Static mode: Single document in IndexedDB, no server (like Excalidraw)
+- Server mode: Documents on server with ?doc= routing, forced selection when missing
+- DocumentBrowserModal: Required mode when ?doc= param missing in server mode
+- ConnectionStatus component: Shows sync state in server mode only
+- Package.json scripts: Simplified dev/dev:client/server commands
 - Removed Dock.tsx - Replaced with Drawer.tsx (right-side slide-out panel)
 - Drawer uses floating tab buttons instead of bottom panel tabs
-- Context menu "Add Related" submenu fixed (hover delay, overflow clipping)
-- E2E test helpers updated (CartaPage.ts uses drawerPanel instead of dock)
-- New integration tests added for context menu functionality
 - Removed Zustand - Yjs is now single source of truth
 - Removed singleton registries (registry.ts, deployables.ts)
 - All state access via useDocument() hook through adapter
 - Schema grouping feature added
-- Style audit completed (spacing, button hierarchy)
-- Test infrastructure set up (Vitest + Playwright)
 
 ## Conventions
 

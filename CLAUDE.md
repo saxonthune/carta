@@ -123,7 +123,7 @@ Uses sonnet (needs to reliably spawn sub-agents). Delegates heavy work to sub-ag
 │  - schemaGroups[] (schema grouping metadata)                │
 │  - Node IDs: UUID via crypto.randomUUID()                   │
 │  - Persists to IndexedDB via y-indexeddb                    │
-│  - Optional WebSocket sync for collaboration                │
+│  - Optional WebSocket sync for collaboration (server mode)  │
 └─────────────────────────────────────────────────────────────┘
            ↓
 ┌─────────────────────────────────────────────────────────────┐
@@ -153,6 +153,36 @@ Uses sonnet (needs to reliably spawn sub-agents). Delegates heavy work to sub-ag
 └─────────────────────────────────────────────────────────────┘
 ```
 
+## Hosting Modes
+
+Carta supports two deployment modes determined at build time:
+
+### Static Mode (Default for Development)
+- **Purpose**: Single-user offline-first editing (like Excalidraw)
+- **Storage**: IndexedDB only (persistent local state)
+- **URL**: No document parameter needed
+- **UI**: Share button and connection status are hidden
+- **Use case**: Personal use, demos, development
+
+```bash
+npm run dev          # Static mode (VITE_STATIC_MODE=true)
+```
+
+### Server Mode
+- **Purpose**: Multi-user collaboration with server-stored documents
+- **Storage**: Server database (MongoDB) with IndexedDB caching
+- **URL**: Requires `?doc={documentId}` parameter
+- **UI**: Share button, connection status, document browser
+- **Behavior**: Without `?doc=` param, user must select/create a document
+- **Use case**: Team collaboration, shared projects
+
+```bash
+npm run server       # Start MongoDB + collab server
+npm run dev:client   # Start client in server mode
+```
+
+Visit `http://localhost:5173/?doc=my-document-id` to open a specific document.
+
 ### Key Files
 
 | File | Purpose |
@@ -170,12 +200,15 @@ Uses sonnet (needs to reliably spawn sub-agents). Delegates heavy work to sub-ag
 | `src/hooks/useClipboard.ts` | Copy/paste (local state, not collaborative) |
 | `src/hooks/useKeyboardShortcuts.ts` | Keyboard shortcut handling |
 | `src/components/Map.tsx` | React Flow canvas, UI event handlers |
-| `src/components/Header.tsx` | Project header with title, import/export, settings menu |
+| `src/components/Header.tsx` | Project header with title, import/export, settings menu, Share (server mode) |
 | `src/components/ProjectInfoModal.tsx` | Modal for editing project title and description |
 | `src/components/ExamplesModal.tsx` | Modal for loading example projects |
+| `src/components/DocumentBrowserModal.tsx` | Document browser/selector for server mode |
+| `src/components/ConnectionStatus.tsx` | Connection status indicator (server mode only) |
 | `src/components/PortSchemaEditor.tsx` | Two-panel editor for port schemas |
 | `src/constructs/compiler/index.ts` | Compiler engine that takes schemas/deployables as parameters |
 | `src/utils/examples.ts` | Utility to load bundled example .carta files |
+| `src/main.tsx` | Entry point, configures staticMode from VITE_STATIC_MODE env var |
 
 ## Key Design Principles
 
@@ -194,7 +227,8 @@ When evaluating changes, ask: Does this expand capability without confusion? Doe
 - **Adapter interface**: All state operations go through DocumentAdapter methods
 - Yjs auto-syncs to IndexedDB via y-indexeddb provider
 - Undo/redo uses Y.UndoManager (local per-user, not shared)
-- Optional WebSocket provider for real-time collaboration
+- **Server mode**: Optional WebSocket provider for real-time collaboration
+- **Static mode**: No server connection, single document in IndexedDB
 - **No singleton registries**: Schema and deployable data accessed through adapter, not global imports
 
 ### Port & Connection Model
@@ -267,19 +301,22 @@ src/stores/adapters/yjsAdapter.ts          → Port schema persistence
 src/constructs/schemas/built-ins.ts        → Default port schema definitions
 ```
 
-### Modify collaboration behavior
+### Modify collaboration behavior (server mode)
 ```
-src/contexts/DocumentContext.tsx           → Document provider lifecycle
-src/stores/adapters/yjsAdapter.ts          → Yjs adapter implementation
+src/contexts/DocumentContext.tsx           → Document provider lifecycle, mode detection
+src/stores/adapters/yjsAdapter.ts          → Yjs adapter implementation, WebSocket connection
 src/hooks/useUndoRedo.ts                   → Y.UndoManager configuration
-src/main.tsx                               → VITE_LOCAL_MODE feature flag
+src/main.tsx                               → VITE_STATIC_MODE flag (determines UI visibility)
+src/components/DocumentBrowserModal.tsx    → Document browser/selector for server mode
+src/components/ConnectionStatus.tsx        → Connection status indicator
 ```
 
 ### Modify header behavior or add modals
 ```
-src/components/Header.tsx                  → Header controls: title, export/import, settings, theme
+src/components/Header.tsx                  → Header controls: title, export/import, settings, theme, Share (server mode)
 src/components/ProjectInfoModal.tsx        → Edit project title and description
 src/components/ExamplesModal.tsx           → Load example projects from bundled .carta files
+src/components/DocumentBrowserModal.tsx    → Browse/create/select documents (server mode, required on ?doc= missing)
 src/utils/examples.ts                      → Load examples using Vite's import.meta.glob
 ```
 
@@ -311,8 +348,22 @@ When modifying constructs or connections:
 - [ ] Undo/redo works for all graph operations (local, not shared)
 - [ ] Copy/paste preserves node data with new IDs
 - [ ] IndexedDB persists state across page reloads
-- [ ] WebSocket collaboration syncs changes between clients (when enabled)
 - [ ] Project title click opens ProjectInfoModal to edit title and description
 - [ ] Settings menu shows "Load Example" when examples are available
 - [ ] ExamplesModal displays all .carta files from `/examples/` directory
 - [ ] Loading an example clears existing document and imports example data
+
+**Static mode** (VITE_STATIC_MODE=true):
+- [ ] Share button is hidden
+- [ ] Connection status indicator is hidden
+- [ ] Single document persisted to IndexedDB
+
+**Server mode** (VITE_STATIC_MODE=false):
+- [ ] WebSocket collaboration syncs changes between clients
+- [ ] Share button visible in header
+- [ ] Connection status indicator shows sync state
+- [ ] Without ?doc= param, DocumentBrowserModal appears in required mode
+- [ ] DocumentBrowserModal cannot be dismissed until document selected/created
+- [ ] Document browser shows list of server documents with metadata
+- [ ] Creating new document without title defaults to "Untitled Project" in required mode
+- [ ] Selecting document navigates to ?doc={documentId} URL

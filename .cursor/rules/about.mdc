@@ -55,10 +55,12 @@ The application uses a split-panel layout with a right-side drawer:
 ```
 
 **Components:**
-- **App** - Owns the layout, manages view state, handles import/export
-- **Header** - Project title (click to edit via modal), import/export buttons, theme selector, settings menu with "Load Example" option
+- **App** - Owns the layout, manages view state, handles import/export, shows DocumentBrowserModal when required
+- **Header** - Project title (click to edit via modal), import/export buttons, theme selector, settings menu, Share button (server mode only)
   - **ProjectInfoModal** - Edit project title and description
   - **ExamplesModal** - Load bundled example .carta files from `/examples/` directory
+  - **DocumentBrowserModal** - Browse/create/select documents in server mode, required mode when ?doc= missing
+  - **ConnectionStatus** - Connection status indicator (server mode only)
 - **Map** - ReactFlow canvas with zoom controls, node operations, context menus
 - **Drawer** - Right-side slide-out panel with floating tab buttons
   - **ConstructEditor** - CRUD for construct schemas
@@ -74,13 +76,14 @@ The application uses a split-panel layout with a right-side drawer:
 ### 2. Document Adapter Layer (`src/stores/`)
 - DocumentAdapter interface defines contract for all state operations
 - YjsAdapter (`adapters/yjsAdapter.ts`) implements adapter using Yjs Y.Doc
-- DocumentContext (`contexts/DocumentContext.tsx`) manages adapter lifecycle
+- DocumentContext (`contexts/DocumentContext.tsx`) manages adapter lifecycle and mode detection (static vs server)
 - Schema system (`constructs/types.ts`) defines structure via `ConstructSchema`, `PortSchema`, `FieldSchema` interfaces
 - Port registry (`constructs/portRegistry.ts`) manages port schemas with polarity-based validation (receives schemas as parameter)
 - Built-in schemas (`constructs/schemas/built-ins.ts`) for common constructs with builtInConstructSchemas and builtInPortSchemas arrays
 - User-defined schemas and port schemas stored in Yjs document
 - Schema Editor (`components/ConstructEditor.tsx`) allows users to create custom constructs
 - Port Schema Editor (`components/PortSchemaEditor.tsx`) allows users to create custom port types
+- **Hosting modes**: Static (single local document) or Server (collaboration with ?doc= routing)
 - **Does NOT know** about React Flow or how nodes are rendered
 
 ### 3. Compiler Layer (`src/constructs/compiler/`)
@@ -218,6 +221,8 @@ User imports file → Document cleared via adapter → New data loaded (like Exc
 ### Header Components
 - `/src/components/ProjectInfoModal.tsx` - Modal for editing project title and description
 - `/src/components/ExamplesModal.tsx` - Modal for loading bundled example projects
+- `/src/components/DocumentBrowserModal.tsx` - Document browser/selector (server mode)
+- `/src/components/ConnectionStatus.tsx` - Connection status indicator (server mode)
 
 ### Drawer Views
 - `/src/components/ConstructEditor.tsx` - CRUD for construct schemas
@@ -243,6 +248,7 @@ User imports file → Document cleared via adapter → New data loaded (like Exc
 - `/src/utils/displayUtils.ts` - `getDisplayName()` helper for node titles
 - `/src/utils/examples.ts` - Load bundled example .carta files using Vite's import.meta.glob
 - `/src/hooks/` - Custom React hooks (undo/redo)
+- `/src/main.tsx` - Entry point, configures staticMode from VITE_STATIC_MODE env var
 - `/src/index.css` - Tailwind + custom styles
 
 ## Testing
