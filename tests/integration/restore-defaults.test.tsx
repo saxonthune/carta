@@ -191,7 +191,7 @@ describe('Restore Default Schemas', () => {
       const symmetricPort = result.current.document.portSchemas.find(p => p.id === 'symmetric');
       expect(symmetricPort).toBeDefined();
       expect(symmetricPort?.polarity).toBe('bidirectional');
-      expect(symmetricPort?.compatibleWith).toContain('*');
+      expect(symmetricPort?.compatibleWith).toEqual([]);
     });
 
     it('should restore schema groups with hierarchical structure', async () => {

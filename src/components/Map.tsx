@@ -18,6 +18,7 @@ import { useDocument } from '../hooks/useDocument';
 import { useDocumentContext } from '../contexts/DocumentContext';
 import CustomNode from '../CustomNode';
 import ConstructNode from './ConstructNode';
+import VirtualParentNode from './VirtualParentNode';
 import ContextMenu, { type ContextMenuType, type RelatedConstructOption } from '../ContextMenu';
 import NodeControls from '../NodeControls';
 import AddConstructMenu from './AddConstructMenu';
@@ -27,12 +28,13 @@ import { useGraphOperations } from '../hooks/useGraphOperations';
 import { useConnections } from '../hooks/useConnections';
 import { useClipboard } from '../hooks/useClipboard';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
-import type { ConstructValues, Deployable, ConstructNodeData } from '../constructs/types';
+import type { ConstructValues, Deployable, ConstructNodeData, VirtualParentNodeData } from '../constructs/types';
 import SchemaCreationWizard from './SchemaCreationWizard';
 
 const nodeTypes = {
   custom: CustomNode,
   construct: ConstructNode,
+  'virtual-parent': VirtualParentNode,
 };
 
 // Restrict dragging to header only - allows clicking fields to edit
@@ -118,6 +120,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     updateNodeValues,
     toggleNodeExpand,
     updateNodeDeployable,
+    toggleVirtualParentCollapse,
   } = useGraphOperations({
     selectedNodeIds,
     setSelectedNodeIds,
@@ -354,26 +357,78 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     setAddMenu(null);
   }, []);
 
-  const nodesWithCallbacks = nodes.map((node) => ({
-    ...node,
-    dragHandle: NODE_DRAG_HANDLE,
-    data: {
-      ...node.data,
-      nodeId: node.id, // Pass technical UUID for display
-      isRenaming: node.id === renamingNodeId,
-      onRename: (newName: string) => renameNode(node.id, newName),
-      onValuesChange: (values: ConstructValues) => updateNodeValues(node.id, values),
-      onToggleExpand: () => toggleNodeExpand(node.id),
-      deployables,
-      onDeployableChange: (deployableId: string | null) => updateNodeDeployable(node.id, deployableId),
-    },
-  }));
+  // Count children per virtual parent for display
+  const childCountMap = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const node of nodes) {
+      if (node.parentId) {
+        counts[node.parentId] = (counts[node.parentId] || 0) + 1;
+      }
+    }
+    return counts;
+  }, [nodes]);
+
+  const nodesWithCallbacks = nodes.map((node) => {
+    if (node.type === 'virtual-parent') {
+      return {
+        ...node,
+        dragHandle: NODE_DRAG_HANDLE,
+        data: {
+          ...node.data,
+          childCount: childCountMap[node.id] || 0,
+          onToggleCollapse: () => toggleVirtualParentCollapse(node.id),
+        },
+      };
+    }
+    return {
+      ...node,
+      dragHandle: NODE_DRAG_HANDLE,
+      data: {
+        ...node.data,
+        nodeId: node.id,
+        isRenaming: node.id === renamingNodeId,
+        onRename: (newName: string) => renameNode(node.id, newName),
+        onValuesChange: (values: ConstructValues) => updateNodeValues(node.id, values),
+        onToggleExpand: () => toggleNodeExpand(node.id),
+        deployables,
+        onDeployableChange: (deployableId: string | null) => updateNodeDeployable(node.id, deployableId),
+      },
+    };
+  });
+
+  // Sort nodes: virtual parents before their children (React Flow requirement)
+  const sortedNodes = useMemo(() => {
+    return [...nodesWithCallbacks].sort((a, b) => {
+      if (a.type === 'virtual-parent' && b.parentId === a.id) return -1;
+      if (b.type === 'virtual-parent' && a.parentId === b.id) return 1;
+      return 0;
+    });
+  }, [nodesWithCallbacks]);
+
+  // Filter edges: hide edges to/from children of collapsed/no-edges virtual parents
+  const filteredEdges = useMemo(() => {
+    const hiddenChildIds = new Set<string>();
+    for (const node of nodes) {
+      if (node.type === 'virtual-parent') {
+        const vpData = node.data as VirtualParentNodeData;
+        if (vpData.collapseState === 'no-edges' || vpData.collapseState === 'collapsed') {
+          for (const child of nodes) {
+            if (child.parentId === node.id) {
+              hiddenChildIds.add(child.id);
+            }
+          }
+        }
+      }
+    }
+    if (hiddenChildIds.size === 0) return edges;
+    return edges.filter(e => !hiddenChildIds.has(e.source) && !hiddenChildIds.has(e.target));
+  }, [edges, nodes]);
 
   return (
     <div className="w-full h-full relative">
       <ReactFlow
-        nodes={nodesWithCallbacks}
-        edges={edges}
+        nodes={sortedNodes}
+        edges={filteredEdges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onEdgesDelete={handleEdgesDelete}
@@ -417,7 +472,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
           </ControlButton>
         </Controls>
         <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
-        <DeployableBackground nodes={nodesWithCallbacks} deployables={deployables} />
+        <DeployableBackground nodes={sortedNodes} deployables={deployables} />
       </ReactFlow>
 
       {selectedNodeIds.length > 0 && (

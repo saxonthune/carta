@@ -31,11 +31,12 @@ DataKind: string,       Stored in Yjs Y.Doc:        ConstructInstance:
   date, enum              - Deployables               - deployable? → Deployable
                           - Port Schemas              - semanticId (required)
 Polarity: source,         - Schema Groups             - values: {field → value}
-  sink,                                               - connections[]
-  bidirectional        PortSchema:
-                         - polarity
-                         - compatibleWith (wildcards)
+  sink, bidirectional,                                - connections[]
+  relay, intercept     PortSchema:
+                         - polarity (5 values)
+                         - compatibleWith
                          - defaultPosition
+                         - allowsGrouping
 
                        Construct:
                          - displayName, description
@@ -72,44 +73,44 @@ Presentation hints for string fields (optional):
 | `color` | Color picker |
 
 ### Polarity
-Polarity determines connection direction semantics:
+Polarity determines connection direction semantics (5 values):
 
 | Polarity | Meaning | Examples |
 |----------|---------|----------|
-| `source` | Initiates connections | flow-out, parent, forward |
-| `sink` | Receives connections | flow-in, child, intercept |
+| `source` | Initiates connections | flow-out, parent |
+| `sink` | Receives connections | flow-in, child |
 | `bidirectional` | Can both initiate and receive | symmetric |
+| `relay` | Pass-through output, bypasses type checking | relay |
+| `intercept` | Pass-through input, bypasses type checking | intercept |
 
-**Validation rules:**
-- source → source: BLOCKED
-- sink → sink: BLOCKED
-- source → sink: ALLOWED
-- sink → source: ALLOWED (user dragged backward)
-- bidirectional → any: ALLOWED
+**Two-step validation in `canConnect()`:**
+1. **Direction check**: relay maps to source, intercept maps to sink. Same-direction pairs blocked.
+2. **compatibleWith check**: Skipped if either side is relay, intercept, or bidirectional. For plain source+sink, at least one side must list the other in compatibleWith.
 
 ### PortSchema (M1 Layer)
 Port schemas are now user-editable M1 entities (like ConstructSchema):
 
 | Port Type | Polarity | Compatible With | Default Position |
 |-----------|----------|-----------------|------------------|
-| `flow-in` | sink | flow-out, forward | left |
-| `flow-out` | source | flow-in, intercept | right |
-| `parent` | source | child, intercept | bottom |
-| `child` | sink | parent, forward | top |
-| `symmetric` | bidirectional | * (wildcard) | right |
-| `intercept` | sink | *source* (wildcard) | left |
-| `forward` | source | *sink* (wildcard) | right |
+| `flow-in` | sink | `['flow-out']` | left |
+| `flow-out` | source | `['flow-in']` | right |
+| `parent` | source | `['child']` | bottom |
+| `child` | sink | `['parent']` | top |
+| `symmetric` | bidirectional | `[]` (skips check) | right |
+| `intercept` | intercept | `[]` (skips check) | left |
+| `relay` | relay | `[]` (skips check) | right |
 
 ```typescript
 interface PortSchema {
   id: string;                    // 'flow-in', 'flow-out', etc.
   displayName: string;
   semanticDescription: string;   // AI compilation context
-  polarity: Polarity;
-  compatibleWith: string[];      // port IDs or wildcards: '*', '*source*', '*sink*'
+  polarity: Polarity;            // 'source' | 'sink' | 'bidirectional' | 'relay' | 'intercept'
+  compatibleWith: string[];      // port IDs or '*' wildcard (skipped for relay/intercept/bidirectional)
   expectedComplement?: string;   // UI hint only
   defaultPosition: PortPosition;
   color: string;
+  allowsGrouping?: boolean;      // Enable visual grouping via virtual parent nodes
 }
 ```
 
@@ -177,6 +178,7 @@ interface PortConfig {
   suggestedTypes?: string[];
   suggestedPorts?: string[];
   dataType?: string;
+  allowsGrouping?: boolean;      // Enable visual grouping via virtual parent nodes
 }
 ```
 
@@ -198,6 +200,25 @@ interface ConstructNodeData {
 **Note:** There is no `name` field. Node titles are derived using:
 1. `displayField` value from schema (if set and has value)
 2. `semanticId` as fallback
+
+### Virtual Parent Nodes
+
+Virtual parent nodes provide visual grouping for child constructs on the canvas. They are **not compiled** -- the compiler filters them out.
+
+```typescript
+interface VirtualParentNodeData {
+  isVirtualParent: true;
+  parentNodeId: string;            // Tech ID of actual parent construct
+  parentSemanticId: string;
+  groupingPortId: string;          // Port on parent with allowsGrouping
+  complementPortId: string;        // Expected port type on children
+  label: string;
+  color: string;
+  collapseState: 'expanded' | 'no-edges' | 'collapsed';
+}
+```
+
+Created via `useGraphOperations().createVirtualParent()` when a port has `allowsGrouping: true`.
 
 ## Design Principles
 

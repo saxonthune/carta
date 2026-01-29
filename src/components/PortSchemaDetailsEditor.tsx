@@ -32,6 +32,8 @@ const POLARITY_OPTIONS: { value: Polarity; label: string }[] = [
   { value: 'source', label: 'Source' },
   { value: 'sink', label: 'Sink' },
   { value: 'bidirectional', label: 'Bidirectional' },
+  { value: 'relay', label: 'Relay' },
+  { value: 'intercept', label: 'Intercept' },
 ];
 
 const POSITION_OPTIONS: { value: PortPosition; label: string }[] = [
@@ -304,7 +306,7 @@ const PortSchemaDetailsEditor = forwardRef<{ save: () => void }, PortSchemaDetai
           {/* Compatible With */}
           <div className={compact ? 'mb-2' : 'mb-3'}>
             <label className={`block mb-1 font-medium text-content ${compact ? 'text-xs' : 'text-sm'}`}>Compatible With</label>
-            {!compact && <p className="text-xs text-content-muted mb-2">Specify which port IDs can connect. Use patterns like '*source*', '*sink*', or '*' for all.</p>}
+            {!compact && <p className="text-xs text-content-muted mb-2">Specify which port IDs can connect. Use '*' for all. Relay, intercept, and bidirectional polarities bypass this check.</p>}
             <div className="flex gap-2 mb-2">
               <input
                 type="text"

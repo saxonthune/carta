@@ -12,11 +12,12 @@ App.tsx
 ├── Header.tsx                    # Title, export/import, settings menu, theme, Share (server mode)
 │   ├── ConnectionStatus.tsx      # Connection indicator (server mode only)
 │   └── DocumentBrowserModal.tsx  # Document browser/selector (server mode)
-├── Map.tsx                       # React Flow canvas, context menus, wizard state
+├── Map.tsx                       # React Flow canvas, context menus, wizard state, virtual-parent type
 │   ├── ConstructNode.tsx         # Node rendering, port handles, tooltips
 │   │   └── Handle (per port)     # Port connection points, hover state
+│   ├── VirtualParentNode.tsx     # Visual grouping container (expand/collapse/no-edges)
 │   ├── DeployableBackground.tsx  # Colored regions for deployables
-│   ├── SchemaCreationWizard.tsx  # Multi-step wizard for schema creation/editing
+│   ├── SchemaCreationWizard.tsx  # Multi-step wizard for schema creation/editing (Basics, Fields, Ports)
 │   │   └── ui/WizardModal.tsx    # Reusable wizard modal shell
 │   └── ContextMenu.tsx (src/)    # Canvas right-click menu ("New Construct Schema", etc.)
 ├── Drawer.tsx                    # Right-side panel with floating tabs
@@ -106,6 +107,13 @@ When user references a file, check the tree to find the actual component handlin
 - SchemaCreationWizard: Multi-step wizard for creating/editing construct schemas (Basics, Fields, Ports)
 - WizardModal: Reusable multi-step wizard modal shell in `src/components/ui/`
 - Context menu: "New Construct Schema" added to pane right-click menu
+- Five-polarity model: Polarity extended from 3 to 5 values (added `relay`, `intercept`)
+- Port `forward` renamed to `relay`; polarity-based wildcards (`*source*`, `*sink*`) removed
+- Two-step canConnect validation: (1) polarity direction check, (2) compatibleWith for plain source+sink only
+- VirtualParentNode: Visual grouping containers for child constructs (expand/collapse/no-edges)
+- allowsGrouping on PortConfig and PortSchema enables virtual parent creation
+- useGraphOperations: Added createVirtualParent(), toggleVirtualParentCollapse(), removeVirtualParent()
+- SchemaCreationWizard Ports step: Full port configuration with PortsInitialChoice, PortsListStep, PortSubWizard
 
 ## Conventions
 

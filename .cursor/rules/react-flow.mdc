@@ -9,7 +9,7 @@ Use `@xyflow/react` with required CSS: `import '@xyflow/react/dist/style.css'`
 
 ## Critical Rules
 
-1. **Define nodeTypes/edgeTypes OUTSIDE components**
+1. **Define nodeTypes/edgeTypes OUTSIDE components** (Carta uses: `construct` and `virtual-parent`)
 2. **Never mutate** node/edge objects
 3. **Use utility classes**: `nodrag`, `nopan`, `nowheel`
 4. **Hide handles** with `visibility: hidden`, never `display: none`

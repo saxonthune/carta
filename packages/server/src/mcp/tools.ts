@@ -89,7 +89,7 @@ const CreateSchemaInputSchema = z.object({
     .array(
       z.object({
         id: z.string(),
-        portType: z.enum(['flow-in', 'flow-out', 'parent', 'child', 'symmetric']),
+        portType: z.enum(['flow-in', 'flow-out', 'parent', 'child', 'symmetric', 'intercept', 'relay']),
         position: z.enum(['left', 'right', 'top', 'bottom']),
         offset: z.number(),
         label: z.string(),

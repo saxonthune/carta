@@ -24,10 +24,12 @@ These types are fixed and cannot be changed by users:
 - \`date\` - Date values
 - \`enum\` - Fixed choices from a list
 
-**Polarity** - Connection direction semantics:
+**Polarity** - Connection direction semantics (5 values):
 - \`source\` - Initiates connections (flow-out, parent)
 - \`sink\` - Receives connections (flow-in, child)
-- \`bidirectional\` - Can both initiate and receive
+- \`bidirectional\` - Can both initiate and receive (symmetric)
+- \`relay\` - Pass-through output, bypasses type checking
+- \`intercept\` - Pass-through input, bypasses type checking
 
 **PortSchema** - Defines port types with their polarity and compatibility rules.
 
@@ -84,6 +86,8 @@ interface ConnectionValue {
 | \`parent\` | source | Owns child constructs |
 | \`child\` | sink | Belongs to parent construct |
 | \`symmetric\` | bidirectional | Peer-to-peer relationship |
+| \`intercept\` | intercept | Pass-through input (connects to any source) |
+| \`relay\` | relay | Pass-through output (connects to any sink) |
 
 ### Common Relationship Patterns
 

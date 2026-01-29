@@ -61,10 +61,9 @@ export function getHandleType(portType: string): 'source' | 'target' {
   const schema = portRegistry.get(portType);
   if (!schema) return 'source';
 
-  // source polarity = React Flow 'source' handle (can initiate connections)
-  // sink polarity = React Flow 'target' handle (receives connections)
-  // bidirectional = 'source' (can initiate, also receives)
-  return schema.polarity === 'sink' ? 'target' : 'source';
+  // source/relay/bidirectional = React Flow 'source' handle (can initiate connections)
+  // sink/intercept = React Flow 'target' handle (receives connections)
+  return (schema.polarity === 'sink' || schema.polarity === 'intercept') ? 'target' : 'source';
 }
 
 /**

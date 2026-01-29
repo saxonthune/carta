@@ -40,26 +40,31 @@ export class PortRegistry {
 
   /**
    * Check if a compatibility rule matches another port schema
+   * Only exact ID match and '*' wildcard are supported.
    */
   private matchesCompatibility(rules: string[], other: PortSchema): boolean {
-    return rules.some(rule =>
-      rule === '*' ||
-      (rule === '*source*' && other.polarity === 'source') ||
-      (rule === '*sink*' && other.polarity === 'sink') ||
-      (rule === '*bidirectional*' && other.polarity === 'bidirectional') ||
-      rule === other.id
-    );
+    return rules.some(rule => rule === '*' || rule === other.id);
   }
 
   /**
-   * Check if two port types can be connected
-   * Uses polarity-based validation:
-   * - source → source: blocked
-   * - sink → sink: blocked
-   * - source → sink: allowed (normal flow)
-   * - sink → source: allowed (user dragged backward)
-   * - bidirectional → anything: allowed
-   * - anything → bidirectional: allowed
+   * Get the effective direction for polarity-based connection validation.
+   * relay behaves like source, intercept behaves like sink.
+   */
+  private getEffectiveDirection(polarity: string): 'source' | 'sink' | 'bidirectional' {
+    if (polarity === 'relay') return 'source';
+    if (polarity === 'intercept') return 'sink';
+    return polarity as 'source' | 'sink' | 'bidirectional';
+  }
+
+  /**
+   * Check if two port types can be connected.
+   *
+   * Two-step validation:
+   * 1. Polarity check: Block same-direction pairs (source+source, sink+sink).
+   *    relay maps to source direction, intercept maps to sink direction.
+   *    bidirectional is compatible with everything.
+   * 2. compatibleWith check: Skipped if either side is relay, intercept, or bidirectional.
+   *    For source+sink pairs, at least one side must list the other in compatibleWith.
    */
   canConnect(fromPortType: string, toPortType: string): boolean {
     const fromSchema = this.schemas.get(fromPortType);
@@ -68,14 +73,22 @@ export class PortRegistry {
     // If either port type is unknown, deny connection
     if (!fromSchema || !toSchema) return false;
 
-    const fromPol = fromSchema.polarity;
-    const toPol = toSchema.polarity;
+    const fromDir = this.getEffectiveDirection(fromSchema.polarity);
+    const toDir = this.getEffectiveDirection(toSchema.polarity);
 
-    // Block invalid polarity combinations
-    if (fromPol === 'source' && toPol === 'source') return false;
-    if (fromPol === 'sink' && toPol === 'sink') return false;
+    // Step 1: Block same-direction pairs
+    if (fromDir === 'source' && toDir === 'source') return false;
+    if (fromDir === 'sink' && toDir === 'sink') return false;
 
-    // Check compatibility from BOTH sides (either can allow)
+    // Step 2: Skip compatibleWith if either side is relay, intercept, or bidirectional
+    if (fromSchema.polarity === 'relay' || fromSchema.polarity === 'intercept' ||
+        fromSchema.polarity === 'bidirectional' ||
+        toSchema.polarity === 'relay' || toSchema.polarity === 'intercept' ||
+        toSchema.polarity === 'bidirectional') {
+      return true;
+    }
+
+    // For plain source+sink pairs, check compatibleWith from BOTH sides
     return this.matchesCompatibility(fromSchema.compatibleWith, toSchema) ||
            this.matchesCompatibility(toSchema.compatibleWith, fromSchema);
   }

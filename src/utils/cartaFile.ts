@@ -242,10 +242,8 @@ export function validateCartaFile(data: unknown): CartaFile {
           throw new Error(`Invalid file: schema "${s.type}" has port missing required fields (id, portType, position, offset, label)`);
         }
         // Validate portType enum
-        const validPortTypes = ['flow-in', 'flow-out', 'parent', 'child', 'symmetric'];
-        if (!validPortTypes.includes(p.portType as string)) {
-          throw new Error(`Invalid file: schema "${s.type}" has port with invalid portType "${p.portType}"`);
-        }
+        // Port types are user-extensible via port schemas, so we don't restrict them
+        // Just verify portType is a non-empty string (already checked above)
         // Validate position enum
         const validPositions = ['left', 'right', 'top', 'bottom'];
         if (!validPositions.includes(p.position as string)) {
@@ -271,7 +269,7 @@ export function validateCartaFile(data: unknown): CartaFile {
       throw new Error(`Invalid file: portSchema missing required fields (id, displayName, semanticDescription, polarity, compatibleWith, defaultPosition, color)`);
     }
     // Validate polarity enum
-    const validPolarities = ['source', 'sink', 'bidirectional'];
+    const validPolarities = ['source', 'sink', 'bidirectional', 'relay', 'intercept'];
     if (!validPolarities.includes(p.polarity as string)) {
       throw new Error(`Invalid file: portSchema "${p.id}" has invalid polarity "${p.polarity}"`);
     }

@@ -61,7 +61,8 @@ The application uses a split-panel layout with a right-side drawer:
   - **ExamplesModal** - Load bundled example .carta files from `/examples/` directory
   - **DocumentBrowserModal** - Browse/create/select documents in server mode, required mode when ?doc= missing
   - **ConnectionStatus** - Connection status indicator (server mode only)
-- **Map** - ReactFlow canvas with zoom controls, node operations, context menus, SchemaCreationWizard
+- **Map** - ReactFlow canvas with zoom controls, node operations, context menus, SchemaCreationWizard, virtual-parent node type
+  - **VirtualParentNode** - Visual grouping container for child constructs (expandable/collapsible)
   - **SchemaCreationWizard** - Multi-step wizard for creating/editing construct schemas (Basics, Fields, Ports)
   - **ContextMenu** (`src/ContextMenu.tsx`) - Canvas right-click menu with "New Construct Schema" option
 - **Drawer** - Right-side slide-out panel with floating tab buttons
@@ -140,10 +141,9 @@ Deployables are compiled into the output as metadata, helping AI tools generate 
 
 Constructs connect via **ports**—typed attachment points that determine relationship semantics:
 
-- **Port schemas**: Define port types with polarity (`source`, `sink`, `bidirectional`)
-- **Built-in ports**: `flow-in`, `flow-out`, `parent`, `child`, `symmetric`, `intercept`, `forward`
-- **Polarity-based validation**: Prevents invalid connections (source-source, sink-sink)
-- **Wildcard support**: `*`, `*source*`, `*sink*` for flexible compatibility rules
+- **Port schemas**: Define port types with polarity (`source`, `sink`, `bidirectional`, `relay`, `intercept`)
+- **Built-in ports**: `flow-in`, `flow-out`, `parent`, `child`, `symmetric`, `intercept`, `relay`
+- **Two-step validation**: (1) Block same-direction pairs (relay=source, intercept=sink); (2) Skip compatibleWith for relay/intercept/bidirectional, require match for plain source+sink
 - **Storage**: All connection data lives on constructs, not edges
 - **Interpretation**: Direction derives from port ownership and polarity, not edge metadata
 - **User-extensible**: Port schemas stored in document store, editable via Ports tab
@@ -238,12 +238,13 @@ User imports file → Document cleared via adapter → New data loaded (like Exc
 
 ### Other Components
 - `/src/components/ConstructNode.tsx` - Generic node renderer for constructs
+- `/src/components/VirtualParentNode.tsx` - Visual grouping container node (expandable/collapsible)
 - `/src/ContextMenu.tsx` - Canvas right-click context menu (New Construct Schema, etc.)
 - `/src/components/` - Modals, menus, field editors
 
 ### Domain Logic
-- `/src/constructs/types.ts` - Core TypeScript interfaces: PortSchema, FieldSchema, Polarity, CartaDocument, DocumentAdapter, SchemaGroup
-- `/src/constructs/portRegistry.ts` - Port schema registry with polarity-based validation, wildcard matching (accepts schemas as param)
+- `/src/constructs/types.ts` - Core TypeScript interfaces: PortSchema, FieldSchema, Polarity (5 values), VirtualParentNodeData, CartaDocument, DocumentAdapter, SchemaGroup
+- `/src/constructs/portRegistry.ts` - Port schema registry with two-step polarity-based validation (accepts schemas as param)
 - `/src/constructs/schemas/built-ins.ts` - Built-in construct and port schema definitions
 - `/src/constructs/compiler/` - Compilation engine (pure functions with explicit parameters)
 - `/src/contexts/DocumentContext.tsx` - Document provider managing Yjs adapter lifecycle

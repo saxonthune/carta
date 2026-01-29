@@ -20,8 +20,8 @@ Seven built-in port schemas defined in `PortSchema` (M1 layer):
 | `parent` | Has children | source | Bottom | #8b5cf6 (violet) |
 | `child` | Belongs to parent | sink | Top | #8b5cf6 (violet) |
 | `symmetric` | Bidirectional peer | bidirectional | Right | #64748b (slate) |
-| `intercept` | Pass-through input | sink | Left | #f59e0b (amber) |
-| `forward` | Pass-through output | source | Right | #f59e0b (amber) |
+| `intercept` | Pass-through input (bypasses type checking) | intercept | Left | #f59e0b (amber) |
+| `relay` | Pass-through output (bypasses type checking) | relay | Right | #f59e0b (amber) |
 
 ## Polarity-Based Validation
 
@@ -32,41 +32,42 @@ interface PortSchema {
   id: string;
   displayName: string;
   semanticDescription: string;
-  polarity: 'source' | 'sink' | 'bidirectional';
-  compatibleWith: string[];  // port IDs or wildcards
+  polarity: 'source' | 'sink' | 'bidirectional' | 'relay' | 'intercept';
+  compatibleWith: string[];  // port IDs or '*' wildcard
   expectedComplement?: string;  // UI hint, not validation
   defaultPosition: PortPosition;
   color: string;
 }
 ```
 
-### Polarity Rules
-- **source → source**: BLOCKED (both initiate)
-- **sink → sink**: BLOCKED (both receive)
-- **source → sink**: ALLOWED (normal flow)
-- **sink → source**: ALLOWED (user dragged backward)
+### Two-Step Validation
+
+Connection validation uses a two-step process in `portRegistry.canConnect()`:
+
+**Step 1: Polarity direction check**
+- `relay` maps to source direction, `intercept` maps to sink direction
+- **same-direction → same-direction**: BLOCKED (source+source, sink+sink)
 - **bidirectional → any**: ALLOWED
 - **any → bidirectional**: ALLOWED
 
+**Step 2: compatibleWith check**
+- **Skipped** if either side has polarity `relay`, `intercept`, or `bidirectional`
+- For plain **source+sink** pairs: at least one side must list the other's ID in `compatibleWith`
+- Only exact ID match and `*` wildcard are supported (polarity-based wildcards like `*source*` were removed)
+
 ### Compatibility Table
 
-| Port Type | Polarity | Compatible With |
-|-----------|----------|-----------------|
-| `flow-in` | sink | `flow-out`, `forward` |
-| `flow-out` | source | `flow-in`, `intercept` |
-| `parent` | source | `child`, `intercept` |
-| `child` | sink | `parent`, `forward` |
-| `symmetric` | bidirectional | `*` (wildcard) |
-| `intercept` | sink | `*source*` (wildcard) |
-| `forward` | source | `*sink*` (wildcard) |
+| Port Type | Polarity | Compatible With | Notes |
+|-----------|----------|-----------------|-------|
+| `flow-in` | sink | `['flow-out']` | Plain sink, needs compatibleWith match |
+| `flow-out` | source | `['flow-in']` | Plain source, needs compatibleWith match |
+| `parent` | source | `['child']` | Plain source, needs compatibleWith match |
+| `child` | sink | `['parent']` | Plain sink, needs compatibleWith match |
+| `symmetric` | bidirectional | `[]` | Skips compatibleWith, connects to anything |
+| `intercept` | intercept | `[]` | Skips compatibleWith, connects to any source-direction port |
+| `relay` | relay | `[]` | Skips compatibleWith, connects to any sink-direction port |
 
-### Wildcard Support
-- `*`: matches any port schema
-- `*source*`: matches all ports with `polarity: 'source'`
-- `*sink*`: matches all ports with `polarity: 'sink'`
-- `*bidirectional*`: matches all ports with `polarity: 'bidirectional'`
-
-Validation is bidirectional—if A can connect to B, then B can connect to A.
+Validation is bidirectional--if A can connect to B, then B can connect to A.
 
 ## Port Registry
 
@@ -80,8 +81,8 @@ export const DEFAULT_PORT_SCHEMAS: PortSchema[] = [
   { id: 'parent', displayName: 'Parent', polarity: 'source', ... },
   { id: 'child', displayName: 'Child', polarity: 'sink', ... },
   { id: 'symmetric', displayName: 'Link', polarity: 'bidirectional', ... },
-  { id: 'intercept', displayName: 'Intercept', polarity: 'sink', ... },
-  { id: 'forward', displayName: 'Forward', polarity: 'source', ... },
+  { id: 'intercept', displayName: 'Intercept', polarity: 'intercept', ... },
+  { id: 'relay', displayName: 'Relay', polarity: 'relay', ... },
 ];
 
 export class PortRegistry {
@@ -159,6 +160,7 @@ interface PortConfig {
   dataType?: string;
   suggestedTypes?: string[];
   suggestedPorts?: string[];
+  allowsGrouping?: boolean;  // Enable visual grouping via virtual parent nodes
 }
 ```
 
@@ -218,7 +220,7 @@ Port handles are styled via data attributes:
 .react-flow__handle[data-port-type="child"] { background: #8b5cf6 !important; }       /* violet */
 .react-flow__handle[data-port-type="symmetric"] { background: #64748b !important; }   /* slate */
 .react-flow__handle[data-port-type="intercept"] { background: #f59e0b !important; }   /* amber */
-.react-flow__handle[data-port-type="forward"] { background: #f59e0b !important; }     /* amber */
+.react-flow__handle[data-port-type="relay"] { background: #f59e0b !important; }       /* amber */
 ```
 
 ## Necessary and Sufficient

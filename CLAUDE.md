@@ -189,17 +189,18 @@ Visit `http://localhost:5173/?doc=my-document-id` to open a specific document.
 |------|---------|
 | `src/contexts/DocumentContext.tsx` | Document provider: manages Yjs adapter lifecycle |
 | `src/stores/adapters/yjsAdapter.ts` | Yjs implementation of DocumentAdapter interface |
-| `src/constructs/types.ts` | Core type definitions: PortSchema, FieldSchema, DocumentAdapter, CartaDocument, Polarity, SchemaGroup |
+| `src/constructs/types.ts` | Core type definitions: PortSchema, FieldSchema, DocumentAdapter, CartaDocument, Polarity (5 values), VirtualParentNodeData, SchemaGroup |
 | `src/constructs/schemas/index.ts` | Built-in schema exports: builtInConstructSchemas, builtInPortSchemas |
 | `src/constructs/schemas/built-ins.ts` | Default construct and port schema definitions |
-| `src/constructs/portRegistry.ts` | Port schema registry with polarity-based validation, wildcard support |
+| `src/constructs/portRegistry.ts` | Port schema registry with two-step polarity-based validation |
 | `src/hooks/useDocument.ts` | Primary hook for accessing document state and operations via adapter |
-| `src/hooks/useGraphOperations.ts` | Node CRUD: addConstruct, deleteNode, renameNode, etc. |
+| `src/hooks/useGraphOperations.ts` | Node CRUD: addConstruct, deleteNode, renameNode, createVirtualParent, etc. |
 | `src/hooks/useConnections.ts` | Connection logic: onConnect, handleEdgesDelete, validation |
 | `src/hooks/useUndoRedo.ts` | Y.UndoManager wrapper for undo/redo (local, not shared) |
 | `src/hooks/useClipboard.ts` | Copy/paste (local state, not collaborative) |
 | `src/hooks/useKeyboardShortcuts.ts` | Keyboard shortcut handling |
-| `src/components/Map.tsx` | React Flow canvas, UI event handlers |
+| `src/components/Map.tsx` | React Flow canvas, UI event handlers, virtual-parent node type |
+| `src/components/VirtualParentNode.tsx` | Visual grouping container node for child constructs |
 | `src/components/Header.tsx` | Project header with title, import/export, settings menu, Share (server mode) |
 | `src/components/ProjectInfoModal.tsx` | Modal for editing project title and description |
 | `src/components/ExamplesModal.tsx` | Modal for loading example projects |
@@ -238,10 +239,11 @@ When evaluating changes, ask: Does this expand capability without confusion? Doe
 **Consult:** `.cursor/rules/ports-and-connections.mdc`
 
 - Edges have **no metadata**—all data lives on constructs
-- **Port schemas** define port types with polarity (`source`, `sink`, `bidirectional`)
-- **Built-in ports**: `flow-in`, `flow-out`, `parent`, `child`, `symmetric`, `intercept`, `forward`
-- Polarity-based validation via `portRegistry.canConnect()` prevents incompatible connections
-- Wildcard support in `compatibleWith`: `*`, `*source*`, `*sink*`, `*bidirectional*`
+- **Port schemas** define port types with polarity (`source`, `sink`, `bidirectional`, `relay`, `intercept`)
+- **Built-in ports**: `flow-in`, `flow-out`, `parent`, `child`, `symmetric`, `intercept`, `relay`
+- Two-step polarity validation via `portRegistry.canConnect()`:
+  1. Block same-direction pairs (relay maps to source, intercept maps to sink)
+  2. Skip `compatibleWith` if either side is relay, intercept, or bidirectional; otherwise require match
 - Inverse relationships are **derivable**, never duplicated
 - Port configuration is **per-schema**, not per-instance
 - Port schemas stored in document store, user-editable via Ports tab
@@ -255,14 +257,14 @@ When evaluating changes, ask: Does this expand capability without confusion? Doe
 
 ### Modify graph operations (add/delete/update nodes)
 ```
-src/hooks/useGraphOperations.ts   → Node CRUD operations
+src/hooks/useGraphOperations.ts   → Node CRUD, virtual parent operations
 src/stores/adapters/yjsAdapter.ts → updateNode with semantic ID cascade
 ```
 
 ### Modify connection behavior
 ```
 src/hooks/useConnections.ts       → onConnect, handleEdgesDelete, isValidConnection
-src/constructs/portRegistry.ts    → Port schema definitions, polarity-based canConnect()
+src/constructs/portRegistry.ts    → Two-step polarity-based canConnect() validation
 src/stores/adapters/yjsAdapter.ts → Port schema CRUD (add/update/remove)
 ```
 
@@ -348,8 +350,8 @@ If tests fail after your changes, fix them before proceeding.
 When modifying constructs or connections:
 - [ ] Can create construct with custom ports in Schema Editor
 - [ ] Can create/edit port schemas in Ports tab
-- [ ] Port polarity validation works correctly (source-source blocked, etc.)
-- [ ] Wildcard compatibility rules work (`*`, `*source*`, `*sink*`)
+- [ ] Port polarity validation works correctly (source-source blocked, relay acts as source, intercept acts as sink)
+- [ ] Relay/intercept bypass compatibleWith checks; plain source+sink require compatibleWith match
 - [ ] Handles appear at correct positions on canvas
 - [ ] Connections store on source construct's `connections[]`
 - [ ] Compilation output includes ports and relationships

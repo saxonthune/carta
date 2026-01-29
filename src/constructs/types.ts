@@ -29,8 +29,10 @@ export type CompilationFormat = 'json' | 'custom';
  * - 'source': initiates connections (like flow-out, parent)
  * - 'sink': receives connections (like flow-in, child)
  * - 'bidirectional': can both initiate and receive (like symmetric)
+ * - 'relay': pass-through output, connects to any sink (skips compatibleWith checks)
+ * - 'intercept': pass-through input, connects to any source (skips compatibleWith checks)
  */
-export type Polarity = 'source' | 'sink' | 'bidirectional';
+export type Polarity = 'source' | 'sink' | 'bidirectional' | 'relay' | 'intercept';
 
 // ===== M1: PORT SCHEMA =====
 
@@ -48,6 +50,7 @@ export interface PortSchema {
   defaultPosition: PortPosition;
   color: string;
   groupId?: string;              // References SchemaGroup.id for hierarchical organization
+  allowsGrouping?: boolean;      // Enable visual grouping via virtual parent nodes
 }
 
 
@@ -120,6 +123,7 @@ export interface PortConfig {
   suggestedPorts?: string[];     // Port IDs that commonly connect here
 
   dataType?: string;
+  allowsGrouping?: boolean;     // Enable visual grouping via virtual parent nodes
 }
 
 /**
@@ -199,6 +203,24 @@ export interface ConstructNodeData {
   deployables?: Deployable[]; // List of available deployables for dropdown
   // Index signature for React Flow compatibility
   [key: string]: unknown;
+}
+
+// ===== VIRTUAL PARENT =====
+
+/**
+ * Data stored in a React Flow node for virtual parent containers.
+ * Virtual parents provide visual grouping for child constructs.
+ */
+export interface VirtualParentNodeData {
+  isVirtualParent: true;
+  parentNodeId: string;            // Tech ID of actual parent construct
+  parentSemanticId: string;
+  groupingPortId: string;          // Port on parent with allowsGrouping
+  complementPortId: string;        // Expected port type on children
+  label: string;
+  color: string;
+  collapseState: 'expanded' | 'no-edges' | 'collapsed';
+  [key: string]: unknown;          // Index signature for React Flow compatibility
 }
 
 // ===== HELPERS =====

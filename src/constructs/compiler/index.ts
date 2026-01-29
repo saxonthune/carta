@@ -49,6 +49,9 @@ export class CompilerEngine {
 
     // Helper to find deployable by id
     const getDeployable = (id: string) => deployables.find(d => d.id === id);
+    // Filter out virtual parent nodes (they are visual-only, not compiled)
+    const compilableNodes = nodes.filter(n => n.type !== 'virtual-parent');
+
     const sections: string[] = [];
 
     // Convert edges to simple format
@@ -58,19 +61,19 @@ export class CompilerEngine {
     }));
 
     // Add deployables section at the top if any exist
-    const deployablesSection = this.compileDeployables(nodes, deployables);
+    const deployablesSection = this.compileDeployables(compilableNodes, deployables);
     if (deployablesSection) {
       sections.push(deployablesSection);
     }
 
     // Add schemas section listing all used construct types
-    const schemasSection = this.compileSchemas(nodes, getSchema);
+    const schemasSection = this.compileSchemas(compilableNodes, getSchema);
     if (schemasSection) {
       sections.push(schemasSection);
     }
 
     // Enhance nodes with relationship metadata
-    const nodesWithRelationships = this.addRelationshipMetadata(nodes, edges);
+    const nodesWithRelationships = this.addRelationshipMetadata(compilableNodes, edges);
 
     // Extract all node data for passing to formatters
     const allNodeData = nodesWithRelationships.map(n => n.data as ConstructNodeData);

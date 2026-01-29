@@ -151,7 +151,7 @@ describe('Restore Default Schemas', () => {
       expect(portIds).toContain('child');
       expect(portIds).toContain('symmetric');
       expect(portIds).toContain('intercept');
-      expect(portIds).toContain('forward');
+      expect(portIds).toContain('relay');
 
       // Custom port should be gone
       expect(portIds).not.toContain('custom-port');

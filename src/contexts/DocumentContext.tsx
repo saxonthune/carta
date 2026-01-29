@@ -116,6 +116,69 @@ export function DocumentProvider({
         }, 'init');
       }
 
+      // Migration: forward -> relay, intercept polarity update
+      const migrationVersion = yjsAdapter.ydoc.getMap('meta').get('migrationVersion') as number | undefined;
+      if ((migrationVersion || 0) < 1) {
+        yjsAdapter.transaction(() => {
+          // Migrate port schemas
+          const portSchemas = yjsAdapter.getPortSchemas();
+          for (const ps of portSchemas) {
+            if (ps.id === 'forward') {
+              yjsAdapter.removePortSchema('forward');
+              yjsAdapter.addPortSchema({
+                ...ps,
+                id: 'relay',
+                displayName: 'Relay',
+                polarity: 'relay',
+                compatibleWith: [],
+                semanticDescription: 'Pass-through output connecting to any sink port (bypasses type checking)',
+              });
+            } else if (ps.id === 'intercept' && ps.polarity !== 'intercept') {
+              yjsAdapter.updatePortSchema('intercept', {
+                polarity: 'intercept',
+                compatibleWith: [],
+                semanticDescription: 'Pass-through input accepting any source connection (bypasses type checking)',
+              });
+            }
+            // Clean up wildcard patterns from compatibleWith
+            if (ps.compatibleWith.some(c => c.startsWith('*') && c !== '*')) {
+              yjsAdapter.updatePortSchema(ps.id, {
+                compatibleWith: ps.compatibleWith.filter(c => !c.startsWith('*') || c === '*'),
+              });
+            }
+          }
+
+          // Migrate construct schema ports: forward -> relay
+          const schemas = yjsAdapter.getSchemas();
+          for (const schema of schemas) {
+            if (schema.ports?.some(p => p.portType === 'forward')) {
+              yjsAdapter.updateSchema(schema.type, {
+                ports: schema.ports.map(p =>
+                  p.portType === 'forward' ? { ...p, portType: 'relay' } : p
+                ),
+              });
+            }
+          }
+
+          // Migrate node connections: forward -> relay
+          const nodes = yjsAdapter.getNodes() as Array<{ id: string; data?: { connections?: Array<{ portId: string; targetPortId: string }> } }>;
+          for (const node of nodes) {
+            const connections = node.data?.connections;
+            if (connections?.some(c => c.portId === 'forward' || c.targetPortId === 'forward')) {
+              yjsAdapter.updateNode(node.id, {
+                connections: connections.map(c => ({
+                  ...c,
+                  portId: c.portId === 'forward' ? 'relay' : c.portId,
+                  targetPortId: c.targetPortId === 'forward' ? 'relay' : c.targetPortId,
+                })),
+              } as any);
+            }
+          }
+
+          yjsAdapter.ydoc.getMap('meta').set('migrationVersion', 1);
+        }, 'migration');
+      }
+
       // Connect to WebSocket if server mode with document ID
       if (documentId && serverUrl) {
         await yjsAdapter.connectToRoom(documentId, serverUrl);
