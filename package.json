@@ -1,7 +1,7 @@
 {
   "name": "carta",
   "private": true,
-  "version": "0.1.0proto3",
+  "version": "0.1.0proto4",
   "license": "AGPL-3.0-only",
   "type": "module",
   "scripts": {
