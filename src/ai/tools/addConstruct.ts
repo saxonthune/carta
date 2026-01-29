@@ -64,11 +64,13 @@ export const addConstructTool: CartaTool<AddConstructParams, AddConstructResult>
 
     // Build initial values with defaults
     const initialValues: ConstructValues = {};
-    schema.fields.forEach(field => {
-      if (field.default !== undefined) {
-        initialValues[field.name] = field.default;
-      }
-    });
+    if (Array.isArray(schema.fields)) {
+      schema.fields.forEach(field => {
+        if (field.default !== undefined) {
+          initialValues[field.name] = field.default;
+        }
+      });
+    }
     // Apply provided values
     Object.assign(initialValues, values);
 

@@ -87,7 +87,9 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
   // Get ports from schema or use defaults
   const ports = getPortsForSchema(schema.ports);
 
-  const mapFields = schema.fields.filter((f) => f.showInMinimalDisplay);
+  const mapFields = Array.isArray(schema.fields)
+    ? schema.fields.filter((f) => f.showInMinimalDisplay)
+    : [];
   const formatValue = (value: unknown) => {
     if (value === null || value === undefined || value === '') return '—';
     if (typeof value === 'object') {
@@ -367,7 +369,7 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
           )}
 
           {/* All schema fields */}
-          {schema.fields.map((field) => (
+          {Array.isArray(schema.fields) && schema.fields.map((field) => (
             <div key={field.name}>
               <label className="text-node-xs text-content-muted uppercase tracking-wide">{field.label}</label>
               {field.type === 'boolean' ? (

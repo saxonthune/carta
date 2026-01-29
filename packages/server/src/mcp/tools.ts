@@ -72,6 +72,7 @@ const CreateSchemaInputSchema = z.object({
   color: z.string().describe('Hex color for the node'),
   semanticDescription: z.string().optional().describe('Description for AI context'),
   displayField: z.string().optional().describe('Field to use as node title'),
+  groupId: z.string().optional().describe('Schema group ID for organizing schemas'),
   fields: z
     .array(
       z.object({
@@ -82,6 +83,8 @@ const CreateSchemaInputSchema = z.object({
         options: z.array(z.object({ value: z.string(), semanticDescription: z.string().optional() })).optional(),
         default: z.unknown().optional(),
         placeholder: z.string().optional(),
+        displayHint: z.enum(['multiline', 'code', 'password', 'url', 'color']).optional(),
+        showInMinimalDisplay: z.boolean().optional().describe('Show this field when node is collapsed (auto-set for primary fields)'),
       })
     )
     .describe('Field definitions'),
@@ -157,7 +160,10 @@ export function getToolDefinitions() {
     },
     {
       name: 'carta_create_schema',
-      description: 'Create a custom construct schema',
+      description: `Create a custom construct schema. Smart defaults:
+- Primary fields (name, title, label, summary, condition) auto-get showInMinimalDisplay=true
+- If no ports specified, adds default ports: flow-in (left), flow-out (right), parent (bottom), child (top)
+- For multiple related schemas, create them sequentially and consider grouping them with carta_create_deployable`,
       inputSchema: CreateSchemaInputSchema.shape,
     },
     {

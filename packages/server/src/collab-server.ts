@@ -555,16 +555,19 @@ async function handleHttpRequest(req: http.IncomingMessage, res: http.ServerResp
         type: string;
         displayName: string;
         color: string;
-        description?: string;
+        semanticDescription?: string;
         displayField?: string;
+        groupId?: string;
         fields: Array<{
           name: string;
           label: string;
           type: string;
-          description?: string;
-          options?: string[];
+          semanticDescription?: string;
+          options?: Array<{ value: string; semanticDescription?: string }>;
           default?: unknown;
           placeholder?: string;
+          displayHint?: string;
+          showInMinimalDisplay?: boolean;
         }>;
         ports?: Array<{
           id: string;
@@ -572,7 +575,7 @@ async function handleHttpRequest(req: http.IncomingMessage, res: http.ServerResp
           position: string;
           offset: number;
           label: string;
-          description?: string;
+          semanticDescription?: string;
         }>;
       }>(req);
 
@@ -586,12 +589,13 @@ async function handleHttpRequest(req: http.IncomingMessage, res: http.ServerResp
         type: body.type,
         displayName: body.displayName,
         color: body.color,
-        description: body.description,
+        semanticDescription: body.semanticDescription,
         displayField: body.displayField,
-        fields: body.fields as any,
-        ports: body.ports as any,
+        groupId: body.groupId,
+        fields: body.fields,
+        ports: body.ports,
         compilation: { format: 'json' },
-      });
+      } as any);
 
       if (!schema) {
         sendError(res, 400, 'Schema type already exists', 'ALREADY_EXISTS');
@@ -613,6 +617,20 @@ async function handleHttpRequest(req: http.IncomingMessage, res: http.ServerResp
         return;
       }
       sendJson(res, 200, { schema });
+      return;
+    }
+
+    // DELETE /api/documents/:id/schemas/:type - Delete schema
+    if (schemaMatch && method === 'DELETE') {
+      const roomId = schemaMatch[1]!;
+      const type = decodeURIComponent(schemaMatch[2]!);
+      const docState = await getYDoc(roomId);
+      const deleted = docOps.removeSchema(docState.doc, type);
+      if (!deleted) {
+        sendError(res, 404, `Schema not found: ${type}`, 'NOT_FOUND');
+        return;
+      }
+      sendJson(res, 200, { deleted: true });
       return;
     }
 

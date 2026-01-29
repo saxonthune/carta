@@ -230,7 +230,7 @@ export default function InstanceEditor({ node, deployables, onNodeUpdate }: Inst
                 </div>
 
                 {/* Fields Island */}
-                {schema.fields.length > 0 && (
+                {Array.isArray(schema.fields) && schema.fields.length > 0 && (
                   <div className="bg-surface-depth-2 rounded-xl p-3">
                     <h3 className="text-xs font-semibold text-content-muted uppercase mb-3">Fields</h3>
                     <div className="space-y-3">

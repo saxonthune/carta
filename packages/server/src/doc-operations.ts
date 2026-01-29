@@ -473,6 +473,40 @@ export function getSchema(ydoc: Y.Doc, type: string): ConstructSchema | null {
 }
 
 /**
+ * Apply smart defaults to a schema for better UX
+ */
+function applySchemaDefaults(schema: any): any {
+  const processed = { ...schema };
+
+  // Auto-detect primary fields and set showInMinimalDisplay (or displayInMap for legacy)
+  const primaryFieldNames = ['name', 'title', 'label', 'summary', 'condition'];
+  if (Array.isArray(processed.fields)) {
+    processed.fields = processed.fields.map((field: any) => {
+      const propName = 'showInMinimalDisplay' in field || field.showInMinimalDisplay !== undefined
+        ? 'showInMinimalDisplay'
+        : 'displayInMap';
+
+      if (primaryFieldNames.includes(field.name.toLowerCase()) && field[propName] === undefined) {
+        return { ...field, [propName]: true };
+      }
+      return field;
+    });
+  }
+
+  // Add default ports if none specified
+  if (!processed.ports || processed.ports.length === 0) {
+    processed.ports = [
+      { id: 'flow-in', portType: 'flow-in', position: 'left', offset: 50, label: 'In' },
+      { id: 'flow-out', portType: 'flow-out', position: 'right', offset: 50, label: 'Out' },
+      { id: 'parent', portType: 'parent', position: 'bottom', offset: 50, label: 'Children' },
+      { id: 'child', portType: 'child', position: 'top', offset: 50, label: 'Parent' },
+    ] as any;
+  }
+
+  return processed;
+}
+
+/**
  * Create a custom schema
  */
 export function createSchema(ydoc: Y.Doc, schema: ConstructSchema): ConstructSchema | null {
@@ -481,11 +515,29 @@ export function createSchema(ydoc: Y.Doc, schema: ConstructSchema): ConstructSch
   // Check if already exists
   if (yschemas.has(schema.type)) return null;
 
+  // Apply smart defaults
+  const processedSchema = applySchemaDefaults(schema);
+
   ydoc.transact(() => {
-    yschemas.set(schema.type, deepPlainToY(schema) as Y.Map<unknown>);
+    yschemas.set(processedSchema.type, deepPlainToY(processedSchema) as Y.Map<unknown>);
   }, MCP_ORIGIN);
 
-  return schema;
+  return processedSchema;
+}
+
+/**
+ * Remove a custom schema
+ */
+export function removeSchema(ydoc: Y.Doc, type: string): boolean {
+  const yschemas = ydoc.getMap<Y.Map<unknown>>('schemas');
+
+  if (!yschemas.has(type)) return false;
+
+  ydoc.transact(() => {
+    yschemas.delete(type);
+  }, MCP_ORIGIN);
+
+  return true;
 }
 
 // ===== DEPLOYABLE OPERATIONS =====

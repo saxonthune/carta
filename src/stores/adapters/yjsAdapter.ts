@@ -47,14 +47,37 @@ function objectToYMap(obj: object): Y.Map<unknown> {
 }
 
 /**
- * Convert a Y.Map to a plain object (shallow)
+ * Convert Yjs types to plain JavaScript values (deep conversion)
+ */
+function yToPlain(value: unknown): unknown {
+  if (value instanceof Y.Map) {
+    const obj: Record<string, unknown> = {};
+    value.forEach((v, k) => {
+      obj[k] = yToPlain(v);
+    });
+    return obj;
+  }
+  if (value instanceof Y.Array) {
+    return value.toArray().map(yToPlain);
+  }
+  if (Array.isArray(value)) {
+    return value.map(yToPlain);
+  }
+  if (value && typeof value === 'object' && value.constructor === Object) {
+    const obj: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value)) {
+      obj[k] = yToPlain(v);
+    }
+    return obj;
+  }
+  return value;
+}
+
+/**
+ * Convert a Y.Map to a plain object (deep conversion)
  */
 function yMapToObject<T>(ymap: Y.Map<unknown>): T {
-  const obj: Record<string, unknown> = {};
-  ymap.forEach((value, key) => {
-    obj[key] = value;
-  });
-  return obj as T;
+  return yToPlain(ymap) as T;
 }
 
 /**

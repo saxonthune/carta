@@ -9,7 +9,9 @@ export default function SchemaPreview({ schema }: SchemaPreviewProps) {
   const ports = getPortsForSchema(schema.ports);
 
   // Filter fields that show in collapsed state
-  const collapsedFields = schema.fields.filter(f => f.showInMinimalDisplay);
+  const collapsedFields = Array.isArray(schema.fields)
+    ? schema.fields.filter(f => f.showInMinimalDisplay)
+    : [];
 
   return (
     <div className="flex flex-col items-center justify-center h-full gap-4">

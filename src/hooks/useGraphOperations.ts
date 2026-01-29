@@ -39,11 +39,13 @@ export function useGraphOperations(options: UseGraphOperationsOptions): UseGraph
       const id = getNextNodeId();
 
       const values: ConstructValues = {};
-      schema.fields.forEach((field) => {
-        if (field.default !== undefined) {
-          values[field.name] = field.default;
-        }
-      });
+      if (Array.isArray(schema.fields)) {
+        schema.fields.forEach((field) => {
+          if (field.default !== undefined) {
+            values[field.name] = field.default;
+          }
+        });
+      }
 
       const semanticId = generateSemanticId(schema.type);
 
@@ -80,11 +82,13 @@ export function useGraphOperations(options: UseGraphOperationsOptions): UseGraph
 
       const id = getNextNodeId();
       const values: ConstructValues = {};
-      schema.fields.forEach((field) => {
-        if (field.default !== undefined) {
-          values[field.name] = field.default;
-        }
-      });
+      if (Array.isArray(schema.fields)) {
+        schema.fields.forEach((field) => {
+          if (field.default !== undefined) {
+            values[field.name] = field.default;
+          }
+        });
+      }
 
       const semanticId = generateSemanticId(schema.type);
 

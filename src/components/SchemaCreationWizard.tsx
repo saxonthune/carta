@@ -73,7 +73,7 @@ function createEmptySchema(): ConstructSchema {
 }
 
 export default function SchemaCreationWizard({ isOpen, onClose, editSchema }: SchemaCreationWizardProps) {
-  const { addSchema, updateSchema, getSchema, portSchemas, addPortSchema } = useDocument();
+  const { addSchema, updateSchema, getSchema, portSchemas, addPortSchema, schemaGroups } = useDocument();
   const isEditMode = !!editSchema;
 
   const [step, setStep] = useState(0);
@@ -256,7 +256,7 @@ export default function SchemaCreationWizard({ isOpen, onClose, editSchema }: Sc
       backLabel={backLabel}
       hideStepIndicator={hideStepIndicator}
     >
-      {step === 0 && <BasicsStep formData={formData} errors={errors} updateField={updateBasicField} />}
+      {step === 0 && <BasicsStep formData={formData} errors={errors} updateField={updateBasicField} schemaGroups={schemaGroups} />}
       {step === 1 && (
         fieldSubWizard.active && fieldSubWizard.fieldIndex !== null ? (
           <FieldSubWizard
@@ -322,10 +322,11 @@ export default function SchemaCreationWizard({ isOpen, onClose, editSchema }: Sc
 
 // ============ Step Components ============
 
-function BasicsStep({ formData, errors, updateField }: {
+function BasicsStep({ formData, errors, updateField, schemaGroups }: {
   formData: ConstructSchema;
   errors: Record<string, string>;
   updateField: (key: keyof ConstructSchema, value: unknown) => void;
+  schemaGroups: Array<{ id: string; name: string; color?: string; parentId?: string }>;
 }) {
   return (
     <div className="flex flex-col gap-4">
@@ -358,6 +359,25 @@ function BasicsStep({ formData, errors, updateField }: {
         />
         <span className="block mt-1 text-[11px] text-content-muted">
           Add a description that separates this construct schema from the others around it
+        </span>
+      </div>
+
+      <div>
+        <label className="block mb-1 text-sm font-medium text-content">Group</label>
+        <select
+          className="w-full px-3 py-2 bg-surface rounded-md text-content text-sm focus:outline-none focus:ring-1 focus:ring-accent"
+          value={formData.groupId || ''}
+          onChange={(e) => updateField('groupId', e.target.value || undefined)}
+        >
+          <option value="">No group</option>
+          {schemaGroups.map(group => (
+            <option key={group.id} value={group.id}>
+              {group.name}
+            </option>
+          ))}
+        </select>
+        <span className="block mt-1 text-[11px] text-content-muted">
+          Organize schemas into logical groups for better menu organization
         </span>
       </div>
 

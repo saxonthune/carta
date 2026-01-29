@@ -65,7 +65,7 @@ export function useClipboard(options: UseClipboardOptions): UseClipboardResult {
           ...clipNode,
           id: newId,
           position,
-          selected: false,
+          selected: true, // Select pasted nodes so they appear on top
           data: {
             ...clipNode.data,
             label: clipNode.data.label ? `${clipNode.data.label} (copy)` : undefined,
@@ -74,7 +74,8 @@ export function useClipboard(options: UseClipboardOptions): UseClipboardResult {
         };
       });
 
-      setNodes((nds) => [...nds, ...newNodes]);
+      // Deselect existing nodes and append new nodes to the end (React Flow z-index)
+      setNodes((nds) => [...nds.map(n => ({ ...n, selected: false })), ...newNodes]);
     },
     [clipboard, setNodes, screenToFlowPosition, getNextNodeId]
   );
