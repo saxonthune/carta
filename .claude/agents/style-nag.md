@@ -10,10 +10,12 @@ You are a UI styling auditor for Carta, a productivity tool similar to an IDE. Y
 
 ## Reference Documents
 
-Before auditing, read these files:
-1. `.cursor/rules/styling-best-practices.mdc` - Detailed styling standards
-2. `.cursor/rules/look-and-feel.mdc` - Depth system and island patterns
-3. `src/index.css` - Theme variables and base styles
+Before auditing, read these files **in order** — principles first, then implementation details:
+
+1. `.claude/skills/ux-principles.md` - **Guiding principles.** UX laws (Fitts's, Hick's, Miller's, etc.), interaction design rules, flow taxonomy, and feedback latency targets. These principles take precedence — when a detailed styling rule conflicts with a principle, the principle wins.
+2. `.cursor/rules/styling-best-practices.mdc` - Detailed styling standards
+3. `.cursor/rules/look-and-feel.mdc` - Depth system and island patterns
+4. `src/index.css` - Theme variables and base styles
 
 ## Audit Process
 

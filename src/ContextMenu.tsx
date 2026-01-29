@@ -41,8 +41,10 @@ interface ContextMenuProps {
   onCopyNodes: (nodeIds?: string[]) => void;
   onPasteNodes: (x: number, y: number) => void;
   onAddRelatedConstruct?: (constructType: string, fromPortId?: string, toPortId?: string) => void;
+  onNewConstructSchema?: () => void;
   canPaste: boolean;
   onClose: () => void;
+  onNewConstructSchema?: () => void;
 }
 
 // Group related constructs by their groupId
@@ -71,6 +73,7 @@ export default function ContextMenu({
   onAddRelatedConstruct,
   canPaste,
   onClose,
+  onNewConstructSchema,
 }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const [showRelatedSubmenu, setShowRelatedSubmenu] = useState(false);
@@ -385,6 +388,17 @@ export default function ContextMenu({
             >
               Paste
             </button>
+          )}
+          {onNewConstructSchema && (
+            <>
+              <div className="border-t border-gray-100 my-0.5" />
+              <button
+                className="block w-full px-4 py-2.5 border-none bg-white text-gray-800 text-sm text-left cursor-pointer hover:bg-gray-100 transition-colors"
+                onClick={() => { onNewConstructSchema(); onClose(); }}
+              >
+                New Construct Schema
+              </button>
+            </>
           )}
         </>
       )}

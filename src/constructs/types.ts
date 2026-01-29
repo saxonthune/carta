@@ -83,12 +83,12 @@ export interface FieldSchema {
   name: string;
   label: string;
   type: DataKind;
-  description?: string;      // AI compilation context
-  options?: string[];        // For enum type
+  semanticDescription?: string;      // AI compilation context
+  options?: { value: string; semanticDescription?: string }[];        // For enum type
   displayHint?: DisplayHint; // For string type presentation
   default?: unknown;
   placeholder?: string;
-  showInCollapsed?: boolean;    // Show this field when node is collapsed on canvas
+  showInMinimalDisplay?: boolean;    // Show this field when node is collapsed on canvas
 }
 
 
@@ -113,7 +113,7 @@ export interface PortConfig {
   position: PortPosition;
   offset: number;                // 0-100% along the edge
   label: string;                 // Display name shown on hover
-  description?: string;          // Usage description for compiled output
+  semanticDescription?: string;          // Usage description for compiled output
 
   // Type hints for UX (soft suggestions)
   suggestedTypes?: string[];     // Construct types for quick-add menus
@@ -144,7 +144,7 @@ export interface ConstructSchema {
   displayName: string;       // Human-readable name
   color: string;             // Node border/accent color
   icon?: string;             // Optional icon identifier
-  description?: string;      // Description shown during compilation (AI context)
+  semanticDescription?: string;      // Description shown during compilation (AI context)
   displayField?: string;     // Field name to use as node title (fallback: semanticId)
   fields: FieldSchema[];
   ports?: PortConfig[];      // Port configurations for connections

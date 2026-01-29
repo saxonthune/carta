@@ -28,7 +28,7 @@ const createEmptySchema = (): ConstructSchema => ({
   type: '',
   displayName: '',
   color: '#6366f1',
-  description: '',
+  semanticDescription: '',
   fields: [],
   ports: [
     { id: 'parent', portType: 'parent', position: 'top', offset: 50, label: 'Parent' },
@@ -74,7 +74,7 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
   useEffect(() => {
     if (!construct) {
       // For new constructs, check if user has entered any meaningful data
-      const hasContent = formData.displayName.trim() !== '' || (formData.description?.trim() ?? '') !== '';
+      const hasContent = formData.displayName.trim() !== '' || (formData.semanticDescription?.trim() ?? '') !== '';
       setIsDirty(hasContent);
       return;
     }

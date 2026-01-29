@@ -28,6 +28,7 @@ import { useConnections } from '../hooks/useConnections';
 import { useClipboard } from '../hooks/useClipboard';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import type { ConstructValues, Deployable, ConstructNodeData } from '../constructs/types';
+import SchemaCreationWizard from './SchemaCreationWizard';
 
 const nodeTypes = {
   custom: CustomNode,
@@ -84,6 +85,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
   const [addMenu, setAddMenu] = useState<AddMenuState | null>(null);
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
   const [renamingNodeId, setRenamingNodeId] = useState<string | null>(null);
+  const [showSchemaWizard, setShowSchemaWizard] = useState(false);
   const { undo, redo, canUndo, canRedo } = useUndoRedo();
 
   // Track mouse movement for context menu detection
@@ -457,6 +459,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
           onAddRelatedConstruct={contextMenu.nodeId ? (constructType, fromPortId, toPortId) => addRelatedConstruct(contextMenu.nodeId!, constructType, fromPortId, toPortId) : undefined}
           canPaste={canPaste}
           onClose={closeContextMenu}
+          onNewConstructSchema={() => setShowSchemaWizard(true)}
         />
       )}
 
@@ -468,6 +471,11 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
           onClose={() => setAddMenu(null)}
         />
       )}
+
+      <SchemaCreationWizard
+        isOpen={showSchemaWizard}
+        onClose={() => setShowSchemaWizard(false)}
+      />
     </div>
   );
 }

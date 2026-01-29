@@ -82,8 +82,8 @@ export default function PortsTab({
                 </label>
                 <textarea
                   className="w-full px-2 py-1.5 bg-surface-alt rounded text-content text-xs focus:outline-none focus:ring-1 focus:ring-primary resize-none"
-                  value={port.description || ''}
-                  onChange={(e) => updatePort(index, { description: e.target.value })}
+                  value={port.semanticDescription || ''}
+                  onChange={(e) => updatePort(index, { semanticDescription: e.target.value })}
                   placeholder="Describe what this port is used for (appears in compiled output)"
                   rows={2}
                 />

@@ -61,7 +61,9 @@ The application uses a split-panel layout with a right-side drawer:
   - **ExamplesModal** - Load bundled example .carta files from `/examples/` directory
   - **DocumentBrowserModal** - Browse/create/select documents in server mode, required mode when ?doc= missing
   - **ConnectionStatus** - Connection status indicator (server mode only)
-- **Map** - ReactFlow canvas with zoom controls, node operations, context menus
+- **Map** - ReactFlow canvas with zoom controls, node operations, context menus, SchemaCreationWizard
+  - **SchemaCreationWizard** - Multi-step wizard for creating/editing construct schemas (Basics, Fields, Ports)
+  - **ContextMenu** (`src/ContextMenu.tsx`) - Canvas right-click menu with "New Construct Schema" option
 - **Drawer** - Right-side slide-out panel with floating tab buttons
   - **ConstructEditor** - CRUD for construct schemas
   - **PortSchemaEditor** - CRUD for port schemas (port type definitions)
@@ -109,7 +111,7 @@ A `ConstructSchema` defines a construct TYPE (e.g., "REST Controller", "Database
 - Field definitions (text, dropdown, table, code, connection types)
 - `displayField` - which field's value to show as node title
 - Compilation configuration (format, template, section header)
-- Optional description (shown in compiled output as AI context)
+- Optional `semanticDescription` (shown in compiled output as AI context)
 
 ### Construct Instance
 A React Flow node containing:
@@ -230,8 +232,13 @@ User imports file → Document cleared via adapter → New data loaded (like Exc
 - `/src/components/SchemaGroupEditor.tsx` - CRUD for schema grouping
 - `/src/components/DeployablesEditor.tsx` - CRUD for deployables
 
+### Wizards & Reusable UI
+- `/src/components/SchemaCreationWizard.tsx` - Multi-step wizard for creating/editing construct schemas
+- `/src/components/ui/WizardModal.tsx` - Reusable multi-step wizard modal shell
+
 ### Other Components
 - `/src/components/ConstructNode.tsx` - Generic node renderer for constructs
+- `/src/ContextMenu.tsx` - Canvas right-click context menu (New Construct Schema, etc.)
 - `/src/components/` - Modals, menus, field editors
 
 ### Domain Logic

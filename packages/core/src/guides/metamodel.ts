@@ -40,7 +40,7 @@ interface ConstructSchema {
   type: string;           // Unique identifier: 'controller', 'table', etc.
   displayName: string;    // Human-readable name
   color: string;          // Visual accent color
-  description?: string;   // AI context for compilation
+  semanticDescription?: string;   // AI context for compilation
   displayField?: string;  // Field to use as node title
   fields: FieldSchema[];  // Data fields
   ports?: PortConfig[];   // Connection points
@@ -196,12 +196,21 @@ Constructs reference deployables via \`deployableId\`. This helps:
 - Plan deployment boundaries
 - Generate code into appropriate modules
 
-## Schema Field Descriptions
+## Schema Semantic Descriptions
 
-The \`description\` field on schemas and fields provides semantic context:
+The \`semanticDescription\` field on schemas, fields, and port configs provides semantic context for AI:
 
-- **Schema.description**: "HTTP REST API endpoint controller" - Explains what this construct type represents
-- **Field.description**: "URL path pattern for this endpoint" - Explains what this field means
+- **Schema.semanticDescription**: "HTTP REST API endpoint controller" - Explains what this construct type represents
+- **Field.semanticDescription**: "URL path pattern for this endpoint" - Explains what this field means
+- **PortConfig.semanticDescription**: "Outgoing data flow to downstream services" - Explains the port's purpose
+
+For enum fields, each option can also have a \`semanticDescription\`:
+\`\`\`typescript
+options: [
+  { value: "GET", semanticDescription: "Read-only retrieval" },
+  { value: "POST", semanticDescription: "Create a new resource" }
+]
+\`\`\`
 
 Use these descriptions to understand the intended purpose when generating code.
 

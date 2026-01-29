@@ -186,13 +186,13 @@ ${deployablesJson}
         return schema ? {
           type: schema.type,
           displayName: schema.displayName,
-          description: schema.description || 'No description provided',
+          semanticDescription: schema.semanticDescription || 'No description provided',
           ...(schema.ports && schema.ports.length > 0 && {
             ports: schema.ports.map(p => ({
               id: p.id,
               label: p.label,
               portType: p.portType,
-              ...(p.description && { description: p.description }),
+              ...(p.semanticDescription && { semanticDescription: p.semanticDescription }),
             }))
           }),
         } : null;

@@ -87,7 +87,7 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
   // Get ports from schema or use defaults
   const ports = getPortsForSchema(schema.ports);
 
-  const mapFields = schema.fields.filter((f) => f.showInCollapsed);
+  const mapFields = schema.fields.filter((f) => f.showInMinimalDisplay);
   const formatValue = (value: unknown) => {
     if (value === null || value === undefined || value === '') return '—';
     if (typeof value === 'object') {
@@ -225,7 +225,7 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
       {hoveredPort && (() => {
         const port = ports.find(p => p.id === hoveredPort);
         if (!port) return null;
-        const hasDescription = showExtendedTooltip && port.description;
+        const hasDescription = showExtendedTooltip && port.semanticDescription;
         return (
           <div
             className="bg-surface-elevated text-content text-node-sm px-2 py-1 rounded shadow-lg border pointer-events-none"
@@ -233,7 +233,7 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
           >
             <div className="font-medium">{port.label}</div>
             {hasDescription && (
-              <div className="text-content-muted text-node-xs mt-1">{port.description}</div>
+              <div className="text-content-muted text-node-xs mt-1">{port.semanticDescription}</div>
             )}
           </div>
         );
@@ -388,7 +388,7 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
                 >
                   <option value="">Select...</option>
                   {field.options.map((opt) => (
-                    <option key={opt} value={opt}>{opt}</option>
+                    <option key={opt.value} value={opt.value}>{opt.value}</option>
                   ))}
                 </select>
               ) : field.displayHint === 'multiline' || field.displayHint === 'code' ? (

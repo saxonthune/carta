@@ -70,7 +70,7 @@ const CreateSchemaInputSchema = z.object({
   type: z.string().describe('Unique type identifier'),
   displayName: z.string().describe('Human-readable name'),
   color: z.string().describe('Hex color for the node'),
-  description: z.string().optional().describe('Description for AI context'),
+  semanticDescription: z.string().optional().describe('Description for AI context'),
   displayField: z.string().optional().describe('Field to use as node title'),
   fields: z
     .array(
@@ -78,8 +78,8 @@ const CreateSchemaInputSchema = z.object({
         name: z.string(),
         label: z.string(),
         type: z.enum(['string', 'number', 'boolean', 'date', 'enum']),
-        description: z.string().optional(),
-        options: z.array(z.string()).optional(),
+        semanticDescription: z.string().optional(),
+        options: z.array(z.object({ value: z.string(), semanticDescription: z.string().optional() })).optional(),
         default: z.unknown().optional(),
         placeholder: z.string().optional(),
       })
@@ -93,7 +93,7 @@ const CreateSchemaInputSchema = z.object({
         position: z.enum(['left', 'right', 'top', 'bottom']),
         offset: z.number(),
         label: z.string(),
-        description: z.string().optional(),
+        semanticDescription: z.string().optional(),
       })
     )
     .optional()
@@ -379,7 +379,7 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
           type: input.type,
           displayName: input.displayName,
           color: input.color,
-          description: input.description,
+          semanticDescription: input.semanticDescription,
           displayField: input.displayField,
           fields: input.fields,
           ports: input.ports,

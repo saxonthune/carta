@@ -206,6 +206,9 @@ Visit `http://localhost:5173/?doc=my-document-id` to open a specific document.
 | `src/components/DocumentBrowserModal.tsx` | Document browser/selector for server mode |
 | `src/components/ConnectionStatus.tsx` | Connection status indicator (server mode only) |
 | `src/components/PortSchemaEditor.tsx` | Two-panel editor for port schemas |
+| `src/components/SchemaCreationWizard.tsx` | Multi-step wizard for creating/editing construct schemas |
+| `src/components/ui/WizardModal.tsx` | Reusable multi-step wizard modal shell |
+| `src/ContextMenu.tsx` | Context menu for canvas right-click (includes "New Construct Schema") |
 | `src/constructs/compiler/index.ts` | Compiler engine that takes schemas/deployables as parameters |
 | `src/utils/examples.ts` | Utility to load bundled example .carta files |
 | `src/main.tsx` | Entry point, configures staticMode from VITE_STATIC_MODE env var |
@@ -317,7 +320,15 @@ src/components/Header.tsx                  → Header controls: title, export/im
 src/components/ProjectInfoModal.tsx        → Edit project title and description
 src/components/ExamplesModal.tsx           → Load example projects from bundled .carta files
 src/components/DocumentBrowserModal.tsx    → Browse/create/select documents (server mode, required on ?doc= missing)
+src/components/SchemaCreationWizard.tsx    → Multi-step wizard for creating/editing schemas
+src/components/ui/WizardModal.tsx          → Reusable wizard modal shell (steps, navigation, layout)
 src/utils/examples.ts                      → Load examples using Vite's import.meta.glob
+```
+
+### Add or modify context menus
+```
+src/ContextMenu.tsx                        → Canvas right-click menu (New Construct Schema, etc.)
+src/components/Map.tsx                     → Wires context menu state and rendering
 ```
 
 ## Testing Requirements

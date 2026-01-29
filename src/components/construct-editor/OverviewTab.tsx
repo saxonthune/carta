@@ -68,8 +68,8 @@ export default function OverviewTab({
         <label className="block mb-1 text-sm font-medium text-content">Description</label>
         <textarea
           className="w-full px-2.5 py-2 bg-surface rounded-md text-content text-sm resize-none focus:outline-none focus:border-accent transition-colors"
-          value={formData.description || ''}
-          onChange={(e) => updateField('description', e.target.value)}
+          value={formData.semanticDescription || ''}
+          onChange={(e) => updateField('semanticDescription', e.target.value)}
           placeholder="Describe what this construct represents..."
           rows={4}
         />

@@ -59,44 +59,6 @@ Carta uses a three-level depth system to create visual hierarchy and improve rea
 --color-surface-depth-3: #1c1410;  /* Darkest */
 ```
 
-## Island Design Pattern
-
-### Concept
-
-"Islands" are self-contained UI components with rounded corners and distinct backgrounds that float within larger containers. They create clear visual groupings and improve scannability.
-
-### Implementation
-
-**Structure**:
-- Rounded corners: `rounded-xl`
-- Background: `bg-surface-depth-2` (typically)
-- Padding: Responsive (`p-2` for fullscreen, `p-1.5` for dock)
-- No borders (removed white borders in favor of depth-based separation)
-
-**Examples**:
-- Construct lists (Built-in section, Custom section)
-- Deployables list
-- Tab containers in dock
-
-### Selection Highlighting
-
-Selected items within islands use a prominent accent highlight:
-
-```tsx
-className={`... ${
-  isSelected 
-    ? 'bg-accent/30 text-accent ring-2 ring-accent/60 shadow-sm shadow-accent/20' 
-    : 'text-content bg-transparent hover:bg-surface-depth-3/50'
-}`}
-```
-
-**Key Features**:
-- **Background**: `bg-accent/30` - Translucent accent color
-- **Text**: `text-accent` - Full accent color for text
-- **Ring**: `ring-2 ring-accent/60` - 2px ring with 60% opacity
-- **Shadow**: `shadow-sm shadow-accent/20` - Subtle glow effect
-- **Hover**: `hover:bg-surface-depth-3/50` - Subtle depth-3 background on hover for unselected items
-
 ## Layout Structure
 
 ### Typical Three-Column Layout

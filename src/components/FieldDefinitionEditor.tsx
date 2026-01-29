@@ -61,7 +61,7 @@ export default function FieldDefinitionEditor({
   const addOption = () => {
     if (!newOption.trim()) return;
     const options = field.options || [];
-    updateField({ options: [...options, newOption.trim()] });
+    updateField({ options: [...options, { value: newOption.trim() }] });
     setNewOption('');
   };
 
@@ -157,8 +157,8 @@ export default function FieldDefinitionEditor({
             <label className="block mb-1.5 text-xs font-medium text-content-muted">Description (AI context)</label>
             <textarea
               className="w-full px-3 py-2 bg-surface rounded text-content text-sm focus:outline-none focus:border-accent resize-y"
-              value={field.description || ''}
-              onChange={(e) => updateField({ description: e.target.value })}
+              value={field.semanticDescription || ''}
+              onChange={(e) => updateField({ semanticDescription: e.target.value })}
               placeholder="Describe this field's purpose for AI compilation..."
               rows={2}
             />
@@ -179,8 +179,8 @@ export default function FieldDefinitionEditor({
             <label className="flex items-center gap-2 text-xs font-medium text-content-muted cursor-pointer select-none">
               <input
                 type="checkbox"
-                checked={field.showInCollapsed ?? false}
-                onChange={(e) => updateField({ showInCollapsed: e.target.checked })}
+                checked={field.showInMinimalDisplay ?? false}
+                onChange={(e) => updateField({ showInMinimalDisplay: e.target.checked })}
                 className="w-4 h-4 accent-[var(--color-accent)]"
               />
               Show in Collapsed
@@ -193,7 +193,7 @@ export default function FieldDefinitionEditor({
               <div className="flex flex-wrap gap-1.5 mb-2">
                 {(field.options || []).map((opt, i) => (
                   <div key={i} className="flex items-center gap-1 px-2 py-1 bg-surface-alt rounded text-sm text-content">
-                    <span>{opt}</span>
+                    <span>{opt.value}</span>
                     <button
                       className="w-4 h-4 flex items-center justify-center bg-transparent border-none rounded-full text-content-muted cursor-pointer text-sm hover:bg-danger hover:text-white"
                       onClick={() => removeOption(i)}

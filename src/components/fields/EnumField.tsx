@@ -19,8 +19,8 @@ export default function EnumField({ field, value, onChange }: EnumFieldProps) {
       >
         <option value="">Select...</option>
         {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
+          <option key={option.value} value={option.value}>
+            {option.value}
           </option>
         ))}
       </select>

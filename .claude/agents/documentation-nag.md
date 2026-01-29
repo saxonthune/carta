@@ -14,6 +14,13 @@ These files must stay in sync with the codebase:
 |------|---------|------------------|
 | `CLAUDE.md` | Main project instructions, key files, common tasks | After any significant code change |
 | `.cursor/rules/about.mdc` | Architecture overview, component tree | After file/component additions |
+| `.cursor/rules/clean-composable-react.mdc` | React patterns, hooks, state management | When React patterns or hook conventions change |
+| `.cursor/rules/look-and-feel.mdc` | Visual depth system, island patterns | When UI design system or visual patterns change |
+| `.cursor/rules/metamodel-design.mdc` | Three-level metamodel (M2/M1/M0) | When metamodel design or type system changes |
+| `.cursor/rules/ports-and-connections.mdc` | Port model, connection semantics | When port types or connection rules change |
+| `.cursor/rules/react-flow.mdc` | React Flow patterns, handles, node types | When React Flow integration patterns change |
+| `.cursor/rules/styling-best-practices.mdc` | UI styling standards, spacing, buttons, colors | When styling conventions or design tokens change |
+| `.cursor/rules/yjs-collaboration.mdc` | Yjs collaboration preparation | When collaboration patterns or Yjs usage changes |
 | `tasks/context.md` | Quick reference for task agents | After structural changes |
 | `packages/core/src/guides/metamodel.ts` | AI guide explaining the three-level metamodel | When metamodel or data structures change |
 | `packages/core/src/guides/analysis.ts` | AI guide for analyzing Carta documents | When analysis patterns or validation logic changes |
@@ -31,6 +38,46 @@ These files must stay in sync with the codebase:
 - Component tree changes (new components, renames, removals)
 - File structure changes
 - New subsystems or patterns
+
+### .cursor/rules/clean-composable-react.mdc
+- New React patterns or conventions
+- Hook composition changes
+- State management approach changes
+- Component design principles updates
+
+### .cursor/rules/look-and-feel.mdc
+- Visual depth system changes (island shadows, elevation)
+- New UI patterns or components
+- Design token updates
+
+### .cursor/rules/metamodel-design.mdc
+- Type system changes (ConstructSchema, FieldSchema, PortConfig interfaces)
+- Metamodel level definitions (M2/M1/M0)
+- Dual-mandate balance considerations
+
+### .cursor/rules/ports-and-connections.mdc
+- Port schema definitions (built-in ports)
+- Polarity rules (source/sink/bidirectional)
+- Connection validation logic
+- Wildcard compatibility rules
+
+### .cursor/rules/react-flow.mdc
+- React Flow integration patterns
+- Handle positioning conventions
+- Node type definitions
+- Edge rendering patterns
+
+### .cursor/rules/styling-best-practices.mdc
+- Spacing conventions (4px grid)
+- Button hierarchy rules
+- Color semantic usage
+- Typography standards
+
+### .cursor/rules/yjs-collaboration.mdc
+- Yjs document structure
+- Collaboration patterns
+- Undo/redo handling
+- Persistence strategy
 
 ### tasks/context.md
 - Component tree changes
@@ -159,6 +206,13 @@ After auditing and updating, provide a summary:
 ### Documentation Updated
 - `CLAUDE.md` - {what changed}
 - `.cursor/rules/about.mdc` - {what changed}
+- `.cursor/rules/clean-composable-react.mdc` - {what changed}
+- `.cursor/rules/look-and-feel.mdc` - {what changed}
+- `.cursor/rules/metamodel-design.mdc` - {what changed}
+- `.cursor/rules/ports-and-connections.mdc` - {what changed}
+- `.cursor/rules/react-flow.mdc` - {what changed}
+- `.cursor/rules/styling-best-practices.mdc` - {what changed}
+- `.cursor/rules/yjs-collaboration.mdc` - {what changed}
 - `tasks/context.md` - {what changed}
 - `packages/core/src/guides/metamodel.ts` - {what changed}
 - `packages/core/src/guides/analysis.ts` - {what changed}

@@ -12,10 +12,13 @@ App.tsx
 ├── Header.tsx                    # Title, export/import, settings menu, theme, Share (server mode)
 │   ├── ConnectionStatus.tsx      # Connection indicator (server mode only)
 │   └── DocumentBrowserModal.tsx  # Document browser/selector (server mode)
-├── Map.tsx                       # React Flow canvas, context menus
+├── Map.tsx                       # React Flow canvas, context menus, wizard state
 │   ├── ConstructNode.tsx         # Node rendering, port handles, tooltips
 │   │   └── Handle (per port)     # Port connection points, hover state
-│   └── DeployableBackground.tsx  # Colored regions for deployables
+│   ├── DeployableBackground.tsx  # Colored regions for deployables
+│   ├── SchemaCreationWizard.tsx  # Multi-step wizard for schema creation/editing
+│   │   └── ui/WizardModal.tsx    # Reusable wizard modal shell
+│   └── ContextMenu.tsx (src/)    # Canvas right-click menu ("New Construct Schema", etc.)
 ├── Drawer.tsx                    # Right-side panel with floating tabs
 │   ├── ConstructEditor.tsx       # Schema CRUD (Constructs tab)
 │   │   └── GroupedSchemaList.tsx # Grouped schema listing
@@ -98,6 +101,11 @@ When user references a file, check the tree to find the actual component handlin
 - Removed singleton registries (registry.ts, deployables.ts)
 - All state access via useDocument() hook through adapter
 - Schema grouping feature added
+- Type rename: `description` -> `semanticDescription` on ConstructSchema, FieldSchema, PortConfig
+- Structured enum options: FieldSchema.options changed from `string[]` to `{ value: string; semanticDescription?: string }[]`
+- SchemaCreationWizard: Multi-step wizard for creating/editing construct schemas (Basics, Fields, Ports)
+- WizardModal: Reusable multi-step wizard modal shell in `src/components/ui/`
+- Context menu: "New Construct Schema" added to pane right-click menu
 
 ## Conventions
 
