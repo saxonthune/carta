@@ -64,15 +64,18 @@ The application uses a dual-view layout toggled via the Header:
   - **ExamplesModal** - Load bundled example .carta files from `/examples/` directory
   - **DocumentBrowserModal** - Browse/create/select documents in server mode, required mode when ?doc= missing
   - **ConnectionStatus** - Connection status indicator (server mode only)
-- **Map** - ReactFlow canvas with zoom controls, node operations, context menus, SchemaCreationWizard, virtual-parent node type
+- **Map** - ReactFlow canvas with zoom controls, node operations, context menus, SchemaCreationWizard, virtual-parent node type, edge bundling, smoothstep edges
+  - **ConstructNode** - Node rendering with inline/collapsed ports (portDisplayPolicy), color picker (backgroundColorPolicy: defaultOnly/tints/any), expandable/collapsible
   - **VirtualParentNode** - Visual grouping container for child constructs (expandable/collapsible)
+  - **BundledEdge** - Custom edge component for bundled parallel edges with count badge (smoothstep style)
+  - **PortPickerPopover** (`src/components/ui/PortPickerPopover.tsx`) - Popover for selecting ports when portDisplayPolicy is 'collapsed'
   - **SchemaCreationWizard** - Multi-step wizard for creating/editing construct schemas (Basics, Fields, Ports)
-  - **ContextMenu** (`src/ContextMenu.tsx`) - Shared context menu; Map view includes "Add Node Here", "Paste", node/edge ops
+  - **ContextMenu** (`src/ContextMenu.tsx`) - Shared context menu using ContextMenuPrimitive; Map view includes "Add Node Here", "Paste", node/edge ops
 - **Metamap** - ReactFlow canvas for schema-level view with auto-layout
   - **SchemaNode** - Renders construct schemas with port diamonds
   - **SchemaGroupNode** - Renders schema groups
   - **MetamapConnectionModal** - Modal for creating inter-schema connections (includes port color picker)
-  - **ContextMenu** (`src/ContextMenu.tsx`) - Shared context menu; Metamap view shows only "New Construct Schema" and "New Group"
+  - **ContextMenu** (`src/ContextMenu.tsx`) - Shared context menu using ContextMenuPrimitive; Metamap view shows only "New Construct Schema" and "New Group"
 
 ### 2. Document Adapter Layer (`src/stores/`)
 - DocumentAdapter interface defines contract for all state operations

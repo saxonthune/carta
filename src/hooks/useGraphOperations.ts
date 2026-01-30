@@ -22,6 +22,7 @@ export interface UseGraphOperationsResult {
   updateNodeValues: (nodeId: string, values: ConstructValues) => void;
   toggleNodeExpand: (nodeId: string) => void;
   updateNodeDeployable: (nodeId: string, deployableId: string | null) => void;
+  updateNodeInstanceColor: (nodeId: string, color: string | null) => void;
   createVirtualParent: (parentNodeId: string, portId: string) => void;
   toggleVirtualParentCollapse: (virtualParentId: string) => void;
   removeVirtualParent: (virtualParentId: string) => void;
@@ -339,6 +340,19 @@ export function useGraphOperations(options: UseGraphOperationsOptions): UseGraph
     [setNodes]
   );
 
+  const updateNodeInstanceColor = useCallback(
+    (nodeIdToUpdate: string, color: string | null) => {
+      setNodes((nds) =>
+        nds.map((n) =>
+          n.id === nodeIdToUpdate
+            ? { ...n, data: { ...n.data, instanceColor: color } }
+            : n
+        )
+      );
+    },
+    [setNodes]
+  );
+
   const removeVirtualParent = useCallback(
     (virtualParentId: string) => {
       setNodes((nds) =>
@@ -372,6 +386,7 @@ export function useGraphOperations(options: UseGraphOperationsOptions): UseGraph
     updateNodeValues,
     toggleNodeExpand,
     updateNodeDeployable,
+    updateNodeInstanceColor,
     createVirtualParent,
     toggleVirtualParentCollapse,
     removeVirtualParent,

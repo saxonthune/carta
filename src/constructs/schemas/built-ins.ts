@@ -523,6 +523,34 @@ export const builtInConstructSchemas: ConstructSchema[] = [
     compilation: { format: 'json' },
   },
 
+  // Note
+  {
+    type: 'note',
+    displayName: 'Note',
+    color: '#fbbf24',
+    semanticDescription: 'A freeform note or annotation',
+    backgroundColorPolicy: 'any',
+    portDisplayPolicy: 'collapsed',
+    fields: [
+      {
+        name: 'content',
+        label: 'Content',
+        type: 'string',
+        displayHint: 'multiline',
+        semanticDescription: 'Freeform note content',
+        placeholder: 'Type here...',
+        showInMinimalDisplay: true,
+      },
+    ],
+    ports: [
+      { id: 'link', portType: 'symmetric', position: 'right', offset: 50, label: 'Link' },
+    ],
+    compilation: {
+      format: 'json',
+      sectionHeader: '# Notes',
+    },
+  },
+
   // Implementation Details
   {
     type: 'implementation-details',

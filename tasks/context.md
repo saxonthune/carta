@@ -63,14 +63,24 @@ When user references a file, check the tree to find the actual component handlin
 - `src/components/Header.tsx` - Top bar, settings, export/import, Map/Metamap toggle, Share (server mode)
 - `src/components/ConnectionStatus.tsx` - Connection indicator (server mode only)
 - `src/components/DocumentBrowserModal.tsx` - Document browser (server mode, required when ?doc= missing)
-- `src/components/ConstructNode.tsx` - Node rendering, port handles, port hover tooltips
-- `src/components/Map.tsx` - React Flow canvas (instance view), context menus, drag-drop
+- `src/components/ConstructNode.tsx` - Node rendering, port handles (inline/collapsed), color picker (defaultOnly/tints/any), tooltips
+- `src/components/Map.tsx` - React Flow canvas (instance view), context menus, drag-drop, edge bundling, smoothstep edges
 - `src/components/Metamap.tsx` - React Flow canvas (schema view), auto-layout, schema connections
+- `src/components/BundledEdge.tsx` - Custom edge component for bundled parallel edges with count badge
+- `src/components/ui/ContextMenuPrimitive.tsx` - Reusable context menu with nested submenus
+- `src/components/ui/PortPickerPopover.tsx` - Port picker popover for collapsed port nodes
+- `src/utils/colorUtils.ts` - Color utilities: hexToHsl, hslToHex, generateTints (7-stop lightness 92%-45%)
+- `src/hooks/useEdgeBundling.ts` - Hook for grouping parallel edges between same node pair
 
 **Existing Behaviors:**
-- Port hover: Shows `port.label` tooltip (ConstructNode.tsx:108-121)
-- Port colors: Determined by `getPortColor(port.portType)`
+- Port hover: Shows `port.label` tooltip with optional long-hover semantic description (ConstructNode.tsx)
+- Port colors: Determined by `getPortColor(port.portType)` from port schema
 - Node selection: Border + shadow via `selected` prop
+- Port display modes: 'inline' (visible handles) or 'collapsed' (hidden, click port icon to reveal PortPickerPopover)
+- Background color picker: 'defaultOnly' (no picker), 'tints' (7 swatches 92%-45% lightness), or 'any' (full HTML5 color picker)
+- Instance color: Stored in `instanceColor` field, visual-only, not compiled, reset to null to use schema default
+- Edge bundling: Parallel edges (same source/target nodes + port types) grouped visually with count badge
+- Edge style: Smoothstep (curved) connections for all edges
 
 **Editors:**
 - `src/components/InstanceEditor.tsx` - Node instance editor
@@ -118,6 +128,14 @@ When user references a file, check the tree to find the actual component handlin
 - MetamapConnectionModal: Port color picker added for new port creation during schema connections
 - Header toggle renamed: "Instances" → "Map" (toggles between Map and Metamap views)
 - ContextMenu: Instance callbacks (onAddNode, onDeleteNode, etc.) now optional; Metamap only shows "New Construct Schema" and "New Group"
+- Node facelift: Added backgroundColorPolicy ('defaultOnly', 'tints', 'any') and portDisplayPolicy ('inline', 'collapsed') to ConstructSchema
+- Instance colors: ConstructNodeData.instanceColor for visual-only color overrides
+- ContextMenuPrimitive: Reusable context menu primitive with nested submenu support (replaces inline implementations)
+- Color utilities: hexToHsl, hslToHex, generateTints (7-stop tint generation) in colorUtils.ts
+- PortPickerPopover: Port selection popover for collapsed port nodes
+- Edge bundling: useEdgeBundling hook and BundledEdge component group parallel edges with count badge
+- Edge style: Changed from straight to smoothstep (curved) connections
+- Note schema: Built-in note type with backgroundColorPolicy: 'any' and portDisplayPolicy: 'collapsed'
 
 ## Conventions
 

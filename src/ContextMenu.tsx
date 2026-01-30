@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
+import { useMemo } from 'react';
+import ContextMenuPrimitive, { type MenuItem } from './components/ui/ContextMenuPrimitive';
 import type { SchemaGroup } from './constructs/types';
 
 export type ContextMenuType = 'pane' | 'node' | 'edge';
@@ -19,9 +20,6 @@ export interface ConstructOption {
   color: string;
   groupId?: string;
 }
-
-// Delay before closing submenus (allows diagonal mouse movement)
-const SUBMENU_CLOSE_DELAY = 100;
 
 interface ContextMenuProps {
   x: number;
@@ -47,10 +45,52 @@ interface ContextMenuProps {
   onClose: () => void;
 }
 
-// Group related constructs by their groupId
-interface GroupedRelated {
-  group: SchemaGroup | null;
-  items: RelatedConstructOption[];
+// Group items by their groupId into MenuItem[] with nested children
+function groupIntoMenuItems<T extends { groupId?: string }>(
+  items: T[],
+  schemaGroups: SchemaGroup[],
+  toMenuItem: (item: T) => MenuItem,
+): MenuItem[] {
+  const groupLookup = new Map(schemaGroups.map(g => [g.id, g]));
+  const groupMap = new Map<string | null, T[]>();
+
+  for (const item of items) {
+    const key = item.groupId || null;
+    if (!groupMap.has(key)) groupMap.set(key, []);
+    groupMap.get(key)!.push(item);
+  }
+
+  const hasMultipleGroups = groupMap.size > 1 || (groupMap.size === 1 && !groupMap.has(null));
+
+  if (!hasMultipleGroups) {
+    return items.map(toMenuItem);
+  }
+
+  const result: MenuItem[] = [];
+  for (const [groupId, groupItems] of groupMap) {
+    if (groupId) {
+      const group = groupLookup.get(groupId);
+      result.push({
+        key: `group-${groupId}`,
+        label: `${group?.name || 'Other'} (${groupItems.length})`,
+        color: group?.color,
+        children: groupItems.map(toMenuItem),
+      });
+    }
+  }
+  const ungrouped = groupMap.get(null);
+  if (ungrouped) {
+    if (result.length > 0) {
+      result.push({
+        key: 'group-ungrouped',
+        label: `Other (${ungrouped.length})`,
+        children: ungrouped.map(toMenuItem),
+      });
+    } else {
+      result.push(...ungrouped.map(toMenuItem));
+    }
+  }
+  return result;
 }
 
 export default function ContextMenu({
@@ -76,463 +116,145 @@ export default function ContextMenu({
   onNewConstructSchema,
   onNewGroup,
 }: ContextMenuProps) {
-  const menuRef = useRef<HTMLDivElement>(null);
-  const [showRelatedSubmenu, setShowRelatedSubmenu] = useState(false);
-  const [showConstructSubmenu, setShowConstructSubmenu] = useState(false);
-  const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
-  const [expandedConstructGroup, setExpandedConstructGroup] = useState<string | null>(null);
-  const relatedSubmenuTimeout = useRef<number | null>(null);
-  const constructSubmenuTimeout = useRef<number | null>(null);
-  const groupSubmenuTimeout = useRef<number | null>(null);
-  const constructGroupSubmenuTimeout = useRef<number | null>(null);
+  const showMultipleSelected = selectedCount > 1;
 
-  // Clear timeouts on unmount
-  useEffect(() => {
-    return () => {
-      if (relatedSubmenuTimeout.current) clearTimeout(relatedSubmenuTimeout.current);
-      if (constructSubmenuTimeout.current) clearTimeout(constructSubmenuTimeout.current);
-      if (groupSubmenuTimeout.current) clearTimeout(groupSubmenuTimeout.current);
-      if (constructGroupSubmenuTimeout.current) clearTimeout(constructGroupSubmenuTimeout.current);
-    };
-  }, []);
-
-  const handleRelatedSubmenuEnter = useCallback(() => {
-    if (relatedSubmenuTimeout.current) {
-      clearTimeout(relatedSubmenuTimeout.current);
-      relatedSubmenuTimeout.current = null;
+  const items = useMemo((): MenuItem[] => {
+    if (type === 'pane') {
+      return buildPaneMenuItems();
     }
-    setShowRelatedSubmenu(true);
-  }, []);
-
-  const handleRelatedSubmenuLeave = useCallback(() => {
-    relatedSubmenuTimeout.current = window.setTimeout(() => {
-      setShowRelatedSubmenu(false);
-      setExpandedGroup(null);
-    }, SUBMENU_CLOSE_DELAY);
-  }, []);
-
-  const handleConstructSubmenuEnter = useCallback(() => {
-    if (constructSubmenuTimeout.current) {
-      clearTimeout(constructSubmenuTimeout.current);
-      constructSubmenuTimeout.current = null;
+    if (type === 'node') {
+      return buildNodeMenuItems();
     }
-    setShowConstructSubmenu(true);
-  }, []);
-
-  const handleConstructSubmenuLeave = useCallback(() => {
-    constructSubmenuTimeout.current = window.setTimeout(() => {
-      setShowConstructSubmenu(false);
-      setExpandedConstructGroup(null);
-    }, SUBMENU_CLOSE_DELAY);
-  }, []);
-
-  const handleGroupEnter = useCallback((groupId: string) => {
-    if (groupSubmenuTimeout.current) {
-      clearTimeout(groupSubmenuTimeout.current);
-      groupSubmenuTimeout.current = null;
+    if (type === 'edge') {
+      return buildEdgeMenuItems();
     }
-    setExpandedGroup(groupId);
-  }, []);
+    return [];
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [type, nodeId, edgeId, selectedCount, relatedConstructs, constructOptions, canPaste]);
 
-  const handleGroupLeave = useCallback(() => {
-    groupSubmenuTimeout.current = window.setTimeout(() => {
-      setExpandedGroup(null);
-    }, SUBMENU_CLOSE_DELAY);
-  }, []);
+  function buildPaneMenuItems(): MenuItem[] {
+    const result: MenuItem[] = [];
 
-  const handleConstructGroupEnter = useCallback((groupId: string) => {
-    if (constructGroupSubmenuTimeout.current) {
-      clearTimeout(constructGroupSubmenuTimeout.current);
-      constructGroupSubmenuTimeout.current = null;
-    }
-    setExpandedConstructGroup(groupId);
-  }, []);
-
-  const handleConstructGroupLeave = useCallback(() => {
-    constructGroupSubmenuTimeout.current = window.setTimeout(() => {
-      setExpandedConstructGroup(null);
-    }, SUBMENU_CLOSE_DELAY);
-  }, []);
-
-  // Group related constructs by their groupId
-  const groupedRelated = useMemo((): GroupedRelated[] => {
-    if (!relatedConstructs || relatedConstructs.length === 0) return [];
-
-    const groupMap = new Map<string | null, RelatedConstructOption[]>();
-
-    // Build lookup for groups
-    const groupLookup = new Map(schemaGroups.map(g => [g.id, g]));
-
-    for (const item of relatedConstructs) {
-      const key = item.groupId || null;
-      if (!groupMap.has(key)) {
-        groupMap.set(key, []);
+    if (onAddConstruct) {
+      if (constructOptions && constructOptions.length > 0) {
+        const children = groupIntoMenuItems(
+          constructOptions,
+          schemaGroups,
+          (c) => ({
+            key: `add-${c.constructType}`,
+            label: c.displayName,
+            color: c.color,
+            onClick: () => onAddConstruct(c.constructType, x, y),
+          }),
+        );
+        result.push({
+          key: 'add-node',
+          label: `Add Node Here (${constructOptions.length})`,
+          children,
+        });
+      } else if (onAddNode) {
+        result.push({
+          key: 'add-node',
+          label: '+ Add Node Here',
+          onClick: () => onAddNode(x, y),
+        });
       }
-      groupMap.get(key)!.push(item);
-    }
 
-    // Convert to array, with grouped items first, then ungrouped
-    const result: GroupedRelated[] = [];
-    for (const [groupId, items] of groupMap) {
-      if (groupId) {
-        const group = groupLookup.get(groupId) || null;
-        result.push({ group, items });
+      if (canPaste && onPasteNodes) {
+        result.push({
+          key: 'paste',
+          label: 'Paste',
+          onClick: () => onPasteNodes(x, y),
+        });
       }
     }
-    // Add ungrouped items at the end
-    const ungrouped = groupMap.get(null);
-    if (ungrouped) {
-      result.push({ group: null, items: ungrouped });
+
+    if (onNewConstructSchema || onNewGroup) {
+      if (result.length > 0) {
+        result[result.length - 1].dividerAfter = true;
+      }
+      if (onNewConstructSchema) {
+        result.push({
+          key: 'new-schema',
+          label: 'New Construct Schema',
+          onClick: onNewConstructSchema,
+        });
+      }
+      if (onNewGroup) {
+        result.push({
+          key: 'new-group',
+          label: 'New Group',
+          onClick: onNewGroup,
+        });
+      }
     }
 
     return result;
-  }, [relatedConstructs, schemaGroups]);
-
-  // Group construct options by their groupId
-  interface GroupedConstructs {
-    group: SchemaGroup | null;
-    items: ConstructOption[];
   }
 
-  const groupedConstructs = useMemo((): GroupedConstructs[] => {
-    if (!constructOptions || constructOptions.length === 0) return [];
+  function buildNodeMenuItems(): MenuItem[] {
+    const result: MenuItem[] = [];
 
-    const groupMap = new Map<string | null, ConstructOption[]>();
+    result.push({
+      key: 'copy',
+      label: `Copy ${showMultipleSelected ? `(${selectedCount})` : ''}`,
+      onClick: () => onCopyNodes?.(),
+    });
 
-    // Build lookup for groups
-    const groupLookup = new Map(schemaGroups.map(g => [g.id, g]));
-
-    for (const item of constructOptions) {
-      const key = item.groupId || null;
-      if (!groupMap.has(key)) {
-        groupMap.set(key, []);
-      }
-      groupMap.get(key)!.push(item);
+    if (!showMultipleSelected && relatedConstructs && relatedConstructs.length > 0) {
+      const children = groupIntoMenuItems(
+        relatedConstructs,
+        schemaGroups,
+        (r) => ({
+          key: `related-${r.constructType}-${r.fromPortId || ''}-${r.toPortId || ''}`,
+          label: r.label || r.displayName,
+          color: r.color,
+          onClick: () => onAddRelatedConstruct?.(r.constructType, r.fromPortId, r.toPortId),
+        }),
+      );
+      result.push({
+        key: 'add-related',
+        label: `Add Related (${relatedConstructs.length})`,
+        children,
+      });
     }
 
-    // Convert to array, with grouped items first, then ungrouped
-    const result: GroupedConstructs[] = [];
-    for (const [groupId, items] of groupMap) {
-      if (groupId) {
-        const group = groupLookup.get(groupId) || null;
-        result.push({ group, items });
-      }
-    }
-    // Add ungrouped items at the end
-    const ungrouped = groupMap.get(null);
-    if (ungrouped) {
-      result.push({ group: null, items: ungrouped });
+    if (showMultipleSelected) {
+      result.push({
+        key: 'delete-selected',
+        label: `Delete ${selectedCount} nodes`,
+        danger: true,
+        onClick: () => onDeleteSelected?.(),
+      });
+    } else {
+      result.push({
+        key: 'delete',
+        label: 'Delete',
+        danger: true,
+        onClick: () => nodeId && onDeleteNode?.(nodeId),
+      });
     }
 
     return result;
-  }, [constructOptions, schemaGroups]);
+  }
 
-  // Determine if we need nested submenus (multiple groups)
-  const hasMultipleGroups = groupedRelated.length > 1 || (groupedRelated.length === 1 && groupedRelated[0].group !== null);
-  const hasMultipleConstructGroups = groupedConstructs.length > 1 || (groupedConstructs.length === 1 && groupedConstructs[0].group !== null);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        onClose();
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [onClose]);
-
-  const handleAddNode = useCallback(() => {
-    if (onAddNode) {
-      onAddNode(x, y);
-    }
-    onClose();
-  }, [x, y, onAddNode, onClose]);
-
-  const handleDeleteNode = useCallback(() => {
-    if (nodeId && onDeleteNode) {
-      onDeleteNode(nodeId);
-    }
-    onClose();
-  }, [nodeId, onDeleteNode, onClose]);
-
-  const handleDeleteSelected = useCallback(() => {
-    if (onDeleteSelected) {
-      onDeleteSelected();
-    }
-    onClose();
-  }, [onDeleteSelected, onClose]);
-
-  const handleCopyNodes = useCallback(() => {
-    if (onCopyNodes) {
-      onCopyNodes();
-    }
-    onClose();
-  }, [onCopyNodes, onClose]);
-
-  const handlePasteNodes = useCallback(() => {
-    if (onPasteNodes) {
-      onPasteNodes(x, y);
-    }
-    onClose();
-  }, [x, y, onPasteNodes, onClose]);
-
-  const handleDeleteEdge = useCallback(() => {
-    if (edgeId && onDeleteEdge) {
-      onDeleteEdge(edgeId);
-    }
-    onClose();
-  }, [edgeId, onDeleteEdge, onClose]);
-
-  const handleAddRelatedConstruct = useCallback((constructType: string, fromPortId?: string, toPortId?: string) => {
-    if (onAddRelatedConstruct) {
-      onAddRelatedConstruct(constructType, fromPortId, toPortId);
-    }
-    onClose();
-  }, [onAddRelatedConstruct, onClose]);
-
-  const handleAddConstruct = useCallback((constructType: string) => {
-    if (onAddConstruct) {
-      onAddConstruct(constructType, x, y);
-    }
-    onClose();
-  }, [onAddConstruct, x, y, onClose]);
-
-  const showMultipleSelected = selectedCount > 1;
-  const hasRelatedConstructs = relatedConstructs && relatedConstructs.length > 0;
-  const hasConstructOptions = constructOptions && constructOptions.length > 0;
+  function buildEdgeMenuItems(): MenuItem[] {
+    return [
+      {
+        key: 'delete-edge',
+        label: 'Delete Connection',
+        danger: true,
+        onClick: () => edgeId && onDeleteEdge?.(edgeId),
+      },
+    ];
+  }
 
   return (
-    <div
-      ref={menuRef}
-      className="fixed z-[1000] bg-white rounded-lg shadow-lg min-w-[150px]"
-      style={{ left: x, top: y }}
-    >
-      {type === 'pane' && (
-        <>
-          {/* Only show node-adding options if onAddConstruct callback is provided */}
-          {onAddConstruct && (
-            <>
-              {hasConstructOptions ? (
-                <div
-                  className="relative"
-                  onMouseEnter={handleConstructSubmenuEnter}
-                  onMouseLeave={handleConstructSubmenuLeave}
-                >
-                  <button
-                    className="block w-full px-4 py-2.5 border-none bg-white text-gray-800 text-sm text-left cursor-pointer hover:bg-gray-100 transition-colors flex items-center justify-between"
-                  >
-                    <span>Add Node Here {constructOptions!.length > 0 ? `(${constructOptions!.length})` : ''}</span>
-                    <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <polyline points="9 18 15 12 9 6" />
-                    </svg>
-                  </button>
-                  {showConstructSubmenu && (
-                    <div className="absolute left-full top-0 bg-white rounded-lg shadow-lg min-w-[180px]">
-                      {hasMultipleConstructGroups ? (
-                        // Render grouped submenus
-                        groupedConstructs.map((groupData, groupIndex) => {
-                          const groupKey = groupData.group?.id || 'ungrouped';
-                          return (
-                            <div
-                              key={groupKey}
-                              className="relative"
-                              onMouseEnter={() => handleConstructGroupEnter(groupKey)}
-                              onMouseLeave={handleConstructGroupLeave}
-                            >
-                              <button
-                                className="block w-full px-4 py-2.5 border-none bg-white text-gray-800 text-sm text-left cursor-pointer hover:bg-gray-100 transition-colors flex items-center justify-between"
-                                style={groupData.group ? { borderLeft: `3px solid ${groupData.group.color}` } : undefined}
-                              >
-                                <span>{groupData.group?.name || 'Other'} ({groupData.items.length})</span>
-                                <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                  <polyline points="9 18 15 12 9 6" />
-                                </svg>
-                              </button>
-                              {expandedConstructGroup === groupKey && (
-                                <div className="absolute left-full top-0 bg-white rounded-lg shadow-lg min-w-[180px]">
-                                  {groupData.items.map((construct, index) => (
-                                    <button
-                                      key={index}
-                                      className="block w-full px-4 py-2.5 border-none border-l-[3px] border-l-transparent bg-white text-gray-800 text-sm text-left cursor-pointer hover:bg-gray-100 transition-colors"
-                                      style={{ borderLeftColor: construct.color }}
-                                      onClick={() => handleAddConstruct(construct.constructType)}
-                                    >
-                                      {construct.displayName}
-                                    </button>
-                                  ))}
-                                </div>
-                              )}
-                              {groupIndex < groupedConstructs.length - 1 && (
-                                <div className="border-t border-gray-100 my-0.5" />
-                              )}
-                            </div>
-                          );
-                        })
-                      ) : (
-                        // Render flat list (no groups or single ungrouped set)
-                        constructOptions!.map((construct, index) => (
-                          <button
-                            key={index}
-                            className="block w-full px-4 py-2.5 border-none border-l-[3px] border-l-transparent bg-white text-gray-800 text-sm text-left cursor-pointer hover:bg-gray-100 transition-colors"
-                            style={{ borderLeftColor: construct.color }}
-                            onClick={() => handleAddConstruct(construct.constructType)}
-                          >
-                            {construct.displayName}
-                          </button>
-                        ))
-                      )}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <button
-                  className="block w-full px-4 py-2.5 border-none bg-white text-gray-800 text-sm text-left cursor-pointer hover:bg-gray-100 transition-colors"
-                  onClick={handleAddNode}
-                >
-                  + Add Node Here
-                </button>
-              )}
-              {canPaste && (
-                <button
-                  className="block w-full px-4 py-2.5 border-none bg-white text-gray-800 text-sm text-left cursor-pointer hover:bg-gray-100 transition-colors"
-                  onClick={handlePasteNodes}
-                >
-                  Paste
-                </button>
-              )}
-            </>
-          )}
-          {/* Show schema/group creation options - available in both views */}
-          {(onNewConstructSchema || onNewGroup) && (
-            <>
-              {onAddConstruct && <div className="border-t border-gray-100 my-0.5" />}
-              {onNewConstructSchema && (
-                <button
-                  className="block w-full px-4 py-2.5 border-none bg-white text-gray-800 text-sm text-left cursor-pointer hover:bg-gray-100 transition-colors"
-                  onClick={() => { onNewConstructSchema(); onClose(); }}
-                >
-                  New Construct Schema
-                </button>
-              )}
-              {onNewGroup && (
-                <button
-                  className="block w-full px-4 py-2.5 border-none bg-white text-gray-800 text-sm text-left cursor-pointer hover:bg-gray-100 transition-colors"
-                  onClick={() => { onNewGroup(); onClose(); }}
-                >
-                  New Group
-                </button>
-              )}
-            </>
-          )}
-        </>
-      )}
-      {type === 'node' && (
-        <>
-          <button
-            className="block w-full px-4 py-2.5 border-none bg-white text-gray-800 text-sm text-left cursor-pointer hover:bg-gray-100 transition-colors"
-            onClick={handleCopyNodes}
-          >
-            Copy {showMultipleSelected ? `(${selectedCount})` : ''}
-          </button>
-          {!showMultipleSelected && hasRelatedConstructs && (
-            <div
-              className="relative"
-              onMouseEnter={handleRelatedSubmenuEnter}
-              onMouseLeave={handleRelatedSubmenuLeave}
-            >
-              <button
-                className="block w-full px-4 py-2.5 border-none bg-white text-gray-800 text-sm text-left cursor-pointer hover:bg-gray-100 transition-colors flex items-center justify-between"
-              >
-                <span>Add Related {relatedConstructs!.length > 0 ? `(${relatedConstructs!.length})` : ''}</span>
-                <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-              </button>
-              {showRelatedSubmenu && (
-                <div className="absolute left-full top-0 bg-white rounded-lg shadow-lg min-w-[180px]">
-                  {hasMultipleGroups ? (
-                    // Render grouped submenus
-                    groupedRelated.map((groupData, groupIndex) => {
-                      const groupKey = groupData.group?.id || 'ungrouped';
-                      return (
-                        <div
-                          key={groupKey}
-                          className="relative"
-                          onMouseEnter={() => handleGroupEnter(groupKey)}
-                          onMouseLeave={handleGroupLeave}
-                        >
-                          <button
-                            className="block w-full px-4 py-2.5 border-none bg-white text-gray-800 text-sm text-left cursor-pointer hover:bg-gray-100 transition-colors flex items-center justify-between"
-                            style={groupData.group ? { borderLeft: `3px solid ${groupData.group.color}` } : undefined}
-                          >
-                            <span>{groupData.group?.name || 'Other'} ({groupData.items.length})</span>
-                            <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <polyline points="9 18 15 12 9 6" />
-                            </svg>
-                          </button>
-                          {expandedGroup === groupKey && (
-                            <div className="absolute left-full top-0 bg-white rounded-lg shadow-lg min-w-[180px]">
-                              {groupData.items.map((related, index) => (
-                                <button
-                                  key={index}
-                                  className="block w-full px-4 py-2.5 border-none border-l-[3px] border-l-transparent bg-white text-gray-800 text-sm text-left cursor-pointer hover:bg-gray-100 transition-colors"
-                                  style={{ borderLeftColor: related.color }}
-                                  onClick={() => handleAddRelatedConstruct(related.constructType, related.fromPortId, related.toPortId)}
-                                >
-                                  {related.label || related.displayName}
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                          {groupIndex < groupedRelated.length - 1 && (
-                            <div className="border-t border-gray-100 my-0.5" />
-                          )}
-                        </div>
-                      );
-                    })
-                  ) : (
-                    // Render flat list (no groups or single ungrouped set)
-                    relatedConstructs!.map((related, index) => (
-                      <button
-                        key={index}
-                        className="block w-full px-4 py-2.5 border-none border-l-[3px] border-l-transparent bg-white text-gray-800 text-sm text-left cursor-pointer hover:bg-gray-100 transition-colors"
-                        style={{ borderLeftColor: related.color }}
-                        onClick={() => handleAddRelatedConstruct(related.constructType, related.fromPortId, related.toPortId)}
-                      >
-                        {related.label || related.displayName}
-                      </button>
-                    ))
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-          {showMultipleSelected ? (
-            <button
-              className="block w-full px-4 py-2.5 border-none bg-white text-red-600 text-sm text-left cursor-pointer hover:bg-red-50 transition-colors"
-              onClick={handleDeleteSelected}
-            >
-              Delete {selectedCount} nodes
-            </button>
-          ) : (
-            <button
-              className="block w-full px-4 py-2.5 border-none bg-white text-red-600 text-sm text-left cursor-pointer hover:bg-red-50 transition-colors"
-              onClick={handleDeleteNode}
-            >
-              Delete
-            </button>
-          )}
-        </>
-      )}
-      {type === 'edge' && (
-        <button
-          className="block w-full px-4 py-2.5 border-none bg-white text-red-600 text-sm text-left cursor-pointer hover:bg-red-50 transition-colors"
-          onClick={handleDeleteEdge}
-        >
-          Delete Connection
-        </button>
-      )}
-    </div>
+    <ContextMenuPrimitive
+      x={x}
+      y={y}
+      items={items}
+      onClose={onClose}
+    />
   );
 }

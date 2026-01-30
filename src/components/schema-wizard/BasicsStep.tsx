@@ -4,6 +4,9 @@ import Textarea from '../ui/Textarea';
 import { toSnakeCase } from '../../utils/stringUtils';
 import type { ConstructSchema } from '../../constructs/types';
 
+type BackgroundColorPolicy = NonNullable<ConstructSchema['backgroundColorPolicy']>;
+type PortDisplayPolicy = NonNullable<ConstructSchema['portDisplayPolicy']>;
+
 const DEFAULT_COLORS = [
   '#6366f1', '#8b5cf6', '#ec4899', '#ef4444',
   '#f97316', '#eab308', '#22c55e', '#14b8a6',
@@ -86,6 +89,33 @@ export default function BasicsStep({ formData, errors, updateField, schemaGroups
             value={formData.color}
             onChange={(e) => updateField('color', e.target.value)}
           />
+        </div>
+      </div>
+
+      <div>
+        <label className="block mb-1 text-sm font-medium text-content">Appearance</label>
+        <div className="flex gap-4">
+          <div className="flex-1">
+            <label className="block mb-1 text-[11px] text-content-muted">Background Color Policy</label>
+            <Select
+              value={formData.backgroundColorPolicy || 'defaultOnly'}
+              onChange={(e) => updateField('backgroundColorPolicy', e.target.value as BackgroundColorPolicy)}
+            >
+              <option value="defaultOnly">Default Only</option>
+              <option value="tints">Tints</option>
+              <option value="any">Any Color</option>
+            </Select>
+          </div>
+          <div className="flex-1">
+            <label className="block mb-1 text-[11px] text-content-muted">Port Display</label>
+            <Select
+              value={formData.portDisplayPolicy || 'inline'}
+              onChange={(e) => updateField('portDisplayPolicy', e.target.value as PortDisplayPolicy)}
+            >
+              <option value="inline">Inline</option>
+              <option value="collapsed">Collapsed</option>
+            </Select>
+          </div>
         </div>
       </div>
     </div>

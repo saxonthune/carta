@@ -130,8 +130,29 @@ interface ConstructSchema {
   fields: FieldSchema[];     // Data fields
   ports?: PortConfig[];      // Connection points
   compilation: CompilationConfig;
+  backgroundColorPolicy?: 'defaultOnly' | 'tints' | 'any';  // Controls instance color picker
+  portDisplayPolicy?: 'inline' | 'collapsed';                 // Controls port visibility
 }
 ```
+
+### backgroundColorPolicy
+
+Controls how users can customize the background color of construct instances:
+
+- **`defaultOnly`** (default): No color picker shown, instances use schema color
+- **`tints`**: Shows 7 tint swatches derived from schema color (light to dark via HSL)
+- **`any`**: Shows full color picker, users can select any hex color
+
+When set, instances can override their background color via the `instanceColor` field. This is visual-only and not included in compilation.
+
+### portDisplayPolicy
+
+Controls how port handles are displayed on construct nodes:
+
+- **`inline`** (default): Port handles visible on node edges, positioned by offset
+- **`collapsed`**: Ports hidden, click icon in header to reveal popover picker
+
+Collapsed ports are useful for note-like constructs or simple nodes where connections are secondary to content.
 
 ### displayField
 Specifies which field's value to show as the node title. If not set or empty, falls back to `semanticId`.
@@ -193,6 +214,7 @@ interface ConstructNodeData {
   values: ConstructValues;   // Field values
   connections?: ConnectionValue[];
   deployableId?: string | null;
+  instanceColor?: string;    // Visual-only color override (not compiled)
   isExpanded?: boolean;
 }
 ```
@@ -200,6 +222,8 @@ interface ConstructNodeData {
 **Note:** There is no `name` field. Node titles are derived using:
 1. `displayField` value from schema (if set and has value)
 2. `semanticId` as fallback
+
+**Visual Customization:** The `instanceColor` field allows per-instance background color overrides. This is visual-only and not included in compilation. Whether users can set this depends on the schema's `backgroundColorPolicy` setting.
 
 ### Virtual Parent Nodes
 

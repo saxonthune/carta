@@ -155,6 +155,8 @@ export interface ConstructSchema {
   suggestedRelated?: SuggestedRelatedConstruct[]; // Suggested related constructs for quick-add
   compilation: CompilationConfig;
   groupId?: string;          // References SchemaGroup.id for hierarchical organization
+  backgroundColorPolicy?: 'defaultOnly' | 'tints' | 'any';  // Controls instance color picker: 'defaultOnly' (no picker), 'tints' (7 tint swatches), 'any' (full color picker). default: 'defaultOnly'
+  portDisplayPolicy?: 'inline' | 'collapsed';                 // Controls port display: 'inline' (visible handles), 'collapsed' (hidden, click icon to reveal). default: 'inline'
 }
 
 // ===== M0: INSTANCE DATA =====
@@ -194,12 +196,15 @@ export interface ConstructNodeData {
   // Relationship metadata for AI consumption
   references?: string[];     // Semantic IDs this construct references
   referencedBy?: string[];   // Semantic IDs that reference this construct
+  // Visual overrides
+  instanceColor?: string;    // Hex color override, visual-only
   // UI state
   nodeId?: string;           // Technical UUID (passed from Map for display purposes)
   isExpanded?: boolean;
   onValuesChange?: (values: ConstructValues) => void;
   onToggleExpand?: () => void;
   onDeployableChange?: (deployableId: string | null) => void;
+  onInstanceColorChange?: (color: string | null) => void;
   deployables?: Deployable[]; // List of available deployables for dropdown
   // Index signature for React Flow compatibility
   [key: string]: unknown;

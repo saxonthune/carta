@@ -38,6 +38,7 @@ const UpdateConstructSchema = z.object({
   semanticId: z.string().describe('The semantic ID of the construct'),
   values: z.record(z.unknown()).optional().describe('Field values to update'),
   deployableId: z.string().nullable().optional().describe('Deployable ID to assign'),
+  instanceColor: z.string().nullable().optional().describe('Hex color override for node background (visual only)'),
 });
 
 const DeleteConstructSchema = z.object({
@@ -73,6 +74,8 @@ const CreateSchemaInputSchema = z.object({
   semanticDescription: z.string().optional().describe('Description for AI context'),
   displayField: z.string().optional().describe('Field to use as node title'),
   groupId: z.string().optional().describe('Schema group ID for organizing schemas'),
+  backgroundColorPolicy: z.enum(['defaultOnly', 'tints', 'any']).optional().describe('Controls instance color picker: "defaultOnly" (no picker), "tints" (7 tint swatches), "any" (full color picker). Default: "defaultOnly"'),
+  portDisplayPolicy: z.enum(['inline', 'collapsed']).optional().describe('Controls port display: "inline" (visible handles), "collapsed" (hidden, click icon to reveal). Default: "inline"'),
   fields: z
     .array(
       z.object({
@@ -163,6 +166,8 @@ export function getToolDefinitions() {
       description: `Create a custom construct schema. Smart defaults:
 - Primary fields (name, title, label, summary, condition) auto-get showInMinimalDisplay=true
 - If no ports specified, adds default ports: flow-in (left), flow-out (right), parent (bottom), child (top)
+- backgroundColorPolicy defaults to 'defaultOnly' (no color picker); use 'tints' for 7 swatches or 'any' for full picker
+- portDisplayPolicy defaults to 'inline' (visible handles); use 'collapsed' for hidden ports with click-to-reveal
 - For multiple related schemas, create them sequentially and consider grouping them with carta_create_deployable`,
       inputSchema: CreateSchemaInputSchema.shape,
     },
@@ -387,6 +392,8 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
           color: input.color,
           semanticDescription: input.semanticDescription,
           displayField: input.displayField,
+          backgroundColorPolicy: input.backgroundColorPolicy,
+          portDisplayPolicy: input.portDisplayPolicy,
           fields: input.fields,
           ports: input.ports,
         }
@@ -427,11 +434,11 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
     },
 
     carta_update_construct: async (args) => {
-      const { documentId, semanticId, values, deployableId } = UpdateConstructSchema.parse(args);
+      const { documentId, semanticId, values, deployableId, instanceColor } = UpdateConstructSchema.parse(args);
       const result = await apiRequest<{ construct: unknown }>(
         'PATCH',
         `/api/documents/${encodeURIComponent(documentId)}/constructs/${encodeURIComponent(semanticId)}`,
-        { values, deployableId }
+        { values, deployableId, instanceColor }
       );
       if (result.error) return { error: result.error };
       return result.data;

@@ -30,6 +30,8 @@ import { useClipboard } from '../hooks/useClipboard';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import type { ConstructValues, Deployable, ConstructNodeData, VirtualParentNodeData } from '../constructs/types';
 import SchemaCreationWizard from './SchemaCreationWizard';
+import BundledEdge from './BundledEdge';
+import { useEdgeBundling } from '../hooks/useEdgeBundling';
 
 const nodeTypes = {
   custom: CustomNode,
@@ -37,10 +39,15 @@ const nodeTypes = {
   'virtual-parent': VirtualParentNode,
 };
 
+const edgeTypes = {
+  bundled: BundledEdge,
+};
+
 // Restrict dragging to header only - allows clicking fields to edit
 const NODE_DRAG_HANDLE = '.node-drag-handle';
 
 const defaultEdgeOptions = {
+  type: 'smoothstep',
   style: {
     strokeWidth: 2,
     stroke: '#6366f1',
@@ -120,6 +127,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     updateNodeValues,
     toggleNodeExpand,
     updateNodeDeployable,
+    updateNodeInstanceColor,
     toggleVirtualParentCollapse,
   } = useGraphOperations({
     selectedNodeIds,
@@ -392,6 +400,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
         onToggleExpand: () => toggleNodeExpand(node.id),
         deployables,
         onDeployableChange: (deployableId: string | null) => updateNodeDeployable(node.id, deployableId),
+        onInstanceColorChange: (color: string | null) => updateNodeInstanceColor(node.id, color),
       },
     };
   });
@@ -424,11 +433,14 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     return edges.filter(e => !hiddenChildIds.has(e.source) && !hiddenChildIds.has(e.target));
   }, [edges, nodes]);
 
+  // Edge bundling: collapse parallel edges between same node pairs
+  const { displayEdges } = useEdgeBundling(filteredEdges, nodes);
+
   return (
     <div className="w-full h-full relative">
       <ReactFlow
         nodes={sortedNodes}
-        edges={filteredEdges}
+        edges={displayEdges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onEdgesDelete={handleEdgesDelete}
@@ -442,6 +454,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
         onPaneClick={onPaneClick}
         onMouseDown={onMouseDown}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         defaultEdgeOptions={defaultEdgeOptions}
         nodeDragThreshold={5}
         panOnDrag={[1, 2]}

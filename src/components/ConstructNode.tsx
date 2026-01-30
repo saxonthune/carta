@@ -1,9 +1,11 @@
-import { memo, useState, useEffect } from 'react';
+import { memo, useState, useEffect, useRef } from 'react';
 import { Handle, Position, NodeResizer } from '@xyflow/react';
 import { useDocument } from '../hooks/useDocument';
 import { getPortsForSchema, getHandleType, getPortColor } from '../constructs/ports';
 import CreateDeployablePopover from './CreateDeployablePopover';
-import type { ConstructNodeData, PortConfig, PortPosition } from '../constructs/types';
+import PortPickerPopover from './ui/PortPickerPopover';
+import { generateTints } from '../utils/colorUtils';
+import type { ConstructNodeData, PortConfig, PortPosition, ConstructSchema } from '../constructs/types';
 
 // Long hover delay in milliseconds
 const LONG_HOVER_DELAY = 800;
@@ -39,11 +41,72 @@ function getHandlePositionStyle(position: PortPosition, offset: number): React.C
   return { left: `${offset}%`, bottom: outside, transform: 'translateX(-50%)' };
 }
 
+// Inline color picker component
+function ColorPicker({ schema, instanceColor, onColorChange }: {
+  schema: ConstructSchema;
+  instanceColor?: string;
+  onColorChange: (color: string | null) => void;
+}) {
+  const policy = schema.backgroundColorPolicy || 'defaultOnly';
+
+  if (policy === 'defaultOnly') return null;
+
+  if (policy === 'tints') {
+    const tints = generateTints(schema.color, 7);
+    return (
+      <div className="flex gap-1 items-center">
+        {tints.map((tint) => (
+          <button
+            key={tint}
+            type="button"
+            className={`w-6 h-6 rounded border-2 cursor-pointer transition-all hover:scale-110 ${instanceColor === tint ? 'border-accent shadow-[0_0_0_2px_var(--color-accent)]' : 'border-transparent'}`}
+            style={{ backgroundColor: tint }}
+            onClick={(e) => { e.stopPropagation(); onColorChange(tint); }}
+          />
+        ))}
+        {instanceColor && (
+          <button
+            type="button"
+            className="w-6 h-6 rounded border border-content-muted/30 cursor-pointer text-content-muted hover:text-content text-xs flex items-center justify-center bg-surface hover:bg-surface-depth-1 transition-colors"
+            onClick={(e) => { e.stopPropagation(); onColorChange(null); }}
+            title="Reset to default"
+          >
+            ×
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  // policy === 'any'
+  return (
+    <div className="flex gap-2 items-center">
+      <input
+        type="color"
+        className="w-8 h-8 p-0 border border-content-muted/20 rounded cursor-pointer"
+        value={instanceColor || schema.color}
+        onChange={(e) => { e.stopPropagation(); onColorChange(e.target.value); }}
+      />
+      {instanceColor && (
+        <button
+          type="button"
+          className="px-2 py-1 text-xs rounded border border-content-muted/30 cursor-pointer text-content-muted hover:text-content bg-surface hover:bg-surface-depth-1 transition-colors"
+          onClick={(e) => { e.stopPropagation(); onColorChange(null); }}
+          title="Reset to default"
+        >
+          Reset
+        </button>
+      )}
+    </div>
+  );
+}
+
 const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => {
   const { getSchema, addDeployable } = useDocument();
   const schema = getSchema(data.constructType);
   const [hoveredPort, setHoveredPort] = useState<string | null>(null);
   const [showExtendedTooltip, setShowExtendedTooltip] = useState(false);
+  const [showPortPicker, setShowPortPicker] = useState(false);
   const hoverTimerRef = useRef<number | null>(null);
 
   // New deployable modal state
@@ -83,6 +146,7 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
 
   // Get ports from schema or use defaults
   const ports = getPortsForSchema(schema.ports);
+  const isCollapsedPorts = schema.portDisplayPolicy === 'collapsed';
 
   const mapFields = Array.isArray(schema.fields)
     ? schema.fields.filter((f) => f.showInMinimalDisplay)
@@ -137,9 +201,15 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
     }
   };
 
+  // Background color from instanceColor
+  const bgStyle: React.CSSProperties = data.instanceColor
+    ? { backgroundColor: data.instanceColor }
+    : {};
+
   return (
     <div
       className={`bg-surface border-[3px] rounded-lg w-full h-full text-node-base text-content shadow-md overflow-visible relative flex flex-col ${data.isExpanded ? 'min-w-[350px]' : 'min-w-[250px]'} ${selected ? 'border-accent shadow-[0_0_0_2px_var(--color-accent)]' : 'border'}`}
+      style={bgStyle}
     >
       {selected && (
         <NodeResizer
@@ -150,8 +220,8 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
         />
       )}
 
-      {/* Dynamic port handles */}
-      {ports.map((port) => (
+      {/* Dynamic port handles - inline mode */}
+      {!isCollapsedPorts && ports.map((port) => (
         <Handle
           key={port.id}
           id={port.id}
@@ -168,8 +238,28 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
         />
       ))}
 
-      {/* Port tooltip */}
-      {hoveredPort && (() => {
+      {/* Collapsed port handles - hidden but functional */}
+      {isCollapsedPorts && ports.map((port) => (
+        <Handle
+          key={port.id}
+          id={port.id}
+          type={getHandleType(port.portType)}
+          position={Position.Right}
+          className="port-handle"
+          style={{
+            top: '14px',
+            right: -16,
+            opacity: 0,
+            pointerEvents: 'none',
+            width: 1,
+            height: 1,
+          }}
+          data-port-type={port.portType}
+        />
+      ))}
+
+      {/* Port tooltip (inline mode only) */}
+      {!isCollapsedPorts && hoveredPort && (() => {
         const port = ports.find(p => p.id === hoveredPort);
         if (!port) return null;
         const hasDescription = showExtendedTooltip && port.semanticDescription;
@@ -204,24 +294,83 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
           </svg>
           <span className="text-node-xs opacity-80 uppercase">{schema.displayName}</span>
         </div>
-        {data.onToggleExpand && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              data.onToggleExpand?.();
-            }}
-            className="opacity-90 hover:opacity-100 transition-all flex-shrink-0 bg-black/20 hover:bg-black/30 rounded-full p-1 shadow-md"
-            title={data.isExpanded ? "Collapse" : "Expand"}
-          >
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              {data.isExpanded ? (
-                <path d="M18 15l-6-6-6 6" />
-              ) : (
-                <path d="M6 9l6 6 6-6" />
+        <div className="flex items-center gap-1">
+          {data.onToggleExpand && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                data.onToggleExpand?.();
+              }}
+              className="opacity-90 hover:opacity-100 transition-all flex-shrink-0 bg-black/20 hover:bg-black/30 rounded-full p-1 shadow-md"
+              title={data.isExpanded ? "Collapse" : "Expand"}
+            >
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                {data.isExpanded ? (
+                  <path d="M18 15l-6-6-6 6" />
+                ) : (
+                  <path d="M6 9l6 6 6-6" />
+                )}
+              </svg>
+            </button>
+          )}
+          {/* Universal port icon for collapsed ports */}
+          {isCollapsedPorts && (
+            <div className="relative">
+              <button
+                type="button"
+                className="w-5 h-5 rounded-full bg-white/30 hover:bg-white/50 border border-white/40 flex items-center justify-center cursor-pointer transition-colors"
+                onClick={(e) => { e.stopPropagation(); setShowPortPicker(!showPortPicker); }}
+                title="Ports"
+              >
+                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+                  <circle cx="12" cy="12" r="4" />
+                </svg>
+              </button>
+              {/* Visible source+target handles overlapping the icon */}
+              <Handle
+                id="__collapsed-source"
+                type="source"
+                position={Position.Right}
+                className="!absolute !top-1/2 !left-1/2 !-translate-x-1/2 !-translate-y-1/2 !w-5 !h-5 !opacity-0 !border-none"
+                style={{ pointerEvents: ports.length <= 1 ? 'auto' : 'none' }}
+              />
+              <Handle
+                id="__collapsed-target"
+                type="target"
+                position={Position.Left}
+                className="!absolute !top-1/2 !left-1/2 !-translate-x-1/2 !-translate-y-1/2 !w-5 !h-5 !opacity-0 !border-none"
+                style={{ pointerEvents: ports.length <= 1 ? 'auto' : 'none' }}
+              />
+              {showPortPicker && ports.length > 1 && (
+                <PortPickerPopover
+                  ports={ports}
+                  onSelect={(portId) => {
+                    setShowPortPicker(false);
+                    // Focus the hidden handle for this port to initiate connection
+                    const handleEl = document.querySelector(`[data-handleid="${portId}"]`) as HTMLElement;
+                    if (handleEl) {
+                      handleEl.style.pointerEvents = 'auto';
+                      handleEl.style.opacity = '1';
+                      handleEl.style.position = 'absolute';
+                      handleEl.style.top = '14px';
+                      handleEl.style.right = '-16px';
+                      handleEl.style.width = '12px';
+                      handleEl.style.height = '12px';
+                      // Reset after a short delay
+                      setTimeout(() => {
+                        handleEl.style.opacity = '0';
+                        handleEl.style.pointerEvents = 'none';
+                        handleEl.style.width = '1px';
+                        handleEl.style.height = '1px';
+                      }, 5000);
+                    }
+                  }}
+                  onClose={() => setShowPortPicker(false)}
+                />
               )}
-            </svg>
-          </button>
-        )}
+            </div>
+          )}
+        </div>
       </div>
 
       {!data.isExpanded && (
@@ -245,6 +394,20 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
 
       {data.isExpanded && (
         <div className="px-2 py-2 bg-surface-depth-1 flex flex-col gap-2">
+          {/* Background Color */}
+          {data.onInstanceColorChange && (schema.backgroundColorPolicy === 'tints' || schema.backgroundColorPolicy === 'any') && (
+            <div>
+              <label className="text-node-xs text-content-muted uppercase tracking-wide">Background Color</label>
+              <div className="mt-1">
+                <ColorPicker
+                  schema={schema}
+                  instanceColor={data.instanceColor}
+                  onColorChange={data.onInstanceColorChange}
+                />
+              </div>
+            </div>
+          )}
+
           {/* Deployable dropdown */}
           {data.deployables && (
             <div className="relative">

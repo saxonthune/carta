@@ -41,11 +41,13 @@ Users define construct types via schemas. Each schema specifies:
 interface ConstructSchema {
   type: string;           // Unique identifier: 'controller', 'table', etc.
   displayName: string;    // Human-readable name
-  color: string;          // Visual accent color
+  color: string;          // Visual accent color (hex)
   semanticDescription?: string;   // AI context for compilation
   displayField?: string;  // Field to use as node title
   fields: FieldSchema[];  // Data fields
   ports?: PortConfig[];   // Connection points
+  backgroundColorPolicy?: 'defaultOnly' | 'tints' | 'any';  // Instance color picker mode
+  portDisplayPolicy?: 'inline' | 'collapsed';                 // Port visibility mode
 }
 \`\`\`
 
@@ -60,6 +62,7 @@ interface ConstructNodeData {
   values: Record<string, unknown>;  // Field values
   connections?: ConnectionValue[];  // Outgoing connections
   deployableId?: string;     // Logical grouping
+  instanceColor?: string;    // Hex color override (visual only, not compiled)
 }
 \`\`\`
 
@@ -233,4 +236,37 @@ Node titles are derived using:
 2. Otherwise, use \`semanticId\`
 
 For example, a Controller with \`displayField: 'route'\` shows "/api/users" as its title.
+
+## Visual Customization (Not Compiled)
+
+### Background Color Policy
+
+Schemas can control how users customize instance background colors via \`backgroundColorPolicy\`:
+
+- \`defaultOnly\` (default): No color picker shown, instances use schema color only
+- \`tints\`: Shows 7 tint swatches derived from schema color (92% lightness to 45% lightness)
+- \`any\`: Shows full HTML5 color picker, allows any hex color
+
+Instance colors are stored in \`instanceColor\` field and are visual-only (not included in compilation output). Setting \`instanceColor\` to null resets to the schema's default color.
+
+**Example**: The built-in "Note" schema uses \`backgroundColorPolicy: 'any'\` to allow fully customizable note colors.
+
+### Port Display Policy
+
+Schemas can control how ports are displayed via \`portDisplayPolicy\`:
+
+- \`inline\` (default): Port handles visible on node edges at all times
+- \`collapsed\`: Ports hidden by default; click port icon in header to reveal PortPickerPopover
+
+Collapsed ports reduce visual clutter for simple nodes like notes where connections are secondary to content.
+
+**Example**: The built-in "Note" schema uses \`portDisplayPolicy: 'collapsed'\`.
+
+### Edge Bundling
+
+When multiple edges connect the same two nodes using the same port types (determined by source/target port IDs), they are automatically bundled into a single visual edge with a badge showing the count. This reduces visual clutter while preserving all connection data.
+
+Edge bundling is visual-only and doesn't affect the underlying connection data structure. Each connection is still stored individually in the source construct's \`connections\` array.
+
+**Edge Style**: Carta uses smoothstep (curved) edges for all connections, creating a cleaner visual appearance than straight lines.
 `;

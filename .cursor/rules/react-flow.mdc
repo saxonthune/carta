@@ -9,12 +9,13 @@ Use `@xyflow/react` with required CSS: `import '@xyflow/react/dist/style.css'`
 
 ## Critical Rules
 
-1. **Define nodeTypes/edgeTypes OUTSIDE components** (Carta uses: `construct` and `virtual-parent`)
+1. **Define nodeTypes/edgeTypes OUTSIDE components** (Carta uses nodes: `construct`, `virtual-parent`; edges: `bundled`)
 2. **Never mutate** node/edge objects
 3. **Use utility classes**: `nodrag`, `nopan`, `nowheel`
 4. **Hide handles** with `visibility: hidden`, never `display: none`
 5. **Multiple handles** need unique `id` props
 6. **Parent nodes** must appear before children
+7. **Default edge type** set to `smoothstep` for curved connections
 
 **For port semantics and connection model:** See `ports-and-connections.mdc`
 

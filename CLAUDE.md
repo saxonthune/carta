@@ -189,7 +189,7 @@ Visit `http://localhost:5173/?doc=my-document-id` to open a specific document.
 |------|---------|
 | `src/contexts/DocumentContext.tsx` | Document provider: manages Yjs adapter lifecycle |
 | `src/stores/adapters/yjsAdapter.ts` | Yjs implementation of DocumentAdapter interface |
-| `src/constructs/types.ts` | Core type definitions: PortSchema, FieldSchema, DocumentAdapter, CartaDocument, Polarity (5 values), VirtualParentNodeData, SchemaGroup |
+| `src/constructs/types.ts` | Core type definitions: PortSchema, FieldSchema, DocumentAdapter, CartaDocument, Polarity (5 values), VirtualParentNodeData, SchemaGroup; ConstructSchema with backgroundColorPolicy and portDisplayPolicy; ConstructNodeData with instanceColor |
 | `src/constructs/schemas/index.ts` | Built-in schema exports: builtInConstructSchemas, builtInPortSchemas |
 | `src/constructs/schemas/built-ins.ts` | Default construct and port schema definitions |
 | `src/constructs/portRegistry.ts` | Port schema registry with two-step polarity-based validation |
@@ -212,6 +212,11 @@ Visit `http://localhost:5173/?doc=my-document-id` to open a specific document.
 | `src/components/ConnectionStatus.tsx` | Connection status indicator (server mode only) |
 | `src/components/SchemaCreationWizard.tsx` | Multi-step wizard for creating/editing construct schemas |
 | `src/components/ui/WizardModal.tsx` | Reusable multi-step wizard modal shell |
+| `src/components/ui/ContextMenuPrimitive.tsx` | Reusable context menu primitive with nested submenu support |
+| `src/components/ui/PortPickerPopover.tsx` | Port picker popover for collapsed port nodes |
+| `src/utils/colorUtils.ts` | Color utilities: hexToHsl, hslToHex, generateTints (7-stop tint generation) |
+| `src/components/BundledEdge.tsx` | Custom edge component for bundled parallel edges |
+| `src/hooks/useEdgeBundling.ts` | Hook for grouping parallel edges between same node pair |
 | `src/ContextMenu.tsx` | Shared context menu for canvas right-click; view-specific options (Map shows node ops, Metamap shows schema ops) |
 | `src/constructs/compiler/index.ts` | Compiler engine that takes schemas/deployables as parameters |
 | `src/utils/examples.ts` | Utility to load bundled example .carta files |
@@ -291,8 +296,9 @@ components: const { schemas, deployables } = useDocument()
 
 ### Change node appearance
 ```
-src/components/ConstructNode.tsx   → Node rendering
+src/components/ConstructNode.tsx   → Node rendering, port handles (inline/collapsed), color picker
 src/utils/displayUtils.ts          → Node title derivation
+src/utils/colorUtils.ts            → Color utilities (tint generation, HSL conversion)
 src/index.css                      → Styling (handles, colors)
 ```
 
@@ -333,8 +339,17 @@ src/utils/examples.ts                      → Load examples using Vite's import
 ### Add or modify context menus
 ```
 src/ContextMenu.tsx                        → Shared context menu (instance ops optional, schema ops always available)
+src/components/ui/ContextMenuPrimitive.tsx → Reusable context menu primitive with nested submenus
 src/components/Map.tsx                     → Map view: passes node/paste callbacks for instance operations
 src/components/Metamap.tsx                 → Metamap view: passes only schema/group callbacks
+```
+
+### Modify edge appearance or bundling
+```
+src/components/BundledEdge.tsx             → Custom edge component for bundled parallel edges (smoothstep style)
+src/hooks/useEdgeBundling.ts               → Hook for grouping parallel edges between same node pair
+src/components/Map.tsx                     → Registers BundledEdge as custom edge type, uses useEdgeBundling
+src/index.css                              → Edge styling (colors, stroke width)
 ```
 
 ## Testing Requirements
@@ -356,12 +371,17 @@ When modifying constructs or connections:
 - [ ] Can create/edit port schemas via Metamap connection modal
 - [ ] Port polarity validation works correctly (source-source blocked, relay acts as source, intercept acts as sink)
 - [ ] Relay/intercept bypass compatibleWith checks; plain source+sink require compatibleWith match
-- [ ] Handles appear at correct positions on canvas
+- [ ] Handles appear at correct positions on canvas (inline or collapsed mode)
+- [ ] Collapsed ports show PortPickerPopover when port icon clicked
 - [ ] Connections store on source construct's `connections[]`
+- [ ] Parallel edges between same nodes bundle visually with count badge
+- [ ] Edges use smoothstep (curved) style
 - [ ] Compilation output includes ports and relationships
 - [ ] Import clears existing document before loading (like Excalidraw)
-- [ ] Export preserves port configurations and port schemas (v3 file format)
+- [ ] Export preserves port configurations, port schemas, and instance colors (v3 file format)
 - [ ] Node titles display from displayField or semanticId
+- [ ] Background color picker respects schema's backgroundColorPolicy (defaultOnly/tints/any)
+- [ ] Instance color changes persist and reset to null correctly
 - [ ] Undo/redo works for all graph operations (local, not shared)
 - [ ] Copy/paste preserves node data with new IDs
 - [ ] IndexedDB persists state across page reloads

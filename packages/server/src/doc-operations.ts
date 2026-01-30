@@ -175,7 +175,7 @@ export function createConstruct(
 export function updateConstruct(
   ydoc: Y.Doc,
   semanticId: string,
-  updates: { values?: Record<string, unknown>; deployableId?: string | null }
+  updates: { values?: Record<string, unknown>; deployableId?: string | null; instanceColor?: string | null }
 ): CartaNode | null {
   const ynodes = ydoc.getMap<Y.Map<unknown>>('nodes');
 
@@ -210,6 +210,10 @@ export function updateConstruct(
 
     if (updates.deployableId !== undefined) {
       ydata.set('deployableId', updates.deployableId);
+    }
+
+    if (updates.instanceColor !== undefined) {
+      ydata.set('instanceColor', updates.instanceColor);
     }
   }, MCP_ORIGIN);
 
