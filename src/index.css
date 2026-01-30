@@ -196,3 +196,122 @@ body,
 .react-flow__handle[data-port-type="symmetric"] {
   background: #8b5cf6 !important;
 }
+
+/* Metamap background - diagonal lines */
+.metamap-bg {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 14px,
+    var(--color-border) 14px,
+    var(--color-border) 15px
+  );
+  opacity: 0.08;
+  z-index: 0;
+}
+
+/* Schema node styling */
+.react-flow__node-schema-node {
+  background: transparent;
+  border: none;
+  padding: 0;
+  box-shadow: none;
+}
+
+.react-flow__node-schema-node.selected {
+  box-shadow: none;
+}
+
+.schema-node {
+  border: 2px dashed var(--color-border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Diamond meta-port handles */
+.meta-port-diamond {
+  width: 14px !important;
+  height: 14px !important;
+  border-radius: 2px !important;
+  transform: rotate(45deg) !important;
+}
+
+.meta-port-diamond:hover {
+  filter: brightness(0.7) !important;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.3);
+  transform: rotate(45deg) scale(1.1) !important;
+}
+
+/* New connection handle with plus icon */
+.meta-port-connect {
+  width: 18px !important;
+  height: 18px !important;
+  background: white !important;
+  border: 2px solid var(--color-border) !important;
+  border-radius: 50% !important;
+  opacity: 0;
+  transition: opacity 0.2s ease, background-color 0.2s ease !important;
+}
+
+.group\/connect:hover .meta-port-connect {
+  opacity: 1;
+}
+
+.meta-port-plus {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border: 2px solid var(--color-border);
+  border-radius: 50%;
+  color: var(--color-content-muted);
+  pointer-events: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.group\/connect:hover .meta-port-plus {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: white;
+}
+
+.meta-port-tooltip {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 8px);
+  transform: translateY(-50%);
+  background: var(--color-surface-elevated);
+  color: var(--color-content);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--color-border);
+  z-index: 1000;
+}
+
+.group\/connect:hover .meta-port-tooltip {
+  opacity: 1;
+}
+
+/* Schema group container node */
+.react-flow__node-schema-group {
+  background: transparent;
+  border: none;
+  padding: 0;
+  box-shadow: none;
+}
+
+.react-flow__node-schema-group.selected {
+  box-shadow: none;
+}

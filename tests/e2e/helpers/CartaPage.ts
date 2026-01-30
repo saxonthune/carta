@@ -23,9 +23,6 @@ export class CartaPage {
   readonly restoreDefaultsCancelButton: Locator;
   readonly restoreDefaultsConfirmButton: Locator;
 
-  // Drawer elements (replaced Dock)
-  readonly drawerPanel: Locator;
-
   constructor(page: Page) {
     this.page = page;
 
@@ -44,9 +41,6 @@ export class CartaPage {
     this.restoreDefaultsModal = page.locator('div.bg-surface.rounded-xl').filter({ has: page.getByRole('heading', { name: 'Restore default schemas' }) });
     this.restoreDefaultsCancelButton = this.restoreDefaultsModal.getByRole('button', { name: 'Cancel' });
     this.restoreDefaultsConfirmButton = this.restoreDefaultsModal.getByRole('button', { name: 'Restore' });
-
-    // Drawer elements (floating tabs on right side)
-    this.drawerPanel = page.locator('.fixed.right-0.bg-surface-depth-1');
   }
 
   async goto() {
@@ -56,8 +50,6 @@ export class CartaPage {
   }
 
   async openSettingsMenu() {
-    // Ensure drawer is closed first (backdrop blocks clicks)
-    await this.closeDrawer();
     await this.settingsMenuButton.click();
     await expect(this.settingsMenu).toBeVisible();
   }
@@ -117,63 +109,6 @@ export class CartaPage {
 
   async confirmRestoreDefaults() {
     await this.restoreDefaultsConfirmButton.click();
-  }
-
-  /**
-   * Open a drawer tab. The drawer uses floating tab buttons on the right side.
-   * Clicking a tab opens the drawer to that tab's content.
-   */
-  async openDrawerTab(tabName: 'constructs' | 'groups' | 'ports' | 'deployables') {
-    // Drawer tabs have title attributes with capitalized names
-    const titleMap: Record<string, string> = {
-      constructs: 'Constructs',
-      groups: 'Groups',
-      ports: 'Ports',
-      deployables: 'Deployables',
-    };
-    const title = titleMap[tabName];
-    const tabButton = this.page.locator(`button[title="${title}"]`);
-    await tabButton.click();
-    // Wait for drawer to open
-    await this.page.waitForTimeout(350); // Allow for animation
-  }
-
-  /**
-   * @deprecated Use openDrawerTab instead. Dock was replaced with Drawer.
-   */
-  async switchDockTab(tabName: 'viewer' | 'constructs' | 'groups' | 'ports' | 'deployables') {
-    // Redirect to drawer for backwards compatibility
-    if (tabName === 'viewer') {
-      // Viewer tab no longer exists in drawer - close drawer if open
-      await this.closeDrawer();
-      return;
-    }
-    await this.openDrawerTab(tabName);
-  }
-
-  async closeDrawer() {
-    // Click the backdrop to close the drawer if it's open
-    const backdrop = this.page.locator('.fixed.inset-0.bg-black\\/20');
-    if (await backdrop.isVisible()) {
-      await backdrop.click();
-      await this.page.waitForTimeout(350);
-    }
-  }
-
-  /**
-   * Get the drawer content panel (the main sliding panel).
-   * Use this for assertions about drawer content.
-   */
-  getDrawerContent() {
-    return this.page.locator('.fixed.right-0.bg-surface-depth-1.border-l');
-  }
-
-  /**
-   * Wait for drawer to be visible with content loaded.
-   */
-  async waitForDrawerContent() {
-    await this.getDrawerContent().waitFor({ state: 'visible' });
-    await this.page.waitForTimeout(100); // Allow content to render
   }
 
   async clearAndRestoreDefaults() {

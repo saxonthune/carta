@@ -6,8 +6,7 @@ import CompileModal from './components/CompileModal';
 import DocumentBrowserModal from './components/DocumentBrowserModal';
 import Header from './components/Header';
 import Map from './components/Map';
-import Drawer from './components/Drawer';
-import { type DrawerTab } from './components/DrawerTabs';
+import Metamap from './components/Metamap';
 import Footer from './components/Footer';
 import { compiler } from './constructs/compiler';
 import { builtInConstructSchemas, builtInPortSchemas, builtInSchemaGroups } from './constructs/schemas';
@@ -52,8 +51,7 @@ function App() {
   const [exportPreview, setExportPreview] = useState<ExportAnalysis | null>(null);
   const [compileOutput, setCompileOutput] = useState<string | null>(null);
   const [_selectedNodes, setSelectedNodes] = useState<Node[]>([]);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [drawerTab, setDrawerTab] = useState<DrawerTab>('constructs');
+  const [viewMode, setViewMode] = useState<'instances' | 'metamap'>('instances');
   const [aiSidebarOpen, setAiSidebarOpen] = useState(false);
   const [aiSidebarWidth] = useState(400);
   const nodesEdgesRef = useRef<{ nodes: Node[]; edges: Edge[] }>({ nodes: [], edges: [] });
@@ -240,32 +238,28 @@ function App() {
         onRestoreDefaultSchemas={handleRestoreDefaultSchemas}
         onToggleAI={() => setAiSidebarOpen(!aiSidebarOpen)}
         onLoadExample={handleLoadExample}
+        viewMode={viewMode}
+        onToggleMetamap={() => setViewMode(viewMode === 'instances' ? 'metamap' : 'instances')}
       />
       <div ref={containerRef} className="flex-1 min-h-0 flex flex-col">
         <div className="flex-1 min-h-0">
-          <ReactFlowProvider>
-            <Map
-              deployables={deployables}
-              onDeployablesChange={refreshDeployables}
-              title={title}
-              onNodesEdgesChange={handleNodesEdgesChange}
-              onSelectionChange={handleSelectionChange}
-              onNodeDoubleClick={handleNodeDoubleClick}
-            />
-          </ReactFlowProvider>
+          {viewMode === 'instances' ? (
+            <ReactFlowProvider>
+              <Map
+                deployables={deployables}
+                onDeployablesChange={refreshDeployables}
+                title={title}
+                onNodesEdgesChange={handleNodesEdgesChange}
+                onSelectionChange={handleSelectionChange}
+                onNodeDoubleClick={handleNodeDoubleClick}
+              />
+            </ReactFlowProvider>
+          ) : (
+            <Metamap />
+          )}
         </div>
         <Footer />
       </div>
-
-      {/* Drawer system */}
-      <Drawer
-        isOpen={drawerOpen}
-        onOpen={() => setDrawerOpen(true)}
-        onClose={() => setDrawerOpen(false)}
-        activeTab={drawerTab}
-        onActiveTabChange={setDrawerTab}
-        onDeployablesChange={refreshDeployables}
-      />
 
       {/* Modals */}
       {importPreview && (
