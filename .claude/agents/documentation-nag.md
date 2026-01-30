@@ -14,7 +14,7 @@ These files must stay in sync with the codebase:
 |------|---------|------------------|
 | `CLAUDE.md` | Main project instructions, key files, common tasks | After any significant code change |
 | `.cursor/rules/about.mdc` | Architecture overview, component tree | After file/component additions |
-| `.cursor/rules/clean-composable-react.mdc` | React patterns, hooks, state management | When React patterns or hook conventions change |
+| `.claude/skills/frontend-architecture/SKILL.md` | Component layering, state partitioning, refactoring | When React patterns or architectural conventions change |
 | `.cursor/rules/look-and-feel.mdc` | Visual depth system, island patterns | When UI design system or visual patterns change |
 | `.cursor/rules/metamodel-design.mdc` | Three-level metamodel (M2/M1/M0) | When metamodel design or type system changes |
 | `.cursor/rules/ports-and-connections.mdc` | Port model, connection semantics | When port types or connection rules change |
@@ -39,11 +39,11 @@ These files must stay in sync with the codebase:
 - File structure changes
 - New subsystems or patterns
 
-### .cursor/rules/clean-composable-react.mdc
-- New React patterns or conventions
-- Hook composition changes
-- State management approach changes
-- Component design principles updates
+### .claude/skills/frontend-architecture/SKILL.md
+- Component layering rules change
+- State partitioning approach changes
+- New architectural patterns or conventions
+- Refactoring checklist updates
 
 ### .cursor/rules/look-and-feel.mdc
 - Visual depth system changes (island shadows, elevation)
@@ -206,7 +206,7 @@ After auditing and updating, provide a summary:
 ### Documentation Updated
 - `CLAUDE.md` - {what changed}
 - `.cursor/rules/about.mdc` - {what changed}
-- `.cursor/rules/clean-composable-react.mdc` - {what changed}
+- `.claude/skills/frontend-architecture/SKILL.md` - {what changed}
 - `.cursor/rules/look-and-feel.mdc` - {what changed}
 - `.cursor/rules/metamodel-design.mdc` - {what changed}
 - `.cursor/rules/ports-and-connections.mdc` - {what changed}

@@ -32,31 +32,34 @@ The system is designed with **three decoupled layers** that can evolve independe
 - Implements undo/redo functionality
 - **Does NOT know** how to render specific construct types or compile them
 
-#### UI Layout (IDE-style)
-The application uses a split-panel layout with a right-side drawer:
+#### UI Layout
+The application uses a dual-view layout toggled via the Header:
 
 ```
 ┌─────────────────────────────────────────┐
 │               Header                     │
-│  (project title, import/export)          │
+│  (title, import/export, Map/Metamap)     │
 ├─────────────────────────────────────────┤
 │                                          │
-│               Map                        │
+│          Map or Metamap view             │
 │  (ReactFlow canvas, zoom controls,       │
-│   add construct, node interactions)      │
+│   context menus, node interactions)      │
 │                                          │
-│                              ┌───────────┤
-│                              │ [C] Drawer│
-│                              │ [P] Tabs  │
-│                              │ [G] Float │
-│                              │ [D] Right │
-│                              │           │
-└──────────────────────────────┴───────────┘
+│                                          │
+│                                          │
+│                                          │
+├─────────────────────────────────────────┤
+│               Footer                     │
+└─────────────────────────────────────────┘
 ```
 
+**Views:**
+- **Map** (instance view) - ReactFlow canvas for construct instances, connections, virtual parents
+- **Metamap** (schema view) - ReactFlow canvas for schema-level modeling (SchemaNode, SchemaGroupNode)
+
 **Components:**
-- **App** - Owns the layout, manages view state, handles import/export, shows DocumentBrowserModal when required
-- **Header** - Project title (click to edit via modal), import/export buttons, theme selector, settings menu, Share button (server mode only)
+- **App** - Owns the layout, manages view state (Map/Metamap toggle), handles import/export, shows DocumentBrowserModal when required
+- **Header** - Project title (click to edit via modal), import/export buttons, theme selector, settings menu, Map/Metamap toggle, Share button (server mode only)
   - **ProjectInfoModal** - Edit project title and description
   - **ExamplesModal** - Load bundled example .carta files from `/examples/` directory
   - **DocumentBrowserModal** - Browse/create/select documents in server mode, required mode when ?doc= missing
@@ -64,17 +67,12 @@ The application uses a split-panel layout with a right-side drawer:
 - **Map** - ReactFlow canvas with zoom controls, node operations, context menus, SchemaCreationWizard, virtual-parent node type
   - **VirtualParentNode** - Visual grouping container for child constructs (expandable/collapsible)
   - **SchemaCreationWizard** - Multi-step wizard for creating/editing construct schemas (Basics, Fields, Ports)
-  - **ContextMenu** (`src/ContextMenu.tsx`) - Canvas right-click menu with "New Construct Schema" option
-- **Drawer** - Right-side slide-out panel with floating tab buttons
-  - **ConstructEditor** - CRUD for construct schemas
-  - **PortSchemaEditor** - CRUD for port schemas (port type definitions)
-  - **SchemaGroupEditor** - CRUD for schema grouping
-  - **DeployablesEditor** - CRUD for deployables
-
-**State Flow:**
-- `selectedNodeIds` lifted to App, shared between Map and Drawer
-- Drawer slides in from right with backdrop overlay
-- Floating tab buttons remain visible even when drawer is closed
+  - **ContextMenu** (`src/ContextMenu.tsx`) - Shared context menu; Map view includes "Add Node Here", "Paste", node/edge ops
+- **Metamap** - ReactFlow canvas for schema-level view with auto-layout
+  - **SchemaNode** - Renders construct schemas with port diamonds
+  - **SchemaGroupNode** - Renders schema groups
+  - **MetamapConnectionModal** - Modal for creating inter-schema connections (includes port color picker)
+  - **ContextMenu** (`src/ContextMenu.tsx`) - Shared context menu; Metamap view shows only "New Construct Schema" and "New Group"
 
 ### 2. Document Adapter Layer (`src/stores/`)
 - DocumentAdapter interface defines contract for all state operations
@@ -84,8 +82,8 @@ The application uses a split-panel layout with a right-side drawer:
 - Port registry (`constructs/portRegistry.ts`) manages port schemas with polarity-based validation (receives schemas as parameter)
 - Built-in schemas (`constructs/schemas/built-ins.ts`) for common constructs with builtInConstructSchemas and builtInPortSchemas arrays
 - User-defined schemas and port schemas stored in Yjs document
-- Schema Editor (`components/ConstructEditor.tsx`) allows users to create custom constructs
-- Port Schema Editor (`components/PortSchemaEditor.tsx`) allows users to create custom port types
+- Schema creation via SchemaCreationWizard (multi-step wizard accessible from context menu)
+- Port creation via MetamapConnectionModal (when connecting schemas in Metamap view)
 - **Hosting modes**: Static (single local document) or Server (collaboration with ?doc= routing)
 - **Does NOT know** about React Flow or how nodes are rendered
 
@@ -146,7 +144,7 @@ Constructs connect via **ports**—typed attachment points that determine relati
 - **Two-step validation**: (1) Block same-direction pairs (relay=source, intercept=sink); (2) Skip compatibleWith for relay/intercept/bidirectional, require match for plain source+sink
 - **Storage**: All connection data lives on constructs, not edges
 - **Interpretation**: Direction derives from port ownership and polarity, not edge metadata
-- **User-extensible**: Port schemas stored in document store, editable via Ports tab
+- **User-extensible**: Port schemas stored in document store, editable via Metamap view
 
 Example: A `Constraint` with a `flow-out` port (source polarity) connecting to a `Table`'s `flow-in` port (sink polarity) means "Constraint references Table" (and inversely, "Table is referenced by Constraint").
 
@@ -205,7 +203,7 @@ User edits fields → Node data updated → Synced to Yjs Y.Doc via adapter → 
 User assigns deployable → Construct gets deployable grouping → Stored in adapter
 User drags port to port → portRegistry.canConnect() validates → Connection stored on source construct → Edge rendered
 User clicks Compile → Compiler receives schemas/deployables as params → Generates relationship semantics → AI-friendly output
-User opens Construct Editor → Can view/edit schemas + ports → Saves to Yjs Y.Doc via adapter → New types available
+User opens Metamap → Can view/edit schemas + create connections with ports → Saves to Yjs Y.Doc via adapter → New types available
 User imports file → Document cleared via adapter → New data loaded (like Excalidraw)
 ```
 
@@ -214,23 +212,23 @@ User imports file → Document cleared via adapter → New data loaded (like Exc
 ## File Structure
 
 ### Layout Components
-- `/src/App.tsx` - Root component, owns layout and coordinates state
-- `/src/components/Header.tsx` - Project title and import/export controls
-- `/src/components/Map.tsx` - ReactFlow canvas with node operations
-- `/src/components/Drawer.tsx` - Right-side slide-out panel with floating tabs
-- `/src/components/DrawerTabs.tsx` - Tab type definitions for drawer navigation
+- `/src/App.tsx` - Root component, owns layout and coordinates state, Map/Metamap view toggle
+- `/src/components/Header.tsx` - Project title, import/export, Map/Metamap toggle, settings, Share (server mode)
+- `/src/components/Map.tsx` - ReactFlow canvas for instance view (nodes, edges, virtual parents)
+- `/src/components/Metamap.tsx` - ReactFlow canvas for schema-level metamodel view
+- `/src/components/Footer.tsx` - Footer bar
 
-### Header Components
+### Header & Modals
 - `/src/components/ProjectInfoModal.tsx` - Modal for editing project title and description
 - `/src/components/ExamplesModal.tsx` - Modal for loading bundled example projects
 - `/src/components/DocumentBrowserModal.tsx` - Document browser/selector (server mode)
 - `/src/components/ConnectionStatus.tsx` - Connection status indicator (server mode)
 
-### Drawer Views
-- `/src/components/ConstructEditor.tsx` - CRUD for construct schemas
-- `/src/components/PortSchemaEditor.tsx` - CRUD for port schemas
-- `/src/components/SchemaGroupEditor.tsx` - CRUD for schema grouping
-- `/src/components/DeployablesEditor.tsx` - CRUD for deployables
+### Metamap Components
+- `/src/components/SchemaNode.tsx` - Renders construct schemas with port diamonds in Metamap
+- `/src/components/SchemaGroupNode.tsx` - Renders schema groups in Metamap
+- `/src/components/MetamapConnectionModal.tsx` - Modal for creating schema connections (port color picker)
+- `/src/components/SchemaPreview.tsx` - Schema preview rendering
 
 ### Wizards & Reusable UI
 - `/src/components/SchemaCreationWizard.tsx` - Multi-step wizard for creating/editing construct schemas
@@ -239,7 +237,7 @@ User imports file → Document cleared via adapter → New data loaded (like Exc
 ### Other Components
 - `/src/components/ConstructNode.tsx` - Generic node renderer for constructs
 - `/src/components/VirtualParentNode.tsx` - Visual grouping container node (expandable/collapsible)
-- `/src/ContextMenu.tsx` - Canvas right-click context menu (New Construct Schema, etc.)
+- `/src/ContextMenu.tsx` - Shared context menu: instance ops optional (Map view), schema ops always available (Metamap view)
 - `/src/components/` - Modals, menus, field editors
 
 ### Domain Logic

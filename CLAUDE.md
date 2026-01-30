@@ -145,11 +145,11 @@ Uses sonnet (needs to reliably spawn sub-agents). Delegates heavy work to sub-ag
            ↓
 ┌─────────────────────────────────────────────────────────────┐
 │  Components (UI only)                    src/components/    │
-│  - Map.tsx → React Flow bindings, context menus             │
-│  - App.tsx → orchestration, modals, layout                  │
+│  - Map.tsx → React Flow canvas (instance view)              │
+│  - Metamap.tsx → React Flow canvas (schema/metamodel view)  │
+│  - App.tsx → orchestration, modals, layout, view toggle     │
 │  - ConstructNode.tsx → node rendering                       │
-│  - Drawer.tsx → right-side panel with Constructs/Ports/     │
-│                Groups/Deployables tabs                      │
+│  - SchemaNode.tsx → schema node rendering (Metamap)         │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -201,15 +201,18 @@ Visit `http://localhost:5173/?doc=my-document-id` to open a specific document.
 | `src/hooks/useKeyboardShortcuts.ts` | Keyboard shortcut handling |
 | `src/components/Map.tsx` | React Flow canvas, UI event handlers, virtual-parent node type |
 | `src/components/VirtualParentNode.tsx` | Visual grouping container node for child constructs |
-| `src/components/Header.tsx` | Project header with title, import/export, settings menu, Share (server mode) |
+| `src/components/Header.tsx` | Project header with title, import/export, settings menu, Map/Metamap toggle, Share (server mode) |
+| `src/components/Metamap.tsx` | React Flow canvas for schema-level metamodel view (SchemaNode, SchemaGroupNode) |
+| `src/components/SchemaNode.tsx` | Schema node rendering in Metamap view |
+| `src/components/SchemaGroupNode.tsx` | Schema group node rendering in Metamap view |
+| `src/components/MetamapConnectionModal.tsx` | Modal for creating connections between schemas in Metamap (includes port color picker) |
 | `src/components/ProjectInfoModal.tsx` | Modal for editing project title and description |
 | `src/components/ExamplesModal.tsx` | Modal for loading example projects |
 | `src/components/DocumentBrowserModal.tsx` | Document browser/selector for server mode |
 | `src/components/ConnectionStatus.tsx` | Connection status indicator (server mode only) |
-| `src/components/PortSchemaEditor.tsx` | Two-panel editor for port schemas |
 | `src/components/SchemaCreationWizard.tsx` | Multi-step wizard for creating/editing construct schemas |
 | `src/components/ui/WizardModal.tsx` | Reusable multi-step wizard modal shell |
-| `src/ContextMenu.tsx` | Context menu for canvas right-click (includes "New Construct Schema") |
+| `src/ContextMenu.tsx` | Shared context menu for canvas right-click; view-specific options (Map shows node ops, Metamap shows schema ops) |
 | `src/constructs/compiler/index.ts` | Compiler engine that takes schemas/deployables as parameters |
 | `src/utils/examples.ts` | Utility to load bundled example .carta files |
 | `src/main.tsx` | Entry point, configures staticMode from VITE_STATIC_MODE env var |
@@ -246,7 +249,7 @@ When evaluating changes, ask: Does this expand capability without confusion? Doe
   2. Skip `compatibleWith` if either side is relay, intercept, or bidirectional; otherwise require match
 - Inverse relationships are **derivable**, never duplicated
 - Port configuration is **per-schema**, not per-instance
-- Port schemas stored in document store, user-editable via Ports tab
+- Port schemas stored in document store, user-editable via Metamap view
 
 ### Construct Identity
 - **No `name` field** on instances—titles come from schema's `displayField` or `semanticId`
@@ -300,7 +303,7 @@ src/hooks/useKeyboardShortcuts.ts  → All keyboard handlers
 
 ### Edit port schemas (port types)
 ```
-src/components/PortSchemaEditor.tsx        → Port schema CRUD UI
+src/components/MetamapConnectionModal.tsx  → Create ports with color when connecting schemas in Metamap
 src/constructs/portRegistry.ts             → Port validation and registry logic
 src/stores/adapters/yjsAdapter.ts          → Port schema persistence
 src/constructs/schemas/built-ins.ts        → Default port schema definitions
@@ -329,8 +332,9 @@ src/utils/examples.ts                      → Load examples using Vite's import
 
 ### Add or modify context menus
 ```
-src/ContextMenu.tsx                        → Canvas right-click menu (New Construct Schema, etc.)
-src/components/Map.tsx                     → Wires context menu state and rendering
+src/ContextMenu.tsx                        → Shared context menu (instance ops optional, schema ops always available)
+src/components/Map.tsx                     → Map view: passes node/paste callbacks for instance operations
+src/components/Metamap.tsx                 → Metamap view: passes only schema/group callbacks
 ```
 
 ## Testing Requirements
@@ -349,7 +353,7 @@ If tests fail after your changes, fix them before proceeding.
 
 When modifying constructs or connections:
 - [ ] Can create construct with custom ports in Schema Editor
-- [ ] Can create/edit port schemas in Ports tab
+- [ ] Can create/edit port schemas via Metamap connection modal
 - [ ] Port polarity validation works correctly (source-source blocked, relay acts as source, intercept acts as sink)
 - [ ] Relay/intercept bypass compatibleWith checks; plain source+sink require compatibleWith match
 - [ ] Handles appear at correct positions on canvas

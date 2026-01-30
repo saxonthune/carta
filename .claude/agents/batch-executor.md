@@ -36,7 +36,7 @@ description
 
 ## For TEST Tasks
 
-**First read**: `/home/saxon/code/github/saxonthune/carta/.claude/skills/testing.md`
+**First read**: `/home/saxon/code/github/saxonthune/carta/.claude/skills/carta-testing/SKILL.md`
 
 Then:
 1. Decide: integration test, E2E test, or both

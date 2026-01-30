@@ -9,23 +9,24 @@ React Flow visual editor with Yjs state management.
 
 ```
 App.tsx
-├── Header.tsx                    # Title, export/import, settings menu, theme, Share (server mode)
+├── Header.tsx                    # Title, export/import, settings, Map/Metamap toggle, Share (server mode)
 │   ├── ConnectionStatus.tsx      # Connection indicator (server mode only)
 │   └── DocumentBrowserModal.tsx  # Document browser/selector (server mode)
-├── Map.tsx                       # React Flow canvas, context menus, wizard state, virtual-parent type
+├── Map.tsx                       # React Flow canvas (instance view), context menus, wizard state, virtual-parent type
 │   ├── ConstructNode.tsx         # Node rendering, port handles, tooltips
 │   │   └── Handle (per port)     # Port connection points, hover state
 │   ├── VirtualParentNode.tsx     # Visual grouping container (expand/collapse/no-edges)
 │   ├── DeployableBackground.tsx  # Colored regions for deployables
 │   ├── SchemaCreationWizard.tsx  # Multi-step wizard for schema creation/editing (Basics, Fields, Ports)
 │   │   └── ui/WizardModal.tsx    # Reusable wizard modal shell
-│   └── ContextMenu.tsx (src/)    # Canvas right-click menu ("New Construct Schema", etc.)
-├── Drawer.tsx                    # Right-side panel with floating tabs
-│   ├── ConstructEditor.tsx       # Schema CRUD (Constructs tab)
-│   │   └── GroupedSchemaList.tsx # Grouped schema listing
-│   ├── SchemaGroupEditor.tsx     # Group management (Groups tab)
-│   ├── PortSchemaEditor.tsx      # Port type CRUD (Ports tab)
-│   └── DeployablesEditor.tsx     # Deployable CRUD (Deployables tab)
+│   └── ContextMenu.tsx (src/)    # Shared context menu; Map shows node/paste ops + schema ops
+├── Metamap.tsx                   # React Flow canvas (schema view), auto-layout, schema connections
+│   ├── SchemaNode.tsx            # Schema node with port diamonds
+│   ├── SchemaGroupNode.tsx       # Schema group node
+│   ├── MetamapConnectionModal.tsx # Inter-schema connection modal (port color picker)
+│   ├── SchemaCreationWizard.tsx  # Wizard for new schema creation
+│   └── ContextMenu.tsx (src/)    # Shared context menu; Metamap shows only "New Construct Schema" + "New Group"
+├── Footer.tsx                    # Footer bar
 └── Modals
     ├── CompileModal.tsx          # Compilation output
     ├── ExportPreviewModal.tsx    # Export preview
@@ -59,12 +60,12 @@ When user references a file, check the tree to find the actual component handlin
 - `src/constructs/portRegistry.ts` - Port validation
 
 **UI Components:**
-- `src/components/Header.tsx` - Top bar, settings, export/import, Share (server mode)
+- `src/components/Header.tsx` - Top bar, settings, export/import, Map/Metamap toggle, Share (server mode)
 - `src/components/ConnectionStatus.tsx` - Connection indicator (server mode only)
 - `src/components/DocumentBrowserModal.tsx` - Document browser (server mode, required when ?doc= missing)
-- `src/components/Drawer.tsx` - Right-side panel with floating tabs
 - `src/components/ConstructNode.tsx` - Node rendering, port handles, port hover tooltips
-- `src/components/Map.tsx` - React Flow canvas, context menus, drag-drop
+- `src/components/Map.tsx` - React Flow canvas (instance view), context menus, drag-drop
+- `src/components/Metamap.tsx` - React Flow canvas (schema view), auto-layout, schema connections
 
 **Existing Behaviors:**
 - Port hover: Shows `port.label` tooltip (ConstructNode.tsx:108-121)
@@ -72,9 +73,9 @@ When user references a file, check the tree to find the actual component handlin
 - Node selection: Border + shadow via `selected` prop
 
 **Editors:**
-- `src/components/ConstructEditor.tsx` - Schema editor
 - `src/components/InstanceEditor.tsx` - Node instance editor
-- `src/components/PortSchemaEditor.tsx` - Port type editor
+- `src/components/SchemaCreationWizard.tsx` - Multi-step schema creation/editing wizard
+- `src/components/MetamapConnectionModal.tsx` - Schema connection modal with port color picker
 
 ### Test Infrastructure
 - `tests/setup/testProviders.tsx` - React test wrapper
@@ -96,8 +97,6 @@ When user references a file, check the tree to find the actual component handlin
 - DocumentBrowserModal: Required mode when ?doc= param missing in server mode
 - ConnectionStatus component: Shows sync state in server mode only
 - Package.json scripts: Simplified dev/dev:client/server commands
-- Removed Dock.tsx - Replaced with Drawer.tsx (right-side slide-out panel)
-- Drawer uses floating tab buttons instead of bottom panel tabs
 - Removed Zustand - Yjs is now single source of truth
 - Removed singleton registries (registry.ts, deployables.ts)
 - All state access via useDocument() hook through adapter
@@ -114,6 +113,11 @@ When user references a file, check the tree to find the actual component handlin
 - allowsGrouping on PortConfig and PortSchema enables virtual parent creation
 - useGraphOperations: Added createVirtualParent(), toggleVirtualParentCollapse(), removeVirtualParent()
 - SchemaCreationWizard Ports step: Full port configuration with PortsInitialChoice, PortsListStep, PortSubWizard
+- Removed Drawer system: Drawer.tsx, DrawerTabs.tsx, ConstructEditor.tsx, PortSchemaEditor.tsx, SchemaGroupEditor.tsx, DeployablesEditor.tsx all deleted
+- Metamap view: Schema-level modeling canvas with SchemaNode, SchemaGroupNode, auto-layout
+- MetamapConnectionModal: Port color picker added for new port creation during schema connections
+- Header toggle renamed: "Instances" → "Map" (toggles between Map and Metamap views)
+- ContextMenu: Instance callbacks (onAddNode, onDeleteNode, etc.) now optional; Metamap only shows "New Construct Schema" and "New Group"
 
 ## Conventions
 

@@ -21,7 +21,7 @@ Before working on any bug or feature in this codebase, you MUST read the project
 | React Flow canvas, nodes, edges | `.cursor/rules/react-flow.mdc` |
 | Ports, connections, edges | `.cursor/rules/ports-and-connections.mdc` |
 | Construct schemas, field types, port schemas | `.cursor/rules/metamodel-design.mdc` |
-| Hooks, state management, component patterns | `.cursor/rules/clean-composable-react.mdc` |
+| Hooks, state management, component patterns | `.claude/skills/frontend-architecture/SKILL.md` |
 | Yjs, collaboration, persistence | `.cursor/rules/yjs-collaboration.mdc` |
 | UI styling, themes, visual hierarchy | `.cursor/rules/look-and-feel.mdc` |
 
