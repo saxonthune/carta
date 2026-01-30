@@ -1,4 +1,8 @@
 import { useState, useMemo, useEffect } from 'react';
+import Modal from './ui/Modal';
+import Button from './ui/Button';
+import Input from './ui/Input';
+import Select from './ui/Select';
 import type { ConstructSchema, PortConfig, Polarity } from '../constructs/types';
 import { portRegistry } from '../constructs/portRegistry';
 
@@ -102,8 +106,9 @@ function PortPanel({
           <>
             <div>
               <label className="text-xs text-content-muted uppercase tracking-wide">Port</label>
-              <select
-                className="w-full px-2 py-1.5 bg-surface rounded text-sm text-content border border-border mt-1"
+              <Select
+                size="sm"
+                className="mt-1"
                 value={existingPortId}
                 onChange={(e) => onExistingPortChange(e.target.value)}
               >
@@ -113,7 +118,7 @@ function PortPanel({
                     {port.label} ({port.portType})
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
 
             {selectedPort && selectedPortSchema && (
@@ -132,22 +137,23 @@ function PortPanel({
           <>
             <div>
               <label className="text-xs text-content-muted uppercase tracking-wide">Polarity</label>
-              <select
-                className="w-full px-2 py-1.5 bg-surface rounded text-sm text-content border border-border mt-1"
+              <Select
+                size="sm"
+                className="mt-1"
                 value={newPolarity}
                 onChange={(e) => onNewPolarityChange(e.target.value as Polarity)}
               >
                 {POLARITIES.map(pol => (
                   <option key={pol} value={pol}>{pol}</option>
                 ))}
-              </select>
+              </Select>
             </div>
 
             <div>
               <label className="text-xs text-content-muted uppercase tracking-wide">Port Label</label>
-              <input
-                type="text"
-                className="w-full px-2 py-1.5 bg-surface rounded text-sm text-content border border-border mt-1"
+              <Input
+                size="sm"
+                className="mt-1"
                 value={newLabel}
                 onChange={(e) => onNewLabelChange(e.target.value)}
                 placeholder="e.g., output, connects to"
@@ -163,9 +169,9 @@ function PortPanel({
                   value={newColor}
                   onChange={(e) => onNewColorChange(e.target.value)}
                 />
-                <input
-                  type="text"
-                  className="flex-1 px-2 py-1.5 bg-surface rounded text-sm text-content border border-border"
+                <Input
+                  size="sm"
+                  className="flex-1"
                   value={newColor}
                   onChange={(e) => onNewColorChange(e.target.value)}
                   placeholder="#6b7280"
@@ -308,129 +314,104 @@ export default function MetamapConnectionModal({
   };
 
   return (
-    <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1001]"
-      onClick={onCancel}
+    <Modal
+      isOpen={true}
+      onClose={onCancel}
+      title="Create Relationship"
+      maxWidth="700px"
+      footer={
+        <div className="flex gap-2 justify-end">
+          <Button variant="secondary" onClick={onCancel}>Cancel</Button>
+          <Button variant="primary" onClick={handleSave} disabled={!validation.valid}>Save</Button>
+        </div>
+      }
     >
-      <div
-        className="bg-surface rounded-xl w-[90%] max-w-[700px] flex flex-col shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle">
-          <h2 className="m-0 text-lg text-content font-semibold">Create Relationship</h2>
-          <button
-            className="w-9 h-9 border-none rounded-md bg-transparent text-content-subtle text-2xl cursor-pointer flex items-center justify-center hover:bg-surface-alt hover:text-content"
-            onClick={onCancel}
-          >
-            &times;
-          </button>
+      {/* Two facing panels */}
+      <div className="flex gap-3 items-stretch">
+        <PortPanel
+          schema={sourceSchema}
+          mode={sourceMode}
+          onModeChange={setSourceMode}
+          existingPortId={sourceExistingPortId}
+          onExistingPortChange={setSourceExistingPortId}
+          newPolarity={sourceNewPolarity}
+          onNewPolarityChange={setSourceNewPolarity}
+          newLabel={sourceNewLabel}
+          onNewLabelChange={setSourceNewLabel}
+          newColor={sourceNewColor}
+          onNewColorChange={setSourceNewColor}
+          align="left"
+        />
+
+        {/* Arrow indicator */}
+        <div className="flex items-center justify-center px-2">
+          <svg className="w-6 h-6 text-content-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M5 12h14M12 5l7 7-7 7" />
+          </svg>
         </div>
 
-        {/* Two facing panels */}
-        <div className="p-4 flex gap-3 items-stretch">
-          <PortPanel
-            schema={sourceSchema}
-            mode={sourceMode}
-            onModeChange={setSourceMode}
-            existingPortId={sourceExistingPortId}
-            onExistingPortChange={setSourceExistingPortId}
-            newPolarity={sourceNewPolarity}
-            onNewPolarityChange={setSourceNewPolarity}
-            newLabel={sourceNewLabel}
-            onNewLabelChange={setSourceNewLabel}
-            newColor={sourceNewColor}
-            onNewColorChange={setSourceNewColor}
-            align="left"
+        <PortPanel
+          schema={targetSchema}
+          mode={targetMode}
+          onModeChange={setTargetMode}
+          existingPortId={targetExistingPortId}
+          onExistingPortChange={setTargetExistingPortId}
+          newPolarity={targetNewPolarity}
+          onNewPolarityChange={setTargetNewPolarity}
+          newLabel={targetNewLabel}
+          onNewLabelChange={setTargetNewLabel}
+          newColor={targetNewColor}
+          onNewColorChange={setTargetNewColor}
+          align="right"
+        />
+      </div>
+
+      {/* Label fields */}
+      <div className="mt-4 flex gap-3">
+        <div className="flex-1">
+          <label className="text-xs text-content-muted uppercase tracking-wide">Relationship Label (optional)</label>
+          <Input
+            size="sm"
+            className="mt-1"
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            placeholder="e.g., manages, depends on"
           />
-
-          {/* Arrow indicator */}
-          <div className="flex items-center justify-center px-2">
-            <svg className="w-6 h-6 text-content-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M5 12h14M12 5l7 7-7 7" />
-            </svg>
-          </div>
-
-          <PortPanel
-            schema={targetSchema}
-            mode={targetMode}
-            onModeChange={setTargetMode}
-            existingPortId={targetExistingPortId}
-            onExistingPortChange={setTargetExistingPortId}
-            newPolarity={targetNewPolarity}
-            onNewPolarityChange={setTargetNewPolarity}
-            newLabel={targetNewLabel}
-            onNewLabelChange={setTargetNewLabel}
-            newColor={targetNewColor}
-            onNewColorChange={setTargetNewColor}
-            align="right"
-          />
-        </div>
-
-        {/* Label fields */}
-        <div className="px-4 pb-3 flex gap-3">
-          <div className="flex-1">
-            <label className="text-xs text-content-muted uppercase tracking-wide">Relationship Label (optional)</label>
-            <input
-              type="text"
-              className="w-full px-2 py-1.5 bg-surface rounded text-sm text-content border border-border mt-1"
-              value={label}
-              onChange={(e) => setLabel(e.target.value)}
-              placeholder="e.g., manages, depends on"
-            />
-          </div>
-        </div>
-
-        {/* Validation error */}
-        {validation.error && (
-          <div className="px-4 pb-3">
-            <div className="text-sm text-danger">{validation.error}</div>
-          </div>
-        )}
-
-        {/* Inverse checkbox */}
-        <div className="px-4 pb-3 border-t border-border-subtle pt-3">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={inverse}
-              onChange={(e) => setInverse(e.target.checked)}
-              className="w-4 h-4"
-            />
-            <span className="text-sm text-content">Also create inverse relationship</span>
-          </label>
-          {inverse && (
-            <div className="mt-2 ml-6">
-              <label className="text-xs text-content-muted uppercase tracking-wide">Inverse label (optional)</label>
-              <input
-                type="text"
-                className="w-full px-2 py-1.5 bg-surface rounded text-sm text-content border border-border mt-1"
-                value={inverseLabel}
-                onChange={(e) => setInverseLabel(e.target.value)}
-                placeholder="e.g., managed by, depended on by"
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="flex gap-2 justify-end px-4 py-3 border-t border-border-subtle">
-          <button
-            className="px-4 py-2 rounded-md bg-surface text-content text-sm font-medium cursor-pointer hover:bg-surface-alt transition-colors border border-border"
-            onClick={onCancel}
-          >
-            Cancel
-          </button>
-          <button
-            className="px-4 py-2 border-none rounded-md bg-emerald-500 text-white text-sm font-medium cursor-pointer hover:bg-emerald-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            onClick={handleSave}
-            disabled={!validation.valid}
-          >
-            Save
-          </button>
         </div>
       </div>
-    </div>
+
+      {/* Validation error */}
+      {validation.error && (
+        <div className="mt-3">
+          <div className="text-sm text-danger">{validation.error}</div>
+        </div>
+      )}
+
+      {/* Inverse checkbox */}
+      <div className="mt-4 pt-3 border-t border-border">
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={inverse}
+            onChange={(e) => setInverse(e.target.checked)}
+            className="w-4 h-4"
+          />
+          <span className="text-sm text-content">Also create inverse relationship</span>
+        </label>
+        {inverse && (
+          <div className="mt-2 ml-6">
+            <label className="text-xs text-content-muted uppercase tracking-wide">Inverse label (optional)</label>
+            <Input
+              size="sm"
+              className="mt-1"
+              value={inverseLabel}
+              onChange={(e) => setInverseLabel(e.target.value)}
+              placeholder="e.g., managed by, depended on by"
+            />
+          </div>
+        )}
+      </div>
+    </Modal>
   );
 }
 

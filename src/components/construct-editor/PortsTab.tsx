@@ -1,17 +1,16 @@
+import Button from '../ui/Button';
+import Input from '../ui/Input';
+import Select from '../ui/Select';
+import Textarea from '../ui/Textarea';
 import type { ConstructSchema, PortConfig, PortPosition } from '../../constructs/types';
 import { useDocument } from '../../hooks/useDocument';
+import { toSnakeCase } from '../../utils/stringUtils';
 
 interface PortsTabProps {
   formData: ConstructSchema;
   addPort: () => void;
   updatePort: (index: number, updates: Partial<PortConfig>) => void;
   removePort: (index: number) => void;
-}
-
-// Convert string to snake_case while preserving special characters like '#'
-// (e.g., "My Port" → "my_port", "Port #1" → "port_#1")
-function toSnakeCase(str: string): string {
-  return str.toLowerCase().replace(/\s+/g, '_');
 }
 
 const PORT_POSITIONS: PortPosition[] = ['left', 'right', 'top', 'bottom'];
@@ -33,12 +32,7 @@ export default function PortsTab({
           <p className="text-xs text-content-muted mt-1 mb-0">Define connection points for this construct type</p>
         </div>
         {(
-          <button
-            className="px-2.5 py-1 bg-surface-alt rounded text-content text-xs cursor-pointer hover:bg-content-muted transition-colors"
-            onClick={addPort}
-          >
-            + Add Port
-          </button>
+          <Button size="sm" variant="secondary" onClick={addPort}>+ Add Port</Button>
         )}
       </div>
 
@@ -50,13 +44,7 @@ export default function PortsTab({
             <div key={index} className="bg-surface p-3 rounded border border-surface-alt">
               {/* Header with delete button */}
               <div className="flex justify-between items-center mb-2">
-                <button
-                  className="px-2 py-1 border text-danger text-xs hover:bg-danger-muted rounded transition-colors"
-                  onClick={() => removePort(index)}
-                  title="Remove port"
-                >
-                  Remove
-                </button>
+                <Button variant="danger" size="sm" onClick={() => removePort(index)} title="Remove port">Remove</Button>
               </div>
 
               {/* Identification Section */}
@@ -65,9 +53,9 @@ export default function PortsTab({
                   <label className="block text-xs font-medium text-content-muted mb-1">
                     Display Label <span className="text-danger">*</span>
                   </label>
-                  <input
-                    type="text"
-                    className="w-full px-2 py-1.5 bg-surface-alt rounded text-content text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                  <Input
+                    size="sm"
+                    className="text-xs"
                     value={port.label}
                     onChange={(e) => updatePort(index, { label: e.target.value, id: toSnakeCase(e.target.value) })}
                     placeholder="e.g., 'Input Data', 'Output'"
@@ -80,8 +68,9 @@ export default function PortsTab({
                 <label className="block text-xs font-medium text-content-muted mb-1">
                   Description
                 </label>
-                <textarea
-                  className="w-full px-2 py-1.5 bg-surface-alt rounded text-content text-xs focus:outline-none focus:ring-1 focus:ring-primary resize-none"
+                <Textarea
+                  size="sm"
+                  className="text-xs"
                   value={port.semanticDescription || ''}
                   onChange={(e) => updatePort(index, { semanticDescription: e.target.value })}
                   placeholder="Describe what this port is used for (appears in compiled output)"
@@ -95,8 +84,9 @@ export default function PortsTab({
                   <label className="block text-xs font-medium text-content-muted mb-1">
                     Port Type <span className="text-danger">*</span>
                   </label>
-                  <select
-                    className="w-full px-2 py-1.5 bg-surface-alt rounded text-content text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                  <Select
+                    size="sm"
+                    className="text-xs"
                     value={port.portType}
                     onChange={(e) => updatePort(index, { portType: e.target.value })}
                     title={portSchemas.find(ps => ps.id === port.portType)?.semanticDescription}
@@ -104,7 +94,7 @@ export default function PortsTab({
                     {portSchemas.map(ps => (
                       <option key={ps.id} value={ps.id}>{ps.displayName}</option>
                     ))}
-                  </select>
+                  </Select>
                   <p className="text-xs text-content-muted mt-1 mb-0 italic">
                     {portSchemas.find(ps => ps.id === port.portType)?.semanticDescription || 'Select a port type'}
                   </p>
@@ -113,24 +103,26 @@ export default function PortsTab({
                   <label className="block text-xs font-medium text-content-muted mb-1">
                     Position <span className="text-danger">*</span>
                   </label>
-                  <select
-                    className="w-full px-2 py-1.5 bg-surface-alt rounded text-content text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                  <Select
+                    size="sm"
+                    className="text-xs"
                     value={port.position}
                     onChange={(e) => updatePort(index, { position: e.target.value as PortPosition })}
                   >
                     {PORT_POSITIONS.map(pos => (
                       <option key={pos} value={pos}>{pos}</option>
                     ))}
-                  </select>
+                  </Select>
                   <p className="text-xs text-content-muted mt-1 mb-0">Side of node</p>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-content-muted mb-1">
                     Offset (%) <span className="text-danger">*</span>
                   </label>
-                  <input
+                  <Input
+                    size="sm"
+                    className="text-xs"
                     type="number"
-                    className="w-full px-2 py-1.5 bg-surface-alt rounded text-content text-xs focus:outline-none focus:ring-1 focus:ring-primary"
                     value={port.offset}
                     onChange={(e) => updatePort(index, { offset: Math.max(0, Math.min(100, parseInt(e.target.value) || 0)) })}
                     min={0}

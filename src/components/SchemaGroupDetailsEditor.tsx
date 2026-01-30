@@ -1,12 +1,11 @@
 import { useState, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useDocument } from '../hooks/useDocument';
+import Button from './ui/Button';
+import Input from './ui/Input';
+import Select from './ui/Select';
+import Textarea from './ui/Textarea';
+import { toKebabCase } from '../utils/stringUtils';
 import type { SchemaGroup } from '../constructs/types';
-
-// Convert string to kebab-case for IDs
-// (e.g., "My Group" → "my-group", "API Layer" → "api-layer")
-function toKebabCase(str: string): string {
-  return str.toLowerCase().replace(/\s+/g, '-');
-}
 
 // Get the full path of a group (e.g., "System > API > Endpoints")
 function getFullPath(groupId: string, groups: SchemaGroup[]): string {
@@ -170,19 +169,9 @@ const SchemaGroupDetailsEditor = forwardRef<{ save: () => void }, SchemaGroupDet
         </div>
         <div className="flex gap-2 shrink-0">
           {!isNew && (
-            <button
-              className={`bg-transparent border border-danger rounded text-danger font-medium cursor-pointer hover:bg-danger hover:text-white transition-all ${compact ? 'px-2 py-1 text-xs' : 'px-3 py-1.5 text-sm'}`}
-              onClick={handleDelete}
-            >
-              Delete
-            </button>
+            <Button variant="danger" size={compact ? 'sm' : 'md'} onClick={handleDelete}>Delete</Button>
           )}
-          <button
-            className={`bg-accent border-none rounded text-white font-medium cursor-pointer hover:bg-accent-hover transition-colors ${compact ? 'px-2 py-1 text-xs' : 'px-3 py-1.5 text-sm'}`}
-            onClick={handleSave}
-          >
-            {isNew ? 'Create' : 'Save'}
-          </button>
+          <Button variant="accent" size={compact ? 'sm' : 'md'} onClick={handleSave}>{isNew ? 'Create' : 'Save'}</Button>
         </div>
       </div>
 
@@ -191,9 +180,9 @@ const SchemaGroupDetailsEditor = forwardRef<{ save: () => void }, SchemaGroupDet
           {/* Group Name */}
           <div className={compact ? 'mb-2' : 'mb-3'}>
             <label className={`block mb-1 font-medium text-content ${compact ? 'text-xs' : 'text-sm'}`}>Name</label>
-            <input
-              type="text"
-              className={`w-full bg-surface rounded-md text-content focus:outline-none focus:border-accent transition-colors ${compact ? 'px-2 py-1.5 text-xs' : 'px-2.5 py-2 text-sm'} ${errors.name ? '!border-danger' : ''}`}
+            <Input
+              size={compact ? 'sm' : 'md'}
+              className={`${errors.name ? '!border-danger' : ''}`}
               value={formData.name}
               onChange={(e) => updateField('name', e.target.value)}
               placeholder="e.g., API Layer"
@@ -208,9 +197,7 @@ const SchemaGroupDetailsEditor = forwardRef<{ save: () => void }, SchemaGroupDet
           {!isNew && !compact && (
             <div className="mb-3">
               <label className="block mb-1 text-sm font-medium text-content">ID</label>
-              <input
-                type="text"
-                className="w-full px-2.5 py-2 bg-surface rounded-md text-content text-sm focus:outline-none disabled:opacity-50"
+              <Input
                 value={formData.id}
                 disabled
               />
@@ -220,8 +207,8 @@ const SchemaGroupDetailsEditor = forwardRef<{ save: () => void }, SchemaGroupDet
           {/* Description */}
           <div className={compact ? 'mb-2' : 'mb-3'}>
             <label className={`block mb-1 font-medium text-content ${compact ? 'text-xs' : 'text-sm'}`}>Description</label>
-            <textarea
-              className={`w-full bg-surface rounded-md text-content resize-none focus:outline-none focus:border-accent transition-colors ${compact ? 'px-2 py-1.5 text-xs' : 'px-2.5 py-2 text-sm'}`}
+            <Textarea
+              size={compact ? 'sm' : 'md'}
               value={formData.description || ''}
               onChange={(e) => updateField('description', e.target.value)}
               placeholder="Optional description..."
@@ -233,8 +220,9 @@ const SchemaGroupDetailsEditor = forwardRef<{ save: () => void }, SchemaGroupDet
           <div className={compact ? 'mb-2' : 'mb-3'}>
             <label className={`block mb-1 font-medium text-content ${compact ? 'text-xs' : 'text-sm'}`}>Parent</label>
             {!compact && <p className="text-xs text-content-muted mb-2">Optional: set to make this a sub-group</p>}
-            <select
-              className={`w-full bg-surface rounded-md text-content focus:outline-none focus:border-accent ${compact ? 'px-2 py-1.5 text-xs' : 'px-2.5 py-2 text-sm'} ${errors.parentId ? '!border-danger' : ''}`}
+            <Select
+              size={compact ? 'sm' : 'md'}
+              className={`${errors.parentId ? '!border-danger' : ''}`}
               value={formData.parentId || ''}
               onChange={(e) => updateField('parentId', e.target.value || undefined)}
             >
@@ -244,7 +232,7 @@ const SchemaGroupDetailsEditor = forwardRef<{ save: () => void }, SchemaGroupDet
                   {compact ? group.name : getFullPath(group.id, allGroups)}
                 </option>
               ))}
-            </select>
+            </Select>
             {errors.parentId && <span className="block mt-1 text-[10px] text-danger">{errors.parentId}</span>}
           </div>
 

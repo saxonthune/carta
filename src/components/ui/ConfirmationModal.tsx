@@ -1,3 +1,6 @@
+import Modal from './Modal';
+import Button from './Button';
+
 interface ConfirmationModalProps {
   isOpen: boolean;
   title?: string;
@@ -23,37 +26,22 @@ export default function ConfirmationModal({
   discardLabel = 'Discard',
   saveLabel = 'Save Changes',
 }: ConfirmationModalProps) {
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-surface-elevated rounded-lg shadow-lg max-w-sm mx-4">
-        <div className="p-4">
-          <h3 className="text-lg font-semibold text-content mb-2">{title}</h3>
-          <p className="text-content-muted text-sm mb-4">{message}</p>
-          <div className="flex gap-2 justify-end">
-            <button
-              className="px-4 py-2 rounded-md text-content bg-surface-depth-3 hover:bg-surface-depth-2 transition-colors text-sm font-medium cursor-pointer"
-              onClick={onCancel}
-            >
-              {cancelLabel}
-            </button>
-            <button
-              className="px-4 py-2 rounded-md text-white bg-danger hover:bg-danger/80 transition-colors text-sm font-medium cursor-pointer"
-              onClick={onDiscard}
-            >
-              {discardLabel}
-            </button>
-            <button
-              className="px-4 py-2 rounded-md text-white bg-emerald-500 hover:bg-emerald-600 transition-colors text-sm font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              onClick={onSave}
-              disabled={saveDisabled}
-            >
-              {saveLabel}
-            </button>
-          </div>
+    <Modal
+      isOpen={isOpen}
+      onClose={onCancel}
+      title={title}
+      maxWidth="384px"
+      showCloseButton={false}
+      footer={
+        <div className="flex gap-2 justify-end">
+          <Button variant="secondary" onClick={onCancel}>{cancelLabel}</Button>
+          <Button variant="danger" onClick={onDiscard}>{discardLabel}</Button>
+          <Button variant="primary" onClick={onSave} disabled={saveDisabled}>{saveLabel}</Button>
         </div>
-      </div>
-    </div>
+      }
+    >
+      <p className="text-content-muted text-sm m-0">{message}</p>
+    </Modal>
   );
 }

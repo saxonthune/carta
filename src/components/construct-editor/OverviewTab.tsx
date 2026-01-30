@@ -1,11 +1,8 @@
 import type { ConstructSchema } from '../../constructs/types';
 import SchemaGroupSelector from '../ui/SchemaGroupSelector';
-
-// Convert string to snake_case while preserving special characters like '#'
-// (e.g., "My Cool Construct" → "my_cool_construct", "API #1" → "api_#1")
-function toSnakeCase(str: string): string {
-  return str.toLowerCase().replace(/\s+/g, '_');
-}
+import Input from '../ui/Input';
+import Textarea from '../ui/Textarea';
+import { toSnakeCase } from '../../utils/stringUtils';
 
 interface OverviewTabProps {
   formData: ConstructSchema;
@@ -30,9 +27,8 @@ export default function OverviewTab({
 
       <div className="mb-3">
         <label className="block mb-1 text-sm font-medium text-content">Display Name</label>
-        <input
-          type="text"
-          className={`w-full px-2.5 py-2 bg-surface rounded-md text-content text-sm focus:outline-none focus:border-accent transition-colors ${errors.displayName ? '!border-danger' : ''}`}
+        <Input
+          className={`${errors.displayName ? '!border-danger' : ''}`}
           value={formData.displayName}
           onChange={(e) => updateField('displayName', e.target.value)}
           placeholder="My Construct"
@@ -66,8 +62,7 @@ export default function OverviewTab({
 
       <div className="mb-3">
         <label className="block mb-1 text-sm font-medium text-content">Description</label>
-        <textarea
-          className="w-full px-2.5 py-2 bg-surface rounded-md text-content text-sm resize-none focus:outline-none focus:border-accent transition-colors"
+        <Textarea
           value={formData.semanticDescription || ''}
           onChange={(e) => updateField('semanticDescription', e.target.value)}
           placeholder="Describe what this construct represents..."

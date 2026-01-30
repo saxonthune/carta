@@ -1,6 +1,7 @@
 import type { Node, Edge } from '@xyflow/react';
 import type { Deployable, ConstructSchema, PortSchema, SchemaGroup } from '../constructs/types';
 import type { ExportOptions } from './exportAnalyzer';
+import { toKebabCase } from './stringUtils';
 
 /**
  * Version of the .carta file format (v4)
@@ -21,19 +22,6 @@ export interface CartaFile {
   portSchemas: PortSchema[];
   schemaGroups: SchemaGroup[];
   exportedAt: string;
-}
-
-/**
- * Convert a string to kebab-case
- * "My Project Name" -> "my-project-name"
- */
-export function toKebabCase(str: string): string {
-  return str
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')  // Replace non-alphanumeric chars with hyphens
-    .replace(/^-+|-+$/g, '')      // Remove leading/trailing hyphens
-    .replace(/-+/g, '-');         // Replace multiple hyphens with single
 }
 
 /**

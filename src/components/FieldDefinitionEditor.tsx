@@ -1,11 +1,10 @@
 import { useState } from 'react';
+import Button from './ui/Button';
+import { toSnakeCase } from '../utils/stringUtils';
+import Input from './ui/Input';
+import Select from './ui/Select';
+import Textarea from './ui/Textarea';
 import type { FieldSchema, DataKind, DisplayHint } from '../constructs/types';
-
-// Convert string to snake_case while preserving special characters like '#'
-// (e.g., "My Cool Field" → "my_cool_field", "API #1" → "api_#1")
-function toSnakeCase(str: string): string {
-  return str.toLowerCase().replace(/\s+/g, '_');
-}
 
 interface FieldDefinitionEditorProps {
   field: FieldSchema;
@@ -82,29 +81,9 @@ export default function FieldDefinitionEditor({
         </div>
         <div className="flex items-center gap-1">
           <>
-            <button
-              className="w-7 h-7 flex items-center justify-center bg-transparent rounded text-content-muted cursor-pointer text-sm hover:bg-surface-alt hover:text-content transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-              onClick={(e) => { e.stopPropagation(); onMoveUp(); }}
-              disabled={!canMoveUp}
-              title="Move Up"
-            >
-              ↑
-            </button>
-            <button
-              className="w-7 h-7 flex items-center justify-center bg-transparent rounded text-content-muted cursor-pointer text-sm hover:bg-surface-alt hover:text-content transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-              onClick={(e) => { e.stopPropagation(); onMoveDown(); }}
-              disabled={!canMoveDown}
-              title="Move Down"
-            >
-              ↓
-            </button>
-            <button
-              className="w-7 h-7 flex items-center justify-center bg-transparent rounded text-content-muted cursor-pointer text-sm hover:bg-danger hover:border-danger hover:text-white transition-all"
-              onClick={(e) => { e.stopPropagation(); onRemove(); }}
-              title="Remove Field"
-            >
-              ×
-            </button>
+            <Button variant="ghost" onClick={(e) => { e.stopPropagation(); onMoveUp(); }} disabled={!canMoveUp} title="Move Up" className="w-7 h-7 p-0">↑</Button>
+            <Button variant="ghost" onClick={(e) => { e.stopPropagation(); onMoveDown(); }} disabled={!canMoveDown} title="Move Down" className="w-7 h-7 p-0">↓</Button>
+            <Button variant="danger" onClick={(e) => { e.stopPropagation(); onRemove(); }} title="Remove Field" className="w-7 h-7 p-0">×</Button>
           </>
           <span className="w-6 h-6 flex items-center justify-center text-content-muted text-base ml-2">
             {isExpanded ? '−' : '+'}
@@ -116,9 +95,7 @@ export default function FieldDefinitionEditor({
         <div className="p-4 bg-surface-elevated">
           <div className="mb-3">
             <label className="block mb-1.5 text-xs font-medium text-content-muted">Label (display)</label>
-            <input
-              type="text"
-              className="w-full px-3 py-2 bg-surface rounded text-content text-sm focus:outline-none focus:border-accent"
+            <Input
               value={field.label}
               onChange={(e) => updateField({ label: e.target.value })}
               placeholder="Field Label"
@@ -127,36 +104,34 @@ export default function FieldDefinitionEditor({
 
           <div className="mb-3">
             <label className="block mb-1.5 text-xs font-medium text-content-muted">Type</label>
-            <select
-              className="w-full px-3 py-2 bg-surface rounded text-content text-sm focus:outline-none focus:border-accent"
+            <Select
               value={field.type}
               onChange={(e) => updateField({ type: e.target.value as DataKind })}
             >
               {DATA_KINDS.map(ft => (
                 <option key={ft.value} value={ft.value}>{ft.label}</option>
               ))}
-            </select>
+            </Select>
           </div>
 
           {field.type === 'string' && (
             <div className="mb-3 hidden">
               <label className="block mb-1.5 text-xs font-medium text-content-muted">Display Hint</label>
-              <select
-                className="w-full px-3 py-2 bg-surface rounded text-content text-sm focus:outline-none focus:border-accent"
+              <Select
                 value={field.displayHint || ''}
                 onChange={(e) => updateField({ displayHint: (e.target.value || undefined) as DisplayHint | undefined })}
               >
                 {DISPLAY_HINTS.map(dh => (
                   <option key={dh.value} value={dh.value}>{dh.label}</option>
                 ))}
-              </select>
+              </Select>
             </div>
           )}
 
           <div className="mb-3">
             <label className="block mb-1.5 text-xs font-medium text-content-muted">Description (AI context)</label>
-            <textarea
-              className="w-full px-3 py-2 bg-surface rounded text-content text-sm focus:outline-none focus:border-accent resize-y"
+            <Textarea
+              className="resize-y"
               value={field.semanticDescription || ''}
               onChange={(e) => updateField({ semanticDescription: e.target.value })}
               placeholder="Describe this field's purpose for AI compilation..."
@@ -166,9 +141,7 @@ export default function FieldDefinitionEditor({
 
           <div className="mb-3">
             <label className="block mb-1.5 text-xs font-medium text-content-muted">Placeholder</label>
-            <input
-              type="text"
-              className="w-full px-3 py-2 bg-surface rounded text-content text-sm focus:outline-none focus:border-accent"
+            <Input
               value={field.placeholder || ''}
               onChange={(e) => updateField({ placeholder: e.target.value })}
               placeholder="Enter placeholder text..."
@@ -204,20 +177,15 @@ export default function FieldDefinitionEditor({
                 ))}
               </div>
               <div className="flex gap-2">
-                  <input
-                    type="text"
-                    className="flex-1 px-2.5 py-1.5 bg-surface rounded text-content text-sm focus:outline-none focus:border-accent"
+                  <Input
+                    size="sm"
+                    className="flex-1"
                     value={newOption}
                     onChange={(e) => setNewOption(e.target.value)}
                     placeholder="New option"
                     onKeyDown={(e) => e.key === 'Enter' && addOption()}
                   />
-                  <button
-                    className="px-3 py-1.5 bg-surface-alt rounded text-content text-sm cursor-pointer hover:bg-content-muted"
-                    onClick={addOption}
-                  >
-                    Add
-                  </button>
+                  <Button size="sm" variant="secondary" onClick={addOption}>Add</Button>
                 </div>
             </div>
           )}

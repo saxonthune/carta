@@ -1,13 +1,12 @@
 import { useState, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useDocument } from '../hooks/useDocument';
+import Button from './ui/Button';
 import SchemaGroupSelector from './ui/SchemaGroupSelector';
+import Input from './ui/Input';
+import Select from './ui/Select';
+import Textarea from './ui/Textarea';
+import { toKebabCase } from '../utils/stringUtils';
 import type { PortSchema, Polarity, PortPosition } from '../constructs/types';
-
-// Convert string to kebab-case for IDs
-// (e.g., "Flow In" → "flow-in", "Custom Port #1" → "custom-port-#1")
-function toKebabCase(str: string): string {
-  return str.toLowerCase().replace(/\s+/g, '-');
-}
 
 interface PortSchemaDetailsEditorProps {
   portSchema: PortSchema | null;
@@ -162,19 +161,9 @@ const PortSchemaDetailsEditor = forwardRef<{ save: () => void }, PortSchemaDetai
         </div>
         <div className="flex gap-2 shrink-0">
           {!isNew && (
-            <button
-              className={`bg-transparent border border-danger rounded text-danger font-medium cursor-pointer hover:bg-danger hover:text-white transition-all ${compact ? 'px-2 py-1 text-xs' : 'px-3 py-1.5 text-sm'}`}
-              onClick={handleDelete}
-            >
-              Delete
-            </button>
+            <Button variant="danger" size={compact ? 'sm' : 'md'} onClick={handleDelete}>Delete</Button>
           )}
-          <button
-            className={`bg-accent border-none rounded text-white font-medium cursor-pointer hover:bg-accent-hover transition-colors ${compact ? 'px-2 py-1 text-xs' : 'px-3 py-1.5 text-sm'}`}
-            onClick={handleSave}
-          >
-            {isNew ? 'Create' : 'Save'}
-          </button>
+          <Button variant="accent" size={compact ? 'sm' : 'md'} onClick={handleSave}>{isNew ? 'Create' : 'Save'}</Button>
         </div>
       </div>
 
@@ -183,9 +172,9 @@ const PortSchemaDetailsEditor = forwardRef<{ save: () => void }, PortSchemaDetai
           {/* Display Name */}
           <div className={compact ? 'mb-2' : 'mb-3'}>
             <label className={`block mb-1 font-medium text-content ${compact ? 'text-xs' : 'text-sm'}`}>Display Name</label>
-            <input
-              type="text"
-              className={`w-full bg-surface rounded-md text-content focus:outline-none focus:border-accent transition-colors ${compact ? 'px-2 py-1.5 text-xs' : 'px-2.5 py-2 text-sm'} ${errors.displayName ? '!border-danger' : ''}`}
+            <Input
+              size={compact ? 'sm' : 'md'}
+              className={`${errors.displayName ? '!border-danger' : ''}`}
               value={formData.displayName}
               onChange={(e) => updateField('displayName', e.target.value)}
               placeholder="Flow In"
@@ -200,9 +189,7 @@ const PortSchemaDetailsEditor = forwardRef<{ save: () => void }, PortSchemaDetai
           {!isNew && !compact && (
             <div className="mb-3">
               <label className="block mb-1 text-sm font-medium text-content">ID</label>
-              <input
-                type="text"
-                className="w-full px-2.5 py-2 bg-surface rounded-md text-content text-sm focus:outline-none disabled:opacity-50"
+              <Input
                 value={formData.id}
                 disabled
               />
@@ -212,8 +199,8 @@ const PortSchemaDetailsEditor = forwardRef<{ save: () => void }, PortSchemaDetai
           {/* Semantic Description */}
           <div className={compact ? 'mb-2' : 'mb-3'}>
             <label className={`block mb-1 font-medium text-content ${compact ? 'text-xs' : 'text-sm'}`}>Description</label>
-            <textarea
-              className={`w-full bg-surface rounded-md text-content resize-none focus:outline-none focus:border-accent transition-colors ${compact ? 'px-2 py-1.5 text-xs' : 'px-2.5 py-2 text-sm'}`}
+            <Textarea
+              size={compact ? 'sm' : 'md'}
               value={formData.semanticDescription}
               onChange={(e) => updateField('semanticDescription', e.target.value)}
               placeholder="Describe what this port type represents..."
@@ -226,27 +213,27 @@ const PortSchemaDetailsEditor = forwardRef<{ save: () => void }, PortSchemaDetai
             <div className="flex gap-2 mb-2">
               <div className="flex-1">
                 <label className="block mb-1 text-xs font-medium text-content">Polarity</label>
-                <select
-                  className="w-full px-2 py-1.5 bg-surface rounded-md text-content text-xs focus:outline-none focus:border-accent"
+                <Select
+                  size="sm"
                   value={formData.polarity}
                   onChange={(e) => updateField('polarity', e.target.value as Polarity)}
                 >
                   {POLARITY_OPTIONS.map(opt => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}
-                </select>
+                </Select>
               </div>
               <div className="flex-1">
                 <label className="block mb-1 text-xs font-medium text-content">Position</label>
-                <select
-                  className="w-full px-2 py-1.5 bg-surface rounded-md text-content text-xs focus:outline-none focus:border-accent"
+                <Select
+                  size="sm"
                   value={formData.defaultPosition}
                   onChange={(e) => updateField('defaultPosition', e.target.value as PortPosition)}
                 >
                   {POSITION_OPTIONS.map(opt => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}
-                </select>
+                </Select>
               </div>
             </div>
           ) : (
@@ -254,29 +241,27 @@ const PortSchemaDetailsEditor = forwardRef<{ save: () => void }, PortSchemaDetai
               {/* Polarity */}
               <div className="mb-3">
                 <label className="block mb-1 text-sm font-medium text-content">Polarity</label>
-                <select
-                  className="w-full px-2.5 py-2 bg-surface rounded-md text-content text-sm focus:outline-none focus:border-accent"
+                <Select
                   value={formData.polarity}
                   onChange={(e) => updateField('polarity', e.target.value as Polarity)}
                 >
                   {POLARITY_OPTIONS.map(opt => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}
-                </select>
+                </Select>
               </div>
 
               {/* Default Position */}
               <div className="mb-3">
                 <label className="block mb-1 text-sm font-medium text-content">Default Position</label>
-                <select
-                  className="w-full px-2.5 py-2 bg-surface rounded-md text-content text-sm focus:outline-none focus:border-accent"
+                <Select
                   value={formData.defaultPosition}
                   onChange={(e) => updateField('defaultPosition', e.target.value as PortPosition)}
                 >
                   {POSITION_OPTIONS.map(opt => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}
-                </select>
+                </Select>
               </div>
             </>
           )}
@@ -308,9 +293,9 @@ const PortSchemaDetailsEditor = forwardRef<{ save: () => void }, PortSchemaDetai
             <label className={`block mb-1 font-medium text-content ${compact ? 'text-xs' : 'text-sm'}`}>Compatible With</label>
             {!compact && <p className="text-xs text-content-muted mb-2">Specify which port IDs can connect. Use '*' for all. Relay, intercept, and bidirectional polarities bypass this check.</p>}
             <div className="flex gap-2 mb-2">
-              <input
-                type="text"
-                className={`flex-1 bg-surface rounded-md text-content focus:outline-none focus:border-accent ${compact ? 'px-2 py-1.5 text-xs' : 'px-2.5 py-2 text-sm'}`}
+              <Input
+                size={compact ? 'sm' : 'md'}
+                className="flex-1"
                 value={newCompatibleWith}
                 onChange={(e) => setNewCompatibleWith(e.target.value)}
                 placeholder={compact ? 'e.g., *source*' : 'e.g., flow-out, *source*, or *'}
@@ -343,8 +328,7 @@ const PortSchemaDetailsEditor = forwardRef<{ save: () => void }, PortSchemaDetai
             <div className="mb-3">
               <label className="block mb-1 text-sm font-medium text-content">Expected Complement</label>
               <p className="text-xs text-content-muted mb-2">Optional: another port ID that commonly connects to this one (for UI hints only)</p>
-              <select
-                className="w-full px-2.5 py-2 bg-surface rounded-md text-content text-sm focus:outline-none focus:border-accent"
+              <Select
                 value={formData.expectedComplement || ''}
                 onChange={(e) => updateField('expectedComplement', e.target.value || undefined)}
               >
@@ -354,7 +338,7 @@ const PortSchemaDetailsEditor = forwardRef<{ save: () => void }, PortSchemaDetai
                   .map(schema => (
                     <option key={schema.id} value={schema.id}>{schema.displayName}</option>
                   ))}
-              </select>
+              </Select>
             </div>
           )}
 

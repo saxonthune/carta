@@ -1,17 +1,13 @@
 import { useState, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useDocument } from '../hooks/useDocument';
+import Button from './ui/Button';
 import OverviewTab from './construct-editor/OverviewTab';
 import PortsTab from './construct-editor/PortsTab';
 import FieldsTab from './construct-editor/FieldsTab';
 import RelatedTab from './construct-editor/RelatedTab';
 import TabBar, { type Tab } from './ui/TabBar';
+import { toSnakeCase } from '../utils/stringUtils';
 import type { ConstructSchema, FieldSchema, PortConfig, SuggestedRelatedConstruct } from '../constructs/types';
-
-// Convert string to snake_case while preserving special characters like '#'
-// (e.g., "My Cool Construct" → "my_cool_construct", "API #1" → "api_#1")
-function toSnakeCase(str: string): string {
-  return str.toLowerCase().replace(/\s+/g, '_');
-}
 
 interface ConstructDetailsEditorProps {
   construct: ConstructSchema | null;
@@ -280,19 +276,9 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
           </div>
           <div className="flex gap-2 shrink-0">
             {!isNew && (
-              <button
-                className="px-2 py-1 text-xs bg-transparent border border-danger rounded text-danger font-medium cursor-pointer hover:bg-danger hover:text-white transition-all"
-                onClick={handleDelete}
-              >
-                Delete
-              </button>
+              <Button variant="danger" size="sm" onClick={handleDelete}>Delete</Button>
             )}
-            <button
-              className="px-2 py-1 text-xs bg-accent border-none rounded text-white font-medium cursor-pointer hover:bg-accent-hover transition-colors"
-              onClick={handleSave}
-            >
-              {isNew ? 'Create' : 'Save'}
-            </button>
+            <Button variant="accent" size="sm" onClick={handleSave}>{isNew ? 'Create' : 'Save'}</Button>
           </div>
         </div>
 
@@ -365,19 +351,9 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
         </div>
         <div className="flex gap-2">
           {!isNew && (
-            <button
-              className="px-3 py-1.5 bg-transparent border border-danger rounded text-danger text-sm font-medium cursor-pointer hover:bg-danger hover:text-white transition-all"
-              onClick={handleDelete}
-            >
-              Delete
-            </button>
+            <Button variant="danger" onClick={handleDelete}>Delete</Button>
           )}
-          <button
-            className="px-3 py-1.5 bg-accent border-none rounded text-white text-sm font-medium cursor-pointer hover:bg-accent-hover transition-colors"
-            onClick={handleSave}
-          >
-            {isNew ? 'Create' : 'Save'}
-          </button>
+          <Button variant="accent" onClick={handleSave}>{isNew ? 'Create' : 'Save'}</Button>
         </div>
       </div>
 

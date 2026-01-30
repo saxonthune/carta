@@ -4,6 +4,8 @@ import ConnectionStatus from './ConnectionStatus';
 import DocumentBrowserModal from './DocumentBrowserModal';
 import ExamplesModal from './ExamplesModal';
 import ProjectInfoModal from './ProjectInfoModal';
+import ClearWorkspaceModal from './ClearWorkspaceModal';
+import RestoreDefaultSchemasModal from './RestoreDefaultSchemasModal';
 import { getExamples, type Example } from '../utils/examples';
 
 interface HeaderProps {
@@ -42,8 +44,8 @@ export default function Header({ title, description, onTitleChange, onDescriptio
   const [isProjectInfoModalOpen, setIsProjectInfoModalOpen] = useState(false);
   const [isExamplesModalOpen, setIsExamplesModalOpen] = useState(false);
   const [isDocBrowserOpen, setIsDocBrowserOpen] = useState(false);
-  const [clearWarningMode, setClearWarningMode] = useState<'menu' | null>(null);
-  const [restoreWarningMode, setRestoreWarningMode] = useState<'menu' | null>(null);
+  const [isClearWorkspaceModalOpen, setIsClearWorkspaceModalOpen] = useState(false);
+  const [isRestoreDefaultSchemasModalOpen, setIsRestoreDefaultSchemasModalOpen] = useState(false);
   const [shareDocumentId, setShareDocumentId] = useState('');
   const [shareServerUrl, setShareServerUrl] = useState('ws://localhost:1234');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -150,15 +152,31 @@ export default function Header({ title, description, onTitleChange, onDescriptio
   };
 
   const handleClear = () => {
-    setClearWarningMode('menu');
+    setIsClearWorkspaceModalOpen(true);
     setIsSettingsMenuOpen(false);
   };
 
-  const confirmClear = (mode: 'instances' | 'all') => {
+  const handleClearInstances = () => {
     if (onClear) {
-      onClear(mode);
+      onClear('instances');
     }
-    setClearWarningMode(null);
+  };
+
+  const handleClearEverything = () => {
+    if (onClear) {
+      onClear('all');
+    }
+  };
+
+  const handleClearAndRestore = () => {
+    if (onClear) {
+      onClear('all');
+    }
+    onRestoreDefaultSchemas?.();
+  };
+
+  const handleRestoreDefaultSchemas = () => {
+    onRestoreDefaultSchemas?.();
   };
 
   return (
@@ -368,7 +386,10 @@ export default function Header({ title, description, onTitleChange, onDescriptio
               )}
               <button
                 className="w-full text-left px-4 py-2 text-sm cursor-pointer text-content hover:bg-surface-alt transition-colors border-none bg-surface"
-                onClick={() => setRestoreWarningMode('menu')}
+                onClick={() => {
+                  setIsRestoreDefaultSchemasModalOpen(true);
+                  setIsSettingsMenuOpen(false);
+                }}
               >
                 Restore Default Schemas
               </button>
@@ -384,116 +405,21 @@ export default function Header({ title, description, onTitleChange, onDescriptio
         </div>
       </div>
 
-      {/* Clear Warning Modal */}
-      {clearWarningMode && (
-        <div data-testid="clear-modal" className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1001]" onClick={() => setClearWarningMode(null)}>
-          <div className="bg-surface rounded-xl w-[90%] max-w-[400px] flex flex-col shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-subtle">
-              <div>
-                <h2 className="m-0 text-lg text-content font-semibold">Clear workspace</h2>
-              </div>
-              <button
-                className="w-9 h-9 border-none rounded-md bg-transparent text-content-subtle text-2xl cursor-pointer flex items-center justify-center hover:bg-surface-alt hover:text-content"
-                onClick={() => setClearWarningMode(null)}
-              >
-                ×
-              </button>
-            </div>
-
-            {/* Content - Vertical list of options */}
-            <div className="p-4 flex flex-col gap-2">
-              <button
-                data-testid="clear-instances-button"
-                className="w-full text-left px-4 py-3 rounded-lg border border-subtle bg-surface hover:bg-surface-alt transition-colors cursor-pointer"
-                onClick={() => confirmClear('instances')}
-              >
-                <div className="text-sm font-medium text-content">Clear Instances</div>
-                <div className="text-xs text-content-muted mt-0.5">Delete all instances and connections. Custom schemas and deployables preserved.</div>
-              </button>
-
-              <button
-                data-testid="clear-everything-button"
-                className="w-full text-left px-4 py-3 rounded-lg border border-amber-500/50 bg-surface hover:bg-amber-500/10 transition-colors cursor-pointer"
-                onClick={() => confirmClear('all')}
-              >
-                <div className="text-sm font-medium text-amber-600">Clear Everything</div>
-                <div className="text-xs text-content-muted mt-0.5">Delete all instances, schemas, and deployables. This cannot be undone.</div>
-              </button>
-
-              <button
-                data-testid="clear-and-restore-button"
-                className="w-full text-left px-4 py-3 rounded-lg border border-red-500/50 bg-surface hover:bg-red-500/10 transition-colors cursor-pointer"
-                onClick={() => {
-                  confirmClear('all');
-                  onRestoreDefaultSchemas?.();
-                }}
-              >
-                <div className="text-sm font-medium text-red-600">Clear Everything and Restore Defaults</div>
-                <div className="text-xs text-content-muted mt-0.5">Delete everything and restore built-in schemas. Fresh start with defaults.</div>
-              </button>
-
-              <button
-                data-testid="clear-cancel-button"
-                className="w-full text-left px-4 py-3 rounded-lg border border-subtle bg-surface hover:bg-surface-alt transition-colors cursor-pointer mt-2"
-                onClick={() => setClearWarningMode(null)}
-              >
-                <div className="text-sm font-medium text-content-muted">Cancel</div>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Clear Workspace Modal */}
+      <ClearWorkspaceModal
+        isOpen={isClearWorkspaceModalOpen}
+        onClose={() => setIsClearWorkspaceModalOpen(false)}
+        onClearInstances={handleClearInstances}
+        onClearEverything={handleClearEverything}
+        onClearAndRestore={handleClearAndRestore}
+      />
 
       {/* Restore Default Schemas Modal */}
-      {restoreWarningMode && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1001]" onClick={() => setRestoreWarningMode(null)}>
-          <div className="bg-surface rounded-xl w-[90%] max-w-[400px] flex flex-col shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-subtle">
-              <div>
-                <h2 className="m-0 text-lg text-content font-semibold">Restore default schemas</h2>
-              </div>
-              <button
-                className="w-9 h-9 border-none rounded-md bg-transparent text-content-subtle text-2xl cursor-pointer flex items-center justify-center hover:bg-surface-alt hover:text-content"
-                onClick={() => setRestoreWarningMode(null)}
-              >
-                ×
-              </button>
-            </div>
-
-            {/* Content */}
-            <div className="p-4">
-              <p className="text-content text-sm mb-2">
-                This will add any missing default schemas to your workspace.
-              </p>
-              <p className="text-content-muted text-xs">
-                Existing schemas with matching types will be overwritten. This action cannot be undone.
-              </p>
-            </div>
-
-            {/* Footer */}
-            <div className="flex gap-2 justify-end px-4 py-3 border-t border-subtle">
-              <button
-                className="px-4 py-2 rounded-md bg-surface text-content text-sm font-medium cursor-pointer hover:bg-surface-alt transition-colors"
-                onClick={() => setRestoreWarningMode(null)}
-              >
-                Cancel
-              </button>
-              <button
-                className="px-4 py-2 border-none rounded-md bg-emerald-500 text-white text-sm font-medium cursor-pointer hover:bg-emerald-600 transition-colors"
-                onClick={() => {
-                  onRestoreDefaultSchemas?.();
-                  setRestoreWarningMode(null);
-                  setIsSettingsMenuOpen(false);
-                }}
-              >
-                Restore
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <RestoreDefaultSchemasModal
+        isOpen={isRestoreDefaultSchemasModalOpen}
+        onClose={() => setIsRestoreDefaultSchemasModalOpen(false)}
+        onConfirm={handleRestoreDefaultSchemas}
+      />
 
       {/* Project Info Modal */}
       {isProjectInfoModalOpen && (

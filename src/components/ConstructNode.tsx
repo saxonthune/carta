@@ -1,7 +1,8 @@
-import { memo, useState, useEffect, useRef } from 'react';
+import { memo, useState, useEffect } from 'react';
 import { Handle, Position, NodeResizer } from '@xyflow/react';
 import { useDocument } from '../hooks/useDocument';
 import { getPortsForSchema, getHandleType, getPortColor } from '../constructs/ports';
+import CreateDeployablePopover from './CreateDeployablePopover';
 import type { ConstructNodeData, PortConfig, PortPosition } from '../constructs/types';
 
 // Long hover delay in milliseconds
@@ -47,10 +48,6 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
 
   // New deployable modal state
   const [showNewDeployableModal, setShowNewDeployableModal] = useState(false);
-  const [newDeployableName, setNewDeployableName] = useState('');
-  const [newDeployableDescription, setNewDeployableDescription] = useState('');
-  const modalRef = useRef<HTMLDivElement>(null);
-  const nameInputRef = useRef<HTMLInputElement>(null);
 
   // Clear timer on unmount
   useEffect(() => {
@@ -103,73 +100,21 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
   const handleDeployableChange = (value: string) => {
     if (value === ADD_NEW_DEPLOYABLE) {
       setShowNewDeployableModal(true);
-      setNewDeployableName('');
-      setNewDeployableDescription('');
     } else {
       data.onDeployableChange?.(value || null);
     }
   };
 
   // Create new deployable and assign to this node
-  const handleCreateDeployable = () => {
-    if (!newDeployableName.trim()) return;
-
+  const handleCreateDeployable = (name: string, description: string) => {
     const newDeployable = addDeployable({
-      name: newDeployableName.trim(),
-      description: newDeployableDescription.trim(),
+      name: name.trim(),
+      description: description.trim(),
     });
 
     data.onDeployableChange?.(newDeployable.id);
     setShowNewDeployableModal(false);
   };
-
-  // Close modal without creating
-  const handleCancelNewDeployable = () => {
-    setShowNewDeployableModal(false);
-  };
-
-  // Focus name input when modal opens
-  useEffect(() => {
-    if (showNewDeployableModal && nameInputRef.current) {
-      nameInputRef.current.focus();
-    }
-  }, [showNewDeployableModal]);
-
-  // Handle keyboard shortcuts for modal
-  useEffect(() => {
-    if (!showNewDeployableModal) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        handleCancelNewDeployable();
-      } else if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        handleCreateDeployable();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showNewDeployableModal, newDeployableName, newDeployableDescription]);
-
-  // Handle click outside modal
-  useEffect(() => {
-    if (!showNewDeployableModal) return;
-
-    const handleClickOutside = (e: MouseEvent) => {
-      if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
-        handleCancelNewDeployable();
-      }
-    };
-
-    // Use setTimeout to avoid closing immediately on the same click that opened it
-    setTimeout(() => {
-      document.addEventListener('mousedown', handleClickOutside);
-    }, 0);
-
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showNewDeployableModal]);
 
   // Calculate tooltip position based on port position
   const getTooltipPosition = (port: PortConfig, extended: boolean): React.CSSProperties => {
@@ -316,55 +261,12 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
                 <option value={ADD_NEW_DEPLOYABLE}>+ Add new...</option>
               </select>
 
-              {/* New Deployable Modal */}
-              {showNewDeployableModal && (
-                <div
-                  ref={modalRef}
-                  className="absolute top-full left-0 mt-1 bg-surface-elevated border border-content-muted/20 rounded-lg shadow-lg p-3 z-50 min-w-[280px]"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <div className="flex justify-between items-center mb-2">
-                    <div className="text-node-sm font-medium text-content">New Deployable</div>
-                    <button
-                      className="text-content-muted hover:text-content text-node-lg leading-none"
-                      onClick={handleCancelNewDeployable}
-                      title="Cancel"
-                    >
-                      ×
-                    </button>
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <div>
-                      <label className="text-node-xs text-content-muted uppercase tracking-wide">Name</label>
-                      <input
-                        ref={nameInputRef}
-                        type="text"
-                        className="w-full px-2 py-1 bg-surface rounded text-node-sm text-content border border-content-muted/20"
-                        value={newDeployableName}
-                        onChange={(e) => setNewDeployableName(e.target.value)}
-                        placeholder="Deployable name"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-node-xs text-content-muted uppercase tracking-wide">Description</label>
-                      <textarea
-                        className="w-full px-2 py-1 bg-surface rounded text-node-sm text-content border border-content-muted/20 resize-none"
-                        rows={2}
-                        value={newDeployableDescription}
-                        onChange={(e) => setNewDeployableDescription(e.target.value)}
-                        placeholder="Description (optional)"
-                      />
-                    </div>
-                    <button
-                      className="w-full px-3 py-2 text-node-sm font-medium bg-accent hover:bg-accent-hover text-white rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                      onClick={handleCreateDeployable}
-                      disabled={!newDeployableName.trim()}
-                    >
-                      Create
-                    </button>
-                  </div>
-                </div>
-              )}
+              {/* New Deployable Popover */}
+              <CreateDeployablePopover
+                isOpen={showNewDeployableModal}
+                onClose={() => setShowNewDeployableModal(false)}
+                onCreate={handleCreateDeployable}
+              />
             </div>
           )}
 

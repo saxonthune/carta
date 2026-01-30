@@ -1,3 +1,4 @@
+import Button from '../ui/Button';
 import FieldDefinitionEditor from '../FieldDefinitionEditor';
 import type { ConstructSchema, FieldSchema } from '../../constructs/types';
 
@@ -24,12 +25,7 @@ export default function FieldsTab({
     <div className="bg-surface-elevated rounded-lg p-4 flex flex-col h-full">
       <div className="flex justify-between items-center mb-3 shrink-0">
         <h3 className="m-0 text-sm font-semibold text-content-muted uppercase tracking-wide">Fields Definition</h3>
-        <button
-          className="px-2.5 py-1 bg-surface-alt rounded text-content text-xs cursor-pointer hover:bg-content-muted transition-colors"
-          onClick={addField}
-        >
-          + Add Field
-        </button>
+        <Button size="sm" variant="secondary" onClick={addField}>+ Add Field</Button>
       </div>
 
       {formData.fields.length === 0 ? (
