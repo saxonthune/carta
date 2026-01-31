@@ -99,6 +99,29 @@ Carta uses a three-level depth system to create visual hierarchy and improve rea
 - Level 2: Deployables island (`bg-surface-depth-2`)
 - Level 3: Edit form area (`bg-surface-depth-3`)
 
+## Text Legibility
+
+### Universal Text Halo
+
+For text that must be readable on any background color (especially colored node headers), use the `text-halo` utility class:
+
+```css
+@utility text-halo {
+  text-shadow:
+    0 2px 12px rgba(0, 0, 0, 0.8),
+    0 4px 24px rgba(0, 0, 0, 0.6),
+    0 8px 48px rgba(0, 0, 0, 0.4);
+}
+```
+
+**Usage**: Apply to white text on colored backgrounds where contrast may vary.
+
+**Pattern**: Layered soft blur approach creates readable text without requiring dynamic color contrast switching.
+
+**Examples**:
+- Node headers (`ConstructNode.tsx`) at all LOD levels (pill/compact/normal)
+- Any text overlaid on user-customizable background colors
+
 ## Design Principles
 
 ### Clarity Over Decoration

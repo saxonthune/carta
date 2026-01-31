@@ -64,8 +64,8 @@ The application uses a dual-view layout toggled via the Header:
   - **ExamplesModal** - Load bundled example .carta files from `/examples/` directory
   - **DocumentBrowserModal** - Browse/create/select documents in server mode, required mode when ?doc= missing
   - **ConnectionStatus** - Connection status indicator (server mode only)
-- **Map** - ReactFlow canvas with zoom controls, node operations, context menus, SchemaCreationWizard, virtual-parent node type, edge bundling, smoothstep edges
-  - **ConstructNode** - Node rendering with inline/collapsed ports (portDisplayPolicy), color picker (backgroundColorPolicy: defaultOnly/tints/any), expandable/collapsible
+- **Map** - ReactFlow canvas with custom zoom controls (1.15x step, minZoom: 0.15), node operations, context menus, SchemaCreationWizard, virtual-parent node type, edge bundling, smoothstep edges
+  - **ConstructNode** - Node rendering with inline/collapsed ports (portDisplayPolicy), color picker (backgroundColorPolicy: defaultOnly/tints/any), expandable/collapsible, three-band LOD rendering (pill/compact/normal modes)
   - **VirtualParentNode** - Visual grouping container for child constructs (expandable/collapsible)
   - **BundledEdge** - Custom edge component for bundled parallel edges with count badge (smoothstep style)
   - **PortPickerPopover** (`src/components/ui/PortPickerPopover.tsx`) - Popover for selecting ports when portDisplayPolicy is 'collapsed'
@@ -257,8 +257,10 @@ User imports file → Document cleared via adapter → New data loaded (like Exc
 - `/src/utils/displayUtils.ts` - `getDisplayName()` helper for node titles
 - `/src/utils/examples.ts` - Load bundled example .carta files using Vite's import.meta.glob
 - `/src/hooks/` - Custom React hooks (undo/redo)
+- `/src/components/lod/lodPolicy.ts` - LOD band configuration (pill/compact/normal modes with zoom thresholds)
+- `/src/components/lod/useLodBand.ts` - Hook that returns discrete LOD band based on current zoom level
 - `/src/main.tsx` - Entry point, configures staticMode from VITE_STATIC_MODE env var
-- `/src/index.css` - Tailwind + custom styles
+- `/src/index.css` - Tailwind + custom styles, text-halo utility for legible text
 
 ## Testing
 

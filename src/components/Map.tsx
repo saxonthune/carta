@@ -7,6 +7,8 @@ import {
   applyNodeChanges,
   applyEdgeChanges,
   SelectionMode,
+  useStore,
+  useReactFlow,
   type Node,
   type Edge,
   type OnSelectionChangeParams,
@@ -33,6 +35,19 @@ import SchemaCreationWizard from './SchemaCreationWizard';
 import BundledEdge from './BundledEdge';
 import ConstructFullViewModal from './ConstructFullViewModal';
 import { useEdgeBundling } from '../hooks/useEdgeBundling';
+import { getLodConfig } from './lod/lodPolicy';
+
+// Temporary debug component for LOD
+function ZoomDebug() {
+  const zoom = useStore((state) => state.transform[2]);
+  const lod = getLodConfig(zoom);
+  return (
+    <div className="absolute bottom-8 left-2 bg-black/80 text-white px-3 py-2 rounded text-xs font-mono z-50 pointer-events-none">
+      <div>Zoom: {zoom.toFixed(3)}</div>
+      <div>LOD: {lod.band}</div>
+    </div>
+  );
+}
 
 const nodeTypes = {
   custom: CustomNode,
@@ -81,6 +96,18 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
   const { nodes, edges, setNodes, setEdges, getSchema, levels, activeLevel, copyNodesToLevel } = useDocument();
   const { adapter } = useDocumentContext();
   const schemaGroups = adapter.getSchemaGroups();
+  const { zoomIn: reactFlowZoomIn, zoomOut: reactFlowZoomOut, getViewport, setViewport } = useReactFlow();
+
+  // Custom zoom with smaller step (1.15x instead of default 1.2x)
+  const customZoomIn = useCallback(() => {
+    const { x, y, zoom } = getViewport();
+    setViewport({ x, y, zoom: Math.min(zoom * 1.15, 2) }, { duration: 200 });
+  }, [getViewport, setViewport]);
+
+  const customZoomOut = useCallback(() => {
+    const { x, y, zoom } = getViewport();
+    setViewport({ x, y, zoom: Math.max(zoom / 1.15, 0.15) }, { duration: 200 });
+  }, [getViewport, setViewport]);
 
   // Create React Flow change handlers that work with the store
   const onNodesChange = useCallback((changes: NodeChange[]) => {
@@ -457,6 +484,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
 
   return (
     <div className="w-full h-full relative" style={{ backgroundColor: 'var(--color-canvas)' }}>
+      <ZoomDebug />
       <ReactFlow
         nodes={sortedNodes}
         edges={displayEdges}
@@ -475,13 +503,14 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         defaultEdgeOptions={defaultEdgeOptions}
+        minZoom={0.15}
         nodeDragThreshold={5}
         panOnDrag={[1, 2]}
         selectionOnDrag
         selectionMode={SelectionMode.Full}
         fitView
       >
-        <Controls position="top-left">
+        <Controls position="top-left" showZoom={false}>
           <ControlButton
             onClick={undo}
             disabled={!canUndo}
@@ -503,6 +532,30 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
             </svg>
           </ControlButton>
         </Controls>
+
+        {/* Custom zoom controls with finer granularity */}
+        <div className="absolute top-[14px] left-[52px] flex flex-col gap-[2px]">
+          <button
+            onClick={customZoomIn}
+            className="w-[32px] h-[32px] bg-white border border-[#e2e8f0] rounded cursor-pointer flex items-center justify-center hover:bg-[#f8fafc] transition-colors shadow-sm"
+            title="Zoom In"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          </button>
+          <button
+            onClick={customZoomOut}
+            className="w-[32px] h-[32px] bg-white border border-[#e2e8f0] rounded cursor-pointer flex items-center justify-center hover:bg-[#f8fafc] transition-colors shadow-sm"
+            title="Zoom Out"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          </button>
+        </div>
+
         <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
         <DeployableBackground nodes={sortedNodes} deployables={deployables} />
       </ReactFlow>

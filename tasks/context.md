@@ -63,10 +63,12 @@ When user references a file, check the tree to find the actual component handlin
 - `src/components/Header.tsx` - Top bar, settings, export/import, Map/Metamap toggle, Share (server mode)
 - `src/components/ConnectionStatus.tsx` - Connection indicator (server mode only)
 - `src/components/DocumentBrowserModal.tsx` - Document browser (server mode, required when ?doc= missing)
-- `src/components/ConstructNode.tsx` - Node rendering, port handles (inline/collapsed), color picker (defaultOnly/tints/any), tooltips
-- `src/components/Map.tsx` - React Flow canvas (instance view), context menus, drag-drop, edge bundling, smoothstep edges
+- `src/components/ConstructNode.tsx` - Node rendering, port handles (inline/collapsed), color picker (defaultOnly/tints/any), tooltips, three-band LOD rendering (pill/compact/normal)
+- `src/components/Map.tsx` - React Flow canvas (instance view), context menus, drag-drop, edge bundling, smoothstep edges, custom zoom controls (1.15x step, minZoom: 0.15)
 - `src/components/Metamap.tsx` - React Flow canvas (schema view), auto-layout, schema connections
 - `src/components/BundledEdge.tsx` - Custom edge component for bundled parallel edges with count badge
+- `src/components/lod/lodPolicy.ts` - LOD band configuration (pill/compact/normal modes with zoom thresholds)
+- `src/components/lod/useLodBand.ts` - Hook that returns discrete LOD band based on current zoom level
 - `src/components/ui/ContextMenuPrimitive.tsx` - Reusable context menu with nested submenus
 - `src/components/ui/PortPickerPopover.tsx` - Port picker popover for collapsed port nodes
 - `src/utils/colorUtils.ts` - Color utilities: hexToHsl, hslToHex, generateTints (7-stop lightness 92%-45%)
@@ -81,6 +83,9 @@ When user references a file, check the tree to find the actual component handlin
 - Instance color: Stored in `instanceColor` field, visual-only, not compiled, reset to null to use schema default
 - Edge bundling: Parallel edges (same source/target nodes + port types) grouped visually with count badge
 - Edge style: Smoothstep (curved) connections for all edges
+- LOD rendering: Three zoom-based bands (pill <0.5, compact 0.5-1.0, normal ≥1.0) adjust node detail for performance/readability
+- Text legibility: text-halo utility applies layered soft shadow for readable text on any background color
+- Zoom controls: Custom implementation with 1.15x step (finer than default 1.2x), minZoom: 0.15 for deep zoom-out
 
 **Editors:**
 - `src/components/InstanceEditor.tsx` - Node instance editor
@@ -136,6 +141,10 @@ When user references a file, check the tree to find the actual component handlin
 - Edge bundling: useEdgeBundling hook and BundledEdge component group parallel edges with count badge
 - Edge style: Changed from straight to smoothstep (curved) connections
 - Note schema: Built-in note type with backgroundColorPolicy: 'any' and portDisplayPolicy: 'collapsed'
+- LOD system: Three-band level-of-detail rendering (pill/compact/normal) based on zoom thresholds for performance/readability
+- text-halo utility: Universal text shadow utility in index.css for readable text on any background (layered soft blur)
+- Custom zoom controls: 1.15x step (finer than default 1.2x) and minZoom: 0.15 for better zoom granularity
+- ZoomDebug component: Temporary bottom-left debug display showing current zoom and LOD band
 
 ## Conventions
 

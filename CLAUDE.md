@@ -28,22 +28,75 @@ Detailed guidance lives in `.cursor/`:
 | `.cursor/rules/metamodel-design.mdc` | Three-level metamodel (M2/M1/M0) |
 | `.cursor/rules/clean-composable-react.mdc` | React patterns, hooks, state management |
 | `.cursor/rules/yjs-collaboration.mdc` | Yjs collaboration preparation |
-| `.cursor/rules/look-and-feel.mdc` | Visual depth system, island patterns |
+| `.cursor/rules/look-and-feel.mdc` | Visual depth system, island patterns, text legibility |
 | `.cursor/rules/styling-best-practices.mdc` | UI styling standards, spacing, buttons, colors |
+| `.cursor/rules/lod-rendering.mdc` | Level-of-detail rendering, zoom-based performance |
 
-## Custom Agents
+## Skills & Agents
 
-Launch these agents with "launch {agent-name}" to run them in the background.
+**Skills** (invoke with `/skill-name`): Opus analyzes, haiku workers execute in parallel.
+
+| Skill | Purpose | When to use |
+|-------|---------|-------------|
+| `/documentation-nag` | Keeps docs in sync with code | After significant code changes |
+| `/style-nag` | Audits and fixes UI styling issues | After UI changes, or periodically |
+| `/frontend-architecture-nag` | Audits component layering and state | After architectural changes |
+
+**Agents** (launch with `Task` tool): Long-running autonomous workers.
 
 | Agent | Purpose | When to use |
 |-------|---------|-------------|
 | `batch-executor` | Processes all tasks sequentially | "process tasks" - small/medium tasks |
 | `task-master` | Spawns parallel agents per task | "launch task-master" - large tasks |
-| `style-nag` | Audits and fixes UI styling issues | After UI changes, or periodically |
 | `test-builder` | Creates integration/E2E tests | When adding test coverage |
-| `documentation-nag` | Keeps docs in sync with code | After significant code changes |
 
-### batch-executor (recommended)
+### /documentation-nag
+
+Opus analyzes code changes, generates edit instructions, launches parallel haiku workers to update docs.
+
+**Invocation:** `/documentation-nag` or "update docs"
+
+**Pattern:**
+1. Opus reads all doc files in parallel
+2. Opus analyzes recent changes and writes specific edit instructions per file
+3. Opus launches haiku agents in parallel (one per file needing updates)
+4. Returns summary of updates
+
+**Faster than agent:** Parallel execution, cheaper haiku workers for edits.
+
+**Config:** `.claude/skills/documentation-nag/SKILL.md`
+
+### /style-nag
+
+Opus scans UI components for styling violations, launches haiku workers to fix.
+
+**Invocation:** `/style-nag` or "audit ui styling"
+
+**Checks:**
+- Spacing violations (non-4px values)
+- Button hierarchy (multiple primary buttons)
+- Color misuse (semantic mismatches)
+- Touch targets (< 36px)
+
+**Scope:** Application chrome only, not user content.
+
+**Config:** `.claude/skills/style-nag/SKILL.md`
+
+### /frontend-architecture-nag
+
+Opus audits component layering, identifies violations, launches haiku workers for easy fixes.
+
+**Invocation:** `/frontend-architecture-nag` or "audit component layering"
+
+**Checks:**
+- Layer violations (raw HTML in domain components)
+- Nested containers
+- State misplacement
+- Missing/premature abstractions
+
+**Config:** `.claude/skills/frontend-architecture-nag/SKILL.md`
+
+### batch-executor (agent)
 
 Processes all pending tasks sequentially. Handles impl, tests, or both.
 
@@ -54,47 +107,15 @@ Processes all pending tasks sequentially. Handles impl, tests, or both.
 # "process tasks"
 ```
 
-- Reads `.claude/skills/testing.md` when writing tests
-- More token-efficient than spawning multiple agents
-- Good for small/medium tasks
-
 **Config:** `.claude/agents/batch-executor.md`
 
-### style-nag
+### test-builder (agent)
 
-Audits application UI for styling inconsistencies:
-- Spacing violations (non-4px-based values)
-- Button hierarchy issues (too many primary buttons competing)
-- Color misuse (semantic mismatches, competing saturated colors)
-- Typography inconsistencies
-- Touch target violations
-
-**Scope:** Application chrome only. Does NOT audit user-created content.
-
-**Config:** `.claude/agents/style-nag.md`
-
-### test-builder
-
-Creates integration tests (Vitest) and E2E tests (Playwright):
-- Integration: Hook logic, state management, adapter behavior
-- E2E: User workflows, UI interactions, persistence
-
-**Does NOT write:** Unit tests
+Creates integration tests (Vitest) and E2E tests (Playwright).
 
 **Config:** `.claude/agents/test-builder.md`
 
-### documentation-nag
-
-Keeps documentation synchronized with code changes:
-- `CLAUDE.md` - Key files, common tasks, architecture
-- `.cursor/rules/about.mdc` - Component tree, file structure
-- `tasks/context.md` - Quick reference for task agents
-
-**Scope:** Structural changes, new components, new patterns.
-
-**Config:** `.claude/agents/documentation-nag.md`
-
-### task-master
+### task-master (agent)
 
 Processes task files in `/tasks/inputs/` and delegates to appropriate agents:
 - **TEST tasks** → `test-builder` (sonnet model)
@@ -272,6 +293,8 @@ Visit `http://localhost:5173/?doc=my-document-id` to open a specific document.
 | `src/components/ui/PortPickerPopover.tsx` | Port picker popover for collapsed port nodes |
 | `src/components/BundledEdge.tsx` | Custom edge component for bundled parallel edges |
 | `src/hooks/useEdgeBundling.ts` | Hook for grouping parallel edges between same node pair |
+| `src/components/lod/lodPolicy.ts` | LOD band configuration (pill/compact/normal modes with zoom thresholds) |
+| `src/components/lod/useLodBand.ts` | Hook that returns discrete LOD band based on current zoom level |
 | `src/ContextMenu.tsx` | Shared context menu for canvas right-click; view-specific options (Map shows node ops, Metamap shows schema ops) |
 | `src/utils/examples.ts` | Utility to load bundled example .carta files |
 | `src/main.tsx` | Entry point, configures staticMode from VITE_STATIC_MODE env var |
@@ -350,10 +373,12 @@ components: const { schemas, deployables } = useDocument()
 
 ### Change node appearance
 ```
-src/components/ConstructNode.tsx   → Node rendering, port handles (inline/collapsed), color picker
+src/components/ConstructNode.tsx   → Node rendering, port handles (inline/collapsed), color picker, LOD modes
+src/components/lod/lodPolicy.ts    → LOD band thresholds and configuration
+src/components/lod/useLodBand.ts   → Hook for discrete zoom-based LOD band detection
 src/utils/displayUtils.ts          → Node title derivation
 src/utils/colorUtils.ts            → Color utilities (tint generation, HSL conversion)
-src/index.css                      → Styling (handles, colors)
+src/index.css                      → Styling (handles, colors, text-halo utility)
 ```
 
 ### Modify keyboard shortcuts
@@ -402,8 +427,17 @@ src/components/Metamap.tsx                 → Metamap view: passes only schema/
 ```
 src/components/BundledEdge.tsx             → Custom edge component for bundled parallel edges (smoothstep style)
 src/hooks/useEdgeBundling.ts               → Hook for grouping parallel edges between same node pair
-src/components/Map.tsx                     → Registers BundledEdge as custom edge type, uses useEdgeBundling
+src/components/Map.tsx                     → Registers BundledEdge as custom edge type, uses useEdgeBundling, custom zoom controls
 src/index.css                              → Edge styling (colors, stroke width)
+```
+
+### Modify zoom controls or LOD rendering
+```
+src/components/Map.tsx                     → Custom zoom controls (1.15x step), minZoom: 0.15
+src/components/ConstructNode.tsx           → Three-band LOD rendering (pill/compact/normal)
+src/components/lod/lodPolicy.ts            → LOD band configuration and thresholds
+src/components/lod/useLodBand.ts           → Hook for zoom-based discrete band selection
+src/index.css                              → text-halo utility for legible text on any background
 ```
 
 ## Testing Requirements

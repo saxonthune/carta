@@ -116,6 +116,14 @@ body,
   color: var(--color-content);
 }
 
+/* Node header text legibility — large, soft, layered shadow */
+@utility text-halo {
+  text-shadow:
+    0 2px 12px rgba(0, 0, 0, 0.8),
+    0 4px 24px rgba(0, 0, 0, 0.6),
+    0 8px 48px rgba(0, 0, 0, 0.4);
+}
+
 /* React Flow custom/construct node wrappers need transparent backgrounds */
 .react-flow__node-custom,
 .react-flow__node-construct {

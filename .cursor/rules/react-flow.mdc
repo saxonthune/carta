@@ -16,6 +16,8 @@ Use `@xyflow/react` with required CSS: `import '@xyflow/react/dist/style.css'`
 5. **Multiple handles** need unique `id` props
 6. **Parent nodes** must appear before children
 7. **Default edge type** set to `smoothstep` for curved connections
+8. **Zoom controls** use custom implementation with finer granularity (1.15x step, minZoom: 0.15)
+9. **LOD rendering** uses discrete zoom bands (pill/compact/normal) for performance and readability
 
 **For port semantics and connection model:** See `ports-and-connections.mdc`
 
