@@ -16,21 +16,31 @@ This codebase is in active development. When refactoring or improving patterns:
 
 Adding compatibility layers creates unnecessary complexity. Clean, modern patterns are preferred over supporting legacy approaches.
 
-## Cursor Rules
+## Documentation
 
-Detailed guidance lives in `.cursor/`:
+**`.docs/` is the canonical source of truth.** All other docs (CLAUDE.md, `.cursor/rules/`, skill configs) are derived artifacts.
+
+| Title | Contents |
+|-------|----------|
+| `.docs/00-codex/` | Taxonomy, conventions, maintenance |
+| `.docs/01-context/` | Mission, principles, glossary, UX principles |
+| `.docs/02-system/` | Architecture, state, interfaces, decisions, metamodel, design system, frontend architecture |
+| `.docs/03-product/` | Features, use cases, workflows |
+| `.docs/04-operations/` | Development, testing, deployment, contributing |
+
+Cross-references use `docXX.YY.ZZ` syntax (e.g., `doc02.06` = metamodel architecture).
+
+### Cursor Rules (derived from .docs/)
 
 | Rule | When to consult |
 |------|-----------------|
-| `.cursor/about.mdc` | Project overview, architecture, file structure |
 | `.cursor/rules/react-flow.mdc` | React Flow patterns, handles, node types |
-| `.cursor/rules/ports-and-connections.mdc` | Port model, connection semantics, relationship design |
+| `.cursor/rules/ports-and-connections.mdc` | Port model, connection semantics |
 | `.cursor/rules/metamodel-design.mdc` | Three-level metamodel (M2/M1/M0) |
-| `.cursor/rules/clean-composable-react.mdc` | React patterns, hooks, state management |
 | `.cursor/rules/yjs-collaboration.mdc` | Yjs collaboration preparation |
-| `.cursor/rules/look-and-feel.mdc` | Visual depth system, island patterns, text legibility |
-| `.cursor/rules/styling-best-practices.mdc` | UI styling standards, spacing, buttons, colors |
-| `.cursor/rules/lod-rendering.mdc` | Level-of-detail rendering, zoom-based performance |
+| `.cursor/rules/look-and-feel.mdc` | Visual depth system, island patterns |
+| `.cursor/rules/styling-best-practices.mdc` | UI styling standards |
+| `.cursor/rules/lod-rendering.mdc` | Level-of-detail rendering |
 
 ## Skills & Agents
 
@@ -38,9 +48,10 @@ Detailed guidance lives in `.cursor/`:
 
 | Skill | Purpose | When to use |
 |-------|---------|-------------|
-| `/documentation-nag` | Keeps docs in sync with code | After significant code changes |
-| `/style-nag` | Audits and fixes UI styling issues | After UI changes, or periodically |
-| `/frontend-architecture-nag` | Audits component layering and state | After architectural changes |
+| `/documentation-nag` | Keeps `.docs/` and derived files in sync with code | After significant code changes |
+| `/style-nag` | Audits and fixes UI styling against doc02.07 | After UI changes, or periodically |
+| `/frontend-architecture-nag` | Audits component layering against doc02.08 | After architectural changes |
+| `/test-builder` | Creates integration/E2E tests | When adding test coverage |
 
 **Agents** (launch with `Task` tool): Long-running autonomous workers.
 
@@ -48,89 +59,26 @@ Detailed guidance lives in `.cursor/`:
 |-------|---------|-------------|
 | `batch-executor` | Processes all tasks sequentially | "process tasks" - small/medium tasks |
 | `task-master` | Spawns parallel agents per task | "launch task-master" - large tasks |
-| `test-builder` | Creates integration/E2E tests | When adding test coverage |
+| `test-builder` | Creates integration/E2E tests autonomously | "launch test-builder" |
 
-### /documentation-nag
+### Skill Details
 
-Opus analyzes code changes, generates edit instructions, launches parallel haiku workers to update docs.
+All skills follow the same pattern: opus reads `.docs/` and code, analyzes, generates edit instructions, launches parallel haiku workers.
 
-**Invocation:** `/documentation-nag` or "update docs"
+| Skill | Reference Docs | Config |
+|-------|---------------|--------|
+| `/documentation-nag` | `.docs/` (all titles) | `.claude/skills/documentation-nag/SKILL.md` |
+| `/style-nag` | doc02.07 (design system), doc01.04 (UX principles) | `.claude/skills/style-nag/SKILL.md` |
+| `/frontend-architecture-nag` | doc02.08 (frontend architecture), doc02.01 (overview) | `.claude/skills/frontend-architecture-nag/SKILL.md` |
+| `/test-builder` | doc04.02 (testing), `tests/README.md` | `.claude/skills/test-builder/SKILL.md` |
 
-**Pattern:**
-1. Opus reads all doc files in parallel
-2. Opus analyzes recent changes and writes specific edit instructions per file
-3. Opus launches haiku agents in parallel (one per file needing updates)
-4. Returns summary of updates
+### Agent Details
 
-**Faster than agent:** Parallel execution, cheaper haiku workers for edits.
-
-**Config:** `.claude/skills/documentation-nag/SKILL.md`
-
-### /style-nag
-
-Opus scans UI components for styling violations, launches haiku workers to fix.
-
-**Invocation:** `/style-nag` or "audit ui styling"
-
-**Checks:**
-- Spacing violations (non-4px values)
-- Button hierarchy (multiple primary buttons)
-- Color misuse (semantic mismatches)
-- Touch targets (< 36px)
-
-**Scope:** Application chrome only, not user content.
-
-**Config:** `.claude/skills/style-nag/SKILL.md`
-
-### /frontend-architecture-nag
-
-Opus audits component layering, identifies violations, launches haiku workers for easy fixes.
-
-**Invocation:** `/frontend-architecture-nag` or "audit component layering"
-
-**Checks:**
-- Layer violations (raw HTML in domain components)
-- Nested containers
-- State misplacement
-- Missing/premature abstractions
-
-**Config:** `.claude/skills/frontend-architecture-nag/SKILL.md`
-
-### batch-executor (agent)
-
-Processes all pending tasks sequentially. Handles impl, tests, or both.
-
-```bash
-./tasks/maketask fix button color
-./tasks/maketask add tooltip + test
-./tasks/prepare
-# "process tasks"
-```
-
-**Config:** `.claude/agents/batch-executor.md`
-
-### test-builder (agent)
-
-Creates integration tests (Vitest) and E2E tests (Playwright).
-
-**Config:** `.claude/agents/test-builder.md`
-
-### task-master (agent)
-
-Processes task files in `/tasks/inputs/` and delegates to appropriate agents:
-- **TEST tasks** → `test-builder` (sonnet model)
-- **IMPLEMENTATION tasks** → `task-executor` (haiku model)
-
-Uses sonnet (needs to reliably spawn sub-agents). Delegates heavy work to sub-agents (haiku/sonnet).
-
-**Usage:**
-```bash
-./tasks/maketask your task description  # Add task
-./tasks/prepare                          # Concat context (saves tokens)
-# Then: "launch task-master"
-```
-
-**Config:** `.claude/agents/task-master.md`
+| Agent | Config |
+|-------|--------|
+| `batch-executor` | `.claude/agents/batch-executor.md` |
+| `task-master` | `.claude/agents/task-master.md` |
+| `test-builder` | `.claude/agents/test-builder.md` |
 
 ## Monorepo Structure
 

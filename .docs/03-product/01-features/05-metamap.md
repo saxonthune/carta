@@ -1,0 +1,34 @@
+---
+title: Metamap
+status: active
+---
+
+# Metamap
+
+The Metamap is a schema-level visual editor — a second canvas view where users design construct types and their relationships rather than instances.
+
+## Schema Graph
+
+Construct schemas appear as nodes. Connections between schema nodes represent port relationships — which types can connect to which. Schema groups appear as container nodes.
+
+## Operations
+
+- **View schemas**: All defined construct schemas displayed as a graph
+- **Reposition schemas**: Drag to arrange the schema graph
+- **Connect schemas**: Drag between schema nodes to open the MetamapConnectionModal, which creates port schemas and adds ports to both schemas
+- **Group schemas**: Drag schemas into schema group nodes for organization
+- **Auto-layout**: Button to automatically arrange the schema graph
+- **Create schema**: Right-click context menu to create a new construct schema (opens wizard, doc03.01.06)
+- **Create group**: Right-click context menu to create a new schema group
+
+## Connection Modal
+
+When connecting two schemas in the Metamap, a modal opens to configure the port relationship:
+- Connection label and inverse label
+- Port color selection
+- Bidirectional option
+- Creates port schemas and assigns them to both participating schemas
+
+## Relationship to Map
+
+The Map (doc03.01.01) shows instances. The Metamap shows types. Changes in the Metamap (adding ports to a schema, creating new schemas) immediately affect what's available in the Map. The two views are toggled via a view switcher on the canvas.

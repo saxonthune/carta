@@ -50,12 +50,13 @@ This codebase changes rapidly. Tests must earn their keep — every test should 
 
 Before writing tests, read these:
 
-1. `tests/README.md` - Test philosophy and structure
-2. `tests/setup/testProviders.tsx` - React context wrappers
-3. `tests/setup/testHelpers.ts` - Test utilities (createTestNode, etc.)
-4. `tests/integration/clear-document.test.tsx` - Integration test example
-5. `tests/e2e/helpers/CartaPage.ts` - Page Object Model
-6. `tests/e2e/clear.spec.ts` - E2E test example
+1. `.docs/04-operations/02-testing.md` - Testing operations and commands
+2. `tests/README.md` - Test philosophy and structure
+3. `tests/setup/testProviders.tsx` - React context wrappers
+4. `tests/setup/testHelpers.ts` - Test utilities (createTestNode, etc.)
+5. `tests/integration/clear-document.test.tsx` - Integration test example
+6. `tests/e2e/helpers/CartaPage.ts` - Page Object Model
+7. `tests/e2e/clear.spec.ts` - E2E test example
 
 ## Integration Test Template
 
