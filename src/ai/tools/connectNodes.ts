@@ -1,6 +1,6 @@
 import type { CartaTool, ToolContext, ToolResult } from './types';
 import type { Node, Edge } from '@xyflow/react';
-import type { ConstructNodeData, ConnectionValue } from '../../constructs/types';
+import type { ConstructNodeData, ConnectionValue } from '@carta/domain';
 
 interface ConnectNodesParams {
   sourceId?: string;

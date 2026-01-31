@@ -1,4 +1,4 @@
-import type { SchemaGroup } from '../../constructs/types';
+import type { SchemaGroup } from '@carta/domain';
 import useDocument from '../../hooks/useDocument';
 
 /**

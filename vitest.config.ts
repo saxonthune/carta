@@ -21,6 +21,8 @@ export default defineConfig({
     alias: {
       '@': '/src',
       '@carta/domain': path.resolve(__dirname, 'packages/domain/src/index.ts'),
+      '@carta/compiler': path.resolve(__dirname, 'packages/compiler/src/index.ts'),
+      '@carta/storage': path.resolve(__dirname, 'packages/storage/src/index.ts'),
     },
   },
 });

@@ -18,8 +18,10 @@ export default defineConfig({
       // Vite's esbuild pre-bundler can convert it properly.
       // Use require.resolve to handle pnpm's .pnpm directory structure
       '@dagrejs/dagre': require.resolve('@dagrejs/dagre'),
-      // Map @carta/domain to source files for development
+      // Map workspace packages to source files for development
       '@carta/domain': path.resolve(__dirname, 'packages/domain/src/index.ts'),
+      '@carta/compiler': path.resolve(__dirname, 'packages/compiler/src/index.ts'),
+      '@carta/storage': path.resolve(__dirname, 'packages/storage/src/index.ts'),
     },
   },
   optimizeDeps: {

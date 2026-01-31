@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { PortConfig, PortSchema } from '../../constructs/types';
+import type { PortConfig, PortSchema } from '@carta/domain';
 
 interface PortsListStepProps {
   ports: PortConfig[];

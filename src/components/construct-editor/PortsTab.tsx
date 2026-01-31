@@ -2,7 +2,7 @@ import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
 import Textarea from '../ui/Textarea';
-import type { ConstructSchema, PortConfig, PortPosition } from '../../constructs/types';
+import type { ConstructSchema, PortConfig, PortPosition } from '@carta/domain';
 import { useDocument } from '../../hooks/useDocument';
 import { toSnakeCase } from '../../utils/stringUtils';
 

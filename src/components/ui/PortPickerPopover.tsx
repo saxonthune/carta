@@ -1,5 +1,5 @@
-import type { PortConfig } from '../../constructs/types';
-import { getPortColor } from '../../constructs/ports';
+import type { PortConfig } from '@carta/domain';
+import { getPortColor } from '@carta/domain';
 
 interface PortPickerPopoverProps {
   ports: PortConfig[];

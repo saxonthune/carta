@@ -5,19 +5,18 @@
 import {
   generateDocumentId,
   generateSemanticId,
-  CURRENT_FORMAT_VERSION,
-  createSchemaRegistry,
-  createCompiler,
-} from '@carta/core';
+  builtInConstructSchemas,
+} from '@carta/domain';
 import type {
-  CartaDocument,
-  CartaNode,
-  CartaEdge,
+  ServerDocument,
+  CompilerNode,
+  CompilerEdge,
   ConstructSchema,
   Deployable,
   DocumentMetadata,
-  ConstructInstance,
-} from '@carta/core';
+  ConstructNodeData,
+} from '@carta/domain';
+import { CompilerEngine } from '@carta/compiler';
 import type { StorageAdapter } from '../storage/index.js';
 
 export class DocumentService {
@@ -29,13 +28,13 @@ export class DocumentService {
 
   // ===== DOCUMENT OPERATIONS =====
 
-  async createDocument(title: string): Promise<CartaDocument> {
+  async createDocument(title: string): Promise<ServerDocument> {
     const now = new Date().toISOString();
-    const doc: CartaDocument = {
+    const doc: ServerDocument = {
       id: generateDocumentId(),
       title,
       version: 1,
-      formatVersion: CURRENT_FORMAT_VERSION,
+      formatVersion: 4,
       createdAt: now,
       updatedAt: now,
       nodes: [],
@@ -47,7 +46,7 @@ export class DocumentService {
     return doc;
   }
 
-  async getDocument(id: string): Promise<CartaDocument | null> {
+  async getDocument(id: string): Promise<ServerDocument | null> {
     return this.storage.loadDocument(id);
   }
 
@@ -61,8 +60,8 @@ export class DocumentService {
 
   async updateDocument(
     id: string,
-    updates: Partial<Pick<CartaDocument, 'title' | 'nodes' | 'edges' | 'deployables' | 'customSchemas'>>
-  ): Promise<CartaDocument | null> {
+    updates: Partial<Pick<ServerDocument, 'title' | 'nodes' | 'edges' | 'deployables' | 'customSchemas'>>
+  ): Promise<ServerDocument | null> {
     const doc = await this.storage.loadDocument(id);
     if (!doc) return null;
 
@@ -78,12 +77,12 @@ export class DocumentService {
 
   // ===== CONSTRUCT OPERATIONS =====
 
-  async listConstructs(documentId: string): Promise<CartaNode[]> {
+  async listConstructs(documentId: string): Promise<CompilerNode[]> {
     const doc = await this.storage.loadDocument(documentId);
     return doc?.nodes || [];
   }
 
-  async getConstruct(documentId: string, semanticId: string): Promise<CartaNode | null> {
+  async getConstruct(documentId: string, semanticId: string): Promise<CompilerNode | null> {
     const doc = await this.storage.loadDocument(documentId);
     if (!doc) return null;
     return doc.nodes.find((n) => n.data.semanticId === semanticId) || null;
@@ -94,14 +93,14 @@ export class DocumentService {
     constructType: string,
     values: Record<string, unknown> = {},
     position = { x: 100, y: 100 }
-  ): Promise<CartaNode | null> {
+  ): Promise<CompilerNode | null> {
     const doc = await this.storage.loadDocument(documentId);
     if (!doc) return null;
 
     const semanticId = generateSemanticId(constructType);
     const nodeId = `node_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
-    const node: CartaNode = {
+    const node: CompilerNode = {
       id: nodeId,
       type: 'construct',
       position,
@@ -121,8 +120,8 @@ export class DocumentService {
   async updateConstruct(
     documentId: string,
     semanticId: string,
-    updates: Partial<ConstructInstance>
-  ): Promise<CartaNode | null> {
+    updates: Partial<ConstructNodeData>
+  ): Promise<CompilerNode | null> {
     const doc = await this.storage.loadDocument(documentId);
     if (!doc) return null;
 
@@ -132,7 +131,7 @@ export class DocumentService {
     const existingNode = doc.nodes[nodeIndex];
     if (!existingNode) return null;
 
-    const updatedNode: CartaNode = {
+    const updatedNode: CompilerNode = {
       ...existingNode,
       data: {
         ...existingNode.data,
@@ -182,7 +181,7 @@ export class DocumentService {
     sourcePortId: string,
     targetSemanticId: string,
     targetPortId: string
-  ): Promise<CartaEdge | null> {
+  ): Promise<CompilerEdge | null> {
     const doc = await this.storage.loadDocument(documentId);
     if (!doc) return null;
 
@@ -192,7 +191,7 @@ export class DocumentService {
 
     // Create edge
     const edgeId = `edge_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    const edge: CartaEdge = {
+    const edge: CompilerEdge = {
       id: edgeId,
       source: sourceNode.id,
       target: targetNode.id,
@@ -259,11 +258,13 @@ export class DocumentService {
     if (!doc) return [];
 
     // Combine built-in and custom schemas
-    const registry = createSchemaRegistry();
+    const schemas = [...builtInConstructSchemas];
     for (const schema of doc.customSchemas) {
-      registry.register(schema);
+      if (!schemas.some(s => s.type === schema.type)) {
+        schemas.push(schema);
+      }
     }
-    return registry.getAll();
+    return schemas;
   }
 
   async getSchema(documentId: string, type: string): Promise<ConstructSchema | null> {
@@ -321,22 +322,12 @@ export class DocumentService {
     const doc = await this.storage.loadDocument(documentId);
     if (!doc) return null;
 
-    const schemaRegistry = createSchemaRegistry();
-    for (const schema of doc.customSchemas) {
-      schemaRegistry.register(schema);
-    }
-
-    const deployableProvider = {
-      getAll: () => doc.deployables,
-      get: (id: string) => doc.deployables.find((d) => d.id === id),
-    };
-
-    const compiler = createCompiler({
-      schemaRegistry,
-      deployableProvider,
+    const schemas = await this.listSchemas(documentId);
+    const compilerEngine = new CompilerEngine();
+    return compilerEngine.compile(doc.nodes, doc.edges, {
+      schemas,
+      deployables: doc.deployables,
     });
-
-    return compiler.compile(doc.nodes, doc.edges);
   }
 
   // ===== HELPERS =====

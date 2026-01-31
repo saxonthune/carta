@@ -1,7 +1,7 @@
 /**
- * Storage module exports
+ * Storage module - re-exports from @carta/storage
  */
 
-export { FileSystemAdapter } from './file-adapter.js';
-export { YjsStorageAdapter } from './yjs-adapter.js';
-export type { StorageAdapter, DocumentChangeEvent } from './types.js';
+export { FileSystemProvider as FileSystemAdapter } from '@carta/storage';
+export { YjsProvider as YjsStorageAdapter } from '@carta/storage';
+export type { PortfolioProvider as StorageAdapter, DocumentChangeEvent } from '@carta/storage';

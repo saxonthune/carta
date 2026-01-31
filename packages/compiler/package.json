@@ -1,5 +1,5 @@
 {
-  "name": "@carta/domain",
+  "name": "@carta/compiler",
   "version": "0.1.0-proto4",
   "type": "module",
   "main": "./dist/index.js",
@@ -13,6 +13,9 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@carta/domain": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

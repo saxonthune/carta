@@ -1,5 +1,5 @@
 import type { CartaTool, ToolContext, ToolResult } from './types';
-import type { CartaDocument } from '../../constructs/types';
+import type { CartaDocument } from '@carta/domain';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface GetDocumentParams {}

@@ -24,7 +24,7 @@ import * as encoding from 'lib0/encoding';
 import * as decoding from 'lib0/decoding';
 import * as syncProtocol from 'y-protocols/sync';
 import { MongodbPersistence } from 'y-mongodb-provider';
-import { portRegistry } from '@carta/core';
+import { portRegistry } from '@carta/domain';
 import * as docOps from './doc-operations.js';
 
 const PORT = parseInt(process.env.PORT || '1234', 10);

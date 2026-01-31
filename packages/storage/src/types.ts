@@ -1,23 +1,23 @@
 /**
- * Storage adapter types
+ * Storage types for @carta/storage
  */
 
-import type { CartaDocument, DocumentMetadata } from '@carta/core';
+import type { ServerDocument, DocumentMetadata } from '@carta/domain';
 
 /**
- * Storage adapter interface
- * Implementations can be file-based, S3, or database
+ * Portfolio provider interface for document persistence.
+ * Implementations can be file-based, S3, database, or Yjs-backed.
  */
-export interface StorageAdapter {
+export interface PortfolioProvider {
   /**
    * Load a document by ID
    */
-  loadDocument(id: string): Promise<CartaDocument | null>;
+  loadDocument(id: string): Promise<ServerDocument | null>;
 
   /**
    * Save a document (creates or updates)
    */
-  saveDocument(doc: CartaDocument): Promise<void>;
+  saveDocument(doc: ServerDocument): Promise<void>;
 
   /**
    * List all documents with metadata
@@ -33,7 +33,7 @@ export interface StorageAdapter {
    * Subscribe to document changes (for real-time sync)
    * Returns unsubscribe function
    */
-  subscribe?(docId: string, callback: (doc: CartaDocument) => void): () => void;
+  subscribe?(docId: string, callback: (doc: ServerDocument) => void): () => void;
 }
 
 /**
@@ -42,5 +42,5 @@ export interface StorageAdapter {
 export interface DocumentChangeEvent {
   type: 'created' | 'updated' | 'deleted';
   documentId: string;
-  document?: CartaDocument;
+  document?: ServerDocument;
 }

@@ -8,7 +8,7 @@ import Header from './components/Header';
 import Map from './components/Map';
 import Metamap from './components/Metamap';
 import Footer from './components/Footer';
-import { compiler } from './constructs/compiler';
+import { compiler } from '@carta/compiler';
 import { builtInConstructSchemas, builtInPortSchemas, builtInSchemaGroups, syncWithDocumentStore } from '@carta/domain';
 import type { ConstructValues, ConstructSchema } from '@carta/domain';
 import { useDocument } from './hooks/useDocument';
@@ -201,7 +201,8 @@ function App() {
 
   const handleCompile = useCallback(() => {
     const { nodes, edges } = nodesEdgesRef.current;
-    const output = compiler.compile(nodes, edges, { schemas, deployables });
+    // Cast to any since React Flow Node[] has compatible shape to CompilerNode[] at runtime
+    const output = compiler.compile(nodes as any, edges as any, { schemas, deployables });
     setCompileOutput(output);
   }, [schemas, deployables]);
 

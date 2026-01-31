@@ -1,4 +1,4 @@
-import type { DocumentAdapter } from '../../constructs/types';
+import type { DocumentAdapter } from '@carta/domain';
 
 /**
  * JSON Schema property definition for tool parameters

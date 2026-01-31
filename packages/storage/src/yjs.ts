@@ -1,5 +1,5 @@
 /**
- * Yjs storage adapter for real-time collaboration
+ * Yjs storage provider for real-time collaboration
  *
  * Connects to the same Yjs collab server that browsers use,
  * enabling MCP tools to read and modify documents in real-time.
@@ -8,9 +8,8 @@
 import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
 import { WebSocket } from 'ws';
-import { CURRENT_FORMAT_VERSION } from '@carta/core';
-import type { CartaDocument, DocumentMetadata, CartaNode, CartaEdge, Deployable, ConstructSchema } from '@carta/core';
-import type { StorageAdapter } from './types.js';
+import type { ServerDocument, DocumentMetadata, CompilerNode, CompilerEdge, Deployable, ConstructSchema } from '@carta/domain';
+import type { PortfolioProvider } from './types.js';
 
 /**
  * Connection state for a room
@@ -45,12 +44,12 @@ function objectToYMap(obj: Record<string, unknown>): Y.Map<unknown> {
 }
 
 /**
- * Yjs-based storage adapter for collaborative editing via WebSocket.
+ * Yjs-based storage provider for collaborative editing via WebSocket.
  *
  * Connects to a Yjs WebSocket server (y-websocket) to sync documents
  * in real-time with browser clients.
  */
-export class YjsStorageAdapter implements StorageAdapter {
+export class YjsProvider implements PortfolioProvider {
   private serverUrl: string;
   private connections: Map<string, RoomConnection> = new Map();
   private apiUrl: string;
@@ -72,7 +71,7 @@ export class YjsStorageAdapter implements StorageAdapter {
 
     // Create new Y.Doc and connect
     const ydoc = new Y.Doc();
-    console.error(`[YjsAdapter] Creating WebsocketProvider for ${this.serverUrl}/${roomId}`);
+    console.error(`[YjsProvider] Creating WebsocketProvider for ${this.serverUrl}/${roomId}`);
     const provider = new WebsocketProvider(this.serverUrl, roomId, ydoc, {
       WebSocketPolyfill: WebSocket as any,
     });
@@ -87,16 +86,16 @@ export class YjsStorageAdapter implements StorageAdapter {
     // Wait for initial sync
     await new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => {
-        console.error(`[YjsAdapter] Timeout waiting for sync on room: ${roomId}`);
+        console.error(`[YjsProvider] Timeout waiting for sync on room: ${roomId}`);
         reject(new Error(`Timeout connecting to room: ${roomId}`));
       }, 10000);
 
       provider.on('status', (event: { status: string }) => {
-        console.error(`[YjsAdapter] WebSocket status for ${roomId}: ${event.status}`);
+        console.error(`[YjsProvider] WebSocket status for ${roomId}: ${event.status}`);
       });
 
       provider.on('sync', (isSynced: boolean) => {
-        console.error(`[YjsAdapter] Sync event for ${roomId}: ${isSynced}`);
+        console.error(`[YjsProvider] Sync event for ${roomId}: ${isSynced}`);
         if (isSynced) {
           clearTimeout(timeout);
           connection.synced = true;
@@ -105,7 +104,7 @@ export class YjsStorageAdapter implements StorageAdapter {
       });
 
       provider.on('connection-error', (event: Event) => {
-        console.error(`[YjsAdapter] Connection error for ${roomId}:`, event);
+        console.error(`[YjsProvider] Connection error for ${roomId}:`, event);
         clearTimeout(timeout);
         reject(new Error(`WebSocket connection error: ${event.type}`));
       });
@@ -128,9 +127,9 @@ export class YjsStorageAdapter implements StorageAdapter {
   }
 
   /**
-   * Extract CartaDocument from Y.Doc
+   * Extract ServerDocument from Y.Doc
    */
-  private extractDocument(connection: RoomConnection): CartaDocument {
+  private extractDocument(connection: RoomConnection): ServerDocument {
     const { ydoc, roomId } = connection;
 
     const ymeta = ydoc.getMap('meta');
@@ -140,21 +139,21 @@ export class YjsStorageAdapter implements StorageAdapter {
     const ydeployables = ydoc.getMap<Y.Map<unknown>>('deployables');
 
     // Extract nodes
-    const nodes: CartaNode[] = [];
+    const nodes: CompilerNode[] = [];
     ynodes.forEach((ynode, id) => {
       const nodeObj = yMapToObject<{ position: { x: number; y: number }; data: Record<string, unknown>; type?: string }>(ynode);
       nodes.push({
         id,
         type: nodeObj.type || 'construct',
         position: nodeObj.position || { x: 0, y: 0 },
-        data: nodeObj.data as unknown as CartaNode['data'],
+        data: nodeObj.data as unknown as CompilerNode['data'],
       });
     });
 
     // Extract edges
-    const edges: CartaEdge[] = [];
+    const edges: CompilerEdge[] = [];
     yedges.forEach((yedge, id) => {
-      const edgeObj = yMapToObject<CartaEdge>(yedge);
+      const edgeObj = yMapToObject<CompilerEdge>(yedge);
       edges.push({ ...edgeObj, id });
     });
 
@@ -176,7 +175,7 @@ export class YjsStorageAdapter implements StorageAdapter {
       id: roomId,
       title: (ymeta.get('title') as string) || 'Untitled Project',
       version: (ymeta.get('version') as number) || 3,
-      formatVersion: CURRENT_FORMAT_VERSION,
+      formatVersion: 4,
       createdAt: now,
       updatedAt: now,
       nodes,
@@ -187,9 +186,9 @@ export class YjsStorageAdapter implements StorageAdapter {
   }
 
   /**
-   * Apply CartaDocument changes to Y.Doc
+   * Apply ServerDocument changes to Y.Doc
    */
-  private applyDocument(connection: RoomConnection, doc: CartaDocument): void {
+  private applyDocument(connection: RoomConnection, doc: ServerDocument): void {
     const { ydoc } = connection;
 
     const ymeta = ydoc.getMap('meta');
@@ -231,19 +230,19 @@ export class YjsStorageAdapter implements StorageAdapter {
     }, 'mcp');
   }
 
-  async loadDocument(id: string): Promise<CartaDocument | null> {
+  async loadDocument(id: string): Promise<ServerDocument | null> {
     try {
-      console.error(`[YjsAdapter] Attempting to connect to room: ${id}`);
+      console.error(`[YjsProvider] Attempting to connect to room: ${id}`);
       const connection = await this.connectToRoom(id);
-      console.error(`[YjsAdapter] Successfully connected to room: ${id}`);
+      console.error(`[YjsProvider] Successfully connected to room: ${id}`);
       return this.extractDocument(connection);
     } catch (error) {
-      console.error(`[YjsAdapter] Failed to load document from room ${id}:`, error);
+      console.error(`[YjsProvider] Failed to load document from room ${id}:`, error);
       return null;
     }
   }
 
-  async saveDocument(doc: CartaDocument): Promise<void> {
+  async saveDocument(doc: ServerDocument): Promise<void> {
     const connection = await this.connectToRoom(doc.id);
     this.applyDocument(connection, doc);
   }
@@ -355,7 +354,7 @@ export class YjsStorageAdapter implements StorageAdapter {
   /**
    * Subscribe to document changes (for real-time sync)
    */
-  subscribe(docId: string, callback: (doc: CartaDocument) => void): () => void {
+  subscribe(docId: string, callback: (doc: ServerDocument) => void): () => void {
     let connection: RoomConnection | null = null;
 
     const setupSubscription = async () => {

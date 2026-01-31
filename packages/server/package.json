@@ -1,6 +1,6 @@
 {
   "name": "@carta/server",
-  "version": "0.1.0proto4",
+  "version": "0.1.0-proto4",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -29,7 +29,9 @@
     "collab-server": "node dist/collab-server.js"
   },
   "dependencies": {
-    "@carta/core": "workspace:*",
+    "@carta/domain": "workspace:*",
+    "@carta/compiler": "workspace:*",
+    "@carta/storage": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.25.3",
     "express": "^5.2.1",
     "lib0": "^0.2.102",

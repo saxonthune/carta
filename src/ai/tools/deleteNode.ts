@@ -1,6 +1,6 @@
 import type { CartaTool, ToolContext, ToolResult } from './types';
 import type { Node, Edge } from '@xyflow/react';
-import type { ConstructNodeData } from '../../constructs/types';
+import type { ConstructNodeData } from '@carta/domain';
 
 interface DeleteNodeParams {
   id?: string;

@@ -5,7 +5,7 @@
  */
 
 import { z } from 'zod';
-import { portRegistry as defaultPortRegistry } from '@carta/core';
+import { portRegistry as defaultPortRegistry } from '@carta/domain';
 
 // Schemas for tool inputs
 const DocumentIdSchema = z.object({

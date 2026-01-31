@@ -1,4 +1,4 @@
-import type { DataKind } from '../../constructs/types';
+import type { DataKind } from '@carta/domain';
 import StringField from './StringField';
 import NumberField from './NumberField';
 import BooleanField from './BooleanField';

@@ -1,6 +1,6 @@
 {
-  "name": "@carta/core",
-  "version": "0.1.0proto4",
+  "name": "@carta/storage",
+  "version": "0.1.0-proto4",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -8,17 +8,21 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    },
-    "./guides": {
-      "types": "./dist/guides/index.d.ts",
-      "import": "./dist/guides/index.js"
     }
   },
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch"
   },
+  "dependencies": {
+    "@carta/domain": "workspace:*",
+    "ws": "^8.18.0",
+    "y-websocket": "^3.0.0",
+    "yjs": "^13.6.29"
+  },
   "devDependencies": {
+    "@types/ws": "^8.18.1",
+    "@types/node": "^24.10.1",
     "typescript": "^5.8.3"
   }
 }

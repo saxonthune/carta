@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
 import ConstructNode from '../ConstructNode';
-import type { ConstructSchema, ConstructNodeData } from '../../constructs/types';
+import type { ConstructSchema, ConstructNodeData } from '@carta/domain';
 
 interface PreviewTabProps {
   formData: ConstructSchema;

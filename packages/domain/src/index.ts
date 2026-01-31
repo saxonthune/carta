@@ -16,3 +16,6 @@ export * from './schemas/index.js';
 
 // Utilities
 export * from './utils/index.js';
+
+// Guides
+export * from './guides/index.js';

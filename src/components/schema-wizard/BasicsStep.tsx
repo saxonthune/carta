@@ -2,7 +2,7 @@ import Input from '../ui/Input';
 import Select from '../ui/Select';
 import Textarea from '../ui/Textarea';
 import { toSnakeCase } from '../../utils/stringUtils';
-import type { ConstructSchema } from '../../constructs/types';
+import type { ConstructSchema } from '@carta/domain';
 
 type BackgroundColorPolicy = NonNullable<ConstructSchema['backgroundColorPolicy']>;
 type PortDisplayPolicy = NonNullable<ConstructSchema['portDisplayPolicy']>;

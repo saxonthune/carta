@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
-import type { ConstructSchema, SchemaGroup } from '../../constructs/types';
+import type { ConstructSchema, SchemaGroup } from '@carta/domain';
 
 interface GroupedSchemaListProps {
   schemas: ConstructSchema[];

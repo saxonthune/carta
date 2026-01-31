@@ -1,6 +1,6 @@
 import type { CartaTool, ToolContext, ToolResult } from './types';
 import type { Node } from '@xyflow/react';
-import type { ConstructNodeData } from '../../constructs/types';
+import type { ConstructNodeData } from '@carta/domain';
 
 interface GetNodeParams {
   id?: string;

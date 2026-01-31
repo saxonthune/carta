@@ -1,6 +1,6 @@
 import { useDocument } from '../../hooks/useDocument';
-import { canConnect } from '../../constructs/ports';
-import type { ConstructSchema, SuggestedRelatedConstruct } from '../../constructs/types';
+import { canConnect } from '@carta/domain';
+import type { ConstructSchema, SuggestedRelatedConstruct } from '@carta/domain';
 
 interface RelatedTabProps {
   formData: ConstructSchema;

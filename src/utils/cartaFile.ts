@@ -1,7 +1,10 @@
 import type { Node, Edge } from '@xyflow/react';
 import type { Deployable, ConstructSchema, PortSchema, SchemaGroup } from '@carta/domain';
+import { toKebabCase } from '@carta/domain';
 import type { ExportOptions } from './exportAnalyzer';
-import { toKebabCase } from './stringUtils';
+
+// Re-export for convenience
+export { generateSemanticId } from '@carta/domain';
 
 /**
  * Version of the .carta file format (v4)
@@ -22,23 +25,6 @@ export interface CartaFile {
   portSchemas: PortSchema[];
   schemaGroups: SchemaGroup[];
   exportedAt: string;
-}
-
-/**
- * Generate a semantic ID for AI consumption
- * Creates a unique identifier based on construct type and timestamp
- */
-export function generateSemanticId(constructType: string): string {
-  // Normalize the type: lowercase, replace underscores with hyphens
-  const normalizedType = constructType
-    .toLowerCase()
-    .replace(/_/g, '-');
-
-  // Generate a short unique suffix using timestamp + random
-  const timestamp = Date.now().toString(36).slice(-4);
-  const random = Math.random().toString(36).slice(-3);
-
-  return `${normalizedType}-${timestamp}${random}`;
 }
 
 /**

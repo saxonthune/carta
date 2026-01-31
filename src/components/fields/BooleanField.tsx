@@ -1,4 +1,4 @@
-import type { FieldSchema } from '../../constructs/types';
+import type { FieldSchema } from '@carta/domain';
 
 interface BooleanFieldProps {
   field: FieldSchema;

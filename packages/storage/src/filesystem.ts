@@ -1,15 +1,14 @@
 /**
- * File system storage adapter
+ * File system storage provider
  * Stores documents as JSON files in a directory
  */
 
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import { validateDocument, CURRENT_FORMAT_VERSION } from '@carta/core';
-import type { CartaDocument, DocumentMetadata } from '@carta/core';
-import type { StorageAdapter } from './types.js';
+import type { ServerDocument, DocumentMetadata } from '@carta/domain';
+import type { PortfolioProvider } from './types.js';
 
-export class FileSystemAdapter implements StorageAdapter {
+export class FileSystemProvider implements PortfolioProvider {
   private dataDir: string;
 
   constructor(dataDir = './data') {
@@ -36,20 +35,19 @@ export class FileSystemAdapter implements StorageAdapter {
     return path.join(this.dataDir, `${safeId}.carta`);
   }
 
-  async loadDocument(id: string): Promise<CartaDocument | null> {
+  async loadDocument(id: string): Promise<ServerDocument | null> {
     try {
       const filePath = this.getFilePath(id);
       const content = await fs.readFile(filePath, 'utf-8');
       const data = JSON.parse(content);
 
-      // Validate the document
-      const result = validateDocument(data);
-      if (!result.valid) {
-        console.error(`Invalid document ${id}:`, result.errors);
+      // Basic validation
+      if (!data || typeof data !== 'object' || !data.id || !Array.isArray(data.nodes)) {
+        console.error(`Invalid document ${id}: missing required fields`);
         return null;
       }
 
-      return data as CartaDocument;
+      return data as ServerDocument;
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
         return null; // File doesn't exist
@@ -58,14 +56,14 @@ export class FileSystemAdapter implements StorageAdapter {
     }
   }
 
-  async saveDocument(doc: CartaDocument): Promise<void> {
+  async saveDocument(doc: ServerDocument): Promise<void> {
     await this.ensureDataDir();
 
     // Update timestamps
     const now = new Date().toISOString();
     const updatedDoc = {
       ...doc,
-      formatVersion: CURRENT_FORMAT_VERSION,
+      formatVersion: 4,
       updatedAt: now,
       createdAt: doc.createdAt || now,
       version: (doc.version || 0) + 1,

@@ -277,11 +277,35 @@ export interface Formatter {
   ): string;
 }
 
+// ===== COMPILER / SERVER NODE TYPES =====
+
+/**
+ * Platform-agnostic node type for compilation and server use.
+ * Matches the shape of React Flow nodes at runtime without the @xyflow/react dependency.
+ */
+export interface CompilerNode {
+  id: string;
+  type?: string;
+  position: { x: number; y: number };
+  data: ConstructNodeData;
+}
+
+/**
+ * Platform-agnostic edge type for compilation and server use.
+ */
+export interface CompilerEdge {
+  id: string;
+  source: string;
+  target: string;
+  sourceHandle?: string;
+  targetHandle?: string;
+}
+
 // ===== DOCUMENT =====
 
 /**
  * Complete Carta document structure
- * Represents the full state of a project
+ * Represents the full state of a project (web client / export format)
  */
 export interface CartaDocument {
   version: number;
@@ -293,6 +317,34 @@ export interface CartaDocument {
   deployables: Deployable[];
   portSchemas: PortSchema[];
   schemaGroups: SchemaGroup[];
+}
+
+/**
+ * Server-side document model.
+ * Extends the base document with server metadata and uses concrete node/edge types.
+ */
+export interface ServerDocument {
+  id: string;
+  title: string;
+  version: number;
+  formatVersion: number;
+  createdAt: string;
+  updatedAt: string;
+  nodes: CompilerNode[];
+  edges: CompilerEdge[];
+  deployables: Deployable[];
+  customSchemas: ConstructSchema[];
+}
+
+/**
+ * Document metadata for listings (server)
+ */
+export interface DocumentMetadata {
+  id: string;
+  title: string;
+  version: number;
+  updatedAt: string;
+  nodeCount: number;
 }
 
 // ===== PERSISTENCE =====

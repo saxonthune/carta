@@ -1,4 +1,4 @@
-import type { ConstructSchema, CompilationFormat } from '../../constructs/types';
+import type { ConstructSchema, CompilationFormat } from '@carta/domain';
 
 interface CompilationTabProps {
   formData: ConstructSchema;

@@ -1,15 +1,15 @@
 import * as Y from 'yjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import type { Node, Edge } from '@xyflow/react';
-import type { DocumentAdapter } from './types';
 import type {
+  DocumentAdapter,
   CartaDocument,
   ConstructSchema,
   ConstructNodeData,
   Deployable,
   PortSchema,
   SchemaGroup,
-} from '../../constructs/types';
+} from '@carta/domain';
 
 /**
  * Options for creating a Yjs adapter

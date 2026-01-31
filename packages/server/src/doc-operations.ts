@@ -8,20 +8,18 @@
 import * as Y from 'yjs';
 import {
   generateSemanticId,
-  createSchemaRegistry,
-  createCompiler,
-  builtInSchemas,
-  CURRENT_FORMAT_VERSION,
-} from '@carta/core';
+  builtInConstructSchemas,
+} from '@carta/domain';
 import type {
-  CartaNode,
-  CartaEdge,
+  CompilerNode,
+  CompilerEdge,
   ConstructSchema,
   Deployable,
-  CartaDocument,
-  ConstructInstance,
+  ServerDocument,
+  ConstructNodeData,
   ConnectionValue,
-} from '@carta/core';
+} from '@carta/domain';
+import { CompilerEngine } from '@carta/compiler';
 
 const MCP_ORIGIN = 'mcp';
 
@@ -101,14 +99,14 @@ function deepPlainToY(value: unknown): unknown {
 /**
  * List all constructs in a document
  */
-export function listConstructs(ydoc: Y.Doc): CartaNode[] {
+export function listConstructs(ydoc: Y.Doc): CompilerNode[] {
   const ynodes = ydoc.getMap<Y.Map<unknown>>('nodes');
-  const nodes: CartaNode[] = [];
+  const nodes: CompilerNode[] = [];
 
   ynodes.forEach((ynode, id) => {
     const nodeObj = deepYToPlain(ynode) as {
       position: { x: number; y: number };
-      data: ConstructInstance;
+      data: ConstructNodeData;
       type?: string;
     };
     nodes.push({
@@ -125,7 +123,7 @@ export function listConstructs(ydoc: Y.Doc): CartaNode[] {
 /**
  * Get a construct by semantic ID
  */
-export function getConstruct(ydoc: Y.Doc, semanticId: string): CartaNode | null {
+export function getConstruct(ydoc: Y.Doc, semanticId: string): CompilerNode | null {
   const nodes = listConstructs(ydoc);
   return nodes.find((n) => n.data.semanticId === semanticId) || null;
 }
@@ -138,18 +136,18 @@ export function createConstruct(
   constructType: string,
   values: Record<string, unknown> = {},
   position = { x: 100, y: 100 }
-): CartaNode {
+): CompilerNode {
   const semanticId = generateSemanticId(constructType);
   const nodeId = `node_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
-  const nodeData: ConstructInstance = {
+  const nodeData: ConstructNodeData = {
     constructType,
     semanticId,
     values,
     connections: [],
   };
 
-  const node: CartaNode = {
+  const node: CompilerNode = {
     id: nodeId,
     type: 'construct',
     position,
@@ -176,7 +174,7 @@ export function updateConstruct(
   ydoc: Y.Doc,
   semanticId: string,
   updates: { values?: Record<string, unknown>; deployableId?: string | null; instanceColor?: string | null }
-): CartaNode | null {
+): CompilerNode | null {
   const ynodes = ydoc.getMap<Y.Map<unknown>>('nodes');
 
   // Find the node by semantic ID
@@ -300,7 +298,7 @@ export function connect(
   sourcePortId: string,
   targetSemanticId: string,
   targetPortId: string
-): CartaEdge | null {
+): CompilerEdge | null {
   const ynodes = ydoc.getMap<Y.Map<unknown>>('nodes');
   const yedges = ydoc.getMap<Y.Map<unknown>>('edges');
 
@@ -447,15 +445,18 @@ export function disconnect(
  */
 export function listSchemas(ydoc: Y.Doc): ConstructSchema[] {
   const yschemas = ydoc.getMap<Y.Map<unknown>>('schemas');
-  const registry = createSchemaRegistry();
+  const schemas = [...builtInConstructSchemas];
 
   // Add custom schemas from document
   yschemas.forEach((yschema) => {
     const schema = deepYToPlain(yschema) as ConstructSchema;
-    registry.register(schema);
+    // Only add if not already a built-in
+    if (!schemas.some(s => s.type === schema.type)) {
+      schemas.push(schema);
+    }
   });
 
-  return registry.getAll();
+  return schemas;
 }
 
 /**
@@ -463,7 +464,7 @@ export function listSchemas(ydoc: Y.Doc): ConstructSchema[] {
  */
 export function getSchema(ydoc: Y.Doc, type: string): ConstructSchema | null {
   // Check built-in first
-  const builtIn = builtInSchemas.find((s) => s.type === type);
+  const builtIn = builtInConstructSchemas.find((s) => s.type === type);
   if (builtIn) return builtIn;
 
   // Check custom schemas
@@ -613,7 +614,7 @@ export function compile(ydoc: Y.Doc): string {
 
   // Get edges
   const yedges = ydoc.getMap<Y.Map<unknown>>('edges');
-  const edges: CartaEdge[] = [];
+  const edges: CompilerEdge[] = [];
   yedges.forEach((yedge, id) => {
     edges.push({
       id,
@@ -624,27 +625,8 @@ export function compile(ydoc: Y.Doc): string {
     });
   });
 
-  // Create schema registry
-  const schemaRegistry = createSchemaRegistry();
-  for (const schema of schemas) {
-    // Only register if not already built-in
-    const existing = schemaRegistry.get(schema.type);
-    if (!existing) {
-      schemaRegistry.register(schema);
-    }
-  }
-
-  const deployableProvider = {
-    getAll: () => deployables,
-    get: (id: string) => deployables.find((d) => d.id === id),
-  };
-
-  const compiler = createCompiler({
-    schemaRegistry,
-    deployableProvider,
-  });
-
-  return compiler.compile(nodes, edges);
+  const compilerEngine = new CompilerEngine();
+  return compilerEngine.compile(nodes, edges, { schemas, deployables });
 }
 
 // ===== DOCUMENT EXTRACTION =====
@@ -652,7 +634,10 @@ export function compile(ydoc: Y.Doc): string {
 /**
  * Extract full CartaDocument from Y.Doc
  */
-export function extractDocument(ydoc: Y.Doc, roomId: string): CartaDocument {
+/** Current server document format version */
+const SERVER_FORMAT_VERSION = 4;
+
+export function extractDocument(ydoc: Y.Doc, roomId: string): ServerDocument {
   const ymeta = ydoc.getMap('meta');
   const nodes = listConstructs(ydoc);
   const schemas = listSchemas(ydoc);
@@ -660,7 +645,7 @@ export function extractDocument(ydoc: Y.Doc, roomId: string): CartaDocument {
 
   // Get edges
   const yedges = ydoc.getMap<Y.Map<unknown>>('edges');
-  const edges: CartaEdge[] = [];
+  const edges: CompilerEdge[] = [];
   yedges.forEach((yedge, id) => {
     edges.push({
       id,
@@ -674,14 +659,14 @@ export function extractDocument(ydoc: Y.Doc, roomId: string): CartaDocument {
   const now = new Date().toISOString();
 
   // Only include custom schemas (filter out built-ins)
-  const builtInTypes = new Set(builtInSchemas.map((s) => s.type));
+  const builtInTypes = new Set(builtInConstructSchemas.map((s) => s.type));
   const customSchemas = schemas.filter((s) => !builtInTypes.has(s.type));
 
   return {
     id: roomId,
     title: (ymeta.get('title') as string) || 'Untitled Project',
     version: (ymeta.get('version') as number) || 3,
-    formatVersion: CURRENT_FORMAT_VERSION,
+    formatVersion: SERVER_FORMAT_VERSION,
     createdAt: now,
     updatedAt: now,
     nodes,

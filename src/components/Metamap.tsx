@@ -179,7 +179,7 @@ function MetamapInner() {
     [getSchema]
   );
 
-  const onPaneContextMenu = useCallback((event: React.MouseEvent) => {
+  const onPaneContextMenu = useCallback((event: React.MouseEvent | MouseEvent) => {
     event.preventDefault();
     setContextMenu({ x: event.clientX, y: event.clientY });
   }, []);
@@ -279,7 +279,7 @@ function MetamapInner() {
         />
       )}
       {schemaWizardOpen && (
-        <SchemaCreationWizard onClose={() => setSchemaWizardOpen(false)} />
+        <SchemaCreationWizard isOpen={schemaWizardOpen} onClose={() => setSchemaWizardOpen(false)} />
       )}
       {contextMenu && (
         <ContextMenu
