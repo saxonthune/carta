@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import dagre from '@dagrejs/dagre';
 import type { Node, Edge } from '@xyflow/react';
-import type { ConstructSchema, SchemaGroup } from '../constructs/types';
+import type { ConstructSchema, SchemaGroup } from '@carta/domain';
 import type { SchemaGroupNodeData } from '../components/SchemaGroupNode';
 
 const SCHEMA_NODE_WIDTH = 280;

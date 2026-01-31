@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { ViewportPortal } from '@xyflow/react';
 import type { Node } from '@xyflow/react';
-import type { Deployable } from '../constructs/types';
+import type { Deployable } from '@carta/domain';
 
 interface DeployableBackgroundProps {
   nodes: Node[];

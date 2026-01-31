@@ -19,7 +19,7 @@ import { useDocument } from '../../src/hooks/useDocument';
 import { useClearDocument } from '../../src/hooks/useClearDocument';
 import { useDocumentContext } from '../../src/contexts/DocumentContext';
 import { TestProviders } from '../setup/testProviders';
-import { builtInConstructSchemas, builtInPortSchemas, builtInSchemaGroups } from '../../src/constructs/schemas';
+import { builtInConstructSchemas, builtInPortSchemas, builtInSchemaGroups } from '@carta/domain';
 import { createTestNode } from '../setup/testHelpers';
 
 describe('Clear Everything', () => {

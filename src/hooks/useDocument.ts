@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { Node, Edge } from '@xyflow/react';
 import { useDocumentContext } from '../contexts/DocumentContext';
-import type { ConstructSchema, ConstructNodeData, Deployable, PortSchema, SchemaGroup } from '../constructs/types';
+import type { ConstructSchema, ConstructNodeData, Deployable, PortSchema, SchemaGroup } from '@carta/domain';
 
 /**
  * Interface matching useDocumentStore for backward compatibility

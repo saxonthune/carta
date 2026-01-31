@@ -1,8 +1,9 @@
 import { useCallback } from 'react';
 import { useReactFlow, addEdge, type Edge, type Connection, type OnConnect } from '@xyflow/react';
 import { useDocument } from './useDocument';
-import { canConnect, getPortsForSchema, getHandleType } from '../constructs/ports';
-import type { ConnectionValue, ConstructNodeData } from '../constructs/types';
+import { canConnect, getPortsForSchema, getHandleType } from '@carta/domain';
+import type { ConnectionValue, ConstructNodeData } from '@carta/domain';
+
 
 export interface UseConnectionsResult {
   getNodeSemanticId: (nodeId: string) => string | null;

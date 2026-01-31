@@ -9,8 +9,8 @@ import Map from './components/Map';
 import Metamap from './components/Metamap';
 import Footer from './components/Footer';
 import { compiler } from './constructs/compiler';
-import { builtInConstructSchemas, builtInPortSchemas, builtInSchemaGroups } from './constructs/schemas';
-import { syncWithDocumentStore } from './constructs/portRegistry';
+import { builtInConstructSchemas, builtInPortSchemas, builtInSchemaGroups, syncWithDocumentStore } from '@carta/domain';
+import type { ConstructValues, ConstructSchema } from '@carta/domain';
 import { useDocument } from './hooks/useDocument';
 import { useClearDocument } from './hooks/useClearDocument';
 import { useDocumentContext } from './contexts/DocumentContext';
@@ -19,7 +19,6 @@ import type { Example } from './utils/examples';
 import { analyzeImport, type ImportAnalysis, type ImportOptions } from './utils/importAnalyzer';
 import { analyzeExport, type ExportAnalysis, type ExportOptions } from './utils/exportAnalyzer';
 import { importDocument, type ImportConfig } from './utils/documentImporter';
-import type { ConstructValues, ConstructSchema } from './constructs/types';
 import { AISidebar } from './ai';
 
 // Note: Schema initialization is now handled by DocumentProvider

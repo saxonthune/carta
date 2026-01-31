@@ -1,5 +1,5 @@
 import type { Node, Edge } from '@xyflow/react';
-import type { Deployable, ConstructSchema, PortSchema, SchemaGroup } from '../constructs/types';
+import type { Deployable, ConstructSchema, PortSchema, SchemaGroup } from '@carta/domain';
 import type { ExportOptions } from './exportAnalyzer';
 import { toKebabCase } from './stringUtils';
 

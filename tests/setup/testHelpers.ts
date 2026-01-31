@@ -1,5 +1,5 @@
 import type { Node, Edge } from '@xyflow/react';
-import type { ConstructNodeData } from '../../src/constructs/types';
+import type { ConstructNodeData } from '@carta/domain';
 
 /**
  * Creates a test node with sensible defaults.

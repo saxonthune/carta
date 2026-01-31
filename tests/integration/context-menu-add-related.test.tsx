@@ -16,7 +16,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
 import ContextMenu, { type RelatedConstructOption } from '../../src/ContextMenu';
-import type { SchemaGroup } from '../../src/constructs/types';
+import type { SchemaGroup } from '@carta/domain';
 
 // Mock timers for testing delayed close
 beforeEach(() => {

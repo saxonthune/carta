@@ -1,5 +1,5 @@
-import type { PortSchema } from './types';
-import { builtInPortSchemas } from './schemas/built-ins';
+import type { PortSchema } from '../types/index.js';
+import { builtInPortSchemas } from '../schemas/built-ins.js';
 
 /**
  * Default port schemas - re-exported from built-ins for backwards compatibility

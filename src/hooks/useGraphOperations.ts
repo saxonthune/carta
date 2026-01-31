@@ -2,8 +2,9 @@ import { useCallback } from 'react';
 import { useReactFlow, useUpdateNodeInternals, type Node } from '@xyflow/react';
 import { useDocument } from './useDocument';
 import { generateSemanticId } from '../utils/cartaFile';
-import { getHandleType } from '../constructs/ports';
-import type { ConstructSchema, ConstructValues, ConnectionValue, ConstructNodeData, VirtualParentNodeData } from '../constructs/types';
+import { getHandleType } from '@carta/domain';
+import type { ConstructSchema, ConstructValues, ConnectionValue, ConstructNodeData, VirtualParentNodeData } from '@carta/domain';
+
 
 interface UseGraphOperationsOptions {
   selectedNodeIds: string[];

@@ -1,8 +1,7 @@
 import type { Node, Edge } from '@xyflow/react';
 import type { CartaFile } from './cartaFile';
-import type { DocumentAdapter, ConstructNodeData, ConstructSchema } from '../constructs/types';
-import { syncWithDocumentStore } from '../constructs/portRegistry';
-import { getPortsForSchema, getHandleType } from '../constructs/ports';
+import { syncWithDocumentStore, getPortsForSchema, getHandleType } from '@carta/domain';
+import type { DocumentAdapter, ConstructNodeData, ConstructSchema } from '@carta/domain';
 
 export interface ImportConfig {
   schemas: Set<string>;

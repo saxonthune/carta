@@ -1,9 +1,12 @@
 import { createRequire } from 'module'
+import path from 'path'
+import { fileURLToPath } from 'url'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
 const require = createRequire(import.meta.url)
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -15,6 +18,8 @@ export default defineConfig({
       // Vite's esbuild pre-bundler can convert it properly.
       // Use require.resolve to handle pnpm's .pnpm directory structure
       '@dagrejs/dagre': require.resolve('@dagrejs/dagre'),
+      // Map @carta/domain to source files for development
+      '@carta/domain': path.resolve(__dirname, 'packages/domain/src/index.ts'),
     },
   },
   optimizeDeps: {

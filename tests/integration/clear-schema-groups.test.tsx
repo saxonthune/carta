@@ -10,7 +10,7 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import { useDocument } from '../../src/hooks/useDocument';
 import { useDocumentContext } from '../../src/contexts/DocumentContext';
 import { TestProviders } from '../setup/testProviders';
-import { builtInSchemaGroups } from '../../src/constructs/schemas';
+import { builtInSchemaGroups } from '@carta/domain';
 
 describe('Clear Schema Groups', () => {
   it('should clear schema groups when clearing everything', async () => {

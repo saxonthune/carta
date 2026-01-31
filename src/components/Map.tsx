@@ -28,7 +28,7 @@ import { useGraphOperations } from '../hooks/useGraphOperations';
 import { useConnections } from '../hooks/useConnections';
 import { useClipboard } from '../hooks/useClipboard';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
-import type { ConstructValues, Deployable, ConstructNodeData, VirtualParentNodeData } from '../constructs/types';
+import type { ConstructValues, Deployable, ConstructNodeData, VirtualParentNodeData } from '@carta/domain';
 import SchemaCreationWizard from './SchemaCreationWizard';
 import BundledEdge from './BundledEdge';
 import { useEdgeBundling } from '../hooks/useEdgeBundling';

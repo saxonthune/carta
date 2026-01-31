@@ -1,5 +1,5 @@
 import type { Node, Edge } from '@xyflow/react';
-import type { ConstructSchema, Deployable, ConstructNodeData, PortSchema, SchemaGroup } from '../constructs/types';
+import type { ConstructSchema, Deployable, ConstructNodeData, PortSchema, SchemaGroup } from '@carta/domain';
 
 /**
  * Category of items for export

@@ -4,7 +4,7 @@ import { toSnakeCase } from '../utils/stringUtils';
 import Input from './ui/Input';
 import Select from './ui/Select';
 import Textarea from './ui/Textarea';
-import type { FieldSchema, DataKind, DisplayHint } from '../constructs/types';
+import type { FieldSchema, DataKind, DisplayHint } from '@carta/domain';
 
 interface FieldDefinitionEditorProps {
   field: FieldSchema;

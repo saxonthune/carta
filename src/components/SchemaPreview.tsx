@@ -1,5 +1,5 @@
-import type { ConstructSchema } from '../constructs/types';
-import { getPortsForSchema, getPortColor } from '../constructs/ports';
+import { getPortsForSchema, getPortColor } from '@carta/domain';
+import type { ConstructSchema } from '@carta/domain';
 
 interface SchemaPreviewProps {
   schema: ConstructSchema;

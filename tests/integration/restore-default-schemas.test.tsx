@@ -21,7 +21,7 @@ import {
   builtInConstructSchemas,
   builtInPortSchemas,
   builtInSchemaGroups
-} from '../../src/constructs/schemas/built-ins';
+} from '@carta/domain';
 
 describe('Restore Default Schemas', () => {
   describe('Restore All Built-ins', () => {

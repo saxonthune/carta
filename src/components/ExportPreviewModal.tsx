@@ -4,7 +4,7 @@ import Button from './ui/Button';
 import type { Edge } from '@xyflow/react';
 import type { ExportAnalysis, ExportOptions } from '../utils/exportAnalyzer';
 import { defaultExportOptions } from '../utils/exportAnalyzer';
-import type { ConstructSchema } from '../constructs/types';
+import type { ConstructSchema } from '@carta/domain';
 import { CARTA_FILE_VERSION, type CartaFile } from '../utils/cartaFile';
 
 interface ExportPreviewModalProps {

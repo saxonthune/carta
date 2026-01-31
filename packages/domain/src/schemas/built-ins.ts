@@ -1,4 +1,4 @@
-import type { ConstructSchema, PortSchema, SchemaGroup } from '../types';
+import type { ConstructSchema, PortSchema, SchemaGroup } from '../types/index.js';
 
 /**
  * Built-in Schema Groups

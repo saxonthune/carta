@@ -1,4 +1,4 @@
-import type { ConstructNodeData, ConstructSchema } from '../constructs/types';
+import type { ConstructNodeData, ConstructSchema } from '../types/index.js';
 
 /**
  * Get the display name for a construct instance

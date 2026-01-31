@@ -5,7 +5,7 @@ import Input from './ui/Input';
 import Select from './ui/Select';
 import Textarea from './ui/Textarea';
 import { toKebabCase } from '../utils/stringUtils';
-import type { SchemaGroup } from '../constructs/types';
+import type { SchemaGroup } from '@carta/domain';
 
 // Get the full path of a group (e.g., "System > API > Endpoints")
 function getFullPath(groupId: string, groups: SchemaGroup[]): string {

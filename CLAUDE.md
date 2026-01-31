@@ -111,9 +111,54 @@ Uses sonnet (needs to reliably spawn sub-agents). Delegates heavy work to sub-ag
 
 **Config:** `.claude/agents/task-master.md`
 
+## Monorepo Structure
+
+### Target dependency graph
+
+Packages can only depend on packages above them in the graph.
+
+```
+                    @carta/types
+                         ↓
+                    @carta/domain
+                    ↙    ↓    ↘
+           @carta/storage  @carta/compiler
+                ↓               ↓
+         @carta/web-client   @carta/server
+                ↓               ↓
+         @carta/desktop      @carta/cli
+```
+
+| Package | Location | Purpose |
+|---------|----------|---------|
+| `@carta/types` | `packages/types/` | Shared TypeScript types, no runtime deps |
+| `@carta/domain` | `packages/domain/` | Domain model, port registry, built-in schemas, utils |
+| `@carta/storage` | `packages/storage/` | StorageProvider interface + implementations (IndexedDB, filesystem, MongoDB) |
+| `@carta/compiler` | `packages/compiler/` | Compilation engine (Carta → AI-readable output) |
+| `@carta/web-client` | `packages/web-client/` | React web app (currently `src/`) |
+| `@carta/server` | `packages/server/` | Collaboration server + MCP server |
+| `@carta/desktop` | `packages/desktop/` | Electron desktop app |
+| `@carta/cli` | `packages/cli/` | CLI tools (init, compile, validate) |
+
+### Current state
+
+Only `@carta/domain` and `@carta/server` exist as packages. The web client lives in root `src/` and resolves `@carta/domain` via Vite/TypeScript aliases.
+
+- `@carta/core` (`packages/core/`) - **STALE**: divergent types the server still depends on; needs reconciliation with `@carta/domain`
+- `packages/app/` - **Dead code**: no TS files, should be deleted
+
 ## Architecture Overview
 
 ```
+┌─────────────────────────────────────────────────────────────┐
+│  @carta/domain                  packages/domain/src/        │
+│  - Core types (ConstructSchema, PortSchema, etc.)           │
+│  - Port registry and validation (PortRegistry, canConnect)  │
+│  - Built-in schemas and port schemas                        │
+│  - Utility functions (display, color)                       │
+│  - Platform-agnostic, no React/Yjs dependencies             │
+└─────────────────────────────────────────────────────────────┘
+           ↓
 ┌─────────────────────────────────────────────────────────────┐
 │  Document Store (Yjs Y.Doc)              src/stores/        │
 │  - nodes[], edges[], title                                  │
@@ -185,14 +230,25 @@ Visit `http://localhost:5173/?doc=my-document-id` to open a specific document.
 
 ### Key Files
 
+**@carta/domain** (shared domain logic, no UI/storage dependencies):
+
+| File | Purpose |
+|------|---------|
+| `packages/domain/src/types/index.ts` | Core type definitions: PortSchema, FieldSchema, DocumentAdapter, CartaDocument, Polarity (5 values), VirtualParentNodeData, SchemaGroup; ConstructSchema with backgroundColorPolicy and portDisplayPolicy; ConstructNodeData with instanceColor |
+| `packages/domain/src/schemas/built-ins.ts` | Default construct schemas, port schemas, and schema groups |
+| `packages/domain/src/ports/registry.ts` | PortRegistry class with two-step polarity-based canConnect() validation |
+| `packages/domain/src/ports/helpers.ts` | Port helper functions: canConnect, getPortsForSchema, getHandleType, getPortColor |
+| `packages/domain/src/utils/display.ts` | Display utilities: getDisplayName, semanticIdToLabel |
+| `packages/domain/src/utils/color.ts` | Color utilities: hexToHsl, hslToHex, generateTints (7-stop tint generation) |
+
+**Web client** (React app):
+
 | File | Purpose |
 |------|---------|
 | `src/contexts/DocumentContext.tsx` | Document provider: manages Yjs adapter lifecycle |
 | `src/stores/adapters/yjsAdapter.ts` | Yjs implementation of DocumentAdapter interface |
-| `src/constructs/types.ts` | Core type definitions: PortSchema, FieldSchema, DocumentAdapter, CartaDocument, Polarity (5 values), VirtualParentNodeData, SchemaGroup; ConstructSchema with backgroundColorPolicy and portDisplayPolicy; ConstructNodeData with instanceColor |
-| `src/constructs/schemas/index.ts` | Built-in schema exports: builtInConstructSchemas, builtInPortSchemas |
-| `src/constructs/schemas/built-ins.ts` | Default construct and port schema definitions |
-| `src/constructs/portRegistry.ts` | Port schema registry with two-step polarity-based validation |
+| `src/constructs/ports.ts` | React-specific port utility: getHandleStyle (CSS positioning) |
+| `src/constructs/compiler/index.ts` | Compiler engine that takes schemas/deployables as parameters |
 | `src/hooks/useDocument.ts` | Primary hook for accessing document state and operations via adapter |
 | `src/hooks/useGraphOperations.ts` | Node CRUD: addConstruct, deleteNode, renameNode, createVirtualParent, etc. |
 | `src/hooks/useConnections.ts` | Connection logic: onConnect, handleEdgesDelete, validation |
@@ -214,11 +270,9 @@ Visit `http://localhost:5173/?doc=my-document-id` to open a specific document.
 | `src/components/ui/WizardModal.tsx` | Reusable multi-step wizard modal shell |
 | `src/components/ui/ContextMenuPrimitive.tsx` | Reusable context menu primitive with nested submenu support |
 | `src/components/ui/PortPickerPopover.tsx` | Port picker popover for collapsed port nodes |
-| `src/utils/colorUtils.ts` | Color utilities: hexToHsl, hslToHex, generateTints (7-stop tint generation) |
 | `src/components/BundledEdge.tsx` | Custom edge component for bundled parallel edges |
 | `src/hooks/useEdgeBundling.ts` | Hook for grouping parallel edges between same node pair |
 | `src/ContextMenu.tsx` | Shared context menu for canvas right-click; view-specific options (Map shows node ops, Metamap shows schema ops) |
-| `src/constructs/compiler/index.ts` | Compiler engine that takes schemas/deployables as parameters |
 | `src/utils/examples.ts` | Utility to load bundled example .carta files |
 | `src/main.tsx` | Entry point, configures staticMode from VITE_STATIC_MODE env var |
 

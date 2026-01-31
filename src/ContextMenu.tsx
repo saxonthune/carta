@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import ContextMenuPrimitive, { type MenuItem } from './components/ui/ContextMenuPrimitive';
-import type { SchemaGroup } from './constructs/types';
+import type { SchemaGroup } from '@carta/domain';
 
 export type ContextMenuType = 'pane' | 'node' | 'edge';
 

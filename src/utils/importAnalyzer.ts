@@ -1,7 +1,7 @@
 import type { Node } from '@xyflow/react';
 import type { CartaFile } from './cartaFile';
-import type { ConstructSchema, Deployable, ConstructNodeData, PortSchema, SchemaGroup } from '../constructs/types';
-import { builtInConstructSchemas } from '../constructs/schemas/built-ins';
+import { builtInConstructSchemas } from '@carta/domain';
+import type { ConstructSchema, Deployable, ConstructNodeData, PortSchema, SchemaGroup } from '@carta/domain';
 
 // Set of built-in schema types for quick lookup
 const BUILT_IN_TYPES = new Set(builtInConstructSchemas.map(s => s.type));

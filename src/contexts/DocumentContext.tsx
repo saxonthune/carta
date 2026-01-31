@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback, type React
 import * as Y from 'yjs';
 import type { DocumentAdapter } from '../stores/adapters/types';
 import { createYjsAdapter, type YjsAdapterOptions } from '../stores/adapters/yjsAdapter';
-import { builtInConstructSchemas, builtInSchemaGroups, builtInPortSchemas } from '../constructs/schemas';
+import { builtInConstructSchemas, builtInSchemaGroups, builtInPortSchemas } from '@carta/domain';
 
 /**
  * Document context value

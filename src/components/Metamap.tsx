@@ -17,7 +17,7 @@ import SchemaCreationWizard from './SchemaCreationWizard';
 import ContextMenu from '../ContextMenu';
 import { useDocument } from '../hooks/useDocument';
 import { useMetamapLayout } from '../hooks/useMetamapLayout';
-import type { ConstructSchema } from '../constructs/types';
+import type { ConstructSchema } from '@carta/domain';
 
 const nodeTypes = {
   'schema-node': SchemaNode,

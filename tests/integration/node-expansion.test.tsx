@@ -19,7 +19,7 @@ import { useDocumentContext } from '../../src/contexts/DocumentContext';
 import { useGraphOperations } from '../../src/hooks/useGraphOperations';
 import { useReactFlow } from '@xyflow/react';
 import { TestProviders } from '../setup/testProviders';
-import { builtInConstructSchemas } from '../../src/constructs/schemas';
+import { builtInConstructSchemas } from '@carta/domain';
 
 describe('Node Expansion Behavior', () => {
   describe('default expansion state', () => {

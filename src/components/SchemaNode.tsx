@@ -1,7 +1,7 @@
 import { memo, Fragment } from 'react';
 import { Handle, Position } from '@xyflow/react';
-import type { ConstructSchema, PortPosition } from '../constructs/types';
-import { portRegistry } from '../constructs/portRegistry';
+import { portRegistry } from '@carta/domain';
+import type { ConstructSchema, PortPosition } from '@carta/domain';
 
 interface SchemaNodeProps {
   data: { schema: ConstructSchema };

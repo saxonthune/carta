@@ -8,7 +8,7 @@ import FieldSubWizard from './schema-wizard/FieldSubWizard';
 import PortsInitialChoice from './schema-wizard/PortsInitialChoice';
 import PortsListStep from './schema-wizard/PortsListStep';
 import PortSubWizard from './schema-wizard/PortSubWizard';
-import type { ConstructSchema, FieldSchema, PortConfig } from '../constructs/types';
+import type { ConstructSchema, FieldSchema, PortConfig } from '@carta/domain';
 
 interface SchemaCreationWizardProps {
   isOpen: boolean;

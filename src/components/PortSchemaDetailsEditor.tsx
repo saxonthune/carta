@@ -6,7 +6,7 @@ import Input from './ui/Input';
 import Select from './ui/Select';
 import Textarea from './ui/Textarea';
 import { toKebabCase } from '../utils/stringUtils';
-import type { PortSchema, Polarity, PortPosition } from '../constructs/types';
+import type { PortSchema, Polarity, PortPosition } from '@carta/domain';
 
 interface PortSchemaDetailsEditorProps {
   portSchema: PortSchema | null;

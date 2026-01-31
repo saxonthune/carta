@@ -1,6 +1,6 @@
 import { memo, useCallback } from 'react';
 import { Handle, Position, NodeResizer, type NodeProps } from '@xyflow/react';
-import type { VirtualParentNodeData } from '../constructs/types';
+import type { VirtualParentNodeData } from '@carta/domain';
 
 type VirtualParentNodeProps = NodeProps & {
   data: VirtualParentNodeData & {
