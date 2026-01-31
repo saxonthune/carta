@@ -200,9 +200,12 @@ export interface ConstructNodeData {
   instanceColor?: string;    // Hex color override, visual-only
   // UI state
   nodeId?: string;           // Technical UUID (passed from Map for display purposes)
-  isExpanded?: boolean;
+  viewLevel?: 'summary' | 'details';
+  isDetailsPinned?: boolean;
   onValuesChange?: (values: ConstructValues) => void;
-  onToggleExpand?: () => void;
+  onSetViewLevel?: (level: 'summary' | 'details') => void;
+  onToggleDetailsPin?: () => void;
+  onOpenFullView?: () => void;
   onDeployableChange?: (deployableId: string | null) => void;
   onInstanceColorChange?: (color: string | null) => void;
   deployables?: Deployable[]; // List of available deployables for dropdown
@@ -304,11 +307,27 @@ export interface CompilerEdge {
 // ===== DOCUMENT =====
 
 /**
- * Complete Carta document structure
- * Represents the full state of a project (web client / export format)
+ * Level - A layer of abstraction within a Carta document
+ * Users can create multiple levels to represent different abstraction stages
+ * (e.g., sketch, detailed design, implementation)
  */
-export interface CartaDocument {
-  version: number;
+export interface Level {
+  id: string;                 // 'level-{timestamp}-{random}'
+  name: string;               // User-editable level name
+  description?: string;       // Optional level description
+  order: number;              // For sorting (0, 1, 2, ...)
+  nodes: unknown[];           // Node<ConstructNodeData>[] - level-specific nodes
+  edges: unknown[];           // Edge[] - level-specific edges
+  deployables: Deployable[];  // Level-specific logical groupings
+}
+
+/**
+ * Complete Carta document structure (v3 - legacy)
+ * Represents the full state of a project (web client / export format)
+ * @deprecated Use CartaDocumentV4 for new documents
+ */
+export interface CartaDocumentV3 {
+  version: 3;
   title: string;
   description?: string;
   nodes: unknown[];           // Node<ConstructNodeData>[] - using unknown to avoid @xyflow/react import
@@ -318,6 +337,30 @@ export interface CartaDocument {
   portSchemas: PortSchema[];
   schemaGroups: SchemaGroup[];
 }
+
+/**
+ * Complete Carta document structure (v4 - current)
+ * Represents the full state of a project with levels support
+ */
+export interface CartaDocumentV4 {
+  version: 4;
+  title: string;
+  description?: string;
+
+  // Levels system
+  levels: Level[];
+  activeLevel?: string;       // Current active level ID (persisted for collaboration)
+
+  // Shared metamodel definitions
+  schemas: ConstructSchema[];
+  portSchemas: PortSchema[];
+  schemaGroups: SchemaGroup[];
+}
+
+/**
+ * Union type for all document versions
+ */
+export type CartaDocument = CartaDocumentV3 | CartaDocumentV4;
 
 /**
  * Server-side document model.
@@ -358,17 +401,22 @@ export interface DocumentAdapter {
   initialize(): Promise<void>;
   dispose(): void;
 
-  // State access - Graph
+  // State access - Graph (reads from active level)
   getNodes(): unknown[];
   getEdges(): unknown[];
   getTitle(): string;
   getDescription(): string;
 
+  // State access - Levels
+  getLevels(): Level[];
+  getLevel(id: string): Level | undefined;
+  getActiveLevel(): string | undefined;
+
   // State access - Schemas
   getSchemas(): ConstructSchema[];
   getSchema(type: string): ConstructSchema | undefined;
 
-  // State access - Deployables
+  // State access - Deployables (reads from active level)
   getDeployables(): Deployable[];
   getDeployable(id: string): Deployable | undefined;
 
@@ -380,7 +428,7 @@ export interface DocumentAdapter {
   getSchemaGroups(): SchemaGroup[];
   getSchemaGroup(id: string): SchemaGroup | undefined;
 
-  // Mutations - Graph (will become Y.Doc transactions in Yjs)
+  // Mutations - Graph (writes to active level)
   setNodes(nodes: unknown[] | ((prev: unknown[]) => unknown[])): void;
   setEdges(edges: unknown[] | ((prev: unknown[]) => unknown[])): void;
   setTitle(title: string): void;
@@ -388,13 +436,21 @@ export interface DocumentAdapter {
   generateNodeId(): string;
   updateNode(nodeId: string, updates: Partial<ConstructNodeData>): void;
 
+  // Mutations - Levels
+  setActiveLevel(levelId: string): void;
+  createLevel(name: string, description?: string): Level;
+  deleteLevel(levelId: string): boolean;
+  updateLevel(levelId: string, updates: Partial<Omit<Level, 'id' | 'nodes' | 'edges' | 'deployables'>>): void;
+  duplicateLevel(levelId: string, newName: string): Level;
+  copyNodesToLevel(nodeIds: string[], targetLevelId: string): void;
+
   // Mutations - Schemas
   setSchemas(schemas: ConstructSchema[]): void;
   addSchema(schema: ConstructSchema): void;
   updateSchema(type: string, updates: Partial<ConstructSchema>): void;
   removeSchema(type: string): boolean;
 
-  // Mutations - Deployables
+  // Mutations - Deployables (writes to active level)
   setDeployables(deployables: Deployable[]): void;
   addDeployable(deployable: Omit<Deployable, 'id'>): Deployable;
   updateDeployable(id: string, updates: Partial<Deployable>): void;
@@ -420,7 +476,7 @@ export interface DocumentAdapter {
   subscribe(listener: () => void): () => void;
 
   // Serialization for MCP and export
-  toJSON(): CartaDocument;
+  toJSON(): CartaDocumentV4;
 
   // Optional collaboration methods (only on Yjs adapter)
   getConnectionStatus?(): 'disconnected' | 'connecting' | 'connected';

@@ -1,10 +1,11 @@
 import { memo, useState, useEffect, useRef } from 'react';
 import { Handle, Position, NodeResizer } from '@xyflow/react';
 import { useDocument } from '../hooks/useDocument';
-import { getPortsForSchema, getHandleType, getPortColor, generateTints } from '@carta/domain';
+import { getPortsForSchema, getHandleType, getPortColor, generateTints, getDisplayName } from '@carta/domain';
 import type { ConstructNodeData, PortConfig, PortPosition, ConstructSchema } from '@carta/domain';
 import CreateDeployablePopover from './CreateDeployablePopover';
 import PortPickerPopover from './ui/PortPickerPopover';
+import { useLodBand } from './lod/useLodBand';
 
 // Long hover delay in milliseconds
 const LONG_HOVER_DELAY = 800;
@@ -27,7 +28,7 @@ const positionMap: Record<PortPosition, Position> = {
 
 // Calculate handle style for offset positioning
 function getHandlePositionStyle(position: PortPosition, offset: number): React.CSSProperties {
-  const outside = -16;
+  const outside = -10;
   if (position === 'left') {
     return { top: `${offset}%`, left: outside, transform: 'translateY(-50%)' };
   }
@@ -58,7 +59,7 @@ function ColorPicker({ schema, instanceColor, onColorChange }: {
           <button
             key={tint}
             type="button"
-            className={`w-6 h-6 rounded border-2 cursor-pointer transition-all hover:scale-110 ${instanceColor === tint ? 'border-accent shadow-[0_0_0_2px_var(--color-accent)]' : 'border-transparent'}`}
+            className={`w-4 h-4 rounded border-2 cursor-pointer transition-all hover:scale-110 ${instanceColor === tint ? 'border-accent shadow-[0_0_0_2px_var(--color-accent)]' : 'border-transparent'}`}
             style={{ backgroundColor: tint }}
             onClick={(e) => { e.stopPropagation(); onColorChange(tint); }}
           />
@@ -66,7 +67,7 @@ function ColorPicker({ schema, instanceColor, onColorChange }: {
         {instanceColor && (
           <button
             type="button"
-            className="w-6 h-6 rounded border border-content-muted/30 cursor-pointer text-content-muted hover:text-content text-xs flex items-center justify-center bg-surface hover:bg-surface-depth-1 transition-colors"
+            className="w-4 h-4 rounded border border-content-muted/30 cursor-pointer text-content-muted hover:text-content text-node-2xs flex items-center justify-center bg-surface hover:bg-surface-depth-1 transition-colors"
             onClick={(e) => { e.stopPropagation(); onColorChange(null); }}
             title="Reset to default"
           >
@@ -82,7 +83,7 @@ function ColorPicker({ schema, instanceColor, onColorChange }: {
     <div className="flex gap-2 items-center">
       <input
         type="color"
-        className="w-8 h-8 p-0 border border-content-muted/20 rounded cursor-pointer"
+        className="w-5 h-5 p-0 border border-content-muted/20 rounded cursor-pointer"
         value={instanceColor || schema.color}
         onChange={(e) => { e.stopPropagation(); onColorChange(e.target.value); }}
       />
@@ -101,6 +102,7 @@ function ColorPicker({ schema, instanceColor, onColorChange }: {
 }
 
 const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => {
+  const lod = useLodBand();
   const { getSchema, addDeployable } = useDocument();
   const schema = getSchema(data.constructType);
   const [hoveredPort, setHoveredPort] = useState<string | null>(null);
@@ -135,7 +137,7 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
 
   if (!schema) {
     return (
-      <div className="bg-danger-muted border-2 border-danger rounded-lg min-w-[250px] p-2 text-node-lg text-content">
+      <div className="bg-danger-muted border-2 border-danger rounded-lg min-w-[180px] p-2 text-node-lg text-content">
         <Handle type="target" position={Position.Left} id="flow-in" className="port-handle" />
         <div>Unknown construct type: {data.constructType}</div>
         <Handle type="source" position={Position.Right} id="flow-out" className="port-handle" />
@@ -205,14 +207,38 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
     ? { backgroundColor: data.instanceColor }
     : {};
 
+  // Pill mode: minimal colored bar (only when not in details view)
+  if (data.viewLevel !== 'details' && lod.band === 'pill') {
+    const displayValue = getDisplayName(data, schema);
+    return (
+      <div
+        className={`rounded-md text-white text-node-xs font-medium px-2 py-1 truncate cursor-move select-none whitespace-nowrap ${selected ? 'ring-2 ring-accent' : ''}`}
+        style={{ backgroundColor: data.instanceColor || schema.color, minWidth: 80, maxWidth: 200 }}
+      >
+        <span className="opacity-70">{schema.displayName}:</span> {displayValue}
+        {/* Minimal handles for connections */}
+        {ports.map((port) => (
+          <Handle
+            key={port.id}
+            id={port.id}
+            type={getHandleType(port.portType)}
+            position={positionMap[port.position]}
+            className="port-handle !opacity-0 !w-1 !h-1"
+            style={getHandlePositionStyle(port.position, port.offset)}
+          />
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div
-      className={`bg-surface border-[3px] rounded-lg w-full h-full text-node-base text-content shadow-md overflow-visible relative flex flex-col ${data.isExpanded ? 'min-w-[350px]' : 'min-w-[250px]'} ${selected ? 'border-accent shadow-[0_0_0_2px_var(--color-accent)]' : 'border'}`}
+      className={`bg-surface border-2 rounded-lg w-full h-full text-node-base text-content shadow-lg overflow-visible relative flex flex-col ${data.viewLevel === 'details' ? 'min-w-[280px]' : 'min-w-[180px]'} ${selected ? 'border-accent shadow-[0_0_0_2px_var(--color-accent)]' : 'border'}`}
       style={bgStyle}
     >
       {selected && (
         <NodeResizer
-          minWidth={250}
+          minWidth={180}
           minHeight={100}
           lineClassName="!border-accent !border-2"
           handleClassName="!w-3 !h-3 !bg-accent !border-surface !rounded-full"
@@ -281,7 +307,7 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
       >
         <div className="flex items-center gap-1.5">
           <svg
-            className="w-5 h-5 opacity-60"
+            className="w-3.5 h-3.5 opacity-60"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -294,21 +320,35 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
           <span className="text-node-xs opacity-80 uppercase">{schema.displayName}</span>
         </div>
         <div className="flex items-center gap-1">
-          {data.onToggleExpand && (
+          {data.onSetViewLevel && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                data.onToggleExpand?.();
+                data.onSetViewLevel?.(data.viewLevel === 'details' ? 'summary' : 'details');
               }}
               className="opacity-90 hover:opacity-100 transition-all flex-shrink-0 bg-black/20 hover:bg-black/30 rounded-full p-1 shadow-md"
-              title={data.isExpanded ? "Collapse" : "Expand"}
+              title={data.viewLevel === 'details' ? "Collapse" : "Expand"}
             >
-              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                {data.isExpanded ? (
+              <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                {data.viewLevel === 'details' ? (
                   <path d="M18 15l-6-6-6 6" />
                 ) : (
                   <path d="M6 9l6 6 6-6" />
                 )}
+              </svg>
+            </button>
+          )}
+          {data.viewLevel === 'details' && data.onToggleDetailsPin && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                data.onToggleDetailsPin?.();
+              }}
+              className={`opacity-90 hover:opacity-100 transition-all flex-shrink-0 rounded-full p-1 shadow-md ${data.isDetailsPinned ? 'bg-white/40' : 'bg-black/20 hover:bg-black/30'}`}
+              title={data.isDetailsPinned ? "Unpin (will collapse on deselect)" : "Pin expanded"}
+            >
+              <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M12 2v10M12 22v-4M5 12h14" />
               </svg>
             </button>
           )}
@@ -317,11 +357,11 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
             <div className="relative">
               <button
                 type="button"
-                className="w-5 h-5 rounded-full bg-white/30 hover:bg-white/50 border border-white/40 flex items-center justify-center cursor-pointer transition-colors"
+                className="w-3.5 h-3.5 rounded-full bg-white/30 hover:bg-white/50 border border-white/40 flex items-center justify-center cursor-pointer transition-colors"
                 onClick={(e) => { e.stopPropagation(); setShowPortPicker(!showPortPicker); }}
                 title="Ports"
               >
-                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+                <svg className="w-2 h-2" viewBox="0 0 24 24" fill="currentColor">
                   <circle cx="12" cy="12" r="4" />
                 </svg>
               </button>
@@ -330,14 +370,14 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
                 id="__collapsed-source"
                 type="source"
                 position={Position.Right}
-                className="!absolute !top-1/2 !left-1/2 !-translate-x-1/2 !-translate-y-1/2 !w-5 !h-5 !opacity-0 !border-none"
+                className="!absolute !top-1/2 !left-1/2 !-translate-x-1/2 !-translate-y-1/2 !w-3.5 !h-3.5 !opacity-0 !border-none"
                 style={{ pointerEvents: ports.length <= 1 ? 'auto' : 'none' }}
               />
               <Handle
                 id="__collapsed-target"
                 type="target"
                 position={Position.Left}
-                className="!absolute !top-1/2 !left-1/2 !-translate-x-1/2 !-translate-y-1/2 !w-5 !h-5 !opacity-0 !border-none"
+                className="!absolute !top-1/2 !left-1/2 !-translate-x-1/2 !-translate-y-1/2 !w-3.5 !h-3.5 !opacity-0 !border-none"
                 style={{ pointerEvents: ports.length <= 1 ? 'auto' : 'none' }}
               />
               {showPortPicker && ports.length > 1 && (
@@ -372,7 +412,7 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
         </div>
       </div>
 
-      {!data.isExpanded && (
+      {data.viewLevel !== 'details' && lod.showFields && (
         <div className="px-2 py-1.5 text-node-sm text-content-muted flex-1 overflow-y-auto min-h-0">
           {mapFields.length === 0 ? (
             <div></div>
@@ -390,8 +430,13 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
           )}
         </div>
       )}
+      {data.viewLevel !== 'details' && !lod.showFields && (
+        <div className="px-2 py-1 text-node-sm text-content truncate">
+          {getDisplayName(data, schema)}
+        </div>
+      )}
 
-      {data.isExpanded && (
+      {data.viewLevel === 'details' && (
         <div className="px-2 py-2 bg-surface-depth-1 flex flex-col gap-2">
           {/* Background Color */}
           {data.onInstanceColorChange && (schema.backgroundColorPolicy === 'tints' || schema.backgroundColorPolicy === 'any') && (
@@ -476,38 +521,15 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
             </div>
           ))}
 
-          {/* Identity display (read-only) */}
-          <div>
-            <label className="text-node-xs text-content-muted uppercase tracking-wide">Semantic ID</label>
-            <input
-              type="text"
-              className="w-full px-2 py-1 bg-surface rounded text-node-sm text-content border border-content-muted/20"
-              value={data.semanticId}
-              disabled
-              title="Human/AI-readable identifier (used in connections and compilation)"
-            />
-          </div>
-          <div>
-            <label className="text-node-xs text-content-muted uppercase tracking-wide">Technical ID</label>
-            <input
-              type="text"
-              className="w-full px-2 py-1 bg-surface rounded text-node-xs text-content-muted border border-content-muted/20 font-mono"
-              value={data.nodeId || '—'}
-              disabled
-              title="Immutable UUID (used internally by React Flow and Yjs)"
-            />
-          </div>
-
-          {/* Connections (read-only) */}
-          {data.connections && data.connections.length > 0 && (
-            <div>
-              <label className="text-node-xs text-content-muted uppercase tracking-wide">Connections</label>
-              <div className="text-node-sm text-content-muted bg-surface rounded px-2 py-1 border border-content-muted/20">
-                {data.connections.map((c, i) => (
-                  <div key={i} className="truncate text-xs">{c.portId} → {c.targetSemanticId}</div>
-                ))}
-              </div>
-            </div>
+          {/* Open Full View button */}
+          {data.onOpenFullView && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); data.onOpenFullView?.(); }}
+              className="w-full px-2 py-1.5 text-node-xs text-content-muted uppercase tracking-wide border border-content-muted/20 rounded bg-surface hover:bg-surface-alt transition-colors cursor-pointer text-center"
+            >
+              Open Full View
+            </button>
           )}
         </div>
       )}

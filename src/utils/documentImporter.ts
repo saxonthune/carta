@@ -12,6 +12,10 @@ export interface ImportConfig {
 /**
  * Pure function to import a CartaFile into a DocumentAdapter.
  * No React hooks - just direct adapter manipulation.
+ *
+ * Handles both:
+ * - V5 files with levels[] (imports each level)
+ * - Legacy files with flat nodes/edges/deployables (imports into single "Main" level)
  */
 export function importDocument(
   adapter: DocumentAdapter,
@@ -20,11 +24,22 @@ export function importDocument(
   schemasToImport: ConstructSchema[]
 ): void {
   // Clear existing document state (like Excalidraw)
+  // Clear all levels' data first
   adapter.transaction(() => {
-    adapter.setNodes([]);
-    adapter.setEdges([]);
+    const existingLevels = adapter.getLevels();
+    for (const level of existingLevels) {
+      adapter.setActiveLevel(level.id);
+      adapter.setNodes([]);
+      adapter.setEdges([]);
+      adapter.setDeployables([]);
+    }
+    // Delete all levels except first, then reset first
+    if (existingLevels.length > 1) {
+      for (let i = 1; i < existingLevels.length; i++) {
+        adapter.deleteLevel(existingLevels[i].id);
+      }
+    }
     adapter.setSchemas([]);
-    adapter.setDeployables([]);
     adapter.setPortSchemas([]);
     adapter.setSchemaGroups([]);
   });
@@ -53,6 +68,75 @@ export function importDocument(
     adapter.setSchemas(schemasToImport);
   }
 
+  // Check if file has levels (V5 format)
+  if (data.levels && data.levels.length > 0) {
+    importWithLevels(adapter, data, config, schemasToImport);
+  } else {
+    importLegacy(adapter, data, config, schemasToImport);
+  }
+}
+
+/**
+ * Import a V5 file with levels
+ */
+function importWithLevels(
+  adapter: DocumentAdapter,
+  data: CartaFile,
+  config: ImportConfig,
+  schemasToImport: ConstructSchema[]
+): void {
+  const existingLevels = adapter.getLevels();
+  const firstLevelId = existingLevels[0]?.id;
+
+  for (let i = 0; i < data.levels!.length; i++) {
+    const fileLevel = data.levels![i];
+    let levelId: string;
+
+    if (i === 0 && firstLevelId) {
+      // Use existing first level for first imported level
+      levelId = firstLevelId;
+      adapter.updateLevel(levelId, { name: fileLevel.name, description: fileLevel.description, order: fileLevel.order });
+    } else {
+      // Create new level for subsequent ones
+      const newLevel = adapter.createLevel(fileLevel.name, fileLevel.description);
+      levelId = newLevel.id;
+      adapter.updateLevel(levelId, { order: fileLevel.order });
+    }
+
+    // Switch to this level and import its data
+    adapter.setActiveLevel(levelId);
+
+    // Import deployables for this level
+    const levelDeployables = fileLevel.deployables.filter(d => config.deployables.has(d.id));
+    if (levelDeployables.length > 0) {
+      adapter.setDeployables(levelDeployables);
+    }
+
+    // Import nodes and edges for this level
+    importNodesAndEdges(adapter, fileLevel.nodes as Node[], fileLevel.edges as Edge[], config, schemasToImport);
+  }
+
+  // Switch back to first level
+  if (firstLevelId) {
+    adapter.setActiveLevel(firstLevelId);
+  }
+}
+
+/**
+ * Import a legacy file (flat nodes/edges/deployables) into a single level
+ */
+function importLegacy(
+  adapter: DocumentAdapter,
+  data: CartaFile,
+  config: ImportConfig,
+  schemasToImport: ConstructSchema[]
+): void {
+  const existingLevels = adapter.getLevels();
+  if (existingLevels.length > 0) {
+    adapter.setActiveLevel(existingLevels[0].id);
+    adapter.updateLevel(existingLevels[0].id, { name: 'Main' });
+  }
+
   // Import selected deployables
   if (config.deployables.size > 0 && data.deployables.length > 0) {
     const deployablesToImport = data.deployables.filter(d => config.deployables.has(d.id));
@@ -61,84 +145,97 @@ export function importDocument(
     }
   }
 
-  // Import selected nodes and edges
-  if (config.nodes.size > 0 && data.nodes.length > 0) {
-    const nodesToImport = data.nodes.filter(n => config.nodes.has(n.id));
-    const importedNodeIds = new Set(nodesToImport.map(n => n.id));
-    const edgesToImport = data.edges.filter(
-      e => importedNodeIds.has(e.source) && importedNodeIds.has(e.target)
-    );
+  // Import nodes and edges
+  importNodesAndEdges(adapter, data.nodes, data.edges, config, schemasToImport);
+}
 
-    if (nodesToImport.length > 0) {
-      // Build ID mapping for new node IDs
-      const idMap: Record<string, string> = {};
-      const newNodes: Node[] = nodesToImport.map((node) => {
-        const newId = crypto.randomUUID();
-        idMap[node.id] = newId;
-        return {
-          ...node,
-          id: newId,
-          position: {
-            x: (node.position?.x || 0) + 50,
-            y: (node.position?.y || 0) + 50,
-          },
-        };
-      });
+/**
+ * Import nodes and edges into the active level
+ */
+function importNodesAndEdges(
+  adapter: DocumentAdapter,
+  nodes: Node[],
+  edges: Edge[],
+  config: ImportConfig,
+  schemasToImport: ConstructSchema[]
+): void {
+  if (config.nodes.size === 0 || nodes.length === 0) return;
 
-      // Build lookups for edge normalization
-      const nodesByOldId = new Map(nodesToImport.map(n => [n.id, n]));
-      const schemaLookup = new Map(schemasToImport.map(s => [s.type, s]));
+  const nodesToImport = nodes.filter(n => config.nodes.has(n.id));
+  const importedNodeIds = new Set(nodesToImport.map(n => n.id));
+  const edgesToImport = edges.filter(
+    e => importedNodeIds.has(e.source) && importedNodeIds.has(e.target)
+  );
 
-      // Remap edges and normalize direction
-      const newEdges: Edge[] = edgesToImport.map((edge) => {
-        let normalizedEdge: Edge = {
-          ...edge,
-          id: `edge-${Math.random()}`,
-          source: idMap[edge.source] || edge.source,
-          target: idMap[edge.target] || edge.target,
-        };
+  if (nodesToImport.length === 0) return;
 
-        // Normalize direction for construct nodes
-        const sourceNode = nodesByOldId.get(edge.source);
-        const targetNode = nodesByOldId.get(edge.target);
+  // Build ID mapping for new node IDs
+  const idMap: Record<string, string> = {};
+  const newNodes: Node[] = nodesToImport.map((node) => {
+    const newId = crypto.randomUUID();
+    idMap[node.id] = newId;
+    return {
+      ...node,
+      id: newId,
+      position: {
+        x: (node.position?.x || 0) + 50,
+        y: (node.position?.y || 0) + 50,
+      },
+    };
+  });
 
-        if (sourceNode?.type === 'construct' && targetNode?.type === 'construct' &&
-            edge.sourceHandle && edge.targetHandle) {
-          const sourceData = sourceNode.data as ConstructNodeData;
-          const targetData = targetNode.data as ConstructNodeData;
-          const sourceSchema = schemaLookup.get(sourceData.constructType);
-          const targetSchema = schemaLookup.get(targetData.constructType);
+  // Build lookups for edge normalization
+  const nodesByOldId = new Map(nodesToImport.map(n => [n.id, n]));
+  const schemaLookup = new Map(schemasToImport.map(s => [s.type, s]));
 
-          if (sourceSchema && targetSchema) {
-            const sourcePorts = getPortsForSchema(sourceSchema.ports);
-            const targetPorts = getPortsForSchema(targetSchema.ports);
-            const sourcePort = sourcePorts.find(p => p.id === edge.sourceHandle);
-            const targetPort = targetPorts.find(p => p.id === edge.targetHandle);
+  // Remap edges and normalize direction
+  const newEdges: Edge[] = edgesToImport.map((edge) => {
+    let normalizedEdge: Edge = {
+      ...edge,
+      id: `edge-${Math.random()}`,
+      source: idMap[edge.source] || edge.source,
+      target: idMap[edge.target] || edge.target,
+    };
 
-            if (sourcePort && targetPort) {
-              const sourceHandleType = getHandleType(sourcePort.portType);
-              const targetHandleType = getHandleType(targetPort.portType);
-              const needsFlip = sourceHandleType === 'target' && targetHandleType === 'source';
+    // Normalize direction for construct nodes
+    const sourceNode = nodesByOldId.get(edge.source);
+    const targetNode = nodesByOldId.get(edge.target);
 
-              if (needsFlip) {
-                normalizedEdge = {
-                  ...edge,
-                  id: `edge-${Math.random()}`,
-                  source: idMap[edge.target] || edge.target,
-                  sourceHandle: edge.targetHandle,
-                  target: idMap[edge.source] || edge.source,
-                  targetHandle: edge.sourceHandle,
-                };
-              }
-            }
+    if (sourceNode?.type === 'construct' && targetNode?.type === 'construct' &&
+        edge.sourceHandle && edge.targetHandle) {
+      const sourceData = sourceNode.data as ConstructNodeData;
+      const targetData = targetNode.data as ConstructNodeData;
+      const sourceSchema = schemaLookup.get(sourceData.constructType);
+      const targetSchema = schemaLookup.get(targetData.constructType);
+
+      if (sourceSchema && targetSchema) {
+        const sourcePorts = getPortsForSchema(sourceSchema.ports);
+        const targetPorts = getPortsForSchema(targetSchema.ports);
+        const sourcePort = sourcePorts.find(p => p.id === edge.sourceHandle);
+        const targetPort = targetPorts.find(p => p.id === edge.targetHandle);
+
+        if (sourcePort && targetPort) {
+          const sourceHandleType = getHandleType(sourcePort.portType);
+          const targetHandleType = getHandleType(targetPort.portType);
+          const needsFlip = sourceHandleType === 'target' && targetHandleType === 'source';
+
+          if (needsFlip) {
+            normalizedEdge = {
+              ...edge,
+              id: `edge-${Math.random()}`,
+              source: idMap[edge.target] || edge.target,
+              sourceHandle: edge.targetHandle,
+              target: idMap[edge.source] || edge.source,
+              targetHandle: edge.sourceHandle,
+            };
           }
         }
-
-        return normalizedEdge;
-      });
-
-      adapter.setNodes(newNodes);
-      adapter.setEdges(newEdges);
+      }
     }
-  }
+
+    return normalizedEdge;
+  });
+
+  adapter.setNodes(newNodes);
+  adapter.setEdges(newEdges);
 }

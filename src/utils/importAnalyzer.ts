@@ -105,6 +105,17 @@ export function analyzeImport(
   currentDeployables: Deployable[] = [],
   currentSchemas: ConstructSchema[] = []
 ): ImportAnalysis {
+  // If file has levels, flatten all nodes/edges/deployables for analysis
+  const fileNodes = file.levels
+    ? file.levels.flatMap(l => l.nodes) as Node[]
+    : file.nodes;
+  const fileEdges = file.levels
+    ? file.levels.flatMap(l => l.edges)
+    : file.edges;
+  const fileDeployables = file.levels
+    ? file.levels.flatMap(l => l.deployables)
+    : file.deployables;
+
   // Analyze schemas
   const analyzedSchemas: AnalyzedSchema[] = file.customSchemas.map(schema => {
     const existing = currentSchemas.find(s => s.type === schema.type);
@@ -121,7 +132,7 @@ export function analyzeImport(
   const schemasConflicts = analyzedSchemas.filter(s => s.status === 'conflict').length;
 
   // Analyze nodes by checking for semanticId conflicts
-  const analyzedNodes: AnalyzedNode[] = file.nodes.map(node => {
+  const analyzedNodes: AnalyzedNode[] = fileNodes.map(node => {
     const nodeData = node.data as ConstructNodeData;
     const semanticId = nodeData.semanticId;
     
@@ -142,7 +153,7 @@ export function analyzeImport(
   const nodesConflicts = analyzedNodes.filter(n => n.status === 'conflict').length;
 
   // Analyze deployables by checking for id conflicts
-  const analyzedDeployables: AnalyzedDeployable[] = file.deployables.map(dep => {
+  const analyzedDeployables: AnalyzedDeployable[] = fileDeployables.map(dep => {
     // Check if a deployable with the same id already exists
     const existingDeployable = currentDeployables.find(d => d.id === dep.id);
 
@@ -187,7 +198,7 @@ export function analyzeImport(
       },
     },
     edges: {
-      count: file.edges.length,
+      count: fileEdges.length,
     },
     // Port schemas and schema groups are always imported (required for proper functioning)
     portSchemas: {

@@ -3,12 +3,13 @@ import { IndexeddbPersistence } from 'y-indexeddb';
 import type { Node, Edge } from '@xyflow/react';
 import type {
   DocumentAdapter,
-  CartaDocument,
+  CartaDocumentV4,
   ConstructSchema,
   ConstructNodeData,
   Deployable,
   PortSchema,
   SchemaGroup,
+  Level,
 } from '@carta/domain';
 
 /**
@@ -23,15 +24,16 @@ export interface YjsAdapterOptions {
 }
 
 /**
- * Y.Doc structure:
+ * Y.Doc structure (v4 with levels):
  * {
- *   'meta': Y.Map { version, title, roomId? }
- *   'nodes': Y.Map<nodeId, Y.Map>      // O(1) by UUID
- *   'edges': Y.Map<edgeId, Y.Map>      // O(1) by ID
- *   'schemas': Y.Map<type, Y.Map>      // O(1) by type
- *   'deployables': Y.Map<id, Y.Map>
- *   'portSchemas': Y.Map<id, Y.Map>
- *   'schemaGroups': Y.Map<id, Y.Map>
+ *   'meta': Y.Map { version, title, description, activeLevel, initialized, migrationVersion }
+ *   'levels': Y.Map<levelId, Y.Map { id, name, description, order }>
+ *   'nodes': Y.Map<levelId, Y.Map<nodeId, Y.Map>>       // Nested: level → nodes
+ *   'edges': Y.Map<levelId, Y.Map<edgeId, Y.Map>>       // Nested: level → edges
+ *   'deployables': Y.Map<levelId, Y.Map<depId, Y.Map>>   // Nested: level → deployables
+ *   'schemas': Y.Map<type, Y.Map>                        // Shared (unchanged)
+ *   'portSchemas': Y.Map<id, Y.Map>                      // Shared (unchanged)
+ *   'schemaGroups': Y.Map<id, Y.Map>                     // Shared (unchanged)
  * }
  */
 
@@ -114,6 +116,13 @@ function generateSchemaGroupId(): string {
 }
 
 /**
+ * Generate a level ID
+ */
+function generateLevelId(): string {
+  return 'level-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6);
+}
+
+/**
  * Yjs-based document adapter for collaborative editing.
  *
  * Modes:
@@ -132,6 +141,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
   // Get shared types
   const ymeta = ydoc.getMap('meta');
+  const ylevels = ydoc.getMap<Y.Map<unknown>>('levels');
   const ynodes = ydoc.getMap<Y.Map<unknown>>('nodes');
   const yedges = ydoc.getMap<Y.Map<unknown>>('edges');
   const yschemas = ydoc.getMap<Y.Map<unknown>>('schemas');
@@ -155,6 +165,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
   // Set up Y.Doc observers
   const setupObservers = () => {
     ymeta.observeDeep(notifyListeners);
+    ylevels.observeDeep(notifyListeners);
     ynodes.observeDeep(notifyListeners);
     yedges.observeDeep(notifyListeners);
     yschemas.observeDeep(notifyListeners);
@@ -163,11 +174,144 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     yschemaGroups.observeDeep(notifyListeners);
   };
 
+  /**
+   * Get the active level ID, falling back to first level
+   */
+  function getActiveLevelId(): string | undefined {
+    const active = ymeta.get('activeLevel') as string | undefined;
+    if (active && ylevels.has(active)) return active;
+    // Fall back to first level by order
+    let firstId: string | undefined;
+    let firstOrder = Infinity;
+    ylevels.forEach((ylevel, id) => {
+      const order = ylevel.get('order') as number;
+      if (order < firstOrder) {
+        firstOrder = order;
+        firstId = id;
+      }
+    });
+    return firstId;
+  }
+
+  /**
+   * Get the Y.Map for nodes of the active level
+   */
+  function getActiveLevelNodes(): Y.Map<Y.Map<unknown>> {
+    const levelId = getActiveLevelId();
+    if (!levelId) {
+      // Return empty map if no levels exist
+      return new Y.Map<Y.Map<unknown>>();
+    }
+    let levelNodes = ynodes.get(levelId) as Y.Map<Y.Map<unknown>> | undefined;
+    if (!levelNodes) {
+      levelNodes = new Y.Map<Y.Map<unknown>>();
+      ynodes.set(levelId, levelNodes as unknown as Y.Map<unknown>);
+    }
+    return levelNodes;
+  }
+
+  /**
+   * Get the Y.Map for edges of the active level
+   */
+  function getActiveLevelEdges(): Y.Map<Y.Map<unknown>> {
+    const levelId = getActiveLevelId();
+    if (!levelId) {
+      return new Y.Map<Y.Map<unknown>>();
+    }
+    let levelEdges = yedges.get(levelId) as Y.Map<Y.Map<unknown>> | undefined;
+    if (!levelEdges) {
+      levelEdges = new Y.Map<Y.Map<unknown>>();
+      yedges.set(levelId, levelEdges as unknown as Y.Map<unknown>);
+    }
+    return levelEdges;
+  }
+
+  /**
+   * Get the Y.Map for deployables of the active level
+   */
+  function getActiveLevelDeployables(): Y.Map<Y.Map<unknown>> {
+    const levelId = getActiveLevelId();
+    if (!levelId) {
+      return new Y.Map<Y.Map<unknown>>();
+    }
+    let levelDeployables = ydeployables.get(levelId) as Y.Map<Y.Map<unknown>> | undefined;
+    if (!levelDeployables) {
+      levelDeployables = new Y.Map<Y.Map<unknown>>();
+      ydeployables.set(levelId, levelDeployables as unknown as Y.Map<unknown>);
+    }
+    return levelDeployables;
+  }
+
+  /**
+   * Migrate flat data structure to level-based structure
+   */
+  function migrateToLevels() {
+    // Check if we have flat nodes (old format) by looking for Y.Map values that have
+    // node-like properties (position, data, type) directly in ynodes
+    let hasFlatNodes = false;
+    ynodes.forEach((value) => {
+      // If the value has 'position' or 'data' or 'type', it's a flat node (old format)
+      if (value instanceof Y.Map && (value.has('position') || value.has('data') || value.has('type'))) {
+        hasFlatNodes = true;
+      }
+    });
+
+    if (!hasFlatNodes && ylevels.size > 0) return; // Already migrated or empty doc
+    if (!hasFlatNodes && ylevels.size === 0 && ynodes.size === 0 && yedges.size === 0) return; // New doc, nothing to migrate
+
+    // Create default level
+    const levelId = generateLevelId();
+    const levelData = new Y.Map<unknown>();
+    levelData.set('id', levelId);
+    levelData.set('name', 'Main');
+    levelData.set('order', 0);
+    ylevels.set(levelId, levelData);
+    ymeta.set('activeLevel', levelId);
+
+    if (hasFlatNodes) {
+      // Move flat nodes into level-scoped map
+      const levelNodesMap = new Y.Map<Y.Map<unknown>>();
+      const flatNodeEntries: [string, Y.Map<unknown>][] = [];
+      ynodes.forEach((value, key) => {
+        flatNodeEntries.push([key, value as Y.Map<unknown>]);
+      });
+      ynodes.clear();
+      for (const [key, value] of flatNodeEntries) {
+        levelNodesMap.set(key, value);
+      }
+      ynodes.set(levelId, levelNodesMap as unknown as Y.Map<unknown>);
+
+      // Move flat edges into level-scoped map
+      const levelEdgesMap = new Y.Map<Y.Map<unknown>>();
+      const flatEdgeEntries: [string, Y.Map<unknown>][] = [];
+      yedges.forEach((value, key) => {
+        flatEdgeEntries.push([key, value as Y.Map<unknown>]);
+      });
+      yedges.clear();
+      for (const [key, value] of flatEdgeEntries) {
+        levelEdgesMap.set(key, value);
+      }
+      yedges.set(levelId, levelEdgesMap as unknown as Y.Map<unknown>);
+
+      // Move flat deployables into level-scoped map
+      const levelDeployablesMap = new Y.Map<Y.Map<unknown>>();
+      const flatDeployableEntries: [string, Y.Map<unknown>][] = [];
+      ydeployables.forEach((value, key) => {
+        flatDeployableEntries.push([key, value as Y.Map<unknown>]);
+      });
+      ydeployables.clear();
+      for (const [key, value] of flatDeployableEntries) {
+        levelDeployablesMap.set(key, value);
+      }
+      ydeployables.set(levelId, levelDeployablesMap as unknown as Y.Map<unknown>);
+    }
+  }
+
   // Initialize with default values if empty
   const initializeDefaults = () => {
     ydoc.transact(() => {
       if (!ymeta.has('version')) {
-        ymeta.set('version', 3);
+        ymeta.set('version', 4);
       }
       if (!ymeta.has('title')) {
         ymeta.set('title', 'Untitled Project');
@@ -175,12 +319,28 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       if (mode === 'shared' && roomId && !ymeta.has('roomId')) {
         ymeta.set('roomId', roomId);
       }
-      // Note: Default port schemas are seeded in DocumentContext (same as construct schemas)
-      // This ensures SKIP_BUILTIN_SEED_KEY is respected after Clear Everything
+
+      // Migrate flat data to levels if needed
+      migrateToLevels();
+
+      // Ensure at least one level exists
+      if (ylevels.size === 0) {
+        const levelId = generateLevelId();
+        const levelData = new Y.Map<unknown>();
+        levelData.set('id', levelId);
+        levelData.set('name', 'Main');
+        levelData.set('order', 0);
+        ylevels.set(levelId, levelData);
+        ymeta.set('activeLevel', levelId);
+      }
     }, 'init');
   };
 
-  return {
+  const adapter: DocumentAdapter & {
+    ydoc: Y.Doc;
+    connectToRoom: (roomId: string, serverUrl: string) => Promise<void>;
+    disconnectFromRoom: () => void;
+  } = {
     ydoc,
 
     async initialize(): Promise<void> {
@@ -209,6 +369,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     dispose(): void {
       // Unobserve all
       ymeta.unobserveDeep(notifyListeners);
+      ylevels.unobserveDeep(notifyListeners);
       ynodes.unobserveDeep(notifyListeners);
       yedges.unobserveDeep(notifyListeners);
       yschemas.unobserveDeep(notifyListeners);
@@ -229,10 +390,11 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       ydoc.destroy();
     },
 
-    // State access - Graph
+    // State access - Graph (reads from active level)
     getNodes(): Node[] {
+      const levelNodes = getActiveLevelNodes();
       const nodes: Node[] = [];
-      ynodes.forEach((ynode, id) => {
+      levelNodes.forEach((ynode, id) => {
         const nodeObj = yMapToObject<Node>(ynode);
         nodes.push({ ...nodeObj, id });
       });
@@ -240,8 +402,9 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     getEdges(): Edge[] {
+      const levelEdges = getActiveLevelEdges();
       const edges: Edge[] = [];
-      yedges.forEach((yedge, id) => {
+      levelEdges.forEach((yedge, id) => {
         const edgeObj = yMapToObject<Edge>(yedge);
         edges.push({ ...edgeObj, id });
       });
@@ -254,6 +417,68 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
     getDescription(): string {
       return (ymeta.get('description') as string) || '';
+    },
+
+    // State access - Levels
+    getLevels(): Level[] {
+      const levels: Level[] = [];
+      ylevels.forEach((ylevel) => {
+        const level = yMapToObject<Level>(ylevel);
+        // Populate nodes/edges/deployables from their respective maps
+        const levelId = level.id;
+        const levelNodesMap = ynodes.get(levelId) as Y.Map<Y.Map<unknown>> | undefined;
+        const levelEdgesMap = yedges.get(levelId) as Y.Map<Y.Map<unknown>> | undefined;
+        const levelDeployablesMap = ydeployables.get(levelId) as Y.Map<Y.Map<unknown>> | undefined;
+
+        const nodes: unknown[] = [];
+        levelNodesMap?.forEach((ynode, id) => {
+          nodes.push({ ...yMapToObject<Node>(ynode), id });
+        });
+
+        const edges: unknown[] = [];
+        levelEdgesMap?.forEach((yedge, id) => {
+          edges.push({ ...yMapToObject<Edge>(yedge), id });
+        });
+
+        const deployables: Deployable[] = [];
+        levelDeployablesMap?.forEach((ydep) => {
+          deployables.push(yMapToObject<Deployable>(ydep));
+        });
+
+        levels.push({ ...level, nodes, edges, deployables });
+      });
+      return levels.sort((a, b) => a.order - b.order);
+    },
+
+    getLevel(id: string): Level | undefined {
+      const ylevel = ylevels.get(id);
+      if (!ylevel) return undefined;
+      const level = yMapToObject<Level>(ylevel);
+
+      const levelNodesMap = ynodes.get(id) as Y.Map<Y.Map<unknown>> | undefined;
+      const levelEdgesMap = yedges.get(id) as Y.Map<Y.Map<unknown>> | undefined;
+      const levelDeployablesMap = ydeployables.get(id) as Y.Map<Y.Map<unknown>> | undefined;
+
+      const nodes: unknown[] = [];
+      levelNodesMap?.forEach((ynode, nid) => {
+        nodes.push({ ...yMapToObject<Node>(ynode), id: nid });
+      });
+
+      const edges: unknown[] = [];
+      levelEdgesMap?.forEach((yedge, eid) => {
+        edges.push({ ...yMapToObject<Edge>(yedge), id: eid });
+      });
+
+      const deployables: Deployable[] = [];
+      levelDeployablesMap?.forEach((ydep) => {
+        deployables.push(yMapToObject<Deployable>(ydep));
+      });
+
+      return { ...level, nodes, edges, deployables };
+    },
+
+    getActiveLevel(): string | undefined {
+      return getActiveLevelId();
     },
 
     // State access - Schemas
@@ -271,17 +496,19 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       return yMapToObject<ConstructSchema>(yschema);
     },
 
-    // State access - Deployables
+    // State access - Deployables (reads from active level)
     getDeployables(): Deployable[] {
+      const levelDeployables = getActiveLevelDeployables();
       const deployables: Deployable[] = [];
-      ydeployables.forEach((ydeployable) => {
+      levelDeployables.forEach((ydeployable) => {
         deployables.push(yMapToObject<Deployable>(ydeployable));
       });
       return deployables;
     },
 
     getDeployable(id: string): Deployable | undefined {
-      const ydeployable = ydeployables.get(id);
+      const levelDeployables = getActiveLevelDeployables();
+      const ydeployable = levelDeployables.get(id) as Y.Map<unknown> | undefined;
       if (!ydeployable) return undefined;
       return yMapToObject<Deployable>(ydeployable);
     },
@@ -316,19 +543,19 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       return yMapToObject<SchemaGroup>(ygroup);
     },
 
-    // Mutations - Graph
+    // Mutations - Graph (writes to active level)
     setNodes(nodesOrUpdater) {
       ydoc.transact(() => {
         const newNodes =
           typeof nodesOrUpdater === 'function'
-            ? nodesOrUpdater(this.getNodes())
+            ? nodesOrUpdater(adapter.getNodes())
             : nodesOrUpdater;
 
-        // Clear existing and add new
-        ynodes.clear();
+        const levelNodes = getActiveLevelNodes();
+        levelNodes.clear();
         for (const node of newNodes as Node[]) {
           const { id, ...rest } = node;
-          ynodes.set(id, objectToYMap(rest as Record<string, unknown>));
+          levelNodes.set(id, objectToYMap(rest as Record<string, unknown>));
         }
       }, 'user');
     },
@@ -337,14 +564,14 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       ydoc.transact(() => {
         const newEdges =
           typeof edgesOrUpdater === 'function'
-            ? edgesOrUpdater(this.getEdges())
+            ? edgesOrUpdater(adapter.getEdges())
             : edgesOrUpdater;
 
-        // Clear existing and add new
-        yedges.clear();
+        const levelEdges = getActiveLevelEdges();
+        levelEdges.clear();
         for (const edge of newEdges as Edge[]) {
           const { id, ...rest } = edge;
-          yedges.set(id, objectToYMap(rest as Record<string, unknown>));
+          levelEdges.set(id, objectToYMap(rest as Record<string, unknown>));
         }
       }, 'user');
     },
@@ -367,7 +594,8 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
     updateNode(nodeId: string, updates: Partial<ConstructNodeData>) {
       ydoc.transact(() => {
-        const ynode = ynodes.get(nodeId);
+        const levelNodes = getActiveLevelNodes();
+        const ynode = levelNodes.get(nodeId) as Y.Map<unknown> | undefined;
         if (!ynode) return;
 
         // Handle semantic ID changes - need to update connections in other nodes
@@ -381,9 +609,9 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
         // If semantic ID changed, update references in other nodes
         if (oldSemanticId && updates.semanticId) {
-          ynodes.forEach((otherYnode, otherId) => {
+          levelNodes.forEach((otherYnode, otherId) => {
             if (otherId === nodeId) return;
-            const otherData = otherYnode.get('data') as ConstructNodeData | undefined;
+            const otherData = (otherYnode as Y.Map<unknown>).get('data') as ConstructNodeData | undefined;
             if (!otherData?.connections?.length) return;
 
             const updatedConnections = otherData.connections.map((conn) =>
@@ -393,10 +621,198 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
             );
 
             if (updatedConnections.some((c, i) => c !== otherData.connections![i])) {
-              otherYnode.set('data', { ...otherData, connections: updatedConnections });
+              (otherYnode as Y.Map<unknown>).set('data', { ...otherData, connections: updatedConnections });
             }
           });
         }
+      }, 'user');
+    },
+
+    // Mutations - Levels
+    setActiveLevel(levelId: string) {
+      if (!ylevels.has(levelId)) return;
+      ydoc.transact(() => {
+        ymeta.set('activeLevel', levelId);
+      }, 'user');
+    },
+
+    createLevel(name: string, description?: string): Level {
+      const id = generateLevelId();
+      // Find max order
+      let maxOrder = -1;
+      ylevels.forEach((ylevel) => {
+        const order = ylevel.get('order') as number;
+        if (order > maxOrder) maxOrder = order;
+      });
+
+      const newLevel: Level = {
+        id,
+        name,
+        description,
+        order: maxOrder + 1,
+        nodes: [],
+        edges: [],
+        deployables: [],
+      };
+
+      ydoc.transact(() => {
+        const ylevel = new Y.Map<unknown>();
+        ylevel.set('id', id);
+        ylevel.set('name', name);
+        if (description) ylevel.set('description', description);
+        ylevel.set('order', maxOrder + 1);
+        ylevels.set(id, ylevel);
+
+        // Create empty maps for the level's data
+        ynodes.set(id, new Y.Map<Y.Map<unknown>>() as unknown as Y.Map<unknown>);
+        yedges.set(id, new Y.Map<Y.Map<unknown>>() as unknown as Y.Map<unknown>);
+        ydeployables.set(id, new Y.Map<Y.Map<unknown>>() as unknown as Y.Map<unknown>);
+      }, 'user');
+
+      return newLevel;
+    },
+
+    deleteLevel(levelId: string): boolean {
+      if (!ylevels.has(levelId)) return false;
+      // Don't allow deleting the last level
+      if (ylevels.size <= 1) return false;
+
+      ydoc.transact(() => {
+        ylevels.delete(levelId);
+        ynodes.delete(levelId);
+        yedges.delete(levelId);
+        ydeployables.delete(levelId);
+
+        // If deleting the active level, switch to another
+        const activeLevel = ymeta.get('activeLevel') as string | undefined;
+        if (activeLevel === levelId) {
+          const newActive = getActiveLevelId();
+          if (newActive) {
+            ymeta.set('activeLevel', newActive);
+          }
+        }
+      }, 'user');
+
+      return true;
+    },
+
+    updateLevel(levelId: string, updates: Partial<Omit<Level, 'id' | 'nodes' | 'edges' | 'deployables'>>) {
+      ydoc.transact(() => {
+        const ylevel = ylevels.get(levelId);
+        if (!ylevel) return;
+        if (updates.name !== undefined) ylevel.set('name', updates.name);
+        if (updates.description !== undefined) ylevel.set('description', updates.description);
+        if (updates.order !== undefined) ylevel.set('order', updates.order);
+      }, 'user');
+    },
+
+    duplicateLevel(levelId: string, newName: string): Level {
+      const sourceLevel = ylevels.get(levelId);
+      if (!sourceLevel) throw new Error(`Level ${levelId} not found`);
+
+      const newId = generateLevelId();
+      let maxOrder = -1;
+      ylevels.forEach((ylevel) => {
+        const order = ylevel.get('order') as number;
+        if (order > maxOrder) maxOrder = order;
+      });
+
+      ydoc.transact(() => {
+        // Create level metadata
+        const ylevel = new Y.Map<unknown>();
+        ylevel.set('id', newId);
+        ylevel.set('name', newName);
+        const desc = sourceLevel.get('description');
+        if (desc) ylevel.set('description', desc);
+        ylevel.set('order', maxOrder + 1);
+        ylevels.set(newId, ylevel);
+
+        // Deep-copy nodes with new IDs
+        const sourceNodes = ynodes.get(levelId) as Y.Map<Y.Map<unknown>> | undefined;
+        const newNodesMap = new Y.Map<Y.Map<unknown>>();
+        const idMap: Record<string, string> = {};
+
+        if (sourceNodes) {
+          sourceNodes.forEach((ynode, oldId) => {
+            const newNodeId = crypto.randomUUID();
+            idMap[oldId] = newNodeId;
+            const nodeData = yMapToObject<Record<string, unknown>>(ynode);
+            newNodesMap.set(newNodeId, objectToYMap(nodeData));
+          });
+        }
+        ynodes.set(newId, newNodesMap as unknown as Y.Map<unknown>);
+
+        // Deep-copy edges with remapped source/target
+        const sourceEdges = yedges.get(levelId) as Y.Map<Y.Map<unknown>> | undefined;
+        const newEdgesMap = new Y.Map<Y.Map<unknown>>();
+        if (sourceEdges) {
+          sourceEdges.forEach((yedge) => {
+            const edgeData = yMapToObject<Record<string, unknown>>(yedge);
+            const newEdgeId = `edge-${Math.random()}`;
+            edgeData.source = idMap[edgeData.source as string] || edgeData.source;
+            edgeData.target = idMap[edgeData.target as string] || edgeData.target;
+            newEdgesMap.set(newEdgeId, objectToYMap(edgeData));
+          });
+        }
+        yedges.set(newId, newEdgesMap as unknown as Y.Map<unknown>);
+
+        // Deep-copy deployables
+        const sourceDeployables = ydeployables.get(levelId) as Y.Map<Y.Map<unknown>> | undefined;
+        const newDeployablesMap = new Y.Map<Y.Map<unknown>>();
+        if (sourceDeployables) {
+          sourceDeployables.forEach((ydep, depId) => {
+            const depData = yMapToObject<Record<string, unknown>>(ydep);
+            newDeployablesMap.set(depId, objectToYMap(depData));
+          });
+        }
+        ydeployables.set(newId, newDeployablesMap as unknown as Y.Map<unknown>);
+      }, 'user');
+
+      return adapter.getLevel(newId)!;
+    },
+
+    copyNodesToLevel(nodeIds: string[], targetLevelId: string) {
+      if (!ylevels.has(targetLevelId)) return;
+      const sourceNodes = getActiveLevelNodes();
+      const sourceEdges = getActiveLevelEdges();
+
+      ydoc.transact(() => {
+        let targetNodesMap = ynodes.get(targetLevelId) as Y.Map<Y.Map<unknown>> | undefined;
+        if (!targetNodesMap) {
+          targetNodesMap = new Y.Map<Y.Map<unknown>>();
+          ynodes.set(targetLevelId, targetNodesMap as unknown as Y.Map<unknown>);
+        }
+        let targetEdgesMap = yedges.get(targetLevelId) as Y.Map<Y.Map<unknown>> | undefined;
+        if (!targetEdgesMap) {
+          targetEdgesMap = new Y.Map<Y.Map<unknown>>();
+          yedges.set(targetLevelId, targetEdgesMap as unknown as Y.Map<unknown>);
+        }
+
+        const nodeIdSet = new Set(nodeIds);
+        const idMap: Record<string, string> = {};
+
+        // Copy nodes with new IDs
+        for (const nodeId of nodeIds) {
+          const ynode = sourceNodes.get(nodeId) as Y.Map<unknown> | undefined;
+          if (!ynode) continue;
+          const newId = crypto.randomUUID();
+          idMap[nodeId] = newId;
+          const nodeData = yMapToObject<Record<string, unknown>>(ynode);
+          targetNodesMap!.set(newId, objectToYMap(nodeData));
+        }
+
+        // Copy edges between copied nodes
+        sourceEdges.forEach((yedge) => {
+          const source = (yedge as Y.Map<unknown>).get('source') as string;
+          const target = (yedge as Y.Map<unknown>).get('target') as string;
+          if (nodeIdSet.has(source) && nodeIdSet.has(target)) {
+            const edgeData = yMapToObject<Record<string, unknown>>(yedge as Y.Map<unknown>);
+            edgeData.source = idMap[source] || source;
+            edgeData.target = idMap[target] || target;
+            const newEdgeId = `edge-${Math.random()}`;
+            targetEdgesMap!.set(newEdgeId, objectToYMap(edgeData));
+          }
+        });
       }, 'user');
     },
 
@@ -435,12 +851,13 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       return exists;
     },
 
-    // Mutations - Deployables
+    // Mutations - Deployables (writes to active level)
     setDeployables(deployables: Deployable[]) {
       ydoc.transact(() => {
-        ydeployables.clear();
+        const levelDeployables = getActiveLevelDeployables();
+        levelDeployables.clear();
         for (const d of deployables) {
-          ydeployables.set(d.id, objectToYMap(d as unknown as Record<string, unknown>));
+          levelDeployables.set(d.id, objectToYMap(d as unknown as Record<string, unknown>));
         }
       }, 'user');
     },
@@ -450,25 +867,28 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       const color = deployable.color || generateDeployableColor();
       const newDeployable: Deployable = { ...deployable, id, color };
       ydoc.transact(() => {
-        ydeployables.set(id, objectToYMap(newDeployable as unknown as Record<string, unknown>));
+        const levelDeployables = getActiveLevelDeployables();
+        levelDeployables.set(id, objectToYMap(newDeployable as unknown as Record<string, unknown>));
       }, 'user');
       return newDeployable;
     },
 
     updateDeployable(id: string, updates: Partial<Deployable>) {
       ydoc.transact(() => {
-        const ydeployable = ydeployables.get(id);
+        const levelDeployables = getActiveLevelDeployables();
+        const ydeployable = levelDeployables.get(id) as Y.Map<unknown> | undefined;
         if (!ydeployable) return;
         const current = yMapToObject<Deployable>(ydeployable);
-        ydeployables.set(id, objectToYMap({ ...current, ...updates } as unknown as Record<string, unknown>));
+        levelDeployables.set(id, objectToYMap({ ...current, ...updates } as unknown as Record<string, unknown>));
       }, 'user');
     },
 
     removeDeployable(id: string): boolean {
-      const exists = ydeployables.has(id);
+      const levelDeployables = getActiveLevelDeployables();
+      const exists = levelDeployables.has(id);
       if (exists) {
         ydoc.transact(() => {
-          ydeployables.delete(id);
+          levelDeployables.delete(id);
         }, 'user');
       }
       return exists;
@@ -577,17 +997,17 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       };
     },
 
-    toJSON(): CartaDocument {
+    toJSON(): CartaDocumentV4 {
+      const levels = adapter.getLevels();
       return {
-        version: (ymeta.get('version') as number) || 3,
-        title: this.getTitle(),
-        description: this.getDescription(),
-        nodes: this.getNodes(),
-        edges: this.getEdges(),
-        schemas: this.getSchemas(),
-        deployables: this.getDeployables(),
-        portSchemas: this.getPortSchemas(),
-        schemaGroups: this.getSchemaGroups(),
+        version: 4,
+        title: adapter.getTitle(),
+        description: adapter.getDescription(),
+        levels,
+        activeLevel: getActiveLevelId(),
+        schemas: adapter.getSchemas(),
+        portSchemas: adapter.getPortSchemas(),
+        schemaGroups: adapter.getSchemaGroups(),
       };
     },
 
@@ -635,4 +1055,6 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       }
     },
   };
+
+  return adapter;
 }

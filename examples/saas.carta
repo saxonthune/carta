@@ -1,7 +1,926 @@
 {
-  "version": 4,
+  "version": 5,
   "title": "SaaS",
   "description": "Overview of Friendship.AI, a service that will change the world.",
+  "schemas": [],
+  "portSchemas": [
+    {
+      "id": "flow-in",
+      "displayName": "Flow In",
+      "semanticDescription": "Receives data or control flow",
+      "polarity": "sink",
+      "compatibleWith": [
+        "flow-out",
+        "forward"
+      ],
+      "expectedComplement": "flow-out",
+      "defaultPosition": "left",
+      "color": "#3b82f6"
+    },
+    {
+      "id": "flow-out",
+      "displayName": "Flow Out",
+      "semanticDescription": "Sends data or control flow",
+      "polarity": "source",
+      "compatibleWith": [
+        "flow-in",
+        "intercept"
+      ],
+      "expectedComplement": "flow-in",
+      "defaultPosition": "right",
+      "color": "#22c55e"
+    },
+    {
+      "id": "parent",
+      "displayName": "Parent",
+      "semanticDescription": "Contains or owns the connected construct",
+      "polarity": "source",
+      "compatibleWith": [
+        "child",
+        "intercept"
+      ],
+      "expectedComplement": "child",
+      "defaultPosition": "bottom",
+      "color": "#8b5cf6"
+    },
+    {
+      "id": "child",
+      "displayName": "Child",
+      "semanticDescription": "Is contained by or owned by the connected construct",
+      "polarity": "sink",
+      "compatibleWith": [
+        "parent",
+        "forward"
+      ],
+      "expectedComplement": "parent",
+      "defaultPosition": "top",
+      "color": "#8b5cf6"
+    },
+    {
+      "id": "symmetric",
+      "displayName": "Link",
+      "semanticDescription": "Bidirectional peer connection",
+      "polarity": "bidirectional",
+      "compatibleWith": [
+        "*"
+      ],
+      "defaultPosition": "right",
+      "color": "#64748b"
+    },
+    {
+      "id": "intercept",
+      "displayName": "Intercept",
+      "semanticDescription": "Pass-through input accepting any outgoing connection",
+      "polarity": "sink",
+      "compatibleWith": [
+        "*source*"
+      ],
+      "defaultPosition": "left",
+      "color": "#f59e0b"
+    },
+    {
+      "id": "forward",
+      "displayName": "Forward",
+      "semanticDescription": "Pass-through output connecting to any incoming port",
+      "polarity": "source",
+      "compatibleWith": [
+        "*sink*"
+      ],
+      "defaultPosition": "right",
+      "color": "#f59e0b"
+    }
+  ],
+  "schemaGroups": [
+    {
+      "id": "software-architecture",
+      "name": "Software Architecture",
+      "color": "#6366f1",
+      "description": "Core software architecture constructs"
+    },
+    {
+      "id": "database",
+      "name": "Database",
+      "parentId": "software-architecture",
+      "color": "#f59e0b",
+      "description": "Database schema and table constructs"
+    },
+    {
+      "id": "api",
+      "name": "API",
+      "parentId": "software-architecture",
+      "color": "#6366f1",
+      "description": "API endpoint and model constructs"
+    },
+    {
+      "id": "ui",
+      "name": "UI",
+      "parentId": "software-architecture",
+      "color": "#3b82f6",
+      "description": "User interface constructs"
+    }
+  ],
+  "levels": [
+    {
+      "id": "level-main",
+      "name": "Main",
+      "order": 0,
+      "nodes": [
+        {
+          "type": "construct",
+          "position": {
+            "x": 136.2593305366222,
+            "y": 306.965640568708
+          },
+          "data": {
+            "constructType": "user-story",
+            "semanticId": "user-story-j3bv2iu",
+            "values": {
+              "title": "Make an Account",
+              "description": "As a User, I should be able to create an account to order subscriptions"
+            },
+            "deployableId": "dep_wuh9xrkkv",
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "ui-screen-vhp788z",
+                "targetPortId": "flow-in"
+              }
+            ],
+            "viewLevel": "details"
+          },
+          "measured": {
+            "width": 416,
+            "height": 474
+          },
+          "selected": false,
+          "dragging": false,
+          "id": "fcc79104-6bea-4f56-9e82-230b561871b9"
+        },
+        {
+          "type": "construct",
+          "position": {
+            "x": 174.4211200666036,
+            "y": 1289.091001293746
+          },
+          "data": {
+            "constructType": "user-story",
+            "semanticId": "user-story-uya0pzs",
+            "values": {
+              "title": "Purchase a subscriptions",
+              "description": "As a User, I should be able to purchase a new subscription"
+            },
+            "deployableId": "dep_wuh9xrkkv",
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "ui-screen-1ljp1fl",
+                "targetPortId": "flow-in"
+              }
+            ],
+            "viewLevel": "details"
+          },
+          "measured": {
+            "width": 416,
+            "height": 474
+          },
+          "selected": false,
+          "dragging": false,
+          "id": "b2c85037-1318-4538-a8c1-fcfd9190aa5e"
+        },
+        {
+          "type": "construct",
+          "position": {
+            "x": 900.6461894615933,
+            "y": 476.2558725401255
+          },
+          "data": {
+            "constructType": "ui-screen",
+            "semanticId": "ui-screen-vhp788z",
+            "values": {
+              "screenName": "Signup Screen",
+              "description": "User can put in email, username, password, and even a phone number."
+            },
+            "deployableId": "dep_hgg3iiabz",
+            "connections": [
+              {
+                "portId": "parent",
+                "targetSemanticId": "ui-event-xs0klrx",
+                "targetPortId": "child"
+              }
+            ],
+            "viewLevel": "details"
+          },
+          "measured": {
+            "width": 424,
+            "height": 474
+          },
+          "selected": false,
+          "dragging": false,
+          "id": "30f82adf-d067-4b01-a1d7-333b44cccf7e"
+        },
+        {
+          "type": "construct",
+          "position": {
+            "x": 1454.8993962925645,
+            "y": 616.7940496840379
+          },
+          "data": {
+            "constructType": "ui-event",
+            "semanticId": "ui-event-xs0klrx",
+            "values": {
+              "eventName": "Submit new user signup",
+              "trigger": "User hits 'Submit' button",
+              "description": ""
+            },
+            "deployableId": "dep_hgg3iiabz",
+            "connections": [],
+            "viewLevel": "details"
+          },
+          "measured": {
+            "width": 416,
+            "height": 485
+          },
+          "selected": false,
+          "dragging": false,
+          "id": "e4f8a863-faf2-4f9f-952a-966083d48f1f"
+        },
+        {
+          "type": "construct",
+          "position": {
+            "x": 2354.1704430328223,
+            "y": 1449.006462688625
+          },
+          "data": {
+            "constructType": "controller",
+            "semanticId": "controller-0mgn6oy",
+            "values": {
+              "route": "/api/users",
+              "verb": "GET",
+              "responseType": "object",
+              "summary": ""
+            },
+            "deployableId": "dep_w3a5fk0qh",
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "database-4v94526",
+                "targetPortId": "link-in"
+              }
+            ],
+            "viewLevel": "details"
+          },
+          "measured": {
+            "width": 410,
+            "height": 609
+          },
+          "selected": false,
+          "dragging": false,
+          "id": "4ade28a4-d24e-4fd0-8d5a-5930f5888d2b"
+        },
+        {
+          "type": "construct",
+          "position": {
+            "x": 2209.13521511798,
+            "y": 150.48925571764116
+          },
+          "data": {
+            "constructType": "controller",
+            "semanticId": "controller-1ggez2g",
+            "values": {
+              "route": "/api/users",
+              "verb": "POST",
+              "responseType": "object"
+            },
+            "deployableId": "dep_w3a5fk0qh",
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "database-4v94526",
+                "targetPortId": "link-in"
+              },
+              {
+                "portId": "parent",
+                "targetSemanticId": "api-model-d0jw1tr",
+                "targetPortId": "child"
+              }
+            ],
+            "viewLevel": "details"
+          },
+          "measured": {
+            "width": 410,
+            "height": 625
+          },
+          "selected": true,
+          "dragging": false,
+          "id": "c1aad9ee-7d2c-4e79-a4e3-9a973233b0aa"
+        },
+        {
+          "type": "construct",
+          "position": {
+            "x": 3223.4877418428073,
+            "y": 447.25394535162803
+          },
+          "data": {
+            "constructType": "database",
+            "semanticId": "database-4v94526",
+            "values": {
+              "engine": "PostgreSQL",
+              "note": "main database"
+            },
+            "deployableId": "dep_ay3c717kv",
+            "connections": [
+              {
+                "portId": "child",
+                "targetSemanticId": "table-7s4cq95",
+                "targetPortId": "parent"
+              },
+              {
+                "portId": "child",
+                "targetSemanticId": "table-9v0o1id",
+                "targetPortId": "parent"
+              },
+              {
+                "portId": "child",
+                "targetSemanticId": "table-d9cpcsb",
+                "targetPortId": "parent"
+              },
+              {
+                "portId": "child",
+                "targetSemanticId": "table-k8v8p84",
+                "targetPortId": "parent"
+              },
+              {
+                "portId": "child",
+                "targetSemanticId": "table-kmqcr9r",
+                "targetPortId": "parent"
+              },
+              {
+                "portId": "child",
+                "targetSemanticId": "table-o156jsm",
+                "targetPortId": "parent"
+              }
+            ],
+            "viewLevel": "details"
+          },
+          "measured": {
+            "width": 410,
+            "height": 547
+          },
+          "selected": false,
+          "dragging": false,
+          "id": "396c4d50-2f10-47ac-87d8-ddd0e8f3ab12"
+        },
+        {
+          "type": "construct",
+          "position": {
+            "x": 3723.3302108278813,
+            "y": 295.0035864816866
+          },
+          "data": {
+            "constructType": "table",
+            "semanticId": "table-a05ci0j",
+            "values": {
+              "tableName": "Users"
+            },
+            "connections": [
+              {
+                "portId": "parent",
+                "targetSemanticId": "database-4v94526",
+                "targetPortId": "child"
+              },
+              {
+                "portId": "child",
+                "targetSemanticId": "db-attribute-xntga96",
+                "targetPortId": "parent"
+              }
+            ],
+            "deployableId": "dep_ay3c717kv",
+            "viewLevel": "summary"
+          },
+          "measured": {
+            "width": 413,
+            "height": 100
+          },
+          "selected": false,
+          "dragging": false,
+          "width": 413,
+          "height": 100,
+          "resizing": false,
+          "id": "1a222e5e-3b82-4abf-86e0-01734830a22a"
+        },
+        {
+          "type": "construct",
+          "position": {
+            "x": 4268.061174533921,
+            "y": 270.8892769807396
+          },
+          "data": {
+            "constructType": "table",
+            "semanticId": "table-ee765st",
+            "values": {
+              "tableName": "Orders"
+            },
+            "connections": [
+              {
+                "portId": "parent",
+                "targetSemanticId": "database-4v94526",
+                "targetPortId": "child"
+              },
+              {
+                "portId": "child",
+                "targetSemanticId": "db-attribute-206fv42",
+                "targetPortId": "parent"
+              },
+              {
+                "portId": "child",
+                "targetSemanticId": "db-attribute-7nrteew",
+                "targetPortId": "parent"
+              },
+              {
+                "portId": "child",
+                "targetSemanticId": "constraint-rkg84th",
+                "targetPortId": "parent"
+              }
+            ],
+            "deployableId": "dep_ay3c717kv",
+            "viewLevel": "summary"
+          },
+          "measured": {
+            "width": 413,
+            "height": 100
+          },
+          "selected": false,
+          "dragging": false,
+          "width": 413,
+          "height": 100,
+          "resizing": false,
+          "id": "a652f4bd-d97b-4afe-a529-0916530af02a"
+        },
+        {
+          "type": "construct",
+          "position": {
+            "x": 3752.0642273628337,
+            "y": 530.9306657437776
+          },
+          "data": {
+            "constructType": "db-attribute",
+            "semanticId": "db-attribute-5vezjwm",
+            "values": {
+              "primaryKey": true,
+              "nullable": false,
+              "dataType": "INT",
+              "name": "UserId"
+            },
+            "deployableId": "dep_ay3c717kv",
+            "connections": [
+              {
+                "portId": "parent",
+                "targetSemanticId": "table-a05ci0j",
+                "targetPortId": "child"
+              }
+            ],
+            "viewLevel": "details"
+          },
+          "measured": {
+            "width": 410,
+            "height": 604
+          },
+          "selected": false,
+          "dragging": false,
+          "id": "be2bed9c-9f2a-4b67-b79a-241adbc9eb9f"
+        },
+        {
+          "type": "construct",
+          "position": {
+            "x": 4251.007645020559,
+            "y": 510.226367602188
+          },
+          "data": {
+            "constructType": "db-attribute",
+            "semanticId": "db-attribute-7nrteew",
+            "values": {
+              "primaryKey": true,
+              "nullable": false,
+              "name": "OrderId"
+            },
+            "deployableId": "dep_ay3c717kv",
+            "connections": [
+              {
+                "portId": "parent",
+                "targetSemanticId": "table-ee765st",
+                "targetPortId": "child"
+              }
+            ],
+            "viewLevel": "details"
+          },
+          "measured": {
+            "width": 410,
+            "height": 604
+          },
+          "selected": false,
+          "dragging": false,
+          "id": "1a5b9eb0-19f7-4be1-b23f-c7c1110c0454"
+        },
+        {
+          "type": "construct",
+          "position": {
+            "x": 4769.020385034806,
+            "y": 541.9432590053341
+          },
+          "data": {
+            "constructType": "db-attribute",
+            "semanticId": "db-attribute-o6eq1t2",
+            "values": {
+              "primaryKey": false,
+              "nullable": false,
+              "name": "UserId"
+            },
+            "deployableId": "dep_ay3c717kv",
+            "connections": [
+              {
+                "portId": "parent",
+                "targetSemanticId": "table-ee765st",
+                "targetPortId": "child"
+              }
+            ],
+            "viewLevel": "details"
+          },
+          "measured": {
+            "width": 410,
+            "height": 604
+          },
+          "selected": false,
+          "dragging": false,
+          "id": "a7518c66-553d-4900-b5a0-fb7c1fdd49e6"
+        },
+        {
+          "type": "construct",
+          "position": {
+            "x": 4268.925215667492,
+            "y": 1166.8523056893582
+          },
+          "data": {
+            "constructType": "constraint",
+            "semanticId": "constraint-rkg84th",
+            "values": {
+              "constraintType": "FOREIGN KEY",
+              "columns": "UserId",
+              "name": "fk_userId"
+            },
+            "deployableId": "dep_ay3c717kv",
+            "viewLevel": "details"
+          },
+          "measured": {
+            "width": 410,
+            "height": 580
+          },
+          "selected": false,
+          "dragging": false,
+          "id": "775e5262-c9ff-415b-9ded-3f35f3de37b4"
+        },
+        {
+          "type": "construct",
+          "position": {
+            "x": 892.3258143089303,
+            "y": 1198.3981961745683
+          },
+          "data": {
+            "constructType": "ui-screen",
+            "semanticId": "ui-screen-1ljp1fl",
+            "values": {
+              "screenName": "Confirm subscripton",
+              "description": "User reviews subscription, and confirms subscription order"
+            },
+            "deployableId": "dep_hgg3iiabz",
+            "connections": [
+              {
+                "portId": "parent",
+                "targetSemanticId": "ui-event-xs0klrx",
+                "targetPortId": "child"
+              },
+              {
+                "portId": "parent",
+                "targetSemanticId": "ui-event-2c3bgt5",
+                "targetPortId": "child"
+              }
+            ],
+            "viewLevel": "details"
+          },
+          "measured": {
+            "width": 424,
+            "height": 490
+          },
+          "selected": false,
+          "dragging": false,
+          "id": "3cfcefae-0d7b-4583-84ef-24b26c60a501"
+        },
+        {
+          "type": "construct",
+          "position": {
+            "x": 1538.4336120053458,
+            "y": 1238.3337261801369
+          },
+          "data": {
+            "constructType": "ui-event",
+            "semanticId": "ui-event-2c3bgt5",
+            "values": {
+              "eventName": "Submit new user signup",
+              "trigger": "User hits 'Place Order' button",
+              "description": "Get UserId, then create order object"
+            },
+            "deployableId": "dep_hgg3iiabz",
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "controller-0mgn6oy",
+                "targetPortId": "flow-in"
+              },
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "controller-4j2hp0o",
+                "targetPortId": "flow-in"
+              }
+            ],
+            "viewLevel": "details"
+          },
+          "measured": {
+            "width": 416,
+            "height": 564
+          },
+          "selected": false,
+          "dragging": false,
+          "id": "9c888424-f82e-48e8-9f5b-0751ba048d25"
+        },
+        {
+          "type": "construct",
+          "position": {
+            "x": 2416.1704430328223,
+            "y": 2145.006462688625
+          },
+          "data": {
+            "constructType": "controller",
+            "semanticId": "controller-4j2hp0o",
+            "values": {
+              "route": "/api/users",
+              "verb": "GET",
+              "responseType": "object",
+              "summary": ""
+            },
+            "deployableId": "dep_w3a5fk0qh",
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "database-4v94526",
+                "targetPortId": "link-in"
+              }
+            ],
+            "viewLevel": "details"
+          },
+          "measured": {
+            "width": 410,
+            "height": 609
+          },
+          "selected": false,
+          "dragging": false,
+          "id": "18015cc9-8441-4dcf-bf52-42d2a1f3930c"
+        },
+        {
+          "type": "construct",
+          "position": {
+            "x": 2239.53501756081,
+            "y": 873.039471478448
+          },
+          "data": {
+            "constructType": "api-model",
+            "semanticId": "api-model-d0jw1tr",
+            "values": {
+              "modelType": "request"
+            },
+            "viewLevel": "details"
+          },
+          "measured": {
+            "width": 428,
+            "height": 483
+          },
+          "selected": false,
+          "dragging": false,
+          "width": 428,
+          "height": 483,
+          "resizing": false,
+          "id": "260a88ba-68d7-40d7-a973-d49dea2fb6c3"
+        }
+      ],
+      "edges": [
+        {
+          "source": "fcc79104-6bea-4f56-9e82-230b561871b9",
+          "target": "30f82adf-d067-4b01-a1d7-333b44cccf7e",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in",
+          "id": "edge-fcc79104-6bea-4f56-9e82-230b561871b9-flow-out-30f82adf-d067-4b01-a1d7-333b44cccf7e-flow-in"
+        },
+        {
+          "source": "30f82adf-d067-4b01-a1d7-333b44cccf7e",
+          "target": "e4f8a863-faf2-4f9f-952a-966083d48f1f",
+          "sourceHandle": "parent",
+          "targetHandle": "child",
+          "id": "edge-30f82adf-d067-4b01-a1d7-333b44cccf7e-parent-e4f8a863-faf2-4f9f-952a-966083d48f1f-child"
+        },
+        {
+          "style": {
+            "strokeWidth": 2,
+            "stroke": "#6366f1"
+          },
+          "source": "e4f8a863-faf2-4f9f-952a-966083d48f1f",
+          "sourceHandle": "flow-out",
+          "target": "c1aad9ee-7d2c-4e79-a4e3-9a973233b0aa",
+          "targetHandle": "flow-in",
+          "id": "xy-edge__e4f8a863-faf2-4f9f-952a-966083d48f1fflow-out-c1aad9ee-7d2c-4e79-a4e3-9a973233b0aaflow-in"
+        },
+        {
+          "source": "c1aad9ee-7d2c-4e79-a4e3-9a973233b0aa",
+          "target": "396c4d50-2f10-47ac-87d8-ddd0e8f3ab12",
+          "sourceHandle": "flow-out",
+          "targetHandle": "link-in",
+          "id": "edge-c1aad9ee-7d2c-4e79-a4e3-9a973233b0aa-flow-out-396c4d50-2f10-47ac-87d8-ddd0e8f3ab12-link-in"
+        },
+        {
+          "style": {
+            "strokeWidth": 2,
+            "stroke": "#6366f1"
+          },
+          "source": "1a222e5e-3b82-4abf-86e0-01734830a22a",
+          "sourceHandle": "parent",
+          "target": "396c4d50-2f10-47ac-87d8-ddd0e8f3ab12",
+          "targetHandle": "child",
+          "selected": false,
+          "id": "xy-edge__1a222e5e-3b82-4abf-86e0-01734830a22aparent-396c4d50-2f10-47ac-87d8-ddd0e8f3ab12child"
+        },
+        {
+          "style": {
+            "strokeWidth": 2,
+            "stroke": "#6366f1"
+          },
+          "source": "a652f4bd-d97b-4afe-a529-0916530af02a",
+          "sourceHandle": "parent",
+          "target": "396c4d50-2f10-47ac-87d8-ddd0e8f3ab12",
+          "targetHandle": "child",
+          "selected": false,
+          "id": "xy-edge__a652f4bd-d97b-4afe-a529-0916530af02aparent-396c4d50-2f10-47ac-87d8-ddd0e8f3ab12child"
+        },
+        {
+          "style": {
+            "strokeWidth": 2,
+            "stroke": "#6366f1"
+          },
+          "source": "be2bed9c-9f2a-4b67-b79a-241adbc9eb9f",
+          "sourceHandle": "parent",
+          "target": "1a222e5e-3b82-4abf-86e0-01734830a22a",
+          "targetHandle": "child",
+          "selected": false,
+          "id": "xy-edge__be2bed9c-9f2a-4b67-b79a-241adbc9eb9fparent-1a222e5e-3b82-4abf-86e0-01734830a22achild"
+        },
+        {
+          "style": {
+            "strokeWidth": 2,
+            "stroke": "#6366f1"
+          },
+          "source": "a7518c66-553d-4900-b5a0-fb7c1fdd49e6",
+          "sourceHandle": "parent",
+          "target": "a652f4bd-d97b-4afe-a529-0916530af02a",
+          "targetHandle": "child",
+          "selected": false,
+          "id": "xy-edge__a7518c66-553d-4900-b5a0-fb7c1fdd49e6parent-a652f4bd-d97b-4afe-a529-0916530af02achild"
+        },
+        {
+          "source": "775e5262-c9ff-415b-9ded-3f35f3de37b4",
+          "target": "a652f4bd-d97b-4afe-a529-0916530af02a",
+          "sourceHandle": "parent",
+          "targetHandle": "child",
+          "selected": false,
+          "id": "edge-775e5262-c9ff-415b-9ded-3f35f3de37b4-parent-a652f4bd-d97b-4afe-a529-0916530af02a-child"
+        },
+        {
+          "style": {
+            "strokeWidth": 2,
+            "stroke": "#6366f1"
+          },
+          "source": "4ade28a4-d24e-4fd0-8d5a-5930f5888d2b",
+          "sourceHandle": "flow-out",
+          "target": "396c4d50-2f10-47ac-87d8-ddd0e8f3ab12",
+          "targetHandle": "link-in",
+          "selected": false,
+          "id": "xy-edge__4ade28a4-d24e-4fd0-8d5a-5930f5888d2bflow-out-396c4d50-2f10-47ac-87d8-ddd0e8f3ab12link-in"
+        },
+        {
+          "style": {
+            "strokeWidth": 2,
+            "stroke": "#6366f1"
+          },
+          "source": "1a5b9eb0-19f7-4be1-b23f-c7c1110c0454",
+          "sourceHandle": "parent",
+          "target": "a652f4bd-d97b-4afe-a529-0916530af02a",
+          "targetHandle": "child",
+          "selected": false,
+          "id": "xy-edge__1a5b9eb0-19f7-4be1-b23f-c7c1110c0454parent-a652f4bd-d97b-4afe-a529-0916530af02achild"
+        },
+        {
+          "style": {
+            "strokeWidth": 2,
+            "stroke": "#6366f1"
+          },
+          "source": "3cfcefae-0d7b-4583-84ef-24b26c60a501",
+          "sourceHandle": "parent",
+          "target": "9c888424-f82e-48e8-9f5b-0751ba048d25",
+          "targetHandle": "child",
+          "id": "xy-edge__3cfcefae-0d7b-4583-84ef-24b26c60a501parent-9c888424-f82e-48e8-9f5b-0751ba048d25child"
+        },
+        {
+          "style": {
+            "strokeWidth": 2,
+            "stroke": "#6366f1"
+          },
+          "source": "9c888424-f82e-48e8-9f5b-0751ba048d25",
+          "sourceHandle": "flow-out",
+          "target": "4ade28a4-d24e-4fd0-8d5a-5930f5888d2b",
+          "targetHandle": "flow-in",
+          "selected": false,
+          "id": "xy-edge__9c888424-f82e-48e8-9f5b-0751ba048d25flow-out-4ade28a4-d24e-4fd0-8d5a-5930f5888d2bflow-in"
+        },
+        {
+          "style": {
+            "strokeWidth": 2,
+            "stroke": "#6366f1"
+          },
+          "source": "9c888424-f82e-48e8-9f5b-0751ba048d25",
+          "sourceHandle": "flow-out",
+          "target": "18015cc9-8441-4dcf-bf52-42d2a1f3930c",
+          "targetHandle": "flow-in",
+          "selected": false,
+          "id": "xy-edge__9c888424-f82e-48e8-9f5b-0751ba048d25flow-out-18015cc9-8441-4dcf-bf52-42d2a1f3930cflow-in"
+        },
+        {
+          "style": {
+            "strokeWidth": 2,
+            "stroke": "#6366f1"
+          },
+          "source": "18015cc9-8441-4dcf-bf52-42d2a1f3930c",
+          "sourceHandle": "flow-out",
+          "target": "396c4d50-2f10-47ac-87d8-ddd0e8f3ab12",
+          "targetHandle": "link-in",
+          "selected": false,
+          "id": "xy-edge__18015cc9-8441-4dcf-bf52-42d2a1f3930cflow-out-396c4d50-2f10-47ac-87d8-ddd0e8f3ab12link-in"
+        },
+        {
+          "style": {
+            "strokeWidth": 2,
+            "stroke": "#6366f1"
+          },
+          "source": "b2c85037-1318-4538-a8c1-fcfd9190aa5e",
+          "sourceHandle": "flow-out",
+          "target": "3cfcefae-0d7b-4583-84ef-24b26c60a501",
+          "targetHandle": "flow-in",
+          "id": "xy-edge__b2c85037-1318-4538-a8c1-fcfd9190aa5eflow-out-3cfcefae-0d7b-4583-84ef-24b26c60a501flow-in"
+        },
+        {
+          "style": {
+            "strokeWidth": 2,
+            "stroke": "#6366f1"
+          },
+          "source": "c1aad9ee-7d2c-4e79-a4e3-9a973233b0aa",
+          "sourceHandle": "parent",
+          "target": "260a88ba-68d7-40d7-a973-d49dea2fb6c3",
+          "targetHandle": "child",
+          "id": "xy-edge__c1aad9ee-7d2c-4e79-a4e3-9a973233b0aaparent-260a88ba-68d7-40d7-a973-d49dea2fb6c3child"
+        }
+      ],
+      "deployables": [
+        {
+          "name": "User Stories",
+          "description": "",
+          "id": "dep_wuh9xrkkv",
+          "color": "#3b82f6"
+        },
+        {
+          "name": "Mobile App",
+          "description": "",
+          "id": "dep_hgg3iiabz",
+          "color": "#3b82f6"
+        },
+        {
+          "name": "Friendship API",
+          "description": "Rest API for Friendship",
+          "id": "dep_w3a5fk0qh",
+          "color": "#10b981"
+        },
+        {
+          "name": "Friendship Database",
+          "description": "Database that stores users, subscriptions, and other future data",
+          "id": "dep_ay3c717kv",
+          "color": "#06b6d4"
+        }
+      ]
+    }
+  ],
   "nodes": [
     {
       "type": "construct",
@@ -16,7 +935,6 @@
           "title": "Make an Account",
           "description": "As a User, I should be able to create an account to order subscriptions"
         },
-        "isExpanded": true,
         "deployableId": "dep_wuh9xrkkv",
         "connections": [
           {
@@ -24,7 +942,8 @@
             "targetSemanticId": "ui-screen-vhp788z",
             "targetPortId": "flow-in"
           }
-        ]
+        ],
+        "viewLevel": "details"
       },
       "measured": {
         "width": 416,
@@ -47,7 +966,6 @@
           "title": "Purchase a subscriptions",
           "description": "As a User, I should be able to purchase a new subscription"
         },
-        "isExpanded": true,
         "deployableId": "dep_wuh9xrkkv",
         "connections": [
           {
@@ -55,7 +973,8 @@
             "targetSemanticId": "ui-screen-1ljp1fl",
             "targetPortId": "flow-in"
           }
-        ]
+        ],
+        "viewLevel": "details"
       },
       "measured": {
         "width": 416,
@@ -78,7 +997,6 @@
           "screenName": "Signup Screen",
           "description": "User can put in email, username, password, and even a phone number."
         },
-        "isExpanded": true,
         "deployableId": "dep_hgg3iiabz",
         "connections": [
           {
@@ -86,7 +1004,8 @@
             "targetSemanticId": "ui-event-xs0klrx",
             "targetPortId": "child"
           }
-        ]
+        ],
+        "viewLevel": "details"
       },
       "measured": {
         "width": 424,
@@ -110,9 +1029,9 @@
           "trigger": "User hits 'Submit' button",
           "description": ""
         },
-        "isExpanded": true,
         "deployableId": "dep_hgg3iiabz",
-        "connections": []
+        "connections": [],
+        "viewLevel": "details"
       },
       "measured": {
         "width": 416,
@@ -137,7 +1056,6 @@
           "responseType": "object",
           "summary": ""
         },
-        "isExpanded": true,
         "deployableId": "dep_w3a5fk0qh",
         "connections": [
           {
@@ -145,7 +1063,8 @@
             "targetSemanticId": "database-4v94526",
             "targetPortId": "link-in"
           }
-        ]
+        ],
+        "viewLevel": "details"
       },
       "measured": {
         "width": 410,
@@ -169,7 +1088,6 @@
           "verb": "POST",
           "responseType": "object"
         },
-        "isExpanded": true,
         "deployableId": "dep_w3a5fk0qh",
         "connections": [
           {
@@ -182,7 +1100,8 @@
             "targetSemanticId": "api-model-d0jw1tr",
             "targetPortId": "child"
           }
-        ]
+        ],
+        "viewLevel": "details"
       },
       "measured": {
         "width": 410,
@@ -205,7 +1124,6 @@
           "engine": "PostgreSQL",
           "note": "main database"
         },
-        "isExpanded": true,
         "deployableId": "dep_ay3c717kv",
         "connections": [
           {
@@ -238,7 +1156,8 @@
             "targetSemanticId": "table-o156jsm",
             "targetPortId": "parent"
           }
-        ]
+        ],
+        "viewLevel": "details"
       },
       "measured": {
         "width": 410,
@@ -260,7 +1179,6 @@
         "values": {
           "tableName": "Users"
         },
-        "isExpanded": false,
         "connections": [
           {
             "portId": "parent",
@@ -273,7 +1191,8 @@
             "targetPortId": "parent"
           }
         ],
-        "deployableId": "dep_ay3c717kv"
+        "deployableId": "dep_ay3c717kv",
+        "viewLevel": "summary"
       },
       "measured": {
         "width": 413,
@@ -298,7 +1217,6 @@
         "values": {
           "tableName": "Orders"
         },
-        "isExpanded": false,
         "connections": [
           {
             "portId": "parent",
@@ -321,7 +1239,8 @@
             "targetPortId": "parent"
           }
         ],
-        "deployableId": "dep_ay3c717kv"
+        "deployableId": "dep_ay3c717kv",
+        "viewLevel": "summary"
       },
       "measured": {
         "width": 413,
@@ -349,7 +1268,6 @@
           "dataType": "INT",
           "name": "UserId"
         },
-        "isExpanded": true,
         "deployableId": "dep_ay3c717kv",
         "connections": [
           {
@@ -357,7 +1275,8 @@
             "targetSemanticId": "table-a05ci0j",
             "targetPortId": "child"
           }
-        ]
+        ],
+        "viewLevel": "details"
       },
       "measured": {
         "width": 410,
@@ -381,7 +1300,6 @@
           "nullable": false,
           "name": "OrderId"
         },
-        "isExpanded": true,
         "deployableId": "dep_ay3c717kv",
         "connections": [
           {
@@ -389,7 +1307,8 @@
             "targetSemanticId": "table-ee765st",
             "targetPortId": "child"
           }
-        ]
+        ],
+        "viewLevel": "details"
       },
       "measured": {
         "width": 410,
@@ -413,7 +1332,6 @@
           "nullable": false,
           "name": "UserId"
         },
-        "isExpanded": true,
         "deployableId": "dep_ay3c717kv",
         "connections": [
           {
@@ -421,7 +1339,8 @@
             "targetSemanticId": "table-ee765st",
             "targetPortId": "child"
           }
-        ]
+        ],
+        "viewLevel": "details"
       },
       "measured": {
         "width": 410,
@@ -445,8 +1364,8 @@
           "columns": "UserId",
           "name": "fk_userId"
         },
-        "isExpanded": true,
-        "deployableId": "dep_ay3c717kv"
+        "deployableId": "dep_ay3c717kv",
+        "viewLevel": "details"
       },
       "measured": {
         "width": 410,
@@ -469,7 +1388,6 @@
           "screenName": "Confirm subscripton",
           "description": "User reviews subscription, and confirms subscription order"
         },
-        "isExpanded": true,
         "deployableId": "dep_hgg3iiabz",
         "connections": [
           {
@@ -482,7 +1400,8 @@
             "targetSemanticId": "ui-event-2c3bgt5",
             "targetPortId": "child"
           }
-        ]
+        ],
+        "viewLevel": "details"
       },
       "measured": {
         "width": 424,
@@ -506,7 +1425,6 @@
           "trigger": "User hits 'Place Order' button",
           "description": "Get UserId, then create order object"
         },
-        "isExpanded": true,
         "deployableId": "dep_hgg3iiabz",
         "connections": [
           {
@@ -519,7 +1437,8 @@
             "targetSemanticId": "controller-4j2hp0o",
             "targetPortId": "flow-in"
           }
-        ]
+        ],
+        "viewLevel": "details"
       },
       "measured": {
         "width": 416,
@@ -544,7 +1463,6 @@
           "responseType": "object",
           "summary": ""
         },
-        "isExpanded": true,
         "deployableId": "dep_w3a5fk0qh",
         "connections": [
           {
@@ -552,7 +1470,8 @@
             "targetSemanticId": "database-4v94526",
             "targetPortId": "link-in"
           }
-        ]
+        ],
+        "viewLevel": "details"
       },
       "measured": {
         "width": 410,
@@ -574,7 +1493,7 @@
         "values": {
           "modelType": "request"
         },
-        "isExpanded": true
+        "viewLevel": "details"
       },
       "measured": {
         "width": 428,
@@ -796,760 +1715,5 @@
       "id": "dep_ay3c717kv",
       "color": "#06b6d4"
     }
-  ],
-  "customSchemas": [
-    {
-      "type": "controller",
-      "displayName": "REST Controller",
-      "color": "#6366f1",
-      "description": "HTTP REST API endpoint controller",
-      "groupId": "api",
-      "displayField": "route",
-      "ports": [
-        {
-          "id": "flow-in",
-          "portType": "flow-in",
-          "position": "left",
-          "offset": 50,
-          "label": "Flow In",
-          "description": "Incoming request flow from upstream"
-        },
-        {
-          "id": "flow-out",
-          "portType": "flow-out",
-          "position": "right",
-          "offset": 50,
-          "label": "Flow Out",
-          "description": "Downstream flow to services or handlers"
-        },
-        {
-          "id": "parent",
-          "portType": "parent",
-          "position": "bottom",
-          "offset": 50,
-          "label": "Models",
-          "description": "Owns API request/response models"
-        }
-      ],
-      "fields": [
-        {
-          "name": "route",
-          "label": "Route",
-          "type": "string",
-          "description": "URL path pattern for this endpoint",
-          "default": "/api/",
-          "placeholder": "/api/users/{id}"
-        },
-        {
-          "name": "verb",
-          "label": "Method",
-          "type": "enum",
-          "description": "HTTP method for this endpoint",
-          "options": [
-            "GET",
-            "POST",
-            "PUT",
-            "PATCH",
-            "DELETE"
-          ],
-          "default": "GET"
-        },
-        {
-          "name": "summary",
-          "label": "Summary",
-          "type": "string",
-          "description": "Brief description of endpoint purpose and behavior",
-          "placeholder": "Brief description of this endpoint"
-        },
-        {
-          "name": "responseType",
-          "label": "Response Type",
-          "type": "enum",
-          "description": "Expected return type of this endpoint",
-          "options": [
-            "object",
-            "array",
-            "string",
-            "number",
-            "boolean",
-            "void"
-          ],
-          "default": "object"
-        }
-      ],
-      "suggestedRelated": [
-        {
-          "constructType": "database",
-          "fromPortId": "flow-out",
-          "toPortId": "link-in",
-          "label": "Connect to Database"
-        }
-      ],
-      "compilation": {
-        "format": "json",
-        "sectionHeader": "# REST Endpoints"
-      }
-    },
-    {
-      "type": "database",
-      "displayName": "Database",
-      "color": "#f59e0b",
-      "description": "Database instance or schema container",
-      "groupId": "database",
-      "displayField": "engine",
-      "ports": [
-        {
-          "id": "child",
-          "portType": "child",
-          "position": "bottom",
-          "offset": 50,
-          "label": "Tables",
-          "description": "Tables that belong to this database"
-        },
-        {
-          "id": "link-in",
-          "portType": "flow-in",
-          "position": "left",
-          "offset": 50,
-          "label": "Referenced By",
-          "description": "External constructs referencing this database"
-        }
-      ],
-      "fields": [
-        {
-          "name": "engine",
-          "label": "Engine",
-          "type": "enum",
-          "description": "Database management system type",
-          "options": [
-            "PostgreSQL",
-            "MySQL",
-            "SQLite",
-            "SQL Server",
-            "MongoDB"
-          ],
-          "default": "PostgreSQL"
-        },
-        {
-          "name": "note",
-          "label": "Note",
-          "type": "string",
-          "description": "Additional notes or context about this database",
-          "placeholder": "Description of this database"
-        }
-      ],
-      "suggestedRelated": [
-        {
-          "constructType": "controller",
-          "fromPortId": "link-in",
-          "toPortId": "flow-out",
-          "label": "Add REST Controller"
-        },
-        {
-          "constructType": "table",
-          "fromPortId": "child",
-          "toPortId": "parent",
-          "label": "Add Table"
-        }
-      ],
-      "compilation": {
-        "format": "json",
-        "sectionHeader": "# Database Schema"
-      }
-    },
-    {
-      "type": "table",
-      "displayName": "Table",
-      "color": "#8b5cf6",
-      "description": "Database table or entity",
-      "groupId": "database",
-      "displayField": "tableName",
-      "ports": [
-        {
-          "id": "parent",
-          "portType": "parent",
-          "position": "top",
-          "offset": 50,
-          "label": "Database",
-          "description": "Database that owns this table"
-        },
-        {
-          "id": "link-in",
-          "portType": "flow-in",
-          "position": "left",
-          "offset": 50,
-          "label": "Referenced By",
-          "description": "Tables or constructs that reference this table"
-        },
-        {
-          "id": "link-out",
-          "portType": "flow-out",
-          "position": "right",
-          "offset": 50,
-          "label": "References",
-          "description": "Tables or constructs this table references"
-        },
-        {
-          "id": "child",
-          "portType": "child",
-          "position": "bottom",
-          "offset": 75,
-          "label": "Attributes & Constraints",
-          "description": "Attributes and constraints that belong to this table"
-        }
-      ],
-      "fields": [
-        {
-          "name": "tableName",
-          "label": "Table Name",
-          "type": "string",
-          "description": "Name of the database table",
-          "placeholder": "e.g., users, orders"
-        },
-        {
-          "name": "columns",
-          "label": "Columns",
-          "type": "string",
-          "description": "Column definitions for this table",
-          "placeholder": "e.g., email VARCHAR(255)"
-        },
-        {
-          "name": "constraints",
-          "label": "Constraints",
-          "type": "string",
-          "description": "Table-level constraints and rules",
-          "placeholder": "e.g., (email) [unique], (age) [not null]"
-        }
-      ],
-      "suggestedRelated": [
-        {
-          "constructType": "database",
-          "fromPortId": "parent",
-          "toPortId": "child",
-          "label": "Add to Database"
-        },
-        {
-          "constructType": "db-attribute",
-          "fromPortId": "child",
-          "toPortId": "parent",
-          "label": "Add Attribute"
-        },
-        {
-          "constructType": "constraint",
-          "fromPortId": "child",
-          "toPortId": "parent",
-          "label": "Add Constraint"
-        }
-      ],
-      "compilation": {
-        "format": "json"
-      }
-    },
-    {
-      "type": "db-attribute",
-      "displayName": "DB Attribute",
-      "color": "#8b5cf6",
-      "description": "A database table attribute/column",
-      "groupId": "database",
-      "displayField": "name",
-      "fields": [
-        {
-          "name": "name",
-          "label": "Name",
-          "type": "string",
-          "description": "Column name"
-        },
-        {
-          "name": "dataType",
-          "label": "Type",
-          "type": "enum",
-          "description": "SQL data type for this column",
-          "options": [
-            "VARCHAR",
-            "INT",
-            "BIGINT",
-            "BOOLEAN",
-            "DATE",
-            "TIMESTAMP",
-            "TEXT",
-            "JSON"
-          ]
-        },
-        {
-          "name": "primaryKey",
-          "label": "Primary Key",
-          "type": "boolean",
-          "description": "Whether this column is part of the primary key",
-          "default": false
-        },
-        {
-          "name": "nullable",
-          "label": "Nullable",
-          "type": "boolean",
-          "description": "Whether this column allows NULL values",
-          "default": true
-        }
-      ],
-      "ports": [
-        {
-          "id": "parent",
-          "portType": "parent",
-          "position": "top",
-          "offset": 50,
-          "label": "Table",
-          "description": "Table that owns this attribute"
-        }
-      ],
-      "suggestedRelated": [
-        {
-          "constructType": "table",
-          "fromPortId": "parent",
-          "toPortId": "child",
-          "label": "Add to Table"
-        }
-      ],
-      "compilation": {
-        "format": "json"
-      }
-    },
-    {
-      "type": "constraint",
-      "displayName": "Constraint",
-      "color": "#a78bfa",
-      "description": "A database constraint (unique, foreign key, check, etc.)",
-      "groupId": "database",
-      "displayField": "name",
-      "fields": [
-        {
-          "name": "name",
-          "label": "Name",
-          "type": "string",
-          "description": "Constraint name identifier",
-          "placeholder": "e.g., fk_user_profile"
-        },
-        {
-          "name": "constraintType",
-          "label": "Type",
-          "type": "enum",
-          "description": "Type of database constraint",
-          "options": [
-            "PRIMARY KEY",
-            "UNIQUE",
-            "FOREIGN KEY",
-            "CHECK",
-            "NOT NULL",
-            "DEFAULT"
-          ],
-          "default": "UNIQUE"
-        },
-        {
-          "name": "columns",
-          "label": "Columns",
-          "type": "string",
-          "description": "Columns affected by this constraint",
-          "placeholder": "e.g., user_id, profile_id"
-        },
-        {
-          "name": "definition",
-          "label": "Definition",
-          "type": "string",
-          "description": "Full SQL constraint definition",
-          "displayHint": "code",
-          "placeholder": "Detailed constraint definition"
-        }
-      ],
-      "ports": [
-        {
-          "id": "parent",
-          "portType": "parent",
-          "position": "top",
-          "offset": 50,
-          "label": "Table",
-          "description": "Table that owns this constraint"
-        }
-      ],
-      "suggestedRelated": [
-        {
-          "constructType": "table",
-          "fromPortId": "parent",
-          "toPortId": "child",
-          "label": "Add to Table"
-        }
-      ],
-      "compilation": {
-        "format": "json"
-      }
-    },
-    {
-      "type": "api-model",
-      "displayName": "API Model",
-      "color": "#6366f1",
-      "description": "Request or response model for an API endpoint",
-      "groupId": "api",
-      "displayField": "modelName",
-      "fields": [
-        {
-          "name": "modelName",
-          "label": "Model Name",
-          "type": "string",
-          "description": "Name of the request or response model type",
-          "placeholder": "e.g., CreateUserRequest, UserResponse"
-        },
-        {
-          "name": "modelType",
-          "label": "Model Type",
-          "type": "enum",
-          "description": "Whether this is a request or response model",
-          "options": [
-            "request",
-            "response"
-          ],
-          "default": "request",
-          "showInCollapsed": true
-        },
-        {
-          "name": "data",
-          "label": "Data",
-          "type": "string",
-          "description": "Structure and fields of the model",
-          "placeholder": "Describe the data structure"
-        }
-      ],
-      "ports": [
-        {
-          "id": "child",
-          "portType": "child",
-          "position": "top",
-          "offset": 50,
-          "label": "Controller",
-          "description": "Controller endpoint that uses this model"
-        }
-      ],
-      "suggestedRelated": [
-        {
-          "constructType": "controller",
-          "fromPortId": "child",
-          "toPortId": "parent",
-          "label": "Add to Controller"
-        }
-      ],
-      "compilation": {
-        "format": "json"
-      }
-    },
-    {
-      "type": "ui-event",
-      "displayName": "UI Event",
-      "color": "#10b981",
-      "description": "A user interaction or event in the UI",
-      "groupId": "ui",
-      "displayField": "eventName",
-      "fields": [
-        {
-          "name": "eventName",
-          "label": "Event Name",
-          "type": "string",
-          "description": "Name of the UI event or user action",
-          "placeholder": "e.g., Click Submit, Load Page"
-        },
-        {
-          "name": "trigger",
-          "label": "Trigger",
-          "type": "string",
-          "description": "What causes this event to fire",
-          "placeholder": "What triggers this event?"
-        },
-        {
-          "name": "description",
-          "label": "Description",
-          "type": "string",
-          "description": "Detailed description of the event behavior and purpose",
-          "placeholder": "Describe the event or user action"
-        }
-      ],
-      "ports": [
-        {
-          "id": "child",
-          "portType": "child",
-          "position": "left",
-          "offset": 50,
-          "label": "Events",
-          "description": "Child events that originate from this event"
-        },
-        {
-          "id": "flow-out",
-          "portType": "flow-out",
-          "position": "right",
-          "offset": 50,
-          "label": "Flow Out",
-          "description": "Next UI flow that follows this event"
-        }
-      ],
-      "suggestedRelated": [
-        {
-          "constructType": "ui-screen",
-          "fromPortId": "child",
-          "toPortId": "parent",
-          "label": "Add to UI Screen"
-        }
-      ],
-      "compilation": {
-        "format": "json"
-      }
-    },
-    {
-      "type": "ui-screen",
-      "displayName": "UI Screen",
-      "color": "#3b82f6",
-      "description": "A screen or view in the user interface",
-      "groupId": "ui",
-      "displayField": "screenName",
-      "fields": [
-        {
-          "name": "screenName",
-          "label": "Screen Name",
-          "type": "string",
-          "description": "Name of the UI screen or view",
-          "placeholder": "e.g., Login, Dashboard, Profile"
-        },
-        {
-          "name": "description",
-          "label": "Description",
-          "type": "string",
-          "description": "Purpose and content of this screen",
-          "placeholder": "Describe the screen or view"
-        }
-      ],
-      "ports": [
-        {
-          "id": "flow-in",
-          "portType": "flow-in",
-          "position": "left",
-          "offset": 50,
-          "label": "Flow In",
-          "description": "Incoming UI flow into this screen"
-        },
-        {
-          "id": "parent",
-          "portType": "parent",
-          "position": "right",
-          "offset": 50,
-          "label": "Events",
-          "description": "Events that belong to this screen"
-        }
-      ],
-      "suggestedRelated": [
-        {
-          "constructType": "user-story",
-          "fromPortId": "flow-in",
-          "toPortId": "flow-out",
-          "label": "Connect from User Story"
-        },
-        {
-          "constructType": "ui-event",
-          "fromPortId": "parent",
-          "toPortId": "child",
-          "label": "Add Event"
-        }
-      ],
-      "compilation": {
-        "format": "json"
-      }
-    },
-    {
-      "type": "user-story",
-      "displayName": "User Story",
-      "color": "#10b981",
-      "description": "A user story or requirement",
-      "groupId": "software-architecture",
-      "displayField": "title",
-      "fields": [
-        {
-          "name": "title",
-          "label": "Title",
-          "type": "string",
-          "description": "Short title summarizing the user story",
-          "placeholder": "e.g., User Login, Create Account"
-        },
-        {
-          "name": "description",
-          "label": "Description",
-          "type": "string",
-          "description": "Full user story in \"As a X, I want Y, so that Z\" format",
-          "placeholder": "As a [user], I want [goal] so that [benefit]",
-          "showInCollapsed": true
-        }
-      ],
-      "ports": [
-        {
-          "id": "flow-out",
-          "portType": "flow-out",
-          "position": "right",
-          "offset": 50,
-          "label": "Flow Out",
-          "description": "Outcome or follow-on user story"
-        }
-      ],
-      "suggestedRelated": [
-        {
-          "constructType": "ui-screen",
-          "fromPortId": "flow-out",
-          "toPortId": "flow-in",
-          "label": "Connect to UI Screen"
-        }
-      ],
-      "compilation": {
-        "format": "json"
-      }
-    },
-    {
-      "type": "implementation-details",
-      "displayName": "Implementation Details",
-      "color": "#6b7280",
-      "description": "Technical implementation notes and documentation",
-      "displayField": "details",
-      "ports": [
-        {
-          "id": "link",
-          "portType": "symmetric",
-          "position": "left",
-          "offset": 50,
-          "label": "Related To",
-          "description": "Bidirectional relationship to related constructs"
-        }
-      ],
-      "fields": [
-        {
-          "name": "details",
-          "label": "Details",
-          "type": "string",
-          "description": "Implementation notes, technical details, or documentation",
-          "displayHint": "code",
-          "placeholder": "Enter implementation details, notes, or documentation here...",
-          "default": ""
-        }
-      ],
-      "compilation": {
-        "format": "json",
-        "sectionHeader": "# Implementation Details"
-      }
-    }
-  ],
-  "portSchemas": [
-    {
-      "id": "flow-in",
-      "displayName": "Flow In",
-      "semanticDescription": "Receives data or control flow",
-      "polarity": "sink",
-      "compatibleWith": [
-        "flow-out",
-        "forward"
-      ],
-      "expectedComplement": "flow-out",
-      "defaultPosition": "left",
-      "color": "#3b82f6"
-    },
-    {
-      "id": "flow-out",
-      "displayName": "Flow Out",
-      "semanticDescription": "Sends data or control flow",
-      "polarity": "source",
-      "compatibleWith": [
-        "flow-in",
-        "intercept"
-      ],
-      "expectedComplement": "flow-in",
-      "defaultPosition": "right",
-      "color": "#22c55e"
-    },
-    {
-      "id": "parent",
-      "displayName": "Parent",
-      "semanticDescription": "Contains or owns the connected construct",
-      "polarity": "source",
-      "compatibleWith": [
-        "child",
-        "intercept"
-      ],
-      "expectedComplement": "child",
-      "defaultPosition": "bottom",
-      "color": "#8b5cf6"
-    },
-    {
-      "id": "child",
-      "displayName": "Child",
-      "semanticDescription": "Is contained by or owned by the connected construct",
-      "polarity": "sink",
-      "compatibleWith": [
-        "parent",
-        "forward"
-      ],
-      "expectedComplement": "parent",
-      "defaultPosition": "top",
-      "color": "#8b5cf6"
-    },
-    {
-      "id": "symmetric",
-      "displayName": "Link",
-      "semanticDescription": "Bidirectional peer connection",
-      "polarity": "bidirectional",
-      "compatibleWith": [
-        "*"
-      ],
-      "defaultPosition": "right",
-      "color": "#64748b"
-    },
-    {
-      "id": "intercept",
-      "displayName": "Intercept",
-      "semanticDescription": "Pass-through input accepting any outgoing connection",
-      "polarity": "sink",
-      "compatibleWith": [
-        "*source*"
-      ],
-      "defaultPosition": "left",
-      "color": "#f59e0b"
-    },
-    {
-      "id": "forward",
-      "displayName": "Forward",
-      "semanticDescription": "Pass-through output connecting to any incoming port",
-      "polarity": "source",
-      "compatibleWith": [
-        "*sink*"
-      ],
-      "defaultPosition": "right",
-      "color": "#f59e0b"
-    }
-  ],
-  "schemaGroups": [
-    {
-      "id": "software-architecture",
-      "name": "Software Architecture",
-      "color": "#6366f1",
-      "description": "Core software architecture constructs"
-    },
-    {
-      "id": "database",
-      "name": "Database",
-      "parentId": "software-architecture",
-      "color": "#f59e0b",
-      "description": "Database schema and table constructs"
-    },
-    {
-      "id": "api",
-      "name": "API",
-      "parentId": "software-architecture",
-      "color": "#6366f1",
-      "description": "API endpoint and model constructs"
-    },
-    {
-      "id": "ui",
-      "name": "UI",
-      "parentId": "software-architecture",
-      "color": "#3b82f6",
-      "description": "User interface constructs"
-    }
-  ],
-  "exportedAt": "2026-01-26T00:03:08.240Z"
+  ]
 }

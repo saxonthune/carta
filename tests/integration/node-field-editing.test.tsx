@@ -185,8 +185,8 @@ describe('Node Field Editing', () => {
     });
   });
 
-  describe('toggle expand behavior', () => {
-    it('should toggle isExpanded state on node', async () => {
+  describe('view level behavior', () => {
+    it('should set viewLevel state on node', async () => {
       const { result } = renderHook(
         () => ({
           document: useDocument(),
@@ -201,7 +201,7 @@ describe('Node Field Editing', () => {
 
       const { adapter } = result.current.context;
 
-      // Create collapsed node
+      // Create summary node
       act(() => {
         adapter.setNodes([
           createTestNode({
@@ -210,23 +210,22 @@ describe('Node Field Editing', () => {
             semanticId: 'task-1',
           }),
         ]);
-        // Set isExpanded to false explicitly
-        adapter.updateNode('1', { isExpanded: false });
+        adapter.updateNode('1', { viewLevel: 'summary' });
       });
 
       await waitFor(() => {
         const node = result.current.document.nodes.find(n => n.id === '1');
-        expect(node?.data.isExpanded).toBe(false);
+        expect(node?.data.viewLevel).toBe('summary');
       });
 
-      // Toggle to expanded
+      // Set to details
       act(() => {
-        adapter.updateNode('1', { isExpanded: true });
+        adapter.updateNode('1', { viewLevel: 'details' });
       });
 
       await waitFor(() => {
         const node = result.current.document.nodes.find(n => n.id === '1');
-        expect(node?.data.isExpanded).toBe(true);
+        expect(node?.data.viewLevel).toBe('details');
       });
     });
   });

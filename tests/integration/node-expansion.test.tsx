@@ -1,15 +1,15 @@
 /**
- * Test: Node Expansion Behavior
+ * Test: Node View Level Behavior
  *
  * Verifies that nodes:
- * - Start collapsed by default when created
- * - Can be toggled between expanded and collapsed states
- * - Display all properties without scrolling when expanded
+ * - Start in summary view by default when created
+ * - Can be switched between summary and details view levels
+ * - Preserve view level when updating other node properties
  *
  * This is an integration test that exercises:
- * - useGraphOperations hook (node creation)
+ * - useGraphOperations hook (node creation, view level management)
  * - useDocument hook (state access)
- * - Node expansion state management
+ * - Node view level state management
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -21,9 +21,9 @@ import { useReactFlow } from '@xyflow/react';
 import { TestProviders } from '../setup/testProviders';
 import { builtInConstructSchemas } from '@carta/domain';
 
-describe('Node Expansion Behavior', () => {
-  describe('default expansion state', () => {
-    it('should create nodes in collapsed state by default', async () => {
+describe('Node View Level Behavior', () => {
+  describe('default view level', () => {
+    it('should create nodes in summary view by default', async () => {
       const { result } = renderHook(
         () => ({
           document: useDocument(),
@@ -54,12 +54,12 @@ describe('Node Expansion Behavior', () => {
         expect(result.current.document.nodes).toHaveLength(1);
       });
 
-      // Verify node starts collapsed
+      // Verify node starts in summary view
       const node = result.current.document.nodes[0];
-      expect(node.data.isExpanded).toBe(false);
+      expect(node.data.viewLevel).toBe('summary');
     });
 
-    it('should create related constructs in collapsed state', async () => {
+    it('should create related constructs in summary view', async () => {
       const { result } = renderHook(
         () => ({
           document: useDocument(),
@@ -103,15 +103,15 @@ describe('Node Expansion Behavior', () => {
         expect(result.current.document.nodes).toHaveLength(2);
       });
 
-      // Verify both nodes are collapsed
+      // Verify both nodes are in summary view
       const nodes = result.current.document.nodes;
-      expect(nodes[0].data.isExpanded).toBe(false);
-      expect(nodes[1].data.isExpanded).toBe(false);
+      expect(nodes[0].data.viewLevel).toBe('summary');
+      expect(nodes[1].data.viewLevel).toBe('summary');
     });
   });
 
-  describe('toggle expansion', () => {
-    it('should toggle node from collapsed to expanded', async () => {
+  describe('set view level', () => {
+    it('should set node from summary to details', async () => {
       const { result } = renderHook(
         () => ({
           document: useDocument(),
@@ -131,7 +131,7 @@ describe('Node Expansion Behavior', () => {
         expect(result.current.context.isReady).toBe(true);
       });
 
-      // Create collapsed node
+      // Create node in summary view
       const schema = builtInConstructSchemas[0];
       act(() => {
         result.current.graphOps.addConstruct(schema, 100, 100);
@@ -142,20 +142,20 @@ describe('Node Expansion Behavior', () => {
       });
 
       const nodeId = result.current.document.nodes[0].id;
-      expect(result.current.document.nodes[0].data.isExpanded).toBe(false);
+      expect(result.current.document.nodes[0].data.viewLevel).toBe('summary');
 
-      // Toggle to expanded
+      // Set to details
       act(() => {
-        result.current.graphOps.toggleNodeExpand(nodeId);
+        result.current.graphOps.setNodeViewLevel(nodeId, 'details');
       });
 
       await waitFor(() => {
         const node = result.current.document.nodes.find(n => n.id === nodeId);
-        expect(node?.data.isExpanded).toBe(true);
+        expect(node?.data.viewLevel).toBe('details');
       });
     });
 
-    it('should toggle node from expanded back to collapsed', async () => {
+    it('should set node from details back to summary', async () => {
       const { result } = renderHook(
         () => ({
           document: useDocument(),
@@ -186,28 +186,28 @@ describe('Node Expansion Behavior', () => {
 
       const nodeId = result.current.document.nodes[0].id;
 
-      // Expand first
+      // Set to details first
       act(() => {
-        result.current.graphOps.toggleNodeExpand(nodeId);
+        result.current.graphOps.setNodeViewLevel(nodeId, 'details');
       });
 
       await waitFor(() => {
         const node = result.current.document.nodes.find(n => n.id === nodeId);
-        expect(node?.data.isExpanded).toBe(true);
+        expect(node?.data.viewLevel).toBe('details');
       });
 
-      // Then collapse
+      // Then back to summary
       act(() => {
-        result.current.graphOps.toggleNodeExpand(nodeId);
+        result.current.graphOps.setNodeViewLevel(nodeId, 'summary');
       });
 
       await waitFor(() => {
         const node = result.current.document.nodes.find(n => n.id === nodeId);
-        expect(node?.data.isExpanded).toBe(false);
+        expect(node?.data.viewLevel).toBe('summary');
       });
     });
 
-    it('should allow multiple toggles in sequence', async () => {
+    it('should allow multiple view level changes in sequence', async () => {
       const { result } = renderHook(
         () => ({
           document: useDocument(),
@@ -238,43 +238,43 @@ describe('Node Expansion Behavior', () => {
 
       const nodeId = result.current.document.nodes[0].id;
 
-      // Initial state is collapsed (false)
-      expect(result.current.document.nodes[0].data.isExpanded).toBe(false);
+      // Initial state is summary
+      expect(result.current.document.nodes[0].data.viewLevel).toBe('summary');
 
-      // Toggle to expanded
+      // Set to details
       act(() => {
-        result.current.graphOps.toggleNodeExpand(nodeId);
+        result.current.graphOps.setNodeViewLevel(nodeId, 'details');
       });
 
       await waitFor(() => {
         const node = result.current.document.nodes.find(n => n.id === nodeId);
-        expect(node?.data.isExpanded).toBe(true);
+        expect(node?.data.viewLevel).toBe('details');
       });
 
-      // Toggle back to collapsed
+      // Set back to summary
       act(() => {
-        result.current.graphOps.toggleNodeExpand(nodeId);
+        result.current.graphOps.setNodeViewLevel(nodeId, 'summary');
       });
 
       await waitFor(() => {
         const node = result.current.document.nodes.find(n => n.id === nodeId);
-        expect(node?.data.isExpanded).toBe(false);
+        expect(node?.data.viewLevel).toBe('summary');
       });
 
-      // Toggle to expanded again
+      // Set to details again
       act(() => {
-        result.current.graphOps.toggleNodeExpand(nodeId);
+        result.current.graphOps.setNodeViewLevel(nodeId, 'details');
       });
 
       await waitFor(() => {
         const node = result.current.document.nodes.find(n => n.id === nodeId);
-        expect(node?.data.isExpanded).toBe(true);
+        expect(node?.data.viewLevel).toBe('details');
       });
     });
   });
 
-  describe('expansion state persistence', () => {
-    it('should preserve expansion state when updating node values', async () => {
+  describe('view level persistence', () => {
+    it('should preserve view level when updating node values', async () => {
       const { result } = renderHook(
         () => ({
           document: useDocument(),
@@ -305,14 +305,14 @@ describe('Node Expansion Behavior', () => {
 
       const nodeId = result.current.document.nodes[0].id;
 
-      // Expand the node
+      // Set to details
       act(() => {
-        result.current.graphOps.toggleNodeExpand(nodeId);
+        result.current.graphOps.setNodeViewLevel(nodeId, 'details');
       });
 
       await waitFor(() => {
         const node = result.current.document.nodes.find(n => n.id === nodeId);
-        expect(node?.data.isExpanded).toBe(true);
+        expect(node?.data.viewLevel).toBe('details');
       });
 
       // Update node values
@@ -327,12 +327,12 @@ describe('Node Expansion Behavior', () => {
         expect(node?.data.values.name).toBe('Updated name');
       });
 
-      // Expansion state should still be true
+      // View level should still be details
       const node = result.current.document.nodes.find(n => n.id === nodeId);
-      expect(node?.data.isExpanded).toBe(true);
+      expect(node?.data.viewLevel).toBe('details');
     });
 
-    it('should preserve expansion state when updating deployable', async () => {
+    it('should preserve view level when updating deployable', async () => {
       const { result } = renderHook(
         () => ({
           document: useDocument(),
@@ -375,14 +375,14 @@ describe('Node Expansion Behavior', () => {
 
       const nodeId = result.current.document.nodes[0].id;
 
-      // Expand the node
+      // Set to details
       act(() => {
-        result.current.graphOps.toggleNodeExpand(nodeId);
+        result.current.graphOps.setNodeViewLevel(nodeId, 'details');
       });
 
       await waitFor(() => {
         const node = result.current.document.nodes.find(n => n.id === nodeId);
-        expect(node?.data.isExpanded).toBe(true);
+        expect(node?.data.viewLevel).toBe('details');
       });
 
       // Update deployable
@@ -395,9 +395,66 @@ describe('Node Expansion Behavior', () => {
         expect(node?.data.deployableId).toBe(deployableId);
       });
 
-      // Expansion state should still be true
+      // View level should still be details
       const node = result.current.document.nodes.find(n => n.id === nodeId);
-      expect(node?.data.isExpanded).toBe(true);
+      expect(node?.data.viewLevel).toBe('details');
+    });
+  });
+
+  describe('details pin', () => {
+    it('should toggle details pin state', async () => {
+      const { result } = renderHook(
+        () => ({
+          document: useDocument(),
+          context: useDocumentContext(),
+          reactFlow: useReactFlow(),
+          graphOps: useGraphOperations({
+            selectedNodeIds: [],
+            setSelectedNodeIds: () => {},
+            setRenamingNodeId: () => {},
+            setAddMenu: () => {},
+          }),
+        }),
+        { wrapper: TestProviders }
+      );
+
+      await waitFor(() => {
+        expect(result.current.context.isReady).toBe(true);
+      });
+
+      const schema = builtInConstructSchemas[0];
+      act(() => {
+        result.current.graphOps.addConstruct(schema, 100, 100);
+      });
+
+      await waitFor(() => {
+        expect(result.current.document.nodes).toHaveLength(1);
+      });
+
+      const nodeId = result.current.document.nodes[0].id;
+
+      // Pin should be false/undefined initially
+      expect(result.current.document.nodes[0].data.isDetailsPinned).toBeFalsy();
+
+      // Toggle pin on
+      act(() => {
+        result.current.graphOps.toggleNodeDetailsPin(nodeId);
+      });
+
+      await waitFor(() => {
+        const node = result.current.document.nodes.find(n => n.id === nodeId);
+        expect(node?.data.isDetailsPinned).toBe(true);
+      });
+
+      // Toggle pin off
+      act(() => {
+        result.current.graphOps.toggleNodeDetailsPin(nodeId);
+      });
+
+      await waitFor(() => {
+        const node = result.current.document.nodes.find(n => n.id === nodeId);
+        expect(node?.data.isDetailsPinned).toBe(false);
+      });
     });
   });
 });

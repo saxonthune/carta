@@ -21,7 +21,8 @@ export interface UseGraphOperationsResult {
   deleteSelectedNodes: () => void;
   renameNode: (nodeId: string, newSemanticId: string) => void;
   updateNodeValues: (nodeId: string, values: ConstructValues) => void;
-  toggleNodeExpand: (nodeId: string) => void;
+  setNodeViewLevel: (nodeId: string, level: 'summary' | 'details') => void;
+  toggleNodeDetailsPin: (nodeId: string) => void;
   updateNodeDeployable: (nodeId: string, deployableId: string | null) => void;
   updateNodeInstanceColor: (nodeId: string, color: string | null) => void;
   createVirtualParent: (parentNodeId: string, portId: string) => void;
@@ -59,7 +60,7 @@ export function useGraphOperations(options: UseGraphOperationsOptions): UseGraph
           constructType: schema.type,
           semanticId,
           values,
-          isExpanded: false,
+          viewLevel: 'summary',
         },
       };
       setNodes((nds) => [...nds, newNode]);
@@ -102,7 +103,7 @@ export function useGraphOperations(options: UseGraphOperationsOptions): UseGraph
           constructType: schema.type,
           semanticId,
           values,
-          isExpanded: false,
+          viewLevel: 'summary',
         },
       };
 
@@ -243,12 +244,25 @@ export function useGraphOperations(options: UseGraphOperationsOptions): UseGraph
     [setNodes]
   );
 
-  const toggleNodeExpand = useCallback(
+  const setNodeViewLevel = useCallback(
+    (nodeIdToSet: string, level: 'summary' | 'details') => {
+      setNodes((nds) =>
+        nds.map((n) =>
+          n.id === nodeIdToSet
+            ? { ...n, data: { ...n.data, viewLevel: level } }
+            : n
+        )
+      );
+    },
+    [setNodes]
+  );
+
+  const toggleNodeDetailsPin = useCallback(
     (nodeIdToToggle: string) => {
       setNodes((nds) =>
         nds.map((n) =>
           n.id === nodeIdToToggle
-            ? { ...n, data: { ...n.data, isExpanded: !n.data.isExpanded } }
+            ? { ...n, data: { ...n.data, isDetailsPinned: !n.data.isDetailsPinned } }
             : n
         )
       );
@@ -385,7 +399,8 @@ export function useGraphOperations(options: UseGraphOperationsOptions): UseGraph
     deleteSelectedNodes,
     renameNode,
     updateNodeValues,
-    toggleNodeExpand,
+    setNodeViewLevel,
+    toggleNodeDetailsPin,
     updateNodeDeployable,
     updateNodeInstanceColor,
     createVirtualParent,

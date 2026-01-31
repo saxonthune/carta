@@ -31,6 +31,7 @@ import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import type { ConstructValues, Deployable, ConstructNodeData, VirtualParentNodeData } from '@carta/domain';
 import SchemaCreationWizard from './SchemaCreationWizard';
 import BundledEdge from './BundledEdge';
+import ConstructFullViewModal from './ConstructFullViewModal';
 import { useEdgeBundling } from '../hooks/useEdgeBundling';
 
 const nodeTypes = {
@@ -47,7 +48,7 @@ const edgeTypes = {
 const NODE_DRAG_HANDLE = '.node-drag-handle';
 
 const defaultEdgeOptions = {
-  type: 'smoothstep',
+  type: 'bundled',
   style: {
     strokeWidth: 2,
     stroke: '#6366f1',
@@ -77,7 +78,7 @@ export interface MapProps {
 }
 
 export default function Map({ deployables, onDeployablesChange, title, onNodesEdgesChange, onSelectionChange, onNodeDoubleClick }: MapProps) {
-  const { nodes, edges, setNodes, setEdges, getSchema } = useDocument();
+  const { nodes, edges, setNodes, setEdges, getSchema, levels, activeLevel, copyNodesToLevel } = useDocument();
   const { adapter } = useDocumentContext();
   const schemaGroups = adapter.getSchemaGroups();
 
@@ -95,6 +96,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
   const [renamingNodeId, setRenamingNodeId] = useState<string | null>(null);
   const [showSchemaWizard, setShowSchemaWizard] = useState(false);
+  const [fullViewNodeId, setFullViewNodeId] = useState<string | null>(null);
   const { undo, redo, canUndo, canRedo } = useUndoRedo();
 
   // Track mouse movement for context menu detection
@@ -125,7 +127,8 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     deleteSelectedNodes,
     renameNode,
     updateNodeValues,
-    toggleNodeExpand,
+    setNodeViewLevel,
+    toggleNodeDetailsPin,
     updateNodeDeployable,
     updateNodeInstanceColor,
     toggleVirtualParentCollapse,
@@ -397,7 +400,9 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
         isRenaming: node.id === renamingNodeId,
         onRename: (newName: string) => renameNode(node.id, newName),
         onValuesChange: (values: ConstructValues) => updateNodeValues(node.id, values),
-        onToggleExpand: () => toggleNodeExpand(node.id),
+        onSetViewLevel: (level: 'summary' | 'details') => setNodeViewLevel(node.id, level),
+        onToggleDetailsPin: () => toggleNodeDetailsPin(node.id),
+        onOpenFullView: () => setFullViewNodeId(node.id),
         deployables,
         onDeployableChange: (deployableId: string | null) => updateNodeDeployable(node.id, deployableId),
         onInstanceColorChange: (color: string | null) => updateNodeInstanceColor(node.id, color),
@@ -433,11 +438,25 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     return edges.filter(e => !hiddenChildIds.has(e.source) && !hiddenChildIds.has(e.target));
   }, [edges, nodes]);
 
+  // Auto-revert unpinned details nodes when deselected
+  useEffect(() => {
+    setNodes((nds) =>
+      nds.map((n) => {
+        if (n.type !== 'construct') return n;
+        const d = n.data as ConstructNodeData;
+        if (d.viewLevel === 'details' && !d.isDetailsPinned && !selectedNodeIds.includes(n.id)) {
+          return { ...n, data: { ...n.data, viewLevel: 'summary' } };
+        }
+        return n;
+      })
+    );
+  }, [selectedNodeIds, setNodes]);
+
   // Edge bundling: collapse parallel edges between same node pairs
   const { displayEdges } = useEdgeBundling(filteredEdges, nodes);
 
   return (
-    <div className="w-full h-full relative">
+    <div className="w-full h-full relative" style={{ backgroundColor: 'var(--color-canvas)' }}>
       <ReactFlow
         nodes={sortedNodes}
         edges={displayEdges}
@@ -528,6 +547,10 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
           canPaste={canPaste}
           onClose={closeContextMenu}
           onNewConstructSchema={() => setShowSchemaWizard(true)}
+          levels={levels}
+          activeLevel={activeLevel}
+          selectedNodeIds={selectedNodeIds}
+          onCopyNodesToLevel={copyNodesToLevel}
         />
       )}
 
@@ -544,6 +567,20 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
         isOpen={showSchemaWizard}
         onClose={() => setShowSchemaWizard(false)}
       />
+
+      {fullViewNodeId && (() => {
+        const node = nodes.find(n => n.id === fullViewNodeId);
+        if (!node || node.type !== 'construct') return null;
+        return (
+          <ConstructFullViewModal
+            nodeId={fullViewNodeId}
+            data={node.data as ConstructNodeData}
+            schemas={schemas}
+            deployables={deployables}
+            onClose={() => setFullViewNodeId(null)}
+          />
+        );
+      })()}
     </div>
   );
 }

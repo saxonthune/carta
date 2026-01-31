@@ -1,5 +1,5 @@
 {
-  "version": 4,
+  "version": 5,
   "title": "Carta Test Scenarios",
   "description": "Example scenarios demonstrating various Carta features and construct types.",
   "nodes": [
@@ -18,7 +18,7 @@
           "description": "Users can clear the document to start fresh",
           "acceptanceCriteria": "- Nodes removed\n- Edges removed\n- Schemas preserved (instances mode)\n- Title preserved"
         },
-        "isExpanded": true
+        "viewLevel": "details"
       }
     },
     {
@@ -36,7 +36,6 @@
           "priority": "smoke",
           "tags": "menu, destructive, document"
         },
-        "isExpanded": true,
         "connections": [
           {
             "portId": "validates",
@@ -53,7 +52,8 @@
             "targetSemanticId": "step-open-menu",
             "targetPortId": "flow-in"
           }
-        ]
+        ],
+        "viewLevel": "details"
       }
     },
     {
@@ -71,7 +71,7 @@
           "setup": "Load SaaS.carta example file",
           "teardown": "None required"
         },
-        "isExpanded": true
+        "viewLevel": "details"
       }
     },
     {
@@ -89,14 +89,14 @@
           "selector": "[data-testid=\"menu-button\"]",
           "actionType": "click"
         },
-        "isExpanded": true,
         "connections": [
           {
             "portId": "flow-out",
             "targetSemanticId": "step-click-clear",
             "targetPortId": "flow-in"
           }
-        ]
+        ],
+        "viewLevel": "details"
       }
     },
     {
@@ -114,14 +114,14 @@
           "selector": "text=Clear",
           "actionType": "click"
         },
-        "isExpanded": true,
         "connections": [
           {
             "portId": "flow-out",
             "targetSemanticId": "step-confirm-clear-everything",
             "targetPortId": "flow-in"
           }
-        ]
+        ],
+        "viewLevel": "details"
       }
     },
     {
@@ -139,14 +139,14 @@
           "selector": "text=Clear Everything",
           "actionType": "click"
         },
-        "isExpanded": true,
         "connections": [
           {
             "portId": "flow-out",
             "targetSemanticId": "assertion-nodes-cleared",
             "targetPortId": "flow-in"
           }
-        ]
+        ],
+        "viewLevel": "details"
       }
     },
     {
@@ -166,14 +166,14 @@
           "expected": "0",
           "comparator": "equals"
         },
-        "isExpanded": true,
         "connections": [
           {
             "portId": "flow-out",
             "targetSemanticId": "assertion-title-preserved",
             "targetPortId": "flow-in"
           }
-        ]
+        ],
+        "viewLevel": "details"
       }
     },
     {
@@ -193,7 +193,7 @@
           "expected": "Friendship.AI",
           "comparator": "equals"
         },
-        "isExpanded": true
+        "viewLevel": "details"
       }
     },
     {
@@ -211,7 +211,6 @@
           "priority": "regression",
           "tags": "menu, document, schemas"
         },
-        "isExpanded": true,
         "connections": [
           {
             "portId": "validates",
@@ -223,7 +222,8 @@
             "targetSemanticId": "fixture-document-with-content",
             "targetPortId": "provides"
           }
-        ]
+        ],
+        "viewLevel": "details"
       }
     }
   ],
@@ -293,6 +293,304 @@
     }
   ],
   "deployables": [],
+  "levels": [
+    {
+      "id": "level-main",
+      "name": "Main",
+      "order": 0,
+      "nodes": [
+        {
+          "id": "1",
+          "type": "construct",
+          "position": {
+            "x": -600,
+            "y": 100
+          },
+          "data": {
+            "constructType": "requirement",
+            "semanticId": "requirement-clear-document",
+            "values": {
+              "title": "Clear Document",
+              "description": "Users can clear the document to start fresh",
+              "acceptanceCriteria": "- Nodes removed\n- Edges removed\n- Schemas preserved (instances mode)\n- Title preserved"
+            },
+            "viewLevel": "details"
+          }
+        },
+        {
+          "id": "2",
+          "type": "construct",
+          "position": {
+            "x": -200,
+            "y": 50
+          },
+          "data": {
+            "constructType": "test-scenario",
+            "semanticId": "test-clear-everything",
+            "values": {
+              "name": "Clear Everything removes all document content",
+              "priority": "smoke",
+              "tags": "menu, destructive, document"
+            },
+            "connections": [
+              {
+                "portId": "validates",
+                "targetSemanticId": "requirement-clear-document",
+                "targetPortId": "tested-by"
+              },
+              {
+                "portId": "requires",
+                "targetSemanticId": "fixture-document-with-content",
+                "targetPortId": "provides"
+              },
+              {
+                "portId": "first-step",
+                "targetSemanticId": "step-open-menu",
+                "targetPortId": "flow-in"
+              }
+            ],
+            "viewLevel": "details"
+          }
+        },
+        {
+          "id": "3",
+          "type": "construct",
+          "position": {
+            "x": -600,
+            "y": 300
+          },
+          "data": {
+            "constructType": "fixture",
+            "semanticId": "fixture-document-with-content",
+            "values": {
+              "name": "Document with content",
+              "setup": "Load SaaS.carta example file",
+              "teardown": "None required"
+            },
+            "viewLevel": "details"
+          }
+        },
+        {
+          "id": "4",
+          "type": "construct",
+          "position": {
+            "x": 200,
+            "y": 50
+          },
+          "data": {
+            "constructType": "test-step",
+            "semanticId": "step-open-menu",
+            "values": {
+              "action": "Click hamburger menu",
+              "selector": "[data-testid=\"menu-button\"]",
+              "actionType": "click"
+            },
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "step-click-clear",
+                "targetPortId": "flow-in"
+              }
+            ],
+            "viewLevel": "details"
+          }
+        },
+        {
+          "id": "5",
+          "type": "construct",
+          "position": {
+            "x": 500,
+            "y": 50
+          },
+          "data": {
+            "constructType": "test-step",
+            "semanticId": "step-click-clear",
+            "values": {
+              "action": "Click Clear option",
+              "selector": "text=Clear",
+              "actionType": "click"
+            },
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "step-confirm-clear-everything",
+                "targetPortId": "flow-in"
+              }
+            ],
+            "viewLevel": "details"
+          }
+        },
+        {
+          "id": "6",
+          "type": "construct",
+          "position": {
+            "x": 800,
+            "y": 50
+          },
+          "data": {
+            "constructType": "test-step",
+            "semanticId": "step-confirm-clear-everything",
+            "values": {
+              "action": "Click 'Clear Everything' in modal",
+              "selector": "text=Clear Everything",
+              "actionType": "click"
+            },
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "assertion-nodes-cleared",
+                "targetPortId": "flow-in"
+              }
+            ],
+            "viewLevel": "details"
+          }
+        },
+        {
+          "id": "7",
+          "type": "construct",
+          "position": {
+            "x": 1100,
+            "y": 50
+          },
+          "data": {
+            "constructType": "assertion",
+            "semanticId": "assertion-nodes-cleared",
+            "values": {
+              "description": "No nodes exist on canvas",
+              "type": "count",
+              "selector": "[data-testid^=\"node-\"]",
+              "expected": "0",
+              "comparator": "equals"
+            },
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "assertion-title-preserved",
+                "targetPortId": "flow-in"
+              }
+            ],
+            "viewLevel": "details"
+          }
+        },
+        {
+          "id": "8",
+          "type": "construct",
+          "position": {
+            "x": 1400,
+            "y": 50
+          },
+          "data": {
+            "constructType": "assertion",
+            "semanticId": "assertion-title-preserved",
+            "values": {
+              "description": "Document title is preserved",
+              "type": "text",
+              "selector": "[data-testid=\"document-title\"]",
+              "expected": "Friendship.AI",
+              "comparator": "equals"
+            },
+            "viewLevel": "details"
+          }
+        },
+        {
+          "id": "9",
+          "type": "construct",
+          "position": {
+            "x": -200,
+            "y": 250
+          },
+          "data": {
+            "constructType": "test-scenario",
+            "semanticId": "test-clear-instances-only",
+            "values": {
+              "name": "Clear Instances preserves schemas and deployables",
+              "priority": "regression",
+              "tags": "menu, document, schemas"
+            },
+            "connections": [
+              {
+                "portId": "validates",
+                "targetSemanticId": "requirement-clear-document",
+                "targetPortId": "tested-by"
+              },
+              {
+                "portId": "requires",
+                "targetSemanticId": "fixture-document-with-content",
+                "targetPortId": "provides"
+              }
+            ],
+            "viewLevel": "details"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e1",
+          "source": "2",
+          "target": "1",
+          "sourceHandle": "validates",
+          "targetHandle": "tested-by"
+        },
+        {
+          "id": "e2",
+          "source": "2",
+          "target": "3",
+          "sourceHandle": "requires",
+          "targetHandle": "provides"
+        },
+        {
+          "id": "e3",
+          "source": "2",
+          "target": "4",
+          "sourceHandle": "first-step",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "e4",
+          "source": "4",
+          "target": "5",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "e5",
+          "source": "5",
+          "target": "6",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "e6",
+          "source": "6",
+          "target": "7",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "e7",
+          "source": "7",
+          "target": "8",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "e8",
+          "source": "9",
+          "target": "1",
+          "sourceHandle": "validates",
+          "targetHandle": "tested-by"
+        },
+        {
+          "id": "e9",
+          "source": "9",
+          "target": "3",
+          "sourceHandle": "requires",
+          "targetHandle": "provides"
+        }
+      ],
+      "deployables": []
+    }
+  ],
   "portSchemas": [
     {
       "id": "flow-in",

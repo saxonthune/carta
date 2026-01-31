@@ -1,5 +1,5 @@
 import type { Node, Edge } from '@xyflow/react';
-import type { Deployable, ConstructSchema, PortSchema, SchemaGroup } from '@carta/domain';
+import type { Deployable, ConstructSchema, PortSchema, SchemaGroup, Level } from '@carta/domain';
 import { toKebabCase } from '@carta/domain';
 import type { ExportOptions } from './exportAnalyzer';
 
@@ -7,17 +7,33 @@ import type { ExportOptions } from './exportAnalyzer';
 export { generateSemanticId } from '@carta/domain';
 
 /**
- * Version of the .carta file format (v4)
+ * Version of the .carta file format (v5 - with levels support)
  */
-export const CARTA_FILE_VERSION = 4;
+export const CARTA_FILE_VERSION = 5;
 
 /**
- * Structure of a .carta project file
+ * Level structure in a .carta file
+ */
+export interface CartaFileLevel {
+  id: string;
+  name: string;
+  description?: string;
+  order: number;
+  nodes: Node[];
+  edges: Edge[];
+  deployables: Deployable[];
+}
+
+/**
+ * Structure of a .carta project file (v5 with levels)
  */
 export interface CartaFile {
   version: number;
   title: string;
   description?: string;
+  // V5: levels contain nodes/edges/deployables
+  levels?: CartaFileLevel[];
+  // V4 and earlier: flat nodes/edges/deployables (for backwards compat on import)
   nodes: Node[];
   edges: Edge[];
   deployables: Deployable[];
@@ -30,22 +46,40 @@ export interface CartaFile {
 /**
  * Export project data to a .carta file
  */
-export function exportProject(data: Omit<CartaFile, 'version' | 'exportedAt'>, options?: ExportOptions): void {
-  // Apply export options to filter data
-  const filteredData: Omit<CartaFile, 'version' | 'exportedAt'> = {
-    title: data.title,
-    description: data.description,
-    nodes: options?.nodes !== false ? data.nodes : [],
-    edges: options?.nodes !== false ? data.edges : [],
-    deployables: options?.deployables !== false ? data.deployables : [],
-    customSchemas: options?.schemas !== false ? data.customSchemas : [],
-    portSchemas: options?.portSchemas !== false ? data.portSchemas : [],
-    schemaGroups: options?.schemaGroups !== false ? data.schemaGroups : [],
-  };
+export function exportProject(data: {
+  title: string;
+  description?: string;
+  levels: Level[];
+  customSchemas: ConstructSchema[];
+  portSchemas: PortSchema[];
+  schemaGroups: SchemaGroup[];
+}, options?: ExportOptions): void {
+  // Convert levels to file format
+  const fileLevels: CartaFileLevel[] = data.levels.map(level => ({
+    id: level.id,
+    name: level.name,
+    description: level.description,
+    order: level.order,
+    nodes: (options?.nodes !== false ? level.nodes : []) as Node[],
+    edges: (options?.nodes !== false ? level.edges : []) as Edge[],
+    deployables: (options?.deployables !== false ? level.deployables : []) as Deployable[],
+  }));
+
+  // Also include flat nodes/edges/deployables from first level for backwards compat
+  const firstLevel = fileLevels[0];
 
   const cartaFile: CartaFile = {
     version: CARTA_FILE_VERSION,
-    ...filteredData,
+    title: data.title,
+    description: data.description,
+    levels: fileLevels,
+    // Flat fields for backwards compat (from first level)
+    nodes: firstLevel?.nodes || [],
+    edges: firstLevel?.edges || [],
+    deployables: firstLevel?.deployables || [],
+    customSchemas: options?.schemas !== false ? data.customSchemas : [],
+    portSchemas: options?.portSchemas !== false ? data.portSchemas : [],
+    schemaGroups: options?.schemaGroups !== false ? data.schemaGroups : [],
     exportedAt: new Date().toISOString(),
   };
 
@@ -105,41 +139,68 @@ export function validateCartaFile(data: unknown): CartaFile {
   if (!data || typeof data !== 'object') {
     throw new Error('Invalid file: expected JSON object');
   }
-  
+
   const obj = data as Record<string, unknown>;
-  
+
   // Check version
   if (typeof obj.version !== 'number') {
     throw new Error('Invalid file: missing or invalid version');
   }
-  
+
   if (obj.version > CARTA_FILE_VERSION) {
     throw new Error(`File version ${obj.version} is newer than supported version ${CARTA_FILE_VERSION}`);
   }
-  
+
   // Check required fields
   if (typeof obj.title !== 'string') {
     throw new Error('Invalid file: missing or invalid title');
   }
 
-  if (!Array.isArray(obj.nodes)) {
-    throw new Error('Invalid file: missing or invalid nodes array');
+  // V5 files may have levels[] as the primary data structure
+  // For older files, nodes/edges/deployables are required at the top level
+  const hasLevels = Array.isArray(obj.levels) && obj.levels.length > 0;
+
+  if (!hasLevels) {
+    // Legacy format validation
+    if (!Array.isArray(obj.nodes)) {
+      throw new Error('Invalid file: missing or invalid nodes array');
+    }
+
+    if (!Array.isArray(obj.edges)) {
+      throw new Error('Invalid file: missing or invalid edges array');
+    }
+
+    if (!Array.isArray(obj.deployables)) {
+      throw new Error('Invalid file: missing or invalid deployables array');
+    }
   }
-  
-  if (!Array.isArray(obj.edges)) {
-    throw new Error('Invalid file: missing or invalid edges array');
-  }
-  
-  if (!Array.isArray(obj.deployables)) {
-    throw new Error('Invalid file: missing or invalid deployables array');
-  }
-  
+
   if (!Array.isArray(obj.customSchemas)) {
     throw new Error('Invalid file: missing or invalid customSchemas array');
   }
-  
-  // Validate nodes have required fields
-  for (const node of obj.nodes) {
+
+  // Validate levels if present
+  if (hasLevels) {
+    for (const level of obj.levels as unknown[]) {
+      if (!level || typeof level !== 'object') {
+        throw new Error('Invalid file: invalid level structure');
+      }
+      const l = level as Record<string, unknown>;
+      if (typeof l.id !== 'string' || typeof l.name !== 'string' || typeof l.order !== 'number') {
+        throw new Error('Invalid file: level missing required fields (id, name, order)');
+      }
+      if (!Array.isArray(l.nodes) || !Array.isArray(l.edges) || !Array.isArray(l.deployables)) {
+        throw new Error('Invalid file: level missing required arrays (nodes, edges, deployables)');
+      }
+    }
+  }
+
+  // Validate nodes (either from levels or flat)
+  const nodesToValidate = hasLevels
+    ? (obj.levels as Array<Record<string, unknown>>).flatMap(l => l.nodes as unknown[])
+    : obj.nodes as unknown[];
+
+  for (const node of nodesToValidate) {
     if (!node || typeof node !== 'object') {
       throw new Error('Invalid file: invalid node structure');
     }
@@ -147,14 +208,13 @@ export function validateCartaFile(data: unknown): CartaFile {
     if (typeof n.id !== 'string' || !n.position || typeof n.type !== 'string') {
       throw new Error('Invalid file: node missing required fields (id, position, type)');
     }
-    // Validate connections if present
     if (n.data && typeof n.data === 'object') {
-      const data = n.data as Record<string, unknown>;
-      if (data.connections !== undefined) {
-        if (!Array.isArray(data.connections)) {
+      const nodeData = n.data as Record<string, unknown>;
+      if (nodeData.connections !== undefined) {
+        if (!Array.isArray(nodeData.connections)) {
           throw new Error(`Invalid file: node "${n.id}" has invalid connections (must be array)`);
         }
-        for (const conn of data.connections as unknown[]) {
+        for (const conn of nodeData.connections as unknown[]) {
           if (!conn || typeof conn !== 'object') {
             throw new Error(`Invalid file: node "${n.id}" has invalid connection structure`);
           }
@@ -167,9 +227,13 @@ export function validateCartaFile(data: unknown): CartaFile {
       }
     }
   }
-  
-  // Validate edges have required fields
-  for (const edge of obj.edges) {
+
+  // Validate edges (either from levels or flat)
+  const edgesToValidate = hasLevels
+    ? (obj.levels as Array<Record<string, unknown>>).flatMap(l => l.edges as unknown[])
+    : obj.edges as unknown[];
+
+  for (const edge of edgesToValidate) {
     if (!edge || typeof edge !== 'object') {
       throw new Error('Invalid file: invalid edge structure');
     }
@@ -178,9 +242,13 @@ export function validateCartaFile(data: unknown): CartaFile {
       throw new Error('Invalid file: edge missing required fields (id, source, target)');
     }
   }
-  
-  // Validate deployables
-  for (const deployable of obj.deployables) {
+
+  // Validate deployables (either from levels or flat)
+  const deployablesToValidate = hasLevels
+    ? (obj.levels as Array<Record<string, unknown>>).flatMap(l => l.deployables as unknown[])
+    : obj.deployables as unknown[];
+
+  for (const deployable of deployablesToValidate) {
     if (!deployable || typeof deployable !== 'object') {
       throw new Error('Invalid file: invalid deployable structure');
     }
@@ -189,9 +257,9 @@ export function validateCartaFile(data: unknown): CartaFile {
       throw new Error('Invalid file: deployable missing required fields');
     }
   }
-  
+
   // Validate custom schemas
-  for (const schema of obj.customSchemas) {
+  for (const schema of obj.customSchemas as unknown[]) {
     if (!schema || typeof schema !== 'object') {
       throw new Error('Invalid file: invalid schema structure');
     }
@@ -200,7 +268,6 @@ export function validateCartaFile(data: unknown): CartaFile {
         typeof s.color !== 'string' || !Array.isArray(s.fields) || !s.compilation) {
       throw new Error('Invalid file: schema missing required fields');
     }
-    // Validate ports if present
     if (s.ports !== undefined) {
       if (!Array.isArray(s.ports)) {
         throw new Error(`Invalid file: schema "${s.type}" has invalid ports (must be array)`);
@@ -215,10 +282,6 @@ export function validateCartaFile(data: unknown): CartaFile {
             typeof p.label !== 'string') {
           throw new Error(`Invalid file: schema "${s.type}" has port missing required fields (id, portType, position, offset, label)`);
         }
-        // Validate portType enum
-        // Port types are user-extensible via port schemas, so we don't restrict them
-        // Just verify portType is a non-empty string (already checked above)
-        // Validate position enum
         const validPositions = ['left', 'right', 'top', 'bottom'];
         if (!validPositions.includes(p.position as string)) {
           throw new Error(`Invalid file: schema "${s.type}" has port with invalid position "${p.position}"`);
@@ -242,12 +305,10 @@ export function validateCartaFile(data: unknown): CartaFile {
         typeof p.color !== 'string') {
       throw new Error(`Invalid file: portSchema missing required fields (id, displayName, semanticDescription, polarity, compatibleWith, defaultPosition, color)`);
     }
-    // Validate polarity enum
     const validPolarities = ['source', 'sink', 'bidirectional', 'relay', 'intercept'];
     if (!validPolarities.includes(p.polarity as string)) {
       throw new Error(`Invalid file: portSchema "${p.id}" has invalid polarity "${p.polarity}"`);
     }
-    // Validate defaultPosition enum
     const validPositions = ['left', 'right', 'top', 'bottom'];
     if (!validPositions.includes(p.defaultPosition as string)) {
       throw new Error(`Invalid file: portSchema "${p.id}" has invalid defaultPosition "${p.defaultPosition}"`);
@@ -266,7 +327,6 @@ export function validateCartaFile(data: unknown): CartaFile {
     if (typeof g.id !== 'string' || typeof g.name !== 'string') {
       throw new Error(`Invalid file: schemaGroup missing required fields (id, name)`);
     }
-    // Validate optional parentId is string if present
     if (g.parentId !== undefined && typeof g.parentId !== 'string') {
       throw new Error(`Invalid file: schemaGroup "${g.id}" has invalid parentId (must be string)`);
     }
@@ -276,9 +336,10 @@ export function validateCartaFile(data: unknown): CartaFile {
     version: obj.version as number,
     title: obj.title as string,
     description: (obj.description as string | undefined),
-    nodes: obj.nodes as Node[],
-    edges: obj.edges as Edge[],
-    deployables: obj.deployables as Deployable[],
+    levels: hasLevels ? (obj.levels as CartaFileLevel[]) : undefined,
+    nodes: (obj.nodes as Node[]) || [],
+    edges: (obj.edges as Edge[]) || [],
+    deployables: (obj.deployables as Deployable[]) || [],
     customSchemas: obj.customSchemas as ConstructSchema[],
     portSchemas: obj.portSchemas as PortSchema[],
     schemaGroups: obj.schemaGroups as SchemaGroup[],

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import ContextMenuPrimitive, { type MenuItem } from './components/ui/ContextMenuPrimitive';
-import type { SchemaGroup } from '@carta/domain';
+import type { SchemaGroup, Level } from '@carta/domain';
 
 export type ContextMenuType = 'pane' | 'node' | 'edge';
 
@@ -43,6 +43,11 @@ interface ContextMenuProps {
   onNewGroup?: () => void;
   canPaste?: boolean;
   onClose: () => void;
+  // Level props for "Copy to Level"
+  levels?: Level[];
+  activeLevel?: string;
+  selectedNodeIds?: string[];
+  onCopyNodesToLevel?: (nodeIds: string[], targetLevelId: string) => void;
 }
 
 // Group items by their groupId into MenuItem[] with nested children
@@ -115,6 +120,10 @@ export default function ContextMenu({
   onClose,
   onNewConstructSchema,
   onNewGroup,
+  levels,
+  activeLevel,
+  selectedNodeIds,
+  onCopyNodesToLevel,
 }: ContextMenuProps) {
   const showMultipleSelected = selectedCount > 1;
 
@@ -130,7 +139,7 @@ export default function ContextMenu({
     }
     return [];
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [type, nodeId, edgeId, selectedCount, relatedConstructs, constructOptions, canPaste]);
+  }, [type, nodeId, edgeId, selectedCount, relatedConstructs, constructOptions, canPaste, levels, activeLevel, selectedNodeIds]);
 
   function buildPaneMenuItems(): MenuItem[] {
     const result: MenuItem[] = [];
@@ -200,6 +209,20 @@ export default function ContextMenu({
       label: `Copy ${showMultipleSelected ? `(${selectedCount})` : ''}`,
       onClick: () => onCopyNodes?.(),
     });
+
+    // "Copy to Level" submenu - only shown when multiple levels exist
+    if (onCopyNodesToLevel && levels && levels.length > 1 && activeLevel && selectedNodeIds && selectedNodeIds.length > 0) {
+      const otherLevels = levels.filter(l => l.id !== activeLevel);
+      result.push({
+        key: 'copy-to-level',
+        label: 'Copy to Level',
+        children: otherLevels.map(level => ({
+          key: `copy-to-level-${level.id}`,
+          label: level.name,
+          onClick: () => onCopyNodesToLevel(selectedNodeIds, level.id),
+        })),
+      });
+    }
 
     if (!showMultipleSelected && relatedConstructs && relatedConstructs.length > 0) {
       const children = groupIntoMenuItems(

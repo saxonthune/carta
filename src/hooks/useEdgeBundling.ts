@@ -55,8 +55,10 @@ export function useEdgeBundling(edges: Edge[], nodes: Node[]): {
 
     for (const [, bundledEdges] of bundles) {
       if (bundledEdges.length === 1) {
-        // Single edge, pass through unchanged
-        displayEdges.push(bundledEdges[0]);
+        // Single edge - still use bundled type for smart routing
+        const single = { ...bundledEdges[0] };
+        single.type = 'bundled';
+        displayEdges.push(single);
       } else {
         // Bundle: keep first edge as representative, mark it as bundled
         const representative = { ...bundledEdges[0] };

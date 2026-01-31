@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { Node, Edge } from '@xyflow/react';
 import { useDocumentContext } from '../contexts/DocumentContext';
-import type { ConstructSchema, ConstructNodeData, Deployable, PortSchema, SchemaGroup } from '@carta/domain';
+import type { ConstructSchema, ConstructNodeData, Deployable, PortSchema, SchemaGroup, Level } from '@carta/domain';
 
 /**
  * Interface matching useDocumentStore for backward compatibility
@@ -16,6 +16,10 @@ export interface UseDocumentResult {
   portSchemas: PortSchema[];
   deployables: Deployable[];
 
+  // State - Levels
+  levels: Level[];
+  activeLevel: string | undefined;
+
   // Actions - Graph
   setNodes: (nodes: Node[] | ((prev: Node[]) => Node[])) => void;
   setEdges: (edges: Edge[] | ((prev: Edge[]) => Edge[])) => void;
@@ -23,6 +27,14 @@ export interface UseDocumentResult {
   setDescription: (description: string) => void;
   getNextNodeId: () => string;
   updateNode: (nodeId: string, updates: Partial<ConstructNodeData>) => void;
+
+  // Actions - Levels
+  setActiveLevel: (levelId: string) => void;
+  createLevel: (name: string, description?: string) => Level;
+  deleteLevel: (levelId: string) => boolean;
+  updateLevel: (levelId: string, updates: Partial<Omit<Level, 'id' | 'nodes' | 'edges' | 'deployables'>>) => void;
+  duplicateLevel: (levelId: string, newName: string) => Level;
+  copyNodesToLevel: (nodeIds: string[], targetLevelId: string) => void;
 
   // Actions - Schemas
   getSchema: (type: string) => ConstructSchema | undefined;
@@ -77,6 +89,8 @@ export function useDocument(): UseDocumentResult {
   const [portSchemas, setPortSchemasState] = useState<PortSchema[]>(() => adapter.getPortSchemas());
   const [deployables, setDeployablesState] = useState<Deployable[]>(() => adapter.getDeployables());
   const [schemaGroups, setSchemaGroupsState] = useState<SchemaGroup[]>(() => adapter.getSchemaGroups());
+  const [levels, setLevelsState] = useState<Level[]>(() => adapter.getLevels());
+  const [activeLevel, setActiveLevelState] = useState<string | undefined>(() => adapter.getActiveLevel());
 
   // Subscribe to adapter changes
   useEffect(() => {
@@ -89,6 +103,8 @@ export function useDocument(): UseDocumentResult {
       setPortSchemasState(adapter.getPortSchemas());
       setDeployablesState(adapter.getDeployables());
       setSchemaGroupsState(adapter.getSchemaGroups());
+      setLevelsState(adapter.getLevels());
+      setActiveLevelState(adapter.getActiveLevel());
     });
     return unsubscribe;
   }, [adapter]);
@@ -129,6 +145,43 @@ export function useDocument(): UseDocumentResult {
   const updateNode = useCallback(
     (nodeId: string, updates: Partial<ConstructNodeData>) => {
       adapter.updateNode(nodeId, updates);
+    },
+    [adapter]
+  );
+
+  // Level actions
+  const setActiveLevel = useCallback(
+    (levelId: string) => {
+      adapter.setActiveLevel(levelId);
+    },
+    [adapter]
+  );
+
+  const createLevel = useCallback(
+    (name: string, description?: string) => adapter.createLevel(name, description),
+    [adapter]
+  );
+
+  const deleteLevel = useCallback(
+    (levelId: string) => adapter.deleteLevel(levelId),
+    [adapter]
+  );
+
+  const updateLevel = useCallback(
+    (levelId: string, updates: Partial<Omit<Level, 'id' | 'nodes' | 'edges' | 'deployables'>>) => {
+      adapter.updateLevel(levelId, updates);
+    },
+    [adapter]
+  );
+
+  const duplicateLevel = useCallback(
+    (levelId: string, newName: string) => adapter.duplicateLevel(levelId, newName),
+    [adapter]
+  );
+
+  const copyNodesToLevel = useCallback(
+    (nodeIds: string[], targetLevelId: string) => {
+      adapter.copyNodesToLevel(nodeIds, targetLevelId);
     },
     [adapter]
   );
@@ -282,12 +335,20 @@ export function useDocument(): UseDocumentResult {
       portSchemas,
       deployables,
       schemaGroups,
+      levels,
+      activeLevel,
       setNodes,
       setEdges,
       setTitle,
       setDescription,
       getNextNodeId,
       updateNode,
+      setActiveLevel,
+      createLevel,
+      deleteLevel,
+      updateLevel,
+      duplicateLevel,
+      copyNodesToLevel,
       getSchema,
       setSchemas,
       addSchema,
@@ -321,12 +382,20 @@ export function useDocument(): UseDocumentResult {
       portSchemas,
       deployables,
       schemaGroups,
+      levels,
+      activeLevel,
       setNodes,
       setEdges,
       setTitle,
       setDescription,
       getNextNodeId,
       updateNode,
+      setActiveLevel,
+      createLevel,
+      deleteLevel,
+      updateLevel,
+      duplicateLevel,
+      copyNodesToLevel,
       getSchema,
       setSchemas,
       addSchema,

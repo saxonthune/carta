@@ -1,5 +1,5 @@
 import type { CartaTool, ToolContext, ToolResult } from './types';
-import type { CartaDocument } from '@carta/domain';
+import type { CartaDocumentV4 } from '@carta/domain';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface GetDocumentParams {}
@@ -8,7 +8,7 @@ interface GetDocumentParams {}
  * Tool to retrieve the full document state
  * Returns all nodes, edges, schemas, deployables, and port schemas
  */
-export const getDocumentTool: CartaTool<GetDocumentParams, CartaDocument> = {
+export const getDocumentTool: CartaTool<GetDocumentParams, CartaDocumentV4> = {
   schema: {
     name: 'getDocument',
     description: 'Get the complete Carta document including all constructs, connections, schemas, and deployables. Use this to understand the current state of the architecture diagram.',
@@ -18,7 +18,7 @@ export const getDocumentTool: CartaTool<GetDocumentParams, CartaDocument> = {
     },
   },
 
-  execute: (_params: GetDocumentParams, context: ToolContext): ToolResult<CartaDocument> => {
+  execute: (_params: GetDocumentParams, context: ToolContext): ToolResult<CartaDocumentV4> => {
     const document = context.adapter.toJSON();
     return {
       success: true,

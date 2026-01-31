@@ -10,11 +10,11 @@ import Metamap from './components/Metamap';
 import Footer from './components/Footer';
 import { compiler } from '@carta/compiler';
 import { builtInConstructSchemas, builtInPortSchemas, builtInSchemaGroups, syncWithDocumentStore } from '@carta/domain';
-import type { ConstructValues, ConstructSchema } from '@carta/domain';
+import type { ConstructSchema } from '@carta/domain';
 import { useDocument } from './hooks/useDocument';
 import { useClearDocument } from './hooks/useClearDocument';
 import { useDocumentContext } from './contexts/DocumentContext';
-import { exportProject, importProject, importProjectFromString, generateSemanticId, type CartaFile } from './utils/cartaFile';
+import { exportProject, importProject, importProjectFromString, type CartaFile } from './utils/cartaFile';
 import type { Example } from './utils/examples';
 import { analyzeImport, type ImportAnalysis, type ImportOptions } from './utils/importAnalyzer';
 import { analyzeExport, type ExportAnalysis, type ExportOptions } from './utils/exportAnalyzer';
@@ -44,6 +44,13 @@ function App() {
     updateNode,
     setTitle,
     setDescription,
+    levels,
+    activeLevel,
+    setActiveLevel,
+    createLevel,
+    deleteLevel,
+    updateLevel,
+    duplicateLevel,
   } = useDocument();
   const [importPreview, setImportPreview] = useState<{ data: CartaFile; analysis: ImportAnalysis } | null>(null);
   const [pendingImport, setPendingImport] = useState<{ data: CartaFile; config: ImportConfig; schemasToImport: ConstructSchema[] } | null>(null);
@@ -104,8 +111,8 @@ function App() {
   }, []);
 
   const handleNodeDoubleClick = useCallback((nodeId: string) => {
-    // Toggle expand on the node instead of opening dock
-    updateNode(nodeId, { isExpanded: true });
+    // Toggle to details view on double-click
+    updateNode(nodeId, { viewLevel: 'details' });
   }, [updateNode]);
 
   const handleExport = useCallback(() => {
@@ -116,37 +123,19 @@ function App() {
   }, [title, description, deployables, schemas, schemaGroups, adapter]);
 
   const handleExportConfirm = useCallback((options: ExportOptions) => {
-    const { nodes, edges } = nodesEdgesRef.current;
     const portSchemas = adapter.getPortSchemas();
-    // Ensure all nodes have semanticIds before export
-    const nodesWithSemanticIds = nodes.map(node => {
-      const nodeData = node.data as ConstructValues & { constructType?: string; semanticId?: string };
-      if (!nodeData.semanticId) {
-        const semanticId = generateSemanticId(nodeData.constructType || 'unknown');
-        return {
-          ...node,
-          data: {
-            ...nodeData,
-            semanticId,
-          },
-        };
-      }
-      return node;
-    });
 
     exportProject({
       title,
       description,
-      nodes: nodesWithSemanticIds,
-      edges,
-      deployables,
+      levels,
       customSchemas: schemas,
       portSchemas,
       schemaGroups,
     }, options);
 
     setExportPreview(null);
-  }, [title, description, deployables, schemas, schemaGroups, adapter]);
+  }, [title, description, levels, schemas, schemaGroups, adapter]);
 
   const handleExportCancel = useCallback(() => {
     setExportPreview(null);
@@ -240,6 +229,13 @@ function App() {
         onLoadExample={handleLoadExample}
         viewMode={viewMode}
         onToggleMetamap={() => setViewMode(viewMode === 'instances' ? 'metamap' : 'instances')}
+        levels={levels}
+        activeLevel={activeLevel}
+        onSetActiveLevel={setActiveLevel}
+        onCreateLevel={createLevel}
+        onDeleteLevel={deleteLevel}
+        onUpdateLevel={updateLevel}
+        onDuplicateLevel={duplicateLevel}
       />
       <div ref={containerRef} className="flex-1 min-h-0 flex flex-col">
         <div className="flex-1 min-h-0">

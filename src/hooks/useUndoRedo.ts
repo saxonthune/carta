@@ -16,27 +16,45 @@ interface UseUndoRedoReturn {
  * Each user has their own local undo stack (not shared).
  * MCP changes with 'ai-mcp' origin won't be tracked.
  *
- * Usage:
- * - Use undo() and redo() to navigate history
- * - Use canUndo/canRedo to enable/disable UI buttons
- * - No manual snapshot needed - changes are tracked automatically via Yjs transactions
+ * Per-level: The UndoManager is re-created when the active level changes,
+ * tracking only the active level's node and edge maps. Undo history is
+ * lost when switching levels (acceptable since undo is local anyway).
  */
 export function useUndoRedo(): UseUndoRedoReturn {
-  const { ydoc } = useDocumentContext();
+  const { ydoc, adapter } = useDocumentContext();
 
   // Yjs UndoManager state
   const undoManagerRef = useRef<Y.UndoManager | null>(null);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
 
-  // Set up Y.UndoManager
-  useEffect(() => {
-    const ynodes = ydoc.getMap('nodes');
-    const yedges = ydoc.getMap('edges');
+  // Get the active level ID from adapter
+  const activeLevel = adapter.getActiveLevel();
 
-    // Create UndoManager that tracks 'user' origin changes
-    // MCP changes with 'ai-mcp' origin won't be tracked
-    const undoManager = new Y.UndoManager([ynodes, yedges], {
+  // Set up Y.UndoManager per-level
+  useEffect(() => {
+    const activeLevelId = activeLevel;
+    if (!activeLevelId) return;
+
+    // Get the active level's Y.Maps
+    const ynodesContainer = ydoc.getMap<Y.Map<unknown>>('nodes');
+    const yedgesContainer = ydoc.getMap<Y.Map<unknown>>('edges');
+
+    let levelNodes = ynodesContainer.get(activeLevelId) as Y.Map<unknown> | undefined;
+    if (!levelNodes) {
+      // Create if doesn't exist yet
+      levelNodes = new Y.Map<unknown>();
+      ynodesContainer.set(activeLevelId, levelNodes);
+    }
+
+    let levelEdges = yedgesContainer.get(activeLevelId) as Y.Map<unknown> | undefined;
+    if (!levelEdges) {
+      levelEdges = new Y.Map<unknown>();
+      yedgesContainer.set(activeLevelId, levelEdges);
+    }
+
+    // Create UndoManager that tracks 'user' origin changes for this level
+    const undoManager = new Y.UndoManager([levelNodes, levelEdges], {
       trackedOrigins: new Set(['user']),
     });
 
@@ -58,7 +76,7 @@ export function useUndoRedo(): UseUndoRedoReturn {
       undoManager.destroy();
       undoManagerRef.current = null;
     };
-  }, [ydoc]);
+  }, [ydoc, activeLevel]);
 
   /**
    * Undo the last action

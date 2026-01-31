@@ -6,7 +6,9 @@ import ExamplesModal from './ExamplesModal';
 import ProjectInfoModal from './ProjectInfoModal';
 import ClearWorkspaceModal from './ClearWorkspaceModal';
 import RestoreDefaultSchemasModal from './RestoreDefaultSchemasModal';
+import LevelSwitcher from './LevelSwitcher';
 import { getExamples, type Example } from '../utils/examples';
+import type { Level } from '@carta/domain';
 
 interface HeaderProps {
   title: string;
@@ -22,6 +24,14 @@ interface HeaderProps {
   onLoadExample?: (example: Example) => void;
   viewMode?: 'instances' | 'metamap';
   onToggleMetamap?: () => void;
+  // Level props
+  levels?: Level[];
+  activeLevel?: string;
+  onSetActiveLevel?: (levelId: string) => void;
+  onCreateLevel?: (name: string) => void;
+  onDeleteLevel?: (levelId: string) => boolean;
+  onUpdateLevel?: (levelId: string, updates: Partial<Omit<Level, 'id' | 'nodes' | 'edges' | 'deployables'>>) => void;
+  onDuplicateLevel?: (levelId: string, newName: string) => void;
 }
 
 const getInitialTheme = (): 'light' | 'dark' | 'warm' => {
@@ -31,7 +41,7 @@ const getInitialTheme = (): 'light' | 'dark' | 'warm' => {
   return prefersDark ? 'dark' : 'light';
 };
 
-export default function Header({ title, description, onTitleChange, onDescriptionChange, onExport, onImport, onCompile, onClear, onRestoreDefaultSchemas, onToggleAI, onLoadExample, viewMode, onToggleMetamap }: HeaderProps) {
+export default function Header({ title, description, onTitleChange, onDescriptionChange, onExport, onImport, onCompile, onClear, onRestoreDefaultSchemas, onToggleAI, onLoadExample, viewMode, onToggleMetamap, levels, activeLevel, onSetActiveLevel, onCreateLevel, onDeleteLevel, onUpdateLevel, onDuplicateLevel }: HeaderProps) {
   const { mode, documentId, connectToDocument, staticMode } = useDocumentContext();
   const [theme, setTheme] = useState<'light' | 'dark' | 'warm'>(() => {
     const initialTheme = getInitialTheme();
@@ -181,7 +191,7 @@ export default function Header({ title, description, onTitleChange, onDescriptio
 
   return (
     <header className="h-12 bg-surface border-b grid grid-cols-[1fr_auto_1fr] items-center px-0 shrink-0">
-      <div className="flex items-center justify-start pl-2">
+      <div className="flex items-center justify-start pl-2 gap-2">
         {/* Document browser button - only in collaboration mode */}
         {!staticMode && (
           <button
@@ -193,6 +203,18 @@ export default function Header({ title, description, onTitleChange, onDescriptio
               <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
             </svg>
           </button>
+        )}
+        {/* Level Switcher */}
+        {levels && onSetActiveLevel && onCreateLevel && onDeleteLevel && onUpdateLevel && onDuplicateLevel && (
+          <LevelSwitcher
+            levels={levels}
+            activeLevel={activeLevel}
+            onSetActiveLevel={onSetActiveLevel}
+            onCreateLevel={onCreateLevel}
+            onDeleteLevel={onDeleteLevel}
+            onUpdateLevel={onUpdateLevel}
+            onDuplicateLevel={onDuplicateLevel}
+          />
         )}
       </div>
 
