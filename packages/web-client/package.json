@@ -4,7 +4,8 @@
   "version": "0.1.0-proto4",
   "type": "module",
   "scripts": {
-    "dev": "VITE_STATIC_MODE=true vite",
+    "dev": "VITE_STORAGE_BACKENDS=both VITE_COLLABORATION=enabled vite",
+    "dev:local": "VITE_STORAGE_BACKENDS=local VITE_COLLABORATION=disabled vite",
     "dev:client": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",

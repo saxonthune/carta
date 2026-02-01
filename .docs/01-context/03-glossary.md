@@ -41,7 +41,7 @@ Canonical definitions for domain terms used throughout Carta. Use these terms co
 
 ## Organization
 
-**Portfolio**: A collection of Carta documents. Represents a user's mental grouping of related projects. Portfolios can be hosted via the filesystem or by a server API. See doc02.05 for deployment details.
+**Portfolio**: A collection of Carta documents. Represents a user's mental grouping of related projects. Portfolios can be backed by IndexedDB (browser), the filesystem (desktop), or a server API. The app always supports portfolio browsing regardless of deployment configuration. See doc02.05 for deployment details.
 
 **Deployable**: A logical grouping for constructs representing a deployment unit (e.g., API Service, Database Layer, UI Application). Helps AI tools understand which components should be deployed together.
 
@@ -63,6 +63,8 @@ Canonical definitions for domain terms used throughout Carta. Use these terms co
 
 **Compilation**: The process of transforming visual canvas state into AI-readable structured output (currently JSON format).
 
-**Static Mode**: Single-user offline-first deployment. No server connection, single document in IndexedDB.
+**Feature Flags**: Build-time configuration that controls which capabilities are available in a deployment. Flags include `STORAGE_BACKENDS`, `AI_MODE`, and `COLLABORATION`. These are build settings, not architectural concepts — the underlying app model is always the same. See doc02.05.
 
-**Server Mode**: Multi-user collaboration deployment. Server database (MongoDB) with WebSocket sync and document browsing.
+**Integration Surface**: A concern that Carta exposes hooks for but does not implement. Authentication, authorization policy, billing, and user management are integration surfaces — consumers (enterprise, SaaS providers) build these on top of Carta's editing platform.
+
+**Preferences Provider**: Abstract interface for storing app preferences (last portfolio, last document, UI settings). Implemented as localStorage in browser, filesystem in desktop app.

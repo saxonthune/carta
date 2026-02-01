@@ -26,10 +26,13 @@ This title documents what Carta does (features), who uses it (use cases), and ho
 
 ## Use Cases (doc03.02)
 
-| ID | Persona | Description |
-|----|---------|-------------|
+| ID | Persona / Scenario | Description |
+|----|---------------------|-------------|
 | doc03.02.01 | Software Architect | Designs system architecture visually, compiles for AI |
 | doc03.02.02 | Team Lead | Defines construct schemas for team standardization |
+| doc03.02.03 | Enterprise Self-Hosted | Internal server, managed AI (Bedrock), desktop + web access |
+| doc03.02.04 | Solo User | Static site or desktop app, local storage, own API key |
+| doc03.02.05 | SaaS Provider | Multi-tenant hosted service with auth, billing, metered AI |
 
 ## Workflows (doc03.03)
 

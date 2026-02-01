@@ -8,12 +8,12 @@ interface TestProvidersProps {
 
 /**
  * Wraps components with all required providers for testing.
- * Uses local mode and skips persistence to avoid WebSocket/IndexedDB.
+ * Uses a fixed test document ID and skips persistence to avoid IndexedDB.
  */
 export function TestProviders({ children }: TestProvidersProps) {
   return (
     <ReactFlowProvider>
-      <DocumentProvider staticMode={true} skipPersistence={true}>
+      <DocumentProvider documentId="test-document" skipPersistence={true}>
         {children}
       </DocumentProvider>
     </ReactFlowProvider>
@@ -26,7 +26,7 @@ export function TestProviders({ children }: TestProvidersProps) {
  */
 export function DocumentTestProvider({ children }: TestProvidersProps) {
   return (
-    <DocumentProvider staticMode={true} skipPersistence={true}>
+    <DocumentProvider documentId="test-document" skipPersistence={true}>
       {children}
     </DocumentProvider>
   );

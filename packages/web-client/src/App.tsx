@@ -26,16 +26,21 @@ import { AISidebar } from './ai';
 // Note: Schema initialization is now handled by DocumentProvider
 
 function App() {
-  const { adapter, needsDocumentSelection } = useDocumentContext();
-
-  // In server mode without a ?doc= param, show forced document selection
-  if (needsDocumentSelection) {
+  // If no ?doc= param, show forced document browser (no DocumentProvider wrapping us)
+  const urlParams = new URLSearchParams(window.location.search);
+  if (!urlParams.has('doc')) {
     return (
       <div className="h-screen flex flex-col bg-surface">
         <DocumentBrowserModal required onClose={() => {}} />
       </div>
     );
   }
+
+  return <AppContent />;
+}
+
+function AppContent() {
+  const { adapter } = useDocumentContext();
 
   const {
     title,

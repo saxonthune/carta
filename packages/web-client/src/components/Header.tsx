@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useDocumentContext } from '../contexts/DocumentContext';
+import { config } from '../config/featureFlags';
 import ConnectionStatus from './ConnectionStatus';
 import DocumentBrowserModal from './DocumentBrowserModal';
 import ExamplesModal from './ExamplesModal';
@@ -30,7 +31,7 @@ const getInitialTheme = (): 'light' | 'dark' | 'warm' => {
 };
 
 export default function Header({ title, description, onTitleChange, onDescriptionChange, onExport, onImport, onCompile, onClear, onRestoreDefaultSchemas, onToggleAI, onLoadExample }: HeaderProps) {
-  const { mode, documentId, connectToDocument, staticMode } = useDocumentContext();
+  const { mode, documentId } = useDocumentContext();
   const [theme, setTheme] = useState<'light' | 'dark' | 'warm'>(() => {
     const initialTheme = getInitialTheme();
     document.documentElement.setAttribute('data-theme', initialTheme);
@@ -84,9 +85,12 @@ export default function Header({ title, description, onTitleChange, onDescriptio
 
   // Start sharing (create shared document)
   const handleStartSharing = async () => {
-    if (!connectToDocument) return;
-    const newDocumentId = shareDocumentId.trim() || `carta-${Date.now()}`;
-    await connectToDocument(newDocumentId, shareServerUrl);
+    // In the new model, sharing is handled by creating a server document
+    // For now, copy the current document URL
+    if (documentId) {
+      const url = `${window.location.origin}${window.location.pathname}?doc=${documentId}`;
+      navigator.clipboard.writeText(url);
+    }
     setIsShareMenuOpen(false);
   };
 
@@ -180,18 +184,16 @@ export default function Header({ title, description, onTitleChange, onDescriptio
   return (
     <header className="h-12 bg-surface border-b grid grid-cols-[1fr_auto_1fr] items-center px-0 shrink-0">
       <div className="flex items-center justify-start pl-2 gap-2">
-        {/* Document browser button - only in collaboration mode */}
-        {!staticMode && (
-          <button
-            className="w-9 h-9 flex items-center justify-center rounded-lg cursor-pointer text-content-muted hover:bg-surface-alt hover:text-content transition-colors"
-            onClick={() => setIsDocBrowserOpen(true)}
-            title="Browse documents"
-          >
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-            </svg>
-          </button>
-        )}
+        {/* Document browser button — always visible */}
+        <button
+          className="w-9 h-9 flex items-center justify-center rounded-lg cursor-pointer text-content-muted hover:bg-surface-alt hover:text-content transition-colors"
+          onClick={() => setIsDocBrowserOpen(true)}
+          title="Browse documents"
+        >
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+          </svg>
+        </button>
       </div>
 
       <div className="flex items-center justify-center">
@@ -212,11 +214,11 @@ export default function Header({ title, description, onTitleChange, onDescriptio
           onChange={handleFileSelect}
           className="hidden"
         />
-        {/* Connection Status */}
-        {!staticMode && <ConnectionStatus />}
+        {/* Connection Status — only when collaboration is active */}
+        {config.collaboration && mode === 'shared' && <ConnectionStatus />}
 
-        {/* Share button and menu */}
-        {!staticMode && (
+        {/* Share button and menu — only when collaboration is enabled */}
+        {config.collaboration && (
           <div className="relative" ref={shareMenuRef}>
             {mode === 'shared' && documentId ? (
               <button

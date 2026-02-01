@@ -31,6 +31,7 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 | doc02.04.01 | `02-system/04-decisions/01-yjs-state.md` | ADR: Yjs as single state store |
 | doc02.04.02 | `02-system/04-decisions/02-port-polarity.md` | ADR: five-value polarity model |
 | doc02.04.03 | `02-system/04-decisions/03-output-formatter-registry.md` | ADR: extensible formatter registry |
+| doc02.04.04 | `02-system/04-decisions/04-unified-deployment.md` | ADR: unified deployment model, build-time feature flags, no static/server split |
 | doc02.05 | `02-system/05-deployment-targets.md` | portfolio concept, 3 deployment modes, AI access matrix, monorepo status |
 | doc02.06 | `02-system/06-metamodel.md` | M2/M1/M0 three-level metamodel, DataKind, DisplayHint, Polarity, ConstructSchema, FieldSchema, PortConfig, PortSchema, child construct pattern |
 | doc02.07 | `02-system/07-design-system.md` | depth system (3 levels), island pattern, spacing scale, button hierarchy, semantic colors, typography, text-halo |
@@ -55,6 +56,9 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 | doc03.01.12 | `03-product/01-features/12-theming.md` | light/dark/warm themes |
 | doc03.02.01 | `03-product/02-use-cases/01-architect.md` | software architect persona |
 | doc03.02.02 | `03-product/02-use-cases/02-team-lead.md` | team lead persona |
+| doc03.02.03 | `03-product/02-use-cases/03-enterprise-self-hosted.md` | enterprise internal server, managed AI, desktop + web |
+| doc03.02.04 | `03-product/02-use-cases/04-solo-user.md` | static site or desktop, local storage, own API key |
+| doc03.02.05 | `03-product/02-use-cases/05-saas-provider.md` | multi-tenant hosted service, auth, billing, metered AI |
 | doc03.03.01 | `03-product/03-workflows/01-create-construct.md` | create construct workflow |
 | doc03.03.02 | `03-product/03-workflows/02-connect-constructs.md` | connect constructs workflow |
 | doc03.03.03 | `03-product/03-workflows/03-define-schema.md` | define schema workflow |

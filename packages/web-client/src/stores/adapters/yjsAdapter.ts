@@ -11,6 +11,7 @@ import type {
   SchemaGroup,
   Level,
 } from '@carta/domain';
+import { updateDocumentMetadata } from '../documentRegistry';
 
 /**
  * Options for creating a Yjs adapter
@@ -172,6 +173,43 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     ydeployables.observeDeep(notifyListeners);
     yportSchemas.observeDeep(notifyListeners);
     yschemaGroups.observeDeep(notifyListeners);
+  };
+
+  // Debounced registry metadata sync (2s, leading edge)
+  let registryTimer: ReturnType<typeof setTimeout> | null = null;
+  let registryPending = false;
+  const syncRegistryMetadata = () => {
+    if (!roomId || options.skipPersistence) return;
+    if (registryTimer && !registryPending) {
+      // Leading edge already fired, just mark pending for trailing
+      registryPending = true;
+      return;
+    }
+    if (!registryTimer) {
+      // Leading edge: fire immediately
+      doRegistrySync();
+      registryTimer = setTimeout(() => {
+        registryTimer = null;
+        if (registryPending) {
+          registryPending = false;
+          doRegistrySync();
+        }
+      }, 2000);
+    }
+  };
+  const doRegistrySync = () => {
+    const title = (ymeta.get('title') as string) || 'Untitled Project';
+    const levelNodes = getActiveLevelNodes();
+    let nodeCount = 0;
+    levelNodes.forEach(() => { nodeCount++; });
+    updateDocumentMetadata(roomId!, { title, nodeCount }).catch(() => {
+      // Best-effort — don't break the app if registry update fails
+    });
+  };
+  const setupRegistrySync = () => {
+    if (!roomId || options.skipPersistence) return;
+    ymeta.observe(syncRegistryMetadata);
+    ynodes.observeDeep(syncRegistryMetadata);
   };
 
   /**
@@ -346,7 +384,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     async initialize(): Promise<void> {
       // Set up IndexedDB persistence (unless skipped for testing)
       if (!options.skipPersistence) {
-        const dbName = roomId || 'carta-local';
+        const dbName = roomId ? `carta-doc-${roomId}` : 'carta-local';
         indexeddbProvider = new IndexeddbPersistence(dbName, ydoc);
 
         // Wait for initial sync
@@ -364,9 +402,24 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
       // Set up observers
       setupObservers();
+
+      // Set up debounced registry metadata sync for local documents
+      setupRegistrySync();
+      // Initial sync to ensure registry has current metadata
+      if (roomId && !options.skipPersistence) {
+        doRegistrySync();
+      }
     },
 
     dispose(): void {
+      // Clean up registry sync
+      if (registryTimer) {
+        clearTimeout(registryTimer);
+        registryTimer = null;
+      }
+      ymeta.unobserve(syncRegistryMetadata);
+      ynodes.unobserveDeep(syncRegistryMetadata);
+
       // Unobserve all
       ymeta.unobserveDeep(notifyListeners);
       ylevels.unobserveDeep(notifyListeners);
