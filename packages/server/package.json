@@ -2,13 +2,7 @@
   "name": "@carta/server",
   "version": "0.1.0-proto4",
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    },
     "./mcp": {
       "types": "./dist/mcp/index.d.ts",
       "import": "./dist/mcp/index.js"
@@ -24,16 +18,14 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "start": "node dist/index.js",
     "mcp": "node dist/mcp/stdio.js",
     "collab-server": "node dist/collab-server.js"
   },
   "dependencies": {
     "@carta/domain": "workspace:*",
     "@carta/compiler": "workspace:*",
-    "@carta/storage": "workspace:*",
+    "@carta/document": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.25.3",
-    "express": "^5.2.1",
     "lib0": "^0.2.102",
     "ws": "^8.18.0",
     "y-mongodb-provider": "^0.2.1",
@@ -43,7 +35,6 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@types/express": "^5.0.3",
     "@types/node": "^24.10.1",
     "@types/ws": "^8.18.1",
     "typescript": "^5.8.3"

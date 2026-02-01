@@ -25,7 +25,24 @@ import * as decoding from 'lib0/decoding';
 import * as syncProtocol from 'y-protocols/sync';
 import { MongodbPersistence } from 'y-mongodb-provider';
 import { portRegistry } from '@carta/domain';
-import * as docOps from './doc-operations.js';
+import {
+  listConstructs,
+  getConstruct,
+  createConstruct,
+  updateConstruct,
+  deleteConstruct,
+  connect,
+  disconnect,
+  listSchemas,
+  getSchema,
+  createSchema,
+  removeSchema,
+  listDeployables,
+  createDeployable,
+  compile,
+  extractDocument,
+  migrateToLevels,
+} from '@carta/document';
 
 const PORT = parseInt(process.env.PORT || '1234', 10);
 const HOST = process.env.HOST || '0.0.0.0';
@@ -55,6 +72,24 @@ const docs = new Map<string, DocState>();
  * MongoDB persistence (initialized async)
  */
 let mdb: MongodbPersistence | null = null;
+
+/**
+ * Get the active level ID for a Y.Doc, falling back to first level by order.
+ */
+function getActiveLevelId(ydoc: Y.Doc): string {
+  const ymeta = ydoc.getMap('meta');
+  const active = ymeta.get('activeLevel') as string | undefined;
+  if (active) return active;
+  // Fallback: first level by order
+  const ylevels = ydoc.getMap<Y.Map<unknown>>('levels');
+  let firstId: string | undefined;
+  let firstOrder = Infinity;
+  ylevels.forEach((ylevel, id) => {
+    const order = (ylevel as Y.Map<unknown>).get('order') as number ?? 0;
+    if (order < firstOrder) { firstOrder = order; firstId = id; }
+  });
+  return firstId!;
+}
 
 /**
  * Initialize MongoDB persistence
@@ -97,6 +132,9 @@ async function getYDoc(docName: string): Promise<DocState> {
     } catch {
       console.log(`[Collab] No persisted state for ${docName}, starting fresh`);
     }
+
+    // Migrate flat docs to level-based structure
+    migrateToLevels(doc);
 
     // Persist future updates
     doc.on('update', (update: Uint8Array) => {
@@ -328,7 +366,7 @@ async function handleHttpRequest(req: http.IncomingMessage, res: http.ServerResp
     // GET /api/documents - List all documents (active rooms)
     if (path === '/api/documents' && method === 'GET') {
       const documents = Array.from(docs.entries()).map(([roomId, docState]) => {
-        const doc = docOps.extractDocument(docState.doc, roomId);
+        const doc = extractDocument(docState.doc, roomId, getActiveLevelId(docState.doc));
         return {
           id: roomId,
           title: doc.title,
@@ -354,7 +392,7 @@ async function handleHttpRequest(req: http.IncomingMessage, res: http.ServerResp
         ymeta.set('version', 3);
       }, 'mcp');
 
-      const document = docOps.extractDocument(docState.doc, roomId);
+      const document = extractDocument(docState.doc, roomId, getActiveLevelId(docState.doc));
       sendJson(res, 201, { document });
       return;
     }
@@ -364,7 +402,7 @@ async function handleHttpRequest(req: http.IncomingMessage, res: http.ServerResp
     if (docMatch && method === 'GET') {
       const roomId = docMatch[1]!;
       const docState = await getYDoc(roomId);
-      const document = docOps.extractDocument(docState.doc, roomId);
+      const document = extractDocument(docState.doc, roomId, getActiveLevelId(docState.doc));
       sendJson(res, 200, { document });
       return;
     }
@@ -396,7 +434,7 @@ async function handleHttpRequest(req: http.IncomingMessage, res: http.ServerResp
           docState.doc.getMap('meta').set('title', body.title);
         }
       }, 'mcp');
-      const document = docOps.extractDocument(docState.doc, roomId);
+      const document = extractDocument(docState.doc, roomId, getActiveLevelId(docState.doc));
       sendJson(res, 200, { document });
       return;
     }
@@ -406,7 +444,7 @@ async function handleHttpRequest(req: http.IncomingMessage, res: http.ServerResp
     if (constructsMatch && method === 'GET') {
       const roomId = constructsMatch[1]!;
       const docState = await getYDoc(roomId);
-      const constructs = docOps.listConstructs(docState.doc);
+      const constructs = listConstructs(docState.doc, getActiveLevelId(docState.doc));
       sendJson(res, 200, { constructs: constructs.map((c) => c.data) });
       return;
     }
@@ -427,8 +465,9 @@ async function handleHttpRequest(req: http.IncomingMessage, res: http.ServerResp
       }
 
       const docState = await getYDoc(roomId);
-      const construct = docOps.createConstruct(
+      const construct = createConstruct(
         docState.doc,
+        getActiveLevelId(docState.doc),
         body.constructType,
         body.values || {},
         { x: body.x || 100, y: body.y || 100 }
@@ -443,7 +482,7 @@ async function handleHttpRequest(req: http.IncomingMessage, res: http.ServerResp
       const roomId = constructMatch[1]!;
       const semanticId = decodeURIComponent(constructMatch[2]!);
       const docState = await getYDoc(roomId);
-      const construct = docOps.getConstruct(docState.doc, semanticId);
+      const construct = getConstruct(docState.doc, getActiveLevelId(docState.doc), semanticId);
       if (!construct) {
         sendError(res, 404, `Construct not found: ${semanticId}`, 'NOT_FOUND');
         return;
@@ -462,7 +501,7 @@ async function handleHttpRequest(req: http.IncomingMessage, res: http.ServerResp
       }>(req);
 
       const docState = await getYDoc(roomId);
-      const construct = docOps.updateConstruct(docState.doc, semanticId, body);
+      const construct = updateConstruct(docState.doc, getActiveLevelId(docState.doc), semanticId, body);
       if (!construct) {
         sendError(res, 404, `Construct not found: ${semanticId}`, 'NOT_FOUND');
         return;
@@ -476,7 +515,7 @@ async function handleHttpRequest(req: http.IncomingMessage, res: http.ServerResp
       const roomId = constructMatch[1]!;
       const semanticId = decodeURIComponent(constructMatch[2]!);
       const docState = await getYDoc(roomId);
-      const deleted = docOps.deleteConstruct(docState.doc, semanticId);
+      const deleted = deleteConstruct(docState.doc, getActiveLevelId(docState.doc), semanticId);
       sendJson(res, 200, { deleted });
       return;
     }
@@ -498,8 +537,9 @@ async function handleHttpRequest(req: http.IncomingMessage, res: http.ServerResp
       }
 
       const docState = await getYDoc(roomId);
-      const edge = docOps.connect(
+      const edge = connect(
         docState.doc,
+        getActiveLevelId(docState.doc),
         body.sourceSemanticId,
         body.sourcePortId,
         body.targetSemanticId,
@@ -528,8 +568,9 @@ async function handleHttpRequest(req: http.IncomingMessage, res: http.ServerResp
       }
 
       const docState = await getYDoc(roomId);
-      const disconnected = docOps.disconnect(
+      const disconnected = disconnect(
         docState.doc,
+        getActiveLevelId(docState.doc),
         body.sourceSemanticId,
         body.sourcePortId,
         body.targetSemanticId
@@ -543,7 +584,7 @@ async function handleHttpRequest(req: http.IncomingMessage, res: http.ServerResp
     if (schemasMatch && method === 'GET') {
       const roomId = schemasMatch[1]!;
       const docState = await getYDoc(roomId);
-      const schemas = docOps.listSchemas(docState.doc);
+      const schemas = listSchemas(docState.doc);
       sendJson(res, 200, { schemas });
       return;
     }
@@ -585,7 +626,7 @@ async function handleHttpRequest(req: http.IncomingMessage, res: http.ServerResp
       }
 
       const docState = await getYDoc(roomId);
-      const schema = docOps.createSchema(docState.doc, {
+      const schema = createSchema(docState.doc, {
         type: body.type,
         displayName: body.displayName,
         color: body.color,
@@ -610,7 +651,7 @@ async function handleHttpRequest(req: http.IncomingMessage, res: http.ServerResp
       const roomId = schemaMatch[1]!;
       const type = decodeURIComponent(schemaMatch[2]!);
       const docState = await getYDoc(roomId);
-      const schema = docOps.getSchema(docState.doc, type);
+      const schema = getSchema(docState.doc, type);
       if (!schema) {
         sendError(res, 404, `Schema not found: ${type}`, 'NOT_FOUND');
         return;
@@ -624,7 +665,7 @@ async function handleHttpRequest(req: http.IncomingMessage, res: http.ServerResp
       const roomId = schemaMatch[1]!;
       const type = decodeURIComponent(schemaMatch[2]!);
       const docState = await getYDoc(roomId);
-      const deleted = docOps.removeSchema(docState.doc, type);
+      const deleted = removeSchema(docState.doc, type);
       if (!deleted) {
         sendError(res, 404, `Schema not found: ${type}`, 'NOT_FOUND');
         return;
@@ -638,7 +679,7 @@ async function handleHttpRequest(req: http.IncomingMessage, res: http.ServerResp
     if (deployablesMatch && method === 'GET') {
       const roomId = deployablesMatch[1]!;
       const docState = await getYDoc(roomId);
-      const deployables = docOps.listDeployables(docState.doc);
+      const deployables = listDeployables(docState.doc, getActiveLevelId(docState.doc));
       sendJson(res, 200, { deployables });
       return;
     }
@@ -658,8 +699,9 @@ async function handleHttpRequest(req: http.IncomingMessage, res: http.ServerResp
       }
 
       const docState = await getYDoc(roomId);
-      const deployable = docOps.createDeployable(
+      const deployable = createDeployable(
         docState.doc,
+        getActiveLevelId(docState.doc),
         body.name,
         body.description,
         body.color
@@ -673,7 +715,7 @@ async function handleHttpRequest(req: http.IncomingMessage, res: http.ServerResp
     if (compileMatch && method === 'GET') {
       const roomId = compileMatch[1]!;
       const docState = await getYDoc(roomId);
-      const output = docOps.compile(docState.doc);
+      const output = compile(docState.doc, getActiveLevelId(docState.doc));
       sendJson(res, 200, { output });
       return;
     }

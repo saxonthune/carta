@@ -11,6 +11,15 @@ import type {
   SchemaGroup,
   Level,
 } from '@carta/domain';
+import {
+  objectToYMap,
+  yMapToObject,
+  generateDeployableId,
+  generateDeployableColor,
+  generateSchemaGroupId,
+  generateLevelId,
+  migrateToLevels,
+} from '@carta/document';
 import { updateDocumentMetadata } from '../documentRegistry';
 
 /**
@@ -37,91 +46,6 @@ export interface YjsAdapterOptions {
  *   'schemaGroups': Y.Map<id, Y.Map>                     // Shared (unchanged)
  * }
  */
-
-/**
- * Convert a plain object to a Y.Map (shallow)
- */
-function objectToYMap(obj: object): Y.Map<unknown> {
-  const ymap = new Y.Map<unknown>();
-  for (const [key, value] of Object.entries(obj)) {
-    ymap.set(key, value);
-  }
-  return ymap;
-}
-
-/**
- * Convert Yjs types to plain JavaScript values (deep conversion)
- */
-function yToPlain(value: unknown): unknown {
-  if (value instanceof Y.Map) {
-    const obj: Record<string, unknown> = {};
-    value.forEach((v, k) => {
-      obj[k] = yToPlain(v);
-    });
-    return obj;
-  }
-  if (value instanceof Y.Array) {
-    return value.toArray().map(yToPlain);
-  }
-  if (Array.isArray(value)) {
-    return value.map(yToPlain);
-  }
-  if (value && typeof value === 'object' && value.constructor === Object) {
-    const obj: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(value)) {
-      obj[k] = yToPlain(v);
-    }
-    return obj;
-  }
-  return value;
-}
-
-/**
- * Convert a Y.Map to a plain object (deep conversion)
- */
-function yMapToObject<T>(ymap: Y.Map<unknown>): T {
-  return yToPlain(ymap) as T;
-}
-
-/**
- * Generate a deployable ID
- */
-function generateDeployableId(): string {
-  return 'dep_' + Math.random().toString(36).substring(2, 11);
-}
-
-/**
- * Generate a color for deployable visualization
- */
-function generateDeployableColor(): string {
-  const colors = [
-    '#3b82f6', // blue
-    '#10b981', // emerald
-    '#f59e0b', // amber
-    '#ef4444', // red
-    '#8b5cf6', // violet
-    '#06b6d4', // cyan
-    '#84cc16', // lime
-    '#f97316', // orange
-    '#ec4899', // pink
-    '#6b7280', // gray
-  ];
-  return colors[Math.floor(Math.random() * colors.length)];
-}
-
-/**
- * Generate a schema group ID
- */
-function generateSchemaGroupId(): string {
-  return 'grp_' + Math.random().toString(36).substring(2, 11);
-}
-
-/**
- * Generate a level ID
- */
-function generateLevelId(): string {
-  return 'level-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6);
-}
 
 /**
  * Yjs-based document adapter for collaborative editing.
@@ -280,71 +204,6 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     return levelDeployables;
   }
 
-  /**
-   * Migrate flat data structure to level-based structure
-   */
-  function migrateToLevels() {
-    // Check if we have flat nodes (old format) by looking for Y.Map values that have
-    // node-like properties (position, data, type) directly in ynodes
-    let hasFlatNodes = false;
-    ynodes.forEach((value) => {
-      // If the value has 'position' or 'data' or 'type', it's a flat node (old format)
-      if (value instanceof Y.Map && (value.has('position') || value.has('data') || value.has('type'))) {
-        hasFlatNodes = true;
-      }
-    });
-
-    if (!hasFlatNodes && ylevels.size > 0) return; // Already migrated or empty doc
-    if (!hasFlatNodes && ylevels.size === 0 && ynodes.size === 0 && yedges.size === 0) return; // New doc, nothing to migrate
-
-    // Create default level
-    const levelId = generateLevelId();
-    const levelData = new Y.Map<unknown>();
-    levelData.set('id', levelId);
-    levelData.set('name', 'Main');
-    levelData.set('order', 0);
-    ylevels.set(levelId, levelData);
-    ymeta.set('activeLevel', levelId);
-
-    if (hasFlatNodes) {
-      // Move flat nodes into level-scoped map
-      const levelNodesMap = new Y.Map<Y.Map<unknown>>();
-      const flatNodeEntries: [string, Y.Map<unknown>][] = [];
-      ynodes.forEach((value, key) => {
-        flatNodeEntries.push([key, value as Y.Map<unknown>]);
-      });
-      ynodes.clear();
-      for (const [key, value] of flatNodeEntries) {
-        levelNodesMap.set(key, value);
-      }
-      ynodes.set(levelId, levelNodesMap as unknown as Y.Map<unknown>);
-
-      // Move flat edges into level-scoped map
-      const levelEdgesMap = new Y.Map<Y.Map<unknown>>();
-      const flatEdgeEntries: [string, Y.Map<unknown>][] = [];
-      yedges.forEach((value, key) => {
-        flatEdgeEntries.push([key, value as Y.Map<unknown>]);
-      });
-      yedges.clear();
-      for (const [key, value] of flatEdgeEntries) {
-        levelEdgesMap.set(key, value);
-      }
-      yedges.set(levelId, levelEdgesMap as unknown as Y.Map<unknown>);
-
-      // Move flat deployables into level-scoped map
-      const levelDeployablesMap = new Y.Map<Y.Map<unknown>>();
-      const flatDeployableEntries: [string, Y.Map<unknown>][] = [];
-      ydeployables.forEach((value, key) => {
-        flatDeployableEntries.push([key, value as Y.Map<unknown>]);
-      });
-      ydeployables.clear();
-      for (const [key, value] of flatDeployableEntries) {
-        levelDeployablesMap.set(key, value);
-      }
-      ydeployables.set(levelId, levelDeployablesMap as unknown as Y.Map<unknown>);
-    }
-  }
-
   // Initialize with default values if empty
   const initializeDefaults = () => {
     ydoc.transact(() => {
@@ -359,7 +218,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       }
 
       // Migrate flat data to levels if needed
-      migrateToLevels();
+      migrateToLevels(ydoc);
 
       // Ensure at least one level exists
       if (ylevels.size === 0) {

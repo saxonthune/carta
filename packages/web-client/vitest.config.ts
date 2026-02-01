@@ -24,7 +24,7 @@ export default defineConfig({
       '@': path.resolve(__dirname, 'src'),
       '@carta/domain': path.resolve(__dirname, '../domain/src/index.ts'),
       '@carta/compiler': path.resolve(__dirname, '../compiler/src/index.ts'),
-      '@carta/storage': path.resolve(__dirname, '../storage/src/index.ts'),
+      '@carta/document': path.resolve(__dirname, '../document/src/index.ts'),
     },
   },
 });

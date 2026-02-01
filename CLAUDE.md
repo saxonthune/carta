@@ -93,27 +93,26 @@ Packages can only depend on packages above them in the graph.
                          ↓
                     @carta/domain
                     ↙    ↓    ↘
-           @carta/storage  @carta/compiler
-                ↓               ↓
+        @carta/compiler  @carta/document
+                    ↓    ↙       ↘
          @carta/web-client   @carta/server
-                ↓               ↓
-         @carta/desktop      @carta/cli
+                ↓
+         @carta/desktop
 ```
 
 | Package | Location | Purpose |
 |---------|----------|---------|
 | `@carta/types` | `packages/types/` | Shared TypeScript types, no runtime deps |
 | `@carta/domain` | `packages/domain/` | Domain model, port registry, built-in schemas, utils |
-| `@carta/storage` | `packages/storage/` | StorageProvider interface + implementations (IndexedDB, filesystem, MongoDB) |
+| `@carta/document` | `packages/document/` | Shared Y.Doc operations, Yjs helpers, file format, migrations |
 | `@carta/compiler` | `packages/compiler/` | Compilation engine (Carta → AI-readable output) |
 | `@carta/web-client` | `packages/web-client/` | React web app (currently `src/`) |
 | `@carta/server` | `packages/server/` | Collaboration server + MCP server |
 | `@carta/desktop` | `packages/desktop/` | Electron desktop app |
-| `@carta/cli` | `packages/cli/` | CLI tools (init, compile, validate) |
 
 ### Current state
 
-Implemented packages: `@carta/types`, `@carta/domain`, `@carta/storage`, `@carta/compiler`, `@carta/server`, and `@carta/web-client`. Cross-package dependencies are resolved via Vite/TypeScript aliases.
+Implemented packages: `@carta/types`, `@carta/domain`, `@carta/document`, `@carta/compiler`, `@carta/server`, and `@carta/web-client`. Cross-package dependencies are resolved via Vite/TypeScript aliases.
 
 - `@carta/core` (`packages/core/`) - **STALE**: divergent types the server still depends on; needs reconciliation with `@carta/domain`
 - `packages/app/` - **Dead code**: no TS files, should be deleted
@@ -200,6 +199,17 @@ pnpm dev:client   # Start client in server mode
 Visit `http://localhost:5173/?doc=my-document-id` to open a specific document.
 
 ### Key Files
+
+**@carta/document** (shared Y.Doc operations, platform-agnostic):
+
+| File | Purpose |
+|------|---------|
+| `packages/document/src/yjs-helpers.ts` | Yjs ↔ plain object conversion: objectToYMap, yToPlain, yMapToObject, deepPlainToY, safeGet |
+| `packages/document/src/id-generators.ts` | ID generators: generateDeployableId, generateDeployableColor, generateSchemaGroupId, generateLevelId, generateNodeId |
+| `packages/document/src/constants.ts` | Y.Doc map names (YDOC_MAPS), MCP_ORIGIN, CARTA_FILE_VERSION, SERVER_FORMAT_VERSION |
+| `packages/document/src/doc-operations.ts` | Level-aware CRUD for constructs, edges, deployables, schemas (used by collab-server MCP) |
+| `packages/document/src/migrations.ts` | migrateToLevels: flat Y.Doc → level-based structure migration |
+| `packages/document/src/file-format.ts` | CartaFile/CartaFileLevel types, validateCartaFile, importProjectFromString |
 
 **@carta/domain** (shared domain logic, no UI/storage dependencies):
 

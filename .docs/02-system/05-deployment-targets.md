@@ -95,9 +95,8 @@ This boundary keeps the core focused and lets different consumers (enterprise, S
 | Package | Status |
 |---------|--------|
 | `@carta/domain` | Done — types, ports, schemas, utils extracted |
+| `@carta/document` | Done — Y.Doc operations, Yjs helpers, file format, migrations, level-aware CRUD |
 | `@carta/compiler` | Done — compilation engine |
-| `@carta/storage` | Not started — `yjsAdapter.ts` still in `packages/web-client/src/stores/`. Portfolio providers land here |
 | `@carta/web-client` | Done — extracted to `packages/web-client/` |
-| `@carta/server` | Exists — needs imports updated from stale `@carta/core` to `@carta/domain` + `@carta/compiler` |
+| `@carta/server` | Done — collaboration server + MCP server, imports from `@carta/document` |
 | `@carta/desktop` | Future |
-| `@carta/cli` | Future |

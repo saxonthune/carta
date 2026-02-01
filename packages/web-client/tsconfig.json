@@ -20,7 +20,7 @@
     "paths": {
       "@carta/domain": ["../domain/src/index.ts"],
       "@carta/compiler": ["../compiler/src/index.ts"],
-      "@carta/storage": ["../storage/src/index.ts"]
+      "@carta/document": ["../document/src/index.ts"]
     },
 
     /* Linting */

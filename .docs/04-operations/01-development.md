@@ -32,7 +32,7 @@ Visit `http://localhost:5173/?doc=my-document-id`.
 
 All packages live in `packages/`, including the web client (`@carta/web-client`). Cross-package dependencies are resolved via Vite/TypeScript aliases.
 
-Currently existing packages: `@carta/domain`, `@carta/server`, `@carta/compiler`, `@carta/storage`, `@carta/web-client`. See doc02.01 for the target dependency graph.
+Currently existing packages: `@carta/domain`, `@carta/document`, `@carta/compiler`, `@carta/server`, `@carta/web-client`. See doc02.01 for the target dependency graph.
 
 ## Key Directories
 
@@ -47,6 +47,7 @@ packages/
     ai/             AI sidebar and tools
     utils/          Utilities (file I/O, display, examples)
   domain/           Shared types, port registry, built-in schemas
+  document/         Shared Y.Doc operations, Yjs helpers, file format, migrations
   compiler/         Compilation engine
   server/           Collaboration server + MCP server
 ```

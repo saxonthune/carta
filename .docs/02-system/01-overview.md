@@ -5,7 +5,7 @@ status: active
 
 # Architecture Overview
 
-Carta is structured as three decoupled layers that can evolve independently, plus a shared domain package.
+Carta is structured as five layers that can evolve independently.
 
 ## Layers
 
@@ -14,9 +14,15 @@ Domain Layer (@carta/domain)
   Core types, port registry, built-in schemas, utilities
   Platform-agnostic — no React, no Yjs
 
+Document Layer (@carta/document)
+  Shared Y.Doc operations, Yjs helpers, file format, migrations
+  Level-aware CRUD for constructs, edges, deployables, schemas
+  Platform-agnostic — no React, no browser APIs
+
 Document Adapter Layer (packages/web-client/src/stores/, packages/web-client/src/contexts/)
   Yjs Y.Doc state management, IndexedDB persistence
   DocumentAdapter interface with Yjs implementation
+  Imports shared helpers from @carta/document
   Does not know about React Flow or rendering
 
 Visual Editor Layer (packages/web-client/src/components/, packages/web-client/src/hooks/)
@@ -46,14 +52,14 @@ Target dependency graph (packages can only depend on packages above them):
                          |
                     @carta/domain
                    /      |      \
-          @carta/storage  @carta/compiler
-               |               |
+       @carta/compiler  @carta/document
+                   |    /        \
         @carta/web-client   @carta/server
-               |               |
-        @carta/desktop      @carta/cli
+               |
+        @carta/desktop
 ```
 
-Currently `@carta/domain`, `@carta/server`, `@carta/compiler`, `@carta/storage`, and `@carta/web-client` exist as packages.
+Currently `@carta/domain`, `@carta/document`, `@carta/compiler`, `@carta/server`, and `@carta/web-client` exist as packages.
 
 ## Data Flow
 

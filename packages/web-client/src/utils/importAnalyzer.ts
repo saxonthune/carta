@@ -108,7 +108,7 @@ export function analyzeImport(
   // If file has levels, flatten all nodes/edges/deployables for analysis
   const fileNodes = file.levels
     ? file.levels.flatMap(l => l.nodes) as Node[]
-    : file.nodes;
+    : file.nodes as Node[];
   const fileEdges = file.levels
     ? file.levels.flatMap(l => l.edges)
     : file.edges;

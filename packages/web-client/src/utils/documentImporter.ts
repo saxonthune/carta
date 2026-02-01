@@ -146,7 +146,7 @@ function importLegacy(
   }
 
   // Import nodes and edges
-  importNodesAndEdges(adapter, data.nodes, data.edges, config, schemasToImport);
+  importNodesAndEdges(adapter, data.nodes as Node[], data.edges as Edge[], config, schemasToImport);
 }
 
 /**

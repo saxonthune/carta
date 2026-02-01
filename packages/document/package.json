@@ -1,5 +1,5 @@
 {
-  "name": "@carta/storage",
+  "name": "@carta/document",
   "version": "0.1.0-proto4",
   "type": "module",
   "main": "./dist/index.js",
@@ -16,13 +16,10 @@
   },
   "dependencies": {
     "@carta/domain": "workspace:*",
-    "ws": "^8.18.0",
-    "y-websocket": "^3.0.0",
+    "@carta/compiler": "workspace:*",
     "yjs": "^13.6.29"
   },
   "devDependencies": {
-    "@types/ws": "^8.18.1",
-    "@types/node": "^24.10.1",
     "typescript": "^5.8.3"
   }
 }
