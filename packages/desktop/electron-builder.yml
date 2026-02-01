@@ -4,6 +4,11 @@ directories:
   output: release
 files:
   - dist/**/*
+extraResources:
+  - from: ../server/dist/mcp/
+    to: carta-mcp/
+    filter:
+      - "**/*"
 mac:
   target:
     - dmg

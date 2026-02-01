@@ -5,15 +5,21 @@
   "main": "./dist/main/index.js",
   "scripts": {
     "dev": "tsc && electron .",
-    "build": "pnpm --filter @carta/web-client build && tsc && node scripts/copy-renderer.mjs",
+    "build": "pnpm --filter @carta/web-client build && pnpm --filter @carta/server build && tsc && node scripts/copy-renderer.mjs",
     "package": "electron-builder"
   },
   "dependencies": {
+    "@carta/compiler": "workspace:*",
     "@carta/domain": "workspace:*",
-    "@carta/document": "workspace:*"
+    "@carta/document": "workspace:*",
+    "lib0": "^0.2.102",
+    "ws": "^8.18.0",
+    "y-protocols": "^1.0.6",
+    "yjs": "^13.6.29"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",
+    "@types/ws": "^8.18.1",
     "electron": "^34.0.0",
     "electron-builder": "^25.1.8",
     "typescript": "~5.9.3"

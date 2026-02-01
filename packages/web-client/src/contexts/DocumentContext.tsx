@@ -48,7 +48,7 @@ export interface DocumentProviderProps {
 export function DocumentProvider({
   children,
   documentId,
-  serverUrl = config.serverUrl.replace('http', 'ws'),
+  serverUrl = config.wsUrl,
   skipPersistence = false,
 }: DocumentProviderProps) {
   const [adapter, setAdapter] = useState<DocumentAdapter | null>(null);
@@ -62,10 +62,13 @@ export function DocumentProvider({
     let currentAdapter: ReturnType<typeof createYjsAdapter> | null = null;
 
     const initAdapter = async () => {
+      // In desktop mode, skip IndexedDB — the embedded server handles persistence
+      const shouldSkipPersistence = skipPersistence || config.isDesktop;
+
       const options: YjsAdapterOptions = {
         mode: 'local',
         roomId: documentId,
-        skipPersistence,
+        skipPersistence: shouldSkipPersistence,
       };
 
       // Create Yjs adapter

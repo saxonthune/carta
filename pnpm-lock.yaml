@@ -42,16 +42,34 @@ importers:
 
   packages/desktop:
     dependencies:
+      '@carta/compiler':
+        specifier: workspace:*
+        version: link:../compiler
       '@carta/document':
         specifier: workspace:*
         version: link:../document
       '@carta/domain':
         specifier: workspace:*
         version: link:../domain
+      lib0:
+        specifier: ^0.2.102
+        version: 0.2.117
+      ws:
+        specifier: ^8.18.0
+        version: 8.19.0
+      y-protocols:
+        specifier: ^1.0.6
+        version: 1.0.7(yjs@13.6.29)
+      yjs:
+        specifier: ^13.6.29
+        version: 13.6.29
     devDependencies:
       '@types/node':
         specifier: ^24.10.1
         version: 24.10.9
+      '@types/ws':
+        specifier: ^8.18.1
+        version: 8.18.1
       electron:
         specifier: ^34.0.0
         version: 34.5.8

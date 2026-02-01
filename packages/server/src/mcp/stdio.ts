@@ -17,16 +17,59 @@ import {
   ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import * as os from 'node:os';
 import { getToolDefinitions, createToolHandlers } from './tools.js';
 import { getResourceDefinitions, getResourceContent } from './resources.js';
+
+/**
+ * Discover the Carta Desktop embedded server URL from server.json.
+ * Checks platform-specific Electron userData paths.
+ */
+function discoverDesktopServer(): string | null {
+  const platform = os.platform();
+  let userDataPath: string;
+
+  if (platform === 'darwin') {
+    userDataPath = path.join(os.homedir(), 'Library', 'Application Support', 'Carta');
+  } else if (platform === 'win32') {
+    userDataPath = path.join(process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'), 'Carta');
+  } else {
+    userDataPath = path.join(os.homedir(), '.config', 'Carta');
+  }
+
+  const serverJsonPath = path.join(userDataPath, 'server.json');
+  if (!fs.existsSync(serverJsonPath)) return null;
+
+  try {
+    const data = JSON.parse(fs.readFileSync(serverJsonPath, 'utf-8'));
+    if (data.url && data.pid) {
+      // Verify the process is still running
+      try {
+        process.kill(data.pid, 0);
+        return data.url;
+      } catch {
+        // Process not running, stale server.json
+        return null;
+      }
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
 
 /**
  * Start MCP server with stdio transport
  * This is for CLI/Claude Desktop integration
  */
 async function main() {
-  // Get collab server URL from environment
-  const collabApiUrl = process.env.CARTA_COLLAB_API_URL || 'http://localhost:1234';
+  // Get collab server URL: env var > desktop discovery > default
+  const collabApiUrl =
+    process.env.CARTA_COLLAB_API_URL ||
+    discoverDesktopServer() ||
+    'http://localhost:1234';
 
   console.error(`Carta MCP server using HTTP API (${collabApiUrl})`);
 

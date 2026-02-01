@@ -371,6 +371,23 @@ export default function Header({ title, description, onTitleChange, onDescriptio
                   Load Example
                 </button>
               )}
+              {config.isDesktop && (
+                <button
+                  className="w-full text-left px-4 py-2 text-sm cursor-pointer text-content hover:bg-surface-alt transition-colors border-none bg-surface"
+                  onClick={async () => {
+                    setIsSettingsMenuOpen(false);
+                    try {
+                      const mcpConfig = await window.electronAPI!.getMcpConfig();
+                      await navigator.clipboard.writeText(mcpConfig);
+                      // Brief visual feedback could be added here
+                    } catch (err) {
+                      console.error('Failed to copy MCP config:', err);
+                    }
+                  }}
+                >
+                  Copy MCP Config
+                </button>
+              )}
               <button
                 className="w-full text-left px-4 py-2 text-sm cursor-pointer text-content hover:bg-surface-alt transition-colors border-none bg-surface"
                 onClick={() => {
