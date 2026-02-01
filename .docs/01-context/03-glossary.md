@@ -15,6 +15,8 @@ Canonical definitions for domain terms used throughout Carta. Use these terms co
 
 **Field**: A named data slot on a construct schema. Types include string, number, boolean, enum, and date. Field values are the user-entered data on construct instances.
 
+**Full View Window**: A draggable, pinnable window that displays comprehensive node information (all fields, deployable, identity, connections, compile preview). Opened via the full view icon button in node headers. Features no backdrop darkening and uses island UX patterns.
+
 **Display Tier**: The visibility level assigned to a field on a construct schema. Four tiers: `pill` (node title, max 1 field), `minimal` (collapsed/summary view), `details` (expanded details view), `full` (only in full view modal). Controls which fields appear at different levels of detail.
 
 **Semantic ID**: A unique identifier for a construct instance, auto-generated as `{type}-{timestamp}{random}`. Used as the primary identifier throughout the system, including in compiled output.
@@ -22,6 +24,8 @@ Canonical definitions for domain terms used throughout Carta. Use these terms co
 **Display Name**: The human-readable title of a construct instance, derived from the schema's `displayField` value or falling back to the semantic ID.
 
 **Level**: A separate architectural view or layer within a document. Each level has its own nodes, edges, and deployables. Schemas are shared across levels.
+
+**LOD Band**: One of three discrete zoom-based rendering modes (pill, compact, normal) that control node detail level. Pill shows title only, compact shows title + minimal fields, normal shows all fields based on display tier. Bands switch at zoom thresholds 0.5 and 1.0.
 
 ## Ports and Connections
 
@@ -44,6 +48,8 @@ Canonical definitions for domain terms used throughout Carta. Use these terms co
 **Schema Group**: A grouping of construct schemas for organizational purposes. Shown in context menus and the schema wizard.
 
 **Virtual Parent**: A container node that visually groups child constructs. Has three collapse states: expanded, no-edges, collapsed (pill).
+
+**Pin**: UI control that keeps expanded or open state persistent. Used in node headers (pin expanded details view) and draggable windows (keep window open when clicking outside).
 
 ## Views
 

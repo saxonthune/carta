@@ -5,12 +5,13 @@ import FieldsStep from './construct-editor/FieldsStep';
 import PortsStep from './construct-editor/PortsStep';
 import EditorPreview from './construct-editor/EditorPreview';
 import Button from './ui/Button';
+import SegmentedControl from './ui/SegmentedControl';
 import { toSnakeCase } from '../utils/stringUtils';
 import type { ConstructSchema, DisplayTier } from '@carta/domain';
 
 type EditorTab = 'basics' | 'fields' | 'ports';
 
-const TABS: { id: EditorTab; label: string }[] = [
+const TAB_OPTIONS: { id: EditorTab; label: string }[] = [
   { id: 'basics', label: 'Basics' },
   { id: 'fields', label: 'Fields' },
   { id: 'ports', label: 'Ports' },
@@ -126,80 +127,87 @@ export default function ConstructEditor({ editSchema, onClose }: ConstructEditor
     onClose();
   }, [validateBasics, formData, fieldAssignments, isEditMode, updateSchema, addSchema, onClose]);
 
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
   return (
-    <div className="fixed top-12 bottom-6 left-0 right-0 z-30 flex flex-col bg-surface">
-      {/* Header bar with actions */}
-      <div className="flex items-center justify-between px-5 py-3 border-b border-border shrink-0 bg-surface-elevated">
-        <Button variant="ghost" onClick={onClose}>Cancel</Button>
-        <span className="text-sm font-semibold text-content">
-          {isEditMode ? 'Edit Schema' : 'New Schema'}
-        </span>
-        <Button
-          variant="accent"
-          onClick={handleSave}
-          disabled={!formData.displayName.trim()}
-        >
-          {isEditMode ? 'Save Changes' : 'Create Schema'}
-        </Button>
-      </div>
-
-      {/* Content area: left panel + right preview */}
-      <div className="flex-1 flex min-h-0">
-        {/* Left panel */}
-        <div className="flex-[3] flex flex-col min-h-0 border-r border-border">
-          {/* Tab bar */}
-          <div className="flex items-center gap-1 px-4 py-2 border-b border-border bg-surface-depth-1 shrink-0">
-            {TABS.map((tab) => (
-              <button
-                key={tab.id}
-                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors cursor-pointer border-none ${
-                  activeTab === tab.id
-                    ? 'bg-accent/15 text-accent'
-                    : 'text-content-muted hover:text-content hover:bg-surface-alt'
-                }`}
-                onClick={() => setActiveTab(tab.id)}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Step content */}
-          <div className="flex-1 overflow-y-auto p-5 flex justify-center">
-            <div className="w-full max-w-2xl">
-              {activeTab === 'basics' && (
-                <BasicsStep
-                  formData={formData}
-                  errors={errors}
-                  updateField={updateBasicField}
-                  schemaGroups={schemaGroups}
-                />
-              )}
-              {activeTab === 'fields' && (
-                <FieldsStep
-                  formData={formData}
-                  setFormData={setFormData}
-                  fieldAssignments={fieldAssignments}
-                  setFieldAssignments={setFieldAssignments}
-                />
-              )}
-              {activeTab === 'ports' && (
-                <PortsStep
-                  formData={formData}
-                  setFormData={setFormData}
-                  portSchemas={portSchemas}
-                  addPortSchema={addPortSchema}
-                  portsInitialized={portsInitialized}
-                  setPortsInitialized={setPortsInitialized}
-                />
-              )}
-            </div>
-          </div>
+    <div
+      className="fixed top-12 bottom-6 left-0 right-0 z-30 bg-black/50 flex items-center justify-center p-6"
+      onClick={handleBackdropClick}
+    >
+      <div
+        className="bg-surface-depth-1 rounded-xl shadow-xl w-full h-full max-w-[1400px] flex flex-col overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header bar with actions */}
+        <div className="flex items-center justify-between px-5 py-3 shrink-0 bg-surface-depth-2">
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <span className="text-sm font-semibold text-content">
+            {isEditMode ? 'Edit Schema' : 'New Schema'}
+          </span>
+          <Button
+            variant="accent"
+            onClick={handleSave}
+            disabled={!formData.displayName.trim()}
+          >
+            {isEditMode ? 'Save Changes' : 'Create Schema'}
+          </Button>
         </div>
 
-        {/* Right preview panel */}
-        <div className="flex-[2] overflow-y-auto p-5 bg-surface-depth-1 flex justify-center">
-          <EditorPreview schema={formData} fieldAssignments={fieldAssignments} />
+        {/* Content area: left form + right preview */}
+        <div className="flex-1 flex gap-4 min-h-0 bg-surface-depth-3 p-4">
+          {/* Left: form island */}
+          <div className="flex-[3] flex flex-col min-h-0 bg-surface-depth-2 rounded-xl p-4 gap-3">
+            {/* Segmented tab control */}
+            <div className="flex justify-center shrink-0">
+              <SegmentedControl options={TAB_OPTIONS} value={activeTab} onChange={setActiveTab} />
+            </div>
+
+            {/* Step content in inset well */}
+            <div className="flex-1 overflow-y-auto bg-surface-inset rounded-xl p-6">
+              <div className="w-full max-w-2xl mx-auto">
+                {activeTab === 'basics' && (
+                  <BasicsStep
+                    formData={formData}
+                    errors={errors}
+                    updateField={updateBasicField}
+                    schemaGroups={schemaGroups}
+                  />
+                )}
+                {activeTab === 'fields' && (
+                  <FieldsStep
+                    formData={formData}
+                    setFormData={setFormData}
+                    fieldAssignments={fieldAssignments}
+                    setFieldAssignments={setFieldAssignments}
+                  />
+                )}
+                {activeTab === 'ports' && (
+                  <PortsStep
+                    formData={formData}
+                    setFormData={setFormData}
+                    portSchemas={portSchemas}
+                    addPortSchema={addPortSchema}
+                    portsInitialized={portsInitialized}
+                    setPortsInitialized={setPortsInitialized}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Right: preview island */}
+          <div className="flex-[2] flex flex-col min-h-0 bg-surface-depth-2 rounded-xl p-4 gap-3">
+            <div className="flex justify-center shrink-0">
+              <span className="px-4 py-1.5 text-sm font-semibold text-content-muted">Live Preview</span>
+            </div>
+            <div className="flex-1 overflow-y-auto bg-surface-inset rounded-xl p-5">
+              <EditorPreview schema={formData} fieldAssignments={fieldAssignments} />
+            </div>
+          </div>
         </div>
       </div>
     </div>

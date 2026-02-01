@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
-import { ViewportPortal } from '@xyflow/react';
+import { ViewportPortal, useStore } from '@xyflow/react';
 import type { Node } from '@xyflow/react';
 import type { Deployable } from '@carta/domain';
+import { getLodConfig } from './lod/lodPolicy';
 
 interface DeployableBackgroundProps {
   nodes: Node[];
@@ -17,6 +18,16 @@ interface DeployableBox {
 }
 
 export default function DeployableBackground({ nodes, deployables }: DeployableBackgroundProps) {
+  // Get current zoom level for LOD-aware font sizing
+  const zoom = useStore((state) => state.transform[2]);
+  const lod = getLodConfig(zoom);
+
+  // Font size based on LOD band
+  const fontSize = lod.band === 'pill' ? 32 : lod.band === 'compact' ? 16 : 11;
+
+  // Always calculate using max font size (pill: 32) to ensure box accommodates all zoom levels
+  const maxFontSize = 32;
+
   const boxes = useMemo(() => {
     const result: DeployableBox[] = [];
 
@@ -39,7 +50,7 @@ export default function DeployableBackground({ nodes, deployables }: DeployableB
 
           // Find the leftmost edge
           const nodeLeft = node.position.x;
-          // Find the rightmost edge  
+          // Find the rightmost edge
           const nodeRight = node.position.x + nodeWidth;
           // Find the topmost edge
           const nodeTop = node.position.y;
@@ -90,10 +101,12 @@ export default function DeployableBackground({ nodes, deployables }: DeployableB
           const strokeColor = box.deployable.color || '#9ca3af';
           const textColor = box.deployable.color || '#374151';
 
-          // Calculate label dimensions
-          const labelHeight = 20;
-          const labelPadding = 6;
-          const labelWidth = box.deployable.name.length * 6.5 + labelPadding * 2;
+          // Calculate label dimensions using max font size to ensure box fits all zoom levels
+          // Character width ratio scales with font size: ~0.6 * fontSize
+          const charWidthRatio = 0.6;
+          const labelPadding = Math.max(12, maxFontSize * 0.4);
+          const labelWidth = box.deployable.name.length * (maxFontSize * charWidthRatio) + labelPadding * 2;
+          const labelHeight = maxFontSize * 1.5;
 
           return (
             <g key={box.deployable.id}>
@@ -121,13 +134,13 @@ export default function DeployableBackground({ nodes, deployables }: DeployableB
                 rx={3}
                 ry={3}
               />
-              {/* Label text - centered in label background */}
+              {/* Label text - centered in label background with LOD-aware font size */}
               <text
                 x={box.x + box.width - labelWidth / 2}
                 y={box.y + box.height - labelHeight / 2}
                 textAnchor="middle"
                 dominantBaseline="central"
-                fontSize={11}
+                fontSize={fontSize}
                 fontWeight={500}
                 fill={textColor}
               >

@@ -247,6 +247,10 @@ Visit `http://localhost:5173/?doc=my-document-id` to open a specific document.
 | `packages/web-client/src/ContextMenu.tsx` | Shared context menu for canvas right-click; view-specific options (Map shows node ops, Metamap shows schema ops) |
 | `packages/web-client/src/utils/examples.ts` | Utility to load bundled example .carta files |
 | `packages/web-client/src/main.tsx` | Entry point, configures staticMode from VITE_STATIC_MODE env var |
+| `packages/web-client/src/components/ui/icons.tsx` | Shared icon components: PinIcon, WindowIcon, CloseIcon, ExpandIcon, CollapseIcon |
+| `packages/web-client/src/components/ui/DraggableWindow.tsx` | Draggable, pinnable window component for full view modal (no backdrop, island UX) |
+| `packages/web-client/src/components/ConstructFullViewModal.tsx` | Full view window displaying all node information: fields, deployable, identity, connections, compile preview |
+| `packages/web-client/src/components/DeployableBackground.tsx` | Deployable background renderer with LOD-aware font sizing |
 
 ## Key Design Principles
 

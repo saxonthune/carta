@@ -18,11 +18,11 @@ The canvas is the primary editing surface where users create and manipulate cons
 
 The canvas renders nodes in three LOD bands based on zoom level:
 
-- **Pill** (zoomed out, below ~0.5x): Colored bar showing schema name and pill-tier field value. Optimized for overview navigation.
-- **Minimal** (mid-zoom, ~0.5x-1.0x): Header bar with schema name, pill-tier value, and minimal-tier fields.
-- **Normal** (zoomed in, above ~1.0x): Full detail with details-tier fields, ports, and controls.
+- **Pill** (zoomed out, below ~0.5x): Colored bar showing schema name and pill-tier field value. Hover shows full title tooltip. Optimized for overview navigation.
+- **Compact** (mid-zoom, ~0.5x-1.0x): Header bar with schema name, pill-tier value prominently displayed, and minimal-tier fields below.
+- **Normal** (zoomed in, above ~1.0x): Full detail with pill-tier field at top, minimal-tier fields in summary view, all fields in details view. Includes ports and controls.
 
-LOD thresholds are configured in `lodPolicy.ts`. Transitions are discrete (no animation between bands).
+LOD levels respect field display tiers (pill, minimal, details, full). The pill field (typically a title or name) appears at all LOD levels for consistent identification. LOD thresholds are configured in `lodPolicy.ts`. Transitions are discrete (no animation between bands).
 
 ## Selection
 
@@ -48,3 +48,15 @@ Custom controls in bottom-left corner:
 ## Deployable Backgrounds
 
 When constructs are assigned to deployables, subtle colored backgrounds appear behind grouped constructs to visually indicate deployment boundaries.
+
+## Full View Window
+
+Nodes have a "full view" button in their header that opens a draggable, pinnable window displaying comprehensive node information:
+
+- **Draggable**: Click and drag the header to reposition
+- **Pinnable**: Pin button keeps window open when clicking outside (otherwise auto-closes)
+- **No backdrop**: Window floats over canvas without darkening background
+- **Island UX**: Follows depth-3 ground with depth-2 island sections for Fields, Deployable, Identity, Connections, and Compile Preview
+- **Read-only**: Displays all field values, deployable assignment, semantic/technical IDs, connections, and single-construct compile preview
+
+This allows comparing detailed information while continuing to work on the canvas.

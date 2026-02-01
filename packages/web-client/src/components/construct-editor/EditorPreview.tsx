@@ -47,20 +47,21 @@ function PortDots({ schema, className = '' }: { schema: ConstructSchema; classNa
           backgroundColor: getPortColor(port.portType),
         };
 
+        // Match ConstructNode.tsx: handles sit fully outside the node (offset = -10px)
         if (port.position === 'left') {
-          style.left = -5;
+          style.left = -10;
           style.top = `${port.offset}%`;
           style.transform = 'translateY(-50%)';
         } else if (port.position === 'right') {
-          style.right = -5;
+          style.right = -10;
           style.top = `${port.offset}%`;
           style.transform = 'translateY(-50%)';
         } else if (port.position === 'top') {
-          style.top = -5;
+          style.top = -10;
           style.left = `${port.offset}%`;
           style.transform = 'translateX(-50%)';
         } else {
-          style.bottom = -5;
+          style.bottom = -10;
           style.left = `${port.offset}%`;
           style.transform = 'translateX(-50%)';
         }
@@ -73,9 +74,11 @@ function PortDots({ schema, className = '' }: { schema: ConstructSchema; classNa
 
 function PreviewWrapper({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="mb-4">
+    <div>
       <div className="text-[10px] text-content-muted uppercase tracking-wide mb-1.5">{label}</div>
-      {children}
+      <div className="flex justify-center px-3">
+        {children}
+      </div>
     </div>
   );
 }
@@ -87,11 +90,7 @@ export default function EditorPreview({ schema, fieldAssignments }: EditorPrevie
   const allFields = getFieldsForPreviewTier(schema, fieldAssignments, ['pill', 'minimal', 'details']);
 
   return (
-    <div className="flex flex-col gap-1 max-w-md">
-      <div className="text-xs font-semibold text-content-muted uppercase tracking-wide mb-2">
-        Live Preview
-      </div>
-
+    <div className="flex flex-col justify-between h-full w-full">
       {/* Pill */}
       <PreviewWrapper label="Pill">
         <div
@@ -104,10 +103,10 @@ export default function EditorPreview({ schema, fieldAssignments }: EditorPrevie
 
       {/* Minimal */}
       <PreviewWrapper label="Minimal">
-        <div className="relative bg-surface border-2 rounded-lg overflow-hidden text-xs" style={{ borderColor: color }}>
+        <div className="relative bg-surface border-2 rounded-lg text-xs" style={{ borderColor: color }}>
           <PortDots schema={schema} />
           <div
-            className="px-2 py-1 text-white text-[10px] font-bold uppercase"
+            className="px-2 py-1 text-white text-[10px] font-bold uppercase rounded-t-md"
             style={{ backgroundColor: color }}
           >
             {schema.displayName || 'Schema'}
@@ -120,10 +119,10 @@ export default function EditorPreview({ schema, fieldAssignments }: EditorPrevie
 
       {/* Details */}
       <PreviewWrapper label="Details">
-        <div className="relative bg-surface border-2 rounded-lg overflow-hidden text-xs" style={{ borderColor: color }}>
+        <div className="relative bg-surface border-2 rounded-lg text-xs" style={{ borderColor: color }}>
           <PortDots schema={schema} />
           <div
-            className="px-2 py-1 text-white text-[10px] font-bold uppercase"
+            className="px-2 py-1 text-white text-[10px] font-bold uppercase rounded-t-md"
             style={{ backgroundColor: color }}
           >
             {schema.displayName || 'Schema'}
@@ -149,10 +148,10 @@ export default function EditorPreview({ schema, fieldAssignments }: EditorPrevie
 
       {/* Full */}
       <PreviewWrapper label="Full">
-        <div className="relative bg-surface border-2 rounded-lg overflow-hidden text-xs" style={{ borderColor: color }}>
+        <div className="relative bg-surface border-2 rounded-lg text-xs" style={{ borderColor: color }}>
           <PortDots schema={schema} />
           <div
-            className="px-2 py-1 text-white text-[10px] font-bold uppercase"
+            className="px-2 py-1 text-white text-[10px] font-bold uppercase rounded-t-md"
             style={{ backgroundColor: color }}
           >
             {schema.displayName || 'Schema'}

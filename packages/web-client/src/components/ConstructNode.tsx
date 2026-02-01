@@ -6,6 +6,7 @@ import type { ConstructNodeData, PortConfig, PortPosition, ConstructSchema } fro
 import CreateDeployablePopover from './CreateDeployablePopover';
 import PortPickerPopover from './ui/PortPickerPopover';
 import { useLodBand } from './lod/useLodBand';
+import { WindowIcon, PinIcon, ExpandIcon, CollapseIcon } from './ui/icons';
 
 // Long hover delay in milliseconds
 const LONG_HOVER_DELAY = 800;
@@ -208,6 +209,7 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
   // Pill mode: minimal colored bar — overrides all view levels at low zoom
   if (lod.band === 'pill') {
     const displayValue = getDisplayName(data, schema);
+    const fullText = `${schema.displayName}: ${displayValue}`;
     return (
       <div
         className={`node-drag-handle rounded-lg text-white text-halo font-bold px-5 py-3 truncate cursor-move select-none whitespace-nowrap ${selected ? 'ring-2 ring-accent' : ''}`}
@@ -217,6 +219,7 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
           maxWidth: 500,
           fontSize: '32px',
         }}
+        title={fullText}
       >
         <span className="opacity-70">{schema.displayName}:</span> {displayValue}
         {/* Minimal handles for connections */}
@@ -234,10 +237,11 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
     );
   }
 
-  // Compact mode: header + display value only, no fields
+  // Compact mode: header + display value (pill field) + minimal tier fields
   if (lod.band === 'compact') {
     const displayValue = getDisplayName(data, schema);
     const headerBg = data.instanceColor || schema.color;
+    const minimalFields = getFieldsForTier(schema, 'minimal');
 
     return (
       <div
@@ -268,10 +272,24 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
           <span className="text-node-lg font-bold uppercase tracking-wide">{schema.displayName}</span>
         </div>
 
-        {/* Display value */}
+        {/* Display value (pill field) */}
         <div className="px-3 py-2.5 text-node-lg font-semibold text-content truncate">
           {displayValue}
         </div>
+
+        {/* Minimal tier fields */}
+        {minimalFields.length > 0 && (
+          <div className="px-3 pb-2.5 text-node-sm text-content-muted flex flex-col gap-1">
+            {minimalFields.map((field) => (
+              <div key={field.name} className="flex gap-1 justify-between">
+                <span className="text-content-subtle">{field.label}:</span>
+                <span className="text-content font-medium text-right max-w-[70%] truncate">
+                  {formatValue(data.values[field.name] ?? field.default)}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   }
@@ -365,6 +383,19 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
           <span className="text-node-xs opacity-80 uppercase">{schema.displayName}</span>
         </div>
         <div className="flex items-center gap-1">
+          {/* Open Full View button */}
+          {data.onOpenFullView && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                data.onOpenFullView?.();
+              }}
+              className="opacity-90 hover:opacity-100 transition-all flex-shrink-0 bg-black/20 hover:bg-black/30 rounded-full p-1 shadow-md"
+              title="Open Full View"
+            >
+              <WindowIcon className="w-2.5 h-2.5" size={10} />
+            </button>
+          )}
           {data.onSetViewLevel && (
             <button
               onClick={(e) => {
@@ -374,16 +405,14 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
               className="opacity-90 hover:opacity-100 transition-all flex-shrink-0 bg-black/20 hover:bg-black/30 rounded-full p-1 shadow-md"
               title={data.viewLevel === 'details' ? "Collapse" : "Expand"}
             >
-              <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                {data.viewLevel === 'details' ? (
-                  <path d="M18 15l-6-6-6 6" />
-                ) : (
-                  <path d="M6 9l6 6 6-6" />
-                )}
-              </svg>
+              {data.viewLevel === 'details' ? (
+                <CollapseIcon className="w-2.5 h-2.5" size={10} />
+              ) : (
+                <ExpandIcon className="w-2.5 h-2.5" size={10} />
+              )}
             </button>
           )}
-          {data.viewLevel === 'details' && data.onToggleDetailsPin && (
+          {data.onToggleDetailsPin && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -392,9 +421,11 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
               className={`opacity-90 hover:opacity-100 transition-all flex-shrink-0 rounded-full p-1 shadow-md ${data.isDetailsPinned ? 'bg-white/40' : 'bg-black/20 hover:bg-black/30'}`}
               title={data.isDetailsPinned ? "Unpin (will collapse on deselect)" : "Pin expanded"}
             >
-              <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M12 2v10M12 22v-4M5 12h14" />
-              </svg>
+              <PinIcon
+                className="w-2.5 h-2.5"
+                size={10}
+                filled={data.isDetailsPinned}
+              />
             </button>
           )}
           {/* Universal port icon for collapsed ports */}
@@ -458,21 +489,29 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
       </div>
 
       {data.viewLevel !== 'details' && (
-        <div className="px-2 py-1.5 text-node-sm text-content-muted flex-1 overflow-y-auto min-h-0">
-          {mapFields.length === 0 ? (
-            <div></div>
-          ) : (
-            <div className="flex flex-col gap-1">
-              {mapFields.map((field) => (
-                <div key={field.name} className="flex gap-1 justify-between">
-                  <span className="text-content-subtle">{field.label}:</span>
-                  <span className="text-content font-medium text-right max-w-[70%] truncate">
-                    {formatValue(data.values[field.name] ?? field.default)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
+        <div className="flex-1 overflow-y-auto min-h-0">
+          {/* Pill field (title) - shown prominently at all LOD levels */}
+          <div className="px-2 pt-2 pb-1 text-node-base font-semibold text-content border-b border-border/50">
+            {getDisplayName(data, schema)}
+          </div>
+
+          {/* Minimal tier fields */}
+          <div className="px-2 py-1.5 text-node-sm text-content-muted">
+            {mapFields.length === 0 ? (
+              <div></div>
+            ) : (
+              <div className="flex flex-col gap-1">
+                {mapFields.map((field) => (
+                  <div key={field.name} className="flex gap-1 justify-between">
+                    <span className="text-content-subtle">{field.label}:</span>
+                    <span className="text-content font-medium text-right max-w-[70%] truncate">
+                      {formatValue(data.values[field.name] ?? field.default)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -560,17 +599,6 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
               )}
             </div>
           ))}
-
-          {/* Open Full View button */}
-          {data.onOpenFullView && (
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); data.onOpenFullView?.(); }}
-              className="w-full px-2 py-1.5 text-node-xs text-content-muted uppercase tracking-wide border border-content-muted/20 rounded bg-surface hover:bg-surface-alt transition-colors cursor-pointer text-center"
-            >
-              Open Full View
-            </button>
-          )}
         </div>
       )}
     </div>

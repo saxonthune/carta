@@ -99,6 +99,57 @@ Carta uses a three-level depth system to create visual hierarchy and improve rea
 - Level 2: Deployables island (`bg-surface-depth-2`)
 - Level 3: Edit form area (`bg-surface-depth-3`)
 
+## Draggable Windows
+
+Draggable windows are floating UI elements for displaying detailed information without blocking the canvas.
+
+### Pattern
+
+- **No backdrop**: Window floats over canvas without darkening (no `bg-black/50` overlay)
+- **Draggable header**: Click and drag depth-2 header to reposition
+- **Pin control**: Pin button keeps window open when clicking outside (unpinned = auto-close)
+- **Island UX**: Uses depth-3 ground with depth-2 islands for content sections
+- **Pointer events**: Window shell is `pointer-events-none` on parent, `pointer-events-auto` on actual window
+
+### Structure
+
+```tsx
+<div className="fixed inset-0 z-[1001] pointer-events-none">
+  <div className="absolute bg-surface-depth-1 rounded-xl pointer-events-auto">
+    {/* Header - Island (depth-2), draggable */}
+    <div className="bg-surface-depth-2 px-5 py-4 rounded-t-xl cursor-grab">
+      <h2>{title}</h2>
+      <PinIcon filled={isPinned} />
+      <CloseIcon />
+    </div>
+
+    {/* Content - Ground layer (depth-3) */}
+    <div className="bg-surface-depth-3 p-4 rounded-b-xl">
+      {/* Islands for content sections (depth-2) */}
+      <section className="bg-surface-depth-2 rounded-xl p-4">
+        {/* Display well (inset) */}
+        <div className="bg-surface-inset rounded-lg p-3">
+          {content}
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+```
+
+### Use Cases
+
+- **Full view window**: Comprehensive node information (ConstructFullViewModal)
+- **Comparison mode**: View details while working on canvas
+- **Inspector panels**: Draggable property inspectors
+
+### Key Behaviors
+
+1. **Click outside unpinned**: Window closes automatically
+2. **Click outside pinned**: Window stays open, allows canvas interaction
+3. **Dragging**: Only from header (depth-2 area), content scrolls independently
+4. **Escape key**: Closes unpinned windows only
+
 ## Text Legibility
 
 ### Universal Text Halo

@@ -18,6 +18,7 @@ Carta uses a three-level depth system to create visual hierarchy in multi-panel 
 | 1 (Outermost) | `--color-surface-depth-1` | `bg-surface-depth-1` | Tab bars, outermost navigation |
 | 2 (Middle) | `--color-surface-depth-2` | `bg-surface-depth-2` | Island containers within sidebars |
 | 3 (Innermost) | `--color-surface-depth-3` | `bg-surface-depth-3` | Main content areas, editor panels |
+| Inset (Display wells) | `--color-surface-inset` | `bg-surface-inset` | Recessed display areas, showcasing content |
 
 ### Theme Behavior
 
@@ -26,8 +27,11 @@ Carta uses a three-level depth system to create visual hierarchy in multi-panel 
 
 ### Island Pattern
 
-Grouped content within sidebars uses Level 2 islands with `rounded-xl`. This creates clear visual boundaries without borders.
+Grouped content within panels uses Level 2 islands with `rounded-xl`. This creates clear visual boundaries without borders.
 
+**Figure-Ground Pairing**: Each depth level needs a companion tone to create internal hierarchy. The `surface-inset` token provides a recessed tone that's always darker/deeper than the surface it sits on, creating "display wells" that draw the eye to their contents.
+
+**Simple sidebar example:**
 ```
 ┌──────┬──────────────────┬───────────────────┐
 │ Tabs │  Sidebar (L1)    │  Main Content     │
@@ -38,6 +42,61 @@ Grouped content within sidebars uses Level 2 islands with `rounded-xl`. This cre
 │      │  │ Island (L2)│  │                   │
 │      │  └────────────┘  │                   │
 └──────┴──────────────────┴───────────────────┘
+```
+
+**Nested island example** (ConstructEditor modal):
+```
+┌─ Modal (depth-1) ────────────────────────────┐
+│  Header Bar (depth-2)                        │
+├──────────────────────────────────────────────┤
+│ ┌─ Ground (depth-3) ────────────────────────┐│
+│ │ ┌─ Left Island (depth-2) ───────────────┐ ││
+│ │ │  [Slider Control (inset bg)]          │ ││
+│ │ │  ┌─ Form Content (inset well) ───────┐ │ ││
+│ │ │  │  Input fields, selects...          │ │ ││
+│ │ │  └────────────────────────────────────┘ │ ││
+│ │ └───────────────────────────────────────┘ ││
+│ │ ┌─ Right Island (depth-2) ──────────────┐ ││
+│ │ │  "Live Preview" label                 │ ││
+│ │ │  ┌─ Preview Content (inset well) ────┐ │ ││
+│ │ │  │  Preview cards...                  │ │ ││
+│ │ │  └────────────────────────────────────┘ │ ││
+│ │ └───────────────────────────────────────┘ ││
+│ └──────────────────────────────────────────┘│
+└──────────────────────────────────────────────┘
+```
+
+**Depth nesting vocabulary:**
+- `depth-1`: Outermost frame (modal shell, navigation)
+- `depth-2`: Islands (grouped content within panels)
+- `depth-3`: Content area ground (the "floor" between islands)
+- `inset`: Display wells (recessed stages for showcasing content)
+
+**Code example** (from ConstructEditor.tsx:161-210):
+```tsx
+{/* Ground layer */}
+<div className="bg-surface-depth-3 p-4 gap-4 flex">
+  {/* Left island */}
+  <div className="bg-surface-depth-2 rounded-xl p-4 gap-3 flex flex-col">
+    {/* Slider control on inset background */}
+    <SegmentedControl className="bg-surface-inset" />
+
+    {/* Form content in inset well */}
+    <div className="bg-surface-inset rounded-xl p-6">
+      <BasicsStep />
+    </div>
+  </div>
+
+  {/* Right island */}
+  <div className="bg-surface-depth-2 rounded-xl p-4 gap-3 flex flex-col">
+    <span className="text-content-muted">Live Preview</span>
+
+    {/* Preview content in inset well */}
+    <div className="bg-surface-inset rounded-xl p-5">
+      <EditorPreview />
+    </div>
+  </div>
+</div>
 ```
 
 ## Spacing
@@ -112,6 +171,29 @@ The `text-halo` utility provides readable white text on any background color via
 ```
 
 Used on node headers and any text overlaid on user-customizable background colors.
+
+## Shared Icon Components
+
+Carta uses shared icon components from `packages/web-client/src/components/ui/icons.tsx` for consistency:
+
+| Icon | Purpose | Props |
+|------|---------|-------|
+| `PinIcon` | Pin/unpin action (e.g., keep window open, pin node details) | `filled`: boolean for filled state |
+| `WindowIcon` | Open full view window (expand corners icon) | - |
+| `CloseIcon` | Close modals/windows | - |
+| `ExpandIcon` | Expand collapsed sections | - |
+| `CollapseIcon` | Collapse expanded sections | - |
+
+All icons accept `className` and `size` props. Use these instead of inline SVG for consistency.
+
+**Example**:
+```tsx
+import { PinIcon, WindowIcon } from './ui/icons';
+
+<button onClick={handlePin}>
+  <PinIcon filled={isPinned} className={isPinned ? 'text-accent' : ''} />
+</button>
+```
 
 ## Design Principles
 
