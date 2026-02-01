@@ -2,6 +2,8 @@ import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 
+const __dirname = path.dirname(new URL(import.meta.url).pathname);
+
 export default defineConfig({
   plugins: [react()],
   test: {
@@ -19,10 +21,10 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': '/src',
-      '@carta/domain': path.resolve(__dirname, 'packages/domain/src/index.ts'),
-      '@carta/compiler': path.resolve(__dirname, 'packages/compiler/src/index.ts'),
-      '@carta/storage': path.resolve(__dirname, 'packages/storage/src/index.ts'),
+      '@': path.resolve(__dirname, 'src'),
+      '@carta/domain': path.resolve(__dirname, '../domain/src/index.ts'),
+      '@carta/compiler': path.resolve(__dirname, '../compiler/src/index.ts'),
+      '@carta/storage': path.resolve(__dirname, '../storage/src/index.ts'),
     },
   },
 });

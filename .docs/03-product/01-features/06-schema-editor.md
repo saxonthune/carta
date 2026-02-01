@@ -48,9 +48,9 @@ The editor opens from:
 
 | File | Purpose |
 |------|---------|
-| `src/components/ConstructEditor.tsx` | Main editor: layout, state, tab bar, header |
-| `src/components/construct-editor/EditorPreview.tsx` | Live preview panel with 4 tier representations |
-| `src/components/construct-editor/FieldsStep.tsx` | Drag-and-drop tier assignment with field CRUD |
-| `src/components/construct-editor/PortsStep.tsx` | Port configuration with modal sub-wizard |
-| `src/components/field-display/DraggableField.tsx` | Draggable field chip with edit/delete actions |
-| `src/components/field-display/TierZone.tsx` | Droppable tier zone for field assignment |
+| `packages/web-client/src/components/ConstructEditor.tsx` | Main editor: layout, state, tab bar, header |
+| `packages/web-client/src/components/construct-editor/EditorPreview.tsx` | Live preview panel with 4 tier representations |
+| `packages/web-client/src/components/construct-editor/FieldsStep.tsx` | Drag-and-drop tier assignment with field CRUD |
+| `packages/web-client/src/components/construct-editor/PortsStep.tsx` | Port configuration with modal sub-wizard |
+| `packages/web-client/src/components/field-display/DraggableField.tsx` | Draggable field chip with edit/delete actions |
+| `packages/web-client/src/components/field-display/TierZone.tsx` | Droppable tier zone for field assignment |

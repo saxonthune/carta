@@ -25,11 +25,11 @@ Carta now uses Yjs as the single source of truth for ALL state management. Key p
 ```
 Components
     ↓
-useDocument() hook (src/hooks/useDocument.ts)
+useDocument() hook (packages/web-client/src/hooks/useDocument.ts)
     ↓
-DocumentContext (src/contexts/DocumentContext.tsx)
+DocumentContext (packages/web-client/src/contexts/DocumentContext.tsx)
     ↓
-YjsAdapter (src/stores/adapters/yjsAdapter.ts)
+YjsAdapter (packages/web-client/src/stores/adapters/yjsAdapter.ts)
     ↓
 Y.Doc (always active, single source of truth)
     ↓

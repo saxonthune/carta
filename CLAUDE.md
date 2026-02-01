@@ -4,6 +4,8 @@
 
 Carta is a visual software architecture editor using React Flow. Users create "Constructs" (typed nodes), connect them, and compile to AI-readable output.
 
+@.docs/MANIFEST.md
+
 ## Development Philosophy
 
 **IMPORTANT: Backwards Compatibility is NOT a Concern**
@@ -70,7 +72,7 @@ All skills follow the same pattern: opus reads `.docs/` and code, analyzes, gene
 | `/documentation-nag` | `.docs/` (all titles) | `.claude/skills/documentation-nag/SKILL.md` |
 | `/style-nag` | doc02.07 (design system), doc01.04 (UX principles) | `.claude/skills/style-nag/SKILL.md` |
 | `/frontend-architecture-nag` | doc02.08 (frontend architecture), doc02.01 (overview) | `.claude/skills/frontend-architecture-nag/SKILL.md` |
-| `/test-builder` | doc04.02 (testing), `tests/README.md` | `.claude/skills/test-builder/SKILL.md` |
+| `/test-builder` | doc04.02 (testing), `packages/web-client/tests/README.md` | `.claude/skills/test-builder/SKILL.md` |
 
 ### Agent Details
 
@@ -111,7 +113,7 @@ Packages can only depend on packages above them in the graph.
 
 ### Current state
 
-Implemented packages: `@carta/types`, `@carta/domain`, `@carta/storage`, `@carta/compiler`, and `@carta/server`. The web client lives in root `src/` and resolves dependencies via Vite/TypeScript aliases.
+Implemented packages: `@carta/types`, `@carta/domain`, `@carta/storage`, `@carta/compiler`, `@carta/server`, and `@carta/web-client`. Cross-package dependencies are resolved via Vite/TypeScript aliases.
 
 - `@carta/core` (`packages/core/`) - **STALE**: divergent types the server still depends on; needs reconciliation with `@carta/domain`
 - `packages/app/` - **Dead code**: no TS files, should be deleted
@@ -129,7 +131,7 @@ Implemented packages: `@carta/types`, `@carta/domain`, `@carta/storage`, `@carta
 └─────────────────────────────────────────────────────────────┘
            ↓
 ┌─────────────────────────────────────────────────────────────┐
-│  Document Store (Yjs Y.Doc)              src/stores/        │
+│  Document Store (Yjs Y.Doc)     packages/web-client/src/   │
 │  - nodes[], edges[], title                                  │
 │  - schemas[] (M1 construct definitions)                     │
 │  - deployables[] (logical groupings)                        │
@@ -141,14 +143,14 @@ Implemented packages: `@carta/types`, `@carta/domain`, `@carta/storage`, `@carta
 └─────────────────────────────────────────────────────────────┘
            ↓
 ┌─────────────────────────────────────────────────────────────┐
-│  DocumentAdapter Interface               src/stores/        │
+│  DocumentAdapter Interface      packages/web-client/src/   │
 │  - adapters/yjsAdapter.ts → Yjs implementation              │
 │  - DocumentContext → manages adapter lifecycle              │
 │  - All state operations go through adapter methods          │
 └─────────────────────────────────────────────────────────────┘
            ↓
 ┌─────────────────────────────────────────────────────────────┐
-│  Hooks Layer                             src/hooks/         │
+│  Hooks Layer                    packages/web-client/src/   │
 │  - useDocument() → document state access and operations     │
 │  - useGraphOperations() → add/delete/update nodes           │
 │  - useConnections() → connection management                 │
@@ -158,7 +160,7 @@ Implemented packages: `@carta/types`, `@carta/domain`, `@carta/storage`, `@carta
 └─────────────────────────────────────────────────────────────┘
            ↓
 ┌─────────────────────────────────────────────────────────────┐
-│  Components (UI only)                    src/components/    │
+│  Components (UI only)           packages/web-client/src/   │
 │  - Map.tsx → React Flow canvas (instance view)              │
 │  - Metamap.tsx → React Flow canvas (schema/metamodel view)  │
 │  - App.tsx → orchestration, modals, layout, view toggle     │
@@ -207,44 +209,44 @@ Visit `http://localhost:5173/?doc=my-document-id` to open a specific document.
 | `packages/domain/src/schemas/built-ins.ts` | Default construct schemas, port schemas, and schema groups |
 | `packages/domain/src/ports/registry.ts` | PortRegistry class with two-step polarity-based canConnect() validation |
 | `packages/domain/src/ports/helpers.ts` | Port helper functions: canConnect, getPortsForSchema, getHandleType, getPortColor |
-| `packages/domain/src/utils/display.ts` | Display utilities: getDisplayName, semanticIdToLabel |
-| `packages/domain/src/utils/color.ts` | Color utilities: hexToHsl, hslToHex, generateTints (7-stop tint generation) |
+| `packages/domain/packages/web-client/src/utils/display.ts` | Display utilities: getDisplayName, semanticIdToLabel |
+| `packages/domain/packages/web-client/src/utils/color.ts` | Color utilities: hexToHsl, hslToHex, generateTints (7-stop tint generation) |
 
 **Web client** (React app):
 
 | File | Purpose |
 |------|---------|
-| `src/contexts/DocumentContext.tsx` | Document provider: manages Yjs adapter lifecycle |
-| `src/stores/adapters/yjsAdapter.ts` | Yjs implementation of DocumentAdapter interface |
-| `src/constructs/ports.ts` | React-specific port utility: getHandleStyle (CSS positioning) |
-| `src/constructs/compiler/index.ts` | Compiler engine that takes schemas/deployables as parameters |
-| `src/hooks/useDocument.ts` | Primary hook for accessing document state and operations via adapter |
-| `src/hooks/useGraphOperations.ts` | Node CRUD: addConstruct, deleteNode, renameNode, createVirtualParent, etc. |
-| `src/hooks/useConnections.ts` | Connection logic: onConnect, handleEdgesDelete, validation |
-| `src/hooks/useUndoRedo.ts` | Y.UndoManager wrapper for undo/redo (local, not shared) |
-| `src/hooks/useClipboard.ts` | Copy/paste (local state, not collaborative) |
-| `src/hooks/useKeyboardShortcuts.ts` | Keyboard shortcut handling |
-| `src/components/Map.tsx` | React Flow canvas, UI event handlers, virtual-parent node type |
-| `src/components/VirtualParentNode.tsx` | Visual grouping container node for child constructs |
-| `src/components/Header.tsx` | Project header with title, import/export, settings menu, Map/Metamap toggle, Share (server mode) |
-| `src/components/Metamap.tsx` | React Flow canvas for schema-level metamodel view (SchemaNode, SchemaGroupNode) |
-| `src/components/SchemaNode.tsx` | Schema node rendering in Metamap view |
-| `src/components/SchemaGroupNode.tsx` | Schema group node rendering in Metamap view |
-| `src/components/MetamapConnectionModal.tsx` | Modal for creating connections between schemas in Metamap (includes port color picker) |
-| `src/components/ProjectInfoModal.tsx` | Modal for editing project title and description |
-| `src/components/ExamplesModal.tsx` | Modal for loading example projects |
-| `src/components/DocumentBrowserModal.tsx` | Document browser/selector for server mode |
-| `src/components/ConnectionStatus.tsx` | Connection status indicator (server mode only) |
-| `src/components/ConstructEditor.tsx` | Full-screen schema editor with tabs (Basics/Fields/Ports) and live preview |
-| `src/components/ui/ContextMenuPrimitive.tsx` | Reusable context menu primitive with nested submenu support |
-| `src/components/ui/PortPickerPopover.tsx` | Port picker popover for collapsed port nodes |
-| `src/components/BundledEdge.tsx` | Custom edge component for bundled parallel edges |
-| `src/hooks/useEdgeBundling.ts` | Hook for grouping parallel edges between same node pair |
-| `src/components/lod/lodPolicy.ts` | LOD band configuration (pill/compact/normal modes with zoom thresholds) |
-| `src/components/lod/useLodBand.ts` | Hook that returns discrete LOD band based on current zoom level |
-| `src/ContextMenu.tsx` | Shared context menu for canvas right-click; view-specific options (Map shows node ops, Metamap shows schema ops) |
-| `src/utils/examples.ts` | Utility to load bundled example .carta files |
-| `src/main.tsx` | Entry point, configures staticMode from VITE_STATIC_MODE env var |
+| `packages/web-client/src/contexts/DocumentContext.tsx` | Document provider: manages Yjs adapter lifecycle |
+| `packages/web-client/src/stores/adapters/yjsAdapter.ts` | Yjs implementation of DocumentAdapter interface |
+| `packages/web-client/src/constructs/ports.ts` | React-specific port utility: getHandleStyle (CSS positioning) |
+| `packages/web-client/src/constructs/compiler/index.ts` | Compiler engine that takes schemas/deployables as parameters |
+| `packages/web-client/src/hooks/useDocument.ts` | Primary hook for accessing document state and operations via adapter |
+| `packages/web-client/src/hooks/useGraphOperations.ts` | Node CRUD: addConstruct, deleteNode, renameNode, createVirtualParent, etc. |
+| `packages/web-client/src/hooks/useConnections.ts` | Connection logic: onConnect, handleEdgesDelete, validation |
+| `packages/web-client/src/hooks/useUndoRedo.ts` | Y.UndoManager wrapper for undo/redo (local, not shared) |
+| `packages/web-client/src/hooks/useClipboard.ts` | Copy/paste (local state, not collaborative) |
+| `packages/web-client/src/hooks/useKeyboardShortcuts.ts` | Keyboard shortcut handling |
+| `packages/web-client/src/components/Map.tsx` | React Flow canvas, UI event handlers, virtual-parent node type |
+| `packages/web-client/src/components/VirtualParentNode.tsx` | Visual grouping container node for child constructs |
+| `packages/web-client/src/components/Header.tsx` | Project header with title, import/export, settings menu, Map/Metamap toggle, Share (server mode) |
+| `packages/web-client/src/components/Metamap.tsx` | React Flow canvas for schema-level metamodel view (SchemaNode, SchemaGroupNode) |
+| `packages/web-client/src/components/SchemaNode.tsx` | Schema node rendering in Metamap view |
+| `packages/web-client/src/components/SchemaGroupNode.tsx` | Schema group node rendering in Metamap view |
+| `packages/web-client/src/components/MetamapConnectionModal.tsx` | Modal for creating connections between schemas in Metamap (includes port color picker) |
+| `packages/web-client/src/components/ProjectInfoModal.tsx` | Modal for editing project title and description |
+| `packages/web-client/src/components/ExamplesModal.tsx` | Modal for loading example projects |
+| `packages/web-client/src/components/DocumentBrowserModal.tsx` | Document browser/selector for server mode |
+| `packages/web-client/src/components/ConnectionStatus.tsx` | Connection status indicator (server mode only) |
+| `packages/web-client/src/components/ConstructEditor.tsx` | Full-screen schema editor with tabs (Basics/Fields/Ports) and live preview |
+| `packages/web-client/src/components/ui/ContextMenuPrimitive.tsx` | Reusable context menu primitive with nested submenu support |
+| `packages/web-client/src/components/ui/PortPickerPopover.tsx` | Port picker popover for collapsed port nodes |
+| `packages/web-client/src/components/BundledEdge.tsx` | Custom edge component for bundled parallel edges |
+| `packages/web-client/src/hooks/useEdgeBundling.ts` | Hook for grouping parallel edges between same node pair |
+| `packages/web-client/src/components/lod/lodPolicy.ts` | LOD band configuration (pill/compact/normal modes with zoom thresholds) |
+| `packages/web-client/src/components/lod/useLodBand.ts` | Hook that returns discrete LOD band based on current zoom level |
+| `packages/web-client/src/ContextMenu.tsx` | Shared context menu for canvas right-click; view-specific options (Map shows node ops, Metamap shows schema ops) |
+| `packages/web-client/src/utils/examples.ts` | Utility to load bundled example .carta files |
+| `packages/web-client/src/main.tsx` | Entry point, configures staticMode from VITE_STATIC_MODE env var |
 
 ## Key Design Principles
 
@@ -283,107 +285,107 @@ When evaluating changes, ask: Does this expand capability without confusion? Doe
 ### Construct Identity
 - **No `name` field** on instances—titles come from schema's `displayField` or `semanticId`
 - `semanticId` is required, auto-generated as `{type}-{timestamp}{random}`
-- Use `getDisplayName(data, schema)` from `src/utils/displayUtils.ts`
+- Use `getDisplayName(data, schema)` from `packages/web-client/src/utils/displayUtils.ts`
 
 ## Common Tasks
 
 ### Modify graph operations (add/delete/update nodes)
 ```
-src/hooks/useGraphOperations.ts   → Node CRUD, virtual parent operations
-src/stores/adapters/yjsAdapter.ts → updateNode with semantic ID cascade
+packages/web-client/src/hooks/useGraphOperations.ts   → Node CRUD, virtual parent operations
+packages/web-client/src/stores/adapters/yjsAdapter.ts → updateNode with semantic ID cascade
 ```
 
 ### Modify connection behavior
 ```
-src/hooks/useConnections.ts       → onConnect, handleEdgesDelete, isValidConnection
-src/constructs/portRegistry.ts    → Two-step polarity-based canConnect() validation
-src/stores/adapters/yjsAdapter.ts → Port schema CRUD (add/update/remove)
+packages/web-client/src/hooks/useConnections.ts       → onConnect, handleEdgesDelete, isValidConnection
+packages/web-client/src/constructs/portRegistry.ts    → Two-step polarity-based canConnect() validation
+packages/web-client/src/stores/adapters/yjsAdapter.ts → Port schema CRUD (add/update/remove)
 ```
 
 ### Add a built-in construct type
 ```
-src/constructs/schemas/built-ins.ts → Add to builtInConstructSchemas array
-src/constructs/schemas/index.ts     → Exports builtInConstructSchemas
+packages/web-client/src/constructs/schemas/built-ins.ts → Add to builtInConstructSchemas array
+packages/web-client/src/constructs/schemas/index.ts     → Exports builtInConstructSchemas
 ```
 
 ### Modify compilation output
 ```
-src/constructs/compiler/index.ts           → Main compiler logic (takes schemas/deployables as params)
-src/constructs/compiler/formatters/*.ts    → Format-specific output
+packages/web-client/src/constructs/compiler/index.ts           → Main compiler logic (takes schemas/deployables as params)
+packages/web-client/src/constructs/compiler/formatters/*.ts    → Format-specific output
 ```
 
 ### Access schemas or deployables
 ```
-src/hooks/useDocument.ts                   → Use this hook to get schemas/deployables from adapter
+packages/web-client/src/hooks/useDocument.ts                   → Use this hook to get schemas/deployables from adapter
 components: const { schemas, deployables } = useDocument()
 ```
 
 ### Change node appearance
 ```
-src/components/ConstructNode.tsx   → Node rendering, port handles (inline/collapsed), color picker, LOD modes
-src/components/lod/lodPolicy.ts    → LOD band thresholds and configuration
-src/components/lod/useLodBand.ts   → Hook for discrete zoom-based LOD band detection
-src/utils/displayUtils.ts          → Node title derivation
-src/utils/colorUtils.ts            → Color utilities (tint generation, HSL conversion)
-src/index.css                      → Styling (handles, colors, text-halo utility)
+packages/web-client/src/components/ConstructNode.tsx   → Node rendering, port handles (inline/collapsed), color picker, LOD modes
+packages/web-client/src/components/lod/lodPolicy.ts    → LOD band thresholds and configuration
+packages/web-client/src/components/lod/useLodBand.ts   → Hook for discrete zoom-based LOD band detection
+packages/web-client/src/utils/displayUtils.ts          → Node title derivation
+packages/web-client/src/utils/colorUtils.ts            → Color utilities (tint generation, HSL conversion)
+packages/web-client/src/index.css                      → Styling (handles, colors, text-halo utility)
 ```
 
 ### Modify keyboard shortcuts
 ```
-src/hooks/useKeyboardShortcuts.ts  → All keyboard handlers
+packages/web-client/src/hooks/useKeyboardShortcuts.ts  → All keyboard handlers
 ```
 
 ### Edit port schemas (port types)
 ```
-src/components/MetamapConnectionModal.tsx  → Create ports with color when connecting schemas in Metamap
-src/constructs/portRegistry.ts             → Port validation and registry logic
-src/stores/adapters/yjsAdapter.ts          → Port schema persistence
-src/constructs/schemas/built-ins.ts        → Default port schema definitions
+packages/web-client/src/components/MetamapConnectionModal.tsx  → Create ports with color when connecting schemas in Metamap
+packages/web-client/src/constructs/portRegistry.ts             → Port validation and registry logic
+packages/web-client/src/stores/adapters/yjsAdapter.ts          → Port schema persistence
+packages/web-client/src/constructs/schemas/built-ins.ts        → Default port schema definitions
 ```
 
 ### Modify collaboration behavior (server mode)
 ```
-src/contexts/DocumentContext.tsx           → Document provider lifecycle, mode detection
-src/stores/adapters/yjsAdapter.ts          → Yjs adapter implementation, WebSocket connection
-src/hooks/useUndoRedo.ts                   → Y.UndoManager configuration
-src/main.tsx                               → VITE_STATIC_MODE flag (determines UI visibility)
-src/components/DocumentBrowserModal.tsx    → Document browser/selector for server mode
-src/components/ConnectionStatus.tsx        → Connection status indicator
+packages/web-client/src/contexts/DocumentContext.tsx           → Document provider lifecycle, mode detection
+packages/web-client/src/stores/adapters/yjsAdapter.ts          → Yjs adapter implementation, WebSocket connection
+packages/web-client/src/hooks/useUndoRedo.ts                   → Y.UndoManager configuration
+packages/web-client/src/main.tsx                               → VITE_STATIC_MODE flag (determines UI visibility)
+packages/web-client/src/components/DocumentBrowserModal.tsx    → Document browser/selector for server mode
+packages/web-client/src/components/ConnectionStatus.tsx        → Connection status indicator
 ```
 
 ### Modify header behavior or add modals
 ```
-src/components/Header.tsx                  → Header controls: title, export/import, settings, theme, Share (server mode)
-src/components/ProjectInfoModal.tsx        → Edit project title and description
-src/components/ExamplesModal.tsx           → Load example projects from bundled .carta files
-src/components/DocumentBrowserModal.tsx    → Browse/create/select documents (server mode, required on ?doc= missing)
-src/components/ConstructEditor.tsx         → Full-screen schema editor with tabs and live preview
-src/utils/examples.ts                      → Load examples using Vite's import.meta.glob
+packages/web-client/src/components/Header.tsx                  → Header controls: title, export/import, settings, theme, Share (server mode)
+packages/web-client/src/components/ProjectInfoModal.tsx        → Edit project title and description
+packages/web-client/src/components/ExamplesModal.tsx           → Load example projects from bundled .carta files
+packages/web-client/src/components/DocumentBrowserModal.tsx    → Browse/create/select documents (server mode, required on ?doc= missing)
+packages/web-client/src/components/ConstructEditor.tsx         → Full-screen schema editor with tabs and live preview
+packages/web-client/src/utils/examples.ts                      → Load examples using Vite's import.meta.glob
 ```
 
 ### Add or modify context menus
 ```
-src/ContextMenu.tsx                        → Shared context menu (instance ops optional, schema ops always available)
-src/components/ui/ContextMenuPrimitive.tsx → Reusable context menu primitive with nested submenus
-src/components/Map.tsx                     → Map view: passes node/paste callbacks for instance operations
-src/components/Metamap.tsx                 → Metamap view: passes only schema/group callbacks
+packages/web-client/src/ContextMenu.tsx                        → Shared context menu (instance ops optional, schema ops always available)
+packages/web-client/src/components/ui/ContextMenuPrimitive.tsx → Reusable context menu primitive with nested submenus
+packages/web-client/src/components/Map.tsx                     → Map view: passes node/paste callbacks for instance operations
+packages/web-client/src/components/Metamap.tsx                 → Metamap view: passes only schema/group callbacks
 ```
 
 ### Modify edge appearance or bundling
 ```
-src/components/BundledEdge.tsx             → Custom edge component for bundled parallel edges (smoothstep style)
-src/hooks/useEdgeBundling.ts               → Hook for grouping parallel edges between same node pair
-src/components/Map.tsx                     → Registers BundledEdge as custom edge type, uses useEdgeBundling, custom zoom controls
-src/index.css                              → Edge styling (colors, stroke width)
+packages/web-client/src/components/BundledEdge.tsx             → Custom edge component for bundled parallel edges (smoothstep style)
+packages/web-client/src/hooks/useEdgeBundling.ts               → Hook for grouping parallel edges between same node pair
+packages/web-client/src/components/Map.tsx                     → Registers BundledEdge as custom edge type, uses useEdgeBundling, custom zoom controls
+packages/web-client/src/index.css                              → Edge styling (colors, stroke width)
 ```
 
 ### Modify zoom controls or LOD rendering
 ```
-src/components/Map.tsx                     → Custom zoom controls (1.15x step), minZoom: 0.15
-src/components/ConstructNode.tsx           → Three-band LOD rendering (pill/compact/normal)
-src/components/lod/lodPolicy.ts            → LOD band configuration and thresholds
-src/components/lod/useLodBand.ts           → Hook for zoom-based discrete band selection
-src/index.css                              → text-halo utility for legible text on any background
+packages/web-client/src/components/Map.tsx                     → Custom zoom controls (1.15x step), minZoom: 0.15
+packages/web-client/src/components/ConstructNode.tsx           → Three-band LOD rendering (pill/compact/normal)
+packages/web-client/src/components/lod/lodPolicy.ts            → LOD band configuration and thresholds
+packages/web-client/src/components/lod/useLodBand.ts           → Hook for zoom-based discrete band selection
+packages/web-client/src/index.css                              → text-halo utility for legible text on any background
 ```
 
 ## Testing Requirements

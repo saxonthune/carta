@@ -74,7 +74,7 @@ Validation is bidirectional--if A can connect to B, then B can connect to A.
 The `PortRegistry` class manages port schemas with polarity-based validation:
 
 ```typescript
-// src/constructs/portRegistry.ts
+// packages/web-client/src/constructs/portRegistry.ts
 export const DEFAULT_PORT_SCHEMAS: PortSchema[] = [
   { id: 'flow-in', displayName: 'Flow In', polarity: 'sink', ... },
   { id: 'flow-out', displayName: 'Flow Out', polarity: 'source', ... },

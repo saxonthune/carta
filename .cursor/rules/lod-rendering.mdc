@@ -54,7 +54,7 @@ The LOD system solves this by rendering simplified node representations at lower
 
 ### LOD Policy Configuration
 
-File: `src/components/lod/lodPolicy.ts`
+File: `packages/web-client/src/components/lod/lodPolicy.ts`
 
 ```typescript
 export type LodBand = 'pill' | 'minimal' | 'normal';
@@ -76,7 +76,7 @@ export const DEFAULT_LOD_POLICY: LodBandConfig[] = [
 
 ### LOD Hook
 
-File: `src/components/lod/useLodBand.ts`
+File: `packages/web-client/src/components/lod/useLodBand.ts`
 
 ```typescript
 import { useStore } from '@xyflow/react';
@@ -96,7 +96,7 @@ export function useLodBand(): LodBandConfig {
 
 ### Using LOD in Components
 
-File: `src/components/ConstructNode.tsx`
+File: `packages/web-client/src/components/ConstructNode.tsx`
 
 ```typescript
 import { useLodBand } from './lod/useLodBand';

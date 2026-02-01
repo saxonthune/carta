@@ -51,9 +51,9 @@ Users connect to a server to: get source of truth, collaborate and share documen
 | Package | Status |
 |---------|--------|
 | `@carta/domain` | Done — types, ports, schemas, utils extracted |
-| `@carta/compiler` | Done — extracted from `src/constructs/compiler/` |
-| `@carta/storage` | Not started — `yjsAdapter.ts` still in `src/stores/`. Portfolio support lands here |
-| `@carta/web-client` | Not started — still in root `src/` |
+| `@carta/compiler` | Done — compilation engine |
+| `@carta/storage` | Not started — `yjsAdapter.ts` still in `packages/web-client/src/stores/`. Portfolio support lands here |
+| `@carta/web-client` | Done — extracted to `packages/web-client/` |
 | `@carta/server` | Exists — needs imports updated from stale `@carta/core` to `@carta/domain` + `@carta/compiler` |
 | `@carta/desktop` | Future |
 | `@carta/cli` | Future |

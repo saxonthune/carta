@@ -19,9 +19,9 @@ export default defineConfig({
       // Use require.resolve to handle pnpm's .pnpm directory structure
       '@dagrejs/dagre': require.resolve('@dagrejs/dagre'),
       // Map workspace packages to source files for development
-      '@carta/domain': path.resolve(__dirname, 'packages/domain/src/index.ts'),
-      '@carta/compiler': path.resolve(__dirname, 'packages/compiler/src/index.ts'),
-      '@carta/storage': path.resolve(__dirname, 'packages/storage/src/index.ts'),
+      '@carta/domain': path.resolve(__dirname, '../domain/src/index.ts'),
+      '@carta/compiler': path.resolve(__dirname, '../compiler/src/index.ts'),
+      '@carta/storage': path.resolve(__dirname, '../storage/src/index.ts'),
     },
   },
   optimizeDeps: {

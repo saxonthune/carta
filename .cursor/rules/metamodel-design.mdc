@@ -343,7 +343,7 @@ No singleton registries—all state flows through the DocumentAdapter interface 
 The `PortRegistry` manages port schemas with polarity-based validation. It receives schemas as a parameter (not a singleton):
 
 ```typescript
-// src/constructs/portRegistry.ts
+// packages/web-client/src/constructs/portRegistry.ts
 export class PortRegistry {
   constructor(schemas: PortSchema[] = DEFAULT_PORT_SCHEMAS);
   get(id: string): PortSchema | undefined;
@@ -375,7 +375,7 @@ Users can create custom port types via the Ports tab.
 Node titles are computed via helper function:
 
 ```typescript
-// src/utils/displayUtils.ts
+// packages/web-client/src/utils/displayUtils.ts
 export function getDisplayName(
   data: ConstructNodeData,
   schema: ConstructSchema | undefined

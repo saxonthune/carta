@@ -14,12 +14,12 @@ Domain Layer (@carta/domain)
   Core types, port registry, built-in schemas, utilities
   Platform-agnostic — no React, no Yjs
 
-Document Adapter Layer (src/stores/, src/contexts/)
+Document Adapter Layer (packages/web-client/src/stores/, packages/web-client/src/contexts/)
   Yjs Y.Doc state management, IndexedDB persistence
   DocumentAdapter interface with Yjs implementation
   Does not know about React Flow or rendering
 
-Visual Editor Layer (src/components/, src/hooks/)
+Visual Editor Layer (packages/web-client/src/components/, packages/web-client/src/hooks/)
   React Flow canvas, node rendering, user interactions
   Map (instance view) and Metamap (schema view)
   Does not know how to compile or persist
@@ -53,7 +53,7 @@ Target dependency graph (packages can only depend on packages above them):
         @carta/desktop      @carta/cli
 ```
 
-Currently `@carta/domain`, `@carta/server`, `@carta/compiler`, and `@carta/storage` exist as packages. The web client lives in root `src/`.
+Currently `@carta/domain`, `@carta/server`, `@carta/compiler`, `@carta/storage`, and `@carta/web-client` exist as packages.
 
 ## Data Flow
 

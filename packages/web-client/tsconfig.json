@@ -18,9 +18,9 @@
 
     /* Path mapping for workspace packages */
     "paths": {
-      "@carta/domain": ["./packages/domain/src/index.ts"],
-      "@carta/compiler": ["./packages/compiler/src/index.ts"],
-      "@carta/storage": ["./packages/storage/src/index.ts"]
+      "@carta/domain": ["../domain/src/index.ts"],
+      "@carta/compiler": ["../compiler/src/index.ts"],
+      "@carta/storage": ["../storage/src/index.ts"]
     },
 
     /* Linting */
