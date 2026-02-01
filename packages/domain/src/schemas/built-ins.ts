@@ -10,28 +10,28 @@ export const builtInSchemaGroups: SchemaGroup[] = [
   {
     id: 'software-architecture',
     name: 'Software Architecture',
-    color: '#6366f1',
+    color: '#7c7fca',
     description: 'Core software architecture constructs',
   },
   {
     id: 'database',
     name: 'Database',
     parentId: 'software-architecture',
-    color: '#f59e0b',
+    color: '#c49a4c',
     description: 'Database schema and table constructs',
   },
   {
     id: 'api',
     name: 'API',
     parentId: 'software-architecture',
-    color: '#6366f1',
+    color: '#7c7fca',
     description: 'API endpoint and model constructs',
   },
   {
     id: 'ui',
     name: 'UI',
     parentId: 'software-architecture',
-    color: '#3b82f6',
+    color: '#6a8fc0',
     description: 'User interface constructs',
   },
 ];
@@ -123,7 +123,7 @@ export const builtInConstructSchemas: ConstructSchema[] = [
   {
     type: 'controller',
     displayName: 'REST Controller',
-    color: '#6366f1',
+    color: '#7c7fca',
     semanticDescription: 'HTTP REST API endpoint controller',
     groupId: 'api',
     ports: [
@@ -190,7 +190,7 @@ export const builtInConstructSchemas: ConstructSchema[] = [
   {
     type: 'database',
     displayName: 'Database',
-    color: '#f59e0b',
+    color: '#c49a4c',
     semanticDescription: 'Database instance or schema container',
     groupId: 'database',
     ports: [
@@ -242,7 +242,7 @@ export const builtInConstructSchemas: ConstructSchema[] = [
   {
     type: 'table',
     displayName: 'Table',
-    color: '#8b5cf6',
+    color: '#8a7cb8',
     semanticDescription: 'Database table or entity',
     groupId: 'database',
     ports: [
@@ -309,7 +309,7 @@ export const builtInConstructSchemas: ConstructSchema[] = [
   {
     type: 'db-attribute',
     displayName: 'DB Attribute',
-    color: '#8b5cf6',
+    color: '#8a7cb8',
     semanticDescription: 'A database table attribute/column',
     groupId: 'database',
     fields: [
@@ -336,7 +336,7 @@ export const builtInConstructSchemas: ConstructSchema[] = [
   {
     type: 'constraint',
     displayName: 'Constraint',
-    color: '#a78bfa',
+    color: '#9488b8',
     semanticDescription: 'A database constraint (unique, foreign key, check, etc.)',
     groupId: 'database',
     fields: [
@@ -363,7 +363,7 @@ export const builtInConstructSchemas: ConstructSchema[] = [
   {
     type: 'api-model',
     displayName: 'API Model',
-    color: '#6366f1',
+    color: '#7c7fca',
     semanticDescription: 'Request or response model for an API endpoint',
     groupId: 'api',
     fields: [
@@ -414,7 +414,7 @@ export const builtInConstructSchemas: ConstructSchema[] = [
   {
     type: 'ui-event',
     displayName: 'UI Event',
-    color: '#10b981',
+    color: '#5ba88e',
     semanticDescription: 'A user interaction or event in the UI',
     groupId: 'ui',
     fields: [
@@ -465,7 +465,7 @@ export const builtInConstructSchemas: ConstructSchema[] = [
   {
     type: 'ui-screen',
     displayName: 'UI Screen',
-    color: '#3b82f6',
+    color: '#6a8fc0',
     semanticDescription: 'A screen or view in the user interface',
     groupId: 'ui',
     fields: [
@@ -513,7 +513,7 @@ export const builtInConstructSchemas: ConstructSchema[] = [
   {
     type: 'user-story',
     displayName: 'User Story',
-    color: '#10b981',
+    color: '#5ba88e',
     semanticDescription: 'A user story or requirement',
     groupId: 'software-architecture',
     fields: [
@@ -554,7 +554,7 @@ export const builtInConstructSchemas: ConstructSchema[] = [
   {
     type: 'note',
     displayName: 'Note',
-    color: '#fbbf24',
+    color: '#c4a94e',
     semanticDescription: 'A freeform note or annotation',
     backgroundColorPolicy: 'any',
     portDisplayPolicy: 'collapsed',

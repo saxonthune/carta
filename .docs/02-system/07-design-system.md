@@ -5,7 +5,7 @@ status: active
 
 # Design System
 
-Visual and interaction standards for the Carta application UI. These rules govern the **application chrome** — user-created content (node colors, schema definitions) is styled however users prefer.
+Visual and interaction standards for the Carta application UI. Part 1 covers **application chrome** (headers, modals, panels). Part 2 covers **canvas content** (nodes, edges, deployables, LOD). Visual design principles that underpin both are in doc01.04.
 
 ## Depth System
 
@@ -159,14 +159,14 @@ Weights: `font-normal` (400) for body, `font-medium` (500) for labels/buttons, `
 
 ## Text Legibility
 
-The `text-halo` utility provides readable white text on any background color via layered soft blur shadows:
+The `text-halo` utility provides readable text on any background color via theme-aware layered soft blur shadows. The `--text-halo-color` CSS variable adapts per theme (dark shadows for dark themes, light shadows for light themes):
 
 ```css
 @utility text-halo {
   text-shadow:
-    0 2px 12px rgba(0, 0, 0, 0.8),
-    0 4px 24px rgba(0, 0, 0, 0.6),
-    0 8px 48px rgba(0, 0, 0, 0.4);
+    0 2px 12px var(--text-halo-color),
+    0 4px 24px color-mix(in srgb, var(--text-halo-color) 75%, transparent),
+    0 8px 48px color-mix(in srgb, var(--text-halo-color) 50%, transparent);
 }
 ```
 
@@ -195,9 +195,125 @@ import { PinIcon, WindowIcon } from './ui/icons';
 </button>
 ```
 
-## Design Principles
+## Design Principles (Chrome)
 
 - **Clarity over decoration**: Use depth and spacing for hierarchy, not heavy borders
 - **Backgrounds do the work**: Visual separation comes from surface depth, not lines
 - **Consistency**: Same depth system, island pattern, and selection highlights everywhere
 - **Accessibility**: Sufficient contrast between depth levels, visible focus states, minimum 4.5:1 body text contrast
+
+---
+
+# Part 2: Canvas Content
+
+Visual specifications for user-created content on the canvas — nodes, edges, deployable backgrounds, and LOD rendering. Governed by the visual design principles in doc01.04.
+
+## Schema Color Palette
+
+Users select schema colors from a **curated palette of 8-12 desaturated hues** designed to look harmonious together across all themes. An "advanced" escape hatch allows arbitrary color selection for users who need it.
+
+### Palette Design Rules
+
+1. **Desaturated by default**: Palette colors are pastels / muted tones — high enough lightness and low enough saturation to fill large rectangular node bodies without visual vibration.
+2. **Hue-differentiated**: Each palette color occupies a distinct region of the hue wheel so types are distinguishable at a glance.
+3. **Theme-tuned**: The palette is defined per-theme. Dark theme uses moderately saturated fills with light text. Light theme uses lighter pastels with dark text. Warm theme uses warm-shifted muted tones.
+4. **Header intensification**: The node header bar uses a slightly more saturated version of the same hue as the body fill, creating internal hierarchy within the card.
+
+### Palette (Target — 10 hues)
+
+| Name | Purpose (suggestion) | Dark Theme Fill | Light Theme Fill |
+|------|---------------------|-----------------|------------------|
+| Slate | Infrastructure, generic | `hsl(215, 20%, 35%)` | `hsl(215, 25%, 90%)` |
+| Blue | Services, controllers | `hsl(215, 45%, 40%)` | `hsl(215, 60%, 88%)` |
+| Cyan | Data stores, databases | `hsl(185, 40%, 35%)` | `hsl(185, 50%, 87%)` |
+| Teal | Models, schemas | `hsl(165, 35%, 33%)` | `hsl(165, 45%, 87%)` |
+| Green | Events, actions | `hsl(145, 35%, 33%)` | `hsl(145, 45%, 88%)` |
+| Yellow | Warnings, constraints | `hsl(45, 50%, 40%)` | `hsl(45, 60%, 88%)` |
+| Orange | UI elements, screens | `hsl(25, 50%, 38%)` | `hsl(25, 55%, 88%)` |
+| Rose | User stories, requirements | `hsl(345, 40%, 38%)` | `hsl(345, 50%, 89%)` |
+| Purple | Attributes, fields | `hsl(270, 35%, 40%)` | `hsl(270, 45%, 90%)` |
+| Indigo | Relationships, connectors | `hsl(240, 35%, 42%)` | `hsl(240, 45%, 90%)` |
+
+These values are starting points to be tuned visually. The key constraint is: **desaturated fills that work as large rectangular backgrounds.**
+
+### Custom Colors
+
+When a user selects "Custom color", show a color picker but encourage staying within the palette by making palette colors prominent and the custom option secondary (progressive disclosure).
+
+## Node Card Design
+
+Node cards are the primary visual elements on the canvas. Their design follows the figure/ground principle from doc01.04.
+
+### Visual Structure
+
+```
+┌─────────────────────────────────┐
+│  Schema Type        [controls]  │  ← Header: bg-surface-alt + left accent bar
+├─────────────────────────────────┤
+│                                 │
+│  Display Name                   │  ← Body: desaturated fill
+│  field: value                   │
+│  field: value                   │
+│                                 │
+└─────────────────────────────────┘
+```
+
+### Card Rules
+
+1. **Shadow, not outline**: Nodes float above the canvas via `box-shadow`. No white/colored border outlines. Selected state uses a subtle accent glow or ring, not a thick border.
+2. **Header is secondary**: The schema type label is `text-xs uppercase tracking-wide text-content-muted`. The display name below it is the visually dominant element (`text-base font-semibold`).
+3. **Left accent bar**: A 3px left border in the schema color identifies the node type. The header uses `bg-surface-alt` — not a full-color fill. The body uses `bg-surface`.
+4. **Internal padding**: Consistent `p-3` body padding with `gap-2` between fields. No cramped layouts.
+5. **Rounded corners**: `rounded-lg` (8px) for the card. No sharp corners.
+
+### Selected State
+
+- Accent-colored `ring-2` or `box-shadow` glow — not a thick border that changes the card's geometry.
+
+## Deployable Backgrounds
+
+Deployable backgrounds are **ground**, not **figure**. They must be the quietest visual layer on the canvas.
+
+### Rules
+
+1. **Near-invisible fill**: 3-5% opacity of the deployable color. Should be barely perceptible — just enough to see grouping.
+2. **No dashed borders**: Remove dashed stroke outlines. If a border is needed at all, use a 1px solid line at 10-15% opacity.
+3. **Label placement**: Bottom-right corner, small text, muted color. Labels should fade in progressively with zoom — invisible at pill level, subtle at compact, readable at normal.
+4. **No visual competition**: The deployable background should never draw the eye away from the nodes it contains.
+
+## Edge Rendering
+
+Edges are secondary visual elements — they show relationships but should not dominate the canvas.
+
+### Rules
+
+1. **Muted colors**: Edge colors should be muted versions of their port type color, not fully saturated. On dark themes, use desaturated cool tones. On light themes, use medium grays with subtle hue tinting.
+2. **Progressive simplification**: As zoom decreases, edge stroke width and opacity should decrease proportionally. At pill level, edges should be thin and semi-transparent.
+3. **Bundled edges**: When multiple edges connect the same node pair, bundle them visually with a count badge rather than rendering parallel lines.
+4. **Smoothstep routing**: Continue using curved (smoothstep) edge paths for visual softness.
+
+## LOD Rendering Specs
+
+LOD bands control visual complexity at different zoom levels. The philosophy is "zoom reveals, it doesn't transform" (doc01.04).
+
+### Band Definitions
+
+| Band | Zoom Range | Purpose | Visual Character |
+|------|-----------|---------|-----------------|
+| Pill | < 0.5 | Topology overview | Colored chips with name, minimal shadows, thin edges |
+| Compact | 0.5 – 1.0 | Identity and grouping | Header + display name + key fields, medium shadows |
+| Normal | >= 1.0 | Full detail and editing | Complete card with all controls, full shadows |
+
+### Transition Philosophy
+
+- **Animate between bands**: Use CSS `transition` on opacity, transform, and box-shadow so crossing a threshold feels smooth, not jarring.
+- **Overlap zone**: Consider a small hysteresis/overlap zone (e.g., 0.45-0.55) where elements cross-fade rather than hard-switching.
+- **Progressive detail**: Elements should fade in/out rather than appear/disappear. Fields fade in as you zoom toward normal. Controls fade in last.
+
+### Text Halo (Theme-Aware)
+
+The `text-halo` utility must adapt to the active theme:
+
+- **Dark themes**: Use dark shadows (current behavior) — `rgba(0, 0, 0, opacity)`
+- **Light themes**: Use light/white shadows — `rgba(255, 255, 255, opacity)` — so the halo doesn't create a dark smudge around text on light backgrounds
+- **Implementation**: Define as a CSS custom property that changes per theme, not a hardcoded rgba value

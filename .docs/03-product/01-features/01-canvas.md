@@ -18,11 +18,11 @@ The canvas is the primary editing surface where users create and manipulate cons
 
 The canvas renders nodes in three LOD bands based on zoom level:
 
-- **Pill** (zoomed out, below ~0.5x): Colored bar showing schema name and pill-tier field value. Hover shows full title tooltip. Optimized for overview navigation.
-- **Compact** (mid-zoom, ~0.5x-1.0x): Header bar with schema name, pill-tier value prominently displayed, and minimal-tier fields below.
-- **Normal** (zoomed in, above ~1.0x): Full detail with pill-tier field at top, minimal-tier fields in summary view, all fields in details view. Includes ports and controls.
+- **Pill** (zoomed out, below ~0.5x): Subtle tinted background (25% schema color mixed with surface) with colored accent dot, schema name, and pill-tier field value. Hover shows full title tooltip. Optimized for overview navigation.
+- **Compact** (mid-zoom, ~0.5x-1.0x): Shadow-based card with left accent bar (schema color), schema name in muted text, pill-tier value prominently displayed, and minimal-tier fields below.
+- **Normal** (zoomed in, above ~1.0x): Full shadow-based card with left accent bar, muted schema label, display name as dominant element, minimal-tier fields in summary view, all fields in details view. Includes ports and controls.
 
-LOD levels respect field display tiers (pill, minimal, details, full). The pill field (typically a title or name) appears at all LOD levels for consistent identification. LOD thresholds are configured in `lodPolicy.ts`. Transitions are discrete (no animation between bands).
+LOD levels respect field display tiers (pill, minimal, details, full). The pill field (typically a title or name) appears at all LOD levels for consistent identification. LOD thresholds are configured in `lodPolicy.ts`. Transitions use a brief 120ms opacity crossfade for smooth visual switching between bands.
 
 ## Selection
 

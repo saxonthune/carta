@@ -57,7 +57,60 @@ Be liberal in what you accept, conservative in what you produce.
 - Tolerate imprecise user input (approximate click targets, fuzzy search).
 - Produce consistent, predictable output regardless of input path.
 
-## Interaction Design Principles
+## Visual Design Principles
+
+These govern how all visual elements — canvas content, editors, panels, modals — should look and feel. They apply universally, not just to one surface.
+
+### Figure/Ground Separation
+
+Every visual context has a **figure** (what the user is focused on) and a **ground** (the surface it sits on). The ground must always be quieter than the figure.
+
+- **Canvas**: Nodes are the figure. The canvas background, deployable regions, and edges are ground. Nodes should have the highest contrast and most refined form; everything else exists to support them.
+- **Editors/Modals**: Form fields and controls are the figure. Panel backgrounds, island containers, and section dividers are ground.
+- **Practical test**: Squint at the screen. If background elements compete with foreground elements for attention, the figure/ground relationship is broken.
+
+### Color Encodes Meaning, Not Decoration
+
+Color should differentiate types at a glance through **hue**, not through **saturation**. Saturated colors are reserved for small interactive elements (accents, selection rings, badges). Large filled areas use desaturated tints.
+
+- Default palettes should be curated sets of harmonious desaturated hues (see doc02.07 Schema Color Palette).
+- Users can override with custom colors, but defaults must look cohesive together out of the box.
+- Every theme defines its own tuned palette — not a mechanical transformation of one base palette.
+
+### Depth Through Shadow, Not Borders
+
+Elements that float above others communicate this through subtle `box-shadow`, not thick outlines or borders. Borders create visual noise; shadows create depth naturally.
+
+- Node cards float above the canvas via shadow.
+- Modals and popovers float above the page via shadow.
+- Containers and islands use background color differences (the depth system), not border lines.
+- Exception: form inputs and interactive controls may use subtle 1px borders for affordance.
+
+### Typography Drives the Hierarchy
+
+Within any component, the most important text should be the largest and boldest. Supporting text should recede through smaller size and muted color — never through competing visual treatments.
+
+- In node cards: the display name (user's value) is the primary element. The schema type label is secondary. Field names are tertiary.
+- In editors/modals: the title is primary. Section headers are secondary. Labels and metadata are tertiary.
+- Avoid ALL CAPS for anything except small badges or tiny labels — it reduces readability at all sizes.
+
+### Zoom Reveals, It Doesn't Transform
+
+LOD transitions should feel like focusing a camera — elements fade, simplify, and recede rather than abruptly switching between completely different renderings.
+
+- Transitions between LOD bands should use CSS animation (opacity, scale) so the shift feels continuous, not jarring.
+- Each zoom level should answer a specific question: zoomed out = "what are the clusters?", mid = "what kinds of things?", zoomed in = "what are the details?"
+- Elements should simplify progressively, not disappear and reappear in a different form.
+
+### Theme-Native Colors
+
+Each theme (light, dark, warm) should define its own palette that's tuned for its background, not a mechanical inversion of one base palette.
+
+- On dark themes: node fills are moderately saturated, text is light, edges are muted cool tones.
+- On light themes: node fills are lighter pastels with darker text, edges are medium gray, canvas is true neutral.
+- The `text-halo` utility must use theme-appropriate shadow colors (dark shadows on light backgrounds create unwanted halos on light themes).
+
+
 
 ### Peak-End Rule
 

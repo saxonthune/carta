@@ -25,9 +25,6 @@ export default function DeployableBackground({ nodes, deployables }: DeployableB
   // Font size based on LOD band
   const fontSize = lod.band === 'pill' ? 32 : lod.band === 'compact' ? 16 : 11;
 
-  // Always calculate using max font size (pill: 32) to ensure box accommodates all zoom levels
-  const maxFontSize = 32;
-
   const boxes = useMemo(() => {
     const result: DeployableBox[] = [];
 
@@ -64,7 +61,7 @@ export default function DeployableBackground({ nodes, deployables }: DeployableB
         });
 
         // Add 20px padding on all sides
-        const padding = 20;
+        const padding = 14;
         result.push({
           x: minX - padding,
           y: minY - padding,
@@ -97,16 +94,11 @@ export default function DeployableBackground({ nodes, deployables }: DeployableB
         }}
       >
         {boxes.map(box => {
-          const fillColor = box.deployable.color || '#e5e7eb';
-          const strokeColor = box.deployable.color || '#9ca3af';
-          const textColor = box.deployable.color || '#374151';
+          const fillColor = box.deployable.color || 'var(--color-content-subtle)';
+          const strokeColor = box.deployable.color || 'var(--color-content-subtle)';
 
-          // Calculate label dimensions using max font size to ensure box fits all zoom levels
-          // Character width ratio scales with font size: ~0.6 * fontSize
-          const charWidthRatio = 0.6;
-          const labelPadding = Math.max(12, maxFontSize * 0.4);
-          const labelWidth = box.deployable.name.length * (maxFontSize * charWidthRatio) + labelPadding * 2;
-          const labelHeight = maxFontSize * 1.5;
+          // Label opacity based on LOD band
+          const labelOpacity = lod.band === 'pill' ? 0 : lod.band === 'compact' ? 0.4 : 0.7;
 
           return (
             <g key={box.deployable.id}>
@@ -117,35 +109,28 @@ export default function DeployableBackground({ nodes, deployables }: DeployableB
                 width={box.width}
                 height={box.height}
                 fill={fillColor}
-                fillOpacity={0.15}
+                fillOpacity={0.04}
                 stroke={strokeColor}
                 strokeWidth={1}
-                strokeDasharray="4 2"
-                rx={6}
-                ry={6}
+                strokeOpacity={0.12}
+                rx={4}
+                ry={4}
               />
-              {/* Label background - positioned at bottom-right corner with 0 margin */}
-              <rect
-                x={box.x + box.width - labelWidth}
-                y={box.y + box.height - labelHeight}
-                width={labelWidth}
-                height={labelHeight}
-                fill="rgba(255, 255, 255, 0.9)"
-                rx={3}
-                ry={3}
-              />
-              {/* Label text - centered in label background with LOD-aware font size */}
-              <text
-                x={box.x + box.width - labelWidth / 2}
-                y={box.y + box.height - labelHeight / 2}
-                textAnchor="middle"
-                dominantBaseline="central"
-                fontSize={fontSize}
-                fontWeight={500}
-                fill={textColor}
-              >
-                {box.deployable.name}
-              </text>
+              {/* Label text - positioned at bottom-right with LOD-aware opacity */}
+              {labelOpacity > 0 && (
+                <text
+                  x={box.x + box.width - 8}
+                  y={box.y + box.height - 6}
+                  textAnchor="end"
+                  dominantBaseline="auto"
+                  fontSize={fontSize}
+                  fontWeight={500}
+                  fill="var(--color-content-muted)"
+                  fillOpacity={labelOpacity}
+                >
+                  {box.deployable.name}
+                </text>
+              )}
             </g>
           );
         })}

@@ -63,13 +63,20 @@ const edgeTypes = {
 // Restrict dragging to header only - allows clicking fields to edit
 const NODE_DRAG_HANDLE = '.node-drag-handle';
 
-const defaultEdgeOptions = {
-  type: 'bundled',
-  style: {
-    strokeWidth: 2,
-    stroke: '#6366f1',
-  },
-};
+// Edge color from CSS variable, updated on theme change
+function useEdgeColor() {
+  const [color, setColor] = useState(() =>
+    getComputedStyle(document.documentElement).getPropertyValue('--edge-default-color').trim() || '#94a3b8'
+  );
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setColor(getComputedStyle(document.documentElement).getPropertyValue('--edge-default-color').trim() || '#94a3b8');
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => observer.disconnect();
+  }, []);
+  return color;
+}
 
 
 export interface MapProps {
@@ -84,6 +91,14 @@ export interface MapProps {
 export default function Map({ deployables, onDeployablesChange, title, onNodesEdgesChange, onSelectionChange, onNodeDoubleClick }: MapProps) {
   const { nodes, edges, setNodes, setEdges, getSchema, levels, activeLevel, copyNodesToLevel } = useDocument();
   const { adapter } = useDocumentContext();
+  const edgeColor = useEdgeColor();
+  const defaultEdgeOptions = useMemo(() => ({
+    type: 'bundled',
+    style: {
+      strokeWidth: 1.5,
+      stroke: edgeColor,
+    },
+  }), [edgeColor]);
   const schemaGroups = adapter.getSchemaGroups();
   const { getViewport, setViewport } = useReactFlow();
 

@@ -16,8 +16,8 @@ export default function BundledEdge({
   const count = bundleData?.bundleCount || 1;
   const isBundled = count > 1;
 
-  // Calculate stroke width: thicker for more bundled edges, capped at 10
-  const strokeWidth = isBundled ? Math.min(2 + (count - 1) * 1.5, 10) : 2;
+  // Calculate stroke width: thicker for more bundled edges, capped at 6
+  const strokeWidth = isBundled ? Math.min(1.5 + (count - 1) * 1, 6) : 1.5;
 
   const [edgePath, labelX, labelY] = getSmoothStepPath({
     sourceX,
@@ -37,7 +37,7 @@ export default function BundledEdge({
         style={{
           ...style,
           strokeWidth,
-          stroke: style.stroke || '#6366f1',
+          stroke: style.stroke || 'var(--edge-default-color, #94a3b8)',
         }}
         fill="none"
       />
@@ -47,13 +47,13 @@ export default function BundledEdge({
           transform={`translate(${labelX}, ${labelY})`}
           style={{ cursor: 'pointer' }}
         >
-          <circle r={10} fill="white" stroke={String(style.stroke || '#6366f1')} strokeWidth={1.5} />
+          <circle r={10} fill="var(--color-surface, white)" stroke={String(style.stroke || 'var(--edge-default-color, #94a3b8)')} strokeWidth={1.5} />
           <text
             textAnchor="middle"
             dominantBaseline="central"
             fontSize={10}
             fontWeight={600}
-            fill={String(style.stroke || '#6366f1')}
+            fill="var(--color-content-muted, #6b7280)"
             style={{ pointerEvents: 'none' }}
           >
             {count}

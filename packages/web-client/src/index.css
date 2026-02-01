@@ -23,6 +23,12 @@
   --color-danger: #ef4444;
   --color-danger-hover: #dc2626;
   --color-danger-muted: #fee2e2;
+  --text-halo-color: rgba(255, 255, 255, 0.85);
+  --node-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.04);
+  --node-shadow-selected: 0 1px 3px rgba(99, 102, 241, 0.12), 0 4px 16px rgba(99, 102, 241, 0.08);
+  --edge-default-color: #94a3b8;
+  --deployable-fill-opacity: 0.04;
+  --deployable-stroke-opacity: 0.12;
 }
 
 [data-theme="dark"] {
@@ -45,6 +51,12 @@
   --color-danger: #f87171;
   --color-danger-hover: #ef4444;
   --color-danger-muted: #7f1d1d;
+  --text-halo-color: rgba(0, 0, 0, 0.8);
+  --node-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.2);
+  --node-shadow-selected: 0 1px 3px rgba(129, 140, 248, 0.2), 0 4px 16px rgba(129, 140, 248, 0.15);
+  --edge-default-color: #64748b;
+  --deployable-fill-opacity: 0.06;
+  --deployable-stroke-opacity: 0.12;
 }
 
 [data-theme="warm"] {
@@ -67,6 +79,12 @@
   --color-danger: #ef4444;
   --color-danger-hover: #dc2626;
   --color-danger-muted: #7f1d1d;
+  --text-halo-color: rgba(0, 0, 0, 0.8);
+  --node-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.2);
+  --node-shadow-selected: 0 1px 3px rgba(245, 158, 11, 0.2), 0 4px 16px rgba(245, 158, 11, 0.15);
+  --edge-default-color: #73614f;
+  --deployable-fill-opacity: 0.06;
+  --deployable-stroke-opacity: 0.12;
 }
 
 @theme {
@@ -123,9 +141,9 @@ body,
 /* Node header text legibility — large, soft, layered shadow */
 @utility text-halo {
   text-shadow:
-    0 2px 12px rgba(0, 0, 0, 0.8),
-    0 4px 24px rgba(0, 0, 0, 0.6),
-    0 8px 48px rgba(0, 0, 0, 0.4);
+    0 2px 12px var(--text-halo-color),
+    0 4px 24px color-mix(in srgb, var(--text-halo-color) 75%, transparent),
+    0 8px 48px color-mix(in srgb, var(--text-halo-color) 50%, transparent);
 }
 
 /* React Flow custom/construct node wrappers need transparent backgrounds */
@@ -189,7 +207,7 @@ body,
 
 .port-handle:hover {
   transform: scale(1.2);
-  box-shadow: 0 0 8px rgba(99, 102, 241, 0.5);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--color-accent) 50%, transparent);
 }
 
 /* Handle colors by port type - fallback if inline style not applied */

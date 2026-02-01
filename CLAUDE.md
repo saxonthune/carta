@@ -20,7 +20,7 @@ Adding compatibility layers creates unnecessary complexity. Clean, modern patter
 
 ## Documentation
 
-**`.docs/` is the canonical source of truth.** All other docs (CLAUDE.md, `.cursor/rules/`, skill configs) are derived artifacts.
+**`.docs/` is the canonical source of truth.** `CLAUDE.md` is a derived artifact kept consistent with `.docs/`.
 
 | Title | Contents |
 |-------|----------|
@@ -31,18 +31,6 @@ Adding compatibility layers creates unnecessary complexity. Clean, modern patter
 | `.docs/04-operations/` | Development, testing, deployment, contributing |
 
 Cross-references use `docXX.YY.ZZ` syntax (e.g., `doc02.06` = metamodel architecture).
-
-### Cursor Rules (derived from .docs/)
-
-| Rule | When to consult |
-|------|-----------------|
-| `.cursor/rules/react-flow.mdc` | React Flow patterns, handles, node types |
-| `.cursor/rules/ports-and-connections.mdc` | Port model, connection semantics |
-| `.cursor/rules/metamodel-design.mdc` | Three-level metamodel (M2/M1/M0) |
-| `.cursor/rules/yjs-collaboration.mdc` | Yjs collaboration preparation |
-| `.cursor/rules/look-and-feel.mdc` | Visual depth system, island patterns |
-| `.cursor/rules/styling-best-practices.mdc` | UI styling standards |
-| `.cursor/rules/lod-rendering.mdc` | Level-of-detail rendering |
 
 ## Skills & Agents
 
@@ -295,7 +283,7 @@ All design decisions must balance two objectives:
 1. **Properly bounded modeling capability** — flexible enough for any domain, restrictive enough to prevent muddled models
 2. **Semantically sufficient compilation** — state must compile to AI-actionable instructions with enough meaning to generate quality output
 
-When evaluating changes, ask: Does this expand capability without confusion? Does this preserve semantic clarity? See `.cursor/rules/metamodel-design.mdc` for full details.
+When evaluating changes, ask: Does this expand capability without confusion? Does this preserve semantic clarity? See `.docs/02-system/06-metamodel.md` for full details.
 
 ### State Management
 - **Single source of truth**: Yjs Y.Doc is the only state store
@@ -310,7 +298,7 @@ When evaluating changes, ask: Does this expand capability without confusion? Doe
 - **No singleton registries**: Schema and deployable data accessed through adapter, not global imports
 
 ### Port & Connection Model
-**Consult:** `.cursor/rules/ports-and-connections.mdc`
+**Consult:** `.docs/03-product/01-features/03-ports-and-connections.md`
 
 - Edges have **no metadata**—all data lives on constructs
 - **Port schemas** define port types with polarity (`source`, `sink`, `bidirectional`, `relay`, `intercept`)
@@ -362,12 +350,12 @@ components: const { schemas, deployables } = useDocument()
 
 ### Change node appearance
 ```
-packages/web-client/src/components/canvas/ConstructNode.tsx   → Node rendering, port handles (inline/collapsed), color picker, LOD modes
+packages/web-client/src/components/canvas/ConstructNode.tsx   → Node rendering, port handles (inline/collapsed), color picker, LOD modes (shadow-based cards, left accent bar)
 packages/web-client/src/components/canvas/lod/lodPolicy.ts    → LOD band thresholds and configuration
 packages/web-client/src/components/canvas/lod/useLodBand.ts   → Hook for discrete zoom-based LOD band detection
 packages/web-client/src/utils/displayUtils.ts                 → Node title derivation
 packages/web-client/src/utils/colorUtils.ts                   → Color utilities (tint generation, HSL conversion)
-packages/web-client/src/index.css                             → Styling (handles, colors, text-halo utility)
+packages/web-client/src/index.css                             → Styling (handles, colors, text-halo, --node-shadow, --edge-default-color CSS vars)
 ```
 
 ### Modify keyboard shortcuts
