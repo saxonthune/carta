@@ -45,3 +45,7 @@ AI access varies by deployment target (see doc02.05 for full matrix):
 ## MCP Server
 
 Carta exposes an MCP server (doc02.03) for integration with external AI tools like Claude Code. The MCP server provides the same document manipulation capabilities as the sidebar tools, plus schema and deployable operations.
+
+### Desktop MCP Auto-Discovery
+
+In the desktop app, the embedded server writes `server.json` to `{userData}/` containing the server URL and PID. The MCP stdio binary reads this file automatically when `CARTA_COLLAB_API_URL` is not set. Users can copy the Claude Desktop config snippet from Settings > Copy MCP Config.

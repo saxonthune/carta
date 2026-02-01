@@ -34,3 +34,27 @@ A status indicator in the header shows sync state: connected, disconnected, or s
 ### Sharing
 
 Share button copies the document URL to clipboard for sending to collaborators.
+
+## Desktop Mode
+
+The Electron desktop app runs an embedded document server in the main process. The renderer connects via WebSocket for real-time sync, identical to server mode but without requiring an external server.
+
+### Embedded Server
+
+- HTTP + WebSocket server on `127.0.0.1` (default port 51234, random fallback)
+- Same REST API as the collab-server (constructs, connections, schemas, deployables, compile)
+- Yjs sync protocol over WebSocket
+- Persistence: binary Y.Doc snapshots in `{userData}/documents/`
+
+### MCP Integration
+
+The embedded server writes `server.json` to `{userData}/` for MCP auto-discovery. The MCP binary reads this file when `CARTA_COLLAB_API_URL` is not set, enabling zero-config integration with Claude Desktop.
+
+Users can copy the MCP configuration snippet from Settings > Copy MCP Config.
+
+### Desktop Feature Flags
+
+In desktop mode, feature flags are auto-configured:
+- `STORAGE_BACKENDS` = `server` (embedded server handles persistence)
+- `COLLABORATION` = `enabled` (WebSocket sync to embedded server)
+- IndexedDB persistence is skipped (no y-indexeddb in desktop mode)

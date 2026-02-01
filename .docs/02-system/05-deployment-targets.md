@@ -33,7 +33,7 @@ Two levels of data organization:
 | Backend | Platform | Persistence | Portfolio Browsing |
 |---------|----------|------------|-------------------|
 | IndexedDB | Browser | Local, per-browser | List/create/delete local docs |
-| Filesystem | Desktop (Electron) | Local, user's filesystem | Browse `.carta` files in a directory |
+| Filesystem | Desktop (Electron) | Local, binary Y.Doc snapshots | Browse documents in `{userData}/documents/` |
 | Server API | Any | Server database (MongoDB) | REST API for doc management |
 
 When `STORAGE_BACKENDS=both`, the document browser shows documents from all available backends with labels indicating where each lives. When set to `local` or `server`, only that backend's documents appear.
@@ -52,7 +52,7 @@ When `STORAGE_BACKENDS=both`, the document browser shows documents from all avai
 | Platform | Local MCP | Remote MCP |
 |----------|-----------|------------|
 | Browser | No (cannot run server process) | Yes (if server available) |
-| Desktop | Yes (local Yjs doc) | Yes (if server available) |
+| Desktop | Yes (embedded server + auto-discovery via `server.json`) | Yes (if server available) |
 
 Local MCP reads the local Yjs document (synced via CRDT). Remote MCP reads the server's copy via REST API. Both return the same data in practice — Yjs guarantees convergence.
 
@@ -67,6 +67,26 @@ Local MCP reads the local Yjs document (synced via CRDT). Remote MCP reads the s
 | Full (development) | `both` | `both` | `enabled` | Everything available |
 
 See doc03.02.03 (Enterprise), doc03.02.04 (Solo User), doc03.02.05 (SaaS Provider) for detailed use case scenarios.
+
+### Desktop Mode
+
+The Electron desktop app runs an **embedded document server** in the main process — a lightweight HTTP + WebSocket server that provides the same REST API as the collab-server. The renderer connects via WebSocket, and the MCP binary connects via HTTP.
+
+**Architecture:**
+```
+Claude Desktop ──stdio──▶ MCP binary ──HTTP──▶ Embedded Server ◀──WebSocket──▶ Renderer
+                          (child proc)         (Electron main)                 (BrowserWindow)
+                                                    │
+                                               ┌────┴────┐
+                                               │ Disk I/O │
+                                               │ .ydoc    │
+                                               │ files    │
+                                               └─────────┘
+```
+
+**Persistence:** Binary Y.Doc snapshots in `{userData}/documents/` with a `registry.json` metadata index. Debounced saves (~2s), flush on app quit.
+
+**MCP auto-discovery:** The embedded server writes `server.json` to `{userData}/` containing the server URL and PID. The MCP stdio binary reads this file automatically when `CARTA_COLLAB_API_URL` is not set, enabling zero-config MCP when Carta Desktop is running.
 
 ## Preferences
 
@@ -99,4 +119,4 @@ This boundary keeps the core focused and lets different consumers (enterprise, S
 | `@carta/compiler` | Done — compilation engine |
 | `@carta/web-client` | Done — extracted to `packages/web-client/` |
 | `@carta/server` | Done — collaboration server + MCP server, imports from `@carta/document` |
-| `@carta/desktop` | Future |
+| `@carta/desktop` | Done — Electron app with embedded document server, MCP bundling |

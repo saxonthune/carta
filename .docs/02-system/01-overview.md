@@ -60,7 +60,7 @@ Target dependency graph (packages can only depend on packages above them):
         @carta/desktop
 ```
 
-Currently `@carta/domain`, `@carta/document`, `@carta/compiler`, `@carta/server`, and `@carta/web-client` exist as packages.
+Currently `@carta/domain`, `@carta/document`, `@carta/compiler`, `@carta/server`, `@carta/web-client`, and `@carta/desktop` exist as packages.
 
 ## Data Flow
 

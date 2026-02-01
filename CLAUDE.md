@@ -108,11 +108,11 @@ Packages can only depend on packages above them in the graph.
 | `@carta/compiler` | `packages/compiler/` | Compilation engine (Carta → AI-readable output) |
 | `@carta/web-client` | `packages/web-client/` | React web app (currently `src/`) |
 | `@carta/server` | `packages/server/` | Collaboration server + MCP server |
-| `@carta/desktop` | `packages/desktop/` | Electron desktop app |
+| `@carta/desktop` | `packages/desktop/` | Electron desktop app with embedded document server |
 
 ### Current state
 
-Implemented packages: `@carta/types`, `@carta/domain`, `@carta/document`, `@carta/compiler`, `@carta/server`, and `@carta/web-client`. Cross-package dependencies are resolved via Vite/TypeScript aliases.
+Implemented packages: `@carta/types`, `@carta/domain`, `@carta/document`, `@carta/compiler`, `@carta/server`, `@carta/web-client`, and `@carta/desktop`. Cross-package dependencies are resolved via Vite/TypeScript aliases.
 
 - `@carta/core` (`packages/core/`) - **STALE**: divergent types the server still depends on; needs reconciliation with `@carta/domain`
 - `packages/app/` - **Dead code**: no TS files, should be deleted
@@ -199,6 +199,18 @@ pnpm dev:client   # Start client in server mode
 
 Visit `http://localhost:5173/?doc=my-document-id` to open a specific document.
 
+### Desktop Mode
+- **Purpose**: Desktop app with embedded server, MCP integration
+- **Storage**: Filesystem (binary Y.Doc snapshots in `{userData}/documents/`)
+- **Architecture**: Embedded HTTP+WebSocket server in Electron main process
+- **MCP**: Auto-discovered via `server.json`, zero-config with Claude Desktop
+- **UI**: Settings > Copy MCP Config for Claude Desktop integration
+
+```bash
+cd packages/desktop
+pnpm dev          # Build + launch Electron (connects to Vite dev server)
+```
+
 ### Key Files
 
 **@carta/document** (shared Y.Doc operations, platform-agnostic):
@@ -264,6 +276,15 @@ Visit `http://localhost:5173/?doc=my-document-id` to open a specific document.
 | `packages/web-client/src/components/ui/DraggableWindow.tsx` | Draggable, pinnable window component for full view modal (no backdrop, island UX) |
 | `packages/web-client/src/components/modals/ConstructFullViewModal.tsx` | Full view window displaying all node information: fields, deployable, identity, connections, compile preview |
 | `packages/web-client/src/components/canvas/DeployableBackground.tsx` | Deployable background renderer with LOD-aware font sizing |
+
+**Desktop** (Electron app):
+
+| File | Purpose |
+|------|---------|
+| `packages/desktop/src/main/index.ts` | Electron main process: starts embedded server, creates window, IPC handlers |
+| `packages/desktop/src/main/server.ts` | Embedded HTTP + WebSocket document server with filesystem persistence |
+| `packages/desktop/src/main/config.ts` | Dev/prod detection, renderer URL resolution |
+| `packages/desktop/src/preload/index.ts` | Preload: exposes isDesktop, server info, MCP config IPC to renderer |
 
 ## Key Design Principles
 
@@ -368,6 +389,14 @@ packages/web-client/src/hooks/useUndoRedo.ts                   → Y.UndoManager
 packages/web-client/src/main.tsx                               → VITE_STATIC_MODE flag (determines UI visibility)
 packages/web-client/src/components/modals/DocumentBrowserModal.tsx    → Document browser/selector for server mode
 packages/web-client/src/components/ConnectionStatus.tsx        → Connection status indicator
+```
+
+### Modify desktop embedded server
+```
+packages/desktop/src/main/server.ts                → HTTP routes, WebSocket sync, filesystem persistence
+packages/desktop/src/main/index.ts                 → Server lifecycle, IPC handlers, MCP config
+packages/desktop/src/preload/index.ts              → Desktop API exposed to renderer
+packages/web-client/src/config/featureFlags.ts     → Desktop mode detection and auto-configuration
 ```
 
 ### Modify header behavior or add modals
