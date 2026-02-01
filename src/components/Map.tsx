@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, useMemo } from 'react';
+import { useCallback, useEffect, useState, useMemo, useRef } from 'react';
 import {
   ReactFlow,
   Controls,
@@ -31,7 +31,7 @@ import { useConnections } from '../hooks/useConnections';
 import { useClipboard } from '../hooks/useClipboard';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import type { ConstructValues, Deployable, ConstructNodeData, VirtualParentNodeData } from '@carta/domain';
-import SchemaCreationWizard from './SchemaCreationWizard';
+import ConstructEditor from './ConstructEditor';
 import BundledEdge from './BundledEdge';
 import ConstructFullViewModal from './ConstructFullViewModal';
 import { useEdgeBundling } from '../hooks/useEdgeBundling';
@@ -96,7 +96,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
   const { nodes, edges, setNodes, setEdges, getSchema, levels, activeLevel, copyNodesToLevel } = useDocument();
   const { adapter } = useDocumentContext();
   const schemaGroups = adapter.getSchemaGroups();
-  const { zoomIn: reactFlowZoomIn, zoomOut: reactFlowZoomOut, getViewport, setViewport } = useReactFlow();
+  const { getViewport, setViewport } = useReactFlow();
 
   // Custom zoom with smaller step (1.15x instead of default 1.2x)
   const customZoomIn = useCallback(() => {
@@ -110,6 +110,13 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
   }, [getViewport, setViewport]);
 
   // Create React Flow change handlers that work with the store
+  // TODO: Optimize Yjs updates during drag
+  // Currently, position updates sync to Yjs on every drag event.
+  // To optimize: batch position updates and only sync to Yjs on drag stop.
+  // Yjs has built-in batching, so this may not be critical for performance.
+  const isDraggingRef = useRef(false);
+  const draggedNodesRef = useRef<Set<string>>(new Set());
+
   const onNodesChange = useCallback((changes: NodeChange[]) => {
     setNodes((nds) => applyNodeChanges(changes, nds));
   }, [setNodes]);
@@ -122,7 +129,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
   const [addMenu, setAddMenu] = useState<AddMenuState | null>(null);
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
   const [renamingNodeId, setRenamingNodeId] = useState<string | null>(null);
-  const [showSchemaWizard, setShowSchemaWizard] = useState(false);
+  const [editorState, setEditorState] = useState<{ open: boolean; editSchema?: import('@carta/domain').ConstructSchema }>({ open: false });
   const [fullViewNodeId, setFullViewNodeId] = useState<string | null>(null);
   const { undo, redo, canUndo, canRedo } = useUndoRedo();
 
@@ -482,6 +489,17 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
   // Edge bundling: collapse parallel edges between same node pairs
   const { displayEdges } = useEdgeBundling(filteredEdges, nodes);
 
+  // Handle drag start/stop - no position sync needed on stop since it's already in state
+  const onNodeDragStart = useCallback((_event: React.MouseEvent, node: Node) => {
+    isDraggingRef.current = true;
+    draggedNodesRef.current.add(node.id);
+  }, []);
+
+  const onNodeDragStop = useCallback(() => {
+    isDraggingRef.current = false;
+    draggedNodesRef.current.clear();
+  }, []);
+
   return (
     <div className="w-full h-full relative" style={{ backgroundColor: 'var(--color-canvas)' }}>
       <ZoomDebug />
@@ -490,6 +508,8 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
         edges={displayEdges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        onNodeDragStart={onNodeDragStart}
+        onNodeDragStop={onNodeDragStop}
         onEdgesDelete={handleEdgesDelete}
         onConnect={onConnect}
         isValidConnection={isValidConnection}
@@ -569,15 +589,6 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
         />
       )}
 
-      <div className="absolute top-4 right-4 flex gap-2 z-10">
-        <button
-          className="px-5 py-2.5 text-sm font-medium bg-accent text-white border-none rounded-lg cursor-pointer shadow-md hover:bg-accent-hover hover:-translate-y-0.5 transition-all"
-          onClick={() => addNode()}
-        >
-          + Add Construct
-        </button>
-      </div>
-
       {contextMenu && (
         <ContextMenu
           x={contextMenu.x}
@@ -599,7 +610,16 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
           onAddRelatedConstruct={contextMenu.nodeId ? (constructType, fromPortId, toPortId) => addRelatedConstruct(contextMenu.nodeId!, constructType, fromPortId, toPortId) : undefined}
           canPaste={canPaste}
           onClose={closeContextMenu}
-          onNewConstructSchema={() => setShowSchemaWizard(true)}
+          onNewConstructSchema={() => setEditorState({ open: true })}
+          onEditSchema={(schemaType) => {
+            const schema = getSchema(schemaType);
+            if (schema) setEditorState({ open: true, editSchema: schema });
+          }}
+          constructType={(() => {
+            if (!contextMenu.nodeId) return undefined;
+            const node = nodes.find(n => n.id === contextMenu.nodeId);
+            return node?.type === 'construct' ? (node.data as ConstructNodeData).constructType : undefined;
+          })()}
           levels={levels}
           activeLevel={activeLevel}
           selectedNodeIds={selectedNodeIds}
@@ -616,10 +636,12 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
         />
       )}
 
-      <SchemaCreationWizard
-        isOpen={showSchemaWizard}
-        onClose={() => setShowSchemaWizard(false)}
-      />
+      {editorState.open && (
+        <ConstructEditor
+          editSchema={editorState.editSchema}
+          onClose={() => setEditorState({ open: false })}
+        />
+      )}
 
       {fullViewNodeId && (() => {
         const node = nodes.find(n => n.id === fullViewNodeId);

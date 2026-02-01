@@ -20,16 +20,18 @@ Every construct is an instance of a construct schema (doc03.01.06). The schema d
 
 Each construct has a **semantic ID**, auto-generated as `{type}-{timestamp}{random}`. This is the primary identifier used in connections, compiled output, and cross-references. There is no separate "name" field — the display title comes from the schema's `displayField` value, falling back to semantic ID.
 
-## Display Modes
+## Display Tiers
 
-- **Summary**: Default compact view showing title and primary fields
-- **Details**: Expanded view with all fields, connections tab, and full editing
-- **Pin details**: Keep details view open even when the node loses selection
-- **Full view modal**: Overlay showing complete construct with tabbed interface (details, connections)
+Fields are assigned to display tiers that control visibility at different levels of detail:
+
+- **Pill**: Node title field (max 1), shown in pill LOD mode
+- **Minimal**: Key attributes shown in collapsed/summary view
+- **Details**: Additional fields shown in expanded details view
+- **Full**: All remaining fields, only visible in full view modal
 
 ## Fields
 
-Field types: string, number, boolean, enum, date. Fields are edited inline on the node (details view) or in the full view modal. Each field has optional: default value, placeholder, required flag, show-in-minimal-display flag.
+Field types: string, number, boolean, enum, date. Fields are edited inline on the node (details view) or in the full view modal. Each field has optional: default value, placeholder, required flag. Fields are assigned to display tiers (pill, minimal, details, full) that control when they appear at different levels of detail.
 
 ## Background Color
 

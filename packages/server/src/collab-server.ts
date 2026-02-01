@@ -556,7 +556,6 @@ async function handleHttpRequest(req: http.IncomingMessage, res: http.ServerResp
         displayName: string;
         color: string;
         semanticDescription?: string;
-        displayField?: string;
         groupId?: string;
         fields: Array<{
           name: string;
@@ -567,7 +566,8 @@ async function handleHttpRequest(req: http.IncomingMessage, res: http.ServerResp
           default?: unknown;
           placeholder?: string;
           displayHint?: string;
-          showInMinimalDisplay?: boolean;
+          displayTier?: string;
+          displayOrder?: number;
         }>;
         ports?: Array<{
           id: string;
@@ -590,7 +590,6 @@ async function handleHttpRequest(req: http.IncomingMessage, res: http.ServerResp
         displayName: body.displayName,
         color: body.color,
         semanticDescription: body.semanticDescription,
-        displayField: body.displayField,
         groupId: body.groupId,
         fields: body.fields,
         ports: body.ports,

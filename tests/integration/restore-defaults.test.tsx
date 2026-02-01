@@ -275,8 +275,7 @@ describe('Restore Default Schemas', () => {
         displayName: 'Custom Controller',
         color: '#ff0000',
         description: 'Custom version',
-        displayField: 'name',
-        fields: [{ name: 'name', label: 'Name', type: 'string' as const }],
+        fields: [{ name: 'name', label: 'Name', type: 'string' as const, displayTier: 'pill' as const }],
         ports: [],
         compilation: { format: 'json' as const },
       };

@@ -43,8 +43,7 @@ interface ConstructSchema {
   displayName: string;    // Human-readable name
   color: string;          // Visual accent color (hex)
   semanticDescription?: string;   // AI context for compilation
-  displayField?: string;  // Field to use as node title
-  fields: FieldSchema[];  // Data fields
+  fields: FieldSchema[];  // Data fields (use displayTier on fields to control visibility)
   ports?: PortConfig[];   // Connection points
   backgroundColorPolicy?: 'defaultOnly' | 'tints' | 'any';  // Instance color picker mode
   portDisplayPolicy?: 'inline' | 'collapsed';                 // Port visibility mode
@@ -229,13 +228,19 @@ Constructs have two identifiers:
 
 Always use \`semanticId\` when referencing constructs in connections and generated code.
 
-## Display Names
+## Display Names and Display Tiers
+
+Each field has a \`displayTier\` property controlling when it appears:
+- \`pill\`: Used as the node title in pill/compact modes (max 1 per schema)
+- \`minimal\`: Shown in collapsed/summary view
+- \`details\`: Shown in expanded details view
+- \`full\`: Only shown in full view modal (default)
 
 Node titles are derived using:
-1. If schema has \`displayField\`, use that field's value
+1. If a field has \`displayTier: 'pill'\`, use that field's value
 2. Otherwise, use \`semanticId\`
 
-For example, a Controller with \`displayField: 'route'\` shows "/api/users" as its title.
+For example, a Controller with a \`route\` field at \`displayTier: 'pill'\` shows "/api/users" as its title.
 
 ## Visual Customization (Not Compiled)
 

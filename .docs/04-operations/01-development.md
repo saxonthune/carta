@@ -8,13 +8,13 @@ status: active
 ## Prerequisites
 
 - Node.js
-- npm
+- pnpm
 
 ## Quick Start
 
 ```bash
-npm install
-npm run dev          # Static mode (single-user, no server)
+pnpm install
+pnpm dev          # Static mode (single-user, no server)
 ```
 
 Visit `http://localhost:5173`.
@@ -22,8 +22,8 @@ Visit `http://localhost:5173`.
 ## Server Mode
 
 ```bash
-npm run server       # Start MongoDB + collaboration server
-npm run dev:client   # Start client in server mode
+pnpm server       # Start MongoDB + collaboration server
+pnpm dev:client   # Start client in server mode
 ```
 
 Visit `http://localhost:5173/?doc=my-document-id`.
@@ -32,7 +32,7 @@ Visit `http://localhost:5173/?doc=my-document-id`.
 
 Packages live in `packages/`. The web client lives in root `src/`. The domain package (`@carta/domain`) is resolved via Vite/TypeScript aliases.
 
-Currently existing packages: `@carta/domain`, `@carta/server`, `@carta/compiler`. See doc02.01 for the target dependency graph.
+Currently existing packages: `@carta/domain`, `@carta/server`, `@carta/compiler`, `@carta/storage`. See doc02.01 for the target dependency graph.
 
 ## Key Directories
 

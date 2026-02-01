@@ -53,7 +53,7 @@ Target dependency graph (packages can only depend on packages above them):
         @carta/desktop      @carta/cli
 ```
 
-Currently only `@carta/domain` and `@carta/server` exist as packages. The web client lives in root `src/`.
+Currently `@carta/domain`, `@carta/server`, `@carta/compiler`, and `@carta/storage` exist as packages. The web client lives in root `src/`.
 
 ## Data Flow
 

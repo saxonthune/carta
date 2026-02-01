@@ -4,7 +4,7 @@ import { toSnakeCase } from '../utils/stringUtils';
 import Input from './ui/Input';
 import Select from './ui/Select';
 import Textarea from './ui/Textarea';
-import type { FieldSchema, DataKind, DisplayHint } from '@carta/domain';
+import type { FieldSchema, DataKind, DisplayHint, DisplayTier } from '@carta/domain';
 
 interface FieldDefinitionEditorProps {
   field: FieldSchema;
@@ -149,15 +149,15 @@ export default function FieldDefinitionEditor({
           </div>
 
           <div className="mb-3">
-            <label className="flex items-center gap-2 text-xs font-medium text-content-muted cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={field.showInMinimalDisplay ?? false}
-                onChange={(e) => updateField({ showInMinimalDisplay: e.target.checked })}
-                className="w-4 h-4 accent-[var(--color-accent)]"
-              />
-              Show in Collapsed
-            </label>
+            <label className="block mb-1.5 text-xs font-medium text-content-muted">Display Tier</label>
+            <Select
+              value={field.displayTier || 'full'}
+              onChange={(e) => updateField({ displayTier: e.target.value as DisplayTier })}
+            >
+              <option value="minimal">Minimal (collapsed view)</option>
+              <option value="details">Details (expanded view)</option>
+              <option value="full">Full (full view only)</option>
+            </Select>
           </div>
 
           {field.type === 'enum' && (

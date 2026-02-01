@@ -111,7 +111,7 @@ Packages can only depend on packages above them in the graph.
 
 ### Current state
 
-Only `@carta/domain` and `@carta/server` exist as packages. The web client lives in root `src/` and resolves `@carta/domain` via Vite/TypeScript aliases.
+Implemented packages: `@carta/types`, `@carta/domain`, `@carta/storage`, `@carta/compiler`, and `@carta/server`. The web client lives in root `src/` and resolves dependencies via Vite/TypeScript aliases.
 
 - `@carta/core` (`packages/core/`) - **STALE**: divergent types the server still depends on; needs reconciliation with `@carta/domain`
 - `packages/app/` - **Dead code**: no TS files, should be deleted
@@ -179,7 +179,7 @@ Carta supports two deployment modes determined at build time:
 - **Use case**: Personal use, demos, development
 
 ```bash
-npm run dev          # Static mode (VITE_STATIC_MODE=true)
+pnpm dev          # Static mode (VITE_STATIC_MODE=true)
 ```
 
 ### Server Mode
@@ -191,8 +191,8 @@ npm run dev          # Static mode (VITE_STATIC_MODE=true)
 - **Use case**: Team collaboration, shared projects
 
 ```bash
-npm run server       # Start MongoDB + collab server
-npm run dev:client   # Start client in server mode
+pnpm server       # Start MongoDB + collab server
+pnpm dev:client   # Start client in server mode
 ```
 
 Visit `http://localhost:5173/?doc=my-document-id` to open a specific document.
@@ -235,8 +235,7 @@ Visit `http://localhost:5173/?doc=my-document-id` to open a specific document.
 | `src/components/ExamplesModal.tsx` | Modal for loading example projects |
 | `src/components/DocumentBrowserModal.tsx` | Document browser/selector for server mode |
 | `src/components/ConnectionStatus.tsx` | Connection status indicator (server mode only) |
-| `src/components/SchemaCreationWizard.tsx` | Multi-step wizard for creating/editing construct schemas |
-| `src/components/ui/WizardModal.tsx` | Reusable multi-step wizard modal shell |
+| `src/components/ConstructEditor.tsx` | Full-screen schema editor with tabs (Basics/Fields/Ports) and live preview |
 | `src/components/ui/ContextMenuPrimitive.tsx` | Reusable context menu primitive with nested submenu support |
 | `src/components/ui/PortPickerPopover.tsx` | Port picker popover for collapsed port nodes |
 | `src/components/BundledEdge.tsx` | Custom edge component for bundled parallel edges |
@@ -358,8 +357,7 @@ src/components/Header.tsx                  → Header controls: title, export/im
 src/components/ProjectInfoModal.tsx        → Edit project title and description
 src/components/ExamplesModal.tsx           → Load example projects from bundled .carta files
 src/components/DocumentBrowserModal.tsx    → Browse/create/select documents (server mode, required on ?doc= missing)
-src/components/SchemaCreationWizard.tsx    → Multi-step wizard for creating/editing schemas
-src/components/ui/WizardModal.tsx          → Reusable wizard modal shell (steps, navigation, layout)
+src/components/ConstructEditor.tsx         → Full-screen schema editor with tabs and live preview
 src/utils/examples.ts                      → Load examples using Vite's import.meta.glob
 ```
 
@@ -394,8 +392,8 @@ src/index.css                              → text-halo utility for legible tex
 
 Run the test suites:
 ```bash
-npm run test          # Integration tests (Vitest)
-npm run test:e2e      # E2E tests (Playwright)
+pnpm test          # Integration tests (Vitest)
+pnpm test:e2e      # E2E tests (Playwright)
 ```
 
 If tests fail after your changes, fix them before proceeding.

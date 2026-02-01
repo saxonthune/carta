@@ -102,6 +102,7 @@ App.tsx (layout orchestration)
 |---------|------|--------|-----------|
 | Canvas (instances) | Nodes, edges, connections | Build architecture | Map.tsx, useGraphOperations |
 | Metamap (schemas) | Schemas, groups, port schemas | Define types | Metamap.tsx |
+| Schema editing | Schema form, field tiers, ports | Create/edit types | ConstructEditor.tsx |
 | Compilation | Compiled output | Generate AI output | compiler/index.ts |
 | Import/Export | File I/O | Persist and share | cartaFile.ts |
 | AI Assistant | Chat, tool calls | AI-assisted editing | ai/ directory |

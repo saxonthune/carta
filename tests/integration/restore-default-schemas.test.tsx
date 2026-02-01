@@ -54,8 +54,7 @@ describe('Restore Default Schemas', () => {
       act(() => {
         adapter.addSchema({
           type: 'CustomType',
-          displayField: 'name',
-          fields: [{ name: 'name', type: 'string' }],
+          fields: [{ name: 'name', type: 'string', displayTier: 'pill' }],
           ports: [],
         });
       });
@@ -462,14 +461,12 @@ describe('Restore Default Schemas', () => {
             builtInConstructSchemas[0], // One built-in
             {
               type: 'CustomType1',
-              displayField: 'name',
-              fields: [{ name: 'name', type: 'string' }],
+              fields: [{ name: 'name', type: 'string', displayTier: 'pill' }],
               ports: [],
             },
             {
               type: 'CustomType2',
-              displayField: 'title',
-              fields: [{ name: 'title', type: 'string' }],
+              fields: [{ name: 'title', type: 'string', displayTier: 'pill' }],
               ports: [],
             },
           ]);

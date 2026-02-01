@@ -1,20 +1,34 @@
-import type { ConstructNodeData, ConstructSchema } from '../types/index.js';
+import type { ConstructNodeData, ConstructSchema, FieldSchema, DisplayTier } from '../types/index.js';
 
 /**
  * Get the display name for a construct instance
- * Uses the displayField value if available, otherwise falls back to semanticId
+ * Uses the pill-tier field value if available, otherwise falls back to semanticId
  */
 export function getDisplayName(
   data: ConstructNodeData,
   schema: ConstructSchema | undefined
 ): string {
-  // If schema has displayField and the field has a value, use it
-  if (schema?.displayField && data.values[schema.displayField]) {
-    const value = data.values[schema.displayField];
-    return String(value);
+  if (schema) {
+    // Find the field with displayTier === 'pill'
+    const pillField = schema.fields.find(f => f.displayTier === 'pill');
+    if (pillField && data.values[pillField.name]) {
+      return String(data.values[pillField.name]);
+    }
   }
   // Fallback to semanticId
   return data.semanticId;
+}
+
+/**
+ * Get fields for a specific display tier, sorted by displayOrder
+ */
+export function getFieldsForTier(
+  schema: ConstructSchema,
+  tier: DisplayTier
+): FieldSchema[] {
+  return schema.fields
+    .filter(f => f.displayTier === tier)
+    .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
 }
 
 /**

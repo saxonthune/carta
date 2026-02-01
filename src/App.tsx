@@ -8,6 +8,8 @@ import Header from './components/Header';
 import Map from './components/Map';
 import Metamap from './components/Metamap';
 import Footer from './components/Footer';
+import ViewToggle from './components/ViewToggle';
+import LevelSwitcher from './components/LevelSwitcher';
 import { compiler } from '@carta/compiler';
 import { builtInConstructSchemas, builtInPortSchemas, builtInSchemaGroups, syncWithDocumentStore } from '@carta/domain';
 import type { ConstructSchema } from '@carta/domain';
@@ -227,17 +229,26 @@ function App() {
         onRestoreDefaultSchemas={handleRestoreDefaultSchemas}
         onToggleAI={() => setAiSidebarOpen(!aiSidebarOpen)}
         onLoadExample={handleLoadExample}
-        viewMode={viewMode}
-        onToggleMetamap={() => setViewMode(viewMode === 'instances' ? 'metamap' : 'instances')}
-        levels={levels}
-        activeLevel={activeLevel}
-        onSetActiveLevel={setActiveLevel}
-        onCreateLevel={createLevel}
-        onDeleteLevel={deleteLevel}
-        onUpdateLevel={updateLevel}
-        onDuplicateLevel={duplicateLevel}
       />
-      <div ref={containerRef} className="flex-1 min-h-0 flex flex-col">
+      <div ref={containerRef} className="flex-1 min-h-0 flex flex-col relative">
+        {/* Canvas toolbar overlay */}
+        <div className="absolute top-3 left-0 right-0 z-10 flex justify-center pointer-events-none">
+          <div className="pointer-events-auto">
+            <ViewToggle mode={viewMode} onChange={setViewMode} />
+          </div>
+        </div>
+        <div className="absolute top-3 right-3 z-10 pointer-events-auto">
+          <LevelSwitcher
+            levels={levels}
+            activeLevel={activeLevel}
+            onSetActiveLevel={setActiveLevel}
+            onCreateLevel={createLevel}
+            onDeleteLevel={deleteLevel}
+            onUpdateLevel={updateLevel}
+            onDuplicateLevel={duplicateLevel}
+          />
+        </div>
+
         <div className="flex-1 min-h-0">
           {viewMode === 'instances' ? (
             <ReactFlowProvider>

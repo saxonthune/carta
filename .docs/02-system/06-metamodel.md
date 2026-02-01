@@ -99,7 +99,8 @@ Defines a data slot on a construct type:
 | `description` | AI compilation context |
 | `options` | Enum choices (enum type only) |
 | `displayHint` | Rendering hint (string type only) |
-| `displayInMap` | Whether to show in the map node summary |
+| `displayTier` | Display tier: `pill`, `minimal`, `details`, or `full` |
+| `displayOrder` | Sort order within the assigned tier |
 
 ### PortConfig
 

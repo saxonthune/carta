@@ -13,7 +13,7 @@ import {
 import SchemaNode from './SchemaNode';
 import SchemaGroupNode from './SchemaGroupNode';
 import MetamapConnectionModal from './MetamapConnectionModal';
-import SchemaCreationWizard from './SchemaCreationWizard';
+import ConstructEditor from './ConstructEditor';
 import ContextMenu from '../ContextMenu';
 import { useDocument } from '../hooks/useDocument';
 import { useMetamapLayout } from '../hooks/useMetamapLayout';
@@ -34,8 +34,8 @@ interface ConnectionModalState {
 function MetamapInner() {
   const { schemas, schemaGroups, getSchema, updateSchema, addSchemaGroup } = useDocument();
   const [connectionModal, setConnectionModal] = useState<ConnectionModalState | null>(null);
-  const [schemaWizardOpen, setSchemaWizardOpen] = useState(false);
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+  const [editorState, setEditorState] = useState<{ open: boolean; editSchema?: ConstructSchema }>({ open: false });
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; schemaType?: string } | null>(null);
   const { nodes: layoutNodes, edges, reLayout } = useMetamapLayout(schemas, schemaGroups);
   const [nodes, setNodes] = useState<Node[]>([]);
   const [dragHoverGroupId, setDragHoverGroupId] = useState<string | null>(null);
@@ -184,8 +184,15 @@ function MetamapInner() {
     setContextMenu({ x: event.clientX, y: event.clientY });
   }, []);
 
+  const onNodeContextMenu = useCallback((event: React.MouseEvent, node: Node) => {
+    event.preventDefault();
+    if (node.type === 'schema-node') {
+      setContextMenu({ x: event.clientX, y: event.clientY, schemaType: node.id });
+    }
+  }, []);
+
   const handleNewSchemaType = useCallback(() => {
-    setSchemaWizardOpen(true);
+    setEditorState({ open: true });
   }, []);
 
   const handleNewGroup = useCallback(() => {
@@ -253,6 +260,7 @@ function MetamapInner() {
         onNodeDragStop={onNodeDragStop}
         onConnect={onConnect}
         onPaneContextMenu={onPaneContextMenu}
+        onNodeContextMenu={onNodeContextMenu}
         fitView
         nodesDraggable
         nodesConnectable
@@ -278,18 +286,28 @@ function MetamapInner() {
           onCancel={() => setConnectionModal(null)}
         />
       )}
-      {schemaWizardOpen && (
-        <SchemaCreationWizard isOpen={schemaWizardOpen} onClose={() => setSchemaWizardOpen(false)} />
-      )}
       {contextMenu && (
         <ContextMenu
           x={contextMenu.x}
           y={contextMenu.y}
-          type="pane"
-          selectedCount={0}
+          type={contextMenu.schemaType ? 'node' : 'pane'}
+          selectedCount={contextMenu.schemaType ? 1 : 0}
+          constructType={contextMenu.schemaType}
+          constructOptions={schemas.map(s => ({ constructType: s.type, displayName: s.displayName, color: s.color, groupId: s.groupId }))}
+          schemaGroups={schemaGroups}
           onClose={() => setContextMenu(null)}
           onNewConstructSchema={handleNewSchemaType}
           onNewGroup={handleNewGroup}
+          onEditSchema={(schemaType) => {
+            const schema = getSchema(schemaType);
+            if (schema) setEditorState({ open: true, editSchema: schema });
+          }}
+        />
+      )}
+      {editorState.open && (
+        <ConstructEditor
+          editSchema={editorState.editSchema}
+          onClose={() => setEditorState({ open: false })}
         />
       )}
     </div>

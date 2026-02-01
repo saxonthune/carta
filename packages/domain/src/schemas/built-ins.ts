@@ -126,7 +126,6 @@ export const builtInConstructSchemas: ConstructSchema[] = [
     color: '#6366f1',
     semanticDescription: 'HTTP REST API endpoint controller',
     groupId: 'api',
-    displayField: 'route',
     ports: [
       { id: 'flow-in', portType: 'flow-in', position: 'left', offset: 50, label: 'Flow In', semanticDescription: 'Incoming request flow from upstream' },
       { id: 'flow-out', portType: 'flow-out', position: 'right', offset: 50, label: 'Flow Out', semanticDescription: 'Downstream flow to services or handlers' },
@@ -140,6 +139,8 @@ export const builtInConstructSchemas: ConstructSchema[] = [
         semanticDescription: 'URL path pattern for this endpoint',
         default: '/api/',
         placeholder: '/api/users/{id}',
+        displayTier: 'pill',
+        displayOrder: 0,
       },
       {
         name: 'verb',
@@ -148,6 +149,8 @@ export const builtInConstructSchemas: ConstructSchema[] = [
         semanticDescription: 'HTTP method for this endpoint',
         options: [{ value: 'GET' }, { value: 'POST' }, { value: 'PUT' }, { value: 'PATCH' }, { value: 'DELETE' }],
         default: 'GET',
+        displayTier: 'minimal',
+        displayOrder: 1,
       },
       {
         name: 'summary',
@@ -155,6 +158,8 @@ export const builtInConstructSchemas: ConstructSchema[] = [
         type: 'string',
         semanticDescription: 'Brief description of endpoint purpose and behavior',
         placeholder: 'Brief description of this endpoint',
+        displayTier: 'details',
+        displayOrder: 2,
       },
       {
         name: 'responseType',
@@ -163,6 +168,8 @@ export const builtInConstructSchemas: ConstructSchema[] = [
         semanticDescription: 'Expected return type of this endpoint',
         options: [{ value: 'object' }, { value: 'array' }, { value: 'string' }, { value: 'number' }, { value: 'boolean' }, { value: 'void' }],
         default: 'object',
+        displayTier: 'details',
+        displayOrder: 3,
       },
     ],
     suggestedRelated: [
@@ -186,7 +193,6 @@ export const builtInConstructSchemas: ConstructSchema[] = [
     color: '#f59e0b',
     semanticDescription: 'Database instance or schema container',
     groupId: 'database',
-    displayField: 'engine',
     ports: [
       { id: 'child', portType: 'child', position: 'bottom', offset: 50, label: 'Tables', semanticDescription: 'Tables that belong to this database' },
       { id: 'link-in', portType: 'flow-in', position: 'left', offset: 50, label: 'Referenced By', semanticDescription: 'External constructs referencing this database' },
@@ -199,6 +205,8 @@ export const builtInConstructSchemas: ConstructSchema[] = [
         semanticDescription: 'Database management system type',
         options: [{ value: 'PostgreSQL' }, { value: 'MySQL' }, { value: 'SQLite' }, { value: 'SQL Server' }, { value: 'MongoDB' }],
         default: 'PostgreSQL',
+        displayTier: 'pill',
+        displayOrder: 0,
       },
       {
         name: 'note',
@@ -206,6 +214,8 @@ export const builtInConstructSchemas: ConstructSchema[] = [
         type: 'string',
         semanticDescription: 'Additional notes or context about this database',
         placeholder: 'Description of this database',
+        displayTier: 'details',
+        displayOrder: 1,
       },
     ],
     suggestedRelated: [
@@ -235,7 +245,6 @@ export const builtInConstructSchemas: ConstructSchema[] = [
     color: '#8b5cf6',
     semanticDescription: 'Database table or entity',
     groupId: 'database',
-    displayField: 'tableName',
     ports: [
       { id: 'parent', portType: 'parent', position: 'top', offset: 50, label: 'Database', semanticDescription: 'Database that owns this table' },
       { id: 'link-in', portType: 'flow-in', position: 'left', offset: 50, label: 'Referenced By', semanticDescription: 'Tables or constructs that reference this table' },
@@ -249,6 +258,8 @@ export const builtInConstructSchemas: ConstructSchema[] = [
         type: 'string',
         semanticDescription: 'Name of the database table',
         placeholder: 'e.g., users, orders',
+        displayTier: 'pill',
+        displayOrder: 0,
       },
       {
         name: 'columns',
@@ -256,6 +267,8 @@ export const builtInConstructSchemas: ConstructSchema[] = [
         type: 'string',
         semanticDescription: 'Column definitions for this table',
         placeholder: 'e.g., email VARCHAR(255)',
+        displayTier: 'details',
+        displayOrder: 1,
       },
       {
         name: 'constraints',
@@ -263,6 +276,8 @@ export const builtInConstructSchemas: ConstructSchema[] = [
         type: 'string',
         semanticDescription: 'Table-level constraints and rules',
         placeholder: 'e.g., (email) [unique], (age) [not null]',
+        displayTier: 'full',
+        displayOrder: 2,
       },
     ],
     suggestedRelated: [
@@ -297,12 +312,11 @@ export const builtInConstructSchemas: ConstructSchema[] = [
     color: '#8b5cf6',
     semanticDescription: 'A database table attribute/column',
     groupId: 'database',
-    displayField: 'name',
     fields: [
-      { name: 'name', label: 'Name', type: 'string', semanticDescription: 'Column name' },
-      { name: 'dataType', label: 'Type', type: 'enum', semanticDescription: 'SQL data type for this column', options: [{ value: 'VARCHAR' }, { value: 'INT' }, { value: 'BIGINT' }, { value: 'BOOLEAN' }, { value: 'DATE' }, { value: 'TIMESTAMP' }, { value: 'TEXT' }, { value: 'JSON' }] },
-      { name: 'primaryKey', label: 'Primary Key', type: 'boolean', semanticDescription: 'Whether this column is part of the primary key', default: false },
-      { name: 'nullable', label: 'Nullable', type: 'boolean', semanticDescription: 'Whether this column allows NULL values', default: true },
+      { name: 'name', label: 'Name', type: 'string', semanticDescription: 'Column name', displayTier: 'pill', displayOrder: 0 },
+      { name: 'dataType', label: 'Type', type: 'enum', semanticDescription: 'SQL data type for this column', options: [{ value: 'VARCHAR' }, { value: 'INT' }, { value: 'BIGINT' }, { value: 'BOOLEAN' }, { value: 'DATE' }, { value: 'TIMESTAMP' }, { value: 'TEXT' }, { value: 'JSON' }], displayTier: 'minimal', displayOrder: 1, default: 'VARCHAR' },
+      { name: 'primaryKey', label: 'Primary Key', type: 'boolean', semanticDescription: 'Whether this column is part of the primary key', default: false, displayTier: 'details', displayOrder: 2 },
+      { name: 'nullable', label: 'Nullable', type: 'boolean', semanticDescription: 'Whether this column allows NULL values', default: true, displayTier: 'details', displayOrder: 3 },
     ],
     ports: [
       { id: 'parent', portType: 'parent', position: 'top', offset: 50, label: 'Table', semanticDescription: 'Table that owns this attribute' },
@@ -325,12 +339,11 @@ export const builtInConstructSchemas: ConstructSchema[] = [
     color: '#a78bfa',
     semanticDescription: 'A database constraint (unique, foreign key, check, etc.)',
     groupId: 'database',
-    displayField: 'name',
     fields: [
-      { name: 'name', label: 'Name', type: 'string', semanticDescription: 'Constraint name identifier', placeholder: 'e.g., fk_user_profile' },
-      { name: 'constraintType', label: 'Type', type: 'enum', semanticDescription: 'Type of database constraint', options: [{ value: 'PRIMARY KEY' }, { value: 'UNIQUE' }, { value: 'FOREIGN KEY' }, { value: 'CHECK' }, { value: 'NOT NULL' }, { value: 'DEFAULT' }], default: 'UNIQUE' },
-      { name: 'columns', label: 'Columns', type: 'string', semanticDescription: 'Columns affected by this constraint', placeholder: 'e.g., user_id, profile_id' },
-      { name: 'definition', label: 'Definition', type: 'string', semanticDescription: 'Full SQL constraint definition', displayHint: 'code', placeholder: 'Detailed constraint definition' },
+      { name: 'name', label: 'Name', type: 'string', semanticDescription: 'Constraint name identifier', placeholder: 'e.g., fk_user_profile', displayTier: 'pill', displayOrder: 0 },
+      { name: 'constraintType', label: 'Type', type: 'enum', semanticDescription: 'Type of database constraint', options: [{ value: 'PRIMARY KEY' }, { value: 'UNIQUE' }, { value: 'FOREIGN KEY' }, { value: 'CHECK' }, { value: 'NOT NULL' }, { value: 'DEFAULT' }], default: 'UNIQUE', displayTier: 'minimal', displayOrder: 1 },
+      { name: 'columns', label: 'Columns', type: 'string', semanticDescription: 'Columns affected by this constraint', placeholder: 'e.g., user_id, profile_id', displayTier: 'details', displayOrder: 2 },
+      { name: 'definition', label: 'Definition', type: 'string', semanticDescription: 'Full SQL constraint definition', displayHint: 'code', placeholder: 'Detailed constraint definition', displayTier: 'full', displayOrder: 3 },
     ],
     ports: [
       { id: 'parent', portType: 'parent', position: 'top', offset: 50, label: 'Table', semanticDescription: 'Table that owns this constraint' },
@@ -353,7 +366,6 @@ export const builtInConstructSchemas: ConstructSchema[] = [
     color: '#6366f1',
     semanticDescription: 'Request or response model for an API endpoint',
     groupId: 'api',
-    displayField: 'modelName',
     fields: [
       {
         name: 'modelName',
@@ -361,6 +373,8 @@ export const builtInConstructSchemas: ConstructSchema[] = [
         type: 'string',
         semanticDescription: 'Name of the request or response model type',
         placeholder: 'e.g., CreateUserRequest, UserResponse',
+        displayTier: 'pill',
+        displayOrder: 0,
       },
       {
         name: 'modelType',
@@ -369,7 +383,8 @@ export const builtInConstructSchemas: ConstructSchema[] = [
         semanticDescription: 'Whether this is a request or response model',
         options: [{ value: 'request' }, { value: 'response' }],
         default: 'request',
-        showInMinimalDisplay: true,
+        displayTier: 'minimal',
+        displayOrder: 1,
       },
       {
         name: 'data',
@@ -377,6 +392,8 @@ export const builtInConstructSchemas: ConstructSchema[] = [
         type: 'string',
         semanticDescription: 'Structure and fields of the model',
         placeholder: 'Describe the data structure',
+        displayTier: 'details',
+        displayOrder: 2,
       },
     ],
     ports: [
@@ -400,7 +417,6 @@ export const builtInConstructSchemas: ConstructSchema[] = [
     color: '#10b981',
     semanticDescription: 'A user interaction or event in the UI',
     groupId: 'ui',
-    displayField: 'eventName',
     fields: [
       {
         name: 'eventName',
@@ -408,6 +424,8 @@ export const builtInConstructSchemas: ConstructSchema[] = [
         type: 'string',
         semanticDescription: 'Name of the UI event or user action',
         placeholder: 'e.g., Click Submit, Load Page',
+        displayTier: 'pill',
+        displayOrder: 0,
       },
       {
         name: 'trigger',
@@ -415,6 +433,8 @@ export const builtInConstructSchemas: ConstructSchema[] = [
         type: 'string',
         semanticDescription: 'What causes this event to fire',
         placeholder: 'What triggers this event?',
+        displayTier: 'minimal',
+        displayOrder: 1,
       },
       {
         name: 'description',
@@ -422,6 +442,8 @@ export const builtInConstructSchemas: ConstructSchema[] = [
         type: 'string',
         semanticDescription: 'Detailed description of the event behavior and purpose',
         placeholder: 'Describe the event or user action',
+        displayTier: 'details',
+        displayOrder: 2,
       },
     ],
     ports: [
@@ -446,7 +468,6 @@ export const builtInConstructSchemas: ConstructSchema[] = [
     color: '#3b82f6',
     semanticDescription: 'A screen or view in the user interface',
     groupId: 'ui',
-    displayField: 'screenName',
     fields: [
       {
         name: 'screenName',
@@ -454,6 +475,8 @@ export const builtInConstructSchemas: ConstructSchema[] = [
         type: 'string',
         semanticDescription: 'Name of the UI screen or view',
         placeholder: 'e.g., Login, Dashboard, Profile',
+        displayTier: 'pill',
+        displayOrder: 0,
       },
       {
         name: 'description',
@@ -461,6 +484,8 @@ export const builtInConstructSchemas: ConstructSchema[] = [
         type: 'string',
         semanticDescription: 'Purpose and content of this screen',
         placeholder: 'Describe the screen or view',
+        displayTier: 'details',
+        displayOrder: 1,
       },
     ],
     ports: [
@@ -491,7 +516,6 @@ export const builtInConstructSchemas: ConstructSchema[] = [
     color: '#10b981',
     semanticDescription: 'A user story or requirement',
     groupId: 'software-architecture',
-    displayField: 'title',
     fields: [
       {
         name: 'title',
@@ -499,6 +523,8 @@ export const builtInConstructSchemas: ConstructSchema[] = [
         type: 'string',
         semanticDescription: 'Short title summarizing the user story',
         placeholder: 'e.g., User Login, Create Account',
+        displayTier: 'pill',
+        displayOrder: 0,
       },
       {
         name: 'description',
@@ -506,7 +532,8 @@ export const builtInConstructSchemas: ConstructSchema[] = [
         type: 'string',
         semanticDescription: 'Full user story in "As a X, I want Y, so that Z" format',
         placeholder: 'As a [user], I want [goal] so that [benefit]',
-        showInMinimalDisplay: true,
+        displayTier: 'minimal',
+        displayOrder: 1,
       },
     ],
     ports: [
@@ -539,7 +566,8 @@ export const builtInConstructSchemas: ConstructSchema[] = [
         displayHint: 'multiline',
         semanticDescription: 'Freeform note content',
         placeholder: 'Type here...',
-        showInMinimalDisplay: true,
+        displayTier: 'minimal',
+        displayOrder: 0,
       },
     ],
     ports: [
@@ -557,7 +585,6 @@ export const builtInConstructSchemas: ConstructSchema[] = [
     displayName: 'Implementation Details',
     color: '#6b7280',
     semanticDescription: 'Technical implementation notes and documentation',
-    displayField: 'details',
     ports: [
       { id: 'link', portType: 'symmetric', position: 'left', offset: 50, label: 'Related To', semanticDescription: 'Bidirectional relationship to related constructs' },
     ],
@@ -570,6 +597,8 @@ export const builtInConstructSchemas: ConstructSchema[] = [
         displayHint: 'code',
         placeholder: 'Enter implementation details, notes, or documentation here...',
         default: '',
+        displayTier: 'pill',
+        displayOrder: 0,
       },
     ],
     compilation: {

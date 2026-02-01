@@ -15,6 +15,8 @@ Canonical definitions for domain terms used throughout Carta. Use these terms co
 
 **Field**: A named data slot on a construct schema. Types include string, number, boolean, enum, and date. Field values are the user-entered data on construct instances.
 
+**Display Tier**: The visibility level assigned to a field on a construct schema. Four tiers: `pill` (node title, max 1 field), `minimal` (collapsed/summary view), `details` (expanded details view), `full` (only in full view modal). Controls which fields appear at different levels of detail.
+
 **Semantic ID**: A unique identifier for a construct instance, auto-generated as `{type}-{timestamp}{random}`. Used as the primary identifier throughout the system, including in compiled output.
 
 **Display Name**: The human-readable title of a construct instance, derived from the schema's `displayField` value or falling back to the semantic ID.

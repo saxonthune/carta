@@ -28,7 +28,7 @@ The LOD system solves this by rendering simplified node representations at lower
 
 **Use case**: Viewing entire architecture at a glance
 
-### Compact Mode (zoom 0.5-1.0)
+### Minimal Mode (zoom 0.5-1.0)
 **Purpose**: Middle ground - identify nodes without full detail
 
 **Rendering**:
@@ -57,7 +57,7 @@ The LOD system solves this by rendering simplified node representations at lower
 File: `src/components/lod/lodPolicy.ts`
 
 ```typescript
-export type LodBand = 'pill' | 'compact' | 'normal';
+export type LodBand = 'pill' | 'minimal' | 'normal';
 
 export interface LodBandConfig {
   band: LodBand;
@@ -67,7 +67,7 @@ export interface LodBandConfig {
 
 export const DEFAULT_LOD_POLICY: LodBandConfig[] = [
   { band: 'pill', minZoom: 0, maxZoom: 0.5 },
-  { band: 'compact', minZoom: 0.5, maxZoom: 1.0 },
+  { band: 'minimal', minZoom: 0.5, maxZoom: 1.0 },
   { band: 'normal', minZoom: 1.0, maxZoom: Infinity },
 ];
 ```
@@ -113,8 +113,8 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
     );
   }
   
-  // Compact mode: header + display value only
-  if (lod.band === 'compact') {
+  // Minimal mode: header + display value only
+  if (lod.band === 'minimal') {
     return (
       <div>
         <div className="text-halo" style={{ backgroundColor: schema.color }}>

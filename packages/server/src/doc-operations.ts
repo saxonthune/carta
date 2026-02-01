@@ -483,16 +483,12 @@ export function getSchema(ydoc: Y.Doc, type: string): ConstructSchema | null {
 function applySchemaDefaults(schema: any): any {
   const processed = { ...schema };
 
-  // Auto-detect primary fields and set showInMinimalDisplay (or displayInMap for legacy)
+  // Auto-detect primary fields and set displayTier
   const primaryFieldNames = ['name', 'title', 'label', 'summary', 'condition'];
   if (Array.isArray(processed.fields)) {
     processed.fields = processed.fields.map((field: any) => {
-      const propName = 'showInMinimalDisplay' in field || field.showInMinimalDisplay !== undefined
-        ? 'showInMinimalDisplay'
-        : 'displayInMap';
-
-      if (primaryFieldNames.includes(field.name.toLowerCase()) && field[propName] === undefined) {
-        return { ...field, [propName]: true };
+      if (primaryFieldNames.includes(field.name.toLowerCase()) && field.displayTier === undefined) {
+        return { ...field, displayTier: 'minimal' };
       }
       return field;
     });

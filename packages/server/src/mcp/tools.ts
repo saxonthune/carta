@@ -72,7 +72,6 @@ const CreateSchemaInputSchema = z.object({
   displayName: z.string().describe('Human-readable name'),
   color: z.string().describe('Hex color for the node'),
   semanticDescription: z.string().optional().describe('Description for AI context'),
-  displayField: z.string().optional().describe('Field to use as node title'),
   groupId: z.string().optional().describe('Schema group ID for organizing schemas'),
   backgroundColorPolicy: z.enum(['defaultOnly', 'tints', 'any']).optional().describe('Controls instance color picker: "defaultOnly" (no picker), "tints" (7 tint swatches), "any" (full color picker). Default: "defaultOnly"'),
   portDisplayPolicy: z.enum(['inline', 'collapsed']).optional().describe('Controls port display: "inline" (visible handles), "collapsed" (hidden, click icon to reveal). Default: "inline"'),
@@ -87,7 +86,8 @@ const CreateSchemaInputSchema = z.object({
         default: z.unknown().optional(),
         placeholder: z.string().optional(),
         displayHint: z.enum(['multiline', 'code', 'password', 'url', 'color']).optional(),
-        showInMinimalDisplay: z.boolean().optional().describe('Show this field when node is collapsed (auto-set for primary fields)'),
+        displayTier: z.enum(['pill', 'minimal', 'details', 'full']).optional().describe('Display tier: pill (node title), minimal (collapsed), details (expanded), full (modal only)'),
+        displayOrder: z.number().optional().describe('Sort order within a tier (default 0)'),
       })
     )
     .describe('Field definitions'),
@@ -164,10 +164,11 @@ export function getToolDefinitions() {
     {
       name: 'carta_create_schema',
       description: `Create a custom construct schema. Smart defaults:
-- Primary fields (name, title, label, summary, condition) auto-get showInMinimalDisplay=true
+- Primary fields (name, title, label, summary, condition) auto-get displayTier='minimal'
 - If no ports specified, adds default ports: flow-in (left), flow-out (right), parent (bottom), child (top)
 - backgroundColorPolicy defaults to 'defaultOnly' (no color picker); use 'tints' for 7 swatches or 'any' for full picker
 - portDisplayPolicy defaults to 'inline' (visible handles); use 'collapsed' for hidden ports with click-to-reveal
+- Use displayTier='pill' on a field to make it the node title (max 1 per schema)
 - For multiple related schemas, create them sequentially and consider grouping them with carta_create_deployable`,
       inputSchema: CreateSchemaInputSchema.shape,
     },
@@ -391,7 +392,6 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
           displayName: input.displayName,
           color: input.color,
           semanticDescription: input.semanticDescription,
-          displayField: input.displayField,
           backgroundColorPolicy: input.backgroundColorPolicy,
           portDisplayPolicy: input.portDisplayPolicy,
           fields: input.fields,

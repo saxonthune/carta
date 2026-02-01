@@ -15,6 +15,15 @@ export type DataKind = 'string' | 'number' | 'boolean' | 'date' | 'enum';
 export type DisplayHint = 'multiline' | 'code' | 'password' | 'url' | 'color';
 
 /**
+ * Display tier for field visibility at different node detail levels
+ * - 'pill': Used as the node title in pill/compact modes (max 1 per schema)
+ * - 'minimal': Shown in collapsed/summary view
+ * - 'details': Shown in expanded details view
+ * - 'full': Only shown in full view modal (default)
+ */
+export type DisplayTier = 'pill' | 'minimal' | 'details' | 'full';
+
+/**
  * Position of a port on the construct node
  */
 export type PortPosition = 'left' | 'right' | 'top' | 'bottom';
@@ -91,7 +100,8 @@ export interface FieldSchema {
   displayHint?: DisplayHint; // For string type presentation
   default?: unknown;
   placeholder?: string;
-  showInMinimalDisplay?: boolean;    // Show this field when node is collapsed on canvas
+  displayTier?: DisplayTier;           // Which detail level shows this field (default: 'full')
+  displayOrder?: number;               // Sort order within a tier (default: 0)
 }
 
 
@@ -149,7 +159,6 @@ export interface ConstructSchema {
   color: string;             // Node border/accent color
   icon?: string;             // Optional icon identifier
   semanticDescription?: string;      // Description shown during compilation (AI context)
-  displayField?: string;     // Field name to use as node title (fallback: semanticId)
   fields: FieldSchema[];
   ports?: PortConfig[];      // Port configurations for connections
   suggestedRelated?: SuggestedRelatedConstruct[]; // Suggested related constructs for quick-add

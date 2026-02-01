@@ -41,6 +41,8 @@ interface ContextMenuProps {
   onAddRelatedConstruct?: (constructType: string, fromPortId?: string, toPortId?: string) => void;
   onNewConstructSchema?: () => void;
   onNewGroup?: () => void;
+  onEditSchema?: (constructType: string) => void;
+  constructType?: string;
   canPaste?: boolean;
   onClose: () => void;
   // Level props for "Copy to Level"
@@ -120,6 +122,8 @@ export default function ContextMenu({
   onClose,
   onNewConstructSchema,
   onNewGroup,
+  onEditSchema,
+  constructType,
   levels,
   activeLevel,
   selectedNodeIds,
@@ -139,7 +143,7 @@ export default function ContextMenu({
     }
     return [];
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [type, nodeId, edgeId, selectedCount, relatedConstructs, constructOptions, canPaste, levels, activeLevel, selectedNodeIds]);
+  }, [type, nodeId, edgeId, selectedCount, relatedConstructs, constructOptions, canPaste, levels, activeLevel, selectedNodeIds, constructType, onEditSchema]);
 
   function buildPaneMenuItems(): MenuItem[] {
     const result: MenuItem[] = [];
@@ -198,6 +202,27 @@ export default function ContextMenu({
       }
     }
 
+    if (onEditSchema && constructOptions && constructOptions.length > 0) {
+      if (result.length > 0) {
+        result[result.length - 1].dividerAfter = true;
+      }
+      const children = groupIntoMenuItems(
+        constructOptions,
+        schemaGroups,
+        (c) => ({
+          key: `edit-schema-${c.constructType}`,
+          label: c.displayName,
+          color: c.color,
+          onClick: () => onEditSchema(c.constructType),
+        }),
+      );
+      result.push({
+        key: 'edit-schema',
+        label: 'Edit Schema',
+        children,
+      });
+    }
+
     return result;
   }
 
@@ -239,6 +264,15 @@ export default function ContextMenu({
         key: 'add-related',
         label: `Add Related (${relatedConstructs.length})`,
         children,
+      });
+    }
+
+    if (onEditSchema && constructType) {
+      result.push({
+        key: 'edit-schema',
+        label: 'Edit Schema',
+        onClick: () => onEditSchema(constructType),
+        dividerAfter: true,
       });
     }
 

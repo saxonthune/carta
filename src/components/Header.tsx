@@ -6,9 +6,7 @@ import ExamplesModal from './ExamplesModal';
 import ProjectInfoModal from './ProjectInfoModal';
 import ClearWorkspaceModal from './ClearWorkspaceModal';
 import RestoreDefaultSchemasModal from './RestoreDefaultSchemasModal';
-import LevelSwitcher from './LevelSwitcher';
 import { getExamples, type Example } from '../utils/examples';
-import type { Level } from '@carta/domain';
 
 interface HeaderProps {
   title: string;
@@ -22,16 +20,6 @@ interface HeaderProps {
   onRestoreDefaultSchemas?: () => void;
   onToggleAI?: () => void;
   onLoadExample?: (example: Example) => void;
-  viewMode?: 'instances' | 'metamap';
-  onToggleMetamap?: () => void;
-  // Level props
-  levels?: Level[];
-  activeLevel?: string;
-  onSetActiveLevel?: (levelId: string) => void;
-  onCreateLevel?: (name: string) => void;
-  onDeleteLevel?: (levelId: string) => boolean;
-  onUpdateLevel?: (levelId: string, updates: Partial<Omit<Level, 'id' | 'nodes' | 'edges' | 'deployables'>>) => void;
-  onDuplicateLevel?: (levelId: string, newName: string) => void;
 }
 
 const getInitialTheme = (): 'light' | 'dark' | 'warm' => {
@@ -41,7 +29,7 @@ const getInitialTheme = (): 'light' | 'dark' | 'warm' => {
   return prefersDark ? 'dark' : 'light';
 };
 
-export default function Header({ title, description, onTitleChange, onDescriptionChange, onExport, onImport, onCompile, onClear, onRestoreDefaultSchemas, onToggleAI, onLoadExample, viewMode, onToggleMetamap, levels, activeLevel, onSetActiveLevel, onCreateLevel, onDeleteLevel, onUpdateLevel, onDuplicateLevel }: HeaderProps) {
+export default function Header({ title, description, onTitleChange, onDescriptionChange, onExport, onImport, onCompile, onClear, onRestoreDefaultSchemas, onToggleAI, onLoadExample }: HeaderProps) {
   const { mode, documentId, connectToDocument, staticMode } = useDocumentContext();
   const [theme, setTheme] = useState<'light' | 'dark' | 'warm'>(() => {
     const initialTheme = getInitialTheme();
@@ -204,18 +192,6 @@ export default function Header({ title, description, onTitleChange, onDescriptio
             </svg>
           </button>
         )}
-        {/* Level Switcher */}
-        {levels && onSetActiveLevel && onCreateLevel && onDeleteLevel && onUpdateLevel && onDuplicateLevel && (
-          <LevelSwitcher
-            levels={levels}
-            activeLevel={activeLevel}
-            onSetActiveLevel={onSetActiveLevel}
-            onCreateLevel={onCreateLevel}
-            onDeleteLevel={onDeleteLevel}
-            onUpdateLevel={onUpdateLevel}
-            onDuplicateLevel={onDuplicateLevel}
-          />
-        )}
       </div>
 
       <div className="flex items-center justify-center">
@@ -347,19 +323,6 @@ export default function Header({ title, description, onTitleChange, onDescriptio
         >
           Import
         </button>
-        {onToggleMetamap && (
-          <button
-            className={`px-3 py-2 text-sm font-medium rounded-lg cursor-pointer transition-colors border ${
-              viewMode === 'metamap'
-                ? 'bg-accent text-white border-accent'
-                : 'bg-surface text-content border-border hover:bg-surface-alt'
-            }`}
-            onClick={onToggleMetamap}
-            title={viewMode === 'metamap' ? 'Switch to Map view' : 'Switch to Metamap view'}
-          >
-            {viewMode === 'metamap' ? 'Map' : 'Metamap'}
-          </button>
-        )}
         <button
           className="px-4 py-2 text-sm font-medium bg-emerald-500 text-white border-none rounded-lg cursor-pointer hover:bg-emerald-600 transition-colors"
           onClick={onCompile}

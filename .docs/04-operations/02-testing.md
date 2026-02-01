@@ -10,8 +10,8 @@ All tests must pass before committing changes.
 ## Test Suites
 
 ```bash
-npm run test          # Integration tests (Vitest)
-npm run test:e2e      # E2E tests (Playwright)
+pnpm test          # Integration tests (Vitest)
+pnpm test:e2e      # E2E tests (Playwright)
 ```
 
 ## What to Test

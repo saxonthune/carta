@@ -90,7 +90,7 @@ export default function PortsInitialChoice({
         className="px-4 py-3 bg-surface rounded-lg hover:bg-surface-elevated transition-colors text-left"
         onClick={onMakeOwn}
       >
-        <div className="text-sm font-medium text-content">Start from scratch</div>
+        <div className="text-sm font-medium text-content">Add my own Port</div>
         <div className="text-xs text-content-muted mt-0.5">
           Create a new port type and configure it
         </div>

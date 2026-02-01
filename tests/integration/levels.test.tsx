@@ -194,9 +194,8 @@ describe('Levels', () => {
         adapter.addSchema({
           type: 'SharedType',
           displayName: 'Shared',
-          displayField: 'name',
           color: '#aabbcc',
-          fields: [{ name: 'name', type: 'string' }],
+          fields: [{ name: 'name', type: 'string', displayTier: 'pill' }],
           compilation: { template: '{{name}}' },
           ports: [],
         });
@@ -460,9 +459,8 @@ describe('Levels', () => {
         adapter.addSchema({
           type: 'Custom',
           displayName: 'Custom',
-          displayField: 'name',
           color: '#000',
-          fields: [{ name: 'name', type: 'string' }],
+          fields: [{ name: 'name', type: 'string', displayTier: 'pill' }],
           compilation: { template: '{{name}}' },
           ports: [],
         });

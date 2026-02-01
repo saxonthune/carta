@@ -4,7 +4,7 @@ import Select from '../ui/Select';
 import Textarea from '../ui/Textarea';
 import { toSnakeCase } from '../../utils/stringUtils';
 import FieldPreview from './FieldPreview';
-import type { FieldSchema, DataKind, DisplayHint } from '@carta/domain';
+import type { FieldSchema, DataKind, DisplayHint, DisplayTier } from '@carta/domain';
 
 const DATA_KINDS: { value: DataKind; label: string; description: string }[] = [
   { value: 'string', label: 'String', description: 'Free-form text. Use for names, descriptions, URLs, or any textual data.' },
@@ -165,15 +165,20 @@ export default function FieldSubWizard({ field, onChange }: FieldSubWizardProps)
         </div>
       )}
 
-      <label className="flex items-center gap-2 text-sm text-content cursor-pointer select-none">
-        <input
-          type="checkbox"
-          checked={field.showInMinimalDisplay ?? false}
-          onChange={(e) => onChange({ showInMinimalDisplay: e.target.checked })}
-          className="w-4 h-4 accent-[var(--color-accent)]"
-        />
-        Show in minimal display
-      </label>
+      <div>
+        <label className="block mb-1 text-sm font-medium text-content">Display Tier</label>
+        <Select
+          value={field.displayTier || 'full'}
+          onChange={(e) => onChange({ displayTier: (e.target.value as DisplayTier) })}
+        >
+          <option value="minimal">Minimal (shown in collapsed view)</option>
+          <option value="details">Details (shown in expanded view)</option>
+          <option value="full">Full (only in full view modal)</option>
+        </Select>
+        <span className="block mt-1 text-[11px] text-content-muted">
+          Controls at which detail level this field is visible. Pill assignment is done via the Field Display Editor.
+        </span>
+      </div>
 
       {/* Preview */}
       <div className="border border-border rounded-md p-3 bg-surface">

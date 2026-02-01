@@ -18,9 +18,9 @@ The canvas is the primary editing surface where users create and manipulate cons
 
 The canvas renders nodes in three LOD bands based on zoom level:
 
-- **Pill** (zoomed out, below ~0.5x): Minimal rounded display showing only schema icon and color. Optimized for overview navigation.
-- **Compact** (mid-zoom, ~0.5x-1.0x): Smaller nodes with title and primary fields only.
-- **Normal** (zoomed in, above ~1.0x): Full detail with all visible fields, ports, and controls.
+- **Pill** (zoomed out, below ~0.5x): Colored bar showing schema name and pill-tier field value. Optimized for overview navigation.
+- **Minimal** (mid-zoom, ~0.5x-1.0x): Header bar with schema name, pill-tier value, and minimal-tier fields.
+- **Normal** (zoomed in, above ~1.0x): Full detail with details-tier fields, ports, and controls.
 
 LOD thresholds are configured in `lodPolicy.ts`. Transitions are discrete (no animation between bands).
 

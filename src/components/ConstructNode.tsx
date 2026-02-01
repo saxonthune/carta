@@ -1,7 +1,7 @@
 import { memo, useState, useEffect, useRef } from 'react';
 import { Handle, Position, NodeResizer } from '@xyflow/react';
 import { useDocument } from '../hooks/useDocument';
-import { getPortsForSchema, getHandleType, getPortColor, generateTints, getDisplayName } from '@carta/domain';
+import { getPortsForSchema, getHandleType, getPortColor, generateTints, getDisplayName, getFieldsForTier } from '@carta/domain';
 import type { ConstructNodeData, PortConfig, PortPosition, ConstructSchema } from '@carta/domain';
 import CreateDeployablePopover from './CreateDeployablePopover';
 import PortPickerPopover from './ui/PortPickerPopover';
@@ -149,9 +149,7 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
   const ports = getPortsForSchema(schema.ports);
   const isCollapsedPorts = schema.portDisplayPolicy === 'collapsed';
 
-  const mapFields = Array.isArray(schema.fields)
-    ? schema.fields.filter((f) => f.showInMinimalDisplay)
-    : [];
+  const mapFields = getFieldsForTier(schema, 'minimal');
   const formatValue = (value: unknown) => {
     if (value === null || value === undefined || value === '') return '—';
     if (typeof value === 'object') {

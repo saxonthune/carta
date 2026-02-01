@@ -1,7 +1,7 @@
 import { type Page, type Locator, expect } from '@playwright/test';
 
 /**
- * Page Object Model for Carta application.
+ * Page Object Model for Carta application (static mode).
  * Encapsulates page interactions for E2E tests.
  */
 export class CartaPage {
@@ -37,7 +37,7 @@ export class CartaPage {
     this.clearInstancesButton = page.getByTestId('clear-instances-button');
     this.clearEverythingButton = page.getByTestId('clear-everything-button');
 
-    // Restore defaults modal elements - use the modal content div that stops propagation
+    // Restore defaults modal elements
     this.restoreDefaultsModal = page.locator('div.bg-surface.rounded-xl').filter({ has: page.getByRole('heading', { name: 'Restore default schemas' }) });
     this.restoreDefaultsCancelButton = this.restoreDefaultsModal.getByRole('button', { name: 'Cancel' });
     this.restoreDefaultsConfirmButton = this.restoreDefaultsModal.getByRole('button', { name: 'Restore' });
@@ -45,7 +45,6 @@ export class CartaPage {
 
   async goto() {
     await this.page.goto('/');
-    // Wait for app to initialize
     await this.page.waitForSelector('[data-testid="settings-menu-button"]');
   }
 
@@ -66,7 +65,6 @@ export class CartaPage {
   }
 
   async closeClearModalWithBackdrop() {
-    // Click on the backdrop (the modal overlay itself, not the content)
     await this.clearModal.click({ position: { x: 10, y: 10 } });
     await expect(this.clearModal).not.toBeVisible();
   }
@@ -95,25 +93,56 @@ export class CartaPage {
     await expect(this.restoreDefaultsModal).toBeVisible();
   }
 
-  async closeRestoreDefaultsModalWithCancel() {
-    await this.restoreDefaultsCancelButton.click();
-    await expect(this.restoreDefaultsModal).not.toBeVisible();
-  }
-
-  async closeRestoreDefaultsModalWithBackdrop() {
-    // Click on the backdrop overlay (the fixed inset-0 div with bg-black/50)
-    const backdrop = this.page.locator('.fixed.inset-0.bg-black\\/50').filter({ has: this.page.getByRole('heading', { name: 'Restore default schemas' }) });
-    await backdrop.click({ position: { x: 10, y: 10 } });
-    await expect(this.restoreDefaultsModal).not.toBeVisible();
-  }
-
   async confirmRestoreDefaults() {
     await this.restoreDefaultsConfirmButton.click();
   }
 
   async clearAndRestoreDefaults() {
     await this.openClearModal();
-    // Click "Clear Everything and Restore Defaults"
     await this.page.getByTestId('clear-and-restore-button').click();
+  }
+
+  /**
+   * Right-click on the canvas center to open the pane context menu.
+   */
+  async openCanvasContextMenu() {
+    const canvas = this.page.locator('.react-flow');
+    const canvasBox = await canvas.boundingBox();
+    if (!canvasBox) throw new Error('Canvas not found');
+
+    await this.page.mouse.move(canvasBox.x + canvasBox.width / 2, canvasBox.y + canvasBox.height / 2);
+    await this.page.mouse.down({ button: 'right' });
+    await this.page.mouse.up({ button: 'right' });
+    await this.page.waitForTimeout(300);
+  }
+
+  /**
+   * Right-click on canvas at the given position and add the first available
+   * construct type from the context menu's "Add Node Here" submenu.
+   */
+  async addConstructViaContextMenu(x: number, y: number) {
+    const canvas = this.page.locator('.react-flow');
+    const canvasBox = await canvas.boundingBox();
+    if (!canvasBox) throw new Error('Canvas not found');
+
+    // Right-click on canvas
+    await this.page.mouse.move(canvasBox.x + x, canvasBox.y + y);
+    await this.page.mouse.down({ button: 'right' });
+    await this.page.mouse.up({ button: 'right' });
+    await this.page.waitForTimeout(300);
+
+    // Click "Add Node Here" parent menu item (has count suffix when schemas exist)
+    const addNodeButton = this.page.locator('button').filter({ hasText: /Add Node Here/i }).first();
+    await addNodeButton.hover();
+    await this.page.waitForTimeout(300);
+
+    // Click the first construct type in the submenu
+    // The submenu items are nested buttons; pick the first leaf button
+    const submenuButtons = this.page.locator('button').filter({ hasNotText: /Add Node Here/i });
+    const firstOption = submenuButtons.first();
+    if (await firstOption.isVisible()) {
+      await firstOption.click();
+    }
+    await this.page.waitForTimeout(300);
   }
 }
