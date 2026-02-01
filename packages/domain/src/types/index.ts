@@ -166,6 +166,7 @@ export interface ConstructSchema {
   groupId?: string;          // References SchemaGroup.id for hierarchical organization
   backgroundColorPolicy?: 'defaultOnly' | 'tints' | 'any';  // Controls instance color picker: 'defaultOnly' (no picker), 'tints' (7 tint swatches), 'any' (full color picker). default: 'defaultOnly'
   portDisplayPolicy?: 'inline' | 'collapsed';                 // Controls port display: 'inline' (visible handles), 'collapsed' (hidden, click icon to reveal). default: 'inline'
+  renderStyle?: 'default' | 'card';                            // 'default': header bar + fields. 'card': colored background, label-dominant, no header. default: 'default'
 }
 
 // ===== M0: INSTANCE DATA =====

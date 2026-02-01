@@ -6,6 +6,7 @@ import type { ConstructSchema } from '@carta/domain';
 
 type BackgroundColorPolicy = NonNullable<ConstructSchema['backgroundColorPolicy']>;
 type PortDisplayPolicy = NonNullable<ConstructSchema['portDisplayPolicy']>;
+type RenderStyle = NonNullable<ConstructSchema['renderStyle']>;
 
 const DEFAULT_COLORS = [
   '#6366f1', '#8b5cf6', '#ec4899', '#ef4444',
@@ -95,6 +96,16 @@ export default function BasicsStep({ formData, errors, updateField, schemaGroups
       <div>
         <label className="block mb-1 text-sm font-medium text-content">Appearance</label>
         <div className="flex gap-4">
+          <div className="flex-1">
+            <label className="block mb-1 text-[11px] text-content-muted">Render Style</label>
+            <Select
+              value={formData.renderStyle || 'default'}
+              onChange={(e) => updateField('renderStyle', e.target.value as RenderStyle)}
+            >
+              <option value="default">Default</option>
+              <option value="card">Card</option>
+            </Select>
+          </div>
           <div className="flex-1">
             <label className="block mb-1 text-[11px] text-content-muted">Background Color Policy</label>
             <Select

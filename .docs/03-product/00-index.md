@@ -43,3 +43,6 @@ This title documents what Carta does (features), who uses it (use cases), and ho
 | doc03.03.03 | Define a Schema | doc03.01.05, doc03.01.06 |
 | doc03.03.04 | Compile a Project | doc03.01.07 |
 | doc03.03.05 | Import a Project | doc03.01.08 |
+| doc03.03.06 | Iterative Modeling on the Map | doc03.01.01, doc03.01.02, doc03.01.03, doc03.01.04, doc03.01.11 |
+| doc03.03.07 | Schema Design Patterns | doc03.01.03, doc03.01.05, doc03.01.06 |
+| doc03.03.08 | Rough to Refined | doc03.01.01, doc03.01.02, doc03.01.05 |

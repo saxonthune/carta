@@ -34,6 +34,12 @@ export const builtInSchemaGroups: SchemaGroup[] = [
     color: '#3b82f6',
     description: 'User interface constructs',
   },
+  {
+    id: 'sketching',
+    name: 'Sketching',
+    color: '#64748b',
+    description: 'Quick, low-friction constructs for rough modeling',
+  },
 ];
 
 /**
@@ -605,5 +611,28 @@ export const builtInConstructSchemas: ConstructSchema[] = [
       format: 'json',
       sectionHeader: '# Implementation Details',
     },
+  },
+
+  // Box (Sketching)
+  {
+    type: 'box',
+    displayName: 'Box',
+    color: '#64748b',
+    renderStyle: 'card',
+    backgroundColorPolicy: 'any',
+    portDisplayPolicy: 'inline',
+    groupId: 'sketching',
+    semanticDescription: 'Generic box for rough modeling',
+    fields: [
+      { name: 'label', label: 'Label', type: 'string', displayTier: 'pill', displayOrder: 0, placeholder: 'Label...' },
+      { name: 'notes', label: 'Notes', type: 'string', displayHint: 'multiline', displayTier: 'details', displayOrder: 1, placeholder: 'Notes...' },
+    ],
+    ports: [
+      { id: 'flow-in', portType: 'flow-in', position: 'left', offset: 50, label: 'In' },
+      { id: 'flow-out', portType: 'flow-out', position: 'right', offset: 50, label: 'Out' },
+      { id: 'parent', portType: 'parent', position: 'bottom', offset: 50, label: 'Parent' },
+      { id: 'child', portType: 'child', position: 'top', offset: 50, label: 'Child' },
+    ],
+    compilation: { format: 'json' },
   },
 ];

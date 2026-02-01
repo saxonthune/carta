@@ -1,10 +1,11 @@
 import { memo, useState, useEffect, useRef } from 'react';
-import { Handle, Position, NodeResizer } from '@xyflow/react';
+import { Handle, Position, NodeResizer, useConnection, useNodeId } from '@xyflow/react';
 import { useDocument } from '../../hooks/useDocument';
 import { getPortsForSchema, getHandleType, getPortColor, generateTints, getDisplayName, getFieldsForTier } from '@carta/domain';
 import type { ConstructNodeData, PortConfig, PortPosition, ConstructSchema } from '@carta/domain';
 import CreateDeployablePopover from '../CreateDeployablePopover';
 import PortPickerPopover from '../ui/PortPickerPopover';
+import ConnectionDropZones from './ConnectionDropZones';
 import { useLodBand } from './lod/useLodBand';
 import { WindowIcon, PinIcon, ExpandIcon, CollapseIcon } from '../ui/icons';
 
@@ -106,10 +107,31 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
   const lod = useLodBand();
   const { getSchema, addDeployable } = useDocument();
   const schema = getSchema(data.constructType);
+  const nodeId = useNodeId();
   const [hoveredPort, setHoveredPort] = useState<string | null>(null);
   const [showExtendedTooltip, setShowExtendedTooltip] = useState(false);
   const [showPortPicker, setShowPortPicker] = useState(false);
   const hoverTimerRef = useRef<number | null>(null);
+
+  // Connection drop zone detection
+  const connection = useConnection();
+  const isConnectionTarget = connection.inProgress && connection.toNode?.id === nodeId;
+
+  // Look up source port type from the connection's fromHandle
+  let sourcePortType: string | undefined;
+  if (connection.inProgress && connection.fromHandle?.id) {
+    const sourceData = connection.fromNode?.data as ConstructNodeData | undefined;
+    if (sourceData) {
+      const sourceSchema = getSchema(sourceData.constructType);
+      if (sourceSchema) {
+        const sourcePorts = getPortsForSchema(sourceSchema.ports);
+        const sourcePort = sourcePorts.find(p => p.id === connection.fromHandle!.id);
+        if (sourcePort) {
+          sourcePortType = sourcePort.portType;
+        }
+      }
+    }
+  }
 
   // New deployable modal state
   const [showNewDeployableModal, setShowNewDeployableModal] = useState(false);
@@ -149,6 +171,7 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
   // Get ports from schema or use defaults
   const ports = getPortsForSchema(schema.ports);
   const isCollapsedPorts = schema.portDisplayPolicy === 'collapsed';
+  const isCard = schema.renderStyle === 'card';
 
   const mapFields = getFieldsForTier(schema, 'minimal');
   const formatValue = (value: unknown) => {
@@ -201,12 +224,15 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
     }
   };
 
+  const nodeColor = data.instanceColor || schema.color;
+
   // Background color from instanceColor
   const bgStyle: React.CSSProperties = data.instanceColor
     ? { backgroundColor: data.instanceColor }
     : {};
 
   // Pill mode: minimal colored bar — overrides all view levels at low zoom
+  // Same for both default and card renderStyle
   if (lod.band === 'pill') {
     const displayValue = getDisplayName(data, schema);
     const fullText = `${schema.displayName}: ${displayValue}`;
@@ -214,7 +240,7 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
       <div
         className={`node-drag-handle rounded-lg text-white text-halo font-bold px-5 py-3 truncate cursor-move select-none whitespace-nowrap ${selected ? 'ring-2 ring-accent' : ''}`}
         style={{
-          backgroundColor: data.instanceColor || schema.color,
+          backgroundColor: nodeColor,
           minWidth: 180,
           maxWidth: 500,
           fontSize: '32px',
@@ -237,10 +263,318 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
     );
   }
 
+  // ==========================================
+  // CARD RENDER STYLE
+  // ==========================================
+  if (isCard) {
+    const displayValue = getDisplayName(data, schema);
+    const minimalFields = getFieldsForTier(schema, 'minimal');
+
+    // Compact card: colored background, centered label, no header bar
+    if (lod.band === 'compact') {
+      return (
+        <div
+          className={`node-drag-handle rounded-lg shadow-lg overflow-visible relative flex flex-col items-center justify-center cursor-move select-none min-w-[200px] min-h-[80px] ${selected ? 'ring-2 ring-accent ring-offset-2' : ''}`}
+          style={{ backgroundColor: nodeColor }}
+        >
+          {/* Port handles */}
+          {!isCollapsedPorts && ports.map((port) => (
+            <Handle
+              key={port.id}
+              id={port.id}
+              type={getHandleType(port.portType)}
+              position={positionMap[port.position]}
+              className="port-handle"
+              style={{
+                ...getHandlePositionStyle(port.position, port.offset),
+                backgroundColor: getPortColor(port.portType),
+              }}
+              data-port-type={port.portType}
+            />
+          ))}
+
+          {/* Connection drop zones overlay */}
+          {isConnectionTarget && (
+            <ConnectionDropZones ports={ports} sourcePortType={sourcePortType} />
+          )}
+
+          {/* Centered label */}
+          <span className="text-white text-halo text-node-xl font-bold px-4 py-3 truncate max-w-full">
+            {displayValue}
+          </span>
+        </div>
+      );
+    }
+
+    // Normal card: colored background, label at top, minimal fields below, single view
+    return (
+      <div
+        className={`rounded-lg shadow-lg overflow-visible relative flex flex-col min-w-[200px] min-h-[100px] ${selected ? 'ring-2 ring-accent ring-offset-2' : ''}`}
+        style={{ backgroundColor: nodeColor }}
+      >
+        {selected && (
+          <NodeResizer
+            minWidth={200}
+            minHeight={100}
+            lineClassName="!border-accent !border-2"
+            handleClassName="!w-3 !h-3 !bg-accent !border-surface !rounded-full"
+          />
+        )}
+
+        {/* Port handles - inline mode */}
+        {!isCollapsedPorts && ports.map((port) => (
+          <Handle
+            key={port.id}
+            id={port.id}
+            type={getHandleType(port.portType)}
+            position={positionMap[port.position]}
+            className="port-handle"
+            style={{
+              ...getHandlePositionStyle(port.position, port.offset),
+              backgroundColor: getPortColor(port.portType),
+            }}
+            data-port-type={port.portType}
+            onMouseEnter={() => setHoveredPort(port.id)}
+            onMouseLeave={() => setHoveredPort(null)}
+          />
+        ))}
+
+        {/* Collapsed port handles - hidden but functional */}
+        {isCollapsedPorts && ports.map((port) => (
+          <Handle
+            key={port.id}
+            id={port.id}
+            type={getHandleType(port.portType)}
+            position={Position.Right}
+            className="port-handle"
+            style={{
+              top: '14px',
+              right: -16,
+              opacity: 0,
+              pointerEvents: 'none',
+              width: 1,
+              height: 1,
+            }}
+            data-port-type={port.portType}
+          />
+        ))}
+
+        {/* Connection drop zones overlay */}
+        {isConnectionTarget && (
+          <ConnectionDropZones ports={ports} sourcePortType={sourcePortType} />
+        )}
+
+        {/* Port tooltip (inline mode only) */}
+        {!isCollapsedPorts && hoveredPort && (() => {
+          const port = ports.find(p => p.id === hoveredPort);
+          if (!port) return null;
+          const hasDescription = showExtendedTooltip && port.semanticDescription;
+          return (
+            <div
+              className="bg-surface-elevated text-content text-node-sm px-2 py-1 rounded shadow-lg border pointer-events-none"
+              style={getTooltipPosition(port, !!hasDescription)}
+            >
+              <div className="font-medium">{port.label}</div>
+              {hasDescription && (
+                <div className="text-content-muted text-node-xs mt-1">{port.semanticDescription}</div>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* Drag handle - full card area */}
+        <div className="node-drag-handle flex-1 flex flex-col cursor-move select-none px-3 pt-3 pb-2">
+          {/* Fullview button on hover */}
+          {data.onOpenFullView && (
+            <div className="absolute top-1.5 right-1.5 opacity-0 hover:opacity-100 transition-opacity z-10">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  data.onOpenFullView?.();
+                }}
+                className="bg-black/30 hover:bg-black/50 rounded-full p-1 shadow-md text-white"
+                title="Open Full View"
+              >
+                <WindowIcon className="w-2.5 h-2.5" size={10} />
+              </button>
+            </div>
+          )}
+
+          {/* Label */}
+          <div className="text-white text-halo text-node-lg font-bold truncate">
+            {displayValue}
+          </div>
+
+          {/* Minimal tier fields */}
+          {minimalFields.length > 0 && (
+            <div className="mt-1.5 text-white/80 text-halo text-node-sm flex flex-col gap-0.5">
+              {minimalFields.map((field) => (
+                <div key={field.name} className="flex gap-1 justify-between">
+                  <span className="opacity-70">{field.label}:</span>
+                  <span className="font-medium text-right max-w-[70%] truncate">
+                    {formatValue(data.values[field.name] ?? field.default)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Card details view - edit fields */}
+        {data.viewLevel === 'details' && (
+          <div className="px-3 pb-2 flex flex-col gap-2">
+            {/* Background Color */}
+            {data.onInstanceColorChange && (schema.backgroundColorPolicy === 'tints' || schema.backgroundColorPolicy === 'any') && (
+              <div>
+                <label className="text-node-xs text-white/60 text-halo uppercase tracking-wide">Background Color</label>
+                <div className="mt-1">
+                  <ColorPicker
+                    schema={schema}
+                    instanceColor={data.instanceColor}
+                    onColorChange={data.onInstanceColorChange}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Deployable dropdown */}
+            {data.deployables && (
+              <div className="relative">
+                <label className="text-node-xs text-white/60 text-halo uppercase tracking-wide">Deployable</label>
+                <select
+                  className="w-full px-2 py-1 bg-black/20 rounded text-node-sm text-white border border-white/20"
+                  value={data.deployableId || ''}
+                  onChange={(e) => handleDeployableChange(e.target.value)}
+                >
+                  <option value="">—</option>
+                  {data.deployables.map((d) => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
+                  <option value={ADD_NEW_DEPLOYABLE}>+ Add new...</option>
+                </select>
+
+                <CreateDeployablePopover
+                  isOpen={showNewDeployableModal}
+                  onClose={() => setShowNewDeployableModal(false)}
+                  onCreate={handleCreateDeployable}
+                />
+              </div>
+            )}
+
+            {/* All schema fields */}
+            {Array.isArray(schema.fields) && schema.fields.map((field) => (
+              <div key={field.name}>
+                <label className="text-node-xs text-white/60 text-halo uppercase tracking-wide">{field.label}</label>
+                {field.type === 'boolean' ? (
+                  <div className="flex items-center gap-2 mt-1">
+                    <input
+                      type="checkbox"
+                      checked={!!data.values[field.name]}
+                      onChange={(e) => data.onValuesChange?.({ ...data.values, [field.name]: e.target.checked })}
+                      className="w-4 h-4 cursor-pointer"
+                    />
+                    <span className="text-node-sm text-white text-halo">{field.label}</span>
+                  </div>
+                ) : field.type === 'enum' && field.options ? (
+                  <select
+                    className="w-full px-2 py-1 bg-black/20 rounded text-node-sm text-white border border-white/20"
+                    value={String(data.values[field.name] ?? field.default ?? '')}
+                    onChange={(e) => data.onValuesChange?.({ ...data.values, [field.name]: e.target.value })}
+                  >
+                    <option value="">Select...</option>
+                    {field.options.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.value}</option>
+                    ))}
+                  </select>
+                ) : field.displayHint === 'multiline' || field.displayHint === 'code' ? (
+                  <textarea
+                    className="w-full px-2 py-1 bg-black/20 rounded text-node-sm text-white border border-white/20 resize-y min-h-[60px] font-mono text-xs"
+                    value={String(data.values[field.name] ?? field.default ?? '')}
+                    onChange={(e) => data.onValuesChange?.({ ...data.values, [field.name]: e.target.value })}
+                    placeholder={field.placeholder}
+                  />
+                ) : (
+                  <input
+                    type={field.type === 'number' ? 'number' : 'text'}
+                    className="w-full px-2 py-1 bg-black/20 rounded text-node-sm text-white border border-white/20"
+                    value={String(data.values[field.name] ?? field.default ?? '')}
+                    onChange={(e) => data.onValuesChange?.({ ...data.values, [field.name]: field.type === 'number' ? Number(e.target.value) : e.target.value })}
+                    placeholder={field.placeholder}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Collapsed port icon */}
+        {isCollapsedPorts && (
+          <div className="absolute top-1.5 left-1.5 z-10">
+            <div className="relative">
+              <button
+                type="button"
+                className="w-3.5 h-3.5 rounded-full bg-white/30 hover:bg-white/50 border border-white/40 flex items-center justify-center cursor-pointer transition-colors"
+                onClick={(e) => { e.stopPropagation(); setShowPortPicker(!showPortPicker); }}
+                title="Ports"
+              >
+                <svg className="w-2 h-2 text-white" viewBox="0 0 24 24" fill="currentColor">
+                  <circle cx="12" cy="12" r="4" />
+                </svg>
+              </button>
+              <Handle
+                id="__collapsed-source"
+                type="source"
+                position={Position.Right}
+                className="!absolute !top-1/2 !left-1/2 !-translate-x-1/2 !-translate-y-1/2 !w-3.5 !h-3.5 !opacity-0 !border-none"
+                style={{ pointerEvents: ports.length <= 1 ? 'auto' : 'none' }}
+              />
+              <Handle
+                id="__collapsed-target"
+                type="target"
+                position={Position.Left}
+                className="!absolute !top-1/2 !left-1/2 !-translate-x-1/2 !-translate-y-1/2 !w-3.5 !h-3.5 !opacity-0 !border-none"
+                style={{ pointerEvents: ports.length <= 1 ? 'auto' : 'none' }}
+              />
+              {showPortPicker && ports.length > 1 && (
+                <PortPickerPopover
+                  ports={ports}
+                  onSelect={(portId) => {
+                    setShowPortPicker(false);
+                    const handleEl = document.querySelector(`[data-handleid="${portId}"]`) as HTMLElement;
+                    if (handleEl) {
+                      handleEl.style.pointerEvents = 'auto';
+                      handleEl.style.opacity = '1';
+                      handleEl.style.position = 'absolute';
+                      handleEl.style.top = '14px';
+                      handleEl.style.right = '-16px';
+                      handleEl.style.width = '12px';
+                      handleEl.style.height = '12px';
+                      setTimeout(() => {
+                        handleEl.style.opacity = '0';
+                        handleEl.style.pointerEvents = 'none';
+                        handleEl.style.width = '1px';
+                        handleEl.style.height = '1px';
+                      }, 5000);
+                    }
+                  }}
+                  onClose={() => setShowPortPicker(false)}
+                />
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ==========================================
+  // DEFAULT RENDER STYLE
+  // ==========================================
+
   // Compact mode: header + display value (pill field) + minimal tier fields
   if (lod.band === 'compact') {
     const displayValue = getDisplayName(data, schema);
-    const headerBg = data.instanceColor || schema.color;
+    const headerBg = nodeColor;
     const minimalFields = getFieldsForTier(schema, 'minimal');
 
     return (
@@ -263,6 +597,11 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
             data-port-type={port.portType}
           />
         ))}
+
+        {/* Connection drop zones overlay */}
+        {isConnectionTarget && (
+          <ConnectionDropZones ports={ports} sourcePortType={sourcePortType} />
+        )}
 
         {/* Header */}
         <div
@@ -346,6 +685,11 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
         />
       ))}
 
+      {/* Connection drop zones overlay */}
+      {isConnectionTarget && (
+        <ConnectionDropZones ports={ports} sourcePortType={sourcePortType} />
+      )}
+
       {/* Port tooltip (inline mode only) */}
       {!isCollapsedPorts && hoveredPort && (() => {
         const port = ports.find(p => p.id === hoveredPort);
@@ -366,7 +710,7 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
 
       <div
         className="node-drag-handle flex items-center justify-between gap-1.5 px-2 py-1 text-white text-halo cursor-move select-none border-b border-white/20 w-full shrink-0"
-        style={{ backgroundColor: data.instanceColor || schema.color }}
+        style={{ backgroundColor: nodeColor }}
       >
         <div className="flex items-center gap-1.5">
           <svg
