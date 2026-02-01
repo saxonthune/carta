@@ -30,8 +30,8 @@ function SchemaGroupNode({ data, selected }: SchemaGroupNodeProps) {
         className="relative min-w-[200px] min-h-[120px] h-full rounded-xl transition-all duration-200"
         style={{
           backgroundColor: isHovered ? `${color}20` : `${color}08`,
-          border: isHovered ? `3px solid ${color}` : `2px dashed ${color}40`,
-          boxShadow: isHovered ? `0 0 0 4px ${color}20` : 'none',
+          border: isHovered ? `2px solid ${color}60` : `1px solid ${color}25`,
+          boxShadow: isHovered ? `0 0 0 4px ${color}15` : '0 1px 3px rgba(0,0,0,0.04)',
         }}
       >
         <div
@@ -42,7 +42,7 @@ function SchemaGroupNode({ data, selected }: SchemaGroupNodeProps) {
             className="w-2.5 h-2.5 rounded-full shrink-0"
             style={{ backgroundColor: color }}
           />
-          <span className="text-xs font-medium text-content">{label}</span>
+          <span className="text-node-xs font-medium text-content">{label}</span>
         </div>
       </div>
     </>

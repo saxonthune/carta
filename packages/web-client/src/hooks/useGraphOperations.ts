@@ -253,8 +253,9 @@ export function useGraphOperations(options: UseGraphOperationsOptions): UseGraph
             : n
         )
       );
+      requestAnimationFrame(() => updateNodeInternals(nodeIdToSet));
     },
-    [setNodes]
+    [setNodes, updateNodeInternals]
   );
 
   const toggleNodeDetailsPin = useCallback(

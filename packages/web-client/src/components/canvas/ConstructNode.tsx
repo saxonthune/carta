@@ -109,6 +109,7 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
   const [hoveredPort, setHoveredPort] = useState<string | null>(null);
   const [showExtendedTooltip, setShowExtendedTooltip] = useState(false);
   const [showPortPicker, setShowPortPicker] = useState(false);
+  const [editingField, setEditingField] = useState<string | null>(null);
   const hoverTimerRef = useRef<number | null>(null);
 
   // LOD transition crossfade
@@ -264,67 +265,6 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
     );
   }
 
-  // Compact mode: shadow-based card with left accent bar
-  if (lod.band === 'compact') {
-    const color = data.instanceColor || schema.color;
-    const displayValue = getDisplayName(data, schema);
-    const minimalFields = getFieldsForTier(schema, 'minimal');
-
-    return (
-      <div
-        className={`bg-surface rounded-lg overflow-visible relative flex flex-col min-w-[220px] transition-shadow duration-150 ${selected ? 'ring-2 ring-accent/30' : ''}`}
-        style={{
-          ...bgStyle,
-          ...lodTransitionStyle,
-          boxShadow: selected ? 'var(--node-shadow-selected)' : 'var(--node-shadow)',
-        }}
-      >
-        {/* Port handles */}
-        {!isCollapsedPorts && ports.map((port) => (
-          <Handle
-            key={port.id}
-            id={port.id}
-            type={getHandleType(port.portType)}
-            position={positionMap[port.position]}
-            className="port-handle"
-            style={{
-              ...getHandlePositionStyle(port.position, port.offset),
-              backgroundColor: getPortColor(port.portType),
-            }}
-            data-port-type={port.portType}
-          />
-        ))}
-
-        {/* Header with left accent bar */}
-        <div
-          className="node-drag-handle flex items-center gap-1.5 px-3 py-2 cursor-move select-none bg-surface-alt w-full shrink-0 rounded-t-lg"
-          style={{ borderLeft: `3px solid ${color}` }}
-        >
-          <span className="text-node-xs text-content-muted">{schema.displayName}</span>
-        </div>
-
-        {/* Display value (pill field) */}
-        <div className="px-3 py-2.5 text-node-lg font-semibold text-content truncate">
-          {displayValue}
-        </div>
-
-        {/* Minimal tier fields */}
-        {minimalFields.length > 0 && (
-          <div className="px-3 pb-2.5 text-node-sm text-content-muted flex flex-col gap-1">
-            {minimalFields.map((field) => (
-              <div key={field.name} className="flex gap-1 justify-between">
-                <span className="text-content-subtle">{field.label}:</span>
-                <span className="text-content font-medium text-right max-w-[70%] truncate">
-                  {formatValue(data.values[field.name] ?? field.default)}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  }
-
   const color = data.instanceColor || schema.color;
 
   return (
@@ -334,6 +274,7 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
         ...bgStyle,
         ...lodTransitionStyle,
         boxShadow: selected ? 'var(--node-shadow-selected)' : 'var(--node-shadow)',
+        borderLeft: `2px solid color-mix(in srgb, ${color} 70%, var(--color-surface-alt))`,
       }}
     >
       {selected && (
@@ -403,7 +344,6 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
 
       <div
         className="node-drag-handle flex items-center justify-between gap-1.5 px-2 py-1 cursor-move select-none bg-surface-alt w-full shrink-0 rounded-t-lg"
-        style={{ borderLeft: `3px solid ${color}` }}
       >
         <span className="text-node-xs text-content-muted">{schema.displayName}</span>
         <div className="flex items-center gap-1">
@@ -578,49 +518,110 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
             </div>
           )}
 
-          {/* All schema fields */}
-          {Array.isArray(schema.fields) && schema.fields.map((field) => (
-            <div key={field.name}>
-              <label className="text-node-xs text-content-muted uppercase tracking-wide">{field.label}</label>
-              {field.type === 'boolean' ? (
-                <div className="flex items-center gap-2 mt-1">
-                  <input
-                    type="checkbox"
-                    checked={!!data.values[field.name]}
-                    onChange={(e) => data.onValuesChange?.({ ...data.values, [field.name]: e.target.checked })}
-                    className="w-4 h-4 cursor-pointer"
-                  />
-                  <span className="text-node-sm text-content">{field.label}</span>
-                </div>
-              ) : field.type === 'enum' && field.options ? (
-                <select
-                  className="w-full px-2 py-1 bg-surface rounded text-node-sm text-content border border-content-muted/20"
-                  value={String(data.values[field.name] ?? field.default ?? '')}
-                  onChange={(e) => data.onValuesChange?.({ ...data.values, [field.name]: e.target.value })}
-                >
-                  <option value="">Select...</option>
-                  {field.options.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.value}</option>
-                  ))}
-                </select>
-              ) : field.displayHint === 'multiline' || field.displayHint === 'code' ? (
-                <textarea
-                  className="w-full px-2 py-1 bg-surface rounded text-node-sm text-content border border-content-muted/20 resize-y min-h-[60px] font-mono text-xs"
-                  value={String(data.values[field.name] ?? field.default ?? '')}
-                  onChange={(e) => data.onValuesChange?.({ ...data.values, [field.name]: e.target.value })}
-                  placeholder={field.placeholder}
-                />
-              ) : (
-                <input
-                  type={field.type === 'number' ? 'number' : 'text'}
-                  className="w-full px-2 py-1 bg-surface rounded text-node-sm text-content border border-content-muted/20"
-                  value={String(data.values[field.name] ?? field.default ?? '')}
-                  onChange={(e) => data.onValuesChange?.({ ...data.values, [field.name]: field.type === 'number' ? Number(e.target.value) : e.target.value })}
-                  placeholder={field.placeholder}
-                />
-              )}
+          {/* Schema fields — click-to-edit two-column grid */}
+          {Array.isArray(schema.fields) && schema.fields.length > 0 && (
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+              {schema.fields.map((field) => {
+                const isMultiline = field.displayHint === 'multiline' || field.displayHint === 'code';
+                const isEditing = editingField === field.name;
+                const value = data.values[field.name] ?? field.default;
+
+                const commitValue = (newValue: unknown) => {
+                  data.onValuesChange?.({ ...data.values, [field.name]: newValue });
+                  setEditingField(null);
+                };
+
+                const cancelEdit = () => setEditingField(null);
+
+                const handleKeyDown = (e: React.KeyboardEvent) => {
+                  e.stopPropagation();
+                  if (e.key === 'Escape') {
+                    cancelEdit();
+                  }
+                  if (e.key === 'Enter' && !isMultiline) {
+                    (e.target as HTMLElement).blur();
+                  }
+                };
+
+                // Multiline and code fields span full width
+                const cellClass = isMultiline ? 'col-span-2' : '';
+
+                if (isEditing) {
+                  return (
+                    <div key={field.name} className={cellClass}>
+                      <div className="text-content-subtle text-node-xs">{field.label}</div>
+                      {field.type === 'boolean' ? (
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <input
+                            type="checkbox"
+                            checked={!!value}
+                            onChange={(e) => commitValue(e.target.checked)}
+                            onKeyDown={handleKeyDown}
+                            className="w-4 h-4 cursor-pointer"
+                            autoFocus
+                          />
+                        </div>
+                      ) : field.type === 'enum' && field.options ? (
+                        <select
+                          className="w-full px-1.5 py-0.5 bg-surface rounded text-node-sm text-content border border-accent/40 outline-none"
+                          value={String(value ?? '')}
+                          onChange={(e) => commitValue(e.target.value)}
+                          onBlur={() => cancelEdit()}
+                          onKeyDown={handleKeyDown}
+                          autoFocus
+                        >
+                          <option value="">Select...</option>
+                          {field.options.map((opt) => (
+                            <option key={opt.value} value={opt.value}>{opt.value}</option>
+                          ))}
+                        </select>
+                      ) : isMultiline ? (
+                        <textarea
+                          className="w-full px-1.5 py-0.5 bg-surface rounded text-node-sm text-content border border-accent/40 outline-none resize-y min-h-[60px] font-mono text-xs"
+                          defaultValue={String(value ?? '')}
+                          onBlur={(e) => commitValue(e.target.value)}
+                          onKeyDown={(e) => {
+                            e.stopPropagation();
+                            if (e.key === 'Escape') cancelEdit();
+                          }}
+                          placeholder={field.placeholder}
+                          autoFocus
+                        />
+                      ) : (
+                        <input
+                          type={field.type === 'number' ? 'number' : 'text'}
+                          className="w-full px-1.5 py-0.5 bg-surface rounded text-node-sm text-content border border-accent/40 outline-none"
+                          defaultValue={String(value ?? '')}
+                          onBlur={(e) => commitValue(field.type === 'number' ? Number(e.target.value) : e.target.value)}
+                          onKeyDown={handleKeyDown}
+                          placeholder={field.placeholder}
+                          autoFocus
+                        />
+                      )}
+                    </div>
+                  );
+                }
+
+                // Read-only state
+                return (
+                  <div
+                    key={field.name}
+                    className={`cursor-pointer hover:bg-surface-alt rounded px-1 -mx-1 ${cellClass}`}
+                    onClick={(e) => { e.stopPropagation(); setEditingField(field.name); }}
+                  >
+                    <div className="text-content-subtle text-node-xs">{field.label}</div>
+                    {isMultiline ? (
+                      <div className="text-content text-node-sm line-clamp-3 whitespace-pre-wrap">{formatValue(value)}</div>
+                    ) : field.type === 'boolean' ? (
+                      <div className="text-content text-node-sm">{value ? 'Yes' : 'No'}</div>
+                    ) : (
+                      <div className="text-content text-node-sm truncate">{formatValue(value)}</div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
-          ))}
+          )}
         </div>
       )}
     </div>

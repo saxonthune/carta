@@ -222,7 +222,7 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 | `packages/domain/src/schemas/built-ins.ts` | Default construct schemas, port schemas, and schema groups |
 | `packages/domain/src/ports/registry.ts` | PortRegistry class with two-step polarity-based canConnect() validation |
 | `packages/domain/src/ports/helpers.ts` | Port helper functions: canConnect, getPortsForSchema, getHandleType, getPortColor |
-| `packages/domain/packages/web-client/src/utils/display.ts` | Display utilities: getDisplayName, semanticIdToLabel |
+| `packages/domain/src/utils/display.ts` | Display utilities: getDisplayName, semanticIdToLabel |
 | `packages/domain/packages/web-client/src/utils/color.ts` | Color utilities: hexToHsl, hslToHex, generateTints (7-stop tint generation) |
 
 **Web client** (React app):
@@ -418,7 +418,7 @@ packages/web-client/src/index.css                                     → Edge s
 ### Modify zoom controls or LOD rendering
 ```
 packages/web-client/src/components/canvas/Map.tsx                     → Custom zoom controls (1.15x step), minZoom: 0.15
-packages/web-client/src/components/canvas/ConstructNode.tsx           → Three-band LOD rendering (pill/compact/normal)
+packages/web-client/src/components/canvas/ConstructNode.tsx           → Two-band LOD rendering (pill/normal modes)
 packages/web-client/src/components/canvas/lod/lodPolicy.ts            → LOD band configuration and thresholds
 packages/web-client/src/components/canvas/lod/useLodBand.ts           → Hook for zoom-based discrete band selection
 packages/web-client/src/index.css                                     → text-halo utility for legible text on any background
@@ -426,15 +426,16 @@ packages/web-client/src/index.css                                     → text-h
 
 ## Testing Requirements
 
-**All tests must pass before committing changes.**
+**All tests and builds must pass before committing changes.**
 
-Run the test suites:
+Run the build and test suites:
 ```bash
+pnpm build         # Build all packages (checks TypeScript compilation)
 pnpm test          # Integration tests (Vitest)
 pnpm test:e2e      # E2E tests (Playwright)
 ```
 
-If tests fail after your changes, fix them before proceeding.
+If the build or tests fail after your changes, fix them before proceeding.
 
 ## Testing Checklist
 
@@ -461,6 +462,15 @@ When modifying constructs or connections:
 - [ ] Settings menu shows "Load Example" when examples are available
 - [ ] ExamplesModal displays all .carta files from `/examples/` directory
 - [ ] Loading an example clears existing document and imports example data
+- [ ] Deployable backgrounds use theme-adaptive opacity via CSS vars (0.06 fill, 0.12 stroke)
+- [ ] Deployable labels are readable at normal zoom (16px font, 600 weight, 85% opacity)
+- [ ] Clicking deployable label selects all nodes in that deployable
+- [ ] Dragging deployable label moves all nodes in that deployable
+- [ ] Metamap schema nodes use shadow depth instead of dashed borders
+- [ ] Metamap ports are rounded squares matching canvas port style
+- [ ] Schema group nodes use subtle solid borders instead of dashed
+- [ ] Accent bars on nodes are 2px softened (color-mixed at 70%) and respect rounded corners
+- [ ] Summary ↔ details toggle repositions port handles correctly
 
 **Static mode** (VITE_STATIC_MODE=true):
 - [ ] Share button is hidden

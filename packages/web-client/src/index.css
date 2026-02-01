@@ -27,8 +27,8 @@
   --node-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.04);
   --node-shadow-selected: 0 1px 3px rgba(99, 102, 241, 0.12), 0 4px 16px rgba(99, 102, 241, 0.08);
   --edge-default-color: #94a3b8;
-  --deployable-fill-opacity: 0.04;
-  --deployable-stroke-opacity: 0.12;
+  --deployable-fill-opacity: 0.12;
+  --deployable-stroke-opacity: 0.20;
 }
 
 [data-theme="dark"] {
@@ -256,23 +256,18 @@ body,
   box-shadow: none;
 }
 
-.schema-node {
-  border: 2px dashed var(--color-border);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-/* Diamond meta-port handles */
+/* Meta-port handles (rounded square, matching .port-handle style) */
 .meta-port-diamond {
   width: 14px !important;
   height: 14px !important;
-  border-radius: 2px !important;
-  transform: rotate(45deg) !important;
+  border-radius: 4px !important;
+  border: 2px solid white !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .meta-port-diamond:hover {
-  filter: brightness(0.7) !important;
-  box-shadow: 0 0 6px rgba(0, 0, 0, 0.3);
-  transform: rotate(45deg) scale(1.1) !important;
+  transform: scale(1.2);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--color-accent) 50%, transparent);
 }
 
 /* New connection handle with plus icon */

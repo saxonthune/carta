@@ -262,7 +262,7 @@ Node cards are the primary visual elements on the canvas. Their design follows t
 
 1. **Shadow, not outline**: Nodes float above the canvas via `box-shadow`. No white/colored border outlines. Selected state uses a subtle accent glow or ring, not a thick border.
 2. **Header is secondary**: The schema type label is `text-xs uppercase tracking-wide text-content-muted`. The display name below it is the visually dominant element (`text-base font-semibold`).
-3. **Left accent bar**: A 3px left border in the schema color identifies the node type. The header uses `bg-surface-alt` — not a full-color fill. The body uses `bg-surface`.
+3. **Left accent bar**: A 2px left border in the schema color (color-mixed at 70% with surface-alt for softness) identifies the node type at the card level. The accent bar is applied to the outer container so it respects rounded corners. The header uses `bg-surface-alt` — not a full-color fill. The body uses `bg-surface`.
 4. **Internal padding**: Consistent `p-3` body padding with `gap-2` between fields. No cramped layouts.
 5. **Rounded corners**: `rounded-lg` (8px) for the card. No sharp corners.
 
@@ -276,10 +276,30 @@ Deployable backgrounds are **ground**, not **figure**. They must be the quietest
 
 ### Rules
 
-1. **Near-invisible fill**: 3-5% opacity of the deployable color. Should be barely perceptible — just enough to see grouping.
-2. **No dashed borders**: Remove dashed stroke outlines. If a border is needed at all, use a 1px solid line at 10-15% opacity.
-3. **Label placement**: Bottom-right corner, small text, muted color. Labels should fade in progressively with zoom — invisible at pill level, subtle at compact, readable at normal.
-4. **No visual competition**: The deployable background should never draw the eye away from the nodes it contains.
+1. **Theme-adaptive fill**: 6% opacity of the deployable color across all themes (via CSS vars: `--deployable-fill-opacity`), 12% stroke opacity. Labels use 16px font, 600 weight, 85% opacity at normal zoom. Visibility adapts per-theme via CSS custom properties.
+2. **Interactive labels**: Deployable labels support click-to-select-all and drag-to-move-group interactions at normal zoom levels.
+3. **No dashed borders**: Remove dashed stroke outlines. If a border is needed at all, use a 1px solid line at 10-15% opacity.
+4. **Label placement**: Bottom-right corner, small text, muted color. Labels should fade in progressively with zoom — invisible at pill level, subtle at compact, readable at normal.
+5. **No visual competition**: The deployable background should never draw the eye away from the nodes it contains.
+
+## Metamap Visual Design
+
+Schema nodes and schema group nodes use the same depth-based design as construct nodes but with metamodel-specific conventions.
+
+### Schema Node Styling
+
+- **Shadow depth**: Uses `var(--node-shadow)` (selected: `var(--node-shadow-selected)`) instead of dashed borders
+- **Selection**: `ring-2 ring-accent/30` instead of colored border outlines
+- **Accent bar**: 2px softened left border (color-mixed at 70%) on header, matching construct nodes
+- **Header**: `bg-surface-alt rounded-t-lg` with `text-node-lg` display name and `text-node-xs` type label
+- **Typography**: `text-node-xs` for field/port labels, consistent node font sizing
+- **Ports**: Rounded square handles (`border-radius: 4px`) with white borders, matching canvas port style (not rotated diamonds)
+
+### Schema Group Node Styling
+
+- **Border**: Subtle solid border at `1px solid ${color}25` (hovered: `2px solid ${color}60`) instead of dashed
+- **Shadow**: Gentle `0 1px 3px rgba(0,0,0,0.04)` (hovered: `0 0 0 4px ${color}15`)
+- **Header**: `text-node-xs` label with color dot indicator
 
 ## Edge Rendering
 
