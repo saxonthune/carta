@@ -13,10 +13,10 @@ import {
 import SchemaNode from './SchemaNode';
 import SchemaGroupNode from './SchemaGroupNode';
 import MetamapConnectionModal from './MetamapConnectionModal';
-import ConstructEditor from './ConstructEditor';
-import ContextMenu from '../ContextMenu';
-import { useDocument } from '../hooks/useDocument';
-import { useMetamapLayout } from '../hooks/useMetamapLayout';
+import ConstructEditor from '../ConstructEditor';
+import ContextMenu from '../ui/ContextMenu';
+import { useDocument } from '../../hooks/useDocument';
+import { useMetamapLayout } from '../../hooks/useMetamapLayout';
 import type { ConstructSchema } from '@carta/domain';
 
 const nodeTypes = {

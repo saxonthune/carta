@@ -1,8 +1,8 @@
 import { useState, useMemo, useEffect } from 'react';
-import Modal from './ui/Modal';
-import Button from './ui/Button';
-import Input from './ui/Input';
-import Select from './ui/Select';
+import Modal from '../ui/Modal';
+import Button from '../ui/Button';
+import Input from '../ui/Input';
+import Select from '../ui/Select';
 import { portRegistry } from '@carta/domain';
 import type { ConstructSchema, PortConfig, Polarity } from '@carta/domain';
 

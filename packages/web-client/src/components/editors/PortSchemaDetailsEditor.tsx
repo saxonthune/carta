@@ -1,11 +1,11 @@
 import { useState, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
-import { useDocument } from '../hooks/useDocument';
-import Button from './ui/Button';
-import SchemaGroupSelector from './ui/SchemaGroupSelector';
-import Input from './ui/Input';
-import Select from './ui/Select';
-import Textarea from './ui/Textarea';
-import { toKebabCase } from '../utils/stringUtils';
+import { useDocument } from '../../hooks/useDocument';
+import Button from '../ui/Button';
+import SchemaGroupSelector from '../ui/SchemaGroupSelector';
+import Input from '../ui/Input';
+import Select from '../ui/Select';
+import Textarea from '../ui/Textarea';
+import { toKebabCase } from '../../utils/stringUtils';
 import type { PortSchema, Polarity, PortPosition } from '@carta/domain';
 
 interface PortSchemaDetailsEditorProps {

@@ -2,11 +2,11 @@ import { useState, useRef, useEffect } from 'react';
 import { useDocumentContext } from '../contexts/DocumentContext';
 import { config } from '../config/featureFlags';
 import ConnectionStatus from './ConnectionStatus';
-import DocumentBrowserModal from './DocumentBrowserModal';
-import ExamplesModal from './ExamplesModal';
-import ProjectInfoModal from './ProjectInfoModal';
-import ClearWorkspaceModal from './ClearWorkspaceModal';
-import RestoreDefaultSchemasModal from './RestoreDefaultSchemasModal';
+import DocumentBrowserModal from './modals/DocumentBrowserModal';
+import ExamplesModal from './modals/ExamplesModal';
+import ProjectInfoModal from './modals/ProjectInfoModal';
+import ClearWorkspaceModal from './modals/ClearWorkspaceModal';
+import RestoreDefaultSchemasModal from './modals/RestoreDefaultSchemasModal';
 import { getExamples, type Example } from '../utils/examples';
 
 interface HeaderProps {

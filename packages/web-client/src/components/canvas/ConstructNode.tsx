@@ -1,12 +1,12 @@
 import { memo, useState, useEffect, useRef } from 'react';
 import { Handle, Position, NodeResizer } from '@xyflow/react';
-import { useDocument } from '../hooks/useDocument';
+import { useDocument } from '../../hooks/useDocument';
 import { getPortsForSchema, getHandleType, getPortColor, generateTints, getDisplayName, getFieldsForTier } from '@carta/domain';
 import type { ConstructNodeData, PortConfig, PortPosition, ConstructSchema } from '@carta/domain';
-import CreateDeployablePopover from './CreateDeployablePopover';
-import PortPickerPopover from './ui/PortPickerPopover';
+import CreateDeployablePopover from '../CreateDeployablePopover';
+import PortPickerPopover from '../ui/PortPickerPopover';
 import { useLodBand } from './lod/useLodBand';
-import { WindowIcon, PinIcon, ExpandIcon, CollapseIcon } from './ui/icons';
+import { WindowIcon, PinIcon, ExpandIcon, CollapseIcon } from '../ui/icons';
 
 // Long hover delay in milliseconds
 const LONG_HOVER_DELAY = 800;

@@ -1,11 +1,11 @@
 import { useState, useMemo } from 'react';
-import Modal from './ui/Modal';
-import Button from './ui/Button';
+import Modal from '../ui/Modal';
+import Button from '../ui/Button';
 import type { Edge } from '@xyflow/react';
-import type { ExportAnalysis, ExportOptions } from '../utils/exportAnalyzer';
-import { defaultExportOptions } from '../utils/exportAnalyzer';
+import type { ExportAnalysis, ExportOptions } from '../../utils/exportAnalyzer';
+import { defaultExportOptions } from '../../utils/exportAnalyzer';
 import type { ConstructSchema } from '@carta/domain';
-import { CARTA_FILE_VERSION, type CartaFile } from '../utils/cartaFile';
+import { CARTA_FILE_VERSION, type CartaFile } from '../../utils/cartaFile';
 
 interface ExportPreviewModalProps {
   analysis: ExportAnalysis;

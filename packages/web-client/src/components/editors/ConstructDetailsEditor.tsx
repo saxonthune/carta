@@ -1,12 +1,12 @@
 import { useState, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
-import { useDocument } from '../hooks/useDocument';
-import Button from './ui/Button';
-import OverviewTab from './construct-editor/OverviewTab';
-import PortsTab from './construct-editor/PortsTab';
-import FieldsTab from './construct-editor/FieldsTab';
-import RelatedTab from './construct-editor/RelatedTab';
-import TabBar, { type Tab } from './ui/TabBar';
-import { toSnakeCase } from '../utils/stringUtils';
+import { useDocument } from '../../hooks/useDocument';
+import Button from '../ui/Button';
+import OverviewTab from '../construct-editor/OverviewTab';
+import PortsTab from '../construct-editor/PortsTab';
+import FieldsTab from '../construct-editor/FieldsTab';
+import RelatedTab from '../construct-editor/RelatedTab';
+import TabBar, { type Tab } from '../ui/TabBar';
+import { toSnakeCase } from '../../utils/stringUtils';
 import type { ConstructSchema, FieldSchema, PortConfig, SuggestedRelatedConstruct } from '@carta/domain';
 
 interface ConstructDetailsEditorProps {

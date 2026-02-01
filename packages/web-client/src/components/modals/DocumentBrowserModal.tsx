@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import Modal from './ui/Modal';
-import Button from './ui/Button';
-import { config } from '../config/featureFlags';
-import { listLocalDocuments, createDocument, deleteDocument } from '../stores/documentRegistry';
+import Modal from '../ui/Modal';
+import Button from '../ui/Button';
+import { config } from '../../config/featureFlags';
+import { listLocalDocuments, createDocument, deleteDocument } from '../../stores/documentRegistry';
 
 interface DocumentSummary {
   id: string;

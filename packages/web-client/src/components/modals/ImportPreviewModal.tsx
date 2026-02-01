@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import Modal from './ui/Modal';
-import Button from './ui/Button';
-import type { ImportAnalysis, ImportOptions, AnalyzedSchema, AnalyzedNode, AnalyzedDeployable } from '../utils/importAnalyzer';
-import { defaultImportOptions } from '../utils/importAnalyzer';
+import Modal from '../ui/Modal';
+import Button from '../ui/Button';
+import type { ImportAnalysis, ImportOptions, AnalyzedSchema, AnalyzedNode, AnalyzedDeployable } from '../../utils/importAnalyzer';
+import { defaultImportOptions } from '../../utils/importAnalyzer';
 
 interface ImportPreviewModalProps {
   analysis: ImportAnalysis;

@@ -1,6 +1,6 @@
-import Modal from './ui/Modal';
-import Button from './ui/Button';
-import type { Example } from '../utils/examples';
+import Modal from '../ui/Modal';
+import Button from '../ui/Button';
+import type { Example } from '../../utils/examples';
 
 interface ExamplesModalProps {
   examples: Example[];

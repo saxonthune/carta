@@ -100,7 +100,7 @@ export function useLodBand(): LodBandConfig {
 
 ### Using LOD in Components
 
-File: `packages/web-client/src/components/ConstructNode.tsx`
+File: `packages/web-client/src/components/canvas/ConstructNode.tsx`
 
 ```typescript
 import { useLodBand } from './lod/useLodBand';

@@ -16,25 +16,26 @@ import {
   type EdgeChange,
   BackgroundVariant,
 } from '@xyflow/react';
-import { useDocument } from '../hooks/useDocument';
-import { useDocumentContext } from '../contexts/DocumentContext';
-import CustomNode from '../CustomNode';
+import { useDocument } from '../../hooks/useDocument';
+import { useDocumentContext } from '../../contexts/DocumentContext';
+import CustomNode from './CustomNode';
 import ConstructNode from './ConstructNode';
 import VirtualParentNode from './VirtualParentNode';
-import ContextMenu, { type ContextMenuType, type RelatedConstructOption } from '../ContextMenu';
-import NodeControls from '../NodeControls';
+import ContextMenu, { type RelatedConstructOption } from '../ui/ContextMenu';
+import { useMapState } from '../../hooks/useMapState';
+import NodeControls from './NodeControls';
 import AddConstructMenu from './AddConstructMenu';
 import DeployableBackground from './DeployableBackground';
-import { useUndoRedo } from '../hooks/useUndoRedo';
-import { useGraphOperations } from '../hooks/useGraphOperations';
-import { useConnections } from '../hooks/useConnections';
-import { useClipboard } from '../hooks/useClipboard';
-import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
+import { useUndoRedo } from '../../hooks/useUndoRedo';
+import { useGraphOperations } from '../../hooks/useGraphOperations';
+import { useConnections } from '../../hooks/useConnections';
+import { useClipboard } from '../../hooks/useClipboard';
+import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import type { ConstructValues, Deployable, ConstructNodeData, VirtualParentNodeData } from '@carta/domain';
-import ConstructEditor from './ConstructEditor';
+import ConstructEditor from '../ConstructEditor';
 import BundledEdge from './BundledEdge';
-import ConstructFullViewModal from './ConstructFullViewModal';
-import { useEdgeBundling } from '../hooks/useEdgeBundling';
+import ConstructFullViewModal from '../modals/ConstructFullViewModal';
+import { useEdgeBundling } from '../../hooks/useEdgeBundling';
 import { getLodConfig } from './lod/lodPolicy';
 
 // Temporary debug component for LOD
@@ -70,18 +71,6 @@ const defaultEdgeOptions = {
   },
 };
 
-interface ContextMenuState {
-  x: number;
-  y: number;
-  type: ContextMenuType;
-  nodeId?: string;
-  edgeId?: string;
-}
-
-interface AddMenuState {
-  x: number;
-  y: number;
-}
 
 export interface MapProps {
   deployables: Deployable[];
@@ -125,16 +114,26 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     setEdges((eds) => applyEdgeChanges(changes, eds));
   }, [setEdges]);
 
-  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
-  const [addMenu, setAddMenu] = useState<AddMenuState | null>(null);
+  // UI state (menus, modals, mouse tracking)
+  const {
+    contextMenu,
+    addMenu,
+    editorState,
+    fullViewNodeId,
+    setAddMenu,
+    setEditorState,
+    setFullViewNodeId,
+    onPaneContextMenu,
+    onNodeContextMenu,
+    onEdgeContextMenu,
+    onMouseDown,
+    closeContextMenu,
+    onPaneClick,
+  } = useMapState();
+
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
   const [renamingNodeId, setRenamingNodeId] = useState<string | null>(null);
-  const [editorState, setEditorState] = useState<{ open: boolean; editSchema?: import('@carta/domain').ConstructSchema }>({ open: false });
-  const [fullViewNodeId, setFullViewNodeId] = useState<string | null>(null);
   const { undo, redo, canUndo, canRedo } = useUndoRedo();
-
-  // Track mouse movement for context menu detection
-  const [mouseDownPos, setMouseDownPos] = useState<{ x: number; y: number } | null>(null);
 
   // Suppress unused variable warnings - these are passed through for compatibility
   void onDeployablesChange;
@@ -290,117 +289,6 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
       onSelectionChange?.(selectedNodes);
     }
   }, [nodes, selectedNodeIds, onSelectionChange]);
-
-  const onPaneContextMenu = useCallback(
-    (event: MouseEvent | React.MouseEvent) => {
-      event.preventDefault();
-
-      // Only show context menu if mouse hasn't moved significantly
-      // If mouseDownPos is null, show menu anyway (event timing edge case)
-      let shouldShowMenu = true;
-
-      if (mouseDownPos) {
-        const dx = Math.abs(event.clientX - mouseDownPos.x);
-        const dy = Math.abs(event.clientY - mouseDownPos.y);
-        const threshold = 5; // pixels
-
-        if (dx >= threshold || dy >= threshold) {
-          shouldShowMenu = false;
-        }
-      }
-
-      if (shouldShowMenu) {
-        setContextMenu({
-          x: event.clientX,
-          y: event.clientY,
-          type: 'pane',
-        });
-      }
-
-      setMouseDownPos(null);
-    },
-    [mouseDownPos]
-  );
-
-  const onNodeContextMenu = useCallback(
-    (event: React.MouseEvent, node: Node) => {
-      event.preventDefault();
-
-      // Only show context menu if mouse hasn't moved significantly
-      // If mouseDownPos is null, show menu anyway (event timing edge case)
-      let shouldShowMenu = true;
-
-      if (mouseDownPos) {
-        const dx = Math.abs(event.clientX - mouseDownPos.x);
-        const dy = Math.abs(event.clientY - mouseDownPos.y);
-        const threshold = 5; // pixels
-
-        if (dx >= threshold || dy >= threshold) {
-          shouldShowMenu = false;
-        }
-      }
-
-      if (shouldShowMenu) {
-        setContextMenu({
-          x: event.clientX,
-          y: event.clientY,
-          type: 'node',
-          nodeId: node.id,
-        });
-      }
-
-      setMouseDownPos(null);
-    },
-    [mouseDownPos]
-  );
-
-  const onEdgeContextMenu = useCallback(
-    (event: React.MouseEvent, edge: Edge) => {
-      event.preventDefault();
-
-      // Only show context menu if mouse hasn't moved significantly
-      // If mouseDownPos is null, show menu anyway (event timing edge case)
-      let shouldShowMenu = true;
-
-      if (mouseDownPos) {
-        const dx = Math.abs(event.clientX - mouseDownPos.x);
-        const dy = Math.abs(event.clientY - mouseDownPos.y);
-        const threshold = 5; // pixels
-
-        if (dx >= threshold || dy >= threshold) {
-          shouldShowMenu = false;
-        }
-      }
-
-      if (shouldShowMenu) {
-        setContextMenu({
-          x: event.clientX,
-          y: event.clientY,
-          type: 'edge',
-          edgeId: edge.id,
-        });
-      }
-
-      setMouseDownPos(null);
-    },
-    [mouseDownPos]
-  );
-
-  const onMouseDown = useCallback((event: React.MouseEvent) => {
-    // Track mouse position on right-click
-    if (event.button === 2) {
-      setMouseDownPos({ x: event.clientX, y: event.clientY });
-    }
-  }, []);
-
-  const closeContextMenu = useCallback(() => {
-    setContextMenu(null);
-  }, []);
-
-  const onPaneClick = useCallback(() => {
-    setContextMenu(null);
-    setAddMenu(null);
-  }, []);
 
   // Count children per virtual parent for display
   const childCountMap = useMemo(() => {

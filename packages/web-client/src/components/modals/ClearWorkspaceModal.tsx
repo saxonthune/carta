@@ -1,4 +1,4 @@
-import Modal from './ui/Modal';
+import Modal from '../ui/Modal';
 
 interface ClearWorkspaceModalProps {
   isOpen: boolean;

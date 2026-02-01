@@ -1,8 +1,8 @@
 import { useState, useCallback } from 'react';
 import type { Node } from '@xyflow/react';
-import { useDocument } from '../hooks/useDocument';
-import { fieldRenderers } from './fields';
-import TabBar, { type Tab } from './ui/TabBar';
+import { useDocument } from '../../hooks/useDocument';
+import { fieldRenderers } from '../fields';
+import TabBar, { type Tab } from '../ui/TabBar';
 import { getDisplayName } from '@carta/domain';
 import type { ConstructNodeData, Deployable, ConstructValues } from '@carta/domain';
 

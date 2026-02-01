@@ -1,10 +1,10 @@
 import { useState, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
-import { useDocument } from '../hooks/useDocument';
-import Button from './ui/Button';
-import Input from './ui/Input';
-import Select from './ui/Select';
-import Textarea from './ui/Textarea';
-import { toKebabCase } from '../utils/stringUtils';
+import { useDocument } from '../../hooks/useDocument';
+import Button from '../ui/Button';
+import Input from '../ui/Input';
+import Select from '../ui/Select';
+import Textarea from '../ui/Textarea';
+import { toKebabCase } from '../../utils/stringUtils';
 import type { SchemaGroup } from '@carta/domain';
 
 // Get the full path of a group (e.g., "System > API > Endpoints")

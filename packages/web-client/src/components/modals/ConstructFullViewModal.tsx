@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import DraggableWindow from './ui/DraggableWindow';
+import DraggableWindow from '../ui/DraggableWindow';
 import { compiler } from '@carta/compiler';
 import { getDisplayName } from '@carta/domain';
 import type { ConstructNodeData, ConstructSchema, Deployable } from '@carta/domain';

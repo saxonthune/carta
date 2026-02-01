@@ -1,5 +1,5 @@
 import { getSmoothStepPath, type EdgeProps } from '@xyflow/react';
-import type { BundleData } from '../hooks/useEdgeBundling';
+import type { BundleData } from '../../hooks/useEdgeBundling';
 
 export default function BundledEdge({
   id,

@@ -27,7 +27,8 @@ Document Adapter Layer (packages/web-client/src/stores/, packages/web-client/src
 
 Visual Editor Layer (packages/web-client/src/components/, packages/web-client/src/hooks/)
   React Flow canvas, node rendering, user interactions
-  Map (instance view) and Metamap (schema view)
+  Feature directories: canvas/, metamap/, modals/, editors/, ui/
+  CanvasContainer orchestrates Map (instance view) and Metamap (schema view)
   Does not know how to compile or persist
 
 Compiler Layer (@carta/compiler)

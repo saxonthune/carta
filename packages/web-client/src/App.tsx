@@ -1,15 +1,11 @@
 import { useCallback, useState, useRef, useEffect } from 'react';
-import { ReactFlowProvider, type Node, type Edge } from '@xyflow/react';
-import ImportPreviewModal from './components/ImportPreviewModal';
-import ExportPreviewModal from './components/ExportPreviewModal';
-import CompileModal from './components/CompileModal';
-import DocumentBrowserModal from './components/DocumentBrowserModal';
+import { type Node, type Edge } from '@xyflow/react';
+import ImportPreviewModal from './components/modals/ImportPreviewModal';
+import ExportPreviewModal from './components/modals/ExportPreviewModal';
+import CompileModal from './components/modals/CompileModal';
+import DocumentBrowserModal from './components/modals/DocumentBrowserModal';
 import Header from './components/Header';
-import Map from './components/Map';
-import Metamap from './components/Metamap';
-import Footer from './components/Footer';
-import ViewToggle from './components/ViewToggle';
-import LevelSwitcher from './components/LevelSwitcher';
+import CanvasContainer from './components/canvas/CanvasContainer';
 import { compiler } from '@carta/compiler';
 import { builtInConstructSchemas, builtInPortSchemas, builtInSchemaGroups, syncWithDocumentStore } from '@carta/domain';
 import type { ConstructSchema } from '@carta/domain';
@@ -64,11 +60,9 @@ function AppContent() {
   const [exportPreview, setExportPreview] = useState<ExportAnalysis | null>(null);
   const [compileOutput, setCompileOutput] = useState<string | null>(null);
   const [_selectedNodes, setSelectedNodes] = useState<Node[]>([]);
-  const [viewMode, setViewMode] = useState<'instances' | 'metamap'>('instances');
   const [aiSidebarOpen, setAiSidebarOpen] = useState(false);
   const [aiSidebarWidth] = useState(400);
   const nodesEdgesRef = useRef<{ nodes: Node[]; edges: Edge[] }>({ nodes: [], edges: [] });
-  const containerRef = useRef<HTMLDivElement>(null);
   const { clearDocument } = useClearDocument();
 
   // Initialize refs on mount
@@ -235,43 +229,21 @@ function AppContent() {
         onToggleAI={() => setAiSidebarOpen(!aiSidebarOpen)}
         onLoadExample={handleLoadExample}
       />
-      <div ref={containerRef} className="flex-1 min-h-0 flex flex-col relative">
-        {/* Canvas toolbar overlay */}
-        <div className="absolute top-3 left-0 right-0 z-10 flex justify-center pointer-events-none">
-          <div className="pointer-events-auto">
-            <ViewToggle mode={viewMode} onChange={setViewMode} />
-          </div>
-        </div>
-        <div className="absolute top-3 right-3 z-10 pointer-events-auto">
-          <LevelSwitcher
-            levels={levels}
-            activeLevel={activeLevel}
-            onSetActiveLevel={setActiveLevel}
-            onCreateLevel={createLevel}
-            onDeleteLevel={deleteLevel}
-            onUpdateLevel={updateLevel}
-            onDuplicateLevel={duplicateLevel}
-          />
-        </div>
-
-        <div className="flex-1 min-h-0">
-          {viewMode === 'instances' ? (
-            <ReactFlowProvider>
-              <Map
-                deployables={deployables}
-                onDeployablesChange={refreshDeployables}
-                title={title}
-                onNodesEdgesChange={handleNodesEdgesChange}
-                onSelectionChange={handleSelectionChange}
-                onNodeDoubleClick={handleNodeDoubleClick}
-              />
-            </ReactFlowProvider>
-          ) : (
-            <Metamap />
-          )}
-        </div>
-        <Footer />
-      </div>
+      <CanvasContainer
+        deployables={deployables}
+        onDeployablesChange={refreshDeployables}
+        title={title}
+        onNodesEdgesChange={handleNodesEdgesChange}
+        onSelectionChange={handleSelectionChange}
+        onNodeDoubleClick={handleNodeDoubleClick}
+        levels={levels}
+        activeLevel={activeLevel}
+        onSetActiveLevel={setActiveLevel}
+        onCreateLevel={createLevel}
+        onDeleteLevel={deleteLevel}
+        onUpdateLevel={updateLevel}
+        onDuplicateLevel={duplicateLevel}
+      />
 
       {/* Modals */}
       {importPreview && (

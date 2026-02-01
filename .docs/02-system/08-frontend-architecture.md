@@ -32,7 +32,7 @@ Names reveal purpose, not layer membership:
 ```
 Primitives:  Button, Input, Card, Modal, Text, Icon
 Domain:      ConstructNode, SchemaNode, PortHandle
-Container:   Map, Metamap, App
+Container:   CanvasContainer, Map, Metamap, App
 Layout:      AppLayout, CanvasLayout
 ```
 
@@ -90,17 +90,18 @@ Containers exist at feature boundaries. They orchestrate data and inject it into
 
 ```
 App.tsx (layout orchestration)
-  Map.tsx (container: instances canvas)
-    ConstructNode (domain: receives data via props)
-  Metamap.tsx (container: schema canvas)
-    SchemaNode (domain)
+  CanvasContainer.tsx (container: view switching + level navigation)
+    Map.tsx (container: instances canvas)
+      ConstructNode (domain: receives data via props)
+    Metamap.tsx (container: schema canvas)
+      SchemaNode (domain)
 ```
 
 ## Feature Boundaries
 
 | Feature | Data | Intent | Key Files |
 |---------|------|--------|-----------|
-| Canvas (instances) | Nodes, edges, connections | Build architecture | Map.tsx, useGraphOperations |
+| Canvas (instances) | Nodes, edges, connections | Build architecture | CanvasContainer.tsx, Map.tsx, useGraphOperations, useMapState |
 | Metamap (schemas) | Schemas, groups, port schemas | Define types | Metamap.tsx |
 | Schema editing | Schema form, field tiers, ports | Create/edit types | ConstructEditor.tsx |
 | Compilation | Compiled output | Generate AI output | compiler/index.ts |

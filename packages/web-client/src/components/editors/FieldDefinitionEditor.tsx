@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import Button from './ui/Button';
-import { toSnakeCase } from '../utils/stringUtils';
-import Input from './ui/Input';
-import Select from './ui/Select';
-import Textarea from './ui/Textarea';
+import Button from '../ui/Button';
+import { toSnakeCase } from '../../utils/stringUtils';
+import Input from '../ui/Input';
+import Select from '../ui/Select';
+import Textarea from '../ui/Textarea';
 import type { FieldSchema, DataKind, DisplayHint, DisplayTier } from '@carta/domain';
 
 interface FieldDefinitionEditorProps {

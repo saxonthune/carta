@@ -160,9 +160,10 @@ Implemented packages: `@carta/types`, `@carta/domain`, `@carta/document`, `@cart
            ↓
 ┌─────────────────────────────────────────────────────────────┐
 │  Components (UI only)           packages/web-client/src/   │
-│  - Map.tsx → React Flow canvas (instance view)              │
-│  - Metamap.tsx → React Flow canvas (schema/metamodel view)  │
-│  - App.tsx → orchestration, modals, layout, view toggle     │
+│  - App.tsx → orchestration, modals, layout                  │
+│  - CanvasContainer.tsx → view switching, level switcher     │
+│  - components/canvas/Map.tsx → React Flow canvas (instance) │
+│  - components/metamap/Metamap.tsx → schema/metamodel view   │
 │  - ConstructNode.tsx → node rendering                       │
 │  - SchemaNode.tsx → schema node rendering (Metamap)         │
 └─────────────────────────────────────────────────────────────┘
@@ -236,31 +237,33 @@ Visit `http://localhost:5173/?doc=my-document-id` to open a specific document.
 | `packages/web-client/src/hooks/useUndoRedo.ts` | Y.UndoManager wrapper for undo/redo (local, not shared) |
 | `packages/web-client/src/hooks/useClipboard.ts` | Copy/paste (local state, not collaborative) |
 | `packages/web-client/src/hooks/useKeyboardShortcuts.ts` | Keyboard shortcut handling |
-| `packages/web-client/src/components/Map.tsx` | React Flow canvas, UI event handlers, virtual-parent node type |
-| `packages/web-client/src/components/VirtualParentNode.tsx` | Visual grouping container node for child constructs |
-| `packages/web-client/src/components/Header.tsx` | Project header with title, import/export, settings menu, Map/Metamap toggle, Share (server mode) |
-| `packages/web-client/src/components/Metamap.tsx` | React Flow canvas for schema-level metamodel view (SchemaNode, SchemaGroupNode) |
-| `packages/web-client/src/components/SchemaNode.tsx` | Schema node rendering in Metamap view |
-| `packages/web-client/src/components/SchemaGroupNode.tsx` | Schema group node rendering in Metamap view |
-| `packages/web-client/src/components/MetamapConnectionModal.tsx` | Modal for creating connections between schemas in Metamap (includes port color picker) |
-| `packages/web-client/src/components/ProjectInfoModal.tsx` | Modal for editing project title and description |
-| `packages/web-client/src/components/ExamplesModal.tsx` | Modal for loading example projects |
-| `packages/web-client/src/components/DocumentBrowserModal.tsx` | Document browser/selector for server mode |
+| `packages/web-client/src/hooks/useMapState.ts` | Extracted menu/modal UI state from Map.tsx: context menu, add menu, editor modal, full view modal, mouse tracking |
+| `packages/web-client/src/components/canvas/Map.tsx` | React Flow canvas, UI event handlers, virtual-parent node type |
+| `packages/web-client/src/components/canvas/CanvasContainer.tsx` | Canvas container: view switching (Map/Metamap), ViewToggle, LevelSwitcher overlays, Footer |
+| `packages/web-client/src/components/canvas/VirtualParentNode.tsx` | Visual grouping container node for child constructs |
+| `packages/web-client/src/components/Header.tsx` | Project header with title, import/export, settings menu, Share (server mode) |
+| `packages/web-client/src/components/metamap/Metamap.tsx` | React Flow canvas for schema-level metamodel view (SchemaNode, SchemaGroupNode) |
+| `packages/web-client/src/components/metamap/SchemaNode.tsx` | Schema node rendering in Metamap view |
+| `packages/web-client/src/components/metamap/SchemaGroupNode.tsx` | Schema group node rendering in Metamap view |
+| `packages/web-client/src/components/metamap/MetamapConnectionModal.tsx` | Modal for creating connections between schemas in Metamap (includes port color picker) |
+| `packages/web-client/src/components/modals/ProjectInfoModal.tsx` | Modal for editing project title and description |
+| `packages/web-client/src/components/modals/ExamplesModal.tsx` | Modal for loading example projects |
+| `packages/web-client/src/components/modals/DocumentBrowserModal.tsx` | Document browser/selector for server mode |
 | `packages/web-client/src/components/ConnectionStatus.tsx` | Connection status indicator (server mode only) |
 | `packages/web-client/src/components/ConstructEditor.tsx` | Full-screen schema editor with tabs (Basics/Fields/Ports) and live preview |
 | `packages/web-client/src/components/ui/ContextMenuPrimitive.tsx` | Reusable context menu primitive with nested submenu support |
 | `packages/web-client/src/components/ui/PortPickerPopover.tsx` | Port picker popover for collapsed port nodes |
-| `packages/web-client/src/components/BundledEdge.tsx` | Custom edge component for bundled parallel edges |
+| `packages/web-client/src/components/canvas/BundledEdge.tsx` | Custom edge component for bundled parallel edges |
 | `packages/web-client/src/hooks/useEdgeBundling.ts` | Hook for grouping parallel edges between same node pair |
-| `packages/web-client/src/components/lod/lodPolicy.ts` | LOD band configuration (pill/compact/normal modes with zoom thresholds) |
-| `packages/web-client/src/components/lod/useLodBand.ts` | Hook that returns discrete LOD band based on current zoom level |
-| `packages/web-client/src/ContextMenu.tsx` | Shared context menu for canvas right-click; view-specific options (Map shows node ops, Metamap shows schema ops) |
+| `packages/web-client/src/components/canvas/lod/lodPolicy.ts` | LOD band configuration (pill/compact/normal modes with zoom thresholds) |
+| `packages/web-client/src/components/canvas/lod/useLodBand.ts` | Hook that returns discrete LOD band based on current zoom level |
+| `packages/web-client/src/components/ui/ContextMenu.tsx` | Shared context menu for canvas right-click; view-specific options (Map shows node ops, Metamap shows schema ops) |
 | `packages/web-client/src/utils/examples.ts` | Utility to load bundled example .carta files |
 | `packages/web-client/src/main.tsx` | Entry point, configures staticMode from VITE_STATIC_MODE env var |
 | `packages/web-client/src/components/ui/icons.tsx` | Shared icon components: PinIcon, WindowIcon, CloseIcon, ExpandIcon, CollapseIcon |
 | `packages/web-client/src/components/ui/DraggableWindow.tsx` | Draggable, pinnable window component for full view modal (no backdrop, island UX) |
-| `packages/web-client/src/components/ConstructFullViewModal.tsx` | Full view window displaying all node information: fields, deployable, identity, connections, compile preview |
-| `packages/web-client/src/components/DeployableBackground.tsx` | Deployable background renderer with LOD-aware font sizing |
+| `packages/web-client/src/components/modals/ConstructFullViewModal.tsx` | Full view window displaying all node information: fields, deployable, identity, connections, compile preview |
+| `packages/web-client/src/components/canvas/DeployableBackground.tsx` | Deployable background renderer with LOD-aware font sizing |
 
 ## Key Design Principles
 
@@ -336,12 +339,12 @@ components: const { schemas, deployables } = useDocument()
 
 ### Change node appearance
 ```
-packages/web-client/src/components/ConstructNode.tsx   → Node rendering, port handles (inline/collapsed), color picker, LOD modes
-packages/web-client/src/components/lod/lodPolicy.ts    → LOD band thresholds and configuration
-packages/web-client/src/components/lod/useLodBand.ts   → Hook for discrete zoom-based LOD band detection
-packages/web-client/src/utils/displayUtils.ts          → Node title derivation
-packages/web-client/src/utils/colorUtils.ts            → Color utilities (tint generation, HSL conversion)
-packages/web-client/src/index.css                      → Styling (handles, colors, text-halo utility)
+packages/web-client/src/components/canvas/ConstructNode.tsx   → Node rendering, port handles (inline/collapsed), color picker, LOD modes
+packages/web-client/src/components/canvas/lod/lodPolicy.ts    → LOD band thresholds and configuration
+packages/web-client/src/components/canvas/lod/useLodBand.ts   → Hook for discrete zoom-based LOD band detection
+packages/web-client/src/utils/displayUtils.ts                 → Node title derivation
+packages/web-client/src/utils/colorUtils.ts                   → Color utilities (tint generation, HSL conversion)
+packages/web-client/src/index.css                             → Styling (handles, colors, text-halo utility)
 ```
 
 ### Modify keyboard shortcuts
@@ -351,10 +354,10 @@ packages/web-client/src/hooks/useKeyboardShortcuts.ts  → All keyboard handlers
 
 ### Edit port schemas (port types)
 ```
-packages/web-client/src/components/MetamapConnectionModal.tsx  → Create ports with color when connecting schemas in Metamap
-packages/web-client/src/constructs/portRegistry.ts             → Port validation and registry logic
-packages/web-client/src/stores/adapters/yjsAdapter.ts          → Port schema persistence
-packages/web-client/src/constructs/schemas/built-ins.ts        → Default port schema definitions
+packages/web-client/src/components/metamap/MetamapConnectionModal.tsx  → Create ports with color when connecting schemas in Metamap
+packages/web-client/src/constructs/portRegistry.ts                     → Port validation and registry logic
+packages/web-client/src/stores/adapters/yjsAdapter.ts                  → Port schema persistence
+packages/web-client/src/constructs/schemas/built-ins.ts                → Default port schema definitions
 ```
 
 ### Modify collaboration behavior (server mode)
@@ -363,43 +366,43 @@ packages/web-client/src/contexts/DocumentContext.tsx           → Document prov
 packages/web-client/src/stores/adapters/yjsAdapter.ts          → Yjs adapter implementation, WebSocket connection
 packages/web-client/src/hooks/useUndoRedo.ts                   → Y.UndoManager configuration
 packages/web-client/src/main.tsx                               → VITE_STATIC_MODE flag (determines UI visibility)
-packages/web-client/src/components/DocumentBrowserModal.tsx    → Document browser/selector for server mode
+packages/web-client/src/components/modals/DocumentBrowserModal.tsx    → Document browser/selector for server mode
 packages/web-client/src/components/ConnectionStatus.tsx        → Connection status indicator
 ```
 
 ### Modify header behavior or add modals
 ```
 packages/web-client/src/components/Header.tsx                  → Header controls: title, export/import, settings, theme, Share (server mode)
-packages/web-client/src/components/ProjectInfoModal.tsx        → Edit project title and description
-packages/web-client/src/components/ExamplesModal.tsx           → Load example projects from bundled .carta files
-packages/web-client/src/components/DocumentBrowserModal.tsx    → Browse/create/select documents (server mode, required on ?doc= missing)
+packages/web-client/src/components/modals/ProjectInfoModal.tsx        → Edit project title and description
+packages/web-client/src/components/modals/ExamplesModal.tsx           → Load example projects from bundled .carta files
+packages/web-client/src/components/modals/DocumentBrowserModal.tsx    → Browse/create/select documents (server mode, required on ?doc= missing)
 packages/web-client/src/components/ConstructEditor.tsx         → Full-screen schema editor with tabs and live preview
 packages/web-client/src/utils/examples.ts                      → Load examples using Vite's import.meta.glob
 ```
 
 ### Add or modify context menus
 ```
-packages/web-client/src/ContextMenu.tsx                        → Shared context menu (instance ops optional, schema ops always available)
-packages/web-client/src/components/ui/ContextMenuPrimitive.tsx → Reusable context menu primitive with nested submenus
-packages/web-client/src/components/Map.tsx                     → Map view: passes node/paste callbacks for instance operations
-packages/web-client/src/components/Metamap.tsx                 → Metamap view: passes only schema/group callbacks
+packages/web-client/src/components/ui/ContextMenu.tsx                        → Shared context menu (instance ops optional, schema ops always available)
+packages/web-client/src/components/ui/ContextMenuPrimitive.tsx               → Reusable context menu primitive with nested submenus
+packages/web-client/src/components/canvas/Map.tsx                            → Map view: passes node/paste callbacks for instance operations
+packages/web-client/src/components/metamap/Metamap.tsx                       → Metamap view: passes only schema/group callbacks
 ```
 
 ### Modify edge appearance or bundling
 ```
-packages/web-client/src/components/BundledEdge.tsx             → Custom edge component for bundled parallel edges (smoothstep style)
-packages/web-client/src/hooks/useEdgeBundling.ts               → Hook for grouping parallel edges between same node pair
-packages/web-client/src/components/Map.tsx                     → Registers BundledEdge as custom edge type, uses useEdgeBundling, custom zoom controls
-packages/web-client/src/index.css                              → Edge styling (colors, stroke width)
+packages/web-client/src/components/canvas/BundledEdge.tsx             → Custom edge component for bundled parallel edges (smoothstep style)
+packages/web-client/src/hooks/useEdgeBundling.ts                      → Hook for grouping parallel edges between same node pair
+packages/web-client/src/components/canvas/Map.tsx                     → Registers BundledEdge as custom edge type, uses useEdgeBundling, custom zoom controls
+packages/web-client/src/index.css                                     → Edge styling (colors, stroke width)
 ```
 
 ### Modify zoom controls or LOD rendering
 ```
-packages/web-client/src/components/Map.tsx                     → Custom zoom controls (1.15x step), minZoom: 0.15
-packages/web-client/src/components/ConstructNode.tsx           → Three-band LOD rendering (pill/compact/normal)
-packages/web-client/src/components/lod/lodPolicy.ts            → LOD band configuration and thresholds
-packages/web-client/src/components/lod/useLodBand.ts           → Hook for zoom-based discrete band selection
-packages/web-client/src/index.css                              → text-halo utility for legible text on any background
+packages/web-client/src/components/canvas/Map.tsx                     → Custom zoom controls (1.15x step), minZoom: 0.15
+packages/web-client/src/components/canvas/ConstructNode.tsx           → Three-band LOD rendering (pill/compact/normal)
+packages/web-client/src/components/canvas/lod/lodPolicy.ts            → LOD band configuration and thresholds
+packages/web-client/src/components/canvas/lod/useLodBand.ts           → Hook for zoom-based discrete band selection
+packages/web-client/src/index.css                                     → text-halo utility for legible text on any background
 ```
 
 ## Testing Requirements
