@@ -1,0 +1,21 @@
+{
+  "name": "@carta/desktop",
+  "version": "0.1.0-proto4",
+  "type": "module",
+  "main": "./dist/main/index.js",
+  "scripts": {
+    "dev": "tsc && electron .",
+    "build": "pnpm --filter @carta/web-client build && tsc && node scripts/copy-renderer.mjs",
+    "package": "electron-builder"
+  },
+  "dependencies": {
+    "@carta/domain": "workspace:*",
+    "@carta/document": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "electron": "^34.0.0",
+    "electron-builder": "^25.1.8",
+    "typescript": "~5.9.3"
+  }
+}

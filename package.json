@@ -19,7 +19,10 @@
     "lint": "eslint .",
     "server": "docker compose up -d mongodb && pnpm --filter @carta/server build && pnpm --filter @carta/server collab-server",
     "server:memory": "PERSISTENCE=false pnpm --filter @carta/server build && pnpm --filter @carta/server collab-server",
-    "server:stop": "docker compose down"
+    "server:stop": "docker compose down",
+    "dev:desktop": "pnpm --filter @carta/desktop dev",
+    "build:desktop": "pnpm --filter @carta/desktop build",
+    "package:desktop": "pnpm --filter @carta/desktop package"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
