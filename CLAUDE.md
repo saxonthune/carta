@@ -54,6 +54,7 @@ Cross-references use `docXX.YY.ZZ` syntax (e.g., `doc02.06` = metamodel architec
 | `/style-nag` | Audits and fixes UI styling against doc02.07 | After UI changes, or periodically |
 | `/frontend-architecture-nag` | Audits component layering against doc02.08 | After architectural changes |
 | `/test-builder` | Creates integration/E2E tests | When adding test coverage |
+| `/git-sync` | Syncs `<branchname>_claude<N>` with trunk `<branchname>` | When working on claude branches and need to sync with trunk |
 
 **Agents** (launch with `Task` tool): Long-running autonomous workers.
 
@@ -73,6 +74,7 @@ All skills follow the same pattern: opus reads `.docs/` and code, analyzes, gene
 | `/style-nag` | doc02.07 (design system), doc01.04 (UX principles) | `.claude/skills/style-nag/SKILL.md` |
 | `/frontend-architecture-nag` | doc02.08 (frontend architecture), doc02.01 (overview) | `.claude/skills/frontend-architecture-nag/SKILL.md` |
 | `/test-builder` | doc04.02 (testing), `packages/web-client/tests/README.md` | `.claude/skills/test-builder/SKILL.md` |
+| `/git-sync` | Git branching patterns | `.claude/skills/git-sync/SKILL.md` |
 
 ### Agent Details
 
