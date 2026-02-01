@@ -297,8 +297,9 @@ Schema nodes and schema group nodes use the same depth-based design as construct
 
 ### Schema Group Node Styling
 
-- **Border**: Subtle solid border at `1px solid ${color}25` (hovered: `2px solid ${color}60`) instead of dashed
+- **Border**: Subtle solid border via `color-mix(in srgb, ${color} 25%, var(--color-canvas))` (hovered: 40%)
 - **Shadow**: Gentle `0 1px 3px rgba(0,0,0,0.04)` (hovered: `0 0 0 4px ${color}15`)
+- **Fully opaque backgrounds**: Group backgrounds use `color-mix(in srgb, ${color} N%, var(--color-canvas))` — mixing the group color into the canvas color rather than using transparency. This prevents the Metamap background pattern from bleeding through nested groups. Depth increases the mix percentage (10% base + 4% per nesting level).
 - **Header**: `text-node-xs` label with color dot indicator
 
 ## Edge Rendering
@@ -320,7 +321,7 @@ LOD bands control visual complexity at different zoom levels. The philosophy is 
 
 | Band | Zoom Range | Purpose | Visual Character |
 |------|-----------|---------|-----------------|
-| Pill | < 0.5 | Topology overview | Colored chips with name, minimal shadows, thin edges |
+| Pill | < 0.5 | Topology overview | Tinted surface chips with accent dot and name, shadow-elevated, thin edges |
 | Compact | 0.5 – 1.0 | Identity and grouping | Header + display name + key fields, medium shadows |
 | Normal | >= 1.0 | Full detail and editing | Complete card with all controls, full shadows |
 
@@ -329,6 +330,7 @@ LOD bands control visual complexity at different zoom levels. The philosophy is 
 - **Animate between bands**: Use CSS `transition` on opacity, transform, and box-shadow so crossing a threshold feels smooth, not jarring.
 - **Overlap zone**: Consider a small hysteresis/overlap zone (e.g., 0.45-0.55) where elements cross-fade rather than hard-switching.
 - **Progressive detail**: Elements should fade in/out rather than appear/disappear. Fields fade in as you zoom toward normal. Controls fade in last.
+- **Crossfade on band change**: When crossing LOD band thresholds, nodes briefly fade to opacity 0 then transition back to 1 over 120ms, smoothing the visual restructuring.
 
 ### Text Halo (Theme-Aware)
 

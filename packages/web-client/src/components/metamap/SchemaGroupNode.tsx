@@ -7,6 +7,8 @@ export interface SchemaGroupNodeData {
   color: string;
   description?: string;
   isHovered?: boolean;
+  depth?: number;
+  parentGroupName?: string;
   [key: string]: unknown;
 }
 
@@ -15,7 +17,11 @@ type SchemaGroupNodeProps = NodeProps & {
 };
 
 function SchemaGroupNode({ data, selected }: SchemaGroupNodeProps) {
-  const { label, color, isHovered } = data;
+  const { label, color, isHovered, depth = 0, parentGroupName } = data;
+
+  // Fully opaque backgrounds mixed with canvas color; deeper = more color
+  const bgMix = isHovered ? 20 : 10 + depth * 4;
+  const borderMix = isHovered ? 40 : 25 + depth * 8;
 
   return (
     <>
@@ -29,8 +35,8 @@ function SchemaGroupNode({ data, selected }: SchemaGroupNodeProps) {
       <div
         className="relative min-w-[200px] min-h-[120px] h-full rounded-xl transition-all duration-200"
         style={{
-          backgroundColor: isHovered ? `${color}20` : `${color}08`,
-          border: isHovered ? `2px solid ${color}60` : `1px solid ${color}25`,
+          backgroundColor: `color-mix(in srgb, ${color} ${bgMix}%, var(--color-canvas))`,
+          border: `1px solid color-mix(in srgb, ${color} ${borderMix}%, var(--color-canvas))`,
           boxShadow: isHovered ? `0 0 0 4px ${color}15` : '0 1px 3px rgba(0,0,0,0.04)',
         }}
       >
@@ -42,7 +48,12 @@ function SchemaGroupNode({ data, selected }: SchemaGroupNodeProps) {
             className="w-2.5 h-2.5 rounded-full shrink-0"
             style={{ backgroundColor: color }}
           />
-          <span className="text-node-xs font-medium text-content">{label}</span>
+          <div className="flex flex-col">
+            <span className="text-node-xs font-medium text-content">{label}</span>
+            {parentGroupName && (
+              <span className="text-[9px] text-content-subtle leading-tight">{parentGroupName}</span>
+            )}
+          </div>
         </div>
       </div>
     </>

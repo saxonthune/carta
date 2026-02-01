@@ -32,6 +32,15 @@ export function getFieldsForTier(
 }
 
 /**
+ * Get fields that should appear in summary mode: pill + minimal tier fields
+ */
+export function getFieldsForSummary(schema: ConstructSchema): FieldSchema[] {
+  return schema.fields
+    .filter(f => f.displayTier === 'pill' || f.displayTier === 'minimal')
+    .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+}
+
+/**
  * Generate a human-readable label from a semantic ID
  * 'controller-user-api' -> 'User API'
  */

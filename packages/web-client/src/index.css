@@ -231,17 +231,21 @@ body,
   background: #8b5cf6 !important;
 }
 
-/* Metamap background - diagonal lines */
+/* Metamap background - PDX carpet-inspired alternating crosses */
 .metamap-bg {
-  background-image: repeating-linear-gradient(
-    -45deg,
-    transparent,
-    transparent 14px,
-    var(--color-border) 14px,
-    var(--color-border) 15px
-  );
-  opacity: 0.08;
+  /* Oversized to cover corners when rotated */
+  width: 150%;
+  height: 150%;
+  top: -25%;
+  left: -25%;
+  background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23000000' stroke-width='1.2' stroke-linecap='round' opacity='0.05'%3E%3Cpath d='M10 1 L10 19 M1 10 L19 10'/%3E%3Cpath d='M30 21 L30 39 M21 30 L39 30'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 40px 40px;
+  transform: rotate(-22.5deg);
   z-index: 0;
+}
+
+[data-theme="dark"] .metamap-bg {
+  background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23ffffff' stroke-width='1.2' stroke-linecap='round' opacity='0.04'%3E%3Cpath d='M10 1 L10 19 M1 10 L19 10'/%3E%3Cpath d='M30 21 L30 39 M21 30 L39 30'/%3E%3C/g%3E%3C/svg%3E");
 }
 
 /* Schema node styling */
@@ -343,4 +347,14 @@ body,
 
 .react-flow__node-schema-group.selected {
   box-shadow: none;
+}
+
+/* Metamap edge hover - indicate clickability */
+.metamap-canvas .react-flow__edge:hover .react-flow__edge-path {
+  stroke-width: 2.5 !important;
+  stroke: var(--color-content-muted) !important;
+}
+
+.metamap-canvas .react-flow__edge {
+  cursor: pointer;
 }

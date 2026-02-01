@@ -3,6 +3,7 @@ import {
   ReactFlowProvider,
   ReactFlow,
   type Node,
+  type Edge,
   type NodeChange,
   type Connection,
   Controls,
@@ -13,11 +14,12 @@ import {
 import SchemaNode from './SchemaNode';
 import SchemaGroupNode from './SchemaGroupNode';
 import MetamapConnectionModal from './MetamapConnectionModal';
+import EdgeDetailPopover from './EdgeDetailPopover';
 import ConstructEditor from '../ConstructEditor';
 import ContextMenu from '../ui/ContextMenu';
 import { useDocument } from '../../hooks/useDocument';
 import { useMetamapLayout } from '../../hooks/useMetamapLayout';
-import type { ConstructSchema } from '@carta/domain';
+import type { ConstructSchema, SuggestedRelatedConstruct } from '@carta/domain';
 
 const nodeTypes = {
   'schema-node': SchemaNode,
@@ -32,11 +34,19 @@ interface ConnectionModalState {
 }
 
 function MetamapInner() {
-  const { schemas, schemaGroups, getSchema, updateSchema, addSchemaGroup } = useDocument();
+  const { schemas, schemaGroups, getSchema, updateSchema, updateSchemaGroup, addSchemaGroup } = useDocument();
   const [connectionModal, setConnectionModal] = useState<ConnectionModalState | null>(null);
   const [editorState, setEditorState] = useState<{ open: boolean; editSchema?: ConstructSchema }>({ open: false });
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; schemaType?: string } | null>(null);
-  const { nodes: layoutNodes, edges, reLayout } = useMetamapLayout(schemas, schemaGroups);
+  const [expandedSchemas, setExpandedSchemas] = useState<Set<string>>(new Set());
+  const [edgePopover, setEdgePopover] = useState<{
+    sourceSchema: ConstructSchema;
+    targetSchema: ConstructSchema;
+    relationship: SuggestedRelatedConstruct;
+    relationshipIndex: number;
+    position: { x: number; y: number };
+  } | null>(null);
+  const { nodes: layoutNodes, edges, reLayout } = useMetamapLayout(schemas, schemaGroups, expandedSchemas);
   const [nodes, setNodes] = useState<Node[]>([]);
   const [dragHoverGroupId, setDragHoverGroupId] = useState<string | null>(null);
   const reactFlow = useReactFlow();
@@ -150,17 +160,66 @@ function MetamapInner() {
         const currentGroup = schemaGroups.find(g => g.id === (node.data as { groupId: string }).groupId);
         if (!currentGroup) return;
 
-        if (targetGroupId && targetGroupId !== currentGroup.parentId) {
-          // TODO: Implement updateSchemaGroup in useDocument
-          // For now, just log
-          console.log('Group drag-to-group not yet implemented:', currentGroup.id, '->', targetGroupId);
+        if (targetGroupId && targetGroupId !== currentGroup.parentId && targetGroupId !== currentGroup.id) {
+          updateSchemaGroup(currentGroup.id, { parentId: targetGroupId });
         } else if (!targetGroupId && currentGroup.parentId) {
-          console.log('Group drag-out not yet implemented:', currentGroup.id);
+          updateSchemaGroup(currentGroup.id, { parentId: undefined });
         }
       }
     },
-    [reactFlow, getSchema, updateSchema, schemaGroups]
+    [reactFlow, getSchema, updateSchema, updateSchemaGroup, schemaGroups]
   );
+
+  const onNodeDoubleClick = useCallback((_event: React.MouseEvent, node: Node) => {
+    if (node.type !== 'schema-node') return;
+    setExpandedSchemas(prev => {
+      const next = new Set(prev);
+      if (next.has(node.id)) {
+        next.delete(node.id);
+      } else {
+        next.add(node.id);
+      }
+      return next;
+    });
+  }, []);
+
+  const onEdgeClick = useCallback((event: React.MouseEvent, edge: Edge) => {
+    const data = edge.data as { sourceType: string; targetType: string; relIndex: number } | undefined;
+    if (!data) return;
+
+    const sourceSchema = getSchema(data.sourceType);
+    const targetSchema = getSchema(data.targetType);
+    if (!sourceSchema || !targetSchema) return;
+
+    const relationship = sourceSchema.suggestedRelated?.[data.relIndex];
+    if (!relationship) return;
+
+    setEdgePopover({
+      sourceSchema,
+      targetSchema,
+      relationship,
+      relationshipIndex: data.relIndex,
+      position: { x: event.clientX, y: event.clientY },
+    });
+  }, [getSchema]);
+
+  const handleEdgeUpdate = useCallback((relIndex: number, updates: Partial<SuggestedRelatedConstruct>) => {
+    if (!edgePopover) return;
+    const schema = edgePopover.sourceSchema;
+    const related = [...(schema.suggestedRelated || [])];
+    related[relIndex] = { ...related[relIndex], ...updates };
+    updateSchema(schema.type, { suggestedRelated: related });
+    setEdgePopover(null);
+  }, [edgePopover, updateSchema]);
+
+  const handleEdgeDelete = useCallback((relIndex: number) => {
+    if (!edgePopover) return;
+    const schema = edgePopover.sourceSchema;
+    const related = [...(schema.suggestedRelated || [])];
+    related.splice(relIndex, 1);
+    updateSchema(schema.type, { suggestedRelated: related });
+    setEdgePopover(null);
+  }, [edgePopover, updateSchema]);
 
   const onConnect = useCallback(
     (params: Connection) => {
@@ -249,7 +308,7 @@ function MetamapInner() {
   );
 
   return (
-    <div className="w-full h-full relative">
+    <div className="w-full h-full relative overflow-hidden">
       <div className="metamap-bg absolute inset-0 pointer-events-none" />
       <ReactFlow
         nodes={nodes}
@@ -258,6 +317,8 @@ function MetamapInner() {
         onNodesChange={onNodesChange}
         onNodeDrag={onNodeDrag}
         onNodeDragStop={onNodeDragStop}
+        onNodeDoubleClick={onNodeDoubleClick}
+        onEdgeClick={onEdgeClick}
         onConnect={onConnect}
         onPaneContextMenu={onPaneContextMenu}
         onNodeContextMenu={onNodeContextMenu}
@@ -302,6 +363,18 @@ function MetamapInner() {
             const schema = getSchema(schemaType);
             if (schema) setEditorState({ open: true, editSchema: schema });
           }}
+        />
+      )}
+      {edgePopover && (
+        <EdgeDetailPopover
+          sourceSchema={edgePopover.sourceSchema}
+          targetSchema={edgePopover.targetSchema}
+          relationship={edgePopover.relationship}
+          relationshipIndex={edgePopover.relationshipIndex}
+          position={edgePopover.position}
+          onUpdate={handleEdgeUpdate}
+          onDelete={handleEdgeDelete}
+          onClose={() => setEdgePopover(null)}
         />
       )}
       {editorState.open && (

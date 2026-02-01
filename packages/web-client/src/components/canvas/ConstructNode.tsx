@@ -1,7 +1,7 @@
 import { memo, useState, useEffect, useRef } from 'react';
 import { Handle, Position, NodeResizer } from '@xyflow/react';
 import { useDocument } from '../../hooks/useDocument';
-import { getPortsForSchema, getHandleType, getPortColor, generateTints, getDisplayName, getFieldsForTier } from '@carta/domain';
+import { getPortsForSchema, getHandleType, getPortColor, generateTints, getDisplayName, getFieldsForSummary } from '@carta/domain';
 import type { ConstructNodeData, PortConfig, PortPosition, ConstructSchema } from '@carta/domain';
 import CreateDeployablePopover from '../CreateDeployablePopover';
 import PortPickerPopover from '../ui/PortPickerPopover';
@@ -169,7 +169,6 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
   const ports = getPortsForSchema(schema.ports);
   const isCollapsedPorts = schema.portDisplayPolicy === 'collapsed';
 
-  const mapFields = getFieldsForTier(schema, 'minimal');
   const formatValue = (value: unknown) => {
     if (value === null || value === undefined || value === '') return '—';
     if (typeof value === 'object') {
@@ -452,178 +451,164 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
         </div>
       </div>
 
-      {data.viewLevel !== 'details' && (
-        <div className="flex-1 overflow-y-auto min-h-0 bg-surface">
-          {/* Display name - visually dominant */}
-          <div className="px-2 pt-2 pb-1 text-node-lg font-semibold text-content border-b border-border-subtle">
-            {getDisplayName(data, schema)}
-          </div>
+      {/* Unified body: summary shows pill+minimal fields, details shows all fields */}
+      {(() => {
+        const isDetails = data.viewLevel === 'details';
+        const visibleFields = isDetails ? schema.fields : getFieldsForSummary(schema);
 
-          {/* Minimal tier fields */}
-          {mapFields.length > 0 && (
-            <div className="px-2 py-1.5 text-node-sm text-content-muted">
-              <div className="flex flex-col gap-1">
-                {mapFields.map((field) => (
-                  <div key={field.name} className="flex gap-1 justify-between">
-                    <span className="text-content-subtle">{field.label}:</span>
-                    <span className="text-content font-medium text-right max-w-[70%] truncate">
-                      {formatValue(data.values[field.name] ?? field.default)}
-                    </span>
-                  </div>
-                ))}
-              </div>
+        return (
+          <div className="px-2 py-2 bg-surface flex flex-col gap-2 flex-1 overflow-y-auto min-h-0">
+            {/* Display name row */}
+            <div className="text-node-lg font-semibold text-content">
+              {getDisplayName(data, schema)}
             </div>
-          )}
-        </div>
-      )}
 
-      {data.viewLevel === 'details' && (
-        <div className="px-2 py-2 bg-surface-depth-1 flex flex-col gap-2">
-          {/* Background Color */}
-          {data.onInstanceColorChange && (schema.backgroundColorPolicy === 'tints' || schema.backgroundColorPolicy === 'any') && (
-            <div>
-              <label className="text-node-xs text-content-muted uppercase tracking-wide">Background Color</label>
-              <div className="mt-1">
-                <ColorPicker
-                  schema={schema}
-                  instanceColor={data.instanceColor}
-                  onColorChange={data.onInstanceColorChange}
+            {/* Background Color (details only) */}
+            {isDetails && data.onInstanceColorChange && (schema.backgroundColorPolicy === 'tints' || schema.backgroundColorPolicy === 'any') && (
+              <div>
+                <label className="text-node-xs text-content-muted uppercase tracking-wide">Background Color</label>
+                <div className="mt-1">
+                  <ColorPicker
+                    schema={schema}
+                    instanceColor={data.instanceColor}
+                    onColorChange={data.onInstanceColorChange}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Deployable dropdown (details only) */}
+            {isDetails && data.deployables && (
+              <div className="relative">
+                <label className="text-node-xs text-content-muted uppercase tracking-wide">Deployable</label>
+                <select
+                  className="w-full px-2 py-1 bg-surface rounded text-node-sm text-content border border-content-muted/20"
+                  value={data.deployableId || ''}
+                  onChange={(e) => handleDeployableChange(e.target.value)}
+                >
+                  <option value="">—</option>
+                  {data.deployables.map((d) => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
+                  <option value={ADD_NEW_DEPLOYABLE}>+ Add new...</option>
+                </select>
+
+                {/* New Deployable Popover */}
+                <CreateDeployablePopover
+                  isOpen={showNewDeployableModal}
+                  onClose={() => setShowNewDeployableModal(false)}
+                  onCreate={handleCreateDeployable}
                 />
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Deployable dropdown */}
-          {data.deployables && (
-            <div className="relative">
-              <label className="text-node-xs text-content-muted uppercase tracking-wide">Deployable</label>
-              <select
-                className="w-full px-2 py-1 bg-surface rounded text-node-sm text-content border border-content-muted/20"
-                value={data.deployableId || ''}
-                onChange={(e) => handleDeployableChange(e.target.value)}
-              >
-                <option value="">—</option>
-                {data.deployables.map((d) => (
-                  <option key={d.id} value={d.id}>{d.name}</option>
-                ))}
-                <option value={ADD_NEW_DEPLOYABLE}>+ Add new...</option>
-              </select>
+            {/* Fields — click-to-edit two-column grid */}
+            {visibleFields.length > 0 && (
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                {visibleFields.map((field) => {
+                  const isMultiline = field.displayHint === 'multiline' || field.displayHint === 'code';
+                  const isEditing = editingField === field.name;
+                  const value = data.values[field.name] ?? field.default;
 
-              {/* New Deployable Popover */}
-              <CreateDeployablePopover
-                isOpen={showNewDeployableModal}
-                onClose={() => setShowNewDeployableModal(false)}
-                onCreate={handleCreateDeployable}
-              />
-            </div>
-          )}
+                  const commitValue = (newValue: unknown) => {
+                    data.onValuesChange?.({ ...data.values, [field.name]: newValue });
+                    setEditingField(null);
+                  };
 
-          {/* Schema fields — click-to-edit two-column grid */}
-          {Array.isArray(schema.fields) && schema.fields.length > 0 && (
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
-              {schema.fields.map((field) => {
-                const isMultiline = field.displayHint === 'multiline' || field.displayHint === 'code';
-                const isEditing = editingField === field.name;
-                const value = data.values[field.name] ?? field.default;
+                  const cancelEdit = () => setEditingField(null);
 
-                const commitValue = (newValue: unknown) => {
-                  data.onValuesChange?.({ ...data.values, [field.name]: newValue });
-                  setEditingField(null);
-                };
+                  const handleKeyDown = (e: React.KeyboardEvent) => {
+                    e.stopPropagation();
+                    if (e.key === 'Escape') {
+                      cancelEdit();
+                    }
+                    if (e.key === 'Enter' && !isMultiline) {
+                      (e.target as HTMLElement).blur();
+                    }
+                  };
 
-                const cancelEdit = () => setEditingField(null);
+                  // Multiline and code fields span full width
+                  const cellClass = isMultiline ? 'col-span-2' : '';
 
-                const handleKeyDown = (e: React.KeyboardEvent) => {
-                  e.stopPropagation();
-                  if (e.key === 'Escape') {
-                    cancelEdit();
-                  }
-                  if (e.key === 'Enter' && !isMultiline) {
-                    (e.target as HTMLElement).blur();
-                  }
-                };
-
-                // Multiline and code fields span full width
-                const cellClass = isMultiline ? 'col-span-2' : '';
-
-                if (isEditing) {
-                  return (
-                    <div key={field.name} className={cellClass}>
-                      <div className="text-content-subtle text-node-xs">{field.label}</div>
-                      {field.type === 'boolean' ? (
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <input
-                            type="checkbox"
-                            checked={!!value}
-                            onChange={(e) => commitValue(e.target.checked)}
+                  if (isEditing) {
+                    return (
+                      <div key={field.name} className={cellClass}>
+                        <div className="text-content-subtle text-node-xs">{field.label}</div>
+                        {field.type === 'boolean' ? (
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <input
+                              type="checkbox"
+                              checked={!!value}
+                              onChange={(e) => commitValue(e.target.checked)}
+                              onKeyDown={handleKeyDown}
+                              className="w-4 h-4 cursor-pointer"
+                              autoFocus
+                            />
+                          </div>
+                        ) : field.type === 'enum' && field.options ? (
+                          <select
+                            className="w-full px-1.5 py-0.5 bg-surface rounded text-node-sm text-content border border-accent/40 outline-none"
+                            value={String(value ?? '')}
+                            onChange={(e) => commitValue(e.target.value)}
+                            onBlur={() => cancelEdit()}
                             onKeyDown={handleKeyDown}
-                            className="w-4 h-4 cursor-pointer"
+                            autoFocus
+                          >
+                            <option value="">Select...</option>
+                            {field.options.map((opt) => (
+                              <option key={opt.value} value={opt.value}>{opt.value}</option>
+                            ))}
+                          </select>
+                        ) : isMultiline ? (
+                          <textarea
+                            className="w-full px-1.5 py-0.5 bg-surface rounded text-node-sm text-content border border-accent/40 outline-none resize-y min-h-[60px] font-mono text-xs"
+                            defaultValue={String(value ?? '')}
+                            onBlur={(e) => commitValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              e.stopPropagation();
+                              if (e.key === 'Escape') cancelEdit();
+                            }}
+                            placeholder={field.placeholder}
                             autoFocus
                           />
-                        </div>
-                      ) : field.type === 'enum' && field.options ? (
-                        <select
-                          className="w-full px-1.5 py-0.5 bg-surface rounded text-node-sm text-content border border-accent/40 outline-none"
-                          value={String(value ?? '')}
-                          onChange={(e) => commitValue(e.target.value)}
-                          onBlur={() => cancelEdit()}
-                          onKeyDown={handleKeyDown}
-                          autoFocus
-                        >
-                          <option value="">Select...</option>
-                          {field.options.map((opt) => (
-                            <option key={opt.value} value={opt.value}>{opt.value}</option>
-                          ))}
-                        </select>
-                      ) : isMultiline ? (
-                        <textarea
-                          className="w-full px-1.5 py-0.5 bg-surface rounded text-node-sm text-content border border-accent/40 outline-none resize-y min-h-[60px] font-mono text-xs"
-                          defaultValue={String(value ?? '')}
-                          onBlur={(e) => commitValue(e.target.value)}
-                          onKeyDown={(e) => {
-                            e.stopPropagation();
-                            if (e.key === 'Escape') cancelEdit();
-                          }}
-                          placeholder={field.placeholder}
-                          autoFocus
-                        />
+                        ) : (
+                          <input
+                            type={field.type === 'number' ? 'number' : 'text'}
+                            className="w-full px-1.5 py-0.5 bg-surface rounded text-node-sm text-content border border-accent/40 outline-none"
+                            defaultValue={String(value ?? '')}
+                            onBlur={(e) => commitValue(field.type === 'number' ? Number(e.target.value) : e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            placeholder={field.placeholder}
+                            autoFocus
+                          />
+                        )}
+                      </div>
+                    );
+                  }
+
+                  // Read-only state
+                  return (
+                    <div
+                      key={field.name}
+                      className={`cursor-pointer hover:bg-surface-alt rounded px-1 -mx-1 ${cellClass}`}
+                      onClick={(e) => { e.stopPropagation(); setEditingField(field.name); }}
+                    >
+                      <div className="text-content-subtle text-node-xs">{field.label}</div>
+                      {isMultiline ? (
+                        <div className="text-content text-node-sm line-clamp-3 whitespace-pre-wrap">{formatValue(value)}</div>
+                      ) : field.type === 'boolean' ? (
+                        <div className="text-content text-node-sm">{value ? 'Yes' : 'No'}</div>
                       ) : (
-                        <input
-                          type={field.type === 'number' ? 'number' : 'text'}
-                          className="w-full px-1.5 py-0.5 bg-surface rounded text-node-sm text-content border border-accent/40 outline-none"
-                          defaultValue={String(value ?? '')}
-                          onBlur={(e) => commitValue(field.type === 'number' ? Number(e.target.value) : e.target.value)}
-                          onKeyDown={handleKeyDown}
-                          placeholder={field.placeholder}
-                          autoFocus
-                        />
+                        <div className="text-content text-node-sm truncate">{formatValue(value)}</div>
                       )}
                     </div>
                   );
-                }
-
-                // Read-only state
-                return (
-                  <div
-                    key={field.name}
-                    className={`cursor-pointer hover:bg-surface-alt rounded px-1 -mx-1 ${cellClass}`}
-                    onClick={(e) => { e.stopPropagation(); setEditingField(field.name); }}
-                  >
-                    <div className="text-content-subtle text-node-xs">{field.label}</div>
-                    {isMultiline ? (
-                      <div className="text-content text-node-sm line-clamp-3 whitespace-pre-wrap">{formatValue(value)}</div>
-                    ) : field.type === 'boolean' ? (
-                      <div className="text-content text-node-sm">{value ? 'Yes' : 'No'}</div>
-                    ) : (
-                      <div className="text-content text-node-sm truncate">{formatValue(value)}</div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 });

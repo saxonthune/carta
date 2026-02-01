@@ -222,7 +222,7 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 | `packages/domain/src/schemas/built-ins.ts` | Default construct schemas, port schemas, and schema groups |
 | `packages/domain/src/ports/registry.ts` | PortRegistry class with two-step polarity-based canConnect() validation |
 | `packages/domain/src/ports/helpers.ts` | Port helper functions: canConnect, getPortsForSchema, getHandleType, getPortColor |
-| `packages/domain/src/utils/display.ts` | Display utilities: getDisplayName, semanticIdToLabel |
+| `packages/domain/src/utils/display.ts` | Display utilities: getDisplayName, getFieldsForSummary, semanticIdToLabel |
 | `packages/domain/packages/web-client/src/utils/color.ts` | Color utilities: hexToHsl, hslToHex, generateTints (7-stop tint generation) |
 
 **Web client** (React app):
@@ -244,7 +244,8 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 | `packages/web-client/src/components/canvas/CanvasContainer.tsx` | Canvas container: view switching (Map/Metamap), ViewToggle, LevelSwitcher overlays, Footer |
 | `packages/web-client/src/components/canvas/VirtualParentNode.tsx` | Visual grouping container node for child constructs |
 | `packages/web-client/src/components/Header.tsx` | Project header with title, import/export, settings menu, Share (server mode) |
-| `packages/web-client/src/components/metamap/Metamap.tsx` | React Flow canvas for schema-level metamodel view (SchemaNode, SchemaGroupNode) |
+| `packages/web-client/src/components/metamap/Metamap.tsx` | React Flow canvas for schema-level metamodel view (SchemaNode, SchemaGroupNode, EdgeDetailPopover) |
+| `packages/web-client/src/components/metamap/EdgeDetailPopover.tsx` | Click-to-edit popover for metamap edges: edit labels, delete relationships |
 | `packages/web-client/src/components/metamap/SchemaNode.tsx` | Schema node rendering in Metamap view |
 | `packages/web-client/src/components/metamap/SchemaGroupNode.tsx` | Schema group node rendering in Metamap view |
 | `packages/web-client/src/components/metamap/MetamapConnectionModal.tsx` | Modal for creating connections between schemas in Metamap (includes port color picker) |
@@ -412,6 +413,7 @@ packages/web-client/src/components/metamap/Metamap.tsx                       →
 packages/web-client/src/components/canvas/BundledEdge.tsx             → Custom edge component for bundled parallel edges (smoothstep style)
 packages/web-client/src/hooks/useEdgeBundling.ts                      → Hook for grouping parallel edges between same node pair
 packages/web-client/src/components/canvas/Map.tsx                     → Registers BundledEdge as custom edge type, uses useEdgeBundling, custom zoom controls
+packages/web-client/src/components/metamap/EdgeDetailPopover.tsx      → Click-to-edit popover for metamap relationship edges
 packages/web-client/src/index.css                                     → Edge styling (colors, stroke width)
 ```
 
