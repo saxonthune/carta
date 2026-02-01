@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import {
   ReactFlowProvider,
   ReactFlow,
@@ -10,6 +10,7 @@ import {
   ControlButton,
   applyNodeChanges,
   useReactFlow,
+  useStore,
 } from '@xyflow/react';
 import SchemaNode from './SchemaNode';
 import SchemaGroupNode from './SchemaGroupNode';
@@ -20,6 +21,48 @@ import ContextMenu from '../ui/ContextMenu';
 import { useDocument } from '../../hooks/useDocument';
 import { useMetamapLayout } from '../../hooks/useMetamapLayout';
 import type { ConstructSchema, SuggestedRelatedConstruct } from '@carta/domain';
+
+// Zoom debug component
+function ZoomDebug() {
+  const zoom = useStore((state) => state.transform[2]);
+  const { getViewport, setViewport } = useReactFlow();
+  const [editing, setEditing] = useState(false);
+  const [inputValue, setInputValue] = useState('');
+
+  const commitZoom = () => {
+    setEditing(false);
+    const parsed = parseFloat(inputValue);
+    if (isNaN(parsed)) return;
+    const clamped = Math.min(Math.max(parsed, 0.15), 2);
+    const { x, y } = getViewport();
+    setViewport({ x, y, zoom: clamped }, { duration: 200 });
+  };
+
+  return (
+    <div className="absolute top-3 left-3 bg-black/80 text-white px-3 py-2 rounded text-xs font-mono z-50">
+      <div className="flex items-center gap-1">
+        <span>Zoom:</span>
+        {editing ? (
+          <input
+            autoFocus
+            className="w-14 bg-transparent border-b border-white/50 text-white text-xs font-mono outline-none"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onBlur={commitZoom}
+            onKeyDown={(e) => { if (e.key === 'Enter') commitZoom(); if (e.key === 'Escape') setEditing(false); }}
+          />
+        ) : (
+          <span
+            className="cursor-pointer border-b border-transparent hover:border-white/50"
+            onClick={() => { setInputValue(zoom.toFixed(3)); setEditing(true); }}
+          >
+            {zoom.toFixed(3)}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
 
 const nodeTypes = {
   'schema-node': SchemaNode,
@@ -39,6 +82,8 @@ function MetamapInner() {
   const [editorState, setEditorState] = useState<{ open: boolean; editSchema?: ConstructSchema }>({ open: false });
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; schemaType?: string } | null>(null);
   const [expandedSchemas, setExpandedSchemas] = useState<Set<string>>(new Set());
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [filterText, setFilterText] = useState('');
   const [edgePopover, setEdgePopover] = useState<{
     sourceSchema: ConstructSchema;
     targetSchema: ConstructSchema;
@@ -46,24 +91,94 @@ function MetamapInner() {
     relationshipIndex: number;
     position: { x: number; y: number };
   } | null>(null);
-  const { nodes: layoutNodes, edges, reLayout } = useMetamapLayout(schemas, schemaGroups, expandedSchemas);
+  const { nodes: layoutNodes, edges, reLayout: triggerReLayout } = useMetamapLayout(schemas, schemaGroups, expandedSchemas, expandedGroups);
   const [nodes, setNodes] = useState<Node[]>([]);
   const [dragHoverGroupId, setDragHoverGroupId] = useState<string | null>(null);
   const reactFlow = useReactFlow();
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  // Sync layout results into local state, updating group hover state
+  // Compute matching schemas for filter (memoized to prevent infinite loops)
+  const matchingSchemaTypes = useMemo(() => {
+    if (!filterText.trim()) return null;
+    const q = filterText.toLowerCase();
+    return new Set(
+      schemas
+        .filter(s => s.displayName.toLowerCase().includes(q) || s.type.toLowerCase().includes(q))
+        .map(s => s.type)
+    );
+  }, [filterText, schemas]);
+
+  // Compute which groups contain matching schemas (for auto-expand and dimming)
+  const groupsWithMatches = useMemo(() => {
+    const result = new Set<string>();
+    if (!matchingSchemaTypes) return result;
+
+    for (const s of schemas) {
+      if (matchingSchemaTypes.has(s.type) && s.groupId) {
+        // Walk up the group tree and mark all ancestors
+        let gid: string | undefined = s.groupId;
+        while (gid) {
+          result.add(gid);
+          const group = schemaGroups.find(g => g.id === gid);
+          gid = group?.parentId;
+        }
+      }
+    }
+    return result;
+  }, [matchingSchemaTypes, schemas, schemaGroups]);
+
+  // Compute dimmed sets (memoized to prevent infinite loops)
+  const dimmedSchemaTypes = useMemo(() => {
+    if (!matchingSchemaTypes) return new Set<string>();
+    return new Set(schemas.filter(s => !matchingSchemaTypes.has(s.type)).map(s => s.type));
+  }, [matchingSchemaTypes, schemas]);
+
+  const dimmedGroupIds = useMemo(() => {
+    if (!matchingSchemaTypes) return new Set<string>();
+    return new Set(schemaGroups.filter(g => !groupsWithMatches.has(g.id)).map(g => g.id));
+  }, [matchingSchemaTypes, schemaGroups, groupsWithMatches]);
+
+  // Auto-expand groups that contain matching schemas when filter is active
+  const prevFilterRef = useRef<string>('');
+  useEffect(() => {
+    if (filterText.trim() && filterText !== prevFilterRef.current && groupsWithMatches.size > 0) {
+      setExpandedGroups(prev => {
+        const next = new Set(prev);
+        for (const gid of groupsWithMatches) {
+          next.add(gid);
+        }
+        return next;
+      });
+    }
+    prevFilterRef.current = filterText;
+  }, [filterText, groupsWithMatches]);
+
+  // Sync layout results into local state, updating group hover state + dimming
   useEffect(() => {
     setNodes(layoutNodes.map(node => {
       if (node.type === 'schema-group') {
         const groupId = (node.data as { groupId: string }).groupId;
         return {
           ...node,
-          data: { ...node.data, isHovered: groupId === dragHoverGroupId },
+          data: {
+            ...node.data,
+            isHovered: groupId === dragHoverGroupId,
+            isDimmed: dimmedGroupIds.has(groupId),
+          },
+        };
+      }
+      if (node.type === 'schema-node') {
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            isDimmed: dimmedSchemaTypes.has(node.id),
+          },
         };
       }
       return node;
     }));
-  }, [layoutNodes, dragHoverGroupId]);
+  }, [layoutNodes, dragHoverGroupId, dimmedSchemaTypes, dimmedGroupIds]);
 
   const onNodesChange = useCallback((changes: NodeChange[]) => {
     setNodes(nds => applyNodeChanges(changes, nds));
@@ -170,18 +285,47 @@ function MetamapInner() {
     [reactFlow, getSchema, updateSchema, updateSchemaGroup, schemaGroups]
   );
 
-  const onNodeDoubleClick = useCallback((_event: React.MouseEvent, node: Node) => {
-    if (node.type !== 'schema-node') return;
-    setExpandedSchemas(prev => {
-      const next = new Set(prev);
-      if (next.has(node.id)) {
-        next.delete(node.id);
-      } else {
-        next.add(node.id);
+  const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
+    // Click on collapsed group → expand it
+    if (node.type === 'schema-group') {
+      const groupId = (node.data as { groupId: string }).groupId;
+      const isGroupExpanded = expandedGroups.has(groupId);
+      if (!isGroupExpanded) {
+        setExpandedGroups(prev => {
+          const next = new Set(prev);
+          next.add(groupId);
+          return next;
+        });
+        // Fit view after a tick so layout recalculates
+        setTimeout(() => reactFlow.fitView({ duration: 300 }), 50);
       }
-      return next;
-    });
-  }, []);
+    }
+  }, [expandedGroups, reactFlow]);
+
+  const onNodeDoubleClick = useCallback((_event: React.MouseEvent, node: Node) => {
+    if (node.type === 'schema-node') {
+      setExpandedSchemas(prev => {
+        const next = new Set(prev);
+        if (next.has(node.id)) {
+          next.delete(node.id);
+        } else {
+          next.add(node.id);
+        }
+        return next;
+      });
+    } else if (node.type === 'schema-group') {
+      // Double-click on expanded group → collapse it
+      const groupId = (node.data as { groupId: string }).groupId;
+      if (expandedGroups.has(groupId)) {
+        setExpandedGroups(prev => {
+          const next = new Set(prev);
+          next.delete(groupId);
+          return next;
+        });
+        setTimeout(() => reactFlow.fitView({ duration: 300 }), 50);
+      }
+    }
+  }, [expandedGroups, reactFlow]);
 
   const onEdgeClick = useCallback((event: React.MouseEvent, edge: Edge) => {
     const data = edge.data as { sourceType: string; targetType: string; relIndex: number } | undefined;
@@ -307,9 +451,69 @@ function MetamapInner() {
     [updateSchema]
   );
 
+  const reLayout = useCallback(() => {
+    // Reset expanded groups on re-layout
+    setExpandedGroups(new Set());
+    triggerReLayout();
+  }, [triggerReLayout]);
+
+  const handleFilterSelect = useCallback((schemaType: string) => {
+    setFilterText('');
+    // Pan to the matching schema
+    const node = reactFlow.getNode(schemaType);
+    if (node) {
+      reactFlow.fitView({ nodes: [node], duration: 300, padding: 0.5 });
+    }
+  }, [reactFlow]);
+
   return (
-    <div className="w-full h-full relative overflow-hidden">
+    <div ref={containerRef} className="w-full h-full relative overflow-hidden">
       <div className="metamap-bg absolute inset-0 pointer-events-none" />
+      <ZoomDebug />
+      {/* Search bar positioned to the left of center */}
+      <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-3 pointer-events-none">
+        <div className="pointer-events-auto -mr-32">
+          <div className="flex items-center gap-2 bg-surface rounded-lg px-3 py-1.5 border border-border-subtle"
+            style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}
+          >
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" className="text-content-subtle shrink-0">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              type="text"
+              value={filterText}
+              onChange={e => setFilterText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape' && filterText) {
+                  setFilterText('');
+                } else if (e.key === 'Enter' && matchingSchemaTypes?.size === 1) {
+                  const match = schemas.find(s => matchingSchemaTypes.has(s.type));
+                  if (match) handleFilterSelect(match.type);
+                }
+              }}
+              placeholder="Filter schemas..."
+              className="bg-transparent border-none outline-none text-content text-sm w-40 placeholder:text-content-subtle"
+            />
+            {filterText.trim() && (
+              <>
+                <span className="text-[10px] font-medium text-content-subtle bg-surface-alt px-1.5 py-0.5 rounded shrink-0">
+                  {matchingSchemaTypes?.size ?? 0}
+                </span>
+                <button
+                  onClick={() => setFilterText('')}
+                  className="text-content-subtle hover:text-content p-0.5 shrink-0 -mr-1"
+                >
+                  <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -317,6 +521,7 @@ function MetamapInner() {
         onNodesChange={onNodesChange}
         onNodeDrag={onNodeDrag}
         onNodeDragStop={onNodeDragStop}
+        onNodeClick={onNodeClick}
         onNodeDoubleClick={onNodeDoubleClick}
         onEdgeClick={onEdgeClick}
         onConnect={onConnect}

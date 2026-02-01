@@ -9,6 +9,8 @@ const GROUP_PADDING_X = 40;
 const GROUP_PADDING_TOP = 60;
 const GROUP_PADDING_BOTTOM = 40;
 const COMPACT_HEIGHT = 80;
+const COLLAPSED_GROUP_WIDTH = 180;
+const COLLAPSED_GROUP_HEIGHT = 44;
 
 function estimateSchemaNodeHeight(schema: ConstructSchema, isExpanded?: boolean): number {
   if (!isExpanded) return COMPACT_HEIGHT;
@@ -27,7 +29,41 @@ interface GroupBounds {
   childGroupPositions: Map<string, { x: number; y: number; width: number; height: number }>;
 }
 
-function extractEdges(schemas: ConstructSchema[]): Edge[] {
+/**
+ * Build a map from schema type to the deepest collapsed group it belongs to.
+ * If a schema's group (or any ancestor) is collapsed, map schema -> collapsed group ID.
+ */
+function buildCollapsedSchemaMap(
+  schemas: ConstructSchema[],
+  groupMap: Map<string, SchemaGroup>,
+  expandedGroups?: Set<string>,
+): Map<string, string> {
+  const schemaToCollapsedGroup = new Map<string, string>();
+  if (!expandedGroups) return schemaToCollapsedGroup;
+
+  for (const s of schemas) {
+    if (!s.groupId || !groupMap.has(s.groupId)) continue;
+    // Walk up from schema's group to find the outermost collapsed ancestor
+    let collapsedGroup: string | undefined;
+    let current: string | undefined = s.groupId;
+    while (current) {
+      if (!expandedGroups.has(current)) {
+        collapsedGroup = current;
+      }
+      const group = groupMap.get(current);
+      current = group?.parentId;
+    }
+    if (collapsedGroup) {
+      schemaToCollapsedGroup.set(s.type, collapsedGroup);
+    }
+  }
+  return schemaToCollapsedGroup;
+}
+
+function extractEdges(
+  schemas: ConstructSchema[],
+  schemaToCollapsedGroup?: Map<string, string>,
+): Edge[] {
   const schemaTypes = new Set(schemas.map(s => s.type));
   const portLookup = new Map<string, Set<string>>();
   for (const s of schemas) {
@@ -42,21 +78,34 @@ function extractEdges(schemas: ConstructSchema[]): Edge[] {
       if (schema.type === rel.constructType) continue;
       if (!schemaTypes.has(rel.constructType)) continue;
 
-      const sourceHasPort = rel.fromPortId && portLookup.get(schema.type)?.has(rel.fromPortId);
-      const targetHasPort = rel.toPortId && portLookup.get(rel.constructType)?.has(rel.toPortId);
+      // Remap endpoints for collapsed groups
+      const srcCollapsed = schemaToCollapsedGroup?.get(schema.type);
+      const tgtCollapsed = schemaToCollapsedGroup?.get(rel.constructType);
 
-      const sourceHandle = sourceHasPort ? rel.fromPortId : 'meta-connect';
-      const targetHandle = targetHasPort ? rel.toPortId : 'meta-connect';
+      // If both are in the same collapsed group, skip the edge
+      if (srcCollapsed && tgtCollapsed && srcCollapsed === tgtCollapsed) continue;
 
-      const edgeId = `meta:${schema.type}:${sourceHandle}->${rel.constructType}:${targetHandle}`;
+      const effectiveSource = srcCollapsed ? `group:${srcCollapsed}` : schema.type;
+      const effectiveTarget = tgtCollapsed ? `group:${tgtCollapsed}` : rel.constructType;
+
+      // If both ends remap to the same node, skip
+      if (effectiveSource === effectiveTarget) continue;
+
+      const sourceHasPort = !srcCollapsed && rel.fromPortId && portLookup.get(schema.type)?.has(rel.fromPortId);
+      const targetHasPort = !tgtCollapsed && rel.toPortId && portLookup.get(rel.constructType)?.has(rel.toPortId);
+
+      const sourceHandle = srcCollapsed ? 'group-connect' : (sourceHasPort ? rel.fromPortId : 'meta-connect');
+      const targetHandle = tgtCollapsed ? 'group-connect' : (targetHasPort ? rel.toPortId : 'meta-connect');
+
+      const edgeId = `meta:${effectiveSource}:${sourceHandle}->${effectiveTarget}:${targetHandle}`;
 
       if (edgeIds.has(edgeId)) continue;
       edgeIds.add(edgeId);
 
       edges.push({
         id: edgeId,
-        source: schema.type,
-        target: rel.constructType,
+        source: effectiveSource,
+        target: effectiveTarget,
         sourceHandle,
         targetHandle,
         label: rel.label || '',
@@ -119,6 +168,20 @@ function getGroupDepth(groupId: string, groupMap: Map<string, SchemaGroup>): num
  * Recursively compute bounds for a group and all its descendants.
  * Returns the computed bounds.
  */
+function countSchemasInGroup(
+  groupId: string,
+  schemasByGroup: Map<string, ConstructSchema[]>,
+  groupTree: Map<string | undefined, string[]>,
+): number {
+  const direct = schemasByGroup.get(groupId)?.length || 0;
+  const childIds = groupTree.get(groupId) || [];
+  let nested = 0;
+  for (const childId of childIds) {
+    nested += countSchemasInGroup(childId, schemasByGroup, groupTree);
+  }
+  return direct + nested;
+}
+
 function layoutGroup(
   groupId: string,
   schemasByGroup: Map<string, ConstructSchema[]>,
@@ -128,7 +191,18 @@ function layoutGroup(
   allEdges: Edge[],
   expandedSchemas: Set<string> | undefined,
   groupBoundsMap: Map<string, GroupBounds>,
+  expandedGroups?: Set<string>,
 ): GroupBounds {
+  // If group is collapsed, return fixed small bounds
+  if (expandedGroups && !expandedGroups.has(groupId)) {
+    return {
+      width: COLLAPSED_GROUP_WIDTH,
+      height: COLLAPSED_GROUP_HEIGHT,
+      nodePositions: new Map(),
+      childGroupPositions: new Map(),
+    };
+  }
+
   // First, recursively layout all child groups
   const childBounds = new Map<string, GroupBounds>();
   for (const childId of childGroupIds) {
@@ -142,6 +216,7 @@ function layoutGroup(
       allEdges,
       expandedSchemas,
       groupBoundsMap,
+      expandedGroups,
     );
     childBounds.set(childId, bounds);
     groupBoundsMap.set(childId, bounds);
@@ -152,7 +227,13 @@ function layoutGroup(
 
   // Layout using dagre: schemas + child group bounding boxes as nodes
   const g = new dagre.graphlib.Graph();
-  g.setGraph({ rankdir: 'TB', nodesep: 40, ranksep: 60 });
+  g.setGraph({
+    rankdir: 'TB',
+    nodesep: 20,
+    ranksep: 30,
+    marginx: 0,
+    marginy: 0,
+  });
   g.setDefaultEdgeLabel(() => ({}));
 
   for (const s of directSchemas) {
@@ -242,7 +323,8 @@ function layoutGroup(
 export function useMetamapLayout(
   schemas: ConstructSchema[],
   schemaGroups: SchemaGroup[],
-  expandedSchemas?: Set<string>
+  expandedSchemas?: Set<string>,
+  expandedGroups?: Set<string>,
 ) {
   const [layoutVersion, setLayoutVersion] = useState(0);
 
@@ -250,7 +332,11 @@ export function useMetamapLayout(
     setLayoutVersion(v => v + 1);
   }, []);
 
-  const edges = useMemo(() => extractEdges(schemas), [schemas]);
+  const { edges, schemaToCollapsedGroup } = useMemo(() => {
+    const { groupMap } = buildGroupTree(schemaGroups);
+    const collapsed = buildCollapsedSchemaMap(schemas, groupMap, expandedGroups);
+    return { edges: extractEdges(schemas, collapsed), schemaToCollapsedGroup: collapsed };
+  }, [schemas, schemaGroups, expandedGroups]);
 
   const nodes = useMemo(() => {
     void layoutVersion;
@@ -287,13 +373,20 @@ export function useMetamapLayout(
         edges,
         expandedSchemas,
         allGroupBounds,
+        expandedGroups,
       );
       allGroupBounds.set(rootId, bounds);
     }
 
     // Phase 2: Inter-group layout for root groups + ungrouped schemas
     const interG = new dagre.graphlib.Graph();
-    interG.setGraph({ rankdir: 'TB', nodesep: 120, ranksep: 80 });
+    interG.setGraph({
+      rankdir: 'TB',
+      nodesep: 80,
+      ranksep: 60,
+      marginx: 0,
+      marginy: 0,
+    });
     interG.setDefaultEdgeLabel(() => ({}));
 
     for (const rootId of rootGroupIds) {
@@ -317,23 +410,30 @@ export function useMetamapLayout(
       }
     }
 
+    // Resolve edge endpoints to inter-group node IDs
+    function resolveToInterGroupNode(edgeEndpoint: string): string | undefined {
+      // If it's already a group reference (from collapsed remapping), find its root
+      if (edgeEndpoint.startsWith('group:')) {
+        const gid = edgeEndpoint.slice(6);
+        return `group:${findRootGroup(gid)}`;
+      }
+      // Otherwise it's a schema type
+      const rootGroup = schemaToRootGroup.get(edgeEndpoint);
+      if (rootGroup) return `group:${rootGroup}`;
+      // Ungrouped schema — it's a direct inter-group node
+      return edgeEndpoint;
+    }
+
     const addedGroupEdges = new Set<string>();
     for (const e of edges) {
-      const srcRoot = schemaToRootGroup.get(e.source);
-      const tgtRoot = schemaToRootGroup.get(e.target);
+      const srcNode = resolveToInterGroupNode(e.source);
+      const tgtNode = resolveToInterGroupNode(e.target);
+      if (!srcNode || !tgtNode || srcNode === tgtNode) continue;
 
-      if (srcRoot && tgtRoot && srcRoot !== tgtRoot) {
-        const key = `group:${srcRoot}->group:${tgtRoot}`;
-        if (!addedGroupEdges.has(key)) {
-          interG.setEdge(`group:${srcRoot}`, `group:${tgtRoot}`);
-          addedGroupEdges.add(key);
-        }
-      } else if (srcRoot && !tgtRoot) {
-        interG.setEdge(`group:${srcRoot}`, e.target);
-      } else if (!srcRoot && tgtRoot) {
-        interG.setEdge(e.source, `group:${tgtRoot}`);
-      } else if (!srcRoot && !tgtRoot) {
-        interG.setEdge(e.source, e.target);
+      const key = `${srcNode}->${tgtNode}`;
+      if (!addedGroupEdges.has(key)) {
+        interG.setEdge(srcNode, tgtNode);
+        addedGroupEdges.add(key);
       }
     }
 
@@ -352,6 +452,8 @@ export function useMetamapLayout(
       const group = groupMap.get(groupId);
       const depth = getGroupDepth(groupId, groupMap);
       const reactFlowId = `group:${groupId}`;
+      const isGroupExpanded = !expandedGroups || expandedGroups.has(groupId);
+      const schemaCount = countSchemasInGroup(groupId, schemasByGroup, groupTree);
 
       result.push({
         id: reactFlowId,
@@ -366,10 +468,15 @@ export function useMetamapLayout(
           description: group?.description,
           depth,
           parentGroupName: group?.parentId ? groupMap.get(group.parentId)?.name : undefined,
+          isExpanded: isGroupExpanded,
+          schemaCount,
         } satisfies SchemaGroupNodeData,
         draggable: true,
         selectable: true,
       });
+
+      // If collapsed, don't emit child nodes
+      if (!isGroupExpanded) return;
 
       // Emit schema nodes inside this group
       for (const [schemaType, pos] of bounds.nodePositions) {
@@ -380,7 +487,7 @@ export function useMetamapLayout(
             type: 'schema-node',
             position: pos,
             parentId: reactFlowId,
-            extent: 'parent' as const,
+            // Don't constrain extent so nodes can be dragged out of groups
             data: { schema, isExpanded: expandedSchemas?.has(schemaType) },
           });
         }
@@ -427,7 +534,7 @@ export function useMetamapLayout(
     }
 
     return result;
-  }, [schemas, schemaGroups, edges, layoutVersion, expandedSchemas]);
+  }, [schemas, schemaGroups, edges, layoutVersion, expandedSchemas, expandedGroups]);
 
-  return { nodes, edges, reLayout };
+  return { nodes, edges, reLayout, schemaToCollapsedGroup };
 }

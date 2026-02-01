@@ -6,6 +6,7 @@ import type { ConstructSchema, PortPosition } from '@carta/domain';
 export interface SchemaNodeData {
   schema: ConstructSchema;
   isExpanded?: boolean;
+  isDimmed?: boolean;
   [key: string]: unknown;
 }
 
@@ -22,17 +23,19 @@ const positionMap: Record<PortPosition, Position> = {
 };
 
 const SchemaNode = memo(({ data, selected }: SchemaNodeProps) => {
-  const { schema, isExpanded } = data;
+  const { schema, isExpanded, isDimmed } = data;
   const ports = schema.ports || [];
 
   return (
     <div
-      className={`bg-surface rounded-lg min-w-[240px] text-node-base text-content relative ${
+      className={`bg-surface rounded-lg min-w-[240px] text-node-base text-content relative transition-opacity duration-200 ${
         selected ? 'ring-2 ring-accent/30' : ''
       }`}
       style={{
         boxShadow: selected ? 'var(--node-shadow-selected)' : 'var(--node-shadow)',
         borderLeft: `2px solid color-mix(in srgb, ${schema.color} 70%, var(--color-surface-alt))`,
+        opacity: isDimmed ? 0.2 : 1,
+        pointerEvents: isDimmed ? 'none' : 'auto',
       }}
     >
       {/* New connection handle in top-right corner with plus icon */}
@@ -94,8 +97,8 @@ const SchemaNode = memo(({ data, selected }: SchemaNodeProps) => {
 
       {/* Header */}
       <div className="px-3 py-2 bg-surface-alt rounded-t-lg">
-        <div className="font-semibold text-node-lg text-content">{schema.displayName}</div>
-        <div className="text-node-xs text-content-muted">{schema.type}</div>
+        <div className="font-semibold text-node-lg text-content text-halo">{schema.displayName}</div>
+        <div className="text-node-xs text-content-muted text-halo">{schema.type}</div>
       </div>
 
       {/* Compact summary (default) */}
