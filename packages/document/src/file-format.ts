@@ -244,17 +244,126 @@ export function validateCartaFile(data: unknown): CartaFile {
     }
   }
 
+  // Repair orphaned connections before returning
+  const repairedData = repairOrphanedConnections(obj, hasLevels);
+
   return {
-    version: obj.version as number,
-    title: obj.title as string,
-    description: (obj.description as string | undefined),
-    levels: hasLevels ? (obj.levels as CartaFileLevel[]) : undefined,
-    nodes: (obj.nodes as unknown[]) || [],
-    edges: (obj.edges as unknown[]) || [],
-    deployables: (obj.deployables as Deployable[]) || [],
-    customSchemas: obj.customSchemas as ConstructSchema[],
-    portSchemas: obj.portSchemas as PortSchema[],
-    schemaGroups: obj.schemaGroups as SchemaGroup[],
-    exportedAt: (obj.exportedAt as string) || new Date().toISOString(),
+    version: repairedData.version as number,
+    title: repairedData.title as string,
+    description: (repairedData.description as string | undefined),
+    levels: hasLevels ? (repairedData.levels as CartaFileLevel[]) : undefined,
+    nodes: (repairedData.nodes as unknown[]) || [],
+    edges: (repairedData.edges as unknown[]) || [],
+    deployables: (repairedData.deployables as Deployable[]) || [],
+    customSchemas: repairedData.customSchemas as ConstructSchema[],
+    portSchemas: repairedData.portSchemas as PortSchema[],
+    schemaGroups: repairedData.schemaGroups as SchemaGroup[],
+    exportedAt: (repairedData.exportedAt as string) || new Date().toISOString(),
   };
+}
+
+/**
+ * Repair orphaned connections in a .carta file.
+ * Removes connections that reference non-existent nodes.
+ */
+function repairOrphanedConnections(
+  obj: Record<string, unknown>,
+  hasLevels: boolean
+): Record<string, unknown> {
+  // Build set of all valid semantic IDs
+  const validSemanticIds = new Set<string>();
+
+  const nodesToCheck = hasLevels
+    ? (obj.levels as Array<Record<string, unknown>>).flatMap(l => l.nodes as unknown[])
+    : obj.nodes as unknown[];
+
+  for (const node of nodesToCheck) {
+    if (!node || typeof node !== 'object') continue;
+    const n = node as Record<string, unknown>;
+    if (n.data && typeof n.data === 'object') {
+      const nodeData = n.data as Record<string, unknown>;
+      if (typeof nodeData.semanticId === 'string') {
+        validSemanticIds.add(nodeData.semanticId);
+      }
+    }
+  }
+
+  // Repair connections in all nodes
+  if (hasLevels && Array.isArray(obj.levels)) {
+    const repairedLevels = obj.levels.map((level: unknown) => {
+      if (!level || typeof level !== 'object') return level;
+      const l = level as Record<string, unknown>;
+      if (!Array.isArray(l.nodes)) return level;
+
+      const repairedNodes = l.nodes.map((node: unknown) => {
+        if (!node || typeof node !== 'object') return node;
+        const n = node as Record<string, unknown>;
+        if (!n.data || typeof n.data !== 'object') return node;
+
+        const nodeData = n.data as Record<string, unknown>;
+        if (!Array.isArray(nodeData.connections)) return node;
+
+        const validConnections = nodeData.connections.filter((conn: unknown) => {
+          if (!conn || typeof conn !== 'object') return false;
+          const c = conn as Record<string, unknown>;
+          return validSemanticIds.has(c.targetSemanticId as string);
+        });
+
+        // Only modify if connections changed
+        if (validConnections.length === nodeData.connections.length) return node;
+
+        return {
+          ...n,
+          data: {
+            ...nodeData,
+            connections: validConnections,
+          },
+        };
+      });
+
+      return {
+        ...l,
+        nodes: repairedNodes,
+      };
+    });
+
+    return {
+      ...obj,
+      levels: repairedLevels,
+    };
+  } else {
+    // Flat structure
+    if (!Array.isArray(obj.nodes)) return obj;
+
+    const repairedNodes = obj.nodes.map((node: unknown) => {
+      if (!node || typeof node !== 'object') return node;
+      const n = node as Record<string, unknown>;
+      if (!n.data || typeof n.data !== 'object') return node;
+
+      const nodeData = n.data as Record<string, unknown>;
+      if (!Array.isArray(nodeData.connections)) return node;
+
+      const validConnections = nodeData.connections.filter((conn: unknown) => {
+        if (!conn || typeof conn !== 'object') return false;
+        const c = conn as Record<string, unknown>;
+        return validSemanticIds.has(c.targetSemanticId as string);
+      });
+
+      // Only modify if connections changed
+      if (validConnections.length === nodeData.connections.length) return node;
+
+      return {
+        ...n,
+        data: {
+          ...nodeData,
+          connections: validConnections,
+        },
+      };
+    });
+
+    return {
+      ...obj,
+      nodes: repairedNodes,
+    };
+  }
 }

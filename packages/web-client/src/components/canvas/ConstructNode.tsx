@@ -6,6 +6,7 @@ import type { ConstructNodeData, ConstructSchema } from '@carta/domain';
 import CreateDeployablePopover from '../CreateDeployablePopover';
 import PortDrawer from './PortDrawer';
 import IndexBasedDropZones from './IndexBasedDropZones';
+import { stripHandlePrefix } from '../../utils/handlePrefix';
 import { useLodBand } from './lod/useLodBand';
 import { WindowIcon, PinIcon, ExpandIcon, CollapseIcon } from '../ui/icons';
 
@@ -83,20 +84,23 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
   const schema = getSchema(data.constructType);
   const nodeId = useNodeId();
   const [editingField, setEditingField] = useState<string | null>(null);
+  const [isHovered, setIsHovered] = useState(false);
 
   // Connection drop zone detection
   const connection = useConnection();
-  const isConnectionTarget = connection.inProgress && connection.toNode?.id === nodeId;
+  const isConnectionTarget = connection.inProgress && (connection.toNode?.id === nodeId || isHovered);
 
   // Look up source port type from the connection's fromHandle
+  // Strip drawer: prefix since the drag starts from a drawer handle
   let sourcePortType: string | undefined;
   if (connection.inProgress && connection.fromHandle?.id) {
+    const cleanHandleId = stripHandlePrefix(connection.fromHandle.id);
     const sourceData = connection.fromNode?.data as ConstructNodeData | undefined;
     if (sourceData) {
       const sourceSchema = getSchema(sourceData.constructType);
       if (sourceSchema) {
         const sourcePorts = getPortsForSchema(sourceSchema.ports);
-        const sourcePort = sourcePorts.find(p => p.id === connection.fromHandle!.id);
+        const sourcePort = sourcePorts.find(p => p.id === cleanHandleId);
         if (sourcePort) {
           sourcePortType = sourcePort.portType;
         }
@@ -184,6 +188,8 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
     return (
       <div
         className={`node-drag-handle rounded-lg font-semibold px-5 py-3 truncate cursor-move select-none whitespace-nowrap text-content flex items-center gap-3 ${selected ? 'ring-2 ring-accent/40' : ''}`}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
         style={{
           ...lodTransitionStyle,
           backgroundColor: `color-mix(in srgb, ${color} 25%, var(--color-surface))`,
@@ -201,16 +207,24 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
         <span className="truncate">
           <span className="opacity-50">{schema.displayName}:</span> {displayValue}
         </span>
-        {/* Minimal invisible handles for connections in pill mode */}
+        {/* Invisible anchor handles for persistent edges (both types per port) */}
         {ports.map((port) => (
-          <Handle
-            key={port.id}
-            id={port.id}
-            type="source"
-            position={Position.Bottom}
-            className="port-handle !opacity-0 !w-1 !h-1"
-            style={{ position: 'absolute', bottom: 0, left: '50%' }}
-          />
+          <span key={port.id}>
+            <Handle
+              id={port.id}
+              type="source"
+              position={Position.Bottom}
+              className="!absolute !opacity-0 !w-0 !h-0 !min-w-0 !min-h-0 !border-none !p-0"
+              style={{ bottom: 0, left: '50%', pointerEvents: 'none' }}
+            />
+            <Handle
+              id={port.id}
+              type="target"
+              position={Position.Top}
+              className="!absolute !opacity-0 !w-0 !h-0 !min-w-0 !min-h-0 !border-none !p-0"
+              style={{ top: 0, left: '50%', pointerEvents: 'none' }}
+            />
+          </span>
         ))}
       </div>
     );
@@ -226,6 +240,8 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
     return (
       <div
         className={`rounded-lg overflow-visible relative flex flex-col min-w-[200px] min-h-[100px] bg-surface ${selected ? 'ring-2 ring-accent/30' : ''}`}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
         style={{
           ...bgStyle,
           ...lodTransitionStyle,
@@ -368,6 +384,26 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
           </div>
         )}
 
+        {/* Invisible anchor handles — always in DOM for persistent edge rendering (both types per port) */}
+        {ports.map((port) => (
+          <span key={`anchor-${port.id}`}>
+            <Handle
+              id={port.id}
+              type="source"
+              position={Position.Bottom}
+              className="!absolute !opacity-0 !w-0 !h-0 !min-w-0 !min-h-0 !border-none !p-0"
+              style={{ bottom: 0, left: '50%', pointerEvents: 'none' }}
+            />
+            <Handle
+              id={port.id}
+              type="target"
+              position={Position.Top}
+              className="!absolute !opacity-0 !w-0 !h-0 !min-w-0 !min-h-0 !border-none !p-0"
+              style={{ top: 0, left: '50%', pointerEvents: 'none' }}
+            />
+          </span>
+        ))}
+
         {/* Port Drawer at bottom */}
         <PortDrawer ports={ports} />
       </div>
@@ -381,6 +417,8 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
   return (
     <div
       className={`bg-surface rounded-lg w-full h-full text-node-base text-content overflow-visible relative flex flex-col transition-shadow duration-150 ${data.viewLevel === 'details' ? 'min-w-[280px]' : 'min-w-[180px]'} ${selected ? 'ring-2 ring-accent/30' : ''}`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       style={{
         ...bgStyle,
         ...lodTransitionStyle,
@@ -609,6 +647,26 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
           </div>
         );
       })()}
+
+      {/* Invisible anchor handles — always in DOM for persistent edge rendering (both types per port) */}
+      {ports.map((port) => (
+        <span key={`anchor-${port.id}`}>
+          <Handle
+            id={port.id}
+            type="source"
+            position={Position.Bottom}
+            className="!absolute !opacity-0 !w-0 !h-0 !min-w-0 !min-h-0 !border-none !p-0"
+            style={{ bottom: 0, left: '50%', pointerEvents: 'none' }}
+          />
+          <Handle
+            id={port.id}
+            type="target"
+            position={Position.Top}
+            className="!absolute !opacity-0 !w-0 !h-0 !min-w-0 !min-h-0 !border-none !p-0"
+            style={{ top: 0, left: '50%', pointerEvents: 'none' }}
+          />
+        </span>
+      ))}
 
       {/* Port Drawer at bottom */}
       <PortDrawer ports={ports} />

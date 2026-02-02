@@ -42,6 +42,7 @@ import {
   compile,
   extractDocument,
   migrateToLevels,
+  repairOrphanedConnections,
 } from '@carta/document';
 
 const PORT = parseInt(process.env.PORT || '1234', 10);
@@ -135,6 +136,9 @@ async function getYDoc(docName: string): Promise<DocState> {
 
     // Migrate flat docs to level-based structure
     migrateToLevels(doc);
+
+    // Repair orphaned connections (references to deleted nodes)
+    repairOrphanedConnections(doc);
 
     // Persist future updates
     doc.on('update', (update: Uint8Array) => {

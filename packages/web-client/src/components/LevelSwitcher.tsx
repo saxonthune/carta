@@ -108,7 +108,7 @@ export default function LevelSwitcher({
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 top-full mt-1 bg-surface border border-subtle rounded-lg shadow-lg overflow-hidden z-50 min-w-[200px]">
+        <div className="absolute right-0 top-full mt-1 bg-surface border border-subtle rounded-lg shadow-lg overflow-hidden z-50 min-w-[200px]">
           {levels.map((level) => (
             <div
               key={level.id}

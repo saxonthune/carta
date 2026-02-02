@@ -2,6 +2,7 @@
  * Y.Doc migrations for Carta documents.
  *
  * Detects flat Y.Doc format (pre-levels) and wraps data under a new default level.
+ * Repairs orphaned connections that reference non-existent nodes.
  */
 
 import * as Y from 'yjs';
@@ -79,4 +80,58 @@ export function migrateToLevels(ydoc: Y.Doc): void {
     }
     ydeployables.set(levelId, levelDeployablesMap as unknown as Y.Map<unknown>);
   }
+}
+
+/**
+ * Repair orphaned connections in a Y.Doc.
+ *
+ * Removes connections from nodes that reference non-existent target nodes.
+ * This can happen when nodes are deleted but their connection references aren't cleaned up.
+ */
+export function repairOrphanedConnections(ydoc: Y.Doc): void {
+  const ylevels = ydoc.getMap<Y.Map<unknown>>('levels');
+
+  if (ylevels.size === 0) return; // No levels, nothing to repair
+
+  ylevels.forEach((ylevelData) => {
+    const ylevel = ylevelData as Y.Map<unknown>;
+    const ynodes = ylevel.get('nodes') as Y.Map<Y.Map<unknown>> | undefined;
+
+    if (!ynodes) return;
+
+    // Build set of valid semantic IDs in this level
+    const validSemanticIds = new Set<string>();
+    ynodes.forEach((ynodeData) => {
+      const data = ynodeData.get('data') as Y.Map<unknown> | undefined;
+      if (data) {
+        const semanticId = data.get('semanticId') as string | undefined;
+        if (semanticId) {
+          validSemanticIds.add(semanticId);
+        }
+      }
+    });
+
+    // Repair connections in all nodes
+    ynodes.forEach((ynodeData) => {
+      const data = ynodeData.get('data') as Y.Map<unknown> | undefined;
+      if (!data) return;
+
+      const connections = data.get('connections') as Y.Array<Y.Map<unknown>> | undefined;
+      if (!connections || connections.length === 0) return;
+
+      // Find invalid connections (references to non-existent nodes)
+      const invalidIndices: number[] = [];
+      connections.forEach((conn, index) => {
+        const targetSemanticId = conn.get('targetSemanticId') as string | undefined;
+        if (targetSemanticId && !validSemanticIds.has(targetSemanticId)) {
+          invalidIndices.push(index);
+        }
+      });
+
+      // Remove invalid connections (iterate backwards to preserve indices)
+      for (let i = invalidIndices.length - 1; i >= 0; i--) {
+        connections.delete(invalidIndices[i], 1);
+      }
+    });
+  });
 }

@@ -3,6 +3,9 @@ import { Handle, Position } from '@xyflow/react';
 import { getPortColor } from '@carta/domain';
 import type { PortConfig } from '@carta/domain';
 
+/** Prefix for drawer handles — stripped in onConnect to produce clean edge handle IDs */
+export const DRAWER_HANDLE_PREFIX = 'drawer:';
+
 interface PortDrawerProps {
   ports: PortConfig[];
 }
@@ -11,7 +14,10 @@ interface PortDrawerProps {
  * Port drawer at the bottom of construct nodes.
  * Collapsed: thin strip with colored dots.
  * Expanded: overlays downward showing port circles with labels.
- * Each port renders a source Handle for initiating connections.
+ *
+ * Drawer handles use prefixed IDs (`drawer:flow-out`) so they don't collide
+ * with the invisible anchor handles on the node body. The prefix is stripped
+ * in onConnect so persistent edges reference the clean port ID.
  */
 export default function PortDrawer({ ports }: PortDrawerProps) {
   const [expanded, setExpanded] = useState(false);
@@ -31,9 +37,9 @@ export default function PortDrawer({ ports }: PortDrawerProps) {
       >
         {/* Collapsed strip */}
         <div
-          className="w-full flex items-center justify-center gap-1.5 rounded-b-lg transition-colors"
+          className="w-full flex items-center justify-center gap-1.5 transition-colors"
           style={{
-            height: expanded ? 0 : 8,
+            height: expanded ? 0 : 12,
             overflow: 'hidden',
             backgroundColor: 'var(--color-surface-alt)',
           }}
@@ -41,7 +47,7 @@ export default function PortDrawer({ ports }: PortDrawerProps) {
           {ports.map((port) => (
             <div
               key={port.id}
-              className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+              className="w-2 h-2 rounded-full flex-shrink-0"
               style={{ backgroundColor: getPortColor(port.portType) }}
             />
           ))}
@@ -62,10 +68,10 @@ export default function PortDrawer({ ports }: PortDrawerProps) {
                   key={port.id}
                   className="flex flex-col items-center gap-0.5 relative"
                 >
-                  {/* Source handle for initiating connections */}
+                  {/* Source handle for initiating connections (prefixed ID) */}
                   <div className="relative">
                     <Handle
-                      id={port.id}
+                      id={`${DRAWER_HANDLE_PREFIX}${port.id}`}
                       type="source"
                       position={Position.Bottom}
                       className="!relative !transform-none !inset-auto !w-4 !h-4 !rounded-full !border-2 !border-white hover:!scale-125 !transition-transform"

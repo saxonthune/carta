@@ -2,6 +2,9 @@ import { Handle, Position } from '@xyflow/react';
 import { canConnect, getPortColor } from '@carta/domain';
 import type { PortConfig } from '@carta/domain';
 
+/** Prefix for drop zone handles — stripped in onConnect to produce clean edge handle IDs */
+export const DROPZONE_HANDLE_PREFIX = 'dropzone:';
+
 interface IndexBasedDropZonesProps {
   ports: PortConfig[];
   sourcePortType?: string;
@@ -11,6 +14,9 @@ interface IndexBasedDropZonesProps {
  * Horizontal strip drop zones stacked top-to-bottom by port array index.
  * Replaces the old position-based ConnectionDropZones.
  * Rendered as an overlay when the node is a connection target during drag.
+ *
+ * Drop zone handles use prefixed IDs (`dropzone:flow-in`) so they don't
+ * collide with the invisible anchor handles on the node body.
  */
 export default function IndexBasedDropZones({ ports, sourcePortType }: IndexBasedDropZonesProps) {
   if (ports.length === 0) return null;
@@ -50,10 +56,10 @@ export default function IndexBasedDropZones({ ports, sourcePortType }: IndexBase
               {port.label}
             </span>
 
-            {/* Oversized Handle that fills the zone */}
+            {/* Oversized Handle that fills the zone (prefixed ID) */}
             {isValid && (
               <Handle
-                id={port.id}
+                id={`${DROPZONE_HANDLE_PREFIX}${port.id}`}
                 type="target"
                 position={Position.Left}
                 className="!absolute !inset-0 !w-full !h-full !opacity-0 !border-none !rounded-none !transform-none"

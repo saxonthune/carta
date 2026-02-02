@@ -3,6 +3,7 @@ import { useReactFlow, addEdge, type Edge, type Connection, type OnConnect } fro
 import { useDocument } from './useDocument';
 import { canConnect, getPortsForSchema, getHandleType } from '@carta/domain';
 import type { ConnectionValue, ConstructNodeData } from '@carta/domain';
+import { stripHandlePrefix } from '../utils/handlePrefix';
 
 
 export interface UseConnectionsResult {
@@ -34,6 +35,10 @@ export function useConnections(): UseConnectionsResult {
     // If handles are missing, we can't validate ports safely
     if (!sourceHandle || !targetHandle) return false;
 
+    // Strip drawer:/dropzone: prefixes to get clean port IDs
+    const cleanSourceHandle = stripHandlePrefix(sourceHandle);
+    const cleanTargetHandle = stripHandlePrefix(targetHandle);
+
     const currentNodes = getNodes();
     const sourceNode = currentNodes.find((n) => n.id === source);
     const targetNode = currentNodes.find((n) => n.id === target);
@@ -50,8 +55,8 @@ export function useConnections(): UseConnectionsResult {
 
     const sourcePorts = getPortsForSchema(sourceSchema.ports);
     const targetPorts = getPortsForSchema(targetSchema.ports);
-    const sourcePort = sourcePorts.find((p) => p.id === sourceHandle);
-    const targetPort = targetPorts.find((p) => p.id === targetHandle);
+    const sourcePort = sourcePorts.find((p) => p.id === cleanSourceHandle);
+    const targetPort = targetPorts.find((p) => p.id === cleanTargetHandle);
     if (!sourcePort || !targetPort) return false;
 
     // Validate port type compatibility via registry
@@ -64,15 +69,22 @@ export function useConnections(): UseConnectionsResult {
         return;
       }
 
+      // Strip drawer:/dropzone: prefixes so edges store clean port IDs
+      const cleanParams = {
+        ...params,
+        sourceHandle: stripHandlePrefix(params.sourceHandle),
+        targetHandle: stripHandlePrefix(params.targetHandle),
+      };
+
       const currentNodes = getNodes();
-      const sourceNode = currentNodes.find(n => n.id === params.source);
-      const targetNode = currentNodes.find(n => n.id === params.target);
+      const sourceNode = currentNodes.find(n => n.id === cleanParams.source);
+      const targetNode = currentNodes.find(n => n.id === cleanParams.target);
 
       if (!sourceNode || !targetNode) return;
 
       // For non-construct nodes, use original behavior without normalization
       if (sourceNode.type !== 'construct' || targetNode.type !== 'construct') {
-        setEdges((eds) => addEdge(params, eds));
+        setEdges((eds) => addEdge(cleanParams, eds));
         return;
       }
 
@@ -85,8 +97,8 @@ export function useConnections(): UseConnectionsResult {
 
       const sourcePorts = getPortsForSchema(sourceSchema.ports);
       const targetPorts = getPortsForSchema(targetSchema.ports);
-      const sourcePort = sourcePorts.find(p => p.id === params.sourceHandle);
-      const targetPort = targetPorts.find(p => p.id === params.targetHandle);
+      const sourcePort = sourcePorts.find(p => p.id === cleanParams.sourceHandle);
+      const targetPort = targetPorts.find(p => p.id === cleanParams.targetHandle);
 
       if (!sourcePort || !targetPort) return;
 
@@ -100,11 +112,11 @@ export function useConnections(): UseConnectionsResult {
 
       // Normalize edge direction: ensure source has 'source' handle type
       const normalizedParams = needsFlip ? {
-        source: params.target,
-        sourceHandle: params.targetHandle,
-        target: params.source,
-        targetHandle: params.sourceHandle,
-      } : params;
+        source: cleanParams.target,
+        sourceHandle: cleanParams.targetHandle,
+        target: cleanParams.source,
+        targetHandle: cleanParams.sourceHandle,
+      } : cleanParams;
 
       // Store connection on the node that has the source-polarity port (after normalization)
       const connectionSourceNodeId = normalizedParams.source!;

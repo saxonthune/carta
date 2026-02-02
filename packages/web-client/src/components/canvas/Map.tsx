@@ -119,9 +119,10 @@ export interface MapProps {
   onNodesEdgesChange: (nodes: Node[], edges: Edge[]) => void;
   onSelectionChange?: (selectedNodes: Node[]) => void;
   onNodeDoubleClick?: (nodeId: string) => void;
+  searchText?: string;
 }
 
-export default function Map({ deployables, onDeployablesChange, title, onNodesEdgesChange, onSelectionChange, onNodeDoubleClick }: MapProps) {
+export default function Map({ deployables, onDeployablesChange, title, onNodesEdgesChange, onSelectionChange, onNodeDoubleClick, searchText }: MapProps) {
   const { nodes, edges, setNodes, setEdges, getSchema, levels, activeLevel, copyNodesToLevel } = useDocument();
   const { adapter } = useDocumentContext();
   const edgeColor = useEdgeColor();
@@ -382,12 +383,51 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
 
   // Sort nodes: virtual parents before their children (React Flow requirement)
   const sortedNodes = useMemo(() => {
-    return [...nodesWithCallbacks].sort((a, b) => {
+    const sorted = [...nodesWithCallbacks].sort((a, b) => {
       if (a.type === 'virtual-parent' && b.parentId === a.id) return -1;
       if (b.type === 'virtual-parent' && a.parentId === b.id) return 1;
       return 0;
     });
-  }, [nodesWithCallbacks]);
+
+    // Filter by search text if present
+    if (!searchText?.trim()) return sorted;
+
+    const lowerSearch = searchText.toLowerCase();
+    return sorted.filter((node) => {
+      // Virtual parents always show if any children match
+      if (node.type === 'virtual-parent') return true;
+
+      // Only filter construct nodes - type guard
+      if (!('constructType' in node.data) || !('semanticId' in node.data) || !('values' in node.data)) {
+        return true;
+      }
+
+      const constructType = node.data.constructType as string;
+      const semanticId = node.data.semanticId as string;
+      const values = node.data.values as ConstructValues;
+
+      const schema = getSchema(constructType);
+      if (!schema) return false;
+
+      // Match against semantic ID
+      if (semanticId?.toLowerCase().includes(lowerSearch)) return true;
+
+      // Match against display name (derived from pill field or semanticId)
+      const pillField = schema.fields.find(f => f.displayTier === 'pill');
+      if (pillField) {
+        const pillValue = String(values[pillField.name] || '');
+        if (pillValue.toLowerCase().includes(lowerSearch)) return true;
+      }
+
+      // Match against any field values
+      for (const field of schema.fields) {
+        const value = String(values[field.name] || '');
+        if (value.toLowerCase().includes(lowerSearch)) return true;
+      }
+
+      return false;
+    });
+  }, [nodesWithCallbacks, searchText, getSchema]);
 
   // Filter edges: hide edges to/from children of collapsed/no-edges virtual parents
   const filteredEdges = useMemo(() => {
