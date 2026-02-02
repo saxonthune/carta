@@ -437,7 +437,70 @@ export function useMetamapLayout(
       }
     }
 
-    dagre.layout(interG);
+    // Use grid layout when there are many ungrouped schemas with sparse connectivity
+    const totalNodes = rootGroupIds.length + ungroupedSchemas.length;
+    const useGridLayout = ungroupedSchemas.length > 6 && addedGroupEdges.size < totalNodes;
+
+    // If using grid layout, manually position ungrouped schemas in a grid
+    if (useGridLayout) {
+      const COLS = 4;
+      const CELL_WIDTH = SCHEMA_NODE_WIDTH + 80;
+      const CELL_HEIGHT = 150;
+
+      // First, position root groups using dagre
+      const groupOnlyG = new dagre.graphlib.Graph();
+      groupOnlyG.setGraph({
+        rankdir: 'TB',
+        nodesep: 80,
+        ranksep: 60,
+        marginx: 0,
+        marginy: 0,
+      });
+      groupOnlyG.setDefaultEdgeLabel(() => ({}));
+
+      for (const rootId of rootGroupIds) {
+        const bounds = allGroupBounds.get(rootId)!;
+        groupOnlyG.setNode(`group:${rootId}`, { width: bounds.width, height: bounds.height });
+      }
+
+      // Add edges between groups only
+      for (const [key] of addedGroupEdges) {
+        const [src, tgt] = key.split('->');
+        if (src.startsWith('group:') && tgt.startsWith('group:')) {
+          groupOnlyG.setEdge(src, tgt);
+        }
+      }
+
+      if (rootGroupIds.length > 0) {
+        dagre.layout(groupOnlyG);
+      }
+
+      // Copy group positions
+      for (const rootId of rootGroupIds) {
+        const interNode = groupOnlyG.node(`group:${rootId}`);
+        interG.node(`group:${rootId}`).x = interNode.x;
+        interG.node(`group:${rootId}`).y = interNode.y;
+      }
+
+      // Grid layout for ungrouped schemas
+      const gridStartY = rootGroupIds.length > 0
+        ? Math.max(...rootGroupIds.map(id => {
+            const node = groupOnlyG.node(`group:${id}`);
+            const bounds = allGroupBounds.get(id)!;
+            return node.y + bounds.height / 2;
+          })) + 100
+        : 0;
+
+      ungroupedSchemas.forEach((s, idx) => {
+        const col = idx % COLS;
+        const row = Math.floor(idx / COLS);
+        const node = interG.node(s.type);
+        node.x = col * CELL_WIDTH;
+        node.y = gridStartY + row * CELL_HEIGHT;
+      });
+    } else {
+      dagre.layout(interG);
+    }
 
     // Assembly: emit nodes in parent-first order
     const result: Node[] = [];

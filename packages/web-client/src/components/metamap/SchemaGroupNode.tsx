@@ -48,7 +48,7 @@ function SchemaGroupNode({ data, selected }: SchemaGroupNodeProps) {
           style={{ left: 0, top: '50%' }}
         />
         <div
-          className="node-drag-handle flex items-center gap-2 px-3 py-2 rounded-full select-none"
+          className="node-drag-handle flex items-center gap-2 px-3 py-2 rounded-lg select-none"
           style={{
             backgroundColor: `color-mix(in srgb, ${color} ${isHovered ? 25 : 12}%, var(--color-canvas))`,
             border: `1px solid color-mix(in srgb, ${color} ${isHovered ? 50 : 30}%, var(--color-canvas))`,
@@ -80,8 +80,9 @@ function SchemaGroupNode({ data, selected }: SchemaGroupNodeProps) {
   }
 
   // Expanded rendering (current full layout)
-  const bgMix = isHovered ? 20 : 10 + depth * 4;
-  const borderMix = isHovered ? 40 : 25 + depth * 8;
+  // Increased base color mix for better visibility on dark/warm themes
+  const bgMix = isHovered ? 25 : 18 + depth * 4;
+  const borderMix = isHovered ? 45 : 35 + depth * 8;
 
   return (
     <div

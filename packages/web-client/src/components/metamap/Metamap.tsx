@@ -76,14 +76,17 @@ interface ConnectionModalState {
   targetHandle?: string;
 }
 
-function MetamapInner() {
+interface MetamapInnerProps {
+  filterText: string;
+}
+
+function MetamapInner({ filterText }: MetamapInnerProps) {
   const { schemas, schemaGroups, getSchema, updateSchema, updateSchemaGroup, addSchemaGroup } = useDocument();
   const [connectionModal, setConnectionModal] = useState<ConnectionModalState | null>(null);
   const [editorState, setEditorState] = useState<{ open: boolean; editSchema?: ConstructSchema }>({ open: false });
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; schemaType?: string } | null>(null);
   const [expandedSchemas, setExpandedSchemas] = useState<Set<string>>(new Set());
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
-  const [filterText, setFilterText] = useState('');
   const [edgePopover, setEdgePopover] = useState<{
     sourceSchema: ConstructSchema;
     targetSchema: ConstructSchema;
@@ -457,63 +460,10 @@ function MetamapInner() {
     triggerReLayout();
   }, [triggerReLayout]);
 
-  const handleFilterSelect = useCallback((schemaType: string) => {
-    setFilterText('');
-    // Pan to the matching schema
-    const node = reactFlow.getNode(schemaType);
-    if (node) {
-      reactFlow.fitView({ nodes: [node], duration: 300, padding: 0.5 });
-    }
-  }, [reactFlow]);
-
   return (
     <div ref={containerRef} className="w-full h-full relative overflow-hidden">
       <div className="metamap-bg absolute inset-0 pointer-events-none" />
       <ZoomDebug />
-      {/* Search bar positioned to the left of center */}
-      <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-3 pointer-events-none">
-        <div className="pointer-events-auto -mr-32">
-          <div className="flex items-center gap-2 bg-surface rounded-lg px-3 py-1.5 border border-border-subtle"
-            style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}
-          >
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" className="text-content-subtle shrink-0">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <input
-              type="text"
-              value={filterText}
-              onChange={e => setFilterText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Escape' && filterText) {
-                  setFilterText('');
-                } else if (e.key === 'Enter' && matchingSchemaTypes?.size === 1) {
-                  const match = schemas.find(s => matchingSchemaTypes.has(s.type));
-                  if (match) handleFilterSelect(match.type);
-                }
-              }}
-              placeholder="Filter schemas..."
-              className="bg-transparent border-none outline-none text-content text-sm w-40 placeholder:text-content-subtle"
-            />
-            {filterText.trim() && (
-              <>
-                <span className="text-[10px] font-medium text-content-subtle bg-surface-alt px-1.5 py-0.5 rounded shrink-0">
-                  {matchingSchemaTypes?.size ?? 0}
-                </span>
-                <button
-                  onClick={() => setFilterText('')}
-                  className="text-content-subtle hover:text-content p-0.5 shrink-0 -mr-1"
-                >
-                  <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -592,10 +542,15 @@ function MetamapInner() {
   );
 }
 
-export default function Metamap() {
+interface MetamapProps {
+  filterText: string;
+  onFilterTextChange: (text: string) => void;
+}
+
+export default function Metamap({ filterText }: MetamapProps) {
   return (
     <ReactFlowProvider>
-      <MetamapInner />
+      <MetamapInner filterText={filterText} />
     </ReactFlowProvider>
   );
 }

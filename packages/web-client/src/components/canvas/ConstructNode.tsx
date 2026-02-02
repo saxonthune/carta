@@ -1,5 +1,5 @@
 import { memo, useState, useEffect, useRef } from 'react';
-import { Handle, Position, NodeResizer, useConnection, useNodeId } from '@xyflow/react';
+import { Handle, Position, useConnection, useNodeId } from '@xyflow/react';
 import { useDocument } from '../../hooks/useDocument';
 import { getPortsForSchema, getHandleType, getPortColor, generateTints, getDisplayName, getFieldsForSummary, getFieldsForTier } from '@carta/domain';
 import type { ConstructNodeData, PortConfig, PortPosition, ConstructSchema } from '@carta/domain';
@@ -308,13 +308,9 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
           borderLeft: `2px solid color-mix(in srgb, ${color} 70%, var(--color-surface-alt))`,
         }}
       >
+        {/* Selection indicator - small accent dot in top-right */}
         {selected && (
-          <NodeResizer
-            minWidth={200}
-            minHeight={100}
-            lineClassName="!border-accent !border-2"
-            handleClassName="!w-3 !h-3 !bg-accent !border-surface !rounded-full"
-          />
+          <div className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-accent shadow-[0_0_0_2px_var(--color-surface)]" />
         )}
 
         {/* Port handles - inline mode */}
@@ -577,13 +573,9 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
         borderLeft: `2px solid color-mix(in srgb, ${color} 70%, var(--color-surface-alt))`,
       }}
     >
+      {/* Selection indicator - small accent dot in top-right */}
       {selected && (
-        <NodeResizer
-          minWidth={180}
-          minHeight={100}
-          lineClassName="!border-accent !border-2"
-          handleClassName="!w-3 !h-3 !bg-accent !border-surface !rounded-full"
-        />
+        <div className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-accent shadow-[0_0_0_2px_var(--color-surface)]" />
       )}
 
       {/* Dynamic port handles - inline mode */}
