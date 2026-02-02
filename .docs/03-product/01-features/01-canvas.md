@@ -20,8 +20,8 @@ The canvas uses **level-of-detail (LOD) rendering** with two zoom-based bands to
 
 | Band | Zoom Range | Visual Treatment |
 |------|-----------|-----------------|
-| **Pill** | < 0.5x | Colored chip with schema type + display name, minimal shadow, no port handles |
-| **Normal** | ≥ 0.5x | Full node card with header, display field, summary/details modes, port handles, controls |
+| **Pill** | < 0.5x | Colored chip with schema type + display name, minimal shadow, no port drawer |
+| **Normal** | ≥ 0.5x | Full node card with header, display field, summary/details modes, port drawer, controls |
 
 **Transitions**: LOD band changes use `opacity` cross-fade (120ms) to avoid jarring jumps. The band is determined by discrete zoom thresholds, not continuous interpolation.
 

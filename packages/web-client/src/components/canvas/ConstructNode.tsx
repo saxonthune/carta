@@ -1,16 +1,13 @@
 import { memo, useState, useEffect, useRef } from 'react';
 import { Handle, Position, useConnection, useNodeId } from '@xyflow/react';
 import { useDocument } from '../../hooks/useDocument';
-import { getPortsForSchema, getHandleType, getPortColor, generateTints, getDisplayName, getFieldsForSummary, getFieldsForTier } from '@carta/domain';
-import type { ConstructNodeData, PortConfig, PortPosition, ConstructSchema } from '@carta/domain';
+import { getPortsForSchema, generateTints, getDisplayName, getFieldsForSummary, getFieldsForTier } from '@carta/domain';
+import type { ConstructNodeData, ConstructSchema } from '@carta/domain';
 import CreateDeployablePopover from '../CreateDeployablePopover';
-import PortPickerPopover from '../ui/PortPickerPopover';
-import ConnectionDropZones from './ConnectionDropZones';
+import PortDrawer from './PortDrawer';
+import IndexBasedDropZones from './IndexBasedDropZones';
 import { useLodBand } from './lod/useLodBand';
 import { WindowIcon, PinIcon, ExpandIcon, CollapseIcon } from '../ui/icons';
-
-// Long hover delay in milliseconds
-const LONG_HOVER_DELAY = 800;
 
 // Special value for "Add new..." deployable option
 const ADD_NEW_DEPLOYABLE = '__ADD_NEW__';
@@ -18,29 +15,6 @@ const ADD_NEW_DEPLOYABLE = '__ADD_NEW__';
 interface ConstructNodeComponentProps {
   data: ConstructNodeData;
   selected?: boolean;
-}
-
-// Map port position to React Flow Position
-const positionMap: Record<PortPosition, Position> = {
-  left: Position.Left,
-  right: Position.Right,
-  top: Position.Top,
-  bottom: Position.Bottom,
-};
-
-// Calculate handle style for offset positioning
-function getHandlePositionStyle(position: PortPosition, offset: number): React.CSSProperties {
-  const outside = -10;
-  if (position === 'left') {
-    return { top: `${offset}%`, left: outside, transform: 'translateY(-50%)' };
-  }
-  if (position === 'right') {
-    return { top: `${offset}%`, right: outside, transform: 'translateY(-50%)' };
-  }
-  if (position === 'top') {
-    return { left: `${offset}%`, top: outside, transform: 'translateX(-50%)' };
-  }
-  return { left: `${offset}%`, bottom: outside, transform: 'translateX(-50%)' };
 }
 
 // Inline color picker component
@@ -108,11 +82,7 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
   const { getSchema, addDeployable } = useDocument();
   const schema = getSchema(data.constructType);
   const nodeId = useNodeId();
-  const [hoveredPort, setHoveredPort] = useState<string | null>(null);
-  const [showExtendedTooltip, setShowExtendedTooltip] = useState(false);
-  const [showPortPicker, setShowPortPicker] = useState(false);
   const [editingField, setEditingField] = useState<string | null>(null);
-  const hoverTimerRef = useRef<number | null>(null);
 
   // Connection drop zone detection
   const connection = useConnection();
@@ -155,28 +125,6 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
   // New deployable modal state
   const [showNewDeployableModal, setShowNewDeployableModal] = useState(false);
 
-  // Clear timer on unmount
-  useEffect(() => {
-    return () => {
-      if (hoverTimerRef.current) {
-        window.clearTimeout(hoverTimerRef.current);
-      }
-    };
-  }, []);
-
-  // Start/reset long hover timer when hoveredPort changes
-  useEffect(() => {
-    setShowExtendedTooltip(false);
-    if (hoverTimerRef.current) {
-      window.clearTimeout(hoverTimerRef.current);
-    }
-    if (hoveredPort) {
-      hoverTimerRef.current = window.setTimeout(() => {
-        setShowExtendedTooltip(true);
-      }, LONG_HOVER_DELAY);
-    }
-  }, [hoveredPort]);
-
   if (!schema) {
     return (
       <div className="bg-danger-muted border-2 border-danger rounded-lg min-w-[180px] p-2 text-node-lg text-content">
@@ -189,7 +137,6 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
 
   // Get ports from schema or use defaults
   const ports = getPortsForSchema(schema.ports);
-  const isCollapsedPorts = schema.portDisplayPolicy === 'collapsed';
   const isCard = schema.renderStyle === 'card';
 
   const formatValue = (value: unknown) => {
@@ -221,27 +168,6 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
     setShowNewDeployableModal(false);
   };
 
-  // Calculate tooltip position based on port position
-  const getTooltipPosition = (port: PortConfig, extended: boolean): React.CSSProperties => {
-    const base: React.CSSProperties = {
-      position: 'absolute',
-      zIndex: 1000,
-      // Extended tooltip needs wrapping for description
-      whiteSpace: extended ? 'normal' : 'nowrap',
-      maxWidth: extended ? '200px' : 'none',
-    };
-    switch (port.position) {
-      case 'left':
-        return { ...base, left: -8, top: `${port.offset}%`, transform: 'translateX(-100%) translateY(-50%)' };
-      case 'right':
-        return { ...base, right: -8, top: `${port.offset}%`, transform: 'translateX(100%) translateY(-50%)' };
-      case 'top':
-        return { ...base, top: -8, left: `${port.offset}%`, transform: 'translateY(-100%) translateX(-50%)' };
-      case 'bottom':
-        return { ...base, bottom: -8, left: `${port.offset}%`, transform: 'translateY(100%) translateX(-50%)' };
-    }
-  };
-
   const color = data.instanceColor || schema.color;
 
   // Background color from instanceColor
@@ -250,7 +176,7 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
     : {};
 
   // Pill mode: subtle tinted background with accent dot
-  // Same for both default and card renderStyle
+  // No drawer in pill mode - just minimal invisible handles
   if (lod.band === 'pill') {
     const color = data.instanceColor || schema.color;
     const displayValue = getDisplayName(data, schema);
@@ -275,15 +201,15 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
         <span className="truncate">
           <span className="opacity-50">{schema.displayName}:</span> {displayValue}
         </span>
-        {/* Minimal handles for connections */}
+        {/* Minimal invisible handles for connections in pill mode */}
         {ports.map((port) => (
           <Handle
             key={port.id}
             id={port.id}
-            type={getHandleType(port.portType)}
-            position={positionMap[port.position]}
+            type="source"
+            position={Position.Bottom}
             className="port-handle !opacity-0 !w-1 !h-1"
-            style={getHandlePositionStyle(port.position, port.offset)}
+            style={{ position: 'absolute', bottom: 0, left: '50%' }}
           />
         ))}
       </div>
@@ -297,7 +223,6 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
     const displayValue = getDisplayName(data, schema);
     const minimalFields = getFieldsForTier(schema, 'minimal');
 
-    // Card: accent bar, surface background, label at top, minimal fields below
     return (
       <div
         className={`rounded-lg overflow-visible relative flex flex-col min-w-[200px] min-h-[100px] bg-surface ${selected ? 'ring-2 ring-accent/30' : ''}`}
@@ -308,71 +233,15 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
           borderLeft: `2px solid color-mix(in srgb, ${color} 70%, var(--color-surface-alt))`,
         }}
       >
-        {/* Selection indicator - small accent dot in top-right */}
+        {/* Selection indicator */}
         {selected && (
           <div className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-accent shadow-[0_0_0_2px_var(--color-surface)]" />
         )}
 
-        {/* Port handles - inline mode */}
-        {!isCollapsedPorts && ports.map((port) => (
-          <Handle
-            key={port.id}
-            id={port.id}
-            type={getHandleType(port.portType)}
-            position={positionMap[port.position]}
-            className="port-handle"
-            style={{
-              ...getHandlePositionStyle(port.position, port.offset),
-              backgroundColor: getPortColor(port.portType),
-            }}
-            data-port-type={port.portType}
-            onMouseEnter={() => setHoveredPort(port.id)}
-            onMouseLeave={() => setHoveredPort(null)}
-          />
-        ))}
-
-        {/* Collapsed port handles - hidden but functional */}
-        {isCollapsedPorts && ports.map((port) => (
-          <Handle
-            key={port.id}
-            id={port.id}
-            type={getHandleType(port.portType)}
-            position={Position.Right}
-            className="port-handle"
-            style={{
-              top: '14px',
-              right: -16,
-              opacity: 0,
-              pointerEvents: 'none',
-              width: 1,
-              height: 1,
-            }}
-            data-port-type={port.portType}
-          />
-        ))}
-
         {/* Connection drop zones overlay */}
         {isConnectionTarget && (
-          <ConnectionDropZones ports={ports} sourcePortType={sourcePortType} />
+          <IndexBasedDropZones ports={ports} sourcePortType={sourcePortType} />
         )}
-
-        {/* Port tooltip (inline mode only) */}
-        {!isCollapsedPorts && hoveredPort && (() => {
-          const port = ports.find(p => p.id === hoveredPort);
-          if (!port) return null;
-          const hasDescription = showExtendedTooltip && port.semanticDescription;
-          return (
-            <div
-              className="bg-surface-elevated text-content text-node-sm px-2 py-1 rounded shadow-lg border pointer-events-none"
-              style={getTooltipPosition(port, !!hasDescription)}
-            >
-              <div className="font-medium">{port.label}</div>
-              {hasDescription && (
-                <div className="text-content-muted text-node-xs mt-1">{port.semanticDescription}</div>
-              )}
-            </div>
-          );
-        })()}
 
         {/* Drag handle - card header area */}
         <div className="node-drag-handle flex-1 flex flex-col cursor-move select-none px-3 pt-3 pb-2">
@@ -499,62 +368,8 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
           </div>
         )}
 
-        {/* Collapsed port icon */}
-        {isCollapsedPorts && (
-          <div className="absolute top-1.5 left-1.5 z-10">
-            <div className="relative">
-              <button
-                type="button"
-                className="w-3.5 h-3.5 rounded-full bg-content-muted/20 hover:bg-content-muted/30 border border-content-muted/30 flex items-center justify-center cursor-pointer transition-colors text-content-muted"
-                onClick={(e) => { e.stopPropagation(); setShowPortPicker(!showPortPicker); }}
-                title="Ports"
-              >
-                <svg className="w-2 h-2" viewBox="0 0 24 24" fill="currentColor">
-                  <circle cx="12" cy="12" r="4" />
-                </svg>
-              </button>
-              <Handle
-                id="__collapsed-source"
-                type="source"
-                position={Position.Right}
-                className="!absolute !top-1/2 !left-1/2 !-translate-x-1/2 !-translate-y-1/2 !w-3.5 !h-3.5 !opacity-0 !border-none"
-                style={{ pointerEvents: ports.length <= 1 ? 'auto' : 'none' }}
-              />
-              <Handle
-                id="__collapsed-target"
-                type="target"
-                position={Position.Left}
-                className="!absolute !top-1/2 !left-1/2 !-translate-x-1/2 !-translate-y-1/2 !w-3.5 !h-3.5 !opacity-0 !border-none"
-                style={{ pointerEvents: ports.length <= 1 ? 'auto' : 'none' }}
-              />
-              {showPortPicker && ports.length > 1 && (
-                <PortPickerPopover
-                  ports={ports}
-                  onSelect={(portId) => {
-                    setShowPortPicker(false);
-                    const handleEl = document.querySelector(`[data-handleid="${portId}"]`) as HTMLElement;
-                    if (handleEl) {
-                      handleEl.style.pointerEvents = 'auto';
-                      handleEl.style.opacity = '1';
-                      handleEl.style.position = 'absolute';
-                      handleEl.style.top = '14px';
-                      handleEl.style.right = '-16px';
-                      handleEl.style.width = '12px';
-                      handleEl.style.height = '12px';
-                      setTimeout(() => {
-                        handleEl.style.opacity = '0';
-                        handleEl.style.pointerEvents = 'none';
-                        handleEl.style.width = '1px';
-                        handleEl.style.height = '1px';
-                      }, 5000);
-                    }
-                  }}
-                  onClose={() => setShowPortPicker(false)}
-                />
-              )}
-            </div>
-          </div>
-        )}
+        {/* Port Drawer at bottom */}
+        <PortDrawer ports={ports} />
       </div>
     );
   }
@@ -573,71 +388,15 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
         borderLeft: `2px solid color-mix(in srgb, ${color} 70%, var(--color-surface-alt))`,
       }}
     >
-      {/* Selection indicator - small accent dot in top-right */}
+      {/* Selection indicator */}
       {selected && (
         <div className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-accent shadow-[0_0_0_2px_var(--color-surface)]" />
       )}
 
-      {/* Dynamic port handles - inline mode */}
-      {!isCollapsedPorts && ports.map((port) => (
-        <Handle
-          key={port.id}
-          id={port.id}
-          type={getHandleType(port.portType)}
-          position={positionMap[port.position]}
-          className="port-handle"
-          style={{
-            ...getHandlePositionStyle(port.position, port.offset),
-            backgroundColor: getPortColor(port.portType),
-          }}
-          data-port-type={port.portType}
-          onMouseEnter={() => setHoveredPort(port.id)}
-          onMouseLeave={() => setHoveredPort(null)}
-        />
-      ))}
-
-      {/* Collapsed port handles - hidden but functional */}
-      {isCollapsedPorts && ports.map((port) => (
-        <Handle
-          key={port.id}
-          id={port.id}
-          type={getHandleType(port.portType)}
-          position={Position.Right}
-          className="port-handle"
-          style={{
-            top: '14px',
-            right: -16,
-            opacity: 0,
-            pointerEvents: 'none',
-            width: 1,
-            height: 1,
-          }}
-          data-port-type={port.portType}
-        />
-      ))}
-
       {/* Connection drop zones overlay */}
       {isConnectionTarget && (
-        <ConnectionDropZones ports={ports} sourcePortType={sourcePortType} />
+        <IndexBasedDropZones ports={ports} sourcePortType={sourcePortType} />
       )}
-
-      {/* Port tooltip (inline mode only) */}
-      {!isCollapsedPorts && hoveredPort && (() => {
-        const port = ports.find(p => p.id === hoveredPort);
-        if (!port) return null;
-        const hasDescription = showExtendedTooltip && port.semanticDescription;
-        return (
-          <div
-            className="bg-surface-elevated text-content text-node-sm px-2 py-1 rounded shadow-lg border pointer-events-none"
-            style={getTooltipPosition(port, !!hasDescription)}
-          >
-            <div className="font-medium">{port.label}</div>
-            {hasDescription && (
-              <div className="text-content-muted text-node-xs mt-1">{port.semanticDescription}</div>
-            )}
-          </div>
-        );
-      })()}
 
       <div
         className="node-drag-handle flex items-center justify-between gap-1.5 px-2 py-1 cursor-move select-none bg-surface-alt w-full shrink-0 rounded-t-lg"
@@ -688,63 +447,6 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
                 filled={data.isDetailsPinned}
               />
             </button>
-          )}
-          {/* Universal port icon for collapsed ports */}
-          {isCollapsedPorts && (
-            <div className="relative">
-              <button
-                type="button"
-                className="w-3.5 h-3.5 rounded-full bg-content-muted/20 hover:bg-content-muted/30 border border-content-muted/30 flex items-center justify-center cursor-pointer transition-colors text-content-muted"
-                onClick={(e) => { e.stopPropagation(); setShowPortPicker(!showPortPicker); }}
-                title="Ports"
-              >
-                <svg className="w-2 h-2" viewBox="0 0 24 24" fill="currentColor">
-                  <circle cx="12" cy="12" r="4" />
-                </svg>
-              </button>
-              {/* Visible source+target handles overlapping the icon */}
-              <Handle
-                id="__collapsed-source"
-                type="source"
-                position={Position.Right}
-                className="!absolute !top-1/2 !left-1/2 !-translate-x-1/2 !-translate-y-1/2 !w-3.5 !h-3.5 !opacity-0 !border-none"
-                style={{ pointerEvents: ports.length <= 1 ? 'auto' : 'none' }}
-              />
-              <Handle
-                id="__collapsed-target"
-                type="target"
-                position={Position.Left}
-                className="!absolute !top-1/2 !left-1/2 !-translate-x-1/2 !-translate-y-1/2 !w-3.5 !h-3.5 !opacity-0 !border-none"
-                style={{ pointerEvents: ports.length <= 1 ? 'auto' : 'none' }}
-              />
-              {showPortPicker && ports.length > 1 && (
-                <PortPickerPopover
-                  ports={ports}
-                  onSelect={(portId) => {
-                    setShowPortPicker(false);
-                    // Focus the hidden handle for this port to initiate connection
-                    const handleEl = document.querySelector(`[data-handleid="${portId}"]`) as HTMLElement;
-                    if (handleEl) {
-                      handleEl.style.pointerEvents = 'auto';
-                      handleEl.style.opacity = '1';
-                      handleEl.style.position = 'absolute';
-                      handleEl.style.top = '14px';
-                      handleEl.style.right = '-16px';
-                      handleEl.style.width = '12px';
-                      handleEl.style.height = '12px';
-                      // Reset after a short delay
-                      setTimeout(() => {
-                        handleEl.style.opacity = '0';
-                        handleEl.style.pointerEvents = 'none';
-                        handleEl.style.width = '1px';
-                        handleEl.style.height = '1px';
-                      }, 5000);
-                    }
-                  }}
-                  onClose={() => setShowPortPicker(false)}
-                />
-              )}
-            </div>
           )}
         </div>
       </div>
@@ -907,6 +609,9 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
           </div>
         );
       })()}
+
+      {/* Port Drawer at bottom */}
+      <PortDrawer ports={ports} />
     </div>
   );
 });

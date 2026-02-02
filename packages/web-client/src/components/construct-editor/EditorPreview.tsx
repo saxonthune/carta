@@ -34,41 +34,22 @@ function getPillFieldValue(
   return `example-${schema.type || 'id'}`;
 }
 
-function PortDots({ schema, className = '' }: { schema: ConstructSchema; className?: string }) {
+/** Simple row of colored circles at bottom representing ports */
+function PortRow({ schema }: { schema: ConstructSchema }) {
   const ports = getPortsForSchema(schema.ports);
+  if (ports.length === 0) return null;
+
   return (
-    <>
-      {ports.map((port) => {
-        const style: React.CSSProperties = {
-          position: 'absolute',
-          width: 10,
-          height: 10,
-          borderRadius: '50%',
-          backgroundColor: getPortColor(port.portType),
-        };
-
-        // Match ConstructNode.tsx: handles sit fully outside the node (offset = -10px)
-        if (port.position === 'left') {
-          style.left = -10;
-          style.top = `${port.offset}%`;
-          style.transform = 'translateY(-50%)';
-        } else if (port.position === 'right') {
-          style.right = -10;
-          style.top = `${port.offset}%`;
-          style.transform = 'translateY(-50%)';
-        } else if (port.position === 'top') {
-          style.top = -10;
-          style.left = `${port.offset}%`;
-          style.transform = 'translateX(-50%)';
-        } else {
-          style.bottom = -10;
-          style.left = `${port.offset}%`;
-          style.transform = 'translateX(-50%)';
-        }
-
-        return <div key={port.id} style={style} title={port.label} className={className} />;
-      })}
-    </>
+    <div className="flex gap-1 justify-center py-1 border-t border-surface-alt">
+      {ports.map((port) => (
+        <div
+          key={port.id}
+          className="w-2 h-2 rounded-full"
+          style={{ backgroundColor: getPortColor(port.portType) }}
+          title={port.label}
+        />
+      ))}
+    </div>
   );
 }
 
@@ -103,27 +84,24 @@ export default function EditorPreview({ schema, fieldAssignments }: EditorPrevie
 
       {/* Minimal */}
       <PreviewWrapper label="Minimal">
-        <div className="relative bg-surface border-2 rounded-lg text-xs" style={{ borderColor: color }}>
-          <PortDots schema={schema} />
+        <div className="relative bg-surface rounded-lg text-xs overflow-hidden" style={{ borderLeft: `2px solid ${color}`, boxShadow: 'var(--node-shadow)' }}>
           <div
-            className="px-2 py-1 text-white text-[10px] font-bold uppercase rounded-t-md"
-            style={{ backgroundColor: color }}
+            className="px-2 py-1 text-[10px] font-medium text-content-muted bg-surface-alt rounded-t-lg"
           >
             {schema.displayName || 'Schema'}
           </div>
           <div className="px-2 py-1.5 font-semibold text-content truncate">
             {pillValue}
           </div>
+          <PortRow schema={schema} />
         </div>
       </PreviewWrapper>
 
       {/* Details */}
       <PreviewWrapper label="Details">
-        <div className="relative bg-surface border-2 rounded-lg text-xs" style={{ borderColor: color }}>
-          <PortDots schema={schema} />
+        <div className="relative bg-surface rounded-lg text-xs overflow-hidden" style={{ borderLeft: `2px solid ${color}`, boxShadow: 'var(--node-shadow)' }}>
           <div
-            className="px-2 py-1 text-white text-[10px] font-bold uppercase rounded-t-md"
-            style={{ backgroundColor: color }}
+            className="px-2 py-1 text-[10px] font-medium text-content-muted bg-surface-alt rounded-t-lg"
           >
             {schema.displayName || 'Schema'}
           </div>
@@ -143,16 +121,15 @@ export default function EditorPreview({ schema, fieldAssignments }: EditorPrevie
               </div>
             )}
           </div>
+          <PortRow schema={schema} />
         </div>
       </PreviewWrapper>
 
       {/* Full */}
       <PreviewWrapper label="Full">
-        <div className="relative bg-surface border-2 rounded-lg text-xs" style={{ borderColor: color }}>
-          <PortDots schema={schema} />
+        <div className="relative bg-surface rounded-lg text-xs overflow-hidden" style={{ borderLeft: `2px solid ${color}`, boxShadow: 'var(--node-shadow)' }}>
           <div
-            className="px-2 py-1 text-white text-[10px] font-bold uppercase rounded-t-md"
-            style={{ backgroundColor: color }}
+            className="px-2 py-1 text-[10px] font-medium text-content-muted bg-surface-alt rounded-t-lg"
           >
             {schema.displayName || 'Schema'}
           </div>
@@ -172,6 +149,7 @@ export default function EditorPreview({ schema, fieldAssignments }: EditorPrevie
               </div>
             )}
           </div>
+          <PortRow schema={schema} />
         </div>
       </PreviewWrapper>
     </div>

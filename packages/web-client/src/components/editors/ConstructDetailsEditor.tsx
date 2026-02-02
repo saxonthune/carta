@@ -27,10 +27,10 @@ const createEmptySchema = (): ConstructSchema => ({
   semanticDescription: '',
   fields: [],
   ports: [
-    { id: 'parent', portType: 'parent', position: 'top', offset: 50, label: 'Parent' },
-    { id: 'child', portType: 'child', position: 'bottom', offset: 50, label: 'Children' },
-    { id: 'flow-in', portType: 'flow-in', position: 'left', offset: 50, label: 'Flow In' },
-    { id: 'flow-out', portType: 'flow-out', position: 'right', offset: 50, label: 'Flow Out' },
+    { id: 'parent', portType: 'parent', label: 'Parent' },
+    { id: 'child', portType: 'child', label: 'Children' },
+    { id: 'flow-in', portType: 'flow-in', label: 'Flow In' },
+    { id: 'flow-out', portType: 'flow-out', label: 'Flow Out' },
   ],
   compilation: {
     format: 'json',
@@ -176,8 +176,6 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
     const newPort: PortConfig = {
       id: 'port',
       portType: 'symmetric',
-      position: 'right',
-      offset: 50,
       label: 'Port',
     };
     setFormData(prev => ({

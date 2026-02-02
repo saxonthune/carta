@@ -74,7 +74,6 @@ const CreateSchemaInputSchema = z.object({
   semanticDescription: z.string().optional().describe('Description for AI context'),
   groupId: z.string().optional().describe('Schema group ID for organizing schemas'),
   backgroundColorPolicy: z.enum(['defaultOnly', 'tints', 'any']).optional().describe('Controls instance color picker: "defaultOnly" (no picker), "tints" (7 tint swatches), "any" (full color picker). Default: "defaultOnly"'),
-  portDisplayPolicy: z.enum(['inline', 'collapsed']).optional().describe('Controls port display: "inline" (visible handles), "collapsed" (hidden, click icon to reveal). Default: "inline"'),
   fields: z
     .array(
       z.object({
@@ -167,7 +166,6 @@ export function getToolDefinitions() {
 - Primary fields (name, title, label, summary, condition) auto-get displayTier='minimal'
 - If no ports specified, adds default ports: flow-in (left), flow-out (right), parent (bottom), child (top)
 - backgroundColorPolicy defaults to 'defaultOnly' (no color picker); use 'tints' for 7 swatches or 'any' for full picker
-- portDisplayPolicy defaults to 'inline' (visible handles); use 'collapsed' for hidden ports with click-to-reveal
 - Use displayTier='pill' on a field to make it the node title (max 1 per schema)
 - For multiple related schemas, create them sequentially and consider grouping them with carta_create_deployable`,
       inputSchema: CreateSchemaInputSchema.shape,
@@ -393,7 +391,6 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
           color: input.color,
           semanticDescription: input.semanticDescription,
           backgroundColorPolicy: input.backgroundColorPolicy,
-          portDisplayPolicy: input.portDisplayPolicy,
           fields: input.fields,
           ports: input.ports,
         }

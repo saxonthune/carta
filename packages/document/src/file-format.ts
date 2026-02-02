@@ -217,17 +217,13 @@ export function validateCartaFile(data: unknown): CartaFile {
     const p = ps as Record<string, unknown>;
     if (typeof p.id !== 'string' || typeof p.displayName !== 'string' ||
         typeof p.semanticDescription !== 'string' || typeof p.polarity !== 'string' ||
-        !Array.isArray(p.compatibleWith) || typeof p.defaultPosition !== 'string' ||
+        !Array.isArray(p.compatibleWith) ||
         typeof p.color !== 'string') {
-      throw new Error(`Invalid file: portSchema missing required fields (id, displayName, semanticDescription, polarity, compatibleWith, defaultPosition, color)`);
+      throw new Error(`Invalid file: portSchema missing required fields (id, displayName, semanticDescription, polarity, compatibleWith, color)`);
     }
     const validPolarities = ['source', 'sink', 'bidirectional', 'relay', 'intercept'];
     if (!validPolarities.includes(p.polarity as string)) {
       throw new Error(`Invalid file: portSchema "${p.id}" has invalid polarity "${p.polarity}"`);
-    }
-    const validPositions = ['left', 'right', 'top', 'bottom'];
-    if (!validPositions.includes(p.defaultPosition as string)) {
-      throw new Error(`Invalid file: portSchema "${p.id}" has invalid defaultPosition "${p.defaultPosition}"`);
     }
   }
 

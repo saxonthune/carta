@@ -1,4 +1,4 @@
-import type { PortConfig, PortPosition } from '../types/index.js';
+import type { PortConfig } from '../types/index.js';
 import { portRegistry } from './registry.js';
 
 /**
@@ -21,8 +21,8 @@ export function getPortColor(portType: string): string {
  * Default ports for constructs that don't define their own
  */
 export const DEFAULT_PORTS: PortConfig[] = [
-  { id: 'flow-in', portType: 'flow-in', position: 'left', offset: 50, label: 'Flow In' },
-  { id: 'flow-out', portType: 'flow-out', position: 'right', offset: 50, label: 'Flow Out' },
+  { id: 'flow-in', portType: 'flow-in', label: 'Flow In' },
+  { id: 'flow-out', portType: 'flow-out', label: 'Flow Out' },
 ];
 
 /**
@@ -45,8 +45,6 @@ export function createPortFromType(portTypeId: string, overrides?: Partial<PortC
   return {
     id: portTypeId,
     portType: portTypeId,
-    position: portDef.defaultPosition,
-    offset: 50,
     label: portDef.displayName,
     ...overrides,
   };
@@ -61,11 +59,4 @@ export function getHandleType(portType: string): 'source' | 'target' {
   if (!schema) return 'source';
 
   return (schema.polarity === 'sink' || schema.polarity === 'intercept') ? 'target' : 'source';
-}
-
-/**
- * Convert port position to React Flow Position enum value
- */
-export function portPositionToFlowPosition(position: PortPosition): 'left' | 'right' | 'top' | 'bottom' {
-  return position;
 }

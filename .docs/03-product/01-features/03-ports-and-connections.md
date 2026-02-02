@@ -40,16 +40,18 @@ Self-connections and same-construct connections are always blocked.
 
 Connections are stored on the **source construct's** `connections` array. Each entry: `{ portId, targetSemanticId, targetPortId }`. Edges on the canvas are visual representations derived from this data.
 
-## Port Display
+## Port Drawer
 
-Controlled by the schema's `portDisplayPolicy`:
-- **inline**: Port handles are always visible on the node edges
-- **collapsed**: Ports are hidden. A port icon on the node opens a PortPickerPopover when clicked, revealing available ports for connection
+Ports are accessed through a **port drawer** at the bottom of each node:
+- **Collapsed**: Thin strip with small colored dots as port preview
+- **Expanded**: Hover over the drawer area to expand. Shows port circles (colored by port schema) with labels in a flex row
+- **Drag to connect**: Drag from any port circle in the drawer to initiate a connection
+- **Drop zones**: When dragging a connection, target nodes show horizontal strip drop zones ordered by port array index. Valid zones are colored; invalid zones are grayed out
 
-## Edge Bundling
+In pill LOD mode, the drawer is hidden and only invisible minimal handles are rendered.
 
-When multiple connections exist between the same two nodes, they are visually bundled into a single edge with a count badge. All individual connections remain in state — bundling is display-only. Edges use smoothstep (curved) routing.
+## Edge Routing
 
-## Port Tooltips
+Edges use **dynamic nearest-edge routing**: attachment points are computed from node geometry (line-rectangle intersection from center to center) rather than fixed handle positions. This means edges attach to whichever node boundary is closest to the other node.
 
-Hovering over a port handle shows a tooltip with the port label. After 800ms, an extended tooltip appears with additional details (port type, polarity, connected targets).
+When multiple connections exist between the same two nodes, they are visually bundled into a single edge with a count badge. All individual connections remain in state — bundling is display-only.

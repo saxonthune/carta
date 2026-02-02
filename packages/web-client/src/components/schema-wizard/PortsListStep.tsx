@@ -34,7 +34,6 @@ export default function PortsListStep({ ports, portSchemas, onEdit, onRemove, on
                 />
                 <span className="text-sm font-medium text-content truncate">{port.label}</span>
                 <span className="text-[10px] px-1.5 py-0.5 bg-surface-alt rounded text-content-muted uppercase">{port.portType}</span>
-                <span className="text-[10px] px-1 py-0.5 text-content-muted">{port.position}</span>
               </div>
               <div className="flex items-center gap-1">
                 <button

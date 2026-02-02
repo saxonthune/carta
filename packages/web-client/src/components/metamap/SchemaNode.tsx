@@ -1,7 +1,7 @@
-import { memo, Fragment } from 'react';
+import { memo } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { portRegistry } from '@carta/domain';
-import type { ConstructSchema, PortPosition } from '@carta/domain';
+import type { ConstructSchema } from '@carta/domain';
 
 export interface SchemaNodeData {
   schema: ConstructSchema;
@@ -14,13 +14,6 @@ interface SchemaNodeProps {
   data: SchemaNodeData;
   selected?: boolean;
 }
-
-const positionMap: Record<PortPosition, Position> = {
-  left: Position.Left,
-  right: Position.Right,
-  top: Position.Top,
-  bottom: Position.Bottom,
-};
 
 const SchemaNode = memo(({ data, selected }: SchemaNodeProps) => {
   const { schema, isExpanded, isDimmed } = data;
@@ -60,40 +53,6 @@ const SchemaNode = memo(({ data, selected }: SchemaNodeProps) => {
         </div>
         <div className="meta-port-tooltip">Create connection</div>
       </div>
-
-      {/* Port handles at their configured positions */}
-      {ports.map((port) => {
-        const position = positionMap[port.position];
-        const isVertical = port.position === 'left' || port.position === 'right';
-        const offsetStyle = isVertical
-          ? { top: `${port.offset}%` }
-          : { left: `${port.offset}%` };
-
-        // Get port color from registry
-        const portSchema = portRegistry.get(port.portType);
-        const portColor = portSchema?.color || '#6b7280';
-
-        return (
-          <Fragment key={port.id}>
-            <Handle
-              id={port.id}
-              type="source"
-              position={position}
-              className="meta-port-diamond"
-              style={{ ...offsetStyle, backgroundColor: portColor, borderColor: portColor }}
-              data-port-color={portColor}
-            />
-            <Handle
-              id={port.id}
-              type="target"
-              position={position}
-              className="meta-port-diamond"
-              style={{ ...offsetStyle, backgroundColor: portColor, borderColor: portColor }}
-              data-port-color={portColor}
-            />
-          </Fragment>
-        );
-      })}
 
       {/* Header */}
       <div className="px-3 py-2 bg-surface-alt rounded-t-lg">
@@ -141,6 +100,37 @@ const SchemaNode = memo(({ data, selected }: SchemaNodeProps) => {
             </div>
           )}
         </>
+      )}
+
+      {/* Port row at bottom */}
+      {ports.length > 0 && (
+        <div className="flex gap-1 justify-center py-1.5 border-t border-surface-alt">
+          {ports.map((port) => {
+            const portSchema = portRegistry.get(port.portType);
+            const portColor = portSchema?.color || '#6b7280';
+            return (
+              <div key={port.id} className="relative">
+                <div
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: portColor }}
+                  title={port.label}
+                />
+                <Handle
+                  id={port.id}
+                  type="source"
+                  position={Position.Bottom}
+                  className="!w-3 !h-3 !rounded-full !border-0 !opacity-0 !absolute !top-0 !left-0 !transform-none"
+                />
+                <Handle
+                  id={port.id}
+                  type="target"
+                  position={Position.Bottom}
+                  className="!w-3 !h-3 !rounded-full !border-0 !opacity-0 !absolute !top-0 !left-0 !transform-none"
+                />
+              </div>
+            );
+          })}
+        </div>
       )}
     </div>
   );

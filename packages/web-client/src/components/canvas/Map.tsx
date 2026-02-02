@@ -34,7 +34,7 @@ import { useClipboard } from '../../hooks/useClipboard';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import type { ConstructValues, Deployable, ConstructNodeData, VirtualParentNodeData } from '@carta/domain';
 import ConstructEditor from '../ConstructEditor';
-import BundledEdge from './BundledEdge';
+import DynamicAnchorEdge from './DynamicAnchorEdge';
 import ConstructFullViewModal from '../modals/ConstructFullViewModal';
 import { useEdgeBundling } from '../../hooks/useEdgeBundling';
 import { getLodConfig } from './lod/lodPolicy';
@@ -90,7 +90,7 @@ const nodeTypes = {
 };
 
 const edgeTypes = {
-  bundled: BundledEdge,
+  bundled: DynamicAnchorEdge,
 };
 
 // Restrict dragging to header only - allows clicking fields to edit

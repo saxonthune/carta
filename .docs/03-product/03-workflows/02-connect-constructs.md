@@ -5,24 +5,19 @@ status: draft
 
 # Connect Constructs
 
-## Steps (Inline Ports)
+## Steps
 
-1. Hover over a construct to reveal port handles (if portDisplayPolicy is inline)
-2. Click and drag from a source port handle
-3. Drag to a compatible target port on another construct
-4. If validation passes (polarity compatibility, not same construct), the connection is created
-5. The edge appears on canvas; connection data is stored on the source construct
-
-## Steps (Collapsed Ports)
-
-1. Click the port icon on a construct with collapsed port display
-2. The PortPickerPopover opens showing available ports
-3. Select a port, then drag to the target construct's port
-4. Connection is created as above
+1. Hover over the bottom of a construct node to expand the port drawer
+2. The drawer shows colored port circles with labels
+3. Click and drag from a port circle to initiate a connection
+4. As you drag, target nodes display horizontal strip drop zones ordered by port array index
+5. Valid drop zones are colored (matching the target port color); invalid ones are grayed out
+6. Drop on a valid zone to create the connection
+7. The edge appears on canvas using dynamic nearest-edge routing; connection data is stored on the source construct
 
 ## Validation Feedback
 
-- Invalid connections are blocked — the edge snaps back
+- Invalid drop zones are visually distinct (gray, dotted border)
 - Self-connections are not allowed
 - Same-construct connections are not allowed
 - Polarity rules: source-source and sink-sink pairs are blocked

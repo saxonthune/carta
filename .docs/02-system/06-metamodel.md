@@ -85,7 +85,6 @@ Defines a construct type. Key properties:
 | `fields` | Array of FieldSchema |
 | `ports` | Array of PortConfig |
 | `backgroundColorPolicy` | Controls instance color picker: `defaultOnly` (none), `tints` (7 swatches), `any` (full picker) |
-| `portDisplayPolicy` | Controls port visibility: `inline` (visible handles) or `collapsed` (hidden, click to reveal) |
 
 ### FieldSchema
 
@@ -110,8 +109,6 @@ Configures a port on a construct type:
 |----------|---------|
 | `id` | Unique within construct |
 | `portType` | References a PortSchema.id |
-| `position` | left, right, top, bottom |
-| `offset` | Position offset along edge |
 | `label` | Display label |
 | `suggestedTypes` | Hint for what construct types to connect |
 | `allowsGrouping` | Enables virtual parent grouping |

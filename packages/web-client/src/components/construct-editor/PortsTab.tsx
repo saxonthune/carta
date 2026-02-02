@@ -2,7 +2,7 @@ import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
 import Textarea from '../ui/Textarea';
-import type { ConstructSchema, PortConfig, PortPosition } from '@carta/domain';
+import type { ConstructSchema, PortConfig } from '@carta/domain';
 import { useDocument } from '../../hooks/useDocument';
 import { toSnakeCase } from '../../utils/stringUtils';
 
@@ -12,8 +12,6 @@ interface PortsTabProps {
   updatePort: (index: number, updates: Partial<PortConfig>) => void;
   removePort: (index: number) => void;
 }
-
-const PORT_POSITIONS: PortPosition[] = ['left', 'right', 'top', 'bottom'];
 
 export default function PortsTab({
   formData,
@@ -78,65 +76,31 @@ export default function PortsTab({
                 />
               </div>
 
-              {/* Connection & Layout Section */}
-              <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <label className="block text-xs font-medium text-content-muted mb-1">
-                    Port Type <span className="text-danger">*</span>
-                  </label>
-                  <Select
-                    size="sm"
-                    className="text-xs"
-                    value={port.portType}
-                    onChange={(e) => updatePort(index, { portType: e.target.value })}
-                    title={portSchemas.find(ps => ps.id === port.portType)?.semanticDescription}
-                  >
-                    {portSchemas.map(ps => (
-                      <option key={ps.id} value={ps.id}>{ps.displayName}</option>
-                    ))}
-                  </Select>
-                  <p className="text-xs text-content-muted mt-1 mb-0 italic">
-                    {portSchemas.find(ps => ps.id === port.portType)?.semanticDescription || 'Select a port type'}
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-content-muted mb-1">
-                    Position <span className="text-danger">*</span>
-                  </label>
-                  <Select
-                    size="sm"
-                    className="text-xs"
-                    value={port.position}
-                    onChange={(e) => updatePort(index, { position: e.target.value as PortPosition })}
-                  >
-                    {PORT_POSITIONS.map(pos => (
-                      <option key={pos} value={pos}>{pos}</option>
-                    ))}
-                  </Select>
-                  <p className="text-xs text-content-muted mt-1 mb-0">Side of node</p>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-content-muted mb-1">
-                    Offset (%) <span className="text-danger">*</span>
-                  </label>
-                  <Input
-                    size="sm"
-                    className="text-xs"
-                    type="number"
-                    value={port.offset}
-                    onChange={(e) => updatePort(index, { offset: Math.max(0, Math.min(100, parseInt(e.target.value) || 0)) })}
-                    min={0}
-                    max={100}
-                    placeholder="0-100"
-                  />
-                  <p className="text-xs text-content-muted mt-1 mb-0">Along edge</p>
-                </div>
+              {/* Port Type */}
+              <div>
+                <label className="block text-xs font-medium text-content-muted mb-1">
+                  Port Type <span className="text-danger">*</span>
+                </label>
+                <Select
+                  size="sm"
+                  className="text-xs"
+                  value={port.portType}
+                  onChange={(e) => updatePort(index, { portType: e.target.value })}
+                  title={portSchemas.find(ps => ps.id === port.portType)?.semanticDescription}
+                >
+                  {portSchemas.map(ps => (
+                    <option key={ps.id} value={ps.id}>{ps.displayName}</option>
+                  ))}
+                </Select>
+                <p className="text-xs text-content-muted mt-1 mb-0 italic">
+                  {portSchemas.find(ps => ps.id === port.portType)?.semanticDescription || 'Select a port type'}
+                </p>
               </div>
 
               {/* Current Values Summary */}
               <div className="mt-2 pt-2 border-t border-surface-alt">
                 <div className="text-xs text-content-muted">
-                  <span className="font-medium">Current:</span> {port.id} ({port.label}) • {port.portType} • {port.position} edge @ {port.offset}%
+                  <span className="font-medium">Current:</span> {port.id} ({port.label}) • {port.portType}
                 </div>
               </div>
             </div>

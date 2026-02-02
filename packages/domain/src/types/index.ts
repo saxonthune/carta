@@ -23,10 +23,6 @@ export type DisplayHint = 'multiline' | 'code' | 'password' | 'url' | 'color';
  */
 export type DisplayTier = 'pill' | 'minimal' | 'details' | 'full';
 
-/**
- * Position of a port on the construct node
- */
-export type PortPosition = 'left' | 'right' | 'top' | 'bottom';
 
 /**
  * Compilation format types
@@ -56,7 +52,6 @@ export interface PortSchema {
   polarity: Polarity;
   compatibleWith: string[];      // port IDs or wildcards: '*source*', '*sink*', '*'
   expectedComplement?: string;   // UI hint only (context menus), not validation
-  defaultPosition: PortPosition;
   color: string;
   groupId?: string;              // References SchemaGroup.id for hierarchical organization
   allowsGrouping?: boolean;      // Enable visual grouping via virtual parent nodes
@@ -123,8 +118,6 @@ export interface CompilationConfig {
 export interface PortConfig {
   id: string;                    // Unique within construct, e.g., 'fk_target'
   portType: string;              // References PortDefinition.id (e.g., 'flow-in', 'flow-out')
-  position: PortPosition;
-  offset: number;                // 0-100% along the edge
   label: string;                 // Display name shown on hover
   semanticDescription?: string;          // Usage description for compiled output
 
@@ -165,7 +158,6 @@ export interface ConstructSchema {
   compilation: CompilationConfig;
   groupId?: string;          // References SchemaGroup.id for hierarchical organization
   backgroundColorPolicy?: 'defaultOnly' | 'tints' | 'any';  // Controls instance color picker: 'defaultOnly' (no picker), 'tints' (7 tint swatches), 'any' (full color picker). default: 'defaultOnly'
-  portDisplayPolicy?: 'inline' | 'collapsed';                 // Controls port display: 'inline' (visible handles), 'collapsed' (hidden, click icon to reveal). default: 'inline'
   renderStyle?: 'default' | 'card';                            // 'default': header bar + fields. 'card': colored background, label-dominant, no header. default: 'default'
 }
 

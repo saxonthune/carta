@@ -42,7 +42,8 @@ Cross-references use `docXX.YY.ZZ` syntax (e.g., `doc02.06` = metamodel architec
 | `/style-nag` | Audits and fixes UI styling against doc02.07 | After UI changes, or periodically |
 | `/frontend-architecture-nag` | Audits component layering against doc02.08 | After architectural changes |
 | `/test-builder` | Creates integration/E2E tests | When adding test coverage |
-| `/git-sync` | Syncs `<branchname>_claude<N>` with trunk `<branchname>` | When working on claude branches and need to sync with trunk |
+| `/git-sync-trunk` | Syncs trunk branch with remote or main | Before creating worktrees, after remote updates |
+| `/git-sync-worktree` | Syncs worktree's claude branch with trunk via rebase | Every 30-60 min while working in a worktree |
 
 **Agents** (launch with `Task` tool): Long-running autonomous workers.
 
@@ -62,7 +63,8 @@ All skills follow the same pattern: opus reads `.docs/` and code, analyzes, gene
 | `/style-nag` | doc02.07 (design system), doc01.04 (UX principles) | `.claude/skills/style-nag/SKILL.md` |
 | `/frontend-architecture-nag` | doc02.08 (frontend architecture), doc02.01 (overview) | `.claude/skills/frontend-architecture-nag/SKILL.md` |
 | `/test-builder` | doc04.02 (testing), `packages/web-client/tests/README.md` | `.claude/skills/test-builder/SKILL.md` |
-| `/git-sync` | Git branching patterns | `.claude/skills/git-sync/SKILL.md` |
+| `/git-sync-trunk` | Git worktree workflows | `.claude/skills/git-sync-trunk/SKILL.md` |
+| `/git-sync-worktree` | Git worktree workflows | `.claude/skills/git-sync-worktree/SKILL.md` |
 
 ### Agent Details
 
@@ -218,7 +220,7 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 
 | File | Purpose |
 |------|---------|
-| `packages/domain/src/types/index.ts` | Core type definitions: PortSchema, FieldSchema, DocumentAdapter, CartaDocument, Polarity (5 values), VirtualParentNodeData, SchemaGroup; ConstructSchema with backgroundColorPolicy and portDisplayPolicy; ConstructNodeData with instanceColor |
+| `packages/domain/src/types/index.ts` | Core type definitions: PortSchema, FieldSchema, DocumentAdapter, CartaDocument, Polarity (5 values), VirtualParentNodeData, SchemaGroup; ConstructSchema with backgroundColorPolicy; ConstructNodeData with instanceColor |
 | `packages/domain/src/schemas/built-ins.ts` | Default construct schemas, port schemas, and schema groups |
 | `packages/domain/src/ports/registry.ts` | PortRegistry class with two-step polarity-based canConnect() validation |
 | `packages/domain/src/ports/helpers.ts` | Port helper functions: canConnect, getPortsForSchema, getHandleType, getPortColor |
@@ -231,7 +233,6 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 |------|---------|
 | `packages/web-client/src/contexts/DocumentContext.tsx` | Document provider: manages Yjs adapter lifecycle |
 | `packages/web-client/src/stores/adapters/yjsAdapter.ts` | Yjs implementation of DocumentAdapter interface |
-| `packages/web-client/src/constructs/ports.ts` | React-specific port utility: getHandleStyle (CSS positioning) |
 | `packages/web-client/src/constructs/compiler/index.ts` | Compiler engine that takes schemas/deployables as parameters |
 | `packages/web-client/src/hooks/useDocument.ts` | Primary hook for accessing document state and operations via adapter |
 | `packages/web-client/src/hooks/useGraphOperations.ts` | Node CRUD: addConstruct, deleteNode, renameNode, createVirtualParent, etc. |
@@ -255,8 +256,9 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 | `packages/web-client/src/components/ConnectionStatus.tsx` | Connection status indicator (server mode only) |
 | `packages/web-client/src/components/ConstructEditor.tsx` | Full-screen schema editor with tabs (Basics/Fields/Ports) and live preview |
 | `packages/web-client/src/components/ui/ContextMenuPrimitive.tsx` | Reusable context menu primitive with nested submenu support |
-| `packages/web-client/src/components/ui/PortPickerPopover.tsx` | Port picker popover for collapsed port nodes |
-| `packages/web-client/src/components/canvas/BundledEdge.tsx` | Custom edge component for bundled parallel edges |
+| `packages/web-client/src/components/canvas/DynamicAnchorEdge.tsx` | Dynamic nearest-edge routing edge component with bundle count badge |
+| `packages/web-client/src/components/canvas/PortDrawer.tsx` | Hover-to-expand port drawer at bottom of construct nodes |
+| `packages/web-client/src/components/canvas/IndexBasedDropZones.tsx` | Horizontal strip drop zones for connection targeting |
 | `packages/web-client/src/hooks/useEdgeBundling.ts` | Hook for grouping parallel edges between same node pair |
 | `packages/web-client/src/components/canvas/lod/lodPolicy.ts` | LOD band configuration (pill/compact/normal modes with zoom thresholds) |
 | `packages/web-client/src/components/canvas/lod/useLodBand.ts` | Hook that returns discrete LOD band based on current zoom level |
@@ -351,7 +353,7 @@ components: const { schemas, deployables } = useDocument()
 
 ### Change node appearance
 ```
-packages/web-client/src/components/canvas/ConstructNode.tsx   → Node rendering, port handles (inline/collapsed), color picker, LOD modes (shadow-based cards, left accent bar)
+packages/web-client/src/components/canvas/ConstructNode.tsx   → Node rendering, port drawer, color picker, LOD modes (shadow-based cards, left accent bar)
 packages/web-client/src/components/canvas/lod/lodPolicy.ts    → LOD band thresholds and configuration
 packages/web-client/src/components/canvas/lod/useLodBand.ts   → Hook for discrete zoom-based LOD band detection
 packages/web-client/src/utils/displayUtils.ts                 → Node title derivation
@@ -410,9 +412,9 @@ packages/web-client/src/components/metamap/Metamap.tsx                       →
 
 ### Modify edge appearance or bundling
 ```
-packages/web-client/src/components/canvas/BundledEdge.tsx             → Custom edge component for bundled parallel edges (smoothstep style)
+packages/web-client/src/components/canvas/DynamicAnchorEdge.tsx       → Dynamic nearest-edge routing edge component with bundle count badge
 packages/web-client/src/hooks/useEdgeBundling.ts                      → Hook for grouping parallel edges between same node pair
-packages/web-client/src/components/canvas/Map.tsx                     → Registers BundledEdge as custom edge type, uses useEdgeBundling, custom zoom controls
+packages/web-client/src/components/canvas/Map.tsx                     → Registers DynamicAnchorEdge as custom edge type, uses useEdgeBundling, custom zoom controls
 packages/web-client/src/components/metamap/EdgeDetailPopover.tsx      → Click-to-edit popover for metamap relationship edges
 packages/web-client/src/index.css                                     → Edge styling (colors, stroke width)
 ```
@@ -446,11 +448,12 @@ When modifying constructs or connections:
 - [ ] Can create/edit port schemas via Metamap connection modal
 - [ ] Port polarity validation works correctly (source-source blocked, relay acts as source, intercept acts as sink)
 - [ ] Relay/intercept bypass compatibleWith checks; plain source+sink require compatibleWith match
-- [ ] Handles appear at correct positions on canvas (inline or collapsed mode)
-- [ ] Collapsed ports show PortPickerPopover when port icon clicked
+- [ ] Port drawer appears on hover at bottom of construct nodes
+- [ ] Port drawer does not appear in pill LOD mode
+- [ ] Drop zones appear as horizontal strips on target node during connection drag
 - [ ] Connections store on source construct's `connections[]`
 - [ ] Parallel edges between same nodes bundle visually with count badge
-- [ ] Edges use smoothstep (curved) style
+- [ ] Edges use dynamic nearest-edge routing (attach to closest boundary point)
 - [ ] Compilation output includes ports and relationships
 - [ ] Import clears existing document before loading (like Excalidraw)
 - [ ] Export preserves port configurations, port schemas, and instance colors (v3 file format)
@@ -472,7 +475,6 @@ When modifying constructs or connections:
 - [ ] Metamap ports are rounded squares matching canvas port style
 - [ ] Schema group nodes use subtle solid borders instead of dashed
 - [ ] Accent bars on nodes are 2px softened (color-mixed at 70%) and respect rounded corners
-- [ ] Summary ↔ details toggle repositions port handles correctly
 
 **Static mode** (VITE_STATIC_MODE=true):
 - [ ] Share button is hidden

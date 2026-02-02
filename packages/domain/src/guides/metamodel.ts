@@ -46,7 +46,6 @@ interface ConstructSchema {
   fields: FieldSchema[];  // Data fields (use displayTier on fields to control visibility)
   ports?: PortConfig[];   // Connection points
   backgroundColorPolicy?: 'defaultOnly' | 'tints' | 'any';  // Instance color picker mode
-  portDisplayPolicy?: 'inline' | 'collapsed';                 // Port visibility mode
 }
 \`\`\`
 
@@ -255,17 +254,6 @@ Schemas can control how users customize instance background colors via \`backgro
 Instance colors are stored in \`instanceColor\` field and are visual-only (not included in compilation output). Setting \`instanceColor\` to null resets to the schema's default color.
 
 **Example**: The built-in "Note" schema uses \`backgroundColorPolicy: 'any'\` to allow fully customizable note colors.
-
-### Port Display Policy
-
-Schemas can control how ports are displayed via \`portDisplayPolicy\`:
-
-- \`inline\` (default): Port handles visible on node edges at all times
-- \`collapsed\`: Ports hidden by default; click port icon in header to reveal PortPickerPopover
-
-Collapsed ports reduce visual clutter for simple nodes like notes where connections are secondary to content.
-
-**Example**: The built-in "Note" schema uses \`portDisplayPolicy: 'collapsed'\`.
 
 ### Edge Bundling
 

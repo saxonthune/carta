@@ -123,7 +123,6 @@ describe('Restore Default Schemas', () => {
           semanticDescription: 'A custom port type',
           polarity: 'source',
           compatibleWith: ['*'],
-          defaultPosition: 'right',
           color: '#ff00ff',
         });
       });

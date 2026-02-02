@@ -3,7 +3,7 @@ import Input from '../ui/Input';
 import Select from '../ui/Select';
 import Textarea from '../ui/Textarea';
 import { toKebabCase } from '../../utils/stringUtils';
-import type { PortConfig, PortSchema, Polarity, PortPosition } from '@carta/domain';
+import type { PortConfig, PortSchema, Polarity } from '@carta/domain';
 
 const DEFAULT_COLORS = [
   '#6366f1', '#8b5cf6', '#ec4899', '#ef4444',
@@ -17,13 +17,6 @@ const POLARITY_OPTIONS: { value: Polarity; label: string; description: string }[
   { value: 'bidirectional', label: 'Bidirectional', description: 'Can both initiate and receive' },
   { value: 'relay', label: 'Relay', description: 'Pass-through output, bypasses type checking' },
   { value: 'intercept', label: 'Intercept', description: 'Pass-through input, bypasses type checking' },
-];
-
-const POSITION_OPTIONS: { value: PortPosition; label: string }[] = [
-  { value: 'left', label: 'Left' },
-  { value: 'right', label: 'Right' },
-  { value: 'top', label: 'Top' },
-  { value: 'bottom', label: 'Bottom' },
 ];
 
 interface PortSubWizardProps {
@@ -47,7 +40,6 @@ export default function PortSubWizard({
     semanticDescription: '',
     polarity: 'source',
     compatibleWith: [],
-    defaultPosition: 'right',
     color: '#6366f1',
   });
   const [newCompatTag, setNewCompatTag] = useState('');
@@ -64,7 +56,6 @@ export default function PortSubWizard({
         semanticDescription: newSchema.semanticDescription || '',
         polarity: newSchema.polarity || 'source',
         compatibleWith: newSchema.compatibleWith || [],
-        defaultPosition: newSchema.defaultPosition || 'right',
         color: newSchema.color || '#6366f1',
       };
       onCreatePortSchema(fullSchema);
@@ -72,8 +63,6 @@ export default function PortSubWizard({
       onChange({
         id,
         portType: id,
-        position: fullSchema.defaultPosition,
-        offset: 50,
         label: fullSchema.displayName,
       });
       setSchemaCreated(true);
@@ -179,18 +168,6 @@ export default function PortSubWizard({
         )}
 
         <div>
-          <label className="block mb-1 text-sm font-medium text-content">Default Position</label>
-          <Select
-            value={newSchema.defaultPosition || 'right'}
-            onChange={(e) => setNewSchema(prev => ({ ...prev, defaultPosition: e.target.value as PortPosition }))}
-          >
-            {POSITION_OPTIONS.map(opt => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </Select>
-        </div>
-
-        <div>
           <label className="block mb-1 text-sm font-medium text-content">Color</label>
           <div className="flex flex-wrap gap-1.5 items-center">
             {DEFAULT_COLORS.slice(0, 6).map(color => (
@@ -249,7 +226,6 @@ export default function PortSubWizard({
               onChange({
                 portType: e.target.value,
                 id: e.target.value,
-                position: ps?.defaultPosition || port.position,
                 label: ps?.displayName || port.label,
               });
             }}
@@ -278,30 +254,6 @@ export default function PortSubWizard({
           placeholder="Describe what this port is used for on this construct..."
           rows={2}
         />
-      </div>
-
-      <div className="flex gap-3">
-        <div className="flex-1">
-          <label className="block mb-1 text-sm font-medium text-content">Position</label>
-          <Select
-            value={port.position}
-            onChange={(e) => onChange({ position: e.target.value as PortPosition })}
-          >
-            {POSITION_OPTIONS.map(opt => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </Select>
-        </div>
-        <div className="flex-1">
-          <label className="block mb-1 text-sm font-medium text-content">Offset (%)</label>
-          <Input
-            type="number"
-            value={port.offset}
-            onChange={(e) => onChange({ offset: Math.max(0, Math.min(100, Number(e.target.value))) })}
-            min={0}
-            max={100}
-          />
-        </div>
       </div>
 
       <label className="flex items-center gap-2 text-sm text-content cursor-pointer select-none">

@@ -56,7 +56,6 @@ export const builtInPortSchemas: PortSchema[] = [
     polarity: 'sink',
     compatibleWith: ['flow-out'],
     expectedComplement: 'flow-out',
-    defaultPosition: 'left',
     color: '#3b82f6',
   },
   {
@@ -66,7 +65,6 @@ export const builtInPortSchemas: PortSchema[] = [
     polarity: 'source',
     compatibleWith: ['flow-in'],
     expectedComplement: 'flow-in',
-    defaultPosition: 'right',
     color: '#22c55e',
   },
   {
@@ -76,7 +74,6 @@ export const builtInPortSchemas: PortSchema[] = [
     polarity: 'source',
     compatibleWith: ['child'],
     expectedComplement: 'child',
-    defaultPosition: 'bottom',
     color: '#8b5cf6',
   },
   {
@@ -86,7 +83,6 @@ export const builtInPortSchemas: PortSchema[] = [
     polarity: 'sink',
     compatibleWith: ['parent'],
     expectedComplement: 'parent',
-    defaultPosition: 'top',
     color: '#8b5cf6',
   },
   {
@@ -95,7 +91,6 @@ export const builtInPortSchemas: PortSchema[] = [
     semanticDescription: 'Bidirectional peer connection',
     polarity: 'bidirectional',
     compatibleWith: [],
-    defaultPosition: 'right',
     color: '#64748b',
   },
   {
@@ -104,7 +99,6 @@ export const builtInPortSchemas: PortSchema[] = [
     semanticDescription: 'Pass-through input accepting any source connection (bypasses type checking)',
     polarity: 'intercept',
     compatibleWith: [],
-    defaultPosition: 'left',
     color: '#f59e0b',
   },
   {
@@ -113,7 +107,6 @@ export const builtInPortSchemas: PortSchema[] = [
     semanticDescription: 'Pass-through output connecting to any sink port (bypasses type checking)',
     polarity: 'relay',
     compatibleWith: [],
-    defaultPosition: 'right',
     color: '#f59e0b',
   },
 ];
@@ -133,9 +126,9 @@ export const builtInConstructSchemas: ConstructSchema[] = [
     semanticDescription: 'HTTP REST API endpoint controller',
     groupId: 'api',
     ports: [
-      { id: 'flow-in', portType: 'flow-in', position: 'left', offset: 50, label: 'Flow In', semanticDescription: 'Incoming request flow from upstream' },
-      { id: 'flow-out', portType: 'flow-out', position: 'right', offset: 50, label: 'Flow Out', semanticDescription: 'Downstream flow to services or handlers' },
-      { id: 'parent', portType: 'parent', position: 'bottom', offset: 50, label: 'Models', semanticDescription: 'Owns API request/response models' },
+      { id: 'flow-in', portType: 'flow-in', label: 'Flow In', semanticDescription: 'Incoming request flow from upstream' },
+      { id: 'flow-out', portType: 'flow-out', label: 'Flow Out', semanticDescription: 'Downstream flow to services or handlers' },
+      { id: 'parent', portType: 'parent', label: 'Models', semanticDescription: 'Owns API request/response models' },
     ],
     fields: [
       {
@@ -200,8 +193,8 @@ export const builtInConstructSchemas: ConstructSchema[] = [
     semanticDescription: 'Database instance or schema container',
     groupId: 'database',
     ports: [
-      { id: 'child', portType: 'child', position: 'bottom', offset: 50, label: 'Tables', semanticDescription: 'Tables that belong to this database' },
-      { id: 'link-in', portType: 'flow-in', position: 'left', offset: 50, label: 'Referenced By', semanticDescription: 'External constructs referencing this database' },
+      { id: 'link-in', portType: 'flow-in', label: 'Referenced By', semanticDescription: 'External constructs referencing this database' },
+      { id: 'child', portType: 'child', label: 'Tables', semanticDescription: 'Tables that belong to this database' },
     ],
     fields: [
       {
@@ -252,10 +245,10 @@ export const builtInConstructSchemas: ConstructSchema[] = [
     semanticDescription: 'Database table or entity',
     groupId: 'database',
     ports: [
-      { id: 'parent', portType: 'parent', position: 'top', offset: 50, label: 'Database', semanticDescription: 'Database that owns this table' },
-      { id: 'link-in', portType: 'flow-in', position: 'left', offset: 50, label: 'Referenced By', semanticDescription: 'Tables or constructs that reference this table' },
-      { id: 'link-out', portType: 'flow-out', position: 'right', offset: 50, label: 'References', semanticDescription: 'Tables or constructs this table references' },
-      { id: 'child', portType: 'child', position: 'bottom', offset: 75, label: 'Attributes & Constraints', semanticDescription: 'Attributes and constraints that belong to this table' },
+      { id: 'link-in', portType: 'flow-in', label: 'Referenced By', semanticDescription: 'Tables or constructs that reference this table' },
+      { id: 'link-out', portType: 'flow-out', label: 'References', semanticDescription: 'Tables or constructs this table references' },
+      { id: 'parent', portType: 'parent', label: 'Database', semanticDescription: 'Database that owns this table' },
+      { id: 'child', portType: 'child', label: 'Attributes & Constraints', semanticDescription: 'Attributes and constraints that belong to this table' },
     ],
     fields: [
       {
@@ -325,7 +318,7 @@ export const builtInConstructSchemas: ConstructSchema[] = [
       { name: 'nullable', label: 'Nullable', type: 'boolean', semanticDescription: 'Whether this column allows NULL values', default: true, displayTier: 'details', displayOrder: 3 },
     ],
     ports: [
-      { id: 'parent', portType: 'parent', position: 'top', offset: 50, label: 'Table', semanticDescription: 'Table that owns this attribute' },
+      { id: 'parent', portType: 'parent', label: 'Table', semanticDescription: 'Table that owns this attribute' },
     ],
     suggestedRelated: [
       {
@@ -352,7 +345,7 @@ export const builtInConstructSchemas: ConstructSchema[] = [
       { name: 'definition', label: 'Definition', type: 'string', semanticDescription: 'Full SQL constraint definition', displayHint: 'code', placeholder: 'Detailed constraint definition', displayTier: 'full', displayOrder: 3 },
     ],
     ports: [
-      { id: 'parent', portType: 'parent', position: 'top', offset: 50, label: 'Table', semanticDescription: 'Table that owns this constraint' },
+      { id: 'parent', portType: 'parent', label: 'Table', semanticDescription: 'Table that owns this constraint' },
     ],
     suggestedRelated: [
       {
@@ -403,7 +396,7 @@ export const builtInConstructSchemas: ConstructSchema[] = [
       },
     ],
     ports: [
-      { id: 'child', portType: 'child', position: 'top', offset: 50, label: 'Controller', semanticDescription: 'Controller endpoint that uses this model' },
+      { id: 'child', portType: 'child', label: 'Controller', semanticDescription: 'Controller endpoint that uses this model' },
     ],
     suggestedRelated: [
       {
@@ -453,8 +446,8 @@ export const builtInConstructSchemas: ConstructSchema[] = [
       },
     ],
     ports: [
-      { id: 'child', portType: 'child', position: 'left', offset: 50, label: 'Events', semanticDescription: 'Child events that originate from this event' },
-      { id: 'flow-out', portType: 'flow-out', position: 'right', offset: 50, label: 'Flow Out', semanticDescription: 'Next UI flow that follows this event' },
+      { id: 'child', portType: 'child', label: 'Events', semanticDescription: 'Child events that originate from this event' },
+      { id: 'flow-out', portType: 'flow-out', label: 'Flow Out', semanticDescription: 'Next UI flow that follows this event' },
     ],
     suggestedRelated: [
       {
@@ -495,8 +488,8 @@ export const builtInConstructSchemas: ConstructSchema[] = [
       },
     ],
     ports: [
-      { id: 'flow-in', portType: 'flow-in', position: 'left', offset: 50, label: 'Flow In', semanticDescription: 'Incoming UI flow into this screen' },
-      { id: 'parent', portType: 'parent', position: 'right', offset: 50, label: 'Events', semanticDescription: 'Events that belong to this screen' },
+      { id: 'flow-in', portType: 'flow-in', label: 'Flow In', semanticDescription: 'Incoming UI flow into this screen' },
+      { id: 'parent', portType: 'parent', label: 'Events', semanticDescription: 'Events that belong to this screen' },
     ],
     suggestedRelated: [
       {
@@ -543,7 +536,7 @@ export const builtInConstructSchemas: ConstructSchema[] = [
       },
     ],
     ports: [
-      { id: 'flow-out', portType: 'flow-out', position: 'right', offset: 50, label: 'Flow Out', semanticDescription: 'Outcome or follow-on user story' },
+      { id: 'flow-out', portType: 'flow-out', label: 'Flow Out', semanticDescription: 'Outcome or follow-on user story' },
     ],
     suggestedRelated: [
       {
@@ -563,7 +556,6 @@ export const builtInConstructSchemas: ConstructSchema[] = [
     color: '#c4a94e',
     semanticDescription: 'A freeform note or annotation',
     backgroundColorPolicy: 'any',
-    portDisplayPolicy: 'collapsed',
     fields: [
       {
         name: 'content',
@@ -577,7 +569,7 @@ export const builtInConstructSchemas: ConstructSchema[] = [
       },
     ],
     ports: [
-      { id: 'link', portType: 'symmetric', position: 'right', offset: 50, label: 'Link' },
+      { id: 'link', portType: 'symmetric', label: 'Link' },
     ],
     compilation: {
       format: 'json',
@@ -592,7 +584,7 @@ export const builtInConstructSchemas: ConstructSchema[] = [
     color: '#6b7280',
     semanticDescription: 'Technical implementation notes and documentation',
     ports: [
-      { id: 'link', portType: 'symmetric', position: 'left', offset: 50, label: 'Related To', semanticDescription: 'Bidirectional relationship to related constructs' },
+      { id: 'link', portType: 'symmetric', label: 'Related To', semanticDescription: 'Bidirectional relationship to related constructs' },
     ],
     fields: [
       {
@@ -620,7 +612,6 @@ export const builtInConstructSchemas: ConstructSchema[] = [
     color: '#64748b',
     renderStyle: 'card',
     backgroundColorPolicy: 'any',
-    portDisplayPolicy: 'inline',
     groupId: 'sketching',
     semanticDescription: 'Generic box for rough modeling',
     fields: [
@@ -628,10 +619,10 @@ export const builtInConstructSchemas: ConstructSchema[] = [
       { name: 'notes', label: 'Notes', type: 'string', displayHint: 'multiline', displayTier: 'details', displayOrder: 1, placeholder: 'Notes...' },
     ],
     ports: [
-      { id: 'flow-in', portType: 'flow-in', position: 'left', offset: 50, label: 'In' },
-      { id: 'flow-out', portType: 'flow-out', position: 'right', offset: 50, label: 'Out' },
-      { id: 'parent', portType: 'parent', position: 'bottom', offset: 50, label: 'Parent' },
-      { id: 'child', portType: 'child', position: 'top', offset: 50, label: 'Child' },
+      { id: 'flow-in', portType: 'flow-in', label: 'In' },
+      { id: 'flow-out', portType: 'flow-out', label: 'Out' },
+      { id: 'parent', portType: 'parent', label: 'Parent' },
+      { id: 'child', portType: 'child', label: 'Child' },
     ],
     compilation: { format: 'json' },
   },

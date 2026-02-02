@@ -29,7 +29,9 @@ Canonical definitions for domain terms used throughout Carta. Use these terms co
 
 ## Ports and Connections
 
-**Port**: A typed attachment point on a construct where connections can be made. Defined by a port schema and positioned on the node.
+**Port**: A typed attachment point on a construct where connections can be made. Defined by a port schema. Ports are accessed through the port drawer at the bottom of nodes.
+
+**Port Drawer**: A collapsible UI element at the bottom of construct nodes. Collapsed state shows small colored dots; expanded (on hover) shows port circles with labels. Drag from a port circle to initiate connections.
 
 **Port Schema**: A type definition for ports. Defines polarity, compatibility rules, color, and labels. Port schemas are user-editable.
 
@@ -38,6 +40,8 @@ Canonical definitions for domain terms used throughout Carta. Use these terms co
 **Connection**: A link between two constructs via their ports. Stored on the source construct's `connections` array. Contains: portId, targetSemanticId, targetPortId.
 
 **Edge**: The visual representation of a connection on the canvas. Edges carry no metadata — they are derived from connection data on constructs.
+
+**Drop Zone**: A horizontal strip that appears on target nodes during connection drag. Ordered by port array index, colored for valid targets, grayed for invalid ones.
 
 ## Organization
 

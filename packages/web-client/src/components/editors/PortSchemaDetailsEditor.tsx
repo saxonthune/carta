@@ -6,7 +6,7 @@ import Input from '../ui/Input';
 import Select from '../ui/Select';
 import Textarea from '../ui/Textarea';
 import { toKebabCase } from '../../utils/stringUtils';
-import type { PortSchema, Polarity, PortPosition } from '@carta/domain';
+import type { PortSchema, Polarity } from '@carta/domain';
 
 interface PortSchemaDetailsEditorProps {
   portSchema: PortSchema | null;
@@ -23,7 +23,6 @@ const createEmptySchema = (): PortSchema => ({
   semanticDescription: '',
   polarity: 'source',
   compatibleWith: [],
-  defaultPosition: 'right',
   color: '#6366f1',
 });
 
@@ -33,13 +32,6 @@ const POLARITY_OPTIONS: { value: Polarity; label: string }[] = [
   { value: 'bidirectional', label: 'Bidirectional' },
   { value: 'relay', label: 'Relay' },
   { value: 'intercept', label: 'Intercept' },
-];
-
-const POSITION_OPTIONS: { value: PortPosition; label: string }[] = [
-  { value: 'left', label: 'Left' },
-  { value: 'right', label: 'Right' },
-  { value: 'top', label: 'Top' },
-  { value: 'bottom', label: 'Bottom' },
 ];
 
 const DEFAULT_COLORS = [
@@ -208,63 +200,19 @@ const PortSchemaDetailsEditor = forwardRef<{ save: () => void }, PortSchemaDetai
             />
           </div>
 
-          {/* Polarity & Position in compact mode */}
-          {compact ? (
-            <div className="flex gap-2 mb-2">
-              <div className="flex-1">
-                <label className="block mb-1 text-xs font-medium text-content">Polarity</label>
-                <Select
-                  size="sm"
-                  value={formData.polarity}
-                  onChange={(e) => updateField('polarity', e.target.value as Polarity)}
-                >
-                  {POLARITY_OPTIONS.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </Select>
-              </div>
-              <div className="flex-1">
-                <label className="block mb-1 text-xs font-medium text-content">Position</label>
-                <Select
-                  size="sm"
-                  value={formData.defaultPosition}
-                  onChange={(e) => updateField('defaultPosition', e.target.value as PortPosition)}
-                >
-                  {POSITION_OPTIONS.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </Select>
-              </div>
-            </div>
-          ) : (
-            <>
-              {/* Polarity */}
-              <div className="mb-3">
-                <label className="block mb-1 text-sm font-medium text-content">Polarity</label>
-                <Select
-                  value={formData.polarity}
-                  onChange={(e) => updateField('polarity', e.target.value as Polarity)}
-                >
-                  {POLARITY_OPTIONS.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </Select>
-              </div>
-
-              {/* Default Position */}
-              <div className="mb-3">
-                <label className="block mb-1 text-sm font-medium text-content">Default Position</label>
-                <Select
-                  value={formData.defaultPosition}
-                  onChange={(e) => updateField('defaultPosition', e.target.value as PortPosition)}
-                >
-                  {POSITION_OPTIONS.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </Select>
-              </div>
-            </>
-          )}
+          {/* Polarity */}
+          <div className={compact ? 'mb-2' : 'mb-3'}>
+            <label className={`block mb-1 font-medium text-content ${compact ? 'text-xs' : 'text-sm'}`}>Polarity</label>
+            <Select
+              size={compact ? 'sm' : 'md'}
+              value={formData.polarity}
+              onChange={(e) => updateField('polarity', e.target.value as Polarity)}
+            >
+              {POLARITY_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </Select>
+          </div>
 
           {/* Color */}
           <div className={compact ? 'mb-2' : 'mb-3'}>

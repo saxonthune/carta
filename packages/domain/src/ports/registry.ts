@@ -115,13 +115,6 @@ export class PortRegistry {
     return this.schemas.delete(id);
   }
 
-  /**
-   * Get the default position for a port type
-   */
-  getDefaultPosition(portType: string): 'left' | 'right' | 'top' | 'bottom' {
-    const schema = this.schemas.get(portType);
-    return schema?.defaultPosition || 'right';
-  }
 }
 
 // Export singleton instance

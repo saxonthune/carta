@@ -31,8 +31,6 @@ export default function PortsStep({
     const newPort: PortConfig = {
       id: portType,
       portType,
-      position: ps.defaultPosition,
-      offset: 50,
       label: ps.displayName,
     };
     setFormData(prev => ({ ...prev, ports: [...(prev.ports || []), newPort] }));
@@ -65,8 +63,6 @@ export default function PortsStep({
             return {
               id: portType,
               portType,
-              position: ps?.defaultPosition || 'right',
-              offset: 50,
               label: ps?.displayName || portType,
             };
           });
@@ -118,8 +114,6 @@ export default function PortsStep({
                 const newPort: PortConfig = {
                   id: updates.id || '',
                   portType: updates.portType || '',
-                  position: updates.position || 'right',
-                  offset: updates.offset ?? 50,
                   label: updates.label || '',
                   ...updates,
                 };
