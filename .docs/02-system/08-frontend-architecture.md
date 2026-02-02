@@ -106,6 +106,7 @@ App.tsx (layout orchestration)
 | Schema editing | Schema form, field tiers, ports | Create/edit types | ConstructEditor.tsx |
 | Compilation | Compiled output | Generate AI output | compiler/index.ts |
 | Import/Export | File I/O | Persist and share | cartaFile.ts |
+| Help / About | Config display, version | Show app info | Footer.tsx, HelpModal.tsx |
 | AI Assistant | Chat, tool calls | AI-assisted editing | ai/ directory |
 
 ## Progressive Disclosure for Features

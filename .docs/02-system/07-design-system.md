@@ -195,6 +195,10 @@ import { PinIcon, WindowIcon } from './ui/icons';
 </button>
 ```
 
+## Modal Backdrop Variants
+
+The `Modal` primitive (`ui/Modal.tsx`) supports a `blurBackdrop` prop that adds `backdrop-blur-sm` to the overlay. Use this for modals that benefit from a frosted-glass effect (e.g., HelpModal). Default modals use a semi-transparent dark overlay without blur.
+
 ## Design Principles (Chrome)
 
 - **Clarity over decoration**: Use depth and spacing for hierarchy, not heavy borders

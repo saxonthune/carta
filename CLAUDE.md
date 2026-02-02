@@ -244,7 +244,7 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 | `packages/web-client/src/components/canvas/Map.tsx` | React Flow canvas, UI event handlers, virtual-parent node type |
 | `packages/web-client/src/components/canvas/CanvasContainer.tsx` | Canvas container: view switching (Map/Metamap), ViewToggle, LevelSwitcher overlays, Footer |
 | `packages/web-client/src/components/canvas/VirtualParentNode.tsx` | Visual grouping container node for child constructs |
-| `packages/web-client/src/components/Header.tsx` | Project header with title, import/export, settings menu, Share (server mode) |
+| `packages/web-client/src/components/Header.tsx` | Header with "Carta" branding, title, document browser, import/export, compile, theme, settings, Share (server mode) |
 | `packages/web-client/src/components/metamap/Metamap.tsx` | React Flow canvas for schema-level metamodel view (SchemaNode, SchemaGroupNode, EdgeDetailPopover) |
 | `packages/web-client/src/components/metamap/EdgeDetailPopover.tsx` | Click-to-edit popover for metamap edges: edit labels, delete relationships |
 | `packages/web-client/src/components/metamap/SchemaNode.tsx` | Schema node rendering in Metamap view |
@@ -253,6 +253,7 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 | `packages/web-client/src/components/modals/ProjectInfoModal.tsx` | Modal for editing project title and description |
 | `packages/web-client/src/components/modals/ExamplesModal.tsx` | Modal for loading example projects |
 | `packages/web-client/src/components/modals/DocumentBrowserModal.tsx` | Document browser/selector for server mode |
+| `packages/web-client/src/components/modals/HelpModal.tsx` | Multi-tab Help modal with About tab (copyright, version, config); opened from Footer |
 | `packages/web-client/src/components/ConnectionStatus.tsx` | Connection status indicator (server mode only) |
 | `packages/web-client/src/components/ConstructEditor.tsx` | Full-screen schema editor with tabs (Basics/Fields/Ports) and live preview |
 | `packages/web-client/src/components/ui/ContextMenuPrimitive.tsx` | Reusable context menu primitive with nested submenu support |
@@ -394,10 +395,11 @@ packages/web-client/src/config/featureFlags.ts     → Desktop mode detection an
 
 ### Modify header behavior or add modals
 ```
-packages/web-client/src/components/Header.tsx                  → Header controls: title, export/import, settings, theme, Share (server mode)
+packages/web-client/src/components/Header.tsx                  → Header: "Carta" branding, title, document browser, export/import, compile, theme, settings, Share (server mode)
 packages/web-client/src/components/modals/ProjectInfoModal.tsx        → Edit project title and description
 packages/web-client/src/components/modals/ExamplesModal.tsx           → Load example projects from bundled .carta files
 packages/web-client/src/components/modals/DocumentBrowserModal.tsx    → Browse/create/select documents (server mode, required on ?doc= missing)
+packages/web-client/src/components/modals/HelpModal.tsx               → Multi-tab Help modal (About tab: copyright, version, config); opened from Footer
 packages/web-client/src/components/ConstructEditor.tsx         → Full-screen schema editor with tabs and live preview
 packages/web-client/src/utils/examples.ts                      → Load examples using Vite's import.meta.glob
 ```

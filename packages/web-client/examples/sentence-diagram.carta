@@ -1,0 +1,325 @@
+{
+  "version": 5,
+  "title": "Sentence Diagram",
+  "description": "Parts of speech diagrammed as constructs. Models the sentence: \"The quick brown fox jumps over the lazy dog.\"",
+  "customSchemas": [
+    {
+      "type": "sentence",
+      "displayName": "Sentence",
+      "color": "#6366f1",
+      "semanticDescription": "A complete sentence to be diagrammed into its constituent parts of speech",
+      "groupId": "sentence-diagram",
+      "fields": [
+        { "name": "text", "label": "Text", "type": "string", "semanticDescription": "The full sentence text", "placeholder": "Enter the sentence...", "displayTier": "pill", "displayOrder": 0 },
+        { "name": "sentenceType", "label": "Type", "type": "enum", "semanticDescription": "Sentence classification", "options": [{ "value": "Declarative" }, { "value": "Interrogative" }, { "value": "Imperative" }, { "value": "Exclamatory" }], "default": "Declarative", "displayTier": "minimal", "displayOrder": 1 }
+      ],
+      "ports": [
+        { "id": "parent", "portType": "parent", "position": "bottom", "offset": 50, "label": "Words", "semanticDescription": "Parts of speech that make up this sentence" }
+      ],
+      "compilation": { "format": "json", "sectionHeader": "# Sentence Diagram" }
+    },
+    {
+      "type": "noun",
+      "displayName": "Noun",
+      "color": "#ef4444",
+      "semanticDescription": "A word that names a person, place, thing, or idea",
+      "groupId": "sentence-diagram",
+      "fields": [
+        { "name": "word", "label": "Word", "type": "string", "semanticDescription": "The noun word", "placeholder": "e.g., dog, city", "displayTier": "pill", "displayOrder": 0 },
+        { "name": "role", "label": "Role", "type": "enum", "semanticDescription": "Grammatical role in the sentence", "options": [{ "value": "Subject" }, { "value": "Direct Object" }, { "value": "Indirect Object" }, { "value": "Object of Preposition" }, { "value": "Predicate Nominative" }], "default": "Subject", "displayTier": "minimal", "displayOrder": 1 },
+        { "name": "nounType", "label": "Noun Type", "type": "enum", "semanticDescription": "Classification of the noun", "options": [{ "value": "Common" }, { "value": "Proper" }, { "value": "Abstract" }, { "value": "Collective" }], "default": "Common", "displayTier": "details", "displayOrder": 2 }
+      ],
+      "ports": [
+        { "id": "child", "portType": "child", "position": "top", "offset": 50, "label": "Sentence", "semanticDescription": "Sentence this noun belongs to" },
+        { "id": "parent", "portType": "parent", "position": "bottom", "offset": 50, "label": "Modifiers", "semanticDescription": "Adjectives, determiners, or prepositional phrases modifying this noun" }
+      ],
+      "compilation": { "format": "json" }
+    },
+    {
+      "type": "verb",
+      "displayName": "Verb",
+      "color": "#22c55e",
+      "semanticDescription": "A word that expresses an action, occurrence, or state of being",
+      "groupId": "sentence-diagram",
+      "fields": [
+        { "name": "word", "label": "Word", "type": "string", "semanticDescription": "The verb word", "placeholder": "e.g., runs, is", "displayTier": "pill", "displayOrder": 0 },
+        { "name": "tense", "label": "Tense", "type": "enum", "semanticDescription": "Verb tense", "options": [{ "value": "Present" }, { "value": "Past" }, { "value": "Future" }, { "value": "Present Perfect" }, { "value": "Past Perfect" }], "default": "Present", "displayTier": "minimal", "displayOrder": 1 },
+        { "name": "verbType", "label": "Verb Type", "type": "enum", "semanticDescription": "Classification of the verb", "options": [{ "value": "Action" }, { "value": "Linking" }, { "value": "Helping" }], "default": "Action", "displayTier": "details", "displayOrder": 2 }
+      ],
+      "ports": [
+        { "id": "child", "portType": "child", "position": "top", "offset": 50, "label": "Sentence", "semanticDescription": "Sentence this verb belongs to" },
+        { "id": "parent", "portType": "parent", "position": "bottom", "offset": 50, "label": "Modifiers", "semanticDescription": "Adverbs or prepositional phrases modifying this verb" }
+      ],
+      "compilation": { "format": "json" }
+    },
+    {
+      "type": "adjective",
+      "displayName": "Adjective",
+      "color": "#f59e0b",
+      "semanticDescription": "A word that modifies or describes a noun",
+      "groupId": "sentence-diagram",
+      "fields": [
+        { "name": "word", "label": "Word", "type": "string", "semanticDescription": "The adjective word", "placeholder": "e.g., quick, red", "displayTier": "pill", "displayOrder": 0 },
+        { "name": "degree", "label": "Degree", "type": "enum", "semanticDescription": "Degree of comparison", "options": [{ "value": "Positive" }, { "value": "Comparative" }, { "value": "Superlative" }], "default": "Positive", "displayTier": "details", "displayOrder": 1 }
+      ],
+      "ports": [
+        { "id": "child", "portType": "child", "position": "top", "offset": 50, "label": "Modifies", "semanticDescription": "Noun this adjective modifies" }
+      ],
+      "compilation": { "format": "json" }
+    },
+    {
+      "type": "adverb",
+      "displayName": "Adverb",
+      "color": "#f97316",
+      "semanticDescription": "A word that modifies a verb, adjective, or another adverb",
+      "groupId": "sentence-diagram",
+      "fields": [
+        { "name": "word", "label": "Word", "type": "string", "semanticDescription": "The adverb word", "placeholder": "e.g., quickly, very", "displayTier": "pill", "displayOrder": 0 },
+        { "name": "modifies", "label": "Modifies", "type": "enum", "semanticDescription": "What this adverb modifies", "options": [{ "value": "Verb" }, { "value": "Adjective" }, { "value": "Adverb" }], "default": "Verb", "displayTier": "details", "displayOrder": 1 }
+      ],
+      "ports": [
+        { "id": "child", "portType": "child", "position": "top", "offset": 50, "label": "Modifies", "semanticDescription": "Verb or adjective this adverb modifies" }
+      ],
+      "compilation": { "format": "json" }
+    },
+    {
+      "type": "preposition",
+      "displayName": "Preposition",
+      "color": "#8b5cf6",
+      "semanticDescription": "A word that shows the relationship between a noun/pronoun and another word in the sentence",
+      "groupId": "sentence-diagram",
+      "fields": [
+        { "name": "word", "label": "Word", "type": "string", "semanticDescription": "The preposition word", "placeholder": "e.g., over, in, at", "displayTier": "pill", "displayOrder": 0 }
+      ],
+      "ports": [
+        { "id": "child", "portType": "child", "position": "top", "offset": 50, "label": "Modifies", "semanticDescription": "Word this prepositional phrase modifies (verb or noun)" },
+        { "id": "parent", "portType": "parent", "position": "bottom", "offset": 50, "label": "Object", "semanticDescription": "Object of this preposition (noun)" }
+      ],
+      "compilation": { "format": "json" }
+    },
+    {
+      "type": "conjunction",
+      "displayName": "Conjunction",
+      "color": "#64748b",
+      "semanticDescription": "A word that connects words, phrases, or clauses",
+      "groupId": "sentence-diagram",
+      "fields": [
+        { "name": "word", "label": "Word", "type": "string", "semanticDescription": "The conjunction word", "placeholder": "e.g., and, but, or", "displayTier": "pill", "displayOrder": 0 },
+        { "name": "conjunctionType", "label": "Type", "type": "enum", "semanticDescription": "Type of conjunction", "options": [{ "value": "Coordinating" }, { "value": "Subordinating" }, { "value": "Correlative" }], "default": "Coordinating", "displayTier": "details", "displayOrder": 1 }
+      ],
+      "ports": [
+        { "id": "link", "portType": "symmetric", "position": "right", "offset": 50, "label": "Joins", "semanticDescription": "Elements being joined by this conjunction" }
+      ],
+      "compilation": { "format": "json" }
+    },
+    {
+      "type": "determiner",
+      "displayName": "Determiner",
+      "color": "#06b6d4",
+      "semanticDescription": "A word that introduces and specifies a noun (articles, demonstratives, possessives)",
+      "groupId": "sentence-diagram",
+      "fields": [
+        { "name": "word", "label": "Word", "type": "string", "semanticDescription": "The determiner word", "placeholder": "e.g., the, a, this", "displayTier": "pill", "displayOrder": 0 },
+        { "name": "determinerType", "label": "Type", "type": "enum", "semanticDescription": "Type of determiner", "options": [{ "value": "Article" }, { "value": "Demonstrative" }, { "value": "Possessive" }, { "value": "Quantifier" }], "default": "Article", "displayTier": "details", "displayOrder": 1 }
+      ],
+      "ports": [
+        { "id": "child", "portType": "child", "position": "top", "offset": 50, "label": "Modifies", "semanticDescription": "Noun this determiner introduces" }
+      ],
+      "compilation": { "format": "json" }
+    },
+    {
+      "type": "pronoun",
+      "displayName": "Pronoun",
+      "color": "#ec4899",
+      "semanticDescription": "A word that takes the place of a noun",
+      "groupId": "sentence-diagram",
+      "fields": [
+        { "name": "word", "label": "Word", "type": "string", "semanticDescription": "The pronoun word", "placeholder": "e.g., he, she, it", "displayTier": "pill", "displayOrder": 0 },
+        { "name": "role", "label": "Role", "type": "enum", "semanticDescription": "Grammatical role", "options": [{ "value": "Subject" }, { "value": "Object" }, { "value": "Possessive" }, { "value": "Reflexive" }], "default": "Subject", "displayTier": "minimal", "displayOrder": 1 },
+        { "name": "person", "label": "Person", "type": "enum", "semanticDescription": "Grammatical person", "options": [{ "value": "1st" }, { "value": "2nd" }, { "value": "3rd" }], "default": "3rd", "displayTier": "details", "displayOrder": 2 }
+      ],
+      "ports": [
+        { "id": "child", "portType": "child", "position": "top", "offset": 50, "label": "Sentence", "semanticDescription": "Sentence this pronoun belongs to" },
+        { "id": "parent", "portType": "parent", "position": "bottom", "offset": 50, "label": "Modifiers", "semanticDescription": "Words modifying this pronoun" }
+      ],
+      "compilation": { "format": "json" }
+    },
+    {
+      "type": "interjection",
+      "displayName": "Interjection",
+      "color": "#dc2626",
+      "semanticDescription": "A word or phrase that expresses emotion or surprise",
+      "groupId": "sentence-diagram",
+      "fields": [
+        { "name": "word", "label": "Word", "type": "string", "semanticDescription": "The interjection word", "placeholder": "e.g., wow, oh, hey", "displayTier": "pill", "displayOrder": 0 }
+      ],
+      "ports": [
+        { "id": "child", "portType": "child", "position": "top", "offset": 50, "label": "Sentence", "semanticDescription": "Sentence this interjection belongs to" }
+      ],
+      "compilation": { "format": "json" }
+    }
+  ],
+  "portSchemas": [
+    { "id": "flow-in", "displayName": "Flow In", "semanticDescription": "Receives data or control flow", "polarity": "sink", "compatibleWith": ["flow-out"], "expectedComplement": "flow-out", "color": "#3b82f6" },
+    { "id": "flow-out", "displayName": "Flow Out", "semanticDescription": "Sends data or control flow", "polarity": "source", "compatibleWith": ["flow-in"], "expectedComplement": "flow-in", "color": "#22c55e" },
+    { "id": "parent", "displayName": "Parent", "semanticDescription": "Contains or owns the connected construct", "polarity": "source", "compatibleWith": ["child"], "expectedComplement": "child", "color": "#8b5cf6" },
+    { "id": "child", "displayName": "Child", "semanticDescription": "Is contained by or owned by the connected construct", "polarity": "sink", "compatibleWith": ["parent"], "expectedComplement": "parent", "color": "#8b5cf6" },
+    { "id": "symmetric", "displayName": "Link", "semanticDescription": "Bidirectional peer connection", "polarity": "bidirectional", "compatibleWith": [], "color": "#64748b" },
+    { "id": "intercept", "displayName": "Intercept", "semanticDescription": "Pass-through input accepting any source connection", "polarity": "intercept", "compatibleWith": [], "color": "#f59e0b" },
+    { "id": "relay", "displayName": "Relay", "semanticDescription": "Pass-through output connecting to any sink port", "polarity": "relay", "compatibleWith": [], "color": "#f59e0b" }
+  ],
+  "schemaGroups": [
+    { "id": "sentence-diagram", "name": "Sentence Diagram", "color": "#6366f1", "description": "Parts of speech for diagramming sentences" }
+  ],
+  "levels": [
+    {
+      "id": "level-main",
+      "name": "Main",
+      "order": 0,
+      "nodes": [
+        {
+          "type": "construct",
+          "id": "s1",
+          "position": { "x": 400, "y": 0 },
+          "data": {
+            "constructType": "sentence",
+            "semanticId": "sentence-1a",
+            "values": { "text": "The quick brown fox jumps over the lazy dog.", "sentenceType": "Declarative" },
+            "connections": [
+              { "portId": "parent", "targetSemanticId": "noun-fox", "targetPortId": "child" },
+              { "portId": "parent", "targetSemanticId": "verb-jumps", "targetPortId": "child" },
+              { "portId": "parent", "targetSemanticId": "noun-dog", "targetPortId": "child" }
+            ]
+          }
+        },
+        {
+          "type": "construct",
+          "id": "n1",
+          "position": { "x": 0, "y": 250 },
+          "data": {
+            "constructType": "noun",
+            "semanticId": "noun-fox",
+            "values": { "word": "fox", "role": "Subject", "nounType": "Common" },
+            "connections": [
+              { "portId": "parent", "targetSemanticId": "det-the1", "targetPortId": "child" },
+              { "portId": "parent", "targetSemanticId": "adj-quick", "targetPortId": "child" },
+              { "portId": "parent", "targetSemanticId": "adj-brown", "targetPortId": "child" }
+            ]
+          }
+        },
+        {
+          "type": "construct",
+          "id": "v1",
+          "position": { "x": 400, "y": 250 },
+          "data": {
+            "constructType": "verb",
+            "semanticId": "verb-jumps",
+            "values": { "word": "jumps", "tense": "Present", "verbType": "Action" },
+            "connections": [
+              { "portId": "parent", "targetSemanticId": "prep-over", "targetPortId": "child" }
+            ]
+          }
+        },
+        {
+          "type": "construct",
+          "id": "n2",
+          "position": { "x": 800, "y": 250 },
+          "data": {
+            "constructType": "noun",
+            "semanticId": "noun-dog",
+            "values": { "word": "dog", "role": "Object of Preposition", "nounType": "Common" },
+            "connections": [
+              { "portId": "parent", "targetSemanticId": "det-the2", "targetPortId": "child" },
+              { "portId": "parent", "targetSemanticId": "adj-lazy", "targetPortId": "child" }
+            ]
+          }
+        },
+        {
+          "type": "construct",
+          "id": "d1",
+          "position": { "x": -150, "y": 500 },
+          "data": {
+            "constructType": "determiner",
+            "semanticId": "det-the1",
+            "values": { "word": "The", "determinerType": "Article" },
+            "connections": []
+          }
+        },
+        {
+          "type": "construct",
+          "id": "a1",
+          "position": { "x": 0, "y": 500 },
+          "data": {
+            "constructType": "adjective",
+            "semanticId": "adj-quick",
+            "values": { "word": "quick", "degree": "Positive" },
+            "connections": []
+          }
+        },
+        {
+          "type": "construct",
+          "id": "a2",
+          "position": { "x": 150, "y": 500 },
+          "data": {
+            "constructType": "adjective",
+            "semanticId": "adj-brown",
+            "values": { "word": "brown", "degree": "Positive" },
+            "connections": []
+          }
+        },
+        {
+          "type": "construct",
+          "id": "p1",
+          "position": { "x": 400, "y": 500 },
+          "data": {
+            "constructType": "preposition",
+            "semanticId": "prep-over",
+            "values": { "word": "over" },
+            "connections": [
+              { "portId": "parent", "targetSemanticId": "noun-dog", "targetPortId": "child" }
+            ]
+          }
+        },
+        {
+          "type": "construct",
+          "id": "d2",
+          "position": { "x": 700, "y": 500 },
+          "data": {
+            "constructType": "determiner",
+            "semanticId": "det-the2",
+            "values": { "word": "the", "determinerType": "Article" },
+            "connections": []
+          }
+        },
+        {
+          "type": "construct",
+          "id": "a3",
+          "position": { "x": 900, "y": 500 },
+          "data": {
+            "constructType": "adjective",
+            "semanticId": "adj-lazy",
+            "values": { "word": "lazy", "degree": "Positive" },
+            "connections": []
+          }
+        }
+      ],
+      "edges": [
+        { "id": "e1", "source": "s1", "target": "n1", "sourceHandle": "parent", "targetHandle": "child" },
+        { "id": "e2", "source": "s1", "target": "v1", "sourceHandle": "parent", "targetHandle": "child" },
+        { "id": "e3", "source": "s1", "target": "n2", "sourceHandle": "parent", "targetHandle": "child" },
+        { "id": "e4", "source": "n1", "target": "d1", "sourceHandle": "parent", "targetHandle": "child" },
+        { "id": "e5", "source": "n1", "target": "a1", "sourceHandle": "parent", "targetHandle": "child" },
+        { "id": "e6", "source": "n1", "target": "a2", "sourceHandle": "parent", "targetHandle": "child" },
+        { "id": "e7", "source": "v1", "target": "p1", "sourceHandle": "parent", "targetHandle": "child" },
+        { "id": "e8", "source": "p1", "target": "n2", "sourceHandle": "parent", "targetHandle": "child" },
+        { "id": "e9", "source": "n2", "target": "d2", "sourceHandle": "parent", "targetHandle": "child" },
+        { "id": "e10", "source": "n2", "target": "a3", "sourceHandle": "parent", "targetHandle": "child" }
+      ],
+      "deployables": []
+    }
+  ],
+  "nodes": [],
+  "edges": [],
+  "deployables": [],
+  "exportedAt": "2026-02-01T00:00:00.000Z"
+}

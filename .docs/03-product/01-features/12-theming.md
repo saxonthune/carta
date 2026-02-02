@@ -5,7 +5,7 @@ status: active
 
 # Theming
 
-Carta supports three visual themes, selectable from the header settings:
+Carta supports three visual themes, selectable from the theme picker icon in the header toolbar (left of Settings gear):
 
 - **Light**: Default light theme
 - **Dark**: Dark background with adjusted contrast

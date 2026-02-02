@@ -12,6 +12,8 @@ interface ModalProps {
   showCloseButton?: boolean;
   /** When true, backdrop click does not close the modal */
   preventBackdropClose?: boolean;
+  /** When true, backdrop blurs the content behind it */
+  blurBackdrop?: boolean;
 }
 
 export default function Modal({
@@ -24,6 +26,7 @@ export default function Modal({
   maxWidth = '560px',
   showCloseButton = true,
   preventBackdropClose = false,
+  blurBackdrop = false,
 }: ModalProps) {
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -48,7 +51,7 @@ export default function Modal({
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 z-[1001] flex items-center justify-center"
+      className={`fixed inset-0 bg-black/50 z-[1001] flex items-center justify-center${blurBackdrop ? ' backdrop-blur-sm' : ''}`}
       onClick={handleBackdropClick}
     >
       <div
