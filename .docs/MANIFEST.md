@@ -18,7 +18,7 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 | doc01.01 | `01-context/01-mission.md` | core goal, dual mandate, modeling capability vs compilation |
 | doc01.02 | `01-context/02-principles.md` | 12 design principles: symmetric storage, inverse derivability, no embedded tables, DataKind, dual identity, etc. |
 | doc01.03 | `01-context/03-glossary.md` | canonical vocabulary: construct, schema, port, polarity, deployable, portfolio, semantic ID, etc. |
-| doc01.04 | `01-context/04-ux-principles.md` | Fitts's Law, Hick's Law, Miller's Law, Doherty Threshold, progressive disclosure, direct manipulation, feedback latency |
+| doc01.04 | `01-context/04-ux-principles.md` | Fitts's Law, Hick's Law, Miller's Law, Doherty Threshold, progressive disclosure, direct manipulation, feedback latency, visual design principles (figure/ground, color-encodes-meaning, depth-through-shadow, typography hierarchy, semantic zoom, theme-native colors) |
 
 ## 02-system — Architecture and technical design
 
@@ -34,7 +34,7 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 | doc02.04.04 | `02-system/04-decisions/04-unified-deployment.md` | ADR: unified deployment model, build-time feature flags, no static/server split |
 | doc02.05 | `02-system/05-deployment-targets.md` | portfolio concept, 3 deployment modes, AI access matrix, monorepo status |
 | doc02.06 | `02-system/06-metamodel.md` | M2/M1/M0 three-level metamodel, DataKind, DisplayHint, Polarity, ConstructSchema, FieldSchema, PortConfig, PortSchema, child construct pattern |
-| doc02.07 | `02-system/07-design-system.md` | depth system (3 levels), island pattern, spacing scale, button hierarchy, semantic colors, typography, text-halo |
+| doc02.07 | `02-system/07-design-system.md` | depth system (3 levels), island pattern, spacing scale, button hierarchy, semantic colors, typography, text-halo; canvas content: schema color palette, node card design, deployable backgrounds, edge rendering, LOD specs |
 | doc02.08 | `02-system/08-frontend-architecture.md` | four-layer component model, state partitioning, container pattern, feature boundaries, audit checklist |
 
 ## 03-product — Features, use cases, workflows

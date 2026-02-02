@@ -9,12 +9,12 @@ Analyzes recent code changes and updates documentation to keep it synchronized.
 
 ## Source of Truth
 
-**`.docs/` is the canonical source of truth for all project documentation.** It uses a numbered title system (see `.docs/00-codex/` for conventions). All other documentation files — `CLAUDE.md`, `.cursor/rules/*.mdc`, `tasks/context.md`, skill configs — are **derived artifacts** whose content should be consistent with `.docs/`.
+**`.docs/` is the canonical source of truth for all project documentation.** It uses a numbered title system (see `.docs/00-codex/` for conventions). `CLAUDE.md` is the only **derived artifact** whose content should be consistent with `.docs/`.
 
 When updating documentation:
 1. **Update `.docs/` first** — this is the primary target
-2. **Then propagate** to derived files (`CLAUDE.md`, `.cursor/rules/`, etc.) to keep them consistent
-3. If `.docs/` and a derived file disagree, `.docs/` is correct
+2. **Then propagate** to `CLAUDE.md` to keep it consistent
+3. If `.docs/` and `CLAUDE.md` disagree, `.docs/` is correct
 
 ### .docs/ Structure
 
@@ -63,15 +63,6 @@ Invoke after significant code changes:
 | File | Updated When |
 |------|-------------|
 | `CLAUDE.md` | New key files, common tasks, architecture changes |
-| `.cursor/rules/about.mdc` | Component tree, file structure changes |
-| `.cursor/rules/look-and-feel.mdc` | Visual patterns, design system changes |
-| `.cursor/rules/lod-rendering.mdc` | LOD thresholds, zoom behavior changes |
-| `.cursor/rules/react-flow.mdc` | React Flow integration pattern changes |
-| `.cursor/rules/metamodel-design.mdc` | Type system, metamodel changes |
-| `.cursor/rules/ports-and-connections.mdc` | Port types, connection rules |
-| `.cursor/rules/styling-best-practices.mdc` | Styling conventions, design tokens |
-| `.cursor/rules/yjs-collaboration.mdc` | Collaboration patterns, Yjs usage |
-| `tasks/context.md` | Quick reference for task agents |
 
 **MCP documentation** (only when API surface changes):
 - `packages/core/src/guides/metamodel.ts`
@@ -86,9 +77,7 @@ You are opus. You do the analysis work:
 ```typescript
 // Read .docs/ files first (source of truth)
 const docsFiles = await Glob('**/*.md', { path: '.docs' });
-// Then read derived files
-const cursorFiles = await Glob('**/*.{md,mdc}', { path: '.cursor/rules' });
-// + CLAUDE.md, tasks/context.md, etc.
+// Then read CLAUDE.md
 ```
 
 ### 2. Analyze Changes
@@ -133,13 +122,8 @@ Launch all Task calls in a single message for parallel execution.
 - .docs/02-system/04-decisions/04-lod-bands.md - Created new ADR
 - .docs/01-context/03-glossary.md - Added "LOD band" term
 
-### Derived Files Updated (4)
+### Derived Files Updated (1)
 - CLAUDE.md - Added LOD files to Key Files table
-- .cursor/rules/lod-rendering.mdc - Updated thresholds
-- tasks/context.md - Updated Recent Changes section
-
-### No Updates Needed (3)
-- .cursor/rules/metamodel-design.mdc - No metamodel changes
 
 ### Notes
 - Created new LOD rendering ADR with thresholds and examples

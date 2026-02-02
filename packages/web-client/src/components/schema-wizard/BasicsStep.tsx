@@ -9,9 +9,9 @@ type PortDisplayPolicy = NonNullable<ConstructSchema['portDisplayPolicy']>;
 type RenderStyle = NonNullable<ConstructSchema['renderStyle']>;
 
 const DEFAULT_COLORS = [
-  '#6366f1', '#8b5cf6', '#ec4899', '#ef4444',
-  '#f97316', '#eab308', '#22c55e', '#14b8a6',
-  '#06b6d4', '#3b82f6', '#64748b', '#1e293b'
+  '#7c7fca', '#8a7cb8', '#9488b8', '#b87c8a',
+  '#c49a4c', '#c4a94e', '#5ba88e', '#5a9e9e',
+  '#6a8fc0', '#6b7280', '#8a7060', '#4a5568'
 ];
 
 interface BasicsStepProps {
@@ -86,9 +86,10 @@ export default function BasicsStep({ formData, errors, updateField, schemaGroups
           ))}
           <input
             type="color"
-            className="w-7 h-7 p-0 border-none rounded cursor-pointer"
+            className="w-5 h-5 p-0 border border-content-muted/20 rounded cursor-pointer opacity-60 hover:opacity-100 transition-opacity"
             value={formData.color}
             onChange={(e) => updateField('color', e.target.value)}
+            title="Custom color"
           />
         </div>
       </div>

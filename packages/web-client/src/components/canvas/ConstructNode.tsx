@@ -1,7 +1,7 @@
 import { memo, useState, useEffect, useRef } from 'react';
 import { Handle, Position, NodeResizer, useConnection, useNodeId } from '@xyflow/react';
 import { useDocument } from '../../hooks/useDocument';
-import { getPortsForSchema, getHandleType, getPortColor, generateTints, getDisplayName, getFieldsForTier } from '@carta/domain';
+import { getPortsForSchema, getHandleType, getPortColor, generateTints, getDisplayName, getFieldsForSummary, getFieldsForTier } from '@carta/domain';
 import type { ConstructNodeData, PortConfig, PortPosition, ConstructSchema } from '@carta/domain';
 import CreateDeployablePopover from '../CreateDeployablePopover';
 import PortPickerPopover from '../ui/PortPickerPopover';
@@ -111,6 +111,7 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
   const [hoveredPort, setHoveredPort] = useState<string | null>(null);
   const [showExtendedTooltip, setShowExtendedTooltip] = useState(false);
   const [showPortPicker, setShowPortPicker] = useState(false);
+  const [editingField, setEditingField] = useState<string | null>(null);
   const hoverTimerRef = useRef<number | null>(null);
 
   // Connection drop zone detection
@@ -132,6 +133,24 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
       }
     }
   }
+
+  // LOD transition crossfade
+  const prevBandRef = useRef(lod.band);
+  const [lodTransitioning, setLodTransitioning] = useState(false);
+
+  useEffect(() => {
+    if (prevBandRef.current !== lod.band) {
+      prevBandRef.current = lod.band;
+      setLodTransitioning(true);
+      requestAnimationFrame(() => setLodTransitioning(false));
+    }
+  }, [lod.band]);
+
+  // LOD transition style applied to outer wrapper
+  const lodTransitionStyle: React.CSSProperties = {
+    opacity: lodTransitioning ? 0 : 1,
+    transition: 'opacity 120ms ease',
+  };
 
   // New deployable modal state
   const [showNewDeployableModal, setShowNewDeployableModal] = useState(false);
@@ -173,7 +192,6 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
   const isCollapsedPorts = schema.portDisplayPolicy === 'collapsed';
   const isCard = schema.renderStyle === 'card';
 
-  const mapFields = getFieldsForTier(schema, 'minimal');
   const formatValue = (value: unknown) => {
     if (value === null || value === undefined || value === '') return '—';
     if (typeof value === 'object') {
@@ -224,30 +242,39 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
     }
   };
 
-  const nodeColor = data.instanceColor || schema.color;
+  const color = data.instanceColor || schema.color;
 
   // Background color from instanceColor
   const bgStyle: React.CSSProperties = data.instanceColor
     ? { backgroundColor: data.instanceColor }
     : {};
 
-  // Pill mode: minimal colored bar — overrides all view levels at low zoom
+  // Pill mode: subtle tinted background with accent dot
   // Same for both default and card renderStyle
   if (lod.band === 'pill') {
+    const color = data.instanceColor || schema.color;
     const displayValue = getDisplayName(data, schema);
     const fullText = `${schema.displayName}: ${displayValue}`;
     return (
       <div
-        className={`node-drag-handle rounded-lg text-white text-halo font-bold px-5 py-3 truncate cursor-move select-none whitespace-nowrap ${selected ? 'ring-2 ring-accent' : ''}`}
+        className={`node-drag-handle rounded-lg font-semibold px-5 py-3 truncate cursor-move select-none whitespace-nowrap text-content flex items-center gap-3 ${selected ? 'ring-2 ring-accent/40' : ''}`}
         style={{
-          backgroundColor: nodeColor,
+          ...lodTransitionStyle,
+          backgroundColor: `color-mix(in srgb, ${color} 25%, var(--color-surface))`,
           minWidth: 180,
           maxWidth: 500,
-          fontSize: '32px',
+          fontSize: '24px',
+          boxShadow: selected ? 'var(--node-shadow-selected)' : 'var(--node-shadow)',
         }}
         title={fullText}
       >
-        <span className="opacity-70">{schema.displayName}:</span> {displayValue}
+        <span
+          className="inline-block w-3 h-3 rounded-sm flex-shrink-0"
+          style={{ backgroundColor: color }}
+        />
+        <span className="truncate">
+          <span className="opacity-50">{schema.displayName}:</span> {displayValue}
+        </span>
         {/* Minimal handles for connections */}
         {ports.map((port) => (
           <Handle
@@ -264,53 +291,22 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
   }
 
   // ==========================================
-  // CARD RENDER STYLE
+  // CARD RENDER STYLE (accent-bar variant)
   // ==========================================
   if (isCard) {
     const displayValue = getDisplayName(data, schema);
     const minimalFields = getFieldsForTier(schema, 'minimal');
 
-    // Compact card: colored background, centered label, no header bar
-    if (lod.band === 'compact') {
-      return (
-        <div
-          className={`node-drag-handle rounded-lg shadow-lg overflow-visible relative flex flex-col items-center justify-center cursor-move select-none min-w-[200px] min-h-[80px] ${selected ? 'ring-2 ring-accent ring-offset-2' : ''}`}
-          style={{ backgroundColor: nodeColor }}
-        >
-          {/* Port handles */}
-          {!isCollapsedPorts && ports.map((port) => (
-            <Handle
-              key={port.id}
-              id={port.id}
-              type={getHandleType(port.portType)}
-              position={positionMap[port.position]}
-              className="port-handle"
-              style={{
-                ...getHandlePositionStyle(port.position, port.offset),
-                backgroundColor: getPortColor(port.portType),
-              }}
-              data-port-type={port.portType}
-            />
-          ))}
-
-          {/* Connection drop zones overlay */}
-          {isConnectionTarget && (
-            <ConnectionDropZones ports={ports} sourcePortType={sourcePortType} />
-          )}
-
-          {/* Centered label */}
-          <span className="text-white text-halo text-node-xl font-bold px-4 py-3 truncate max-w-full">
-            {displayValue}
-          </span>
-        </div>
-      );
-    }
-
-    // Normal card: colored background, label at top, minimal fields below, single view
+    // Card: accent bar, surface background, label at top, minimal fields below
     return (
       <div
-        className={`rounded-lg shadow-lg overflow-visible relative flex flex-col min-w-[200px] min-h-[100px] ${selected ? 'ring-2 ring-accent ring-offset-2' : ''}`}
-        style={{ backgroundColor: nodeColor }}
+        className={`rounded-lg overflow-visible relative flex flex-col min-w-[200px] min-h-[100px] bg-surface ${selected ? 'ring-2 ring-accent/30' : ''}`}
+        style={{
+          ...bgStyle,
+          ...lodTransitionStyle,
+          boxShadow: selected ? 'var(--node-shadow-selected)' : 'var(--node-shadow)',
+          borderLeft: `2px solid color-mix(in srgb, ${color} 70%, var(--color-surface-alt))`,
+        }}
       >
         {selected && (
           <NodeResizer
@@ -382,7 +378,7 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
           );
         })()}
 
-        {/* Drag handle - full card area */}
+        {/* Drag handle - card header area */}
         <div className="node-drag-handle flex-1 flex flex-col cursor-move select-none px-3 pt-3 pb-2">
           {/* Fullview button on hover */}
           {data.onOpenFullView && (
@@ -392,7 +388,7 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
                   e.stopPropagation();
                   data.onOpenFullView?.();
                 }}
-                className="bg-black/30 hover:bg-black/50 rounded-full p-1 shadow-md text-white"
+                className="bg-content-muted/20 hover:bg-content-muted/30 rounded-full p-1 shadow-md text-content-muted"
                 title="Open Full View"
               >
                 <WindowIcon className="w-2.5 h-2.5" size={10} />
@@ -401,17 +397,17 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
           )}
 
           {/* Label */}
-          <div className="text-white text-halo text-node-lg font-bold truncate">
+          <div className="text-content text-node-lg font-bold truncate">
             {displayValue}
           </div>
 
           {/* Minimal tier fields */}
           {minimalFields.length > 0 && (
-            <div className="mt-1.5 text-white/80 text-halo text-node-sm flex flex-col gap-0.5">
+            <div className="mt-1.5 text-content-muted text-node-sm flex flex-col gap-0.5">
               {minimalFields.map((field) => (
                 <div key={field.name} className="flex gap-1 justify-between">
-                  <span className="opacity-70">{field.label}:</span>
-                  <span className="font-medium text-right max-w-[70%] truncate">
+                  <span className="text-content-subtle">{field.label}:</span>
+                  <span className="text-content font-medium text-right max-w-[70%] truncate">
                     {formatValue(data.values[field.name] ?? field.default)}
                   </span>
                 </div>
@@ -426,7 +422,7 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
             {/* Background Color */}
             {data.onInstanceColorChange && (schema.backgroundColorPolicy === 'tints' || schema.backgroundColorPolicy === 'any') && (
               <div>
-                <label className="text-node-xs text-white/60 text-halo uppercase tracking-wide">Background Color</label>
+                <label className="text-node-xs text-content-muted uppercase tracking-wide">Background Color</label>
                 <div className="mt-1">
                   <ColorPicker
                     schema={schema}
@@ -440,9 +436,9 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
             {/* Deployable dropdown */}
             {data.deployables && (
               <div className="relative">
-                <label className="text-node-xs text-white/60 text-halo uppercase tracking-wide">Deployable</label>
+                <label className="text-node-xs text-content-muted uppercase tracking-wide">Deployable</label>
                 <select
-                  className="w-full px-2 py-1 bg-black/20 rounded text-node-sm text-white border border-white/20"
+                  className="w-full px-2 py-1 bg-surface rounded text-node-sm text-content border border-content-muted/20"
                   value={data.deployableId || ''}
                   onChange={(e) => handleDeployableChange(e.target.value)}
                 >
@@ -464,7 +460,7 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
             {/* All schema fields */}
             {Array.isArray(schema.fields) && schema.fields.map((field) => (
               <div key={field.name}>
-                <label className="text-node-xs text-white/60 text-halo uppercase tracking-wide">{field.label}</label>
+                <label className="text-node-xs text-content-muted uppercase tracking-wide">{field.label}</label>
                 {field.type === 'boolean' ? (
                   <div className="flex items-center gap-2 mt-1">
                     <input
@@ -473,11 +469,11 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
                       onChange={(e) => data.onValuesChange?.({ ...data.values, [field.name]: e.target.checked })}
                       className="w-4 h-4 cursor-pointer"
                     />
-                    <span className="text-node-sm text-white text-halo">{field.label}</span>
+                    <span className="text-node-sm text-content">{field.label}</span>
                   </div>
                 ) : field.type === 'enum' && field.options ? (
                   <select
-                    className="w-full px-2 py-1 bg-black/20 rounded text-node-sm text-white border border-white/20"
+                    className="w-full px-2 py-1 bg-surface rounded text-node-sm text-content border border-content-muted/20"
                     value={String(data.values[field.name] ?? field.default ?? '')}
                     onChange={(e) => data.onValuesChange?.({ ...data.values, [field.name]: e.target.value })}
                   >
@@ -488,7 +484,7 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
                   </select>
                 ) : field.displayHint === 'multiline' || field.displayHint === 'code' ? (
                   <textarea
-                    className="w-full px-2 py-1 bg-black/20 rounded text-node-sm text-white border border-white/20 resize-y min-h-[60px] font-mono text-xs"
+                    className="w-full px-2 py-1 bg-surface rounded text-node-sm text-content border border-content-muted/20 resize-y min-h-[60px] font-mono text-xs"
                     value={String(data.values[field.name] ?? field.default ?? '')}
                     onChange={(e) => data.onValuesChange?.({ ...data.values, [field.name]: e.target.value })}
                     placeholder={field.placeholder}
@@ -496,7 +492,7 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
                 ) : (
                   <input
                     type={field.type === 'number' ? 'number' : 'text'}
-                    className="w-full px-2 py-1 bg-black/20 rounded text-node-sm text-white border border-white/20"
+                    className="w-full px-2 py-1 bg-surface rounded text-node-sm text-content border border-content-muted/20"
                     value={String(data.values[field.name] ?? field.default ?? '')}
                     onChange={(e) => data.onValuesChange?.({ ...data.values, [field.name]: field.type === 'number' ? Number(e.target.value) : e.target.value })}
                     placeholder={field.placeholder}
@@ -513,11 +509,11 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
             <div className="relative">
               <button
                 type="button"
-                className="w-3.5 h-3.5 rounded-full bg-white/30 hover:bg-white/50 border border-white/40 flex items-center justify-center cursor-pointer transition-colors"
+                className="w-3.5 h-3.5 rounded-full bg-content-muted/20 hover:bg-content-muted/30 border border-content-muted/30 flex items-center justify-center cursor-pointer transition-colors text-content-muted"
                 onClick={(e) => { e.stopPropagation(); setShowPortPicker(!showPortPicker); }}
                 title="Ports"
               >
-                <svg className="w-2 h-2 text-white" viewBox="0 0 24 24" fill="currentColor">
+                <svg className="w-2 h-2" viewBox="0 0 24 24" fill="currentColor">
                   <circle cx="12" cy="12" r="4" />
                 </svg>
               </button>
@@ -571,72 +567,15 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
   // DEFAULT RENDER STYLE
   // ==========================================
 
-  // Compact mode: header + display value (pill field) + minimal tier fields
-  if (lod.band === 'compact') {
-    const displayValue = getDisplayName(data, schema);
-    const headerBg = nodeColor;
-    const minimalFields = getFieldsForTier(schema, 'minimal');
-
-    return (
-      <div
-        className={`bg-surface border-2 rounded-lg shadow-lg overflow-visible relative flex flex-col min-w-[220px] ${selected ? 'border-accent shadow-[0_0_0_2px_var(--color-accent)]' : 'border'}`}
-        style={bgStyle}
-      >
-        {/* Port handles */}
-        {!isCollapsedPorts && ports.map((port) => (
-          <Handle
-            key={port.id}
-            id={port.id}
-            type={getHandleType(port.portType)}
-            position={positionMap[port.position]}
-            className="port-handle"
-            style={{
-              ...getHandlePositionStyle(port.position, port.offset),
-              backgroundColor: getPortColor(port.portType),
-            }}
-            data-port-type={port.portType}
-          />
-        ))}
-
-        {/* Connection drop zones overlay */}
-        {isConnectionTarget && (
-          <ConnectionDropZones ports={ports} sourcePortType={sourcePortType} />
-        )}
-
-        {/* Header */}
-        <div
-          className="node-drag-handle flex items-center justify-between gap-1.5 px-3 py-2 cursor-move select-none border-b border-white/20 w-full shrink-0 text-white text-halo"
-          style={{ backgroundColor: headerBg }}
-        >
-          <span className="text-node-lg font-bold uppercase tracking-wide">{schema.displayName}</span>
-        </div>
-
-        {/* Display value (pill field) */}
-        <div className="px-3 py-2.5 text-node-lg font-semibold text-content truncate">
-          {displayValue}
-        </div>
-
-        {/* Minimal tier fields */}
-        {minimalFields.length > 0 && (
-          <div className="px-3 pb-2.5 text-node-sm text-content-muted flex flex-col gap-1">
-            {minimalFields.map((field) => (
-              <div key={field.name} className="flex gap-1 justify-between">
-                <span className="text-content-subtle">{field.label}:</span>
-                <span className="text-content font-medium text-right max-w-[70%] truncate">
-                  {formatValue(data.values[field.name] ?? field.default)}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  }
-
   return (
     <div
-      className={`bg-surface border-2 rounded-lg w-full h-full text-node-base text-content shadow-lg overflow-visible relative flex flex-col ${data.viewLevel === 'details' ? 'min-w-[280px]' : 'min-w-[180px]'} ${selected ? 'border-accent shadow-[0_0_0_2px_var(--color-accent)]' : 'border'}`}
-      style={bgStyle}
+      className={`bg-surface rounded-lg w-full h-full text-node-base text-content overflow-visible relative flex flex-col transition-shadow duration-150 ${data.viewLevel === 'details' ? 'min-w-[280px]' : 'min-w-[180px]'} ${selected ? 'ring-2 ring-accent/30' : ''}`}
+      style={{
+        ...bgStyle,
+        ...lodTransitionStyle,
+        boxShadow: selected ? 'var(--node-shadow-selected)' : 'var(--node-shadow)',
+        borderLeft: `2px solid color-mix(in srgb, ${color} 70%, var(--color-surface-alt))`,
+      }}
     >
       {selected && (
         <NodeResizer
@@ -709,23 +648,9 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
       })()}
 
       <div
-        className="node-drag-handle flex items-center justify-between gap-1.5 px-2 py-1 text-white text-halo cursor-move select-none border-b border-white/20 w-full shrink-0"
-        style={{ backgroundColor: nodeColor }}
+        className="node-drag-handle flex items-center justify-between gap-1.5 px-2 py-1 cursor-move select-none bg-surface-alt w-full shrink-0 rounded-t-lg"
       >
-        <div className="flex items-center gap-1.5">
-          <svg
-            className="w-3.5 h-3.5 opacity-60"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <line x1="3" y1="6" x2="21" y2="6" />
-            <line x1="3" y1="12" x2="21" y2="12" />
-            <line x1="3" y1="18" x2="21" y2="18" />
-          </svg>
-          <span className="text-node-xs opacity-80 uppercase">{schema.displayName}</span>
-        </div>
+        <span className="text-node-xs text-content-muted">{schema.displayName}</span>
         <div className="flex items-center gap-1">
           {/* Open Full View button */}
           {data.onOpenFullView && (
@@ -734,7 +659,7 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
                 e.stopPropagation();
                 data.onOpenFullView?.();
               }}
-              className="opacity-90 hover:opacity-100 transition-all flex-shrink-0 bg-black/20 hover:bg-black/30 rounded-full p-1 shadow-md"
+              className="text-content-muted hover:text-content transition-colors flex-shrink-0 rounded-full p-1"
               title="Open Full View"
             >
               <WindowIcon className="w-2.5 h-2.5" size={10} />
@@ -746,7 +671,7 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
                 e.stopPropagation();
                 data.onSetViewLevel?.(data.viewLevel === 'details' ? 'summary' : 'details');
               }}
-              className="opacity-90 hover:opacity-100 transition-all flex-shrink-0 bg-black/20 hover:bg-black/30 rounded-full p-1 shadow-md"
+              className="text-content-muted hover:text-content transition-colors flex-shrink-0 rounded-full p-1"
               title={data.viewLevel === 'details' ? "Collapse" : "Expand"}
             >
               {data.viewLevel === 'details' ? (
@@ -762,7 +687,7 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
                 e.stopPropagation();
                 data.onToggleDetailsPin?.();
               }}
-              className={`opacity-90 hover:opacity-100 transition-all flex-shrink-0 rounded-full p-1 shadow-md ${data.isDetailsPinned ? 'bg-white/40' : 'bg-black/20 hover:bg-black/30'}`}
+              className={`transition-colors flex-shrink-0 rounded-full p-1 ${data.isDetailsPinned ? 'text-accent' : 'text-content-muted hover:text-content'}`}
               title={data.isDetailsPinned ? "Unpin (will collapse on deselect)" : "Pin expanded"}
             >
               <PinIcon
@@ -777,7 +702,7 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
             <div className="relative">
               <button
                 type="button"
-                className="w-3.5 h-3.5 rounded-full bg-white/30 hover:bg-white/50 border border-white/40 flex items-center justify-center cursor-pointer transition-colors"
+                className="w-3.5 h-3.5 rounded-full bg-content-muted/20 hover:bg-content-muted/30 border border-content-muted/30 flex items-center justify-center cursor-pointer transition-colors text-content-muted"
                 onClick={(e) => { e.stopPropagation(); setShowPortPicker(!showPortPicker); }}
                 title="Ports"
               >
@@ -832,119 +757,164 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
         </div>
       </div>
 
-      {data.viewLevel !== 'details' && (
-        <div className="flex-1 overflow-y-auto min-h-0">
-          {/* Pill field (title) - shown prominently at all LOD levels */}
-          <div className="px-2 pt-2 pb-1 text-node-base font-semibold text-content border-b border-border/50">
-            {getDisplayName(data, schema)}
-          </div>
+      {/* Unified body: summary shows pill+minimal fields, details shows all fields */}
+      {(() => {
+        const isDetails = data.viewLevel === 'details';
+        const visibleFields = isDetails ? schema.fields : getFieldsForSummary(schema);
 
-          {/* Minimal tier fields */}
-          <div className="px-2 py-1.5 text-node-sm text-content-muted">
-            {mapFields.length === 0 ? (
-              <div></div>
-            ) : (
-              <div className="flex flex-col gap-1">
-                {mapFields.map((field) => (
-                  <div key={field.name} className="flex gap-1 justify-between">
-                    <span className="text-content-subtle">{field.label}:</span>
-                    <span className="text-content font-medium text-right max-w-[70%] truncate">
-                      {formatValue(data.values[field.name] ?? field.default)}
-                    </span>
-                  </div>
-                ))}
+        return (
+          <div className="px-2 py-2 bg-surface flex flex-col gap-2 flex-1 overflow-y-auto min-h-0">
+            {/* Display name row */}
+            <div className="text-node-lg font-semibold text-content">
+              {getDisplayName(data, schema)}
+            </div>
+
+            {/* Background Color (details only) */}
+            {isDetails && data.onInstanceColorChange && (schema.backgroundColorPolicy === 'tints' || schema.backgroundColorPolicy === 'any') && (
+              <div>
+                <label className="text-node-xs text-content-muted uppercase tracking-wide">Background Color</label>
+                <div className="mt-1">
+                  <ColorPicker
+                    schema={schema}
+                    instanceColor={data.instanceColor}
+                    onColorChange={data.onInstanceColorChange}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Deployable dropdown (details only) */}
+            {isDetails && data.deployables && (
+              <div className="relative">
+                <label className="text-node-xs text-content-muted uppercase tracking-wide">Deployable</label>
+                <select
+                  className="w-full px-2 py-1 bg-surface rounded text-node-sm text-content border border-content-muted/20"
+                  value={data.deployableId || ''}
+                  onChange={(e) => handleDeployableChange(e.target.value)}
+                >
+                  <option value="">—</option>
+                  {data.deployables.map((d) => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
+                  <option value={ADD_NEW_DEPLOYABLE}>+ Add new...</option>
+                </select>
+
+                {/* New Deployable Popover */}
+                <CreateDeployablePopover
+                  isOpen={showNewDeployableModal}
+                  onClose={() => setShowNewDeployableModal(false)}
+                  onCreate={handleCreateDeployable}
+                />
+              </div>
+            )}
+
+            {/* Fields — click-to-edit two-column grid */}
+            {visibleFields.length > 0 && (
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                {visibleFields.map((field) => {
+                  const isMultiline = field.displayHint === 'multiline' || field.displayHint === 'code';
+                  const isEditing = editingField === field.name;
+                  const value = data.values[field.name] ?? field.default;
+
+                  const commitValue = (newValue: unknown) => {
+                    data.onValuesChange?.({ ...data.values, [field.name]: newValue });
+                    setEditingField(null);
+                  };
+
+                  const cancelEdit = () => setEditingField(null);
+
+                  const handleKeyDown = (e: React.KeyboardEvent) => {
+                    e.stopPropagation();
+                    if (e.key === 'Escape') {
+                      cancelEdit();
+                    }
+                    if (e.key === 'Enter' && !isMultiline) {
+                      (e.target as HTMLElement).blur();
+                    }
+                  };
+
+                  // Multiline and code fields span full width
+                  const cellClass = isMultiline ? 'col-span-2' : '';
+
+                  if (isEditing) {
+                    return (
+                      <div key={field.name} className={cellClass}>
+                        <div className="text-content-subtle text-node-xs">{field.label}</div>
+                        {field.type === 'boolean' ? (
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <input
+                              type="checkbox"
+                              checked={!!value}
+                              onChange={(e) => commitValue(e.target.checked)}
+                              onKeyDown={handleKeyDown}
+                              className="w-4 h-4 cursor-pointer"
+                              autoFocus
+                            />
+                          </div>
+                        ) : field.type === 'enum' && field.options ? (
+                          <select
+                            className="w-full px-1.5 py-0.5 bg-surface rounded text-node-sm text-content border border-accent/40 outline-none"
+                            value={String(value ?? '')}
+                            onChange={(e) => commitValue(e.target.value)}
+                            onBlur={() => cancelEdit()}
+                            onKeyDown={handleKeyDown}
+                            autoFocus
+                          >
+                            <option value="">Select...</option>
+                            {field.options.map((opt) => (
+                              <option key={opt.value} value={opt.value}>{opt.value}</option>
+                            ))}
+                          </select>
+                        ) : isMultiline ? (
+                          <textarea
+                            className="w-full px-1.5 py-0.5 bg-surface rounded text-node-sm text-content border border-accent/40 outline-none resize-y min-h-[60px] font-mono text-xs"
+                            defaultValue={String(value ?? '')}
+                            onBlur={(e) => commitValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              e.stopPropagation();
+                              if (e.key === 'Escape') cancelEdit();
+                            }}
+                            placeholder={field.placeholder}
+                            autoFocus
+                          />
+                        ) : (
+                          <input
+                            type={field.type === 'number' ? 'number' : 'text'}
+                            className="w-full px-1.5 py-0.5 bg-surface rounded text-node-sm text-content border border-accent/40 outline-none"
+                            defaultValue={String(value ?? '')}
+                            onBlur={(e) => commitValue(field.type === 'number' ? Number(e.target.value) : e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            placeholder={field.placeholder}
+                            autoFocus
+                          />
+                        )}
+                      </div>
+                    );
+                  }
+
+                  // Read-only state
+                  return (
+                    <div
+                      key={field.name}
+                      className={`cursor-pointer hover:bg-surface-alt rounded px-1 -mx-1 ${cellClass}`}
+                      onClick={(e) => { e.stopPropagation(); setEditingField(field.name); }}
+                    >
+                      <div className="text-content-subtle text-node-xs">{field.label}</div>
+                      {isMultiline ? (
+                        <div className="text-content text-node-sm line-clamp-3 whitespace-pre-wrap">{formatValue(value)}</div>
+                      ) : field.type === 'boolean' ? (
+                        <div className="text-content text-node-sm">{value ? 'Yes' : 'No'}</div>
+                      ) : (
+                        <div className="text-content text-node-sm truncate">{formatValue(value)}</div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
-        </div>
-      )}
-
-      {data.viewLevel === 'details' && (
-        <div className="px-2 py-2 bg-surface-depth-1 flex flex-col gap-2">
-          {/* Background Color */}
-          {data.onInstanceColorChange && (schema.backgroundColorPolicy === 'tints' || schema.backgroundColorPolicy === 'any') && (
-            <div>
-              <label className="text-node-xs text-content-muted uppercase tracking-wide">Background Color</label>
-              <div className="mt-1">
-                <ColorPicker
-                  schema={schema}
-                  instanceColor={data.instanceColor}
-                  onColorChange={data.onInstanceColorChange}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Deployable dropdown */}
-          {data.deployables && (
-            <div className="relative">
-              <label className="text-node-xs text-content-muted uppercase tracking-wide">Deployable</label>
-              <select
-                className="w-full px-2 py-1 bg-surface rounded text-node-sm text-content border border-content-muted/20"
-                value={data.deployableId || ''}
-                onChange={(e) => handleDeployableChange(e.target.value)}
-              >
-                <option value="">—</option>
-                {data.deployables.map((d) => (
-                  <option key={d.id} value={d.id}>{d.name}</option>
-                ))}
-                <option value={ADD_NEW_DEPLOYABLE}>+ Add new...</option>
-              </select>
-
-              {/* New Deployable Popover */}
-              <CreateDeployablePopover
-                isOpen={showNewDeployableModal}
-                onClose={() => setShowNewDeployableModal(false)}
-                onCreate={handleCreateDeployable}
-              />
-            </div>
-          )}
-
-          {/* All schema fields */}
-          {Array.isArray(schema.fields) && schema.fields.map((field) => (
-            <div key={field.name}>
-              <label className="text-node-xs text-content-muted uppercase tracking-wide">{field.label}</label>
-              {field.type === 'boolean' ? (
-                <div className="flex items-center gap-2 mt-1">
-                  <input
-                    type="checkbox"
-                    checked={!!data.values[field.name]}
-                    onChange={(e) => data.onValuesChange?.({ ...data.values, [field.name]: e.target.checked })}
-                    className="w-4 h-4 cursor-pointer"
-                  />
-                  <span className="text-node-sm text-content">{field.label}</span>
-                </div>
-              ) : field.type === 'enum' && field.options ? (
-                <select
-                  className="w-full px-2 py-1 bg-surface rounded text-node-sm text-content border border-content-muted/20"
-                  value={String(data.values[field.name] ?? field.default ?? '')}
-                  onChange={(e) => data.onValuesChange?.({ ...data.values, [field.name]: e.target.value })}
-                >
-                  <option value="">Select...</option>
-                  {field.options.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.value}</option>
-                  ))}
-                </select>
-              ) : field.displayHint === 'multiline' || field.displayHint === 'code' ? (
-                <textarea
-                  className="w-full px-2 py-1 bg-surface rounded text-node-sm text-content border border-content-muted/20 resize-y min-h-[60px] font-mono text-xs"
-                  value={String(data.values[field.name] ?? field.default ?? '')}
-                  onChange={(e) => data.onValuesChange?.({ ...data.values, [field.name]: e.target.value })}
-                  placeholder={field.placeholder}
-                />
-              ) : (
-                <input
-                  type={field.type === 'number' ? 'number' : 'text'}
-                  className="w-full px-2 py-1 bg-surface rounded text-node-sm text-content border border-content-muted/20"
-                  value={String(data.values[field.name] ?? field.default ?? '')}
-                  onChange={(e) => data.onValuesChange?.({ ...data.values, [field.name]: field.type === 'number' ? Number(e.target.value) : e.target.value })}
-                  placeholder={field.placeholder}
-                />
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 });

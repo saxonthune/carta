@@ -3,8 +3,15 @@ import { Handle, Position } from '@xyflow/react';
 import { portRegistry } from '@carta/domain';
 import type { ConstructSchema, PortPosition } from '@carta/domain';
 
+export interface SchemaNodeData {
+  schema: ConstructSchema;
+  isExpanded?: boolean;
+  isDimmed?: boolean;
+  [key: string]: unknown;
+}
+
 interface SchemaNodeProps {
-  data: { schema: ConstructSchema };
+  data: SchemaNodeData;
   selected?: boolean;
 }
 
@@ -16,14 +23,20 @@ const positionMap: Record<PortPosition, Position> = {
 };
 
 const SchemaNode = memo(({ data, selected }: SchemaNodeProps) => {
-  const { schema } = data;
+  const { schema, isExpanded, isDimmed } = data;
   const ports = schema.ports || [];
 
   return (
     <div
-      className={`schema-node bg-surface rounded-lg min-w-[260px] text-sm text-content relative ${
-        selected ? 'border-accent shadow-[0_0_0_2px_var(--color-accent)]' : ''
+      className={`bg-surface rounded-lg min-w-[240px] text-node-base text-content relative transition-opacity duration-200 ${
+        selected ? 'ring-2 ring-accent/30' : ''
       }`}
+      style={{
+        boxShadow: selected ? 'var(--node-shadow-selected)' : 'var(--node-shadow)',
+        borderLeft: `2px solid color-mix(in srgb, ${schema.color} 70%, var(--color-surface-alt))`,
+        opacity: isDimmed ? 0.2 : 1,
+        pointerEvents: isDimmed ? 'none' : 'auto',
+      }}
     >
       {/* New connection handle in top-right corner with plus icon */}
       <div className="absolute top-2 right-2 z-10 group/connect">
@@ -82,42 +95,52 @@ const SchemaNode = memo(({ data, selected }: SchemaNodeProps) => {
         );
       })}
 
-      {/* Color accent bar on the left */}
-      <div
-        className="absolute left-0 top-0 bottom-0 w-1.5 rounded-l-lg"
-        style={{ backgroundColor: schema.color }}
-      />
-
       {/* Header */}
-      <div className="px-4 pl-5 py-2 border-b border-border-subtle">
-        <div className="font-semibold text-content">{schema.displayName}</div>
-        <div className="text-xs text-content-muted">{schema.type}</div>
+      <div className="px-3 py-2 bg-surface-alt rounded-t-lg">
+        <div className="font-semibold text-node-lg text-content text-halo">{schema.displayName}</div>
+        <div className="text-node-xs text-content-muted text-halo">{schema.type}</div>
       </div>
 
-      {/* Fields */}
-      {schema.fields.length > 0 && (
-        <div className="px-4 pl-5 py-2 border-b border-border-subtle">
-          <div className="text-xs text-content-subtle uppercase tracking-wide mb-1">Fields</div>
-          {schema.fields.map((field) => (
-            <div key={field.name} className="flex gap-2 text-xs py-0.5">
-              <span className="text-content">{field.name}</span>
-              <span className="text-content-muted">{field.type}</span>
-            </div>
-          ))}
+      {/* Compact summary (default) */}
+      {!isExpanded && (
+        <div className="px-3 py-2">
+          <span className="text-node-xs text-content-subtle">
+            {schema.fields.length} field{schema.fields.length !== 1 ? 's' : ''}
+            {' · '}
+            {ports.length} port{ports.length !== 1 ? 's' : ''}
+          </span>
         </div>
       )}
 
-      {/* Ports */}
-      {ports.length > 0 && (
-        <div className="px-4 pl-5 py-2">
-          <div className="text-xs text-content-subtle uppercase tracking-wide mb-1">Ports</div>
-          {ports.map((port) => (
-            <div key={port.id} className="flex gap-2 items-center text-xs py-0.5">
-              <span className="text-content">{port.label}</span>
-              <span className="text-content-subtle">({port.portType})</span>
+      {/* Expanded detail */}
+      {isExpanded && (
+        <>
+          {/* Fields */}
+          {schema.fields.length > 0 && (
+            <div className="px-3 py-2 border-t border-border-subtle">
+              <div className="text-node-xs text-content-subtle uppercase tracking-wide mb-1">Fields</div>
+              {schema.fields.map((field) => (
+                <div key={field.name} className="flex gap-2 text-node-xs py-0.5">
+                  <span className="text-content">{field.name}</span>
+                  <span className="text-content-muted">{field.type}</span>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          )}
+
+          {/* Ports */}
+          {ports.length > 0 && (
+            <div className="px-3 py-2 border-t border-border-subtle">
+              <div className="text-node-xs text-content-subtle uppercase tracking-wide mb-1">Ports</div>
+              {ports.map((port) => (
+                <div key={port.id} className="flex gap-2 items-center text-node-xs py-0.5">
+                  <span className="text-content">{port.label}</span>
+                  <span className="text-content-subtle">({port.portType})</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );

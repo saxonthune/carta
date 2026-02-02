@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "VITE_STORAGE_BACKENDS=both VITE_COLLABORATION=enabled vite",
     "dev:local": "VITE_STORAGE_BACKENDS=local VITE_COLLABORATION=disabled vite",
-    "dev:client": "vite",
+    "dev:client": "VITE_STORAGE_BACKENDS=both VITE_COLLABORATION=enabled vite",
+    "dev:client:local": "VITE_STORAGE_BACKENDS=local VITE_COLLABORATION=disabled vite",
+    "dev:client:server": "VITE_STORAGE_BACKENDS=server VITE_COLLABORATION=enabled vite",
+    "dev:client:collab": "VITE_STORAGE_BACKENDS=both VITE_COLLABORATION=enabled vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "test": "vitest run",

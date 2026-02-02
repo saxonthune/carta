@@ -7,7 +7,11 @@
   "scripts": {
     "dev": "pnpm --filter @carta/web-client dev",
     "dev:client": "pnpm --filter @carta/web-client dev:client",
+    "dev:client:local": "pnpm --filter @carta/web-client dev:client:local",
+    "dev:client:server": "pnpm --filter @carta/web-client dev:client:server",
+    "dev:client:collab": "pnpm --filter @carta/web-client dev:client:collab",
     "build": "pnpm --filter @carta/web-client build",
+    "build:all": "pnpm -r build",
     "preview": "pnpm --filter @carta/web-client preview",
     "test": "pnpm --filter @carta/web-client test",
     "test:watch": "pnpm --filter @carta/web-client test:watch",

@@ -9,6 +9,7 @@ import {
   SelectionMode,
   useStore,
   useReactFlow,
+  useUpdateNodeInternals,
   type Node,
   type Edge,
   type OnSelectionChangeParams,
@@ -42,9 +43,41 @@ import { getLodConfig } from './lod/lodPolicy';
 function ZoomDebug() {
   const zoom = useStore((state) => state.transform[2]);
   const lod = getLodConfig(zoom);
+  const { getViewport, setViewport } = useReactFlow();
+  const [editing, setEditing] = useState(false);
+  const [inputValue, setInputValue] = useState('');
+
+  const commitZoom = () => {
+    setEditing(false);
+    const parsed = parseFloat(inputValue);
+    if (isNaN(parsed)) return;
+    const clamped = Math.min(Math.max(parsed, 0.15), 2);
+    const { x, y } = getViewport();
+    setViewport({ x, y, zoom: clamped }, { duration: 200 });
+  };
+
   return (
-    <div className="absolute bottom-8 left-2 bg-black/80 text-white px-3 py-2 rounded text-xs font-mono z-50 pointer-events-none">
-      <div>Zoom: {zoom.toFixed(3)}</div>
+    <div className="absolute bottom-8 left-2 bg-black/80 text-white px-3 py-2 rounded text-xs font-mono z-50">
+      <div className="flex items-center gap-1">
+        <span>Zoom:</span>
+        {editing ? (
+          <input
+            autoFocus
+            className="w-14 bg-transparent border-b border-white/50 text-white text-xs font-mono outline-none"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onBlur={commitZoom}
+            onKeyDown={(e) => { if (e.key === 'Enter') commitZoom(); if (e.key === 'Escape') setEditing(false); }}
+          />
+        ) : (
+          <span
+            className="cursor-pointer border-b border-transparent hover:border-white/50"
+            onClick={() => { setInputValue(zoom.toFixed(3)); setEditing(true); }}
+          >
+            {zoom.toFixed(3)}
+          </span>
+        )}
+      </div>
       <div>LOD: {lod.band}</div>
     </div>
   );
@@ -63,13 +96,20 @@ const edgeTypes = {
 // Restrict dragging to header only - allows clicking fields to edit
 const NODE_DRAG_HANDLE = '.node-drag-handle';
 
-const defaultEdgeOptions = {
-  type: 'bundled',
-  style: {
-    strokeWidth: 2,
-    stroke: '#6366f1',
-  },
-};
+// Edge color from CSS variable, updated on theme change
+function useEdgeColor() {
+  const [color, setColor] = useState(() =>
+    getComputedStyle(document.documentElement).getPropertyValue('--edge-default-color').trim() || '#94a3b8'
+  );
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setColor(getComputedStyle(document.documentElement).getPropertyValue('--edge-default-color').trim() || '#94a3b8');
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => observer.disconnect();
+  }, []);
+  return color;
+}
 
 
 export interface MapProps {
@@ -84,6 +124,14 @@ export interface MapProps {
 export default function Map({ deployables, onDeployablesChange, title, onNodesEdgesChange, onSelectionChange, onNodeDoubleClick }: MapProps) {
   const { nodes, edges, setNodes, setEdges, getSchema, levels, activeLevel, copyNodesToLevel } = useDocument();
   const { adapter } = useDocumentContext();
+  const edgeColor = useEdgeColor();
+  const defaultEdgeOptions = useMemo(() => ({
+    type: 'bundled',
+    style: {
+      strokeWidth: 1.5,
+      stroke: edgeColor,
+    },
+  }), [edgeColor]);
   const schemaGroups = adapter.getSchemaGroups();
   const { getViewport, setViewport } = useReactFlow();
 
@@ -361,18 +409,24 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
   }, [edges, nodes]);
 
   // Auto-revert unpinned details nodes when deselected
+  const updateNodeInternals = useUpdateNodeInternals();
   useEffect(() => {
+    const revertedIds: string[] = [];
     setNodes((nds) =>
       nds.map((n) => {
         if (n.type !== 'construct') return n;
         const d = n.data as ConstructNodeData;
         if (d.viewLevel === 'details' && !d.isDetailsPinned && !selectedNodeIds.includes(n.id)) {
+          revertedIds.push(n.id);
           return { ...n, data: { ...n.data, viewLevel: 'summary' } };
         }
         return n;
       })
     );
-  }, [selectedNodeIds, setNodes]);
+    if (revertedIds.length > 0) {
+      requestAnimationFrame(() => updateNodeInternals(revertedIds));
+    }
+  }, [selectedNodeIds, setNodes, updateNodeInternals]);
 
   // Edge bundling: collapse parallel edges between same node pairs
   const { displayEdges } = useEdgeBundling(filteredEdges, nodes);
@@ -387,6 +441,37 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     isDraggingRef.current = false;
     draggedNodesRef.current.clear();
   }, []);
+
+  // Handle deployable selection
+  const handleSelectDeployable = useCallback((deployableId: string) => {
+    const deployableNodes = nodes.filter(n => n.data?.deployableId === deployableId);
+    const nodeIds = deployableNodes.map(n => n.id);
+    setNodes((nds) =>
+      nds.map((n) => ({
+        ...n,
+        selected: nodeIds.includes(n.id),
+      }))
+    );
+    setSelectedNodeIds(nodeIds);
+  }, [nodes, setNodes, setSelectedNodeIds]);
+
+  // Handle deployable movement
+  const handleMoveDeployableNodes = useCallback((deployableId: string, deltaX: number, deltaY: number) => {
+    setNodes((nds) =>
+      nds.map((n) => {
+        if (n.data?.deployableId === deployableId) {
+          return {
+            ...n,
+            position: {
+              x: n.position.x + deltaX,
+              y: n.position.y + deltaY,
+            },
+          };
+        }
+        return n;
+      })
+    );
+  }, [setNodes]);
 
   return (
     <div className="w-full h-full relative" style={{ backgroundColor: 'var(--color-canvas)' }}>
@@ -465,7 +550,12 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
         </div>
 
         <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
-        <DeployableBackground nodes={sortedNodes} deployables={deployables} />
+        <DeployableBackground
+          nodes={sortedNodes}
+          deployables={deployables}
+          onSelectDeployable={handleSelectDeployable}
+          onMoveDeployableNodes={handleMoveDeployableNodes}
+        />
       </ReactFlow>
 
       {selectedNodeIds.length > 0 && (

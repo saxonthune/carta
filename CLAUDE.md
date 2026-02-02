@@ -20,7 +20,7 @@ Adding compatibility layers creates unnecessary complexity. Clean, modern patter
 
 ## Documentation
 
-**`.docs/` is the canonical source of truth.** All other docs (CLAUDE.md, `.cursor/rules/`, skill configs) are derived artifacts.
+**`.docs/` is the canonical source of truth.** `CLAUDE.md` is a derived artifact kept consistent with `.docs/`.
 
 | Title | Contents |
 |-------|----------|
@@ -31,18 +31,6 @@ Adding compatibility layers creates unnecessary complexity. Clean, modern patter
 | `.docs/04-operations/` | Development, testing, deployment, contributing |
 
 Cross-references use `docXX.YY.ZZ` syntax (e.g., `doc02.06` = metamodel architecture).
-
-### Cursor Rules (derived from .docs/)
-
-| Rule | When to consult |
-|------|-----------------|
-| `.cursor/rules/react-flow.mdc` | React Flow patterns, handles, node types |
-| `.cursor/rules/ports-and-connections.mdc` | Port model, connection semantics |
-| `.cursor/rules/metamodel-design.mdc` | Three-level metamodel (M2/M1/M0) |
-| `.cursor/rules/yjs-collaboration.mdc` | Yjs collaboration preparation |
-| `.cursor/rules/look-and-feel.mdc` | Visual depth system, island patterns |
-| `.cursor/rules/styling-best-practices.mdc` | UI styling standards |
-| `.cursor/rules/lod-rendering.mdc` | Level-of-detail rendering |
 
 ## Skills & Agents
 
@@ -234,7 +222,7 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 | `packages/domain/src/schemas/built-ins.ts` | Default construct schemas, port schemas, and schema groups |
 | `packages/domain/src/ports/registry.ts` | PortRegistry class with two-step polarity-based canConnect() validation |
 | `packages/domain/src/ports/helpers.ts` | Port helper functions: canConnect, getPortsForSchema, getHandleType, getPortColor |
-| `packages/domain/packages/web-client/src/utils/display.ts` | Display utilities: getDisplayName, semanticIdToLabel |
+| `packages/domain/src/utils/display.ts` | Display utilities: getDisplayName, getFieldsForSummary, semanticIdToLabel |
 | `packages/domain/packages/web-client/src/utils/color.ts` | Color utilities: hexToHsl, hslToHex, generateTints (7-stop tint generation) |
 
 **Web client** (React app):
@@ -256,7 +244,8 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 | `packages/web-client/src/components/canvas/CanvasContainer.tsx` | Canvas container: view switching (Map/Metamap), ViewToggle, LevelSwitcher overlays, Footer |
 | `packages/web-client/src/components/canvas/VirtualParentNode.tsx` | Visual grouping container node for child constructs |
 | `packages/web-client/src/components/Header.tsx` | Project header with title, import/export, settings menu, Share (server mode) |
-| `packages/web-client/src/components/metamap/Metamap.tsx` | React Flow canvas for schema-level metamodel view (SchemaNode, SchemaGroupNode) |
+| `packages/web-client/src/components/metamap/Metamap.tsx` | React Flow canvas for schema-level metamodel view (SchemaNode, SchemaGroupNode, EdgeDetailPopover) |
+| `packages/web-client/src/components/metamap/EdgeDetailPopover.tsx` | Click-to-edit popover for metamap edges: edit labels, delete relationships |
 | `packages/web-client/src/components/metamap/SchemaNode.tsx` | Schema node rendering in Metamap view |
 | `packages/web-client/src/components/metamap/SchemaGroupNode.tsx` | Schema group node rendering in Metamap view |
 | `packages/web-client/src/components/metamap/MetamapConnectionModal.tsx` | Modal for creating connections between schemas in Metamap (includes port color picker) |
@@ -295,7 +284,7 @@ All design decisions must balance two objectives:
 1. **Properly bounded modeling capability** — flexible enough for any domain, restrictive enough to prevent muddled models
 2. **Semantically sufficient compilation** — state must compile to AI-actionable instructions with enough meaning to generate quality output
 
-When evaluating changes, ask: Does this expand capability without confusion? Does this preserve semantic clarity? See `.cursor/rules/metamodel-design.mdc` for full details.
+When evaluating changes, ask: Does this expand capability without confusion? Does this preserve semantic clarity? See `.docs/02-system/06-metamodel.md` for full details.
 
 ### State Management
 - **Single source of truth**: Yjs Y.Doc is the only state store
@@ -310,7 +299,7 @@ When evaluating changes, ask: Does this expand capability without confusion? Doe
 - **No singleton registries**: Schema and deployable data accessed through adapter, not global imports
 
 ### Port & Connection Model
-**Consult:** `.cursor/rules/ports-and-connections.mdc`
+**Consult:** `.docs/03-product/01-features/03-ports-and-connections.md`
 
 - Edges have **no metadata**—all data lives on constructs
 - **Port schemas** define port types with polarity (`source`, `sink`, `bidirectional`, `relay`, `intercept`)
@@ -362,12 +351,12 @@ components: const { schemas, deployables } = useDocument()
 
 ### Change node appearance
 ```
-packages/web-client/src/components/canvas/ConstructNode.tsx   → Node rendering, port handles (inline/collapsed), color picker, LOD modes
+packages/web-client/src/components/canvas/ConstructNode.tsx   → Node rendering, port handles (inline/collapsed), color picker, LOD modes (shadow-based cards, left accent bar)
 packages/web-client/src/components/canvas/lod/lodPolicy.ts    → LOD band thresholds and configuration
 packages/web-client/src/components/canvas/lod/useLodBand.ts   → Hook for discrete zoom-based LOD band detection
 packages/web-client/src/utils/displayUtils.ts                 → Node title derivation
 packages/web-client/src/utils/colorUtils.ts                   → Color utilities (tint generation, HSL conversion)
-packages/web-client/src/index.css                             → Styling (handles, colors, text-halo utility)
+packages/web-client/src/index.css                             → Styling (handles, colors, text-halo, --node-shadow, --edge-default-color CSS vars)
 ```
 
 ### Modify keyboard shortcuts
@@ -424,13 +413,14 @@ packages/web-client/src/components/metamap/Metamap.tsx                       →
 packages/web-client/src/components/canvas/BundledEdge.tsx             → Custom edge component for bundled parallel edges (smoothstep style)
 packages/web-client/src/hooks/useEdgeBundling.ts                      → Hook for grouping parallel edges between same node pair
 packages/web-client/src/components/canvas/Map.tsx                     → Registers BundledEdge as custom edge type, uses useEdgeBundling, custom zoom controls
+packages/web-client/src/components/metamap/EdgeDetailPopover.tsx      → Click-to-edit popover for metamap relationship edges
 packages/web-client/src/index.css                                     → Edge styling (colors, stroke width)
 ```
 
 ### Modify zoom controls or LOD rendering
 ```
 packages/web-client/src/components/canvas/Map.tsx                     → Custom zoom controls (1.15x step), minZoom: 0.15
-packages/web-client/src/components/canvas/ConstructNode.tsx           → Three-band LOD rendering (pill/compact/normal)
+packages/web-client/src/components/canvas/ConstructNode.tsx           → Two-band LOD rendering (pill/normal modes)
 packages/web-client/src/components/canvas/lod/lodPolicy.ts            → LOD band configuration and thresholds
 packages/web-client/src/components/canvas/lod/useLodBand.ts           → Hook for zoom-based discrete band selection
 packages/web-client/src/index.css                                     → text-halo utility for legible text on any background
@@ -438,15 +428,16 @@ packages/web-client/src/index.css                                     → text-h
 
 ## Testing Requirements
 
-**All tests must pass before committing changes.**
+**All tests and builds must pass before committing changes.**
 
-Run the test suites:
+Run the build and test suites:
 ```bash
+pnpm build         # Build all packages (checks TypeScript compilation)
 pnpm test          # Integration tests (Vitest)
 pnpm test:e2e      # E2E tests (Playwright)
 ```
 
-If tests fail after your changes, fix them before proceeding.
+If the build or tests fail after your changes, fix them before proceeding.
 
 ## Testing Checklist
 
@@ -473,6 +464,15 @@ When modifying constructs or connections:
 - [ ] Settings menu shows "Load Example" when examples are available
 - [ ] ExamplesModal displays all .carta files from `/examples/` directory
 - [ ] Loading an example clears existing document and imports example data
+- [ ] Deployable backgrounds use theme-adaptive opacity via CSS vars (0.06 fill, 0.12 stroke)
+- [ ] Deployable labels are readable at normal zoom (16px font, 600 weight, 85% opacity)
+- [ ] Clicking deployable label selects all nodes in that deployable
+- [ ] Dragging deployable label moves all nodes in that deployable
+- [ ] Metamap schema nodes use shadow depth instead of dashed borders
+- [ ] Metamap ports are rounded squares matching canvas port style
+- [ ] Schema group nodes use subtle solid borders instead of dashed
+- [ ] Accent bars on nodes are 2px softened (color-mixed at 70%) and respect rounded corners
+- [ ] Summary ↔ details toggle repositions port handles correctly
 
 **Static mode** (VITE_STATIC_MODE=true):
 - [ ] Share button is hidden

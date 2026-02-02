@@ -20,6 +20,9 @@ Construct schemas appear as nodes. Connections between schema nodes represent po
 - **Auto-layout**: Button to automatically arrange the schema graph
 - **Create schema**: Right-click context menu to create a new construct schema (opens wizard, doc03.01.06)
 - **Create group**: Right-click context menu to create a new schema group
+- **Expand/collapse schemas**: Double-click a schema node to toggle between compact (summary) and expanded (full detail) views
+- **Edit relationships**: Click an edge to open the EdgeDetailPopover for editing labels or deleting relationships
+- **Reparent groups**: Drag schema group nodes into other groups to change hierarchy
 
 ## Connection Modal
 
@@ -28,6 +31,21 @@ When connecting two schemas in the Metamap, a modal opens to configure the port 
 - Port color selection
 - Bidirectional option
 - Creates port schemas and assigns them to both participating schemas
+
+## Edge Detail Popover
+
+Clicking an edge in the Metamap opens a popover showing:
+- Source and target schema names with color indicators
+- Port information (from/to port labels)
+- Classification tag (structural vs semantic)
+- Editable relationship label
+- Delete relationship button
+
+## Schema Node Display Modes
+
+Schema nodes support two display modes, toggled by double-clicking:
+- **Compact** (default): Shows schema name, type, and field/port counts in a condensed 80px-height card
+- **Expanded**: Shows full detail including field list and port list with labels
 
 ## Relationship to Map
 

@@ -14,15 +14,18 @@ The canvas is the primary editing surface where users create and manipulate cons
 - Zoom range: 0.15x to 2.0x
 - Dot-pattern background
 
-## Level of Detail
+## LOD Rendering
 
-The canvas renders nodes in three LOD bands based on zoom level:
+The canvas uses **level-of-detail (LOD) rendering** with two zoom-based bands to progressively simplify visual complexity:
 
-- **Pill** (zoomed out, below ~0.5x): Colored bar showing schema name and pill-tier field value. Hover shows full title tooltip. Optimized for overview navigation.
-- **Compact** (mid-zoom, ~0.5x-1.0x): Header bar with schema name, pill-tier value prominently displayed, and minimal-tier fields below.
-- **Normal** (zoomed in, above ~1.0x): Full detail with pill-tier field at top, minimal-tier fields in summary view, all fields in details view. Includes ports and controls.
+| Band | Zoom Range | Visual Treatment |
+|------|-----------|-----------------|
+| **Pill** | < 0.5x | Colored chip with schema type + display name, minimal shadow, no port handles |
+| **Normal** | ≥ 0.5x | Full node card with header, display field, summary/details modes, port handles, controls |
 
-LOD levels respect field display tiers (pill, minimal, details, full). The pill field (typically a title or name) appears at all LOD levels for consistent identification. LOD thresholds are configured in `lodPolicy.ts`. Transitions are discrete (no animation between bands).
+**Transitions**: LOD band changes use `opacity` cross-fade (120ms) to avoid jarring jumps. The band is determined by discrete zoom thresholds, not continuous interpolation.
+
+**Implementation**: `packages/web-client/src/components/canvas/lod/lodPolicy.ts` defines band thresholds. The `useLodBand` hook returns the current discrete band based on viewport zoom.
 
 ## Selection
 
