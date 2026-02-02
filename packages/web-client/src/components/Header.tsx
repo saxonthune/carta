@@ -183,17 +183,8 @@ export default function Header({ title, description, onTitleChange, onDescriptio
 
   return (
     <header className="h-12 bg-surface border-b grid grid-cols-[1fr_auto_1fr] items-center px-0 shrink-0">
-      <div className="flex items-center justify-start pl-2 gap-2">
-        {/* Document browser button — always visible */}
-        <button
-          className="w-9 h-9 flex items-center justify-center rounded-lg cursor-pointer text-content-muted hover:bg-surface-alt hover:text-content transition-colors"
-          onClick={() => setIsDocBrowserOpen(true)}
-          title="Browse documents"
-        >
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-          </svg>
-        </button>
+      <div className="flex items-center justify-start pl-3 gap-2">
+        <span className="text-xl font-bold tracking-tight text-content select-none">Carta</span>
       </div>
 
       <div className="flex items-center justify-center">
@@ -284,33 +275,16 @@ export default function Header({ title, description, onTitleChange, onDescriptio
           </div>
         )}
 
-        <div className="relative" ref={themeMenuRef}>
-          <button
-            className="w-9 h-9 flex items-center justify-center rounded-lg cursor-pointer text-content-muted hover:bg-surface-alt hover:text-content transition-colors"
-            onClick={() => setIsThemeMenuOpen(!isThemeMenuOpen)}
-            title="Change theme"
-          >
-            {getThemeIcon(theme)}
-          </button>
-          {isThemeMenuOpen && (
-            <div className="absolute right-0 top-full mt-1 bg-surface border border-subtle rounded-lg shadow-lg overflow-hidden z-50 min-w-[140px]">
-              {(['light', 'dark', 'warm'] as const).map((themeName) => (
-                <button
-                  key={themeName}
-                  className={`w-full flex items-center gap-3 px-4 py-2 text-sm cursor-pointer transition-colors text-left border-none ${
-                    theme === themeName
-                      ? 'bg-accent text-white'
-                      : 'bg-surface text-content hover:bg-surface-alt'
-                  }`}
-                  onClick={() => changeTheme(themeName)}
-                >
-                  {getThemeIcon(themeName)}
-                  <span>{getThemeLabel(themeName)}</span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        {/* Document browser button */}
+        <button
+          className="w-9 h-9 flex items-center justify-center rounded-lg cursor-pointer text-content-muted hover:bg-surface-alt hover:text-content transition-colors"
+          onClick={() => setIsDocBrowserOpen(true)}
+          title="Browse documents"
+        >
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+          </svg>
+        </button>
         <button
           className="px-4 py-2 text-sm font-medium bg-surface text-content border border-border rounded-lg cursor-pointer hover:bg-surface-alt transition-colors"
           onClick={onExport}
@@ -346,6 +320,33 @@ export default function Header({ title, description, onTitleChange, onDescriptio
             </svg>
           </button>
         )}
+        <div className="relative" ref={themeMenuRef}>
+          <button
+            className="w-9 h-9 flex items-center justify-center rounded-lg cursor-pointer text-content-muted hover:bg-surface-alt hover:text-content transition-colors"
+            onClick={() => setIsThemeMenuOpen(!isThemeMenuOpen)}
+            title="Change theme"
+          >
+            {getThemeIcon(theme)}
+          </button>
+          {isThemeMenuOpen && (
+            <div className="absolute right-0 top-full mt-1 bg-surface border border-subtle rounded-lg shadow-lg overflow-hidden z-50 min-w-[140px]">
+              {(['light', 'dark', 'warm'] as const).map((themeName) => (
+                <button
+                  key={themeName}
+                  className={`w-full flex items-center gap-3 px-4 py-2 text-sm cursor-pointer transition-colors text-left border-none ${
+                    theme === themeName
+                      ? 'bg-accent text-white'
+                      : 'bg-surface text-content hover:bg-surface-alt'
+                  }`}
+                  onClick={() => changeTheme(themeName)}
+                >
+                  {getThemeIcon(themeName)}
+                  <span>{getThemeLabel(themeName)}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <div className="relative" ref={settingsMenuRef}>
           <button
             data-testid="settings-menu-button"
