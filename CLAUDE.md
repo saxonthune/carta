@@ -99,7 +99,7 @@ Packages can only depend on packages above them in the graph.
 | `@carta/document` | `packages/document/` | Shared Y.Doc operations, Yjs helpers, file format, migrations |
 | `@carta/compiler` | `packages/compiler/` | Compilation engine (Carta → AI-readable output) |
 | `@carta/web-client` | `packages/web-client/` | React web app (currently `src/`) |
-| `@carta/server` | `packages/server/` | Collaboration server + MCP server |
+| `@carta/server` | `packages/server/` | Document server + MCP server |
 | `@carta/desktop` | `packages/desktop/` | Electron desktop app with embedded document server |
 
 ### Current state
@@ -191,7 +191,7 @@ pnpm dev          # No server URL → single-document mode
 - **Behavior**: Without `?doc=` param, document browser appears (required mode)
 
 ```bash
-pnpm server       # Start MongoDB + collab server
+pnpm server       # Start MongoDB + document server
 pnpm dev:client   # Start client with VITE_SERVER_URL set
 ```
 
@@ -215,7 +215,7 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 | `packages/document/src/yjs-helpers.ts` | Yjs ↔ plain object conversion: objectToYMap, yToPlain, yMapToObject, deepPlainToY, safeGet |
 | `packages/document/src/id-generators.ts` | ID generators: generateDeployableId, generateDeployableColor, generateSchemaGroupId, generateLevelId, generateNodeId |
 | `packages/document/src/constants.ts` | Y.Doc map names (YDOC_MAPS), MCP_ORIGIN, CARTA_FILE_VERSION, SERVER_FORMAT_VERSION |
-| `packages/document/src/doc-operations.ts` | Level-aware CRUD for constructs, edges, deployables, schemas (used by collab-server MCP) |
+| `packages/document/src/doc-operations.ts` | Level-aware CRUD for constructs, edges, deployables, schemas (used by document server MCP) |
 | `packages/document/src/migrations.ts` | migrateToLevels: flat Y.Doc → level-based structure migration |
 | `packages/document/src/file-format.ts` | CartaFile/CartaFileLevel types, validateCartaFile, importProjectFromString |
 

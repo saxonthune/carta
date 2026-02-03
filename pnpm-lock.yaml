@@ -51,6 +51,9 @@ importers:
       '@carta/domain':
         specifier: workspace:*
         version: link:../domain
+      '@carta/server':
+        specifier: workspace:*
+        version: link:../server
       lib0:
         specifier: ^0.2.102
         version: 0.2.117

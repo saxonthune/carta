@@ -5,7 +5,7 @@
  * This server exposes Carta functionality via the Model Context Protocol,
  * allowing AI agents to read, analyze, and modify Carta documents.
  *
- * All operations communicate with the collab server via HTTP REST API.
+ * All operations communicate with the document server via HTTP REST API.
  */
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
@@ -65,16 +65,23 @@ function discoverDesktopServer(): string | null {
  * This is for CLI/Claude Desktop integration
  */
 async function main() {
-  // Get collab server URL: env var > desktop discovery > default
-  const collabApiUrl =
-    process.env.CARTA_COLLAB_API_URL ||
+  // Get document server URL: env var > legacy env var > desktop discovery > default
+  const serverUrl =
+    process.env.CARTA_SERVER_URL ||
+    (() => {
+      if (process.env.CARTA_COLLAB_API_URL) {
+        console.error('[MCP] CARTA_COLLAB_API_URL is deprecated, use CARTA_SERVER_URL instead');
+        return process.env.CARTA_COLLAB_API_URL;
+      }
+      return null;
+    })() ||
     discoverDesktopServer() ||
     'http://localhost:1234';
 
-  console.error(`Carta MCP server using HTTP API (${collabApiUrl})`);
+  console.error(`Carta MCP server using HTTP API (${serverUrl})`);
 
   // Create tool handlers that use HTTP API
-  const toolHandlers = createToolHandlers({ collabApiUrl });
+  const toolHandlers = createToolHandlers({ serverUrl });
 
   // Create MCP server with tools AND resources capabilities
   const server = new Server(

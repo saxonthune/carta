@@ -39,7 +39,7 @@ function getDesktopWsUrl(): string | null {
  * Simplified configuration: 2 env vars + 1 detected.
  *
  * Env vars:
- *   VITE_SERVER_URL  — Server URL. Presence = server mode (collaboration, multi-document).
+ *   VITE_SERVER_URL  — Server URL. Presence = server mode (multi-document, real-time sync).
  *   VITE_AI_MODE     — 'none' | 'user-key' | 'server-proxy' (default: 'none')
  *
  * Detected:

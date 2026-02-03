@@ -161,5 +161,5 @@ This boundary keeps the core focused and lets different consumers (enterprise, S
 | `@carta/document` | Done — Y.Doc operations, Yjs helpers, file format, migrations, level-aware CRUD |
 | `@carta/compiler` | Done — compilation engine |
 | `@carta/web-client` | Done — extracted to `packages/web-client/` |
-| `@carta/server` | Done — collaboration server + MCP server, imports from `@carta/document` |
+| `@carta/server` | Done — document server + MCP server, imports from `@carta/document` |
 | `@carta/desktop` | Done — Electron app with embedded document server, MCP bundling |

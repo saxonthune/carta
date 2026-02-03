@@ -1,7 +1,7 @@
 /**
  * MCP Tool definitions for Carta
  *
- * All tools communicate with the collab server via HTTP REST API.
+ * All tools communicate with the document server via HTTP REST API.
  */
 
 import { z } from 'zod';
@@ -264,17 +264,17 @@ export interface ToolHandlers {
  * Options for creating tool handlers
  */
 export interface ToolHandlerOptions {
-  collabApiUrl?: string;
+  serverUrl?: string;
 }
 
 /**
- * Create tool handlers that communicate via HTTP with the collab server
+ * Create tool handlers that communicate via HTTP with the document server
  */
 export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandlers {
-  const apiUrl = options.collabApiUrl || process.env.CARTA_COLLAB_API_URL || 'http://localhost:1234';
+  const apiUrl = options.serverUrl || process.env.CARTA_SERVER_URL || process.env.CARTA_COLLAB_API_URL || 'http://localhost:1234';
 
   /**
-   * Make HTTP request to collab server API
+   * Make HTTP request to document server API
    */
   async function apiRequest<T>(
     method: string,
@@ -297,7 +297,7 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
       return { data };
     } catch (error) {
       return {
-        error: `Failed to connect to collab server at ${apiUrl}. Is it running?`,
+        error: `Failed to connect to document server at ${apiUrl}. Is it running? Start it with: pnpm document-server`,
       };
     }
   }
@@ -309,7 +309,7 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
         '/api/rooms'
       );
       if (result.error) {
-        return { error: result.error, hint: 'Start the collab server with: npm run collab-server' };
+        return { error: result.error, hint: 'Start the document server with: pnpm document-server' };
       }
       return result.data;
     },

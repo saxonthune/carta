@@ -10,6 +10,10 @@
     "./mcp/stdio": {
       "types": "./dist/mcp/stdio.d.ts",
       "import": "./dist/mcp/stdio.js"
+    },
+    "./document-server-core": {
+      "types": "./dist/document-server-core.d.ts",
+      "import": "./dist/document-server-core.js"
     }
   },
   "bin": {
@@ -19,7 +23,7 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "mcp": "node dist/mcp/stdio.js",
-    "collab-server": "node dist/collab-server.js"
+    "document-server": "node dist/document-server.js"
   },
   "dependencies": {
     "@carta/domain": "workspace:*",

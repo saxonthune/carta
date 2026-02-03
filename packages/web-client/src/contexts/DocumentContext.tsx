@@ -35,7 +35,7 @@ export interface DocumentProviderProps {
   children: ReactNode;
   /** Document ID (required — caller ensures one exists via URL param) */
   documentId: string;
-  /** WebSocket server URL for collaboration */
+  /** WebSocket server URL for sync */
   serverUrl?: string;
   /** Skip IndexedDB persistence (for testing) */
   skipPersistence?: boolean;
@@ -157,7 +157,7 @@ export function DocumentProvider({
         }, 'migration');
       }
 
-      // Connect WebSocket if collaboration is enabled and server is available
+      // Connect WebSocket if server is available
       if (config.hasServer && serverUrl) {
         await yjsAdapter.connectToRoom(documentId, serverUrl);
       }

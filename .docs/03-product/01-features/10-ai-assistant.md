@@ -48,4 +48,4 @@ Carta exposes an MCP server (doc02.03) for integration with external AI tools li
 
 ### Desktop MCP Auto-Discovery
 
-In the desktop app, the embedded server writes `server.json` to `{userData}/` containing the server URL and PID. The MCP stdio binary reads this file automatically when `CARTA_COLLAB_API_URL` is not set. Users can copy the Claude Desktop config snippet from Settings > Copy MCP Config.
+In the desktop app, the embedded server writes `server.json` to `{userData}/` containing the server URL and PID. The MCP stdio binary reads this file automatically when `CARTA_SERVER_URL` is not set. Users can copy the Claude Desktop config snippet from Settings > Copy MCP Config.

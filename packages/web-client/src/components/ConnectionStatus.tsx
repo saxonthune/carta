@@ -122,7 +122,7 @@ export default function ConnectionStatus() {
             <div className="text-xs text-content-muted">
               {mode === 'local' && 'Changes are saved locally in your browser.'}
               {mode === 'shared' && connectionStatus === 'connected' && 'Changes sync in real-time with other users.'}
-              {mode === 'shared' && connectionStatus === 'connecting' && 'Establishing connection to collaboration server...'}
+              {mode === 'shared' && connectionStatus === 'connecting' && 'Establishing connection to document server...'}
               {mode === 'shared' && connectionStatus === 'disconnected' && 'Disconnected. Changes will sync when reconnected.'}
             </div>
           </div>

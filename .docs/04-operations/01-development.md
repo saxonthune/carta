@@ -22,7 +22,7 @@ Visit `http://localhost:5173`.
 ## Server Mode
 
 ```bash
-pnpm server       # Start MongoDB + collaboration server
+pnpm server       # Start MongoDB + document server
 pnpm dev:client   # Start client in server mode
 ```
 
@@ -60,6 +60,6 @@ packages/
   domain/           Shared types, port registry, built-in schemas
   document/         Shared Y.Doc operations, Yjs helpers, file format, migrations
   compiler/         Compilation engine
-  server/           Collaboration server + MCP server
+  server/           Document server + MCP server
   desktop/          Electron desktop app with embedded server
 ```

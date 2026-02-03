@@ -12,6 +12,7 @@
     "@carta/compiler": "workspace:*",
     "@carta/domain": "workspace:*",
     "@carta/document": "workspace:*",
+    "@carta/server": "workspace:*",
     "lib0": "^0.2.102",
     "ws": "^8.18.0",
     "y-protocols": "^1.0.6",

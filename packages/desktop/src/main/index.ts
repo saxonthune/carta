@@ -63,7 +63,7 @@ function getMcpConfigSnippet(): string {
       carta: {
         command: 'node',
         args: [mcpPath],
-        env: serverInfo ? { CARTA_COLLAB_API_URL: serverInfo.url } : undefined,
+        env: serverInfo ? { CARTA_SERVER_URL: serverInfo.url } : undefined,
       },
     },
   };
