@@ -21,13 +21,12 @@ interface IndexBasedDropZonesProps {
 export default function IndexBasedDropZones({ ports, sourcePortType }: IndexBasedDropZonesProps) {
   if (ports.length === 0) return null;
 
-  // Each strip gets equal height, capped so they don't exceed node bounds
-  const stripHeight = Math.max(30, 100 / ports.length);
+  const STRIP_HEIGHT = 36;
 
   return (
     <div
-      className="absolute inset-0 rounded-lg z-[5] flex flex-col overflow-hidden"
-      style={{ pointerEvents: 'none' }}
+      className="absolute top-0 left-0 right-0 rounded-lg z-[25] flex flex-col"
+      style={{ pointerEvents: 'none', minHeight: '100%' }}
     >
       {ports.map((port) => {
         const isValid = sourcePortType ? canConnect(sourcePortType, port.portType) : true;
@@ -38,8 +37,8 @@ export default function IndexBasedDropZones({ ports, sourcePortType }: IndexBase
             key={port.id}
             className="relative flex items-center justify-center"
             style={{
-              flex: `0 0 ${stripHeight}%`,
-              maxHeight: '100%',
+              height: STRIP_HEIGHT,
+              flexShrink: 0,
               backgroundColor: isValid ? portColor + '40' : 'rgba(128,128,128,0.15)',
               border: isValid ? `2px solid ${portColor}` : '2px dotted rgba(128,128,128,0.4)',
               pointerEvents: isValid ? 'auto' : 'none',

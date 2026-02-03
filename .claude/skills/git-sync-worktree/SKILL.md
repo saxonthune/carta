@@ -1,31 +1,31 @@
 ---
 name: git-sync-worktree
-description: Syncs a worktree's claude branch with its trunk branch
+description: Syncs a worktree's claude branch with its trunk branch via rebase
 ---
 
 # git-sync-worktree
 
-Syncs a worktree's experimental claude branch with its trunk branch using rebase for clean history.
+Rebases a worktree's claude branch onto its trunk branch for clean linear history.
 
 ## When to Use
 
 Invoke from a worktree (on a `_claude1`, `_claude2`, etc. branch) when:
-- Trunk branch has new commits you need
-- Before merging your work back to trunk
+- After `/git-sync-trunk` was run on the trunk branch
+- Trunk has new commits you need (from other worktrees or remote)
 - Every 30-60 minutes during active development
-- After trunk has been synced with remote
+- Before starting a new chunk of work
 
 ## What This Does
 
-1. **Detects worktree and trunk** branch names
-2. **Fetches latest trunk state** from the main worktree
+1. **Detects worktree and trunk** branch names automatically
+2. **Checks for uncommitted changes** (must be clean)
 3. **Rebases worktree branch** onto trunk
-4. **Handles conflicts** with clear guidance
-5. **Verifies sync success**
+4. **Reports results** with commit lists
 
 ## Execution Pattern
 
 ### 1. Detect Environment
+
 ```bash
 # Check current branch (should be <trunk>_claude1, etc.)
 CURRENT_BRANCH=$(git branch --show-current)
@@ -33,38 +33,53 @@ CURRENT_BRANCH=$(git branch --show-current)
 # Extract trunk name (remove _claudeN suffix)
 TRUNK_BRANCH=$(echo $CURRENT_BRANCH | sed 's/_claude[0-9]*$//')
 
-# Verify we're in a worktree
-git worktree list
+# Verify we're in a worktree (not on trunk)
+if [ "$CURRENT_BRANCH" = "$TRUNK_BRANCH" ]; then
+  echo "You're on the trunk branch. Use /git-sync-trunk instead."
+  exit 1
+fi
 ```
 
-### 2. Sync with Trunk
-```bash
-# Fetch trunk branch state
-git fetch . $TRUNK_BRANCH:$TRUNK_BRANCH
+### 2. Safety Check
 
+```bash
+# Ensure no uncommitted changes
+if [[ -n $(git status --porcelain) ]]; then
+  echo "Uncommitted changes detected. Commit or stash before syncing."
+  exit 1
+fi
+```
+
+### 3. Rebase onto Trunk
+
+```bash
 # Rebase onto trunk
 git rebase $TRUNK_BRANCH
 ```
 
-### 3. Handle Rebase Conflicts
+### 4. Handle Rebase Conflicts
 
-If conflicts occur during rebase:
+If conflicts occur:
 ```markdown
-⚠️  Rebase conflicts in:
-  - packages/web-client/src/components/Map.tsx
+Rebase conflicts in:
+  - path/to/file.tsx
 
 To resolve:
-1. Open the file and fix conflict markers (<<<<<<, =======, >>>>>>>)
+1. Edit the file to fix conflict markers
 2. `git add <resolved-file>`
 3. `git rebase --continue`
 
 To skip this commit: `git rebase --skip`
 To abort entirely: `git rebase --abort`
-
-After resolving, re-run `/git-sync-worktree` to verify.
 ```
 
-### 4. Return Summary
+If conflicts are too complex, offer merge as fallback:
+```bash
+git rebase --abort
+git merge $TRUNK_BRANCH
+```
+
+### 5. Return Summary
 
 ```markdown
 ## Worktree Sync Complete
@@ -76,9 +91,9 @@ Rebase successful: 7 commits replayed
 Your branch is now based on latest trunk.
 No conflicts.
 
-Changes from trunk:
-- abc123 Fix edge rendering bug
-- def456 Add LOD support
+Changes from trunk since last sync:
+- abc123 Fix edge rendering
+- def456 Merge feat260128_proto4_claude2
 
 Your commits (rebased):
 - xyz789 Add schema group layout
@@ -87,49 +102,20 @@ Your commits (rebased):
 Ready to continue work.
 ```
 
-## Alternative: Merge Instead of Rebase
+## Typical Two-Step Workflow
 
-If rebase conflicts are too complex, offer merge as fallback:
 ```bash
-# Abort rebase
-git rebase --abort
+# Step 1: In trunk worktree — merge all worktree work + sync remote
+/git-sync-trunk
 
-# Use merge instead
-git merge $TRUNK_BRANCH
+# Step 2: In each worktree — rebase onto updated trunk
+/git-sync-worktree
 ```
-
-Note: Merge preserves history but makes it messier. Prefer rebase when possible.
 
 ## Important Notes
 
-- **Commit before syncing**: Rebase works on commits, not dirty working directory
+- **Commit before syncing**: Rebase requires a clean working directory
 - **Rebase is safe here**: You control this branch, nobody else uses it
 - **Small frequent syncs**: Easier than large infrequent ones
 - **Can always abort**: `git rebase --abort` returns to pre-rebase state
-- **Check reflog**: `git reflog` if you need to undo a completed rebase
-
-## Safety Check
-
-Before starting:
-```bash
-# Ensure no uncommitted changes
-if [[ -n $(git status --porcelain) ]]; then
-  echo "⚠️  Uncommitted changes detected."
-  echo "Commit or stash before syncing."
-  exit 1
-fi
-```
-
-## Example Workflow
-
-```bash
-# In worktree on feat260128_proto4_claude1
-# Trunk has 3 new commits
-
-/git-sync-worktree
-
-# Output:
-# ✓ Fetched trunk (feat260128_proto4)
-# ✓ Rebased 5 commits successfully
-# ✓ Sync complete
-```
+- **Check reflog**: `git reflog` shows history if you need to undo a completed rebase

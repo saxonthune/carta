@@ -541,6 +541,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
         panOnDrag={[1, 2]}
         selectionOnDrag
         selectionMode={SelectionMode.Full}
+        connectionRadius={50}
         fitView
       >
         <Controls position="top-left" showZoom={false}>

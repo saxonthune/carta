@@ -84,11 +84,10 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
   const schema = getSchema(data.constructType);
   const nodeId = useNodeId();
   const [editingField, setEditingField] = useState<string | null>(null);
-  const [isHovered, setIsHovered] = useState(false);
-
   // Connection drop zone detection
   const connection = useConnection();
-  const isConnectionTarget = connection.inProgress && (connection.toNode?.id === nodeId || isHovered);
+  const isConnectionTarget = connection.inProgress && connection.toNode?.id === nodeId;
+  const isDragActive = connection.inProgress;
 
   // Look up source port type from the connection's fromHandle
   // Strip drawer: prefix since the drag starts from a drawer handle
@@ -188,8 +187,6 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
     return (
       <div
         className={`node-drag-handle rounded-lg font-semibold px-5 py-3 truncate cursor-move select-none whitespace-nowrap text-content flex items-center gap-3 ${selected ? 'ring-2 ring-accent/40' : ''}`}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
         style={{
           ...lodTransitionStyle,
           backgroundColor: `color-mix(in srgb, ${color} 25%, var(--color-surface))`,
@@ -207,7 +204,12 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
         <span className="truncate">
           <span className="opacity-50">{schema.displayName}:</span> {displayValue}
         </span>
-        {/* Invisible anchor handles for persistent edges (both types per port) */}
+        {/* Connection drop zones overlay (pill mode) */}
+        {isConnectionTarget && (
+          <IndexBasedDropZones ports={ports} sourcePortType={sourcePortType} />
+        )}
+
+        {/* Anchor handles for persistent edges — target handles enlarged during drag for detection */}
         {ports.map((port) => (
           <span key={port.id}>
             <Handle
@@ -221,8 +223,12 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
               id={port.id}
               type="target"
               position={Position.Top}
-              className="!absolute !opacity-0 !w-0 !h-0 !min-w-0 !min-h-0 !border-none !p-0"
-              style={{ top: 0, left: '50%', pointerEvents: 'none' }}
+              className={isDragActive
+                ? '!absolute !opacity-0 !border-none !p-0'
+                : '!absolute !opacity-0 !w-0 !h-0 !min-w-0 !min-h-0 !border-none !p-0'}
+              style={isDragActive
+                ? { top: 0, left: '50%', width: 20, height: 20, minWidth: 20, minHeight: 20, pointerEvents: 'auto' }
+                : { top: 0, left: '50%', pointerEvents: 'none' }}
             />
           </span>
         ))}
@@ -240,8 +246,6 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
     return (
       <div
         className={`rounded-lg overflow-visible relative flex flex-col min-w-[200px] min-h-[100px] bg-surface ${selected ? 'ring-2 ring-accent/30' : ''}`}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
         style={{
           ...bgStyle,
           ...lodTransitionStyle,
@@ -384,7 +388,7 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
           </div>
         )}
 
-        {/* Invisible anchor handles — always in DOM for persistent edge rendering (both types per port) */}
+        {/* Anchor handles — target handles enlarged during drag for detection */}
         {ports.map((port) => (
           <span key={`anchor-${port.id}`}>
             <Handle
@@ -398,8 +402,12 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
               id={port.id}
               type="target"
               position={Position.Top}
-              className="!absolute !opacity-0 !w-0 !h-0 !min-w-0 !min-h-0 !border-none !p-0"
-              style={{ top: 0, left: '50%', pointerEvents: 'none' }}
+              className={isDragActive
+                ? '!absolute !opacity-0 !border-none !p-0'
+                : '!absolute !opacity-0 !w-0 !h-0 !min-w-0 !min-h-0 !border-none !p-0'}
+              style={isDragActive
+                ? { top: 0, left: '50%', width: 20, height: 20, minWidth: 20, minHeight: 20, pointerEvents: 'auto' }
+                : { top: 0, left: '50%', pointerEvents: 'none' }}
             />
           </span>
         ))}
@@ -417,8 +425,6 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
   return (
     <div
       className={`bg-surface rounded-lg w-full h-full text-node-base text-content overflow-visible relative flex flex-col transition-shadow duration-150 ${data.viewLevel === 'details' ? 'min-w-[280px]' : 'min-w-[180px]'} ${selected ? 'ring-2 ring-accent/30' : ''}`}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
       style={{
         ...bgStyle,
         ...lodTransitionStyle,
@@ -648,7 +654,7 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
         );
       })()}
 
-      {/* Invisible anchor handles — always in DOM for persistent edge rendering (both types per port) */}
+      {/* Anchor handles — target handles enlarged during drag for detection */}
       {ports.map((port) => (
         <span key={`anchor-${port.id}`}>
           <Handle
@@ -662,8 +668,12 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
             id={port.id}
             type="target"
             position={Position.Top}
-            className="!absolute !opacity-0 !w-0 !h-0 !min-w-0 !min-h-0 !border-none !p-0"
-            style={{ top: 0, left: '50%', pointerEvents: 'none' }}
+            className={isDragActive
+              ? '!absolute !opacity-0 !border-none !p-0'
+              : '!absolute !opacity-0 !w-0 !h-0 !min-w-0 !min-h-0 !border-none !p-0'}
+            style={isDragActive
+              ? { top: 0, left: '50%', width: 20, height: 20, minWidth: 20, minHeight: 20, pointerEvents: 'auto' }
+              : { top: 0, left: '50%', pointerEvents: 'none' }}
           />
         </span>
       ))}

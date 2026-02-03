@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Handle, Position } from '@xyflow/react';
+import { Handle, Position, useConnection, useNodeId } from '@xyflow/react';
 import { getPortColor } from '@carta/domain';
 import type { PortConfig } from '@carta/domain';
 
@@ -21,13 +21,20 @@ interface PortDrawerProps {
  */
 export default function PortDrawer({ ports }: PortDrawerProps) {
   const [expanded, setExpanded] = useState(false);
+  const connection = useConnection();
+  const nodeId = useNodeId();
+
+  // Keep drawer open while dragging from this node's drawer
+  const isDraggingFromHere = connection.inProgress && connection.fromNode?.id === nodeId;
 
   if (ports.length === 0) return null;
 
   return (
     <div
       className="relative w-full"
-      onMouseLeave={() => setExpanded(false)}
+      onMouseLeave={() => {
+        if (!isDraggingFromHere) setExpanded(false);
+      }}
     >
       {/* Hover trigger zone - extends above the collapsed strip for Fitts's law */}
       <div
@@ -57,7 +64,7 @@ export default function PortDrawer({ ports }: PortDrawerProps) {
       {/* Expanded drawer - overlays downward */}
       {expanded && (
         <div
-          className="absolute left-0 right-0 top-full bg-surface-elevated rounded-b-lg shadow-lg border border-t-0 border-border-subtle z-[20] py-2 px-2"
+          className="absolute left-0 right-0 top-full bg-surface-elevated rounded-b-lg shadow-lg border border-t-0 border-border-subtle z-[30] py-2 px-2"
           onMouseEnter={() => setExpanded(true)}
         >
           <div className="flex flex-wrap gap-2 justify-center">
