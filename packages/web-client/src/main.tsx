@@ -5,6 +5,8 @@ import App from './App.tsx'
 import { DocumentProvider } from './contexts/DocumentContext'
 import { migrateCartaLocal } from './utils/migration'
 import { getLastDocumentId, setLastDocumentId } from './utils/preferences'
+import { createDocument } from './stores/documentRegistry'
+import { config } from './config/featureFlags'
 
 async function boot() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -16,10 +18,16 @@ async function boot() {
     const lastDocId = getLastDocumentId();
     documentId = migratedId || lastDocId;
 
+    // In local mode with no existing document, auto-create one (NUX: no modal gate)
+    if (!documentId && config.localEnabled && !config.serverEnabled) {
+      documentId = await createDocument('Untitled Project');
+    }
+
+    // Update URL to reflect the document without a page reload
     if (documentId) {
-      // Redirect so URL reflects the document
-      window.location.replace(`${window.location.pathname}?doc=${documentId}`);
-      return; // Stop — page will reload with ?doc= param
+      const url = new URL(window.location.href);
+      url.searchParams.set('doc', documentId);
+      history.replaceState(null, '', url.toString());
     }
   }
 

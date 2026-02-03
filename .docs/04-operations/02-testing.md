@@ -28,4 +28,14 @@ When modifying constructs or connections, verify:
 - Copy/paste preserves node data with new IDs
 - IndexedDB persists state across page reloads
 
+## E2E Test Coverage
+
+E2E tests use Playwright and run against the local-mode dev server (`pnpm run dev:local`).
+
+| Test File | Feature | Tests |
+|-----------|---------|-------|
+| `new-user-experience.spec.ts` | NUX (doc03.01.13) | First visit lands on canvas, starter nodes/edges present, nodes interactive, URL has ?doc= param, returning visit reopens last doc |
+
+Test helpers live in `tests/e2e/helpers/CartaPage.ts` — a Page Object Model with `goto()` (handles both local redirect and server modal) and `gotoFresh()` (clean browser context, waits for auto-create).
+
 See the full testing checklist in CLAUDE.md for static mode and server mode specifics.

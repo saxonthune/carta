@@ -54,6 +54,7 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 | doc03.01.10 | `03-product/01-features/10-ai-assistant.md` | AI sidebar, chat, MCP tools |
 | doc03.01.11 | `03-product/01-features/11-keyboard-and-clipboard.md` | shortcuts, copy/paste, undo/redo |
 | doc03.01.12 | `03-product/01-features/12-theming.md` | light/dark/warm themes |
+| doc03.01.13 | `03-product/01-features/13-new-user-experience.md` | first-load starter document, auto-create, no blank canvas |
 | doc03.02.01 | `03-product/02-use-cases/01-architect.md` | software architect persona |
 | doc03.02.02 | `03-product/02-use-cases/02-team-lead.md` | team lead persona |
 | doc03.02.03 | `03-product/02-use-cases/03-enterprise-self-hosted.md` | enterprise internal server, managed AI, desktop + web |
@@ -64,6 +65,9 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 | doc03.03.03 | `03-product/03-workflows/03-define-schema.md` | define schema workflow |
 | doc03.03.04 | `03-product/03-workflows/04-compile-project.md` | compile project workflow |
 | doc03.03.05 | `03-product/03-workflows/05-import-project.md` | import project workflow |
+| doc03.03.06 | `03-product/03-workflows/06-iterative-modeling.md` | iterative modeling on the map workflow |
+| doc03.03.07 | `03-product/03-workflows/07-schema-design-patterns.md` | schema design patterns workflow |
+| doc03.03.08 | `03-product/03-workflows/08-rough-to-refined.md` | rough to refined modeling workflow |
 
 ## 04-operations — Development and process
 

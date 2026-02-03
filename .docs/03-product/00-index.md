@@ -23,6 +23,7 @@ This title documents what Carta does (features), who uses it (use cases), and ho
 | doc03.01.10 | AI Assistant | draft | AI sidebar with chat and document manipulation tools |
 | doc03.01.11 | Keyboard and Clipboard | active | Shortcuts, copy/paste, undo/redo |
 | doc03.01.12 | Theming | active | Light/dark/warm themes |
+| doc03.01.13 | New User Experience | active | First-load starter document, auto-create, no blank canvas |
 
 ## Use Cases (doc03.02)
 

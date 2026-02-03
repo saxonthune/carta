@@ -4,6 +4,7 @@ import type { DocumentAdapter } from '@carta/domain';
 import { createYjsAdapter, type YjsAdapterOptions } from '../stores/adapters/yjsAdapter';
 import { builtInConstructSchemas, builtInSchemaGroups, builtInPortSchemas } from '@carta/domain';
 import { config } from '../config/featureFlags';
+import { seedStarterContent } from '../utils/starterContent';
 
 /**
  * Document context value
@@ -92,6 +93,9 @@ export function DocumentProvider({
           }
           yjsAdapter.ydoc.getMap('meta').set('initialized', true);
         }, 'init');
+
+        // Seed starter content so the canvas isn't empty on first visit
+        seedStarterContent(yjsAdapter);
       }
 
       // Migration: forward -> relay, intercept polarity update

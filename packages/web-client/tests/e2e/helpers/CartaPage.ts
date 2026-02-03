@@ -1,7 +1,7 @@
 import { type Page, type Locator, expect } from '@playwright/test';
 
 /**
- * Page Object Model for Carta application (static mode).
+ * Page Object Model for Carta application (local mode).
  * Encapsulates page interactions for E2E tests.
  */
 export class CartaPage {
@@ -43,9 +43,53 @@ export class CartaPage {
     this.restoreDefaultsConfirmButton = this.restoreDefaultsModal.getByRole('button', { name: 'Restore' });
   }
 
+  /**
+   * Navigate to the app and wait for the canvas to be ready.
+   * In local mode, the app auto-creates a document and redirects if needed.
+   * Falls back to handling the DocumentBrowserModal in server mode.
+   */
   async goto() {
-    await this.page.goto('/');
-    await this.page.waitForSelector('[data-testid="settings-menu-button"]');
+    await this.page.goto('/', { waitUntil: 'commit' });
+
+    const settingsButton = this.page.getByTestId('settings-menu-button');
+
+    // If the URL already has ?doc=, just wait for the canvas
+    if (this.page.url().includes('?doc=')) {
+      await settingsButton.waitFor({ state: 'visible', timeout: 15000 });
+      return;
+    }
+
+    // Wait for either: redirect to ?doc= (local auto-create) or modal (server mode)
+    const newDocButton = this.page.getByRole('button', { name: 'New Document' });
+
+    const firstVisible = await Promise.race([
+      this.page.waitForURL(/\?doc=/, { timeout: 15000 }).then(() => 'redirect' as const),
+      newDocButton.waitFor({ state: 'visible', timeout: 15000 }).then(() => 'modal' as const),
+    ]);
+
+    if (firstVisible === 'modal') {
+      await newDocButton.click();
+    }
+
+    // Wait for the canvas to be ready after redirect
+    await settingsButton.waitFor({ state: 'visible', timeout: 15000 });
+  }
+
+  /**
+   * Navigate to the app with a clean browser state (fresh context).
+   * Each Playwright test gets a new browser context with empty IndexedDB
+   * and localStorage, so this simulates a true first visit.
+   *
+   * In local mode, the app auto-creates a document and redirects to ?doc={id}.
+   * We wait for the redirect to settle and the canvas to appear.
+   */
+  async gotoFresh() {
+    // Navigate to / — in local mode this triggers auto-create + redirect
+    // Use waitUntil: 'commit' since the redirect interrupts the initial load
+    await this.page.goto('/', { waitUntil: 'commit' });
+    // Wait for the auto-create redirect to settle
+    await this.page.waitForURL(/\?doc=/, { timeout: 15000 });
+    await this.page.getByTestId('settings-menu-button').waitFor({ state: 'visible', timeout: 15000 });
   }
 
   async openSettingsMenu() {
@@ -85,6 +129,11 @@ export class CartaPage {
   async getNodeCount(): Promise<number> {
     const nodes = this.page.locator('.react-flow__node');
     return nodes.count();
+  }
+
+  async getEdgeCount(): Promise<number> {
+    const edges = this.page.locator('.react-flow__edge');
+    return edges.count();
   }
 
   async openRestoreDefaultsModal() {

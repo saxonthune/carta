@@ -168,7 +168,8 @@ Carta supports two deployment modes determined at build time:
 ### Static Mode (Default for Development)
 - **Purpose**: Single-user offline-first editing (like Excalidraw)
 - **Storage**: IndexedDB only (persistent local state)
-- **URL**: No document parameter needed
+- **URL**: `?doc=` param set automatically via history.replaceState (no redirect)
+- **First visit**: Auto-creates document with starter content (3 connected Notes), no DocumentBrowserModal
 - **UI**: Share button and connection status are hidden
 - **Use case**: Personal use, demos, development
 
@@ -265,7 +266,8 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 | `packages/web-client/src/components/canvas/lod/useLodBand.ts` | Hook that returns discrete LOD band based on current zoom level |
 | `packages/web-client/src/components/ui/ContextMenu.tsx` | Shared context menu for canvas right-click; view-specific options (Map shows node ops, Metamap shows schema ops) |
 | `packages/web-client/src/utils/examples.ts` | Utility to load bundled example .carta files |
-| `packages/web-client/src/main.tsx` | Entry point, configures staticMode from VITE_STATIC_MODE env var |
+| `packages/web-client/src/main.tsx` | Entry point: resolves documentId (migration, last-opened, or auto-create), updates URL via history.replaceState, renders DocumentProvider |
+| `packages/web-client/src/utils/starterContent.ts` | Seeds starter graph (3 Note nodes, 2 edges) on first document initialization |
 | `packages/web-client/src/components/ui/icons.tsx` | Shared icon components: PinIcon, WindowIcon, CloseIcon, ExpandIcon, CollapseIcon |
 | `packages/web-client/src/components/ui/DraggableWindow.tsx` | Draggable, pinnable window component for full view modal (no backdrop, island UX) |
 | `packages/web-client/src/components/modals/ConstructFullViewModal.tsx` | Full view window displaying all node information: fields, deployable, identity, connections, compile preview |
@@ -380,7 +382,7 @@ packages/web-client/src/constructs/schemas/built-ins.ts                → Defau
 packages/web-client/src/contexts/DocumentContext.tsx           → Document provider lifecycle, mode detection
 packages/web-client/src/stores/adapters/yjsAdapter.ts          → Yjs adapter implementation, WebSocket connection
 packages/web-client/src/hooks/useUndoRedo.ts                   → Y.UndoManager configuration
-packages/web-client/src/main.tsx                               → VITE_STATIC_MODE flag (determines UI visibility)
+packages/web-client/src/main.tsx                               → Boot logic: document resolution, auto-create (local mode), history.replaceState
 packages/web-client/src/components/modals/DocumentBrowserModal.tsx    → Document browser/selector for server mode
 packages/web-client/src/components/ConnectionStatus.tsx        → Connection status indicator
 ```
@@ -479,6 +481,10 @@ When modifying constructs or connections:
 - [ ] Accent bars on nodes are 2px softened (color-mixed at 70%) and respect rounded corners
 
 **Static mode** (VITE_STATIC_MODE=true):
+- [ ] First visit auto-creates document with starter content (no DocumentBrowserModal)
+- [ ] Starter content has nodes and edges on canvas
+- [ ] URL gets `?doc=` param via history.replaceState (no page reload)
+- [ ] Returning visit reopens last document
 - [ ] Share button is hidden
 - [ ] Connection status indicator is hidden
 - [ ] Single document persisted to IndexedDB
