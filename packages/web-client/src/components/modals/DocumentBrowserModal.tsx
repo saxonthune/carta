@@ -2,14 +2,12 @@ import { useState, useEffect, useCallback } from 'react';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import { config } from '../../config/featureFlags';
-import { listLocalDocuments, createDocument, deleteDocument } from '../../stores/documentRegistry';
 
 interface DocumentSummary {
   id: string;
   title: string;
   updatedAt: string;
   nodeCount: number;
-  source: 'local' | 'server';
 }
 
 interface DocumentBrowserModalProps {
@@ -29,52 +27,23 @@ export default function DocumentBrowserModal({ onClose, required = false }: Docu
     setLoading(true);
     setError(null);
 
-    const results: DocumentSummary[] = [];
-
     try {
-      // Fetch local documents
-      if (config.localEnabled) {
-        const localDocs = await listLocalDocuments();
-        for (const doc of localDocs) {
-          results.push({
-            id: doc.id,
-            title: doc.title,
-            updatedAt: doc.updatedAt,
-            nodeCount: doc.nodeCount,
-            source: 'local',
-          });
-        }
+      const response = await fetch(`${config.serverUrl}/api/documents`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch documents: ${response.statusText}`);
       }
+      const data = await response.json();
+      const results: DocumentSummary[] = (data.documents || []).map((doc: DocumentSummary) => ({
+        id: doc.id,
+        title: doc.title,
+        updatedAt: doc.updatedAt,
+        nodeCount: doc.nodeCount,
+      }));
 
-      // Fetch server documents
-      if (config.serverEnabled) {
-        try {
-          const response = await fetch(`${config.serverUrl}/api/documents`);
-          if (response.ok) {
-            const data = await response.json();
-            for (const doc of data.documents || []) {
-              results.push({
-                id: doc.id,
-                title: doc.title,
-                updatedAt: doc.updatedAt,
-                nodeCount: doc.nodeCount,
-                source: 'server',
-              });
-            }
-          }
-        } catch {
-          // Server not reachable — show local docs only if available
-          if (!config.localEnabled) {
-            setError('Failed to connect to server');
-          }
-        }
-      }
-
-      // Sort merged list by updatedAt descending
       results.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
       setDocuments(results);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load documents');
+      setError(err instanceof Error ? err.message : 'Failed to connect to server');
     } finally {
       setLoading(false);
     }
@@ -84,21 +53,7 @@ export default function DocumentBrowserModal({ onClose, required = false }: Docu
     fetchDocuments();
   }, [fetchDocuments]);
 
-  const handleCreateLocal = async () => {
-    const titleToUse = newTitle.trim() || (required ? 'Untitled Project' : '');
-    if (!titleToUse && !required) return;
-
-    setCreating(true);
-    try {
-      const id = await createDocument(titleToUse || 'Untitled Project');
-      handleSelect(id);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create document');
-      setCreating(false);
-    }
-  };
-
-  const handleCreateServer = async () => {
+  const handleCreate = async () => {
     const titleToUse = newTitle.trim() || (required ? 'Untitled Project' : '');
     if (!titleToUse && !required) return;
 
@@ -117,26 +72,6 @@ export default function DocumentBrowserModal({ onClose, required = false }: Docu
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create document');
       setCreating(false);
-    }
-  };
-
-  const handleCreate = () => {
-    if (config.localEnabled && !config.serverEnabled) {
-      handleCreateLocal();
-    } else if (config.serverEnabled && !config.localEnabled) {
-      handleCreateServer();
-    } else {
-      // Both enabled — default to local
-      handleCreateLocal();
-    }
-  };
-
-  const handleDeleteLocal = async (id: string) => {
-    try {
-      await deleteDocument(id);
-      setDocuments(prev => prev.filter(d => d.id !== id));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete document');
     }
   };
 
@@ -190,32 +125,13 @@ export default function DocumentBrowserModal({ onClose, required = false }: Docu
             }}
             disabled={creating}
           />
-          {config.localEnabled && config.serverEnabled ? (
-            <>
-              <Button
-                variant="primary"
-                onClick={handleCreateLocal}
-                disabled={(!newTitle.trim() && !required) || creating}
-              >
-                {creating ? 'Creating...' : 'New Local'}
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={handleCreateServer}
-                disabled={(!newTitle.trim() && !required) || creating}
-              >
-                New Server
-              </Button>
-            </>
-          ) : (
-            <Button
-              variant="primary"
-              onClick={handleCreate}
-              disabled={(!newTitle.trim() && !required) || creating}
-            >
-              {creating ? 'Creating...' : (required ? 'New Document' : 'Create')}
-            </Button>
-          )}
+          <Button
+            variant="primary"
+            onClick={handleCreate}
+            disabled={(!newTitle.trim() && !required) || creating}
+          >
+            {creating ? 'Creating...' : (required ? 'New Document' : 'Create')}
+          </Button>
         </div>
       </div>
 
@@ -238,7 +154,7 @@ export default function DocumentBrowserModal({ onClose, required = false }: Docu
           <div className="divide-y divide-subtle">
             {documents.map((doc) => (
               <div
-                key={`${doc.source}-${doc.id}`}
+                key={doc.id}
                 className="flex items-center hover:bg-surface-alt transition-colors"
               >
                 <button
@@ -257,17 +173,8 @@ export default function DocumentBrowserModal({ onClose, required = false }: Docu
                       <polyline points="14 2 14 8 20 8" />
                     </svg>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-content truncate flex items-center gap-2">
+                      <div className="text-sm font-medium text-content truncate">
                         {doc.title}
-                        {config.localEnabled && config.serverEnabled && (
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-normal ${
-                            doc.source === 'local'
-                              ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
-                              : 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
-                          }`}>
-                            {doc.source === 'local' ? 'Local' : 'Server'}
-                          </span>
-                        )}
                       </div>
                       <div className="text-xs text-content-muted mt-0.5">
                         Updated {formatUpdatedAt(doc.updatedAt)} · {doc.nodeCount} node{doc.nodeCount === 1 ? '' : 's'}
@@ -275,21 +182,6 @@ export default function DocumentBrowserModal({ onClose, required = false }: Docu
                     </div>
                   </div>
                 </button>
-                {doc.source === 'local' && (
-                  <button
-                    className="p-2 mr-2 text-content-muted hover:text-red-500 cursor-pointer border-none bg-transparent transition-colors"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteLocal(doc.id);
-                    }}
-                    title="Delete document"
-                  >
-                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <polyline points="3 6 5 6 21 6" />
-                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                    </svg>
-                  </button>
-                )}
               </div>
             ))}
           </div>

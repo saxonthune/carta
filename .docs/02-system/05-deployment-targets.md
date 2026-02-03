@@ -7,106 +7,149 @@ status: active
 
 ## Unified App Model
 
-Carta has one unified application model. The app always works the same way: documents live in portfolios, users browse and edit documents, collaboration and AI are available. **Build-time feature flags** control which capabilities are enabled for a given deployment — they gate UI and functionality, not architectural branches.
+Carta is one static web application. The same build supports all deployment scenarios — demo sites, personal use, enterprise, SaaS, and desktop. **Build-time configuration** controls which capabilities are pre-wired for a given deployment.
 
-There is no "static mode" vs "server mode" as distinct app concepts. The same codebase supports all deployment scenarios.
+There is no "static mode" vs "server mode." The web client is always a static bundle of HTML/JS/CSS. A server, when present, is a separate backend that the static bundle connects to via REST and WebSocket. Desktop is the same web client loaded in Electron, with an embedded server process.
 
-## Build-Time Feature Flags
+## Build-Time Configuration
 
-| Flag | Values | Default | Controls |
-|------|--------|---------|----------|
-| `STORAGE_BACKENDS` | `local`, `server`, `both` | `both` | Which portfolio/storage providers are available |
-| `AI_MODE` | `none`, `user-key`, `server-proxy`, `both` | `both` | How AI chat is configured |
-| `COLLABORATION` | `enabled`, `disabled` | `enabled` | Whether real-time sync UI is available |
+Two environment variables, set by the **operator** (the person deploying Carta):
 
-These are build configuration settings, not concepts in the app itself. The underlying code is identical — flags just hide UI elements and disable capability paths.
+| Env var | Values | Default | Purpose |
+|---------|--------|---------|---------|
+| `VITE_SERVER_URL` | URL string or absent | absent | Server to connect to. Presence enables server mode. |
+| `VITE_AI_MODE` | `none`, `user-key`, `server-proxy` | `none` | How AI chat gets credentials |
 
-## Data Abstraction
+One runtime-detected property:
 
-Two levels of data organization:
+| Property | Detection | Effect |
+|----------|-----------|--------|
+| `isDesktop` | `window.electronAPI?.isDesktop` | Auto-sets server URL to embedded server |
 
-1. **Portfolio**: A collection of Carta documents. User flows: browsing documents, creating/deleting, permissions and ownership, descriptions and tagging. Portfolios can be backed by IndexedDB (browser), the filesystem (desktop), or a server API.
-2. **Carta (document)**: A scoped mental domain. User edits a map and metamap, manipulating instances, schemas, and ports.
+Everything else is derived:
 
-## Storage Backends
+| Derived property | Logic |
+|------------------|-------|
+| `hasServer` | `!!serverUrl` |
+| `collaboration` | `hasServer` (WebSocket sync requires a server) |
+| `wsUrl` | `serverUrl` with `http` → `ws` |
+| `documentBrowser` | `hasServer` (single-document mode otherwise) |
 
-| Backend | Platform | Persistence | Portfolio Browsing |
-|---------|----------|------------|-------------------|
-| IndexedDB | Browser | Local, per-browser | List/create/delete local docs |
-| Filesystem | Desktop (Electron) | Local, binary Y.Doc snapshots | Browse documents in `{userData}/documents/` |
-| Server API | Any | Server database (MongoDB) | REST API for doc management |
+### Why two variables, not three or five
 
-When `STORAGE_BACKENDS=both`, the document browser shows documents from all available backends with labels indicating where each lives. When set to `local` or `server`, only that backend's documents appear.
+`STORAGE_BACKENDS` and `COLLABORATION` were previously independent flags, but they encoded the same underlying decision: **is there a server?** If a server is present, it handles persistence and enables WebSocket sync. If not, IndexedDB is the only option and collaboration is impossible. The `both` value for storage backends was a developer convenience that leaked complexity into the product model.
+
+The simplified model: if `VITE_SERVER_URL` is set (or desktop auto-detects its embedded server), you have server storage and collaboration. If not, you don't.
+
+`AI_MODE` remains independent because it genuinely varies separately — desktop has a server but uses `user-key`; enterprise has a server and uses `server-proxy`.
+
+## Document Sources
+
+A **document source** is where documents live. The app supports three source types:
+
+| Source | Platform | Persistence | Document listing |
+|--------|----------|------------|-----------------|
+| **Browser** | Any web browser | IndexedDB | Local registry in IndexedDB |
+| **Server** | Any (requires server URL) | Server database | REST API `GET /api/documents` |
+| **Folder** | Desktop (Electron) or Chromium (File System Access API) | Filesystem `.carta` files | Directory listing |
+
+### Source availability by deployment
+
+| Deployment | Browser source | Server source | Folder source |
+|------------|---------------|---------------|---------------|
+| Demo site | Yes (single document) | No | No |
+| Solo browser user | Yes (single document) | No | No |
+| Enterprise web | No | Yes | No |
+| SaaS web | No | Yes | No |
+| Desktop (standalone) | No | Yes (embedded) | Yes |
+| Desktop (connected) | No | Yes (remote + embedded) | Yes |
+
+### Demo site / solo browser: single-document mode
+
+When no server URL is configured and the app runs in a browser, it operates in **single-document mode** — like Excalidraw. One document auto-created in IndexedDB, no document browser, no multi-document management. The user edits directly.
+
+### Server-connected: multi-document mode
+
+When a server URL is present, the **document browser** is available. Users can list, create, and select documents. The server is the source of truth. IndexedDB may cache the Y.Doc locally for faster loads, but this is an implementation detail — not a user-facing "local storage" option.
+
+## Storage Hosts
+
+A **storage host** is the operator running a Carta server — an enterprise IT department, a SaaS provider, or the embedded server in the desktop app. The storage host controls:
+
+- Where documents are persisted (MongoDB, DynamoDB, S3, filesystem, etc.)
+- How documents are organized (folders, tags, projects — via metadata on documents)
+- Who can access what (auth, permissions — integration surfaces)
+- AI access (API keys, metering, rate limits)
+
+Carta's contract with storage hosts is minimal: "give me documents with optional grouping metadata." The host maps that to their infrastructure. For example, a SaaS provider might use DynamoDB with a `folder` metadata field that the document browser renders as a tree view.
+
+Document grouping (folders, projects, tags) is **document metadata managed by the storage host**, not a first-class concept in Carta's domain model.
 
 ## AI Access Modes
 
 | Mode | API Key Source | Request Path | Use Case |
 |------|---------------|-------------|----------|
 | `none` | — | — | Demo builds, no AI |
-| `user-key` | User provides key | Client → AI provider directly | Solo users, personal use |
+| `user-key` | User provides key | Client → AI provider directly | Solo users, desktop app |
 | `server-proxy` | Server configured | Client → server → AI provider | Enterprise, SaaS (metered) |
-| `both` | Either | Both paths available | Full-featured builds |
 
 ## MCP Access
 
 | Platform | Local MCP | Remote MCP |
 |----------|-----------|------------|
 | Browser | No (cannot run server process) | Yes (if server available) |
-| Desktop | Yes (embedded server + auto-discovery via `server.json`) | Yes (if server available) |
+| Desktop | Yes (always — reads local Y.Doc replica) | Yes (if connected to remote server) |
 
-Local MCP reads the local Yjs document (synced via CRDT). Remote MCP reads the server's copy via REST API. Both return the same data in practice — Yjs guarantees convergence.
+### Desktop MCP architecture
+
+The desktop app separates two concerns that were previously conflated in the embedded server:
+
+1. **MCP server** (always runs locally): Reads the currently-open Y.Doc in memory. Works regardless of where the document came from — local folder or remote server. Provides zero-latency AI tool access.
+
+2. **Document server** (source-dependent): Either the embedded local server (for folder sources) or the remote server (when connected to a storage host). Handles persistence and collaboration sync.
+
+```
+Claude Desktop ──stdio──▶ MCP binary ──HTTP──▶ Local MCP Server
+                                                    │
+                                              reads Y.Doc in memory
+                                                    │
+                                          ┌─────────┴─────────┐
+                                          │                    │
+                                    Folder source         Remote server
+                                    (embedded server,     (WebSocket sync,
+                                     filesystem I/O)       server is SoT)
+```
+
+This means an enterprise user can work with server-hosted documents while their local Claude Desktop gets fast MCP access to the locally-synced Y.Doc — no round-trip to the server for AI tool reads.
+
+**MCP auto-discovery:** The MCP server writes `server.json` to `{userData}/` containing its URL and PID. The MCP stdio binary reads this file automatically, enabling zero-config integration with Claude Desktop.
 
 ## Deployment Scenarios
 
-| Scenario | `STORAGE_BACKENDS` | `AI_MODE` | `COLLABORATION` | Details |
-|----------|--------------------|-----------|-----------------|---------|
-| Demo site | `local` | `none` | `disabled` | Simplest deployment, no server needed |
-| Personal use | `local` | `user-key` | `disabled` | Solo user, own API key |
-| Enterprise | `server` | `server-proxy` | `enabled` | All docs on server, managed AI |
-| SaaS provider | `server` | `server-proxy` | `enabled` | Multi-tenant, metered AI |
-| Full (development) | `both` | `both` | `enabled` | Everything available |
+| Scenario | `VITE_SERVER_URL` | `VITE_AI_MODE` | `isDesktop` | Behavior |
+|----------|-------------------|----------------|-------------|----------|
+| Demo site | absent | `none` | false | Single document, browser-only, no AI |
+| Solo browser | absent | `user-key` | false | Single document, browser-only, user provides API key |
+| Desktop (standalone) | auto (embedded) | `user-key` | true | Multi-document, folder + embedded server, local MCP |
+| Desktop (connected) | remote URL | `user-key` | true | Multi-document, remote server + folder + local MCP |
+| Enterprise | `https://carta.internal` | `server-proxy` | false | Multi-document, server storage, managed AI |
+| SaaS | `https://api.carta.io` | `server-proxy` | false | Multi-document, server storage, metered AI |
 
 See doc03.02.03 (Enterprise), doc03.02.04 (Solo User), doc03.02.05 (SaaS Provider) for detailed use case scenarios.
 
-### Desktop Mode
-
-The Electron desktop app runs an **embedded document server** in the main process — a lightweight HTTP + WebSocket server that provides the same REST API as the collab-server. The renderer connects via WebSocket, and the MCP binary connects via HTTP.
-
-**Architecture:**
-```
-Claude Desktop ──stdio──▶ MCP binary ──HTTP──▶ Embedded Server ◀──WebSocket──▶ Renderer
-                          (child proc)         (Electron main)                 (BrowserWindow)
-                                                    │
-                                               ┌────┴────┐
-                                               │ Disk I/O │
-                                               │ .ydoc    │
-                                               │ files    │
-                                               └─────────┘
-```
-
-**Persistence:** Binary Y.Doc snapshots in `{userData}/documents/` with a `registry.json` metadata index. Debounced saves (~2s), flush on app quit.
-
-**MCP auto-discovery:** The embedded server writes `server.json` to `{userData}/` containing the server URL and PID. The MCP stdio binary reads this file automatically when `CARTA_COLLAB_API_URL` is not set, enabling zero-config MCP when Carta Desktop is running.
-
 ## Preferences
 
-App preferences (last portfolio, last document, UI settings) are stored via an abstract `PreferencesProvider` interface:
-
-| Platform | Implementation |
-|----------|---------------|
-| Browser | localStorage |
-| Desktop | Filesystem (user config directory) |
-
-The app remembers the most recent portfolio and document, and opens them automatically on launch.
+App preferences (last document, UI settings) are stored via localStorage in the browser and filesystem in the desktop app. The app remembers the most recent document and reopens it on launch.
 
 ## Integration Surface
 
 Carta is the **editing platform**. The following concerns are integration surfaces — not built-in features:
 
 - **Authentication**: Enterprise SSO, OAuth, provider accounts — external to Carta
-- **Authorization**: Document/portfolio permissions — Carta provides hooks, consumers implement policy
+- **Authorization**: Document permissions — Carta provides hooks, consumers implement policy
 - **Billing/metering**: Token counting, subscription tiers — provider wraps AI endpoint
 - **User management**: Accounts, profiles, teams — external to Carta
+- **Document organization**: Folders, tags, projects — metadata managed by the storage host
 
 This boundary keeps the core focused and lets different consumers (enterprise, SaaS, solo) build on top without bloating the platform.
 

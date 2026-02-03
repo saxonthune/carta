@@ -27,7 +27,7 @@ JSON output structured for AI consumption:
 
 Carta exposes an MCP (Model Context Protocol) server for AI tool integration. Tools include document CRUD, construct CRUD, connection management, schema operations, and compilation.
 
-In desktop mode, the MCP binary auto-discovers the embedded server via `{userData}/server.json` (contains URL and PID). This enables zero-config MCP when Carta Desktop is running. The same MCP binary can also connect to remote servers via the `CARTA_COLLAB_API_URL` environment variable.
+In desktop mode, the local MCP server auto-discovers via `{userData}/server.json` (contains URL and PID). This enables zero-config MCP when Carta Desktop is running. The MCP server reads the locally-synced Y.Doc, providing fast access regardless of whether the document source is local or remote. The same MCP binary can also connect to remote servers via the `CARTA_COLLAB_API_URL` environment variable.
 
 ## WebSocket Protocol
 

@@ -5,27 +5,31 @@ status: active
 
 # Collaboration
 
-Carta supports two hosting modes that determine collaboration capabilities.
+Carta supports real-time collaboration when connected to a server. Collaboration is derived from the presence of a server URL — there is no independent collaboration toggle.
 
-## Static Mode
+## Single-Document Mode (No Server)
 
-Single-user offline-first editing. Default for development (`npm run dev`).
-- Storage: IndexedDB only
-- No server connection
+When no `VITE_SERVER_URL` is configured and the app runs in a browser:
+- One document auto-created in IndexedDB
+- No document browser, no multi-document management
+- No WebSocket connection
 - Share button and connection status hidden
-- Single document persisted locally
+- Works like Excalidraw — user edits a single document directly
 
-## Server Mode
+## Multi-Document Mode (Server Present)
 
-Multi-user real-time collaboration (`npm run dev:client` with `npm run server`).
-- Storage: MongoDB (server) with IndexedDB cache (client)
+When a server URL is configured (or desktop auto-detects its embedded server):
+- Storage: server database with optional IndexedDB cache
 - WebSocket sync via y-websocket
 - Yjs CRDT handles conflict resolution automatically
 - URL-based document routing: `?doc={documentId}`
+- Document browser available for listing, creating, and selecting documents
 
 ### Document Browser
 
-In server mode, when no `?doc=` parameter is present, a Document Browser Modal appears in required mode (cannot be dismissed). Users must select an existing document or create a new one. Creating without a title defaults to "Untitled Project."
+When no `?doc=` parameter is present and a server is available, the Document Browser appears in required mode (cannot be dismissed). Users must select an existing document or create a new one.
+
+The document browser renders whatever grouping metadata the server provides (folders, tags, projects). This organization is managed by the storage host, not Carta.
 
 ### Connection Status
 
@@ -37,24 +41,23 @@ Share button copies the document URL to clipboard for sending to collaborators.
 
 ## Desktop Mode
 
-The Electron desktop app runs an embedded document server in the main process. The renderer connects via WebSocket for real-time sync, identical to server mode but without requiring an external server.
+The Electron desktop app separates two server concerns:
 
-### Embedded Server
+### Local MCP Server (always runs)
 
-- HTTP + WebSocket server on `127.0.0.1` (default port 51234, random fallback)
-- Same REST API as the collab-server (constructs, connections, schemas, deployables, compile)
-- Yjs sync protocol over WebSocket
-- Persistence: binary Y.Doc snapshots in `{userData}/documents/`
+Reads the currently-open Y.Doc in memory. Provides zero-latency AI tool access regardless of where the document came from (local folder or remote server). Auto-discovered via `server.json` in `{userData}/`.
 
-### MCP Integration
+### Document Server (source-dependent)
 
-The embedded server writes `server.json` to `{userData}/` for MCP auto-discovery. The MCP binary reads this file when `CARTA_COLLAB_API_URL` is not set, enabling zero-config integration with Claude Desktop.
+- **Standalone**: Embedded HTTP + WebSocket server on `127.0.0.1`. Persists binary Y.Doc snapshots in `{userData}/documents/`.
+- **Connected**: Remote server handles persistence and collaboration. The desktop app syncs via WebSocket, and the local Y.Doc replica stays in sync via Yjs CRDT.
 
-Users can copy the MCP configuration snippet from Settings > Copy MCP Config.
+This separation means an enterprise user gets fast local MCP while their documents live on the company server.
 
-### Desktop Feature Flags
+### Desktop Feature Detection
 
-In desktop mode, feature flags are auto-configured:
-- `STORAGE_BACKENDS` = `server` (embedded server handles persistence)
-- `COLLABORATION` = `enabled` (WebSocket sync to embedded server)
-- IndexedDB persistence is skipped (no y-indexeddb in desktop mode)
+Desktop mode is runtime-detected via `window.electronAPI?.isDesktop`. When detected:
+- Server URL auto-set to embedded server (or remote if configured)
+- Collaboration enabled (WebSocket sync)
+- IndexedDB persistence skipped (server handles persistence)
+- Local MCP server started

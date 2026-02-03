@@ -36,33 +36,33 @@ function getDesktopWsUrl(): string | null {
 }
 
 /**
- * Feature flags replacing the old VITE_STATIC_MODE boolean.
+ * Simplified configuration: 2 env vars + 1 detected.
  *
  * Env vars:
- *   VITE_STORAGE_BACKENDS  — 'local' | 'server' | 'both' (default: 'local')
- *   VITE_AI_MODE           — 'none' | 'user-key' | 'server-proxy' | 'both' (default: 'none')
- *   VITE_COLLABORATION     — 'enabled' | 'disabled' (default: 'disabled')
- *   VITE_CARTA_API_URL     — server base URL (default: 'http://localhost:1234')
+ *   VITE_SERVER_URL  — Server URL. Presence = server mode (collaboration, multi-document).
+ *   VITE_AI_MODE     — 'none' | 'user-key' | 'server-proxy' (default: 'none')
  *
- * Desktop mode overrides:
- *   When running in Electron, collaboration and server mode are auto-enabled,
- *   and the server URL points to the embedded server.
+ * Detected:
+ *   isDesktop — true when running in Electron
+ *
+ * Everything else is derived.
  */
 export const config = {
-  storageBackends: (isDesktop ? 'server' : (import.meta.env.VITE_STORAGE_BACKENDS || 'local')) as 'local' | 'server' | 'both',
-  aiMode: (import.meta.env.VITE_AI_MODE || 'none') as 'none' | 'user-key' | 'server-proxy' | 'both',
-  collaboration: isDesktop || import.meta.env.VITE_COLLABORATION === 'enabled',
-  serverUrl: (isDesktop ? (getDesktopServerUrl() || 'http://127.0.0.1:51234') : (import.meta.env.VITE_CARTA_API_URL || 'http://localhost:1234')),
+  serverUrl: isDesktop
+    ? (getDesktopServerUrl() || 'http://127.0.0.1:51234')
+    : (import.meta.env.VITE_SERVER_URL || null) as string | null,
+  aiMode: (import.meta.env.VITE_AI_MODE || 'none') as 'none' | 'user-key' | 'server-proxy',
   isDesktop,
 
+  /** Whether a server is configured (enables collaboration, multi-document mode) */
+  get hasServer(): boolean { return !!this.serverUrl; },
+
   /** WebSocket URL for the server (derived from serverUrl or desktop params) */
-  get wsUrl(): string {
+  get wsUrl(): string | null {
+    if (!this.serverUrl) return null;
     if (isDesktop) {
       return getDesktopWsUrl() || this.serverUrl.replace('http', 'ws');
     }
     return this.serverUrl.replace('http', 'ws');
   },
-
-  get localEnabled() { return this.storageBackends === 'local' || this.storageBackends === 'both'; },
-  get serverEnabled() { return this.storageBackends === 'server' || this.storageBackends === 'both'; },
 };

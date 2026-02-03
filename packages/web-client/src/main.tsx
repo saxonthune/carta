@@ -19,7 +19,7 @@ async function boot() {
     documentId = migratedId || lastDocId;
 
     // In local mode with no existing document, auto-create one (NUX: no modal gate)
-    if (!documentId && config.localEnabled && !config.serverEnabled) {
+    if (!documentId && !config.hasServer) {
       documentId = await createDocument('Untitled Project');
     }
 

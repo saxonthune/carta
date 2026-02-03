@@ -161,43 +161,45 @@ Implemented packages: `@carta/types`, `@carta/domain`, `@carta/document`, `@cart
 └─────────────────────────────────────────────────────────────┘
 ```
 
-## Hosting Modes
+## Deployment Configuration
 
-Carta supports two deployment modes determined at build time:
+Carta is one static web app. Two env vars control deployment behavior (see doc02.05):
 
-### Static Mode (Default for Development)
+| Env var | Values | Default | Purpose |
+|---------|--------|---------|---------|
+| `VITE_SERVER_URL` | URL string or absent | absent | Server to connect to. Presence = server mode. |
+| `VITE_AI_MODE` | `none`, `user-key`, `server-proxy` | `none` | How AI chat gets credentials |
+
+Desktop mode is runtime-detected via `window.electronAPI?.isDesktop` and auto-sets server URL.
+
+**Derived:** `hasServer` = `!!serverUrl`, `collaboration` = `hasServer`, `wsUrl` = serverUrl with http→ws.
+
+### Single-Document Mode (No Server)
 - **Purpose**: Single-user offline-first editing (like Excalidraw)
-- **Storage**: IndexedDB only (persistent local state)
-- **URL**: `?doc=` param set automatically via history.replaceState (no redirect)
-- **First visit**: Auto-creates document with starter content (3 connected Notes), no DocumentBrowserModal
-- **UI**: Share button and connection status are hidden
-- **Use case**: Personal use, demos, development
+- **Storage**: IndexedDB only
+- **First visit**: Auto-creates document with starter content, no document browser
+- **UI**: Share button and connection status hidden
 
 ```bash
-pnpm dev          # Static mode (VITE_STATIC_MODE=true)
+pnpm dev          # No server URL → single-document mode
 ```
 
-### Server Mode
+### Multi-Document Mode (Server Present)
 - **Purpose**: Multi-user collaboration with server-stored documents
-- **Storage**: Server database (MongoDB) with IndexedDB caching
-- **URL**: Requires `?doc={documentId}` parameter
-- **UI**: Share button, connection status, document browser
-- **Behavior**: Without `?doc=` param, user must select/create a document
-- **Use case**: Team collaboration, shared projects
+- **Storage**: Server database with optional IndexedDB cache
+- **UI**: Document browser, share button, connection status
+- **Behavior**: Without `?doc=` param, document browser appears (required mode)
 
 ```bash
 pnpm server       # Start MongoDB + collab server
-pnpm dev:client   # Start client in server mode
+pnpm dev:client   # Start client with VITE_SERVER_URL set
 ```
 
-Visit `http://localhost:5173/?doc=my-document-id` to open a specific document.
-
 ### Desktop Mode
-- **Purpose**: Desktop app with embedded server, MCP integration
+- **Purpose**: Desktop app with embedded server + local MCP
 - **Storage**: Filesystem (binary Y.Doc snapshots in `{userData}/documents/`)
-- **Architecture**: Embedded HTTP+WebSocket server in Electron main process
-- **MCP**: Auto-discovered via `server.json`, zero-config with Claude Desktop
-- **UI**: Settings > Copy MCP Config for Claude Desktop integration
+- **MCP**: Local MCP server reads Y.Doc in memory (works with any document source)
+- **Architecture**: MCP server is separate from document server — MCP always reads local Y.Doc replica
 
 ```bash
 cd packages/desktop
@@ -299,8 +301,8 @@ When evaluating changes, ask: Does this expand capability without confusion? Doe
 - **Adapter interface**: All state operations go through DocumentAdapter methods
 - Yjs auto-syncs to IndexedDB via y-indexeddb provider
 - Undo/redo uses Y.UndoManager (local per-user, not shared)
-- **Server mode**: Optional WebSocket provider for real-time collaboration
-- **Static mode**: No server connection, single document in IndexedDB
+- **Server present**: WebSocket provider for real-time collaboration
+- **No server**: Single document in IndexedDB, no collaboration
 - **No singleton registries**: Schema and deployable data accessed through adapter, not global imports
 
 ### Port & Connection Model
@@ -377,21 +379,22 @@ packages/web-client/src/stores/adapters/yjsAdapter.ts                  → Port 
 packages/web-client/src/constructs/schemas/built-ins.ts                → Default port schema definitions
 ```
 
-### Modify collaboration behavior (server mode)
+### Modify collaboration behavior
 ```
 packages/web-client/src/contexts/DocumentContext.tsx           → Document provider lifecycle, mode detection
 packages/web-client/src/stores/adapters/yjsAdapter.ts          → Yjs adapter implementation, WebSocket connection
 packages/web-client/src/hooks/useUndoRedo.ts                   → Y.UndoManager configuration
-packages/web-client/src/main.tsx                               → Boot logic: document resolution, auto-create (local mode), history.replaceState
-packages/web-client/src/components/modals/DocumentBrowserModal.tsx    → Document browser/selector for server mode
+packages/web-client/src/main.tsx                               → Boot logic: document resolution, auto-create (no server), history.replaceState
+packages/web-client/src/components/modals/DocumentBrowserModal.tsx    → Document browser/selector (server mode, required when no ?doc=)
 packages/web-client/src/components/ConnectionStatus.tsx        → Connection status indicator
+packages/web-client/src/config/featureFlags.ts                 → Deployment config: VITE_SERVER_URL, VITE_AI_MODE, isDesktop detection
 ```
 
-### Modify desktop embedded server
+### Modify desktop app
 ```
-packages/desktop/src/main/server.ts                → HTTP routes, WebSocket sync, filesystem persistence
+packages/desktop/src/main/server.ts                → Embedded document server: HTTP routes, WebSocket sync, filesystem persistence
 packages/desktop/src/main/index.ts                 → Server lifecycle, IPC handlers, MCP config
-packages/desktop/src/preload/index.ts              → Desktop API exposed to renderer
+packages/desktop/src/preload/index.ts              → Desktop API exposed to renderer (isDesktop, server info, MCP config)
 packages/web-client/src/config/featureFlags.ts     → Desktop mode detection and auto-configuration
 ```
 
@@ -480,8 +483,8 @@ When modifying constructs or connections:
 - [ ] Schema group nodes use subtle solid borders instead of dashed
 - [ ] Accent bars on nodes are 2px softened (color-mixed at 70%) and respect rounded corners
 
-**Static mode** (VITE_STATIC_MODE=true):
-- [ ] First visit auto-creates document with starter content (no DocumentBrowserModal)
+**Single-document mode** (no `VITE_SERVER_URL`):
+- [ ] First visit auto-creates document with starter content (no document browser)
 - [ ] Starter content has nodes and edges on canvas
 - [ ] URL gets `?doc=` param via history.replaceState (no page reload)
 - [ ] Returning visit reopens last document
@@ -489,7 +492,7 @@ When modifying constructs or connections:
 - [ ] Connection status indicator is hidden
 - [ ] Single document persisted to IndexedDB
 
-**Server mode** (VITE_STATIC_MODE=false):
+**Multi-document mode** (`VITE_SERVER_URL` set):
 - [ ] WebSocket collaboration syncs changes between clients
 - [ ] Share button visible in header
 - [ ] Connection status indicator shows sync state

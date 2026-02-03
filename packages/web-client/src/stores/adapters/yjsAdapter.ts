@@ -244,16 +244,69 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       // Set up IndexedDB persistence (unless skipped for testing)
       if (!options.skipPersistence) {
         const dbName = roomId ? `carta-doc-${roomId}` : 'carta-local';
-        indexeddbProvider = new IndexeddbPersistence(dbName, ydoc);
+        const SYNC_TIMEOUT_MS = 10_000;
 
-        // Wait for initial sync
-        await new Promise<void>((resolve) => {
-          if (indexeddbProvider!.synced) {
-            resolve();
-          } else {
-            indexeddbProvider!.on('synced', () => resolve());
+        const createAndSync = () => {
+          const provider = new IndexeddbPersistence(dbName, ydoc);
+          const syncPromise = new Promise<void>((resolve, reject) => {
+            if (provider.synced) {
+              resolve();
+              return;
+            }
+            const timeout = setTimeout(() => {
+              reject(new Error(`IndexedDB sync timed out for "${dbName}"`));
+            }, SYNC_TIMEOUT_MS);
+            provider.on('synced', () => {
+              clearTimeout(timeout);
+              resolve();
+            });
+          });
+          return { provider, syncPromise };
+        };
+
+        const deleteDB = () =>
+          new Promise<void>((resolve) => {
+            const req = indexedDB.deleteDatabase(dbName);
+            req.onsuccess = () => resolve();
+            req.onerror = () => resolve(); // best-effort
+            req.onblocked = () => resolve();
+          });
+
+        // y-indexeddb has fire-and-forget internal promises that surface as
+        // unhandled rejections when the DB is corrupt. Capture them so we can
+        // detect corruption and suppress console noise.
+        let idbError: DOMException | null = null;
+        const handleRejection = (e: PromiseRejectionEvent) => {
+          if (e.reason instanceof DOMException) {
+            idbError = e.reason as DOMException;
+            e.preventDefault();
           }
-        });
+        };
+        window.addEventListener('unhandledrejection', handleRejection);
+
+        try {
+          const { provider, syncPromise } = createAndSync();
+          indexeddbProvider = provider;
+          await syncPromise;
+        } catch {
+          // Sync timed out — likely corrupt DB (synced event never fired)
+          console.warn(`IndexedDB sync failed for "${dbName}", clearing and retrying`);
+          if (indexeddbProvider) {
+            (indexeddbProvider as any)._destroyed = true;
+            try { indexeddbProvider.doc.off('update', (indexeddbProvider as any)._storeUpdate); } catch { /* noop */ }
+          }
+          await deleteDB();
+          const { provider, syncPromise } = createAndSync();
+          indexeddbProvider = provider;
+          await syncPromise;
+        } finally {
+          window.removeEventListener('unhandledrejection', handleRejection);
+          // TS narrows idbError to 'never' because assignment happens in event handler
+          const capturedError = idbError as DOMException | null;
+          if (capturedError) {
+            console.warn('Recovered from IndexedDB corruption:', capturedError.message);
+          }
+        }
       }
 
       // Initialize defaults after loading from IndexedDB

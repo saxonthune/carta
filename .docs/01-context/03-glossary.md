@@ -45,8 +45,6 @@ Canonical definitions for domain terms used throughout Carta. Use these terms co
 
 ## Organization
 
-**Portfolio**: A collection of Carta documents. Represents a user's mental grouping of related projects. Portfolios can be backed by IndexedDB (browser), the filesystem (desktop), or a server API. The app always supports portfolio browsing regardless of deployment configuration. See doc02.05 for deployment details.
-
 **Deployable**: A logical grouping for constructs representing a deployment unit (e.g., API Service, Database Layer, UI Application). Helps AI tools understand which components should be deployed together.
 
 **Schema Group**: A grouping of construct schemas for organizational purposes. Shown in context menus and the schema wizard.
@@ -65,10 +63,12 @@ Canonical definitions for domain terms used throughout Carta. Use these terms co
 
 **Document Adapter**: The interface through which all state operations are performed. The Yjs adapter is the current implementation.
 
+**Document Source**: Where documents are persisted and listed. Three source types: **browser** (IndexedDB), **server** (REST API + WebSocket), **folder** (filesystem). Available sources depend on the platform and deployment configuration. See doc02.05.
+
+**Storage Host**: The operator running a Carta server — an enterprise IT department, a SaaS provider, or the embedded server in the desktop app. Controls persistence, document organization (via metadata), authentication, and AI access. Carta's contract with storage hosts is minimal: "give me documents with optional grouping metadata." See doc02.05.
+
 **Compilation**: The process of transforming visual canvas state into AI-readable structured output (currently JSON format).
 
-**Feature Flags**: Build-time configuration that controls which capabilities are available in a deployment. Flags include `STORAGE_BACKENDS`, `AI_MODE`, and `COLLABORATION`. These are build settings, not architectural concepts — the underlying app model is always the same. See doc02.05.
+**Configuration**: Two build-time environment variables set by the operator: `VITE_SERVER_URL` (server to connect to; absent = single-document browser mode) and `VITE_AI_MODE` (how AI chat gets credentials: `none`, `user-key`, `server-proxy`). Desktop mode is runtime-detected via Electron API. All other behavior (collaboration, document browser, WebSocket sync) is derived from whether a server URL is present. See doc02.05.
 
-**Integration Surface**: A concern that Carta exposes hooks for but does not implement. Authentication, authorization policy, billing, and user management are integration surfaces — consumers (enterprise, SaaS providers) build these on top of Carta's editing platform.
-
-**Preferences Provider**: Abstract interface for storing app preferences (last portfolio, last document, UI settings). Implemented as localStorage in browser, filesystem in desktop app.
+**Integration Surface**: A concern that Carta exposes hooks for but does not implement. Authentication, authorization policy, billing, user management, and document organization are integration surfaces — consumers (enterprise, SaaS providers) build these on top of Carta's editing platform.

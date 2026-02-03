@@ -15,8 +15,7 @@ export interface DocumentContextValue {
   documentId: string;
   isReady: boolean;
   ydoc: Y.Doc;
-  collaborationEnabled: boolean;
-  storageBackends: 'local' | 'server' | 'both';
+  hasServer: boolean;
 }
 
 const DocumentContext = createContext<DocumentContextValue | null>(null);
@@ -49,13 +48,14 @@ export interface DocumentProviderProps {
 export function DocumentProvider({
   children,
   documentId,
-  serverUrl = config.wsUrl,
+  serverUrl = config.wsUrl ?? undefined,
   skipPersistence = false,
 }: DocumentProviderProps) {
   const [adapter, setAdapter] = useState<DocumentAdapter | null>(null);
   const [mode, setMode] = useState<'local' | 'shared'>('local');
   const [isReady, setIsReady] = useState(false);
   const [ydoc, setYdoc] = useState<Y.Doc | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Initialize Yjs adapter
   useEffect(() => {
@@ -158,19 +158,24 @@ export function DocumentProvider({
       }
 
       // Connect WebSocket if collaboration is enabled and server is available
-      if (config.collaboration && config.serverEnabled) {
+      if (config.hasServer && serverUrl) {
         await yjsAdapter.connectToRoom(documentId, serverUrl);
       }
 
       if (mounted) {
         setAdapter(yjsAdapter);
         setYdoc(yjsAdapter.ydoc);
-        setMode(config.collaboration && config.serverEnabled ? 'shared' : 'local');
+        setMode(config.hasServer ? 'shared' : 'local');
         setIsReady(true);
       }
     };
 
-    initAdapter().catch(console.error);
+    initAdapter().catch((err) => {
+      console.error('Failed to initialize document:', err);
+      if (mounted) {
+        setError(err instanceof Error ? err.message : 'Failed to initialize document');
+      }
+    });
 
     return () => {
       mounted = false;
@@ -179,6 +184,21 @@ export function DocumentProvider({
       }
     };
   }, [documentId, serverUrl, skipPersistence]);
+
+  if (error) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center bg-surface gap-4">
+        <div className="text-content-muted">Failed to load document</div>
+        <div className="text-sm text-content-muted/60 max-w-md text-center">{error}</div>
+        <button
+          className="px-4 py-2 text-sm rounded-md bg-surface-raised text-content hover:bg-surface-raised/80"
+          onClick={() => window.location.reload()}
+        >
+          Reload
+        </button>
+      </div>
+    );
+  }
 
   if (!adapter || !isReady || !ydoc) {
     return (
@@ -194,8 +214,7 @@ export function DocumentProvider({
     documentId,
     isReady,
     ydoc,
-    collaborationEnabled: config.collaboration,
-    storageBackends: config.storageBackends,
+    hasServer: config.hasServer,
   };
 
   return <DocumentContext.Provider value={value}>{children}</DocumentContext.Provider>;

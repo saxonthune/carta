@@ -1,39 +1,49 @@
 ---
-title: "Unified deployment model with build-time feature flags"
+title: "Simplified deployment configuration"
 status: active
+supersedes: "Unified deployment model with build-time feature flags (original)"
 ---
 
-# Decision 004: Unified Deployment Model with Build-Time Feature Flags
+# Decision 004: Simplified Deployment Configuration
 
 ## Context
 
-Carta previously distinguished between "static mode" (`VITE_STATIC_MODE=true`) and "server mode" as architectural branches. Static mode was a single-document, no-server, no-collaboration experience. Server mode required MongoDB, a collab server, and URL-based document selection. These were treated as fundamentally different app configurations with separate code paths, UI visibility rules, and mental models.
+Carta previously used three independent build-time feature flags:
 
-This created several problems:
+| Flag | Values |
+|------|--------|
+| `STORAGE_BACKENDS` | `local`, `server`, `both` |
+| `AI_MODE` | `none`, `user-key`, `server-proxy`, `both` |
+| `COLLABORATION` | `enabled`, `disabled` |
 
-1. Static mode was artificially limited — single document, no portfolio browsing, no document management
-2. The distinction leaked into the architecture (conditional rendering, mode-specific components)
-3. Three deployment scenarios (enterprise, solo, SaaS) couldn't be cleanly expressed as either "static" or "server"
-4. Adding features required asking "does this work in both modes?" for every change
+This created a 3×4×2 matrix of 24 theoretical combinations, most of which were nonsensical. `STORAGE_BACKENDS` and `COLLABORATION` encoded the same underlying decision — **is there a server?** — with false independence. Having `collaboration=enabled` without a server is meaningless. Having `storageBackends=local` with `collaboration=enabled` is contradictory. The `both` value on storage backends was a developer convenience that leaked complexity into the product model and created a confusing "Local" vs "Server" document list in the browser.
+
+The "portfolio" concept (a collection of documents as a first-class domain object) added further confusion. In practice, document organization is the concern of the storage host (folders, tags, projects as metadata), not Carta's domain model.
 
 ## Decision
 
-Replace the static/server mode distinction with a unified app model controlled by **build-time feature flags**:
+Replace three flags with two environment variables:
 
-| Flag | Values | Controls |
-|------|--------|----------|
-| `STORAGE_BACKENDS` | `local`, `server`, `both` | Available storage providers |
-| `AI_MODE` | `none`, `user-key`, `server-proxy`, `both` | AI chat configuration |
-| `COLLABORATION` | `enabled`, `disabled` | Real-time sync availability |
+| Env var | Values | Default | Purpose |
+|---------|--------|---------|---------|
+| `VITE_SERVER_URL` | URL string or absent | absent | Server to connect to. Presence = server mode. |
+| `VITE_AI_MODE` | `none`, `user-key`, `server-proxy` | `none` | How AI chat gets credentials |
 
-The app itself has one model: documents live in portfolios, users browse and edit them. Flags gate which capabilities are available in the UI — they are build configuration, not concepts in the app.
+Desktop mode (`isDesktop`) is runtime-detected and auto-sets the server URL to the embedded server.
+
+Everything else is derived:
+- `hasServer` = `!!serverUrl`
+- `collaboration` = `hasServer`
+- `wsUrl` = `serverUrl` with `http` → `ws`
+- `documentBrowser` = `hasServer`
+
+Drop the `both` value from AI_MODE. Drop the "portfolio" concept entirely — document grouping is metadata managed by the storage host.
 
 ## Consequences
 
-- `VITE_STATIC_MODE` is removed entirely
-- The app always supports multiple documents and portfolio browsing
-- Local storage (IndexedDB) becomes a first-class portfolio backend, not a "degraded mode"
-- A document can optionally sync to a server — this is a per-document or per-portfolio property
-- The same build can work standalone or connected, depending on configuration
-- Auth, billing, and permissions are integration surfaces — Carta provides hooks, consumers implement policy
-- MCP availability is determined by platform (browser vs desktop), not by mode
+- The app has two modes: **single-document** (no server, browser-only) and **multi-document** (server present, document browser available)
+- `VITE_STATIC_MODE`, `STORAGE_BACKENDS`, and `COLLABORATION` are all removed
+- No "portfolio" in the domain model — document organization is the storage host's concern
+- Desktop MCP server is separated from document server — MCP always reads local Y.Doc replica regardless of document source
+- The same web build can work standalone or connected, depending on whether a server URL is configured
+- Auth, billing, permissions, and document organization remain integration surfaces

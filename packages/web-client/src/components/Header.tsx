@@ -206,10 +206,10 @@ export default function Header({ title, description, onTitleChange, onDescriptio
           className="hidden"
         />
         {/* Connection Status — only when collaboration is active */}
-        {config.collaboration && mode === 'shared' && <ConnectionStatus />}
+        {config.hasServer && mode === 'shared' && <ConnectionStatus />}
 
-        {/* Share button and menu — only when collaboration is enabled */}
-        {config.collaboration && (
+        {/* Share button and menu — only when server is available */}
+        {config.hasServer && (
           <div className="relative" ref={shareMenuRef}>
             {mode === 'shared' && documentId ? (
               <button

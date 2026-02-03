@@ -17,7 +17,7 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 |-----|------|--------|
 | doc01.01 | `01-context/01-mission.md` | core goal, dual mandate, modeling capability vs compilation |
 | doc01.02 | `01-context/02-principles.md` | 12 design principles: symmetric storage, inverse derivability, no embedded tables, DataKind, dual identity, etc. |
-| doc01.03 | `01-context/03-glossary.md` | canonical vocabulary: construct, schema, port, polarity, deployable, portfolio, semantic ID, etc. |
+| doc01.03 | `01-context/03-glossary.md` | canonical vocabulary: construct, schema, port, polarity, deployable, document source, storage host, semantic ID, etc. |
 | doc01.04 | `01-context/04-ux-principles.md` | Fitts's Law, Hick's Law, Miller's Law, Doherty Threshold, progressive disclosure, direct manipulation, feedback latency, visual design principles (figure/ground, color-encodes-meaning, depth-through-shadow, typography hierarchy, semantic zoom, theme-native colors) |
 
 ## 02-system — Architecture and technical design
@@ -31,8 +31,8 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 | doc02.04.01 | `02-system/04-decisions/01-yjs-state.md` | ADR: Yjs as single state store |
 | doc02.04.02 | `02-system/04-decisions/02-port-polarity.md` | ADR: five-value polarity model |
 | doc02.04.03 | `02-system/04-decisions/03-output-formatter-registry.md` | ADR: extensible formatter registry |
-| doc02.04.04 | `02-system/04-decisions/04-unified-deployment.md` | ADR: unified deployment model, build-time feature flags, no static/server split |
-| doc02.05 | `02-system/05-deployment-targets.md` | portfolio concept, 3 deployment modes, AI access matrix, monorepo status |
+| doc02.04.04 | `02-system/04-decisions/04-unified-deployment.md` | ADR: simplified deployment config (2 env vars), no portfolio, document sources, storage hosts |
+| doc02.05 | `02-system/05-deployment-targets.md` | deployment config (VITE_SERVER_URL, VITE_AI_MODE), document sources, storage hosts, MCP architecture, deployment scenarios |
 | doc02.06 | `02-system/06-metamodel.md` | M2/M1/M0 three-level metamodel, DataKind, DisplayHint, Polarity, ConstructSchema, FieldSchema, PortConfig, PortSchema, child construct pattern |
 | doc02.07 | `02-system/07-design-system.md` | depth system (3 levels), island pattern, spacing scale, button hierarchy, semantic colors, typography, text-halo; canvas content: schema color palette, node card design, deployable backgrounds, edge rendering, LOD specs |
 | doc02.08 | `02-system/08-frontend-architecture.md` | four-layer component model, state partitioning, container pattern, feature boundaries, audit checklist |
@@ -50,16 +50,16 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 | doc03.01.06 | `03-product/01-features/06-schema-editor.md` | wizard for creating/editing construct schemas |
 | doc03.01.07 | `03-product/01-features/07-compilation.md` | compiler, formatters, AI-readable output |
 | doc03.01.08 | `03-product/01-features/08-import-export.md` | .carta file format, import/export |
-| doc03.01.09 | `03-product/01-features/09-collaboration.md` | server mode, WebSocket sync, document browser |
+| doc03.01.09 | `03-product/01-features/09-collaboration.md` | single/multi-document modes, WebSocket sync, document browser, desktop MCP |
 | doc03.01.10 | `03-product/01-features/10-ai-assistant.md` | AI sidebar, chat, MCP tools |
 | doc03.01.11 | `03-product/01-features/11-keyboard-and-clipboard.md` | shortcuts, copy/paste, undo/redo |
 | doc03.01.12 | `03-product/01-features/12-theming.md` | light/dark/warm themes |
 | doc03.01.13 | `03-product/01-features/13-new-user-experience.md` | first-load starter document, auto-create, no blank canvas |
 | doc03.02.01 | `03-product/02-use-cases/01-architect.md` | software architect persona |
 | doc03.02.02 | `03-product/02-use-cases/02-team-lead.md` | team lead persona |
-| doc03.02.03 | `03-product/02-use-cases/03-enterprise-self-hosted.md` | enterprise internal server, managed AI, desktop + web |
-| doc03.02.04 | `03-product/02-use-cases/04-solo-user.md` | static site or desktop, local storage, own API key |
-| doc03.02.05 | `03-product/02-use-cases/05-saas-provider.md` | multi-tenant hosted service, auth, billing, metered AI |
+| doc03.02.03 | `03-product/02-use-cases/03-enterprise-self-hosted.md` | enterprise storage host, managed AI, local MCP with remote docs, desktop + web |
+| doc03.02.04 | `03-product/02-use-cases/04-solo-user.md` | single-document browser mode, desktop standalone/connected, own API key |
+| doc03.02.05 | `03-product/02-use-cases/05-saas-provider.md` | storage host, document organization as metadata, auth/billing integration surfaces |
 | doc03.03.01 | `03-product/03-workflows/01-create-construct.md` | create construct workflow |
 | doc03.03.02 | `03-product/03-workflows/02-connect-constructs.md` | connect constructs workflow |
 | doc03.03.03 | `03-product/03-workflows/03-define-schema.md` | define schema workflow |
@@ -75,5 +75,5 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 |-----|------|--------|
 | doc04.01 | `04-operations/01-development.md` | dev setup, commands, environment, hosting modes |
 | doc04.02 | `04-operations/02-testing.md` | test commands, CI, integration tests, E2E tests |
-| doc04.03 | `04-operations/03-deployment.md` | build, deploy, static vs server mode |
+| doc04.03 | `04-operations/03-deployment.md` | build, deploy, env vars (VITE_SERVER_URL, VITE_AI_MODE) |
 | doc04.04 | `04-operations/04-contributing.md` | contribution guidelines, PR process |

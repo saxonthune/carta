@@ -20,7 +20,7 @@ Document Layer (@carta/document)
   Platform-agnostic — no React, no browser APIs
 
 Document Adapter Layer (packages/web-client/src/stores/, packages/web-client/src/contexts/)
-  Yjs Y.Doc state management, IndexedDB persistence
+  Yjs Y.Doc state management, persistence (IndexedDB or server)
   DocumentAdapter interface with Yjs implementation
   Imports shared helpers from @carta/document
   Does not know about React Flow or rendering
