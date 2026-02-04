@@ -33,32 +33,37 @@ test.describe('New User Experience', () => {
     const canvas = page.locator('.react-flow');
     await expect(canvas).toBeVisible({ timeout: 10000 });
 
-    // Should have at least 2 nodes (the starter graph)
-    const nodes = page.locator('.react-flow__node');
-    await expect(nodes.first()).toBeVisible({ timeout: 5000 });
-    const count = await nodes.count();
-    expect(count).toBeGreaterThanOrEqual(2);
+    // Should have at least 3 construct nodes (the starter graph)
+    const constructNodes = page.locator('.react-flow__node-construct');
+    await expect(constructNodes.first()).toBeVisible({ timeout: 5000 });
+    const count = await constructNodes.count();
+    expect(count).toBeGreaterThanOrEqual(3);
+
+    // Should also have a visual group
+    const groupNodes = page.locator('.react-flow__node-visual-group');
+    await expect(groupNodes.first()).toBeAttached({ timeout: 2000 });
   });
 
   test('starter content has edges connecting the nodes', async ({ page }) => {
     const canvas = page.locator('.react-flow');
     await expect(canvas).toBeVisible({ timeout: 10000 });
 
-    // Wait for nodes to render first
-    await expect(page.locator('.react-flow__node').first()).toBeVisible({ timeout: 5000 });
+    // Wait for construct nodes to render first
+    await expect(page.locator('.react-flow__node-construct').first()).toBeVisible({ timeout: 5000 });
 
-    // Should have at least 1 edge connecting starter nodes
+    // Should have at least 2 edges connecting starter nodes
     const edges = page.locator('.react-flow__edge');
     await expect(edges.first()).toBeVisible({ timeout: 5000 });
     const count = await edges.count();
-    expect(count).toBeGreaterThanOrEqual(1);
+    expect(count).toBeGreaterThanOrEqual(2);
   });
 
   test('starter nodes are interactive (can be selected)', async ({ page }) => {
     const canvas = page.locator('.react-flow');
     await expect(canvas).toBeVisible({ timeout: 10000 });
 
-    const firstNode = page.locator('.react-flow__node').first();
+    // Select a construct node (not the visual group)
+    const firstNode = page.locator('.react-flow__node-construct').first();
     await expect(firstNode).toBeVisible({ timeout: 5000 });
 
     // Click the node header (drag handle area) to select it

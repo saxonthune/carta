@@ -236,6 +236,7 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 |------|---------|
 | `packages/web-client/src/contexts/DocumentContext.tsx` | Document provider: manages Yjs adapter lifecycle |
 | `packages/web-client/src/stores/adapters/yjsAdapter.ts` | Yjs implementation of DocumentAdapter interface |
+| `packages/web-client/src/stores/documentRegistry.ts` | IndexedDB registry for local documents with cleanAllLocalData() for fresh NUX |
 | `packages/web-client/src/constructs/compiler/index.ts` | Compiler engine that takes schemas/deployables as parameters |
 | `packages/web-client/src/hooks/useDocument.ts` | Primary hook for accessing document state and operations via adapter |
 | `packages/web-client/src/hooks/useGraphOperations.ts` | Node CRUD: addConstruct, deleteNode, renameNode, createVirtualParent, etc. |
@@ -248,7 +249,7 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 | `packages/web-client/src/components/canvas/CanvasContainer.tsx` | Canvas container: view switching (Map/Metamap), ViewToggle, LevelSwitcher overlays, Footer |
 | `packages/web-client/src/components/canvas/VirtualParentNode.tsx` | Visual grouping container node for child constructs |
 | `packages/web-client/src/components/canvas/VisualGroupNode.tsx` | Visual group node with collapsed chip / expanded container states |
-| `packages/web-client/src/hooks/useVisualGroups.ts` | Hook computing group nodes from flat VisualGroup storage for React Flow |
+| `packages/web-client/src/hooks/useVisualGroups.ts` | Hook processing visual groups: hides children of collapsed groups, builds edge remap for collapsed routing (uses native React Flow parentId) |
 | `packages/web-client/src/components/Header.tsx` | Header with "Carta" branding, title, document browser, import/export, compile, theme, settings, Share (server mode) |
 | `packages/web-client/src/components/metamap/Metamap.tsx` | React Flow canvas for schema-level metamodel view (SchemaNode, SchemaGroupNode, EdgeDetailPopover) |
 | `packages/web-client/src/components/metamap/EdgeDetailPopover.tsx` | Click-to-edit popover for metamap edges: edit labels, delete relationships |
@@ -258,6 +259,9 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 | `packages/web-client/src/components/modals/ProjectInfoModal.tsx` | Modal for editing project title and description |
 | `packages/web-client/src/components/modals/ExamplesModal.tsx` | Modal for loading example projects |
 | `packages/web-client/src/components/modals/DocumentBrowserModal.tsx` | Document browser with virtual folder navigation, breadcrumbs, and random name generation |
+| `packages/web-client/src/components/ui/Breadcrumb.tsx` | Breadcrumb navigation component for folder paths |
+| `packages/web-client/src/components/ui/DocumentRow.tsx` | Document list item component for document browser |
+| `packages/web-client/src/components/ui/FolderRow.tsx` | Folder list item component for document browser |
 | `packages/web-client/src/components/modals/HelpModal.tsx` | Multi-tab Help modal with About tab (copyright, version, config); opened from Footer |
 | `packages/web-client/src/components/ConnectionStatus.tsx` | Connection status indicator (server mode only) |
 | `packages/web-client/src/components/ConstructEditor.tsx` | Full-screen schema editor with tabs (Basics/Fields/Ports) and live preview |
@@ -277,14 +281,15 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 | `packages/web-client/src/components/modals/ConstructFullViewModal.tsx` | Full view window displaying all node information: fields, deployable, identity, connections, compile preview |
 | `packages/web-client/src/components/canvas/DeployableBackground.tsx` | Deployable background renderer with LOD-aware font sizing |
 | `packages/web-client/tests/e2e/port-connections.spec.ts` | E2E tests for port drawer, connections, starter edges |
+| `packages/web-client/tests/e2e/visual-groups.spec.ts` | E2E tests for visual group creation via Ctrl+G, display, collapse |
+| `packages/web-client/tests/e2e/document-browser.spec.ts` | E2E tests for document browser navigation, folder structure, document creation |
+| `packages/web-client/tests/e2e/helpers/CartaPage.ts` | Playwright page object with goto, gotoFresh, node/port helpers |
 | `packages/web-client/tests/integration/port-validation.test.tsx` | Integration tests for port polarity validation rules |
 | `packages/web-client/tests/integration/visual-groups.test.tsx` | Integration tests for visual group CRUD, node association, level isolation |
-| `packages/web-client/tests/e2e/visual-groups.spec.ts` | E2E tests for visual group creation via Ctrl+G, display, collapse |
-| `packages/web-client/tests/e2e/helpers/CartaPage.ts` | Playwright page object with goto, gotoFresh, node/port helpers |
-| `packages/web-client/tests/setup/testProviders.tsx` | Test providers with skipPersistence and skipStarterContent |
-| `packages/web-client/src/utils/randomNames.ts` | Random document name generator (Adjective-Noun-Number format) |
 | `packages/web-client/tests/integration/folder-navigation.test.tsx` | Integration tests for virtual folder derivation logic |
 | `packages/web-client/tests/integration/adapter-lifecycle.test.tsx` | Integration tests for adapter disposal patterns, StrictMode handling, async cleanup |
+| `packages/web-client/tests/setup/testProviders.tsx` | Test providers with skipPersistence and skipStarterContent |
+| `packages/web-client/src/utils/randomNames.ts` | Random document name generator (Adjective-Noun-Number format) |
 
 **Desktop** (Electron app):
 
@@ -448,7 +453,7 @@ packages/web-client/src/index.css                                     → text-h
 
 ### Modify visual groups
 ```
-packages/web-client/src/hooks/useVisualGroups.ts              → Computes group nodes and edge remapping for React Flow
+packages/web-client/src/hooks/useVisualGroups.ts              → Processes visual groups: hides children of collapsed groups, builds edge remap (uses native React Flow parentId)
 packages/web-client/src/hooks/useDocument.ts                  → getVisualGroups, addVisualGroup, updateVisualGroup, removeVisualGroup
 packages/web-client/src/components/canvas/VisualGroupNode.tsx → Collapsed chip / expanded container rendering
 packages/web-client/src/components/canvas/Map.tsx             → createGroup callback, group context menu handlers

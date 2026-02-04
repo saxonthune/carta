@@ -192,7 +192,6 @@ export interface ConstructNodeData {
   semanticId: string;        // Human/AI-readable identifier (e.g., 'controller-user-api')
   values: ConstructValues;   // Field values
   deployableId?: string | null; // Deployable grouping (null/undefined means "none")
-  groupId?: string;              // Visual canvas group (not compiled)
   // Port-based connections
   connections?: ConnectionValue[]; // Connections from this construct's ports
   // Relationship metadata for AI consumption
@@ -212,6 +211,19 @@ export interface ConstructNodeData {
   onInstanceColorChange?: (color: string | null) => void;
   deployables?: Deployable[]; // List of available deployables for dropdown
   // Index signature for React Flow compatibility
+  [key: string]: unknown;
+}
+
+/**
+ * Data stored in a React Flow node for visual groups.
+ * Groups use React Flow's native parentId system for containment.
+ */
+export interface VisualGroupNodeData {
+  isVisualGroup: true;
+  name: string;
+  color: string;
+  collapsed: boolean;
+  description?: string;
   [key: string]: unknown;
 }
 
@@ -486,15 +498,6 @@ export interface DocumentAdapter {
   addSchemaGroup(group: Omit<SchemaGroup, 'id'>): SchemaGroup;
   updateSchemaGroup(id: string, updates: Partial<SchemaGroup>): void;
   removeSchemaGroup(id: string): boolean;
-
-  // State access - Visual Groups (level-scoped, use METAMAP_LEVEL_ID for schema groups)
-  getVisualGroups(levelId: string): VisualGroup[];
-  getVisualGroup(levelId: string, id: string): VisualGroup | undefined;
-
-  // Mutations - Visual Groups
-  addVisualGroup(levelId: string, group: Omit<VisualGroup, 'id'>): VisualGroup;
-  updateVisualGroup(levelId: string, id: string, updates: Partial<VisualGroup>): void;
-  removeVisualGroup(levelId: string, id: string): boolean;
 
   // Batched operations (for Yjs transact)
   // origin parameter allows MCP attribution (e.g., 'user' vs 'ai-mcp')

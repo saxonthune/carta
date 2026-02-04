@@ -12,12 +12,13 @@ test.describe('Port Connections', () => {
   test.beforeEach(async ({ page }) => {
     carta = new CartaPage(page);
     await carta.gotoFresh();
-    // Wait for starter content to load
-    await expect(page.locator('.react-flow__node').first()).toBeVisible({ timeout: 5000 });
+    // Wait for starter content to load (wait for construct nodes, not visual group)
+    await expect(page.locator('.react-flow__node-construct').first()).toBeVisible({ timeout: 5000 });
   });
 
   test('port drawer expands on hover at node bottom', async ({ page }) => {
-    const firstNode = carta.getNode(0);
+    // Use construct node (not visual group)
+    const firstNode = carta.getConstructNode(0);
     await expect(firstNode).toBeVisible();
 
     // Get initial state - look for the collapsed port drawer dots
@@ -35,7 +36,7 @@ test.describe('Port Connections', () => {
   });
 
   test('port drawer collapses when mouse leaves', async ({ page }) => {
-    const firstNode = carta.getNode(0);
+    const firstNode = carta.getConstructNode(0);
     const box = await firstNode.boundingBox();
     if (!box) throw new Error('Node not found');
 
@@ -57,7 +58,7 @@ test.describe('Port Connections', () => {
 
   test('port drawer has draggable handles for initiating connections', async ({ page }) => {
     // Verify drawer handles exist and have the correct structure for drag-to-connect
-    const firstNode = carta.getNode(0);
+    const firstNode = carta.getConstructNode(0);
     const box = await firstNode.boundingBox();
     if (!box) throw new Error('Node not found');
 
@@ -76,14 +77,14 @@ test.describe('Port Connections', () => {
   });
 
   test('can create connection by dragging to valid drop zone', async ({ page }) => {
-    const nodeCount = await page.locator('.react-flow__node').count();
+    const nodeCount = await page.locator('.react-flow__node-construct').count();
     expect(nodeCount).toBeGreaterThanOrEqual(2);
 
     // Count existing edges
     const initialEdgeCount = await page.locator('.react-flow__edge').count();
 
-    const sourceNode = carta.getNode(0);
-    const targetNode = carta.getNode(1);
+    const sourceNode = carta.getConstructNode(0);
+    const targetNode = carta.getConstructNode(1);
 
     const sourceBox = await sourceNode.boundingBox();
     const targetBox = await targetNode.boundingBox();
