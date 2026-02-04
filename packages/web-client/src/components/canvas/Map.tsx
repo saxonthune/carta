@@ -7,7 +7,6 @@ import {
   applyNodeChanges,
   applyEdgeChanges,
   SelectionMode,
-  useStore,
   useReactFlow,
   useUpdateNodeInternals,
   type Node,
@@ -42,52 +41,8 @@ import ConstructEditor from '../ConstructEditor';
 import DynamicAnchorEdge from './DynamicAnchorEdge';
 import ConstructFullViewModal from '../modals/ConstructFullViewModal';
 import { useEdgeBundling } from '../../hooks/useEdgeBundling';
-import { getLodConfig } from './lod/lodPolicy';
-
-// Temporary debug component for LOD and visual groups
-function ZoomDebug({ groupCount, sortedNodeCount }: { groupCount: number; sortedNodeCount: number }) {
-  const zoom = useStore((state) => state.transform[2]);
-  const lod = getLodConfig(zoom);
-  const { getViewport, setViewport } = useReactFlow();
-  const [editing, setEditing] = useState(false);
-  const [inputValue, setInputValue] = useState('');
-
-  const commitZoom = () => {
-    setEditing(false);
-    const parsed = parseFloat(inputValue);
-    if (isNaN(parsed)) return;
-    const clamped = Math.min(Math.max(parsed, 0.15), 2);
-    const { x, y } = getViewport();
-    setViewport({ x, y, zoom: clamped }, { duration: 200 });
-  };
-
-  return (
-    <div className="absolute bottom-8 left-2 bg-black/80 text-white px-3 py-2 rounded text-xs font-mono z-50">
-      <div className="flex items-center gap-1">
-        <span>Zoom:</span>
-        {editing ? (
-          <input
-            autoFocus
-            className="w-14 bg-transparent border-b border-white/50 text-white text-xs font-mono outline-none"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onBlur={commitZoom}
-            onKeyDown={(e) => { if (e.key === 'Enter') commitZoom(); if (e.key === 'Escape') setEditing(false); }}
-          />
-        ) : (
-          <span
-            className="cursor-pointer border-b border-transparent hover:border-white/50"
-            onClick={() => { setInputValue(zoom.toFixed(3)); setEditing(true); }}
-          >
-            {zoom.toFixed(3)}
-          </span>
-        )}
-      </div>
-      <div>LOD: {lod.band}</div>
-      <div>Groups: {groupCount} | Nodes: {sortedNodeCount}</div>
-    </div>
-  );
-}
+import { useLodBand } from './lod/useLodBand';
+import { ZoomDebug } from '../ui/ZoomDebug';
 
 const nodeTypes = {
   custom: CustomNode,
@@ -150,6 +105,9 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
 
   // Visual groups hook for collapse/hide logic and edge remapping
   const { processedNodes: nodesWithHiddenFlags, edgeRemap } = useVisualGroups(nodes);
+
+  // LOD band for debug display
+  const lod = useLodBand();
 
   // Custom zoom with smaller step (1.15x instead of default 1.2x)
   const customZoomIn = useCallback(() => {
@@ -618,10 +576,14 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
 
   // Count visual groups for debug display
   const groupCount = useMemo(() => nodes.filter(n => n.type === 'visual-group').length, [nodes]);
+  const debugLines = useMemo(() => [
+    `LOD: ${lod.band}`,
+    `Groups: ${groupCount} | Nodes: ${sortedNodes.length}`,
+  ], [lod.band, groupCount, sortedNodes.length]);
 
   return (
     <div className="w-full h-full relative" style={{ backgroundColor: 'var(--color-canvas)' }}>
-      <ZoomDebug groupCount={groupCount} sortedNodeCount={sortedNodes.length} />
+      <ZoomDebug debugLines={debugLines} />
       <ReactFlow
         nodes={sortedNodes}
         edges={displayEdges}
