@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
+import Input from '../ui/Input';
+import Breadcrumb from '../ui/Breadcrumb';
+import FolderRow from '../ui/FolderRow';
+import DocumentRow from '../ui/DocumentRow';
 import { config } from '../../config/featureFlags';
 import { generateRandomName } from '../../utils/randomNames';
 
@@ -17,6 +21,42 @@ interface FolderView {
   breadcrumbs: string[];
   childFolders: string[];
   documents: DocumentSummary[];
+}
+
+/**
+ * Merge manually created folders with derived folders.
+ * Created folders are stored as full paths (e.g., '/projects/new-folder').
+ * This function extracts the immediate child folder name for any created
+ * folder path that is at or below the current path.
+ */
+function mergeCreatedFolders(
+  derivedFolders: string[],
+  createdFolders: string[],
+  currentPath: string
+): string[] {
+  const normalizedPath = currentPath === '/' ? '/' : currentPath.replace(/\/$/, '');
+  const pathPrefix = normalizedPath === '/' ? '/' : normalizedPath + '/';
+
+  const createdChildren = new Set<string>();
+
+  for (const folderPath of createdFolders) {
+    // Check if this created folder is at or below current path
+    if (!folderPath.startsWith(pathPrefix)) continue;
+
+    const remainder = folderPath.slice(pathPrefix.length);
+    if (remainder.length === 0) continue;
+
+    // Extract the immediate child folder name
+    const slashIndex = remainder.indexOf('/');
+    const childName = slashIndex === -1 ? remainder : remainder.slice(0, slashIndex);
+    if (childName) {
+      createdChildren.add(childName);
+    }
+  }
+
+  // Merge and deduplicate
+  const merged = new Set([...derivedFolders, ...createdChildren]);
+  return Array.from(merged).sort();
 }
 
 /**
@@ -79,6 +119,7 @@ export default function DocumentBrowserModal({ onClose, required = false }: Docu
   const [currentPath, setCurrentPath] = useState('/');
   const [newFolderName, setNewFolderName] = useState('');
   const [showNewFolder, setShowNewFolder] = useState(false);
+  const [createdFolders, setCreatedFolders] = useState<string[]>([]);
 
   // Generate a random name once when modal opens
   const defaultName = useMemo(() => generateRandomName(), []);
@@ -88,6 +129,12 @@ export default function DocumentBrowserModal({ onClose, required = false }: Docu
   const folderView = useMemo(
     () => deriveFolderView(documents, currentPath),
     [documents, currentPath]
+  );
+
+  // Merge derived folders with manually created folders
+  const visibleFolders = useMemo(
+    () => mergeCreatedFolders(folderView.childFolders, createdFolders, currentPath),
+    [folderView.childFolders, createdFolders, currentPath]
   );
 
   const fetchDocuments = useCallback(async () => {
@@ -169,7 +216,9 @@ export default function DocumentBrowserModal({ onClose, required = false }: Docu
   const handleCreateFolder = () => {
     const name = newFolderName.trim();
     if (!name) return;
-    // Folders are virtual - just navigate to it
+    // Track the full path of the created folder so it persists when navigating
+    const newFolderPath = currentPath === '/' ? `/${name}` : `${currentPath}/${name}`;
+    setCreatedFolders(prev => [...prev, newFolderPath]);
     navigateToFolder(name);
     setNewFolderName('');
     setShowNewFolder(false);
@@ -191,6 +240,8 @@ export default function DocumentBrowserModal({ onClose, required = false }: Docu
     return date.toLocaleDateString();
   };
 
+  const isEmpty = visibleFolders.length === 0 && folderView.documents.length === 0;
+
   return (
     <Modal
       isOpen={true}
@@ -205,150 +256,122 @@ export default function DocumentBrowserModal({ onClose, required = false }: Docu
         </div>
       ) : undefined}
     >
-      {/* Breadcrumb Navigation */}
-      <div className="flex items-center gap-1 text-sm text-content-muted mb-3 flex-wrap">
-        <button
-          className="hover:text-content transition-colors px-1 py-0.5 rounded hover:bg-surface-alt border-none bg-transparent cursor-pointer"
-          onClick={() => navigateToBreadcrumb(-1)}
-        >
-          /
-        </button>
-        {folderView.breadcrumbs.map((crumb, i) => (
-          <span key={i} className="flex items-center gap-1">
-            <span className="text-content-muted/50">/</span>
-            <button
-              className="hover:text-content transition-colors px-1 py-0.5 rounded hover:bg-surface-alt border-none bg-transparent cursor-pointer"
-              onClick={() => navigateToBreadcrumb(i)}
-            >
-              {crumb}
-            </button>
-          </span>
-        ))}
-      </div>
+      {/* Ground (depth-3) */}
+      <div className="bg-surface-depth-3 -mx-5 -my-4 px-4 py-4 flex flex-col gap-3">
 
-      {/* Create New Document/Folder */}
-      <div className="pb-3 mb-3 border-b border-border">
-        {/* New Folder Input */}
-        {showNewFolder ? (
-          <div className="flex gap-2 mb-2">
-            <input
-              type="text"
-              className="flex-1 px-3 py-2 rounded-md border border-subtle bg-surface text-content text-sm focus:outline-none focus:border-accent"
-              placeholder="Folder name"
-              value={newFolderName}
-              onChange={(e) => setNewFolderName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleCreateFolder();
-                if (e.key === 'Escape') setShowNewFolder(false);
-              }}
-              autoFocus
-            />
-            <Button variant="secondary" onClick={handleCreateFolder}>
-              Go
-            </Button>
-            <Button variant="ghost" onClick={() => setShowNewFolder(false)}>
-              Cancel
-            </Button>
-          </div>
-        ) : (
-          <button
-            className="mb-2 text-xs text-content-muted hover:text-content transition-colors border-none bg-transparent cursor-pointer"
-            onClick={() => setShowNewFolder(true)}
-          >
-            + New folder
-          </button>
-        )}
-
-        {/* New Document */}
-        <div className="flex gap-2">
-          <input
-            type="text"
-            className="flex-1 px-3 py-2 rounded-md border border-subtle bg-surface text-content text-sm focus:outline-none focus:border-accent"
-            placeholder="Document title"
-            value={newTitle}
-            onChange={(e) => setNewTitle(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                handleCreate();
-              }
-            }}
-            disabled={creating}
-          />
-          <Button
-            variant="primary"
-            onClick={handleCreate}
-            disabled={creating}
-          >
-            {creating ? 'Creating...' : 'Create'}
-          </Button>
+        {/* Nav Island (depth-2) */}
+        <div className="bg-surface-depth-2 rounded-xl px-4 py-3 shadow-sm">
+          <Breadcrumb segments={folderView.breadcrumbs} onNavigate={navigateToBreadcrumb} />
         </div>
-      </div>
 
-      {/* Content List */}
-      <div className="max-h-[400px] overflow-y-auto">
-        {loading ? (
-          <div className="py-4 text-center text-content-muted">Loading...</div>
-        ) : error ? (
-          <div className="py-4">
-            <div className="text-center text-red-500 mb-2">{error}</div>
-            <div className="text-center">
-              <Button variant="ghost" size="sm" onClick={fetchDocuments}>Retry</Button>
-            </div>
-          </div>
-        ) : folderView.childFolders.length === 0 && folderView.documents.length === 0 ? (
-          <div className="py-4 text-center text-content-muted">
-            {currentPath === '/' ? 'No documents yet. Create one above.' : 'Empty folder.'}
-          </div>
-        ) : (
-          <div className="divide-y divide-subtle">
-            {/* Back button when not at root */}
-            {currentPath !== '/' && (
-              <button
-                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-surface-alt transition-colors cursor-pointer border-none bg-transparent text-left"
-                onClick={navigateUp}
-              >
-                <svg className="w-5 h-5 text-content-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M19 12H5M12 19l-7-7 7-7" />
-                </svg>
-                <span className="text-sm text-content-muted">..</span>
-              </button>
-            )}
-
-            {/* Folders */}
-            {folderView.childFolders.map((folder) => (
-              <button
-                key={folder}
-                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-surface-alt transition-colors cursor-pointer border-none bg-transparent text-left"
-                onClick={() => navigateToFolder(folder)}
-              >
-                <svg className="w-5 h-5 text-amber-500" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-                </svg>
-                <span className="text-sm font-medium text-content">{folder}</span>
-              </button>
-            ))}
-
-            {/* Documents */}
-            {folderView.documents.map((doc) => (
-              <button
-                key={doc.id}
-                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-surface-alt transition-colors cursor-pointer border-none bg-transparent text-left"
-                onClick={() => handleSelect(doc.id)}
-              >
-                <svg className="w-5 h-5 text-content-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                  <polyline points="14 2 14 8 20 8" />
-                </svg>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-content truncate">{doc.title}</div>
-                  <div className="text-xs text-content-muted">
-                    {formatUpdatedAt(doc.updatedAt)} · {doc.nodeCount} node{doc.nodeCount === 1 ? '' : 's'}
-                  </div>
+        {/* Content Island (depth-2) */}
+        <div className="bg-surface-depth-2 rounded-xl p-2 shadow-sm flex-1 overflow-hidden">
+          <div className="max-h-[400px] overflow-y-auto flex flex-col gap-0.5">
+            {loading ? (
+              <div className="py-8 text-center text-content-muted">Loading...</div>
+            ) : error ? (
+              <div className="py-8">
+                <div className="text-center text-red-500 mb-2">{error}</div>
+                <div className="text-center">
+                  <Button variant="ghost" size="sm" onClick={fetchDocuments}>Retry</Button>
                 </div>
-              </button>
-            ))}
+              </div>
+            ) : (
+              <>
+                {/* Back row when not at root */}
+                {currentPath !== '/' && (
+                  <button
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer hover:bg-surface-depth-3/50 transition-colors border-none bg-transparent text-left"
+                    onClick={navigateUp}
+                  >
+                    <svg className="w-5 h-5 text-content-muted shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M19 12H5M12 19l-7-7 7-7" />
+                    </svg>
+                    <span className="text-sm text-content-muted">..</span>
+                  </button>
+                )}
+
+                {/* Folders */}
+                {visibleFolders.map((folder) => (
+                  <FolderRow
+                    key={folder}
+                    name={folder}
+                    onClick={() => navigateToFolder(folder)}
+                  />
+                ))}
+
+                {/* Documents */}
+                {folderView.documents.map((doc) => (
+                  <DocumentRow
+                    key={doc.id}
+                    title={doc.title}
+                    updatedAt={formatUpdatedAt(doc.updatedAt)}
+                    nodeCount={doc.nodeCount}
+                    onClick={() => handleSelect(doc.id)}
+                  />
+                ))}
+
+                {/* Empty state */}
+                {isEmpty && (
+                  <div className="py-8 text-center text-content-muted">
+                    {currentPath === '/' ? 'No documents yet. Create one below.' : 'Empty folder.'}
+                  </div>
+                )}
+              </>
+            )}
           </div>
-        )}
+        </div>
+
+        {/* Create Island (depth-2) */}
+        <div className="bg-surface-depth-2 rounded-xl px-4 py-3 shadow-sm">
+          {showNewFolder ? (
+            <div className="flex gap-2 items-center">
+              <Input
+                placeholder="Folder name"
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleCreateFolder();
+                  if (e.key === 'Escape') setShowNewFolder(false);
+                }}
+                autoFocus
+                className="flex-1"
+              />
+              <Button variant="secondary" onClick={handleCreateFolder}>
+                Go
+              </Button>
+              <Button variant="ghost" onClick={() => setShowNewFolder(false)}>
+                Cancel
+              </Button>
+            </div>
+          ) : (
+            <div className="flex gap-2 items-center">
+              <Input
+                placeholder="Document title"
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleCreate();
+                }}
+                disabled={creating}
+                className="flex-1"
+              />
+              <Button
+                variant="secondary"
+                onClick={() => setShowNewFolder(true)}
+              >
+                New Folder
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handleCreate}
+                disabled={creating}
+              >
+                {creating ? 'Creating...' : 'Create'}
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
     </Modal>
   );
