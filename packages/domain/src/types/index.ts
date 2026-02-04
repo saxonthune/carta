@@ -371,6 +371,7 @@ export type CartaDocument = CartaDocumentV3 | CartaDocumentV4;
 export interface ServerDocument {
   id: string;
   title: string;
+  folder: string;
   version: number;
   formatVersion: number;
   createdAt: string;

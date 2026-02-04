@@ -185,6 +185,20 @@ export default function Header({ title, description, onTitleChange, onDescriptio
     <header className="h-12 bg-surface border-b grid grid-cols-[1fr_auto_1fr] items-center px-0 shrink-0">
       <div className="flex items-center justify-start pl-3 gap-2">
         <span className="text-xl font-bold tracking-tight text-content select-none">Carta</span>
+        {config.debug && (
+          <div className="flex items-center gap-1.5 text-[10px] font-mono text-content-muted">
+            <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400">DEV</span>
+            {config.hasServer && (
+              <span className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-600 dark:text-blue-400">SERVER</span>
+            )}
+            {config.isDesktop && (
+              <span className="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-600 dark:text-purple-400">DESKTOP</span>
+            )}
+            {config.aiMode !== 'none' && (
+              <span className="px-1.5 py-0.5 rounded bg-green-500/20 text-green-600 dark:text-green-400">AI:{config.aiMode}</span>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="flex items-center justify-center">

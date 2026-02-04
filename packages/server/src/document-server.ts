@@ -117,6 +117,7 @@ const { handleHttpRequest, setupWSConnection } = createDocumentServer({
       return {
         id: roomId,
         title: doc.title,
+        folder: doc.folder,
         version: doc.version,
         updatedAt: doc.updatedAt,
         nodeCount: doc.nodes.length,

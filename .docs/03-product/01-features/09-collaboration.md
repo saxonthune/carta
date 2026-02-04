@@ -31,6 +31,19 @@ When no `?doc=` parameter is present and a server is available, the Document Bro
 
 The document browser renders whatever grouping metadata the server provides (folders, tags, projects). This organization is managed by the storage host, not Carta.
 
+### Virtual Folder Navigation
+
+The document browser supports virtual folder navigation. Documents have a `folder` field (e.g., `/projects/webapp`) that determines their location in the hierarchy. Folders are virtual — derived from document paths, not stored separately.
+
+Features:
+- **Breadcrumb navigation**: Click any path segment to jump directly
+- **Folder listing**: Shows child folders derived from documents under current path
+- **Back navigation**: Navigate up one level when not at root
+- **Create folder**: Navigate to a new folder path (folder is created implicitly when a document is saved there)
+- **Alphabetical sorting**: Folders sorted alphabetically, documents by most recent
+
+The folder structure is a UI presentation layer — the server stores documents with a flat `folder` metadata field, and the client derives the tree view dynamically using the `deriveFolderView()` function.
+
 ### Connection Status
 
 A status indicator in the header shows sync state: connected, disconnected, or syncing.

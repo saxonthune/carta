@@ -163,16 +163,19 @@ export function DocumentProvider({
         }, 'migration');
       }
 
-      // Connect WebSocket if server is available
-      if (config.hasServer && serverUrl) {
-        await yjsAdapter.connectToRoom(documentId, serverUrl);
-      }
-
       if (mounted) {
         setAdapter(yjsAdapter);
         setYdoc(yjsAdapter.ydoc);
         setMode(config.hasServer ? 'shared' : 'local');
         setIsReady(true);
+      }
+
+      // Connect WebSocket AFTER marking ready (non-blocking)
+      // This allows the UI to render immediately while sync happens in background
+      if (config.hasServer && serverUrl && mounted) {
+        yjsAdapter.connectToRoom(documentId, serverUrl).catch((err) => {
+          console.error('Failed to connect to server:', err);
+        });
       }
     };
 

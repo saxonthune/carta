@@ -82,6 +82,10 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
   // Listeners for subscriptions
   const listeners = new Set<() => void>();
 
+  // Track whether observers have been set up (to avoid unobserving before setup)
+  let observersSetUp = false;
+  let registrySyncSetUp = false;
+
   // Notify all listeners of changes
   const notifyListeners = () => {
     listeners.forEach((listener) => listener());
@@ -97,6 +101,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     ydeployables.observeDeep(notifyListeners);
     yportSchemas.observeDeep(notifyListeners);
     yschemaGroups.observeDeep(notifyListeners);
+    observersSetUp = true;
   };
 
   // Debounced registry metadata sync (2s, leading edge)
@@ -134,6 +139,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     if (!roomId || options.skipPersistence) return;
     ymeta.observe(syncRegistryMetadata);
     ynodes.observeDeep(syncRegistryMetadata);
+    registrySyncSetUp = true;
   };
 
   /**
@@ -324,23 +330,27 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     dispose(): void {
-      // Clean up registry sync
+      // Clean up registry sync (only if it was set up)
       if (registryTimer) {
         clearTimeout(registryTimer);
         registryTimer = null;
       }
-      ymeta.unobserve(syncRegistryMetadata);
-      ynodes.unobserveDeep(syncRegistryMetadata);
+      if (registrySyncSetUp) {
+        ymeta.unobserve(syncRegistryMetadata);
+        ynodes.unobserveDeep(syncRegistryMetadata);
+      }
 
-      // Unobserve all
-      ymeta.unobserveDeep(notifyListeners);
-      ylevels.unobserveDeep(notifyListeners);
-      ynodes.unobserveDeep(notifyListeners);
-      yedges.unobserveDeep(notifyListeners);
-      yschemas.unobserveDeep(notifyListeners);
-      ydeployables.unobserveDeep(notifyListeners);
-      yportSchemas.unobserveDeep(notifyListeners);
-      yschemaGroups.unobserveDeep(notifyListeners);
+      // Unobserve all (only if they were set up)
+      if (observersSetUp) {
+        ymeta.unobserveDeep(notifyListeners);
+        ylevels.unobserveDeep(notifyListeners);
+        ynodes.unobserveDeep(notifyListeners);
+        yedges.unobserveDeep(notifyListeners);
+        yschemas.unobserveDeep(notifyListeners);
+        ydeployables.unobserveDeep(notifyListeners);
+        yportSchemas.unobserveDeep(notifyListeners);
+        yschemaGroups.unobserveDeep(notifyListeners);
+      }
 
       // Clean up providers
       if (indexeddbProvider) {
