@@ -43,3 +43,38 @@ Y.UndoManager wraps the Yjs document. Undo history is per-level and per-user (lo
 ## Adapter Interface
 
 All state operations go through DocumentAdapter methods. Components access state via `useDocument()` hook. The adapter abstracts away Yjs internals — consumers don't interact with Y.Doc directly.
+
+## Adapter Lifecycle
+
+### Initialization
+
+The adapter initializes asynchronously, setting up Y.Doc, IndexedDB persistence (in local mode), or WebSocket connection (in server mode). The DocumentProvider manages this lifecycle and surfaces an `isReady` flag to components.
+
+### Disposal and Cleanup
+
+Proper cleanup prevents memory leaks and race conditions, especially in React StrictMode (which mounts → unmounts → remounts components in development).
+
+**Disposal flags:**
+- `isDisposed` flag tracked internally to abort in-flight initialization
+- Checked after async operations (IndexedDB sync, database deletion) to bail out if component unmounted
+
+**Timeout cancellation:**
+- IndexedDB sync uses a timeout to detect corrupt databases (when 'synced' event never fires)
+- `activeSyncTimeout` tracked and cleared on disposal to prevent timeouts firing after cleanup
+
+**Y.Doc destruction:**
+- Adapter calls `ydoc.destroy()` on disposal to unsubscribe all internal listeners
+- Critical for y-indexeddb cleanup, as it doesn't unsubscribe listeners on its own `destroy()` method
+- Prevents "closed database" errors from stale ResizeObserver or timer callbacks
+
+**React StrictMode handling:**
+- Development mode causes mount → unmount → mount cycle
+- Disposal checks at async checkpoints prevent operations on destroyed Y.Doc instances
+- Tests verify no "closed database" errors during double-mount lifecycle
+
+**Subscription cleanup:**
+- Adapter maintains `listeners` Set for external subscribers
+- `dispose()` clears listener set to prevent stale callback invocations
+- External `unsubscribe()` functions safe to call even after disposal
+
+See `packages/web-client/tests/integration/adapter-lifecycle.test.tsx` for comprehensive lifecycle tests.

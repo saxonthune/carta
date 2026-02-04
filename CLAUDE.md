@@ -284,6 +284,7 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 | `packages/web-client/tests/setup/testProviders.tsx` | Test providers with skipPersistence and skipStarterContent |
 | `packages/web-client/src/utils/randomNames.ts` | Random document name generator (Adjective-Noun-Number format) |
 | `packages/web-client/tests/integration/folder-navigation.test.tsx` | Integration tests for virtual folder derivation logic |
+| `packages/web-client/tests/integration/adapter-lifecycle.test.tsx` | Integration tests for adapter disposal patterns, StrictMode handling, async cleanup |
 
 **Desktop** (Electron app):
 
@@ -491,6 +492,10 @@ When modifying constructs or connections:
 - [ ] Undo/redo works for all graph operations (local, not shared)
 - [ ] Copy/paste preserves node data with new IDs
 - [ ] IndexedDB persists state across page reloads
+- [ ] Adapter handles React StrictMode double-mount without errors
+- [ ] Disposal during async initialization doesn't throw "closed database" errors
+- [ ] Rapid documentId changes clean up properly without memory leaks
+- [ ] Subscriptions are cleaned up on adapter disposal
 - [ ] Project title click opens ProjectInfoModal to edit title and description
 - [ ] Settings menu shows "Load Example" when examples are available
 - [ ] ExamplesModal displays all .carta files from `/examples/` directory

@@ -44,6 +44,7 @@ Test helpers live in `tests/e2e/helpers/CartaPage.ts` — a Page Object Model wi
 
 | Test File | Feature | Tests |
 |-----------|---------|-------|
+| `adapter-lifecycle.test.tsx` | Adapter lifecycle (doc02.02) | StrictMode double-mount handling, disposal during async init, timeout cancellation, operations on disposed adapters, subscription cleanup, rapid documentId changes |
 | `port-validation.test.tsx` | Port polarity (doc03.01.03) | Polarity blocking (source-source, sink-sink), relay/intercept bypass, bidirectional compatibility, compatibleWith matching |
 | `node-expansion.test.tsx` | Node view levels | Default view level, view level switching, persistence across updates |
 | `levels.test.tsx` | Multi-level documents (doc03.01.04) | Level CRUD, isolation, copy/duplicate nodes |

@@ -84,6 +84,11 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
   let wsProvider: unknown = null; // Will be WebsocketProvider when connected
   let connectionStatus: 'disconnected' | 'connecting' | 'connected' = 'disconnected';
 
+  // Track disposal state to abort initialization if disposed mid-flight
+  let isDisposed = false;
+  // Track active sync timeout so we can cancel it on dispose
+  let activeSyncTimeout: ReturnType<typeof setTimeout> | null = null;
+
   // Listeners for subscriptions
   const listeners = new Set<() => void>();
 
@@ -263,16 +268,21 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
         const createAndSync = () => {
           const provider = new IndexeddbPersistence(dbName, ydoc);
+
           const syncPromise = new Promise<void>((resolve, reject) => {
             if (provider.synced) {
               resolve();
               return;
             }
-            const timeout = setTimeout(() => {
+            activeSyncTimeout = setTimeout(() => {
+              activeSyncTimeout = null;
               reject(new Error(`IndexedDB sync timed out for "${dbName}"`));
             }, SYNC_TIMEOUT_MS);
             provider.on('synced', () => {
-              clearTimeout(timeout);
+              if (activeSyncTimeout) {
+                clearTimeout(activeSyncTimeout);
+                activeSyncTimeout = null;
+              }
               resolve();
             });
           });
@@ -303,7 +313,15 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
           const { provider, syncPromise } = createAndSync();
           indexeddbProvider = provider;
           await syncPromise;
+          // Check if disposed while awaiting sync (React StrictMode cleanup)
+          if (isDisposed) {
+            return;
+          }
         } catch {
+          // Check if disposed - bail out immediately (timeout may have fired after disposal)
+          if (isDisposed) {
+            return;
+          }
           // Sync timed out — likely corrupt DB (synced event never fired)
           console.warn(`IndexedDB sync failed for "${dbName}", clearing and retrying`);
           const oldProvider = indexeddbProvider;
@@ -324,9 +342,17 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
             }
           }
           await deleteDB();
+          // Check if disposed while awaiting deleteDB
+          if (isDisposed) {
+            return;
+          }
           const { provider, syncPromise } = createAndSync();
           indexeddbProvider = provider;
           await syncPromise;
+          // Check if disposed while awaiting retry sync
+          if (isDisposed) {
+            return;
+          }
         } finally {
           window.removeEventListener('unhandledrejection', handleRejection);
           // TS narrows idbError to 'never' because assignment happens in event handler
@@ -352,6 +378,15 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     dispose(): void {
+      // Mark as disposed to abort any in-flight initialization
+      isDisposed = true;
+
+      // Cancel any pending sync timeout (prevents timeout firing after disposal)
+      if (activeSyncTimeout) {
+        clearTimeout(activeSyncTimeout);
+        activeSyncTimeout = null;
+      }
+
       // Clean up registry sync (only if it was set up)
       if (registryTimer) {
         clearTimeout(registryTimer);
@@ -385,6 +420,8 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
         wsProvider = null;
       }
 
+      // Destroy Y.Doc to unsubscribe all listeners (including y-indexeddb's internal ones)
+      // This is critical: y-indexeddb doesn't unsubscribe on destroy(), so we must destroy the doc
       ydoc.destroy();
     },
 
