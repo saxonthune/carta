@@ -274,6 +274,10 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 | `packages/web-client/src/components/ui/DraggableWindow.tsx` | Draggable, pinnable window component for full view modal (no backdrop, island UX) |
 | `packages/web-client/src/components/modals/ConstructFullViewModal.tsx` | Full view window displaying all node information: fields, deployable, identity, connections, compile preview |
 | `packages/web-client/src/components/canvas/DeployableBackground.tsx` | Deployable background renderer with LOD-aware font sizing |
+| `packages/web-client/tests/e2e/port-connections.spec.ts` | E2E tests for port drawer, connections, starter edges |
+| `packages/web-client/tests/integration/port-validation.test.tsx` | Integration tests for port polarity validation rules |
+| `packages/web-client/tests/e2e/helpers/CartaPage.ts` | Playwright page object with goto, gotoFresh, node/port helpers |
+| `packages/web-client/tests/setup/testProviders.tsx` | Test providers with skipPersistence and skipStarterContent |
 
 **Desktop** (Electron app):
 
@@ -446,6 +450,8 @@ pnpm test          # Integration tests (Vitest)
 pnpm test:e2e      # E2E tests (Playwright)
 ```
 
+Note: E2E tests run on port 5273 (separate from dev server on 5173) to allow running both simultaneously.
+
 If the build or tests fail after your changes, fix them before proceeding.
 
 ## Testing Checklist
@@ -486,7 +492,7 @@ When modifying constructs or connections:
 **Single-document mode** (no `VITE_SERVER_URL`):
 - [ ] First visit auto-creates document with starter content (no document browser)
 - [ ] Starter content has nodes and edges on canvas
-- [ ] URL gets `?doc=` param via history.replaceState (no page reload)
+- [ ] URL stays clean (no `?doc=` param in local mode)
 - [ ] Returning visit reopens last document
 - [ ] Share button is hidden
 - [ ] Connection status indicator is hidden
