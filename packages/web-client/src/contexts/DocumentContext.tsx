@@ -45,7 +45,8 @@ export interface DocumentProviderProps {
 
 /**
  * Provider that manages the document adapter lifecycle.
- * Always uses Yjs for state management with y-indexeddb persistence.
+ * Uses Yjs for state management. IndexedDB persistence is only used in local mode
+ * (no server); when a server is present, the server handles persistence.
  */
 export function DocumentProvider({
   children,
@@ -66,8 +67,8 @@ export function DocumentProvider({
     let currentAdapter: ReturnType<typeof createYjsAdapter> | null = null;
 
     const initAdapter = async () => {
-      // In desktop mode, skip IndexedDB — the embedded server handles persistence
-      const shouldSkipPersistence = skipPersistence || config.isDesktop;
+      // Skip IndexedDB when a server handles persistence (desktop or remote server)
+      const shouldSkipPersistence = skipPersistence || config.isDesktop || config.hasServer;
 
       const options: YjsAdapterOptions = {
         mode: 'local',

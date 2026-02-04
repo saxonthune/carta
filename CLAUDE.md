@@ -129,8 +129,8 @@ Implemented packages: `@carta/types`, `@carta/domain`, `@carta/document`, `@cart
 │  - portSchemas[] (M1 port type definitions)                 │
 │  - schemaGroups[] (schema grouping metadata)                │
 │  - Node IDs: UUID via crypto.randomUUID()                   │
-│  - Persists to IndexedDB via y-indexeddb                    │
-│  - Optional WebSocket sync for collaboration (server mode)  │
+│  - Local mode: persists to IndexedDB via y-indexeddb        │
+│  - Server mode: WebSocket sync (no IndexedDB)               │
 └─────────────────────────────────────────────────────────────┘
            ↓
 ┌─────────────────────────────────────────────────────────────┐

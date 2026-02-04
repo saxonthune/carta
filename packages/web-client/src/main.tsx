@@ -13,27 +13,25 @@ async function boot() {
   let documentId = urlParams.get('doc');
 
   if (!documentId) {
-    // Try migration first, then fall back to last opened document
-    const migratedId = await migrateCartaLocal();
-    const lastDocId = getLastDocumentId();
-    documentId = migratedId || lastDocId;
+    if (config.hasServer) {
+      // Server mode: URL is source of truth. No ?doc= means show DocumentBrowserModal.
+      // Don't use localStorage — that's for local mode only.
+      documentId = null;
+    } else {
+      // Local mode: try migration, then fall back to last opened document
+      const migratedId = await migrateCartaLocal();
+      const lastDocId = getLastDocumentId();
+      documentId = migratedId || lastDocId;
 
-    // In local mode with no existing document, auto-create one (NUX: no modal gate)
-    if (!documentId && !config.hasServer) {
-      documentId = await createDocument('Untitled Project');
-    }
-
-    // In server mode, put doc ID in URL so links are shareable.
-    // In local mode, keep the URL clean — localStorage tracks the active document.
-    if (documentId && config.hasServer) {
-      const url = new URL(window.location.href);
-      url.searchParams.set('doc', documentId);
-      history.replaceState(null, '', url.toString());
+      // Auto-create if no existing document (NUX: no modal gate)
+      if (!documentId) {
+        documentId = await createDocument('Untitled Project');
+      }
     }
   }
 
-  // Remember this document as last-opened
-  if (documentId) {
+  // Remember last-opened document (local mode only — server mode uses URL)
+  if (documentId && !config.hasServer) {
     setLastDocumentId(documentId);
   }
 

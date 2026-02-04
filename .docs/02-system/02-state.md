@@ -33,7 +33,7 @@ All document state lives in a Yjs Y.Doc, accessed through the DocumentAdapter in
 ### Persistence
 
 - **Static mode**: IndexedDB via y-indexeddb. Single document, no server.
-- **Server mode**: IndexedDB cache + WebSocket sync to MongoDB.
+- **Server mode**: WebSocket sync to server (no IndexedDB — server is source of truth).
 
 ### Undo/Redo
 

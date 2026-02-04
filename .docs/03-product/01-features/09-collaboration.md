@@ -19,7 +19,7 @@ When no `VITE_SERVER_URL` is configured and the app runs in a browser:
 ## Multi-Document Mode (Server Present)
 
 When a server URL is configured (or desktop auto-detects its embedded server):
-- Storage: server database with optional IndexedDB cache
+- Storage: server database (IndexedDB not used — server is source of truth)
 - WebSocket sync via y-websocket
 - Yjs CRDT handles conflict resolution automatically
 - URL-based document routing: `?doc={documentId}`

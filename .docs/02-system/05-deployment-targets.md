@@ -70,7 +70,7 @@ When no server URL is configured and the app runs in a browser, it operates in *
 
 ### Server-connected: multi-document mode
 
-When a server URL is present, the **document browser** is available. Users can list, create, and select documents. The server is the source of truth. IndexedDB may cache the Y.Doc locally for faster loads, but this is an implementation detail — not a user-facing "local storage" option.
+When a server URL is present, the **document browser** is available. Users can list, create, and select documents. The server is the source of truth; IndexedDB is not used in server mode.
 
 ## Storage Hosts
 
