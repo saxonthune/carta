@@ -238,9 +238,10 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 | `packages/domain/src/ports/helpers.ts` | Port helper functions: canConnect, getPortsForSchema, getHandleType, getPortColor |
 | `packages/domain/src/schemas/index.ts` | Barrel export: builtInConstructSchemas, builtInPortSchemas, builtInSchemaGroups |
 | `packages/domain/src/schemas/built-ins.ts` | Default construct schemas, port schemas, and schema groups |
-| `packages/domain/src/utils/index.ts` | Barrel export: display, color, identity |
+| `packages/domain/src/utils/index.ts` | Barrel export: display, color, identity, group-geometry |
 | `packages/domain/src/utils/display.ts` | Display utilities: getDisplayName, getFieldsForSummary, semanticIdToLabel |
 | `packages/domain/src/utils/color.ts` | Color utilities: hexToHsl, hslToHex, generateTints (7-stop tint generation) |
+| `packages/domain/src/utils/group-geometry.ts` | Pure geometry functions for visual groups: computeGroupBounds, toRelativePosition, toAbsolutePosition, computeMinGroupSize, DEFAULT_GROUP_LAYOUT |
 | `packages/domain/src/guides/index.ts` | Barrel export: METAMODEL_GUIDE, ANALYSIS_GUIDE, GUIDES registry |
 
 **Web client** (React app):
@@ -248,10 +249,11 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 | File | Purpose |
 |------|---------|
 | `packages/web-client/src/contexts/DocumentContext.tsx` | Document provider: manages Yjs adapter lifecycle |
+| `packages/web-client/src/contexts/NodeActionsContext.tsx` | Context providing node-related actions (wraps useGroupOperations for stable callbacks, prevents prop drilling) |
 | `packages/web-client/src/stores/adapters/yjsAdapter.ts` | Yjs implementation of DocumentAdapter interface |
 | `packages/web-client/src/stores/documentRegistry.ts` | IndexedDB registry for local documents with cleanAllLocalData() for fresh NUX |
 | `packages/web-client/src/constructs/compiler/index.ts` | Compiler engine that takes schemas/deployables as parameters |
-| `packages/web-client/src/hooks/index.ts` | Barrel export: document state (useNodes, useEdges, useSchemas, usePortSchemas, useDeployables, useSchemaGroups, useLevels, useDocumentMeta), operations (useGraphOperations, useConnections, useVisualGroups), UI state (useMapState, useMetamapLayout, useEdgeBundling), utilities (useClipboard, useUndoRedo, useKeyboardShortcuts, useAwareness, useDirtyStateGuard, useClearDocument) |
+| `packages/web-client/src/hooks/index.ts` | Barrel export: document state (useNodes, useEdges, useSchemas, usePortSchemas, useDeployables, useSchemaGroups, useLevels, useDocumentMeta), operations (useGraphOperations, useConnections, useVisualGroups, useGroupOperations), UI state (useMapState, useMetamapLayout, useEdgeBundling), utilities (useClipboard, useUndoRedo, useKeyboardShortcuts, useAwareness, useDirtyStateGuard, useClearDocument) |
 | `packages/web-client/src/hooks/useNodes.ts` | Focused hook for nodes state: nodes, setNodes, updateNode, getNextNodeId (only re-renders when nodes change) |
 | `packages/web-client/src/hooks/useEdges.ts` | Focused hook for edges state: edges, setEdges (only re-renders when edges change) |
 | `packages/web-client/src/hooks/useSchemas.ts` | Focused hook for schemas state: schemas, schemaById, getSchema, add/update/remove operations |
@@ -262,6 +264,7 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 | `packages/web-client/src/hooks/useDocumentMeta.ts` | Focused hook for document metadata: title, description, setTitle, setDescription |
 | `packages/web-client/src/hooks/useGraphOperations.ts` | Node CRUD: addConstruct, deleteNode, renameNode, createVirtualParent, etc. |
 | `packages/web-client/src/hooks/useConnections.ts` | Connection logic: onConnect, handleEdgesDelete, validation |
+| `packages/web-client/src/hooks/useGroupOperations.ts` | Visual group operations: createGroup, attachToGroup, detachFromGroup, toggleGroupCollapse, renameGroup, updateGroupColor, resizeGroupToFitChildren, deleteGroup |
 | `packages/web-client/src/hooks/useUndoRedo.ts` | Y.UndoManager wrapper for undo/redo (local, not shared) |
 | `packages/web-client/src/hooks/useClipboard.ts` | Copy/paste (local state, not collaborative) |
 | `packages/web-client/src/hooks/useKeyboardShortcuts.ts` | Keyboard shortcut handling |

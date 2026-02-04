@@ -57,6 +57,7 @@ The codebase provides **focused hooks** that subscribe to specific slices of doc
 - `useSchemaGroups()` — schemaGroups, getSchemaGroup, add/update/remove
 - `useLevels()` — levels, activeLevel, setActiveLevel, create/delete/update
 - `useDocumentMeta()` — title, description, setTitle, setDescription
+- `useGroupOperations()` — visual group operations (create, attach, detach, toggle collapse, rename, resize, delete)
 
 **Implementation detail**: Each focused hook uses `adapter.subscribeToX()` (if available) to subscribe only to changes in that state slice. If the adapter doesn't provide a focused subscription method, it falls back to the global `adapter.subscribe()` and filters in the hook.
 
