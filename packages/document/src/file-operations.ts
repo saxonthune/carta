@@ -1,0 +1,322 @@
+/**
+ * File operations for extracting CartaFile from Y.Doc and hydrating Y.Doc from CartaFile.
+ *
+ * Used by desktop persistence to save/load human-readable JSON files.
+ */
+
+import * as Y from 'yjs';
+import type { ConstructSchema, PortSchema, SchemaGroup, Deployable, VisualGroup } from '@carta/domain';
+import { builtInConstructSchemas, builtInPortSchemas } from '@carta/domain';
+import { yToPlain, deepPlainToY } from './yjs-helpers.js';
+import { CARTA_FILE_VERSION, METAMAP_LEVEL_ID } from './constants.js';
+import { generateLevelId } from './id-generators.js';
+import type { CartaFile, CartaFileLevel } from './file-format.js';
+
+/**
+ * Extract a CartaFile from a Y.Doc for saving.
+ */
+export function extractCartaFile(doc: Y.Doc): CartaFile {
+  const ymeta = doc.getMap('meta');
+  const ylevels = doc.getMap<Y.Map<unknown>>('levels');
+  const ynodes = doc.getMap<Y.Map<unknown>>('nodes');
+  const yedges = doc.getMap<Y.Map<unknown>>('edges');
+  const ydeployables = doc.getMap<Y.Map<unknown>>('deployables');
+  const yschemas = doc.getMap<Y.Map<unknown>>('schemas');
+  const yportSchemas = doc.getMap<Y.Map<unknown>>('portSchemas');
+  const yschemaGroups = doc.getMap<Y.Map<unknown>>('schemaGroups');
+  const yvisualGroups = doc.getMap<Y.Map<unknown>>('visualGroups');
+
+  const title = (ymeta.get('title') as string) || 'Untitled Project';
+  const description = ymeta.get('description') as string | undefined;
+
+  // Extract levels with their data
+  const levels: CartaFileLevel[] = [];
+  ylevels.forEach((ylevel, levelId) => {
+    const levelData = yToPlain(ylevel) as { id: string; name: string; description?: string; order: number };
+
+    // Get nodes for this level
+    const levelNodes = ynodes.get(levelId) as Y.Map<Y.Map<unknown>> | undefined;
+    const nodes: unknown[] = [];
+    if (levelNodes) {
+      levelNodes.forEach((ynode, nodeId) => {
+        const nodeData = yToPlain(ynode) as Record<string, unknown>;
+        nodes.push({ id: nodeId, ...nodeData });
+      });
+    }
+
+    // Get edges for this level
+    const levelEdges = yedges.get(levelId) as Y.Map<Y.Map<unknown>> | undefined;
+    const edges: unknown[] = [];
+    if (levelEdges) {
+      levelEdges.forEach((yedge, edgeId) => {
+        const edgeData = yToPlain(yedge) as Record<string, unknown>;
+        edges.push({ id: edgeId, ...edgeData });
+      });
+    }
+
+    // Get deployables for this level
+    const levelDeployables = ydeployables.get(levelId) as Y.Map<Y.Map<unknown>> | undefined;
+    const deployables: Deployable[] = [];
+    if (levelDeployables) {
+      levelDeployables.forEach((ydeployable) => {
+        deployables.push(yToPlain(ydeployable) as Deployable);
+      });
+    }
+
+    // Get visual groups for this level
+    const levelVisualGroups = yvisualGroups.get(levelId) as Y.Map<Y.Map<unknown>> | undefined;
+    const visualGroups: VisualGroup[] = [];
+    if (levelVisualGroups) {
+      levelVisualGroups.forEach((yvg) => {
+        visualGroups.push(yToPlain(yvg) as VisualGroup);
+      });
+    }
+
+    levels.push({
+      id: levelData.id,
+      name: levelData.name,
+      description: levelData.description,
+      order: levelData.order,
+      nodes,
+      edges,
+      deployables,
+      visualGroups,
+    });
+  });
+
+  // Sort levels by order
+  levels.sort((a, b) => a.order - b.order);
+
+  // Extract custom schemas (filter out built-ins)
+  const builtInTypes = new Set(builtInConstructSchemas.map(s => s.type));
+  const customSchemas: ConstructSchema[] = [];
+  yschemas.forEach((yschema) => {
+    const schema = yToPlain(yschema) as ConstructSchema;
+    if (!builtInTypes.has(schema.type)) {
+      customSchemas.push(schema);
+    }
+  });
+
+  // Extract custom port schemas (filter out built-ins)
+  const builtInPortIds = new Set(builtInPortSchemas.map(p => p.id));
+  const portSchemas: PortSchema[] = [];
+  yportSchemas.forEach((yps) => {
+    const ps = yToPlain(yps) as PortSchema;
+    if (!builtInPortIds.has(ps.id)) {
+      portSchemas.push(ps);
+    }
+  });
+
+  // Extract schema groups
+  const schemaGroups: SchemaGroup[] = [];
+  yschemaGroups.forEach((ysg) => {
+    schemaGroups.push(yToPlain(ysg) as SchemaGroup);
+  });
+
+  // Extract metamap visual groups
+  const metamapVGs = yvisualGroups.get(METAMAP_LEVEL_ID) as Y.Map<Y.Map<unknown>> | undefined;
+  const metamapVisualGroups: VisualGroup[] = [];
+  if (metamapVGs) {
+    metamapVGs.forEach((yvg) => {
+      metamapVisualGroups.push(yToPlain(yvg) as VisualGroup);
+    });
+  }
+
+  return {
+    version: CARTA_FILE_VERSION,
+    title,
+    description,
+    levels,
+    nodes: [],  // Empty for v5+ format
+    edges: [],
+    deployables: [],
+    customSchemas,
+    portSchemas,
+    schemaGroups,
+    metamapVisualGroups: metamapVisualGroups.length > 0 ? metamapVisualGroups : undefined,
+    exportedAt: new Date().toISOString(),
+  };
+}
+
+/**
+ * Hydrate a Y.Doc from a CartaFile.
+ *
+ * Clears existing data and populates from the CartaFile.
+ */
+export function hydrateYDocFromCartaFile(doc: Y.Doc, data: CartaFile): void {
+  const ymeta = doc.getMap('meta');
+  const ylevels = doc.getMap<Y.Map<unknown>>('levels');
+  const ynodes = doc.getMap<Y.Map<unknown>>('nodes');
+  const yedges = doc.getMap<Y.Map<unknown>>('edges');
+  const ydeployables = doc.getMap<Y.Map<unknown>>('deployables');
+  const yschemas = doc.getMap<Y.Map<unknown>>('schemas');
+  const yportSchemas = doc.getMap<Y.Map<unknown>>('portSchemas');
+  const yschemaGroups = doc.getMap<Y.Map<unknown>>('schemaGroups');
+  const yvisualGroups = doc.getMap<Y.Map<unknown>>('visualGroups');
+
+  doc.transact(() => {
+    // Clear existing data
+    ymeta.clear();
+    ylevels.clear();
+    ynodes.clear();
+    yedges.clear();
+    ydeployables.clear();
+    yschemas.clear();
+    yportSchemas.clear();
+    yschemaGroups.clear();
+    yvisualGroups.clear();
+
+    // Set metadata
+    ymeta.set('title', data.title);
+    if (data.description) {
+      ymeta.set('description', data.description);
+    }
+    ymeta.set('version', data.version);
+
+    // Handle levels (v5+ format)
+    if (data.levels && data.levels.length > 0) {
+      let firstLevelId: string | null = null;
+
+      for (const level of data.levels) {
+        if (!firstLevelId) firstLevelId = level.id;
+
+        // Create level metadata
+        const levelMap = new Y.Map<unknown>();
+        levelMap.set('id', level.id);
+        levelMap.set('name', level.name);
+        if (level.description) levelMap.set('description', level.description);
+        levelMap.set('order', level.order);
+        ylevels.set(level.id, levelMap);
+
+        // Create nodes map for this level
+        const levelNodesMap = new Y.Map<Y.Map<unknown>>();
+        for (const node of level.nodes) {
+          const nodeObj = node as Record<string, unknown>;
+          const nodeId = nodeObj.id as string;
+          const ynode = deepPlainToY({
+            type: nodeObj.type,
+            position: nodeObj.position,
+            data: nodeObj.data,
+            ...(nodeObj.width ? { width: nodeObj.width } : {}),
+            ...(nodeObj.height ? { height: nodeObj.height } : {}),
+          }) as Y.Map<unknown>;
+          levelNodesMap.set(nodeId, ynode);
+        }
+        ynodes.set(level.id, levelNodesMap as unknown as Y.Map<unknown>);
+
+        // Create edges map for this level
+        const levelEdgesMap = new Y.Map<Y.Map<unknown>>();
+        for (const edge of level.edges) {
+          const edgeObj = edge as Record<string, unknown>;
+          const edgeId = edgeObj.id as string;
+          const yedge = deepPlainToY({
+            source: edgeObj.source,
+            target: edgeObj.target,
+            sourceHandle: edgeObj.sourceHandle,
+            targetHandle: edgeObj.targetHandle,
+          }) as Y.Map<unknown>;
+          levelEdgesMap.set(edgeId, yedge);
+        }
+        yedges.set(level.id, levelEdgesMap as unknown as Y.Map<unknown>);
+
+        // Create deployables map for this level
+        const levelDeployablesMap = new Y.Map<Y.Map<unknown>>();
+        for (const deployable of level.deployables) {
+          const yd = deepPlainToY(deployable) as Y.Map<unknown>;
+          levelDeployablesMap.set(deployable.id, yd);
+        }
+        ydeployables.set(level.id, levelDeployablesMap as unknown as Y.Map<unknown>);
+
+        // Create visual groups map for this level
+        if (level.visualGroups && level.visualGroups.length > 0) {
+          const levelVGMap = new Y.Map<Y.Map<unknown>>();
+          for (const vg of level.visualGroups) {
+            const yvg = deepPlainToY(vg) as Y.Map<unknown>;
+            levelVGMap.set(vg.id, yvg);
+          }
+          yvisualGroups.set(level.id, levelVGMap as unknown as Y.Map<unknown>);
+        }
+      }
+
+      // Set active level to first level
+      if (firstLevelId) {
+        ymeta.set('activeLevel', firstLevelId);
+      }
+    } else {
+      // Legacy flat format (v4 and earlier) - create a default level
+      const levelId = generateLevelId();
+
+      const levelMap = new Y.Map<unknown>();
+      levelMap.set('id', levelId);
+      levelMap.set('name', 'Main');
+      levelMap.set('order', 0);
+      ylevels.set(levelId, levelMap);
+      ymeta.set('activeLevel', levelId);
+
+      // Create nodes map
+      const levelNodesMap = new Y.Map<Y.Map<unknown>>();
+      for (const node of data.nodes) {
+        const nodeObj = node as Record<string, unknown>;
+        const nodeId = nodeObj.id as string;
+        const ynode = deepPlainToY({
+          type: nodeObj.type,
+          position: nodeObj.position,
+          data: nodeObj.data,
+        }) as Y.Map<unknown>;
+        levelNodesMap.set(nodeId, ynode);
+      }
+      ynodes.set(levelId, levelNodesMap as unknown as Y.Map<unknown>);
+
+      // Create edges map
+      const levelEdgesMap = new Y.Map<Y.Map<unknown>>();
+      for (const edge of data.edges) {
+        const edgeObj = edge as Record<string, unknown>;
+        const edgeId = edgeObj.id as string;
+        const yedge = deepPlainToY({
+          source: edgeObj.source,
+          target: edgeObj.target,
+          sourceHandle: edgeObj.sourceHandle,
+          targetHandle: edgeObj.targetHandle,
+        }) as Y.Map<unknown>;
+        levelEdgesMap.set(edgeId, yedge);
+      }
+      yedges.set(levelId, levelEdgesMap as unknown as Y.Map<unknown>);
+
+      // Create deployables map
+      const levelDeployablesMap = new Y.Map<Y.Map<unknown>>();
+      for (const deployable of data.deployables) {
+        const yd = deepPlainToY(deployable) as Y.Map<unknown>;
+        levelDeployablesMap.set(deployable.id, yd);
+      }
+      ydeployables.set(levelId, levelDeployablesMap as unknown as Y.Map<unknown>);
+    }
+
+    // Set custom schemas
+    for (const schema of data.customSchemas) {
+      const ys = deepPlainToY(schema) as Y.Map<unknown>;
+      yschemas.set(schema.type, ys);
+    }
+
+    // Set port schemas
+    for (const ps of data.portSchemas) {
+      const yps = deepPlainToY(ps) as Y.Map<unknown>;
+      yportSchemas.set(ps.id, yps);
+    }
+
+    // Set schema groups
+    for (const sg of data.schemaGroups) {
+      const ysg = deepPlainToY(sg) as Y.Map<unknown>;
+      yschemaGroups.set(sg.id, ysg);
+    }
+
+    // Set metamap visual groups
+    if (data.metamapVisualGroups && data.metamapVisualGroups.length > 0) {
+      const metamapVGMap = new Y.Map<Y.Map<unknown>>();
+      for (const vg of data.metamapVisualGroups) {
+        const yvg = deepPlainToY(vg) as Y.Map<unknown>;
+        metamapVGMap.set(vg.id, yvg);
+      }
+      yvisualGroups.set(METAMAP_LEVEL_ID, metamapVGMap as unknown as Y.Map<unknown>);
+    }
+  });
+}

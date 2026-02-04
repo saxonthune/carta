@@ -1,8 +1,15 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { is, getRendererUrl } from './config.js';
-import { startEmbeddedServer, stopEmbeddedServer, type EmbeddedServerInfo } from './server.js';
+import { startEmbeddedServer, stopEmbeddedServer, ensureVaultHasDocument, type EmbeddedServerInfo } from './server.js';
+import {
+  readPreferences,
+  writePreferences,
+  getDefaultVaultPath,
+  isFirstRun,
+  ensureVaultExists,
+} from './preferences.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -70,18 +77,74 @@ function getMcpConfigSnippet(): string {
   return JSON.stringify(config, null, 2);
 }
 
-// IPC handlers
+// IPC handlers for existing functionality
 ipcMain.handle('get-server-info', () => serverInfo);
 ipcMain.handle('get-mcp-config', () => getMcpConfigSnippet());
 ipcMain.handle('get-mcp-script-path', () => getMcpScriptPath());
 
-app.whenReady().then(async () => {
-  // Start embedded server before creating window
+// IPC handlers for vault management
+ipcMain.handle('is-first-run', () => {
+  return isFirstRun(app.getPath('userData'));
+});
+
+ipcMain.handle('get-vault-path', () => {
+  const prefs = readPreferences(app.getPath('userData'));
+  return prefs.vaultPath;
+});
+
+ipcMain.handle('get-default-vault-path', () => {
+  return getDefaultVaultPath();
+});
+
+ipcMain.handle('choose-vault-folder', async () => {
+  const result = await dialog.showOpenDialog({
+    properties: ['openDirectory', 'createDirectory'],
+    title: 'Choose Carta Vault Folder',
+    defaultPath: getDefaultVaultPath(),
+  });
+
+  if (result.canceled || result.filePaths.length === 0) {
+    return null;
+  }
+
+  return result.filePaths[0];
+});
+
+ipcMain.handle('set-vault-path', (_event, vaultPath: string) => {
+  ensureVaultExists(vaultPath);
+  const prefs = readPreferences(app.getPath('userData'));
+  prefs.vaultPath = vaultPath;
+  writePreferences(app.getPath('userData'), prefs);
+  return true;
+});
+
+ipcMain.handle('start-server-with-vault', async (_event, vaultPath: string) => {
   try {
-    serverInfo = await startEmbeddedServer(app.getPath('userData'));
-    console.log(`[Desktop] Embedded server started: ${serverInfo.url}`);
+    serverInfo = await startEmbeddedServer(app.getPath('userData'), vaultPath);
+    // Ensure vault has at least one document (creates hello-world if empty)
+    const documentId = ensureVaultHasDocument();
+    console.log(`[Desktop] Embedded server started: ${serverInfo.url}, documentId: ${documentId}`);
+    return { ...serverInfo, documentId };
   } catch (err) {
     console.error('[Desktop] Failed to start embedded server:', err);
+    throw err;
+  }
+});
+
+app.whenReady().then(async () => {
+  const userDataPath = app.getPath('userData');
+  const prefs = readPreferences(userDataPath);
+
+  // Only start server if vault is configured
+  if (prefs.vaultPath) {
+    try {
+      serverInfo = await startEmbeddedServer(userDataPath, prefs.vaultPath);
+      console.log(`[Desktop] Embedded server started: ${serverInfo.url}`);
+    } catch (err) {
+      console.error('[Desktop] Failed to start embedded server:', err);
+    }
+  } else {
+    console.log('[Desktop] First run - waiting for vault selection');
   }
 
   createWindow();

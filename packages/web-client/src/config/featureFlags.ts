@@ -8,6 +8,13 @@ interface ElectronAPI {
   getServerInfo: () => Promise<{ url: string; wsUrl: string; port: number } | null>;
   getMcpConfig: () => Promise<string>;
   getMcpScriptPath: () => Promise<string>;
+  // Vault management
+  isFirstRun: () => Promise<boolean>;
+  getVaultPath: () => Promise<string | null>;
+  getDefaultVaultPath: () => Promise<string>;
+  chooseVaultFolder: () => Promise<string | null>;
+  setVaultPath: (path: string) => Promise<boolean>;
+  startServerWithVault: (path: string) => Promise<{ url: string; wsUrl: string; port: number; documentId?: string }>;
 }
 
 declare global {

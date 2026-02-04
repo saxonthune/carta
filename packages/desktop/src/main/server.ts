@@ -3,11 +3,10 @@
  *
  * Lightweight HTTP + WebSocket server running in the Electron main process.
  * Uses the shared document-server-core from @carta/server, with filesystem
- * persistence instead of MongoDB.
+ * persistence in a user-visible vault folder.
  *
- * Persistence: Binary Y.Doc snapshots in {userData}/documents/
- *   - {docId}.ydoc — full Y.Doc state via Y.encodeStateAsUpdate()
- *   - registry.json — lightweight metadata: { id, title, updatedAt, nodeCount }[]
+ * Persistence: Human-readable JSON files in user's vault folder
+ *   - {docId}.json — CartaFile v6 format (human-readable)
  *   - Debounced save on Y.Doc changes (~2s)
  *   - Flush on app quit
  */
@@ -20,10 +19,15 @@ import { WebSocketServer } from 'ws';
 import {
   migrateToLevels,
   migrateToVisualGroups,
+  extractCartaFile,
+  hydrateYDocFromCartaFile,
+  validateCartaFile,
+  CARTA_FILE_VERSION,
+  generateLevelId,
 } from '@carta/document';
+import { generateDocumentId, generateSemanticId } from '@carta/domain';
 import {
   createDocumentServer,
-  getActiveLevelId,
   type DocState,
   type DocumentSummary,
 } from '@carta/server/document-server-core';
@@ -35,17 +39,11 @@ interface DesktopDocState extends DocState {
   saveTimer: ReturnType<typeof setTimeout> | null;
 }
 
-interface RegistryEntry {
-  id: string;
-  title: string;
-  updatedAt: string;
-  nodeCount: number;
-}
-
 export interface EmbeddedServerInfo {
   url: string;
   wsUrl: string;
   port: number;
+  documentId?: string;
 }
 
 // ===== CONSTANTS =====
@@ -55,7 +53,8 @@ const SAVE_DEBOUNCE_MS = 2000;
 
 // ===== STATE =====
 
-let documentsDir: string;
+let vaultDir: string;
+let userDataDir: string;
 let serverInfoPath: string;
 const docs = new Map<string, DesktopDocState>();
 let httpServer: http.Server | null = null;
@@ -63,82 +62,211 @@ let wss: WebSocketServer | null = null;
 
 // ===== PERSISTENCE =====
 
-function ensureDocumentsDir(): void {
-  if (!fs.existsSync(documentsDir)) {
-    fs.mkdirSync(documentsDir, { recursive: true });
+function ensureVaultDir(): void {
+  if (!fs.existsSync(vaultDir)) {
+    fs.mkdirSync(vaultDir, { recursive: true });
   }
 }
 
 function getDocPath(docId: string): string {
-  return path.join(documentsDir, `${docId}.ydoc`);
+  return path.join(vaultDir, `${docId}.json`);
 }
 
-function getRegistryPath(): string {
-  return path.join(documentsDir, 'registry.json');
-}
+/**
+ * Scan vault folder for all .json document files.
+ */
+function scanVaultForDocuments(): DocumentSummary[] {
+  ensureVaultDir();
+  const documents: DocumentSummary[] = [];
 
-function readRegistry(): RegistryEntry[] {
-  const registryPath = getRegistryPath();
-  if (!fs.existsSync(registryPath)) return [];
   try {
-    return JSON.parse(fs.readFileSync(registryPath, 'utf-8'));
+    const files = fs.readdirSync(vaultDir);
+    for (const file of files) {
+      if (!file.endsWith('.json')) continue;
+
+      const docId = file.slice(0, -5); // Remove .json extension
+      const filePath = path.join(vaultDir, file);
+
+      try {
+        const content = fs.readFileSync(filePath, 'utf-8');
+        const data = JSON.parse(content);
+
+        // Extract metadata from CartaFile
+        const title = data.title || 'Untitled Project';
+        const folder = '/'; // Flat folder structure for now
+        const stat = fs.statSync(filePath);
+        const updatedAt = stat.mtime.toISOString();
+
+        // Count nodes across all levels
+        let nodeCount = 0;
+        if (Array.isArray(data.levels)) {
+          for (const level of data.levels) {
+            if (Array.isArray(level.nodes)) {
+              nodeCount += level.nodes.length;
+            }
+          }
+        } else if (Array.isArray(data.nodes)) {
+          nodeCount = data.nodes.length;
+        }
+
+        documents.push({
+          id: docId,
+          title,
+          folder,
+          updatedAt,
+          nodeCount,
+        });
+      } catch {
+        // Skip invalid files
+      }
+    }
   } catch {
-    return [];
-  }
-}
-
-function writeRegistry(entries: RegistryEntry[]): void {
-  ensureDocumentsDir();
-  fs.writeFileSync(getRegistryPath(), JSON.stringify(entries, null, 2));
-}
-
-function updateRegistryEntry(docId: string, doc: Y.Doc): void {
-  const registry = readRegistry();
-  const ymeta = doc.getMap('meta');
-  const title = (ymeta.get('title') as string) || 'Untitled Project';
-  const levelId = getActiveLevelId(doc);
-  const levelNodes = doc.getMap<Y.Map<unknown>>('nodes').get(levelId);
-  const nodeCount = levelNodes ? levelNodes.size : 0;
-
-  const existing = registry.findIndex((e) => e.id === docId);
-  const entry: RegistryEntry = {
-    id: docId,
-    title,
-    updatedAt: new Date().toISOString(),
-    nodeCount,
-  };
-
-  if (existing >= 0) {
-    registry[existing] = entry;
-  } else {
-    registry.push(entry);
+    // Vault doesn't exist yet
   }
 
-  writeRegistry(registry);
+  return documents;
 }
 
-function removeRegistryEntry(docId: string): void {
-  const registry = readRegistry().filter((e) => e.id !== docId);
-  writeRegistry(registry);
+/**
+ * Save Y.Doc to JSON file.
+ */
+function saveDocToJson(docId: string, doc: Y.Doc): void {
+  ensureVaultDir();
+  const cartaFile = extractCartaFile(doc);
+  const jsonContent = JSON.stringify(cartaFile, null, 2);
+  fs.writeFileSync(getDocPath(docId), jsonContent, 'utf-8');
 }
 
-function saveDocToDisk(docId: string, doc: Y.Doc): void {
-  ensureDocumentsDir();
-  const update = Y.encodeStateAsUpdate(doc);
-  fs.writeFileSync(getDocPath(docId), Buffer.from(update));
-  updateRegistryEntry(docId, doc);
-}
-
-function loadDocFromDisk(docId: string, doc: Y.Doc): boolean {
+/**
+ * Load Y.Doc from JSON file.
+ * Returns true if file exists and was loaded successfully.
+ */
+function loadDocFromJson(docId: string, doc: Y.Doc): boolean {
   const docPath = getDocPath(docId);
   if (!fs.existsSync(docPath)) return false;
+
   try {
-    const data = fs.readFileSync(docPath);
-    Y.applyUpdate(doc, new Uint8Array(data));
+    const content = fs.readFileSync(docPath, 'utf-8');
+    const data = JSON.parse(content);
+    const cartaFile = validateCartaFile(data);
+    hydrateYDocFromCartaFile(doc, cartaFile);
     return true;
-  } catch {
+  } catch (err) {
+    console.error(`[Desktop Server] Failed to load ${docId}:`, err);
     return false;
   }
+}
+
+/**
+ * Create a hello-world document with starter content.
+ * Returns the document ID.
+ */
+function createHelloWorldDocument(): string {
+  const docId = generateDocumentId();
+  const levelId = generateLevelId();
+
+  const nodeA = crypto.randomUUID();
+  const nodeB = crypto.randomUUID();
+  const nodeC = crypto.randomUUID();
+
+  const cartaFile = {
+    version: CARTA_FILE_VERSION,
+    title: 'Hello World',
+    description: 'Your first Carta project',
+    levels: [
+      {
+        id: levelId,
+        name: 'Main',
+        order: 0,
+        nodes: [
+          {
+            id: nodeA,
+            type: 'construct',
+            position: { x: 100, y: 200 },
+            data: {
+              constructType: 'note',
+              semanticId: generateSemanticId('note'),
+              values: { content: 'Your idea starts here' },
+              viewLevel: 'summary',
+            },
+          },
+          {
+            id: nodeB,
+            type: 'construct',
+            position: { x: 450, y: 100 },
+            data: {
+              constructType: 'note',
+              semanticId: generateSemanticId('note'),
+              values: { content: 'Break it into pieces' },
+              viewLevel: 'summary',
+            },
+          },
+          {
+            id: nodeC,
+            type: 'construct',
+            position: { x: 450, y: 300 },
+            data: {
+              constructType: 'note',
+              semanticId: generateSemanticId('note'),
+              values: { content: 'Connect them together' },
+              viewLevel: 'summary',
+            },
+          },
+        ],
+        edges: [
+          {
+            id: `edge-${crypto.randomUUID()}`,
+            source: nodeA,
+            target: nodeB,
+            sourceHandle: 'link',
+            targetHandle: 'link',
+          },
+          {
+            id: `edge-${crypto.randomUUID()}`,
+            source: nodeA,
+            target: nodeC,
+            sourceHandle: 'link',
+            targetHandle: 'link',
+          },
+        ],
+        deployables: [],
+        visualGroups: [],
+      },
+    ],
+    nodes: [],
+    edges: [],
+    deployables: [],
+    customSchemas: [],
+    portSchemas: [],
+    schemaGroups: [],
+    exportedAt: new Date().toISOString(),
+  };
+
+  ensureVaultDir();
+  const jsonContent = JSON.stringify(cartaFile, null, 2);
+  fs.writeFileSync(getDocPath(docId), jsonContent, 'utf-8');
+
+  console.log(`[Desktop Server] Created hello-world document: ${docId}`);
+  return docId;
+}
+
+/**
+ * Ensure vault has at least one document.
+ * Creates a hello-world document if vault is empty.
+ * Returns the document ID (either existing or newly created).
+ */
+export function ensureVaultHasDocument(): string {
+  const documents = scanVaultForDocuments();
+  if (documents.length > 0) {
+    // Return the most recently updated document
+    documents.sort((a, b) => {
+      const aTime = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+      const bTime = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+      return bTime - aTime;
+    });
+    return documents[0].id;
+  }
+  return createHelloWorldDocument();
 }
 
 function scheduleSave(docId: string, docState: DesktopDocState): void {
@@ -148,7 +276,7 @@ function scheduleSave(docId: string, docState: DesktopDocState): void {
   }
   docState.saveTimer = setTimeout(() => {
     if (docState.dirty) {
-      saveDocToDisk(docId, docState.doc);
+      saveDocToJson(docId, docState.doc);
       docState.dirty = false;
     }
     docState.saveTimer = null;
@@ -166,7 +294,7 @@ function getOrCreateDoc(docId: string): DesktopDocState {
   docs.set(docId, docState);
 
   // Load from disk
-  loadDocFromDisk(docId, doc);
+  loadDocFromJson(docId, doc);
 
   // Migrate flat docs to level-based structure
   migrateToLevels(doc);
@@ -187,15 +315,10 @@ function getOrCreateDoc(docId: string): DesktopDocState {
 const { handleHttpRequest, setupWSConnection } = createDocumentServer({
   getDoc: async (docId: string) => getOrCreateDoc(docId),
   listDocuments: async (): Promise<DocumentSummary[]> => {
-    return readRegistry().map((entry) => ({
-      id: entry.id,
-      title: entry.title,
-      updatedAt: entry.updatedAt,
-      nodeCount: entry.nodeCount,
-    }));
+    return scanVaultForDocuments();
   },
   onDocumentCreated: async (docId: string, docState: DocState) => {
-    saveDocToDisk(docId, docState.doc);
+    saveDocToJson(docId, docState.doc);
   },
   deleteDocument: async (docId: string): Promise<boolean> => {
     docs.delete(docId);
@@ -203,13 +326,12 @@ const { handleHttpRequest, setupWSConnection } = createDocumentServer({
     if (fs.existsSync(docPath)) {
       fs.unlinkSync(docPath);
     }
-    removeRegistryEntry(docId);
     return true;
   },
   logPrefix: '[Desktop Server]',
   healthMeta: {
     get rooms() { return docs.size; },
-    persistence: 'filesystem',
+    persistence: 'filesystem-json',
   },
 });
 
@@ -218,12 +340,14 @@ const { handleHttpRequest, setupWSConnection } = createDocumentServer({
 /**
  * Start the embedded document server.
  * @param userDataPath - Electron app.getPath('userData')
+ * @param vaultPath - Path to the vault folder
  * @returns Server info (URL, WebSocket URL, port)
  */
-export async function startEmbeddedServer(userDataPath: string): Promise<EmbeddedServerInfo> {
-  documentsDir = path.join(userDataPath, 'documents');
+export async function startEmbeddedServer(userDataPath: string, vaultPath: string): Promise<EmbeddedServerInfo> {
+  vaultDir = vaultPath;
+  userDataDir = userDataPath;
   serverInfoPath = path.join(userDataPath, 'server.json');
-  ensureDocumentsDir();
+  ensureVaultDir();
 
   // Try default port, fall back to random
   const port = await new Promise<number>((resolve) => {
@@ -277,7 +401,7 @@ export async function startEmbeddedServer(userDataPath: string): Promise<Embedde
   fs.writeFileSync(serverInfoPath, JSON.stringify(serverJson, null, 2));
 
   console.log(`[Desktop Server] Running on port ${port}`);
-  console.log(`[Desktop Server] Documents dir: ${documentsDir}`);
+  console.log(`[Desktop Server] Vault dir: ${vaultDir}`);
 
   return info;
 }
@@ -293,7 +417,7 @@ export async function stopEmbeddedServer(): Promise<void> {
       docState.saveTimer = null;
     }
     if (docState.dirty) {
-      saveDocToDisk(docId, docState.doc);
+      saveDocToJson(docId, docState.doc);
       docState.dirty = false;
     }
   }

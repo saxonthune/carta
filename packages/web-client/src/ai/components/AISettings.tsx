@@ -4,6 +4,7 @@ import {
   BUILT_IN_MODELS,
   type AISettingsData,
 } from '../settings';
+import { config } from '../../config/featureFlags';
 
 interface AISettingsProps {
   onClose: () => void;
@@ -16,6 +17,15 @@ export function AISettings({ onClose, onSave, initialSettings }: AISettingsProps
   const [model, setModel] = useState(initialSettings.model);
   const [customModels, setCustomModels] = useState<string[]>(initialSettings.customModels);
   const [newModelInput, setNewModelInput] = useState('');
+  const [mcpConfig, setMcpConfig] = useState<string | null>(null);
+  const [mcpCopied, setMcpCopied] = useState(false);
+
+  // Load MCP config in desktop mode
+  useEffect(() => {
+    if (config.isDesktop && window.electronAPI?.getMcpConfig) {
+      window.electronAPI.getMcpConfig().then(setMcpConfig).catch(console.error);
+    }
+  }, []);
 
   useEffect(() => {
     setApiKey(initialSettings.apiKey);
@@ -188,6 +198,41 @@ export function AISettings({ onClose, onSave, initialSettings }: AISettingsProps
         <div className="p-3 bg-accent-muted rounded text-xs text-content-muted">
           <strong>Note:</strong> Your API key is stored in localStorage. It never leaves your browser except to call OpenRouter.
         </div>
+
+        {/* MCP Setup Section - Desktop Only */}
+        {config.isDesktop && mcpConfig && (
+          <div className="pt-4 border-t border-border">
+            <h4 className="text-sm font-medium text-content mb-2">Claude Desktop / Claude Code Integration</h4>
+            <p className="text-xs text-content-muted mb-2">
+              Add this to your Claude config to let Claude edit Carta documents:
+            </p>
+            <div className="relative">
+              <pre className="p-3 bg-surface-alt rounded text-xs text-content font-mono overflow-x-auto max-h-40">
+                {mcpConfig}
+              </pre>
+              <button
+                type="button"
+                onClick={async () => {
+                  await navigator.clipboard.writeText(mcpConfig);
+                  setMcpCopied(true);
+                  setTimeout(() => setMcpCopied(false), 2000);
+                }}
+                className="absolute top-2 right-2 px-2 py-1 text-xs bg-surface border border-border rounded hover:bg-surface-alt transition-colors"
+              >
+                {mcpCopied ? 'Copied!' : 'Copy'}
+              </button>
+            </div>
+            <p className="mt-2 text-xs text-content-subtle">
+              <strong>Config file location:</strong>
+              <br />
+              <code className="text-accent">~/.config/Claude/claude_desktop_config.json</code> (Linux)
+              <br />
+              <code className="text-accent">~/Library/Application Support/Claude/claude_desktop_config.json</code> (macOS)
+              <br />
+              <code className="text-accent">%APPDATA%\Claude\claude_desktop_config.json</code> (Windows)
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="flex justify-end gap-2 pt-2">

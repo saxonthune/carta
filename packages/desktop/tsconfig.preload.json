@@ -1,11 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "ESNext",
+    "module": "CommonJS",
     "lib": ["ES2022"],
-    "moduleResolution": "bundler",
-    "outDir": "./dist",
-    "rootDir": "./src",
+    "moduleResolution": "node",
+    "outDir": "./dist/preload",
+    "rootDir": "./src/preload",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -13,6 +13,5 @@
     "resolveJsonModule": true,
     "types": ["node"]
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "src/preload"]
+  "include": ["src/preload/**/*"]
 }

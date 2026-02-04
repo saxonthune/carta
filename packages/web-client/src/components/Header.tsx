@@ -24,6 +24,20 @@ interface HeaderProps {
   onLoadExample?: (example: Example) => void;
 }
 
+/**
+ * Check if the server is a local embedded server (desktop app).
+ * Hide connection status for localhost since the user is always "connected" to themselves.
+ */
+function isLocalServer(): boolean {
+  if (!config.serverUrl) return false;
+  try {
+    const url = new URL(config.serverUrl);
+    return url.hostname === '127.0.0.1' || url.hostname === 'localhost';
+  } catch {
+    return false;
+  }
+}
+
 const getInitialTheme = (): 'light' | 'dark' | 'warm' => {
   const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | 'warm' | null;
   if (savedTheme) return savedTheme;
@@ -232,11 +246,11 @@ export default function Header({ title, description, onTitleChange, onDescriptio
           onChange={handleFileSelect}
           className="hidden"
         />
-        {/* Connection Status — only when collaboration is active */}
-        {config.hasServer && mode === 'shared' && <ConnectionStatus />}
+        {/* Connection Status — only when collaboration is active and not a local server */}
+        {config.hasServer && mode === 'shared' && !isLocalServer() && <ConnectionStatus />}
 
-        {/* Share button and menu — only when server is available */}
-        {config.hasServer && (
+        {/* Share button and menu — only when connected to a remote server */}
+        {config.hasServer && !isLocalServer() && (
           <div className="relative" ref={shareMenuRef}>
             {mode === 'shared' && documentId ? (
               <button

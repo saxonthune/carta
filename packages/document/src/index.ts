@@ -11,3 +11,4 @@ export * from './constants.js';
 export * from './doc-operations.js';
 export * from './migrations.js';
 export * from './file-format.js';
+export * from './file-operations.js';
