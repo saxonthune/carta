@@ -18,18 +18,22 @@ import { analyzeImport, type ImportAnalysis, type ImportOptions } from './utils/
 import { analyzeExport, type ExportAnalysis, type ExportOptions } from './utils/exportAnalyzer';
 import { importDocument, type ImportConfig } from './utils/documentImporter';
 import { AISidebar } from './ai';
+import { config } from './config/featureFlags';
 
 // Note: Schema initialization is now handled by DocumentProvider
 
 function App() {
-  // If no ?doc= param, show forced document browser (no DocumentProvider wrapping us)
-  const urlParams = new URLSearchParams(window.location.search);
-  if (!urlParams.has('doc')) {
-    return (
-      <div className="h-screen flex flex-col bg-surface">
-        <DocumentBrowserModal required onClose={() => {}} />
-      </div>
-    );
+  // In server mode without a ?doc= param, show document browser so user can pick/create.
+  // In local mode, main.tsx always resolves a documentId before rendering, so skip this gate.
+  if (config.hasServer) {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (!urlParams.has('doc')) {
+      return (
+        <div className="h-screen flex flex-col bg-surface">
+          <DocumentBrowserModal required onClose={() => {}} />
+        </div>
+      );
+    }
   }
 
   return <AppContent />;

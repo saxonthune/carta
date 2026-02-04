@@ -23,8 +23,9 @@ async function boot() {
       documentId = await createDocument('Untitled Project');
     }
 
-    // Update URL to reflect the document without a page reload
-    if (documentId) {
+    // In server mode, put doc ID in URL so links are shareable.
+    // In local mode, keep the URL clean — localStorage tracks the active document.
+    if (documentId && config.hasServer) {
       const url = new URL(window.location.href);
       url.searchParams.set('doc', documentId);
       history.replaceState(null, '', url.toString());
