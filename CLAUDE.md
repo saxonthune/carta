@@ -283,10 +283,11 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 | `packages/web-client/src/components/modals/ProjectInfoModal.tsx` | Modal for editing project title and description |
 | `packages/web-client/src/components/modals/ExamplesModal.tsx` | Modal for loading example projects |
 | `packages/web-client/src/components/modals/DocumentBrowserModal.tsx` | Document browser with virtual folder navigation, breadcrumbs, and random name generation |
-| `packages/web-client/src/components/ui/index.ts` | Barrel export: primitives (Button, Input, Textarea, Select, Modal, ConfirmationModal), navigation (TabBar, SegmentedControl, Breadcrumb, SearchBar), menus (ContextMenu, ContextMenuPrimitive), domain components (DocumentRow, FolderRow, GroupedSchemaList, SchemaGroupSelector, CollapsibleSelector, ChoiceCard, DraggableWindow), icons |
+| `packages/web-client/src/components/ui/index.ts` | Barrel export: primitives (Button, Input, Textarea, Select, Modal, ConfirmationModal, ColorPicker), navigation (TabBar, SegmentedControl, Breadcrumb, SearchBar), menus (ContextMenu, ContextMenuPrimitive), domain components (DocumentRow, FolderRow, GroupedSchemaList, SchemaGroupSelector, CollapsibleSelector, ChoiceCard, DraggableWindow), icons |
 | `packages/web-client/src/components/ui/Breadcrumb.tsx` | Breadcrumb navigation component for folder paths |
 | `packages/web-client/src/components/ui/DocumentRow.tsx` | Document list item component for document browser |
 | `packages/web-client/src/components/ui/FolderRow.tsx` | Folder list item component for document browser |
+| `packages/web-client/src/components/ui/ColorPicker.tsx` | Color picker component supporting three policies: defaultOnly (no picker), tints (7 tint swatches), any (full color picker) |
 | `packages/web-client/src/components/modals/HelpModal.tsx` | Multi-tab Help modal with About tab (copyright, version, config); opened from Footer |
 | `packages/web-client/src/components/ConnectionStatus.tsx` | Connection status indicator (server mode only) |
 | `packages/web-client/src/components/ConstructEditor.tsx` | Full-screen schema editor with tabs (Basics/Fields/Ports) and live preview |
@@ -404,11 +405,12 @@ const { deployables, addDeployable } = useDeployables();
 
 ### Change node appearance
 ```
-packages/web-client/src/components/canvas/ConstructNode.tsx   → Node rendering, port drawer, color picker, LOD modes (shadow-based cards, left accent bar)
+packages/web-client/src/components/canvas/ConstructNode/     → Node rendering directory: index.tsx (wrapper), ConstructNodeDefault.tsx (normal LOD), ConstructNodePill.tsx (pill LOD), ConstructNodeCard.tsx (deprecated card variant), shared.ts (common utilities)
 packages/web-client/src/components/canvas/lod/lodPolicy.ts    → LOD band thresholds and configuration
 packages/web-client/src/components/canvas/lod/useLodBand.ts   → Hook for discrete zoom-based LOD band detection
 packages/web-client/src/utils/displayUtils.ts                 → Node title derivation
 packages/web-client/src/utils/colorUtils.ts                   → Color utilities (tint generation, HSL conversion)
+packages/web-client/src/components/ui/ColorPicker.tsx         → Color picker component (used in node header)
 packages/web-client/src/index.css                             → Styling (handles, colors, text-halo, --node-shadow, --edge-default-color CSS vars)
 ```
 
@@ -475,7 +477,7 @@ packages/web-client/src/index.css                                     → Edge s
 ### Modify zoom controls or LOD rendering
 ```
 packages/web-client/src/components/canvas/Map.tsx                     → Custom zoom controls (1.15x step), minZoom: 0.15
-packages/web-client/src/components/canvas/ConstructNode.tsx           → Two-band LOD rendering (pill/normal modes)
+packages/web-client/src/components/canvas/ConstructNode/              → Two-band LOD rendering: index.tsx dispatches to ConstructNodePill or ConstructNodeDefault based on zoom
 packages/web-client/src/components/canvas/lod/lodPolicy.ts            → LOD band configuration and thresholds
 packages/web-client/src/components/canvas/lod/useLodBand.ts           → Hook for zoom-based discrete band selection
 packages/web-client/src/index.css                                     → text-halo utility for legible text on any background
