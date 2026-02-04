@@ -306,9 +306,22 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
         } catch {
           // Sync timed out — likely corrupt DB (synced event never fired)
           console.warn(`IndexedDB sync failed for "${dbName}", clearing and retrying`);
-          if (indexeddbProvider) {
-            (indexeddbProvider as any)._destroyed = true;
-            try { indexeddbProvider.doc.off('update', (indexeddbProvider as any)._storeUpdate); } catch { /* noop */ }
+          const oldProvider = indexeddbProvider;
+          indexeddbProvider = null; // Clear reference first to prevent further writes
+          if (oldProvider) {
+            // Wrap the storeUpdate to catch closed-database errors during cleanup
+            const originalStoreUpdate = (oldProvider as any)._storeUpdate;
+            if (originalStoreUpdate) {
+              (oldProvider as any)._storeUpdate = () => {
+                // No-op: database is being cleaned up
+              };
+            }
+            // Now safely destroy
+            try {
+              oldProvider.destroy();
+            } catch {
+              // Best-effort cleanup
+            }
           }
           await deleteDB();
           const { provider, syncPromise } = createAndSync();
