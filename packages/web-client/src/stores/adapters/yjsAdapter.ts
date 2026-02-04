@@ -87,6 +87,10 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
   // Listeners for subscriptions
   const listeners = new Set<() => void>();
 
+  // Track whether observers have been set up (to avoid unobserving before setup)
+  let observersSetUp = false;
+  let registrySyncSetUp = false;
+
   // Notify all listeners of changes
   const notifyListeners = () => {
     listeners.forEach((listener) => listener());
@@ -103,6 +107,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     yportSchemas.observeDeep(notifyListeners);
     yschemaGroups.observeDeep(notifyListeners);
     yvisualGroups.observeDeep(notifyListeners);
+    observersSetUp = true;
   };
 
   // Debounced registry metadata sync (2s, leading edge)
@@ -140,6 +145,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     if (!roomId || options.skipPersistence) return;
     ymeta.observe(syncRegistryMetadata);
     ynodes.observeDeep(syncRegistryMetadata);
+    registrySyncSetUp = true;
   };
 
   /**
@@ -338,21 +344,23 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
         clearTimeout(registryTimer);
         registryTimer = null;
       }
-      if (roomId && !options.skipPersistence) {
+      if (registrySyncSetUp) {
         ymeta.unobserve(syncRegistryMetadata);
         ynodes.unobserveDeep(syncRegistryMetadata);
       }
 
-      // Unobserve all
-      ymeta.unobserveDeep(notifyListeners);
-      ylevels.unobserveDeep(notifyListeners);
-      ynodes.unobserveDeep(notifyListeners);
-      yedges.unobserveDeep(notifyListeners);
-      yschemas.unobserveDeep(notifyListeners);
-      ydeployables.unobserveDeep(notifyListeners);
-      yportSchemas.unobserveDeep(notifyListeners);
-      yschemaGroups.unobserveDeep(notifyListeners);
-      yvisualGroups.unobserveDeep(notifyListeners);
+      // Unobserve all (only if they were set up)
+      if (observersSetUp) {
+        ymeta.unobserveDeep(notifyListeners);
+        ylevels.unobserveDeep(notifyListeners);
+        ynodes.unobserveDeep(notifyListeners);
+        yedges.unobserveDeep(notifyListeners);
+        yschemas.unobserveDeep(notifyListeners);
+        ydeployables.unobserveDeep(notifyListeners);
+        yportSchemas.unobserveDeep(notifyListeners);
+        yschemaGroups.unobserveDeep(notifyListeners);
+        yvisualGroups.unobserveDeep(notifyListeners);
+      }
 
       // Clean up providers
       if (indexeddbProvider) {

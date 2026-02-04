@@ -49,6 +49,8 @@ Canonical definitions for domain terms used throughout Carta. Use these terms co
 
 **Schema Group**: A grouping of construct schemas for organizational purposes. Shown in context menus and the schema wizard.
 
+**Virtual Folder**: A folder path derived from document metadata, not stored as a separate entity. Documents have a `folder` field (e.g., `/projects/webapp`) and the folder hierarchy is derived dynamically by the UI. Folders are created implicitly when documents are saved to them.
+
 **Visual Group**: A unified grouping primitive for visual organization on the canvas. Replaces deployables (Map view) and schema groups (Metamap view) with a single concept. Supports nesting via parentGroupId, collapse/expand states, and optional manual positioning. Groups are level-scoped (Map levels use level IDs, Metamap uses special `__metamap__` level ID).
 
 **Virtual Parent**: A container node that visually groups child constructs. Has three collapse states: expanded, no-edges, collapsed (pill).

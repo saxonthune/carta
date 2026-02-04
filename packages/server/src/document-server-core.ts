@@ -49,6 +49,7 @@ export interface DocState {
 export interface DocumentSummary {
   id: string;
   title: string;
+  folder: string;
   updatedAt?: string;
   nodeCount: number;
   version?: number;
@@ -292,15 +293,30 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
       }
 
       if (path === '/api/documents' && method === 'POST') {
-        const body = await parseJsonBody<{ title?: string }>(req);
+        const body = await parseJsonBody<{ title?: string; folder?: string }>(req);
         const title = body.title || 'Untitled Project';
+        const folder = body.folder || '/';
         const roomId = `doc_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
         const docState = await config.getDoc(roomId);
         docState.doc.transact(() => {
-          docState.doc.getMap('meta').set('title', title);
-          docState.doc.getMap('meta').set('version', 3);
-        }, 'mcp');
+          const ymeta = docState.doc.getMap('meta');
+          ymeta.set('title', title);
+          ymeta.set('folder', folder);
+          ymeta.set('version', 3);
+
+          // Initialize default level if none exists
+          const ylevels = docState.doc.getMap<Y.Map<unknown>>('levels');
+          if (ylevels.size === 0) {
+            const levelId = `level_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+            const levelData = new Y.Map<unknown>();
+            levelData.set('id', levelId);
+            levelData.set('name', 'Main');
+            levelData.set('order', 0);
+            ylevels.set(levelId, levelData);
+            ymeta.set('activeLevel', levelId);
+          }
+        }, 'server');
 
         await config.onDocumentCreated?.(roomId, docState);
 

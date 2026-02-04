@@ -212,7 +212,7 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 
 | File | Purpose |
 |------|---------|
-| `packages/document/src/yjs-helpers.ts` | Yjs ↔ plain object conversion: objectToYMap, yToPlain, yMapToObject, deepPlainToY, safeGet |
+| `packages/document/src/yjs-helpers.ts` | Yjs ↔ plain object conversion with corruption guards: objectToYMap, yToPlain, yMapToObject, deepPlainToY, safeGetString, safeGetNumber, safeGetBoolean |
 | `packages/document/src/id-generators.ts` | ID generators: generateDeployableId, generateDeployableColor, generateSchemaGroupId, generateLevelId, generateNodeId, generateVisualGroupId |
 | `packages/document/src/constants.ts` | Y.Doc map names (YDOC_MAPS including VISUAL_GROUPS), MCP_ORIGIN, CARTA_FILE_VERSION, SERVER_FORMAT_VERSION, METAMAP_LEVEL_ID |
 | `packages/document/src/doc-operations.ts` | Level-aware CRUD for constructs, edges, deployables, schemas (used by document server MCP) |
@@ -257,7 +257,7 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 | `packages/web-client/src/components/metamap/MetamapConnectionModal.tsx` | Modal for creating connections between schemas in Metamap (includes port color picker) |
 | `packages/web-client/src/components/modals/ProjectInfoModal.tsx` | Modal for editing project title and description |
 | `packages/web-client/src/components/modals/ExamplesModal.tsx` | Modal for loading example projects |
-| `packages/web-client/src/components/modals/DocumentBrowserModal.tsx` | Document browser/selector for server mode |
+| `packages/web-client/src/components/modals/DocumentBrowserModal.tsx` | Document browser with virtual folder navigation, breadcrumbs, and random name generation |
 | `packages/web-client/src/components/modals/HelpModal.tsx` | Multi-tab Help modal with About tab (copyright, version, config); opened from Footer |
 | `packages/web-client/src/components/ConnectionStatus.tsx` | Connection status indicator (server mode only) |
 | `packages/web-client/src/components/ConstructEditor.tsx` | Full-screen schema editor with tabs (Basics/Fields/Ports) and live preview |
@@ -282,6 +282,8 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 | `packages/web-client/tests/e2e/visual-groups.spec.ts` | E2E tests for visual group creation via Ctrl+G, display, collapse |
 | `packages/web-client/tests/e2e/helpers/CartaPage.ts` | Playwright page object with goto, gotoFresh, node/port helpers |
 | `packages/web-client/tests/setup/testProviders.tsx` | Test providers with skipPersistence and skipStarterContent |
+| `packages/web-client/src/utils/randomNames.ts` | Random document name generator (Adjective-Noun-Number format) |
+| `packages/web-client/tests/integration/folder-navigation.test.tsx` | Integration tests for virtual folder derivation logic |
 
 **Desktop** (Electron app):
 

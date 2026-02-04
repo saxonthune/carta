@@ -15,6 +15,25 @@ Version 5 JSON format containing:
 
 Import validates structure and shows a preview modal with conflict detection (existing items with same ID). Export offers selective export by category.
 
+## Document REST API
+
+The server exposes REST endpoints for document management:
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/documents` | GET | List all documents with summary metadata |
+| `/api/documents` | POST | Create a new document |
+| `/api/documents/:id` | GET | Get document details |
+| `/api/documents/:id` | DELETE | Delete a document |
+
+Document summary includes:
+- `id`: Document ID (used in WebSocket room name)
+- `title`: Document title
+- `folder`: Virtual folder path (e.g., `/projects/webapp`)
+- `updatedAt`: Last modification timestamp
+- `nodeCount`: Number of constructs
+- `version`: Document format version
+
 ## Compiler Output
 
 JSON output structured for AI consumption:

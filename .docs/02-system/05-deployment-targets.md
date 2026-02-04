@@ -19,6 +19,7 @@ Two environment variables, set by the **operator** (the person deploying Carta):
 |---------|--------|---------|---------|
 | `VITE_SERVER_URL` | URL string or absent | absent | Server to connect to. Presence enables server mode. |
 | `VITE_AI_MODE` | `none`, `user-key`, `server-proxy` | `none` | How AI chat gets credentials |
+| `VITE_DEBUG` | `true`, `false`, or absent | `import.meta.env.DEV` | Shows debug badges in header (DEV, SERVER, DESKTOP, AI mode) |
 
 One runtime-detected property:
 

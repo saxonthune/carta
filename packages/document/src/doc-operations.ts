@@ -593,6 +593,7 @@ export function extractDocument(ydoc: Y.Doc, roomId: string, levelId: string): S
   return {
     id: roomId,
     title: (ymeta.get('title') as string) || 'Untitled Project',
+    folder: (ymeta.get('folder') as string) || '/',
     version: (ymeta.get('version') as number) || 3,
     formatVersion: SERVER_FORMAT_VERSION,
     createdAt: now,
