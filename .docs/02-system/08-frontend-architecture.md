@@ -109,6 +109,37 @@ App.tsx (layout orchestration)
 | Help / About | Config display, version | Show app info | Footer.tsx, HelpModal.tsx |
 | AI Assistant | Chat, tool calls | AI-assisted editing | ai/ directory |
 
+## Barrel Export Organization
+
+Feature directories expose public APIs through `index.ts` barrel exports:
+
+### `hooks/index.ts`
+Organized by purpose:
+- **Document state**: `useDocument`, `useGraphOperations`, `useConnections`, `useVisualGroups`
+- **UI state**: `useMapState`, `useMetamapLayout`, `useEdgeBundling`
+- **Utilities**: `useClipboard`, `useUndoRedo`, `useKeyboardShortcuts`, `useAwareness`, `useDirtyStateGuard`, `useClearDocument`
+
+### `components/canvas/index.ts`
+Canvas components and LOD:
+- **Components**: `Map`, `CanvasContainer`, `ConstructNode`, `VirtualParentNode`, `VisualGroupNode`, `DynamicAnchorEdge`, `PortDrawer`, `IndexBasedDropZones`, `NodeControls`, `AddConstructMenu`
+- **LOD**: `useLodBand`, `DEFAULT_LOD_POLICY`, `getLodConfig`, types
+
+### `components/metamap/index.ts`
+Schema view:
+- `Metamap`, `SchemaNode`, `SchemaGroupNode`, `EdgeDetailPopover`, `MetamapConnectionModal`, `MetamapFilter`
+
+### `components/modals/index.ts`
+All modal dialogs:
+- `CompileModal`, `ProjectInfoModal`, `ExamplesModal`, `HelpModal`, `DocumentBrowserModal`, `ImportPreviewModal`, `ExportPreviewModal`, `ConstructFullViewModal`, `ClearWorkspaceModal`, `RestoreDefaultSchemasModal`
+
+### `components/ui/index.ts`
+Organized by type:
+- **Primitives**: `Button`, `Input`, `Textarea`, `Select`, `Modal`, `ConfirmationModal`
+- **Navigation**: `TabBar`, `SegmentedControl`, `Breadcrumb`, `SearchBar`
+- **Menus**: `ContextMenu`, `ContextMenuPrimitive`
+- **Domain components**: `DocumentRow`, `FolderRow`, `GroupedSchemaList`, `SchemaGroupSelector`, `CollapsibleSelector`, `ChoiceCard`, `DraggableWindow`
+- **Icons**: All icon exports
+
 ## Progressive Disclosure for Features
 
 | Frequency | Surfacing | Loading |

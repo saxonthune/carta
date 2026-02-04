@@ -82,7 +82,7 @@ describe('Restore Default Schemas', () => {
 
       // Verify some key built-in schemas are present
       const schemaTypes = result.current.document.schemas.map(s => s.type);
-      expect(schemaTypes).toContain('controller');
+      expect(schemaTypes).toContain('rest-endpoint');
       expect(schemaTypes).toContain('database');
       expect(schemaTypes).toContain('table');
       expect(schemaTypes).toContain('user-story');
@@ -489,7 +489,7 @@ describe('Restore Default Schemas', () => {
       const schemaTypes = result.current.document.schemas.map(s => s.type);
       expect(schemaTypes).not.toContain('CustomType1');
       expect(schemaTypes).not.toContain('CustomType2');
-      expect(schemaTypes).toContain('controller');
+      expect(schemaTypes).toContain('rest-endpoint');
       expect(schemaTypes).toContain('database');
     });
 

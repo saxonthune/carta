@@ -62,6 +62,22 @@ Target dependency graph (packages can only depend on packages above them):
 
 Currently `@carta/domain`, `@carta/document`, `@carta/compiler`, `@carta/server`, `@carta/web-client`, and `@carta/desktop` exist as packages.
 
+### Barrel Exports
+
+Packages and feature directories use barrel exports (`index.ts`) for organized public APIs:
+
+**Packages:**
+- `@carta/domain` exports from subdirectories: types, ports, schemas, utils, guides
+- `@carta/document` exports all shared Yjs helpers, file format, migrations
+- `@carta/compiler` exports CompilerEngine and formatters
+
+**Web client feature directories:**
+- `hooks/` — Organized by purpose: document state, UI state, utilities
+- `components/canvas/` — Canvas components and LOD system
+- `components/metamap/` — Schema view components
+- `components/modals/` — All modal dialogs
+- `components/ui/` — Primitives, navigation, menus, icons, domain components
+
 ## Data Flow
 
 ```

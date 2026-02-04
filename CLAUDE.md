@@ -106,6 +106,12 @@ Packages can only depend on packages above them in the graph.
 
 Implemented packages: `@carta/types`, `@carta/domain`, `@carta/document`, `@carta/compiler`, `@carta/server`, `@carta/web-client`, and `@carta/desktop`. Cross-package dependencies are resolved via Vite/TypeScript aliases.
 
+**Barrel exports:** Packages use `index.ts` for organized public APIs:
+- `@carta/domain/src/index.ts` — Exports types, ports, schemas, utils, guides
+- `@carta/document/src/index.ts` — Exports Yjs helpers, file format, migrations
+- `@carta/compiler/src/index.ts` — Exports CompilerEngine and formatters
+- Web client feature directories (hooks, components/canvas, components/metamap, components/modals, components/ui) each have barrel exports
+
 - `@carta/core` (`packages/core/`) - **STALE**: divergent types the server still depends on; needs reconciliation with `@carta/domain`
 - `packages/app/` - **Dead code**: no TS files, should be deleted
 
@@ -212,6 +218,7 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 
 | File | Purpose |
 |------|---------|
+| `packages/document/src/index.ts` | Barrel export: yjs-helpers, id-generators, constants, doc-operations, migrations, file-format, file-operations |
 | `packages/document/src/yjs-helpers.ts` | Yjs ↔ plain object conversion with corruption guards: objectToYMap, yToPlain, yMapToObject, deepPlainToY, safeGetString, safeGetNumber, safeGetBoolean |
 | `packages/document/src/id-generators.ts` | ID generators: generateDeployableId, generateDeployableColor, generateSchemaGroupId, generateLevelId, generateNodeId, generateVisualGroupId |
 | `packages/document/src/constants.ts` | Y.Doc map names (YDOC_MAPS including VISUAL_GROUPS), MCP_ORIGIN, CARTA_FILE_VERSION, SERVER_FORMAT_VERSION, METAMAP_LEVEL_ID |
@@ -223,12 +230,17 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 
 | File | Purpose |
 |------|---------|
+| `packages/domain/src/index.ts` | Barrel export: types, ports, schemas, utils, guides |
 | `packages/domain/src/types/index.ts` | Core type definitions: PortSchema, FieldSchema, DocumentAdapter, CartaDocument, Polarity (5 values), VirtualParentNodeData, SchemaGroup, VisualGroup; ConstructSchema with backgroundColorPolicy; ConstructNodeData with instanceColor and groupId |
-| `packages/domain/src/schemas/built-ins.ts` | Default construct schemas, port schemas, and schema groups |
+| `packages/domain/src/ports/index.ts` | Barrel export: registry, helpers |
 | `packages/domain/src/ports/registry.ts` | PortRegistry class with two-step polarity-based canConnect() validation |
 | `packages/domain/src/ports/helpers.ts` | Port helper functions: canConnect, getPortsForSchema, getHandleType, getPortColor |
+| `packages/domain/src/schemas/index.ts` | Barrel export: builtInConstructSchemas, builtInPortSchemas, builtInSchemaGroups |
+| `packages/domain/src/schemas/built-ins.ts` | Default construct schemas, port schemas, and schema groups |
+| `packages/domain/src/utils/index.ts` | Barrel export: display, color, identity |
 | `packages/domain/src/utils/display.ts` | Display utilities: getDisplayName, getFieldsForSummary, semanticIdToLabel |
-| `packages/domain/packages/web-client/src/utils/color.ts` | Color utilities: hexToHsl, hslToHex, generateTints (7-stop tint generation) |
+| `packages/domain/src/utils/color.ts` | Color utilities: hexToHsl, hslToHex, generateTints (7-stop tint generation) |
+| `packages/domain/src/guides/index.ts` | Barrel export: METAMODEL_GUIDE, ANALYSIS_GUIDE, GUIDES registry |
 
 **Web client** (React app):
 
@@ -238,6 +250,7 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 | `packages/web-client/src/stores/adapters/yjsAdapter.ts` | Yjs implementation of DocumentAdapter interface |
 | `packages/web-client/src/stores/documentRegistry.ts` | IndexedDB registry for local documents with cleanAllLocalData() for fresh NUX |
 | `packages/web-client/src/constructs/compiler/index.ts` | Compiler engine that takes schemas/deployables as parameters |
+| `packages/web-client/src/hooks/index.ts` | Barrel export: document state (useDocument, useGraphOperations, useConnections, useVisualGroups), UI state (useMapState, useMetamapLayout, useEdgeBundling), utilities (useClipboard, useUndoRedo, useKeyboardShortcuts, useAwareness, useDirtyStateGuard, useClearDocument) |
 | `packages/web-client/src/hooks/useDocument.ts` | Primary hook for accessing document state and operations via adapter |
 | `packages/web-client/src/hooks/useGraphOperations.ts` | Node CRUD: addConstruct, deleteNode, renameNode, createVirtualParent, etc. |
 | `packages/web-client/src/hooks/useConnections.ts` | Connection logic: onConnect, handleEdgesDelete, validation |
@@ -245,20 +258,24 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 | `packages/web-client/src/hooks/useClipboard.ts` | Copy/paste (local state, not collaborative) |
 | `packages/web-client/src/hooks/useKeyboardShortcuts.ts` | Keyboard shortcut handling |
 | `packages/web-client/src/hooks/useMapState.ts` | Extracted menu/modal UI state from Map.tsx: context menu, add menu, editor modal, full view modal, mouse tracking |
+| `packages/web-client/src/components/canvas/index.ts` | Barrel export: Map, CanvasContainer, ConstructNode, VirtualParentNode, VisualGroupNode, DynamicAnchorEdge, PortDrawer, IndexBasedDropZones, NodeControls, AddConstructMenu, LOD exports (useLodBand, DEFAULT_LOD_POLICY, getLodConfig, types) |
 | `packages/web-client/src/components/canvas/Map.tsx` | React Flow canvas, UI event handlers, virtual-parent node type |
 | `packages/web-client/src/components/canvas/CanvasContainer.tsx` | Canvas container: view switching (Map/Metamap), ViewToggle, LevelSwitcher overlays, Footer |
 | `packages/web-client/src/components/canvas/VirtualParentNode.tsx` | Visual grouping container node for child constructs |
 | `packages/web-client/src/components/canvas/VisualGroupNode.tsx` | Visual group node with collapsed chip / expanded container states |
 | `packages/web-client/src/hooks/useVisualGroups.ts` | Hook processing visual groups: hides children of collapsed groups, builds edge remap for collapsed routing (uses native React Flow parentId) |
 | `packages/web-client/src/components/Header.tsx` | Header with "Carta" branding, title, document browser, import/export, compile, theme, settings, Share (server mode) |
+| `packages/web-client/src/components/metamap/index.ts` | Barrel export: Metamap, SchemaNode, SchemaGroupNode, EdgeDetailPopover, MetamapConnectionModal, MetamapFilter |
 | `packages/web-client/src/components/metamap/Metamap.tsx` | React Flow canvas for schema-level metamodel view (SchemaNode, SchemaGroupNode, EdgeDetailPopover) |
 | `packages/web-client/src/components/metamap/EdgeDetailPopover.tsx` | Click-to-edit popover for metamap edges: edit labels, delete relationships |
 | `packages/web-client/src/components/metamap/SchemaNode.tsx` | Schema node rendering in Metamap view |
 | `packages/web-client/src/components/metamap/SchemaGroupNode.tsx` | Schema group node rendering in Metamap view |
 | `packages/web-client/src/components/metamap/MetamapConnectionModal.tsx` | Modal for creating connections between schemas in Metamap (includes port color picker) |
+| `packages/web-client/src/components/modals/index.ts` | Barrel export: CompileModal, ProjectInfoModal, ExamplesModal, HelpModal, DocumentBrowserModal, ImportPreviewModal, ExportPreviewModal, ConstructFullViewModal, ClearWorkspaceModal, RestoreDefaultSchemasModal |
 | `packages/web-client/src/components/modals/ProjectInfoModal.tsx` | Modal for editing project title and description |
 | `packages/web-client/src/components/modals/ExamplesModal.tsx` | Modal for loading example projects |
 | `packages/web-client/src/components/modals/DocumentBrowserModal.tsx` | Document browser with virtual folder navigation, breadcrumbs, and random name generation |
+| `packages/web-client/src/components/ui/index.ts` | Barrel export: primitives (Button, Input, Textarea, Select, Modal, ConfirmationModal), navigation (TabBar, SegmentedControl, Breadcrumb, SearchBar), menus (ContextMenu, ContextMenuPrimitive), domain components (DocumentRow, FolderRow, GroupedSchemaList, SchemaGroupSelector, CollapsibleSelector, ChoiceCard, DraggableWindow), icons |
 | `packages/web-client/src/components/ui/Breadcrumb.tsx` | Breadcrumb navigation component for folder paths |
 | `packages/web-client/src/components/ui/DocumentRow.tsx` | Document list item component for document browser |
 | `packages/web-client/src/components/ui/FolderRow.tsx` | Folder list item component for document browser |

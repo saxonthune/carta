@@ -130,10 +130,10 @@ describe('Restore Default Schemas', () => {
       });
 
       // Verify specific construct types exist
-      const controllerSchema = result.current.document.schemas.find(s => s.type === 'controller');
-      expect(controllerSchema).toBeDefined();
-      expect(controllerSchema?.displayName).toBe('REST Controller');
-      expect(controllerSchema?.groupId).toBe('api');
+      const restEndpointSchema = result.current.document.schemas.find(s => s.type === 'rest-endpoint');
+      expect(restEndpointSchema).toBeDefined();
+      expect(restEndpointSchema?.displayName).toBe('REST Endpoint');
+      expect(restEndpointSchema?.groupId).toBe('api');
 
       const databaseSchema = result.current.document.schemas.find(s => s.type === 'database');
       expect(databaseSchema).toBeDefined();
@@ -270,9 +270,9 @@ describe('Restore Default Schemas', () => {
       const { adapter } = result.current.context;
 
       // Add a custom schema with same type as built-in
-      const customController = {
-        type: 'controller',
-        displayName: 'Custom Controller',
+      const customEndpoint = {
+        type: 'rest-endpoint',
+        displayName: 'Custom Endpoint',
         color: '#ff0000',
         description: 'Custom version',
         fields: [{ name: 'name', label: 'Name', type: 'string' as const, displayTier: 'pill' as const }],
@@ -282,7 +282,7 @@ describe('Restore Default Schemas', () => {
 
       act(() => {
         adapter.setSchemas([]);
-        adapter.setSchemas([customController]);
+        adapter.setSchemas([customEndpoint]);
       });
 
       await waitFor(() => {
@@ -291,7 +291,7 @@ describe('Restore Default Schemas', () => {
 
       // Verify custom version is there
       const customVersion = result.current.document.schemas[0];
-      expect(customVersion.displayName).toBe('Custom Controller');
+      expect(customVersion.displayName).toBe('Custom Endpoint');
 
       // Restore defaults (which replaces all)
       act(() => {
@@ -306,8 +306,8 @@ describe('Restore Default Schemas', () => {
       });
 
       // Verify built-in version is restored
-      const builtInVersion = result.current.document.schemas.find(s => s.type === 'controller');
-      expect(builtInVersion?.displayName).toBe('REST Controller');
+      const builtInVersion = result.current.document.schemas.find(s => s.type === 'rest-endpoint');
+      expect(builtInVersion?.displayName).toBe('REST Endpoint');
     });
   });
 
