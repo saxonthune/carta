@@ -249,4 +249,141 @@ describe('Folder Navigation', () => {
       expect(frontendView.documents[0].id).toBe('1');
     });
   });
+
+  describe('Created Folders Persistence', () => {
+    /**
+     * Merge manually created folders with derived folders.
+     * Created folders are stored as full paths (e.g., '/projects/new-folder').
+     * This function extracts the immediate child folder name for any created
+     * folder path that is at or below the current path.
+     */
+    function mergeCreatedFolders(
+      derivedFolders: string[],
+      createdFolders: string[],
+      currentPath: string
+    ): string[] {
+      const normalizedPath = currentPath === '/' ? '/' : currentPath.replace(/\/$/, '');
+      const pathPrefix = normalizedPath === '/' ? '/' : normalizedPath + '/';
+
+      const createdChildren = new Set<string>();
+
+      for (const folderPath of createdFolders) {
+        // Check if this created folder is at or below current path
+        if (!folderPath.startsWith(pathPrefix)) continue;
+
+        const remainder = folderPath.slice(pathPrefix.length);
+        if (remainder.length === 0) continue;
+
+        // Extract the immediate child folder name
+        const slashIndex = remainder.indexOf('/');
+        const childName = slashIndex === -1 ? remainder : remainder.slice(0, slashIndex);
+        if (childName) {
+          createdChildren.add(childName);
+        }
+      }
+
+      // Merge and deduplicate
+      const merged = new Set([...derivedFolders, ...createdChildren]);
+      return Array.from(merged).sort();
+    }
+
+    it('should show created folder after navigating back up', () => {
+      const docs: DocumentSummary[] = [];
+      const createdFolders = ['/new-folder'];
+
+      const view = deriveFolderView(docs, '/');
+      const mergedFolders = mergeCreatedFolders(view.childFolders, createdFolders, '/');
+
+      expect(mergedFolders).toContain('new-folder');
+    });
+
+    it('should show created folder at nested level', () => {
+      const docs = [doc('1', '/projects')];
+      const createdFolders = ['/projects/new-subfolder'];
+
+      const view = deriveFolderView(docs, '/projects');
+      const mergedFolders = mergeCreatedFolders(view.childFolders, createdFolders, '/projects');
+
+      expect(mergedFolders).toContain('new-subfolder');
+    });
+
+    it('should not show created folder at wrong level', () => {
+      const docs: DocumentSummary[] = [];
+      const createdFolders = ['/projects/deep/folder'];
+
+      // At root, should not show 'deep' or 'folder'
+      const rootView = deriveFolderView(docs, '/');
+      const rootMerged = mergeCreatedFolders(rootView.childFolders, createdFolders, '/');
+      expect(rootMerged).not.toContain('deep');
+      expect(rootMerged).not.toContain('folder');
+      // Should show 'projects' as the direct child
+      expect(rootMerged).toContain('projects');
+    });
+
+    it('should deduplicate created folders with derived folders', () => {
+      const docs = [doc('1', '/existing-folder')];
+      const createdFolders = ['/existing-folder', '/new-folder'];
+
+      const view = deriveFolderView(docs, '/');
+      const mergedFolders = mergeCreatedFolders(view.childFolders, createdFolders, '/');
+
+      // Should have both but no duplicates
+      expect(mergedFolders).toEqual(['existing-folder', 'new-folder']);
+    });
+
+    it('should maintain alphabetical sort after merge', () => {
+      const docs = [doc('1', '/middle')];
+      const createdFolders = ['/alpha', '/zebra'];
+
+      const view = deriveFolderView(docs, '/');
+      const mergedFolders = mergeCreatedFolders(view.childFolders, createdFolders, '/');
+
+      expect(mergedFolders).toEqual(['alpha', 'middle', 'zebra']);
+    });
+
+    it('should show multiple created folders at same level', () => {
+      const docs: DocumentSummary[] = [];
+      const createdFolders = ['/folder-a', '/folder-b', '/folder-c'];
+
+      const view = deriveFolderView(docs, '/');
+      const mergedFolders = mergeCreatedFolders(view.childFolders, createdFolders, '/');
+
+      expect(mergedFolders).toEqual(['folder-a', 'folder-b', 'folder-c']);
+    });
+
+    it('should handle created folders with empty docs array', () => {
+      const docs: DocumentSummary[] = [];
+      const createdFolders = ['/new-folder'];
+
+      const view = deriveFolderView(docs, '/');
+      const mergedFolders = mergeCreatedFolders(view.childFolders, createdFolders, '/');
+
+      expect(mergedFolders).toEqual(['new-folder']);
+    });
+
+    it('should show ancestor folders of deeply nested created folder', () => {
+      const docs: DocumentSummary[] = [];
+      const createdFolders = ['/a/b/c/d'];
+
+      // At root, should show 'a'
+      const rootView = deriveFolderView(docs, '/');
+      const rootMerged = mergeCreatedFolders(rootView.childFolders, createdFolders, '/');
+      expect(rootMerged).toEqual(['a']);
+
+      // At /a, should show 'b'
+      const aView = deriveFolderView(docs, '/a');
+      const aMerged = mergeCreatedFolders(aView.childFolders, createdFolders, '/a');
+      expect(aMerged).toEqual(['b']);
+
+      // At /a/b, should show 'c'
+      const bView = deriveFolderView(docs, '/a/b');
+      const bMerged = mergeCreatedFolders(bView.childFolders, createdFolders, '/a/b');
+      expect(bMerged).toEqual(['c']);
+
+      // At /a/b/c, should show 'd'
+      const cView = deriveFolderView(docs, '/a/b/c');
+      const cMerged = mergeCreatedFolders(cView.childFolders, createdFolders, '/a/b/c');
+      expect(cMerged).toEqual(['d']);
+    });
+  });
 });
