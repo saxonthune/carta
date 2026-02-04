@@ -424,7 +424,7 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
 
   return (
     <div
-      className={`bg-surface rounded-lg w-full h-full text-node-base text-content overflow-visible relative flex flex-col transition-shadow duration-150 ${data.viewLevel === 'details' ? 'min-w-[280px]' : 'min-w-[180px]'} ${selected ? 'ring-2 ring-accent/30' : ''}`}
+      className={`bg-surface rounded-lg text-node-base text-content overflow-visible relative flex flex-col transition-shadow duration-150 ${data.viewLevel === 'details' ? 'min-w-[280px]' : 'min-w-[180px]'} ${selected ? 'ring-2 ring-accent/30' : ''}`}
       style={{
         ...bgStyle,
         ...lodTransitionStyle,
@@ -501,7 +501,7 @@ const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => 
         const visibleFields = isDetails ? schema.fields : getFieldsForSummary(schema);
 
         return (
-          <div className="px-2 py-2 bg-surface flex flex-col gap-2 flex-1 overflow-y-auto min-h-0">
+          <div className="px-2 py-2 bg-surface flex flex-col gap-2">
             {/* Display name row */}
             <div className="text-node-lg font-semibold text-content">
               {getDisplayName(data, schema)}

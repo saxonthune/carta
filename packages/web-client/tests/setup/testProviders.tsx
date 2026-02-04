@@ -8,12 +8,12 @@ interface TestProvidersProps {
 
 /**
  * Wraps components with all required providers for testing.
- * Uses a fixed test document ID and skips persistence to avoid IndexedDB.
+ * Uses a fixed test document ID and skips persistence and starter content.
  */
 export function TestProviders({ children }: TestProvidersProps) {
   return (
     <ReactFlowProvider>
-      <DocumentProvider documentId="test-document" skipPersistence={true}>
+      <DocumentProvider documentId="test-document" skipPersistence={true} skipStarterContent={true}>
         {children}
       </DocumentProvider>
     </ReactFlowProvider>
@@ -26,7 +26,7 @@ export function TestProviders({ children }: TestProvidersProps) {
  */
 export function DocumentTestProvider({ children }: TestProvidersProps) {
   return (
-    <DocumentProvider documentId="test-document" skipPersistence={true}>
+    <DocumentProvider documentId="test-document" skipPersistence={true} skipStarterContent={true}>
       {children}
     </DocumentProvider>
   );

@@ -45,34 +45,25 @@ export class CartaPage {
 
   /**
    * Navigate to the app and wait for the canvas to be ready.
-   * In local mode, the app auto-creates a document and redirects if needed.
-   * Falls back to handling the DocumentBrowserModal in server mode.
+   * In local mode, the app auto-creates a document (URL stays clean).
+   * In server mode, shows document browser modal.
    */
   async goto() {
     await this.page.goto('/', { waitUntil: 'commit' });
 
     const settingsButton = this.page.getByTestId('settings-menu-button');
-
-    // If the URL already has ?doc=, just wait for the canvas
-    if (this.page.url().includes('?doc=')) {
-      await settingsButton.waitFor({ state: 'visible', timeout: 15000 });
-      return;
-    }
-
-    // Wait for either: redirect to ?doc= (local auto-create) or modal (server mode)
     const newDocButton = this.page.getByRole('button', { name: 'New Document' });
 
+    // Wait for either: canvas ready (local mode) or modal (server mode)
     const firstVisible = await Promise.race([
-      this.page.waitForURL(/\?doc=/, { timeout: 15000 }).then(() => 'redirect' as const),
+      settingsButton.waitFor({ state: 'visible', timeout: 15000 }).then(() => 'canvas' as const),
       newDocButton.waitFor({ state: 'visible', timeout: 15000 }).then(() => 'modal' as const),
     ]);
 
     if (firstVisible === 'modal') {
       await newDocButton.click();
+      await settingsButton.waitFor({ state: 'visible', timeout: 15000 });
     }
-
-    // Wait for the canvas to be ready after redirect
-    await settingsButton.waitFor({ state: 'visible', timeout: 15000 });
   }
 
   /**
@@ -80,16 +71,27 @@ export class CartaPage {
    * Each Playwright test gets a new browser context with empty IndexedDB
    * and localStorage, so this simulates a true first visit.
    *
-   * In local mode, the app auto-creates a document and redirects to ?doc={id}.
-   * We wait for the redirect to settle and the canvas to appear.
+   * In local mode, the app auto-creates a document (URL stays clean, no ?doc=).
+   * In server mode, shows document browser modal.
+   * We wait for the canvas or modal to appear.
    */
   async gotoFresh() {
-    // Navigate to / — in local mode this triggers auto-create + redirect
-    // Use waitUntil: 'commit' since the redirect interrupts the initial load
     await this.page.goto('/', { waitUntil: 'commit' });
-    // Wait for the auto-create redirect to settle
-    await this.page.waitForURL(/\?doc=/, { timeout: 15000 });
-    await this.page.getByTestId('settings-menu-button').waitFor({ state: 'visible', timeout: 15000 });
+
+    const settingsButton = this.page.getByTestId('settings-menu-button');
+    const newDocButton = this.page.getByRole('button', { name: 'New Document' });
+
+    // Wait for either: canvas ready (local mode) or modal (server mode)
+    const firstVisible = await Promise.race([
+      settingsButton.waitFor({ state: 'visible', timeout: 15000 }).then(() => 'canvas' as const),
+      newDocButton.waitFor({ state: 'visible', timeout: 15000 }).then(() => 'modal' as const),
+    ]);
+
+    if (firstVisible === 'modal') {
+      // In server mode, create a new document
+      await newDocButton.click();
+      await settingsButton.waitFor({ state: 'visible', timeout: 15000 });
+    }
   }
 
   async openSettingsMenu() {
@@ -163,6 +165,82 @@ export class CartaPage {
     await this.page.mouse.down({ button: 'right' });
     await this.page.mouse.up({ button: 'right' });
     await this.page.waitForTimeout(300);
+  }
+
+  /**
+   * Get a specific node by index.
+   */
+  getNode(index: number): Locator {
+    return this.page.locator('.react-flow__node').nth(index);
+  }
+
+  /**
+   * Get the port drawer element inside a node.
+   */
+  getPortDrawer(nodeIndex: number): Locator {
+    return this.getNode(nodeIndex).locator('.port-drawer, [class*="port"]').first();
+  }
+
+  /**
+   * Hover over a node's bottom area to expand the port drawer.
+   * Returns the node's bounding box for subsequent operations.
+   */
+  async hoverNodeBottom(nodeIndex: number): Promise<{ x: number; y: number; width: number; height: number }> {
+    const node = this.getNode(nodeIndex);
+    await node.waitFor({ state: 'visible' });
+    const box = await node.boundingBox();
+    if (!box) throw new Error(`Node ${nodeIndex} not found`);
+
+    // Hover near the bottom of the node to trigger port drawer
+    await this.page.mouse.move(box.x + box.width / 2, box.y + box.height - 10);
+    await this.page.waitForTimeout(200);
+    return box;
+  }
+
+  /**
+   * Drag from a source node to a target node to create a connection.
+   * Starts from near the bottom of source node (port drawer area)
+   * and drops on the target node.
+   */
+  async dragToConnect(sourceNodeIndex: number, targetNodeIndex: number): Promise<void> {
+    const sourceNode = this.getNode(sourceNodeIndex);
+    const targetNode = this.getNode(targetNodeIndex);
+
+    await sourceNode.waitFor({ state: 'visible' });
+    await targetNode.waitFor({ state: 'visible' });
+
+    const sourceBox = await sourceNode.boundingBox();
+    const targetBox = await targetNode.boundingBox();
+    if (!sourceBox || !targetBox) throw new Error('Nodes not found');
+
+    // Start from bottom center of source (port drawer area)
+    const startX = sourceBox.x + sourceBox.width / 2;
+    const startY = sourceBox.y + sourceBox.height - 5;
+
+    // End at center of target
+    const endX = targetBox.x + targetBox.width / 2;
+    const endY = targetBox.y + targetBox.height / 2;
+
+    // Hover to expand port drawer first
+    await this.page.mouse.move(startX, startY);
+    await this.page.waitForTimeout(300);
+
+    // Now drag
+    await this.page.mouse.down();
+    await this.page.mouse.move(endX, endY, { steps: 10 });
+    await this.page.waitForTimeout(100);
+    await this.page.mouse.up();
+    await this.page.waitForTimeout(200);
+  }
+
+  /**
+   * Check if drop zones are visible during a connection drag.
+   */
+  async hasVisibleDropZones(): Promise<boolean> {
+    // Drop zones have the dropzone: prefix in their handle IDs
+    const dropZones = this.page.locator('[data-handleid^="dropzone:"]');
+    const count = await dropZones.count();
+    return count > 0;
   }
 
   /**

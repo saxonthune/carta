@@ -73,29 +73,42 @@ test.describe('New User Experience', () => {
     await expect(firstNode).toHaveClass(/selected/, { timeout: 3000 });
   });
 
-  test('URL has ?doc= param after first visit', async ({ page }) => {
+  test('document persists across page reloads', async ({ page }) => {
     const canvas = page.locator('.react-flow');
     await expect(canvas).toBeVisible({ timeout: 10000 });
 
-    // URL should contain a document ID for persistence
-    expect(page.url()).toContain('?doc=');
+    // Get the initial node count
+    const nodes = page.locator('.react-flow__node');
+    const initialCount = await nodes.count();
+    expect(initialCount).toBeGreaterThan(0);
+
+    // Reload the page
+    await page.reload();
+    await expect(canvas).toBeVisible({ timeout: 10000 });
+
+    // Same document should be restored (same node count)
+    const reloadedCount = await nodes.count();
+    expect(reloadedCount).toBe(initialCount);
   });
 
   test('returning visit reopens last document', async ({ page }) => {
     const carta = new CartaPage(page);
 
-    // First: get to the canvas (create document if needed via current flow)
+    // First: get to the canvas
     await carta.goto();
     const canvas = page.locator('.react-flow');
     await expect(canvas).toBeVisible({ timeout: 10000 });
 
-    // Capture the document URL
-    const firstUrl = page.url();
-    expect(firstUrl).toContain('?doc=');
+    // Get initial node count to verify same document
+    const nodes = page.locator('.react-flow__node');
+    const initialCount = await nodes.count();
 
-    // Reload from root (no ?doc= param) — should redirect back
+    // Navigate away and back (go to root)
     await page.goto('/');
     await expect(canvas).toBeVisible({ timeout: 10000 });
-    expect(page.url()).toContain('?doc=');
+
+    // Should be the same document (same node count)
+    const returnCount = await nodes.count();
+    expect(returnCount).toBe(initialCount);
   });
 });

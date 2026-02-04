@@ -39,6 +39,8 @@ export interface DocumentProviderProps {
   serverUrl?: string;
   /** Skip IndexedDB persistence (for testing) */
   skipPersistence?: boolean;
+  /** Skip starter content seeding (for testing) */
+  skipStarterContent?: boolean;
 }
 
 /**
@@ -50,6 +52,7 @@ export function DocumentProvider({
   documentId,
   serverUrl = config.wsUrl ?? undefined,
   skipPersistence = false,
+  skipStarterContent = false,
 }: DocumentProviderProps) {
   const [adapter, setAdapter] = useState<DocumentAdapter | null>(null);
   const [mode, setMode] = useState<'local' | 'shared'>('local');
@@ -95,7 +98,9 @@ export function DocumentProvider({
         }, 'init');
 
         // Seed starter content so the canvas isn't empty on first visit
-        seedStarterContent(yjsAdapter);
+        if (!skipStarterContent) {
+          seedStarterContent(yjsAdapter);
+        }
       }
 
       // Migration: forward -> relay, intercept polarity update

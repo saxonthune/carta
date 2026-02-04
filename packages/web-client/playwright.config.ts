@@ -1,5 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 
+// E2E tests run on port 5273 to avoid conflicts with dev server (5173)
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
@@ -8,7 +9,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: 'http://localhost:5273',
     trace: 'on-first-retry',
   },
   projects: [
@@ -18,8 +19,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'pnpm run dev:local',
-    url: 'http://localhost:5173',
+    command: 'vite --port 5273',
+    url: 'http://localhost:5273',
     reuseExistingServer: !process.env.CI,
   },
 });
