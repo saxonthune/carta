@@ -150,7 +150,7 @@ export default function ContextMenu({
     }
     return [];
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [type, nodeId, edgeId, selectedCount, relatedConstructs, constructOptions, canPaste, levels, activeLevel, selectedNodeIds, constructType, onEditSchema, onGroupSelected, onRemoveFromGroup, nodeInGroup]);
+  }, [type, nodeId, edgeId, selectedCount, relatedConstructs, constructOptions, schemaGroups, canPaste, levels, activeLevel, selectedNodeIds, constructType, onEditSchema, onGroupSelected, onRemoveFromGroup, nodeInGroup]);
 
   function buildPaneMenuItems(): MenuItem[] {
     const result: MenuItem[] = [];

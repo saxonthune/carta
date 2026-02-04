@@ -8,6 +8,7 @@ import ProjectInfoModal from './modals/ProjectInfoModal';
 import ClearWorkspaceModal from './modals/ClearWorkspaceModal';
 import RestoreDefaultSchemasModal from './modals/RestoreDefaultSchemasModal';
 import { getExamples, type Example } from '../utils/examples';
+import { cleanAllLocalData } from '../stores/documentRegistry';
 
 interface HeaderProps {
   title: string;
@@ -188,14 +189,26 @@ export default function Header({ title, description, onTitleChange, onDescriptio
         {config.debug && (
           <div className="flex items-center gap-1.5 text-[10px] font-mono text-content-muted">
             <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400">DEV</span>
-            {config.hasServer && (
-              <span className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-600 dark:text-blue-400">SERVER</span>
-            )}
+            <span className={`px-1.5 py-0.5 rounded ${mode === 'shared' ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400' : 'bg-slate-500/20 text-slate-600 dark:text-slate-400'}`}>
+              {mode === 'shared' ? 'SERVER' : 'LOCAL'}
+            </span>
             {config.isDesktop && (
               <span className="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-600 dark:text-purple-400">DESKTOP</span>
             )}
             {config.aiMode !== 'none' && (
               <span className="px-1.5 py-0.5 rounded bg-green-500/20 text-green-600 dark:text-green-400">AI:{config.aiMode}</span>
+            )}
+            {mode === 'local' && (
+              <button
+                className="px-1.5 py-0.5 rounded bg-red-500/20 text-red-600 dark:text-red-400 hover:bg-red-500/30 transition-colors cursor-pointer border-none"
+                onClick={async () => {
+                  await cleanAllLocalData();
+                  window.location.href = window.location.pathname;
+                }}
+                title="Clear all local data and reload as new user"
+              >
+                Clean
+              </button>
             )}
           </div>
         )}

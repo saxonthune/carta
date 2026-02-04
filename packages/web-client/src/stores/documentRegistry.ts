@@ -147,3 +147,39 @@ export async function deleteDocument(id: string): Promise<void> {
     request.onerror = () => reject(request.error);
   });
 }
+
+/**
+ * Delete all local Carta data for a fresh new-user experience.
+ * Clears all document databases, the registry, and localStorage.
+ */
+export async function cleanAllLocalData(): Promise<void> {
+  // Get all document IDs from registry first
+  const docs = await listLocalDocuments().catch(() => []);
+
+  // Delete each document's IndexedDB database
+  for (const doc of docs) {
+    await new Promise<void>((resolve) => {
+      const request = indexedDB.deleteDatabase(`carta-doc-${doc.id}`);
+      request.onsuccess = () => resolve();
+      request.onerror = () => resolve(); // Continue even on error
+    });
+  }
+
+  // Delete the registry database
+  await new Promise<void>((resolve) => {
+    const request = indexedDB.deleteDatabase(DB_NAME);
+    request.onsuccess = () => resolve();
+    request.onerror = () => resolve();
+  });
+
+  // Delete legacy database if it exists
+  await new Promise<void>((resolve) => {
+    const request = indexedDB.deleteDatabase('carta-local');
+    request.onsuccess = () => resolve();
+    request.onerror = () => resolve();
+  });
+
+  // Clear Carta-related localStorage items
+  localStorage.removeItem('lastOpenedDocId');
+  localStorage.removeItem('theme');
+}
