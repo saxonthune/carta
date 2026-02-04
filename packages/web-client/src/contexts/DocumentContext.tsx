@@ -39,7 +39,7 @@ export interface DocumentProviderProps {
   serverUrl?: string;
   /** Skip IndexedDB persistence (for testing) */
   skipPersistence?: boolean;
-  /** Skip starter content seeding (for testing) */
+  /** Skip seeding starter content (for testing) */
   skipStarterContent?: boolean;
 }
 
@@ -189,7 +189,7 @@ export function DocumentProvider({
         currentAdapter.dispose();
       }
     };
-  }, [documentId, serverUrl, skipPersistence]);
+  }, [documentId, serverUrl, skipPersistence, skipStarterContent]);
 
   if (error) {
     return (

@@ -271,6 +271,22 @@ export interface CanvasGroup {
 }
 
 /**
+ * Unified visual grouping primitive for both Map (deployables) and Metamap (schema groups)
+ * Supports nesting via parentGroupId, collapse state, and optional manual positioning.
+ * Stored per-level with "__metamap__" as the special level ID for schema groups.
+ */
+export interface VisualGroup {
+  id: string;                              // 'vg_' + random
+  name: string;
+  description?: string;
+  color?: string;
+  parentGroupId?: string;                  // nesting - references another VisualGroup.id
+  collapsed: boolean;
+  position?: { x: number; y: number };     // undefined = use auto-layout
+  size?: { width: number; height: number };
+}
+
+/**
  * Formatter interface - each output format implements this
  */
 export interface Formatter {
@@ -469,6 +485,15 @@ export interface DocumentAdapter {
   addSchemaGroup(group: Omit<SchemaGroup, 'id'>): SchemaGroup;
   updateSchemaGroup(id: string, updates: Partial<SchemaGroup>): void;
   removeSchemaGroup(id: string): boolean;
+
+  // State access - Visual Groups (level-scoped, use METAMAP_LEVEL_ID for schema groups)
+  getVisualGroups(levelId: string): VisualGroup[];
+  getVisualGroup(levelId: string, id: string): VisualGroup | undefined;
+
+  // Mutations - Visual Groups
+  addVisualGroup(levelId: string, group: Omit<VisualGroup, 'id'>): VisualGroup;
+  updateVisualGroup(levelId: string, id: string, updates: Partial<VisualGroup>): void;
+  removeVisualGroup(levelId: string, id: string): boolean;
 
   // Batched operations (for Yjs transact)
   // origin parameter allows MCP attribution (e.g., 'user' vs 'ai-mcp')

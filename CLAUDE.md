@@ -213,17 +213,17 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 | File | Purpose |
 |------|---------|
 | `packages/document/src/yjs-helpers.ts` | Yjs ↔ plain object conversion: objectToYMap, yToPlain, yMapToObject, deepPlainToY, safeGet |
-| `packages/document/src/id-generators.ts` | ID generators: generateDeployableId, generateDeployableColor, generateSchemaGroupId, generateLevelId, generateNodeId |
-| `packages/document/src/constants.ts` | Y.Doc map names (YDOC_MAPS), MCP_ORIGIN, CARTA_FILE_VERSION, SERVER_FORMAT_VERSION |
+| `packages/document/src/id-generators.ts` | ID generators: generateDeployableId, generateDeployableColor, generateSchemaGroupId, generateLevelId, generateNodeId, generateVisualGroupId |
+| `packages/document/src/constants.ts` | Y.Doc map names (YDOC_MAPS including VISUAL_GROUPS), MCP_ORIGIN, CARTA_FILE_VERSION, SERVER_FORMAT_VERSION, METAMAP_LEVEL_ID |
 | `packages/document/src/doc-operations.ts` | Level-aware CRUD for constructs, edges, deployables, schemas (used by document server MCP) |
-| `packages/document/src/migrations.ts` | migrateToLevels: flat Y.Doc → level-based structure migration |
+| `packages/document/src/migrations.ts` | migrateToLevels, migrateToVisualGroups: document structure migrations |
 | `packages/document/src/file-format.ts` | CartaFile/CartaFileLevel types, validateCartaFile, importProjectFromString |
 
 **@carta/domain** (shared domain logic, no UI/storage dependencies):
 
 | File | Purpose |
 |------|---------|
-| `packages/domain/src/types/index.ts` | Core type definitions: PortSchema, FieldSchema, DocumentAdapter, CartaDocument, Polarity (5 values), VirtualParentNodeData, SchemaGroup; ConstructSchema with backgroundColorPolicy; ConstructNodeData with instanceColor |
+| `packages/domain/src/types/index.ts` | Core type definitions: PortSchema, FieldSchema, DocumentAdapter, CartaDocument, Polarity (5 values), VirtualParentNodeData, SchemaGroup, VisualGroup; ConstructSchema with backgroundColorPolicy; ConstructNodeData with instanceColor and groupId |
 | `packages/domain/src/schemas/built-ins.ts` | Default construct schemas, port schemas, and schema groups |
 | `packages/domain/src/ports/registry.ts` | PortRegistry class with two-step polarity-based canConnect() validation |
 | `packages/domain/src/ports/helpers.ts` | Port helper functions: canConnect, getPortsForSchema, getHandleType, getPortColor |
@@ -247,6 +247,8 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 | `packages/web-client/src/components/canvas/Map.tsx` | React Flow canvas, UI event handlers, virtual-parent node type |
 | `packages/web-client/src/components/canvas/CanvasContainer.tsx` | Canvas container: view switching (Map/Metamap), ViewToggle, LevelSwitcher overlays, Footer |
 | `packages/web-client/src/components/canvas/VirtualParentNode.tsx` | Visual grouping container node for child constructs |
+| `packages/web-client/src/components/canvas/VisualGroupNode.tsx` | Visual group node with collapsed chip / expanded container states |
+| `packages/web-client/src/hooks/useVisualGroups.ts` | Hook computing group nodes from flat VisualGroup storage for React Flow |
 | `packages/web-client/src/components/Header.tsx` | Header with "Carta" branding, title, document browser, import/export, compile, theme, settings, Share (server mode) |
 | `packages/web-client/src/components/metamap/Metamap.tsx` | React Flow canvas for schema-level metamodel view (SchemaNode, SchemaGroupNode, EdgeDetailPopover) |
 | `packages/web-client/src/components/metamap/EdgeDetailPopover.tsx` | Click-to-edit popover for metamap edges: edit labels, delete relationships |
@@ -270,7 +272,7 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 | `packages/web-client/src/utils/examples.ts` | Utility to load bundled example .carta files |
 | `packages/web-client/src/main.tsx` | Entry point: resolves documentId (migration, last-opened, or auto-create), updates URL via history.replaceState, renders DocumentProvider |
 | `packages/web-client/src/utils/starterContent.ts` | Seeds starter graph (3 Note nodes, 2 edges) on first document initialization |
-| `packages/web-client/src/components/ui/icons.tsx` | Shared icon components: PinIcon, WindowIcon, CloseIcon, ExpandIcon, CollapseIcon |
+| `packages/web-client/src/components/ui/icons.tsx` | Shared icon components: PinIcon, WindowIcon, CloseIcon, ExpandIcon, CollapseIcon, EyeIcon, EyeOffIcon |
 | `packages/web-client/src/components/ui/DraggableWindow.tsx` | Draggable, pinnable window component for full view modal (no backdrop, island UX) |
 | `packages/web-client/src/components/modals/ConstructFullViewModal.tsx` | Full view window displaying all node information: fields, deployable, identity, connections, compile preview |
 | `packages/web-client/src/components/canvas/DeployableBackground.tsx` | Deployable background renderer with LOD-aware font sizing |

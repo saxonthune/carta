@@ -34,3 +34,7 @@ export function generateLevelId(): string {
 export function generateNodeId(): string {
   return 'node_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
 }
+
+export function generateVisualGroupId(): string {
+  return 'vg_' + Math.random().toString(36).substring(2, 11);
+}

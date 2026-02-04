@@ -38,7 +38,7 @@ The canvas uses **level-of-detail (LOD) rendering** with two zoom-based bands to
 Right-click on canvas, node, or edge opens a context menu:
 
 - **Canvas**: Add construct (grouped by schema group), create new schema, create new group, paste
-- **Node**: Delete, copy, rename, add related construct (with port/type submenu), copy to another level
+- **Node**: Delete, copy, rename, add related construct (with port/type submenu), copy to another level, group selected (multi-select), remove from group
 - **Edge**: Delete
 
 ## Zoom Controls
@@ -48,9 +48,17 @@ Custom controls in bottom-left corner:
 - Fit view button
 - Undo / redo buttons
 
-## Deployable Backgrounds
+## Visual Groups
 
-When constructs are assigned to deployables, subtle colored backgrounds appear behind grouped constructs to visually indicate deployment boundaries.
+Constructs can be organized into visual groups (formerly "deployables"). Groups display as:
+- **Expanded**: Colored background with group name, containing member nodes
+- **Collapsed**: Compact chip showing group name and eye icon to expand
+
+Groups support:
+- Nesting via parent group relationships
+- Collapse/expand toggle (eye icon)
+- Ctrl+drag to remove a node from its group
+- Context menu: "Group N Nodes" (multi-select), "Remove from Group" (single node)
 
 ## Full View Window
 

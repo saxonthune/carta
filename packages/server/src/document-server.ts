@@ -23,6 +23,7 @@ import { WebSocketServer } from 'ws';
 import { MongodbPersistence } from 'y-mongodb-provider';
 import {
   migrateToLevels,
+  migrateToVisualGroups,
   repairOrphanedConnections,
   extractDocument,
 } from '@carta/document';
@@ -92,6 +93,9 @@ async function getYDoc(docName: string): Promise<DocState> {
 
     // Migrate flat docs to level-based structure
     migrateToLevels(doc);
+
+    // Migrate deployables/schemaGroups to visualGroups
+    migrateToVisualGroups(doc);
 
     // Repair orphaned connections (references to deleted nodes)
     repairOrphanedConnections(doc);

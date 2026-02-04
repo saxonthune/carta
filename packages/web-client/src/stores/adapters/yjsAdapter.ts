@@ -10,6 +10,7 @@ import type {
   PortSchema,
   SchemaGroup,
   Level,
+  VisualGroup,
 } from '@carta/domain';
 import {
   objectToYMap,
@@ -18,7 +19,9 @@ import {
   generateDeployableColor,
   generateSchemaGroupId,
   generateLevelId,
+  generateVisualGroupId,
   migrateToLevels,
+  migrateToVisualGroups,
 } from '@carta/document';
 import { updateDocumentMetadata } from '../documentRegistry';
 
@@ -41,6 +44,7 @@ export interface YjsAdapterOptions {
  *   'nodes': Y.Map<levelId, Y.Map<nodeId, Y.Map>>       // Nested: level → nodes
  *   'edges': Y.Map<levelId, Y.Map<edgeId, Y.Map>>       // Nested: level → edges
  *   'deployables': Y.Map<levelId, Y.Map<depId, Y.Map>>   // Nested: level → deployables
+ *   'visualGroups': Y.Map<levelId, Y.Map<groupId, Y.Map>> // Nested: level → visual groups (use '__metamap__' for schema groups)
  *   'schemas': Y.Map<type, Y.Map>                        // Shared (unchanged)
  *   'portSchemas': Y.Map<id, Y.Map>                      // Shared (unchanged)
  *   'schemaGroups': Y.Map<id, Y.Map>                     // Shared (unchanged)
@@ -73,6 +77,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
   const ydeployables = ydoc.getMap<Y.Map<unknown>>('deployables');
   const yportSchemas = ydoc.getMap<Y.Map<unknown>>('portSchemas');
   const yschemaGroups = ydoc.getMap<Y.Map<unknown>>('schemaGroups');
+  const yvisualGroups = ydoc.getMap<Y.Map<unknown>>('visualGroups');
 
   // Persistence
   let indexeddbProvider: IndexeddbPersistence | null = null;
@@ -97,6 +102,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     ydeployables.observeDeep(notifyListeners);
     yportSchemas.observeDeep(notifyListeners);
     yschemaGroups.observeDeep(notifyListeners);
+    yvisualGroups.observeDeep(notifyListeners);
   };
 
   // Debounced registry metadata sync (2s, leading edge)
@@ -220,6 +226,9 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       // Migrate flat data to levels if needed
       migrateToLevels(ydoc);
 
+      // Migrate deployables and schemaGroups to visualGroups
+      migrateToVisualGroups(ydoc);
+
       // Ensure at least one level exists
       if (ylevels.size === 0) {
         const levelId = generateLevelId();
@@ -324,13 +333,15 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     dispose(): void {
-      // Clean up registry sync
+      // Clean up registry sync (only if it was set up)
       if (registryTimer) {
         clearTimeout(registryTimer);
         registryTimer = null;
       }
-      ymeta.unobserve(syncRegistryMetadata);
-      ynodes.unobserveDeep(syncRegistryMetadata);
+      if (roomId && !options.skipPersistence) {
+        ymeta.unobserve(syncRegistryMetadata);
+        ynodes.unobserveDeep(syncRegistryMetadata);
+      }
 
       // Unobserve all
       ymeta.unobserveDeep(notifyListeners);
@@ -341,6 +352,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       ydeployables.unobserveDeep(notifyListeners);
       yportSchemas.unobserveDeep(notifyListeners);
       yschemaGroups.unobserveDeep(notifyListeners);
+      yvisualGroups.unobserveDeep(notifyListeners);
 
       // Clean up providers
       if (indexeddbProvider) {
@@ -941,6 +953,80 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
             }
           });
           yschemaGroups.delete(id);
+        }, 'user');
+      }
+      return exists;
+    },
+
+    // State access - Visual Groups (level-scoped)
+    getVisualGroups(levelId: string): VisualGroup[] {
+      const levelGroups = yvisualGroups.get(levelId) as Y.Map<Y.Map<unknown>> | undefined;
+      if (!levelGroups) return [];
+      const groups: VisualGroup[] = [];
+      levelGroups.forEach((ygroup) => {
+        groups.push(yMapToObject<VisualGroup>(ygroup));
+      });
+      return groups;
+    },
+
+    getVisualGroup(levelId: string, id: string): VisualGroup | undefined {
+      const levelGroups = yvisualGroups.get(levelId) as Y.Map<Y.Map<unknown>> | undefined;
+      if (!levelGroups) return undefined;
+      const ygroup = levelGroups.get(id) as Y.Map<unknown> | undefined;
+      if (!ygroup) return undefined;
+      return yMapToObject<VisualGroup>(ygroup);
+    },
+
+    // Mutations - Visual Groups
+    addVisualGroup(levelId: string, group: Omit<VisualGroup, 'id'>): VisualGroup {
+      const id = generateVisualGroupId();
+      const newGroup: VisualGroup = { ...group, id };
+      ydoc.transact(() => {
+        let levelGroups = yvisualGroups.get(levelId) as Y.Map<Y.Map<unknown>> | undefined;
+        if (!levelGroups) {
+          levelGroups = new Y.Map<Y.Map<unknown>>();
+          yvisualGroups.set(levelId, levelGroups as unknown as Y.Map<unknown>);
+        }
+        levelGroups.set(id, objectToYMap(newGroup as unknown as Record<string, unknown>));
+      }, 'user');
+      return newGroup;
+    },
+
+    updateVisualGroup(levelId: string, id: string, updates: Partial<VisualGroup>) {
+      ydoc.transact(() => {
+        const levelGroups = yvisualGroups.get(levelId) as Y.Map<Y.Map<unknown>> | undefined;
+        if (!levelGroups) return;
+        const ygroup = levelGroups.get(id) as Y.Map<unknown> | undefined;
+        if (!ygroup) return;
+        const current = yMapToObject<VisualGroup>(ygroup);
+        levelGroups.set(id, objectToYMap({ ...current, ...updates } as unknown as Record<string, unknown>));
+      }, 'user');
+    },
+
+    removeVisualGroup(levelId: string, id: string): boolean {
+      const levelGroups = yvisualGroups.get(levelId) as Y.Map<Y.Map<unknown>> | undefined;
+      if (!levelGroups) return false;
+      const exists = levelGroups.has(id);
+      if (exists) {
+        ydoc.transact(() => {
+          // Clear groupId from nodes in this level that reference this group
+          const levelNodes = ynodes.get(levelId) as Y.Map<Y.Map<unknown>> | undefined;
+          if (levelNodes) {
+            levelNodes.forEach((ynode) => {
+              const data = (ynode as Y.Map<unknown>).get('data') as ConstructNodeData | undefined;
+              if (data?.groupId === id) {
+                (ynode as Y.Map<unknown>).set('data', { ...data, groupId: undefined });
+              }
+            });
+          }
+          // Clear parentGroupId from child groups
+          levelGroups.forEach((ygroup, groupId) => {
+            const group = yMapToObject<VisualGroup>(ygroup);
+            if (group.parentGroupId === id) {
+              levelGroups.set(groupId, objectToYMap({ ...group, parentGroupId: undefined } as unknown as Record<string, unknown>));
+            }
+          });
+          levelGroups.delete(id);
         }, 'user');
       }
       return exists;

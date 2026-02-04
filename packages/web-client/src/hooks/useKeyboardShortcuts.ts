@@ -12,6 +12,7 @@ interface UseKeyboardShortcutsOptions {
   pasteNodes: () => void;
   deleteSelectedNodes: () => void;
   startRename: () => void;
+  createGroup?: () => void;
 }
 
 /**
@@ -22,6 +23,7 @@ interface UseKeyboardShortcutsOptions {
  * - Ctrl+Y / Ctrl+Shift+Z: Redo
  * - Ctrl+C: Copy selected nodes
  * - Ctrl+V: Paste nodes
+ * - Ctrl+G: Group selected nodes
  * - Delete/Backspace: Delete selected nodes
  * - F2: Rename selected node (when single node selected)
  */
@@ -35,6 +37,7 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions): void
     pasteNodes,
     deleteSelectedNodes,
     startRename,
+    createGroup,
   } = options;
 
   useEffect(() => {
@@ -76,6 +79,15 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions): void
         return;
       }
 
+      // Group: Ctrl+G (when multiple nodes selected)
+      if ((event.ctrlKey || event.metaKey) && event.key === 'g') {
+        if (selectedNodeIds.length >= 2 && createGroup) {
+          event.preventDefault();
+          createGroup();
+        }
+        return;
+      }
+
       // Shortcuts that require selection
       if (selectedNodeIds.length === 0) return;
 
@@ -93,5 +105,5 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions): void
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedNodeIds, canPaste, undo, redo, copyNodes, pasteNodes, deleteSelectedNodes, startRename]);
+  }, [selectedNodeIds, canPaste, undo, redo, copyNodes, pasteNodes, deleteSelectedNodes, startRename, createGroup]);
 }
