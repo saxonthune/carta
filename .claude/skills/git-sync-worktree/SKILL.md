@@ -50,14 +50,24 @@ if [[ -n $(git status --porcelain) ]]; then
 fi
 ```
 
-### 3. Rebase onto Trunk
+### 3. Check Divergence
+
+```bash
+# Compare trunk and worktree with left-right markers
+# < = commits only on trunk, > = commits only on worktree
+git log --oneline --left-right $TRUNK_BRANCH...HEAD
+```
+
+Empty output means branches are identical. Otherwise shows what needs syncing.
+
+### 4. Rebase onto Trunk
 
 ```bash
 # Rebase onto trunk
 git rebase $TRUNK_BRANCH
 ```
 
-### 4. Handle Rebase Conflicts
+### 5. Handle Rebase Conflicts
 
 If conflicts occur:
 ```markdown
@@ -79,7 +89,7 @@ git rebase --abort
 git merge $TRUNK_BRANCH
 ```
 
-### 5. Return Summary
+### 6. Return Summary
 
 ```markdown
 ## Worktree Sync Complete

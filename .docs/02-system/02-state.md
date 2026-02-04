@@ -28,6 +28,7 @@ All document state lives in a Yjs Y.Doc, accessed through the DocumentAdapter in
 - **Port Schemas**: Port type definitions (shared across levels)
 - **Schema Groups**: Schema organization metadata
 - **Deployables**: Logical groupings (per-level)
+- **Visual Groups**: Unified grouping primitive (per-level, with special `__metamap__` level for schema groups)
 - **Levels**: Separate architectural views, each with own nodes/edges/deployables
 
 ### Persistence

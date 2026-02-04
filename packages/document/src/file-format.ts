@@ -5,7 +5,7 @@
  * Web-client re-exports these and adds browser-specific import/export functions.
  */
 
-import type { Deployable, ConstructSchema, PortSchema, SchemaGroup } from '@carta/domain';
+import type { Deployable, ConstructSchema, PortSchema, SchemaGroup, VisualGroup } from '@carta/domain';
 import { CARTA_FILE_VERSION } from './constants.js';
 
 /**
@@ -18,17 +18,18 @@ export interface CartaFileLevel {
   order: number;
   nodes: unknown[];
   edges: unknown[];
-  deployables: Deployable[];
+  deployables: Deployable[];      // v5 and earlier
+  visualGroups?: VisualGroup[];    // v6+
 }
 
 /**
- * Structure of a .carta project file (v5 with levels)
+ * Structure of a .carta project file (v6 with visualGroups)
  */
 export interface CartaFile {
   version: number;
   title: string;
   description?: string;
-  // V5: levels contain nodes/edges/deployables
+  // V5+: levels contain nodes/edges/deployables/visualGroups
   levels?: CartaFileLevel[];
   // V4 and earlier: flat nodes/edges/deployables (for backwards compat on import)
   nodes: unknown[];
@@ -37,6 +38,8 @@ export interface CartaFile {
   customSchemas: ConstructSchema[];
   portSchemas: PortSchema[];
   schemaGroups: SchemaGroup[];
+  // V6+: metamap visual groups (for schema grouping in Metamap view)
+  metamapVisualGroups?: VisualGroup[];
   exportedAt: string;
 }
 
@@ -227,9 +230,13 @@ export function validateCartaFile(data: unknown): CartaFile {
     }
   }
 
-  // Validate schemaGroups (required)
+  // Validate schemaGroups (required for v5 and earlier, optional for v6+)
   if (!Array.isArray(obj.schemaGroups)) {
-    throw new Error('Invalid file: missing or invalid schemaGroups array');
+    // Allow missing schemaGroups for v6+ files that use metamapVisualGroups instead
+    if (obj.version < 6) {
+      throw new Error('Invalid file: missing or invalid schemaGroups array');
+    }
+    obj.schemaGroups = [];
   }
   for (const sg of obj.schemaGroups as unknown[]) {
     if (!sg || typeof sg !== 'object') {
@@ -241,6 +248,25 @@ export function validateCartaFile(data: unknown): CartaFile {
     }
     if (g.parentId !== undefined && typeof g.parentId !== 'string') {
       throw new Error(`Invalid file: schemaGroup "${g.id}" has invalid parentId (must be string)`);
+    }
+  }
+
+  // Validate visualGroups in levels if present (v6+)
+  if (hasLevels) {
+    for (const level of obj.levels as unknown[]) {
+      const l = level as Record<string, unknown>;
+      if (Array.isArray(l.visualGroups)) {
+        for (const vg of l.visualGroups as unknown[]) {
+          validateVisualGroup(vg);
+        }
+      }
+    }
+  }
+
+  // Validate metamapVisualGroups if present (v6+)
+  if (Array.isArray(obj.metamapVisualGroups)) {
+    for (const vg of obj.metamapVisualGroups as unknown[]) {
+      validateVisualGroup(vg);
     }
   }
 
@@ -258,8 +284,46 @@ export function validateCartaFile(data: unknown): CartaFile {
     customSchemas: repairedData.customSchemas as ConstructSchema[],
     portSchemas: repairedData.portSchemas as PortSchema[],
     schemaGroups: repairedData.schemaGroups as SchemaGroup[],
+    metamapVisualGroups: (repairedData.metamapVisualGroups as VisualGroup[]) || undefined,
     exportedAt: (repairedData.exportedAt as string) || new Date().toISOString(),
   };
+}
+
+/**
+ * Validate a VisualGroup structure
+ */
+function validateVisualGroup(vg: unknown): void {
+  if (!vg || typeof vg !== 'object') {
+    throw new Error('Invalid file: invalid visualGroup structure');
+  }
+  const g = vg as Record<string, unknown>;
+  if (typeof g.id !== 'string' || typeof g.name !== 'string') {
+    throw new Error(`Invalid file: visualGroup missing required fields (id, name)`);
+  }
+  if (typeof g.collapsed !== 'boolean') {
+    throw new Error(`Invalid file: visualGroup "${g.id}" missing required field (collapsed)`);
+  }
+  if (g.parentGroupId !== undefined && typeof g.parentGroupId !== 'string') {
+    throw new Error(`Invalid file: visualGroup "${g.id}" has invalid parentGroupId (must be string)`);
+  }
+  if (g.position !== undefined) {
+    if (typeof g.position !== 'object' || g.position === null) {
+      throw new Error(`Invalid file: visualGroup "${g.id}" has invalid position`);
+    }
+    const pos = g.position as Record<string, unknown>;
+    if (typeof pos.x !== 'number' || typeof pos.y !== 'number') {
+      throw new Error(`Invalid file: visualGroup "${g.id}" position must have numeric x and y`);
+    }
+  }
+  if (g.size !== undefined) {
+    if (typeof g.size !== 'object' || g.size === null) {
+      throw new Error(`Invalid file: visualGroup "${g.id}" has invalid size`);
+    }
+    const size = g.size as Record<string, unknown>;
+    if (typeof size.width !== 'number' || typeof size.height !== 'number') {
+      throw new Error(`Invalid file: visualGroup "${g.id}" size must have numeric width and height`);
+    }
+  }
 }
 
 /**

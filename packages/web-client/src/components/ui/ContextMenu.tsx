@@ -50,6 +50,10 @@ interface ContextMenuProps {
   activeLevel?: string;
   selectedNodeIds?: string[];
   onCopyNodesToLevel?: (nodeIds: string[], targetLevelId: string) => void;
+  // Visual group props
+  onGroupSelected?: () => void;
+  onRemoveFromGroup?: (nodeId: string) => void;
+  nodeInGroup?: boolean;
 }
 
 // Group items by their groupId into MenuItem[] with nested children
@@ -128,6 +132,9 @@ export default function ContextMenu({
   activeLevel,
   selectedNodeIds,
   onCopyNodesToLevel,
+  onGroupSelected,
+  onRemoveFromGroup,
+  nodeInGroup,
 }: ContextMenuProps) {
   const showMultipleSelected = selectedCount > 1;
 
@@ -143,7 +150,7 @@ export default function ContextMenu({
     }
     return [];
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [type, nodeId, edgeId, selectedCount, relatedConstructs, constructOptions, canPaste, levels, activeLevel, selectedNodeIds, constructType, onEditSchema]);
+  }, [type, nodeId, edgeId, selectedCount, relatedConstructs, constructOptions, canPaste, levels, activeLevel, selectedNodeIds, constructType, onEditSchema, onGroupSelected, onRemoveFromGroup, nodeInGroup]);
 
   function buildPaneMenuItems(): MenuItem[] {
     const result: MenuItem[] = [];
@@ -272,8 +279,29 @@ export default function ContextMenu({
         key: 'edit-schema',
         label: 'Edit Schema',
         onClick: () => onEditSchema(constructType),
-        dividerAfter: true,
       });
+    }
+
+    // Group operations
+    if (showMultipleSelected && onGroupSelected) {
+      result.push({
+        key: 'group-selected',
+        label: `Group ${selectedCount} Nodes`,
+        onClick: onGroupSelected,
+      });
+    }
+
+    if (!showMultipleSelected && nodeInGroup && onRemoveFromGroup && nodeId) {
+      result.push({
+        key: 'remove-from-group',
+        label: 'Remove from Group',
+        onClick: () => onRemoveFromGroup(nodeId),
+      });
+    }
+
+    // Add divider before delete
+    if (result.length > 0) {
+      result[result.length - 1].dividerAfter = true;
     }
 
     if (showMultipleSelected) {

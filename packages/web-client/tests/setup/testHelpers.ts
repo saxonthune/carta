@@ -13,6 +13,7 @@ export function createTestNode(options: {
   values?: Record<string, unknown>;
   connections?: ConstructNodeData['connections'];
   deployableId?: string | null;
+  groupId?: string;
 }): Node {
   const id = options.id ?? crypto.randomUUID();
   const constructType = options.type ?? 'Task';
@@ -29,6 +30,7 @@ export function createTestNode(options: {
       viewLevel: 'summary' as const,
       connections: options.connections ?? [],
       deployableId: options.deployableId ?? null,
+      groupId: options.groupId,
     } satisfies ConstructNodeData,
   };
 }

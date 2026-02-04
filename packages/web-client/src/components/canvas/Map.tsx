@@ -22,17 +22,19 @@ import { useDocumentContext } from '../../contexts/DocumentContext';
 import CustomNode from './CustomNode';
 import ConstructNode from './ConstructNode';
 import VirtualParentNode from './VirtualParentNode';
+import VisualGroupNode from './VisualGroupNode';
 import ContextMenu, { type RelatedConstructOption } from '../ui/ContextMenu';
 import { useMapState } from '../../hooks/useMapState';
 import NodeControls from './NodeControls';
 import AddConstructMenu from './AddConstructMenu';
-import DeployableBackground from './DeployableBackground';
 import { useUndoRedo } from '../../hooks/useUndoRedo';
 import { useGraphOperations } from '../../hooks/useGraphOperations';
 import { useConnections } from '../../hooks/useConnections';
 import { useClipboard } from '../../hooks/useClipboard';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
-import type { ConstructValues, Deployable, ConstructNodeData, VirtualParentNodeData } from '@carta/domain';
+import type { ConstructValues, Deployable, ConstructNodeData, VirtualParentNodeData, VisualGroup } from '@carta/domain';
+import { useVisualGroups } from '../../hooks/useVisualGroups';
+import { generateDeployableColor } from '@carta/document';
 import ConstructEditor from '../ConstructEditor';
 import DynamicAnchorEdge from './DynamicAnchorEdge';
 import ConstructFullViewModal from '../modals/ConstructFullViewModal';
@@ -87,6 +89,7 @@ const nodeTypes = {
   custom: CustomNode,
   construct: ConstructNode,
   'virtual-parent': VirtualParentNode,
+  'visual-group': VisualGroupNode,
 };
 
 const edgeTypes = {
@@ -123,8 +126,15 @@ export interface MapProps {
 }
 
 export default function Map({ deployables, onDeployablesChange, title, onNodesEdgesChange, onSelectionChange, onNodeDoubleClick, searchText }: MapProps) {
-  const { nodes, edges, setNodes, setEdges, getSchema, levels, activeLevel, copyNodesToLevel } = useDocument();
+  const { nodes, edges, setNodes, setEdges, getSchema, levels, activeLevel, copyNodesToLevel, updateNode, getVisualGroups, addVisualGroup, updateVisualGroup } = useDocument();
   const { adapter } = useDocumentContext();
+  const currentLevelId = activeLevel || 'main';
+
+  // Get visual groups for the current level
+  const visualGroups = useMemo(
+    () => getVisualGroups(currentLevelId),
+    [getVisualGroups, currentLevelId]
+  );
   const edgeColor = useEdgeColor();
   const defaultEdgeOptions = useMemo(() => ({
     type: 'bundled',
@@ -135,6 +145,21 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
   }), [edgeColor]);
   const schemaGroups = adapter.getSchemaGroups();
   const { getViewport, setViewport } = useReactFlow();
+
+  // Visual groups hook for unified group rendering
+  const handleUpdateVisualGroup = useCallback(
+    (levelId: string, groupId: string, updates: Partial<VisualGroup>) => {
+      updateVisualGroup(levelId, groupId, updates);
+    },
+    [updateVisualGroup]
+  );
+
+  const { groupNodes, edgeRemap } = useVisualGroups(
+    nodes as Node<ConstructNodeData>[],
+    visualGroups,
+    currentLevelId,
+    handleUpdateVisualGroup
+  );
 
   // Custom zoom with smaller step (1.15x instead of default 1.2x)
   const customZoomIn = useCallback(() => {
@@ -227,6 +252,30 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     }
   }, [selectedNodeIds]);
 
+  // Create a new visual group from selected nodes
+  const createGroup = useCallback(() => {
+    if (selectedNodeIds.length < 2) return;
+
+    const color = generateDeployableColor();
+
+    // Add the visual group and use the returned ID
+    const group = addVisualGroup(currentLevelId, {
+      name: 'New Group',
+      color,
+      collapsed: false,
+    });
+
+    // Assign all selected nodes to the new group using the actual group ID
+    for (const nodeId of selectedNodeIds) {
+      updateNode(nodeId, { groupId: group.id });
+    }
+  }, [selectedNodeIds, addVisualGroup, currentLevelId, updateNode]);
+
+  // Remove a node from its group
+  const removeFromGroup = useCallback((nodeId: string) => {
+    updateNode(nodeId, { groupId: undefined });
+  }, [updateNode]);
+
   // Use keyboard shortcuts hook
   useKeyboardShortcuts({
     selectedNodeIds,
@@ -237,6 +286,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     pasteNodes,
     deleteSelectedNodes,
     startRename,
+    createGroup,
   });
 
   // Note: localStorage persistence is now handled by the document store's subscriber
@@ -382,10 +432,18 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
   });
 
   // Sort nodes: virtual parents before their children (React Flow requirement)
+  // Merge in visual group nodes
   const sortedNodes = useMemo(() => {
-    const sorted = [...nodesWithCallbacks].sort((a, b) => {
+    const sorted = [...nodesWithCallbacks, ...groupNodes].sort((a, b) => {
       if (a.type === 'virtual-parent' && b.parentId === a.id) return -1;
       if (b.type === 'virtual-parent' && a.parentId === b.id) return 1;
+      // Visual groups sorted by z-index (lower z-index first)
+      if (a.type === 'visual-group' && b.type === 'visual-group') {
+        return (a.zIndex || 0) - (b.zIndex || 0);
+      }
+      // Visual groups before content nodes
+      if (a.type === 'visual-group') return -1;
+      if (b.type === 'visual-group') return 1;
       return 0;
     });
 
@@ -394,8 +452,8 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
 
     const lowerSearch = searchText.toLowerCase();
     return sorted.filter((node) => {
-      // Virtual parents always show if any children match
-      if (node.type === 'virtual-parent') return true;
+      // Visual groups and virtual parents always show if any children match
+      if (node.type === 'virtual-parent' || node.type === 'visual-group') return true;
 
       // Only filter construct nodes - type guard
       if (!('constructType' in node.data) || !('semanticId' in node.data) || !('values' in node.data)) {
@@ -427,9 +485,10 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
 
       return false;
     });
-  }, [nodesWithCallbacks, searchText, getSchema]);
+  }, [nodesWithCallbacks, groupNodes, searchText, getSchema]);
 
   // Filter edges: hide edges to/from children of collapsed/no-edges virtual parents
+  // Also reroute edges to collapsed visual groups using edgeRemap
   const filteredEdges = useMemo(() => {
     const hiddenChildIds = new Set<string>();
     for (const node of nodes) {
@@ -444,9 +503,44 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
         }
       }
     }
-    if (hiddenChildIds.size === 0) return edges;
-    return edges.filter(e => !hiddenChildIds.has(e.source) && !hiddenChildIds.has(e.target));
-  }, [edges, nodes]);
+
+    // Apply virtual parent filtering
+    let result = hiddenChildIds.size === 0 ? edges : edges.filter(e => !hiddenChildIds.has(e.source) && !hiddenChildIds.has(e.target));
+
+    // Apply visual group edge remapping for collapsed groups
+    if (edgeRemap.size > 0) {
+      const seenEdgeKeys = new Set<string>(); // Dedupe edges to same collapsed group
+      result = result.map(edge => {
+        const remappedSource = edgeRemap.get(edge.source);
+        const remappedTarget = edgeRemap.get(edge.target);
+
+        if (remappedSource || remappedTarget) {
+          const newSource = remappedSource ? `group-${remappedSource}` : edge.source;
+          const newTarget = remappedTarget ? `group-${remappedTarget}` : edge.target;
+
+          // Skip self-loops to same group
+          if (newSource === newTarget) return null;
+
+          // Dedupe edges that now have the same endpoints
+          const dedupeKey = `${newSource}-${newTarget}`;
+          if (seenEdgeKeys.has(dedupeKey)) return null;
+          seenEdgeKeys.add(dedupeKey);
+
+          return {
+            ...edge,
+            id: `${edge.id}-remapped`,
+            source: newSource,
+            target: newTarget,
+            sourceHandle: remappedSource ? 'group-connect' : edge.sourceHandle,
+            targetHandle: remappedTarget ? 'group-connect' : edge.targetHandle,
+          };
+        }
+        return edge;
+      }).filter((e): e is Edge => e !== null);
+    }
+
+    return result;
+  }, [edges, nodes, edgeRemap]);
 
   // Auto-revert unpinned details nodes when deselected
   const updateNodeInternals = useUpdateNodeInternals();
@@ -477,15 +571,26 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     draggedNodesRef.current.add(node.id);
   }, []);
 
-  const onNodeDragStop = useCallback(() => {
+  const onNodeDragStop = useCallback((event: React.MouseEvent, node: Node) => {
     isDraggingRef.current = false;
     draggedNodesRef.current.clear();
-  }, []);
 
-  // Handle deployable selection
-  const handleSelectDeployable = useCallback((deployableId: string) => {
-    const deployableNodes = nodes.filter(n => n.data?.deployableId === deployableId);
-    const nodeIds = deployableNodes.map(n => n.id);
+    // Ctrl+drag to remove from group
+    if (event.ctrlKey || event.metaKey) {
+      const nodeData = node.data as ConstructNodeData;
+      if (nodeData?.groupId) {
+        updateNode(node.id, { groupId: undefined });
+      }
+    }
+  }, [updateNode]);
+
+  // Handle visual group selection (click on group selects all nodes in it)
+  const handleSelectGroup = useCallback((groupId: string) => {
+    const groupNodes = nodes.filter(n => {
+      const data = n.data as ConstructNodeData;
+      return data?.groupId === groupId;
+    });
+    const nodeIds = groupNodes.map(n => n.id);
     setNodes((nds) =>
       nds.map((n) => ({
         ...n,
@@ -495,23 +600,8 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     setSelectedNodeIds(nodeIds);
   }, [nodes, setNodes, setSelectedNodeIds]);
 
-  // Handle deployable movement
-  const handleMoveDeployableNodes = useCallback((deployableId: string, deltaX: number, deltaY: number) => {
-    setNodes((nds) =>
-      nds.map((n) => {
-        if (n.data?.deployableId === deployableId) {
-          return {
-            ...n,
-            position: {
-              x: n.position.x + deltaX,
-              y: n.position.y + deltaY,
-            },
-          };
-        }
-        return n;
-      })
-    );
-  }, [setNodes]);
+  // Suppress unused - will be used for group selection via context menu
+  void handleSelectGroup;
 
   return (
     <div className="w-full h-full relative" style={{ backgroundColor: 'var(--color-canvas)' }}>
@@ -591,12 +681,6 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
         </div>
 
         <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
-        <DeployableBackground
-          nodes={sortedNodes}
-          deployables={deployables}
-          onSelectDeployable={handleSelectDeployable}
-          onMoveDeployableNodes={handleMoveDeployableNodes}
-        />
       </ReactFlow>
 
       {selectedNodeIds.length > 0 && (
@@ -643,6 +727,13 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
           activeLevel={activeLevel}
           selectedNodeIds={selectedNodeIds}
           onCopyNodesToLevel={copyNodesToLevel}
+          onGroupSelected={createGroup}
+          onRemoveFromGroup={removeFromGroup}
+          nodeInGroup={(() => {
+            if (!contextMenu.nodeId) return false;
+            const node = nodes.find(n => n.id === contextMenu.nodeId);
+            return node?.type === 'construct' && !!(node.data as ConstructNodeData).groupId;
+          })()}
         />
       )}
 

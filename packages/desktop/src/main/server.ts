@@ -19,6 +19,7 @@ import * as Y from 'yjs';
 import { WebSocketServer } from 'ws';
 import {
   migrateToLevels,
+  migrateToVisualGroups,
 } from '@carta/document';
 import {
   createDocumentServer,
@@ -169,6 +170,9 @@ function getOrCreateDoc(docId: string): DesktopDocState {
 
   // Migrate flat docs to level-based structure
   migrateToLevels(doc);
+
+  // Migrate deployables/schemaGroups to visualGroups
+  migrateToVisualGroups(doc);
 
   // Schedule saves on updates
   doc.on('update', () => {

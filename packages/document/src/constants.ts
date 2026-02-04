@@ -7,10 +7,14 @@ export const YDOC_MAPS = {
   SCHEMAS: 'schemas',
   PORT_SCHEMAS: 'portSchemas',
   SCHEMA_GROUPS: 'schemaGroups',
+  VISUAL_GROUPS: 'visualGroups',
 } as const;
 
 export const MCP_ORIGIN = 'mcp';
 
-export const CARTA_FILE_VERSION = 5;
+/** Level ID used for Metamap schema groups */
+export const METAMAP_LEVEL_ID = '__metamap__';
+
+export const CARTA_FILE_VERSION = 6;
 
 export const SERVER_FORMAT_VERSION = 4;

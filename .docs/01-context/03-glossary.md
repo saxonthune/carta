@@ -49,6 +49,8 @@ Canonical definitions for domain terms used throughout Carta. Use these terms co
 
 **Schema Group**: A grouping of construct schemas for organizational purposes. Shown in context menus and the schema wizard.
 
+**Visual Group**: A unified grouping primitive for visual organization on the canvas. Replaces deployables (Map view) and schema groups (Metamap view) with a single concept. Supports nesting via parentGroupId, collapse/expand states, and optional manual positioning. Groups are level-scoped (Map levels use level IDs, Metamap uses special `__metamap__` level ID).
+
 **Virtual Parent**: A container node that visually groups child constructs. Has three collapse states: expanded, no-edges, collapsed (pill).
 
 **Pin**: UI control that keeps expanded or open state persistent. Used in node headers (pin expanded details view) and draggable windows (keep window open when clicking outside).
