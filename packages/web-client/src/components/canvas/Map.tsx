@@ -34,7 +34,7 @@ import { useClipboard } from '../../hooks/useClipboard';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import type { ConstructValues, Deployable, ConstructNodeData, VirtualParentNodeData, VisualGroup } from '@carta/domain';
 import { useVisualGroups } from '../../hooks/useVisualGroups';
-import { generateVisualGroupId, generateDeployableColor } from '@carta/document';
+import { generateDeployableColor } from '@carta/document';
 import ConstructEditor from '../ConstructEditor';
 import DynamicAnchorEdge from './DynamicAnchorEdge';
 import ConstructFullViewModal from '../modals/ConstructFullViewModal';
@@ -126,14 +126,14 @@ export interface MapProps {
 }
 
 export default function Map({ deployables, onDeployablesChange, title, onNodesEdgesChange, onSelectionChange, onNodeDoubleClick, searchText }: MapProps) {
-  const { nodes, edges, setNodes, setEdges, getSchema, levels, activeLevel, copyNodesToLevel, updateNode } = useDocument();
+  const { nodes, edges, setNodes, setEdges, getSchema, levels, activeLevel, copyNodesToLevel, updateNode, getVisualGroups, addVisualGroup, updateVisualGroup } = useDocument();
   const { adapter } = useDocumentContext();
   const currentLevelId = activeLevel || 'main';
 
   // Get visual groups for the current level
   const visualGroups = useMemo(
-    () => adapter.getVisualGroups(currentLevelId),
-    [adapter, currentLevelId]
+    () => getVisualGroups(currentLevelId),
+    [getVisualGroups, currentLevelId]
   );
   const edgeColor = useEdgeColor();
   const defaultEdgeOptions = useMemo(() => ({
@@ -149,9 +149,9 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
   // Visual groups hook for unified group rendering
   const handleUpdateVisualGroup = useCallback(
     (levelId: string, groupId: string, updates: Partial<VisualGroup>) => {
-      adapter.updateVisualGroup(levelId, groupId, updates);
+      updateVisualGroup(levelId, groupId, updates);
     },
-    [adapter]
+    [updateVisualGroup]
   );
 
   const { groupNodes, edgeRemap } = useVisualGroups(
@@ -256,21 +256,20 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
   const createGroup = useCallback(() => {
     if (selectedNodeIds.length < 2) return;
 
-    const groupId = generateVisualGroupId();
     const color = generateDeployableColor();
 
-    // Add the visual group
-    adapter.addVisualGroup(currentLevelId, {
+    // Add the visual group and use the returned ID
+    const group = addVisualGroup(currentLevelId, {
       name: 'New Group',
       color,
       collapsed: false,
     });
 
-    // Assign all selected nodes to the new group
+    // Assign all selected nodes to the new group using the actual group ID
     for (const nodeId of selectedNodeIds) {
-      updateNode(nodeId, { groupId });
+      updateNode(nodeId, { groupId: group.id });
     }
-  }, [selectedNodeIds, adapter, currentLevelId, updateNode]);
+  }, [selectedNodeIds, addVisualGroup, currentLevelId, updateNode]);
 
   // Remove a node from its group
   const removeFromGroup = useCallback((nodeId: string) => {

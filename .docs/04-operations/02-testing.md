@@ -36,6 +36,7 @@ E2E tests use Playwright and run on port 5273 (separate from dev server on 5173)
 |-----------|---------|-------|
 | `new-user-experience.spec.ts` | NUX (doc03.01.13) | First visit lands on canvas, starter nodes/edges present, nodes interactive, URL has ?doc= param, returning visit reopens last doc |
 | `port-connections.spec.ts` | Ports (doc03.01.03) | Port drawer expand/collapse, draggable handles, connection creation, starter content edges |
+| `visual-groups.spec.ts` | Visual groups (doc03.01.01) | Create group via Ctrl+G, group name display, child count badge, collapse toggle, dragging |
 
 Test helpers live in `tests/e2e/helpers/CartaPage.ts` — a Page Object Model with `goto()` and `gotoFresh()` (both handle local mode canvas and server mode modal), plus port-related helpers like `getNode()`, `hoverNodeBottom()`, and `dragToConnect()`.
 
@@ -46,6 +47,7 @@ Test helpers live in `tests/e2e/helpers/CartaPage.ts` — a Page Object Model wi
 | `port-validation.test.tsx` | Port polarity (doc03.01.03) | Polarity blocking (source-source, sink-sink), relay/intercept bypass, bidirectional compatibility, compatibleWith matching |
 | `node-expansion.test.tsx` | Node view levels | Default view level, view level switching, persistence across updates |
 | `levels.test.tsx` | Multi-level documents (doc03.01.04) | Level CRUD, isolation, copy/duplicate nodes |
+| `visual-groups.test.tsx` | Visual groups (doc03.01.01) | Group CRUD via adapter, node-group association, level isolation, collapse state, nesting |
 | `deployable-creation.test.tsx` | Deployables | Creation, assignment, reassignment |
 | `context-menu-*.test.tsx` | Context menus | Right-click, add related constructs |
 | `clear-*.test.tsx` | Document clearing | Clear instances, clear all, preserve title |

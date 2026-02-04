@@ -278,6 +278,8 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 | `packages/web-client/src/components/canvas/DeployableBackground.tsx` | Deployable background renderer with LOD-aware font sizing |
 | `packages/web-client/tests/e2e/port-connections.spec.ts` | E2E tests for port drawer, connections, starter edges |
 | `packages/web-client/tests/integration/port-validation.test.tsx` | Integration tests for port polarity validation rules |
+| `packages/web-client/tests/integration/visual-groups.test.tsx` | Integration tests for visual group CRUD, node association, level isolation |
+| `packages/web-client/tests/e2e/visual-groups.spec.ts` | E2E tests for visual group creation via Ctrl+G, display, collapse |
 | `packages/web-client/tests/e2e/helpers/CartaPage.ts` | Playwright page object with goto, gotoFresh, node/port helpers |
 | `packages/web-client/tests/setup/testProviders.tsx` | Test providers with skipPersistence and skipStarterContent |
 
@@ -441,6 +443,15 @@ packages/web-client/src/components/canvas/lod/useLodBand.ts           → Hook f
 packages/web-client/src/index.css                                     → text-halo utility for legible text on any background
 ```
 
+### Modify visual groups
+```
+packages/web-client/src/hooks/useVisualGroups.ts              → Computes group nodes and edge remapping for React Flow
+packages/web-client/src/hooks/useDocument.ts                  → getVisualGroups, addVisualGroup, updateVisualGroup, removeVisualGroup
+packages/web-client/src/components/canvas/VisualGroupNode.tsx → Collapsed chip / expanded container rendering
+packages/web-client/src/components/canvas/Map.tsx             → createGroup callback, group context menu handlers
+packages/web-client/src/stores/adapters/yjsAdapter.ts         → Visual group persistence (level-scoped Y.Map)
+```
+
 ## Testing Requirements
 
 **All tests and builds must pass before committing changes.**
@@ -490,6 +501,11 @@ When modifying constructs or connections:
 - [ ] Metamap ports are rounded squares matching canvas port style
 - [ ] Schema group nodes use subtle solid borders instead of dashed
 - [ ] Accent bars on nodes are 2px softened (color-mixed at 70%) and respect rounded corners
+- [ ] Ctrl+G creates a visual group from 2+ selected nodes
+- [ ] Visual group displays name and child count badge
+- [ ] Visual group collapse/expand toggle works
+- [ ] Nodes can be removed from group via context menu or Ctrl+drag
+- [ ] Visual groups are level-scoped (different groups per level)
 
 **Single-document mode** (no `VITE_SERVER_URL`):
 - [ ] First visit auto-creates document with starter content (no document browser)

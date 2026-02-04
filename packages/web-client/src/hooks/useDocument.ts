@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { Node, Edge } from '@xyflow/react';
 import { useDocumentContext } from '../contexts/DocumentContext';
-import type { ConstructSchema, ConstructNodeData, Deployable, PortSchema, SchemaGroup, Level } from '@carta/domain';
+import type { ConstructSchema, ConstructNodeData, Deployable, PortSchema, SchemaGroup, Level, VisualGroup } from '@carta/domain';
 
 /**
  * Interface matching useDocumentStore for backward compatibility
@@ -69,6 +69,12 @@ export interface UseDocumentResult {
   updateSchemaGroup: (id: string, updates: Partial<SchemaGroup>) => void;
   removeSchemaGroup: (id: string) => boolean;
 
+  // Actions - Visual Groups
+  getVisualGroups: (levelId: string) => VisualGroup[];
+  addVisualGroup: (levelId: string, group: Omit<VisualGroup, 'id'>) => VisualGroup;
+  updateVisualGroup: (levelId: string, id: string, updates: Partial<VisualGroup>) => void;
+  removeVisualGroup: (levelId: string, id: string) => boolean;
+
   // For import operations
   importNodes: (nodes: Node[], edges: Edge[]) => void;
 }
@@ -91,6 +97,8 @@ export function useDocument(): UseDocumentResult {
   const [schemaGroups, setSchemaGroupsState] = useState<SchemaGroup[]>(() => adapter.getSchemaGroups());
   const [levels, setLevelsState] = useState<Level[]>(() => adapter.getLevels());
   const [activeLevel, setActiveLevelState] = useState<string | undefined>(() => adapter.getActiveLevel());
+  // Version counter to trigger re-renders when visual groups change
+  const [visualGroupsVersion, setVisualGroupsVersion] = useState(0);
 
   // Subscribe to adapter changes
   useEffect(() => {
@@ -314,6 +322,42 @@ export function useDocument(): UseDocumentResult {
     [adapter]
   );
 
+  // Visual Group actions
+  const getVisualGroups = useCallback(
+    (levelId: string) => {
+      // Reference version to ensure we get fresh data after mutations
+      void visualGroupsVersion;
+      return adapter.getVisualGroups(levelId);
+    },
+    [adapter, visualGroupsVersion]
+  );
+
+  const addVisualGroup = useCallback(
+    (levelId: string, group: Omit<VisualGroup, 'id'>) => {
+      const newGroup = adapter.addVisualGroup(levelId, group);
+      setVisualGroupsVersion(v => v + 1);
+      return newGroup;
+    },
+    [adapter]
+  );
+
+  const updateVisualGroup = useCallback(
+    (levelId: string, id: string, updates: Partial<VisualGroup>) => {
+      adapter.updateVisualGroup(levelId, id, updates);
+      setVisualGroupsVersion(v => v + 1);
+    },
+    [adapter]
+  );
+
+  const removeVisualGroup = useCallback(
+    (levelId: string, id: string) => {
+      const result = adapter.removeVisualGroup(levelId, id);
+      setVisualGroupsVersion(v => v + 1);
+      return result;
+    },
+    [adapter]
+  );
+
   // Import operation
   const importNodes = useCallback(
     (newNodes: Node[], newEdges: Edge[]) => {
@@ -371,6 +415,10 @@ export function useDocument(): UseDocumentResult {
       addSchemaGroup,
       updateSchemaGroup,
       removeSchemaGroup,
+      getVisualGroups,
+      addVisualGroup,
+      updateVisualGroup,
+      removeVisualGroup,
       importNodes,
     }),
     [
@@ -418,6 +466,10 @@ export function useDocument(): UseDocumentResult {
       addSchemaGroup,
       updateSchemaGroup,
       removeSchemaGroup,
+      getVisualGroups,
+      addVisualGroup,
+      updateVisualGroup,
+      removeVisualGroup,
       importNodes,
     ]
   );

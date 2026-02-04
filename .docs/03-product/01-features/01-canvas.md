@@ -50,15 +50,33 @@ Custom controls in bottom-left corner:
 
 ## Visual Groups
 
-Constructs can be organized into visual groups (formerly "deployables"). Groups display as:
-- **Expanded**: Colored background with group name, containing member nodes
-- **Collapsed**: Compact chip showing group name and eye icon to expand
+Constructs can be organized into visual groups for canvas organization. Groups are purely visual — they are not included in compilation output.
 
-Groups support:
-- Nesting via parent group relationships
-- Collapse/expand toggle (eye icon)
-- Ctrl+drag to remove a node from its group
-- Context menu: "Group N Nodes" (multi-select), "Remove from Group" (single node)
+### Display Modes
+
+- **Expanded**: Rounded container with colored background, header showing group name, child count badge, and collapse toggle (eye icon)
+- **Collapsed**: Compact pill/chip showing group name, child count, and expand toggle
+
+### Group Operations
+
+| Action | Method |
+|--------|--------|
+| Create group | Select 2+ nodes, press Ctrl+G or right-click → "Group Selected" |
+| Add to group | Drag node into group bounds |
+| Remove from group | Ctrl+drag node out, or right-click → "Remove from Group" |
+| Collapse/expand | Click eye icon in group header |
+| Rename | (Not yet implemented) |
+
+### Implementation
+
+- **Storage**: `VisualGroup` objects stored per-level in Yjs Y.Map at `visualGroups` key
+- **Rendering**: `useVisualGroups` hook computes React Flow nodes from flat storage
+- **Node association**: Nodes reference groups via `groupId` field on `ConstructNodeData`
+- **Nesting**: Groups can nest via `parentGroupId` (depth calculated via BFS)
+- **Bounds**: Auto-computed from member node positions with padding, or manual via `position`/`size` fields
+- **Edge remapping**: When collapsed, edges to/from member nodes reroute to the group node
+
+Groups support z-index layering (outer groups behind inner) and are sorted before content nodes in the React Flow node array.
 
 ## Full View Window
 
