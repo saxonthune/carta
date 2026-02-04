@@ -1,18 +1,17 @@
 import { memo, useCallback } from 'react';
 import { Handle, Position, NodeResizer, type NodeProps } from '@xyflow/react';
 import { EyeIcon, EyeOffIcon } from '../ui/icons';
-import type { VisualGroup } from '@carta/domain';
+import type { VisualGroupNodeData as BaseVisualGroupNodeData } from '@carta/domain';
 
-export interface VisualGroupNodeData {
-  group: VisualGroup;
-  depth: number;
+/**
+ * Extended data interface with callbacks added by Map.tsx
+ */
+export interface VisualGroupNodeData extends BaseVisualGroupNodeData {
   childCount: number;
   isDropTarget?: boolean;
   isHovered?: boolean;
   isDimmed?: boolean;
-  parentGroupName?: string;
   onToggleCollapse: () => void;
-  [key: string]: unknown;
 }
 
 type VisualGroupNodeProps = NodeProps & {
@@ -20,22 +19,21 @@ type VisualGroupNodeProps = NodeProps & {
 };
 
 /**
- * Unified visual grouping node for both Map (deployables) and Metamap (schema groups).
- * Supports collapsed/expanded states, nesting via depth, and z-index layering.
+ * Visual grouping node using React Flow's native parentId system.
+ * Groups are regular nodes with type='visual-group'.
+ * Children use parentId and extent='parent' for containment.
  */
 function VisualGroupNode({ data, selected }: VisualGroupNodeProps) {
   const {
-    group,
-    depth,
+    name,
+    color = '#6b7280',
+    collapsed,
     childCount,
     isDropTarget,
     isHovered,
     isDimmed,
-    parentGroupName,
     onToggleCollapse,
   } = data;
-
-  const { name, color = '#6b7280', collapsed } = group;
 
   const handleToggle = useCallback(
     (e: React.MouseEvent) => {
@@ -45,12 +43,9 @@ function VisualGroupNode({ data, selected }: VisualGroupNodeProps) {
     [onToggleCollapse]
   );
 
-  // Z-index based on depth: outer groups behind inner groups
-  const zIndex = -100 + depth * 10;
-
-  // Increased base color mix for better visibility at deeper nesting
-  const bgMix = isHovered || isDropTarget ? 25 : 18 + depth * 4;
-  const borderMix = isHovered || isDropTarget ? 45 : 35 + depth * 8;
+  // Increased base color mix for better visibility
+  const bgMix = isHovered || isDropTarget ? 25 : 18;
+  const borderMix = isHovered || isDropTarget ? 45 : 35;
 
   // Collapsed chip rendering (180x44 pill)
   if (collapsed) {
@@ -60,7 +55,6 @@ function VisualGroupNode({ data, selected }: VisualGroupNodeProps) {
         style={{
           opacity: isDimmed ? 0.2 : 1,
           pointerEvents: isDimmed ? 'none' : 'auto',
-          zIndex,
         }}
       >
         {/* Hidden handles for edge connections to collapsed groups */}
@@ -131,7 +125,6 @@ function VisualGroupNode({ data, selected }: VisualGroupNodeProps) {
       style={{
         opacity: isDimmed ? 0.2 : 1,
         pointerEvents: isDimmed ? 'none' : 'auto',
-        zIndex,
       }}
       className="transition-opacity duration-200"
     >
@@ -172,11 +165,6 @@ function VisualGroupNode({ data, selected }: VisualGroupNodeProps) {
             <span className="text-node-xs font-medium text-content text-halo">
               {name}
             </span>
-            {parentGroupName && (
-              <span className="text-[9px] text-content-subtle leading-tight">
-                {parentGroupName}
-              </span>
-            )}
           </div>
           {childCount > 0 && (
             <span

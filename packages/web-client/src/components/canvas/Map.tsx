@@ -32,17 +32,21 @@ import { useGraphOperations } from '../../hooks/useGraphOperations';
 import { useConnections } from '../../hooks/useConnections';
 import { useClipboard } from '../../hooks/useClipboard';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
-import type { ConstructValues, Deployable, ConstructNodeData, VirtualParentNodeData, VisualGroup } from '@carta/domain';
+import type { ConstructValues, Deployable, ConstructNodeData, VirtualParentNodeData, VisualGroupNodeData } from '@carta/domain';
 import { useVisualGroups } from '../../hooks/useVisualGroups';
 import { generateDeployableColor } from '@carta/document';
+
+// Constants for group layout
+const GROUP_PADDING = 20;
+const GROUP_HEADER_HEIGHT = 40;
 import ConstructEditor from '../ConstructEditor';
 import DynamicAnchorEdge from './DynamicAnchorEdge';
 import ConstructFullViewModal from '../modals/ConstructFullViewModal';
 import { useEdgeBundling } from '../../hooks/useEdgeBundling';
 import { getLodConfig } from './lod/lodPolicy';
 
-// Temporary debug component for LOD
-function ZoomDebug() {
+// Temporary debug component for LOD and visual groups
+function ZoomDebug({ groupCount, sortedNodeCount }: { groupCount: number; sortedNodeCount: number }) {
   const zoom = useStore((state) => state.transform[2]);
   const lod = getLodConfig(zoom);
   const { getViewport, setViewport } = useReactFlow();
@@ -81,6 +85,7 @@ function ZoomDebug() {
         )}
       </div>
       <div>LOD: {lod.band}</div>
+      <div>Groups: {groupCount} | Nodes: {sortedNodeCount}</div>
     </div>
   );
 }
@@ -126,15 +131,10 @@ export interface MapProps {
 }
 
 export default function Map({ deployables, onDeployablesChange, title, onNodesEdgesChange, onSelectionChange, onNodeDoubleClick, searchText }: MapProps) {
-  const { nodes, edges, setNodes, setEdges, getSchema, levels, activeLevel, copyNodesToLevel, updateNode, getVisualGroups, addVisualGroup, updateVisualGroup } = useDocument();
+  const { nodes, edges, setNodes, setEdges, getSchema, levels, activeLevel, copyNodesToLevel } = useDocument();
   const { adapter } = useDocumentContext();
-  const currentLevelId = activeLevel || 'main';
+  const reactFlow = useReactFlow();
 
-  // Get visual groups for the current level
-  const visualGroups = useMemo(
-    () => getVisualGroups(currentLevelId),
-    [getVisualGroups, currentLevelId]
-  );
   const edgeColor = useEdgeColor();
   const defaultEdgeOptions = useMemo(() => ({
     type: 'bundled',
@@ -146,20 +146,8 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
   const schemaGroups = adapter.getSchemaGroups();
   const { getViewport, setViewport } = useReactFlow();
 
-  // Visual groups hook for unified group rendering
-  const handleUpdateVisualGroup = useCallback(
-    (levelId: string, groupId: string, updates: Partial<VisualGroup>) => {
-      updateVisualGroup(levelId, groupId, updates);
-    },
-    [updateVisualGroup]
-  );
-
-  const { groupNodes, edgeRemap } = useVisualGroups(
-    nodes as Node<ConstructNodeData>[],
-    visualGroups,
-    currentLevelId,
-    handleUpdateVisualGroup
-  );
+  // Visual groups hook for collapse/hide logic and edge remapping
+  const { processedNodes: nodesWithHiddenFlags, edgeRemap } = useVisualGroups(nodes);
 
   // Custom zoom with smaller step (1.15x instead of default 1.2x)
   const customZoomIn = useCallback(() => {
@@ -173,10 +161,6 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
   }, [getViewport, setViewport]);
 
   // Create React Flow change handlers that work with the store
-  // TODO: Optimize Yjs updates during drag
-  // Currently, position updates sync to Yjs on every drag event.
-  // To optimize: batch position updates and only sync to Yjs on drag stop.
-  // Yjs has built-in batching, so this may not be critical for performance.
   const isDraggingRef = useRef(false);
   const draggedNodesRef = useRef<Set<string>>(new Set());
 
@@ -252,29 +236,128 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     }
   }, [selectedNodeIds]);
 
-  // Create a new visual group from selected nodes
+  // Create a new visual group from selected nodes using native React Flow parentId
   const createGroup = useCallback(() => {
     if (selectedNodeIds.length < 2) return;
 
+    const groupId = crypto.randomUUID();
     const color = generateDeployableColor();
 
-    // Add the visual group and use the returned ID
-    const group = addVisualGroup(currentLevelId, {
-      name: 'New Group',
-      color,
-      collapsed: false,
+    // Compute bounds from selected nodes
+    const selectedNodes = nodes.filter(n => selectedNodeIds.includes(n.id));
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const node of selectedNodes) {
+      const w = node.measured?.width ?? node.width ?? 200;
+      const h = node.measured?.height ?? node.height ?? 100;
+      minX = Math.min(minX, node.position.x);
+      minY = Math.min(minY, node.position.y);
+      maxX = Math.max(maxX, node.position.x + w);
+      maxY = Math.max(maxY, node.position.y + h);
+    }
+
+    const groupPosition = { x: minX - GROUP_PADDING, y: minY - GROUP_PADDING - GROUP_HEADER_HEIGHT };
+    const groupWidth = maxX - minX + GROUP_PADDING * 2;
+    const groupHeight = maxY - minY + GROUP_PADDING * 2 + GROUP_HEADER_HEIGHT;
+
+    // Create the group node
+    const groupNode: Node<VisualGroupNodeData> = {
+      id: groupId,
+      type: 'visual-group',
+      position: groupPosition,
+      style: { width: groupWidth, height: groupHeight },
+      data: {
+        isVisualGroup: true,
+        name: 'New Group',
+        color,
+        collapsed: false,
+      },
+    };
+
+    // Update children with parentId and convert to relative positions
+    const updatedNodes = nodes.map(n => {
+      if (selectedNodeIds.includes(n.id)) {
+        return {
+          ...n,
+          parentId: groupId,
+          extent: 'parent' as const,
+          position: {
+            x: n.position.x - groupPosition.x,
+            y: n.position.y - groupPosition.y,
+          },
+        };
+      }
+      return n;
     });
 
-    // Assign all selected nodes to the new group using the actual group ID
-    for (const nodeId of selectedNodeIds) {
-      updateNode(nodeId, { groupId: group.id });
-    }
-  }, [selectedNodeIds, addVisualGroup, currentLevelId, updateNode]);
+    // Group node must come before its children (React Flow requirement)
+    setNodes([groupNode, ...updatedNodes]);
+  }, [selectedNodeIds, nodes, setNodes]);
 
-  // Remove a node from its group
+  // Attach a node to a group (convert to relative position)
+  const attachToGroup = useCallback((nodeId: string, groupId: string) => {
+    const node = nodes.find(n => n.id === nodeId);
+    const group = nodes.find(n => n.id === groupId);
+    if (!node || !group) return;
+
+    const relativePosition = {
+      x: node.position.x - group.position.x,
+      y: node.position.y - group.position.y,
+    };
+
+    setNodes(nds => nds.map(n =>
+      n.id === nodeId
+        ? { ...n, parentId: groupId, extent: 'parent' as const, position: relativePosition }
+        : n
+    ));
+  }, [nodes, setNodes]);
+
+  // Detach a node from its group (convert to absolute position)
+  const detachFromGroup = useCallback((nodeId: string) => {
+    const node = nodes.find(n => n.id === nodeId);
+    if (!node?.parentId) return;
+
+    const parent = nodes.find(n => n.id === node.parentId);
+    const absolutePosition = parent
+      ? { x: node.position.x + parent.position.x, y: node.position.y + parent.position.y }
+      : node.position;
+
+    setNodes(nds => nds.map(n =>
+      n.id === nodeId
+        ? { ...n, parentId: undefined, extent: undefined, position: absolutePosition }
+        : n
+    ));
+  }, [nodes, setNodes]);
+
+  // Resize group to fit its children
+  const resizeGroupToFitChildren = useCallback((groupId: string) => {
+    const children = nodes.filter(n => n.parentId === groupId);
+    if (children.length === 0) return;
+
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
+    for (const child of children) {
+      const w = child.measured?.width ?? child.width ?? 200;
+      const h = child.measured?.height ?? child.height ?? 100;
+      minX = Math.min(minX, child.position.x);
+      minY = Math.min(minY, child.position.y);
+      maxX = Math.max(maxX, child.position.x + w);
+      maxY = Math.max(maxY, child.position.y + h);
+    }
+
+    const newWidth = maxX - minX + GROUP_PADDING * 2;
+    const newHeight = maxY - minY + GROUP_PADDING * 2 + GROUP_HEADER_HEIGHT;
+
+    setNodes(nds => nds.map(n =>
+      n.id === groupId
+        ? { ...n, style: { ...n.style, width: newWidth, height: newHeight } }
+        : n
+    ));
+  }, [nodes, setNodes]);
+
+  // Remove a node from its group (same as detach)
   const removeFromGroup = useCallback((nodeId: string) => {
-    updateNode(nodeId, { groupId: undefined });
-  }, [updateNode]);
+    detachFromGroup(nodeId);
+  }, [detachFromGroup]);
 
   // Use keyboard shortcuts hook
   useKeyboardShortcuts({
@@ -389,7 +472,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     }
   }, [nodes, selectedNodeIds, onSelectionChange]);
 
-  // Count children per virtual parent for display
+  // Count children per parent node (both virtual-parent and visual-group)
   const childCountMap = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const node of nodes) {
@@ -400,7 +483,29 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     return counts;
   }, [nodes]);
 
-  const nodesWithCallbacks = nodes.map((node) => {
+  // Toggle visual group collapse state
+  const toggleGroupCollapse = useCallback((groupId: string) => {
+    setNodes(nds => nds.map(n => {
+      if (n.id === groupId && n.type === 'visual-group') {
+        const data = n.data as VisualGroupNodeData;
+        return { ...n, data: { ...data, collapsed: !data.collapsed } };
+      }
+      return n;
+    }));
+  }, [setNodes]);
+
+  const nodesWithCallbacks = nodesWithHiddenFlags.map((node) => {
+    if (node.type === 'visual-group') {
+      return {
+        ...node,
+        dragHandle: NODE_DRAG_HANDLE,
+        data: {
+          ...node.data,
+          childCount: childCountMap[node.id] || 0,
+          onToggleCollapse: () => toggleGroupCollapse(node.id),
+        },
+      };
+    }
     if (node.type === 'virtual-parent') {
       return {
         ...node,
@@ -431,27 +536,36 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     };
   });
 
-  // Sort nodes: virtual parents before their children (React Flow requirement)
-  // Merge in visual group nodes
+  // Sort nodes: parents must come before their children (React Flow requirement)
+  // This handles both virtual-parent and visual-group nodes
   const sortedNodes = useMemo(() => {
-    const sorted = [...nodesWithCallbacks, ...groupNodes].sort((a, b) => {
-      if (a.type === 'virtual-parent' && b.parentId === a.id) return -1;
-      if (b.type === 'virtual-parent' && a.parentId === b.id) return 1;
-      // Visual groups sorted by z-index (lower z-index first)
-      if (a.type === 'visual-group' && b.type === 'visual-group') {
-        return (a.zIndex || 0) - (b.zIndex || 0);
+    const result: Node[] = [];
+    const added = new Set<string>();
+
+    // Recursive function to add a node and its ancestors first
+    const addNode = (node: Node, depth = 0) => {
+      if (added.has(node.id) || depth > 20) return;
+
+      // If this node has a parent, add the parent first
+      if (node.parentId && !added.has(node.parentId)) {
+        const parent = nodesWithCallbacks.find(n => n.id === node.parentId);
+        if (parent) addNode(parent, depth + 1);
       }
-      // Visual groups before content nodes
-      if (a.type === 'visual-group') return -1;
-      if (b.type === 'visual-group') return 1;
-      return 0;
-    });
+
+      added.add(node.id);
+      result.push(node);
+    };
+
+    // Add all nodes, ensuring parent-first ordering
+    for (const node of nodesWithCallbacks) {
+      addNode(node);
+    }
 
     // Filter by search text if present
-    if (!searchText?.trim()) return sorted;
+    if (!searchText?.trim()) return result;
 
     const lowerSearch = searchText.toLowerCase();
-    return sorted.filter((node) => {
+    return result.filter((node) => {
       // Visual groups and virtual parents always show if any children match
       if (node.type === 'virtual-parent' || node.type === 'visual-group') return true;
 
@@ -485,7 +599,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
 
       return false;
     });
-  }, [nodesWithCallbacks, groupNodes, searchText, getSchema]);
+  }, [nodesWithCallbacks, searchText, getSchema]);
 
   // Filter edges: hide edges to/from children of collapsed/no-edges virtual parents
   // Also reroute edges to collapsed visual groups using edgeRemap
@@ -508,6 +622,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     let result = hiddenChildIds.size === 0 ? edges : edges.filter(e => !hiddenChildIds.has(e.source) && !hiddenChildIds.has(e.target));
 
     // Apply visual group edge remapping for collapsed groups
+    // edgeRemap maps nodeId -> groupId (where groups are now regular nodes)
     if (edgeRemap.size > 0) {
       const seenEdgeKeys = new Set<string>(); // Dedupe edges to same collapsed group
       result = result.map(edge => {
@@ -515,8 +630,9 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
         const remappedTarget = edgeRemap.get(edge.target);
 
         if (remappedSource || remappedTarget) {
-          const newSource = remappedSource ? `group-${remappedSource}` : edge.source;
-          const newTarget = remappedTarget ? `group-${remappedTarget}` : edge.target;
+          // Groups are now regular nodes, so use group ID directly
+          const newSource = remappedSource || edge.source;
+          const newTarget = remappedTarget || edge.target;
 
           // Skip self-loops to same group
           if (newSource === newTarget) return null;
@@ -565,7 +681,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
   // Edge bundling: collapse parallel edges between same node pairs
   const { displayEdges } = useEdgeBundling(filteredEdges, nodes);
 
-  // Handle drag start/stop - no position sync needed on stop since it's already in state
+  // Handle drag start/stop
   const onNodeDragStart = useCallback((_event: React.MouseEvent, node: Node) => {
     isDraggingRef.current = true;
     draggedNodesRef.current.add(node.id);
@@ -575,22 +691,33 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     isDraggingRef.current = false;
     draggedNodesRef.current.clear();
 
-    // Ctrl+drag to remove from group
-    if (event.ctrlKey || event.metaKey) {
-      const nodeData = node.data as ConstructNodeData;
-      if (nodeData?.groupId) {
-        updateNode(node.id, { groupId: undefined });
+    // Don't process group nodes themselves
+    if (node.type === 'visual-group') return;
+
+    const isModifier = event.ctrlKey || event.metaKey;
+
+    if (isModifier) {
+      // Ctrl+release = change group membership
+      const intersecting = reactFlow.getIntersectingNodes(node);
+      const targetGroup = intersecting.find(n => n.type === 'visual-group' && n.id !== node.id);
+
+      if (targetGroup && targetGroup.id !== node.parentId) {
+        // Attach to new group
+        attachToGroup(node.id, targetGroup.id);
+      } else if (node.parentId) {
+        // Detach from current group
+        detachFromGroup(node.id);
       }
+    } else if (node.parentId) {
+      // Default release = resize parent to fit
+      resizeGroupToFitChildren(node.parentId);
     }
-  }, [updateNode]);
+  }, [reactFlow, attachToGroup, detachFromGroup, resizeGroupToFitChildren]);
 
   // Handle visual group selection (click on group selects all nodes in it)
   const handleSelectGroup = useCallback((groupId: string) => {
-    const groupNodes = nodes.filter(n => {
-      const data = n.data as ConstructNodeData;
-      return data?.groupId === groupId;
-    });
-    const nodeIds = groupNodes.map(n => n.id);
+    const childNodes = nodes.filter(n => n.parentId === groupId);
+    const nodeIds = childNodes.map(n => n.id);
     setNodes((nds) =>
       nds.map((n) => ({
         ...n,
@@ -603,9 +730,12 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
   // Suppress unused - will be used for group selection via context menu
   void handleSelectGroup;
 
+  // Count visual groups for debug display
+  const groupCount = useMemo(() => nodes.filter(n => n.type === 'visual-group').length, [nodes]);
+
   return (
     <div className="w-full h-full relative" style={{ backgroundColor: 'var(--color-canvas)' }}>
-      <ZoomDebug />
+      <ZoomDebug groupCount={groupCount} sortedNodeCount={sortedNodes.length} />
       <ReactFlow
         nodes={sortedNodes}
         edges={displayEdges}
@@ -732,7 +862,10 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
           nodeInGroup={(() => {
             if (!contextMenu.nodeId) return false;
             const node = nodes.find(n => n.id === contextMenu.nodeId);
-            return node?.type === 'construct' && !!(node.data as ConstructNodeData).groupId;
+            // Node is in a group if it has a parentId pointing to a visual-group node
+            if (!node?.parentId) return false;
+            const parent = nodes.find(n => n.id === node.parentId);
+            return parent?.type === 'visual-group';
           })()}
         />
       )}

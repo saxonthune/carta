@@ -5,6 +5,7 @@ import type {
   CompilationFormat,
   Deployable,
   ConstructSchema,
+  VisualGroupNodeData,
 } from '@carta/domain';
 import { formatJSON } from './formatters/json.js';
 
@@ -50,8 +51,8 @@ export class CompilerEngine {
     const getSchema = (type: string) => schemas.find(s => s.type === type);
     const getDeployable = (id: string) => deployables.find(d => d.id === id);
 
-    // Filter out virtual parent nodes (they are visual-only, not compiled)
-    const compilableNodes = nodes.filter(n => n.type !== 'virtual-parent');
+    // Filter out visual-only nodes (virtual-parent and visual-group)
+    const compilableNodes = nodes.filter(n => n.type !== 'virtual-parent' && n.type !== 'visual-group');
 
     const sections: string[] = [];
 
@@ -59,6 +60,12 @@ export class CompilerEngine {
       source: e.source,
       target: e.target,
     }));
+
+    // Add visual groups section if any exist
+    const visualGroupsSection = this.compileVisualGroups(nodes);
+    if (visualGroupsSection) {
+      sections.push(visualGroupsSection);
+    }
 
     // Add deployables section at the top if any exist
     const deployablesSection = this.compileDeployables(compilableNodes, deployables);
@@ -114,6 +121,37 @@ export class CompilerEngine {
     }
 
     return sections.join('\n\n---\n\n');
+  }
+
+  private compileVisualGroups(allNodes: CompilerNode[]): string | null {
+    // Find visual group nodes
+    const groupNodes = allNodes.filter(n => n.type === 'visual-group');
+    if (groupNodes.length === 0) return null;
+
+    // Build group membership from parentId relationships
+    const groupData = groupNodes.map(g => {
+      const groupData = g.data as unknown as VisualGroupNodeData;
+      const members = allNodes
+        .filter(n => (n as { parentId?: string }).parentId === g.id && n.type !== 'visual-group')
+        .map(n => n.data.semanticId)
+        .filter((id): id is string => !!id);
+
+      return {
+        id: g.id,
+        name: groupData.name,
+        members,
+      };
+    });
+
+    const groupsJson = JSON.stringify({ groups: groupData }, null, 2);
+
+    return `# Visual Groups
+
+The following visual groups organize constructs on the canvas. These are for organization purposes only.
+
+\`\`\`json
+${groupsJson}
+\`\`\``;
   }
 
   private compileDeployables(nodes: CompilerNode[], allDeployables: Deployable[]): string | null {

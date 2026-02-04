@@ -168,10 +168,17 @@ export class CartaPage {
   }
 
   /**
-   * Get a specific node by index.
+   * Get a specific node by index (includes all node types).
    */
   getNode(index: number): Locator {
     return this.page.locator('.react-flow__node').nth(index);
+  }
+
+  /**
+   * Get a specific construct node by index (excludes visual groups).
+   */
+  getConstructNode(index: number): Locator {
+    return this.page.locator('.react-flow__node-construct').nth(index);
   }
 
   /**

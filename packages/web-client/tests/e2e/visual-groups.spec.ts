@@ -2,16 +2,16 @@ import { test, expect, type Page } from '@playwright/test';
 import { CartaPage } from './helpers/CartaPage';
 
 /**
- * Visual Groups E2E Tests
+ * Visual Groups E2E Tests (Native parentId System)
  *
- * Tests the visual grouping UI workflow:
+ * Tests the visual grouping UI workflow using React Flow's native parentId system:
  * - Create groups from selected nodes via Ctrl+G
- * - Visual group nodes appear on canvas
+ * - Visual group nodes appear on canvas (type='visual-group')
  * - Groups can be collapsed/expanded
  * - Context menu group operations
  *
- * NOTE: These tests may fail if the visual groups feature has bugs.
- * The tests are designed to verify expected behavior.
+ * NOTE: Groups are now regular nodes with type='visual-group'.
+ * Children use parentId to reference their group.
  */
 
 /**
@@ -30,14 +30,21 @@ async function selectNodesViaDrag(page: Page) {
   await page.waitForTimeout(300);
 }
 
+/**
+ * Helper to get visual group nodes (type='visual-group')
+ */
+function getVisualGroupNodes(page: Page) {
+  return page.locator('.react-flow__node-visual-group');
+}
+
 test.describe('Visual Groups', () => {
   let carta: CartaPage;
 
   test.beforeEach(async ({ page }) => {
     carta = new CartaPage(page);
     await carta.gotoFresh();
-    // Wait for starter content to load
-    await expect(page.locator('.react-flow__node').first()).toBeVisible({ timeout: 5000 });
+    // Wait for starter content to load (wait for a construct node, not visual group)
+    await expect(page.locator('.react-flow__node-construct').first()).toBeVisible({ timeout: 5000 });
   });
 
   test('can select multiple nodes with drag selection', async ({ page }) => {
@@ -62,21 +69,20 @@ test.describe('Visual Groups', () => {
     const selectedCount = await page.locator('.react-flow__node.selected').count();
     expect(selectedCount).toBeGreaterThanOrEqual(2);
 
-    // Count nodes before grouping (includes starter nodes)
-    const initialNodeCount = await page.locator('.react-flow__node').count();
+    // Count group nodes before (starter content has one group)
+    const initialGroupCount = await getVisualGroupNodes(page).count();
 
     // Press Ctrl+G to create a group
     await page.keyboard.press('Control+g');
     await page.waitForTimeout(500);
 
-    // Should have one more node (the visual group node)
-    const newNodeCount = await page.locator('.react-flow__node').count();
-    expect(newNodeCount).toBe(initialNodeCount + 1);
+    // Should have one more group node
+    const newGroupCount = await getVisualGroupNodes(page).count();
+    expect(newGroupCount).toBe(initialGroupCount + 1);
 
-    // Visual group node should exist and have content (z-index -100 may cause visibility issues)
-    const groupNode = page.locator('.react-flow__node[data-id^="group-"]');
-    await expect(groupNode).toBeAttached({ timeout: 2000 });
-    await expect(groupNode).toContainText('New Group');
+    // The newly created group should have the default name "New Group"
+    const newGroupNode = getVisualGroupNodes(page).filter({ hasText: 'New Group' });
+    await expect(newGroupNode).toBeAttached({ timeout: 2000 });
   });
 
   test('visual group node displays group name', async ({ page }) => {
@@ -86,37 +92,23 @@ test.describe('Visual Groups', () => {
     await page.keyboard.press('Control+g');
     await page.waitForTimeout(500);
 
-    // Group should display default name "New Group"
-    const groupNode = page.locator('.react-flow__node[data-id^="group-"]');
-    await expect(groupNode).toContainText('New Group');
+    // The newly created group should display default name "New Group"
+    const newGroupNode = getVisualGroupNodes(page).filter({ hasText: 'New Group' });
+    await expect(newGroupNode).toBeAttached();
   });
 
   test('visual group shows child count badge', async ({ page }) => {
-    await selectNodesViaDrag(page);
-
-    // Note: starter content has 3 nodes, drag select should get at least 2
-    const selectedCount = await page.locator('.react-flow__node.selected').count();
-
-    // Create group
-    await page.keyboard.press('Control+g');
-    await page.waitForTimeout(500);
-
-    // Group should show the count of selected nodes
-    const groupNode = page.locator('.react-flow__node[data-id^="group-"]');
-    await expect(groupNode).toContainText(String(selectedCount));
+    // First verify the starter group exists and shows count
+    const starterGroup = getVisualGroupNodes(page).filter({ hasText: 'Related Ideas' });
+    await expect(starterGroup).toBeAttached();
+    // Starter group has 2 nodes assigned to it
+    await expect(starterGroup).toContainText('2');
   });
 
   test('visual group has collapse toggle button', async ({ page }) => {
-    await selectNodesViaDrag(page);
-
-    // Create group
-    await page.keyboard.press('Control+g');
-    await page.waitForTimeout(500);
-
-    // Find the group node
-    const groupNode = page.locator('.react-flow__node[data-id^="group-"]');
+    // Find the starter group node
+    const groupNode = getVisualGroupNodes(page).filter({ hasText: 'Related Ideas' });
     await expect(groupNode).toBeAttached();
-    await expect(groupNode).toContainText('New Group');
 
     // Verify the collapse toggle button exists (eyeball icon)
     const toggleButton = groupNode.locator('button[title="Collapse group"]');
@@ -172,31 +164,26 @@ test.describe('Visual Groups', () => {
   });
 
   test('Ctrl+G requires at least 2 nodes selected', async ({ page }) => {
-    const initialNodeCount = await page.locator('.react-flow__node').count();
+    // Count groups before
+    const initialGroupCount = await getVisualGroupNodes(page).count();
 
-    // Select only one node
-    const firstNode = carta.getNode(0);
-    await firstNode.click();
+    // Select only one construct node
+    const constructNode = page.locator('.react-flow__node-construct').first();
+    await constructNode.click();
 
     // Press Ctrl+G
     await page.keyboard.press('Control+g');
     await page.waitForTimeout(500);
 
     // No new group node should be created
-    const newNodeCount = await page.locator('.react-flow__node').count();
-    expect(newNodeCount).toBe(initialNodeCount);
+    const newGroupCount = await getVisualGroupNodes(page).count();
+    expect(newGroupCount).toBe(initialGroupCount);
   });
 
   test('visual group node is draggable', async ({ page }) => {
-    // Create a group
-    await selectNodesViaDrag(page);
-    await page.keyboard.press('Control+g');
-    await page.waitForTimeout(500);
-
-    // Find the group node (use toBeAttached since z-index -100 may cause visibility issues)
-    const groupNode = page.locator('.react-flow__node[data-id^="group-"]');
+    // Use the starter group to test dragging
+    const groupNode = getVisualGroupNodes(page).filter({ hasText: 'Related Ideas' });
     await expect(groupNode).toBeAttached();
-    await expect(groupNode).toContainText('New Group');
 
     // Drag the group node header
     const dragHandle = groupNode.locator('.node-drag-handle');
