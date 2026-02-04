@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
-import { useDocument } from '../../hooks/useDocument';
+import { useSchemaGroups } from '../../hooks/useSchemaGroups';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
@@ -69,7 +69,7 @@ const SchemaGroupDetailsEditor = forwardRef<{ save: () => void }, SchemaGroupDet
     onDirtyChange,
     compact = false
   }, ref) {
-  const { getSchemaGroups } = useDocument();
+  const { getSchemaGroups } = useSchemaGroups();
   const [formData, setFormData] = useState<SchemaGroup>(
     schemaGroup || createEmptyGroup()
   );

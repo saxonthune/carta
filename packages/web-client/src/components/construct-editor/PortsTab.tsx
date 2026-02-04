@@ -3,7 +3,7 @@ import Input from '../ui/Input';
 import Select from '../ui/Select';
 import Textarea from '../ui/Textarea';
 import type { ConstructSchema, PortConfig } from '@carta/domain';
-import { useDocument } from '../../hooks/useDocument';
+import { usePortSchemas } from '../../hooks/usePortSchemas';
 import { toSnakeCase } from '../../utils/stringUtils';
 
 interface PortsTabProps {
@@ -19,8 +19,7 @@ export default function PortsTab({
   updatePort,
   removePort
 }: PortsTabProps) {
-  const { getPortSchemas } = useDocument();
-  const portSchemas = getPortSchemas();
+  const { portSchemas } = usePortSchemas();
 
   return (
     <div className="bg-surface-elevated rounded-lg p-4">

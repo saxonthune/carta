@@ -1,6 +1,8 @@
 import { useCallback } from 'react';
 import { useReactFlow, useUpdateNodeInternals, type Node } from '@xyflow/react';
-import { useDocument } from './useDocument';
+import { useNodes } from './useNodes';
+import { useEdges } from './useEdges';
+import { useSchemas } from './useSchemas';
 import { generateSemanticId } from '../utils/cartaFile';
 import { getHandleType } from '@carta/domain';
 import type { ConstructSchema, ConstructValues, ConnectionValue, ConstructNodeData, VirtualParentNodeData } from '@carta/domain';
@@ -32,7 +34,9 @@ export interface UseGraphOperationsResult {
 
 export function useGraphOperations(options: UseGraphOperationsOptions): UseGraphOperationsResult {
   const { selectedNodeIds, setSelectedNodeIds, setRenamingNodeId, setAddMenu } = options;
-  const { nodes, setNodes, setEdges, getNextNodeId, getSchema, updateNode } = useDocument();
+  const { nodes, setNodes, updateNode, getNextNodeId } = useNodes();
+  const { setEdges } = useEdges();
+  const { getSchema } = useSchemas();
   const { screenToFlowPosition } = useReactFlow();
   const updateNodeInternals = useUpdateNodeInternals();
 

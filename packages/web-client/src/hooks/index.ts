@@ -1,7 +1,4 @@
-// Document state - monolithic hook (facade, for backward compatibility)
-export { useDocument } from './useDocument';
-
-// Document state - focused hooks (for better performance)
+// Document state - focused hooks
 export { useNodes } from './useNodes';
 export { useEdges } from './useEdges';
 export { useSchemas } from './useSchemas';

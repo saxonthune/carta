@@ -1,5 +1,5 @@
 import { useCallback, useRef, useEffect } from 'react';
-import { useDocument } from '../../hooks/useDocument';
+import { useSchemas } from '../../hooks/useSchemas';
 import type { ConstructSchema } from '@carta/domain';
 
 interface AddConstructMenuProps {
@@ -16,7 +16,7 @@ export default function AddConstructMenu({
   onClose,
 }: AddConstructMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
-  const { schemas } = useDocument();
+  const { schemas } = useSchemas();
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {

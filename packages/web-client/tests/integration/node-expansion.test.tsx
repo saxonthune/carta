@@ -14,7 +14,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { useDocument } from '../../src/hooks/useDocument';
+import { useNodes } from '../../src/hooks/useNodes';
 import { useDocumentContext } from '../../src/contexts/DocumentContext';
 import { useGraphOperations } from '../../src/hooks/useGraphOperations';
 import { useReactFlow } from '@xyflow/react';
@@ -26,7 +26,7 @@ describe('Node View Level Behavior', () => {
     it('should create nodes in summary view by default', async () => {
       const { result } = renderHook(
         () => ({
-          document: useDocument(),
+          nodes: useNodes(),
           context: useDocumentContext(),
           reactFlow: useReactFlow(),
           graphOps: useGraphOperations({
@@ -51,18 +51,18 @@ describe('Node View Level Behavior', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.nodes).toHaveLength(1);
+        expect(result.current.nodes.nodes).toHaveLength(1);
       });
 
       // Verify node starts in summary view
-      const node = result.current.document.nodes[0];
+      const node = result.current.nodes.nodes[0];
       expect(node.data.viewLevel).toBe('summary');
     });
 
     it('should create related constructs in summary view', async () => {
       const { result } = renderHook(
         () => ({
-          document: useDocument(),
+          nodes: useNodes(),
           context: useDocumentContext(),
           reactFlow: useReactFlow(),
           graphOps: useGraphOperations({
@@ -86,10 +86,10 @@ describe('Node View Level Behavior', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.nodes).toHaveLength(1);
+        expect(result.current.nodes.nodes).toHaveLength(1);
       });
 
-      const sourceNodeId = result.current.document.nodes[0].id;
+      const sourceNodeId = result.current.nodes.nodes[0].id;
 
       // Add related construct
       act(() => {
@@ -100,11 +100,11 @@ describe('Node View Level Behavior', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.nodes).toHaveLength(2);
+        expect(result.current.nodes.nodes).toHaveLength(2);
       });
 
       // Verify both nodes are in summary view
-      const nodes = result.current.document.nodes;
+      const nodes = result.current.nodes.nodes;
       expect(nodes[0].data.viewLevel).toBe('summary');
       expect(nodes[1].data.viewLevel).toBe('summary');
     });
@@ -114,7 +114,7 @@ describe('Node View Level Behavior', () => {
     it('should set node from summary to details', async () => {
       const { result } = renderHook(
         () => ({
-          document: useDocument(),
+          nodes: useNodes(),
           context: useDocumentContext(),
           reactFlow: useReactFlow(),
           graphOps: useGraphOperations({
@@ -138,11 +138,11 @@ describe('Node View Level Behavior', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.nodes).toHaveLength(1);
+        expect(result.current.nodes.nodes).toHaveLength(1);
       });
 
-      const nodeId = result.current.document.nodes[0].id;
-      expect(result.current.document.nodes[0].data.viewLevel).toBe('summary');
+      const nodeId = result.current.nodes.nodes[0].id;
+      expect(result.current.nodes.nodes[0].data.viewLevel).toBe('summary');
 
       // Set to details
       act(() => {
@@ -150,7 +150,7 @@ describe('Node View Level Behavior', () => {
       });
 
       await waitFor(() => {
-        const node = result.current.document.nodes.find(n => n.id === nodeId);
+        const node = result.current.nodes.nodes.find(n => n.id === nodeId);
         expect(node?.data.viewLevel).toBe('details');
       });
     });
@@ -158,7 +158,7 @@ describe('Node View Level Behavior', () => {
     it('should set node from details back to summary', async () => {
       const { result } = renderHook(
         () => ({
-          document: useDocument(),
+          nodes: useNodes(),
           context: useDocumentContext(),
           reactFlow: useReactFlow(),
           graphOps: useGraphOperations({
@@ -181,10 +181,10 @@ describe('Node View Level Behavior', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.nodes).toHaveLength(1);
+        expect(result.current.nodes.nodes).toHaveLength(1);
       });
 
-      const nodeId = result.current.document.nodes[0].id;
+      const nodeId = result.current.nodes.nodes[0].id;
 
       // Set to details first
       act(() => {
@@ -192,7 +192,7 @@ describe('Node View Level Behavior', () => {
       });
 
       await waitFor(() => {
-        const node = result.current.document.nodes.find(n => n.id === nodeId);
+        const node = result.current.nodes.nodes.find(n => n.id === nodeId);
         expect(node?.data.viewLevel).toBe('details');
       });
 
@@ -202,7 +202,7 @@ describe('Node View Level Behavior', () => {
       });
 
       await waitFor(() => {
-        const node = result.current.document.nodes.find(n => n.id === nodeId);
+        const node = result.current.nodes.nodes.find(n => n.id === nodeId);
         expect(node?.data.viewLevel).toBe('summary');
       });
     });
@@ -210,7 +210,7 @@ describe('Node View Level Behavior', () => {
     it('should allow multiple view level changes in sequence', async () => {
       const { result } = renderHook(
         () => ({
-          document: useDocument(),
+          nodes: useNodes(),
           context: useDocumentContext(),
           reactFlow: useReactFlow(),
           graphOps: useGraphOperations({
@@ -233,13 +233,13 @@ describe('Node View Level Behavior', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.nodes).toHaveLength(1);
+        expect(result.current.nodes.nodes).toHaveLength(1);
       });
 
-      const nodeId = result.current.document.nodes[0].id;
+      const nodeId = result.current.nodes.nodes[0].id;
 
       // Initial state is summary
-      expect(result.current.document.nodes[0].data.viewLevel).toBe('summary');
+      expect(result.current.nodes.nodes[0].data.viewLevel).toBe('summary');
 
       // Set to details
       act(() => {
@@ -247,7 +247,7 @@ describe('Node View Level Behavior', () => {
       });
 
       await waitFor(() => {
-        const node = result.current.document.nodes.find(n => n.id === nodeId);
+        const node = result.current.nodes.nodes.find(n => n.id === nodeId);
         expect(node?.data.viewLevel).toBe('details');
       });
 
@@ -257,7 +257,7 @@ describe('Node View Level Behavior', () => {
       });
 
       await waitFor(() => {
-        const node = result.current.document.nodes.find(n => n.id === nodeId);
+        const node = result.current.nodes.nodes.find(n => n.id === nodeId);
         expect(node?.data.viewLevel).toBe('summary');
       });
 
@@ -267,7 +267,7 @@ describe('Node View Level Behavior', () => {
       });
 
       await waitFor(() => {
-        const node = result.current.document.nodes.find(n => n.id === nodeId);
+        const node = result.current.nodes.nodes.find(n => n.id === nodeId);
         expect(node?.data.viewLevel).toBe('details');
       });
     });
@@ -277,7 +277,7 @@ describe('Node View Level Behavior', () => {
     it('should preserve view level when updating node values', async () => {
       const { result } = renderHook(
         () => ({
-          document: useDocument(),
+          nodes: useNodes(),
           context: useDocumentContext(),
           reactFlow: useReactFlow(),
           graphOps: useGraphOperations({
@@ -300,10 +300,10 @@ describe('Node View Level Behavior', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.nodes).toHaveLength(1);
+        expect(result.current.nodes.nodes).toHaveLength(1);
       });
 
-      const nodeId = result.current.document.nodes[0].id;
+      const nodeId = result.current.nodes.nodes[0].id;
 
       // Set to details
       act(() => {
@@ -311,7 +311,7 @@ describe('Node View Level Behavior', () => {
       });
 
       await waitFor(() => {
-        const node = result.current.document.nodes.find(n => n.id === nodeId);
+        const node = result.current.nodes.nodes.find(n => n.id === nodeId);
         expect(node?.data.viewLevel).toBe('details');
       });
 
@@ -323,19 +323,19 @@ describe('Node View Level Behavior', () => {
       });
 
       await waitFor(() => {
-        const node = result.current.document.nodes.find(n => n.id === nodeId);
+        const node = result.current.nodes.nodes.find(n => n.id === nodeId);
         expect(node?.data.values.name).toBe('Updated name');
       });
 
       // View level should still be details
-      const node = result.current.document.nodes.find(n => n.id === nodeId);
+      const node = result.current.nodes.nodes.find(n => n.id === nodeId);
       expect(node?.data.viewLevel).toBe('details');
     });
 
     it('should preserve view level when updating deployable', async () => {
       const { result } = renderHook(
         () => ({
-          document: useDocument(),
+          nodes: useNodes(),
           context: useDocumentContext(),
           reactFlow: useReactFlow(),
           graphOps: useGraphOperations({
@@ -370,10 +370,10 @@ describe('Node View Level Behavior', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.nodes).toHaveLength(1);
+        expect(result.current.nodes.nodes).toHaveLength(1);
       });
 
-      const nodeId = result.current.document.nodes[0].id;
+      const nodeId = result.current.nodes.nodes[0].id;
 
       // Set to details
       act(() => {
@@ -381,7 +381,7 @@ describe('Node View Level Behavior', () => {
       });
 
       await waitFor(() => {
-        const node = result.current.document.nodes.find(n => n.id === nodeId);
+        const node = result.current.nodes.nodes.find(n => n.id === nodeId);
         expect(node?.data.viewLevel).toBe('details');
       });
 
@@ -391,12 +391,12 @@ describe('Node View Level Behavior', () => {
       });
 
       await waitFor(() => {
-        const node = result.current.document.nodes.find(n => n.id === nodeId);
+        const node = result.current.nodes.nodes.find(n => n.id === nodeId);
         expect(node?.data.deployableId).toBe(deployableId);
       });
 
       // View level should still be details
-      const node = result.current.document.nodes.find(n => n.id === nodeId);
+      const node = result.current.nodes.nodes.find(n => n.id === nodeId);
       expect(node?.data.viewLevel).toBe('details');
     });
   });
@@ -405,7 +405,7 @@ describe('Node View Level Behavior', () => {
     it('should toggle details pin state', async () => {
       const { result } = renderHook(
         () => ({
-          document: useDocument(),
+          nodes: useNodes(),
           context: useDocumentContext(),
           reactFlow: useReactFlow(),
           graphOps: useGraphOperations({
@@ -428,13 +428,13 @@ describe('Node View Level Behavior', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.nodes).toHaveLength(1);
+        expect(result.current.nodes.nodes).toHaveLength(1);
       });
 
-      const nodeId = result.current.document.nodes[0].id;
+      const nodeId = result.current.nodes.nodes[0].id;
 
       // Pin should be false/undefined initially
-      expect(result.current.document.nodes[0].data.isDetailsPinned).toBeFalsy();
+      expect(result.current.nodes.nodes[0].data.isDetailsPinned).toBeFalsy();
 
       // Toggle pin on
       act(() => {
@@ -442,7 +442,7 @@ describe('Node View Level Behavior', () => {
       });
 
       await waitFor(() => {
-        const node = result.current.document.nodes.find(n => n.id === nodeId);
+        const node = result.current.nodes.nodes.find(n => n.id === nodeId);
         expect(node?.data.isDetailsPinned).toBe(true);
       });
 
@@ -452,7 +452,7 @@ describe('Node View Level Behavior', () => {
       });
 
       await waitFor(() => {
-        const node = result.current.document.nodes.find(n => n.id === nodeId);
+        const node = result.current.nodes.nodes.find(n => n.id === nodeId);
         expect(node?.data.isDetailsPinned).toBe(false);
       });
     });

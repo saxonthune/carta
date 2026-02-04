@@ -11,7 +11,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { useDocument } from '../../src/hooks/useDocument';
+import { useNodes } from '../../src/hooks/useNodes';
 import { useDocumentContext } from '../../src/contexts/DocumentContext';
 import { TestProviders } from '../setup/testProviders';
 import { createTestNode } from '../setup/testHelpers';
@@ -19,7 +19,7 @@ import type { VisualGroupNodeData } from '@carta/domain';
 
 function useTestHarness() {
   return {
-    document: useDocument(),
+    nodes: useNodes(),
     context: useDocumentContext(),
   };
 }
@@ -58,10 +58,10 @@ describe('Visual Groups (Native parentId)', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.nodes).toHaveLength(1);
+        expect(result.current.nodes.nodes).toHaveLength(1);
       });
 
-      const nodes = result.current.document.nodes;
+      const nodes = result.current.nodes.nodes;
       expect(nodes[0].type).toBe('visual-group');
       expect((nodes[0].data as VisualGroupNodeData).name).toBe('Test Group');
       expect((nodes[0].data as VisualGroupNodeData).color).toBe('#ff0000');
@@ -108,10 +108,10 @@ describe('Visual Groups (Native parentId)', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.nodes).toHaveLength(3);
+        expect(result.current.nodes.nodes).toHaveLength(3);
       });
 
-      const nodes = result.current.document.nodes;
+      const nodes = result.current.nodes.nodes;
       const n1 = nodes.find(n => n.id === 'n1');
       const n2 = nodes.find(n => n.id === 'n2');
 
@@ -152,7 +152,7 @@ describe('Visual Groups (Native parentId)', () => {
       });
 
       await waitFor(() => {
-        const node = result.current.document.nodes.find(n => n.id === 'n1');
+        const node = result.current.nodes.nodes.find(n => n.id === 'n1');
         expect(node?.parentId).toBe(groupId);
       });
 
@@ -168,7 +168,7 @@ describe('Visual Groups (Native parentId)', () => {
       });
 
       await waitFor(() => {
-        const node = result.current.document.nodes.find(n => n.id === 'n1');
+        const node = result.current.nodes.nodes.find(n => n.id === 'n1');
         expect(node?.parentId).toBeUndefined();
       });
     });
@@ -199,7 +199,7 @@ describe('Visual Groups (Native parentId)', () => {
       });
 
       await waitFor(() => {
-        const group = result.current.document.nodes.find(n => n.id === groupId);
+        const group = result.current.nodes.nodes.find(n => n.id === groupId);
         expect((group?.data as VisualGroupNodeData).collapsed).toBe(false);
       });
 
@@ -215,7 +215,7 @@ describe('Visual Groups (Native parentId)', () => {
       });
 
       await waitFor(() => {
-        const group = result.current.document.nodes.find(n => n.id === groupId);
+        const group = result.current.nodes.nodes.find(n => n.id === groupId);
         expect((group?.data as VisualGroupNodeData).collapsed).toBe(true);
       });
 
@@ -231,7 +231,7 @@ describe('Visual Groups (Native parentId)', () => {
       });
 
       await waitFor(() => {
-        const group = result.current.document.nodes.find(n => n.id === groupId);
+        const group = result.current.nodes.nodes.find(n => n.id === groupId);
         expect((group?.data as VisualGroupNodeData).collapsed).toBe(false);
       });
     });
@@ -268,10 +268,10 @@ describe('Visual Groups (Native parentId)', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.nodes).toHaveLength(2);
+        expect(result.current.nodes.nodes).toHaveLength(2);
       });
 
-      const nodes = result.current.document.nodes;
+      const nodes = result.current.nodes.nodes;
       const groupIndex = nodes.findIndex(n => n.id === groupId);
       const childIndex = nodes.findIndex(n => n.id === 'child');
 
@@ -329,10 +329,10 @@ describe('Visual Groups (Native parentId)', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.nodes).toHaveLength(3);
+        expect(result.current.nodes.nodes).toHaveLength(3);
       });
 
-      const nodes = result.current.document.nodes;
+      const nodes = result.current.nodes.nodes;
       const innerGroup = nodes.find(n => n.id === innerGroupId);
       const nestedNode = nodes.find(n => n.id === 'nested-node');
 

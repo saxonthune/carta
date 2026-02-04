@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
-import { useDocument } from '../../hooks/useDocument';
+import { usePortSchemas } from '../../hooks/usePortSchemas';
 import Button from '../ui/Button';
 import SchemaGroupSelector from '../ui/SchemaGroupSelector';
 import Input from '../ui/Input';
@@ -49,7 +49,7 @@ const PortSchemaDetailsEditor = forwardRef<{ save: () => void }, PortSchemaDetai
     onDirtyChange,
     compact = false
   }, ref) {
-  const { getPortSchemas } = useDocument();
+  const { getPortSchemas } = usePortSchemas();
   const [formData, setFormData] = useState<PortSchema>(
     portSchema || createEmptySchema()
   );

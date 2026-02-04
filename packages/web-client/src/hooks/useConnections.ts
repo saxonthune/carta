@@ -1,6 +1,8 @@
 import { useCallback } from 'react';
 import { useReactFlow, addEdge, type Edge, type Connection, type OnConnect } from '@xyflow/react';
-import { useDocument } from './useDocument';
+import { useNodes } from './useNodes';
+import { useEdges } from './useEdges';
+import { useSchemas } from './useSchemas';
 import { canConnect, getPortsForSchema, getHandleType } from '@carta/domain';
 import type { ConnectionValue, ConstructNodeData } from '@carta/domain';
 import { stripHandlePrefix } from '../utils/handlePrefix';
@@ -14,7 +16,9 @@ export interface UseConnectionsResult {
 }
 
 export function useConnections(): UseConnectionsResult {
-  const { nodes, setNodes, setEdges, getSchema } = useDocument();
+  const { nodes, setNodes } = useNodes();
+  const { setEdges } = useEdges();
+  const { getSchema } = useSchemas();
   const { getNodes } = useReactFlow();
 
   // Helper to get semanticId from a node

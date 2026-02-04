@@ -1,6 +1,7 @@
 import { memo, useState, useEffect, useRef } from 'react';
 import { Handle, Position, useConnection, useNodeId } from '@xyflow/react';
-import { useDocument } from '../../hooks/useDocument';
+import { useSchemas } from '../../hooks/useSchemas';
+import { useDeployables } from '../../hooks/useDeployables';
 import { getPortsForSchema, generateTints, getDisplayName, getFieldsForSummary, getFieldsForTier } from '@carta/domain';
 import type { ConstructNodeData, ConstructSchema } from '@carta/domain';
 import CreateDeployablePopover from '../CreateDeployablePopover';
@@ -80,7 +81,8 @@ function ColorPicker({ schema, instanceColor, onColorChange }: {
 
 const ConstructNode = memo(({ data, selected }: ConstructNodeComponentProps) => {
   const lod = useLodBand();
-  const { getSchema, addDeployable } = useDocument();
+  const { getSchema } = useSchemas();
+  const { addDeployable } = useDeployables();
   const schema = getSchema(data.constructType);
   const nodeId = useNodeId();
   const [editingField, setEditingField] = useState<string | null>(null);

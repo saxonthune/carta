@@ -17,7 +17,10 @@ import {
   type EdgeChange,
   BackgroundVariant,
 } from '@xyflow/react';
-import { useDocument } from '../../hooks/useDocument';
+import { useNodes } from '../../hooks/useNodes';
+import { useEdges } from '../../hooks/useEdges';
+import { useSchemas } from '../../hooks/useSchemas';
+import { useLevels } from '../../hooks/useLevels';
 import { useDocumentContext } from '../../contexts/DocumentContext';
 import CustomNode from './CustomNode';
 import ConstructNode from './ConstructNode';
@@ -131,7 +134,10 @@ export interface MapProps {
 }
 
 export default function Map({ deployables, onDeployablesChange, title, onNodesEdgesChange, onSelectionChange, onNodeDoubleClick, searchText }: MapProps) {
-  const { nodes, edges, setNodes, setEdges, getSchema, levels, activeLevel, copyNodesToLevel } = useDocument();
+  const { nodes, setNodes } = useNodes();
+  const { edges, setEdges } = useEdges();
+  const { schemas, getSchema } = useSchemas();
+  const { levels, activeLevel, copyNodesToLevel } = useLevels();
   const { adapter } = useDocumentContext();
   const reactFlow = useReactFlow();
 
@@ -411,7 +417,6 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
   );
 
   // Get all construct options for pane menu
-  const { schemas } = useDocument();
   const allConstructOptions = useMemo(() => {
     return schemas.map(schema => ({
       constructType: schema.type,

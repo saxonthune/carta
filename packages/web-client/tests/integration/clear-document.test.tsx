@@ -12,7 +12,11 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { useDocument } from '../../src/hooks/useDocument';
+import { useNodes } from '../../src/hooks/useNodes';
+import { useEdges } from '../../src/hooks/useEdges';
+import { useSchemas } from '../../src/hooks/useSchemas';
+import { useDeployables } from '../../src/hooks/useDeployables';
+import { useDocumentMeta } from '../../src/hooks/useDocumentMeta';
 import { useDocumentContext } from '../../src/contexts/DocumentContext';
 import { TestProviders } from '../setup/testProviders';
 import { createTestNode, createTestEdge } from '../setup/testHelpers';
@@ -23,7 +27,11 @@ describe('Clear Document', () => {
       // Arrange: Set up a document with content
       const { result } = renderHook(
         () => ({
-          document: useDocument(),
+          nodes: useNodes(),
+          edges: useEdges(),
+          schemas: useSchemas(),
+          deployables: useDeployables(),
+          meta: useDocumentMeta(),
           context: useDocumentContext(),
         }),
         { wrapper: TestProviders }
@@ -69,12 +77,12 @@ describe('Clear Document', () => {
 
       // Verify content exists before clear
       await waitFor(() => {
-        expect(result.current.document.nodes.length).toBeGreaterThan(0);
+        expect(result.current.nodes.nodes.length).toBeGreaterThan(0);
       });
 
-      expect(result.current.document.nodes).toHaveLength(2);
-      expect(result.current.document.edges).toHaveLength(1);
-      expect(result.current.document.title).toBe('My Test Project');
+      expect(result.current.nodes.nodes).toHaveLength(2);
+      expect(result.current.edges.edges).toHaveLength(1);
+      expect(result.current.meta.title).toBe('My Test Project');
       expect(adapter.getDeployables().length).toBeGreaterThan(0);
 
       // Act: Clear everything (simulating what handleClear('all') does)
@@ -91,22 +99,26 @@ describe('Clear Document', () => {
 
       // Assert: Document content is cleared
       await waitFor(() => {
-        expect(result.current.document.nodes).toHaveLength(0);
+        expect(result.current.nodes.nodes).toHaveLength(0);
       });
 
-      expect(result.current.document.nodes).toHaveLength(0);
-      expect(result.current.document.edges).toHaveLength(0);
-      expect(result.current.document.schemas).toHaveLength(0);
-      expect(result.current.document.deployables).toHaveLength(0);
+      expect(result.current.nodes.nodes).toHaveLength(0);
+      expect(result.current.edges.edges).toHaveLength(0);
+      expect(result.current.schemas.schemas).toHaveLength(0);
+      expect(result.current.deployables.deployables).toHaveLength(0);
 
       // Assert: Title is preserved (the key requirement)
-      expect(result.current.document.title).toBe('My Test Project');
+      expect(result.current.meta.title).toBe('My Test Project');
     });
 
     it('should allow setting a new title after clearing', async () => {
       const { result } = renderHook(
         () => ({
-          document: useDocument(),
+          nodes: useNodes(),
+          edges: useEdges(),
+          schemas: useSchemas(),
+          deployables: useDeployables(),
+          meta: useDocumentMeta(),
           context: useDocumentContext(),
         }),
         { wrapper: TestProviders }
@@ -125,7 +137,7 @@ describe('Clear Document', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.nodes).toHaveLength(1);
+        expect(result.current.nodes.nodes).toHaveLength(1);
       });
 
       // Clear everything
@@ -144,11 +156,11 @@ describe('Clear Document', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.title).toBe('New Project');
+        expect(result.current.meta.title).toBe('New Project');
       });
 
-      expect(result.current.document.nodes).toHaveLength(0);
-      expect(result.current.document.title).toBe('New Project');
+      expect(result.current.nodes.nodes).toHaveLength(0);
+      expect(result.current.meta.title).toBe('New Project');
     });
   });
 
@@ -156,7 +168,11 @@ describe('Clear Document', () => {
     it('should clear nodes and edges but preserve schemas and deployables', async () => {
       const { result } = renderHook(
         () => ({
-          document: useDocument(),
+          nodes: useNodes(),
+          edges: useEdges(),
+          schemas: useSchemas(),
+          deployables: useDeployables(),
+          meta: useDocumentMeta(),
           context: useDocumentContext(),
         }),
         { wrapper: TestProviders }
@@ -193,11 +209,11 @@ describe('Clear Document', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.nodes).toHaveLength(2);
+        expect(result.current.nodes.nodes).toHaveLength(2);
       });
 
-      const schemaCountBefore = result.current.document.schemas.length;
-      const deployableCountBefore = result.current.document.deployables.length;
+      const schemaCountBefore = result.current.schemas.schemas.length;
+      const deployableCountBefore = result.current.deployables.deployables.length;
 
       // Clear instances only
       act(() => {
@@ -209,19 +225,19 @@ describe('Clear Document', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.nodes).toHaveLength(0);
+        expect(result.current.nodes.nodes).toHaveLength(0);
       });
 
       // Nodes and edges cleared
-      expect(result.current.document.nodes).toHaveLength(0);
-      expect(result.current.document.edges).toHaveLength(0);
+      expect(result.current.nodes.nodes).toHaveLength(0);
+      expect(result.current.edges.edges).toHaveLength(0);
 
       // Schemas and deployables preserved
-      expect(result.current.document.schemas.length).toBe(schemaCountBefore);
-      expect(result.current.document.deployables.length).toBe(deployableCountBefore);
+      expect(result.current.schemas.schemas.length).toBe(schemaCountBefore);
+      expect(result.current.deployables.deployables.length).toBe(deployableCountBefore);
 
       // Title preserved
-      expect(result.current.document.title).toBe('Instance Clear Test');
+      expect(result.current.meta.title).toBe('Instance Clear Test');
     });
   });
 
@@ -229,7 +245,11 @@ describe('Clear Document', () => {
     it('should handle clearing an already empty document', async () => {
       const { result } = renderHook(
         () => ({
-          document: useDocument(),
+          nodes: useNodes(),
+          edges: useEdges(),
+          schemas: useSchemas(),
+          deployables: useDeployables(),
+          meta: useDocumentMeta(),
           context: useDocumentContext(),
         }),
         { wrapper: TestProviders }
@@ -251,7 +271,7 @@ describe('Clear Document', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.title).toBe('Empty Doc');
+        expect(result.current.meta.title).toBe('Empty Doc');
       });
 
       // Clear should not throw
@@ -264,14 +284,18 @@ describe('Clear Document', () => {
         });
       });
 
-      expect(result.current.document.nodes).toHaveLength(0);
-      expect(result.current.document.title).toBe('Empty Doc');
+      expect(result.current.nodes.nodes).toHaveLength(0);
+      expect(result.current.meta.title).toBe('Empty Doc');
     });
 
     it('should clear connections stored on nodes', async () => {
       const { result } = renderHook(
         () => ({
-          document: useDocument(),
+          nodes: useNodes(),
+          edges: useEdges(),
+          schemas: useSchemas(),
+          deployables: useDeployables(),
+          meta: useDocumentMeta(),
           context: useDocumentContext(),
         }),
         { wrapper: TestProviders }
@@ -307,11 +331,11 @@ describe('Clear Document', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.nodes).toHaveLength(2);
+        expect(result.current.nodes.nodes).toHaveLength(2);
       });
 
       // Verify connection data exists
-      const sourceNode = result.current.document.nodes.find((n) => n.id === '1');
+      const sourceNode = result.current.nodes.nodes.find((n) => n.id === '1');
       expect(sourceNode?.data.connections).toHaveLength(1);
 
       // Clear
@@ -321,11 +345,11 @@ describe('Clear Document', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.nodes).toHaveLength(0);
+        expect(result.current.nodes.nodes).toHaveLength(0);
       });
 
       // All node data including connections is gone
-      expect(result.current.document.nodes).toHaveLength(0);
+      expect(result.current.nodes.nodes).toHaveLength(0);
     });
   });
 });

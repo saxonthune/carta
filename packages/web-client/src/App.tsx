@@ -9,7 +9,12 @@ import CanvasContainer from './components/canvas/CanvasContainer';
 import { compiler } from '@carta/compiler';
 import { builtInConstructSchemas, builtInPortSchemas, builtInSchemaGroups, syncWithDocumentStore } from '@carta/domain';
 import type { ConstructSchema } from '@carta/domain';
-import { useDocument } from './hooks/useDocument';
+import { useDocumentMeta } from './hooks/useDocumentMeta';
+import { useSchemas } from './hooks/useSchemas';
+import { useDeployables } from './hooks/useDeployables';
+import { useSchemaGroups } from './hooks/useSchemaGroups';
+import { useLevels } from './hooks/useLevels';
+import { useNodes } from './hooks/useNodes';
 import { useClearDocument } from './hooks/useClearDocument';
 import { useDocumentContext } from './contexts/DocumentContext';
 import { exportProject, importProject, importProjectFromString, type CartaFile } from './utils/cartaFile';
@@ -42,23 +47,12 @@ function App() {
 function AppContent() {
   const { adapter } = useDocumentContext();
 
-  const {
-    title,
-    description,
-    schemas,
-    deployables,
-    schemaGroups,
-    updateNode,
-    setTitle,
-    setDescription,
-    levels,
-    activeLevel,
-    setActiveLevel,
-    createLevel,
-    deleteLevel,
-    updateLevel,
-    duplicateLevel,
-  } = useDocument();
+  const { title, description, setTitle, setDescription } = useDocumentMeta();
+  const { schemas } = useSchemas();
+  const { deployables } = useDeployables();
+  const { schemaGroups } = useSchemaGroups();
+  const { levels, activeLevel, setActiveLevel, createLevel, deleteLevel, updateLevel, duplicateLevel } = useLevels();
+  const { updateNode } = useNodes();
   const [importPreview, setImportPreview] = useState<{ data: CartaFile; analysis: ImportAnalysis } | null>(null);
   const [pendingImport, setPendingImport] = useState<{ data: CartaFile; config: ImportConfig; schemasToImport: ConstructSchema[] } | null>(null);
   const [exportPreview, setExportPreview] = useState<ExportAnalysis | null>(null);

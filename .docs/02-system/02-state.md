@@ -48,7 +48,7 @@ All state operations go through DocumentAdapter methods. Components access state
 
 The codebase provides **focused hooks** that subscribe to specific slices of document state. This pattern prevents unnecessary re-renders by ensuring components only react to changes in the state they actually use.
 
-**Focused hooks** (use these for better performance):
+**Focused hooks**:
 - `useNodes()` — nodes, setNodes, updateNode, getNextNodeId
 - `useEdges()` — edges, setEdges
 - `useSchemas()` — schemas, schemaById, getSchema, add/update/remove
@@ -57,9 +57,6 @@ The codebase provides **focused hooks** that subscribe to specific slices of doc
 - `useSchemaGroups()` — schemaGroups, getSchemaGroup, add/update/remove
 - `useLevels()` — levels, activeLevel, setActiveLevel, create/delete/update
 - `useDocumentMeta()` — title, description, setTitle, setDescription
-
-**Legacy facade hook**:
-- `useDocument()` — Backward-compatible facade that subscribes to ALL document state. Marked deprecated. Components should migrate to focused hooks to avoid re-rendering on every document change.
 
 **Implementation detail**: Each focused hook uses `adapter.subscribeToX()` (if available) to subscribe only to changes in that state slice. If the adapter doesn't provide a focused subscription method, it falls back to the global `adapter.subscribe()` and filters in the hook.
 

@@ -13,7 +13,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { useDocument } from '../../src/hooks/useDocument';
+import { useNodes } from '../../src/hooks/useNodes';
 import { useDocumentContext } from '../../src/contexts/DocumentContext';
 import { TestProviders } from '../setup/testProviders';
 import { createTestNode } from '../setup/testHelpers';
@@ -23,7 +23,7 @@ describe('Node Field Editing', () => {
     it('should update node values when onValuesChange is called', async () => {
       const { result } = renderHook(
         () => ({
-          document: useDocument(),
+          nodes: useNodes(),
           context: useDocumentContext(),
         }),
         { wrapper: TestProviders }
@@ -49,11 +49,11 @@ describe('Node Field Editing', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.nodes).toHaveLength(1);
+        expect(result.current.nodes.nodes).toHaveLength(1);
       });
 
       // Verify initial value
-      const initialNode = result.current.document.nodes[0];
+      const initialNode = result.current.nodes.nodes[0];
       expect(initialNode.data.values.description).toBe('Initial description');
 
       // Update the values (simulating what happens when user edits a field)
@@ -64,11 +64,11 @@ describe('Node Field Editing', () => {
       });
 
       await waitFor(() => {
-        const updatedNode = result.current.document.nodes.find(n => n.id === '1');
+        const updatedNode = result.current.nodes.nodes.find(n => n.id === '1');
         expect(updatedNode?.data.values.description).toBe('Updated description');
       });
 
-      const updatedNode = result.current.document.nodes[0];
+      const updatedNode = result.current.nodes.nodes[0];
       expect(updatedNode.data.values.description).toBe('Updated description');
       expect(updatedNode.data.values.priority).toBe('high');
     });
@@ -76,7 +76,7 @@ describe('Node Field Editing', () => {
     it('should preserve other node properties when updating values', async () => {
       const { result } = renderHook(
         () => ({
-          document: useDocument(),
+          nodes: useNodes(),
           context: useDocumentContext(),
         }),
         { wrapper: TestProviders }
@@ -104,10 +104,10 @@ describe('Node Field Editing', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.nodes).toHaveLength(1);
+        expect(result.current.nodes.nodes).toHaveLength(1);
       });
 
-      const originalNode = result.current.document.nodes[0];
+      const originalNode = result.current.nodes.nodes[0];
       expect(originalNode.data.connections).toHaveLength(1);
 
       // Update just the values
@@ -118,12 +118,12 @@ describe('Node Field Editing', () => {
       });
 
       await waitFor(() => {
-        const node = result.current.document.nodes.find(n => n.id === '1');
+        const node = result.current.nodes.nodes.find(n => n.id === '1');
         expect(node?.data.values.name).toBe('Updated');
       });
 
       // Connections should still be preserved
-      const updatedNode = result.current.document.nodes[0];
+      const updatedNode = result.current.nodes.nodes[0];
       expect(updatedNode.data.connections).toHaveLength(1);
       expect(updatedNode.data.semanticId).toBe('task-with-data');
     });
@@ -131,7 +131,7 @@ describe('Node Field Editing', () => {
     it('should handle multiple field updates atomically', async () => {
       const { result } = renderHook(
         () => ({
-          document: useDocument(),
+          nodes: useNodes(),
           context: useDocumentContext(),
         }),
         { wrapper: TestProviders }
@@ -155,7 +155,7 @@ describe('Node Field Editing', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.nodes).toHaveLength(1);
+        expect(result.current.nodes.nodes).toHaveLength(1);
       });
 
       // Update multiple fields at once
@@ -171,11 +171,11 @@ describe('Node Field Editing', () => {
       });
 
       await waitFor(() => {
-        const node = result.current.document.nodes.find(n => n.id === '1');
+        const node = result.current.nodes.nodes.find(n => n.id === '1');
         expect(node?.data.values.name).toBe('Multi-field task');
       });
 
-      const node = result.current.document.nodes[0];
+      const node = result.current.nodes.nodes[0];
       expect(node.data.values).toEqual({
         name: 'Multi-field task',
         description: 'Has multiple fields',
@@ -189,7 +189,7 @@ describe('Node Field Editing', () => {
     it('should set viewLevel state on node', async () => {
       const { result } = renderHook(
         () => ({
-          document: useDocument(),
+          nodes: useNodes(),
           context: useDocumentContext(),
         }),
         { wrapper: TestProviders }
@@ -214,7 +214,7 @@ describe('Node Field Editing', () => {
       });
 
       await waitFor(() => {
-        const node = result.current.document.nodes.find(n => n.id === '1');
+        const node = result.current.nodes.nodes.find(n => n.id === '1');
         expect(node?.data.viewLevel).toBe('summary');
       });
 
@@ -224,7 +224,7 @@ describe('Node Field Editing', () => {
       });
 
       await waitFor(() => {
-        const node = result.current.document.nodes.find(n => n.id === '1');
+        const node = result.current.nodes.nodes.find(n => n.id === '1');
         expect(node?.data.viewLevel).toBe('details');
       });
     });

@@ -1,4 +1,4 @@
-import { useDocument } from '../../hooks/useDocument';
+import { useSchemas } from '../../hooks/useSchemas';
 import { canConnect } from '@carta/domain';
 import type { ConstructSchema, SuggestedRelatedConstruct } from '@carta/domain';
 
@@ -15,7 +15,7 @@ export default function RelatedTab({
   updateSuggestedRelated,
   removeSuggestedRelated
 }: RelatedTabProps) {
-  const { schemas: allSchemas, getSchema } = useDocument();
+  const { schemas: allSchemas, getSchema } = useSchemas();
   // Filter out the current construct type from suggestions
   const availableSchemas = allSchemas.filter(s => s.type !== formData.type);
   const ports = formData.ports || [];

@@ -18,7 +18,8 @@ import MetamapConnectionModal from './MetamapConnectionModal';
 import EdgeDetailPopover from './EdgeDetailPopover';
 import ConstructEditor from '../ConstructEditor';
 import ContextMenu from '../ui/ContextMenu';
-import { useDocument } from '../../hooks/useDocument';
+import { useSchemas } from '../../hooks/useSchemas';
+import { useSchemaGroups } from '../../hooks/useSchemaGroups';
 import { useMetamapLayout } from '../../hooks/useMetamapLayout';
 import type { ConstructSchema, SuggestedRelatedConstruct } from '@carta/domain';
 
@@ -81,7 +82,8 @@ interface MetamapInnerProps {
 }
 
 function MetamapInner({ filterText }: MetamapInnerProps) {
-  const { schemas, schemaGroups, getSchema, updateSchema, updateSchemaGroup, addSchemaGroup } = useDocument();
+  const { schemas, getSchema, updateSchema } = useSchemas();
+  const { schemaGroups, updateSchemaGroup, addSchemaGroup } = useSchemaGroups();
   const [connectionModal, setConnectionModal] = useState<ConnectionModalState | null>(null);
   const [editorState, setEditorState] = useState<{ open: boolean; editSchema?: ConstructSchema }>({ open: false });
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; schemaType?: string } | null>(null);

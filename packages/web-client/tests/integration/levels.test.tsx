@@ -13,14 +13,22 @@
 
 import { describe, it, expect } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { useDocument } from '../../src/hooks/useDocument';
+import { useNodes } from '../../src/hooks/useNodes';
+import { useEdges } from '../../src/hooks/useEdges';
+import { useSchemas } from '../../src/hooks/useSchemas';
+import { useDeployables } from '../../src/hooks/useDeployables';
+import { useLevels } from '../../src/hooks/useLevels';
 import { useDocumentContext } from '../../src/contexts/DocumentContext';
 import { TestProviders } from '../setup/testProviders';
 import { createTestNode, createTestEdge } from '../setup/testHelpers';
 
 function useTestHarness() {
   return {
-    document: useDocument(),
+    nodes: useNodes(),
+    edges: useEdges(),
+    schemas: useSchemas(),
+    deployables: useDeployables(),
+    levels: useLevels(),
     context: useDocumentContext(),
   };
 }
@@ -38,9 +46,9 @@ describe('Levels', () => {
     it('should create a default "Main" level on init', async () => {
       const result = await setup();
 
-      expect(result.current.document.levels).toHaveLength(1);
-      expect(result.current.document.levels[0].name).toBe('Main');
-      expect(result.current.document.activeLevel).toBe(result.current.document.levels[0].id);
+      expect(result.current.levels.levels).toHaveLength(1);
+      expect(result.current.levels.levels[0].name).toBe('Main');
+      expect(result.current.levels.activeLevel).toBe(result.current.levels.levels[0].id);
     });
   });
 
@@ -49,23 +57,23 @@ describe('Levels', () => {
       const result = await setup();
 
       act(() => {
-        result.current.document.createLevel('Level 2');
+        result.current.levels.createLevel('Level 2');
       });
 
       await waitFor(() => {
-        expect(result.current.document.levels).toHaveLength(2);
+        expect(result.current.levels.levels).toHaveLength(2);
       });
 
-      const newLevel = result.current.document.levels.find(l => l.name === 'Level 2');
+      const newLevel = result.current.levels.levels.find(l => l.name === 'Level 2');
       expect(newLevel).toBeDefined();
 
       // Switch to the new level
       act(() => {
-        result.current.document.setActiveLevel(newLevel!.id);
+        result.current.levels.setActiveLevel(newLevel!.id);
       });
 
       await waitFor(() => {
-        expect(result.current.document.activeLevel).toBe(newLevel!.id);
+        expect(result.current.levels.activeLevel).toBe(newLevel!.id);
       });
     });
   });
@@ -75,7 +83,7 @@ describe('Levels', () => {
       const result = await setup();
       const { adapter } = result.current.context;
 
-      const level1Id = result.current.document.levels[0].id;
+      const level1Id = result.current.levels.levels[0].id;
 
       // Add nodes to level 1
       act(() => {
@@ -86,23 +94,23 @@ describe('Levels', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.nodes).toHaveLength(2);
+        expect(result.current.nodes.nodes).toHaveLength(2);
       });
 
       // Create level 2 and switch to it
       let level2Id: string;
       act(() => {
-        const l2 = result.current.document.createLevel('Level 2');
+        const l2 = result.current.levels.createLevel('Level 2');
         level2Id = l2.id;
-        result.current.document.setActiveLevel(l2.id);
+        result.current.levels.setActiveLevel(l2.id);
       });
 
       await waitFor(() => {
-        expect(result.current.document.activeLevel).not.toBe(level1Id);
+        expect(result.current.levels.activeLevel).not.toBe(level1Id);
       });
 
       // Level 2 should have no nodes
-      expect(result.current.document.nodes).toHaveLength(0);
+      expect(result.current.nodes.nodes).toHaveLength(0);
 
       // Add a different node to level 2
       act(() => {
@@ -112,26 +120,26 @@ describe('Levels', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.nodes).toHaveLength(1);
+        expect(result.current.nodes.nodes).toHaveLength(1);
       });
 
       // Switch back to level 1 — should still have 2 nodes
       act(() => {
-        result.current.document.setActiveLevel(level1Id);
+        result.current.levels.setActiveLevel(level1Id);
       });
 
       await waitFor(() => {
-        expect(result.current.document.activeLevel).toBe(level1Id);
+        expect(result.current.levels.activeLevel).toBe(level1Id);
       });
 
-      expect(result.current.document.nodes).toHaveLength(2);
+      expect(result.current.nodes.nodes).toHaveLength(2);
     });
 
     it('should keep edges independent between levels', async () => {
       const result = await setup();
       const { adapter } = result.current.context;
 
-      const level1Id = result.current.document.levels[0].id;
+      const level1Id = result.current.levels.levels[0].id;
 
       // Add nodes + edge to level 1
       act(() => {
@@ -143,46 +151,46 @@ describe('Levels', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.edges).toHaveLength(1);
+        expect(result.current.edges.edges).toHaveLength(1);
       });
 
       // Create level 2 and switch
       act(() => {
-        const l2 = result.current.document.createLevel('Level 2');
-        result.current.document.setActiveLevel(l2.id);
+        const l2 = result.current.levels.createLevel('Level 2');
+        result.current.levels.setActiveLevel(l2.id);
       });
 
       await waitFor(() => {
-        expect(result.current.document.activeLevel).not.toBe(level1Id);
+        expect(result.current.levels.activeLevel).not.toBe(level1Id);
       });
 
-      expect(result.current.document.edges).toHaveLength(0);
+      expect(result.current.edges.edges).toHaveLength(0);
     });
 
     it('should keep deployables independent between levels', async () => {
       const result = await setup();
       const { adapter } = result.current.context;
 
-      const level1Id = result.current.document.levels[0].id;
+      const level1Id = result.current.levels.levels[0].id;
 
       act(() => {
         adapter.addDeployable({ name: 'Deploy A', description: 'desc', color: '#ff0000' });
       });
 
       await waitFor(() => {
-        expect(result.current.document.deployables).toHaveLength(1);
+        expect(result.current.deployables.deployables).toHaveLength(1);
       });
 
       act(() => {
-        const l2 = result.current.document.createLevel('Level 2');
-        result.current.document.setActiveLevel(l2.id);
+        const l2 = result.current.levels.createLevel('Level 2');
+        result.current.levels.setActiveLevel(l2.id);
       });
 
       await waitFor(() => {
-        expect(result.current.document.activeLevel).not.toBe(level1Id);
+        expect(result.current.levels.activeLevel).not.toBe(level1Id);
       });
 
-      expect(result.current.document.deployables).toHaveLength(0);
+      expect(result.current.deployables.deployables).toHaveLength(0);
     });
 
     it('should share schemas across levels', async () => {
@@ -202,18 +210,18 @@ describe('Levels', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.schemas.find(s => s.type === 'SharedType')).toBeDefined();
+        expect(result.current.schemas.schemas.find(s => s.type === 'SharedType')).toBeDefined();
       });
 
       // Switch to level 2
       act(() => {
-        const l2 = result.current.document.createLevel('Level 2');
-        result.current.document.setActiveLevel(l2.id);
+        const l2 = result.current.levels.createLevel('Level 2');
+        result.current.levels.setActiveLevel(l2.id);
       });
 
       // Schema should still be visible
       await waitFor(() => {
-        expect(result.current.document.schemas.find(s => s.type === 'SharedType')).toBeDefined();
+        expect(result.current.schemas.schemas.find(s => s.type === 'SharedType')).toBeDefined();
       });
     });
   });
@@ -222,14 +230,14 @@ describe('Levels', () => {
     it('should rename a level', async () => {
       const result = await setup();
 
-      const levelId = result.current.document.levels[0].id;
+      const levelId = result.current.levels.levels[0].id;
 
       act(() => {
-        result.current.document.updateLevel(levelId, { name: 'Renamed' });
+        result.current.levels.updateLevel(levelId, { name: 'Renamed' });
       });
 
       await waitFor(() => {
-        expect(result.current.document.levels[0].name).toBe('Renamed');
+        expect(result.current.levels.levels[0].name).toBe('Renamed');
       });
     });
   });
@@ -238,48 +246,48 @@ describe('Levels', () => {
     it('should delete a level and switch active if needed', async () => {
       const result = await setup();
 
-      const level1Id = result.current.document.levels[0].id;
+      const level1Id = result.current.levels.levels[0].id;
 
       // Create second level
       let level2Id: string;
       act(() => {
-        const l2 = result.current.document.createLevel('Level 2');
+        const l2 = result.current.levels.createLevel('Level 2');
         level2Id = l2.id;
       });
 
       await waitFor(() => {
-        expect(result.current.document.levels).toHaveLength(2);
+        expect(result.current.levels.levels).toHaveLength(2);
       });
 
       // Switch to level 2 and delete it
       act(() => {
-        result.current.document.setActiveLevel(level2Id!);
+        result.current.levels.setActiveLevel(level2Id!);
       });
 
       act(() => {
-        result.current.document.deleteLevel(level2Id!);
+        result.current.levels.deleteLevel(level2Id!);
       });
 
       await waitFor(() => {
-        expect(result.current.document.levels).toHaveLength(1);
+        expect(result.current.levels.levels).toHaveLength(1);
       });
 
       // Should have auto-switched to remaining level
-      expect(result.current.document.activeLevel).toBe(level1Id);
+      expect(result.current.levels.activeLevel).toBe(level1Id);
     });
 
     it('should not delete the last remaining level', async () => {
       const result = await setup();
       const { adapter } = result.current.context;
 
-      const levelId = result.current.document.levels[0].id;
+      const levelId = result.current.levels.levels[0].id;
 
       act(() => {
         adapter.deleteLevel(levelId);
       });
 
       // Still has one level
-      expect(result.current.document.levels).toHaveLength(1);
+      expect(result.current.levels.levels).toHaveLength(1);
     });
   });
 
@@ -288,7 +296,7 @@ describe('Levels', () => {
       const result = await setup();
       const { adapter } = result.current.context;
 
-      const level1Id = result.current.document.levels[0].id;
+      const level1Id = result.current.levels.levels[0].id;
 
       // Add content to level 1
       act(() => {
@@ -300,34 +308,34 @@ describe('Levels', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.nodes).toHaveLength(2);
+        expect(result.current.nodes.nodes).toHaveLength(2);
       });
 
       // Duplicate
       let dupLevel: { id: string };
       act(() => {
-        dupLevel = result.current.document.duplicateLevel(level1Id, 'Copy of Main');
+        dupLevel = result.current.levels.duplicateLevel(level1Id, 'Copy of Main');
       });
 
       await waitFor(() => {
-        expect(result.current.document.levels).toHaveLength(2);
+        expect(result.current.levels.levels).toHaveLength(2);
       });
 
       // Switch to duplicate
       act(() => {
-        result.current.document.setActiveLevel(dupLevel!.id);
+        result.current.levels.setActiveLevel(dupLevel!.id);
       });
 
       await waitFor(() => {
-        expect(result.current.document.activeLevel).toBe(dupLevel!.id);
+        expect(result.current.levels.activeLevel).toBe(dupLevel!.id);
       });
 
       // Should have same number of nodes/edges but different IDs
-      expect(result.current.document.nodes).toHaveLength(2);
-      expect(result.current.document.edges).toHaveLength(1);
+      expect(result.current.nodes.nodes).toHaveLength(2);
+      expect(result.current.edges.edges).toHaveLength(1);
 
       // Node IDs should differ from originals
-      const dupNodeIds = result.current.document.nodes.map(n => n.id);
+      const dupNodeIds = result.current.nodes.nodes.map(n => n.id);
       expect(dupNodeIds).not.toContain('x1');
       expect(dupNodeIds).not.toContain('x2');
     });
@@ -338,7 +346,7 @@ describe('Levels', () => {
       const result = await setup();
       const { adapter } = result.current.context;
 
-      const level1Id = result.current.document.levels[0].id;
+      const level1Id = result.current.levels.levels[0].id;
 
       // Set up nodes and edge
       act(() => {
@@ -354,13 +362,13 @@ describe('Levels', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.nodes).toHaveLength(3);
+        expect(result.current.nodes.nodes).toHaveLength(3);
       });
 
       // Create target level
       let level2Id: string;
       act(() => {
-        const l2 = result.current.document.createLevel('Target');
+        const l2 = result.current.levels.createLevel('Target');
         level2Id = l2.id;
       });
 
@@ -371,28 +379,28 @@ describe('Levels', () => {
 
       // Switch to target level
       act(() => {
-        result.current.document.setActiveLevel(level2Id!);
+        result.current.levels.setActiveLevel(level2Id!);
       });
 
       await waitFor(() => {
-        expect(result.current.document.activeLevel).toBe(level2Id!);
+        expect(result.current.levels.activeLevel).toBe(level2Id!);
       });
 
       // Should have 2 nodes and 1 edge (c1-c2 only, not c2-c3)
-      expect(result.current.document.nodes).toHaveLength(2);
-      expect(result.current.document.edges).toHaveLength(1);
+      expect(result.current.nodes.nodes).toHaveLength(2);
+      expect(result.current.edges.edges).toHaveLength(1);
 
       // Original level should be unchanged
       act(() => {
-        result.current.document.setActiveLevel(level1Id);
+        result.current.levels.setActiveLevel(level1Id);
       });
 
       await waitFor(() => {
-        expect(result.current.document.activeLevel).toBe(level1Id);
+        expect(result.current.levels.activeLevel).toBe(level1Id);
       });
 
-      expect(result.current.document.nodes).toHaveLength(3);
-      expect(result.current.document.edges).toHaveLength(2);
+      expect(result.current.nodes.nodes).toHaveLength(3);
+      expect(result.current.edges.edges).toHaveLength(2);
     });
   });
 
@@ -401,7 +409,7 @@ describe('Levels', () => {
       const result = await setup();
       const { adapter } = result.current.context;
 
-      const level1Id = result.current.document.levels[0].id;
+      const level1Id = result.current.levels.levels[0].id;
 
       // Add content to level 1
       act(() => {
@@ -412,7 +420,7 @@ describe('Levels', () => {
       // Create level 2 with content
       let level2Id: string;
       act(() => {
-        const l2 = result.current.document.createLevel('Level 2');
+        const l2 = result.current.levels.createLevel('Level 2');
         level2Id = l2.id;
         adapter.setActiveLevel(l2.id);
       });
@@ -434,7 +442,7 @@ describe('Levels', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.nodes).toHaveLength(0);
+        expect(result.current.nodes.nodes).toHaveLength(0);
       });
 
       // Level 2 should still have its node
@@ -443,10 +451,10 @@ describe('Levels', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.activeLevel).toBe(level2Id!);
+        expect(result.current.levels.activeLevel).toBe(level2Id!);
       });
 
-      expect(result.current.document.nodes).toHaveLength(1);
+      expect(result.current.nodes.nodes).toHaveLength(1);
     });
 
     it('should clear all levels and reset to one Main when clearing everything', async () => {
@@ -468,13 +476,13 @@ describe('Levels', () => {
 
       // Create level 2
       act(() => {
-        const l2 = result.current.document.createLevel('Level 2');
+        const l2 = result.current.levels.createLevel('Level 2');
         adapter.setActiveLevel(l2.id);
         adapter.setNodes([createTestNode({ id: 'q2', type: 'Service' })]);
       });
 
       await waitFor(() => {
-        expect(result.current.document.levels).toHaveLength(2);
+        expect(result.current.levels.levels).toHaveLength(2);
       });
 
       // Clear everything (mirrors useClearDocument 'all' mode)
@@ -502,12 +510,12 @@ describe('Levels', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.levels).toHaveLength(1);
+        expect(result.current.levels.levels).toHaveLength(1);
       });
 
-      expect(result.current.document.levels[0].name).toBe('Main');
-      expect(result.current.document.nodes).toHaveLength(0);
-      expect(result.current.document.schemas).toHaveLength(0);
+      expect(result.current.levels.levels[0].name).toBe('Main');
+      expect(result.current.nodes.nodes).toHaveLength(0);
+      expect(result.current.schemas.schemas).toHaveLength(0);
     });
   });
 });

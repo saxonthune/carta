@@ -1,5 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
-import { useDocument } from '../hooks/useDocument';
+import { useSchemas } from '../hooks/useSchemas';
+import { usePortSchemas } from '../hooks/usePortSchemas';
+import { useSchemaGroups } from '../hooks/useSchemaGroups';
 import BasicsStep from './schema-wizard/BasicsStep';
 import FieldsStep from './construct-editor/FieldsStep';
 import PortsStep from './construct-editor/PortsStep';
@@ -51,7 +53,9 @@ interface ConstructEditorProps {
 }
 
 export default function ConstructEditor({ editSchema, onClose }: ConstructEditorProps) {
-  const { addSchema, updateSchema, getSchema, portSchemas, addPortSchema, schemaGroups } = useDocument();
+  const { addSchema, updateSchema, getSchema } = useSchemas();
+  const { portSchemas, addPortSchema } = usePortSchemas();
+  const { schemaGroups } = useSchemaGroups();
   const isEditMode = !!editSchema;
 
   const [activeTab, setActiveTab] = useState<EditorTab>('basics');

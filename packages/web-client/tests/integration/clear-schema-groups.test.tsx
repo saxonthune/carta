@@ -7,7 +7,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { useDocument } from '../../src/hooks/useDocument';
+import { useSchemaGroups } from '../../src/hooks/useSchemaGroups';
 import { useDocumentContext } from '../../src/contexts/DocumentContext';
 import { TestProviders } from '../setup/testProviders';
 import { builtInSchemaGroups } from '@carta/domain';
@@ -16,7 +16,7 @@ describe('Clear Schema Groups', () => {
   it('should clear schema groups when clearing everything', async () => {
     const { result } = renderHook(
       () => ({
-        document: useDocument(),
+        schemaGroups: useSchemaGroups(),
         context: useDocumentContext(),
       }),
       { wrapper: TestProviders }
@@ -34,11 +34,11 @@ describe('Clear Schema Groups', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.document.schemaGroups.length).toBeGreaterThan(0);
+      expect(result.current.schemaGroups.schemaGroups.length).toBeGreaterThan(0);
     });
 
     // Verify we have the software architecture group
-    const softwareArchGroup = result.current.document.schemaGroups.find(
+    const softwareArchGroup = result.current.schemaGroups.schemaGroups.find(
       g => g.id === 'software-architecture'
     );
     expect(softwareArchGroup).toBeDefined();
@@ -57,16 +57,16 @@ describe('Clear Schema Groups', () => {
 
     // Verify schema groups are cleared
     await waitFor(() => {
-      expect(result.current.document.schemaGroups).toHaveLength(0);
+      expect(result.current.schemaGroups.schemaGroups).toHaveLength(0);
     });
 
-    expect(result.current.document.schemaGroups).toEqual([]);
+    expect(result.current.schemaGroups.schemaGroups).toEqual([]);
   });
 
   it('should preserve schema groups when clearing only instances', async () => {
     const { result } = renderHook(
       () => ({
-        document: useDocument(),
+        schemaGroups: useSchemaGroups(),
         context: useDocumentContext(),
       }),
       { wrapper: TestProviders }
@@ -84,10 +84,10 @@ describe('Clear Schema Groups', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.document.schemaGroups.length).toBeGreaterThan(0);
+      expect(result.current.schemaGroups.schemaGroups.length).toBeGreaterThan(0);
     });
 
-    const initialGroupCount = result.current.document.schemaGroups.length;
+    const initialGroupCount = result.current.schemaGroups.schemaGroups.length;
 
     // Clear only instances (simulating onClear('instances'))
     act(() => {
@@ -99,11 +99,11 @@ describe('Clear Schema Groups', () => {
 
     // Verify schema groups are preserved
     await waitFor(() => {
-      expect(result.current.document.schemaGroups.length).toBe(initialGroupCount);
+      expect(result.current.schemaGroups.schemaGroups.length).toBe(initialGroupCount);
     });
 
     // Verify software architecture group still exists
-    const softwareArchGroup = result.current.document.schemaGroups.find(
+    const softwareArchGroup = result.current.schemaGroups.schemaGroups.find(
       g => g.id === 'software-architecture'
     );
     expect(softwareArchGroup).toBeDefined();

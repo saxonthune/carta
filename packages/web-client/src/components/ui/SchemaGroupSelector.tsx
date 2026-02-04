@@ -1,5 +1,5 @@
 import type { SchemaGroup } from '@carta/domain';
-import useDocument from '../../hooks/useDocument';
+import { useSchemaGroups } from '../../hooks/useSchemaGroups';
 
 /**
  * Helper function to build the full path of a schema group
@@ -56,7 +56,7 @@ export default function SchemaGroupSelector({
   label,
   className = '',
 }: SchemaGroupSelectorProps) {
-  const { schemaGroups } = useDocument();
+  const { schemaGroups } = useSchemaGroups();
 
   // Build list of options with display text
   // Sort by full path for consistent ordering

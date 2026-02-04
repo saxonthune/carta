@@ -15,7 +15,13 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { useDocument } from '../../src/hooks/useDocument';
+import { useNodes } from '../../src/hooks/useNodes';
+import { useEdges } from '../../src/hooks/useEdges';
+import { useSchemas } from '../../src/hooks/useSchemas';
+import { usePortSchemas } from '../../src/hooks/usePortSchemas';
+import { useSchemaGroups } from '../../src/hooks/useSchemaGroups';
+import { useDeployables } from '../../src/hooks/useDeployables';
+import { useDocumentMeta } from '../../src/hooks/useDocumentMeta';
 import { useClearDocument } from '../../src/hooks/useClearDocument';
 import { useDocumentContext } from '../../src/contexts/DocumentContext';
 import { TestProviders } from '../setup/testProviders';
@@ -27,7 +33,13 @@ describe('Clear Everything', () => {
     it('should clear all nodes', async () => {
       const { result } = renderHook(
         () => ({
-          document: useDocument(),
+          nodes: useNodes(),
+          edges: useEdges(),
+          schemas: useSchemas(),
+          portSchemas: usePortSchemas(),
+          schemaGroups: useSchemaGroups(),
+          deployables: useDeployables(),
+          meta: useDocumentMeta(),
           context: useDocumentContext(),
           clearDocument: useClearDocument(),
         }),
@@ -49,7 +61,7 @@ describe('Clear Everything', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.nodes).toHaveLength(2);
+        expect(result.current.nodes.nodes).toHaveLength(2);
       });
 
       // Clear everything
@@ -59,14 +71,20 @@ describe('Clear Everything', () => {
 
       // Verify nodes are cleared
       await waitFor(() => {
-        expect(result.current.document.nodes).toHaveLength(0);
+        expect(result.current.nodes.nodes).toHaveLength(0);
       });
     });
 
     it('should clear all construct schemas', async () => {
       const { result } = renderHook(
         () => ({
-          document: useDocument(),
+          nodes: useNodes(),
+          edges: useEdges(),
+          schemas: useSchemas(),
+          portSchemas: usePortSchemas(),
+          schemaGroups: useSchemaGroups(),
+          deployables: useDeployables(),
+          meta: useDocumentMeta(),
           context: useDocumentContext(),
           clearDocument: useClearDocument(),
         }),
@@ -85,10 +103,10 @@ describe('Clear Everything', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.schemas.length).toBeGreaterThan(0);
+        expect(result.current.schemas.schemas.length).toBeGreaterThan(0);
       });
 
-      const schemaCountBefore = result.current.document.schemas.length;
+      const schemaCountBefore = result.current.schemas.schemas.length;
       expect(schemaCountBefore).toBeGreaterThan(0);
 
       // Clear everything
@@ -98,14 +116,20 @@ describe('Clear Everything', () => {
 
       // Verify schemas are cleared
       await waitFor(() => {
-        expect(result.current.document.schemas).toHaveLength(0);
+        expect(result.current.schemas.schemas).toHaveLength(0);
       });
     });
 
     it('should clear all port schemas', async () => {
       const { result } = renderHook(
         () => ({
-          document: useDocument(),
+          nodes: useNodes(),
+          edges: useEdges(),
+          schemas: useSchemas(),
+          portSchemas: usePortSchemas(),
+          schemaGroups: useSchemaGroups(),
+          deployables: useDeployables(),
+          meta: useDocumentMeta(),
           context: useDocumentContext(),
           clearDocument: useClearDocument(),
         }),
@@ -124,10 +148,10 @@ describe('Clear Everything', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.portSchemas.length).toBeGreaterThan(0);
+        expect(result.current.portSchemas.portSchemas.length).toBeGreaterThan(0);
       });
 
-      const portSchemaCountBefore = result.current.document.portSchemas.length;
+      const portSchemaCountBefore = result.current.portSchemas.portSchemas.length;
       expect(portSchemaCountBefore).toBeGreaterThan(0);
 
       // Clear everything
@@ -137,14 +161,20 @@ describe('Clear Everything', () => {
 
       // Verify port schemas are cleared
       await waitFor(() => {
-        expect(result.current.document.portSchemas).toHaveLength(0);
+        expect(result.current.portSchemas.portSchemas).toHaveLength(0);
       });
     });
 
     it('should clear all schema groups', async () => {
       const { result } = renderHook(
         () => ({
-          document: useDocument(),
+          nodes: useNodes(),
+          edges: useEdges(),
+          schemas: useSchemas(),
+          portSchemas: usePortSchemas(),
+          schemaGroups: useSchemaGroups(),
+          deployables: useDeployables(),
+          meta: useDocumentMeta(),
           context: useDocumentContext(),
           clearDocument: useClearDocument(),
         }),
@@ -163,7 +193,7 @@ describe('Clear Everything', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.schemaGroups.length).toBeGreaterThan(0);
+        expect(result.current.schemaGroups.schemaGroups.length).toBeGreaterThan(0);
       });
 
       // Clear everything
@@ -173,14 +203,20 @@ describe('Clear Everything', () => {
 
       // Verify schema groups are cleared
       await waitFor(() => {
-        expect(result.current.document.schemaGroups).toHaveLength(0);
+        expect(result.current.schemaGroups.schemaGroups).toHaveLength(0);
       });
     });
 
     it('should clear all deployables', async () => {
       const { result } = renderHook(
         () => ({
-          document: useDocument(),
+          nodes: useNodes(),
+          edges: useEdges(),
+          schemas: useSchemas(),
+          portSchemas: usePortSchemas(),
+          schemaGroups: useSchemaGroups(),
+          deployables: useDeployables(),
+          meta: useDocumentMeta(),
           context: useDocumentContext(),
           clearDocument: useClearDocument(),
         }),
@@ -199,7 +235,7 @@ describe('Clear Everything', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.deployables.length).toBeGreaterThan(0);
+        expect(result.current.deployables.deployables.length).toBeGreaterThan(0);
       });
 
       // Clear everything
@@ -209,14 +245,20 @@ describe('Clear Everything', () => {
 
       // Verify deployables are cleared
       await waitFor(() => {
-        expect(result.current.document.deployables).toHaveLength(0);
+        expect(result.current.deployables.deployables).toHaveLength(0);
       });
     });
 
     it('should preserve title after clear all', async () => {
       const { result } = renderHook(
         () => ({
-          document: useDocument(),
+          nodes: useNodes(),
+          edges: useEdges(),
+          schemas: useSchemas(),
+          portSchemas: usePortSchemas(),
+          schemaGroups: useSchemaGroups(),
+          deployables: useDeployables(),
+          meta: useDocumentMeta(),
           context: useDocumentContext(),
           clearDocument: useClearDocument(),
         }),
@@ -236,7 +278,7 @@ describe('Clear Everything', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.title).toBe(customTitle);
+        expect(result.current.meta.title).toBe(customTitle);
       });
 
       // Clear everything
@@ -245,7 +287,7 @@ describe('Clear Everything', () => {
       });
 
       // Title should be preserved
-      expect(result.current.document.title).toBe(customTitle);
+      expect(result.current.meta.title).toBe(customTitle);
     });
   });
 
@@ -253,7 +295,13 @@ describe('Clear Everything', () => {
     it('should clear nodes but preserve schemas', async () => {
       const { result } = renderHook(
         () => ({
-          document: useDocument(),
+          nodes: useNodes(),
+          edges: useEdges(),
+          schemas: useSchemas(),
+          portSchemas: usePortSchemas(),
+          schemaGroups: useSchemaGroups(),
+          deployables: useDeployables(),
+          meta: useDocumentMeta(),
           context: useDocumentContext(),
           clearDocument: useClearDocument(),
         }),
@@ -275,11 +323,11 @@ describe('Clear Everything', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.nodes).toHaveLength(1);
-        expect(result.current.document.schemas.length).toBeGreaterThan(0);
+        expect(result.current.nodes.nodes).toHaveLength(1);
+        expect(result.current.schemas.schemas.length).toBeGreaterThan(0);
       });
 
-      const schemaCountBefore = result.current.document.schemas.length;
+      const schemaCountBefore = result.current.schemas.schemas.length;
 
       // Clear instances only
       act(() => {
@@ -288,15 +336,21 @@ describe('Clear Everything', () => {
 
       // Nodes should be cleared, schemas preserved
       await waitFor(() => {
-        expect(result.current.document.nodes).toHaveLength(0);
+        expect(result.current.nodes.nodes).toHaveLength(0);
       });
-      expect(result.current.document.schemas.length).toBe(schemaCountBefore);
+      expect(result.current.schemas.schemas.length).toBe(schemaCountBefore);
     });
 
     it('should preserve port schemas when clearing instances only', async () => {
       const { result } = renderHook(
         () => ({
-          document: useDocument(),
+          nodes: useNodes(),
+          edges: useEdges(),
+          schemas: useSchemas(),
+          portSchemas: usePortSchemas(),
+          schemaGroups: useSchemaGroups(),
+          deployables: useDeployables(),
+          meta: useDocumentMeta(),
           context: useDocumentContext(),
           clearDocument: useClearDocument(),
         }),
@@ -318,11 +372,11 @@ describe('Clear Everything', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.nodes).toHaveLength(1);
-        expect(result.current.document.portSchemas.length).toBeGreaterThan(0);
+        expect(result.current.nodes.nodes).toHaveLength(1);
+        expect(result.current.portSchemas.portSchemas.length).toBeGreaterThan(0);
       });
 
-      const portSchemaCountBefore = result.current.document.portSchemas.length;
+      const portSchemaCountBefore = result.current.portSchemas.portSchemas.length;
 
       // Clear instances only
       act(() => {
@@ -331,9 +385,9 @@ describe('Clear Everything', () => {
 
       // Nodes should be cleared, port schemas preserved
       await waitFor(() => {
-        expect(result.current.document.nodes).toHaveLength(0);
+        expect(result.current.nodes.nodes).toHaveLength(0);
       });
-      expect(result.current.document.portSchemas.length).toBe(portSchemaCountBefore);
+      expect(result.current.portSchemas.portSchemas.length).toBe(portSchemaCountBefore);
     });
   });
 });

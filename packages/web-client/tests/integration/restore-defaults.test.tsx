@@ -13,7 +13,12 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { useDocument } from '../../src/hooks/useDocument';
+import { useNodes } from '../../src/hooks/useNodes';
+import { useEdges } from '../../src/hooks/useEdges';
+import { useSchemas } from '../../src/hooks/useSchemas';
+import { usePortSchemas } from '../../src/hooks/usePortSchemas';
+import { useSchemaGroups } from '../../src/hooks/useSchemaGroups';
+import { useDocumentMeta } from '../../src/hooks/useDocumentMeta';
 import { useDocumentContext } from '../../src/contexts/DocumentContext';
 import { TestProviders } from '../setup/testProviders';
 import { builtInConstructSchemas, builtInPortSchemas, builtInSchemaGroups } from '@carta/domain';
@@ -25,7 +30,12 @@ describe('Restore Default Schemas', () => {
       // Arrange: Set up a document with custom content
       const { result } = renderHook(
         () => ({
-          document: useDocument(),
+          nodes: useNodes(),
+          edges: useEdges(),
+          schemas: useSchemas(),
+          portSchemas: usePortSchemas(),
+          schemaGroups: useSchemaGroups(),
+          meta: useDocumentMeta(),
           context: useDocumentContext(),
         }),
         { wrapper: TestProviders }
@@ -51,13 +61,13 @@ describe('Restore Default Schemas', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.schemas).toHaveLength(0);
+        expect(result.current.schemas.schemas).toHaveLength(0);
       });
 
       // Verify all defaults are cleared
-      expect(result.current.document.schemas).toHaveLength(0);
-      expect(result.current.document.portSchemas).toHaveLength(0);
-      expect(result.current.document.schemaGroups).toHaveLength(0);
+      expect(result.current.schemas.schemas).toHaveLength(0);
+      expect(result.current.portSchemas.portSchemas).toHaveLength(0);
+      expect(result.current.schemaGroups.schemaGroups).toHaveLength(0);
 
       // Act: Restore all defaults (simulating handleRestoreDefaultSchemas)
       act(() => {
@@ -71,26 +81,31 @@ describe('Restore Default Schemas', () => {
 
       // Assert: All defaults are restored
       await waitFor(() => {
-        expect(result.current.document.schemas.length).toBeGreaterThan(0);
+        expect(result.current.schemas.schemas.length).toBeGreaterThan(0);
       });
 
       // Verify construct schemas
-      expect(result.current.document.schemas.length).toBe(builtInConstructSchemas.length);
-      expect(result.current.document.schemas).toEqual(builtInConstructSchemas);
+      expect(result.current.schemas.schemas.length).toBe(builtInConstructSchemas.length);
+      expect(result.current.schemas.schemas).toEqual(builtInConstructSchemas);
 
       // Verify port schemas
-      expect(result.current.document.portSchemas.length).toBe(builtInPortSchemas.length);
-      expect(result.current.document.portSchemas).toEqual(builtInPortSchemas);
+      expect(result.current.portSchemas.portSchemas.length).toBe(builtInPortSchemas.length);
+      expect(result.current.portSchemas.portSchemas).toEqual(builtInPortSchemas);
 
       // Verify schema groups
-      expect(result.current.document.schemaGroups.length).toBe(builtInSchemaGroups.length);
-      expect(result.current.document.schemaGroups).toEqual(builtInSchemaGroups);
+      expect(result.current.schemaGroups.schemaGroups.length).toBe(builtInSchemaGroups.length);
+      expect(result.current.schemaGroups.schemaGroups).toEqual(builtInSchemaGroups);
     });
 
     it('should restore specific construct types with correct properties', async () => {
       const { result } = renderHook(
         () => ({
-          document: useDocument(),
+          nodes: useNodes(),
+          edges: useEdges(),
+          schemas: useSchemas(),
+          portSchemas: usePortSchemas(),
+          schemaGroups: useSchemaGroups(),
+          meta: useDocumentMeta(),
           context: useDocumentContext(),
         }),
         { wrapper: TestProviders }
@@ -112,7 +127,7 @@ describe('Restore Default Schemas', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.schemas).toHaveLength(0);
+        expect(result.current.schemas.schemas).toHaveLength(0);
       });
 
       // Restore defaults
@@ -126,21 +141,21 @@ describe('Restore Default Schemas', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.schemas.length).toBeGreaterThan(0);
+        expect(result.current.schemas.schemas.length).toBeGreaterThan(0);
       });
 
       // Verify specific construct types exist
-      const restEndpointSchema = result.current.document.schemas.find(s => s.type === 'rest-endpoint');
+      const restEndpointSchema = result.current.schemas.schemas.find(s => s.type === 'rest-endpoint');
       expect(restEndpointSchema).toBeDefined();
       expect(restEndpointSchema?.displayName).toBe('REST Endpoint');
       expect(restEndpointSchema?.groupId).toBe('api');
 
-      const databaseSchema = result.current.document.schemas.find(s => s.type === 'database');
+      const databaseSchema = result.current.schemas.schemas.find(s => s.type === 'database');
       expect(databaseSchema).toBeDefined();
       expect(databaseSchema?.displayName).toBe('Database');
       expect(databaseSchema?.groupId).toBe('database');
 
-      const tableSchema = result.current.document.schemas.find(s => s.type === 'table');
+      const tableSchema = result.current.schemas.schemas.find(s => s.type === 'table');
       expect(tableSchema).toBeDefined();
       expect(tableSchema?.displayName).toBe('Table');
     });
@@ -148,7 +163,12 @@ describe('Restore Default Schemas', () => {
     it('should restore port schemas with correct properties', async () => {
       const { result } = renderHook(
         () => ({
-          document: useDocument(),
+          nodes: useNodes(),
+          edges: useEdges(),
+          schemas: useSchemas(),
+          portSchemas: usePortSchemas(),
+          schemaGroups: useSchemaGroups(),
+          meta: useDocumentMeta(),
           context: useDocumentContext(),
         }),
         { wrapper: TestProviders }
@@ -166,7 +186,7 @@ describe('Restore Default Schemas', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.portSchemas).toHaveLength(0);
+        expect(result.current.portSchemas.portSchemas).toHaveLength(0);
       });
 
       // Restore port schemas
@@ -175,20 +195,20 @@ describe('Restore Default Schemas', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.portSchemas.length).toBeGreaterThan(0);
+        expect(result.current.portSchemas.portSchemas.length).toBeGreaterThan(0);
       });
 
       // Verify specific port types exist
-      const flowInPort = result.current.document.portSchemas.find(p => p.id === 'flow-in');
+      const flowInPort = result.current.portSchemas.portSchemas.find(p => p.id === 'flow-in');
       expect(flowInPort).toBeDefined();
       expect(flowInPort?.polarity).toBe('sink');
       expect(flowInPort?.compatibleWith).toContain('flow-out');
 
-      const flowOutPort = result.current.document.portSchemas.find(p => p.id === 'flow-out');
+      const flowOutPort = result.current.portSchemas.portSchemas.find(p => p.id === 'flow-out');
       expect(flowOutPort).toBeDefined();
       expect(flowOutPort?.polarity).toBe('source');
 
-      const symmetricPort = result.current.document.portSchemas.find(p => p.id === 'symmetric');
+      const symmetricPort = result.current.portSchemas.portSchemas.find(p => p.id === 'symmetric');
       expect(symmetricPort).toBeDefined();
       expect(symmetricPort?.polarity).toBe('bidirectional');
       expect(symmetricPort?.compatibleWith).toEqual([]);
@@ -197,7 +217,12 @@ describe('Restore Default Schemas', () => {
     it('should restore schema groups with hierarchical structure', async () => {
       const { result } = renderHook(
         () => ({
-          document: useDocument(),
+          nodes: useNodes(),
+          edges: useEdges(),
+          schemas: useSchemas(),
+          portSchemas: usePortSchemas(),
+          schemaGroups: useSchemaGroups(),
+          meta: useDocumentMeta(),
           context: useDocumentContext(),
         }),
         { wrapper: TestProviders }
@@ -215,7 +240,7 @@ describe('Restore Default Schemas', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.schemaGroups).toHaveLength(0);
+        expect(result.current.schemaGroups.schemaGroups).toHaveLength(0);
       });
 
       // Restore schema groups
@@ -224,30 +249,30 @@ describe('Restore Default Schemas', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.schemaGroups.length).toBeGreaterThan(0);
+        expect(result.current.schemaGroups.schemaGroups.length).toBeGreaterThan(0);
       });
 
       // Verify root group exists
-      const rootGroup = result.current.document.schemaGroups.find(
+      const rootGroup = result.current.schemaGroups.schemaGroups.find(
         g => g.id === 'software-architecture' && !g.parentId
       );
       expect(rootGroup).toBeDefined();
       expect(rootGroup?.name).toBe('Software Architecture');
 
       // Verify child groups exist with correct parent references
-      const databaseGroup = result.current.document.schemaGroups.find(
+      const databaseGroup = result.current.schemaGroups.schemaGroups.find(
         g => g.id === 'database' && g.parentId === 'software-architecture'
       );
       expect(databaseGroup).toBeDefined();
       expect(databaseGroup?.name).toBe('Database');
 
-      const apiGroup = result.current.document.schemaGroups.find(
+      const apiGroup = result.current.schemaGroups.schemaGroups.find(
         g => g.id === 'api' && g.parentId === 'software-architecture'
       );
       expect(apiGroup).toBeDefined();
       expect(apiGroup?.name).toBe('API');
 
-      const uiGroup = result.current.document.schemaGroups.find(
+      const uiGroup = result.current.schemaGroups.schemaGroups.find(
         g => g.id === 'ui' && g.parentId === 'software-architecture'
       );
       expect(uiGroup).toBeDefined();
@@ -257,7 +282,12 @@ describe('Restore Default Schemas', () => {
     it('should overwrite existing schemas with same types', async () => {
       const { result } = renderHook(
         () => ({
-          document: useDocument(),
+          nodes: useNodes(),
+          edges: useEdges(),
+          schemas: useSchemas(),
+          portSchemas: usePortSchemas(),
+          schemaGroups: useSchemaGroups(),
+          meta: useDocumentMeta(),
           context: useDocumentContext(),
         }),
         { wrapper: TestProviders }
@@ -286,11 +316,11 @@ describe('Restore Default Schemas', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.schemas).toHaveLength(1);
+        expect(result.current.schemas.schemas).toHaveLength(1);
       });
 
       // Verify custom version is there
-      const customVersion = result.current.document.schemas[0];
+      const customVersion = result.current.schemas.schemas[0];
       expect(customVersion.displayName).toBe('Custom Endpoint');
 
       // Restore defaults (which replaces all)
@@ -302,11 +332,11 @@ describe('Restore Default Schemas', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.schemas.length).toBe(builtInConstructSchemas.length);
+        expect(result.current.schemas.schemas.length).toBe(builtInConstructSchemas.length);
       });
 
       // Verify built-in version is restored
-      const builtInVersion = result.current.document.schemas.find(s => s.type === 'rest-endpoint');
+      const builtInVersion = result.current.schemas.schemas.find(s => s.type === 'rest-endpoint');
       expect(builtInVersion?.displayName).toBe('REST Endpoint');
     });
   });
@@ -315,7 +345,12 @@ describe('Restore Default Schemas', () => {
     it('should preserve nodes and edges while restoring schemas', async () => {
       const { result } = renderHook(
         () => ({
-          document: useDocument(),
+          nodes: useNodes(),
+          edges: useEdges(),
+          schemas: useSchemas(),
+          portSchemas: usePortSchemas(),
+          schemaGroups: useSchemaGroups(),
+          meta: useDocumentMeta(),
           context: useDocumentContext(),
         }),
         { wrapper: TestProviders }
@@ -337,7 +372,7 @@ describe('Restore Default Schemas', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.nodes).toHaveLength(2);
+        expect(result.current.nodes.nodes).toHaveLength(2);
       });
 
       // Clear schemas but keep nodes
@@ -350,10 +385,10 @@ describe('Restore Default Schemas', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.schemas).toHaveLength(0);
+        expect(result.current.schemas.schemas).toHaveLength(0);
       });
 
-      const nodeCountBefore = result.current.document.nodes.length;
+      const nodeCountBefore = result.current.nodes.nodes.length;
 
       // Restore defaults
       act(() => {
@@ -366,24 +401,29 @@ describe('Restore Default Schemas', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.schemas.length).toBeGreaterThan(0);
+        expect(result.current.schemas.schemas.length).toBeGreaterThan(0);
       });
 
       // Verify nodes are preserved
-      expect(result.current.document.nodes).toHaveLength(nodeCountBefore);
-      expect(result.current.document.nodes[0].id).toBe('1');
-      expect(result.current.document.nodes[1].id).toBe('2');
+      expect(result.current.nodes.nodes).toHaveLength(nodeCountBefore);
+      expect(result.current.nodes.nodes[0].id).toBe('1');
+      expect(result.current.nodes.nodes[1].id).toBe('2');
 
       // Verify schemas are restored
-      expect(result.current.document.schemas.length).toBe(builtInConstructSchemas.length);
-      expect(result.current.document.portSchemas.length).toBe(builtInPortSchemas.length);
-      expect(result.current.document.schemaGroups.length).toBe(builtInSchemaGroups.length);
+      expect(result.current.schemas.schemas.length).toBe(builtInConstructSchemas.length);
+      expect(result.current.portSchemas.portSchemas.length).toBe(builtInPortSchemas.length);
+      expect(result.current.schemaGroups.schemaGroups.length).toBe(builtInSchemaGroups.length);
     });
 
     it('should preserve title during restore', async () => {
       const { result } = renderHook(
         () => ({
-          document: useDocument(),
+          nodes: useNodes(),
+          edges: useEdges(),
+          schemas: useSchemas(),
+          portSchemas: usePortSchemas(),
+          schemaGroups: useSchemaGroups(),
+          meta: useDocumentMeta(),
           context: useDocumentContext(),
         }),
         { wrapper: TestProviders }
@@ -407,7 +447,7 @@ describe('Restore Default Schemas', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.title).toBe(testTitle);
+        expect(result.current.meta.title).toBe(testTitle);
       });
 
       // Restore defaults
@@ -421,7 +461,7 @@ describe('Restore Default Schemas', () => {
       });
 
       // Verify title is preserved
-      expect(result.current.document.title).toBe(testTitle);
+      expect(result.current.meta.title).toBe(testTitle);
     });
   });
 
@@ -429,7 +469,12 @@ describe('Restore Default Schemas', () => {
     it('should handle restoring when no schemas exist', async () => {
       const { result } = renderHook(
         () => ({
-          document: useDocument(),
+          nodes: useNodes(),
+          edges: useEdges(),
+          schemas: useSchemas(),
+          portSchemas: usePortSchemas(),
+          schemaGroups: useSchemaGroups(),
+          meta: useDocumentMeta(),
           context: useDocumentContext(),
         }),
         { wrapper: TestProviders }
@@ -451,7 +496,7 @@ describe('Restore Default Schemas', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.schemas).toHaveLength(0);
+        expect(result.current.schemas.schemas).toHaveLength(0);
       });
 
       // Should not throw and should restore successfully
@@ -467,17 +512,22 @@ describe('Restore Default Schemas', () => {
       }).not.toThrow();
 
       await waitFor(() => {
-        expect(result.current.document.schemas.length).toBe(builtInConstructSchemas.length);
+        expect(result.current.schemas.schemas.length).toBe(builtInConstructSchemas.length);
       });
 
-      expect(result.current.document.portSchemas.length).toBe(builtInPortSchemas.length);
-      expect(result.current.document.schemaGroups.length).toBe(builtInSchemaGroups.length);
+      expect(result.current.portSchemas.portSchemas.length).toBe(builtInPortSchemas.length);
+      expect(result.current.schemaGroups.schemaGroups.length).toBe(builtInSchemaGroups.length);
     });
 
     it('should handle restoring multiple times', async () => {
       const { result } = renderHook(
         () => ({
-          document: useDocument(),
+          nodes: useNodes(),
+          edges: useEdges(),
+          schemas: useSchemas(),
+          portSchemas: usePortSchemas(),
+          schemaGroups: useSchemaGroups(),
+          meta: useDocumentMeta(),
           context: useDocumentContext(),
         }),
         { wrapper: TestProviders }
@@ -500,10 +550,10 @@ describe('Restore Default Schemas', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.schemas.length).toBeGreaterThan(0);
+        expect(result.current.schemas.schemas.length).toBeGreaterThan(0);
       });
 
-      const firstRestoreCount = result.current.document.schemas.length;
+      const firstRestoreCount = result.current.schemas.schemas.length;
 
       // Clear and restore again
       act(() => {
@@ -515,7 +565,7 @@ describe('Restore Default Schemas', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.schemas).toHaveLength(0);
+        expect(result.current.schemas.schemas).toHaveLength(0);
       });
 
       act(() => {
@@ -528,13 +578,13 @@ describe('Restore Default Schemas', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.schemas.length).toBe(firstRestoreCount);
+        expect(result.current.schemas.schemas.length).toBe(firstRestoreCount);
       });
 
       // Should restore to exact same state
-      expect(result.current.document.schemas).toEqual(builtInConstructSchemas);
-      expect(result.current.document.portSchemas).toEqual(builtInPortSchemas);
-      expect(result.current.document.schemaGroups).toEqual(builtInSchemaGroups);
+      expect(result.current.schemas.schemas).toEqual(builtInConstructSchemas);
+      expect(result.current.portSchemas.portSchemas).toEqual(builtInPortSchemas);
+      expect(result.current.schemaGroups.schemaGroups).toEqual(builtInSchemaGroups);
     });
   });
 });

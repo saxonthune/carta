@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useReactFlow, type Node } from '@xyflow/react';
-import { useDocument } from './useDocument';
+import { useNodes } from './useNodes';
 import { generateSemanticId } from '../utils/cartaFile';
 
 interface UseClipboardOptions {
@@ -16,7 +16,7 @@ export interface UseClipboardResult {
 
 export function useClipboard(options: UseClipboardOptions): UseClipboardResult {
   const { selectedNodeIds } = options;
-  const { nodes, setNodes, getNextNodeId } = useDocument();
+  const { nodes, setNodes, getNextNodeId } = useNodes();
   const { screenToFlowPosition } = useReactFlow();
   const [clipboard, setClipboard] = useState<Node[]>([]);
 

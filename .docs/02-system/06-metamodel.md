@@ -161,4 +161,4 @@ The compiler finds children by traversing connections from child ports targeting
 
 ## Port Registry
 
-The `PortRegistry` class manages port schemas with polarity-based validation. It receives schemas as a parameter (not a singleton). Components access port schemas through `useDocument()`, and the registry syncs with document state.
+The `PortRegistry` class manages port schemas with polarity-based validation. It receives schemas as a parameter (not a singleton). Components access port schemas through `usePortSchemas()`, and the registry syncs with document state.

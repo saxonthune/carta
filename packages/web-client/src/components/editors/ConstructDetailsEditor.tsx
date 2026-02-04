@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
-import { useDocument } from '../../hooks/useDocument';
+import { useSchemas } from '../../hooks/useSchemas';
 import Button from '../ui/Button';
 import OverviewTab from '../construct-editor/OverviewTab';
 import PortsTab from '../construct-editor/PortsTab';
@@ -47,7 +47,7 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
     onDirtyChange,
     compact = false
   }, ref) {
-  const { getSchema } = useDocument();
+  const { getSchema } = useSchemas();
   const [formData, setFormData] = useState<ConstructSchema>(
     construct || createEmptySchema()
   );

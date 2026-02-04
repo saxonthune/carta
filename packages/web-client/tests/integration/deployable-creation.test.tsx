@@ -14,7 +14,8 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { useDocument } from '../../src/hooks/useDocument';
+import { useNodes } from '../../src/hooks/useNodes';
+import { useDeployables } from '../../src/hooks/useDeployables';
 import { useDocumentContext } from '../../src/contexts/DocumentContext';
 import { TestProviders } from '../setup/testProviders';
 import { createTestNode } from '../setup/testHelpers';
@@ -24,7 +25,8 @@ describe('Deployable Creation', () => {
     it('should create a new deployable with name and description', async () => {
       const { result } = renderHook(
         () => ({
-          document: useDocument(),
+          nodes: useNodes(),
+          deployables: useDeployables(),
           context: useDocumentContext(),
         }),
         { wrapper: TestProviders }
@@ -34,25 +36,25 @@ describe('Deployable Creation', () => {
         expect(result.current.context.isReady).toBe(true);
       });
 
-      const { document } = result.current;
+      const { deployables: deployablesHook } = result.current;
 
       // Initially no deployables
-      expect(document.deployables).toHaveLength(0);
+      expect(deployablesHook.deployables).toHaveLength(0);
 
       // Create a deployable
       let newDeployable;
       act(() => {
-        newDeployable = document.addDeployable({
+        newDeployable = deployablesHook.addDeployable({
           name: 'Frontend Service',
           description: 'React frontend application',
         });
       });
 
       await waitFor(() => {
-        expect(result.current.document.deployables).toHaveLength(1);
+        expect(result.current.deployables.deployables).toHaveLength(1);
       });
 
-      const deployable = result.current.document.deployables[0];
+      const deployable = result.current.deployables.deployables[0];
       expect(deployable).toBeDefined();
       expect(deployable.id).toBeDefined();
       expect(deployable.name).toBe('Frontend Service');
@@ -62,7 +64,8 @@ describe('Deployable Creation', () => {
     it('should create deployable without description', async () => {
       const { result } = renderHook(
         () => ({
-          document: useDocument(),
+          nodes: useNodes(),
+          deployables: useDeployables(),
           context: useDocumentContext(),
         }),
         { wrapper: TestProviders }
@@ -72,20 +75,20 @@ describe('Deployable Creation', () => {
         expect(result.current.context.isReady).toBe(true);
       });
 
-      const { document } = result.current;
+      const { deployables: deployablesHook } = result.current;
 
       act(() => {
-        document.addDeployable({
+        deployablesHook.addDeployable({
           name: 'API Service',
           description: '',
         });
       });
 
       await waitFor(() => {
-        expect(result.current.document.deployables).toHaveLength(1);
+        expect(result.current.deployables.deployables).toHaveLength(1);
       });
 
-      const deployable = result.current.document.deployables[0];
+      const deployable = result.current.deployables.deployables[0];
       expect(deployable.name).toBe('API Service');
       expect(deployable.description).toBe('');
     });
@@ -93,7 +96,8 @@ describe('Deployable Creation', () => {
     it('should support multiple deployables', async () => {
       const { result } = renderHook(
         () => ({
-          document: useDocument(),
+          nodes: useNodes(),
+          deployables: useDeployables(),
           context: useDocumentContext(),
         }),
         { wrapper: TestProviders }
@@ -103,20 +107,20 @@ describe('Deployable Creation', () => {
         expect(result.current.context.isReady).toBe(true);
       });
 
-      const { document } = result.current;
+      const { deployables: deployablesHook } = result.current;
 
       // Create multiple deployables
       act(() => {
-        document.addDeployable({ name: 'Frontend', description: 'UI layer' });
-        document.addDeployable({ name: 'Backend', description: 'API layer' });
-        document.addDeployable({ name: 'Database', description: 'Data layer' });
+        deployablesHook.addDeployable({ name: 'Frontend', description: 'UI layer' });
+        deployablesHook.addDeployable({ name: 'Backend', description: 'API layer' });
+        deployablesHook.addDeployable({ name: 'Database', description: 'Data layer' });
       });
 
       await waitFor(() => {
-        expect(result.current.document.deployables).toHaveLength(3);
+        expect(result.current.deployables.deployables).toHaveLength(3);
       });
 
-      const names = result.current.document.deployables.map(d => d.name);
+      const names = result.current.deployables.deployables.map(d => d.name);
       expect(names).toContain('Frontend');
       expect(names).toContain('Backend');
       expect(names).toContain('Database');
@@ -127,7 +131,8 @@ describe('Deployable Creation', () => {
     it('should assign node to a deployable', async () => {
       const { result } = renderHook(
         () => ({
-          document: useDocument(),
+          nodes: useNodes(),
+          deployables: useDeployables(),
           context: useDocumentContext(),
         }),
         { wrapper: TestProviders }
@@ -138,7 +143,7 @@ describe('Deployable Creation', () => {
       });
 
       const { adapter } = result.current.context;
-      const { document } = result.current;
+      const { deployables: deployablesHook } = result.current;
 
       // Create a node
       act(() => {
@@ -152,13 +157,13 @@ describe('Deployable Creation', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.nodes).toHaveLength(1);
+        expect(result.current.nodes.nodes).toHaveLength(1);
       });
 
       // Create a deployable
       let deployableId: string;
       act(() => {
-        const deployable = document.addDeployable({
+        const deployable = deployablesHook.addDeployable({
           name: 'API Service',
           description: 'Backend API',
         });
@@ -166,7 +171,7 @@ describe('Deployable Creation', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.deployables).toHaveLength(1);
+        expect(result.current.deployables.deployables).toHaveLength(1);
       });
 
       // Assign node to deployable
@@ -175,18 +180,19 @@ describe('Deployable Creation', () => {
       });
 
       await waitFor(() => {
-        const node = result.current.document.nodes.find(n => n.id === '1');
+        const node = result.current.nodes.nodes.find(n => n.id === '1');
         expect(node?.data.deployableId).toBe(deployableId);
       });
 
-      const node = result.current.document.nodes[0];
+      const node = result.current.nodes.nodes[0];
       expect(node.data.deployableId).toBe(deployableId);
     });
 
     it('should allow removing deployable assignment', async () => {
       const { result } = renderHook(
         () => ({
-          document: useDocument(),
+          nodes: useNodes(),
+          deployables: useDeployables(),
           context: useDocumentContext(),
         }),
         { wrapper: TestProviders }
@@ -197,12 +203,12 @@ describe('Deployable Creation', () => {
       });
 
       const { adapter } = result.current.context;
-      const { document } = result.current;
+      const { deployables: deployablesHook } = result.current;
 
       // Create deployable and node
       let deployableId: string;
       act(() => {
-        const deployable = document.addDeployable({
+        const deployable = deployablesHook.addDeployable({
           name: 'Service',
           description: 'Test',
         });
@@ -219,7 +225,7 @@ describe('Deployable Creation', () => {
       });
 
       await waitFor(() => {
-        const node = result.current.document.nodes.find(n => n.id === '1');
+        const node = result.current.nodes.nodes.find(n => n.id === '1');
         expect(node?.data.deployableId).toBe(deployableId);
       });
 
@@ -229,7 +235,7 @@ describe('Deployable Creation', () => {
       });
 
       await waitFor(() => {
-        const node = result.current.document.nodes.find(n => n.id === '1');
+        const node = result.current.nodes.nodes.find(n => n.id === '1');
         expect(node?.data.deployableId).toBeNull();
       });
     });
@@ -237,7 +243,8 @@ describe('Deployable Creation', () => {
     it('should reassign node from one deployable to another', async () => {
       const { result } = renderHook(
         () => ({
-          document: useDocument(),
+          nodes: useNodes(),
+          deployables: useDeployables(),
           context: useDocumentContext(),
         }),
         { wrapper: TestProviders }
@@ -248,14 +255,14 @@ describe('Deployable Creation', () => {
       });
 
       const { adapter } = result.current.context;
-      const { document } = result.current;
+      const { deployables: deployablesHook } = result.current;
 
       // Create two deployables
       let deployable1Id: string;
       let deployable2Id: string;
       act(() => {
-        const d1 = document.addDeployable({ name: 'Frontend', description: '' });
-        const d2 = document.addDeployable({ name: 'Backend', description: '' });
+        const d1 = deployablesHook.addDeployable({ name: 'Frontend', description: '' });
+        const d2 = deployablesHook.addDeployable({ name: 'Backend', description: '' });
         deployable1Id = d1.id;
         deployable2Id = d2.id;
 
@@ -270,7 +277,7 @@ describe('Deployable Creation', () => {
       });
 
       await waitFor(() => {
-        const node = result.current.document.nodes.find(n => n.id === '1');
+        const node = result.current.nodes.nodes.find(n => n.id === '1');
         expect(node?.data.deployableId).toBe(deployable1Id);
       });
 
@@ -280,11 +287,11 @@ describe('Deployable Creation', () => {
       });
 
       await waitFor(() => {
-        const node = result.current.document.nodes.find(n => n.id === '1');
+        const node = result.current.nodes.nodes.find(n => n.id === '1');
         expect(node?.data.deployableId).toBe(deployable2Id);
       });
 
-      const node = result.current.document.nodes[0];
+      const node = result.current.nodes.nodes[0];
       expect(node.data.deployableId).toBe(deployable2Id);
     });
   });
@@ -293,7 +300,8 @@ describe('Deployable Creation', () => {
     it('should create deployable and immediately assign node to it', async () => {
       const { result } = renderHook(
         () => ({
-          document: useDocument(),
+          nodes: useNodes(),
+          deployables: useDeployables(),
           context: useDocumentContext(),
         }),
         { wrapper: TestProviders }
@@ -304,7 +312,7 @@ describe('Deployable Creation', () => {
       });
 
       const { adapter } = result.current.context;
-      const { document } = result.current;
+      const { deployables: deployablesHook } = result.current;
 
       // Create node first
       act(() => {
@@ -318,12 +326,12 @@ describe('Deployable Creation', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.nodes).toHaveLength(1);
+        expect(result.current.nodes.nodes).toHaveLength(1);
       });
 
       // Create deployable and assign in one flow (simulating UI workflow)
       act(() => {
-        const newDeployable = document.addDeployable({
+        const newDeployable = deployablesHook.addDeployable({
           name: 'Authentication Service',
           description: 'Handles user authentication',
         });
@@ -331,17 +339,17 @@ describe('Deployable Creation', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.document.deployables).toHaveLength(1);
+        expect(result.current.deployables.deployables).toHaveLength(1);
       });
 
       await waitFor(() => {
-        const node = result.current.document.nodes.find(n => n.id === '1');
-        const deployable = result.current.document.deployables[0];
+        const node = result.current.nodes.nodes.find(n => n.id === '1');
+        const deployable = result.current.deployables.deployables[0];
         expect(node?.data.deployableId).toBe(deployable.id);
       });
 
-      const node = result.current.document.nodes[0];
-      const deployable = result.current.document.deployables[0];
+      const node = result.current.nodes.nodes[0];
+      const deployable = result.current.deployables.deployables[0];
       expect(node.data.deployableId).toBe(deployable.id);
       expect(deployable.name).toBe('Authentication Service');
     });

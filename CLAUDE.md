@@ -148,7 +148,7 @@ Implemented packages: `@carta/types`, `@carta/domain`, `@carta/document`, `@cart
            ↓
 ┌─────────────────────────────────────────────────────────────┐
 │  Hooks Layer                    packages/web-client/src/   │
-│  - useDocument() → document state access and operations     │
+│  - useNodes/useEdges/useSchemas → focused document state    │
 │  - useGraphOperations() → add/delete/update nodes           │
 │  - useConnections() → connection management                 │
 │  - useClipboard() → copy/paste (local state)                │
@@ -251,8 +251,7 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 | `packages/web-client/src/stores/adapters/yjsAdapter.ts` | Yjs implementation of DocumentAdapter interface |
 | `packages/web-client/src/stores/documentRegistry.ts` | IndexedDB registry for local documents with cleanAllLocalData() for fresh NUX |
 | `packages/web-client/src/constructs/compiler/index.ts` | Compiler engine that takes schemas/deployables as parameters |
-| `packages/web-client/src/hooks/index.ts` | Barrel export: document state - focused hooks (useNodes, useEdges, useSchemas, usePortSchemas, useDeployables, useSchemaGroups, useLevels, useDocumentMeta), legacy facade (useDocument - deprecated), operations (useGraphOperations, useConnections, useVisualGroups), UI state (useMapState, useMetamapLayout, useEdgeBundling), utilities (useClipboard, useUndoRedo, useKeyboardShortcuts, useAwareness, useDirtyStateGuard, useClearDocument) |
-| `packages/web-client/src/hooks/useDocument.ts` | Deprecated facade hook that subscribes to ALL document state (causes re-renders on any change); prefer focused hooks (useNodes, useSchemas, etc.) for better performance |
+| `packages/web-client/src/hooks/index.ts` | Barrel export: document state (useNodes, useEdges, useSchemas, usePortSchemas, useDeployables, useSchemaGroups, useLevels, useDocumentMeta), operations (useGraphOperations, useConnections, useVisualGroups), UI state (useMapState, useMetamapLayout, useEdgeBundling), utilities (useClipboard, useUndoRedo, useKeyboardShortcuts, useAwareness, useDirtyStateGuard, useClearDocument) |
 | `packages/web-client/src/hooks/useNodes.ts` | Focused hook for nodes state: nodes, setNodes, updateNode, getNextNodeId (only re-renders when nodes change) |
 | `packages/web-client/src/hooks/useEdges.ts` | Focused hook for edges state: edges, setEdges (only re-renders when edges change) |
 | `packages/web-client/src/hooks/useSchemas.ts` | Focused hook for schemas state: schemas, schemaById, getSchema, add/update/remove operations |
@@ -338,7 +337,7 @@ When evaluating changes, ask: Does this expand capability without confusion? Doe
 
 ### State Management
 - **Single source of truth**: Yjs Y.Doc is the only state store
-- **Access pattern**: Components use `useDocument()` hook to access state via adapter
+- **Access pattern**: Components use focused hooks (useNodes, useSchemas, etc.) to access state via adapter
 - **Document state** (nodes, edges, schemas, deployables, port schemas) lives in Yjs Y.Doc
 - **UI state** (selection, menus, modals) stays in component useState
 - **Adapter interface**: All state operations go through DocumentAdapter methods
@@ -398,12 +397,9 @@ packages/web-client/src/constructs/compiler/formatters/*.ts    → Format-specif
 packages/web-client/src/hooks/useSchemas.ts      → Focused hook for schemas (only re-renders when schemas change)
 packages/web-client/src/hooks/useDeployables.ts  → Focused hook for deployables (only re-renders when deployables change)
 
-// Recommended approach (better performance)
+// Example usage
 const { schemas, getSchema } = useSchemas();
 const { deployables, addDeployable } = useDeployables();
-
-// Legacy approach (re-renders on ANY document change - avoid)
-const { schemas, deployables } = useDocument();
 ```
 
 ### Change node appearance
@@ -488,7 +484,6 @@ packages/web-client/src/index.css                                     → text-h
 ### Modify visual groups
 ```
 packages/web-client/src/hooks/useVisualGroups.ts              → Processes visual groups: hides children of collapsed groups, builds edge remap (uses native React Flow parentId)
-packages/web-client/src/hooks/useDocument.ts                  → getVisualGroups, addVisualGroup, updateVisualGroup, removeVisualGroup
 packages/web-client/src/components/canvas/VisualGroupNode.tsx → Collapsed chip / expanded container rendering
 packages/web-client/src/components/canvas/Map.tsx             → createGroup callback, group context menu handlers
 packages/web-client/src/stores/adapters/yjsAdapter.ts         → Visual group persistence (level-scoped Y.Map)
