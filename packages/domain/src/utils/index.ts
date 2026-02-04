@@ -5,3 +5,4 @@
 export * from './display.js';
 export * from './color.js';
 export * from './identity.js';
+export * from './group-geometry.js';

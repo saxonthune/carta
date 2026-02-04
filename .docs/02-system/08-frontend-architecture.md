@@ -125,6 +125,8 @@ Canvas components and LOD:
 - **Components**: `Map`, `CanvasContainer`, `ConstructNode`, `VirtualParentNode`, `VisualGroupNode`, `DynamicAnchorEdge`, `PortDrawer`, `IndexBasedDropZones`, `NodeControls`, `AddConstructMenu`
 - **LOD**: `useLodBand`, `DEFAULT_LOD_POLICY`, `getLodConfig`, types
 
+**Note:** `ConstructNode` is a directory with variant implementations: `index.tsx` (wrapper), `ConstructNodeDefault.tsx` (normal LOD), `ConstructNodePill.tsx` (pill LOD), `ConstructNodeCard.tsx` (deprecated), `shared.ts` (utilities).
+
 ### `components/metamap/index.ts`
 Schema view:
 - `Metamap`, `SchemaNode`, `SchemaGroupNode`, `EdgeDetailPopover`, `MetamapConnectionModal`, `MetamapFilter`
@@ -135,7 +137,7 @@ All modal dialogs:
 
 ### `components/ui/index.ts`
 Organized by type:
-- **Primitives**: `Button`, `Input`, `Textarea`, `Select`, `Modal`, `ConfirmationModal`
+- **Primitives**: `Button`, `Input`, `Textarea`, `Select`, `Modal`, `ConfirmationModal`, `ColorPicker`
 - **Navigation**: `TabBar`, `SegmentedControl`, `Breadcrumb`, `SearchBar`
 - **Menus**: `ContextMenu`, `ContextMenuPrimitive`
 - **Domain components**: `DocumentRow`, `FolderRow`, `GroupedSchemaList`, `SchemaGroupSelector`, `CollapsibleSelector`, `ChoiceCard`, `DraggableWindow`

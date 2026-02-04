@@ -12,6 +12,7 @@ export { useDocumentMeta } from './useDocumentMeta';
 export { useGraphOperations } from './useGraphOperations';
 export { useConnections } from './useConnections';
 export { useVisualGroups } from './useVisualGroups';
+export { useGroupOperations, type UseGroupOperationsResult } from './useGroupOperations';
 
 // UI state
 export { useMapState } from './useMapState';

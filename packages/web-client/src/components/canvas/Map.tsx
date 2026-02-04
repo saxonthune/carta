@@ -35,13 +35,9 @@ import { useGraphOperations } from '../../hooks/useGraphOperations';
 import { useConnections } from '../../hooks/useConnections';
 import { useClipboard } from '../../hooks/useClipboard';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
-import type { ConstructValues, Deployable, ConstructNodeData, VirtualParentNodeData, VisualGroupNodeData } from '@carta/domain';
+import type { ConstructValues, Deployable, ConstructNodeData, VirtualParentNodeData } from '@carta/domain';
 import { useVisualGroups } from '../../hooks/useVisualGroups';
-import { generateDeployableColor } from '@carta/document';
-
-// Constants for group layout
-const GROUP_PADDING = 20;
-const GROUP_HEADER_HEIGHT = 40;
+import { useGroupOperations } from '../../hooks/useGroupOperations';
 import ConstructEditor from '../ConstructEditor';
 import DynamicAnchorEdge from './DynamicAnchorEdge';
 import ConstructFullViewModal from '../modals/ConstructFullViewModal';
@@ -242,123 +238,19 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     }
   }, [selectedNodeIds]);
 
-  // Create a new visual group from selected nodes using native React Flow parentId
+  // Group operations from dedicated hook (uses pure geometry functions)
+  const {
+    createGroup: createGroupFromIds,
+    attachToGroup,
+    detachFromGroup,
+    toggleGroupCollapse,
+    resizeGroupToFitChildren,
+  } = useGroupOperations();
+
+  // Wrapper for createGroup that uses current selectedNodeIds
   const createGroup = useCallback(() => {
-    if (selectedNodeIds.length < 2) return;
-
-    const groupId = crypto.randomUUID();
-    const color = generateDeployableColor();
-
-    // Compute bounds from selected nodes
-    const selectedNodes = nodes.filter(n => selectedNodeIds.includes(n.id));
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    for (const node of selectedNodes) {
-      const w = node.measured?.width ?? node.width ?? 200;
-      const h = node.measured?.height ?? node.height ?? 100;
-      minX = Math.min(minX, node.position.x);
-      minY = Math.min(minY, node.position.y);
-      maxX = Math.max(maxX, node.position.x + w);
-      maxY = Math.max(maxY, node.position.y + h);
-    }
-
-    const groupPosition = { x: minX - GROUP_PADDING, y: minY - GROUP_PADDING - GROUP_HEADER_HEIGHT };
-    const groupWidth = maxX - minX + GROUP_PADDING * 2;
-    const groupHeight = maxY - minY + GROUP_PADDING * 2 + GROUP_HEADER_HEIGHT;
-
-    // Create the group node
-    const groupNode: Node<VisualGroupNodeData> = {
-      id: groupId,
-      type: 'visual-group',
-      position: groupPosition,
-      style: { width: groupWidth, height: groupHeight },
-      data: {
-        isVisualGroup: true,
-        name: 'New Group',
-        color,
-        collapsed: false,
-      },
-    };
-
-    // Update children with parentId and convert to relative positions
-    const updatedNodes = nodes.map(n => {
-      if (selectedNodeIds.includes(n.id)) {
-        return {
-          ...n,
-          parentId: groupId,
-          extent: 'parent' as const,
-          position: {
-            x: n.position.x - groupPosition.x,
-            y: n.position.y - groupPosition.y,
-          },
-        };
-      }
-      return n;
-    });
-
-    // Group node must come before its children (React Flow requirement)
-    setNodes([groupNode, ...updatedNodes]);
-  }, [selectedNodeIds, nodes, setNodes]);
-
-  // Attach a node to a group (convert to relative position)
-  const attachToGroup = useCallback((nodeId: string, groupId: string) => {
-    const node = nodes.find(n => n.id === nodeId);
-    const group = nodes.find(n => n.id === groupId);
-    if (!node || !group) return;
-
-    const relativePosition = {
-      x: node.position.x - group.position.x,
-      y: node.position.y - group.position.y,
-    };
-
-    setNodes(nds => nds.map(n =>
-      n.id === nodeId
-        ? { ...n, parentId: groupId, extent: 'parent' as const, position: relativePosition }
-        : n
-    ));
-  }, [nodes, setNodes]);
-
-  // Detach a node from its group (convert to absolute position)
-  const detachFromGroup = useCallback((nodeId: string) => {
-    const node = nodes.find(n => n.id === nodeId);
-    if (!node?.parentId) return;
-
-    const parent = nodes.find(n => n.id === node.parentId);
-    const absolutePosition = parent
-      ? { x: node.position.x + parent.position.x, y: node.position.y + parent.position.y }
-      : node.position;
-
-    setNodes(nds => nds.map(n =>
-      n.id === nodeId
-        ? { ...n, parentId: undefined, extent: undefined, position: absolutePosition }
-        : n
-    ));
-  }, [nodes, setNodes]);
-
-  // Resize group to fit its children
-  const resizeGroupToFitChildren = useCallback((groupId: string) => {
-    const children = nodes.filter(n => n.parentId === groupId);
-    if (children.length === 0) return;
-
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-
-    for (const child of children) {
-      const w = child.measured?.width ?? child.width ?? 200;
-      const h = child.measured?.height ?? child.height ?? 100;
-      minX = Math.min(minX, child.position.x);
-      minY = Math.min(minY, child.position.y);
-      maxX = Math.max(maxX, child.position.x + w);
-      maxY = Math.max(maxY, child.position.y + h);
-    }
-
-    const newWidth = maxX - minX + GROUP_PADDING * 2;
-    const newHeight = maxY - minY + GROUP_PADDING * 2 + GROUP_HEADER_HEIGHT;
-
-    setNodes(nds => nds.map(n =>
-      n.id === groupId
-        ? { ...n, style: { ...n.style, width: newWidth, height: newHeight } }
-        : n
-    ));
-  }, [nodes, setNodes]);
+    createGroupFromIds(selectedNodeIds);
+  }, [createGroupFromIds, selectedNodeIds]);
 
   // Remove a node from its group (same as detach)
   const removeFromGroup = useCallback((nodeId: string) => {
@@ -487,17 +379,6 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     }
     return counts;
   }, [nodes]);
-
-  // Toggle visual group collapse state
-  const toggleGroupCollapse = useCallback((groupId: string) => {
-    setNodes(nds => nds.map(n => {
-      if (n.id === groupId && n.type === 'visual-group') {
-        const data = n.data as VisualGroupNodeData;
-        return { ...n, data: { ...data, collapsed: !data.collapsed } };
-      }
-      return n;
-    }));
-  }, [setNodes]);
 
   const nodesWithCallbacks = nodesWithHiddenFlags.map((node) => {
     if (node.type === 'visual-group') {
