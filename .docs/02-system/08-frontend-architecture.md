@@ -115,7 +115,9 @@ Feature directories expose public APIs through `index.ts` barrel exports:
 
 ### `hooks/index.ts`
 Organized by purpose:
-- **Document state**: `useDocument`, `useGraphOperations`, `useConnections`, `useVisualGroups`
+- **Document state (focused)**: `useNodes`, `useEdges`, `useSchemas`, `usePortSchemas`, `useDeployables`, `useSchemaGroups`, `useLevels`, `useDocumentMeta`
+- **Document state (legacy)**: `useDocument` (deprecated facade)
+- **Document operations**: `useGraphOperations`, `useConnections`, `useVisualGroups`
 - **UI state**: `useMapState`, `useMetamapLayout`, `useEdgeBundling`
 - **Utilities**: `useClipboard`, `useUndoRedo`, `useKeyboardShortcuts`, `useAwareness`, `useDirtyStateGuard`, `useClearDocument`
 

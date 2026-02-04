@@ -225,6 +225,7 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 | `packages/document/src/doc-operations.ts` | Level-aware CRUD for constructs, edges, deployables, schemas (used by document server MCP) |
 | `packages/document/src/migrations.ts` | migrateToLevels, migrateToVisualGroups: document structure migrations |
 | `packages/document/src/file-format.ts` | CartaFile/CartaFileLevel types, validateCartaFile, importProjectFromString |
+| `packages/document/src/file-operations.ts` | Extract CartaFile from Y.Doc (extractCartaFile) and hydrate Y.Doc from CartaFile (hydrateYDoc) for desktop persistence |
 
 **@carta/domain** (shared domain logic, no UI/storage dependencies):
 
@@ -250,8 +251,16 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 | `packages/web-client/src/stores/adapters/yjsAdapter.ts` | Yjs implementation of DocumentAdapter interface |
 | `packages/web-client/src/stores/documentRegistry.ts` | IndexedDB registry for local documents with cleanAllLocalData() for fresh NUX |
 | `packages/web-client/src/constructs/compiler/index.ts` | Compiler engine that takes schemas/deployables as parameters |
-| `packages/web-client/src/hooks/index.ts` | Barrel export: document state (useDocument, useGraphOperations, useConnections, useVisualGroups), UI state (useMapState, useMetamapLayout, useEdgeBundling), utilities (useClipboard, useUndoRedo, useKeyboardShortcuts, useAwareness, useDirtyStateGuard, useClearDocument) |
-| `packages/web-client/src/hooks/useDocument.ts` | Primary hook for accessing document state and operations via adapter |
+| `packages/web-client/src/hooks/index.ts` | Barrel export: document state - focused hooks (useNodes, useEdges, useSchemas, usePortSchemas, useDeployables, useSchemaGroups, useLevels, useDocumentMeta), legacy facade (useDocument - deprecated), operations (useGraphOperations, useConnections, useVisualGroups), UI state (useMapState, useMetamapLayout, useEdgeBundling), utilities (useClipboard, useUndoRedo, useKeyboardShortcuts, useAwareness, useDirtyStateGuard, useClearDocument) |
+| `packages/web-client/src/hooks/useDocument.ts` | Deprecated facade hook that subscribes to ALL document state (causes re-renders on any change); prefer focused hooks (useNodes, useSchemas, etc.) for better performance |
+| `packages/web-client/src/hooks/useNodes.ts` | Focused hook for nodes state: nodes, setNodes, updateNode, getNextNodeId (only re-renders when nodes change) |
+| `packages/web-client/src/hooks/useEdges.ts` | Focused hook for edges state: edges, setEdges (only re-renders when edges change) |
+| `packages/web-client/src/hooks/useSchemas.ts` | Focused hook for schemas state: schemas, schemaById, getSchema, add/update/remove operations |
+| `packages/web-client/src/hooks/usePortSchemas.ts` | Focused hook for port schemas state: portSchemas, getPortSchema, add/update/remove operations |
+| `packages/web-client/src/hooks/useDeployables.ts` | Focused hook for deployables state: deployables, getDeployable, add/update/remove operations |
+| `packages/web-client/src/hooks/useSchemaGroups.ts` | Focused hook for schema groups state: schemaGroups, getSchemaGroup, add/update/remove operations |
+| `packages/web-client/src/hooks/useLevels.ts` | Focused hook for levels state: levels, activeLevel, setActiveLevel, create/delete/update operations |
+| `packages/web-client/src/hooks/useDocumentMeta.ts` | Focused hook for document metadata: title, description, setTitle, setDescription |
 | `packages/web-client/src/hooks/useGraphOperations.ts` | Node CRUD: addConstruct, deleteNode, renameNode, createVirtualParent, etc. |
 | `packages/web-client/src/hooks/useConnections.ts` | Connection logic: onConnect, handleEdgesDelete, validation |
 | `packages/web-client/src/hooks/useUndoRedo.ts` | Y.UndoManager wrapper for undo/redo (local, not shared) |
@@ -314,6 +323,7 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 |------|---------|
 | `packages/desktop/src/main/index.ts` | Electron main process: starts embedded server, creates window, IPC handlers |
 | `packages/desktop/src/main/server.ts` | Embedded HTTP + WebSocket document server with filesystem persistence |
+| `packages/desktop/src/main/preferences.ts` | Desktop preferences management: stores vault path and last document ID in JSON file |
 | `packages/desktop/src/main/config.ts` | Dev/prod detection, renderer URL resolution |
 | `packages/desktop/src/preload/index.ts` | Preload: exposes isDesktop, server info, MCP config IPC to renderer |
 
@@ -385,8 +395,15 @@ packages/web-client/src/constructs/compiler/formatters/*.ts    → Format-specif
 
 ### Access schemas or deployables
 ```
-packages/web-client/src/hooks/useDocument.ts                   → Use this hook to get schemas/deployables from adapter
-components: const { schemas, deployables } = useDocument()
+packages/web-client/src/hooks/useSchemas.ts      → Focused hook for schemas (only re-renders when schemas change)
+packages/web-client/src/hooks/useDeployables.ts  → Focused hook for deployables (only re-renders when deployables change)
+
+// Recommended approach (better performance)
+const { schemas, getSchema } = useSchemas();
+const { deployables, addDeployable } = useDeployables();
+
+// Legacy approach (re-renders on ANY document change - avoid)
+const { schemas, deployables } = useDocument();
 ```
 
 ### Change node appearance

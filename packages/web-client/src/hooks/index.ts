@@ -1,5 +1,17 @@
-// Document state
+// Document state - monolithic hook (facade, for backward compatibility)
 export { useDocument } from './useDocument';
+
+// Document state - focused hooks (for better performance)
+export { useNodes } from './useNodes';
+export { useEdges } from './useEdges';
+export { useSchemas } from './useSchemas';
+export { usePortSchemas } from './usePortSchemas';
+export { useDeployables } from './useDeployables';
+export { useSchemaGroups } from './useSchemaGroups';
+export { useLevels } from './useLevels';
+export { useDocumentMeta } from './useDocumentMeta';
+
+// Document operations
 export { useGraphOperations } from './useGraphOperations';
 export { useConnections } from './useConnections';
 export { useVisualGroups } from './useVisualGroups';

@@ -4,12 +4,12 @@
 
 ## Priority Order
 
-### 1. Index.ts barrel exports (30 min)
-- [ ] `packages/web-client/src/hooks/index.ts`
-- [ ] `packages/web-client/src/components/ui/index.ts`
-- [ ] `packages/web-client/src/components/modals/index.ts`
-- [ ] `packages/web-client/src/components/canvas/index.ts`
-- [ ] `packages/web-client/src/components/metamap/index.ts`
+### 1. Index.ts barrel exports (30 min) ✅
+- [x] `packages/web-client/src/hooks/index.ts`
+- [x] `packages/web-client/src/components/ui/index.ts`
+- [x] `packages/web-client/src/components/modals/index.ts`
+- [x] `packages/web-client/src/components/canvas/index.ts`
+- [x] `packages/web-client/src/components/metamap/index.ts`
 
 **Why:** Enables cleaner refactoring for everything else. Moving files doesn't require updating imports everywhere.
 

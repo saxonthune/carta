@@ -90,6 +90,25 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
   // Listeners for subscriptions
   const listeners = new Set<() => void>();
 
+  // Granular listener sets for focused hooks
+  const nodeListeners = new Set<() => void>();
+  const edgeListeners = new Set<() => void>();
+  const schemaListeners = new Set<() => void>();
+  const portSchemaListeners = new Set<() => void>();
+  const deployableListeners = new Set<() => void>();
+  const schemaGroupListeners = new Set<() => void>();
+  const levelListeners = new Set<() => void>();
+  const metaListeners = new Set<() => void>();
+
+  const notifyNodeListeners = () => nodeListeners.forEach((cb) => cb());
+  const notifyEdgeListeners = () => edgeListeners.forEach((cb) => cb());
+  const notifySchemaListeners = () => schemaListeners.forEach((cb) => cb());
+  const notifyPortSchemaListeners = () => portSchemaListeners.forEach((cb) => cb());
+  const notifyDeployableListeners = () => deployableListeners.forEach((cb) => cb());
+  const notifySchemaGroupListeners = () => schemaGroupListeners.forEach((cb) => cb());
+  const notifyLevelListeners = () => levelListeners.forEach((cb) => cb());
+  const notifyMetaListeners = () => metaListeners.forEach((cb) => cb());
+
   // Track whether observers have been set up (to avoid unobserving before setup)
   let observersSetUp = false;
   let registrySyncSetUp = false;
@@ -99,16 +118,55 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     listeners.forEach((listener) => listener());
   };
 
+  // Observer callbacks for granular notifications
+  const onMetaChange = () => {
+    notifyMetaListeners();
+    notifyLevelListeners();
+    // Active level change affects level-scoped data
+    notifyNodeListeners();
+    notifyEdgeListeners();
+    notifyDeployableListeners();
+    notifyListeners();
+  };
+  const onLevelsChange = () => {
+    notifyLevelListeners();
+    notifyListeners();
+  };
+  const onNodesChange = () => {
+    notifyNodeListeners();
+    notifyListeners();
+  };
+  const onEdgesChange = () => {
+    notifyEdgeListeners();
+    notifyListeners();
+  };
+  const onSchemasChange = () => {
+    notifySchemaListeners();
+    notifyListeners();
+  };
+  const onDeployablesChange = () => {
+    notifyDeployableListeners();
+    notifyListeners();
+  };
+  const onPortSchemasChange = () => {
+    notifyPortSchemaListeners();
+    notifyListeners();
+  };
+  const onSchemaGroupsChange = () => {
+    notifySchemaGroupListeners();
+    notifyListeners();
+  };
+
   // Set up Y.Doc observers
   const setupObservers = () => {
-    ymeta.observeDeep(notifyListeners);
-    ylevels.observeDeep(notifyListeners);
-    ynodes.observeDeep(notifyListeners);
-    yedges.observeDeep(notifyListeners);
-    yschemas.observeDeep(notifyListeners);
-    ydeployables.observeDeep(notifyListeners);
-    yportSchemas.observeDeep(notifyListeners);
-    yschemaGroups.observeDeep(notifyListeners);
+    ymeta.observeDeep(onMetaChange);
+    ylevels.observeDeep(onLevelsChange);
+    ynodes.observeDeep(onNodesChange);
+    yedges.observeDeep(onEdgesChange);
+    yschemas.observeDeep(onSchemasChange);
+    ydeployables.observeDeep(onDeployablesChange);
+    yportSchemas.observeDeep(onPortSchemasChange);
+    yschemaGroups.observeDeep(onSchemaGroupsChange);
     observersSetUp = true;
   };
 
@@ -393,15 +451,26 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
       // Unobserve all (only if they were set up)
       if (observersSetUp) {
-        ymeta.unobserveDeep(notifyListeners);
-        ylevels.unobserveDeep(notifyListeners);
-        ynodes.unobserveDeep(notifyListeners);
-        yedges.unobserveDeep(notifyListeners);
-        yschemas.unobserveDeep(notifyListeners);
-        ydeployables.unobserveDeep(notifyListeners);
-        yportSchemas.unobserveDeep(notifyListeners);
-        yschemaGroups.unobserveDeep(notifyListeners);
+        ymeta.unobserveDeep(onMetaChange);
+        ylevels.unobserveDeep(onLevelsChange);
+        ynodes.unobserveDeep(onNodesChange);
+        yedges.unobserveDeep(onEdgesChange);
+        yschemas.unobserveDeep(onSchemasChange);
+        ydeployables.unobserveDeep(onDeployablesChange);
+        yportSchemas.unobserveDeep(onPortSchemasChange);
+        yschemaGroups.unobserveDeep(onSchemaGroupsChange);
       }
+
+      // Clear all granular listener sets
+      nodeListeners.clear();
+      edgeListeners.clear();
+      schemaListeners.clear();
+      portSchemaListeners.clear();
+      deployableListeners.clear();
+      schemaGroupListeners.clear();
+      levelListeners.clear();
+      metaListeners.clear();
+      listeners.clear();
 
       // Clean up providers
       if (indexeddbProvider) {
@@ -1023,6 +1092,47 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       return () => {
         listeners.delete(listener);
       };
+    },
+
+    // Granular subscriptions for focused hooks
+    subscribeToNodes(listener: () => void): () => void {
+      nodeListeners.add(listener);
+      return () => nodeListeners.delete(listener);
+    },
+
+    subscribeToEdges(listener: () => void): () => void {
+      edgeListeners.add(listener);
+      return () => edgeListeners.delete(listener);
+    },
+
+    subscribeToSchemas(listener: () => void): () => void {
+      schemaListeners.add(listener);
+      return () => schemaListeners.delete(listener);
+    },
+
+    subscribeToPortSchemas(listener: () => void): () => void {
+      portSchemaListeners.add(listener);
+      return () => portSchemaListeners.delete(listener);
+    },
+
+    subscribeToDeployables(listener: () => void): () => void {
+      deployableListeners.add(listener);
+      return () => deployableListeners.delete(listener);
+    },
+
+    subscribeToSchemaGroups(listener: () => void): () => void {
+      schemaGroupListeners.add(listener);
+      return () => schemaGroupListeners.delete(listener);
+    },
+
+    subscribeToLevels(listener: () => void): () => void {
+      levelListeners.add(listener);
+      return () => levelListeners.delete(listener);
+    },
+
+    subscribeToMeta(listener: () => void): () => void {
+      metaListeners.add(listener);
+      return () => metaListeners.delete(listener);
     },
 
     toJSON(): CartaDocumentV4 {

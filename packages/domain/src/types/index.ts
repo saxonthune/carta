@@ -506,6 +506,16 @@ export interface DocumentAdapter {
   // Subscriptions for observing changes
   subscribe(listener: () => void): () => void;
 
+  // Granular subscriptions (optional for interface compatibility)
+  subscribeToNodes?(listener: () => void): () => void;
+  subscribeToEdges?(listener: () => void): () => void;
+  subscribeToSchemas?(listener: () => void): () => void;
+  subscribeToPortSchemas?(listener: () => void): () => void;
+  subscribeToDeployables?(listener: () => void): () => void;
+  subscribeToSchemaGroups?(listener: () => void): () => void;
+  subscribeToLevels?(listener: () => void): () => void;
+  subscribeToMeta?(listener: () => void): () => void;
+
   // Serialization for MCP and export
   toJSON(): CartaDocumentV4;
 
