@@ -4,9 +4,13 @@
   "version": "0.1.0proto4",
   "license": "AGPL-3.0-only",
   "type": "module",
+  "pnpm": {
+    "onlyBuiltDependencies": ["electron"]
+  },
   "scripts": {
     "dev": "pnpm --filter @carta/web-client dev",
-    "dev:server": "pnpm --filter @carta/web-client dev:server",
+    "dev:server": "concurrently -k -n server,client -c yellow,blue \"pnpm run server\" \"wait-on http://localhost:1234 && pnpm --filter @carta/web-client dev:server\"",
+    "dev:memory": "concurrently -k -n server,client -c yellow,blue \"pnpm run server:memory\" \"wait-on http://localhost:1234 && pnpm --filter @carta/web-client dev:server\"",
     "build": "pnpm --filter @carta/web-client build",
     "build:all": "pnpm -r build",
     "preview": "pnpm --filter @carta/web-client preview",
@@ -27,11 +31,13 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "concurrently": "^9.1.2",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
     "typescript": "~5.9.3",
-    "typescript-eslint": "^8.46.4"
+    "typescript-eslint": "^8.46.4",
+    "wait-on": "^8.0.3"
   }
 }

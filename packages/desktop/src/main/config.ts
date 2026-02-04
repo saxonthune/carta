@@ -6,7 +6,7 @@ export const is = {
 
 export function getRendererUrl(): string {
   if (is.dev) {
-    return 'http://localhost:5173';
+    return 'http://localhost:5373';
   }
   // In production, load from bundled files
   return new URL('../renderer/index.html', import.meta.url).toString();
