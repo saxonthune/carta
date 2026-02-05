@@ -18,7 +18,6 @@ import * as Y from 'yjs';
 import { WebSocketServer } from 'ws';
 import {
   migrateToLevels,
-  migrateToVisualGroups,
   extractCartaFile,
   hydrateYDocFromCartaFile,
   validateCartaFile,
@@ -105,8 +104,6 @@ function scanVaultForDocuments(): DocumentSummary[] {
               nodeCount += level.nodes.length;
             }
           }
-        } else if (Array.isArray(data.nodes)) {
-          nodeCount = data.nodes.length;
         }
 
         documents.push({
@@ -230,12 +227,8 @@ function createHelloWorldDocument(): string {
           },
         ],
         deployables: [],
-        visualGroups: [],
       },
     ],
-    nodes: [],
-    edges: [],
-    deployables: [],
     customSchemas: [],
     portSchemas: [],
     schemaGroups: [],
@@ -298,9 +291,6 @@ function getOrCreateDoc(docId: string): DesktopDocState {
 
   // Migrate flat docs to level-based structure
   migrateToLevels(doc);
-
-  // Migrate deployables/schemaGroups to visualGroups
-  migrateToVisualGroups(doc);
 
   // Schedule saves on updates
   doc.on('update', () => {

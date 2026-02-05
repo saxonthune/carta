@@ -5,7 +5,7 @@
  * Web-client re-exports these and adds browser-specific import/export functions.
  */
 
-import type { Deployable, ConstructSchema, PortSchema, SchemaGroup, VisualGroup } from '@carta/domain';
+import type { Deployable, ConstructSchema, PortSchema, SchemaGroup } from '@carta/domain';
 import { CARTA_FILE_VERSION } from './constants.js';
 
 /**
@@ -18,28 +18,20 @@ export interface CartaFileLevel {
   order: number;
   nodes: unknown[];
   edges: unknown[];
-  deployables: Deployable[];      // v5 and earlier
-  visualGroups?: VisualGroup[];    // v6+
+  deployables: Deployable[];
 }
 
 /**
- * Structure of a .carta project file (v6 with visualGroups)
+ * Structure of a .carta project file
  */
 export interface CartaFile {
   version: number;
   title: string;
   description?: string;
-  // V5+: levels contain nodes/edges/deployables/visualGroups
-  levels?: CartaFileLevel[];
-  // V4 and earlier: flat nodes/edges/deployables (for backwards compat on import)
-  nodes: unknown[];
-  edges: unknown[];
-  deployables: Deployable[];
+  levels: CartaFileLevel[];
   customSchemas: ConstructSchema[];
   portSchemas: PortSchema[];
   schemaGroups: SchemaGroup[];
-  // V6+: metamap visual groups (for schema grouping in Metamap view)
-  metamapVisualGroups?: VisualGroup[];
   exportedAt: string;
 }
 
@@ -75,49 +67,31 @@ export function validateCartaFile(data: unknown): CartaFile {
     throw new Error('Invalid file: missing or invalid title');
   }
 
-  // V5 files may have levels[] as the primary data structure
-  // For older files, nodes/edges/deployables are required at the top level
-  const hasLevels = Array.isArray(obj.levels) && obj.levels.length > 0;
-
-  if (!hasLevels) {
-    // Legacy format validation
-    if (!Array.isArray(obj.nodes)) {
-      throw new Error('Invalid file: missing or invalid nodes array');
-    }
-
-    if (!Array.isArray(obj.edges)) {
-      throw new Error('Invalid file: missing or invalid edges array');
-    }
-
-    if (!Array.isArray(obj.deployables)) {
-      throw new Error('Invalid file: missing or invalid deployables array');
-    }
+  // Require levels array
+  if (!Array.isArray(obj.levels) || obj.levels.length === 0) {
+    throw new Error('Invalid file: missing or empty levels array');
   }
 
   if (!Array.isArray(obj.customSchemas)) {
     throw new Error('Invalid file: missing or invalid customSchemas array');
   }
 
-  // Validate levels if present
-  if (hasLevels) {
-    for (const level of obj.levels as unknown[]) {
-      if (!level || typeof level !== 'object') {
-        throw new Error('Invalid file: invalid level structure');
-      }
-      const l = level as Record<string, unknown>;
-      if (typeof l.id !== 'string' || typeof l.name !== 'string' || typeof l.order !== 'number') {
-        throw new Error('Invalid file: level missing required fields (id, name, order)');
-      }
-      if (!Array.isArray(l.nodes) || !Array.isArray(l.edges) || !Array.isArray(l.deployables)) {
-        throw new Error('Invalid file: level missing required arrays (nodes, edges, deployables)');
-      }
+  // Validate levels
+  for (const level of obj.levels as unknown[]) {
+    if (!level || typeof level !== 'object') {
+      throw new Error('Invalid file: invalid level structure');
+    }
+    const l = level as Record<string, unknown>;
+    if (typeof l.id !== 'string' || typeof l.name !== 'string' || typeof l.order !== 'number') {
+      throw new Error('Invalid file: level missing required fields (id, name, order)');
+    }
+    if (!Array.isArray(l.nodes) || !Array.isArray(l.edges) || !Array.isArray(l.deployables)) {
+      throw new Error('Invalid file: level missing required arrays (nodes, edges, deployables)');
     }
   }
 
-  // Validate nodes (either from levels or flat)
-  const nodesToValidate = hasLevels
-    ? (obj.levels as Array<Record<string, unknown>>).flatMap(l => l.nodes as unknown[])
-    : obj.nodes as unknown[];
+  // Validate nodes across all levels
+  const nodesToValidate = (obj.levels as Array<Record<string, unknown>>).flatMap(l => l.nodes as unknown[]);
 
   for (const node of nodesToValidate) {
     if (!node || typeof node !== 'object') {
@@ -147,10 +121,8 @@ export function validateCartaFile(data: unknown): CartaFile {
     }
   }
 
-  // Validate edges (either from levels or flat)
-  const edgesToValidate = hasLevels
-    ? (obj.levels as Array<Record<string, unknown>>).flatMap(l => l.edges as unknown[])
-    : obj.edges as unknown[];
+  // Validate edges across all levels
+  const edgesToValidate = (obj.levels as Array<Record<string, unknown>>).flatMap(l => l.edges as unknown[]);
 
   for (const edge of edgesToValidate) {
     if (!edge || typeof edge !== 'object') {
@@ -162,10 +134,8 @@ export function validateCartaFile(data: unknown): CartaFile {
     }
   }
 
-  // Validate deployables (either from levels or flat)
-  const deployablesToValidate = hasLevels
-    ? (obj.levels as Array<Record<string, unknown>>).flatMap(l => l.deployables as unknown[])
-    : obj.deployables as unknown[];
+  // Validate deployables across all levels
+  const deployablesToValidate = (obj.levels as Array<Record<string, unknown>>).flatMap(l => l.deployables as unknown[]);
 
   for (const deployable of deployablesToValidate) {
     if (!deployable || typeof deployable !== 'object') {
@@ -232,7 +202,7 @@ export function validateCartaFile(data: unknown): CartaFile {
 
   // Validate schemaGroups (required for v5 and earlier, optional for v6+)
   if (!Array.isArray(obj.schemaGroups)) {
-    // Allow missing schemaGroups for v6+ files that use metamapVisualGroups instead
+    // Allow missing schemaGroups for newer files
     if (obj.version < 6) {
       throw new Error('Invalid file: missing or invalid schemaGroups array');
     }
@@ -251,79 +221,19 @@ export function validateCartaFile(data: unknown): CartaFile {
     }
   }
 
-  // Validate visualGroups in levels if present (v6+)
-  if (hasLevels) {
-    for (const level of obj.levels as unknown[]) {
-      const l = level as Record<string, unknown>;
-      if (Array.isArray(l.visualGroups)) {
-        for (const vg of l.visualGroups as unknown[]) {
-          validateVisualGroup(vg);
-        }
-      }
-    }
-  }
-
-  // Validate metamapVisualGroups if present (v6+)
-  if (Array.isArray(obj.metamapVisualGroups)) {
-    for (const vg of obj.metamapVisualGroups as unknown[]) {
-      validateVisualGroup(vg);
-    }
-  }
-
   // Repair orphaned connections before returning
-  const repairedData = repairOrphanedConnections(obj, hasLevels);
+  const repairedData = repairOrphanedConnections(obj);
 
   return {
     version: repairedData.version as number,
     title: repairedData.title as string,
     description: (repairedData.description as string | undefined),
-    levels: hasLevels ? (repairedData.levels as CartaFileLevel[]) : undefined,
-    nodes: (repairedData.nodes as unknown[]) || [],
-    edges: (repairedData.edges as unknown[]) || [],
-    deployables: (repairedData.deployables as Deployable[]) || [],
+    levels: repairedData.levels as CartaFileLevel[],
     customSchemas: repairedData.customSchemas as ConstructSchema[],
     portSchemas: repairedData.portSchemas as PortSchema[],
     schemaGroups: repairedData.schemaGroups as SchemaGroup[],
-    metamapVisualGroups: (repairedData.metamapVisualGroups as VisualGroup[]) || undefined,
     exportedAt: (repairedData.exportedAt as string) || new Date().toISOString(),
   };
-}
-
-/**
- * Validate a VisualGroup structure
- */
-function validateVisualGroup(vg: unknown): void {
-  if (!vg || typeof vg !== 'object') {
-    throw new Error('Invalid file: invalid visualGroup structure');
-  }
-  const g = vg as Record<string, unknown>;
-  if (typeof g.id !== 'string' || typeof g.name !== 'string') {
-    throw new Error(`Invalid file: visualGroup missing required fields (id, name)`);
-  }
-  if (typeof g.collapsed !== 'boolean') {
-    throw new Error(`Invalid file: visualGroup "${g.id}" missing required field (collapsed)`);
-  }
-  if (g.parentGroupId !== undefined && typeof g.parentGroupId !== 'string') {
-    throw new Error(`Invalid file: visualGroup "${g.id}" has invalid parentGroupId (must be string)`);
-  }
-  if (g.position !== undefined) {
-    if (typeof g.position !== 'object' || g.position === null) {
-      throw new Error(`Invalid file: visualGroup "${g.id}" has invalid position`);
-    }
-    const pos = g.position as Record<string, unknown>;
-    if (typeof pos.x !== 'number' || typeof pos.y !== 'number') {
-      throw new Error(`Invalid file: visualGroup "${g.id}" position must have numeric x and y`);
-    }
-  }
-  if (g.size !== undefined) {
-    if (typeof g.size !== 'object' || g.size === null) {
-      throw new Error(`Invalid file: visualGroup "${g.id}" has invalid size`);
-    }
-    const size = g.size as Record<string, unknown>;
-    if (typeof size.width !== 'number' || typeof size.height !== 'number') {
-      throw new Error(`Invalid file: visualGroup "${g.id}" size must have numeric width and height`);
-    }
-  }
 }
 
 /**
@@ -332,14 +242,11 @@ function validateVisualGroup(vg: unknown): void {
  */
 function repairOrphanedConnections(
   obj: Record<string, unknown>,
-  hasLevels: boolean
 ): Record<string, unknown> {
   // Build set of all valid semantic IDs
   const validSemanticIds = new Set<string>();
 
-  const nodesToCheck = hasLevels
-    ? (obj.levels as Array<Record<string, unknown>>).flatMap(l => l.nodes as unknown[])
-    : obj.nodes as unknown[];
+  const nodesToCheck = (obj.levels as Array<Record<string, unknown>>).flatMap(l => l.nodes as unknown[]);
 
   for (const node of nodesToCheck) {
     if (!node || typeof node !== 'object') continue;
@@ -352,54 +259,13 @@ function repairOrphanedConnections(
     }
   }
 
-  // Repair connections in all nodes
-  if (hasLevels && Array.isArray(obj.levels)) {
-    const repairedLevels = obj.levels.map((level: unknown) => {
-      if (!level || typeof level !== 'object') return level;
-      const l = level as Record<string, unknown>;
-      if (!Array.isArray(l.nodes)) return level;
+  // Repair connections in all levels
+  const repairedLevels = (obj.levels as unknown[]).map((level: unknown) => {
+    if (!level || typeof level !== 'object') return level;
+    const l = level as Record<string, unknown>;
+    if (!Array.isArray(l.nodes)) return level;
 
-      const repairedNodes = l.nodes.map((node: unknown) => {
-        if (!node || typeof node !== 'object') return node;
-        const n = node as Record<string, unknown>;
-        if (!n.data || typeof n.data !== 'object') return node;
-
-        const nodeData = n.data as Record<string, unknown>;
-        if (!Array.isArray(nodeData.connections)) return node;
-
-        const validConnections = nodeData.connections.filter((conn: unknown) => {
-          if (!conn || typeof conn !== 'object') return false;
-          const c = conn as Record<string, unknown>;
-          return validSemanticIds.has(c.targetSemanticId as string);
-        });
-
-        // Only modify if connections changed
-        if (validConnections.length === nodeData.connections.length) return node;
-
-        return {
-          ...n,
-          data: {
-            ...nodeData,
-            connections: validConnections,
-          },
-        };
-      });
-
-      return {
-        ...l,
-        nodes: repairedNodes,
-      };
-    });
-
-    return {
-      ...obj,
-      levels: repairedLevels,
-    };
-  } else {
-    // Flat structure
-    if (!Array.isArray(obj.nodes)) return obj;
-
-    const repairedNodes = obj.nodes.map((node: unknown) => {
+    const repairedNodes = l.nodes.map((node: unknown) => {
       if (!node || typeof node !== 'object') return node;
       const n = node as Record<string, unknown>;
       if (!n.data || typeof n.data !== 'object') return node;
@@ -426,8 +292,13 @@ function repairOrphanedConnections(
     });
 
     return {
-      ...obj,
+      ...l,
       nodes: repairedNodes,
     };
-  }
+  });
+
+  return {
+    ...obj,
+    levels: repairedLevels,
+  };
 }

@@ -105,16 +105,10 @@ export function analyzeImport(
   currentDeployables: Deployable[] = [],
   currentSchemas: ConstructSchema[] = []
 ): ImportAnalysis {
-  // If file has levels, flatten all nodes/edges/deployables for analysis
-  const fileNodes = file.levels
-    ? file.levels.flatMap(l => l.nodes) as Node[]
-    : file.nodes as Node[];
-  const fileEdges = file.levels
-    ? file.levels.flatMap(l => l.edges)
-    : file.edges;
-  const fileDeployables = file.levels
-    ? file.levels.flatMap(l => l.deployables)
-    : file.deployables;
+  // Flatten all nodes/edges/deployables across levels for analysis
+  const fileNodes = file.levels.flatMap(l => l.nodes) as Node[];
+  const fileEdges = file.levels.flatMap(l => l.edges);
+  const fileDeployables = file.levels.flatMap(l => l.deployables);
 
   // Analyze schemas
   const analyzedSchemas: AnalyzedSchema[] = file.customSchemas.map(schema => {

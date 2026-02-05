@@ -281,6 +281,7 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 | `packages/web-client/src/components/canvas/CanvasContainer.tsx` | Canvas container: view switching (Map/Metamap), ViewToggle, LevelSwitcher overlays, Footer |
 | `packages/web-client/src/components/canvas/VirtualParentNode.tsx` | Visual grouping container node for child constructs |
 | `packages/web-client/src/components/canvas/VisualGroupNode.tsx` | Visual group node with collapsed chip / expanded container states |
+| `packages/web-client/src/components/canvas/ConstructNode/` | Directory: ConstructNodeDefault.tsx (normal LOD), ConstructNodePill.tsx (pill LOD), ConstructNodeCard.tsx (card variant), shared.ts (utilities), index.tsx (wrapper) |
 | `packages/web-client/src/hooks/useVisualGroups.ts` | Hook processing visual groups: hides children of collapsed groups, builds edge remap for collapsed routing (uses native React Flow parentId) |
 | `packages/web-client/src/components/Header/Header.tsx` | Header with "Carta" branding, title, document browser, import/export, compile, theme, settings, Share (server mode) |
 | `packages/web-client/src/components/Header/SettingsMenu.tsx` | Settings dropdown menu: load example, restore defaults, clear workspace, help |
@@ -314,7 +315,7 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 | `packages/web-client/src/components/canvas/lod/useLodBand.ts` | Hook that returns discrete LOD band based on current zoom level |
 | `packages/web-client/src/components/ui/ContextMenu.tsx` | Shared context menu for canvas right-click; view-specific options (Map shows node ops, Metamap shows schema ops) |
 | `packages/web-client/src/utils/index.ts` | Barrel export: CartaFile types, import/export, examples, metamapLayout, preferences, randomNames, starterContent, string utilities |
-| `packages/web-client/src/utils/metamapLayout.ts` | Extracted metamap auto-layout algorithm (ForceGraph2D-based, from useMetamapLayout hook) |
+| `packages/web-client/src/utils/metamapLayout.ts` | Pure metamap layout computation: dagre-based schema positioning, group bounds, collapsed group handling |
 | `packages/web-client/src/utils/examples.ts` | Utility to load bundled example .carta files |
 | `packages/web-client/src/main.tsx` | Entry point: resolves documentId (migration, last-opened, or auto-create), updates URL via history.replaceState, renders VaultProvider and DocumentProvider |
 | `packages/web-client/src/utils/starterContent.ts` | Seeds starter graph (3 Note nodes, 2 edges) on first document initialization |

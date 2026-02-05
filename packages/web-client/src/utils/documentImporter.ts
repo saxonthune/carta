@@ -12,10 +12,6 @@ export interface ImportConfig {
 /**
  * Pure function to import a CartaFile into a DocumentAdapter.
  * No React hooks - just direct adapter manipulation.
- *
- * Handles both:
- * - V5 files with levels[] (imports each level)
- * - Legacy files with flat nodes/edges/deployables (imports into single "Main" level)
  */
 export function importDocument(
   adapter: DocumentAdapter,
@@ -68,17 +64,9 @@ export function importDocument(
     adapter.setSchemas(schemasToImport);
   }
 
-  // Check if file has levels (V5 format)
-  if (data.levels && data.levels.length > 0) {
-    importWithLevels(adapter, data, config, schemasToImport);
-  } else {
-    importLegacy(adapter, data, config, schemasToImport);
-  }
+  importWithLevels(adapter, data, config, schemasToImport);
 }
 
-/**
- * Import a V5 file with levels
- */
 function importWithLevels(
   adapter: DocumentAdapter,
   data: CartaFile,
@@ -88,8 +76,8 @@ function importWithLevels(
   const existingLevels = adapter.getLevels();
   const firstLevelId = existingLevels[0]?.id;
 
-  for (let i = 0; i < data.levels!.length; i++) {
-    const fileLevel = data.levels![i];
+  for (let i = 0; i < data.levels.length; i++) {
+    const fileLevel = data.levels[i];
     let levelId: string;
 
     if (i === 0 && firstLevelId) {
@@ -123,33 +111,6 @@ function importWithLevels(
 }
 
 /**
- * Import a legacy file (flat nodes/edges/deployables) into a single level
- */
-function importLegacy(
-  adapter: DocumentAdapter,
-  data: CartaFile,
-  config: ImportConfig,
-  schemasToImport: ConstructSchema[]
-): void {
-  const existingLevels = adapter.getLevels();
-  if (existingLevels.length > 0) {
-    adapter.setActiveLevel(existingLevels[0].id);
-    adapter.updateLevel(existingLevels[0].id, { name: 'Main' });
-  }
-
-  // Import selected deployables
-  if (config.deployables.size > 0 && data.deployables.length > 0) {
-    const deployablesToImport = data.deployables.filter(d => config.deployables.has(d.id));
-    if (deployablesToImport.length > 0) {
-      adapter.setDeployables(deployablesToImport);
-    }
-  }
-
-  // Import nodes and edges
-  importNodesAndEdges(adapter, data.nodes as Node[], data.edges as Edge[], config, schemasToImport);
-}
-
-/**
  * Import nodes and edges into the active level
  */
 function importNodesAndEdges(
@@ -169,15 +130,24 @@ function importNodesAndEdges(
 
   if (nodesToImport.length === 0) return;
 
+  // Sort so parent nodes (visual groups) come before children for idMap lookups
+  const sorted = [...nodesToImport].sort((a, b) => {
+    const aIsParent = !a.parentId ? 0 : 1;
+    const bIsParent = !b.parentId ? 0 : 1;
+    return aIsParent - bIsParent;
+  });
+
   // Build ID mapping for new node IDs
   const idMap: Record<string, string> = {};
-  const newNodes: Node[] = nodesToImport.map((node) => {
+  const newNodes: Node[] = sorted.map((node) => {
     const newId = crypto.randomUUID();
     idMap[node.id] = newId;
+    const isChild = !!node.parentId;
     return {
       ...node,
       id: newId,
-      position: {
+      parentId: node.parentId ? (idMap[node.parentId] || node.parentId) : undefined,
+      position: isChild ? node.position : {
         x: (node.position?.x || 0) + 50,
         y: (node.position?.y || 0) + 50,
       },
