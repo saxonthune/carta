@@ -50,6 +50,7 @@ interface ContextMenuProps {
   activeLevel?: string;
   selectedNodeIds?: string[];
   onCopyNodesToLevel?: (nodeIds: string[], targetLevelId: string) => void;
+  onCopyNodesToNewLevel?: (nodeIds: string[]) => void;
   // Organizer props
   onOrganizeSelected?: () => void;
   onRemoveFromOrganizer?: (nodeId: string) => void;
@@ -132,6 +133,7 @@ export default function ContextMenu({
   activeLevel,
   selectedNodeIds,
   onCopyNodesToLevel,
+  onCopyNodesToNewLevel,
   onOrganizeSelected,
   onRemoveFromOrganizer,
   nodeInOrganizer,
@@ -150,7 +152,7 @@ export default function ContextMenu({
     }
     return [];
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [type, nodeId, edgeId, selectedCount, relatedConstructs, constructOptions, schemaGroups, canPaste, levels, activeLevel, selectedNodeIds, constructType, onEditSchema, onOrganizeSelected, onRemoveFromOrganizer, nodeInOrganizer]);
+  }, [type, nodeId, edgeId, selectedCount, relatedConstructs, constructOptions, schemaGroups, canPaste, levels, activeLevel, selectedNodeIds, constructType, onEditSchema, onCopyNodesToNewLevel, onOrganizeSelected, onRemoveFromOrganizer, nodeInOrganizer]);
 
   function buildPaneMenuItems(): MenuItem[] {
     const result: MenuItem[] = [];
@@ -248,17 +250,28 @@ export default function ContextMenu({
       onClick: () => onCopyNodes?.(),
     });
 
-    // "Copy to Level" submenu - only shown when multiple levels exist
-    if (onCopyNodesToLevel && levels && levels.length > 1 && activeLevel && selectedNodeIds && selectedNodeIds.length > 0) {
+    // "Copy to Level" submenu - shown when nodes are selected (always has "+ New Level")
+    if (levels && activeLevel && selectedNodeIds && selectedNodeIds.length > 0 && (onCopyNodesToLevel || onCopyNodesToNewLevel)) {
       const otherLevels = levels.filter(l => l.id !== activeLevel);
+      const children: MenuItem[] = otherLevels.map(level => ({
+        key: `copy-to-level-${level.id}`,
+        label: level.name,
+        onClick: () => onCopyNodesToLevel?.(selectedNodeIds, level.id),
+      }));
+      if (onCopyNodesToNewLevel) {
+        if (children.length > 0) {
+          children[children.length - 1].dividerAfter = true;
+        }
+        children.push({
+          key: 'copy-to-new-level',
+          label: '+ New Level',
+          onClick: () => onCopyNodesToNewLevel(selectedNodeIds),
+        });
+      }
       result.push({
         key: 'copy-to-level',
         label: 'Copy to Level',
-        children: otherLevels.map(level => ({
-          key: `copy-to-level-${level.id}`,
-          label: level.name,
-          onClick: () => onCopyNodesToLevel(selectedNodeIds, level.id),
-        })),
+        children,
       });
     }
 

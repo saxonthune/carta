@@ -85,7 +85,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
   const { nodes, setNodes } = useNodes();
   const { edges, setEdges } = useEdges();
   const { schemas, getSchema } = useSchemas();
-  const { levels, activeLevel, copyNodesToLevel } = useLevels();
+  const { levels, activeLevel, setActiveLevel, createLevel, copyNodesToLevel } = useLevels();
   const { adapter } = useDocumentContext();
   const reactFlow = useReactFlow();
 
@@ -288,6 +288,16 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
       }
     },
     [edges, setEdges, handleEdgesDelete]
+  );
+
+  // Copy selected nodes to a newly created level
+  const handleCopyNodesToNewLevel = useCallback(
+    (nodeIds: string[]) => {
+      const newLevel = createLevel(`Level ${levels.length + 1}`);
+      copyNodesToLevel(nodeIds, newLevel.id);
+      setActiveLevel(newLevel.id);
+    },
+    [createLevel, copyNodesToLevel, setActiveLevel, levels.length]
   );
 
   // Handle adding construct from pane context menu
@@ -776,6 +786,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
           activeLevel={activeLevel}
           selectedNodeIds={selectedNodeIds}
           onCopyNodesToLevel={copyNodesToLevel}
+          onCopyNodesToNewLevel={handleCopyNodesToNewLevel}
           onOrganizeSelected={createOrganizer}
           onRemoveFromOrganizer={removeFromOrganizer}
           nodeInOrganizer={(() => {

@@ -63,6 +63,9 @@ export interface ImportAnalysis {
   schemaGroups: { items: SchemaGroup[]; count: number };
 
   hasConflicts: boolean;
+
+  // Levels info for target picker
+  fileLevelCount: number;
 }
 
 /**
@@ -71,6 +74,7 @@ export interface ImportAnalysis {
 export interface ImportOptions {
   schemas: Set<string>; // Set of schema types to import
   nodes: Set<string>;   // Set of node IDs to import
+  targetLevel: 'replace' | 'new' | string; // 'replace' = full doc replace, 'new' = create new level, or existing level ID
 }
 
 /**
@@ -80,6 +84,7 @@ export const defaultImportOptions = (analysis: ImportAnalysis): ImportOptions =>
   return {
     schemas: new Set(analysis.schemas.items.map(s => s.item.type)),
     nodes: new Set(analysis.nodes.items.map(n => n.item.id)),
+    targetLevel: 'replace',
   };
 };
 
@@ -167,5 +172,6 @@ export function analyzeImport(
       count: file.schemaGroups?.length || 0,
     },
     hasConflicts,
+    fileLevelCount: file.levels.length,
   };
 }

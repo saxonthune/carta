@@ -6,6 +6,7 @@ import type { DocumentAdapter, ConstructNodeData, ConstructSchema } from '@carta
 export interface ImportConfig {
   schemas: Set<string>;
   nodes: Set<string>;
+  targetLevel: 'replace' | 'new' | string;
 }
 
 /**
@@ -13,6 +14,22 @@ export interface ImportConfig {
  * No React hooks - just direct adapter manipulation.
  */
 export function importDocument(
+  adapter: DocumentAdapter,
+  data: CartaFile,
+  config: ImportConfig,
+  schemasToImport: ConstructSchema[]
+): void {
+  if (config.targetLevel === 'replace') {
+    importReplaceDocument(adapter, data, config, schemasToImport);
+  } else {
+    importIntoLevel(adapter, data, config, schemasToImport);
+  }
+}
+
+/**
+ * Full document replacement (original behavior)
+ */
+function importReplaceDocument(
   adapter: DocumentAdapter,
   data: CartaFile,
   config: ImportConfig,
@@ -46,6 +63,50 @@ export function importDocument(
     adapter.setDescription(data.description);
   }
 
+  mergeSchemas(adapter, data, schemasToImport);
+  importWithLevels(adapter, data, config, schemasToImport);
+}
+
+/**
+ * Import file content into a specific level (existing or new), preserving existing content
+ */
+function importIntoLevel(
+  adapter: DocumentAdapter,
+  data: CartaFile,
+  config: ImportConfig,
+  schemasToImport: ConstructSchema[]
+): void {
+  // Merge schemas/port schemas/schema groups additively
+  mergeSchemas(adapter, data, schemasToImport);
+
+  // Determine target level ID
+  let targetLevelId: string;
+  if (config.targetLevel === 'new') {
+    const newLevel = adapter.createLevel(`Imported: ${data.title || 'Untitled'}`);
+    targetLevelId = newLevel.id;
+  } else {
+    targetLevelId = config.targetLevel;
+  }
+
+  // Switch to target level
+  adapter.setActiveLevel(targetLevelId);
+
+  // Flatten all file levels' nodes and edges
+  const allNodes = data.levels.flatMap(l => l.nodes) as Node[];
+  const allEdges = data.levels.flatMap(l => l.edges) as Edge[];
+
+  // Import nodes and edges additively (importNodesAndEdges creates new IDs, so no conflicts)
+  importNodesAndEdgesAdditive(adapter, allNodes, allEdges, config, schemasToImport);
+}
+
+/**
+ * Merge schemas, port schemas, and schema groups from file into existing document
+ */
+function mergeSchemas(
+  adapter: DocumentAdapter,
+  data: CartaFile,
+  schemasToImport: ConstructSchema[]
+): void {
   // Import port schemas first (needed for edge validation)
   if (data.portSchemas && data.portSchemas.length > 0) {
     adapter.setPortSchemas(data.portSchemas);
@@ -61,8 +122,6 @@ export function importDocument(
   if (schemasToImport.length > 0) {
     adapter.setSchemas(schemasToImport);
   }
-
-  importWithLevels(adapter, data, config, schemasToImport);
 }
 
 function importWithLevels(
@@ -200,4 +259,106 @@ function importNodesAndEdges(
 
   adapter.setNodes(newNodes);
   adapter.setEdges(newEdges);
+}
+
+/**
+ * Import nodes and edges additively into the active level (preserves existing content)
+ */
+function importNodesAndEdgesAdditive(
+  adapter: DocumentAdapter,
+  nodes: Node[],
+  edges: Edge[],
+  config: ImportConfig,
+  schemasToImport: ConstructSchema[]
+): void {
+  if (config.nodes.size === 0 || nodes.length === 0) return;
+
+  const nodesToImport = nodes.filter(n => config.nodes.has(n.id));
+  const importedNodeIds = new Set(nodesToImport.map(n => n.id));
+  const edgesToImport = edges.filter(
+    e => importedNodeIds.has(e.source) && importedNodeIds.has(e.target)
+  );
+
+  if (nodesToImport.length === 0) return;
+
+  // Sort so parent nodes come before children for idMap lookups
+  const sorted = [...nodesToImport].sort((a, b) => {
+    const aIsParent = !a.parentId ? 0 : 1;
+    const bIsParent = !b.parentId ? 0 : 1;
+    return aIsParent - bIsParent;
+  });
+
+  // Build ID mapping for new node IDs
+  const idMap: Record<string, string> = {};
+  const newNodes: Node[] = sorted.map((node) => {
+    const newId = crypto.randomUUID();
+    idMap[node.id] = newId;
+    const isChild = !!node.parentId;
+    return {
+      ...node,
+      id: newId,
+      parentId: node.parentId ? (idMap[node.parentId] || node.parentId) : undefined,
+      position: isChild ? node.position : {
+        x: (node.position?.x || 0) + 50,
+        y: (node.position?.y || 0) + 50,
+      },
+    };
+  });
+
+  // Build lookups for edge normalization
+  const nodesByOldId = new Map(nodesToImport.map(n => [n.id, n]));
+  const schemaLookup = new Map(schemasToImport.map(s => [s.type, s]));
+
+  // Remap edges and normalize direction
+  const newEdges: Edge[] = edgesToImport.map((edge) => {
+    let normalizedEdge: Edge = {
+      ...edge,
+      id: `edge-${Math.random()}`,
+      source: idMap[edge.source] || edge.source,
+      target: idMap[edge.target] || edge.target,
+    };
+
+    const sourceNode = nodesByOldId.get(edge.source);
+    const targetNode = nodesByOldId.get(edge.target);
+
+    if (sourceNode?.type === 'construct' && targetNode?.type === 'construct' &&
+        edge.sourceHandle && edge.targetHandle) {
+      const sourceData = sourceNode.data as ConstructNodeData;
+      const targetData = targetNode.data as ConstructNodeData;
+      const sourceSchema = schemaLookup.get(sourceData.constructType);
+      const targetSchema = schemaLookup.get(targetData.constructType);
+
+      if (sourceSchema && targetSchema) {
+        const sourcePorts = getPortsForSchema(sourceSchema.ports);
+        const targetPorts = getPortsForSchema(targetSchema.ports);
+        const sourcePort = sourcePorts.find(p => p.id === edge.sourceHandle);
+        const targetPort = targetPorts.find(p => p.id === edge.targetHandle);
+
+        if (sourcePort && targetPort) {
+          const sourceHandleType = getHandleType(sourcePort.portType);
+          const targetHandleType = getHandleType(targetPort.portType);
+          const needsFlip = sourceHandleType === 'target' && targetHandleType === 'source';
+
+          if (needsFlip) {
+            normalizedEdge = {
+              ...edge,
+              id: `edge-${Math.random()}`,
+              source: idMap[edge.target] || edge.target,
+              sourceHandle: edge.targetHandle,
+              target: idMap[edge.source] || edge.source,
+              targetHandle: edge.sourceHandle,
+            };
+          }
+        }
+      }
+    }
+
+    return normalizedEdge;
+  });
+
+  // Additive: merge with existing nodes and edges
+  const existingNodes = adapter.getNodes() as Node[];
+  const existingEdges = adapter.getEdges() as Edge[];
+  adapter.setNodes([...existingNodes, ...newNodes]);
+  adapter.setEdges([...existingEdges, ...newEdges]);
 }
