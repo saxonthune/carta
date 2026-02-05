@@ -125,7 +125,7 @@ Canvas components and LOD:
 - **Components**: `Map`, `CanvasContainer`, `ConstructNode`, `VirtualParentNode`, `VisualGroupNode`, `DynamicAnchorEdge`, `PortDrawer`, `IndexBasedDropZones`, `NodeControls`, `AddConstructMenu`
 - **LOD**: `useLodBand`, `DEFAULT_LOD_POLICY`, `getLodConfig`, types
 
-**Note:** `ConstructNode` and `Header` are directories with modular implementations. ConstructNode has: `index.tsx` (wrapper), `ConstructNodeDefault.tsx` (normal LOD), `ConstructNodePill.tsx` (pill LOD), `ConstructNodeCard.tsx` (card variant), `shared.ts` (utilities).
+**Note:** `ConstructNode` and `Header` are directories with modular implementations. ConstructNode has: `index.tsx` (dispatcher), `ConstructNodePill.tsx` (pill LOD, shared), `ConstructNodeDefault.tsx` (includes 'default' and 'card' renderStyles), `ConstructNodeSimple.tsx` (simple renderStyle), `shared.ts` (utilities). Header has: `Header.tsx`, `ThemeMenu.tsx`, `SettingsMenu.tsx`, `ShareMenu.tsx`, `useClickOutside.ts`.
 
 ### `components/metamap/index.ts`
 Schema view:
@@ -141,6 +141,7 @@ Organized by type:
 - **Navigation**: `TabBar`, `SegmentedControl`, `Breadcrumb`, `SearchBar`
 - **Menus**: `ContextMenu`, `ContextMenuPrimitive`
 - **Domain components**: `DocumentRow`, `FolderRow`, `GroupedSchemaList`, `SchemaGroupSelector`, `CollapsibleSelector`, `ChoiceCard`, `DraggableWindow`
+- **Debug utilities**: `ZoomDebug`
 - **Icons**: All icon exports
 
 ## Progressive Disclosure for Features
