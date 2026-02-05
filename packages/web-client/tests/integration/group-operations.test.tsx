@@ -119,8 +119,8 @@ describe('useGroupOperations Hook', () => {
 
       expect(n1?.parentId).toBe(groupId);
       expect(n2?.parentId).toBe(groupId);
-      expect(n1?.extent).toBe('parent');
-      expect(n2?.extent).toBe('parent');
+
+
     });
 
     it('returns null when fewer than 2 nodes selected', async () => {
@@ -194,7 +194,7 @@ describe('useGroupOperations Hook', () => {
       // Position should be relative: (200-100, 200-100) = (100, 100)
       expect(node?.position.x).toBe(100);
       expect(node?.position.y).toBe(100);
-      expect(node?.extent).toBe('parent');
+
     });
   });
 
@@ -223,7 +223,7 @@ describe('useGroupOperations Hook', () => {
           {
             ...createTestNode({ id: 'n1', type: 'Task', semanticId: 'task-1' }),
             parentId: groupId,
-            extent: 'parent',
+
             position: { x: 50, y: 50 }, // Relative position
           },
         ]);
@@ -404,7 +404,7 @@ describe('useGroupOperations Hook', () => {
           {
             ...createTestNode({ id: 'n1', type: 'Task', semanticId: 'task-1' }),
             parentId: groupId,
-            extent: 'parent',
+
             position: { x: 20, y: 60 },
           },
         ]);
@@ -454,13 +454,13 @@ describe('useGroupOperations Hook', () => {
           {
             ...createTestNode({ id: 'n1', type: 'Task', semanticId: 'task-1' }),
             parentId: groupId,
-            extent: 'parent',
+
             position: { x: 20, y: 60 },
           },
           {
             ...createTestNode({ id: 'n2', type: 'Task', semanticId: 'task-2' }),
             parentId: groupId,
-            extent: 'parent',
+
             position: { x: 20, y: 160 },
           },
         ]);

@@ -110,7 +110,7 @@ Implemented packages: `@carta/types`, `@carta/domain`, `@carta/document`, `@cart
 - `@carta/domain/src/index.ts` — Exports types, ports, schemas, utils, guides
 - `@carta/document/src/index.ts` — Exports Yjs helpers, file format, migrations
 - `@carta/compiler/src/index.ts` — Exports CompilerEngine and formatters
-- Web client feature directories (hooks, components/canvas, components/metamap, components/modals, components/ui) each have barrel exports
+- Web client feature directories (contexts, hooks, components/canvas, components/metamap, components/modals, components/ui) each have barrel exports
 
 - `@carta/core` (`packages/core/`) - **STALE**: divergent types the server still depends on; needs reconciliation with `@carta/domain`
 - `packages/app/` - **Dead code**: no TS files, should be deleted
@@ -264,7 +264,7 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 | `packages/web-client/src/hooks/useDocumentMeta.ts` | Focused hook for document metadata: title, description, setTitle, setDescription |
 | `packages/web-client/src/hooks/useGraphOperations.ts` | Node CRUD: addConstruct, deleteNode, renameNode, createVirtualParent, etc. |
 | `packages/web-client/src/hooks/useConnections.ts` | Connection logic: onConnect, handleEdgesDelete, validation |
-| `packages/web-client/src/hooks/useGroupOperations.ts` | Visual group operations: createGroup, attachToGroup, detachFromGroup, toggleGroupCollapse, renameGroup, updateGroupColor, resizeGroupToFitChildren, deleteGroup |
+| `packages/web-client/src/hooks/useGroupOperations.ts` | Visual group operations: createGroup, attachToGroup, detachFromGroup, toggleGroupCollapse, renameGroup, updateGroupColor, fitGroupToChildren, deleteGroup |
 | `packages/web-client/src/hooks/useUndoRedo.ts` | Y.UndoManager wrapper for undo/redo (local, not shared) |
 | `packages/web-client/src/hooks/useClipboard.ts` | Copy/paste (local state, not collaborative) |
 | `packages/web-client/src/hooks/useKeyboardShortcuts.ts` | Keyboard shortcut handling |
@@ -318,6 +318,9 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 | `packages/web-client/tests/e2e/helpers/CartaPage.ts` | Playwright page object with goto, gotoFresh, node/port helpers |
 | `packages/web-client/tests/integration/port-validation.test.tsx` | Integration tests for port polarity validation rules |
 | `packages/web-client/tests/integration/visual-groups.test.tsx` | Integration tests for visual group CRUD, node association, level isolation |
+| `packages/web-client/tests/integration/group-geometry.test.ts` | Integration tests for pure geometry functions: computeGroupBounds, toRelativePosition, toAbsolutePosition, computeGroupFit |
+| `packages/web-client/tests/integration/group-operations.test.tsx` | Integration tests for useGroupOperations hook: createGroup, attachToGroup, fitGroupToChildren, collapse/expand |
+| `packages/web-client/tests/integration/metamap-layout.test.ts` | Integration tests for pure metamap layout computation: dagre layout, group bounds, collapsed groups |
 | `packages/web-client/tests/integration/folder-navigation.test.tsx` | Integration tests for virtual folder derivation logic |
 | `packages/web-client/tests/integration/adapter-lifecycle.test.tsx` | Integration tests for adapter disposal patterns, StrictMode handling, async cleanup |
 | `packages/web-client/tests/setup/testProviders.tsx` | Test providers with skipPersistence and skipStarterContent |

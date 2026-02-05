@@ -113,6 +113,11 @@ App.tsx (layout orchestration)
 
 Feature directories expose public APIs through `index.ts` barrel exports:
 
+### `contexts/index.ts`
+Organized by purpose:
+- **Document context**: `DocumentProvider`, `useDocumentContext`, types
+- **Node actions context**: `NodeActionsProvider`, `useNodeActions`, types
+
 ### `hooks/index.ts`
 Organized by purpose:
 - **Document state**: `useNodes`, `useEdges`, `useSchemas`, `usePortSchemas`, `useDeployables`, `useSchemaGroups`, `useLevels`, `useDocumentMeta`
@@ -142,6 +147,17 @@ Organized by type:
 - **Menus**: `ContextMenu`, `ContextMenuPrimitive`
 - **Domain components**: `DocumentRow`, `FolderRow`, `GroupedSchemaList`, `SchemaGroupSelector`, `CollapsibleSelector`, `ChoiceCard`, `DraggableWindow`
 - **Icons**: All icon exports
+
+### `utils/index.ts`
+Organized by purpose:
+- **File format**: `exportProject`, `CartaFile`, `CartaFileLevel` types
+- **Import/export**: `importDocument`, `analyzeImport`, `analyzeExport`, related types
+- **Examples**: `getExamples`, `getExample`
+- **Metamap layout**: `computeMetamapLayout`, layout constants, types
+- **Preferences**: `getLastDocumentId`, `setLastDocumentId`
+- **Random names**: `generateRandomName`
+- **Starter content**: `seedStarterContent`
+- **String utilities**: `stripHandlePrefix`
 
 ## Progressive Disclosure for Features
 

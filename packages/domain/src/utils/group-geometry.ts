@@ -192,6 +192,73 @@ export function sortParentsFirst<T extends NodeWithParent>(nodes: T[]): T[] {
 }
 
 /**
+ * Result of a full group fit calculation.
+ * Handles children that have been dragged above/left of the group content area.
+ */
+export interface GroupFitResult {
+  /** How much to shift the group's position (negative = move left/up) */
+  positionDelta: Position;
+  /** New size for the group after accounting for the shift */
+  size: Size;
+  /** Delta to apply to ALL children's positions (= -positionDelta) */
+  childPositionDelta: Position;
+}
+
+/**
+ * Compute a full group refit: new size AND position/child adjustments.
+ * Unlike computeMinGroupSize which only grows rightward/downward,
+ * this handles children at negative relative positions by shifting
+ * the group position and adjusting all children.
+ *
+ * Children positions are assumed to be relative to the group.
+ */
+export function computeGroupFit(
+  children: NodeGeometry[],
+  config: GroupLayoutConfig = DEFAULT_GROUP_LAYOUT
+): GroupFitResult {
+  const noShift: GroupFitResult = {
+    positionDelta: { x: 0, y: 0 },
+    size: {
+      width: config.padding * 2,
+      height: config.padding * 2 + config.headerHeight,
+    },
+    childPositionDelta: { x: 0, y: 0 },
+  };
+
+  if (children.length === 0) return noShift;
+
+  const idealMinX = config.padding;
+  const idealMinY = config.padding + config.headerHeight;
+
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+
+  for (const child of children) {
+    const w = child.measured?.width ?? child.width ?? 200;
+    const h = child.measured?.height ?? child.height ?? 100;
+
+    minX = Math.min(minX, child.position.x);
+    minY = Math.min(minY, child.position.y);
+    maxX = Math.max(maxX, child.position.x + w);
+    maxY = Math.max(maxY, child.position.y + h);
+  }
+
+  const shiftX = minX < idealMinX ? minX - idealMinX : 0;
+  const shiftY = minY < idealMinY ? minY - idealMinY : 0;
+
+  return {
+    positionDelta: { x: shiftX || 0, y: shiftY || 0 },
+    size: {
+      width: maxX - shiftX + config.padding,
+      height: maxY - shiftY + config.padding,
+    },
+    childPositionDelta: { x: (-shiftX) || 0, y: (-shiftY) || 0 },
+  };
+}
+
+/**
  * Check if a node's bounding box overlaps with a group's bounding box.
  * Used for drag-drop group membership detection.
  */

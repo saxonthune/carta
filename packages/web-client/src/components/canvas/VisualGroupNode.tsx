@@ -21,7 +21,7 @@ type VisualGroupNodeProps = NodeProps & {
 /**
  * Visual grouping node using React Flow's native parentId system.
  * Groups are regular nodes with type='visual-group'.
- * Children use parentId and extent='parent' for containment.
+ * Children use parentId for relative positioning and group movement.
  */
 function VisualGroupNode({ data, selected }: VisualGroupNodeProps) {
   const {
