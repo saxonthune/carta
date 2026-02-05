@@ -271,34 +271,6 @@ export interface SchemaGroup {
 }
 
 /**
- * Visual grouping of nodes on canvas (not included in compilation)
- * Nodes reference groups via groupId, groups don't track nodeIds
- */
-export interface CanvasGroup {
-  id: string;
-  label: string;
-  color?: string;
-  collapsed?: boolean;
-  position?: { x: number; y: number };
-}
-
-/**
- * Unified visual grouping primitive for both Map (deployables) and Metamap (schema groups)
- * Supports nesting via parentGroupId, collapse state, and optional manual positioning.
- * Stored per-level with "__metamap__" as the special level ID for schema groups.
- */
-export interface VisualGroup {
-  id: string;                              // 'vg_' + random
-  name: string;
-  description?: string;
-  color?: string;
-  parentGroupId?: string;                  // nesting - references another VisualGroup.id
-  collapsed: boolean;
-  position?: { x: number; y: number };     // undefined = use auto-layout
-  size?: { width: number; height: number };
-}
-
-/**
  * Formatter interface - each output format implements this
  */
 export interface Formatter {

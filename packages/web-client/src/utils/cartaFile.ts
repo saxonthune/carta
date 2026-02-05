@@ -35,18 +35,11 @@ export function exportProject(data: {
     deployables: (options?.deployables !== false ? level.deployables : []) as Deployable[],
   }));
 
-  // Also include flat nodes/edges/deployables from first level for backwards compat
-  const firstLevel = fileLevels[0];
-
   const cartaFile: CartaFile = {
     version: CARTA_FILE_VERSION,
     title: data.title,
     description: data.description,
     levels: fileLevels,
-    // Flat fields for backwards compat (from first level)
-    nodes: firstLevel?.nodes || [],
-    edges: firstLevel?.edges || [],
-    deployables: firstLevel?.deployables || [],
     customSchemas: options?.schemas !== false ? data.customSchemas : [],
     portSchemas: options?.portSchemas !== false ? data.portSchemas : [],
     schemaGroups: options?.schemaGroups !== false ? data.schemaGroups : [],

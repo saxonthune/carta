@@ -7,7 +7,6 @@ export const YDOC_MAPS = {
   SCHEMAS: 'schemas',
   PORT_SCHEMAS: 'portSchemas',
   SCHEMA_GROUPS: 'schemaGroups',
-  VISUAL_GROUPS: 'visualGroups',
 } as const;
 
 export const MCP_ORIGIN = 'mcp';

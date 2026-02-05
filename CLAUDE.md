@@ -274,8 +274,9 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 | `packages/web-client/src/components/canvas/CanvasContainer.tsx` | Canvas container: view switching (Map/Metamap), ViewToggle, LevelSwitcher overlays, Footer |
 | `packages/web-client/src/components/canvas/VirtualParentNode.tsx` | Visual grouping container node for child constructs |
 | `packages/web-client/src/components/canvas/VisualGroupNode.tsx` | Visual group node with collapsed chip / expanded container states |
+| `packages/web-client/src/components/canvas/ConstructNode/` | Directory: ConstructNodeDefault.tsx (normal LOD), ConstructNodePill.tsx (pill LOD), ConstructNodeCard.tsx (card variant), shared.ts (utilities), index.tsx (wrapper) |
 | `packages/web-client/src/hooks/useVisualGroups.ts` | Hook processing visual groups: hides children of collapsed groups, builds edge remap for collapsed routing (uses native React Flow parentId) |
-| `packages/web-client/src/components/Header.tsx` | Header with "Carta" branding, title, document browser, import/export, compile, theme, settings, Share (server mode) |
+| `packages/web-client/src/components/Header/` | Directory: Header.tsx (main), SettingsMenu.tsx, ShareMenu.tsx, ThemeMenu.tsx, useClickOutside.ts |
 | `packages/web-client/src/components/metamap/index.ts` | Barrel export: Metamap, SchemaNode, SchemaGroupNode, EdgeDetailPopover, MetamapConnectionModal, MetamapFilter |
 | `packages/web-client/src/components/metamap/Metamap.tsx` | React Flow canvas for schema-level metamodel view (SchemaNode, SchemaGroupNode, EdgeDetailPopover) |
 | `packages/web-client/src/components/metamap/EdgeDetailPopover.tsx` | Click-to-edit popover for metamap edges: edit labels, delete relationships |
@@ -302,6 +303,8 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 | `packages/web-client/src/components/canvas/lod/lodPolicy.ts` | LOD band configuration (pill/compact/normal modes with zoom thresholds) |
 | `packages/web-client/src/components/canvas/lod/useLodBand.ts` | Hook that returns discrete LOD band based on current zoom level |
 | `packages/web-client/src/components/ui/ContextMenu.tsx` | Shared context menu for canvas right-click; view-specific options (Map shows node ops, Metamap shows schema ops) |
+| `packages/web-client/src/utils/index.ts` | Barrel export: all utility modules |
+| `packages/web-client/src/utils/metamapLayout.ts` | Pure metamap layout computation: dagre-based schema positioning, group bounds, collapsed group handling |
 | `packages/web-client/src/utils/examples.ts` | Utility to load bundled example .carta files |
 | `packages/web-client/src/main.tsx` | Entry point: resolves documentId (migration, last-opened, or auto-create), updates URL via history.replaceState, renders DocumentProvider |
 | `packages/web-client/src/utils/starterContent.ts` | Seeds starter graph (3 Note nodes, 2 edges) on first document initialization |

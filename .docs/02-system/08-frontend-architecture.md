@@ -116,7 +116,7 @@ Feature directories expose public APIs through `index.ts` barrel exports:
 ### `hooks/index.ts`
 Organized by purpose:
 - **Document state**: `useNodes`, `useEdges`, `useSchemas`, `usePortSchemas`, `useDeployables`, `useSchemaGroups`, `useLevels`, `useDocumentMeta`
-- **Document operations**: `useGraphOperations`, `useConnections`, `useVisualGroups`
+- **Document operations**: `useGraphOperations`, `useConnections`, `useVisualGroups`, `useGroupOperations`
 - **UI state**: `useMapState`, `useMetamapLayout`, `useEdgeBundling`
 - **Utilities**: `useClipboard`, `useUndoRedo`, `useKeyboardShortcuts`, `useAwareness`, `useDirtyStateGuard`, `useClearDocument`
 
@@ -125,7 +125,7 @@ Canvas components and LOD:
 - **Components**: `Map`, `CanvasContainer`, `ConstructNode`, `VirtualParentNode`, `VisualGroupNode`, `DynamicAnchorEdge`, `PortDrawer`, `IndexBasedDropZones`, `NodeControls`, `AddConstructMenu`
 - **LOD**: `useLodBand`, `DEFAULT_LOD_POLICY`, `getLodConfig`, types
 
-**Note:** `ConstructNode` is a directory with variant implementations: `index.tsx` (wrapper), `ConstructNodeDefault.tsx` (normal LOD), `ConstructNodePill.tsx` (pill LOD), `ConstructNodeCard.tsx` (deprecated), `shared.ts` (utilities).
+**Note:** `ConstructNode` and `Header` are directories with modular implementations. ConstructNode has: `index.tsx` (wrapper), `ConstructNodeDefault.tsx` (normal LOD), `ConstructNodePill.tsx` (pill LOD), `ConstructNodeCard.tsx` (card variant), `shared.ts` (utilities).
 
 ### `components/metamap/index.ts`
 Schema view:
