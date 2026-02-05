@@ -83,10 +83,56 @@ Storage navigation is central to the experience. Without a `?doc=` parameter, th
 
 The desktop app auto-detects its embedded server and enables full vault navigation. The vault maps to `{userData}/documents/` on disk, with binary Y.Doc snapshots as the storage format.
 
+## Vault Adapter Architecture
+
+The vault abstraction is implemented via the **VaultAdapter** interface, which provides a uniform API for document operations regardless of storage backend.
+
+### VaultAdapter Interface
+
+```typescript
+interface VaultAdapter {
+  displayAddress: string;              // Human-readable vault location
+  init?(): Promise<void>;              // Optional async initialization
+  listDocuments(): Promise<DocumentSummary[]>;
+  createDocument(title: string, folder?: string): Promise<string>;
+  deleteDocument(id: string): Promise<boolean>;
+  canChangeVault: boolean;             // Desktop only
+  changeVault?(): Promise<void>;       // Desktop only
+}
+```
+
+### Adapter Implementations
+
+| Adapter | When Used | Capabilities |
+|---------|-----------|--------------|
+| **LocalVaultAdapter** | No server present (`!VITE_SERVER_URL`) | Single-document mode. Uses IndexedDB via `documentRegistry.ts`. Simple list/create/delete operations. |
+| **ServerVaultAdapter** | Server present, non-desktop | Multi-document mode. Fetches document list from server API (`/api/documents`). Creates/deletes via server HTTP endpoints. |
+| **DesktopVaultAdapter** | Desktop app (`window.electronAPI.isDesktop`) | Multi-document mode. Uses embedded server with filesystem persistence. Supports `changeVault()` to switch vault location. |
+
+### Adapter Selection
+
+The `createVaultAdapter()` factory function in `packages/web-client/src/stores/vault/createVaultAdapter.ts` detects the environment and returns the appropriate adapter:
+
+1. Desktop detection: Checks `window.electronAPI?.isDesktop`
+2. Server detection: Checks `config.serverUrl`
+3. Fallback: Local adapter for browser-only mode
+
+### Context Integration
+
+The **VaultContext** (`packages/web-client/src/contexts/VaultContext.tsx`) wraps the adapter in a React context. The `VaultProvider` initializes the adapter asynchronously and provides it to the component tree via the `useVault()` hook.
+
+In `main.tsx`, the `VaultProvider` wraps the entire app **outside** the `DocumentProvider`. This separation is intentional: vault operations (listing/creating documents) are distinct from document state (nodes/edges/schemas managed by the Yjs adapter).
+
 ## Implementation
 
 | File | Purpose |
 |------|---------|
+| `packages/domain/src/types/index.ts` | VaultAdapter interface definition |
+| `packages/web-client/src/stores/vault/LocalVaultAdapter.ts` | IndexedDB-backed adapter for single-document mode |
+| `packages/web-client/src/stores/vault/ServerVaultAdapter.ts` | HTTP-based adapter for server mode |
+| `packages/web-client/src/stores/vault/DesktopVaultAdapter.ts` | Desktop adapter with filesystem persistence |
+| `packages/web-client/src/stores/vault/createVaultAdapter.ts` | Factory function for adapter selection |
+| `packages/web-client/src/contexts/VaultContext.tsx` | React context wrapping VaultAdapter |
 | `packages/web-client/src/components/modals/DocumentBrowserModal.tsx` | Modal presentation with required/optional modes |
 | `packages/web-client/src/stores/documentRegistry.ts` | IndexedDB registry for local documents |
 | `packages/web-client/src/utils/randomNames.ts` | Random document name generator (Adjective-Noun-Number) |

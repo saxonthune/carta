@@ -11,9 +11,9 @@ Analyzes recent code changes and updates documentation. Uses lazy loading, secti
 
 ## Source of Truth
 
-**`.docs/` is the canonical source of truth.** `CLAUDE.md` is a derived artifact.
+**`.docs/` is the canonical source of truth.** `CLAUDE.md` references `.docs/` — do NOT duplicate content into it.
 
-Update order: `.docs/` first → then propagate to `CLAUDE.md`
+**CLAUDE.md policy:** Only update CLAUDE.md when a **new package, new top-level directory, or new major subsystem** is added. Bug fixes, feature tweaks, new hooks, new components, and refactors do NOT warrant CLAUDE.md changes. When in doubt, skip it.
 
 ---
 
@@ -116,15 +116,9 @@ Source: hooks/useVisualGroups.ts (new file)
 @@ line 45, in "### Hooks Layer" section @@
 +| `useVisualGroups` | Computes group nodes from flat storage |
 ```
-
-## Edit: CLAUDE.md
-Source: doc02.02 §Hooks Layer
-
-```diff
-@@ "Key Files" table, after useDocument entry @@
-+| `packages/web-client/src/hooks/useVisualGroups.ts` | Visual group computation |
 ```
-```
+
+**CLAUDE.md:** Skip unless a new package/directory/subsystem was added.
 
 **Provenance rules:**
 - Every edit must cite source (file path or doc section)
@@ -211,7 +205,9 @@ grep -rn "doc[0-9][0-9]\.[0-9][0-9]" .docs/ | grep -v MANIFEST
 
 ### Updated (with provenance)
 - .docs/02-system/02-state.md §Hooks Layer — Added useVisualGroups (source: new file)
-- CLAUDE.md §Key Files — Added entry (source: doc02.02)
+
+### CLAUDE.md Status
+No update needed (no new packages/directories/subsystems)
 
 ### Dependency Cascade
 - doc02.08 checked — no updates needed
@@ -246,7 +242,7 @@ function getDocPath(ref: string): string {
 | MANIFEST only | ~2,500 | Initial scan |
 | MANIFEST + grep 2 sections | ~4,000 | Targeted update |
 | MANIFEST + 2 full docs | ~6,000 | Multi-section update |
-| MANIFEST + CLAUDE.md | ~12,000 | Key Files update |
+| MANIFEST + CLAUDE.md | ~12,000 | New package/subsystem only |
 | Full .docs/ | ~40,000 | Epoch bump only |
 
 **Target: Read <15% of docs for 90% of updates**

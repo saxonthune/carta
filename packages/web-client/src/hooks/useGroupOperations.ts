@@ -65,11 +65,13 @@ export function useGroupOperations(): UseGroupOperationsResult {
 
     const groupPosition = { x: bounds.x, y: bounds.y };
 
-    // Create the group node
+    // Create the group node (set both width/height and style for expandParent compat)
     const groupNode: Node<VisualGroupNodeData> = {
       id: groupId,
       type: 'visual-group',
       position: groupPosition,
+      width: bounds.width,
+      height: bounds.height,
       style: { width: bounds.width, height: bounds.height },
       data: {
         isVisualGroup: true,
@@ -200,6 +202,8 @@ export function useGroupOperations(): UseGroupOperationsResult {
           position: needsShift
             ? { x: n.position.x + fit.positionDelta.x, y: n.position.y + fit.positionDelta.y }
             : n.position,
+          width: fit.size.width,
+          height: fit.size.height,
           style: { ...n.style, width: fit.size.width, height: fit.size.height },
         };
       }

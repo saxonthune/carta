@@ -126,7 +126,7 @@ function VisualGroupNode({ data, selected }: VisualGroupNodeProps) {
         opacity: isDimmed ? 0.2 : 1,
         pointerEvents: isDimmed ? 'none' : 'auto',
       }}
-      className="transition-opacity duration-200"
+      className="transition-opacity duration-200 w-full h-full"
     >
       <NodeResizer
         isVisible={selected}

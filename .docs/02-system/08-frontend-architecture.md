@@ -130,7 +130,7 @@ Canvas components and LOD:
 - **Components**: `Map`, `CanvasContainer`, `ConstructNode`, `VirtualParentNode`, `VisualGroupNode`, `DynamicAnchorEdge`, `PortDrawer`, `IndexBasedDropZones`, `NodeControls`, `AddConstructMenu`
 - **LOD**: `useLodBand`, `DEFAULT_LOD_POLICY`, `getLodConfig`, types
 
-**Note:** `ConstructNode` and `Header` are directories with modular implementations. ConstructNode has: `index.tsx` (wrapper), `ConstructNodeDefault.tsx` (normal LOD), `ConstructNodePill.tsx` (pill LOD), `ConstructNodeCard.tsx` (card variant), `shared.ts` (utilities).
+**Note:** `ConstructNode` and `Header` are directories with modular implementations. ConstructNode has: `index.tsx` (wrapper), `ConstructNodeDefault.tsx` (normal LOD), `ConstructNodePill.tsx` (pill LOD), `ConstructNodeSimple.tsx` (simple/rough sketch mode, see doc03.01.14), `shared.ts` (utilities).
 
 ### `components/metamap/index.ts`
 Schema view:

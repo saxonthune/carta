@@ -130,6 +130,10 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
   const dragStartGroupSizeRef = useRef<Size | null>(null);
   const rafIdRef = useRef<number | null>(null);
 
+  // Ctrl+drag visual feedback (DOM class toggle, no re-renders)
+  const mapWrapperRef = useRef<HTMLDivElement>(null);
+  const ctrlDragActiveRef = useRef(false);
+
   const onNodesChange = useCallback((changes: NodeChange[]) => {
     setNodes((nds) => applyNodeChanges(changes, nds));
   }, [setNodes]);
@@ -344,6 +348,11 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     return counts;
   }, [nodes]);
 
+  // Set of visual group IDs for expandParent assignment
+  const visualGroupIds = useMemo(() => new Set(
+    nodesWithHiddenFlags.filter(n => n.type === 'visual-group').map(n => n.id)
+  ), [nodesWithHiddenFlags]);
+
   const nodesWithCallbacks = nodesWithHiddenFlags.map((node) => {
     if (node.type === 'visual-group') {
       return {
@@ -370,6 +379,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     return {
       ...node,
       dragHandle: NODE_DRAG_HANDLE,
+      expandParent: node.parentId && visualGroupIds.has(node.parentId) ? true : undefined,
       data: {
         ...node.data,
         nodeId: node.id,
@@ -543,8 +553,8 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
       if (parentNode?.type === 'visual-group') {
         dragGroupIdRef.current = parentNode.id;
         dragStartGroupSizeRef.current = {
-          width: (parentNode.style?.width as number) ?? 200,
-          height: (parentNode.style?.height as number) ?? 200,
+          width: (parentNode.width as number) ?? (parentNode.style?.width as number) ?? 200,
+          height: (parentNode.height as number) ?? (parentNode.style?.height as number) ?? 200,
         };
       } else {
         dragGroupIdRef.current = null;
@@ -557,6 +567,13 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
   }, [reactFlow]);
 
   const onNodeDrag = useCallback((_event: React.MouseEvent, node: Node) => {
+    // Toggle Ctrl+drag visual class (no re-render, direct DOM)
+    const isCtrl = _event.ctrlKey || _event.metaKey;
+    if (isCtrl !== ctrlDragActiveRef.current) {
+      ctrlDragActiveRef.current = isCtrl;
+      mapWrapperRef.current?.classList.toggle('ctrl-dragging', isCtrl);
+    }
+
     if (!dragGroupIdRef.current || node.type === 'visual-group') return;
 
     // Cancel previous rAF to throttle
@@ -566,7 +583,6 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
 
     const groupId = dragGroupIdRef.current;
     const startSize = dragStartGroupSizeRef.current;
-    const isCtrl = _event.ctrlKey || _event.metaKey;
 
     rafIdRef.current = requestAnimationFrame(() => {
       rafIdRef.current = null;
@@ -584,7 +600,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
         if (startSize) {
           setNodes(nds => nds.map(n =>
             n.id === groupId
-              ? { ...n, style: { ...n.style, width: startSize.width, height: startSize.height } }
+              ? { ...n, width: startSize.width, height: startSize.height, style: { ...n.style, width: startSize.width, height: startSize.height } }
               : n
           ));
         }
@@ -607,7 +623,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
 
       setNodes(nds => nds.map(n =>
         n.id === groupId
-          ? { ...n, style: { ...n.style, width: newWidth, height: newHeight } }
+          ? { ...n, width: newWidth, height: newHeight, style: { ...n.style, width: newWidth, height: newHeight } }
           : n
       ));
     });
@@ -616,6 +632,10 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
   const onNodeDragStop = useCallback((event: React.MouseEvent, node: Node) => {
     isDraggingRef.current = false;
     draggedNodesRef.current.clear();
+
+    // Clear Ctrl+drag visual feedback
+    ctrlDragActiveRef.current = false;
+    mapWrapperRef.current?.classList.remove('ctrl-dragging');
 
     // Cancel any pending rAF
     if (rafIdRef.current !== null) {
@@ -674,7 +694,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
   ], [lod.band, groupCount, sortedNodes.length]);
 
   return (
-    <div className="w-full h-full relative" style={{ backgroundColor: 'var(--color-canvas)' }}>
+    <div ref={mapWrapperRef} className="w-full h-full relative" style={{ backgroundColor: 'var(--color-canvas)' }}>
       <ZoomDebug debugLines={debugLines} />
       <ReactFlow
         nodes={sortedNodes}
