@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import IndexBasedDropZones from '../IndexBasedDropZones';
+import PortDrawer from '../PortDrawer';
 import type { ConstructNodeVariantProps } from './shared';
 
 /**
@@ -9,9 +10,10 @@ import type { ConstructNodeVariantProps } from './shared';
  * Design principles:
  * - Single mode only (no summary/details toggle)
  * - Direct inline editing always
- * - No port drawer (connections via context menu or other methods)
+ * - Port drawer on hover (for easy connections)
  * - No header bar, no controls
  * - Feels like index cards or sticky notes
+ * - Color change via port drawer dropper icon
  *
  * This is a fundamentally different interaction model from default/card variants.
  * It doesn't extend or simplify them—it's a separate primitive that shares only
@@ -27,7 +29,9 @@ export function ConstructNodeSimple({
   sourcePortType,
   lodTransitionStyle,
 }: ConstructNodeVariantProps) {
-  const color = data.instanceColor || schema.color;
+  const backgroundColor = data.instanceColor
+    ? data.instanceColor
+    : `color-mix(in srgb, ${schema.color} 30%, var(--color-surface))`;
   const contentField = schema.fields?.find(f => f.name === 'content');
   const contentValue = String(data.values?.content ?? contentField?.default ?? '');
 
@@ -44,7 +48,7 @@ export function ConstructNodeSimple({
     <div
       className={`rounded-lg overflow-visible relative flex flex-col min-w-[200px] min-h-[100px] ${selected ? 'ring-2 ring-accent/30' : ''}`}
       style={{
-        backgroundColor: color,
+        backgroundColor,
         ...lodTransitionStyle,
         boxShadow: selected ? 'var(--node-shadow-selected)' : 'var(--node-shadow)',
       }}
@@ -98,7 +102,14 @@ export function ConstructNodeSimple({
         </span>
       ))}
 
-      {/* No port drawer - connections are made via other UI (context menu, etc.) */}
+      {/* Port Drawer at bottom */}
+      <PortDrawer
+        ports={ports}
+        colorPickerPolicy={schema.backgroundColorPolicy}
+        baseColor={schema.color}
+        instanceColor={data.instanceColor}
+        onColorChange={data.onInstanceColorChange}
+      />
     </div>
   );
 }

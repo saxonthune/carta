@@ -134,6 +134,11 @@ In `main.tsx`, the `VaultProvider` wraps the entire app **outside** the `Documen
 | `packages/web-client/src/stores/vault/createVaultAdapter.ts` | Factory function for adapter selection |
 | `packages/web-client/src/contexts/VaultContext.tsx` | React context wrapping VaultAdapter |
 | `packages/web-client/src/components/modals/DocumentBrowserModal.tsx` | Modal presentation with required/optional modes |
+| `packages/web-client/src/stores/vault/createVaultAdapter.ts` | Factory for creating deployment-specific vault adapters |
+| `packages/web-client/src/stores/vault/LocalVaultAdapter.ts` | IndexedDB vault for browser-only mode (single document) |
+| `packages/web-client/src/stores/vault/ServerVaultAdapter.ts` | Server-backed vault via HTTP API |
+| `packages/web-client/src/stores/vault/DesktopVaultAdapter.ts` | Desktop vault via Electron IPC to embedded server |
+| `packages/web-client/src/contexts/VaultContext.tsx` | React context for vault adapter access |
 | `packages/web-client/src/stores/documentRegistry.ts` | IndexedDB registry for local documents |
 | `packages/web-client/src/utils/randomNames.ts` | Random document name generator (Adjective-Noun-Number) |
 | `packages/web-client/src/main.tsx` | Boot logic: document resolution, URL routing |

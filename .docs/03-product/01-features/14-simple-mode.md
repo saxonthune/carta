@@ -42,9 +42,9 @@ Note gets `renderStyle: 'simple'` to opt into the simple render variation. This 
 
 1. **Near-zero creation cost**: Context menu "Add Note" on the canvas creates a Note at click position. No type selection dialog. The user can immediately start typing.
 2. **Near-zero deletion cost**: Simple constructs look light enough that deleting one doesn't feel like losing work.
-3. **Near-zero rewiring cost**: Connections between Notes use the symmetric port. Connections are made via standard port drawer UI (no special edge-drag behavior).
+3. **Near-zero rewiring cost**: Connections between Notes use the symmetric port. Connections are made via standard port drawer UI on hover.
 4. **Visual distinction**: Notes render in a lighter style that communicates "sketch" rather than "specification." They look like index cards or sticky notes, not data entry forms.
-5. **No orphaned UI**: Simple render suppresses UI elements that don't apply—no header bar, no field grid, no detail toggles, no deployable selectors.
+5. **Minimal chrome**: Simple render suppresses most UI elements—no header bar, no field grid, no detail toggles, no deployable selectors. Port drawer appears on hover for connections and color picking.
 
 ### Technical Requirements
 
@@ -52,7 +52,7 @@ Note gets `renderStyle: 'simple'` to opt into the simple render variation. This 
 2. **Separate primitive, not variant**: Simple rendering is a fundamentally different interaction model. It's dispatched alongside 'default' and 'card' variants but shares no UI complexity with them. It's a clean-slate implementation that composes only the components it needs.
 3. **No special data model carveouts**: A Note is a regular construct with a schema, semanticId, values, and connections. What makes it render simply is its schema's `renderStyle`.
 4. **No view modes**: Simple nodes have no summary/details toggle, no double-click behavior. There is only one mode: direct inline editing.
-5. **Composable architecture**: Render modes choose which components to include (port drawer, controls, field grids). Simple mode opts out of all chrome. Future render modes should be equally easy to implement by mixing and matching components.
+5. **Composable architecture**: Render modes choose which components to include (port drawer, controls, field grids). Simple mode includes only the port drawer, excluding all other chrome. Future render modes should be equally easy to implement by mixing and matching components.
 
 ## Render Variation
 
@@ -60,7 +60,8 @@ Note gets `renderStyle: 'simple'` to opt into the simple render variation. This 
 
 - **No header bar**: No schema type label, no controls row (expand/collapse, pin, window icons).
 - **Content only**: The multiline `content` field renders as editable text directly on the surface—no field label, no field container chrome.
-- **Color identity**: Background tint from instance color (or schema color fallback), same as card renderStyle. Types remain distinguishable by color.
+- **Color identity**: Background tint from instance color (or schema color fallback with 30% mix). Types remain distinguishable by color.
+- **Port drawer on hover**: Appears at bottom on hover, includes connection ports and color dropper icon for changing instance color.
 - **Minimal footprint**: Smaller than default-rendered constructs. Compact padding, no wasted space.
 - **Soft edges**: `rounded-lg`, gentle shadow (`var(--node-shadow)`). Feels like a card sitting on a desk.
 - **Text halo**: Content text uses `text-halo` utility for legibility on any background tint.
@@ -77,10 +78,10 @@ Note gets `renderStyle: 'simple'` to opt into the simple render variation. This 
 | Header bar | Yes (schema type, controls) | No | No |
 | Field grid | Yes (by displayTier) | Yes (minimal tier) | No |
 | Display name | From pill-tier field | From pill-tier field | N/A—content IS the display |
-| Background | `bg-surface` | Schema/instance color tint | Schema/instance color tint |
-| Port drawer | On hover | On hover | Absent—not included |
+| Background | `bg-surface` | Schema/instance color tint | Schema/instance color tint (30% mix) |
+| Port drawer | On hover | On hover | On hover (includes color dropper) |
 | View modes | Summary ↔ Details toggle | Summary ↔ Details toggle | None—single mode only |
-| Controls | Expand, pin, window, color | Expand, color | None—color via context menu |
+| Controls | Expand, pin, window, color | Expand, color | Color via port drawer dropper |
 | Double-click | Enter details mode | Enter details mode | No-op |
 | Architecture | Full-featured component | Simplified variant of default | Separate primitive, no shared UI complexity |
 
@@ -89,7 +90,8 @@ Note gets `renderStyle: 'simple'` to opt into the simple render variation. This 
 1. Right-click on empty canvas → context menu includes "Add Note"
 2. Note appears at click position with empty content, cursor auto-focused in the text area
 3. User types content directly—no modal, no field selection
-4. User can connect Notes via standard connection methods (port drawer opens on hover if needed, though simple mode doesn't include it—connections can be made via context menu or other UI)
+4. User can connect Notes via standard port drawer (opens on hover) or drag from existing connections
+5. User can change Note color via color dropper icon in port drawer
 
 ## Transition to Structured Modeling
 
