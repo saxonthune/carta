@@ -1,11 +1,11 @@
 /**
- * Test: Visual Groups (Native React Flow parentId)
+ * Test: Organizers (Native React Flow parentId)
  *
- * Verifies visual grouping functionality using React Flow's native parentId system:
- * - Create groups as nodes with type='visual-group'
- * - Nodes reference groups via parentId (not data.groupId)
- * - Groups can be collapsed/expanded
- * - Edge remapping for collapsed groups
+ * Verifies organizer functionality using React Flow's native parentId system:
+ * - Create organizers as nodes with type='organizer'
+ * - Nodes reference organizers via parentId
+ * - Organizers can be collapsed/expanded
+ * - Edge remapping for collapsed organizers
  * - Child positions are relative to parent
  */
 
@@ -15,7 +15,7 @@ import { useNodes } from '../../src/hooks/useNodes';
 import { useDocumentContext } from '../../src/contexts/DocumentContext';
 import { TestProviders } from '../setup/testProviders';
 import { createTestNode } from '../setup/testHelpers';
-import type { VisualGroupNodeData } from '@carta/domain';
+import type { OrganizerNodeData } from '@carta/domain';
 
 function useTestHarness() {
   return {
@@ -32,27 +32,28 @@ async function setup() {
   return result;
 }
 
-describe('Visual Groups (Native parentId)', () => {
-  describe('Group Creation as Nodes', () => {
-    it('should create a visual group node', async () => {
+describe('Organizers (Native parentId)', () => {
+  describe('Organizer Creation as Nodes', () => {
+    it('should create an organizer node', async () => {
       const result = await setup();
       const { adapter } = result.current.context;
 
-      const groupId = crypto.randomUUID();
+      const organizerId = crypto.randomUUID();
 
       act(() => {
         adapter.setNodes([
           {
-            id: groupId,
-            type: 'visual-group',
+            id: organizerId,
+            type: 'organizer',
             position: { x: 100, y: 100 },
             style: { width: 300, height: 200 },
             data: {
-              isVisualGroup: true,
-              name: 'Test Group',
+              isOrganizer: true,
+              name: 'Test Organizer',
               color: '#ff0000',
               collapsed: false,
-            } satisfies VisualGroupNodeData,
+              layout: 'freeform',
+            } satisfies OrganizerNodeData,
           },
         ]);
       });
@@ -62,47 +63,46 @@ describe('Visual Groups (Native parentId)', () => {
       });
 
       const nodes = result.current.nodes.nodes;
-      expect(nodes[0].type).toBe('visual-group');
-      expect((nodes[0].data as VisualGroupNodeData).name).toBe('Test Group');
-      expect((nodes[0].data as VisualGroupNodeData).color).toBe('#ff0000');
-      expect((nodes[0].data as VisualGroupNodeData).collapsed).toBe(false);
+      expect(nodes[0].type).toBe('organizer');
+      expect((nodes[0].data as OrganizerNodeData).name).toBe('Test Organizer');
+      expect((nodes[0].data as OrganizerNodeData).color).toBe('#ff0000');
+      expect((nodes[0].data as OrganizerNodeData).collapsed).toBe(false);
     });
   });
 
-  describe('Node-Group Association via parentId', () => {
-    it('should assign nodes to a group via parentId', async () => {
+  describe('Node-Organizer Association via parentId', () => {
+    it('should assign nodes to an organizer via parentId', async () => {
       const result = await setup();
       const { adapter } = result.current.context;
 
-      const groupId = crypto.randomUUID();
+      const organizerId = crypto.randomUUID();
 
       act(() => {
         adapter.setNodes([
-          // Group first (parent before children)
+          // Organizer first (parent before children)
           {
-            id: groupId,
-            type: 'visual-group',
+            id: organizerId,
+            type: 'organizer',
             position: { x: 100, y: 100 },
             style: { width: 300, height: 400 },
             data: {
-              isVisualGroup: true,
-              name: 'My Group',
+              isOrganizer: true,
+              name: 'My Organizer',
               color: '#ff0000',
               collapsed: false,
-            } satisfies VisualGroupNodeData,
+              layout: 'freeform',
+            } satisfies OrganizerNodeData,
           },
           // Children with parentId and relative positions
           {
             ...createTestNode({ id: 'n1', type: 'Task', semanticId: 'task-1' }),
-            parentId: groupId,
-
-            position: { x: 20, y: 60 }, // Relative to group
+            parentId: organizerId,
+            position: { x: 20, y: 60 },
           },
           {
             ...createTestNode({ id: 'n2', type: 'Task', semanticId: 'task-2' }),
-            parentId: groupId,
-
-            position: { x: 20, y: 160 }, // Relative to group
+            parentId: organizerId,
+            position: { x: 20, y: 160 },
           },
         ]);
       });
@@ -115,37 +115,35 @@ describe('Visual Groups (Native parentId)', () => {
       const n1 = nodes.find(n => n.id === 'n1');
       const n2 = nodes.find(n => n.id === 'n2');
 
-      expect(n1?.parentId).toBe(groupId);
-      expect(n2?.parentId).toBe(groupId);
-
-
+      expect(n1?.parentId).toBe(organizerId);
+      expect(n2?.parentId).toBe(organizerId);
     });
 
-    it('should remove node from group by clearing parentId', async () => {
+    it('should remove node from organizer by clearing parentId', async () => {
       const result = await setup();
       const { adapter } = result.current.context;
 
-      const groupId = crypto.randomUUID();
+      const organizerId = crypto.randomUUID();
 
-      // Create group with one child
+      // Create organizer with one child
       act(() => {
         adapter.setNodes([
           {
-            id: groupId,
-            type: 'visual-group',
+            id: organizerId,
+            type: 'organizer',
             position: { x: 100, y: 100 },
             style: { width: 300, height: 200 },
             data: {
-              isVisualGroup: true,
-              name: 'Group',
+              isOrganizer: true,
+              name: 'Organizer',
               color: '#ff0000',
               collapsed: false,
-            } satisfies VisualGroupNodeData,
+              layout: 'freeform',
+            } satisfies OrganizerNodeData,
           },
           {
             ...createTestNode({ id: 'n1', type: 'Task', semanticId: 'task-1' }),
-            parentId: groupId,
-
+            parentId: organizerId,
             position: { x: 20, y: 60 },
           },
         ]);
@@ -153,10 +151,10 @@ describe('Visual Groups (Native parentId)', () => {
 
       await waitFor(() => {
         const node = result.current.nodes.nodes.find(n => n.id === 'n1');
-        expect(node?.parentId).toBe(groupId);
+        expect(node?.parentId).toBe(organizerId);
       });
 
-      // Remove from group by clearing parentId
+      // Remove from organizer by clearing parentId
       act(() => {
         adapter.setNodes((nds) =>
           nds.map(n =>
@@ -174,40 +172,41 @@ describe('Visual Groups (Native parentId)', () => {
     });
   });
 
-  describe('Group Collapse State', () => {
-    it('should toggle collapsed state on group data', async () => {
+  describe('Organizer Collapse State', () => {
+    it('should toggle collapsed state on organizer data', async () => {
       const result = await setup();
       const { adapter } = result.current.context;
 
-      const groupId = crypto.randomUUID();
+      const organizerId = crypto.randomUUID();
 
       act(() => {
         adapter.setNodes([
           {
-            id: groupId,
-            type: 'visual-group',
+            id: organizerId,
+            type: 'organizer',
             position: { x: 100, y: 100 },
             style: { width: 300, height: 200 },
             data: {
-              isVisualGroup: true,
+              isOrganizer: true,
               name: 'Collapsible',
               color: '#ff0000',
               collapsed: false,
-            } satisfies VisualGroupNodeData,
+              layout: 'freeform',
+            } satisfies OrganizerNodeData,
           },
         ]);
       });
 
       await waitFor(() => {
-        const group = result.current.nodes.nodes.find(n => n.id === groupId);
-        expect((group?.data as VisualGroupNodeData).collapsed).toBe(false);
+        const organizer = result.current.nodes.nodes.find(n => n.id === organizerId);
+        expect((organizer?.data as OrganizerNodeData).collapsed).toBe(false);
       });
 
-      // Collapse the group
+      // Collapse the organizer
       act(() => {
         adapter.setNodes((nds) =>
           nds.map(n =>
-            n.id === groupId
+            n.id === organizerId
               ? { ...n, data: { ...n.data, collapsed: true } }
               : n
           )
@@ -215,15 +214,15 @@ describe('Visual Groups (Native parentId)', () => {
       });
 
       await waitFor(() => {
-        const group = result.current.nodes.nodes.find(n => n.id === groupId);
-        expect((group?.data as VisualGroupNodeData).collapsed).toBe(true);
+        const organizer = result.current.nodes.nodes.find(n => n.id === organizerId);
+        expect((organizer?.data as OrganizerNodeData).collapsed).toBe(true);
       });
 
       // Expand again
       act(() => {
         adapter.setNodes((nds) =>
           nds.map(n =>
-            n.id === groupId
+            n.id === organizerId
               ? { ...n, data: { ...n.data, collapsed: false } }
               : n
           )
@@ -231,8 +230,8 @@ describe('Visual Groups (Native parentId)', () => {
       });
 
       await waitFor(() => {
-        const group = result.current.nodes.nodes.find(n => n.id === groupId);
-        expect((group?.data as VisualGroupNodeData).collapsed).toBe(false);
+        const organizer = result.current.nodes.nodes.find(n => n.id === organizerId);
+        expect((organizer?.data as OrganizerNodeData).collapsed).toBe(false);
       });
     });
   });
@@ -242,26 +241,26 @@ describe('Visual Groups (Native parentId)', () => {
       const result = await setup();
       const { adapter } = result.current.context;
 
-      const groupId = crypto.randomUUID();
+      const organizerId = crypto.randomUUID();
 
-      // Create nodes in correct order (group first)
+      // Create nodes in correct order (organizer first)
       act(() => {
         adapter.setNodes([
           {
-            id: groupId,
-            type: 'visual-group',
+            id: organizerId,
+            type: 'organizer',
             position: { x: 0, y: 0 },
             data: {
-              isVisualGroup: true,
+              isOrganizer: true,
               name: 'Parent',
               color: '#00ff00',
               collapsed: false,
-            } satisfies VisualGroupNodeData,
+              layout: 'freeform',
+            } satisfies OrganizerNodeData,
           },
           {
             ...createTestNode({ id: 'child', type: 'Task', semanticId: 'task-child' }),
-            parentId: groupId,
-
+            parentId: organizerId,
             position: { x: 20, y: 60 },
           },
         ]);
@@ -272,57 +271,57 @@ describe('Visual Groups (Native parentId)', () => {
       });
 
       const nodes = result.current.nodes.nodes;
-      const groupIndex = nodes.findIndex(n => n.id === groupId);
+      const organizerIndex = nodes.findIndex(n => n.id === organizerId);
       const childIndex = nodes.findIndex(n => n.id === 'child');
 
-      // Group should come before its children
-      expect(groupIndex).toBeLessThan(childIndex);
+      // Organizer should come before its children
+      expect(organizerIndex).toBeLessThan(childIndex);
     });
   });
 
-  describe('Nested Groups', () => {
-    it('should support nested groups via parentId', async () => {
+  describe('Nested Organizers', () => {
+    it('should support nested organizers via parentId', async () => {
       const result = await setup();
       const { adapter } = result.current.context;
 
-      const outerGroupId = crypto.randomUUID();
-      const innerGroupId = crypto.randomUUID();
+      const outerOrganizerId = crypto.randomUUID();
+      const innerOrganizerId = crypto.randomUUID();
 
       act(() => {
         adapter.setNodes([
-          // Outer group first
+          // Outer organizer first
           {
-            id: outerGroupId,
-            type: 'visual-group',
+            id: outerOrganizerId,
+            type: 'organizer',
             position: { x: 0, y: 0 },
             style: { width: 400, height: 400 },
             data: {
-              isVisualGroup: true,
+              isOrganizer: true,
               name: 'Outer',
               color: '#ff0000',
               collapsed: false,
-            } satisfies VisualGroupNodeData,
+              layout: 'freeform',
+            } satisfies OrganizerNodeData,
           },
-          // Inner group as child of outer
+          // Inner organizer as child of outer
           {
-            id: innerGroupId,
-            type: 'visual-group',
-            parentId: outerGroupId,
-
+            id: innerOrganizerId,
+            type: 'organizer',
+            parentId: outerOrganizerId,
             position: { x: 20, y: 60 },
             style: { width: 200, height: 200 },
             data: {
-              isVisualGroup: true,
+              isOrganizer: true,
               name: 'Inner',
               color: '#00ff00',
               collapsed: false,
-            } satisfies VisualGroupNodeData,
+              layout: 'freeform',
+            } satisfies OrganizerNodeData,
           },
-          // Node inside inner group
+          // Node inside inner organizer
           {
             ...createTestNode({ id: 'nested-node', type: 'Task', semanticId: 'task-nested' }),
-            parentId: innerGroupId,
-
+            parentId: innerOrganizerId,
             position: { x: 20, y: 60 },
           },
         ]);
@@ -333,11 +332,11 @@ describe('Visual Groups (Native parentId)', () => {
       });
 
       const nodes = result.current.nodes.nodes;
-      const innerGroup = nodes.find(n => n.id === innerGroupId);
+      const innerOrganizer = nodes.find(n => n.id === innerOrganizerId);
       const nestedNode = nodes.find(n => n.id === 'nested-node');
 
-      expect(innerGroup?.parentId).toBe(outerGroupId);
-      expect(nestedNode?.parentId).toBe(innerGroupId);
+      expect(innerOrganizer?.parentId).toBe(outerOrganizerId);
+      expect(nestedNode?.parentId).toBe(innerOrganizerId);
     });
   });
 });

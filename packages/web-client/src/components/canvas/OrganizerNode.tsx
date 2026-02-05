@@ -1,34 +1,37 @@
 import { memo, useCallback } from 'react';
 import { Handle, Position, NodeResizer, type NodeProps } from '@xyflow/react';
 import { EyeIcon, EyeOffIcon } from '../ui/icons';
-import type { VisualGroupNodeData as BaseVisualGroupNodeData } from '@carta/domain';
+import type { OrganizerNodeData as BaseOrganizerNodeData, OrganizerLayout } from '@carta/domain';
 
 /**
  * Extended data interface with callbacks added by Map.tsx
  */
-export interface VisualGroupNodeData extends BaseVisualGroupNodeData {
+export interface OrganizerNodeData extends BaseOrganizerNodeData {
   childCount: number;
   isDropTarget?: boolean;
   isHovered?: boolean;
   isDimmed?: boolean;
   onToggleCollapse: () => void;
+  onChangeLayout?: (layout: OrganizerLayout) => void;
+  onSetStackIndex?: (index: number) => void;
 }
 
-type VisualGroupNodeProps = NodeProps & {
-  data: VisualGroupNodeData;
+type OrganizerNodeProps = NodeProps & {
+  data: OrganizerNodeData;
 };
 
 /**
- * Visual grouping node using React Flow's native parentId system.
- * Groups are regular nodes with type='visual-group'.
- * Children use parentId for relative positioning and group movement.
+ * Organizer node using React Flow's native parentId system.
+ * Organizers are regular nodes with type='organizer'.
+ * Members use parentId for relative positioning and group movement.
  */
-function VisualGroupNode({ data, selected }: VisualGroupNodeProps) {
+function OrganizerNode({ data, selected }: OrganizerNodeProps) {
   const {
     name,
     color = '#6b7280',
     collapsed,
     childCount,
+    layout = 'freeform',
     isDropTarget,
     isHovered,
     isDimmed,
@@ -47,6 +50,9 @@ function VisualGroupNode({ data, selected }: VisualGroupNodeProps) {
   const bgMix = isHovered || isDropTarget ? 25 : 18;
   const borderMix = isHovered || isDropTarget ? 45 : 35;
 
+  // Layout icon for collapsed chip
+  const layoutIcon = layout === 'stack' ? '\u25A6' : layout === 'grid' ? '\u25A8' : '';
+
   // Collapsed chip rendering (180x44 pill)
   if (collapsed) {
     return (
@@ -57,7 +63,7 @@ function VisualGroupNode({ data, selected }: VisualGroupNodeProps) {
           pointerEvents: isDimmed ? 'none' : 'auto',
         }}
       >
-        {/* Hidden handles for edge connections to collapsed groups */}
+        {/* Hidden handles for edge connections to collapsed organizers */}
         <Handle
           id="group-connect"
           type="source"
@@ -92,6 +98,9 @@ function VisualGroupNode({ data, selected }: VisualGroupNodeProps) {
             className="w-2.5 h-2.5 rounded-full shrink-0"
             style={{ backgroundColor: color }}
           />
+          {layoutIcon && (
+            <span className="text-[10px] text-content-muted shrink-0">{layoutIcon}</span>
+          )}
           <span className="text-node-xs font-medium text-content truncate text-halo flex-1">
             {name}
           </span>
@@ -110,7 +119,7 @@ function VisualGroupNode({ data, selected }: VisualGroupNodeProps) {
           <button
             className="w-5 h-5 flex items-center justify-center rounded text-content-muted hover:text-content transition-colors shrink-0"
             onClick={handleToggle}
-            title="Expand group"
+            title="Expand organizer"
           >
             <EyeOffIcon size={14} />
           </button>
@@ -181,7 +190,7 @@ function VisualGroupNode({ data, selected }: VisualGroupNodeProps) {
           <button
             className="w-5 h-5 flex items-center justify-center rounded text-content-muted hover:text-content transition-colors shrink-0"
             onClick={handleToggle}
-            title="Collapse group"
+            title="Collapse organizer"
           >
             <EyeIcon size={14} />
           </button>
@@ -191,4 +200,4 @@ function VisualGroupNode({ data, selected }: VisualGroupNodeProps) {
   );
 }
 
-export default memo(VisualGroupNode);
+export default memo(OrganizerNode);

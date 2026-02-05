@@ -160,15 +160,15 @@ body,
   box-shadow: none;
 }
 
-/* Visual group node wrapper: transparent, no default chrome */
-.react-flow__node-visual-group {
+/* Organizer node wrapper: transparent, no default chrome */
+.react-flow__node-organizer {
   background: transparent;
   border: none;
   padding: 0;
   box-shadow: none;
 }
 
-.react-flow__node-visual-group.selected {
+.react-flow__node-organizer.selected {
   box-shadow: none;
 }
 

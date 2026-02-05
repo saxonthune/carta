@@ -28,7 +28,7 @@ All document state lives in a Yjs Y.Doc, accessed through the DocumentAdapter in
 - **Port Schemas**: Port type definitions (shared across levels)
 - **Schema Groups**: Schema organization metadata
 - **Deployables**: Logical groupings (per-level)
-- **Visual Groups**: Unified grouping primitive (per-level, with special `__metamap__` level for schema groups)
+- **Organizers**: Visual grouping containers with layout strategies (per-level). See doc02.09
 - **Levels**: Separate architectural views, each with own nodes/edges/deployables
 
 ### Persistence
@@ -57,7 +57,7 @@ The codebase provides **focused hooks** that subscribe to specific slices of doc
 - `useSchemaGroups()` — schemaGroups, getSchemaGroup, add/update/remove
 - `useLevels()` — levels, activeLevel, setActiveLevel, create/delete/update
 - `useDocumentMeta()` — title, description, setTitle, setDescription
-- `useGroupOperations()` — visual group operations (create, attach, detach, toggle collapse, rename, resize, delete)
+- `useOrganizerOperations()` — organizer operations (create, attach, detach, toggle collapse, rename, resize, delete, change layout)
 
 **Implementation detail**: Each focused hook uses `adapter.subscribeToX()` (if available) to subscribe only to changes in that state slice. If the adapter doesn't provide a focused subscription method, it falls back to the global `adapter.subscribe()` and filters in the hook.
 

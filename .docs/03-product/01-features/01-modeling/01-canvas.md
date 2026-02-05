@@ -37,8 +37,8 @@ The canvas uses **level-of-detail (LOD) rendering** with two zoom-based bands to
 
 Right-click on canvas, node, or edge opens a context menu:
 
-- **Canvas**: Add construct (grouped by schema group), create new schema, create new group, paste
-- **Node**: Delete, copy, rename, add related construct (with port/type submenu), copy to another level, group selected (multi-select), remove from group
+- **Canvas**: Add construct (grouped by schema group), create new schema, create new organizer, paste
+- **Node**: Delete, copy, rename, add related construct (with port/type submenu), copy to another level, organize selected (multi-select), remove from organizer
 - **Edge**: Delete
 
 ## Zoom Controls
@@ -48,35 +48,42 @@ Custom controls in bottom-left corner:
 - Fit view button
 - Undo / redo buttons
 
-## Visual Groups
+## Organizers
 
-Constructs can be organized into visual groups for canvas organization. Groups are purely visual — they are not included in compilation output.
+Organizers let users arrange constructs into visually organized collections. They are purely a canvas feature — never compiled, never part of the semantic model. The word "parent/child" is reserved for the port system; constructs inside an organizer are **members**. See doc02.09 for the full architectural description.
 
-### Display Modes
+### Layout Strategies
 
-- **Expanded**: Rounded container with colored background, header showing group name, child count badge, and collapse toggle (eye icon)
-- **Collapsed**: Compact pill/chip showing group name, child count, and expand toggle
+Each organizer has a layout strategy:
 
-### Group Operations
+| Strategy | Behavior |
+|----------|----------|
+| **Freeform** | Members positioned freely within resizable bounds (default) |
+| **Stack** | One member visible at a time, arrow navigation between members |
+| **Grid** | Members auto-arranged in a resizable grid |
+
+### Display States
+
+- **Expanded**: Shows the layout with its members. Appearance depends on layout strategy.
+- **Collapsed**: Compact chip showing organizer name and member count. All members hidden. Edges to/from hidden members reroute to the chip.
+
+### Operations
 
 | Action | Method |
 |--------|--------|
-| Create group | Select 2+ nodes, press Ctrl+G or right-click → "Group Selected" |
-| Add to group | Drag node into group bounds |
-| Remove from group | Ctrl+drag node out, or right-click → "Remove from Group" |
-| Collapse/expand | Click eye icon in group header |
-| Rename | (Not yet implemented) |
+| Create organizer | Select 2+ nodes, press Ctrl+G or right-click → "Organize Selected" |
+| Add to organizer | Drag node into organizer bounds |
+| Remove from organizer | Ctrl+drag node out, or right-click → "Remove from Organizer" |
+| Collapse/expand | Click eye icon in organizer header |
+| Change layout | (Context menu on organizer) |
 
-### Implementation
+### Nesting Rules
 
-- **Storage**: `VisualGroup` objects stored per-level in Yjs Y.Map at `visualGroups` key
-- **Rendering**: `useVisualGroups` hook computes React Flow nodes from flat storage
-- **Node association**: Nodes reference groups via `groupId` field on `ConstructNodeData`
-- **Nesting**: Groups can nest via `parentGroupId` (depth calculated via BFS)
-- **Bounds**: Auto-computed from member node positions with padding, or manual via `position`/`size` fields
-- **Edge remapping**: When collapsed, edges to/from member nodes reroute to the group node
+Organizers can nest — a freeform organizer can contain other organizers. Stack and grid organizers accept only constructs, not other organizers. Business rules are enforced at the attach point.
 
-Groups support z-index layering (outer groups behind inner) and are sorted before content nodes in the React Flow node array.
+### Organizers vs. Connections
+
+Organizers and port connections are completely independent systems. Dropping a node into an organizer never creates a connection. Connecting two nodes via ports never puts them in the same organizer. Organizers serve the human (spatial convenience); connections serve the AI (semantic meaning). See doc02.09.
 
 ## Full View Window
 

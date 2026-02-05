@@ -3,14 +3,13 @@ import { useDocumentContext } from '../../contexts/DocumentContext';
 import { config } from '../../config/featureFlags';
 import ConnectionStatus from '../ConnectionStatus';
 import DocumentBrowserModal from '../modals/DocumentBrowserModal';
-import ExamplesModal from '../modals/ExamplesModal';
 import ProjectInfoModal from '../modals/ProjectInfoModal';
 import ClearWorkspaceModal from '../modals/ClearWorkspaceModal';
 import RestoreDefaultSchemasModal from '../modals/RestoreDefaultSchemasModal';
-import { getExamples, type Example } from '../../utils/examples';
 import { cleanAllLocalData } from '../../stores/documentRegistry';
 import { ThemeMenu } from './ThemeMenu';
 import { SettingsMenu } from './SettingsMenu';
+import { SeedsMenu } from './SeedsMenu';
 import { ShareMenu } from './ShareMenu';
 
 export interface HeaderProps {
@@ -24,7 +23,6 @@ export interface HeaderProps {
   onClear?: (mode: 'instances' | 'all') => void;
   onRestoreDefaultSchemas?: () => void;
   onToggleAI?: () => void;
-  onLoadExample?: (example: Example) => void;
 }
 
 /**
@@ -52,17 +50,13 @@ export function Header({
   onClear,
   onRestoreDefaultSchemas,
   onToggleAI,
-  onLoadExample,
 }: HeaderProps) {
   const { mode, documentId } = useDocumentContext();
   const [isProjectInfoModalOpen, setIsProjectInfoModalOpen] = useState(false);
-  const [isExamplesModalOpen, setIsExamplesModalOpen] = useState(false);
   const [isDocBrowserOpen, setIsDocBrowserOpen] = useState(false);
   const [isClearWorkspaceModalOpen, setIsClearWorkspaceModalOpen] = useState(false);
   const [isRestoreDefaultSchemasModalOpen, setIsRestoreDefaultSchemasModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const examples = getExamples();
 
   const handleImportClick = () => {
     fileInputRef.current?.click();
@@ -205,12 +199,11 @@ export function Header({
           </button>
         )}
 
+        {config.debug && <SeedsMenu />}
+
         <ThemeMenu />
 
         <SettingsMenu
-          examples={examples}
-          onLoadExample={onLoadExample}
-          onOpenExamplesModal={() => setIsExamplesModalOpen(true)}
           onOpenClearModal={() => setIsClearWorkspaceModalOpen(true)}
           onOpenRestoreSchemasModal={() => setIsRestoreDefaultSchemasModalOpen(true)}
         />
@@ -240,17 +233,6 @@ export function Header({
             onDescriptionChange(newDescription);
           }}
           onClose={() => setIsProjectInfoModalOpen(false)}
-        />
-      )}
-
-      {isExamplesModalOpen && onLoadExample && (
-        <ExamplesModal
-          examples={examples}
-          onSelect={(example) => {
-            onLoadExample(example);
-            setIsExamplesModalOpen(false);
-          }}
-          onClose={() => setIsExamplesModalOpen(false)}
         />
       )}
 

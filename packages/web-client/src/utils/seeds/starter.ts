@@ -1,4 +1,4 @@
-import type { DocumentAdapter, VisualGroupNodeData } from '@carta/domain';
+import type { DocumentAdapter, OrganizerNodeData } from '@carta/domain';
 import { generateSemanticId } from '@carta/domain';
 import { generateDeployableColor } from '@carta/document';
 
@@ -6,45 +6,46 @@ import { generateDeployableColor } from '@carta/document';
  * Seeds a fresh document with a small starter graph so the canvas
  * isn't empty on first visit. Uses Note constructs connected with
  * symmetric links — domain-neutral and low-friction.
- * Includes a visual group containing two nodes to demonstrate grouping.
+ * Includes an organizer containing two nodes to demonstrate grouping.
  *
- * Uses React Flow's native parentId system for visual groups.
- * Group nodes must come BEFORE their children in the nodes array.
+ * Uses React Flow's native parentId system for organizers.
+ * Organizer nodes must come BEFORE their children in the nodes array.
  */
-export function seedStarterContent(adapter: DocumentAdapter): void {
-  const groupId = crypto.randomUUID();
+export function starter(adapter: DocumentAdapter): void {
+  const organizerId = crypto.randomUUID();
   const nodeA = crypto.randomUUID();
   const nodeB = crypto.randomUUID();
   const nodeC = crypto.randomUUID();
 
-  const groupColor = generateDeployableColor();
+  const organizerColor = generateDeployableColor();
 
-  // Group position and size
-  const GROUP_PADDING = 20;
-  const GROUP_HEADER_HEIGHT = 40;
-  const groupPosition = { x: 430, y: 40 };
-  const groupWidth = 240;
-  const groupHeight = 380;
+  // Organizer position and size
+  const PADDING = 20;
+  const HEADER_HEIGHT = 40;
+  const organizerPosition = { x: 430, y: 40 };
+  const organizerWidth = 240;
+  const organizerHeight = 380;
 
-  // Child positions are RELATIVE to the group
-  const nodeBRelativePos = { x: GROUP_PADDING, y: GROUP_HEADER_HEIGHT + 20 };
-  const nodeCRelativePos = { x: GROUP_PADDING, y: GROUP_HEADER_HEIGHT + 220 };
+  // Child positions are RELATIVE to the organizer
+  const nodeBRelativePos = { x: PADDING, y: HEADER_HEIGHT + 20 };
+  const nodeCRelativePos = { x: PADDING, y: HEADER_HEIGHT + 220 };
 
   adapter.setNodes([
-    // Group FIRST (parents before children - React Flow requirement)
+    // Organizer FIRST (parents before children - React Flow requirement)
     {
-      id: groupId,
-      type: 'visual-group',
-      position: groupPosition,
-      style: { width: groupWidth, height: groupHeight },
+      id: organizerId,
+      type: 'organizer',
+      position: organizerPosition,
+      style: { width: organizerWidth, height: organizerHeight },
       data: {
-        isVisualGroup: true,
+        isOrganizer: true,
         name: 'Related Ideas',
-        color: groupColor,
+        color: organizerColor,
         collapsed: false,
-      } satisfies VisualGroupNodeData,
+        layout: 'freeform',
+      } satisfies OrganizerNodeData,
     },
-    // Standalone node (not in group)
+    // Standalone node (not in organizer)
     {
       id: nodeA,
       type: 'construct',
@@ -56,11 +57,11 @@ export function seedStarterContent(adapter: DocumentAdapter): void {
         viewLevel: 'summary',
       },
     },
-    // Grouped nodes with parentId and relative positions
+    // Organized nodes with parentId and relative positions
     {
       id: nodeB,
       type: 'construct',
-      parentId: groupId,
+      parentId: organizerId,
       position: nodeBRelativePos,
       data: {
         constructType: 'note',
@@ -72,7 +73,7 @@ export function seedStarterContent(adapter: DocumentAdapter): void {
     {
       id: nodeC,
       type: 'construct',
-      parentId: groupId,
+      parentId: organizerId,
       position: nodeCRelativePos,
       data: {
         constructType: 'note',

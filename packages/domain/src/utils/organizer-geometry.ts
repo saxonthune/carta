@@ -1,5 +1,5 @@
 /**
- * Pure geometry functions for visual group operations.
+ * Pure geometry functions for organizer operations.
  * These are platform-agnostic and unit-testable.
  */
 
@@ -20,12 +20,12 @@ export interface Bounds {
   height: number;
 }
 
-export interface GroupLayoutConfig {
+export interface OrganizerLayoutConfig {
   padding: number;
   headerHeight: number;
 }
 
-export const DEFAULT_GROUP_LAYOUT: GroupLayoutConfig = {
+export const DEFAULT_ORGANIZER_LAYOUT: OrganizerLayoutConfig = {
   padding: 20,
   headerHeight: 40,
 };
@@ -53,9 +53,9 @@ export interface NodeWithParent {
  * Compute the bounding box that contains all given nodes.
  * Uses measured dimensions when available, falling back to explicit dimensions.
  */
-export function computeGroupBounds(
+export function computeOrganizerBounds(
   nodes: NodeGeometry[],
-  config: GroupLayoutConfig = DEFAULT_GROUP_LAYOUT
+  config: OrganizerLayoutConfig = DEFAULT_ORGANIZER_LAYOUT
 ): Bounds {
   if (nodes.length === 0) {
     return { x: 0, y: 0, width: config.padding * 2, height: config.padding * 2 + config.headerHeight };
@@ -106,11 +106,11 @@ export function toAbsolutePosition(nodePos: Position, parentPos: Position): Posi
 
 /**
  * Compute the minimum size needed to contain all children.
- * Children positions are assumed to be relative to the group.
+ * Children positions are assumed to be relative to the organizer.
  */
-export function computeMinGroupSize(
+export function computeMinOrganizerSize(
   children: NodeGeometry[],
-  config: GroupLayoutConfig = DEFAULT_GROUP_LAYOUT
+  config: OrganizerLayoutConfig = DEFAULT_ORGANIZER_LAYOUT
 ): Size {
   if (children.length === 0) {
     return {
@@ -140,7 +140,7 @@ export function computeMinGroupSize(
  * Sort nodes so that parents come before their children.
  * This is required by React Flow for proper rendering.
  *
- * Uses topological sort to handle nested groups.
+ * Uses topological sort to handle nested organizers.
  * Cycles are detected and broken (nodes in cycles are placed at the end).
  */
 export function sortParentsFirst<T extends NodeWithParent>(nodes: T[]): T[] {
@@ -192,31 +192,31 @@ export function sortParentsFirst<T extends NodeWithParent>(nodes: T[]): T[] {
 }
 
 /**
- * Result of a full group fit calculation.
- * Handles children that have been dragged above/left of the group content area.
+ * Result of a full organizer fit calculation.
+ * Handles children that have been dragged above/left of the organizer content area.
  */
-export interface GroupFitResult {
-  /** How much to shift the group's position (negative = move left/up) */
+export interface OrganizerFitResult {
+  /** How much to shift the organizer's position (negative = move left/up) */
   positionDelta: Position;
-  /** New size for the group after accounting for the shift */
+  /** New size for the organizer after accounting for the shift */
   size: Size;
   /** Delta to apply to ALL children's positions (= -positionDelta) */
   childPositionDelta: Position;
 }
 
 /**
- * Compute a full group refit: new size AND position/child adjustments.
- * Unlike computeMinGroupSize which only grows rightward/downward,
+ * Compute a full organizer refit: new size AND position/child adjustments.
+ * Unlike computeMinOrganizerSize which only grows rightward/downward,
  * this handles children at negative relative positions by shifting
- * the group position and adjusting all children.
+ * the organizer position and adjusting all children.
  *
- * Children positions are assumed to be relative to the group.
+ * Children positions are assumed to be relative to the organizer.
  */
-export function computeGroupFit(
+export function computeOrganizerFit(
   children: NodeGeometry[],
-  config: GroupLayoutConfig = DEFAULT_GROUP_LAYOUT
-): GroupFitResult {
-  const noShift: GroupFitResult = {
+  config: OrganizerLayoutConfig = DEFAULT_ORGANIZER_LAYOUT
+): OrganizerFitResult {
+  const noShift: OrganizerFitResult = {
     positionDelta: { x: 0, y: 0 },
     size: {
       width: config.padding * 2,
@@ -259,48 +259,48 @@ export function computeGroupFit(
 }
 
 /**
- * Check if a node's bounding box overlaps with a group's bounding box.
- * Used for drag-drop group membership detection.
+ * Check if a node's bounding box overlaps with an organizer's bounding box.
+ * Used for drag-drop organizer membership detection.
  */
-export function nodeOverlapsGroup(
+export function nodeOverlapsOrganizer(
   nodePos: Position,
   nodeSize: Size,
-  groupPos: Position,
-  groupSize: Size
+  organizerPos: Position,
+  organizerSize: Size
 ): boolean {
   const nodeRight = nodePos.x + nodeSize.width;
   const nodeBottom = nodePos.y + nodeSize.height;
-  const groupRight = groupPos.x + groupSize.width;
-  const groupBottom = groupPos.y + groupSize.height;
+  const organizerRight = organizerPos.x + organizerSize.width;
+  const organizerBottom = organizerPos.y + organizerSize.height;
 
   // Check for overlap (not just touching)
   return (
-    nodePos.x < groupRight &&
-    nodeRight > groupPos.x &&
-    nodePos.y < groupBottom &&
-    nodeBottom > groupPos.y
+    nodePos.x < organizerRight &&
+    nodeRight > organizerPos.x &&
+    nodePos.y < organizerBottom &&
+    nodeBottom > organizerPos.y
   );
 }
 
 /**
- * Check if a node is fully contained within a group.
- * More strict than overlap - requires node to be entirely inside group.
+ * Check if a node is fully contained within an organizer.
+ * More strict than overlap - requires node to be entirely inside organizer.
  */
-export function nodeContainedInGroup(
+export function nodeContainedInOrganizer(
   nodePos: Position,
   nodeSize: Size,
-  groupPos: Position,
-  groupSize: Size
+  organizerPos: Position,
+  organizerSize: Size
 ): boolean {
   const nodeRight = nodePos.x + nodeSize.width;
   const nodeBottom = nodePos.y + nodeSize.height;
-  const groupRight = groupPos.x + groupSize.width;
-  const groupBottom = groupPos.y + groupSize.height;
+  const organizerRight = organizerPos.x + organizerSize.width;
+  const organizerBottom = organizerPos.y + organizerSize.height;
 
   return (
-    nodePos.x >= groupPos.x &&
-    nodeRight <= groupRight &&
-    nodePos.y >= groupPos.y &&
-    nodeBottom <= groupBottom
+    nodePos.x >= organizerPos.x &&
+    nodeRight <= organizerRight &&
+    nodePos.y >= organizerPos.y &&
+    nodeBottom <= organizerBottom
   );
 }

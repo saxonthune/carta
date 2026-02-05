@@ -256,16 +256,6 @@ export default function PortSubWizard({
         />
       </div>
 
-      <label className="flex items-center gap-2 text-sm text-content cursor-pointer select-none">
-        <input
-          type="checkbox"
-          checked={port.allowsGrouping ?? false}
-          onChange={(e) => onChange({ allowsGrouping: e.target.checked })}
-          className="w-4 h-4 accent-[var(--color-accent)]"
-        />
-        Enable visual grouping
-        <span className="text-[11px] text-content-muted">(creates a container for child constructs)</span>
-      </label>
     </div>
   );
 }

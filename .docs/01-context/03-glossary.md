@@ -51,9 +51,13 @@ Canonical definitions for domain terms used throughout Carta. Use these terms co
 
 **Virtual Folder**: A folder path derived from document metadata, not stored as a separate entity. Documents have a `folder` field (e.g., `/projects/webapp`) and the folder hierarchy is derived dynamically by the UI. Folders are created implicitly when documents are saved to them.
 
-**Visual Group**: A unified grouping primitive for visual organization on the canvas. Replaces deployables (Map view) and schema groups (Metamap view) with a single concept. Supports nesting via parentGroupId, collapse/expand states, and optional manual positioning. Groups are level-scoped (Map levels use level IDs, Metamap uses special `__metamap__` level ID).
+**Organizer**: A canvas-level grouping mechanism for visual organization. Organizers let users arrange constructs into collections without affecting the semantic model — they are never compiled. Each organizer has a **layout strategy** (`freeform`, `stack`, `grid`) that determines how its members are arranged. Organizers can nest (a freeform organizer can contain other organizers). Constructs inside an organizer are **members**, not children — "parent/child" is reserved for the port system. See doc02.09.
 
-**Virtual Parent**: A container node that visually groups child constructs. Has three collapse states: expanded, no-edges, collapsed (pill).
+**Organized Collection**: The set of constructs that belong to a single organizer. The organizer is the container; the collection is its contents.
+
+**Layout Strategy**: The arrangement algorithm used by an organizer. `freeform` (free positioning within bounds), `stack` (one member visible at a time with arrow navigation), `grid` (auto-arranged in a resizable grid). Layout strategies are a Strategy pattern — each computes member positions and visibility as a pure function.
+
+**Presentation Model**: A stateless transformation layer that converts domain state into view state. Decides node visibility (organizer collapse), positioning (layout strategies), component selection (render style + LOD dispatch), and edge routing (remapping for collapsed organizers). Lives in the Visual Editor Layer but is conceptually distinct from React components. See doc02.09.
 
 **Pin**: UI control that keeps expanded or open state persistent. Used in node headers (pin expanded details view) and draggable windows (keep window open when clicking outside).
 

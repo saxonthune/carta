@@ -17,8 +17,7 @@ import { useLevels } from './hooks/useLevels';
 import { useNodes } from './hooks/useNodes';
 import { useClearDocument } from './hooks/useClearDocument';
 import { useDocumentContext } from './contexts/DocumentContext';
-import { exportProject, importProject, importProjectFromString, type CartaFile } from './utils/cartaFile';
-import type { Example } from './utils/examples';
+import { exportProject, importProject, type CartaFile } from './utils/cartaFile';
 import { analyzeImport, type ImportAnalysis, type ImportOptions } from './utils/importAnalyzer';
 import { analyzeExport, type ExportAnalysis, type ExportOptions } from './utils/exportAnalyzer';
 import { importDocument, type ImportConfig } from './utils/documentImporter';
@@ -150,16 +149,6 @@ function AppContent() {
     }
   }, [deployables, schemas]);
 
-  const handleLoadExample = useCallback((example: Example) => {
-    try {
-      const data = importProjectFromString(example.content);
-      const analysis = analyzeImport(data, example.filename, nodesEdgesRef.current.nodes, deployables, schemas);
-      setImportPreview({ data, analysis });
-    } catch (error) {
-      alert(`Failed to load example: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  }, [deployables, schemas]);
-
   const handleImportConfirm = useCallback((options: ImportOptions) => {
     if (!importPreview) return;
 
@@ -225,7 +214,6 @@ function AppContent() {
         onClear={clearDocument}
         onRestoreDefaultSchemas={handleRestoreDefaultSchemas}
         onToggleAI={() => setAiSidebarOpen(!aiSidebarOpen)}
-        onLoadExample={handleLoadExample}
       />
       <CanvasContainer
         deployables={deployables}

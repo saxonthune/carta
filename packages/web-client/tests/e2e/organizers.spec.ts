@@ -2,16 +2,16 @@ import { test, expect, type Page } from '@playwright/test';
 import { CartaPage } from './helpers/CartaPage';
 
 /**
- * Visual Groups E2E Tests (Native parentId System)
+ * Organizers E2E Tests (Native parentId System)
  *
- * Tests the visual grouping UI workflow using React Flow's native parentId system:
- * - Create groups from selected nodes via Ctrl+G
- * - Visual group nodes appear on canvas (type='visual-group')
- * - Groups can be collapsed/expanded
- * - Context menu group operations
+ * Tests the organizer UI workflow using React Flow's native parentId system:
+ * - Create organizers from selected nodes via Ctrl+G
+ * - Organizer nodes appear on canvas (type='organizer')
+ * - Organizers can be collapsed/expanded
+ * - Context menu organizer operations
  *
- * NOTE: Groups are now regular nodes with type='visual-group'.
- * Children use parentId to reference their group.
+ * NOTE: Organizers are regular nodes with type='organizer'.
+ * Children use parentId to reference their organizer.
  */
 
 /**
@@ -31,19 +31,19 @@ async function selectNodesViaDrag(page: Page) {
 }
 
 /**
- * Helper to get visual group nodes (type='visual-group')
+ * Helper to get organizer nodes (type='organizer')
  */
-function getVisualGroupNodes(page: Page) {
-  return page.locator('.react-flow__node-visual-group');
+function getOrganizerNodes(page: Page) {
+  return page.locator('.react-flow__node-organizer');
 }
 
-test.describe('Visual Groups', () => {
+test.describe('Organizers', () => {
   let carta: CartaPage;
 
   test.beforeEach(async ({ page }) => {
     carta = new CartaPage(page);
     await carta.gotoFresh();
-    // Wait for starter content to load (wait for a construct node, not visual group)
+    // Wait for starter content to load (wait for a construct node, not organizer)
     await expect(page.locator('.react-flow__node-construct').first()).toBeVisible({ timeout: 5000 });
   });
 
@@ -59,7 +59,7 @@ test.describe('Visual Groups', () => {
     expect(selectedCount).toBeGreaterThanOrEqual(2);
   });
 
-  test('Ctrl+G creates a visual group from selected nodes', async ({ page }) => {
+  test('Ctrl+G creates an organizer from selected nodes', async ({ page }) => {
     const nodeCount = await page.locator('.react-flow__node').count();
     expect(nodeCount).toBeGreaterThanOrEqual(2);
 
@@ -69,66 +69,65 @@ test.describe('Visual Groups', () => {
     const selectedCount = await page.locator('.react-flow__node.selected').count();
     expect(selectedCount).toBeGreaterThanOrEqual(2);
 
-    // Count group nodes before (starter content has one group)
-    const initialGroupCount = await getVisualGroupNodes(page).count();
+    // Count organizer nodes before (starter content has one organizer)
+    const initialOrganizerCount = await getOrganizerNodes(page).count();
 
-    // Press Ctrl+G to create a group
+    // Press Ctrl+G to create an organizer
     await page.keyboard.press('Control+g');
     await page.waitForTimeout(500);
 
-    // Should have one more group node
-    const newGroupCount = await getVisualGroupNodes(page).count();
-    expect(newGroupCount).toBe(initialGroupCount + 1);
+    // Should have one more organizer node
+    const newOrganizerCount = await getOrganizerNodes(page).count();
+    expect(newOrganizerCount).toBe(initialOrganizerCount + 1);
 
-    // The newly created group should have the default name "New Group"
-    const newGroupNode = getVisualGroupNodes(page).filter({ hasText: 'New Group' });
-    await expect(newGroupNode).toBeAttached({ timeout: 2000 });
+    // The newly created organizer should have the default name "New Organizer"
+    const newOrganizerNode = getOrganizerNodes(page).filter({ hasText: 'New Organizer' });
+    await expect(newOrganizerNode).toBeAttached({ timeout: 2000 });
   });
 
-  test('visual group node displays group name', async ({ page }) => {
+  test('organizer node displays name', async ({ page }) => {
     await selectNodesViaDrag(page);
 
-    // Create group
+    // Create organizer
     await page.keyboard.press('Control+g');
     await page.waitForTimeout(500);
 
-    // The newly created group should display default name "New Group"
-    const newGroupNode = getVisualGroupNodes(page).filter({ hasText: 'New Group' });
-    await expect(newGroupNode).toBeAttached();
+    // The newly created organizer should display default name "New Organizer"
+    const newOrganizerNode = getOrganizerNodes(page).filter({ hasText: 'New Organizer' });
+    await expect(newOrganizerNode).toBeAttached();
   });
 
-  test('visual group shows child count badge', async ({ page }) => {
-    // First verify the starter group exists and shows count
-    const starterGroup = getVisualGroupNodes(page).filter({ hasText: 'Related Ideas' });
-    await expect(starterGroup).toBeAttached();
-    // Starter group has 2 nodes assigned to it
-    await expect(starterGroup).toContainText('2');
+  test('organizer shows child count badge', async ({ page }) => {
+    // First verify the starter organizer exists and shows count
+    const starterOrganizer = getOrganizerNodes(page).filter({ hasText: 'Related Ideas' });
+    await expect(starterOrganizer).toBeAttached();
+    // Starter organizer has 2 nodes assigned to it
+    await expect(starterOrganizer).toContainText('2');
   });
 
-  test('visual group has collapse toggle button', async ({ page }) => {
-    // Find the starter group node
-    const groupNode = getVisualGroupNodes(page).filter({ hasText: 'Related Ideas' });
-    await expect(groupNode).toBeAttached();
+  test('organizer has collapse toggle button', async ({ page }) => {
+    // Find the starter organizer node
+    const organizerNode = getOrganizerNodes(page).filter({ hasText: 'Related Ideas' });
+    await expect(organizerNode).toBeAttached();
 
     // Verify the collapse toggle button exists (eyeball icon)
-    const toggleButton = groupNode.locator('button[title="Collapse group"]');
+    const toggleButton = organizerNode.locator('button[title="Collapse organizer"]');
     await expect(toggleButton).toBeAttached();
   });
 
-  test.skip('context menu shows "Group Selected" option with multiple selection', async ({ page }) => {
+  test.skip('context menu shows "Organize Selected" option with multiple selection', async ({ page }) => {
     // Skipped: Context menu integration needs investigation
-    // The context menu may have different structure or naming
     await selectNodesViaDrag(page);
 
     const firstNode = carta.getNode(0);
     await firstNode.click({ button: 'right' });
     await page.waitForTimeout(500);
 
-    const groupOption = page.getByRole('button', { name: /group/i });
-    await expect(groupOption.first()).toBeAttached({ timeout: 5000 });
+    const organizeOption = page.getByRole('button', { name: /organize/i });
+    await expect(organizeOption.first()).toBeAttached({ timeout: 5000 });
   });
 
-  test.skip('context menu "Group Selected" creates a group', async ({ page }) => {
+  test.skip('context menu "Organize Selected" creates an organizer', async ({ page }) => {
     // Skipped: Context menu integration needs investigation
     const initialNodeCount = await page.locator('.react-flow__node').count();
 
@@ -137,15 +136,15 @@ test.describe('Visual Groups', () => {
     await firstNode.click({ button: 'right' });
     await page.waitForTimeout(500);
 
-    const groupOption = page.getByRole('button', { name: /group/i });
-    await groupOption.first().click({ force: true });
+    const organizeOption = page.getByRole('button', { name: /organize/i });
+    await organizeOption.first().click({ force: true });
     await page.waitForTimeout(500);
 
     const newNodeCount = await page.locator('.react-flow__node').count();
     expect(newNodeCount).toBe(initialNodeCount + 1);
   });
 
-  test.skip('context menu shows "Remove from Group" for grouped node', async ({ page }) => {
+  test.skip('context menu shows "Remove from Organizer" for organized node', async ({ page }) => {
     // Skipped: Context menu integration needs investigation
     await selectNodesViaDrag(page);
     await page.keyboard.press('Control+g');
@@ -159,13 +158,13 @@ test.describe('Visual Groups', () => {
     await firstNode.click({ button: 'right' });
     await page.waitForTimeout(500);
 
-    const removeOption = page.getByRole('button', { name: /remove.*group/i });
+    const removeOption = page.getByRole('button', { name: /remove.*organizer/i });
     await expect(removeOption).toBeAttached({ timeout: 5000 });
   });
 
   test('Ctrl+G requires at least 2 nodes selected', async ({ page }) => {
-    // Count groups before
-    const initialGroupCount = await getVisualGroupNodes(page).count();
+    // Count organizers before
+    const initialOrganizerCount = await getOrganizerNodes(page).count();
 
     // Select only one construct node
     const constructNode = page.locator('.react-flow__node-construct').first();
@@ -175,18 +174,18 @@ test.describe('Visual Groups', () => {
     await page.keyboard.press('Control+g');
     await page.waitForTimeout(500);
 
-    // No new group node should be created
-    const newGroupCount = await getVisualGroupNodes(page).count();
-    expect(newGroupCount).toBe(initialGroupCount);
+    // No new organizer node should be created
+    const newOrganizerCount = await getOrganizerNodes(page).count();
+    expect(newOrganizerCount).toBe(initialOrganizerCount);
   });
 
-  test('visual group node is draggable', async ({ page }) => {
-    // Use the starter group to test dragging
-    const groupNode = getVisualGroupNodes(page).filter({ hasText: 'Related Ideas' });
-    await expect(groupNode).toBeAttached();
+  test('organizer node is draggable', async ({ page }) => {
+    // Use the starter organizer to test dragging
+    const organizerNode = getOrganizerNodes(page).filter({ hasText: 'Related Ideas' });
+    await expect(organizerNode).toBeAttached();
 
-    // Drag the group node header
-    const dragHandle = groupNode.locator('.node-drag-handle');
+    // Drag the organizer node header
+    const dragHandle = organizerNode.locator('.node-drag-handle');
     await expect(dragHandle).toBeAttached();
     const handleBox = await dragHandle.boundingBox();
     expect(handleBox).not.toBeNull();
@@ -198,7 +197,7 @@ test.describe('Visual Groups', () => {
     await page.mouse.up();
     await page.waitForTimeout(300);
 
-    // Group should still be attached (verifies no errors during drag)
-    await expect(groupNode).toBeAttached();
+    // Organizer should still be attached (verifies no errors during drag)
+    await expect(organizerNode).toBeAttached();
   });
 });

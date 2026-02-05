@@ -1,34 +1,34 @@
 /**
- * Test: Group Geometry Pure Functions
+ * Test: Organizer Geometry Pure Functions
  *
- * Unit tests for pure geometry functions used in visual group operations.
+ * Unit tests for pure geometry functions used in organizer operations.
  * These functions are in @carta/domain and have no React/DOM dependencies.
  */
 
 import { describe, it, expect } from 'vitest';
 import {
-  computeGroupBounds,
+  computeOrganizerBounds,
   toRelativePosition,
   toAbsolutePosition,
-  computeMinGroupSize,
-  computeGroupFit,
+  computeMinOrganizerSize,
+  computeOrganizerFit,
   sortParentsFirst,
-  nodeOverlapsGroup,
-  nodeContainedInGroup,
-  DEFAULT_GROUP_LAYOUT,
+  nodeOverlapsOrganizer,
+  nodeContainedInOrganizer,
+  DEFAULT_ORGANIZER_LAYOUT,
   type NodeGeometry,
   type NodeWithParent,
 } from '@carta/domain';
 
-describe('Group Geometry Functions', () => {
-  describe('computeGroupBounds', () => {
+describe('Organizer Geometry Functions', () => {
+  describe('computeOrganizerBounds', () => {
     it('computes correct bounds for multiple nodes', () => {
       const nodes: NodeGeometry[] = [
         { position: { x: 100, y: 100 }, width: 200, height: 100 },
         { position: { x: 400, y: 200 }, width: 200, height: 100 },
       ];
 
-      const bounds = computeGroupBounds(nodes);
+      const bounds = computeOrganizerBounds(nodes);
 
       // Min x = 100, Max x = 400 + 200 = 600
       // Min y = 100, Max y = 200 + 100 = 300
@@ -48,7 +48,7 @@ describe('Group Geometry Functions', () => {
         { position: { x: 100, y: 100 }, width: 200, height: 100 },
       ];
 
-      const bounds = computeGroupBounds(nodes);
+      const bounds = computeOrganizerBounds(nodes);
 
       expect(bounds.x).toBe(80);  // 100 - 20
       expect(bounds.y).toBe(40);  // 100 - 20 - 40
@@ -57,12 +57,12 @@ describe('Group Geometry Functions', () => {
     });
 
     it('handles empty array', () => {
-      const bounds = computeGroupBounds([]);
+      const bounds = computeOrganizerBounds([]);
 
       expect(bounds.x).toBe(0);
       expect(bounds.y).toBe(0);
-      expect(bounds.width).toBe(DEFAULT_GROUP_LAYOUT.padding * 2);
-      expect(bounds.height).toBe(DEFAULT_GROUP_LAYOUT.padding * 2 + DEFAULT_GROUP_LAYOUT.headerHeight);
+      expect(bounds.width).toBe(DEFAULT_ORGANIZER_LAYOUT.padding * 2);
+      expect(bounds.height).toBe(DEFAULT_ORGANIZER_LAYOUT.padding * 2 + DEFAULT_ORGANIZER_LAYOUT.headerHeight);
     });
 
     it('uses measured dimensions when available', () => {
@@ -75,7 +75,7 @@ describe('Group Geometry Functions', () => {
         },
       ];
 
-      const bounds = computeGroupBounds(nodes);
+      const bounds = computeOrganizerBounds(nodes);
 
       // Should use measured dimensions: 250x150
       expect(bounds.width).toBe(290);  // 250 + 40
@@ -87,7 +87,7 @@ describe('Group Geometry Functions', () => {
         { position: { x: 100, y: 100 } },  // No width/height
       ];
 
-      const bounds = computeGroupBounds(nodes);
+      const bounds = computeOrganizerBounds(nodes);
 
       // Defaults: 200x100
       expect(bounds.width).toBe(240);  // 200 + 40
@@ -99,7 +99,7 @@ describe('Group Geometry Functions', () => {
         { position: { x: 100, y: 100 }, width: 200, height: 100 },
       ];
 
-      const bounds = computeGroupBounds(nodes, { padding: 10, headerHeight: 20 });
+      const bounds = computeOrganizerBounds(nodes, { padding: 10, headerHeight: 20 });
 
       expect(bounds.x).toBe(90);   // 100 - 10
       expect(bounds.y).toBe(70);   // 100 - 10 - 20
@@ -167,14 +167,14 @@ describe('Group Geometry Functions', () => {
     });
   });
 
-  describe('computeMinGroupSize', () => {
+  describe('computeMinOrganizerSize', () => {
     it('computes minimum size to contain children', () => {
       const children: NodeGeometry[] = [
         { position: { x: 20, y: 60 }, width: 200, height: 100 },
         { position: { x: 20, y: 180 }, width: 200, height: 100 },
       ];
 
-      const size = computeMinGroupSize(children);
+      const size = computeMinOrganizerSize(children);
 
       // Max x = 20 + 200 = 220, Max y = 180 + 100 = 280
       // With padding: width = 220 + 20 = 240, height = 280 + 20 = 300
@@ -183,10 +183,10 @@ describe('Group Geometry Functions', () => {
     });
 
     it('handles empty children array', () => {
-      const size = computeMinGroupSize([]);
+      const size = computeMinOrganizerSize([]);
 
-      expect(size.width).toBe(DEFAULT_GROUP_LAYOUT.padding * 2);
-      expect(size.height).toBe(DEFAULT_GROUP_LAYOUT.padding * 2 + DEFAULT_GROUP_LAYOUT.headerHeight);
+      expect(size.width).toBe(DEFAULT_ORGANIZER_LAYOUT.padding * 2);
+      expect(size.height).toBe(DEFAULT_ORGANIZER_LAYOUT.padding * 2 + DEFAULT_ORGANIZER_LAYOUT.headerHeight);
     });
 
     it('uses measured dimensions when available', () => {
@@ -199,7 +199,7 @@ describe('Group Geometry Functions', () => {
         },
       ];
 
-      const size = computeMinGroupSize(children);
+      const size = computeMinOrganizerSize(children);
 
       // Max x = 20 + 300 = 320, Max y = 60 + 150 = 210
       expect(size.width).toBe(340);  // 320 + 20
@@ -294,9 +294,9 @@ describe('Group Geometry Functions', () => {
     });
   });
 
-  describe('nodeOverlapsGroup', () => {
+  describe('nodeOverlapsOrganizer', () => {
     it('returns true when node overlaps group', () => {
-      const result = nodeOverlapsGroup(
+      const result = nodeOverlapsOrganizer(
         { x: 150, y: 150 },  // node position
         { width: 100, height: 100 },  // node size
         { x: 100, y: 100 },  // group position
@@ -307,7 +307,7 @@ describe('Group Geometry Functions', () => {
     });
 
     it('returns false when node is outside group', () => {
-      const result = nodeOverlapsGroup(
+      const result = nodeOverlapsOrganizer(
         { x: 500, y: 500 },  // node position (far away)
         { width: 100, height: 100 },
         { x: 100, y: 100 },
@@ -318,7 +318,7 @@ describe('Group Geometry Functions', () => {
     });
 
     it('returns true when node partially overlaps group', () => {
-      const result = nodeOverlapsGroup(
+      const result = nodeOverlapsOrganizer(
         { x: 250, y: 250 },  // node starts at edge of group
         { width: 100, height: 100 },
         { x: 100, y: 100 },
@@ -329,7 +329,7 @@ describe('Group Geometry Functions', () => {
     });
 
     it('returns false when nodes only touch at edge (no overlap)', () => {
-      const result = nodeOverlapsGroup(
+      const result = nodeOverlapsOrganizer(
         { x: 300, y: 100 },  // node starts exactly where group ends
         { width: 100, height: 100 },
         { x: 100, y: 100 },
@@ -340,9 +340,9 @@ describe('Group Geometry Functions', () => {
     });
   });
 
-  describe('nodeContainedInGroup', () => {
+  describe('nodeContainedInOrganizer', () => {
     it('returns true when node is fully inside group', () => {
-      const result = nodeContainedInGroup(
+      const result = nodeContainedInOrganizer(
         { x: 120, y: 120 },  // node position
         { width: 50, height: 50 },  // node size (fits inside)
         { x: 100, y: 100 },  // group position
@@ -353,7 +353,7 @@ describe('Group Geometry Functions', () => {
     });
 
     it('returns false when node extends outside group', () => {
-      const result = nodeContainedInGroup(
+      const result = nodeContainedInOrganizer(
         { x: 200, y: 200 },  // node starts inside
         { width: 150, height: 150 },  // but extends outside (200+150=350 > 300)
         { x: 100, y: 100 },
@@ -364,7 +364,7 @@ describe('Group Geometry Functions', () => {
     });
 
     it('returns false when node is completely outside', () => {
-      const result = nodeContainedInGroup(
+      const result = nodeContainedInOrganizer(
         { x: 500, y: 500 },
         { width: 100, height: 100 },
         { x: 100, y: 100 },
@@ -375,7 +375,7 @@ describe('Group Geometry Functions', () => {
     });
 
     it('returns true when node exactly fits group', () => {
-      const result = nodeContainedInGroup(
+      const result = nodeContainedInOrganizer(
         { x: 100, y: 100 },
         { width: 200, height: 200 },
         { x: 100, y: 100 },
@@ -386,8 +386,8 @@ describe('Group Geometry Functions', () => {
     });
   });
 
-  describe('computeGroupFit', () => {
-    const config = DEFAULT_GROUP_LAYOUT; // padding=20, headerHeight=40
+  describe('computeOrganizerFit', () => {
+    const config = DEFAULT_ORGANIZER_LAYOUT; // padding=20, headerHeight=40
 
     it('returns zero deltas when all children have positive positions', () => {
       const children: NodeGeometry[] = [
@@ -395,12 +395,12 @@ describe('Group Geometry Functions', () => {
         { position: { x: 20, y: 180 }, width: 200, height: 100 },
       ];
 
-      const result = computeGroupFit(children, config);
+      const result = computeOrganizerFit(children, config);
 
       expect(result.positionDelta).toEqual({ x: 0, y: 0 });
       expect(result.childPositionDelta).toEqual({ x: 0, y: 0 });
-      // Size should match computeMinGroupSize for the same input
-      const minSize = computeMinGroupSize(children, config);
+      // Size should match computeMinOrganizerSize for the same input
+      const minSize = computeMinOrganizerSize(children, config);
       expect(result.size).toEqual(minSize);
     });
 
@@ -410,7 +410,7 @@ describe('Group Geometry Functions', () => {
         { position: { x: 20, y: 180 }, width: 200, height: 100 },
       ];
 
-      const result = computeGroupFit(children, config);
+      const result = computeOrganizerFit(children, config);
 
       // idealMinX = padding = 20
       // minX = -30, so shiftX = -30 - 20 = -50
@@ -419,7 +419,7 @@ describe('Group Geometry Functions', () => {
       expect(result.childPositionDelta.x).toBe(50);
       expect(result.childPositionDelta.y).toBe(0);
       // Width should be wider to accommodate the shifted child
-      expect(result.size.width).toBeGreaterThan(computeMinGroupSize(children, config).width);
+      expect(result.size.width).toBeGreaterThan(computeMinOrganizerSize(children, config).width);
     });
 
     it('shifts up when a child has negative y position', () => {
@@ -428,7 +428,7 @@ describe('Group Geometry Functions', () => {
         { position: { x: 20, y: 180 }, width: 200, height: 100 },
       ];
 
-      const result = computeGroupFit(children, config);
+      const result = computeOrganizerFit(children, config);
 
       // idealMinY = padding + headerHeight = 20 + 40 = 60
       // minY = -10, so shiftY = -10 - 60 = -70
@@ -436,7 +436,7 @@ describe('Group Geometry Functions', () => {
       expect(result.positionDelta.y).toBe(-70);
       expect(result.childPositionDelta.x).toBe(0);
       expect(result.childPositionDelta.y).toBe(70);
-      expect(result.size.height).toBeGreaterThan(computeMinGroupSize(children, config).height);
+      expect(result.size.height).toBeGreaterThan(computeMinOrganizerSize(children, config).height);
     });
 
     it('shifts both axes when child has negative x and y', () => {
@@ -445,7 +445,7 @@ describe('Group Geometry Functions', () => {
         { position: { x: 100, y: 100 }, width: 200, height: 100 },
       ];
 
-      const result = computeGroupFit(children, config);
+      const result = computeOrganizerFit(children, config);
 
       expect(result.positionDelta.x).toBeLessThan(0);
       expect(result.positionDelta.y).toBeLessThan(0);
@@ -454,7 +454,7 @@ describe('Group Geometry Functions', () => {
     });
 
     it('returns default size and zero deltas for empty children', () => {
-      const result = computeGroupFit([], config);
+      const result = computeOrganizerFit([], config);
 
       expect(result.positionDelta).toEqual({ x: 0, y: 0 });
       expect(result.childPositionDelta).toEqual({ x: 0, y: 0 });
@@ -474,7 +474,7 @@ describe('Group Geometry Functions', () => {
         },
       ];
 
-      const result = computeGroupFit(children, config);
+      const result = computeOrganizerFit(children, config);
 
       // maxX should use measured width: 20 + 250 = 270
       // width = maxX - shiftX(0) + padding = 270 + 20 = 290

@@ -97,6 +97,18 @@ App.tsx (layout orchestration)
       SchemaNode (domain)
 ```
 
+## Presentation Model
+
+The presentation model is a pure transformation layer between domain state and React Flow rendering. It is not a React component or context — it is a stateless function that converts domain data into view-ready data. See doc02.09 for the full architecture.
+
+**Key responsibilities:**
+- Node visibility (organizer collapse hides members, stack layout hides non-active members)
+- Node positioning (layout strategies compute child positions)
+- Component dispatch (render style + LOD band → variant component)
+- Edge routing (remapping edges for collapsed organizers, bundling parallel edges)
+
+**Location:** `packages/web-client/src/presentation/` — pure functions consumed by Map.tsx.
+
 ## Feature Boundaries
 
 | Feature | Data | Intent | Key Files |
@@ -121,13 +133,13 @@ Organized by purpose:
 ### `hooks/index.ts`
 Organized by purpose:
 - **Document state**: `useNodes`, `useEdges`, `useSchemas`, `usePortSchemas`, `useDeployables`, `useSchemaGroups`, `useLevels`, `useDocumentMeta`
-- **Document operations**: `useGraphOperations`, `useConnections`, `useVisualGroups`, `useGroupOperations`
+- **Document operations**: `useGraphOperations`, `useConnections`, `useOrganizerOperations`
 - **UI state**: `useMapState`, `useMetamapLayout`, `useEdgeBundling`
 - **Utilities**: `useClipboard`, `useUndoRedo`, `useKeyboardShortcuts`, `useAwareness`, `useDirtyStateGuard`, `useClearDocument`
 
 ### `components/canvas/index.ts`
 Canvas components and LOD:
-- **Components**: `Map`, `CanvasContainer`, `ConstructNode`, `VirtualParentNode`, `VisualGroupNode`, `DynamicAnchorEdge`, `PortDrawer`, `IndexBasedDropZones`, `NodeControls`, `AddConstructMenu`
+- **Components**: `Map`, `CanvasContainer`, `ConstructNode`, `OrganizerNode`, `DynamicAnchorEdge`, `PortDrawer`, `IndexBasedDropZones`, `NodeControls`, `AddConstructMenu`
 - **LOD**: `useLodBand`, `DEFAULT_LOD_POLICY`, `getLodConfig`, types
 
 **Note:** `ConstructNode` and `Header` are directories with modular implementations. ConstructNode has: `index.tsx` (dispatcher), `ConstructNodePill.tsx` (pill LOD, shared), `ConstructNodeDefault.tsx` (includes 'default' and 'card' renderStyles), `ConstructNodeSimple.tsx` (simple renderStyle, see doc03.01.14), `shared.ts` (utilities). Header has: `Header.tsx`, `ThemeMenu.tsx`, `SettingsMenu.tsx`, `ShareMenu.tsx`, `useClickOutside.ts`.
@@ -178,3 +190,4 @@ Organized by purpose:
 - Premature abstraction: single-use wrapper component
 - Mixed concerns: single component that fetches AND renders complex UI
 - Service coupling: domain components directly accessing adapters
+- Presentation leakage: visibility/layout logic in React components instead of the presentation model

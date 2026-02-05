@@ -5,7 +5,7 @@ import type {
   CompilationFormat,
   Deployable,
   ConstructSchema,
-  VisualGroupNodeData,
+  OrganizerNodeData,
 } from '@carta/domain';
 import { formatJSON } from './formatters/json.js';
 
@@ -51,8 +51,8 @@ export class CompilerEngine {
     const getSchema = (type: string) => schemas.find(s => s.type === type);
     const getDeployable = (id: string) => deployables.find(d => d.id === id);
 
-    // Filter out visual-only nodes (virtual-parent and visual-group)
-    const compilableNodes = nodes.filter(n => n.type !== 'virtual-parent' && n.type !== 'visual-group');
+    // Filter out visual-only nodes (organizers)
+    const compilableNodes = nodes.filter(n => n.type !== 'organizer');
 
     const sections: string[] = [];
 
@@ -61,10 +61,10 @@ export class CompilerEngine {
       target: e.target,
     }));
 
-    // Add visual groups section if any exist
-    const visualGroupsSection = this.compileVisualGroups(nodes);
-    if (visualGroupsSection) {
-      sections.push(visualGroupsSection);
+    // Add organizers section if any exist
+    const organizersSection = this.compileOrganizers(nodes);
+    if (organizersSection) {
+      sections.push(organizersSection);
     }
 
     // Add deployables section at the top if any exist
@@ -123,34 +123,34 @@ export class CompilerEngine {
     return sections.join('\n\n---\n\n');
   }
 
-  private compileVisualGroups(allNodes: CompilerNode[]): string | null {
-    // Find visual group nodes
-    const groupNodes = allNodes.filter(n => n.type === 'visual-group');
-    if (groupNodes.length === 0) return null;
+  private compileOrganizers(allNodes: CompilerNode[]): string | null {
+    // Find organizer nodes
+    const organizerNodes = allNodes.filter(n => n.type === 'organizer');
+    if (organizerNodes.length === 0) return null;
 
-    // Build group membership from parentId relationships
-    const groupData = groupNodes.map(g => {
-      const groupData = g.data as unknown as VisualGroupNodeData;
+    // Build organizer membership from parentId relationships
+    const organizerData = organizerNodes.map(g => {
+      const data = g.data as unknown as OrganizerNodeData;
       const members = allNodes
-        .filter(n => (n as { parentId?: string }).parentId === g.id && n.type !== 'visual-group')
+        .filter(n => (n as { parentId?: string }).parentId === g.id && n.type !== 'organizer')
         .map(n => n.data.semanticId)
         .filter((id): id is string => !!id);
 
       return {
         id: g.id,
-        name: groupData.name,
+        name: data.name,
         members,
       };
     });
 
-    const groupsJson = JSON.stringify({ groups: groupData }, null, 2);
+    const organizersJson = JSON.stringify({ organizers: organizerData }, null, 2);
 
-    return `# Visual Groups
+    return `# Organizers
 
-The following visual groups organize constructs on the canvas. These are for organization purposes only.
+The following organizers group constructs on the canvas. These are for organization purposes only.
 
 \`\`\`json
-${groupsJson}
+${organizersJson}
 \`\`\``;
   }
 

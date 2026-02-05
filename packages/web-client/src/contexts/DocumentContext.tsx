@@ -4,7 +4,7 @@ import type { DocumentAdapter } from '@carta/domain';
 import { createYjsAdapter, type YjsAdapterOptions } from '../stores/adapters/yjsAdapter';
 import { builtInConstructSchemas, builtInSchemaGroups, builtInPortSchemas } from '@carta/domain';
 import { config } from '../config/featureFlags';
-import { seedStarterContent } from '../utils/starterContent';
+import { seeds } from '../utils/seeds';
 
 /**
  * Document context value
@@ -41,6 +41,8 @@ export interface DocumentProviderProps {
   skipPersistence?: boolean;
   /** Skip seeding starter content (for testing) */
   skipStarterContent?: boolean;
+  /** Seed name to use for initial content (defaults to 'starter') */
+  seedName?: string;
 }
 
 /**
@@ -54,6 +56,7 @@ export function DocumentProvider({
   serverUrl = config.wsUrl ?? undefined,
   skipPersistence = false,
   skipStarterContent = false,
+  seedName,
 }: DocumentProviderProps) {
   const [adapter, setAdapter] = useState<DocumentAdapter | null>(null);
   const [mode, setMode] = useState<'local' | 'shared'>('local');
@@ -98,9 +101,12 @@ export function DocumentProvider({
           yjsAdapter.ydoc.getMap('meta').set('initialized', true);
         }, 'init');
 
-        // Seed starter content so the canvas isn't empty on first visit
+        // Seed content so the canvas isn't empty on first visit
         if (!skipStarterContent) {
-          seedStarterContent(yjsAdapter);
+          const seedFn = seeds[seedName ?? 'starter'];
+          if (seedFn) {
+            seedFn(yjsAdapter);
+          }
         }
       }
 
@@ -192,7 +198,7 @@ export function DocumentProvider({
         currentAdapter.dispose();
       }
     };
-  }, [documentId, serverUrl, skipPersistence, skipStarterContent]);
+  }, [documentId, serverUrl, skipPersistence, skipStarterContent, seedName]);
 
   if (error) {
     return (

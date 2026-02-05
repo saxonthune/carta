@@ -1,7 +1,7 @@
 /**
- * Test: useGroupOperations Hook
+ * Test: useOrganizerOperations Hook
  *
- * Integration tests for the visual group operations hook.
+ * Integration tests for the organizer operations hook.
  * Tests that the hook correctly uses pure geometry functions
  * and properly manages React Flow node state.
  */
@@ -9,16 +9,16 @@
 import { describe, it, expect } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useNodes } from '../../src/hooks/useNodes';
-import { useGroupOperations } from '../../src/hooks/useGroupOperations';
+import { useOrganizerOperations } from '../../src/hooks/useOrganizerOperations';
 import { useDocumentContext } from '../../src/contexts/DocumentContext';
 import { TestProviders } from '../setup/testProviders';
 import { createTestNode } from '../setup/testHelpers';
-import type { VisualGroupNodeData } from '@carta/domain';
+import type { OrganizerNodeData } from '@carta/domain';
 
 function useTestHarness() {
   return {
     nodes: useNodes(),
-    groupOps: useGroupOperations(),
+    organizerOps: useOrganizerOperations(),
     context: useDocumentContext(),
   };
 }
@@ -31,8 +31,8 @@ async function setup() {
   return result;
 }
 
-describe('useGroupOperations Hook', () => {
-  describe('createGroup', () => {
+describe('useOrganizerOperations Hook', () => {
+  describe('createOrganizer', () => {
     it('creates a group with correct bounds from selected nodes', async () => {
       const result = await setup();
       const { adapter } = result.current.context;
@@ -62,7 +62,7 @@ describe('useGroupOperations Hook', () => {
       // Create group from the two nodes
       let groupId: string | null = null;
       act(() => {
-        groupId = result.current.groupOps.createGroup(['n1', 'n2']);
+        groupId = result.current.organizerOps.createOrganizer(['n1', 'n2']);
       });
 
       await waitFor(() => {
@@ -73,13 +73,13 @@ describe('useGroupOperations Hook', () => {
 
       // Find the group node
       const nodes = result.current.nodes.nodes;
-      const group = nodes.find(n => n.type === 'visual-group');
+      const group = nodes.find(n => n.type === 'organizer');
       expect(group).toBeDefined();
       expect(group?.id).toBe(groupId);
 
       // Check group data
-      const groupData = group?.data as VisualGroupNodeData;
-      expect(groupData.name).toBe('New Group');
+      const groupData = group?.data as OrganizerNodeData;
+      expect(groupData.name).toBe('New Organizer');
       expect(groupData.collapsed).toBe(false);
     });
 
@@ -106,7 +106,7 @@ describe('useGroupOperations Hook', () => {
 
       let groupId: string | null = null;
       act(() => {
-        groupId = result.current.groupOps.createGroup(['n1', 'n2']);
+        groupId = result.current.organizerOps.createOrganizer(['n1', 'n2']);
       });
 
       await waitFor(() => {
@@ -139,7 +139,7 @@ describe('useGroupOperations Hook', () => {
 
       let groupId: string | null = null;
       act(() => {
-        groupId = result.current.groupOps.createGroup(['n1']);
+        groupId = result.current.organizerOps.createOrganizer(['n1']);
       });
 
       expect(groupId).toBeNull();
@@ -147,7 +147,7 @@ describe('useGroupOperations Hook', () => {
     });
   });
 
-  describe('attachToGroup', () => {
+  describe('attachToOrganizer', () => {
     it('converts node position to relative when attaching', async () => {
       const result = await setup();
       const { adapter } = result.current.context;
@@ -159,15 +159,16 @@ describe('useGroupOperations Hook', () => {
         adapter.setNodes([
           {
             id: groupId,
-            type: 'visual-group',
+            type: 'organizer',
             position: { x: 100, y: 100 },
             style: { width: 300, height: 200 },
             data: {
-              isVisualGroup: true,
-              name: 'Test Group',
+              isOrganizer: true,
+              name: 'Test Organizer',
               color: '#ff0000',
               collapsed: false,
-            } satisfies VisualGroupNodeData,
+              layout: "freeform",
+            } satisfies OrganizerNodeData,
           },
           {
             ...createTestNode({ id: 'n1', type: 'Task', semanticId: 'task-1' }),
@@ -182,7 +183,7 @@ describe('useGroupOperations Hook', () => {
 
       // Attach node to group
       act(() => {
-        result.current.groupOps.attachToGroup('n1', groupId);
+        result.current.organizerOps.attachToOrganizer('n1', groupId);
       });
 
       await waitFor(() => {
@@ -198,7 +199,7 @@ describe('useGroupOperations Hook', () => {
     });
   });
 
-  describe('detachFromGroup', () => {
+  describe('detachFromOrganizer', () => {
     it('restores absolute position when detaching', async () => {
       const result = await setup();
       const { adapter } = result.current.context;
@@ -210,15 +211,16 @@ describe('useGroupOperations Hook', () => {
         adapter.setNodes([
           {
             id: groupId,
-            type: 'visual-group',
+            type: 'organizer',
             position: { x: 100, y: 100 },
             style: { width: 300, height: 200 },
             data: {
-              isVisualGroup: true,
-              name: 'Test Group',
+              isOrganizer: true,
+              name: 'Test Organizer',
               color: '#ff0000',
               collapsed: false,
-            } satisfies VisualGroupNodeData,
+              layout: "freeform",
+            } satisfies OrganizerNodeData,
           },
           {
             ...createTestNode({ id: 'n1', type: 'Task', semanticId: 'task-1' }),
@@ -237,7 +239,7 @@ describe('useGroupOperations Hook', () => {
 
       // Detach node from group
       act(() => {
-        result.current.groupOps.detachFromGroup('n1');
+        result.current.organizerOps.detachFromOrganizer('n1');
       });
 
       await waitFor(() => {
@@ -253,7 +255,7 @@ describe('useGroupOperations Hook', () => {
     });
   });
 
-  describe('toggleGroupCollapse', () => {
+  describe('toggleOrganizerCollapse', () => {
     it('toggles collapsed state on group', async () => {
       const result = await setup();
       const { adapter } = result.current.context;
@@ -264,14 +266,15 @@ describe('useGroupOperations Hook', () => {
         adapter.setNodes([
           {
             id: groupId,
-            type: 'visual-group',
+            type: 'organizer',
             position: { x: 100, y: 100 },
             data: {
-              isVisualGroup: true,
-              name: 'Test Group',
+              isOrganizer: true,
+              name: 'Test Organizer',
               color: '#ff0000',
               collapsed: false,
-            } satisfies VisualGroupNodeData,
+              layout: "freeform",
+            } satisfies OrganizerNodeData,
           },
         ]);
       });
@@ -279,32 +282,32 @@ describe('useGroupOperations Hook', () => {
       await waitFor(() => {
         expect(result.current.nodes.nodes).toHaveLength(1);
         const group = result.current.nodes.nodes[0];
-        expect((group.data as VisualGroupNodeData).collapsed).toBe(false);
+        expect((group.data as OrganizerNodeData).collapsed).toBe(false);
       });
 
       // Toggle to collapsed
       act(() => {
-        result.current.groupOps.toggleGroupCollapse(groupId);
+        result.current.organizerOps.toggleOrganizerCollapse(groupId);
       });
 
       await waitFor(() => {
         const group = result.current.nodes.nodes[0];
-        expect((group.data as VisualGroupNodeData).collapsed).toBe(true);
+        expect((group.data as OrganizerNodeData).collapsed).toBe(true);
       });
 
       // Toggle back to expanded
       act(() => {
-        result.current.groupOps.toggleGroupCollapse(groupId);
+        result.current.organizerOps.toggleOrganizerCollapse(groupId);
       });
 
       await waitFor(() => {
         const group = result.current.nodes.nodes[0];
-        expect((group.data as VisualGroupNodeData).collapsed).toBe(false);
+        expect((group.data as OrganizerNodeData).collapsed).toBe(false);
       });
     });
   });
 
-  describe('renameGroup', () => {
+  describe('renameOrganizer', () => {
     it('updates group name', async () => {
       const result = await setup();
       const { adapter } = result.current.context;
@@ -315,14 +318,15 @@ describe('useGroupOperations Hook', () => {
         adapter.setNodes([
           {
             id: groupId,
-            type: 'visual-group',
+            type: 'organizer',
             position: { x: 100, y: 100 },
             data: {
-              isVisualGroup: true,
+              isOrganizer: true,
               name: 'Original Name',
               color: '#ff0000',
               collapsed: false,
-            } satisfies VisualGroupNodeData,
+              layout: "freeform",
+            } satisfies OrganizerNodeData,
           },
         ]);
       });
@@ -332,17 +336,17 @@ describe('useGroupOperations Hook', () => {
       });
 
       act(() => {
-        result.current.groupOps.renameGroup(groupId, 'New Name');
+        result.current.organizerOps.renameOrganizer(groupId, 'New Name');
       });
 
       await waitFor(() => {
         const group = result.current.nodes.nodes[0];
-        expect((group.data as VisualGroupNodeData).name).toBe('New Name');
+        expect((group.data as OrganizerNodeData).name).toBe('New Name');
       });
     });
   });
 
-  describe('updateGroupColor', () => {
+  describe('updateOrganizerColor', () => {
     it('updates group color', async () => {
       const result = await setup();
       const { adapter } = result.current.context;
@@ -353,14 +357,15 @@ describe('useGroupOperations Hook', () => {
         adapter.setNodes([
           {
             id: groupId,
-            type: 'visual-group',
+            type: 'organizer',
             position: { x: 100, y: 100 },
             data: {
-              isVisualGroup: true,
-              name: 'Test Group',
+              isOrganizer: true,
+              name: 'Test Organizer',
               color: '#ff0000',
               collapsed: false,
-            } satisfies VisualGroupNodeData,
+              layout: "freeform",
+            } satisfies OrganizerNodeData,
           },
         ]);
       });
@@ -370,17 +375,17 @@ describe('useGroupOperations Hook', () => {
       });
 
       act(() => {
-        result.current.groupOps.updateGroupColor(groupId, '#00ff00');
+        result.current.organizerOps.updateOrganizerColor(groupId, '#00ff00');
       });
 
       await waitFor(() => {
         const group = result.current.nodes.nodes[0];
-        expect((group.data as VisualGroupNodeData).color).toBe('#00ff00');
+        expect((group.data as OrganizerNodeData).color).toBe('#00ff00');
       });
     });
   });
 
-  describe('deleteGroup', () => {
+  describe('deleteOrganizer', () => {
     it('deletes group and detaches children by default', async () => {
       const result = await setup();
       const { adapter } = result.current.context;
@@ -391,15 +396,16 @@ describe('useGroupOperations Hook', () => {
         adapter.setNodes([
           {
             id: groupId,
-            type: 'visual-group',
+            type: 'organizer',
             position: { x: 100, y: 100 },
             style: { width: 300, height: 200 },
             data: {
-              isVisualGroup: true,
-              name: 'Test Group',
+              isOrganizer: true,
+              name: 'Test Organizer',
               color: '#ff0000',
               collapsed: false,
-            } satisfies VisualGroupNodeData,
+              layout: "freeform",
+            } satisfies OrganizerNodeData,
           },
           {
             ...createTestNode({ id: 'n1', type: 'Task', semanticId: 'task-1' }),
@@ -415,7 +421,7 @@ describe('useGroupOperations Hook', () => {
       });
 
       act(() => {
-        result.current.groupOps.deleteGroup(groupId);
+        result.current.organizerOps.deleteOrganizer(groupId);
       });
 
       await waitFor(() => {
@@ -441,15 +447,16 @@ describe('useGroupOperations Hook', () => {
         adapter.setNodes([
           {
             id: groupId,
-            type: 'visual-group',
+            type: 'organizer',
             position: { x: 100, y: 100 },
             style: { width: 300, height: 200 },
             data: {
-              isVisualGroup: true,
-              name: 'Test Group',
+              isOrganizer: true,
+              name: 'Test Organizer',
               color: '#ff0000',
               collapsed: false,
-            } satisfies VisualGroupNodeData,
+              layout: "freeform",
+            } satisfies OrganizerNodeData,
           },
           {
             ...createTestNode({ id: 'n1', type: 'Task', semanticId: 'task-1' }),
@@ -471,7 +478,7 @@ describe('useGroupOperations Hook', () => {
       });
 
       act(() => {
-        result.current.groupOps.deleteGroup(groupId, true);
+        result.current.organizerOps.deleteOrganizer(groupId, true);
       });
 
       await waitFor(() => {

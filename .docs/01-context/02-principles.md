@@ -57,3 +57,7 @@ Construct instances use two separate identifiers:
 ## One Concept, One Location
 
 Every domain concept has exactly one canonical definition. Other documents and code reference it rather than re-explaining. The glossary (doc01.03) is the authority for domain vocabulary.
+
+## Organizers Are Not Connections
+
+Visual organization (organizers) and semantic relationships (port connections) are completely independent systems. Dropping a node into an organizer never creates a connection. Connecting two nodes via ports never puts them in the same organizer. The word "parent/child" is reserved for the port system — constructs inside an organizer are "members." Organizers serve the human (spatial convenience); connections serve the AI (semantic meaning). See doc02.09.

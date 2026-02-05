@@ -25,10 +25,18 @@ Document Adapter Layer (packages/web-client/src/stores/, packages/web-client/src
   Imports shared helpers from @carta/document
   Does not know about React Flow or rendering
 
+Presentation Model (packages/web-client/src/presentation/)
+  Transforms domain state into view state — pure functions, no React
+  Node visibility (organizer collapse), positioning (layout strategies)
+  Component dispatch (render style + LOD band)
+  Edge routing (remapping for collapsed organizers)
+  See doc02.09
+
 Visual Editor Layer (packages/web-client/src/components/, packages/web-client/src/hooks/)
   React Flow canvas, node rendering, user interactions
   Feature directories: canvas/, metamap/, modals/, editors/, ui/
   CanvasContainer orchestrates Map (instance view) and Metamap (schema view)
+  Consumes presentation model output — does not compute layout or visibility
   Does not know how to compile or persist
 
 Compiler Layer (@carta/compiler)

@@ -24,9 +24,6 @@ export {
   type ExportOptions,
 } from './exportAnalyzer';
 
-// Examples
-export { getExamples, getExample, type Example } from './examples';
-
 // Metamap layout
 export {
   computeMetamapLayout,
@@ -48,8 +45,8 @@ export { getLastDocumentId, setLastDocumentId } from './preferences';
 // Random names
 export { generateRandomName } from './randomNames';
 
-// Starter content
-export { seedStarterContent } from './starterContent';
+// Seeds
+export { seeds, type SeedFn } from './seeds';
 
 // String utilities
 export { stripHandlePrefix } from './handlePrefix';

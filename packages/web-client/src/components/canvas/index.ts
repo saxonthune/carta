@@ -1,8 +1,7 @@
 export { default as Map } from './Map';
 export { default as CanvasContainer } from './CanvasContainer';
 export { default as ConstructNode } from './ConstructNode';
-export { default as VirtualParentNode } from './VirtualParentNode';
-export { default as VisualGroupNode } from './VisualGroupNode';
+export { default as OrganizerNode } from './OrganizerNode';
 export { default as DynamicAnchorEdge } from './DynamicAnchorEdge';
 export { default as PortDrawer } from './PortDrawer';
 export { default as IndexBasedDropZones } from './IndexBasedDropZones';

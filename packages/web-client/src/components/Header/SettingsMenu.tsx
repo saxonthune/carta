@@ -1,12 +1,8 @@
 import { useState, useRef, useCallback } from 'react';
 import { useClickOutside } from './useClickOutside';
 import { config } from '../../config/featureFlags';
-import type { Example } from '../../utils/examples';
 
 export interface SettingsMenuProps {
-  examples: Example[];
-  onLoadExample?: (example: Example) => void;
-  onOpenExamplesModal: () => void;
   onOpenClearModal: () => void;
   onOpenRestoreSchemasModal: () => void;
 }
@@ -15,9 +11,6 @@ export interface SettingsMenuProps {
  * Settings dropdown menu with app configuration options.
  */
 export function SettingsMenu({
-  examples,
-  onLoadExample,
-  onOpenExamplesModal,
   onOpenClearModal,
   onOpenRestoreSchemasModal,
 }: SettingsMenuProps) {
@@ -52,17 +45,6 @@ export function SettingsMenu({
       </button>
       {isOpen && (
         <div data-testid="settings-menu" className="absolute right-0 top-full mt-1 bg-surface border border-subtle rounded-lg shadow-lg overflow-hidden z-50 min-w-[200px]">
-          {examples.length > 0 && onLoadExample && (
-            <button
-              className="w-full text-left px-4 py-2 text-sm cursor-pointer text-content hover:bg-surface-alt transition-colors border-none bg-surface"
-              onClick={() => {
-                onOpenExamplesModal();
-                setIsOpen(false);
-              }}
-            >
-              Load Example
-            </button>
-          )}
           {config.isDesktop && (
             <button
               className="w-full text-left px-4 py-2 text-sm cursor-pointer text-content hover:bg-surface-alt transition-colors border-none bg-surface"

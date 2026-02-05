@@ -23,8 +23,7 @@ import { useLevels } from '../../hooks/useLevels';
 import { useDocumentContext } from '../../contexts/DocumentContext';
 import CustomNode from './CustomNode';
 import ConstructNode from './ConstructNode';
-import VirtualParentNode from './VirtualParentNode';
-import VisualGroupNode from './VisualGroupNode';
+import OrganizerNode from './OrganizerNode';
 import ContextMenu, { type RelatedConstructOption } from '../ui/ContextMenu';
 import { useMapState } from '../../hooks/useMapState';
 import NodeControls from './NodeControls';
@@ -34,10 +33,10 @@ import { useGraphOperations } from '../../hooks/useGraphOperations';
 import { useConnections } from '../../hooks/useConnections';
 import { useClipboard } from '../../hooks/useClipboard';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
-import type { ConstructValues, Deployable, ConstructNodeData, VirtualParentNodeData, Size } from '@carta/domain';
-import { computeMinGroupSize, DEFAULT_GROUP_LAYOUT, type NodeGeometry } from '@carta/domain';
-import { useVisualGroups } from '../../hooks/useVisualGroups';
-import { useGroupOperations } from '../../hooks/useGroupOperations';
+import type { ConstructValues, Deployable, ConstructNodeData, Size } from '@carta/domain';
+import { computeMinOrganizerSize, DEFAULT_ORGANIZER_LAYOUT, type NodeGeometry } from '@carta/domain';
+import { usePresentation } from '../../hooks/usePresentation';
+import { useOrganizerOperations } from '../../hooks/useOrganizerOperations';
 import ConstructEditor from '../ConstructEditor';
 import DynamicAnchorEdge from './DynamicAnchorEdge';
 import ConstructFullViewModal from '../modals/ConstructFullViewModal';
@@ -48,8 +47,7 @@ import { ZoomDebug } from '../ui/ZoomDebug';
 const nodeTypes = {
   custom: CustomNode,
   construct: ConstructNode,
-  'virtual-parent': VirtualParentNode,
-  'visual-group': VisualGroupNode,
+  'organizer': OrganizerNode,
 };
 
 const edgeTypes = {
@@ -104,8 +102,8 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
   const schemaGroups = adapter.getSchemaGroups();
   const { getViewport, setViewport } = useReactFlow();
 
-  // Visual groups hook for collapse/hide logic and edge remapping
-  const { processedNodes: nodesWithHiddenFlags, edgeRemap } = useVisualGroups(nodes);
+  // Presentation model for collapse/hide logic and edge remapping
+  const { processedNodes: nodesWithHiddenFlags, edgeRemap } = usePresentation(nodes, edges);
 
   // LOD band for debug display
   const lod = useLodBand();
@@ -125,9 +123,9 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
   const isDraggingRef = useRef(false);
   const draggedNodesRef = useRef<Set<string>>(new Set());
 
-  // Live group resize during drag
-  const dragGroupIdRef = useRef<string | null>(null);
-  const dragStartGroupSizeRef = useRef<Size | null>(null);
+  // Live organizer resize during drag
+  const dragOrganizerIdRef = useRef<string | null>(null);
+  const dragStartOrganizerSizeRef = useRef<Size | null>(null);
   const rafIdRef = useRef<number | null>(null);
 
   // Ctrl+drag visual feedback (DOM class toggle, no re-renders)
@@ -192,7 +190,6 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     toggleNodeDetailsPin,
     updateNodeDeployable,
     updateNodeInstanceColor,
-    toggleVirtualParentCollapse,
   } = useGraphOperations({
     selectedNodeIds,
     setSelectedNodeIds,
@@ -206,24 +203,24 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     }
   }, [selectedNodeIds]);
 
-  // Group operations from dedicated hook (uses pure geometry functions)
+  // Organizer operations from dedicated hook (uses pure geometry functions)
   const {
-    createGroup: createGroupFromIds,
-    attachToGroup,
-    detachFromGroup,
-    toggleGroupCollapse,
-    fitGroupToChildren,
-  } = useGroupOperations();
+    createOrganizer: createOrganizerFromIds,
+    attachToOrganizer,
+    detachFromOrganizer,
+    toggleOrganizerCollapse,
+    fitOrganizerToMembers,
+  } = useOrganizerOperations();
 
-  // Wrapper for createGroup that uses current selectedNodeIds
-  const createGroup = useCallback(() => {
-    createGroupFromIds(selectedNodeIds);
-  }, [createGroupFromIds, selectedNodeIds]);
+  // Wrapper for createOrganizer that uses current selectedNodeIds
+  const createOrganizer = useCallback(() => {
+    createOrganizerFromIds(selectedNodeIds);
+  }, [createOrganizerFromIds, selectedNodeIds]);
 
-  // Remove a node from its group (same as detach)
-  const removeFromGroup = useCallback((nodeId: string) => {
-    detachFromGroup(nodeId);
-  }, [detachFromGroup]);
+  // Remove a node from its organizer (same as detach)
+  const removeFromOrganizer = useCallback((nodeId: string) => {
+    detachFromOrganizer(nodeId);
+  }, [detachFromOrganizer]);
 
   // Use keyboard shortcuts hook
   useKeyboardShortcuts({
@@ -235,11 +232,8 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     pasteNodes,
     deleteSelectedNodes,
     startRename,
-    createGroup,
+    createOrganizer,
   });
-
-  // Note: localStorage persistence is now handled by the document store's subscriber
-  // Note: Import is now handled directly in App.tsx via adapter to avoid hook issues
 
   // Notify parent of nodes/edges changes for export
   useEffect(() => {
@@ -337,7 +331,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     }
   }, [nodes, selectedNodeIds, onSelectionChange]);
 
-  // Count children per parent node (both virtual-parent and visual-group)
+  // Count children per parent node (organizers)
   const childCountMap = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const node of nodes) {
@@ -348,38 +342,27 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     return counts;
   }, [nodes]);
 
-  // Set of visual group IDs for expandParent assignment
-  const visualGroupIds = useMemo(() => new Set(
-    nodesWithHiddenFlags.filter(n => n.type === 'visual-group').map(n => n.id)
+  // Set of organizer IDs for expandParent assignment
+  const organizerIds = useMemo(() => new Set(
+    nodesWithHiddenFlags.filter(n => n.type === 'organizer').map(n => n.id)
   ), [nodesWithHiddenFlags]);
 
   const nodesWithCallbacks = nodesWithHiddenFlags.map((node) => {
-    if (node.type === 'visual-group') {
+    if (node.type === 'organizer') {
       return {
         ...node,
         dragHandle: NODE_DRAG_HANDLE,
         data: {
           ...node.data,
           childCount: childCountMap[node.id] || 0,
-          onToggleCollapse: () => toggleGroupCollapse(node.id),
-        },
-      };
-    }
-    if (node.type === 'virtual-parent') {
-      return {
-        ...node,
-        dragHandle: NODE_DRAG_HANDLE,
-        data: {
-          ...node.data,
-          childCount: childCountMap[node.id] || 0,
-          onToggleCollapse: () => toggleVirtualParentCollapse(node.id),
+          onToggleCollapse: () => toggleOrganizerCollapse(node.id),
         },
       };
     }
     return {
       ...node,
       dragHandle: NODE_DRAG_HANDLE,
-      expandParent: node.parentId && visualGroupIds.has(node.parentId) ? true : undefined,
+      expandParent: node.parentId && organizerIds.has(node.parentId) ? true : undefined,
       data: {
         ...node.data,
         nodeId: node.id,
@@ -397,7 +380,6 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
   });
 
   // Sort nodes: parents must come before their children (React Flow requirement)
-  // This handles both virtual-parent and visual-group nodes
   const sortedNodes = useMemo(() => {
     const result: Node[] = [];
     const added = new Set<string>();
@@ -426,8 +408,8 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
 
     const lowerSearch = searchText.toLowerCase();
     return result.filter((node) => {
-      // Visual groups and virtual parents always show if any children match
-      if (node.type === 'virtual-parent' || node.type === 'visual-group') return true;
+      // Organizers always show if any children match
+      if (node.type === 'organizer') return true;
 
       // Only filter construct nodes - type guard
       if (!('constructType' in node.data) || !('semanticId' in node.data) || !('values' in node.data)) {
@@ -461,40 +443,22 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     });
   }, [nodesWithCallbacks, searchText, getSchema]);
 
-  // Filter edges: hide edges to/from children of collapsed/no-edges virtual parents
-  // Also reroute edges to collapsed visual groups using edgeRemap
+  // Reroute edges to collapsed organizers using edgeRemap
   const filteredEdges = useMemo(() => {
-    const hiddenChildIds = new Set<string>();
-    for (const node of nodes) {
-      if (node.type === 'virtual-parent') {
-        const vpData = node.data as VirtualParentNodeData;
-        if (vpData.collapseState === 'no-edges' || vpData.collapseState === 'collapsed') {
-          for (const child of nodes) {
-            if (child.parentId === node.id) {
-              hiddenChildIds.add(child.id);
-            }
-          }
-        }
-      }
-    }
+    let result = edges;
 
-    // Apply virtual parent filtering
-    let result = hiddenChildIds.size === 0 ? edges : edges.filter(e => !hiddenChildIds.has(e.source) && !hiddenChildIds.has(e.target));
-
-    // Apply visual group edge remapping for collapsed groups
-    // edgeRemap maps nodeId -> groupId (where groups are now regular nodes)
+    // Apply organizer edge remapping for collapsed organizers
     if (edgeRemap.size > 0) {
-      const seenEdgeKeys = new Set<string>(); // Dedupe edges to same collapsed group
+      const seenEdgeKeys = new Set<string>(); // Dedupe edges to same collapsed organizer
       result = result.map(edge => {
         const remappedSource = edgeRemap.get(edge.source);
         const remappedTarget = edgeRemap.get(edge.target);
 
         if (remappedSource || remappedTarget) {
-          // Groups are now regular nodes, so use group ID directly
           const newSource = remappedSource || edge.source;
           const newTarget = remappedTarget || edge.target;
 
-          // Skip self-loops to same group
+          // Skip self-loops to same organizer
           if (newSource === newTarget) return null;
 
           // Dedupe edges that now have the same endpoints
@@ -516,7 +480,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     }
 
     return result;
-  }, [edges, nodes, edgeRemap]);
+  }, [edges, edgeRemap]);
 
   // Auto-revert unpinned details nodes when deselected
   const updateNodeInternals = useUpdateNodeInternals();
@@ -541,28 +505,28 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
   // Edge bundling: collapse parallel edges between same node pairs
   const { displayEdges } = useEdgeBundling(filteredEdges, nodes);
 
-  // Handle drag start/drag/stop for live group resizing
+  // Handle drag start/drag/stop for live organizer resizing
   const onNodeDragStart = useCallback((_event: React.MouseEvent, node: Node) => {
     isDraggingRef.current = true;
     draggedNodesRef.current.add(node.id);
 
-    // If dragged node is a child of a visual-group, capture group size for live resize
-    if (node.parentId && node.type !== 'visual-group') {
+    // If dragged node is a child of an organizer, capture organizer size for live resize
+    if (node.parentId && node.type !== 'organizer') {
       const allNodes = reactFlow.getNodes();
       const parentNode = allNodes.find(n => n.id === node.parentId);
-      if (parentNode?.type === 'visual-group') {
-        dragGroupIdRef.current = parentNode.id;
-        dragStartGroupSizeRef.current = {
+      if (parentNode?.type === 'organizer') {
+        dragOrganizerIdRef.current = parentNode.id;
+        dragStartOrganizerSizeRef.current = {
           width: (parentNode.width as number) ?? (parentNode.style?.width as number) ?? 200,
           height: (parentNode.height as number) ?? (parentNode.style?.height as number) ?? 200,
         };
       } else {
-        dragGroupIdRef.current = null;
-        dragStartGroupSizeRef.current = null;
+        dragOrganizerIdRef.current = null;
+        dragStartOrganizerSizeRef.current = null;
       }
     } else {
-      dragGroupIdRef.current = null;
-      dragStartGroupSizeRef.current = null;
+      dragOrganizerIdRef.current = null;
+      dragStartOrganizerSizeRef.current = null;
     }
   }, [reactFlow]);
 
@@ -574,32 +538,32 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
       mapWrapperRef.current?.classList.toggle('ctrl-dragging', isCtrl);
     }
 
-    if (!dragGroupIdRef.current || node.type === 'visual-group') return;
+    if (!dragOrganizerIdRef.current || node.type === 'organizer') return;
 
     // Cancel previous rAF to throttle
     if (rafIdRef.current !== null) {
       cancelAnimationFrame(rafIdRef.current);
     }
 
-    const groupId = dragGroupIdRef.current;
-    const startSize = dragStartGroupSizeRef.current;
+    const organizerId = dragOrganizerIdRef.current;
+    const startSize = dragStartOrganizerSizeRef.current;
 
     rafIdRef.current = requestAnimationFrame(() => {
       rafIdRef.current = null;
       const allNodes = reactFlow.getNodes();
 
-      // Get children of this group
-      const children = allNodes.filter(n => n.parentId === groupId);
+      // Get members of this organizer
+      const members = allNodes.filter(n => n.parentId === organizerId);
       // Either exclude or include dragged node based on Ctrl
-      const relevantChildren = isCtrl
-        ? children.filter(n => n.id !== node.id)
-        : children;
+      const relevantMembers = isCtrl
+        ? members.filter(n => n.id !== node.id)
+        : members;
 
-      if (relevantChildren.length === 0 && isCtrl) {
-        // All children removed (Ctrl preview) - snap to start size
+      if (relevantMembers.length === 0 && isCtrl) {
+        // All members removed (Ctrl preview) - snap to start size
         if (startSize) {
           setNodes(nds => nds.map(n =>
-            n.id === groupId
+            n.id === organizerId
               ? { ...n, width: startSize.width, height: startSize.height, style: { ...n.style, width: startSize.width, height: startSize.height } }
               : n
           ));
@@ -607,22 +571,22 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
         return;
       }
 
-      const childGeometries: NodeGeometry[] = relevantChildren.map(n => ({
+      const memberGeometries: NodeGeometry[] = relevantMembers.map(n => ({
         position: n.position,
         width: n.width,
         height: n.height,
         measured: n.measured,
       }));
 
-      const minSize = computeMinGroupSize(childGeometries, DEFAULT_GROUP_LAYOUT);
+      const minSize = computeMinOrganizerSize(memberGeometries, DEFAULT_ORGANIZER_LAYOUT);
 
       // During drag: only grow, never shrink below drag-start size (prevents jitter)
-      // For Ctrl: use the size-without-dragged-child (which may be smaller)
+      // For Ctrl: use the size-without-dragged-member (which may be smaller)
       const newWidth = isCtrl ? minSize.width : Math.max(startSize?.width ?? 0, minSize.width);
       const newHeight = isCtrl ? minSize.height : Math.max(startSize?.height ?? 0, minSize.height);
 
       setNodes(nds => nds.map(n =>
-        n.id === groupId
+        n.id === organizerId
           ? { ...n, width: newWidth, height: newHeight, style: { ...n.style, width: newWidth, height: newHeight } }
           : n
       ));
@@ -644,36 +608,36 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     }
 
     // Clear drag refs
-    dragGroupIdRef.current = null;
-    dragStartGroupSizeRef.current = null;
+    dragOrganizerIdRef.current = null;
+    dragStartOrganizerSizeRef.current = null;
 
-    // Don't process group nodes themselves
-    if (node.type === 'visual-group') return;
+    // Don't process organizer nodes themselves
+    if (node.type === 'organizer') return;
 
     const isModifier = event.ctrlKey || event.metaKey;
 
     if (isModifier) {
-      // Ctrl+release = change group membership
+      // Ctrl+release = change organizer membership
       const intersecting = reactFlow.getIntersectingNodes(node);
-      const targetGroup = intersecting.find(n => n.type === 'visual-group' && n.id !== node.id);
+      const targetOrganizer = intersecting.find(n => n.type === 'organizer' && n.id !== node.id);
 
-      if (targetGroup && targetGroup.id !== node.parentId) {
-        // Attach to new group
-        attachToGroup(node.id, targetGroup.id);
+      if (targetOrganizer && targetOrganizer.id !== node.parentId) {
+        // Attach to new organizer
+        attachToOrganizer(node.id, targetOrganizer.id);
       } else if (node.parentId) {
-        // Detach from current group
-        detachFromGroup(node.id);
+        // Detach from current organizer
+        detachFromOrganizer(node.id);
       }
     } else if (node.parentId) {
       // Default release = full refit including position shift
-      fitGroupToChildren(node.parentId);
+      fitOrganizerToMembers(node.parentId);
     }
-  }, [reactFlow, attachToGroup, detachFromGroup, fitGroupToChildren]);
+  }, [reactFlow, attachToOrganizer, detachFromOrganizer, fitOrganizerToMembers]);
 
-  // Handle visual group selection (click on group selects all nodes in it)
-  const handleSelectGroup = useCallback((groupId: string) => {
-    const childNodes = nodes.filter(n => n.parentId === groupId);
-    const nodeIds = childNodes.map(n => n.id);
+  // Handle organizer selection (click on organizer selects all nodes in it)
+  const handleSelectOrganizer = useCallback((organizerId: string) => {
+    const memberNodes = nodes.filter(n => n.parentId === organizerId);
+    const nodeIds = memberNodes.map(n => n.id);
     setNodes((nds) =>
       nds.map((n) => ({
         ...n,
@@ -683,15 +647,15 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     setSelectedNodeIds(nodeIds);
   }, [nodes, setNodes, setSelectedNodeIds]);
 
-  // Suppress unused - will be used for group selection via context menu
-  void handleSelectGroup;
+  // Suppress unused - will be used for organizer selection via context menu
+  void handleSelectOrganizer;
 
-  // Count visual groups for debug display
-  const groupCount = useMemo(() => nodes.filter(n => n.type === 'visual-group').length, [nodes]);
+  // Count organizers for debug display
+  const organizerCount = useMemo(() => nodes.filter(n => n.type === 'organizer').length, [nodes]);
   const debugLines = useMemo(() => [
     `LOD: ${lod.band}`,
-    `Groups: ${groupCount} | Nodes: ${sortedNodes.length}`,
-  ], [lod.band, groupCount, sortedNodes.length]);
+    `Organizers: ${organizerCount} | Nodes: ${sortedNodes.length}`,
+  ], [lod.band, organizerCount, sortedNodes.length]);
 
   return (
     <div ref={mapWrapperRef} className="w-full h-full relative" style={{ backgroundColor: 'var(--color-canvas)' }}>
@@ -818,15 +782,14 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
           activeLevel={activeLevel}
           selectedNodeIds={selectedNodeIds}
           onCopyNodesToLevel={copyNodesToLevel}
-          onGroupSelected={createGroup}
-          onRemoveFromGroup={removeFromGroup}
-          nodeInGroup={(() => {
+          onOrganizeSelected={createOrganizer}
+          onRemoveFromOrganizer={removeFromOrganizer}
+          nodeInOrganizer={(() => {
             if (!contextMenu.nodeId) return false;
             const node = nodes.find(n => n.id === contextMenu.nodeId);
-            // Node is in a group if it has a parentId pointing to a visual-group node
             if (!node?.parentId) return false;
             const parent = nodes.find(n => n.id === node.parentId);
-            return parent?.type === 'visual-group';
+            return parent?.type === 'organizer';
           })()}
         />
       )}

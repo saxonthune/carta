@@ -50,10 +50,10 @@ interface ContextMenuProps {
   activeLevel?: string;
   selectedNodeIds?: string[];
   onCopyNodesToLevel?: (nodeIds: string[], targetLevelId: string) => void;
-  // Visual group props
-  onGroupSelected?: () => void;
-  onRemoveFromGroup?: (nodeId: string) => void;
-  nodeInGroup?: boolean;
+  // Organizer props
+  onOrganizeSelected?: () => void;
+  onRemoveFromOrganizer?: (nodeId: string) => void;
+  nodeInOrganizer?: boolean;
 }
 
 // Group items by their groupId into MenuItem[] with nested children
@@ -132,9 +132,9 @@ export default function ContextMenu({
   activeLevel,
   selectedNodeIds,
   onCopyNodesToLevel,
-  onGroupSelected,
-  onRemoveFromGroup,
-  nodeInGroup,
+  onOrganizeSelected,
+  onRemoveFromOrganizer,
+  nodeInOrganizer,
 }: ContextMenuProps) {
   const showMultipleSelected = selectedCount > 1;
 
@@ -150,7 +150,7 @@ export default function ContextMenu({
     }
     return [];
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [type, nodeId, edgeId, selectedCount, relatedConstructs, constructOptions, schemaGroups, canPaste, levels, activeLevel, selectedNodeIds, constructType, onEditSchema, onGroupSelected, onRemoveFromGroup, nodeInGroup]);
+  }, [type, nodeId, edgeId, selectedCount, relatedConstructs, constructOptions, schemaGroups, canPaste, levels, activeLevel, selectedNodeIds, constructType, onEditSchema, onOrganizeSelected, onRemoveFromOrganizer, nodeInOrganizer]);
 
   function buildPaneMenuItems(): MenuItem[] {
     const result: MenuItem[] = [];
@@ -288,20 +288,20 @@ export default function ContextMenu({
       });
     }
 
-    // Group operations
-    if (showMultipleSelected && onGroupSelected) {
+    // Organizer operations
+    if (showMultipleSelected && onOrganizeSelected) {
       result.push({
-        key: 'group-selected',
-        label: `Group ${selectedCount} Nodes`,
-        onClick: onGroupSelected,
+        key: 'organize-selected',
+        label: `Organize ${selectedCount} Nodes`,
+        onClick: onOrganizeSelected,
       });
     }
 
-    if (!showMultipleSelected && nodeInGroup && onRemoveFromGroup && nodeId) {
+    if (!showMultipleSelected && nodeInOrganizer && onRemoveFromOrganizer && nodeId) {
       result.push({
-        key: 'remove-from-group',
-        label: 'Remove from Group',
-        onClick: () => onRemoveFromGroup(nodeId),
+        key: 'remove-from-organizer',
+        label: 'Remove from Organizer',
+        onClick: () => onRemoveFromOrganizer(nodeId),
       });
     }
 

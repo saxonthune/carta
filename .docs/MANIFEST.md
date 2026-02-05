@@ -43,10 +43,12 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 | doc02.04.02 | `04-decisions/02-port-polarity.md` | ADR: five-value polarity model | adr, ports, polarity | doc02.06 |
 | doc02.04.03 | `04-decisions/03-output-formatter-registry.md` | ADR: extensible formatter registry | adr, compiler, formatters | doc03.01.02.01 |
 | doc02.04.04 | `04-decisions/04-unified-deployment.md` | ADR: simplified deployment config | adr, deployment, config | doc02.05 |
+| doc02.04.05 | `04-decisions/05-presentation-model-organizers.md` | ADR: presentation model, organizers replace visual groups | adr, presentation, organizers, layout | doc02.09 |
 | doc02.05 | `05-deployment-targets.md` | VITE_SERVER_URL, VITE_AI_MODE, document sources | deployment, config, server | doc02.01 |
 | doc02.06 | `06-metamodel.md` | M2/M1/M0 metamodel, DataKind, ConstructSchema | metamodel, schemas, ports | doc01.02 |
 | doc02.07 | `07-design-system.md` | Depth system, island pattern, colors, typography | design, ui, styling, lod | doc01.04 |
 | doc02.08 | `08-frontend-architecture.md` | Four-layer component model, state partitioning | components, hooks, architecture | doc02.02, doc02.07 |
+| doc02.09 | `09-presentation-model.md` | Presentation model, organizers, layout strategies, visual vs semantic | presentation, organizers, layout, rendering | doc02.08, doc02.02 |
 
 ## 03-product — Features, use cases, workflows
 
@@ -130,5 +132,9 @@ Quick lookup for file-path→doc mapping:
 | `storage` | doc03.01.03.01, doc02.05 |
 | `collaboration` | doc03.01.03.02, doc02.05 |
 | `ui` | doc02.07, doc01.04 |
+| `organizers` | doc02.09, doc03.01.01.01 |
+| `presentation` | doc02.09, doc02.08 |
+| `layout` | doc02.09 |
+| `rendering` | doc02.09, doc03.01.14, doc02.07 |
 | `testing` | doc04.02 |
 | `mcp` | doc02.03, doc03.01.03.03 |

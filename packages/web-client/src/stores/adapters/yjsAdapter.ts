@@ -38,7 +38,7 @@ export interface YjsAdapterOptions {
  * {
  *   'meta': Y.Map { version, title, description, activeLevel, initialized, migrationVersion }
  *   'levels': Y.Map<levelId, Y.Map { id, name, description, order }>
- *   'nodes': Y.Map<levelId, Y.Map<nodeId, Y.Map>>       // Nested: level → nodes (includes visual-group type nodes)
+ *   'nodes': Y.Map<levelId, Y.Map<nodeId, Y.Map>>       // Nested: level → nodes (includes organizer type nodes)
  *   'edges': Y.Map<levelId, Y.Map<edgeId, Y.Map>>       // Nested: level → edges
  *   'deployables': Y.Map<levelId, Y.Map<depId, Y.Map>>   // Nested: level → deployables
  *   'schemas': Y.Map<type, Y.Map>                        // Shared (unchanged)
@@ -46,8 +46,8 @@ export interface YjsAdapterOptions {
  *   'schemaGroups': Y.Map<id, Y.Map>                     // Shared (unchanged)
  * }
  *
- * Visual groups are now stored as regular nodes with type='visual-group'.
- * Child nodes use React Flow's native parentId for relative positioning and group movement.
+ * Organizers are stored as regular nodes with type='organizer'.
+ * Child nodes use React Flow's native parentId for relative positioning and organizer movement.
  */
 
 /**

@@ -144,9 +144,9 @@ Instances live on the canvas. Each has:
 
 Node titles derive from the schema's `displayField` value, falling back to `semanticId`. There is no separate `name` field (see doc01.03, "Display Name").
 
-### Virtual Parent Nodes
+### Organizers Are Not Part of the Metamodel
 
-Visual grouping containers for child constructs. Not compiled — the compiler filters them out. Created when a port has `allowsGrouping: true`. Three collapse states: expanded, no-edges, collapsed (pill).
+Organizers (visual grouping containers) exist at the canvas/presentation layer, not the domain layer. They are never compiled and carry no semantic meaning. The metamodel governs constructs, schemas, fields, ports, and connections — all of which are compiled. See doc02.09 for organizer architecture.
 
 ## Child Construct Pattern
 

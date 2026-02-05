@@ -54,7 +54,6 @@ export interface PortSchema {
   expectedComplement?: string;   // UI hint only (context menus), not validation
   color: string;
   groupId?: string;              // References SchemaGroup.id for hierarchical organization
-  allowsGrouping?: boolean;      // Enable visual grouping via virtual parent nodes
 }
 
 
@@ -126,7 +125,6 @@ export interface PortConfig {
   suggestedPorts?: string[];     // Port IDs that commonly connect here
 
   dataType?: string;
-  allowsGrouping?: boolean;     // Enable visual grouping via virtual parent nodes
 }
 
 /**
@@ -215,34 +213,27 @@ export interface ConstructNodeData {
 }
 
 /**
- * Data stored in a React Flow node for visual groups.
- * Groups use React Flow's native parentId system for containment.
+ * Layout strategy for organizer nodes.
+ * - 'freeform': Members keep their own positions (default, current behavior)
+ * - 'stack': One member visible at a time, with prev/next navigation
+ * - 'grid': Members auto-positioned in a grid layout
  */
-export interface VisualGroupNodeData {
-  isVisualGroup: true;
+export type OrganizerLayout = 'freeform' | 'stack' | 'grid';
+
+/**
+ * Data stored in a React Flow node for organizers.
+ * Organizers use React Flow's native parentId system for containment.
+ */
+export interface OrganizerNodeData {
+  isOrganizer: true;
   name: string;
   color: string;
   collapsed: boolean;
   description?: string;
+  layout: OrganizerLayout;
+  stackIndex?: number;        // Active member index for stack layout
+  gridColumns?: number;       // Column count for grid layout
   [key: string]: unknown;
-}
-
-// ===== VIRTUAL PARENT =====
-
-/**
- * Data stored in a React Flow node for virtual parent containers.
- * Virtual parents provide visual grouping for child constructs.
- */
-export interface VirtualParentNodeData {
-  isVirtualParent: true;
-  parentNodeId: string;            // Tech ID of actual parent construct
-  parentSemanticId: string;
-  groupingPortId: string;          // Port on parent with allowsGrouping
-  complementPortId: string;        // Expected port type on children
-  label: string;
-  color: string;
-  collapseState: 'expanded' | 'no-edges' | 'collapsed';
-  [key: string]: unknown;          // Index signature for React Flow compatibility
 }
 
 // ===== HELPERS =====

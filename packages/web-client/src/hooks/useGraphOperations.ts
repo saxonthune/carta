@@ -5,7 +5,7 @@ import { useEdges } from './useEdges';
 import { useSchemas } from './useSchemas';
 import { generateSemanticId } from '../utils/cartaFile';
 import { getHandleType } from '@carta/domain';
-import type { ConstructSchema, ConstructValues, ConnectionValue, ConstructNodeData, VirtualParentNodeData } from '@carta/domain';
+import type { ConstructSchema, ConstructValues, ConnectionValue, ConstructNodeData } from '@carta/domain';
 
 
 interface UseGraphOperationsOptions {
@@ -27,9 +27,6 @@ export interface UseGraphOperationsResult {
   toggleNodeDetailsPin: (nodeId: string) => void;
   updateNodeDeployable: (nodeId: string, deployableId: string | null) => void;
   updateNodeInstanceColor: (nodeId: string, color: string | null) => void;
-  createVirtualParent: (parentNodeId: string, portId: string) => void;
-  toggleVirtualParentCollapse: (virtualParentId: string) => void;
-  removeVirtualParent: (virtualParentId: string) => void;
 }
 
 export function useGraphOperations(options: UseGraphOperationsOptions): UseGraphOperationsResult {
@@ -288,78 +285,6 @@ export function useGraphOperations(options: UseGraphOperationsOptions): UseGraph
     [setNodes]
   );
 
-  const createVirtualParent = useCallback(
-    (parentNodeId: string, portId: string) => {
-      const parentNode = nodes.find(n => n.id === parentNodeId);
-      if (!parentNode) return;
-
-      const parentData = parentNode.data as ConstructNodeData;
-      const schema = getSchema(parentData.constructType);
-      const port = schema?.ports?.find(p => p.id === portId);
-      if (!port) return;
-
-      // Find the complement port type using the port schema's expectedComplement
-      const portSchemaId = port.portType;
-      // The complement is what this port connects to
-      const complementPortId = portSchemaId === 'parent' ? 'child' :
-                               portSchemaId === 'child' ? 'parent' :
-                               portSchemaId === 'flow-out' ? 'flow-in' :
-                               portSchemaId === 'flow-in' ? 'flow-out' :
-                               portSchemaId;
-
-      const id = getNextNodeId();
-      const vpData: VirtualParentNodeData = {
-        isVirtualParent: true,
-        parentNodeId,
-        parentSemanticId: parentData.semanticId,
-        groupingPortId: portId,
-        complementPortId,
-        label: port.label || portSchemaId,
-        color: schema?.color || '#6b7280',
-        collapseState: 'expanded',
-      };
-
-      const newNode: Node = {
-        id,
-        type: 'virtual-parent',
-        position: {
-          x: parentNode.position.x + 50,
-          y: parentNode.position.y + 200,
-        },
-        data: vpData,
-        style: { width: 300, height: 200 },
-      };
-
-      setNodes((nds) => [...nds, newNode]);
-    },
-    [nodes, setNodes, getNextNodeId, getSchema]
-  );
-
-  const toggleVirtualParentCollapse = useCallback(
-    (virtualParentId: string) => {
-      setNodes((nds) => {
-        const vpNode = nds.find(n => n.id === virtualParentId);
-        if (!vpNode || vpNode.type !== 'virtual-parent') return nds;
-
-        const vpData = vpNode.data as VirtualParentNodeData;
-        const nextState = vpData.collapseState === 'expanded' ? 'no-edges' :
-                          vpData.collapseState === 'no-edges' ? 'collapsed' : 'expanded';
-
-        return nds.map(n => {
-          if (n.id === virtualParentId) {
-            return { ...n, data: { ...n.data, collapseState: nextState } };
-          }
-          // Toggle child visibility
-          if (n.parentId === virtualParentId) {
-            return { ...n, hidden: nextState === 'collapsed' };
-          }
-          return n;
-        });
-      });
-    },
-    [setNodes]
-  );
-
   const updateNodeInstanceColor = useCallback(
     (nodeIdToUpdate: string, color: string | null) => {
       setNodes((nds) =>
@@ -371,29 +296,6 @@ export function useGraphOperations(options: UseGraphOperationsOptions): UseGraph
       );
     },
     [setNodes]
-  );
-
-  const removeVirtualParent = useCallback(
-    (virtualParentId: string) => {
-      setNodes((nds) =>
-        nds
-          .filter(n => n.id !== virtualParentId)
-          .map(n => {
-            // Un-parent children
-            if (n.parentId === virtualParentId) {
-              const { parentId, ...rest } = n;
-              void parentId;
-              return { ...rest, hidden: false };
-            }
-            return n;
-          })
-      );
-      // Remove edges to/from virtual parent
-      setEdges((eds) =>
-        eds.filter(e => e.source !== virtualParentId && e.target !== virtualParentId)
-      );
-    },
-    [setNodes, setEdges]
   );
 
   return {
@@ -408,9 +310,6 @@ export function useGraphOperations(options: UseGraphOperationsOptions): UseGraph
     toggleNodeDetailsPin,
     updateNodeDeployable,
     updateNodeInstanceColor,
-    createVirtualParent,
-    toggleVirtualParentCollapse,
-    removeVirtualParent,
   };
 }
 

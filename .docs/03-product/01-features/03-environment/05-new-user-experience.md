@@ -67,8 +67,10 @@ Server mode retains the DocumentBrowserModal for first-time visitors because the
 
 Starter content is seeded in `DocumentContext.tsx` during adapter initialization, gated on the `initialized` flag being unset. The implementation:
 
-- Uses `seedStarterContent()` from `src/utils/starterContent.ts`
-- Creates 3 Note nodes connected by 2 edges via `adapter.setNodes()` and `adapter.setEdges()`
+- Uses the `seeds` registry from `src/utils/seeds/` — a collection of seed functions indexed by name
+- Default seed is `seeds.starter` which creates 3 Note nodes connected by 2 edges
+- Other seeds available: `seeds.saas` (SaaS architecture example), `seeds['kitchen-sink']` (comprehensive feature demo)
+- Each seed function receives the `DocumentAdapter` and uses `adapter.setNodes()`, `adapter.setEdges()`, etc.
 - Runs inside the same transaction as built-in schema seeding
 - Uses `generateSemanticId()` for proper identity
 

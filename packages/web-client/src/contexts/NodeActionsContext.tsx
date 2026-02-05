@@ -1,11 +1,11 @@
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
-import { useGroupOperations, type UseGroupOperationsResult } from '../hooks/useGroupOperations';
+import { useOrganizerOperations, type UseOrganizerOperationsResult } from '../hooks/useOrganizerOperations';
 
 /**
  * Context value providing node-related actions.
- * Currently wraps group operations; can be extended to include graph operations.
+ * Currently wraps organizer operations; can be extended to include graph operations.
  */
-export interface NodeActionsContextValue extends UseGroupOperationsResult {}
+export interface NodeActionsContextValue extends UseOrganizerOperationsResult {}
 
 const NodeActionsContext = createContext<NodeActionsContextValue | null>(null);
 
@@ -31,13 +31,11 @@ export interface NodeActionsProviderProps {
  * stable callback references.
  */
 export function NodeActionsProvider({ children }: NodeActionsProviderProps) {
-  // Get group operations from dedicated hook
-  const groupOps = useGroupOperations();
+  const organizerOps = useOrganizerOperations();
 
-  // Memoize the context value to prevent unnecessary re-renders
   const value = useMemo<NodeActionsContextValue>(() => ({
-    ...groupOps,
-  }), [groupOps]);
+    ...organizerOps,
+  }), [organizerOps]);
 
   return (
     <NodeActionsContext.Provider value={value}>
