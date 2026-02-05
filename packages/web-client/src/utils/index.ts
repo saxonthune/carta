@@ -11,7 +11,6 @@ export {
   type CategorySummary,
   type AnalyzedSchema,
   type AnalyzedNode,
-  type AnalyzedDeployable,
   type AnalyzedCategory,
   type ImportAnalysis,
   type ImportOptions,

@@ -1,7 +1,7 @@
 import type { Node } from '@xyflow/react';
 import type { CartaFile } from './cartaFile';
 import { builtInConstructSchemas } from '@carta/domain';
-import type { ConstructSchema, Deployable, ConstructNodeData, PortSchema, SchemaGroup } from '@carta/domain';
+import type { ConstructSchema, ConstructNodeData, PortSchema, SchemaGroup } from '@carta/domain';
 
 // Set of built-in schema types for quick lookup
 const BUILT_IN_TYPES = new Set(builtInConstructSchemas.map(s => s.type));
@@ -39,15 +39,6 @@ export interface AnalyzedNode {
 }
 
 /**
- * Analyzed deployable item
- */
-export interface AnalyzedDeployable {
-  item: Deployable;
-  status: ItemStatus;
-  existingItem?: Deployable;
-}
-
-/**
  * Category of analyzed items
  */
 export interface AnalyzedCategory<T> {
@@ -65,7 +56,6 @@ export interface ImportAnalysis {
 
   schemas: AnalyzedCategory<AnalyzedSchema>;
   nodes: AnalyzedCategory<AnalyzedNode>;
-  deployables: AnalyzedCategory<AnalyzedDeployable>;
   edges: { count: number };
 
   // These are always imported (not selectable) but shown for information
@@ -81,7 +71,6 @@ export interface ImportAnalysis {
 export interface ImportOptions {
   schemas: Set<string>; // Set of schema types to import
   nodes: Set<string>;   // Set of node IDs to import
-  deployables: Set<string>; // Set of deployable IDs to import
 }
 
 /**
@@ -91,7 +80,6 @@ export const defaultImportOptions = (analysis: ImportAnalysis): ImportOptions =>
   return {
     schemas: new Set(analysis.schemas.items.map(s => s.item.type)),
     nodes: new Set(analysis.nodes.items.map(n => n.item.id)),
-    deployables: new Set(analysis.deployables.items.map(d => d.item.id)),
   };
 };
 
@@ -102,13 +90,11 @@ export function analyzeImport(
   file: CartaFile,
   fileName: string,
   currentNodes: Node[] = [],
-  currentDeployables: Deployable[] = [],
   currentSchemas: ConstructSchema[] = []
 ): ImportAnalysis {
-  // Flatten all nodes/edges/deployables across levels for analysis
+  // Flatten all nodes/edges across levels for analysis
   const fileNodes = file.levels.flatMap(l => l.nodes) as Node[];
   const fileEdges = file.levels.flatMap(l => l.edges);
-  const fileDeployables = file.levels.flatMap(l => l.deployables);
 
   // Analyze schemas
   const analyzedSchemas: AnalyzedSchema[] = file.customSchemas.map(schema => {
@@ -129,7 +115,7 @@ export function analyzeImport(
   const analyzedNodes: AnalyzedNode[] = fileNodes.map(node => {
     const nodeData = node.data as ConstructNodeData;
     const semanticId = nodeData.semanticId;
-    
+
     // Check if a node with the same semanticId already exists
     const existingNode = currentNodes.find(n => {
       const existing = n.data as ConstructNodeData;
@@ -146,22 +132,7 @@ export function analyzeImport(
   const nodesNew = analyzedNodes.filter(n => n.status === 'new').length;
   const nodesConflicts = analyzedNodes.filter(n => n.status === 'conflict').length;
 
-  // Analyze deployables by checking for id conflicts
-  const analyzedDeployables: AnalyzedDeployable[] = fileDeployables.map(dep => {
-    // Check if a deployable with the same id already exists
-    const existingDeployable = currentDeployables.find(d => d.id === dep.id);
-
-    return {
-      item: dep,
-      status: existingDeployable ? 'conflict' : 'new',
-      existingItem: existingDeployable,
-    };
-  });
-
-  const deployablesNew = analyzedDeployables.filter(d => d.status === 'new').length;
-  const deployablesConflicts = analyzedDeployables.filter(d => d.status === 'conflict').length;
-
-  const hasConflicts = schemasConflicts > 0 || nodesConflicts > 0 || deployablesConflicts > 0;
+  const hasConflicts = schemasConflicts > 0 || nodesConflicts > 0;
 
   return {
     fileName,
@@ -181,14 +152,6 @@ export function analyzeImport(
         total: analyzedNodes.length,
         new: nodesNew,
         conflicts: nodesConflicts,
-      },
-    },
-    deployables: {
-      items: analyzedDeployables,
-      summary: {
-        total: analyzedDeployables.length,
-        new: deployablesNew,
-        conflicts: deployablesConflicts,
       },
     },
     edges: {

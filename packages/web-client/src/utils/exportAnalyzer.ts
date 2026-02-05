@@ -1,5 +1,5 @@
 import type { Node, Edge } from '@xyflow/react';
-import type { ConstructSchema, Deployable, ConstructNodeData, PortSchema, SchemaGroup } from '@carta/domain';
+import type { ConstructSchema, ConstructNodeData, PortSchema, SchemaGroup } from '@carta/domain';
 
 /**
  * Category of items for export
@@ -17,7 +17,6 @@ export interface ExportAnalysis {
   description: string;
   schemas: ExportCategory<ConstructSchema>;
   nodes: ExportCategory<Node<ConstructNodeData>>;
-  deployables: ExportCategory<Deployable>;
   portSchemas: ExportCategory<PortSchema>;
   schemaGroups: ExportCategory<SchemaGroup>;
   edgeCount: number;
@@ -29,7 +28,6 @@ export interface ExportAnalysis {
 export interface ExportOptions {
   schemas: boolean;
   nodes: boolean;
-  deployables: boolean;
   portSchemas: boolean;
   schemaGroups: boolean;
 }
@@ -40,7 +38,6 @@ export interface ExportOptions {
 export const defaultExportOptions: ExportOptions = {
   schemas: true,
   nodes: true,
-  deployables: true,
   portSchemas: true,
   schemaGroups: true,
 };
@@ -53,7 +50,6 @@ export function analyzeExport(
   description: string,
   nodes: Node[],
   edges: Edge[],
-  deployables: Deployable[],
   userSchemas: ConstructSchema[],
   portSchemas: PortSchema[],
   schemaGroups: SchemaGroup[]
@@ -68,10 +64,6 @@ export function analyzeExport(
     nodes: {
       items: nodes as Node<ConstructNodeData>[],
       count: nodes.length,
-    },
-    deployables: {
-      items: deployables,
-      count: deployables.length,
     },
     portSchemas: {
       items: portSchemas,

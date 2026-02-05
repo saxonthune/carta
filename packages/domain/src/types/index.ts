@@ -189,7 +189,6 @@ export interface ConstructNodeData {
   constructType: string;     // References ConstructSchema.type
   semanticId: string;        // Human/AI-readable identifier (e.g., 'controller-user-api')
   values: ConstructValues;   // Field values
-  deployableId?: string | null; // Deployable grouping (null/undefined means "none")
   // Port-based connections
   connections?: ConnectionValue[]; // Connections from this construct's ports
   // Relationship metadata for AI consumption
@@ -205,9 +204,7 @@ export interface ConstructNodeData {
   onSetViewLevel?: (level: 'summary' | 'details') => void;
   onToggleDetailsPin?: () => void;
   onOpenFullView?: () => void;
-  onDeployableChange?: (deployableId: string | null) => void;
   onInstanceColorChange?: (color: string | null) => void;
-  deployables?: Deployable[]; // List of available deployables for dropdown
   // Index signature for React Flow compatibility
   [key: string]: unknown;
 }
@@ -237,17 +234,6 @@ export interface OrganizerNodeData {
 }
 
 // ===== HELPERS =====
-
-/**
- * Deployable - A logical grouping for constructs
- * Helps organize constructs into deployable units (API, database, CDK stack, etc.)
- */
-export interface Deployable {
-  id: string;
-  name: string;
-  description: string;
-  color?: string;  // Optional color for visual grouping
-}
 
 /**
  * Schema group - Hierarchical grouping for construct and port schemas
@@ -311,7 +297,6 @@ export interface Level {
   order: number;              // For sorting (0, 1, 2, ...)
   nodes: unknown[];           // Node<ConstructNodeData>[] - level-specific nodes
   edges: unknown[];           // Edge[] - level-specific edges
-  deployables: Deployable[];  // Level-specific logical groupings
 }
 
 /**
@@ -326,7 +311,6 @@ export interface CartaDocumentV3 {
   nodes: unknown[];           // Node<ConstructNodeData>[] - using unknown to avoid @xyflow/react import
   edges: unknown[];           // Edge[] - using unknown to avoid @xyflow/react import
   schemas: ConstructSchema[];
-  deployables: Deployable[];
   portSchemas: PortSchema[];
   schemaGroups: SchemaGroup[];
 }
@@ -369,7 +353,6 @@ export interface ServerDocument {
   updatedAt: string;
   nodes: CompilerNode[];
   edges: CompilerEdge[];
-  deployables: Deployable[];
   customSchemas: ConstructSchema[];
 }
 
@@ -445,10 +428,6 @@ export interface DocumentAdapter {
   getSchemas(): ConstructSchema[];
   getSchema(type: string): ConstructSchema | undefined;
 
-  // State access - Deployables (reads from active level)
-  getDeployables(): Deployable[];
-  getDeployable(id: string): Deployable | undefined;
-
   // State access - Port Schemas
   getPortSchemas(): PortSchema[];
   getPortSchema(id: string): PortSchema | undefined;
@@ -479,12 +458,6 @@ export interface DocumentAdapter {
   updateSchema(type: string, updates: Partial<ConstructSchema>): void;
   removeSchema(type: string): boolean;
 
-  // Mutations - Deployables (writes to active level)
-  setDeployables(deployables: Deployable[]): void;
-  addDeployable(deployable: Omit<Deployable, 'id'>): Deployable;
-  updateDeployable(id: string, updates: Partial<Deployable>): void;
-  removeDeployable(id: string): boolean;
-
   // Mutations - Port Schemas
   setPortSchemas(portSchemas: PortSchema[]): void;
   addPortSchema(portSchema: PortSchema): void;
@@ -509,7 +482,6 @@ export interface DocumentAdapter {
   subscribeToEdges?(listener: () => void): () => void;
   subscribeToSchemas?(listener: () => void): () => void;
   subscribeToPortSchemas?(listener: () => void): () => void;
-  subscribeToDeployables?(listener: () => void): () => void;
   subscribeToSchemaGroups?(listener: () => void): () => void;
   subscribeToLevels?(listener: () => void): () => void;
   subscribeToMeta?(listener: () => void): () => void;

@@ -1,13 +1,14 @@
 import type { DocumentAdapter, OrganizerNodeData, ConstructSchema, PortSchema } from '@carta/domain';
 import { generateSemanticId } from '@carta/domain';
-import { generateDeployableColor } from '@carta/document';
+
+// Simple organizer color palette
+const ORGANIZER_COLORS = ['#7c3aed', '#0891b2', '#059669', '#d97706', '#dc2626'];
 
 /**
  * Kitchen-sink seed exercising every core feature:
  * - Custom schemas with custom ports
  * - All 5 port polarities (source, sink, bidirectional, relay, intercept)
  * - Organizer with children
- * - Deployable assignment
  * - Multiple connection types on same node
  *
  * If this seed compiles and renders, the core features work.
@@ -95,16 +96,13 @@ export function kitchenSink(adapter: DocumentAdapter): void {
 
   // --- Organizer ---
   const organizerId = crypto.randomUUID();
-  const orgColor = generateDeployableColor();
-
-  // --- Deployable ---
-  const dep = adapter.addDeployable({ name: 'Data Platform', description: 'All pipeline infrastructure', color: '#7c3aed' });
+  const orgColor = ORGANIZER_COLORS[0];
 
   const PADDING = 20;
   const HEADER_HEIGHT = 40;
 
   adapter.setTitle('Kitchen Sink');
-  adapter.setDescription('Exercises every core feature: custom schemas, all port polarities, organizers, deployables');
+  adapter.setDescription('Exercises every core feature: custom schemas, all port polarities, organizers');
 
   adapter.setNodes([
     // Organizer containing pipeline stages
@@ -133,7 +131,6 @@ export function kitchenSink(adapter: DocumentAdapter): void {
         semanticId: generateSemanticId('ks-pipeline'),
         values: { name: 'Ingest Pipeline', throughput: 5000 },
         viewLevel: 'summary',
-        deployableId: dep.id,
       },
     },
 
@@ -148,7 +145,6 @@ export function kitchenSink(adapter: DocumentAdapter): void {
         semanticId: generateSemanticId('ks-stage'),
         values: { name: 'Filter Invalid', transform: 'filter' },
         viewLevel: 'summary',
-        deployableId: dep.id,
       },
     },
     {
@@ -161,7 +157,6 @@ export function kitchenSink(adapter: DocumentAdapter): void {
         semanticId: generateSemanticId('ks-stage'),
         values: { name: 'Normalize', transform: 'map' },
         viewLevel: 'summary',
-        deployableId: dep.id,
       },
     },
     {
@@ -174,7 +169,6 @@ export function kitchenSink(adapter: DocumentAdapter): void {
         semanticId: generateSemanticId('ks-stage'),
         values: { name: 'Aggregate', transform: 'reduce' },
         viewLevel: 'summary',
-        deployableId: dep.id,
       },
     },
 
@@ -188,7 +182,6 @@ export function kitchenSink(adapter: DocumentAdapter): void {
         semanticId: generateSemanticId('ks-pipeline'),
         values: { name: 'Export Pipeline', throughput: 2000, notes: 'Forwards processed data to API' },
         viewLevel: 'summary',
-        deployableId: dep.id,
       },
     },
 

@@ -1,13 +1,11 @@
 import { useState } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { getDisplayName, getFieldsForSummary } from '@carta/domain';
-import { useDeployables } from '../../../hooks/useDeployables';
-import CreateDeployablePopover from '../../CreateDeployablePopover';
 import PortDrawer from '../PortDrawer';
 import IndexBasedDropZones from '../IndexBasedDropZones';
 import ColorPicker from '../../ui/ColorPicker';
 import { WindowIcon, PinIcon, ExpandIcon, CollapseIcon } from '../../ui/icons';
-import { formatValue, ADD_NEW_DEPLOYABLE } from './shared';
+import { formatValue } from './shared';
 import type { ConstructNodeVariantProps } from './shared';
 
 export function ConstructNodeDefault({
@@ -20,32 +18,13 @@ export function ConstructNodeDefault({
   sourcePortType,
   lodTransitionStyle,
 }: ConstructNodeVariantProps) {
-  const { addDeployable } = useDeployables();
   const [editingField, setEditingField] = useState<string | null>(null);
-  const [showNewDeployableModal, setShowNewDeployableModal] = useState(false);
 
   const color = data.instanceColor || schema.color;
 
   const bgStyle: React.CSSProperties = data.instanceColor
     ? { backgroundColor: data.instanceColor }
     : {};
-
-  const handleDeployableChange = (value: string) => {
-    if (value === ADD_NEW_DEPLOYABLE) {
-      setShowNewDeployableModal(true);
-    } else {
-      data.onDeployableChange?.(value || null);
-    }
-  };
-
-  const handleCreateDeployable = (name: string, description: string) => {
-    const newDeployable = addDeployable({
-      name: name.trim(),
-      description: description.trim(),
-    });
-    data.onDeployableChange?.(newDeployable.id);
-    setShowNewDeployableModal(false);
-  };
 
   const isDetails = data.viewLevel === 'details';
   const visibleFields = isDetails ? schema.fields : getFieldsForSummary(schema);
@@ -142,31 +121,6 @@ export function ConstructNodeDefault({
                 onChange={data.onInstanceColorChange}
               />
             </div>
-          </div>
-        )}
-
-        {/* Deployable dropdown (details only) */}
-        {isDetails && data.deployables && (
-          <div className="relative">
-            <label className="text-node-xs text-content-muted uppercase tracking-wide">Deployable</label>
-            <select
-              className="w-full px-2 py-1 bg-surface rounded text-node-sm text-content border border-content-muted/20"
-              value={data.deployableId || ''}
-              onChange={(e) => handleDeployableChange(e.target.value)}
-            >
-              <option value="">—</option>
-              {data.deployables.map((d) => (
-                <option key={d.id} value={d.id}>{d.name}</option>
-              ))}
-              <option value={ADD_NEW_DEPLOYABLE}>+ Add new...</option>
-            </select>
-
-            {/* New Deployable Popover */}
-            <CreateDeployablePopover
-              isOpen={showNewDeployableModal}
-              onClose={() => setShowNewDeployableModal(false)}
-              onCreate={handleCreateDeployable}
-            />
           </div>
         )}
 

@@ -1,7 +1,7 @@
 /**
  * Y.Doc mutation operations for Carta documents.
  *
- * Level-aware: construct/edge/deployable operations take a `levelId` parameter.
+ * Level-aware: construct/edge operations take a `levelId` parameter.
  * Schema operations are shared across levels.
  *
  * All operations use 'mcp' as the transaction origin,
@@ -17,14 +17,13 @@ import type {
   CompilerNode,
   CompilerEdge,
   ConstructSchema,
-  Deployable,
   ServerDocument,
   ConstructNodeData,
   ConnectionValue,
 } from '@carta/domain';
 import { CompilerEngine } from '@carta/compiler';
 import { yToPlain, deepPlainToY, safeGet } from './yjs-helpers.js';
-import { generateNodeId, generateDeployableId, generateDeployableColor } from './id-generators.js';
+import { generateNodeId } from './id-generators.js';
 import { MCP_ORIGIN, SERVER_FORMAT_VERSION } from './constants.js';
 
 /**
@@ -121,7 +120,7 @@ export function updateConstruct(
   ydoc: Y.Doc,
   levelId: string,
   semanticId: string,
-  updates: { values?: Record<string, unknown>; deployableId?: string | null; instanceColor?: string | null }
+  updates: { values?: Record<string, unknown>; instanceColor?: string | null }
 ): CompilerNode | null {
   const levelNodes = getLevelMap(ydoc, 'nodes', levelId);
 
@@ -152,10 +151,6 @@ export function updateConstruct(
         existingValues.set(key, value);
       });
       ydata.set('values', existingValues);
-    }
-
-    if (updates.deployableId !== undefined) {
-      ydata.set('deployableId', updates.deployableId);
     }
 
     if (updates.instanceColor !== undefined) {
@@ -491,48 +486,6 @@ export function removeSchema(ydoc: Y.Doc, type: string): boolean {
   return true;
 }
 
-// ===== DEPLOYABLE OPERATIONS =====
-
-/**
- * List all deployables in a level
- */
-export function listDeployables(ydoc: Y.Doc, levelId: string): Deployable[] {
-  const levelDeployables = getLevelMap(ydoc, 'deployables', levelId);
-  const deployables: Deployable[] = [];
-
-  levelDeployables.forEach((ydeployable) => {
-    deployables.push(yToPlain(ydeployable) as Deployable);
-  });
-
-  return deployables;
-}
-
-/**
- * Create a deployable in a level
- */
-export function createDeployable(
-  ydoc: Y.Doc,
-  levelId: string,
-  name: string,
-  description: string,
-  color?: string
-): Deployable {
-  const levelDeployables = getLevelMap(ydoc, 'deployables', levelId);
-
-  const deployable: Deployable = {
-    id: generateDeployableId(),
-    name,
-    description,
-    color: color || generateDeployableColor(),
-  };
-
-  ydoc.transact(() => {
-    levelDeployables.set(deployable.id, deepPlainToY(deployable) as Y.Map<unknown>);
-  }, MCP_ORIGIN);
-
-  return deployable;
-}
-
 // ===== COMPILATION =====
 
 /**
@@ -541,7 +494,6 @@ export function createDeployable(
 export function compile(ydoc: Y.Doc, levelId: string): string {
   const nodes = listConstructs(ydoc, levelId);
   const schemas = listSchemas(ydoc);
-  const deployables = listDeployables(ydoc, levelId);
 
   // Get edges for level
   const levelEdges = getLevelMap(ydoc, 'edges', levelId);
@@ -557,7 +509,7 @@ export function compile(ydoc: Y.Doc, levelId: string): string {
   });
 
   const compilerEngine = new CompilerEngine();
-  return compilerEngine.compile(nodes, edges, { schemas, deployables });
+  return compilerEngine.compile(nodes, edges, { schemas });
 }
 
 // ===== DOCUMENT EXTRACTION =====
@@ -569,7 +521,6 @@ export function extractDocument(ydoc: Y.Doc, roomId: string, levelId: string): S
   const ymeta = ydoc.getMap('meta');
   const nodes = listConstructs(ydoc, levelId);
   const schemas = listSchemas(ydoc);
-  const deployables = listDeployables(ydoc, levelId);
 
   // Get edges for level
   const levelEdges = getLevelMap(ydoc, 'edges', levelId);
@@ -600,7 +551,6 @@ export function extractDocument(ydoc: Y.Doc, roomId: string, levelId: string): S
     updatedAt: now,
     nodes,
     edges,
-    deployables,
     customSchemas,
   };
 }

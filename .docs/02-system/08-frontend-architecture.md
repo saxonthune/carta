@@ -132,8 +132,8 @@ Organized by purpose:
 
 ### `hooks/index.ts`
 Organized by purpose:
-- **Document state**: `useNodes`, `useEdges`, `useSchemas`, `usePortSchemas`, `useDeployables`, `useSchemaGroups`, `useLevels`, `useDocumentMeta`
-- **Document operations**: `useGraphOperations`, `useConnections`, `useOrganizerOperations`
+- **Document state**: `useNodes`, `useEdges`, `useSchemas`, `usePortSchemas`, `useSchemaGroups`, `useLevels`, `useDocumentMeta`
+- **Document operations**: `useGraphOperations`, `useConnections`, `usePresentation`, `useOrganizerOperations`
 - **UI state**: `useMapState`, `useMetamapLayout`, `useEdgeBundling`
 - **Utilities**: `useClipboard`, `useUndoRedo`, `useKeyboardShortcuts`, `useAwareness`, `useDirtyStateGuard`, `useClearDocument`
 

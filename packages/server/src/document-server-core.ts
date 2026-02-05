@@ -28,8 +28,6 @@ import {
   getSchema,
   createSchema,
   removeSchema,
-  listDeployables,
-  createDeployable,
   compile,
   extractDocument,
 } from '@carta/document';
@@ -403,7 +401,6 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
         if (method === 'PATCH') {
           const body = await parseJsonBody<{
             values?: Record<string, unknown>;
-            deployableId?: string | null;
           }>(req);
           const construct = updateConstruct(docState.doc, getActiveLevelId(docState.doc), semanticId, body);
           if (!construct) {
@@ -571,43 +568,6 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
             return;
           }
           sendJson(res, 200, { deleted: true });
-          return;
-        }
-      }
-
-      // ===== DEPLOYABLES =====
-
-      const deployablesMatch = path.match(/^\/api\/documents\/([^/]+)\/deployables$/);
-      if (deployablesMatch) {
-        const roomId = deployablesMatch[1]!;
-        const docState = await config.getDoc(roomId);
-
-        if (method === 'GET') {
-          const deployables = listDeployables(docState.doc, getActiveLevelId(docState.doc));
-          sendJson(res, 200, { deployables });
-          return;
-        }
-
-        if (method === 'POST') {
-          const body = await parseJsonBody<{
-            name: string;
-            description: string;
-            color?: string;
-          }>(req);
-
-          if (!body.name || !body.description) {
-            sendError(res, 400, 'name and description are required', 'MISSING_FIELD');
-            return;
-          }
-
-          const deployable = createDeployable(
-            docState.doc,
-            getActiveLevelId(docState.doc),
-            body.name,
-            body.description,
-            body.color
-          );
-          sendJson(res, 201, { deployable });
           return;
         }
       }

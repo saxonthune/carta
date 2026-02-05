@@ -19,7 +19,6 @@ export function useClearDocument() {
           adapter.setActiveLevel(level.id);
           adapter.setNodes([]);
           adapter.setEdges([]);
-          adapter.setDeployables([]);
         }
         // Delete all but first level, then recreate as "Main"
         if (levels.length > 1) {

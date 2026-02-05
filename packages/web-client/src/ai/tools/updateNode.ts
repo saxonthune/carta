@@ -7,7 +7,6 @@ interface UpdateNodeParams {
   semanticId?: string;
   values?: ConstructValues;
   newSemanticId?: string;
-  deployableId?: string | null;
 }
 
 interface UpdateNodeResult {
@@ -21,7 +20,7 @@ interface UpdateNodeResult {
 export const updateNodeTool: CartaTool<UpdateNodeParams, UpdateNodeResult> = {
   schema: {
     name: 'updateNode',
-    description: 'Update field values on an existing construct. Can also rename the semanticId or change deployable assignment.',
+    description: 'Update field values on an existing construct. Can also rename the semanticId.',
     parameters: {
       type: 'object',
       properties: {
@@ -41,16 +40,12 @@ export const updateNodeTool: CartaTool<UpdateNodeParams, UpdateNodeResult> = {
           type: 'string',
           description: 'New semantic identifier to rename the construct',
         },
-        deployableId: {
-          type: 'string',
-          description: 'Deployable ID to assign (null to unassign)',
-        },
       },
     },
   },
 
   execute: (params: UpdateNodeParams, context: ToolContext): ToolResult<UpdateNodeResult> => {
-    const { id, semanticId, values, newSemanticId, deployableId } = params;
+    const { id, semanticId, values, newSemanticId } = params;
 
     if (!id && !semanticId) {
       return {
@@ -87,10 +82,6 @@ export const updateNodeTool: CartaTool<UpdateNodeParams, UpdateNodeResult> = {
 
     if (newSemanticId) {
       updates.semanticId = newSemanticId;
-    }
-
-    if (deployableId !== undefined) {
-      updates.deployableId = deployableId;
     }
 
     // Apply updates using adapter's updateNode (handles semantic ID cascading)

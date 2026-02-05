@@ -45,7 +45,7 @@ export default function ExportPreviewModal({
     setOptions(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const hasSelectedAnything = options.schemas || options.nodes || options.deployables || options.portSchemas || options.schemaGroups;
+  const hasSelectedAnything = options.schemas || options.nodes || options.portSchemas || options.schemaGroups;
 
   // Generate the raw CartaFile JSON for preview
   const rawJson = useMemo(() => {
@@ -59,7 +59,6 @@ export default function ExportPreviewModal({
         order: 0,
         nodes: options.nodes ? analysis.nodes.items : [],
         edges: options.nodes ? edges : [],
-        deployables: options.deployables ? analysis.deployables.items : [],
       }],
       customSchemas: options.schemas ? analysis.schemas.items : [],
       portSchemas: options.portSchemas ? analysis.portSchemas.items : [],
@@ -158,25 +157,6 @@ export default function ExportPreviewModal({
                 <span className="text-content font-medium">Instances</span>
                 <span className="text-content-muted text-sm">
                   ({analysis.nodes.count} nodes, {analysis.edgeCount} edges)
-                </span>
-              </div>
-            </label>
-          </div>
-
-          {/* Deployables */}
-          <div className="border rounded-lg overflow-hidden">
-            <label className="flex items-center gap-3 p-3 cursor-pointer hover:bg-surface-alt">
-              <input
-                type="checkbox"
-                checked={options.deployables}
-                onChange={() => handleToggle('deployables')}
-                disabled={analysis.deployables.count === 0}
-                className="w-4 h-4 accent-accent"
-              />
-              <div className="flex-1 flex items-center justify-between">
-                <span className="text-content font-medium">Deployables</span>
-                <span className="text-content-muted text-sm">
-                  ({analysis.deployables.count})
                 </span>
               </div>
             </label>

@@ -6,11 +6,9 @@ import ViewToggle from '../ViewToggle';
 import LevelSwitcher from '../LevelSwitcher';
 import Footer from '../Footer';
 import SearchBar from '../ui/SearchBar';
-import type { Deployable, Level } from '@carta/domain';
+import type { Level } from '@carta/domain';
 
 interface CanvasContainerProps {
-  deployables: Deployable[];
-  onDeployablesChange: () => void;
   title: string;
   onNodesEdgesChange: (nodes: Node[], edges: Edge[]) => void;
   onSelectionChange: (nodes: Node[]) => void;
@@ -20,13 +18,11 @@ interface CanvasContainerProps {
   onSetActiveLevel: (levelId: string) => void;
   onCreateLevel: (name: string) => void;
   onDeleteLevel: (levelId: string) => boolean;
-  onUpdateLevel: (levelId: string, updates: Partial<Omit<Level, 'id' | 'nodes' | 'edges' | 'deployables'>>) => void;
+  onUpdateLevel: (levelId: string, updates: Partial<Omit<Level, 'id' | 'nodes' | 'edges'>>) => void;
   onDuplicateLevel: (levelId: string, newName: string) => Level;
 }
 
 export default function CanvasContainer({
-  deployables,
-  onDeployablesChange,
   title,
   onNodesEdgesChange,
   onSelectionChange,
@@ -81,8 +77,6 @@ export default function CanvasContainer({
         {viewMode === 'instances' ? (
           <ReactFlowProvider>
             <Map
-              deployables={deployables}
-              onDeployablesChange={onDeployablesChange}
               title={title}
               onNodesEdgesChange={onNodesEdgesChange}
               onSelectionChange={onSelectionChange}

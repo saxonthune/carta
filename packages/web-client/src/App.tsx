@@ -11,7 +11,6 @@ import { builtInConstructSchemas, builtInPortSchemas, builtInSchemaGroups, syncW
 import type { ConstructSchema } from '@carta/domain';
 import { useDocumentMeta } from './hooks/useDocumentMeta';
 import { useSchemas } from './hooks/useSchemas';
-import { useDeployables } from './hooks/useDeployables';
 import { useSchemaGroups } from './hooks/useSchemaGroups';
 import { useLevels } from './hooks/useLevels';
 import { useNodes } from './hooks/useNodes';
@@ -48,7 +47,6 @@ function AppContent() {
 
   const { title, description, setTitle, setDescription } = useDocumentMeta();
   const { schemas } = useSchemas();
-  const { deployables } = useDeployables();
   const { schemaGroups } = useSchemaGroups();
   const { levels, activeLevel, setActiveLevel, createLevel, deleteLevel, updateLevel, duplicateLevel } = useLevels();
   const { updateNode } = useNodes();
@@ -95,11 +93,6 @@ function AppContent() {
     importDocument(adapter, data, config, schemasToImport);
   }, [pendingImport, adapter]);
 
-  // No-op for compatibility with existing props
-  const refreshDeployables = useCallback(() => {
-    // Deployables now update automatically via useDocument
-  }, []);
-
   const handleNodesEdgesChange = useCallback((nodes: Node[], edges: Edge[]) => {
     nodesEdgesRef.current = { nodes, edges };
   }, []);
@@ -116,9 +109,9 @@ function AppContent() {
   const handleExport = useCallback(() => {
     const { nodes, edges } = nodesEdgesRef.current;
     const portSchemas = adapter.getPortSchemas();
-    const analysis = analyzeExport(title, description, nodes, edges, deployables, schemas, portSchemas, schemaGroups);
+    const analysis = analyzeExport(title, description, nodes, edges, schemas, portSchemas, schemaGroups);
     setExportPreview(analysis);
-  }, [title, description, deployables, schemas, schemaGroups, adapter]);
+  }, [title, description, schemas, schemaGroups, adapter]);
 
   const handleExportConfirm = useCallback((options: ExportOptions) => {
     const portSchemas = adapter.getPortSchemas();
@@ -142,12 +135,12 @@ function AppContent() {
   const handleImport = useCallback(async (file: File) => {
     try {
       const data = await importProject(file);
-      const analysis = analyzeImport(data, file.name, nodesEdgesRef.current.nodes, deployables, schemas);
+      const analysis = analyzeImport(data, file.name, nodesEdgesRef.current.nodes, schemas);
       setImportPreview({ data, analysis });
     } catch (error) {
       alert(`Failed to import file: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-  }, [deployables, schemas]);
+  }, [schemas]);
 
   const handleImportConfirm = useCallback((options: ImportOptions) => {
     if (!importPreview) return;
@@ -163,7 +156,6 @@ function AppContent() {
     const config: ImportConfig = {
       schemas: options.schemas,
       nodes: options.nodes,
-      deployables: options.deployables,
     };
 
     // Set pending import flag and close modal
@@ -179,9 +171,9 @@ function AppContent() {
   const handleCompile = useCallback(() => {
     const { nodes, edges } = nodesEdgesRef.current;
     // Cast to any since React Flow Node[] has compatible shape to CompilerNode[] at runtime
-    const output = compiler.compile(nodes as any, edges as any, { schemas, deployables });
+    const output = compiler.compile(nodes as any, edges as any, { schemas });
     setCompileOutput(output);
-  }, [schemas, deployables]);
+  }, [schemas]);
 
   const handleRestoreDefaultSchemas = useCallback(() => {
     // Restore all defaults in a single transaction
@@ -216,8 +208,6 @@ function AppContent() {
         onToggleAI={() => setAiSidebarOpen(!aiSidebarOpen)}
       />
       <CanvasContainer
-        deployables={deployables}
-        onDeployablesChange={refreshDeployables}
         title={title}
         onNodesEdgesChange={handleNodesEdgesChange}
         onSelectionChange={handleSelectionChange}

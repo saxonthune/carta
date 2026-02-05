@@ -2,7 +2,7 @@
  * Test: Menu -> Clear -> Clear Everything
  *
  * Verifies that "Clear Everything" removes all document content
- * (nodes, edges, schemas, deployables) while preserving the title.
+ * (nodes, edges, schemas) while preserving the title.
  *
  * This is an integration test that exercises:
  * - Document adapter (Yjs)
@@ -15,7 +15,6 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import { useNodes } from '../../src/hooks/useNodes';
 import { useEdges } from '../../src/hooks/useEdges';
 import { useSchemas } from '../../src/hooks/useSchemas';
-import { useDeployables } from '../../src/hooks/useDeployables';
 import { useDocumentMeta } from '../../src/hooks/useDocumentMeta';
 import { useDocumentContext } from '../../src/contexts/DocumentContext';
 import { TestProviders } from '../setup/testProviders';
@@ -23,14 +22,13 @@ import { createTestNode, createTestEdge } from '../setup/testHelpers';
 
 describe('Clear Document', () => {
   describe('Clear Everything', () => {
-    it('should clear nodes, edges, schemas, and deployables but preserve title', async () => {
+    it('should clear nodes, edges, and schemas but preserve title', async () => {
       // Arrange: Set up a document with content
       const { result } = renderHook(
         () => ({
           nodes: useNodes(),
           edges: useEdges(),
           schemas: useSchemas(),
-          deployables: useDeployables(),
           meta: useDocumentMeta(),
           context: useDocumentContext(),
         }),
@@ -66,13 +64,6 @@ describe('Clear Document', () => {
           fields: [{ name: 'name', type: 'string', displayTier: 'pill' }],
           ports: [],
         });
-
-        // Add a deployable
-        adapter.addDeployable({
-          name: 'Test Deployable',
-          description: 'A test deployable',
-          color: '#ff0000',
-        });
       });
 
       // Verify content exists before clear
@@ -83,7 +74,6 @@ describe('Clear Document', () => {
       expect(result.current.nodes.nodes).toHaveLength(2);
       expect(result.current.edges.edges).toHaveLength(1);
       expect(result.current.meta.title).toBe('My Test Project');
-      expect(adapter.getDeployables().length).toBeGreaterThan(0);
 
       // Act: Clear everything (simulating what handleClear('all') does)
       act(() => {
@@ -91,7 +81,6 @@ describe('Clear Document', () => {
           adapter.setNodes([]);
           adapter.setEdges([]);
           adapter.setSchemas([]);
-          adapter.setDeployables([]);
           adapter.setPortSchemas([]);
           // Note: Title is NOT cleared - this is the expected behavior
         });
@@ -105,7 +94,6 @@ describe('Clear Document', () => {
       expect(result.current.nodes.nodes).toHaveLength(0);
       expect(result.current.edges.edges).toHaveLength(0);
       expect(result.current.schemas.schemas).toHaveLength(0);
-      expect(result.current.deployables.deployables).toHaveLength(0);
 
       // Assert: Title is preserved (the key requirement)
       expect(result.current.meta.title).toBe('My Test Project');
@@ -117,7 +105,6 @@ describe('Clear Document', () => {
           nodes: useNodes(),
           edges: useEdges(),
           schemas: useSchemas(),
-          deployables: useDeployables(),
           meta: useDocumentMeta(),
           context: useDocumentContext(),
         }),
@@ -146,7 +133,6 @@ describe('Clear Document', () => {
           adapter.setNodes([]);
           adapter.setEdges([]);
           adapter.setSchemas([]);
-          adapter.setDeployables([]);
         });
       });
 
@@ -165,13 +151,12 @@ describe('Clear Document', () => {
   });
 
   describe('Clear Instances Only', () => {
-    it('should clear nodes and edges but preserve schemas and deployables', async () => {
+    it('should clear nodes and edges but preserve schemas', async () => {
       const { result } = renderHook(
         () => ({
           nodes: useNodes(),
           edges: useEdges(),
           schemas: useSchemas(),
-          deployables: useDeployables(),
           meta: useDocumentMeta(),
           context: useDocumentContext(),
         }),
@@ -200,12 +185,6 @@ describe('Clear Document', () => {
           fields: [{ name: 'name', type: 'string', displayTier: 'pill' }],
           ports: [],
         });
-
-        adapter.addDeployable({
-          name: 'Preserved Deployable',
-          description: 'Should survive clear instances',
-          color: '#00ff00',
-        });
       });
 
       await waitFor(() => {
@@ -213,14 +192,13 @@ describe('Clear Document', () => {
       });
 
       const schemaCountBefore = result.current.schemas.schemas.length;
-      const deployableCountBefore = result.current.deployables.deployables.length;
 
       // Clear instances only
       act(() => {
         adapter.transaction(() => {
           adapter.setNodes([]);
           adapter.setEdges([]);
-          // Schemas and deployables NOT cleared
+          // Schemas NOT cleared
         });
       });
 
@@ -232,9 +210,8 @@ describe('Clear Document', () => {
       expect(result.current.nodes.nodes).toHaveLength(0);
       expect(result.current.edges.edges).toHaveLength(0);
 
-      // Schemas and deployables preserved
+      // Schemas preserved
       expect(result.current.schemas.schemas.length).toBe(schemaCountBefore);
-      expect(result.current.deployables.deployables.length).toBe(deployableCountBefore);
 
       // Title preserved
       expect(result.current.meta.title).toBe('Instance Clear Test');
@@ -248,7 +225,6 @@ describe('Clear Document', () => {
           nodes: useNodes(),
           edges: useEdges(),
           schemas: useSchemas(),
-          deployables: useDeployables(),
           meta: useDocumentMeta(),
           context: useDocumentContext(),
         }),
@@ -266,7 +242,6 @@ describe('Clear Document', () => {
         adapter.setNodes([]);
         adapter.setEdges([]);
         adapter.setSchemas([]);
-        adapter.setDeployables([]);
         adapter.setTitle('Empty Doc');
       });
 
@@ -280,7 +255,6 @@ describe('Clear Document', () => {
           adapter.setNodes([]);
           adapter.setEdges([]);
           adapter.setSchemas([]);
-          adapter.setDeployables([]);
         });
       });
 
@@ -294,7 +268,6 @@ describe('Clear Document', () => {
           nodes: useNodes(),
           edges: useEdges(),
           schemas: useSchemas(),
-          deployables: useDeployables(),
           meta: useDocumentMeta(),
           context: useDocumentContext(),
         }),

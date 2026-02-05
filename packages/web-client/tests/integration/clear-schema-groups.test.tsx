@@ -49,7 +49,6 @@ describe('Clear Schema Groups', () => {
         adapter.setNodes([]);
         adapter.setEdges([]);
         adapter.setSchemas([]);
-        adapter.setDeployables([]);
         adapter.setPortSchemas([]);
         adapter.setSchemaGroups([]);
       });

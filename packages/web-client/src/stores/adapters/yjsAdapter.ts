@@ -6,7 +6,6 @@ import type {
   CartaDocumentV4,
   ConstructSchema,
   ConstructNodeData,
-  Deployable,
   PortSchema,
   SchemaGroup,
   Level,
@@ -14,8 +13,6 @@ import type {
 import {
   objectToYMap,
   yMapToObject,
-  generateDeployableId,
-  generateDeployableColor,
   generateSchemaGroupId,
   generateLevelId,
   migrateToLevels,
@@ -40,7 +37,6 @@ export interface YjsAdapterOptions {
  *   'levels': Y.Map<levelId, Y.Map { id, name, description, order }>
  *   'nodes': Y.Map<levelId, Y.Map<nodeId, Y.Map>>       // Nested: level → nodes (includes organizer type nodes)
  *   'edges': Y.Map<levelId, Y.Map<edgeId, Y.Map>>       // Nested: level → edges
- *   'deployables': Y.Map<levelId, Y.Map<depId, Y.Map>>   // Nested: level → deployables
  *   'schemas': Y.Map<type, Y.Map>                        // Shared (unchanged)
  *   'portSchemas': Y.Map<id, Y.Map>                      // Shared (unchanged)
  *   'schemaGroups': Y.Map<id, Y.Map>                     // Shared (unchanged)
@@ -73,7 +69,6 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
   const ynodes = ydoc.getMap<Y.Map<unknown>>('nodes');
   const yedges = ydoc.getMap<Y.Map<unknown>>('edges');
   const yschemas = ydoc.getMap<Y.Map<unknown>>('schemas');
-  const ydeployables = ydoc.getMap<Y.Map<unknown>>('deployables');
   const yportSchemas = ydoc.getMap<Y.Map<unknown>>('portSchemas');
   const yschemaGroups = ydoc.getMap<Y.Map<unknown>>('schemaGroups');
 
@@ -95,7 +90,6 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
   const edgeListeners = new Set<() => void>();
   const schemaListeners = new Set<() => void>();
   const portSchemaListeners = new Set<() => void>();
-  const deployableListeners = new Set<() => void>();
   const schemaGroupListeners = new Set<() => void>();
   const levelListeners = new Set<() => void>();
   const metaListeners = new Set<() => void>();
@@ -104,7 +98,6 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
   const notifyEdgeListeners = () => edgeListeners.forEach((cb) => cb());
   const notifySchemaListeners = () => schemaListeners.forEach((cb) => cb());
   const notifyPortSchemaListeners = () => portSchemaListeners.forEach((cb) => cb());
-  const notifyDeployableListeners = () => deployableListeners.forEach((cb) => cb());
   const notifySchemaGroupListeners = () => schemaGroupListeners.forEach((cb) => cb());
   const notifyLevelListeners = () => levelListeners.forEach((cb) => cb());
   const notifyMetaListeners = () => metaListeners.forEach((cb) => cb());
@@ -125,7 +118,6 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     // Active level change affects level-scoped data
     notifyNodeListeners();
     notifyEdgeListeners();
-    notifyDeployableListeners();
     notifyListeners();
   };
   const onLevelsChange = () => {
@@ -144,10 +136,6 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     notifySchemaListeners();
     notifyListeners();
   };
-  const onDeployablesChange = () => {
-    notifyDeployableListeners();
-    notifyListeners();
-  };
   const onPortSchemasChange = () => {
     notifyPortSchemaListeners();
     notifyListeners();
@@ -164,7 +152,6 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     ynodes.observeDeep(onNodesChange);
     yedges.observeDeep(onEdgesChange);
     yschemas.observeDeep(onSchemasChange);
-    ydeployables.observeDeep(onDeployablesChange);
     yportSchemas.observeDeep(onPortSchemasChange);
     yschemaGroups.observeDeep(onSchemaGroupsChange);
     observersSetUp = true;
@@ -258,22 +245,6 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       yedges.set(levelId, levelEdges as unknown as Y.Map<unknown>);
     }
     return levelEdges;
-  }
-
-  /**
-   * Get the Y.Map for deployables of the active level
-   */
-  function getActiveLevelDeployables(): Y.Map<Y.Map<unknown>> {
-    const levelId = getActiveLevelId();
-    if (!levelId) {
-      return new Y.Map<Y.Map<unknown>>();
-    }
-    let levelDeployables = ydeployables.get(levelId) as Y.Map<Y.Map<unknown>> | undefined;
-    if (!levelDeployables) {
-      levelDeployables = new Y.Map<Y.Map<unknown>>();
-      ydeployables.set(levelId, levelDeployables as unknown as Y.Map<unknown>);
-    }
-    return levelDeployables;
   }
 
   // Initialize with default values if empty
@@ -456,7 +427,6 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
         ynodes.unobserveDeep(onNodesChange);
         yedges.unobserveDeep(onEdgesChange);
         yschemas.unobserveDeep(onSchemasChange);
-        ydeployables.unobserveDeep(onDeployablesChange);
         yportSchemas.unobserveDeep(onPortSchemasChange);
         yschemaGroups.unobserveDeep(onSchemaGroupsChange);
       }
@@ -466,7 +436,6 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       edgeListeners.clear();
       schemaListeners.clear();
       portSchemaListeners.clear();
-      deployableListeners.clear();
       schemaGroupListeners.clear();
       levelListeners.clear();
       metaListeners.clear();
@@ -521,11 +490,10 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       const levels: Level[] = [];
       ylevels.forEach((ylevel) => {
         const level = yMapToObject<Level>(ylevel);
-        // Populate nodes/edges/deployables from their respective maps
+        // Populate nodes/edges from their respective maps
         const levelId = level.id;
         const levelNodesMap = ynodes.get(levelId) as Y.Map<Y.Map<unknown>> | undefined;
         const levelEdgesMap = yedges.get(levelId) as Y.Map<Y.Map<unknown>> | undefined;
-        const levelDeployablesMap = ydeployables.get(levelId) as Y.Map<Y.Map<unknown>> | undefined;
 
         const nodes: unknown[] = [];
         levelNodesMap?.forEach((ynode, id) => {
@@ -537,12 +505,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
           edges.push({ ...yMapToObject<Edge>(yedge), id });
         });
 
-        const deployables: Deployable[] = [];
-        levelDeployablesMap?.forEach((ydep) => {
-          deployables.push(yMapToObject<Deployable>(ydep));
-        });
-
-        levels.push({ ...level, nodes, edges, deployables });
+        levels.push({ ...level, nodes, edges });
       });
       return levels.sort((a, b) => a.order - b.order);
     },
@@ -554,7 +517,6 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
       const levelNodesMap = ynodes.get(id) as Y.Map<Y.Map<unknown>> | undefined;
       const levelEdgesMap = yedges.get(id) as Y.Map<Y.Map<unknown>> | undefined;
-      const levelDeployablesMap = ydeployables.get(id) as Y.Map<Y.Map<unknown>> | undefined;
 
       const nodes: unknown[] = [];
       levelNodesMap?.forEach((ynode, nid) => {
@@ -566,12 +528,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
         edges.push({ ...yMapToObject<Edge>(yedge), id: eid });
       });
 
-      const deployables: Deployable[] = [];
-      levelDeployablesMap?.forEach((ydep) => {
-        deployables.push(yMapToObject<Deployable>(ydep));
-      });
-
-      return { ...level, nodes, edges, deployables };
+      return { ...level, nodes, edges };
     },
 
     getActiveLevel(): string | undefined {
@@ -591,23 +548,6 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       const yschema = yschemas.get(type);
       if (!yschema) return undefined;
       return yMapToObject<ConstructSchema>(yschema);
-    },
-
-    // State access - Deployables (reads from active level)
-    getDeployables(): Deployable[] {
-      const levelDeployables = getActiveLevelDeployables();
-      const deployables: Deployable[] = [];
-      levelDeployables.forEach((ydeployable) => {
-        deployables.push(yMapToObject<Deployable>(ydeployable));
-      });
-      return deployables;
-    },
-
-    getDeployable(id: string): Deployable | undefined {
-      const levelDeployables = getActiveLevelDeployables();
-      const ydeployable = levelDeployables.get(id) as Y.Map<unknown> | undefined;
-      if (!ydeployable) return undefined;
-      return yMapToObject<Deployable>(ydeployable);
     },
 
     // State access - Port Schemas
@@ -749,7 +689,6 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
         order: maxOrder + 1,
         nodes: [],
         edges: [],
-        deployables: [],
       };
 
       ydoc.transact(() => {
@@ -763,7 +702,6 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
         // Create empty maps for the level's data
         ynodes.set(id, new Y.Map<Y.Map<unknown>>() as unknown as Y.Map<unknown>);
         yedges.set(id, new Y.Map<Y.Map<unknown>>() as unknown as Y.Map<unknown>);
-        ydeployables.set(id, new Y.Map<Y.Map<unknown>>() as unknown as Y.Map<unknown>);
       }, 'user');
 
       return newLevel;
@@ -778,7 +716,6 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
         ylevels.delete(levelId);
         ynodes.delete(levelId);
         yedges.delete(levelId);
-        ydeployables.delete(levelId);
 
         // If deleting the active level, switch to another
         const activeLevel = ymeta.get('activeLevel') as string | undefined;
@@ -852,17 +789,6 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
           });
         }
         yedges.set(newId, newEdgesMap as unknown as Y.Map<unknown>);
-
-        // Deep-copy deployables
-        const sourceDeployables = ydeployables.get(levelId) as Y.Map<Y.Map<unknown>> | undefined;
-        const newDeployablesMap = new Y.Map<Y.Map<unknown>>();
-        if (sourceDeployables) {
-          sourceDeployables.forEach((ydep, depId) => {
-            const depData = yMapToObject<Record<string, unknown>>(ydep);
-            newDeployablesMap.set(depId, objectToYMap(depData));
-          });
-        }
-        ydeployables.set(newId, newDeployablesMap as unknown as Y.Map<unknown>);
       }, 'user');
 
       return adapter.getLevel(newId)!;
@@ -943,49 +869,6 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       if (exists) {
         ydoc.transact(() => {
           yschemas.delete(type);
-        }, 'user');
-      }
-      return exists;
-    },
-
-    // Mutations - Deployables (writes to active level)
-    setDeployables(deployables: Deployable[]) {
-      ydoc.transact(() => {
-        const levelDeployables = getActiveLevelDeployables();
-        levelDeployables.clear();
-        for (const d of deployables) {
-          levelDeployables.set(d.id, objectToYMap(d as unknown as Record<string, unknown>));
-        }
-      }, 'user');
-    },
-
-    addDeployable(deployable: Omit<Deployable, 'id'>): Deployable {
-      const id = generateDeployableId();
-      const color = deployable.color || generateDeployableColor();
-      const newDeployable: Deployable = { ...deployable, id, color };
-      ydoc.transact(() => {
-        const levelDeployables = getActiveLevelDeployables();
-        levelDeployables.set(id, objectToYMap(newDeployable as unknown as Record<string, unknown>));
-      }, 'user');
-      return newDeployable;
-    },
-
-    updateDeployable(id: string, updates: Partial<Deployable>) {
-      ydoc.transact(() => {
-        const levelDeployables = getActiveLevelDeployables();
-        const ydeployable = levelDeployables.get(id) as Y.Map<unknown> | undefined;
-        if (!ydeployable) return;
-        const current = yMapToObject<Deployable>(ydeployable);
-        levelDeployables.set(id, objectToYMap({ ...current, ...updates } as unknown as Record<string, unknown>));
-      }, 'user');
-    },
-
-    removeDeployable(id: string): boolean {
-      const levelDeployables = getActiveLevelDeployables();
-      const exists = levelDeployables.has(id);
-      if (exists) {
-        ydoc.transact(() => {
-          levelDeployables.delete(id);
         }, 'user');
       }
       return exists;
@@ -1113,11 +996,6 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     subscribeToPortSchemas(listener: () => void): () => void {
       portSchemaListeners.add(listener);
       return () => portSchemaListeners.delete(listener);
-    },
-
-    subscribeToDeployables(listener: () => void): () => void {
-      deployableListeners.add(listener);
-      return () => deployableListeners.delete(listener);
     },
 
     subscribeToSchemaGroups(listener: () => void): () => void {

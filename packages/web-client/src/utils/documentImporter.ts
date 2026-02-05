@@ -6,7 +6,6 @@ import type { DocumentAdapter, ConstructNodeData, ConstructSchema } from '@carta
 export interface ImportConfig {
   schemas: Set<string>;
   nodes: Set<string>;
-  deployables: Set<string>;
 }
 
 /**
@@ -27,7 +26,6 @@ export function importDocument(
       adapter.setActiveLevel(level.id);
       adapter.setNodes([]);
       adapter.setEdges([]);
-      adapter.setDeployables([]);
     }
     // Delete all levels except first, then reset first
     if (existingLevels.length > 1) {
@@ -93,12 +91,6 @@ function importWithLevels(
 
     // Switch to this level and import its data
     adapter.setActiveLevel(levelId);
-
-    // Import deployables for this level
-    const levelDeployables = fileLevel.deployables.filter(d => config.deployables.has(d.id));
-    if (levelDeployables.length > 0) {
-      adapter.setDeployables(levelDeployables);
-    }
 
     // Import nodes and edges for this level
     importNodesAndEdges(adapter, fileLevel.nodes as Node[], fileLevel.edges as Edge[], config, schemasToImport);

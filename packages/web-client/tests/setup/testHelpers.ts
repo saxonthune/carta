@@ -12,7 +12,6 @@ export function createTestNode(options: {
   semanticId?: string;
   values?: Record<string, unknown>;
   connections?: ConstructNodeData['connections'];
-  deployableId?: string | null;
   groupId?: string;
 }): Node {
   const id = options.id ?? crypto.randomUUID();
@@ -29,7 +28,6 @@ export function createTestNode(options: {
       values: options.values ?? {},
       viewLevel: 'summary' as const,
       connections: options.connections ?? [],
-      deployableId: options.deployableId ?? null,
       groupId: options.groupId,
     } satisfies ConstructNodeData,
   };

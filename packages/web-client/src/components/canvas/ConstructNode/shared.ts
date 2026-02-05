@@ -23,6 +23,3 @@ export function formatValue(value: unknown): string {
   }
   return String(value);
 }
-
-// Special value for "Add new..." deployable option
-export const ADD_NEW_DEPLOYABLE = '__ADD_NEW__';

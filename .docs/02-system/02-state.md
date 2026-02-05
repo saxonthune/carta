@@ -53,11 +53,11 @@ The codebase provides **focused hooks** that subscribe to specific slices of doc
 - `useEdges()` — edges, setEdges
 - `useSchemas()` — schemas, schemaById, getSchema, add/update/remove
 - `usePortSchemas()` — portSchemas, getPortSchema, add/update/remove
-- `useDeployables()` — deployables, getDeployable, add/update/remove
 - `useSchemaGroups()` — schemaGroups, getSchemaGroup, add/update/remove
 - `useLevels()` — levels, activeLevel, setActiveLevel, create/delete/update
 - `useDocumentMeta()` — title, description, setTitle, setDescription
 - `useOrganizerOperations()` — organizer operations (create, attach, detach, toggle collapse, rename, resize, delete, change layout)
+- `usePresentation()` — transforms domain state into view state (node visibility, positioning, edge remapping) via the presentation model (doc02.09)
 
 **Implementation detail**: Each focused hook uses `adapter.subscribeToX()` (if available) to subscribe only to changes in that state slice. If the adapter doesn't provide a focused subscription method, it falls back to the global `adapter.subscribe()` and filters in the hook.
 

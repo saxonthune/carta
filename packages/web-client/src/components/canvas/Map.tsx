@@ -33,7 +33,7 @@ import { useGraphOperations } from '../../hooks/useGraphOperations';
 import { useConnections } from '../../hooks/useConnections';
 import { useClipboard } from '../../hooks/useClipboard';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
-import type { ConstructValues, Deployable, ConstructNodeData, Size } from '@carta/domain';
+import type { ConstructValues, ConstructNodeData, Size } from '@carta/domain';
 import { computeMinOrganizerSize, DEFAULT_ORGANIZER_LAYOUT, type NodeGeometry } from '@carta/domain';
 import { usePresentation } from '../../hooks/usePresentation';
 import { useOrganizerOperations } from '../../hooks/useOrganizerOperations';
@@ -74,8 +74,6 @@ function useEdgeColor() {
 
 
 export interface MapProps {
-  deployables: Deployable[];
-  onDeployablesChange: () => void;
   title: string;
   onNodesEdgesChange: (nodes: Node[], edges: Edge[]) => void;
   onSelectionChange?: (selectedNodes: Node[]) => void;
@@ -83,7 +81,7 @@ export interface MapProps {
   searchText?: string;
 }
 
-export default function Map({ deployables, onDeployablesChange, title, onNodesEdgesChange, onSelectionChange, onNodeDoubleClick, searchText }: MapProps) {
+export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNodeDoubleClick, searchText }: MapProps) {
   const { nodes, setNodes } = useNodes();
   const { edges, setEdges } = useEdges();
   const { schemas, getSchema } = useSchemas();
@@ -161,8 +159,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
   const [renamingNodeId, setRenamingNodeId] = useState<string | null>(null);
   const { undo, redo, canUndo, canRedo } = useUndoRedo();
 
-  // Suppress unused variable warnings - these are passed through for compatibility
-  void onDeployablesChange;
+  // Suppress unused variable warning
   void title; // Title is now managed by the document store
 
   // Use extracted hooks
@@ -188,7 +185,6 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     updateNodeValues,
     setNodeViewLevel,
     toggleNodeDetailsPin,
-    updateNodeDeployable,
     updateNodeInstanceColor,
   } = useGraphOperations({
     selectedNodeIds,
@@ -372,8 +368,6 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
         onSetViewLevel: (level: 'summary' | 'details') => setNodeViewLevel(node.id, level),
         onToggleDetailsPin: () => toggleNodeDetailsPin(node.id),
         onOpenFullView: () => setFullViewNodeId(node.id),
-        deployables,
-        onDeployableChange: (deployableId: string | null) => updateNodeDeployable(node.id, deployableId),
         onInstanceColorChange: (color: string | null) => updateNodeInstanceColor(node.id, color),
       },
     };
@@ -818,7 +812,6 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
             nodeId={fullViewNodeId}
             data={node.data as ConstructNodeData}
             schemas={schemas}
-            deployables={deployables}
             onClose={() => setFullViewNodeId(null)}
           />
         );

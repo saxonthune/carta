@@ -37,7 +37,6 @@ const UpdateConstructSchema = z.object({
   documentId: z.string().describe('The document ID'),
   semanticId: z.string().describe('The semantic ID of the construct'),
   values: z.record(z.unknown()).optional().describe('Field values to update'),
-  deployableId: z.string().nullable().optional().describe('Deployable ID to assign'),
   instanceColor: z.string().nullable().optional().describe('Hex color override for node background (visual only)'),
 });
 
@@ -105,13 +104,6 @@ const CreateSchemaInputSchema = z.object({
     .describe('Port configurations'),
 });
 
-const CreateDeployableSchema = z.object({
-  documentId: z.string().describe('The document ID'),
-  name: z.string().describe('Deployable name'),
-  description: z.string().describe('Deployable description'),
-  color: z.string().optional().describe('Hex color'),
-});
-
 /**
  * Tool definitions for MCP
  */
@@ -166,8 +158,7 @@ export function getToolDefinitions() {
 - Primary fields (name, title, label, summary, condition) auto-get displayTier='minimal'
 - If no ports specified, adds default ports: flow-in (left), flow-out (right), parent (bottom), child (top)
 - backgroundColorPolicy defaults to 'defaultOnly' (no color picker); use 'tints' for 7 swatches or 'any' for full picker
-- Use displayTier='pill' on a field to make it the node title (max 1 per schema)
-- For multiple related schemas, create them sequentially and consider grouping them with carta_create_deployable`,
+- Use displayTier='pill' on a field to make it the node title (max 1 per schema)`,
       inputSchema: CreateSchemaInputSchema.shape,
     },
     {
@@ -211,16 +202,6 @@ export function getToolDefinitions() {
       inputSchema: DocumentIdSchema.shape,
     },
     {
-      name: 'carta_list_deployables',
-      description: 'List deployables in a document',
-      inputSchema: DocumentIdSchema.shape,
-    },
-    {
-      name: 'carta_create_deployable',
-      description: 'Create a deployable grouping',
-      inputSchema: CreateDeployableSchema.shape,
-    },
-    {
       name: 'carta_compile',
       description: 'Compile a document to AI-readable output',
       inputSchema: DocumentIdSchema.shape,
@@ -254,8 +235,6 @@ export interface ToolHandlers {
   carta_connect_constructs: ToolHandler;
   carta_disconnect_constructs: ToolHandler;
   carta_list_port_types: ToolHandler;
-  carta_list_deployables: ToolHandler;
-  carta_create_deployable: ToolHandler;
   carta_compile: ToolHandler;
   [key: string]: ToolHandler;
 }
@@ -431,11 +410,11 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
     },
 
     carta_update_construct: async (args) => {
-      const { documentId, semanticId, values, deployableId, instanceColor } = UpdateConstructSchema.parse(args);
+      const { documentId, semanticId, values, instanceColor } = UpdateConstructSchema.parse(args);
       const result = await apiRequest<{ construct: unknown }>(
         'PATCH',
         `/api/documents/${encodeURIComponent(documentId)}/constructs/${encodeURIComponent(semanticId)}`,
-        { values, deployableId, instanceColor }
+        { values, instanceColor }
       );
       if (result.error) return { error: result.error };
       return result.data;
@@ -487,27 +466,6 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
       const result = await apiRequest<{ portTypes: unknown[] }>(
         'GET',
         `/api/documents/${encodeURIComponent(documentId)}/port-types`
-      );
-      if (result.error) return { error: result.error };
-      return result.data;
-    },
-
-    carta_list_deployables: async (args) => {
-      const { documentId } = DocumentIdSchema.parse(args);
-      const result = await apiRequest<{ deployables: unknown[] }>(
-        'GET',
-        `/api/documents/${encodeURIComponent(documentId)}/deployables`
-      );
-      if (result.error) return { error: result.error };
-      return result.data;
-    },
-
-    carta_create_deployable: async (args) => {
-      const { documentId, name, description, color } = CreateDeployableSchema.parse(args);
-      const result = await apiRequest<{ deployable: unknown }>(
-        'POST',
-        `/api/documents/${encodeURIComponent(documentId)}/deployables`,
-        { name, description, color }
       );
       if (result.error) return { error: result.error };
       return result.data;

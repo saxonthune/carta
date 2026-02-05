@@ -25,7 +25,6 @@ export interface UseGraphOperationsResult {
   updateNodeValues: (nodeId: string, values: ConstructValues) => void;
   setNodeViewLevel: (nodeId: string, level: 'summary' | 'details') => void;
   toggleNodeDetailsPin: (nodeId: string) => void;
-  updateNodeDeployable: (nodeId: string, deployableId: string | null) => void;
   updateNodeInstanceColor: (nodeId: string, color: string | null) => void;
 }
 
@@ -272,19 +271,6 @@ export function useGraphOperations(options: UseGraphOperationsOptions): UseGraph
     [setNodes]
   );
 
-  const updateNodeDeployable = useCallback(
-    (nodeIdToUpdate: string, deployableId: string | null) => {
-      setNodes((nds) =>
-        nds.map((n) =>
-          n.id === nodeIdToUpdate
-            ? { ...n, data: { ...n.data, deployableId } }
-            : n
-        )
-      );
-    },
-    [setNodes]
-  );
-
   const updateNodeInstanceColor = useCallback(
     (nodeIdToUpdate: string, color: string | null) => {
       setNodes((nds) =>
@@ -308,7 +294,6 @@ export function useGraphOperations(options: UseGraphOperationsOptions): UseGraph
     updateNodeValues,
     setNodeViewLevel,
     toggleNodeDetailsPin,
-    updateNodeDeployable,
     updateNodeInstanceColor,
   };
 }

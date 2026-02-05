@@ -3,7 +3,6 @@ export { useNodes } from './useNodes';
 export { useEdges } from './useEdges';
 export { useSchemas } from './useSchemas';
 export { usePortSchemas } from './usePortSchemas';
-export { useDeployables } from './useDeployables';
 export { useSchemaGroups } from './useSchemaGroups';
 export { useLevels } from './useLevels';
 export { useDocumentMeta } from './useDocumentMeta';

@@ -4,7 +4,7 @@
  * Verifies the core user-facing level behaviors:
  * - Default "Main" level exists on init
  * - Create, switch, rename, delete levels
- * - Level isolation: nodes/edges/deployables are per-level
+ * - Level isolation: nodes/edges are per-level
  * - Schemas are shared across levels
  * - Duplicate level deep-copies content
  * - Copy nodes to another level
@@ -16,7 +16,6 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import { useNodes } from '../../src/hooks/useNodes';
 import { useEdges } from '../../src/hooks/useEdges';
 import { useSchemas } from '../../src/hooks/useSchemas';
-import { useDeployables } from '../../src/hooks/useDeployables';
 import { useLevels } from '../../src/hooks/useLevels';
 import { useDocumentContext } from '../../src/contexts/DocumentContext';
 import { TestProviders } from '../setup/testProviders';
@@ -27,7 +26,6 @@ function useTestHarness() {
     nodes: useNodes(),
     edges: useEdges(),
     schemas: useSchemas(),
-    deployables: useDeployables(),
     levels: useLevels(),
     context: useDocumentContext(),
   };
@@ -165,32 +163,6 @@ describe('Levels', () => {
       });
 
       expect(result.current.edges.edges).toHaveLength(0);
-    });
-
-    it('should keep deployables independent between levels', async () => {
-      const result = await setup();
-      const { adapter } = result.current.context;
-
-      const level1Id = result.current.levels.levels[0].id;
-
-      act(() => {
-        adapter.addDeployable({ name: 'Deploy A', description: 'desc', color: '#ff0000' });
-      });
-
-      await waitFor(() => {
-        expect(result.current.deployables.deployables).toHaveLength(1);
-      });
-
-      act(() => {
-        const l2 = result.current.levels.createLevel('Level 2');
-        result.current.levels.setActiveLevel(l2.id);
-      });
-
-      await waitFor(() => {
-        expect(result.current.levels.activeLevel).not.toBe(level1Id);
-      });
-
-      expect(result.current.deployables.deployables).toHaveLength(0);
     });
 
     it('should share schemas across levels', async () => {
@@ -493,7 +465,6 @@ describe('Levels', () => {
             adapter.setActiveLevel(level.id);
             adapter.setNodes([]);
             adapter.setEdges([]);
-            adapter.setDeployables([]);
           }
           if (levels.length > 1) {
             const firstLevel = levels[0];

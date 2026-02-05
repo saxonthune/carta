@@ -19,7 +19,6 @@ import { useEdges } from '../../src/hooks/useEdges';
 import { useSchemas } from '../../src/hooks/useSchemas';
 import { usePortSchemas } from '../../src/hooks/usePortSchemas';
 import { useSchemaGroups } from '../../src/hooks/useSchemaGroups';
-import { useDeployables } from '../../src/hooks/useDeployables';
 import { useDocumentMeta } from '../../src/hooks/useDocumentMeta';
 import { useDocumentContext } from '../../src/contexts/DocumentContext';
 import { TestProviders } from '../setup/testProviders';
@@ -40,7 +39,6 @@ describe('Restore Default Schemas', () => {
           schemas: useSchemas(),
           portSchemas: usePortSchemas(),
           schemaGroups: useSchemaGroups(),
-          deployables: useDeployables(),
           meta: useDocumentMeta(),
           context: useDocumentContext(),
         }),
@@ -111,7 +109,6 @@ describe('Restore Default Schemas', () => {
           schemas: useSchemas(),
           portSchemas: usePortSchemas(),
           schemaGroups: useSchemaGroups(),
-          deployables: useDeployables(),
           meta: useDocumentMeta(),
           context: useDocumentContext(),
         }),
@@ -181,7 +178,6 @@ describe('Restore Default Schemas', () => {
           schemas: useSchemas(),
           portSchemas: usePortSchemas(),
           schemaGroups: useSchemaGroups(),
-          deployables: useDeployables(),
           meta: useDocumentMeta(),
           context: useDocumentContext(),
         }),
@@ -244,7 +240,6 @@ describe('Restore Default Schemas', () => {
           schemas: useSchemas(),
           portSchemas: usePortSchemas(),
           schemaGroups: useSchemaGroups(),
-          deployables: useDeployables(),
           meta: useDocumentMeta(),
           context: useDocumentContext(),
         }),
@@ -301,7 +296,6 @@ describe('Restore Default Schemas', () => {
           schemas: useSchemas(),
           portSchemas: usePortSchemas(),
           schemaGroups: useSchemaGroups(),
-          deployables: useDeployables(),
           meta: useDocumentMeta(),
           context: useDocumentContext(),
         }),
@@ -377,58 +371,6 @@ describe('Restore Default Schemas', () => {
       expect(result.current.nodes.nodes).toHaveLength(2);
       expect(result.current.edges.edges).toHaveLength(1);
     });
-
-    it('should preserve deployables when restoring schemas', async () => {
-      const { result } = renderHook(
-        () => ({
-          nodes: useNodes(),
-          edges: useEdges(),
-          schemas: useSchemas(),
-          portSchemas: usePortSchemas(),
-          schemaGroups: useSchemaGroups(),
-          deployables: useDeployables(),
-          meta: useDocumentMeta(),
-          context: useDocumentContext(),
-        }),
-        { wrapper: TestProviders }
-      );
-
-      await waitFor(() => {
-        expect(result.current.context.isReady).toBe(true);
-      });
-
-      const { adapter } = result.current.context;
-
-      // Add a deployable
-      act(() => {
-        adapter.addDeployable({
-          name: 'Production',
-          description: 'Production environment',
-          color: '#00ff00',
-        });
-      });
-
-      await waitFor(() => {
-        expect(adapter.getDeployables()).toHaveLength(1);
-      });
-
-      // Act: Restore defaults
-      act(() => {
-        adapter.transaction(() => {
-          adapter.setSchemas(builtInConstructSchemas);
-          adapter.setPortSchemas(builtInPortSchemas);
-          adapter.setSchemaGroups(builtInSchemaGroups);
-        });
-      });
-
-      // Assert: Deployable is preserved
-      await waitFor(() => {
-        expect(result.current.schemas.schemas.length).toBe(builtInConstructSchemas.length);
-      });
-
-      expect(adapter.getDeployables()).toHaveLength(1);
-      expect(adapter.getDeployables()[0].name).toBe('Production');
-    });
   });
 
   describe('Edge Cases', () => {
@@ -440,7 +382,6 @@ describe('Restore Default Schemas', () => {
           schemas: useSchemas(),
           portSchemas: usePortSchemas(),
           schemaGroups: useSchemaGroups(),
-          deployables: useDeployables(),
           meta: useDocumentMeta(),
           context: useDocumentContext(),
         }),
@@ -494,7 +435,6 @@ describe('Restore Default Schemas', () => {
           schemas: useSchemas(),
           portSchemas: usePortSchemas(),
           schemaGroups: useSchemaGroups(),
-          deployables: useDeployables(),
           meta: useDocumentMeta(),
           context: useDocumentContext(),
         }),
@@ -555,7 +495,6 @@ describe('Restore Default Schemas', () => {
           schemas: useSchemas(),
           portSchemas: usePortSchemas(),
           schemaGroups: useSchemaGroups(),
-          deployables: useDeployables(),
           meta: useDocumentMeta(),
           context: useDocumentContext(),
         }),

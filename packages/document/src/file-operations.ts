@@ -5,7 +5,7 @@
  */
 
 import * as Y from 'yjs';
-import type { ConstructSchema, PortSchema, SchemaGroup, Deployable } from '@carta/domain';
+import type { ConstructSchema, PortSchema, SchemaGroup } from '@carta/domain';
 import { builtInConstructSchemas, builtInPortSchemas } from '@carta/domain';
 import { yToPlain, deepPlainToY } from './yjs-helpers.js';
 import { CARTA_FILE_VERSION } from './constants.js';
@@ -19,7 +19,6 @@ export function extractCartaFile(doc: Y.Doc): CartaFile {
   const ylevels = doc.getMap<Y.Map<unknown>>('levels');
   const ynodes = doc.getMap<Y.Map<unknown>>('nodes');
   const yedges = doc.getMap<Y.Map<unknown>>('edges');
-  const ydeployables = doc.getMap<Y.Map<unknown>>('deployables');
   const yschemas = doc.getMap<Y.Map<unknown>>('schemas');
   const yportSchemas = doc.getMap<Y.Map<unknown>>('portSchemas');
   const yschemaGroups = doc.getMap<Y.Map<unknown>>('schemaGroups');
@@ -52,15 +51,6 @@ export function extractCartaFile(doc: Y.Doc): CartaFile {
       });
     }
 
-    // Get deployables for this level
-    const levelDeployables = ydeployables.get(levelId) as Y.Map<Y.Map<unknown>> | undefined;
-    const deployables: Deployable[] = [];
-    if (levelDeployables) {
-      levelDeployables.forEach((ydeployable) => {
-        deployables.push(yToPlain(ydeployable) as Deployable);
-      });
-    }
-
     levels.push({
       id: levelData.id,
       name: levelData.name,
@@ -68,7 +58,6 @@ export function extractCartaFile(doc: Y.Doc): CartaFile {
       order: levelData.order,
       nodes,
       edges,
-      deployables,
     });
   });
 
@@ -123,7 +112,6 @@ export function hydrateYDocFromCartaFile(doc: Y.Doc, data: CartaFile): void {
   const ylevels = doc.getMap<Y.Map<unknown>>('levels');
   const ynodes = doc.getMap<Y.Map<unknown>>('nodes');
   const yedges = doc.getMap<Y.Map<unknown>>('edges');
-  const ydeployables = doc.getMap<Y.Map<unknown>>('deployables');
   const yschemas = doc.getMap<Y.Map<unknown>>('schemas');
   const yportSchemas = doc.getMap<Y.Map<unknown>>('portSchemas');
   const yschemaGroups = doc.getMap<Y.Map<unknown>>('schemaGroups');
@@ -134,7 +122,6 @@ export function hydrateYDocFromCartaFile(doc: Y.Doc, data: CartaFile): void {
     ylevels.clear();
     ynodes.clear();
     yedges.clear();
-    ydeployables.clear();
     yschemas.clear();
     yportSchemas.clear();
     yschemaGroups.clear();
@@ -192,14 +179,6 @@ export function hydrateYDocFromCartaFile(doc: Y.Doc, data: CartaFile): void {
         levelEdgesMap.set(edgeId, yedge);
       }
       yedges.set(level.id, levelEdgesMap as unknown as Y.Map<unknown>);
-
-      // Create deployables map for this level
-      const levelDeployablesMap = new Y.Map<Y.Map<unknown>>();
-      for (const deployable of level.deployables) {
-        const yd = deepPlainToY(deployable) as Y.Map<unknown>;
-        levelDeployablesMap.set(deployable.id, yd);
-      }
-      ydeployables.set(level.id, levelDeployablesMap as unknown as Y.Map<unknown>);
     }
 
     // Set active level to first level

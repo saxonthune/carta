@@ -54,7 +54,6 @@ describe('Restore Default Schemas', () => {
           adapter.setSchemas([]);
           adapter.setNodes([]);
           adapter.setEdges([]);
-          adapter.setDeployables([]);
           adapter.setPortSchemas([]);
           adapter.setSchemaGroups([]);
         });

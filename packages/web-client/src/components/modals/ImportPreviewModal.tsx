@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
-import type { ImportAnalysis, ImportOptions, AnalyzedSchema, AnalyzedNode, AnalyzedDeployable } from '../../utils/importAnalyzer';
+import type { ImportAnalysis, ImportOptions, AnalyzedSchema, AnalyzedNode } from '../../utils/importAnalyzer';
 import { defaultImportOptions } from '../../utils/importAnalyzer';
 
 interface ImportPreviewModalProps {
@@ -81,36 +81,6 @@ function InstanceItem({ instance, analysis, selected, onToggle }: { instance: An
   );
 }
 
-function DeployableItem({ deployable, selected, onToggle }: { deployable: AnalyzedDeployable; selected: boolean; onToggle: () => void }) {
-  return (
-    <label className="flex items-center gap-3 py-1.5 px-2 text-sm cursor-pointer hover:bg-surface-alt">
-      <input
-        type="checkbox"
-        checked={selected}
-        onChange={onToggle}
-        className="w-4 h-4 accent-accent"
-      />
-      <div className="flex items-center gap-2 flex-1 min-w-0">
-        <div
-          className="w-3 h-3 rounded-full flex-shrink-0"
-          style={{ backgroundColor: deployable.item.color || '#6b7280' }}
-        />
-        <span className="text-content truncate">{deployable.item.name}</span>
-      </div>
-      {deployable.status === 'conflict' && (
-        <span className="px-1.5 py-0.5 text-xs bg-amber-100 text-amber-700 rounded flex-shrink-0">
-          conflict
-        </span>
-      )}
-      {deployable.status === 'new' && (
-        <span className="px-1.5 py-0.5 text-xs bg-green-100 text-green-700 rounded flex-shrink-0">
-          new
-        </span>
-      )}
-    </label>
-  );
-}
-
 export default function ImportPreviewModal({
   analysis,
   onConfirm,
@@ -119,7 +89,6 @@ export default function ImportPreviewModal({
   const [options, setOptions] = useState<ImportOptions>(defaultImportOptions(analysis));
   const [schemasExpanded, setSchemasExpanded] = useState(true);
   const [instancesExpanded, setInstancesExpanded] = useState(true);
-  const [deployablesExpanded, setDeployablesExpanded] = useState(true);
 
   const toggleSchema = (schemaType: string) => {
     setOptions(prev => {
@@ -142,18 +111,6 @@ export default function ImportPreviewModal({
         newNodes.add(nodeId);
       }
       return { ...prev, nodes: newNodes };
-    });
-  };
-
-  const toggleDeployable = (deployableId: string) => {
-    setOptions(prev => {
-      const newDeployables = new Set(prev.deployables);
-      if (newDeployables.has(deployableId)) {
-        newDeployables.delete(deployableId);
-      } else {
-        newDeployables.add(deployableId);
-      }
-      return { ...prev, deployables: newDeployables };
     });
   };
 
@@ -185,21 +142,7 @@ export default function ImportPreviewModal({
     }));
   };
 
-  const selectAllDeployables = () => {
-    setOptions(prev => ({
-      ...prev,
-      deployables: new Set(analysis.deployables.items.map(d => d.item.id))
-    }));
-  };
-
-  const deselectAllDeployables = () => {
-    setOptions(prev => ({
-      ...prev,
-      deployables: new Set()
-    }));
-  };
-
-  const hasSelectedAnything = options.schemas.size > 0 || options.nodes.size > 0 || options.deployables.size > 0;
+  const hasSelectedAnything = options.schemas.size > 0 || options.nodes.size > 0;
 
   return (
     <Modal
@@ -362,66 +305,6 @@ export default function ImportPreviewModal({
                   analysis={analysis}
                   selected={options.nodes.has(instance.item.id)}
                   onToggle={() => toggleInstance(instance.item.id)}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Deployables */}
-        <div className="bg-surface-depth-2 rounded-lg overflow-hidden">
-          <button
-            type="button"
-            className="w-full flex items-center gap-3 p-3 cursor-pointer hover:bg-surface-alt text-left"
-            onClick={() => setDeployablesExpanded(!deployablesExpanded)}
-          >
-            <svg
-              className={`w-4 h-4 text-content-muted transition-transform flex-shrink-0 ${deployablesExpanded ? 'rotate-180' : ''}`}
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
-            <div className="flex-1 min-w-0">
-              <span className="text-content font-medium">Deployables</span>
-            </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {analysis.deployables.summary.conflicts > 0 && (
-                <span className="px-1.5 py-0.5 text-xs bg-amber-100 text-amber-700 rounded">
-                  {analysis.deployables.summary.conflicts} conflict{analysis.deployables.summary.conflicts !== 1 ? 's' : ''}
-                </span>
-              )}
-              <span className="text-content-muted text-sm">
-                ({options.deployables.size}/{analysis.deployables.summary.total})
-              </span>
-            </div>
-          </button>
-          {deployablesExpanded && analysis.deployables.items.length > 0 && (
-            <div className="bg-surface-depth-3">
-              <div className="flex gap-2 p-2 bg-surface-depth-2">
-                <button
-                  type="button"
-                  onClick={selectAllDeployables}
-                  className="flex-1 px-2 py-1 text-xs bg-surface-alt text-content rounded hover:bg-surface-depth-3 transition-colors"
-                >
-                  All
-                </button>
-                <button
-                  type="button"
-                  onClick={deselectAllDeployables}
-                  className="flex-1 px-2 py-1 text-xs bg-surface-alt text-content rounded hover:bg-surface-depth-3 transition-colors"
-                >
-                  None
-                </button>
-              </div>
-              {analysis.deployables.items.map((deployable) => (
-                <DeployableItem
-                  key={deployable.item.id}
-                  deployable={deployable}
-                  selected={options.deployables.has(deployable.item.id)}
-                  onToggle={() => toggleDeployable(deployable.item.id)}
                 />
               ))}
             </div>

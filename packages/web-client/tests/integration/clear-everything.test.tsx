@@ -7,7 +7,6 @@
  * - Schemas
  * - Port schemas
  * - Schema groups
- * - Deployables
  *
  * But preserves:
  * - Title
@@ -20,7 +19,6 @@ import { useEdges } from '../../src/hooks/useEdges';
 import { useSchemas } from '../../src/hooks/useSchemas';
 import { usePortSchemas } from '../../src/hooks/usePortSchemas';
 import { useSchemaGroups } from '../../src/hooks/useSchemaGroups';
-import { useDeployables } from '../../src/hooks/useDeployables';
 import { useDocumentMeta } from '../../src/hooks/useDocumentMeta';
 import { useClearDocument } from '../../src/hooks/useClearDocument';
 import { useDocumentContext } from '../../src/contexts/DocumentContext';
@@ -38,7 +36,6 @@ describe('Clear Everything', () => {
           schemas: useSchemas(),
           portSchemas: usePortSchemas(),
           schemaGroups: useSchemaGroups(),
-          deployables: useDeployables(),
           meta: useDocumentMeta(),
           context: useDocumentContext(),
           clearDocument: useClearDocument(),
@@ -83,7 +80,6 @@ describe('Clear Everything', () => {
           schemas: useSchemas(),
           portSchemas: usePortSchemas(),
           schemaGroups: useSchemaGroups(),
-          deployables: useDeployables(),
           meta: useDocumentMeta(),
           context: useDocumentContext(),
           clearDocument: useClearDocument(),
@@ -128,7 +124,6 @@ describe('Clear Everything', () => {
           schemas: useSchemas(),
           portSchemas: usePortSchemas(),
           schemaGroups: useSchemaGroups(),
-          deployables: useDeployables(),
           meta: useDocumentMeta(),
           context: useDocumentContext(),
           clearDocument: useClearDocument(),
@@ -173,7 +168,6 @@ describe('Clear Everything', () => {
           schemas: useSchemas(),
           portSchemas: usePortSchemas(),
           schemaGroups: useSchemaGroups(),
-          deployables: useDeployables(),
           meta: useDocumentMeta(),
           context: useDocumentContext(),
           clearDocument: useClearDocument(),
@@ -207,48 +201,6 @@ describe('Clear Everything', () => {
       });
     });
 
-    it('should clear all deployables', async () => {
-      const { result } = renderHook(
-        () => ({
-          nodes: useNodes(),
-          edges: useEdges(),
-          schemas: useSchemas(),
-          portSchemas: usePortSchemas(),
-          schemaGroups: useSchemaGroups(),
-          deployables: useDeployables(),
-          meta: useDocumentMeta(),
-          context: useDocumentContext(),
-          clearDocument: useClearDocument(),
-        }),
-        { wrapper: TestProviders }
-      );
-
-      await waitFor(() => {
-        expect(result.current.context.isReady).toBe(true);
-      });
-
-      const { adapter } = result.current.context;
-
-      // Add some deployables
-      act(() => {
-        adapter.addDeployable({ name: 'Test Deployable', description: 'Test' });
-      });
-
-      await waitFor(() => {
-        expect(result.current.deployables.deployables.length).toBeGreaterThan(0);
-      });
-
-      // Clear everything
-      act(() => {
-        result.current.clearDocument.clearDocument('all');
-      });
-
-      // Verify deployables are cleared
-      await waitFor(() => {
-        expect(result.current.deployables.deployables).toHaveLength(0);
-      });
-    });
-
     it('should preserve title after clear all', async () => {
       const { result } = renderHook(
         () => ({
@@ -257,7 +209,6 @@ describe('Clear Everything', () => {
           schemas: useSchemas(),
           portSchemas: usePortSchemas(),
           schemaGroups: useSchemaGroups(),
-          deployables: useDeployables(),
           meta: useDocumentMeta(),
           context: useDocumentContext(),
           clearDocument: useClearDocument(),
@@ -300,7 +251,6 @@ describe('Clear Everything', () => {
           schemas: useSchemas(),
           portSchemas: usePortSchemas(),
           schemaGroups: useSchemaGroups(),
-          deployables: useDeployables(),
           meta: useDocumentMeta(),
           context: useDocumentContext(),
           clearDocument: useClearDocument(),
@@ -349,7 +299,6 @@ describe('Clear Everything', () => {
           schemas: useSchemas(),
           portSchemas: usePortSchemas(),
           schemaGroups: useSchemaGroups(),
-          deployables: useDeployables(),
           meta: useDocumentMeta(),
           context: useDocumentContext(),
           clearDocument: useClearDocument(),

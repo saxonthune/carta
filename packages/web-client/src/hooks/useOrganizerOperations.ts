@@ -10,7 +10,8 @@ import {
   type NodeGeometry,
 } from '@carta/domain';
 import type { OrganizerNodeData, OrganizerLayout } from '@carta/domain';
-import { generateDeployableColor } from '@carta/document';
+// Simple organizer color palette
+const ORGANIZER_COLORS = ['#7c3aed', '#0891b2', '#059669', '#d97706', '#dc2626', '#6366f1', '#ec4899'];
 
 export interface UseOrganizerOperationsResult {
   /** Create a new organizer from selected node IDs */
@@ -46,7 +47,7 @@ export function useOrganizerOperations(): UseOrganizerOperationsResult {
     if (selectedNodeIds.length < 2) return null;
 
     const organizerId = crypto.randomUUID();
-    const color = generateDeployableColor();
+    const color = ORGANIZER_COLORS[Math.floor(Math.random() * ORGANIZER_COLORS.length)];
 
     const selectedNodes = nodes.filter(n => selectedNodeIds.includes(n.id));
     if (selectedNodes.length === 0) return null;

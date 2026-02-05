@@ -1,5 +1,5 @@
 import type { Node, Edge } from '@xyflow/react';
-import type { Deployable, ConstructSchema, PortSchema, SchemaGroup, Level } from '@carta/domain';
+import type { ConstructSchema, PortSchema, SchemaGroup, Level } from '@carta/domain';
 import { toKebabCase } from '@carta/domain';
 import {
   CARTA_FILE_VERSION,
@@ -32,7 +32,6 @@ export function exportProject(data: {
     order: level.order,
     nodes: (options?.nodes !== false ? level.nodes : []) as Node[],
     edges: (options?.nodes !== false ? level.edges : []) as Edge[],
-    deployables: (options?.deployables !== false ? level.deployables : []) as Deployable[],
   }));
 
   const cartaFile: CartaFile = {

@@ -1,13 +1,15 @@
 import type { DocumentAdapter, OrganizerNodeData } from '@carta/domain';
 import { generateSemanticId } from '@carta/domain';
-import { generateDeployableColor } from '@carta/document';
+
+// Simple organizer color palette
+const ORGANIZER_COLORS = ['#7c3aed', '#0891b2', '#059669', '#d97706', '#dc2626'];
 
 /**
  * SaaS architecture seed using exclusively built-in schemas.
  * Models a social-network-style app with Users, Friendships,
  * REST endpoints, database tables, and UI screens.
  *
- * ~15 nodes across 3 organizers and 2 deployables.
+ * ~15 nodes across 3 organizers.
  */
 export function saas(adapter: DocumentAdapter): void {
   // --- Node IDs ---
@@ -39,16 +41,12 @@ export function saas(adapter: DocumentAdapter): void {
   const uiOrgPos = { x: 750, y: 50 };
 
   // --- Colors ---
-  const apiColor = generateDeployableColor();
-  const dbColor = generateDeployableColor();
-  const uiColor = generateDeployableColor();
+  const apiColor = ORGANIZER_COLORS[0];
+  const dbColor = ORGANIZER_COLORS[1];
+  const uiColor = ORGANIZER_COLORS[2];
 
   adapter.setTitle('SaaS Architecture');
   adapter.setDescription('Social network backend with REST API, PostgreSQL, and web UI');
-
-  // --- Deployables ---
-  const backendDep = adapter.addDeployable({ name: 'Backend', description: 'API server and database', color: '#3b82f6' });
-  const frontendDep = adapter.addDeployable({ name: 'Frontend', description: 'Web application', color: '#22c55e' });
 
   adapter.setNodes([
     // ============ API Organizer ============
@@ -75,7 +73,6 @@ export function saas(adapter: DocumentAdapter): void {
         semanticId: generateSemanticId('rest-endpoint'),
         values: { route: '/api/users', verb: 'GET', summary: 'List all users' },
         viewLevel: 'summary',
-        deployableId: backendDep.id,
       },
     },
     {
@@ -88,7 +85,6 @@ export function saas(adapter: DocumentAdapter): void {
         semanticId: generateSemanticId('rest-endpoint'),
         values: { route: '/api/friendships', verb: 'POST', summary: 'Create a friendship' },
         viewLevel: 'summary',
-        deployableId: backendDep.id,
       },
     },
     {
@@ -101,7 +97,6 @@ export function saas(adapter: DocumentAdapter): void {
         semanticId: generateSemanticId('api-model'),
         values: { modelName: 'User', modelType: 'response', data: 'id, email, name, createdAt' },
         viewLevel: 'summary',
-        deployableId: backendDep.id,
       },
     },
     {
@@ -114,7 +109,6 @@ export function saas(adapter: DocumentAdapter): void {
         semanticId: generateSemanticId('api-model'),
         values: { modelName: 'Friendship', modelType: 'request', data: 'userId, friendId' },
         viewLevel: 'summary',
-        deployableId: backendDep.id,
       },
     },
 
@@ -142,7 +136,6 @@ export function saas(adapter: DocumentAdapter): void {
         semanticId: generateSemanticId('database'),
         values: { engine: 'PostgreSQL', note: 'Primary application database' },
         viewLevel: 'summary',
-        deployableId: backendDep.id,
       },
     },
     {
@@ -155,7 +148,6 @@ export function saas(adapter: DocumentAdapter): void {
         semanticId: generateSemanticId('table'),
         values: { tableName: 'users', columns: 'id UUID PK, email VARCHAR UNIQUE, name VARCHAR, created_at TIMESTAMP' },
         viewLevel: 'summary',
-        deployableId: backendDep.id,
       },
     },
     {
@@ -168,7 +160,6 @@ export function saas(adapter: DocumentAdapter): void {
         semanticId: generateSemanticId('table'),
         values: { tableName: 'friendships', columns: 'id UUID PK, user_id UUID FK, friend_id UUID FK, created_at TIMESTAMP' },
         viewLevel: 'summary',
-        deployableId: backendDep.id,
       },
     },
 
@@ -196,7 +187,6 @@ export function saas(adapter: DocumentAdapter): void {
         semanticId: generateSemanticId('ui-screen'),
         values: { screenName: 'Profile', description: 'User profile page showing info and friends list' },
         viewLevel: 'summary',
-        deployableId: frontendDep.id,
       },
     },
     {
@@ -209,7 +199,6 @@ export function saas(adapter: DocumentAdapter): void {
         semanticId: generateSemanticId('ui-screen'),
         values: { screenName: 'Feed', description: 'Activity feed from friends' },
         viewLevel: 'summary',
-        deployableId: frontendDep.id,
       },
     },
     {
@@ -222,7 +211,6 @@ export function saas(adapter: DocumentAdapter): void {
         semanticId: generateSemanticId('user-story'),
         values: { title: 'User Login', description: 'As a user, I want to log in so that I can access my profile' },
         viewLevel: 'summary',
-        deployableId: frontendDep.id,
       },
     },
     {
@@ -235,7 +223,6 @@ export function saas(adapter: DocumentAdapter): void {
         semanticId: generateSemanticId('user-story'),
         values: { title: 'Add Friend', description: 'As a user, I want to add friends so that I can see their activity' },
         viewLevel: 'summary',
-        deployableId: frontendDep.id,
       },
     },
   ]);

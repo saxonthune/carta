@@ -1,6 +1,8 @@
 import type { DocumentAdapter, OrganizerNodeData } from '@carta/domain';
 import { generateSemanticId } from '@carta/domain';
-import { generateDeployableColor } from '@carta/document';
+
+// Simple organizer color palette
+const ORGANIZER_COLORS = ['#7c3aed', '#0891b2', '#059669', '#d97706', '#dc2626'];
 
 /**
  * Seeds a fresh document with a small starter graph so the canvas
@@ -17,7 +19,7 @@ export function starter(adapter: DocumentAdapter): void {
   const nodeB = crypto.randomUUID();
   const nodeC = crypto.randomUUID();
 
-  const organizerColor = generateDeployableColor();
+  const organizerColor = ORGANIZER_COLORS[0];
 
   // Organizer position and size
   const PADDING = 20;

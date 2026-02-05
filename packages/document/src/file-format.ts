@@ -5,7 +5,7 @@
  * Web-client re-exports these and adds browser-specific import/export functions.
  */
 
-import type { Deployable, ConstructSchema, PortSchema, SchemaGroup } from '@carta/domain';
+import type { ConstructSchema, PortSchema, SchemaGroup } from '@carta/domain';
 import { CARTA_FILE_VERSION } from './constants.js';
 
 /**
@@ -18,7 +18,6 @@ export interface CartaFileLevel {
   order: number;
   nodes: unknown[];
   edges: unknown[];
-  deployables: Deployable[];
 }
 
 /**
@@ -85,8 +84,8 @@ export function validateCartaFile(data: unknown): CartaFile {
     if (typeof l.id !== 'string' || typeof l.name !== 'string' || typeof l.order !== 'number') {
       throw new Error('Invalid file: level missing required fields (id, name, order)');
     }
-    if (!Array.isArray(l.nodes) || !Array.isArray(l.edges) || !Array.isArray(l.deployables)) {
-      throw new Error('Invalid file: level missing required arrays (nodes, edges, deployables)');
+    if (!Array.isArray(l.nodes) || !Array.isArray(l.edges)) {
+      throw new Error('Invalid file: level missing required arrays (nodes, edges)');
     }
   }
 
@@ -131,19 +130,6 @@ export function validateCartaFile(data: unknown): CartaFile {
     const e = edge as Record<string, unknown>;
     if (typeof e.id !== 'string' || typeof e.source !== 'string' || typeof e.target !== 'string') {
       throw new Error('Invalid file: edge missing required fields (id, source, target)');
-    }
-  }
-
-  // Validate deployables across all levels
-  const deployablesToValidate = (obj.levels as Array<Record<string, unknown>>).flatMap(l => l.deployables as unknown[]);
-
-  for (const deployable of deployablesToValidate) {
-    if (!deployable || typeof deployable !== 'object') {
-      throw new Error('Invalid file: invalid deployable structure');
-    }
-    const d = deployable as Record<string, unknown>;
-    if (typeof d.id !== 'string' || typeof d.name !== 'string' || typeof d.description !== 'string') {
-      throw new Error('Invalid file: deployable missing required fields');
     }
   }
 

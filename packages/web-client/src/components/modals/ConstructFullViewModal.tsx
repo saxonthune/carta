@@ -2,13 +2,12 @@ import { useMemo, useState } from 'react';
 import DraggableWindow from '../ui/DraggableWindow';
 import { compiler } from '@carta/compiler';
 import { getDisplayName } from '@carta/domain';
-import type { ConstructNodeData, ConstructSchema, Deployable, FieldSchema } from '@carta/domain';
+import type { ConstructNodeData, ConstructSchema, FieldSchema } from '@carta/domain';
 
 interface ConstructFullViewModalProps {
   nodeId: string;
   data: ConstructNodeData;
   schemas: ConstructSchema[];
-  deployables: Deployable[];
   onClose: () => void;
 }
 
@@ -109,13 +108,9 @@ export default function ConstructFullViewModal({
   nodeId,
   data,
   schemas,
-  deployables,
   onClose,
 }: ConstructFullViewModalProps) {
   const schema = schemas.find(s => s.type === data.constructType);
-  const deployable = data.deployableId
-    ? deployables.find(d => d.id === data.deployableId)
-    : undefined;
 
   const displayName = schema ? getDisplayName(data, schema) : data.semanticId;
 
@@ -132,12 +127,12 @@ export default function ConstructFullViewModal({
       return compiler.compile(
         [fakeNode] as any,
         [],
-        { schemas, deployables }
+        { schemas }
       );
     } catch {
       return 'Compilation error';
     }
-  }, [nodeId, data, schema, schemas, deployables]);
+  }, [nodeId, data, schema, schemas]);
 
   const handleFieldCommit = (fieldName: string, value: unknown) => {
     data.onValuesChange?.({ ...data.values, [fieldName]: value });
@@ -166,14 +161,6 @@ export default function ConstructFullViewModal({
                 />
               ))}
             </div>
-          </section>
-        )}
-
-        {/* Deployable - Island */}
-        {deployable && (
-          <section className="bg-surface-depth-2 rounded-xl p-4">
-            <h3 className="m-0 mb-3 text-xs font-semibold text-content-muted uppercase tracking-wide">Deployable</h3>
-            <div className="bg-surface-inset rounded-lg p-3 text-sm text-content">{deployable.name}</div>
           </section>
         )}
 
