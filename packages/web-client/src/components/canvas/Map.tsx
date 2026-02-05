@@ -34,7 +34,8 @@ import { useGraphOperations } from '../../hooks/useGraphOperations';
 import { useConnections } from '../../hooks/useConnections';
 import { useClipboard } from '../../hooks/useClipboard';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
-import type { ConstructValues, Deployable, ConstructNodeData, VirtualParentNodeData } from '@carta/domain';
+import type { ConstructValues, Deployable, ConstructNodeData, VirtualParentNodeData, Size } from '@carta/domain';
+import { computeMinGroupSize, DEFAULT_GROUP_LAYOUT, type NodeGeometry } from '@carta/domain';
 import { useVisualGroups } from '../../hooks/useVisualGroups';
 import { useGroupOperations } from '../../hooks/useGroupOperations';
 import ConstructEditor from '../ConstructEditor';
@@ -124,6 +125,11 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
   const isDraggingRef = useRef(false);
   const draggedNodesRef = useRef<Set<string>>(new Set());
 
+  // Live group resize during drag
+  const dragGroupIdRef = useRef<string | null>(null);
+  const dragStartGroupSizeRef = useRef<Size | null>(null);
+  const rafIdRef = useRef<number | null>(null);
+
   const onNodesChange = useCallback((changes: NodeChange[]) => {
     setNodes((nds) => applyNodeChanges(changes, nds));
   }, [setNodes]);
@@ -202,7 +208,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
     attachToGroup,
     detachFromGroup,
     toggleGroupCollapse,
-    resizeGroupToFitChildren,
+    fitGroupToChildren,
   } = useGroupOperations();
 
   // Wrapper for createGroup that uses current selectedNodeIds
@@ -525,15 +531,101 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
   // Edge bundling: collapse parallel edges between same node pairs
   const { displayEdges } = useEdgeBundling(filteredEdges, nodes);
 
-  // Handle drag start/stop
+  // Handle drag start/drag/stop for live group resizing
   const onNodeDragStart = useCallback((_event: React.MouseEvent, node: Node) => {
     isDraggingRef.current = true;
     draggedNodesRef.current.add(node.id);
-  }, []);
+
+    // If dragged node is a child of a visual-group, capture group size for live resize
+    if (node.parentId && node.type !== 'visual-group') {
+      const allNodes = reactFlow.getNodes();
+      const parentNode = allNodes.find(n => n.id === node.parentId);
+      if (parentNode?.type === 'visual-group') {
+        dragGroupIdRef.current = parentNode.id;
+        dragStartGroupSizeRef.current = {
+          width: (parentNode.style?.width as number) ?? 200,
+          height: (parentNode.style?.height as number) ?? 200,
+        };
+      } else {
+        dragGroupIdRef.current = null;
+        dragStartGroupSizeRef.current = null;
+      }
+    } else {
+      dragGroupIdRef.current = null;
+      dragStartGroupSizeRef.current = null;
+    }
+  }, [reactFlow]);
+
+  const onNodeDrag = useCallback((_event: React.MouseEvent, node: Node) => {
+    if (!dragGroupIdRef.current || node.type === 'visual-group') return;
+
+    // Cancel previous rAF to throttle
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+    }
+
+    const groupId = dragGroupIdRef.current;
+    const startSize = dragStartGroupSizeRef.current;
+    const isCtrl = _event.ctrlKey || _event.metaKey;
+
+    rafIdRef.current = requestAnimationFrame(() => {
+      rafIdRef.current = null;
+      const allNodes = reactFlow.getNodes();
+
+      // Get children of this group
+      const children = allNodes.filter(n => n.parentId === groupId);
+      // Either exclude or include dragged node based on Ctrl
+      const relevantChildren = isCtrl
+        ? children.filter(n => n.id !== node.id)
+        : children;
+
+      if (relevantChildren.length === 0 && isCtrl) {
+        // All children removed (Ctrl preview) - snap to start size
+        if (startSize) {
+          setNodes(nds => nds.map(n =>
+            n.id === groupId
+              ? { ...n, style: { ...n.style, width: startSize.width, height: startSize.height } }
+              : n
+          ));
+        }
+        return;
+      }
+
+      const childGeometries: NodeGeometry[] = relevantChildren.map(n => ({
+        position: n.position,
+        width: n.width,
+        height: n.height,
+        measured: n.measured,
+      }));
+
+      const minSize = computeMinGroupSize(childGeometries, DEFAULT_GROUP_LAYOUT);
+
+      // During drag: only grow, never shrink below drag-start size (prevents jitter)
+      // For Ctrl: use the size-without-dragged-child (which may be smaller)
+      const newWidth = isCtrl ? minSize.width : Math.max(startSize?.width ?? 0, minSize.width);
+      const newHeight = isCtrl ? minSize.height : Math.max(startSize?.height ?? 0, minSize.height);
+
+      setNodes(nds => nds.map(n =>
+        n.id === groupId
+          ? { ...n, style: { ...n.style, width: newWidth, height: newHeight } }
+          : n
+      ));
+    });
+  }, [reactFlow, setNodes]);
 
   const onNodeDragStop = useCallback((event: React.MouseEvent, node: Node) => {
     isDraggingRef.current = false;
     draggedNodesRef.current.clear();
+
+    // Cancel any pending rAF
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
+
+    // Clear drag refs
+    dragGroupIdRef.current = null;
+    dragStartGroupSizeRef.current = null;
 
     // Don't process group nodes themselves
     if (node.type === 'visual-group') return;
@@ -553,10 +645,10 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
         detachFromGroup(node.id);
       }
     } else if (node.parentId) {
-      // Default release = resize parent to fit
-      resizeGroupToFitChildren(node.parentId);
+      // Default release = full refit including position shift
+      fitGroupToChildren(node.parentId);
     }
-  }, [reactFlow, attachToGroup, detachFromGroup, resizeGroupToFitChildren]);
+  }, [reactFlow, attachToGroup, detachFromGroup, fitGroupToChildren]);
 
   // Handle visual group selection (click on group selects all nodes in it)
   const handleSelectGroup = useCallback((groupId: string) => {
@@ -590,6 +682,7 @@ export default function Map({ deployables, onDeployablesChange, title, onNodesEd
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onNodeDragStart={onNodeDragStart}
+        onNodeDrag={onNodeDrag}
         onNodeDragStop={onNodeDragStop}
         onEdgesDelete={handleEdgesDelete}
         onConnect={onConnect}

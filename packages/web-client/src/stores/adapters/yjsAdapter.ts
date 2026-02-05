@@ -47,7 +47,7 @@ export interface YjsAdapterOptions {
  * }
  *
  * Visual groups are now stored as regular nodes with type='visual-group'.
- * Child nodes use React Flow's native parentId and extent='parent' for containment.
+ * Child nodes use React Flow's native parentId for relative positioning and group movement.
  */
 
 /**
@@ -492,7 +492,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       const levelNodes = getActiveLevelNodes();
       const nodes: Node[] = [];
       levelNodes.forEach((ynode, id) => {
-        const nodeObj = yMapToObject<Node>(ynode);
+        const { extent: _extent, ...nodeObj } = yMapToObject<Node & { extent?: string }>(ynode);
         nodes.push({ ...nodeObj, id });
       });
       return nodes;

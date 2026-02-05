@@ -383,7 +383,7 @@
             "y": 40.2558725401255
           },
           "parentId": "vg-ui-cluster",
-          "extent": "parent",
+
           "data": {
             "constructType": "ui-screen",
             "semanticId": "ui-screen-vhp788z",
@@ -416,7 +416,7 @@
             "y": 180.7940496840379
           },
           "parentId": "vg-ui-cluster",
-          "extent": "parent",
+
           "data": {
             "constructType": "ui-event",
             "semanticId": "ui-event-xs0klrx",
@@ -444,7 +444,7 @@
             "y": 1339.006462688625
           },
           "parentId": "vg-api-cluster",
-          "extent": "parent",
+
           "data": {
             "constructType": "controller",
             "semanticId": "controller-0mgn6oy",
@@ -479,7 +479,7 @@
             "y": 40.48925571764116
           },
           "parentId": "vg-api-cluster",
-          "extent": "parent",
+
           "data": {
             "constructType": "controller",
             "semanticId": "controller-1ggez2g",
@@ -518,7 +518,7 @@
             "y": 217.25394535162803
           },
           "parentId": "vg-db-cluster",
-          "extent": "parent",
+
           "data": {
             "constructType": "database",
             "semanticId": "database-4v94526",
@@ -576,7 +576,7 @@
             "y": 65.0035864816866
           },
           "parentId": "vg-db-cluster",
-          "extent": "parent",
+
           "data": {
             "constructType": "table",
             "semanticId": "table-a05ci0j",
@@ -616,7 +616,7 @@
             "y": 40.8892769807396
           },
           "parentId": "vg-db-cluster",
-          "extent": "parent",
+
           "data": {
             "constructType": "table",
             "semanticId": "table-ee765st",
@@ -666,7 +666,7 @@
             "y": 300.9306657437776
           },
           "parentId": "vg-db-cluster",
-          "extent": "parent",
+
           "data": {
             "constructType": "db-attribute",
             "semanticId": "db-attribute-5vezjwm",
@@ -701,7 +701,7 @@
             "y": 280.226367602188
           },
           "parentId": "vg-db-cluster",
-          "extent": "parent",
+
           "data": {
             "constructType": "db-attribute",
             "semanticId": "db-attribute-7nrteew",
@@ -735,7 +735,7 @@
             "y": 311.9432590053341
           },
           "parentId": "vg-db-cluster",
-          "extent": "parent",
+
           "data": {
             "constructType": "db-attribute",
             "semanticId": "db-attribute-o6eq1t2",
@@ -769,7 +769,7 @@
             "y": 936.8523056893582
           },
           "parentId": "vg-db-cluster",
-          "extent": "parent",
+
           "data": {
             "constructType": "constraint",
             "semanticId": "constraint-rkg84th",
@@ -796,7 +796,7 @@
             "y": 762.3981961745683
           },
           "parentId": "vg-ui-cluster",
-          "extent": "parent",
+
           "data": {
             "constructType": "ui-screen",
             "semanticId": "ui-screen-1ljp1fl",
@@ -834,7 +834,7 @@
             "y": 802.3337261801369
           },
           "parentId": "vg-ui-cluster",
-          "extent": "parent",
+
           "data": {
             "constructType": "ui-event",
             "semanticId": "ui-event-2c3bgt5",
@@ -873,7 +873,7 @@
             "y": 2035.006462688625
           },
           "parentId": "vg-api-cluster",
-          "extent": "parent",
+
           "data": {
             "constructType": "controller",
             "semanticId": "controller-4j2hp0o",
@@ -908,7 +908,7 @@
             "y": 763.039471478448
           },
           "parentId": "vg-api-cluster",
-          "extent": "parent",
+
           "data": {
             "constructType": "api-model",
             "semanticId": "api-model-d0jw1tr",

@@ -11,6 +11,7 @@ import {
   toRelativePosition,
   toAbsolutePosition,
   computeMinGroupSize,
+  computeGroupFit,
   sortParentsFirst,
   nodeOverlapsGroup,
   nodeContainedInGroup,
@@ -382,6 +383,105 @@ describe('Group Geometry Functions', () => {
       );
 
       expect(result).toBe(true);
+    });
+  });
+
+  describe('computeGroupFit', () => {
+    const config = DEFAULT_GROUP_LAYOUT; // padding=20, headerHeight=40
+
+    it('returns zero deltas when all children have positive positions', () => {
+      const children: NodeGeometry[] = [
+        { position: { x: 20, y: 60 }, width: 200, height: 100 },
+        { position: { x: 20, y: 180 }, width: 200, height: 100 },
+      ];
+
+      const result = computeGroupFit(children, config);
+
+      expect(result.positionDelta).toEqual({ x: 0, y: 0 });
+      expect(result.childPositionDelta).toEqual({ x: 0, y: 0 });
+      // Size should match computeMinGroupSize for the same input
+      const minSize = computeMinGroupSize(children, config);
+      expect(result.size).toEqual(minSize);
+    });
+
+    it('shifts left when a child has negative x position', () => {
+      const children: NodeGeometry[] = [
+        { position: { x: -30, y: 60 }, width: 200, height: 100 },
+        { position: { x: 20, y: 180 }, width: 200, height: 100 },
+      ];
+
+      const result = computeGroupFit(children, config);
+
+      // idealMinX = padding = 20
+      // minX = -30, so shiftX = -30 - 20 = -50
+      expect(result.positionDelta.x).toBe(-50);
+      expect(result.positionDelta.y).toBe(0);
+      expect(result.childPositionDelta.x).toBe(50);
+      expect(result.childPositionDelta.y).toBe(0);
+      // Width should be wider to accommodate the shifted child
+      expect(result.size.width).toBeGreaterThan(computeMinGroupSize(children, config).width);
+    });
+
+    it('shifts up when a child has negative y position', () => {
+      const children: NodeGeometry[] = [
+        { position: { x: 20, y: -10 }, width: 200, height: 100 },
+        { position: { x: 20, y: 180 }, width: 200, height: 100 },
+      ];
+
+      const result = computeGroupFit(children, config);
+
+      // idealMinY = padding + headerHeight = 20 + 40 = 60
+      // minY = -10, so shiftY = -10 - 60 = -70
+      expect(result.positionDelta.x).toBe(0);
+      expect(result.positionDelta.y).toBe(-70);
+      expect(result.childPositionDelta.x).toBe(0);
+      expect(result.childPositionDelta.y).toBe(70);
+      expect(result.size.height).toBeGreaterThan(computeMinGroupSize(children, config).height);
+    });
+
+    it('shifts both axes when child has negative x and y', () => {
+      const children: NodeGeometry[] = [
+        { position: { x: -10, y: -20 }, width: 200, height: 100 },
+        { position: { x: 100, y: 100 }, width: 200, height: 100 },
+      ];
+
+      const result = computeGroupFit(children, config);
+
+      expect(result.positionDelta.x).toBeLessThan(0);
+      expect(result.positionDelta.y).toBeLessThan(0);
+      expect(result.childPositionDelta.x).toBeGreaterThan(0);
+      expect(result.childPositionDelta.y).toBeGreaterThan(0);
+    });
+
+    it('returns default size and zero deltas for empty children', () => {
+      const result = computeGroupFit([], config);
+
+      expect(result.positionDelta).toEqual({ x: 0, y: 0 });
+      expect(result.childPositionDelta).toEqual({ x: 0, y: 0 });
+      expect(result.size).toEqual({
+        width: config.padding * 2,
+        height: config.padding * 2 + config.headerHeight,
+      });
+    });
+
+    it('uses measured dimensions when available', () => {
+      const children: NodeGeometry[] = [
+        {
+          position: { x: 20, y: 60 },
+          width: 200,
+          height: 100,
+          measured: { width: 250, height: 120 },
+        },
+      ];
+
+      const result = computeGroupFit(children, config);
+
+      // maxX should use measured width: 20 + 250 = 270
+      // width = maxX - shiftX(0) + padding = 270 + 20 = 290
+      expect(result.size.width).toBe(290);
+      // maxY should use measured height: 60 + 120 = 180
+      // height = maxY - shiftY(0) + padding = 180 + 20 = 200
+      expect(result.size.height).toBe(200);
     });
   });
 });

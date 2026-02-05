@@ -95,13 +95,13 @@ describe('Visual Groups (Native parentId)', () => {
           {
             ...createTestNode({ id: 'n1', type: 'Task', semanticId: 'task-1' }),
             parentId: groupId,
-            extent: 'parent',
+
             position: { x: 20, y: 60 }, // Relative to group
           },
           {
             ...createTestNode({ id: 'n2', type: 'Task', semanticId: 'task-2' }),
             parentId: groupId,
-            extent: 'parent',
+
             position: { x: 20, y: 160 }, // Relative to group
           },
         ]);
@@ -117,8 +117,8 @@ describe('Visual Groups (Native parentId)', () => {
 
       expect(n1?.parentId).toBe(groupId);
       expect(n2?.parentId).toBe(groupId);
-      expect(n1?.extent).toBe('parent');
-      expect(n2?.extent).toBe('parent');
+
+
     });
 
     it('should remove node from group by clearing parentId', async () => {
@@ -145,7 +145,7 @@ describe('Visual Groups (Native parentId)', () => {
           {
             ...createTestNode({ id: 'n1', type: 'Task', semanticId: 'task-1' }),
             parentId: groupId,
-            extent: 'parent',
+
             position: { x: 20, y: 60 },
           },
         ]);
@@ -261,7 +261,7 @@ describe('Visual Groups (Native parentId)', () => {
           {
             ...createTestNode({ id: 'child', type: 'Task', semanticId: 'task-child' }),
             parentId: groupId,
-            extent: 'parent',
+
             position: { x: 20, y: 60 },
           },
         ]);
@@ -308,7 +308,7 @@ describe('Visual Groups (Native parentId)', () => {
             id: innerGroupId,
             type: 'visual-group',
             parentId: outerGroupId,
-            extent: 'parent',
+
             position: { x: 20, y: 60 },
             style: { width: 200, height: 200 },
             data: {
@@ -322,7 +322,7 @@ describe('Visual Groups (Native parentId)', () => {
           {
             ...createTestNode({ id: 'nested-node', type: 'Task', semanticId: 'task-nested' }),
             parentId: innerGroupId,
-            extent: 'parent',
+
             position: { x: 20, y: 60 },
           },
         ]);

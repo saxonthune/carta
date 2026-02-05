@@ -173,7 +173,6 @@ export function hydrateYDocFromCartaFile(doc: Y.Doc, data: CartaFile): void {
           ...(nodeObj.height ? { height: nodeObj.height } : {}),
           ...(nodeObj.style ? { style: nodeObj.style } : {}),
           ...(nodeObj.parentId ? { parentId: nodeObj.parentId } : {}),
-          ...(nodeObj.extent ? { extent: nodeObj.extent } : {}),
         }) as Y.Map<unknown>;
         levelNodesMap.set(nodeId, ynode);
       }

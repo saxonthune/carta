@@ -531,7 +531,7 @@ export function computeMetamapLayout(input: MetamapLayoutInput): MetamapLayoutOu
       id: reactFlowId,
       type: 'schema-group',
       position,
-      ...(parentReactFlowId ? { parentId: parentReactFlowId, extent: 'parent' as const } : {}),
+      ...(parentReactFlowId ? { parentId: parentReactFlowId } : {}),
       style: { width: bounds.width, height: bounds.height },
       data: {
         groupId,

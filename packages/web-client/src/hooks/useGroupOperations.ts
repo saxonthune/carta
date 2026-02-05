@@ -5,7 +5,7 @@ import {
   computeGroupBounds,
   toRelativePosition,
   toAbsolutePosition,
-  computeMinGroupSize,
+  computeGroupFit,
   DEFAULT_GROUP_LAYOUT,
   type NodeGeometry,
 } from '@carta/domain';
@@ -25,8 +25,8 @@ export interface UseGroupOperationsResult {
   renameGroup: (groupId: string, name: string) => void;
   /** Update a group's color */
   updateGroupColor: (groupId: string, color: string) => void;
-  /** Resize a group to fit its children */
-  resizeGroupToFitChildren: (groupId: string) => void;
+  /** Fit a group to its children (handles position shifts for overflow) */
+  fitGroupToChildren: (groupId: string) => void;
   /** Delete a group (optionally delete children) */
   deleteGroup: (groupId: string, deleteChildren?: boolean) => void;
 }
@@ -86,7 +86,6 @@ export function useGroupOperations(): UseGroupOperationsResult {
         return {
           ...n,
           parentId: groupId,
-          extent: 'parent' as const,
           position: relativePos,
         };
       }
@@ -111,7 +110,7 @@ export function useGroupOperations(): UseGroupOperationsResult {
 
     setNodes(nds => nds.map(n =>
       n.id === nodeId
-        ? { ...n, parentId: groupId, extent: 'parent' as const, position: relativePosition }
+        ? { ...n, parentId: groupId, position: relativePosition }
         : n
     ));
   }, [nodes, setNodes]);
@@ -175,13 +174,14 @@ export function useGroupOperations(): UseGroupOperationsResult {
   }, [setNodes]);
 
   /**
-   * Resize a group to fit its children.
+   * Fit a group to its children, handling position shifts for left/upward overflow.
+   * If children have been dragged above/left of the content area, the group position
+   * is shifted and all children positions are adjusted to compensate.
    */
-  const resizeGroupToFitChildren = useCallback((groupId: string) => {
+  const fitGroupToChildren = useCallback((groupId: string) => {
     const children = nodes.filter(n => n.parentId === groupId);
     if (children.length === 0) return;
 
-    // Convert children to NodeGeometry for pure function
     const childGeometries: NodeGeometry[] = children.map(n => ({
       position: n.position,
       width: n.width,
@@ -189,14 +189,31 @@ export function useGroupOperations(): UseGroupOperationsResult {
       measured: n.measured,
     }));
 
-    // Compute minimum size using pure function
-    const minSize = computeMinGroupSize(childGeometries, DEFAULT_GROUP_LAYOUT);
+    const fit = computeGroupFit(childGeometries, DEFAULT_GROUP_LAYOUT);
 
-    setNodes(nds => nds.map(n =>
-      n.id === groupId
-        ? { ...n, style: { ...n.style, width: minSize.width, height: minSize.height } }
-        : n
-    ));
+    const needsShift = fit.positionDelta.x !== 0 || fit.positionDelta.y !== 0;
+
+    setNodes(nds => nds.map(n => {
+      if (n.id === groupId) {
+        return {
+          ...n,
+          position: needsShift
+            ? { x: n.position.x + fit.positionDelta.x, y: n.position.y + fit.positionDelta.y }
+            : n.position,
+          style: { ...n.style, width: fit.size.width, height: fit.size.height },
+        };
+      }
+      if (needsShift && n.parentId === groupId) {
+        return {
+          ...n,
+          position: {
+            x: n.position.x + fit.childPositionDelta.x,
+            y: n.position.y + fit.childPositionDelta.y,
+          },
+        };
+      }
+      return n;
+    }));
   }, [nodes, setNodes]);
 
   /**
@@ -249,7 +266,7 @@ export function useGroupOperations(): UseGroupOperationsResult {
     toggleGroupCollapse,
     renameGroup,
     updateGroupColor,
-    resizeGroupToFitChildren,
+    fitGroupToChildren,
     deleteGroup,
   };
 }

@@ -61,7 +61,6 @@ export function seedStarterContent(adapter: DocumentAdapter): void {
       id: nodeB,
       type: 'construct',
       parentId: groupId,
-      extent: 'parent',
       position: nodeBRelativePos,
       data: {
         constructType: 'note',
@@ -74,7 +73,6 @@ export function seedStarterContent(adapter: DocumentAdapter): void {
       id: nodeC,
       type: 'construct',
       parentId: groupId,
-      extent: 'parent',
       position: nodeCRelativePos,
       data: {
         constructType: 'note',
