@@ -6,17 +6,11 @@
  * them without opening every Yjs database.
  */
 
+import type { DocumentSummary } from '@carta/domain';
+
 const DB_NAME = 'carta-registry';
 const DB_VERSION = 1;
 const STORE_NAME = 'documents';
-
-export interface LocalDocumentMetadata {
-  id: string;
-  title: string;
-  createdAt: string;
-  updatedAt: string;
-  nodeCount: number;
-}
 
 function openRegistry(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -32,14 +26,14 @@ function openRegistry(): Promise<IDBDatabase> {
   });
 }
 
-export async function listLocalDocuments(): Promise<LocalDocumentMetadata[]> {
+export async function listLocalDocuments(): Promise<DocumentSummary[]> {
   const db = await openRegistry();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readonly');
     const store = tx.objectStore(STORE_NAME);
     const request = store.getAll();
     request.onsuccess = () => {
-      const docs = (request.result as LocalDocumentMetadata[])
+      const docs = (request.result as DocumentSummary[])
         .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
       resolve(docs);
     };
@@ -48,7 +42,7 @@ export async function listLocalDocuments(): Promise<LocalDocumentMetadata[]> {
   });
 }
 
-export async function getDocumentMetadata(id: string): Promise<LocalDocumentMetadata | null> {
+export async function getDocumentMetadata(id: string): Promise<DocumentSummary | null> {
   const db = await openRegistry();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readonly');
@@ -63,9 +57,10 @@ export async function getDocumentMetadata(id: string): Promise<LocalDocumentMeta
 export async function createDocument(title?: string): Promise<string> {
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
-  const metadata: LocalDocumentMetadata = {
+  const metadata: DocumentSummary = {
     id,
     title: title || 'Untitled Project',
+    folder: '/',
     createdAt: now,
     updatedAt: now,
     nodeCount: 0,
@@ -89,7 +84,7 @@ export async function createDocument(title?: string): Promise<string> {
 
 export async function updateDocumentMetadata(
   id: string,
-  partial: Partial<Pick<LocalDocumentMetadata, 'title' | 'nodeCount' | 'updatedAt'>>,
+  partial: Partial<Pick<DocumentSummary, 'title' | 'nodeCount' | 'updatedAt'>>,
 ): Promise<void> {
   const db = await openRegistry();
   return new Promise((resolve, reject) => {
@@ -97,17 +92,18 @@ export async function updateDocumentMetadata(
     const store = tx.objectStore(STORE_NAME);
     const getReq = store.get(id);
     getReq.onsuccess = () => {
-      const existing = getReq.result as LocalDocumentMetadata | undefined;
+      const existing = getReq.result as DocumentSummary | undefined;
       if (!existing) {
         // Auto-create entry if it doesn't exist (e.g. first open of a document)
         const now = new Date().toISOString();
         store.put({
           id,
           title: partial.title || 'Untitled Project',
+          folder: '/',
           createdAt: now,
           updatedAt: partial.updatedAt || now,
           nodeCount: partial.nodeCount ?? 0,
-        } satisfies LocalDocumentMetadata);
+        } satisfies DocumentSummary);
       } else {
         store.put({ ...existing, ...partial, updatedAt: partial.updatedAt || new Date().toISOString() });
       }

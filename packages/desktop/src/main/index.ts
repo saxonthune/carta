@@ -110,23 +110,25 @@ ipcMain.handle('choose-vault-folder', async () => {
   return result.filePaths[0];
 });
 
-ipcMain.handle('set-vault-path', (_event, vaultPath: string) => {
-  ensureVaultExists(vaultPath);
-  const prefs = readPreferences(app.getPath('userData'));
-  prefs.vaultPath = vaultPath;
-  writePreferences(app.getPath('userData'), prefs);
-  return true;
-});
-
-ipcMain.handle('start-server-with-vault', async (_event, vaultPath: string) => {
+ipcMain.handle('initialize-vault', async (_event, vaultPath: string) => {
   try {
-    serverInfo = await startEmbeddedServer(app.getPath('userData'), vaultPath);
-    // Ensure vault has at least one document (creates hello-world if empty)
+    ensureVaultExists(vaultPath);
+    const userDataPath = app.getPath('userData');
+    const prefs = readPreferences(userDataPath);
+    prefs.vaultPath = vaultPath;
+    writePreferences(userDataPath, prefs);
+
+    // Stop existing server if running (handles vault change case)
+    if (serverInfo) {
+      await stopEmbeddedServer();
+    }
+
+    serverInfo = await startEmbeddedServer(userDataPath, vaultPath);
     const documentId = ensureVaultHasDocument();
-    console.log(`[Desktop] Embedded server started: ${serverInfo.url}, documentId: ${documentId}`);
-    return { ...serverInfo, documentId };
+    console.log(`[Desktop] Vault initialized: ${serverInfo.url}, documentId: ${documentId}`);
+    return { url: serverInfo.url, wsUrl: serverInfo.wsUrl, port: serverInfo.port, documentId };
   } catch (err) {
-    console.error('[Desktop] Failed to start embedded server:', err);
+    console.error('[Desktop] Failed to initialize vault:', err);
     throw err;
   }
 });

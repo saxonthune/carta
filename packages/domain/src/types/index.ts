@@ -411,14 +411,49 @@ export interface ServerDocument {
 }
 
 /**
- * Document metadata for listings (server)
+ * Lightweight document summary for vault listings.
+ * Shared across local (IndexedDB), server, and desktop adapters.
  */
-export interface DocumentMetadata {
+export interface DocumentSummary {
   id: string;
   title: string;
-  version: number;
+  folder: string;
   updatedAt: string;
   nodeCount: number;
+  createdAt?: string;
+}
+
+/**
+ * Vault adapter interface — abstracts document storage for the browser modal.
+ * Implemented by LocalVaultAdapter (IndexedDB), ServerVaultAdapter (HTTP), DesktopVaultAdapter (Electron).
+ */
+export interface VaultAdapter {
+  /** Human-readable vault location: "Browser Storage" | server URL | filesystem path */
+  readonly displayAddress: string;
+
+  /** Optional async initialization (e.g., desktop needs to resolve vault path via IPC) */
+  init?(): Promise<void>;
+
+  /** List all documents in the vault */
+  listDocuments(): Promise<DocumentSummary[]>;
+
+  /** Create a new document. Returns the document ID. */
+  createDocument(title: string, folder?: string): Promise<string>;
+
+  /** Delete a document by ID. Returns true if deleted. */
+  deleteDocument(id: string): Promise<boolean>;
+
+  /** Whether this vault supports changing the storage location (desktop only) */
+  readonly canChangeVault: boolean;
+
+  /** Change vault location. Reloads the app after switching. Only callable when canChangeVault is true. */
+  changeVault?(): Promise<void>;
+
+  /** True when desktop vault folder hasn't been selected yet (first-run state) */
+  readonly needsVaultSetup?: boolean;
+
+  /** Initialize a vault at the given path. Returns server info and first document ID. */
+  initializeVault?(vaultPath: string): Promise<{ documentId: string; serverUrl: string; wsUrl: string }>;
 }
 
 // ===== PERSISTENCE =====

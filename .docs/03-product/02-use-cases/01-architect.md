@@ -19,10 +19,10 @@ A software architect designing a new system or documenting an existing one. Want
 
 ## Features Used
 
-- doc03.01.01 (Canvas) — primary workspace
-- doc03.01.02 (Constructs) — modeling software components
-- doc03.01.03 (Ports and Connections) — defining relationships
-- doc03.01.04 (Levels) — separating architectural concerns
-- doc03.01.06 (Schema Editor) — creating domain-specific construct types
-- doc03.01.07 (Compilation) — producing AI-consumable output
-- doc03.01.08 (Import/Export) — saving and sharing designs
+- doc03.01.01.01 (Canvas) — primary workspace
+- doc03.01.01.02 (Constructs) — modeling software components
+- doc03.01.01.03 (Ports and Connections) — defining relationships
+- doc03.01.01.04 (Levels) — separating architectural concerns
+- doc03.01.01.06 (Schema Editor) — creating domain-specific construct types
+- doc03.01.02.01 (Compilation) — producing AI-consumable output
+- doc03.01.02.02 (Import/Export) — saving and sharing designs

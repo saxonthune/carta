@@ -11,7 +11,6 @@ Carta supports real-time collaboration when connected to a server. Collaboration
 
 When no `VITE_SERVER_URL` is configured and the app runs in a browser:
 - One document auto-created in IndexedDB
-- No document browser, no multi-document management
 - No WebSocket connection
 - Share button and connection status hidden
 - Works like Excalidraw — user edits a single document directly
@@ -23,26 +22,7 @@ When a server URL is configured (or desktop auto-detects its embedded server):
 - WebSocket sync via y-websocket
 - Yjs CRDT handles conflict resolution automatically
 - URL-based document routing: `?doc={documentId}`
-- Document browser available for listing, creating, and selecting documents
-
-### Document Browser
-
-When no `?doc=` parameter is present and a server is available, the Document Browser appears in required mode (cannot be dismissed). Users must select an existing document or create a new one.
-
-The document browser renders whatever grouping metadata the server provides (folders, tags, projects). This organization is managed by the storage host, not Carta.
-
-### Virtual Folder Navigation
-
-The document browser supports virtual folder navigation. Documents have a `folder` field (e.g., `/projects/webapp`) that determines their location in the hierarchy. Folders are virtual — derived from document paths, not stored separately.
-
-Features:
-- **Breadcrumb navigation**: Click any path segment to jump directly
-- **Folder listing**: Shows child folders derived from documents under current path
-- **Back navigation**: Navigate up one level when not at root
-- **Create folder**: Navigate to a new folder path (folder is created implicitly when a document is saved there)
-- **Alphabetical sorting**: Folders sorted alphabetically, documents by most recent
-
-The folder structure is a UI presentation layer — the server stores documents with a flat `folder` metadata field, and the client derives the tree view dynamically using the `deriveFolderView()` function.
+- Vault navigation available for document management (doc03.01.03.01)
 
 ### Connection Status
 

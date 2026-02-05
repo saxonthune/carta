@@ -25,5 +25,5 @@ status: draft
 
 ## Features
 
-- doc03.01.03 (Ports and Connections)
-- doc03.01.01 (Canvas)
+- doc03.01.01.03 (Ports and Connections)
+- doc03.01.01.01 (Canvas)

@@ -17,7 +17,7 @@ Port schemas define port types. Each has:
 
 Built-in port schemas: flow-in (sink), flow-out (source), parent (sink), child (source), symmetric (bidirectional), intercept, relay.
 
-Port schemas are user-editable. New port schemas are created via the Metamap connection modal (doc03.01.05) or the schema creation wizard (doc03.01.06).
+Port schemas are user-editable. New port schemas are created via the Metamap connection modal (doc03.01.01.05) or the schema creation wizard (doc03.01.01.06).
 
 ## Polarity
 

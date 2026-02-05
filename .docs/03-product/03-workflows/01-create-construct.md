@@ -22,5 +22,5 @@ status: draft
 
 ## Features
 
-- doc03.01.01 (Canvas) — where constructs appear
-- doc03.01.02 (Constructs) — what gets created
+- doc03.01.01.01 (Canvas) — where constructs appear
+- doc03.01.01.02 (Constructs) — what gets created

@@ -18,7 +18,7 @@ Construct schemas appear as nodes. Connections between schema nodes represent po
 - **Connect schemas**: Drag between schema nodes to open the MetamapConnectionModal, which creates port schemas and adds ports to both schemas
 - **Group schemas**: Drag schemas into schema group nodes for organization
 - **Auto-layout**: Button to automatically arrange the schema graph
-- **Create schema**: Right-click context menu to create a new construct schema (opens wizard, doc03.01.06)
+- **Create schema**: Right-click context menu to create a new construct schema (opens wizard, doc03.01.01.06)
 - **Create group**: Right-click context menu to create a new schema group
 - **Expand/collapse schemas**: Double-click a schema node to toggle between compact (summary) and expanded (full detail) views
 - **Edit relationships**: Click an edge to open the EdgeDetailPopover for editing labels or deleting relationships
@@ -49,4 +49,4 @@ Schema nodes support two display modes, toggled by double-clicking:
 
 ## Relationship to Map
 
-The Map (doc03.01.01) shows instances. The Metamap shows types. Changes in the Metamap (adding ports to a schema, creating new schemas) immediately affect what's available in the Map. The two views are toggled via a view switcher on the canvas.
+The Map (doc03.01.01.01) shows instances. The Metamap shows types. Changes in the Metamap (adding ports to a schema, creating new schemas) immediately affect what's available in the Map. The two views are toggled via a view switcher on the canvas.

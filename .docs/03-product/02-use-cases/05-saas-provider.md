@@ -74,8 +74,8 @@ Carta is the **editing platform**. Auth, billing, permissions, and document orga
 
 ## Features Used
 
-- doc03.01.09 (Collaboration) — real-time sync, sharing
-- doc03.01.10 (AI Assistant) — server-proxied, metered chat
-- doc03.01.01 (Canvas) — primary workspace
-- doc03.01.07 (Compilation) — AI-readable output
-- doc03.01.08 (Import/Export) — data portability
+- doc03.01.03.02 (Collaboration) — real-time sync, sharing
+- doc03.01.03.03 (AI Assistant) — server-proxied, metered chat
+- doc03.01.01.01 (Canvas) — primary workspace
+- doc03.01.02.01 (Compilation) — AI-readable output
+- doc03.01.02.02 (Import/Export) — data portability

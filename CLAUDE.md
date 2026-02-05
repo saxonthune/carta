@@ -232,7 +232,7 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 | File | Purpose |
 |------|---------|
 | `packages/domain/src/index.ts` | Barrel export: types, ports, schemas, utils, guides |
-| `packages/domain/src/types/index.ts` | Core type definitions: PortSchema, FieldSchema, DocumentAdapter, CartaDocument, Polarity (5 values), VirtualParentNodeData, SchemaGroup, VisualGroup; ConstructSchema with backgroundColorPolicy; ConstructNodeData with instanceColor and groupId |
+| `packages/domain/src/types/index.ts` | Core type definitions: PortSchema, FieldSchema, DocumentAdapter, VaultAdapter, CartaDocument, DocumentSummary, Polarity (5 values), VirtualParentNodeData, SchemaGroup, VisualGroup; ConstructSchema with backgroundColorPolicy; ConstructNodeData with instanceColor and groupId |
 | `packages/domain/src/ports/index.ts` | Barrel export: registry, helpers |
 | `packages/domain/src/ports/registry.ts` | PortRegistry class with two-step polarity-based canConnect() validation |
 | `packages/domain/src/ports/helpers.ts` | Port helper functions: canConnect, getPortsForSchema, getHandleType, getPortColor |
@@ -250,10 +250,17 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 |------|---------|
 | `packages/web-client/src/contexts/DocumentContext.tsx` | Document provider: manages Yjs adapter lifecycle |
 | `packages/web-client/src/contexts/NodeActionsContext.tsx` | Context providing node-related actions (wraps useGroupOperations for stable callbacks, prevents prop drilling) |
+| `packages/web-client/src/contexts/VaultContext.tsx` | Vault provider: manages VaultAdapter lifecycle for document browser |
+| `packages/web-client/src/contexts/index.ts` | Barrel export: DocumentProvider, NodeActionsProvider, and their hooks |
 | `packages/web-client/src/stores/adapters/yjsAdapter.ts` | Yjs implementation of DocumentAdapter interface |
 | `packages/web-client/src/stores/documentRegistry.ts` | IndexedDB registry for local documents with cleanAllLocalData() for fresh NUX |
+| `packages/web-client/src/stores/vault/index.ts` | Barrel export: ServerVaultAdapter, LocalVaultAdapter, DesktopVaultAdapter, createVaultAdapter |
+| `packages/web-client/src/stores/vault/ServerVaultAdapter.ts` | VaultAdapter implementation for server mode (HTTP API) |
+| `packages/web-client/src/stores/vault/LocalVaultAdapter.ts` | VaultAdapter implementation for local mode (IndexedDB registry) |
+| `packages/web-client/src/stores/vault/DesktopVaultAdapter.ts` | VaultAdapter implementation for desktop mode (Electron IPC) |
+| `packages/web-client/src/stores/vault/createVaultAdapter.ts` | Factory function: creates appropriate VaultAdapter based on deployment mode |
 | `packages/web-client/src/constructs/compiler/index.ts` | Compiler engine that takes schemas/deployables as parameters |
-| `packages/web-client/src/hooks/index.ts` | Barrel export: document state (useNodes, useEdges, useSchemas, usePortSchemas, useDeployables, useSchemaGroups, useLevels, useDocumentMeta), operations (useGraphOperations, useConnections, useVisualGroups, useGroupOperations), UI state (useMapState, useMetamapLayout, useEdgeBundling), utilities (useClipboard, useUndoRedo, useKeyboardShortcuts, useAwareness, useDirtyStateGuard, useClearDocument) |
+| `packages/web-client/src/hooks/index.ts` | Barrel export: document state (useNodes, useEdges, useSchemas, usePortSchemas, useDeployables, useSchemaGroups, useLevels, useDocumentMeta), operations (useGraphOperations, useConnections, useVisualGroups, useGroupOperations), UI state (useMapState, useEdgeBundling), utilities (useClipboard, useUndoRedo, useKeyboardShortcuts, useAwareness, useDirtyStateGuard, useClearDocument) |
 | `packages/web-client/src/hooks/useNodes.ts` | Focused hook for nodes state: nodes, setNodes, updateNode, getNextNodeId (only re-renders when nodes change) |
 | `packages/web-client/src/hooks/useEdges.ts` | Focused hook for edges state: edges, setEdges (only re-renders when edges change) |
 | `packages/web-client/src/hooks/useSchemas.ts` | Focused hook for schemas state: schemas, schemaById, getSchema, add/update/remove operations |
@@ -275,7 +282,11 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 | `packages/web-client/src/components/canvas/VirtualParentNode.tsx` | Visual grouping container node for child constructs |
 | `packages/web-client/src/components/canvas/VisualGroupNode.tsx` | Visual group node with collapsed chip / expanded container states |
 | `packages/web-client/src/hooks/useVisualGroups.ts` | Hook processing visual groups: hides children of collapsed groups, builds edge remap for collapsed routing (uses native React Flow parentId) |
-| `packages/web-client/src/components/Header.tsx` | Header with "Carta" branding, title, document browser, import/export, compile, theme, settings, Share (server mode) |
+| `packages/web-client/src/components/Header/Header.tsx` | Header with "Carta" branding, title, document browser, import/export, compile, theme, settings, Share (server mode) |
+| `packages/web-client/src/components/Header/SettingsMenu.tsx` | Settings dropdown menu: load example, restore defaults, clear workspace, help |
+| `packages/web-client/src/components/Header/ShareMenu.tsx` | Share dropdown menu: copy link, connection status (server mode only) |
+| `packages/web-client/src/components/Header/ThemeMenu.tsx` | Theme dropdown menu: light, dark, warm theme options |
+| `packages/web-client/src/components/Header/index.ts` | Barrel export: Header, menu components, useClickOutside hook |
 | `packages/web-client/src/components/metamap/index.ts` | Barrel export: Metamap, SchemaNode, SchemaGroupNode, EdgeDetailPopover, MetamapConnectionModal, MetamapFilter |
 | `packages/web-client/src/components/metamap/Metamap.tsx` | React Flow canvas for schema-level metamodel view (SchemaNode, SchemaGroupNode, EdgeDetailPopover) |
 | `packages/web-client/src/components/metamap/EdgeDetailPopover.tsx` | Click-to-edit popover for metamap edges: edit labels, delete relationships |
@@ -302,8 +313,10 @@ pnpm dev          # Build + launch Electron (connects to Vite dev server)
 | `packages/web-client/src/components/canvas/lod/lodPolicy.ts` | LOD band configuration (pill/compact/normal modes with zoom thresholds) |
 | `packages/web-client/src/components/canvas/lod/useLodBand.ts` | Hook that returns discrete LOD band based on current zoom level |
 | `packages/web-client/src/components/ui/ContextMenu.tsx` | Shared context menu for canvas right-click; view-specific options (Map shows node ops, Metamap shows schema ops) |
+| `packages/web-client/src/utils/index.ts` | Barrel export: CartaFile types, import/export, examples, metamapLayout, preferences, randomNames, starterContent, string utilities |
+| `packages/web-client/src/utils/metamapLayout.ts` | Extracted metamap auto-layout algorithm (ForceGraph2D-based, from useMetamapLayout hook) |
 | `packages/web-client/src/utils/examples.ts` | Utility to load bundled example .carta files |
-| `packages/web-client/src/main.tsx` | Entry point: resolves documentId (migration, last-opened, or auto-create), updates URL via history.replaceState, renders DocumentProvider |
+| `packages/web-client/src/main.tsx` | Entry point: resolves documentId (migration, last-opened, or auto-create), updates URL via history.replaceState, renders VaultProvider and DocumentProvider |
 | `packages/web-client/src/utils/starterContent.ts` | Seeds starter graph (3 Note nodes, 2 edges) on first document initialization |
 | `packages/web-client/src/components/ui/icons.tsx` | Shared icon components: PinIcon, WindowIcon, CloseIcon, ExpandIcon, CollapseIcon, EyeIcon, EyeOffIcon |
 | `packages/web-client/src/components/ui/DraggableWindow.tsx` | Draggable, pinnable window component for full view modal (no backdrop, island UX) |

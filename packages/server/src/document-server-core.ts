@@ -14,7 +14,8 @@ import { WebSocket } from 'ws';
 import * as encoding from 'lib0/encoding';
 import * as decoding from 'lib0/decoding';
 import * as syncProtocol from 'y-protocols/sync';
-import { portRegistry } from '@carta/domain';
+import { portRegistry, type DocumentSummary } from '@carta/domain';
+export type { DocumentSummary };
 import {
   listConstructs,
   getConstruct,
@@ -41,18 +42,6 @@ import {
 export interface DocState {
   doc: Y.Doc;
   conns: Set<WebSocket>;
-}
-
-/**
- * Summary returned by list-documents endpoint.
- */
-export interface DocumentSummary {
-  id: string;
-  title: string;
-  folder: string;
-  updatedAt?: string;
-  nodeCount: number;
-  version?: number;
 }
 
 /**

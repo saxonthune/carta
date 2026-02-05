@@ -18,7 +18,7 @@ A team lead who defines standardized construct schemas so their team models arch
 
 ## Features Used
 
-- doc03.01.05 (Metamap) — visual schema management
-- doc03.01.06 (Schema Editor) — creating standardized schemas
-- doc03.01.08 (Import/Export) — distributing schema sets
-- doc03.01.09 (Collaboration) — real-time co-editing
+- doc03.01.01.05 (Metamap) — visual schema management
+- doc03.01.01.06 (Schema Editor) — creating standardized schemas
+- doc03.01.02.02 (Import/Export) — distributing schema sets
+- doc03.01.03.02 (Collaboration) — real-time co-editing

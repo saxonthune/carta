@@ -64,11 +64,13 @@ export function getDefaultVaultPath(): string {
 }
 
 /**
- * Check if this is the first run (no vault configured).
+ * Check if this is the first run (no vault configured or stale vault path).
  */
 export function isFirstRun(userDataPath: string): boolean {
   const prefs = readPreferences(userDataPath);
-  return prefs.vaultPath === null;
+  if (prefs.vaultPath === null) return true;
+  // Treat stale vault paths (folder was deleted) as first run
+  return !fs.existsSync(prefs.vaultPath);
 }
 
 /**

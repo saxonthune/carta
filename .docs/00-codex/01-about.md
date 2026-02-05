@@ -19,7 +19,7 @@ This is the canonical documentation for Carta. It uses a numbered title system w
 
 ## Cross-References
 
-Documents reference each other using `doc` syntax: `docXX.YY.ZZ` where each segment is a two-digit number mapping to the directory/file numbering. For example, `doc03.01.07` refers to title 03 (product), subdir 01 (features), item 07 (compilation).
+Documents reference each other using `doc` syntax: `docXX.YY.ZZ` where each segment is a two-digit number mapping to the directory/file numbering. For example, `doc03.01.02.01` refers to title 03 (product), subdir 01 (features), subdir 02 (output), item 01 (compilation).
 
 See doc00.03 for full conventions.
 

@@ -9,7 +9,7 @@ Constructs are the primary modeling element — typed nodes on the canvas repres
 
 ## Schema and Instance
 
-Every construct is an instance of a construct schema (doc03.01.06). The schema defines:
+Every construct is an instance of a construct schema (doc03.01.01.06). The schema defines:
 - Type identifier, display name, color
 - Fields (named data slots with types)
 - Ports (connection attachment points)

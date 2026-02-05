@@ -1,12 +1,5 @@
 import { describe, it, expect } from 'vitest';
-
-interface DocumentSummary {
-  id: string;
-  title: string;
-  folder: string;
-  updatedAt: string;
-  nodeCount: number;
-}
+import type { DocumentSummary } from '@carta/domain';
 
 interface FolderView {
   currentPath: string;

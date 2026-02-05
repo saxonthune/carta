@@ -56,7 +56,7 @@ The enterprise configures their server with AI provider credentials. `AI_MODE=se
 
 ## Features Used
 
-- doc03.01.09 (Collaboration) — real-time sync via server
-- doc03.01.10 (AI Assistant) — server-proxied chat
-- doc03.01.01 (Canvas) — primary workspace
-- doc03.01.07 (Compilation) — AI-readable output
+- doc03.01.03.02 (Collaboration) — real-time sync via server
+- doc03.01.03.03 (AI Assistant) — server-proxied chat
+- doc03.01.01.01 (Canvas) — primary workspace
+- doc03.01.02.01 (Compilation) — AI-readable output

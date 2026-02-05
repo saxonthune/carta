@@ -29,5 +29,5 @@ status: draft
 
 ## Features
 
-- doc03.01.05 (Metamap)
-- doc03.01.06 (Schema Editor)
+- doc03.01.01.05 (Metamap)
+- doc03.01.01.06 (Schema Editor)

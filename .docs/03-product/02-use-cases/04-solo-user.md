@@ -64,9 +64,9 @@ A user works on a personal project without a server. They use either the hosted 
 
 ## Features Used
 
-- doc03.01.01 (Canvas) — primary workspace
-- doc03.01.02 (Constructs) — modeling components
-- doc03.01.06 (Schema Editor) — custom types
-- doc03.01.07 (Compilation) — AI-readable output
-- doc03.01.08 (Import/Export) — backup and sharing
-- doc03.01.10 (AI Assistant) — user-key chat (optional)
+- doc03.01.01.01 (Canvas) — primary workspace
+- doc03.01.01.02 (Constructs) — modeling components
+- doc03.01.01.06 (Schema Editor) — custom types
+- doc03.01.02.01 (Compilation) — AI-readable output
+- doc03.01.02.02 (Import/Export) — backup and sharing
+- doc03.01.03.03 (AI Assistant) — user-key chat (optional)
