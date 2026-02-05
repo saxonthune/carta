@@ -61,6 +61,7 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 | doc03.01.01.04 | `01-features/01-modeling/04-levels.md` | Multi-level views, level switching | levels, views | — |
 | doc03.01.01.05 | `01-features/01-modeling/05-metamap.md` | Schema-level visual editor, schema nodes | metamap, schemas | doc02.06 |
 | doc03.01.01.06 | `01-features/01-modeling/06-schema-editor.md` | Wizard for creating/editing construct schemas | schemas, editor | doc02.06 |
+| doc03.01.14 | `01-features/14-simple-mode.md` | Sketch-phase rendering, composable render modes, separate primitives | sketching, simple, rendering, rough, architecture | doc03.03.08, doc02.07, doc02.08 |
 
 ### Output (doc03.01.02)
 

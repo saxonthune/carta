@@ -23,6 +23,7 @@ Features for creating and structuring the architecture model: the canvas, the th
 | doc03.01.01.04 | Levels | active | Multi-level architectural views within a document |
 | doc03.01.01.05 | Metamap | active | Schema-level visual editor |
 | doc03.01.01.06 | Schema Editor | active | Wizard for creating and editing construct schemas |
+| doc03.01.14 | Simple Mode | draft | Sketch-phase rendering: composable architecture for render modes, separate primitives |
 
 ### Output (doc03.01.02)
 
