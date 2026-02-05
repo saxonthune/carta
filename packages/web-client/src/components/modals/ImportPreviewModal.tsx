@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
+import type { Level } from '@carta/domain';
 import type { ImportAnalysis, ImportOptions, AnalyzedSchema, AnalyzedNode, AnalyzedDeployable } from '../../utils/importAnalyzer';
 import { defaultImportOptions } from '../../utils/importAnalyzer';
 
 interface ImportPreviewModalProps {
   analysis: ImportAnalysis;
+  levels: Level[];
   onConfirm: (options: ImportOptions) => void;
   onCancel: () => void;
 }
@@ -113,6 +115,7 @@ function DeployableItem({ deployable, selected, onToggle }: { deployable: Analyz
 
 export default function ImportPreviewModal({
   analysis,
+  levels,
   onConfirm,
   onCancel,
 }: ImportPreviewModalProps) {
@@ -244,6 +247,48 @@ export default function ImportPreviewModal({
           </div>
         </div>
       )}
+
+      {/* Target level picker */}
+      <div className="bg-surface-depth-2 rounded-lg p-3 mb-4">
+        <div className="text-xs text-content-muted uppercase tracking-wide mb-2">Import Target</div>
+        <div className="space-y-1">
+          <label className="flex items-center gap-2 py-1 px-2 text-sm cursor-pointer hover:bg-surface-alt rounded">
+            <input
+              type="radio"
+              name="targetLevel"
+              checked={options.targetLevel === 'replace'}
+              onChange={() => setOptions(prev => ({ ...prev, targetLevel: 'replace' }))}
+              className="accent-accent"
+            />
+            <span className="text-content font-medium">Replace document</span>
+            <span className="text-content-muted text-xs">(replaces all content)</span>
+          </label>
+          {levels.map(level => (
+            <label key={level.id} className="flex items-center gap-2 py-1 px-2 text-sm cursor-pointer hover:bg-surface-alt rounded">
+              <input
+                type="radio"
+                name="targetLevel"
+                checked={options.targetLevel === level.id}
+                onChange={() => setOptions(prev => ({ ...prev, targetLevel: level.id }))}
+                className="accent-accent"
+              />
+              <span className="text-content">Into "{level.name}"</span>
+              <span className="text-content-muted text-xs">(additive)</span>
+            </label>
+          ))}
+          <label className="flex items-center gap-2 py-1 px-2 text-sm cursor-pointer hover:bg-surface-alt rounded">
+            <input
+              type="radio"
+              name="targetLevel"
+              checked={options.targetLevel === 'new'}
+              onChange={() => setOptions(prev => ({ ...prev, targetLevel: 'new' }))}
+              className="accent-accent"
+            />
+            <span className="text-content">+ New Level</span>
+            <span className="text-content-muted text-xs">(creates a new level)</span>
+          </label>
+        </div>
+      </div>
 
       {/* Categories */}
       <div className="space-y-3">

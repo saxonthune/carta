@@ -164,6 +164,7 @@ function AppContent() {
       schemas: options.schemas,
       nodes: options.nodes,
       deployables: options.deployables,
+      targetLevel: options.targetLevel,
     };
 
     // Set pending import flag and close modal
@@ -235,6 +236,7 @@ function AppContent() {
       {importPreview && (
         <ImportPreviewModal
           analysis={importPreview.analysis}
+          levels={levels}
           onConfirm={handleImportConfirm}
           onCancel={handleImportCancel}
         />

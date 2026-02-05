@@ -25,6 +25,10 @@ Carta documents can be saved to and loaded from `.carta` files (JSON format, cur
    - **Existing items**: already present, unchanged (gray indicator)
 4. Selective import: choose which items to include via checkboxes
 5. Items are grouped by category: schemas, instances, deployables
+6. **Target level picker**: choose where to import content:
+   - **Replace document**: Clears all levels and replaces with imported content (destructive)
+   - **Into "[Level name]"**: Merges imported content into an existing level (additive)
+   - **+ New Level**: Creates a new level with name "Imported: [filename]" and imports into it (additive)
 
 ## Examples
 
