@@ -24,6 +24,7 @@ This title documents what Carta does (features), who uses it (use cases), and ho
 | doc03.01.11 | Keyboard and Clipboard | active | Shortcuts, copy/paste, undo/redo |
 | doc03.01.12 | Theming | active | Light/dark/warm themes |
 | doc03.01.13 | New User Experience | active | First-load starter document, auto-create, no blank canvas |
+| doc03.01.14 | Simple Mode | draft | Sketch-phase rendering: composable architecture for render modes, separate primitives |
 
 ## Use Cases (doc03.02)
 

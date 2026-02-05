@@ -6,7 +6,7 @@ import { useSchemas } from '../../../hooks/useSchemas';
 import { useLodBand } from '../lod/useLodBand';
 import { stripHandlePrefix } from '../../../utils/handlePrefix';
 import { ConstructNodePill } from './ConstructNodePill';
-import { ConstructNodeCard } from './ConstructNodeCard';
+import { ConstructNodeSimple } from './ConstructNodeSimple';
 import { ConstructNodeDefault } from './ConstructNodeDefault';
 
 interface ConstructNodeComponentProps {
@@ -88,8 +88,8 @@ const ConstructNode = memo(function ConstructNode({ data, selected = false }: Co
   if (lod.band === 'pill') {
     return <ConstructNodePill {...variantProps} />;
   }
-  if (schema.renderStyle === 'card') {
-    return <ConstructNodeCard {...variantProps} />;
+  if (schema.renderStyle === 'simple') {
+    return <ConstructNodeSimple {...variantProps} />;
   }
   return <ConstructNodeDefault {...variantProps} />;
 });

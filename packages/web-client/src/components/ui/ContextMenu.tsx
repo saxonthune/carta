@@ -156,6 +156,12 @@ export default function ContextMenu({
     const result: MenuItem[] = [];
 
     if (onAddConstruct) {
+      result.push({
+        key: 'add-note',
+        label: 'Add Note',
+        onClick: () => onAddConstruct('note', x, y),
+      });
+
       if (constructOptions && constructOptions.length > 0) {
         const children = groupIntoMenuItems(
           constructOptions,

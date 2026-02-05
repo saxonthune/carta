@@ -66,6 +66,7 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 | doc03.01.11 | `01-features/11-keyboard-and-clipboard.md` | Shortcuts, copy/paste, undo/redo | keyboard, clipboard, undo | — |
 | doc03.01.12 | `01-features/12-theming.md` | Light/dark/warm themes | themes, styling | doc02.07 |
 | doc03.01.13 | `01-features/13-new-user-experience.md` | First-load starter document, auto-create | onboarding, starter | — |
+| doc03.01.14 | `01-features/14-simple-mode.md` | Sketch-phase rendering, composable render modes, separate primitives | sketching, simple, rendering, rough, architecture | doc03.03.08, doc02.07, doc02.08 |
 | doc03.02.01 | `02-use-cases/01-architect.md` | Software architect persona | persona, architect | — |
 | doc03.02.02 | `02-use-cases/02-team-lead.md` | Team lead persona | persona, team | — |
 | doc03.02.03 | `02-use-cases/03-enterprise-self-hosted.md` | Enterprise storage host, managed AI | enterprise, selfhost | doc02.05 |

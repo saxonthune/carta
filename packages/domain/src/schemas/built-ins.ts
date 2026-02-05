@@ -752,7 +752,9 @@ export const builtInConstructSchemas: ConstructSchema[] = [
     displayName: 'Note',
     color: '#c4a94e',
     semanticDescription: 'A freeform note or annotation',
+    renderStyle: 'simple',
     backgroundColorPolicy: 'any',
+    groupId: 'sketching',
     fields: [
       {
         name: 'content',
@@ -949,7 +951,7 @@ export const builtInConstructSchemas: ConstructSchema[] = [
     type: 'box',
     displayName: 'Box',
     color: '#64748b',
-    renderStyle: 'card',
+    renderStyle: 'simple',
     backgroundColorPolicy: 'any',
     groupId: 'sketching',
     semanticDescription: 'Generic box for rough modeling',
