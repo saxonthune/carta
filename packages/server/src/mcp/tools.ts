@@ -49,12 +49,18 @@ const SetActiveLevelSchema = z.object({
   levelId: z.string().describe('The level ID to set as active'),
 });
 
+const ListConstructsSchema = z.object({
+  documentId: z.string().describe('The document ID'),
+  constructType: z.string().optional().describe('Filter by construct type (e.g. "service", "api-endpoint")'),
+});
+
 const CreateConstructSchema = z.object({
   documentId: z.string().describe('The document ID'),
   constructType: z.string().describe('The type of construct to create'),
   values: z.record(z.unknown()).optional().describe('Initial field values'),
   x: z.number().optional().describe('X position on canvas'),
   y: z.number().optional().describe('Y position on canvas'),
+  parentId: z.string().optional().describe('Organizer node ID — when set, position is relative to the organizer'),
 });
 
 const UpdateConstructSchema = z.object({
@@ -87,6 +93,34 @@ const DisconnectConstructsSchema = z.object({
   sourceSemanticId: z.string().describe('Source construct semantic ID'),
   sourcePortId: z.string().describe('Source port ID'),
   targetSemanticId: z.string().describe('Target construct semantic ID'),
+});
+
+const CreateOrganizerSchema = z.object({
+  documentId: z.string().describe('The document ID'),
+  name: z.string().describe('Organizer name'),
+  color: z.string().optional().describe('Hex color (random from palette if omitted)'),
+  x: z.number().optional().describe('X position on canvas'),
+  y: z.number().optional().describe('Y position on canvas'),
+  width: z.number().optional().describe('Width in pixels (default: 400)'),
+  height: z.number().optional().describe('Height in pixels (default: 300)'),
+  layout: z.enum(['freeform', 'stack', 'grid']).optional().describe('Layout strategy (default: freeform)'),
+  description: z.string().optional().describe('Optional description'),
+});
+
+const UpdateOrganizerSchema = z.object({
+  documentId: z.string().describe('The document ID'),
+  organizerId: z.string().describe('The organizer node ID'),
+  name: z.string().optional().describe('New name'),
+  color: z.string().optional().describe('New hex color'),
+  collapsed: z.boolean().optional().describe('Collapse/expand the organizer'),
+  layout: z.enum(['freeform', 'stack', 'grid']).optional().describe('New layout strategy'),
+  description: z.string().optional().describe('New description'),
+});
+
+const DeleteOrganizerSchema = z.object({
+  documentId: z.string().describe('The document ID'),
+  organizerId: z.string().describe('The organizer node ID'),
+  deleteMembers: z.boolean().optional().describe('If true, delete member constructs too. Default: false (detach members)'),
 });
 
 const CreateSchemaInputSchema = z.object({
@@ -212,8 +246,8 @@ export function getToolDefinitions() {
     },
     {
       name: 'carta_list_constructs',
-      description: 'List all constructs in a document',
-      inputSchema: DocumentIdSchema.shape,
+      description: 'List constructs in a document (compact summaries). Use carta_get_construct for full details. Optionally filter by constructType.',
+      inputSchema: ListConstructsSchema.shape,
     },
     {
       name: 'carta_get_construct',
@@ -222,7 +256,7 @@ export function getToolDefinitions() {
     },
     {
       name: 'carta_create_construct',
-      description: 'Create a new construct instance',
+      description: 'Create a new construct instance. When parentId is set, position is relative to the organizer.',
       inputSchema: CreateConstructSchema.shape,
     },
     {
@@ -244,6 +278,21 @@ export function getToolDefinitions() {
       name: 'carta_disconnect_constructs',
       description: 'Disconnect two constructs',
       inputSchema: DisconnectConstructsSchema.shape,
+    },
+    {
+      name: 'carta_create_organizer',
+      description: 'Create an organizer node to visually group constructs. Use carta_create_construct with parentId to place constructs inside it.',
+      inputSchema: CreateOrganizerSchema.shape,
+    },
+    {
+      name: 'carta_update_organizer',
+      description: 'Update organizer properties (name, color, collapsed, layout, description)',
+      inputSchema: UpdateOrganizerSchema.shape,
+    },
+    {
+      name: 'carta_delete_organizer',
+      description: 'Delete an organizer. By default, detaches member constructs (converts to absolute positions). Set deleteMembers=true to also delete members.',
+      inputSchema: DeleteOrganizerSchema.shape,
     },
     {
       name: 'carta_list_port_types',
@@ -288,6 +337,9 @@ export interface ToolHandlers {
   carta_delete_construct: ToolHandler;
   carta_connect_constructs: ToolHandler;
   carta_disconnect_constructs: ToolHandler;
+  carta_create_organizer: ToolHandler;
+  carta_update_organizer: ToolHandler;
+  carta_delete_organizer: ToolHandler;
   carta_list_port_types: ToolHandler;
   carta_compile: ToolHandler;
   [key: string]: ToolHandler;
@@ -486,10 +538,11 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
     },
 
     carta_list_constructs: async (args) => {
-      const { documentId } = DocumentIdSchema.parse(args);
-      const result = await apiRequest<{ constructs: unknown[] }>(
+      const { documentId, constructType } = ListConstructsSchema.parse(args);
+      const params = constructType ? `?type=${encodeURIComponent(constructType)}` : '';
+      const result = await apiRequest<{ constructs: unknown[]; organizers: unknown[] }>(
         'GET',
-        `/api/documents/${encodeURIComponent(documentId)}/constructs`
+        `/api/documents/${encodeURIComponent(documentId)}/constructs${params}`
       );
       if (result.error) return { error: result.error };
       return result.data;
@@ -506,11 +559,11 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
     },
 
     carta_create_construct: async (args) => {
-      const { documentId, constructType, values, x, y } = CreateConstructSchema.parse(args);
+      const { documentId, constructType, values, x, y, parentId } = CreateConstructSchema.parse(args);
       const result = await apiRequest<{ construct: unknown }>(
         'POST',
         `/api/documents/${encodeURIComponent(documentId)}/constructs`,
-        { constructType, values, x, y }
+        { constructType, values, x, y, parentId }
       );
       if (result.error) return { error: result.error };
       return result.data;
@@ -563,6 +616,54 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
           sourcePortId: input.sourcePortId,
           targetSemanticId: input.targetSemanticId,
         }
+      );
+      if (result.error) return { error: result.error };
+      return result.data;
+    },
+
+    carta_create_organizer: async (args) => {
+      const input = CreateOrganizerSchema.parse(args);
+      const result = await apiRequest<{ organizer: unknown }>(
+        'POST',
+        `/api/documents/${encodeURIComponent(input.documentId)}/organizers`,
+        {
+          name: input.name,
+          color: input.color,
+          x: input.x,
+          y: input.y,
+          width: input.width,
+          height: input.height,
+          layout: input.layout,
+          description: input.description,
+        }
+      );
+      if (result.error) return { error: result.error };
+      return result.data;
+    },
+
+    carta_update_organizer: async (args) => {
+      const input = UpdateOrganizerSchema.parse(args);
+      const result = await apiRequest<{ organizer: unknown }>(
+        'PATCH',
+        `/api/documents/${encodeURIComponent(input.documentId)}/organizers/${encodeURIComponent(input.organizerId)}`,
+        {
+          name: input.name,
+          color: input.color,
+          collapsed: input.collapsed,
+          layout: input.layout,
+          description: input.description,
+        }
+      );
+      if (result.error) return { error: result.error };
+      return result.data;
+    },
+
+    carta_delete_organizer: async (args) => {
+      const input = DeleteOrganizerSchema.parse(args);
+      const params = input.deleteMembers ? '?deleteMembers=true' : '';
+      const result = await apiRequest<{ deleted: boolean }>(
+        'DELETE',
+        `/api/documents/${encodeURIComponent(input.documentId)}/organizers/${encodeURIComponent(input.organizerId)}${params}`
       );
       if (result.error) return { error: result.error };
       return result.data;

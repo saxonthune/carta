@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { Edge, Node } from '@xyflow/react';
+import type { Edge } from '@xyflow/react';
 
 export interface BundleData {
   bundleCount: number;
@@ -9,8 +9,11 @@ export interface BundleData {
 /**
  * Groups parallel edges between the same node pair (same port types) into bundles.
  * Returns display edges where bundles are collapsed into a single representative edge.
+ *
+ * Accepts a nodeTypeMap (id → type) instead of full Node[] to avoid re-computing
+ * when only node positions/data change but topology is unchanged.
  */
-export function useEdgeBundling(edges: Edge[], nodes: Node[]): {
+export function useEdgeBundling(edges: Edge[], nodeTypeMap: Map<string, string>): {
   displayEdges: Edge[];
   bundleMap: Map<string, Edge[]>;
 } {
@@ -19,18 +22,12 @@ export function useEdgeBundling(edges: Edge[], nodes: Node[]): {
       return { displayEdges: [], bundleMap: new Map() };
     }
 
-    // Build node lookup for getting port types
-    const nodeMap = new Map<string, Node>();
-    for (const node of nodes) {
-      nodeMap.set(node.id, node);
-    }
-
     // Build bundle key: normalized pair of nodeIds + port types
     const bundles = new Map<string, Edge[]>();
 
     for (const edge of edges) {
-      const sourceNode = nodeMap.get(edge.source);
-      const targetNode = nodeMap.get(edge.target);
+      const sourceType = nodeTypeMap.get(edge.source);
+      const targetType = nodeTypeMap.get(edge.target);
 
       const sourcePortType = edge.sourceHandle || 'default';
       const targetPortType = edge.targetHandle || 'default';
@@ -42,7 +39,7 @@ export function useEdgeBundling(edges: Edge[], nodes: Node[]): {
           : [edge.target, edge.source, targetPortType, sourcePortType];
 
       // Only bundle construct-to-construct edges
-      const isConstruct = sourceNode?.type === 'construct' && targetNode?.type === 'construct';
+      const isConstruct = sourceType === 'construct' && targetType === 'construct';
       const key = isConstruct
         ? `${nodeA}|${nodeB}|${portA}|${portB}`
         : edge.id; // unique key = no bundling
@@ -73,5 +70,5 @@ export function useEdgeBundling(edges: Edge[], nodes: Node[]): {
     }
 
     return { displayEdges, bundleMap: bundles };
-  }, [edges, nodes]);
+  }, [edges, nodeTypeMap]);
 }

@@ -12,6 +12,7 @@ import * as Y from 'yjs';
 import {
   generateSemanticId,
   builtInConstructSchemas,
+  toAbsolutePosition,
 } from '@carta/domain';
 import type {
   CompilerNode,
@@ -20,6 +21,8 @@ import type {
   ServerDocument,
   ConstructNodeData,
   ConnectionValue,
+  OrganizerNodeData,
+  OrganizerLayout,
 } from '@carta/domain';
 import { CompilerEngine } from '@carta/compiler';
 import { yToPlain, deepPlainToY, safeGet } from './yjs-helpers.js';
@@ -187,7 +190,11 @@ export function deleteLevel(ydoc: Y.Doc, levelId: string): boolean {
 /**
  * List all constructs in a document level
  */
-export function listConstructs(ydoc: Y.Doc, levelId: string): CompilerNode[] {
+export function listConstructs(
+  ydoc: Y.Doc,
+  levelId: string,
+  options?: { constructType?: string }
+): CompilerNode[] {
   const levelNodes = getLevelMap(ydoc, 'nodes', levelId);
   const nodes: CompilerNode[] = [];
 
@@ -196,12 +203,18 @@ export function listConstructs(ydoc: Y.Doc, levelId: string): CompilerNode[] {
       position: { x: number; y: number };
       data: ConstructNodeData;
       type?: string;
+      parentId?: string;
     };
+
+    // Filter by constructType if requested
+    if (options?.constructType && nodeObj.data?.constructType !== options.constructType) return;
+
     nodes.push({
       id,
       type: nodeObj.type || 'construct',
       position: nodeObj.position || { x: 0, y: 0 },
       data: nodeObj.data,
+      parentId: nodeObj.parentId,
     });
   });
 
@@ -217,14 +230,16 @@ export function getConstruct(ydoc: Y.Doc, levelId: string, semanticId: string): 
 }
 
 /**
- * Create a new construct in a level
+ * Create a new construct in a level.
+ * When parentId is provided, position is relative to the parent organizer.
  */
 export function createConstruct(
   ydoc: Y.Doc,
   levelId: string,
   constructType: string,
   values: Record<string, unknown> = {},
-  position = { x: 100, y: 100 }
+  position = { x: 100, y: 100 },
+  parentId?: string
 ): CompilerNode {
   const semanticId = generateSemanticId(constructType);
   const nodeId = generateNodeId();
@@ -241,6 +256,7 @@ export function createConstruct(
     type: 'construct',
     position,
     data: nodeData,
+    parentId,
   };
 
   const levelNodes = getLevelMap(ydoc, 'nodes', levelId);
@@ -250,6 +266,7 @@ export function createConstruct(
     ynode.set('type', node.type);
     ynode.set('position', deepPlainToY(position));
     ynode.set('data', deepPlainToY(nodeData));
+    if (parentId) ynode.set('parentId', parentId);
     levelNodes.set(nodeId, ynode as Y.Map<unknown>);
   }, MCP_ORIGIN);
 
@@ -368,6 +385,206 @@ export function deleteConstruct(ydoc: Y.Doc, levelId: string, semanticId: string
 
     // Delete the node
     levelNodes.delete(foundId!);
+  }, MCP_ORIGIN);
+
+  return true;
+}
+
+// ===== ORGANIZER OPERATIONS =====
+
+export interface OrganizerInfo {
+  id: string;
+  name: string;
+  color: string;
+  position: { x: number; y: number };
+  width: number;
+  height: number;
+  layout: OrganizerLayout;
+  collapsed: boolean;
+  description?: string;
+}
+
+/**
+ * List all organizers in a document level
+ */
+export function listOrganizers(ydoc: Y.Doc, levelId: string): OrganizerInfo[] {
+  const levelNodes = getLevelMap(ydoc, 'nodes', levelId);
+  const organizers: OrganizerInfo[] = [];
+
+  levelNodes.forEach((ynode, id) => {
+    const nodeObj = yToPlain(ynode) as Record<string, unknown>;
+    if (nodeObj.type !== 'organizer') return;
+
+    const data = nodeObj.data as OrganizerNodeData;
+    const style = nodeObj.style as Record<string, unknown> | undefined;
+    const position = (nodeObj.position as { x: number; y: number }) || { x: 0, y: 0 };
+
+    organizers.push({
+      id,
+      name: data.name ?? '',
+      color: data.color ?? '#6b7280',
+      position,
+      width: (style?.width as number) ?? 400,
+      height: (style?.height as number) ?? 300,
+      layout: data.layout ?? 'freeform',
+      collapsed: data.collapsed ?? false,
+      description: data.description,
+    });
+  });
+
+  return organizers;
+}
+
+const ORGANIZER_PALETTE = ['#7c3aed', '#0891b2', '#059669', '#d97706', '#dc2626'];
+
+/**
+ * Create an organizer node in a level
+ */
+export function createOrganizer(
+  ydoc: Y.Doc,
+  levelId: string,
+  options: {
+    name: string;
+    color?: string;
+    position?: { x: number; y: number };
+    width?: number;
+    height?: number;
+    layout?: OrganizerLayout;
+    description?: string;
+  }
+): OrganizerInfo {
+  const nodeId = generateNodeId();
+  const color = options.color || ORGANIZER_PALETTE[Math.floor(Math.random() * ORGANIZER_PALETTE.length)]!;
+  const position = options.position || { x: 100, y: 100 };
+  const width = options.width || 400;
+  const height = options.height || 300;
+  const layout: OrganizerLayout = options.layout || 'freeform';
+
+  const data: OrganizerNodeData = {
+    isOrganizer: true,
+    name: options.name,
+    color,
+    collapsed: false,
+    layout,
+    description: options.description,
+  };
+
+  const levelNodes = getLevelMap(ydoc, 'nodes', levelId);
+
+  ydoc.transact(() => {
+    const ynode = new Y.Map<unknown>();
+    ynode.set('type', 'organizer');
+    ynode.set('position', deepPlainToY(position));
+    ynode.set('data', deepPlainToY(data));
+    ynode.set('style', deepPlainToY({ width, height }));
+    levelNodes.set(nodeId, ynode as Y.Map<unknown>);
+  }, MCP_ORIGIN);
+
+  return { id: nodeId, name: options.name, color, position, width, height, layout, collapsed: false, description: options.description };
+}
+
+/**
+ * Update an organizer node
+ */
+export function updateOrganizer(
+  ydoc: Y.Doc,
+  levelId: string,
+  organizerId: string,
+  updates: {
+    name?: string;
+    color?: string;
+    collapsed?: boolean;
+    layout?: OrganizerLayout;
+    description?: string;
+  }
+): OrganizerInfo | null {
+  const levelNodes = getLevelMap(ydoc, 'nodes', levelId);
+  const ynode = levelNodes.get(organizerId);
+  if (!ynode) return null;
+
+  const nodeObj = yToPlain(ynode) as Record<string, unknown>;
+  if (nodeObj.type !== 'organizer') return null;
+
+  ydoc.transact(() => {
+    const ydata = ynode.get('data') as Y.Map<unknown>;
+    if (updates.name !== undefined) ydata.set('name', updates.name);
+    if (updates.color !== undefined) ydata.set('color', updates.color);
+    if (updates.collapsed !== undefined) ydata.set('collapsed', updates.collapsed);
+    if (updates.layout !== undefined) ydata.set('layout', updates.layout);
+    if (updates.description !== undefined) ydata.set('description', updates.description);
+  }, MCP_ORIGIN);
+
+  // Re-read to return updated state
+  const updated = yToPlain(ynode) as Record<string, unknown>;
+  const data = updated.data as OrganizerNodeData;
+  const style = updated.style as Record<string, unknown> | undefined;
+  const position = (updated.position as { x: number; y: number }) || { x: 0, y: 0 };
+
+  return {
+    id: organizerId,
+    name: data.name ?? '',
+    color: data.color ?? '#6b7280',
+    position,
+    width: (style?.width as number) ?? 400,
+    height: (style?.height as number) ?? 300,
+    layout: data.layout ?? 'freeform',
+    collapsed: data.collapsed ?? false,
+    description: data.description,
+  };
+}
+
+/**
+ * Delete an organizer node.
+ * When deleteMembers is false (default), child nodes are detached and converted to absolute positions.
+ * When deleteMembers is true, child nodes are also deleted.
+ */
+export function deleteOrganizer(
+  ydoc: Y.Doc,
+  levelId: string,
+  organizerId: string,
+  deleteMembers = false
+): boolean {
+  const levelNodes = getLevelMap(ydoc, 'nodes', levelId);
+  const ynode = levelNodes.get(organizerId);
+  if (!ynode) return false;
+
+  const nodeObj = yToPlain(ynode) as Record<string, unknown>;
+  if (nodeObj.type !== 'organizer') return false;
+
+  const organizerPos = (nodeObj.position as { x: number; y: number }) || { x: 0, y: 0 };
+
+  ydoc.transact(() => {
+    // Find children
+    const childIds: string[] = [];
+    levelNodes.forEach((childYnode, childId) => {
+      if (childId === organizerId) return;
+      const parentId = childYnode.get('parentId') as string | undefined;
+      if (parentId === organizerId) {
+        childIds.push(childId);
+      }
+    });
+
+    if (deleteMembers) {
+      // Delete all children
+      for (const childId of childIds) {
+        levelNodes.delete(childId);
+      }
+    } else {
+      // Detach: convert relative positions to absolute, remove parentId
+      for (const childId of childIds) {
+        const childYnode = levelNodes.get(childId);
+        if (!childYnode) continue;
+
+        const childPos = yToPlain(childYnode.get('position') as Y.Map<unknown>) as { x: number; y: number };
+        const absolutePos = toAbsolutePosition(childPos, organizerPos);
+
+        childYnode.set('position', deepPlainToY(absolutePos));
+        childYnode.delete('parentId');
+      }
+    }
+
+    // Delete the organizer itself
+    levelNodes.delete(organizerId);
   }, MCP_ORIGIN);
 
   return true;

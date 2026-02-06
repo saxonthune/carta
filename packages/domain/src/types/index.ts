@@ -273,6 +273,7 @@ export interface CompilerNode {
   type?: string;
   position: { x: number; y: number };
   data: ConstructNodeData;
+  parentId?: string;
 }
 
 /**

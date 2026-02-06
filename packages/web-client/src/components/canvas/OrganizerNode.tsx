@@ -1,7 +1,8 @@
 import { memo, useCallback } from 'react';
-import { Handle, Position, NodeResizer, type NodeProps } from '@xyflow/react';
+import { Handle, Position, NodeResizer, useNodeId, type NodeProps } from '@xyflow/react';
 import { EyeIcon, EyeOffIcon } from '../ui/icons';
 import type { OrganizerNodeData as BaseOrganizerNodeData, OrganizerLayout } from '@carta/domain';
+import type { NodeActions } from './nodeActions';
 
 /**
  * Extended data interface with callbacks added by Map.tsx
@@ -11,7 +12,7 @@ export interface OrganizerNodeData extends BaseOrganizerNodeData {
   isDropTarget?: boolean;
   isHovered?: boolean;
   isDimmed?: boolean;
-  onToggleCollapse: () => void;
+  nodeActions: NodeActions;
   onChangeLayout?: (layout: OrganizerLayout) => void;
   onSetStackIndex?: (index: number) => void;
 }
@@ -26,6 +27,7 @@ type OrganizerNodeProps = NodeProps & {
  * Members use parentId for relative positioning and group movement.
  */
 function OrganizerNode({ data, selected }: OrganizerNodeProps) {
+  const nodeId = useNodeId();
   const {
     name,
     color = '#6b7280',
@@ -35,15 +37,15 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
     isDropTarget,
     isHovered,
     isDimmed,
-    onToggleCollapse,
+    nodeActions,
   } = data;
 
   const handleToggle = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      onToggleCollapse();
+      if (nodeId) nodeActions.onToggleCollapse(nodeId);
     },
-    [onToggleCollapse]
+    [nodeActions, nodeId]
   );
 
   // Increased base color mix for better visibility

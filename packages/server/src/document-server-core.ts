@@ -36,6 +36,10 @@ import {
   createLevel,
   updateLevel,
   deleteLevel,
+  listOrganizers,
+  createOrganizer,
+  updateOrganizer,
+  deleteOrganizer,
 } from '@carta/document';
 
 // ===== TYPES =====
@@ -432,10 +436,40 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
       if (constructsMatch) {
         const roomId = constructsMatch[1]!;
         const docState = await config.getDoc(roomId);
+        const levelId = getActiveLevelId(docState.doc);
 
         if (method === 'GET') {
-          const constructs = listConstructs(docState.doc, getActiveLevelId(docState.doc));
-          sendJson(res, 200, { constructs: constructs.map((c) => c.data) });
+          const typeFilter = url.searchParams.get('type') || undefined;
+          const constructs = listConstructs(docState.doc, levelId, { constructType: typeFilter });
+          const schemas = listSchemas(docState.doc);
+          const schemaMap = new Map(schemas.map(s => [s.type, s]));
+
+          // Compact summary: excludes organizer nodes, returns minimal fields
+          const summary = constructs
+            .filter(c => c.type !== 'organizer')
+            .map(c => {
+              const schema = schemaMap.get(c.data.constructType);
+              const pillField = schema?.fields.find(f => f.displayTier === 'pill');
+              const displayName = pillField ? String(c.data.values?.[pillField.name] || '') : c.data.semanticId;
+              return {
+                semanticId: c.data.semanticId,
+                constructType: c.data.constructType,
+                displayName,
+                parentId: c.parentId,
+              };
+            });
+
+          // Also list organizers in a separate field
+          const organizers = constructs
+            .filter(c => c.type === 'organizer')
+            .map(c => ({
+              id: c.id,
+              name: (c.data as Record<string, unknown>).name as string ?? '',
+              color: (c.data as Record<string, unknown>).color as string ?? '',
+              memberCount: constructs.filter(n => n.parentId === c.id).length,
+            }));
+
+          sendJson(res, 200, { constructs: summary, organizers });
           return;
         }
 
@@ -445,6 +479,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
             values?: Record<string, unknown>;
             x?: number;
             y?: number;
+            parentId?: string;
           }>(req);
 
           if (!body.constructType) {
@@ -454,10 +489,11 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
 
           const construct = createConstruct(
             docState.doc,
-            getActiveLevelId(docState.doc),
+            levelId,
             body.constructType,
             body.values || {},
-            { x: body.x || 100, y: body.y || 100 }
+            { x: body.x || 100, y: body.y || 100 },
+            body.parentId
           );
           sendJson(res, 201, { construct: construct.data });
           return;
@@ -496,6 +532,99 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
         if (method === 'DELETE') {
           const deleted = deleteConstruct(docState.doc, getActiveLevelId(docState.doc), semanticId);
           sendJson(res, 200, { deleted });
+          return;
+        }
+      }
+
+      // ===== ORGANIZERS =====
+
+      const organizersMatch = path.match(/^\/api\/documents\/([^/]+)\/organizers$/);
+      if (organizersMatch) {
+        const roomId = organizersMatch[1]!;
+        const docState = await config.getDoc(roomId);
+        const levelId = getActiveLevelId(docState.doc);
+
+        if (method === 'GET') {
+          const organizers = listOrganizers(docState.doc, levelId);
+          // Enrich with member counts
+          const constructs = listConstructs(docState.doc, levelId);
+          const enriched = organizers.map(org => ({
+            ...org,
+            memberCount: constructs.filter(c => c.parentId === org.id).length,
+          }));
+          sendJson(res, 200, { organizers: enriched });
+          return;
+        }
+
+        if (method === 'POST') {
+          const body = await parseJsonBody<{
+            name: string;
+            color?: string;
+            x?: number;
+            y?: number;
+            width?: number;
+            height?: number;
+            layout?: string;
+            description?: string;
+          }>(req);
+
+          if (!body.name) {
+            sendError(res, 400, 'name is required', 'MISSING_FIELD');
+            return;
+          }
+
+          const organizer = createOrganizer(docState.doc, levelId, {
+            name: body.name,
+            color: body.color,
+            position: (body.x != null || body.y != null) ? { x: body.x || 100, y: body.y || 100 } : undefined,
+            width: body.width,
+            height: body.height,
+            layout: body.layout as 'freeform' | 'stack' | 'grid' | undefined,
+            description: body.description,
+          });
+          sendJson(res, 201, { organizer });
+          return;
+        }
+      }
+
+      const organizerMatch = path.match(/^\/api\/documents\/([^/]+)\/organizers\/([^/]+)$/);
+      if (organizerMatch) {
+        const roomId = organizerMatch[1]!;
+        const organizerId = decodeURIComponent(organizerMatch[2]!);
+        const docState = await config.getDoc(roomId);
+        const levelId = getActiveLevelId(docState.doc);
+
+        if (method === 'PATCH') {
+          const body = await parseJsonBody<{
+            name?: string;
+            color?: string;
+            collapsed?: boolean;
+            layout?: string;
+            description?: string;
+          }>(req);
+          const organizer = updateOrganizer(docState.doc, levelId, organizerId, {
+            name: body.name,
+            color: body.color,
+            collapsed: body.collapsed,
+            layout: body.layout as 'freeform' | 'stack' | 'grid' | undefined,
+            description: body.description,
+          });
+          if (!organizer) {
+            sendError(res, 404, `Organizer not found: ${organizerId}`, 'NOT_FOUND');
+            return;
+          }
+          sendJson(res, 200, { organizer });
+          return;
+        }
+
+        if (method === 'DELETE') {
+          const deleteMembers = url.searchParams.get('deleteMembers') === 'true';
+          const deleted = deleteOrganizer(docState.doc, levelId, organizerId, deleteMembers);
+          if (!deleted) {
+            sendError(res, 404, `Organizer not found: ${organizerId}`, 'NOT_FOUND');
+            return;
+          }
+          sendJson(res, 200, { deleted: true });
           return;
         }
       }

@@ -9,6 +9,7 @@ interface ConstructFullViewModalProps {
   data: ConstructNodeData;
   schemas: ConstructSchema[];
   onClose: () => void;
+  onValuesChange?: (values: Record<string, unknown>) => void;
 }
 
 function FullViewFieldCell({ field, value, onCommit }: {
@@ -109,6 +110,7 @@ export default function ConstructFullViewModal({
   data,
   schemas,
   onClose,
+  onValuesChange,
 }: ConstructFullViewModalProps) {
   const schema = schemas.find(s => s.type === data.constructType);
 
@@ -135,7 +137,8 @@ export default function ConstructFullViewModal({
   }, [nodeId, data, schema, schemas]);
 
   const handleFieldCommit = (fieldName: string, value: unknown) => {
-    data.onValuesChange?.({ ...data.values, [fieldName]: value });
+    const cb = onValuesChange ?? data.onValuesChange;
+    cb?.({ ...data.values, [fieldName]: value });
   };
 
   return (

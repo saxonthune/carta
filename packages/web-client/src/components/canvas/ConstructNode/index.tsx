@@ -1,13 +1,14 @@
-import { memo, useState, useEffect, useRef } from 'react';
+import { memo, useMemo, useState, useEffect, useRef } from 'react';
 import { Handle, Position, useConnection, useNodeId } from '@xyflow/react';
 import { getPortsForSchema } from '@carta/domain';
-import type { ConstructNodeData } from '@carta/domain';
+import type { ConstructNodeData, ConstructValues } from '@carta/domain';
 import { useSchemas } from '../../../hooks/useSchemas';
 import { useLodBand } from '../lod/useLodBand';
 import { stripHandlePrefix } from '../../../utils/handlePrefix';
 import { ConstructNodePill } from './ConstructNodePill';
 import { ConstructNodeSimple } from './ConstructNodeSimple';
 import { ConstructNodeDefault } from './ConstructNodeDefault';
+import type { NodeActions } from '../nodeActions';
 
 interface ConstructNodeComponentProps {
   data: ConstructNodeData;
@@ -59,6 +60,20 @@ const ConstructNode = memo(function ConstructNode({ data, selected = false }: Co
     transition: 'opacity 120ms ease',
   };
 
+  // Bind nodeActions to this node's ID so variants use familiar data.onX() API
+  const actions = data.nodeActions as NodeActions | undefined;
+  const boundData = useMemo(() => {
+    if (!actions || !nodeId) return data;
+    return {
+      ...data,
+      onValuesChange: (values: ConstructValues) => actions.onValuesChange(nodeId, values),
+      onSetViewLevel: (level: 'summary' | 'details') => actions.onSetViewLevel(nodeId, level),
+      onToggleDetailsPin: () => actions.onToggleDetailsPin(nodeId),
+      onOpenFullView: () => actions.onOpenFullView(nodeId),
+      onInstanceColorChange: (color: string | null) => actions.onInstanceColorChange(nodeId, color),
+    };
+  }, [data, actions, nodeId]);
+
   // Error state - unknown schema
   if (!schema) {
     return (
@@ -74,7 +89,7 @@ const ConstructNode = memo(function ConstructNode({ data, selected = false }: Co
 
   const variantProps = {
     id: nodeId!,
-    data,
+    data: boundData,
     selected,
     schema,
     ports,

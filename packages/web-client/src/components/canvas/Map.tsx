@@ -427,40 +427,66 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     nodesWithHiddenFlags.filter(n => n.type === 'organizer').map(n => n.id)
   ), [nodesWithHiddenFlags]);
 
-  const nodesWithCallbacks = nodesWithHiddenFlags.map((node) => {
-    if (node.type === 'organizer') {
+  // Stable callback refs — update every render without triggering re-render
+  const renameNodeRef = useRef(renameNode);
+  renameNodeRef.current = renameNode;
+  const updateNodeValuesRef = useRef(updateNodeValues);
+  updateNodeValuesRef.current = updateNodeValues;
+  const setNodeViewLevelRef = useRef(setNodeViewLevel);
+  setNodeViewLevelRef.current = setNodeViewLevel;
+  const toggleNodeDetailsPinRef = useRef(toggleNodeDetailsPin);
+  toggleNodeDetailsPinRef.current = toggleNodeDetailsPin;
+  const setFullViewNodeIdRef = useRef(setFullViewNodeId);
+  setFullViewNodeIdRef.current = setFullViewNodeId;
+  const updateNodeInstanceColorRef = useRef(updateNodeInstanceColor);
+  updateNodeInstanceColorRef.current = updateNodeInstanceColor;
+  const toggleOrganizerCollapseRef = useRef(toggleOrganizerCollapse);
+  toggleOrganizerCollapseRef.current = toggleOrganizerCollapse;
+
+  // One stable dispatch object shared by ALL nodes (never changes identity)
+  const nodeActions = useMemo(() => ({
+    onRename: (nodeId: string, newName: string) => renameNodeRef.current(nodeId, newName),
+    onValuesChange: (nodeId: string, values: ConstructValues) => updateNodeValuesRef.current(nodeId, values),
+    onSetViewLevel: (nodeId: string, level: 'summary' | 'details') => setNodeViewLevelRef.current(nodeId, level),
+    onToggleDetailsPin: (nodeId: string) => toggleNodeDetailsPinRef.current(nodeId),
+    onOpenFullView: (nodeId: string) => setFullViewNodeIdRef.current(nodeId),
+    onInstanceColorChange: (nodeId: string, color: string | null) => updateNodeInstanceColorRef.current(nodeId, color),
+    onToggleCollapse: (nodeId: string) => toggleOrganizerCollapseRef.current(nodeId),
+  }), []);
+
+  const nodesWithCallbacks = useMemo(() =>
+    nodesWithHiddenFlags.map((node) => {
+      if (node.type === 'organizer') {
+        return {
+          ...node,
+          dragHandle: NODE_DRAG_HANDLE,
+          data: {
+            ...node.data,
+            childCount: childCountMap[node.id] || 0,
+            nodeActions,
+          },
+        };
+      }
       return {
         ...node,
         dragHandle: NODE_DRAG_HANDLE,
+        expandParent: node.parentId && organizerIds.has(node.parentId) ? true : undefined,
         data: {
           ...node.data,
-          childCount: childCountMap[node.id] || 0,
-          onToggleCollapse: () => toggleOrganizerCollapse(node.id),
+          nodeId: node.id,
+          isRenaming: node.id === renamingNodeId,
+          nodeActions,
         },
       };
-    }
-    return {
-      ...node,
-      dragHandle: NODE_DRAG_HANDLE,
-      expandParent: node.parentId && organizerIds.has(node.parentId) ? true : undefined,
-      data: {
-        ...node.data,
-        nodeId: node.id,
-        isRenaming: node.id === renamingNodeId,
-        onRename: (newName: string) => renameNode(node.id, newName),
-        onValuesChange: (values: ConstructValues) => updateNodeValues(node.id, values),
-        onSetViewLevel: (level: 'summary' | 'details') => setNodeViewLevel(node.id, level),
-        onToggleDetailsPin: () => toggleNodeDetailsPin(node.id),
-        onOpenFullView: () => setFullViewNodeId(node.id),
-        onInstanceColorChange: (color: string | null) => updateNodeInstanceColor(node.id, color),
-      },
-    };
-  });
+    }),
+    [nodesWithHiddenFlags, childCountMap, organizerIds, renamingNodeId, nodeActions]
+  );
 
   // Sort nodes: parents must come before their children (React Flow requirement)
   const sortedNodes = useMemo(() => {
     const result: Node[] = [];
     const added = new Set<string>();
+    const nodeById = new globalThis.Map(nodesWithCallbacks.map(n => [n.id, n] as [string, Node]));
 
     // Recursive function to add a node and its ancestors first
     const addNode = (node: Node, depth = 0) => {
@@ -468,7 +494,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
 
       // If this node has a parent, add the parent first
       if (node.parentId && !added.has(node.parentId)) {
-        const parent = nodesWithCallbacks.find(n => n.id === node.parentId);
+        const parent = nodeById.get(node.parentId);
         if (parent) addNode(parent, depth + 1);
       }
 
@@ -588,8 +614,14 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     }
   }, [selectedNodeIds, setNodes, updateNodeInternals]);
 
+  // Stable node type map — only changes when nodes are added/removed/type changed
+  const nodeTypeMap = useMemo(
+    () => new globalThis.Map(nodes.map(n => [n.id, n.type ?? 'construct'] as [string, string])),
+    [nodes]
+  );
+
   // Edge bundling: collapse parallel edges between same node pairs
-  const { displayEdges } = useEdgeBundling(filteredEdges, nodes);
+  const { displayEdges } = useEdgeBundling(filteredEdges, nodeTypeMap);
 
   // Detect non-parented nodes visually covered by organizers they don't belong to
   const coveredNodeIds = useMemo(() => {
@@ -1010,6 +1042,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
             data={node.data as ConstructNodeData}
             schemas={schemas}
             onClose={() => setFullViewNodeId(null)}
+            onValuesChange={(values) => updateNodeValues(fullViewNodeId, values)}
           />
         );
       })()}
