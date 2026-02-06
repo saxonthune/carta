@@ -102,4 +102,10 @@ export function starter(adapter: DocumentAdapter): void {
       targetHandle: 'link',
     },
   ]);
+
+  // Rename the default level
+  const levels = adapter.getLevels();
+  if (levels.length > 0) {
+    adapter.updateLevel(levels[0]!.id, { name: 'Starter' });
+  }
 }

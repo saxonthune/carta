@@ -303,6 +303,10 @@ function getOrCreateDoc(docId: string): DesktopDocState {
 
 const { handleHttpRequest, setupWSConnection } = createDocumentServer({
   getDoc: async (docId: string) => getOrCreateDoc(docId),
+  getActiveRooms: () => Array.from(docs.entries()).map(([roomId, docState]) => ({
+    roomId,
+    clientCount: docState.conns.size,
+  })),
   listDocuments: async (): Promise<DocumentSummary[]> => {
     return scanVaultForDocuments();
   },

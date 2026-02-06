@@ -111,6 +111,10 @@ async function getYDoc(docName: string): Promise<DocState> {
 // Create the server handlers using the factory
 const { handleHttpRequest, setupWSConnection } = createDocumentServer({
   getDoc: getYDoc,
+  getActiveRooms: () => Array.from(docs.entries()).map(([roomId, docState]) => ({
+    roomId,
+    clientCount: docState.conns.size,
+  })),
   listDocuments: async (): Promise<DocumentSummary[]> => {
     return Array.from(docs.entries()).map(([roomId, docState]) => {
       const doc = extractDocument(docState.doc, roomId, getActiveLevelId(docState.doc));

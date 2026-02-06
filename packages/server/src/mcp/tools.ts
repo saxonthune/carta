@@ -25,6 +25,30 @@ const RenameDocumentSchema = z.object({
   title: z.string().describe('New document title'),
 });
 
+const CreateLevelSchema = z.object({
+  documentId: z.string().describe('The document ID'),
+  name: z.string().describe('Name for the new level'),
+  description: z.string().optional().describe('Optional level description'),
+});
+
+const RenameLevelSchema = z.object({
+  documentId: z.string().describe('The document ID'),
+  levelId: z.string().describe('The level ID to update'),
+  name: z.string().optional().describe('New level name'),
+  description: z.string().optional().describe('New level description'),
+  order: z.number().optional().describe('New sort order'),
+});
+
+const DeleteLevelSchema = z.object({
+  documentId: z.string().describe('The document ID'),
+  levelId: z.string().describe('The level ID to delete'),
+});
+
+const SetActiveLevelSchema = z.object({
+  documentId: z.string().describe('The document ID'),
+  levelId: z.string().describe('The level ID to set as active'),
+});
+
 const CreateConstructSchema = z.object({
   documentId: z.string().describe('The document ID'),
   constructType: z.string().describe('The type of construct to create'),
@@ -140,6 +164,31 @@ export function getToolDefinitions() {
       inputSchema: RenameDocumentSchema.shape,
     },
     {
+      name: 'carta_list_levels',
+      description: 'List all levels in a document (returns levels array and activeLevel ID)',
+      inputSchema: DocumentIdSchema.shape,
+    },
+    {
+      name: 'carta_create_level',
+      description: 'Create a new level in a document',
+      inputSchema: CreateLevelSchema.shape,
+    },
+    {
+      name: 'carta_rename_level',
+      description: 'Rename or update a level (name, description, order)',
+      inputSchema: RenameLevelSchema.shape,
+    },
+    {
+      name: 'carta_delete_level',
+      description: 'Delete a level (document must have more than one level)',
+      inputSchema: DeleteLevelSchema.shape,
+    },
+    {
+      name: 'carta_set_active_level',
+      description: 'Switch the active level. Construct and connection operations target the active level.',
+      inputSchema: SetActiveLevelSchema.shape,
+    },
+    {
       name: 'carta_list_schemas',
       description: 'List all available construct schemas (built-in and custom)',
       inputSchema: DocumentIdSchema.shape,
@@ -224,6 +273,11 @@ export interface ToolHandlers {
   carta_create_document: ToolHandler;
   carta_delete_document: ToolHandler;
   carta_rename_document: ToolHandler;
+  carta_list_levels: ToolHandler;
+  carta_create_level: ToolHandler;
+  carta_rename_level: ToolHandler;
+  carta_delete_level: ToolHandler;
+  carta_set_active_level: ToolHandler;
   carta_list_schemas: ToolHandler;
   carta_get_schema: ToolHandler;
   carta_create_schema: ToolHandler;
@@ -332,6 +386,59 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
         'PATCH',
         `/api/documents/${encodeURIComponent(documentId)}`,
         { title }
+      );
+      if (result.error) return { error: result.error };
+      return result.data;
+    },
+
+    carta_list_levels: async (args) => {
+      const { documentId } = DocumentIdSchema.parse(args);
+      const result = await apiRequest<{ levels: unknown[]; activeLevel: string }>(
+        'GET',
+        `/api/documents/${encodeURIComponent(documentId)}/levels`
+      );
+      if (result.error) return { error: result.error };
+      return result.data;
+    },
+
+    carta_create_level: async (args) => {
+      const { documentId, name, description } = CreateLevelSchema.parse(args);
+      const result = await apiRequest<{ level: unknown }>(
+        'POST',
+        `/api/documents/${encodeURIComponent(documentId)}/levels`,
+        { name, description }
+      );
+      if (result.error) return { error: result.error };
+      return result.data;
+    },
+
+    carta_rename_level: async (args) => {
+      const { documentId, levelId, name, description, order } = RenameLevelSchema.parse(args);
+      const result = await apiRequest<{ level: unknown }>(
+        'PATCH',
+        `/api/documents/${encodeURIComponent(documentId)}/levels/${encodeURIComponent(levelId)}`,
+        { name, description, order }
+      );
+      if (result.error) return { error: result.error };
+      return result.data;
+    },
+
+    carta_delete_level: async (args) => {
+      const { documentId, levelId } = DeleteLevelSchema.parse(args);
+      const result = await apiRequest<{ deleted: boolean }>(
+        'DELETE',
+        `/api/documents/${encodeURIComponent(documentId)}/levels/${encodeURIComponent(levelId)}`
+      );
+      if (result.error) return { error: result.error };
+      return result.data;
+    },
+
+    carta_set_active_level: async (args) => {
+      const { documentId, levelId } = SetActiveLevelSchema.parse(args);
+      const result = await apiRequest<{ activeLevel: string }>(
+        'POST',
+        `/api/documents/${encodeURIComponent(documentId)}/levels/active`,
+        { levelId }
       );
       if (result.error) return { error: result.error };
       return result.data;

@@ -23,7 +23,7 @@ import type {
 } from '@carta/domain';
 import { CompilerEngine } from '@carta/compiler';
 import { yToPlain, deepPlainToY, safeGet } from './yjs-helpers.js';
-import { generateNodeId } from './id-generators.js';
+import { generateNodeId, generateLevelId } from './id-generators.js';
 import { MCP_ORIGIN, SERVER_FORMAT_VERSION } from './constants.js';
 
 /**
@@ -37,6 +37,149 @@ function getLevelMap(ydoc: Y.Doc, mapName: string, levelId: string): Y.Map<Y.Map
     container.set(levelId, levelMap as unknown as Y.Map<unknown>);
   }
   return levelMap;
+}
+
+// ===== LEVEL OPERATIONS =====
+
+export interface LevelInfo {
+  id: string;
+  name: string;
+  description?: string;
+  order: number;
+}
+
+/**
+ * List all levels in a document
+ */
+export function listLevels(ydoc: Y.Doc): LevelInfo[] {
+  const ylevels = ydoc.getMap<Y.Map<unknown>>('levels');
+  const levels: LevelInfo[] = [];
+
+  ylevels.forEach((ylevel, id) => {
+    levels.push({
+      id,
+      name: (ylevel.get('name') as string) ?? 'Untitled',
+      description: ylevel.get('description') as string | undefined,
+      order: (ylevel.get('order') as number) ?? 0,
+    });
+  });
+
+  levels.sort((a, b) => a.order - b.order);
+  return levels;
+}
+
+/**
+ * Get the active level ID for a document
+ */
+export function getActiveLevel(ydoc: Y.Doc): string {
+  const ymeta = ydoc.getMap('meta');
+  const active = ymeta.get('activeLevel') as string | undefined;
+  if (active) return active;
+
+  // Fallback: first level by order
+  const levels = listLevels(ydoc);
+  return levels[0]?.id ?? '';
+}
+
+/**
+ * Set the active level for a document
+ */
+export function setActiveLevel(ydoc: Y.Doc, levelId: string): void {
+  const ylevels = ydoc.getMap<Y.Map<unknown>>('levels');
+  if (!ylevels.has(levelId)) {
+    throw new Error(`Level not found: ${levelId}`);
+  }
+
+  ydoc.transact(() => {
+    ydoc.getMap('meta').set('activeLevel', levelId);
+  }, MCP_ORIGIN);
+}
+
+/**
+ * Create a new level in a document
+ */
+export function createLevel(ydoc: Y.Doc, name: string, description?: string): LevelInfo {
+  const levelId = generateLevelId();
+  const ylevels = ydoc.getMap<Y.Map<unknown>>('levels');
+
+  // Determine next order value
+  let maxOrder = -1;
+  ylevels.forEach((ylevel) => {
+    const order = (ylevel.get('order') as number) ?? 0;
+    if (order > maxOrder) maxOrder = order;
+  });
+
+  const order = maxOrder + 1;
+
+  ydoc.transact(() => {
+    const levelData = new Y.Map<unknown>();
+    levelData.set('id', levelId);
+    levelData.set('name', name);
+    if (description) levelData.set('description', description);
+    levelData.set('order', order);
+    ylevels.set(levelId, levelData);
+  }, MCP_ORIGIN);
+
+  return { id: levelId, name, description, order };
+}
+
+/**
+ * Update level metadata
+ */
+export function updateLevel(
+  ydoc: Y.Doc,
+  levelId: string,
+  updates: { name?: string; description?: string; order?: number }
+): LevelInfo | null {
+  const ylevels = ydoc.getMap<Y.Map<unknown>>('levels');
+  const ylevel = ylevels.get(levelId);
+  if (!ylevel) return null;
+
+  ydoc.transact(() => {
+    if (updates.name !== undefined) ylevel.set('name', updates.name);
+    if (updates.description !== undefined) ylevel.set('description', updates.description);
+    if (updates.order !== undefined) ylevel.set('order', updates.order);
+  }, MCP_ORIGIN);
+
+  return {
+    id: levelId,
+    name: (ylevel.get('name') as string) ?? 'Untitled',
+    description: ylevel.get('description') as string | undefined,
+    order: (ylevel.get('order') as number) ?? 0,
+  };
+}
+
+/**
+ * Delete a level (must have more than one level)
+ */
+export function deleteLevel(ydoc: Y.Doc, levelId: string): boolean {
+  const ylevels = ydoc.getMap<Y.Map<unknown>>('levels');
+  if (!ylevels.has(levelId)) return false;
+  if (ylevels.size <= 1) return false;
+
+  ydoc.transact(() => {
+    ylevels.delete(levelId);
+
+    // Clean up level-scoped nodes and edges
+    const ynodes = ydoc.getMap<Y.Map<unknown>>('nodes');
+    const yedges = ydoc.getMap<Y.Map<unknown>>('edges');
+    if (ynodes.has(levelId)) ynodes.delete(levelId);
+    if (yedges.has(levelId)) yedges.delete(levelId);
+
+    // If this was the active level, switch to the first remaining level
+    const ymeta = ydoc.getMap('meta');
+    if (ymeta.get('activeLevel') === levelId) {
+      let firstId: string | undefined;
+      let firstOrder = Infinity;
+      ylevels.forEach((yl, id) => {
+        const order = (yl.get('order') as number) ?? 0;
+        if (order < firstOrder) { firstOrder = order; firstId = id; }
+      });
+      if (firstId) ymeta.set('activeLevel', firstId);
+    }
+  }, MCP_ORIGIN);
+
+  return true;
 }
 
 // ===== CONSTRUCT OPERATIONS =====

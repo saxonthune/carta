@@ -340,4 +340,10 @@ export function kitchenSink(adapter: DocumentAdapter): void {
       targetHandle: 'link-in',
     },
   ]);
+
+  // Rename the default level
+  const levels = adapter.getLevels();
+  if (levels.length > 0) {
+    adapter.updateLevel(levels[0]!.id, { name: 'Kitchen Sink' });
+  }
 }

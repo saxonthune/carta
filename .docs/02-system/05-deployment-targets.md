@@ -123,7 +123,28 @@ Claude Desktop ──stdio──▶ MCP binary ──HTTP──▶ Local MCP Ser
 
 This means an enterprise user can work with server-hosted documents while their local Claude Desktop gets fast MCP access to the locally-synced Y.Doc — no round-trip to the server for AI tool reads.
 
-**MCP auto-discovery:** The MCP server writes `server.json` to `{userData}/` containing its URL and PID. The MCP stdio binary reads this file automatically, enabling zero-config integration with Claude Desktop.
+**MCP auto-discovery:** The desktop embedded server writes `server.json` to `{userData}/` containing its URL and PID. The MCP stdio binary (`packages/server/src/mcp/stdio.ts`) reads this file automatically, enabling zero-config integration with Claude Desktop.
+
+Discovery priority: `CARTA_SERVER_URL` env var → `server.json` auto-discovery → fallback `http://localhost:1234`.
+
+Platform-specific `server.json` paths (matching Electron's `app.getPath('userData')` for `@carta/desktop`):
+
+| Platform | Path |
+|----------|------|
+| macOS | `~/Library/Application Support/@carta/desktop/server.json` |
+| Linux | `~/.config/@carta/desktop/server.json` |
+| Windows | `%APPDATA%/@carta/desktop/server.json` |
+
+`server.json` format:
+```json
+{
+  "url": "http://127.0.0.1:51234",
+  "wsUrl": "ws://127.0.0.1:51234",
+  "pid": 12345
+}
+```
+
+The MCP binary verifies the PID is still running before using the URL. Default port is **51234**; if occupied, the server falls back to a random available port.
 
 ## Deployment Scenarios
 

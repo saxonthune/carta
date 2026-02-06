@@ -30,6 +30,12 @@ import {
   removeSchema,
   compile,
   extractDocument,
+  listLevels,
+  getActiveLevel,
+  setActiveLevel,
+  createLevel,
+  updateLevel,
+  deleteLevel,
 } from '@carta/document';
 
 // ===== TYPES =====
@@ -56,6 +62,8 @@ export interface DocumentServerConfig {
   deleteDocument(docId: string): Promise<boolean>;
   /** Prefix for console.log messages (e.g. "[Server]" or "[Desktop Server]"). */
   logPrefix: string;
+  /** Return active rooms with connection counts. If not provided, /api/rooms falls back to listDocuments with clientCount: 0. */
+  getActiveRooms?(): Array<{ roomId: string; clientCount: number }>;
   /** Extra fields merged into the /health response. */
   healthMeta?: Record<string, unknown>;
 }
@@ -264,10 +272,12 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
       // ===== ROOMS (legacy + API) =====
 
       if ((path === '/rooms' || path === '/api/rooms') && method === 'GET') {
-        // Delegate to listDocuments but filter for active rooms isn't possible
-        // without access to the docs Map — return from listDocuments instead
-        const documents = await config.listDocuments();
-        sendJson(res, 200, { rooms: documents.map(d => ({ roomId: d.id, clientCount: 0 })) });
+        if (config.getActiveRooms) {
+          sendJson(res, 200, { rooms: config.getActiveRooms() });
+        } else {
+          const documents = await config.listDocuments();
+          sendJson(res, 200, { rooms: documents.map(d => ({ roomId: d.id, clientCount: 0 })) });
+        }
         return;
       }
 
@@ -340,6 +350,78 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
           }, 'mcp');
           const document = extractDocument(docState.doc, roomId, getActiveLevelId(docState.doc));
           sendJson(res, 200, { document });
+          return;
+        }
+      }
+
+      // ===== LEVELS =====
+
+      const levelsMatch = path.match(/^\/api\/documents\/([^/]+)\/levels$/);
+      if (levelsMatch) {
+        const roomId = levelsMatch[1]!;
+        const docState = await config.getDoc(roomId);
+
+        if (method === 'GET') {
+          const levels = listLevels(docState.doc);
+          const activeLevel = getActiveLevel(docState.doc);
+          sendJson(res, 200, { levels, activeLevel });
+          return;
+        }
+
+        if (method === 'POST') {
+          const body = await parseJsonBody<{ name: string; description?: string }>(req);
+          if (!body.name) {
+            sendError(res, 400, 'name is required', 'MISSING_FIELD');
+            return;
+          }
+          const level = createLevel(docState.doc, body.name, body.description);
+          sendJson(res, 201, { level });
+          return;
+        }
+      }
+
+      const levelActiveMatch = path.match(/^\/api\/documents\/([^/]+)\/levels\/active$/);
+      if (levelActiveMatch && method === 'POST') {
+        const roomId = levelActiveMatch[1]!;
+        const docState = await config.getDoc(roomId);
+        const body = await parseJsonBody<{ levelId: string }>(req);
+        if (!body.levelId) {
+          sendError(res, 400, 'levelId is required', 'MISSING_FIELD');
+          return;
+        }
+        try {
+          setActiveLevel(docState.doc, body.levelId);
+          sendJson(res, 200, { activeLevel: body.levelId });
+        } catch (err) {
+          sendError(res, 404, String(err), 'NOT_FOUND');
+        }
+        return;
+      }
+
+      const levelMatch = path.match(/^\/api\/documents\/([^/]+)\/levels\/([^/]+)$/);
+      if (levelMatch) {
+        const roomId = levelMatch[1]!;
+        const levelId = decodeURIComponent(levelMatch[2]!);
+        const docState = await config.getDoc(roomId);
+
+        if (method === 'PATCH') {
+          const body = await parseJsonBody<{ name?: string; description?: string; order?: number }>(req);
+          const level = updateLevel(docState.doc, levelId, body);
+          if (!level) {
+            sendError(res, 404, `Level not found: ${levelId}`, 'NOT_FOUND');
+            return;
+          }
+          sendJson(res, 200, { level });
+          return;
+        }
+
+        if (method === 'DELETE') {
+          const deleted = deleteLevel(docState.doc, levelId);
+          if (!deleted) {
+            sendError(res, 400, 'Cannot delete level (not found or last level)', 'DELETE_FAILED');
+            return;
+          }
+          sendJson(res, 200, { deleted: true });
           return;
         }
       }

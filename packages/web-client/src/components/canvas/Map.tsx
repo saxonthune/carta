@@ -299,11 +299,12 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
   // Copy selected nodes to a newly created level
   const handleCopyNodesToNewLevel = useCallback(
     (nodeIds: string[]) => {
-      const newLevel = createLevel(`Level ${levels.length + 1}`);
+      const sourceLevelName = levels.find(l => l.id === activeLevel)?.name ?? 'Unknown';
+      const newLevel = createLevel(`Copied selection from ${sourceLevelName}`);
       copyNodesToLevel(nodeIds, newLevel.id);
       setActiveLevel(newLevel.id);
     },
-    [createLevel, copyNodesToLevel, setActiveLevel, levels.length]
+    [createLevel, copyNodesToLevel, setActiveLevel, levels, activeLevel]
   );
 
   // Handle adding construct from pane context menu

@@ -32,11 +32,11 @@ function discoverDesktopServer(): string | null {
   let userDataPath: string;
 
   if (platform === 'darwin') {
-    userDataPath = path.join(os.homedir(), 'Library', 'Application Support', 'Carta');
+    userDataPath = path.join(os.homedir(), 'Library', 'Application Support', '@carta', 'desktop');
   } else if (platform === 'win32') {
-    userDataPath = path.join(process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'), 'Carta');
+    userDataPath = path.join(process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'), '@carta', 'desktop');
   } else {
-    userDataPath = path.join(os.homedir(), '.config', 'Carta');
+    userDataPath = path.join(os.homedir(), '.config', '@carta', 'desktop');
   }
 
   const serverJsonPath = path.join(userDataPath, 'server.json');

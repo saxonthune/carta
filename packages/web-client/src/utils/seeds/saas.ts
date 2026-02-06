@@ -297,4 +297,10 @@ export function saas(adapter: DocumentAdapter): void {
       targetHandle: 'flow-in',
     },
   ]);
+
+  // Rename the default level
+  const levels = adapter.getLevels();
+  if (levels.length > 0) {
+    adapter.updateLevel(levels[0]!.id, { name: 'SaaS Architecture' });
+  }
 }
