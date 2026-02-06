@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Handle, Position } from '@xyflow/react';
+import { resolveNodeColor } from '@carta/domain';
 import IndexBasedDropZones from '../IndexBasedDropZones';
 import PortDrawer from '../PortDrawer';
 import type { ConstructNodeVariantProps } from './shared';
@@ -29,8 +30,9 @@ export function ConstructNodeSimple({
   sourcePortType,
   lodTransitionStyle,
 }: ConstructNodeVariantProps) {
-  const backgroundColor = data.instanceColor
-    ? data.instanceColor
+  const resolvedColor = resolveNodeColor(schema, data);
+  const backgroundColor = resolvedColor !== schema.color
+    ? resolvedColor
     : `color-mix(in srgb, ${schema.color} 30%, var(--color-surface))`;
   const contentField = schema.fields?.find(f => f.name === 'content');
   const contentValue = String(data.values?.content ?? contentField?.default ?? '');
@@ -105,7 +107,7 @@ export function ConstructNodeSimple({
       {/* Port Drawer at bottom */}
       <PortDrawer
         ports={ports}
-        colorPickerPolicy={schema.backgroundColorPolicy}
+        colorPickerPolicy={schema.colorMode === 'enum' ? 'defaultOnly' : schema.backgroundColorPolicy}
         baseColor={schema.color}
         instanceColor={data.instanceColor}
         onColorChange={data.onInstanceColorChange}
