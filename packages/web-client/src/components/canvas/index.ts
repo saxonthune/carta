@@ -7,6 +7,7 @@ export { default as PortDrawer } from './PortDrawer';
 export { default as IndexBasedDropZones } from './IndexBasedDropZones';
 export { default as NodeControls } from './NodeControls';
 export { default as AddConstructMenu } from './AddConstructMenu';
+export { default as Narrative } from './Narrative';
 
 // LOD
 export { useLodBand } from './lod/useLodBand';

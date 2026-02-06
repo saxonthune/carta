@@ -124,6 +124,14 @@ export default function DynamicAnchorEdge({
 
   return (
     <>
+      {/* Invisible wider path for easier click targeting */}
+      <path
+        d={edgePath}
+        fill="none"
+        stroke="transparent"
+        strokeWidth={20}
+        className="react-flow__edge-interaction"
+      />
       <path
         id={id}
         className="react-flow__edge-path"

@@ -48,6 +48,17 @@ Carta exposes an MCP (Model Context Protocol) server for AI tool integration. To
 
 In desktop mode, the local MCP server auto-discovers via `{userData}/server.json` (contains URL and PID). This enables zero-config MCP when Carta Desktop is running. The MCP server reads the locally-synced Y.Doc, providing fast access regardless of whether the document source is local or remote. The same MCP binary can also connect to remote servers via the `CARTA_SERVER_URL` environment variable.
 
+## Guides API
+
+Carta provides static markdown resources for AI agents, exported from `@carta/domain`:
+
+| Guide | Constant | URI | Purpose |
+|-------|----------|-----|---------|
+| Metamodel | `METAMODEL_GUIDE` | `carta://guide/metamodel` | Learn Carta's three-level metamodel (M2/M1/M0), how to read documents, connection semantics, and traversal patterns |
+| Analysis | `ANALYSIS_GUIDE` | `carta://guide/analysis` | Learn how to analyze Carta documents for structural issues, completeness gaps, and code generation readiness |
+
+These guides are consumed by MCP tools to provide context to AI agents when working with Carta documents. They are versioned with the domain package and stay synchronized with the metamodel.
+
 ## WebSocket Protocol
 
 Server mode uses y-websocket for real-time collaboration. The Yjs CRDT handles conflict resolution automatically. Connection state is surfaced via the ConnectionStatus indicator.

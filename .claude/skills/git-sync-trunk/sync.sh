@@ -11,6 +11,15 @@ if [[ "$TRUNK" =~ _claude[a-z0-9]*$ ]]; then
   exit 1
 fi
 
+# Resume in-progress merge (conflict was resolved externally)
+if git rev-parse -q --verify MERGE_HEAD >/dev/null 2>&1; then
+  echo "Resuming resolved merge..."
+  git add -u
+  git commit --no-edit
+  echo "Merge committed."
+  echo ""
+fi
+
 if [ -n "$(git status --porcelain)" ]; then
   echo "ERROR: Uncommitted changes. Commit or stash first."
   git status --short
@@ -43,9 +52,7 @@ for BRANCH in $WORKTREE_BRANCHES; do
     echo ""
     echo "To resolve:"
     echo "1. Edit conflicting files"
-    echo "2. \`git add <files>\`"
-    echo "3. \`git commit\`"
-    echo "4. Re-run: \`bash .claude/skills/git-sync-trunk/sync.sh\`"
+    echo "2. Re-run: \`bash .claude/skills/git-sync-trunk/sync.sh\`"
     echo ""
     echo "Or abort: \`git merge --abort\`"
     exit 1
