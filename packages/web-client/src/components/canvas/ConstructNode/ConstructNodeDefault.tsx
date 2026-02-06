@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Handle, Position } from '@xyflow/react';
-import { getDisplayName, getFieldsForSummary } from '@carta/domain';
+import { getDisplayName, getFieldsForSummary, resolveNodeColor } from '@carta/domain';
 import { useDeployables } from '../../../hooks/useDeployables';
 import CreateDeployablePopover from '../../CreateDeployablePopover';
 import PortDrawer from '../PortDrawer';
@@ -24,10 +24,10 @@ export function ConstructNodeDefault({
   const [editingField, setEditingField] = useState<string | null>(null);
   const [showNewDeployableModal, setShowNewDeployableModal] = useState(false);
 
-  const color = data.instanceColor || schema.color;
+  const color = resolveNodeColor(schema, data);
 
-  const bgStyle: React.CSSProperties = data.instanceColor
-    ? { backgroundColor: data.instanceColor }
+  const bgStyle: React.CSSProperties = color !== schema.color
+    ? { backgroundColor: color }
     : {};
 
   const handleDeployableChange = (value: string) => {
@@ -131,7 +131,7 @@ export function ConstructNodeDefault({
         </div>
 
         {/* Background Color (details only) */}
-        {isDetails && data.onInstanceColorChange && (schema.backgroundColorPolicy === 'tints' || schema.backgroundColorPolicy === 'any') && (
+        {isDetails && data.onInstanceColorChange && schema.colorMode !== 'enum' && (schema.backgroundColorPolicy === 'tints' || schema.backgroundColorPolicy === 'any') && (
           <div>
             <label className="text-node-xs text-content-muted uppercase tracking-wide">Background Color</label>
             <div className="mt-1">

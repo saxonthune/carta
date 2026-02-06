@@ -165,10 +165,26 @@ export default function FieldsStep({ formData, setFormData, fieldAssignments, se
     if (updates.label !== undefined) {
       updates.name = toSnakeCase(updates.label);
     }
-    setFormData(prev => ({
-      ...prev,
-      fields: prev.fields.map((f, i) => i === index ? { ...f, ...updates } : f),
-    }));
+    setFormData(prev => {
+      const updated = {
+        ...prev,
+        fields: prev.fields.map((f, i) => i === index ? { ...f, ...updates } : f),
+      };
+      // If the enum color field was renamed or its type changed away from enum, reset color mode
+      const isEnumColorField = prev.enumColorField === oldField.name;
+      if (isEnumColorField) {
+        const typeChanged = updates.type !== undefined && updates.type !== 'enum';
+        const nameChanged = updates.name !== undefined && updates.name !== oldField.name;
+        if (typeChanged) {
+          updated.colorMode = 'default';
+          updated.enumColorField = undefined;
+          updated.enumColorMap = undefined;
+        } else if (nameChanged) {
+          updated.enumColorField = updates.name;
+        }
+      }
+      return updated;
+    });
     // If name changed, update assignment key
     if (updates.name && updates.name !== oldField.name) {
       setFieldAssignments(prev => {
@@ -185,7 +201,16 @@ export default function FieldsStep({ formData, setFormData, fieldAssignments, se
 
   const removeField = (index: number) => {
     const field = formData.fields[index];
-    setFormData(prev => ({ ...prev, fields: prev.fields.filter((_, i) => i !== index) }));
+    setFormData(prev => {
+      const updated = { ...prev, fields: prev.fields.filter((_, i) => i !== index) };
+      // If the removed field was the enum color field, reset color mode
+      if (prev.enumColorField === field.name) {
+        updated.colorMode = 'default';
+        updated.enumColorField = undefined;
+        updated.enumColorMap = undefined;
+      }
+      return updated;
+    });
     setFieldAssignments(prev => {
       const next = new Map(prev);
       next.delete(field.name);

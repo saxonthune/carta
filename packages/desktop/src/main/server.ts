@@ -90,8 +90,8 @@ function scanVaultForDocuments(): DocumentSummary[] {
         const content = fs.readFileSync(filePath, 'utf-8');
         const data = JSON.parse(content);
 
-        // Extract metadata from CartaFile
-        const title = data.title || 'Untitled Project';
+        // In desktop file storage mode, filename is the source of truth for title
+        const title = docId;
         const folder = '/'; // Flat folder structure for now
         const stat = fs.statSync(filePath);
         const updatedAt = stat.mtime.toISOString();

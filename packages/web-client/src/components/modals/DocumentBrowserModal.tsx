@@ -190,7 +190,7 @@ function VaultSetupModal({ onClose }: { onClose: () => void }) {
       isOpen={true}
       onClose={onClose}
       title="Welcome to Carta"
-      maxWidth="500px"
+      maxWidth="80vw"
       showCloseButton={false}
       preventBackdropClose={true}
     >
@@ -380,7 +380,7 @@ function DocumentBrowserContent({ onClose, required, adapter }: DocumentBrowserC
       isOpen={true}
       onClose={onClose}
       title={required ? 'Select a Document' : 'Documents'}
-      maxWidth="500px"
+      maxWidth="80vw"
       showCloseButton={!required}
       preventBackdropClose={required}
       footer={!required ? (

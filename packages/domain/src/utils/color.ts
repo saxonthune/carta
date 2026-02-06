@@ -67,6 +67,30 @@ export function generateTints(hex: string, stops = 7): string[] {
 }
 
 /**
+ * Resolves the display color for a construct node based on schema color mode.
+ * - 'enum': uses enumColorMap lookup on the designated field value, falls back to schema color
+ * - 'instance': uses instanceColor if set, falls back to schema color
+ * - 'default' / undefined: schema color
+ */
+export function resolveNodeColor(
+  schema: { color: string; colorMode?: string; enumColorField?: string; enumColorMap?: Record<string, string> },
+  data: { instanceColor?: string; values?: Record<string, unknown> },
+): string {
+  if (schema.colorMode === 'enum' && schema.enumColorField && schema.enumColorMap) {
+    const fieldValue = String(data.values?.[schema.enumColorField] ?? '');
+    if (fieldValue && schema.enumColorMap[fieldValue]) {
+      return schema.enumColorMap[fieldValue];
+    }
+    return schema.color;
+  }
+  if (schema.colorMode === 'instance') {
+    return data.instanceColor || schema.color;
+  }
+  // default / undefined
+  return data.instanceColor || schema.color;
+}
+
+/**
  * Returns 'white' or 'black' text color for optimal contrast against the given background.
  * Uses WCAG relative luminance formula.
  */

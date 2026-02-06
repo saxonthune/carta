@@ -1,5 +1,5 @@
 import { Handle, Position } from '@xyflow/react';
-import { getDisplayName } from '@carta/domain';
+import { getDisplayName, resolveNodeColor } from '@carta/domain';
 import IndexBasedDropZones from '../IndexBasedDropZones';
 import type { ConstructNodeVariantProps } from './shared';
 
@@ -13,7 +13,7 @@ export function ConstructNodePill({
   sourcePortType,
   lodTransitionStyle,
 }: ConstructNodeVariantProps) {
-  const color = data.instanceColor || schema.color;
+  const color = resolveNodeColor(schema, data);
   const displayValue = getDisplayName(data, schema);
   const fullText = `${schema.displayName}: ${displayValue}`;
 
