@@ -134,12 +134,12 @@ Organized by purpose:
 Organized by purpose:
 - **Document state**: `useNodes`, `useEdges`, `useSchemas`, `usePortSchemas`, `useSchemaGroups`, `useLevels`, `useDocumentMeta`
 - **Document operations**: `useGraphOperations`, `useConnections`, `usePresentation`, `useOrganizerOperations`
-- **UI state**: `useMapState`, `useMetamapLayout`, `useEdgeBundling`
+- **UI state**: `useMapState`, `useMetamapLayout`, `useEdgeBundling`, `useNarrative`
 - **Utilities**: `useClipboard`, `useUndoRedo`, `useKeyboardShortcuts`, `useAwareness`, `useDirtyStateGuard`, `useClearDocument`
 
 ### `components/canvas/index.ts`
 Canvas components and LOD:
-- **Components**: `Map`, `CanvasContainer`, `ConstructNode`, `OrganizerNode`, `DynamicAnchorEdge`, `PortDrawer`, `IndexBasedDropZones`, `NodeControls`, `AddConstructMenu`
+- **Components**: `Map`, `CanvasContainer`, `ConstructNode`, `OrganizerNode`, `DynamicAnchorEdge`, `PortDrawer`, `IndexBasedDropZones`, `NodeControls`, `AddConstructMenu`, `Narrative`
 - **LOD**: `useLodBand`, `DEFAULT_LOD_POLICY`, `getLodConfig`, types
 
 **Note:** `ConstructNode` and `Header` are directories with modular implementations. ConstructNode has: `index.tsx` (dispatcher), `ConstructNodePill.tsx` (pill LOD, shared), `ConstructNodeDefault.tsx` (includes 'default' and 'card' renderStyles), `ConstructNodeSimple.tsx` (simple renderStyle, see doc03.01.14), `shared.ts` (utilities). Header has: `Header.tsx`, `ThemeMenu.tsx`, `SettingsMenu.tsx`, `ShareMenu.tsx`, `useClickOutside.ts`.

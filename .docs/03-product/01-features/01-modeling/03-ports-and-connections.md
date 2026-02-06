@@ -55,3 +55,14 @@ In pill LOD mode, the drawer is hidden and only invisible minimal handles are re
 Edges use **dynamic nearest-edge routing**: attachment points are computed from node geometry (line-rectangle intersection from center to center) rather than fixed handle positions. This means edges attach to whichever node boundary is closest to the other node.
 
 When multiple connections exist between the same two nodes, they are visually bundled into a single edge with a count badge. All individual connections remain in state — bundling is display-only.
+
+## Narrative Tooltip
+
+Hovering over an edge displays a **narrative tooltip** showing connection details:
+- Source endpoint: construct name and schema type
+- Source port: label and color
+- Arrow indicating direction
+- Target port: label and color
+- Target endpoint: construct name and schema type
+
+The tooltip is positioned above or below the edge based on available screen space. Press Escape to dismiss the tooltip.
