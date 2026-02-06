@@ -253,26 +253,26 @@ describe('Restore Default Schemas', () => {
 
       // Verify root group exists
       const rootGroup = result.current.schemaGroups.schemaGroups.find(
-        g => g.id === 'software-architecture' && !g.parentId
+        g => g.id === 'software-design' && !g.parentId
       );
       expect(rootGroup).toBeDefined();
-      expect(rootGroup?.name).toBe('Software Architecture');
+      expect(rootGroup?.name).toBe('Software Design');
 
       // Verify child groups exist with correct parent references
       const databaseGroup = result.current.schemaGroups.schemaGroups.find(
-        g => g.id === 'database' && g.parentId === 'software-architecture'
+        g => g.id === 'database' && g.parentId === 'software-design'
       );
       expect(databaseGroup).toBeDefined();
       expect(databaseGroup?.name).toBe('Database');
 
       const apiGroup = result.current.schemaGroups.schemaGroups.find(
-        g => g.id === 'api' && g.parentId === 'software-architecture'
+        g => g.id === 'api' && g.parentId === 'software-design'
       );
       expect(apiGroup).toBeDefined();
       expect(apiGroup?.name).toBe('API');
 
       const uiGroup = result.current.schemaGroups.schemaGroups.find(
-        g => g.id === 'ui' && g.parentId === 'software-architecture'
+        g => g.id === 'ui' && g.parentId === 'software-design'
       );
       expect(uiGroup).toBeDefined();
       expect(uiGroup?.name).toBe('UI');

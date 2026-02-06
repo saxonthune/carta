@@ -39,7 +39,7 @@ describe('Clear Schema Groups', () => {
 
     // Verify we have the software architecture group
     const softwareArchGroup = result.current.schemaGroups.schemaGroups.find(
-      g => g.id === 'software-architecture'
+      g => g.id === 'software-design'
     );
     expect(softwareArchGroup).toBeDefined();
 
@@ -103,7 +103,7 @@ describe('Clear Schema Groups', () => {
 
     // Verify software architecture group still exists
     const softwareArchGroup = result.current.schemaGroups.schemaGroups.find(
-      g => g.id === 'software-architecture'
+      g => g.id === 'software-design'
     );
     expect(softwareArchGroup).toBeDefined();
   });

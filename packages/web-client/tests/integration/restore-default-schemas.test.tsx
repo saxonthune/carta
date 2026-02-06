@@ -223,7 +223,7 @@ describe('Restore Default Schemas', () => {
 
       // Verify key built-in groups
       const groupIds = result.current.schemaGroups.schemaGroups.map(g => g.id);
-      expect(groupIds).toContain('software-architecture');
+      expect(groupIds).toContain('software-design');
       expect(groupIds).toContain('database');
       expect(groupIds).toContain('api');
       expect(groupIds).toContain('ui');

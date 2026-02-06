@@ -7,7 +7,7 @@ import DocumentBrowserModal from './components/modals/DocumentBrowserModal';
 import Header from './components/Header';
 import CanvasContainer from './components/canvas/CanvasContainer';
 import { compiler } from '@carta/compiler';
-import { builtInConstructSchemas, builtInPortSchemas, builtInSchemaGroups, syncWithDocumentStore } from '@carta/domain';
+import { builtInPortSchemas, hydrateBuiltIns, syncWithDocumentStore } from '@carta/domain';
 import type { ConstructSchema } from '@carta/domain';
 import { useDocumentMeta } from './hooks/useDocumentMeta';
 import { useSchemas } from './hooks/useSchemas';
@@ -177,21 +177,35 @@ function AppContent() {
   }, [schemas]);
 
   const handleRestoreDefaultSchemas = useCallback(() => {
-    // Restore all defaults in a single transaction
+    // Hydrate fresh UUIDs for groups, with resolved schema groupId refs
+    const { groups, schemas } = hydrateBuiltIns();
+
+    // Add missing defaults without removing existing user content
     adapter.transaction(() => {
-      // Clear and restore construct schemas
-      adapter.setSchemas(builtInConstructSchemas);
+      const existingSchemaTypes = new Set(adapter.getSchemas().map(s => s.type));
+      for (const schema of schemas) {
+        if (!existingSchemaTypes.has(schema.type)) {
+          adapter.addSchema(schema);
+        }
+      }
 
-      // Restore port schemas
-      adapter.setPortSchemas(builtInPortSchemas);
+      const existingPortIds = new Set(adapter.getPortSchemas().map(p => p.id));
+      for (const ps of builtInPortSchemas) {
+        if (!existingPortIds.has(ps.id)) {
+          adapter.addPortSchema(ps);
+        }
+      }
 
-      // Restore schema groups
-      adapter.setSchemaGroups(builtInSchemaGroups);
+      const existingGroupNames = new Set(adapter.getSchemaGroups().map(g => g.name));
+      for (const group of groups) {
+        if (!existingGroupNames.has(group.name)) {
+          adapter.addSchemaGroup(group);
+        }
+      }
     });
 
-    // Sync port registry with new port schemas
-    syncWithDocumentStore(builtInPortSchemas);
-    // Changes propagate automatically via Yjs subscription - no reload needed
+    // Sync port registry with current port schemas
+    syncWithDocumentStore(adapter.getPortSchemas());
   }, [adapter]);
 
   return (

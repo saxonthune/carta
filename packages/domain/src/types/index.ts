@@ -469,7 +469,7 @@ export interface DocumentAdapter {
 
   // Mutations - Schema Groups
   setSchemaGroups(groups: SchemaGroup[]): void;
-  addSchemaGroup(group: Omit<SchemaGroup, 'id'>): SchemaGroup;
+  addSchemaGroup(group: Omit<SchemaGroup, 'id'> | SchemaGroup): SchemaGroup;
   updateSchemaGroup(id: string, updates: Partial<SchemaGroup>): void;
   removeSchemaGroup(id: string): boolean;
 

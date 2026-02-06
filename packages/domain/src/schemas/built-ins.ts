@@ -1,5 +1,5 @@
 import type { ConstructSchema, PortSchema, SchemaGroup } from '../types/index.js';
-import { loadSeeds } from './seed-loader.js';
+import { loadSeeds, hydrateSeeds } from './seed-loader.js';
 import { softwareArchitectureSeed } from './seeds/software-architecture.js';
 import { sketchingSeed } from './seeds/sketching.js';
 import { bpmnSeed } from './seeds/bpmn.js';
@@ -87,17 +87,24 @@ const { groups, schemas } = loadSeeds([
 ]);
 
 /**
- * Built-in Schema Groups
- *
- * Default hierarchical grouping for construct and port schemas.
- * Uses flat storage with parentId references.
+ * Built-in Schema Groups (template form — seed-local ref IDs).
+ * Use hydrateBuiltIns() to get document-ready data with real UUIDs.
  */
 export const builtInSchemaGroups: SchemaGroup[] = groups;
 
 /**
- * Built-in Construct Schemas
- *
- * All default schema definitions loaded from seed files.
- * These schemas are registered automatically on app startup.
+ * Built-in Construct Schemas (template form — groupId uses seed-local refs).
+ * Use hydrateBuiltIns() to get document-ready data with real UUIDs.
  */
 export const builtInConstructSchemas: ConstructSchema[] = schemas;
+
+/**
+ * Materialize built-in seeds into document-ready groups and schemas.
+ *
+ * Each call generates fresh UUIDs for all schema groups and resolves
+ * all groupId/parentId references. Safe to call multiple times —
+ * no ID collisions across hydrations.
+ */
+export function hydrateBuiltIns(): { groups: SchemaGroup[]; schemas: ConstructSchema[] } {
+  return hydrateSeeds(groups, schemas);
+}

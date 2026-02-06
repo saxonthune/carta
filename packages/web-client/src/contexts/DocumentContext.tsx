@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect, type ReactNode } from '
 import * as Y from 'yjs';
 import type { DocumentAdapter } from '@carta/domain';
 import { createYjsAdapter, type YjsAdapterOptions } from '../stores/adapters/yjsAdapter';
-import { builtInConstructSchemas, builtInSchemaGroups, builtInPortSchemas } from '@carta/domain';
+import { builtInPortSchemas, hydrateBuiltIns } from '@carta/domain';
 import { config } from '../config/featureFlags';
 import { seeds } from '../utils/seeds';
 
@@ -88,16 +88,11 @@ export function DocumentProvider({
       const isInitialized = yjsAdapter.ydoc.getMap('meta').get('initialized') as boolean | undefined;
 
       if (!isInitialized) {
+        const { groups, schemas } = hydrateBuiltIns();
         yjsAdapter.transaction(() => {
-          for (const group of builtInSchemaGroups) {
-            yjsAdapter.addSchemaGroup(group);
-          }
-          for (const schema of builtInConstructSchemas) {
-            yjsAdapter.addSchema(schema);
-          }
-          for (const portSchema of builtInPortSchemas) {
-            yjsAdapter.addPortSchema(portSchema);
-          }
+          yjsAdapter.setSchemaGroups(groups);
+          yjsAdapter.setSchemas(schemas);
+          yjsAdapter.setPortSchemas(builtInPortSchemas);
           yjsAdapter.ydoc.getMap('meta').set('initialized', true);
         }, 'init');
 

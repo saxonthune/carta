@@ -34,11 +34,9 @@ export default function RestoreDefaultSchemasModal({
         </div>
       }
     >
-      <p className="text-content text-sm mb-2">
+      <p className="text-content text-sm">
         This will add any missing default schemas to your workspace.
-      </p>
-      <p className="text-content-muted text-xs">
-        Existing schemas with matching types will be overwritten. This action cannot be undone.
+        Your existing schemas will not be modified.
       </p>
     </Modal>
   );

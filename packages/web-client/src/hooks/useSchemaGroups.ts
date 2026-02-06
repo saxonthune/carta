@@ -9,12 +9,17 @@ import type { SchemaGroup } from '@carta/domain';
 export function useSchemaGroups() {
   const { adapter } = useDocumentContext();
 
-  const [schemaGroups, setSchemaGroupsState] = useState<SchemaGroup[]>(() => adapter.getSchemaGroups());
+  const [schemaGroups, setSchemaGroupsState] = useState<SchemaGroup[]>(() => {
+    return adapter.getSchemaGroups();
+  });
 
   useEffect(() => {
+    const handler = () => {
+      setSchemaGroupsState(adapter.getSchemaGroups());
+    };
     const unsubscribe = adapter.subscribeToSchemaGroups
-      ? adapter.subscribeToSchemaGroups(() => setSchemaGroupsState(adapter.getSchemaGroups()))
-      : adapter.subscribe(() => setSchemaGroupsState(adapter.getSchemaGroups()));
+      ? adapter.subscribeToSchemaGroups(handler)
+      : adapter.subscribe(handler);
     return unsubscribe;
   }, [adapter]);
 

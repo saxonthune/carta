@@ -919,8 +919,8 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       }, 'user');
     },
 
-    addSchemaGroup(group: Omit<SchemaGroup, 'id'>): SchemaGroup {
-      const id = generateSchemaGroupId();
+    addSchemaGroup(group: Omit<SchemaGroup, 'id'> | SchemaGroup): SchemaGroup {
+      const id = ('id' in group && group.id) ? group.id : generateSchemaGroupId();
       const newGroup: SchemaGroup = { ...group, id };
       ydoc.transact(() => {
         yschemaGroups.set(id, objectToYMap(newGroup as unknown as Record<string, unknown>));

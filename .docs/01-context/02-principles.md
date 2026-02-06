@@ -13,6 +13,10 @@ This codebase is in active development. When refactoring:
 - Don't preserve deprecated code paths
 - Simplicity and clarity over backwards compatibility
 
+## Deletion Requires Conscious Intent
+
+Deleting user data should only happen when the user consciously decides to delete something. It should never be a consequence or requirement of any other user flow. "Restore defaults" adds missing items — it never removes custom ones. "Import" merges — it never replaces. Any destructive operation must be its own explicit action with its own confirmation.
+
 ## Single Source of Truth
 
 Yjs Y.Doc is the only state store. All document state (nodes, edges, schemas, deployables, port schemas) lives in Yjs. UI state (selection, menus, modals) stays in component useState.
