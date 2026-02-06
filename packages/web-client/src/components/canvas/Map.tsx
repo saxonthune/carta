@@ -19,8 +19,8 @@ import {
 import { useNodes } from '../../hooks/useNodes';
 import { useEdges } from '../../hooks/useEdges';
 import { useSchemas } from '../../hooks/useSchemas';
+import { useSchemaGroups } from '../../hooks/useSchemaGroups';
 import { useLevels } from '../../hooks/useLevels';
-import { useDocumentContext } from '../../contexts/DocumentContext';
 import CustomNode from './CustomNode';
 import ConstructNode from './ConstructNode';
 import OrganizerNode from './OrganizerNode';
@@ -86,7 +86,6 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
   const { edges, setEdges } = useEdges();
   const { schemas, getSchema } = useSchemas();
   const { levels, activeLevel, setActiveLevel, createLevel, copyNodesToLevel } = useLevels();
-  const { adapter } = useDocumentContext();
   const reactFlow = useReactFlow();
 
   const edgeColor = useEdgeColor();
@@ -97,7 +96,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
       stroke: edgeColor,
     },
   }), [edgeColor]);
-  const schemaGroups = adapter.getSchemaGroups();
+  const { schemaGroups } = useSchemaGroups();
   const { getViewport, setViewport } = useReactFlow();
 
   // Presentation model for collapse/hide logic and edge remapping

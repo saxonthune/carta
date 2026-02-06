@@ -2,18 +2,12 @@ import type { SchemaSeed } from '../seed-loader.js';
 
 export const softwareArchitectureSeed: SchemaSeed = {
   group: {
-    id: 'software-architecture',
-    name: 'Software Architecture',
+    id: 'software-design',
+    name: 'Software Design',
     color: '#7c7fca',
-    description: 'Core software architecture constructs',
+    description: 'Core software design constructs',
   },
   subgroups: [
-    {
-      id: 'database',
-      name: 'Database',
-      color: '#c49a4c',
-      description: 'Database schema and table constructs',
-    },
     {
       id: 'api',
       name: 'API',
@@ -21,10 +15,22 @@ export const softwareArchitectureSeed: SchemaSeed = {
       description: 'API endpoint and model constructs',
     },
     {
+      id: 'database',
+      name: 'Database',
+      color: '#c49a4c',
+      description: 'Database schema and table constructs',
+    },
+    {
       id: 'ui',
       name: 'UI',
       color: '#6a8fc0',
       description: 'User interface constructs',
+    },
+    {
+      id: 'user-story',
+      name: 'User Story',
+      color: '#5ba88e',
+      description: 'User stories and requirements',
     },
   ],
   schemas: [
@@ -516,7 +522,7 @@ export const softwareArchitectureSeed: SchemaSeed = {
       displayName: 'User Story',
       color: '#5ba88e',
       semanticDescription: 'A user story or requirement',
-      groupId: 'software-architecture',
+      groupId: 'user-story',
       fields: [
         {
           name: 'title',
