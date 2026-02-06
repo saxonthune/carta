@@ -4,21 +4,14 @@
     "module": "ESNext",
     "lib": ["ES2022"],
     "moduleResolution": "bundler",
+    "rootDir": "./src",
     "outDir": "./dist",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "types": ["node"],
-
-    /* Path mapping for workspace packages */
-    "paths": {
-      "@carta/domain": ["../domain/src/index.ts"],
-      "@carta/compiler": ["../compiler/src/index.ts"],
-      "@carta/document": ["../document/src/index.ts"],
-      "@carta/server/*": ["../server/src/*"]
-    }
+    "types": ["node"]
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "src/preload"]

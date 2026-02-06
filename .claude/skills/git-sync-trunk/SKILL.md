@@ -40,6 +40,8 @@ If a merge conflict occurs, the script halts with instructions:
 
 The script resumes with remaining branches.
 
+**Workflow Preference**: When the agent resolves conflicts, it will inform the user that changes are ready and stop. The user handles all `git add`, `git commit`, and `git push` operations.
+
 ## After Sync
 
 Remind users to run `/git-sync-worktree` in each worktree to rebase onto the updated trunk.
