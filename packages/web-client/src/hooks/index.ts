@@ -15,6 +15,7 @@ export { useOrganizerOperations, type UseOrganizerOperationsResult } from './use
 
 // UI state
 export { useMapState } from './useMapState';
+export { useNarrative, type NarrativeState, type NarrativeEndpoint } from './useNarrative';
 export { useMetamapLayout } from './useMetamapLayout';
 export { useEdgeBundling } from './useEdgeBundling';
 

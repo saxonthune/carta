@@ -19,6 +19,7 @@ import {
 import { useNodes } from '../../hooks/useNodes';
 import { useEdges } from '../../hooks/useEdges';
 import { useSchemas } from '../../hooks/useSchemas';
+import { usePortSchemas } from '../../hooks/usePortSchemas';
 import { useLevels } from '../../hooks/useLevels';
 import { useDocumentContext } from '../../contexts/DocumentContext';
 import CustomNode from './CustomNode';
@@ -34,7 +35,7 @@ import { useConnections } from '../../hooks/useConnections';
 import { useClipboard } from '../../hooks/useClipboard';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import type { ConstructValues, ConstructNodeData, Size } from '@carta/domain';
-import { computeMinOrganizerSize, DEFAULT_ORGANIZER_LAYOUT, type NodeGeometry } from '@carta/domain';
+import { computeMinOrganizerSize, DEFAULT_ORGANIZER_LAYOUT, nodeContainedInOrganizer, getDisplayName, type NodeGeometry } from '@carta/domain';
 import { usePresentation } from '../../hooks/usePresentation';
 import { useOrganizerOperations } from '../../hooks/useOrganizerOperations';
 import ConstructEditor from '../ConstructEditor';
@@ -43,6 +44,8 @@ import ConstructFullViewModal from '../modals/ConstructFullViewModal';
 import { useEdgeBundling } from '../../hooks/useEdgeBundling';
 import { useLodBand } from './lod/useLodBand';
 import { ZoomDebug } from '../ui/ZoomDebug';
+import { useNarrative } from '../../hooks/useNarrative';
+import Narrative from './Narrative';
 
 const nodeTypes = {
   custom: CustomNode,
@@ -85,6 +88,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
   const { nodes, setNodes } = useNodes();
   const { edges, setEdges } = useEdges();
   const { schemas, getSchema } = useSchemas();
+  const { getPortSchema } = usePortSchemas();
   const { levels, activeLevel, setActiveLevel, createLevel, copyNodesToLevel } = useLevels();
   const { adapter } = useDocumentContext();
   const reactFlow = useReactFlow();
@@ -105,6 +109,9 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
 
   // LOD band for debug display
   const lod = useLodBand();
+
+  // Narrative pill for edge click info
+  const { narrative, showNarrative, hideNarrative } = useNarrative();
 
   // Custom zoom with smaller step (1.15x instead of default 1.2x)
   const customZoomIn = useCallback(() => {
@@ -329,6 +336,73 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     [onNodeDoubleClick]
   );
 
+  // Edge click: select both source and target nodes + show narrative
+  const handleEdgeClick = useCallback(
+    (event: React.MouseEvent, edge: Edge) => {
+      const endpointIds = [edge.source, edge.target];
+      setNodes(nds => nds.map(n => ({
+        ...n,
+        selected: endpointIds.includes(n.id),
+      })));
+      setSelectedNodeIds(endpointIds);
+
+      // Build structured narrative data
+      const sourceNode = nodes.find(n => n.id === edge.source);
+      const targetNode = nodes.find(n => n.id === edge.target);
+      if (!sourceNode || !targetNode) return;
+
+      const sourceData = sourceNode.data as ConstructNodeData;
+      const targetData = targetNode.data as ConstructNodeData;
+      const sourceSchema = sourceNode.type === 'construct' ? getSchema(sourceData.constructType) : undefined;
+      const targetSchema = targetNode.type === 'construct' ? getSchema(targetData.constructType) : undefined;
+
+      const sourceName = sourceNode.type === 'construct' ? getDisplayName(sourceData, sourceSchema) : (sourceData.label as string ?? edge.source);
+      const targetName = targetNode.type === 'construct' ? getDisplayName(targetData, targetSchema) : (targetData.label as string ?? edge.target);
+      const sourceType = sourceSchema?.displayName ?? sourceNode.type ?? '';
+      const targetType = targetSchema?.displayName ?? targetNode.type ?? '';
+
+      // Resolve port configs and their registry schemas (for label, color, polarity)
+      const isRemapped = edge.sourceHandle === 'group-connect' || edge.targetHandle === 'group-connect';
+      const sourcePortConfig = !isRemapped ? sourceSchema?.ports?.find(p => p.id === edge.sourceHandle) : undefined;
+      const targetPortConfig = !isRemapped ? targetSchema?.ports?.find(p => p.id === edge.targetHandle) : undefined;
+      const sourcePortSchema = sourcePortConfig ? getPortSchema(sourcePortConfig.portType) : undefined;
+      const targetPortSchema = targetPortConfig ? getPortSchema(targetPortConfig.portType) : undefined;
+      const sourcePortLabel = sourcePortConfig?.label ?? edge.sourceHandle ?? '';
+      const targetPortLabel = targetPortConfig?.label ?? edge.targetHandle ?? '';
+      const sourcePortColor = sourcePortSchema?.color ?? '#94a3b8';
+      const targetPortColor = targetPortSchema?.color ?? '#94a3b8';
+
+      // Determine polarity to sort: source-polarity node on left
+      const sourcePortPolarity = sourcePortSchema?.polarity;
+      const isSourceOutput = sourcePortPolarity === 'source' || sourcePortPolarity === 'relay';
+
+      // If source port is a sink, swap so the "from" side is the output
+      const from = isSourceOutput || !sourcePortPolarity ? {
+        name: sourceName, schemaType: sourceType, portLabel: sourcePortLabel, portColor: sourcePortColor,
+      } : {
+        name: targetName, schemaType: targetType, portLabel: targetPortLabel, portColor: targetPortColor,
+      };
+      const to = isSourceOutput || !sourcePortPolarity ? {
+        name: targetName, schemaType: targetType, portLabel: targetPortLabel, portColor: targetPortColor,
+      } : {
+        name: sourceName, schemaType: sourceType, portLabel: sourcePortLabel, portColor: sourcePortColor,
+      };
+
+      showNarrative({
+        from, to,
+        position: { x: event.clientX, y: event.clientY },
+        anchor: 'above',
+      });
+    },
+    [setNodes, setSelectedNodeIds, nodes, getSchema, getPortSchema, showNarrative]
+  );
+
+  // Pane click: dismiss narrative + original handler
+  const handlePaneClick = useCallback(() => {
+    hideNarrative();
+    onPaneClick();
+  }, [hideNarrative, onPaneClick]);
+
   // Update parent with fresh node data whenever nodes change (to keep InstanceEditor in sync)
   useEffect(() => {
     if (selectedNodeIds.length > 0) {
@@ -483,8 +557,16 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
       }).filter((e): e is Edge => e !== null);
     }
 
+    // Remove edges whose resolved source or target is hidden (not in visible nodes)
+    const visibleNodeIds = new Set(
+      sortedNodes.filter(n => !n.hidden).map(n => n.id)
+    );
+    result = result.filter(edge =>
+      visibleNodeIds.has(edge.source) && visibleNodeIds.has(edge.target)
+    );
+
     return result;
-  }, [edges, edgeRemap]);
+  }, [edges, edgeRemap, sortedNodes]);
 
   // Auto-revert unpinned details nodes when deselected
   const updateNodeInternals = useUpdateNodeInternals();
@@ -508,6 +590,91 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
 
   // Edge bundling: collapse parallel edges between same node pairs
   const { displayEdges } = useEdgeBundling(filteredEdges, nodes);
+
+  // Detect non-parented nodes visually covered by organizers they don't belong to
+  const coveredNodeIds = useMemo(() => {
+    const visibleOrganizers = sortedNodes.filter(n => n.type === 'organizer' && !n.hidden);
+    if (visibleOrganizers.length === 0) return [];
+
+    const covered: string[] = [];
+    for (const node of sortedNodes) {
+      if (node.type === 'organizer' || node.hidden || node.parentId) continue;
+      const nodeW = node.measured?.width ?? node.width ?? 200;
+      const nodeH = node.measured?.height ?? node.height ?? 100;
+      for (const org of visibleOrganizers) {
+        const orgW = (org.style?.width as number) ?? org.width ?? 200;
+        const orgH = (org.style?.height as number) ?? org.height ?? 200;
+        if (nodeContainedInOrganizer(
+          node.position, { width: nodeW, height: nodeH },
+          org.position, { width: orgW, height: orgH }
+        )) {
+          covered.push(node.id);
+          break;
+        }
+      }
+    }
+    return covered;
+  }, [sortedNodes]);
+
+  // Rescue covered nodes by moving them just outside the covering organizer
+  const rescueCoveredNodes = useCallback(() => {
+    const visibleOrganizers = sortedNodes.filter(n => n.type === 'organizer' && !n.hidden);
+    const margin = 20;
+    const rescuedIds: string[] = [];
+
+    setNodes(nds => nds.map(n => {
+      if (!coveredNodeIds.includes(n.id)) return n;
+
+      const nodeW = n.measured?.width ?? n.width ?? 200;
+      const nodeH = n.measured?.height ?? n.height ?? 100;
+
+      // Find the covering organizer
+      const coveringOrg = visibleOrganizers.find(org => {
+        const orgW = (org.style?.width as number) ?? org.width ?? 200;
+        const orgH = (org.style?.height as number) ?? org.height ?? 200;
+        return nodeContainedInOrganizer(
+          n.position, { width: nodeW, height: nodeH },
+          org.position, { width: orgW, height: orgH }
+        );
+      });
+      if (!coveringOrg) return n;
+
+      const orgW = (coveringOrg.style?.width as number) ?? coveringOrg.width ?? 200;
+      const orgH = (coveringOrg.style?.height as number) ?? coveringOrg.height ?? 200;
+
+      // Find nearest edge to node center
+      const cx = n.position.x + nodeW / 2;
+      const cy = n.position.y + nodeH / 2;
+      const distLeft = cx - coveringOrg.position.x;
+      const distRight = (coveringOrg.position.x + orgW) - cx;
+      const distTop = cy - coveringOrg.position.y;
+      const distBottom = (coveringOrg.position.y + orgH) - cy;
+      const minDist = Math.min(distLeft, distRight, distTop, distBottom);
+
+      let newPos = { ...n.position };
+      if (minDist === distLeft) {
+        newPos = { x: coveringOrg.position.x - nodeW - margin, y: n.position.y };
+      } else if (minDist === distRight) {
+        newPos = { x: coveringOrg.position.x + orgW + margin, y: n.position.y };
+      } else if (minDist === distTop) {
+        newPos = { x: n.position.x, y: coveringOrg.position.y - nodeH - margin };
+      } else {
+        newPos = { x: n.position.x, y: coveringOrg.position.y + orgH + margin };
+      }
+
+      rescuedIds.push(n.id);
+      return { ...n, position: newPos };
+    }));
+
+    // Select rescued nodes
+    if (rescuedIds.length > 0) {
+      setNodes(nds => nds.map(n => ({
+        ...n,
+        selected: rescuedIds.includes(n.id),
+      })));
+      setSelectedNodeIds(rescuedIds);
+    }
+  }, [sortedNodes, coveredNodeIds, setNodes, setSelectedNodeIds]);
 
   // Handle drag start/drag/stop for live organizer resizing
   const onNodeDragStart = useCallback((_event: React.MouseEvent, node: Node) => {
@@ -680,7 +847,9 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
         onPaneContextMenu={onPaneContextMenu}
         onNodeContextMenu={onNodeContextMenu}
         onEdgeContextMenu={onEdgeContextMenu}
-        onPaneClick={onPaneClick}
+        onEdgeClick={handleEdgeClick}
+        onPaneClick={handlePaneClick}
+        onMoveStart={hideNarrative}
         onMouseDown={onMouseDown}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
@@ -691,6 +860,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
         selectionOnDrag
         selectionMode={SelectionMode.Full}
         connectionRadius={50}
+        elevateNodesOnSelect={false}
         fitView
       >
         <Controls position="top-left" showZoom={false}>
@@ -738,6 +908,22 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
             </svg>
           </button>
         </div>
+
+        {/* Covered nodes warning badge */}
+        {coveredNodeIds.length > 0 && (
+          <div className="absolute top-[14px] left-[92px]">
+            <button
+              onClick={rescueCoveredNodes}
+              className="h-[32px] px-3 bg-amber-100 border border-amber-300 rounded cursor-pointer flex items-center gap-1.5 hover:bg-amber-200 transition-colors shadow-sm text-amber-800 text-xs font-medium"
+              title={`${coveredNodeIds.length} node${coveredNodeIds.length > 1 ? 's' : ''} covered by organizers — click to rescue`}
+            >
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+              </svg>
+              {coveredNodeIds.length} covered
+            </button>
+          </div>
+        )}
 
         <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
       </ReactFlow>
@@ -827,6 +1013,8 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
           />
         );
       })()}
+
+      <Narrative narrative={narrative} onDismiss={hideNarrative} />
     </div>
   );
 }
