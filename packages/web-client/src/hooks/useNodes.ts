@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { Node } from '@xyflow/react';
 import { useDocumentContext } from '../contexts/DocumentContext';
 import type { ConstructNodeData } from '@carta/domain';
@@ -12,11 +12,19 @@ export function useNodes() {
 
   const [nodes, setNodesState] = useState<Node[]>(() => adapter.getNodes() as Node[]);
 
+  // When true, subscriber skips state updates (used during drag to avoid
+  // remote Yjs changes overwriting local React Flow positions)
+  const suppressUpdatesRef = useRef(false);
+
   useEffect(() => {
+    const handler = () => {
+      if (suppressUpdatesRef.current) return;
+      setNodesState(adapter.getNodes() as Node[]);
+    };
     // Subscribe to node-specific changes (falls back to full subscribe if granular not available)
     const unsubscribe = adapter.subscribeToNodes
-      ? adapter.subscribeToNodes(() => setNodesState(adapter.getNodes() as Node[]))
-      : adapter.subscribe(() => setNodesState(adapter.getNodes() as Node[]));
+      ? adapter.subscribeToNodes(handler)
+      : adapter.subscribe(handler);
     return unsubscribe;
   }, [adapter]);
 
@@ -38,5 +46,5 @@ export function useNodes() {
     return adapter.generateNodeId();
   }, [adapter]);
 
-  return { nodes, setNodes, updateNode, getNextNodeId };
+  return { nodes, setNodes, setNodesLocal: setNodesState, suppressUpdates: suppressUpdatesRef, updateNode, getNextNodeId };
 }

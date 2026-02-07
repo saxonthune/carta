@@ -474,6 +474,9 @@ export interface DocumentAdapter {
   updateSchemaGroup(id: string, updates: Partial<SchemaGroup>): void;
   removeSchemaGroup(id: string): boolean;
 
+  // Surgical node patches (bypasses full clear+rebuild for performance)
+  patchNodes?(patches: Array<{ id: string; position?: { x: number; y: number }; style?: Record<string, unknown> }>): void;
+
   // Batched operations (for Yjs transact)
   // origin parameter allows MCP attribution (e.g., 'user' vs 'ai-mcp')
   transaction<T>(fn: () => T, origin?: string): T;

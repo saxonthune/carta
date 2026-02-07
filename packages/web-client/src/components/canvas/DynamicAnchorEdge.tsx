@@ -1,3 +1,4 @@
+import { memo, useCallback } from 'react';
 import { getSmoothStepPath, Position, useStore, type EdgeProps } from '@xyflow/react';
 import type { BundleData } from '../../hooks/useEdgeBundling';
 
@@ -47,7 +48,7 @@ function getRectBoundaryPoint(
  * instead of using React Flow's handle-derived coordinates.
  * Supports bundle count badge for parallel edges.
  */
-export default function DynamicAnchorEdge({
+export default memo(function DynamicAnchorEdge({
   id,
   source,
   target,
@@ -65,10 +66,9 @@ export default function DynamicAnchorEdge({
   const isBundled = count > 1;
   const strokeWidth = isBundled ? Math.min(1.5 + (count - 1) * 1, 6) : 1.5;
 
-  // Try to get node positions from the store for dynamic routing
-  const nodeLookup = useStore((s) => s.nodeLookup);
-  const sourceNode = nodeLookup.get(source);
-  const targetNode = nodeLookup.get(target);
+  // Per-node selectors: only re-render when connected nodes change (not all nodes)
+  const sourceNode = useStore(useCallback((s) => s.nodeLookup.get(source), [source]));
+  const targetNode = useStore(useCallback((s) => s.nodeLookup.get(target), [target]));
 
   let sx = sourceX;
   let sy = sourceY;
@@ -163,4 +163,4 @@ export default function DynamicAnchorEdge({
       )}
     </>
   );
-}
+});

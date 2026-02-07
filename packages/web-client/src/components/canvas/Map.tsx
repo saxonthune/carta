@@ -18,6 +18,7 @@ import {
 } from '@xyflow/react';
 import { useNodes } from '../../hooks/useNodes';
 import { useEdges } from '../../hooks/useEdges';
+import { useDocumentContext } from '../../contexts/DocumentContext';
 import { useSchemas } from '../../hooks/useSchemas';
 import { useSchemaGroups } from '../../hooks/useSchemaGroups';
 import { usePortSchemas } from '../../hooks/usePortSchemas';
@@ -85,7 +86,8 @@ export interface MapProps {
 }
 
 export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNodeDoubleClick, searchText }: MapProps) {
-  const { nodes, setNodes } = useNodes();
+  const { adapter } = useDocumentContext();
+  const { nodes, setNodes, setNodesLocal, suppressUpdates } = useNodes();
   const { edges, setEdges } = useEdges();
   const { schemas, getSchema } = useSchemas();
   const { getPortSchema } = usePortSchemas();
@@ -137,11 +139,42 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
   const ctrlDragActiveRef = useRef(false);
 
   const onNodesChange = useCallback((changes: NodeChange[]) => {
-    setNodes((nds) => applyNodeChanges(changes, nds));
-  }, [setNodes]);
+    const dragEndChanges: NodeChange[] = [];
+    const commitPositions: { id: string; position: { x: number; y: number } }[] = [];
+    const dimensionChanges: NodeChange[] = [];
+
+    for (const change of changes) {
+      if (change.type === 'position' && change.dragging) {
+        // RF already updated its internal store in uncontrolled mode — skip
+        continue;
+      } else if (change.type === 'position' && !change.dragging && change.position) {
+        // Drag end — sync final position to local state + Yjs
+        dragEndChanges.push(change);
+        commitPositions.push({ id: change.id, position: change.position });
+      } else if (change.type === 'dimensions') {
+        // Sync measured dimensions to our state (no Yjs write needed)
+        dimensionChanges.push(change);
+      }
+      // Selection handled by RF internally + onSelectionChange callback
+    }
+
+    if (dragEndChanges.length > 0) {
+      setNodesLocal(nds => applyNodeChanges(dragEndChanges, nds));
+    }
+    if (dimensionChanges.length > 0) {
+      setNodesLocal(nds => applyNodeChanges(dimensionChanges, nds));
+    }
+    if (commitPositions.length > 0) {
+      adapter.patchNodes?.(commitPositions);
+    }
+  }, [setNodesLocal, adapter]);
 
   const onEdgesChange = useCallback((changes: EdgeChange[]) => {
-    setEdges((eds) => applyEdgeChanges(changes, eds));
+    // RF handles edge changes internally. Only persist removals to Yjs.
+    const removals = changes.filter(c => c.type === 'remove');
+    if (removals.length > 0) {
+      setEdges(eds => applyEdgeChanges(removals, eds));
+    }
   }, [setEdges]);
 
   // UI state (menus, modals, mouse tracking)
@@ -340,7 +373,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
   const handleEdgeClick = useCallback(
     (event: React.MouseEvent, edge: Edge) => {
       const endpointIds = [edge.source, edge.target];
-      setNodes(nds => nds.map(n => ({
+      reactFlow.setNodes(nds => nds.map(n => ({
         ...n,
         selected: endpointIds.includes(n.id),
       })));
@@ -394,7 +427,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
         anchor: 'above',
       });
     },
-    [setNodes, setSelectedNodeIds, nodes, getSchema, getPortSchema, showNarrative]
+    [reactFlow, setSelectedNodeIds, nodes, getSchema, getPortSchema, showNarrative]
   );
 
   // Pane click: dismiss narrative + original handler
@@ -623,6 +656,28 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
   // Edge bundling: collapse parallel edges between same node pairs
   const { displayEdges } = useEdgeBundling(filteredEdges, nodeTypeMap);
 
+  // Sync cascade output to RF's internal store (uncontrolled mode)
+  const initialRender = useRef(true);
+
+  useEffect(() => {
+    if (initialRender.current) {
+      initialRender.current = false;
+      return; // defaultNodes/defaultEdges handle initial render
+    }
+    // Preserve RF's current selection state (cascade output doesn't track it)
+    const rfNodes = reactFlow.getNodes();
+    const selectedIds = new Set(rfNodes.filter(n => n.selected).map(n => n.id));
+    reactFlow.setNodes(sortedNodes.map(n => ({
+      ...n,
+      selected: selectedIds.has(n.id),
+    })));
+  }, [sortedNodes, reactFlow]);
+
+  useEffect(() => {
+    if (initialRender.current) return;
+    reactFlow.setEdges(displayEdges);
+  }, [displayEdges, reactFlow]);
+
   // Detect non-parented nodes visually covered by organizers they don't belong to
   const coveredNodeIds = useMemo(() => {
     const visibleOrganizers = sortedNodes.filter(n => n.type === 'organizer' && !n.hidden);
@@ -698,20 +753,21 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
       return { ...n, position: newPos };
     }));
 
-    // Select rescued nodes
+    // Select rescued nodes (visual only, use RF store directly)
     if (rescuedIds.length > 0) {
-      setNodes(nds => nds.map(n => ({
+      reactFlow.setNodes(nds => nds.map(n => ({
         ...n,
         selected: rescuedIds.includes(n.id),
       })));
       setSelectedNodeIds(rescuedIds);
     }
-  }, [sortedNodes, coveredNodeIds, setNodes, setSelectedNodeIds]);
+  }, [sortedNodes, coveredNodeIds, setNodes, reactFlow, setSelectedNodeIds]);
 
   // Handle drag start/drag/stop for live organizer resizing
   const onNodeDragStart = useCallback((_event: React.MouseEvent, node: Node) => {
     isDraggingRef.current = true;
     draggedNodesRef.current.add(node.id);
+    suppressUpdates.current = true;
 
     // If dragged node is a child of an organizer, capture organizer size for live resize
     if (node.parentId && node.type !== 'organizer') {
@@ -731,7 +787,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
       dragOrganizerIdRef.current = null;
       dragStartOrganizerSizeRef.current = null;
     }
-  }, [reactFlow]);
+  }, [reactFlow, suppressUpdates]);
 
   const onNodeDrag = useCallback((_event: React.MouseEvent, node: Node) => {
     // Toggle Ctrl+drag visual class (no re-render, direct DOM)
@@ -765,11 +821,11 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
       if (relevantMembers.length === 0 && isCtrl) {
         // All members removed (Ctrl preview) - snap to start size
         if (startSize) {
-          setNodes(nds => nds.map(n =>
-            n.id === organizerId
-              ? { ...n, width: startSize.width, height: startSize.height, style: { ...n.style, width: startSize.width, height: startSize.height } }
-              : n
-          ));
+          reactFlow.updateNode(organizerId, (n) => ({
+            width: startSize.width,
+            height: startSize.height,
+            style: { ...n.style, width: startSize.width, height: startSize.height },
+          }));
         }
         return;
       }
@@ -788,17 +844,20 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
       const newWidth = isCtrl ? minSize.width : Math.max(startSize?.width ?? 0, minSize.width);
       const newHeight = isCtrl ? minSize.height : Math.max(startSize?.height ?? 0, minSize.height);
 
-      setNodes(nds => nds.map(n =>
-        n.id === organizerId
-          ? { ...n, width: newWidth, height: newHeight, style: { ...n.style, width: newWidth, height: newHeight } }
-          : n
-      ));
+      reactFlow.updateNode(organizerId, (n) => ({
+        width: newWidth,
+        height: newHeight,
+        style: { ...n.style, width: newWidth, height: newHeight },
+      }));
     });
-  }, [reactFlow, setNodes]);
+  }, [reactFlow]);
 
   const onNodeDragStop = useCallback((event: React.MouseEvent, node: Node) => {
     isDraggingRef.current = false;
     draggedNodesRef.current.clear();
+
+    // Re-enable Yjs → React state sync before any commits
+    suppressUpdates.current = false;
 
     // Clear Ctrl+drag visual feedback
     ctrlDragActiveRef.current = false;
@@ -808,6 +867,17 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     if (rafIdRef.current !== null) {
       cancelAnimationFrame(rafIdRef.current);
       rafIdRef.current = null;
+    }
+
+    // Commit organizer style if one was resized during drag
+    if (dragOrganizerIdRef.current) {
+      const orgNode = reactFlow.getNodes().find(n => n.id === dragOrganizerIdRef.current);
+      if (orgNode?.style?.width && orgNode?.style?.height) {
+        adapter.patchNodes?.([{
+          id: dragOrganizerIdRef.current,
+          style: { width: orgNode.style.width, height: orgNode.style.height },
+        }]);
+      }
     }
 
     // Clear drag refs
@@ -835,20 +905,20 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
       // Default release = full refit including position shift
       fitOrganizerToMembers(node.parentId);
     }
-  }, [reactFlow, attachToOrganizer, detachFromOrganizer, fitOrganizerToMembers]);
+  }, [reactFlow, adapter, suppressUpdates, attachToOrganizer, detachFromOrganizer, fitOrganizerToMembers]);
 
   // Handle organizer selection (click on organizer selects all nodes in it)
   const handleSelectOrganizer = useCallback((organizerId: string) => {
     const memberNodes = nodes.filter(n => n.parentId === organizerId);
     const nodeIds = memberNodes.map(n => n.id);
-    setNodes((nds) =>
+    reactFlow.setNodes((nds) =>
       nds.map((n) => ({
         ...n,
         selected: nodeIds.includes(n.id),
       }))
     );
     setSelectedNodeIds(nodeIds);
-  }, [nodes, setNodes, setSelectedNodeIds]);
+  }, [nodes, reactFlow, setSelectedNodeIds]);
 
   // Suppress unused - will be used for organizer selection via context menu
   void handleSelectOrganizer;
@@ -864,8 +934,8 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     <div ref={mapWrapperRef} className="w-full h-full relative" style={{ backgroundColor: 'var(--color-canvas)' }}>
       <ZoomDebug debugLines={debugLines} />
       <ReactFlow
-        nodes={sortedNodes}
-        edges={displayEdges}
+        defaultNodes={sortedNodes}
+        defaultEdges={displayEdges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onNodeDragStart={onNodeDragStart}

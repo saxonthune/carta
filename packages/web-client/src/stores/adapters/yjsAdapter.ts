@@ -124,7 +124,8 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     notifyLevelListeners();
     notifyListeners();
   };
-  const onNodesChange = () => {
+  const onNodesChange = (_events: unknown, transaction: { origin: unknown }) => {
+    if (transaction?.origin === 'drag-commit') return;
     notifyNodeListeners();
     notifyListeners();
   };
@@ -663,6 +664,18 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
           });
         }
       }, 'user');
+    },
+
+    patchNodes(patches: Array<{ id: string; position?: { x: number; y: number }; style?: Record<string, unknown> }>) {
+      ydoc.transact(() => {
+        const levelNodes = getActiveLevelNodes();
+        for (const { id, position, style } of patches) {
+          const ynode = levelNodes.get(id) as Y.Map<unknown> | undefined;
+          if (!ynode) continue;
+          if (position) ynode.set('position', position);
+          if (style) ynode.set('style', style);
+        }
+      }, 'drag-commit');
     },
 
     // Mutations - Levels
