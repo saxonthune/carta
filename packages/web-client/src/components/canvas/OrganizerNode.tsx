@@ -139,6 +139,21 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
       }}
       className="transition-opacity duration-200 w-full h-full"
     >
+      {/* Invisible handles for edge anchoring (wagon attachment edges, etc.) */}
+      <Handle
+        id="group-connect"
+        type="source"
+        position={Position.Right}
+        className="!w-0 !h-0 !border-0 !bg-transparent !min-w-0 !min-h-0"
+        style={{ right: 0, top: '50%' }}
+      />
+      <Handle
+        id="group-connect"
+        type="target"
+        position={Position.Left}
+        className="!w-0 !h-0 !border-0 !bg-transparent !min-w-0 !min-h-0"
+        style={{ left: 0, top: '50%' }}
+      />
       <NodeResizer
         isVisible={selected}
         minWidth={200}

@@ -39,6 +39,18 @@ export interface UseOrganizerOperationsResult {
 }
 
 /**
+ * Compute the absolute canvas position of a node by walking its parentId chain.
+ * For nodes without a parent, this returns node.position unchanged.
+ */
+function getAbsolutePosition(node: Node, allNodes: Node[]): { x: number; y: number } {
+  if (!node.parentId) return node.position;
+  const parent = allNodes.find(n => n.id === node.parentId);
+  if (!parent) return node.position;
+  const parentAbs = getAbsolutePosition(parent, allNodes);
+  return { x: parentAbs.x + node.position.x, y: parentAbs.y + node.position.y };
+}
+
+/**
  * Hook providing organizer operations.
  * Uses pure geometry functions from @carta/domain for testability.
  */
@@ -135,7 +147,9 @@ export function useOrganizerOperations(): UseOrganizerOperationsResult {
     const organizerData = organizer.data as unknown as OrganizerNodeData;
     if (organizerData.layout !== 'freeform' && node.type === 'organizer') return;
 
-    const relativePosition = toRelativePosition(node.position, organizer.position);
+    const organizerAbsPos = getAbsolutePosition(organizer, nodes);
+    const nodeAbsPos = node.parentId ? getAbsolutePosition(node, nodes) : node.position;
+    const relativePosition = toRelativePosition(nodeAbsPos, organizerAbsPos);
 
     setNodes(nds => nds.map(n =>
       n.id === nodeId
@@ -148,10 +162,7 @@ export function useOrganizerOperations(): UseOrganizerOperationsResult {
     const node = nodes.find(n => n.id === nodeId);
     if (!node?.parentId) return;
 
-    const parent = nodes.find(n => n.id === node.parentId);
-    const absolutePosition = parent
-      ? toAbsolutePosition(node.position, parent.position)
-      : node.position;
+    const absolutePosition = getAbsolutePosition(node, nodes);
 
     setNodes(nds => nds.map(n =>
       n.id === nodeId
@@ -247,12 +258,13 @@ export function useOrganizerOperations(): UseOrganizerOperationsResult {
       findDescendants(organizerId);
       setNodes(nds => nds.filter(n => !idsToDelete.has(n.id)));
     } else {
+      const organizerAbsPos = getAbsolutePosition(organizer, nodes);
       setNodes(nds => {
         return nds
           .filter(n => n.id !== organizerId)
           .map(n => {
             if (n.parentId === organizerId) {
-              const absolutePosition = toAbsolutePosition(n.position, organizer.position);
+              const absolutePosition = toAbsolutePosition(n.position, organizerAbsPos);
               return { ...n, parentId: undefined, extent: undefined, position: absolutePosition };
             }
             return n;

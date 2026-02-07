@@ -431,6 +431,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
       };
 
       showNarrative({
+        kind: 'edge',
         from, to,
         position: { x: event.clientX, y: event.clientY },
         anchor: 'above',
@@ -648,6 +649,8 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
         id: `wagon-${node.id}`,
         source: owner.id,
         target: node.id,
+        sourceHandle: null,
+        targetHandle: 'group-connect',
         type: 'bundled',
         data: { isAttachmentEdge: true },
         style: { strokeDasharray: '8 4', strokeWidth: 3, stroke: orgData.color },
@@ -830,7 +833,8 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
       mapWrapperRef.current?.classList.toggle('ctrl-dragging', isCtrl);
     }
 
-    if (!dragOrganizerIdRef.current || node.type === 'organizer') return;
+    // Don't process organizer nodes themselves
+    if (node.type === 'organizer') return;
 
     // Cancel previous rAF to throttle
     if (rafIdRef.current !== null) {
@@ -839,20 +843,48 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
 
     const organizerId = dragOrganizerIdRef.current;
     const startSize = dragStartOrganizerSizeRef.current;
+    const mouseX = _event.clientX;
+    const mouseY = _event.clientY;
 
     rafIdRef.current = requestAnimationFrame(() => {
       rafIdRef.current = null;
-      const allNodes = reactFlow.getNodes();
 
-      // Get members of this organizer
+      // Detect organizer hover for narrative hint
+      const intersecting = reactFlow.getIntersectingNodes(node);
+      const hoverOrganizer = intersecting.find(n => n.type === 'organizer' && n.id !== node.id);
+
+      if (hoverOrganizer) {
+        const orgData = hoverOrganizer.data as OrganizerNodeData;
+        const alreadyMember = node.parentId === hoverOrganizer.id;
+        if (isCtrl && !alreadyMember) {
+          showNarrative({ kind: 'hint', text: `Add to ${orgData.name}`, variant: 'attach', position: { x: mouseX, y: mouseY } });
+        } else if (isCtrl && alreadyMember) {
+          showNarrative({ kind: 'hint', text: `Detach from ${orgData.name}`, variant: 'detach', position: { x: mouseX, y: mouseY } });
+        } else if (!isCtrl && !alreadyMember) {
+          showNarrative({ kind: 'hint', text: `Hold Ctrl to add to ${orgData.name}`, variant: 'neutral', position: { x: mouseX, y: mouseY } });
+        } else {
+          hideNarrative();
+        }
+      } else if (isCtrl && node.parentId) {
+        // Over empty space with Ctrl, currently in an organizer → will detach
+        const allNodes = reactFlow.getNodes();
+        const parentOrg = allNodes.find(n => n.id === node.parentId);
+        const parentName = parentOrg ? (parentOrg.data as OrganizerNodeData).name : 'organizer';
+        showNarrative({ kind: 'hint', text: `Detach from ${parentName}`, variant: 'detach', position: { x: mouseX, y: mouseY } });
+      } else {
+        hideNarrative();
+      }
+
+      // Live organizer resize (only when dragging from within an organizer)
+      if (!organizerId) return;
+
+      const allNodes = reactFlow.getNodes();
       const members = allNodes.filter(n => n.parentId === organizerId);
-      // Either exclude or include dragged node based on Ctrl
       const relevantMembers = isCtrl
         ? members.filter(n => n.id !== node.id)
         : members;
 
       if (relevantMembers.length === 0 && isCtrl) {
-        // All members removed (Ctrl preview) - snap to start size
         if (startSize) {
           reactFlow.updateNode(organizerId, (n) => ({
             width: startSize.width,
@@ -871,9 +903,6 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
       }));
 
       const minSize = computeMinOrganizerSize(memberGeometries, DEFAULT_ORGANIZER_LAYOUT);
-
-      // During drag: only grow, never shrink below drag-start size (prevents jitter)
-      // For Ctrl: use the size-without-dragged-member (which may be smaller)
       const newWidth = isCtrl ? minSize.width : Math.max(startSize?.width ?? 0, minSize.width);
       const newHeight = isCtrl ? minSize.height : Math.max(startSize?.height ?? 0, minSize.height);
 
@@ -883,7 +912,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
         style: { ...n.style, width: newWidth, height: newHeight },
       }));
     });
-  }, [reactFlow]);
+  }, [reactFlow, showNarrative, hideNarrative]);
 
   const onNodeDragStop = useCallback((event: React.MouseEvent, node: Node) => {
     isDraggingRef.current = false;
@@ -891,6 +920,9 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
 
     // Re-enable Yjs → React state sync before any commits
     suppressUpdates.current = false;
+
+    // Clear drag narrative hint
+    hideNarrative();
 
     // Clear Ctrl+drag visual feedback
     ctrlDragActiveRef.current = false;
@@ -938,7 +970,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
       // Default release = full refit including position shift
       fitOrganizerToMembers(node.parentId);
     }
-  }, [reactFlow, adapter, suppressUpdates, attachToOrganizer, detachFromOrganizer, fitOrganizerToMembers]);
+  }, [reactFlow, adapter, suppressUpdates, attachToOrganizer, detachFromOrganizer, fitOrganizerToMembers, hideNarrative]);
 
   // Handle organizer selection (click on organizer selects all nodes in it)
   const handleSelectOrganizer = useCallback((organizerId: string) => {

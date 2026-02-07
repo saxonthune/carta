@@ -72,8 +72,8 @@ Each organizer has a layout strategy:
 | Action | Method |
 |--------|--------|
 | Create organizer | Select 2+ nodes, press Ctrl+G or right-click → "Organize Selected" |
-| Add to organizer | Drag node into organizer bounds |
-| Remove from organizer | Ctrl+drag node out, or right-click → "Remove from Organizer" |
+| Add to organizer | Ctrl+drag node into organizer bounds (narrator hint confirms action) |
+| Remove from organizer | Ctrl+drag node out (narrator hint confirms detach), or right-click → "Remove from Organizer" |
 | Collapse/expand | Click eye icon in organizer header |
 | Change layout | (Context menu on organizer) |
 

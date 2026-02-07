@@ -19,6 +19,11 @@ export default function Narrative({ narrative, onDismiss }: NarrativeProps) {
 
   if (!narrative) return null;
 
+  if (narrative.kind === 'hint') {
+    return <HintNarrative text={narrative.text} variant={narrative.variant} position={narrative.position} />;
+  }
+
+  // Edge narrative (existing)
   const yOffset = narrative.anchor === 'above' ? -64 : 16;
 
   return (
@@ -62,6 +67,32 @@ export default function Narrative({ narrative, onDismiss }: NarrativeProps) {
             <div className="text-[10px] text-content-muted leading-tight">{narrative.to.schemaType}</div>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function HintNarrative({ text, variant, position }: { text: string; variant: string; position: { x: number; y: number } }) {
+  const colorClass = variant === 'attach'
+    ? 'bg-emerald-600/90 text-white'
+    : variant === 'detach'
+      ? 'bg-red-600/90 text-white'
+      : 'bg-surface-elevated text-content';
+
+  return (
+    <div
+      className="fixed inset-0 z-[40] pointer-events-none"
+      style={{ overflow: 'visible' }}
+    >
+      <div
+        className={`absolute rounded-md shadow-md px-2.5 py-1.5 text-xs font-medium whitespace-nowrap ${colorClass}`}
+        style={{
+          left: position.x,
+          top: position.y - 40,
+          transform: 'translateX(-50%)',
+        }}
+      >
+        {text}
       </div>
     </div>
   );

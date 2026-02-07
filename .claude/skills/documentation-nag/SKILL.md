@@ -17,13 +17,49 @@ Analyzes recent code changes and updates documentation. Uses lazy loading, secti
 
 ---
 
-## Phase 1: Identify Changes (Minimal Reads)
+## Phase 0: Pre-flight Check
 
 ```bash
-# Get changed files summary (not full diff)
-git diff --stat HEAD~5
+BRANCH=$(git branch --show-current)
+```
+
+- If branch contains `_claude`, **warn the user**: docs updates should run on the trunk branch after `/git-sync-trunk` merges worktree changes. Offer to continue anyway, but recommend switching to trunk first.
+- This ensures all worktree changes are visible and `.docs/` edits happen in one place (avoiding merge conflicts).
+
+---
+
+## Phase 1: Identify Changes (Marker-Based Diff)
+
+Determine the diff base using a **fallback chain**:
+
+```bash
+# 1. Read marker file (primary)
+DOCS_BASE=""
+if [ -f .docs/.last-sync ]; then
+  CANDIDATE=$(cat .docs/.last-sync | tr -d '[:space:]')
+  # Verify the hash is reachable in current history
+  if git merge-base --is-ancestor "$CANDIDATE" HEAD 2>/dev/null; then
+    DOCS_BASE="$CANDIDATE"
+  fi
+fi
+
+# 2. Fallback: last commit that touched .docs/
+if [ -z "$DOCS_BASE" ]; then
+  DOCS_BASE=$(git log -1 --format=%H -- .docs/)
+fi
+
+# 3. Final fallback: HEAD~20
+if [ -z "$DOCS_BASE" ]; then
+  DOCS_BASE="HEAD~20"
+fi
+
+# Show scope
+git log --oneline "$DOCS_BASE"..HEAD -- ':!.docs/'
+git diff --stat "$DOCS_BASE"..HEAD -- ':!.docs/'
 git status --short
 ```
+
+Report to user: "Analyzing N commits since last docs sync (base: `{DOCS_BASE_SHORT}`)."
 
 Extract:
 - Which packages changed (web-client, server, domain, etc.)
@@ -219,7 +255,18 @@ No update needed (no new packages/directories/subsystems)
 ### Skipped
 - .docs/03-product/* — No matching tags
 - .docs/04-operations/* — No matching tags
+
+### Sync Marker
+Updated `.docs/.last-sync` → `{HEAD_SHORT}`
 ```
+
+After generating the summary, **write the current HEAD hash** to the marker file:
+
+```bash
+git rev-parse HEAD > .docs/.last-sync
+```
+
+This file is committed by the user alongside the docs changes. The next run will diff from this point.
 
 ---
 

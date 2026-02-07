@@ -75,6 +75,11 @@ if git rev-parse --verify origin/"$TRUNK" >/dev/null 2>&1; then
   fi
 fi
 
+# Update docs sync marker if anything was merged
+if [ ${#MERGED[@]} -gt 0 ]; then
+  git rev-parse HEAD > .docs/.last-sync
+fi
+
 # Summary
 echo ""
 echo "## Trunk Sync Complete"

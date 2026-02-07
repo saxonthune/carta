@@ -58,6 +58,10 @@ When multiple connections exist between the same two nodes, they are visually bu
 
 ## Narrative Tooltip
 
+The **Narrator** is a general-purpose contextual feedback system (`useNarrative` hook, `Narrative` component) that displays floating tooltips during user interactions. It uses a discriminated union (`NarrativeState`) supporting multiple display modes:
+
+### Edge Narrative (`kind: 'edge'`)
+
 Hovering over an edge displays a **narrative tooltip** showing connection details:
 - Source endpoint: construct name and schema type
 - Source port: label and color
@@ -66,3 +70,10 @@ Hovering over an edge displays a **narrative tooltip** showing connection detail
 - Target endpoint: construct name and schema type
 
 The tooltip is positioned above or below the edge based on available screen space. Press Escape to dismiss the tooltip.
+
+### Hint Narrative (`kind: 'hint'`)
+
+Short contextual messages shown during drag operations and other interactions. Variants control visual styling:
+- **attach** (green): action will add a node to an organizer
+- **detach** (red): action will remove a node from an organizer
+- **neutral** (muted): informational hint (e.g. "Hold Ctrl to add to...")
