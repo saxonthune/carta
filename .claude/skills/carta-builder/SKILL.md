@@ -98,5 +98,21 @@ The user will sometimes ask "how would Carta need to change to support X?" This 
 
 1. **Think through the design**: Read relevant `.docs/` and source to understand the current architecture. Reason about where the feature would live, what layers it touches, what's new vs what's a modification.
 2. **Discuss with the user**: Present options, tradeoffs, and architectural placement. This is a conversation, not a plan.
-3. **Write a todo plan**: When the user is satisfied with the direction, write a markdown file to `todo-plans/` at the repo root. The file should contain enough motivation and design direction that another agent can use it to create their own implementation plan — but it is NOT an implementation plan itself. Include: motivation, scope (is this a one-off fix or a new engine?), architectural placement, design decisions to make, and what's explicitly out of scope.
+3. **Write a todo plan**: When the user is satisfied with the direction, write a markdown file to `todo-plans/` at the repo root. The file should contain enough motivation and design direction that another agent can use it to create their own implementation plan — but it is NOT an implementation plan itself. Include: motivation, scope, architectural placement, design decisions to make, and what's explicitly out of scope.
+
+   **Plan file format — frontload the summary.** Another agent will read only the first 10 lines to decide whether to work on this plan. Use this structure:
+
+   ```markdown
+   # Feature Title
+
+   > **Scope**: new engine | enhancement | bug fix | refactor
+   > **Layers touched**: presentation, interaction, domain, etc.
+   > **Summary**: One sentence describing what this plan asks for and why.
+
+   ## Motivation
+
+   [Full motivation paragraph(s) here...]
+   ```
+
+   The first 10 lines must contain the title, scope, layers, and a one-sentence summary. Everything else (detailed motivation, architectural placement, design decisions, out-of-scope) follows after.
 4. **Do not edit source code** during design exercises. Read code to inform the design; write only to `todo-plans/` and the Carta document.
