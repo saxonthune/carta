@@ -197,6 +197,8 @@ export interface ConstructNodeData {
   // Relationship metadata for AI consumption
   references?: string[];     // Semantic IDs this construct references
   referencedBy?: string[];   // Semantic IDs that reference this construct
+  organizedMembers?: string[];  // Semantic IDs of members in this construct's attached organizer(s)
+  organizedIn?: string;         // Name/label of the organizer this construct is a member of
   // Visual overrides
   instanceColor?: string;    // Hex color override, visual-only
   // UI state
@@ -231,6 +233,7 @@ export interface OrganizerNodeData {
   collapsed: boolean;
   description?: string;
   layout: OrganizerLayout;
+  attachedToSemanticId?: string;  // Semantic ID of owning construct (makes this a "wagon")
   stackIndex?: number;        // Active member index for stack layout
   gridColumns?: number;       // Column count for grid layout
   [key: string]: unknown;

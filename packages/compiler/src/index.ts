@@ -73,7 +73,10 @@ export class CompilerEngine {
     // Enhance nodes with relationship metadata
     const nodesWithRelationships = this.addRelationshipMetadata(compilableNodes, edges);
 
-    const allNodeData = nodesWithRelationships.map(n => n.data);
+    // Add organizer membership (organizedMembers / organizedIn)
+    const nodesWithOrganizerInfo = this.addOrganizerMembership(nodesWithRelationships, nodes);
+
+    const allNodeData = nodesWithOrganizerInfo.map(n => n.data);
 
     // Group nodes by type
     const typeGroups = this.groupByType(nodesWithRelationships);
@@ -248,6 +251,59 @@ ${schemasJson}
         referencedBy: referencedByMap.get(node.id)?.length ? referencedByMap.get(node.id) : undefined,
       },
     }));
+  }
+
+  private addOrganizerMembership(compilableNodes: CompilerNode[], allNodes: CompilerNode[]): CompilerNode[] {
+    // Find all organizer nodes
+    const organizerNodes = allNodes.filter(n => n.type === 'organizer');
+    if (organizerNodes.length === 0) return compilableNodes;
+
+    // Build maps:
+    // 1. attachedToSemanticId → member semanticIds (for organizedMembers on the owning construct)
+    // 2. nodeId → organizer name (for organizedIn on member constructs)
+    const ownerToMembers = new Map<string, string[]>();
+    const nodeIdToOrganizerName = new Map<string, string>();
+
+    for (const org of organizerNodes) {
+      const orgData = org.data as unknown as OrganizerNodeData;
+      const orgName = orgData.name;
+
+      // Find members: nodes whose parentId === org.id and are not organizers
+      const members = allNodes
+        .filter(n => (n as { parentId?: string }).parentId === org.id && n.type !== 'organizer')
+        .map(n => n.data.semanticId)
+        .filter((id): id is string => !!id);
+
+      // Map members to their organizer name
+      for (const n of allNodes) {
+        if ((n as { parentId?: string }).parentId === org.id && n.type !== 'organizer') {
+          nodeIdToOrganizerName.set(n.id, orgName);
+        }
+      }
+
+      // If this organizer is attached to a construct, record its members
+      if (orgData.attachedToSemanticId && members.length > 0) {
+        const existing = ownerToMembers.get(orgData.attachedToSemanticId) || [];
+        ownerToMembers.set(orgData.attachedToSemanticId, [...existing, ...members]);
+      }
+    }
+
+    // Apply to compilable nodes
+    return compilableNodes.map(node => {
+      const organizedMembers = ownerToMembers.get(node.data.semanticId);
+      const organizedIn = nodeIdToOrganizerName.get(node.id);
+
+      if (!organizedMembers && !organizedIn) return node;
+
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          ...(organizedMembers && organizedMembers.length > 0 && { organizedMembers }),
+          ...(organizedIn && { organizedIn }),
+        },
+      };
+    });
   }
 
   getAvailableFormats(): CompilationFormat[] {

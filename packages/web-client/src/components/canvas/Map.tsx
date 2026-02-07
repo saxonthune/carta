@@ -35,7 +35,7 @@ import { useGraphOperations } from '../../hooks/useGraphOperations';
 import { useConnections } from '../../hooks/useConnections';
 import { useClipboard } from '../../hooks/useClipboard';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
-import type { ConstructValues, ConstructNodeData, Size } from '@carta/domain';
+import type { ConstructValues, ConstructNodeData, OrganizerNodeData, Size } from '@carta/domain';
 import { computeMinOrganizerSize, DEFAULT_ORGANIZER_LAYOUT, nodeContainedInOrganizer, getDisplayName, type NodeGeometry } from '@carta/domain';
 import { usePresentation } from '../../hooks/usePresentation';
 import { useOrganizerOperations } from '../../hooks/useOrganizerOperations';
@@ -241,6 +241,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
   // Organizer operations from dedicated hook (uses pure geometry functions)
   const {
     createOrganizer: createOrganizerFromIds,
+    createAttachedOrganizer,
     attachToOrganizer,
     detachFromOrganizer,
     toggleOrganizerCollapse,
@@ -256,6 +257,14 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
   const removeFromOrganizer = useCallback((nodeId: string) => {
     detachFromOrganizer(nodeId);
   }, [detachFromOrganizer]);
+
+  // Attach an organizer (wagon) to a construct
+  const handleAttachOrganizer = useCallback((nodeId: string) => {
+    const node = nodes.find(n => n.id === nodeId);
+    if (!node || node.type !== 'construct') return;
+    const data = node.data as ConstructNodeData;
+    createAttachedOrganizer(nodeId, data.semanticId);
+  }, [nodes, createAttachedOrganizer]);
 
   // Use keyboard shortcuts hook
   useKeyboardShortcuts({
@@ -623,6 +632,30 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     result = result.filter(edge =>
       visibleNodeIds.has(edge.source) && visibleNodeIds.has(edge.target)
     );
+
+    // Inject wagon attachment edges (thick dotted lines from construct to its attached organizer)
+    const wagonEdges: Edge[] = [];
+    for (const node of sortedNodes) {
+      if (node.type !== 'organizer' || node.hidden) continue;
+      const orgData = node.data as OrganizerNodeData;
+      if (!orgData.attachedToSemanticId) continue;
+      const owner = sortedNodes.find(n =>
+        n.type === 'construct' && !n.hidden &&
+        (n.data as ConstructNodeData).semanticId === orgData.attachedToSemanticId
+      );
+      if (!owner) continue;
+      wagonEdges.push({
+        id: `wagon-${node.id}`,
+        source: owner.id,
+        target: node.id,
+        type: 'bundled',
+        data: { isAttachmentEdge: true },
+        style: { strokeDasharray: '8 4', strokeWidth: 3, stroke: orgData.color },
+      });
+    }
+    if (wagonEdges.length > 0) {
+      result = [...result, ...wagonEdges];
+    }
 
     return result;
   }, [edges, edgeRemap, sortedNodes]);
@@ -1077,6 +1110,12 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
           onCopyNodesToNewLevel={handleCopyNodesToNewLevel}
           onOrganizeSelected={createOrganizer}
           onRemoveFromOrganizer={removeFromOrganizer}
+          onAttachOrganizer={handleAttachOrganizer}
+          nodeIsConstruct={(() => {
+            if (!contextMenu.nodeId) return false;
+            const node = nodes.find(n => n.id === contextMenu.nodeId);
+            return node?.type === 'construct';
+          })()}
           nodeInOrganizer={(() => {
             if (!contextMenu.nodeId) return false;
             const node = nodes.find(n => n.id === contextMenu.nodeId);

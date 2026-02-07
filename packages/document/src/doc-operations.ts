@@ -341,6 +341,51 @@ export function deleteConstruct(ydoc: Y.Doc, levelId: string, semanticId: string
   if (!foundId) return false;
 
   ydoc.transact(() => {
+    // Find and delete attached wagons (organizers where attachedToSemanticId === this construct's semanticId)
+    const wagonIds: string[] = [];
+    levelNodes.forEach((ynode, id) => {
+      const nodeObj = yToPlain(ynode) as Record<string, unknown>;
+      if (nodeObj.type !== 'organizer') return;
+      const data = nodeObj.data as OrganizerNodeData;
+      if (data.attachedToSemanticId === semanticId) {
+        wagonIds.push(id);
+      }
+    });
+
+    for (const wagonId of wagonIds) {
+      const wagonYnode = levelNodes.get(wagonId);
+      if (!wagonYnode) continue;
+      const wagonPos = yToPlain(wagonYnode.get('position') as Y.Map<unknown>) as { x: number; y: number };
+
+      // Detach wagon members: convert to absolute positions
+      const memberIds: string[] = [];
+      levelNodes.forEach((childYnode, childId) => {
+        if (childId === wagonId) return;
+        const parentId = childYnode.get('parentId') as string | undefined;
+        if (parentId === wagonId) {
+          memberIds.push(childId);
+        }
+      });
+
+      for (const memberId of memberIds) {
+        const memberYnode = levelNodes.get(memberId);
+        if (!memberYnode) continue;
+        const memberPos = yToPlain(memberYnode.get('position') as Y.Map<unknown>) as { x: number; y: number };
+        const absolutePos = toAbsolutePosition(memberPos, wagonPos);
+        memberYnode.set('position', deepPlainToY(absolutePos));
+        memberYnode.delete('parentId');
+      }
+
+      // Remove edges connected to the wagon
+      levelEdges.forEach((yedge, edgeId) => {
+        if (yedge.get('source') === wagonId || yedge.get('target') === wagonId) {
+          levelEdges.delete(edgeId);
+        }
+      });
+
+      levelNodes.delete(wagonId);
+    }
+
     // Remove edges connected to this node
     const edgesToDelete: string[] = [];
     levelEdges.forEach((yedge, edgeId) => {
@@ -402,6 +447,7 @@ export interface OrganizerInfo {
   layout: OrganizerLayout;
   collapsed: boolean;
   description?: string;
+  attachedToSemanticId?: string;
 }
 
 /**
@@ -429,6 +475,7 @@ export function listOrganizers(ydoc: Y.Doc, levelId: string): OrganizerInfo[] {
       layout: data.layout ?? 'freeform',
       collapsed: data.collapsed ?? false,
       description: data.description,
+      attachedToSemanticId: data.attachedToSemanticId as string | undefined,
     });
   });
 
@@ -451,6 +498,8 @@ export function createOrganizer(
     height?: number;
     layout?: OrganizerLayout;
     description?: string;
+    attachedToSemanticId?: string;
+    parentId?: string;
   }
 ): OrganizerInfo {
   const nodeId = generateNodeId();
@@ -467,6 +516,7 @@ export function createOrganizer(
     collapsed: false,
     layout,
     description: options.description,
+    attachedToSemanticId: options.attachedToSemanticId,
   };
 
   const levelNodes = getLevelMap(ydoc, 'nodes', levelId);
@@ -477,10 +527,11 @@ export function createOrganizer(
     ynode.set('position', deepPlainToY(position));
     ynode.set('data', deepPlainToY(data));
     ynode.set('style', deepPlainToY({ width, height }));
+    if (options.parentId) ynode.set('parentId', options.parentId);
     levelNodes.set(nodeId, ynode as Y.Map<unknown>);
   }, MCP_ORIGIN);
 
-  return { id: nodeId, name: options.name, color, position, width, height, layout, collapsed: false, description: options.description };
+  return { id: nodeId, name: options.name, color, position, width, height, layout, collapsed: false, description: options.description, attachedToSemanticId: options.attachedToSemanticId };
 }
 
 /**
@@ -496,6 +547,7 @@ export function updateOrganizer(
     collapsed?: boolean;
     layout?: OrganizerLayout;
     description?: string;
+    attachedToSemanticId?: string;
   }
 ): OrganizerInfo | null {
   const levelNodes = getLevelMap(ydoc, 'nodes', levelId);
@@ -512,6 +564,7 @@ export function updateOrganizer(
     if (updates.collapsed !== undefined) ydata.set('collapsed', updates.collapsed);
     if (updates.layout !== undefined) ydata.set('layout', updates.layout);
     if (updates.description !== undefined) ydata.set('description', updates.description);
+    if (updates.attachedToSemanticId !== undefined) ydata.set('attachedToSemanticId', updates.attachedToSemanticId);
   }, MCP_ORIGIN);
 
   // Re-read to return updated state
@@ -530,6 +583,7 @@ export function updateOrganizer(
     layout: data.layout ?? 'freeform',
     collapsed: data.collapsed ?? false,
     description: data.description,
+    attachedToSemanticId: data.attachedToSemanticId as string | undefined,
   };
 }
 

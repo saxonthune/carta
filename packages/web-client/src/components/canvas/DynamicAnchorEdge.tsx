@@ -64,7 +64,10 @@ export default memo(function DynamicAnchorEdge({
   const bundleData = data as BundleData | undefined;
   const count = bundleData?.bundleCount || 1;
   const isBundled = count > 1;
-  const strokeWidth = isBundled ? Math.min(1.5 + (count - 1) * 1, 6) : 1.5;
+  const isAttachment = (data as Record<string, unknown>)?.isAttachmentEdge === true;
+  const strokeWidth = isAttachment
+    ? ((style as Record<string, unknown>).strokeWidth as number ?? 3)
+    : isBundled ? Math.min(1.5 + (count - 1) * 1, 6) : 1.5;
 
   // Per-node selectors: only re-render when connected nodes change (not all nodes)
   const sourceNode = useStore(useCallback((s) => s.nodeLookup.get(source), [source]));

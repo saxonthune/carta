@@ -55,6 +55,8 @@ interface ContextMenuProps {
   onOrganizeSelected?: () => void;
   onRemoveFromOrganizer?: (nodeId: string) => void;
   nodeInOrganizer?: boolean;
+  onAttachOrganizer?: (nodeId: string) => void;
+  nodeIsConstruct?: boolean;
 }
 
 // Group items by their groupId into MenuItem[] with nested children
@@ -137,6 +139,8 @@ export default function ContextMenu({
   onOrganizeSelected,
   onRemoveFromOrganizer,
   nodeInOrganizer,
+  onAttachOrganizer,
+  nodeIsConstruct,
 }: ContextMenuProps) {
   const showMultipleSelected = selectedCount > 1;
 
@@ -152,7 +156,7 @@ export default function ContextMenu({
     }
     return [];
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [type, nodeId, edgeId, selectedCount, relatedConstructs, constructOptions, schemaGroups, canPaste, levels, activeLevel, selectedNodeIds, constructType, onEditSchema, onCopyNodesToNewLevel, onOrganizeSelected, onRemoveFromOrganizer, nodeInOrganizer]);
+  }, [type, nodeId, edgeId, selectedCount, relatedConstructs, constructOptions, schemaGroups, canPaste, levels, activeLevel, selectedNodeIds, constructType, onEditSchema, onCopyNodesToNewLevel, onOrganizeSelected, onRemoveFromOrganizer, nodeInOrganizer, onAttachOrganizer, nodeIsConstruct]);
 
   function buildPaneMenuItems(): MenuItem[] {
     const result: MenuItem[] = [];
@@ -315,6 +319,14 @@ export default function ContextMenu({
         key: 'remove-from-organizer',
         label: 'Remove from Organizer',
         onClick: () => onRemoveFromOrganizer(nodeId),
+      });
+    }
+
+    if (!showMultipleSelected && nodeIsConstruct && onAttachOrganizer && nodeId) {
+      result.push({
+        key: 'attach-organizer',
+        label: 'Attach Organizer',
+        onClick: () => onAttachOrganizer(nodeId),
       });
     }
 

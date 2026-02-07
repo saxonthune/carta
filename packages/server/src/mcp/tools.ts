@@ -105,6 +105,7 @@ const CreateOrganizerSchema = z.object({
   height: z.number().optional().describe('Height in pixels (default: 300)'),
   layout: z.enum(['freeform', 'stack', 'grid']).optional().describe('Layout strategy (default: freeform)'),
   description: z.string().optional().describe('Optional description'),
+  attachedToSemanticId: z.string().optional().describe('Semantic ID of construct to attach this organizer to (creates a "wagon")'),
 });
 
 const UpdateOrganizerSchema = z.object({
@@ -635,6 +636,7 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
           height: input.height,
           layout: input.layout,
           description: input.description,
+          attachedToSemanticId: input.attachedToSemanticId,
         }
       );
       if (result.error) return { error: result.error };

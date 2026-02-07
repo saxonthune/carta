@@ -567,6 +567,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
             height?: number;
             layout?: string;
             description?: string;
+            attachedToSemanticId?: string;
           }>(req);
 
           if (!body.name) {
@@ -574,14 +575,26 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
             return;
           }
 
+          // If attaching to a construct, look up the construct's node ID for parentId
+          let parentId: string | undefined;
+          if (body.attachedToSemanticId) {
+            const constructs = listConstructs(docState.doc, levelId);
+            const ownerNode = constructs.find(c => c.data.semanticId === body.attachedToSemanticId);
+            if (ownerNode) {
+              parentId = ownerNode.id;
+            }
+          }
+
           const organizer = createOrganizer(docState.doc, levelId, {
             name: body.name,
             color: body.color,
-            position: (body.x != null || body.y != null) ? { x: body.x || 100, y: body.y || 100 } : undefined,
+            position: (body.x != null || body.y != null) ? { x: body.x || 100, y: body.y || 100 } : body.attachedToSemanticId ? { x: 0, y: 190 } : undefined,
             width: body.width,
             height: body.height,
             layout: body.layout as 'freeform' | 'stack' | 'grid' | undefined,
             description: body.description,
+            attachedToSemanticId: body.attachedToSemanticId,
+            parentId,
           });
           sendJson(res, 201, { organizer });
           return;
@@ -602,6 +615,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
             collapsed?: boolean;
             layout?: string;
             description?: string;
+            attachedToSemanticId?: string;
           }>(req);
           const organizer = updateOrganizer(docState.doc, levelId, organizerId, {
             name: body.name,
@@ -609,6 +623,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
             collapsed: body.collapsed,
             layout: body.layout as 'freeform' | 'stack' | 'grid' | undefined,
             description: body.description,
+            attachedToSemanticId: body.attachedToSemanticId,
           });
           if (!organizer) {
             sendError(res, 404, `Organizer not found: ${organizerId}`, 'NOT_FOUND');

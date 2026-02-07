@@ -189,7 +189,20 @@ export function useGraphOperations(options: UseGraphOperationsOptions): UseGraph
 
   const deleteNode = useCallback(
     (nodeIdToDelete: string) => {
-      setNodes((nds) => nds.filter((n) => n.id !== nodeIdToDelete));
+      setNodes((nds) => {
+        const idsToDelete = new Set([nodeIdToDelete]);
+        const findDescendants = (parentId: string, depth = 0) => {
+          if (depth > 20) return;
+          for (const n of nds) {
+            if (n.parentId === parentId && !idsToDelete.has(n.id)) {
+              idsToDelete.add(n.id);
+              findDescendants(n.id, depth + 1);
+            }
+          }
+        };
+        findDescendants(nodeIdToDelete);
+        return nds.filter((n) => !idsToDelete.has(n.id));
+      });
       setEdges((eds) =>
         eds.filter((e) => e.source !== nodeIdToDelete && e.target !== nodeIdToDelete)
       );
@@ -200,10 +213,24 @@ export function useGraphOperations(options: UseGraphOperationsOptions): UseGraph
 
   const deleteSelectedNodes = useCallback(() => {
     if (selectedNodeIds.length === 0) return;
-    const idsToDelete = new Set(selectedNodeIds);
-    setNodes((nds) => nds.filter((n) => !idsToDelete.has(n.id)));
+    setNodes((nds) => {
+      const idsToDelete = new Set(selectedNodeIds);
+      const findDescendants = (parentId: string, depth = 0) => {
+        if (depth > 20) return;
+        for (const n of nds) {
+          if (n.parentId === parentId && !idsToDelete.has(n.id)) {
+            idsToDelete.add(n.id);
+            findDescendants(n.id, depth + 1);
+          }
+        }
+      };
+      for (const id of selectedNodeIds) {
+        findDescendants(id);
+      }
+      return nds.filter((n) => !idsToDelete.has(n.id));
+    });
     setEdges((eds) =>
-      eds.filter((e) => !idsToDelete.has(e.source) && !idsToDelete.has(e.target))
+      eds.filter((e) => !selectedNodeIds.includes(e.source) && !selectedNodeIds.includes(e.target))
     );
     setSelectedNodeIds([]);
   }, [selectedNodeIds, setNodes, setEdges, setSelectedNodeIds]);

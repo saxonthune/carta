@@ -16,6 +16,8 @@ const ORGANIZER_COLORS = ['#7c3aed', '#0891b2', '#059669', '#d97706', '#dc2626',
 export interface UseOrganizerOperationsResult {
   /** Create a new organizer from selected node IDs */
   createOrganizer: (selectedNodeIds: string[]) => string | null;
+  /** Create an organizer attached to a specific construct (wagon) */
+  createAttachedOrganizer: (constructNodeId: string, constructSemanticId: string) => string | null;
   /** Attach a node to an organizer (converts to relative position) */
   attachToOrganizer: (nodeId: string, organizerId: string) => void;
   /** Detach a node from its organizer (converts to absolute position) */
@@ -91,6 +93,36 @@ export function useOrganizerOperations(): UseOrganizerOperationsResult {
     });
 
     setNodes([organizerNode, ...updatedNodes]);
+    return organizerId;
+  }, [nodes, setNodes]);
+
+  const createAttachedOrganizer = useCallback((constructNodeId: string, constructSemanticId: string): string | null => {
+    const constructNode = nodes.find(n => n.id === constructNodeId);
+    if (!constructNode) return null;
+
+    const organizerId = crypto.randomUUID();
+    const color = ORGANIZER_COLORS[Math.floor(Math.random() * ORGANIZER_COLORS.length)];
+    const constructHeight = constructNode.measured?.height ?? constructNode.height ?? 150;
+
+    const organizerNode: Node<OrganizerNodeData> = {
+      id: organizerId,
+      type: 'organizer',
+      parentId: constructNodeId,
+      position: { x: 0, y: constructHeight + 40 },
+      width: 300,
+      height: 200,
+      style: { width: 300, height: 200 },
+      data: {
+        isOrganizer: true,
+        name: 'Members',
+        color,
+        collapsed: false,
+        layout: 'freeform',
+        attachedToSemanticId: constructSemanticId,
+      },
+    };
+
+    setNodes(nds => [organizerNode, ...nds]);
     return organizerId;
   }, [nodes, setNodes]);
 
@@ -251,6 +283,7 @@ export function useOrganizerOperations(): UseOrganizerOperationsResult {
 
   return {
     createOrganizer,
+    createAttachedOrganizer,
     attachToOrganizer,
     detachFromOrganizer,
     toggleOrganizerCollapse,
