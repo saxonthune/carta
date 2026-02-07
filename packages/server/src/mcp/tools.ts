@@ -49,9 +49,16 @@ const SetActiveLevelSchema = z.object({
   levelId: z.string().describe('The level ID to set as active'),
 });
 
+const ListSchemasSchema = z.object({
+  documentId: z.string().describe('The document ID'),
+  output: z.enum(['compact', 'full']).optional().describe('Output mode: "compact" returns {type, displayName, groupId} only. Default: "full"'),
+  groupId: z.string().optional().describe('Filter schemas by groupId'),
+});
+
 const ListConstructsSchema = z.object({
   documentId: z.string().describe('The document ID'),
   constructType: z.string().optional().describe('Filter by construct type (e.g. "service", "api-endpoint")'),
+  levelId: z.string().optional().describe('Target a specific level instead of the active level'),
 });
 
 const CreateConstructSchema = z.object({
@@ -122,6 +129,27 @@ const DeleteOrganizerSchema = z.object({
   documentId: z.string().describe('The document ID'),
   organizerId: z.string().describe('The organizer node ID'),
   deleteMembers: z.boolean().optional().describe('If true, delete member constructs too. Default: false (detach members)'),
+});
+
+const BulkCreateConstructsSchema = z.object({
+  documentId: z.string().describe('The document ID'),
+  constructs: z.array(z.object({
+    constructType: z.string().describe('The type of construct to create'),
+    values: z.record(z.unknown()).optional().describe('Initial field values'),
+    x: z.number().optional().describe('X position on canvas (auto-placed if omitted)'),
+    y: z.number().optional().describe('Y position on canvas (auto-placed if omitted)'),
+    parentId: z.string().optional().describe('Organizer node ID'),
+  })).describe('Array of constructs to create'),
+});
+
+const BulkConnectSchema = z.object({
+  documentId: z.string().describe('The document ID'),
+  connections: z.array(z.object({
+    sourceSemanticId: z.string().describe('Source construct semantic ID'),
+    sourcePortId: z.string().describe('Source port ID'),
+    targetSemanticId: z.string().describe('Target construct semantic ID'),
+    targetPortId: z.string().describe('Target port ID'),
+  })).describe('Array of connections to create'),
 });
 
 const CreateSchemaInputSchema = z.object({
@@ -225,8 +253,8 @@ export function getToolDefinitions() {
     },
     {
       name: 'carta_list_schemas',
-      description: 'List all available construct schemas (built-in and custom)',
-      inputSchema: DocumentIdSchema.shape,
+      description: 'List all available construct schemas (built-in and custom). Use output="compact" to reduce token usage.',
+      inputSchema: ListSchemasSchema.shape,
     },
     {
       name: 'carta_get_schema',
@@ -247,7 +275,7 @@ export function getToolDefinitions() {
     },
     {
       name: 'carta_list_constructs',
-      description: 'List constructs in a document (compact summaries). Use carta_get_construct for full details. Optionally filter by constructType.',
+      description: 'List constructs in a document (compact summaries). Use carta_get_construct for full details. Optionally filter by constructType or target a specific level.',
       inputSchema: ListConstructsSchema.shape,
     },
     {
@@ -279,6 +307,21 @@ export function getToolDefinitions() {
       name: 'carta_disconnect_constructs',
       description: 'Disconnect two constructs',
       inputSchema: DisconnectConstructsSchema.shape,
+    },
+    {
+      name: 'carta_create_constructs',
+      description: 'Create multiple constructs in a single transaction (all-or-nothing). Nodes without x/y are auto-placed in a grid.',
+      inputSchema: BulkCreateConstructsSchema.shape,
+    },
+    {
+      name: 'carta_connect_constructs_bulk',
+      description: 'Connect multiple construct pairs in a single call. Best-effort: individual failures are reported, not aborted.',
+      inputSchema: BulkConnectSchema.shape,
+    },
+    {
+      name: 'carta_get_document_summary',
+      description: 'Get a compact document summary with level/construct/edge counts. Use this for orientation instead of listing all constructs.',
+      inputSchema: DocumentIdSchema.shape,
     },
     {
       name: 'carta_create_organizer',
@@ -338,6 +381,9 @@ export interface ToolHandlers {
   carta_delete_construct: ToolHandler;
   carta_connect_constructs: ToolHandler;
   carta_disconnect_constructs: ToolHandler;
+  carta_create_constructs: ToolHandler;
+  carta_connect_constructs_bulk: ToolHandler;
+  carta_get_document_summary: ToolHandler;
   carta_create_organizer: ToolHandler;
   carta_update_organizer: ToolHandler;
   carta_delete_organizer: ToolHandler;
@@ -498,10 +544,14 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
     },
 
     carta_list_schemas: async (args) => {
-      const { documentId } = DocumentIdSchema.parse(args);
+      const { documentId, output, groupId } = ListSchemasSchema.parse(args);
+      const params = new URLSearchParams();
+      if (output) params.set('output', output);
+      if (groupId) params.set('groupId', groupId);
+      const qs = params.toString() ? `?${params.toString()}` : '';
       const result = await apiRequest<{ schemas: unknown[] }>(
         'GET',
-        `/api/documents/${encodeURIComponent(documentId)}/schemas`
+        `/api/documents/${encodeURIComponent(documentId)}/schemas${qs}`
       );
       if (result.error) return { error: result.error };
       return result.data;
@@ -539,11 +589,14 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
     },
 
     carta_list_constructs: async (args) => {
-      const { documentId, constructType } = ListConstructsSchema.parse(args);
-      const params = constructType ? `?type=${encodeURIComponent(constructType)}` : '';
+      const { documentId, constructType, levelId } = ListConstructsSchema.parse(args);
+      const params = new URLSearchParams();
+      if (constructType) params.set('type', constructType);
+      if (levelId) params.set('levelId', levelId);
+      const qs = params.toString() ? `?${params.toString()}` : '';
       const result = await apiRequest<{ constructs: unknown[]; organizers: unknown[] }>(
         'GET',
-        `/api/documents/${encodeURIComponent(documentId)}/constructs${params}`
+        `/api/documents/${encodeURIComponent(documentId)}/constructs${qs}`
       );
       if (result.error) return { error: result.error };
       return result.data;
@@ -617,6 +670,38 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
           sourcePortId: input.sourcePortId,
           targetSemanticId: input.targetSemanticId,
         }
+      );
+      if (result.error) return { error: result.error };
+      return result.data;
+    },
+
+    carta_create_constructs: async (args) => {
+      const { documentId, constructs } = BulkCreateConstructsSchema.parse(args);
+      const result = await apiRequest<{ constructs: unknown[] }>(
+        'POST',
+        `/api/documents/${encodeURIComponent(documentId)}/constructs/bulk`,
+        { constructs }
+      );
+      if (result.error) return { error: result.error };
+      return result.data;
+    },
+
+    carta_connect_constructs_bulk: async (args) => {
+      const { documentId, connections } = BulkConnectSchema.parse(args);
+      const result = await apiRequest<{ results: unknown[] }>(
+        'POST',
+        `/api/documents/${encodeURIComponent(documentId)}/connections/bulk`,
+        { connections }
+      );
+      if (result.error) return { error: result.error };
+      return result.data;
+    },
+
+    carta_get_document_summary: async (args) => {
+      const { documentId } = DocumentIdSchema.parse(args);
+      const result = await apiRequest<unknown>(
+        'GET',
+        `/api/documents/${encodeURIComponent(documentId)}/summary`
       );
       if (result.error) return { error: result.error };
       return result.data;

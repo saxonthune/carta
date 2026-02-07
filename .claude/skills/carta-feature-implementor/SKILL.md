@@ -161,7 +161,7 @@ After implementation (whether via plan mode or direct):
 
 1. **Build check**: `pnpm build`
 2. **Test check**: `pnpm test`
-3. **Mark plan as done**: Move or annotate the plan file
+3. **Delete the completed plan file** from `todo-plans/`
 
 Suggest follow-up skills if relevant:
 - `/documentation-nag` if docs need updating

@@ -900,6 +900,192 @@ export function removeSchema(ydoc: Y.Doc, type: string): boolean {
   return true;
 }
 
+// ===== AUTO-LAYOUT =====
+
+/**
+ * Compute a non-overlapping position for a new node by finding the bounding box
+ * of existing nodes and placing to the right.
+ */
+export function computeAutoPosition(
+  existingNodes: CompilerNode[],
+  index: number,
+  columnsPerRow = 4,
+  spacingX = 250,
+  spacingY = 200
+): { x: number; y: number } {
+  let maxX = -Infinity;
+  let minY = Infinity;
+
+  for (const node of existingNodes) {
+    if (node.position.x > maxX) maxX = node.position.x;
+    if (node.position.y < minY) minY = node.position.y;
+  }
+
+  // If no existing nodes, start at origin area
+  if (maxX === -Infinity) {
+    maxX = -spacingX; // so first column starts at 0
+    minY = 100;
+  }
+
+  const startX = maxX + spacingX;
+  const startY = minY;
+
+  const col = index % columnsPerRow;
+  const row = Math.floor(index / columnsPerRow);
+
+  return { x: startX + col * spacingX, y: startY + row * spacingY };
+}
+
+// ===== BULK OPERATIONS =====
+
+/**
+ * Create multiple constructs in a single Yjs transaction (all-or-nothing).
+ * Specs without explicit x/y are auto-placed in a grid layout.
+ */
+export function createConstructsBulk(
+  ydoc: Y.Doc,
+  levelId: string,
+  specs: Array<{
+    constructType: string;
+    values?: Record<string, unknown>;
+    x?: number;
+    y?: number;
+    parentId?: string;
+  }>
+): CompilerNode[] {
+  const existingNodes = listConstructs(ydoc, levelId);
+  const levelNodes = getLevelMap(ydoc, 'nodes', levelId);
+  const results: CompilerNode[] = [];
+
+  // Count auto-placed nodes for grid indexing
+  let autoIndex = 0;
+
+  ydoc.transact(() => {
+    for (const spec of specs) {
+      const semanticId = generateSemanticId(spec.constructType);
+      const nodeId = generateNodeId();
+
+      let position: { x: number; y: number };
+      if (spec.x != null && spec.y != null) {
+        position = { x: spec.x, y: spec.y };
+      } else {
+        position = computeAutoPosition(existingNodes, autoIndex);
+        autoIndex++;
+      }
+
+      const nodeData: ConstructNodeData = {
+        constructType: spec.constructType,
+        semanticId,
+        values: spec.values ?? {},
+        connections: [],
+      };
+
+      const node: CompilerNode = {
+        id: nodeId,
+        type: 'construct',
+        position,
+        data: nodeData,
+        parentId: spec.parentId,
+      };
+
+      const ynode = new Y.Map<unknown>();
+      ynode.set('type', node.type);
+      ynode.set('position', deepPlainToY(position));
+      ynode.set('data', deepPlainToY(nodeData));
+      if (spec.parentId) ynode.set('parentId', spec.parentId);
+      levelNodes.set(nodeId, ynode as Y.Map<unknown>);
+
+      results.push(node);
+      // Add to existingNodes so subsequent auto-placed nodes see this one
+      existingNodes.push(node);
+    }
+  }, MCP_ORIGIN);
+
+  return results;
+}
+
+/**
+ * Connect multiple construct pairs in a single Yjs transaction.
+ * Best-effort: individual failures are recorded, not aborted.
+ */
+export function connectBulk(
+  ydoc: Y.Doc,
+  levelId: string,
+  connections: Array<{
+    sourceSemanticId: string;
+    sourcePortId: string;
+    targetSemanticId: string;
+    targetPortId: string;
+  }>
+): Array<{ edge: CompilerEdge | null; error?: string }> {
+  const levelNodes = getLevelMap(ydoc, 'nodes', levelId);
+  const levelEdges = getLevelMap(ydoc, 'edges', levelId);
+
+  // Build a lookup of semanticId → { nodeId, ydata }
+  const nodeMap = new Map<string, { nodeId: string; ydata: Y.Map<unknown> }>();
+  levelNodes.forEach((ynode, id) => {
+    const ydata = ynode.get('data') as Y.Map<unknown> | Record<string, unknown> | undefined;
+    if (ydata) {
+      const sid = safeGet(ydata, 'semanticId') as string | undefined;
+      if (sid) nodeMap.set(sid, { nodeId: id, ydata: ydata as Y.Map<unknown> });
+    }
+  });
+
+  const results: Array<{ edge: CompilerEdge | null; error?: string }> = [];
+
+  ydoc.transact(() => {
+    for (const conn of connections) {
+      const source = nodeMap.get(conn.sourceSemanticId);
+      const target = nodeMap.get(conn.targetSemanticId);
+
+      if (!source || !target) {
+        results.push({
+          edge: null,
+          error: !source
+            ? `Source not found: ${conn.sourceSemanticId}`
+            : `Target not found: ${conn.targetSemanticId}`,
+        });
+        continue;
+      }
+
+      const edgeId = `edge_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+      const yedge = new Y.Map<unknown>();
+      yedge.set('source', source.nodeId);
+      yedge.set('target', target.nodeId);
+      yedge.set('sourceHandle', conn.sourcePortId);
+      yedge.set('targetHandle', conn.targetPortId);
+      levelEdges.set(edgeId, yedge as Y.Map<unknown>);
+
+      // Add connection to source node
+      let yconns = source.ydata.get('connections') as Y.Array<unknown> | undefined;
+      if (!yconns) {
+        yconns = new Y.Array();
+        source.ydata.set('connections', yconns);
+      }
+
+      const connectionData: ConnectionValue = {
+        portId: conn.sourcePortId,
+        targetSemanticId: conn.targetSemanticId,
+        targetPortId: conn.targetPortId,
+      };
+      yconns.push([deepPlainToY(connectionData)]);
+
+      results.push({
+        edge: {
+          id: edgeId,
+          source: source.nodeId,
+          target: target.nodeId,
+          sourceHandle: conn.sourcePortId,
+          targetHandle: conn.targetPortId,
+        },
+      });
+    }
+  }, MCP_ORIGIN);
+
+  return results;
+}
+
 // ===== COMPILATION =====
 
 /**

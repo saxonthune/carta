@@ -40,6 +40,9 @@ import {
   createOrganizer,
   updateOrganizer,
   deleteOrganizer,
+  createConstructsBulk,
+  connectBulk,
+  computeAutoPosition,
 } from '@carta/document';
 
 // ===== TYPES =====
@@ -437,7 +440,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
       if (constructsMatch) {
         const roomId = constructsMatch[1]!;
         const docState = await config.getDoc(roomId);
-        const levelId = getActiveLevelId(docState.doc);
+        const levelId = url.searchParams.get('levelId') || getActiveLevelId(docState.doc);
 
         if (method === 'GET') {
           const typeFilter = url.searchParams.get('type') || undefined;
@@ -456,6 +459,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
                 semanticId: c.data.semanticId,
                 constructType: c.data.constructType,
                 displayName,
+                levelId,
                 parentId: c.parentId,
               };
             });
@@ -488,17 +492,67 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
             return;
           }
 
+          // Auto-layout: compute position when x/y omitted
+          let position: { x: number; y: number };
+          if (body.x != null && body.y != null) {
+            position = { x: body.x, y: body.y };
+          } else {
+            const existing = listConstructs(docState.doc, levelId);
+            position = computeAutoPosition(existing, 0);
+          }
+
           const construct = createConstruct(
             docState.doc,
             levelId,
             body.constructType,
             body.values || {},
-            { x: body.x || 100, y: body.y || 100 },
+            position,
             body.parentId
           );
           sendJson(res, 201, { construct: construct.data });
           return;
         }
+      }
+
+      // Bulk create constructs
+      const bulkConstructsMatch = path.match(/^\/api\/documents\/([^/]+)\/constructs\/bulk$/);
+      if (bulkConstructsMatch && method === 'POST') {
+        const roomId = bulkConstructsMatch[1]!;
+        const docState = await config.getDoc(roomId);
+        const levelId = getActiveLevelId(docState.doc);
+
+        const body = await parseJsonBody<{
+          constructs: Array<{
+            constructType: string;
+            values?: Record<string, unknown>;
+            x?: number;
+            y?: number;
+            parentId?: string;
+          }>;
+        }>(req);
+
+        if (!body.constructs || !Array.isArray(body.constructs) || body.constructs.length === 0) {
+          sendError(res, 400, 'constructs array is required and must not be empty', 'MISSING_FIELD');
+          return;
+        }
+
+        const schemas = listSchemas(docState.doc);
+        const schemaMap = new Map(schemas.map(s => [s.type, s]));
+
+        const nodes = createConstructsBulk(docState.doc, levelId, body.constructs);
+        const results = nodes.map(n => {
+          const schema = schemaMap.get(n.data.constructType);
+          const pillField = schema?.fields.find(f => f.displayTier === 'pill');
+          const displayName = pillField ? String(n.data.values?.[pillField.name] || '') : n.data.semanticId;
+          return {
+            semanticId: n.data.semanticId,
+            constructType: n.data.constructType,
+            displayName,
+          };
+        });
+
+        sendJson(res, 201, { constructs: results });
+        return;
       }
 
       const constructMatch = path.match(/^\/api\/documents\/([^/]+)\/constructs\/([^/]+)$/);
@@ -705,6 +759,32 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
         }
       }
 
+      // Bulk connect constructs
+      const bulkConnectionsMatch = path.match(/^\/api\/documents\/([^/]+)\/connections\/bulk$/);
+      if (bulkConnectionsMatch && method === 'POST') {
+        const roomId = bulkConnectionsMatch[1]!;
+        const docState = await config.getDoc(roomId);
+        const levelId = getActiveLevelId(docState.doc);
+
+        const body = await parseJsonBody<{
+          connections: Array<{
+            sourceSemanticId: string;
+            sourcePortId: string;
+            targetSemanticId: string;
+            targetPortId: string;
+          }>;
+        }>(req);
+
+        if (!body.connections || !Array.isArray(body.connections) || body.connections.length === 0) {
+          sendError(res, 400, 'connections array is required and must not be empty', 'MISSING_FIELD');
+          return;
+        }
+
+        const results = connectBulk(docState.doc, levelId, body.connections);
+        sendJson(res, 201, { results });
+        return;
+      }
+
       // ===== SCHEMAS =====
 
       const schemasMatch = path.match(/^\/api\/documents\/([^/]+)\/schemas$/);
@@ -713,8 +793,26 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
         const docState = await config.getDoc(roomId);
 
         if (method === 'GET') {
-          const schemas = listSchemas(docState.doc);
-          sendJson(res, 200, { schemas });
+          let schemas = listSchemas(docState.doc);
+
+          // Filter by groupId if requested
+          const groupIdFilter = url.searchParams.get('groupId');
+          if (groupIdFilter) {
+            schemas = schemas.filter(s => s.groupId === groupIdFilter);
+          }
+
+          // Compact output mode
+          const outputMode = url.searchParams.get('output');
+          if (outputMode === 'compact') {
+            const compact = schemas.map(s => ({
+              type: s.type,
+              displayName: s.displayName,
+              groupId: s.groupId,
+            }));
+            sendJson(res, 200, { schemas: compact });
+          } else {
+            sendJson(res, 200, { schemas });
+          }
           return;
         }
 
@@ -816,6 +914,60 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
       if (portTypesMatch && method === 'GET') {
         const portTypes = portRegistry.getAll();
         sendJson(res, 200, { portTypes });
+        return;
+      }
+
+      // ===== DOCUMENT SUMMARY =====
+
+      const summaryMatch = path.match(/^\/api\/documents\/([^/]+)\/summary$/);
+      if (summaryMatch && method === 'GET') {
+        const roomId = summaryMatch[1]!;
+        const docState = await config.getDoc(roomId);
+        const ydoc = docState.doc;
+
+        const ymeta = ydoc.getMap('meta');
+        const title = (ymeta.get('title') as string) || 'Untitled Project';
+        const levels = listLevels(ydoc);
+        const activeLevel = getActiveLevel(ydoc);
+        const schemas = listSchemas(ydoc);
+        const builtInCount = schemas.filter(s => !ydoc.getMap('schemas').has(s.type)).length;
+        const customSchemaCount = schemas.length - builtInCount;
+
+        let totalConstructs = 0;
+        let totalOrganizers = 0;
+        let totalEdges = 0;
+
+        const levelSummaries = levels.map(level => {
+          const constructs = listConstructs(ydoc, level.id);
+          const constructCount = constructs.filter(c => c.type !== 'organizer').length;
+          const organizerCount = constructs.filter(c => c.type === 'organizer').length;
+
+          const yedges = ydoc.getMap<Y.Map<unknown>>('edges');
+          const levelEdgeMap = yedges.get(level.id) as Y.Map<unknown> | undefined;
+          const edgeCount = levelEdgeMap ? levelEdgeMap.size : 0;
+
+          totalConstructs += constructCount;
+          totalOrganizers += organizerCount;
+          totalEdges += edgeCount;
+
+          return {
+            id: level.id,
+            name: level.name,
+            constructCount,
+            organizerCount,
+            edgeCount,
+          };
+        });
+
+        sendJson(res, 200, {
+          title,
+          activeLevel,
+          levels: levelSummaries,
+          customSchemaCount,
+          totalConstructs,
+          totalOrganizers,
+          totalEdges,
+        });
         return;
       }
 
