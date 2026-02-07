@@ -5,7 +5,7 @@
  * - Empty input returns empty arrays
  * - Ungrouped schemas with sparse edges use grid layout
  * - Schemas inside groups get correct parentId
- * - Collapsed groups remap edges to group node
+ * - Collapsed groups emit all nodes (presentation layer handles hiding)
  * - Nested groups (group inside group) are handled correctly
  *
  * This tests the pure computeMetamapLayout function without React.
@@ -47,7 +47,6 @@ describe('computeMetamapLayout', () => {
 
     expect(result.nodes).toEqual([]);
     expect(result.edges).toEqual([]);
-    expect(result.schemaToCollapsedGroup.size).toBe(0);
   });
 
   it('positions ungrouped schemas in grid when many with sparse edges', () => {
@@ -101,7 +100,7 @@ describe('computeMetamapLayout', () => {
     // Find the group node
     const groupNode = result.nodes.find(n => n.id === 'group:backend-group');
     expect(groupNode).toBeDefined();
-    expect(groupNode!.type).toBe('schema-group');
+    expect(groupNode!.type).toBe('organizer');
     expect(groupNode!.parentId).toBeUndefined();
 
     // Find schemas in the group
@@ -118,7 +117,7 @@ describe('computeMetamapLayout', () => {
     expect(uiNode!.parentId).toBeUndefined();
   });
 
-  it('collapses groups and remaps edges to group node', () => {
+  it('emits all nodes even when groups are collapsed (presentation layer handles hiding)', () => {
     const schemas = [
       createSchema('service', 'backend-group', [
         { constructType: 'client', label: 'serves' },
@@ -137,34 +136,33 @@ describe('computeMetamapLayout', () => {
       expandedGroups: new Set(['backend-group']),
     });
 
-    // Edge should go from 'service' to 'client'
+    // Edge should go from 'service' to 'client' (no collapse remapping)
     expect(expandedResult.edges).toHaveLength(1);
     expect(expandedResult.edges[0].source).toBe('service');
     expect(expandedResult.edges[0].target).toBe('client');
 
-    // Group collapsed
+    // Group collapsed — all nodes still emitted
     const collapsedResult = computeMetamapLayout({
       schemas,
       schemaGroups,
       expandedGroups: new Set(), // nothing expanded
     });
 
-    // Edge should be remapped: 'group:backend-group' -> 'client'
+    // Edges remain on original schema nodes (presentation layer handles remapping)
     expect(collapsedResult.edges).toHaveLength(1);
-    expect(collapsedResult.edges[0].source).toBe('group:backend-group');
+    expect(collapsedResult.edges[0].source).toBe('service');
     expect(collapsedResult.edges[0].target).toBe('client');
 
-    // Collapsed group should have smaller bounds
+    // Collapsed group should have chip-sized bounds
     const collapsedGroup = collapsedResult.nodes.find(n => n.id === 'group:backend-group');
     expect(collapsedGroup).toBeDefined();
     expect(collapsedGroup!.style?.width).toBe(COLLAPSED_GROUP_WIDTH);
+    expect((collapsedGroup!.data as { collapsed: boolean }).collapsed).toBe(true);
 
-    // Schema inside collapsed group should NOT be emitted
+    // Schema inside collapsed group IS still emitted (presentation layer hides it)
     const serviceNode = collapsedResult.nodes.find(n => n.id === 'service');
-    expect(serviceNode).toBeUndefined();
-
-    // schemaToCollapsedGroup should map service -> backend-group
-    expect(collapsedResult.schemaToCollapsedGroup.get('service')).toBe('backend-group');
+    expect(serviceNode).toBeDefined();
+    expect(serviceNode!.parentId).toBe('group:backend-group');
   });
 
   it('handles nested groups (group inside group)', () => {

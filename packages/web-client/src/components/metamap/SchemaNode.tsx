@@ -1,12 +1,14 @@
-import { memo } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { portRegistry } from '@carta/domain';
 import type { ConstructSchema } from '@carta/domain';
+import { useLodBand } from '../canvas/lod/useLodBand';
 
 export interface SchemaNodeData {
   schema: ConstructSchema;
   isExpanded?: boolean;
   isDimmed?: boolean;
+  isHighlighted?: boolean;
   [key: string]: unknown;
 }
 
@@ -16,18 +18,104 @@ interface SchemaNodeProps {
 }
 
 const SchemaNode = memo(({ data, selected }: SchemaNodeProps) => {
-  const { schema, isExpanded, isDimmed } = data;
+  const { schema, isExpanded, isDimmed, isHighlighted } = data;
   const ports = schema.ports || [];
+  const lod = useLodBand();
+
+  // LOD transition crossfade
+  const prevBandRef = useRef(lod.band);
+  const [lodTransitioning, setLodTransitioning] = useState(false);
+
+  useEffect(() => {
+    if (prevBandRef.current !== lod.band) {
+      prevBandRef.current = lod.band;
+      setLodTransitioning(true);
+      requestAnimationFrame(() => setLodTransitioning(false));
+    }
+  }, [lod.band]);
+
+  const lodTransitionStyle: React.CSSProperties = {
+    opacity: lodTransitioning ? 0 : 1,
+    transition: 'opacity 120ms ease',
+  };
+
+  // Pill variant for low zoom
+  if (lod.band === 'pill') {
+    return (
+      <div
+        className={`rounded-lg font-semibold px-5 py-3 truncate cursor-move select-none whitespace-nowrap text-content flex items-center gap-3 ${
+          selected ? 'ring-2 ring-accent/40' : ''
+        }`}
+        style={{
+          ...lodTransitionStyle,
+          backgroundColor: `color-mix(in srgb, ${schema.color} 25%, var(--color-surface))`,
+          minWidth: 180,
+          maxWidth: 400,
+          fontSize: '24px',
+          boxShadow: isHighlighted
+            ? `0 0 0 2px ${schema.color}50, 0 0 12px ${schema.color}30`
+            : selected ? 'var(--node-shadow-selected)' : 'var(--node-shadow)',
+          opacity: isDimmed ? 0.2 : lodTransitioning ? 0 : 1,
+          pointerEvents: isDimmed ? 'none' : 'auto',
+        }}
+        title={`${schema.displayName} (${schema.type})`}
+      >
+        <span
+          className="inline-block w-3 h-3 rounded-sm flex-shrink-0"
+          style={{ backgroundColor: schema.color }}
+        />
+        <span className="truncate">{schema.displayName}</span>
+
+        {/* Invisible handles for edges */}
+        <Handle
+          id="meta-connect"
+          type="source"
+          position={Position.Right}
+          className="!absolute !opacity-0 !w-0 !h-0 !min-w-0 !min-h-0 !border-none !p-0"
+          style={{ right: 0, top: '50%', pointerEvents: 'none' }}
+        />
+        <Handle
+          id="meta-connect"
+          type="target"
+          position={Position.Left}
+          className="!absolute !opacity-0 !w-0 !h-0 !min-w-0 !min-h-0 !border-none !p-0"
+          style={{ left: 0, top: '50%', pointerEvents: 'none' }}
+        />
+        {ports.map((port) => (
+          <span key={port.id}>
+            <Handle
+              id={port.id}
+              type="source"
+              position={Position.Bottom}
+              className="!absolute !opacity-0 !w-0 !h-0 !min-w-0 !min-h-0 !border-none !p-0"
+              style={{ bottom: 0, left: '50%', pointerEvents: 'none' }}
+            />
+            <Handle
+              id={port.id}
+              type="target"
+              position={Position.Top}
+              className="!absolute !opacity-0 !w-0 !h-0 !min-w-0 !min-h-0 !border-none !p-0"
+              style={{ top: 0, left: '50%', pointerEvents: 'none' }}
+            />
+          </span>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div
-      className={`bg-surface rounded-lg min-w-[240px] text-node-base text-content relative transition-opacity duration-200 ${
+      className={`bg-surface rounded-lg min-w-[240px] text-node-base text-content relative transition-all duration-200 ${
         selected ? 'ring-2 ring-accent/30' : ''
       }`}
       style={{
-        boxShadow: selected ? 'var(--node-shadow-selected)' : 'var(--node-shadow)',
-        borderLeft: `2px solid color-mix(in srgb, ${schema.color} 70%, var(--color-surface-alt))`,
-        opacity: isDimmed ? 0.2 : 1,
+        ...lodTransitionStyle,
+        boxShadow: isHighlighted
+          ? `0 0 0 2px ${schema.color}50, 0 0 12px ${schema.color}30`
+          : selected ? 'var(--node-shadow-selected)' : 'var(--node-shadow)',
+        border: `1px solid var(--color-border-subtle)`,
+        borderLeft: `3px solid color-mix(in srgb, ${schema.color} 70%, var(--color-surface-alt))`,
+        opacity: isDimmed ? 0.2 : lodTransitioning ? 0 : 1,
         pointerEvents: isDimmed ? 'none' : 'auto',
       }}
     >

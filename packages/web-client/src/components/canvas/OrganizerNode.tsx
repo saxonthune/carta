@@ -5,16 +5,22 @@ import type { OrganizerNodeData as BaseOrganizerNodeData, OrganizerLayout } from
 import type { NodeActions } from './nodeActions';
 
 /**
- * Extended data interface with callbacks added by Map.tsx
+ * Extended data interface with callbacks added by Map.tsx.
+ * Also used by the metamap with optional canvas-specific fields.
  */
 export interface OrganizerNodeData extends BaseOrganizerNodeData {
   childCount: number;
   isDropTarget?: boolean;
   isHovered?: boolean;
   isDimmed?: boolean;
-  nodeActions: NodeActions;
+  nodeActions?: NodeActions;
   onChangeLayout?: (layout: OrganizerLayout) => void;
   onSetStackIndex?: (index: number) => void;
+
+  // Metamap-specific optional fields
+  depth?: number;
+  parentGroupName?: string;
+  groupId?: string;
 }
 
 type OrganizerNodeProps = NodeProps & {
@@ -38,19 +44,21 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
     isHovered,
     isDimmed,
     nodeActions,
+    depth = 0,
+    parentGroupName,
   } = data;
 
   const handleToggle = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      if (nodeId) nodeActions.onToggleCollapse(nodeId);
+      if (nodeId && nodeActions) nodeActions.onToggleCollapse(nodeId);
     },
     [nodeActions, nodeId]
   );
 
-  // Increased base color mix for better visibility
-  const bgMix = isHovered || isDropTarget ? 25 : 18;
-  const borderMix = isHovered || isDropTarget ? 45 : 35;
+  // Increased base color mix for better visibility; deeper nesting = stronger tint
+  const bgMix = isHovered || isDropTarget ? 25 : 18 + depth * 4;
+  const borderMix = isHovered || isDropTarget ? 45 : 35 + depth * 8;
 
   // Layout icon for collapsed chip
   const layoutIcon = layout === 'stack' ? '\u25A6' : layout === 'grid' ? '\u25A8' : '';
@@ -117,14 +125,16 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
               {childCount}
             </span>
           )}
-          {/* Eyeball toggle button */}
-          <button
-            className="w-5 h-5 flex items-center justify-center rounded text-content-muted hover:text-content transition-colors shrink-0"
-            onClick={handleToggle}
-            title="Expand organizer"
-          >
-            <EyeOffIcon size={14} />
-          </button>
+          {/* Eyeball toggle button (canvas only) */}
+          {nodeActions && (
+            <button
+              className="w-5 h-5 flex items-center justify-center rounded text-content-muted hover:text-content transition-colors shrink-0"
+              onClick={handleToggle}
+              title="Expand organizer"
+            >
+              <EyeOffIcon size={14} />
+            </button>
+          )}
         </div>
       </div>
     );
@@ -191,6 +201,9 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
             <span className="text-node-xs font-medium text-content text-halo">
               {name}
             </span>
+            {parentGroupName && (
+              <span className="text-[9px] text-content-subtle leading-tight">{parentGroupName}</span>
+            )}
           </div>
           {childCount > 0 && (
             <span
@@ -203,14 +216,30 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
               {childCount}
             </span>
           )}
-          {/* Eyeball toggle button */}
-          <button
-            className="w-5 h-5 flex items-center justify-center rounded text-content-muted hover:text-content transition-colors shrink-0"
-            onClick={handleToggle}
-            title="Collapse organizer"
-          >
-            <EyeIcon size={14} />
-          </button>
+          {/* Eyeball toggle button (canvas only — metamap uses click to toggle) */}
+          {nodeActions && (
+            <button
+              className="w-5 h-5 flex items-center justify-center rounded text-content-muted hover:text-content transition-colors shrink-0"
+              onClick={handleToggle}
+              title="Collapse organizer"
+            >
+              <EyeIcon size={14} />
+            </button>
+          )}
+          {/* Collapse chevron hint (metamap only) */}
+          {!nodeActions && (
+            <svg
+              viewBox="0 0 24 24"
+              width="12"
+              height="12"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="text-content-subtle opacity-40 shrink-0"
+            >
+              <polyline points="18 15 12 9 6 15" />
+            </svg>
+          )}
         </div>
       </div>
     </div>

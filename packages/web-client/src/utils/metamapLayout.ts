@@ -1,7 +1,7 @@
 import dagre from '@dagrejs/dagre';
 import type { Node, Edge } from '@xyflow/react';
 import type { ConstructSchema, SchemaGroup } from '@carta/domain';
-import type { SchemaGroupNodeData } from '../components/metamap/SchemaGroupNode';
+import type { OrganizerNodeData } from '../components/canvas/OrganizerNode';
 
 // Layout constants
 export const SCHEMA_NODE_WIDTH = 240;
@@ -12,17 +12,19 @@ export const COMPACT_HEIGHT = 80;
 export const COLLAPSED_GROUP_WIDTH = 180;
 export const COLLAPSED_GROUP_HEIGHT = 44;
 
+export type MetamapLayoutDirection = 'TB' | 'LR';
+
 export interface MetamapLayoutInput {
   schemas: ConstructSchema[];
   schemaGroups: SchemaGroup[];
   expandedSchemas?: Set<string>;
   expandedGroups?: Set<string>;
+  layoutDirection?: MetamapLayoutDirection;
 }
 
 export interface MetamapLayoutOutput {
   nodes: Node[];
   edges: Edge[];
-  schemaToCollapsedGroup: Map<string, string>;
 }
 
 interface GroupBounds {
@@ -43,40 +45,10 @@ export function estimateSchemaNodeHeight(schema: ConstructSchema, isExpanded?: b
 }
 
 /**
- * Build a map from schema type to the deepest collapsed group it belongs to.
- * If a schema's group (or any ancestor) is collapsed, map schema -> collapsed group ID.
+ * Extract edges from schema relationships without collapse remapping.
+ * Edge remapping is handled by the presentation layer.
  */
-export function buildCollapsedSchemaMap(
-  schemas: ConstructSchema[],
-  groupMap: Map<string, SchemaGroup>,
-  expandedGroups?: Set<string>,
-): Map<string, string> {
-  const schemaToCollapsedGroup = new Map<string, string>();
-  if (!expandedGroups) return schemaToCollapsedGroup;
-
-  for (const s of schemas) {
-    if (!s.groupId || !groupMap.has(s.groupId)) continue;
-    // Walk up from schema's group to find the outermost collapsed ancestor
-    let collapsedGroup: string | undefined;
-    let current: string | undefined = s.groupId;
-    while (current) {
-      if (!expandedGroups.has(current)) {
-        collapsedGroup = current;
-      }
-      const group = groupMap.get(current);
-      current = group?.parentId;
-    }
-    if (collapsedGroup) {
-      schemaToCollapsedGroup.set(s.type, collapsedGroup);
-    }
-  }
-  return schemaToCollapsedGroup;
-}
-
-export function extractEdges(
-  schemas: ConstructSchema[],
-  schemaToCollapsedGroup?: Map<string, string>,
-): Edge[] {
+export function extractEdges(schemas: ConstructSchema[]): Edge[] {
   const schemaTypes = new Set(schemas.map(s => s.type));
   const portLookup = new Map<string, Set<string>>();
   for (const s of schemas) {
@@ -91,34 +63,21 @@ export function extractEdges(
       if (schema.type === rel.constructType) continue;
       if (!schemaTypes.has(rel.constructType)) continue;
 
-      // Remap endpoints for collapsed groups
-      const srcCollapsed = schemaToCollapsedGroup?.get(schema.type);
-      const tgtCollapsed = schemaToCollapsedGroup?.get(rel.constructType);
+      const sourceHasPort = rel.fromPortId && portLookup.get(schema.type)?.has(rel.fromPortId);
+      const targetHasPort = rel.toPortId && portLookup.get(rel.constructType)?.has(rel.toPortId);
 
-      // If both are in the same collapsed group, skip the edge
-      if (srcCollapsed && tgtCollapsed && srcCollapsed === tgtCollapsed) continue;
+      const sourceHandle = sourceHasPort ? rel.fromPortId : 'meta-connect';
+      const targetHandle = targetHasPort ? rel.toPortId : 'meta-connect';
 
-      const effectiveSource = srcCollapsed ? `group:${srcCollapsed}` : schema.type;
-      const effectiveTarget = tgtCollapsed ? `group:${tgtCollapsed}` : rel.constructType;
-
-      // If both ends remap to the same node, skip
-      if (effectiveSource === effectiveTarget) continue;
-
-      const sourceHasPort = !srcCollapsed && rel.fromPortId && portLookup.get(schema.type)?.has(rel.fromPortId);
-      const targetHasPort = !tgtCollapsed && rel.toPortId && portLookup.get(rel.constructType)?.has(rel.toPortId);
-
-      const sourceHandle = srcCollapsed ? 'group-connect' : (sourceHasPort ? rel.fromPortId : 'meta-connect');
-      const targetHandle = tgtCollapsed ? 'group-connect' : (targetHasPort ? rel.toPortId : 'meta-connect');
-
-      const edgeId = `meta:${effectiveSource}:${sourceHandle}->${effectiveTarget}:${targetHandle}`;
+      const edgeId = `meta:${schema.type}:${sourceHandle}->${rel.constructType}:${targetHandle}`;
 
       if (edgeIds.has(edgeId)) continue;
       edgeIds.add(edgeId);
 
       edges.push({
         id: edgeId,
-        source: effectiveSource,
-        target: effectiveTarget,
+        source: schema.type,
+        target: rel.constructType,
         sourceHandle,
         targetHandle,
         label: rel.label || '',
@@ -196,6 +155,8 @@ export function countSchemasInGroup(
 
 /**
  * Recursively compute bounds for a group and all its descendants.
+ * Always computes full expanded layout; collapsed groups get chip-sized bounds
+ * but their children still get positions (presentation layer handles hiding).
  */
 export function layoutGroup(
   groupId: string,
@@ -207,16 +168,9 @@ export function layoutGroup(
   expandedSchemas: Set<string> | undefined,
   groupBoundsMap: Map<string, GroupBounds>,
   expandedGroups?: Set<string>,
+  layoutDirection: MetamapLayoutDirection = 'TB',
 ): GroupBounds {
-  // If group is collapsed, return fixed small bounds
-  if (expandedGroups && !expandedGroups.has(groupId)) {
-    return {
-      width: COLLAPSED_GROUP_WIDTH,
-      height: COLLAPSED_GROUP_HEIGHT,
-      nodePositions: new Map(),
-      childGroupPositions: new Map(),
-    };
-  }
+  const isCollapsed = expandedGroups !== undefined && !expandedGroups.has(groupId);
 
   // First, recursively layout all child groups
   const childBounds = new Map<string, GroupBounds>();
@@ -232,6 +186,7 @@ export function layoutGroup(
       expandedSchemas,
       groupBoundsMap,
       expandedGroups,
+      layoutDirection,
     );
     childBounds.set(childId, bounds);
     groupBoundsMap.set(childId, bounds);
@@ -243,7 +198,7 @@ export function layoutGroup(
   // Layout using dagre: schemas + child group bounding boxes as nodes
   const g = new dagre.graphlib.Graph();
   g.setGraph({
-    rankdir: 'TB',
+    rankdir: layoutDirection,
     nodesep: 20,
     ranksep: 30,
     marginx: 0,
@@ -302,8 +257,8 @@ export function layoutGroup(
   // Handle empty group
   if (directSchemas.length === 0 && childBounds.size === 0) {
     return {
-      width: 240,
-      height: 160,
+      width: isCollapsed ? COLLAPSED_GROUP_WIDTH : 240,
+      height: isCollapsed ? COLLAPSED_GROUP_HEIGHT : 160,
       nodePositions,
       childGroupPositions,
     };
@@ -327,6 +282,16 @@ export function layoutGroup(
   const contentWidth = maxX - minX;
   const contentHeight = maxY - minY;
 
+  // Collapsed groups use chip dimensions for inter-group layout
+  if (isCollapsed) {
+    return {
+      width: COLLAPSED_GROUP_WIDTH,
+      height: COLLAPSED_GROUP_HEIGHT,
+      nodePositions,
+      childGroupPositions,
+    };
+  }
+
   return {
     width: contentWidth + GROUP_PADDING_X * 2,
     height: contentHeight + GROUP_PADDING_TOP + GROUP_PADDING_BOTTOM,
@@ -337,21 +302,22 @@ export function layoutGroup(
 
 /**
  * Compute the complete metamap layout given schemas and schema groups.
+ * Emits ALL nodes (including children of collapsed groups) so the
+ * presentation layer can handle hiding and edge remapping.
  * This is a pure function with no React dependencies, enabling unit testing.
  */
 export function computeMetamapLayout(input: MetamapLayoutInput): MetamapLayoutOutput {
-  const { schemas, schemaGroups, expandedSchemas, expandedGroups } = input;
+  const { schemas, schemaGroups, expandedSchemas, expandedGroups, layoutDirection = 'TB' } = input;
 
   // Build group structures
   const { children: groupTree, groupMap } = buildGroupTree(schemaGroups);
 
-  // Build collapsed schema map and extract edges
-  const schemaToCollapsedGroup = buildCollapsedSchemaMap(schemas, groupMap, expandedGroups);
-  const edges = extractEdges(schemas, schemaToCollapsedGroup);
+  // Extract edges without collapse remapping (presentation layer handles that)
+  const edges = extractEdges(schemas);
 
   // Handle empty input
   if (schemas.length === 0) {
-    return { nodes: [], edges: [], schemaToCollapsedGroup };
+    return { nodes: [], edges: [] };
   }
 
   // Map schemas to their direct group
@@ -383,6 +349,7 @@ export function computeMetamapLayout(input: MetamapLayoutInput): MetamapLayoutOu
       expandedSchemas,
       allGroupBounds,
       expandedGroups,
+      layoutDirection,
     );
     allGroupBounds.set(rootId, bounds);
   }
@@ -390,7 +357,7 @@ export function computeMetamapLayout(input: MetamapLayoutInput): MetamapLayoutOu
   // Phase 2: Inter-group layout for root groups + ungrouped schemas
   const interG = new dagre.graphlib.Graph();
   interG.setGraph({
-    rankdir: 'TB',
+    rankdir: layoutDirection,
     nodesep: 80,
     ranksep: 60,
     marginx: 0,
@@ -421,12 +388,6 @@ export function computeMetamapLayout(input: MetamapLayoutInput): MetamapLayoutOu
 
   // Resolve edge endpoints to inter-group node IDs
   function resolveToInterGroupNode(edgeEndpoint: string): string | undefined {
-    // If it's already a group reference (from collapsed remapping), find its root
-    if (edgeEndpoint.startsWith('group:')) {
-      const gid = edgeEndpoint.slice(6);
-      return `group:${findRootGroup(gid)}`;
-    }
-    // Otherwise it's a schema type
     const rootGroup = schemaToRootGroup.get(edgeEndpoint);
     if (rootGroup) return `group:${rootGroup}`;
     // Ungrouped schema — it's a direct inter-group node
@@ -459,7 +420,7 @@ export function computeMetamapLayout(input: MetamapLayoutInput): MetamapLayoutOu
     // First, position root groups using dagre
     const groupOnlyG = new dagre.graphlib.Graph();
     groupOnlyG.setGraph({
-      rankdir: 'TB',
+      rankdir: layoutDirection,
       nodesep: 80,
       ranksep: 60,
       marginx: 0,
@@ -511,10 +472,10 @@ export function computeMetamapLayout(input: MetamapLayoutInput): MetamapLayoutOu
     dagre.layout(interG);
   }
 
-  // Assembly: emit nodes in parent-first order
+  // Assembly: emit ALL nodes in parent-first order
   const nodes: Node[] = [];
 
-  // Recursively emit group nodes (parent before children)
+  // Recursively emit group nodes (parent before children) — always emits children
   function emitGroupNodes(
     groupId: string,
     parentReactFlowId: string | undefined,
@@ -529,28 +490,27 @@ export function computeMetamapLayout(input: MetamapLayoutInput): MetamapLayoutOu
 
     nodes.push({
       id: reactFlowId,
-      type: 'schema-group',
+      type: 'organizer',
       position,
       ...(parentReactFlowId ? { parentId: parentReactFlowId } : {}),
       style: { width: bounds.width, height: bounds.height },
       data: {
-        groupId,
-        label: group?.name || groupId,
+        isOrganizer: true,
+        name: group?.name || groupId,
         color: group?.color || '#6366f1',
+        collapsed: !isGroupExpanded,
+        layout: 'freeform',
         description: group?.description,
+        childCount: schemaCount,
         depth,
         parentGroupName: group?.parentId ? groupMap.get(group.parentId)?.name : undefined,
-        isExpanded: isGroupExpanded,
-        schemaCount,
-      } satisfies SchemaGroupNodeData,
+        groupId,
+      } satisfies OrganizerNodeData,
       draggable: true,
       selectable: true,
     });
 
-    // If collapsed, don't emit child nodes
-    if (!isGroupExpanded) return;
-
-    // Emit schema nodes inside this group
+    // Always emit schema nodes inside this group (presentation layer hides if collapsed)
     for (const [schemaType, pos] of bounds.nodePositions) {
       const schema = schemas.find(s => s.type === schemaType);
       if (schema) {
@@ -559,13 +519,12 @@ export function computeMetamapLayout(input: MetamapLayoutInput): MetamapLayoutOu
           type: 'schema-node',
           position: pos,
           parentId: reactFlowId,
-          // Don't constrain extent so nodes can be dragged out of groups
           data: { schema, isExpanded: expandedSchemas?.has(schemaType) },
         });
       }
     }
 
-    // Emit child groups
+    // Always emit child groups
     for (const [childGroupId, childPos] of bounds.childGroupPositions) {
       const childBounds = allGroupBounds.get(childGroupId);
       if (childBounds) {
@@ -605,5 +564,5 @@ export function computeMetamapLayout(input: MetamapLayoutInput): MetamapLayoutOu
     });
   }
 
-  return { nodes, edges, schemaToCollapsedGroup };
+  return { nodes, edges };
 }

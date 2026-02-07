@@ -354,17 +354,6 @@ body,
   opacity: 1;
 }
 
-/* Schema group container node */
-.react-flow__node-schema-group {
-  background: transparent;
-  border: none;
-  padding: 0;
-  box-shadow: none;
-}
-
-.react-flow__node-schema-group.selected {
-  box-shadow: none;
-}
 
 /* Metamap edge hover - indicate clickability */
 .metamap-canvas .react-flow__edge:hover .react-flow__edge-path {

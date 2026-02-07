@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { computeMetamapLayout } from '../utils/metamapLayout';
+import type { MetamapLayoutDirection } from '../utils/metamapLayout';
 import type { ConstructSchema, SchemaGroup } from '@carta/domain';
 
 /**
@@ -11,6 +12,7 @@ export function useMetamapLayout(
   schemaGroups: SchemaGroup[],
   expandedSchemas?: Set<string>,
   expandedGroups?: Set<string>,
+  layoutDirection?: MetamapLayoutDirection,
 ) {
   const [layoutVersion, setLayoutVersion] = useState(0);
 
@@ -18,10 +20,10 @@ export function useMetamapLayout(
     setLayoutVersion(v => v + 1);
   }, []);
 
-  const { nodes, edges, schemaToCollapsedGroup } = useMemo(() => {
+  const { nodes, edges } = useMemo(() => {
     void layoutVersion; // Force recalculation when version changes
-    return computeMetamapLayout({ schemas, schemaGroups, expandedSchemas, expandedGroups });
-  }, [schemas, schemaGroups, expandedSchemas, expandedGroups, layoutVersion]);
+    return computeMetamapLayout({ schemas, schemaGroups, expandedSchemas, expandedGroups, layoutDirection });
+  }, [schemas, schemaGroups, expandedSchemas, expandedGroups, layoutDirection, layoutVersion]);
 
-  return { nodes, edges, reLayout, schemaToCollapsedGroup };
+  return { nodes, edges, reLayout };
 }
