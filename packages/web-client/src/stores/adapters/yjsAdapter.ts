@@ -28,6 +28,8 @@ export interface YjsAdapterOptions {
   syncUrl?: string;
   /** Skip IndexedDB persistence (for testing) */
   skipPersistence?: boolean;
+  /** Skip default level creation — set when the adapter will sync with a server that provides initial state */
+  deferDefaultLevel?: boolean;
 }
 
 /**
@@ -264,8 +266,8 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       // Migrate flat data to levels if needed
       migrateToLevels(ydoc);
 
-      // Ensure at least one level exists
-      if (ylevels.size === 0) {
+      // Ensure at least one level exists (skip when syncing — server provides initial state)
+      if (ylevels.size === 0 && !options.deferDefaultLevel) {
         const levelId = generateLevelId();
         const levelData = new Y.Map<unknown>();
         levelData.set('id', levelId);
@@ -273,6 +275,14 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
         levelData.set('order', 0);
         ylevels.set(levelId, levelData);
         ymeta.set('activeLevel', levelId);
+        console.debug('[levels] Created default Main level in initializeDefaults', { levelId, roomId, mode });
+      } else {
+        console.debug('[levels] initializeDefaults: skipped level creation', {
+          count: ylevels.size,
+          deferDefaultLevel: options.deferDefaultLevel,
+          ids: Array.from(ylevels.keys()),
+          roomId,
+        });
       }
     }, 'init');
   };
@@ -704,6 +714,8 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
         edges: [],
       };
 
+      console.debug('[levels] createLevel', { id, name, existingCount: ylevels.size, roomId });
+
       ydoc.transact(() => {
         const ylevel = new Y.Map<unknown>();
         ylevel.set('id', id);
@@ -1066,6 +1078,28 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       const ws = wsProvider as { on: (event: string, cb: () => void) => void };
       ws.on('sync', () => {
         connectionStatus = 'connected';
+
+        // Log post-sync levels state for debugging
+        const levelEntries: Array<{ key: string; name: string }> = [];
+        ylevels.forEach((ylevel, key) => {
+          levelEntries.push({ key, name: ylevel.get('name') as string });
+        });
+        console.debug('[levels] Post-sync levels state', { roomId: newRoomId, levels: levelEntries });
+
+        // Safety net: if server had no levels either, create the default
+        if (ylevels.size === 0) {
+          console.debug('[levels] No levels after sync, creating default Main level', { roomId: newRoomId });
+          ydoc.transact(() => {
+            const levelId = generateLevelId();
+            const levelData = new Y.Map<unknown>();
+            levelData.set('id', levelId);
+            levelData.set('name', 'Main');
+            levelData.set('order', 0);
+            ylevels.set(levelId, levelData);
+            ymeta.set('activeLevel', levelId);
+          }, 'init');
+        }
+
         notifyListeners();
       });
 

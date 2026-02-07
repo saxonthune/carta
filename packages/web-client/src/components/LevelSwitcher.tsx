@@ -23,7 +23,7 @@ interface SortableLevelRowProps {
   editInputRef: React.RefObject<HTMLInputElement | null>;
   levelsCount: number;
   onSelect: (levelId: string) => void;
-  onStartEdit: (level: Level, event: React.MouseEvent) => void;
+  onStartEdit: (level: Level) => void;
   onFinishEdit: () => void;
   onCancelEdit: () => void;
   onEditNameChange: (value: string) => void;
@@ -65,10 +65,8 @@ function SortableLevelRow({
 
   const handleClick = () => {
     if (editMode) {
-      // In edit mode, clicking the name starts inline edit
-      if (!isEditing) {
-        onStartEdit(level, {} as React.MouseEvent);
-      }
+      // In edit mode, clicking the row always starts inline edit
+      onStartEdit(level);
     } else {
       onSelect(level.id);
     }
@@ -118,8 +116,8 @@ function SortableLevelRow({
         <>
           <span
             className="flex-1 text-sm truncate"
-            onDoubleClick={(e) => {
-              if (!editMode) onStartEdit(level, e as unknown as React.MouseEvent);
+            onDoubleClick={() => {
+              if (!editMode) onStartEdit(level);
             }}
           >
             {level.name}
@@ -169,6 +167,8 @@ export default function LevelSwitcher({
   const [editName, setEditName] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
+  // Counter to force re-focus when clicking the same level again
+  const editFocusCounter = useRef(0);
 
   const currentLevel = levels.find(l => l.id === activeLevel);
 
@@ -187,13 +187,14 @@ export default function LevelSwitcher({
     }
   }, [isOpen]);
 
-  // Focus input when editing
+  // Focus input when editing — uses a counter so re-clicking the same level re-focuses
   useEffect(() => {
     if (editingLevelId && editInputRef.current) {
       editInputRef.current.focus();
       editInputRef.current.select();
     }
-  }, [editingLevelId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editingLevelId, editFocusCounter.current]);
 
   // Reset edit mode when dropdown closes
   useEffect(() => {
@@ -203,9 +204,11 @@ export default function LevelSwitcher({
     }
   }, [isOpen]);
 
-  const handleStartEdit = useCallback((level: Level, _event: React.MouseEvent) => {
+  const handleStartEdit = useCallback((level: Level) => {
+    // Always set both — even if same level, bump counter to re-trigger focus
     setEditingLevelId(level.id);
     setEditName(level.name);
+    editFocusCounter.current += 1;
   }, []);
 
   const handleFinishEdit = useCallback(() => {
@@ -267,42 +270,41 @@ export default function LevelSwitcher({
 
   return (
     <div className="relative" ref={dropdownRef}>
-      <button
-        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-surface text-content border border-border rounded-lg cursor-pointer hover:bg-surface-alt transition-colors"
-        onClick={() => setIsOpen(!isOpen)}
-        title="Switch level"
-      >
-        <svg className="w-3.5 h-3.5 text-content-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M12 2L2 7l10 5 10-5-10-5z" />
-          <path d="M2 17l10 5 10-5" />
-          <path d="M2 12l10 5 10-5" />
-        </svg>
-        <span className="max-w-[120px] truncate">{currentLevel?.name || 'Main'}</span>
-        <svg className="w-3 h-3 text-content-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M6 9l6 6 6-6" />
-        </svg>
-      </button>
+      <div className="flex items-center gap-0.5">
+        <button
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-surface text-content border border-border rounded-lg cursor-pointer hover:bg-surface-alt transition-colors"
+          onClick={() => setIsOpen(!isOpen)}
+          title="Switch level"
+        >
+          <svg className="w-3.5 h-3.5 text-content-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M12 2L2 7l10 5 10-5-10-5z" />
+            <path d="M2 17l10 5 10-5" />
+            <path d="M2 12l10 5 10-5" />
+          </svg>
+          <span className="max-w-[120px] truncate">{currentLevel?.name || 'Main'}</span>
+          <svg className={`w-3 h-3 text-content-muted transition-transform ${isOpen ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        </button>
+        {isOpen && (
+          <button
+            className={`p-1.5 rounded-lg border transition-colors ${editMode ? 'bg-accent text-white border-accent' : 'bg-surface text-content-muted border-border hover:text-content hover:bg-surface-alt'}`}
+            onClick={() => {
+              setEditMode(!editMode);
+              setEditingLevelId(null);
+            }}
+            title={editMode ? 'Exit edit mode' : 'Edit levels'}
+          >
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+            </svg>
+          </button>
+        )}
+      </div>
 
       {isOpen && (
-        <div className="absolute right-0 top-full mt-1 bg-surface border border-subtle rounded-lg shadow-lg overflow-hidden z-50 min-w-[200px]">
-          {/* Header with edit mode toggle */}
-          <div className="flex items-center justify-between px-3 py-1.5 border-b border-subtle">
-            <span className="text-xs text-content-muted uppercase tracking-wide">Levels</span>
-            <button
-              className={`p-1 rounded transition-colors ${editMode ? 'bg-accent text-white' : 'text-content-muted hover:text-content hover:bg-surface-alt'}`}
-              onClick={() => {
-                setEditMode(!editMode);
-                setEditingLevelId(null);
-              }}
-              title={editMode ? 'Exit edit mode' : 'Edit levels'}
-            >
-              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-              </svg>
-            </button>
-          </div>
-
+        <div className="absolute right-0 top-full mt-1 bg-surface border border-subtle rounded-lg shadow-lg overflow-hidden z-50 min-w-[260px]">
           {/* Level rows */}
           {editMode ? (
             <DndContext collisionDetection={pointerWithin} onDragEnd={handleDragEnd}>

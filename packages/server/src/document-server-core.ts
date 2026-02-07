@@ -316,6 +316,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
             levelData.set('order', 0);
             ylevels.set(levelId, levelData);
             ymeta.set('activeLevel', levelId);
+            console.log(`${logPrefix} [levels] Created default Main level for new document`, { levelId, roomId });
           }
         }, 'server');
 

@@ -77,6 +77,7 @@ export function DocumentProvider({
         mode: 'local',
         roomId: documentId,
         skipPersistence: shouldSkipPersistence,
+        deferDefaultLevel: config.hasSync,
       };
 
       // Create Yjs adapter
