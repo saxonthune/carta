@@ -37,6 +37,17 @@ The document uses **levels** to represent different abstraction strata. These ar
 
 The levels, schemas, and construct types will evolve. The first pass will be wrong. That's the bootstrap — the seed compiler written in assembly.
 
+## The `carta-` prefix convention
+
+Custom schemas created for this document use the `carta-` prefix (e.g., `carta-user-story`, `carta-capability`). This distinguishes evolving, document-specific types from the built-in schema groups (e.g., `cm-user-story` from the capability-model group).
+
+**Why**: We're testing Carta with Carta. The built-in schemas are general-purpose; `carta-` schemas are tuned to model *this* application. They'll diverge, get refined, and eventually some may merge back into built-ins. The prefix keeps the two populations legible while both exist in the same document.
+
+**Rules**:
+- New schemas for the self-describing document always get `carta-` prefix
+- Built-in schemas can coexist but aren't modified — create a `carta-` variant instead
+- When a `carta-` schema stabilizes and proves generally useful, it can graduate to a built-in (removing the prefix)
+
 ## Principles
 
 **Do not represent code you haven't read.** Before creating a construct for a module, read the actual source. `.docs/` gives architectural understanding; source files give implementation truth.

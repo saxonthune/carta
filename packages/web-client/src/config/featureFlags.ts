@@ -14,6 +14,7 @@ interface ElectronAPI {
   getDefaultVaultPath: () => Promise<string>;
   chooseVaultFolder: () => Promise<string | null>;
   initializeVault: (path: string) => Promise<{ url: string; wsUrl: string; port: number; documentId: string }>;
+  revealVault: () => Promise<void>;
 }
 
 declare global {

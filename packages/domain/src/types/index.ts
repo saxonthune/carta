@@ -371,6 +371,8 @@ export interface DocumentSummary {
   updatedAt: string;
   nodeCount: number;
   createdAt?: string;
+  /** Local filename (desktop only, e.g. "my-doc.json") */
+  filename?: string;
 }
 
 /**

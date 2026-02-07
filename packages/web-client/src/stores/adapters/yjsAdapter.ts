@@ -186,7 +186,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     const title = (ymeta.get('title') as string) || 'Untitled Project';
     const levelNodes = getActiveLevelNodes();
     let nodeCount = 0;
-    levelNodes.forEach(() => { nodeCount++; });
+    levelNodes?.forEach(() => { nodeCount++; });
     updateDocumentMetadata(roomId!, { title, nodeCount }).catch(() => {
       // Best-effort — don't break the app if registry update fails
     });
@@ -218,36 +218,43 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
   }
 
   /**
-   * Get the Y.Map for nodes of the active level
+   * Get the Y.Map for nodes of the active level.
+   * Returns null when no level exists (e.g. before sync delivers initial state).
    */
-  function getActiveLevelNodes(): Y.Map<Y.Map<unknown>> {
+  function getActiveLevelNodes(): Y.Map<Y.Map<unknown>> | null {
     const levelId = getActiveLevelId();
     if (!levelId) {
-      // Return empty map if no levels exist
-      return new Y.Map<Y.Map<unknown>>();
+      return null;
     }
     let levelNodes = ynodes.get(levelId) as Y.Map<Y.Map<unknown>> | undefined;
     if (!levelNodes) {
-      levelNodes = new Y.Map<Y.Map<unknown>>();
-      ynodes.set(levelId, levelNodes as unknown as Y.Map<unknown>);
+      ydoc.transact(() => {
+        levelNodes = new Y.Map<Y.Map<unknown>>();
+        ynodes.set(levelId, levelNodes as unknown as Y.Map<unknown>);
+      }, 'init');
+      levelNodes = ynodes.get(levelId) as Y.Map<Y.Map<unknown>>;
     }
-    return levelNodes;
+    return levelNodes ?? null;
   }
 
   /**
-   * Get the Y.Map for edges of the active level
+   * Get the Y.Map for edges of the active level.
+   * Returns null when no level exists (e.g. before sync delivers initial state).
    */
-  function getActiveLevelEdges(): Y.Map<Y.Map<unknown>> {
+  function getActiveLevelEdges(): Y.Map<Y.Map<unknown>> | null {
     const levelId = getActiveLevelId();
     if (!levelId) {
-      return new Y.Map<Y.Map<unknown>>();
+      return null;
     }
     let levelEdges = yedges.get(levelId) as Y.Map<Y.Map<unknown>> | undefined;
     if (!levelEdges) {
-      levelEdges = new Y.Map<Y.Map<unknown>>();
-      yedges.set(levelId, levelEdges as unknown as Y.Map<unknown>);
+      ydoc.transact(() => {
+        levelEdges = new Y.Map<Y.Map<unknown>>();
+        yedges.set(levelId, levelEdges as unknown as Y.Map<unknown>);
+      }, 'init');
+      levelEdges = yedges.get(levelId) as Y.Map<Y.Map<unknown>>;
     }
-    return levelEdges;
+    return levelEdges ?? null;
   }
 
   // Initialize with default values if empty
@@ -470,6 +477,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     // State access - Graph (reads from active level)
     getNodes(): Node[] {
       const levelNodes = getActiveLevelNodes();
+      if (!levelNodes) return [];
       const nodes: Node[] = [];
       levelNodes.forEach((ynode, id) => {
         const { extent: _extent, ...nodeObj } = yMapToObject<Node & { extent?: string }>(ynode);
@@ -480,6 +488,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
     getEdges(): Edge[] {
       const levelEdges = getActiveLevelEdges();
+      if (!levelEdges) return [];
       const edges: Edge[] = [];
       levelEdges.forEach((yedge, id) => {
         const edgeObj = yMapToObject<Edge>(yedge);
@@ -600,6 +609,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
             : nodesOrUpdater;
 
         const levelNodes = getActiveLevelNodes();
+        if (!levelNodes) return;
         levelNodes.clear();
         for (const node of newNodes as Node[]) {
           const { id, ...rest } = node;
@@ -616,6 +626,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
             : edgesOrUpdater;
 
         const levelEdges = getActiveLevelEdges();
+        if (!levelEdges) return;
         levelEdges.clear();
         for (const edge of newEdges as Edge[]) {
           const { id, ...rest } = edge;
@@ -643,6 +654,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     updateNode(nodeId: string, updates: Partial<ConstructNodeData>) {
       ydoc.transact(() => {
         const levelNodes = getActiveLevelNodes();
+        if (!levelNodes) return;
         const ynode = levelNodes.get(nodeId) as Y.Map<unknown> | undefined;
         if (!ynode) return;
 
@@ -679,6 +691,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     patchNodes(patches: Array<{ id: string; position?: { x: number; y: number }; style?: Record<string, unknown> }>) {
       ydoc.transact(() => {
         const levelNodes = getActiveLevelNodes();
+        if (!levelNodes) return;
         for (const { id, position, style } of patches) {
           const ynode = levelNodes.get(id) as Y.Map<unknown> | undefined;
           if (!ynode) continue;
@@ -823,6 +836,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       if (!ylevels.has(targetLevelId)) return;
       const sourceNodes = getActiveLevelNodes();
       const sourceEdges = getActiveLevelEdges();
+      if (!sourceNodes || !sourceEdges) return;
 
       ydoc.transact(() => {
         let targetNodesMap = ynodes.get(targetLevelId) as Y.Map<Y.Map<unknown>> | undefined;

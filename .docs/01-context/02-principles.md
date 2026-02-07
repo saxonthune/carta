@@ -62,6 +62,25 @@ Construct instances use two separate identifiers:
 
 Every domain concept has exactly one canonical definition. Other documents and code reference it rather than re-explaining. The glossary (doc01.03) is the authority for domain vocabulary.
 
+## Make Invalid States Unrepresentable
+
+Prefer discriminated unions over independent boolean flags for state that has lifecycle phases. A discriminated union is a TypeScript union of object types sharing a common literal-typed "discriminant" field, where each variant carries only the data valid for that phase:
+
+```typescript
+// Good: status discriminant proves adapter exists when ready
+type DocState =
+  | { status: 'loading' }
+  | { status: 'error'; error: string }
+  | { status: 'ready'; adapter: ReadyAdapter; ydoc: Y.Doc }
+
+// Bad: independent fields admit invalid combinations
+type DocState = { isReady: boolean; adapter: ReadyAdapter | null; error: string | null }
+```
+
+When a context provider gates rendering on readiness, the context value exposed to children should be the narrowed "ready" type — no null checks, no `isReady` booleans. The gate and the type are the same thing.
+
+For functions that access state that may not exist yet (e.g. Yjs maps before sync), return `null` rather than a sentinel value that pretends to be valid. Callers handle the absence explicitly. This is the "parse, don't validate" principle: encode invariants in types rather than checking them at runtime.
+
 ## Organizers Are Not Connections
 
 Visual organization (organizers) and semantic relationships (port connections) are completely independent systems. Dropping a node into an organizer never creates a connection. Connecting two nodes via ports never puts them in the same organizer. The word "parent/child" is reserved for the port system — constructs inside an organizer are "members." Organizers serve the human (spatial convenience); connections serve the AI (semantic meaning). See doc02.09.

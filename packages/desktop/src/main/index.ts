@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { is, getRendererUrl } from './config.js';
@@ -108,6 +108,13 @@ ipcMain.handle('choose-vault-folder', async () => {
   }
 
   return result.filePaths[0];
+});
+
+ipcMain.handle('reveal-vault', async () => {
+  const prefs = readPreferences(app.getPath('userData'));
+  if (prefs.vaultPath) {
+    await shell.openPath(prefs.vaultPath);
+  }
 });
 
 ipcMain.handle('initialize-vault', async (_event, vaultPath: string) => {

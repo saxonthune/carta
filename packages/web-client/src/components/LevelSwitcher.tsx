@@ -64,10 +64,7 @@ function SortableLevelRow({
   };
 
   const handleClick = () => {
-    if (editMode) {
-      // In edit mode, clicking the row always starts inline edit
-      onStartEdit(level);
-    } else {
+    if (!editMode) {
       onSelect(level.id);
     }
   };
@@ -76,16 +73,14 @@ function SortableLevelRow({
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-center gap-2 px-3 py-2 cursor-pointer transition-colors group ${
-        isActive
-          ? 'bg-accent text-white'
-          : 'text-content hover:bg-surface-alt'
-      } ${isDragging ? 'shadow-lg' : ''}`}
+      className={`flex items-center gap-2 pr-3 py-2 cursor-pointer transition-colors group text-content hover:bg-surface-alt ${isDragging ? 'shadow-lg' : ''}`}
       onClick={handleClick}
     >
+      {/* Active level indicator bar */}
+      <div className={`w-[3px] self-stretch rounded-r flex-shrink-0 ${isActive ? 'bg-accent' : ''}`} />
       {editMode && (
         <div
-          className={`cursor-grab active:cursor-grabbing flex-shrink-0 ${isActive ? 'text-white/70' : 'text-content-muted'}`}
+          className="cursor-grab active:cursor-grabbing flex-shrink-0 text-content-muted"
           {...attributes}
           {...listeners}
         >
@@ -100,54 +95,62 @@ function SortableLevelRow({
         </div>
       )}
       {isEditing ? (
-        <input
-          ref={editInputRef}
-          className="flex-1 px-1 py-0 text-sm bg-transparent border-b border-current outline-none text-inherit"
-          value={editName}
-          onChange={(e) => onEditNameChange(e.target.value)}
-          onBlur={onFinishEdit}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') onFinishEdit();
-            if (e.key === 'Escape') onCancelEdit();
-          }}
-          onClick={(e) => e.stopPropagation()}
-        />
-      ) : (
-        <>
-          <span
-            className="flex-1 text-sm truncate"
-            onDoubleClick={() => {
-              if (!editMode) onStartEdit(level);
+        <div className="flex-1 rounded px-1.5 py-0.5 -my-0.5 bg-surface-alt ring-1 ring-border">
+          <input
+            ref={editInputRef}
+            className="w-full py-0 text-sm bg-transparent border-none outline-none text-inherit"
+            value={editName}
+            onChange={(e) => onEditNameChange(e.target.value)}
+            onBlur={onFinishEdit}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') onFinishEdit();
+              if (e.key === 'Escape') onCancelEdit();
             }}
-          >
-            {level.name}
-          </span>
-          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button
-              className={`p-0.5 rounded hover:bg-black/10 ${isActive ? 'text-white/70 hover:text-white' : 'text-content-muted hover:text-content'}`}
-              onClick={(e) => onDuplicate(level, e)}
-              title="Duplicate level"
-            >
-              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-              </svg>
-            </button>
-            {levelsCount > 1 && (
-              <button
-                className={`p-0.5 rounded hover:bg-black/10 ${isActive ? 'text-white/70 hover:text-white' : 'text-content-muted hover:text-content'}`}
-                onClick={(e) => onDelete(level.id, e)}
-                title="Delete level"
-              >
-                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
-            )}
-          </div>
-        </>
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      ) : (
+        <span className="flex-1 text-sm truncate">
+          {level.name}
+        </span>
       )}
+      <div className="flex items-center gap-0.5 flex-shrink-0">
+        {!isEditing && (
+          <button
+            className="p-0.5 rounded hover:bg-black/10 text-content-muted hover:text-content"
+            onClick={(e) => { e.stopPropagation(); onStartEdit(level); }}
+            title="Rename level"
+          >
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+            </svg>
+          </button>
+        )}
+        <button
+          className="p-0.5 rounded hover:bg-black/10 text-content-muted hover:text-content"
+          onMouseDown={(e) => { if (isEditing) e.preventDefault(); }}
+          onClick={(e) => { e.stopPropagation(); if (isEditing) onFinishEdit(); onDuplicate(level, e); }}
+          title="Duplicate level"
+        >
+          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+          </svg>
+        </button>
+        {levelsCount > 1 && (
+          <button
+            className="p-0.5 rounded hover:bg-black/10 text-content-muted hover:text-content"
+            onMouseDown={(e) => { if (isEditing) e.preventDefault(); }}
+            onClick={(e) => { e.stopPropagation(); if (isEditing) onFinishEdit(); onDelete(level.id, e); }}
+            title="Delete level"
+          >
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -165,8 +168,12 @@ export default function LevelSwitcher({
   const [editMode, setEditMode] = useState(false);
   const [editingLevelId, setEditingLevelId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
+  // Inline rename of the current level (in the trigger bar, outside the dropdown)
+  const [isRenamingCurrent, setIsRenamingCurrent] = useState(false);
+  const [currentEditName, setCurrentEditName] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
+  const currentEditInputRef = useRef<HTMLInputElement>(null);
   // Counter to force re-focus when clicking the same level again
   const editFocusCounter = useRef(0);
 
@@ -187,7 +194,7 @@ export default function LevelSwitcher({
     }
   }, [isOpen]);
 
-  // Focus input when editing — uses a counter so re-clicking the same level re-focuses
+  // Focus input when editing in dropdown — uses a counter so re-clicking the same level re-focuses
   useEffect(() => {
     if (editingLevelId && editInputRef.current) {
       editInputRef.current.focus();
@@ -195,6 +202,14 @@ export default function LevelSwitcher({
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingLevelId, editFocusCounter.current]);
+
+  // Focus input when renaming current level in the trigger bar
+  useEffect(() => {
+    if (isRenamingCurrent && currentEditInputRef.current) {
+      currentEditInputRef.current.focus();
+      currentEditInputRef.current.select();
+    }
+  }, [isRenamingCurrent]);
 
   // Reset edit mode when dropdown closes
   useEffect(() => {
@@ -220,6 +235,26 @@ export default function LevelSwitcher({
 
   const handleCancelEdit = useCallback(() => {
     setEditingLevelId(null);
+  }, []);
+
+  // Current level inline rename handlers
+  const handleStartCurrentRename = useCallback(() => {
+    if (!currentLevel) return;
+    setCurrentEditName(currentLevel.name);
+    setIsRenamingCurrent(true);
+    // Close the dropdown if open — renaming is separate from selecting
+    setIsOpen(false);
+  }, [currentLevel]);
+
+  const handleFinishCurrentRename = useCallback(() => {
+    if (activeLevel && currentEditName.trim()) {
+      onUpdateLevel(activeLevel, { name: currentEditName.trim() });
+    }
+    setIsRenamingCurrent(false);
+  }, [activeLevel, currentEditName, onUpdateLevel]);
+
+  const handleCancelCurrentRename = useCallback(() => {
+    setIsRenamingCurrent(false);
   }, []);
 
   const handleDelete = useCallback((levelId: string, event: React.MouseEvent) => {
@@ -271,21 +306,47 @@ export default function LevelSwitcher({
   return (
     <div className="relative" ref={dropdownRef}>
       <div className="flex items-center gap-0.5">
-        <button
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-surface text-content border border-border rounded-lg cursor-pointer hover:bg-surface-alt transition-colors"
-          onClick={() => setIsOpen(!isOpen)}
-          title="Switch level"
-        >
-          <svg className="w-3.5 h-3.5 text-content-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        {/* Part 1: Current level info — click name to rename inline */}
+        <div className="flex items-center gap-1.5 pl-3 pr-1 py-1.5 text-sm font-medium bg-surface text-content border border-border rounded-lg">
+          <svg className="w-3.5 h-3.5 text-content-muted flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M12 2L2 7l10 5 10-5-10-5z" />
             <path d="M2 17l10 5 10-5" />
             <path d="M2 12l10 5 10-5" />
           </svg>
-          <span className="max-w-[120px] truncate">{currentLevel?.name || 'Main'}</span>
-          <svg className={`w-3 h-3 text-content-muted transition-transform ${isOpen ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M6 9l6 6 6-6" />
-          </svg>
-        </button>
+          <div className={`w-[120px] rounded px-1.5 py-0.5 -my-0.5 transition-colors ${isRenamingCurrent ? 'bg-surface-alt ring-1 ring-border' : ''}`}>
+            {isRenamingCurrent ? (
+              <input
+                ref={currentEditInputRef}
+                className="w-full py-0 text-sm font-medium bg-transparent border-none outline-none text-inherit"
+                value={currentEditName}
+                onChange={(e) => setCurrentEditName(e.target.value)}
+                onBlur={handleFinishCurrentRename}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleFinishCurrentRename();
+                  if (e.key === 'Escape') handleCancelCurrentRename();
+                }}
+              />
+            ) : (
+              <span
+                className="block w-full truncate cursor-text"
+                onClick={handleStartCurrentRename}
+                title="Click to rename"
+              >
+                {currentLevel?.name || 'Main'}
+              </span>
+            )}
+          </div>
+          {/* Part 2: Trigger to open the level selector */}
+          <button
+            className="flex items-center justify-center w-6 h-6 rounded cursor-pointer hover:bg-surface-alt transition-colors"
+            onClick={() => setIsOpen(!isOpen)}
+            title="Switch level"
+          >
+            <svg className={`w-4 h-4 text-content-muted transition-transform ${isOpen ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </button>
+        </div>
         {isOpen && (
           <button
             className={`p-1.5 rounded-lg border transition-colors ${editMode ? 'bg-accent text-white border-accent' : 'bg-surface text-content-muted border-border hover:text-content hover:bg-surface-alt'}`}
@@ -303,6 +364,7 @@ export default function LevelSwitcher({
         )}
       </div>
 
+      {/* Level selector dropdown */}
       {isOpen && (
         <div className="absolute right-0 top-full mt-1 bg-surface border border-subtle rounded-lg shadow-lg overflow-hidden z-50 min-w-[260px]">
           {/* Level rows */}

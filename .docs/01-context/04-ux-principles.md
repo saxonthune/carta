@@ -41,6 +41,8 @@ Users expect your app to work like the apps they already use.
 - Standard keyboard shortcuts: Ctrl+Z undo, Ctrl+C copy, Delete removes selection.
 - Modal, drawer, and menu patterns should match common IDE/productivity tool conventions.
 
+**Reference apps**: Obsidian and Excalidraw are the closest comparable apps — both are canvas-oriented tools with document management, node/card manipulation, and creative workflows. When facing a UX decision, consider how these apps approach the same problem. They are reference points, not mandates — Carta may diverge where its domain demands it, but divergence should be deliberate, not accidental.
+
 ### Doherty Threshold
 
 Responses under 400ms feel instantaneous. Above that, users lose flow state.

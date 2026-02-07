@@ -401,6 +401,11 @@ function DocumentBrowserContent({ onClose, required, adapter }: DocumentBrowserC
             <span className="truncate">{adapter.displayAddress}</span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            {window.electronAPI?.revealVault && (
+              <Button variant="ghost" size="sm" onClick={() => window.electronAPI!.revealVault()}>
+                Reveal
+              </Button>
+            )}
             {adapter.canChangeVault && (
               <Button variant="ghost" size="sm" onClick={() => adapter.changeVault?.()}>
                 Change Vault
@@ -464,6 +469,7 @@ function DocumentBrowserContent({ onClose, required, adapter }: DocumentBrowserC
                     title={doc.title}
                     updatedAt={formatUpdatedAt(doc.updatedAt)}
                     nodeCount={doc.nodeCount}
+                    filename={doc.filename}
                     onClick={() => handleSelect(doc.id)}
                   />
                 ))}

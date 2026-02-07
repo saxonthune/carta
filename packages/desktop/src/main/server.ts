@@ -36,6 +36,8 @@ import {
 interface DesktopDocState extends DocState {
   dirty: boolean;
   saveTimer: ReturnType<typeof setTimeout> | null;
+  /** Whether this doc should be persisted to disk (loaded from file or explicitly created) */
+  persist: boolean;
 }
 
 export interface EmbeddedServerInfo {
@@ -111,6 +113,7 @@ function scanVaultForDocuments(): DocumentSummary[] {
           folder,
           updatedAt,
           nodeCount,
+          filename: file,
         });
       } catch {
         // Skip invalid files
@@ -282,18 +285,20 @@ function getOrCreateDoc(docId: string): DesktopDocState {
   if (docState) return docState;
 
   const doc = new Y.Doc();
-  docState = { doc, conns: new Set(), dirty: false, saveTimer: null };
+  const loaded = loadDocFromJson(docId, doc);
+  docState = { doc, conns: new Set(), dirty: false, saveTimer: null, persist: loaded };
   docs.set(docId, docState);
 
-  // Load from disk
-  loadDocFromJson(docId, doc);
-
   // Migrate flat docs to level-based structure
-  migrateToLevels(doc);
+  if (loaded) {
+    migrateToLevels(doc);
+  }
 
-  // Schedule saves on updates
+  // Schedule saves on updates (only for docs that exist on disk or were explicitly created)
   doc.on('update', () => {
-    scheduleSave(docId, docState!);
+    if (docState!.persist) {
+      scheduleSave(docId, docState!);
+    }
   });
 
   return docState;
@@ -311,6 +316,9 @@ const { handleHttpRequest, setupWSConnection } = createDocumentServer({
     return scanVaultForDocuments();
   },
   onDocumentCreated: async (docId: string, docState: DocState) => {
+    // Mark as persistable so future updates are saved
+    const desktopState = docState as DesktopDocState;
+    desktopState.persist = true;
     saveDocToJson(docId, docState.doc);
   },
   deleteDocument: async (docId: string): Promise<boolean> => {

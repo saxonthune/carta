@@ -46,6 +46,7 @@ export class DesktopVaultAdapter implements VaultAdapter {
       folder: doc.folder || '/',
       updatedAt: doc.updatedAt,
       nodeCount: doc.nodeCount,
+      filename: doc.filename,
     }));
   }
 

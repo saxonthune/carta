@@ -18,4 +18,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getDefaultVaultPath: () => ipcRenderer.invoke('get-default-vault-path'),
   chooseVaultFolder: () => ipcRenderer.invoke('choose-vault-folder'),
   initializeVault: (path: string) => ipcRenderer.invoke('initialize-vault', path),
+  revealVault: () => ipcRenderer.invoke('reveal-vault'),
 });

@@ -65,7 +65,7 @@ The codebase provides **focused hooks** that subscribe to specific slices of doc
 
 ### Initialization
 
-The adapter initializes asynchronously, setting up Y.Doc, IndexedDB persistence (in local mode), or WebSocket connection (in server mode). The DocumentProvider manages this lifecycle and surfaces an `isReady` flag to components.
+The adapter initializes asynchronously, setting up Y.Doc, IndexedDB persistence (in local mode), or WebSocket connection (in server mode). The DocumentProvider gates child rendering until the adapter is ready — children only render once the adapter and Y.Doc are fully initialized. Internal helpers (e.g. `getActiveLevelNodes()`) return `null` rather than sentinel objects when state doesn't exist yet, and callers handle the absence explicitly. See "Make Invalid States Unrepresentable" in doc01.02.
 
 ### Disposal and Cleanup
 
