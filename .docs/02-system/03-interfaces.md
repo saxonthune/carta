@@ -44,7 +44,16 @@ JSON output structured for AI consumption:
 
 ## MCP Server
 
-Carta exposes an MCP (Model Context Protocol) server for AI tool integration. Tools include document CRUD, construct CRUD, connection management, schema operations, and compilation.
+Carta exposes an MCP (Model Context Protocol) server for AI tool integration. Tools include:
+- **Document management**: Create, list, get, delete, rename documents
+- **Level operations**: List, create, rename, delete levels; switch active level
+- **Schema operations**: List, get, create schemas and port schemas
+- **Construct operations**: List, get, create, update, delete constructs
+- **Organizer operations**: Create, update, delete organizers (visual grouping)
+- **Connection operations**: Connect and disconnect constructs via ports
+- **Compilation**: Compile document to AI-readable output
+
+When creating constructs, setting `parentId` places them inside an organizer with position relative to the organizer. Level operations (create, update, delete constructs/connections) target the active level, which can be switched via `carta_set_active_level`.
 
 In desktop mode, the local MCP server auto-discovers via `{userData}/server.json` (contains URL and PID). This enables zero-config MCP when Carta Desktop is running. The MCP server reads the locally-synced Y.Doc, providing fast access regardless of whether the document source is local or remote. The same MCP binary can also connect to remote servers via the `CARTA_SERVER_URL` environment variable.
 

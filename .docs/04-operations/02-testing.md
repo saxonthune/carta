@@ -38,11 +38,13 @@ E2E tests use Playwright and run on port 5273 (separate from dev server on 5173)
 | `port-connections.spec.ts` | Ports (doc03.01.01.03) | Port drawer expand/collapse, draggable handles, connection creation, starter content edges |
 | `visual-groups.spec.ts` | Visual groups (doc03.01.01.01) | Create group via Ctrl+G, group name display, child count badge, collapse toggle, dragging |
 | `document-browser.spec.ts` | Storage navigation (doc03.01.03.01) | Folder navigation, breadcrumb display, document creation, virtual folder structure |
+| `drag-performance.spec.ts` | Canvas performance (doc03.01.01.01) | Drag operations on large graphs (150 nodes), performance benchmarking |
 
 Test helpers live in `tests/e2e/helpers/CartaPage.ts` — a Page Object Model with `goto()` and `gotoFresh()` (both handle local mode canvas and server mode modal), plus port-related helpers like `getNode()`, `hoverNodeBottom()`, and `dragToConnect()`.
 
 ## Integration Test Coverage
 
+### Web Client Tests
 | Test File | Feature | Tests |
 |-----------|---------|-------|
 | `adapter-lifecycle.test.tsx` | Adapter lifecycle (doc02.02) | StrictMode double-mount handling, disposal during async init, timeout cancellation, operations on disposed adapters, subscription cleanup, rapid documentId changes |
@@ -55,6 +57,12 @@ Test helpers live in `tests/e2e/helpers/CartaPage.ts` — a Page Object Model wi
 | `context-menu-*.test.tsx` | Context menus | Right-click, add related constructs |
 | `clear-*.test.tsx` | Document clearing | Clear instances, clear all, preserve title |
 | `restore-*.test.tsx` | Schema restoration | Restore defaults, preserve instances |
+
+### Server Tests
+| Test File | Feature | Tests |
+|-----------|---------|-------|
+| `document-server-core.test.ts` | Document server (doc02.05) | Document CRUD operations, level management, construct operations, connection management, organizer operations |
+| `document-server-smoke.test.ts` | Server startup (doc02.05) | Basic server lifecycle, port binding, health checks |
 
 Test providers (`testProviders.tsx`) use `skipPersistence` and `skipStarterContent` props to ensure clean test isolation.
 
