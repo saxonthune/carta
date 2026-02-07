@@ -9,7 +9,7 @@ Carta supports real-time collaboration when connected to a server. Collaboration
 
 ## Single-Document Mode (No Server)
 
-When no `VITE_SERVER_URL` is configured and the app runs in a browser:
+When no `VITE_SYNC_URL` is configured and the app runs in a browser:
 - One document auto-created in IndexedDB
 - No WebSocket connection
 - Share button and connection status hidden

@@ -15,7 +15,7 @@ export interface DocumentContextValue {
   documentId: string;
   isReady: boolean;
   ydoc: Y.Doc;
-  hasServer: boolean;
+  hasSync: boolean;
 }
 
 const DocumentContext = createContext<DocumentContextValue | null>(null);
@@ -35,8 +35,8 @@ export interface DocumentProviderProps {
   children: ReactNode;
   /** Document ID (required — caller ensures one exists via URL param) */
   documentId: string;
-  /** WebSocket server URL for sync */
-  serverUrl?: string;
+  /** WebSocket URL for sync server */
+  syncUrl?: string;
   /** Skip IndexedDB persistence (for testing) */
   skipPersistence?: boolean;
   /** Skip seeding starter content (for testing) */
@@ -53,7 +53,7 @@ export interface DocumentProviderProps {
 export function DocumentProvider({
   children,
   documentId,
-  serverUrl = config.wsUrl ?? undefined,
+  syncUrl = config.syncWsUrl ?? undefined,
   skipPersistence = false,
   skipStarterContent = false,
   seedName,
@@ -71,7 +71,7 @@ export function DocumentProvider({
 
     const initAdapter = async () => {
       // Skip IndexedDB when a server handles persistence (desktop or remote server)
-      const shouldSkipPersistence = skipPersistence || config.isDesktop || config.hasServer;
+      const shouldSkipPersistence = skipPersistence || config.isDesktop || config.hasSync;
 
       const options: YjsAdapterOptions = {
         mode: 'local',
@@ -167,15 +167,15 @@ export function DocumentProvider({
       if (mounted) {
         setAdapter(yjsAdapter);
         setYdoc(yjsAdapter.ydoc);
-        setMode(config.hasServer ? 'shared' : 'local');
+        setMode(config.hasSync ? 'shared' : 'local');
         setIsReady(true);
       }
 
       // Connect WebSocket AFTER marking ready (non-blocking)
       // This allows the UI to render immediately while sync happens in background
-      if (config.hasServer && serverUrl && mounted) {
-        yjsAdapter.connectToRoom(documentId, serverUrl).catch((err) => {
-          console.error('Failed to connect to server:', err);
+      if (config.hasSync && syncUrl && mounted) {
+        yjsAdapter.connectToRoom(documentId, syncUrl).catch((err) => {
+          console.error('Failed to connect to sync server:', err);
         });
       }
     };
@@ -193,7 +193,7 @@ export function DocumentProvider({
         currentAdapter.dispose();
       }
     };
-  }, [documentId, serverUrl, skipPersistence, skipStarterContent, seedName]);
+  }, [documentId, syncUrl, skipPersistence, skipStarterContent, seedName]);
 
   if (error) {
     return (
@@ -224,7 +224,7 @@ export function DocumentProvider({
     documentId,
     isReady,
     ydoc,
-    hasServer: config.hasServer,
+    hasSync: config.hasSync,
   };
 
   return <DocumentContext.Provider value={value}>{children}</DocumentContext.Provider>;

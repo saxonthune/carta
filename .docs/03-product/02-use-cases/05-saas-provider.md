@@ -13,7 +13,7 @@ A business operates a Carta **storage host** — a hosted service where users si
 
 | Setting | Value |
 |---------|-------|
-| `VITE_SERVER_URL` | `https://api.carta.io` (provider's server) |
+| `VITE_SYNC_URL` | `https://api.carta.io` (provider's server) |
 | `VITE_AI_MODE` | `server-proxy` |
 
 ## User Flows
@@ -34,7 +34,7 @@ A business operates a Carta **storage host** — a hosted service where users si
 - AI chat UI that routes to a configurable server endpoint
 - MCP server (local on desktop, remote via REST API)
 - Import/export (.carta files)
-- Build configuration (`VITE_SERVER_URL`, `VITE_AI_MODE`)
+- Build configuration (`VITE_SYNC_URL`, `VITE_AI_MODE`)
 - Document-level permission **hooks** — the server calls out to check "can user X do Y?" but does not implement the policy
 
 ### The provider builds (business logic):

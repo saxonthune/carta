@@ -30,9 +30,9 @@ export interface HeaderProps {
  * Hide connection status for localhost since the user is always "connected" to themselves.
  */
 function isLocalServer(): boolean {
-  if (!config.serverUrl) return false;
+  if (!config.syncUrl) return false;
   try {
-    const url = new URL(config.serverUrl);
+    const url = new URL(config.syncUrl);
     return url.hostname === '127.0.0.1' || url.hostname === 'localhost';
   } catch {
     return false;
@@ -142,10 +142,10 @@ export function Header({
         />
 
         {/* Connection Status — only when collaboration is active and not a local server */}
-        {config.hasServer && mode === 'shared' && !isLocalServer() && <ConnectionStatus />}
+        {config.hasSync && mode === 'shared' && !isLocalServer() && <ConnectionStatus />}
 
         {/* Share button and menu — only when connected to a remote server */}
-        {config.hasServer && !isLocalServer() && (
+        {config.hasSync && !isLocalServer() && (
           <ShareMenu documentId={documentId} mode={mode} />
         )}
 

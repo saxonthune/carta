@@ -8,14 +8,14 @@ export class DesktopVaultAdapter implements VaultAdapter {
   readonly canChangeVault = true;
   displayAddress: string;
   needsVaultSetup: boolean;
-  private serverUrl: string;
+  private syncUrl: string;
   private electronAPI: NonNullable<typeof window.electronAPI>;
 
   constructor(
-    serverUrl: string,
+    syncUrl: string,
     electronAPI: NonNullable<typeof window.electronAPI>,
   ) {
-    this.serverUrl = serverUrl;
+    this.syncUrl = syncUrl;
     this.electronAPI = electronAPI;
     this.displayAddress = '';
     this.needsVaultSetup = false;
@@ -35,7 +35,7 @@ export class DesktopVaultAdapter implements VaultAdapter {
   async listDocuments(): Promise<DocumentSummary[]> {
     if (this.needsVaultSetup) return [];
 
-    const response = await fetch(`${this.serverUrl}/api/documents`);
+    const response = await fetch(`${this.syncUrl}/api/documents`);
     if (!response.ok) {
       throw new Error(`Failed to fetch documents: ${response.statusText}`);
     }
@@ -54,7 +54,7 @@ export class DesktopVaultAdapter implements VaultAdapter {
       throw new Error('Vault not initialized');
     }
 
-    const response = await fetch(`${this.serverUrl}/api/documents`, {
+    const response = await fetch(`${this.syncUrl}/api/documents`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title, folder: folder || '/' }),
@@ -67,7 +67,7 @@ export class DesktopVaultAdapter implements VaultAdapter {
   }
 
   async deleteDocument(id: string): Promise<boolean> {
-    const response = await fetch(`${this.serverUrl}/api/documents/${id}`, {
+    const response = await fetch(`${this.syncUrl}/api/documents/${id}`, {
       method: 'DELETE',
     });
     if (!response.ok) return false;
@@ -75,12 +75,12 @@ export class DesktopVaultAdapter implements VaultAdapter {
     return !!data.deleted;
   }
 
-  async initializeVault(vaultPath: string): Promise<{ documentId: string; serverUrl: string; wsUrl: string }> {
+  async initializeVault(vaultPath: string): Promise<{ documentId: string; syncUrl: string; wsUrl: string }> {
     const result = await this.electronAPI.initializeVault(vaultPath);
-    this.serverUrl = result.url;
+    this.syncUrl = result.url;
     this.displayAddress = vaultPath;
     this.needsVaultSetup = false;
-    return { documentId: result.documentId, serverUrl: result.url, wsUrl: result.wsUrl };
+    return { documentId: result.documentId, syncUrl: result.url, wsUrl: result.wsUrl };
   }
 
   async changeVault(): Promise<void> {

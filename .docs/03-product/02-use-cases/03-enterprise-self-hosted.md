@@ -13,7 +13,7 @@ An enterprise hosts an internal Carta server (the **storage host**) for all empl
 
 | Setting | Value |
 |---------|-------|
-| `VITE_SERVER_URL` | `https://carta.internal` (company's server) |
+| `VITE_SYNC_URL` | `https://carta.internal` (company's server) |
 | `VITE_AI_MODE` | `server-proxy` |
 
 The server handles document persistence, collaboration sync, and AI proxying. The enterprise chooses their backing store (MongoDB, DynamoDB, etc.) and AI provider (AWS Bedrock, Azure OpenAI, etc.).

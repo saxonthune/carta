@@ -403,7 +403,7 @@ export interface VaultAdapter {
   readonly needsVaultSetup?: boolean;
 
   /** Initialize a vault at the given path. Returns server info and first document ID. */
-  initializeVault?(vaultPath: string): Promise<{ documentId: string; serverUrl: string; wsUrl: string }>;
+  initializeVault?(vaultPath: string): Promise<{ documentId: string; syncUrl: string; wsUrl: string }>;
 }
 
 // ===== PERSISTENCE =====

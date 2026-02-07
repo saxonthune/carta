@@ -7,15 +7,15 @@ import type { VaultAdapter, DocumentSummary } from '@carta/domain';
 export class ServerVaultAdapter implements VaultAdapter {
   readonly displayAddress: string;
   readonly canChangeVault = false;
-  private serverUrl: string;
+  private syncUrl: string;
 
-  constructor(serverUrl: string) {
-    this.serverUrl = serverUrl;
-    this.displayAddress = serverUrl;
+  constructor(syncUrl: string) {
+    this.syncUrl = syncUrl;
+    this.displayAddress = syncUrl;
   }
 
   async listDocuments(): Promise<DocumentSummary[]> {
-    const response = await fetch(`${this.serverUrl}/api/documents`);
+    const response = await fetch(`${this.syncUrl}/api/documents`);
     if (!response.ok) {
       throw new Error(`Failed to fetch documents: ${response.statusText}`);
     }
@@ -30,7 +30,7 @@ export class ServerVaultAdapter implements VaultAdapter {
   }
 
   async createDocument(title: string, folder?: string): Promise<string> {
-    const response = await fetch(`${this.serverUrl}/api/documents`, {
+    const response = await fetch(`${this.syncUrl}/api/documents`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title, folder: folder || '/' }),
@@ -43,7 +43,7 @@ export class ServerVaultAdapter implements VaultAdapter {
   }
 
   async deleteDocument(id: string): Promise<boolean> {
-    const response = await fetch(`${this.serverUrl}/api/documents/${id}`, {
+    const response = await fetch(`${this.syncUrl}/api/documents/${id}`, {
       method: 'DELETE',
     });
     if (!response.ok) return false;

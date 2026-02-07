@@ -23,7 +23,9 @@
     "build": "rm -rf dist && tsc",
     "dev": "tsc --watch",
     "mcp": "node dist/mcp/stdio.js",
-    "document-server": "node dist/document-server.js"
+    "document-server": "node dist/document-server-cli.js",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@carta/domain": "workspace:*",
@@ -41,6 +43,7 @@
   "devDependencies": {
     "@types/node": "^24.10.1",
     "@types/ws": "^8.18.1",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.1"
   }
 }

@@ -1,20 +1,14 @@
-#!/usr/bin/env node
 /**
  * Carta Document Server
  *
  * WebSocket server for Yjs document synchronization with HTTP REST API.
  * Supports optional MongoDB persistence via y-mongodb-provider.
  *
- * Usage:
- *   pnpm document-server
- *   # or
- *   node dist/document-server.js
- *
  * Environment variables:
  *   PORT - Server port (default: 1234)
  *   HOST - Server host (default: 0.0.0.0)
  *   MONGODB_URI - MongoDB connection string (default: mongodb://localhost:27017/carta)
- *   PERSISTENCE - Set to 'false' to disable persistence (default: true)
+ *   STORAGE - 'memory' for in-memory only, 'mongodb' or absent for MongoDB (default: mongodb)
  */
 
 import * as http from 'node:http';
@@ -33,10 +27,16 @@ import {
   type DocumentSummary,
 } from './document-server-core.js';
 
-const PORT = parseInt(process.env.PORT || '1234', 10);
-const HOST = process.env.HOST || '0.0.0.0';
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/carta';
-const PERSISTENCE_ENABLED = process.env.PERSISTENCE !== 'false';
+export interface ServerInstance {
+  server: http.Server;
+  wss: WebSocketServer;
+  port: number;
+}
+
+export interface StartServerOptions {
+  port?: number;
+  host?: string;
+}
 
 /**
  * Active documents (rooms) keyed by room ID
@@ -49,20 +49,22 @@ const docs = new Map<string, DocState>();
 let mdb: MongodbPersistence | null = null;
 
 /**
- * Initialize MongoDB persistence
+ * Initialize MongoDB persistence.
+ * Reads env vars at call time so tests can override before calling startServer().
  */
 async function initPersistence(): Promise<void> {
-  if (!PERSISTENCE_ENABLED) {
-    console.log('[Server] Persistence disabled, running in-memory only');
+  if (process.env.STORAGE === 'memory') {
+    console.log('[Server] Storage: memory (no database)');
     return;
   }
 
+  const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/carta';
   try {
-    mdb = new MongodbPersistence(MONGODB_URI, {
+    mdb = new MongodbPersistence(mongoUri, {
       collectionName: 'yjs-documents',
       flushSize: 100,
     });
-    console.log(`[Server] MongoDB persistence enabled: ${MONGODB_URI}`);
+    console.log(`[Server] MongoDB persistence enabled: ${mongoUri}`);
   } catch (err) {
     console.warn('[Server] MongoDB connection failed, running in-memory:', err);
   }
@@ -141,14 +143,17 @@ const { handleHttpRequest, setupWSConnection } = createDocumentServer({
   logPrefix: '[Server]',
   healthMeta: {
     get rooms() { return docs.size; },
-    get persistence() { return mdb ? 'mongodb' : 'memory'; },
+    get storage() { return mdb ? 'mongodb' : 'memory'; },
   },
 });
 
 /**
- * Start the server
+ * Start the server. Returns a handle for programmatic stop.
  */
-async function startServer(): Promise<void> {
+export async function startServer(options?: StartServerOptions): Promise<ServerInstance> {
+  const port = options?.port ?? parseInt(process.env.PORT || '1234', 10);
+  const host = options?.host ?? (process.env.HOST || '0.0.0.0');
+
   await initPersistence();
 
   const server = http.createServer((req, res) => {
@@ -167,32 +172,47 @@ async function startServer(): Promise<void> {
     setupWSConnection(conn, roomName);
   });
 
-  server.listen(PORT, HOST, () => {
-    console.log(`[Server] Carta document server running on ${HOST}:${PORT}`);
-    console.log(`[Server] WebSocket: ws://${HOST}:${PORT}/<room-name>`);
-    console.log(`[Server] REST API: http://${HOST}:${PORT}/api/documents`);
-    console.log(`[Server] Health check: http://${HOST}:${PORT}/health`);
+  const actualPort = await new Promise<number>((resolve, reject) => {
+    server.on('error', (err: NodeJS.ErrnoException) => {
+      if (err.code === 'EADDRINUSE') {
+        reject(new Error(`[Server] Port ${port} is already in use. Kill the existing process (lsof -i :${port}) or use a different PORT.`));
+      } else {
+        reject(err);
+      }
+    });
+    server.listen(port, host, () => {
+      const addr = server.address() as { port: number };
+      console.log(`[Server] Carta document server running on ${host}:${addr.port}`);
+      console.log(`[Server] WebSocket: ws://${host}:${addr.port}/<room-name>`);
+      console.log(`[Server] REST API: http://${host}:${addr.port}/api/documents`);
+      console.log(`[Server] Health check: http://${host}:${addr.port}/health`);
+      resolve(addr.port);
+    });
   });
 
-  // Graceful shutdown
-  process.on('SIGINT', async () => {
-    console.log('\n[Server] Shutting down...');
+  return { server, wss, port: actualPort };
+}
 
-    if (mdb) {
-      try {
-        await mdb.destroy();
-        console.log('[Server] MongoDB connection closed');
-      } catch (err) {
-        console.error('[Server] Error closing MongoDB:', err);
-      }
+/**
+ * Gracefully stop the server.
+ */
+export async function stopServer(instance: ServerInstance): Promise<void> {
+  console.log('[Server] Shutting down...');
+
+  if (mdb) {
+    try {
+      await mdb.destroy();
+      console.log('[Server] MongoDB connection closed');
+    } catch (err) {
+      console.error('[Server] Error closing MongoDB:', err);
     }
+  }
 
-    wss.close();
-    server.close(() => {
+  instance.wss.close();
+  await new Promise<void>((resolve) => {
+    instance.server.close(() => {
       console.log('[Server] Server closed');
-      process.exit(0);
+      resolve();
     });
   });
 }
-
-startServer();

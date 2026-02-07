@@ -175,9 +175,9 @@ function VaultSetupModal({ onClose }: { onClose: () => void }) {
     }
   }
 
-  function redirectToDocument(result: { documentId: string; serverUrl: string; wsUrl: string }) {
+  function redirectToDocument(result: { documentId: string; syncUrl: string; wsUrl: string }) {
     const currentUrl = new URL(window.location.href);
-    currentUrl.searchParams.set('desktopServer', result.serverUrl);
+    currentUrl.searchParams.set('desktopServer', result.syncUrl);
     currentUrl.searchParams.set('desktopWs', result.wsUrl);
     currentUrl.searchParams.set('doc', result.documentId);
     window.location.href = currentUrl.toString();

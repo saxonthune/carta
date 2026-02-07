@@ -25,7 +25,7 @@ import { updateDocumentMetadata } from '../documentRegistry';
 export interface YjsAdapterOptions {
   mode: 'local' | 'shared';
   roomId?: string;
-  serverUrl?: string;
+  syncUrl?: string;
   /** Skip IndexedDB persistence (for testing) */
   skipPersistence?: boolean;
 }
@@ -55,7 +55,7 @@ export interface YjsAdapterOptions {
  */
 export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & {
   ydoc: Y.Doc;
-  connectToRoom: (roomId: string, serverUrl: string) => Promise<void>;
+  connectToRoom: (roomId: string, syncUrl: string) => Promise<void>;
   disconnectFromRoom: () => void;
 } {
   const { mode, roomId } = options;
@@ -279,7 +279,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
   const adapter: DocumentAdapter & {
     ydoc: Y.Doc;
-    connectToRoom: (roomId: string, serverUrl: string) => Promise<void>;
+    connectToRoom: (roomId: string, syncUrl: string) => Promise<void>;
     disconnectFromRoom: () => void;
   } = {
     ydoc,
@@ -1050,7 +1050,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     // WebSocket connection methods
-    async connectToRoom(newRoomId: string, serverUrl: string): Promise<void> {
+    async connectToRoom(newRoomId: string, syncUrl: string): Promise<void> {
       if (wsProvider) {
         (wsProvider as { destroy: () => void }).destroy();
       }
@@ -1060,7 +1060,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
       // Dynamic import to avoid bundling y-websocket in local mode
       const { WebsocketProvider } = await import('y-websocket');
-      wsProvider = new WebsocketProvider(serverUrl, newRoomId, ydoc);
+      wsProvider = new WebsocketProvider(syncUrl, newRoomId, ydoc);
 
       // Update connection status based on WebSocket state
       const ws = wsProvider as { on: (event: string, cb: () => void) => void };

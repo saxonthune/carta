@@ -105,7 +105,7 @@ interface VaultAdapter {
 
 | Adapter | When Used | Capabilities |
 |---------|-----------|--------------|
-| **LocalVaultAdapter** | No server present (`!VITE_SERVER_URL`) | Single-document mode. Uses IndexedDB via `documentRegistry.ts`. Simple list/create/delete operations. |
+| **LocalVaultAdapter** | No server present (`!VITE_SYNC_URL`) | Single-document mode. Uses IndexedDB via `documentRegistry.ts`. Simple list/create/delete operations. |
 | **ServerVaultAdapter** | Server present, non-desktop | Multi-document mode. Fetches document list from server API (`/api/documents`). Creates/deletes via server HTTP endpoints. |
 | **DesktopVaultAdapter** | Desktop app (`window.electronAPI.isDesktop`) | Multi-document mode. Uses embedded server with filesystem persistence. Supports `changeVault()` to switch vault location. |
 
@@ -114,7 +114,7 @@ interface VaultAdapter {
 The `createVaultAdapter()` factory function in `packages/web-client/src/stores/vault/createVaultAdapter.ts` detects the environment and returns the appropriate adapter:
 
 1. Desktop detection: Checks `window.electronAPI?.isDesktop`
-2. Server detection: Checks `config.serverUrl`
+2. Server detection: Checks `config.syncUrl`
 3. Fallback: Local adapter for browser-only mode
 
 ### Context Integration

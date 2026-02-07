@@ -57,9 +57,9 @@ function getDebugMode(): boolean {
  * Simplified configuration: 2 env vars + 1 detected.
  *
  * Env vars:
- *   VITE_SERVER_URL  — Server URL. Presence = server mode (multi-document, real-time sync).
- *   VITE_AI_MODE     — 'none' | 'user-key' | 'server-proxy' (default: 'none')
- *   VITE_DEBUG       — 'true' | 'false' (default: DEV mode)
+ *   VITE_SYNC_URL  — Sync server URL. Presence = multi-document mode with real-time sync.
+ *   VITE_AI_MODE   — 'none' | 'user-key' | 'server-proxy' (default: 'none')
+ *   VITE_DEBUG     — 'true' | 'false' (default: DEV mode)
  *
  * Detected:
  *   isDesktop — true when running in Electron
@@ -69,21 +69,21 @@ function getDebugMode(): boolean {
 export const config = {
   /** Debug mode: shows additional info in UI */
   debug: getDebugMode(),
-  serverUrl: isDesktop
+  syncUrl: isDesktop
     ? (getDesktopServerUrl() || 'http://127.0.0.1:51234')
-    : (import.meta.env.VITE_SERVER_URL || null) as string | null,
+    : (import.meta.env.VITE_SYNC_URL || null) as string | null,
   aiMode: (import.meta.env.VITE_AI_MODE || 'none') as 'none' | 'user-key' | 'server-proxy',
   isDesktop,
 
-  /** Whether a server is configured (enables collaboration, multi-document mode) */
-  get hasServer(): boolean { return !!this.serverUrl; },
+  /** Whether a sync server is configured (enables collaboration, multi-document mode) */
+  get hasSync(): boolean { return !!this.syncUrl; },
 
-  /** WebSocket URL for the server (derived from serverUrl or desktop params) */
-  get wsUrl(): string | null {
-    if (!this.serverUrl) return null;
+  /** WebSocket URL for sync (derived from syncUrl or desktop params) */
+  get syncWsUrl(): string | null {
+    if (!this.syncUrl) return null;
     if (isDesktop) {
-      return getDesktopWsUrl() || this.serverUrl.replace('http', 'ws');
+      return getDesktopWsUrl() || this.syncUrl.replace('http', 'ws');
     }
-    return this.serverUrl.replace('http', 'ws');
+    return this.syncUrl.replace('http', 'ws');
   },
 };

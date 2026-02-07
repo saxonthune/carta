@@ -9,10 +9,10 @@ import { DesktopVaultAdapter } from './DesktopVaultAdapter';
  */
 export function createVaultAdapter(): VaultAdapter {
   if (config.isDesktop && window.electronAPI) {
-    return new DesktopVaultAdapter(config.serverUrl!, window.electronAPI);
+    return new DesktopVaultAdapter(config.syncUrl!, window.electronAPI);
   }
-  if (config.hasServer && config.serverUrl) {
-    return new ServerVaultAdapter(config.serverUrl);
+  if (config.hasSync && config.syncUrl) {
+    return new ServerVaultAdapter(config.syncUrl);
   }
   return new LocalVaultAdapter();
 }

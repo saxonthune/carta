@@ -15,14 +15,14 @@ A user works on a personal project without a server. They use either the hosted 
 
 | Setting | Value |
 |---------|-------|
-| `VITE_SERVER_URL` | absent |
+| `VITE_SYNC_URL` | absent |
 | `VITE_AI_MODE` | `none` or `user-key` |
 
 ### Desktop app (standalone)
 
 | Setting | Value |
 |---------|-------|
-| `VITE_SERVER_URL` | auto (embedded server) |
+| `VITE_SYNC_URL` | auto (embedded server) |
 | `VITE_AI_MODE` | `user-key` |
 
 ## User Flows

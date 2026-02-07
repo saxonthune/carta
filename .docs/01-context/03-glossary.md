@@ -77,6 +77,6 @@ Canonical definitions for domain terms used throughout Carta. Use these terms co
 
 **Compilation**: The process of transforming visual canvas state into AI-readable structured output (currently JSON format).
 
-**Configuration**: Two build-time environment variables set by the operator: `VITE_SERVER_URL` (server to connect to; absent = single-document browser mode) and `VITE_AI_MODE` (how AI chat gets credentials: `none`, `user-key`, `server-proxy`). Desktop mode is runtime-detected via Electron API. All other behavior (collaboration, document browser, WebSocket sync) is derived from whether a server URL is present. See doc02.05.
+**Configuration**: Two build-time environment variables set by the operator: `VITE_SYNC_URL` (server to connect to; absent = single-document browser mode) and `VITE_AI_MODE` (how AI chat gets credentials: `none`, `user-key`, `server-proxy`). Desktop mode is runtime-detected via Electron API. All other behavior (collaboration, document browser, WebSocket sync) is derived from whether a server URL is present. See doc02.05.
 
 **Integration Surface**: A concern that Carta exposes hooks for but does not implement. Authentication, authorization policy, billing, user management, and document organization are integration surfaces — consumers (enterprise, SaaS providers) build these on top of Carta's editing platform.

@@ -26,16 +26,16 @@ Replace three flags with two environment variables:
 
 | Env var | Values | Default | Purpose |
 |---------|--------|---------|---------|
-| `VITE_SERVER_URL` | URL string or absent | absent | Server to connect to. Presence = server mode. |
+| `VITE_SYNC_URL` | URL string or absent | absent | Server to connect to. Presence = server mode. |
 | `VITE_AI_MODE` | `none`, `user-key`, `server-proxy` | `none` | How AI chat gets credentials |
 
 Desktop mode (`isDesktop`) is runtime-detected and auto-sets the server URL to the embedded server.
 
 Everything else is derived:
-- `hasServer` = `!!serverUrl`
-- `collaboration` = `hasServer`
-- `wsUrl` = `serverUrl` with `http` → `ws`
-- `documentBrowser` = `hasServer`
+- `hasSync` = `!!serverUrl`
+- `collaboration` = `hasSync`
+- `syncWsUrl` = `syncUrl` with `http` → `ws`
+- `documentBrowser` = `hasSync`
 
 Drop the `both` value from AI_MODE. Drop the "portfolio" concept entirely — document grouping is metadata managed by the storage host.
 

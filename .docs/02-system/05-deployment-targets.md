@@ -17,7 +17,7 @@ Two environment variables, set by the **operator** (the person deploying Carta):
 
 | Env var | Values | Default | Purpose |
 |---------|--------|---------|---------|
-| `VITE_SERVER_URL` | URL string or absent | absent | Server to connect to. Presence enables server mode. |
+| `VITE_SYNC_URL` | URL string or absent | absent | Server to connect to. Presence enables server mode. |
 | `VITE_AI_MODE` | `none`, `user-key`, `server-proxy` | `none` | How AI chat gets credentials |
 | `VITE_DEBUG` | `true`, `false`, or absent | `import.meta.env.DEV` | Shows debug badges in header (DEV, SERVER, DESKTOP, AI mode) |
 
@@ -31,16 +31,16 @@ Everything else is derived:
 
 | Derived property | Logic |
 |------------------|-------|
-| `hasServer` | `!!serverUrl` |
-| `collaboration` | `hasServer` (WebSocket sync requires a server) |
-| `wsUrl` | `serverUrl` with `http` → `ws` |
-| `documentBrowser` | `hasServer` (single-document mode otherwise) |
+| `hasSync` | `!!serverUrl` |
+| `collaboration` | `hasSync` (WebSocket sync requires a server) |
+| `syncWsUrl` | `syncUrl` with `http` → `ws` |
+| `documentBrowser` | `hasSync` (single-document mode otherwise) |
 
 ### Why two variables, not three or five
 
 `STORAGE_BACKENDS` and `COLLABORATION` were previously independent flags, but they encoded the same underlying decision: **is there a server?** If a server is present, it handles persistence and enables WebSocket sync. If not, IndexedDB is the only option and collaboration is impossible. The `both` value for storage backends was a developer convenience that leaked complexity into the product model.
 
-The simplified model: if `VITE_SERVER_URL` is set (or desktop auto-detects its embedded server), you have server storage and collaboration. If not, you don't.
+The simplified model: if `VITE_SYNC_URL` is set (or desktop auto-detects its embedded server), you have server storage and collaboration. If not, you don't.
 
 `AI_MODE` remains independent because it genuinely varies separately — desktop has a server but uses `user-key`; enterprise has a server and uses `server-proxy`.
 
@@ -148,7 +148,7 @@ The MCP binary verifies the PID is still running before using the URL. Default p
 
 ## Deployment Scenarios
 
-| Scenario | `VITE_SERVER_URL` | `VITE_AI_MODE` | `isDesktop` | Behavior |
+| Scenario | `VITE_SYNC_URL` | `VITE_AI_MODE` | `isDesktop` | Behavior |
 |----------|-------------------|----------------|-------------|----------|
 | Demo site | absent | `none` | false | Single document, browser-only, no AI |
 | Solo browser | absent | `user-key` | false | Single document, browser-only, user provides API key |

@@ -6,12 +6,12 @@ import { test, expect } from '@playwright/test';
  * These tests verify the folder navigation and persistence behavior
  * in the document browser modal.
  *
- * IMPORTANT: These tests require the app to be built with VITE_SERVER_URL set.
- * The server URL is a build-time environment variable, so we can't inject it
+ * IMPORTANT: These tests require the app to be built with VITE_SYNC_URL set.
+ * The sync URL is a build-time environment variable, so we can't inject it
  * at runtime. Run these tests with:
- *   VITE_SERVER_URL=http://localhost:3001 pnpm test:e2e
+ *   VITE_SYNC_URL=http://localhost:3001 pnpm test:e2e
  *
- * The tests will skip if the document browser modal doesn't appear (local mode).
+ * The tests will skip if the document browser modal doesn't appear (demo mode).
  */
 
 interface MockDocument {
@@ -75,7 +75,7 @@ test.describe('Document Browser Modal', () => {
     ]).catch(() => 'neither' as const);
 
     if (firstVisible !== 'modal') {
-      test.skip(true, 'Document browser only appears in server mode (VITE_SERVER_URL must be set at build time)');
+      test.skip(true, 'Document browser only appears in sync mode (VITE_SYNC_URL must be set at build time)');
     }
 
     return modal;

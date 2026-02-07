@@ -265,7 +265,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
     try {
       // ===== HEALTH =====
 
-      if (path === '/health' && method === 'GET') {
+      if (path === '/health' && (method === 'GET' || method === 'HEAD')) {
         sendJson(res, 200, {
           status: 'ok',
           ...config.healthMeta,

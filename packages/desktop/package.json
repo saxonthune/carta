@@ -5,7 +5,7 @@
   "main": "./dist/main/index.js",
   "scripts": {
     "build:deps": "pnpm --filter @carta/domain build && pnpm --filter @carta/document build && pnpm --filter @carta/compiler build && pnpm --filter @carta/server build",
-    "dev": "pnpm run build:deps && concurrently -k -n vite,electron -c blue,green \"pnpm --filter @carta/web-client dev --port 5373\" \"wait-on http://localhost:5373 && pnpm run compile && electron .\"",
+    "dev": "pnpm run build:deps && concurrently -k -n vite,electron -c blue,green \"pnpm --filter @carta/web-client demo --port 5373\" \"wait-on http://localhost:5373 && pnpm run compile && electron .\"",
     "dev:electron": "pnpm run build:deps && pnpm run compile && electron .",
     "compile": "rm -rf dist/main dist/preload && tsc && tsc -p tsconfig.preload.json",
     "build": "pnpm --filter @carta/web-client build && pnpm --filter @carta/server build && pnpm run compile && node scripts/copy-renderer.mjs",

@@ -49,7 +49,7 @@ export default function HelpModal({ isOpen, onClose }: HelpModalProps) {
           <div>
             <div className="text-xs font-medium text-content-muted uppercase tracking-wide mb-2">Configuration</div>
             <div className="bg-surface-alt rounded-lg p-3 space-y-1.5 text-xs font-mono">
-              <Row label="Server" value={config.serverUrl || 'none (single-document mode)'} />
+              <Row label="Sync server" value={config.syncUrl || 'none (single-document mode)'} />
               <Row label="AI mode" value={config.aiMode} />
               <Row label="Desktop" value={config.isDesktop ? 'yes' : 'no'} />
             </div>

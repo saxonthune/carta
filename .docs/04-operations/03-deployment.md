@@ -11,7 +11,7 @@ status: draft
 pnpm build        # Produces static assets in dist/
 ```
 
-The build is a single-page application. It can be hosted on any static file server (Netlify, Vercel, S3, GitHub Pages). Whether it operates in single-document or multi-document mode depends on the `VITE_SERVER_URL` environment variable at build time.
+The build is a single-page application. It can be hosted on any static file server (Netlify, Vercel, S3, GitHub Pages). Whether it operates in single-document or multi-document mode depends on the `VITE_SYNC_URL` environment variable at build time.
 
 Without a server URL, the app runs in single-document mode (IndexedDB only, like Excalidraw). With a server URL, it connects for document storage and collaboration.
 
@@ -29,7 +29,7 @@ The desktop build bundles the MCP server binary as an extraResource, enabling Cl
 
 | Variable | Values | Default | Purpose |
 |----------|--------|---------|---------|
-| `VITE_SERVER_URL` | URL string or absent | absent | Server to connect to. Presence enables server mode. |
+| `VITE_SYNC_URL` | URL string or absent | absent | Server to connect to. Presence enables server mode. |
 | `VITE_AI_MODE` | `none`, `user-key`, `server-proxy` | `none` | How AI chat gets credentials |
 
 In desktop mode, the server URL is auto-set to the embedded server. See doc02.05 for full deployment configuration details.
