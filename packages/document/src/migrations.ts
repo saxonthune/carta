@@ -42,8 +42,6 @@ export function migrateToLevels(ydoc: Y.Doc): void {
   levelData.set('order', 0);
   ylevels.set(levelId, levelData);
   ymeta.set('activeLevel', levelId);
-  console.debug('[levels] Created Main level during migration', { levelId, hasFlatNodes });
-
   if (hasFlatNodes) {
     // Move flat nodes into level-scoped map
     const levelNodesMap = new Y.Map<Y.Map<unknown>>();

@@ -114,8 +114,6 @@ export function createLevel(ydoc: Y.Doc, name: string, description?: string): Le
 
   const order = maxOrder + 1;
 
-  console.debug('[levels] createLevel via doc-operations', { levelId, name, existingCount: ylevels.size });
-
   ydoc.transact(() => {
     const levelData = new Y.Map<unknown>();
     levelData.set('id', levelId);
