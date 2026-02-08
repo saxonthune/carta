@@ -255,4 +255,38 @@ export class CartaPage {
     }
     await this.page.waitForTimeout(300);
   }
+
+  /**
+   * Get an organizer node by index (type='organizer').
+   */
+  getOrganizerNode(index: number): Locator {
+    return this.page.locator('.react-flow__node-organizer').nth(index);
+  }
+
+  /**
+   * Get the spread children button within an organizer.
+   * Only visible when organizer is expanded and has 2+ children.
+   */
+  getOrganizerSpreadButton(organizerLocator: Locator): Locator {
+    return organizerLocator.locator('button[title="Spread children"]');
+  }
+
+  /**
+   * Get the collapse toggle button within an organizer.
+   * Shows "Collapse organizer" when expanded, "Expand organizer" when collapsed.
+   */
+  getOrganizerCollapseButton(organizerLocator: Locator): Locator {
+    return organizerLocator.locator('button[title="Collapse organizer"]');
+  }
+
+  /**
+   * Get the child count badge text from an organizer.
+   * Returns the text content of the badge (e.g., "2").
+   */
+  async getChildCountBadge(organizerLocator: Locator): Promise<string | null> {
+    const badge = organizerLocator.locator('span.text-\\[10px\\].font-medium');
+    const count = await badge.count();
+    if (count === 0) return null;
+    return badge.textContent();
+  }
 }

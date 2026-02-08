@@ -83,14 +83,14 @@ At the start of work, read both sides:
 ## MCP tools available
 
 **Document**: list_documents, create_document, get_document, delete_document, rename_document
-**Levels**: list_levels, create_level, set_active_level, rename_level, delete_level
+**Pages**: list_pages, create_page, set_active_page, rename_page, delete_page
 **Schemas**: list_schemas, get_schema, create_schema
 **Constructs**: list_constructs, get_construct, create_construct, update_construct, delete_construct
 **Connections**: connect_constructs, disconnect_constructs
 **Organizers**: create_organizer, update_organizer, delete_organizer
 **Output**: compile
 
-All construct and connection operations target the **active level**. Set it with `set_active_level` before creating constructs on a specific level.
+All construct and connection operations target the **active page**. Set it with `set_active_page` before creating constructs on a specific page.
 
 ## Design exercises
 
@@ -98,9 +98,9 @@ The user will sometimes ask "how would Carta need to change to support X?" This 
 
 1. **Think through the design**: Read relevant `.docs/` and source to understand the current architecture. Reason about where the feature would live, what layers it touches, what's new vs what's a modification.
 2. **Discuss with the user**: Present options, tradeoffs, and architectural placement. This is a conversation, not a plan.
-3. **Write a todo plan**: When the user is satisfied with the direction, write a markdown file to `todo-plans/` at the repo root. The file should contain enough motivation and design direction that another agent can use it to create their own implementation plan — but it is NOT an implementation plan itself. Include: motivation, scope, architectural placement, design decisions to make, and what's explicitly out of scope.
+3. **Write a todo task**: When the user is satisfied with the direction, write a markdown file to `todo-tasks/` at the repo root. A todo task captures **motivation and research already performed** so the implementing agent doesn't start from zero — but it is NOT an implementation plan. The implementor will do their own code exploration and create their own plan. Avoid doing duplicate work: include motivation, scope, design direction, and any research findings from the conversation, but don't do additional code exploration just for the task file.
 
-   **Plan file format — frontload the summary.** Another agent will read only the first 10 lines to decide whether to work on this plan. Use this structure:
+   **Task file format — frontload the summary.** Another agent will read only the first 10 lines to decide whether to work on this task. Use this structure:
 
    ```markdown
    # Feature Title
@@ -115,4 +115,4 @@ The user will sometimes ask "how would Carta need to change to support X?" This 
    ```
 
    The first 10 lines must contain the title, scope, layers, and a one-sentence summary. Everything else (detailed motivation, architectural placement, design decisions, out-of-scope) follows after.
-4. **Do not edit source code** during design exercises. Read code to inform the design; write only to `todo-plans/` and the Carta document.
+4. **Do not edit source code** during design exercises. Read code to inform the design; write only to `todo-tasks/` and the Carta document.

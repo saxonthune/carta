@@ -16,13 +16,13 @@ import * as Y from 'yjs';
 import { WebSocketServer } from 'ws';
 import { MongodbPersistence } from 'y-mongodb-provider';
 import {
-  migrateToLevels,
+  migrateToPages,
   repairOrphanedConnections,
   extractDocument,
 } from '@carta/document';
 import {
   createDocumentServer,
-  getActiveLevelId,
+  getActivePageId,
   type DocState,
   type DocumentSummary,
 } from './document-server-core.js';
@@ -92,8 +92,8 @@ async function getYDoc(docName: string): Promise<DocState> {
       console.log(`[Server] No persisted state for ${docName}, starting fresh`);
     }
 
-    // Migrate flat docs to level-based structure
-    migrateToLevels(doc);
+    // Migrate flat docs to page-based structure
+    migrateToPages(doc);
 
     // Repair orphaned connections (references to deleted nodes)
     repairOrphanedConnections(doc);
@@ -119,7 +119,7 @@ const { handleHttpRequest, setupWSConnection } = createDocumentServer({
   })),
   listDocuments: async (): Promise<DocumentSummary[]> => {
     return Array.from(docs.entries()).map(([roomId, docState]) => {
-      const doc = extractDocument(docState.doc, roomId, getActiveLevelId(docState.doc));
+      const doc = extractDocument(docState.doc, roomId, getActivePageId(docState.doc));
       return {
         id: roomId,
         title: doc.title,

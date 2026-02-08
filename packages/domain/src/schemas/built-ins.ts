@@ -101,10 +101,10 @@ export const builtInConstructSchemas: ConstructSchema[] = schemas;
 /**
  * Materialize built-in seeds into document-ready groups and schemas.
  *
- * Each call generates fresh UUIDs for all schema groups and resolves
- * all groupId/parentId references. Safe to call multiple times —
- * no ID collisions across hydrations.
+ * When `existingGroups` is provided, groups matching by name reuse
+ * existing IDs — making "restore defaults" idempotent instead of
+ * creating orphan groups.
  */
-export function hydrateBuiltIns(): { groups: SchemaGroup[]; schemas: ConstructSchema[] } {
-  return hydrateSeeds(groups, schemas);
+export function hydrateBuiltIns(existingGroups?: SchemaGroup[]): { groups: SchemaGroup[]; schemas: ConstructSchema[] } {
+  return hydrateSeeds(groups, schemas, existingGroups);
 }

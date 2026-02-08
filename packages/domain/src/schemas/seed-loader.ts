@@ -43,17 +43,29 @@ export function loadSeeds(seeds: SchemaSeed[]): { groups: SchemaGroup[]; schemas
  *
  * Every group ref ID is replaced with a fresh UUID. All schema groupId
  * and group parentId references are resolved to the new UUIDs.
- * Each call produces a unique, self-consistent set — safe to hydrate
- * multiple times without ID collisions.
+ *
+ * When `existingGroups` is provided, groups are matched by name and
+ * existing IDs are reused — making the output idempotent for groups
+ * that already exist in the document.
  */
 export function hydrateSeeds(
   groups: SchemaGroup[],
   schemas: ConstructSchema[],
+  existingGroups?: SchemaGroup[],
 ): { groups: SchemaGroup[]; schemas: ConstructSchema[] } {
-  // Build ref → UUID map
+  // Build name → existing ID lookup
+  const existingByName = new Map<string, string>();
+  if (existingGroups) {
+    for (const g of existingGroups) {
+      existingByName.set(g.name, g.id);
+    }
+  }
+
+  // Build ref → UUID map (reuse existing IDs when matched by name)
   const refMap = new Map<string, string>();
   for (const group of groups) {
-    refMap.set(group.id, generateGroupId());
+    const existingId = existingByName.get(group.name);
+    refMap.set(group.id, existingId ?? generateGroupId());
   }
 
   // Resolve group refs

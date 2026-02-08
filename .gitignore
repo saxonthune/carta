@@ -32,5 +32,5 @@ dist-ssr
 /test-results/*
 /playwright-report/*
 
-# Design exercise todo plans (local working notes)
-/todo-plans/
+# Design exercise todo tasks (local working notes)
+/todo-tasks/

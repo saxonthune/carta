@@ -28,10 +28,10 @@ export function extractCartaFile(doc: Y.Doc): CartaFile {
 
   // Extract levels with their data
   const pages: CartaFilePage[] = [];
-  ypages.forEach((ylevel, pageId) => {
-    const pageData = yToPlain(ylevel) as { id: string; name: string; description?: string; order: number };
+  ypages.forEach((ypage, pageId) => {
+    const pageData = yToPlain(ypage) as { id: string; name: string; description?: string; order: number };
 
-    // Get nodes for this level
+    // Get nodes for this page
     const pageNodes = ynodes.get(pageId) as Y.Map<Y.Map<unknown>> | undefined;
     const nodes: unknown[] = [];
     if (pageNodes) {
@@ -41,7 +41,7 @@ export function extractCartaFile(doc: Y.Doc): CartaFile {
       });
     }
 
-    // Get edges for this level
+    // Get edges for this page
     const pageEdges = yedges.get(pageId) as Y.Map<Y.Map<unknown>> | undefined;
     const edges: unknown[] = [];
     if (pageEdges) {
@@ -139,7 +139,7 @@ export function hydrateYDocFromCartaFile(doc: Y.Doc, data: CartaFile): void {
     for (const page of data.pages) {
       if (!firstPageId) firstPageId = page.id;
 
-      // Create level metadata
+      // Create page metadata
       const pageMap = new Y.Map<unknown>();
       pageMap.set('id', page.id);
       pageMap.set('name', page.name);
@@ -147,7 +147,7 @@ export function hydrateYDocFromCartaFile(doc: Y.Doc, data: CartaFile): void {
       pageMap.set('order', page.order);
       ypages.set(page.id, pageMap);
 
-      // Create nodes map for this level
+      // Create nodes map for this page
       const pageNodesMap = new Y.Map<Y.Map<unknown>>();
       for (const node of page.nodes) {
         const nodeObj = node as Record<string, unknown>;
@@ -165,7 +165,7 @@ export function hydrateYDocFromCartaFile(doc: Y.Doc, data: CartaFile): void {
       }
       ynodes.set(page.id, pageNodesMap as unknown as Y.Map<unknown>);
 
-      // Create edges map for this level
+      // Create edges map for this page
       const pageEdgesMap = new Y.Map<Y.Map<unknown>>();
       for (const edge of page.edges) {
         const edgeObj = edge as Record<string, unknown>;
@@ -181,7 +181,7 @@ export function hydrateYDocFromCartaFile(doc: Y.Doc, data: CartaFile): void {
       yedges.set(page.id, pageEdgesMap as unknown as Y.Map<unknown>);
     }
 
-    // Set active level to first level
+    // Set active page to first page
     if (firstPageId) {
       ymeta.set('activePage', firstPageId);
     }

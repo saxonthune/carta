@@ -211,7 +211,7 @@ If invoked during or after a conversation where MCP tools were used, review the 
 
 ### 5. Generate todo plan (if requested)
 
-If the user wants to act on findings, write a plan to `todo-plans/mcp-tool-improvements.md` following the standard plan format (frontload the summary in first 10 lines).
+If the user wants to act on findings, write a plan to `todo-tasks/mcp-tool-improvements.md` following the standard plan format (frontload the summary in first 10 lines).
 
 ## Important notes
 

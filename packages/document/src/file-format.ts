@@ -67,9 +67,9 @@ export function validateCartaFile(data: unknown): CartaFile {
   }
 
   // Require pages array (accept legacy 'levels' key)
-  if (Array.isArray(obj.pages) && !Array.isArray(obj.pages)) {
-    obj.pages = obj.pages;
-    delete obj.pages;
+  if (!Array.isArray(obj.pages) && Array.isArray(obj.levels)) {
+    obj.pages = obj.levels;
+    delete obj.levels;
   }
   if (!Array.isArray(obj.pages) || obj.pages.length === 0) {
     throw new Error('Invalid file: missing or empty pages array');

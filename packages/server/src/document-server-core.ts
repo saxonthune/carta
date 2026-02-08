@@ -768,7 +768,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
             position: (body.x != null || body.y != null) ? { x: body.x || 100, y: body.y || 100 } : body.attachedToSemanticId ? { x: 0, y: 190 } : undefined,
             width: body.width,
             height: body.height,
-            layout: body.layout as 'freeform' | 'stack' | 'grid' | undefined,
+            layout: body.layout === 'freeform' ? 'freeform' : undefined,
             description: body.description,
             attachedToSemanticId: body.attachedToSemanticId,
             parentId,
@@ -798,7 +798,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
             name: body.name,
             color: body.color,
             collapsed: body.collapsed,
-            layout: body.layout as 'freeform' | 'stack' | 'grid' | undefined,
+            layout: body.layout === 'freeform' ? 'freeform' : undefined,
             description: body.description,
             attachedToSemanticId: body.attachedToSemanticId,
           });

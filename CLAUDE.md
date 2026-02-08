@@ -26,6 +26,7 @@ Carta is a visual software architecture editor using React Flow. Users create "C
 
 | Skill | Purpose | When to use |
 |-------|---------|-------------|
+| `/carta-feature-implementor` | Grooms todo-tasks/ plans into implementation-ready specs | Before `/execute-plan`, to resolve decisions and refine |
 | `/documentation-nag` | Keeps `.docs/` and derived files in sync with code | After significant code changes |
 | `/style-nag` | Audits and fixes UI styling against doc02.07 | After UI changes, or periodically |
 | `/frontend-architecture-nag` | Audits component layering against doc02.08 | After architectural changes |
@@ -33,6 +34,7 @@ Carta is a visual software architecture editor using React Flow. Users create "C
 | `/react-flow-expert` | React Flow performance, uncontrolled mode, presentation layer | Performance issues, designing visual features |
 | `/git-sync-trunk` | Syncs trunk branch with remote or main | Before creating worktrees, after remote updates |
 | `/git-sync-worktree` | Syncs worktree's claude branch with trunk via rebase | Every 30-60 min while working in a worktree |
+| `/execute-plan` | Launches background agent to implement a plan from todo-tasks/ | After agreeing on a plan interactively |
 
 **Agents** (launch with `Task` tool): Long-running autonomous workers.
 
@@ -41,6 +43,7 @@ Carta is a visual software architecture editor using React Flow. Users create "C
 | `batch-executor` | Processes all tasks sequentially | "process tasks" - small/medium tasks |
 | `task-master` | Spawns parallel agents per task | "launch task-master" - large tasks |
 | `test-builder` | Creates integration/E2E tests autonomously | "launch test-builder" |
+| `plan-executor` | Implements a plan headlessly in a worktree | Background worker for `/execute-plan` |
 
 ### Skill Details
 
@@ -48,6 +51,7 @@ All skills follow the same pattern: opus reads `.docs/` and code, analyzes, gene
 
 | Skill | Reference Docs | Config |
 |-------|---------------|--------|
+| `/carta-feature-implementor` | `.docs/MANIFEST.md`, plan files | `.claude/skills/carta-feature-implementor/SKILL.md` |
 | `/documentation-nag` | `.docs/` (all titles) | `.claude/skills/documentation-nag/SKILL.md` |
 | `/style-nag` | doc02.07 (design system), doc01.04 (UX principles) | `.claude/skills/style-nag/SKILL.md` |
 | `/frontend-architecture-nag` | doc02.08 (frontend architecture), doc02.01 (overview) | `.claude/skills/frontend-architecture-nag/SKILL.md` |
@@ -55,6 +59,7 @@ All skills follow the same pattern: opus reads `.docs/` and code, analyzes, gene
 | `/react-flow-expert` | doc02.09 (presentation model), Map.tsx, DynamicAnchorEdge.tsx | `.claude/skills/react-flow-expert/SKILL.md` |
 | `/git-sync-trunk` | Git worktree workflows | `.claude/skills/git-sync-trunk/SKILL.md` |
 | `/git-sync-worktree` | Git worktree workflows | `.claude/skills/git-sync-worktree/SKILL.md` |
+| `/execute-plan` | Plan executor workflow | `.claude/skills/execute-plan/SKILL.md` |
 
 ### Agent Details
 
@@ -63,6 +68,7 @@ All skills follow the same pattern: opus reads `.docs/` and code, analyzes, gene
 | `batch-executor` | `.claude/agents/batch-executor.md` |
 | `task-master` | `.claude/agents/task-master.md` |
 | `test-builder` | `.claude/agents/test-builder.md` |
+| `plan-executor` | `.claude/agents/plan-executor.md` |
 
 ## Monorepo Structure
 

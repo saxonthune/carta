@@ -78,9 +78,12 @@ export default memo(function DynamicAnchorEdge({
   const bundleData = data as BundleData | undefined;
   const count = bundleData?.bundleCount || 1;
   const isBundled = count > 1;
-  const isAttachment = (data as Record<string, unknown>)?.isAttachmentEdge === true;
-  const hopDistance = (data as Record<string, unknown>)?.hopDistance as number | undefined;
-  const dimmed = (data as Record<string, unknown>)?.dimmed as boolean | undefined;
+  const dataRecord = data as Record<string, unknown> | undefined;
+  const isAttachment = dataRecord?.isAttachmentEdge === true;
+  const hopDistance = dataRecord?.hopDistance as number | undefined;
+  const dimmed = dataRecord?.dimmed as boolean | undefined;
+  const polarity = dataRecord?.polarity as string | undefined;
+  const showArrow = !isAttachment && polarity !== 'bidirectional';
   const strokeWidth = isAttachment
     ? ((style as Record<string, unknown>).strokeWidth as number ?? 3)
     : isBundled ? Math.min(1.5 + (count - 1) * 1, 6) : 1.5;
@@ -171,6 +174,7 @@ export default memo(function DynamicAnchorEdge({
           transition: 'opacity 150ms ease',
         }}
         fill="none"
+        markerEnd={showArrow ? 'url(#carta-arrow-end)' : undefined}
       />
       {isBundled && !dimmed && (
         <g

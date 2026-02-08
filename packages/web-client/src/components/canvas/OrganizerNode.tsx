@@ -53,6 +53,14 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
     [nodeActions, nodeId]
   );
 
+  const handleSpread = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (nodeId && nodeActions) nodeActions.onSpreadChildren(nodeId);
+    },
+    [nodeActions, nodeId]
+  );
+
   // Increased base color mix for better visibility; deeper nesting = stronger tint
   const bgMix = isHovered || isDropTarget ? 25 : 18 + depth * 4;
   const borderMix = isHovered || isDropTarget ? 45 : 35 + depth * 8;
@@ -207,6 +215,21 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
             >
               {childCount}
             </span>
+          )}
+          {/* Spread children button (canvas only, 2+ children) */}
+          {nodeActions && childCount > 1 && (
+            <button
+              className="w-5 h-5 flex items-center justify-center rounded text-content-muted hover:text-content transition-colors shrink-0"
+              onClick={handleSpread}
+              title="Spread children"
+            >
+              <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={2}>
+                <polyline points="15 3 21 3 21 9" />
+                <polyline points="9 21 3 21 3 15" />
+                <line x1="21" y1="3" x2="14" y2="10" />
+                <line x1="3" y1="21" x2="10" y2="14" />
+              </svg>
+            </button>
           )}
           {/* Eyeball toggle button (canvas only — metamap uses click to toggle) */}
           {nodeActions && (

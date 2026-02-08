@@ -24,7 +24,15 @@ export interface HintNarrative {
   position: { x: number; y: number };
 }
 
-export type NarrativeState = EdgeNarrative | HintNarrative;
+/** Bundle edge narrative: shows all connections in a bundled edge */
+export interface BundleEdgeNarrative {
+  kind: 'bundle';
+  connections: Array<{ from: NarrativeEndpoint; to: NarrativeEndpoint }>;
+  position: { x: number; y: number };
+  anchor: 'above' | 'below';
+}
+
+export type NarrativeState = EdgeNarrative | HintNarrative | BundleEdgeNarrative;
 
 export function useNarrative() {
   const [narrative, setNarrative] = useState<NarrativeState | null>(null);

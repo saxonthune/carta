@@ -42,13 +42,14 @@ import { useOrganizerOperations } from '../../hooks/useOrganizerOperations';
 import ConstructEditor from '../ConstructEditor';
 import DynamicAnchorEdge from './DynamicAnchorEdge';
 import ConstructFullViewModal from '../modals/ConstructFullViewModal';
-import { useEdgeBundling } from '../../hooks/useEdgeBundling';
+import { useEdgeBundling, type BundleData } from '../../hooks/useEdgeBundling';
 import { useFlowTrace } from '../../hooks/useFlowTrace';
 import { useLodBand } from './lod/useLodBand';
 import { ZoomDebug } from '../ui/ZoomDebug';
 import { useNarrative } from '../../hooks/useNarrative';
 import Narrative from './Narrative';
 import { spreadNodes } from '../../utils/spreadNodes';
+import { compactNodes } from '../../utils/compactNodes';
 
 const nodeTypes = {
   custom: CustomNode,
@@ -437,6 +438,64 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     }
   }, [reactFlow, adapter, setNodesLocal]);
 
+  // Compact all top-level nodes (remove whitespace, preserve spatial order)
+  const handleCompactAll = useCallback(() => {
+    const rfNodes = reactFlow.getNodes();
+    const topLevel = rfNodes.filter(n => !n.parentId);
+    if (topLevel.length < 2) return;
+
+    const inputs = topLevel.map(n => ({
+      id: n.id,
+      x: n.position.x,
+      y: n.position.y,
+      width: n.measured?.width ?? n.width ?? 200,
+      height: n.measured?.height ?? n.height ?? 100,
+    }));
+    const newPositions = compactNodes(inputs);
+
+    if (newPositions.size === 0) return;
+
+    const applyPositions = (nds: Node[]) => nds.map(n => {
+      const pos = newPositions.get(n.id);
+      return pos ? { ...n, position: pos } : n;
+    });
+
+    reactFlow.setNodes(applyPositions);
+    setNodesLocal(applyPositions);
+    const patches = [...newPositions].map(([id, position]) => ({ id, position }));
+    if (patches.length > 0) {
+      adapter.patchNodes?.(patches);
+    }
+  }, [reactFlow, adapter, setNodesLocal]);
+
+  // Spread children within a single organizer
+  const handleSpreadChildren = useCallback((organizerId: string) => {
+    const rfNodes = reactFlow.getNodes();
+    const children = rfNodes.filter(n => n.parentId === organizerId && n.type !== 'organizer');
+    if (children.length < 2) return;
+
+    const inputs = children.map(n => ({
+      id: n.id,
+      x: n.position.x,
+      y: n.position.y,
+      width: n.measured?.width ?? n.width ?? 200,
+      height: n.measured?.height ?? n.height ?? 100,
+    }));
+    const newPositions = spreadNodes(inputs);
+
+    const applyPositions = (nds: Node[]) => nds.map(n => {
+      const pos = newPositions.get(n.id);
+      return pos ? { ...n, position: pos } : n;
+    });
+
+    reactFlow.setNodes(applyPositions);
+    setNodesLocal(applyPositions);
+    const patches = [...newPositions].map(([id, position]) => ({ id, position }));
+    if (patches.length > 0) {
+      adapter.patchNodes?.(patches);
+    }
+  }, [reactFlow, adapter, setNodesLocal]);
+
   // Handle adding construct from pane context menu
   const handleAddConstructFromMenu = useCallback(
     (constructType: string, x: number, y: number) => {
@@ -466,6 +525,52 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     [onNodeDoubleClick]
   );
 
+  // Build narrative endpoints for a single edge
+  const buildEdgeEndpoints = useCallback((edge: Edge) => {
+    const sourceNode = nodes.find(n => n.id === edge.source);
+    const targetNode = nodes.find(n => n.id === edge.target);
+    if (!sourceNode || !targetNode) return null;
+
+    const sourceData = sourceNode.data as ConstructNodeData;
+    const targetData = targetNode.data as ConstructNodeData;
+    const sourceSchema = sourceNode.type === 'construct' ? getSchema(sourceData.constructType) : undefined;
+    const targetSchema = targetNode.type === 'construct' ? getSchema(targetData.constructType) : undefined;
+
+    const sourceName = sourceNode.type === 'construct' ? getDisplayName(sourceData, sourceSchema) : (sourceData.label as string ?? edge.source);
+    const targetName = targetNode.type === 'construct' ? getDisplayName(targetData, targetSchema) : (targetData.label as string ?? edge.target);
+    const sourceType = sourceSchema?.displayName ?? sourceNode.type ?? '';
+    const targetType = targetSchema?.displayName ?? targetNode.type ?? '';
+
+    const isRemapped = edge.sourceHandle === 'group-connect' || edge.targetHandle === 'group-connect';
+    const sourcePortConfig = !isRemapped ? sourceSchema?.ports?.find(p => p.id === edge.sourceHandle) : undefined;
+    const targetPortConfig = !isRemapped ? targetSchema?.ports?.find(p => p.id === edge.targetHandle) : undefined;
+    const sourcePortSchema = sourcePortConfig ? getPortSchema(sourcePortConfig.portType) : undefined;
+    const targetPortSchema = targetPortConfig ? getPortSchema(targetPortConfig.portType) : undefined;
+    const sourcePortLabel = sourcePortConfig?.label ?? edge.sourceHandle ?? '';
+    const targetPortLabel = targetPortConfig?.label ?? edge.targetHandle ?? '';
+    const sourcePortColor = sourcePortSchema?.color ?? '#94a3b8';
+    const targetPortColor = targetPortSchema?.color ?? '#94a3b8';
+
+    const sourcePortPolarity = sourcePortSchema?.polarity;
+    const isSourceOutput = sourcePortPolarity === 'source' || sourcePortPolarity === 'relay';
+
+    const from = isSourceOutput || !sourcePortPolarity ? {
+      name: sourceName, schemaType: sourceType, portLabel: sourcePortLabel, portColor: sourcePortColor,
+    } : {
+      name: targetName, schemaType: targetType, portLabel: targetPortLabel, portColor: targetPortColor,
+    };
+    const to = isSourceOutput || !sourcePortPolarity ? {
+      name: targetName, schemaType: targetType, portLabel: targetPortLabel, portColor: targetPortColor,
+    } : {
+      name: sourceName, schemaType: sourceType, portLabel: sourcePortLabel, portColor: sourcePortColor,
+    };
+
+    return { from, to };
+  }, [nodes, getSchema, getPortSchema]);
+
+  // Ref for bundleMap — populated after useEdgeBundling below, accessed in click handler
+  const bundleMapRef = useRef<globalThis.Map<string, Edge[]>>(new globalThis.Map());
+
   // Edge click: select both source and target nodes + show narrative
   const handleEdgeClick = useCallback(
     (event: React.MouseEvent, edge: Edge) => {
@@ -476,56 +581,48 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
       })));
       setSelectedNodeIds(endpointIds);
 
-      // Build structured narrative data
-      const sourceNode = nodes.find(n => n.id === edge.source);
-      const targetNode = nodes.find(n => n.id === edge.target);
-      if (!sourceNode || !targetNode) return;
+      const bundleData = edge.data as BundleData | undefined;
+      const bundledEdgeIds = bundleData?.bundledEdgeIds;
 
-      const sourceData = sourceNode.data as ConstructNodeData;
-      const targetData = targetNode.data as ConstructNodeData;
-      const sourceSchema = sourceNode.type === 'construct' ? getSchema(sourceData.constructType) : undefined;
-      const targetSchema = targetNode.type === 'construct' ? getSchema(targetData.constructType) : undefined;
+      // Bundled edge: show all connections
+      if (bundledEdgeIds && bundledEdgeIds.length > 1) {
+        // Look up original edges from the bundle map
+        const originalEdges: Edge[] = [];
+        for (const [, edgeGroup] of bundleMapRef.current) {
+          for (const e of edgeGroup) {
+            if (bundledEdgeIds.includes(e.id)) {
+              originalEdges.push(e);
+            }
+          }
+        }
 
-      const sourceName = sourceNode.type === 'construct' ? getDisplayName(sourceData, sourceSchema) : (sourceData.label as string ?? edge.source);
-      const targetName = targetNode.type === 'construct' ? getDisplayName(targetData, targetSchema) : (targetData.label as string ?? edge.target);
-      const sourceType = sourceSchema?.displayName ?? sourceNode.type ?? '';
-      const targetType = targetSchema?.displayName ?? targetNode.type ?? '';
+        const connections = originalEdges
+          .map(e => buildEdgeEndpoints(e))
+          .filter((ep): ep is NonNullable<typeof ep> => ep !== null);
 
-      // Resolve port configs and their registry schemas (for label, color, polarity)
-      const isRemapped = edge.sourceHandle === 'group-connect' || edge.targetHandle === 'group-connect';
-      const sourcePortConfig = !isRemapped ? sourceSchema?.ports?.find(p => p.id === edge.sourceHandle) : undefined;
-      const targetPortConfig = !isRemapped ? targetSchema?.ports?.find(p => p.id === edge.targetHandle) : undefined;
-      const sourcePortSchema = sourcePortConfig ? getPortSchema(sourcePortConfig.portType) : undefined;
-      const targetPortSchema = targetPortConfig ? getPortSchema(targetPortConfig.portType) : undefined;
-      const sourcePortLabel = sourcePortConfig?.label ?? edge.sourceHandle ?? '';
-      const targetPortLabel = targetPortConfig?.label ?? edge.targetHandle ?? '';
-      const sourcePortColor = sourcePortSchema?.color ?? '#94a3b8';
-      const targetPortColor = targetPortSchema?.color ?? '#94a3b8';
+        if (connections.length > 0) {
+          showNarrative({
+            kind: 'bundle',
+            connections,
+            position: { x: event.clientX, y: event.clientY },
+            anchor: 'above',
+          });
+        }
+        return;
+      }
 
-      // Determine polarity to sort: source-polarity node on left
-      const sourcePortPolarity = sourcePortSchema?.polarity;
-      const isSourceOutput = sourcePortPolarity === 'source' || sourcePortPolarity === 'relay';
-
-      // If source port is a sink, swap so the "from" side is the output
-      const from = isSourceOutput || !sourcePortPolarity ? {
-        name: sourceName, schemaType: sourceType, portLabel: sourcePortLabel, portColor: sourcePortColor,
-      } : {
-        name: targetName, schemaType: targetType, portLabel: targetPortLabel, portColor: targetPortColor,
-      };
-      const to = isSourceOutput || !sourcePortPolarity ? {
-        name: targetName, schemaType: targetType, portLabel: targetPortLabel, portColor: targetPortColor,
-      } : {
-        name: sourceName, schemaType: sourceType, portLabel: sourcePortLabel, portColor: sourcePortColor,
-      };
+      // Single edge narrative
+      const endpoints = buildEdgeEndpoints(edge);
+      if (!endpoints) return;
 
       showNarrative({
         kind: 'edge',
-        from, to,
+        from: endpoints.from, to: endpoints.to,
         position: { x: event.clientX, y: event.clientY },
         anchor: 'above',
       });
     },
-    [reactFlow, setSelectedNodeIds, nodes, getSchema, getPortSchema, showNarrative]
+    [reactFlow, setSelectedNodeIds, buildEdgeEndpoints, showNarrative]
   );
 
   // Pane click: dismiss narrative + original handler
@@ -573,6 +670,8 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
   updateNodeInstanceColorRef.current = updateNodeInstanceColor;
   const toggleOrganizerCollapseRef = useRef(toggleOrganizerCollapse);
   toggleOrganizerCollapseRef.current = toggleOrganizerCollapse;
+  const handleSpreadChildrenRef = useRef(handleSpreadChildren);
+  handleSpreadChildrenRef.current = handleSpreadChildren;
 
   // One stable dispatch object shared by ALL nodes (never changes identity)
   const nodeActions = useMemo(() => ({
@@ -583,6 +682,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     onOpenFullView: (nodeId: string) => setFullViewNodeIdRef.current(nodeId),
     onInstanceColorChange: (nodeId: string, color: string | null) => updateNodeInstanceColorRef.current(nodeId, color),
     onToggleCollapse: (nodeId: string) => toggleOrganizerCollapseRef.current(nodeId),
+    onSpreadChildren: (nodeId: string) => handleSpreadChildrenRef.current(nodeId),
   }), []);
 
   const nodesWithCallbacks = useMemo(() =>
@@ -764,8 +864,34 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     [nodes]
   );
 
+  // Enrich edges with polarity data for arrowhead rendering
+  const polarityEdges = useMemo(() => {
+    const nodeMap = new globalThis.Map(nodes.map(n => [n.id, n]));
+    return filteredEdges.map(edge => {
+      // Skip non-construct edges (attachment edges, etc.)
+      if ((edge.data as Record<string, unknown>)?.isAttachmentEdge) return edge;
+
+      const sourceNode = nodeMap.get(edge.source);
+      if (!sourceNode || sourceNode.type !== 'construct') return edge;
+      const sourceData = sourceNode.data as ConstructNodeData;
+      const sourceSchema = getSchema(sourceData.constructType);
+      if (!sourceSchema) return edge;
+
+      const portConfig = sourceSchema.ports?.find(p => p.id === edge.sourceHandle);
+      if (!portConfig) return edge;
+      const portSchema = getPortSchema(portConfig.portType);
+      if (!portSchema) return edge;
+
+      return {
+        ...edge,
+        data: { ...edge.data, polarity: portSchema.polarity },
+      };
+    });
+  }, [filteredEdges, nodes, getSchema, getPortSchema]);
+
   // Edge bundling: collapse parallel edges between same node pairs
-  const { displayEdges } = useEdgeBundling(filteredEdges, nodeTypeMap);
+  const { displayEdges, bundleMap } = useEdgeBundling(polarityEdges, nodeTypeMap);
+  bundleMapRef.current = bundleMap;
 
   // Sync cascade output to RF's internal store (uncontrolled mode)
   const initialRender = useRef(true);
@@ -1078,6 +1204,14 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
               <line x1="3" y1="21" x2="10" y2="14" />
             </svg>
           </ControlButton>
+          <ControlButton onClick={handleCompactAll} title="Compact Layout">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="4 14 10 14 10 20" />
+              <polyline points="20 10 14 10 14 4" />
+              <line x1="14" y1="10" x2="21" y2="3" />
+              <line x1="3" y1="21" x2="10" y2="14" />
+            </svg>
+          </ControlButton>
           {selectedNodeIds.length > 0 && (
             <>
               <ControlButton
@@ -1125,6 +1259,15 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
         )}
 
         <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
+        {/* Arrow marker definitions for directional edges */}
+        <svg style={{ position: 'absolute', width: 0, height: 0 }}>
+          <defs>
+            <marker id="carta-arrow-end" viewBox="0 0 10 10" refX="10" refY="5"
+                    markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--edge-default-color, #94a3b8)" />
+            </marker>
+          </defs>
+        </svg>
       </ReactFlow>
 
       {contextMenu && (

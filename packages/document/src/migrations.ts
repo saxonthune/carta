@@ -1,7 +1,7 @@
 /**
  * Y.Doc migrations for Carta documents.
  *
- * Detects flat Y.Doc format (pre-levels) and wraps data under a new default level.
+ * Detects flat Y.Doc format (pre-pages) and wraps data under a new default page.
  * Repairs orphaned connections that reference non-existent nodes.
  */
 
@@ -9,10 +9,10 @@ import * as Y from 'yjs';
 import { generatePageId } from './id-generators.js';
 
 /**
- * Migrate flat data structure to level-based structure.
+ * Migrate flat data structure to page-based structure.
  *
  * Detects if the Y.Doc has flat nodes (old format where node-shaped Y.Maps
- * are stored directly in the 'nodes' map) and wraps them under a new default level.
+ * are stored directly in the 'nodes' map) and wraps them under a new default page.
  */
 export function migrateToPages(ydoc: Y.Doc): void {
   const ymeta = ydoc.getMap('meta');
@@ -34,7 +34,7 @@ export function migrateToPages(ydoc: Y.Doc): void {
   if (!hasFlatNodes && ypages.size > 0) return; // Already migrated or empty doc
   if (!hasFlatNodes && ypages.size === 0 && ynodes.size === 0 && yedges.size === 0) return; // New doc, nothing to migrate
 
-  // Create default level
+  // Create default page
   const pageId = generatePageId();
   const pageData = new Y.Map<unknown>();
   pageData.set('id', pageId);
@@ -43,7 +43,7 @@ export function migrateToPages(ydoc: Y.Doc): void {
   ypages.set(pageId, pageData);
   ymeta.set('activePage', pageId);
   if (hasFlatNodes) {
-    // Move flat nodes into level-scoped map
+    // Move flat nodes into page-scoped map
     const pageNodesMap = new Y.Map<Y.Map<unknown>>();
     const flatNodeEntries: [string, Y.Map<unknown>][] = [];
     ynodes.forEach((value, key) => {
@@ -55,7 +55,7 @@ export function migrateToPages(ydoc: Y.Doc): void {
     }
     ynodes.set(pageId, pageNodesMap as unknown as Y.Map<unknown>);
 
-    // Move flat edges into level-scoped map
+    // Move flat edges into page-scoped map
     const pageEdgesMap = new Y.Map<Y.Map<unknown>>();
     const flatEdgeEntries: [string, Y.Map<unknown>][] = [];
     yedges.forEach((value, key) => {
@@ -67,7 +67,7 @@ export function migrateToPages(ydoc: Y.Doc): void {
     }
     yedges.set(pageId, pageEdgesMap as unknown as Y.Map<unknown>);
 
-    // Move flat deployables into level-scoped map
+    // Move flat deployables into page-scoped map
     const pageDeployablesMap = new Y.Map<Y.Map<unknown>>();
     const flatDeployableEntries: [string, Y.Map<unknown>][] = [];
     ydeployables.forEach((value, key) => {
@@ -90,15 +90,15 @@ export function migrateToPages(ydoc: Y.Doc): void {
 export function repairOrphanedConnections(ydoc: Y.Doc): void {
   const ypages = ydoc.getMap<Y.Map<unknown>>('pages');
 
-  if (ypages.size === 0) return; // No levels, nothing to repair
+  if (ypages.size === 0) return; // No pages, nothing to repair
 
   ypages.forEach((ypageData) => {
-    const ylevel = ypageData as Y.Map<unknown>;
-    const ynodes = ylevel.get('nodes') as Y.Map<Y.Map<unknown>> | undefined;
+    const ypage = ypageData as Y.Map<unknown>;
+    const ynodes = ypage.get('nodes') as Y.Map<Y.Map<unknown>> | undefined;
 
     if (!ynodes) return;
 
-    // Build set of valid semantic IDs in this level
+    // Build set of valid semantic IDs in this page
     const validSemanticIds = new Set<string>();
     ynodes.forEach((ynodeData) => {
       const data = ynodeData.get('data') as Y.Map<unknown> | undefined;

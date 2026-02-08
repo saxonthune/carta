@@ -64,6 +64,7 @@ export function useEdgeBundling(edges: Edge[], nodeTypeMap: Map<string, string>)
           ...representative.data,
           bundleCount: bundledEdges.length,
           bundledEdgeIds: bundledEdges.map(e => e.id),
+          polarity: (bundledEdges[0].data as Record<string, unknown>)?.polarity,
         } as Record<string, unknown>;
         displayEdges.push(representative);
       }

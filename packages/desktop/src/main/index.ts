@@ -21,12 +21,16 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    show: false,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       nodeIntegration: false,
       contextIsolation: true
     }
   });
+
+  mainWindow.maximize();
+  mainWindow.show();
 
   const url = getRendererUrl();
 

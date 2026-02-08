@@ -100,7 +100,9 @@ function importIntoLevel(
 }
 
 /**
- * Merge schemas, port schemas, and schema groups from file into existing document
+ * Merge schemas, port schemas, and schema groups from file into existing document.
+ * Deduplicates groups by name: incoming groups matching existing ones reuse existing IDs,
+ * and imported schemas' groupIds are remapped accordingly.
  */
 function mergeSchemas(
   adapter: DocumentAdapter,
@@ -113,9 +115,39 @@ function mergeSchemas(
     syncWithDocumentStore(data.portSchemas);
   }
 
-  // Import schema groups
+  // Import schema groups with deduplication by name
   if (data.schemaGroups && data.schemaGroups.length > 0) {
-    adapter.setSchemaGroups(data.schemaGroups);
+    const existingGroups = adapter.getSchemaGroups();
+    const existingByName = new Map(existingGroups.map(g => [g.name, g]));
+
+    // Build remap: incoming groupId → existing groupId (for groups with same name)
+    const groupIdRemap = new Map<string, string>();
+    const mergedGroups = [...existingGroups];
+
+    for (const incoming of data.schemaGroups) {
+      const existing = existingByName.get(incoming.name);
+      if (existing) {
+        groupIdRemap.set(incoming.id, existing.id);
+      } else {
+        // Remap parentId if the parent was deduped
+        const remappedParentId = incoming.parentId
+          ? (groupIdRemap.get(incoming.parentId) ?? incoming.parentId)
+          : undefined;
+        mergedGroups.push({ ...incoming, parentId: remappedParentId });
+      }
+    }
+
+    adapter.setSchemaGroups(mergedGroups);
+
+    // Remap groupIds on imported schemas
+    if (groupIdRemap.size > 0 && schemasToImport.length > 0) {
+      for (let i = 0; i < schemasToImport.length; i++) {
+        const s = schemasToImport[i];
+        if (s.groupId && groupIdRemap.has(s.groupId)) {
+          schemasToImport[i] = { ...s, groupId: groupIdRemap.get(s.groupId) };
+        }
+      }
+    }
   }
 
   // Import selected schemas
