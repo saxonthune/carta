@@ -135,14 +135,14 @@ Organized by purpose:
 - **Document state**: `useNodes`, `useEdges`, `useSchemas`, `usePortSchemas`, `useSchemaGroups`, `useLevels`, `useDocumentMeta`
 - **Document operations**: `useGraphOperations`, `useConnections`, `usePresentation`, `useOrganizerOperations`
 - **UI state**: `useMapState`, `useMetamapLayout`, `useEdgeBundling`, `useNarrative`
-- **Utilities**: `useClipboard`, `useUndoRedo`, `useKeyboardShortcuts`, `useAwareness`, `useDirtyStateGuard`, `useClearDocument`
+- **Utilities**: `useClipboard`, `useUndoRedo`, `useSchemaUndoRedo`, `useKeyboardShortcuts`, `useAwareness`, `useDirtyStateGuard`, `useClearDocument`
 
 ### `components/canvas/index.ts`
 Canvas components and LOD:
 - **Components**: `Map`, `CanvasContainer`, `ConstructNode`, `OrganizerNode`, `DynamicAnchorEdge`, `PortDrawer`, `IndexBasedDropZones`, `NodeControls`, `AddConstructMenu`, `Narrative`
 - **LOD**: `useLodBand`, `DEFAULT_LOD_POLICY`, `getLodConfig`, types
 
-**Note:** `ConstructNode` and `Header` are directories with modular implementations. ConstructNode has: `index.tsx` (dispatcher), `ConstructNodePill.tsx` (pill LOD, shared), `ConstructNodeDefault.tsx` (includes 'default' and 'card' renderStyles), `ConstructNodeSimple.tsx` (simple renderStyle, see doc03.01.14), `shared.ts` (utilities). Header has: `Header.tsx`, `ThemeMenu.tsx`, `SettingsMenu.tsx`, `ShareMenu.tsx`, `useClickOutside.ts`.
+**Note:** `ConstructNode` and `Header` are directories with modular implementations. ConstructNode has: `index.tsx` (dispatcher), `ConstructNodePill.tsx` (pill LOD, shared), `ConstructNodeDefault.tsx` (default renderStyle), `ConstructNodeSimple.tsx` (simple renderStyle, see doc03.01.14), `shared.ts` (utilities). Header has: `Header.tsx`, `ThemeMenu.tsx`, `SettingsMenu.tsx`, `ShareMenu.tsx`, `useClickOutside.ts`.
 
 ### `components/metamap/index.ts`
 Schema view:
@@ -165,11 +165,10 @@ Organized by type:
 Organized by purpose:
 - **File format**: `exportProject`, `CartaFile`, `CartaFileLevel` types
 - **Import/export**: `importDocument`, `analyzeImport`, `analyzeExport`, related types
-- **Examples**: `getExamples`, `getExample`
+- **Seeds**: `getExample` (provides multiple seed documents: starter, kitchen-sink, saas, perf-150)
 - **Metamap layout**: `computeMetamapLayout`, layout constants, types
 - **Preferences**: `getLastDocumentId`, `setLastDocumentId`
 - **Random names**: `generateRandomName`
-- **Starter content**: `seedStarterContent`
 - **String utilities**: `stripHandlePrefix`
 
 ## Progressive Disclosure for Features

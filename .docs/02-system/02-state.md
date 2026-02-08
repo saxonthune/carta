@@ -58,6 +58,8 @@ The codebase provides **focused hooks** that subscribe to specific slices of doc
 - `useDocumentMeta()` — title, description, setTitle, setDescription
 - `useOrganizerOperations()` — organizer operations (create, attach, detach, toggle collapse, rename, resize, delete, change layout)
 - `usePresentation()` — transforms domain state into view state (node visibility, positioning, edge remapping) via the presentation model (doc02.09)
+- `useNarrative()` — narrator announcements for screen readers and visual feedback
+- `useSchemaUndoRedo()` — undo/redo for metamap schema operations
 
 **Implementation detail**: Each focused hook uses `adapter.subscribeToX()` (if available) to subscribe only to changes in that state slice. If the adapter doesn't provide a focused subscription method, it falls back to the global `adapter.subscribe()` and filters in the hook.
 

@@ -1,6 +1,6 @@
 ---
 title: "ADR: Presentation Model and Organizers"
-status: proposed
+status: accepted
 ---
 
 # ADR: Presentation Model and Organizers
@@ -219,3 +219,19 @@ Recommended execution order: 1 → 2 → 3+4 (parallel) → 5 → 6 → 7 → 8+
 - New layout strategies can be added without touching existing ones.
 - New render styles can be added without touching dispatch logic.
 - Organizer nesting business rules are centralized in one validation function.
+
+## Implementation Status
+
+**Accepted and Implemented** (February 2026)
+
+All phases (1-9) completed:
+- Domain types updated: `OrganizerNodeData` with layout strategies, `VirtualParentNodeData` removed
+- Presentation model implemented: `packages/web-client/src/presentation/` with pure transformation functions
+- Layout strategies implemented: freeform, stack, grid
+- Component refactor complete: `OrganizerNode` replaces `VisualGroupNode`, `VirtualParentNode` deleted
+- Hooks refactored: `useOrganizerOperations` replaces `useGroupOperations`, `useVisualGroups` logic moved to presentation model
+- Tests updated: `organizer.test.tsx`, `organizer-operations.test.tsx`, `organizer-geometry.test.ts`
+- MCP tools updated with organizer operations
+- Compiler updated to filter organizers (not compiled)
+
+The presentation model is now the single source of truth for rendering decisions (visibility, positioning, component dispatch, edge routing). Organizers and port connections are cleanly separated at the architectural level.

@@ -8,7 +8,7 @@ status: draft
 ## Via Construct Editor
 
 1. Right-click canvas in Metamap and select "New Construct Schema"
-2. **Basics tab**: Enter display name (auto-generates type ID), pick color, write semantic description, choose schema group, set background color policy and port display policy
+2. **Basics tab**: Enter display name (auto-generates type ID), pick color, write semantic description, choose schema group, set background color policy (controls instance color picker: defaultOnly/tints/any), set port display policy (controls port visibility)
 3. **Fields tab**: Add fields via "+ Add Field" button (opens modal). Drag fields between tier zones (pill, minimal, details, full) to control display visibility. Edit/delete via icons on field chips.
 4. **Ports tab**: Choose default ports or customize — set ID, label, port type
 5. Click "Create Schema" to add the schema to the document
