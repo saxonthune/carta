@@ -13,6 +13,7 @@ import {
   generateSemanticId,
   builtInConstructSchemas,
   toAbsolutePosition,
+  toRelativePosition,
 } from '@carta/domain';
 import type {
   CompilerNode,
@@ -433,6 +434,101 @@ export function deleteConstruct(ydoc: Y.Doc, levelId: string, semanticId: string
   }, MCP_ORIGIN);
 
   return true;
+}
+
+/**
+ * Move a construct into/out of an organizer, auto-converting between absolute and relative positions.
+ * - parentId=null: detach from current organizer (relative → absolute)
+ * - parentId="org_id": attach to organizer (absolute → relative)
+ * - position overrides are applied after conversion
+ */
+export function moveConstruct(
+  ydoc: Y.Doc,
+  levelId: string,
+  semanticId: string,
+  targetParentId: string | null,
+  position?: { x: number; y: number }
+): CompilerNode | null {
+  const levelNodes = getLevelMap(ydoc, 'nodes', levelId);
+
+  // Find the node by semantic ID
+  let foundId: string | null = null;
+  let foundYnode: Y.Map<unknown> | null = null;
+
+  levelNodes.forEach((ynode, id) => {
+    const data = ynode.get('data') as Y.Map<unknown> | Record<string, unknown> | undefined;
+    if (data && safeGet(data, 'semanticId') === semanticId) {
+      foundId = id;
+      foundYnode = ynode;
+    }
+  });
+
+  if (!foundId || !foundYnode) return null;
+
+  const currentParentId = (foundYnode as Y.Map<unknown>).get('parentId') as string | undefined;
+
+  // Validate target organizer exists if attaching
+  if (targetParentId !== null) {
+    const targetOrg = levelNodes.get(targetParentId);
+    if (!targetOrg) return null;
+    const orgObj = yToPlain(targetOrg) as Record<string, unknown>;
+    if (orgObj.type !== 'organizer') return null;
+  }
+
+  ydoc.transact(() => {
+    const ynode = foundYnode!;
+    const currentPos = yToPlain(ynode.get('position') as Y.Map<unknown>) as { x: number; y: number };
+
+    let newPos: { x: number; y: number };
+
+    if (position) {
+      // Explicit position provided — use it directly
+      newPos = position;
+    } else if (currentParentId && !targetParentId) {
+      // Detaching: convert relative → absolute
+      const parentYnode = levelNodes.get(currentParentId);
+      if (parentYnode) {
+        const parentPos = yToPlain(parentYnode.get('position') as Y.Map<unknown>) as { x: number; y: number };
+        newPos = toAbsolutePosition(currentPos, parentPos);
+      } else {
+        newPos = currentPos;
+      }
+    } else if (!currentParentId && targetParentId) {
+      // Attaching: convert absolute → relative
+      const parentYnode = levelNodes.get(targetParentId);
+      if (parentYnode) {
+        const parentPos = yToPlain(parentYnode.get('position') as Y.Map<unknown>) as { x: number; y: number };
+        newPos = toRelativePosition(currentPos, parentPos);
+      } else {
+        newPos = currentPos;
+      }
+    } else if (currentParentId && targetParentId && currentParentId !== targetParentId) {
+      // Moving between organizers: relative-to-old → absolute → relative-to-new
+      const oldParent = levelNodes.get(currentParentId);
+      const newParent = levelNodes.get(targetParentId);
+      if (oldParent && newParent) {
+        const oldParentPos = yToPlain(oldParent.get('position') as Y.Map<unknown>) as { x: number; y: number };
+        const newParentPos = yToPlain(newParent.get('position') as Y.Map<unknown>) as { x: number; y: number };
+        const absPos = toAbsolutePosition(currentPos, oldParentPos);
+        newPos = toRelativePosition(absPos, newParentPos);
+      } else {
+        newPos = currentPos;
+      }
+    } else {
+      // Same parent (or both null) — keep position
+      newPos = currentPos;
+    }
+
+    ynode.set('position', deepPlainToY(newPos));
+
+    if (targetParentId) {
+      ynode.set('parentId', targetParentId);
+    } else {
+      ynode.delete('parentId');
+    }
+  }, MCP_ORIGIN);
+
+  return getConstruct(ydoc, levelId, semanticId);
 }
 
 // ===== ORGANIZER OPERATIONS =====
@@ -1080,6 +1176,511 @@ export function connectBulk(
           targetHandle: conn.targetPortId,
         },
       });
+    }
+  }, MCP_ORIGIN);
+
+  return results;
+}
+
+/**
+ * Delete multiple constructs in a single Yjs transaction.
+ * Best-effort: individual failures are recorded, not aborted.
+ * Handles wagon detachment, edge cleanup, and connection array cleanup.
+ */
+export function deleteConstructsBulk(
+  ydoc: Y.Doc,
+  levelId: string,
+  semanticIds: string[]
+): Array<{ semanticId: string; deleted: boolean; error?: string }> {
+  const levelNodes = getLevelMap(ydoc, 'nodes', levelId);
+  const levelEdges = getLevelMap(ydoc, 'edges', levelId);
+
+  // Build lookup: semanticId → nodeId
+  const semanticToNodeId = new Map<string, string>();
+  levelNodes.forEach((ynode, id) => {
+    const data = ynode.get('data') as Y.Map<unknown> | Record<string, unknown> | undefined;
+    if (data) {
+      const sid = safeGet(data, 'semanticId') as string | undefined;
+      if (sid) semanticToNodeId.set(sid, id);
+    }
+  });
+
+  // Resolve which nodeIds to delete
+  const targetNodeIds = new Set<string>();
+  const results: Array<{ semanticId: string; deleted: boolean; error?: string }> = [];
+  const semanticIdSet = new Set(semanticIds);
+
+  for (const sid of semanticIds) {
+    const nodeId = semanticToNodeId.get(sid);
+    if (nodeId) {
+      targetNodeIds.add(nodeId);
+    }
+  }
+
+  ydoc.transact(() => {
+    // 1. Find and handle attached wagons for all target nodes
+    const wagonIdsToDelete = new Set<string>();
+    levelNodes.forEach((ynode, id) => {
+      const nodeObj = yToPlain(ynode) as Record<string, unknown>;
+      if (nodeObj.type !== 'organizer') return;
+      const data = nodeObj.data as OrganizerNodeData;
+      if (data.attachedToSemanticId && semanticIdSet.has(data.attachedToSemanticId)) {
+        wagonIdsToDelete.add(id);
+      }
+    });
+
+    // Detach wagon members before deleting wagons
+    for (const wagonId of wagonIdsToDelete) {
+      const wagonYnode = levelNodes.get(wagonId);
+      if (!wagonYnode) continue;
+      const wagonPos = yToPlain(wagonYnode.get('position') as Y.Map<unknown>) as { x: number; y: number };
+
+      levelNodes.forEach((childYnode, childId) => {
+        if (childId === wagonId) return;
+        const parentId = childYnode.get('parentId') as string | undefined;
+        if (parentId === wagonId && !targetNodeIds.has(childId)) {
+          const memberPos = yToPlain(childYnode.get('position') as Y.Map<unknown>) as { x: number; y: number };
+          const absolutePos = toAbsolutePosition(memberPos, wagonPos);
+          childYnode.set('position', deepPlainToY(absolutePos));
+          childYnode.delete('parentId');
+        }
+      });
+
+      // Remove edges connected to wagon
+      levelEdges.forEach((yedge, edgeId) => {
+        if (yedge.get('source') === wagonId || yedge.get('target') === wagonId) {
+          levelEdges.delete(edgeId);
+        }
+      });
+
+      levelNodes.delete(wagonId);
+    }
+
+    // 2. Delete edges connected to any target node
+    const edgesToDelete: string[] = [];
+    levelEdges.forEach((yedge, edgeId) => {
+      const src = yedge.get('source') as string;
+      const tgt = yedge.get('target') as string;
+      if (targetNodeIds.has(src) || targetNodeIds.has(tgt)) {
+        edgesToDelete.push(edgeId);
+      }
+    });
+    for (const edgeId of edgesToDelete) {
+      levelEdges.delete(edgeId);
+    }
+
+    // 3. Clean connection arrays in surviving nodes
+    levelNodes.forEach((ynode, id) => {
+      if (targetNodeIds.has(id)) return;
+      const ydata = ynode.get('data') as Y.Map<unknown> | Record<string, unknown> | undefined;
+      if (!ydata) return;
+
+      const yconns = safeGet(ydata, 'connections') as Y.Array<unknown> | unknown[] | undefined;
+      if (yconns instanceof Y.Array) {
+        const indicesToRemove: number[] = [];
+        for (let i = 0; i < yconns.length; i++) {
+          const conn = yconns.get(i) as Y.Map<unknown> | Record<string, unknown>;
+          if (conn && semanticIdSet.has(safeGet(conn, 'targetSemanticId') as string)) {
+            indicesToRemove.push(i);
+          }
+        }
+        for (let i = indicesToRemove.length - 1; i >= 0; i--) {
+          yconns.delete(indicesToRemove[i]!, 1);
+        }
+      } else if (Array.isArray(yconns)) {
+        const filtered = yconns.filter((conn) => {
+          const c = conn as Record<string, unknown>;
+          return !semanticIdSet.has(c.targetSemanticId as string);
+        });
+        if (ydata instanceof Y.Map) {
+          ydata.set('connections', deepPlainToY(filtered));
+        }
+      }
+    });
+
+    // 4. Delete the target nodes
+    for (const sid of semanticIds) {
+      const nodeId = semanticToNodeId.get(sid);
+      if (!nodeId) {
+        results.push({ semanticId: sid, deleted: false, error: `Construct not found: ${sid}` });
+        continue;
+      }
+      levelNodes.delete(nodeId);
+      results.push({ semanticId: sid, deleted: true });
+    }
+  }, MCP_ORIGIN);
+
+  return results;
+}
+
+// ===== BATCH MUTATE =====
+
+export type BatchOperation =
+  | { op: 'create'; constructType: string; values?: Record<string, unknown>; x?: number; y?: number; parentId?: string }
+  | { op: 'update'; semanticId: string; values?: Record<string, unknown>; instanceColor?: string | null }
+  | { op: 'delete'; semanticId: string }
+  | { op: 'connect'; sourceSemanticId: string; sourcePortId: string; targetSemanticId: string; targetPortId: string }
+  | { op: 'disconnect'; sourceSemanticId: string; sourcePortId: string; targetSemanticId: string }
+  | { op: 'move'; semanticId: string; parentId: string | null; x?: number; y?: number };
+
+export interface BatchResult {
+  index: number;
+  op: string;
+  success: boolean;
+  error?: string;
+  semanticId?: string;
+}
+
+/**
+ * Resolve `@N` placeholders in a string value.
+ * `@N` references the semanticId from the Nth operation's result.
+ */
+function resolvePlaceholder(value: string | undefined | null, created: Map<number, { semanticId: string; nodeId: string }>): string | undefined | null {
+  if (!value || !value.startsWith('@')) return value;
+  const idx = parseInt(value.slice(1), 10);
+  if (isNaN(idx)) return value;
+  const entry = created.get(idx);
+  return entry ? entry.semanticId : value;
+}
+
+/**
+ * Execute heterogeneous operations in a single Yjs transaction.
+ * Operations execute in array order. Best-effort: failures don't abort remaining ops.
+ *
+ * `@N` syntax in semanticId/parentId fields references the Nth operation's result.
+ * E.g., create at index 0, then connect using `"@0"` as sourceSemanticId.
+ */
+export function batchMutate(
+  ydoc: Y.Doc,
+  levelId: string,
+  operations: BatchOperation[]
+): BatchResult[] {
+  const levelNodes = getLevelMap(ydoc, 'nodes', levelId);
+  const levelEdges = getLevelMap(ydoc, 'edges', levelId);
+  const results: BatchResult[] = [];
+  const created = new Map<number, { semanticId: string; nodeId: string }>();
+
+  ydoc.transact(() => {
+    // Build a live lookup of semanticId → { nodeId, ydata }
+    // We rebuild this before operations that need it, since creates modify it
+    function buildNodeMap() {
+      const map = new Map<string, { nodeId: string; ydata: Y.Map<unknown>; ynode: Y.Map<unknown> }>();
+      levelNodes.forEach((ynode, id) => {
+        const ydata = ynode.get('data') as Y.Map<unknown> | Record<string, unknown> | undefined;
+        if (ydata) {
+          const sid = safeGet(ydata, 'semanticId') as string | undefined;
+          if (sid) map.set(sid, { nodeId: id, ydata: ydata as Y.Map<unknown>, ynode });
+        }
+      });
+      return map;
+    }
+
+    for (let i = 0; i < operations.length; i++) {
+      const operation = operations[i]!;
+      try {
+        switch (operation.op) {
+          case 'create': {
+            const parentId = resolvePlaceholder(operation.parentId, created) ?? undefined;
+            const semanticId = generateSemanticId(operation.constructType);
+            const nodeId = generateNodeId();
+            const position = { x: operation.x ?? 100, y: operation.y ?? 100 };
+
+            const nodeData: ConstructNodeData = {
+              constructType: operation.constructType,
+              semanticId,
+              values: operation.values ?? {},
+              connections: [],
+            };
+
+            const ynode = new Y.Map<unknown>();
+            ynode.set('type', 'construct');
+            ynode.set('position', deepPlainToY(position));
+            ynode.set('data', deepPlainToY(nodeData));
+            if (parentId) ynode.set('parentId', parentId);
+            levelNodes.set(nodeId, ynode as Y.Map<unknown>);
+
+            created.set(i, { semanticId, nodeId });
+            results.push({ index: i, op: 'create', success: true, semanticId });
+            break;
+          }
+
+          case 'update': {
+            const sid = resolvePlaceholder(operation.semanticId, created)!;
+            const nodeMap = buildNodeMap();
+            const entry = nodeMap.get(sid);
+            if (!entry) {
+              results.push({ index: i, op: 'update', success: false, error: `Construct not found: ${sid}` });
+              break;
+            }
+
+            if (operation.values !== undefined) {
+              const existingValues = (entry.ydata.get('values') as Y.Map<unknown>) || new Y.Map();
+              const newValues = deepPlainToY(operation.values) as Y.Map<unknown>;
+              newValues.forEach((value, key) => {
+                existingValues.set(key, value);
+              });
+              entry.ydata.set('values', existingValues);
+            }
+
+            if (operation.instanceColor !== undefined) {
+              entry.ydata.set('instanceColor', operation.instanceColor);
+            }
+
+            results.push({ index: i, op: 'update', success: true, semanticId: sid });
+            break;
+          }
+
+          case 'delete': {
+            const sid = resolvePlaceholder(operation.semanticId, created)!;
+            const nodeMap = buildNodeMap();
+            const entry = nodeMap.get(sid);
+            if (!entry) {
+              results.push({ index: i, op: 'delete', success: false, error: `Construct not found: ${sid}` });
+              break;
+            }
+
+            // Delete attached wagons
+            levelNodes.forEach((ynode, id) => {
+              const nodeObj = yToPlain(ynode) as Record<string, unknown>;
+              if (nodeObj.type !== 'organizer') return;
+              const data = nodeObj.data as OrganizerNodeData;
+              if (data.attachedToSemanticId === sid) {
+                // Detach wagon members
+                levelNodes.forEach((childYnode, childId) => {
+                  if (childId === id) return;
+                  const pid = childYnode.get('parentId') as string | undefined;
+                  if (pid === id) {
+                    const wagonPos = yToPlain(ynode.get('position') as Y.Map<unknown>) as { x: number; y: number };
+                    const memberPos = yToPlain(childYnode.get('position') as Y.Map<unknown>) as { x: number; y: number };
+                    childYnode.set('position', deepPlainToY(toAbsolutePosition(memberPos, wagonPos)));
+                    childYnode.delete('parentId');
+                  }
+                });
+                // Remove wagon edges
+                levelEdges.forEach((yedge, edgeId) => {
+                  if (yedge.get('source') === id || yedge.get('target') === id) {
+                    levelEdges.delete(edgeId);
+                  }
+                });
+                levelNodes.delete(id);
+              }
+            });
+
+            // Remove edges
+            const edgesToDel: string[] = [];
+            levelEdges.forEach((yedge, edgeId) => {
+              if (yedge.get('source') === entry.nodeId || yedge.get('target') === entry.nodeId) {
+                edgesToDel.push(edgeId);
+              }
+            });
+            for (const edgeId of edgesToDel) {
+              levelEdges.delete(edgeId);
+            }
+
+            // Clean connections in surviving nodes
+            levelNodes.forEach((ynode) => {
+              const ydata = ynode.get('data') as Y.Map<unknown> | Record<string, unknown> | undefined;
+              if (!ydata) return;
+              const yconns = safeGet(ydata, 'connections') as Y.Array<unknown> | unknown[] | undefined;
+              if (yconns instanceof Y.Array) {
+                const indicesToRemove: number[] = [];
+                for (let j = 0; j < yconns.length; j++) {
+                  const conn = yconns.get(j) as Y.Map<unknown> | Record<string, unknown>;
+                  if (conn && safeGet(conn, 'targetSemanticId') === sid) {
+                    indicesToRemove.push(j);
+                  }
+                }
+                for (let j = indicesToRemove.length - 1; j >= 0; j--) {
+                  yconns.delete(indicesToRemove[j]!, 1);
+                }
+              } else if (Array.isArray(yconns)) {
+                const filtered = yconns.filter((conn) => {
+                  const c = conn as Record<string, unknown>;
+                  return c.targetSemanticId !== sid;
+                });
+                if (ydata instanceof Y.Map) {
+                  ydata.set('connections', deepPlainToY(filtered));
+                }
+              }
+            });
+
+            levelNodes.delete(entry.nodeId);
+            results.push({ index: i, op: 'delete', success: true, semanticId: sid });
+            break;
+          }
+
+          case 'connect': {
+            const srcSid = resolvePlaceholder(operation.sourceSemanticId, created)!;
+            const tgtSid = resolvePlaceholder(operation.targetSemanticId, created)!;
+            const nodeMap = buildNodeMap();
+            const source = nodeMap.get(srcSid);
+            const target = nodeMap.get(tgtSid);
+
+            if (!source || !target) {
+              results.push({
+                index: i,
+                op: 'connect',
+                success: false,
+                error: !source ? `Source not found: ${srcSid}` : `Target not found: ${tgtSid}`,
+              });
+              break;
+            }
+
+            const edgeId = `edge_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+            const yedge = new Y.Map<unknown>();
+            yedge.set('source', source.nodeId);
+            yedge.set('target', target.nodeId);
+            yedge.set('sourceHandle', operation.sourcePortId);
+            yedge.set('targetHandle', operation.targetPortId);
+            levelEdges.set(edgeId, yedge as Y.Map<unknown>);
+
+            let yconns = source.ydata.get('connections') as Y.Array<unknown> | undefined;
+            if (!yconns) {
+              yconns = new Y.Array();
+              source.ydata.set('connections', yconns);
+            }
+            const connectionData: ConnectionValue = {
+              portId: operation.sourcePortId,
+              targetSemanticId: tgtSid,
+              targetPortId: operation.targetPortId,
+            };
+            yconns.push([deepPlainToY(connectionData)]);
+
+            results.push({ index: i, op: 'connect', success: true });
+            break;
+          }
+
+          case 'disconnect': {
+            const srcSid = resolvePlaceholder(operation.sourceSemanticId, created)!;
+            const tgtSid = resolvePlaceholder(operation.targetSemanticId, created)!;
+            const nodeMap = buildNodeMap();
+            const source = nodeMap.get(srcSid);
+            const target = nodeMap.get(tgtSid);
+
+            if (!source) {
+              results.push({ index: i, op: 'disconnect', success: false, error: `Source not found: ${srcSid}` });
+              break;
+            }
+
+            // Remove from connections array
+            const yconns = safeGet(source.ydata, 'connections') as Y.Array<unknown> | unknown[] | undefined;
+            if (yconns instanceof Y.Array) {
+              for (let j = yconns.length - 1; j >= 0; j--) {
+                const conn = yconns.get(j) as Y.Map<unknown> | Record<string, unknown>;
+                if (
+                  conn &&
+                  safeGet(conn, 'portId') === operation.sourcePortId &&
+                  safeGet(conn, 'targetSemanticId') === tgtSid
+                ) {
+                  yconns.delete(j, 1);
+                  break;
+                }
+              }
+            } else if (Array.isArray(yconns)) {
+              const filtered = yconns.filter((conn) => {
+                const c = conn as Record<string, unknown>;
+                return !(c.portId === operation.sourcePortId && c.targetSemanticId === tgtSid);
+              });
+              if (source.ydata instanceof Y.Map) {
+                source.ydata.set('connections', deepPlainToY(filtered));
+              }
+            }
+
+            // Remove edge
+            if (target) {
+              const edgesToDel: string[] = [];
+              levelEdges.forEach((yedge, edgeId) => {
+                if (
+                  yedge.get('source') === source.nodeId &&
+                  yedge.get('target') === target.nodeId &&
+                  yedge.get('sourceHandle') === operation.sourcePortId
+                ) {
+                  edgesToDel.push(edgeId);
+                }
+              });
+              for (const edgeId of edgesToDel) {
+                levelEdges.delete(edgeId);
+              }
+            }
+
+            results.push({ index: i, op: 'disconnect', success: true });
+            break;
+          }
+
+          case 'move': {
+            const sid = resolvePlaceholder(operation.semanticId, created)!;
+            const targetParentId = resolvePlaceholder(operation.parentId, created) ?? null;
+            const nodeMap = buildNodeMap();
+            const entry = nodeMap.get(sid);
+
+            if (!entry) {
+              results.push({ index: i, op: 'move', success: false, error: `Construct not found: ${sid}` });
+              break;
+            }
+
+            // Validate target organizer
+            if (targetParentId !== null) {
+              const targetOrg = levelNodes.get(targetParentId);
+              if (!targetOrg) {
+                results.push({ index: i, op: 'move', success: false, error: `Organizer not found: ${targetParentId}` });
+                break;
+              }
+            }
+
+            const currentParentId = entry.ynode.get('parentId') as string | undefined;
+            const currentPos = yToPlain(entry.ynode.get('position') as Y.Map<unknown>) as { x: number; y: number };
+            let newPos: { x: number; y: number };
+
+            if (operation.x != null && operation.y != null) {
+              newPos = { x: operation.x, y: operation.y };
+            } else if (currentParentId && !targetParentId) {
+              const parentYnode = levelNodes.get(currentParentId);
+              if (parentYnode) {
+                const parentPos = yToPlain(parentYnode.get('position') as Y.Map<unknown>) as { x: number; y: number };
+                newPos = toAbsolutePosition(currentPos, parentPos);
+              } else {
+                newPos = currentPos;
+              }
+            } else if (!currentParentId && targetParentId) {
+              const parentYnode = levelNodes.get(targetParentId);
+              if (parentYnode) {
+                const parentPos = yToPlain(parentYnode.get('position') as Y.Map<unknown>) as { x: number; y: number };
+                newPos = toRelativePosition(currentPos, parentPos);
+              } else {
+                newPos = currentPos;
+              }
+            } else if (currentParentId && targetParentId && currentParentId !== targetParentId) {
+              const oldParent = levelNodes.get(currentParentId);
+              const newParent = levelNodes.get(targetParentId);
+              if (oldParent && newParent) {
+                const oldParentPos = yToPlain(oldParent.get('position') as Y.Map<unknown>) as { x: number; y: number };
+                const newParentPos = yToPlain(newParent.get('position') as Y.Map<unknown>) as { x: number; y: number };
+                const absPos = toAbsolutePosition(currentPos, oldParentPos);
+                newPos = toRelativePosition(absPos, newParentPos);
+              } else {
+                newPos = currentPos;
+              }
+            } else {
+              newPos = currentPos;
+            }
+
+            entry.ynode.set('position', deepPlainToY(newPos));
+            if (targetParentId) {
+              entry.ynode.set('parentId', targetParentId);
+            } else {
+              entry.ynode.delete('parentId');
+            }
+
+            results.push({ index: i, op: 'move', success: true, semanticId: sid });
+            break;
+          }
+
+          default:
+            results.push({ index: i, op: (operation as { op: string }).op, success: false, error: `Unknown operation: ${(operation as { op: string }).op}` });
+        }
+      } catch (err) {
+        results.push({ index: i, op: operation.op, success: false, error: String(err) });
+      }
     }
   }, MCP_ORIGIN);
 

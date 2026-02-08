@@ -43,6 +43,7 @@ import ConstructEditor from '../ConstructEditor';
 import DynamicAnchorEdge from './DynamicAnchorEdge';
 import ConstructFullViewModal from '../modals/ConstructFullViewModal';
 import { useEdgeBundling } from '../../hooks/useEdgeBundling';
+import { useFlowTrace } from '../../hooks/useFlowTrace';
 import { useLodBand } from './lod/useLodBand';
 import { ZoomDebug } from '../ui/ZoomDebug';
 import { useNarrative } from '../../hooks/useNarrative';
@@ -108,6 +109,9 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
   // Presentation model for collapse/hide logic and edge remapping
   const { processedNodes: nodesWithHiddenFlags, edgeRemap } = usePresentation(nodes, edges);
 
+  // Flow trace: Alt+hover to highlight forward flow
+  const { traceResult, isTraceActive, onNodeMouseEnter, onNodeMouseLeave } = useFlowTrace(edges);
+
   // LOD band for debug display
   const lod = useLodBand();
 
@@ -152,8 +156,12 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
         dragEndChanges.push(change);
         commitPositions.push({ id: change.id, position: change.position });
       } else if (change.type === 'dimensions') {
-        // Sync measured dimensions to our state (no Yjs write needed)
-        dimensionChanges.push(change);
+        // Sync measured dimensions to our state (no Yjs write needed).
+        // Skip during drag — content dimensions don't change while dragging,
+        // and processing them feeds the ResizeObserver loop.
+        if (!isDraggingRef.current) {
+          dimensionChanges.push(change);
+        }
       }
       // Selection handled by RF internally + onSelectionChange callback
     }
@@ -506,6 +514,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
           data: {
             ...node.data,
             childCount: childCountMap[node.id] || 0,
+            isDimmed: isTraceActive && !traceResult?.nodeDistances.has(node.id),
             nodeActions,
           },
         };
@@ -518,11 +527,12 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
           ...node.data,
           nodeId: node.id,
           isRenaming: node.id === renamingNodeId,
+          dimmed: isTraceActive && !traceResult?.nodeDistances.has(node.id),
           nodeActions,
         },
       };
     }),
-    [nodesWithHiddenFlags, childCountMap, organizerIds, renamingNodeId, nodeActions]
+    [nodesWithHiddenFlags, childCountMap, organizerIds, renamingNodeId, nodeActions, isTraceActive, traceResult]
   );
 
   // Sort nodes: parents must come before their children (React Flow requirement)
@@ -660,8 +670,23 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
       result = [...result, ...wagonEdges];
     }
 
+    // Augment edges with flow trace data
+    if (isTraceActive && traceResult) {
+      result = result.map(edge => {
+        const hopDistance = traceResult.edgeDistances.get(edge.id);
+        return {
+          ...edge,
+          data: {
+            ...edge.data,
+            hopDistance,
+            dimmed: hopDistance === undefined,
+          },
+        };
+      });
+    }
+
     return result;
-  }, [edges, edgeRemap, sortedNodes]);
+  }, [edges, edgeRemap, sortedNodes, isTraceActive, traceResult]);
 
   // Auto-revert unpinned details nodes when deselected
   const updateNodeInternals = useUpdateNodeInternals();
@@ -1016,6 +1041,8 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
         onEdgeContextMenu={onEdgeContextMenu}
         onEdgeClick={handleEdgeClick}
         onPaneClick={handlePaneClick}
+        onNodeMouseEnter={onNodeMouseEnter}
+        onNodeMouseLeave={onNodeMouseLeave}
         onMoveStart={hideNarrative}
         onMouseDown={onMouseDown}
         nodeTypes={nodeTypes}

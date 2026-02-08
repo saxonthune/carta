@@ -18,6 +18,7 @@ export { useMapState } from './useMapState';
 export { useNarrative, type NarrativeState, type NarrativeEndpoint } from './useNarrative';
 export { useMetamapLayout } from './useMetamapLayout';
 export { useEdgeBundling } from './useEdgeBundling';
+export { useFlowTrace } from './useFlowTrace';
 
 // Utilities
 export { useClipboard } from './useClipboard';

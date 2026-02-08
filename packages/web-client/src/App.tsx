@@ -209,31 +209,39 @@ function AppContent() {
   }, [adapter]);
 
   return (
-    <div className="h-screen flex flex-col">
-      <Header
-        title={title}
-        description={description}
-        onTitleChange={setTitle}
-        onDescriptionChange={setDescription}
-        onExport={handleExport}
-        onImport={handleImport}
-        onCompile={handleCompile}
-        onClear={clearDocument}
-        onRestoreDefaultSchemas={handleRestoreDefaultSchemas}
-        onToggleAI={() => setAiSidebarOpen(!aiSidebarOpen)}
-      />
-      <CanvasContainer
-        title={title}
-        onNodesEdgesChange={handleNodesEdgesChange}
-        onSelectionChange={handleSelectionChange}
-        onNodeDoubleClick={handleNodeDoubleClick}
-        levels={levels}
-        activeLevel={activeLevel}
-        onSetActiveLevel={setActiveLevel}
-        onCreateLevel={createLevel}
-        onDeleteLevel={deleteLevel}
-        onUpdateLevel={updateLevel}
-        onDuplicateLevel={duplicateLevel}
+    <div className="h-screen flex">
+      <div className="flex-1 flex flex-col min-w-0">
+        <Header
+          title={title}
+          description={description}
+          onTitleChange={setTitle}
+          onDescriptionChange={setDescription}
+          onExport={handleExport}
+          onImport={handleImport}
+          onCompile={handleCompile}
+          onClear={clearDocument}
+          onRestoreDefaultSchemas={handleRestoreDefaultSchemas}
+          onToggleAI={() => setAiSidebarOpen(!aiSidebarOpen)}
+        />
+        <CanvasContainer
+          title={title}
+          onNodesEdgesChange={handleNodesEdgesChange}
+          onSelectionChange={handleSelectionChange}
+          onNodeDoubleClick={handleNodeDoubleClick}
+          levels={levels}
+          activeLevel={activeLevel}
+          onSetActiveLevel={setActiveLevel}
+          onCreateLevel={createLevel}
+          onDeleteLevel={deleteLevel}
+          onUpdateLevel={updateLevel}
+          onDuplicateLevel={duplicateLevel}
+        />
+      </div>
+
+      <AISidebar
+        isOpen={aiSidebarOpen}
+        onToggle={() => setAiSidebarOpen(!aiSidebarOpen)}
+        width={aiSidebarWidth}
       />
 
       {/* Modals */}
@@ -259,11 +267,6 @@ function AppContent() {
           onClose={() => setCompileOutput(null)}
         />
       )}
-      <AISidebar
-        isOpen={aiSidebarOpen}
-        onToggle={() => setAiSidebarOpen(!aiSidebarOpen)}
-        width={aiSidebarWidth}
-      />
     </div>
   );
 }

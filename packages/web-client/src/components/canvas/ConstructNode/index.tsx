@@ -100,13 +100,25 @@ const ConstructNode = memo(function ConstructNode({ data, selected = false }: Co
   };
 
   // Dispatch to variant based on LOD band and render style
+  const dimmed = (data as Record<string, unknown>).dimmed as boolean | undefined;
+  let variant: React.ReactNode;
   if (lod.band === 'pill') {
-    return <ConstructNodePill {...variantProps} />;
+    variant = <ConstructNodePill {...variantProps} />;
+  } else if (schema.renderStyle === 'simple') {
+    variant = <ConstructNodeSimple {...variantProps} />;
+  } else {
+    variant = <ConstructNodeDefault {...variantProps} />;
   }
-  if (schema.renderStyle === 'simple') {
-    return <ConstructNodeSimple {...variantProps} />;
+
+  if (dimmed) {
+    return (
+      <div style={{ opacity: 0.2, pointerEvents: 'none', transition: 'opacity 150ms ease' }}>
+        {variant}
+      </div>
+    );
   }
-  return <ConstructNodeDefault {...variantProps} />;
+
+  return variant;
 });
 
 export default ConstructNode;

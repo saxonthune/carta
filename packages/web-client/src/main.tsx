@@ -9,6 +9,18 @@ import { getLastDocumentId, setLastDocumentId } from './utils/preferences'
 import { createDocument } from './stores/documentRegistry'
 import { config } from './config/featureFlags'
 
+// Suppress the benign ResizeObserver loop error.
+// This fires when a ResizeObserver callback triggers layout changes that produce
+// more resize observations than can be delivered in a single frame. The browser
+// delivers them in the next frame automatically — it's not a real error.
+// React Flow's internal node measurement is the primary source during fast drag.
+window.addEventListener('error', (e) => {
+  if (e.message === 'ResizeObserver loop completed with undelivered notifications.') {
+    e.stopImmediatePropagation();
+    e.preventDefault();
+  }
+});
+
 const root = createRoot(document.getElementById('root')!);
 
 async function boot() {

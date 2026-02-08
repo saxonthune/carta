@@ -43,7 +43,11 @@ import {
   createConstructsBulk,
   connectBulk,
   computeAutoPosition,
+  moveConstruct,
+  deleteConstructsBulk,
+  batchMutate,
 } from '@carta/document';
+import type { BatchOperation, BatchResult } from '@carta/document';
 
 // ===== TYPES =====
 
@@ -514,8 +518,24 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
         }
       }
 
-      // Bulk create constructs
+      // Bulk construct operations
       const bulkConstructsMatch = path.match(/^\/api\/documents\/([^/]+)\/constructs\/bulk$/);
+      if (bulkConstructsMatch && method === 'DELETE') {
+        const roomId = bulkConstructsMatch[1]!;
+        const docState = await config.getDoc(roomId);
+        const levelId = getActiveLevelId(docState.doc);
+
+        const body = await parseJsonBody<{ semanticIds: string[] }>(req);
+        if (!body.semanticIds || !Array.isArray(body.semanticIds) || body.semanticIds.length === 0) {
+          sendError(res, 400, 'semanticIds array is required and must not be empty', 'MISSING_FIELD');
+          return;
+        }
+
+        const results = deleteConstructsBulk(docState.doc, levelId, body.semanticIds);
+        sendJson(res, 200, { results });
+        return;
+      }
+
       if (bulkConstructsMatch && method === 'POST') {
         const roomId = bulkConstructsMatch[1]!;
         const docState = await config.getDoc(roomId);
@@ -552,6 +572,40 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
         });
 
         sendJson(res, 201, { constructs: results });
+        return;
+      }
+
+      // Move construct into/out of organizer
+      const moveMatch = path.match(/^\/api\/documents\/([^/]+)\/constructs\/([^/]+)\/move$/);
+      if (moveMatch && method === 'POST') {
+        const roomId = moveMatch[1]!;
+        const semanticId = decodeURIComponent(moveMatch[2]!);
+        const docState = await config.getDoc(roomId);
+        const levelId = getActiveLevelId(docState.doc);
+
+        const body = await parseJsonBody<{
+          parentId: string | null;
+          x?: number;
+          y?: number;
+        }>(req);
+
+        if (body.parentId === undefined) {
+          sendError(res, 400, 'parentId is required (string or null)', 'MISSING_FIELD');
+          return;
+        }
+
+        const construct = moveConstruct(
+          docState.doc,
+          levelId,
+          semanticId,
+          body.parentId,
+          (body.x != null && body.y != null) ? { x: body.x, y: body.y } : undefined
+        );
+        if (!construct) {
+          sendError(res, 404, `Construct or organizer not found`, 'NOT_FOUND');
+          return;
+        }
+        sendJson(res, 200, { construct: construct.data, parentId: construct.parentId ?? null });
         return;
       }
 
@@ -968,6 +1022,25 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
           totalOrganizers,
           totalEdges,
         });
+        return;
+      }
+
+      // ===== BATCH MUTATE =====
+
+      const batchMatch = path.match(/^\/api\/documents\/([^/]+)\/batch$/);
+      if (batchMatch && method === 'POST') {
+        const roomId = batchMatch[1]!;
+        const docState = await config.getDoc(roomId);
+        const levelId = getActiveLevelId(docState.doc);
+
+        const body = await parseJsonBody<{ operations: BatchOperation[] }>(req);
+        if (!body.operations || !Array.isArray(body.operations) || body.operations.length === 0) {
+          sendError(res, 400, 'operations array is required and must not be empty', 'MISSING_FIELD');
+          return;
+        }
+
+        const results = batchMutate(docState.doc, levelId, body.operations);
+        sendJson(res, 200, { results });
         return;
       }
 

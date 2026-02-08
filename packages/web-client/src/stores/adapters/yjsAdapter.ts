@@ -183,7 +183,8 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     }
   };
   const doRegistrySync = () => {
-    const title = (ymeta.get('title') as string) || 'Untitled Project';
+    const title = ymeta.get('title') as string | undefined;
+    if (!title) return; // Don't sync with a fallback — wait for real title from server
     const levelNodes = getActiveLevelNodes();
     let nodeCount = 0;
     levelNodes?.forEach(() => { nodeCount++; });
@@ -263,7 +264,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       if (!ymeta.has('version')) {
         ymeta.set('version', 4);
       }
-      if (!ymeta.has('title')) {
+      if (!ymeta.has('title') && !options.deferDefaultLevel) {
         ymeta.set('title', 'Untitled Project');
       }
       if (mode === 'shared' && roomId && !ymeta.has('roomId')) {
@@ -498,7 +499,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     getTitle(): string {
-      return (ymeta.get('title') as string) || 'Untitled Project';
+      return (ymeta.get('title') as string) || '';
     },
 
     getDescription(): string {

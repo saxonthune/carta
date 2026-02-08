@@ -65,6 +65,8 @@ export default memo(function DynamicAnchorEdge({
   const count = bundleData?.bundleCount || 1;
   const isBundled = count > 1;
   const isAttachment = (data as Record<string, unknown>)?.isAttachmentEdge === true;
+  const hopDistance = (data as Record<string, unknown>)?.hopDistance as number | undefined;
+  const dimmed = (data as Record<string, unknown>)?.dimmed as boolean | undefined;
   const strokeWidth = isAttachment
     ? ((style as Record<string, unknown>).strokeWidth as number ?? 3)
     : isBundled ? Math.min(1.5 + (count - 1) * 1, 6) : 1.5;
@@ -125,6 +127,13 @@ export default memo(function DynamicAnchorEdge({
     targetPosition: tp,
   });
 
+  const edgeOpacity = dimmed ? 0.15 : 1;
+  // Hop badge color: blue near start → green/yellow far
+  const hopBadgeColor = hopDistance !== undefined
+    ? `hsl(${210 - Math.min(hopDistance * 20, 90)}, 70%, 50%)`
+    : undefined;
+  const showHopBadge = hopDistance !== undefined && !isBundled;
+
   return (
     <>
       {/* Invisible wider path for easier click targeting */}
@@ -143,10 +152,12 @@ export default memo(function DynamicAnchorEdge({
           ...style,
           strokeWidth,
           stroke: style.stroke || 'var(--edge-default-color, #94a3b8)',
+          opacity: edgeOpacity,
+          transition: 'opacity 150ms ease',
         }}
         fill="none"
       />
-      {isBundled && (
+      {isBundled && !dimmed && (
         <g
           transform={`translate(${labelX}, ${labelY})`}
           style={{ cursor: 'pointer' }}
@@ -161,6 +172,24 @@ export default memo(function DynamicAnchorEdge({
             style={{ pointerEvents: 'none' }}
           >
             {count}
+          </text>
+        </g>
+      )}
+      {showHopBadge && (
+        <g
+          transform={`translate(${labelX}, ${labelY})`}
+          style={{ pointerEvents: 'none' }}
+        >
+          <circle r={12} fill={hopBadgeColor} />
+          <text
+            textAnchor="middle"
+            dominantBaseline="central"
+            fontSize={11}
+            fontWeight={700}
+            fill="white"
+            style={{ pointerEvents: 'none' }}
+          >
+            {hopDistance}
           </text>
         </g>
       )}

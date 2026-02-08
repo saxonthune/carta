@@ -63,7 +63,7 @@ export function AISidebar({ isOpen, onToggle, width }: AISidebarProps) {
 
   return (
     <div
-      className="fixed top-0 right-0 h-full bg-surface border-l border-border flex flex-col z-40"
+      className="h-full bg-surface border-l border-border flex flex-col flex-shrink-0"
       style={{ width }}
     >
       {/* Header */}

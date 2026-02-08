@@ -13,3 +13,5 @@ export {
   gridLayout,
 } from './layoutStrategies';
 export type { LayoutResult } from './layoutStrategies';
+export { traceGraph } from './traceGraph.js';
+export type { TraceResult } from './traceGraph.js';
