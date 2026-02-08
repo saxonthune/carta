@@ -13,6 +13,7 @@ interface UseKeyboardShortcutsOptions {
   deleteSelectedNodes: () => void;
   startRename: () => void;
   createOrganizer?: () => void;
+  selectAll?: () => void;
 }
 
 /**
@@ -24,6 +25,7 @@ interface UseKeyboardShortcutsOptions {
  * - Ctrl+C: Copy selected nodes
  * - Ctrl+V: Paste nodes
  * - Ctrl+G: Organize selected nodes
+ * - Ctrl+A: Select all construct nodes on current level
  * - Delete/Backspace: Delete selected nodes
  * - F2: Rename selected node (when single node selected)
  */
@@ -38,6 +40,7 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions): void
     deleteSelectedNodes,
     startRename,
     createOrganizer,
+    selectAll,
   } = options;
 
   useEffect(() => {
@@ -88,6 +91,15 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions): void
         return;
       }
 
+      // Select All: Ctrl+A
+      if ((event.ctrlKey || event.metaKey) && event.key === 'a') {
+        if (selectAll) {
+          event.preventDefault();
+          selectAll();
+        }
+        return;
+      }
+
       // Shortcuts that require selection
       if (selectedNodeIds.length === 0) return;
 
@@ -105,5 +117,5 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions): void
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedNodeIds, canPaste, undo, redo, copyNodes, pasteNodes, deleteSelectedNodes, startRename, createOrganizer]);
+  }, [selectedNodeIds, canPaste, undo, redo, copyNodes, pasteNodes, deleteSelectedNodes, startRename, createOrganizer, selectAll]);
 }

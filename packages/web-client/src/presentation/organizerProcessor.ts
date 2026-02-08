@@ -3,8 +3,7 @@
  * Extracted from usePresentation — no React dependencies.
  */
 
-import type { OrganizerNodeData, OrganizerLayout } from '@carta/domain';
-import { stackLayout, gridLayout } from './layoutStrategies';
+import type { OrganizerNodeData } from '@carta/domain';
 
 /** Minimal node shape for processing (compatible with React Flow Node) */
 export interface ProcessableNode {
@@ -121,99 +120,8 @@ export function computeEdgeRemap(
 
 /**
  * Apply layout strategies to organizer members.
- * For non-freeform layouts, adjusts member positions and visibility.
+ * With only freeform layout supported, this is a no-op pass-through.
  */
 export function applyLayoutStrategies(nodes: ProcessableNode[]): ProcessableNode[] {
-  // Build organizer → members map (ordered by position in array)
-  const organizerMembers = new Map<string, ProcessableNode[]>();
-  const organizerNodes = new Map<string, ProcessableNode>();
-
-  for (const node of nodes) {
-    if (node.type === 'organizer') {
-      organizerNodes.set(node.id, node);
-      if (!organizerMembers.has(node.id)) {
-        organizerMembers.set(node.id, []);
-      }
-    }
-    if (node.parentId && organizerNodes.has(node.parentId)) {
-      const members = organizerMembers.get(node.parentId) || [];
-      members.push(node);
-      organizerMembers.set(node.parentId, members);
-    }
-  }
-
-  // For each non-freeform organizer, apply layout
-  const positionOverrides = new Map<string, { x: number; y: number }>();
-  const sizeOverrides = new Map<string, { width: number; height: number }>();
-  const hiddenByLayout = new Set<string>();
-
-  for (const [organizerId, organizer] of organizerNodes) {
-    const data = organizer.data as unknown as OrganizerNodeData;
-    const layout: OrganizerLayout = data.layout || 'freeform';
-    if (layout === 'freeform' || data.collapsed) continue;
-
-    const members = organizerMembers.get(organizerId) || [];
-    if (members.length === 0) continue;
-
-    const memberGeometries = members.map(m => ({
-      position: m.position,
-      width: m.width,
-      height: m.height,
-      measured: m.measured,
-    }));
-
-    let result;
-    if (layout === 'stack') {
-      result = stackLayout(memberGeometries, data.stackIndex ?? 0);
-    } else {
-      result = gridLayout(memberGeometries, data.gridColumns ?? 3);
-    }
-
-    // Apply position overrides and visibility (skip if position unchanged)
-    for (let i = 0; i < members.length; i++) {
-      const pos = result.positions.get(i);
-      if (pos) {
-        const cur = members[i].position;
-        if (cur.x !== pos.x || cur.y !== pos.y) {
-          positionOverrides.set(members[i].id, pos);
-        }
-      }
-      if (!result.visibleIndices.has(i)) {
-        hiddenByLayout.add(members[i].id);
-      }
-    }
-
-    // Apply organizer size override only if it actually changed
-    if (result.organizerSize) {
-      const curW = organizer.width ?? ((organizer as any).style?.width as number | undefined);
-      const curH = organizer.height ?? ((organizer as any).style?.height as number | undefined);
-      if (curW !== result.organizerSize.width || curH !== result.organizerSize.height) {
-        sizeOverrides.set(organizerId, result.organizerSize);
-      }
-    }
-  }
-
-  // Apply overrides if any exist
-  if (positionOverrides.size === 0 && hiddenByLayout.size === 0 && sizeOverrides.size === 0) {
-    return nodes;
-  }
-
-  return nodes.map(node => {
-    const posOverride = positionOverrides.get(node.id);
-    const sizeOverride = sizeOverrides.get(node.id);
-    const shouldHide = hiddenByLayout.has(node.id);
-
-    if (!posOverride && !shouldHide && !sizeOverride) return node;
-
-    return {
-      ...node,
-      ...(posOverride ? { position: posOverride } : {}),
-      ...(shouldHide ? { hidden: true } : {}),
-      ...(sizeOverride ? {
-        width: sizeOverride.width,
-        height: sizeOverride.height,
-        style: { ...((node as any).style || {}), width: sizeOverride.width, height: sizeOverride.height },
-      } : {}),
-    };
-  });
+  return nodes;
 }

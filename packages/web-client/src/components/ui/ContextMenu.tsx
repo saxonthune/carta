@@ -57,6 +57,7 @@ interface ContextMenuProps {
   nodeInOrganizer?: boolean;
   onAttachOrganizer?: (nodeId: string) => void;
   nodeIsConstruct?: boolean;
+  onSpreadSelected?: () => void;
 }
 
 // Group items by their groupId into MenuItem[] with nested children
@@ -141,6 +142,7 @@ export default function ContextMenu({
   nodeInOrganizer,
   onAttachOrganizer,
   nodeIsConstruct,
+  onSpreadSelected,
 }: ContextMenuProps) {
   const showMultipleSelected = selectedCount > 1;
 
@@ -156,7 +158,7 @@ export default function ContextMenu({
     }
     return [];
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [type, nodeId, edgeId, selectedCount, relatedConstructs, constructOptions, schemaGroups, canPaste, levels, activeLevel, selectedNodeIds, constructType, onEditSchema, onCopyNodesToNewLevel, onOrganizeSelected, onRemoveFromOrganizer, nodeInOrganizer, onAttachOrganizer, nodeIsConstruct]);
+  }, [type, nodeId, edgeId, selectedCount, relatedConstructs, constructOptions, schemaGroups, canPaste, levels, activeLevel, selectedNodeIds, constructType, onEditSchema, onCopyNodesToNewLevel, onOrganizeSelected, onRemoveFromOrganizer, nodeInOrganizer, onAttachOrganizer, nodeIsConstruct, onSpreadSelected]);
 
   function buildPaneMenuItems(): MenuItem[] {
     const result: MenuItem[] = [];
@@ -311,6 +313,14 @@ export default function ContextMenu({
         key: 'organize-selected',
         label: `Organize ${selectedCount} Nodes`,
         onClick: onOrganizeSelected,
+      });
+    }
+
+    if (showMultipleSelected && onSpreadSelected) {
+      result.push({
+        key: 'spread-selected',
+        label: 'Spread Selection',
+        onClick: onSpreadSelected,
       });
     }
 

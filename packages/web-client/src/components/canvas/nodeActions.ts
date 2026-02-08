@@ -13,5 +13,4 @@ export interface NodeActions {
   onOpenFullView: (nodeId: string) => void;
   onInstanceColorChange: (nodeId: string, color: string | null) => void;
   onToggleCollapse: (nodeId: string) => void;
-  onSetStackIndex: (nodeId: string, index: number) => void;
 }

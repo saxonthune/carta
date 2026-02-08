@@ -9,6 +9,7 @@ export interface MenuItem {
   dividerAfter?: boolean;
   children?: MenuItem[];
   color?: string;
+  active?: boolean;
 }
 
 interface ContextMenuPrimitiveProps {
@@ -72,7 +73,14 @@ function MenuLevel({ items, onClose, depth = 0 }: { items: MenuItem[]; onClose: 
                 }}
                 disabled={item.disabled}
               >
-                <span>{item.label}</span>
+                <span className="flex items-center gap-1.5">
+                  {item.active && (
+                    <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  )}
+                  {item.label}
+                </span>
                 {hasChildren && (
                   <svg className="w-4 h-4 ml-2 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <polyline points="9 18 15 12 9 6" />

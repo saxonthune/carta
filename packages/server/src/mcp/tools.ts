@@ -118,7 +118,7 @@ const CreateOrganizerSchema = z.object({
   y: z.number().optional().describe('Y position on canvas'),
   width: z.number().optional().describe('Width in pixels (default: 400)'),
   height: z.number().optional().describe('Height in pixels (default: 300)'),
-  layout: z.enum(['freeform', 'stack', 'grid']).optional().describe('Layout strategy (default: freeform)'),
+  layout: z.enum(['freeform']).optional().describe('Layout strategy (default: freeform)'),
   description: z.string().optional().describe('Optional description'),
   attachedToSemanticId: z.string().optional().describe('Semantic ID of construct to attach this organizer to (creates a "wagon")'),
 });
@@ -129,7 +129,7 @@ const UpdateOrganizerSchema = z.object({
   name: z.string().optional().describe('New name'),
   color: z.string().optional().describe('New hex color'),
   collapsed: z.boolean().optional().describe('Collapse/expand the organizer'),
-  layout: z.enum(['freeform', 'stack', 'grid']).optional().describe('New layout strategy'),
+  layout: z.enum(['freeform']).optional().describe('New layout strategy'),
   description: z.string().optional().describe('New description'),
 });
 

@@ -867,34 +867,27 @@ function MetamapInner({ filterText }: MetamapInnerProps) {
               </svg>
             )}
           </ControlButton>
-        </Controls>
-
-        {/* Custom zoom controls with finer granularity */}
-        <div className="absolute top-[14px] left-[52px] flex flex-col gap-[2px]">
-          <button
-            onClick={customZoomIn}
-            className="w-[32px] h-[32px] bg-white border border-[#e2e8f0] rounded cursor-pointer flex items-center justify-center hover:bg-[#f8fafc] transition-colors shadow-sm"
-            title="Zoom In"
-          >
+          <ControlButton onClick={customZoomIn} title="Zoom In">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
-          </button>
-          <button
-            onClick={customZoomOut}
-            className="w-[32px] h-[32px] bg-white border border-[#e2e8f0] rounded cursor-pointer flex items-center justify-center hover:bg-[#f8fafc] transition-colors shadow-sm"
-            title="Zoom Out"
-          >
+          </ControlButton>
+          <ControlButton onClick={customZoomOut} title="Zoom Out">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
-          </button>
-        </div>
+          </ControlButton>
+          <ControlButton onClick={() => reactFlow.fitView({ duration: 300 })} title="Fit to View">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+            </svg>
+          </ControlButton>
+        </Controls>
 
         {/* Covered nodes warning badge */}
         {coveredNodeIds.length > 0 && (
-          <div className="absolute top-[14px] left-[92px]">
+          <div className="absolute top-[14px] left-[52px]">
             <button
               onClick={rescueCoveredNodes}
               className="h-[32px] px-3 bg-amber-100 border border-amber-300 rounded cursor-pointer flex items-center gap-1.5 hover:bg-amber-200 transition-colors shadow-sm text-amber-800 text-xs font-medium"

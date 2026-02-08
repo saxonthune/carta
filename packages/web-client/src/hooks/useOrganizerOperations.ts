@@ -5,11 +5,10 @@ import {
   computeOrganizerBounds,
   toRelativePosition,
   toAbsolutePosition,
-  computeOrganizerFit,
   DEFAULT_ORGANIZER_LAYOUT,
   type NodeGeometry,
 } from '@carta/domain';
-import type { OrganizerNodeData, OrganizerLayout } from '@carta/domain';
+import type { OrganizerNodeData } from '@carta/domain';
 // Simple organizer color palette
 const ORGANIZER_COLORS = ['#7c3aed', '#0891b2', '#059669', '#d97706', '#dc2626', '#6366f1', '#ec4899'];
 
@@ -28,14 +27,8 @@ export interface UseOrganizerOperationsResult {
   renameOrganizer: (organizerId: string, name: string) => void;
   /** Update an organizer's color */
   updateOrganizerColor: (organizerId: string, color: string) => void;
-  /** Fit an organizer to its members (handles position shifts for overflow) */
-  fitOrganizerToMembers: (organizerId: string) => void;
   /** Delete an organizer (optionally delete members) */
   deleteOrganizer: (organizerId: string, deleteMembers?: boolean) => void;
-  /** Change an organizer's layout strategy */
-  changeLayout: (organizerId: string, layout: OrganizerLayout) => void;
-  /** Set the active stack index for a stack-layout organizer */
-  setStackIndex: (organizerId: string, index: number) => void;
 }
 
 /**
@@ -143,10 +136,6 @@ export function useOrganizerOperations(): UseOrganizerOperationsResult {
     const organizer = nodes.find(n => n.id === organizerId);
     if (!node || !organizer) return;
 
-    // Reject attaching organizers to stack/grid organizers
-    const organizerData = organizer.data as unknown as OrganizerNodeData;
-    if (organizerData.layout !== 'freeform' && node.type === 'organizer') return;
-
     const organizerAbsPos = getAbsolutePosition(organizer, nodes);
     const nodeAbsPos = node.parentId ? getAbsolutePosition(node, nodes) : node.position;
     const relativePosition = toRelativePosition(nodeAbsPos, organizerAbsPos);
@@ -201,45 +190,6 @@ export function useOrganizerOperations(): UseOrganizerOperationsResult {
     }));
   }, [setNodes]);
 
-  const fitOrganizerToMembers = useCallback((organizerId: string) => {
-    const members = nodes.filter(n => n.parentId === organizerId);
-    if (members.length === 0) return;
-
-    const memberGeometries: NodeGeometry[] = members.map(n => ({
-      position: n.position,
-      width: n.width,
-      height: n.height,
-      measured: n.measured,
-    }));
-
-    const fit = computeOrganizerFit(memberGeometries, DEFAULT_ORGANIZER_LAYOUT);
-    const needsShift = fit.positionDelta.x !== 0 || fit.positionDelta.y !== 0;
-
-    setNodes(nds => nds.map(n => {
-      if (n.id === organizerId) {
-        return {
-          ...n,
-          position: needsShift
-            ? { x: n.position.x + fit.positionDelta.x, y: n.position.y + fit.positionDelta.y }
-            : n.position,
-          width: fit.size.width,
-          height: fit.size.height,
-          style: { ...n.style, width: fit.size.width, height: fit.size.height },
-        };
-      }
-      if (needsShift && n.parentId === organizerId) {
-        return {
-          ...n,
-          position: {
-            x: n.position.x + fit.childPositionDelta.x,
-            y: n.position.y + fit.childPositionDelta.y,
-          },
-        };
-      }
-      return n;
-    }));
-  }, [nodes, setNodes]);
-
   const deleteOrganizer = useCallback((organizerId: string, deleteMembers = false) => {
     const organizer = nodes.find(n => n.id === organizerId);
     if (!organizer) return;
@@ -273,26 +223,6 @@ export function useOrganizerOperations(): UseOrganizerOperationsResult {
     }
   }, [nodes, setNodes]);
 
-  const changeLayout = useCallback((organizerId: string, layout: OrganizerLayout) => {
-    setNodes(nds => nds.map(n => {
-      if (n.id === organizerId && n.type === 'organizer') {
-        const data = n.data as OrganizerNodeData;
-        return { ...n, data: { ...data, layout, stackIndex: layout === 'stack' ? 0 : data.stackIndex } };
-      }
-      return n;
-    }));
-  }, [setNodes]);
-
-  const setStackIndex = useCallback((organizerId: string, index: number) => {
-    setNodes(nds => nds.map(n => {
-      if (n.id === organizerId && n.type === 'organizer') {
-        const data = n.data as OrganizerNodeData;
-        return { ...n, data: { ...data, stackIndex: index } };
-      }
-      return n;
-    }));
-  }, [setNodes]);
-
   return {
     createOrganizer,
     createAttachedOrganizer,
@@ -301,9 +231,6 @@ export function useOrganizerOperations(): UseOrganizerOperationsResult {
     toggleOrganizerCollapse,
     renameOrganizer,
     updateOrganizerColor,
-    fitOrganizerToMembers,
     deleteOrganizer,
-    changeLayout,
-    setStackIndex,
   };
 }

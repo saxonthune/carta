@@ -9,8 +9,6 @@ export {
 } from './organizerProcessor';
 export {
   freeformLayout,
-  stackLayout,
-  gridLayout,
 } from './layoutStrategies';
 export type { LayoutResult } from './layoutStrategies';
 export { traceGraph } from './traceGraph.js';

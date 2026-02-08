@@ -165,6 +165,44 @@ React Flow's `getSmoothStepPath` is non-trivial (step routing with offsets). For
 - **Reading `reactFlow.getNodes()` inside useMemo** — stale closures, or worse, subscribes to all changes
 - **Calling `reactFlow.setNodes()` outside useEffect** — synchronous state update during render
 - **Store selectors that return derived objects without equality functions** — re-render on every store tick
+- **Writing positions to RF + Yjs but skipping local state** — cascade overwrites RF from stale local state on next trigger (the "snap-back" bug)
+
+## The Three-Layer Write Rule
+
+Carta has three layers of node state that must stay in sync:
+
+```
+Layer 1: Yjs Y.Doc           — persistence + collaboration (source of truth)
+Layer 2: Local React state    — nodes/setNodes/setNodesLocal (drives the cascade)
+Layer 3: React Flow internal  — reactFlow.setNodes() (what's rendered)
+```
+
+**Any operation that changes node positions or dimensions must write to all three layers.** Skipping layer 2 causes a "snap-back" bug: the cascade sync effect pushes stale layer-2 positions into RF on the next trigger (zoom, pan, any state change).
+
+```typescript
+// CORRECT — write to all three layers
+const applyPositions = (nds: Node[]) => nds.map(n => {
+  const pos = newPositions.get(n.id);
+  return pos ? { ...n, position: pos } : n;
+});
+reactFlow.setNodes(applyPositions);   // Layer 3: immediate visual update
+setNodesLocal(applyPositions);        // Layer 2: keeps cascade in sync
+adapter.patchNodes?.(patches);        // Layer 1: persists to Yjs
+
+// WRONG — skips layer 2, cascade overwrites layer 3 on next trigger
+reactFlow.setNodes(applyPositions);   // Layer 3 ✓
+adapter.patchNodes?.(patches);        // Layer 1 ✓
+// Layer 2 still has old positions → next cascade snap-back
+```
+
+**Exception: selection-only changes.** Toggling `selected` flags via `reactFlow.setNodes()` without updating local state is safe because the cascade sync effect preserves RF's current selection when it runs. Selection is visual-only state that doesn't persist.
+
+### Diagnosis
+
+If positions "snap back" after zoom/pan/any interaction:
+1. Find the function that set the positions
+2. Check if it writes to all three layers
+3. Add the missing `setNodesLocal()` call
 
 ## The setNodes Blast Radius
 
@@ -198,7 +236,12 @@ When investigating performance issues:
    - Check: Is the `isDraggingRef` guard in place?
    - Check: Are dimension changes being batched?
 
-5. **Is the ResizeObserver looping?**
+5. **Do position-changing operations write to all three layers?**
+   - Check: Does the function call `setNodesLocal()` in addition to `reactFlow.setNodes()` and `adapter.patchNodes()`?
+   - Symptom: positions snap back on zoom/pan/any interaction
+   - Fix: Add the missing `setNodesLocal()` call
+
+6. **Is the ResizeObserver looping?**
    - Symptom: "ResizeObserver loop completed with undelivered notifications" warning
    - Cause: Style override → resize → dimension change → state update → new style override
    - Fix: Equality guard on the style override

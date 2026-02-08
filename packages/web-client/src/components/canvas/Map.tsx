@@ -28,15 +28,14 @@ import ConstructNode from './ConstructNode';
 import OrganizerNode from './OrganizerNode';
 import ContextMenu, { type RelatedConstructOption } from '../ui/ContextMenu';
 import { useMapState } from '../../hooks/useMapState';
-import NodeControls from './NodeControls';
 import AddConstructMenu from './AddConstructMenu';
 import { useUndoRedo } from '../../hooks/useUndoRedo';
 import { useGraphOperations } from '../../hooks/useGraphOperations';
 import { useConnections } from '../../hooks/useConnections';
 import { useClipboard } from '../../hooks/useClipboard';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
-import type { ConstructValues, ConstructNodeData, OrganizerNodeData, Size } from '@carta/domain';
-import { computeMinOrganizerSize, DEFAULT_ORGANIZER_LAYOUT, nodeContainedInOrganizer, getDisplayName, type NodeGeometry } from '@carta/domain';
+import type { ConstructValues, ConstructNodeData, OrganizerNodeData } from '@carta/domain';
+import { nodeContainedInOrganizer, getDisplayName } from '@carta/domain';
 import { usePresentation } from '../../hooks/usePresentation';
 import { computeEdgeAggregation } from '../../presentation/index';
 import { useOrganizerOperations } from '../../hooks/useOrganizerOperations';
@@ -49,6 +48,7 @@ import { useLodBand } from './lod/useLodBand';
 import { ZoomDebug } from '../ui/ZoomDebug';
 import { useNarrative } from '../../hooks/useNarrative';
 import Narrative from './Narrative';
+import { spreadNodes } from '../../utils/spreadNodes';
 
 const nodeTypes = {
   custom: CustomNode,
@@ -133,11 +133,6 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
   // Create React Flow change handlers that work with the store
   const isDraggingRef = useRef(false);
   const draggedNodesRef = useRef<Set<string>>(new Set());
-
-  // Live organizer resize during drag
-  const dragOrganizerIdRef = useRef<string | null>(null);
-  const dragStartOrganizerSizeRef = useRef<Size | null>(null);
-  const rafIdRef = useRef<number | null>(null);
 
   // Ctrl+drag visual feedback (DOM class toggle, no re-renders)
   const mapWrapperRef = useRef<HTMLDivElement>(null);
@@ -254,8 +249,6 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     attachToOrganizer,
     detachFromOrganizer,
     toggleOrganizerCollapse,
-    fitOrganizerToMembers,
-    setStackIndex,
   } = useOrganizerOperations();
 
   // Wrapper for createOrganizer that uses current selectedNodeIds
@@ -276,6 +269,16 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     createAttachedOrganizer(nodeId, data.semanticId);
   }, [nodes, createAttachedOrganizer]);
 
+  // Select all construct nodes on current level
+  const selectAll = useCallback(() => {
+    const allIds = nodes.filter(n => n.type === 'construct' && !n.hidden).map(n => n.id);
+    reactFlow.setNodes(nds => nds.map(n => ({
+      ...n,
+      selected: allIds.includes(n.id),
+    })));
+    setSelectedNodeIds(allIds);
+  }, [nodes, reactFlow, setSelectedNodeIds]);
+
   // Use keyboard shortcuts hook
   useKeyboardShortcuts({
     selectedNodeIds,
@@ -287,6 +290,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     deleteSelectedNodes,
     startRename,
     createOrganizer,
+    selectAll,
   });
 
   // Notify parent of nodes/edges changes for export
@@ -358,6 +362,80 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     },
     [createLevel, copyNodesToLevel, setActiveLevel, levels, activeLevel]
   );
+
+  // Spread selected nodes into a non-overlapping grid
+  const handleSpreadSelected = useCallback(() => {
+    const rfNodes = reactFlow.getNodes();
+    const selected = rfNodes.filter(n => selectedNodeIds.includes(n.id));
+    if (selected.length < 2) return;
+
+    const inputs = selected.map(n => ({
+      id: n.id,
+      x: n.position.x,
+      y: n.position.y,
+      width: n.measured?.width ?? n.width ?? 200,
+      height: n.measured?.height ?? n.height ?? 100,
+    }));
+    const newPositions = spreadNodes(inputs);
+
+    const applyPositions = (nds: Node[]) => nds.map(n => {
+      const pos = newPositions.get(n.id);
+      return pos ? { ...n, position: pos } : n;
+    });
+
+    // Update all three layers: RF internal, local state, and Yjs
+    reactFlow.setNodes(applyPositions);
+    setNodesLocal(applyPositions);
+    const patches = [...newPositions].map(([id, position]) => ({ id, position }));
+    if (patches.length > 0) {
+      adapter.patchNodes?.(patches);
+    }
+  }, [reactFlow, selectedNodeIds, adapter, setNodesLocal]);
+
+  // Spread all nodes on current level (within each organizer independently)
+  const handleSpreadAll = useCallback(() => {
+    const rfNodes = reactFlow.getNodes();
+
+    // Group nodes by parentId (null = top-level)
+    const groups = new globalThis.Map<string | null, typeof rfNodes>();
+    for (const n of rfNodes) {
+      if (n.type === 'organizer') continue;
+      const key = n.parentId ?? null;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(n);
+    }
+
+    const allNewPositions = new globalThis.Map<string, { x: number; y: number }>();
+    for (const [, groupNodes] of groups) {
+      if (groupNodes.length < 2) continue;
+      const inputs = groupNodes.map(n => ({
+        id: n.id,
+        x: n.position.x,
+        y: n.position.y,
+        width: n.measured?.width ?? n.width ?? 200,
+        height: n.measured?.height ?? n.height ?? 100,
+      }));
+      const positions = spreadNodes(inputs);
+      for (const [id, pos] of positions) {
+        allNewPositions.set(id, pos);
+      }
+    }
+
+    if (allNewPositions.size === 0) return;
+
+    const applyPositions = (nds: Node[]) => nds.map(n => {
+      const pos = allNewPositions.get(n.id);
+      return pos ? { ...n, position: pos } : n;
+    });
+
+    // Update all three layers: RF internal, local state, and Yjs
+    reactFlow.setNodes(applyPositions);
+    setNodesLocal(applyPositions);
+    const patches = [...allNewPositions].map(([id, position]) => ({ id, position }));
+    if (patches.length > 0) {
+      adapter.patchNodes?.(patches);
+    }
+  }, [reactFlow, adapter, setNodesLocal]);
 
   // Handle adding construct from pane context menu
   const handleAddConstructFromMenu = useCallback(
@@ -495,8 +573,6 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
   updateNodeInstanceColorRef.current = updateNodeInstanceColor;
   const toggleOrganizerCollapseRef = useRef(toggleOrganizerCollapse);
   toggleOrganizerCollapseRef.current = toggleOrganizerCollapse;
-  const setStackIndexRef = useRef(setStackIndex);
-  setStackIndexRef.current = setStackIndex;
 
   // One stable dispatch object shared by ALL nodes (never changes identity)
   const nodeActions = useMemo(() => ({
@@ -507,7 +583,6 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     onOpenFullView: (nodeId: string) => setFullViewNodeIdRef.current(nodeId),
     onInstanceColorChange: (nodeId: string, color: string | null) => updateNodeInstanceColorRef.current(nodeId, color),
     onToggleCollapse: (nodeId: string) => toggleOrganizerCollapseRef.current(nodeId),
-    onSetStackIndex: (nodeId: string, index: number) => setStackIndexRef.current(nodeId, index),
   }), []);
 
   const nodesWithCallbacks = useMemo(() =>
@@ -799,31 +874,14 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     }
   }, [sortedNodes, coveredNodeIds, setNodes, reactFlow, setSelectedNodeIds]);
 
-  // Handle drag start/drag/stop for live organizer resizing
+  // Handle drag start/drag/stop for organizer attach/detach
+  const rafIdRef = useRef<number | null>(null);
+
   const onNodeDragStart = useCallback((_event: React.MouseEvent, node: Node) => {
     isDraggingRef.current = true;
     draggedNodesRef.current.add(node.id);
     suppressUpdates.current = true;
-
-    // If dragged node is a child of an organizer, capture organizer size for live resize
-    if (node.parentId && node.type !== 'organizer') {
-      const allNodes = reactFlow.getNodes();
-      const parentNode = allNodes.find(n => n.id === node.parentId);
-      if (parentNode?.type === 'organizer') {
-        dragOrganizerIdRef.current = parentNode.id;
-        dragStartOrganizerSizeRef.current = {
-          width: (parentNode.width as number) ?? (parentNode.style?.width as number) ?? 200,
-          height: (parentNode.height as number) ?? (parentNode.style?.height as number) ?? 200,
-        };
-      } else {
-        dragOrganizerIdRef.current = null;
-        dragStartOrganizerSizeRef.current = null;
-      }
-    } else {
-      dragOrganizerIdRef.current = null;
-      dragStartOrganizerSizeRef.current = null;
-    }
-  }, [reactFlow, suppressUpdates]);
+  }, [suppressUpdates]);
 
   const onNodeDrag = useCallback((_event: React.MouseEvent, node: Node) => {
     // Toggle Ctrl+drag visual class (no re-render, direct DOM)
@@ -841,8 +899,6 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
       cancelAnimationFrame(rafIdRef.current);
     }
 
-    const organizerId = dragOrganizerIdRef.current;
-    const startSize = dragStartOrganizerSizeRef.current;
     const mouseX = _event.clientX;
     const mouseY = _event.clientY;
 
@@ -874,43 +930,6 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
       } else {
         hideNarrative();
       }
-
-      // Live organizer resize (only when dragging from within an organizer)
-      if (!organizerId) return;
-
-      const allNodes = reactFlow.getNodes();
-      const members = allNodes.filter(n => n.parentId === organizerId);
-      const relevantMembers = isCtrl
-        ? members.filter(n => n.id !== node.id)
-        : members;
-
-      if (relevantMembers.length === 0 && isCtrl) {
-        if (startSize) {
-          reactFlow.updateNode(organizerId, (n) => ({
-            width: startSize.width,
-            height: startSize.height,
-            style: { ...n.style, width: startSize.width, height: startSize.height },
-          }));
-        }
-        return;
-      }
-
-      const memberGeometries: NodeGeometry[] = relevantMembers.map(n => ({
-        position: n.position,
-        width: n.width,
-        height: n.height,
-        measured: n.measured,
-      }));
-
-      const minSize = computeMinOrganizerSize(memberGeometries, DEFAULT_ORGANIZER_LAYOUT);
-      const newWidth = isCtrl ? minSize.width : Math.max(startSize?.width ?? 0, minSize.width);
-      const newHeight = isCtrl ? minSize.height : Math.max(startSize?.height ?? 0, minSize.height);
-
-      reactFlow.updateNode(organizerId, (n) => ({
-        width: newWidth,
-        height: newHeight,
-        style: { ...n.style, width: newWidth, height: newHeight },
-      }));
     });
   }, [reactFlow, showNarrative, hideNarrative]);
 
@@ -934,21 +953,6 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
       rafIdRef.current = null;
     }
 
-    // Commit organizer style if one was resized during drag
-    if (dragOrganizerIdRef.current) {
-      const orgNode = reactFlow.getNodes().find(n => n.id === dragOrganizerIdRef.current);
-      if (orgNode?.style?.width && orgNode?.style?.height) {
-        adapter.patchNodes?.([{
-          id: dragOrganizerIdRef.current,
-          style: { width: orgNode.style.width, height: orgNode.style.height },
-        }]);
-      }
-    }
-
-    // Clear drag refs
-    dragOrganizerIdRef.current = null;
-    dragStartOrganizerSizeRef.current = null;
-
     // Don't process organizer nodes themselves
     if (node.type === 'organizer') return;
 
@@ -966,11 +970,8 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
         // Detach from current organizer
         detachFromOrganizer(node.id);
       }
-    } else if (node.parentId) {
-      // Default release = full refit including position shift
-      fitOrganizerToMembers(node.parentId);
     }
-  }, [reactFlow, adapter, suppressUpdates, attachToOrganizer, detachFromOrganizer, fitOrganizerToMembers, hideNarrative]);
+  }, [reactFlow, suppressUpdates, attachToOrganizer, detachFromOrganizer, hideNarrative]);
 
   // Handle organizer selection (click on organizer selects all nodes in it)
   const handleSelectOrganizer = useCallback((organizerId: string) => {
@@ -1053,34 +1054,63 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
               <path d="M21 10H11a5 5 0 0 0-5 5v2M21 10l-4-4M21 10l-4 4" />
             </svg>
           </ControlButton>
-        </Controls>
-
-        {/* Custom zoom controls with finer granularity */}
-        <div className="absolute top-[14px] left-[52px] flex flex-col gap-[2px]">
-          <button
-            onClick={customZoomIn}
-            className="w-[32px] h-[32px] bg-white border border-[#e2e8f0] rounded cursor-pointer flex items-center justify-center hover:bg-[#f8fafc] transition-colors shadow-sm"
-            title="Zoom In"
-          >
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <ControlButton onClick={customZoomIn} title="Zoom In">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
-          </button>
-          <button
-            onClick={customZoomOut}
-            className="w-[32px] h-[32px] bg-white border border-[#e2e8f0] rounded cursor-pointer flex items-center justify-center hover:bg-[#f8fafc] transition-colors shadow-sm"
-            title="Zoom Out"
-          >
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          </ControlButton>
+          <ControlButton onClick={customZoomOut} title="Zoom Out">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
-          </button>
-        </div>
+          </ControlButton>
+          <ControlButton onClick={() => reactFlow.fitView({ duration: 300 })} title="Fit to View">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+            </svg>
+          </ControlButton>
+          <ControlButton onClick={handleSpreadAll} title="Spread All Nodes">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="15 3 21 3 21 9" />
+              <polyline points="9 21 3 21 3 15" />
+              <line x1="21" y1="3" x2="14" y2="10" />
+              <line x1="3" y1="21" x2="10" y2="14" />
+            </svg>
+          </ControlButton>
+          {selectedNodeIds.length > 0 && (
+            <>
+              <ControlButton
+                onClick={startRename}
+                disabled={selectedNodeIds.length !== 1}
+                title={selectedNodeIds.length === 1 ? "Rename (F2)" : "Select single node to rename"}
+                className={selectedNodeIds.length !== 1 ? 'disabled' : ''}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+              </ControlButton>
+              <ControlButton onClick={() => copyNodes()} title="Copy (Ctrl+C)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+              </ControlButton>
+              <ControlButton onClick={deleteSelectedNodes} title="Delete (Del)" className="text-red-600">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M3 6h18" />
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                  <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                </svg>
+              </ControlButton>
+            </>
+          )}
+        </Controls>
 
         {/* Covered nodes warning badge */}
         {coveredNodeIds.length > 0 && (
-          <div className="absolute top-[14px] left-[92px]">
+          <div className="absolute top-[14px] left-[52px]">
             <button
               onClick={rescueCoveredNodes}
               className="h-[32px] px-3 bg-amber-100 border border-amber-300 rounded cursor-pointer flex items-center gap-1.5 hover:bg-amber-200 transition-colors shadow-sm text-amber-800 text-xs font-medium"
@@ -1096,15 +1126,6 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
 
         <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
       </ReactFlow>
-
-      {selectedNodeIds.length > 0 && (
-        <NodeControls
-          selectedCount={selectedNodeIds.length}
-          onRename={startRename}
-          onDelete={deleteSelectedNodes}
-          onCopy={copyNodes}
-        />
-      )}
 
       {contextMenu && (
         <ContextMenu
@@ -1142,6 +1163,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
           selectedNodeIds={selectedNodeIds}
           onCopyNodesToLevel={copyNodesToLevel}
           onCopyNodesToNewLevel={handleCopyNodesToNewLevel}
+          onSpreadSelected={handleSpreadSelected}
           onOrganizeSelected={createOrganizer}
           onRemoveFromOrganizer={removeFromOrganizer}
           onAttachOrganizer={handleAttachOrganizer}

@@ -216,11 +216,9 @@ export interface ConstructNodeData {
 
 /**
  * Layout strategy for organizer nodes.
- * - 'freeform': Members keep their own positions (default, current behavior)
- * - 'stack': One member visible at a time, with prev/next navigation
- * - 'grid': Members auto-positioned in a grid layout
+ * Only freeform is supported — stack/grid were removed.
  */
-export type OrganizerLayout = 'freeform' | 'stack' | 'grid';
+export type OrganizerLayout = 'freeform';
 
 /**
  * Data stored in a React Flow node for organizers.
@@ -234,8 +232,6 @@ export interface OrganizerNodeData {
   description?: string;
   layout: OrganizerLayout;
   attachedToSemanticId?: string;  // Semantic ID of owning construct (makes this a "wagon")
-  stackIndex?: number;        // Active member index for stack layout
-  gridColumns?: number;       // Column count for grid layout
   [key: string]: unknown;
 }
 

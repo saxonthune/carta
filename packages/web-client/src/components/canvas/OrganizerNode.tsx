@@ -1,7 +1,7 @@
 import { memo, useCallback } from 'react';
 import { Handle, Position, NodeResizer, useNodeId, type NodeProps } from '@xyflow/react';
 import { EyeIcon, EyeOffIcon } from '../ui/icons';
-import type { OrganizerNodeData as BaseOrganizerNodeData, OrganizerLayout } from '@carta/domain';
+import type { OrganizerNodeData as BaseOrganizerNodeData } from '@carta/domain';
 import type { NodeActions } from './nodeActions';
 
 /**
@@ -14,8 +14,6 @@ export interface OrganizerNodeData extends BaseOrganizerNodeData {
   isHovered?: boolean;
   isDimmed?: boolean;
   nodeActions?: NodeActions;
-  onChangeLayout?: (layout: OrganizerLayout) => void;
-  onSetStackIndex?: (index: number) => void;
 
   // Metamap-specific optional fields
   depth?: number;
@@ -39,8 +37,6 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
     color = '#6b7280',
     collapsed,
     childCount,
-    layout = 'freeform',
-    stackIndex = 0,
     isDropTarget,
     isHovered,
     isDimmed,
@@ -57,32 +53,9 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
     [nodeActions, nodeId]
   );
 
-  const handleStackPrev = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      if (nodeId && nodeActions && stackIndex > 0) {
-        nodeActions.onSetStackIndex(nodeId, stackIndex - 1);
-      }
-    },
-    [nodeActions, nodeId, stackIndex]
-  );
-
-  const handleStackNext = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      if (nodeId && nodeActions && stackIndex < childCount - 1) {
-        nodeActions.onSetStackIndex(nodeId, stackIndex + 1);
-      }
-    },
-    [nodeActions, nodeId, stackIndex, childCount]
-  );
-
   // Increased base color mix for better visibility; deeper nesting = stronger tint
   const bgMix = isHovered || isDropTarget ? 25 : 18 + depth * 4;
   const borderMix = isHovered || isDropTarget ? 45 : 35 + depth * 8;
-
-  // Layout icon for collapsed chip
-  const layoutIcon = layout === 'stack' ? '\u25A6' : layout === 'grid' ? '\u25A8' : '';
 
   // Collapsed chip rendering (180x44 pill)
   if (collapsed) {
@@ -129,9 +102,6 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
             className="w-2.5 h-2.5 rounded-full shrink-0"
             style={{ backgroundColor: color }}
           />
-          {layoutIcon && (
-            <span className="text-[10px] text-content-muted shrink-0">{layoutIcon}</span>
-          )}
           <span className="text-node-xs font-medium text-content truncate text-halo flex-1">
             {name}
           </span>
@@ -226,42 +196,8 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
               <span className="text-[9px] text-content-subtle leading-tight">{parentGroupName}</span>
             )}
           </div>
-          {/* Stack navigation chevrons */}
-          {layout === 'stack' && childCount > 1 && nodeActions && (
-            <div className="flex items-center gap-0.5 shrink-0">
-              <button
-                className="w-5 h-5 flex items-center justify-center rounded text-content-muted hover:text-content transition-colors disabled:opacity-30 disabled:pointer-events-none"
-                onClick={handleStackPrev}
-                disabled={stackIndex <= 0}
-                title="Previous"
-              >
-                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <polyline points="15 18 9 12 15 6" />
-                </svg>
-              </button>
-              <span
-                className="text-[10px] font-medium px-1 py-0.5 rounded-full min-w-[2rem] text-center"
-                style={{
-                  backgroundColor: `color-mix(in srgb, ${color} 20%, var(--color-canvas))`,
-                  color: `color-mix(in srgb, ${color} 80%, var(--color-content))`,
-                }}
-              >
-                {stackIndex + 1}/{childCount}
-              </span>
-              <button
-                className="w-5 h-5 flex items-center justify-center rounded text-content-muted hover:text-content transition-colors disabled:opacity-30 disabled:pointer-events-none"
-                onClick={handleStackNext}
-                disabled={stackIndex >= childCount - 1}
-                title="Next"
-              >
-                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-              </button>
-            </div>
-          )}
-          {/* Child count badge (non-stack layouts) */}
-          {!(layout === 'stack' && childCount > 1 && nodeActions) && childCount > 0 && (
+          {/* Child count badge */}
+          {childCount > 0 && (
             <span
               className="text-[10px] font-medium shrink-0 px-1.5 py-0.5 rounded-full"
               style={{

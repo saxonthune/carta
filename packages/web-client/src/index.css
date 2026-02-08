@@ -207,6 +207,13 @@ body,
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
   color: var(--color-content);
+  width: 32px;
+  height: 32px;
+}
+
+.react-flow__controls-button svg {
+  width: 16px;
+  height: 16px;
 }
 
 .react-flow__controls-button:hover:not(:disabled) {
