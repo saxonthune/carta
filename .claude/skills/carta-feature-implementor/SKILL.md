@@ -28,7 +28,7 @@ This skill does NOT implement code. Its output is a refined plan file that a hea
 - `/carta-feature-implementor flow-trace-visualization`
 - `/carta-feature-implementor status`
 
-## Phase 0: Check Running Agents
+## Phase 0: Check Running Agents & Clean Up
 
 Before anything else, check for running or completed background agents:
 
@@ -50,9 +50,22 @@ Present a brief status summary:
 - **debug-logging**: RUNNING — currently at "Step 4: Run Headless Claude"
 ```
 
-**If invoked with `status` keyword:** Show status and stop. Don't proceed to plan selection.
+### Archive completed plans
 
-**Otherwise:** Show status (if any agents exist), then continue to Phase 1.
+For each **completed** agent (has a `.md` result file), archive the corresponding plan from `todo-tasks/` if it still exists there:
+
+```bash
+mkdir -p todo-tasks/.archived
+ts=$(date +%Y%m%d)
+# For each completed agent slug:
+[ -f "todo-tasks/{slug}.md" ] && mv "todo-tasks/{slug}.md" "todo-tasks/.archived/${ts}-{slug}.md"
+```
+
+This prevents stale plans from cluttering the active list. The plan must remain in `todo-tasks/` while an agent is running (the executor reads it from there), so only archive after completion.
+
+**If invoked with `status` keyword:** Show status, archive completed plans, and stop. Don't proceed to plan selection.
+
+**Otherwise:** Show status and archive completed plans (if any agents exist), then continue to Phase 1.
 
 ## Phase 1: Select a Plan
 
@@ -188,10 +201,12 @@ This is the key output. Rewrite the plan file in `todo-tasks/` so it's **unambig
 ### Required Sections
 
 1. **Motivation** — Why this change (1-2 sentences, for commit messages)
-2. **Files to Modify** — Explicit list of files with what changes in each
-3. **Implementation Steps** — Ordered, concrete steps. Reference specific functions, line ranges, existing patterns. Each step should be independently verifiable.
-4. **Constraints** — Codebase rules the agent must follow (from CLAUDE.md, doc references)
-5. **Verification** — What `pnpm build && pnpm test` should confirm, plus any manual checks
+2. **Design constraint** — One sentence stating the core design decision. Example: "All description UI lives in the trigger bar, NOT in the dropdown." This anchors the agent before it reads implementation details.
+3. **Do NOT** — Explicit list of things the agent must NOT do. This prevents scope creep and "path of least resistance" implementations. Include anything from the "Out of Scope" discussion, plus any structurally easy but wrong approaches the agent might be tempted by. Place this near the top — headless agents may not read the full document with equal attention.
+4. **Files to Modify** — Explicit list of files with what changes in each
+5. **Implementation Steps** — Ordered, concrete steps. Reference specific functions, line ranges, existing patterns. Each step should be independently verifiable.
+6. **Constraints** — Codebase rules the agent must follow (from CLAUDE.md, doc references)
+7. **Verification** — What `pnpm build && pnpm test` should confirm, plus any manual checks
 
 ### What Makes a Good Headless Plan
 
@@ -199,6 +214,11 @@ This is the key output. Rewrite the plan file in `todo-tasks/` so it's **unambig
 - **Concrete file references.** Not "update the hook" but "in `packages/web-client/src/hooks/useDocument.ts`, add a `pageDescription` field to the return value."
 - **Pattern examples.** If the agent needs to follow a pattern, include a code snippet showing the pattern from existing code.
 - **No exploration needed.** The agent shouldn't need to search the codebase to understand what to do. Everything it needs is in the plan or referenced by path.
+- **Negative constraints up front.** If the plan has "Out of Scope" items that describe something structurally easy to do (e.g., adding UI to an existing component), call it out explicitly in the "Do NOT" section. The agent will gravitate toward the path of least resistance — block that path if it's wrong.
+
+### Anticipating Agent Drift
+
+When refining, ask: "What's the easiest wrong implementation?" If the plan asks the agent to modify component A but the same data is accessible in component B, the agent may add UI to B instead. Explicitly forbid the wrong-but-easy path. Err on the side of over-specifying negative constraints — a "Do NOT" that was unnecessary costs nothing, but a missing one can derail the whole session.
 
 ### Refinement Process
 
@@ -214,20 +234,9 @@ Edit({
 })
 ```
 
-## Phase 5b: Archive the Plan
-
-After refining, move the plan to the archive:
-
-```bash
-ts=$(date +%Y%m%d)
-mv todo-tasks/{plan-name}.md "todo-tasks/.archived/${ts}-{plan-name}.md"
-```
-
-Create `todo-tasks/.archived/` if it doesn't exist. The timestamp prefix keeps a chronological record.
-
 ## Phase 6: Hand Off
 
-Once the plan is refined and archived, offer to launch execution:
+Once the plan is refined, offer to launch execution. **Do not archive the plan** — the execute-plan agent reads it from `todo-tasks/`. It will be archived in Phase 0 of the next session after the agent completes.
 
 ```typescript
 AskUserQuestion({
@@ -257,19 +266,40 @@ Report:
 
 ## Phase 7: Suggest Next Tasks
 
-After launching (or if the user declines), read the remaining plans in `todo-tasks/` and suggest up to 3 as next tasks. Present them as a brief list the user can reference when they start a new conversation:
+After launching (or if the user declines), suggest safe next tasks. **Do not suggest plans that would conflict with running agents.**
+
+### Check for conflicts
+
+1. List running/completed agents:
+   ```bash
+   ls .claude/agent-results/*.log 2>/dev/null
+   ```
+2. For each `.log` without a corresponding `.md` result, the agent is still running. Note the plan slug (filename without `.log`).
+3. Read the plan files for running agents to understand which files they modify.
+
+### Identify safe plans
+
+Read the first ~10 lines of each remaining plan in `todo-tasks/` to extract title, summary, and files touched. A plan is **unsafe to suggest** if:
+- It modifies the same files as a running agent's plan
+- It's already running as an agent (has an active `.log` file)
+
+### Present suggestions
+
+Show up to 3 safe plans. Flag any skipped plans with the reason:
 
 ```
 ## Next tasks to pick up
 
-1. **directional-auto-layout** — Hierarchical layout by edge flow direction
-2. **debug-logging** — Replace console.log with `debug` package
-3. **mcp-flow-layout-tool** — MCP tool for topological node arrangement
+1. **debug-logging** — Replace console.log with `debug` package
+2. **mcp-flow-layout-tool** — MCP tool for topological node arrangement
 
-Start a new conversation and run `/carta-feature-implementor directional-auto-layout` to groom the next one.
+⏳ **page-description-ui** — skipped (agent running)
+⏳ **directional-auto-layout** — skipped (agent running, overlaps Map.tsx)
+
+Start a new conversation and run `/carta-feature-implementor debug-logging` to groom the next one.
 ```
 
-Read the first ~5 lines of each remaining plan to extract title and one-line summary. Only show plans that haven't been archived. If no plans remain, say so.
+Only show plans that haven't been archived. If no safe plans remain, say so.
 
 ## Important Notes
 

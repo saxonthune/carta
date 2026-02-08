@@ -82,7 +82,30 @@ git worktree add -b "${BRANCH}" "${WORKTREE_DIR}" "${TRUNK}"
 echo "Worktree created at ${WORKTREE_DIR}"
 echo ""
 
-# ─── Step 3: Install Dependencies ────────────────────────────────────────────
+# ─── Step 3: Copy Plan into Worktree ────────────────────────────────────
+
+echo "── Copying plan into worktree ──"
+
+# Find the plan: check todo-tasks/ first, then archived
+PLAN_SOURCE=""
+if [[ -f "${REPO_ROOT}/${PLAN_FILE}" ]]; then
+  PLAN_SOURCE="${REPO_ROOT}/${PLAN_FILE}"
+else
+  # Look for archived plan (glob: todo-tasks/.archived/*-{slug}.md)
+  PLAN_SOURCE=$(ls "${REPO_ROOT}"/todo-tasks/.archived/*-"${PLAN_SLUG}".md 2>/dev/null | tail -1 || true)
+fi
+
+if [[ -z "$PLAN_SOURCE" ]]; then
+  echo "ERROR: Plan not found in todo-tasks/ or todo-tasks/.archived/"
+  exit 1
+fi
+
+mkdir -p "${WORKTREE_DIR}/todo-tasks"
+cp "${PLAN_SOURCE}" "${WORKTREE_DIR}/${PLAN_FILE}"
+echo "Copied plan from ${PLAN_SOURCE}"
+echo ""
+
+# ─── Step 4: Install Dependencies ────────────────────────────────────────────
 
 echo "── Installing dependencies ──"
 cd "${WORKTREE_DIR}"
@@ -90,7 +113,7 @@ pnpm install --frozen-lockfile
 echo "Dependencies installed"
 echo ""
 
-# ─── Step 4: Run Headless Claude ─────────────────────────────────────────────
+# ─── Step 5: Run Headless Claude ─────────────────────────────────────────────
 
 echo "── Running headless Claude ──"
 
@@ -118,7 +141,7 @@ if [[ -n "$SESSION_ID" ]]; then
 fi
 echo ""
 
-# ─── Step 5: Verify Independently ────────────────────────────────────────────
+# ─── Step 6: Verify Independently ────────────────────────────────────────────
 
 echo "── Verifying build & tests ──"
 
@@ -133,7 +156,7 @@ else
 fi
 echo ""
 
-# ─── Step 6: Retry on Failure ────────────────────────────────────────────────
+# ─── Step 7: Retry on Failure ────────────────────────────────────────────────
 
 RETRIED=false
 if [[ "$VERIFIED" == "false" ]]; then
@@ -179,7 +202,7 @@ Fix the issues, then run 'pnpm build && pnpm test' again. Commit your fixes."
   echo ""
 fi
 
-# ─── Step 7: Merge or Report ─────────────────────────────────────────────────
+# ─── Step 8: Merge or Report ─────────────────────────────────────────────────
 
 MERGE_STATUS="skipped"
 COMMITS=$(cd "${WORKTREE_DIR}" && git log "${TRUNK}..HEAD" --oneline 2>/dev/null || echo "(none)")
