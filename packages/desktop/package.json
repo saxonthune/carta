@@ -16,12 +16,14 @@
     "@carta/document": "workspace:*",
     "@carta/domain": "workspace:*",
     "@carta/server": "workspace:*",
+    "debug": "^4.4.3",
     "lib0": "^0.2.102",
     "ws": "^8.18.0",
     "y-protocols": "^1.0.6",
     "yjs": "^13.6.29"
   },
   "devDependencies": {
+    "@types/debug": "^4.1.12",
     "@types/node": "^24.10.1",
     "@types/ws": "^8.18.1",
     "concurrently": "^9.1.2",

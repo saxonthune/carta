@@ -16,6 +16,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as Y from 'yjs';
 import { WebSocketServer } from 'ws';
+import createDebug from 'debug';
 import {
   migrateToPages,
   extractCartaFile,
@@ -30,6 +31,8 @@ import {
   type DocState,
   type DocumentSummary,
 } from '@carta/server/document-server-core';
+
+const log = createDebug('carta:desktop-server');
 
 // ===== TYPES =====
 
@@ -151,7 +154,7 @@ function loadDocFromJson(docId: string, doc: Y.Doc): boolean {
     hydrateYDocFromCartaFile(doc, cartaFile);
     return true;
   } catch (err) {
-    console.error(`[Desktop Server] Failed to load ${docId}:`, err);
+    log('Failed to load %s: %O', docId, err);
     return false;
   }
 }
@@ -241,7 +244,7 @@ function createHelloWorldDocument(): string {
   const jsonContent = JSON.stringify(cartaFile, null, 2);
   fs.writeFileSync(getDocPath(docId), jsonContent, 'utf-8');
 
-  console.log(`[Desktop Server] Created hello-world document: ${docId}`);
+  log('Created hello-world document: %s', docId);
   return docId;
 }
 
@@ -329,7 +332,6 @@ const { handleHttpRequest, setupWSConnection } = createDocumentServer({
     }
     return true;
   },
-  logPrefix: '[Desktop Server]',
   healthMeta: {
     get rooms() { return docs.size; },
     persistence: 'filesystem-json',
@@ -369,7 +371,7 @@ export async function startEmbeddedServer(userDataPath: string, vaultPath: strin
 
   httpServer = http.createServer((req, res) => {
     handleHttpRequest(req, res).catch((err) => {
-      console.error('[Desktop Server] Unhandled HTTP error:', err);
+      log('Unhandled HTTP error: %O', err);
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Internal server error' }));
     });
@@ -401,8 +403,8 @@ export async function startEmbeddedServer(userDataPath: string, vaultPath: strin
   };
   fs.writeFileSync(serverInfoPath, JSON.stringify(serverJson, null, 2));
 
-  console.log(`[Desktop Server] Running on port ${port}`);
-  console.log(`[Desktop Server] Vault dir: ${vaultDir}`);
+  log('Running on port %d', port);
+  log('Vault dir: %s', vaultDir);
 
   return info;
 }
@@ -445,7 +447,7 @@ export async function stopEmbeddedServer(): Promise<void> {
     fs.unlinkSync(serverInfoPath);
   }
 
-  console.log('[Desktop Server] Stopped');
+  log('Stopped');
 }
 
 /**
