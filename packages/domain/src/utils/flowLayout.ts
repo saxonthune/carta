@@ -44,7 +44,6 @@ export function computeFlowLayout(
   options: FlowLayoutOptions
 ): FlowLayoutResult {
   const sourcePort = options.sourcePort ?? 'flow-out';
-  const sinkPort = options.sinkPort ?? 'flow-in';
   const layerGap = options.layerGap ?? 250;
   const nodeGap = options.nodeGap ?? 150;
 
@@ -90,7 +89,6 @@ export function computeFlowLayout(
   // Step 6: Coordinate assignment
   const positions = assignCoordinates(
     nodes,
-    layers,
     ordering,
     options.direction,
     layerGap,
@@ -105,14 +103,14 @@ export function computeFlowLayout(
     y: originalCentroid.y - newCentroid.y,
   };
 
-  for (const [id, pos] of positions) {
+  for (const pos of positions.values()) {
     pos.x += offset.x;
     pos.y += offset.y;
   }
 
   // Step 8: Build layer order map
   const layerOrder = new Map<string, number>();
-  for (const [layer, nodeIds] of ordering) {
+  for (const nodeIds of ordering.values()) {
     for (let i = 0; i < nodeIds.length; i++) {
       layerOrder.set(nodeIds[i], i);
     }
@@ -136,8 +134,7 @@ function breakCycles(
   function dfs(nodeId: string, path: string[]): void {
     if (inStack.has(nodeId)) {
       // Found a cycle - mark the back edge
-      const cycleStart = path.indexOf(nodeId);
-      if (cycleStart >= 0 && cycleStart < path.length - 1) {
+      if (path.length > 0) {
         const edgeKey = `${path[path.length - 1]}->${nodeId}`;
         backEdges.add(edgeKey);
       }
@@ -327,7 +324,6 @@ function minimizeCrossings(
  */
 function assignCoordinates(
   nodes: FlowLayoutInput[],
-  layers: Map<string, number>,
   ordering: Map<number, string[]>,
   direction: FlowDirection,
   layerGap: number,
@@ -349,7 +345,6 @@ function assignCoordinates(
     let offset = -totalSize / 2;
     for (let i = 0; i < nodeIds.length; i++) {
       const id = nodeIds[i];
-      const node = nodeMap.get(id)!;
       const size = nodeSizes[i];
 
       let x: number, y: number;
