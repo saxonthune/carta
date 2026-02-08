@@ -54,6 +54,9 @@ importers:
       '@carta/server':
         specifier: workspace:*
         version: link:../server
+      debug:
+        specifier: ^4.4.3
+        version: 4.4.3(supports-color@5.5.0)
       lib0:
         specifier: ^0.2.102
         version: 0.2.117
@@ -67,6 +70,9 @@ importers:
         specifier: ^13.6.29
         version: 13.6.29
     devDependencies:
+      '@types/debug':
+        specifier: ^4.1.12
+        version: 4.1.12
       '@types/node':
         specifier: ^24.10.1
         version: 24.10.9
@@ -90,7 +96,7 @@ importers:
         version: 5.9.3
       wait-on:
         specifier: ^8.0.3
-        version: 8.0.5
+        version: 8.0.5(debug@4.4.3)
 
   packages/document:
     dependencies:
@@ -128,6 +134,9 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: ^1.25.3
         version: 1.25.3(hono@4.11.5)(zod@3.25.76)
+      debug:
+        specifier: ^4.4.3
+        version: 4.4.3(supports-color@5.5.0)
       lib0:
         specifier: ^0.2.102
         version: 0.2.117
@@ -150,6 +159,9 @@ importers:
         specifier: ^3.25.76
         version: 3.25.76
     devDependencies:
+      '@types/debug':
+        specifier: ^4.1.12
+        version: 4.1.12
       '@types/node':
         specifier: ^24.10.1
         version: 24.10.9
@@ -4940,9 +4952,9 @@ snapshots:
 
   at-least-node@1.0.0: {}
 
-  axios@1.13.4:
+  axios@1.13.4(debug@4.4.3):
     dependencies:
-      follow-redirects: 1.15.11
+      follow-redirects: 1.15.11(debug@4.4.3)
       form-data: 4.0.5
       proxy-from-env: 1.1.0
     transitivePeerDependencies:
@@ -5726,7 +5738,9 @@ snapshots:
 
   flatted@3.3.3: {}
 
-  follow-redirects@1.15.11: {}
+  follow-redirects@1.15.11(debug@4.4.3):
+    optionalDependencies:
+      debug: 4.4.3(supports-color@5.5.0)
 
   foreground-child@3.3.1:
     dependencies:
@@ -7273,9 +7287,9 @@ snapshots:
     dependencies:
       xml-name-validator: 5.0.0
 
-  wait-on@8.0.5:
+  wait-on@8.0.5(debug@4.4.3):
     dependencies:
-      axios: 1.13.4
+      axios: 1.13.4(debug@4.4.3)
       joi: 18.0.2
       lodash: 4.17.23
       minimist: 1.2.8
