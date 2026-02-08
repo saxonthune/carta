@@ -14,6 +14,7 @@ import {
   builtInConstructSchemas,
   toAbsolutePosition,
   toRelativePosition,
+  computeFlowLayout,
 } from '@carta/domain';
 import type {
   CompilerNode,
@@ -24,6 +25,9 @@ import type {
   ConnectionValue,
   OrganizerNodeData,
   OrganizerLayout,
+  FlowDirection,
+  FlowLayoutInput,
+  FlowLayoutEdge,
 } from '@carta/domain';
 import { CompilerEngine } from '@carta/compiler';
 import { yToPlain, deepPlainToY, safeGet } from './yjs-helpers.js';
@@ -542,6 +546,96 @@ export function moveConstruct(
   }, MCP_ORIGIN);
 
   return getConstruct(ydoc, pageId, semanticId);
+}
+
+/**
+ * Apply flow layout to constructs on a page.
+ * Uses port topology to arrange nodes in layers.
+ */
+export function flowLayout(
+  ydoc: Y.Doc,
+  pageId: string,
+  options: {
+    direction: FlowDirection;
+    sourcePort?: string;
+    sinkPort?: string;
+    layerGap?: number;
+    nodeGap?: number;
+    scope?: 'all' | string[];  // semantic IDs, default "all"
+  }
+): { updated: number; layers: Record<string, number> } {
+  const pageNodes = getPageMap(ydoc, 'nodes', pageId);
+  const pageEdges = getPageMap(ydoc, 'edges', pageId);
+
+  // 1. Get all constructs (filter to top-level only, no organizer children)
+  const allNodes = listConstructs(ydoc, pageId);
+  const topLevelNodes = allNodes.filter(n => !n.parentId && n.type === 'construct');
+
+  // 2. Filter by scope if requested
+  let nodesToLayout = topLevelNodes;
+  if (options.scope && Array.isArray(options.scope)) {
+    const scopeSet = new Set(options.scope);
+    nodesToLayout = topLevelNodes.filter(n => scopeSet.has(n.data.semanticId));
+  }
+
+  if (nodesToLayout.length === 0) {
+    return { updated: 0, layers: {} };
+  }
+
+  // 3. Build FlowLayoutInput[] with default sizes
+  const layoutInputs: FlowLayoutInput[] = nodesToLayout.map(n => ({
+    id: n.id,
+    semanticId: n.data.semanticId,
+    x: n.position.x,
+    y: n.position.y,
+    width: 200,
+    height: 100,
+  }));
+
+  // 4. Build FlowLayoutEdge[] from page edges
+  const layoutEdges: FlowLayoutEdge[] = [];
+  pageEdges.forEach((yedge) => {
+    const source = yedge.get('source') as string;
+    const target = yedge.get('target') as string;
+    const sourceHandle = yedge.get('sourceHandle') as string | undefined;
+    const targetHandle = yedge.get('targetHandle') as string | undefined;
+
+    // Only include edges where both source and target are in our layout set
+    const nodeIds = new Set(layoutInputs.map(n => n.id));
+    if (nodeIds.has(source) && nodeIds.has(target)) {
+      layoutEdges.push({
+        sourceId: source,
+        targetId: target,
+        sourcePortId: sourceHandle ?? '',
+        targetPortId: targetHandle ?? '',
+      });
+    }
+  });
+
+  // 5. Call computeFlowLayout
+  const result = computeFlowLayout(layoutInputs, layoutEdges, {
+    direction: options.direction,
+    sourcePort: options.sourcePort,
+    sinkPort: options.sinkPort,
+    layerGap: options.layerGap,
+    nodeGap: options.nodeGap,
+  });
+
+  // 6. Apply positions in a transaction
+  ydoc.transact(() => {
+    for (const [nodeId, pos] of result.positions) {
+      const ynode = pageNodes.get(nodeId);
+      if (ynode) {
+        ynode.set('position', deepPlainToY({ x: pos.x, y: pos.y }));
+      }
+    }
+  }, MCP_ORIGIN);
+
+  // 7. Return results
+  return {
+    updated: result.positions.size,
+    layers: Object.fromEntries(result.layers),
+  };
 }
 
 // ===== ORGANIZER OPERATIONS =====
