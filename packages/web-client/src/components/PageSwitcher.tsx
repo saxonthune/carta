@@ -20,19 +20,13 @@ interface SortablePageRowProps {
   editMode: boolean;
   isEditing: boolean;
   editName: string;
-  editDescription: string;
-  isEditingDescription: boolean;
   editInputRef: React.RefObject<HTMLInputElement | null>;
-  editDescriptionRef: React.RefObject<HTMLTextAreaElement | null>;
   pagesCount: number;
   onSelect: (pageId: string) => void;
   onStartEdit: (page: Page) => void;
   onFinishEdit: () => void;
   onCancelEdit: () => void;
   onEditNameChange: (value: string) => void;
-  onToggleDescriptionEdit: (pageId: string) => void;
-  onEditDescriptionChange: (value: string) => void;
-  onFinishDescriptionEdit: () => void;
   onDuplicate: (page: Page, event: React.MouseEvent) => void;
   onDelete: (pageId: string, event: React.MouseEvent) => void;
 }
@@ -43,19 +37,13 @@ function SortablePageRow({
   editMode,
   isEditing,
   editName,
-  editDescription,
-  isEditingDescription,
   editInputRef,
-  editDescriptionRef,
   pagesCount,
   onSelect,
   onStartEdit,
   onFinishEdit,
   onCancelEdit,
   onEditNameChange,
-  onToggleDescriptionEdit,
-  onEditDescriptionChange,
-  onFinishDescriptionEdit,
   onDuplicate,
   onDelete,
 }: SortablePageRowProps) {
@@ -76,7 +64,7 @@ function SortablePageRow({
   };
 
   const handleClick = () => {
-    if (!editMode && !isEditingDescription) {
+    if (!editMode) {
       onSelect(page.id);
     }
   };
@@ -131,27 +119,15 @@ function SortablePageRow({
         )}
         <div className="flex items-center gap-0.5 flex-shrink-0">
           {!isEditing && (
-            <>
-              <button
-                className="p-0.5 rounded hover:bg-black/10 text-content-muted hover:text-content"
-                onClick={(e) => { e.stopPropagation(); onStartEdit(page); }}
-                title="Rename page"
-              >
-                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
-                </svg>
-              </button>
-              <button
-                className="p-0.5 rounded hover:bg-black/10 text-content-muted hover:text-content"
-                onClick={(e) => { e.stopPropagation(); onToggleDescriptionEdit(page.id); }}
-                title={isEditingDescription ? "Close description" : "Edit description"}
-              >
-                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                </svg>
-              </button>
-            </>
+            <button
+              className="p-0.5 rounded hover:bg-black/10 text-content-muted hover:text-content"
+              onClick={(e) => { e.stopPropagation(); onStartEdit(page); }}
+              title="Rename page"
+            >
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+              </svg>
+            </button>
           )}
           <button
             className="p-0.5 rounded hover:bg-black/10 text-content-muted hover:text-content"
@@ -179,21 +155,6 @@ function SortablePageRow({
           )}
         </div>
       </div>
-      {/* Description editing section */}
-      {isEditingDescription && (
-        <div className="px-3 pb-2 pt-1 bg-surface-alt border-t border-border" onClick={(e) => e.stopPropagation()}>
-          <textarea
-            ref={editDescriptionRef}
-            className="w-full px-2 py-1.5 text-xs bg-surface border border-border rounded resize-none outline-none focus:ring-1 focus:ring-accent text-content"
-            placeholder="Add a description for this page..."
-            rows={3}
-            value={editDescription}
-            onChange={(e) => onEditDescriptionChange(e.target.value)}
-            onBlur={onFinishDescriptionEdit}
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
-      )}
     </div>
   );
 }
@@ -211,14 +172,14 @@ export default function PageSwitcher({
   const [editMode, setEditMode] = useState(false);
   const [editingPageId, setEditingPageId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
-  const [editingDescriptionPageId, setEditingDescriptionPageId] = useState<string | null>(null);
-  const [editDescription, setEditDescription] = useState('');
   // Inline rename of the current page (in the trigger bar, outside the dropdown)
   const [isRenamingCurrent, setIsRenamingCurrent] = useState(false);
   const [currentEditName, setCurrentEditName] = useState('');
+  // Description panel state
+  const [isDescriptionOpen, setIsDescriptionOpen] = useState(false);
+  const [descriptionValue, setDescriptionValue] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
-  const editDescriptionRef = useRef<HTMLTextAreaElement>(null);
   const currentEditInputRef = useRef<HTMLInputElement>(null);
   // Counter to force re-focus when clicking the same page again
   const editFocusCounter = useRef(0);
@@ -257,12 +218,10 @@ export default function PageSwitcher({
     }
   }, [isRenamingCurrent]);
 
-  // Focus textarea when editing description
+  // Update description value when page changes
   useEffect(() => {
-    if (editingDescriptionPageId && editDescriptionRef.current) {
-      editDescriptionRef.current.focus();
-    }
-  }, [editingDescriptionPageId]);
+    setDescriptionValue(currentPage?.description || '');
+  }, [currentPage?.id, currentPage?.description]);
 
   // Reset edit mode when dropdown closes
   useEffect(() => {
@@ -309,25 +268,6 @@ export default function PageSwitcher({
   const handleCancelCurrentRename = useCallback(() => {
     setIsRenamingCurrent(false);
   }, []);
-
-  const handleToggleDescriptionEdit = useCallback((pageId: string) => {
-    if (editingDescriptionPageId === pageId) {
-      setEditingDescriptionPageId(null);
-    } else {
-      const page = pages.find(p => p.id === pageId);
-      if (page) {
-        setEditDescription(page.description || '');
-        setEditingDescriptionPageId(pageId);
-      }
-    }
-  }, [editingDescriptionPageId, pages]);
-
-  const handleFinishDescriptionEdit = useCallback(() => {
-    if (editingDescriptionPageId) {
-      onUpdatePage(editingDescriptionPageId, { description: editDescription.trim() || undefined });
-    }
-    setEditingDescriptionPageId(null);
-  }, [editingDescriptionPageId, editDescription, onUpdatePage]);
 
   const handleDelete = useCallback((pageId: string, event: React.MouseEvent) => {
     event.stopPropagation();
@@ -402,7 +342,7 @@ export default function PageSwitcher({
               <span
                 className="block w-full truncate cursor-text"
                 onClick={handleStartCurrentRename}
-                title={currentPage?.description ? `${currentPage.name}\n${currentPage.description}` : "Click to rename"}
+                title="Click to rename"
               >
                 {currentPage?.name || 'Main'}
               </span>
@@ -419,6 +359,20 @@ export default function PageSwitcher({
             </svg>
           </button>
         </div>
+        {/* Toggle button for description panel */}
+        <button
+          className={`flex items-center justify-center p-1.5 rounded-lg border transition-colors ${isDescriptionOpen ? 'bg-accent text-white border-accent' : 'bg-surface text-content-muted border-border hover:text-content hover:bg-surface-alt'}`}
+          onClick={() => setIsDescriptionOpen(!isDescriptionOpen)}
+          title={isDescriptionOpen ? "Hide description" : "Show description"}
+        >
+          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="16" y1="13" x2="8" y2="13" />
+            <line x1="16" y1="17" x2="8" y2="17" />
+            <polyline points="10 9 9 9 8 9" />
+          </svg>
+        </button>
         {isOpen && (
           <button
             className={`p-1.5 rounded-lg border transition-colors ${editMode ? 'bg-accent text-white border-accent' : 'bg-surface text-content-muted border-border hover:text-content hover:bg-surface-alt'}`}
@@ -436,6 +390,23 @@ export default function PageSwitcher({
         )}
       </div>
 
+      {/* Description panel */}
+      {isDescriptionOpen && !isOpen && (
+        <div className="absolute right-0 top-full mt-1 bg-surface border border-border rounded-lg shadow-lg overflow-hidden z-40 min-w-[300px] max-w-[400px]">
+          <textarea
+            className="w-full px-3 py-2 text-sm bg-surface border-none outline-none resize-y text-content min-h-[80px]"
+            placeholder="Add a page description..."
+            value={descriptionValue}
+            onChange={(e) => setDescriptionValue(e.target.value)}
+            onBlur={() => {
+              if (activePage) {
+                onUpdatePage(activePage, { description: descriptionValue.trim() || undefined });
+              }
+            }}
+          />
+        </div>
+      )}
+
       {/* Page selector dropdown */}
       {isOpen && (
         <div className="absolute right-0 top-full mt-1 bg-surface border border-subtle rounded-lg shadow-lg overflow-hidden z-50 min-w-[260px]">
@@ -451,19 +422,13 @@ export default function PageSwitcher({
                     editMode={editMode}
                     isEditing={editingPageId === page.id}
                     editName={editName}
-                    editDescription={editDescription}
-                    isEditingDescription={editingDescriptionPageId === page.id}
                     editInputRef={editInputRef}
-                    editDescriptionRef={editDescriptionRef}
                     pagesCount={pages.length}
                     onSelect={handleSelectPage}
                     onStartEdit={handleStartEdit}
                     onFinishEdit={handleFinishEdit}
                     onCancelEdit={handleCancelEdit}
                     onEditNameChange={setEditName}
-                    onToggleDescriptionEdit={handleToggleDescriptionEdit}
-                    onEditDescriptionChange={setEditDescription}
-                    onFinishDescriptionEdit={handleFinishDescriptionEdit}
                     onDuplicate={handleDuplicate}
                     onDelete={handleDelete}
                   />
@@ -479,19 +444,13 @@ export default function PageSwitcher({
                 editMode={false}
                 isEditing={editingPageId === page.id}
                 editName={editName}
-                editDescription={editDescription}
-                isEditingDescription={editingDescriptionPageId === page.id}
                 editInputRef={editInputRef}
-                editDescriptionRef={editDescriptionRef}
                 pagesCount={pages.length}
                 onSelect={handleSelectPage}
                 onStartEdit={handleStartEdit}
                 onFinishEdit={handleFinishEdit}
                 onCancelEdit={handleCancelEdit}
                 onEditNameChange={setEditName}
-                onToggleDescriptionEdit={handleToggleDescriptionEdit}
-                onEditDescriptionChange={setEditDescription}
-                onFinishDescriptionEdit={handleFinishDescriptionEdit}
                 onDuplicate={handleDuplicate}
                 onDelete={handleDelete}
               />
