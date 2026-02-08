@@ -207,6 +207,7 @@ This is the key output. Rewrite the plan file in `todo-tasks/` so it's **unambig
 5. **Implementation Steps** — Ordered, concrete steps. Reference specific functions, line ranges, existing patterns. Each step should be independently verifiable.
 6. **Constraints** — Codebase rules the agent must follow (from CLAUDE.md, doc references)
 7. **Verification** — What `pnpm build && pnpm test` should confirm, plus any manual checks
+8. **Plan-specific checks** (optional) — Grep-based or script-based assertions the agent runs after implementation to verify negative constraints. Example: `! grep -q 'isEditingDescription' packages/web-client/src/components/PageSwitcher.tsx` to confirm removed code stays removed. These are crude but effective guardrails that complement the build/test gate.
 
 ### What Makes a Good Headless Plan
 
