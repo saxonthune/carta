@@ -26,7 +26,6 @@ function makeConfig(overrides?: Partial<DocumentServerConfig>): DocumentServerCo
       docs.delete(docId);
       return true;
     },
-    logPrefix: '[Test]',
     healthMeta: { storage: 'memory', rooms: 0 },
     ...overrides,
   };

@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import createDebug from 'debug';
 import { is, getRendererUrl } from './config.js';
 import { startEmbeddedServer, stopEmbeddedServer, ensureVaultHasDocument, type EmbeddedServerInfo } from './server.js';
 import {
@@ -10,6 +11,8 @@ import {
   isFirstRun,
   ensureVaultExists,
 } from './preferences.js';
+
+const log = createDebug('carta:desktop');
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -136,10 +139,10 @@ ipcMain.handle('initialize-vault', async (_event, vaultPath: string) => {
 
     serverInfo = await startEmbeddedServer(userDataPath, vaultPath);
     const documentId = ensureVaultHasDocument();
-    console.log(`[Desktop] Vault initialized: ${serverInfo.url}, documentId: ${documentId}`);
+    log('Vault initialized: %s, documentId: %s', serverInfo.url, documentId);
     return { url: serverInfo.url, wsUrl: serverInfo.wsUrl, port: serverInfo.port, documentId };
   } catch (err) {
-    console.error('[Desktop] Failed to initialize vault:', err);
+    log('Failed to initialize vault: %O', err);
     throw err;
   }
 });
@@ -152,12 +155,12 @@ app.whenReady().then(async () => {
   if (prefs.vaultPath) {
     try {
       serverInfo = await startEmbeddedServer(userDataPath, prefs.vaultPath);
-      console.log(`[Desktop] Embedded server started: ${serverInfo.url}`);
+      log('Embedded server started: %s', serverInfo.url);
     } catch (err) {
-      console.error('[Desktop] Failed to start embedded server:', err);
+      log('Failed to start embedded server: %O', err);
     }
   } else {
-    console.log('[Desktop] First run - waiting for vault selection');
+    log('First run - waiting for vault selection');
   }
 
   createWindow();
@@ -181,9 +184,9 @@ app.on('before-quit', async (event) => {
 
   try {
     await stopEmbeddedServer();
-    console.log('[Desktop] Embedded server stopped, documents saved');
+    log('Embedded server stopped, documents saved');
   } catch (err) {
-    console.error('[Desktop] Error stopping embedded server:', err);
+    log('Error stopping embedded server: %O', err);
   }
 
   // Actually quit now

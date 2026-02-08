@@ -15,6 +15,7 @@ import * as http from 'node:http';
 import * as Y from 'yjs';
 import { WebSocketServer } from 'ws';
 import { MongodbPersistence } from 'y-mongodb-provider';
+import createDebug from 'debug';
 import {
   migrateToPages,
   repairOrphanedConnections,
@@ -26,6 +27,8 @@ import {
   type DocState,
   type DocumentSummary,
 } from './document-server-core.js';
+
+const log = createDebug('carta:server');
 
 export interface ServerInstance {
   server: http.Server;
@@ -54,7 +57,7 @@ let mdb: MongodbPersistence | null = null;
  */
 async function initPersistence(): Promise<void> {
   if (process.env.STORAGE === 'memory') {
-    console.log('[Server] Storage: memory (no database)');
+    log('Storage: memory (no database)');
     return;
   }
 
@@ -64,9 +67,9 @@ async function initPersistence(): Promise<void> {
       collectionName: 'yjs-documents',
       flushSize: 100,
     });
-    console.log(`[Server] MongoDB persistence enabled: ${mongoUri}`);
+    log('MongoDB persistence enabled: %s', mongoUri);
   } catch (err) {
-    console.warn('[Server] MongoDB connection failed, running in-memory:', err);
+    log('MongoDB connection failed, running in-memory: %O', err);
   }
 }
 
@@ -87,9 +90,9 @@ async function getYDoc(docName: string): Promise<DocState> {
       const persistedDoc = await mdb.getYDoc(docName);
       const update = Y.encodeStateAsUpdate(persistedDoc);
       Y.applyUpdate(doc, update);
-      console.log(`[Server] Loaded room ${docName} from MongoDB`);
+      log('Loaded room %s from MongoDB', docName);
     } catch {
-      console.log(`[Server] No persisted state for ${docName}, starting fresh`);
+      log('No persisted state for %s, starting fresh', docName);
     }
 
     // Migrate flat docs to page-based structure
@@ -101,12 +104,12 @@ async function getYDoc(docName: string): Promise<DocState> {
     // Persist future updates
     doc.on('update', (update: Uint8Array) => {
       mdb!.storeUpdate(docName, update).catch((err: unknown) => {
-        console.error(`[Server] Failed to persist update for ${docName}:`, err);
+        log('Failed to persist update for %s: %O', docName, err);
       });
     });
   }
 
-  console.log(`[Server] Room created: ${docName}`);
+  log('Room created: %s', docName);
   return docState;
 }
 
@@ -135,12 +138,11 @@ const { handleHttpRequest, setupWSConnection } = createDocumentServer({
       try {
         await mdb.clearDocument(roomId);
       } catch (err) {
-        console.warn(`[Server] Failed to clear document ${roomId} from MongoDB:`, err);
+        log('Failed to clear document %s from MongoDB: %O', roomId, err);
       }
     }
     return true;
   },
-  logPrefix: '[Server]',
   healthMeta: {
     get rooms() { return docs.size; },
     get storage() { return mdb ? 'mongodb' : 'memory'; },
@@ -158,7 +160,7 @@ export async function startServer(options?: StartServerOptions): Promise<ServerI
 
   const server = http.createServer((req, res) => {
     handleHttpRequest(req, res).catch((err) => {
-      console.error('[Server] Unhandled HTTP error:', err);
+      log('Unhandled HTTP error: %O', err);
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Internal server error' }));
     });
@@ -182,10 +184,10 @@ export async function startServer(options?: StartServerOptions): Promise<ServerI
     });
     server.listen(port, host, () => {
       const addr = server.address() as { port: number };
-      console.log(`[Server] Carta document server running on ${host}:${addr.port}`);
-      console.log(`[Server] WebSocket: ws://${host}:${addr.port}/<room-name>`);
-      console.log(`[Server] REST API: http://${host}:${addr.port}/api/documents`);
-      console.log(`[Server] Health check: http://${host}:${addr.port}/health`);
+      log('Carta document server running on %s:%d', host, addr.port);
+      log('WebSocket: ws://%s:%d/<room-name>', host, addr.port);
+      log('REST API: http://%s:%d/api/documents', host, addr.port);
+      log('Health check: http://%s:%d/health', host, addr.port);
       resolve(addr.port);
     });
   });
@@ -197,21 +199,21 @@ export async function startServer(options?: StartServerOptions): Promise<ServerI
  * Gracefully stop the server.
  */
 export async function stopServer(instance: ServerInstance): Promise<void> {
-  console.log('[Server] Shutting down...');
+  log('Shutting down...');
 
   if (mdb) {
     try {
       await mdb.destroy();
-      console.log('[Server] MongoDB connection closed');
+      log('MongoDB connection closed');
     } catch (err) {
-      console.error('[Server] Error closing MongoDB:', err);
+      log('Error closing MongoDB: %O', err);
     }
   }
 
   instance.wss.close();
   await new Promise<void>((resolve) => {
     instance.server.close(() => {
-      console.log('[Server] Server closed');
+      log('Server closed');
       resolve();
     });
   });
