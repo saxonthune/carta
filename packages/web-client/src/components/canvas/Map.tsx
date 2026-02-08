@@ -50,6 +50,7 @@ import { useNarrative } from '../../hooks/useNarrative';
 import Narrative from './Narrative';
 import { spreadNodes } from '../../utils/spreadNodes';
 import { compactNodes } from '../../utils/compactNodes';
+import { hierarchicalLayout } from '../../utils/hierarchicalLayout';
 
 const nodeTypes = {
   custom: CustomNode,
@@ -453,6 +454,45 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     }));
     const newPositions = compactNodes(inputs);
 
+    if (newPositions.size === 0) return;
+
+    const applyPositions = (nds: Node[]) => nds.map(n => {
+      const pos = newPositions.get(n.id);
+      return pos ? { ...n, position: pos } : n;
+    });
+
+    reactFlow.setNodes(applyPositions);
+    setNodesLocal(applyPositions);
+    const patches = [...newPositions].map(([id, position]) => ({ id, position }));
+    if (patches.length > 0) {
+      adapter.patchNodes?.(patches);
+    }
+  }, [reactFlow, adapter, setNodesLocal]);
+
+  // Hierarchical layout (top-to-bottom by edge flow)
+  const handleHierarchicalLayout = useCallback(() => {
+    const rfNodes = reactFlow.getNodes();
+    const rfEdges = reactFlow.getEdges();
+
+    // Top-level non-organizer nodes only
+    const topLevel = rfNodes.filter(n => !n.parentId && n.type !== 'organizer');
+    if (topLevel.length < 2) return;
+
+    const inputs = topLevel.map(n => ({
+      id: n.id,
+      x: n.position.x,
+      y: n.position.y,
+      width: n.measured?.width ?? n.width ?? 200,
+      height: n.measured?.height ?? n.height ?? 100,
+    }));
+
+    // Filter edges to only those between top-level nodes
+    const topLevelIds = new Set(topLevel.map(n => n.id));
+    const edges = rfEdges
+      .filter(e => topLevelIds.has(e.source) && topLevelIds.has(e.target))
+      .map(e => ({ source: e.source, target: e.target }));
+
+    const newPositions = hierarchicalLayout(inputs, edges);
     if (newPositions.size === 0) return;
 
     const applyPositions = (nds: Node[]) => nds.map(n => {
@@ -1210,6 +1250,18 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
               <polyline points="20 10 14 10 14 4" />
               <line x1="14" y1="10" x2="21" y2="3" />
               <line x1="3" y1="21" x2="10" y2="14" />
+            </svg>
+          </ControlButton>
+          <ControlButton onClick={handleHierarchicalLayout} title="Hierarchical Layout">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="3" r="2" />
+              <circle cx="6" cy="12" r="2" />
+              <circle cx="18" cy="12" r="2" />
+              <circle cx="12" cy="21" r="2" />
+              <line x1="12" y1="5" x2="6" y2="10" />
+              <line x1="12" y1="5" x2="18" y2="10" />
+              <line x1="6" y1="14" x2="12" y2="19" />
+              <line x1="18" y1="14" x2="12" y2="19" />
             </svg>
           </ControlButton>
           {selectedNodeIds.length > 0 && (
