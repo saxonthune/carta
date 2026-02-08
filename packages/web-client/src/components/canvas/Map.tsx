@@ -38,6 +38,7 @@ import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import type { ConstructValues, ConstructNodeData, OrganizerNodeData, Size } from '@carta/domain';
 import { computeMinOrganizerSize, DEFAULT_ORGANIZER_LAYOUT, nodeContainedInOrganizer, getDisplayName, type NodeGeometry } from '@carta/domain';
 import { usePresentation } from '../../hooks/usePresentation';
+import { computeEdgeAggregation } from '../../presentation/index';
 import { useOrganizerOperations } from '../../hooks/useOrganizerOperations';
 import ConstructEditor from '../ConstructEditor';
 import DynamicAnchorEdge from './DynamicAnchorEdge';
@@ -604,41 +605,11 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     });
   }, [nodesWithCallbacks, searchText, getSchema]);
 
-  // Reroute edges to collapsed organizers using edgeRemap
+  // Aggregate cross-organizer edges and remap collapsed edges
+  const selectedNodeIdsSet = useMemo(() => new Set(selectedNodeIds), [selectedNodeIds]);
   const filteredEdges = useMemo(() => {
-    let result = edges;
-
-    // Apply organizer edge remapping for collapsed organizers
-    if (edgeRemap.size > 0) {
-      const seenEdgeKeys = new Set<string>(); // Dedupe edges to same collapsed organizer
-      result = result.map(edge => {
-        const remappedSource = edgeRemap.get(edge.source);
-        const remappedTarget = edgeRemap.get(edge.target);
-
-        if (remappedSource || remappedTarget) {
-          const newSource = remappedSource || edge.source;
-          const newTarget = remappedTarget || edge.target;
-
-          // Skip self-loops to same organizer
-          if (newSource === newTarget) return null;
-
-          // Dedupe edges that now have the same endpoints
-          const dedupeKey = `${newSource}-${newTarget}`;
-          if (seenEdgeKeys.has(dedupeKey)) return null;
-          seenEdgeKeys.add(dedupeKey);
-
-          return {
-            ...edge,
-            id: `${edge.id}-remapped`,
-            source: newSource,
-            target: newTarget,
-            sourceHandle: remappedSource ? 'group-connect' : edge.sourceHandle,
-            targetHandle: remappedTarget ? 'group-connect' : edge.targetHandle,
-          };
-        }
-        return edge;
-      }).filter((e): e is Edge => e !== null);
-    }
+    // Aggregate edges crossing organizer boundaries (replaces collapse remap + dedup)
+    let result = computeEdgeAggregation(edges, sortedNodes, edgeRemap, selectedNodeIdsSet);
 
     // Remove edges whose resolved source or target is hidden (not in visible nodes)
     const visibleNodeIds = new Set(
@@ -690,7 +661,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     }
 
     return result;
-  }, [edges, edgeRemap, sortedNodes, isTraceActive, traceResult]);
+  }, [edges, edgeRemap, sortedNodes, selectedNodeIdsSet, isTraceActive, traceResult]);
 
   // Auto-revert unpinned details nodes when deselected
   const updateNodeInternals = useUpdateNodeInternals();

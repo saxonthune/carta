@@ -87,6 +87,57 @@ export interface DocumentServerHandlers {
   setupWSConnection: (conn: WebSocket, docName: string) => Promise<void>;
 }
 
+// ===== HELPERS =====
+
+/**
+ * Resolve a level by ID or name (case-insensitive). Returns undefined if neither matches.
+ */
+function resolveLevelId(ydoc: Y.Doc, levelId?: string, levelName?: string): string | undefined {
+  if (levelId) return levelId;
+  if (!levelName) return undefined;
+  const levels = listLevels(ydoc);
+  return levels.find(l => l.name.toLowerCase() === levelName.toLowerCase())?.id;
+}
+
+/**
+ * Build compact construct + organizer summaries for a level (shared by multiple endpoints).
+ */
+function compactLevelContents(ydoc: Y.Doc, levelId: string) {
+  const allNodes = listConstructs(ydoc, levelId);
+  const schemas = listSchemas(ydoc);
+  const schemaMap = new Map(schemas.map(s => [s.type, s]));
+
+  const constructs = allNodes
+    .filter(c => c.type !== 'organizer')
+    .map(c => {
+      const schema = schemaMap.get(c.data.constructType);
+      const pillField = schema?.fields.find(f => f.displayTier === 'pill');
+      const displayName = pillField ? String(c.data.values?.[pillField.name] || '') : c.data.semanticId;
+      return {
+        semanticId: c.data.semanticId,
+        constructType: c.data.constructType,
+        displayName,
+        levelId,
+        parentId: c.parentId,
+      };
+    });
+
+  const organizers = allNodes
+    .filter(c => c.type === 'organizer')
+    .map(c => ({
+      id: c.id,
+      name: (c.data as Record<string, unknown>).name as string ?? '',
+      color: (c.data as Record<string, unknown>).color as string ?? '',
+      memberCount: allNodes.filter(n => n.parentId === c.id).length,
+    }));
+
+  const yedges = ydoc.getMap<Y.Map<unknown>>('edges');
+  const levelEdgeMap = yedges.get(levelId) as Y.Map<unknown> | undefined;
+  const edgeCount = levelEdgeMap ? levelEdgeMap.size : 0;
+
+  return { constructs, organizers, edgeCount };
+}
+
 // ===== CONSTANTS =====
 
 const MESSAGE_SYNC = 0;
@@ -396,14 +447,37 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
       if (levelActiveMatch && method === 'POST') {
         const roomId = levelActiveMatch[1]!;
         const docState = await config.getDoc(roomId);
-        const body = await parseJsonBody<{ levelId: string }>(req);
-        if (!body.levelId) {
-          sendError(res, 400, 'levelId is required', 'MISSING_FIELD');
+        const body = await parseJsonBody<{ levelId?: string; levelName?: string }>(req);
+
+        const levelId = resolveLevelId(docState.doc, body.levelId, body.levelName);
+        if (!levelId) {
+          sendError(res, 400, body.levelName
+            ? `Level not found by name: ${body.levelName}`
+            : 'levelId or levelName is required', body.levelName ? 'NOT_FOUND' : 'MISSING_FIELD');
           return;
         }
+
         try {
-          setActiveLevel(docState.doc, body.levelId);
-          sendJson(res, 200, { activeLevel: body.levelId });
+          setActiveLevel(docState.doc, levelId);
+
+          // Enriched response: level info + constructs + organizers + edges + custom schemas
+          const levels = listLevels(docState.doc);
+          const level = levels.find(l => l.id === levelId);
+          const { constructs, organizers, edgeCount } = compactLevelContents(docState.doc, levelId);
+
+          const schemas = listSchemas(docState.doc);
+          const customSchemas = schemas
+            .filter(s => docState.doc.getMap('schemas').has(s.type))
+            .map(s => ({ type: s.type, displayName: s.displayName, groupId: s.groupId }));
+
+          sendJson(res, 200, {
+            activeLevel: levelId,
+            level,
+            constructs,
+            organizers,
+            edgeCount,
+            customSchemas,
+          });
         } catch (err) {
           sendError(res, 404, String(err), 'NOT_FOUND');
         }
@@ -448,37 +522,32 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
 
         if (method === 'GET') {
           const typeFilter = url.searchParams.get('type') || undefined;
-          const constructs = listConstructs(docState.doc, levelId, { constructType: typeFilter });
-          const schemas = listSchemas(docState.doc);
-          const schemaMap = new Map(schemas.map(s => [s.type, s]));
-
-          // Compact summary: excludes organizer nodes, returns minimal fields
-          const summary = constructs
-            .filter(c => c.type !== 'organizer')
-            .map(c => {
-              const schema = schemaMap.get(c.data.constructType);
-              const pillField = schema?.fields.find(f => f.displayTier === 'pill');
-              const displayName = pillField ? String(c.data.values?.[pillField.name] || '') : c.data.semanticId;
-              return {
-                semanticId: c.data.semanticId,
-                constructType: c.data.constructType,
-                displayName,
-                levelId,
-                parentId: c.parentId,
-              };
-            });
-
-          // Also list organizers in a separate field
-          const organizers = constructs
-            .filter(c => c.type === 'organizer')
-            .map(c => ({
-              id: c.id,
-              name: (c.data as Record<string, unknown>).name as string ?? '',
-              color: (c.data as Record<string, unknown>).color as string ?? '',
-              memberCount: constructs.filter(n => n.parentId === c.id).length,
-            }));
-
-          sendJson(res, 200, { constructs: summary, organizers });
+          if (typeFilter) {
+            // Filtered query — can't use the shared helper
+            const constructs = listConstructs(docState.doc, levelId, { constructType: typeFilter });
+            const schemas = listSchemas(docState.doc);
+            const schemaMap = new Map(schemas.map(s => [s.type, s]));
+            const summary = constructs
+              .filter(c => c.type !== 'organizer')
+              .map(c => {
+                const schema = schemaMap.get(c.data.constructType);
+                const pillField = schema?.fields.find(f => f.displayTier === 'pill');
+                const displayName = pillField ? String(c.data.values?.[pillField.name] || '') : c.data.semanticId;
+                return { semanticId: c.data.semanticId, constructType: c.data.constructType, displayName, levelId, parentId: c.parentId };
+              });
+            const organizers = constructs
+              .filter(c => c.type === 'organizer')
+              .map(c => ({
+                id: c.id,
+                name: (c.data as Record<string, unknown>).name as string ?? '',
+                color: (c.data as Record<string, unknown>).color as string ?? '',
+                memberCount: constructs.filter(n => n.parentId === c.id).length,
+              }));
+            sendJson(res, 200, { constructs: summary, organizers });
+          } else {
+            const { constructs, organizers } = compactLevelContents(docState.doc, levelId);
+            sendJson(res, 200, { constructs, organizers });
+          }
           return;
         }
 
@@ -1013,7 +1082,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
           };
         });
 
-        sendJson(res, 200, {
+        const response: Record<string, unknown> = {
           title,
           activeLevel,
           levels: levelSummaries,
@@ -1021,7 +1090,32 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
           totalConstructs,
           totalOrganizers,
           totalEdges,
-        });
+        };
+
+        // Optional: embed detailed data for a specific level
+        const includeParam = url.searchParams.get('include');
+        const includes = includeParam ? includeParam.split(',').map(s => s.trim()) : [];
+
+        if (includes.length > 0) {
+          const targetLevelId = resolveLevelId(
+            ydoc,
+            url.searchParams.get('levelId') ?? undefined,
+            url.searchParams.get('levelName') ?? undefined,
+          ) ?? getActiveLevelId(ydoc);
+
+          if (includes.includes('constructs')) {
+            const { constructs, organizers } = compactLevelContents(ydoc, targetLevelId);
+            response.constructs = constructs;
+            response.organizers = organizers;
+          }
+          if (includes.includes('schemas')) {
+            response.customSchemas = schemas
+              .filter(s => ydoc.getMap('schemas').has(s.type))
+              .map(s => ({ type: s.type, displayName: s.displayName, groupId: s.groupId }));
+          }
+        }
+
+        sendJson(res, 200, response);
         return;
       }
 

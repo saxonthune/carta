@@ -15,3 +15,4 @@ export {
 export type { LayoutResult } from './layoutStrategies';
 export { traceGraph } from './traceGraph.js';
 export type { TraceResult } from './traceGraph.js';
+export { computeEdgeAggregation } from './edgeAggregation.js';

@@ -46,7 +46,15 @@ const DeleteLevelSchema = z.object({
 
 const SetActiveLevelSchema = z.object({
   documentId: z.string().describe('The document ID'),
-  levelId: z.string().describe('The level ID to set as active'),
+  levelId: z.string().optional().describe('The level ID to set as active'),
+  levelName: z.string().optional().describe('The level name to set as active (alternative to levelId, case-insensitive)'),
+});
+
+const DocumentSummarySchema = z.object({
+  documentId: z.string().describe('The document ID'),
+  levelId: z.string().optional().describe('Target a specific level for embedded data'),
+  levelName: z.string().optional().describe('Target a specific level by name (alternative to levelId, case-insensitive)'),
+  include: z.array(z.enum(['constructs', 'schemas'])).optional().describe('Embed additional data in the response: "constructs" (construct list + organizers for the target level), "schemas" (custom schema list)'),
 });
 
 const ListSchemasSchema = z.object({
@@ -303,7 +311,7 @@ export function getToolDefinitions() {
     },
     {
       name: 'carta_set_active_level',
-      description: 'Switch the active level. Construct and connection operations target the active level.',
+      description: 'Switch the active level. Returns enriched context: level info, constructs, organizers, edge count, and custom schemas — so you can orient in a single call. Accepts levelName as alternative to levelId.',
       inputSchema: SetActiveLevelSchema.shape,
     },
     {
@@ -383,8 +391,8 @@ export function getToolDefinitions() {
     },
     {
       name: 'carta_get_document_summary',
-      description: 'Get a compact document summary with level/construct/edge counts. Use this for orientation instead of listing all constructs.',
-      inputSchema: DocumentIdSchema.shape,
+      description: 'Get a compact document summary with level/construct/edge counts. Use include=["constructs","schemas"] to embed detailed data for a specific level (defaults to active level). Accepts levelName as alternative to levelId.',
+      inputSchema: DocumentSummarySchema.shape,
     },
     {
       name: 'carta_create_organizer',
@@ -622,11 +630,18 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
     },
 
     carta_set_active_level: async (args) => {
-      const { documentId, levelId } = SetActiveLevelSchema.parse(args);
-      const result = await apiRequest<{ activeLevel: string }>(
+      const { documentId, levelId, levelName } = SetActiveLevelSchema.parse(args);
+      const result = await apiRequest<{
+        activeLevel: string;
+        level: unknown;
+        constructs: unknown[];
+        organizers: unknown[];
+        edgeCount: number;
+        customSchemas: unknown[];
+      }>(
         'POST',
         `/api/documents/${encodeURIComponent(documentId)}/levels/active`,
-        { levelId }
+        { levelId, levelName }
       );
       if (result.error) return { error: result.error };
       return result.data;
@@ -797,10 +812,15 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
     },
 
     carta_get_document_summary: async (args) => {
-      const { documentId } = DocumentIdSchema.parse(args);
+      const { documentId, levelId, levelName, include } = DocumentSummarySchema.parse(args);
+      const params = new URLSearchParams();
+      if (levelId) params.set('levelId', levelId);
+      if (levelName) params.set('levelName', levelName);
+      if (include && include.length > 0) params.set('include', include.join(','));
+      const qs = params.toString() ? `?${params.toString()}` : '';
       const result = await apiRequest<unknown>(
         'GET',
-        `/api/documents/${encodeURIComponent(documentId)}/summary`
+        `/api/documents/${encodeURIComponent(documentId)}/summary${qs}`
       );
       if (result.error) return { error: result.error };
       return result.data;
