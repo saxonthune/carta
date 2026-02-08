@@ -46,8 +46,10 @@ import {
   moveConstruct,
   deleteConstructsBulk,
   batchMutate,
+  flowLayout,
 } from '@carta/document';
 import type { BatchOperation, BatchResult } from '@carta/document';
+import type { FlowDirection } from '@carta/domain';
 
 // ===== TYPES =====
 
@@ -1135,6 +1137,43 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
 
         const results = batchMutate(docState.doc, pageId, body.operations);
         sendJson(res, 200, { results });
+        return;
+      }
+
+      const flowLayoutMatch = path.match(/^\/api\/documents\/([^/]+)\/layout\/flow$/);
+      if (flowLayoutMatch && method === 'POST') {
+        const roomId = flowLayoutMatch[1]!;
+        const docState = await config.getDoc(roomId);
+        if (!docState) {
+          sendError(res, 404, 'Document not found', 'NOT_FOUND');
+          return;
+        }
+
+        const body = await parseJsonBody<{
+          direction: string;
+          sourcePort?: string;
+          sinkPort?: string;
+          layerGap?: number;
+          nodeGap?: number;
+          scope?: 'all' | string[];
+        }>(req);
+
+        if (!body.direction || !['TB', 'BT', 'LR', 'RL'].includes(body.direction)) {
+          sendError(res, 400, 'direction must be TB, BT, LR, or RL', 'INVALID_DIRECTION');
+          return;
+        }
+
+        const pageId = getActivePageId(docState.doc);
+        const result = flowLayout(docState.doc, pageId, {
+          direction: body.direction as FlowDirection,
+          sourcePort: body.sourcePort,
+          sinkPort: body.sinkPort,
+          layerGap: body.layerGap,
+          nodeGap: body.nodeGap,
+          scope: body.scope,
+        });
+
+        sendJson(res, 200, result);
         return;
       }
 
