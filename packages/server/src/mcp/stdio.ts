@@ -20,8 +20,11 @@ import {
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
+import createDebug from 'debug';
 import { getToolDefinitions, createToolHandlers } from './tools.js';
 import { getResourceDefinitions, getResourceContent } from './resources.js';
+
+const log = createDebug('carta:mcp');
 
 /**
  * Discover the Carta Desktop embedded server URL from server.json.
@@ -70,7 +73,7 @@ async function main() {
     process.env.CARTA_SERVER_URL ||
     (() => {
       if (process.env.CARTA_COLLAB_API_URL) {
-        console.error('[MCP] CARTA_COLLAB_API_URL is deprecated, use CARTA_SERVER_URL instead');
+        log('CARTA_COLLAB_API_URL is deprecated, use CARTA_SERVER_URL instead');
         return process.env.CARTA_COLLAB_API_URL;
       }
       return null;
@@ -78,7 +81,7 @@ async function main() {
     discoverDesktopServer() ||
     'http://localhost:1234';
 
-  console.error(`Carta MCP server using HTTP API (${serverUrl})`);
+  log('Carta MCP server using HTTP API (%s)', serverUrl);
 
   // Create tool handlers that use HTTP API
   const toolHandlers = createToolHandlers({ serverUrl });
@@ -184,10 +187,10 @@ async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
 
-  console.error('Carta MCP server running on stdio');
-  console.error('Available resources:');
+  log('Carta MCP server running on stdio');
+  log('Available resources:');
   getResourceDefinitions().forEach((r) => {
-    console.error(`  - ${r.uri}: ${r.name}`);
+    log('  - %s: %s', r.uri, r.name);
   });
 }
 
