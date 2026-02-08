@@ -14,8 +14,13 @@ import { WebSocket } from 'ws';
 import * as encoding from 'lib0/encoding';
 import * as decoding from 'lib0/decoding';
 import * as syncProtocol from 'y-protocols/sync';
+import createDebug from 'debug';
 import { portRegistry, type DocumentSummary } from '@carta/domain';
 export type { DocumentSummary };
+
+const log = createDebug('carta:server');
+const logWs = createDebug('carta:server:ws');
+const logPages = createDebug('carta:server:pages');
 import {
   listConstructs,
   getConstruct,
@@ -71,8 +76,6 @@ export interface DocumentServerConfig {
   onDocumentCreated?(docId: string, docState: DocState): Promise<void> | void;
   /** Delete a document from persistence. Returns true if deleted. */
   deleteDocument(docId: string): Promise<boolean>;
-  /** Prefix for console.log messages (e.g. "[Server]" or "[Desktop Server]"). */
-  logPrefix: string;
   /** Return active rooms with connection counts. If not provided, /api/rooms falls back to listDocuments with clientCount: 0. */
   getActiveRooms?(): Array<{ roomId: string; clientCount: number }>;
   /** Extra fields merged into the /health response. */
@@ -194,7 +197,6 @@ function sendError(res: http.ServerResponse, status: number, message: string, co
  * Create document server handlers from a persistence config.
  */
 export function createDocumentServer(config: DocumentServerConfig): DocumentServerHandlers {
-  const { logPrefix } = config;
 
   // ----- WebSocket sync -----
 
@@ -257,7 +259,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
         }
       }
     } catch (err) {
-      console.error(`${logPrefix} Error handling message:`, err);
+      logWs('Error handling message: %O', err);
     }
   }
 
@@ -266,7 +268,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
     const { doc } = docState;
 
     docState.conns.add(conn);
-    console.log(`${logPrefix} Client connected to room: ${docName} (${docState.conns.size} clients)`);
+    logWs('Client connected to room: %s (%d clients)', docName, docState.conns.size);
 
     sendSyncStep1(conn, doc);
 
@@ -294,11 +296,11 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
     conn.on('close', () => {
       doc.off('update', updateHandler);
       docState.conns.delete(conn);
-      console.log(`${logPrefix} Client disconnected from room: ${docName} (${docState.conns.size} clients)`);
+      logWs('Client disconnected from room: %s (%d clients)', docName, docState.conns.size);
     });
 
     conn.on('error', (err) => {
-      console.error(`${logPrefix} WebSocket error in room ${docName}:`, err);
+      logWs('WebSocket error in room %s: %O', docName, err);
     });
   }
 
@@ -374,7 +376,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
             pageData.set('order', 0);
             ypages.set(pageId, pageData);
             ymeta.set('activePage', pageId);
-            console.log(`${logPrefix} [pages] Created default Main page for new document`, { pageId, roomId });
+            logPages('Created default Main page for new document pageId=%s roomId=%s', pageId, roomId);
           }
         }, 'server');
 
@@ -1141,7 +1143,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
       // ===== NOT FOUND =====
       sendError(res, 404, 'Not found', 'NOT_FOUND');
     } catch (err) {
-      console.error(`${logPrefix} HTTP error:`, err);
+      log('HTTP error: %O', err);
       sendError(res, 500, String(err), 'INTERNAL_ERROR');
     }
   }
