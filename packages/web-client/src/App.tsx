@@ -7,12 +7,12 @@ import DocumentBrowserModal from './components/modals/DocumentBrowserModal';
 import Header from './components/Header';
 import CanvasContainer from './components/canvas/CanvasContainer';
 import { compiler } from '@carta/compiler';
-import { builtInPortSchemas, hydrateBuiltIns, syncWithDocumentStore } from '@carta/domain';
+import { syncWithDocumentStore } from '@carta/domain';
 import type { ConstructSchema } from '@carta/domain';
 import { useDocumentMeta } from './hooks/useDocumentMeta';
 import { useSchemas } from './hooks/useSchemas';
 import { useSchemaGroups } from './hooks/useSchemaGroups';
-import { useLevels } from './hooks/useLevels';
+import { usePages } from './hooks/usePages';
 import { useNodes } from './hooks/useNodes';
 import { useClearDocument } from './hooks/useClearDocument';
 import { useDocumentContext } from './contexts/DocumentContext';
@@ -48,7 +48,7 @@ function AppContent() {
   const { title, description, setTitle, setDescription } = useDocumentMeta();
   const { schemas } = useSchemas();
   const { schemaGroups } = useSchemaGroups();
-  const { levels, activeLevel, setActiveLevel, createLevel, deleteLevel, updateLevel, duplicateLevel } = useLevels();
+  const { pages, activePage, setActivePage, createPage, deletePage, updatePage, duplicatePage } = usePages();
   const { updateNode } = useNodes();
   const [importPreview, setImportPreview] = useState<{ data: CartaFile; analysis: ImportAnalysis } | null>(null);
   const [pendingImport, setPendingImport] = useState<{ data: CartaFile; config: ImportConfig; schemasToImport: ConstructSchema[] } | null>(null);
@@ -119,14 +119,14 @@ function AppContent() {
     exportProject({
       title,
       description,
-      levels,
+      pages,
       customSchemas: schemas,
       portSchemas,
       schemaGroups,
     }, options);
 
     setExportPreview(null);
-  }, [title, description, levels, schemas, schemaGroups, adapter]);
+  }, [title, description, pages, schemas, schemaGroups, adapter]);
 
   const handleExportCancel = useCallback(() => {
     setExportPreview(null);
@@ -176,38 +176,6 @@ function AppContent() {
     setCompileOutput(output);
   }, [schemas]);
 
-  const handleRestoreDefaultSchemas = useCallback(() => {
-    // Hydrate fresh UUIDs for groups, with resolved schema groupId refs
-    const { groups, schemas } = hydrateBuiltIns();
-
-    // Add missing defaults without removing existing user content
-    adapter.transaction(() => {
-      const existingSchemaTypes = new Set(adapter.getSchemas().map(s => s.type));
-      for (const schema of schemas) {
-        if (!existingSchemaTypes.has(schema.type)) {
-          adapter.addSchema(schema);
-        }
-      }
-
-      const existingPortIds = new Set(adapter.getPortSchemas().map(p => p.id));
-      for (const ps of builtInPortSchemas) {
-        if (!existingPortIds.has(ps.id)) {
-          adapter.addPortSchema(ps);
-        }
-      }
-
-      const existingGroupNames = new Set(adapter.getSchemaGroups().map(g => g.name));
-      for (const group of groups) {
-        if (!existingGroupNames.has(group.name)) {
-          adapter.addSchemaGroup(group);
-        }
-      }
-    });
-
-    // Sync port registry with current port schemas
-    syncWithDocumentStore(adapter.getPortSchemas());
-  }, [adapter]);
-
   return (
     <div className="h-screen flex">
       <div className="flex-1 flex flex-col min-w-0">
@@ -220,7 +188,6 @@ function AppContent() {
           onImport={handleImport}
           onCompile={handleCompile}
           onClear={clearDocument}
-          onRestoreDefaultSchemas={handleRestoreDefaultSchemas}
           onToggleAI={() => setAiSidebarOpen(!aiSidebarOpen)}
         />
         <CanvasContainer
@@ -228,13 +195,13 @@ function AppContent() {
           onNodesEdgesChange={handleNodesEdgesChange}
           onSelectionChange={handleSelectionChange}
           onNodeDoubleClick={handleNodeDoubleClick}
-          levels={levels}
-          activeLevel={activeLevel}
-          onSetActiveLevel={setActiveLevel}
-          onCreateLevel={createLevel}
-          onDeleteLevel={deleteLevel}
-          onUpdateLevel={updateLevel}
-          onDuplicateLevel={duplicateLevel}
+          pages={pages}
+          activePage={activePage}
+          onSetActivePage={setActivePage}
+          onCreatePage={createPage}
+          onDeletePage={deletePage}
+          onUpdatePage={updatePage}
+          onDuplicatePage={duplicatePage}
         />
       </div>
 
@@ -248,7 +215,7 @@ function AppContent() {
       {importPreview && (
         <ImportPreviewModal
           analysis={importPreview.analysis}
-          levels={levels}
+          pages={pages}
           onConfirm={handleImportConfirm}
           onCancel={handleImportCancel}
         />

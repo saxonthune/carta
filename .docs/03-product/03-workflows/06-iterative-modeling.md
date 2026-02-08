@@ -23,30 +23,30 @@ Drop new constructs into an area that's partially modeled. Fill gaps, add missin
 
 ## Start a New Area
 
-Begin modeling a new subsystem or concern on a blank region of the canvas (or a new level). The user shifts attention from a completed area to an unexplored one.
+Begin modeling a new subsystem or concern on a blank region of the canvas (or a new page). The user shifts attention from a completed area to an unexplored one.
 
-- **Features**: doc03.01.01.01 (Canvas), doc03.01.01.04 (Levels)
+- **Features**: doc03.01.01.01 (Canvas), doc03.01.01.04 (Pages)
 
 ## Start Over, Salvage the Good Parts
 
-The current model isn't working. Delete most of it but keep the pieces that are solid. Copy good constructs to a new level or region, then rebuild around them.
+The current model isn't working. Delete most of it but keep the pieces that are solid. Copy good constructs to a new page or region, then rebuild around them.
 
-- **Features**: doc03.01.01.01 (Canvas), doc03.01.01.04 (Levels), doc03.01.03.06 (Keyboard and Clipboard)
+- **Features**: doc03.01.01.01 (Canvas), doc03.01.01.04 (Pages), doc03.01.03.06 (Keyboard and Clipboard)
 
 ## Copy from a Picture or Notebook
 
-Bring constructs from another level, another document, or a previous version. Paste them into the current context and adapt them to fit.
+Bring constructs from another page, another document, or a previous version. Paste them into the current context and adapt them to fit.
 
-- **Features**: doc03.01.01.04 (Levels), doc03.01.03.06 (Keyboard and Clipboard), doc03.01.02.02 (Import/Export)
+- **Features**: doc03.01.01.04 (Pages), doc03.01.03.06 (Keyboard and Clipboard), doc03.01.02.02 (Import/Export)
 
 ## Jump to Solve a Prerequisite Problem
 
-While modeling, realize a dependency needs to be designed first. Switch to a different level or area, solve that problem, then return to the original work.
+While modeling, realize a dependency needs to be designed first. Switch to a different page or area, solve that problem, then return to the original work.
 
-- **Features**: doc03.01.01.04 (Levels), doc03.01.01.01 (Canvas)
+- **Features**: doc03.01.01.04 (Pages), doc03.01.01.01 (Canvas)
 
 ## Move Between Levels of Abstraction
 
-Zoom out to see the big picture, zoom in to detail a specific component. Switch between levels to work at different granularities. The model exists at multiple scales simultaneously.
+Zoom out to see the big picture, zoom in to detail a specific component. Switch between pages to work at different granularities. The model exists at multiple scales simultaneously.
 
-- **Features**: doc03.01.01.04 (Levels), doc03.01.01.01 (Canvas)
+- **Features**: doc03.01.01.04 (Pages), doc03.01.01.01 (Canvas)

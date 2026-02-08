@@ -17,12 +17,12 @@ import * as path from 'node:path';
 import * as Y from 'yjs';
 import { WebSocketServer } from 'ws';
 import {
-  migrateToLevels,
+  migrateToPages,
   extractCartaFile,
   hydrateYDocFromCartaFile,
   validateCartaFile,
   CARTA_FILE_VERSION,
-  generateLevelId,
+  generatePageId,
 } from '@carta/document';
 import { generateDocumentId, generateSemanticId } from '@carta/domain';
 import {
@@ -97,12 +97,12 @@ function scanVaultForDocuments(): DocumentSummary[] {
         const stat = fs.statSync(filePath);
         const updatedAt = stat.mtime.toISOString();
 
-        // Count nodes across all levels
+        // Count nodes across all pages
         let nodeCount = 0;
-        if (Array.isArray(data.levels)) {
-          for (const level of data.levels) {
-            if (Array.isArray(level.nodes)) {
-              nodeCount += level.nodes.length;
+        if (Array.isArray(data.pages)) {
+          for (const page of data.pages) {
+            if (Array.isArray(page.nodes)) {
+              nodeCount += page.nodes.length;
             }
           }
         }
@@ -162,7 +162,7 @@ function loadDocFromJson(docId: string, doc: Y.Doc): boolean {
  */
 function createHelloWorldDocument(): string {
   const docId = generateDocumentId();
-  const levelId = generateLevelId();
+  const pageId = generatePageId();
 
   const nodeA = crypto.randomUUID();
   const nodeB = crypto.randomUUID();
@@ -172,9 +172,9 @@ function createHelloWorldDocument(): string {
     version: CARTA_FILE_VERSION,
     title: 'Hello World',
     description: 'Your first Carta project',
-    levels: [
+    pages: [
       {
-        id: levelId,
+        id: pageId,
         name: 'Main',
         order: 0,
         nodes: [
@@ -289,9 +289,9 @@ function getOrCreateDoc(docId: string): DesktopDocState {
   docState = { doc, conns: new Set(), dirty: false, saveTimer: null, persist: loaded };
   docs.set(docId, docState);
 
-  // Migrate flat docs to level-based structure
+  // Migrate flat docs to page-based structure
   if (loaded) {
-    migrateToLevels(doc);
+    migrateToPages(doc);
   }
 
   // Schedule saves on updates (only for docs that exist on disk or were explicitly created)

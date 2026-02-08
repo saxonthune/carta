@@ -3,23 +3,23 @@ import { ReactFlowProvider, type Node, type Edge } from '@xyflow/react';
 import Map from './Map';
 import Metamap from '../metamap/Metamap';
 import ViewToggle from '../ViewToggle';
-import LevelSwitcher from '../LevelSwitcher';
+import PageSwitcher from '../PageSwitcher';
 import Footer from '../Footer';
 import SearchBar from '../ui/SearchBar';
-import type { Level } from '@carta/domain';
+import type { Page } from '@carta/domain';
 
 interface CanvasContainerProps {
   title: string;
   onNodesEdgesChange: (nodes: Node[], edges: Edge[]) => void;
   onSelectionChange: (nodes: Node[]) => void;
   onNodeDoubleClick: (nodeId: string) => void;
-  levels: Level[];
-  activeLevel: string | undefined;
-  onSetActiveLevel: (levelId: string) => void;
-  onCreateLevel: (name: string) => void;
-  onDeleteLevel: (levelId: string) => boolean;
-  onUpdateLevel: (levelId: string, updates: Partial<Omit<Level, 'id' | 'nodes' | 'edges'>>) => void;
-  onDuplicateLevel: (levelId: string, newName: string) => Level;
+  pages: Page[];
+  activePage: string | undefined;
+  onSetActivePage: (pageId: string) => void;
+  onCreatePage: (name: string) => void;
+  onDeletePage: (pageId: string) => boolean;
+  onUpdatePage: (pageId: string, updates: Partial<Omit<Page, 'id' | 'nodes' | 'edges'>>) => void;
+  onDuplicatePage: (pageId: string, newName: string) => Page;
 }
 
 export default function CanvasContainer({
@@ -27,13 +27,13 @@ export default function CanvasContainer({
   onNodesEdgesChange,
   onSelectionChange,
   onNodeDoubleClick,
-  levels,
-  activeLevel,
-  onSetActiveLevel,
-  onCreateLevel,
-  onDeleteLevel,
-  onUpdateLevel,
-  onDuplicateLevel,
+  pages,
+  activePage,
+  onSetActivePage,
+  onCreatePage,
+  onDeletePage,
+  onUpdatePage,
+  onDuplicatePage,
 }: CanvasContainerProps) {
   const [viewMode, setViewMode] = useState<'instances' | 'metamap'>('instances');
   const [filterText, setFilterText] = useState('');
@@ -62,14 +62,14 @@ export default function CanvasContainer({
         </div>
       </div>
       <div className="absolute top-3 right-3 z-10 pointer-events-auto">
-        <LevelSwitcher
-          levels={levels}
-          activeLevel={activeLevel}
-          onSetActiveLevel={onSetActiveLevel}
-          onCreateLevel={onCreateLevel}
-          onDeleteLevel={onDeleteLevel}
-          onUpdateLevel={onUpdateLevel}
-          onDuplicateLevel={onDuplicateLevel}
+        <PageSwitcher
+          pages={pages}
+          activePage={activePage}
+          onSetActivePage={onSetActivePage}
+          onCreatePage={onCreatePage}
+          onDeletePage={onDeletePage}
+          onUpdatePage={onUpdatePage}
+          onDuplicatePage={onDuplicatePage}
         />
       </div>
 

@@ -1,8 +1,8 @@
 /**
  * Y.Doc mutation operations for Carta documents.
  *
- * Level-aware: construct/edge operations take a `levelId` parameter.
- * Schema operations are shared across levels.
+ * Page-aware: construct/edge operations take a `pageId` parameter.
+ * Schema operations are shared across pages.
  *
  * All operations use 'mcp' as the transaction origin,
  * allowing users to undo AI-made changes.
@@ -27,25 +27,25 @@ import type {
 } from '@carta/domain';
 import { CompilerEngine } from '@carta/compiler';
 import { yToPlain, deepPlainToY, safeGet } from './yjs-helpers.js';
-import { generateNodeId, generateLevelId } from './id-generators.js';
+import { generateNodeId, generatePageId } from './id-generators.js';
 import { MCP_ORIGIN, SERVER_FORMAT_VERSION } from './constants.js';
 
 /**
- * Get or create a level-scoped Y.Map inside a container map.
+ * Get or create a page-scoped Y.Map inside a container map.
  */
-function getLevelMap(ydoc: Y.Doc, mapName: string, levelId: string): Y.Map<Y.Map<unknown>> {
+function getPageMap(ydoc: Y.Doc, mapName: string, pageId: string): Y.Map<Y.Map<unknown>> {
   const container = ydoc.getMap<Y.Map<unknown>>(mapName);
-  let levelMap = container.get(levelId) as Y.Map<Y.Map<unknown>> | undefined;
-  if (!levelMap) {
-    levelMap = new Y.Map();
-    container.set(levelId, levelMap as unknown as Y.Map<unknown>);
+  let pageMap = container.get(pageId) as Y.Map<Y.Map<unknown>> | undefined;
+  if (!pageMap) {
+    pageMap = new Y.Map();
+    container.set(pageId, pageMap as unknown as Y.Map<unknown>);
   }
-  return levelMap;
+  return pageMap;
 }
 
-// ===== LEVEL OPERATIONS =====
+// ===== PAGE OPERATIONS =====
 
-export interface LevelInfo {
+export interface PageInfo {
   id: string;
   name: string;
   description?: string;
@@ -55,131 +55,131 @@ export interface LevelInfo {
 /**
  * List all levels in a document
  */
-export function listLevels(ydoc: Y.Doc): LevelInfo[] {
-  const ylevels = ydoc.getMap<Y.Map<unknown>>('levels');
-  const levels: LevelInfo[] = [];
+export function listPages(ydoc: Y.Doc): PageInfo[] {
+  const ypages = ydoc.getMap<Y.Map<unknown>>('pages');
+  const pages: PageInfo[] = [];
 
-  ylevels.forEach((ylevel, id) => {
-    levels.push({
+  ypages.forEach((ypage, id) => {
+    pages.push({
       id,
-      name: (ylevel.get('name') as string) ?? 'Untitled',
-      description: ylevel.get('description') as string | undefined,
-      order: (ylevel.get('order') as number) ?? 0,
+      name: (ypage.get('name') as string) ?? 'Untitled',
+      description: ypage.get('description') as string | undefined,
+      order: (ypage.get('order') as number) ?? 0,
     });
   });
 
-  levels.sort((a, b) => a.order - b.order);
-  return levels;
+  pages.sort((a, b) => a.order - b.order);
+  return pages;
 }
 
 /**
  * Get the active level ID for a document
  */
-export function getActiveLevel(ydoc: Y.Doc): string {
+export function getActivePage(ydoc: Y.Doc): string {
   const ymeta = ydoc.getMap('meta');
-  const active = ymeta.get('activeLevel') as string | undefined;
+  const active = ymeta.get('activePage') as string | undefined;
   if (active) return active;
 
   // Fallback: first level by order
-  const levels = listLevels(ydoc);
-  return levels[0]?.id ?? '';
+  const pages = listPages(ydoc);
+  return pages[0]?.id ?? '';
 }
 
 /**
  * Set the active level for a document
  */
-export function setActiveLevel(ydoc: Y.Doc, levelId: string): void {
-  const ylevels = ydoc.getMap<Y.Map<unknown>>('levels');
-  if (!ylevels.has(levelId)) {
-    throw new Error(`Level not found: ${levelId}`);
+export function setActivePage(ydoc: Y.Doc, pageId: string): void {
+  const ypages = ydoc.getMap<Y.Map<unknown>>('pages');
+  if (!ypages.has(pageId)) {
+    throw new Error(`Page not found: ${pageId}`);
   }
 
   ydoc.transact(() => {
-    ydoc.getMap('meta').set('activeLevel', levelId);
+    ydoc.getMap('meta').set('activePage', pageId);
   }, MCP_ORIGIN);
 }
 
 /**
  * Create a new level in a document
  */
-export function createLevel(ydoc: Y.Doc, name: string, description?: string): LevelInfo {
-  const levelId = generateLevelId();
-  const ylevels = ydoc.getMap<Y.Map<unknown>>('levels');
+export function createPage(ydoc: Y.Doc, name: string, description?: string): PageInfo {
+  const pageId = generatePageId();
+  const ypages = ydoc.getMap<Y.Map<unknown>>('pages');
 
   // Determine next order value
   let maxOrder = -1;
-  ylevels.forEach((ylevel) => {
-    const order = (ylevel.get('order') as number) ?? 0;
+  ypages.forEach((ypage) => {
+    const order = (ypage.get('order') as number) ?? 0;
     if (order > maxOrder) maxOrder = order;
   });
 
   const order = maxOrder + 1;
 
   ydoc.transact(() => {
-    const levelData = new Y.Map<unknown>();
-    levelData.set('id', levelId);
-    levelData.set('name', name);
-    if (description) levelData.set('description', description);
-    levelData.set('order', order);
-    ylevels.set(levelId, levelData);
+    const pageData = new Y.Map<unknown>();
+    pageData.set('id', pageId);
+    pageData.set('name', name);
+    if (description) pageData.set('description', description);
+    pageData.set('order', order);
+    ypages.set(pageId, pageData);
   }, MCP_ORIGIN);
 
-  return { id: levelId, name, description, order };
+  return { id: pageId, name, description, order };
 }
 
 /**
  * Update level metadata
  */
-export function updateLevel(
+export function updatePage(
   ydoc: Y.Doc,
-  levelId: string,
+  pageId: string,
   updates: { name?: string; description?: string; order?: number }
-): LevelInfo | null {
-  const ylevels = ydoc.getMap<Y.Map<unknown>>('levels');
-  const ylevel = ylevels.get(levelId);
-  if (!ylevel) return null;
+): PageInfo | null {
+  const ypages = ydoc.getMap<Y.Map<unknown>>('pages');
+  const ypage = ypages.get(pageId);
+  if (!ypage) return null;
 
   ydoc.transact(() => {
-    if (updates.name !== undefined) ylevel.set('name', updates.name);
-    if (updates.description !== undefined) ylevel.set('description', updates.description);
-    if (updates.order !== undefined) ylevel.set('order', updates.order);
+    if (updates.name !== undefined) ypage.set('name', updates.name);
+    if (updates.description !== undefined) ypage.set('description', updates.description);
+    if (updates.order !== undefined) ypage.set('order', updates.order);
   }, MCP_ORIGIN);
 
   return {
-    id: levelId,
-    name: (ylevel.get('name') as string) ?? 'Untitled',
-    description: ylevel.get('description') as string | undefined,
-    order: (ylevel.get('order') as number) ?? 0,
+    id: pageId,
+    name: (ypage.get('name') as string) ?? 'Untitled',
+    description: ypage.get('description') as string | undefined,
+    order: (ypage.get('order') as number) ?? 0,
   };
 }
 
 /**
  * Delete a level (must have more than one level)
  */
-export function deleteLevel(ydoc: Y.Doc, levelId: string): boolean {
-  const ylevels = ydoc.getMap<Y.Map<unknown>>('levels');
-  if (!ylevels.has(levelId)) return false;
-  if (ylevels.size <= 1) return false;
+export function deletePage(ydoc: Y.Doc, pageId: string): boolean {
+  const ypages = ydoc.getMap<Y.Map<unknown>>('pages');
+  if (!ypages.has(pageId)) return false;
+  if (ypages.size <= 1) return false;
 
   ydoc.transact(() => {
-    ylevels.delete(levelId);
+    ypages.delete(pageId);
 
-    // Clean up level-scoped nodes and edges
+    // Clean up page-scoped nodes and edges
     const ynodes = ydoc.getMap<Y.Map<unknown>>('nodes');
     const yedges = ydoc.getMap<Y.Map<unknown>>('edges');
-    if (ynodes.has(levelId)) ynodes.delete(levelId);
-    if (yedges.has(levelId)) yedges.delete(levelId);
+    if (ynodes.has(pageId)) ynodes.delete(pageId);
+    if (yedges.has(pageId)) yedges.delete(pageId);
 
     // If this was the active level, switch to the first remaining level
     const ymeta = ydoc.getMap('meta');
-    if (ymeta.get('activeLevel') === levelId) {
+    if (ymeta.get('activePage') === pageId) {
       let firstId: string | undefined;
       let firstOrder = Infinity;
-      ylevels.forEach((yl, id) => {
+      ypages.forEach((yl, id) => {
         const order = (yl.get('order') as number) ?? 0;
         if (order < firstOrder) { firstOrder = order; firstId = id; }
       });
-      if (firstId) ymeta.set('activeLevel', firstId);
+      if (firstId) ymeta.set('activePage', firstId);
     }
   }, MCP_ORIGIN);
 
@@ -193,13 +193,13 @@ export function deleteLevel(ydoc: Y.Doc, levelId: string): boolean {
  */
 export function listConstructs(
   ydoc: Y.Doc,
-  levelId: string,
+  pageId: string,
   options?: { constructType?: string }
 ): CompilerNode[] {
-  const levelNodes = getLevelMap(ydoc, 'nodes', levelId);
+  const pageNodes = getPageMap(ydoc, 'nodes', pageId);
   const nodes: CompilerNode[] = [];
 
-  levelNodes.forEach((ynode, id) => {
+  pageNodes.forEach((ynode, id) => {
     const nodeObj = yToPlain(ynode) as {
       position: { x: number; y: number };
       data: ConstructNodeData;
@@ -225,8 +225,8 @@ export function listConstructs(
 /**
  * Get a construct by semantic ID within a level
  */
-export function getConstruct(ydoc: Y.Doc, levelId: string, semanticId: string): CompilerNode | null {
-  const nodes = listConstructs(ydoc, levelId);
+export function getConstruct(ydoc: Y.Doc, pageId: string, semanticId: string): CompilerNode | null {
+  const nodes = listConstructs(ydoc, pageId);
   return nodes.find((n) => n.data.semanticId === semanticId) || null;
 }
 
@@ -236,7 +236,7 @@ export function getConstruct(ydoc: Y.Doc, levelId: string, semanticId: string): 
  */
 export function createConstruct(
   ydoc: Y.Doc,
-  levelId: string,
+  pageId: string,
   constructType: string,
   values: Record<string, unknown> = {},
   position = { x: 100, y: 100 },
@@ -260,7 +260,7 @@ export function createConstruct(
     parentId,
   };
 
-  const levelNodes = getLevelMap(ydoc, 'nodes', levelId);
+  const pageNodes = getPageMap(ydoc, 'nodes', pageId);
 
   ydoc.transact(() => {
     const ynode = new Y.Map<unknown>();
@@ -268,7 +268,7 @@ export function createConstruct(
     ynode.set('position', deepPlainToY(position));
     ynode.set('data', deepPlainToY(nodeData));
     if (parentId) ynode.set('parentId', parentId);
-    levelNodes.set(nodeId, ynode as Y.Map<unknown>);
+    pageNodes.set(nodeId, ynode as Y.Map<unknown>);
   }, MCP_ORIGIN);
 
   return node;
@@ -279,17 +279,17 @@ export function createConstruct(
  */
 export function updateConstruct(
   ydoc: Y.Doc,
-  levelId: string,
+  pageId: string,
   semanticId: string,
   updates: { values?: Record<string, unknown>; instanceColor?: string | null }
 ): CompilerNode | null {
-  const levelNodes = getLevelMap(ydoc, 'nodes', levelId);
+  const pageNodes = getPageMap(ydoc, 'nodes', pageId);
 
   // Find the node by semantic ID
   let foundId: string | null = null;
   let foundYnode: Y.Map<unknown> | null = null;
 
-  levelNodes.forEach((ynode, id) => {
+  pageNodes.forEach((ynode, id) => {
     const data = ynode.get('data') as Y.Map<unknown> | Record<string, unknown> | undefined;
     if (data && safeGet(data, 'semanticId') === semanticId) {
       foundId = id;
@@ -319,20 +319,20 @@ export function updateConstruct(
     }
   }, MCP_ORIGIN);
 
-  return getConstruct(ydoc, levelId, semanticId);
+  return getConstruct(ydoc, pageId, semanticId);
 }
 
 /**
  * Delete a construct and its connections within a level
  */
-export function deleteConstruct(ydoc: Y.Doc, levelId: string, semanticId: string): boolean {
-  const levelNodes = getLevelMap(ydoc, 'nodes', levelId);
-  const levelEdges = getLevelMap(ydoc, 'edges', levelId);
+export function deleteConstruct(ydoc: Y.Doc, pageId: string, semanticId: string): boolean {
+  const pageNodes = getPageMap(ydoc, 'nodes', pageId);
+  const pageEdges = getPageMap(ydoc, 'edges', pageId);
 
   // Find the node by semantic ID
   let foundId: string | null = null;
 
-  levelNodes.forEach((ynode, id) => {
+  pageNodes.forEach((ynode, id) => {
     const data = ynode.get('data') as Y.Map<unknown> | Record<string, unknown> | undefined;
     if (data && safeGet(data, 'semanticId') === semanticId) {
       foundId = id;
@@ -344,7 +344,7 @@ export function deleteConstruct(ydoc: Y.Doc, levelId: string, semanticId: string
   ydoc.transact(() => {
     // Find and delete attached wagons (organizers where attachedToSemanticId === this construct's semanticId)
     const wagonIds: string[] = [];
-    levelNodes.forEach((ynode, id) => {
+    pageNodes.forEach((ynode, id) => {
       const nodeObj = yToPlain(ynode) as Record<string, unknown>;
       if (nodeObj.type !== 'organizer') return;
       const data = nodeObj.data as OrganizerNodeData;
@@ -354,13 +354,13 @@ export function deleteConstruct(ydoc: Y.Doc, levelId: string, semanticId: string
     });
 
     for (const wagonId of wagonIds) {
-      const wagonYnode = levelNodes.get(wagonId);
+      const wagonYnode = pageNodes.get(wagonId);
       if (!wagonYnode) continue;
       const wagonPos = yToPlain(wagonYnode.get('position') as Y.Map<unknown>) as { x: number; y: number };
 
       // Detach wagon members: convert to absolute positions
       const memberIds: string[] = [];
-      levelNodes.forEach((childYnode, childId) => {
+      pageNodes.forEach((childYnode, childId) => {
         if (childId === wagonId) return;
         const parentId = childYnode.get('parentId') as string | undefined;
         if (parentId === wagonId) {
@@ -369,7 +369,7 @@ export function deleteConstruct(ydoc: Y.Doc, levelId: string, semanticId: string
       });
 
       for (const memberId of memberIds) {
-        const memberYnode = levelNodes.get(memberId);
+        const memberYnode = pageNodes.get(memberId);
         if (!memberYnode) continue;
         const memberPos = yToPlain(memberYnode.get('position') as Y.Map<unknown>) as { x: number; y: number };
         const absolutePos = toAbsolutePosition(memberPos, wagonPos);
@@ -378,28 +378,28 @@ export function deleteConstruct(ydoc: Y.Doc, levelId: string, semanticId: string
       }
 
       // Remove edges connected to the wagon
-      levelEdges.forEach((yedge, edgeId) => {
+      pageEdges.forEach((yedge, edgeId) => {
         if (yedge.get('source') === wagonId || yedge.get('target') === wagonId) {
-          levelEdges.delete(edgeId);
+          pageEdges.delete(edgeId);
         }
       });
 
-      levelNodes.delete(wagonId);
+      pageNodes.delete(wagonId);
     }
 
     // Remove edges connected to this node
     const edgesToDelete: string[] = [];
-    levelEdges.forEach((yedge, edgeId) => {
+    pageEdges.forEach((yedge, edgeId) => {
       if (yedge.get('source') === foundId || yedge.get('target') === foundId) {
         edgesToDelete.push(edgeId);
       }
     });
     for (const edgeId of edgesToDelete) {
-      levelEdges.delete(edgeId);
+      pageEdges.delete(edgeId);
     }
 
     // Remove connections referencing this node from other nodes
-    levelNodes.forEach((ynode) => {
+    pageNodes.forEach((ynode) => {
       const ydata = ynode.get('data') as Y.Map<unknown> | Record<string, unknown> | undefined;
       if (ydata) {
         const yconns = safeGet(ydata, 'connections') as Y.Array<unknown> | unknown[] | undefined;
@@ -430,7 +430,7 @@ export function deleteConstruct(ydoc: Y.Doc, levelId: string, semanticId: string
     });
 
     // Delete the node
-    levelNodes.delete(foundId!);
+    pageNodes.delete(foundId!);
   }, MCP_ORIGIN);
 
   return true;
@@ -444,18 +444,18 @@ export function deleteConstruct(ydoc: Y.Doc, levelId: string, semanticId: string
  */
 export function moveConstruct(
   ydoc: Y.Doc,
-  levelId: string,
+  pageId: string,
   semanticId: string,
   targetParentId: string | null,
   position?: { x: number; y: number }
 ): CompilerNode | null {
-  const levelNodes = getLevelMap(ydoc, 'nodes', levelId);
+  const pageNodes = getPageMap(ydoc, 'nodes', pageId);
 
   // Find the node by semantic ID
   let foundId: string | null = null;
   let foundYnode: Y.Map<unknown> | null = null;
 
-  levelNodes.forEach((ynode, id) => {
+  pageNodes.forEach((ynode, id) => {
     const data = ynode.get('data') as Y.Map<unknown> | Record<string, unknown> | undefined;
     if (data && safeGet(data, 'semanticId') === semanticId) {
       foundId = id;
@@ -469,7 +469,7 @@ export function moveConstruct(
 
   // Validate target organizer exists if attaching
   if (targetParentId !== null) {
-    const targetOrg = levelNodes.get(targetParentId);
+    const targetOrg = pageNodes.get(targetParentId);
     if (!targetOrg) return null;
     const orgObj = yToPlain(targetOrg) as Record<string, unknown>;
     if (orgObj.type !== 'organizer') return null;
@@ -486,7 +486,7 @@ export function moveConstruct(
       newPos = position;
     } else if (currentParentId && !targetParentId) {
       // Detaching: convert relative → absolute
-      const parentYnode = levelNodes.get(currentParentId);
+      const parentYnode = pageNodes.get(currentParentId);
       if (parentYnode) {
         const parentPos = yToPlain(parentYnode.get('position') as Y.Map<unknown>) as { x: number; y: number };
         newPos = toAbsolutePosition(currentPos, parentPos);
@@ -495,7 +495,7 @@ export function moveConstruct(
       }
     } else if (!currentParentId && targetParentId) {
       // Attaching: convert absolute → relative
-      const parentYnode = levelNodes.get(targetParentId);
+      const parentYnode = pageNodes.get(targetParentId);
       if (parentYnode) {
         const parentPos = yToPlain(parentYnode.get('position') as Y.Map<unknown>) as { x: number; y: number };
         newPos = toRelativePosition(currentPos, parentPos);
@@ -504,8 +504,8 @@ export function moveConstruct(
       }
     } else if (currentParentId && targetParentId && currentParentId !== targetParentId) {
       // Moving between organizers: relative-to-old → absolute → relative-to-new
-      const oldParent = levelNodes.get(currentParentId);
-      const newParent = levelNodes.get(targetParentId);
+      const oldParent = pageNodes.get(currentParentId);
+      const newParent = pageNodes.get(targetParentId);
       if (oldParent && newParent) {
         const oldParentPos = yToPlain(oldParent.get('position') as Y.Map<unknown>) as { x: number; y: number };
         const newParentPos = yToPlain(newParent.get('position') as Y.Map<unknown>) as { x: number; y: number };
@@ -528,7 +528,7 @@ export function moveConstruct(
     }
   }, MCP_ORIGIN);
 
-  return getConstruct(ydoc, levelId, semanticId);
+  return getConstruct(ydoc, pageId, semanticId);
 }
 
 // ===== ORGANIZER OPERATIONS =====
@@ -549,11 +549,11 @@ export interface OrganizerInfo {
 /**
  * List all organizers in a document level
  */
-export function listOrganizers(ydoc: Y.Doc, levelId: string): OrganizerInfo[] {
-  const levelNodes = getLevelMap(ydoc, 'nodes', levelId);
+export function listOrganizers(ydoc: Y.Doc, pageId: string): OrganizerInfo[] {
+  const pageNodes = getPageMap(ydoc, 'nodes', pageId);
   const organizers: OrganizerInfo[] = [];
 
-  levelNodes.forEach((ynode, id) => {
+  pageNodes.forEach((ynode, id) => {
     const nodeObj = yToPlain(ynode) as Record<string, unknown>;
     if (nodeObj.type !== 'organizer') return;
 
@@ -585,7 +585,7 @@ const ORGANIZER_PALETTE = ['#7c3aed', '#0891b2', '#059669', '#d97706', '#dc2626'
  */
 export function createOrganizer(
   ydoc: Y.Doc,
-  levelId: string,
+  pageId: string,
   options: {
     name: string;
     color?: string;
@@ -615,7 +615,7 @@ export function createOrganizer(
     attachedToSemanticId: options.attachedToSemanticId,
   };
 
-  const levelNodes = getLevelMap(ydoc, 'nodes', levelId);
+  const pageNodes = getPageMap(ydoc, 'nodes', pageId);
 
   ydoc.transact(() => {
     const ynode = new Y.Map<unknown>();
@@ -624,7 +624,7 @@ export function createOrganizer(
     ynode.set('data', deepPlainToY(data));
     ynode.set('style', deepPlainToY({ width, height }));
     if (options.parentId) ynode.set('parentId', options.parentId);
-    levelNodes.set(nodeId, ynode as Y.Map<unknown>);
+    pageNodes.set(nodeId, ynode as Y.Map<unknown>);
   }, MCP_ORIGIN);
 
   return { id: nodeId, name: options.name, color, position, width, height, layout, collapsed: false, description: options.description, attachedToSemanticId: options.attachedToSemanticId };
@@ -635,7 +635,7 @@ export function createOrganizer(
  */
 export function updateOrganizer(
   ydoc: Y.Doc,
-  levelId: string,
+  pageId: string,
   organizerId: string,
   updates: {
     name?: string;
@@ -646,8 +646,8 @@ export function updateOrganizer(
     attachedToSemanticId?: string;
   }
 ): OrganizerInfo | null {
-  const levelNodes = getLevelMap(ydoc, 'nodes', levelId);
-  const ynode = levelNodes.get(organizerId);
+  const pageNodes = getPageMap(ydoc, 'nodes', pageId);
+  const ynode = pageNodes.get(organizerId);
   if (!ynode) return null;
 
   const nodeObj = yToPlain(ynode) as Record<string, unknown>;
@@ -697,12 +697,12 @@ export function updateOrganizer(
  */
 export function deleteOrganizer(
   ydoc: Y.Doc,
-  levelId: string,
+  pageId: string,
   organizerId: string,
   deleteMembers = false
 ): boolean {
-  const levelNodes = getLevelMap(ydoc, 'nodes', levelId);
-  const ynode = levelNodes.get(organizerId);
+  const pageNodes = getPageMap(ydoc, 'nodes', pageId);
+  const ynode = pageNodes.get(organizerId);
   if (!ynode) return false;
 
   const nodeObj = yToPlain(ynode) as Record<string, unknown>;
@@ -713,7 +713,7 @@ export function deleteOrganizer(
   ydoc.transact(() => {
     // Find children
     const childIds: string[] = [];
-    levelNodes.forEach((childYnode, childId) => {
+    pageNodes.forEach((childYnode, childId) => {
       if (childId === organizerId) return;
       const parentId = childYnode.get('parentId') as string | undefined;
       if (parentId === organizerId) {
@@ -724,12 +724,12 @@ export function deleteOrganizer(
     if (deleteMembers) {
       // Delete all children
       for (const childId of childIds) {
-        levelNodes.delete(childId);
+        pageNodes.delete(childId);
       }
     } else {
       // Detach: convert relative positions to absolute, remove parentId
       for (const childId of childIds) {
-        const childYnode = levelNodes.get(childId);
+        const childYnode = pageNodes.get(childId);
         if (!childYnode) continue;
 
         const childPos = yToPlain(childYnode.get('position') as Y.Map<unknown>) as { x: number; y: number };
@@ -741,7 +741,7 @@ export function deleteOrganizer(
     }
 
     // Delete the organizer itself
-    levelNodes.delete(organizerId);
+    pageNodes.delete(organizerId);
   }, MCP_ORIGIN);
 
   return true;
@@ -754,21 +754,21 @@ export function deleteOrganizer(
  */
 export function connect(
   ydoc: Y.Doc,
-  levelId: string,
+  pageId: string,
   sourceSemanticId: string,
   sourcePortId: string,
   targetSemanticId: string,
   targetPortId: string
 ): CompilerEdge | null {
-  const levelNodes = getLevelMap(ydoc, 'nodes', levelId);
-  const levelEdges = getLevelMap(ydoc, 'edges', levelId);
+  const pageNodes = getPageMap(ydoc, 'nodes', pageId);
+  const pageEdges = getPageMap(ydoc, 'edges', pageId);
 
   // Find source and target nodes
   let sourceNodeId: string | null = null;
   let targetNodeId: string | null = null;
   let sourceYdata: Y.Map<unknown> | null = null;
 
-  levelNodes.forEach((ynode, id) => {
+  pageNodes.forEach((ynode, id) => {
     const ydata = ynode.get('data') as Y.Map<unknown> | Record<string, unknown> | undefined;
     if (ydata) {
       const sid = safeGet(ydata, 'semanticId');
@@ -793,7 +793,7 @@ export function connect(
     yedge.set('target', targetNodeId);
     yedge.set('sourceHandle', sourcePortId);
     yedge.set('targetHandle', targetPortId);
-    levelEdges.set(edgeId, yedge as Y.Map<unknown>);
+    pageEdges.set(edgeId, yedge as Y.Map<unknown>);
 
     // Add connection to source node
     let yconns = sourceYdata!.get('connections') as Y.Array<unknown> | undefined;
@@ -824,20 +824,20 @@ export function connect(
  */
 export function disconnect(
   ydoc: Y.Doc,
-  levelId: string,
+  pageId: string,
   sourceSemanticId: string,
   sourcePortId: string,
   targetSemanticId: string
 ): boolean {
-  const levelNodes = getLevelMap(ydoc, 'nodes', levelId);
-  const levelEdges = getLevelMap(ydoc, 'edges', levelId);
+  const pageNodes = getPageMap(ydoc, 'nodes', pageId);
+  const pageEdges = getPageMap(ydoc, 'edges', pageId);
 
   // Find source and target node IDs
   let sourceNodeId: string | null = null;
   let targetNodeId: string | null = null;
   let sourceYdata: Y.Map<unknown> | null = null;
 
-  levelNodes.forEach((ynode, id) => {
+  pageNodes.forEach((ynode, id) => {
     const ydata = ynode.get('data') as Y.Map<unknown> | Record<string, unknown> | undefined;
     if (ydata) {
       const sid = safeGet(ydata, 'semanticId');
@@ -882,7 +882,7 @@ export function disconnect(
     // Remove corresponding edge
     if (targetNodeId) {
       const edgesToDelete: string[] = [];
-      levelEdges.forEach((yedge, edgeId) => {
+      pageEdges.forEach((yedge, edgeId) => {
         if (
           yedge.get('source') === sourceNodeId &&
           yedge.get('target') === targetNodeId &&
@@ -892,7 +892,7 @@ export function disconnect(
         }
       });
       for (const edgeId of edgesToDelete) {
-        levelEdges.delete(edgeId);
+        pageEdges.delete(edgeId);
       }
     }
   }, MCP_ORIGIN);
@@ -900,22 +900,17 @@ export function disconnect(
   return true;
 }
 
-// ===== SCHEMA OPERATIONS (shared across levels) =====
+// ===== SCHEMA OPERATIONS (shared across pages) =====
 
 /**
  * List all schemas (built-in + custom)
  */
 export function listSchemas(ydoc: Y.Doc): ConstructSchema[] {
   const yschemas = ydoc.getMap<Y.Map<unknown>>('schemas');
-  const schemas = [...builtInConstructSchemas];
+  const schemas: ConstructSchema[] = [];
 
-  // Add custom schemas from document
   yschemas.forEach((yschema) => {
-    const schema = yToPlain(yschema) as ConstructSchema;
-    // Only add if not already a built-in
-    if (!schemas.some(s => s.type === schema.type)) {
-      schemas.push(schema);
-    }
+    schemas.push(yToPlain(yschema) as ConstructSchema);
   });
 
   return schemas;
@@ -925,11 +920,6 @@ export function listSchemas(ydoc: Y.Doc): ConstructSchema[] {
  * Get a schema by type
  */
 export function getSchema(ydoc: Y.Doc, type: string): ConstructSchema | null {
-  // Check built-in first
-  const builtIn = builtInConstructSchemas.find((s) => s.type === type);
-  if (builtIn) return builtIn;
-
-  // Check custom schemas
   const yschemas = ydoc.getMap<Y.Map<unknown>>('schemas');
   const yschema = yschemas.get(type);
   if (yschema) {
@@ -1047,7 +1037,7 @@ export function computeAutoPosition(
  */
 export function createConstructsBulk(
   ydoc: Y.Doc,
-  levelId: string,
+  pageId: string,
   specs: Array<{
     constructType: string;
     values?: Record<string, unknown>;
@@ -1056,8 +1046,8 @@ export function createConstructsBulk(
     parentId?: string;
   }>
 ): CompilerNode[] {
-  const existingNodes = listConstructs(ydoc, levelId);
-  const levelNodes = getLevelMap(ydoc, 'nodes', levelId);
+  const existingNodes = listConstructs(ydoc, pageId);
+  const pageNodes = getPageMap(ydoc, 'nodes', pageId);
   const results: CompilerNode[] = [];
 
   // Count auto-placed nodes for grid indexing
@@ -1096,7 +1086,7 @@ export function createConstructsBulk(
       ynode.set('position', deepPlainToY(position));
       ynode.set('data', deepPlainToY(nodeData));
       if (spec.parentId) ynode.set('parentId', spec.parentId);
-      levelNodes.set(nodeId, ynode as Y.Map<unknown>);
+      pageNodes.set(nodeId, ynode as Y.Map<unknown>);
 
       results.push(node);
       // Add to existingNodes so subsequent auto-placed nodes see this one
@@ -1113,7 +1103,7 @@ export function createConstructsBulk(
  */
 export function connectBulk(
   ydoc: Y.Doc,
-  levelId: string,
+  pageId: string,
   connections: Array<{
     sourceSemanticId: string;
     sourcePortId: string;
@@ -1121,12 +1111,12 @@ export function connectBulk(
     targetPortId: string;
   }>
 ): Array<{ edge: CompilerEdge | null; error?: string }> {
-  const levelNodes = getLevelMap(ydoc, 'nodes', levelId);
-  const levelEdges = getLevelMap(ydoc, 'edges', levelId);
+  const pageNodes = getPageMap(ydoc, 'nodes', pageId);
+  const pageEdges = getPageMap(ydoc, 'edges', pageId);
 
   // Build a lookup of semanticId → { nodeId, ydata }
   const nodeMap = new Map<string, { nodeId: string; ydata: Y.Map<unknown> }>();
-  levelNodes.forEach((ynode, id) => {
+  pageNodes.forEach((ynode, id) => {
     const ydata = ynode.get('data') as Y.Map<unknown> | Record<string, unknown> | undefined;
     if (ydata) {
       const sid = safeGet(ydata, 'semanticId') as string | undefined;
@@ -1158,7 +1148,7 @@ export function connectBulk(
       yedge.set('target', target.nodeId);
       yedge.set('sourceHandle', conn.sourcePortId);
       yedge.set('targetHandle', conn.targetPortId);
-      levelEdges.set(edgeId, yedge as Y.Map<unknown>);
+      pageEdges.set(edgeId, yedge as Y.Map<unknown>);
 
       // Add connection to source node
       let yconns = source.ydata.get('connections') as Y.Array<unknown> | undefined;
@@ -1196,15 +1186,15 @@ export function connectBulk(
  */
 export function deleteConstructsBulk(
   ydoc: Y.Doc,
-  levelId: string,
+  pageId: string,
   semanticIds: string[]
 ): Array<{ semanticId: string; deleted: boolean; error?: string }> {
-  const levelNodes = getLevelMap(ydoc, 'nodes', levelId);
-  const levelEdges = getLevelMap(ydoc, 'edges', levelId);
+  const pageNodes = getPageMap(ydoc, 'nodes', pageId);
+  const pageEdges = getPageMap(ydoc, 'edges', pageId);
 
   // Build lookup: semanticId → nodeId
   const semanticToNodeId = new Map<string, string>();
-  levelNodes.forEach((ynode, id) => {
+  pageNodes.forEach((ynode, id) => {
     const data = ynode.get('data') as Y.Map<unknown> | Record<string, unknown> | undefined;
     if (data) {
       const sid = safeGet(data, 'semanticId') as string | undefined;
@@ -1227,7 +1217,7 @@ export function deleteConstructsBulk(
   ydoc.transact(() => {
     // 1. Find and handle attached wagons for all target nodes
     const wagonIdsToDelete = new Set<string>();
-    levelNodes.forEach((ynode, id) => {
+    pageNodes.forEach((ynode, id) => {
       const nodeObj = yToPlain(ynode) as Record<string, unknown>;
       if (nodeObj.type !== 'organizer') return;
       const data = nodeObj.data as OrganizerNodeData;
@@ -1238,11 +1228,11 @@ export function deleteConstructsBulk(
 
     // Detach wagon members before deleting wagons
     for (const wagonId of wagonIdsToDelete) {
-      const wagonYnode = levelNodes.get(wagonId);
+      const wagonYnode = pageNodes.get(wagonId);
       if (!wagonYnode) continue;
       const wagonPos = yToPlain(wagonYnode.get('position') as Y.Map<unknown>) as { x: number; y: number };
 
-      levelNodes.forEach((childYnode, childId) => {
+      pageNodes.forEach((childYnode, childId) => {
         if (childId === wagonId) return;
         const parentId = childYnode.get('parentId') as string | undefined;
         if (parentId === wagonId && !targetNodeIds.has(childId)) {
@@ -1254,18 +1244,18 @@ export function deleteConstructsBulk(
       });
 
       // Remove edges connected to wagon
-      levelEdges.forEach((yedge, edgeId) => {
+      pageEdges.forEach((yedge, edgeId) => {
         if (yedge.get('source') === wagonId || yedge.get('target') === wagonId) {
-          levelEdges.delete(edgeId);
+          pageEdges.delete(edgeId);
         }
       });
 
-      levelNodes.delete(wagonId);
+      pageNodes.delete(wagonId);
     }
 
     // 2. Delete edges connected to any target node
     const edgesToDelete: string[] = [];
-    levelEdges.forEach((yedge, edgeId) => {
+    pageEdges.forEach((yedge, edgeId) => {
       const src = yedge.get('source') as string;
       const tgt = yedge.get('target') as string;
       if (targetNodeIds.has(src) || targetNodeIds.has(tgt)) {
@@ -1273,11 +1263,11 @@ export function deleteConstructsBulk(
       }
     });
     for (const edgeId of edgesToDelete) {
-      levelEdges.delete(edgeId);
+      pageEdges.delete(edgeId);
     }
 
     // 3. Clean connection arrays in surviving nodes
-    levelNodes.forEach((ynode, id) => {
+    pageNodes.forEach((ynode, id) => {
       if (targetNodeIds.has(id)) return;
       const ydata = ynode.get('data') as Y.Map<unknown> | Record<string, unknown> | undefined;
       if (!ydata) return;
@@ -1312,7 +1302,7 @@ export function deleteConstructsBulk(
         results.push({ semanticId: sid, deleted: false, error: `Construct not found: ${sid}` });
         continue;
       }
-      levelNodes.delete(nodeId);
+      pageNodes.delete(nodeId);
       results.push({ semanticId: sid, deleted: true });
     }
   }, MCP_ORIGIN);
@@ -1359,11 +1349,11 @@ function resolvePlaceholder(value: string | undefined | null, created: Map<numbe
  */
 export function batchMutate(
   ydoc: Y.Doc,
-  levelId: string,
+  pageId: string,
   operations: BatchOperation[]
 ): BatchResult[] {
-  const levelNodes = getLevelMap(ydoc, 'nodes', levelId);
-  const levelEdges = getLevelMap(ydoc, 'edges', levelId);
+  const pageNodes = getPageMap(ydoc, 'nodes', pageId);
+  const pageEdges = getPageMap(ydoc, 'edges', pageId);
   const results: BatchResult[] = [];
   const created = new Map<number, { semanticId: string; nodeId: string }>();
 
@@ -1372,7 +1362,7 @@ export function batchMutate(
     // We rebuild this before operations that need it, since creates modify it
     function buildNodeMap() {
       const map = new Map<string, { nodeId: string; ydata: Y.Map<unknown>; ynode: Y.Map<unknown> }>();
-      levelNodes.forEach((ynode, id) => {
+      pageNodes.forEach((ynode, id) => {
         const ydata = ynode.get('data') as Y.Map<unknown> | Record<string, unknown> | undefined;
         if (ydata) {
           const sid = safeGet(ydata, 'semanticId') as string | undefined;
@@ -1404,7 +1394,7 @@ export function batchMutate(
             ynode.set('position', deepPlainToY(position));
             ynode.set('data', deepPlainToY(nodeData));
             if (parentId) ynode.set('parentId', parentId);
-            levelNodes.set(nodeId, ynode as Y.Map<unknown>);
+            pageNodes.set(nodeId, ynode as Y.Map<unknown>);
 
             created.set(i, { semanticId, nodeId });
             results.push({ index: i, op: 'create', success: true, semanticId });
@@ -1447,13 +1437,13 @@ export function batchMutate(
             }
 
             // Delete attached wagons
-            levelNodes.forEach((ynode, id) => {
+            pageNodes.forEach((ynode, id) => {
               const nodeObj = yToPlain(ynode) as Record<string, unknown>;
               if (nodeObj.type !== 'organizer') return;
               const data = nodeObj.data as OrganizerNodeData;
               if (data.attachedToSemanticId === sid) {
                 // Detach wagon members
-                levelNodes.forEach((childYnode, childId) => {
+                pageNodes.forEach((childYnode, childId) => {
                   if (childId === id) return;
                   const pid = childYnode.get('parentId') as string | undefined;
                   if (pid === id) {
@@ -1464,28 +1454,28 @@ export function batchMutate(
                   }
                 });
                 // Remove wagon edges
-                levelEdges.forEach((yedge, edgeId) => {
+                pageEdges.forEach((yedge, edgeId) => {
                   if (yedge.get('source') === id || yedge.get('target') === id) {
-                    levelEdges.delete(edgeId);
+                    pageEdges.delete(edgeId);
                   }
                 });
-                levelNodes.delete(id);
+                pageNodes.delete(id);
               }
             });
 
             // Remove edges
             const edgesToDel: string[] = [];
-            levelEdges.forEach((yedge, edgeId) => {
+            pageEdges.forEach((yedge, edgeId) => {
               if (yedge.get('source') === entry.nodeId || yedge.get('target') === entry.nodeId) {
                 edgesToDel.push(edgeId);
               }
             });
             for (const edgeId of edgesToDel) {
-              levelEdges.delete(edgeId);
+              pageEdges.delete(edgeId);
             }
 
             // Clean connections in surviving nodes
-            levelNodes.forEach((ynode) => {
+            pageNodes.forEach((ynode) => {
               const ydata = ynode.get('data') as Y.Map<unknown> | Record<string, unknown> | undefined;
               if (!ydata) return;
               const yconns = safeGet(ydata, 'connections') as Y.Array<unknown> | unknown[] | undefined;
@@ -1511,7 +1501,7 @@ export function batchMutate(
               }
             });
 
-            levelNodes.delete(entry.nodeId);
+            pageNodes.delete(entry.nodeId);
             results.push({ index: i, op: 'delete', success: true, semanticId: sid });
             break;
           }
@@ -1539,7 +1529,7 @@ export function batchMutate(
             yedge.set('target', target.nodeId);
             yedge.set('sourceHandle', operation.sourcePortId);
             yedge.set('targetHandle', operation.targetPortId);
-            levelEdges.set(edgeId, yedge as Y.Map<unknown>);
+            pageEdges.set(edgeId, yedge as Y.Map<unknown>);
 
             let yconns = source.ydata.get('connections') as Y.Array<unknown> | undefined;
             if (!yconns) {
@@ -1596,7 +1586,7 @@ export function batchMutate(
             // Remove edge
             if (target) {
               const edgesToDel: string[] = [];
-              levelEdges.forEach((yedge, edgeId) => {
+              pageEdges.forEach((yedge, edgeId) => {
                 if (
                   yedge.get('source') === source.nodeId &&
                   yedge.get('target') === target.nodeId &&
@@ -1606,7 +1596,7 @@ export function batchMutate(
                 }
               });
               for (const edgeId of edgesToDel) {
-                levelEdges.delete(edgeId);
+                pageEdges.delete(edgeId);
               }
             }
 
@@ -1627,7 +1617,7 @@ export function batchMutate(
 
             // Validate target organizer
             if (targetParentId !== null) {
-              const targetOrg = levelNodes.get(targetParentId);
+              const targetOrg = pageNodes.get(targetParentId);
               if (!targetOrg) {
                 results.push({ index: i, op: 'move', success: false, error: `Organizer not found: ${targetParentId}` });
                 break;
@@ -1641,7 +1631,7 @@ export function batchMutate(
             if (operation.x != null && operation.y != null) {
               newPos = { x: operation.x, y: operation.y };
             } else if (currentParentId && !targetParentId) {
-              const parentYnode = levelNodes.get(currentParentId);
+              const parentYnode = pageNodes.get(currentParentId);
               if (parentYnode) {
                 const parentPos = yToPlain(parentYnode.get('position') as Y.Map<unknown>) as { x: number; y: number };
                 newPos = toAbsolutePosition(currentPos, parentPos);
@@ -1649,7 +1639,7 @@ export function batchMutate(
                 newPos = currentPos;
               }
             } else if (!currentParentId && targetParentId) {
-              const parentYnode = levelNodes.get(targetParentId);
+              const parentYnode = pageNodes.get(targetParentId);
               if (parentYnode) {
                 const parentPos = yToPlain(parentYnode.get('position') as Y.Map<unknown>) as { x: number; y: number };
                 newPos = toRelativePosition(currentPos, parentPos);
@@ -1657,8 +1647,8 @@ export function batchMutate(
                 newPos = currentPos;
               }
             } else if (currentParentId && targetParentId && currentParentId !== targetParentId) {
-              const oldParent = levelNodes.get(currentParentId);
-              const newParent = levelNodes.get(targetParentId);
+              const oldParent = pageNodes.get(currentParentId);
+              const newParent = pageNodes.get(targetParentId);
               if (oldParent && newParent) {
                 const oldParentPos = yToPlain(oldParent.get('position') as Y.Map<unknown>) as { x: number; y: number };
                 const newParentPos = yToPlain(newParent.get('position') as Y.Map<unknown>) as { x: number; y: number };
@@ -1699,14 +1689,14 @@ export function batchMutate(
 /**
  * Compile a level's document to AI-readable output
  */
-export function compile(ydoc: Y.Doc, levelId: string): string {
-  const nodes = listConstructs(ydoc, levelId);
+export function compile(ydoc: Y.Doc, pageId: string): string {
+  const nodes = listConstructs(ydoc, pageId);
   const schemas = listSchemas(ydoc);
 
   // Get edges for level
-  const levelEdges = getLevelMap(ydoc, 'edges', levelId);
+  const pageEdges = getPageMap(ydoc, 'edges', pageId);
   const edges: CompilerEdge[] = [];
-  levelEdges.forEach((yedge, id) => {
+  pageEdges.forEach((yedge, id) => {
     edges.push({
       id,
       source: yedge.get('source') as string,
@@ -1725,15 +1715,15 @@ export function compile(ydoc: Y.Doc, levelId: string): string {
 /**
  * Extract full document from Y.Doc for a given level
  */
-export function extractDocument(ydoc: Y.Doc, roomId: string, levelId: string): ServerDocument {
+export function extractDocument(ydoc: Y.Doc, roomId: string, pageId: string): ServerDocument {
   const ymeta = ydoc.getMap('meta');
-  const nodes = listConstructs(ydoc, levelId);
+  const nodes = listConstructs(ydoc, pageId);
   const schemas = listSchemas(ydoc);
 
   // Get edges for level
-  const levelEdges = getLevelMap(ydoc, 'edges', levelId);
+  const pageEdges = getPageMap(ydoc, 'edges', pageId);
   const edges: CompilerEdge[] = [];
-  levelEdges.forEach((yedge, id) => {
+  pageEdges.forEach((yedge, id) => {
     edges.push({
       id,
       source: yedge.get('source') as string,

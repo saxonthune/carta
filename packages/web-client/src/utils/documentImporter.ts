@@ -38,16 +38,16 @@ function importReplaceDocument(
   // Clear existing document state (like Excalidraw)
   // Clear all levels' data first
   adapter.transaction(() => {
-    const existingLevels = adapter.getLevels();
-    for (const level of existingLevels) {
-      adapter.setActiveLevel(level.id);
+    const existingPages = adapter.getPages();
+    for (const page of existingPages) {
+      adapter.setActivePage(page.id);
       adapter.setNodes([]);
       adapter.setEdges([]);
     }
-    // Delete all levels except first, then reset first
-    if (existingLevels.length > 1) {
-      for (let i = 1; i < existingLevels.length; i++) {
-        adapter.deleteLevel(existingLevels[i].id);
+    // Delete all pages except first, then reset first
+    if (existingPages.length > 1) {
+      for (let i = 1; i < existingPages.length; i++) {
+        adapter.deletePage(existingPages[i].id);
       }
     }
     adapter.setSchemas([]);
@@ -82,18 +82,18 @@ function importIntoLevel(
   // Determine target level ID
   let targetLevelId: string;
   if (config.targetLevel === 'new') {
-    const newLevel = adapter.createLevel(`Imported: ${data.title || 'Untitled'}`);
-    targetLevelId = newLevel.id;
+    const newPage = adapter.createPage(`Imported: ${data.title || 'Untitled'}`);
+    targetLevelId = newPage.id;
   } else {
     targetLevelId = config.targetLevel;
   }
 
-  // Switch to target level
-  adapter.setActiveLevel(targetLevelId);
+  // Switch to target page
+  adapter.setActivePage(targetLevelId);
 
-  // Flatten all file levels' nodes and edges
-  const allNodes = data.levels.flatMap(l => l.nodes) as Node[];
-  const allEdges = data.levels.flatMap(l => l.edges) as Edge[];
+  // Flatten all file pages' nodes and edges
+  const allNodes = data.pages.flatMap(l => l.nodes) as Node[];
+  const allEdges = data.pages.flatMap(l => l.edges) as Edge[];
 
   // Import nodes and edges additively (importNodesAndEdges creates new IDs, so no conflicts)
   importNodesAndEdgesAdditive(adapter, allNodes, allEdges, config, schemasToImport);
@@ -130,34 +130,34 @@ function importWithLevels(
   config: ImportConfig,
   schemasToImport: ConstructSchema[]
 ): void {
-  const existingLevels = adapter.getLevels();
-  const firstLevelId = existingLevels[0]?.id;
+  const existingPages = adapter.getPages();
+  const firstPageId = existingPages[0]?.id;
 
-  for (let i = 0; i < data.levels.length; i++) {
-    const fileLevel = data.levels[i];
-    let levelId: string;
+  for (let i = 0; i < data.pages.length; i++) {
+    const filePage = data.pages[i];
+    let pageId: string;
 
-    if (i === 0 && firstLevelId) {
-      // Use existing first level for first imported level
-      levelId = firstLevelId;
-      adapter.updateLevel(levelId, { name: fileLevel.name, description: fileLevel.description, order: fileLevel.order });
+    if (i === 0 && firstPageId) {
+      // Use existing first page for first imported page
+      pageId = firstPageId;
+      adapter.updatePage(pageId, { name: filePage.name, description: filePage.description, order: filePage.order });
     } else {
-      // Create new level for subsequent ones
-      const newLevel = adapter.createLevel(fileLevel.name, fileLevel.description);
-      levelId = newLevel.id;
-      adapter.updateLevel(levelId, { order: fileLevel.order });
+      // Create new page for subsequent ones
+      const newPage = adapter.createPage(filePage.name, filePage.description);
+      pageId = newPage.id;
+      adapter.updatePage(pageId, { order: filePage.order });
     }
 
-    // Switch to this level and import its data
-    adapter.setActiveLevel(levelId);
+    // Switch to this page and import its data
+    adapter.setActivePage(pageId);
 
-    // Import nodes and edges for this level
-    importNodesAndEdges(adapter, fileLevel.nodes as Node[], fileLevel.edges as Edge[], config, schemasToImport);
+    // Import nodes and edges for this page
+    importNodesAndEdges(adapter, filePage.nodes as Node[], filePage.edges as Edge[], config, schemasToImport);
   }
 
-  // Switch back to first level
-  if (firstLevelId) {
-    adapter.setActiveLevel(firstLevelId);
+  // Switch back to first page
+  if (firstPageId) {
+    adapter.setActivePage(firstPageId);
   }
 }
 

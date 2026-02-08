@@ -289,18 +289,21 @@ export interface CompilerEdge {
 // ===== DOCUMENT =====
 
 /**
- * Level - A layer of abstraction within a Carta document
- * Users can create multiple levels to represent different abstraction stages
- * (e.g., sketch, detailed design, implementation)
+ * Page - An independent view within a Carta document
+ * Users can create multiple pages to organize different views
+ * (e.g., overview, detailed design, implementation)
  */
-export interface Level {
-  id: string;                 // 'level-{timestamp}-{random}'
-  name: string;               // User-editable level name
-  description?: string;       // Optional level description
+export interface Page {
+  id: string;                 // 'page-{timestamp}-{random}'
+  name: string;               // User-editable page name
+  description?: string;       // Optional page description
   order: number;              // For sorting (0, 1, 2, ...)
-  nodes: unknown[];           // Node<ConstructNodeData>[] - level-specific nodes
-  edges: unknown[];           // Edge[] - level-specific edges
+  nodes: unknown[];           // Node<ConstructNodeData>[] - page-specific nodes
+  edges: unknown[];           // Edge[] - page-specific edges
 }
+
+/** @deprecated Use Page instead */
+export type Level = Page;
 
 /**
  * Complete Carta document structure (v3 - legacy)
@@ -320,16 +323,16 @@ export interface CartaDocumentV3 {
 
 /**
  * Complete Carta document structure (v4 - current)
- * Represents the full state of a project with levels support
+ * Represents the full state of a project with pages support
  */
 export interface CartaDocumentV4 {
   version: 4;
   title: string;
   description?: string;
 
-  // Levels system
-  levels: Level[];
-  activeLevel?: string;       // Current active level ID (persisted for collaboration)
+  // Pages system
+  pages: Page[];
+  activePage?: string;        // Current active page ID (persisted for collaboration)
 
   // Shared metamodel definitions
   schemas: ConstructSchema[];
@@ -424,10 +427,10 @@ export interface DocumentAdapter {
   getTitle(): string;
   getDescription(): string;
 
-  // State access - Levels
-  getLevels(): Level[];
-  getLevel(id: string): Level | undefined;
-  getActiveLevel(): string | undefined;
+  // State access - Pages
+  getPages(): Page[];
+  getPage(id: string): Page | undefined;
+  getActivePage(): string | undefined;
 
   // State access - Schemas
   getSchemas(): ConstructSchema[];
@@ -449,13 +452,13 @@ export interface DocumentAdapter {
   generateNodeId(): string;
   updateNode(nodeId: string, updates: Partial<ConstructNodeData>): void;
 
-  // Mutations - Levels
-  setActiveLevel(levelId: string): void;
-  createLevel(name: string, description?: string): Level;
-  deleteLevel(levelId: string): boolean;
-  updateLevel(levelId: string, updates: Partial<Omit<Level, 'id' | 'nodes' | 'edges' | 'deployables'>>): void;
-  duplicateLevel(levelId: string, newName: string): Level;
-  copyNodesToLevel(nodeIds: string[], targetLevelId: string): void;
+  // Mutations - Pages
+  setActivePage(pageId: string): void;
+  createPage(name: string, description?: string): Page;
+  deletePage(pageId: string): boolean;
+  updatePage(pageId: string, updates: Partial<Omit<Page, 'id' | 'nodes' | 'edges' | 'deployables'>>): void;
+  duplicatePage(pageId: string, newName: string): Page;
+  copyNodesToPage(nodeIds: string[], targetPageId: string): void;
 
   // Mutations - Schemas
   setSchemas(schemas: ConstructSchema[]): void;
@@ -491,7 +494,7 @@ export interface DocumentAdapter {
   subscribeToSchemas?(listener: () => void): () => void;
   subscribeToPortSchemas?(listener: () => void): () => void;
   subscribeToSchemaGroups?(listener: () => void): () => void;
-  subscribeToLevels?(listener: () => void): () => void;
+  subscribeToPages?(listener: () => void): () => void;
   subscribeToMeta?(listener: () => void): () => void;
 
   // Serialization for MCP and export

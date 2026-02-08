@@ -64,8 +64,8 @@ export interface ImportAnalysis {
 
   hasConflicts: boolean;
 
-  // Levels info for target picker
-  fileLevelCount: number;
+  // Pages info for target picker
+  filePageCount: number;
 }
 
 /**
@@ -74,7 +74,7 @@ export interface ImportAnalysis {
 export interface ImportOptions {
   schemas: Set<string>; // Set of schema types to import
   nodes: Set<string>;   // Set of node IDs to import
-  targetLevel: 'replace' | 'new' | string; // 'replace' = full doc replace, 'new' = create new level, or existing level ID
+  targetLevel: 'replace' | 'new' | string; // 'replace' = full doc replace, 'new' = create new page, or existing page ID
 }
 
 /**
@@ -97,9 +97,9 @@ export function analyzeImport(
   currentNodes: Node[] = [],
   currentSchemas: ConstructSchema[] = []
 ): ImportAnalysis {
-  // Flatten all nodes/edges across levels for analysis
-  const fileNodes = file.levels.flatMap(l => l.nodes) as Node[];
-  const fileEdges = file.levels.flatMap(l => l.edges);
+  // Flatten all nodes/edges across pages for analysis
+  const fileNodes = file.pages.flatMap(l => l.nodes) as Node[];
+  const fileEdges = file.pages.flatMap(l => l.edges);
 
   // Analyze schemas
   const analyzedSchemas: AnalyzedSchema[] = file.customSchemas.map(schema => {
@@ -172,6 +172,6 @@ export function analyzeImport(
       count: file.schemaGroups?.length || 0,
     },
     hasConflicts,
-    fileLevelCount: file.levels.length,
+    filePageCount: file.pages.length,
   };
 }

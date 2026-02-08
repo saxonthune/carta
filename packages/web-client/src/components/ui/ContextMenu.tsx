@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import ContextMenuPrimitive, { type MenuItem } from './ContextMenuPrimitive';
-import type { SchemaGroup, Level } from '@carta/domain';
+import type { SchemaGroup, Page } from '@carta/domain';
 
 export type ContextMenuType = 'pane' | 'node' | 'edge';
 
@@ -45,12 +45,12 @@ interface ContextMenuProps {
   constructType?: string;
   canPaste?: boolean;
   onClose: () => void;
-  // Level props for "Copy to Level"
-  levels?: Level[];
-  activeLevel?: string;
+  // Page props for "Copy to Page"
+  pages?: Page[];
+  activePage?: string;
   selectedNodeIds?: string[];
-  onCopyNodesToLevel?: (nodeIds: string[], targetLevelId: string) => void;
-  onCopyNodesToNewLevel?: (nodeIds: string[]) => void;
+  onCopyNodesToPage?: (nodeIds: string[], targetPageId: string) => void;
+  onCopyNodesToNewPage?: (nodeIds: string[]) => void;
   // Organizer props
   onOrganizeSelected?: () => void;
   onRemoveFromOrganizer?: (nodeId: string) => void;
@@ -132,11 +132,11 @@ export default function ContextMenu({
   onNewGroup,
   onEditSchema,
   constructType,
-  levels,
-  activeLevel,
+  pages,
+  activePage,
   selectedNodeIds,
-  onCopyNodesToLevel,
-  onCopyNodesToNewLevel,
+  onCopyNodesToPage,
+  onCopyNodesToNewPage,
   onOrganizeSelected,
   onRemoveFromOrganizer,
   nodeInOrganizer,
@@ -158,7 +158,7 @@ export default function ContextMenu({
     }
     return [];
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [type, nodeId, edgeId, selectedCount, relatedConstructs, constructOptions, schemaGroups, canPaste, levels, activeLevel, selectedNodeIds, constructType, onEditSchema, onCopyNodesToNewLevel, onOrganizeSelected, onRemoveFromOrganizer, nodeInOrganizer, onAttachOrganizer, nodeIsConstruct, onSpreadSelected]);
+  }, [type, nodeId, edgeId, selectedCount, relatedConstructs, constructOptions, schemaGroups, canPaste, pages, activePage, selectedNodeIds, constructType, onEditSchema, onCopyNodesToNewPage, onOrganizeSelected, onRemoveFromOrganizer, nodeInOrganizer, onAttachOrganizer, nodeIsConstruct, onSpreadSelected]);
 
   function buildPaneMenuItems(): MenuItem[] {
     const result: MenuItem[] = [];
@@ -256,27 +256,27 @@ export default function ContextMenu({
       onClick: () => onCopyNodes?.(),
     });
 
-    // "Copy to Level" submenu - shown when nodes are selected (always has "+ New Level")
-    if (levels && activeLevel && selectedNodeIds && selectedNodeIds.length > 0 && (onCopyNodesToLevel || onCopyNodesToNewLevel)) {
-      const otherLevels = levels.filter(l => l.id !== activeLevel);
-      const children: MenuItem[] = otherLevels.map(level => ({
-        key: `copy-to-level-${level.id}`,
-        label: level.name,
-        onClick: () => onCopyNodesToLevel?.(selectedNodeIds, level.id),
+    // "Copy to Page" submenu - shown when nodes are selected (always has "+ New Page")
+    if (pages && activePage && selectedNodeIds && selectedNodeIds.length > 0 && (onCopyNodesToPage || onCopyNodesToNewPage)) {
+      const otherPages = pages.filter(l => l.id !== activePage);
+      const children: MenuItem[] = otherPages.map(page => ({
+        key: `copy-to-page-${page.id}`,
+        label: page.name,
+        onClick: () => onCopyNodesToPage?.(selectedNodeIds, page.id),
       }));
-      if (onCopyNodesToNewLevel) {
+      if (onCopyNodesToNewPage) {
         if (children.length > 0) {
           children[children.length - 1].dividerAfter = true;
         }
         children.push({
-          key: 'copy-to-new-level',
-          label: '+ New Level',
-          onClick: () => onCopyNodesToNewLevel(selectedNodeIds),
+          key: 'copy-to-new-page',
+          label: '+ New Page',
+          onClick: () => onCopyNodesToNewPage(selectedNodeIds),
         });
       }
       result.push({
-        key: 'copy-to-level',
-        label: 'Copy to Level',
+        key: 'copy-to-page',
+        label: 'Copy to Page',
         children,
       });
     }

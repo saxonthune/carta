@@ -341,9 +341,9 @@ export function kitchenSink(adapter: DocumentAdapter): void {
     },
   ]);
 
-  // Rename the default level
-  const levels = adapter.getLevels();
-  if (levels.length > 0) {
-    adapter.updateLevel(levels[0]!.id, { name: 'Kitchen Sink' });
+  // Rename the default page
+  const pages = adapter.getPages();
+  if (pages.length > 0) {
+    adapter.updatePage(pages[0]!.id, { name: 'Kitchen Sink' });
   }
 }

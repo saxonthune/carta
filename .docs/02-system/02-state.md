@@ -16,7 +16,7 @@ All document state lives in a Yjs Y.Doc, accessed through the DocumentAdapter in
 | Lifetime | Where | Examples |
 |----------|-------|----------|
 | App (global) | Context / localStorage | Theme, AI API key |
-| Document | Yjs Y.Doc via adapter | Nodes, edges, schemas, deployables, levels |
+| Document | Yjs Y.Doc via adapter | Nodes, edges, schemas, deployables, pages |
 | Component | useState | Modal open/close, hover, rename mode |
 | URL | URL params | `?doc={id}` in server mode |
 
@@ -24,12 +24,12 @@ All document state lives in a Yjs Y.Doc, accessed through the DocumentAdapter in
 
 - **Nodes**: Construct instances with field values, positions, connections
 - **Edges**: Visual representations of connections (derived from node data)
-- **Schemas**: Construct type definitions (shared across levels)
-- **Port Schemas**: Port type definitions (shared across levels)
+- **Schemas**: Construct type definitions (shared across pages)
+- **Port Schemas**: Port type definitions (shared across pages)
 - **Schema Groups**: Schema organization metadata
-- **Deployables**: Logical groupings (per-level)
-- **Organizers**: Visual grouping containers with layout strategies (per-level). See doc02.09
-- **Levels**: Separate architectural views, each with own nodes/edges/deployables
+- **Deployables**: Logical groupings (per-page)
+- **Organizers**: Visual grouping containers with layout strategies (per-page). See doc02.09
+- **Pages**: Separate architectural views, each with own nodes/edges/deployables
 
 ### Persistence
 
@@ -38,7 +38,7 @@ All document state lives in a Yjs Y.Doc, accessed through the DocumentAdapter in
 
 ### Undo/Redo
 
-Y.UndoManager wraps the Yjs document. Undo history is per-level and per-user (local, not shared in collaboration). The manager is recreated when switching levels.
+Y.UndoManager wraps the Yjs document. Undo history is per-page and per-user (local, not shared in collaboration). The manager is recreated when switching pages.
 
 ## Adapter Interface
 
@@ -54,7 +54,7 @@ The codebase provides **focused hooks** that subscribe to specific slices of doc
 - `useSchemas()` — schemas, schemaById, getSchema, add/update/remove
 - `usePortSchemas()` — portSchemas, getPortSchema, add/update/remove
 - `useSchemaGroups()` — schemaGroups, getSchemaGroup, add/update/remove
-- `useLevels()` — levels, activeLevel, setActiveLevel, create/delete/update
+- `usePages()` — pages, activePage, setActivePage, create/delete/update
 - `useDocumentMeta()` — title, description, setTitle, setDescription
 - `useOrganizerOperations()` — organizer operations (create, attach, detach, toggle collapse, rename, resize, delete, change layout)
 - `usePresentation()` — transforms domain state into view state (node visibility, positioning, edge remapping) via the presentation model (doc02.09)
@@ -67,7 +67,7 @@ The codebase provides **focused hooks** that subscribe to specific slices of doc
 
 ### Initialization
 
-The adapter initializes asynchronously, setting up Y.Doc, IndexedDB persistence (in local mode), or WebSocket connection (in server mode). The DocumentProvider gates child rendering until the adapter is ready — children only render once the adapter and Y.Doc are fully initialized. Internal helpers (e.g. `getActiveLevelNodes()`) return `null` rather than sentinel objects when state doesn't exist yet, and callers handle the absence explicitly. See "Make Invalid States Unrepresentable" in doc01.02.
+The adapter initializes asynchronously, setting up Y.Doc, IndexedDB persistence (in local mode), or WebSocket connection (in server mode). The DocumentProvider gates child rendering until the adapter is ready — children only render once the adapter and Y.Doc are fully initialized. Internal helpers (e.g. `getActivePageNodes()`) return `null` rather than sentinel objects when state doesn't exist yet, and callers handle the absence explicitly. See "Make Invalid States Unrepresentable" in doc01.02.
 
 ### Disposal and Cleanup
 

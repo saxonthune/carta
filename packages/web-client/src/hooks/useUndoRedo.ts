@@ -16,9 +16,9 @@ interface UseUndoRedoReturn {
  * Each user has their own local undo stack (not shared).
  * MCP changes with 'ai-mcp' origin won't be tracked.
  *
- * Per-level: The UndoManager is re-created when the active level changes,
- * tracking only the active level's node and edge maps. Undo history is
- * lost when switching levels (acceptable since undo is local anyway).
+ * Per-page: The UndoManager is re-created when the active page changes,
+ * tracking only the active page's node and edge maps. Undo history is
+ * lost when switching pages (acceptable since undo is local anyway).
  */
 export function useUndoRedo(): UseUndoRedoReturn {
   const { ydoc, adapter } = useDocumentContext();
@@ -28,33 +28,32 @@ export function useUndoRedo(): UseUndoRedoReturn {
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
 
-  // Get the active level ID from adapter
-  const activeLevel = adapter.getActiveLevel();
+  // Get the active page ID from adapter
+  const activePage = adapter.getActivePage();
 
-  // Set up Y.UndoManager per-level
+  // Set up Y.UndoManager per-page
   useEffect(() => {
-    const activeLevelId = activeLevel;
-    if (!activeLevelId) return;
+    const activePageId = activePage;
+    if (!activePageId) return;
 
-    // Get the active level's Y.Maps
+    // Get the active page's Y.Maps
     const ynodesContainer = ydoc.getMap<Y.Map<unknown>>('nodes');
     const yedgesContainer = ydoc.getMap<Y.Map<unknown>>('edges');
 
-    let levelNodes = ynodesContainer.get(activeLevelId) as Y.Map<unknown> | undefined;
-    if (!levelNodes) {
-      // Create if doesn't exist yet
-      levelNodes = new Y.Map<unknown>();
-      ynodesContainer.set(activeLevelId, levelNodes);
+    let pageNodes = ynodesContainer.get(activePageId) as Y.Map<unknown> | undefined;
+    if (!pageNodes) {
+      pageNodes = new Y.Map<unknown>();
+      ynodesContainer.set(activePageId, pageNodes);
     }
 
-    let levelEdges = yedgesContainer.get(activeLevelId) as Y.Map<unknown> | undefined;
-    if (!levelEdges) {
-      levelEdges = new Y.Map<unknown>();
-      yedgesContainer.set(activeLevelId, levelEdges);
+    let pageEdges = yedgesContainer.get(activePageId) as Y.Map<unknown> | undefined;
+    if (!pageEdges) {
+      pageEdges = new Y.Map<unknown>();
+      yedgesContainer.set(activePageId, pageEdges);
     }
 
-    // Create UndoManager that tracks 'user' origin changes for this level
-    const undoManager = new Y.UndoManager([levelNodes, levelEdges], {
+    // Create UndoManager that tracks 'user' origin changes for this page
+    const undoManager = new Y.UndoManager([pageNodes, pageEdges], {
       trackedOrigins: new Set(['user']),
     });
 
@@ -76,7 +75,7 @@ export function useUndoRedo(): UseUndoRedoReturn {
       undoManager.destroy();
       undoManagerRef.current = null;
     };
-  }, [ydoc, activeLevel]);
+  }, [ydoc, activePage]);
 
   /**
    * Undo the last action

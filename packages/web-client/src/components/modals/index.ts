@@ -6,4 +6,3 @@ export { default as ImportPreviewModal } from './ImportPreviewModal';
 export { default as ExportPreviewModal } from './ExportPreviewModal';
 export { default as ConstructFullViewModal } from './ConstructFullViewModal';
 export { default as ClearWorkspaceModal } from './ClearWorkspaceModal';
-export { default as RestoreDefaultSchemasModal } from './RestoreDefaultSchemasModal';

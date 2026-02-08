@@ -18,11 +18,6 @@ export class CartaPage {
   readonly clearInstancesButton: Locator;
   readonly clearEverythingButton: Locator;
 
-  // Restore defaults modal elements
-  readonly restoreDefaultsModal: Locator;
-  readonly restoreDefaultsCancelButton: Locator;
-  readonly restoreDefaultsConfirmButton: Locator;
-
   constructor(page: Page) {
     this.page = page;
 
@@ -37,10 +32,6 @@ export class CartaPage {
     this.clearInstancesButton = page.getByTestId('clear-instances-button');
     this.clearEverythingButton = page.getByTestId('clear-everything-button');
 
-    // Restore defaults modal elements
-    this.restoreDefaultsModal = page.locator('div.bg-surface.rounded-xl').filter({ has: page.getByRole('heading', { name: 'Restore default schemas' }) });
-    this.restoreDefaultsCancelButton = this.restoreDefaultsModal.getByRole('button', { name: 'Cancel' });
-    this.restoreDefaultsConfirmButton = this.restoreDefaultsModal.getByRole('button', { name: 'Restore' });
   }
 
   /**
@@ -136,21 +127,6 @@ export class CartaPage {
   async getEdgeCount(): Promise<number> {
     const edges = this.page.locator('.react-flow__edge');
     return edges.count();
-  }
-
-  async openRestoreDefaultsModal() {
-    await this.openSettingsMenu();
-    await this.page.getByText('Restore Default Schemas').click();
-    await expect(this.restoreDefaultsModal).toBeVisible();
-  }
-
-  async confirmRestoreDefaults() {
-    await this.restoreDefaultsConfirmButton.click();
-  }
-
-  async clearAndRestoreDefaults() {
-    await this.openClearModal();
-    await this.page.getByTestId('clear-and-restore-button').click();
   }
 
   /**

@@ -4,7 +4,6 @@ import { config } from '../../config/featureFlags';
 
 export interface SettingsMenuProps {
   onOpenClearModal: () => void;
-  onOpenRestoreSchemasModal: () => void;
 }
 
 /**
@@ -12,7 +11,6 @@ export interface SettingsMenuProps {
  */
 export function SettingsMenu({
   onOpenClearModal,
-  onOpenRestoreSchemasModal,
 }: SettingsMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -53,15 +51,6 @@ export function SettingsMenu({
               Copy MCP Config
             </button>
           )}
-          <button
-            className="w-full text-left px-4 py-2 text-sm cursor-pointer text-content hover:bg-surface-alt transition-colors border-none bg-surface"
-            onClick={() => {
-              onOpenRestoreSchemasModal();
-              setIsOpen(false);
-            }}
-          >
-            Restore Default Schemas
-          </button>
           <button
             data-testid="settings-clear-button"
             className="w-full text-left px-4 py-2 text-sm cursor-pointer text-content hover:bg-surface-alt transition-colors border-none bg-surface"

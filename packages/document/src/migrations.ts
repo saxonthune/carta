@@ -6,7 +6,7 @@
  */
 
 import * as Y from 'yjs';
-import { generateLevelId } from './id-generators.js';
+import { generatePageId } from './id-generators.js';
 
 /**
  * Migrate flat data structure to level-based structure.
@@ -14,9 +14,9 @@ import { generateLevelId } from './id-generators.js';
  * Detects if the Y.Doc has flat nodes (old format where node-shaped Y.Maps
  * are stored directly in the 'nodes' map) and wraps them under a new default level.
  */
-export function migrateToLevels(ydoc: Y.Doc): void {
+export function migrateToPages(ydoc: Y.Doc): void {
   const ymeta = ydoc.getMap('meta');
-  const ylevels = ydoc.getMap<Y.Map<unknown>>('levels');
+  const ypages = ydoc.getMap<Y.Map<unknown>>('pages');
   const ynodes = ydoc.getMap<Y.Map<unknown>>('nodes');
   const yedges = ydoc.getMap<Y.Map<unknown>>('edges');
   const ydeployables = ydoc.getMap<Y.Map<unknown>>('deployables');
@@ -31,53 +31,53 @@ export function migrateToLevels(ydoc: Y.Doc): void {
     }
   });
 
-  if (!hasFlatNodes && ylevels.size > 0) return; // Already migrated or empty doc
-  if (!hasFlatNodes && ylevels.size === 0 && ynodes.size === 0 && yedges.size === 0) return; // New doc, nothing to migrate
+  if (!hasFlatNodes && ypages.size > 0) return; // Already migrated or empty doc
+  if (!hasFlatNodes && ypages.size === 0 && ynodes.size === 0 && yedges.size === 0) return; // New doc, nothing to migrate
 
   // Create default level
-  const levelId = generateLevelId();
-  const levelData = new Y.Map<unknown>();
-  levelData.set('id', levelId);
-  levelData.set('name', 'Main');
-  levelData.set('order', 0);
-  ylevels.set(levelId, levelData);
-  ymeta.set('activeLevel', levelId);
+  const pageId = generatePageId();
+  const pageData = new Y.Map<unknown>();
+  pageData.set('id', pageId);
+  pageData.set('name', 'Main');
+  pageData.set('order', 0);
+  ypages.set(pageId, pageData);
+  ymeta.set('activePage', pageId);
   if (hasFlatNodes) {
     // Move flat nodes into level-scoped map
-    const levelNodesMap = new Y.Map<Y.Map<unknown>>();
+    const pageNodesMap = new Y.Map<Y.Map<unknown>>();
     const flatNodeEntries: [string, Y.Map<unknown>][] = [];
     ynodes.forEach((value, key) => {
       flatNodeEntries.push([key, value as Y.Map<unknown>]);
     });
     ynodes.clear();
     for (const [key, value] of flatNodeEntries) {
-      levelNodesMap.set(key, value);
+      pageNodesMap.set(key, value);
     }
-    ynodes.set(levelId, levelNodesMap as unknown as Y.Map<unknown>);
+    ynodes.set(pageId, pageNodesMap as unknown as Y.Map<unknown>);
 
     // Move flat edges into level-scoped map
-    const levelEdgesMap = new Y.Map<Y.Map<unknown>>();
+    const pageEdgesMap = new Y.Map<Y.Map<unknown>>();
     const flatEdgeEntries: [string, Y.Map<unknown>][] = [];
     yedges.forEach((value, key) => {
       flatEdgeEntries.push([key, value as Y.Map<unknown>]);
     });
     yedges.clear();
     for (const [key, value] of flatEdgeEntries) {
-      levelEdgesMap.set(key, value);
+      pageEdgesMap.set(key, value);
     }
-    yedges.set(levelId, levelEdgesMap as unknown as Y.Map<unknown>);
+    yedges.set(pageId, pageEdgesMap as unknown as Y.Map<unknown>);
 
     // Move flat deployables into level-scoped map
-    const levelDeployablesMap = new Y.Map<Y.Map<unknown>>();
+    const pageDeployablesMap = new Y.Map<Y.Map<unknown>>();
     const flatDeployableEntries: [string, Y.Map<unknown>][] = [];
     ydeployables.forEach((value, key) => {
       flatDeployableEntries.push([key, value as Y.Map<unknown>]);
     });
     ydeployables.clear();
     for (const [key, value] of flatDeployableEntries) {
-      levelDeployablesMap.set(key, value);
+      pageDeployablesMap.set(key, value);
     }
-    ydeployables.set(levelId, levelDeployablesMap as unknown as Y.Map<unknown>);
+    ydeployables.set(pageId, pageDeployablesMap as unknown as Y.Map<unknown>);
   }
 }
 
@@ -88,12 +88,12 @@ export function migrateToLevels(ydoc: Y.Doc): void {
  * This can happen when nodes are deleted but their connection references aren't cleaned up.
  */
 export function repairOrphanedConnections(ydoc: Y.Doc): void {
-  const ylevels = ydoc.getMap<Y.Map<unknown>>('levels');
+  const ypages = ydoc.getMap<Y.Map<unknown>>('pages');
 
-  if (ylevels.size === 0) return; // No levels, nothing to repair
+  if (ypages.size === 0) return; // No levels, nothing to repair
 
-  ylevels.forEach((ylevelData) => {
-    const ylevel = ylevelData as Y.Map<unknown>;
+  ypages.forEach((ypageData) => {
+    const ylevel = ypageData as Y.Map<unknown>;
     const ynodes = ylevel.get('nodes') as Y.Map<Y.Map<unknown>> | undefined;
 
     if (!ynodes) return;

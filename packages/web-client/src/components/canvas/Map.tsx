@@ -22,7 +22,7 @@ import { useDocumentContext } from '../../contexts/DocumentContext';
 import { useSchemas } from '../../hooks/useSchemas';
 import { useSchemaGroups } from '../../hooks/useSchemaGroups';
 import { usePortSchemas } from '../../hooks/usePortSchemas';
-import { useLevels } from '../../hooks/useLevels';
+import { usePages } from '../../hooks/usePages';
 import CustomNode from './CustomNode';
 import ConstructNode from './ConstructNode';
 import OrganizerNode from './OrganizerNode';
@@ -93,7 +93,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
   const { edges, setEdges } = useEdges();
   const { schemas, getSchema } = useSchemas();
   const { getPortSchema } = usePortSchemas();
-  const { levels, activeLevel, setActiveLevel, createLevel, copyNodesToLevel } = useLevels();
+  const { pages, activePage, setActivePage, createPage, copyNodesToPage } = usePages();
   const reactFlow = useReactFlow();
 
   const edgeColor = useEdgeColor();
@@ -352,15 +352,15 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     [edges, setEdges, handleEdgesDelete]
   );
 
-  // Copy selected nodes to a newly created level
-  const handleCopyNodesToNewLevel = useCallback(
+  // Copy selected nodes to a newly created page
+  const handleCopyNodesToNewPage = useCallback(
     (nodeIds: string[]) => {
-      const sourceLevelName = levels.find(l => l.id === activeLevel)?.name ?? 'Unknown';
-      const newLevel = createLevel(`Copied selection from ${sourceLevelName}`);
-      copyNodesToLevel(nodeIds, newLevel.id);
-      setActiveLevel(newLevel.id);
+      const sourcePageName = pages.find(l => l.id === activePage)?.name ?? 'Unknown';
+      const newPage = createPage(`Copied selection from ${sourcePageName}`);
+      copyNodesToPage(nodeIds, newPage.id);
+      setActivePage(newPage.id);
     },
-    [createLevel, copyNodesToLevel, setActiveLevel, levels, activeLevel]
+    [createPage, copyNodesToPage, setActivePage, pages, activePage]
   );
 
   // Spread selected nodes into a non-overlapping grid
@@ -1158,11 +1158,11 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
             const node = nodes.find(n => n.id === contextMenu.nodeId);
             return node?.type === 'construct' ? (node.data as ConstructNodeData).constructType : undefined;
           })()}
-          levels={levels}
-          activeLevel={activeLevel}
+          pages={pages}
+          activePage={activePage}
           selectedNodeIds={selectedNodeIds}
-          onCopyNodesToLevel={copyNodesToLevel}
-          onCopyNodesToNewLevel={handleCopyNodesToNewLevel}
+          onCopyNodesToPage={copyNodesToPage}
+          onCopyNodesToNewPage={handleCopyNodesToNewPage}
           onSpreadSelected={handleSpreadSelected}
           onOrganizeSelected={createOrganizer}
           onRemoveFromOrganizer={removeFromOrganizer}

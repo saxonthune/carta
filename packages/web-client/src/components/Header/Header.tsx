@@ -5,7 +5,6 @@ import ConnectionStatus from '../ConnectionStatus';
 import DocumentBrowserModal from '../modals/DocumentBrowserModal';
 import ProjectInfoModal from '../modals/ProjectInfoModal';
 import ClearWorkspaceModal from '../modals/ClearWorkspaceModal';
-import RestoreDefaultSchemasModal from '../modals/RestoreDefaultSchemasModal';
 import { cleanAllLocalData } from '../../stores/documentRegistry';
 import { ThemeMenu } from './ThemeMenu';
 import { SettingsMenu } from './SettingsMenu';
@@ -21,7 +20,6 @@ export interface HeaderProps {
   onImport: (file: File) => void;
   onCompile: () => void;
   onClear?: (mode: 'instances' | 'all') => void;
-  onRestoreDefaultSchemas?: () => void;
   onToggleAI?: () => void;
 }
 
@@ -48,14 +46,12 @@ export function Header({
   onImport,
   onCompile,
   onClear,
-  onRestoreDefaultSchemas,
   onToggleAI,
 }: HeaderProps) {
   const { mode, documentId } = useDocumentContext();
   const [isProjectInfoModalOpen, setIsProjectInfoModalOpen] = useState(false);
   const [isDocBrowserOpen, setIsDocBrowserOpen] = useState(false);
   const [isClearWorkspaceModalOpen, setIsClearWorkspaceModalOpen] = useState(false);
-  const [isRestoreDefaultSchemasModalOpen, setIsRestoreDefaultSchemasModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImportClick = () => {
@@ -78,14 +74,6 @@ export function Header({
     onClear?.('all');
   };
 
-  const handleClearAndRestore = () => {
-    onClear?.('all');
-    onRestoreDefaultSchemas?.();
-  };
-
-  const handleRestoreDefaultSchemas = () => {
-    onRestoreDefaultSchemas?.();
-  };
 
   return (
     <header className="h-12 bg-surface border-b grid grid-cols-[1fr_auto_1fr] items-center px-0 shrink-0">
@@ -205,7 +193,6 @@ export function Header({
 
         <SettingsMenu
           onOpenClearModal={() => setIsClearWorkspaceModalOpen(true)}
-          onOpenRestoreSchemasModal={() => setIsRestoreDefaultSchemasModalOpen(true)}
         />
       </div>
 
@@ -215,13 +202,6 @@ export function Header({
         onClose={() => setIsClearWorkspaceModalOpen(false)}
         onClearInstances={handleClearInstances}
         onClearEverything={handleClearEverything}
-        onClearAndRestore={handleClearAndRestore}
-      />
-
-      <RestoreDefaultSchemasModal
-        isOpen={isRestoreDefaultSchemasModalOpen}
-        onClose={() => setIsRestoreDefaultSchemasModalOpen(false)}
-        onConfirm={handleRestoreDefaultSchemas}
       />
 
       {isProjectInfoModalOpen && (

@@ -53,7 +53,7 @@ export default function ExportPreviewModal({
       version: CARTA_FILE_VERSION,
       title: analysis.title,
       description: analysis.description || undefined,
-      levels: [{
+      pages: [{
         id: 'preview',
         name: 'Main',
         order: 0,

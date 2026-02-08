@@ -9,14 +9,14 @@ import type { ConstructSchema, PortSchema, SchemaGroup } from '@carta/domain';
 import { builtInConstructSchemas, builtInPortSchemas } from '@carta/domain';
 import { yToPlain, deepPlainToY } from './yjs-helpers.js';
 import { CARTA_FILE_VERSION } from './constants.js';
-import type { CartaFile, CartaFileLevel } from './file-format.js';
+import type { CartaFile, CartaFilePage } from './file-format.js';
 
 /**
  * Extract a CartaFile from a Y.Doc for saving.
  */
 export function extractCartaFile(doc: Y.Doc): CartaFile {
   const ymeta = doc.getMap('meta');
-  const ylevels = doc.getMap<Y.Map<unknown>>('levels');
+  const ypages = doc.getMap<Y.Map<unknown>>('pages');
   const ynodes = doc.getMap<Y.Map<unknown>>('nodes');
   const yedges = doc.getMap<Y.Map<unknown>>('edges');
   const yschemas = doc.getMap<Y.Map<unknown>>('schemas');
@@ -27,42 +27,42 @@ export function extractCartaFile(doc: Y.Doc): CartaFile {
   const description = ymeta.get('description') as string | undefined;
 
   // Extract levels with their data
-  const levels: CartaFileLevel[] = [];
-  ylevels.forEach((ylevel, levelId) => {
-    const levelData = yToPlain(ylevel) as { id: string; name: string; description?: string; order: number };
+  const pages: CartaFilePage[] = [];
+  ypages.forEach((ylevel, pageId) => {
+    const pageData = yToPlain(ylevel) as { id: string; name: string; description?: string; order: number };
 
     // Get nodes for this level
-    const levelNodes = ynodes.get(levelId) as Y.Map<Y.Map<unknown>> | undefined;
+    const pageNodes = ynodes.get(pageId) as Y.Map<Y.Map<unknown>> | undefined;
     const nodes: unknown[] = [];
-    if (levelNodes) {
-      levelNodes.forEach((ynode, nodeId) => {
+    if (pageNodes) {
+      pageNodes.forEach((ynode, nodeId) => {
         const nodeData = yToPlain(ynode) as Record<string, unknown>;
         nodes.push({ id: nodeId, ...nodeData });
       });
     }
 
     // Get edges for this level
-    const levelEdges = yedges.get(levelId) as Y.Map<Y.Map<unknown>> | undefined;
+    const pageEdges = yedges.get(pageId) as Y.Map<Y.Map<unknown>> | undefined;
     const edges: unknown[] = [];
-    if (levelEdges) {
-      levelEdges.forEach((yedge, edgeId) => {
+    if (pageEdges) {
+      pageEdges.forEach((yedge, edgeId) => {
         const edgeData = yToPlain(yedge) as Record<string, unknown>;
         edges.push({ id: edgeId, ...edgeData });
       });
     }
 
-    levels.push({
-      id: levelData.id,
-      name: levelData.name,
-      description: levelData.description,
-      order: levelData.order,
+    pages.push({
+      id: pageData.id,
+      name: pageData.name,
+      description: pageData.description,
+      order: pageData.order,
       nodes,
       edges,
     });
   });
 
   // Sort levels by order
-  levels.sort((a, b) => a.order - b.order);
+  pages.sort((a, b) => a.order - b.order);
 
   // Extract custom schemas (filter out built-ins)
   const builtInTypes = new Set(builtInConstructSchemas.map(s => s.type));
@@ -94,7 +94,7 @@ export function extractCartaFile(doc: Y.Doc): CartaFile {
     version: CARTA_FILE_VERSION,
     title,
     description,
-    levels,
+    pages,
     customSchemas,
     portSchemas,
     schemaGroups,
@@ -109,7 +109,7 @@ export function extractCartaFile(doc: Y.Doc): CartaFile {
  */
 export function hydrateYDocFromCartaFile(doc: Y.Doc, data: CartaFile): void {
   const ymeta = doc.getMap('meta');
-  const ylevels = doc.getMap<Y.Map<unknown>>('levels');
+  const ypages = doc.getMap<Y.Map<unknown>>('pages');
   const ynodes = doc.getMap<Y.Map<unknown>>('nodes');
   const yedges = doc.getMap<Y.Map<unknown>>('edges');
   const yschemas = doc.getMap<Y.Map<unknown>>('schemas');
@@ -119,7 +119,7 @@ export function hydrateYDocFromCartaFile(doc: Y.Doc, data: CartaFile): void {
   doc.transact(() => {
     // Clear existing data
     ymeta.clear();
-    ylevels.clear();
+    ypages.clear();
     ynodes.clear();
     yedges.clear();
     yschemas.clear();
@@ -134,22 +134,22 @@ export function hydrateYDocFromCartaFile(doc: Y.Doc, data: CartaFile): void {
     ymeta.set('version', data.version);
 
     // Hydrate levels
-    let firstLevelId: string | null = null;
+    let firstPageId: string | null = null;
 
-    for (const level of data.levels) {
-      if (!firstLevelId) firstLevelId = level.id;
+    for (const page of data.pages) {
+      if (!firstPageId) firstPageId = page.id;
 
       // Create level metadata
-      const levelMap = new Y.Map<unknown>();
-      levelMap.set('id', level.id);
-      levelMap.set('name', level.name);
-      if (level.description) levelMap.set('description', level.description);
-      levelMap.set('order', level.order);
-      ylevels.set(level.id, levelMap);
+      const pageMap = new Y.Map<unknown>();
+      pageMap.set('id', page.id);
+      pageMap.set('name', page.name);
+      if (page.description) pageMap.set('description', page.description);
+      pageMap.set('order', page.order);
+      ypages.set(page.id, pageMap);
 
       // Create nodes map for this level
-      const levelNodesMap = new Y.Map<Y.Map<unknown>>();
-      for (const node of level.nodes) {
+      const pageNodesMap = new Y.Map<Y.Map<unknown>>();
+      for (const node of page.nodes) {
         const nodeObj = node as Record<string, unknown>;
         const nodeId = nodeObj.id as string;
         const ynode = deepPlainToY({
@@ -161,13 +161,13 @@ export function hydrateYDocFromCartaFile(doc: Y.Doc, data: CartaFile): void {
           ...(nodeObj.style ? { style: nodeObj.style } : {}),
           ...(nodeObj.parentId ? { parentId: nodeObj.parentId } : {}),
         }) as Y.Map<unknown>;
-        levelNodesMap.set(nodeId, ynode);
+        pageNodesMap.set(nodeId, ynode);
       }
-      ynodes.set(level.id, levelNodesMap as unknown as Y.Map<unknown>);
+      ynodes.set(page.id, pageNodesMap as unknown as Y.Map<unknown>);
 
       // Create edges map for this level
-      const levelEdgesMap = new Y.Map<Y.Map<unknown>>();
-      for (const edge of level.edges) {
+      const pageEdgesMap = new Y.Map<Y.Map<unknown>>();
+      for (const edge of page.edges) {
         const edgeObj = edge as Record<string, unknown>;
         const edgeId = edgeObj.id as string;
         const yedge = deepPlainToY({
@@ -176,14 +176,14 @@ export function hydrateYDocFromCartaFile(doc: Y.Doc, data: CartaFile): void {
           sourceHandle: edgeObj.sourceHandle,
           targetHandle: edgeObj.targetHandle,
         }) as Y.Map<unknown>;
-        levelEdgesMap.set(edgeId, yedge);
+        pageEdgesMap.set(edgeId, yedge);
       }
-      yedges.set(level.id, levelEdgesMap as unknown as Y.Map<unknown>);
+      yedges.set(page.id, pageEdgesMap as unknown as Y.Map<unknown>);
     }
 
     // Set active level to first level
-    if (firstLevelId) {
-      ymeta.set('activeLevel', firstLevelId);
+    if (firstPageId) {
+      ymeta.set('activePage', firstPageId);
     }
 
     // Set custom schemas

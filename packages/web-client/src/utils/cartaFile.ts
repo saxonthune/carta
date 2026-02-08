@@ -1,17 +1,17 @@
 import type { Node, Edge } from '@xyflow/react';
-import type { ConstructSchema, PortSchema, SchemaGroup, Level } from '@carta/domain';
+import type { ConstructSchema, PortSchema, SchemaGroup, Page } from '@carta/domain';
 import { toKebabCase } from '@carta/domain';
 import {
   CARTA_FILE_VERSION,
   validateCartaFile,
 } from '@carta/document';
-import type { CartaFile, CartaFileLevel } from '@carta/document';
+import type { CartaFile, CartaFilePage } from '@carta/document';
 import type { ExportOptions } from './exportAnalyzer';
 
 // Re-export for convenience
 export { generateSemanticId } from '@carta/domain';
 export { CARTA_FILE_VERSION, validateCartaFile, importProjectFromString } from '@carta/document';
-export type { CartaFile, CartaFileLevel } from '@carta/document';
+export type { CartaFile, CartaFilePage } from '@carta/document';
 
 /**
  * Export project data to a .carta file
@@ -19,26 +19,26 @@ export type { CartaFile, CartaFileLevel } from '@carta/document';
 export function exportProject(data: {
   title: string;
   description?: string;
-  levels: Level[];
+  pages: Page[];
   customSchemas: ConstructSchema[];
   portSchemas: PortSchema[];
   schemaGroups: SchemaGroup[];
 }, options?: ExportOptions): void {
-  // Convert levels to file format
-  const fileLevels: CartaFileLevel[] = data.levels.map(level => ({
-    id: level.id,
-    name: level.name,
-    description: level.description,
-    order: level.order,
-    nodes: (options?.nodes !== false ? level.nodes : []) as Node[],
-    edges: (options?.nodes !== false ? level.edges : []) as Edge[],
+  // Convert pages to file format
+  const filePages: CartaFilePage[] = data.pages.map(page => ({
+    id: page.id,
+    name: page.name,
+    description: page.description,
+    order: page.order,
+    nodes: (options?.nodes !== false ? page.nodes : []) as Node[],
+    edges: (options?.nodes !== false ? page.edges : []) as Edge[],
   }));
 
   const cartaFile: CartaFile = {
     version: CARTA_FILE_VERSION,
     title: data.title,
     description: data.description,
-    levels: fileLevels,
+    pages: filePages,
     customSchemas: options?.schemas !== false ? data.customSchemas : [],
     portSchemas: options?.portSchemas !== false ? data.portSchemas : [],
     schemaGroups: options?.schemaGroups !== false ? data.schemaGroups : [],

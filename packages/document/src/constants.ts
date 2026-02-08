@@ -1,6 +1,6 @@
 export const YDOC_MAPS = {
   META: 'meta',
-  LEVELS: 'levels',
+  PAGES: 'pages',
   NODES: 'nodes',
   EDGES: 'edges',
   DEPLOYABLES: 'deployables',
@@ -11,8 +11,8 @@ export const YDOC_MAPS = {
 
 export const MCP_ORIGIN = 'mcp';
 
-/** Level ID used for Metamap schema groups */
-export const METAMAP_LEVEL_ID = '__metamap__';
+/** Page ID used for Metamap schema groups */
+export const METAMAP_PAGE_ID = '__metamap__';
 
 export const CARTA_FILE_VERSION = 6;
 

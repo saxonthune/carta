@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
-import type { Level } from '@carta/domain';
+import type { Page } from '@carta/domain';
 import type { ImportAnalysis, ImportOptions, AnalyzedSchema, AnalyzedNode } from '../../utils/importAnalyzer';
 import { defaultImportOptions } from '../../utils/importAnalyzer';
 
 interface ImportPreviewModalProps {
   analysis: ImportAnalysis;
-  levels: Level[];
+  pages: Page[];
   onConfirm: (options: ImportOptions) => void;
   onCancel: () => void;
 }
@@ -85,7 +85,7 @@ function InstanceItem({ instance, analysis, selected, onToggle }: { instance: An
 
 export default function ImportPreviewModal({
   analysis,
-  levels,
+  pages,
   onConfirm,
   onCancel,
 }: ImportPreviewModalProps) {
@@ -206,16 +206,16 @@ export default function ImportPreviewModal({
             <span className="text-content font-medium">Replace document</span>
             <span className="text-content-muted text-xs">(replaces all content)</span>
           </label>
-          {levels.map(level => (
-            <label key={level.id} className="flex items-center gap-2 py-1 px-2 text-sm cursor-pointer hover:bg-surface-alt rounded">
+          {pages.map(page => (
+            <label key={page.id} className="flex items-center gap-2 py-1 px-2 text-sm cursor-pointer hover:bg-surface-alt rounded">
               <input
                 type="radio"
                 name="targetLevel"
-                checked={options.targetLevel === level.id}
-                onChange={() => setOptions(prev => ({ ...prev, targetLevel: level.id }))}
+                checked={options.targetLevel === page.id}
+                onChange={() => setOptions(prev => ({ ...prev, targetLevel: page.id }))}
                 className="accent-accent"
               />
-              <span className="text-content">Into "{level.name}"</span>
+              <span className="text-content">Into "{page.name}"</span>
               <span className="text-content-muted text-xs">(additive)</span>
             </label>
           ))}
@@ -227,8 +227,8 @@ export default function ImportPreviewModal({
               onChange={() => setOptions(prev => ({ ...prev, targetLevel: 'new' }))}
               className="accent-accent"
             />
-            <span className="text-content">+ New Level</span>
-            <span className="text-content-muted text-xs">(creates a new level)</span>
+            <span className="text-content">+ New Page</span>
+            <span className="text-content-muted text-xs">(creates a new page)</span>
           </label>
         </div>
       </div>

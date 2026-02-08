@@ -1,5 +1,5 @@
 // File format
-export type { CartaFile, CartaFileLevel } from '@carta/document';
+export type { CartaFile, CartaFilePage } from '@carta/document';
 export { exportProject } from './cartaFile';
 
 // Document import/export

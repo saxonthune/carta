@@ -30,12 +30,12 @@ import {
   removeSchema,
   compile,
   extractDocument,
-  listLevels,
-  getActiveLevel,
-  setActiveLevel,
-  createLevel,
-  updateLevel,
-  deleteLevel,
+  listPages,
+  getActivePage,
+  setActivePage,
+  createPage,
+  updatePage,
+  deletePage,
   listOrganizers,
   createOrganizer,
   updateOrganizer,
@@ -90,20 +90,20 @@ export interface DocumentServerHandlers {
 // ===== HELPERS =====
 
 /**
- * Resolve a level by ID or name (case-insensitive). Returns undefined if neither matches.
+ * Resolve a page by ID or name (case-insensitive). Returns undefined if neither matches.
  */
-function resolveLevelId(ydoc: Y.Doc, levelId?: string, levelName?: string): string | undefined {
-  if (levelId) return levelId;
-  if (!levelName) return undefined;
-  const levels = listLevels(ydoc);
-  return levels.find(l => l.name.toLowerCase() === levelName.toLowerCase())?.id;
+function resolvePageId(ydoc: Y.Doc, pageId?: string, pageName?: string): string | undefined {
+  if (pageId) return pageId;
+  if (!pageName) return undefined;
+  const pages = listPages(ydoc);
+  return pages.find(l => l.name.toLowerCase() === pageName.toLowerCase())?.id;
 }
 
 /**
- * Build compact construct + organizer summaries for a level (shared by multiple endpoints).
+ * Build compact construct + organizer summaries for a page (shared by multiple endpoints).
  */
-function compactLevelContents(ydoc: Y.Doc, levelId: string) {
-  const allNodes = listConstructs(ydoc, levelId);
+function compactPageContents(ydoc: Y.Doc, pageId: string) {
+  const allNodes = listConstructs(ydoc, pageId);
   const schemas = listSchemas(ydoc);
   const schemaMap = new Map(schemas.map(s => [s.type, s]));
 
@@ -117,7 +117,7 @@ function compactLevelContents(ydoc: Y.Doc, levelId: string) {
         semanticId: c.data.semanticId,
         constructType: c.data.constructType,
         displayName,
-        levelId,
+        pageId,
         parentId: c.parentId,
       };
     });
@@ -132,8 +132,8 @@ function compactLevelContents(ydoc: Y.Doc, levelId: string) {
     }));
 
   const yedges = ydoc.getMap<Y.Map<unknown>>('edges');
-  const levelEdgeMap = yedges.get(levelId) as Y.Map<unknown> | undefined;
-  const edgeCount = levelEdgeMap ? levelEdgeMap.size : 0;
+  const pageEdgeMap = yedges.get(pageId) as Y.Map<unknown> | undefined;
+  const edgeCount = pageEdgeMap ? pageEdgeMap.size : 0;
 
   return { constructs, organizers, edgeCount };
 }
@@ -146,18 +146,18 @@ const MESSAGE_AWARENESS = 1;
 // ===== UTILITIES =====
 
 /**
- * Get the active level ID for a Y.Doc, falling back to first level by order.
+ * Get the active page ID for a Y.Doc, falling back to first page by order.
  */
-export function getActiveLevelId(ydoc: Y.Doc): string {
+export function getActivePageId(ydoc: Y.Doc): string {
   const ymeta = ydoc.getMap('meta');
-  const active = ymeta.get('activeLevel') as string | undefined;
+  const active = ymeta.get('activePage') as string | undefined;
   if (active) return active;
-  // Fallback: first level by order
-  const ylevels = ydoc.getMap<Y.Map<unknown>>('levels');
+  // Fallback: first page by order
+  const ypages = ydoc.getMap<Y.Map<unknown>>('pages');
   let firstId: string | undefined;
   let firstOrder = Infinity;
-  ylevels.forEach((ylevel, id) => {
-    const order = (ylevel as Y.Map<unknown>).get('order') as number ?? 0;
+  ypages.forEach((ypage, id) => {
+    const order = (ypage as Y.Map<unknown>).get('order') as number ?? 0;
     if (order < firstOrder) { firstOrder = order; firstId = id; }
   });
   return firstId!;
@@ -364,23 +364,23 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
           ymeta.set('folder', folder);
           ymeta.set('version', 3);
 
-          // Initialize default level if none exists
-          const ylevels = docState.doc.getMap<Y.Map<unknown>>('levels');
-          if (ylevels.size === 0) {
-            const levelId = `level_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-            const levelData = new Y.Map<unknown>();
-            levelData.set('id', levelId);
-            levelData.set('name', 'Main');
-            levelData.set('order', 0);
-            ylevels.set(levelId, levelData);
-            ymeta.set('activeLevel', levelId);
-            console.log(`${logPrefix} [levels] Created default Main level for new document`, { levelId, roomId });
+          // Initialize default page if none exists
+          const ypages = docState.doc.getMap<Y.Map<unknown>>('pages');
+          if (ypages.size === 0) {
+            const pageId = `page_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+            const pageData = new Y.Map<unknown>();
+            pageData.set('id', pageId);
+            pageData.set('name', 'Main');
+            pageData.set('order', 0);
+            ypages.set(pageId, pageData);
+            ymeta.set('activePage', pageId);
+            console.log(`${logPrefix} [pages] Created default Main page for new document`, { pageId, roomId });
           }
         }, 'server');
 
         await config.onDocumentCreated?.(roomId, docState);
 
-        const document = extractDocument(docState.doc, roomId, getActiveLevelId(docState.doc));
+        const document = extractDocument(docState.doc, roomId, getActivePageId(docState.doc));
         sendJson(res, 201, { document });
         return;
       }
@@ -392,7 +392,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
 
         if (method === 'GET') {
           const docState = await config.getDoc(roomId);
-          const document = extractDocument(docState.doc, roomId, getActiveLevelId(docState.doc));
+          const document = extractDocument(docState.doc, roomId, getActivePageId(docState.doc));
           sendJson(res, 200, { document });
           return;
         }
@@ -411,23 +411,23 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
               docState.doc.getMap('meta').set('title', body.title);
             }
           }, 'mcp');
-          const document = extractDocument(docState.doc, roomId, getActiveLevelId(docState.doc));
+          const document = extractDocument(docState.doc, roomId, getActivePageId(docState.doc));
           sendJson(res, 200, { document });
           return;
         }
       }
 
-      // ===== LEVELS =====
+      // ===== PAGES =====
 
-      const levelsMatch = path.match(/^\/api\/documents\/([^/]+)\/levels$/);
-      if (levelsMatch) {
-        const roomId = levelsMatch[1]!;
+      const pagesMatch = path.match(/^\/api\/documents\/([^/]+)\/pages$/);
+      if (pagesMatch) {
+        const roomId = pagesMatch[1]!;
         const docState = await config.getDoc(roomId);
 
         if (method === 'GET') {
-          const levels = listLevels(docState.doc);
-          const activeLevel = getActiveLevel(docState.doc);
-          sendJson(res, 200, { levels, activeLevel });
+          const pages = listPages(docState.doc);
+          const activePage = getActivePage(docState.doc);
+          sendJson(res, 200, { pages, activePage });
           return;
         }
 
@@ -437,33 +437,33 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
             sendError(res, 400, 'name is required', 'MISSING_FIELD');
             return;
           }
-          const level = createLevel(docState.doc, body.name, body.description);
-          sendJson(res, 201, { level });
+          const page = createPage(docState.doc, body.name, body.description);
+          sendJson(res, 201, { page });
           return;
         }
       }
 
-      const levelActiveMatch = path.match(/^\/api\/documents\/([^/]+)\/levels\/active$/);
-      if (levelActiveMatch && method === 'POST') {
-        const roomId = levelActiveMatch[1]!;
+      const pageActiveMatch = path.match(/^\/api\/documents\/([^/]+)\/pages\/active$/);
+      if (pageActiveMatch && method === 'POST') {
+        const roomId = pageActiveMatch[1]!;
         const docState = await config.getDoc(roomId);
-        const body = await parseJsonBody<{ levelId?: string; levelName?: string }>(req);
+        const body = await parseJsonBody<{ pageId?: string; pageName?: string }>(req);
 
-        const levelId = resolveLevelId(docState.doc, body.levelId, body.levelName);
-        if (!levelId) {
-          sendError(res, 400, body.levelName
-            ? `Level not found by name: ${body.levelName}`
-            : 'levelId or levelName is required', body.levelName ? 'NOT_FOUND' : 'MISSING_FIELD');
+        const pageId = resolvePageId(docState.doc, body.pageId, body.pageName);
+        if (!pageId) {
+          sendError(res, 400, body.pageName
+            ? `Page not found by name: ${body.pageName}`
+            : 'pageId or pageName is required', body.pageName ? 'NOT_FOUND' : 'MISSING_FIELD');
           return;
         }
 
         try {
-          setActiveLevel(docState.doc, levelId);
+          setActivePage(docState.doc, pageId);
 
-          // Enriched response: level info + constructs + organizers + edges + custom schemas
-          const levels = listLevels(docState.doc);
-          const level = levels.find(l => l.id === levelId);
-          const { constructs, organizers, edgeCount } = compactLevelContents(docState.doc, levelId);
+          // Enriched response: page info + constructs + organizers + edges + custom schemas
+          const pages = listPages(docState.doc);
+          const page = pages.find(l => l.id === pageId);
+          const { constructs, organizers, edgeCount } = compactPageContents(docState.doc, pageId);
 
           const schemas = listSchemas(docState.doc);
           const customSchemas = schemas
@@ -471,8 +471,8 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
             .map(s => ({ type: s.type, displayName: s.displayName, groupId: s.groupId }));
 
           sendJson(res, 200, {
-            activeLevel: levelId,
-            level,
+            activePage: pageId,
+            page,
             constructs,
             organizers,
             edgeCount,
@@ -484,27 +484,27 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
         return;
       }
 
-      const levelMatch = path.match(/^\/api\/documents\/([^/]+)\/levels\/([^/]+)$/);
-      if (levelMatch) {
-        const roomId = levelMatch[1]!;
-        const levelId = decodeURIComponent(levelMatch[2]!);
+      const pageMatch = path.match(/^\/api\/documents\/([^/]+)\/pages\/([^/]+)$/);
+      if (pageMatch) {
+        const roomId = pageMatch[1]!;
+        const pageId = decodeURIComponent(pageMatch[2]!);
         const docState = await config.getDoc(roomId);
 
         if (method === 'PATCH') {
           const body = await parseJsonBody<{ name?: string; description?: string; order?: number }>(req);
-          const level = updateLevel(docState.doc, levelId, body);
-          if (!level) {
-            sendError(res, 404, `Level not found: ${levelId}`, 'NOT_FOUND');
+          const page = updatePage(docState.doc, pageId, body);
+          if (!page) {
+            sendError(res, 404, `Page not found: ${pageId}`, 'NOT_FOUND');
             return;
           }
-          sendJson(res, 200, { level });
+          sendJson(res, 200, { page });
           return;
         }
 
         if (method === 'DELETE') {
-          const deleted = deleteLevel(docState.doc, levelId);
+          const deleted = deletePage(docState.doc, pageId);
           if (!deleted) {
-            sendError(res, 400, 'Cannot delete level (not found or last level)', 'DELETE_FAILED');
+            sendError(res, 400, 'Cannot delete page (not found or last page)', 'DELETE_FAILED');
             return;
           }
           sendJson(res, 200, { deleted: true });
@@ -518,13 +518,13 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
       if (constructsMatch) {
         const roomId = constructsMatch[1]!;
         const docState = await config.getDoc(roomId);
-        const levelId = url.searchParams.get('levelId') || getActiveLevelId(docState.doc);
+        const pageId = url.searchParams.get('pageId') || getActivePageId(docState.doc);
 
         if (method === 'GET') {
           const typeFilter = url.searchParams.get('type') || undefined;
           if (typeFilter) {
             // Filtered query — can't use the shared helper
-            const constructs = listConstructs(docState.doc, levelId, { constructType: typeFilter });
+            const constructs = listConstructs(docState.doc, pageId, { constructType: typeFilter });
             const schemas = listSchemas(docState.doc);
             const schemaMap = new Map(schemas.map(s => [s.type, s]));
             const summary = constructs
@@ -533,7 +533,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
                 const schema = schemaMap.get(c.data.constructType);
                 const pillField = schema?.fields.find(f => f.displayTier === 'pill');
                 const displayName = pillField ? String(c.data.values?.[pillField.name] || '') : c.data.semanticId;
-                return { semanticId: c.data.semanticId, constructType: c.data.constructType, displayName, levelId, parentId: c.parentId };
+                return { semanticId: c.data.semanticId, constructType: c.data.constructType, displayName, pageId, parentId: c.parentId };
               });
             const organizers = constructs
               .filter(c => c.type === 'organizer')
@@ -545,7 +545,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
               }));
             sendJson(res, 200, { constructs: summary, organizers });
           } else {
-            const { constructs, organizers } = compactLevelContents(docState.doc, levelId);
+            const { constructs, organizers } = compactPageContents(docState.doc, pageId);
             sendJson(res, 200, { constructs, organizers });
           }
           return;
@@ -570,13 +570,13 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
           if (body.x != null && body.y != null) {
             position = { x: body.x, y: body.y };
           } else {
-            const existing = listConstructs(docState.doc, levelId);
+            const existing = listConstructs(docState.doc, pageId);
             position = computeAutoPosition(existing, 0);
           }
 
           const construct = createConstruct(
             docState.doc,
-            levelId,
+            pageId,
             body.constructType,
             body.values || {},
             position,
@@ -592,7 +592,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
       if (bulkConstructsMatch && method === 'DELETE') {
         const roomId = bulkConstructsMatch[1]!;
         const docState = await config.getDoc(roomId);
-        const levelId = getActiveLevelId(docState.doc);
+        const pageId = getActivePageId(docState.doc);
 
         const body = await parseJsonBody<{ semanticIds: string[] }>(req);
         if (!body.semanticIds || !Array.isArray(body.semanticIds) || body.semanticIds.length === 0) {
@@ -600,7 +600,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
           return;
         }
 
-        const results = deleteConstructsBulk(docState.doc, levelId, body.semanticIds);
+        const results = deleteConstructsBulk(docState.doc, pageId, body.semanticIds);
         sendJson(res, 200, { results });
         return;
       }
@@ -608,7 +608,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
       if (bulkConstructsMatch && method === 'POST') {
         const roomId = bulkConstructsMatch[1]!;
         const docState = await config.getDoc(roomId);
-        const levelId = getActiveLevelId(docState.doc);
+        const pageId = getActivePageId(docState.doc);
 
         const body = await parseJsonBody<{
           constructs: Array<{
@@ -628,7 +628,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
         const schemas = listSchemas(docState.doc);
         const schemaMap = new Map(schemas.map(s => [s.type, s]));
 
-        const nodes = createConstructsBulk(docState.doc, levelId, body.constructs);
+        const nodes = createConstructsBulk(docState.doc, pageId, body.constructs);
         const results = nodes.map(n => {
           const schema = schemaMap.get(n.data.constructType);
           const pillField = schema?.fields.find(f => f.displayTier === 'pill');
@@ -650,7 +650,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
         const roomId = moveMatch[1]!;
         const semanticId = decodeURIComponent(moveMatch[2]!);
         const docState = await config.getDoc(roomId);
-        const levelId = getActiveLevelId(docState.doc);
+        const pageId = getActivePageId(docState.doc);
 
         const body = await parseJsonBody<{
           parentId: string | null;
@@ -665,7 +665,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
 
         const construct = moveConstruct(
           docState.doc,
-          levelId,
+          pageId,
           semanticId,
           body.parentId,
           (body.x != null && body.y != null) ? { x: body.x, y: body.y } : undefined
@@ -685,7 +685,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
         const docState = await config.getDoc(roomId);
 
         if (method === 'GET') {
-          const construct = getConstruct(docState.doc, getActiveLevelId(docState.doc), semanticId);
+          const construct = getConstruct(docState.doc, getActivePageId(docState.doc), semanticId);
           if (!construct) {
             sendError(res, 404, `Construct not found: ${semanticId}`, 'NOT_FOUND');
             return;
@@ -698,7 +698,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
           const body = await parseJsonBody<{
             values?: Record<string, unknown>;
           }>(req);
-          const construct = updateConstruct(docState.doc, getActiveLevelId(docState.doc), semanticId, body);
+          const construct = updateConstruct(docState.doc, getActivePageId(docState.doc), semanticId, body);
           if (!construct) {
             sendError(res, 404, `Construct not found: ${semanticId}`, 'NOT_FOUND');
             return;
@@ -708,7 +708,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
         }
 
         if (method === 'DELETE') {
-          const deleted = deleteConstruct(docState.doc, getActiveLevelId(docState.doc), semanticId);
+          const deleted = deleteConstruct(docState.doc, getActivePageId(docState.doc), semanticId);
           sendJson(res, 200, { deleted });
           return;
         }
@@ -720,12 +720,12 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
       if (organizersMatch) {
         const roomId = organizersMatch[1]!;
         const docState = await config.getDoc(roomId);
-        const levelId = getActiveLevelId(docState.doc);
+        const pageId = getActivePageId(docState.doc);
 
         if (method === 'GET') {
-          const organizers = listOrganizers(docState.doc, levelId);
+          const organizers = listOrganizers(docState.doc, pageId);
           // Enrich with member counts
-          const constructs = listConstructs(docState.doc, levelId);
+          const constructs = listConstructs(docState.doc, pageId);
           const enriched = organizers.map(org => ({
             ...org,
             memberCount: constructs.filter(c => c.parentId === org.id).length,
@@ -755,14 +755,14 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
           // If attaching to a construct, look up the construct's node ID for parentId
           let parentId: string | undefined;
           if (body.attachedToSemanticId) {
-            const constructs = listConstructs(docState.doc, levelId);
+            const constructs = listConstructs(docState.doc, pageId);
             const ownerNode = constructs.find(c => c.data.semanticId === body.attachedToSemanticId);
             if (ownerNode) {
               parentId = ownerNode.id;
             }
           }
 
-          const organizer = createOrganizer(docState.doc, levelId, {
+          const organizer = createOrganizer(docState.doc, pageId, {
             name: body.name,
             color: body.color,
             position: (body.x != null || body.y != null) ? { x: body.x || 100, y: body.y || 100 } : body.attachedToSemanticId ? { x: 0, y: 190 } : undefined,
@@ -783,7 +783,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
         const roomId = organizerMatch[1]!;
         const organizerId = decodeURIComponent(organizerMatch[2]!);
         const docState = await config.getDoc(roomId);
-        const levelId = getActiveLevelId(docState.doc);
+        const pageId = getActivePageId(docState.doc);
 
         if (method === 'PATCH') {
           const body = await parseJsonBody<{
@@ -794,7 +794,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
             description?: string;
             attachedToSemanticId?: string;
           }>(req);
-          const organizer = updateOrganizer(docState.doc, levelId, organizerId, {
+          const organizer = updateOrganizer(docState.doc, pageId, organizerId, {
             name: body.name,
             color: body.color,
             collapsed: body.collapsed,
@@ -812,7 +812,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
 
         if (method === 'DELETE') {
           const deleteMembers = url.searchParams.get('deleteMembers') === 'true';
-          const deleted = deleteOrganizer(docState.doc, levelId, organizerId, deleteMembers);
+          const deleted = deleteOrganizer(docState.doc, pageId, organizerId, deleteMembers);
           if (!deleted) {
             sendError(res, 404, `Organizer not found: ${organizerId}`, 'NOT_FOUND');
             return;
@@ -844,7 +844,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
 
           const edge = connect(
             docState.doc,
-            getActiveLevelId(docState.doc),
+            getActivePageId(docState.doc),
             body.sourceSemanticId,
             body.sourcePortId,
             body.targetSemanticId,
@@ -872,7 +872,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
 
           const disconnected = disconnect(
             docState.doc,
-            getActiveLevelId(docState.doc),
+            getActivePageId(docState.doc),
             body.sourceSemanticId,
             body.sourcePortId,
             body.targetSemanticId
@@ -887,7 +887,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
       if (bulkConnectionsMatch && method === 'POST') {
         const roomId = bulkConnectionsMatch[1]!;
         const docState = await config.getDoc(roomId);
-        const levelId = getActiveLevelId(docState.doc);
+        const pageId = getActivePageId(docState.doc);
 
         const body = await parseJsonBody<{
           connections: Array<{
@@ -903,7 +903,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
           return;
         }
 
-        const results = connectBulk(docState.doc, levelId, body.connections);
+        const results = connectBulk(docState.doc, pageId, body.connections);
         sendJson(res, 201, { results });
         return;
       }
@@ -1026,7 +1026,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
       if (compileMatch && method === 'GET') {
         const roomId = compileMatch[1]!;
         const docState = await config.getDoc(roomId);
-        const output = compile(docState.doc, getActiveLevelId(docState.doc));
+        const output = compile(docState.doc, getActivePageId(docState.doc));
         sendJson(res, 200, { output });
         return;
       }
@@ -1050,8 +1050,8 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
 
         const ymeta = ydoc.getMap('meta');
         const title = (ymeta.get('title') as string) || 'Untitled Project';
-        const levels = listLevels(ydoc);
-        const activeLevel = getActiveLevel(ydoc);
+        const pages = listPages(ydoc);
+        const activePage = getActivePage(ydoc);
         const schemas = listSchemas(ydoc);
         const builtInCount = schemas.filter(s => !ydoc.getMap('schemas').has(s.type)).length;
         const customSchemaCount = schemas.length - builtInCount;
@@ -1060,22 +1060,22 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
         let totalOrganizers = 0;
         let totalEdges = 0;
 
-        const levelSummaries = levels.map(level => {
-          const constructs = listConstructs(ydoc, level.id);
+        const pageSummaries = pages.map(page => {
+          const constructs = listConstructs(ydoc, page.id);
           const constructCount = constructs.filter(c => c.type !== 'organizer').length;
           const organizerCount = constructs.filter(c => c.type === 'organizer').length;
 
           const yedges = ydoc.getMap<Y.Map<unknown>>('edges');
-          const levelEdgeMap = yedges.get(level.id) as Y.Map<unknown> | undefined;
-          const edgeCount = levelEdgeMap ? levelEdgeMap.size : 0;
+          const pageEdgeMap = yedges.get(page.id) as Y.Map<unknown> | undefined;
+          const edgeCount = pageEdgeMap ? pageEdgeMap.size : 0;
 
           totalConstructs += constructCount;
           totalOrganizers += organizerCount;
           totalEdges += edgeCount;
 
           return {
-            id: level.id,
-            name: level.name,
+            id: page.id,
+            name: page.name,
             constructCount,
             organizerCount,
             edgeCount,
@@ -1084,27 +1084,27 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
 
         const response: Record<string, unknown> = {
           title,
-          activeLevel,
-          levels: levelSummaries,
+          activePage,
+          pages: pageSummaries,
           customSchemaCount,
           totalConstructs,
           totalOrganizers,
           totalEdges,
         };
 
-        // Optional: embed detailed data for a specific level
+        // Optional: embed detailed data for a specific page
         const includeParam = url.searchParams.get('include');
         const includes = includeParam ? includeParam.split(',').map(s => s.trim()) : [];
 
         if (includes.length > 0) {
-          const targetLevelId = resolveLevelId(
+          const targetLevelId = resolvePageId(
             ydoc,
-            url.searchParams.get('levelId') ?? undefined,
-            url.searchParams.get('levelName') ?? undefined,
-          ) ?? getActiveLevelId(ydoc);
+            url.searchParams.get('pageId') ?? undefined,
+            url.searchParams.get('pageName') ?? undefined,
+          ) ?? getActivePageId(ydoc);
 
           if (includes.includes('constructs')) {
-            const { constructs, organizers } = compactLevelContents(ydoc, targetLevelId);
+            const { constructs, organizers } = compactPageContents(ydoc, targetLevelId);
             response.constructs = constructs;
             response.organizers = organizers;
           }
@@ -1125,7 +1125,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
       if (batchMatch && method === 'POST') {
         const roomId = batchMatch[1]!;
         const docState = await config.getDoc(roomId);
-        const levelId = getActiveLevelId(docState.doc);
+        const pageId = getActivePageId(docState.doc);
 
         const body = await parseJsonBody<{ operations: BatchOperation[] }>(req);
         if (!body.operations || !Array.isArray(body.operations) || body.operations.length === 0) {
@@ -1133,7 +1133,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
           return;
         }
 
-        const results = batchMutate(docState.doc, levelId, body.operations);
+        const results = batchMutate(docState.doc, pageId, body.operations);
         sendJson(res, 200, { results });
         return;
       }

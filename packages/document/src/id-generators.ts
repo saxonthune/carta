@@ -6,8 +6,8 @@ export function generateSchemaGroupId(): string {
   return 'grp_' + Math.random().toString(36).substring(2, 11);
 }
 
-export function generateLevelId(): string {
-  return 'level-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6);
+export function generatePageId(): string {
+  return 'page-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6);
 }
 
 export function generateNodeId(): string {

@@ -9,9 +9,9 @@ import type { ConstructSchema, PortSchema, SchemaGroup } from '@carta/domain';
 import { CARTA_FILE_VERSION } from './constants.js';
 
 /**
- * Level structure in a .carta file
+ * Page structure in a .carta file
  */
-export interface CartaFileLevel {
+export interface CartaFilePage {
   id: string;
   name: string;
   description?: string;
@@ -27,7 +27,7 @@ export interface CartaFile {
   version: number;
   title: string;
   description?: string;
-  levels: CartaFileLevel[];
+  pages: CartaFilePage[];
   customSchemas: ConstructSchema[];
   portSchemas: PortSchema[];
   schemaGroups: SchemaGroup[];
@@ -66,9 +66,13 @@ export function validateCartaFile(data: unknown): CartaFile {
     throw new Error('Invalid file: missing or invalid title');
   }
 
-  // Require levels array
-  if (!Array.isArray(obj.levels) || obj.levels.length === 0) {
-    throw new Error('Invalid file: missing or empty levels array');
+  // Require pages array (accept legacy 'levels' key)
+  if (Array.isArray(obj.pages) && !Array.isArray(obj.pages)) {
+    obj.pages = obj.pages;
+    delete obj.pages;
+  }
+  if (!Array.isArray(obj.pages) || obj.pages.length === 0) {
+    throw new Error('Invalid file: missing or empty pages array');
   }
 
   if (!Array.isArray(obj.customSchemas)) {
@@ -76,21 +80,21 @@ export function validateCartaFile(data: unknown): CartaFile {
   }
 
   // Validate levels
-  for (const level of obj.levels as unknown[]) {
-    if (!level || typeof level !== 'object') {
-      throw new Error('Invalid file: invalid level structure');
+  for (const page of obj.pages as unknown[]) {
+    if (!page || typeof page !== 'object') {
+      throw new Error('Invalid file: invalid page structure');
     }
-    const l = level as Record<string, unknown>;
+    const l = page as Record<string, unknown>;
     if (typeof l.id !== 'string' || typeof l.name !== 'string' || typeof l.order !== 'number') {
-      throw new Error('Invalid file: level missing required fields (id, name, order)');
+      throw new Error('Invalid file: page missing required fields (id, name, order)');
     }
     if (!Array.isArray(l.nodes) || !Array.isArray(l.edges)) {
-      throw new Error('Invalid file: level missing required arrays (nodes, edges)');
+      throw new Error('Invalid file: page missing required arrays (nodes, edges)');
     }
   }
 
   // Validate nodes across all levels
-  const nodesToValidate = (obj.levels as Array<Record<string, unknown>>).flatMap(l => l.nodes as unknown[]);
+  const nodesToValidate = (obj.pages as Array<Record<string, unknown>>).flatMap(l => l.nodes as unknown[]);
 
   for (const node of nodesToValidate) {
     if (!node || typeof node !== 'object') {
@@ -121,7 +125,7 @@ export function validateCartaFile(data: unknown): CartaFile {
   }
 
   // Validate edges across all levels
-  const edgesToValidate = (obj.levels as Array<Record<string, unknown>>).flatMap(l => l.edges as unknown[]);
+  const edgesToValidate = (obj.pages as Array<Record<string, unknown>>).flatMap(l => l.edges as unknown[]);
 
   for (const edge of edgesToValidate) {
     if (!edge || typeof edge !== 'object') {
@@ -209,7 +213,7 @@ export function validateCartaFile(data: unknown): CartaFile {
     version: repairedData.version as number,
     title: repairedData.title as string,
     description: (repairedData.description as string | undefined),
-    levels: repairedData.levels as CartaFileLevel[],
+    pages: repairedData.pages as CartaFilePage[],
     customSchemas: repairedData.customSchemas as ConstructSchema[],
     portSchemas: repairedData.portSchemas as PortSchema[],
     schemaGroups: repairedData.schemaGroups as SchemaGroup[],
@@ -227,7 +231,7 @@ function repairOrphanedConnections(
   // Build set of all valid semantic IDs
   const validSemanticIds = new Set<string>();
 
-  const nodesToCheck = (obj.levels as Array<Record<string, unknown>>).flatMap(l => l.nodes as unknown[]);
+  const nodesToCheck = (obj.pages as Array<Record<string, unknown>>).flatMap(l => l.nodes as unknown[]);
 
   for (const node of nodesToCheck) {
     if (!node || typeof node !== 'object') continue;
@@ -241,10 +245,10 @@ function repairOrphanedConnections(
   }
 
   // Repair connections in all levels
-  const repairedLevels = (obj.levels as unknown[]).map((level: unknown) => {
-    if (!level || typeof level !== 'object') return level;
-    const l = level as Record<string, unknown>;
-    if (!Array.isArray(l.nodes)) return level;
+  const repairedPages = (obj.pages as unknown[]).map((page: unknown) => {
+    if (!page || typeof page !== 'object') return page;
+    const l = page as Record<string, unknown>;
+    if (!Array.isArray(l.nodes)) return page;
 
     const repairedNodes = l.nodes.map((node: unknown) => {
       if (!node || typeof node !== 'object') return node;
@@ -280,6 +284,6 @@ function repairOrphanedConnections(
 
   return {
     ...obj,
-    levels: repairedLevels,
+    pages: repairedPages,
   };
 }

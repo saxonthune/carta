@@ -28,7 +28,7 @@ status: active
 
 ## Undo and Redo
 
-- Per-level undo history via Yjs UndoManager
+- Per-page undo history via Yjs UndoManager
 - Tracks changes with 'user' origin (excludes remote collaboration changes)
 - Local per-user — undo/redo is not shared in collaboration mode
 - Visual indicators show enabled/disabled state

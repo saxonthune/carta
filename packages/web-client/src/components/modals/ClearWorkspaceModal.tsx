@@ -5,7 +5,6 @@ interface ClearWorkspaceModalProps {
   onClose: () => void;
   onClearInstances: () => void;
   onClearEverything: () => void;
-  onClearAndRestore: () => void;
 }
 
 export default function ClearWorkspaceModal({
@@ -13,7 +12,6 @@ export default function ClearWorkspaceModal({
   onClose,
   onClearInstances,
   onClearEverything,
-  onClearAndRestore,
 }: ClearWorkspaceModalProps) {
   const handleClearInstances = () => {
     onClearInstances();
@@ -22,11 +20,6 @@ export default function ClearWorkspaceModal({
 
   const handleClearEverything = () => {
     onClearEverything();
-    onClose();
-  };
-
-  const handleClearAndRestore = () => {
-    onClearAndRestore();
     onClose();
   };
 
@@ -54,15 +47,6 @@ export default function ClearWorkspaceModal({
         >
           <div className="text-sm font-medium text-amber-600">Clear Everything</div>
           <div className="text-xs text-content-muted mt-0.5">Delete all instances, schemas, and deployables. This cannot be undone.</div>
-        </button>
-
-        <button
-          data-testid="clear-and-restore-button"
-          className="w-full text-left px-4 py-3 rounded-lg border border-red-500/50 bg-surface hover:bg-red-500/10 transition-colors cursor-pointer"
-          onClick={handleClearAndRestore}
-        >
-          <div className="text-sm font-medium text-red-600">Clear Everything and Restore Defaults</div>
-          <div className="text-xs text-content-muted mt-0.5">Delete everything and restore built-in schemas. Fresh start with defaults.</div>
         </button>
 
         <button

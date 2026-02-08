@@ -1,14 +1,14 @@
 /**
- * Test: Levels System
+ * Test: Pages System
  *
- * Verifies the core user-facing level behaviors:
- * - Default "Main" level exists on init
- * - Create, switch, rename, delete levels
- * - Level isolation: nodes/edges are per-level
- * - Schemas are shared across levels
- * - Duplicate level deep-copies content
- * - Copy nodes to another level
- * - Clear document respects levels
+ * Verifies the core user-facing page behaviors:
+ * - Default "Main" page exists on init
+ * - Create, switch, rename, delete pages
+ * - Page isolation: nodes/edges are per-page
+ * - Schemas are shared across pages
+ * - Duplicate page deep-copies content
+ * - Copy nodes to another page
+ * - Clear document respects pages
  */
 
 import { describe, it, expect } from 'vitest';
@@ -16,7 +16,7 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import { useNodes } from '../../src/hooks/useNodes';
 import { useEdges } from '../../src/hooks/useEdges';
 import { useSchemas } from '../../src/hooks/useSchemas';
-import { useLevels } from '../../src/hooks/useLevels';
+import { usePages } from '../../src/hooks/usePages';
 import { useDocumentContext } from '../../src/contexts/DocumentContext';
 import { TestProviders } from '../setup/testProviders';
 import { createTestNode, createTestEdge } from '../setup/testHelpers';
@@ -26,7 +26,7 @@ function useTestHarness() {
     nodes: useNodes(),
     edges: useEdges(),
     schemas: useSchemas(),
-    levels: useLevels(),
+    pages: usePages(),
     context: useDocumentContext(),
   };
 }
@@ -39,51 +39,51 @@ async function setup() {
   return result;
 }
 
-describe('Levels', () => {
+describe('Pages', () => {
   describe('Initialization', () => {
-    it('should create a default "Main" level on init', async () => {
+    it('should create a default "Main" page on init', async () => {
       const result = await setup();
 
-      expect(result.current.levels.levels).toHaveLength(1);
-      expect(result.current.levels.levels[0].name).toBe('Main');
-      expect(result.current.levels.activeLevel).toBe(result.current.levels.levels[0].id);
+      expect(result.current.pages.pages).toHaveLength(1);
+      expect(result.current.pages.pages[0].name).toBe('Main');
+      expect(result.current.pages.activePage).toBe(result.current.pages.pages[0].id);
     });
   });
 
   describe('Create and Switch', () => {
-    it('should create a new level and switch to it', async () => {
+    it('should create a new page and switch to it', async () => {
       const result = await setup();
 
       act(() => {
-        result.current.levels.createLevel('Level 2');
+        result.current.pages.createPage('Page 2');
       });
 
       await waitFor(() => {
-        expect(result.current.levels.levels).toHaveLength(2);
+        expect(result.current.pages.pages).toHaveLength(2);
       });
 
-      const newLevel = result.current.levels.levels.find(l => l.name === 'Level 2');
-      expect(newLevel).toBeDefined();
+      const newPage = result.current.pages.pages.find(l => l.name === 'Page 2');
+      expect(newPage).toBeDefined();
 
-      // Switch to the new level
+      // Switch to the new page
       act(() => {
-        result.current.levels.setActiveLevel(newLevel!.id);
+        result.current.pages.setActivePage(newPage!.id);
       });
 
       await waitFor(() => {
-        expect(result.current.levels.activeLevel).toBe(newLevel!.id);
+        expect(result.current.pages.activePage).toBe(newPage!.id);
       });
     });
   });
 
-  describe('Level Isolation', () => {
-    it('should keep nodes independent between levels', async () => {
+  describe('Page Isolation', () => {
+    it('should keep nodes independent between pages', async () => {
       const result = await setup();
       const { adapter } = result.current.context;
 
-      const level1Id = result.current.levels.levels[0].id;
+      const page1Id = result.current.pages.pages[0].id;
 
-      // Add nodes to level 1
+      // Add nodes to page 1
       act(() => {
         adapter.setNodes([
           createTestNode({ id: 'n1', type: 'Task', semanticId: 'task-1' }),
@@ -95,22 +95,22 @@ describe('Levels', () => {
         expect(result.current.nodes.nodes).toHaveLength(2);
       });
 
-      // Create level 2 and switch to it
-      let level2Id: string;
+      // Create page 2 and switch to it
+      let page2Id: string;
       act(() => {
-        const l2 = result.current.levels.createLevel('Level 2');
-        level2Id = l2.id;
-        result.current.levels.setActiveLevel(l2.id);
+        const p2 = result.current.pages.createPage('Page 2');
+        page2Id = p2.id;
+        result.current.pages.setActivePage(p2.id);
       });
 
       await waitFor(() => {
-        expect(result.current.levels.activeLevel).not.toBe(level1Id);
+        expect(result.current.pages.activePage).not.toBe(page1Id);
       });
 
-      // Level 2 should have no nodes
+      // Page 2 should have no nodes
       expect(result.current.nodes.nodes).toHaveLength(0);
 
-      // Add a different node to level 2
+      // Add a different node to page 2
       act(() => {
         adapter.setNodes([
           createTestNode({ id: 'n3', type: 'Service', semanticId: 'service-1' }),
@@ -121,25 +121,25 @@ describe('Levels', () => {
         expect(result.current.nodes.nodes).toHaveLength(1);
       });
 
-      // Switch back to level 1 — should still have 2 nodes
+      // Switch back to page 1 — should still have 2 nodes
       act(() => {
-        result.current.levels.setActiveLevel(level1Id);
+        result.current.pages.setActivePage(page1Id);
       });
 
       await waitFor(() => {
-        expect(result.current.levels.activeLevel).toBe(level1Id);
+        expect(result.current.pages.activePage).toBe(page1Id);
       });
 
       expect(result.current.nodes.nodes).toHaveLength(2);
     });
 
-    it('should keep edges independent between levels', async () => {
+    it('should keep edges independent between pages', async () => {
       const result = await setup();
       const { adapter } = result.current.context;
 
-      const level1Id = result.current.levels.levels[0].id;
+      const page1Id = result.current.pages.pages[0].id;
 
-      // Add nodes + edge to level 1
+      // Add nodes + edge to page 1
       act(() => {
         adapter.setNodes([
           createTestNode({ id: 'a', type: 'Task' }),
@@ -152,24 +152,24 @@ describe('Levels', () => {
         expect(result.current.edges.edges).toHaveLength(1);
       });
 
-      // Create level 2 and switch
+      // Create page 2 and switch
       act(() => {
-        const l2 = result.current.levels.createLevel('Level 2');
-        result.current.levels.setActiveLevel(l2.id);
+        const p2 = result.current.pages.createPage('Page 2');
+        result.current.pages.setActivePage(p2.id);
       });
 
       await waitFor(() => {
-        expect(result.current.levels.activeLevel).not.toBe(level1Id);
+        expect(result.current.pages.activePage).not.toBe(page1Id);
       });
 
       expect(result.current.edges.edges).toHaveLength(0);
     });
 
-    it('should share schemas across levels', async () => {
+    it('should share schemas across pages', async () => {
       const result = await setup();
       const { adapter } = result.current.context;
 
-      // Add schema on level 1
+      // Add schema on page 1
       act(() => {
         adapter.addSchema({
           type: 'SharedType',
@@ -185,10 +185,10 @@ describe('Levels', () => {
         expect(result.current.schemas.schemas.find(s => s.type === 'SharedType')).toBeDefined();
       });
 
-      // Switch to level 2
+      // Switch to page 2
       act(() => {
-        const l2 = result.current.levels.createLevel('Level 2');
-        result.current.levels.setActiveLevel(l2.id);
+        const p2 = result.current.pages.createPage('Page 2');
+        result.current.pages.setActivePage(p2.id);
       });
 
       // Schema should still be visible
@@ -198,79 +198,79 @@ describe('Levels', () => {
     });
   });
 
-  describe('Rename Level', () => {
-    it('should rename a level', async () => {
+  describe('Rename Page', () => {
+    it('should rename a page', async () => {
       const result = await setup();
 
-      const levelId = result.current.levels.levels[0].id;
+      const pageId = result.current.pages.pages[0].id;
 
       act(() => {
-        result.current.levels.updateLevel(levelId, { name: 'Renamed' });
+        result.current.pages.updatePage(pageId, { name: 'Renamed' });
       });
 
       await waitFor(() => {
-        expect(result.current.levels.levels[0].name).toBe('Renamed');
+        expect(result.current.pages.pages[0].name).toBe('Renamed');
       });
     });
   });
 
-  describe('Delete Level', () => {
-    it('should delete a level and switch active if needed', async () => {
+  describe('Delete Page', () => {
+    it('should delete a page and switch active if needed', async () => {
       const result = await setup();
 
-      const level1Id = result.current.levels.levels[0].id;
+      const page1Id = result.current.pages.pages[0].id;
 
-      // Create second level
-      let level2Id: string;
+      // Create second page
+      let page2Id: string;
       act(() => {
-        const l2 = result.current.levels.createLevel('Level 2');
-        level2Id = l2.id;
+        const p2 = result.current.pages.createPage('Page 2');
+        page2Id = p2.id;
       });
 
       await waitFor(() => {
-        expect(result.current.levels.levels).toHaveLength(2);
+        expect(result.current.pages.pages).toHaveLength(2);
       });
 
-      // Switch to level 2 and delete it
+      // Switch to page 2 and delete it
       act(() => {
-        result.current.levels.setActiveLevel(level2Id!);
+        result.current.pages.setActivePage(page2Id!);
       });
 
       act(() => {
-        result.current.levels.deleteLevel(level2Id!);
+        result.current.pages.deletePage(page2Id!);
       });
 
       await waitFor(() => {
-        expect(result.current.levels.levels).toHaveLength(1);
+        expect(result.current.pages.pages).toHaveLength(1);
       });
 
-      // Should have auto-switched to remaining level
-      expect(result.current.levels.activeLevel).toBe(level1Id);
+      // Should have auto-switched to remaining page
+      expect(result.current.pages.activePage).toBe(page1Id);
     });
 
-    it('should not delete the last remaining level', async () => {
+    it('should not delete the last remaining page', async () => {
       const result = await setup();
       const { adapter } = result.current.context;
 
-      const levelId = result.current.levels.levels[0].id;
+      const pageId = result.current.pages.pages[0].id;
 
       act(() => {
-        adapter.deleteLevel(levelId);
+        adapter.deletePage(pageId);
       });
 
-      // Still has one level
-      expect(result.current.levels.levels).toHaveLength(1);
+      // Still has one page
+      expect(result.current.pages.pages).toHaveLength(1);
     });
   });
 
-  describe('Duplicate Level', () => {
-    it('should deep-copy nodes and edges into a new level', async () => {
+  describe('Duplicate Page', () => {
+    it('should deep-copy nodes and edges into a new page', async () => {
       const result = await setup();
       const { adapter } = result.current.context;
 
-      const level1Id = result.current.levels.levels[0].id;
+      const page1Id = result.current.pages.pages[0].id;
 
-      // Add content to level 1
+      // Add content to page 1
       act(() => {
         adapter.setNodes([
           createTestNode({ id: 'x1', type: 'Task', semanticId: 'task-x' }),
@@ -284,22 +284,22 @@ describe('Levels', () => {
       });
 
       // Duplicate
-      let dupLevel: { id: string };
+      let dupPage: { id: string };
       act(() => {
-        dupLevel = result.current.levels.duplicateLevel(level1Id, 'Copy of Main');
+        dupPage = result.current.pages.duplicatePage(page1Id, 'Copy of Main');
       });
 
       await waitFor(() => {
-        expect(result.current.levels.levels).toHaveLength(2);
+        expect(result.current.pages.pages).toHaveLength(2);
       });
 
       // Switch to duplicate
       act(() => {
-        result.current.levels.setActiveLevel(dupLevel!.id);
+        result.current.pages.setActivePage(dupPage!.id);
       });
 
       await waitFor(() => {
-        expect(result.current.levels.activeLevel).toBe(dupLevel!.id);
+        expect(result.current.pages.activePage).toBe(dupPage!.id);
       });
 
       // Should have same number of nodes/edges but different IDs
@@ -313,12 +313,12 @@ describe('Levels', () => {
     });
   });
 
-  describe('Copy Nodes to Level', () => {
-    it('should copy selected nodes and connecting edges to another level', async () => {
+  describe('Copy Nodes to Page', () => {
+    it('should copy selected nodes and connecting edges to another page', async () => {
       const result = await setup();
       const { adapter } = result.current.context;
 
-      const level1Id = result.current.levels.levels[0].id;
+      const page1Id = result.current.pages.pages[0].id;
 
       // Set up nodes and edge
       act(() => {
@@ -337,38 +337,38 @@ describe('Levels', () => {
         expect(result.current.nodes.nodes).toHaveLength(3);
       });
 
-      // Create target level
-      let level2Id: string;
+      // Create target page
+      let page2Id: string;
       act(() => {
-        const l2 = result.current.levels.createLevel('Target');
-        level2Id = l2.id;
+        const p2 = result.current.pages.createPage('Target');
+        page2Id = p2.id;
       });
 
-      // Copy c1 and c2 (and their connecting edge) to level 2
+      // Copy c1 and c2 (and their connecting edge) to page 2
       act(() => {
-        adapter.copyNodesToLevel(['c1', 'c2'], level2Id!);
+        adapter.copyNodesToPage(['c1', 'c2'], page2Id!);
       });
 
-      // Switch to target level
+      // Switch to target page
       act(() => {
-        result.current.levels.setActiveLevel(level2Id!);
+        result.current.pages.setActivePage(page2Id!);
       });
 
       await waitFor(() => {
-        expect(result.current.levels.activeLevel).toBe(level2Id!);
+        expect(result.current.pages.activePage).toBe(page2Id!);
       });
 
       // Should have 2 nodes and 1 edge (c1-c2 only, not c2-c3)
       expect(result.current.nodes.nodes).toHaveLength(2);
       expect(result.current.edges.edges).toHaveLength(1);
 
-      // Original level should be unchanged
+      // Original page should be unchanged
       act(() => {
-        result.current.levels.setActiveLevel(level1Id);
+        result.current.pages.setActivePage(page1Id);
       });
 
       await waitFor(() => {
-        expect(result.current.levels.activeLevel).toBe(level1Id);
+        expect(result.current.pages.activePage).toBe(page1Id);
       });
 
       expect(result.current.nodes.nodes).toHaveLength(3);
@@ -376,34 +376,34 @@ describe('Levels', () => {
     });
   });
 
-  describe('Clear Document with Levels', () => {
-    it('should clear only active level nodes/edges when clearing instances', async () => {
+  describe('Clear Document with Pages', () => {
+    it('should clear only active page nodes/edges when clearing instances', async () => {
       const result = await setup();
       const { adapter } = result.current.context;
 
-      const level1Id = result.current.levels.levels[0].id;
+      const page1Id = result.current.pages.pages[0].id;
 
-      // Add content to level 1
+      // Add content to page 1
       act(() => {
         adapter.setNodes([createTestNode({ id: 'z1', type: 'Task' })]);
         adapter.setEdges([]);
       });
 
-      // Create level 2 with content
-      let level2Id: string;
+      // Create page 2 with content
+      let page2Id: string;
       act(() => {
-        const l2 = result.current.levels.createLevel('Level 2');
-        level2Id = l2.id;
-        adapter.setActiveLevel(l2.id);
+        const p2 = result.current.pages.createPage('Page 2');
+        page2Id = p2.id;
+        adapter.setActivePage(p2.id);
       });
 
       act(() => {
         adapter.setNodes([createTestNode({ id: 'z2', type: 'Service' })]);
       });
 
-      // Switch back to level 1 and clear instances
+      // Switch back to page 1 and clear instances
       act(() => {
-        adapter.setActiveLevel(level1Id);
+        adapter.setActivePage(page1Id);
       });
 
       act(() => {
@@ -417,23 +417,23 @@ describe('Levels', () => {
         expect(result.current.nodes.nodes).toHaveLength(0);
       });
 
-      // Level 2 should still have its node
+      // Page 2 should still have its node
       act(() => {
-        adapter.setActiveLevel(level2Id!);
+        adapter.setActivePage(page2Id!);
       });
 
       await waitFor(() => {
-        expect(result.current.levels.activeLevel).toBe(level2Id!);
+        expect(result.current.pages.activePage).toBe(page2Id!);
       });
 
       expect(result.current.nodes.nodes).toHaveLength(1);
     });
 
-    it('should clear all levels and reset to one Main when clearing everything', async () => {
+    it('should clear all pages and reset to one Main when clearing everything', async () => {
       const result = await setup();
       const { adapter } = result.current.context;
 
-      // Add content to level 1
+      // Add content to page 1
       act(() => {
         adapter.setNodes([createTestNode({ id: 'q1', type: 'Task' })]);
         adapter.addSchema({
@@ -446,33 +446,33 @@ describe('Levels', () => {
         });
       });
 
-      // Create level 2
+      // Create page 2
       act(() => {
-        const l2 = result.current.levels.createLevel('Level 2');
-        adapter.setActiveLevel(l2.id);
+        const p2 = result.current.pages.createPage('Page 2');
+        adapter.setActivePage(p2.id);
         adapter.setNodes([createTestNode({ id: 'q2', type: 'Service' })]);
       });
 
       await waitFor(() => {
-        expect(result.current.levels.levels).toHaveLength(2);
+        expect(result.current.pages.pages).toHaveLength(2);
       });
 
       // Clear everything (mirrors useClearDocument 'all' mode)
       act(() => {
         adapter.transaction(() => {
-          const levels = adapter.getLevels();
-          for (const level of levels) {
-            adapter.setActiveLevel(level.id);
+          const pages = adapter.getPages();
+          for (const page of pages) {
+            adapter.setActivePage(page.id);
             adapter.setNodes([]);
             adapter.setEdges([]);
           }
-          if (levels.length > 1) {
-            const firstLevel = levels[0];
-            for (let i = 1; i < levels.length; i++) {
-              adapter.deleteLevel(levels[i].id);
+          if (pages.length > 1) {
+            const firstPage = pages[0];
+            for (let i = 1; i < pages.length; i++) {
+              adapter.deletePage(pages[i].id);
             }
-            adapter.updateLevel(firstLevel.id, { name: 'Main' });
-            adapter.setActiveLevel(firstLevel.id);
+            adapter.updatePage(firstPage.id, { name: 'Main' });
+            adapter.setActivePage(firstPage.id);
           }
           adapter.setSchemas([]);
           adapter.setPortSchemas([]);
@@ -481,10 +481,10 @@ describe('Levels', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.levels.levels).toHaveLength(1);
+        expect(result.current.pages.pages).toHaveLength(1);
       });
 
-      expect(result.current.levels.levels[0].name).toBe('Main');
+      expect(result.current.pages.pages[0].name).toBe('Main');
       expect(result.current.nodes.nodes).toHaveLength(0);
       expect(result.current.schemas.schemas).toHaveLength(0);
     });

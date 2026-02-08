@@ -7,30 +7,28 @@ export function useClearDocument() {
   const clearDocument = useCallback((mode: 'instances' | 'all') => {
     adapter.transaction(() => {
       if (mode === 'instances') {
-        // Clear only nodes and edges on active level, preserve schemas and deployables
+        // Clear only nodes and edges on active page, preserve schemas
         adapter.setNodes([]);
         adapter.setEdges([]);
       } else {
-        // Clear everything: all levels' data, schemas, etc.
-        // Delete all levels except keep one
-        const levels = adapter.getLevels();
-        for (const level of levels) {
-          // Switch to each level and clear it
-          adapter.setActiveLevel(level.id);
+        // Clear everything: all pages' data, schemas, etc.
+        const pages = adapter.getPages();
+        for (const page of pages) {
+          adapter.setActivePage(page.id);
           adapter.setNodes([]);
           adapter.setEdges([]);
         }
-        // Delete all but first level, then recreate as "Main"
-        if (levels.length > 1) {
-          const firstLevel = levels[0];
-          for (let i = 1; i < levels.length; i++) {
-            adapter.deleteLevel(levels[i].id);
+        // Delete all but first page, then recreate as "Main"
+        if (pages.length > 1) {
+          const firstPage = pages[0];
+          for (let i = 1; i < pages.length; i++) {
+            adapter.deletePage(pages[i].id);
           }
-          adapter.updateLevel(firstLevel.id, { name: 'Main' });
-          adapter.setActiveLevel(firstLevel.id);
-        } else if (levels.length === 1) {
-          adapter.updateLevel(levels[0].id, { name: 'Main' });
-          adapter.setActiveLevel(levels[0].id);
+          adapter.updatePage(firstPage.id, { name: 'Main' });
+          adapter.setActivePage(firstPage.id);
+        } else if (pages.length === 1) {
+          adapter.updatePage(pages[0].id, { name: 'Main' });
+          adapter.setActivePage(pages[0].id);
         }
         // Clear shared data
         adapter.setSchemas([]);

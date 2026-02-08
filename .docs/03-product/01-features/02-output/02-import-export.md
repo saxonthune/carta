@@ -25,10 +25,10 @@ Carta documents can be saved to and loaded from `.carta` files (JSON format, cur
    - **Existing items**: already present, unchanged (gray indicator)
 4. Selective import: choose which items to include via checkboxes
 5. Items are grouped by category: schemas, instances, deployables
-6. **Target level picker**: choose where to import content:
-   - **Replace document**: Clears all levels and replaces with imported content (destructive)
-   - **Into "[Level name]"**: Merges imported content into an existing level (additive)
-   - **+ New Level**: Creates a new level with name "Imported: [filename]" and imports into it (additive)
+6. **Target page picker**: choose where to import content:
+   - **Replace document**: Clears all pages and replaces with imported content (destructive)
+   - **Into "[Page name]"**: Merges imported content into an existing page (additive)
+   - **+ New Page**: Creates a new page with name "Imported: [filename]" and imports into it (additive)
 
 ## Examples
 
@@ -36,4 +36,4 @@ Bundled example `.carta` files in the `/examples/` directory are accessible via 
 
 ## File Format
 
-Version 5 includes: title, description, levels (each with nodes/edges/deployables), custom schemas, port schemas, schema groups. The format is self-contained — a `.carta` file contains everything needed to reconstruct the document.
+Version 5 includes: title, description, pages (each with nodes/edges/deployables), custom schemas, port schemas, schema groups. The format is self-contained — a `.carta` file contains everything needed to reconstruct the document.

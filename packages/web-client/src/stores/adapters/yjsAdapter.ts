@@ -8,14 +8,14 @@ import type {
   ConstructNodeData,
   PortSchema,
   SchemaGroup,
-  Level,
+  Page,
 } from '@carta/domain';
 import {
   objectToYMap,
   yMapToObject,
   generateSchemaGroupId,
-  generateLevelId,
-  migrateToLevels,
+  generatePageId,
+  migrateToPages,
 } from '@carta/document';
 import { updateDocumentMetadata } from '../documentRegistry';
 
@@ -28,17 +28,17 @@ export interface YjsAdapterOptions {
   syncUrl?: string;
   /** Skip IndexedDB persistence (for testing) */
   skipPersistence?: boolean;
-  /** Skip default level creation — set when the adapter will sync with a server that provides initial state */
-  deferDefaultLevel?: boolean;
+  /** Skip default page creation — set when the adapter will sync with a server that provides initial state */
+  deferDefaultPage?: boolean;
 }
 
 /**
- * Y.Doc structure (v4 with levels):
+ * Y.Doc structure (v4 with pages):
  * {
- *   'meta': Y.Map { version, title, description, activeLevel, initialized, migrationVersion }
- *   'levels': Y.Map<levelId, Y.Map { id, name, description, order }>
- *   'nodes': Y.Map<levelId, Y.Map<nodeId, Y.Map>>       // Nested: level → nodes (includes organizer type nodes)
- *   'edges': Y.Map<levelId, Y.Map<edgeId, Y.Map>>       // Nested: level → edges
+ *   'meta': Y.Map { version, title, description, activePage, initialized, migrationVersion }
+ *   'pages': Y.Map<pageId, Y.Map { id, name, description, order }>
+ *   'nodes': Y.Map<pageId, Y.Map<nodeId, Y.Map>>       // Nested: page → nodes (includes organizer type nodes)
+ *   'edges': Y.Map<pageId, Y.Map<edgeId, Y.Map>>       // Nested: page → edges
  *   'schemas': Y.Map<type, Y.Map>                        // Shared (unchanged)
  *   'portSchemas': Y.Map<id, Y.Map>                      // Shared (unchanged)
  *   'schemaGroups': Y.Map<id, Y.Map>                     // Shared (unchanged)
@@ -67,7 +67,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
   // Get shared types
   const ymeta = ydoc.getMap('meta');
-  const ylevels = ydoc.getMap<Y.Map<unknown>>('levels');
+  const ypages = ydoc.getMap<Y.Map<unknown>>('pages');
   const ynodes = ydoc.getMap<Y.Map<unknown>>('nodes');
   const yedges = ydoc.getMap<Y.Map<unknown>>('edges');
   const yschemas = ydoc.getMap<Y.Map<unknown>>('schemas');
@@ -93,7 +93,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
   const schemaListeners = new Set<() => void>();
   const portSchemaListeners = new Set<() => void>();
   const schemaGroupListeners = new Set<() => void>();
-  const levelListeners = new Set<() => void>();
+  const pageListeners = new Set<() => void>();
   const metaListeners = new Set<() => void>();
 
   const notifyNodeListeners = () => nodeListeners.forEach((cb) => cb());
@@ -101,7 +101,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
   const notifySchemaListeners = () => schemaListeners.forEach((cb) => cb());
   const notifyPortSchemaListeners = () => portSchemaListeners.forEach((cb) => cb());
   const notifySchemaGroupListeners = () => schemaGroupListeners.forEach((cb) => cb());
-  const notifyLevelListeners = () => levelListeners.forEach((cb) => cb());
+  const notifyPageListeners = () => pageListeners.forEach((cb) => cb());
   const notifyMetaListeners = () => metaListeners.forEach((cb) => cb());
 
   // Track whether observers have been set up (to avoid unobserving before setup)
@@ -116,14 +116,14 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
   // Observer callbacks for granular notifications
   const onMetaChange = () => {
     notifyMetaListeners();
-    notifyLevelListeners();
-    // Active level change affects level-scoped data
+    notifyPageListeners();
+    // Active page change affects page-scoped data
     notifyNodeListeners();
     notifyEdgeListeners();
     notifyListeners();
   };
-  const onLevelsChange = () => {
-    notifyLevelListeners();
+  const onPagesChange = () => {
+    notifyPageListeners();
     notifyListeners();
   };
   const onNodesChange = (_events: unknown, transaction: { origin: unknown }) => {
@@ -151,7 +151,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
   // Set up Y.Doc observers
   const setupObservers = () => {
     ymeta.observeDeep(onMetaChange);
-    ylevels.observeDeep(onLevelsChange);
+    ypages.observeDeep(onPagesChange);
     ynodes.observeDeep(onNodesChange);
     yedges.observeDeep(onEdgesChange);
     yschemas.observeDeep(onSchemasChange);
@@ -185,9 +185,9 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
   const doRegistrySync = () => {
     const title = ymeta.get('title') as string | undefined;
     if (!title) return; // Don't sync with a fallback — wait for real title from server
-    const levelNodes = getActiveLevelNodes();
+    const pageNodes = getActivePageNodes();
     let nodeCount = 0;
-    levelNodes?.forEach(() => { nodeCount++; });
+    pageNodes?.forEach(() => { nodeCount++; });
     updateDocumentMetadata(roomId!, { title, nodeCount }).catch(() => {
       // Best-effort — don't break the app if registry update fails
     });
@@ -200,16 +200,16 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
   };
 
   /**
-   * Get the active level ID, falling back to first level
+   * Get the active page ID, falling back to first page
    */
-  function getActiveLevelId(): string | undefined {
-    const active = ymeta.get('activeLevel') as string | undefined;
-    if (active && ylevels.has(active)) return active;
-    // Fall back to first level by order
+  function getActivePageId(): string | undefined {
+    const active = ymeta.get('activePage') as string | undefined;
+    if (active && ypages.has(active)) return active;
+    // Fall back to first page by order
     let firstId: string | undefined;
     let firstOrder = Infinity;
-    ylevels.forEach((ylevel, id) => {
-      const order = ylevel.get('order') as number;
+    ypages.forEach((ypage, id) => {
+      const order = ypage.get('order') as number;
       if (order < firstOrder) {
         firstOrder = order;
         firstId = id;
@@ -219,43 +219,43 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
   }
 
   /**
-   * Get the Y.Map for nodes of the active level.
-   * Returns null when no level exists (e.g. before sync delivers initial state).
+   * Get the Y.Map for nodes of the active page.
+   * Returns null when no page exists (e.g. before sync delivers initial state).
    */
-  function getActiveLevelNodes(): Y.Map<Y.Map<unknown>> | null {
-    const levelId = getActiveLevelId();
-    if (!levelId) {
+  function getActivePageNodes(): Y.Map<Y.Map<unknown>> | null {
+    const pageId = getActivePageId();
+    if (!pageId) {
       return null;
     }
-    let levelNodes = ynodes.get(levelId) as Y.Map<Y.Map<unknown>> | undefined;
-    if (!levelNodes) {
+    let pageNodes = ynodes.get(pageId) as Y.Map<Y.Map<unknown>> | undefined;
+    if (!pageNodes) {
       ydoc.transact(() => {
-        levelNodes = new Y.Map<Y.Map<unknown>>();
-        ynodes.set(levelId, levelNodes as unknown as Y.Map<unknown>);
+        pageNodes = new Y.Map<Y.Map<unknown>>();
+        ynodes.set(pageId, pageNodes as unknown as Y.Map<unknown>);
       }, 'init');
-      levelNodes = ynodes.get(levelId) as Y.Map<Y.Map<unknown>>;
+      pageNodes = ynodes.get(pageId) as Y.Map<Y.Map<unknown>>;
     }
-    return levelNodes ?? null;
+    return pageNodes ?? null;
   }
 
   /**
-   * Get the Y.Map for edges of the active level.
-   * Returns null when no level exists (e.g. before sync delivers initial state).
+   * Get the Y.Map for edges of the active page.
+   * Returns null when no page exists (e.g. before sync delivers initial state).
    */
-  function getActiveLevelEdges(): Y.Map<Y.Map<unknown>> | null {
-    const levelId = getActiveLevelId();
-    if (!levelId) {
+  function getActivePageEdges(): Y.Map<Y.Map<unknown>> | null {
+    const pageId = getActivePageId();
+    if (!pageId) {
       return null;
     }
-    let levelEdges = yedges.get(levelId) as Y.Map<Y.Map<unknown>> | undefined;
-    if (!levelEdges) {
+    let pageEdges = yedges.get(pageId) as Y.Map<Y.Map<unknown>> | undefined;
+    if (!pageEdges) {
       ydoc.transact(() => {
-        levelEdges = new Y.Map<Y.Map<unknown>>();
-        yedges.set(levelId, levelEdges as unknown as Y.Map<unknown>);
+        pageEdges = new Y.Map<Y.Map<unknown>>();
+        yedges.set(pageId, pageEdges as unknown as Y.Map<unknown>);
       }, 'init');
-      levelEdges = yedges.get(levelId) as Y.Map<Y.Map<unknown>>;
+      pageEdges = yedges.get(pageId) as Y.Map<Y.Map<unknown>>;
     }
-    return levelEdges ?? null;
+    return pageEdges ?? null;
   }
 
   // Initialize with default values if empty
@@ -264,31 +264,31 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       if (!ymeta.has('version')) {
         ymeta.set('version', 4);
       }
-      if (!ymeta.has('title') && !options.deferDefaultLevel) {
+      if (!ymeta.has('title') && !options.deferDefaultPage) {
         ymeta.set('title', 'Untitled Project');
       }
       if (mode === 'shared' && roomId && !ymeta.has('roomId')) {
         ymeta.set('roomId', roomId);
       }
 
-      // Migrate flat data to levels if needed
-      migrateToLevels(ydoc);
+      // Migrate flat data to pages if needed
+      migrateToPages(ydoc);
 
-      // Ensure at least one level exists (skip when syncing — server provides initial state)
-      if (ylevels.size === 0 && !options.deferDefaultLevel) {
-        const levelId = generateLevelId();
-        const levelData = new Y.Map<unknown>();
-        levelData.set('id', levelId);
-        levelData.set('name', 'Main');
-        levelData.set('order', 0);
-        ylevels.set(levelId, levelData);
-        ymeta.set('activeLevel', levelId);
-        console.debug('[levels] Created default Main level in initializeDefaults', { levelId, roomId, mode });
+      // Ensure at least one page exists (skip when syncing — server provides initial state)
+      if (ypages.size === 0 && !options.deferDefaultPage) {
+        const pageId = generatePageId();
+        const pageData = new Y.Map<unknown>();
+        pageData.set('id', pageId);
+        pageData.set('name', 'Main');
+        pageData.set('order', 0);
+        ypages.set(pageId, pageData);
+        ymeta.set('activePage', pageId);
+        console.debug('[pages] Created default Main page in initializeDefaults', { pageId, roomId, mode });
       } else {
-        console.debug('[levels] initializeDefaults: skipped level creation', {
-          count: ylevels.size,
-          deferDefaultLevel: options.deferDefaultLevel,
-          ids: Array.from(ylevels.keys()),
+        console.debug('[pages] initializeDefaults: skipped page creation', {
+          count: ypages.size,
+          deferDefaultPage: options.deferDefaultPage,
+          ids: Array.from(ypages.keys()),
           roomId,
         });
       }
@@ -442,7 +442,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       // Unobserve all (only if they were set up)
       if (observersSetUp) {
         ymeta.unobserveDeep(onMetaChange);
-        ylevels.unobserveDeep(onLevelsChange);
+        ypages.unobserveDeep(onPagesChange);
         ynodes.unobserveDeep(onNodesChange);
         yedges.unobserveDeep(onEdgesChange);
         yschemas.unobserveDeep(onSchemasChange);
@@ -456,7 +456,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       schemaListeners.clear();
       portSchemaListeners.clear();
       schemaGroupListeners.clear();
-      levelListeners.clear();
+      pageListeners.clear();
       metaListeners.clear();
       listeners.clear();
 
@@ -475,12 +475,12 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       ydoc.destroy();
     },
 
-    // State access - Graph (reads from active level)
+    // State access - Graph (reads from active page)
     getNodes(): Node[] {
-      const levelNodes = getActiveLevelNodes();
-      if (!levelNodes) return [];
+      const pageNodes = getActivePageNodes();
+      if (!pageNodes) return [];
       const nodes: Node[] = [];
-      levelNodes.forEach((ynode, id) => {
+      pageNodes.forEach((ynode, id) => {
         const { extent: _extent, ...nodeObj } = yMapToObject<Node & { extent?: string }>(ynode);
         nodes.push({ ...nodeObj, id });
       });
@@ -488,10 +488,10 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     getEdges(): Edge[] {
-      const levelEdges = getActiveLevelEdges();
-      if (!levelEdges) return [];
+      const pageEdges = getActivePageEdges();
+      if (!pageEdges) return [];
       const edges: Edge[] = [];
-      levelEdges.forEach((yedge, id) => {
+      pageEdges.forEach((yedge, id) => {
         const edgeObj = yMapToObject<Edge>(yedge);
         edges.push({ ...edgeObj, id });
       });
@@ -506,54 +506,54 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       return (ymeta.get('description') as string) || '';
     },
 
-    // State access - Levels
-    getLevels(): Level[] {
-      const levels: Level[] = [];
-      ylevels.forEach((ylevel) => {
-        const level = yMapToObject<Level>(ylevel);
+    // State access - Pages
+    getPages(): Page[] {
+      const pages: Page[] = [];
+      ypages.forEach((ypage) => {
+        const page = yMapToObject<Page>(ypage);
         // Populate nodes/edges from their respective maps
-        const levelId = level.id;
-        const levelNodesMap = ynodes.get(levelId) as Y.Map<Y.Map<unknown>> | undefined;
-        const levelEdgesMap = yedges.get(levelId) as Y.Map<Y.Map<unknown>> | undefined;
+        const pageId = page.id;
+        const pageNodesMap = ynodes.get(pageId) as Y.Map<Y.Map<unknown>> | undefined;
+        const pageEdgesMap = yedges.get(pageId) as Y.Map<Y.Map<unknown>> | undefined;
 
         const nodes: unknown[] = [];
-        levelNodesMap?.forEach((ynode, id) => {
+        pageNodesMap?.forEach((ynode, id) => {
           nodes.push({ ...yMapToObject<Node>(ynode), id });
         });
 
         const edges: unknown[] = [];
-        levelEdgesMap?.forEach((yedge, id) => {
+        pageEdgesMap?.forEach((yedge, id) => {
           edges.push({ ...yMapToObject<Edge>(yedge), id });
         });
 
-        levels.push({ ...level, nodes, edges });
+        pages.push({ ...page, nodes, edges });
       });
-      return levels.sort((a, b) => a.order - b.order);
+      return pages.sort((a, b) => a.order - b.order);
     },
 
-    getLevel(id: string): Level | undefined {
-      const ylevel = ylevels.get(id);
-      if (!ylevel) return undefined;
-      const level = yMapToObject<Level>(ylevel);
+    getPage(id: string): Page | undefined {
+      const ypage = ypages.get(id);
+      if (!ypage) return undefined;
+      const page = yMapToObject<Page>(ypage);
 
-      const levelNodesMap = ynodes.get(id) as Y.Map<Y.Map<unknown>> | undefined;
-      const levelEdgesMap = yedges.get(id) as Y.Map<Y.Map<unknown>> | undefined;
+      const pageNodesMap = ynodes.get(id) as Y.Map<Y.Map<unknown>> | undefined;
+      const pageEdgesMap = yedges.get(id) as Y.Map<Y.Map<unknown>> | undefined;
 
       const nodes: unknown[] = [];
-      levelNodesMap?.forEach((ynode, nid) => {
+      pageNodesMap?.forEach((ynode, nid) => {
         nodes.push({ ...yMapToObject<Node>(ynode), id: nid });
       });
 
       const edges: unknown[] = [];
-      levelEdgesMap?.forEach((yedge, eid) => {
+      pageEdgesMap?.forEach((yedge, eid) => {
         edges.push({ ...yMapToObject<Edge>(yedge), id: eid });
       });
 
-      return { ...level, nodes, edges };
+      return { ...page, nodes, edges };
     },
 
-    getActiveLevel(): string | undefined {
-      return getActiveLevelId();
+    getActivePage(): string | undefined {
+      return getActivePageId();
     },
 
     // State access - Schemas
@@ -601,7 +601,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       return yMapToObject<SchemaGroup>(ygroup);
     },
 
-    // Mutations - Graph (writes to active level)
+    // Mutations - Graph (writes to active page)
     setNodes(nodesOrUpdater) {
       ydoc.transact(() => {
         const newNodes =
@@ -609,12 +609,12 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
             ? nodesOrUpdater(adapter.getNodes())
             : nodesOrUpdater;
 
-        const levelNodes = getActiveLevelNodes();
-        if (!levelNodes) return;
-        levelNodes.clear();
+        const pageNodes = getActivePageNodes();
+        if (!pageNodes) return;
+        pageNodes.clear();
         for (const node of newNodes as Node[]) {
           const { id, ...rest } = node;
-          levelNodes.set(id, objectToYMap(rest as Record<string, unknown>));
+          pageNodes.set(id, objectToYMap(rest as Record<string, unknown>));
         }
       }, 'user');
     },
@@ -626,12 +626,12 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
             ? edgesOrUpdater(adapter.getEdges())
             : edgesOrUpdater;
 
-        const levelEdges = getActiveLevelEdges();
-        if (!levelEdges) return;
-        levelEdges.clear();
+        const pageEdges = getActivePageEdges();
+        if (!pageEdges) return;
+        pageEdges.clear();
         for (const edge of newEdges as Edge[]) {
           const { id, ...rest } = edge;
-          levelEdges.set(id, objectToYMap(rest as Record<string, unknown>));
+          pageEdges.set(id, objectToYMap(rest as Record<string, unknown>));
         }
       }, 'user');
     },
@@ -654,9 +654,9 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
     updateNode(nodeId: string, updates: Partial<ConstructNodeData>) {
       ydoc.transact(() => {
-        const levelNodes = getActiveLevelNodes();
-        if (!levelNodes) return;
-        const ynode = levelNodes.get(nodeId) as Y.Map<unknown> | undefined;
+        const pageNodes = getActivePageNodes();
+        if (!pageNodes) return;
+        const ynode = pageNodes.get(nodeId) as Y.Map<unknown> | undefined;
         if (!ynode) return;
 
         // Handle semantic ID changes - need to update connections in other nodes
@@ -670,7 +670,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
         // If semantic ID changed, update references in other nodes
         if (oldSemanticId && updates.semanticId) {
-          levelNodes.forEach((otherYnode, otherId) => {
+          pageNodes.forEach((otherYnode, otherId) => {
             if (otherId === nodeId) return;
             const otherData = (otherYnode as Y.Map<unknown>).get('data') as ConstructNodeData | undefined;
             if (!otherData?.connections?.length) return;
@@ -691,10 +691,10 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
     patchNodes(patches: Array<{ id: string; position?: { x: number; y: number }; style?: Record<string, unknown> }>) {
       ydoc.transact(() => {
-        const levelNodes = getActiveLevelNodes();
-        if (!levelNodes) return;
+        const pageNodes = getActivePageNodes();
+        if (!pageNodes) return;
         for (const { id, position, style } of patches) {
-          const ynode = levelNodes.get(id) as Y.Map<unknown> | undefined;
+          const ynode = pageNodes.get(id) as Y.Map<unknown> | undefined;
           if (!ynode) continue;
           if (position) ynode.set('position', position);
           if (style) ynode.set('style', style);
@@ -702,24 +702,24 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       }, 'drag-commit');
     },
 
-    // Mutations - Levels
-    setActiveLevel(levelId: string) {
-      if (!ylevels.has(levelId)) return;
+    // Mutations - Pages
+    setActivePage(pageId: string) {
+      if (!ypages.has(pageId)) return;
       ydoc.transact(() => {
-        ymeta.set('activeLevel', levelId);
+        ymeta.set('activePage', pageId);
       }, 'user');
     },
 
-    createLevel(name: string, description?: string): Level {
-      const id = generateLevelId();
+    createPage(name: string, description?: string): Page {
+      const id = generatePageId();
       // Find max order
       let maxOrder = -1;
-      ylevels.forEach((ylevel) => {
-        const order = ylevel.get('order') as number;
+      ypages.forEach((ypage) => {
+        const order = ypage.get('order') as number;
         if (order > maxOrder) maxOrder = order;
       });
 
-      const newLevel: Level = {
+      const newPage: Page = {
         id,
         name,
         description,
@@ -728,40 +728,40 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
         edges: [],
       };
 
-      console.debug('[levels] createLevel', { id, name, existingCount: ylevels.size, roomId });
+      console.debug('[pages] createPage', { id, name, existingCount: ypages.size, roomId });
 
       ydoc.transact(() => {
-        const ylevel = new Y.Map<unknown>();
-        ylevel.set('id', id);
-        ylevel.set('name', name);
-        if (description) ylevel.set('description', description);
-        ylevel.set('order', maxOrder + 1);
-        ylevels.set(id, ylevel);
+        const ypage = new Y.Map<unknown>();
+        ypage.set('id', id);
+        ypage.set('name', name);
+        if (description) ypage.set('description', description);
+        ypage.set('order', maxOrder + 1);
+        ypages.set(id, ypage);
 
-        // Create empty maps for the level's data
+        // Create empty maps for the page's data
         ynodes.set(id, new Y.Map<Y.Map<unknown>>() as unknown as Y.Map<unknown>);
         yedges.set(id, new Y.Map<Y.Map<unknown>>() as unknown as Y.Map<unknown>);
       }, 'user');
 
-      return newLevel;
+      return newPage;
     },
 
-    deleteLevel(levelId: string): boolean {
-      if (!ylevels.has(levelId)) return false;
-      // Don't allow deleting the last level
-      if (ylevels.size <= 1) return false;
+    deletePage(pageId: string): boolean {
+      if (!ypages.has(pageId)) return false;
+      // Don't allow deleting the last page
+      if (ypages.size <= 1) return false;
 
       ydoc.transact(() => {
-        ylevels.delete(levelId);
-        ynodes.delete(levelId);
-        yedges.delete(levelId);
+        ypages.delete(pageId);
+        ynodes.delete(pageId);
+        yedges.delete(pageId);
 
-        // If deleting the active level, switch to another
-        const activeLevel = ymeta.get('activeLevel') as string | undefined;
-        if (activeLevel === levelId) {
-          const newActive = getActiveLevelId();
+        // If deleting the active page, switch to another
+        const activePage = ymeta.get('activePage') as string | undefined;
+        if (activePage === pageId) {
+          const newActive = getActivePageId();
           if (newActive) {
-            ymeta.set('activeLevel', newActive);
+            ymeta.set('activePage', newActive);
           }
         }
       }, 'user');
@@ -769,39 +769,39 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       return true;
     },
 
-    updateLevel(levelId: string, updates: Partial<Omit<Level, 'id' | 'nodes' | 'edges' | 'deployables'>>) {
+    updatePage(pageId: string, updates: Partial<Omit<Page, 'id' | 'nodes' | 'edges' | 'deployables'>>) {
       ydoc.transact(() => {
-        const ylevel = ylevels.get(levelId);
-        if (!ylevel) return;
-        if (updates.name !== undefined) ylevel.set('name', updates.name);
-        if (updates.description !== undefined) ylevel.set('description', updates.description);
-        if (updates.order !== undefined) ylevel.set('order', updates.order);
+        const ypage = ypages.get(pageId);
+        if (!ypage) return;
+        if (updates.name !== undefined) ypage.set('name', updates.name);
+        if (updates.description !== undefined) ypage.set('description', updates.description);
+        if (updates.order !== undefined) ypage.set('order', updates.order);
       }, 'user');
     },
 
-    duplicateLevel(levelId: string, newName: string): Level {
-      const sourceLevel = ylevels.get(levelId);
-      if (!sourceLevel) throw new Error(`Level ${levelId} not found`);
+    duplicatePage(pageId: string, newName: string): Page {
+      const sourcePage = ypages.get(pageId);
+      if (!sourcePage) throw new Error(`Page ${pageId} not found`);
 
-      const newId = generateLevelId();
+      const newId = generatePageId();
       let maxOrder = -1;
-      ylevels.forEach((ylevel) => {
-        const order = ylevel.get('order') as number;
+      ypages.forEach((ypage) => {
+        const order = ypage.get('order') as number;
         if (order > maxOrder) maxOrder = order;
       });
 
       ydoc.transact(() => {
-        // Create level metadata
-        const ylevel = new Y.Map<unknown>();
-        ylevel.set('id', newId);
-        ylevel.set('name', newName);
-        const desc = sourceLevel.get('description');
-        if (desc) ylevel.set('description', desc);
-        ylevel.set('order', maxOrder + 1);
-        ylevels.set(newId, ylevel);
+        // Create page metadata
+        const ypage = new Y.Map<unknown>();
+        ypage.set('id', newId);
+        ypage.set('name', newName);
+        const desc = sourcePage.get('description');
+        if (desc) ypage.set('description', desc);
+        ypage.set('order', maxOrder + 1);
+        ypages.set(newId, ypage);
 
         // Deep-copy nodes with new IDs
-        const sourceNodes = ynodes.get(levelId) as Y.Map<Y.Map<unknown>> | undefined;
+        const sourceNodes = ynodes.get(pageId) as Y.Map<Y.Map<unknown>> | undefined;
         const newNodesMap = new Y.Map<Y.Map<unknown>>();
         const idMap: Record<string, string> = {};
 
@@ -816,7 +816,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
         ynodes.set(newId, newNodesMap as unknown as Y.Map<unknown>);
 
         // Deep-copy edges with remapped source/target
-        const sourceEdges = yedges.get(levelId) as Y.Map<Y.Map<unknown>> | undefined;
+        const sourceEdges = yedges.get(pageId) as Y.Map<Y.Map<unknown>> | undefined;
         const newEdgesMap = new Y.Map<Y.Map<unknown>>();
         if (sourceEdges) {
           sourceEdges.forEach((yedge) => {
@@ -830,25 +830,25 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
         yedges.set(newId, newEdgesMap as unknown as Y.Map<unknown>);
       }, 'user');
 
-      return adapter.getLevel(newId)!;
+      return adapter.getPage(newId)!;
     },
 
-    copyNodesToLevel(nodeIds: string[], targetLevelId: string) {
-      if (!ylevels.has(targetLevelId)) return;
-      const sourceNodes = getActiveLevelNodes();
-      const sourceEdges = getActiveLevelEdges();
+    copyNodesToPage(nodeIds: string[], targetPageId: string) {
+      if (!ypages.has(targetPageId)) return;
+      const sourceNodes = getActivePageNodes();
+      const sourceEdges = getActivePageEdges();
       if (!sourceNodes || !sourceEdges) return;
 
       ydoc.transact(() => {
-        let targetNodesMap = ynodes.get(targetLevelId) as Y.Map<Y.Map<unknown>> | undefined;
+        let targetNodesMap = ynodes.get(targetPageId) as Y.Map<Y.Map<unknown>> | undefined;
         if (!targetNodesMap) {
           targetNodesMap = new Y.Map<Y.Map<unknown>>();
-          ynodes.set(targetLevelId, targetNodesMap as unknown as Y.Map<unknown>);
+          ynodes.set(targetPageId, targetNodesMap as unknown as Y.Map<unknown>);
         }
-        let targetEdgesMap = yedges.get(targetLevelId) as Y.Map<Y.Map<unknown>> | undefined;
+        let targetEdgesMap = yedges.get(targetPageId) as Y.Map<Y.Map<unknown>> | undefined;
         if (!targetEdgesMap) {
           targetEdgesMap = new Y.Map<Y.Map<unknown>>();
-          yedges.set(targetLevelId, targetEdgesMap as unknown as Y.Map<unknown>);
+          yedges.set(targetPageId, targetEdgesMap as unknown as Y.Map<unknown>);
         }
 
         const nodeIdSet = new Set(nodeIds);
@@ -1043,9 +1043,9 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       return () => schemaGroupListeners.delete(listener);
     },
 
-    subscribeToLevels(listener: () => void): () => void {
-      levelListeners.add(listener);
-      return () => levelListeners.delete(listener);
+    subscribeToPages(listener: () => void): () => void {
+      pageListeners.add(listener);
+      return () => pageListeners.delete(listener);
     },
 
     subscribeToMeta(listener: () => void): () => void {
@@ -1054,13 +1054,13 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     toJSON(): CartaDocumentV4 {
-      const levels = adapter.getLevels();
+      const pages = adapter.getPages();
       return {
         version: 4,
         title: adapter.getTitle(),
         description: adapter.getDescription(),
-        levels,
-        activeLevel: getActiveLevelId(),
+        pages,
+        activePage: getActivePageId(),
         schemas: adapter.getSchemas(),
         portSchemas: adapter.getPortSchemas(),
         schemaGroups: adapter.getSchemaGroups(),
@@ -1094,24 +1094,24 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       ws.on('sync', () => {
         connectionStatus = 'connected';
 
-        // Log post-sync levels state for debugging
-        const levelEntries: Array<{ key: string; name: string }> = [];
-        ylevels.forEach((ylevel, key) => {
-          levelEntries.push({ key, name: ylevel.get('name') as string });
+        // Log post-sync pages state for debugging
+        const pageEntries: Array<{ key: string; name: string }> = [];
+        ypages.forEach((ypage, key) => {
+          pageEntries.push({ key, name: ypage.get('name') as string });
         });
-        console.debug('[levels] Post-sync levels state', { roomId: newRoomId, levels: levelEntries });
+        console.debug('[pages] Post-sync pages state', { roomId: newRoomId, pages: pageEntries });
 
-        // Safety net: if server had no levels either, create the default
-        if (ylevels.size === 0) {
-          console.debug('[levels] No levels after sync, creating default Main level', { roomId: newRoomId });
+        // Safety net: if server had no pages either, create the default
+        if (ypages.size === 0) {
+          console.debug('[pages] No pages after sync, creating default Main page', { roomId: newRoomId });
           ydoc.transact(() => {
-            const levelId = generateLevelId();
-            const levelData = new Y.Map<unknown>();
-            levelData.set('id', levelId);
-            levelData.set('name', 'Main');
-            levelData.set('order', 0);
-            ylevels.set(levelId, levelData);
-            ymeta.set('activeLevel', levelId);
+            const pageId = generatePageId();
+            const pageData = new Y.Map<unknown>();
+            pageData.set('id', pageId);
+            pageData.set('name', 'Main');
+            pageData.set('order', 0);
+            ypages.set(pageId, pageData);
+            ymeta.set('activePage', pageId);
           }, 'init');
         }
 

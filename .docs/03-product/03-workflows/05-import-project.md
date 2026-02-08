@@ -14,8 +14,8 @@ status: draft
 5. Select which items to import via checkboxes
 6. Choose import target:
    - **Replace document**: Clears all existing content and loads the imported file
-   - **Into "[Level name]"**: Adds imported content to an existing level
-   - **+ New Level**: Creates a new level and imports content into it
+   - **Into "[Page name]"**: Adds imported content to an existing page
+   - **+ New Page**: Creates a new page and imports content into it
 7. Click "Import" to apply
 8. Selected items are merged or replaced based on the chosen target
 
@@ -25,7 +25,7 @@ Seeds are TypeScript-based starter content (see doc03.01.03.05). Available via t
 
 1. Click "Seeds" in the header menu
 2. Select a seed: `starter`, `saas`, or `kitchen-sink`
-3. Choose import target (replace document, into existing level, or new level)
+3. Choose import target (replace document, into existing page, or new page)
 4. Content is generated using `DocumentAdapter` operations
 
 ## Features

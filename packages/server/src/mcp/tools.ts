@@ -25,36 +25,36 @@ const RenameDocumentSchema = z.object({
   title: z.string().describe('New document title'),
 });
 
-const CreateLevelSchema = z.object({
+const CreatePageSchema = z.object({
   documentId: z.string().describe('The document ID'),
-  name: z.string().describe('Name for the new level'),
-  description: z.string().optional().describe('Optional level description'),
+  name: z.string().describe('Name for the new page'),
+  description: z.string().optional().describe('Optional page description'),
 });
 
-const RenameLevelSchema = z.object({
+const RenamePageSchema = z.object({
   documentId: z.string().describe('The document ID'),
-  levelId: z.string().describe('The level ID to update'),
-  name: z.string().optional().describe('New level name'),
-  description: z.string().optional().describe('New level description'),
+  pageId: z.string().describe('The page ID to update'),
+  name: z.string().optional().describe('New page name'),
+  description: z.string().optional().describe('New page description'),
   order: z.number().optional().describe('New sort order'),
 });
 
-const DeleteLevelSchema = z.object({
+const DeletePageSchema = z.object({
   documentId: z.string().describe('The document ID'),
-  levelId: z.string().describe('The level ID to delete'),
+  pageId: z.string().describe('The page ID to delete'),
 });
 
-const SetActiveLevelSchema = z.object({
+const SetActivePageSchema = z.object({
   documentId: z.string().describe('The document ID'),
-  levelId: z.string().optional().describe('The level ID to set as active'),
-  levelName: z.string().optional().describe('The level name to set as active (alternative to levelId, case-insensitive)'),
+  pageId: z.string().optional().describe('The page ID to set as active'),
+  pageName: z.string().optional().describe('The page name to set as active (alternative to pageId, case-insensitive)'),
 });
 
 const DocumentSummarySchema = z.object({
   documentId: z.string().describe('The document ID'),
-  levelId: z.string().optional().describe('Target a specific level for embedded data'),
-  levelName: z.string().optional().describe('Target a specific level by name (alternative to levelId, case-insensitive)'),
-  include: z.array(z.enum(['constructs', 'schemas'])).optional().describe('Embed additional data in the response: "constructs" (construct list + organizers for the target level), "schemas" (custom schema list)'),
+  pageId: z.string().optional().describe('Target a specific page for embedded data'),
+  pageName: z.string().optional().describe('Target a specific page by name (alternative to pageId, case-insensitive)'),
+  include: z.array(z.enum(['constructs', 'schemas'])).optional().describe('Embed additional data in the response: "constructs" (construct list + organizers for the target page), "schemas" (custom schema list)'),
 });
 
 const ListSchemasSchema = z.object({
@@ -66,7 +66,7 @@ const ListSchemasSchema = z.object({
 const ListConstructsSchema = z.object({
   documentId: z.string().describe('The document ID'),
   constructType: z.string().optional().describe('Filter by construct type (e.g. "service", "api-endpoint")'),
-  levelId: z.string().optional().describe('Target a specific level instead of the active level'),
+  pageId: z.string().optional().describe('Target a specific page instead of the active page'),
 });
 
 const CreateConstructSchema = z.object({
@@ -290,29 +290,29 @@ export function getToolDefinitions() {
       inputSchema: RenameDocumentSchema.shape,
     },
     {
-      name: 'carta_list_levels',
-      description: 'List all levels in a document (returns levels array and activeLevel ID)',
+      name: 'carta_list_pages',
+      description: 'List all pages in a document (returns pages array and activePage ID)',
       inputSchema: DocumentIdSchema.shape,
     },
     {
-      name: 'carta_create_level',
-      description: 'Create a new level in a document',
-      inputSchema: CreateLevelSchema.shape,
+      name: 'carta_create_page',
+      description: 'Create a new page in a document',
+      inputSchema: CreatePageSchema.shape,
     },
     {
-      name: 'carta_rename_level',
-      description: 'Rename or update a level (name, description, order)',
-      inputSchema: RenameLevelSchema.shape,
+      name: 'carta_rename_page',
+      description: 'Rename or update a page (name, description, order)',
+      inputSchema: RenamePageSchema.shape,
     },
     {
-      name: 'carta_delete_level',
-      description: 'Delete a level (document must have more than one level)',
-      inputSchema: DeleteLevelSchema.shape,
+      name: 'carta_delete_page',
+      description: 'Delete a page (document must have more than one page)',
+      inputSchema: DeletePageSchema.shape,
     },
     {
-      name: 'carta_set_active_level',
-      description: 'Switch the active level. Returns enriched context: level info, constructs, organizers, edge count, and custom schemas — so you can orient in a single call. Accepts levelName as alternative to levelId.',
-      inputSchema: SetActiveLevelSchema.shape,
+      name: 'carta_set_active_page',
+      description: 'Switch the active page. Returns enriched context: page info, constructs, organizers, edge count, and custom schemas — so you can orient in a single call. Accepts pageName as alternative to pageId.',
+      inputSchema: SetActivePageSchema.shape,
     },
     {
       name: 'carta_list_schemas',
@@ -346,7 +346,7 @@ export function getToolDefinitions() {
     },
     {
       name: 'carta_list_constructs',
-      description: 'List constructs in a document (compact summaries). Use carta_get_construct for full details. Optionally filter by constructType or target a specific level.',
+      description: 'List constructs in a document (compact summaries). Use carta_get_construct for full details. Optionally filter by constructType or target a specific page.',
       inputSchema: ListConstructsSchema.shape,
     },
     {
@@ -391,7 +391,7 @@ export function getToolDefinitions() {
     },
     {
       name: 'carta_get_document_summary',
-      description: 'Get a compact document summary with level/construct/edge counts. Use include=["constructs","schemas"] to embed detailed data for a specific level (defaults to active level). Accepts levelName as alternative to levelId.',
+      description: 'Get a compact document summary with page/construct/edge counts. Use include=["constructs","schemas"] to embed detailed data for a specific page (defaults to active page). Accepts pageName as alternative to pageId.',
       inputSchema: DocumentSummarySchema.shape,
     },
     {
@@ -460,11 +460,11 @@ export interface ToolHandlers {
   carta_create_document: ToolHandler;
   carta_delete_document: ToolHandler;
   carta_rename_document: ToolHandler;
-  carta_list_levels: ToolHandler;
-  carta_create_level: ToolHandler;
-  carta_rename_level: ToolHandler;
-  carta_delete_level: ToolHandler;
-  carta_set_active_level: ToolHandler;
+  carta_list_pages: ToolHandler;
+  carta_create_page: ToolHandler;
+  carta_rename_page: ToolHandler;
+  carta_delete_page: ToolHandler;
+  carta_set_active_page: ToolHandler;
   carta_list_schemas: ToolHandler;
   carta_get_schema: ToolHandler;
   carta_create_schema: ToolHandler;
@@ -587,61 +587,61 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
       return result.data;
     },
 
-    carta_list_levels: async (args) => {
+    carta_list_pages: async (args) => {
       const { documentId } = DocumentIdSchema.parse(args);
-      const result = await apiRequest<{ levels: unknown[]; activeLevel: string }>(
+      const result = await apiRequest<{ pages: unknown[]; activePage: string }>(
         'GET',
-        `/api/documents/${encodeURIComponent(documentId)}/levels`
+        `/api/documents/${encodeURIComponent(documentId)}/pages`
       );
       if (result.error) return { error: result.error };
       return result.data;
     },
 
-    carta_create_level: async (args) => {
-      const { documentId, name, description } = CreateLevelSchema.parse(args);
-      const result = await apiRequest<{ level: unknown }>(
+    carta_create_page: async (args) => {
+      const { documentId, name, description } = CreatePageSchema.parse(args);
+      const result = await apiRequest<{ page: unknown }>(
         'POST',
-        `/api/documents/${encodeURIComponent(documentId)}/levels`,
+        `/api/documents/${encodeURIComponent(documentId)}/pages`,
         { name, description }
       );
       if (result.error) return { error: result.error };
       return result.data;
     },
 
-    carta_rename_level: async (args) => {
-      const { documentId, levelId, name, description, order } = RenameLevelSchema.parse(args);
-      const result = await apiRequest<{ level: unknown }>(
+    carta_rename_page: async (args) => {
+      const { documentId, pageId, name, description, order } = RenamePageSchema.parse(args);
+      const result = await apiRequest<{ page: unknown }>(
         'PATCH',
-        `/api/documents/${encodeURIComponent(documentId)}/levels/${encodeURIComponent(levelId)}`,
+        `/api/documents/${encodeURIComponent(documentId)}/pages/${encodeURIComponent(pageId)}`,
         { name, description, order }
       );
       if (result.error) return { error: result.error };
       return result.data;
     },
 
-    carta_delete_level: async (args) => {
-      const { documentId, levelId } = DeleteLevelSchema.parse(args);
+    carta_delete_page: async (args) => {
+      const { documentId, pageId } = DeletePageSchema.parse(args);
       const result = await apiRequest<{ deleted: boolean }>(
         'DELETE',
-        `/api/documents/${encodeURIComponent(documentId)}/levels/${encodeURIComponent(levelId)}`
+        `/api/documents/${encodeURIComponent(documentId)}/pages/${encodeURIComponent(pageId)}`
       );
       if (result.error) return { error: result.error };
       return result.data;
     },
 
-    carta_set_active_level: async (args) => {
-      const { documentId, levelId, levelName } = SetActiveLevelSchema.parse(args);
+    carta_set_active_page: async (args) => {
+      const { documentId, pageId, pageName } = SetActivePageSchema.parse(args);
       const result = await apiRequest<{
-        activeLevel: string;
-        level: unknown;
+        activePage: string;
+        page: unknown;
         constructs: unknown[];
         organizers: unknown[];
         edgeCount: number;
         customSchemas: unknown[];
       }>(
         'POST',
-        `/api/documents/${encodeURIComponent(documentId)}/levels/active`,
-        { levelId, levelName }
+        `/api/documents/${encodeURIComponent(documentId)}/pages/active`,
+        { pageId, pageName }
       );
       if (result.error) return { error: result.error };
       return result.data;
@@ -703,10 +703,10 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
     },
 
     carta_list_constructs: async (args) => {
-      const { documentId, constructType, levelId } = ListConstructsSchema.parse(args);
+      const { documentId, constructType, pageId } = ListConstructsSchema.parse(args);
       const params = new URLSearchParams();
       if (constructType) params.set('type', constructType);
-      if (levelId) params.set('levelId', levelId);
+      if (pageId) params.set('pageId', pageId);
       const qs = params.toString() ? `?${params.toString()}` : '';
       const result = await apiRequest<{ constructs: unknown[]; organizers: unknown[] }>(
         'GET',
@@ -812,10 +812,10 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
     },
 
     carta_get_document_summary: async (args) => {
-      const { documentId, levelId, levelName, include } = DocumentSummarySchema.parse(args);
+      const { documentId, pageId, pageName, include } = DocumentSummarySchema.parse(args);
       const params = new URLSearchParams();
-      if (levelId) params.set('levelId', levelId);
-      if (levelName) params.set('levelName', levelName);
+      if (pageId) params.set('pageId', pageId);
+      if (pageName) params.set('pageName', pageName);
       if (include && include.length > 0) params.set('include', include.join(','));
       const qs = params.toString() ? `?${params.toString()}` : '';
       const result = await apiRequest<unknown>(

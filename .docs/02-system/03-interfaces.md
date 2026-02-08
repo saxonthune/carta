@@ -9,7 +9,7 @@ status: active
 
 Version 5 JSON format containing:
 - Title and description
-- Levels (each with nodes, edges, deployables)
+- Pages (each with nodes, edges, deployables)
 - Custom schemas, port schemas, schema groups
 - Backwards compatible with v4 and earlier
 
@@ -54,15 +54,15 @@ Carta exposes an MCP (Model Context Protocol) server for AI tool integration. Th
 - `carta_create_document` — Create new document
 - `carta_delete_document` — Delete document
 - `carta_rename_document` — Rename document
-- `carta_get_document_summary` — Get compact summary (level/construct/edge counts) for orientation
+- `carta_get_document_summary` — Get compact summary (page/construct/edge counts) for orientation
 - `carta_list_active_documents` — List documents with active browser connections (Yjs collaboration mode)
 
-**Level operations:**
-- `carta_list_levels` — List all levels (returns levels array + activeLevel ID)
-- `carta_create_level` — Create new level
-- `carta_rename_level` — Update level name, description, or order
-- `carta_delete_level` — Delete level (document must have >1 level)
-- `carta_set_active_level` — Switch active level (construct/connection operations target active level)
+**Page operations:**
+- `carta_list_pages` — List all pages (returns pages array + activePage ID)
+- `carta_create_page` — Create new page
+- `carta_rename_page` — Update page name, description, or order
+- `carta_delete_page` — Delete page (document must have >1 page)
+- `carta_set_active_page` — Switch active page (construct/connection operations target active page)
 
 **Schema operations:**
 - `carta_list_schemas` — List all schemas (built-in + custom). Use `output="compact"` for token efficiency
@@ -71,7 +71,7 @@ Carta exposes an MCP (Model Context Protocol) server for AI tool integration. Th
 - `carta_delete_schema` — Delete custom schema
 
 **Construct operations:**
-- `carta_list_constructs` — List constructs (compact summaries). Optionally filter by `constructType` or target specific level via `levelId`
+- `carta_list_constructs` — List constructs (compact summaries). Optionally filter by `constructType` or target specific page via `pageId`
 - `carta_get_construct` — Get construct by semantic ID (full details)
 - `carta_create_construct` — Create construct instance. When `parentId` set, position is relative to organizer
 - `carta_update_construct` — Update construct values or instance color
@@ -99,7 +99,7 @@ Carta exposes an MCP (Model Context Protocol) server for AI tool integration. Th
 
 ### Operation Scoping
 
-All construct and connection operations target the **active level**, which can be switched via `carta_set_active_level`. Organizers are per-level (doc02.09). When creating constructs with `parentId`, position is relative to the organizer bounds.
+All construct and connection operations target the **active page**, which can be switched via `carta_set_active_page`. Organizers are per-page (doc02.09). When creating constructs with `parentId`, position is relative to the organizer bounds.
 
 In desktop mode, the local MCP server auto-discovers via `{userData}/server.json` (contains URL and PID). This enables zero-config MCP when Carta Desktop is running. The MCP server reads the locally-synced Y.Doc, providing fast access regardless of whether the document source is local or remote. The same MCP binary can also connect to remote servers via the `CARTA_SERVER_URL` environment variable.
 
@@ -120,4 +120,4 @@ Server mode uses y-websocket for real-time collaboration. The Yjs CRDT handles c
 
 ## DocumentAdapter Interface
 
-The internal contract between UI and storage. Methods for CRUD on all document entities (nodes, edges, schemas, deployables, levels, port schemas, schema groups). Subscribe for change notifications. Transaction support for atomic multi-operation changes.
+The internal contract between UI and storage. Methods for CRUD on all document entities (nodes, edges, schemas, deployables, pages, port schemas, schema groups). Subscribe for change notifications. Transaction support for atomic multi-operation changes.

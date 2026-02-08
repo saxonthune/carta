@@ -49,8 +49,8 @@ Test helpers live in `tests/e2e/helpers/CartaPage.ts` — a Page Object Model wi
 |-----------|---------|-------|
 | `adapter-lifecycle.test.tsx` | Adapter lifecycle (doc02.02) | StrictMode double-mount handling, disposal during async init, timeout cancellation, operations on disposed adapters, subscription cleanup, rapid documentId changes |
 | `port-validation.test.tsx` | Port polarity (doc03.01.01.03) | Polarity blocking (source-source, sink-sink), relay/intercept bypass, bidirectional compatibility, compatibleWith matching |
-| `levels.test.tsx` | Multi-level documents (doc03.01.01.04) | Level CRUD, isolation, copy/duplicate nodes |
-| `organizer.test.tsx` | Organizers (doc02.09, doc03.01.01.01) | Organizer CRUD via adapter, node-organizer association, level isolation, collapse state, nesting |
+| `pages.test.tsx` | Multi-page documents (doc03.01.01.04) | Page CRUD, isolation, copy/duplicate nodes |
+| `organizer.test.tsx` | Organizers (doc02.09, doc03.01.01.01) | Organizer CRUD via adapter, node-organizer association, page isolation, collapse state, nesting |
 | `organizer-operations.test.tsx` | Organizer operations (doc02.09) | Attach/detach, layout strategies, business rules enforcement |
 | `organizer-geometry.test.tsx` | Organizer geometry (doc02.09) | Bounds computation, overlap detection, containment checks |
 | `folder-navigation.test.tsx` | Storage navigation (doc03.01.03.01) | Virtual folder derivation from forward-slash document names, breadcrumb paths, folder nesting |
@@ -61,7 +61,7 @@ Test helpers live in `tests/e2e/helpers/CartaPage.ts` — a Page Object Model wi
 ### Server Tests
 | Test File | Feature | Tests |
 |-----------|---------|-------|
-| `document-server-core.test.ts` | Document server (doc02.05) | Document CRUD operations, level management, construct operations, connection management, organizer operations |
+| `document-server-core.test.ts` | Document server (doc02.05) | Document CRUD operations, page management, construct operations, connection management, organizer operations |
 | `document-server-smoke.test.ts` | Server startup (doc02.05) | Basic server lifecycle, port binding, health checks |
 
 Test providers (`testProviders.tsx`) use `skipPersistence` and `skipStarterContent` props to ensure clean test isolation.

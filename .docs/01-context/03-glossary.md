@@ -23,7 +23,7 @@ Canonical definitions for domain terms used throughout Carta. Use these terms co
 
 **Display Name**: The human-readable title of a construct instance, derived from the schema's `displayField` value or falling back to the semantic ID.
 
-**Level**: A separate architectural view or layer within a document. Each level has its own nodes, edges, and deployables. Schemas are shared across levels.
+**Page**: A separate architectural view or layer within a document. Each page has its own nodes, edges, and deployables. Schemas are shared across pages.
 
 **LOD Band**: One of three discrete zoom-based rendering modes (pill, compact, normal) that control node detail level. Pill shows title only, compact shows title + minimal fields, normal shows all fields based on display tier. Bands switch at zoom thresholds 0.5 and 1.0.
 
