@@ -254,6 +254,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     detachFromOrganizer,
     toggleOrganizerCollapse,
     fitOrganizerToMembers,
+    setStackIndex,
   } = useOrganizerOperations();
 
   // Wrapper for createOrganizer that uses current selectedNodeIds
@@ -493,6 +494,8 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
   updateNodeInstanceColorRef.current = updateNodeInstanceColor;
   const toggleOrganizerCollapseRef = useRef(toggleOrganizerCollapse);
   toggleOrganizerCollapseRef.current = toggleOrganizerCollapse;
+  const setStackIndexRef = useRef(setStackIndex);
+  setStackIndexRef.current = setStackIndex;
 
   // One stable dispatch object shared by ALL nodes (never changes identity)
   const nodeActions = useMemo(() => ({
@@ -503,6 +506,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     onOpenFullView: (nodeId: string) => setFullViewNodeIdRef.current(nodeId),
     onInstanceColorChange: (nodeId: string, color: string | null) => updateNodeInstanceColorRef.current(nodeId, color),
     onToggleCollapse: (nodeId: string) => toggleOrganizerCollapseRef.current(nodeId),
+    onSetStackIndex: (nodeId: string, index: number) => setStackIndexRef.current(nodeId, index),
   }), []);
 
   const nodesWithCallbacks = useMemo(() =>

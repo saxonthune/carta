@@ -352,10 +352,10 @@ function applySchemaDefaults(schema) {
     // Add default ports if none specified
     if (!processed.ports || processed.ports.length === 0) {
         processed.ports = [
-            { id: 'flow-in', portType: 'flow-in', position: 'left', offset: 50, label: 'In' },
-            { id: 'flow-out', portType: 'flow-out', position: 'right', offset: 50, label: 'Out' },
-            { id: 'parent', portType: 'parent', position: 'bottom', offset: 50, label: 'Children' },
-            { id: 'child', portType: 'child', position: 'top', offset: 50, label: 'Parent' },
+            { id: 'flow-in', portType: 'flow-in', label: 'In' },
+            { id: 'flow-out', portType: 'flow-out', label: 'Out' },
+            { id: 'parent', portType: 'parent', label: 'Children' },
+            { id: 'child', portType: 'child', label: 'Parent' },
         ];
     }
     return processed;

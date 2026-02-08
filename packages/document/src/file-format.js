@@ -122,13 +122,8 @@ export function validateCartaFile(data) {
                 }
                 const p = port;
                 if (typeof p.id !== 'string' || typeof p.portType !== 'string' ||
-                    typeof p.position !== 'string' || typeof p.offset !== 'number' ||
                     typeof p.label !== 'string') {
-                    throw new Error(`Invalid file: schema "${s.type}" has port missing required fields (id, portType, position, offset, label)`);
-                }
-                const validPositions = ['left', 'right', 'top', 'bottom'];
-                if (!validPositions.includes(p.position)) {
-                    throw new Error(`Invalid file: schema "${s.type}" has port with invalid position "${p.position}"`);
+                    throw new Error(`Invalid file: schema "${s.type}" has port missing required fields (id, portType, label)`);
                 }
             }
         }

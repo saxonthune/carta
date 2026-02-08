@@ -2,6 +2,20 @@ import { memo, useCallback } from 'react';
 import { getSmoothStepPath, Position, useStore, type EdgeProps } from '@xyflow/react';
 import type { BundleData } from '../../hooks/useEdgeBundling';
 
+/** Extracted geometry for a node — only the values edges need. */
+interface NodeRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+function nodeRectEqual(a: NodeRect | null, b: NodeRect | null): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  return a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
+}
+
 /**
  * Given a rectangle and a target point, find the intersection of
  * the line from the rect center to the target with the rect boundary.
@@ -71,9 +85,24 @@ export default memo(function DynamicAnchorEdge({
     ? ((style as Record<string, unknown>).strokeWidth as number ?? 3)
     : isBundled ? Math.min(1.5 + (count - 1) * 1, 6) : 1.5;
 
-  // Per-node selectors: only re-render when connected nodes change (not all nodes)
-  const sourceNode = useStore(useCallback((s) => s.nodeLookup.get(source), [source]));
-  const targetNode = useStore(useCallback((s) => s.nodeLookup.get(target), [target]));
+  // Per-node selectors: extract only geometry values with value-based equality
+  // so edges don't re-render when unrelated nodes change reference.
+  const sourceRect = useStore(
+    useCallback((s): NodeRect | null => {
+      const n = s.nodeLookup.get(source);
+      if (!n?.internals?.positionAbsolute || !n?.measured?.width || !n?.measured?.height) return null;
+      return { x: n.internals.positionAbsolute.x, y: n.internals.positionAbsolute.y, width: n.measured.width, height: n.measured.height };
+    }, [source]),
+    nodeRectEqual,
+  );
+  const targetRect = useStore(
+    useCallback((s): NodeRect | null => {
+      const n = s.nodeLookup.get(target);
+      if (!n?.internals?.positionAbsolute || !n?.measured?.width || !n?.measured?.height) return null;
+      return { x: n.internals.positionAbsolute.x, y: n.internals.positionAbsolute.y, width: n.measured.width, height: n.measured.height };
+    }, [target]),
+    nodeRectEqual,
+  );
 
   let sx = sourceX;
   let sy = sourceY;
@@ -83,21 +112,7 @@ export default memo(function DynamicAnchorEdge({
   let tp = targetPosition;
 
   // If we have both nodes, compute dynamic boundary points
-  if (sourceNode?.internals?.positionAbsolute && sourceNode?.measured?.width && sourceNode?.measured?.height &&
-      targetNode?.internals?.positionAbsolute && targetNode?.measured?.width && targetNode?.measured?.height) {
-    const sourceRect = {
-      x: sourceNode.internals.positionAbsolute.x,
-      y: sourceNode.internals.positionAbsolute.y,
-      width: sourceNode.measured.width,
-      height: sourceNode.measured.height,
-    };
-    const targetRect = {
-      x: targetNode.internals.positionAbsolute.x,
-      y: targetNode.internals.positionAbsolute.y,
-      width: targetNode.measured.width,
-      height: targetNode.measured.height,
-    };
-
+  if (sourceRect && targetRect) {
     const targetCenter = {
       x: targetRect.x + targetRect.width / 2,
       y: targetRect.y + targetRect.height / 2,

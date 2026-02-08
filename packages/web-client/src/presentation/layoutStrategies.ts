@@ -39,18 +39,32 @@ export function stackLayout(members: NodeGeometry[], activeIndex: number): Layou
   const clampedIndex = Math.max(0, Math.min(activeIndex, members.length - 1));
   const visibleIndices = new Set<number>();
 
+  const padding = 20;
+  const headerHeight = 40;
+
   if (members.length > 0) {
     visibleIndices.add(clampedIndex);
 
     // Position all members at the same spot (top-left of content area)
-    const baseX = 20; // padding
-    const baseY = 60; // padding + header
+    const baseX = padding;
+    const baseY = padding + headerHeight;
     for (let i = 0; i < members.length; i++) {
       positions.set(i, { x: baseX, y: baseY });
     }
   }
 
-  return { positions, visibleIndices };
+  // Size to fit the active member
+  const active = members[clampedIndex];
+  const activeW = active?.measured?.width ?? active?.width ?? 220;
+  const activeH = active?.measured?.height ?? active?.height ?? 120;
+
+  return {
+    positions,
+    visibleIndices,
+    organizerSize: members.length > 0
+      ? { width: activeW + padding * 2, height: activeH + padding * 2 + headerHeight }
+      : undefined,
+  };
 }
 
 /**
@@ -65,9 +79,34 @@ export function gridLayout(members: NodeGeometry[], columns: number): LayoutResu
   const padding = 20;
   const headerHeight = 40;
   const gap = 16;
-  // Use measured/explicit dimensions or defaults
-  const cellWidth = 220;
-  const cellHeight = 120;
+  const defaultCellWidth = 220;
+  const defaultCellHeight = 120;
+
+  // Resolve each member's actual dimensions
+  const widths = members.map(m => m.measured?.width ?? m.width ?? defaultCellWidth);
+  const heights = members.map(m => m.measured?.height ?? m.height ?? defaultCellHeight);
+
+  // Compute max width per column and max height per row
+  const colWidths = new Array(cols).fill(defaultCellWidth);
+  const numRows = Math.ceil(members.length / cols);
+  const rowHeights = new Array(numRows).fill(defaultCellHeight);
+
+  for (let i = 0; i < members.length; i++) {
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+    colWidths[col] = Math.max(colWidths[col], widths[i]);
+    rowHeights[row] = Math.max(rowHeights[row], heights[i]);
+  }
+
+  // Compute cumulative offsets per column/row
+  const colOffsets = [padding];
+  for (let c = 1; c < cols; c++) {
+    colOffsets[c] = colOffsets[c - 1] + colWidths[c - 1] + gap;
+  }
+  const rowOffsets = [padding + headerHeight];
+  for (let r = 1; r < numRows; r++) {
+    rowOffsets[r] = rowOffsets[r - 1] + rowHeights[r - 1] + gap;
+  }
 
   let maxX = 0;
   let maxY = 0;
@@ -76,11 +115,11 @@ export function gridLayout(members: NodeGeometry[], columns: number): LayoutResu
     visibleIndices.add(i);
     const col = i % cols;
     const row = Math.floor(i / cols);
-    const x = padding + col * (cellWidth + gap);
-    const y = padding + headerHeight + row * (cellHeight + gap);
+    const x = colOffsets[col];
+    const y = rowOffsets[row];
     positions.set(i, { x, y });
-    maxX = Math.max(maxX, x + cellWidth);
-    maxY = Math.max(maxY, y + cellHeight);
+    maxX = Math.max(maxX, x + colWidths[col]);
+    maxY = Math.max(maxY, y + rowHeights[row]);
   }
 
   return {

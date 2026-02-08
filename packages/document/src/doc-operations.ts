@@ -654,13 +654,20 @@ export function updateOrganizer(
   if (nodeObj.type !== 'organizer') return null;
 
   ydoc.transact(() => {
-    const ydata = ynode.get('data') as Y.Map<unknown>;
-    if (updates.name !== undefined) ydata.set('name', updates.name);
-    if (updates.color !== undefined) ydata.set('color', updates.color);
-    if (updates.collapsed !== undefined) ydata.set('collapsed', updates.collapsed);
-    if (updates.layout !== undefined) ydata.set('layout', updates.layout);
-    if (updates.description !== undefined) ydata.set('description', updates.description);
-    if (updates.attachedToSemanticId !== undefined) ydata.set('attachedToSemanticId', updates.attachedToSemanticId);
+    let ydata = ynode.get('data');
+    // If data is a plain object (can happen after certain Yjs operations), convert it
+    if (!(ydata instanceof Y.Map)) {
+      const plainData = (ydata && typeof ydata === 'object') ? ydata as Record<string, unknown> : {};
+      ydata = deepPlainToY(plainData) as Y.Map<unknown>;
+      ynode.set('data', ydata);
+    }
+    const ydataMap = ydata as Y.Map<unknown>;
+    if (updates.name !== undefined) ydataMap.set('name', updates.name);
+    if (updates.color !== undefined) ydataMap.set('color', updates.color);
+    if (updates.collapsed !== undefined) ydataMap.set('collapsed', updates.collapsed);
+    if (updates.layout !== undefined) ydataMap.set('layout', updates.layout);
+    if (updates.description !== undefined) ydataMap.set('description', updates.description);
+    if (updates.attachedToSemanticId !== undefined) ydataMap.set('attachedToSemanticId', updates.attachedToSemanticId);
   }, MCP_ORIGIN);
 
   // Re-read to return updated state
@@ -952,10 +959,10 @@ function applySchemaDefaults(schema: Record<string, unknown>): Record<string, un
   // Add default ports if none specified
   if (!processed.ports || (processed.ports as unknown[]).length === 0) {
     processed.ports = [
-      { id: 'flow-in', portType: 'flow-in', position: 'left', offset: 50, label: 'In' },
-      { id: 'flow-out', portType: 'flow-out', position: 'right', offset: 50, label: 'Out' },
-      { id: 'parent', portType: 'parent', position: 'bottom', offset: 50, label: 'Children' },
-      { id: 'child', portType: 'child', position: 'top', offset: 50, label: 'Parent' },
+      { id: 'flow-in', portType: 'flow-in', label: 'In' },
+      { id: 'flow-out', portType: 'flow-out', label: 'Out' },
+      { id: 'parent', portType: 'parent', label: 'Children' },
+      { id: 'child', portType: 'child', label: 'Parent' },
     ];
   }
 

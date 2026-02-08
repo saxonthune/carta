@@ -40,6 +40,7 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
     collapsed,
     childCount,
     layout = 'freeform',
+    stackIndex = 0,
     isDropTarget,
     isHovered,
     isDimmed,
@@ -54,6 +55,26 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
       if (nodeId && nodeActions) nodeActions.onToggleCollapse(nodeId);
     },
     [nodeActions, nodeId]
+  );
+
+  const handleStackPrev = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (nodeId && nodeActions && stackIndex > 0) {
+        nodeActions.onSetStackIndex(nodeId, stackIndex - 1);
+      }
+    },
+    [nodeActions, nodeId, stackIndex]
+  );
+
+  const handleStackNext = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (nodeId && nodeActions && stackIndex < childCount - 1) {
+        nodeActions.onSetStackIndex(nodeId, stackIndex + 1);
+      }
+    },
+    [nodeActions, nodeId, stackIndex, childCount]
   );
 
   // Increased base color mix for better visibility; deeper nesting = stronger tint
@@ -205,7 +226,42 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
               <span className="text-[9px] text-content-subtle leading-tight">{parentGroupName}</span>
             )}
           </div>
-          {childCount > 0 && (
+          {/* Stack navigation chevrons */}
+          {layout === 'stack' && childCount > 1 && nodeActions && (
+            <div className="flex items-center gap-0.5 shrink-0">
+              <button
+                className="w-5 h-5 flex items-center justify-center rounded text-content-muted hover:text-content transition-colors disabled:opacity-30 disabled:pointer-events-none"
+                onClick={handleStackPrev}
+                disabled={stackIndex <= 0}
+                title="Previous"
+              >
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
+              </button>
+              <span
+                className="text-[10px] font-medium px-1 py-0.5 rounded-full min-w-[2rem] text-center"
+                style={{
+                  backgroundColor: `color-mix(in srgb, ${color} 20%, var(--color-canvas))`,
+                  color: `color-mix(in srgb, ${color} 80%, var(--color-content))`,
+                }}
+              >
+                {stackIndex + 1}/{childCount}
+              </span>
+              <button
+                className="w-5 h-5 flex items-center justify-center rounded text-content-muted hover:text-content transition-colors disabled:opacity-30 disabled:pointer-events-none"
+                onClick={handleStackNext}
+                disabled={stackIndex >= childCount - 1}
+                title="Next"
+              >
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </button>
+            </div>
+          )}
+          {/* Child count badge (non-stack layouts) */}
+          {!(layout === 'stack' && childCount > 1 && nodeActions) && childCount > 0 && (
             <span
               className="text-[10px] font-medium shrink-0 px-1.5 py-0.5 rounded-full"
               style={{

@@ -144,6 +144,7 @@ export function applyLayoutStrategies(nodes: ProcessableNode[]): ProcessableNode
 
   // For each non-freeform organizer, apply layout
   const positionOverrides = new Map<string, { x: number; y: number }>();
+  const sizeOverrides = new Map<string, { width: number; height: number }>();
   const hiddenByLayout = new Set<string>();
 
   for (const [organizerId, organizer] of organizerNodes) {
@@ -168,33 +169,51 @@ export function applyLayoutStrategies(nodes: ProcessableNode[]): ProcessableNode
       result = gridLayout(memberGeometries, data.gridColumns ?? 3);
     }
 
-    // Apply position overrides and visibility
+    // Apply position overrides and visibility (skip if position unchanged)
     for (let i = 0; i < members.length; i++) {
       const pos = result.positions.get(i);
       if (pos) {
-        positionOverrides.set(members[i].id, pos);
+        const cur = members[i].position;
+        if (cur.x !== pos.x || cur.y !== pos.y) {
+          positionOverrides.set(members[i].id, pos);
+        }
       }
       if (!result.visibleIndices.has(i)) {
         hiddenByLayout.add(members[i].id);
       }
     }
+
+    // Apply organizer size override only if it actually changed
+    if (result.organizerSize) {
+      const curW = organizer.width ?? ((organizer as any).style?.width as number | undefined);
+      const curH = organizer.height ?? ((organizer as any).style?.height as number | undefined);
+      if (curW !== result.organizerSize.width || curH !== result.organizerSize.height) {
+        sizeOverrides.set(organizerId, result.organizerSize);
+      }
+    }
   }
 
   // Apply overrides if any exist
-  if (positionOverrides.size === 0 && hiddenByLayout.size === 0) {
+  if (positionOverrides.size === 0 && hiddenByLayout.size === 0 && sizeOverrides.size === 0) {
     return nodes;
   }
 
   return nodes.map(node => {
     const posOverride = positionOverrides.get(node.id);
+    const sizeOverride = sizeOverrides.get(node.id);
     const shouldHide = hiddenByLayout.has(node.id);
 
-    if (!posOverride && !shouldHide) return node;
+    if (!posOverride && !shouldHide && !sizeOverride) return node;
 
     return {
       ...node,
       ...(posOverride ? { position: posOverride } : {}),
       ...(shouldHide ? { hidden: true } : {}),
+      ...(sizeOverride ? {
+        width: sizeOverride.width,
+        height: sizeOverride.height,
+        style: { ...((node as any).style || {}), width: sizeOverride.width, height: sizeOverride.height },
+      } : {}),
     };
   });
 }

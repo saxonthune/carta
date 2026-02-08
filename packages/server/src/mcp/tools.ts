@@ -238,8 +238,6 @@ const CreateSchemaInputSchema = z.object({
       z.object({
         id: z.string(),
         portType: z.enum(['flow-in', 'flow-out', 'parent', 'child', 'symmetric', 'intercept', 'relay']),
-        position: z.enum(['left', 'right', 'top', 'bottom']),
-        offset: z.number(),
         label: z.string(),
         semanticDescription: z.string().optional(),
       })
@@ -329,6 +327,14 @@ export function getToolDefinitions() {
 - backgroundColorPolicy defaults to 'defaultOnly' (no color picker); use 'tints' for 7 swatches or 'any' for full picker
 - Use displayTier='pill' on a field to make it the node title (max 1 per schema)`,
       inputSchema: CreateSchemaInputSchema.shape,
+    },
+    {
+      name: 'carta_delete_schema',
+      description: 'Delete a custom construct schema by type',
+      inputSchema: z.object({
+        documentId: z.string().describe('The document ID'),
+        type: z.string().describe('The schema type to delete'),
+      }).shape,
     },
     {
       name: 'carta_list_constructs',
@@ -666,6 +672,16 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
           fields: input.fields,
           ports: input.ports,
         }
+      );
+      if (result.error) return { error: result.error };
+      return result.data;
+    },
+
+    carta_delete_schema: async (args) => {
+      const { documentId, type } = z.object({ documentId: z.string(), type: z.string() }).parse(args);
+      const result = await apiRequest<{ deleted: boolean }>(
+        'DELETE',
+        `/api/documents/${encodeURIComponent(documentId)}/schemas/${encodeURIComponent(type)}`
       );
       if (result.error) return { error: result.error };
       return result.data;
