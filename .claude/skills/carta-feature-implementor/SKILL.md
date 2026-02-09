@@ -42,12 +42,26 @@ For each `.log` file found:
 2. If a corresponding `.md` result file exists, the agent is **done** — read the result and report status (SUCCESS/FAILURE, merge status, commits)
 3. If only a `.log` exists (no `.md`), the agent is **still running** — show the last 10 lines of the log
 
-Present a brief status summary:
+Present status as a **table** (always use this format):
 
-```
+```markdown
 ## Agent Status
-- **page-description-ui**: SUCCESS — merged into trunk (3 commits)
-- **debug-logging**: RUNNING — currently at "Step 4: Run Headless Claude"
+
+| Agent | Status | Merge | Notes |
+|-------|--------|-------|-------|
+| **page-description-ui** | SUCCESS | merged | 3 commits |
+| **debug-logging** | RUNNING | — | Step 4: Run Headless Claude |
+```
+
+Then show remaining plans as a second table:
+
+```markdown
+## Remaining Plans
+
+| Plan | Summary |
+|------|---------|
+| `de-overlap-nodes.md` | Push overlapping nodes apart after layout |
+| `component-smoke-tests.md` | Smoke tests for key UI components |
 ```
 
 ### Archive completed plans

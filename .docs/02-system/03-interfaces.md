@@ -25,6 +25,7 @@ The server exposes REST endpoints for document management:
 | `/api/documents` | POST | Create a new document |
 | `/api/documents/:id` | GET | Get document details |
 | `/api/documents/:id` | DELETE | Delete a document |
+| `/api/documents/:id/layout/flow` | POST | Apply topological flow layout to active page |
 
 Document summary includes:
 - `id`: Document ID (used in WebSocket room name)
@@ -93,6 +94,9 @@ Carta exposes an MCP (Model Context Protocol) server for AI tool integration. Th
 
 **Batch operations:**
 - `carta_batch_mutate` — Execute heterogeneous operations in single transaction (create, update, delete, connect, disconnect, move). Supports "@N" placeholder syntax for referencing results of earlier operations in same batch
+
+**Layout operations:**
+- `carta_flow_layout` — Arrange nodes in topological order along a flow direction (TB/BT/LR/RL). Uses Sugiyama framework: layer assignment, crossing minimization, coordinate assignment. Only affects top-level nodes (not inside organizers). Supports sourcePort/sinkPort configuration, layerGap, nodeGap, and scope options
 
 **Compilation:**
 - `carta_compile` — Compile document to AI-readable output

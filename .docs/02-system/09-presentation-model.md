@@ -128,6 +128,59 @@ All organizer layouts share the same collapse behavior:
 
 This is handled by the presentation model's visibility pass, not by individual layout components.
 
+## Layout Algorithms
+
+Carta provides several automated layout algorithms for arranging nodes on the canvas. These are utility functions that compute new positions while preserving the original centroid (preventing camera jumps).
+
+### Flow Layout (Domain)
+
+**Location:** `@carta/domain/utils/flowLayout.ts`
+**Purpose:** Topological layout using the Sugiyama framework
+**Algorithm:** Layer assignment → crossing minimization → coordinate assignment
+**Directions:** TB (top-bottom), BT (bottom-top), LR (left-right), RL (right-left)
+
+Flow layout analyzes port connections to determine hierarchy:
+- Filters edges by `sourcePort` (default: "flow-out")
+- Detects and breaks cycles using DFS
+- Assigns layers via longest path from sources (nodes with no incoming edges)
+- Minimizes edge crossings using barycenter heuristic
+- Assigns coordinates based on direction
+
+**Configurable:**
+- `sourcePort` / `sinkPort` — which ports define flow direction
+- `layerGap` — spacing between layers (default: 250)
+- `nodeGap` — spacing between nodes in same layer (default: 150)
+- `scope` — 'all' or array of node IDs to layout
+
+This algorithm is exposed via:
+- MCP tool: `carta_flow_layout`
+- REST endpoint: `POST /api/documents/:id/layout/flow`
+- Client utility: imported from domain package
+
+### Hierarchical Layout (Web Client)
+
+**Location:** `@carta/web-client/utils/hierarchicalLayout.ts`
+**Purpose:** Client-side top-to-bottom arrangement using Sugiyama-style algorithm
+**Use case:** Quick local layout without server round-trip
+
+Similar to flow layout but optimized for client-side execution. Uses edge direction (source → target) to compute layers, breaks cycles via DFS, and arranges nodes top-to-bottom.
+
+### Compact Nodes (Web Client)
+
+**Location:** `@carta/web-client/utils/compactNodes.ts`
+**Purpose:** Remove whitespace while preserving spatial order
+**Algorithm:** Group by rows (y-threshold) → place tightly with gap spacing
+
+Compacting:
+1. Groups nodes into rows (30px y-threshold)
+2. Sorts each row left-to-right
+3. Places rows top-to-bottom with configurable gap
+4. Shifts entire result to preserve original centroid
+
+**Use case:** Tidy up after manual editing or bulk operations
+
+All layout algorithms return `Map<string, {x, y}>` for easy integration with node update operations.
+
 ## Node Presentation Dispatch
 
 The presentation model also governs which component renders each construct. This is a two-key dispatch:

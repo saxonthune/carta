@@ -54,7 +54,7 @@ The codebase provides **focused hooks** that subscribe to specific slices of doc
 - `useSchemas()` — schemas, schemaById, getSchema, add/update/remove
 - `usePortSchemas()` — portSchemas, getPortSchema, add/update/remove
 - `useSchemaGroups()` — schemaGroups, getSchemaGroup, add/update/remove
-- `usePages()` — pages, activePage, setActivePage, create/delete/update
+- `usePages()` — pages, activePage, setActivePage, create/delete/update (renamed from useLevels)
 - `useDocumentMeta()` — title, description, setTitle, setDescription
 - `useOrganizerOperations()` — organizer operations (create, attach, detach, toggle collapse, rename, resize, delete, change layout)
 - `usePresentation()` — transforms domain state into view state (node visibility, positioning, edge remapping) via the presentation model (doc02.09)

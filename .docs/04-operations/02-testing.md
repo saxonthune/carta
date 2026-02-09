@@ -37,6 +37,7 @@ E2E tests use Playwright and run on port 5273 (separate from dev server on 5173)
 | `new-user-experience.spec.ts` | NUX (doc03.01.03.05) | First visit lands on canvas, starter nodes/edges present, nodes interactive, URL has ?doc= param, returning visit reopens last doc |
 | `port-connections.spec.ts` | Ports (doc03.01.01.03) | Port drawer expand/collapse, draggable handles, connection creation, starter content edges |
 | `organizers.spec.ts` | Organizers (doc02.09, doc03.01.01.01) | Create organizer via Ctrl+G, organizer name display, member count badge, collapse toggle, dragging, layout strategies |
+| `organizer-nesting.spec.ts` | Organizer nesting (doc02.09) | Nested organizer hierarchy, collapse propagation, edge remapping |
 | `document-browser.spec.ts` | Storage navigation (doc03.01.03.01) | Folder navigation, breadcrumb display, document creation, virtual folder structure |
 | `drag-performance.spec.ts` | Canvas performance (doc03.01.01.01) | Drag operations on large graphs (150 nodes), performance benchmarking |
 
@@ -53,10 +54,11 @@ Test helpers live in `tests/e2e/helpers/CartaPage.ts` — a Page Object Model wi
 | `organizer.test.tsx` | Organizers (doc02.09, doc03.01.01.01) | Organizer CRUD via adapter, node-organizer association, page isolation, collapse state, nesting |
 | `organizer-operations.test.tsx` | Organizer operations (doc02.09) | Attach/detach, layout strategies, business rules enforcement |
 | `organizer-geometry.test.tsx` | Organizer geometry (doc02.09) | Bounds computation, overlap detection, containment checks |
+| `presentation-model.test.ts` | Presentation model (doc02.09) | Visibility, positioning, edge remapping for organizers |
+| `seed-loader.test.ts` | Built-in schemas (doc02.06) | Seed loading, schema validation |
 | `folder-navigation.test.tsx` | Storage navigation (doc03.01.03.01) | Virtual folder derivation from forward-slash document names, breadcrumb paths, folder nesting |
 | `context-menu-*.test.tsx` | Context menus | Right-click, add related constructs |
 | `clear-*.test.tsx` | Document clearing | Clear instances, clear all, preserve title |
-| `restore-*.test.tsx` | Schema restoration | Restore defaults, preserve instances |
 
 ### Server Tests
 | Test File | Feature | Tests |
