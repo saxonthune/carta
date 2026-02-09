@@ -120,7 +120,12 @@ echo "── Running headless Claude ──"
 CLAUDE_PROMPT="Read the plan at ${PLAN_FILE} and implement it fully. \
 Follow the plan step by step. Commit after each logical unit of work. \
 When done, run 'pnpm build && pnpm test' and fix any issues. \
-Output your implementation summary at the end."
+Output your implementation summary, then end with a '## Notes' section containing: \
+- Any deviations from the plan (and why) \
+- Caveats or known limitations in the implementation \
+- Things a reviewer should pay attention to \
+- Anything that surprised you or felt wrong \
+If there's nothing noteworthy, write '## Notes' followed by 'None.'"
 
 CLAUDE_OUTPUT=$(claude -p \
   --allowedTools "Read,Write,Edit,Glob,Grep,Bash" \

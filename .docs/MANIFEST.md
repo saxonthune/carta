@@ -115,6 +115,13 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 | doc04.03 | `03-deployment.md` | Build, deploy, env vars | deployment, build | doc02.05 |
 | doc04.04 | `04-contributing.md` | Contribution guidelines, PR process | contributing, pr | — |
 
+## 05-research — Design explorations and research sessions
+
+| Ref | File | Summary | Tags | Deps |
+|-----|------|---------|------|------|
+| doc05.00 | `00-index.md` | Research session format and purpose | research, meta | — |
+| doc05.01 | `01-visual-semantics-in-organizers.md` | Shape differentiation, sequence badges, icon markers for organizer contents | research, notation, bpmn, presentation, organizers | doc02.09, doc02.07, doc02.06 |
+
 ## Tag Index
 
 Quick lookup for file-path→doc mapping:
@@ -138,3 +145,6 @@ Quick lookup for file-path→doc mapping:
 | `rendering` | doc02.09, doc03.01.14, doc02.07 |
 | `testing` | doc04.02 |
 | `mcp` | doc02.03, doc03.01.03.03 |
+| `research` | doc05.01 |
+| `notation` | doc05.01, doc02.07 |
+| `bpmn` | doc05.01 |

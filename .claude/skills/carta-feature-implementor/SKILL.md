@@ -39,17 +39,28 @@ ls .claude/agent-results/*.md 2>/dev/null
 
 For each `.log` file found:
 1. Check if the agent process is still running: `ps aux | grep "execute-plan.sh $(basename log .log)" | grep -v grep`
-2. If a corresponding `.md` result file exists, the agent is **done** — read the result and report status (SUCCESS/FAILURE, merge status, commits)
+2. If a corresponding `.md` result file exists, the agent is **done** — **read the full result file** and extract status, merge, commits, and notes
 3. If only a `.log` exists (no `.md`), the agent is **still running** — show the last 10 lines of the log
 
-Present status as a **table** (always use this format):
+### Debrief completed agents
+
+For each completed agent, **read the entire `.md` result file**. Do not just check the status header — read the Claude Summary section too. Look for:
+
+- A `## Notes` section (executor agents are prompted to include one) — extract it verbatim
+- If no `## Notes` section exists, scan the Claude Summary for: deviations from plan, caveats, known limitations, retry context, test warnings, or anything that isn't a straightforward "did exactly what the plan said"
+- Whether it was retried (`**Retried**: true`) — if so, note what failed and whether the fix was clean
+
+Compose a **debrief summary** for each completed agent: 1-2 sentences capturing anything the user should know. If the run was truly clean with no caveats, say so explicitly: "Clean run, no concerns."
+
+Present status as a **table** with a Notes column that contains the debrief, not just commit count:
 
 ```markdown
 ## Agent Status
 
 | Agent | Status | Merge | Notes |
 |-------|--------|-------|-------|
-| **page-description-ui** | SUCCESS | merged | 3 commits |
+| **page-description-ui** | SUCCESS | merged | Clean run, no concerns. 3 commits. |
+| **component-smoke-tests** | SUCCESS | merged | Retried once (build failure). E2E tests use semantic selectors — may break if trigger bar title attributes change. 3 commits. |
 | **debug-logging** | RUNNING | — | Step 4: Run Headless Claude |
 ```
 
@@ -66,7 +77,7 @@ Then show remaining plans as a second table:
 
 ### Archive completed plans
 
-For each **completed** agent (has a `.md` result file), archive the corresponding plan from `todo-tasks/` if it still exists there:
+For each **completed** agent (has a `.md` result file), archive the corresponding plan from `todo-tasks/` if it still exists there. **Only archive after the debrief has been presented to the user** — never silently archive without showing the notes.
 
 ```bash
 mkdir -p todo-tasks/.archived
@@ -77,9 +88,9 @@ ts=$(date +%Y%m%d)
 
 This prevents stale plans from cluttering the active list. The plan must remain in `todo-tasks/` while an agent is running (the executor reads it from there), so only archive after completion.
 
-**If invoked with `status` keyword:** Show status, archive completed plans, and stop. Don't proceed to plan selection.
+**If invoked with `status` keyword:** Show status with debrief, archive completed plans, and stop. Don't proceed to plan selection.
 
-**Otherwise:** Show status and archive completed plans (if any agents exist), then continue to Phase 1.
+**Otherwise:** Show status with debrief and archive completed plans (if any agents exist), then continue to Phase 1.
 
 ## Phase 1: Select a Plan
 
