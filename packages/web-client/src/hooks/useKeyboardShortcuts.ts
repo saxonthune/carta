@@ -14,6 +14,7 @@ interface UseKeyboardShortcutsOptions {
   startRename: () => void;
   createOrganizer?: () => void;
   selectAll?: () => void;
+  toggleSelectionMode?: () => void;
 }
 
 /**
@@ -26,6 +27,7 @@ interface UseKeyboardShortcutsOptions {
  * - Ctrl+V: Paste nodes
  * - Ctrl+G: Organize selected nodes
  * - Ctrl+A: Select all construct nodes on current level
+ * - V: Toggle selection mode
  * - Delete/Backspace: Delete selected nodes
  * - F2: Rename selected node (when single node selected)
  */
@@ -41,6 +43,7 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions): void
     startRename,
     createOrganizer,
     selectAll,
+    toggleSelectionMode,
   } = options;
 
   useEffect(() => {
@@ -100,6 +103,15 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions): void
         return;
       }
 
+      // Toggle Selection Mode: V
+      if (event.key === 'v' || event.key === 'V') {
+        if (!event.ctrlKey && !event.metaKey && !event.shiftKey && toggleSelectionMode) {
+          event.preventDefault();
+          toggleSelectionMode();
+        }
+        return;
+      }
+
       // Shortcuts that require selection
       if (selectedNodeIds.length === 0) return;
 
@@ -117,5 +129,5 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions): void
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedNodeIds, canPaste, undo, redo, copyNodes, pasteNodes, deleteSelectedNodes, startRename, createOrganizer, selectAll]);
+  }, [selectedNodeIds, canPaste, undo, redo, copyNodes, pasteNodes, deleteSelectedNodes, startRename, createOrganizer, selectAll, toggleSelectionMode]);
 }

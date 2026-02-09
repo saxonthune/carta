@@ -201,6 +201,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
   } = useMapState();
 
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
+  const [selectionModeActive, setSelectionModeActive] = useState(false);
   const [renamingNodeId, setRenamingNodeId] = useState<string | null>(null);
   const { undo, redo, canUndo, canRedo } = useUndoRedo();
 
@@ -281,6 +282,18 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     setSelectedNodeIds(allIds);
   }, [nodes, reactFlow, setSelectedNodeIds]);
 
+  // Toggle selection mode
+  const toggleSelectionMode = useCallback(() => {
+    setSelectionModeActive(prev => {
+      if (prev) {
+        // Turning off — clear selection
+        reactFlow.setNodes(nds => nds.map(n => ({ ...n, selected: false })));
+        setSelectedNodeIds([]);
+      }
+      return !prev;
+    });
+  }, [reactFlow]);
+
   // Use keyboard shortcuts hook
   useKeyboardShortcuts({
     selectedNodeIds,
@@ -293,6 +306,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     startRename,
     createOrganizer,
     selectAll,
+    toggleSelectionMode,
   });
 
   // Notify parent of nodes/edges changes for export
@@ -1327,8 +1341,8 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
         defaultEdgeOptions={defaultEdgeOptions}
         minZoom={0.15}
         nodeDragThreshold={5}
-        panOnDrag={[1, 2]}
-        selectionOnDrag
+        panOnDrag={selectionModeActive ? [1, 2] : [0, 1, 2]}
+        selectionOnDrag={selectionModeActive}
         selectionMode={SelectionMode.Full}
         connectionRadius={50}
         elevateNodesOnSelect={false}
@@ -1397,6 +1411,17 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
               <line x1="12" y1="5" x2="18" y2="10" />
               <line x1="6" y1="14" x2="12" y2="19" />
               <line x1="18" y1="14" x2="12" y2="19" />
+            </svg>
+          </ControlButton>
+          <ControlButton
+            onClick={toggleSelectionMode}
+            title={selectionModeActive ? "Exit Selection Mode (V)" : "Selection Mode (V)"}
+            className={selectionModeActive ? 'active' : ''}
+            style={selectionModeActive ? { backgroundColor: 'var(--xy-controls-button-background-color-hover, #f0f0f0)' } : undefined}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="3" width="8" height="8" rx="1" strokeDasharray="3 2" />
+              <path d="M14 4l3 9 2.5-2.5L23 14l-3.5-3.5L22 8z" />
             </svg>
           </ControlButton>
           {selectedNodeIds.length > 0 && (
