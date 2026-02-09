@@ -183,6 +183,17 @@ export default function FieldsStep({ formData, setFormData, fieldAssignments, se
           updated.enumColorField = updates.name;
         }
       }
+      const isEnumIconField = prev.enumIconField === oldField.name;
+      if (isEnumIconField) {
+        const typeChanged = updates.type !== undefined && updates.type !== 'enum';
+        const nameChanged = updates.name !== undefined && updates.name !== oldField.name;
+        if (typeChanged) {
+          updated.enumIconField = undefined;
+          updated.enumIconMap = undefined;
+        } else if (nameChanged) {
+          updated.enumIconField = updates.name;
+        }
+      }
       return updated;
     });
     // If name changed, update assignment key
@@ -208,6 +219,10 @@ export default function FieldsStep({ formData, setFormData, fieldAssignments, se
         updated.colorMode = 'default';
         updated.enumColorField = undefined;
         updated.enumColorMap = undefined;
+      }
+      if (prev.enumIconField === field.name) {
+        updated.enumIconField = undefined;
+        updated.enumIconMap = undefined;
       }
       return updated;
     });
