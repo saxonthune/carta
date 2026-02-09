@@ -300,6 +300,8 @@ const CreateSchemaInputSchema = z.object({
   semanticDescription: z.string().optional().describe('Description for AI context'),
   groupId: z.string().optional().describe('Schema group ID for organizing schemas'),
   backgroundColorPolicy: z.enum(['defaultOnly', 'tints', 'any']).optional().describe('Controls instance color picker: "defaultOnly" (no picker), "tints" (7 tint swatches), "any" (full color picker). Default: "defaultOnly"'),
+  enumIconField: z.string().optional().describe('Field name (type enum) that drives icon marker on nodes'),
+  enumIconMap: z.record(z.string()).optional().describe('Enum value → Unicode character mapping for icon markers'),
   fields: z
     .array(
       z.object({
@@ -771,6 +773,8 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
           color: input.color,
           semanticDescription: input.semanticDescription,
           backgroundColorPolicy: input.backgroundColorPolicy,
+          enumIconField: input.enumIconField,
+          enumIconMap: input.enumIconMap,
           fields: input.fields,
           ports: input.ports,
         }
