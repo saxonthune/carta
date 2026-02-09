@@ -56,7 +56,7 @@ test.describe('Organizer Nesting', () => {
     await expect(spreadButton).toBeVisible();
   });
 
-  test('spread button click rearranges children', async ({ page }) => {
+  test('spread button preserves non-overlapping layout', async ({ page }) => {
     const starterOrganizer = carta.getOrganizerNode(0);
     await expect(starterOrganizer).toBeVisible();
 
@@ -65,7 +65,7 @@ test.describe('Organizer Nesting', () => {
     const allNodes = page.locator('.react-flow__node');
     const initialNodeCount = await allNodes.count();
 
-    // Record positions before spread
+    // Record positions before clicking fix overlaps
     const nodePositions: { x: number; y: number }[] = [];
     for (let i = 0; i < initialNodeCount; i++) {
       const box = await allNodes.nth(i).boundingBox();
@@ -74,25 +74,29 @@ test.describe('Organizer Nesting', () => {
       }
     }
 
-    // Click spread button
+    // Click fix overlaps button (formerly "spread")
+    // Starter content nodes don't overlap, so they shouldn't move
     const spreadButton = carta.getOrganizerSpreadButton(starterOrganizer);
     await spreadButton.click();
     await page.waitForTimeout(500);
 
-    // Verify at least one node position changed
-    let positionsChanged = false;
+    // Verify positions remain the same (no overlaps to fix)
+    // Note: The algorithm preserves centroid, so small floating-point drift is possible
+    let significantChange = false;
     for (let i = 0; i < Math.min(initialNodeCount, nodePositions.length); i++) {
       const box = await allNodes.nth(i).boundingBox();
       if (box) {
         const initial = nodePositions[i];
-        if (Math.abs(box.x - initial.x) > 5 || Math.abs(box.y - initial.y) > 5) {
-          positionsChanged = true;
+        // Allow 2px tolerance for floating-point rounding
+        if (Math.abs(box.x - initial.x) > 2 || Math.abs(box.y - initial.y) > 2) {
+          significantChange = true;
           break;
         }
       }
     }
 
-    expect(positionsChanged).toBe(true);
+    // Non-overlapping nodes should not move significantly
+    expect(significantChange).toBe(false);
   });
 
   test('collapse toggle hides and shows children', async ({ page }) => {
