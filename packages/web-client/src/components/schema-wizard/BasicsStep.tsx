@@ -31,6 +31,7 @@ export default function BasicsStep({ formData, errors, updateField, schemaGroups
   const colorMode: ColorMode = formData.colorMode || 'default';
   const enumFields = formData.fields.filter(f => f.type === 'enum' && f.options && f.options.length > 0);
   const selectedEnumField = enumFields.find(f => f.name === formData.enumColorField);
+  const selectedIconEnumField = enumFields.find(f => f.name === formData.enumIconField);
 
   const handleColorModeChange = (mode: ColorMode) => {
     updateField('colorMode', mode);
@@ -55,6 +56,26 @@ export default function BasicsStep({ formData, errors, updateField, schemaGroups
   const handleEnumColorChange = (optionValue: string, color: string) => {
     const current = formData.enumColorMap || {};
     updateField('enumColorMap', { ...current, [optionValue]: color });
+  };
+
+  const handleIconFieldSelect = (fieldName: string) => {
+    updateField('enumIconField', fieldName);
+    if (!fieldName) {
+      updateField('enumIconMap', undefined);
+      return;
+    }
+    const field = enumFields.find(f => f.name === fieldName);
+    if (field?.options) {
+      const map: Record<string, string> = {};
+      // Don't pre-populate icons — user should choose them
+      field.options.forEach(opt => { map[opt.value] = ''; });
+      updateField('enumIconMap', map);
+    }
+  };
+
+  const handleIconChange = (optionValue: string, icon: string) => {
+    const current = formData.enumIconMap || {};
+    updateField('enumIconMap', { ...current, [optionValue]: icon });
   };
 
   return (
@@ -212,6 +233,71 @@ export default function BasicsStep({ formData, errors, updateField, schemaGroups
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Icon Marker (shown when colorMode is enum) */}
+            <div className="mt-2 pt-2 border-t border-content-muted/10">
+              <label className="block mb-1 text-[11px] text-content-muted">Icon Marker</label>
+              <div className="flex items-center gap-2 mb-1">
+                <Select
+                  value={formData.enumIconField || ''}
+                  onChange={(e) => handleIconFieldSelect(e.target.value)}
+                >
+                  <option value="">None</option>
+                  {enumFields.map(f => (
+                    <option key={f.name} value={f.name}>{f.label || f.name}</option>
+                  ))}
+                </Select>
+              </div>
+              {selectedIconEnumField?.options && formData.enumIconMap && (
+                <div className="flex flex-col gap-1">
+                  {selectedIconEnumField.options.map(opt => (
+                    <div key={opt.value} className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        className="w-8 h-6 p-0 text-center bg-surface border border-content-muted/20 rounded text-sm"
+                        maxLength={2}
+                        value={formData.enumIconMap![opt.value] || ''}
+                        onChange={(e) => handleIconChange(opt.value, e.target.value)}
+                        placeholder="·"
+                      />
+                      <span className="text-xs text-content">{opt.value}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {colorMode !== 'enum' && enumFields.length > 0 && (
+          <div className="mt-2">
+            <label className="block mb-1 text-[11px] text-content-muted">Icon Marker</label>
+            <Select
+              value={formData.enumIconField || ''}
+              onChange={(e) => handleIconFieldSelect(e.target.value)}
+            >
+              <option value="">None</option>
+              {enumFields.map(f => (
+                <option key={f.name} value={f.name}>{f.label || f.name}</option>
+              ))}
+            </Select>
+            {selectedIconEnumField?.options && formData.enumIconMap && (
+              <div className="flex flex-col gap-1 mt-1">
+                {selectedIconEnumField.options.map(opt => (
+                  <div key={opt.value} className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      className="w-8 h-6 p-0 text-center bg-surface border border-content-muted/20 rounded text-sm"
+                      maxLength={2}
+                      value={formData.enumIconMap![opt.value] || ''}
+                      onChange={(e) => handleIconChange(opt.value, e.target.value)}
+                      placeholder="·"
+                    />
+                    <span className="text-xs text-content">{opt.value}</span>
+                  </div>
+                ))}
               </div>
             )}
           </div>
