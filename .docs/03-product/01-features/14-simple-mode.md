@@ -73,17 +73,21 @@ Note gets `renderStyle: 'simple'` to opt into the simple render variation. This 
 
 ### Comparison with other renderStyles
 
-| Aspect | `'default'` | `'card'` | `'simple'` |
-|--------|-------------|----------|------------|
-| Header bar | Yes (schema type, controls) | No | No |
-| Field grid | Yes (by displayTier) | Yes (minimal tier) | No |
-| Display name | From pill-tier field | From pill-tier field | N/A—content IS the display |
-| Background | `bg-surface` | Schema/instance color tint | Schema/instance color tint (30% mix) |
-| Port drawer | On hover | On hover | On hover (includes color dropper) |
-| View modes | Summary ↔ Details toggle | Summary ↔ Details toggle | None—single mode only |
-| Controls | Expand, pin, window, color | Expand, color | Color via port drawer dropper |
-| Double-click | Enter details mode | Enter details mode | No-op |
-| Architecture | Full-featured component | Simplified variant of default | Separate primitive, no shared UI complexity |
+Additional shape variants (`circle`, `diamond`, `document`) were added to support BPMN and other notation-specific rendering (doc05.01). These follow the same architecture: schema-driven renderStyle dispatch to separate components.
+
+| Aspect | `'default'` | `'card'` | `'simple'` | `'circle'` | `'diamond'` | `'document'` |
+|--------|-------------|----------|------------|------------|-------------|--------------|
+| Header bar | Yes (schema type, controls) | No | No | No | No | No |
+| Field grid | Yes (by displayTier) | Yes (minimal tier) | No | No | No | No |
+| Display name | From pill-tier field | From pill-tier field | N/A—content IS the display | Centered in shape | Centered in shape | Centered in shape |
+| Shape | Rounded rect | Rounded rect | Rounded rect | Circle (aspect 1:1) | Diamond (rotated square) | Document shape |
+| Background | `bg-surface` | Schema/instance color tint | Schema/instance color tint (30% mix) | Color tint | Color tint | Color tint |
+| Port drawer | On hover | On hover | On hover (includes color dropper) | On hover | On hover | On hover |
+| View modes | Summary ↔ Details toggle | Summary ↔ Details toggle | None—single mode only | None | None | None |
+| Controls | Expand, pin, window, color | Expand, color | Color via port drawer dropper | Minimal | Minimal | Minimal |
+| Double-click | Enter details mode | Enter details mode | No-op | Open modal for field editing | Open modal for field editing | Open modal for field editing |
+| Use case | General purpose | Compact display | Sketching, rough ideas | Events, states (BPMN) | Gateways, decisions | Artifacts, documents |
+| Architecture | Full-featured component | Simplified variant of default | Separate primitive, no shared UI complexity | Separate shape variant | Separate shape variant | Separate shape variant |
 
 ## Creation Flow
 

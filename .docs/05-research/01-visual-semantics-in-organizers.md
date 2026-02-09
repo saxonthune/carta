@@ -1,6 +1,6 @@
 ---
 title: Visual Semantics in Organizers
-status: active
+status: implemented
 date: 2026-02-08
 tags: presentation, rendering, organizers, bpmn, notation, dual-mandate
 ---
@@ -99,6 +99,24 @@ Three `todo-tasks/` plans created:
 - `render-style-variants.md` — Shape differentiation via new renderStyle values
 - `computed-sequence-badges.md` — Topology-derived ordinal badges in directional layouts
 - `enum-icon-markers.md` — Schema-driven icon markers from enum field values
+
+## Implementation
+
+**Sequence badges:** Implemented in `@carta/web-client/presentation/sequenceBadges.ts`
+- Topology-derived from `flow-out → flow-in` edges
+- 1-based ordinals via longest-path topological layering
+- Only shown for organizer members with flow connections
+- Pure function: `computeSequenceBadges(nodes, edges)`
+- See doc02.09 §Sequence Badges
+
+**Shape variants:** Implemented in `@carta/web-client/components/canvas/ConstructNode/`
+- `ConstructNodeCircle.tsx` — Circular nodes for events, states
+- `ConstructNodeDiamond.tsx` — Diamond nodes for gateways, decisions
+- `ConstructNodeDocument.tsx` — Document-shaped nodes for artifacts
+- Schema-driven via `renderStyle` property
+- See doc02.09 §Node Presentation Dispatch
+
+**Enum icon markers:** Not yet implemented (deferred)
 
 ## References
 

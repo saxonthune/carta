@@ -162,3 +162,38 @@ The compiler finds children by traversing connections from child ports targeting
 ## Port Registry
 
 The `PortRegistry` class manages port schemas with polarity-based validation. It receives schemas as a parameter (not a singleton). Components access port schemas through `usePortSchemas()`, and the registry syncs with document state.
+
+## Schema Seeds
+
+**Location:** `@carta/domain/schemas/built-ins.ts`
+
+Schema seeds are pre-packaged collections of related construct schemas for specific modeling domains (software architecture, BPMN, AWS, capability modeling, etc.). The domain package exports individual seeds for selective hydration:
+
+**Exports:**
+- `softwareArchitectureSeed` — Service, API endpoint, database, etc.
+- `sketchingSeed` — Note, Box, etc.
+- `bpmnSeed` — Activities, events, gateways
+- `awsSeed` — EC2, S3, Lambda, etc.
+- `capabilityModelSeed` — Capabilities, sub-capabilities
+
+**Catalog metadata:**
+```typescript
+builtInSeedCatalog: Array<{
+  id: string;
+  displayName: string;
+  description: string;
+  seed: SchemaSeed;
+}>
+```
+
+**Hydration:**
+```typescript
+hydrateSeed(seed: SchemaSeed, groupId?: string): ConstructSchema[]
+```
+
+Hydrates a single seed with fresh UUIDs and optional groupId override. This enables UI for adding schema collections without requiring full built-in hydration, supporting the schema seeding redesign.
+
+**Type export:**
+```typescript
+export type { SchemaSeed } from './seed-loader.js';
+```

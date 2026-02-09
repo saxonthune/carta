@@ -181,6 +181,63 @@ Compacting:
 
 All layout algorithms return `Map<string, {x, y}>` for easy integration with node update operations.
 
+### Constraint Layout (Domain)
+
+**Location:** `@carta/domain/utils/constraintLayout.ts`
+**Purpose:** Declarative constraint-based node arrangement
+**Algorithm:** Sequential constraint resolution with strategy-driven initial placement
+
+Constraint layout provides a declarative API for arranging nodes using high-level constraints rather than absolute positions:
+
+**Strategies:**
+- `grid` — Initial placement in a uniform grid
+- `preserve` — Adjust existing positions to satisfy constraints
+- `force` — Organic spring-force layout (not yet implemented)
+
+**Constraint types:**
+- `align` — Align nodes along x or y axis (center, min, max)
+- `order` — Sort nodes by field value or alphabetically
+- `spacing` — Enforce minimum or equal spacing
+- `group` — Cluster nodes by constructType or field value
+- `distribute` — Even spacing along axis
+- `position` — Anchor to canvas edge (top, bottom, left, right, center)
+- `flow` — Topological layout (delegates to flowLayout internally)
+
+**Configurable:**
+- `nodeGap` — default spacing between nodes (default: 40)
+- `scope` — 'all' or array of semanticIds to layout
+- `constraints` — array of constraints applied sequentially
+
+This algorithm is exposed via:
+- MCP tool: `carta_arrange`
+- REST endpoint: `POST /api/documents/:id/layout/arrange`
+- Client utility: imported from domain package
+
+### Sequence Badges
+
+**Location:** `@carta/web-client/presentation/sequenceBadges.ts`
+**Purpose:** Compute topology-derived ordinals for organizer members
+
+Sequence badges are small numbered overlays (1, 2, 3...) that appear on constructs inside organizers when they participate in flow-based sequences. The badges are computed from the graph topology — not stored as data — ensuring they stay synchronized with connections.
+
+**Algorithm:**
+1. Group nodes by organizer membership
+2. Find flow-out → flow-in edges between members
+3. Compute topological layers via longest path from sources (nodes with no incoming flow edges)
+4. Assign 1-based ordinals from layer numbers
+
+**When shown:**
+- Only for constructs inside organizers
+- Only for constructs connected by flow edges
+- Disconnected members get no badge
+
+**Pure function:**
+```typescript
+computeSequenceBadges(nodes, edges) → { badges: Map<nodeId, ordinal> }
+```
+
+This feature was designed in research session doc05.01 to address visual clarity in BPMN-style sequential processes. The badges are presentation-layer only — the compiler never sees them.
+
 ## Node Presentation Dispatch
 
 The presentation model also governs which component renders each construct. This is a two-key dispatch:
@@ -194,7 +251,11 @@ The presentation model also governs which component renders each construct. This
 | `'default'` | ConstructNodePill | ConstructNodeDefault |
 | `'simple'` | ConstructNodePill | ConstructNodeSimple |
 | `'card'` | ConstructNodePill | ConstructNodeCard |
-| future styles... | ConstructNodePill | ConstructNode{Style} |
+| `'circle'` | ConstructNodePill | ConstructNodeCircle |
+| `'diamond'` | ConstructNodePill | ConstructNodeDiamond |
+| `'document'` | ConstructNodePill | ConstructNodeDocument |
+
+The shape variants (`circle`, `diamond`, `document`) support notation-specific rendering for BPMN and other visual languages (see doc05.01). Circle renders as a circular node (events, states), diamond as a diamond shape (gateways, decisions), and document as a document-shaped icon (artifacts, data objects).
 
 Adding a new render style = add a component + add a row to the dispatch table. No other changes needed. Variant components are pure (no hooks), receive identical `ConstructNodeVariantProps`, and share only the data contract and connection infrastructure.
 

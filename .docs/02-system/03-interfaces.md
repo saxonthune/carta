@@ -97,6 +97,7 @@ Carta exposes an MCP (Model Context Protocol) server for AI tool integration. Th
 
 **Layout operations:**
 - `carta_flow_layout` — Arrange nodes in topological order along a flow direction (TB/BT/LR/RL). Uses Sugiyama framework: layer assignment, crossing minimization, coordinate assignment. Only affects top-level nodes (not inside organizers). Supports sourcePort/sinkPort configuration, layerGap, nodeGap, and scope options
+- `carta_arrange` — Arrange nodes using declarative constraints. Strategies: `grid` (initial placement), `preserve` (adjust existing positions), `force` (organic spring layout). Constraint types: align, order, spacing, group, distribute, position, flow. Constraints apply sequentially to node sets selected by constructType or semanticId
 
 **Compilation:**
 - `carta_compile` — Compile document to AI-readable output
