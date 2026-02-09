@@ -39,18 +39,28 @@ ls .claude/agent-results/*.md 2>/dev/null
 
 For each `.log` file found:
 1. Check if the agent process is still running: `ps aux | grep "execute-plan.sh $(basename log .log)" | grep -v grep`
-2. If a corresponding `.md` result file exists, the agent is **done** — **read the full result file** and extract status, merge, commits, and notes
+2. If a corresponding `.md` result file exists, the agent is **done** — extract status using targeted reads (see below)
 3. If only a `.log` exists (no `.md`), the agent is **still running** — show the last 10 lines of the log
 
 ### Debrief completed agents
 
-For each completed agent, **read the entire `.md` result file**. Do not just check the status header — read the Claude Summary section too. Look for:
+**Token-efficient extraction** — do NOT read the full result file. Agent results follow a known format. Extract only what's needed:
 
-- A `## Notes` section (executor agents are prompted to include one) — extract it verbatim
-- If no `## Notes` section exists, scan the Claude Summary for: deviations from plan, caveats, known limitations, retry context, test warnings, or anything that isn't a straightforward "did exactly what the plan said"
-- Whether it was retried (`**Retried**: true`) — if so, note what failed and whether the fix was clean
+```bash
+# 1. Read header fields (Status, Merge, Retried, Commits) — first 8-10 lines
+Read(file, { limit: 10 })
 
-Compose a **debrief summary** for each completed agent: 1-2 sentences capturing anything the user should know. If the run was truly clean with no caveats, say so explicitly: "Clean run, no concerns."
+# 2. Extract Notes section if present (agents are prompted to include one)
+Grep({ pattern: '## Notes', path: file, output_mode: 'content', -A: 20 })
+```
+
+From these two reads, compose a **debrief summary**: 1-2 sentences capturing anything the user should know. Look for:
+- Status and merge result (from header)
+- Whether it was retried (`**Retried**: true`) — if so, note it
+- The `## Notes` section content — deviations from plan, caveats, known limitations, test warnings
+- If no `## Notes` section exists and status is SUCCESS, report: "Clean run, no concerns."
+
+**Only fall back to reading the full file** if the header shows `Retried: true` and there's no `## Notes` section — in that case the retry context may be buried in the Claude Summary.
 
 Present status as a **table** with a Notes column that contains the debrief, not just commit count:
 
