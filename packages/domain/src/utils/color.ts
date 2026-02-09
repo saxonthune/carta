@@ -91,6 +91,22 @@ export function resolveNodeColor(
 }
 
 /**
+ * Resolves the icon marker character for a construct node based on schema enum icon mapping.
+ * Returns undefined if no icon is configured or the current value has no mapping.
+ */
+export function resolveNodeIcon(
+  schema: { enumIconField?: string; enumIconMap?: Record<string, string> },
+  data: { values?: Record<string, unknown> },
+): string | undefined {
+  if (!schema.enumIconField || !schema.enumIconMap) return undefined;
+  const fieldValue = String(data.values?.[schema.enumIconField] ?? '');
+  if (fieldValue && schema.enumIconMap[fieldValue]) {
+    return schema.enumIconMap[fieldValue];
+  }
+  return undefined;
+}
+
+/**
  * Returns 'white' or 'black' text color for optimal contrast against the given background.
  * Uses WCAG relative luminance formula.
  */
