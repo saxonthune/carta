@@ -135,6 +135,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
   // Create React Flow change handlers that work with the store
   const isDraggingRef = useRef(false);
   const draggedNodesRef = useRef<Set<string>>(new Set());
+  const resizingNodeIds = useRef<Set<string>>(new Set());
 
   // Ctrl+drag visual feedback (DOM class toggle, no re-renders)
   const mapWrapperRef = useRef<HTMLDivElement>(null);
@@ -154,9 +155,18 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
         dragEndChanges.push(change);
         commitPositions.push({ id: change.id, position: change.position });
       } else if (change.type === 'dimensions') {
-        // Sync measured dimensions to our state (no Yjs write needed).
-        // Skip during drag — content dimensions don't change while dragging,
-        // and processing them feeds the ResizeObserver loop.
+        if (change.resizing) {
+          resizingNodeIds.current.add(change.id);
+        } else if (resizingNodeIds.current.has(change.id)) {
+          // Resize ended — persist dimensions to Yjs
+          resizingNodeIds.current.delete(change.id);
+          const node = reactFlow.getNode(change.id);
+          const style = node?.style as Record<string, unknown> | undefined;
+          if (style && (style.width != null || style.height != null)) {
+            adapter.patchNodes?.([{ id: change.id, style: { width: style.width, height: style.height } }]);
+          }
+        }
+        // Always apply dimension changes locally (existing behavior)
         if (!isDraggingRef.current) {
           dimensionChanges.push(change);
         }
@@ -173,7 +183,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     if (commitPositions.length > 0) {
       adapter.patchNodes?.(commitPositions);
     }
-  }, [setNodesLocal, adapter]);
+  }, [setNodesLocal, adapter, reactFlow]);
 
   const onEdgesChange = useCallback((changes: EdgeChange[]) => {
     // RF handles edge changes internally. Only persist removals to Yjs.
