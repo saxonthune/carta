@@ -294,18 +294,16 @@ export class CartaPage {
    * Get the page switcher trigger bar container.
    */
   getPageSwitcherTrigger(): Locator {
-    // Look for the page switcher by finding the element with the layers icon and page name
-    // The trigger bar contains an SVG with specific path data and the page name
-    return this.page.locator('div').filter({ has: this.page.locator('svg path[d*="2L2 7l10 5"]') }).first();
+    // Look for the button with title "Switch page" and work up from there
+    return this.page.locator('button[title="Switch page"]').locator('..');
   }
 
   /**
    * Get the current page name from the trigger bar.
    */
   async getCurrentPageName(): Promise<string> {
-    const trigger = this.getPageSwitcherTrigger();
-    // The page name is in a span within the trigger
-    const nameSpan = trigger.locator('span').filter({ hasNotText: '' }).first();
+    // Find the span with title "Click to rename" that's next to the layers icon
+    const nameSpan = this.page.locator('span[title="Click to rename"]');
     return (await nameSpan.textContent()) ?? '';
   }
 
@@ -313,20 +311,19 @@ export class CartaPage {
    * Open the page dropdown by clicking the chevron button.
    */
   async openPageDropdown(): Promise<void> {
-    const trigger = this.getPageSwitcherTrigger();
-    // Find the chevron button (has SVG with chevron path)
-    const chevronButton = trigger.locator('button').filter({ has: this.page.locator('svg path[d*="6 9l6 6"]') });
+    // Click the button with title "Switch page"
+    const chevronButton = this.page.locator('button[title="Switch page"]');
     await chevronButton.click();
     await this.page.waitForTimeout(300);
   }
 
   /**
    * Get locators for page rows in the open dropdown.
-   * Returns all page row elements.
+   * Returns all page row elements that are NOT the "New Page" button.
    */
   getPageRows(): Locator {
-    // Page rows are divs with flex layout inside the dropdown
-    // They contain the page name spans
-    return this.page.locator('div').filter({ has: this.page.locator('span').filter({ hasNotText: '+ New Page' }) }).filter({ hasText: /^(Main|Page \d+|Renamed Page)/ });
+    // Page rows are within the dropdown, excluding the "New Page" button row
+    // They contain a 3px active indicator bar and page name
+    return this.page.locator('div.flex.items-center.gap-2').filter({ has: this.page.locator('div.w-\\[3px\\]') });
   }
 }
