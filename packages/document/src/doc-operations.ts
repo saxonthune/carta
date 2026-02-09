@@ -32,6 +32,7 @@ import type {
   ArrangeStrategy,
   ArrangeConstraint,
   ArrangeInput,
+  ArrangeEdge,
 } from '@carta/domain';
 import { CompilerEngine } from '@carta/compiler';
 import { yToPlain, deepPlainToY, safeGet } from './yjs-helpers.js';
@@ -654,6 +655,7 @@ export function arrangeLayout(
     constraints: ArrangeConstraint[];
     scope?: 'all' | string[];  // semantic IDs
     nodeGap?: number;
+    forceIterations?: number;
   }
 ): { updated: number; constraintsApplied: number } {
   const pageNodes = getPageMap(ydoc, 'nodes', pageId);
@@ -685,11 +687,32 @@ export function arrangeLayout(
     height: 100,
   }));
 
+  // 3b. Build ArrangeEdge[] from page edges (needed for flow constraint and force strategy)
+  const pageEdges = getPageMap(ydoc, 'edges', pageId);
+  const arrangeEdges: ArrangeEdge[] = [];
+  const nodeIdSet = new Set(arrangeInputs.map(n => n.id));
+  pageEdges.forEach((yedge) => {
+    const source = yedge.get('source') as string;
+    const target = yedge.get('target') as string;
+    const sourceHandle = yedge.get('sourceHandle') as string | undefined;
+    const targetHandle = yedge.get('targetHandle') as string | undefined;
+    if (nodeIdSet.has(source) && nodeIdSet.has(target)) {
+      arrangeEdges.push({
+        sourceId: source,
+        targetId: target,
+        sourcePortId: sourceHandle ?? '',
+        targetPortId: targetHandle ?? '',
+      });
+    }
+  });
+
   // 4. Call computeArrangeLayout
   const result = computeArrangeLayout(arrangeInputs, {
     strategy: options.strategy ?? 'preserve',
     constraints: options.constraints,
     nodeGap: options.nodeGap,
+    edges: arrangeEdges,
+    forceIterations: options.forceIterations,
   });
 
   // 5. Apply positions in a transaction
