@@ -85,16 +85,15 @@ export function DocumentProvider({
       currentAdapter = yjsAdapter;
       await yjsAdapter.initialize();
 
-      // Seed default schemas/groups/ports ONLY on first-ever initialization
-      const isInitialized = yjsAdapter.ydoc.getMap('meta').get('initialized') as boolean | undefined;
+      // Seed default schemas/groups/ports ONLY when document has no schemas (empty or new)
+      const hasSchemas = yjsAdapter.getSchemas().length > 0;
 
-      if (!isInitialized) {
+      if (!hasSchemas) {
         const { groups, schemas } = hydrateBuiltIns();
         yjsAdapter.transaction(() => {
           yjsAdapter.setSchemaGroups(groups);
           yjsAdapter.setSchemas(schemas);
           yjsAdapter.setPortSchemas(builtInPortSchemas);
-          yjsAdapter.ydoc.getMap('meta').set('initialized', true);
         }, 'init');
 
         // Seed content so the canvas isn't empty on first visit
