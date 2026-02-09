@@ -34,7 +34,7 @@ Note gets `renderStyle: 'simple'` to opt into the simple render variation. This 
 
 - **Single field**: One multiline text field (`content`) is the only data. No type selection, no field grid, no decisions.
 - **Symmetric port**: Bidirectional polarity bypasses `compatibleWith` checks, meaning a Note can connect to any other construct regardless of port types. This gives near-zero rewiring cost.
-- **backgroundColorPolicy: 'any'**: Users can color individual Notes for visual grouping without schema changes.
+- **backgroundColorPolicy: 'tints'**: Users can color individual Notes from curated tint swatches for visual grouping without schema changes.
 
 ## Requirements
 

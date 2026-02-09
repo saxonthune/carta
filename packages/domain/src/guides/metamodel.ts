@@ -253,7 +253,7 @@ Schemas can control how users customize instance background colors via \`backgro
 
 Instance colors are stored in \`instanceColor\` field and are visual-only (not included in compilation output). Setting \`instanceColor\` to null resets to the schema's default color.
 
-**Example**: The built-in "Note" schema uses \`backgroundColorPolicy: 'any'\` to allow fully customizable note colors.
+**Example**: The built-in "Note" schema uses \`backgroundColorPolicy: 'tints'\` to offer curated color swatches instead of a full picker.
 
 ### Edge Bundling
 
