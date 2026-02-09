@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import * as Y from 'yjs';
-import { createPage, listPages, updatePage, deletePage, flowLayout, createConstruct, connect } from '../src/doc-operations';
+import { createPage, listPages, updatePage, deletePage, flowLayout, createConstruct, connect, updateConstruct, getConstruct } from '../src/doc-operations';
+import { deepPlainToY } from '../src/yjs-helpers';
 
 describe('page operations', () => {
   let doc: Y.Doc;
@@ -133,5 +134,59 @@ describe('flowLayout operation', () => {
     });
 
     expect(result.updated).toBe(2);
+  });
+});
+
+describe('construct field values', () => {
+  let doc: Y.Doc;
+  let pageId: string;
+
+  beforeEach(() => {
+    doc = new Y.Doc();
+    const page = createPage(doc, 'Test');
+    pageId = page.id;
+  });
+
+  it('should persist field values on create', () => {
+    const node = createConstruct(doc, pageId, 'note', { content: 'hello world' });
+    const read = getConstruct(doc, pageId, node.data.semanticId);
+    expect(read).not.toBeNull();
+    expect(read!.data.values.content).toBe('hello world');
+  });
+
+  it('should update field values', () => {
+    const node = createConstruct(doc, pageId, 'note', { content: 'original' });
+    updateConstruct(doc, pageId, node.data.semanticId, { values: { content: 'updated' } });
+    const read = getConstruct(doc, pageId, node.data.semanticId);
+    expect(read!.data.values.content).toBe('updated');
+  });
+
+  it('should update field values after UI-style plain object degradation', () => {
+    // Create via MCP path (Y.Map)
+    const node = createConstruct(doc, pageId, 'note', { content: 'original' });
+
+    // Simulate UI degradation: write data as plain object (what yjsAdapter.updateNode used to do)
+    const nodesMap = doc.getMap('nodes');
+    const pageNodes = nodesMap.get(pageId) as Y.Map<unknown>;
+    pageNodes.forEach((ynode, id) => {
+      const data = (ynode as Y.Map<unknown>).get('data') as Record<string, unknown>;
+      if (data && (data as any).semanticId === node.data.semanticId) {
+        // This simulates the old UI behavior: spreading to plain object
+        (ynode as Y.Map<unknown>).set('data', { ...data, values: { content: 'ui-edited' } });
+      }
+    });
+
+    // Now MCP update should still work (ensureYMap repairs the degraded data)
+    const result = updateConstruct(doc, pageId, node.data.semanticId, { values: { content: 'mcp-updated' } });
+    expect(result).not.toBeNull();
+    expect(result!.data.values.content).toBe('mcp-updated');
+  });
+
+  it('should preserve existing values when updating a subset', () => {
+    const node = createConstruct(doc, pageId, 'service', { name: 'Auth', description: 'Auth service' });
+    updateConstruct(doc, pageId, node.data.semanticId, { values: { description: 'Updated desc' } });
+    const read = getConstruct(doc, pageId, node.data.semanticId);
+    expect(read!.data.values.name).toBe('Auth');
+    expect(read!.data.values.description).toBe('Updated desc');
   });
 });

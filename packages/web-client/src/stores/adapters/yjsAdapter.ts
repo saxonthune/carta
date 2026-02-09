@@ -16,6 +16,7 @@ import {
   generateSchemaGroupId,
   generatePageId,
   migrateToPages,
+  deepPlainToY,
 } from '@carta/document';
 import { updateDocumentMetadata } from '../documentRegistry';
 
@@ -665,8 +666,19 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
           : undefined;
 
         // Update the target node
-        const currentData = (ynode.get('data') as Record<string, unknown>) || {};
-        ynode.set('data', { ...currentData, ...updates });
+        const currentYData = ynode.get('data');
+        if (currentYData instanceof Y.Map) {
+          // Preserve Y.Map structure — merge updates into existing Y.Map
+          for (const [key, value] of Object.entries(updates)) {
+            if (value !== undefined) {
+              currentYData.set(key, deepPlainToY(value));
+            }
+          }
+        } else {
+          // Fallback: data was already a plain object, write merged plain → Y.Map
+          const currentData = (currentYData as Record<string, unknown>) || {};
+          ynode.set('data', deepPlainToY({ ...currentData, ...updates }));
+        }
 
         // If semantic ID changed, update references in other nodes
         if (oldSemanticId && updates.semanticId) {
@@ -682,7 +694,12 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
             );
 
             if (updatedConnections.some((c, i) => c !== otherData.connections![i])) {
-              (otherYnode as Y.Map<unknown>).set('data', { ...otherData, connections: updatedConnections });
+              const otherYData = (otherYnode as Y.Map<unknown>).get('data');
+              if (otherYData instanceof Y.Map) {
+                otherYData.set('connections', deepPlainToY(updatedConnections));
+              } else {
+                (otherYnode as Y.Map<unknown>).set('data', deepPlainToY({ ...otherData, connections: updatedConnections }));
+              }
             }
           });
         }
