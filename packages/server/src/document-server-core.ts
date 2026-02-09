@@ -563,6 +563,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
             x?: number;
             y?: number;
             parentId?: string;
+            pageId?: string;
           }>(req);
 
           if (!body.constructType) {
@@ -570,18 +571,20 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
             return;
           }
 
+          const targetPageId = body.pageId || url.searchParams.get('pageId') || getActivePageId(docState.doc);
+
           // Auto-layout: compute position when x/y omitted
           let position: { x: number; y: number };
           if (body.x != null && body.y != null) {
             position = { x: body.x, y: body.y };
           } else {
-            const existing = listConstructs(docState.doc, pageId);
+            const existing = listConstructs(docState.doc, targetPageId);
             position = computeAutoPosition(existing, 0);
           }
 
           const construct = createConstruct(
             docState.doc,
-            pageId,
+            targetPageId,
             body.constructType,
             body.values || {},
             position,
@@ -597,14 +600,14 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
       if (bulkConstructsMatch && method === 'DELETE') {
         const roomId = bulkConstructsMatch[1]!;
         const docState = await config.getDoc(roomId);
-        const pageId = getActivePageId(docState.doc);
 
-        const body = await parseJsonBody<{ semanticIds: string[] }>(req);
+        const body = await parseJsonBody<{ semanticIds: string[]; pageId?: string }>(req);
         if (!body.semanticIds || !Array.isArray(body.semanticIds) || body.semanticIds.length === 0) {
           sendError(res, 400, 'semanticIds array is required and must not be empty', 'MISSING_FIELD');
           return;
         }
 
+        const pageId = body.pageId || getActivePageId(docState.doc);
         const results = deleteConstructsBulk(docState.doc, pageId, body.semanticIds);
         sendJson(res, 200, { results });
         return;
@@ -613,7 +616,6 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
       if (bulkConstructsMatch && method === 'POST') {
         const roomId = bulkConstructsMatch[1]!;
         const docState = await config.getDoc(roomId);
-        const pageId = getActivePageId(docState.doc);
 
         const body = await parseJsonBody<{
           constructs: Array<{
@@ -623,6 +625,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
             y?: number;
             parentId?: string;
           }>;
+          pageId?: string;
         }>(req);
 
         if (!body.constructs || !Array.isArray(body.constructs) || body.constructs.length === 0) {
@@ -630,6 +633,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
           return;
         }
 
+        const pageId = body.pageId || getActivePageId(docState.doc);
         const schemas = listSchemas(docState.doc);
         const schemaMap = new Map(schemas.map(s => [s.type, s]));
 
@@ -655,12 +659,12 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
         const roomId = moveMatch[1]!;
         const semanticId = decodeURIComponent(moveMatch[2]!);
         const docState = await config.getDoc(roomId);
-        const pageId = getActivePageId(docState.doc);
 
         const body = await parseJsonBody<{
           parentId: string | null;
           x?: number;
           y?: number;
+          pageId?: string;
         }>(req);
 
         if (body.parentId === undefined) {
@@ -668,6 +672,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
           return;
         }
 
+        const pageId = body.pageId || getActivePageId(docState.doc);
         const construct = moveConstruct(
           docState.doc,
           pageId,
@@ -725,9 +730,9 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
       if (organizersMatch) {
         const roomId = organizersMatch[1]!;
         const docState = await config.getDoc(roomId);
-        const pageId = getActivePageId(docState.doc);
 
         if (method === 'GET') {
+          const pageId = url.searchParams.get('pageId') || getActivePageId(docState.doc);
           const organizers = listOrganizers(docState.doc, pageId);
           // Enrich with member counts
           const constructs = listConstructs(docState.doc, pageId);
@@ -750,12 +755,15 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
             layout?: string;
             description?: string;
             attachedToSemanticId?: string;
+            pageId?: string;
           }>(req);
 
           if (!body.name) {
             sendError(res, 400, 'name is required', 'MISSING_FIELD');
             return;
           }
+
+          const pageId = body.pageId || getActivePageId(docState.doc);
 
           // If attaching to a construct, look up the construct's node ID for parentId
           let parentId: string | undefined;
@@ -788,7 +796,6 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
         const roomId = organizerMatch[1]!;
         const organizerId = decodeURIComponent(organizerMatch[2]!);
         const docState = await config.getDoc(roomId);
-        const pageId = getActivePageId(docState.doc);
 
         if (method === 'PATCH') {
           const body = await parseJsonBody<{
@@ -798,7 +805,9 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
             layout?: string;
             description?: string;
             attachedToSemanticId?: string;
+            pageId?: string;
           }>(req);
+          const pageId = body.pageId || getActivePageId(docState.doc);
           const organizer = updateOrganizer(docState.doc, pageId, organizerId, {
             name: body.name,
             color: body.color,
@@ -816,6 +825,8 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
         }
 
         if (method === 'DELETE') {
+          const body = await parseJsonBody<{ pageId?: string }>(req);
+          const pageId = body.pageId || getActivePageId(docState.doc);
           const deleteMembers = url.searchParams.get('deleteMembers') === 'true';
           const deleted = deleteOrganizer(docState.doc, pageId, organizerId, deleteMembers);
           if (!deleted) {
@@ -840,6 +851,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
             sourcePortId: string;
             targetSemanticId: string;
             targetPortId: string;
+            pageId?: string;
           }>(req);
 
           if (!body.sourceSemanticId || !body.sourcePortId || !body.targetSemanticId || !body.targetPortId) {
@@ -847,9 +859,10 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
             return;
           }
 
+          const pageId = body.pageId || getActivePageId(docState.doc);
           const edge = connect(
             docState.doc,
-            getActivePageId(docState.doc),
+            pageId,
             body.sourceSemanticId,
             body.sourcePortId,
             body.targetSemanticId,
@@ -868,6 +881,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
             sourceSemanticId: string;
             sourcePortId: string;
             targetSemanticId: string;
+            pageId?: string;
           }>(req);
 
           if (!body.sourceSemanticId || !body.sourcePortId || !body.targetSemanticId) {
@@ -875,9 +889,10 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
             return;
           }
 
+          const pageId = body.pageId || getActivePageId(docState.doc);
           const disconnected = disconnect(
             docState.doc,
-            getActivePageId(docState.doc),
+            pageId,
             body.sourceSemanticId,
             body.sourcePortId,
             body.targetSemanticId
@@ -892,7 +907,6 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
       if (bulkConnectionsMatch && method === 'POST') {
         const roomId = bulkConnectionsMatch[1]!;
         const docState = await config.getDoc(roomId);
-        const pageId = getActivePageId(docState.doc);
 
         const body = await parseJsonBody<{
           connections: Array<{
@@ -901,6 +915,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
             targetSemanticId: string;
             targetPortId: string;
           }>;
+          pageId?: string;
         }>(req);
 
         if (!body.connections || !Array.isArray(body.connections) || body.connections.length === 0) {
@@ -908,6 +923,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
           return;
         }
 
+        const pageId = body.pageId || getActivePageId(docState.doc);
         const results = connectBulk(docState.doc, pageId, body.connections);
         sendJson(res, 201, { results });
         return;
@@ -1134,14 +1150,14 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
       if (batchMatch && method === 'POST') {
         const roomId = batchMatch[1]!;
         const docState = await config.getDoc(roomId);
-        const pageId = getActivePageId(docState.doc);
 
-        const body = await parseJsonBody<{ operations: BatchOperation[] }>(req);
+        const body = await parseJsonBody<{ operations: BatchOperation[]; pageId?: string }>(req);
         if (!body.operations || !Array.isArray(body.operations) || body.operations.length === 0) {
           sendError(res, 400, 'operations array is required and must not be empty', 'MISSING_FIELD');
           return;
         }
 
+        const pageId = body.pageId || getActivePageId(docState.doc);
         const results = batchMutate(docState.doc, pageId, body.operations);
         sendJson(res, 200, { results });
         return;
@@ -1163,6 +1179,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
           layerGap?: number;
           nodeGap?: number;
           scope?: 'all' | string[];
+          pageId?: string;
         }>(req);
 
         if (!body.direction || !['TB', 'BT', 'LR', 'RL'].includes(body.direction)) {
@@ -1170,7 +1187,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
           return;
         }
 
-        const pageId = getActivePageId(docState.doc);
+        const pageId = body.pageId || getActivePageId(docState.doc);
         const result = flowLayout(docState.doc, pageId, {
           direction: body.direction as FlowDirection,
           sourcePort: body.sourcePort,
@@ -1199,6 +1216,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
           scope?: string | string[];
           nodeGap?: number;
           forceIterations?: number;
+          pageId?: string;
         }>(req);
 
         if (!body.constraints || !Array.isArray(body.constraints)) {
@@ -1206,7 +1224,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
           return;
         }
 
-        const pageId = getActivePageId(docState.doc);
+        const pageId = body.pageId || getActivePageId(docState.doc);
         const result = arrangeLayout(docState.doc, pageId, {
           strategy: (body.strategy as ArrangeStrategy) ?? 'preserve',
           constraints: body.constraints as ArrangeConstraint[],
