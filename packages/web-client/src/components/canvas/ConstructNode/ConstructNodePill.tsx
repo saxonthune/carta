@@ -1,5 +1,5 @@
 import { Handle, Position } from '@xyflow/react';
-import { getDisplayName, resolveNodeColor } from '@carta/domain';
+import { getDisplayName, resolveNodeColor, resolveNodeIcon } from '@carta/domain';
 import IndexBasedDropZones from '../IndexBasedDropZones';
 import type { ConstructNodeVariantProps } from './shared';
 
@@ -34,6 +34,14 @@ export function ConstructNodePill({
         className="inline-block w-3 h-3 rounded-sm flex-shrink-0"
         style={{ backgroundColor: color }}
       />
+      {(() => {
+        const icon = resolveNodeIcon(schema, data);
+        return icon ? (
+          <span className="text-[1.1em] font-bold leading-none flex-shrink-0" title="Type marker">
+            {icon}
+          </span>
+        ) : null;
+      })()}
       <span className="truncate">
         <span className="opacity-50">{schema.displayName}:</span> {displayValue}
       </span>

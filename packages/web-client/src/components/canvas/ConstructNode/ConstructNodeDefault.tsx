@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Handle, Position } from '@xyflow/react';
-import { getDisplayName, getFieldsForSummary, resolveNodeColor } from '@carta/domain';
+import { getDisplayName, getFieldsForSummary, resolveNodeColor, resolveNodeIcon } from '@carta/domain';
 import PortDrawer from '../PortDrawer';
 import IndexBasedDropZones from '../IndexBasedDropZones';
 import ColorPicker from '../../ui/ColorPicker';
@@ -53,6 +53,14 @@ export function ConstructNodeDefault({
         className="node-drag-handle flex items-center justify-between gap-1.5 px-2 py-1 cursor-move select-none bg-surface-alt w-full shrink-0 rounded-t-lg"
       >
         <span className="text-node-xs text-content-muted">{schema.displayName}</span>
+        {(() => {
+          const icon = resolveNodeIcon(schema, data);
+          return icon ? (
+            <span className="text-node-base font-bold text-content leading-none" title="Type marker">
+              {icon}
+            </span>
+          ) : null;
+        })()}
         <div className="flex items-center gap-1">
           {/* Open Full View button */}
           {data.onOpenFullView && (

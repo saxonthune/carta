@@ -1,5 +1,5 @@
 import { Handle, Position, NodeResizer } from '@xyflow/react';
-import { getDisplayName, resolveNodeColor } from '@carta/domain';
+import { getDisplayName, resolveNodeColor, resolveNodeIcon } from '@carta/domain';
 import IndexBasedDropZones from '../IndexBasedDropZones';
 import PortDrawer from '../PortDrawer';
 import type { ConstructNodeVariantProps } from './shared';
@@ -50,13 +50,21 @@ export function ConstructNodeDiamond({
         />
 
         {/* Content overlay (NOT rotated) — centered on top of diamond */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
           {selected && (
             <div className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-accent shadow-[0_0_0_2px_var(--color-surface)] pointer-events-none" />
           )}
           <span className="text-content text-node-base font-medium text-center px-2 truncate max-w-[70%]">
             {displayName}
           </span>
+          {(() => {
+            const icon = resolveNodeIcon(schema, data);
+            return icon ? (
+              <span className="text-content text-[1.2em] font-bold leading-none" title="Type marker">
+                {icon}
+              </span>
+            ) : null;
+          })()}
         </div>
 
         {/* Connection drop zones */}

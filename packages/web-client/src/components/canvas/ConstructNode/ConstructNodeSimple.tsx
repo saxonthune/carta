@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Handle, Position } from '@xyflow/react';
-import { resolveNodeColor } from '@carta/domain';
+import { resolveNodeColor, resolveNodeIcon } from '@carta/domain';
 import IndexBasedDropZones from '../IndexBasedDropZones';
 import PortDrawer from '../PortDrawer';
 import type { ConstructNodeVariantProps } from './shared';
@@ -59,6 +59,15 @@ export function ConstructNodeSimple({
       {selected && (
         <div className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-accent shadow-[0_0_0_2px_var(--color-surface)]" />
       )}
+
+      {(() => {
+        const icon = resolveNodeIcon(schema, data);
+        return icon ? (
+          <span className="absolute top-1 right-2 text-node-base font-bold text-content/60 leading-none" title="Type marker">
+            {icon}
+          </span>
+        ) : null;
+      })()}
 
       {/* Connection drop zones overlay */}
       {isConnectionTarget && (

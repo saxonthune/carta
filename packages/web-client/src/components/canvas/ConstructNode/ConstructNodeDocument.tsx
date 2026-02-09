@@ -1,5 +1,5 @@
 import { Handle, Position, NodeResizer } from '@xyflow/react';
-import { getDisplayName, resolveNodeColor } from '@carta/domain';
+import { getDisplayName, resolveNodeColor, resolveNodeIcon } from '@carta/domain';
 import IndexBasedDropZones from '../IndexBasedDropZones';
 import PortDrawer from '../PortDrawer';
 import type { ConstructNodeVariantProps } from './shared';
@@ -58,6 +58,14 @@ export function ConstructNodeDocument({
           <span className="text-content text-node-base font-medium text-center px-2 truncate max-w-full">
             {displayName}
           </span>
+          {(() => {
+            const icon = resolveNodeIcon(schema, data);
+            return icon ? (
+              <span className="text-content text-[1.2em] font-bold leading-none" title="Type marker">
+                {icon}
+              </span>
+            ) : null;
+          })()}
         </div>
 
         {/* Wavy bottom edge (SVG) */}
