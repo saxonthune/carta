@@ -8,6 +8,9 @@ import { stripHandlePrefix } from '../../../utils/handlePrefix';
 import { ConstructNodePill } from './ConstructNodePill';
 import { ConstructNodeSimple } from './ConstructNodeSimple';
 import { ConstructNodeDefault } from './ConstructNodeDefault';
+import { ConstructNodeCircle } from './ConstructNodeCircle';
+import { ConstructNodeDiamond } from './ConstructNodeDiamond';
+import { ConstructNodeDocument } from './ConstructNodeDocument';
 import type { NodeActions } from '../nodeActions';
 
 interface ConstructNodeComponentProps {
@@ -106,6 +109,12 @@ const ConstructNode = memo(function ConstructNode({ data, selected = false }: Co
     variant = <ConstructNodePill {...variantProps} />;
   } else if (schema.renderStyle === 'simple') {
     variant = <ConstructNodeSimple {...variantProps} />;
+  } else if (schema.renderStyle === 'circle') {
+    variant = <ConstructNodeCircle {...variantProps} />;
+  } else if (schema.renderStyle === 'diamond') {
+    variant = <ConstructNodeDiamond {...variantProps} />;
+  } else if (schema.renderStyle === 'document') {
+    variant = <ConstructNodeDocument {...variantProps} />;
   } else {
     variant = <ConstructNodeDefault {...variantProps} />;
   }
