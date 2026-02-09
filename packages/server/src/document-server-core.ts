@@ -52,9 +52,10 @@ import {
   deleteConstructsBulk,
   batchMutate,
   flowLayout,
+  arrangeLayout,
 } from '@carta/document';
 import type { BatchOperation, BatchResult } from '@carta/document';
-import type { FlowDirection } from '@carta/domain';
+import type { FlowDirection, ArrangeStrategy, ArrangeConstraint } from '@carta/domain';
 
 // ===== TYPES =====
 
@@ -1173,6 +1174,39 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
           layerGap: body.layerGap,
           nodeGap: body.nodeGap,
           scope: body.scope,
+        });
+
+        sendJson(res, 200, result);
+        return;
+      }
+
+      const arrangeMatch = path.match(/^\/api\/documents\/([^/]+)\/layout\/arrange$/);
+      if (arrangeMatch && method === 'POST') {
+        const roomId = arrangeMatch[1]!;
+        const docState = await config.getDoc(roomId);
+        if (!docState) {
+          sendError(res, 404, 'Document not found', 'NOT_FOUND');
+          return;
+        }
+
+        const body = await parseJsonBody<{
+          strategy?: string;
+          constraints?: unknown[];
+          scope?: string | string[];
+          nodeGap?: number;
+        }>(req);
+
+        if (!body.constraints || !Array.isArray(body.constraints)) {
+          sendError(res, 400, 'constraints array is required', 'MISSING_CONSTRAINTS');
+          return;
+        }
+
+        const pageId = getActivePageId(docState.doc);
+        const result = arrangeLayout(docState.doc, pageId, {
+          strategy: (body.strategy as ArrangeStrategy) ?? 'preserve',
+          constraints: body.constraints as ArrangeConstraint[],
+          scope: body.scope as 'all' | string[] | undefined,
+          nodeGap: body.nodeGap,
         });
 
         sendJson(res, 200, result);
