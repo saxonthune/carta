@@ -18,6 +18,22 @@ interface ConstructNodeComponentProps {
   selected?: boolean;
 }
 
+function SequenceBadge({ ordinal }: { ordinal: number }) {
+  return (
+    <div
+      className="absolute -top-2 -left-2 z-10 flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-semibold leading-none pointer-events-none"
+      style={{
+        backgroundColor: 'var(--color-surface-alt)',
+        color: 'var(--color-content)',
+        boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
+        border: '1px solid var(--color-border)',
+      }}
+    >
+      {ordinal}
+    </div>
+  );
+}
+
 const ConstructNode = memo(function ConstructNode({ data, selected = false }: ConstructNodeComponentProps) {
   const lod = useLodBand();
   const { getSchema } = useSchemas();
@@ -104,6 +120,8 @@ const ConstructNode = memo(function ConstructNode({ data, selected = false }: Co
 
   // Dispatch to variant based on LOD band and render style
   const dimmed = (data as Record<string, unknown>).dimmed as boolean | undefined;
+  const sequenceBadge = (data as Record<string, unknown>).sequenceBadge as number | undefined;
+
   let variant: React.ReactNode;
   if (lod.band === 'pill') {
     variant = <ConstructNodePill {...variantProps} />;
@@ -119,15 +137,24 @@ const ConstructNode = memo(function ConstructNode({ data, selected = false }: Co
     variant = <ConstructNodeDefault {...variantProps} />;
   }
 
+  const content = (
+    <div className="relative">
+      {sequenceBadge != null && lod.band !== 'pill' && (
+        <SequenceBadge ordinal={sequenceBadge} />
+      )}
+      {variant}
+    </div>
+  );
+
   if (dimmed) {
     return (
       <div style={{ opacity: 0.2, pointerEvents: 'none', transition: 'opacity 150ms ease' }}>
-        {variant}
+        {content}
       </div>
     );
   }
 
-  return variant;
+  return content;
 });
 
 export default ConstructNode;

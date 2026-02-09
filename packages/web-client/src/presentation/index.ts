@@ -14,3 +14,5 @@ export type { LayoutResult } from './layoutStrategies';
 export { traceGraph } from './traceGraph.js';
 export type { TraceResult } from './traceGraph.js';
 export { computeEdgeAggregation } from './edgeAggregation.js';
+export { computeSequenceBadges } from './sequenceBadges.js';
+export type { SequenceBadgeResult } from './sequenceBadges.js';
