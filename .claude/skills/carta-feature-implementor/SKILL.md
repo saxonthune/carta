@@ -28,23 +28,24 @@ This skill does NOT implement code. Its output is a refined plan file that a hea
 - `/carta-feature-implementor flow-trace-visualization`
 - `/carta-feature-implementor status`
 
-## Phase 0: Check Running Agents & Clean Up
+## Phase 0: Check Running & Completed Agents
 
-Before anything else, check for running or completed background agents:
+Plan lifecycle state is tracked by directory location:
+- `todo-tasks/` — pending (needs grooming or execution)
+- `todo-tasks/.running/` — agent executing
+- `todo-tasks/.done/` — agent finished
+- `todo-tasks/.archived/` — reviewed and closed
+
+### Phase 0A: Debrief
+
+Check for completed and running agents:
 
 ```bash
-ls .claude/agent-results/*.log 2>/dev/null
-ls .claude/agent-results/*.md 2>/dev/null
+ls todo-tasks/.done/*.result.md 2>/dev/null
+ls todo-tasks/.running/*.md 2>/dev/null
 ```
 
-For each `.log` file found:
-1. Check if the agent process is still running: `ps aux | grep "execute-plan.sh $(basename log .log)" | grep -v grep`
-2. If a corresponding `.md` result file exists, the agent is **done** — extract status using targeted reads (see below)
-3. If only a `.log` exists (no `.md`), the agent is **still running** — show the last 10 lines of the log
-
-### Debrief completed agents
-
-**Token-efficient extraction** — do NOT read the full result file. Agent results follow a known format. Extract only what's needed:
+**Completed agents** (files in `.done/`): For each `{slug}.result.md`, extract status using targeted reads:
 
 ```bash
 # 1. Read header fields (Status, Merge, Retried, Commits) — first 8-10 lines
@@ -61,6 +62,8 @@ From these two reads, compose a **debrief summary**: 1-2 sentences capturing any
 - If no `## Notes` section exists and status is SUCCESS, report: "Clean run, no concerns."
 
 **Only fall back to reading the full file** if the header shows `Retried: true` and there's no `## Notes` section — in that case the retry context may be buried in the Claude Summary.
+
+**Running agents** (files in `.running/`): Just list them and show the last 10 lines of `todo-tasks/.running/{slug}.log` (if log exists).
 
 Present status as a **table** with a Notes column that contains the debrief, not just commit count:
 
@@ -85,21 +88,19 @@ Then show remaining plans as a second table:
 | `component-smoke-tests.md` | Smoke tests for key UI components |
 ```
 
-### Archive completed plans
+### Phase 0B: Archive
 
-For each **completed** agent (has a `.md` result file), archive the corresponding plan from `todo-tasks/` if it still exists there. **Only archive after the debrief has been presented to the user** — never silently archive without showing the notes.
+After the debrief has been presented to the user, offer to archive completed plans. **Never silently archive without showing the notes.**
 
 ```bash
-mkdir -p todo-tasks/.archived .claude/agent-results/.archived
+mkdir -p todo-tasks/.archived
 ts=$(date +%Y%m%d)
-# For each completed agent slug:
-[ -f "todo-tasks/{slug}.md" ] && mv "todo-tasks/{slug}.md" "todo-tasks/.archived/${ts}-{slug}.md"
-# Also archive the agent result files so Phase 0 doesn't re-debrief them:
-[ -f ".claude/agent-results/{slug}.md" ] && mv ".claude/agent-results/{slug}.md" ".claude/agent-results/.archived/${ts}-{slug}.md"
-[ -f ".claude/agent-results/{slug}.log" ] && mv ".claude/agent-results/{slug}.log" ".claude/agent-results/.archived/${ts}-{slug}.log"
+# For each completed agent slug in .done/:
+[ -f "todo-tasks/.done/{slug}.md" ] && mv "todo-tasks/.done/{slug}.md" "todo-tasks/.archived/${ts}-{slug}.md"
+[ -f "todo-tasks/.done/{slug}.result.md" ] && mv "todo-tasks/.done/{slug}.result.md" "todo-tasks/.archived/${ts}-{slug}.result.md"
 ```
 
-This prevents stale plans and result files from cluttering future sessions. The plan must remain in `todo-tasks/` while an agent is running (the executor reads it from there), so only archive after completion.
+If a worktree still exists for a completed agent (merge conflict cases), mention it so the user can resolve manually.
 
 **If invoked with `status` keyword:** Show status with debrief, archive completed plans, and stop. Don't proceed to plan selection.
 
@@ -295,13 +296,14 @@ AskUserQuestion({
 If the user says launch:
 
 ```bash
-nohup bash .claude/skills/execute-plan/execute-plan.sh {plan-name} > .claude/agent-results/{plan-name}.log 2>&1 &
+mkdir -p todo-tasks/.running
+nohup bash .claude/skills/execute-plan/execute-plan.sh {plan-name} > todo-tasks/.running/{plan-name}.log 2>&1 &
 ```
 
 Report:
 - Agent is running in background
-- Check progress: `tail -f .claude/agent-results/{plan-name}.log`
-- Check results when done: `.claude/agent-results/{plan-name}.md`
+- Check progress: `tail -f todo-tasks/.running/{plan-name}.log`
+- Check results when done: `todo-tasks/.done/{plan-name}.result.md`
 
 ## Phase 7: Suggest Next Tasks
 
@@ -309,18 +311,18 @@ After launching (or if the user declines), suggest safe next tasks. **Do not sug
 
 ### Check for conflicts
 
-1. List running/completed agents:
+1. List running agents:
    ```bash
-   ls .claude/agent-results/*.log 2>/dev/null
+   ls todo-tasks/.running/*.md 2>/dev/null
    ```
-2. For each `.log` without a corresponding `.md` result, the agent is still running. Note the plan slug (filename without `.log`).
+2. Each `.md` in `.running/` is an active agent. Note the plan slug.
 3. Read the plan files for running agents to understand which files they modify.
 
 ### Identify safe plans
 
 Read the first ~10 lines of each remaining plan in `todo-tasks/` to extract title, summary, and files touched. A plan is **unsafe to suggest** if:
 - It modifies the same files as a running agent's plan
-- It's already running as an agent (has an active `.log` file)
+- It's already running as an agent (has a file in `todo-tasks/.running/`)
 
 ### Present suggestions
 

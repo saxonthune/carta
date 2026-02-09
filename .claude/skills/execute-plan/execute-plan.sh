@@ -32,21 +32,21 @@ fi
 # ─── Configuration ────────────────────────────────────────────────────────────
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
-PLAN_FILE="todo-tasks/${PLAN_SLUG}.md"
 TRUNK="$(git branch --show-current)"
 BRANCH="${TRUNK}_claude_${PLAN_SLUG}"
 WORKTREE_DIR="${REPO_ROOT}/../carta-agent-${PLAN_SLUG}"
-RESULT_FILE="${REPO_ROOT}/.claude/agent-results/${PLAN_SLUG}.md"
 MAX_BUDGET="5.00"
 RETRY_BUDGET="3.00"
 
-# ─── Step 1: Validate ────────────────────────────────────────────────────────
+# ─── Step 1: Validate & Move to Running ──────────────────────────────────────
 
 echo "═══ Plan Executor: ${PLAN_SLUG} ═══"
 echo ""
 
-if [[ ! -f "${REPO_ROOT}/${PLAN_FILE}" ]]; then
-  echo "ERROR: Plan file not found: ${PLAN_FILE}"
+PLAN_SOURCE_FILE="${REPO_ROOT}/todo-tasks/${PLAN_SLUG}.md"
+
+if [[ ! -f "${PLAN_SOURCE_FILE}" ]]; then
+  echo "ERROR: Plan file not found: todo-tasks/${PLAN_SLUG}.md"
   exit 1
 fi
 
@@ -56,11 +56,15 @@ if [[ "$TRUNK" == *_claude* ]]; then
   exit 1
 fi
 
+# Move plan to .running/ — this IS the state transition
+mkdir -p "${REPO_ROOT}/todo-tasks/.running"
+mv "${PLAN_SOURCE_FILE}" "${REPO_ROOT}/todo-tasks/.running/${PLAN_SLUG}.md"
+PLAN_FILE="todo-tasks/.running/${PLAN_SLUG}.md"
+
 echo "Plan:      ${PLAN_FILE}"
 echo "Trunk:     ${TRUNK}"
 echo "Branch:    ${BRANCH}"
 echo "Worktree:  ${WORKTREE_DIR}"
-echo "Result:    ${RESULT_FILE}"
 echo ""
 
 # ─── Step 2: Create Worktree ─────────────────────────────────────────────────
@@ -86,23 +90,9 @@ echo ""
 
 echo "── Copying plan into worktree ──"
 
-# Find the plan: check todo-tasks/ first, then archived
-PLAN_SOURCE=""
-if [[ -f "${REPO_ROOT}/${PLAN_FILE}" ]]; then
-  PLAN_SOURCE="${REPO_ROOT}/${PLAN_FILE}"
-else
-  # Look for archived plan (glob: todo-tasks/.archived/*-{slug}.md)
-  PLAN_SOURCE=$(ls "${REPO_ROOT}"/todo-tasks/.archived/*-"${PLAN_SLUG}".md 2>/dev/null | tail -1 || true)
-fi
-
-if [[ -z "$PLAN_SOURCE" ]]; then
-  echo "ERROR: Plan not found in todo-tasks/ or todo-tasks/.archived/"
-  exit 1
-fi
-
 mkdir -p "${WORKTREE_DIR}/todo-tasks"
-cp "${PLAN_SOURCE}" "${WORKTREE_DIR}/${PLAN_FILE}"
-echo "Copied plan from ${PLAN_SOURCE}"
+cp "${REPO_ROOT}/${PLAN_FILE}" "${WORKTREE_DIR}/todo-tasks/${PLAN_SLUG}.md"
+echo "Copied plan from ${PLAN_FILE}"
 echo ""
 
 # ─── Step 4: Install Dependencies ────────────────────────────────────────────
@@ -117,7 +107,7 @@ echo ""
 
 echo "── Running headless Claude ──"
 
-CLAUDE_PROMPT="Read the plan at ${PLAN_FILE} and implement it fully. \
+CLAUDE_PROMPT="Read the plan at todo-tasks/${PLAN_SLUG}.md and implement it fully. \
 Follow the plan step by step. Commit after each logical unit of work. \
 When done, run 'pnpm build && pnpm test' and fix any issues. \
 Output your implementation summary, then end with a '## Notes' section containing: \
@@ -220,6 +210,12 @@ if [[ "$VERIFIED" == "true" ]]; then
     if git merge "${BRANCH}" -m "Merge agent: ${PLAN_SLUG}"; then
       MERGE_STATUS="success"
       echo "Merged ${BRANCH} into ${TRUNK}"
+
+      # Clean up worktree and branch on successful merge
+      echo "── Cleaning up worktree and branch ──"
+      git worktree remove --force "${WORKTREE_DIR}" 2>/dev/null || true
+      git branch -D "${BRANCH}" 2>/dev/null || true
+      echo "Removed worktree and branch"
     else
       git merge --abort 2>/dev/null || true
       MERGE_STATUS="conflict"
@@ -238,8 +234,12 @@ fi
 
 echo ""
 
-# ─── Write Result File ───────────────────────────────────────────────────────
+# ─── Move to .done/ and Write Result File ────────────────────────────────────
 
+mkdir -p "${REPO_ROOT}/todo-tasks/.done"
+mv "${REPO_ROOT}/todo-tasks/.running/${PLAN_SLUG}.md" "${REPO_ROOT}/todo-tasks/.done/${PLAN_SLUG}.md"
+
+RESULT_FILE="${REPO_ROOT}/todo-tasks/.done/${PLAN_SLUG}.result.md"
 BUILD_TEST_TAIL=$(echo "${BUILD_TEST_OUTPUT}" | tail -30)
 
 cat > "${RESULT_FILE}" << RESULT_EOF

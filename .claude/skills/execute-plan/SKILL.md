@@ -30,20 +30,22 @@ Ask the user which plan to execute using AskUserQuestion.
 2. **Launch** — Run the orchestrator in background:
 
 ```bash
-nohup bash .claude/skills/execute-plan/execute-plan.sh {plan-name} > .claude/agent-results/{plan-name}.log 2>&1 &
+mkdir -p todo-tasks/.running
+nohup bash .claude/skills/execute-plan/execute-plan.sh {plan-name} > todo-tasks/.running/{plan-name}.log 2>&1 &
 ```
 
 3. **Report** — Tell the user:
    - The agent is running in the background
-   - Check progress: `tail -f .claude/agent-results/{plan-name}.log`
-   - Check results when done: `.claude/agent-results/{plan-name}.md`
+   - Check progress: `tail -f todo-tasks/.running/{plan-name}.log`
+   - Check results when done: `todo-tasks/.done/{plan-name}.result.md`
 
 ### Options
 
 Pass `--no-merge` to leave the branch ready for manual merge instead of auto-merging:
 
 ```bash
-nohup bash .claude/skills/execute-plan/execute-plan.sh {plan-name} --no-merge > .claude/agent-results/{plan-name}.log 2>&1 &
+mkdir -p todo-tasks/.running
+nohup bash .claude/skills/execute-plan/execute-plan.sh {plan-name} --no-merge > todo-tasks/.running/{plan-name}.log 2>&1 &
 ```
 
 ## Prerequisites
