@@ -322,18 +322,25 @@ export function updateConstruct(
   if (!foundId || !foundYnode) return null;
 
   ydoc.transact(() => {
-    const ydata = foundYnode!.get('data') as Y.Map<unknown>;
+    const rawData = foundYnode!.get('data') as Y.Map<unknown> | Record<string, unknown>;
+    const ydata = ensureYMap(foundYnode!, rawData ?? {});
 
     if (updates.values !== undefined) {
       // Merge values
-      const existingValues = (ydata.get('values') as Y.Map<unknown>) || new Y.Map();
-      const newValues = deepPlainToY(updates.values) as Y.Map<unknown>;
+      const rawValues = ydata.get('values') as Y.Map<unknown> | Record<string, unknown> | undefined;
+      let existingValues: Y.Map<unknown>;
+      if (rawValues instanceof Y.Map) {
+        existingValues = rawValues;
+      } else {
+        // values field was degraded to plain object, convert it
+        existingValues = deepPlainToY(rawValues ?? {}) as Y.Map<unknown>;
+        ydata.set('values', existingValues);
+      }
 
       // Update each value individually
-      newValues.forEach((value, key) => {
-        existingValues.set(key, value);
-      });
-      ydata.set('values', existingValues);
+      for (const [key, value] of Object.entries(updates.values)) {
+        existingValues.set(key, deepPlainToY(value));
+      }
     }
 
     if (updates.instanceColor !== undefined) {
