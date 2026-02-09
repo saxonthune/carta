@@ -289,4 +289,41 @@ export class CartaPage {
     if (count === 0) return null;
     return badge.textContent();
   }
+
+  /**
+   * Get the page switcher trigger bar container.
+   */
+  getPageSwitcherTrigger(): Locator {
+    // Look for the button with title "Switch page" and work up from there
+    return this.page.locator('button[title="Switch page"]').locator('..');
+  }
+
+  /**
+   * Get the current page name from the trigger bar.
+   */
+  async getCurrentPageName(): Promise<string> {
+    // Find the span with title "Click to rename" that's next to the layers icon
+    const nameSpan = this.page.locator('span[title="Click to rename"]');
+    return (await nameSpan.textContent()) ?? '';
+  }
+
+  /**
+   * Open the page dropdown by clicking the chevron button.
+   */
+  async openPageDropdown(): Promise<void> {
+    // Click the button with title "Switch page"
+    const chevronButton = this.page.locator('button[title="Switch page"]');
+    await chevronButton.click();
+    await this.page.waitForTimeout(300);
+  }
+
+  /**
+   * Get locators for page rows in the open dropdown.
+   * Returns all page row elements that are NOT the "New Page" button.
+   */
+  getPageRows(): Locator {
+    // Page rows are within the dropdown, excluding the "New Page" button row
+    // They contain a 3px active indicator bar and page name
+    return this.page.locator('div.flex.items-center.gap-2').filter({ has: this.page.locator('div.w-\\[3px\\]') });
+  }
 }
