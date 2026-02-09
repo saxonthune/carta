@@ -238,6 +238,7 @@ echo ""
 
 mkdir -p "${REPO_ROOT}/todo-tasks/.done"
 mv "${REPO_ROOT}/todo-tasks/.running/${PLAN_SLUG}.md" "${REPO_ROOT}/todo-tasks/.done/${PLAN_SLUG}.md"
+rm -f "${REPO_ROOT}/todo-tasks/.running/${PLAN_SLUG}.log"
 
 RESULT_FILE="${REPO_ROOT}/todo-tasks/.done/${PLAN_SLUG}.result.md"
 BUILD_TEST_TAIL=$(echo "${BUILD_TEST_OUTPUT}" | tail -30)
