@@ -9,11 +9,14 @@ export type NodeSelector =
   | { constructType: string }
   | { semanticIds: string[] };
 
-// Constraint types for Phase 1
+// Constraint types
 export type ArrangeConstraint =
   | { type: 'align'; axis: 'x' | 'y'; nodes?: NodeSelector; alignment?: 'center' | 'min' | 'max' }
   | { type: 'order'; axis: 'x' | 'y'; by: 'field' | 'alphabetical'; field?: string; nodes?: NodeSelector }
-  | { type: 'spacing'; min?: number; equal?: boolean; nodes?: NodeSelector };
+  | { type: 'spacing'; min?: number; equal?: boolean; nodes?: NodeSelector }
+  | { type: 'group'; by: 'constructType' | 'field'; field?: string; axis?: 'x' | 'y'; groupGap?: number; nodes?: NodeSelector }
+  | { type: 'distribute'; axis: 'x' | 'y'; spacing?: 'equal' | 'packed'; nodes?: NodeSelector }
+  | { type: 'position'; anchor: 'top' | 'bottom' | 'left' | 'right' | 'center'; nodes?: NodeSelector; margin?: number };
 
 export type ArrangeStrategy = 'grid' | 'preserve';
 
@@ -330,6 +333,176 @@ function applySpacingConstraint(
 }
 
 /**
+ * Apply 'group' constraint: cluster nodes by constructType or field value.
+ * Groups are arranged along the specified axis with groupGap between clusters.
+ * Within each cluster, relative positions are preserved.
+ */
+function applyGroupConstraint(
+  constraint: Extract<ArrangeConstraint, { type: 'group' }>,
+  _nodes: ArrangeInput[],
+  allNodes: ArrangeInput[],
+  positions: PositionMap,
+  nodeGap: number
+): void {
+  const selectedNodes = resolveSelector(constraint.nodes, allNodes);
+  if (selectedNodes.length === 0) return;
+
+  const { by, field, axis = 'x', groupGap } = constraint;
+  const gap = groupGap ?? nodeGap * 2; // default: 2x normal gap
+
+  // 1. Partition nodes into groups
+  const groups = new Map<string, ArrangeInput[]>();
+  for (const node of selectedNodes) {
+    let key: string;
+    if (by === 'constructType') {
+      key = node.constructType;
+    } else if (by === 'field' && field) {
+      key = String(node.values[field] ?? '__undefined__');
+    } else {
+      key = node.constructType; // fallback
+    }
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(node);
+  }
+
+  // 2. Sort group keys alphabetically for deterministic output
+  const sortedKeys = [...groups.keys()].sort();
+
+  // 3. For each group, compute its bounding box in current positions
+  const groupBounds: Array<{ key: string; nodes: ArrangeInput[]; minA: number; maxA: number; width: number }> = [];
+  for (const key of sortedKeys) {
+    const nodes = groups.get(key)!;
+    const axisValues = nodes.map(n => positions[n.id]![axis]);
+    const sizes = nodes.map(n => axis === 'x' ? n.width : n.height);
+    const minA = Math.min(...axisValues);
+    const maxA = Math.max(...axisValues.map((v, i) => v + sizes[i]!));
+    groupBounds.push({ key, nodes, minA, maxA, width: maxA - minA });
+  }
+
+  // 4. Calculate original centroid of all selected nodes on this axis
+  const allAxisValues = selectedNodes.map(n => positions[n.id]![axis]);
+  const allSizes = selectedNodes.map(n => axis === 'x' ? n.width : n.height);
+  const originalCenter = (Math.min(...allAxisValues) + Math.max(...allAxisValues.map((v, i) => v + allSizes[i]!))) / 2;
+
+  // 5. Lay out groups sequentially along axis with groupGap
+  const totalWidth = groupBounds.reduce((sum, g) => sum + g.width, 0) + (groupBounds.length - 1) * gap;
+  let cursor = originalCenter - totalWidth / 2;
+
+  for (const group of groupBounds) {
+    // Shift all nodes in this group so group's min aligns with cursor
+    const shift = cursor - group.minA;
+    for (const node of group.nodes) {
+      positions[node.id]![axis] += shift;
+    }
+    cursor += group.width + gap;
+  }
+}
+
+/**
+ * Apply 'distribute' constraint: evenly distribute nodes along an axis.
+ * 'equal' mode: equal center-to-center spacing (anchors first and last).
+ * 'packed' mode: equal edge-to-edge gaps (anchors first and last).
+ */
+function applyDistributeConstraint(
+  constraint: Extract<ArrangeConstraint, { type: 'distribute' }>,
+  _nodes: ArrangeInput[],
+  allNodes: ArrangeInput[],
+  positions: PositionMap
+): void {
+  const selectedNodes = resolveSelector(constraint.nodes, allNodes);
+  if (selectedNodes.length < 3) return; // need at least 3 to distribute
+
+  const { axis, spacing = 'equal' } = constraint;
+
+  // Sort nodes by current position on axis
+  const sorted = [...selectedNodes].sort(
+    (a, b) => positions[a.id]![axis] - positions[b.id]![axis]
+  );
+
+  const first = sorted[0]!;
+  const last = sorted[sorted.length - 1]!;
+  const firstPos = positions[first.id]![axis];
+  const lastPos = positions[last.id]![axis];
+
+  if (spacing === 'equal') {
+    // Equal center-to-center spacing
+    const totalSpan = lastPos - firstPos;
+    const step = totalSpan / (sorted.length - 1);
+
+    for (let i = 1; i < sorted.length - 1; i++) {
+      positions[sorted[i]!.id]![axis] = firstPos + i * step;
+    }
+  } else {
+    // Packed: equal edge-to-edge gaps
+    const nodeSizes = sorted.map(n => axis === 'x' ? n.width : n.height);
+    const totalNodeSize = nodeSizes.reduce((sum, s) => sum + s, 0);
+    const lastSize = axis === 'x' ? last.width : last.height;
+    const availableSpace = (lastPos + lastSize) - firstPos - totalNodeSize;
+    const gapSize = availableSpace / (sorted.length - 1);
+
+    let cursor = firstPos + nodeSizes[0]! + gapSize;
+    for (let i = 1; i < sorted.length - 1; i++) {
+      positions[sorted[i]!.id]![axis] = cursor;
+      cursor += nodeSizes[i]! + gapSize;
+    }
+  }
+}
+
+/**
+ * Apply 'position' constraint: anchor node set to a bounding box edge/center.
+ * The bounding box is computed from ALL nodes (not just selected), giving a canvas reference frame.
+ * 'margin' offsets from the edge inward.
+ */
+function applyPositionConstraint(
+  constraint: Extract<ArrangeConstraint, { type: 'position' }>,
+  _nodes: ArrangeInput[],
+  allNodes: ArrangeInput[],
+  positions: PositionMap
+): void {
+  const selectedNodes = resolveSelector(constraint.nodes, allNodes);
+  if (selectedNodes.length === 0) return;
+
+  const { anchor, margin = 0 } = constraint;
+
+  // Compute bounding box of ALL nodes (full canvas extent)
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  for (const node of allNodes) {
+    const pos = positions[node.id];
+    if (!pos) continue;
+    minX = Math.min(minX, pos.x);
+    maxX = Math.max(maxX, pos.x + node.width);
+    minY = Math.min(minY, pos.y);
+    maxY = Math.max(maxY, pos.y + node.height);
+  }
+
+  // Apply anchor
+  for (const node of selectedNodes) {
+    const pos = positions[node.id]!;
+    switch (anchor) {
+      case 'top':
+        pos.y = minY + margin;
+        break;
+      case 'bottom':
+        pos.y = maxY - node.height - margin;
+        break;
+      case 'left':
+        pos.x = minX + margin;
+        break;
+      case 'right':
+        pos.x = maxX - node.width - margin;
+        break;
+      case 'center': {
+        const centerX = (minX + maxX) / 2;
+        const centerY = (minY + maxY) / 2;
+        pos.x = centerX - node.width / 2;
+        pos.y = centerY - node.height / 2;
+        break;
+      }
+    }
+  }
+}
+
+/**
  * Main constraint layout resolver
  */
 export function computeArrangeLayout(nodes: ArrangeInput[], options: ArrangeOptions): ArrangeResult {
@@ -362,6 +535,15 @@ export function computeArrangeLayout(nodes: ArrangeInput[], options: ArrangeOpti
         break;
       case 'spacing':
         applySpacingConstraint(constraint, nodes, nodes, positions, nodeGap);
+        break;
+      case 'group':
+        applyGroupConstraint(constraint, nodes, nodes, positions, nodeGap);
+        break;
+      case 'distribute':
+        applyDistributeConstraint(constraint, nodes, nodes, positions);
+        break;
+      case 'position':
+        applyPositionConstraint(constraint, nodes, nodes, positions);
         break;
     }
     constraintsApplied++;
