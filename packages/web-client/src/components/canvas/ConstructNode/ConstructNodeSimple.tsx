@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Handle, Position } from '@xyflow/react';
+import { Handle, Position, NodeResizer } from '@xyflow/react';
 import { resolveNodeColor, resolveNodeIcon } from '@carta/domain';
 import IndexBasedDropZones from '../IndexBasedDropZones';
 import PortDrawer from '../PortDrawer';
@@ -48,13 +48,22 @@ export function ConstructNodeSimple({
 
   return (
     <div
-      className={`rounded-lg overflow-visible relative flex flex-col min-w-[200px] min-h-[100px] ${selected ? 'ring-2 ring-accent/30' : ''}`}
+      className={`rounded-lg overflow-visible relative flex flex-col min-w-[200px] min-h-[100px] w-full h-full ${selected ? 'ring-2 ring-accent/30' : ''}`}
       style={{
         backgroundColor,
         ...lodTransitionStyle,
         boxShadow: selected ? 'var(--node-shadow-selected)' : 'var(--node-shadow)',
       }}
     >
+      {/* Resize handles when selected */}
+      <NodeResizer
+        isVisible={selected}
+        minWidth={200}
+        minHeight={100}
+        lineClassName="!border-accent !border-2"
+        handleClassName="!w-2 !h-2 !bg-accent !border-accent"
+      />
+
       {/* Selection indicator */}
       {selected && (
         <div className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-accent shadow-[0_0_0_2px_var(--color-surface)]" />
@@ -80,7 +89,7 @@ export function ConstructNodeSimple({
           ref={textareaRef}
           value={contentValue}
           onChange={(e) => data.onValuesChange?.({ ...data.values, content: e.target.value })}
-          className="w-full h-full bg-transparent text-content resize-none border-none outline-none text-node-base placeholder-content-subtle/50"
+          className="w-full flex-1 bg-transparent text-content resize-none border-none outline-none text-node-base placeholder-content-subtle/50"
           placeholder="Type here..."
           onClick={(e) => {
             // Allow text selection without triggering node drag
