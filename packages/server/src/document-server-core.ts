@@ -951,6 +951,8 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
             color: string;
             semanticDescription?: string;
             groupId?: string;
+            enumIconField?: string;
+            enumIconMap?: Record<string, string>;
             fields: Array<{
               name: string;
               label: string;
@@ -984,6 +986,8 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
             color: body.color,
             semanticDescription: body.semanticDescription,
             groupId: body.groupId,
+            enumIconField: body.enumIconField,
+            enumIconMap: body.enumIconMap,
             fields: body.fields,
             ports: body.ports,
             compilation: { format: 'json' },
