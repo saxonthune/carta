@@ -1194,6 +1194,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
           constraints?: unknown[];
           scope?: string | string[];
           nodeGap?: number;
+          forceIterations?: number;
         }>(req);
 
         if (!body.constraints || !Array.isArray(body.constraints)) {
@@ -1207,6 +1208,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
           constraints: body.constraints as ArrangeConstraint[],
           scope: body.scope as 'all' | string[] | undefined,
           nodeGap: body.nodeGap,
+          forceIterations: body.forceIterations,
         });
 
         sendJson(res, 200, result);
