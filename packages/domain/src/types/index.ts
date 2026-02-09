@@ -160,6 +160,8 @@ export interface ConstructSchema {
   colorMode?: 'default' | 'instance' | 'enum';                  // How node color is determined: 'default' (schema color), 'instance' (per-instance override), 'enum' (driven by enum field value). default: 'default'
   enumColorField?: string;                                       // Field name (type 'enum') that drives color when colorMode is 'enum'
   enumColorMap?: Record<string, string>;                         // Enum value → hex color mapping for enum color mode
+  enumIconField?: string;                                        // Field name (type 'enum') that drives icon marker
+  enumIconMap?: Record<string, string>;                          // Enum value → Unicode character/text for icon marker
 }
 
 // ===== M0: INSTANCE DATA =====
