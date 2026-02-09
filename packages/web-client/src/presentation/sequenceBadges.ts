@@ -3,7 +3,8 @@
  * Pure function — no React dependencies.
  */
 
-import type { ProcessableNode, ProcessableEdge } from './presentationModel.js';
+import type { ProcessableNode } from './organizerProcessor.js';
+import type { ProcessableEdge } from './presentationModel.js';
 
 export interface SequenceBadgeResult {
   /** Map from node ID to ordinal number (1-based) */
