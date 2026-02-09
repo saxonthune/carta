@@ -1,10 +1,18 @@
 import type { ConstructSchema, PortSchema, SchemaGroup } from '../types/index.js';
-import { loadSeeds, hydrateSeeds } from './seed-loader.js';
+import { loadSeeds, hydrateSeeds, type SchemaSeed } from './seed-loader.js';
 import { softwareArchitectureSeed } from './seeds/software-architecture.js';
 import { sketchingSeed } from './seeds/sketching.js';
 import { bpmnSeed } from './seeds/bpmn.js';
 import { awsSeed } from './seeds/aws.js';
 import { capabilityModelSeed } from './seeds/capability-model.js';
+
+// Export individual seeds for selective schema addition
+export { softwareArchitectureSeed } from './seeds/software-architecture.js';
+export { sketchingSeed } from './seeds/sketching.js';
+export { bpmnSeed } from './seeds/bpmn.js';
+export { awsSeed } from './seeds/aws.js';
+export { capabilityModelSeed } from './seeds/capability-model.js';
+export type { SchemaSeed } from './seed-loader.js';
 
 /**
  * Built-in Port Schemas
@@ -107,4 +115,24 @@ export const builtInConstructSchemas: ConstructSchema[] = schemas;
  */
 export function hydrateBuiltIns(existingGroups?: SchemaGroup[]): { groups: SchemaGroup[]; schemas: ConstructSchema[] } {
   return hydrateSeeds(groups, schemas, existingGroups);
+}
+
+/**
+ * Catalog of individual built-in seeds with display metadata.
+ */
+export const builtInSeedCatalog: Array<{ name: string; seed: SchemaSeed; description: string }> = [
+  { name: 'Software Design', seed: softwareArchitectureSeed, description: 'REST APIs, databases, UI screens, user stories' },
+  { name: 'Sketching', seed: sketchingSeed, description: 'Freeform notes and boxes' },
+  { name: 'BPMN', seed: bpmnSeed, description: 'Business process modeling' },
+  { name: 'AWS', seed: awsSeed, description: 'AWS cloud services' },
+  { name: 'Capability Model', seed: capabilityModelSeed, description: 'Domain capabilities and features' },
+];
+
+/**
+ * Hydrate a single seed into document-ready groups and schemas.
+ * Always generates fresh UUIDs — no ID reuse.
+ */
+export function hydrateSeed(seed: SchemaSeed): { groups: SchemaGroup[]; schemas: ConstructSchema[] } {
+  const { groups, schemas } = loadSeeds([seed]);
+  return hydrateSeeds(groups, schemas);
 }
