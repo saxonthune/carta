@@ -3,11 +3,25 @@
  * Pure function — no Yjs, no side effects
  */
 
+import {
+  computeFlowLayout,
+  type FlowLayoutInput,
+  type FlowLayoutEdge,
+} from './flowLayout.js';
+
 // Node selector — structured objects only, no string predicates
 export type NodeSelector =
   | 'all'
   | { constructType: string }
   | { semanticIds: string[] };
+
+// Edge type for arrange layout
+export interface ArrangeEdge {
+  sourceId: string;      // node ID (not semanticId)
+  targetId: string;      // node ID
+  sourcePortId: string;  // e.g. "flow-out"
+  targetPortId: string;  // e.g. "flow-in"
+}
 
 // Constraint types
 export type ArrangeConstraint =
@@ -16,9 +30,10 @@ export type ArrangeConstraint =
   | { type: 'spacing'; min?: number; equal?: boolean; nodes?: NodeSelector }
   | { type: 'group'; by: 'constructType' | 'field'; field?: string; axis?: 'x' | 'y'; groupGap?: number; nodes?: NodeSelector }
   | { type: 'distribute'; axis: 'x' | 'y'; spacing?: 'equal' | 'packed'; nodes?: NodeSelector }
-  | { type: 'position'; anchor: 'top' | 'bottom' | 'left' | 'right' | 'center'; nodes?: NodeSelector; margin?: number };
+  | { type: 'position'; anchor: 'top' | 'bottom' | 'left' | 'right' | 'center'; nodes?: NodeSelector; margin?: number }
+  | { type: 'flow'; direction?: 'TB' | 'BT' | 'LR' | 'RL'; sourcePort?: string; layerGap?: number; nodeGap?: number; nodes?: NodeSelector };
 
-export type ArrangeStrategy = 'grid' | 'preserve';
+export type ArrangeStrategy = 'grid' | 'preserve' | 'force';
 
 export interface ArrangeInput {
   id: string;
@@ -35,6 +50,8 @@ export interface ArrangeOptions {
   strategy: ArrangeStrategy;
   constraints: ArrangeConstraint[];
   nodeGap?: number; // default gap for spacing, default: 40
+  edges?: ArrangeEdge[]; // optional, needed for flow constraint and force strategy
+  forceIterations?: number; // iterations for force strategy (default: 50)
 }
 
 export interface ArrangeResult {
@@ -127,6 +144,106 @@ function applyPreserveStrategy(nodes: ArrangeInput[]): PositionMap {
   nodes.forEach((node) => {
     positions[node.id] = { x: node.x, y: node.y };
   });
+  return positions;
+}
+
+/**
+ * Apply 'force' base strategy: spring-model force-directed layout
+ */
+function applyForceStrategy(
+  nodes: ArrangeInput[],
+  edges: ArrangeEdge[],
+  iterations: number,
+  nodeGap: number
+): PositionMap {
+  const positions: PositionMap = {};
+  const velocities: Record<string, { x: number; y: number }> = {};
+
+  // Initialize positions and velocities
+  nodes.forEach((node) => {
+    positions[node.id] = { x: node.x, y: node.y };
+    velocities[node.id] = { x: 0, y: 0 };
+  });
+
+  if (nodes.length === 0) return positions;
+
+  const idealDist = nodeGap * 3;
+  const repulsionStrength = 10000;
+  const springConstant = 0.01;
+  const damping = 0.9;
+
+  // Run simulation
+  for (let iter = 0; iter < iterations; iter++) {
+    const forces: Record<string, { x: number; y: number }> = {};
+    nodes.forEach((node) => {
+      forces[node.id] = { x: 0, y: 0 };
+    });
+
+    // Repulsive forces between all pairs
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const nodeA = nodes[i]!;
+        const nodeB = nodes[j]!;
+        const posA = positions[nodeA.id]!;
+        const posB = positions[nodeB.id]!;
+
+        const dx = posB.x - posA.x;
+        const dy = posB.y - posA.y;
+        const distSq = dx * dx + dy * dy;
+
+        if (distSq < 1) continue; // avoid division by zero
+
+        const repulsion = repulsionStrength / distSq;
+        const dist = Math.sqrt(distSq);
+        const fx = (dx / dist) * repulsion;
+        const fy = (dy / dist) * repulsion;
+
+        forces[nodeA.id]!.x -= fx;
+        forces[nodeA.id]!.y -= fy;
+        forces[nodeB.id]!.x += fx;
+        forces[nodeB.id]!.y += fy;
+      }
+    }
+
+    // Attractive forces along edges
+    for (const edge of edges) {
+      const posSource = positions[edge.sourceId];
+      const posTarget = positions[edge.targetId];
+      if (!posSource || !posTarget) continue;
+
+      const dx = posTarget.x - posSource.x;
+      const dy = posTarget.y - posSource.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      if (dist < 1) continue;
+
+      const attraction = springConstant * (dist - idealDist);
+      const fx = (dx / dist) * attraction;
+      const fy = (dy / dist) * attraction;
+
+      forces[edge.sourceId]!.x += fx;
+      forces[edge.sourceId]!.y += fy;
+      forces[edge.targetId]!.x -= fx;
+      forces[edge.targetId]!.y -= fy;
+    }
+
+    // Apply forces to velocities with damping
+    nodes.forEach((node) => {
+      const vel = velocities[node.id]!;
+      const force = forces[node.id]!;
+      vel.x = (vel.x + force.x) * damping;
+      vel.y = (vel.y + force.y) * damping;
+    });
+
+    // Update positions
+    nodes.forEach((node) => {
+      const pos = positions[node.id]!;
+      const vel = velocities[node.id]!;
+      pos.x += vel.x;
+      pos.y += vel.y;
+    });
+  }
+
   return positions;
 }
 
@@ -503,6 +620,54 @@ function applyPositionConstraint(
 }
 
 /**
+ * Apply 'flow' constraint: topological layout using computeFlowLayout
+ */
+function applyFlowConstraint(
+  constraint: Extract<ArrangeConstraint, { type: 'flow' }>,
+  _nodes: ArrangeInput[],
+  allNodes: ArrangeInput[],
+  positions: PositionMap,
+  edges: ArrangeEdge[]
+): void {
+  const selectedNodes = resolveSelector(constraint.nodes, allNodes);
+  if (selectedNodes.length === 0) return;
+
+  // Build FlowLayoutInput[] from selected nodes
+  const selectedNodeIds = new Set(selectedNodes.map(n => n.id));
+  const flowInputs: FlowLayoutInput[] = selectedNodes.map(node => ({
+    id: node.id,
+    semanticId: node.semanticId,
+    x: positions[node.id]!.x,
+    y: positions[node.id]!.y,
+    width: node.width,
+    height: node.height,
+  }));
+
+  // Filter edges to only those between selected nodes
+  const filteredEdges: FlowLayoutEdge[] = edges
+    .filter(e => selectedNodeIds.has(e.sourceId) && selectedNodeIds.has(e.targetId))
+    .map(e => ({
+      sourceId: e.sourceId,
+      targetId: e.targetId,
+      sourcePortId: e.sourcePortId,
+      targetPortId: e.targetPortId,
+    }));
+
+  // Call computeFlowLayout
+  const result = computeFlowLayout(flowInputs, filteredEdges, {
+    direction: constraint.direction ?? 'TB',
+    sourcePort: constraint.sourcePort,
+    layerGap: constraint.layerGap,
+    nodeGap: constraint.nodeGap,
+  });
+
+  // Write result positions back into positions map
+  result.positions.forEach((pos, nodeId) => {
+    positions[nodeId] = pos;
+  });
+}
+
+/**
  * Main constraint layout resolver
  */
 export function computeArrangeLayout(nodes: ArrangeInput[], options: ArrangeOptions): ArrangeResult {
@@ -512,6 +677,8 @@ export function computeArrangeLayout(nodes: ArrangeInput[], options: ArrangeOpti
   let positions: PositionMap;
   if (options.strategy === 'grid') {
     positions = applyGridStrategy(nodes, nodeGap);
+  } else if (options.strategy === 'force') {
+    positions = applyForceStrategy(nodes, options.edges ?? [], options.forceIterations ?? 50, nodeGap);
   } else {
     positions = applyPreserveStrategy(nodes);
   }
@@ -544,6 +711,9 @@ export function computeArrangeLayout(nodes: ArrangeInput[], options: ArrangeOpti
         break;
       case 'position':
         applyPositionConstraint(constraint, nodes, nodes, positions);
+        break;
+      case 'flow':
+        applyFlowConstraint(constraint, nodes, nodes, positions, options.edges ?? []);
         break;
     }
     constraintsApplied++;
