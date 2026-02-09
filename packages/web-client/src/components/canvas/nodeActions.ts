@@ -14,4 +14,7 @@ export interface NodeActions {
   onInstanceColorChange: (nodeId: string, color: string | null) => void;
   onToggleCollapse: (nodeId: string) => void;
   onSpreadChildren: (nodeId: string) => void;
+  onFlowLayoutChildren: (nodeId: string) => void;
+  onGridLayoutChildren: (nodeId: string) => void;
+  onFitToChildren: (nodeId: string) => void;
 }

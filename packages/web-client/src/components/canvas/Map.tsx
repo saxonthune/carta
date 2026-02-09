@@ -536,6 +536,132 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     }
   }, [reactFlow, adapter, setNodesLocal]);
 
+  // Fit organizer to its children
+  const handleFitToChildren = useCallback((organizerId: string) => {
+    const rfNodes = reactFlow.getNodes();
+    const children = rfNodes.filter(n => n.parentId === organizerId && n.type !== 'organizer');
+    if (children.length === 0) return;
+
+    // Compute bounding box of all children
+    const rights = children.map(child => child.position.x + (child.measured?.width ?? child.width ?? 200));
+    const bottoms = children.map(child => child.position.y + (child.measured?.height ?? child.height ?? 100));
+    const maxRight = Math.max(...rights);
+    const maxBottom = Math.max(...bottoms);
+
+    // Add padding
+    const newWidth = Math.max(maxRight + 40, 200);
+    const newHeight = Math.max(maxBottom + 60, 120);
+
+    // Update organizer node's style
+    const updateStyle = (nds: Node[]) => nds.map(n =>
+      n.id === organizerId
+        ? { ...n, style: { ...n.style, width: newWidth, height: newHeight } }
+        : n
+    );
+
+    reactFlow.setNodes(updateStyle);
+    setNodesLocal(updateStyle);
+    adapter.patchNodes?.([{ id: organizerId, style: { width: newWidth, height: newHeight } }]);
+  }, [reactFlow, adapter, setNodesLocal]);
+
+  // Grid layout children within organizer
+  const handleGridLayoutChildren = useCallback((organizerId: string) => {
+    const rfNodes = reactFlow.getNodes();
+    const children = rfNodes.filter(n => n.parentId === organizerId && n.type !== 'organizer');
+    if (children.length < 2) return;
+
+    const inputs = children.map(n => ({
+      id: n.id,
+      x: n.position.x,
+      y: n.position.y,
+      width: n.measured?.width ?? n.width ?? 200,
+      height: n.measured?.height ?? n.height ?? 100,
+    }));
+
+    // Compute grid
+    const cols = Math.ceil(Math.sqrt(children.length));
+    const colWidth = Math.max(...inputs.map(n => n.width)) + 30;
+    const rowHeight = Math.max(...inputs.map(n => n.height)) + 30;
+    const padding = 20;
+
+    // Assign positions
+    const newPositions = new globalThis.Map<string, { x: number; y: number }>();
+    inputs.forEach((input, idx) => {
+      const x = (idx % cols) * colWidth + padding;
+      const y = Math.floor(idx / cols) * rowHeight + padding;
+      newPositions.set(input.id, { x, y });
+    });
+
+    const applyPositions = (nds: Node[]) => nds.map(n => {
+      const pos = newPositions.get(n.id);
+      return pos ? { ...n, position: pos } : n;
+    });
+
+    reactFlow.setNodes(applyPositions);
+    setNodesLocal(applyPositions);
+    const patches = [...newPositions].map(([id, position]) => ({ id, position }));
+    if (patches.length > 0) {
+      adapter.patchNodes?.(patches);
+    }
+
+    // Auto-resize to fit
+    handleFitToChildren(organizerId);
+  }, [reactFlow, adapter, setNodesLocal, handleFitToChildren]);
+
+  // Flow layout children within organizer
+  const handleFlowLayoutChildren = useCallback((organizerId: string) => {
+    const rfNodes = reactFlow.getNodes();
+    const children = rfNodes.filter(n => n.parentId === organizerId && n.type !== 'organizer');
+    if (children.length < 2) return;
+
+    const inputs = children.map(n => ({
+      id: n.id,
+      x: n.position.x,
+      y: n.position.y,
+      width: n.measured?.width ?? n.width ?? 200,
+      height: n.measured?.height ?? n.height ?? 100,
+    }));
+
+    // Filter edges to only those between children
+    const childIds = new Set(children.map(c => c.id));
+    const rfEdges = reactFlow.getEdges();
+    const scopedEdges = rfEdges.filter(e => childIds.has(e.source) && childIds.has(e.target));
+
+    // Apply hierarchical layout with smaller gaps for organizer context
+    const rawPositions = hierarchicalLayout(inputs, scopedEdges, { gap: 30, layerGap: 60 });
+
+    // Normalize positions to start from (padding, padding)
+    const padding = 20;
+    const positions = [...rawPositions.values()];
+    if (positions.length > 0) {
+      const minX = Math.min(...positions.map(p => p.x));
+      const minY = Math.min(...positions.map(p => p.y));
+
+      const newPositions = new globalThis.Map<string, { x: number; y: number }>();
+      for (const [id, pos] of rawPositions) {
+        newPositions.set(id, {
+          x: pos.x - minX + padding,
+          y: pos.y - minY + padding,
+        });
+      }
+
+      const applyPositions = (nds: Node[]) => nds.map(n => {
+        const pos = newPositions.get(n.id);
+        return pos ? { ...n, position: pos } : n;
+      });
+
+      reactFlow.setNodes(applyPositions);
+      setNodesLocal(applyPositions);
+      const patches = [...newPositions].map(([id, position]) => ({ id, position }));
+      if (patches.length > 0) {
+        adapter.patchNodes?.(patches);
+      }
+
+      // Auto-resize to fit
+      handleFitToChildren(organizerId);
+    }
+  }, [reactFlow, adapter, setNodesLocal, handleFitToChildren]);
+
   // Handle adding construct from pane context menu
   const handleAddConstructFromMenu = useCallback(
     (constructType: string, x: number, y: number) => {
@@ -712,6 +838,12 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
   toggleOrganizerCollapseRef.current = toggleOrganizerCollapse;
   const handleSpreadChildrenRef = useRef(handleSpreadChildren);
   handleSpreadChildrenRef.current = handleSpreadChildren;
+  const handleFlowLayoutChildrenRef = useRef(handleFlowLayoutChildren);
+  handleFlowLayoutChildrenRef.current = handleFlowLayoutChildren;
+  const handleGridLayoutChildrenRef = useRef(handleGridLayoutChildren);
+  handleGridLayoutChildrenRef.current = handleGridLayoutChildren;
+  const handleFitToChildrenRef = useRef(handleFitToChildren);
+  handleFitToChildrenRef.current = handleFitToChildren;
 
   // One stable dispatch object shared by ALL nodes (never changes identity)
   const nodeActions = useMemo(() => ({
@@ -723,6 +855,9 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     onInstanceColorChange: (nodeId: string, color: string | null) => updateNodeInstanceColorRef.current(nodeId, color),
     onToggleCollapse: (nodeId: string) => toggleOrganizerCollapseRef.current(nodeId),
     onSpreadChildren: (nodeId: string) => handleSpreadChildrenRef.current(nodeId),
+    onFlowLayoutChildren: (nodeId: string) => handleFlowLayoutChildrenRef.current(nodeId),
+    onGridLayoutChildren: (nodeId: string) => handleGridLayoutChildrenRef.current(nodeId),
+    onFitToChildren: (nodeId: string) => handleFitToChildrenRef.current(nodeId),
   }), []);
 
   const nodesWithCallbacks = useMemo(() =>
