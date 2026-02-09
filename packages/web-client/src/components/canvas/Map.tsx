@@ -378,7 +378,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
       width: n.measured?.width ?? n.width ?? 200,
       height: n.measured?.height ?? n.height ?? 100,
     }));
-    const newPositions = spreadNodes(inputs);
+    const newPositions = deOverlapNodes(inputs);
 
     const applyPositions = (nds: Node[]) => nds.map(n => {
       const pos = newPositions.get(n.id);
