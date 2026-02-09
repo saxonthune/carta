@@ -10,6 +10,8 @@ import { ThemeMenu } from './ThemeMenu';
 import { SettingsMenu } from './SettingsMenu';
 import { SeedsMenu } from './SeedsMenu';
 import { ShareMenu } from './ShareMenu';
+import { hydrateSeed, builtInPortSchemas, type SchemaSeed } from '@carta/domain';
+import { seeds } from '../../utils/seeds';
 
 export interface HeaderProps {
   title: string;
@@ -48,7 +50,7 @@ export function Header({
   onClear,
   onToggleAI,
 }: HeaderProps) {
-  const { mode, documentId } = useDocumentContext();
+  const { mode, documentId, adapter } = useDocumentContext();
   const [isProjectInfoModalOpen, setIsProjectInfoModalOpen] = useState(false);
   const [isDocBrowserOpen, setIsDocBrowserOpen] = useState(false);
   const [isClearWorkspaceModalOpen, setIsClearWorkspaceModalOpen] = useState(false);
@@ -72,6 +74,43 @@ export function Header({
 
   const handleClearEverything = () => {
     onClear?.('all');
+  };
+
+  const handleAddBuiltInSchemas = (selectedSeeds: SchemaSeed[]) => {
+    adapter.transaction(() => {
+      // Ensure port schemas exist
+      const existingPortIds = new Set(adapter.getPortSchemas().map(p => p.id));
+      for (const ps of builtInPortSchemas) {
+        if (!existingPortIds.has(ps.id)) {
+          adapter.addPortSchema(ps);
+        }
+      }
+      // Hydrate and add each selected seed group
+      for (const seed of selectedSeeds) {
+        const { groups, schemas } = hydrateSeed(seed);
+        for (const g of groups) adapter.addSchemaGroup(g);
+        for (const s of schemas) adapter.addSchema(s);
+      }
+    }, 'user');
+  };
+
+  const handleLoadExample = (seedName: string) => {
+    const seedFn = seeds[seedName];
+    if (!seedFn) return;
+
+    // Ensure port schemas exist before loading example
+    const existingPortIds = new Set(adapter.getPortSchemas().map(p => p.id));
+    for (const ps of builtInPortSchemas) {
+      if (!existingPortIds.has(ps.id)) {
+        adapter.addPortSchema(ps);
+      }
+    }
+
+    // Create new page and switch to it
+    const page = adapter.createPage(seedName);
+    adapter.setActivePage(page.id);
+    // Run seed function — it writes nodes/edges to the active page
+    seedFn(adapter);
   };
 
 
@@ -193,6 +232,8 @@ export function Header({
 
         <SettingsMenu
           onOpenClearModal={() => setIsClearWorkspaceModalOpen(true)}
+          onAddBuiltInSchemas={handleAddBuiltInSchemas}
+          onLoadExample={handleLoadExample}
         />
       </div>
 
