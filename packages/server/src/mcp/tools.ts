@@ -76,6 +76,7 @@ const CreateConstructSchema = z.object({
   x: z.number().optional().describe('X position on canvas'),
   y: z.number().optional().describe('Y position on canvas'),
   parentId: z.string().optional().describe('Organizer node ID — when set, position is relative to the organizer'),
+  pageId: z.string().optional().describe('Target page ID (uses active page if omitted)'),
 });
 
 const UpdateConstructSchema = z.object({
@@ -101,6 +102,7 @@ const ConnectConstructsSchema = z.object({
   sourcePortId: z.string().describe('Source port ID'),
   targetSemanticId: z.string().describe('Target construct semantic ID'),
   targetPortId: z.string().describe('Target port ID'),
+  pageId: z.string().optional().describe('Target page ID (uses active page if omitted)'),
 });
 
 const DisconnectConstructsSchema = z.object({
@@ -108,6 +110,7 @@ const DisconnectConstructsSchema = z.object({
   sourceSemanticId: z.string().describe('Source construct semantic ID'),
   sourcePortId: z.string().describe('Source port ID'),
   targetSemanticId: z.string().describe('Target construct semantic ID'),
+  pageId: z.string().optional().describe('Target page ID (uses active page if omitted)'),
 });
 
 const CreateOrganizerSchema = z.object({
@@ -121,6 +124,7 @@ const CreateOrganizerSchema = z.object({
   layout: z.enum(['freeform']).optional().describe('Layout strategy (default: freeform)'),
   description: z.string().optional().describe('Optional description'),
   attachedToSemanticId: z.string().optional().describe('Semantic ID of construct to attach this organizer to (creates a "wagon")'),
+  pageId: z.string().optional().describe('Target page ID (uses active page if omitted)'),
 });
 
 const UpdateOrganizerSchema = z.object({
@@ -148,6 +152,7 @@ const BulkCreateConstructsSchema = z.object({
     y: z.number().optional().describe('Y position on canvas (auto-placed if omitted)'),
     parentId: z.string().optional().describe('Organizer node ID'),
   })).describe('Array of constructs to create'),
+  pageId: z.string().optional().describe('Target page ID (uses active page if omitted)'),
 });
 
 const BulkConnectSchema = z.object({
@@ -158,6 +163,7 @@ const BulkConnectSchema = z.object({
     targetSemanticId: z.string().describe('Target construct semantic ID'),
     targetPortId: z.string().describe('Target port ID'),
   })).describe('Array of connections to create'),
+  pageId: z.string().optional().describe('Target page ID (uses active page if omitted)'),
 });
 
 const MoveConstructSchema = z.object({
@@ -166,11 +172,13 @@ const MoveConstructSchema = z.object({
   parentId: z.string().nullable().describe('Target organizer node ID, or null to detach from current organizer'),
   x: z.number().optional().describe('New X position (auto-converted if omitted)'),
   y: z.number().optional().describe('New Y position (auto-converted if omitted)'),
+  pageId: z.string().optional().describe('Target page ID (uses active page if omitted)'),
 });
 
 const DeleteConstructsSchema = z.object({
   documentId: z.string().describe('The document ID'),
   semanticIds: z.array(z.string()).describe('Array of semantic IDs to delete'),
+  pageId: z.string().optional().describe('Target page ID (uses active page if omitted)'),
 });
 
 const BatchMutateSchema = z.object({
@@ -215,6 +223,7 @@ const BatchMutateSchema = z.object({
       y: z.number().optional(),
     }),
   ])).describe('Operations to execute in order within a single transaction'),
+  pageId: z.string().optional().describe('Target page ID (uses active page if omitted)'),
 });
 
 const FlowLayoutSchema = z.object({
@@ -225,6 +234,7 @@ const FlowLayoutSchema = z.object({
   layerGap: z.number().optional().describe('Gap between layers in pixels (default: 250)'),
   nodeGap: z.number().optional().describe('Gap between nodes in same layer (default: 150)'),
   scope: z.union([z.literal('all'), z.array(z.string())]).optional().describe('"all" or array of semanticIds to layout (default: "all")'),
+  pageId: z.string().optional().describe('Target page ID (uses active page if omitted)'),
 });
 
 const NodeSelectorSchema = z.union([
@@ -290,6 +300,7 @@ const ArrangeLayoutSchema = z.object({
   scope: z.union([z.literal('all'), z.array(z.string())]).optional().describe('"all" or array of semanticIds (default: "all")'),
   nodeGap: z.number().optional().describe('Default gap between nodes in px (default: 40)'),
   forceIterations: z.number().optional().describe('Iteration count for force strategy (default: 50)'),
+  pageId: z.string().optional().describe('Target page ID (uses active page if omitted)'),
 });
 
 const CreateSchemaInputSchema = z.object({
@@ -433,7 +444,7 @@ export function getToolDefinitions() {
     },
     {
       name: 'carta_create_construct',
-      description: 'Create a new construct instance. When parentId is set, position is relative to the organizer.',
+      description: 'Create a new construct instance. When parentId is set, position is relative to the organizer. Optionally accepts pageId to target a specific page.',
       inputSchema: CreateConstructSchema.shape,
     },
     {
@@ -448,22 +459,22 @@ export function getToolDefinitions() {
     },
     {
       name: 'carta_connect_constructs',
-      description: 'Connect two constructs via ports',
+      description: 'Connect two constructs via ports. Optionally accepts pageId to target a specific page.',
       inputSchema: ConnectConstructsSchema.shape,
     },
     {
       name: 'carta_disconnect_constructs',
-      description: 'Disconnect two constructs',
+      description: 'Disconnect two constructs. Optionally accepts pageId to target a specific page.',
       inputSchema: DisconnectConstructsSchema.shape,
     },
     {
       name: 'carta_create_constructs',
-      description: 'Create multiple constructs in a single transaction (all-or-nothing). Nodes without x/y are auto-placed in a grid.',
+      description: 'Create multiple constructs in a single transaction (all-or-nothing). Nodes without x/y are auto-placed in a grid. Optionally accepts pageId to target a specific page.',
       inputSchema: BulkCreateConstructsSchema.shape,
     },
     {
       name: 'carta_connect_constructs_bulk',
-      description: 'Connect multiple construct pairs in a single call. Best-effort: individual failures are reported, not aborted.',
+      description: 'Connect multiple construct pairs in a single call. Best-effort: individual failures are reported, not aborted. Optionally accepts pageId to target a specific page.',
       inputSchema: BulkConnectSchema.shape,
     },
     {
@@ -473,7 +484,7 @@ export function getToolDefinitions() {
     },
     {
       name: 'carta_create_organizer',
-      description: 'Create an organizer node to visually group constructs. Use carta_create_construct with parentId to place constructs inside it.',
+      description: 'Create an organizer node to visually group constructs. Use carta_create_construct with parentId to place constructs inside it. Optionally accepts pageId to target a specific page.',
       inputSchema: CreateOrganizerSchema.shape,
     },
     {
@@ -498,17 +509,17 @@ export function getToolDefinitions() {
     },
     {
       name: 'carta_move_construct',
-      description: 'Move a construct into or out of an organizer. Position is auto-converted between absolute and relative. Connections are preserved.',
+      description: 'Move a construct into or out of an organizer. Position is auto-converted between absolute and relative. Connections are preserved. Optionally accepts pageId to target a specific page.',
       inputSchema: MoveConstructSchema.shape,
     },
     {
       name: 'carta_delete_constructs',
-      description: 'Delete multiple constructs in a single transaction. Cleans up edges, connections, and attached wagons. Best-effort: per-item results.',
+      description: 'Delete multiple constructs in a single transaction. Cleans up edges, connections, and attached wagons. Best-effort: per-item results. Optionally accepts pageId to target a specific page.',
       inputSchema: DeleteConstructsSchema.shape,
     },
     {
       name: 'carta_batch_mutate',
-      description: `Execute heterogeneous operations in a single transaction. Supports: create, update, delete, connect, disconnect, move.
+      description: `Execute heterogeneous operations in a single transaction. Supports: create, update, delete, connect, disconnect, move. Optionally accepts pageId to target a specific page.
 
 Use "@N" placeholder syntax to reference results from earlier operations in the same batch. Example:
   [
@@ -521,12 +532,12 @@ Here "@0" resolves to the semanticId generated by the create at index 0.`,
     },
     {
       name: 'carta_flow_layout',
-      description: 'Arrange nodes in topological order along a flow direction. Uses port connections to determine hierarchy — nodes with no incoming flow edges become sources (layer 0). Supports TB/BT/LR/RL directions. Only affects top-level nodes (not inside organizers).',
+      description: 'Arrange nodes in topological order along a flow direction. Uses port connections to determine hierarchy — nodes with no incoming flow edges become sources (layer 0). Supports TB/BT/LR/RL directions. Only affects top-level nodes (not inside organizers). Optionally accepts pageId to target a specific page.',
       inputSchema: FlowLayoutSchema.shape,
     },
     {
       name: 'carta_arrange',
-      description: 'Arrange nodes using declarative constraints. Strategies: "grid" (initial), "preserve" (adjust), "force" (organic spring layout). Constraints: align, order, spacing, group, distribute, position, flow (topological DAG layout). Constraints apply sequentially.',
+      description: 'Arrange nodes using declarative constraints. Strategies: "grid" (initial), "preserve" (adjust), "force" (organic spring layout). Constraints: align, order, spacing, group, distribute, position, flow (topological DAG layout). Constraints apply sequentially. Optionally accepts pageId to target a specific page.',
       inputSchema: ArrangeLayoutSchema.shape,
     },
   ];
@@ -818,11 +829,11 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
     },
 
     carta_create_construct: async (args) => {
-      const { documentId, constructType, values, x, y, parentId } = CreateConstructSchema.parse(args);
+      const { documentId, constructType, values, x, y, parentId, pageId } = CreateConstructSchema.parse(args);
       const result = await apiRequest<{ construct: unknown }>(
         'POST',
         `/api/documents/${encodeURIComponent(documentId)}/constructs`,
-        { constructType, values, x, y, parentId }
+        { constructType, values, x, y, parentId, pageId }
       );
       if (result.error) return { error: result.error };
       return result.data;
@@ -859,6 +870,7 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
           sourcePortId: input.sourcePortId,
           targetSemanticId: input.targetSemanticId,
           targetPortId: input.targetPortId,
+          pageId: input.pageId,
         }
       );
       if (result.error) return { error: result.error };
@@ -874,6 +886,7 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
           sourceSemanticId: input.sourceSemanticId,
           sourcePortId: input.sourcePortId,
           targetSemanticId: input.targetSemanticId,
+          pageId: input.pageId,
         }
       );
       if (result.error) return { error: result.error };
@@ -881,22 +894,22 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
     },
 
     carta_create_constructs: async (args) => {
-      const { documentId, constructs } = BulkCreateConstructsSchema.parse(args);
+      const { documentId, constructs, pageId } = BulkCreateConstructsSchema.parse(args);
       const result = await apiRequest<{ constructs: unknown[] }>(
         'POST',
         `/api/documents/${encodeURIComponent(documentId)}/constructs/bulk`,
-        { constructs }
+        { constructs, pageId }
       );
       if (result.error) return { error: result.error };
       return result.data;
     },
 
     carta_connect_constructs_bulk: async (args) => {
-      const { documentId, connections } = BulkConnectSchema.parse(args);
+      const { documentId, connections, pageId } = BulkConnectSchema.parse(args);
       const result = await apiRequest<{ results: unknown[] }>(
         'POST',
         `/api/documents/${encodeURIComponent(documentId)}/connections/bulk`,
-        { connections }
+        { connections, pageId }
       );
       if (result.error) return { error: result.error };
       return result.data;
@@ -932,6 +945,7 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
           layout: input.layout,
           description: input.description,
           attachedToSemanticId: input.attachedToSemanticId,
+          pageId: input.pageId,
         }
       );
       if (result.error) return { error: result.error };
@@ -987,55 +1001,55 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
     },
 
     carta_move_construct: async (args) => {
-      const { documentId, semanticId, parentId, x, y } = MoveConstructSchema.parse(args);
+      const { documentId, semanticId, parentId, x, y, pageId } = MoveConstructSchema.parse(args);
       const result = await apiRequest<{ construct: unknown; parentId: string | null }>(
         'POST',
         `/api/documents/${encodeURIComponent(documentId)}/constructs/${encodeURIComponent(semanticId)}/move`,
-        { parentId, x, y }
+        { parentId, x, y, pageId }
       );
       if (result.error) return { error: result.error };
       return result.data;
     },
 
     carta_delete_constructs: async (args) => {
-      const { documentId, semanticIds } = DeleteConstructsSchema.parse(args);
+      const { documentId, semanticIds, pageId } = DeleteConstructsSchema.parse(args);
       const result = await apiRequest<{ results: unknown[] }>(
         'DELETE',
         `/api/documents/${encodeURIComponent(documentId)}/constructs/bulk`,
-        { semanticIds }
+        { semanticIds, pageId }
       );
       if (result.error) return { error: result.error };
       return result.data;
     },
 
     carta_batch_mutate: async (args) => {
-      const { documentId, operations } = BatchMutateSchema.parse(args);
+      const { documentId, operations, pageId } = BatchMutateSchema.parse(args);
       const result = await apiRequest<{ results: unknown[] }>(
         'POST',
         `/api/documents/${encodeURIComponent(documentId)}/batch`,
-        { operations }
+        { operations, pageId }
       );
       if (result.error) return { error: result.error };
       return result.data;
     },
 
     carta_flow_layout: async (args) => {
-      const { documentId, direction, sourcePort, sinkPort, layerGap, nodeGap, scope } = FlowLayoutSchema.parse(args);
+      const { documentId, direction, sourcePort, sinkPort, layerGap, nodeGap, scope, pageId } = FlowLayoutSchema.parse(args);
       const result = await apiRequest<{ updated: number; layers: Record<string, number> }>(
         'POST',
         `/api/documents/${encodeURIComponent(documentId)}/layout/flow`,
-        { direction, sourcePort, sinkPort, layerGap, nodeGap, scope }
+        { direction, sourcePort, sinkPort, layerGap, nodeGap, scope, pageId }
       );
       if (result.error) return { error: result.error };
       return result.data;
     },
 
     carta_arrange: async (args) => {
-      const { documentId, strategy, constraints, scope, nodeGap, forceIterations } = ArrangeLayoutSchema.parse(args);
+      const { documentId, strategy, constraints, scope, nodeGap, forceIterations, pageId } = ArrangeLayoutSchema.parse(args);
       const result = await apiRequest<{ updated: number; constraintsApplied: number }>(
         'POST',
         `/api/documents/${encodeURIComponent(documentId)}/layout/arrange`,
-        { strategy, constraints, scope, nodeGap, forceIterations }
+        { strategy, constraints, scope, nodeGap, forceIterations, pageId }
       );
       if (result.error) return { error: result.error };
       return result.data;
