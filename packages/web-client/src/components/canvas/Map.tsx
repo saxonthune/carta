@@ -48,7 +48,7 @@ import { useLodBand } from './lod/useLodBand';
 import { ZoomDebug } from '../ui/ZoomDebug';
 import { useNarrative } from '../../hooks/useNarrative';
 import Narrative from './Narrative';
-import { spreadNodes } from '../../utils/spreadNodes';
+import { deOverlapNodes } from '../../utils/deOverlapNodes';
 import { compactNodes } from '../../utils/compactNodes';
 import { hierarchicalLayout } from '../../utils/hierarchicalLayout';
 
@@ -417,7 +417,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
         width: n.measured?.width ?? n.width ?? 200,
         height: n.measured?.height ?? n.height ?? 100,
       }));
-      const positions = spreadNodes(inputs);
+      const positions = deOverlapNodes(inputs);
       for (const [id, pos] of positions) {
         allNewPositions.set(id, pos);
       }
@@ -521,7 +521,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
       width: n.measured?.width ?? n.width ?? 200,
       height: n.measured?.height ?? n.height ?? 100,
     }));
-    const newPositions = spreadNodes(inputs);
+    const newPositions = deOverlapNodes(inputs);
 
     const applyPositions = (nds: Node[]) => nds.map(n => {
       const pos = newPositions.get(n.id);
@@ -1236,12 +1236,12 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
               <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
             </svg>
           </ControlButton>
-          <ControlButton onClick={handleSpreadAll} title="Spread All Nodes">
+          <ControlButton onClick={handleSpreadAll} title="Fix Overlaps">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <polyline points="15 3 21 3 21 9" />
-              <polyline points="9 21 3 21 3 15" />
-              <line x1="21" y1="3" x2="14" y2="10" />
-              <line x1="3" y1="21" x2="10" y2="14" />
+              <rect x="2" y="6" width="8" height="8" rx="1" />
+              <rect x="14" y="10" width="8" height="8" rx="1" />
+              <path d="M10 13l4-4" />
+              <polyline points="14 9 14 13 10 9" />
             </svg>
           </ControlButton>
           <ControlButton onClick={handleCompactAll} title="Compact Layout">
