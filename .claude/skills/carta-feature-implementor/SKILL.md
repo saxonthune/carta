@@ -90,13 +90,16 @@ Then show remaining plans as a second table:
 For each **completed** agent (has a `.md` result file), archive the corresponding plan from `todo-tasks/` if it still exists there. **Only archive after the debrief has been presented to the user** — never silently archive without showing the notes.
 
 ```bash
-mkdir -p todo-tasks/.archived
+mkdir -p todo-tasks/.archived .claude/agent-results/.archived
 ts=$(date +%Y%m%d)
 # For each completed agent slug:
 [ -f "todo-tasks/{slug}.md" ] && mv "todo-tasks/{slug}.md" "todo-tasks/.archived/${ts}-{slug}.md"
+# Also archive the agent result files so Phase 0 doesn't re-debrief them:
+[ -f ".claude/agent-results/{slug}.md" ] && mv ".claude/agent-results/{slug}.md" ".claude/agent-results/.archived/${ts}-{slug}.md"
+[ -f ".claude/agent-results/{slug}.log" ] && mv ".claude/agent-results/{slug}.log" ".claude/agent-results/.archived/${ts}-{slug}.log"
 ```
 
-This prevents stale plans from cluttering the active list. The plan must remain in `todo-tasks/` while an agent is running (the executor reads it from there), so only archive after completion.
+This prevents stale plans and result files from cluttering future sessions. The plan must remain in `todo-tasks/` while an agent is running (the executor reads it from there), so only archive after completion.
 
 **If invoked with `status` keyword:** Show status with debrief, archive completed plans, and stop. Don't proceed to plan selection.
 

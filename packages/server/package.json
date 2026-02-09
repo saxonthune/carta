@@ -22,6 +22,7 @@
   "scripts": {
     "build": "rm -rf dist && tsc",
     "dev": "tsc --watch",
+    "dev:build": "tsc",
     "mcp": "node dist/mcp/stdio.js",
     "document-server": "node dist/document-server-cli.js",
     "test": "vitest run",
