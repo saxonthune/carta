@@ -15,6 +15,7 @@ import {
   toAbsolutePosition,
   toRelativePosition,
   computeFlowLayout,
+  computeArrangeLayout,
 } from '@carta/domain';
 import type {
   CompilerNode,
@@ -28,6 +29,9 @@ import type {
   FlowDirection,
   FlowLayoutInput,
   FlowLayoutEdge,
+  ArrangeStrategy,
+  ArrangeConstraint,
+  ArrangeInput,
 } from '@carta/domain';
 import { CompilerEngine } from '@carta/compiler';
 import { yToPlain, deepPlainToY, safeGet } from './yjs-helpers.js';
@@ -635,6 +639,73 @@ export function flowLayout(
   return {
     updated: result.positions.size,
     layers: Object.fromEntries(result.layers),
+  };
+}
+
+/**
+ * Arrange nodes using declarative constraints
+ * @returns Number of nodes updated and constraints applied
+ */
+export function arrangeLayout(
+  ydoc: Y.Doc,
+  pageId: string,
+  options: {
+    strategy?: ArrangeStrategy;
+    constraints: ArrangeConstraint[];
+    scope?: 'all' | string[];  // semantic IDs
+    nodeGap?: number;
+  }
+): { updated: number; constraintsApplied: number } {
+  const pageNodes = getPageMap(ydoc, 'nodes', pageId);
+
+  // 1. Get all constructs (filter to top-level only, no organizer children)
+  const allNodes = listConstructs(ydoc, pageId);
+  const topLevelNodes = allNodes.filter(n => !n.parentId && n.type === 'construct');
+
+  // 2. Filter by scope if requested
+  let nodesToLayout = topLevelNodes;
+  if (options.scope && Array.isArray(options.scope)) {
+    const scopeSet = new Set(options.scope);
+    nodesToLayout = topLevelNodes.filter(n => scopeSet.has(n.data.semanticId));
+  }
+
+  if (nodesToLayout.length === 0) {
+    return { updated: 0, constraintsApplied: 0 };
+  }
+
+  // 3. Build ArrangeInput[] with default sizes
+  const arrangeInputs: ArrangeInput[] = nodesToLayout.map(n => ({
+    id: n.id,
+    semanticId: n.data.semanticId,
+    constructType: n.data.constructType,
+    values: n.data.values ?? {},
+    x: n.position.x,
+    y: n.position.y,
+    width: 200,
+    height: 100,
+  }));
+
+  // 4. Call computeArrangeLayout
+  const result = computeArrangeLayout(arrangeInputs, {
+    strategy: options.strategy ?? 'preserve',
+    constraints: options.constraints,
+    nodeGap: options.nodeGap,
+  });
+
+  // 5. Apply positions in a transaction
+  ydoc.transact(() => {
+    for (const [nodeId, pos] of result.positions) {
+      const ynode = pageNodes.get(nodeId);
+      if (ynode) {
+        ynode.set('position', deepPlainToY({ x: pos.x, y: pos.y }));
+      }
+    }
+  }, MCP_ORIGIN);
+
+  // 6. Return results
+  return {
+    updated: result.positions.size,
+    constraintsApplied: result.constraintsApplied,
   };
 }
 
