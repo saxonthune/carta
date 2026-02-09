@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useStore, useReactFlow } from '@xyflow/react';
 
 export interface ZoomDebugProps {
@@ -14,9 +14,26 @@ export interface ZoomDebugProps {
  */
 export function ZoomDebug({ debugLines, position = 'bottom-left' }: ZoomDebugProps) {
   const zoom = useStore((state) => state.transform[2]);
-  const { getViewport, setViewport } = useReactFlow();
+  const { getViewport, setViewport, screenToFlowPosition } = useReactFlow();
   const [editing, setEditing] = useState(false);
   const [inputValue, setInputValue] = useState('');
+  const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    const flowPos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
+    setMousePos({ x: Math.round(flowPos.x), y: Math.round(flowPos.y) });
+  }, [screenToFlowPosition]);
+
+  const handleMouseLeave = useCallback(() => setMousePos(null), []);
+
+  useEffect(() => {
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseleave', handleMouseLeave);
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseleave', handleMouseLeave);
+    };
+  }, [handleMouseMove, handleMouseLeave]);
 
   const commitZoom = () => {
     setEditing(false);
@@ -59,6 +76,9 @@ export function ZoomDebug({ debugLines, position = 'bottom-left' }: ZoomDebugPro
           </span>
         )}
       </div>
+      {mousePos && (
+        <div>Cursor: {mousePos.x}, {mousePos.y}</div>
+      )}
       {debugLines?.map((line, i) => (
         <div key={i}>{line}</div>
       ))}

@@ -23,14 +23,5 @@ dist-ssr
 *.sln
 *.sw?
 
-# Task queue (background agent processing)
-/tasks/inputs/
-/tasks/outputs/
-/tasks/failures/
-/tasks/clarifications/
-
 /test-results/*
 /playwright-report/*
-
-# Design exercise todo tasks (local working notes)
-/todo-tasks/
