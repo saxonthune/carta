@@ -132,7 +132,7 @@ function applyPreserveStrategy(nodes: ArrangeInput[]): PositionMap {
  */
 function applyAlignConstraint(
   constraint: Extract<ArrangeConstraint, { type: 'align' }>,
-  nodes: ArrangeInput[],
+  _nodes: ArrangeInput[],
   allNodes: ArrangeInput[],
   positions: PositionMap
 ): void {
@@ -169,7 +169,7 @@ function applyAlignConstraint(
  */
 function applyOrderConstraint(
   constraint: Extract<ArrangeConstraint, { type: 'order' }>,
-  nodes: ArrangeInput[],
+  _nodes: ArrangeInput[],
   allNodes: ArrangeInput[],
   positions: PositionMap,
   nodeGap: number
@@ -178,7 +178,6 @@ function applyOrderConstraint(
   if (selectedNodes.length === 0) return;
 
   const { axis, by, field } = constraint;
-  const crossAxis = axis === 'x' ? 'y' : 'x';
 
   // Sort nodes
   const sortedNodes = [...selectedNodes].sort((a, b) => {
@@ -225,10 +224,10 @@ function applyOrderConstraint(
  */
 function applySpacingConstraint(
   constraint: Extract<ArrangeConstraint, { type: 'spacing' }>,
-  nodes: ArrangeInput[],
+  _nodes: ArrangeInput[],
   allNodes: ArrangeInput[],
   positions: PositionMap,
-  defaultNodeGap: number
+  _defaultNodeGap: number
 ): void {
   const selectedNodes = resolveSelector(constraint.nodes, allNodes);
   if (selectedNodes.length < 2) return;
