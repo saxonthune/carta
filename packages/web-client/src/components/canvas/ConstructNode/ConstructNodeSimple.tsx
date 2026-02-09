@@ -80,7 +80,7 @@ export function ConstructNodeSimple({
           ref={textareaRef}
           value={contentValue}
           onChange={(e) => data.onValuesChange?.({ ...data.values, content: e.target.value })}
-          className="w-full h-full bg-transparent text-content text-halo resize-none border-none outline-none text-node-base placeholder-content-subtle/50"
+          className="w-full h-full bg-transparent text-content resize-none border-none outline-none text-node-base placeholder-content-subtle/50"
           placeholder="Type here..."
           onClick={(e) => {
             // Allow text selection without triggering node drag

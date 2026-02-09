@@ -5,8 +5,7 @@
   "main": "./dist/main/index.js",
   "scripts": {
     "build:deps": "pnpm --filter @carta/domain dev:build && pnpm --filter @carta/document dev:build && pnpm --filter @carta/compiler dev:build && pnpm --filter @carta/server dev:build",
-    "dev": "pnpm run build:deps && pnpm run compile && concurrently -k -n vite,tsc-main,tsc-preload,electron -c blue,yellow,yellow,green \"pnpm --filter @carta/web-client demo --port 5373\" \"tsc --watch --preserveWatchOutput\" \"tsc -p tsconfig.preload.json --watch --preserveWatchOutput\" \"wait-on http://localhost:5373 && nodemon --watch dist/main --watch dist/preload --ext js --delay 3 --signal SIGTERM --exec 'electron .'\"",
-    "dev:electron": "pnpm run build:deps && pnpm run compile && electron .",
+    "dev": "pnpm run build:deps && pnpm run compile && concurrently -k -n vite,electron -c blue,green \"pnpm --filter @carta/web-client demo --port 5373\" \"wait-on http://localhost:5373 && electron .\"",
     "compile": "rm -rf dist/main dist/preload && tsc && tsc -p tsconfig.preload.json",
     "build": "pnpm --filter @carta/web-client build && pnpm --filter @carta/server build && pnpm run compile && node scripts/copy-renderer.mjs",
     "package": "electron-builder"
@@ -29,7 +28,6 @@
     "concurrently": "^9.1.2",
     "electron": "^34.0.0",
     "electron-builder": "^25.1.8",
-    "nodemon": "^3.1.11",
     "typescript": "~5.9.3",
     "wait-on": "^8.0.3"
   }
