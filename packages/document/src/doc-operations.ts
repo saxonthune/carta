@@ -17,6 +17,7 @@ import {
   computeFlowLayout,
   computeArrangeLayout,
   canConnect,
+  computeLayoutUnitSizes,
 } from '@carta/domain';
 import type {
   CompilerNode,
@@ -34,6 +35,7 @@ import type {
   ArrangeConstraint,
   ArrangeInput,
   ArrangeEdge,
+  WagonInfo,
 } from '@carta/domain';
 import { CompilerEngine } from '@carta/compiler';
 import { yToPlain, deepPlainToY, safeGet } from './yjs-helpers.js';
@@ -655,17 +657,34 @@ export function flowLayout(
     return { updated: 0, layers: {} };
   }
 
-  // 3. Build FlowLayoutInput[] with default sizes
-  const layoutInputs: FlowLayoutInput[] = nodesToLayout.map(n => ({
-    id: n.id,
-    semanticId: n.data.semanticId,
-    x: n.position.x,
-    y: n.position.y,
-    width: 200,
-    height: 100,
-  }));
+  // 3. Compute layout unit sizes (construct + wagon tree bounding boxes)
+  const wagons = getWagonInfos(ydoc, pageId);
+  const constructSizes = computeLayoutUnitSizes(
+    nodesToLayout.map(n => ({
+      id: n.id,
+      semanticId: n.data.semanticId,
+      x: n.position.x,
+      y: n.position.y,
+      width: 200,
+      height: 100,
+    })),
+    wagons,
+  );
 
-  // 4. Build FlowLayoutEdge[] from page edges
+  // 4. Build FlowLayoutInput[] with computed sizes
+  const layoutInputs: FlowLayoutInput[] = nodesToLayout.map(n => {
+    const unitSize = constructSizes.get(n.id);
+    return {
+      id: n.id,
+      semanticId: n.data.semanticId,
+      x: n.position.x,
+      y: n.position.y,
+      width: unitSize?.width ?? 200,
+      height: unitSize?.height ?? 100,
+    };
+  });
+
+  // 5. Build FlowLayoutEdge[] from page edges
   const layoutEdges: FlowLayoutEdge[] = [];
   pageEdges.forEach((yedge) => {
     const source = yedge.get('source') as string;
@@ -685,7 +704,7 @@ export function flowLayout(
     }
   });
 
-  // 5. Call computeFlowLayout
+  // 6. Call computeFlowLayout
   const result = computeFlowLayout(layoutInputs, layoutEdges, {
     direction: options.direction,
     sourcePort: options.sourcePort,
@@ -694,7 +713,7 @@ export function flowLayout(
     nodeGap: options.nodeGap,
   });
 
-  // 6. Apply positions in a transaction
+  // 7. Apply positions in a transaction
   ydoc.transact(() => {
     for (const [nodeId, pos] of result.positions) {
       const ynode = pageNodes.get(nodeId);
@@ -704,7 +723,7 @@ export function flowLayout(
     }
   }, MCP_ORIGIN);
 
-  // 7. Return results
+  // 8. Return results
   return {
     updated: result.positions.size,
     layers: Object.fromEntries(result.layers),
@@ -743,19 +762,36 @@ export function arrangeLayout(
     return { updated: 0, constraintsApplied: 0 };
   }
 
-  // 3. Build ArrangeInput[] with default sizes
-  const arrangeInputs: ArrangeInput[] = nodesToLayout.map(n => ({
-    id: n.id,
-    semanticId: n.data.semanticId,
-    constructType: n.data.constructType,
-    values: n.data.values ?? {},
-    x: n.position.x,
-    y: n.position.y,
-    width: 200,
-    height: 100,
-  }));
+  // 3. Compute layout unit sizes (construct + wagon tree bounding boxes)
+  const wagons = getWagonInfos(ydoc, pageId);
+  const constructSizes = computeLayoutUnitSizes(
+    nodesToLayout.map(n => ({
+      id: n.id,
+      semanticId: n.data.semanticId,
+      x: n.position.x,
+      y: n.position.y,
+      width: 200,
+      height: 100,
+    })),
+    wagons,
+  );
 
-  // 3b. Build ArrangeEdge[] from page edges (needed for flow constraint and force strategy)
+  // 4. Build ArrangeInput[] with computed sizes
+  const arrangeInputs: ArrangeInput[] = nodesToLayout.map(n => {
+    const unitSize = constructSizes.get(n.id);
+    return {
+      id: n.id,
+      semanticId: n.data.semanticId,
+      constructType: n.data.constructType,
+      values: n.data.values ?? {},
+      x: n.position.x,
+      y: n.position.y,
+      width: unitSize?.width ?? 200,
+      height: unitSize?.height ?? 100,
+    };
+  });
+
+  // 5. Build ArrangeEdge[] from page edges (needed for flow constraint and force strategy)
   const pageEdges = getPageMap(ydoc, 'edges', pageId);
   const arrangeEdges: ArrangeEdge[] = [];
   const nodeIdSet = new Set(arrangeInputs.map(n => n.id));
@@ -774,7 +810,7 @@ export function arrangeLayout(
     }
   });
 
-  // 4. Call computeArrangeLayout
+  // 6. Call computeArrangeLayout
   const result = computeArrangeLayout(arrangeInputs, {
     strategy: options.strategy ?? 'preserve',
     constraints: options.constraints,
@@ -783,7 +819,7 @@ export function arrangeLayout(
     forceIterations: options.forceIterations,
   });
 
-  // 5. Apply positions in a transaction
+  // 7. Apply positions in a transaction
   ydoc.transact(() => {
     for (const [nodeId, pos] of result.positions) {
       const ynode = pageNodes.get(nodeId);
@@ -793,7 +829,7 @@ export function arrangeLayout(
     }
   }, MCP_ORIGIN);
 
-  // 6. Return results
+  // 8. Return results
   return {
     updated: result.positions.size,
     constraintsApplied: result.constraintsApplied,
@@ -813,6 +849,40 @@ export interface OrganizerInfo {
   collapsed: boolean;
   description?: string;
   attachedToSemanticId?: string;
+}
+
+/**
+ * Get wagon info (organizers attached to constructs) for layout unit size computation.
+ * Returns wagons with their parentId (node ID of the construct or another wagon).
+ */
+function getWagonInfos(ydoc: Y.Doc, pageId: string): WagonInfo[] {
+  const pageNodes = getPageMap(ydoc, 'nodes', pageId);
+  const wagons: WagonInfo[] = [];
+
+  pageNodes.forEach((ynode, id) => {
+    const nodeObj = yToPlain(ynode) as Record<string, unknown>;
+    if (nodeObj.type !== 'organizer') return;
+
+    const data = nodeObj.data as OrganizerNodeData;
+    if (!data.attachedToSemanticId) return;  // skip non-wagon organizers
+
+    const parentId = nodeObj.parentId as string | undefined;
+    if (!parentId) return;
+
+    const style = nodeObj.style as Record<string, unknown> | undefined;
+    const position = (nodeObj.position as { x: number; y: number }) || { x: 0, y: 0 };
+
+    wagons.push({
+      id,
+      parentId,
+      x: position.x,
+      y: position.y,
+      width: (style?.width as number) ?? 400,
+      height: (style?.height as number) ?? 300,
+    });
+  });
+
+  return wagons;
 }
 
 /**

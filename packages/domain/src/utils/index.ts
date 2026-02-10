@@ -8,3 +8,4 @@ export * from './identity.js';
 export * from './organizer-geometry.js';
 export * from './flowLayout.js';
 export * from './constraintLayout.js';
+export * from './layoutUnitSize.js';
