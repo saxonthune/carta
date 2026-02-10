@@ -102,10 +102,4 @@ export function starter(adapter: DocumentAdapter): void {
       targetHandle: 'link',
     },
   ]);
-
-  // Rename the default page
-  const pages = adapter.getPages();
-  if (pages.length > 0) {
-    adapter.updatePage(pages[0]!.id, { name: 'Starter' });
-  }
 }

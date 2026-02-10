@@ -45,9 +45,6 @@ export function saas(adapter: DocumentAdapter): void {
   const dbColor = ORGANIZER_COLORS[1];
   const uiColor = ORGANIZER_COLORS[2];
 
-  adapter.setTitle('SaaS Architecture');
-  adapter.setDescription('Social network backend with REST API, PostgreSQL, and web UI');
-
   adapter.setNodes([
     // ============ API Organizer ============
     {
@@ -297,10 +294,4 @@ export function saas(adapter: DocumentAdapter): void {
       targetHandle: 'flow-in',
     },
   ]);
-
-  // Rename the default page
-  const pages = adapter.getPages();
-  if (pages.length > 0) {
-    adapter.updatePage(pages[0]!.id, { name: 'SaaS Architecture' });
-  }
 }
