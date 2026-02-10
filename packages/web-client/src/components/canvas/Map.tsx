@@ -35,7 +35,7 @@ import { useConnections } from '../../hooks/useConnections';
 import { useClipboard } from '../../hooks/useClipboard';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import type { ConstructValues, ConstructNodeData, OrganizerNodeData } from '@carta/domain';
-import { nodeContainedInOrganizer, getDisplayName } from '@carta/domain';
+import { nodeContainedInOrganizer, getDisplayName, DEFAULT_ORGANIZER_LAYOUT } from '@carta/domain';
 import { usePresentation } from '../../hooks/usePresentation';
 import { computeEdgeAggregation } from '../../presentation/index';
 import { useOrganizerOperations } from '../../hooks/useOrganizerOperations';
@@ -64,6 +64,9 @@ const edgeTypes = {
 
 // Restrict dragging to header only - allows clicking fields to edit
 const NODE_DRAG_HANDLE = '.node-drag-handle';
+
+// Y-origin for organizer content (below header + padding)
+const ORGANIZER_CONTENT_TOP = DEFAULT_ORGANIZER_LAYOUT.padding + DEFAULT_ORGANIZER_LAYOUT.headerHeight;
 
 // Edge color from CSS variable, updated on theme change
 function useEdgeColor() {
@@ -547,6 +550,16 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     }));
     const newPositions = deOverlapNodes(inputs);
 
+    // Ensure all positions are below the organizer header
+    const allPositions = [...newPositions.values()];
+    const minY = Math.min(...allPositions.map(p => p.y));
+    if (minY < ORGANIZER_CONTENT_TOP) {
+      const shiftY = ORGANIZER_CONTENT_TOP - minY;
+      for (const pos of newPositions.values()) {
+        pos.y += shiftY;
+      }
+    }
+
     const applyPositions = (nds: Node[]) => nds.map(n => {
       const pos = newPositions.get(n.id);
       return pos ? { ...n, position: pos } : n;
@@ -573,8 +586,9 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     const maxBottom = Math.max(...bottoms);
 
     // Add padding
-    const newWidth = Math.max(maxRight + 40, 200);
-    const newHeight = Math.max(maxBottom + 60, 120);
+    const { padding, headerHeight } = DEFAULT_ORGANIZER_LAYOUT;
+    const newWidth = Math.max(maxRight + padding * 2, 200);
+    const newHeight = Math.max(maxBottom + padding, headerHeight + padding * 2);
 
     // Update organizer node's style
     const updateStyle = (nds: Node[]) => nds.map(n =>
@@ -612,7 +626,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     const newPositions = new globalThis.Map<string, { x: number; y: number }>();
     inputs.forEach((input, idx) => {
       const x = (idx % cols) * colWidth + padding;
-      const y = Math.floor(idx / cols) * rowHeight + padding;
+      const y = Math.floor(idx / cols) * rowHeight + ORGANIZER_CONTENT_TOP;
       newPositions.set(input.id, { x, y });
     });
 
@@ -665,7 +679,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
       for (const [id, pos] of rawPositions) {
         newPositions.set(id, {
           x: pos.x - minX + padding,
-          y: pos.y - minY + padding,
+          y: pos.y - minY + ORGANIZER_CONTENT_TOP,
         });
       }
 
