@@ -27,6 +27,7 @@ import CustomNode from './CustomNode';
 import ConstructNode from './ConstructNode';
 import OrganizerNode from './OrganizerNode';
 import ContextMenu, { type RelatedConstructOption } from '../ui/ContextMenu';
+import { Tooltip } from '../ui';
 import { useMapState } from '../../hooks/useMapState';
 import AddConstructMenu from './AddConstructMenu';
 import { useUndoRedo } from '../../hooks/useUndoRedo';
@@ -1409,107 +1410,127 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
         fitView
       >
         <Controls position="top-left" showZoom={false}>
-          <ControlButton
-            onClick={undo}
-            disabled={!canUndo}
-            title="Undo (Ctrl+Z)"
-            className={!canUndo ? 'disabled' : ''}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M3 10h10a5 5 0 0 1 5 5v2M3 10l4-4M3 10l4 4" />
-            </svg>
-          </ControlButton>
-          <ControlButton
-            onClick={redo}
-            disabled={!canRedo}
-            title="Redo (Ctrl+Shift+Z)"
-            className={!canRedo ? 'disabled' : ''}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 10H11a5 5 0 0 0-5 5v2M21 10l-4-4M21 10l-4 4" />
-            </svg>
-          </ControlButton>
-          <ControlButton onClick={customZoomIn} title="Zoom In">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-          </ControlButton>
-          <ControlButton onClick={customZoomOut} title="Zoom Out">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-          </ControlButton>
-          <ControlButton onClick={() => reactFlow.fitView({ duration: 300 })} title="Fit to View">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
-            </svg>
-          </ControlButton>
-          <ControlButton onClick={handleSpreadAll} title="Fix Overlaps">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="2" y="6" width="8" height="8" rx="1" />
-              <rect x="14" y="10" width="8" height="8" rx="1" />
-              <path d="M10 13l4-4" />
-              <polyline points="14 9 14 13 10 9" />
-            </svg>
-          </ControlButton>
-          <ControlButton onClick={handleCompactAll} title="Compact Layout">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <polyline points="4 14 10 14 10 20" />
-              <polyline points="20 10 14 10 14 4" />
-              <line x1="14" y1="10" x2="21" y2="3" />
-              <line x1="3" y1="21" x2="10" y2="14" />
-            </svg>
-          </ControlButton>
-          <ControlButton onClick={handleHierarchicalLayout} title="Hierarchical Layout">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="3" r="2" />
-              <circle cx="6" cy="12" r="2" />
-              <circle cx="18" cy="12" r="2" />
-              <circle cx="12" cy="21" r="2" />
-              <line x1="12" y1="5" x2="6" y2="10" />
-              <line x1="12" y1="5" x2="18" y2="10" />
-              <line x1="6" y1="14" x2="12" y2="19" />
-              <line x1="18" y1="14" x2="12" y2="19" />
-            </svg>
-          </ControlButton>
-          <ControlButton
-            onClick={toggleSelectionMode}
-            title={selectionModeActive ? "Exit Selection Mode (V)" : "Selection Mode (V)"}
-            className={selectionModeActive ? 'active' : ''}
-            style={selectionModeActive ? { backgroundColor: 'var(--xy-controls-button-background-color-hover, #f0f0f0)' } : undefined}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="3" y="3" width="8" height="8" rx="1" strokeDasharray="3 2" />
-              <path d="M14 4l3 9 2.5-2.5L23 14l-3.5-3.5L22 8z" />
-            </svg>
-          </ControlButton>
+          <Tooltip content="Undo (Ctrl+Z)">
+            <ControlButton
+              onClick={undo}
+              disabled={!canUndo}
+              className={!canUndo ? 'disabled' : ''}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M3 10h10a5 5 0 0 1 5 5v2M3 10l4-4M3 10l4 4" />
+              </svg>
+            </ControlButton>
+          </Tooltip>
+          <Tooltip content="Redo (Ctrl+Shift+Z)">
+            <ControlButton
+              onClick={redo}
+              disabled={!canRedo}
+              className={!canRedo ? 'disabled' : ''}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 10H11a5 5 0 0 0-5 5v2M21 10l-4-4M21 10l-4 4" />
+              </svg>
+            </ControlButton>
+          </Tooltip>
+          <Tooltip content="Zoom In">
+            <ControlButton onClick={customZoomIn}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            </ControlButton>
+          </Tooltip>
+          <Tooltip content="Zoom Out">
+            <ControlButton onClick={customZoomOut}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            </ControlButton>
+          </Tooltip>
+          <Tooltip content="Fit to View">
+            <ControlButton onClick={() => reactFlow.fitView({ duration: 300 })}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+              </svg>
+            </ControlButton>
+          </Tooltip>
+          <Tooltip content="Fix Overlaps">
+            <ControlButton onClick={handleSpreadAll}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="2" y="6" width="8" height="8" rx="1" />
+                <rect x="14" y="10" width="8" height="8" rx="1" />
+                <path d="M10 13l4-4" />
+                <polyline points="14 9 14 13 10 9" />
+              </svg>
+            </ControlButton>
+          </Tooltip>
+          <Tooltip content="Compact Layout">
+            <ControlButton onClick={handleCompactAll}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="4 14 10 14 10 20" />
+                <polyline points="20 10 14 10 14 4" />
+                <line x1="14" y1="10" x2="21" y2="3" />
+                <line x1="3" y1="21" x2="10" y2="14" />
+              </svg>
+            </ControlButton>
+          </Tooltip>
+          <Tooltip content="Hierarchical Layout">
+            <ControlButton onClick={handleHierarchicalLayout}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="3" r="2" />
+                <circle cx="6" cy="12" r="2" />
+                <circle cx="18" cy="12" r="2" />
+                <circle cx="12" cy="21" r="2" />
+                <line x1="12" y1="5" x2="6" y2="10" />
+                <line x1="12" y1="5" x2="18" y2="10" />
+                <line x1="6" y1="14" x2="12" y2="19" />
+                <line x1="18" y1="14" x2="12" y2="19" />
+              </svg>
+            </ControlButton>
+          </Tooltip>
+          <Tooltip content={selectionModeActive ? "Exit Selection Mode (V)" : "Selection Mode (V)"}>
+            <ControlButton
+              onClick={toggleSelectionMode}
+              className={selectionModeActive ? 'active' : ''}
+              style={selectionModeActive ? { backgroundColor: 'var(--xy-controls-button-background-color-hover, #f0f0f0)' } : undefined}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="3" width="8" height="8" rx="1" strokeDasharray="3 2" />
+                <path d="M14 4l3 9 2.5-2.5L23 14l-3.5-3.5L22 8z" />
+              </svg>
+            </ControlButton>
+          </Tooltip>
           {selectedNodeIds.length > 0 && (
             <>
-              <ControlButton
-                onClick={startRename}
-                disabled={selectedNodeIds.length !== 1}
-                title={selectedNodeIds.length === 1 ? "Rename (F2)" : "Select single node to rename"}
-                className={selectedNodeIds.length !== 1 ? 'disabled' : ''}
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                </svg>
-              </ControlButton>
-              <ControlButton onClick={() => copyNodes()} title="Copy (Ctrl+C)">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                </svg>
-              </ControlButton>
-              <ControlButton onClick={deleteSelectedNodes} title="Delete (Del)" className="text-red-600">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M3 6h18" />
-                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
-                  <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                </svg>
-              </ControlButton>
+              <Tooltip content={selectedNodeIds.length === 1 ? "Rename (F2)" : "Select single node to rename"}>
+                <ControlButton
+                  onClick={startRename}
+                  disabled={selectedNodeIds.length !== 1}
+                  className={selectedNodeIds.length !== 1 ? 'disabled' : ''}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  </svg>
+                </ControlButton>
+              </Tooltip>
+              <Tooltip content="Copy (Ctrl+C)">
+                <ControlButton onClick={() => copyNodes()}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                  </svg>
+                </ControlButton>
+              </Tooltip>
+              <Tooltip content="Delete (Del)">
+                <ControlButton onClick={deleteSelectedNodes} className="text-red-600">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M3 6h18" />
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  </svg>
+                </ControlButton>
+              </Tooltip>
             </>
           )}
         </Controls>
@@ -1517,16 +1538,17 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
         {/* Covered nodes warning badge */}
         {coveredNodeIds.length > 0 && (
           <div className="absolute top-[14px] left-[52px]">
-            <button
-              onClick={rescueCoveredNodes}
-              className="h-[32px] px-3 bg-amber-100 border border-amber-300 rounded cursor-pointer flex items-center gap-1.5 hover:bg-amber-200 transition-colors shadow-sm text-amber-800 text-xs font-medium"
-              title={`${coveredNodeIds.length} node${coveredNodeIds.length > 1 ? 's' : ''} covered by organizers — click to rescue`}
-            >
-              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-              </svg>
-              {coveredNodeIds.length} covered
-            </button>
+            <Tooltip content={`${coveredNodeIds.length} node${coveredNodeIds.length > 1 ? 's' : ''} covered by organizers — click to rescue`}>
+              <button
+                onClick={rescueCoveredNodes}
+                className="h-[32px] px-3 bg-amber-100 border border-amber-300 rounded cursor-pointer flex items-center gap-1.5 hover:bg-amber-200 transition-colors shadow-sm text-amber-800 text-xs font-medium"
+              >
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                </svg>
+                {coveredNodeIds.length} covered
+              </button>
+            </Tooltip>
           </div>
         )}
 

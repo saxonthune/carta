@@ -7,6 +7,7 @@ export { default as Modal } from './Modal';
 export { default as ConfirmationModal } from './ConfirmationModal';
 export { default as ColorPicker } from './ColorPicker';
 export type { ColorPickerProps } from './ColorPicker';
+export { default as Tooltip } from './Tooltip';
 
 // Navigation
 export { default as TabBar } from './TabBar';
