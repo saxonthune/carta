@@ -1,5 +1,4 @@
 export { default as CompileModal } from './CompileModal';
-export { default as ProjectInfoModal } from './ProjectInfoModal';
 export { default as HelpModal } from './HelpModal';
 export { default as DocumentBrowserModal } from './DocumentBrowserModal';
 export { default as ImportPreviewModal } from './ImportPreviewModal';
