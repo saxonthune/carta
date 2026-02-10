@@ -84,6 +84,43 @@ function useEdgeColor() {
   return color;
 }
 
+/**
+ * Compute the layout unit size (construct + wagon tree bounding box) for a node.
+ * Used by layout actions to prevent overlapping wagons.
+ */
+function getLayoutUnitSize(nodeId: string, allNodes: Node[]): { width: number; height: number } {
+  const node = allNodes.find(n => n.id === nodeId);
+  if (!node) return { width: 200, height: 100 };
+
+  const nodeW = node.measured?.width ?? node.width ?? 200;
+  const nodeH = node.measured?.height ?? node.height ?? 100;
+
+  // Find wagon children (organizers with this node as parentId)
+  const wagons = allNodes.filter(n => n.parentId === nodeId && n.type === 'organizer');
+  if (wagons.length === 0) return { width: nodeW, height: nodeH };
+
+  // Compute bounding box: start with the construct rect
+  let maxRight = nodeW;
+  let maxBottom = nodeH;
+
+  // Recursively include wagon subtrees
+  function walkWagons(parentId: string, offsetX: number, offsetY: number): void {
+    const children = allNodes.filter(n => n.parentId === parentId && n.type === 'organizer');
+    for (const wagon of children) {
+      const wx = offsetX + wagon.position.x;
+      const wy = offsetY + wagon.position.y;
+      const ww = (wagon.style?.width as number) ?? wagon.measured?.width ?? wagon.width ?? 400;
+      const wh = (wagon.style?.height as number) ?? wagon.measured?.height ?? wagon.height ?? 300;
+      maxRight = Math.max(maxRight, wx + ww);
+      maxBottom = Math.max(maxBottom, wy + wh);
+      // Recurse for nested wagons
+      walkWagons(wagon.id, wx, wy);
+    }
+  }
+
+  walkWagons(nodeId, 0, 0);
+  return { width: maxRight, height: maxBottom };
+}
 
 export interface MapProps {
   title: string;
@@ -405,8 +442,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
       id: n.id,
       x: n.position.x,
       y: n.position.y,
-      width: n.measured?.width ?? n.width ?? 200,
-      height: n.measured?.height ?? n.height ?? 100,
+      ...getLayoutUnitSize(n.id, rfNodes),
     }));
     const newPositions = deOverlapNodes(inputs);
 
@@ -444,8 +480,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
         id: n.id,
         x: n.position.x,
         y: n.position.y,
-        width: n.measured?.width ?? n.width ?? 200,
-        height: n.measured?.height ?? n.height ?? 100,
+        ...getLayoutUnitSize(n.id, rfNodes),
       }));
       const positions = deOverlapNodes(inputs);
       for (const [id, pos] of positions) {
@@ -479,8 +514,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
       id: n.id,
       x: n.position.x,
       y: n.position.y,
-      width: n.measured?.width ?? n.width ?? 200,
-      height: n.measured?.height ?? n.height ?? 100,
+      ...getLayoutUnitSize(n.id, rfNodes),
     }));
     const newPositions = compactNodes(inputs);
 
@@ -512,8 +546,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
       id: n.id,
       x: n.position.x,
       y: n.position.y,
-      width: n.measured?.width ?? n.width ?? 200,
-      height: n.measured?.height ?? n.height ?? 100,
+      ...getLayoutUnitSize(n.id, rfNodes),
     }));
 
     // Filter edges to only those between top-level nodes
