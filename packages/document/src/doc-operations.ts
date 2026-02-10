@@ -65,6 +65,57 @@ function getPageMap(ydoc: Y.Doc, mapName: string, pageId: string): Y.Map<Y.Map<u
   return pageMap;
 }
 
+/**
+ * Iterate over all nodes of a given constructType across all pages.
+ * Callback receives (ydata: Y.Map<unknown>, nodeId: string, pageId: string).
+ */
+function forEachInstanceOfType(
+  ydoc: Y.Doc,
+  constructType: string,
+  callback: (ydata: Y.Map<unknown>, nodeId: string, pageId: string) => void
+): void {
+  const ypages = ydoc.getMap<Y.Map<unknown>>('pages');
+  const ynodesContainer = ydoc.getMap<Y.Map<unknown>>('nodes');
+  ypages.forEach((_, pageId) => {
+    const pageNodes = ynodesContainer.get(pageId) as Y.Map<Y.Map<unknown>> | undefined;
+    if (!pageNodes) return;
+    pageNodes.forEach((ynode, nodeId) => {
+      const ydata = ynode.get('data') as Y.Map<unknown> | undefined;
+      if (!ydata) return;
+      if (safeGet(ydata, 'constructType') !== constructType) return;
+      callback(ensureYMap(ynode, ydata), nodeId, pageId);
+    });
+  });
+}
+
+/**
+ * Iterate over all edges across all pages.
+ * Callback receives (yedge: Y.Map<unknown>, edgeId: string, pageId: string).
+ * Return true from callback to delete the edge.
+ */
+function forEachEdge(
+  ydoc: Y.Doc,
+  callback: (yedge: Y.Map<unknown>, edgeId: string, pageId: string) => boolean | void
+): number {
+  const ypages = ydoc.getMap<Y.Map<unknown>>('pages');
+  const yedgesContainer = ydoc.getMap<Y.Map<unknown>>('edges');
+  let deletedCount = 0;
+  ypages.forEach((_, pageId) => {
+    const pageEdges = yedgesContainer.get(pageId) as Y.Map<Y.Map<unknown>> | undefined;
+    if (!pageEdges) return;
+    const toDelete: string[] = [];
+    pageEdges.forEach((yedge, edgeId) => {
+      const shouldDelete = callback(yedge, edgeId, pageId);
+      if (shouldDelete) toDelete.push(edgeId);
+    });
+    for (const edgeId of toDelete) {
+      pageEdges.delete(edgeId);
+      deletedCount++;
+    }
+  });
+  return deletedCount;
+}
+
 // ===== PAGE OPERATIONS =====
 
 export interface PageInfo {
@@ -72,6 +123,14 @@ export interface PageInfo {
   name: string;
   description?: string;
   order: number;
+}
+
+export interface MigrationResult {
+  schemaUpdated: boolean;
+  instancesUpdated: number;
+  edgesUpdated: number;
+  edgesRemoved: number;
+  warnings: string[];
 }
 
 /**
@@ -1242,6 +1301,315 @@ export function updateSchema(
   }, origin);
 
   return merged as unknown as ConstructSchema;
+}
+
+// ===== SCHEMA MIGRATION OPERATIONS =====
+
+export function renameField(
+  ydoc: Y.Doc,
+  schemaType: string,
+  oldName: string,
+  newName: string,
+  origin: string = MCP_ORIGIN
+): MigrationResult {
+  const yschemas = ydoc.getMap<Y.Map<unknown>>('schemas');
+  const yschema = yschemas.get(schemaType);
+  if (!yschema) throw new Error(`Schema not found: ${schemaType}`);
+
+  const current = yToPlain(yschema) as Record<string, unknown>;
+  const fields = current.fields as Array<Record<string, unknown>>;
+
+  // Validate: old field exists, new field doesn't
+  const fieldIdx = fields.findIndex(f => f.name === oldName);
+  if (fieldIdx === -1) throw new Error(`Field not found: ${oldName}`);
+  if (fields.some(f => f.name === newName)) throw new Error(`Field already exists: ${newName}`);
+
+  let instancesUpdated = 0;
+
+  ydoc.transact(() => {
+    // 1. Update schema field name
+    const updatedFields = fields.map((f, i) => i === fieldIdx ? { ...f, name: newName } : f);
+    const merged = { ...current, fields: updatedFields };
+
+    // Update displayField if it references the old name
+    if (merged.displayField === oldName) merged.displayField = newName;
+
+    yschemas.set(schemaType, deepPlainToY(merged) as Y.Map<unknown>);
+
+    // 2. Migrate instance values across all pages
+    forEachInstanceOfType(ydoc, schemaType, (ydata) => {
+      const yvalues = ydata.get('values') as Y.Map<unknown> | undefined;
+      if (!yvalues || !yvalues.has(oldName)) return;
+      const value = yvalues.get(oldName);
+      yvalues.delete(oldName);
+      yvalues.set(newName, value);
+      instancesUpdated++;
+    });
+  }, origin);
+
+  return { schemaUpdated: true, instancesUpdated, edgesUpdated: 0, edgesRemoved: 0, warnings: [] };
+}
+
+export function removeField(
+  ydoc: Y.Doc,
+  schemaType: string,
+  fieldName: string,
+  origin: string = MCP_ORIGIN
+): MigrationResult {
+  const yschemas = ydoc.getMap<Y.Map<unknown>>('schemas');
+  const yschema = yschemas.get(schemaType);
+  if (!yschema) throw new Error(`Schema not found: ${schemaType}`);
+
+  const current = yToPlain(yschema) as Record<string, unknown>;
+  const fields = current.fields as Array<Record<string, unknown>>;
+
+  const fieldIdx = fields.findIndex(f => f.name === fieldName);
+  if (fieldIdx === -1) throw new Error(`Field not found: ${fieldName}`);
+
+  let instancesUpdated = 0;
+
+  ydoc.transact(() => {
+    // 1. Remove field from schema
+    const updatedFields = fields.filter((_, i) => i !== fieldIdx);
+    const merged = { ...current, fields: updatedFields };
+    if (merged.displayField === fieldName) delete merged.displayField;
+
+    yschemas.set(schemaType, deepPlainToY(merged) as Y.Map<unknown>);
+
+    // 2. Remove field values from all instances
+    forEachInstanceOfType(ydoc, schemaType, (ydata) => {
+      const yvalues = ydata.get('values') as Y.Map<unknown> | undefined;
+      if (!yvalues || !yvalues.has(fieldName)) return;
+      yvalues.delete(fieldName);
+      instancesUpdated++;
+    });
+  }, origin);
+
+  return { schemaUpdated: true, instancesUpdated, edgesUpdated: 0, edgesRemoved: 0, warnings: [] };
+}
+
+export function addField(
+  ydoc: Y.Doc,
+  schemaType: string,
+  field: Record<string, unknown>,
+  defaultValue?: unknown,
+  origin: string = MCP_ORIGIN
+): MigrationResult {
+  const yschemas = ydoc.getMap<Y.Map<unknown>>('schemas');
+  const yschema = yschemas.get(schemaType);
+  if (!yschema) throw new Error(`Schema not found: ${schemaType}`);
+
+  const current = yToPlain(yschema) as Record<string, unknown>;
+  const fields = current.fields as Array<Record<string, unknown>>;
+
+  if (!field.name) throw new Error('Field must have a name');
+  if (fields.some(f => f.name === field.name)) throw new Error(`Field already exists: ${field.name}`);
+
+  let instancesUpdated = 0;
+
+  ydoc.transact(() => {
+    // 1. Add field to schema
+    const updatedFields = [...fields, field];
+    const merged = { ...current, fields: updatedFields };
+    yschemas.set(schemaType, deepPlainToY(merged) as Y.Map<unknown>);
+
+    // 2. If defaultValue provided, populate existing instances
+    if (defaultValue !== undefined) {
+      forEachInstanceOfType(ydoc, schemaType, (ydata) => {
+        let yvalues = ydata.get('values') as Y.Map<unknown> | undefined;
+        if (!yvalues) {
+          yvalues = new Y.Map();
+          ydata.set('values', yvalues);
+        }
+        yvalues.set(field.name as string, defaultValue);
+        instancesUpdated++;
+      });
+    }
+  }, origin);
+
+  return { schemaUpdated: true, instancesUpdated, edgesUpdated: 0, edgesRemoved: 0, warnings: [] };
+}
+
+export function renamePort(
+  ydoc: Y.Doc,
+  schemaType: string,
+  oldPortId: string,
+  newPortId: string,
+  origin: string = MCP_ORIGIN
+): MigrationResult {
+  const yschemas = ydoc.getMap<Y.Map<unknown>>('schemas');
+  const yschema = yschemas.get(schemaType);
+  if (!yschema) throw new Error(`Schema not found: ${schemaType}`);
+
+  const current = yToPlain(yschema) as Record<string, unknown>;
+  const ports = current.ports as Array<Record<string, unknown>>;
+
+  const portIdx = ports.findIndex(p => p.id === oldPortId);
+  if (portIdx === -1) throw new Error(`Port not found: ${oldPortId}`);
+  if (ports.some(p => p.id === newPortId)) throw new Error(`Port already exists: ${newPortId}`);
+
+  let edgesUpdated = 0;
+
+  ydoc.transact(() => {
+    // 1. Update schema port id
+    const updatedPorts = ports.map((p, i) => i === portIdx ? { ...p, id: newPortId } : p);
+    const merged = { ...current, ports: updatedPorts };
+    yschemas.set(schemaType, deepPlainToY(merged) as Y.Map<unknown>);
+
+    // 2. Collect node IDs that are instances of this schema type (per page) and semanticIds
+    const instanceNodeIds = new Map<string, Set<string>>(); // pageId → Set<nodeId>
+    const instanceSemanticIds = new Set<string>();
+    forEachInstanceOfType(ydoc, schemaType, (ydata, nodeId, pageId) => {
+      if (!instanceNodeIds.has(pageId)) instanceNodeIds.set(pageId, new Set());
+      instanceNodeIds.get(pageId)!.add(nodeId);
+      instanceSemanticIds.add(safeGet(ydata, 'semanticId') as string);
+
+      // 3. Also update connections array on this node
+      const yconns = ydata.get('connections') as Y.Array<unknown> | undefined;
+      if (yconns) {
+        for (let i = 0; i < yconns.length; i++) {
+          const conn = yconns.get(i) as Y.Map<unknown> | Record<string, unknown>;
+          const portId = conn instanceof Y.Map ? conn.get('portId') : (conn as Record<string, unknown>).portId;
+          if (portId === oldPortId) {
+            if (conn instanceof Y.Map) {
+              conn.set('portId', newPortId);
+            }
+          }
+        }
+      }
+    });
+
+    // 4. Update edges across all pages
+    forEachEdge(ydoc, (yedge, _edgeId, pageId) => {
+      const pageInstances = instanceNodeIds.get(pageId);
+      if (!pageInstances) return;
+
+      const source = yedge.get('source') as string;
+      const target = yedge.get('target') as string;
+      let updated = false;
+
+      if (pageInstances.has(source) && yedge.get('sourceHandle') === oldPortId) {
+        yedge.set('sourceHandle', newPortId);
+        updated = true;
+      }
+      if (pageInstances.has(target) && yedge.get('targetHandle') === oldPortId) {
+        yedge.set('targetHandle', newPortId);
+        updated = true;
+      }
+      if (updated) edgesUpdated++;
+    });
+
+    // 5. Update connections on OTHER nodes that target instances of this type via targetPortId
+    const ypages = ydoc.getMap<Y.Map<unknown>>('pages');
+    const ynodesContainer = ydoc.getMap<Y.Map<unknown>>('nodes');
+    ypages.forEach((_, pageId) => {
+      const pageNodes = ynodesContainer.get(pageId) as Y.Map<Y.Map<unknown>> | undefined;
+      if (!pageNodes) return;
+      pageNodes.forEach((ynode) => {
+        const ydata = ynode.get('data') as Y.Map<unknown> | undefined;
+        if (!ydata) return;
+        const yconns = ydata.get('connections') as Y.Array<unknown> | undefined;
+        if (!yconns) return;
+        for (let i = 0; i < yconns.length; i++) {
+          const conn = yconns.get(i) as Y.Map<unknown> | Record<string, unknown>;
+          if (conn instanceof Y.Map) {
+            const targetSid = conn.get('targetSemanticId') as string;
+            const targetPort = conn.get('targetPortId') as string;
+            if (instanceSemanticIds.has(targetSid) && targetPort === oldPortId) {
+              conn.set('targetPortId', newPortId);
+            }
+          }
+        }
+      });
+    });
+  }, origin);
+
+  return { schemaUpdated: true, instancesUpdated: 0, edgesUpdated, edgesRemoved: 0, warnings: [] };
+}
+
+export function removePort(
+  ydoc: Y.Doc,
+  schemaType: string,
+  portId: string,
+  origin: string = MCP_ORIGIN
+): MigrationResult {
+  const yschemas = ydoc.getMap<Y.Map<unknown>>('schemas');
+  const yschema = yschemas.get(schemaType);
+  if (!yschema) throw new Error(`Schema not found: ${schemaType}`);
+
+  const current = yToPlain(yschema) as Record<string, unknown>;
+  const ports = current.ports as Array<Record<string, unknown>>;
+
+  const portIdx = ports.findIndex(p => p.id === portId);
+  if (portIdx === -1) throw new Error(`Port not found: ${portId}`);
+
+  let edgesRemoved = 0;
+
+  ydoc.transact(() => {
+    // 1. Remove port from schema
+    const updatedPorts = ports.filter((_, i) => i !== portIdx);
+    const merged = { ...current, ports: updatedPorts };
+    yschemas.set(schemaType, deepPlainToY(merged) as Y.Map<unknown>);
+
+    // 2. Collect instance node IDs and semanticIds
+    const instanceNodeIds = new Map<string, Set<string>>(); // pageId → Set<nodeId>
+    const instanceSemanticIds = new Set<string>();
+    forEachInstanceOfType(ydoc, schemaType, (ydata, nodeId, pageId) => {
+      if (!instanceNodeIds.has(pageId)) instanceNodeIds.set(pageId, new Set());
+      instanceNodeIds.get(pageId)!.add(nodeId);
+      instanceSemanticIds.add(safeGet(ydata, 'semanticId') as string);
+
+      // Remove matching entries from this node's connections array
+      const yconns = ydata.get('connections') as Y.Array<unknown> | undefined;
+      if (yconns) {
+        // Iterate in reverse to safely delete
+        for (let i = yconns.length - 1; i >= 0; i--) {
+          const conn = yconns.get(i) as Y.Map<unknown> | Record<string, unknown>;
+          const connPortId = conn instanceof Y.Map ? conn.get('portId') : (conn as Record<string, unknown>).portId;
+          if (connPortId === portId) yconns.delete(i, 1);
+        }
+      }
+    });
+
+    // 3. Delete edges that use this port on instances of this type
+    edgesRemoved = forEachEdge(ydoc, (yedge, _edgeId, pageId) => {
+      const pageInstances = instanceNodeIds.get(pageId);
+      if (!pageInstances) return false;
+
+      const source = yedge.get('source') as string;
+      const target = yedge.get('target') as string;
+      const sourceHandle = yedge.get('sourceHandle') as string;
+      const targetHandle = yedge.get('targetHandle') as string;
+
+      const sourceMatch = pageInstances.has(source) && sourceHandle === portId;
+      const targetMatch = pageInstances.has(target) && targetHandle === portId;
+      return sourceMatch || targetMatch;
+    });
+
+    // 4. Clean up connections on OTHER nodes that targeted the removed port
+    const ypages = ydoc.getMap<Y.Map<unknown>>('pages');
+    const ynodesContainer = ydoc.getMap<Y.Map<unknown>>('nodes');
+    ypages.forEach((_, pageId) => {
+      const pageNodes = ynodesContainer.get(pageId) as Y.Map<Y.Map<unknown>> | undefined;
+      if (!pageNodes) return;
+      pageNodes.forEach((ynode) => {
+        const ydata = ynode.get('data') as Y.Map<unknown> | undefined;
+        if (!ydata) return;
+        const yconns = ydata.get('connections') as Y.Array<unknown> | undefined;
+        if (!yconns) return;
+        for (let i = yconns.length - 1; i >= 0; i--) {
+          const conn = yconns.get(i) as Y.Map<unknown> | Record<string, unknown>;
+          const targetSid = conn instanceof Y.Map ? conn.get('targetSemanticId') as string : (conn as Record<string, unknown>).targetSemanticId as string;
+          const targetPort = conn instanceof Y.Map ? conn.get('targetPortId') as string : (conn as Record<string, unknown>).targetPortId as string;
+          if (instanceSemanticIds.has(targetSid) && targetPort === portId) {
+            yconns.delete(i, 1);
+          }
+        }
+      });
+    });
+  }, origin);
+
+  return { schemaUpdated: true, instancesUpdated: 0, edgesUpdated: 0, edgesRemoved, warnings: [] };
 }
 
 // ===== AUTO-LAYOUT =====
