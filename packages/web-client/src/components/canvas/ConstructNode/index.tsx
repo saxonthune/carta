@@ -86,7 +86,7 @@ const ConstructNode = memo(function ConstructNode({ data, selected = false }: Co
     return {
       ...data,
       onValuesChange: (values: ConstructValues) => actions.onValuesChange(nodeId, values),
-      onSetViewLevel: (level: 'summary' | 'details') => actions.onSetViewLevel(nodeId, level),
+      onSetDetailMode: (level: 'summary' | 'details') => actions.onSetDetailMode(nodeId, level),
       onToggleDetailsPin: () => actions.onToggleDetailsPin(nodeId),
       onOpenFullView: () => actions.onOpenFullView(nodeId),
       onInstanceColorChange: (color: string | null) => actions.onInstanceColorChange(nodeId, color),

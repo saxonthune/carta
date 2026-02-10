@@ -26,7 +26,7 @@ export function createTestNode(options: {
       constructType,
       semanticId,
       values: options.values ?? {},
-      viewLevel: 'summary' as const,
+      detailMode: 'summary' as const,
       connections: options.connections ?? [],
       groupId: options.groupId,
     } satisfies ConstructNodeData,

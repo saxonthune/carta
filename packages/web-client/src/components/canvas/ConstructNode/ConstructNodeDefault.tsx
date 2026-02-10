@@ -26,7 +26,7 @@ export function ConstructNodeDefault({
     ? { backgroundColor: color }
     : {};
 
-  const isDetails = data.viewLevel === 'details';
+  const isDetails = data.detailMode === 'details';
   const visibleFields = isDetails
     ? schema.fields.filter(f => f.displayTier !== 'pill')
     : getFieldsForSummary(schema);
@@ -77,16 +77,16 @@ export function ConstructNodeDefault({
               <WindowIcon className="w-2.5 h-2.5" size={10} />
             </button>
           )}
-          {data.onSetViewLevel && (
+          {data.onSetDetailMode && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                data.onSetViewLevel?.(data.viewLevel === 'details' ? 'summary' : 'details');
+                data.onSetDetailMode?.(data.detailMode === 'details' ? 'summary' : 'details');
               }}
               className="text-content-muted hover:text-content transition-colors flex-shrink-0 rounded-full p-1"
-              title={data.viewLevel === 'details' ? "Collapse" : "Expand"}
+              title={data.detailMode === 'details' ? "Collapse" : "Expand"}
             >
-              {data.viewLevel === 'details' ? (
+              {data.detailMode === 'details' ? (
                 <CollapseIcon className="w-2.5 h-2.5" size={10} />
               ) : (
                 <ExpandIcon className="w-2.5 h-2.5" size={10} />

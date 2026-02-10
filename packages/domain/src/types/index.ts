@@ -205,10 +205,10 @@ export interface ConstructNodeData {
   instanceColor?: string;    // Hex color override, visual-only
   // UI state
   nodeId?: string;           // Technical UUID (passed from Map for display purposes)
-  viewLevel?: 'summary' | 'details';
+  detailMode?: 'summary' | 'details';
   isDetailsPinned?: boolean;
   onValuesChange?: (values: ConstructValues) => void;
-  onSetViewLevel?: (level: 'summary' | 'details') => void;
+  onSetDetailMode?: (level: 'summary' | 'details') => void;
   onToggleDetailsPin?: () => void;
   onOpenFullView?: () => void;
   onInstanceColorChange?: (color: string | null) => void;

@@ -15,7 +15,7 @@ export default function PreviewTab({ formData }: PreviewTabProps) {
     values: formData.fields.reduce((acc, f) => ({ ...acc, [f.name]: f.default || '' }), {}),
     connections: [],
     deployableId: null,
-    viewLevel: 'details' as const,
+    detailMode: 'details' as const,
   }), [formData.type, formData.fields]);
 
   // Generate compiled preview

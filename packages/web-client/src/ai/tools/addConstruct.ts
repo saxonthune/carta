@@ -85,7 +85,7 @@ export const addConstructTool: CartaTool<AddConstructParams, AddConstructResult>
         constructType,
         semanticId,
         values: initialValues,
-        viewLevel: 'details',
+        detailMode: 'details',
       },
     };
 

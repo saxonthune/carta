@@ -56,7 +56,7 @@ describe('Node View Level Behavior', () => {
 
       // Verify node starts in summary view
       const node = result.current.nodes.nodes[0];
-      expect(node.data.viewLevel).toBe('summary');
+      expect(node.data.detailMode).toBe('summary');
     });
 
     it('should create related constructs in summary view', async () => {
@@ -105,8 +105,8 @@ describe('Node View Level Behavior', () => {
 
       // Verify both nodes are in summary view
       const nodes = result.current.nodes.nodes;
-      expect(nodes[0].data.viewLevel).toBe('summary');
-      expect(nodes[1].data.viewLevel).toBe('summary');
+      expect(nodes[0].data.detailMode).toBe('summary');
+      expect(nodes[1].data.detailMode).toBe('summary');
     });
   });
 
@@ -142,7 +142,7 @@ describe('Node View Level Behavior', () => {
       });
 
       const nodeId = result.current.nodes.nodes[0].id;
-      expect(result.current.nodes.nodes[0].data.viewLevel).toBe('summary');
+      expect(result.current.nodes.nodes[0].data.detailMode).toBe('summary');
 
       // Set to details
       act(() => {
@@ -151,7 +151,7 @@ describe('Node View Level Behavior', () => {
 
       await waitFor(() => {
         const node = result.current.nodes.nodes.find(n => n.id === nodeId);
-        expect(node?.data.viewLevel).toBe('details');
+        expect(node?.data.detailMode).toBe('details');
       });
     });
 
@@ -193,7 +193,7 @@ describe('Node View Level Behavior', () => {
 
       await waitFor(() => {
         const node = result.current.nodes.nodes.find(n => n.id === nodeId);
-        expect(node?.data.viewLevel).toBe('details');
+        expect(node?.data.detailMode).toBe('details');
       });
 
       // Then back to summary
@@ -203,7 +203,7 @@ describe('Node View Level Behavior', () => {
 
       await waitFor(() => {
         const node = result.current.nodes.nodes.find(n => n.id === nodeId);
-        expect(node?.data.viewLevel).toBe('summary');
+        expect(node?.data.detailMode).toBe('summary');
       });
     });
 
@@ -239,7 +239,7 @@ describe('Node View Level Behavior', () => {
       const nodeId = result.current.nodes.nodes[0].id;
 
       // Initial state is summary
-      expect(result.current.nodes.nodes[0].data.viewLevel).toBe('summary');
+      expect(result.current.nodes.nodes[0].data.detailMode).toBe('summary');
 
       // Set to details
       act(() => {
@@ -248,7 +248,7 @@ describe('Node View Level Behavior', () => {
 
       await waitFor(() => {
         const node = result.current.nodes.nodes.find(n => n.id === nodeId);
-        expect(node?.data.viewLevel).toBe('details');
+        expect(node?.data.detailMode).toBe('details');
       });
 
       // Set back to summary
@@ -258,7 +258,7 @@ describe('Node View Level Behavior', () => {
 
       await waitFor(() => {
         const node = result.current.nodes.nodes.find(n => n.id === nodeId);
-        expect(node?.data.viewLevel).toBe('summary');
+        expect(node?.data.detailMode).toBe('summary');
       });
 
       // Set to details again
@@ -268,7 +268,7 @@ describe('Node View Level Behavior', () => {
 
       await waitFor(() => {
         const node = result.current.nodes.nodes.find(n => n.id === nodeId);
-        expect(node?.data.viewLevel).toBe('details');
+        expect(node?.data.detailMode).toBe('details');
       });
     });
   });
@@ -312,7 +312,7 @@ describe('Node View Level Behavior', () => {
 
       await waitFor(() => {
         const node = result.current.nodes.nodes.find(n => n.id === nodeId);
-        expect(node?.data.viewLevel).toBe('details');
+        expect(node?.data.detailMode).toBe('details');
       });
 
       // Update node values
@@ -329,7 +329,7 @@ describe('Node View Level Behavior', () => {
 
       // View level should still be details
       const node = result.current.nodes.nodes.find(n => n.id === nodeId);
-      expect(node?.data.viewLevel).toBe('details');
+      expect(node?.data.detailMode).toBe('details');
     });
 
   });

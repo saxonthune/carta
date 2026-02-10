@@ -60,7 +60,7 @@ export function useGraphOperations(options: UseGraphOperationsOptions): UseGraph
           constructType: schema.type,
           semanticId,
           values,
-          viewLevel: 'summary',
+          detailMode: 'summary',
         },
       };
       setNodes((nds) => [...nds, newNode]);
@@ -103,7 +103,7 @@ export function useGraphOperations(options: UseGraphOperationsOptions): UseGraph
           constructType: schema.type,
           semanticId,
           values,
-          viewLevel: 'summary',
+          detailMode: 'summary',
         },
       };
 
@@ -276,7 +276,7 @@ export function useGraphOperations(options: UseGraphOperationsOptions): UseGraph
       setNodes((nds) =>
         nds.map((n) =>
           n.id === nodeIdToSet
-            ? { ...n, data: { ...n.data, viewLevel: level } }
+            ? { ...n, data: { ...n.data, detailMode: level } }
             : n
         )
       );

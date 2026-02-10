@@ -69,7 +69,7 @@ export function saas(adapter: DocumentAdapter): void {
         constructType: 'rest-endpoint',
         semanticId: generateSemanticId('rest-endpoint'),
         values: { route: '/api/users', verb: 'GET', summary: 'List all users' },
-        viewLevel: 'summary',
+        detailMode: 'summary',
       },
     },
     {
@@ -81,7 +81,7 @@ export function saas(adapter: DocumentAdapter): void {
         constructType: 'rest-endpoint',
         semanticId: generateSemanticId('rest-endpoint'),
         values: { route: '/api/friendships', verb: 'POST', summary: 'Create a friendship' },
-        viewLevel: 'summary',
+        detailMode: 'summary',
       },
     },
     {
@@ -93,7 +93,7 @@ export function saas(adapter: DocumentAdapter): void {
         constructType: 'api-model',
         semanticId: generateSemanticId('api-model'),
         values: { modelName: 'User', modelType: 'response', data: 'id, email, name, createdAt' },
-        viewLevel: 'summary',
+        detailMode: 'summary',
       },
     },
     {
@@ -105,7 +105,7 @@ export function saas(adapter: DocumentAdapter): void {
         constructType: 'api-model',
         semanticId: generateSemanticId('api-model'),
         values: { modelName: 'Friendship', modelType: 'request', data: 'userId, friendId' },
-        viewLevel: 'summary',
+        detailMode: 'summary',
       },
     },
 
@@ -132,7 +132,7 @@ export function saas(adapter: DocumentAdapter): void {
         constructType: 'database',
         semanticId: generateSemanticId('database'),
         values: { engine: 'PostgreSQL', note: 'Primary application database' },
-        viewLevel: 'summary',
+        detailMode: 'summary',
       },
     },
     {
@@ -144,7 +144,7 @@ export function saas(adapter: DocumentAdapter): void {
         constructType: 'table',
         semanticId: generateSemanticId('table'),
         values: { tableName: 'users', columns: 'id UUID PK, email VARCHAR UNIQUE, name VARCHAR, created_at TIMESTAMP' },
-        viewLevel: 'summary',
+        detailMode: 'summary',
       },
     },
     {
@@ -156,7 +156,7 @@ export function saas(adapter: DocumentAdapter): void {
         constructType: 'table',
         semanticId: generateSemanticId('table'),
         values: { tableName: 'friendships', columns: 'id UUID PK, user_id UUID FK, friend_id UUID FK, created_at TIMESTAMP' },
-        viewLevel: 'summary',
+        detailMode: 'summary',
       },
     },
 
@@ -183,7 +183,7 @@ export function saas(adapter: DocumentAdapter): void {
         constructType: 'ui-screen',
         semanticId: generateSemanticId('ui-screen'),
         values: { screenName: 'Profile', description: 'User profile page showing info and friends list' },
-        viewLevel: 'summary',
+        detailMode: 'summary',
       },
     },
     {
@@ -195,7 +195,7 @@ export function saas(adapter: DocumentAdapter): void {
         constructType: 'ui-screen',
         semanticId: generateSemanticId('ui-screen'),
         values: { screenName: 'Feed', description: 'Activity feed from friends' },
-        viewLevel: 'summary',
+        detailMode: 'summary',
       },
     },
     {
@@ -207,7 +207,7 @@ export function saas(adapter: DocumentAdapter): void {
         constructType: 'user-story',
         semanticId: generateSemanticId('user-story'),
         values: { title: 'User Login', description: 'As a user, I want to log in so that I can access my profile' },
-        viewLevel: 'summary',
+        detailMode: 'summary',
       },
     },
     {
@@ -219,7 +219,7 @@ export function saas(adapter: DocumentAdapter): void {
         constructType: 'user-story',
         semanticId: generateSemanticId('user-story'),
         values: { title: 'Add Friend', description: 'As a user, I want to add friends so that I can see their activity' },
-        viewLevel: 'summary',
+        detailMode: 'summary',
       },
     },
   ]);

@@ -186,7 +186,7 @@ describe('Node Field Editing', () => {
   });
 
   describe('view level behavior', () => {
-    it('should set viewLevel state on node', async () => {
+    it('should set detailMode state on node', async () => {
       const { result } = renderHook(
         () => ({
           nodes: useNodes(),
@@ -210,22 +210,22 @@ describe('Node Field Editing', () => {
             semanticId: 'task-1',
           }),
         ]);
-        adapter.updateNode('1', { viewLevel: 'summary' });
+        adapter.updateNode('1', { detailMode: 'summary' });
       });
 
       await waitFor(() => {
         const node = result.current.nodes.nodes.find(n => n.id === '1');
-        expect(node?.data.viewLevel).toBe('summary');
+        expect(node?.data.detailMode).toBe('summary');
       });
 
       // Set to details
       act(() => {
-        adapter.updateNode('1', { viewLevel: 'details' });
+        adapter.updateNode('1', { detailMode: 'details' });
       });
 
       await waitFor(() => {
         const node = result.current.nodes.nodes.find(n => n.id === '1');
-        expect(node?.data.viewLevel).toBe('details');
+        expect(node?.data.detailMode).toBe('details');
       });
     });
   });

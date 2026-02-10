@@ -941,7 +941,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
   const nodeActions = useMemo(() => ({
     onRename: (nodeId: string, newName: string) => renameNodeRef.current(nodeId, newName),
     onValuesChange: (nodeId: string, values: ConstructValues) => updateNodeValuesRef.current(nodeId, values),
-    onSetViewLevel: (nodeId: string, level: 'summary' | 'details') => setNodeViewLevelRef.current(nodeId, level),
+    onSetDetailMode: (nodeId: string, level: 'summary' | 'details') => setNodeViewLevelRef.current(nodeId, level),
     onToggleDetailsPin: (nodeId: string) => toggleNodeDetailsPinRef.current(nodeId),
     onOpenFullView: (nodeId: string) => setFullViewNodeIdRef.current(nodeId),
     onInstanceColorChange: (nodeId: string, color: string | null) => updateNodeInstanceColorRef.current(nodeId, color),
@@ -1116,9 +1116,9 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
       nds.map((n) => {
         if (n.type !== 'construct') return n;
         const d = n.data as ConstructNodeData;
-        if (d.viewLevel === 'details' && !d.isDetailsPinned && !selectedNodeIds.includes(n.id)) {
+        if (d.detailMode === 'details' && !d.isDetailsPinned && !selectedNodeIds.includes(n.id)) {
           revertedIds.push(n.id);
-          return { ...n, data: { ...n.data, viewLevel: 'summary' } };
+          return { ...n, data: { ...n.data, detailMode: 'summary' } };
         }
         return n;
       })

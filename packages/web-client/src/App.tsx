@@ -103,7 +103,7 @@ function AppContent() {
 
   const handleNodeDoubleClick = useCallback((nodeId: string) => {
     // Toggle to details view on double-click
-    updateNode(nodeId, { viewLevel: 'details' });
+    updateNode(nodeId, { detailMode: 'details' });
   }, [updateNode]);
 
   const handleExport = useCallback(() => {
