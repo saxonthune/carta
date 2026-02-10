@@ -12,6 +12,7 @@ import { ShareMenu } from './ShareMenu';
 import { useClickOutside } from './useClickOutside';
 import Input from '../ui/Input';
 import Textarea from '../ui/Textarea';
+import { Tooltip } from '../ui';
 import { hydrateSeed, builtInPortSchemas, type SchemaSeed } from '@carta/domain';
 import { seeds } from '../../utils/seeds';
 
@@ -138,16 +139,17 @@ export function Header({
               <span className="px-1.5 py-0.5 rounded bg-green-500/20 text-green-600 dark:text-green-400">AI:{config.aiMode}</span>
             )}
             {mode === 'local' && (
-              <button
-                className="px-1.5 py-0.5 rounded bg-red-500/20 text-red-600 dark:text-red-400 hover:bg-red-500/30 transition-colors cursor-pointer border-none"
-                onClick={async () => {
-                  await cleanAllLocalData();
-                  window.location.href = window.location.pathname;
-                }}
-                title="Clear all local data and reload as new user"
-              >
-                Clean
-              </button>
+              <Tooltip content="Clear all local data and reload as new user">
+                <button
+                  className="px-1.5 py-0.5 rounded bg-red-500/20 text-red-600 dark:text-red-400 hover:bg-red-500/30 transition-colors cursor-pointer border-none"
+                  onClick={async () => {
+                    await cleanAllLocalData();
+                    window.location.href = window.location.pathname;
+                  }}
+                >
+                  Clean
+                </button>
+              </Tooltip>
             )}
           </div>
         )}
@@ -156,13 +158,14 @@ export function Header({
       {/* Center section: Title */}
       <div className="relative" ref={projectInfoRef}>
         <div className="flex items-center justify-center">
-          <h1
-            className="m-0 text-lg font-semibold text-content cursor-pointer px-2 py-1 rounded hover:bg-surface-alt transition-colors"
-            onClick={() => setIsProjectInfoOpen(!isProjectInfoOpen)}
-            title="Click to edit project info"
-          >
-            {title}
-          </h1>
+          <Tooltip content="Click to edit project info">
+            <h1
+              className="m-0 text-lg font-semibold text-content cursor-pointer px-2 py-1 rounded hover:bg-surface-alt transition-colors"
+              onClick={() => setIsProjectInfoOpen(!isProjectInfoOpen)}
+            >
+              {title}
+            </h1>
+          </Tooltip>
         </div>
         {isProjectInfoOpen && (
           <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 bg-surface-elevated border border-subtle rounded-lg shadow-lg z-50 w-[360px] p-4 flex flex-col gap-3">
@@ -209,53 +212,58 @@ export function Header({
         )}
 
         {/* Document browser button */}
-        <button
-          className="w-9 h-9 flex items-center justify-center rounded-lg cursor-pointer text-content-muted hover:bg-surface-alt hover:text-content transition-colors"
-          onClick={() => setIsDocBrowserOpen(true)}
-          title="Browse documents"
-        >
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-          </svg>
-        </button>
-
-        <button
-          className="px-4 py-2 text-sm font-medium bg-surface text-content border border-border rounded-lg cursor-pointer hover:bg-surface-alt transition-colors"
-          onClick={onExport}
-          title="Export project to .carta file"
-        >
-          Export
-        </button>
-
-        <button
-          className="px-4 py-2 text-sm font-medium bg-surface text-content border border-border rounded-lg cursor-pointer hover:bg-surface-alt transition-colors"
-          onClick={handleImportClick}
-          title="Import project from .carta file"
-        >
-          Import
-        </button>
-
-        <button
-          className="px-4 py-2 text-sm font-medium bg-emerald-500 text-white border-none rounded-lg cursor-pointer hover:bg-emerald-600 transition-colors"
-          onClick={onCompile}
-          title="Compile project"
-        >
-          Compile
-        </button>
-
-        {onToggleAI && (
+        <Tooltip content="Browse documents">
           <button
             className="w-9 h-9 flex items-center justify-center rounded-lg cursor-pointer text-content-muted hover:bg-surface-alt hover:text-content transition-colors"
-            onClick={onToggleAI}
-            title="Open AI Assistant"
+            onClick={() => setIsDocBrowserOpen(true)}
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 2a4 4 0 0 1 4 4v1h1a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3v-8a3 3 0 0 1 3-3h1V6a4 4 0 0 1 4-4z" />
-              <circle cx="9" cy="13" r="1.5" />
-              <circle cx="15" cy="13" r="1.5" />
-              <path d="M9 17h6" />
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
             </svg>
           </button>
+        </Tooltip>
+
+        <Tooltip content="Export project to .carta file">
+          <button
+            className="px-4 py-2 text-sm font-medium bg-surface text-content border border-border rounded-lg cursor-pointer hover:bg-surface-alt transition-colors"
+            onClick={onExport}
+          >
+            Export
+          </button>
+        </Tooltip>
+
+        <Tooltip content="Import project from .carta file">
+          <button
+            className="px-4 py-2 text-sm font-medium bg-surface text-content border border-border rounded-lg cursor-pointer hover:bg-surface-alt transition-colors"
+            onClick={handleImportClick}
+          >
+            Import
+          </button>
+        </Tooltip>
+
+        <Tooltip content="Compile project">
+          <button
+            className="px-4 py-2 text-sm font-medium bg-emerald-500 text-white border-none rounded-lg cursor-pointer hover:bg-emerald-600 transition-colors"
+            onClick={onCompile}
+          >
+            Compile
+          </button>
+        </Tooltip>
+
+        {onToggleAI && (
+          <Tooltip content="Open AI Assistant">
+            <button
+              className="w-9 h-9 flex items-center justify-center rounded-lg cursor-pointer text-content-muted hover:bg-surface-alt hover:text-content transition-colors"
+              onClick={onToggleAI}
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 2a4 4 0 0 1 4 4v1h1a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3v-8a3 3 0 0 1 3-3h1V6a4 4 0 0 1 4-4z" />
+                <circle cx="9" cy="13" r="1.5" />
+                <circle cx="15" cy="13" r="1.5" />
+                <path d="M9 17h6" />
+              </svg>
+            </button>
+          </Tooltip>
         )}
 
         {config.debug && <SeedsMenu />}
