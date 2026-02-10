@@ -636,7 +636,16 @@ describe('schema migration operations', () => {
     });
 
     it('should throw if trying to rename built-in schema', () => {
-      expect(() => renameSchemaType(doc, 'organizer', 'renamed')).toThrow('Cannot rename built-in schema: organizer');
+      // Built-in schemas are defined in @carta/domain
+      // 'rest-endpoint' is from softwareArchitectureSeed
+      createSchema(doc, {
+        type: 'rest-endpoint',
+        displayName: 'REST Endpoint',
+        color: '#00ff00',
+        fields: [],
+      });
+
+      expect(() => renameSchemaType(doc, 'rest-endpoint', 'renamed')).toThrow('Cannot rename built-in schema: rest-endpoint');
     });
   });
 
