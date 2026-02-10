@@ -383,6 +383,47 @@ const RemovePortSchema = z.object({
   portId: z.string().describe('Port ID to remove'),
 });
 
+const RenameSchemaTypeSchema = z.object({
+  documentId: z.string().describe('The document ID'),
+  schemaType: z.string().describe('The current schema type to rename'),
+  newType: z.string().describe('The new schema type identifier'),
+});
+
+const ChangeFieldTypeSchema = z.object({
+  documentId: z.string().describe('The document ID'),
+  schemaType: z.string().describe('The schema type to modify'),
+  fieldName: z.string().describe('Field name to change type of'),
+  newType: z.enum(['string', 'number', 'boolean', 'date', 'enum']).describe('New data type'),
+  force: z.boolean().optional().describe('Set to true to execute. Default (false/omitted) returns a dry-run preview.'),
+  enumOptions: z.array(z.string()).optional().describe('Enum options (required when newType is enum)'),
+});
+
+const NarrowEnumOptionsSchema = z.object({
+  documentId: z.string().describe('The document ID'),
+  schemaType: z.string().describe('The schema type to modify'),
+  fieldName: z.string().describe('Enum field name'),
+  newOptions: z.array(z.string()).describe('New enum options list'),
+  valueMapping: z.record(z.string()).optional().describe('Map old values to new values (e.g. {"old_val": "new_val"})'),
+});
+
+const AddPortSchema = z.object({
+  documentId: z.string().describe('The document ID'),
+  schemaType: z.string().describe('The schema type to modify'),
+  portConfig: z.object({
+    id: z.string().describe('Unique port ID within the schema'),
+    portType: z.string().describe('Port type reference (e.g. flow-in, flow-out)'),
+    label: z.string().describe('Display label for the port'),
+    suggestedTypes: z.array(z.string()).optional(),
+  }).describe('Port configuration to add'),
+});
+
+const ChangePortTypeSchema = z.object({
+  documentId: z.string().describe('The document ID'),
+  schemaType: z.string().describe('The schema type to modify'),
+  portId: z.string().describe('Port ID to change'),
+  newPortType: z.string().describe('New port type reference'),
+});
+
 /**
  * Tool definitions for MCP
  */
@@ -516,6 +557,31 @@ export function getToolDefinitions() {
       name: 'carta_remove_port',
       description: 'Remove a port from a schema and delete all edges connected through it.',
       inputSchema: RemovePortSchema.shape,
+    },
+    {
+      name: 'carta_rename_schema_type',
+      description: 'Rename a schema type. Updates all instances and cross-references in other schemas.',
+      inputSchema: RenameSchemaTypeSchema.shape,
+    },
+    {
+      name: 'carta_change_field_type',
+      description: 'Change a field\'s data type. Returns a dry-run preview by default showing how many instances would lose data. Set force=true to execute.',
+      inputSchema: ChangeFieldTypeSchema.shape,
+    },
+    {
+      name: 'carta_narrow_enum_options',
+      description: 'Update enum field options. Remaps values via valueMapping or clears orphaned values.',
+      inputSchema: NarrowEnumOptionsSchema.shape,
+    },
+    {
+      name: 'carta_add_port',
+      description: 'Add a new port to a schema. No instance fixup needed.',
+      inputSchema: AddPortSchema.shape,
+    },
+    {
+      name: 'carta_change_port_type',
+      description: 'Change a port\'s type reference. Disconnects edges that become incompatible with the new port type.',
+      inputSchema: ChangePortTypeSchema.shape,
     },
     {
       name: 'carta_delete_schema',
@@ -666,6 +732,11 @@ export interface ToolHandlers {
   carta_add_field: ToolHandler;
   carta_rename_port: ToolHandler;
   carta_remove_port: ToolHandler;
+  carta_rename_schema_type: ToolHandler;
+  carta_change_field_type: ToolHandler;
+  carta_narrow_enum_options: ToolHandler;
+  carta_add_port: ToolHandler;
+  carta_change_port_type: ToolHandler;
   carta_list_constructs: ToolHandler;
   carta_get_construct: ToolHandler;
   carta_create_construct: ToolHandler;
@@ -979,6 +1050,61 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
         'POST',
         `/api/documents/${encodeURIComponent(documentId)}/schemas/${encodeURIComponent(schemaType)}/migrate`,
         { operation: 'removePort', portId }
+      );
+      if (result.error) return { error: result.error };
+      return result.data;
+    },
+
+    carta_rename_schema_type: async (args) => {
+      const { documentId, schemaType, newType } = RenameSchemaTypeSchema.parse(args);
+      const result = await apiRequest<unknown>(
+        'POST',
+        `/api/documents/${encodeURIComponent(documentId)}/schemas/${encodeURIComponent(schemaType)}/migrate`,
+        { operation: 'renameSchemaType', newType }
+      );
+      if (result.error) return { error: result.error };
+      return result.data;
+    },
+
+    carta_change_field_type: async (args) => {
+      const { documentId, schemaType, fieldName, newType, force, enumOptions } = ChangeFieldTypeSchema.parse(args);
+      const result = await apiRequest<unknown>(
+        'POST',
+        `/api/documents/${encodeURIComponent(documentId)}/schemas/${encodeURIComponent(schemaType)}/migrate`,
+        { operation: 'changeFieldType', fieldName, newType, force, enumOptions }
+      );
+      if (result.error) return { error: result.error };
+      return result.data;
+    },
+
+    carta_narrow_enum_options: async (args) => {
+      const { documentId, schemaType, fieldName, newOptions, valueMapping } = NarrowEnumOptionsSchema.parse(args);
+      const result = await apiRequest<unknown>(
+        'POST',
+        `/api/documents/${encodeURIComponent(documentId)}/schemas/${encodeURIComponent(schemaType)}/migrate`,
+        { operation: 'narrowEnumOptions', fieldName, newOptions, valueMapping }
+      );
+      if (result.error) return { error: result.error };
+      return result.data;
+    },
+
+    carta_add_port: async (args) => {
+      const { documentId, schemaType, portConfig } = AddPortSchema.parse(args);
+      const result = await apiRequest<unknown>(
+        'POST',
+        `/api/documents/${encodeURIComponent(documentId)}/schemas/${encodeURIComponent(schemaType)}/migrate`,
+        { operation: 'addPort', portConfig }
+      );
+      if (result.error) return { error: result.error };
+      return result.data;
+    },
+
+    carta_change_port_type: async (args) => {
+      const { documentId, schemaType, portId, newPortType } = ChangePortTypeSchema.parse(args);
+      const result = await apiRequest<unknown>(
+        'POST',
+        `/api/documents/${encodeURIComponent(documentId)}/schemas/${encodeURIComponent(schemaType)}/migrate`,
+        { operation: 'changePortType', portId, newPortType }
       );
       if (result.error) return { error: result.error };
       return result.data;
