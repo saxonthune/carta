@@ -42,6 +42,7 @@ import { useOrganizerOperations } from '../../hooks/useOrganizerOperations';
 import ConstructEditor from '../ConstructEditor';
 import DynamicAnchorEdge from './DynamicAnchorEdge';
 import ConstructFullViewModal from '../modals/ConstructFullViewModal';
+import ConstructDebugModal from '../modals/ConstructDebugModal';
 import { useEdgeBundling, type BundleData } from '../../hooks/useEdgeBundling';
 import { useFlowTrace } from '../../hooks/useFlowTrace';
 import { useLodBand } from './lod/useLodBand';
@@ -202,9 +203,11 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     addMenu,
     editorState,
     fullViewNodeId,
+    debugNodeId,
     setAddMenu,
     setEditorState,
     setFullViewNodeId,
+    setDebugNodeId,
     onPaneContextMenu,
     onNodeContextMenu,
     onEdgeContextMenu,
@@ -1558,6 +1561,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
             const parent = nodes.find(n => n.id === node.parentId);
             return parent?.type === 'organizer';
           })()}
+          onDebugInfo={(nodeId) => { setDebugNodeId(nodeId); closeContextMenu(); }}
         />
       )}
 
@@ -1587,6 +1591,20 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
             schemas={schemas}
             onClose={() => setFullViewNodeId(null)}
             onValuesChange={(values) => updateNodeValues(fullViewNodeId, values)}
+          />
+        );
+      })()}
+
+      {debugNodeId && (() => {
+        const node = nodes.find(n => n.id === debugNodeId);
+        if (!node || node.type === 'organizer') return null;
+        const data = node.data as ConstructNodeData;
+        const schema = schemas.find(s => s.type === data.constructType);
+        return (
+          <ConstructDebugModal
+            node={node}
+            schema={schema}
+            onClose={() => setDebugNodeId(null)}
           />
         );
       })()}

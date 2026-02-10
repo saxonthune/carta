@@ -25,6 +25,7 @@ export function useMapState() {
   const [addMenu, setAddMenu] = useState<AddMenuState | null>(null);
   const [editorState, setEditorState] = useState<EditorState>({ open: false });
   const [fullViewNodeId, setFullViewNodeId] = useState<string | null>(null);
+  const [debugNodeId, setDebugNodeId] = useState<string | null>(null);
   const [mouseDownPos, setMouseDownPos] = useState<{ x: number; y: number } | null>(null);
 
   const onPaneContextMenu = useCallback(
@@ -144,11 +145,13 @@ export function useMapState() {
     addMenu,
     editorState,
     fullViewNodeId,
+    debugNodeId,
     // Setters
     setContextMenu,
     setAddMenu,
     setEditorState,
     setFullViewNodeId,
+    setDebugNodeId,
     // Handlers
     onPaneContextMenu,
     onNodeContextMenu,
