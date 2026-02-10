@@ -27,7 +27,9 @@ export function ConstructNodeDefault({
     : {};
 
   const isDetails = data.viewLevel === 'details';
-  const visibleFields = isDetails ? schema.fields : getFieldsForSummary(schema);
+  const visibleFields = isDetails
+    ? schema.fields.filter(f => f.displayTier !== 'pill')
+    : getFieldsForSummary(schema);
 
   return (
     <div

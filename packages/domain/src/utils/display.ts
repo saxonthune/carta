@@ -32,11 +32,11 @@ export function getFieldsForTier(
 }
 
 /**
- * Get fields that should appear in summary mode: pill + minimal tier fields
+ * Get fields that should appear in summary mode: minimal tier fields only
  */
 export function getFieldsForSummary(schema: ConstructSchema): FieldSchema[] {
   return schema.fields
-    .filter(f => f.displayTier === 'pill' || f.displayTier === 'minimal')
+    .filter(f => f.displayTier === 'minimal')
     .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
 }
 
