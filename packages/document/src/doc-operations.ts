@@ -1195,6 +1195,55 @@ export function removeSchema(ydoc: Y.Doc, type: string): boolean {
   return true;
 }
 
+/**
+ * Update non-breaking properties of an existing schema.
+ * Rejects updates to `type` (rename), `fields` (structural), and `ports` (structural).
+ * Uses full-replace semantics: read current → merge updates → write back.
+ */
+export function updateSchema(
+  ydoc: Y.Doc,
+  type: string,
+  updates: Record<string, unknown>,
+  origin: string = MCP_ORIGIN
+): ConstructSchema | null {
+  const yschemas = ydoc.getMap<Y.Map<unknown>>('schemas');
+  const yschema = yschemas.get(type);
+  if (!yschema) return null;
+
+  // Reject forbidden keys
+  const forbidden = ['type', 'fields', 'ports'];
+  const forbiddenFound = forbidden.filter(k => k in updates);
+  if (forbiddenFound.length > 0) {
+    throw new Error(`Cannot update forbidden keys: ${forbiddenFound.join(', ')}. Use migration operations.`);
+  }
+
+  // Read current, merge, write back
+  const current = yToPlain(yschema) as Record<string, unknown>;
+
+  // Handle field metadata updates: updates.fieldUpdates is Record<fieldName, {label?, description?, ...}>
+  let mergedFields = current.fields;
+  if ('fieldUpdates' in updates) {
+    const fieldUpdates = updates.fieldUpdates as Record<string, Record<string, unknown>>;
+    delete updates.fieldUpdates;
+    const fields = (current.fields as Array<Record<string, unknown>>) || [];
+    mergedFields = fields.map(f => {
+      const fieldPatch = fieldUpdates[f.name as string];
+      if (!fieldPatch) return f;
+      // Only allow non-structural field properties
+      const { name: _n, type: _t, options: _o, ...safeUpdates } = fieldPatch;
+      return { ...f, ...safeUpdates };
+    });
+  }
+
+  const merged = { ...current, ...updates, fields: mergedFields };
+
+  ydoc.transact(() => {
+    yschemas.set(type, deepPlainToY(merged) as Y.Map<unknown>);
+  }, origin);
+
+  return merged as unknown as ConstructSchema;
+}
+
 // ===== AUTO-LAYOUT =====
 
 /**
