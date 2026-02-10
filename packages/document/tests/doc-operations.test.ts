@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import * as Y from 'yjs';
-import { createPage, listPages, updatePage, deletePage, flowLayout, createConstruct, connect, updateConstruct, getConstruct } from '../src/doc-operations';
-import { deepPlainToY } from '../src/yjs-helpers';
+import { createPage, listPages, updatePage, deletePage, flowLayout, createConstruct, connect, updateConstruct, getConstruct, createSchema, renameField, removeField, addField, renamePort, removePort, listConstructs } from '../src/doc-operations';
+import { deepPlainToY, yToPlain } from '../src/yjs-helpers';
 
 describe('page operations', () => {
   let doc: Y.Doc;
@@ -188,5 +188,382 @@ describe('construct field values', () => {
     const read = getConstruct(doc, pageId, node.data.semanticId);
     expect(read!.data.values.name).toBe('Auth');
     expect(read!.data.values.description).toBe('Updated desc');
+  });
+});
+
+describe('schema migration operations', () => {
+  let doc: Y.Doc;
+  let pageId: string;
+
+  beforeEach(() => {
+    doc = new Y.Doc();
+    const page = createPage(doc, 'Test Page');
+    pageId = page.id;
+  });
+
+  describe('renameField', () => {
+    it('should rename a field and migrate instance values', () => {
+      // Create schema with field 'title'
+      createSchema(doc, {
+        type: 'Task',
+        displayName: 'Task',
+        color: '#00ff00',
+        fields: [{ name: 'title', label: 'Title', type: 'string' }],
+      });
+
+      // Create instances on two pages with title values
+      const task1 = createConstruct(doc, pageId, 'Task', { values: { title: 'Task 1' } });
+      const page2 = createPage(doc, 'Page 2');
+      const task2 = createConstruct(doc, page2.id, 'Task', { values: { title: 'Task 2' } });
+
+      // Rename field
+      const result = renameField(doc, 'Task', 'title', 'name');
+
+      expect(result.schemaUpdated).toBe(true);
+      expect(result.instancesUpdated).toBe(2);
+      expect(result.edgesUpdated).toBe(0);
+      expect(result.edgesRemoved).toBe(0);
+
+      // Verify schema updated
+      const schema = yToPlain(doc.getMap('schemas').get('Task')!) as Record<string, unknown>;
+      const fields = schema.fields as Array<Record<string, unknown>>;
+      expect(fields[0]?.name).toBe('name');
+
+      // Verify instances migrated
+      const task1Data = getConstruct(doc, pageId, task1.data.semanticId);
+      expect(task1Data!.data.values.name).toBe('Task 1');
+      expect(task1Data!.data.values.title).toBeUndefined();
+
+      const task2Data = getConstruct(doc, page2.id, task2.data.semanticId);
+      expect(task2Data!.data.values.name).toBe('Task 2');
+      expect(task2Data!.data.values.title).toBeUndefined();
+    });
+
+    it('should update displayField if it references the old name', () => {
+      createSchema(doc, {
+        type: 'Task',
+        displayName: 'Task',
+        color: '#00ff00',
+        displayField: 'title',
+        fields: [{ name: 'title', label: 'Title', type: 'string' }],
+      });
+
+      renameField(doc, 'Task', 'title', 'name');
+
+      const schema = yToPlain(doc.getMap('schemas').get('Task')!) as Record<string, unknown>;
+      expect(schema.displayField).toBe('name');
+    });
+
+    it('should throw if field does not exist', () => {
+      createSchema(doc, {
+        type: 'Task',
+        displayName: 'Task',
+        color: '#00ff00',
+        fields: [{ name: 'title', label: 'Title', type: 'string' }],
+      });
+
+      expect(() => renameField(doc, 'Task', 'nonexistent', 'name')).toThrow('Field not found: nonexistent');
+    });
+
+    it('should throw if target name already exists', () => {
+      createSchema(doc, {
+        type: 'Task',
+        displayName: 'Task',
+        color: '#00ff00',
+        fields: [
+          { name: 'title', label: 'Title', type: 'string' },
+          { name: 'name', label: 'Name', type: 'string' },
+        ],
+      });
+
+      expect(() => renameField(doc, 'Task', 'title', 'name')).toThrow('Field already exists: name');
+    });
+  });
+
+  describe('removeField', () => {
+    it('should remove field from schema and delete instance values', () => {
+      createSchema(doc, {
+        type: 'Task',
+        displayName: 'Task',
+        color: '#00ff00',
+        fields: [
+          { name: 'title', label: 'Title', type: 'string' },
+          { name: 'description', label: 'Description', type: 'string' },
+        ],
+      });
+
+      const task = createConstruct(doc, pageId, 'Task', {
+        values: { title: 'Task 1', description: 'Description 1' },
+      });
+
+      const result = removeField(doc, 'Task', 'description');
+
+      expect(result.schemaUpdated).toBe(true);
+      expect(result.instancesUpdated).toBe(1);
+
+      // Verify schema updated
+      const schema = yToPlain(doc.getMap('schemas').get('Task')!) as Record<string, unknown>;
+      const fields = schema.fields as Array<Record<string, unknown>>;
+      expect(fields.length).toBe(1);
+      expect(fields[0]?.name).toBe('title');
+
+      // Verify instance updated
+      const taskData = getConstruct(doc, pageId, task.data.semanticId);
+      expect(taskData!.data.values.title).toBe('Task 1');
+      expect(taskData!.data.values.description).toBeUndefined();
+    });
+
+    it('should clear displayField if it matches removed field', () => {
+      createSchema(doc, {
+        type: 'Task',
+        displayName: 'Task',
+        color: '#00ff00',
+        displayField: 'title',
+        fields: [{ name: 'title', label: 'Title', type: 'string' }],
+      });
+
+      removeField(doc, 'Task', 'title');
+
+      const schema = yToPlain(doc.getMap('schemas').get('Task')!) as Record<string, unknown>;
+      expect(schema.displayField).toBeUndefined();
+    });
+
+    it('should throw if field does not exist', () => {
+      createSchema(doc, {
+        type: 'Task',
+        displayName: 'Task',
+        color: '#00ff00',
+        fields: [{ name: 'title', label: 'Title', type: 'string' }],
+      });
+
+      expect(() => removeField(doc, 'Task', 'nonexistent')).toThrow('Field not found: nonexistent');
+    });
+  });
+
+  describe('addField', () => {
+    it('should add field to schema without modifying instances', () => {
+      createSchema(doc, {
+        type: 'Task',
+        displayName: 'Task',
+        color: '#00ff00',
+        fields: [{ name: 'title', label: 'Title', type: 'string' }],
+      });
+
+      const task = createConstruct(doc, pageId, 'Task', { values: { title: 'Task 1' } });
+
+      const result = addField(doc, 'Task', { name: 'priority', label: 'Priority', type: 'number' });
+
+      expect(result.schemaUpdated).toBe(true);
+      expect(result.instancesUpdated).toBe(0);
+
+      // Verify schema updated
+      const schema = yToPlain(doc.getMap('schemas').get('Task')!) as Record<string, unknown>;
+      const fields = schema.fields as Array<Record<string, unknown>>;
+      expect(fields.length).toBe(2);
+      expect(fields[1]?.name).toBe('priority');
+
+      // Verify instance not changed
+      const taskData = getConstruct(doc, pageId, task.data.semanticId);
+      expect(taskData!.data.values.priority).toBeUndefined();
+    });
+
+    it('should populate instances with default value if provided', () => {
+      createSchema(doc, {
+        type: 'Task',
+        displayName: 'Task',
+        color: '#00ff00',
+        fields: [{ name: 'title', label: 'Title', type: 'string' }],
+      });
+
+      const task1 = createConstruct(doc, pageId, 'Task', { values: { title: 'Task 1' } });
+      const page2 = createPage(doc, 'Page 2');
+      const task2 = createConstruct(doc, page2.id, 'Task', { values: { title: 'Task 2' } });
+
+      const result = addField(doc, 'Task', { name: 'status', label: 'Status', type: 'string' }, 'todo');
+
+      expect(result.schemaUpdated).toBe(true);
+      expect(result.instancesUpdated).toBe(2);
+
+      // Verify instances updated
+      const task1Data = getConstruct(doc, pageId, task1.data.semanticId);
+      expect(task1Data!.data.values.status).toBe('todo');
+
+      const task2Data = getConstruct(doc, page2.id, task2.data.semanticId);
+      expect(task2Data!.data.values.status).toBe('todo');
+    });
+
+    it('should throw if field name already exists', () => {
+      createSchema(doc, {
+        type: 'Task',
+        displayName: 'Task',
+        color: '#00ff00',
+        fields: [{ name: 'title', label: 'Title', type: 'string' }],
+      });
+
+      expect(() => addField(doc, 'Task', { name: 'title', label: 'Title Again', type: 'string' })).toThrow(
+        'Field already exists: title'
+      );
+    });
+  });
+
+  describe('renamePort', () => {
+    it('should rename port and update edge connections', () => {
+      createSchema(doc, {
+        type: 'Task',
+        displayName: 'Task',
+        color: '#00ff00',
+        fields: [{ name: 'title', label: 'Title', type: 'string' }],
+        ports: [
+          { id: 'flow-out', portType: 'flow-out', label: 'Next' },
+          { id: 'flow-in', portType: 'flow-in', label: 'Previous' },
+        ],
+      });
+
+      const task1 = createConstruct(doc, pageId, 'Task', { values: { title: 'Task 1' } });
+      const task2 = createConstruct(doc, pageId, 'Task', { values: { title: 'Task 2' } });
+
+      // Connect via flow-out
+      connect(doc, pageId, task1.data.semanticId, 'flow-out', task2.data.semanticId, 'flow-in');
+
+      const result = renamePort(doc, 'Task', 'flow-out', 'output');
+
+      expect(result.schemaUpdated).toBe(true);
+      expect(result.edgesUpdated).toBe(1);
+
+      // Verify schema updated
+      const schema = yToPlain(doc.getMap('schemas').get('Task')!) as Record<string, unknown>;
+      const ports = schema.ports as Array<Record<string, unknown>>;
+      expect(ports[0]?.id).toBe('output');
+
+      // Verify edge updated
+      const edges = doc.getMap('edges').get(pageId) as Y.Map<Y.Map<unknown>>;
+      const edgeArray = Array.from(edges.values());
+      expect(edgeArray.length).toBe(1);
+      const edge = yToPlain(edgeArray[0]!) as Record<string, unknown>;
+      expect(edge.sourceHandle).toBe('output');
+      expect(edge.targetHandle).toBe('flow-in');
+
+      // Verify connections array updated
+      const task1Data = getConstruct(doc, pageId, task1.data.semanticId);
+      const connections = task1Data!.data.connections as Array<Record<string, unknown>>;
+      expect(connections.length).toBe(1);
+      expect(connections[0]?.portId).toBe('output');
+    });
+
+    it('should throw if port does not exist', () => {
+      createSchema(doc, {
+        type: 'Task',
+        displayName: 'Task',
+        color: '#00ff00',
+        fields: [],
+        ports: [{ id: 'flow-out', portType: 'flow-out', label: 'Next' }],
+      });
+
+      expect(() => renamePort(doc, 'Task', 'nonexistent', 'output')).toThrow('Port not found: nonexistent');
+    });
+
+    it('should throw if target port already exists', () => {
+      createSchema(doc, {
+        type: 'Task',
+        displayName: 'Task',
+        color: '#00ff00',
+        fields: [],
+        ports: [
+          { id: 'flow-out', portType: 'flow-out', label: 'Next' },
+          { id: 'output', portType: 'flow-out', label: 'Output' },
+        ],
+      });
+
+      expect(() => renamePort(doc, 'Task', 'flow-out', 'output')).toThrow('Port already exists: output');
+    });
+  });
+
+  describe('removePort', () => {
+    it('should remove port and delete connected edges', () => {
+      createSchema(doc, {
+        type: 'Task',
+        displayName: 'Task',
+        color: '#00ff00',
+        fields: [{ name: 'title', label: 'Title', type: 'string' }],
+        ports: [
+          { id: 'flow-out', portType: 'flow-out', label: 'Next' },
+          { id: 'flow-in', portType: 'flow-in', label: 'Previous' },
+        ],
+      });
+
+      const task1 = createConstruct(doc, pageId, 'Task', { values: { title: 'Task 1' } });
+      const task2 = createConstruct(doc, pageId, 'Task', { values: { title: 'Task 2' } });
+
+      // Connect via flow-out
+      connect(doc, pageId, task1.data.semanticId, 'flow-out', task2.data.semanticId, 'flow-in');
+
+      const result = removePort(doc, 'Task', 'flow-out');
+
+      expect(result.schemaUpdated).toBe(true);
+      expect(result.edgesRemoved).toBe(1);
+
+      // Verify schema updated
+      const schema = yToPlain(doc.getMap('schemas').get('Task')!) as Record<string, unknown>;
+      const ports = schema.ports as Array<Record<string, unknown>>;
+      expect(ports.length).toBe(1);
+      expect(ports[0]?.id).toBe('flow-in');
+
+      // Verify edge deleted
+      const edges = doc.getMap('edges').get(pageId) as Y.Map<Y.Map<unknown>>;
+      const edgeArray = Array.from(edges.values());
+      expect(edgeArray.length).toBe(0);
+
+      // Verify connections array cleaned up
+      const task1Data = getConstruct(doc, pageId, task1.data.semanticId);
+      const connections = task1Data!.data.connections as Array<Record<string, unknown>>;
+      expect(connections.length).toBe(0);
+    });
+
+    it('should clean up connections on other nodes that targeted the removed port', () => {
+      createSchema(doc, {
+        type: 'Task',
+        displayName: 'Task',
+        color: '#00ff00',
+        fields: [],
+        ports: [
+          { id: 'flow-out', portType: 'flow-out', label: 'Next' },
+          { id: 'flow-in', portType: 'flow-in', label: 'Previous' },
+        ],
+      });
+
+      const task1 = createConstruct(doc, pageId, 'Task', {});
+      const task2 = createConstruct(doc, pageId, 'Task', {});
+
+      // Connect and verify connections exist
+      connect(doc, pageId, task1.data.semanticId, 'flow-out', task2.data.semanticId, 'flow-in');
+
+      const task2Before = getConstruct(doc, pageId, task2.data.semanticId);
+      expect(task2Before!.data.connections).toBeDefined();
+
+      // Remove the target port
+      removePort(doc, 'Task', 'flow-in');
+
+      // Verify task1's connections cleaned up (source side)
+      const task1After = getConstruct(doc, pageId, task1.data.semanticId);
+      const connections1 = (task1After!.data.connections || []) as Array<Record<string, unknown>>;
+      expect(connections1.length).toBe(0);
+
+      // Verify task2's connections not affected (it wasn't the source)
+      const task2After = getConstruct(doc, pageId, task2.data.semanticId);
+      const connections2 = (task2After!.data.connections || []) as Array<Record<string, unknown>>;
+      expect(connections2.length).toBe(0);
+    });
+
+    it('should throw if port does not exist', () => {
+      createSchema(doc, {
+        type: 'Task',
+        displayName: 'Task',
+        color: '#00ff00',
+        fields: [],
+        ports: [{ id: 'flow-out', portType: 'flow-out', label: 'Next' }],
+      });
+
+      expect(() => removePort(doc, 'Task', 'nonexistent')).toThrow('Port not found: nonexistent');
+    });
   });
 });
