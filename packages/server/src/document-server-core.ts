@@ -54,8 +54,13 @@ import {
   batchMutate,
   flowLayout,
   arrangeLayout,
+  renameField,
+  removeField,
+  addField,
+  renamePort,
+  removePort,
 } from '@carta/document';
-import type { BatchOperation, BatchResult } from '@carta/document';
+import type { BatchOperation, BatchResult, MigrationResult } from '@carta/document';
 import type { FlowDirection, ArrangeStrategy, ArrangeConstraint } from '@carta/domain';
 
 // ===== TYPES =====
@@ -1017,6 +1022,54 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
           sendJson(res, 201, { schema });
           return;
         }
+      }
+
+      // Schema migration operations: POST /api/documents/:docId/schemas/:type/migrate
+      const schemaMigrateMatch = path.match(/^\/api\/documents\/([^/]+)\/schemas\/([^/]+)\/migrate$/);
+      if (schemaMigrateMatch) {
+        const roomId = schemaMigrateMatch[1]!;
+        const type = decodeURIComponent(schemaMigrateMatch[2]!);
+        const docState = await config.getDoc(roomId);
+
+        if (method !== 'POST') {
+          sendError(res, 405, 'Method not allowed', 'METHOD_NOT_ALLOWED');
+          return;
+        }
+
+        const body = await parseJsonBody<{ operation: string; [key: string]: unknown }>(req);
+        if (!body?.operation) {
+          sendError(res, 400, 'Missing "operation" field', 'MISSING_FIELD');
+          return;
+        }
+
+        try {
+          let result: MigrationResult;
+          switch (body.operation) {
+            case 'renameField':
+              result = renameField(docState.doc, type, body.oldName as string, body.newName as string);
+              break;
+            case 'removeField':
+              result = removeField(docState.doc, type, body.fieldName as string);
+              break;
+            case 'addField':
+              result = addField(docState.doc, type, body.field as Record<string, unknown>, body.defaultValue);
+              break;
+            case 'renamePort':
+              result = renamePort(docState.doc, type, body.oldPortId as string, body.newPortId as string);
+              break;
+            case 'removePort':
+              result = removePort(docState.doc, type, body.portId as string);
+              break;
+            default:
+              sendError(res, 400, `Unknown migration operation: ${body.operation}`, 'VALIDATION_ERROR');
+              return;
+          }
+          sendJson(res, 200, result);
+        } catch (err: unknown) {
+          const message = err instanceof Error ? err.message : 'Migration failed';
+          sendError(res, 400, message, 'VALIDATION_ERROR');
+        }
+        return;
       }
 
       const schemaMatch = path.match(/^\/api\/documents\/([^/]+)\/schemas\/([^/]+)$/);
