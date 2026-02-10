@@ -7,7 +7,7 @@
  */
 
 import type { Edge, Node } from '@xyflow/react';
-import type { ConstructSchema, ConstructNodeData, OrganizerNodeData } from '@carta/domain';
+import type { ConstructSchema, ConstructNodeData } from '@carta/domain';
 import { getPortsForSchema } from '@carta/domain';
 
 /**
