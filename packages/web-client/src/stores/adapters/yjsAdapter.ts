@@ -17,6 +17,7 @@ import {
   generatePageId,
   migrateToPages,
   deepPlainToY,
+  updateSchema as updateSchemaOp,
 } from '@carta/document';
 import { updateDocumentMetadata } from '../documentRegistry';
 
@@ -913,12 +914,8 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     updateSchema(type: string, updates: Partial<ConstructSchema>) {
-      ydoc.transact(() => {
-        const yschema = yschemas.get(type);
-        if (!yschema) return;
-        const current = yMapToObject<ConstructSchema>(yschema);
-        yschemas.set(type, objectToYMap({ ...current, ...updates } as unknown as Record<string, unknown>));
-      }, 'user');
+      // Delegate to shared doc-operation with 'user' origin
+      updateSchemaOp(ydoc, type, updates as unknown as Record<string, unknown>, 'user');
     },
 
     removeSchema(type: string): boolean {
