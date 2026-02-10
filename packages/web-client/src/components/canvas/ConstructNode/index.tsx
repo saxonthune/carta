@@ -123,7 +123,7 @@ const ConstructNode = memo(function ConstructNode({ data, selected = false }: Co
   const sequenceBadge = (data as Record<string, unknown>).sequenceBadge as number | undefined;
 
   let variant: React.ReactNode;
-  if (lod.band === 'pill') {
+  if (lod.band === 'marker') {
     variant = <ConstructNodeMarker {...variantProps} />;
   } else if (schema.nodeShape === 'simple') {
     variant = <ConstructNodeSimple {...variantProps} />;
@@ -139,7 +139,7 @@ const ConstructNode = memo(function ConstructNode({ data, selected = false }: Co
 
   const content = (
     <div className="relative">
-      {sequenceBadge != null && lod.band !== 'pill' && (
+      {sequenceBadge != null && lod.band !== 'marker' && (
         <SequenceBadge ordinal={sequenceBadge} />
       )}
       {variant}

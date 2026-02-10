@@ -61,7 +61,7 @@ describe('Clear Document', () => {
         // Add a custom schema
         adapter.addSchema({
           type: 'CustomType',
-          fields: [{ name: 'name', type: 'string', displayTier: 'pill' }],
+          fields: [{ name: 'name', type: 'string', displayTier: 'marker' }],
           ports: [],
         });
       });
@@ -182,7 +182,7 @@ describe('Clear Document', () => {
 
         adapter.addSchema({
           type: 'PreservedSchema',
-          fields: [{ name: 'name', type: 'string', displayTier: 'pill' }],
+          fields: [{ name: 'name', type: 'string', displayTier: 'marker' }],
           ports: [],
         });
       });

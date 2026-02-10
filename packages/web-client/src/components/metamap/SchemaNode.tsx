@@ -39,8 +39,8 @@ const SchemaNode = memo(({ data, selected }: SchemaNodeProps) => {
     transition: 'opacity 120ms ease',
   };
 
-  // Pill variant for low zoom
-  if (lod.band === 'pill') {
+  // Marker variant for low zoom
+  if (lod.band === 'marker') {
     return (
       <div
         className={`rounded-lg font-semibold px-5 py-3 truncate cursor-move select-none whitespace-nowrap text-content flex items-center gap-3 ${

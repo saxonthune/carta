@@ -175,7 +175,7 @@ describe('Pages', () => {
           type: 'SharedType',
           displayName: 'Shared',
           color: '#aabbcc',
-          fields: [{ name: 'name', type: 'string', displayTier: 'pill' }],
+          fields: [{ name: 'name', type: 'string', displayTier: 'marker' }],
           compilation: { template: '{{name}}' },
           ports: [],
         });
@@ -440,7 +440,7 @@ describe('Pages', () => {
           type: 'Custom',
           displayName: 'Custom',
           color: '#000',
-          fields: [{ name: 'name', type: 'string', displayTier: 'pill' }],
+          fields: [{ name: 'name', type: 'string', displayTier: 'marker' }],
           compilation: { template: '{{name}}' },
           ports: [],
         });
