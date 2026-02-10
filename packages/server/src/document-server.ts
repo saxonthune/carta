@@ -19,6 +19,7 @@ import createDebug from 'debug';
 import {
   migrateToPages,
   repairOrphanedConnections,
+  migrateRenderStyleToNodeShape,
   extractDocument,
 } from '@carta/document';
 import {
@@ -97,6 +98,9 @@ async function getYDoc(docName: string): Promise<DocState> {
 
     // Migrate flat docs to page-based structure
     migrateToPages(doc);
+
+    // Migrate schema renderStyle to nodeShape
+    migrateRenderStyleToNodeShape(doc);
 
     // Repair orphaned connections (references to deleted nodes)
     repairOrphanedConnections(doc);

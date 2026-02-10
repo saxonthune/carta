@@ -5,7 +5,7 @@ import { toSnakeCase } from '../../utils/stringUtils';
 import type { ConstructSchema } from '@carta/domain';
 
 type BackgroundColorPolicy = NonNullable<ConstructSchema['backgroundColorPolicy']>;
-type RenderStyle = NonNullable<ConstructSchema['renderStyle']>;
+type RenderStyle = NonNullable<ConstructSchema['nodeShape']>;
 type ColorMode = NonNullable<ConstructSchema['colorMode']>;
 
 const DEFAULT_COLORS = [
@@ -158,8 +158,8 @@ export default function BasicsStep({ formData, errors, updateField, schemaGroups
           <div className="flex-1">
             <label className="block mb-1 text-[11px] text-content-muted">Render Style</label>
             <Select
-              value={formData.renderStyle || 'default'}
-              onChange={(e) => updateField('renderStyle', e.target.value as RenderStyle)}
+              value={formData.nodeShape || 'default'}
+              onChange={(e) => updateField('nodeShape', e.target.value as RenderStyle)}
             >
               <option value="default">Default</option>
               <option value="card">Card</option>

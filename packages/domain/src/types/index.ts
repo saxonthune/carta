@@ -156,7 +156,7 @@ export interface ConstructSchema {
   compilation: CompilationConfig;
   groupId?: string;          // References SchemaGroup.id for hierarchical organization
   backgroundColorPolicy?: 'defaultOnly' | 'tints' | 'any';  // Controls instance color picker: 'defaultOnly' (no picker), 'tints' (7 tint swatches), 'any' (full color picker). default: 'defaultOnly'
-  renderStyle?: 'default' | 'simple' | 'circle' | 'diamond' | 'document';                            // 'default': header bar + fields. 'simple': tinted surface, label-dominant, content-first, no header bar. default: 'default'
+  nodeShape?: 'default' | 'simple' | 'circle' | 'diamond' | 'document';                            // 'default': header bar + fields. 'simple': tinted surface, label-dominant, content-first, no header bar. default: 'default'
   colorMode?: 'default' | 'instance' | 'enum';                  // How node color is determined: 'default' (schema color), 'instance' (per-instance override), 'enum' (driven by enum field value). default: 'default'
   enumColorField?: string;                                       // Field name (type 'enum') that drives color when colorMode is 'enum'
   enumColorMap?: Record<string, string>;                         // Enum value → hex color mapping for enum color mode

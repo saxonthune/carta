@@ -14,7 +14,7 @@ export const sketchingSeed: SchemaSeed = {
       displayName: 'Note',
       color: '#c4a94e',
       semanticDescription: 'A freeform note or annotation',
-      renderStyle: 'simple',
+      nodeShape: 'simple',
       backgroundColorPolicy: 'tints',
       groupId: 'sketching',
       fields: [
@@ -40,7 +40,7 @@ export const sketchingSeed: SchemaSeed = {
       type: 'box',
       displayName: 'Box',
       color: '#64748b',
-      renderStyle: 'simple',
+      nodeShape: 'simple',
       backgroundColorPolicy: 'tints',
       groupId: 'sketching',
       semanticDescription: 'Generic box for rough modeling',

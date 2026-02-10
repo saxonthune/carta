@@ -508,7 +508,7 @@ export function getToolDefinitions() {
     },
     {
       name: 'carta_update_schema',
-      description: 'Update non-breaking properties of a custom schema (color, displayName, renderStyle, etc). Cannot change type, fields array, or ports array — use migration operations for structural changes. Supports field metadata updates via fieldUpdates map.',
+      description: 'Update non-breaking properties of a custom schema (color, displayName, nodeShape, etc). Cannot change type, fields array, or ports array — use migration operations for structural changes. Supports field metadata updates via fieldUpdates map.',
       inputSchema: z.object({
         documentId: z.string().describe('The document ID'),
         type: z.string().describe('The schema type to update'),
@@ -517,7 +517,7 @@ export function getToolDefinitions() {
         semanticDescription: z.string().optional().describe('New description for AI context'),
         groupId: z.string().optional().describe('New schema group ID'),
         backgroundColorPolicy: z.enum(['defaultOnly', 'tints', 'any']).optional().describe('Controls instance color picker'),
-        renderStyle: z.enum(['default', 'simple', 'circle', 'diamond', 'document']).optional().describe('Node render style'),
+        nodeShape: z.enum(['default', 'simple', 'circle', 'diamond', 'document']).optional().describe('Node render style'),
         colorMode: z.enum(['default', 'instance', 'enum']).optional().describe('How node color is determined'),
         enumColorField: z.string().optional().describe('Field name for enum color mode'),
         enumColorMap: z.record(z.string()).optional().describe('Enum value → hex color mapping'),
@@ -974,7 +974,7 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
         semanticDescription: z.string().optional(),
         groupId: z.string().optional(),
         backgroundColorPolicy: z.enum(['defaultOnly', 'tints', 'any']).optional(),
-        renderStyle: z.enum(['default', 'simple', 'circle', 'diamond', 'document']).optional(),
+        nodeShape: z.enum(['default', 'simple', 'circle', 'diamond', 'document']).optional(),
         colorMode: z.enum(['default', 'instance', 'enum']).optional(),
         enumColorField: z.string().optional(),
         enumColorMap: z.record(z.string()).optional(),

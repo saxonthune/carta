@@ -135,3 +135,23 @@ export function repairOrphanedConnections(ydoc: Y.Doc): void {
   });
 }
 
+/**
+ * Migrate schema renderStyle key to nodeShape.
+ *
+ * Walks all custom schemas in the Y.Doc and renames the 'renderStyle' key to 'nodeShape'.
+ */
+export function migrateRenderStyleToNodeShape(ydoc: Y.Doc): void {
+  const yschemas = ydoc.getMap<Y.Map<unknown>>('schemas');
+
+  if (yschemas.size === 0) return;
+
+  yschemas.forEach((yschemaData) => {
+    const yschema = yschemaData as Y.Map<unknown>;
+    const renderStyle = yschema.get('renderStyle');
+    if (renderStyle !== undefined) {
+      yschema.set('nodeShape', renderStyle);
+      yschema.delete('renderStyle');
+    }
+  });
+}
+

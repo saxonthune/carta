@@ -125,13 +125,13 @@ const ConstructNode = memo(function ConstructNode({ data, selected = false }: Co
   let variant: React.ReactNode;
   if (lod.band === 'pill') {
     variant = <ConstructNodePill {...variantProps} />;
-  } else if (schema.renderStyle === 'simple') {
+  } else if (schema.nodeShape === 'simple') {
     variant = <ConstructNodeSimple {...variantProps} />;
-  } else if (schema.renderStyle === 'circle') {
+  } else if (schema.nodeShape === 'circle') {
     variant = <ConstructNodeCircle {...variantProps} />;
-  } else if (schema.renderStyle === 'diamond') {
+  } else if (schema.nodeShape === 'diamond') {
     variant = <ConstructNodeDiamond {...variantProps} />;
-  } else if (schema.renderStyle === 'document') {
+  } else if (schema.nodeShape === 'document') {
     variant = <ConstructNodeDocument {...variantProps} />;
   } else {
     variant = <ConstructNodeDefault {...variantProps} />;

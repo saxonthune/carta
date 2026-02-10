@@ -19,6 +19,7 @@ import { WebSocketServer } from 'ws';
 import createDebug from 'debug';
 import {
   migrateToPages,
+  migrateRenderStyleToNodeShape,
   extractCartaFile,
   hydrateYDocFromCartaFile,
   validateCartaFile,
@@ -295,6 +296,7 @@ function getOrCreateDoc(docId: string): DesktopDocState {
   // Migrate flat docs to page-based structure
   if (loaded) {
     migrateToPages(doc);
+    migrateRenderStyleToNodeShape(doc);
   }
 
   // Schedule saves on updates (only for docs that exist on disk or were explicitly created)

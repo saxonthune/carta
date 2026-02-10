@@ -130,10 +130,10 @@ export default function ConstructDebugModal({
                 <span className="text-content-subtle min-w-[120px] shrink-0">Color</span>
                 <span className="text-content font-mono text-xs break-all">{schema.color}</span>
               </div>
-              {schema.renderStyle && (
+              {schema.nodeShape && (
                 <div className="flex gap-2 text-sm">
                   <span className="text-content-subtle min-w-[120px] shrink-0">Render Style</span>
-                  <span className="text-content font-mono text-xs break-all">{schema.renderStyle}</span>
+                  <span className="text-content font-mono text-xs break-all">{schema.nodeShape}</span>
                 </div>
               )}
               {schema.backgroundColorPolicy && (
