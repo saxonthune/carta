@@ -342,6 +342,47 @@ const CreateSchemaInputSchema = z.object({
     .describe('Port configurations'),
 });
 
+// Schema Migration Schemas
+const RenameFieldSchema = z.object({
+  documentId: z.string().describe('The document ID'),
+  schemaType: z.string().describe('The schema type to modify'),
+  oldName: z.string().describe('Current field name'),
+  newName: z.string().describe('New field name'),
+});
+
+const RemoveFieldSchema = z.object({
+  documentId: z.string().describe('The document ID'),
+  schemaType: z.string().describe('The schema type to modify'),
+  fieldName: z.string().describe('Field name to remove'),
+});
+
+const AddFieldSchema = z.object({
+  documentId: z.string().describe('The document ID'),
+  schemaType: z.string().describe('The schema type to modify'),
+  field: z.object({
+    name: z.string().describe('Field name'),
+    type: z.enum(['string', 'number', 'boolean', 'enum', 'url']).describe('Field data type'),
+    options: z.array(z.string()).optional().describe('Enum options (required if type is enum)'),
+    label: z.string().optional().describe('Display label'),
+    displayTier: z.enum(['pill', 'minimal', 'details', 'full']).optional(),
+    semanticDescription: z.string().optional(),
+  }).describe('Field definition'),
+  defaultValue: z.unknown().optional().describe('Default value to populate on existing instances'),
+});
+
+const RenamePortSchema = z.object({
+  documentId: z.string().describe('The document ID'),
+  schemaType: z.string().describe('The schema type to modify'),
+  oldPortId: z.string().describe('Current port ID'),
+  newPortId: z.string().describe('New port ID'),
+});
+
+const RemovePortSchema = z.object({
+  documentId: z.string().describe('The document ID'),
+  schemaType: z.string().describe('The schema type to modify'),
+  portId: z.string().describe('Port ID to remove'),
+});
+
 /**
  * Tool definitions for MCP
  */
@@ -450,6 +491,31 @@ export function getToolDefinitions() {
           placeholder: z.string().optional(),
         })).optional().describe('Map of field name → metadata updates (non-structural only)'),
       }).shape,
+    },
+    {
+      name: 'carta_rename_field',
+      description: 'Rename a field in a schema and migrate all instance values to the new name. Updates displayField reference if needed.',
+      inputSchema: RenameFieldSchema.shape,
+    },
+    {
+      name: 'carta_remove_field',
+      description: 'Remove a field from a schema and delete its values from all instances. Clears displayField reference if needed.',
+      inputSchema: RemoveFieldSchema.shape,
+    },
+    {
+      name: 'carta_add_field',
+      description: 'Add a new field to a schema. Optionally populate existing instances with a default value.',
+      inputSchema: AddFieldSchema.shape,
+    },
+    {
+      name: 'carta_rename_port',
+      description: 'Rename a port in a schema and update all edge connections to use the new port ID.',
+      inputSchema: RenamePortSchema.shape,
+    },
+    {
+      name: 'carta_remove_port',
+      description: 'Remove a port from a schema and delete all edges connected through it.',
+      inputSchema: RemovePortSchema.shape,
     },
     {
       name: 'carta_delete_schema',
@@ -593,6 +659,13 @@ export interface ToolHandlers {
   carta_list_schemas: ToolHandler;
   carta_get_schema: ToolHandler;
   carta_create_schema: ToolHandler;
+  carta_update_schema: ToolHandler;
+  carta_delete_schema: ToolHandler;
+  carta_rename_field: ToolHandler;
+  carta_remove_field: ToolHandler;
+  carta_add_field: ToolHandler;
+  carta_rename_port: ToolHandler;
+  carta_remove_port: ToolHandler;
   carta_list_constructs: ToolHandler;
   carta_get_construct: ToolHandler;
   carta_create_construct: ToolHandler;
@@ -851,6 +924,61 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
         'PATCH',
         `/api/documents/${encodeURIComponent(documentId)}/schemas/${encodeURIComponent(type)}`,
         updates
+      );
+      if (result.error) return { error: result.error };
+      return result.data;
+    },
+
+    carta_rename_field: async (args) => {
+      const { documentId, schemaType, oldName, newName } = RenameFieldSchema.parse(args);
+      const result = await apiRequest<unknown>(
+        'POST',
+        `/api/documents/${encodeURIComponent(documentId)}/schemas/${encodeURIComponent(schemaType)}/migrate`,
+        { operation: 'renameField', oldName, newName }
+      );
+      if (result.error) return { error: result.error };
+      return result.data;
+    },
+
+    carta_remove_field: async (args) => {
+      const { documentId, schemaType, fieldName } = RemoveFieldSchema.parse(args);
+      const result = await apiRequest<unknown>(
+        'POST',
+        `/api/documents/${encodeURIComponent(documentId)}/schemas/${encodeURIComponent(schemaType)}/migrate`,
+        { operation: 'removeField', fieldName }
+      );
+      if (result.error) return { error: result.error };
+      return result.data;
+    },
+
+    carta_add_field: async (args) => {
+      const { documentId, schemaType, field, defaultValue } = AddFieldSchema.parse(args);
+      const result = await apiRequest<unknown>(
+        'POST',
+        `/api/documents/${encodeURIComponent(documentId)}/schemas/${encodeURIComponent(schemaType)}/migrate`,
+        { operation: 'addField', field, defaultValue }
+      );
+      if (result.error) return { error: result.error };
+      return result.data;
+    },
+
+    carta_rename_port: async (args) => {
+      const { documentId, schemaType, oldPortId, newPortId } = RenamePortSchema.parse(args);
+      const result = await apiRequest<unknown>(
+        'POST',
+        `/api/documents/${encodeURIComponent(documentId)}/schemas/${encodeURIComponent(schemaType)}/migrate`,
+        { operation: 'renamePort', oldPortId, newPortId }
+      );
+      if (result.error) return { error: result.error };
+      return result.data;
+    },
+
+    carta_remove_port: async (args) => {
+      const { documentId, schemaType, portId } = RemovePortSchema.parse(args);
+      const result = await apiRequest<unknown>(
+        'POST',
+        `/api/documents/${encodeURIComponent(documentId)}/schemas/${encodeURIComponent(schemaType)}/migrate`,
+        { operation: 'removePort', portId }
       );
       if (result.error) return { error: result.error };
       return result.data;
