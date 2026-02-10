@@ -3,7 +3,7 @@ import { getDisplayName, resolveNodeColor, resolveNodeIcon } from '@carta/domain
 import IndexBasedDropZones from '../IndexBasedDropZones';
 import type { ConstructNodeVariantProps } from './shared';
 
-export function ConstructNodePill({
+export function ConstructNodeMarker({
   data,
   selected,
   schema,

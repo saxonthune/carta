@@ -5,7 +5,7 @@ import type { ConstructNodeData, ConstructValues } from '@carta/domain';
 import { useSchemas } from '../../../hooks/useSchemas';
 import { useLodBand } from '../lod/useLodBand';
 import { stripHandlePrefix } from '../../../utils/handlePrefix';
-import { ConstructNodePill } from './ConstructNodePill';
+import { ConstructNodeMarker } from './ConstructNodeMarker';
 import { ConstructNodeSimple } from './ConstructNodeSimple';
 import { ConstructNodeDefault } from './ConstructNodeDefault';
 import { ConstructNodeCircle } from './ConstructNodeCircle';
@@ -124,7 +124,7 @@ const ConstructNode = memo(function ConstructNode({ data, selected = false }: Co
 
   let variant: React.ReactNode;
   if (lod.band === 'pill') {
-    variant = <ConstructNodePill {...variantProps} />;
+    variant = <ConstructNodeMarker {...variantProps} />;
   } else if (schema.nodeShape === 'simple') {
     variant = <ConstructNodeSimple {...variantProps} />;
   } else if (schema.nodeShape === 'circle') {
