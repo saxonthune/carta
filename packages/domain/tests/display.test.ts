@@ -62,7 +62,7 @@ describe('getFieldsForTier', () => {
 });
 
 describe('getFieldsForSummary', () => {
-  it('should return pill and minimal tier fields', () => {
+  it('should return minimal tier fields only', () => {
     const schema: ConstructSchema = {
       type: 'test',
       displayName: 'Test',
@@ -77,9 +77,9 @@ describe('getFieldsForSummary', () => {
     };
 
     const summaryFields = getFieldsForSummary(schema);
-    expect(summaryFields.length).toBe(2);
-    expect(summaryFields.map(f => f.name)).toContain('field1');
+    expect(summaryFields.length).toBe(1);
     expect(summaryFields.map(f => f.name)).toContain('field2');
+    expect(summaryFields.map(f => f.name)).not.toContain('field1');
   });
 });
 
