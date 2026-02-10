@@ -32,6 +32,7 @@ import {
   listSchemas,
   getSchema,
   createSchema,
+  updateSchema,
   removeSchema,
   compile,
   extractDocument,
@@ -1031,6 +1032,26 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
             return;
           }
           sendJson(res, 200, { schema });
+          return;
+        }
+
+        if (method === 'PATCH') {
+          const body = await parseJsonBody<Record<string, unknown>>(req);
+          if (!body || Object.keys(body).length === 0) {
+            sendError(res, 400, 'Request body required', 'MISSING_FIELD');
+            return;
+          }
+          try {
+            const schema = updateSchema(docState.doc, type, body);
+            if (!schema) {
+              sendError(res, 404, `Schema not found: ${type}`, 'NOT_FOUND');
+              return;
+            }
+            sendJson(res, 200, { schema });
+          } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : 'Update failed';
+            sendError(res, 400, message, 'VALIDATION_ERROR');
+          }
           return;
         }
 
