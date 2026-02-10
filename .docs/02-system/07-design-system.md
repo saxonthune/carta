@@ -283,7 +283,7 @@ Deployable backgrounds are **ground**, not **figure**. They must be the quietest
 1. **Theme-adaptive fill**: 6% opacity of the deployable color across all themes (via CSS vars: `--deployable-fill-opacity`), 12% stroke opacity. Labels use 16px font, 600 weight, 85% opacity at normal zoom. Visibility adapts per-theme via CSS custom properties.
 2. **Interactive labels**: Deployable labels support click-to-select-all and drag-to-move-group interactions at normal zoom levels.
 3. **No dashed borders**: Remove dashed stroke outlines. If a border is needed at all, use a 1px solid line at 10-15% opacity.
-4. **Label placement**: Bottom-right corner, small text, muted color. Labels should fade in progressively with zoom — invisible at pill level, subtle at compact, readable at normal.
+4. **Label placement**: Bottom-right corner, small text, muted color. Labels should fade in progressively with zoom — invisible at marker level, subtle at compact, readable at normal.
 5. **No visual competition**: The deployable background should never draw the eye away from the nodes it contains.
 
 ## Metamap Visual Design
@@ -313,7 +313,7 @@ Edges are secondary visual elements — they show relationships but should not d
 ### Rules
 
 1. **Muted colors**: Edge colors should be muted versions of their port type color, not fully saturated. On dark themes, use desaturated cool tones. On light themes, use medium grays with subtle hue tinting.
-2. **Progressive simplification**: As zoom decreases, edge stroke width and opacity should decrease proportionally. At pill level, edges should be thin and semi-transparent.
+2. **Progressive simplification**: As zoom decreases, edge stroke width and opacity should decrease proportionally. At marker level, edges should be thin and semi-transparent.
 3. **Bundled edges**: When multiple edges connect the same node pair, bundle them visually with a count badge rather than rendering parallel lines.
 4. **Smoothstep routing**: Continue using curved (smoothstep) edge paths for visual softness.
 

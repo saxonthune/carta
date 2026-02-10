@@ -28,7 +28,7 @@ Simple mode is not a global application toggle. It is a per-construct rendering 
 
 **Note is the simple mode schema.** It already has the right shape: a single multiline `content` field and a single `symmetric` port. No new schema is needed.
 
-Note gets `renderStyle: 'simple'` to opt into the simple render variation. This is a schema-level property—all Note instances render simply.
+Note gets `nodeShape: 'simple'` to opt into the simple render variation. This is a schema-level property—all Note instances render simply.
 
 ### Why Note works
 
@@ -48,9 +48,9 @@ Note gets `renderStyle: 'simple'` to opt into the simple render variation. This 
 
 ### Technical Requirements
 
-1. **Schema-driven**: Simple rendering is controlled by `renderStyle: 'simple'` on the schema. No global mode, no per-instance flag.
+1. **Schema-driven**: Simple rendering is controlled by `nodeShape: 'simple'` on the schema. No global mode, no per-instance flag.
 2. **Separate primitive, not variant**: Simple rendering is a fundamentally different interaction model. It's dispatched alongside 'default' and 'card' variants but shares no UI complexity with them. It's a clean-slate implementation that composes only the components it needs.
-3. **No special data model carveouts**: A Note is a regular construct with a schema, semanticId, values, and connections. What makes it render simply is its schema's `renderStyle`.
+3. **No special data model carveouts**: A Note is a regular construct with a schema, semanticId, values, and connections. What makes it render simply is its schema's `nodeShape`.
 4. **No view modes**: Simple nodes have no summary/details toggle, no double-click behavior. There is only one mode: direct inline editing.
 5. **Composable architecture**: Render modes choose which components to include (port drawer, controls, field grids). Simple mode includes only the port drawer, excluding all other chrome. Future render modes should be equally easy to implement by mixing and matching components.
 
@@ -71,9 +71,9 @@ Note gets `renderStyle: 'simple'` to opt into the simple render variation. This 
 - **Pill band** (zoom < 0.5): No change—pills are already maximally compact. Note pills show `Note: {content preview}`.
 - **Normal band** (zoom >= 0.5): Notes render in their simple form—content on a tinted card, no chrome.
 
-### Comparison with other renderStyles
+### Comparison with other nodeShapes
 
-Additional shape variants (`circle`, `diamond`, `document`) were added to support BPMN and other notation-specific rendering (doc05.01). These follow the same architecture: schema-driven renderStyle dispatch to separate components.
+Additional shape variants (`circle`, `diamond`, `document`) were added to support BPMN and other notation-specific rendering (doc05.01). These follow the same architecture: schema-driven nodeShape dispatch to separate components.
 
 | Aspect | `'default'` | `'card'` | `'simple'` | `'circle'` | `'diamond'` | `'document'` |
 |--------|-------------|----------|------------|------------|-------------|--------------|
@@ -114,8 +114,8 @@ NUX seeds the first document with Notes. Simple mode is the ongoing experience o
 ### vs. Rough-to-Refined (doc03.03.08)
 Rough-to-Refined is the conceptual workflow. Simple mode is its technical realization. The workflow doc describes what the user does; this doc describes what the tool shows.
 
-### vs. Card renderStyle
-`renderStyle: 'card'` renders a label-dominant colored card with minimal-tier fields. `'simple'` goes further: no fields at all, content rendered directly as body text, no controls chrome. Card is for schemas that are lightweight but structured (Box); simple is for schemas that are pure freeform text (Note).
+### vs. Card nodeShape
+`nodeShape: 'card'` renders a label-dominant colored card with minimal-tier fields. `'simple'` goes further: no fields at all, content rendered directly as body text, no controls chrome. Card is for schemas that are lightweight but structured (Box); simple is for schemas that are pure freeform text (Note).
 
 ### vs. LOD bands
 LOD controls information density by zoom level. Simple mode controls information density by schema intent. They're orthogonal—a simple construct at pill zoom is a pill; at normal zoom it's a compact card.
@@ -128,8 +128,8 @@ Simple mode demonstrates a key architectural principle: **render modes are separ
 
 ```
 ConstructNode/
-├── index.tsx                    # Dispatcher: LOD + renderStyle routing
-├── ConstructNodePill.tsx        # Pill LOD for all types (shared)
+├── index.tsx                    # Dispatcher: LOD + nodeShape routing
+├── ConstructNodeMarker.tsx        # Pill LOD for all types (shared)
 ├── ConstructNodeDefault.tsx     # Full-featured nodes (includes all chrome)
 ├── ConstructNodeSimple.tsx      # Minimal nodes (no chrome, separate primitive)
 └── shared.ts                    # Shared types and utilities only
@@ -140,10 +140,10 @@ ConstructNode/
 ```tsx
 // index.tsx
 if (lod.band === 'pill') {
-  return <ConstructNodePill {...variantProps} />;  // Shared pill for all types
+  return <ConstructNodeMarker {...variantProps} />;  // Shared pill for all types
 }
 
-if (schema.renderStyle === 'simple') {
+if (schema.nodeShape === 'simple') {
   return <ConstructNodeSimple {...variantProps} />;  // Separate primitive
 }
 
@@ -152,7 +152,7 @@ return <ConstructNodeDefault {...variantProps} />;  // Default includes 'card' a
 
 ### Adding New Render Modes
 
-To add a new render mode (e.g., `renderStyle: 'kanban'`):
+To add a new render mode (e.g., `nodeShape: 'kanban'`):
 
 1. Create `ConstructNodeKanban.tsx` as a separate component
 2. Choose which components to include:
@@ -161,7 +161,7 @@ To add a new render mode (e.g., `renderStyle: 'kanban'`):
    - Controls? Include header bar or render minimally
 3. Add dispatch case in `index.tsx`:
    ```tsx
-   if (schema.renderStyle === 'kanban') {
+   if (schema.nodeShape === 'kanban') {
      return <ConstructNodeKanban {...variantProps} />;
    }
    ```

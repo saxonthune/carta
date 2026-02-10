@@ -48,7 +48,7 @@ Ports are accessed through a **port drawer** at the bottom of each node:
 - **Drag to connect**: Drag from any port circle in the drawer to initiate a connection
 - **Drop zones**: When dragging a connection, target nodes show horizontal strip drop zones ordered by port array index. Valid zones are colored; invalid zones are grayed out
 
-In pill LOD mode, the drawer is hidden and only invisible minimal handles are rendered.
+In marker LOD mode, the drawer is hidden and only invisible minimal handles are rendered.
 
 ## Edge Routing
 

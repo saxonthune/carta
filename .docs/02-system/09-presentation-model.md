@@ -43,7 +43,7 @@ No side effects, no hooks internally. Hooks subscribe to state changes and feed 
 
 | Input | Decision | Output |
 |-------|----------|--------|
-| Schema `renderStyle` + LOD band | Which component renders this node | Dispatch to variant |
+| Schema `nodeShape` + LOD band | Which component renders this node | Dispatch to variant |
 | Organizer collapse state | Which children are visible | `hidden` flag on nodes |
 | Organizer layout strategy | Where children are positioned | `position` on child nodes |
 | Organizer nesting | Edge remapping for collapsed ancestors | `edgeRemap` map |
@@ -243,17 +243,17 @@ This feature was designed in research session doc05.01 to address visual clarity
 The presentation model also governs which component renders each construct. This is a two-key dispatch:
 
 ```
-(schema.renderStyle, lodBand) → Component
+(schema.nodeShape, lodBand) → Component
 ```
 
-| renderStyle / LOD | `pill` (zoom < 0.5) | `normal` (zoom >= 0.5) |
+| nodeShape / LOD | `marker` (zoom < 0.5) | `normal` (zoom >= 0.5) |
 |-------------------|---------------------|------------------------|
-| `'default'` | ConstructNodePill | ConstructNodeDefault |
-| `'simple'` | ConstructNodePill | ConstructNodeSimple |
-| `'card'` | ConstructNodePill | ConstructNodeCard |
-| `'circle'` | ConstructNodePill | ConstructNodeCircle |
-| `'diamond'` | ConstructNodePill | ConstructNodeDiamond |
-| `'document'` | ConstructNodePill | ConstructNodeDocument |
+| `'default'` | ConstructNodeMarker | ConstructNodeDefault |
+| `'simple'` | ConstructNodeMarker | ConstructNodeSimple |
+| `'card'` | ConstructNodeMarker | ConstructNodeCard |
+| `'circle'` | ConstructNodeMarker | ConstructNodeCircle |
+| `'diamond'` | ConstructNodeMarker | ConstructNodeDiamond |
+| `'document'` | ConstructNodeMarker | ConstructNodeDocument |
 
 The shape variants (`circle`, `diamond`, `document`) support notation-specific rendering for BPMN and other visual languages (see doc05.01). Circle renders as a circular node (events, states), diamond as a diamond shape (gateways, decisions), and document as a document-shaped icon (artifacts, data objects).
 

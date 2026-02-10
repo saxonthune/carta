@@ -115,7 +115,7 @@ The codebase has visual grouping logic scattered across Map.tsx (data enhancemen
 
 **New files:**
 - `components/canvas/organizer/OrganizerNode.tsx` — dispatcher (collapsed → chip, expanded → layout component)
-- `components/canvas/organizer/OrganizerChip.tsx` — collapsed pill/chip (shared)
+- `components/canvas/organizer/OrganizerChip.tsx` — collapsed marker/chip (shared)
 - `components/canvas/organizer/FreeformOrganizerLayout.tsx` — current expanded behavior (NodeResizer, free positioning)
 - `components/canvas/organizer/StackOrganizerLayout.tsx` — single visible member, prev/next arrows, breadcrumb dots
 - `components/canvas/organizer/GridOrganizerLayout.tsx` — auto-grid with column control
