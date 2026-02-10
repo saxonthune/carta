@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import * as Y from 'yjs';
-import { createPage, listPages, updatePage, deletePage, flowLayout, createConstruct, connect, updateConstruct, getConstruct, createSchema, renameField, removeField, addField, renamePort, removePort, listConstructs } from '../src/doc-operations';
+import { createPage, listPages, updatePage, deletePage, flowLayout, createConstruct, connect, updateConstruct, getConstruct, createSchema, renameField, removeField, addField, renamePort, removePort, renameSchemaType, changeFieldType, narrowEnumOptions, addPort, changePortType, listConstructs } from '../src/doc-operations';
 import { deepPlainToY, yToPlain } from '../src/yjs-helpers';
 
 describe('page operations', () => {
@@ -562,6 +562,403 @@ describe('schema migration operations', () => {
       });
 
       expect(() => removePort(doc, 'Task', 'nonexistent')).toThrow('Port not found: nonexistent');
+    });
+  });
+
+  describe('renameSchemaType (tier 2)', () => {
+    it('should rename schema type and update all instances', () => {
+      createSchema(doc, {
+        type: 'service',
+        displayName: 'Service',
+        color: '#00ff00',
+        fields: [{ name: 'name', label: 'Name', type: 'string' }],
+      });
+
+      const svc1 = createConstruct(doc, pageId, 'service', { name: 'Auth' });
+      const svc2 = createConstruct(doc, pageId, 'service', { name: 'API' });
+
+      const result = renameSchemaType(doc, 'service', 'microservice');
+
+      expect(result.schemaUpdated).toBe(true);
+      expect(result.instancesUpdated).toBe(2);
+
+      // Old schema gone, new schema exists
+      const schemas = doc.getMap('schemas');
+      expect(schemas.has('service')).toBe(false);
+      expect(schemas.has('microservice')).toBe(true);
+
+      const newSchema = yToPlain(schemas.get('microservice')!) as Record<string, unknown>;
+      expect(newSchema.type).toBe('microservice');
+
+      // Instances updated
+      const svc1Data = getConstruct(doc, pageId, svc1.data.semanticId);
+      expect(svc1Data!.data.constructType).toBe('microservice');
+
+      const svc2Data = getConstruct(doc, pageId, svc2.data.semanticId);
+      expect(svc2Data!.data.constructType).toBe('microservice');
+    });
+
+    it('should update suggestedTypes references in other schemas', () => {
+      createSchema(doc, {
+        type: 'service',
+        displayName: 'Service',
+        color: '#00ff00',
+        fields: [],
+      });
+
+      createSchema(doc, {
+        type: 'connector',
+        displayName: 'Connector',
+        color: '#ff0000',
+        fields: [],
+        ports: [
+          { id: 'target', portType: 'flow-out', label: 'Target', suggestedTypes: ['service'] },
+        ],
+      });
+
+      renameSchemaType(doc, 'service', 'svc');
+
+      const connectorSchema = yToPlain(doc.getMap('schemas').get('connector')!) as Record<string, unknown>;
+      const ports = connectorSchema.ports as Array<Record<string, unknown>>;
+      const targetPort = ports.find(p => p.id === 'target');
+      expect(targetPort?.suggestedTypes).toEqual(['svc']);
+    });
+
+    it('should throw if schema does not exist', () => {
+      expect(() => renameSchemaType(doc, 'nonexistent', 'newname')).toThrow('Schema not found: nonexistent');
+    });
+
+    it('should throw if new type already exists', () => {
+      createSchema(doc, { type: 'service', displayName: 'Service', color: '#00ff00', fields: [] });
+      createSchema(doc, { type: 'task', displayName: 'Task', color: '#ff0000', fields: [] });
+
+      expect(() => renameSchemaType(doc, 'service', 'task')).toThrow('Schema already exists: task');
+    });
+
+    it('should throw if trying to rename built-in schema', () => {
+      expect(() => renameSchemaType(doc, 'organizer', 'renamed')).toThrow('Cannot rename built-in schema: organizer');
+    });
+  });
+
+  describe('changeFieldType (tier 2)', () => {
+    it('should dry-run by default for lossless conversion', () => {
+      createSchema(doc, {
+        type: 'Task',
+        displayName: 'Task',
+        color: '#00ff00',
+        fields: [{ name: 'count', label: 'Count', type: 'number' }],
+      });
+
+      createConstruct(doc, pageId, 'Task', { count: 42 });
+      createConstruct(doc, pageId, 'Task', { count: 99 });
+
+      const result = changeFieldType(doc, 'Task', 'count', 'string');
+
+      expect(result.dryRun).toBe(true);
+      expect(result.schemaUpdated).toBe(false);
+      expect(result.instancesUpdated).toBe(2);
+      expect(result.warnings).toEqual([]);
+
+      // Schema unchanged in dry-run
+      const schema = yToPlain(doc.getMap('schemas').get('Task')!) as Record<string, unknown>;
+      const fields = schema.fields as Array<Record<string, unknown>>;
+      expect(fields[0]?.type).toBe('number');
+    });
+
+    it('should warn about lossy conversions in dry-run', () => {
+      createSchema(doc, {
+        type: 'Task',
+        displayName: 'Task',
+        color: '#00ff00',
+        fields: [{ name: 'name', label: 'Name', type: 'string' }],
+      });
+
+      createConstruct(doc, pageId, 'Task', { name: 'not a number' });
+
+      const result = changeFieldType(doc, 'Task', 'name', 'number');
+
+      expect(result.dryRun).toBe(true);
+      expect(result.warnings.length).toBeGreaterThan(0);
+      expect(result.warnings[0]).toContain('will lose data');
+    });
+
+    it('should execute conversion when force=true', () => {
+      createSchema(doc, {
+        type: 'Task',
+        displayName: 'Task',
+        color: '#00ff00',
+        fields: [{ name: 'count', label: 'Count', type: 'number' }],
+      });
+
+      const task1 = createConstruct(doc, pageId, 'Task', { count: 42 });
+      const task2 = createConstruct(doc, pageId, 'Task', { count: 99 });
+
+      const result = changeFieldType(doc, 'Task', 'count', 'string', { force: true });
+
+      expect(result.dryRun).toBeFalsy();
+      expect(result.schemaUpdated).toBe(true);
+      expect(result.instancesUpdated).toBe(2);
+
+      // Schema updated
+      const schema = yToPlain(doc.getMap('schemas').get('Task')!) as Record<string, unknown>;
+      const fields = schema.fields as Array<Record<string, unknown>>;
+      expect(fields[0]?.type).toBe('string');
+
+      // Values converted
+      const task1Data = getConstruct(doc, pageId, task1.data.semanticId);
+      expect(task1Data!.data.values.count).toBe('42');
+
+      const task2Data = getConstruct(doc, pageId, task2.data.semanticId);
+      expect(task2Data!.data.values.count).toBe('99');
+    });
+
+    it('should convert string to enum with valid values', () => {
+      createSchema(doc, {
+        type: 'Task',
+        displayName: 'Task',
+        color: '#00ff00',
+        fields: [{ name: 'status', label: 'Status', type: 'string' }],
+      });
+
+      const task1 = createConstruct(doc, pageId, 'Task', { status: 'todo' });
+      const task2 = createConstruct(doc, pageId, 'Task', { status: 'invalid' });
+
+      const result = changeFieldType(doc, 'Task', 'status', 'enum', {
+        force: true,
+        enumOptions: ['todo', 'done'],
+      });
+
+      expect(result.schemaUpdated).toBe(true);
+
+      // task1 keeps value, task2 loses it
+      const task1Data = getConstruct(doc, pageId, task1.data.semanticId);
+      expect(task1Data!.data.values.status).toBe('todo');
+
+      const task2Data = getConstruct(doc, pageId, task2.data.semanticId);
+      expect(task2Data!.data.values.status).toBeUndefined();
+    });
+
+    it('should throw when changing to enum without enumOptions', () => {
+      createSchema(doc, {
+        type: 'Task',
+        displayName: 'Task',
+        color: '#00ff00',
+        fields: [{ name: 'status', label: 'Status', type: 'string' }],
+      });
+
+      expect(() => changeFieldType(doc, 'Task', 'status', 'enum', { force: true })).toThrow('enumOptions required when changing to enum type');
+    });
+
+    it('should throw if field does not exist', () => {
+      createSchema(doc, {
+        type: 'Task',
+        displayName: 'Task',
+        color: '#00ff00',
+        fields: [{ name: 'title', label: 'Title', type: 'string' }],
+      });
+
+      expect(() => changeFieldType(doc, 'Task', 'nonexistent', 'number')).toThrow('Field not found: nonexistent');
+    });
+  });
+
+  describe('narrowEnumOptions (tier 2)', () => {
+    it('should narrow enum options and clear orphaned values', () => {
+      createSchema(doc, {
+        type: 'Task',
+        displayName: 'Task',
+        color: '#00ff00',
+        fields: [{ name: 'status', label: 'Status', type: 'enum', options: ['todo', 'in_progress', 'done'] }],
+      });
+
+      const task1 = createConstruct(doc, pageId, 'Task', { status: 'todo' });
+      const task2 = createConstruct(doc, pageId, 'Task', { status: 'in_progress' });
+
+      const result = narrowEnumOptions(doc, 'Task', 'status', ['todo', 'done']);
+
+      expect(result.schemaUpdated).toBe(true);
+      expect(result.instancesUpdated).toBe(1); // Only task2 affected
+
+      // Schema updated
+      const schema = yToPlain(doc.getMap('schemas').get('Task')!) as Record<string, unknown>;
+      const fields = schema.fields as Array<Record<string, unknown>>;
+      expect(fields[0]?.options).toEqual(['todo', 'done']);
+
+      // task1 keeps value, task2 loses it
+      const task1Data = getConstruct(doc, pageId, task1.data.semanticId);
+      expect(task1Data!.data.values.status).toBe('todo');
+
+      const task2Data = getConstruct(doc, pageId, task2.data.semanticId);
+      expect(task2Data!.data.values.status).toBeUndefined();
+    });
+
+    it('should remap values via valueMapping', () => {
+      createSchema(doc, {
+        type: 'Task',
+        displayName: 'Task',
+        color: '#00ff00',
+        fields: [{ name: 'priority', label: 'Priority', type: 'enum', options: ['low', 'medium', 'high'] }],
+      });
+
+      const task = createConstruct(doc, pageId, 'Task', { priority: 'medium' });
+
+      const result = narrowEnumOptions(doc, 'Task', 'priority', ['low', 'high'], { medium: 'high' });
+
+      expect(result.instancesUpdated).toBe(1);
+
+      const taskData = getConstruct(doc, pageId, task.data.semanticId);
+      expect(taskData!.data.values.priority).toBe('high');
+    });
+
+    it('should throw if field is not enum', () => {
+      createSchema(doc, {
+        type: 'Task',
+        displayName: 'Task',
+        color: '#00ff00',
+        fields: [{ name: 'title', label: 'Title', type: 'string' }],
+      });
+
+      expect(() => narrowEnumOptions(doc, 'Task', 'title', ['a', 'b'])).toThrow("Field 'title' is not an enum");
+    });
+
+    it('should throw if newOptions is empty', () => {
+      createSchema(doc, {
+        type: 'Task',
+        displayName: 'Task',
+        color: '#00ff00',
+        fields: [{ name: 'status', label: 'Status', type: 'enum', options: ['todo', 'done'] }],
+      });
+
+      expect(() => narrowEnumOptions(doc, 'Task', 'status', [])).toThrow('newOptions must not be empty');
+    });
+  });
+
+  describe('addPort (tier 2)', () => {
+    it('should add a port to a schema', () => {
+      createSchema(doc, {
+        type: 'Task',
+        displayName: 'Task',
+        color: '#00ff00',
+        fields: [],
+        ports: [{ id: 'flow-in', portType: 'flow-in', label: 'In' }],
+      });
+
+      const result = addPort(doc, 'Task', {
+        id: 'data-out',
+        portType: 'data-out',
+        label: 'Data Output',
+      });
+
+      expect(result.schemaUpdated).toBe(true);
+      expect(result.instancesUpdated).toBe(0);
+
+      const schema = yToPlain(doc.getMap('schemas').get('Task')!) as Record<string, unknown>;
+      const ports = schema.ports as Array<Record<string, unknown>>;
+      expect(ports.length).toBe(2);
+      expect(ports[1]?.id).toBe('data-out');
+    });
+
+    it('should throw if port id already exists', () => {
+      createSchema(doc, {
+        type: 'Task',
+        displayName: 'Task',
+        color: '#00ff00',
+        fields: [],
+        ports: [{ id: 'flow-in', portType: 'flow-in', label: 'In' }],
+      });
+
+      expect(() => addPort(doc, 'Task', { id: 'flow-in', portType: 'flow-in', label: 'Duplicate' })).toThrow('Port already exists: flow-in');
+    });
+
+    it('should throw if missing id or portType', () => {
+      createSchema(doc, {
+        type: 'Task',
+        displayName: 'Task',
+        color: '#00ff00',
+        fields: [],
+      });
+
+      expect(() => addPort(doc, 'Task', { portType: 'flow-in', label: 'Missing ID' })).toThrow('Port must have an id');
+      expect(() => addPort(doc, 'Task', { id: 'myport', label: 'Missing portType' })).toThrow('Port must have a portType');
+    });
+  });
+
+  describe('changePortType (tier 2)', () => {
+    it('should change port type and disconnect incompatible edges', () => {
+      createSchema(doc, {
+        type: 'Task',
+        displayName: 'Task',
+        color: '#00ff00',
+        fields: [],
+        ports: [
+          { id: 'out', portType: 'flow-out', label: 'Out' },
+          { id: 'in', portType: 'flow-in', label: 'In' },
+        ],
+      });
+
+      const task1 = createConstruct(doc, pageId, 'Task', {});
+      const task2 = createConstruct(doc, pageId, 'Task', {});
+
+      connect(doc, pageId, task1.data.semanticId, 'out', task2.data.semanticId, 'in');
+
+      // Change 'out' from flow-out to flow-in (source becomes sink, incompatible with target sink)
+      const result = changePortType(doc, 'Task', 'out', 'flow-in');
+
+      expect(result.schemaUpdated).toBe(true);
+      expect(result.edgesRemoved).toBe(1);
+
+      // Verify schema updated
+      const schema = yToPlain(doc.getMap('schemas').get('Task')!) as Record<string, unknown>;
+      const ports = schema.ports as Array<Record<string, unknown>>;
+      const outPort = ports.find(p => p.id === 'out');
+      expect(outPort?.portType).toBe('flow-in');
+
+      // Verify edge removed
+      const edges = doc.getMap('edges').get(pageId) as Y.Map<Y.Map<unknown>>;
+      expect(edges.size).toBe(0);
+
+      // Verify connections cleaned up
+      const task1Data = getConstruct(doc, pageId, task1.data.semanticId);
+      expect((task1Data!.data.connections || []).length).toBe(0);
+    });
+
+    it('should keep compatible edges when changing port type', () => {
+      createSchema(doc, {
+        type: 'Task',
+        displayName: 'Task',
+        color: '#00ff00',
+        fields: [],
+        ports: [
+          { id: 'out', portType: 'flow-out', label: 'Out' },
+          { id: 'in', portType: 'flow-in', label: 'In' },
+        ],
+      });
+
+      const task1 = createConstruct(doc, pageId, 'Task', {});
+      const task2 = createConstruct(doc, pageId, 'Task', {});
+
+      connect(doc, pageId, task1.data.semanticId, 'out', task2.data.semanticId, 'in');
+
+      // Change 'out' from flow-out to relay (relay is compatible with flow-in)
+      const result = changePortType(doc, 'Task', 'out', 'relay');
+
+      expect(result.schemaUpdated).toBe(true);
+      expect(result.edgesRemoved).toBe(0);
+
+      // Verify edge still exists
+      const edges = doc.getMap('edges').get(pageId) as Y.Map<Y.Map<unknown>>;
+      expect(edges.size).toBe(1);
+    });
+
+    it('should throw if port does not exist', () => {
+      createSchema(doc, {
+        type: 'Task',
+        displayName: 'Task',
+        color: '#00ff00',
+        fields: [],
+        ports: [{ id: 'flow-out', portType: 'flow-out', label: 'Out' }],
+      });
+
+      expect(() => changePortType(doc, 'Task', 'nonexistent', 'flow-in')).toThrow('Port not found: nonexistent');
     });
   });
 });
