@@ -1,6 +1,7 @@
 import { memo, useCallback } from 'react';
 import { Handle, Position, NodeResizer, useNodeId, type NodeProps } from '@xyflow/react';
 import { EyeIcon, EyeOffIcon } from '../ui/icons';
+import { Tooltip } from '../ui';
 import type { OrganizerNodeData as BaseOrganizerNodeData } from '@carta/domain';
 import type { NodeActions } from './nodeActions';
 
@@ -150,13 +151,14 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
           )}
           {/* Eyeball toggle button (canvas only) */}
           {nodeActions && (
-            <button
-              className="w-5 h-5 flex items-center justify-center rounded text-content-muted hover:text-content transition-colors shrink-0"
-              onClick={handleToggle}
-              title="Expand organizer"
-            >
-              <EyeOffIcon size={14} />
-            </button>
+            <Tooltip content="Expand organizer">
+              <button
+                className="w-5 h-5 flex items-center justify-center rounded text-content-muted hover:text-content transition-colors shrink-0"
+                onClick={handleToggle}
+              >
+                <EyeOffIcon size={14} />
+              </button>
+            </Tooltip>
           )}
         </div>
       </div>
@@ -242,75 +244,80 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
           )}
           {/* Spread children button (canvas only, 2+ children) */}
           {nodeActions && childCount > 1 && (
-            <button
-              className="w-5 h-5 flex items-center justify-center rounded text-content-muted hover:text-content transition-colors shrink-0"
-              onClick={handleSpread}
-              title="Spread children"
-            >
-              <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={2}>
-                <polyline points="15 3 21 3 21 9" />
-                <polyline points="9 21 3 21 3 15" />
-                <line x1="21" y1="3" x2="14" y2="10" />
-                <line x1="3" y1="21" x2="10" y2="14" />
-              </svg>
-            </button>
+            <Tooltip content="Spread children">
+              <button
+                className="w-5 h-5 flex items-center justify-center rounded text-content-muted hover:text-content transition-colors shrink-0"
+                onClick={handleSpread}
+              >
+                <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={2}>
+                  <polyline points="15 3 21 3 21 9" />
+                  <polyline points="9 21 3 21 3 15" />
+                  <line x1="21" y1="3" x2="14" y2="10" />
+                  <line x1="3" y1="21" x2="10" y2="14" />
+                </svg>
+              </button>
+            </Tooltip>
           )}
           {/* Flow layout button (canvas only, 2+ children) */}
           {nodeActions && childCount > 1 && (
-            <button
-              className="w-5 h-5 flex items-center justify-center rounded text-content-muted hover:text-content transition-colors shrink-0"
-              onClick={handleFlowLayout}
-              title="Flow layout"
-            >
-              <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={2}>
-                <line x1="3" y1="6" x2="15" y2="6" />
-                <polyline points="12 3 15 6 12 9" />
-                <line x1="3" y1="12" x2="15" y2="12" />
-                <polyline points="12 9 15 12 12 15" />
-                <line x1="3" y1="18" x2="15" y2="18" />
-                <polyline points="12 15 15 18 12 21" />
-              </svg>
-            </button>
+            <Tooltip content="Flow layout">
+              <button
+                className="w-5 h-5 flex items-center justify-center rounded text-content-muted hover:text-content transition-colors shrink-0"
+                onClick={handleFlowLayout}
+              >
+                <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={2}>
+                  <line x1="3" y1="6" x2="15" y2="6" />
+                  <polyline points="12 3 15 6 12 9" />
+                  <line x1="3" y1="12" x2="15" y2="12" />
+                  <polyline points="12 9 15 12 12 15" />
+                  <line x1="3" y1="18" x2="15" y2="18" />
+                  <polyline points="12 15 15 18 12 21" />
+                </svg>
+              </button>
+            </Tooltip>
           )}
           {/* Grid layout button (canvas only, 2+ children) */}
           {nodeActions && childCount > 1 && (
-            <button
-              className="w-5 h-5 flex items-center justify-center rounded text-content-muted hover:text-content transition-colors shrink-0"
-              onClick={handleGridLayout}
-              title="Grid layout"
-            >
-              <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={2}>
-                <rect x="3" y="3" width="7" height="7" rx="1" />
-                <rect x="14" y="3" width="7" height="7" rx="1" />
-                <rect x="3" y="14" width="7" height="7" rx="1" />
-                <rect x="14" y="14" width="7" height="7" rx="1" />
-              </svg>
-            </button>
+            <Tooltip content="Grid layout">
+              <button
+                className="w-5 h-5 flex items-center justify-center rounded text-content-muted hover:text-content transition-colors shrink-0"
+                onClick={handleGridLayout}
+              >
+                <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={2}>
+                  <rect x="3" y="3" width="7" height="7" rx="1" />
+                  <rect x="14" y="3" width="7" height="7" rx="1" />
+                  <rect x="3" y="14" width="7" height="7" rx="1" />
+                  <rect x="14" y="14" width="7" height="7" rx="1" />
+                </svg>
+              </button>
+            </Tooltip>
           )}
           {/* Fit to children button (canvas only, 2+ children) */}
           {nodeActions && childCount > 1 && (
-            <button
-              className="w-5 h-5 flex items-center justify-center rounded text-content-muted hover:text-content transition-colors shrink-0"
-              onClick={handleFitToChildren}
-              title="Fit to children"
-            >
-              <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={2}>
-                <polyline points="4 14 4 20 10 20" />
-                <polyline points="20 10 20 4 14 4" />
-                <line x1="14" y1="10" x2="20" y2="4" />
-                <line x1="4" y1="20" x2="10" y2="14" />
-              </svg>
-            </button>
+            <Tooltip content="Fit to children">
+              <button
+                className="w-5 h-5 flex items-center justify-center rounded text-content-muted hover:text-content transition-colors shrink-0"
+                onClick={handleFitToChildren}
+              >
+                <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={2}>
+                  <polyline points="4 14 4 20 10 20" />
+                  <polyline points="20 10 20 4 14 4" />
+                  <line x1="14" y1="10" x2="20" y2="4" />
+                  <line x1="4" y1="20" x2="10" y2="14" />
+                </svg>
+              </button>
+            </Tooltip>
           )}
           {/* Eyeball toggle button (canvas only — metamap uses click to toggle) */}
           {nodeActions && (
-            <button
-              className="w-5 h-5 flex items-center justify-center rounded text-content-muted hover:text-content transition-colors shrink-0"
-              onClick={handleToggle}
-              title="Collapse organizer"
-            >
-              <EyeIcon size={14} />
-            </button>
+            <Tooltip content="Collapse organizer">
+              <button
+                className="w-5 h-5 flex items-center justify-center rounded text-content-muted hover:text-content transition-colors shrink-0"
+                onClick={handleToggle}
+              >
+                <EyeIcon size={14} />
+              </button>
+            </Tooltip>
           )}
           {/* Collapse chevron hint (metamap only) */}
           {!nodeActions && (
