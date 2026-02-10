@@ -425,6 +425,33 @@ export function getToolDefinitions() {
       inputSchema: CreateSchemaInputSchema.shape,
     },
     {
+      name: 'carta_update_schema',
+      description: 'Update non-breaking properties of a custom schema (color, displayName, renderStyle, etc). Cannot change type, fields array, or ports array — use migration operations for structural changes. Supports field metadata updates via fieldUpdates map.',
+      inputSchema: z.object({
+        documentId: z.string().describe('The document ID'),
+        type: z.string().describe('The schema type to update'),
+        displayName: z.string().optional().describe('New human-readable name'),
+        color: z.string().optional().describe('New hex color for the node'),
+        semanticDescription: z.string().optional().describe('New description for AI context'),
+        groupId: z.string().optional().describe('New schema group ID'),
+        backgroundColorPolicy: z.enum(['defaultOnly', 'tints', 'any']).optional().describe('Controls instance color picker'),
+        renderStyle: z.enum(['default', 'simple', 'circle', 'diamond', 'document']).optional().describe('Node render style'),
+        colorMode: z.enum(['default', 'instance', 'enum']).optional().describe('How node color is determined'),
+        enumColorField: z.string().optional().describe('Field name for enum color mode'),
+        enumColorMap: z.record(z.string()).optional().describe('Enum value → hex color mapping'),
+        enumIconField: z.string().optional().describe('Field name for icon markers'),
+        enumIconMap: z.record(z.string()).optional().describe('Enum value → Unicode character mapping'),
+        fieldUpdates: z.record(z.object({
+          label: z.string().optional(),
+          semanticDescription: z.string().optional(),
+          displayHint: z.enum(['multiline', 'code', 'password', 'url', 'color']).optional(),
+          displayTier: z.enum(['pill', 'minimal', 'details', 'full']).optional(),
+          displayOrder: z.number().optional(),
+          placeholder: z.string().optional(),
+        })).optional().describe('Map of field name → metadata updates (non-structural only)'),
+      }).shape,
+    },
+    {
       name: 'carta_delete_schema',
       description: 'Delete a custom construct schema by type',
       inputSchema: z.object({
@@ -789,6 +816,41 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
           fields: input.fields,
           ports: input.ports,
         }
+      );
+      if (result.error) return { error: result.error };
+      return result.data;
+    },
+
+    carta_update_schema: async (args) => {
+      const input = z.object({
+        documentId: z.string(),
+        type: z.string(),
+        displayName: z.string().optional(),
+        color: z.string().optional(),
+        semanticDescription: z.string().optional(),
+        groupId: z.string().optional(),
+        backgroundColorPolicy: z.enum(['defaultOnly', 'tints', 'any']).optional(),
+        renderStyle: z.enum(['default', 'simple', 'circle', 'diamond', 'document']).optional(),
+        colorMode: z.enum(['default', 'instance', 'enum']).optional(),
+        enumColorField: z.string().optional(),
+        enumColorMap: z.record(z.string()).optional(),
+        enumIconField: z.string().optional(),
+        enumIconMap: z.record(z.string()).optional(),
+        fieldUpdates: z.record(z.object({
+          label: z.string().optional(),
+          semanticDescription: z.string().optional(),
+          displayHint: z.enum(['multiline', 'code', 'password', 'url', 'color']).optional(),
+          displayTier: z.enum(['pill', 'minimal', 'details', 'full']).optional(),
+          displayOrder: z.number().optional(),
+          placeholder: z.string().optional(),
+        })).optional(),
+      }).parse(args);
+
+      const { documentId, type, ...updates } = input;
+      const result = await apiRequest<{ schema: unknown }>(
+        'PATCH',
+        `/api/documents/${encodeURIComponent(documentId)}/schemas/${encodeURIComponent(type)}`,
+        updates
       );
       if (result.error) return { error: result.error };
       return result.data;
