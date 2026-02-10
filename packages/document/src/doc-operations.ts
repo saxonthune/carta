@@ -1329,7 +1329,7 @@ export function renameField(
   ydoc.transact(() => {
     // 1. Update schema field name
     const updatedFields = fields.map((f, i) => i === fieldIdx ? { ...f, name: newName } : f);
-    const merged = { ...current, fields: updatedFields };
+    const merged: Record<string, unknown> = { ...current, fields: updatedFields };
 
     // Update displayField if it references the old name
     if (merged.displayField === oldName) merged.displayField = newName;
@@ -1371,7 +1371,7 @@ export function removeField(
   ydoc.transact(() => {
     // 1. Remove field from schema
     const updatedFields = fields.filter((_, i) => i !== fieldIdx);
-    const merged = { ...current, fields: updatedFields };
+    const merged: Record<string, unknown> = { ...current, fields: updatedFields };
     if (merged.displayField === fieldName) delete merged.displayField;
 
     yschemas.set(schemaType, deepPlainToY(merged) as Y.Map<unknown>);

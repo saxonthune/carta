@@ -212,9 +212,9 @@ describe('schema migration operations', () => {
       });
 
       // Create instances on two pages with title values
-      const task1 = createConstruct(doc, pageId, 'Task', { values: { title: 'Task 1' } });
+      const task1 = createConstruct(doc, pageId, 'Task', { title: 'Task 1' });
       const page2 = createPage(doc, 'Page 2');
-      const task2 = createConstruct(doc, page2.id, 'Task', { values: { title: 'Task 2' } });
+      const task2 = createConstruct(doc, page2.id, 'Task', { title: 'Task 2' });
 
       // Rename field
       const result = renameField(doc, 'Task', 'title', 'name');
@@ -292,9 +292,7 @@ describe('schema migration operations', () => {
         ],
       });
 
-      const task = createConstruct(doc, pageId, 'Task', {
-        values: { title: 'Task 1', description: 'Description 1' },
-      });
+      const task = createConstruct(doc, pageId, 'Task', { title: 'Task 1', description: 'Description 1' });
 
       const result = removeField(doc, 'Task', 'description');
 
@@ -349,7 +347,7 @@ describe('schema migration operations', () => {
         fields: [{ name: 'title', label: 'Title', type: 'string' }],
       });
 
-      const task = createConstruct(doc, pageId, 'Task', { values: { title: 'Task 1' } });
+      const task = createConstruct(doc, pageId, 'Task', { title: 'Task 1' });
 
       const result = addField(doc, 'Task', { name: 'priority', label: 'Priority', type: 'number' });
 
@@ -375,9 +373,9 @@ describe('schema migration operations', () => {
         fields: [{ name: 'title', label: 'Title', type: 'string' }],
       });
 
-      const task1 = createConstruct(doc, pageId, 'Task', { values: { title: 'Task 1' } });
+      const task1 = createConstruct(doc, pageId, 'Task', { title: 'Task 1' });
       const page2 = createPage(doc, 'Page 2');
-      const task2 = createConstruct(doc, page2.id, 'Task', { values: { title: 'Task 2' } });
+      const task2 = createConstruct(doc, page2.id, 'Task', { title: 'Task 2' });
 
       const result = addField(doc, 'Task', { name: 'status', label: 'Status', type: 'string' }, 'todo');
 
@@ -419,8 +417,8 @@ describe('schema migration operations', () => {
         ],
       });
 
-      const task1 = createConstruct(doc, pageId, 'Task', { values: { title: 'Task 1' } });
-      const task2 = createConstruct(doc, pageId, 'Task', { values: { title: 'Task 2' } });
+      const task1 = createConstruct(doc, pageId, 'Task', { title: 'Task 1' });
+      const task2 = createConstruct(doc, pageId, 'Task', { title: 'Task 2' });
 
       // Connect via flow-out
       connect(doc, pageId, task1.data.semanticId, 'flow-out', task2.data.semanticId, 'flow-in');
@@ -491,8 +489,8 @@ describe('schema migration operations', () => {
         ],
       });
 
-      const task1 = createConstruct(doc, pageId, 'Task', { values: { title: 'Task 1' } });
-      const task2 = createConstruct(doc, pageId, 'Task', { values: { title: 'Task 2' } });
+      const task1 = createConstruct(doc, pageId, 'Task', { title: 'Task 1' });
+      const task2 = createConstruct(doc, pageId, 'Task', { title: 'Task 2' });
 
       // Connect via flow-out
       connect(doc, pageId, task1.data.semanticId, 'flow-out', task2.data.semanticId, 'flow-in');
