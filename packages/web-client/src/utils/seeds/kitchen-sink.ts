@@ -101,9 +101,6 @@ export function kitchenSink(adapter: DocumentAdapter): void {
   const PADDING = 20;
   const HEADER_HEIGHT = 40;
 
-  adapter.setTitle('Kitchen Sink');
-  adapter.setDescription('Exercises every core feature: custom schemas, all port polarities, organizers');
-
   adapter.setNodes([
     // Organizer containing pipeline stages
     {
@@ -340,10 +337,4 @@ export function kitchenSink(adapter: DocumentAdapter): void {
       targetHandle: 'link-in',
     },
   ]);
-
-  // Rename the default page
-  const pages = adapter.getPages();
-  if (pages.length > 0) {
-    adapter.updatePage(pages[0]!.id, { name: 'Kitchen Sink' });
-  }
 }
