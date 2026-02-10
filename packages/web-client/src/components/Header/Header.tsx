@@ -1,15 +1,17 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useDocumentContext } from '../../contexts/DocumentContext';
 import { config } from '../../config/featureFlags';
 import ConnectionStatus from '../ConnectionStatus';
 import DocumentBrowserModal from '../modals/DocumentBrowserModal';
-import ProjectInfoModal from '../modals/ProjectInfoModal';
 import ClearWorkspaceModal from '../modals/ClearWorkspaceModal';
 import { cleanAllLocalData } from '../../stores/documentRegistry';
 import { ThemeMenu } from './ThemeMenu';
 import { SettingsMenu } from './SettingsMenu';
 import { SeedsMenu } from './SeedsMenu';
 import { ShareMenu } from './ShareMenu';
+import { useClickOutside } from './useClickOutside';
+import Input from '../ui/Input';
+import Textarea from '../ui/Textarea';
 import { hydrateSeed, builtInPortSchemas, type SchemaSeed } from '@carta/domain';
 import { seeds } from '../../utils/seeds';
 
@@ -51,10 +53,14 @@ export function Header({
   onToggleAI,
 }: HeaderProps) {
   const { mode, documentId, adapter } = useDocumentContext();
-  const [isProjectInfoModalOpen, setIsProjectInfoModalOpen] = useState(false);
+  const [isProjectInfoOpen, setIsProjectInfoOpen] = useState(false);
   const [isDocBrowserOpen, setIsDocBrowserOpen] = useState(false);
   const [isClearWorkspaceModalOpen, setIsClearWorkspaceModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const projectInfoRef = useRef<HTMLDivElement>(null);
+
+  const closeProjectInfo = useCallback(() => setIsProjectInfoOpen(false), []);
+  useClickOutside(projectInfoRef, isProjectInfoOpen, closeProjectInfo);
 
   const handleImportClick = () => {
     fileInputRef.current?.click();
@@ -148,14 +154,40 @@ export function Header({
       </div>
 
       {/* Center section: Title */}
-      <div className="flex items-center justify-center">
-        <h1
-          className="m-0 text-lg font-semibold text-content cursor-pointer px-2 py-1 rounded hover:bg-surface-alt transition-colors"
-          onClick={() => setIsProjectInfoModalOpen(true)}
-          title="Click to edit project info"
-        >
-          {title}
-        </h1>
+      <div className="relative" ref={projectInfoRef}>
+        <div className="flex items-center justify-center">
+          <h1
+            className="m-0 text-lg font-semibold text-content cursor-pointer px-2 py-1 rounded hover:bg-surface-alt transition-colors"
+            onClick={() => setIsProjectInfoOpen(!isProjectInfoOpen)}
+            title="Click to edit project info"
+          >
+            {title}
+          </h1>
+        </div>
+        {isProjectInfoOpen && (
+          <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 bg-surface-elevated border border-subtle rounded-lg shadow-lg z-50 w-[360px] p-4 flex flex-col gap-3">
+            <div>
+              <label className="block text-xs text-content-muted mb-1">Project Title</label>
+              <Input
+                value={title}
+                onChange={(e) => onTitleChange(e.target.value)}
+                placeholder="Untitled Project"
+                autoFocus
+                size="sm"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-content-muted mb-1">Description</label>
+              <Textarea
+                value={description}
+                onChange={(e) => onDescriptionChange(e.target.value)}
+                placeholder="A brief description of this project..."
+                rows={3}
+                size="sm"
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Right section: Actions */}
@@ -244,18 +276,6 @@ export function Header({
         onClearInstances={handleClearInstances}
         onClearEverything={handleClearEverything}
       />
-
-      {isProjectInfoModalOpen && (
-        <ProjectInfoModal
-          title={title}
-          description={description}
-          onSave={(newTitle, newDescription) => {
-            onTitleChange(newTitle);
-            onDescriptionChange(newDescription);
-          }}
-          onClose={() => setIsProjectInfoModalOpen(false)}
-        />
-      )}
 
       {isDocBrowserOpen && (
         <DocumentBrowserModal onClose={() => setIsDocBrowserOpen(false)} />
