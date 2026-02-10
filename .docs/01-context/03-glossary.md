@@ -25,7 +25,11 @@ Canonical definitions for domain terms used throughout Carta. Use these terms co
 
 **Page**: A separate architectural view or layer within a document. Each page has its own nodes, edges, and deployables. Schemas are shared across pages.
 
-**LOD Band**: One of three discrete zoom-based rendering modes (pill, compact, normal) that control node detail level. Pill shows title only, compact shows title + minimal fields, normal shows all fields based on display tier. Bands switch at zoom thresholds 0.5 and 1.0.
+**LOD Band**: One of three discrete zoom-based rendering modes (marker, compact, normal) that control node detail level. Marker shows title only, compact shows title + minimal fields, normal shows all fields based on display tier. Bands switch at zoom thresholds 0.5 and 1.0.
+
+**Node Shape**: The visual style of a construct node. Shapes include `box` (default rectangle), `simple` (plain rectangle), `circle`, `diamond`, and `document`. Defined on the construct schema via the `nodeShape` field. Not to be confused with LOD Band or Detail Mode.
+
+**Detail Mode**: The expansion state of a construct node's field display. Two values: `minimal` (collapsed, shows title and minimal-tier fields) or `details` (expanded, shows title, minimal, and details-tier fields). Controlled by the expand/collapse chevron in the node header. Separate from LOD Band — Detail Mode is user-controlled per-node, LOD Band is global zoom-based.
 
 ## Ports and Connections
 
