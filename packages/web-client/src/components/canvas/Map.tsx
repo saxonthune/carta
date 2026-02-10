@@ -35,10 +35,11 @@ import { useGraphOperations } from '../../hooks/useGraphOperations';
 import { useConnections } from '../../hooks/useConnections';
 import { useClipboard } from '../../hooks/useClipboard';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
+import { useEdgeCleanup } from '../../hooks/useEdgeCleanup';
 import type { ConstructValues, ConstructNodeData, OrganizerNodeData } from '@carta/domain';
 import { nodeContainedInOrganizer, getDisplayName, DEFAULT_ORGANIZER_LAYOUT } from '@carta/domain';
 import { usePresentation } from '../../hooks/usePresentation';
-import { computeEdgeAggregation } from '../../presentation/index';
+import { computeEdgeAggregation, filterInvalidEdges } from '../../presentation/index';
 import { useOrganizerOperations } from '../../hooks/useOrganizerOperations';
 import ConstructEditor from '../ConstructEditor';
 import DynamicAnchorEdge from './DynamicAnchorEdge';
@@ -137,6 +138,22 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
   const { edges, setEdges } = useEdges();
   const { schemas, getSchema } = useSchemas();
   const { getPortSchema } = usePortSchemas();
+
+  // Auto-cleanup edges when schemas change (port definitions may have changed)
+  const { revalidateEdges } = useEdgeCleanup();
+  const schemasRef = useRef(schemas);
+  useEffect(() => {
+    if (schemasRef.current !== schemas) {
+      schemasRef.current = schemas;
+      // Defer to next frame to let node handles update first
+      requestAnimationFrame(() => {
+        const removed = revalidateEdges();
+        if (removed > 0) {
+          console.debug(`[edge-cleanup] Auto-removed ${removed} edges with invalid port references`);
+        }
+      });
+    }
+  }, [schemas, revalidateEdges]);
   const { pages, activePage, setActivePage, createPage, copyNodesToPage } = usePages();
   const reactFlow = useReactFlow();
 
@@ -1044,6 +1061,9 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
       visibleNodeIds.has(edge.source) && visibleNodeIds.has(edge.target)
     );
 
+    // Filter edges with invalid handle references (defensive layer against stale port refs)
+    result = filterInvalidEdges(result, sortedNodes, getSchema);
+
     // Inject wagon attachment edges (thick dotted lines from construct to its attached organizer)
     const wagonEdges: Edge[] = [];
     for (const node of sortedNodes) {
@@ -1086,7 +1106,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     }
 
     return result;
-  }, [edges, edgeRemap, sortedNodes, selectedNodeIdsSet, isTraceActive, traceResult]);
+  }, [edges, edgeRemap, sortedNodes, selectedNodeIdsSet, isTraceActive, traceResult, getSchema]);
 
   // Auto-revert unpinned details nodes when deselected
   const updateNodeInternals = useUpdateNodeInternals();

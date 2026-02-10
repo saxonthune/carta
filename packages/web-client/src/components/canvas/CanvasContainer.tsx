@@ -7,6 +7,7 @@ import PageSwitcher from '../PageSwitcher';
 import Footer from '../Footer';
 import SearchBar from '../ui/SearchBar';
 import type { Page } from '@carta/domain';
+import { useEdgeCleanup } from '../../hooks/useEdgeCleanup';
 
 interface CanvasContainerProps {
   title: string;
@@ -39,6 +40,9 @@ export default function CanvasContainer({
   const [filterText, setFilterText] = useState('');
   const [instanceSearchText, setInstanceSearchText] = useState('');
 
+  // Edge cleanup for debug toolbar button
+  const { revalidateEdges } = useEdgeCleanup();
+
   return (
     <div className="flex-1 min-h-0 flex flex-col relative">
       {/* Canvas toolbar overlay */}
@@ -59,6 +63,19 @@ export default function CanvasContainer({
             />
           )}
           <ViewToggle mode={viewMode} onChange={setViewMode} />
+          {/* Debug: Revalidate edges */}
+          {viewMode === 'instances' && (
+            <button
+              onClick={() => {
+                const removed = revalidateEdges();
+                console.debug(`[edge-cleanup] Manual revalidation removed ${removed} edges`);
+              }}
+              className="text-xs text-secondary hover:text-primary px-2 py-1 rounded border border-depth-2 bg-depth-0"
+              title="Remove edges with invalid port references"
+            >
+              Revalidate Edges
+            </button>
+          )}
         </div>
       </div>
       <div className="absolute top-3 right-3 z-10 pointer-events-auto">

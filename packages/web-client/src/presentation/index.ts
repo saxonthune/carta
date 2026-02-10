@@ -16,3 +16,4 @@ export type { TraceResult } from './traceGraph.js';
 export { computeEdgeAggregation } from './edgeAggregation.js';
 export { computeSequenceBadges } from './sequenceBadges.js';
 export type { SequenceBadgeResult } from './sequenceBadges.js';
+export { filterInvalidEdges } from './edgeValidation.js';
