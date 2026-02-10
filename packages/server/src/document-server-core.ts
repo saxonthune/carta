@@ -59,6 +59,11 @@ import {
   addField,
   renamePort,
   removePort,
+  renameSchemaType,
+  changeFieldType,
+  narrowEnumOptions,
+  addPort,
+  changePortType,
 } from '@carta/document';
 import type { BatchOperation, BatchResult, MigrationResult } from '@carta/document';
 import type { FlowDirection, ArrangeStrategy, ArrangeConstraint } from '@carta/domain';
@@ -1059,6 +1064,28 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
               break;
             case 'removePort':
               result = removePort(docState.doc, type, body.portId as string);
+              break;
+            case 'renameSchemaType':
+              result = renameSchemaType(docState.doc, type, body.newType as string);
+              break;
+            case 'changeFieldType':
+              result = changeFieldType(docState.doc, type, body.fieldName as string, body.newType as string, {
+                force: body.force as boolean | undefined,
+                enumOptions: body.enumOptions as string[] | undefined,
+              });
+              break;
+            case 'narrowEnumOptions':
+              result = narrowEnumOptions(
+                docState.doc, type, body.fieldName as string,
+                body.newOptions as string[],
+                body.valueMapping as Record<string, string> | undefined
+              );
+              break;
+            case 'addPort':
+              result = addPort(docState.doc, type, body.portConfig as Record<string, unknown>);
+              break;
+            case 'changePortType':
+              result = changePortType(docState.doc, type, body.portId as string, body.newPortType as string);
               break;
             default:
               sendError(res, 400, `Unknown migration operation: ${body.operation}`, 'VALIDATION_ERROR');
