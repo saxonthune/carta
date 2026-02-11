@@ -205,12 +205,7 @@ export interface ConstructNodeData {
   instanceColor?: string;    // Hex color override, visual-only
   // UI state
   nodeId?: string;           // Technical UUID (passed from Map for display purposes)
-  detailMode?: 'summary' | 'details';
-  isDetailsPinned?: boolean;
   onValuesChange?: (values: ConstructValues) => void;
-  onSetDetailMode?: (level: 'summary' | 'details') => void;
-  onToggleDetailsPin?: () => void;
-  onOpenFullView?: () => void;
   onInstanceColorChange?: (color: string | null) => void;
   // Index signature for React Flow compatibility
   [key: string]: unknown;

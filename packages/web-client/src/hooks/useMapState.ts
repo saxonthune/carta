@@ -24,7 +24,6 @@ export function useMapState() {
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [addMenu, setAddMenu] = useState<AddMenuState | null>(null);
   const [editorState, setEditorState] = useState<EditorState>({ open: false });
-  const [fullViewNodeId, setFullViewNodeId] = useState<string | null>(null);
   const [debugNodeId, setDebugNodeId] = useState<string | null>(null);
   const [mouseDownPos, setMouseDownPos] = useState<{ x: number; y: number } | null>(null);
 
@@ -144,13 +143,11 @@ export function useMapState() {
     contextMenu,
     addMenu,
     editorState,
-    fullViewNodeId,
     debugNodeId,
     // Setters
     setContextMenu,
     setAddMenu,
     setEditorState,
-    setFullViewNodeId,
     setDebugNodeId,
     // Handlers
     onPaneContextMenu,

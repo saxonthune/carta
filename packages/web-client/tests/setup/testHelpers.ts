@@ -26,7 +26,6 @@ export function createTestNode(options: {
       constructType,
       semanticId,
       values: options.values ?? {},
-      detailMode: 'summary' as const,
       connections: options.connections ?? [],
       groupId: options.groupId,
     } satisfies ConstructNodeData,

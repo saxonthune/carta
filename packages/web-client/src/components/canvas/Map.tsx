@@ -8,7 +8,6 @@ import {
   applyEdgeChanges,
   SelectionMode,
   useReactFlow,
-  useUpdateNodeInternals,
   type Node,
   type Edge,
   type OnSelectionChangeParams,
@@ -43,7 +42,6 @@ import { computeEdgeAggregation, filterInvalidEdges } from '../../presentation/i
 import { useOrganizerOperations, canNestInOrganizer } from '../../hooks/useOrganizerOperations';
 import ConstructEditor from '../ConstructEditor';
 import DynamicAnchorEdge from './DynamicAnchorEdge';
-import ConstructFullViewModal from '../modals/ConstructFullViewModal';
 import ConstructDebugModal from '../modals/ConstructDebugModal';
 import { useEdgeBundling, type BundleData } from '../../hooks/useEdgeBundling';
 import { useFlowTrace } from '../../hooks/useFlowTrace';
@@ -239,11 +237,9 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     contextMenu,
     addMenu,
     editorState,
-    fullViewNodeId,
     debugNodeId,
     setAddMenu,
     setEditorState,
-    setFullViewNodeId,
     setDebugNodeId,
     onPaneContextMenu,
     onNodeContextMenu,
@@ -282,8 +278,6 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     deleteSelectedNodes,
     renameNode,
     updateNodeValues,
-    setNodeViewLevel,
-    toggleNodeDetailsPin,
     updateNodeInstanceColor,
   } = useGraphOperations({
     selectedNodeIds,
@@ -613,12 +607,6 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
   renameNodeRef.current = renameNode;
   const updateNodeValuesRef = useRef(updateNodeValues);
   updateNodeValuesRef.current = updateNodeValues;
-  const setNodeViewLevelRef = useRef(setNodeViewLevel);
-  setNodeViewLevelRef.current = setNodeViewLevel;
-  const toggleNodeDetailsPinRef = useRef(toggleNodeDetailsPin);
-  toggleNodeDetailsPinRef.current = toggleNodeDetailsPin;
-  const setFullViewNodeIdRef = useRef(setFullViewNodeId);
-  setFullViewNodeIdRef.current = setFullViewNodeId;
   const updateNodeInstanceColorRef = useRef(updateNodeInstanceColor);
   updateNodeInstanceColorRef.current = updateNodeInstanceColor;
   const toggleOrganizerCollapseRef = useRef(toggleOrganizerCollapse);
@@ -636,9 +624,6 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
   const nodeActions = useMemo(() => ({
     onRename: (nodeId: string, newName: string) => renameNodeRef.current(nodeId, newName),
     onValuesChange: (nodeId: string, values: ConstructValues) => updateNodeValuesRef.current(nodeId, values),
-    onSetDetailMode: (nodeId: string, level: 'summary' | 'details') => setNodeViewLevelRef.current(nodeId, level),
-    onToggleDetailsPin: (nodeId: string) => toggleNodeDetailsPinRef.current(nodeId),
-    onOpenFullView: (nodeId: string) => setFullViewNodeIdRef.current(nodeId),
     onInstanceColorChange: (nodeId: string, color: string | null) => updateNodeInstanceColorRef.current(nodeId, color),
     onToggleCollapse: (nodeId: string) => toggleOrganizerCollapseRef.current(nodeId),
     onSpreadChildren: (nodeId: string) => spreadChildrenRef.current(nodeId),
@@ -814,26 +799,6 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
 
     return result;
   }, [edges, edgeRemap, sortedNodes, selectedNodeIdsSet, isTraceActive, traceResult, getSchema]);
-
-  // Auto-revert unpinned details nodes when deselected
-  const updateNodeInternals = useUpdateNodeInternals();
-  useEffect(() => {
-    const revertedIds: string[] = [];
-    setNodes((nds) =>
-      nds.map((n) => {
-        if (n.type !== 'construct') return n;
-        const d = n.data as ConstructNodeData;
-        if (d.detailMode === 'details' && !d.isDetailsPinned && !selectedNodeIds.includes(n.id)) {
-          revertedIds.push(n.id);
-          return { ...n, data: { ...n.data, detailMode: 'summary' } };
-        }
-        return n;
-      })
-    );
-    if (revertedIds.length > 0) {
-      requestAnimationFrame(() => updateNodeInternals(revertedIds));
-    }
-  }, [selectedNodeIds, setNodes, updateNodeInternals]);
 
   // Stable node type map — only changes when nodes are added/removed/type changed
   const nodeTypeMap = useMemo(
@@ -1365,20 +1330,6 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
           onClose={() => setEditorState({ open: false })}
         />
       )}
-
-      {fullViewNodeId && (() => {
-        const node = nodes.find(n => n.id === fullViewNodeId);
-        if (!node || node.type !== 'construct') return null;
-        return (
-          <ConstructFullViewModal
-            nodeId={fullViewNodeId}
-            data={node.data as ConstructNodeData}
-            schemas={schemas}
-            onClose={() => setFullViewNodeId(null)}
-            onValuesChange={(values) => updateNodeValues(fullViewNodeId, values)}
-          />
-        );
-      })()}
 
       {debugNodeId && (() => {
         const node = nodes.find(n => n.id === debugNodeId);

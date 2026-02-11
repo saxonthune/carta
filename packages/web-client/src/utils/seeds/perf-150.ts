@@ -24,7 +24,6 @@ export function perf150(adapter: DocumentAdapter): void {
         constructType: 'note',
         semanticId: generateSemanticId('note'),
         values: { content: `Node ${i + 1}` },
-        detailMode: 'summary',
       },
     });
   }

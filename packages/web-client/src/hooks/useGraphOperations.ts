@@ -23,8 +23,6 @@ export interface UseGraphOperationsResult {
   deleteSelectedNodes: () => void;
   renameNode: (nodeId: string, newSemanticId: string) => void;
   updateNodeValues: (nodeId: string, values: ConstructValues) => void;
-  setNodeViewLevel: (nodeId: string, level: 'summary' | 'details') => void;
-  toggleNodeDetailsPin: (nodeId: string) => void;
   updateNodeInstanceColor: (nodeId: string, color: string | null) => void;
 }
 
@@ -60,7 +58,6 @@ export function useGraphOperations(options: UseGraphOperationsOptions): UseGraph
           constructType: schema.type,
           semanticId,
           values,
-          detailMode: 'summary',
         },
       };
       setNodes((nds) => [...nds, newNode]);
@@ -103,7 +100,6 @@ export function useGraphOperations(options: UseGraphOperationsOptions): UseGraph
           constructType: schema.type,
           semanticId,
           values,
-          detailMode: 'summary',
         },
       };
 
@@ -257,24 +253,6 @@ export function useGraphOperations(options: UseGraphOperationsOptions): UseGraph
     [updateNode]
   );
 
-  const setNodeViewLevel = useCallback(
-    (nodeIdToSet: string, level: 'summary' | 'details') => {
-      updateNode(nodeIdToSet, { detailMode: level });
-      requestAnimationFrame(() => updateNodeInternals(nodeIdToSet));
-    },
-    [updateNode, updateNodeInternals]
-  );
-
-  const toggleNodeDetailsPin = useCallback(
-    (nodeIdToToggle: string) => {
-      const node = nodes.find(n => n.id === nodeIdToToggle);
-      if (node) {
-        updateNode(nodeIdToToggle, { isDetailsPinned: !node.data.isDetailsPinned });
-      }
-    },
-    [nodes, updateNode]
-  );
-
   const updateNodeInstanceColor = useCallback(
     (nodeIdToUpdate: string, color: string | null) => {
       updateNode(nodeIdToUpdate, { instanceColor: color ?? undefined });
@@ -290,8 +268,6 @@ export function useGraphOperations(options: UseGraphOperationsOptions): UseGraph
     deleteSelectedNodes,
     renameNode,
     updateNodeValues,
-    setNodeViewLevel,
-    toggleNodeDetailsPin,
     updateNodeInstanceColor,
   };
 }

@@ -127,7 +127,6 @@ export function kitchenSink(adapter: DocumentAdapter): void {
         constructType: 'ks-pipeline',
         semanticId: generateSemanticId('ks-pipeline'),
         values: { name: 'Ingest Pipeline', throughput: 5000 },
-        detailMode: 'summary',
       },
     },
 
@@ -141,7 +140,6 @@ export function kitchenSink(adapter: DocumentAdapter): void {
         constructType: 'ks-stage',
         semanticId: generateSemanticId('ks-stage'),
         values: { name: 'Filter Invalid', transform: 'filter' },
-        detailMode: 'summary',
       },
     },
     {
@@ -153,7 +151,6 @@ export function kitchenSink(adapter: DocumentAdapter): void {
         constructType: 'ks-stage',
         semanticId: generateSemanticId('ks-stage'),
         values: { name: 'Normalize', transform: 'map' },
-        detailMode: 'summary',
       },
     },
     {
@@ -165,7 +162,6 @@ export function kitchenSink(adapter: DocumentAdapter): void {
         constructType: 'ks-stage',
         semanticId: generateSemanticId('ks-stage'),
         values: { name: 'Aggregate', transform: 'reduce' },
-        detailMode: 'summary',
       },
     },
 
@@ -178,7 +174,6 @@ export function kitchenSink(adapter: DocumentAdapter): void {
         constructType: 'ks-pipeline',
         semanticId: generateSemanticId('ks-pipeline'),
         values: { name: 'Export Pipeline', throughput: 2000, notes: 'Forwards processed data to API' },
-        detailMode: 'summary',
       },
     },
 
@@ -191,7 +186,6 @@ export function kitchenSink(adapter: DocumentAdapter): void {
         constructType: 'rest-endpoint',
         semanticId: generateSemanticId('rest-endpoint'),
         values: { route: '/api/ingest', verb: 'POST', summary: 'Receive raw data' },
-        detailMode: 'summary',
       },
     },
     {
@@ -202,7 +196,6 @@ export function kitchenSink(adapter: DocumentAdapter): void {
         constructType: 'database',
         semanticId: generateSemanticId('database'),
         values: { engine: 'PostgreSQL', note: 'Analytics warehouse' },
-        detailMode: 'summary',
       },
     },
     {
@@ -213,7 +206,6 @@ export function kitchenSink(adapter: DocumentAdapter): void {
         constructType: 'table',
         semanticId: generateSemanticId('table'),
         values: { tableName: 'events', columns: 'id UUID PK, type VARCHAR, payload JSON, ts TIMESTAMP' },
-        detailMode: 'summary',
       },
     },
 
@@ -226,7 +218,6 @@ export function kitchenSink(adapter: DocumentAdapter): void {
         constructType: 'note',
         semanticId: generateSemanticId('note'),
         values: { content: 'TODO: Add retry logic for failed ingests' },
-        detailMode: 'summary',
       },
     },
     {
@@ -237,7 +228,6 @@ export function kitchenSink(adapter: DocumentAdapter): void {
         constructType: 'note',
         semanticId: generateSemanticId('note'),
         values: { content: 'Consider adding CDC from the events table' },
-        detailMode: 'summary',
       },
     },
   ]);

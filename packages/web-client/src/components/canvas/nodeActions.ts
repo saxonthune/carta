@@ -8,9 +8,6 @@ import type { ConstructValues } from '@carta/domain';
 export interface NodeActions {
   onRename: (nodeId: string, newName: string) => void;
   onValuesChange: (nodeId: string, values: ConstructValues) => void;
-  onSetDetailMode: (nodeId: string, level: 'summary' | 'details') => void;
-  onToggleDetailsPin: (nodeId: string) => void;
-  onOpenFullView: (nodeId: string) => void;
   onInstanceColorChange: (nodeId: string, color: string | null) => void;
   onToggleCollapse: (nodeId: string) => void;
   onSpreadChildren: (nodeId: string) => void;

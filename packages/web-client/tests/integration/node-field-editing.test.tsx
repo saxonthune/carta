@@ -184,49 +184,4 @@ describe('Node Field Editing', () => {
       });
     });
   });
-
-  describe('view level behavior', () => {
-    it('should set detailMode state on node', async () => {
-      const { result } = renderHook(
-        () => ({
-          nodes: useNodes(),
-          context: useDocumentContext(),
-        }),
-        { wrapper: TestProviders }
-      );
-
-      await waitFor(() => {
-        expect(result.current.context.isReady).toBe(true);
-      });
-
-      const { adapter } = result.current.context;
-
-      // Create summary node
-      act(() => {
-        adapter.setNodes([
-          createTestNode({
-            id: '1',
-            type: 'Task',
-            semanticId: 'task-1',
-          }),
-        ]);
-        adapter.updateNode('1', { detailMode: 'summary' });
-      });
-
-      await waitFor(() => {
-        const node = result.current.nodes.nodes.find(n => n.id === '1');
-        expect(node?.data.detailMode).toBe('summary');
-      });
-
-      // Set to details
-      act(() => {
-        adapter.updateNode('1', { detailMode: 'details' });
-      });
-
-      await waitFor(() => {
-        const node = result.current.nodes.nodes.find(n => n.id === '1');
-        expect(node?.data.detailMode).toBe('details');
-      });
-    });
-  });
 });

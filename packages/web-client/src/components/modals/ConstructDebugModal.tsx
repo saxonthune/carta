@@ -180,18 +180,6 @@ export default function ConstructDebugModal({
                 <span className="text-content font-mono text-xs break-all">{data.instanceColor}</span>
               </div>
             )}
-            {data.detailMode && (
-              <div className="flex gap-2 text-sm">
-                <span className="text-content-subtle min-w-[120px] shrink-0">View Level</span>
-                <span className="text-content font-mono text-xs break-all">{data.detailMode}</span>
-              </div>
-            )}
-            {data.isDetailsPinned !== undefined && (
-              <div className="flex gap-2 text-sm">
-                <span className="text-content-subtle min-w-[120px] shrink-0">Details Pinned</span>
-                <span className="text-content font-mono text-xs break-all">{String(data.isDetailsPinned)}</span>
-              </div>
-            )}
             <div className="flex gap-2 text-sm">
               <span className="text-content-subtle min-w-[120px] shrink-0">Position</span>
               <span className="text-content font-mono text-xs break-all">

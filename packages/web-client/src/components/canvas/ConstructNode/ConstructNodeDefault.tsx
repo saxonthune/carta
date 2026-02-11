@@ -3,8 +3,6 @@ import { Handle, Position } from '@xyflow/react';
 import { getDisplayName, getFieldsForSummary, resolveNodeColor, resolveNodeIcon } from '@carta/domain';
 import PortDrawer from '../PortDrawer';
 import IndexBasedDropZones from '../IndexBasedDropZones';
-import ColorPicker from '../../ui/ColorPicker';
-import { WindowIcon, PinIcon, ExpandIcon, CollapseIcon } from '../../ui/icons';
 import { formatValue } from './shared';
 import type { ConstructNodeVariantProps } from './shared';
 
@@ -26,14 +24,11 @@ export function ConstructNodeDefault({
     ? { backgroundColor: color }
     : {};
 
-  const isDetails = data.detailMode === 'details';
-  const visibleFields = isDetails
-    ? schema.fields.filter(f => f.displayTier !== 'pill')
-    : getFieldsForSummary(schema);
+  const visibleFields = getFieldsForSummary(schema);
 
   return (
     <div
-      className={`bg-surface rounded-lg text-node-base text-content overflow-visible relative flex flex-col transition-shadow duration-150 ${isDetails ? 'min-w-[280px]' : 'min-w-[180px]'} ${selected ? 'ring-2 ring-accent/30' : ''}`}
+      className={`bg-surface rounded-lg text-node-base text-content overflow-visible relative flex flex-col transition-shadow duration-150 min-w-[180px] ${selected ? 'ring-2 ring-accent/30' : ''}`}
       style={{
         ...bgStyle,
         ...lodTransitionStyle,
@@ -63,53 +58,6 @@ export function ConstructNodeDefault({
             </span>
           ) : null;
         })()}
-        <div className="flex items-center gap-1">
-          {/* Open Full View button */}
-          {data.onOpenFullView && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                data.onOpenFullView?.();
-              }}
-              className="text-content-muted hover:text-content transition-colors flex-shrink-0 rounded-full p-1"
-              title="Open Full View"
-            >
-              <WindowIcon className="w-2.5 h-2.5" size={10} />
-            </button>
-          )}
-          {data.onSetDetailMode && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                data.onSetDetailMode?.(data.detailMode === 'details' ? 'summary' : 'details');
-              }}
-              className="text-content-muted hover:text-content transition-colors flex-shrink-0 rounded-full p-1"
-              title={data.detailMode === 'details' ? "Collapse" : "Expand"}
-            >
-              {data.detailMode === 'details' ? (
-                <CollapseIcon className="w-2.5 h-2.5" size={10} />
-              ) : (
-                <ExpandIcon className="w-2.5 h-2.5" size={10} />
-              )}
-            </button>
-          )}
-          {data.onToggleDetailsPin && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                data.onToggleDetailsPin?.();
-              }}
-              className={`transition-colors flex-shrink-0 rounded-full p-1 ${data.isDetailsPinned ? 'text-accent' : 'text-content-muted hover:text-content'}`}
-              title={data.isDetailsPinned ? "Unpin (will collapse on deselect)" : "Pin expanded"}
-            >
-              <PinIcon
-                className="w-2.5 h-2.5"
-                size={10}
-                filled={data.isDetailsPinned}
-              />
-            </button>
-          )}
-        </div>
       </div>
 
       {/* Unified body: summary shows pill+minimal fields, details shows all fields */}
@@ -118,21 +66,6 @@ export function ConstructNodeDefault({
         <div className="text-node-lg font-semibold text-content">
           {getDisplayName(data, schema)}
         </div>
-
-        {/* Background Color (details only) */}
-        {isDetails && data.onInstanceColorChange && schema.colorMode !== 'enum' && (schema.backgroundColorPolicy === 'tints' || schema.backgroundColorPolicy === 'any') && (
-          <div>
-            <label className="text-node-xs text-content-muted uppercase tracking-wide">Background Color</label>
-            <div className="mt-1">
-              <ColorPicker
-                policy={schema.backgroundColorPolicy}
-                baseColor={schema.color}
-                value={data.instanceColor}
-                onChange={data.onInstanceColorChange}
-              />
-            </div>
-          </div>
-        )}
 
         {/* Fields — click-to-edit two-column grid */}
         {visibleFields.length > 0 && (
