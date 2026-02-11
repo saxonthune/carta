@@ -80,8 +80,7 @@ Defines a construct type. Key properties:
 | `type` | Unique identifier |
 | `displayName` | Human-readable name |
 | `color` | Visual accent color |
-| `description` | AI compilation context |
-| `displayField` | Which field value becomes the node title |
+| `semanticDescription` | AI compilation context |
 | `fields` | Array of FieldSchema |
 | `ports` | Array of PortConfig |
 | `backgroundColorPolicy` | Controls instance color picker: `defaultOnly` (none), `tints` (7 swatches), `any` (full picker) |
@@ -95,7 +94,7 @@ Defines a data slot on a construct type:
 | `name` | Internal key |
 | `label` | Display label |
 | `type` | One of the five DataKinds |
-| `description` | AI compilation context |
+| `semanticDescription` | AI compilation context |
 | `options` | Enum choices (enum type only) |
 | `displayHint` | Rendering hint (string type only) |
 | `displayTier` | Display tier: `pill`, `minimal`, `details`, or `full` |
@@ -142,7 +141,7 @@ Instances live on the canvas. Each has:
 | `deployableId` | Optional logical grouping assignment |
 | `instanceColor` | Visual-only color override (not compiled) |
 
-Node titles derive from the schema's `displayField` value, falling back to `semanticId`. There is no separate `name` field (see doc01.03, "Display Name").
+Node titles derive from field values (typically the first field), falling back to `semanticId`. There is no separate `name` field (see doc01.03, "Display Name").
 
 ### Organizers Are Not Part of the Metamodel
 

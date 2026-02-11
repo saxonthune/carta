@@ -132,25 +132,25 @@ Organized by purpose:
 
 ### `hooks/index.ts`
 Organized by purpose:
-- **Document state**: `useNodes`, `useEdges`, `useSchemas`, `usePortSchemas`, `useSchemaGroups`, `useLevels`, `useDocumentMeta`
+- **Document state**: `useNodes`, `useEdges`, `useSchemas`, `usePortSchemas`, `useSchemaGroups`, `usePages`, `useDocumentMeta`
 - **Document operations**: `useGraphOperations`, `useConnections`, `usePresentation`, `useOrganizerOperations`
-- **UI state**: `useMapState`, `useMetamapLayout`, `useEdgeBundling`, `useNarrative`
-- **Utilities**: `useClipboard`, `useUndoRedo`, `useSchemaUndoRedo`, `useKeyboardShortcuts`, `useAwareness`, `useDirtyStateGuard`, `useClearDocument`, `useEdgeCleanup`
+- **UI state**: `useMapState`, `useMetamapLayout`, `useEdgeBundling`, `useNarrative`, `useFlowTrace`
+- **Utilities**: `useClipboard`, `useUndoRedo`, `useKeyboardShortcuts`, `useAwareness`, `useDirtyStateGuard`, `useClearDocument`, `useEdgeCleanup`
 
 ### `components/canvas/index.ts`
 Canvas components and LOD:
-- **Components**: `Map`, `CanvasContainer`, `ConstructNode`, `OrganizerNode`, `DynamicAnchorEdge`, `PortDrawer`, `IndexBasedDropZones`, `NodeControls`, `AddConstructMenu`, `Narrative`
+- **Components**: `Map`, `CanvasContainer`, `ConstructNode`, `OrganizerNode`, `DynamicAnchorEdge`, `PortDrawer`, `IndexBasedDropZones`, `AddConstructMenu`, `Narrative`
 - **LOD**: `useLodBand`, `DEFAULT_LOD_POLICY`, `getLodConfig`, types
 
 **Note:** `ConstructNode` and `Header` are directories with modular implementations. ConstructNode has: `index.tsx` (dispatcher), `ConstructNodeMarker.tsx` (pill LOD, shared), `ConstructNodeDefault.tsx` (default nodeShape), `ConstructNodeSimple.tsx` (simple nodeShape, see doc03.01.14), `shared.ts` (utilities). Header has: `Header.tsx`, `ThemeMenu.tsx`, `SettingsMenu.tsx`, `ShareMenu.tsx`, `useClickOutside.ts`.
 
 ### `components/metamap/index.ts`
 Schema view:
-- `Metamap`, `SchemaNode`, `SchemaGroupNode`, `EdgeDetailPopover`, `MetamapConnectionModal`, `MetamapFilter`
+- `Metamap`, `SchemaNode`, `EdgeDetailPopover`, `MetamapConnectionModal`, `MetamapFilter`
 
 ### `components/modals/index.ts`
 All modal dialogs:
-- `CompileModal`, `ExamplesModal`, `HelpModal`, `DocumentBrowserModal`, `ImportPreviewModal`, `ExportPreviewModal`, `ConstructFullViewModal`, `ConstructDebugModal`, `ClearWorkspaceModal`, `RestoreDefaultSchemasModal`
+- `CompileModal`, `HelpModal`, `DocumentBrowserModal`, `ImportPreviewModal`, `ExportPreviewModal`, `ConstructFullViewModal`, `ConstructDebugModal`, `ClearWorkspaceModal`
 
 ### `components/ui/index.ts`
 Organized by type:
@@ -163,9 +163,9 @@ Organized by type:
 
 ### `utils/index.ts`
 Organized by purpose:
-- **File format**: `exportProject`, `CartaFile`, `CartaFileLevel` types
+- **File format**: `exportProject`, `CartaFile`, `CartaFilePage` types
 - **Import/export**: `importDocument`, `analyzeImport`, `analyzeExport`, related types
-- **Seeds**: `getExample` (provides multiple seed documents: starter, kitchen-sink, saas, perf-150)
+- **Seeds**: `seeds` (provides seed documents: starter, kitchen-sink, saas, perf-150)
 - **Metamap layout**: `computeMetamapLayout`, layout constants, types
 - **Preferences**: `getLastDocumentId`, `setLastDocumentId`
 - **Random names**: `generateRandomName`

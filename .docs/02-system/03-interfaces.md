@@ -75,11 +75,14 @@ Carta exposes an MCP (Model Context Protocol) server for AI tool integration. Th
 **Schema migration operations (tier 2):**
 - `carta_add_field` — Add a field to an existing schema with automatic instance migration
 - `carta_rename_field` — Rename a field and migrate all instance data
-- `carta_delete_field` — Remove a field and clean up instance data
+- `carta_remove_field` — Remove a field and clean up instance data
 - `carta_change_field_type` — Change field data type with optional value transformation
 - `carta_add_port` — Add a port to an existing schema
 - `carta_rename_port` — Rename a port and update all connections
-- `carta_delete_port` — Remove a port and clean up connections
+- `carta_remove_port` — Remove a port and clean up connections
+- `carta_change_port_type` — Change port type reference, disconnecting incompatible edges
+- `carta_rename_schema_type` — Rename a schema type and update all references
+- `carta_narrow_enum_options` — Update enum field options with value remapping
 
 **Construct operations:**
 - `carta_list_constructs` — List constructs (compact summaries). Optionally filter by `constructType` or target specific page via `pageId`
