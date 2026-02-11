@@ -172,6 +172,11 @@ body,
   box-shadow: none;
 }
 
+/* Elevate node when port drawer is expanded so it overlays sibling nodes */
+.react-flow__node:has(.port-drawer-expanded) {
+  z-index: 9999 !important;
+}
+
 /* Ctrl+drag: red shadow on dragged nodes to indicate group detach */
 .ctrl-dragging .react-flow__node.dragging {
   filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.7)) drop-shadow(0 0 4px rgba(239, 68, 68, 0.5));

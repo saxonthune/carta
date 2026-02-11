@@ -106,7 +106,7 @@ export function ConstructNodeSimple({
             type="source"
             position={Position.Bottom}
             className="!absolute !opacity-0 !w-0 !h-0 !min-w-0 !min-h-0 !border-none !p-0"
-            style={{ bottom: 0, left: '50%', pointerEvents: 'none' }}
+            style={{ bottom: 14, left: '50%', pointerEvents: 'none' }}
           />
           <Handle
             id={port.id}

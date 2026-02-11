@@ -1,4 +1,5 @@
 import { useRef, useState, useCallback, useEffect, cloneElement, isValidElement } from 'react';
+import { createPortal } from 'react-dom';
 
 interface TooltipProps {
   /** Tooltip text content */
@@ -216,7 +217,7 @@ export default function Tooltip({ content, delay = 150, placement = 'top', child
         onFocus: show,
         onBlur: hide,
       })}
-      {visible && position && (
+      {visible && position && createPortal(
         <div
           ref={tooltipRef}
           role="tooltip"
@@ -224,7 +225,8 @@ export default function Tooltip({ content, delay = 150, placement = 'top', child
           style={{ top: position.top, left: position.left }}
         >
           {content}
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );

@@ -166,6 +166,31 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
   const { schemaGroups } = useSchemaGroups();
   const { getViewport, setViewport } = useReactFlow();
 
+  // Save/restore viewport per page across page switches
+  const pageViewports = useRef(new globalThis.Map<string, { x: number; y: number; zoom: number }>());
+  const prevPageRef = useRef<string | undefined>(activePage);
+
+  useEffect(() => {
+    if (activePage && prevPageRef.current !== activePage) {
+      // Save viewport of the page we're leaving
+      if (prevPageRef.current) {
+        pageViewports.current.set(prevPageRef.current, getViewport());
+      }
+      prevPageRef.current = activePage;
+
+      // Restore saved viewport or fit to view
+      const saved = pageViewports.current.get(activePage);
+      if (saved) {
+        setViewport(saved, { duration: 0 });
+      } else {
+        // Small delay so React Flow has the new nodes before fitting
+        requestAnimationFrame(() => {
+          reactFlow.fitView({ duration: 0 });
+        });
+      }
+    }
+  }, [activePage, getViewport, setViewport, reactFlow]);
+
   // Presentation model for collapse/hide logic and edge remapping
   const { processedNodes: nodesWithHiddenFlags, edgeRemap } = usePresentation(nodes, edges);
 

@@ -138,7 +138,7 @@ const ConstructNode = memo(function ConstructNode({ data, selected = false }: Co
   }
 
   const content = (
-    <div className="relative">
+    <div className="relative w-full h-full">
       {sequenceBadge != null && lod.band !== 'marker' && (
         <SequenceBadge ordinal={sequenceBadge} />
       )}
