@@ -5,6 +5,7 @@ import { DEFAULT_ORGANIZER_LAYOUT, computeLayoutUnitSizes, type LayoutItem, type
 import { deOverlapNodes } from '../utils/deOverlapNodes.js';
 import { compactNodes } from '../utils/compactNodes.js';
 import { hierarchicalLayout } from '../utils/hierarchicalLayout.js';
+import type { SpreadInput } from '../utils/spreadNodes.js';
 
 const ORGANIZER_CONTENT_TOP = DEFAULT_ORGANIZER_LAYOUT.padding + DEFAULT_ORGANIZER_LAYOUT.headerHeight;
 
@@ -47,6 +48,82 @@ function applyStylePatches(
   reactFlow.setNodes(updater);
   setNodesLocal(updater);
   if (patches.length > 0) adapter.patchNodes?.(patches);
+}
+
+/**
+ * Collect all top-level nodes (constructs and organizers) as SpreadInput items.
+ * Organizer dimensions come from style.width/height. Construct dimensions come
+ * from computeLayoutUnitSizes (which includes wagon bounding boxes).
+ */
+function getTopLevelLayoutItems(
+  rfNodes: Node[],
+  computeLayoutUnits: (nodeIds: string[]) => Map<string, { width: number; height: number }>
+): SpreadInput[] {
+  const topLevel = rfNodes.filter(n => !n.parentId);
+  if (topLevel.length === 0) return [];
+
+  // Compute layout unit sizes for constructs only (not organizers)
+  const constructIds = topLevel.filter(n => n.type !== 'organizer').map(n => n.id);
+  const unitSizes = computeLayoutUnits(constructIds);
+
+  return topLevel.map(n => {
+    if (n.type === 'organizer') {
+      return {
+        id: n.id,
+        x: n.position.x,
+        y: n.position.y,
+        width: (n.style?.width as number) ?? n.measured?.width ?? n.width ?? 400,
+        height: (n.style?.height as number) ?? n.measured?.height ?? n.height ?? 300,
+      };
+    }
+    const size = unitSizes.get(n.id) ?? { width: 200, height: 100 };
+    return {
+      id: n.id,
+      x: n.position.x,
+      y: n.position.y,
+      ...size,
+    };
+  });
+}
+
+/**
+ * Map edges to top-level nodes. Edges between children of the same organizer
+ * are dropped (internal). Edges from an organizer's child to an external node
+ * are mapped to the organizer's ID. Deduplicates.
+ */
+function getTopLevelEdges(
+  rfNodes: Node[],
+  rfEdges: Array<{ source: string; target: string }>,
+  topLevelIds: Set<string>
+): Array<{ source: string; target: string }> {
+  // Build map: any node ID → its top-level ancestor ID
+  const parentMap = new Map<string, string>();
+  for (const n of rfNodes) {
+    if (n.parentId) parentMap.set(n.id, n.parentId);
+  }
+
+  function resolveTopLevel(id: string): string | undefined {
+    if (topLevelIds.has(id)) return id;
+    const parent = parentMap.get(id);
+    if (!parent) return undefined;
+    return resolveTopLevel(parent);
+  }
+
+  const seen = new Set<string>();
+  const edges: Array<{ source: string; target: string }> = [];
+
+  for (const e of rfEdges) {
+    const source = resolveTopLevel(e.source);
+    const target = resolveTopLevel(e.target);
+    if (!source || !target) continue;
+    if (source === target) continue; // internal to same top-level node
+    const key = `${source}->${target}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    edges.push({ source, target });
+  }
+
+  return edges;
 }
 
 interface UseLayoutActionsDeps {
@@ -339,32 +416,35 @@ export function useLayoutActions({
   const spreadAll = useCallback(() => {
     const rfNodes = reactFlow.getNodes();
 
-    // Group nodes by parentId (null = top-level)
-    const groups = new globalThis.Map<string | null, typeof rfNodes>();
-    for (const n of rfNodes) {
-      if (n.type === 'organizer') continue;
-      const key = n.parentId ?? null;
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key)!.push(n);
+    // --- Top-level group (constructs + organizers) ---
+    const topLevelItems = getTopLevelLayoutItems(rfNodes, computeLayoutUnits);
+    const allNewPositions = new globalThis.Map<string, { x: number; y: number }>();
+
+    if (topLevelItems.length >= 2) {
+      const positions = deOverlapNodes(topLevelItems);
+      for (const [id, pos] of positions) {
+        allNewPositions.set(id, pos);
+      }
     }
 
-    const allNewPositions = new globalThis.Map<string, { x: number; y: number }>();
-    for (const [, groupNodes] of groups) {
-      if (groupNodes.length < 2) continue;
+    // --- Organizer-scoped groups (constructs inside each organizer) ---
+    const organizerIds = rfNodes
+      .filter(n => n.type === 'organizer' && !n.parentId)
+      .map(n => n.id);
 
-      // Compute layout unit sizes for this group
-      const nodeIds = groupNodes.map(n => n.id);
-      const unitSizes = computeLayoutUnits(nodeIds);
+    for (const orgId of organizerIds) {
+      const children = rfNodes.filter(
+        n => n.parentId === orgId && n.type !== 'organizer'
+      );
+      if (children.length < 2) continue;
 
-      const inputs = groupNodes.map(n => {
-        const size = unitSizes.get(n.id) ?? { width: 200, height: 100 };
-        return {
-          id: n.id,
-          x: n.position.x,
-          y: n.position.y,
-          ...size,
-        };
-      });
+      const inputs = children.map(n => ({
+        id: n.id,
+        x: n.position.x,
+        y: n.position.y,
+        width: n.measured?.width ?? n.width ?? 200,
+        height: n.measured?.height ?? n.height ?? 100,
+      }));
       const positions = deOverlapNodes(inputs);
       for (const [id, pos] of positions) {
         allNewPositions.set(id, pos);
@@ -372,7 +452,6 @@ export function useLayoutActions({
     }
 
     if (allNewPositions.size === 0) return;
-
     const patches = [...allNewPositions].map(([id, position]) => ({ id, position }));
     applyPositionPatches(patches, reactFlow, setNodesLocal, adapter);
   }, [reactFlow, setNodesLocal, adapter, computeLayoutUnits]);
@@ -382,28 +461,20 @@ export function useLayoutActions({
    * Top-level layout action (moved from Map.tsx).
    */
   const compactAll = useCallback(() => {
-    const rfNodes = reactFlow.getNodes();
-    const topLevel = rfNodes.filter(n => !n.parentId);
-    if (topLevel.length < 2) return;
+    const topLevelItems = getTopLevelLayoutItems(reactFlow.getNodes(), computeLayoutUnits);
+    if (topLevelItems.length < 2) return;
 
-    // Compute layout unit sizes for top-level nodes
-    const nodeIds = topLevel.map(n => n.id);
-    const unitSizes = computeLayoutUnits(nodeIds);
+    const compacted = compactNodes(topLevelItems);
+    if (compacted.size === 0) return;
 
-    const inputs = topLevel.map(n => {
-      const size = unitSizes.get(n.id) ?? { width: 200, height: 100 };
-      return {
-        id: n.id,
-        x: n.position.x,
-        y: n.position.y,
-        ...size,
-      };
-    });
-    const newPositions = compactNodes(inputs);
+    // Chain de-overlap as safety net
+    const compactedItems = topLevelItems.map(n => ({
+      ...n,
+      ...compacted.get(n.id)!,
+    }));
+    const final = deOverlapNodes(compactedItems);
 
-    if (newPositions.size === 0) return;
-
-    const patches = [...newPositions].map(([id, position]) => ({ id, position }));
+    const patches = [...final].map(([id, position]) => ({ id, position }));
     applyPositionPatches(patches, reactFlow, setNodesLocal, adapter);
   }, [reactFlow, setNodesLocal, adapter, computeLayoutUnits]);
 
@@ -415,34 +486,23 @@ export function useLayoutActions({
     const rfNodes = reactFlow.getNodes();
     const rfEdges = reactFlow.getEdges();
 
-    // Top-level non-organizer nodes only
-    const topLevel = rfNodes.filter(n => !n.parentId && n.type !== 'organizer');
-    if (topLevel.length < 2) return;
+    const topLevelItems = getTopLevelLayoutItems(rfNodes, computeLayoutUnits);
+    if (topLevelItems.length < 2) return;
 
-    // Compute layout unit sizes for top-level nodes
-    const nodeIds = topLevel.map(n => n.id);
-    const unitSizes = computeLayoutUnits(nodeIds);
+    const topLevelIds = new Set(topLevelItems.map(n => n.id));
+    const edges = getTopLevelEdges(rfNodes, rfEdges, topLevelIds);
 
-    const inputs = topLevel.map(n => {
-      const size = unitSizes.get(n.id) ?? { width: 200, height: 100 };
-      return {
-        id: n.id,
-        x: n.position.x,
-        y: n.position.y,
-        ...size,
-      };
-    });
+    const positioned = hierarchicalLayout(topLevelItems, edges);
+    if (positioned.size === 0) return;
 
-    // Filter edges to only those between top-level nodes
-    const topLevelIds = new Set(topLevel.map(n => n.id));
-    const edges = rfEdges
-      .filter(e => topLevelIds.has(e.source) && topLevelIds.has(e.target))
-      .map(e => ({ source: e.source, target: e.target }));
+    // Chain de-overlap to guarantee no overlaps
+    const positionedItems = topLevelItems.map(n => ({
+      ...n,
+      ...positioned.get(n.id)!,
+    }));
+    const final = deOverlapNodes(positionedItems);
 
-    const newPositions = hierarchicalLayout(inputs, edges);
-    if (newPositions.size === 0) return;
-
-    const patches = [...newPositions].map(([id, position]) => ({ id, position }));
+    const patches = [...final].map(([id, position]) => ({ id, position }));
     applyPositionPatches(patches, reactFlow, setNodesLocal, adapter);
   }, [reactFlow, setNodesLocal, adapter, computeLayoutUnits]);
 
