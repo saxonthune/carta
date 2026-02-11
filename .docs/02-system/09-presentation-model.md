@@ -93,15 +93,13 @@ An **organized collection** is the set of nodes that belong to a single organize
 
 ### Layout Strategies
 
-Each organizer has a **layout strategy** that determines how its collection is arranged:
+Each organizer has a **layout strategy** that determines how its collection is arranged. Currently only `freeform` is implemented:
 
 | Strategy | Behavior | Use Case |
 |----------|----------|----------|
-| `freeform` | Members positioned freely within bounds. NodeResizer for manual sizing. This is the default. | General-purpose grouping, spatial clustering |
-| `stack` | One member visible at a time. Arrow navigation between members. Index-based visibility. | Alternatives, versions, step-by-step sequences |
-| `grid` | Members auto-arranged in a resizable grid. Column count adjustable. | Compact overviews, card-wall style layouts |
+| `freeform` | Members positioned freely within bounds. NodeResizer for manual sizing. This is the default and only layout. | General-purpose grouping, spatial clustering |
 
-Layout strategies are a **Strategy pattern** — each is a pure function that computes member positions and visibility from the organizer's state:
+Layout strategies follow a **Strategy pattern** — each is a pure function that computes member positions and visibility from the organizer's state:
 
 ```
 layoutStrategy(organizer, members) → { positionedMembers, visibleSet }
@@ -109,15 +107,15 @@ layoutStrategy(organizer, members) → { positionedMembers, visibleSet }
 
 ### Nesting Rules
 
-Organizers can nest — an organizer can be a member of another organizer. React Flow handles this natively via chained `parentId`.
+Organizers can nest — an organizer can be a member of another organizer — **only when the nested organizer is a wagon attached to a construct that's a member of the outer organizer**. General-purpose organizer nesting is not supported.
 
-**Business rules** are enforced at the attach point (when a node is dragged into an organizer):
+- A freeform organizer can contain constructs and their wagon organizers
+- A freeform organizer CANNOT contain non-wagon organizers
+- Wagon organizers maintain `parentId` pointing at their construct, not at the outer organizer — nesting is implicit via the construct's membership
 
-- A freeform organizer can contain other organizers of any type
-- A stack organizer cannot contain other organizers (stacks navigate between leaf constructs)
-- A grid organizer cannot contain other organizers (grids auto-position leaf constructs)
+React Flow handles this natively via chained `parentId`: the wagon's `parentId` points to the construct node, and the construct's `parentId` points to the organizer.
 
-These rules live in the attach validation function, making them easy to add, change, or remove.
+**Business rules** are enforced at the attach point (when a node is dragged into an organizer) by the `canNestInOrganizer` validation function in `useOrganizerOperations.ts`.
 
 ### Collapse Behavior
 

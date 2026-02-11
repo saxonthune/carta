@@ -44,6 +44,34 @@ function getAbsolutePosition(node: Node, allNodes: Node[]): { x: number; y: numb
 }
 
 /**
+ * Validate whether a node can be nested inside an organizer.
+ * - Constructs can always be added to organizers
+ * - Organizers can only be added if they're wagon organizers whose construct is already a member
+ * Exported for use in Map.tsx drag handlers.
+ */
+export function canNestInOrganizer(node: Node, targetOrganizer: Node, allNodes: Node[]): boolean {
+  // Constructs can always be added to organizers
+  if (node.type === 'construct') return true;
+
+  // Organizers can only be added if they're wagon organizers
+  // whose construct is already a member of the target organizer
+  if (node.type === 'organizer') {
+    const data = node.data as OrganizerNodeData;
+    if (!data.attachedToSemanticId) return false; // non-wagon organizer — reject
+
+    // Find the construct this wagon is attached to
+    const ownerConstruct = allNodes.find(n =>
+      n.type === 'construct' &&
+      (n.data as { semanticId?: string }).semanticId === data.attachedToSemanticId
+    );
+    // Allow only if the construct is already in the target organizer
+    return ownerConstruct?.parentId === targetOrganizer.id;
+  }
+
+  return true;
+}
+
+/**
  * Hook providing organizer operations.
  * Uses pure geometry functions from @carta/domain for testability.
  */
@@ -56,15 +84,64 @@ export function useOrganizerOperations(): UseOrganizerOperationsResult {
     const organizerId = crypto.randomUUID();
     const color = ORGANIZER_COLORS[Math.floor(Math.random() * ORGANIZER_COLORS.length)];
 
-    const selectedNodes = nodes.filter(n => selectedNodeIds.includes(n.id));
-    if (selectedNodes.length === 0) return null;
+    // Filter out non-wagon organizers from selection
+    const selectedNodes = nodes.filter(n => {
+      if (!selectedNodeIds.includes(n.id)) return false;
+      // Allow constructs and wagon organizers only
+      if (n.type === 'construct') return true;
+      if (n.type === 'organizer') {
+        const data = n.data as OrganizerNodeData;
+        return !!data.attachedToSemanticId; // Only include wagon organizers
+      }
+      return true;
+    });
+    if (selectedNodes.length < 2) return null;
 
-    const nodeGeometries: NodeGeometry[] = selectedNodes.map(n => ({
-      position: n.position,
-      width: n.width,
-      height: n.height,
-      measured: n.measured,
-    }));
+    // Helper: compute the full layout unit size (node + wagon tree) for a node
+    const getLayoutUnitSize = (nodeId: string): { width: number; height: number } => {
+      const node = nodes.find(n => n.id === nodeId);
+      if (!node) return { width: 200, height: 100 };
+
+      const nodeW = node.measured?.width ?? node.width ?? 200;
+      const nodeH = node.measured?.height ?? node.height ?? 100;
+
+      // Find wagon children (organizers with this node as parentId)
+      const wagons = nodes.filter(n => n.parentId === nodeId && n.type === 'organizer');
+      if (wagons.length === 0) return { width: nodeW, height: nodeH };
+
+      // Compute bounding box: start with the construct rect
+      let maxRight = nodeW;
+      let maxBottom = nodeH;
+
+      // Recursively include wagon subtrees
+      const walkWagons = (parentId: string, offsetX: number, offsetY: number): void => {
+        const children = nodes.filter(n => n.parentId === parentId && n.type === 'organizer');
+        for (const wagon of children) {
+          const wx = offsetX + wagon.position.x;
+          const wy = offsetY + wagon.position.y;
+          const ww = (wagon.style?.width as number) ?? wagon.measured?.width ?? wagon.width ?? 400;
+          const wh = (wagon.style?.height as number) ?? wagon.measured?.height ?? wagon.height ?? 300;
+          maxRight = Math.max(maxRight, wx + ww);
+          maxBottom = Math.max(maxBottom, wy + wh);
+          // Recurse for nested wagons
+          walkWagons(wagon.id, wx, wy);
+        }
+      };
+
+      walkWagons(nodeId, 0, 0);
+      return { width: maxRight, height: maxBottom };
+    };
+
+    // Compute geometries including wagon trees for each selected node
+    const nodeGeometries: NodeGeometry[] = selectedNodes.map(n => {
+      const layoutUnit = getLayoutUnitSize(n.id);
+      return {
+        position: n.position,
+        width: layoutUnit.width,
+        height: layoutUnit.height,
+        measured: n.measured,
+      };
+    });
 
     const bounds = computeOrganizerBounds(nodeGeometries, DEFAULT_ORGANIZER_LAYOUT);
     const organizerPosition = { x: bounds.x, y: bounds.y };
@@ -135,6 +212,9 @@ export function useOrganizerOperations(): UseOrganizerOperationsResult {
     const node = nodes.find(n => n.id === nodeId);
     const organizer = nodes.find(n => n.id === organizerId);
     if (!node || !organizer) return;
+
+    // Validate nesting rules
+    if (!canNestInOrganizer(node, organizer, nodes)) return;
 
     const organizerAbsPos = getAbsolutePosition(organizer, nodes);
     const nodeAbsPos = node.parentId ? getAbsolutePosition(node, nodes) : node.position;

@@ -618,6 +618,25 @@ export function moveConstruct(
     } else {
       ynode.delete('parentId');
     }
+
+    // Verify wagon organizers (children of this construct) still have valid parentId
+    // Wagons maintain parentId pointing to the construct node ID, not the semantic ID
+    // This is a safety check in case the construct's node ID changed unexpectedly
+    pageNodes.forEach((wagonYnode) => {
+      const wagonObj = yToPlain(wagonYnode) as Record<string, unknown>;
+      if (wagonObj.type !== 'organizer') return;
+      if (wagonObj.parentId !== foundId) return; // Not a child of this construct
+
+      const wagonData = wagonObj.data as Record<string, unknown> | undefined;
+      if (!wagonData?.attachedToSemanticId) return; // Not a wagon organizer
+      if (wagonData.attachedToSemanticId !== semanticId) return; // Not attached to this construct
+
+      // Wagon is correctly attached — verify parentId is still valid
+      if (wagonObj.parentId !== foundId) {
+        // Fix broken parentId (should not happen, but defensive)
+        wagonYnode.set('parentId', foundId);
+      }
+    });
   }, MCP_ORIGIN);
 
   return getConstruct(ydoc, pageId, semanticId);

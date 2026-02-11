@@ -40,7 +40,7 @@ import type { ConstructValues, ConstructNodeData, OrganizerNodeData } from '@car
 import { nodeContainedInOrganizer, getDisplayName } from '@carta/domain';
 import { usePresentation } from '../../hooks/usePresentation';
 import { computeEdgeAggregation, filterInvalidEdges } from '../../presentation/index';
-import { useOrganizerOperations } from '../../hooks/useOrganizerOperations';
+import { useOrganizerOperations, canNestInOrganizer } from '../../hooks/useOrganizerOperations';
 import ConstructEditor from '../ConstructEditor';
 import DynamicAnchorEdge from './DynamicAnchorEdge';
 import ConstructFullViewModal from '../modals/ConstructFullViewModal';
@@ -817,8 +817,21 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     onFitToChildren: (nodeId: string) => fitToChildrenRef.current(nodeId),
   }), []);
 
-  const nodesWithCallbacks = useMemo(() =>
-    nodesWithHiddenFlags.map((node) => {
+  const nodesWithCallbacks = useMemo(() => {
+    // Pre-compute which nodes should expand their parent
+    // Includes: nodes directly in organizers, AND wagons whose construct is in an organizer
+    const nodeById = new globalThis.Map(nodesWithHiddenFlags.map(n => [n.id, n] as [string, Node]));
+    const shouldExpandParent = (node: Node): boolean => {
+      if (!node.parentId) return false;
+      // Direct child of organizer
+      if (organizerIds.has(node.parentId)) return true;
+      // Wagon whose parent construct is in an organizer
+      const parent = nodeById.get(node.parentId);
+      if (parent?.parentId && organizerIds.has(parent.parentId)) return true;
+      return false;
+    };
+
+    return nodesWithHiddenFlags.map((node) => {
       if (node.type === 'organizer') {
         return {
           ...node,
@@ -834,7 +847,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
       return {
         ...node,
         dragHandle: NODE_DRAG_HANDLE,
-        expandParent: node.parentId && organizerIds.has(node.parentId) ? true : undefined,
+        expandParent: shouldExpandParent(node) ? true : undefined,
         data: {
           ...node.data,
           nodeId: node.id,
@@ -843,9 +856,8 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
           nodeActions,
         },
       };
-    }),
-    [nodesWithHiddenFlags, childCountMap, organizerIds, renamingNodeId, nodeActions, isTraceActive, traceResult]
-  );
+    });
+  }, [nodesWithHiddenFlags, childCountMap, organizerIds, renamingNodeId, nodeActions, isTraceActive, traceResult]);
 
   // Sort nodes: parents must come before their children (React Flow requirement)
   const sortedNodes = useMemo(() => {
@@ -1225,8 +1237,10 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
       const targetOrganizer = intersecting.find(n => n.type === 'organizer' && n.id !== node.id);
 
       if (targetOrganizer && targetOrganizer.id !== node.parentId) {
-        // Attach to new organizer
-        attachToOrganizer(node.id, targetOrganizer.id);
+        // Validate nesting before attaching
+        if (canNestInOrganizer(node, targetOrganizer, nodes)) {
+          attachToOrganizer(node.id, targetOrganizer.id);
+        }
       } else if (node.parentId) {
         // Detach from current organizer
         detachFromOrganizer(node.id);
