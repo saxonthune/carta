@@ -6,7 +6,7 @@
   "scripts": {
     "build:deps": "pnpm --filter @carta/domain dev:build && pnpm --filter @carta/document dev:build && pnpm --filter @carta/compiler dev:build && pnpm --filter @carta/server dev:build",
     "dev": "pnpm run build:deps && pnpm run compile && concurrently -k -n vite,electron -c blue,green \"pnpm --filter @carta/web-client demo --port 5373\" \"wait-on http://localhost:5373 && electron .\"",
-    "compile": "rm -rf dist/main dist/preload && tsc && tsc -p tsconfig.preload.json",
+    "compile": "rimraf dist/main dist/preload && tsc && tsc -p tsconfig.preload.json",
     "build": "pnpm --filter @carta/web-client build && pnpm --filter @carta/server build && pnpm run compile && node scripts/copy-renderer.mjs",
     "package": "electron-builder"
   },

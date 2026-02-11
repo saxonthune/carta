@@ -20,7 +20,7 @@
     "carta-mcp": "./dist/mcp/stdio.js"
   },
   "scripts": {
-    "build": "rm -rf dist && tsc",
+    "build": "rimraf dist && tsc",
     "dev": "tsc --watch",
     "dev:build": "tsc",
     "mcp": "node dist/mcp/stdio.js",

@@ -11,7 +11,7 @@
     }
   },
   "scripts": {
-    "build": "rm -rf dist && tsc",
+    "build": "rimraf dist && tsc",
     "dev": "tsc --watch",
     "dev:build": "tsc",
     "test": "vitest run"
