@@ -22,6 +22,7 @@ import { analyzeExport, type ExportAnalysis, type ExportOptions } from './utils/
 import { importDocument, type ImportConfig } from './utils/documentImporter';
 import { AISidebar } from './ai';
 import { config } from './config/featureFlags';
+import InspectorPanel from './components/canvas/InspectorPanel';
 
 // Note: Schema initialization is now handled by DocumentProvider
 
@@ -54,9 +55,10 @@ function AppContent() {
   const [pendingImport, setPendingImport] = useState<{ data: CartaFile; config: ImportConfig; schemasToImport: ConstructSchema[] } | null>(null);
   const [exportPreview, setExportPreview] = useState<ExportAnalysis | null>(null);
   const [compileOutput, setCompileOutput] = useState<string | null>(null);
-  const [_selectedNodes, setSelectedNodes] = useState<Node[]>([]);
+  const [selectedNodes, setSelectedNodes] = useState<Node[]>([]);
   const [aiSidebarOpen, setAiSidebarOpen] = useState(false);
   const [aiSidebarWidth] = useState(400);
+  const [inspectorOpen, setInspectorOpen] = useState(true);
   const nodesEdgesRef = useRef<{ nodes: Node[]; edges: Edge[] }>({ nodes: [], edges: [] });
   const { clearDocument } = useClearDocument();
 
@@ -101,10 +103,9 @@ function AppContent() {
     setSelectedNodes(nodes);
   }, []);
 
-  const handleNodeDoubleClick = useCallback((nodeId: string) => {
-    // Toggle to details view on double-click
-    updateNode(nodeId, { detailMode: 'details' });
-  }, [updateNode]);
+  const handleNodeDoubleClick = useCallback((_nodeId: string) => {
+    setInspectorOpen(true);
+  }, []);
 
   const handleExport = useCallback(() => {
     const { nodes, edges } = nodesEdgesRef.current;
@@ -204,6 +205,15 @@ function AppContent() {
           onDuplicatePage={duplicatePage}
         />
       </div>
+
+      {inspectorOpen && selectedNodes.length === 1 && selectedNodes[0].type === 'construct' && (
+        <InspectorPanel
+          node={selectedNodes[0]}
+          schemas={schemas}
+          onNodeUpdate={(nodeId, updates) => updateNode(nodeId, updates)}
+          onClose={() => setInspectorOpen(false)}
+        />
+      )}
 
       <AISidebar
         isOpen={aiSidebarOpen}
