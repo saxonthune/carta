@@ -126,6 +126,37 @@ function getTopLevelEdges(
   return edges;
 }
 
+/**
+ * Collect all children of an organizer (constructs and child organizers) as SpreadInput items.
+ * Child organizer dimensions come from style.width/height.
+ * Construct dimensions use measured/explicit values (no wagon-tree expansion needed
+ * since constructs inside organizers don't have wagons attached at this level).
+ */
+function getChildLayoutItems(
+  rfNodes: Node[],
+  organizerId: string
+): SpreadInput[] {
+  const children = rfNodes.filter(n => n.parentId === organizerId);
+  return children.map(n => {
+    if (n.type === 'organizer') {
+      return {
+        id: n.id,
+        x: n.position.x,
+        y: n.position.y,
+        width: (n.style?.width as number) ?? n.measured?.width ?? n.width ?? 400,
+        height: (n.style?.height as number) ?? n.measured?.height ?? n.height ?? 300,
+      };
+    }
+    return {
+      id: n.id,
+      x: n.position.x,
+      y: n.position.y,
+      width: n.measured?.width ?? n.width ?? 200,
+      height: n.measured?.height ?? n.height ?? 100,
+    };
+  });
+}
+
 interface UseLayoutActionsDeps {
   reactFlow: ReactFlowInstance;
   setNodesLocal: React.Dispatch<React.SetStateAction<Node[]>>;
@@ -222,22 +253,15 @@ export function useLayoutActions({
   const fitToChildren = useCallback(
     (organizerId: string) => {
       const rfNodes = reactFlow.getNodes();
-      const children = rfNodes.filter(
-        n => n.parentId === organizerId && n.type !== 'organizer'
-      );
+      const children = getChildLayoutItems(rfNodes, organizerId);
       if (children.length === 0) return;
 
       // Compute bounding box of all children
-      const rights = children.map(
-        child => child.position.x + (child.measured?.width ?? child.width ?? 200)
-      );
-      const bottoms = children.map(
-        child => child.position.y + (child.measured?.height ?? child.height ?? 100)
-      );
+      const rights = children.map(child => child.x + child.width);
+      const bottoms = children.map(child => child.y + child.height);
       const maxRight = Math.max(...rights);
       const maxBottom = Math.max(...bottoms);
 
-      // Add padding (fix: use padding not padding*2 for right edge)
       const { padding, headerHeight } = DEFAULT_ORGANIZER_LAYOUT;
       const newWidth = Math.max(maxRight + padding, 200);
       const newHeight = Math.max(maxBottom + padding, headerHeight + padding * 2);
@@ -253,19 +277,10 @@ export function useLayoutActions({
   const spreadChildren = useCallback(
     (organizerId: string) => {
       const rfNodes = reactFlow.getNodes();
-      const children = rfNodes.filter(
-        n => n.parentId === organizerId && n.type !== 'organizer'
-      );
+      const children = getChildLayoutItems(rfNodes, organizerId);
       if (children.length < 2) return;
 
-      const inputs = children.map(n => ({
-        id: n.id,
-        x: n.position.x,
-        y: n.position.y,
-        width: n.measured?.width ?? n.width ?? 200,
-        height: n.measured?.height ?? n.height ?? 100,
-      }));
-      const newPositions = deOverlapNodes(inputs);
+      const newPositions = deOverlapNodes(children);
 
       // Ensure all positions are below the organizer header
       const allPositions = [...newPositions.values()];
@@ -280,7 +295,6 @@ export function useLayoutActions({
       const patches = [...newPositions].map(([id, position]) => ({ id, position }));
       applyPositionPatches(patches, reactFlow, setNodesLocal, adapter);
 
-      // Bug fix: spread now auto-fits
       fitToChildren(organizerId);
     },
     [reactFlow, setNodesLocal, adapter, fitToChildren]
@@ -292,37 +306,25 @@ export function useLayoutActions({
   const gridLayoutChildren = useCallback(
     (organizerId: string) => {
       const rfNodes = reactFlow.getNodes();
-      const children = rfNodes.filter(
-        n => n.parentId === organizerId && n.type !== 'organizer'
-      );
+      const children = getChildLayoutItems(rfNodes, organizerId);
       if (children.length < 2) return;
-
-      const inputs = children.map(n => ({
-        id: n.id,
-        x: n.position.x,
-        y: n.position.y,
-        width: n.measured?.width ?? n.width ?? 200,
-        height: n.measured?.height ?? n.height ?? 100,
-      }));
 
       // Compute grid
       const cols = Math.ceil(Math.sqrt(children.length));
-      const colWidth = Math.max(...inputs.map(n => n.width)) + 30;
-      const rowHeight = Math.max(...inputs.map(n => n.height)) + 30;
+      const colWidth = Math.max(...children.map(n => n.width)) + 30;
+      const rowHeight = Math.max(...children.map(n => n.height)) + 30;
       const padding = 20;
 
-      // Assign positions
       const newPositions = new globalThis.Map<string, { x: number; y: number }>();
-      inputs.forEach((input, idx) => {
+      children.forEach((child, idx) => {
         const x = (idx % cols) * colWidth + padding;
         const y = Math.floor(idx / cols) * rowHeight + ORGANIZER_CONTENT_TOP;
-        newPositions.set(input.id, { x, y });
+        newPositions.set(child.id, { x, y });
       });
 
       const patches = [...newPositions].map(([id, position]) => ({ id, position }));
       applyPositionPatches(patches, reactFlow, setNodesLocal, adapter);
 
-      // Auto-resize to fit
       fitToChildren(organizerId);
     },
     [reactFlow, setNodesLocal, adapter, fitToChildren]
@@ -334,30 +336,37 @@ export function useLayoutActions({
   const flowLayoutChildren = useCallback(
     (organizerId: string) => {
       const rfNodes = reactFlow.getNodes();
-      const children = rfNodes.filter(
-        n => n.parentId === organizerId && n.type !== 'organizer'
-      );
+      const children = getChildLayoutItems(rfNodes, organizerId);
       if (children.length < 2) return;
 
-      const inputs = children.map(n => ({
-        id: n.id,
-        x: n.position.x,
-        y: n.position.y,
-        width: n.measured?.width ?? n.width ?? 200,
-        height: n.measured?.height ?? n.height ?? 100,
-      }));
-
-      // Filter edges to only those between children
+      // Filter edges: between direct children, collapsing wagon-internal edges
       const childIds = new Set(children.map(c => c.id));
       const rfEdges = reactFlow.getEdges();
-      const scopedEdges = rfEdges.filter(
-        e => childIds.has(e.source) && childIds.has(e.target)
-      );
 
-      // Apply hierarchical layout with smaller gaps for organizer context
-      const rawPositions = hierarchicalLayout(inputs, scopedEdges, { gap: 30, layerGap: 60 });
+      // Build map: nodes inside child wagons → wagon ID
+      const toChild = new Map<string, string>();
+      for (const n of rfNodes) {
+        if (n.parentId && childIds.has(n.parentId)) {
+          toChild.set(n.id, n.parentId);
+        }
+      }
 
-      // Normalize positions to start from (padding, padding)
+      const seen = new Set<string>();
+      const scopedEdges: Array<{ source: string; target: string }> = [];
+      for (const e of rfEdges) {
+        const source = toChild.get(e.source) ?? e.source;
+        const target = toChild.get(e.target) ?? e.target;
+        if (!childIds.has(source) || !childIds.has(target)) continue;
+        if (source === target) continue;
+        const key = `${source}->${target}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        scopedEdges.push({ source, target });
+      }
+
+      const rawPositions = hierarchicalLayout(children, scopedEdges, { gap: 30, layerGap: 60 });
+
+      // Normalize positions to start from (padding, headerTop)
       const padding = 20;
       const positions = [...rawPositions.values()];
       if (positions.length > 0) {
@@ -375,7 +384,6 @@ export function useLayoutActions({
         const patches = [...newPositions].map(([id, position]) => ({ id, position }));
         applyPositionPatches(patches, reactFlow, setNodesLocal, adapter);
 
-        // Auto-resize to fit
         fitToChildren(organizerId);
       }
     },
