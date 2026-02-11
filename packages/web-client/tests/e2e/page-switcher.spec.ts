@@ -105,22 +105,46 @@ test.describe('Page Switcher', () => {
     }
   });
 
-  test('should rename a page via inline edit', async ({ page }) => {
+  test('should rename a page via overflow menu', async ({ page }) => {
     const canvas = page.locator('.react-flow');
     await expect(canvas).toBeVisible({ timeout: 10000 });
 
     // Get the current page name
     const initialName = await cartaPage.getCurrentPageName();
 
-    // Click the page name span to enter rename mode
-    const pageName = page.locator('span[title="Click to rename"]');
-    await pageName.click();
+    // Open the page dropdown
+    await cartaPage.openPageDropdown();
 
-    // Wait for input to appear and be focused
+    // Find a page row with the initial name
+    const pageRows = await cartaPage.getPageRows();
+    const allRows = await pageRows.all();
+    let targetRow = null;
+    for (const row of allRows) {
+      const text = await row.textContent();
+      if (text && text.includes(initialName)) {
+        targetRow = row;
+        break;
+      }
+    }
+
+    expect(targetRow).not.toBeNull();
+
+    // Hover over the row to reveal the overflow menu button (...)
+    await targetRow!.hover();
     await page.waitForTimeout(300);
 
-    // The input should now be visible - it's the text input with font-medium class
-    const input = page.locator('input.font-medium[value="' + initialName + '"]');
+    // Find and click the overflow menu button (has 3 vertical dots)
+    const overflowButton = targetRow!.locator('button[title="Page actions"]');
+    await overflowButton.click();
+    await page.waitForTimeout(300);
+
+    // Click "Rename" in the popover menu
+    const renameButton = page.getByText('Rename');
+    await renameButton.click();
+    await page.waitForTimeout(300);
+
+    // The input should now be visible in the row
+    const input = page.locator('input[value="' + initialName + '"]');
     await expect(input).toBeVisible();
 
     // Clear and type new name, then press Enter
@@ -129,6 +153,10 @@ test.describe('Page Switcher', () => {
 
     // Wait for update
     await page.waitForTimeout(500);
+
+    // Close the dropdown by clicking elsewhere or pressing Escape
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
 
     // Verify the name changed
     const newName = await cartaPage.getCurrentPageName();
