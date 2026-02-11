@@ -12,13 +12,13 @@ export const GUIDES = {
   metamodel: {
     uri: 'carta://guide/metamodel',
     name: 'Carta Metamodel Guide',
-    description: 'Learn how to read and understand Carta documents - the three-level metamodel, connections, traversal patterns, and data structures.',
+    description: "Carta's metamodel (schemas, constructs, ports, organizers, pages) and key MCP tool workflows",
     mimeType: 'text/markdown',
   },
   analysis: {
     uri: 'carta://guide/analysis',
     name: 'Carta Analysis Guide',
-    description: 'Learn how to analyze Carta documents for structural issues, completeness gaps, and code generation readiness.',
+    description: 'How to analyze a Carta document: structural health checks, completeness gaps, and code generation readiness',
     mimeType: 'text/markdown',
   },
 } as const;
