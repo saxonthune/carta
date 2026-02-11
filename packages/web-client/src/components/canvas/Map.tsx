@@ -36,7 +36,7 @@ import { useClipboard } from '../../hooks/useClipboard';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import { useEdgeCleanup } from '../../hooks/useEdgeCleanup';
 import type { ConstructValues, ConstructNodeData, OrganizerNodeData } from '@carta/domain';
-import { nodeContainedInOrganizer, getDisplayName } from '@carta/domain';
+import { nodeContainedInOrganizer, getDisplayName, resolveNodeColor } from '@carta/domain';
 import { usePresentation } from '../../hooks/usePresentation';
 import { computeEdgeAggregation, filterInvalidEdges } from '../../presentation/index';
 import { useOrganizerOperations, canNestInOrganizer } from '../../hooks/useOrganizerOperations';
@@ -299,6 +299,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     attachToOrganizer,
     detachFromOrganizer,
     toggleOrganizerCollapse,
+    updateOrganizerColor,
   } = useOrganizerOperations();
 
   // Wrapper for createOrganizer that uses current selectedNodeIds
@@ -316,8 +317,10 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     const node = nodes.find(n => n.id === nodeId);
     if (!node || node.type !== 'construct') return;
     const data = node.data as ConstructNodeData;
-    createAttachedOrganizer(nodeId, data.semanticId);
-  }, [nodes, createAttachedOrganizer]);
+    const schema = schemas.find(s => s.type === data.constructType);
+    const resolvedColor = schema ? resolveNodeColor(schema, data) : undefined;
+    createAttachedOrganizer(nodeId, data.semanticId, resolvedColor);
+  }, [nodes, createAttachedOrganizer, schemas]);
 
   // Select all construct nodes on current level
   const selectAll = useCallback(() => {
@@ -619,6 +622,8 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
   gridLayoutChildrenRef.current = gridLayoutChildren;
   const fitToChildrenRef = useRef(fitToChildren);
   fitToChildrenRef.current = fitToChildren;
+  const updateOrganizerColorRef = useRef(updateOrganizerColor);
+  updateOrganizerColorRef.current = updateOrganizerColor;
 
   // One stable dispatch object shared by ALL nodes (never changes identity)
   const nodeActions = useMemo(() => ({
@@ -630,6 +635,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     onFlowLayoutChildren: (nodeId: string) => flowLayoutChildrenRef.current(nodeId),
     onGridLayoutChildren: (nodeId: string) => gridLayoutChildrenRef.current(nodeId),
     onFitToChildren: (nodeId: string) => fitToChildrenRef.current(nodeId),
+    onUpdateOrganizerColor: (nodeId: string, color: string) => updateOrganizerColorRef.current(nodeId, color),
   }), []);
 
   const nodesWithCallbacks = useMemo(() => {

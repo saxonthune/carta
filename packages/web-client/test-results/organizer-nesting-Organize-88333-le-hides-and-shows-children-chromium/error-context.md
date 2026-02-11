@@ -1,0 +1,114 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e4]:
+  - banner [ref=e5]:
+    - generic [ref=e6]:
+      - generic [ref=e7]: Carta
+      - generic [ref=e8]:
+        - generic [ref=e9]: DEV
+        - generic [ref=e10]: LOCAL
+        - button "Clean" [ref=e11] [cursor=pointer]
+    - heading "Untitled Project" [level=1] [ref=e14] [cursor=pointer]
+    - generic [ref=e15]:
+      - button [ref=e16] [cursor=pointer]:
+        - img [ref=e17]
+      - button "Export" [ref=e19] [cursor=pointer]
+      - button "Import" [ref=e20] [cursor=pointer]
+      - button "Compile" [ref=e21] [cursor=pointer]
+      - button [ref=e22] [cursor=pointer]:
+        - img [ref=e23]
+      - button "Load seed document" [ref=e28] [cursor=pointer]:
+        - img [ref=e29]
+      - button "Change theme" [ref=e33] [cursor=pointer]:
+        - img [ref=e34]
+      - button "Settings" [ref=e41] [cursor=pointer]:
+        - img [ref=e42]
+  - generic [ref=e45]:
+    - generic [ref=e46]:
+      - generic [ref=e47]:
+        - img [ref=e48]
+        - textbox "Search instances..." [ref=e51]
+      - generic [ref=e52]:
+        - button "Map" [ref=e53] [cursor=pointer]
+        - button "Metamap" [ref=e54] [cursor=pointer]
+      - button "Revalidate Edges" [ref=e55]
+    - generic [ref=e58]:
+      - button "Main Add description..." [ref=e59]:
+        - generic [ref=e60]:
+          - img [ref=e61]
+          - generic [ref=e65]: Main
+        - generic [ref=e66]: Add description...
+      - button "Switch page" [ref=e67]:
+        - img [ref=e68]
+    - generic [ref=e71]:
+      - generic [ref=e72]:
+        - generic [ref=e73]:
+          - generic [ref=e74]: "Zoom:"
+          - generic [ref=e75] [cursor=pointer]: "1.553"
+        - generic [ref=e76]: "LOD: normal"
+        - generic [ref=e77]: "Organizers: 1 | Nodes: 4"
+      - application [ref=e78]:
+        - generic [ref=e80]:
+          - generic:
+            - generic:
+              - img:
+                - group "Edge from 3ccb37cd-100f-4674-b05e-d0bb38cc5948 to 75dd355d-51bb-48f6-8948-9149edd4c5db" [ref=e81] [cursor=pointer]:
+                  - generic [ref=e84]:
+                    - generic: "2"
+            - generic:
+              - group [ref=e86]:
+                - generic [ref=e89]:
+                  - generic [ref=e93]: Related Ideas
+                  - generic [ref=e94]: "2"
+                  - button [ref=e96]:
+                    - img [ref=e97]
+                  - button [ref=e101]:
+                    - img [ref=e102]
+              - group [ref=e105]:
+                - generic [ref=e107]:
+                  - textbox "Type here..." [ref=e109]: Your idea starts here
+                  - textbox [ref=e114]: "#c4a94e"
+              - group [ref=e115]:
+                - generic [ref=e117]:
+                  - textbox "Type here..." [ref=e119]: Break it into pieces
+                  - textbox [ref=e124]: "#c4a94e"
+              - group [ref=e125]:
+                - generic [ref=e127]:
+                  - textbox "Type here..." [ref=e129]: Connect them together
+                  - textbox [ref=e134]: "#c4a94e"
+        - generic "Control Panel" [ref=e135]:
+          - button "Fit View" [ref=e136] [cursor=pointer]:
+            - img [ref=e137]
+          - button "Toggle Interactivity" [ref=e139] [cursor=pointer]:
+            - img [ref=e140]
+          - button [ref=e142] [cursor=pointer]:
+            - img [ref=e143]
+          - button [disabled]:
+            - img
+          - button [ref=e145] [cursor=pointer]:
+            - img [ref=e146]
+          - button [ref=e147] [cursor=pointer]:
+            - img [ref=e148]
+          - button [ref=e149] [cursor=pointer]:
+            - img [ref=e150]
+          - button [ref=e152] [cursor=pointer]:
+            - img [ref=e153]
+          - button [ref=e158] [cursor=pointer]:
+            - img [ref=e159]
+          - button [ref=e164] [cursor=pointer]:
+            - img [ref=e165]
+          - button [ref=e174] [cursor=pointer]:
+            - img [ref=e175]
+        - img
+        - img
+        - link "React Flow attribution" [ref=e179] [cursor=pointer]:
+          - /url: https://reactflow.dev
+          - text: React Flow
+    - generic [ref=e181]:
+      - generic [ref=e182]: Carta 0.1.0-proto4
+      - generic [ref=e183]:
+        - link "GitHub" [ref=e184] [cursor=pointer]:
+          - /url: https://github.com/saxonthune/carta
+        - button "Help" [ref=e185] [cursor=pointer]
+```

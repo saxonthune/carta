@@ -264,11 +264,26 @@ export class CartaPage {
   }
 
   /**
-   * Get the spread children button within an organizer.
+   * Get the layout options menu button within an organizer.
+   * NOTE: The individual layout buttons (spread, flow, grid, fit) are now
+   * inside this dropdown menu. Use getOrganizerLayoutMenu() to check visibility,
+   * and clickOrganizerLayoutOption() to click a specific option.
    * Only visible when organizer is expanded and has 2+ children.
    */
   getOrganizerSpreadButton(organizerLocator: Locator): Locator {
-    return organizerLocator.locator('button[title="Spread children"]');
+    // Return the layout menu button (replaces the old spread button for visibility checks)
+    return organizerLocator.getByTitle('Layout options');
+  }
+
+  /**
+   * Click a layout option within an organizer's layout menu.
+   * @param organizerLocator The organizer node locator
+   * @param optionName One of: "Spread apart", "Arrange as flow", "Arrange as grid", "Fit to contents"
+   */
+  async clickOrganizerLayoutOption(organizerLocator: Locator, optionName: string): Promise<void> {
+    const menuButton = organizerLocator.getByTitle('Layout options');
+    await menuButton.click();
+    await this.page.getByRole('button', { name: optionName }).click();
   }
 
   /**
@@ -276,7 +291,10 @@ export class CartaPage {
    * Shows "Collapse organizer" when expanded, "Expand organizer" when collapsed.
    */
   getOrganizerCollapseButton(organizerLocator: Locator): Locator {
-    return organizerLocator.locator('button[title="Collapse organizer"]');
+    // Try both expanded and collapsed states
+    return organizerLocator.getByTitle('Collapse organizer').or(
+      organizerLocator.getByTitle('Expand organizer')
+    );
   }
 
   /**

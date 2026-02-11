@@ -126,9 +126,12 @@ function getEffectiveEndpoint(
     return { id: nodeId, remapped: false };
   }
 
-  // In an organizer → use organizer ID
+  // In an organizer → use organizer ID (unless organizer is selected = unwrap)
   const node = nodeMap.get(nodeId);
   if (node?.parentId) {
+    if (selectedNodeIds.has(node.parentId)) {
+      return { id: nodeId, remapped: false };  // unwrap: show individual edge
+    }
     return { id: node.parentId, remapped: true };
   }
 

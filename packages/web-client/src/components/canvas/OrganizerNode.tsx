@@ -1,9 +1,12 @@
-import { memo, useCallback, useMemo } from 'react';
+import { memo, useCallback, useMemo, useState, useRef, useEffect } from 'react';
 import { Handle, Position, NodeResizer, useNodeId, type NodeProps } from '@xyflow/react';
 import { EyeIcon, EyeOffIcon } from '../ui/icons';
 import { Tooltip } from '../ui';
 import type { OrganizerNodeData as BaseOrganizerNodeData } from '@carta/domain';
 import type { NodeActions } from './nodeActions';
+
+// Organizer color palette
+const ORGANIZER_COLORS = ['#7c3aed', '#0891b2', '#059669', '#d97706', '#dc2626', '#6366f1', '#ec4899'];
 
 /**
  * Extended data interface with callbacks added by Map.tsx.
@@ -46,6 +49,11 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
     parentGroupName,
   } = data;
 
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const colorPickerRef = useRef<HTMLDivElement>(null);
+  const [showLayoutMenu, setShowLayoutMenu] = useState(false);
+  const layoutMenuRef = useRef<HTMLDivElement>(null);
+
   const handleToggle = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
@@ -54,13 +62,54 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
     [nodeActions, nodeId]
   );
 
-  // Layout button configuration
-  const layoutButtons = useMemo(() => {
+  const handleColorClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowColorPicker(prev => !prev);
+  }, []);
+
+  const handleColorSelect = useCallback((newColor: string) => {
+    if (nodeId && nodeActions) {
+      nodeActions.onUpdateOrganizerColor(nodeId, newColor);
+      setShowColorPicker(false);
+    }
+  }, [nodeId, nodeActions]);
+
+  const handleLayoutMenuClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowLayoutMenu(prev => !prev);
+  }, []);
+
+  // Close color picker on outside click
+  useEffect(() => {
+    if (!showColorPicker) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (colorPickerRef.current && !colorPickerRef.current.contains(e.target as Node)) {
+        setShowColorPicker(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showColorPicker]);
+
+  // Close layout menu on outside click
+  useEffect(() => {
+    if (!showLayoutMenu) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (layoutMenuRef.current && !layoutMenuRef.current.contains(e.target as Node)) {
+        setShowLayoutMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showLayoutMenu]);
+
+  // Layout menu items configuration
+  const layoutMenuItems = useMemo(() => {
     if (!nodeActions || childCount <= 1) return null;
 
     return [
       {
-        tooltip: 'Spread children',
+        label: 'Spread apart',
         handler: nodeActions.onSpreadChildren,
         icon: (
           <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={2}>
@@ -72,7 +121,7 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
         ),
       },
       {
-        tooltip: 'Flow layout',
+        label: 'Arrange as flow',
         handler: nodeActions.onFlowLayoutChildren,
         icon: (
           <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={2}>
@@ -86,7 +135,7 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
         ),
       },
       {
-        tooltip: 'Grid layout',
+        label: 'Arrange as grid',
         handler: nodeActions.onGridLayoutChildren,
         icon: (
           <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={2}>
@@ -98,7 +147,7 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
         ),
       },
       {
-        tooltip: 'Fit to children',
+        label: 'Fit to contents',
         handler: nodeActions.onFitToChildren,
         icon: (
           <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={2}>
@@ -157,10 +206,36 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
             height: 44,
           }}
         >
-          <div
-            className="w-2.5 h-2.5 rounded-full shrink-0"
-            style={{ backgroundColor: color }}
-          />
+          <div className="relative">
+            <div
+              className={`w-2.5 h-2.5 rounded-full shrink-0 ${nodeActions ? 'cursor-pointer' : ''}`}
+              style={{ backgroundColor: color }}
+              onClick={nodeActions ? handleColorClick : undefined}
+            />
+            {/* Color picker popover for collapsed */}
+            {showColorPicker && nodeActions && (
+              <div
+                ref={colorPickerRef}
+                className="absolute top-full left-0 mt-1 z-50 p-2 rounded-lg shadow-lg flex gap-1.5"
+                style={{
+                  backgroundColor: 'var(--color-surface-elevated)',
+                  border: '1px solid var(--color-border)',
+                }}
+              >
+                {ORGANIZER_COLORS.map(c => (
+                  <button
+                    key={c}
+                    className="w-5 h-5 rounded-full border-2 border-transparent hover:border-white transition-all"
+                    style={{ backgroundColor: c }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleColorSelect(c);
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
           <span className="text-node-xs font-medium text-content truncate text-halo flex-1">
             {name}
           </span>
@@ -181,6 +256,7 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
               <button
                 className="w-5 h-5 flex items-center justify-center rounded text-content-muted hover:text-content transition-colors shrink-0"
                 onClick={handleToggle}
+                title="Expand organizer"
               >
                 <EyeOffIcon size={14} />
               </button>
@@ -244,10 +320,36 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
           className="node-drag-handle flex items-center gap-2 px-3 py-2 rounded-t-xl cursor-grab"
           style={{ backgroundColor: `${color}15` }}
         >
-          <div
-            className="w-2.5 h-2.5 rounded-full shrink-0"
-            style={{ backgroundColor: color }}
-          />
+          <div className="relative">
+            <div
+              className={`w-2.5 h-2.5 rounded-full shrink-0 ${nodeActions ? 'cursor-pointer' : ''}`}
+              style={{ backgroundColor: color }}
+              onClick={nodeActions ? handleColorClick : undefined}
+            />
+            {/* Color picker popover for expanded */}
+            {showColorPicker && nodeActions && (
+              <div
+                ref={colorPickerRef}
+                className="absolute top-full left-0 mt-1 z-50 p-2 rounded-lg shadow-lg flex gap-1.5"
+                style={{
+                  backgroundColor: 'var(--color-surface-elevated)',
+                  border: '1px solid var(--color-border)',
+                }}
+              >
+                {ORGANIZER_COLORS.map(c => (
+                  <button
+                    key={c}
+                    className="w-5 h-5 rounded-full border-2 border-transparent hover:border-white transition-all"
+                    style={{ backgroundColor: c }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleColorSelect(c);
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
           <div className="flex flex-col flex-1 min-w-0">
             <span className="text-node-xs font-medium text-content text-halo">
               {name}
@@ -268,26 +370,57 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
               {childCount}
             </span>
           )}
-          {/* Layout buttons (canvas only, 2+ children) */}
-          {layoutButtons?.map(({ tooltip, handler, icon }) => (
-            <Tooltip key={tooltip} content={tooltip}>
-              <button
-                className="w-5 h-5 flex items-center justify-center rounded text-content-muted hover:text-content transition-colors shrink-0"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (nodeId) handler(nodeId);
-                }}
-              >
-                {icon}
-              </button>
-            </Tooltip>
-          ))}
+          {/* Layout menu (canvas only, 2+ children) */}
+          {layoutMenuItems && (
+            <div className="relative">
+              <Tooltip content="Layout options">
+                <button
+                  className="w-5 h-5 flex items-center justify-center rounded text-content-muted hover:text-content transition-colors shrink-0"
+                  onClick={handleLayoutMenuClick}
+                  title="Layout options"
+                >
+                  <svg viewBox="0 0 24 24" width={14} height={14} fill="currentColor">
+                    <circle cx="12" cy="6" r="1.5" />
+                    <circle cx="12" cy="12" r="1.5" />
+                    <circle cx="12" cy="18" r="1.5" />
+                  </svg>
+                </button>
+              </Tooltip>
+              {/* Layout menu popover */}
+              {showLayoutMenu && (
+                <div
+                  ref={layoutMenuRef}
+                  className="absolute top-full right-0 mt-1 z-50 py-1 rounded-lg shadow-lg min-w-[160px]"
+                  style={{
+                    backgroundColor: 'var(--color-surface-elevated)',
+                    border: '1px solid var(--color-border)',
+                  }}
+                >
+                  {layoutMenuItems.map(({ label, handler, icon }) => (
+                    <button
+                      key={label}
+                      className="w-full px-3 py-2 flex items-center gap-2 text-sm text-content hover:bg-content-muted/10 transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (nodeId) handler(nodeId);
+                        setShowLayoutMenu(false);
+                      }}
+                    >
+                      <span className="shrink-0">{icon}</span>
+                      <span>{label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
           {/* Eyeball toggle button (canvas only — metamap uses click to toggle) */}
           {nodeActions && (
             <Tooltip content="Collapse organizer">
               <button
                 className="w-5 h-5 flex items-center justify-center rounded text-content-muted hover:text-content transition-colors shrink-0"
                 onClick={handleToggle}
+                title="Collapse organizer"
               >
                 <EyeIcon size={14} />
               </button>

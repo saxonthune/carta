@@ -76,8 +76,7 @@ test.describe('Organizer Nesting', () => {
 
     // Click fix overlaps button (formerly "spread")
     // Starter content nodes don't overlap, so they shouldn't move
-    const spreadButton = carta.getOrganizerSpreadButton(starterOrganizer);
-    await spreadButton.click();
+    await carta.clickOrganizerLayoutOption(starterOrganizer, 'Spread apart');
     await page.waitForTimeout(500);
 
     // Verify positions remain the same (no overlaps to fix)
