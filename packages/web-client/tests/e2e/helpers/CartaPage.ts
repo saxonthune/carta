@@ -302,8 +302,8 @@ export class CartaPage {
    * Get the current page name from the trigger bar.
    */
   async getCurrentPageName(): Promise<string> {
-    // Find the span with title "Click to rename" that's next to the layers icon
-    const nameSpan = this.page.locator('span[title="Click to rename"]');
+    // Find the span with data-testid="page-name"
+    const nameSpan = this.page.locator('[data-testid="page-name"]');
     return (await nameSpan.textContent()) ?? '';
   }
 
