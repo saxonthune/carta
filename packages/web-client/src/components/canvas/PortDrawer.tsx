@@ -39,7 +39,7 @@ export default function PortDrawer({ ports, colorPickerPolicy, baseColor, instan
 
   return (
     <div
-      className="absolute left-0 right-0 top-full z-[30]"
+      className="relative w-full"
       onMouseLeave={() => {
         if (!isDraggingFromHere) setExpanded(false);
       }}
@@ -47,6 +47,7 @@ export default function PortDrawer({ ports, colorPickerPolicy, baseColor, instan
       {/* Hover trigger zone — sits below node boundary, clear of resize handles */}
       <div
         className="w-full cursor-pointer"
+        style={{ paddingTop: 12 }}
         onMouseEnter={() => setExpanded(true)}
       >
         {/* Collapsed strip */}
@@ -71,7 +72,7 @@ export default function PortDrawer({ ports, colorPickerPolicy, baseColor, instan
       {/* Expanded drawer - overlays downward */}
       {expanded && (
         <div
-          className="port-drawer-expanded left-0 right-0 bg-surface-elevated rounded-b-lg border-x border-b border-border-subtle py-2 px-2 shadow-md"
+          className="port-drawer-expanded absolute left-0 right-0 top-full z-[30] bg-surface-elevated rounded-b-lg border-x border-b border-border-subtle py-2 px-2 shadow-md"
           onMouseEnter={() => setExpanded(true)}
         >
           <div className="flex items-center gap-2">
