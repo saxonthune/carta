@@ -74,17 +74,27 @@ describe('PageSwitcher', () => {
       expect(screen.getByText('Main')).toBeInTheDocument();
     });
 
-    it('should enter inline rename mode when clicking page name', async () => {
-      const user = userEvent.setup();
+    it('should show description subtitle', () => {
       render(<PageSwitcher {...defaultProps} />);
 
-      const pageName = screen.getByText('Main');
-      await user.click(pageName);
+      // Default placeholder when no description
+      expect(screen.getByText('Add description...')).toBeInTheDocument();
+    });
 
-      // Should show input after clicking
-      const input = screen.getByDisplayValue('Main');
-      expect(input).toBeInTheDocument();
-      expect(input.tagName).toBe('INPUT');
+    it('should show description text as subtitle when page has description', () => {
+      const pages = [createTestPage({ description: 'This is a test description\nSecond line' })];
+      render(<PageSwitcher {...defaultProps} pages={pages} />);
+
+      // Should show first line only
+      expect(screen.getByText('This is a test description')).toBeInTheDocument();
+      expect(screen.queryByText('Second line')).not.toBeInTheDocument();
+    });
+
+    it('should not show textarea by default', () => {
+      render(<PageSwitcher {...defaultProps} />);
+
+      // No textarea should be visible initially
+      expect(screen.queryByPlaceholderText('Add a page description...')).not.toBeInTheDocument();
     });
 
     it('should have a dropdown toggle button', () => {
@@ -101,6 +111,20 @@ describe('PageSwitcher', () => {
 
       expect(chevronButton).toBeDefined();
     });
+
+    it('should toggle description textarea when clicking page info area', async () => {
+      const user = userEvent.setup();
+      render(<PageSwitcher {...defaultProps} />);
+
+      // Click on the page info area (the button containing page name and subtitle)
+      const pageInfoButton = screen.getByText('Main').closest('button');
+      await user.click(pageInfoButton!);
+
+      // Textarea should appear
+      const textarea = screen.getByPlaceholderText('Add a page description...');
+      expect(textarea).toBeInTheDocument();
+      expect(textarea.tagName).toBe('TEXTAREA');
+    });
   });
 
   describe('dropdown', () => {
@@ -108,7 +132,7 @@ describe('PageSwitcher', () => {
       const user = userEvent.setup();
       render(<PageSwitcher {...defaultProps} />);
 
-      // Click the chevron button (last button in trigger bar)
+      // Click the chevron button
       const buttons = screen.getAllByRole('button');
       const chevronButton = buttons.find(button => {
         const svg = button.querySelector('svg');
@@ -197,6 +221,32 @@ describe('PageSwitcher', () => {
       expect(screen.getByText('+ New Page')).toBeInTheDocument();
     });
 
+    it('should show rearrange toggle button in bottom bar', async () => {
+      const user = userEvent.setup();
+      render(<PageSwitcher {...defaultProps} />);
+
+      // Open dropdown
+      const buttons = screen.getAllByRole('button');
+      const chevronButton = buttons.find(button => {
+        const svg = button.querySelector('svg');
+        if (!svg) return false;
+        const path = svg.querySelector('path');
+        return path?.getAttribute('d')?.includes('6 9l6 6');
+      });
+
+      await user.click(chevronButton!);
+
+      // Find the rearrange button (has drag handle icon - 6 circles)
+      const rearrangeButton = screen.getAllByRole('button').find(button => {
+        const svg = button.querySelector('svg');
+        if (!svg) return false;
+        const circles = svg.querySelectorAll('circle');
+        return circles.length === 6; // Drag handle has 6 circles
+      });
+
+      expect(rearrangeButton).toBeDefined();
+    });
+
     it('should close dropdown when clicking toggle again', async () => {
       const user = userEvent.setup();
       render(<PageSwitcher {...defaultProps} />);
@@ -221,6 +271,32 @@ describe('PageSwitcher', () => {
       // New Page button should not be visible
       expect(screen.queryByText('+ New Page')).not.toBeInTheDocument();
     });
+
+    it('should not show inline action icons on rows', async () => {
+      const user = userEvent.setup();
+      const pages = [
+        createTestPage({ id: 'page-1', name: 'Page 1', order: 0 }),
+        createTestPage({ id: 'page-2', name: 'Page 2', order: 1 }),
+      ];
+
+      render(<PageSwitcher {...defaultProps} pages={pages} activePage="page-1" />);
+
+      // Open dropdown
+      const buttons = screen.getAllByRole('button');
+      const chevronButton = buttons.find(button => {
+        const svg = button.querySelector('svg');
+        if (!svg) return false;
+        const path = svg.querySelector('path');
+        return path?.getAttribute('d')?.includes('6 9l6 6');
+      });
+
+      await user.click(chevronButton!);
+
+      // Should not have buttons with "Rename page", "Duplicate page", or "Delete page" titles
+      expect(screen.queryByTitle('Rename page')).not.toBeInTheDocument();
+      expect(screen.queryByTitle('Duplicate page')).not.toBeInTheDocument();
+      expect(screen.queryByTitle('Delete page')).not.toBeInTheDocument();
+    });
   });
 
   describe('structural assertions', () => {
@@ -244,29 +320,19 @@ describe('PageSwitcher', () => {
       expect(textareas).toHaveLength(0);
     });
 
-    it('should render description panel outside dropdown', async () => {
+    it('should hide description textarea when dropdown is opened', async () => {
       const user = userEvent.setup();
       render(<PageSwitcher {...defaultProps} />);
 
-      // Find and click the description toggle button (has document icon)
-      const buttons = screen.getAllByRole('button');
-      const descriptionButton = buttons.find(button => {
-        const svg = button.querySelector('svg');
-        if (!svg) return false;
-        // Look for the document icon path
-        const paths = svg.querySelectorAll('path');
-        return Array.from(paths).some(path => path.getAttribute('d')?.includes('14 2H6'));
-      });
+      // First, open description by clicking page info area
+      const pageInfoButton = screen.getByText('Main').closest('button');
+      await user.click(pageInfoButton!);
 
-      expect(descriptionButton).toBeDefined();
-      await user.click(descriptionButton!);
-
-      // Textarea should appear
-      const textarea = screen.getByPlaceholderText('Add a page description...');
-      expect(textarea).toBeInTheDocument();
-      expect(textarea.tagName).toBe('TEXTAREA');
+      // Verify textarea is visible
+      expect(screen.getByPlaceholderText('Add a page description...')).toBeInTheDocument();
 
       // Now open dropdown
+      const buttons = screen.getAllByRole('button');
       const chevronButton = buttons.find(button => {
         const svg = button.querySelector('svg');
         if (!svg) return false;
@@ -276,8 +342,30 @@ describe('PageSwitcher', () => {
 
       await user.click(chevronButton!);
 
-      // Textarea should disappear when dropdown is open (guarded by isDescriptionOpen && !isOpen)
+      // Textarea should disappear (mutual exclusion)
       expect(screen.queryByPlaceholderText('Add a page description...')).not.toBeInTheDocument();
+    });
+
+    it('should hide description subtitle when dropdown is open', async () => {
+      const user = userEvent.setup();
+      render(<PageSwitcher {...defaultProps} />);
+
+      // Verify subtitle is visible initially
+      expect(screen.getByText('Add description...')).toBeInTheDocument();
+
+      // Open dropdown
+      const buttons = screen.getAllByRole('button');
+      const chevronButton = buttons.find(button => {
+        const svg = button.querySelector('svg');
+        if (!svg) return false;
+        const path = svg.querySelector('path');
+        return path?.getAttribute('d')?.includes('6 9l6 6');
+      });
+
+      await user.click(chevronButton!);
+
+      // Subtitle should not be visible when dropdown is open
+      expect(screen.queryByText('Add description...')).not.toBeInTheDocument();
     });
   });
 });
