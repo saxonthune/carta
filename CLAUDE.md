@@ -28,6 +28,7 @@ Carta is a visual software architecture editor using React Flow. Users create "C
 |-------|---------|-------------|
 | `/carta-feature-implementor` | Grooms todo-tasks/ plans into implementation-ready specs | Before `/execute-plan`, to resolve decisions and refine |
 | `/documentation-nag` | Keeps `.docs/` and derived files in sync with code | After significant code changes |
+| `/documentation-auditor` | Audits `.docs/` claims against codebase, finds stale refs | Periodically, or before releases |
 | `/style-nag` | Audits and fixes UI styling against doc02.07 | After UI changes, or periodically |
 | `/frontend-architecture-nag` | Audits component layering against doc02.08 | After architectural changes |
 | `/test-builder` | Creates integration/E2E tests | When adding test coverage |
@@ -53,6 +54,7 @@ All skills follow the same pattern: opus reads `.docs/` and code, analyzes, gene
 |-------|---------------|--------|
 | `/carta-feature-implementor` | `.docs/MANIFEST.md`, plan files | `.claude/skills/carta-feature-implementor/SKILL.md` |
 | `/documentation-nag` | `.docs/` (all titles) | `.claude/skills/documentation-nag/SKILL.md` |
+| `/documentation-auditor` | `.docs/MANIFEST.md`, barrel exports, type defs | `.claude/skills/documentation-auditor/SKILL.md` |
 | `/style-nag` | doc02.07 (design system), doc01.04 (UX principles) | `.claude/skills/style-nag/SKILL.md` |
 | `/frontend-architecture-nag` | doc02.08 (frontend architecture), doc02.01 (overview) | `.claude/skills/frontend-architecture-nag/SKILL.md` |
 | `/test-builder` | doc04.02 (testing), `packages/web-client/tests/README.md` | `.claude/skills/test-builder/SKILL.md` |

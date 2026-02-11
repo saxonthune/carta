@@ -16,7 +16,7 @@ The Construct Editor is a full-screen panel for creating and editing construct s
 ## Tabs
 
 1. **Basics**: Display name (auto-generates type ID), color, semantic description, schema group, background color policy (defaultOnly/tints/any), port display policy (inline/collapsed)
-2. **Fields**: Drag-and-drop tier assignment. Fields are organized into display tiers (pill, minimal, details, full) via draggable chips in tier zones. "+ Add Field" button opens a modal with the field sub-wizard. Edit/delete actions appear on each draggable field chip.
+2. **Fields**: Drag-and-drop tier assignment. Fields are organized into display tiers (marker, minimal, details, full) via draggable chips in tier zones. "+ Add Field" button opens a modal with the field sub-wizard. Edit/delete actions appear on each draggable field chip.
 3. **Ports**: Choose default ports or customize. Port editing opens in a modal with the port sub-wizard.
 
 ## Display Tiers
@@ -25,14 +25,14 @@ Fields are assigned to display tiers that control when they appear at different 
 
 | Tier | Purpose | Visibility |
 |------|---------|------------|
-| **pill** | Node title | Shown in pill LOD mode (max 1 field) |
+| **marker** | Node title | Shown in marker LOD mode (max 1 field) |
 | **minimal** | Key attributes | Shown in minimal LOD mode and above |
 | **details** | Descriptive fields | Shown in details view |
 | **full** | All remaining fields | Only visible in full view modal |
 
 ## Live Preview
 
-The right panel shows live previews of all 4 display tiers (pill, minimal, details, full) with port indicators. Updates instantly as the user edits basics (color, name), fields (tier assignments), and ports.
+The right panel shows live previews of all 4 display tiers (marker, minimal, details, full) with port indicators. Updates instantly as the user edits basics (color, name), fields (tier assignments), and ports.
 
 ## Edit Mode
 

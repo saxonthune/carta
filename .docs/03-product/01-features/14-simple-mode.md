@@ -79,7 +79,7 @@ Additional shape variants (`circle`, `diamond`, `document`) were added to suppor
 |--------|-------------|----------|------------|------------|-------------|--------------|
 | Header bar | Yes (schema type, controls) | No | No | No | No | No |
 | Field grid | Yes (by displayTier) | Yes (minimal tier) | No | No | No | No |
-| Display name | From pill-tier field | From pill-tier field | N/A—content IS the display | Centered in shape | Centered in shape | Centered in shape |
+| Display name | From marker-tier field | From marker-tier field | N/A—content IS the display | Centered in shape | Centered in shape | Centered in shape |
 | Shape | Rounded rect | Rounded rect | Rounded rect | Circle (aspect 1:1) | Diamond (rotated square) | Document shape |
 | Background | `bg-surface` | Schema/instance color tint | Schema/instance color tint (30% mix) | Color tint | Color tint | Color tint |
 | Port drawer | On hover | On hover | On hover (includes color dropper) | On hover | On hover | On hover |
@@ -118,7 +118,7 @@ Rough-to-Refined is the conceptual workflow. Simple mode is its technical realiz
 `nodeShape: 'card'` renders a label-dominant colored card with minimal-tier fields. `'simple'` goes further: no fields at all, content rendered directly as body text, no controls chrome. Card is for schemas that are lightweight but structured (Box); simple is for schemas that are pure freeform text (Note).
 
 ### vs. LOD bands
-LOD controls information density by zoom level. Simple mode controls information density by schema intent. They're orthogonal—a simple construct at pill zoom is a pill; at normal zoom it's a compact card.
+LOD controls information density by zoom level. Simple mode controls information density by schema intent. They're orthogonal—a simple construct at marker zoom is a marker; at normal zoom it's a compact card.
 
 ## Architecture: Composable Render Modes
 
@@ -129,7 +129,7 @@ Simple mode demonstrates a key architectural principle: **render modes are separ
 ```
 ConstructNode/
 ├── index.tsx                    # Dispatcher: LOD + nodeShape routing
-├── ConstructNodeMarker.tsx        # Pill LOD for all types (shared)
+├── ConstructNodeMarker.tsx      # Marker LOD for all types (shared)
 ├── ConstructNodeDefault.tsx     # Full-featured nodes (includes all chrome)
 ├── ConstructNodeSimple.tsx      # Minimal nodes (no chrome, separate primitive)
 └── shared.ts                    # Shared types and utilities only
@@ -139,8 +139,8 @@ ConstructNode/
 
 ```tsx
 // index.tsx
-if (lod.band === 'pill') {
-  return <ConstructNodeMarker {...variantProps} />;  // Shared pill for all types
+if (lod.band === 'marker') {
+  return <ConstructNodeMarker {...variantProps} />;  // Shared marker for all types
 }
 
 if (schema.nodeShape === 'simple') {

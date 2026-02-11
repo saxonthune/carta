@@ -135,7 +135,7 @@ Organized by purpose:
 - **Document state**: `useNodes`, `useEdges`, `useSchemas`, `usePortSchemas`, `useSchemaGroups`, `useLevels`, `useDocumentMeta`
 - **Document operations**: `useGraphOperations`, `useConnections`, `usePresentation`, `useOrganizerOperations`
 - **UI state**: `useMapState`, `useMetamapLayout`, `useEdgeBundling`, `useNarrative`
-- **Utilities**: `useClipboard`, `useUndoRedo`, `useSchemaUndoRedo`, `useKeyboardShortcuts`, `useAwareness`, `useDirtyStateGuard`, `useClearDocument`
+- **Utilities**: `useClipboard`, `useUndoRedo`, `useSchemaUndoRedo`, `useKeyboardShortcuts`, `useAwareness`, `useDirtyStateGuard`, `useClearDocument`, `useEdgeCleanup`
 
 ### `components/canvas/index.ts`
 Canvas components and LOD:
@@ -150,11 +150,11 @@ Schema view:
 
 ### `components/modals/index.ts`
 All modal dialogs:
-- `CompileModal`, `ProjectInfoModal`, `ExamplesModal`, `HelpModal`, `DocumentBrowserModal`, `ImportPreviewModal`, `ExportPreviewModal`, `ConstructFullViewModal`, `ClearWorkspaceModal`, `RestoreDefaultSchemasModal`
+- `CompileModal`, `ExamplesModal`, `HelpModal`, `DocumentBrowserModal`, `ImportPreviewModal`, `ExportPreviewModal`, `ConstructFullViewModal`, `ConstructDebugModal`, `ClearWorkspaceModal`, `RestoreDefaultSchemasModal`
 
 ### `components/ui/index.ts`
 Organized by type:
-- **Primitives**: `Button`, `Input`, `Textarea`, `Select`, `Modal`, `ConfirmationModal`, `ColorPicker`
+- **Primitives**: `Button`, `Input`, `Textarea`, `Select`, `Modal`, `ConfirmationModal`, `ColorPicker`, `Tooltip`
 - **Navigation**: `TabBar`, `SegmentedControl`, `Breadcrumb`, `SearchBar`
 - **Menus**: `ContextMenu`, `ContextMenuPrimitive`
 - **Domain components**: `DocumentRow`, `FolderRow`, `GroupedSchemaList`, `SchemaGroupSelector`, `CollapsibleSelector`, `ChoiceCard`, `DraggableWindow`

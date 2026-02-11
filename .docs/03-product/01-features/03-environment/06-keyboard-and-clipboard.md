@@ -16,6 +16,7 @@ status: active
 | Delete / Backspace | Delete selected nodes |
 | F2 | Rename selected node (single selection) |
 | Ctrl+G | Group selected nodes (requires 2+ selected) |
+| V | Toggle selection mode |
 
 ## Copy and Paste
 

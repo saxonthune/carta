@@ -69,7 +69,17 @@ Carta exposes an MCP (Model Context Protocol) server for AI tool integration. Th
 - `carta_list_schemas` — List all schemas (built-in + custom). Use `output="compact"` for token efficiency
 - `carta_get_schema` — Get schema by type
 - `carta_create_schema` — Create custom construct schema (smart defaults: primary fields auto-get displayTier='minimal', default ports added if none specified)
+- `carta_update_schema` — Update non-breaking schema properties (color, displayName, renderStyle, etc). Supports field metadata updates via fieldUpdates map. Cannot change type, fields array, or ports array
 - `carta_delete_schema` — Delete custom schema
+
+**Schema migration operations (tier 2):**
+- `carta_add_field` — Add a field to an existing schema with automatic instance migration
+- `carta_rename_field` — Rename a field and migrate all instance data
+- `carta_delete_field` — Remove a field and clean up instance data
+- `carta_change_field_type` — Change field data type with optional value transformation
+- `carta_add_port` — Add a port to an existing schema
+- `carta_rename_port` — Rename a port and update all connections
+- `carta_delete_port` — Remove a port and clean up connections
 
 **Construct operations:**
 - `carta_list_constructs` — List constructs (compact summaries). Optionally filter by `constructType` or target specific page via `pageId`
