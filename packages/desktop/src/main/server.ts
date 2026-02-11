@@ -190,7 +190,7 @@ function createHelloWorldDocument(): string {
               constructType: 'note',
               semanticId: generateSemanticId('note'),
               values: { content: 'Your idea starts here' },
-              viewLevel: 'summary',
+              detailMode: 'summary',
             },
           },
           {
@@ -201,7 +201,7 @@ function createHelloWorldDocument(): string {
               constructType: 'note',
               semanticId: generateSemanticId('note'),
               values: { content: 'Break it into pieces' },
-              viewLevel: 'summary',
+              detailMode: 'summary',
             },
           },
           {
@@ -212,7 +212,7 @@ function createHelloWorldDocument(): string {
               constructType: 'note',
               semanticId: generateSemanticId('note'),
               values: { content: 'Connect them together' },
-              viewLevel: 'summary',
+              detailMode: 'summary',
             },
           },
         ],
