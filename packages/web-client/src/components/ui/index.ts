@@ -18,6 +18,8 @@ export { default as SearchBar } from './SearchBar';
 // Menus
 export { default as ContextMenu } from './ContextMenu';
 export { default as ContextMenuPrimitive } from './ContextMenuPrimitive';
+export { default as PopoverMenu } from './PopoverMenu';
+export type { PopoverMenuItem, PopoverMenuProps } from './PopoverMenu';
 
 // Domain components
 export { default as DocumentRow } from './DocumentRow';

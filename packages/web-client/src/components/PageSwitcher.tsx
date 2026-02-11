@@ -3,6 +3,7 @@ import { DndContext, pointerWithin, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { Page } from '@carta/domain';
+import PopoverMenu, { type PopoverMenuItem } from './ui/PopoverMenu';
 
 interface PageSwitcherProps {
   pages: Page[];
@@ -14,7 +15,7 @@ interface PageSwitcherProps {
   onDuplicatePage: (pageId: string, newName: string) => void;
 }
 
-interface SortablePageRowProps {
+interface PageRowProps {
   page: Page;
   isActive: boolean;
   editMode: boolean;
@@ -23,15 +24,15 @@ interface SortablePageRowProps {
   editInputRef: React.RefObject<HTMLInputElement | null>;
   pagesCount: number;
   onSelect: (pageId: string) => void;
-  onStartEdit: (page: Page) => void;
+  onStartRename: (page: Page) => void;
   onFinishEdit: () => void;
   onCancelEdit: () => void;
   onEditNameChange: (value: string) => void;
-  onDuplicate: (page: Page, event: React.MouseEvent) => void;
-  onDelete: (pageId: string, event: React.MouseEvent) => void;
+  onDuplicate: (page: Page) => void;
+  onDelete: (pageId: string) => void;
 }
 
-function SortablePageRow({
+function PageRow({
   page,
   isActive,
   editMode,
@@ -40,13 +41,13 @@ function SortablePageRow({
   editInputRef,
   pagesCount,
   onSelect,
-  onStartEdit,
+  onStartRename,
   onFinishEdit,
   onCancelEdit,
   onEditNameChange,
   onDuplicate,
   onDelete,
-}: SortablePageRowProps) {
+}: PageRowProps) {
   const {
     attributes,
     listeners,
@@ -64,97 +65,100 @@ function SortablePageRow({
   };
 
   const handleClick = () => {
-    if (!editMode) {
+    if (!editMode && !isEditing) {
       onSelect(page.id);
     }
   };
+
+  const menuItems: PopoverMenuItem[] = [
+    {
+      key: 'rename',
+      label: 'Rename',
+      onClick: () => onStartRename(page),
+    },
+    {
+      key: 'duplicate',
+      label: 'Duplicate',
+      onClick: () => onDuplicate(page),
+    },
+  ];
+
+  if (pagesCount > 1) {
+    menuItems.push({
+      key: 'delete',
+      label: 'Delete',
+      onClick: () => onDelete(page.id),
+      danger: true,
+    });
+  }
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex flex-col transition-colors text-content ${isDragging ? 'shadow-lg' : ''}`}
+      className={`flex items-center gap-2 pr-2 min-h-[40px] cursor-pointer hover:bg-surface-alt group transition-colors ${isDragging ? 'shadow-lg' : ''}`}
+      onClick={handleClick}
     >
-      <div
-        className={`flex items-center gap-2 pr-3 py-2 cursor-pointer hover:bg-surface-alt group`}
-        onClick={handleClick}
-      >
-        {/* Active page indicator bar */}
-        <div className={`w-[3px] self-stretch rounded-r flex-shrink-0 ${isActive ? 'bg-accent' : ''}`} />
-        {editMode && (
-          <div
-            className="cursor-grab active:cursor-grabbing flex-shrink-0 text-content-muted"
-            {...attributes}
-            {...listeners}
-          >
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
-              <circle cx="9" cy="6" r="1.5" />
-              <circle cx="15" cy="6" r="1.5" />
-              <circle cx="9" cy="12" r="1.5" />
-              <circle cx="15" cy="12" r="1.5" />
-              <circle cx="9" cy="18" r="1.5" />
-              <circle cx="15" cy="18" r="1.5" />
-            </svg>
-          </div>
-        )}
-        {isEditing ? (
-          <div className="flex-1 rounded px-1.5 py-0.5 -my-0.5 bg-surface-alt ring-1 ring-border">
-            <input
-              ref={editInputRef}
-              className="w-full py-0 text-sm bg-transparent border-none outline-none text-inherit"
-              value={editName}
-              onChange={(e) => onEditNameChange(e.target.value)}
-              onBlur={onFinishEdit}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') onFinishEdit();
-                if (e.key === 'Escape') onCancelEdit();
-              }}
-              onClick={(e) => e.stopPropagation()}
-            />
-          </div>
-        ) : (
-          <span className="flex-1 text-sm truncate">
-            {page.name}
-          </span>
-        )}
-        <div className="flex items-center gap-0.5 flex-shrink-0">
-          {!isEditing && (
-            <button
-              className="p-0.5 rounded hover:bg-black/10 text-content-muted hover:text-content"
-              onClick={(e) => { e.stopPropagation(); onStartEdit(page); }}
-              title="Rename page"
-            >
-              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
-              </svg>
-            </button>
-          )}
-          <button
-            className="p-0.5 rounded hover:bg-black/10 text-content-muted hover:text-content"
-            onMouseDown={(e) => { if (isEditing) e.preventDefault(); }}
-            onClick={(e) => { e.stopPropagation(); if (isEditing) onFinishEdit(); onDuplicate(page, e); }}
-            title="Duplicate page"
-          >
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-            </svg>
-          </button>
-          {pagesCount > 1 && (
-            <button
-              className="p-0.5 rounded hover:bg-black/10 text-content-muted hover:text-content"
-              onMouseDown={(e) => { if (isEditing) e.preventDefault(); }}
-              onClick={(e) => { e.stopPropagation(); if (isEditing) onFinishEdit(); onDelete(page.id, e); }}
-              title="Delete page"
-            >
-              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
-          )}
+      {/* Active page indicator bar */}
+      <div className={`w-[3px] self-stretch rounded-r flex-shrink-0 ${isActive ? 'bg-accent' : ''}`} />
+
+      {editMode && (
+        <div
+          className="cursor-grab active:cursor-grabbing flex-shrink-0 text-content-muted"
+          {...attributes}
+          {...listeners}
+        >
+          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="9" cy="6" r="1.5" />
+            <circle cx="15" cy="6" r="1.5" />
+            <circle cx="9" cy="12" r="1.5" />
+            <circle cx="15" cy="12" r="1.5" />
+            <circle cx="9" cy="18" r="1.5" />
+            <circle cx="15" cy="18" r="1.5" />
+          </svg>
         </div>
-      </div>
+      )}
+
+      {isEditing ? (
+        <div className="flex-1 rounded px-1.5 py-0.5 -my-0.5 bg-surface-alt ring-1 ring-border">
+          <input
+            ref={editInputRef}
+            className="w-full py-0 text-sm bg-transparent border-none outline-none text-inherit"
+            value={editName}
+            onChange={(e) => onEditNameChange(e.target.value)}
+            onBlur={onFinishEdit}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') onFinishEdit();
+              if (e.key === 'Escape') onCancelEdit();
+            }}
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      ) : (
+        <span className="flex-1 text-sm truncate text-content">
+          {page.name}
+        </span>
+      )}
+
+      {!editMode && !isEditing && (
+        <div className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+          <PopoverMenu
+            items={menuItems}
+            trigger={
+              <button
+                className="p-1 rounded hover:bg-black/10 text-content-muted hover:text-content"
+                title="Page actions"
+              >
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+                  <circle cx="12" cy="5" r="1.5" />
+                  <circle cx="12" cy="12" r="1.5" />
+                  <circle cx="12" cy="19" r="1.5" />
+                </svg>
+              </button>
+            }
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -169,19 +173,14 @@ export default function PageSwitcher({
   onDuplicatePage,
 }: PageSwitcherProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editingPageId, setEditingPageId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
-  // Inline rename of the current page (in the trigger bar, outside the dropdown)
-  const [isRenamingCurrent, setIsRenamingCurrent] = useState(false);
-  const [currentEditName, setCurrentEditName] = useState('');
-  // Description panel state
-  const [isDescriptionOpen, setIsDescriptionOpen] = useState(false);
   const [descriptionValue, setDescriptionValue] = useState('');
+
   const dropdownRef = useRef<HTMLDivElement>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
-  const currentEditInputRef = useRef<HTMLInputElement>(null);
-  // Counter to force re-focus when clicking the same page again
   const editFocusCounter = useRef(0);
 
   const currentPage = pages.find(l => l.id === activePage);
@@ -201,7 +200,7 @@ export default function PageSwitcher({
     }
   }, [isOpen]);
 
-  // Focus input when editing in dropdown — uses a counter so re-clicking the same page re-focuses
+  // Focus input when editing in dropdown
   useEffect(() => {
     if (editingPageId && editInputRef.current) {
       editInputRef.current.focus();
@@ -209,14 +208,6 @@ export default function PageSwitcher({
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingPageId, editFocusCounter.current]);
-
-  // Focus input when renaming current page in the trigger bar
-  useEffect(() => {
-    if (isRenamingCurrent && currentEditInputRef.current) {
-      currentEditInputRef.current.focus();
-      currentEditInputRef.current.select();
-    }
-  }, [isRenamingCurrent]);
 
   // Update description value when page changes
   useEffect(() => {
@@ -231,8 +222,21 @@ export default function PageSwitcher({
     }
   }, [isOpen]);
 
-  const handleStartEdit = useCallback((page: Page) => {
-    // Always set both — even if same page, bump counter to re-trigger focus
+  // Mutual exclusion: opening dropdown closes description
+  useEffect(() => {
+    if (isOpen) {
+      setIsDescriptionExpanded(false);
+    }
+  }, [isOpen]);
+
+  // Mutual exclusion: opening description closes dropdown
+  useEffect(() => {
+    if (isDescriptionExpanded) {
+      setIsOpen(false);
+    }
+  }, [isDescriptionExpanded]);
+
+  const handleStartRename = useCallback((page: Page) => {
     setEditingPageId(page.id);
     setEditName(page.name);
     editFocusCounter.current += 1;
@@ -249,28 +253,7 @@ export default function PageSwitcher({
     setEditingPageId(null);
   }, []);
 
-  // Current page inline rename handlers
-  const handleStartCurrentRename = useCallback(() => {
-    if (!currentPage) return;
-    setCurrentEditName(currentPage.name);
-    setIsRenamingCurrent(true);
-    // Close the dropdown if open — renaming is separate from selecting
-    setIsOpen(false);
-  }, [currentPage]);
-
-  const handleFinishCurrentRename = useCallback(() => {
-    if (activePage && currentEditName.trim()) {
-      onUpdatePage(activePage, { name: currentEditName.trim() });
-    }
-    setIsRenamingCurrent(false);
-  }, [activePage, currentEditName, onUpdatePage]);
-
-  const handleCancelCurrentRename = useCallback(() => {
-    setIsRenamingCurrent(false);
-  }, []);
-
-  const handleDelete = useCallback((pageId: string, event: React.MouseEvent) => {
-    event.stopPropagation();
+  const handleDelete = useCallback((pageId: string) => {
     const page = pages.find(l => l.id === pageId);
     const hasContent = (page?.nodes as unknown[])?.length > 0;
     if (hasContent) {
@@ -280,8 +263,7 @@ export default function PageSwitcher({
     onDeletePage(pageId);
   }, [pages, onDeletePage]);
 
-  const handleDuplicate = useCallback((page: Page, event: React.MouseEvent) => {
-    event.stopPropagation();
+  const handleDuplicate = useCallback((page: Page) => {
     onDuplicatePage(page.id, `${page.name} (copy)`);
   }, [onDuplicatePage]);
 
@@ -315,84 +297,51 @@ export default function PageSwitcher({
   const sortedPages = [...pages].sort((a, b) => a.order - b.order);
   const pageIds = sortedPages.map(l => l.id);
 
+  const descriptionSubtitle = currentPage?.description
+    ? currentPage.description.split('\n')[0]
+    : 'Add description...';
+
   return (
     <div className="relative" ref={dropdownRef}>
-      <div className="flex items-center gap-0.5">
-        {/* Part 1: Current page info — click name to rename inline */}
-        <div className="flex items-center gap-1.5 pl-3 pr-1 py-1.5 text-sm font-medium bg-surface text-content border border-border rounded-lg">
-          <svg className="w-3.5 h-3.5 text-content-muted flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M12 2L2 7l10 5 10-5-10-5z" />
-            <path d="M2 17l10 5 10-5" />
-            <path d="M2 12l10 5 10-5" />
-          </svg>
-          <div className={`w-[120px] rounded px-1.5 py-0.5 -my-0.5 transition-colors ${isRenamingCurrent ? 'bg-surface-alt ring-1 ring-border' : ''}`}>
-            {isRenamingCurrent ? (
-              <input
-                ref={currentEditInputRef}
-                className="w-full py-0 text-sm font-medium bg-transparent border-none outline-none text-inherit"
-                value={currentEditName}
-                onChange={(e) => setCurrentEditName(e.target.value)}
-                onBlur={handleFinishCurrentRename}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleFinishCurrentRename();
-                  if (e.key === 'Escape') handleCancelCurrentRename();
-                }}
-              />
-            ) : (
-              <span
-                className="block w-full truncate cursor-text"
-                onClick={handleStartCurrentRename}
-                title="Click to rename"
-              >
-                {currentPage?.name || 'Main'}
-              </span>
-            )}
-          </div>
-          {/* Part 2: Trigger to open the page selector */}
-          <button
-            className="flex items-center justify-center w-6 h-6 rounded cursor-pointer hover:bg-surface-alt transition-colors"
-            onClick={() => setIsOpen(!isOpen)}
-            title="Switch page"
-          >
-            <svg className={`w-4 h-4 text-content-muted transition-transform ${isOpen ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M6 9l6 6 6-6" />
-            </svg>
-          </button>
-        </div>
-        {/* Toggle button for description panel */}
+      {/* Trigger bar */}
+      <div className="flex items-center gap-1.5">
+        {/* Left zone: page info (click to toggle description) */}
         <button
-          className={`flex items-center justify-center p-1.5 rounded-lg border transition-colors ${isDescriptionOpen ? 'bg-accent text-white border-accent' : 'bg-surface text-content-muted border-border hover:text-content hover:bg-surface-alt'}`}
-          onClick={() => setIsDescriptionOpen(!isDescriptionOpen)}
-          title={isDescriptionOpen ? "Hide description" : "Show description"}
+          className="flex flex-col items-start gap-0.5 pl-3 pr-2 py-1.5 bg-surface text-content border border-border rounded-lg hover:bg-surface-alt transition-colors flex-1 text-left"
+          onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
         >
-          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-            <polyline points="14 2 14 8 20 8" />
-            <line x1="16" y1="13" x2="8" y2="13" />
-            <line x1="16" y1="17" x2="8" y2="17" />
-            <polyline points="10 9 9 9 8 9" />
+          <div className="flex items-center gap-1.5 w-full">
+            <svg className="w-3.5 h-3.5 text-content-muted flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 2L2 7l10 5 10-5-10-5z" />
+              <path d="M2 17l10 5 10-5" />
+              <path d="M2 12l10 5 10-5" />
+            </svg>
+            <span className="text-sm font-medium truncate" data-testid="page-name">
+              {currentPage?.name || 'Main'}
+            </span>
+          </div>
+          {!isOpen && (
+            <span className={`text-xs truncate w-full pl-5 ${currentPage?.description ? 'text-content-muted' : 'text-content-muted italic'}`}>
+              {descriptionSubtitle}
+            </span>
+          )}
+        </button>
+
+        {/* Right zone: dropdown chevron */}
+        <button
+          className="flex items-center justify-center w-8 h-8 rounded-lg border border-border bg-surface hover:bg-surface-alt transition-colors"
+          onClick={() => setIsOpen(!isOpen)}
+          title="Switch page"
+        >
+          <svg className={`w-4 h-4 text-content-muted transition-transform ${isOpen ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M6 9l6 6 6-6" />
           </svg>
         </button>
-        {isOpen && (
-          <button
-            className={`p-1.5 rounded-lg border transition-colors ${editMode ? 'bg-accent text-white border-accent' : 'bg-surface text-content-muted border-border hover:text-content hover:bg-surface-alt'}`}
-            onClick={() => {
-              setEditMode(!editMode);
-              setEditingPageId(null);
-            }}
-            title={editMode ? 'Exit edit mode' : 'Edit pages'}
-          >
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-            </svg>
-          </button>
-        )}
       </div>
 
-      {/* Description panel */}
-      {isDescriptionOpen && !isOpen && (
-        <div className="absolute right-0 top-full mt-1 bg-surface border border-border rounded-lg shadow-lg overflow-hidden z-40 min-w-[300px] max-w-[400px]">
+      {/* Description expanded (grows the trigger bar) */}
+      {isDescriptionExpanded && !isOpen && (
+        <div className="mt-1 bg-surface border border-border rounded-lg overflow-hidden">
           <textarea
             className="w-full px-3 py-2 text-sm bg-surface border-none outline-none resize-y text-content min-h-[80px]"
             placeholder="Add a page description..."
@@ -409,13 +358,13 @@ export default function PageSwitcher({
 
       {/* Page selector dropdown */}
       {isOpen && (
-        <div className="absolute right-0 top-full mt-1 bg-surface border border-subtle rounded-lg shadow-lg overflow-hidden z-50 min-w-[260px]">
+        <div className="absolute right-0 top-full mt-1 bg-surface border border-border rounded-lg shadow-lg overflow-hidden z-50 min-w-[260px]">
           {/* Page rows */}
           {editMode ? (
             <DndContext collisionDetection={pointerWithin} onDragEnd={handleDragEnd}>
               <SortableContext items={pageIds} strategy={verticalListSortingStrategy}>
                 {sortedPages.map((page) => (
-                  <SortablePageRow
+                  <PageRow
                     key={page.id}
                     page={page}
                     isActive={page.id === activePage}
@@ -425,7 +374,7 @@ export default function PageSwitcher({
                     editInputRef={editInputRef}
                     pagesCount={pages.length}
                     onSelect={handleSelectPage}
-                    onStartEdit={handleStartEdit}
+                    onStartRename={handleStartRename}
                     onFinishEdit={handleFinishEdit}
                     onCancelEdit={handleCancelEdit}
                     onEditNameChange={setEditName}
@@ -437,7 +386,7 @@ export default function PageSwitcher({
             </DndContext>
           ) : (
             sortedPages.map((page) => (
-              <SortablePageRow
+              <PageRow
                 key={page.id}
                 page={page}
                 isActive={page.id === activePage}
@@ -447,7 +396,7 @@ export default function PageSwitcher({
                 editInputRef={editInputRef}
                 pagesCount={pages.length}
                 onSelect={handleSelectPage}
-                onStartEdit={handleStartEdit}
+                onStartRename={handleStartRename}
                 onFinishEdit={handleFinishEdit}
                 onCancelEdit={handleCancelEdit}
                 onEditNameChange={setEditName}
@@ -457,12 +406,30 @@ export default function PageSwitcher({
             ))
           )}
 
-          <div className="border-t border-subtle">
+          {/* Bottom bar */}
+          <div className="border-t border-border flex items-center justify-between">
             <button
-              className="w-full text-left px-3 py-2 text-sm cursor-pointer text-content-muted hover:bg-surface-alt hover:text-content transition-colors border-none bg-surface"
+              className="flex-1 text-left px-3 py-2 text-sm cursor-pointer text-content-muted hover:bg-surface-alt hover:text-content transition-colors border-none bg-surface"
               onClick={handleCreatePage}
             >
               + New Page
+            </button>
+            <button
+              className={`px-3 py-2 text-sm cursor-pointer transition-colors border-none ${editMode ? 'bg-accent text-white' : 'bg-surface text-content-muted hover:bg-surface-alt hover:text-content'}`}
+              onClick={() => {
+                setEditMode(!editMode);
+                setEditingPageId(null);
+              }}
+              title={editMode ? 'Exit rearrange mode' : 'Rearrange pages'}
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="9" cy="6" r="1.5" />
+                <circle cx="15" cy="6" r="1.5" />
+                <circle cx="9" cy="12" r="1.5" />
+                <circle cx="15" cy="12" r="1.5" />
+                <circle cx="9" cy="18" r="1.5" />
+                <circle cx="15" cy="18" r="1.5" />
+              </svg>
             </button>
           </div>
         </div>
