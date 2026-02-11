@@ -168,15 +168,14 @@ export default function FieldSubWizard({ field, onChange }: FieldSubWizardProps)
       <div>
         <label className="block mb-1 text-sm font-medium text-content">Display Tier</label>
         <Select
-          value={field.displayTier || 'full'}
-          onChange={(e) => onChange({ displayTier: (e.target.value as DisplayTier) })}
+          value={field.displayTier || ''}
+          onChange={(e) => onChange({ displayTier: (e.target.value as DisplayTier) || undefined })}
         >
-          <option value="minimal">Minimal (shown in collapsed view)</option>
-          <option value="details">Details (shown in expanded view)</option>
-          <option value="full">Full (only in full view modal)</option>
+          <option value="summary">Summary (shown on canvas)</option>
+          <option value="">Inspector only</option>
         </Select>
         <span className="block mt-1 text-[11px] text-content-muted">
-          Controls at which detail level this field is visible. Pill assignment is done via the Field Display Editor.
+          Controls whether this field is visible on canvas nodes. Pill assignment is done via the Field Display Editor.
         </span>
       </div>
 

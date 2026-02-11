@@ -151,12 +151,11 @@ export default function FieldDefinitionEditor({
           <div className="mb-3">
             <label className="block mb-1.5 text-xs font-medium text-content-muted">Display Tier</label>
             <Select
-              value={field.displayTier || 'full'}
-              onChange={(e) => updateField({ displayTier: e.target.value as DisplayTier })}
+              value={field.displayTier || ''}
+              onChange={(e) => updateField({ displayTier: e.target.value as DisplayTier || undefined })}
             >
-              <option value="minimal">Minimal (collapsed view)</option>
-              <option value="details">Details (expanded view)</option>
-              <option value="full">Full (full view only)</option>
+              <option value="summary">Summary (shown on canvas)</option>
+              <option value="">Inspector only</option>
             </Select>
           </div>
 

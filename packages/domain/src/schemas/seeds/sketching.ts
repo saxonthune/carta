@@ -25,7 +25,7 @@ export const sketchingSeed: SchemaSeed = {
           displayHint: 'multiline',
           semanticDescription: 'Freeform note content',
           placeholder: 'Type here...',
-          displayTier: 'minimal',
+          displayTier: 'summary',
           displayOrder: 0,
         },
       ],
@@ -46,7 +46,7 @@ export const sketchingSeed: SchemaSeed = {
       semanticDescription: 'Generic box for rough modeling',
       fields: [
         { name: 'label', label: 'Label', type: 'string', displayTier: 'pill', displayOrder: 0, placeholder: 'Label...' },
-        { name: 'notes', label: 'Notes', type: 'string', displayHint: 'multiline', displayTier: 'details', displayOrder: 1, placeholder: 'Notes...' },
+        { name: 'notes', label: 'Notes', type: 'string', displayHint: 'multiline', displayTier: 'summary', displayOrder: 1, placeholder: 'Notes...' },
       ],
       ports: [
         { id: 'flow-in', portType: 'flow-in', label: 'In' },

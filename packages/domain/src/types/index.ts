@@ -15,13 +15,12 @@ export type DataKind = 'string' | 'number' | 'boolean' | 'date' | 'enum';
 export type DisplayHint = 'multiline' | 'code' | 'password' | 'url' | 'color';
 
 /**
- * Display tier for field visibility at different node detail levels
- * - 'pill': Used as the node title in pill/compact modes (max 1 per schema)
- * - 'minimal': Shown in collapsed/summary view
- * - 'details': Shown in expanded details view
- * - 'full': Only shown in full view modal (default)
+ * Display tier for field visibility
+ * - 'pill': Used as the node title (max 1 per schema)
+ * - 'summary': Shown on canvas nodes
+ * - Fields without a tier are inspector-only (not shown on canvas)
  */
-export type DisplayTier = 'pill' | 'minimal' | 'details' | 'full';
+export type DisplayTier = 'pill' | 'summary';
 
 
 /**
@@ -94,7 +93,7 @@ export interface FieldSchema {
   displayHint?: DisplayHint; // For string type presentation
   default?: unknown;
   placeholder?: string;
-  displayTier?: DisplayTier;           // Which detail level shows this field (default: 'full')
+  displayTier?: DisplayTier;           // Which tier shows this field (omit for inspector-only)
   displayOrder?: number;               // Sort order within a tier (default: 0)
 }
 

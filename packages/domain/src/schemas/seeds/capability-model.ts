@@ -17,7 +17,7 @@ export const capabilityModelSeed: SchemaSeed = {
       groupId: 'capability-model',
       fields: [
         { name: 'name', label: 'Name', type: 'string', semanticDescription: 'Domain name', placeholder: 'e.g., Commerce, Identity, Content', displayTier: 'pill', displayOrder: 0 },
-        { name: 'description', label: 'Description', type: 'string', displayHint: 'multiline', semanticDescription: 'What this domain encompasses', placeholder: 'Describe the domain boundary and responsibilities', displayTier: 'details', displayOrder: 1 },
+        { name: 'description', label: 'Description', type: 'string', displayHint: 'multiline', semanticDescription: 'What this domain encompasses', placeholder: 'Describe the domain boundary and responsibilities', displayTier: 'summary', displayOrder: 1 },
       ],
       ports: [
         { id: 'parent', portType: 'parent', label: 'Features', semanticDescription: 'Features belonging to this domain' },
@@ -39,8 +39,8 @@ export const capabilityModelSeed: SchemaSeed = {
       groupId: 'capability-model',
       fields: [
         { name: 'name', label: 'Name', type: 'string', semanticDescription: 'Feature name', placeholder: 'e.g., Authentication, Checkout, Search', displayTier: 'pill', displayOrder: 0 },
-        { name: 'status', label: 'Status', type: 'enum', semanticDescription: 'Implementation maturity', options: [{ value: 'Planned' }, { value: 'In Progress' }, { value: 'Shipped' }, { value: 'Deprecated' }], default: 'Planned', displayTier: 'minimal', displayOrder: 1 },
-        { name: 'description', label: 'Description', type: 'string', displayHint: 'multiline', semanticDescription: 'What this feature provides', placeholder: 'Describe the feature scope', displayTier: 'details', displayOrder: 2 },
+        { name: 'status', label: 'Status', type: 'enum', semanticDescription: 'Implementation maturity', options: [{ value: 'Planned' }, { value: 'In Progress' }, { value: 'Shipped' }, { value: 'Deprecated' }], default: 'Planned', displayTier: 'summary', displayOrder: 1 },
+        { name: 'description', label: 'Description', type: 'string', displayHint: 'multiline', semanticDescription: 'What this feature provides', placeholder: 'Describe the feature scope', displayTier: 'summary', displayOrder: 2 },
       ],
       ports: [
         { id: 'child', portType: 'child', label: 'Domain', semanticDescription: 'Domain this feature belongs to' },
@@ -64,9 +64,9 @@ export const capabilityModelSeed: SchemaSeed = {
       groupId: 'capability-model',
       fields: [
         { name: 'name', label: 'Name', type: 'string', semanticDescription: 'Capability name (verb phrase)', placeholder: 'e.g., Validate Credentials, Process Payment', displayTier: 'pill', displayOrder: 0 },
-        { name: 'preconditions', label: 'Preconditions', type: 'string', semanticDescription: 'What must be true before this capability can execute', placeholder: 'e.g., User is authenticated', displayTier: 'minimal', displayOrder: 1 },
-        { name: 'effects', label: 'Effects', type: 'string', semanticDescription: 'What becomes true after this capability executes', placeholder: 'e.g., Session is created', displayTier: 'minimal', displayOrder: 2 },
-        { name: 'description', label: 'Description', type: 'string', displayHint: 'multiline', semanticDescription: 'Detailed behavior description', placeholder: 'Describe inputs, outputs, and behavior', displayTier: 'details', displayOrder: 3 },
+        { name: 'preconditions', label: 'Preconditions', type: 'string', semanticDescription: 'What must be true before this capability can execute', placeholder: 'e.g., User is authenticated', displayTier: 'summary', displayOrder: 1 },
+        { name: 'effects', label: 'Effects', type: 'string', semanticDescription: 'What becomes true after this capability executes', placeholder: 'e.g., Session is created', displayTier: 'summary', displayOrder: 2 },
+        { name: 'description', label: 'Description', type: 'string', displayHint: 'multiline', semanticDescription: 'Detailed behavior description', placeholder: 'Describe inputs, outputs, and behavior', displayTier: 'summary', displayOrder: 3 },
       ],
       ports: [
         { id: 'child', portType: 'child', label: 'Feature', semanticDescription: 'Feature this capability belongs to' },
@@ -89,8 +89,8 @@ export const capabilityModelSeed: SchemaSeed = {
       groupId: 'capability-model',
       fields: [
         { name: 'title', label: 'Title', type: 'string', semanticDescription: 'Short story title', placeholder: 'e.g., Subscribe to Premium Plan', displayTier: 'pill', displayOrder: 0 },
-        { name: 'story', label: 'Story', type: 'string', semanticDescription: 'Full user story', placeholder: 'As a [persona], I want [goal] so that [benefit]', displayTier: 'minimal', displayOrder: 1 },
-        { name: 'acceptance', label: 'Acceptance Criteria', type: 'string', displayHint: 'multiline', semanticDescription: 'Conditions that must be true for this story to be satisfied', placeholder: 'Given... When... Then...', displayTier: 'details', displayOrder: 2 },
+        { name: 'story', label: 'Story', type: 'string', semanticDescription: 'Full user story', placeholder: 'As a [persona], I want [goal] so that [benefit]', displayTier: 'summary', displayOrder: 1 },
+        { name: 'acceptance', label: 'Acceptance Criteria', type: 'string', displayHint: 'multiline', semanticDescription: 'Conditions that must be true for this story to be satisfied', placeholder: 'Given... When... Then...', displayTier: 'summary', displayOrder: 2 },
       ],
       ports: [
         { id: 'flow-out', portType: 'flow-out', label: 'Implemented By', semanticDescription: 'User flows that implement this story' },
@@ -110,9 +110,9 @@ export const capabilityModelSeed: SchemaSeed = {
       groupId: 'capability-model',
       fields: [
         { name: 'name', label: 'Name', type: 'string', semanticDescription: 'Flow name', placeholder: 'e.g., Premium Subscription Flow', displayTier: 'pill', displayOrder: 0 },
-        { name: 'trigger', label: 'Trigger', type: 'string', semanticDescription: 'What initiates this flow', placeholder: 'e.g., User clicks "Upgrade"', displayTier: 'minimal', displayOrder: 1 },
-        { name: 'outcome', label: 'Outcome', type: 'string', semanticDescription: 'End state after flow completes', placeholder: 'e.g., User has active premium subscription', displayTier: 'minimal', displayOrder: 2 },
-        { name: 'description', label: 'Description', type: 'string', displayHint: 'multiline', semanticDescription: 'Flow details and notes', placeholder: 'Describe the flow', displayTier: 'details', displayOrder: 3 },
+        { name: 'trigger', label: 'Trigger', type: 'string', semanticDescription: 'What initiates this flow', placeholder: 'e.g., User clicks "Upgrade"', displayTier: 'summary', displayOrder: 1 },
+        { name: 'outcome', label: 'Outcome', type: 'string', semanticDescription: 'End state after flow completes', placeholder: 'e.g., User has active premium subscription', displayTier: 'summary', displayOrder: 2 },
+        { name: 'description', label: 'Description', type: 'string', displayHint: 'multiline', semanticDescription: 'Flow details and notes', placeholder: 'Describe the flow', displayTier: 'summary', displayOrder: 3 },
       ],
       ports: [
         { id: 'flow-in', portType: 'flow-in', label: 'Story', semanticDescription: 'User story this flow implements' },

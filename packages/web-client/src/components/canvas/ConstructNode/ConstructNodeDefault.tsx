@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Handle, Position } from '@xyflow/react';
+import { Handle, Position, NodeResizer } from '@xyflow/react';
 import { getDisplayName, getFieldsForSummary, resolveNodeColor, resolveNodeIcon } from '@carta/domain';
 import PortDrawer from '../PortDrawer';
 import IndexBasedDropZones from '../IndexBasedDropZones';
@@ -28,7 +28,7 @@ export function ConstructNodeDefault({
 
   return (
     <div
-      className={`bg-surface rounded-lg text-node-base text-content overflow-visible relative flex flex-col transition-shadow duration-150 min-w-[180px] ${selected ? 'ring-2 ring-accent/30' : ''}`}
+      className={`bg-surface rounded-lg text-node-base text-content overflow-visible relative flex flex-col transition-shadow duration-150 min-w-[180px] min-h-[60px] ${selected ? 'ring-2 ring-accent/30' : ''}`}
       style={{
         ...bgStyle,
         ...lodTransitionStyle,
@@ -36,6 +36,15 @@ export function ConstructNodeDefault({
         borderLeft: `2px solid color-mix(in srgb, ${color} 70%, var(--color-surface-alt))`,
       }}
     >
+      {/* NodeResizer */}
+      <NodeResizer
+        isVisible={selected}
+        minWidth={180}
+        minHeight={60}
+        lineClassName="!border-accent !border-2"
+        handleClassName="!w-2 !h-2 !bg-accent !border-accent"
+      />
+
       {/* Selection indicator */}
       {selected && (
         <div className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-accent shadow-[0_0_0_2px_var(--color-surface)]" />
@@ -67,9 +76,9 @@ export function ConstructNodeDefault({
           {getDisplayName(data, schema)}
         </div>
 
-        {/* Fields — click-to-edit two-column grid */}
+        {/* Fields — click-to-edit single-column list */}
         {visibleFields.length > 0 && (
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+          <div className="flex flex-col gap-1.5">
             {visibleFields.map((field) => {
               const isMultiline = field.displayHint === 'multiline' || field.displayHint === 'code';
               const isEditing = editingField === field.name;
@@ -92,12 +101,9 @@ export function ConstructNodeDefault({
                 }
               };
 
-              // Multiline and code fields span full width
-              const cellClass = isMultiline ? 'col-span-2' : '';
-
               if (isEditing) {
                 return (
-                  <div key={field.name} className={cellClass}>
+                  <div key={field.name}>
                     <div className="text-content-subtle text-node-xs">{field.label}</div>
                     {field.type === 'boolean' ? (
                       <div className="flex items-center gap-2 mt-0.5">
@@ -151,20 +157,27 @@ export function ConstructNodeDefault({
                 );
               }
 
-              // Read-only state
+              // Read-only state - horizontal label-value layout
               return (
                 <div
                   key={field.name}
-                  className={`cursor-pointer hover:bg-surface-alt rounded px-1 -mx-1 ${cellClass}`}
+                  className="cursor-pointer hover:bg-surface-alt rounded px-1 -mx-1"
                   onClick={(e) => { e.stopPropagation(); setEditingField(field.name); }}
                 >
-                  <div className="text-content-subtle text-node-xs">{field.label}</div>
                   {isMultiline ? (
-                    <div className="text-content text-node-sm line-clamp-3 whitespace-pre-wrap">{formatValue(value)}</div>
-                  ) : field.type === 'boolean' ? (
-                    <div className="text-content text-node-sm">{value ? 'Yes' : 'No'}</div>
+                    // Multiline: label above, value with line-clamp-2
+                    <>
+                      <div className="text-content-subtle text-node-xs">{field.label}:</div>
+                      <div className="text-content text-node-sm line-clamp-2 whitespace-pre-wrap">{formatValue(value)}</div>
+                    </>
                   ) : (
-                    <div className="text-content text-node-sm truncate">{formatValue(value)}</div>
+                    // Single line: label and value on same line
+                    <div className="flex items-baseline gap-1.5 min-w-0">
+                      <span className="text-content-subtle text-node-xs shrink-0">{field.label}:</span>
+                      <span className="text-content text-node-sm truncate">
+                        {field.type === 'boolean' ? (value ? 'Yes' : 'No') : formatValue(value)}
+                      </span>
+                    </div>
                   )}
                 </div>
               );

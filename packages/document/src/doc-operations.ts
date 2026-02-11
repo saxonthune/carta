@@ -1292,7 +1292,7 @@ function applySchemaDefaults(schema: Record<string, unknown>): Record<string, un
   if (Array.isArray(processed.fields)) {
     processed.fields = (processed.fields as Array<Record<string, unknown>>).map((field) => {
       if (primaryFieldNames.includes((field.name as string).toLowerCase()) && field.displayTier === undefined) {
-        return { ...field, displayTier: 'minimal' };
+        return { ...field, displayTier: 'summary' };
       }
       return field;
     });

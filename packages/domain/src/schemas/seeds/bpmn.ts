@@ -17,8 +17,8 @@ export const bpmnSeed: SchemaSeed = {
       groupId: 'bpmn',
       fields: [
         { name: 'name', label: 'Name', type: 'string', semanticDescription: 'Activity name', placeholder: 'e.g., Review Application', displayTier: 'pill', displayOrder: 0 },
-        { name: 'activityType', label: 'Type', type: 'enum', semanticDescription: 'Kind of activity', options: [{ value: 'Task' }, { value: 'Subprocess' }, { value: 'Call Activity' }], default: 'Task', displayTier: 'minimal', displayOrder: 1 },
-        { name: 'description', label: 'Description', type: 'string', semanticDescription: 'What this activity does', placeholder: 'Describe the activity', displayTier: 'details', displayOrder: 2 },
+        { name: 'activityType', label: 'Type', type: 'enum', semanticDescription: 'Kind of activity', options: [{ value: 'Task' }, { value: 'Subprocess' }, { value: 'Call Activity' }], default: 'Task', displayTier: 'summary', displayOrder: 1 },
+        { name: 'description', label: 'Description', type: 'string', semanticDescription: 'What this activity does', placeholder: 'Describe the activity', displayTier: 'summary', displayOrder: 2 },
       ],
       ports: [
         { id: 'seq-in', portType: 'flow-in', label: 'Sequence In', semanticDescription: 'Incoming sequence flow' },
@@ -44,9 +44,9 @@ export const bpmnSeed: SchemaSeed = {
       groupId: 'bpmn',
       fields: [
         { name: 'name', label: 'Name', type: 'string', semanticDescription: 'Event label', placeholder: 'e.g., Order Received', displayTier: 'pill', displayOrder: 0 },
-        { name: 'eventPosition', label: 'Position', type: 'enum', semanticDescription: 'Where this event occurs in the process', options: [{ value: 'Start' }, { value: 'Intermediate' }, { value: 'End' }], default: 'Start', displayTier: 'minimal', displayOrder: 1 },
-        { name: 'trigger', label: 'Trigger', type: 'enum', semanticDescription: 'What causes this event', options: [{ value: 'None' }, { value: 'Message' }, { value: 'Timer' }, { value: 'Error' }, { value: 'Signal' }], default: 'None', displayTier: 'minimal', displayOrder: 2 },
-        { name: 'description', label: 'Description', type: 'string', semanticDescription: 'Event details', placeholder: 'Describe the event', displayTier: 'details', displayOrder: 3 },
+        { name: 'eventPosition', label: 'Position', type: 'enum', semanticDescription: 'Where this event occurs in the process', options: [{ value: 'Start' }, { value: 'Intermediate' }, { value: 'End' }], default: 'Start', displayTier: 'summary', displayOrder: 1 },
+        { name: 'trigger', label: 'Trigger', type: 'enum', semanticDescription: 'What causes this event', options: [{ value: 'None' }, { value: 'Message' }, { value: 'Timer' }, { value: 'Error' }, { value: 'Signal' }], default: 'None', displayTier: 'summary', displayOrder: 2 },
+        { name: 'description', label: 'Description', type: 'string', semanticDescription: 'Event details', placeholder: 'Describe the event', displayTier: 'summary', displayOrder: 3 },
       ],
       ports: [
         { id: 'seq-in', portType: 'flow-in', label: 'Sequence In', semanticDescription: 'Incoming sequence flow (intermediate/end)' },
@@ -68,8 +68,8 @@ export const bpmnSeed: SchemaSeed = {
       groupId: 'bpmn',
       fields: [
         { name: 'name', label: 'Name', type: 'string', semanticDescription: 'Gateway label', placeholder: 'e.g., Approved?', displayTier: 'pill', displayOrder: 0 },
-        { name: 'gatewayType', label: 'Type', type: 'enum', semanticDescription: 'Gateway behavior', options: [{ value: 'Exclusive (XOR)' }, { value: 'Parallel (AND)' }, { value: 'Inclusive (OR)' }, { value: 'Event-Based' }], default: 'Exclusive (XOR)', displayTier: 'minimal', displayOrder: 1 },
-        { name: 'description', label: 'Description', type: 'string', semanticDescription: 'Decision logic or merge conditions', placeholder: 'Describe the branching logic', displayTier: 'details', displayOrder: 2 },
+        { name: 'gatewayType', label: 'Type', type: 'enum', semanticDescription: 'Gateway behavior', options: [{ value: 'Exclusive (XOR)' }, { value: 'Parallel (AND)' }, { value: 'Inclusive (OR)' }, { value: 'Event-Based' }], default: 'Exclusive (XOR)', displayTier: 'summary', displayOrder: 1 },
+        { name: 'description', label: 'Description', type: 'string', semanticDescription: 'Decision logic or merge conditions', placeholder: 'Describe the branching logic', displayTier: 'summary', displayOrder: 2 },
       ],
       ports: [
         { id: 'seq-in', portType: 'flow-in', label: 'Sequence In', semanticDescription: 'Incoming sequence flows to merge' },
@@ -92,7 +92,7 @@ export const bpmnSeed: SchemaSeed = {
       groupId: 'bpmn',
       fields: [
         { name: 'name', label: 'Name', type: 'string', semanticDescription: 'Participant name', placeholder: 'e.g., Customer, Fulfillment', displayTier: 'pill', displayOrder: 0 },
-        { name: 'description', label: 'Description', type: 'string', semanticDescription: 'Role or responsibility of this participant', placeholder: 'Describe the participant', displayTier: 'details', displayOrder: 1 },
+        { name: 'description', label: 'Description', type: 'string', semanticDescription: 'Role or responsibility of this participant', placeholder: 'Describe the participant', displayTier: 'summary', displayOrder: 1 },
       ],
       ports: [
         { id: 'parent', portType: 'parent', label: 'Lanes', semanticDescription: 'Lanes within this pool' },
@@ -114,7 +114,7 @@ export const bpmnSeed: SchemaSeed = {
       groupId: 'bpmn',
       fields: [
         { name: 'name', label: 'Name', type: 'string', semanticDescription: 'Lane role name', placeholder: 'e.g., Sales, Accounting', displayTier: 'pill', displayOrder: 0 },
-        { name: 'description', label: 'Description', type: 'string', semanticDescription: 'Responsibility of this lane', placeholder: 'Describe the role', displayTier: 'details', displayOrder: 1 },
+        { name: 'description', label: 'Description', type: 'string', semanticDescription: 'Responsibility of this lane', placeholder: 'Describe the role', displayTier: 'summary', displayOrder: 1 },
       ],
       ports: [
         { id: 'child', portType: 'child', label: 'Pool', semanticDescription: 'Pool that contains this lane' },
@@ -136,8 +136,8 @@ export const bpmnSeed: SchemaSeed = {
       groupId: 'bpmn',
       fields: [
         { name: 'name', label: 'Name', type: 'string', semanticDescription: 'Data object name', placeholder: 'e.g., Invoice, Purchase Order', displayTier: 'pill', displayOrder: 0 },
-        { name: 'state', label: 'State', type: 'string', semanticDescription: 'Current state of the data', placeholder: 'e.g., Draft, Approved', displayTier: 'minimal', displayOrder: 1 },
-        { name: 'description', label: 'Description', type: 'string', semanticDescription: 'Data content and structure', placeholder: 'Describe the data', displayTier: 'details', displayOrder: 2 },
+        { name: 'state', label: 'State', type: 'string', semanticDescription: 'Current state of the data', placeholder: 'e.g., Draft, Approved', displayTier: 'summary', displayOrder: 1 },
+        { name: 'description', label: 'Description', type: 'string', semanticDescription: 'Data content and structure', placeholder: 'Describe the data', displayTier: 'summary', displayOrder: 2 },
       ],
       ports: [
         { id: 'data-link', portType: 'symmetric', label: 'Used By', semanticDescription: 'Activities that use or produce this data' },

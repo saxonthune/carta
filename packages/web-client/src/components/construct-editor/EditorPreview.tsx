@@ -3,13 +3,13 @@ import type { ConstructSchema, FieldSchema, DisplayTier } from '@carta/domain';
 
 interface EditorPreviewProps {
   schema: ConstructSchema;
-  fieldAssignments: Map<string, { tier: DisplayTier; order: number }>;
+  fieldAssignments: Map<string, { tier: DisplayTier | undefined; order: number }>;
 }
 
 function getFieldsForPreviewTier(
   schema: ConstructSchema,
-  assignments: Map<string, { tier: DisplayTier; order: number }>,
-  tiers: DisplayTier[]
+  assignments: Map<string, { tier: DisplayTier | undefined; order: number }>,
+  tiers: (DisplayTier | undefined)[]
 ): FieldSchema[] {
   return schema.fields
     .filter((f) => {
@@ -25,7 +25,7 @@ function getFieldsForPreviewTier(
 
 function getPillFieldValue(
   schema: ConstructSchema,
-  assignments: Map<string, { tier: DisplayTier; order: number }>
+  assignments: Map<string, { tier: DisplayTier | undefined; order: number }>
 ): string {
   const pillField = schema.fields.find((f) => assignments.get(f.name)?.tier === 'pill');
   if (pillField) {
@@ -67,8 +67,7 @@ function PreviewWrapper({ label, children }: { label: string; children: React.Re
 export default function EditorPreview({ schema, fieldAssignments }: EditorPreviewProps) {
   const pillValue = getPillFieldValue(schema, fieldAssignments);
   const color = schema.color || '#6366f1';
-  const minimalFields = getFieldsForPreviewTier(schema, fieldAssignments, ['pill', 'minimal']);
-  const allFields = getFieldsForPreviewTier(schema, fieldAssignments, ['pill', 'minimal', 'details']);
+  const summaryFields = getFieldsForPreviewTier(schema, fieldAssignments, ['pill', 'summary']);
 
   return (
     <div className="flex flex-col justify-between h-full w-full">
@@ -82,23 +81,8 @@ export default function EditorPreview({ schema, fieldAssignments }: EditorPrevie
         </div>
       </PreviewWrapper>
 
-      {/* Minimal */}
-      <PreviewWrapper label="Minimal">
-        <div className="relative bg-surface rounded-lg text-xs overflow-hidden" style={{ borderLeft: `2px solid ${color}`, boxShadow: 'var(--node-shadow)' }}>
-          <div
-            className="px-2 py-1 text-[10px] font-medium text-content-muted bg-surface-alt rounded-t-lg"
-          >
-            {schema.displayName || 'Schema'}
-          </div>
-          <div className="px-2 py-1.5 font-semibold text-content truncate">
-            {pillValue}
-          </div>
-          <PortRow schema={schema} />
-        </div>
-      </PreviewWrapper>
-
-      {/* Details */}
-      <PreviewWrapper label="Details">
+      {/* Summary */}
+      <PreviewWrapper label="Summary (Canvas)">
         <div className="relative bg-surface rounded-lg text-xs overflow-hidden" style={{ borderLeft: `2px solid ${color}`, boxShadow: 'var(--node-shadow)' }}>
           <div
             className="px-2 py-1 text-[10px] font-medium text-content-muted bg-surface-alt rounded-t-lg"
@@ -106,42 +90,15 @@ export default function EditorPreview({ schema, fieldAssignments }: EditorPrevie
             {schema.displayName || 'Schema'}
           </div>
           <div className="px-2 py-1.5">
-            {minimalFields.length === 0 ? (
-              <div className="text-content-subtle italic text-[10px]">No minimal fields</div>
+            <div className="font-semibold text-content truncate mb-1">{pillValue}</div>
+            {summaryFields.length === 0 ? (
+              <div className="text-content-subtle italic text-[10px]">No summary fields</div>
             ) : (
               <div className="flex flex-col gap-0.5">
-                {minimalFields.map((field) => (
-                  <div key={field.name} className="flex justify-between gap-1">
-                    <span className="text-content-subtle text-[10px]">{field.label}:</span>
-                    <span className="text-content font-medium text-[10px]">
-                      {field.default ? String(field.default) : '—'}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          <PortRow schema={schema} />
-        </div>
-      </PreviewWrapper>
-
-      {/* Full */}
-      <PreviewWrapper label="Full">
-        <div className="relative bg-surface rounded-lg text-xs overflow-hidden" style={{ borderLeft: `2px solid ${color}`, boxShadow: 'var(--node-shadow)' }}>
-          <div
-            className="px-2 py-1 text-[10px] font-medium text-content-muted bg-surface-alt rounded-t-lg"
-          >
-            {schema.displayName || 'Schema'}
-          </div>
-          <div className="px-2 py-1.5">
-            {allFields.length === 0 ? (
-              <div className="text-content-subtle italic text-[10px]">No fields at this tier</div>
-            ) : (
-              <div className="flex flex-col gap-0.5">
-                {allFields.map((field) => (
-                  <div key={field.name} className="flex justify-between gap-1">
-                    <span className="text-content-subtle text-[10px]">{field.label}:</span>
-                    <span className="text-content font-medium text-[10px]">
+                {summaryFields.filter(f => f.displayTier !== 'pill').map((field) => (
+                  <div key={field.name} className="flex gap-1 items-baseline">
+                    <span className="text-content-subtle text-[10px] shrink-0">{field.label}:</span>
+                    <span className="text-content font-medium text-[10px] truncate">
                       {field.default ? String(field.default) : '—'}
                     </span>
                   </div>

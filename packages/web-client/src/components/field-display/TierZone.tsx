@@ -4,7 +4,7 @@ import DraggableField from './DraggableField';
 import type { FieldSchema, DisplayTier } from '@carta/domain';
 
 interface TierZoneProps {
-  tier: DisplayTier;
+  tier: DisplayTier | undefined;
   label: string;
   description: string;
   fields: FieldSchema[];
@@ -15,7 +15,7 @@ interface TierZoneProps {
 }
 
 export default function TierZone({ tier, label, description, fields, fieldIds, maxItems, onEditField, onRemoveField }: TierZoneProps) {
-  const { setNodeRef, isOver } = useDroppable({ id: `tier-${tier}` });
+  const { setNodeRef, isOver } = useDroppable({ id: `tier-${tier ?? 'unassigned'}` });
 
   return (
     <div className="mb-4">

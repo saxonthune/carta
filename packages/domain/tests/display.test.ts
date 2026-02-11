@@ -27,16 +27,16 @@ describe('getFieldsForTier', () => {
       color: '#000',
       fields: [
         { name: 'field1', label: 'Field 1', type: 'string', displayTier: 'pill' },
-        { name: 'field2', label: 'Field 2', type: 'string', displayTier: 'minimal' },
-        { name: 'field3', label: 'Field 3', type: 'string', displayTier: 'details' },
-        { name: 'field4', label: 'Field 4', type: 'string', displayTier: 'full' },
+        { name: 'field2', label: 'Field 2', type: 'string', displayTier: 'summary' },
+        { name: 'field3', label: 'Field 3', type: 'string', displayTier: 'summary' },
+        { name: 'field4', label: 'Field 4', type: 'string' },
       ],
       compilation: { format: 'json' as CompilationFormat },
     };
 
-    const minimalFields = getFieldsForTier(schema, 'minimal');
-    expect(minimalFields.length).toBe(1);
-    expect(minimalFields[0].name).toBe('field2');
+    const summaryFields = getFieldsForTier(schema, 'summary');
+    expect(summaryFields.length).toBe(2);
+    expect(summaryFields[0].name).toBe('field2');
 
     const pillFields = getFieldsForTier(schema, 'pill');
     expect(pillFields.length).toBe(1);
@@ -49,37 +49,39 @@ describe('getFieldsForTier', () => {
       displayName: 'Test',
       color: '#000',
       fields: [
-        { name: 'field1', label: 'Field 1', type: 'string', displayTier: 'minimal', displayOrder: 2 },
-        { name: 'field2', label: 'Field 2', type: 'string', displayTier: 'minimal', displayOrder: 1 },
-        { name: 'field3', label: 'Field 3', type: 'string', displayTier: 'minimal', displayOrder: 3 },
+        { name: 'field1', label: 'Field 1', type: 'string', displayTier: 'summary', displayOrder: 2 },
+        { name: 'field2', label: 'Field 2', type: 'string', displayTier: 'summary', displayOrder: 1 },
+        { name: 'field3', label: 'Field 3', type: 'string', displayTier: 'summary', displayOrder: 3 },
       ],
       compilation: { format: 'json' as CompilationFormat },
     };
 
-    const fields = getFieldsForTier(schema, 'minimal');
+    const fields = getFieldsForTier(schema, 'summary');
     expect(fields.map(f => f.name)).toEqual(['field2', 'field1', 'field3']);
   });
 });
 
 describe('getFieldsForSummary', () => {
-  it('should return minimal tier fields only', () => {
+  it('should return summary tier fields only', () => {
     const schema: ConstructSchema = {
       type: 'test',
       displayName: 'Test',
       color: '#000',
       fields: [
         { name: 'field1', label: 'Field 1', type: 'string', displayTier: 'pill' },
-        { name: 'field2', label: 'Field 2', type: 'string', displayTier: 'minimal' },
-        { name: 'field3', label: 'Field 3', type: 'string', displayTier: 'details' },
-        { name: 'field4', label: 'Field 4', type: 'string', displayTier: 'full' },
+        { name: 'field2', label: 'Field 2', type: 'string', displayTier: 'summary' },
+        { name: 'field3', label: 'Field 3', type: 'string', displayTier: 'summary' },
+        { name: 'field4', label: 'Field 4', type: 'string' },
       ],
       compilation: { format: 'json' as CompilationFormat },
     };
 
     const summaryFields = getFieldsForSummary(schema);
-    expect(summaryFields.length).toBe(1);
+    expect(summaryFields.length).toBe(2);
     expect(summaryFields.map(f => f.name)).toContain('field2');
+    expect(summaryFields.map(f => f.name)).toContain('field3');
     expect(summaryFields.map(f => f.name)).not.toContain('field1');
+    expect(summaryFields.map(f => f.name)).not.toContain('field4');
   });
 });
 
@@ -91,7 +93,7 @@ describe('getDisplayName', () => {
       color: '#000',
       fields: [
         { name: 'title', label: 'Title', type: 'string', displayTier: 'pill' },
-        { name: 'description', label: 'Description', type: 'string', displayTier: 'minimal' },
+        { name: 'description', label: 'Description', type: 'string', displayTier: 'summary' },
       ],
       compilation: { format: 'json' as CompilationFormat },
     };

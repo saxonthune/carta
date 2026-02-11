@@ -48,8 +48,8 @@ export function kitchenSink(adapter: DocumentAdapter): void {
     semanticDescription: 'Data processing pipeline (kitchen-sink demo)',
     fields: [
       { name: 'name', label: 'Name', type: 'string', displayTier: 'pill', displayOrder: 0, placeholder: 'Pipeline name' },
-      { name: 'throughput', label: 'Throughput', type: 'number', displayTier: 'minimal', displayOrder: 1, default: 1000 },
-      { name: 'notes', label: 'Notes', type: 'string', displayHint: 'multiline', displayTier: 'details', displayOrder: 2 },
+      { name: 'throughput', label: 'Throughput', type: 'number', displayTier: 'summary', displayOrder: 1, default: 1000 },
+      { name: 'notes', label: 'Notes', type: 'string', displayHint: 'multiline', displayTier: 'summary', displayOrder: 2 },
     ],
     ports: [
       { id: 'data-in', portType: 'data-sink', label: 'Data In', semanticDescription: 'Incoming data stream' },
@@ -69,7 +69,7 @@ export function kitchenSink(adapter: DocumentAdapter): void {
     semanticDescription: 'A processing stage within a pipeline (kitchen-sink demo)',
     fields: [
       { name: 'name', label: 'Name', type: 'string', displayTier: 'pill', displayOrder: 0, placeholder: 'Stage name' },
-      { name: 'transform', label: 'Transform', type: 'enum', options: [{ value: 'filter' }, { value: 'map' }, { value: 'reduce' }, { value: 'aggregate' }], default: 'map', displayTier: 'minimal', displayOrder: 1 },
+      { name: 'transform', label: 'Transform', type: 'enum', options: [{ value: 'filter' }, { value: 'map' }, { value: 'reduce' }, { value: 'aggregate' }], default: 'map', displayTier: 'summary', displayOrder: 1 },
     ],
     ports: [
       { id: 'child', portType: 'child', label: 'Pipeline', semanticDescription: 'Parent pipeline' },

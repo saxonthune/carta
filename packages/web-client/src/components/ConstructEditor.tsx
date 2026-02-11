@@ -9,7 +9,7 @@ import EditorPreview from './construct-editor/EditorPreview';
 import Button from './ui/Button';
 import SegmentedControl from './ui/SegmentedControl';
 import { toSnakeCase } from '../utils/stringUtils';
-import type { ConstructSchema, DisplayTier } from '@carta/domain';
+import type { ConstructSchema, DisplayTier, FieldSchema } from '@carta/domain';
 
 type EditorTab = 'basics' | 'fields' | 'ports';
 
@@ -36,11 +36,11 @@ function createEmptySchema(): ConstructSchema {
   };
 }
 
-function initFieldAssignments(schema: ConstructSchema): Map<string, { tier: DisplayTier; order: number }> {
-  const map = new Map<string, { tier: DisplayTier; order: number }>();
+function initFieldAssignments(schema: ConstructSchema): Map<string, { tier: DisplayTier | undefined; order: number }> {
+  const map = new Map<string, { tier: DisplayTier | undefined; order: number }>();
   schema.fields.forEach((field, index) => {
     map.set(field.name, {
-      tier: field.displayTier || 'full',
+      tier: field.displayTier,
       order: field.displayOrder ?? index,
     });
   });
@@ -60,7 +60,7 @@ export default function ConstructEditor({ editSchema, onClose }: ConstructEditor
 
   const [activeTab, setActiveTab] = useState<EditorTab>('basics');
   const [formData, setFormData] = useState<ConstructSchema>(editSchema || createEmptySchema());
-  const [fieldAssignments, setFieldAssignments] = useState<Map<string, { tier: DisplayTier; order: number }>>(
+  const [fieldAssignments, setFieldAssignments] = useState<Map<string, { tier: DisplayTier | undefined; order: number }>>(
     () => initFieldAssignments(editSchema || createEmptySchema())
   );
   const [portsInitialized, setPortsInitialized] = useState(!!editSchema);
@@ -109,11 +109,15 @@ export default function ConstructEditor({ editSchema, onClose }: ConstructEditor
     const updatedFields = formData.fields.map((field) => {
       const assignment = fieldAssignments.get(field.name);
       const { displayTier: _, displayOrder: __, ...rest } = field;
-      return {
+      const result: FieldSchema = {
         ...rest,
-        displayTier: assignment?.tier ?? ('full' as DisplayTier),
         displayOrder: assignment?.order ?? 0,
       };
+      // Only include displayTier if it's defined (not undefined = inspector only)
+      if (assignment?.tier !== undefined) {
+        result.displayTier = assignment.tier;
+      }
+      return result;
     });
 
     const schema: ConstructSchema = {

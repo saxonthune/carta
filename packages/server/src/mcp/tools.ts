@@ -324,7 +324,7 @@ const CreateSchemaInputSchema = z.object({
         default: z.unknown().optional(),
         placeholder: z.string().optional(),
         displayHint: z.enum(['multiline', 'code', 'password', 'url', 'color']).optional(),
-        displayTier: z.enum(['pill', 'minimal', 'details', 'full']).optional().describe('Display tier: pill (node title), minimal (collapsed), details (expanded), full (modal only)'),
+        displayTier: z.enum(['pill', 'summary']).optional().describe('Display tier: pill (node title), summary (shown on canvas). Omit for inspector-only fields.'),
         displayOrder: z.number().optional().describe('Sort order within a tier (default 0)'),
       })
     )
@@ -364,7 +364,7 @@ const AddFieldSchema = z.object({
     type: z.enum(['string', 'number', 'boolean', 'enum', 'url']).describe('Field data type'),
     options: z.array(z.string()).optional().describe('Enum options (required if type is enum)'),
     label: z.string().optional().describe('Display label'),
-    displayTier: z.enum(['pill', 'minimal', 'details', 'full']).optional(),
+    displayTier: z.enum(['pill', 'summary']).optional(),
     semanticDescription: z.string().optional(),
   }).describe('Field definition'),
   defaultValue: z.unknown().optional().describe('Default value to populate on existing instances'),
@@ -500,7 +500,7 @@ export function getToolDefinitions() {
     {
       name: 'carta_create_schema',
       description: `Create a custom construct schema. Smart defaults:
-- Primary fields (name, title, label, summary, condition) auto-get displayTier='minimal'
+- Primary fields (name, title, label, summary, condition) auto-get displayTier='summary'
 - If no ports specified, adds default ports: flow-in (left), flow-out (right), parent (bottom), child (top)
 - backgroundColorPolicy defaults to 'defaultOnly' (no color picker); use 'tints' for 7 swatches or 'any' for full picker
 - Use displayTier='pill' on a field to make it the node title (max 1 per schema)`,
@@ -527,7 +527,7 @@ export function getToolDefinitions() {
           label: z.string().optional(),
           semanticDescription: z.string().optional(),
           displayHint: z.enum(['multiline', 'code', 'password', 'url', 'color']).optional(),
-          displayTier: z.enum(['pill', 'minimal', 'details', 'full']).optional(),
+          displayTier: z.enum(['pill', 'summary']).optional(),
           displayOrder: z.number().optional(),
           placeholder: z.string().optional(),
         })).optional().describe('Map of field name → metadata updates (non-structural only)'),
@@ -984,7 +984,7 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
           label: z.string().optional(),
           semanticDescription: z.string().optional(),
           displayHint: z.enum(['multiline', 'code', 'password', 'url', 'color']).optional(),
-          displayTier: z.enum(['pill', 'minimal', 'details', 'full']).optional(),
+          displayTier: z.enum(['pill', 'summary']).optional(),
           displayOrder: z.number().optional(),
           placeholder: z.string().optional(),
         })).optional(),

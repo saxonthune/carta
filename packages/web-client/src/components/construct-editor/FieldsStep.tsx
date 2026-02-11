@@ -18,16 +18,14 @@ import type { ConstructSchema, FieldSchema, DisplayTier } from '@carta/domain';
 
 const TIERS: { tier: DisplayTier; label: string; description: string; maxItems?: number }[] = [
   { tier: 'pill', label: 'Title (Pill)', description: 'Node title shown in pill and compact modes. Only one field allowed.', maxItems: 1 },
-  { tier: 'minimal', label: 'Minimal', description: 'Shown in the collapsed/summary view on canvas.' },
-  { tier: 'details', label: 'Details', description: 'Shown when the node is expanded to details view.' },
-  { tier: 'full', label: 'Full', description: 'Only visible in the full view modal.' },
+  { tier: 'summary', label: 'Summary', description: 'Shown on canvas nodes.' },
 ];
 
 interface FieldsStepProps {
   formData: ConstructSchema;
   setFormData: React.Dispatch<React.SetStateAction<ConstructSchema>>;
-  fieldAssignments: Map<string, { tier: DisplayTier; order: number }>;
-  setFieldAssignments: React.Dispatch<React.SetStateAction<Map<string, { tier: DisplayTier; order: number }>>>;
+  fieldAssignments: Map<string, { tier: DisplayTier | undefined; order: number }>;
+  setFieldAssignments: React.Dispatch<React.SetStateAction<Map<string, { tier: DisplayTier | undefined; order: number }>>>;
 }
 
 export default function FieldsStep({ formData, setFormData, fieldAssignments, setFieldAssignments }: FieldsStepProps) {
@@ -35,7 +33,7 @@ export default function FieldsStep({ formData, setFormData, fieldAssignments, se
   const [editingFieldIndex, setEditingFieldIndex] = useState<number | null>(null);
   const [addingField, setAddingField] = useState(false);
 
-  const getFieldsForTier = useCallback((tier: DisplayTier): FieldSchema[] => {
+  const getFieldsForTier = useCallback((tier: DisplayTier | undefined): FieldSchema[] => {
     return formData.fields
       .filter((f) => {
         const a = fieldAssignments.get(f.name);
@@ -48,13 +46,14 @@ export default function FieldsStep({ formData, setFormData, fieldAssignments, se
       });
   }, [formData.fields, fieldAssignments]);
 
-  const getFieldIdsForTier = useCallback((tier: DisplayTier): string[] => {
+  const getFieldIdsForTier = useCallback((tier: DisplayTier | undefined): string[] => {
     return getFieldsForTier(tier).map((f) => f.name);
   }, [getFieldsForTier]);
 
-  const findTierForField = useCallback((fieldName: string): DisplayTier | null => {
+  const findTierForField = useCallback((fieldName: string): DisplayTier | undefined | null => {
     const a = fieldAssignments.get(fieldName);
-    return a?.tier ?? null;
+    if (!a) return null; // field not in map at all
+    return a.tier; // may be undefined (inspector-only)
   }, [fieldAssignments]);
 
   // --- Drag handlers ---
@@ -70,14 +69,15 @@ export default function FieldsStep({ formData, setFormData, fieldAssignments, se
     const activeFieldName = String(active.id);
     const overId = String(over.id);
 
-    let targetTier: DisplayTier | null = null;
+    let targetTier: DisplayTier | undefined | null = null;
     if (overId.startsWith('tier-')) {
-      targetTier = overId.replace('tier-', '') as DisplayTier;
+      const tierStr = overId.replace('tier-', '');
+      targetTier = tierStr === 'unassigned' ? undefined : tierStr as DisplayTier;
     } else {
       targetTier = findTierForField(overId);
     }
 
-    if (!targetTier) return;
+    if (targetTier === null) return;
     const currentTier = findTierForField(activeFieldName);
     if (currentTier === targetTier) return;
 
@@ -86,13 +86,13 @@ export default function FieldsStep({ formData, setFormData, fieldAssignments, se
       const current = next.get(activeFieldName);
       if (!current) return prev;
 
-      // If target is pill and already has a field, bump existing to minimal
+      // If target is pill and already has a field, bump existing to summary
       if (targetTier === 'pill') {
         const existingPill = formData.fields.find(
           (f) => f.name !== activeFieldName && next.get(f.name)?.tier === 'pill'
         );
         if (existingPill) {
-          next.set(existingPill.name, { tier: 'minimal', order: 0 });
+          next.set(existingPill.name, { tier: 'summary', order: 0 });
         }
       }
 
@@ -150,10 +150,10 @@ export default function FieldsStep({ formData, setFormData, fieldAssignments, se
       type: 'string',
     };
     setFormData(prev => ({ ...prev, fields: [...prev.fields, newField] }));
-    // Default new fields to "full" tier
+    // Default new fields to unassigned (inspector only)
     setFieldAssignments(prev => {
       const next = new Map(prev);
-      next.set(newField.name, { tier: 'full', order: prev.size });
+      next.set(newField.name, { tier: undefined, order: prev.size });
       return next;
     });
     setAddingField(true);
@@ -286,6 +286,27 @@ export default function FieldsStep({ formData, setFormData, fieldAssignments, se
               />
             </div>
           ))}
+          {/* Inspector Only zone for unassigned fields */}
+          <div className="relative">
+            <TierZone
+              tier={undefined}
+              label="Inspector Only"
+              description="Fields visible only in the inspector panel, not shown on canvas."
+              fields={getFieldsForTier(undefined)}
+              fieldIds={getFieldIdsForTier(undefined)}
+              onEditField={(fieldName) => {
+                const index = formData.fields.findIndex(f => f.name === fieldName);
+                if (index !== -1) {
+                  setEditingFieldIndex(index);
+                  setAddingField(false);
+                }
+              }}
+              onRemoveField={(fieldName) => {
+                const index = formData.fields.findIndex(f => f.name === fieldName);
+                if (index !== -1) removeField(index);
+              }}
+            />
+          </div>
         </div>
 
         <DragOverlay>

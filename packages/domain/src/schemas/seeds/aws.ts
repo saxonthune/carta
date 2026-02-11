@@ -22,10 +22,10 @@ export const awsSeed: SchemaSeed = {
       ],
       fields: [
         { name: 'name', label: 'Name', type: 'string', semanticDescription: 'Function name', placeholder: 'e.g., processOrder', displayTier: 'pill', displayOrder: 0 },
-        { name: 'runtime', label: 'Runtime', type: 'enum', semanticDescription: 'Execution runtime', options: [{ value: 'Node.js 20' }, { value: 'Python 3.12' }, { value: 'Java 21' }, { value: 'Go' }, { value: '.NET 8' }, { value: 'Ruby' }, { value: 'Custom' }], default: 'Node.js 20', displayTier: 'minimal', displayOrder: 1 },
-        { name: 'memory', label: 'Memory (MB)', type: 'number', semanticDescription: 'Allocated memory in MB', default: 128, displayTier: 'details', displayOrder: 2 },
-        { name: 'timeout', label: 'Timeout (s)', type: 'number', semanticDescription: 'Execution timeout in seconds', default: 30, displayTier: 'details', displayOrder: 3 },
-        { name: 'description', label: 'Description', type: 'string', semanticDescription: 'Function purpose', placeholder: 'What does this function do?', displayTier: 'details', displayOrder: 4 },
+        { name: 'runtime', label: 'Runtime', type: 'enum', semanticDescription: 'Execution runtime', options: [{ value: 'Node.js 20' }, { value: 'Python 3.12' }, { value: 'Java 21' }, { value: 'Go' }, { value: '.NET 8' }, { value: 'Ruby' }, { value: 'Custom' }], default: 'Node.js 20', displayTier: 'summary', displayOrder: 1 },
+        { name: 'memory', label: 'Memory (MB)', type: 'number', semanticDescription: 'Allocated memory in MB', default: 128, displayTier: 'summary', displayOrder: 2 },
+        { name: 'timeout', label: 'Timeout (s)', type: 'number', semanticDescription: 'Execution timeout in seconds', default: 30, displayTier: 'summary', displayOrder: 3 },
+        { name: 'description', label: 'Description', type: 'string', semanticDescription: 'Function purpose', placeholder: 'What does this function do?', displayTier: 'summary', displayOrder: 4 },
       ],
       suggestedRelated: [
         { constructType: 'aws-dynamodb', fromPortId: 'invoke-out', toPortId: 'access-in', label: 'Access DynamoDB' },
@@ -48,9 +48,9 @@ export const awsSeed: SchemaSeed = {
       ],
       fields: [
         { name: 'name', label: 'Name', type: 'string', semanticDescription: 'API name', placeholder: 'e.g., OrderAPI', displayTier: 'pill', displayOrder: 0 },
-        { name: 'apiType', label: 'Type', type: 'enum', semanticDescription: 'API type', options: [{ value: 'REST' }, { value: 'HTTP' }, { value: 'WebSocket' }], default: 'REST', displayTier: 'minimal', displayOrder: 1 },
-        { name: 'stage', label: 'Stage', type: 'string', semanticDescription: 'Deployment stage', placeholder: 'e.g., prod, dev', default: 'prod', displayTier: 'minimal', displayOrder: 2 },
-        { name: 'description', label: 'Description', type: 'string', semanticDescription: 'API purpose', placeholder: 'What does this API do?', displayTier: 'details', displayOrder: 3 },
+        { name: 'apiType', label: 'Type', type: 'enum', semanticDescription: 'API type', options: [{ value: 'REST' }, { value: 'HTTP' }, { value: 'WebSocket' }], default: 'REST', displayTier: 'summary', displayOrder: 1 },
+        { name: 'stage', label: 'Stage', type: 'string', semanticDescription: 'Deployment stage', placeholder: 'e.g., prod, dev', default: 'prod', displayTier: 'summary', displayOrder: 2 },
+        { name: 'description', label: 'Description', type: 'string', semanticDescription: 'API purpose', placeholder: 'What does this API do?', displayTier: 'summary', displayOrder: 3 },
       ],
       suggestedRelated: [
         { constructType: 'aws-lambda', fromPortId: 'invoke-out', toPortId: 'trigger-in', label: 'Invoke Lambda' },
@@ -71,9 +71,9 @@ export const awsSeed: SchemaSeed = {
       ],
       fields: [
         { name: 'name', label: 'Name', type: 'string', semanticDescription: 'Bucket name', placeholder: 'e.g., my-app-uploads', displayTier: 'pill', displayOrder: 0 },
-        { name: 'accessLevel', label: 'Access', type: 'enum', semanticDescription: 'Bucket access level', options: [{ value: 'Private' }, { value: 'Public Read' }, { value: 'Public Read/Write' }], default: 'Private', displayTier: 'minimal', displayOrder: 1 },
-        { name: 'versioning', label: 'Versioning', type: 'boolean', semanticDescription: 'Enable versioning', default: false, displayTier: 'details', displayOrder: 2 },
-        { name: 'purpose', label: 'Purpose', type: 'string', semanticDescription: 'What this bucket stores', placeholder: 'e.g., User uploads, Static assets', displayTier: 'details', displayOrder: 3 },
+        { name: 'accessLevel', label: 'Access', type: 'enum', semanticDescription: 'Bucket access level', options: [{ value: 'Private' }, { value: 'Public Read' }, { value: 'Public Read/Write' }], default: 'Private', displayTier: 'summary', displayOrder: 1 },
+        { name: 'versioning', label: 'Versioning', type: 'boolean', semanticDescription: 'Enable versioning', default: false, displayTier: 'summary', displayOrder: 2 },
+        { name: 'purpose', label: 'Purpose', type: 'string', semanticDescription: 'What this bucket stores', placeholder: 'e.g., User uploads, Static assets', displayTier: 'summary', displayOrder: 3 },
       ],
       suggestedRelated: [
         { constructType: 'aws-lambda', fromPortId: 'trigger-out', toPortId: 'trigger-in', label: 'Trigger Lambda' },
@@ -94,9 +94,9 @@ export const awsSeed: SchemaSeed = {
       ],
       fields: [
         { name: 'tableName', label: 'Table Name', type: 'string', semanticDescription: 'Table name', placeholder: 'e.g., Orders', displayTier: 'pill', displayOrder: 0 },
-        { name: 'partitionKey', label: 'Partition Key', type: 'string', semanticDescription: 'Primary partition key', placeholder: 'e.g., userId', displayTier: 'minimal', displayOrder: 1 },
-        { name: 'sortKey', label: 'Sort Key', type: 'string', semanticDescription: 'Optional sort key', placeholder: 'e.g., timestamp', displayTier: 'minimal', displayOrder: 2 },
-        { name: 'billingMode', label: 'Billing', type: 'enum', semanticDescription: 'Capacity billing mode', options: [{ value: 'On-Demand' }, { value: 'Provisioned' }], default: 'On-Demand', displayTier: 'details', displayOrder: 3 },
+        { name: 'partitionKey', label: 'Partition Key', type: 'string', semanticDescription: 'Primary partition key', placeholder: 'e.g., userId', displayTier: 'summary', displayOrder: 1 },
+        { name: 'sortKey', label: 'Sort Key', type: 'string', semanticDescription: 'Optional sort key', placeholder: 'e.g., timestamp', displayTier: 'summary', displayOrder: 2 },
+        { name: 'billingMode', label: 'Billing', type: 'enum', semanticDescription: 'Capacity billing mode', options: [{ value: 'On-Demand' }, { value: 'Provisioned' }], default: 'On-Demand', displayTier: 'summary', displayOrder: 3 },
       ],
       suggestedRelated: [
         { constructType: 'aws-lambda', fromPortId: 'stream-out', toPortId: 'trigger-in', label: 'Stream to Lambda' },
@@ -117,9 +117,9 @@ export const awsSeed: SchemaSeed = {
       ],
       fields: [
         { name: 'name', label: 'Name', type: 'string', semanticDescription: 'Queue name', placeholder: 'e.g., order-processing', displayTier: 'pill', displayOrder: 0 },
-        { name: 'queueType', label: 'Type', type: 'enum', semanticDescription: 'Queue type', options: [{ value: 'Standard' }, { value: 'FIFO' }], default: 'Standard', displayTier: 'minimal', displayOrder: 1 },
-        { name: 'visibilityTimeout', label: 'Visibility (s)', type: 'number', semanticDescription: 'Visibility timeout in seconds', default: 30, displayTier: 'details', displayOrder: 2 },
-        { name: 'dlq', label: 'DLQ', type: 'boolean', semanticDescription: 'Has dead-letter queue', default: true, displayTier: 'details', displayOrder: 3 },
+        { name: 'queueType', label: 'Type', type: 'enum', semanticDescription: 'Queue type', options: [{ value: 'Standard' }, { value: 'FIFO' }], default: 'Standard', displayTier: 'summary', displayOrder: 1 },
+        { name: 'visibilityTimeout', label: 'Visibility (s)', type: 'number', semanticDescription: 'Visibility timeout in seconds', default: 30, displayTier: 'summary', displayOrder: 2 },
+        { name: 'dlq', label: 'DLQ', type: 'boolean', semanticDescription: 'Has dead-letter queue', default: true, displayTier: 'summary', displayOrder: 3 },
       ],
       suggestedRelated: [
         { constructType: 'aws-lambda', fromPortId: 'trigger-out', toPortId: 'trigger-in', label: 'Trigger Lambda' },
@@ -140,8 +140,8 @@ export const awsSeed: SchemaSeed = {
       ],
       fields: [
         { name: 'name', label: 'Name', type: 'string', semanticDescription: 'Topic name', placeholder: 'e.g., order-events', displayTier: 'pill', displayOrder: 0 },
-        { name: 'topicType', label: 'Type', type: 'enum', semanticDescription: 'Topic type', options: [{ value: 'Standard' }, { value: 'FIFO' }], default: 'Standard', displayTier: 'minimal', displayOrder: 1 },
-        { name: 'purpose', label: 'Purpose', type: 'string', semanticDescription: 'What events this topic handles', placeholder: 'e.g., Order lifecycle events', displayTier: 'details', displayOrder: 2 },
+        { name: 'topicType', label: 'Type', type: 'enum', semanticDescription: 'Topic type', options: [{ value: 'Standard' }, { value: 'FIFO' }], default: 'Standard', displayTier: 'summary', displayOrder: 1 },
+        { name: 'purpose', label: 'Purpose', type: 'string', semanticDescription: 'What events this topic handles', placeholder: 'e.g., Order lifecycle events', displayTier: 'summary', displayOrder: 2 },
       ],
       suggestedRelated: [
         { constructType: 'aws-sqs', fromPortId: 'subscribe-out', toPortId: 'access-in', label: 'Subscribe SQS' },
@@ -163,9 +163,9 @@ export const awsSeed: SchemaSeed = {
       ],
       fields: [
         { name: 'name', label: 'Name', type: 'string', semanticDescription: 'Instance identifier', placeholder: 'e.g., orders-db', displayTier: 'pill', displayOrder: 0 },
-        { name: 'engine', label: 'Engine', type: 'enum', semanticDescription: 'Database engine', options: [{ value: 'PostgreSQL' }, { value: 'MySQL' }, { value: 'MariaDB' }, { value: 'SQL Server' }, { value: 'Oracle' }, { value: 'Aurora PostgreSQL' }, { value: 'Aurora MySQL' }], default: 'PostgreSQL', displayTier: 'minimal', displayOrder: 1 },
-        { name: 'instanceClass', label: 'Instance', type: 'string', semanticDescription: 'Instance class', placeholder: 'e.g., db.t3.micro', default: 'db.t3.micro', displayTier: 'details', displayOrder: 2 },
-        { name: 'multiAz', label: 'Multi-AZ', type: 'boolean', semanticDescription: 'Multi-AZ deployment', default: false, displayTier: 'details', displayOrder: 3 },
+        { name: 'engine', label: 'Engine', type: 'enum', semanticDescription: 'Database engine', options: [{ value: 'PostgreSQL' }, { value: 'MySQL' }, { value: 'MariaDB' }, { value: 'SQL Server' }, { value: 'Oracle' }, { value: 'Aurora PostgreSQL' }, { value: 'Aurora MySQL' }], default: 'PostgreSQL', displayTier: 'summary', displayOrder: 1 },
+        { name: 'instanceClass', label: 'Instance', type: 'string', semanticDescription: 'Instance class', placeholder: 'e.g., db.t3.micro', default: 'db.t3.micro', displayTier: 'summary', displayOrder: 2 },
+        { name: 'multiAz', label: 'Multi-AZ', type: 'boolean', semanticDescription: 'Multi-AZ deployment', default: false, displayTier: 'summary', displayOrder: 3 },
       ],
       suggestedRelated: [
         { constructType: 'aws-vpc', fromPortId: 'child', toPortId: 'parent', label: 'Place in VPC' },
@@ -185,8 +185,8 @@ export const awsSeed: SchemaSeed = {
       ],
       fields: [
         { name: 'name', label: 'Name', type: 'string', semanticDescription: 'VPC name', placeholder: 'e.g., production-vpc', displayTier: 'pill', displayOrder: 0 },
-        { name: 'cidr', label: 'CIDR', type: 'string', semanticDescription: 'IP address range', placeholder: 'e.g., 10.0.0.0/16', default: '10.0.0.0/16', displayTier: 'minimal', displayOrder: 1 },
-        { name: 'purpose', label: 'Purpose', type: 'string', semanticDescription: 'VPC purpose', placeholder: 'e.g., Production workloads', displayTier: 'details', displayOrder: 2 },
+        { name: 'cidr', label: 'CIDR', type: 'string', semanticDescription: 'IP address range', placeholder: 'e.g., 10.0.0.0/16', default: '10.0.0.0/16', displayTier: 'summary', displayOrder: 1 },
+        { name: 'purpose', label: 'Purpose', type: 'string', semanticDescription: 'VPC purpose', placeholder: 'e.g., Production workloads', displayTier: 'summary', displayOrder: 2 },
       ],
       suggestedRelated: [
         { constructType: 'aws-lambda', fromPortId: 'parent', toPortId: 'child', label: 'Add Lambda' },
@@ -208,8 +208,8 @@ export const awsSeed: SchemaSeed = {
       ],
       fields: [
         { name: 'name', label: 'Name', type: 'string', semanticDescription: 'State machine name', placeholder: 'e.g., OrderProcessing', displayTier: 'pill', displayOrder: 0 },
-        { name: 'type', label: 'Type', type: 'enum', semanticDescription: 'Execution type', options: [{ value: 'Standard' }, { value: 'Express' }], default: 'Standard', displayTier: 'minimal', displayOrder: 1 },
-        { name: 'description', label: 'Description', type: 'string', semanticDescription: 'Workflow purpose', placeholder: 'What does this workflow do?', displayTier: 'details', displayOrder: 2 },
+        { name: 'type', label: 'Type', type: 'enum', semanticDescription: 'Execution type', options: [{ value: 'Standard' }, { value: 'Express' }], default: 'Standard', displayTier: 'summary', displayOrder: 1 },
+        { name: 'description', label: 'Description', type: 'string', semanticDescription: 'Workflow purpose', placeholder: 'What does this workflow do?', displayTier: 'summary', displayOrder: 2 },
       ],
       suggestedRelated: [
         { constructType: 'aws-sfn-task', fromPortId: 'parent', toPortId: 'child', label: 'Add Task' },
@@ -233,9 +233,9 @@ export const awsSeed: SchemaSeed = {
       ],
       fields: [
         { name: 'name', label: 'Name', type: 'string', semanticDescription: 'State name', placeholder: 'e.g., ProcessPayment', displayTier: 'pill', displayOrder: 0 },
-        { name: 'resourceType', label: 'Resource', type: 'enum', semanticDescription: 'Task resource type', options: [{ value: 'Lambda' }, { value: 'ECS' }, { value: 'SNS' }, { value: 'SQS' }, { value: 'DynamoDB' }, { value: 'Step Functions' }, { value: 'HTTP' }], default: 'Lambda', displayTier: 'minimal', displayOrder: 1 },
-        { name: 'timeout', label: 'Timeout (s)', type: 'number', semanticDescription: 'Task timeout', default: 300, displayTier: 'details', displayOrder: 2 },
-        { name: 'retry', label: 'Retry', type: 'boolean', semanticDescription: 'Enable automatic retries', default: true, displayTier: 'details', displayOrder: 3 },
+        { name: 'resourceType', label: 'Resource', type: 'enum', semanticDescription: 'Task resource type', options: [{ value: 'Lambda' }, { value: 'ECS' }, { value: 'SNS' }, { value: 'SQS' }, { value: 'DynamoDB' }, { value: 'Step Functions' }, { value: 'HTTP' }], default: 'Lambda', displayTier: 'summary', displayOrder: 1 },
+        { name: 'timeout', label: 'Timeout (s)', type: 'number', semanticDescription: 'Task timeout', default: 300, displayTier: 'summary', displayOrder: 2 },
+        { name: 'retry', label: 'Retry', type: 'boolean', semanticDescription: 'Enable automatic retries', default: true, displayTier: 'summary', displayOrder: 3 },
       ],
       suggestedRelated: [
         { constructType: 'aws-lambda', fromPortId: 'invoke-out', toPortId: 'trigger-in', label: 'Invoke Lambda' },
@@ -259,7 +259,7 @@ export const awsSeed: SchemaSeed = {
       ],
       fields: [
         { name: 'name', label: 'Name', type: 'string', semanticDescription: 'State name', placeholder: 'e.g., CheckOrderStatus', displayTier: 'pill', displayOrder: 0 },
-        { name: 'description', label: 'Description', type: 'string', semanticDescription: 'Decision logic description', placeholder: 'What conditions are evaluated?', displayTier: 'details', displayOrder: 1 },
+        { name: 'description', label: 'Description', type: 'string', semanticDescription: 'Decision logic description', placeholder: 'What conditions are evaluated?', displayTier: 'summary', displayOrder: 1 },
       ],
       suggestedRelated: [
         { constructType: 'aws-sfn-task', fromPortId: 'branch-out', toPortId: 'seq-in', label: 'Add Branch Task' },
@@ -283,7 +283,7 @@ export const awsSeed: SchemaSeed = {
       ],
       fields: [
         { name: 'name', label: 'Name', type: 'string', semanticDescription: 'State name', placeholder: 'e.g., ParallelProcessing', displayTier: 'pill', displayOrder: 0 },
-        { name: 'description', label: 'Description', type: 'string', semanticDescription: 'What runs in parallel', placeholder: 'What branches run concurrently?', displayTier: 'details', displayOrder: 1 },
+        { name: 'description', label: 'Description', type: 'string', semanticDescription: 'What runs in parallel', placeholder: 'What branches run concurrently?', displayTier: 'summary', displayOrder: 1 },
       ],
       suggestedRelated: [
         { constructType: 'aws-sfn-task', fromPortId: 'parent', toPortId: 'child', label: 'Add Branch' },
@@ -306,8 +306,8 @@ export const awsSeed: SchemaSeed = {
       ],
       fields: [
         { name: 'name', label: 'Name', type: 'string', semanticDescription: 'State name', placeholder: 'e.g., ProcessItems', displayTier: 'pill', displayOrder: 0 },
-        { name: 'maxConcurrency', label: 'Max Concurrency', type: 'number', semanticDescription: 'Maximum parallel iterations', default: 0, displayTier: 'minimal', displayOrder: 1 },
-        { name: 'itemsPath', label: 'Items Path', type: 'string', semanticDescription: 'JSONPath to array to iterate', placeholder: '$.items', displayTier: 'details', displayOrder: 2 },
+        { name: 'maxConcurrency', label: 'Max Concurrency', type: 'number', semanticDescription: 'Maximum parallel iterations', default: 0, displayTier: 'summary', displayOrder: 1 },
+        { name: 'itemsPath', label: 'Items Path', type: 'string', semanticDescription: 'JSONPath to array to iterate', placeholder: '$.items', displayTier: 'summary', displayOrder: 2 },
       ],
       suggestedRelated: [
         { constructType: 'aws-sfn-task', fromPortId: 'parent', toPortId: 'child', label: 'Add Iterator Task' },
@@ -329,8 +329,8 @@ export const awsSeed: SchemaSeed = {
       ],
       fields: [
         { name: 'name', label: 'Name', type: 'string', semanticDescription: 'State name', placeholder: 'e.g., WaitForApproval', displayTier: 'pill', displayOrder: 0 },
-        { name: 'waitType', label: 'Wait Type', type: 'enum', semanticDescription: 'How to determine wait duration', options: [{ value: 'Seconds' }, { value: 'Timestamp' }, { value: 'SecondsPath' }, { value: 'TimestampPath' }], default: 'Seconds', displayTier: 'minimal', displayOrder: 1 },
-        { name: 'duration', label: 'Duration', type: 'string', semanticDescription: 'Wait duration or path', placeholder: 'e.g., 300 or $.waitTime', displayTier: 'minimal', displayOrder: 2 },
+        { name: 'waitType', label: 'Wait Type', type: 'enum', semanticDescription: 'How to determine wait duration', options: [{ value: 'Seconds' }, { value: 'Timestamp' }, { value: 'SecondsPath' }, { value: 'TimestampPath' }], default: 'Seconds', displayTier: 'summary', displayOrder: 1 },
+        { name: 'duration', label: 'Duration', type: 'string', semanticDescription: 'Wait duration or path', placeholder: 'e.g., 300 or $.waitTime', displayTier: 'summary', displayOrder: 2 },
       ],
       compilation: { format: 'json' },
     },
@@ -348,9 +348,9 @@ export const awsSeed: SchemaSeed = {
       ],
       fields: [
         { name: 'name', label: 'Name', type: 'string', semanticDescription: 'State name', placeholder: 'e.g., OrderComplete', displayTier: 'pill', displayOrder: 0 },
-        { name: 'terminalType', label: 'Type', type: 'enum', semanticDescription: 'Terminal state type', options: [{ value: 'Succeed' }, { value: 'Fail' }], default: 'Succeed', displayTier: 'minimal', displayOrder: 1 },
-        { name: 'error', label: 'Error', type: 'string', semanticDescription: 'Error code (Fail only)', placeholder: 'e.g., OrderFailed', displayTier: 'details', displayOrder: 2 },
-        { name: 'cause', label: 'Cause', type: 'string', semanticDescription: 'Error cause (Fail only)', placeholder: 'Describe the failure reason', displayTier: 'details', displayOrder: 3 },
+        { name: 'terminalType', label: 'Type', type: 'enum', semanticDescription: 'Terminal state type', options: [{ value: 'Succeed' }, { value: 'Fail' }], default: 'Succeed', displayTier: 'summary', displayOrder: 1 },
+        { name: 'error', label: 'Error', type: 'string', semanticDescription: 'Error code (Fail only)', placeholder: 'e.g., OrderFailed', displayTier: 'summary', displayOrder: 2 },
+        { name: 'cause', label: 'Cause', type: 'string', semanticDescription: 'Error cause (Fail only)', placeholder: 'Describe the failure reason', displayTier: 'summary', displayOrder: 3 },
       ],
       compilation: { format: 'json' },
     },
