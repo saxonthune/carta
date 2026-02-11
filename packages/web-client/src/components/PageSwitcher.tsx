@@ -304,7 +304,7 @@ export default function PageSwitcher({
   return (
     <div className="relative" ref={dropdownRef}>
       {/* Trigger bar */}
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-end gap-1.5">
         {/* Left zone: page info (click to toggle description) */}
         <button
           className="flex flex-col items-start gap-0.5 pl-3 pr-2 py-1.5 bg-surface text-content border border-border rounded-lg hover:bg-surface-alt transition-colors flex-1 text-left"
@@ -320,11 +320,9 @@ export default function PageSwitcher({
               {currentPage?.name || 'Main'}
             </span>
           </div>
-          {!isOpen && (
-            <span className={`text-xs truncate w-full pl-5 ${currentPage?.description ? 'text-content-muted' : 'text-content-muted italic'}`}>
-              {descriptionSubtitle}
-            </span>
-          )}
+          <span className={`text-xs truncate w-full pl-5 ${currentPage?.description ? 'text-content-muted' : 'text-content-muted italic'}`}>
+            {descriptionSubtitle}
+          </span>
         </button>
 
         {/* Right zone: dropdown chevron */}

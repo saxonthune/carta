@@ -346,7 +346,7 @@ describe('PageSwitcher', () => {
       expect(screen.queryByPlaceholderText('Add a page description...')).not.toBeInTheDocument();
     });
 
-    it('should hide description subtitle when dropdown is open', async () => {
+    it('should keep description subtitle visible when dropdown is open', async () => {
       const user = userEvent.setup();
       render(<PageSwitcher {...defaultProps} />);
 
@@ -364,8 +364,8 @@ describe('PageSwitcher', () => {
 
       await user.click(chevronButton!);
 
-      // Subtitle should not be visible when dropdown is open
-      expect(screen.queryByText('Add description...')).not.toBeInTheDocument();
+      // Subtitle should remain visible when dropdown is open (no shrinking)
+      expect(screen.getByText('Add description...')).toBeInTheDocument();
     });
   });
 });
