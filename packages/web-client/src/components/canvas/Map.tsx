@@ -51,10 +51,7 @@ import { useLodBand } from './lod/useLodBand';
 import { ZoomDebug } from '../ui/ZoomDebug';
 import { useNarrative } from '../../hooks/useNarrative';
 import Narrative from './Narrative';
-import { deOverlapNodes } from '../../utils/deOverlapNodes';
-import { compactNodes } from '../../utils/compactNodes';
-import { hierarchicalLayout } from '../../utils/hierarchicalLayout';
-import { useOrganizerLayout } from '../../hooks/useOrganizerLayout';
+import { useLayoutActions } from '../../hooks/useLayoutActions';
 
 const nodeTypes = {
   custom: CustomNode,
@@ -82,44 +79,6 @@ function useEdgeColor() {
     return () => observer.disconnect();
   }, []);
   return color;
-}
-
-/**
- * Compute the layout unit size (construct + wagon tree bounding box) for a node.
- * Used by layout actions to prevent overlapping wagons.
- */
-function getLayoutUnitSize(nodeId: string, allNodes: Node[]): { width: number; height: number } {
-  const node = allNodes.find(n => n.id === nodeId);
-  if (!node) return { width: 200, height: 100 };
-
-  const nodeW = node.measured?.width ?? node.width ?? 200;
-  const nodeH = node.measured?.height ?? node.height ?? 100;
-
-  // Find wagon children (organizers with this node as parentId)
-  const wagons = allNodes.filter(n => n.parentId === nodeId && n.type === 'organizer');
-  if (wagons.length === 0) return { width: nodeW, height: nodeH };
-
-  // Compute bounding box: start with the construct rect
-  let maxRight = nodeW;
-  let maxBottom = nodeH;
-
-  // Recursively include wagon subtrees
-  function walkWagons(parentId: string, offsetX: number, offsetY: number): void {
-    const children = allNodes.filter(n => n.parentId === parentId && n.type === 'organizer');
-    for (const wagon of children) {
-      const wx = offsetX + wagon.position.x;
-      const wy = offsetY + wagon.position.y;
-      const ww = (wagon.style?.width as number) ?? wagon.measured?.width ?? wagon.width ?? 400;
-      const wh = (wagon.style?.height as number) ?? wagon.measured?.height ?? wagon.height ?? 300;
-      maxRight = Math.max(maxRight, wx + ww);
-      maxBottom = Math.max(maxBottom, wy + wh);
-      // Recurse for nested wagons
-      walkWagons(wagon.id, wx, wy);
-    }
-  }
-
-  walkWagons(nodeId, 0, 0);
-  return { width: maxRight, height: maxBottom };
 }
 
 export interface MapProps {
@@ -473,150 +432,21 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     [createPage, copyNodesToPage, setActivePage, pages, activePage]
   );
 
-  // Spread selected nodes into a non-overlapping grid
-  const handleSpreadSelected = useCallback(() => {
-    const rfNodes = reactFlow.getNodes();
-    const selected = rfNodes.filter(n => selectedNodeIds.includes(n.id));
-    if (selected.length < 2) return;
-
-    const inputs = selected.map(n => ({
-      id: n.id,
-      x: n.position.x,
-      y: n.position.y,
-      ...getLayoutUnitSize(n.id, rfNodes),
-    }));
-    const newPositions = deOverlapNodes(inputs);
-
-    const applyPositions = (nds: Node[]) => nds.map(n => {
-      const pos = newPositions.get(n.id);
-      return pos ? { ...n, position: pos } : n;
-    });
-
-    // Update all three layers: RF internal, local state, and Yjs
-    reactFlow.setNodes(applyPositions);
-    setNodesLocal(applyPositions);
-    const patches = [...newPositions].map(([id, position]) => ({ id, position }));
-    if (patches.length > 0) {
-      adapter.patchNodes?.(patches);
-    }
-  }, [reactFlow, selectedNodeIds, adapter, setNodesLocal]);
-
-  // Spread all nodes on current level (within each organizer independently)
-  const handleSpreadAll = useCallback(() => {
-    const rfNodes = reactFlow.getNodes();
-
-    // Group nodes by parentId (null = top-level)
-    const groups = new globalThis.Map<string | null, typeof rfNodes>();
-    for (const n of rfNodes) {
-      if (n.type === 'organizer') continue;
-      const key = n.parentId ?? null;
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key)!.push(n);
-    }
-
-    const allNewPositions = new globalThis.Map<string, { x: number; y: number }>();
-    for (const [, groupNodes] of groups) {
-      if (groupNodes.length < 2) continue;
-      const inputs = groupNodes.map(n => ({
-        id: n.id,
-        x: n.position.x,
-        y: n.position.y,
-        ...getLayoutUnitSize(n.id, rfNodes),
-      }));
-      const positions = deOverlapNodes(inputs);
-      for (const [id, pos] of positions) {
-        allNewPositions.set(id, pos);
-      }
-    }
-
-    if (allNewPositions.size === 0) return;
-
-    const applyPositions = (nds: Node[]) => nds.map(n => {
-      const pos = allNewPositions.get(n.id);
-      return pos ? { ...n, position: pos } : n;
-    });
-
-    // Update all three layers: RF internal, local state, and Yjs
-    reactFlow.setNodes(applyPositions);
-    setNodesLocal(applyPositions);
-    const patches = [...allNewPositions].map(([id, position]) => ({ id, position }));
-    if (patches.length > 0) {
-      adapter.patchNodes?.(patches);
-    }
-  }, [reactFlow, adapter, setNodesLocal]);
-
-  // Compact all top-level nodes (remove whitespace, preserve spatial order)
-  const handleCompactAll = useCallback(() => {
-    const rfNodes = reactFlow.getNodes();
-    const topLevel = rfNodes.filter(n => !n.parentId);
-    if (topLevel.length < 2) return;
-
-    const inputs = topLevel.map(n => ({
-      id: n.id,
-      x: n.position.x,
-      y: n.position.y,
-      ...getLayoutUnitSize(n.id, rfNodes),
-    }));
-    const newPositions = compactNodes(inputs);
-
-    if (newPositions.size === 0) return;
-
-    const applyPositions = (nds: Node[]) => nds.map(n => {
-      const pos = newPositions.get(n.id);
-      return pos ? { ...n, position: pos } : n;
-    });
-
-    reactFlow.setNodes(applyPositions);
-    setNodesLocal(applyPositions);
-    const patches = [...newPositions].map(([id, position]) => ({ id, position }));
-    if (patches.length > 0) {
-      adapter.patchNodes?.(patches);
-    }
-  }, [reactFlow, adapter, setNodesLocal]);
-
-  // Hierarchical layout (top-to-bottom by edge flow)
-  const handleHierarchicalLayout = useCallback(() => {
-    const rfNodes = reactFlow.getNodes();
-    const rfEdges = reactFlow.getEdges();
-
-    // Top-level non-organizer nodes only
-    const topLevel = rfNodes.filter(n => !n.parentId && n.type !== 'organizer');
-    if (topLevel.length < 2) return;
-
-    const inputs = topLevel.map(n => ({
-      id: n.id,
-      x: n.position.x,
-      y: n.position.y,
-      ...getLayoutUnitSize(n.id, rfNodes),
-    }));
-
-    // Filter edges to only those between top-level nodes
-    const topLevelIds = new Set(topLevel.map(n => n.id));
-    const edges = rfEdges
-      .filter(e => topLevelIds.has(e.source) && topLevelIds.has(e.target))
-      .map(e => ({ source: e.source, target: e.target }));
-
-    const newPositions = hierarchicalLayout(inputs, edges);
-    if (newPositions.size === 0) return;
-
-    const applyPositions = (nds: Node[]) => nds.map(n => {
-      const pos = newPositions.get(n.id);
-      return pos ? { ...n, position: pos } : n;
-    });
-
-    reactFlow.setNodes(applyPositions);
-    setNodesLocal(applyPositions);
-    const patches = [...newPositions].map(([id, position]) => ({ id, position }));
-    if (patches.length > 0) {
-      adapter.patchNodes?.(patches);
-    }
-  }, [reactFlow, adapter, setNodesLocal]);
-
-  // Organizer layout operations
-  const { spreadChildren, flowLayoutChildren, gridLayoutChildren, fitToChildren } = useOrganizerLayout({
+  // Layout operations (both organizer-scoped and top-level)
+  const {
+    spreadChildren,
+    flowLayoutChildren,
+    gridLayoutChildren,
+    fitToChildren,
+    spreadSelected,
+    spreadAll,
+    compactAll,
+    hierarchicalLayout: handleHierarchicalLayout,
+  } = useLayoutActions({
     reactFlow,
     setNodesLocal,
     adapter,
+    selectedNodeIds,
   });
 
   // Handle adding construct from pane context menu
@@ -1354,7 +1184,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
             </ControlButton>
           </Tooltip>
           <Tooltip content="Fix Overlaps">
-            <ControlButton onClick={handleSpreadAll}>
+            <ControlButton onClick={spreadAll}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <rect x="2" y="6" width="8" height="8" rx="1" />
                 <rect x="14" y="10" width="8" height="8" rx="1" />
@@ -1364,7 +1194,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
             </ControlButton>
           </Tooltip>
           <Tooltip content="Compact Layout">
-            <ControlButton onClick={handleCompactAll}>
+            <ControlButton onClick={compactAll}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <polyline points="4 14 10 14 10 20" />
                 <polyline points="20 10 14 10 14 4" />
@@ -1499,7 +1329,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
           selectedNodeIds={selectedNodeIds}
           onCopyNodesToPage={copyNodesToPage}
           onCopyNodesToNewPage={handleCopyNodesToNewPage}
-          onSpreadSelected={handleSpreadSelected}
+          onSpreadSelected={spreadSelected}
           onOrganizeSelected={createOrganizer}
           onRemoveFromOrganizer={removeFromOrganizer}
           onAttachOrganizer={handleAttachOrganizer}

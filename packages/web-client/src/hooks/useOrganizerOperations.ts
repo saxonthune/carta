@@ -6,7 +6,10 @@ import {
   toRelativePosition,
   toAbsolutePosition,
   DEFAULT_ORGANIZER_LAYOUT,
+  computeLayoutUnitSizes,
   type NodeGeometry,
+  type LayoutItem,
+  type WagonInfo,
 } from '@carta/domain';
 import type { OrganizerNodeData } from '@carta/domain';
 // Simple organizer color palette
@@ -97,44 +100,34 @@ export function useOrganizerOperations(): UseOrganizerOperationsResult {
     });
     if (selectedNodes.length < 2) return null;
 
-    // Helper: compute the full layout unit size (node + wagon tree) for a node
-    const getLayoutUnitSize = (nodeId: string): { width: number; height: number } => {
-      const node = nodes.find(n => n.id === nodeId);
-      if (!node) return { width: 200, height: 100 };
+    // Build LayoutItem array for selected nodes
+    const layoutItems: LayoutItem[] = selectedNodes.map(n => ({
+      id: n.id,
+      semanticId: (n.data as any)?.semanticId ?? n.id,
+      x: n.position.x,
+      y: n.position.y,
+      width: n.measured?.width ?? n.width ?? 200,
+      height: n.measured?.height ?? n.height ?? 100,
+    }));
 
-      const nodeW = node.measured?.width ?? node.width ?? 200;
-      const nodeH = node.measured?.height ?? node.height ?? 100;
+    // Build WagonInfo array for all organizer wagons
+    const wagonInfos: WagonInfo[] = nodes
+      .filter(n => n.type === 'organizer' && n.parentId)
+      .map(n => ({
+        id: n.id,
+        parentId: n.parentId!,
+        x: n.position.x,
+        y: n.position.y,
+        width: (n.style?.width as number) ?? n.measured?.width ?? n.width ?? 400,
+        height: (n.style?.height as number) ?? n.measured?.height ?? n.height ?? 300,
+      }));
 
-      // Find wagon children (organizers with this node as parentId)
-      const wagons = nodes.filter(n => n.parentId === nodeId && n.type === 'organizer');
-      if (wagons.length === 0) return { width: nodeW, height: nodeH };
-
-      // Compute bounding box: start with the construct rect
-      let maxRight = nodeW;
-      let maxBottom = nodeH;
-
-      // Recursively include wagon subtrees
-      const walkWagons = (parentId: string, offsetX: number, offsetY: number): void => {
-        const children = nodes.filter(n => n.parentId === parentId && n.type === 'organizer');
-        for (const wagon of children) {
-          const wx = offsetX + wagon.position.x;
-          const wy = offsetY + wagon.position.y;
-          const ww = (wagon.style?.width as number) ?? wagon.measured?.width ?? wagon.width ?? 400;
-          const wh = (wagon.style?.height as number) ?? wagon.measured?.height ?? wagon.height ?? 300;
-          maxRight = Math.max(maxRight, wx + ww);
-          maxBottom = Math.max(maxBottom, wy + wh);
-          // Recurse for nested wagons
-          walkWagons(wagon.id, wx, wy);
-        }
-      };
-
-      walkWagons(nodeId, 0, 0);
-      return { width: maxRight, height: maxBottom };
-    };
+    // Compute layout unit sizes using domain function
+    const unitSizes = computeLayoutUnitSizes(layoutItems, wagonInfos);
 
     // Compute geometries including wagon trees for each selected node
     const nodeGeometries: NodeGeometry[] = selectedNodes.map(n => {
-      const layoutUnit = getLayoutUnitSize(n.id);
+      const layoutUnit = unitSizes.get(n.id) ?? { width: 200, height: 100 };
       return {
         position: n.position,
         width: layoutUnit.width,

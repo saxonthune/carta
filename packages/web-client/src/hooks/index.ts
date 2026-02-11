@@ -12,7 +12,7 @@ export { useGraphOperations } from './useGraphOperations';
 export { useConnections } from './useConnections';
 export { usePresentation } from './usePresentation';
 export { useOrganizerOperations, type UseOrganizerOperationsResult } from './useOrganizerOperations';
-export { useOrganizerLayout, type UseOrganizerLayoutResult } from './useOrganizerLayout';
+export { useLayoutActions, type UseLayoutActionsResult } from './useLayoutActions';
 export { useEdgeCleanup } from './useEdgeCleanup';
 
 // UI state
