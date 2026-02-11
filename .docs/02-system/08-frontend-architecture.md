@@ -133,7 +133,7 @@ Organized by purpose:
 ### `hooks/index.ts`
 Organized by purpose:
 - **Document state**: `useNodes`, `useEdges`, `useSchemas`, `usePortSchemas`, `useSchemaGroups`, `usePages`, `useDocumentMeta`
-- **Document operations**: `useGraphOperations`, `useConnections`, `usePresentation`, `useOrganizerOperations`
+- **Document operations**: `useGraphOperations`, `useConnections`, `usePresentation`, `useOrganizerOperations`, `useLayoutActions`
 - **UI state**: `useMapState`, `useMetamapLayout`, `useEdgeBundling`, `useNarrative`, `useFlowTrace`
 - **Utilities**: `useClipboard`, `useUndoRedo`, `useKeyboardShortcuts`, `useAwareness`, `useDirtyStateGuard`, `useClearDocument`, `useEdgeCleanup`
 
@@ -156,7 +156,7 @@ All modal dialogs:
 Organized by type:
 - **Primitives**: `Button`, `Input`, `Textarea`, `Select`, `Modal`, `ConfirmationModal`, `ColorPicker`, `Tooltip`
 - **Navigation**: `TabBar`, `SegmentedControl`, `Breadcrumb`, `SearchBar`
-- **Menus**: `ContextMenu`, `ContextMenuPrimitive`
+- **Menus**: `ContextMenu`, `ContextMenuPrimitive`, `PopoverMenu`
 - **Domain components**: `DocumentRow`, `FolderRow`, `GroupedSchemaList`, `SchemaGroupSelector`, `CollapsibleSelector`, `ChoiceCard`, `DraggableWindow`
 - **Debug utilities**: `ZoomDebug`
 - **Icons**: All icon exports
