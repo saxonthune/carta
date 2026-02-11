@@ -207,7 +207,7 @@ if [[ "$VERIFIED" == "true" ]]; then
     echo "── Merging into trunk ──"
     cd "${REPO_ROOT}"
 
-    if git merge "${BRANCH}" -m "Merge agent: ${PLAN_SLUG}"; then
+    if git merge --squash "${BRANCH}" && git commit -m "feat: ${PLAN_SLUG} (agent)"; then
       MERGE_STATUS="success"
       echo "Merged ${BRANCH} into ${TRUNK}"
 

@@ -60,6 +60,8 @@ interface ContextMenuProps {
   onSpreadSelected?: () => void;
   // Debug info
   onDebugInfo?: (nodeId: string) => void;
+  // Edge maintenance
+  onRevalidateEdges?: () => void;
 }
 
 // Group items by their groupId into MenuItem[] with nested children
@@ -146,6 +148,7 @@ export default function ContextMenu({
   nodeIsConstruct,
   onSpreadSelected,
   onDebugInfo,
+  onRevalidateEdges,
 }: ContextMenuProps) {
   const showMultipleSelected = selectedCount > 1;
 
@@ -161,7 +164,7 @@ export default function ContextMenu({
     }
     return [];
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [type, nodeId, edgeId, selectedCount, relatedConstructs, constructOptions, schemaGroups, canPaste, pages, activePage, selectedNodeIds, constructType, onEditSchema, onCopyNodesToNewPage, onOrganizeSelected, onRemoveFromOrganizer, nodeInOrganizer, onAttachOrganizer, nodeIsConstruct, onSpreadSelected, onDebugInfo]);
+  }, [type, nodeId, edgeId, selectedCount, relatedConstructs, constructOptions, schemaGroups, canPaste, pages, activePage, selectedNodeIds, constructType, onEditSchema, onCopyNodesToNewPage, onOrganizeSelected, onRemoveFromOrganizer, nodeInOrganizer, onAttachOrganizer, nodeIsConstruct, onSpreadSelected, onDebugInfo, onRevalidateEdges]);
 
   function buildPaneMenuItems(): MenuItem[] {
     const result: MenuItem[] = [];
@@ -244,6 +247,17 @@ export default function ContextMenu({
         key: 'edit-schema',
         label: 'Edit Schema',
         children,
+      });
+    }
+
+    if (onRevalidateEdges) {
+      if (result.length > 0) {
+        result[result.length - 1].dividerAfter = true;
+      }
+      result.push({
+        key: 'revalidate-edges',
+        label: 'Revalidate Edges',
+        onClick: onRevalidateEdges,
       });
     }
 

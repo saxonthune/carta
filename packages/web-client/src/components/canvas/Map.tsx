@@ -1346,6 +1346,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
             return parent?.type === 'organizer';
           })()}
           onDebugInfo={(nodeId) => { setDebugNodeId(nodeId); closeContextMenu(); }}
+          onRevalidateEdges={() => { revalidateEdges(); closeContextMenu(); }}
         />
       )}
 
