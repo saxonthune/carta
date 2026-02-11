@@ -37,7 +37,7 @@ import { useClipboard } from '../../hooks/useClipboard';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import { useEdgeCleanup } from '../../hooks/useEdgeCleanup';
 import type { ConstructValues, ConstructNodeData, OrganizerNodeData } from '@carta/domain';
-import { nodeContainedInOrganizer, getDisplayName, DEFAULT_ORGANIZER_LAYOUT } from '@carta/domain';
+import { nodeContainedInOrganizer, getDisplayName } from '@carta/domain';
 import { usePresentation } from '../../hooks/usePresentation';
 import { computeEdgeAggregation, filterInvalidEdges } from '../../presentation/index';
 import { useOrganizerOperations } from '../../hooks/useOrganizerOperations';
@@ -54,6 +54,7 @@ import Narrative from './Narrative';
 import { deOverlapNodes } from '../../utils/deOverlapNodes';
 import { compactNodes } from '../../utils/compactNodes';
 import { hierarchicalLayout } from '../../utils/hierarchicalLayout';
+import { useOrganizerLayout } from '../../hooks/useOrganizerLayout';
 
 const nodeTypes = {
   custom: CustomNode,
@@ -67,9 +68,6 @@ const edgeTypes = {
 
 // Restrict dragging to header only - allows clicking fields to edit
 const NODE_DRAG_HANDLE = '.node-drag-handle';
-
-// Y-origin for organizer content (below header + padding)
-const ORGANIZER_CONTENT_TOP = DEFAULT_ORGANIZER_LAYOUT.padding + DEFAULT_ORGANIZER_LAYOUT.headerHeight;
 
 // Edge color from CSS variable, updated on theme change
 function useEdgeColor() {
@@ -589,170 +587,12 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     }
   }, [reactFlow, adapter, setNodesLocal]);
 
-  // Spread children within a single organizer
-  const handleSpreadChildren = useCallback((organizerId: string) => {
-    const rfNodes = reactFlow.getNodes();
-    const children = rfNodes.filter(n => n.parentId === organizerId && n.type !== 'organizer');
-    if (children.length < 2) return;
-
-    const inputs = children.map(n => ({
-      id: n.id,
-      x: n.position.x,
-      y: n.position.y,
-      width: n.measured?.width ?? n.width ?? 200,
-      height: n.measured?.height ?? n.height ?? 100,
-    }));
-    const newPositions = deOverlapNodes(inputs);
-
-    // Ensure all positions are below the organizer header
-    const allPositions = [...newPositions.values()];
-    const minY = Math.min(...allPositions.map(p => p.y));
-    if (minY < ORGANIZER_CONTENT_TOP) {
-      const shiftY = ORGANIZER_CONTENT_TOP - minY;
-      for (const pos of newPositions.values()) {
-        pos.y += shiftY;
-      }
-    }
-
-    const applyPositions = (nds: Node[]) => nds.map(n => {
-      const pos = newPositions.get(n.id);
-      return pos ? { ...n, position: pos } : n;
-    });
-
-    reactFlow.setNodes(applyPositions);
-    setNodesLocal(applyPositions);
-    const patches = [...newPositions].map(([id, position]) => ({ id, position }));
-    if (patches.length > 0) {
-      adapter.patchNodes?.(patches);
-    }
-  }, [reactFlow, adapter, setNodesLocal]);
-
-  // Fit organizer to its children
-  const handleFitToChildren = useCallback((organizerId: string) => {
-    const rfNodes = reactFlow.getNodes();
-    const children = rfNodes.filter(n => n.parentId === organizerId && n.type !== 'organizer');
-    if (children.length === 0) return;
-
-    // Compute bounding box of all children
-    const rights = children.map(child => child.position.x + (child.measured?.width ?? child.width ?? 200));
-    const bottoms = children.map(child => child.position.y + (child.measured?.height ?? child.height ?? 100));
-    const maxRight = Math.max(...rights);
-    const maxBottom = Math.max(...bottoms);
-
-    // Add padding
-    const { padding, headerHeight } = DEFAULT_ORGANIZER_LAYOUT;
-    const newWidth = Math.max(maxRight + padding * 2, 200);
-    const newHeight = Math.max(maxBottom + padding, headerHeight + padding * 2);
-
-    // Update organizer node's style
-    const updateStyle = (nds: Node[]) => nds.map(n =>
-      n.id === organizerId
-        ? { ...n, style: { ...n.style, width: newWidth, height: newHeight } }
-        : n
-    );
-
-    reactFlow.setNodes(updateStyle);
-    setNodesLocal(updateStyle);
-    adapter.patchNodes?.([{ id: organizerId, style: { width: newWidth, height: newHeight } }]);
-  }, [reactFlow, adapter, setNodesLocal]);
-
-  // Grid layout children within organizer
-  const handleGridLayoutChildren = useCallback((organizerId: string) => {
-    const rfNodes = reactFlow.getNodes();
-    const children = rfNodes.filter(n => n.parentId === organizerId && n.type !== 'organizer');
-    if (children.length < 2) return;
-
-    const inputs = children.map(n => ({
-      id: n.id,
-      x: n.position.x,
-      y: n.position.y,
-      width: n.measured?.width ?? n.width ?? 200,
-      height: n.measured?.height ?? n.height ?? 100,
-    }));
-
-    // Compute grid
-    const cols = Math.ceil(Math.sqrt(children.length));
-    const colWidth = Math.max(...inputs.map(n => n.width)) + 30;
-    const rowHeight = Math.max(...inputs.map(n => n.height)) + 30;
-    const padding = 20;
-
-    // Assign positions
-    const newPositions = new globalThis.Map<string, { x: number; y: number }>();
-    inputs.forEach((input, idx) => {
-      const x = (idx % cols) * colWidth + padding;
-      const y = Math.floor(idx / cols) * rowHeight + ORGANIZER_CONTENT_TOP;
-      newPositions.set(input.id, { x, y });
-    });
-
-    const applyPositions = (nds: Node[]) => nds.map(n => {
-      const pos = newPositions.get(n.id);
-      return pos ? { ...n, position: pos } : n;
-    });
-
-    reactFlow.setNodes(applyPositions);
-    setNodesLocal(applyPositions);
-    const patches = [...newPositions].map(([id, position]) => ({ id, position }));
-    if (patches.length > 0) {
-      adapter.patchNodes?.(patches);
-    }
-
-    // Auto-resize to fit
-    handleFitToChildren(organizerId);
-  }, [reactFlow, adapter, setNodesLocal, handleFitToChildren]);
-
-  // Flow layout children within organizer
-  const handleFlowLayoutChildren = useCallback((organizerId: string) => {
-    const rfNodes = reactFlow.getNodes();
-    const children = rfNodes.filter(n => n.parentId === organizerId && n.type !== 'organizer');
-    if (children.length < 2) return;
-
-    const inputs = children.map(n => ({
-      id: n.id,
-      x: n.position.x,
-      y: n.position.y,
-      width: n.measured?.width ?? n.width ?? 200,
-      height: n.measured?.height ?? n.height ?? 100,
-    }));
-
-    // Filter edges to only those between children
-    const childIds = new Set(children.map(c => c.id));
-    const rfEdges = reactFlow.getEdges();
-    const scopedEdges = rfEdges.filter(e => childIds.has(e.source) && childIds.has(e.target));
-
-    // Apply hierarchical layout with smaller gaps for organizer context
-    const rawPositions = hierarchicalLayout(inputs, scopedEdges, { gap: 30, layerGap: 60 });
-
-    // Normalize positions to start from (padding, padding)
-    const padding = 20;
-    const positions = [...rawPositions.values()];
-    if (positions.length > 0) {
-      const minX = Math.min(...positions.map(p => p.x));
-      const minY = Math.min(...positions.map(p => p.y));
-
-      const newPositions = new globalThis.Map<string, { x: number; y: number }>();
-      for (const [id, pos] of rawPositions) {
-        newPositions.set(id, {
-          x: pos.x - minX + padding,
-          y: pos.y - minY + ORGANIZER_CONTENT_TOP,
-        });
-      }
-
-      const applyPositions = (nds: Node[]) => nds.map(n => {
-        const pos = newPositions.get(n.id);
-        return pos ? { ...n, position: pos } : n;
-      });
-
-      reactFlow.setNodes(applyPositions);
-      setNodesLocal(applyPositions);
-      const patches = [...newPositions].map(([id, position]) => ({ id, position }));
-      if (patches.length > 0) {
-        adapter.patchNodes?.(patches);
-      }
-
-      // Auto-resize to fit
-      handleFitToChildren(organizerId);
-    }
-  }, [reactFlow, adapter, setNodesLocal, handleFitToChildren]);
+  // Organizer layout operations
+  const { spreadChildren, flowLayoutChildren, gridLayoutChildren, fitToChildren } = useOrganizerLayout({
+    reactFlow,
+    setNodesLocal,
+    adapter,
+  });
 
   // Handle adding construct from pane context menu
   const handleAddConstructFromMenu = useCallback(
@@ -928,14 +768,14 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
   updateNodeInstanceColorRef.current = updateNodeInstanceColor;
   const toggleOrganizerCollapseRef = useRef(toggleOrganizerCollapse);
   toggleOrganizerCollapseRef.current = toggleOrganizerCollapse;
-  const handleSpreadChildrenRef = useRef(handleSpreadChildren);
-  handleSpreadChildrenRef.current = handleSpreadChildren;
-  const handleFlowLayoutChildrenRef = useRef(handleFlowLayoutChildren);
-  handleFlowLayoutChildrenRef.current = handleFlowLayoutChildren;
-  const handleGridLayoutChildrenRef = useRef(handleGridLayoutChildren);
-  handleGridLayoutChildrenRef.current = handleGridLayoutChildren;
-  const handleFitToChildrenRef = useRef(handleFitToChildren);
-  handleFitToChildrenRef.current = handleFitToChildren;
+  const spreadChildrenRef = useRef(spreadChildren);
+  spreadChildrenRef.current = spreadChildren;
+  const flowLayoutChildrenRef = useRef(flowLayoutChildren);
+  flowLayoutChildrenRef.current = flowLayoutChildren;
+  const gridLayoutChildrenRef = useRef(gridLayoutChildren);
+  gridLayoutChildrenRef.current = gridLayoutChildren;
+  const fitToChildrenRef = useRef(fitToChildren);
+  fitToChildrenRef.current = fitToChildren;
 
   // One stable dispatch object shared by ALL nodes (never changes identity)
   const nodeActions = useMemo(() => ({
@@ -946,10 +786,10 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     onOpenFullView: (nodeId: string) => setFullViewNodeIdRef.current(nodeId),
     onInstanceColorChange: (nodeId: string, color: string | null) => updateNodeInstanceColorRef.current(nodeId, color),
     onToggleCollapse: (nodeId: string) => toggleOrganizerCollapseRef.current(nodeId),
-    onSpreadChildren: (nodeId: string) => handleSpreadChildrenRef.current(nodeId),
-    onFlowLayoutChildren: (nodeId: string) => handleFlowLayoutChildrenRef.current(nodeId),
-    onGridLayoutChildren: (nodeId: string) => handleGridLayoutChildrenRef.current(nodeId),
-    onFitToChildren: (nodeId: string) => handleFitToChildrenRef.current(nodeId),
+    onSpreadChildren: (nodeId: string) => spreadChildrenRef.current(nodeId),
+    onFlowLayoutChildren: (nodeId: string) => flowLayoutChildrenRef.current(nodeId),
+    onGridLayoutChildren: (nodeId: string) => gridLayoutChildrenRef.current(nodeId),
+    onFitToChildren: (nodeId: string) => fitToChildrenRef.current(nodeId),
   }), []);
 
   const nodesWithCallbacks = useMemo(() =>

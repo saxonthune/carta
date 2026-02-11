@@ -1,4 +1,4 @@
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import { Handle, Position, NodeResizer, useNodeId, type NodeProps } from '@xyflow/react';
 import { EyeIcon, EyeOffIcon } from '../ui/icons';
 import { Tooltip } from '../ui';
@@ -54,37 +54,63 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
     [nodeActions, nodeId]
   );
 
-  const handleSpread = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      if (nodeId && nodeActions) nodeActions.onSpreadChildren(nodeId);
-    },
-    [nodeActions, nodeId]
-  );
+  // Layout button configuration
+  const layoutButtons = useMemo(() => {
+    if (!nodeActions || childCount <= 1) return null;
 
-  const handleFlowLayout = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      if (nodeId && nodeActions) nodeActions.onFlowLayoutChildren(nodeId);
-    },
-    [nodeActions, nodeId]
-  );
-
-  const handleGridLayout = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      if (nodeId && nodeActions) nodeActions.onGridLayoutChildren(nodeId);
-    },
-    [nodeActions, nodeId]
-  );
-
-  const handleFitToChildren = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      if (nodeId && nodeActions) nodeActions.onFitToChildren(nodeId);
-    },
-    [nodeActions, nodeId]
-  );
+    return [
+      {
+        tooltip: 'Spread children',
+        handler: nodeActions.onSpreadChildren,
+        icon: (
+          <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={2}>
+            <polyline points="15 3 21 3 21 9" />
+            <polyline points="9 21 3 21 3 15" />
+            <line x1="21" y1="3" x2="14" y2="10" />
+            <line x1="3" y1="21" x2="10" y2="14" />
+          </svg>
+        ),
+      },
+      {
+        tooltip: 'Flow layout',
+        handler: nodeActions.onFlowLayoutChildren,
+        icon: (
+          <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={2}>
+            <line x1="3" y1="6" x2="15" y2="6" />
+            <polyline points="12 3 15 6 12 9" />
+            <line x1="3" y1="12" x2="15" y2="12" />
+            <polyline points="12 9 15 12 12 15" />
+            <line x1="3" y1="18" x2="15" y2="18" />
+            <polyline points="12 15 15 18 12 21" />
+          </svg>
+        ),
+      },
+      {
+        tooltip: 'Grid layout',
+        handler: nodeActions.onGridLayoutChildren,
+        icon: (
+          <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={2}>
+            <rect x="3" y="3" width="7" height="7" rx="1" />
+            <rect x="14" y="3" width="7" height="7" rx="1" />
+            <rect x="3" y="14" width="7" height="7" rx="1" />
+            <rect x="14" y="14" width="7" height="7" rx="1" />
+          </svg>
+        ),
+      },
+      {
+        tooltip: 'Fit to children',
+        handler: nodeActions.onFitToChildren,
+        icon: (
+          <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={2}>
+            <polyline points="4 14 4 20 10 20" />
+            <polyline points="20 10 20 4 14 4" />
+            <line x1="14" y1="10" x2="20" y2="4" />
+            <line x1="4" y1="20" x2="10" y2="14" />
+          </svg>
+        ),
+      },
+    ];
+  }, [nodeActions, childCount]);
 
   // Increased base color mix for better visibility; deeper nesting = stronger tint
   const bgMix = isHovered || isDropTarget ? 25 : 18 + depth * 4;
@@ -242,72 +268,20 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
               {childCount}
             </span>
           )}
-          {/* Spread children button (canvas only, 2+ children) */}
-          {nodeActions && childCount > 1 && (
-            <Tooltip content="Spread children">
+          {/* Layout buttons (canvas only, 2+ children) */}
+          {layoutButtons?.map(({ tooltip, handler, icon }) => (
+            <Tooltip key={tooltip} content={tooltip}>
               <button
                 className="w-5 h-5 flex items-center justify-center rounded text-content-muted hover:text-content transition-colors shrink-0"
-                onClick={handleSpread}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (nodeId) handler(nodeId);
+                }}
               >
-                <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={2}>
-                  <polyline points="15 3 21 3 21 9" />
-                  <polyline points="9 21 3 21 3 15" />
-                  <line x1="21" y1="3" x2="14" y2="10" />
-                  <line x1="3" y1="21" x2="10" y2="14" />
-                </svg>
+                {icon}
               </button>
             </Tooltip>
-          )}
-          {/* Flow layout button (canvas only, 2+ children) */}
-          {nodeActions && childCount > 1 && (
-            <Tooltip content="Flow layout">
-              <button
-                className="w-5 h-5 flex items-center justify-center rounded text-content-muted hover:text-content transition-colors shrink-0"
-                onClick={handleFlowLayout}
-              >
-                <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={2}>
-                  <line x1="3" y1="6" x2="15" y2="6" />
-                  <polyline points="12 3 15 6 12 9" />
-                  <line x1="3" y1="12" x2="15" y2="12" />
-                  <polyline points="12 9 15 12 12 15" />
-                  <line x1="3" y1="18" x2="15" y2="18" />
-                  <polyline points="12 15 15 18 12 21" />
-                </svg>
-              </button>
-            </Tooltip>
-          )}
-          {/* Grid layout button (canvas only, 2+ children) */}
-          {nodeActions && childCount > 1 && (
-            <Tooltip content="Grid layout">
-              <button
-                className="w-5 h-5 flex items-center justify-center rounded text-content-muted hover:text-content transition-colors shrink-0"
-                onClick={handleGridLayout}
-              >
-                <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={2}>
-                  <rect x="3" y="3" width="7" height="7" rx="1" />
-                  <rect x="14" y="3" width="7" height="7" rx="1" />
-                  <rect x="3" y="14" width="7" height="7" rx="1" />
-                  <rect x="14" y="14" width="7" height="7" rx="1" />
-                </svg>
-              </button>
-            </Tooltip>
-          )}
-          {/* Fit to children button (canvas only, 2+ children) */}
-          {nodeActions && childCount > 1 && (
-            <Tooltip content="Fit to children">
-              <button
-                className="w-5 h-5 flex items-center justify-center rounded text-content-muted hover:text-content transition-colors shrink-0"
-                onClick={handleFitToChildren}
-              >
-                <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={2}>
-                  <polyline points="4 14 4 20 10 20" />
-                  <polyline points="20 10 20 4 14 4" />
-                  <line x1="14" y1="10" x2="20" y2="4" />
-                  <line x1="4" y1="20" x2="10" y2="14" />
-                </svg>
-              </button>
-            </Tooltip>
-          )}
+          ))}
           {/* Eyeball toggle button (canvas only — metamap uses click to toggle) */}
           {nodeActions && (
             <Tooltip content="Collapse organizer">
