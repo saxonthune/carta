@@ -237,78 +237,49 @@ export function useGraphOperations(options: UseGraphOperationsOptions): UseGraph
 
   const renameNode = useCallback(
     (nodeIdToRename: string, newSemanticId: string) => {
-      setNodes((nds) =>
-        nds.map((n) => {
-          if (n.id !== nodeIdToRename) return n;
-
-          if (n.type === 'construct') {
-            return {
-              ...n,
-              data: { ...n.data, semanticId: newSemanticId },
-            };
-          }
-          return {
-            ...n,
-            data: { ...n.data, label: newSemanticId },
-          };
-        })
-      );
+      const node = nodes.find(n => n.id === nodeIdToRename);
+      if (node) {
+        if (node.type === 'construct') {
+          updateNode(nodeIdToRename, { semanticId: newSemanticId });
+        } else if (node.type === 'organizer') {
+          updateNode(nodeIdToRename, { name: newSemanticId });
+        }
+      }
       setRenamingNodeId(null);
     },
-    [setNodes, setRenamingNodeId]
+    [nodes, updateNode, setRenamingNodeId]
   );
 
   const updateNodeValues = useCallback(
     (nodeIdToUpdate: string, newValues: ConstructValues) => {
-      setNodes((nds) =>
-        nds.map((n) =>
-          n.id === nodeIdToUpdate
-            ? { ...n, data: { ...n.data, values: newValues } }
-            : n
-        )
-      );
+      updateNode(nodeIdToUpdate, { values: newValues });
     },
-    [setNodes]
+    [updateNode]
   );
 
   const setNodeViewLevel = useCallback(
     (nodeIdToSet: string, level: 'summary' | 'details') => {
-      setNodes((nds) =>
-        nds.map((n) =>
-          n.id === nodeIdToSet
-            ? { ...n, data: { ...n.data, detailMode: level } }
-            : n
-        )
-      );
+      updateNode(nodeIdToSet, { detailMode: level });
       requestAnimationFrame(() => updateNodeInternals(nodeIdToSet));
     },
-    [setNodes, updateNodeInternals]
+    [updateNode, updateNodeInternals]
   );
 
   const toggleNodeDetailsPin = useCallback(
     (nodeIdToToggle: string) => {
-      setNodes((nds) =>
-        nds.map((n) =>
-          n.id === nodeIdToToggle
-            ? { ...n, data: { ...n.data, isDetailsPinned: !n.data.isDetailsPinned } }
-            : n
-        )
-      );
+      const node = nodes.find(n => n.id === nodeIdToToggle);
+      if (node) {
+        updateNode(nodeIdToToggle, { isDetailsPinned: !node.data.isDetailsPinned });
+      }
     },
-    [setNodes]
+    [nodes, updateNode]
   );
 
   const updateNodeInstanceColor = useCallback(
     (nodeIdToUpdate: string, color: string | null) => {
-      setNodes((nds) =>
-        nds.map((n) =>
-          n.id === nodeIdToUpdate
-            ? { ...n, data: { ...n.data, instanceColor: color } }
-            : n
-        )
-      );
+      updateNode(nodeIdToUpdate, { instanceColor: color ?? undefined });
     },
-    [setNodes]
+    [updateNode]
   );
 
   return {

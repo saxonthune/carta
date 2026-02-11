@@ -49,3 +49,6 @@ export { seeds, type SeedFn } from './seeds';
 
 // String utilities
 export { stripHandlePrefix } from './handlePrefix';
+
+// Node dimensions
+export { getNodeDimensions } from './nodeDimensions';

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Handle, Position, NodeResizer } from '@xyflow/react';
 import { resolveNodeColor, resolveNodeIcon } from '@carta/domain';
 import IndexBasedDropZones from '../IndexBasedDropZones';
@@ -35,16 +35,52 @@ export function ConstructNodeSimple({
     ? resolvedColor
     : `color-mix(in srgb, ${schema.color} 30%, var(--color-surface))`;
   const contentField = schema.fields?.find(f => f.name === 'content');
-  const contentValue = String(data.values?.content ?? contentField?.default ?? '');
+  const externalValue = String(data.values?.content ?? contentField?.default ?? '');
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const periodicTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Local state for the textarea value
+  const [localValue, setLocalValue] = useState(externalValue);
+
+  // Sync local state from external value when it changes (e.g., remote collaboration update)
+  useEffect(() => {
+    setLocalValue(externalValue);
+  }, [externalValue]);
+
+  // Commit function to persist changes
+  const commitValue = useRef(() => {
+    if (periodicTimerRef.current) {
+      clearTimeout(periodicTimerRef.current);
+      periodicTimerRef.current = null;
+    }
+    data.onValuesChange?.({ ...data.values, content: localValue });
+  });
+
+  // Update commit function reference when localValue changes
+  useEffect(() => {
+    commitValue.current = () => {
+      if (periodicTimerRef.current) {
+        clearTimeout(periodicTimerRef.current);
+        periodicTimerRef.current = null;
+      }
+      data.onValuesChange?.({ ...data.values, content: localValue });
+    };
+  }, [localValue, data]);
+
+  // Cleanup: flush on unmount
+  useEffect(() => {
+    return () => {
+      commitValue.current();
+    };
+  }, []);
 
   // Auto-focus on creation (when content is empty)
   useEffect(() => {
-    if (!contentValue && textareaRef.current) {
+    if (!externalValue && textareaRef.current) {
       textareaRef.current.focus();
     }
-  }, [contentValue]);
+  }, [externalValue]);
 
   return (
     <div
@@ -87,8 +123,31 @@ export function ConstructNodeSimple({
       <div className="node-drag-handle flex-1 flex flex-col cursor-move select-none p-3">
         <textarea
           ref={textareaRef}
-          value={contentValue}
-          onChange={(e) => data.onValuesChange?.({ ...data.values, content: e.target.value })}
+          value={localValue}
+          onChange={(e) => {
+            setLocalValue(e.target.value);
+            // Clear any existing timer
+            if (periodicTimerRef.current) {
+              clearTimeout(periodicTimerRef.current);
+            }
+            // Set periodic flush timer (10 seconds)
+            periodicTimerRef.current = setTimeout(() => {
+              commitValue.current();
+            }, 10000);
+          }}
+          onBlur={() => {
+            // Immediate flush on blur
+            commitValue.current();
+          }}
+          onFocus={() => {
+            // Start periodic timer when focused (in case user walks away)
+            if (periodicTimerRef.current) {
+              clearTimeout(periodicTimerRef.current);
+            }
+            periodicTimerRef.current = setTimeout(() => {
+              commitValue.current();
+            }, 10000);
+          }}
           className="w-full flex-1 bg-transparent text-content resize-none border-none outline-none text-node-base placeholder-content-subtle/50"
           placeholder="Type here..."
           onClick={(e) => {

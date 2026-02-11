@@ -5,6 +5,7 @@ import { DEFAULT_ORGANIZER_LAYOUT, computeLayoutUnitSizes, type LayoutItem, type
 import { deOverlapNodes } from '../utils/deOverlapNodes.js';
 import { compactNodes } from '../utils/compactNodes.js';
 import { hierarchicalLayout } from '../utils/hierarchicalLayout.js';
+import { getNodeDimensions } from '../utils/nodeDimensions.js';
 import type { SpreadInput } from '../utils/spreadNodes.js';
 
 const ORGANIZER_CONTENT_TOP = DEFAULT_ORGANIZER_LAYOUT.padding + DEFAULT_ORGANIZER_LAYOUT.headerHeight;
@@ -68,15 +69,15 @@ function getTopLevelLayoutItems(
 
   return topLevel.map(n => {
     if (n.type === 'organizer') {
+      const dims = getNodeDimensions(n);
       return {
         id: n.id,
         x: n.position.x,
         y: n.position.y,
-        width: (n.style?.width as number) ?? n.measured?.width ?? n.width ?? 400,
-        height: (n.style?.height as number) ?? n.measured?.height ?? n.height ?? 300,
+        ...dims,
       };
     }
-    const size = unitSizes.get(n.id) ?? { width: 200, height: 100 };
+    const size = unitSizes.get(n.id) ?? getNodeDimensions(n);
     return {
       id: n.id,
       x: n.position.x,
@@ -138,21 +139,12 @@ function getChildLayoutItems(
 ): SpreadInput[] {
   const children = rfNodes.filter(n => n.parentId === organizerId);
   return children.map(n => {
-    if (n.type === 'organizer') {
-      return {
-        id: n.id,
-        x: n.position.x,
-        y: n.position.y,
-        width: (n.style?.width as number) ?? n.measured?.width ?? n.width ?? 400,
-        height: (n.style?.height as number) ?? n.measured?.height ?? n.height ?? 300,
-      };
-    }
+    const dims = getNodeDimensions(n);
     return {
       id: n.id,
       x: n.position.x,
       y: n.position.y,
-      width: n.measured?.width ?? n.width ?? 200,
-      height: n.measured?.height ?? n.height ?? 100,
+      ...dims,
     };
   });
 }
@@ -203,31 +195,32 @@ export function useLayoutActions({
           semanticId: nodeId,
           x: 0,
           y: 0,
-          width: 200,
-          height: 100,
+          ...getNodeDimensions({ type: 'construct' } as Node),
         };
       }
+      const dims = getNodeDimensions(node);
       return {
         id: node.id,
         semanticId: (node.data as any)?.semanticId ?? node.id,
         x: node.position.x,
         y: node.position.y,
-        width: node.measured?.width ?? node.width ?? 200,
-        height: node.measured?.height ?? node.height ?? 100,
+        ...dims,
       };
     });
 
     // Build WagonInfo array for all organizer wagons
     const wagonInfos: WagonInfo[] = rfNodes
       .filter(n => n.type === 'organizer' && n.parentId)
-      .map(n => ({
-        id: n.id,
-        parentId: n.parentId!,
-        x: n.position.x,
-        y: n.position.y,
-        width: (n.style?.width as number) ?? n.measured?.width ?? n.width ?? 400,
-        height: (n.style?.height as number) ?? n.measured?.height ?? n.height ?? 300,
-      }));
+      .map(n => {
+        const dims = getNodeDimensions(n);
+        return {
+          id: n.id,
+          parentId: n.parentId!,
+          x: n.position.x,
+          y: n.position.y,
+          ...dims,
+        };
+      });
 
     return computeLayoutUnitSizes(layoutItems, wagonInfos);
   }, [reactFlow]);
@@ -446,13 +439,15 @@ export function useLayoutActions({
       );
       if (children.length < 2) continue;
 
-      const inputs = children.map(n => ({
-        id: n.id,
-        x: n.position.x,
-        y: n.position.y,
-        width: n.measured?.width ?? n.width ?? 200,
-        height: n.measured?.height ?? n.height ?? 100,
-      }));
+      const inputs = children.map(n => {
+        const dims = getNodeDimensions(n);
+        return {
+          id: n.id,
+          x: n.position.x,
+          y: n.position.y,
+          ...dims,
+        };
+      });
       const positions = deOverlapNodes(inputs);
       for (const [id, pos] of positions) {
         allNewPositions.set(id, pos);
