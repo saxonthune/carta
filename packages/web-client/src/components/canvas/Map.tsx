@@ -21,9 +21,6 @@ import {
   Plus,
   Minus,
   CornersOut,
-  ArrowsOutSimple,
-  ArrowsInSimple,
-  TreeStructure,
   CursorClick,
   PencilSimple,
   CopySimple,
@@ -66,6 +63,7 @@ import { ZoomDebug } from '../ui/ZoomDebug';
 import { useNarrative } from '../../hooks/useNarrative';
 import Narrative from './Narrative';
 import { useLayoutActions } from '../../hooks/useLayoutActions';
+import ToolbarLayoutFlyouts from './ToolbarLayoutFlyouts';
 
 const nodeTypes = {
   custom: CustomNode,
@@ -459,7 +457,9 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     spreadSelected,
     spreadAll,
     compactAll,
-    hierarchicalLayout: handleHierarchicalLayout,
+    alignNodes,
+    distributeNodes,
+    flowLayout,
   } = useLayoutActions({
     reactFlow,
     setNodesLocal,
@@ -1219,21 +1219,14 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
               <CornersOut weight="bold" />
             </ControlButton>
           </Tooltip>
-          <Tooltip content="Fix Overlaps">
-            <ControlButton onClick={spreadAll}>
-              <ArrowsOutSimple weight="bold" />
-            </ControlButton>
-          </Tooltip>
-          <Tooltip content="Compact Layout">
-            <ControlButton onClick={compactAll}>
-              <ArrowsInSimple weight="bold" />
-            </ControlButton>
-          </Tooltip>
-          <Tooltip content="Hierarchical Layout">
-            <ControlButton onClick={handleHierarchicalLayout}>
-              <TreeStructure weight="bold" />
-            </ControlButton>
-          </Tooltip>
+          <ToolbarLayoutFlyouts
+            spreadAll={spreadAll}
+            compactAll={compactAll}
+            flowLayout={flowLayout}
+            alignNodes={alignNodes}
+            distributeNodes={distributeNodes}
+            selectedCount={selectedNodeIds.length}
+          />
           <Tooltip content={selectionModeActive ? "Exit Selection Mode (V)" : "Selection Mode (V)"}>
             <ControlButton
               onClick={toggleSelectionMode}

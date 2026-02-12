@@ -167,6 +167,10 @@ export interface UseLayoutActionsResult {
   spreadAll: () => void;
   compactAll: () => void;
   hierarchicalLayout: () => void;
+  // Layout toolbar UX (new)
+  alignNodes: (axis: 'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom') => void;
+  distributeNodes: (axis: 'horizontal' | 'vertical') => void;
+  flowLayout: (direction: 'LR' | 'RL' | 'TB' | 'BT') => void;
 }
 
 /**
@@ -509,6 +513,200 @@ export function useLayoutActions({
     applyPositionPatches(patches, reactFlow, setNodesLocal, adapter);
   }, [reactFlow, setNodesLocal, adapter, computeLayoutUnits]);
 
+  /**
+   * Align selected nodes along a specified axis.
+   * Requires at least 2 selected nodes.
+   */
+  const alignNodes = useCallback((axis: 'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom') => {
+    const rfNodes = reactFlow.getNodes();
+    const selected = rfNodes.filter(n => selectedNodeIds.includes(n.id));
+    if (selected.length < 2) return;
+
+    const unitSizes = computeLayoutUnits(selectedNodeIds);
+    const nodes = selected.map(n => {
+      const size = unitSizes.get(n.id) ?? getNodeDimensions(n);
+      return {
+        id: n.id,
+        x: n.position.x,
+        y: n.position.y,
+        width: size.width,
+        height: size.height,
+      };
+    });
+
+    const newPositions = new Map<string, { x: number; y: number }>();
+
+    switch (axis) {
+      case 'left': {
+        const minX = Math.min(...nodes.map(n => n.x));
+        for (const n of nodes) {
+          newPositions.set(n.id, { x: minX, y: n.y });
+        }
+        break;
+      }
+      case 'center': {
+        const avgCenterX = nodes.reduce((sum, n) => sum + (n.x + n.width / 2), 0) / nodes.length;
+        for (const n of nodes) {
+          newPositions.set(n.id, { x: avgCenterX - n.width / 2, y: n.y });
+        }
+        break;
+      }
+      case 'right': {
+        const maxRight = Math.max(...nodes.map(n => n.x + n.width));
+        for (const n of nodes) {
+          newPositions.set(n.id, { x: maxRight - n.width, y: n.y });
+        }
+        break;
+      }
+      case 'top': {
+        const minY = Math.min(...nodes.map(n => n.y));
+        for (const n of nodes) {
+          newPositions.set(n.id, { x: n.x, y: minY });
+        }
+        break;
+      }
+      case 'middle': {
+        const avgCenterY = nodes.reduce((sum, n) => sum + (n.y + n.height / 2), 0) / nodes.length;
+        for (const n of nodes) {
+          newPositions.set(n.id, { x: n.x, y: avgCenterY - n.height / 2 });
+        }
+        break;
+      }
+      case 'bottom': {
+        const maxBottom = Math.max(...nodes.map(n => n.y + n.height));
+        for (const n of nodes) {
+          newPositions.set(n.id, { x: n.x, y: maxBottom - n.height });
+        }
+        break;
+      }
+    }
+
+    const patches = [...newPositions].map(([id, position]) => ({ id, position }));
+    applyPositionPatches(patches, reactFlow, setNodesLocal, adapter);
+  }, [reactFlow, selectedNodeIds, setNodesLocal, adapter, computeLayoutUnits]);
+
+  /**
+   * Distribute selected nodes evenly along a specified axis.
+   * Requires at least 3 selected nodes.
+   */
+  const distributeNodes = useCallback((axis: 'horizontal' | 'vertical') => {
+    const rfNodes = reactFlow.getNodes();
+    const selected = rfNodes.filter(n => selectedNodeIds.includes(n.id));
+    if (selected.length < 3) return;
+
+    const unitSizes = computeLayoutUnits(selectedNodeIds);
+    const nodes = selected.map(n => {
+      const size = unitSizes.get(n.id) ?? getNodeDimensions(n);
+      return {
+        id: n.id,
+        x: n.position.x,
+        y: n.position.y,
+        width: size.width,
+        height: size.height,
+      };
+    });
+
+    if (axis === 'horizontal') {
+      // Sort by x position
+      nodes.sort((a, b) => a.x - b.x);
+
+      const first = nodes[0];
+      const last = nodes[nodes.length - 1];
+      const span = (last.x + last.width) - first.x;
+      const totalWidth = nodes.reduce((sum, n) => sum + n.width, 0);
+      const gap = (span - totalWidth) / (nodes.length - 1);
+
+      let currentX = first.x;
+      const newPositions = new Map<string, { x: number; y: number }>();
+      for (const n of nodes) {
+        newPositions.set(n.id, { x: currentX, y: n.y });
+        currentX += n.width + gap;
+      }
+
+      const patches = [...newPositions].map(([id, position]) => ({ id, position }));
+      applyPositionPatches(patches, reactFlow, setNodesLocal, adapter);
+    } else {
+      // Sort by y position
+      nodes.sort((a, b) => a.y - b.y);
+
+      const first = nodes[0];
+      const last = nodes[nodes.length - 1];
+      const span = (last.y + last.height) - first.y;
+      const totalHeight = nodes.reduce((sum, n) => sum + n.height, 0);
+      const gap = (span - totalHeight) / (nodes.length - 1);
+
+      let currentY = first.y;
+      const newPositions = new Map<string, { x: number; y: number }>();
+      for (const n of nodes) {
+        newPositions.set(n.id, { x: n.x, y: currentY });
+        currentY += n.height + gap;
+      }
+
+      const patches = [...newPositions].map(([id, position]) => ({ id, position }));
+      applyPositionPatches(patches, reactFlow, setNodesLocal, adapter);
+    }
+  }, [reactFlow, selectedNodeIds, setNodesLocal, adapter, computeLayoutUnits]);
+
+  /**
+   * Flow layout with directional control.
+   * Transforms the top-to-bottom hierarchical layout to LR/RL/TB/BT.
+   */
+  const flowLayout = useCallback((direction: 'LR' | 'RL' | 'TB' | 'BT') => {
+    const rfNodes = reactFlow.getNodes();
+    const rfEdges = reactFlow.getEdges();
+
+    const topLevelItems = getTopLevelLayoutItems(rfNodes, computeLayoutUnits);
+    if (topLevelItems.length < 2) return;
+
+    const topLevelIds = new Set(topLevelItems.map(n => n.id));
+    const edges = getTopLevelEdges(rfNodes, rfEdges, topLevelIds);
+
+    const rawPositioned = hierarchicalLayout(topLevelItems, edges);
+    if (rawPositioned.size === 0) return;
+
+    // Transform coordinates based on direction
+    // hierarchicalLayout produces TB layout (y increases down layers)
+    const transformed = new Map<string, { x: number; y: number }>();
+
+    if (direction === 'TB') {
+      // Already TB, use as-is
+      for (const [id, pos] of rawPositioned) {
+        transformed.set(id, pos);
+      }
+    } else if (direction === 'BT') {
+      // Mirror y positions
+      const positions = [...rawPositioned.values()];
+      const maxY = Math.max(...positions.map(p => p.y));
+      for (const [id, pos] of rawPositioned) {
+        const node = topLevelItems.find(n => n.id === id)!;
+        transformed.set(id, { x: pos.x, y: maxY - pos.y - node.height });
+      }
+    } else if (direction === 'LR') {
+      // Swap x and y
+      for (const [id, pos] of rawPositioned) {
+        transformed.set(id, { x: pos.y, y: pos.x });
+      }
+    } else if (direction === 'RL') {
+      // Swap x and y, then mirror x
+      const positions = [...rawPositioned.values()];
+      const maxY = Math.max(...positions.map(p => p.y));
+      for (const [id, pos] of rawPositioned) {
+        const node = topLevelItems.find(n => n.id === id)!;
+        transformed.set(id, { x: maxY - pos.y - node.height, y: pos.x });
+      }
+    }
+
+    // Chain de-overlap to guarantee no overlaps
+    const positionedItems = topLevelItems.map(n => ({
+      ...n,
+      ...transformed.get(n.id)!,
+    }));
+    const final = deOverlapNodes(positionedItems);
+
+    const patches = [...final].map(([id, position]) => ({ id, position }));
+    applyPositionPatches(patches, reactFlow, setNodesLocal, adapter);
+  }, [reactFlow, setNodesLocal, adapter, computeLayoutUnits]);
+
   return {
     spreadChildren,
     flowLayoutChildren,
@@ -518,5 +716,8 @@ export function useLayoutActions({
     spreadAll,
     compactAll,
     hierarchicalLayout: hierarchicalLayoutAction,
+    alignNodes,
+    distributeNodes,
+    flowLayout,
   };
 }

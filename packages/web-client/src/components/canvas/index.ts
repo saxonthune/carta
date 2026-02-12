@@ -8,6 +8,7 @@ export { default as IndexBasedDropZones } from './IndexBasedDropZones';
 export { default as AddConstructMenu } from './AddConstructMenu';
 export { default as Narrative } from './Narrative';
 export { default as InspectorPanel } from './InspectorPanel';
+export { default as ToolbarLayoutFlyouts } from './ToolbarLayoutFlyouts';
 
 // LOD
 export { useLodBand } from './lod/useLodBand';
