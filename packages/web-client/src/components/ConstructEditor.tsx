@@ -8,6 +8,7 @@ import PortsStep from './construct-editor/PortsStep';
 import EditorPreview from './construct-editor/EditorPreview';
 import Button from './ui/Button';
 import SegmentedControl from './ui/SegmentedControl';
+import ConfirmationModal from './ui/ConfirmationModal';
 import { toSnakeCase } from '../utils/stringUtils';
 import type { ConstructSchema, DisplayTier, FieldSchema } from '@carta/domain';
 
@@ -79,6 +80,8 @@ export default function ConstructEditor({ editSchema, onClose }: ConstructEditor
   );
   const [portsInitialized, setPortsInitialized] = useState(!!editSchema);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isDirty, setIsDirty] = useState(false);
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
 
   // In edit mode, sync formData with live schema for structural changes (fields and ports)
   useEffect(() => {
@@ -91,21 +94,61 @@ export default function ConstructEditor({ editSchema, onClose }: ConstructEditor
           fields: liveSchema.fields,
           ports: liveSchema.ports,
         }));
-        setFieldAssignments(initFieldAssignments(liveSchema));
+        // Merge: keep existing local assignments, only add new fields
+        setFieldAssignments(prev => {
+          const next = new Map(prev);
+          // Remove assignments for fields that no longer exist in the live schema
+          for (const key of next.keys()) {
+            if (!liveSchema.fields.some(f => f.name === key)) {
+              next.delete(key);
+            }
+          }
+          // Add assignments for new fields not in the local map
+          liveSchema.fields.forEach((field, index) => {
+            if (!next.has(field.name)) {
+              next.set(field.name, {
+                tier: field.displayTier,
+                order: field.displayOrder ?? index,
+              });
+            }
+          });
+          return next;
+        });
       }
     }
   }, [isEditMode, editSchema, getSchema]);
 
+  // Wrapped setters that mark dirty for user edits
+  const markDirtySetFormData: typeof setFormData = useCallback((action) => {
+    setIsDirty(true);
+    setFormData(action);
+  }, []);
+
+  const markDirtySetFieldAssignments: typeof setFieldAssignments = useCallback((action) => {
+    setIsDirty(true);
+    setFieldAssignments(action);
+  }, []);
+
+  // Guarded close handler
+  const handleRequestClose = useCallback(() => {
+    if (isDirty) {
+      setShowCloseConfirm(true);
+    } else {
+      onClose();
+    }
+  }, [isDirty, onClose]);
+
   // Close on Escape
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') handleRequestClose();
     };
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
-  }, [onClose]);
+  }, [handleRequestClose]);
 
   const updateBasicField = useCallback((key: keyof ConstructSchema, value: unknown) => {
+    setIsDirty(true);
     if (key === 'displayName' && typeof value === 'string') {
       setFormData(prev => ({ ...prev, displayName: value, type: toSnakeCase(value) }));
     } else {
@@ -182,7 +225,7 @@ export default function ConstructEditor({ editSchema, onClose }: ConstructEditor
 
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
-      onClose();
+      handleRequestClose();
     }
   };
 
@@ -275,7 +318,7 @@ export default function ConstructEditor({ editSchema, onClose }: ConstructEditor
       >
         {/* Header bar with actions */}
         <div className="flex items-center justify-between px-5 py-3 shrink-0 bg-surface-depth-2">
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button variant="outline" onClick={handleRequestClose}>Cancel</Button>
           <span className="text-sm font-semibold text-content">
             {isEditMode ? 'Edit Schema' : 'New Schema'}
           </span>
@@ -313,9 +356,9 @@ export default function ConstructEditor({ editSchema, onClose }: ConstructEditor
                 {activeTab === 'fields' && (
                   <FieldsStep
                     formData={formData}
-                    setFormData={setFormData}
+                    setFormData={markDirtySetFormData}
                     fieldAssignments={fieldAssignments}
-                    setFieldAssignments={setFieldAssignments}
+                    setFieldAssignments={markDirtySetFieldAssignments}
                     isEditMode={isEditMode}
                     onRenameField={isEditMode ? handleRenameField : undefined}
                     onRemoveField={isEditMode ? handleRemoveField : undefined}
@@ -326,7 +369,7 @@ export default function ConstructEditor({ editSchema, onClose }: ConstructEditor
                 {activeTab === 'ports' && (
                   <PortsStep
                     formData={formData}
-                    setFormData={setFormData}
+                    setFormData={markDirtySetFormData}
                     portSchemas={portSchemas}
                     addPortSchema={addPortSchema}
                     portsInitialized={portsInitialized}
@@ -354,6 +397,20 @@ export default function ConstructEditor({ editSchema, onClose }: ConstructEditor
           </div>
         </div>
       </div>
+
+      {showCloseConfirm && (
+        <ConfirmationModal
+          isOpen={showCloseConfirm}
+          title="Unsaved Changes"
+          message="You have unsaved changes. Would you like to save before closing?"
+          onCancel={() => setShowCloseConfirm(false)}
+          onDiscard={onClose}
+          onSave={handleSave}
+          saveDisabled={!formData.displayName.trim()}
+          saveLabel={isEditMode ? 'Save Changes' : 'Create Schema'}
+          discardLabel="Discard"
+        />
+      )}
     </div>
   );
 }
