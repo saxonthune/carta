@@ -234,7 +234,7 @@ function MetamapInner({ filterText }: MetamapInnerProps) {
   }, [filterText, groupsWithMatches]);
 
   // Layout sync: adopt new positions only when layoutNodes reference changes
-  const prevLayoutNodesRef = useRef(layoutNodes);
+  const prevLayoutNodesRef = useRef<Node[] | null>(null);
   useEffect(() => {
     if (layoutNodes !== prevLayoutNodesRef.current) {
       prevLayoutNodesRef.current = layoutNodes;

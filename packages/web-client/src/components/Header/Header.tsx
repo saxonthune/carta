@@ -93,10 +93,17 @@ export function Header({
           adapter.addPortSchema(ps);
         }
       }
+      // Get current groups for dedup
+      const existingGroups = adapter.getSchemaGroups();
       // Hydrate and add each selected seed group
       for (const seed of selectedSeeds) {
-        const { groups, schemas } = hydrateSeed(seed);
-        for (const g of groups) adapter.addSchemaGroup(g);
+        const { groups, schemas } = hydrateSeed(seed, existingGroups);
+        for (const g of groups) {
+          // Only add if not already present
+          if (!existingGroups.some(eg => eg.id === g.id)) {
+            adapter.addSchemaGroup(g);
+          }
+        }
         for (const s of schemas) adapter.addSchema(s);
       }
     }, 'user');

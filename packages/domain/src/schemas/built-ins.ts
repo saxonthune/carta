@@ -130,9 +130,12 @@ export const builtInSeedCatalog: Array<{ name: string; seed: SchemaSeed; descrip
 
 /**
  * Hydrate a single seed into document-ready groups and schemas.
- * Always generates fresh UUIDs — no ID reuse.
+ *
+ * When `existingGroups` is provided, groups matching by name reuse
+ * existing IDs — making re-adding seeds idempotent instead of
+ * creating duplicate groups.
  */
-export function hydrateSeed(seed: SchemaSeed): { groups: SchemaGroup[]; schemas: ConstructSchema[] } {
+export function hydrateSeed(seed: SchemaSeed, existingGroups?: SchemaGroup[]): { groups: SchemaGroup[]; schemas: ConstructSchema[] } {
   const { groups, schemas } = loadSeeds([seed]);
-  return hydrateSeeds(groups, schemas);
+  return hydrateSeeds(groups, schemas, existingGroups);
 }

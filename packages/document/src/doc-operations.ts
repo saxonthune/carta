@@ -1834,6 +1834,14 @@ export function createSchema(ydoc: Y.Doc, schema: ConstructSchema): ConstructSch
   // Check if already exists
   if (yschemas.has(schema.type)) return null;
 
+  // Validate groupId if present
+  if (schema.groupId) {
+    const yschemaGroups = ydoc.getMap<Y.Map<unknown>>('schemaGroups');
+    if (!yschemaGroups.has(schema.groupId)) {
+      throw new Error(`SchemaGroup not found: ${schema.groupId}. Create the group first.`);
+    }
+  }
+
   // Apply smart defaults
   const processedSchema = applySchemaDefaults(schema as unknown as Record<string, unknown>);
 
@@ -1879,6 +1887,14 @@ export function updateSchema(
   const forbiddenFound = forbidden.filter(k => k in updates);
   if (forbiddenFound.length > 0) {
     throw new Error(`Cannot update forbidden keys: ${forbiddenFound.join(', ')}. Use migration operations.`);
+  }
+
+  // Validate groupId if present
+  if (updates.groupId) {
+    const yschemaGroups = ydoc.getMap<Y.Map<unknown>>('schemaGroups');
+    if (!yschemaGroups.has(updates.groupId as string)) {
+      throw new Error(`SchemaGroup not found: ${updates.groupId}. Create the group first.`);
+    }
   }
 
   // Read current, merge, write back

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { loadSeeds, hydrateSeeds } from '../../../domain/src/schemas/seed-loader';
 import type { SchemaSeed } from '../../../domain/src/schemas/seed-loader';
+import { hydrateSeed } from '../../../domain/src/schemas/built-ins';
 import { sketchingSeed } from '../../../domain/src/schemas/seeds/sketching';
 import { softwareArchitectureSeed } from '../../../domain/src/schemas/seeds/software-architecture';
 
@@ -168,5 +169,34 @@ describe('hydrateSeeds', () => {
     const second = hydrateSeeds(tplGroups, tplSchemas, existing);
     expect(first.groups.map(g => g.id)).toEqual(second.groups.map(g => g.id));
     expect(first.schemas.map(s => s.groupId)).toEqual(second.schemas.map(s => s.groupId));
+  });
+});
+
+// --- hydrateSeed (single seed helper) ---
+
+describe('hydrateSeed', () => {
+  it('without existingGroups: generates new UUIDs each time', () => {
+    const first = hydrateSeed(seedA);
+    const second = hydrateSeed(seedA);
+    expect(first.groups[0].id).toMatch(/^grp_/);
+    expect(second.groups[0].id).toMatch(/^grp_/);
+    expect(first.groups[0].id).not.toBe(second.groups[0].id);
+  });
+
+  it('with existingGroups: reuses IDs for matching group names', () => {
+    const first = hydrateSeed(seedA);
+    const second = hydrateSeed(seedA, first.groups);
+    // Group names match, so IDs should be reused
+    expect(second.groups[0].id).toBe(first.groups[0].id);
+    expect(second.groups[0].name).toBe('Group A');
+  });
+
+  it('with existingGroups from different seed: generates new IDs', () => {
+    const firstA = hydrateSeed(seedA);
+    const secondB = hydrateSeed(seedB, firstA.groups);
+    // seedB groups don't match seedA, so all new IDs
+    for (const g of secondB.groups) {
+      expect(firstA.groups.some(eg => eg.id === g.id)).toBe(false);
+    }
   });
 });
