@@ -6,7 +6,7 @@ export default function Footer() {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   return (
-    <div className="h-6 bg-surface-alt border-t flex items-center justify-between px-2 shrink-0">
+    <div className="h-6 bg-surface-alt border-t border-border flex items-center justify-between px-2 shrink-0">
       <span className="text-[11px] text-content-muted">Carta {pkg.version}</span>
       <div className="flex items-center gap-3">
         <a

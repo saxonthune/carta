@@ -122,7 +122,7 @@ export function Header({
 
 
   return (
-    <header className="h-12 bg-surface border-b grid grid-cols-[1fr_auto_1fr] items-center px-0 shrink-0">
+    <header className="h-12 bg-surface border-b border-border grid grid-cols-[1fr_auto_1fr] items-center px-0 shrink-0">
       {/* Left section: Logo and debug info */}
       <div className="flex items-center justify-start pl-3 gap-2">
         <span className="text-xl font-bold tracking-tight text-content select-none">Carta</span>
