@@ -5,3 +5,4 @@ export { default as ImportPreviewModal } from './ImportPreviewModal';
 export { default as ExportPreviewModal } from './ExportPreviewModal';
 export { default as ConstructDebugModal } from './ConstructDebugModal';
 export { default as ClearWorkspaceModal } from './ClearWorkspaceModal';
+export { default as DeleteEmptySchemasModal } from './DeleteEmptySchemasModal';

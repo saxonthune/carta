@@ -61,17 +61,19 @@ export default function CanvasContainer({
           <ViewToggle mode={viewMode} onChange={setViewMode} />
         </div>
       </div>
-      <div className="absolute top-3 right-3 z-10 pointer-events-auto">
-        <PageSwitcher
-          pages={pages}
-          activePage={activePage}
-          onSetActivePage={onSetActivePage}
-          onCreatePage={onCreatePage}
-          onDeletePage={onDeletePage}
-          onUpdatePage={onUpdatePage}
-          onDuplicatePage={onDuplicatePage}
-        />
-      </div>
+      {viewMode === 'instances' && (
+        <div className="absolute top-3 right-3 z-10 pointer-events-auto">
+          <PageSwitcher
+            pages={pages}
+            activePage={activePage}
+            onSetActivePage={onSetActivePage}
+            onCreatePage={onCreatePage}
+            onDeletePage={onDeletePage}
+            onUpdatePage={onUpdatePage}
+            onDuplicatePage={onDuplicatePage}
+          />
+        </div>
+      )}
 
       <div className="flex-1 min-h-0">
         {viewMode === 'instances' ? (

@@ -21,6 +21,7 @@ import {
   Minus,
   CornersOut,
   Warning,
+  Trash,
 } from '@phosphor-icons/react';
 import SchemaNode from './SchemaNode';
 import OrganizerNode from '../canvas/OrganizerNode';
@@ -31,6 +32,7 @@ import MetamapConnectionModal from './MetamapConnectionModal';
 import EdgeDetailPopover from './EdgeDetailPopover';
 import ConstructEditor from '../ConstructEditor';
 import ContextMenuPrimitive, { type MenuItem } from '../ui/ContextMenuPrimitive';
+import { DeleteEmptySchemasModal } from '../modals';
 import { useSchemas } from '../../hooks/useSchemas';
 import { useSchemaGroups } from '../../hooks/useSchemaGroups';
 import { useMetamapLayout } from '../../hooks/useMetamapLayout';
@@ -38,6 +40,7 @@ import { usePresentation } from '../../hooks/usePresentation';
 import { useEdgeBundling } from '../../hooks/useEdgeBundling';
 import { useNarrative } from '../../hooks/useNarrative';
 import { useSchemaUndoRedo } from '../../hooks/useSchemaUndoRedo';
+import { usePages } from '../../hooks/usePages';
 // ZoomDebug disabled for performance
 import type { MetamapLayoutDirection } from '../../utils/metamapLayout';
 import type { ConstructSchema, SuggestedRelatedConstruct } from '@carta/domain';
@@ -83,6 +86,7 @@ function MetamapInner({ filterText }: MetamapInnerProps) {
     relationshipIndex: number;
     position: { x: number; y: number };
   } | null>(null);
+  const [showDeleteEmpty, setShowDeleteEmpty] = useState(false);
   const { nodes: layoutNodes, edges: layoutEdges, reLayout: triggerReLayout } = useMetamapLayout(schemas, schemaGroups, expandedSchemas, expandedGroups, layoutDirection);
 
   // Pipe through presentation layer for collapse hiding and edge remapping
@@ -99,6 +103,24 @@ function MetamapInner({ filterText }: MetamapInnerProps) {
 
   // Undo/redo for schema changes
   const { undo, redo, canUndo, canRedo } = useSchemaUndoRedo();
+
+  // Get all pages to check for empty schemas
+  const { pages } = usePages();
+
+  // Compute empty schemas (schemas with no instances across all pages)
+  const emptySchemas = useMemo(() => {
+    // Collect all constructTypes used across ALL pages
+    const usedTypes = new Set<string>();
+    for (const page of pages) {
+      for (const node of (page.nodes as Array<{ data?: { constructType?: string } }>)) {
+        if (node.data?.constructType) {
+          usedTypes.add(node.data.constructType);
+        }
+      }
+    }
+    // Filter schemas to those NOT used
+    return schemas.filter(s => !usedTypes.has(s.type));
+  }, [schemas, pages]);
 
   // Custom zoom with smaller step (1.15x instead of default 1.2x)
   const customZoomIn = useCallback(() => {
@@ -455,6 +477,13 @@ function MetamapInner({ filterText }: MetamapInnerProps) {
       selected: n.id === schemaType,
     })));
   }, [getSchema, reactFlow]);
+
+  const handleDeleteEmptySchemas = useCallback(() => {
+    for (const schema of emptySchemas) {
+      removeSchema(schema.type);
+    }
+    setShowDeleteEmpty(false);
+  }, [emptySchemas, removeSchema]);
 
   const handleSave = useCallback(
     (config: {
@@ -869,6 +898,13 @@ function MetamapInner({ filterText }: MetamapInnerProps) {
           <ControlButton onClick={() => reactFlow.fitView({ duration: 300 })} title="Fit to View">
             <CornersOut weight="bold" />
           </ControlButton>
+          <ControlButton
+            onClick={() => setShowDeleteEmpty(true)}
+            title="Delete empty schemas"
+            className={emptySchemas.length === 0 ? 'opacity-30 pointer-events-none' : ''}
+          >
+            <Trash weight="bold" />
+          </ControlButton>
         </Controls>
 
         {/* Covered nodes warning badge */}
@@ -924,6 +960,12 @@ function MetamapInner({ filterText }: MetamapInnerProps) {
           onClose={() => setEditorState({ open: false })}
         />
       )}
+      <DeleteEmptySchemasModal
+        isOpen={showDeleteEmpty}
+        onClose={() => setShowDeleteEmpty(false)}
+        emptySchemas={emptySchemas}
+        onDelete={handleDeleteEmptySchemas}
+      />
     </div>
   );
 }
