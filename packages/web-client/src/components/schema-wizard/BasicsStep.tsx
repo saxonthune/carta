@@ -162,7 +162,11 @@ export default function BasicsStep({ formData, errors, updateField, schemaGroups
               onChange={(e) => updateField('nodeShape', e.target.value as RenderStyle)}
             >
               <option value="default">Default</option>
+              <option value="simple">Simple</option>
               <option value="card">Card</option>
+              <option value="circle">Circle</option>
+              <option value="diamond">Diamond</option>
+              <option value="document">Document</option>
             </Select>
           </div>
           <div className="flex-1">
