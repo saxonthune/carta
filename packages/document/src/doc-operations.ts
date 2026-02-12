@@ -20,6 +20,7 @@ import {
   computeLayoutUnitSizes,
   computeOrganizerFit,
   DEFAULT_ORGANIZER_LAYOUT,
+  resolvePinConstraints,
 } from '@carta/domain';
 import type {
   CompilerNode,
@@ -38,6 +39,9 @@ import type {
   ArrangeInput,
   ArrangeEdge,
   WagonInfo,
+  PinConstraint,
+  PinDirection,
+  PinLayoutNode,
 } from '@carta/domain';
 import { CompilerEngine } from '@carta/compiler';
 import { yToPlain, deepPlainToY, safeGet } from './yjs-helpers.js';
@@ -3404,4 +3408,235 @@ export function extractDocument(ydoc: Y.Doc, roomId: string, pageId: string): Se
     edges,
     customSchemas,
   };
+}
+
+// ===== PIN CONSTRAINTS =====
+
+/**
+ * Generate a unique ID for a pin constraint.
+ */
+function generatePinConstraintId(): string {
+  return 'pin-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6);
+}
+
+/**
+ * Get or create the Y.Array for pin constraints on a page.
+ */
+function getPinConstraints(ydoc: Y.Doc, pageId: string): Y.Array<Y.Map<unknown>> {
+  const key = `pin-constraints-${pageId}`;
+  let yarray = ydoc.getArray<Y.Map<unknown>>(key);
+  return yarray;
+}
+
+/**
+ * Add a pin constraint to a page.
+ *
+ * @param ydoc - The Y.Doc
+ * @param pageId - Page ID
+ * @param constraint - Constraint data (without id)
+ * @returns The created constraint with generated ID
+ */
+export function addPinConstraint(
+  ydoc: Y.Doc,
+  pageId: string,
+  constraint: {
+    sourceOrganizerId: string;
+    targetOrganizerId: string;
+    direction: PinDirection;
+    gap?: number;
+  }
+): PinConstraint {
+  const id = generatePinConstraintId();
+  const pinConstraint: PinConstraint = {
+    id,
+    sourceOrganizerId: constraint.sourceOrganizerId,
+    targetOrganizerId: constraint.targetOrganizerId,
+    direction: constraint.direction,
+    gap: constraint.gap,
+  };
+
+  ydoc.transact(() => {
+    const yconstraints = getPinConstraints(ydoc, pageId);
+    const ymap = new Y.Map<unknown>();
+    ymap.set('id', pinConstraint.id);
+    ymap.set('sourceOrganizerId', pinConstraint.sourceOrganizerId);
+    ymap.set('targetOrganizerId', pinConstraint.targetOrganizerId);
+    ymap.set('direction', pinConstraint.direction);
+    if (pinConstraint.gap !== undefined) {
+      ymap.set('gap', pinConstraint.gap);
+    }
+    yconstraints.push([ymap]);
+  }, MCP_ORIGIN);
+
+  return pinConstraint;
+}
+
+/**
+ * List all pin constraints for a page.
+ *
+ * @param ydoc - The Y.Doc
+ * @param pageId - Page ID
+ * @returns Array of pin constraints
+ */
+export function listPinConstraints(ydoc: Y.Doc, pageId: string): PinConstraint[] {
+  const yconstraints = getPinConstraints(ydoc, pageId);
+  const constraints: PinConstraint[] = [];
+
+  yconstraints.forEach((ymap) => {
+    const constraint: PinConstraint = {
+      id: ymap.get('id') as string,
+      sourceOrganizerId: ymap.get('sourceOrganizerId') as string,
+      targetOrganizerId: ymap.get('targetOrganizerId') as string,
+      direction: ymap.get('direction') as PinDirection,
+      gap: ymap.get('gap') as number | undefined,
+    };
+    constraints.push(constraint);
+  });
+
+  return constraints;
+}
+
+/**
+ * Remove a pin constraint by ID.
+ *
+ * @param ydoc - The Y.Doc
+ * @param pageId - Page ID
+ * @param constraintId - Constraint ID to remove
+ * @returns true if removed, false if not found
+ */
+export function removePinConstraint(
+  ydoc: Y.Doc,
+  pageId: string,
+  constraintId: string
+): boolean {
+  let removed = false;
+
+  ydoc.transact(() => {
+    const yconstraints = getPinConstraints(ydoc, pageId);
+    let index = -1;
+
+    for (let i = 0; i < yconstraints.length; i++) {
+      const ymap = yconstraints.get(i);
+      if (ymap.get('id') === constraintId) {
+        index = i;
+        break;
+      }
+    }
+
+    if (index >= 0) {
+      yconstraints.delete(index, 1);
+      removed = true;
+    }
+  }, MCP_ORIGIN);
+
+  return removed;
+}
+
+/**
+ * Remove all pin constraints involving an organizer.
+ * Useful for cleanup when an organizer is deleted.
+ *
+ * @param ydoc - The Y.Doc
+ * @param pageId - Page ID
+ * @param organizerId - Organizer ID
+ * @returns Number of constraints removed
+ */
+export function removeOrganizerPinConstraints(
+  ydoc: Y.Doc,
+  pageId: string,
+  organizerId: string
+): number {
+  let removedCount = 0;
+
+  ydoc.transact(() => {
+    const yconstraints = getPinConstraints(ydoc, pageId);
+    const indicesToRemove: number[] = [];
+
+    for (let i = 0; i < yconstraints.length; i++) {
+      const ymap = yconstraints.get(i);
+      const sourceId = ymap.get('sourceOrganizerId') as string;
+      const targetId = ymap.get('targetOrganizerId') as string;
+
+      if (sourceId === organizerId || targetId === organizerId) {
+        indicesToRemove.push(i);
+      }
+    }
+
+    // Remove in reverse order to maintain indices
+    for (let i = indicesToRemove.length - 1; i >= 0; i--) {
+      yconstraints.delete(indicesToRemove[i], 1);
+      removedCount++;
+    }
+  }, MCP_ORIGIN);
+
+  return removedCount;
+}
+
+/**
+ * Apply pin layout: read constraints, resolve positions, write back to nodes.
+ *
+ * @param ydoc - The Y.Doc
+ * @param pageId - Page ID
+ * @param options - Optional configuration
+ * @returns Result with number of nodes updated and any warnings
+ */
+export function applyPinLayout(
+  ydoc: Y.Doc,
+  pageId: string,
+  options?: { gap?: number }
+): { updated: number; warnings: string[] } {
+  const constraints = listPinConstraints(ydoc, pageId);
+  const pageNodes = getPageMap(ydoc, 'nodes', pageId);
+
+  // Gather organizer nodes for layout
+  const layoutNodes: PinLayoutNode[] = [];
+  const nodeMap = new Map<string, Y.Map<unknown>>();
+
+  pageNodes.forEach((ynode, nodeId) => {
+    const ydata = ynode.get('data') as Y.Map<unknown> | undefined;
+    if (!ydata) return;
+
+    const isOrganizer = safeGet(ydata, 'isOrganizer') === true;
+    if (!isOrganizer) return;
+
+    const position = ynode.get('position') as { x: number; y: number } | undefined;
+    const style = ynode.get('style') as { width?: number; height?: number } | undefined;
+
+    const x = position?.x ?? 0;
+    const y = position?.y ?? 0;
+    const width = style?.width ?? 400;
+    const height = style?.height ?? 300;
+
+    layoutNodes.push({
+      id: nodeId,
+      x,
+      y,
+      width,
+      height,
+    });
+
+    nodeMap.set(nodeId, ynode);
+  });
+
+  // Resolve constraints
+  const result = resolvePinConstraints(layoutNodes, constraints, options?.gap);
+
+  // Apply positions
+  let updated = 0;
+
+  ydoc.transact(() => {
+    for (const [nodeId, position] of result.positions.entries()) {
+      const ynode = nodeMap.get(nodeId);
+      if (ynode) {
+        const currentPos = ynode.get('position') as { x: number; y: number } | undefined;
+        // Only update if position actually changed
+        if (!currentPos || currentPos.x !== position.x || currentPos.y !== position.y) {
+          ynode.set('position', deepPlainToY({ x: position.x, y: position.y }));
+          updated++;
+        }
+      }
+    }
+  }, MCP_ORIGIN);
+
+  return { updated, warnings: result.warnings };
 }

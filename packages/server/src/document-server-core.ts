@@ -64,9 +64,13 @@ import {
   narrowEnumOptions,
   addPort,
   changePortType,
+  addPinConstraint,
+  listPinConstraints,
+  removePinConstraint,
+  applyPinLayout,
 } from '@carta/document';
 import type { BatchOperation, BatchResult, MigrationResult } from '@carta/document';
-import type { FlowDirection, ArrangeStrategy, ArrangeConstraint } from '@carta/domain';
+import type { FlowDirection, ArrangeStrategy, ArrangeConstraint, PinDirection } from '@carta/domain';
 
 // ===== TYPES =====
 
@@ -1332,6 +1336,103 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
           scope: body.scope as 'all' | string[] | undefined,
           nodeGap: body.nodeGap,
           forceIterations: body.forceIterations,
+        });
+
+        sendJson(res, 200, result);
+        return;
+      }
+
+      // ===== PIN CONSTRAINTS =====
+
+      const pinConstraintsMatch = path.match(/^\/api\/documents\/([^/]+)\/pin-constraints$/);
+      if (pinConstraintsMatch) {
+        const roomId = pinConstraintsMatch[1]!;
+        const docState = await config.getDoc(roomId);
+        if (!docState) {
+          sendError(res, 404, 'Document not found', 'NOT_FOUND');
+          return;
+        }
+
+        // POST - Create pin constraint
+        if (method === 'POST') {
+          const body = await parseJsonBody<{
+            sourceOrganizerId: string;
+            targetOrganizerId: string;
+            direction: string;
+            gap?: number;
+            pageId?: string;
+          }>(req);
+
+          if (!body.sourceOrganizerId || !body.targetOrganizerId || !body.direction) {
+            sendError(res, 400, 'sourceOrganizerId, targetOrganizerId, and direction are required', 'MISSING_FIELDS');
+            return;
+          }
+
+          const validDirections = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+          if (!validDirections.includes(body.direction)) {
+            sendError(res, 400, `direction must be one of: ${validDirections.join(', ')}`, 'INVALID_DIRECTION');
+            return;
+          }
+
+          const pageId = body.pageId || getActivePageId(docState.doc);
+          const constraint = addPinConstraint(docState.doc, pageId, {
+            sourceOrganizerId: body.sourceOrganizerId,
+            targetOrganizerId: body.targetOrganizerId,
+            direction: body.direction as PinDirection,
+            gap: body.gap,
+          });
+
+          sendJson(res, 200, { constraint });
+          return;
+        }
+
+        // GET - List pin constraints
+        if (method === 'GET') {
+          const url = new URL(req.url!, `http://${req.headers.host}`);
+          const pageId = url.searchParams.get('pageId') || getActivePageId(docState.doc);
+          const constraints = listPinConstraints(docState.doc, pageId);
+          sendJson(res, 200, { constraints });
+          return;
+        }
+      }
+
+      // DELETE - Remove pin constraint
+      const pinConstraintDeleteMatch = path.match(/^\/api\/documents\/([^/]+)\/pin-constraints\/([^/]+)$/);
+      if (pinConstraintDeleteMatch && method === 'DELETE') {
+        const roomId = pinConstraintDeleteMatch[1]!;
+        const constraintId = pinConstraintDeleteMatch[2]!;
+        const docState = await config.getDoc(roomId);
+        if (!docState) {
+          sendError(res, 404, 'Document not found', 'NOT_FOUND');
+          return;
+        }
+
+        const url = new URL(req.url!, `http://${req.headers.host}`);
+        const pageId = url.searchParams.get('pageId') || getActivePageId(docState.doc);
+        const success = removePinConstraint(docState.doc, pageId, constraintId);
+
+        sendJson(res, 200, { success });
+        return;
+      }
+
+      // POST - Apply pin layout
+      const pinLayoutMatch = path.match(/^\/api\/documents\/([^/]+)\/layout\/pin$/);
+      if (pinLayoutMatch && method === 'POST') {
+        const roomId = pinLayoutMatch[1]!;
+        const docState = await config.getDoc(roomId);
+        if (!docState) {
+          sendError(res, 404, 'Document not found', 'NOT_FOUND');
+          return;
+        }
+
+        const body = await parseJsonBody<{
+          gap?: number;
+          pageId?: string;
+        }>(req);
+
+        const pageId = body.pageId || getActivePageId(docState.doc);
+        const result = applyPinLayout(docState.doc, pageId, {
+          gap: body.gap,
         });
 
         sendJson(res, 200, result);
