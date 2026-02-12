@@ -484,4 +484,52 @@ describe('Organizer Geometry Functions', () => {
       expect(result.size.height).toBe(200);
     });
   });
+
+  describe('computeOrganizerFit invariants', () => {
+    const config = DEFAULT_ORGANIZER_LAYOUT; // padding=20, headerHeight=40
+
+    it('result size always contains all children after delta adjustment', () => {
+      const children: NodeGeometry[] = [
+        { position: { x: -50, y: -20 }, width: 200, height: 100 },
+        { position: { x: 100, y: 200 }, width: 200, height: 100 },
+      ];
+
+      const result = computeOrganizerFit(children, config);
+
+      // After applying childPositionDelta, every child must be within the organizer
+      for (const child of children) {
+        const adjustedX = child.position.x + result.childPositionDelta.x;
+        const adjustedY = child.position.y + result.childPositionDelta.y;
+        const w = child.width ?? 200;
+        const h = child.height ?? 100;
+
+        expect(adjustedX).toBeGreaterThanOrEqual(0);
+        expect(adjustedY).toBeGreaterThanOrEqual(0);
+        expect(adjustedX + w).toBeLessThanOrEqual(result.size.width);
+        expect(adjustedY + h).toBeLessThanOrEqual(result.size.height);
+      }
+    });
+
+    it('positionDelta and childPositionDelta are inverse', () => {
+      const children: NodeGeometry[] = [
+        { position: { x: -30, y: -10 }, width: 200, height: 100 },
+        { position: { x: 50, y: 80 }, width: 200, height: 100 },
+      ];
+
+      const result = computeOrganizerFit(children, config);
+      expect(result.positionDelta.x + result.childPositionDelta.x).toBe(0);
+      expect(result.positionDelta.y + result.childPositionDelta.y).toBe(0);
+    });
+
+    it('children at standard positions need no delta', () => {
+      const children: NodeGeometry[] = [
+        { position: { x: 30, y: 70 }, width: 200, height: 100 },
+        { position: { x: 30, y: 190 }, width: 200, height: 100 },
+      ];
+
+      const result = computeOrganizerFit(children, config);
+      expect(result.positionDelta).toEqual({ x: 0, y: 0 });
+      expect(result.childPositionDelta).toEqual({ x: 0, y: 0 });
+    });
+  });
 });

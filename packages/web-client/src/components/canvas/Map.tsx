@@ -215,18 +215,22 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
         if (change.resizing) {
           resizingNodeIds.current.add(change.id);
         } else if (resizingNodeIds.current.has(change.id)) {
-          // Resize ended — persist dimensions to Yjs
+          // Manual resize ended — persist dimensions to Yjs
           resizingNodeIds.current.delete(change.id);
           const node = reactFlow.getNode(change.id);
           const style = node?.style as Record<string, unknown> | undefined;
           if (style && (style.width != null || style.height != null)) {
             adapter.patchNodes?.([{ id: change.id, style: { width: style.width, height: style.height } }]);
           }
+        } else if (organizerIdsRef.current.has(change.id) && change.dimensions) {
+          // expandParent (or other source) grew an organizer — persist to Yjs
+          adapter.patchNodes?.([{
+            id: change.id,
+            style: { width: change.dimensions.width, height: change.dimensions.height },
+          }]);
         }
-        // Always apply dimension changes locally (existing behavior)
-        if (!isDraggingRef.current) {
-          dimensionChanges.push(change);
-        }
+        // Always apply dimension changes locally
+        dimensionChanges.push(change);
       }
       // Selection handled by RF internally + onSelectionChange callback
     }
@@ -661,6 +665,9 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
   const organizerIds = useMemo(() => new Set(
     nodesWithHiddenFlags.filter(n => n.type === 'organizer').map(n => n.id)
   ), [nodesWithHiddenFlags]);
+
+  const organizerIdsRef = useRef(organizerIds);
+  organizerIdsRef.current = organizerIds;
 
   // Stable callback refs — update every render without triggering re-render
   const renameNodeRef = useRef(renameNode);
