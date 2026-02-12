@@ -50,16 +50,17 @@ import { useEdgeCleanup } from '../../hooks/useEdgeCleanup';
 import type { ConstructValues, ConstructNodeData, OrganizerNodeData } from '@carta/domain';
 import { nodeContainedInOrganizer, getDisplayName, resolveNodeColor } from '@carta/domain';
 import { usePresentation } from '../../hooks/usePresentation';
-import { computeEdgeAggregation, filterInvalidEdges, computeOrthogonalRoutes, type NodeRect } from '../../presentation/index';
+import { computeEdgeAggregation, filterInvalidEdges } from '../../presentation/index';
 import { useOrganizerOperations, canNestInOrganizer } from '../../hooks/useOrganizerOperations';
-import { getNodeDimensions } from '../../utils/nodeDimensions';
+// getNodeDimensions unused after disabling orthogonal routing
 import ConstructEditor from '../ConstructEditor';
 import DynamicAnchorEdge from './DynamicAnchorEdge';
 import ConstructDebugModal from '../modals/ConstructDebugModal';
 import { useEdgeBundling, type BundleData } from '../../hooks/useEdgeBundling';
 import { useFlowTrace } from '../../hooks/useFlowTrace';
-import { useLodBand } from './lod/useLodBand';
-import { ZoomDebug } from '../ui/ZoomDebug';
+// useLodBand only needed inside ConstructNode, not at Map level
+// ZoomDebug disabled — causes re-renders on every zoom/pan frame (useStore + mousemove listener)
+// import { ZoomDebug } from '../ui/ZoomDebug';
 import { useNarrative } from '../../hooks/useNarrative';
 import Narrative from './Narrative';
 import { useLayoutActions } from '../../hooks/useLayoutActions';
@@ -168,8 +169,6 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
   // Flow trace: Alt+hover to highlight forward flow
   const { traceResult, isTraceActive, onNodeMouseEnter, onNodeMouseLeave } = useFlowTrace(edges);
 
-  // LOD band for debug display
-  const lod = useLodBand();
 
   // Narrative pill for edge click info
   const { narrative, showNarrative, hideNarrative } = useNarrative();
@@ -194,8 +193,6 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
   const mapWrapperRef = useRef<HTMLDivElement>(null);
   const ctrlDragActiveRef = useRef(false);
 
-  // Route generation counter to trigger re-routing after drag
-  const [routeGeneration, setRouteGeneration] = useState(0);
 
   const onNodesChange = useCallback((changes: NodeChange[]) => {
     const dragEndChanges: NodeChange[] = [];
@@ -662,50 +659,101 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     onRenameOrganizer: (nodeId: string, newName: string) => renameOrganizerRef.current(nodeId, newName),
   }), []);
 
+  // Cache previous output so we can reuse node references when overlay data hasn't changed.
+  // This prevents RF from re-rendering all 50 nodes when only 1-2 actually changed.
+  const prevNodesCache = useRef<globalThis.Map<string, Node>>(new globalThis.Map());
+  // Stable rename callbacks for organizers — avoids new closures per render
+  const setRenamingOrganizerIdRef = useRef(setRenamingOrganizerId);
+  setRenamingOrganizerIdRef.current = setRenamingOrganizerId;
+  const orgRenameStart = useMemo(() => (id: string) => setRenamingOrganizerIdRef.current(id), []);
+  const orgRenameStop = useMemo(() => () => setRenamingOrganizerIdRef.current(null), []);
+
   const nodesWithCallbacks = useMemo(() => {
     // Pre-compute which nodes should expand their parent
     // Includes: nodes directly in organizers, AND wagons whose construct is in an organizer
     const nodeById = new globalThis.Map(nodesWithHiddenFlags.map(n => [n.id, n] as [string, Node]));
     const shouldExpandParent = (node: Node): boolean => {
       if (!node.parentId) return false;
-      // Direct child of organizer
       if (organizerIds.has(node.parentId)) return true;
-      // Wagon whose parent construct is in an organizer
       const parent = nodeById.get(node.parentId);
       if (parent?.parentId && organizerIds.has(parent.parentId)) return true;
       return false;
     };
 
-    return nodesWithHiddenFlags.map((node) => {
+    const cache = prevNodesCache.current;
+    const newCache = new globalThis.Map<string, Node>();
+
+    const result = nodesWithHiddenFlags.map((node) => {
+      const prev = cache.get(node.id);
+      const prevData = prev?.data as Record<string, unknown> | undefined;
+
       if (node.type === 'organizer') {
-        return {
+        const childCount = childCountMap[node.id] || 0;
+        const isDimmed = isTraceActive && !traceResult?.nodeDistances.has(node.id);
+        const isRenaming = renamingOrganizerId === node.id;
+
+        // Reuse previous reference if overlay data unchanged and base node unchanged
+        if (prev && prev.type === 'organizer' &&
+            prevData?.childCount === childCount &&
+            prevData?.isDimmed === isDimmed &&
+            prevData?.isRenaming === isRenaming &&
+            (prev as unknown as { _baseRef: unknown })._baseRef === node) {
+          newCache.set(node.id, prev);
+          return prev;
+        }
+
+        const newNode = {
           ...node,
           dragHandle: NODE_DRAG_HANDLE,
+          _baseRef: node, // track base node identity for cache hit detection
           data: {
             ...node.data,
-            childCount: childCountMap[node.id] || 0,
-            isDimmed: isTraceActive && !traceResult?.nodeDistances.has(node.id),
+            childCount,
+            isDimmed,
             nodeActions,
-            isRenaming: renamingOrganizerId === node.id,
-            onStartRenaming: () => setRenamingOrganizerId(node.id),
-            onStopRenaming: () => setRenamingOrganizerId(null),
+            isRenaming,
+            onStartRenaming: orgRenameStart.bind(null, node.id),
+            onStopRenaming: orgRenameStop,
           },
-        };
+        } as Node;
+        newCache.set(node.id, newNode);
+        return newNode;
       }
-      return {
+
+      // Construct node
+      const isRenaming = node.id === renamingNodeId;
+      const dimmed = isTraceActive && !traceResult?.nodeDistances.has(node.id);
+      const expandParent = shouldExpandParent(node) ? true : undefined;
+
+      if (prev && prev.type !== 'organizer' &&
+          prevData?.isRenaming === isRenaming &&
+          prevData?.dimmed === dimmed &&
+          prev.expandParent === expandParent &&
+          (prev as unknown as { _baseRef: unknown })._baseRef === node) {
+        newCache.set(node.id, prev);
+        return prev;
+      }
+
+      const newNode = {
         ...node,
         dragHandle: NODE_DRAG_HANDLE,
-        expandParent: shouldExpandParent(node) ? true : undefined,
+        expandParent,
+        _baseRef: node,
         data: {
           ...node.data,
           nodeId: node.id,
-          isRenaming: node.id === renamingNodeId,
-          dimmed: isTraceActive && !traceResult?.nodeDistances.has(node.id),
+          isRenaming,
+          dimmed,
           nodeActions,
         },
-      };
+      } as Node;
+      newCache.set(node.id, newNode);
+      return newNode;
     });
-  }, [nodesWithHiddenFlags, childCountMap, organizerIds, renamingNodeId, renamingOrganizerId, nodeActions, isTraceActive, traceResult]);
+
+    prevNodesCache.current = newCache;
+    return result;
+  }, [nodesWithHiddenFlags, childCountMap, organizerIds, renamingNodeId, renamingOrganizerId, nodeActions, isTraceActive, traceResult, orgRenameStart, orgRenameStop]);
 
   // Sort nodes: parents must come before their children (React Flow requirement)
   const sortedNodes = useMemo(() => {
@@ -839,80 +887,65 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     [nodes]
   );
 
+  // Build a stable polarity lookup: constructType → portId → polarity
+  // Only recalculates when schemas change, not on every node movement.
+  const polarityLookup = useMemo(() => {
+    const lookup = new globalThis.Map<string, globalThis.Map<string, string>>();
+    for (const schema of schemas) {
+      if (!schema.ports) continue;
+      const portMap = new globalThis.Map<string, string>();
+      for (const port of schema.ports) {
+        const portSchema = getPortSchema(port.portType);
+        if (portSchema?.polarity) {
+          portMap.set(port.id, portSchema.polarity);
+        }
+      }
+      if (portMap.size > 0) lookup.set(schema.type, portMap);
+    }
+    return lookup;
+  }, [schemas, getPortSchema]);
+
+  // Stable map: nodeId → constructType (only changes when nodes are added/removed/type changed)
+  const nodeConstructTypeMap = useMemo(() => {
+    const map = new globalThis.Map<string, string>();
+    for (const n of nodes) {
+      if (n.type === 'construct') {
+        map.set(n.id, (n.data as ConstructNodeData).constructType);
+      }
+    }
+    return map;
+  }, [nodes]);
+
   // Enrich edges with polarity data for arrowhead rendering
+  // Uses stable lookup maps to avoid depending on raw `nodes` reference
   const polarityEdges = useMemo(() => {
-    const nodeMap = new globalThis.Map(nodes.map(n => [n.id, n]));
     return filteredEdges.map(edge => {
-      // Skip non-construct edges (attachment edges, etc.)
       if ((edge.data as Record<string, unknown>)?.isAttachmentEdge) return edge;
 
-      const sourceNode = nodeMap.get(edge.source);
-      if (!sourceNode || sourceNode.type !== 'construct') return edge;
-      const sourceData = sourceNode.data as ConstructNodeData;
-      const sourceSchema = getSchema(sourceData.constructType);
-      if (!sourceSchema) return edge;
+      const constructType = nodeConstructTypeMap.get(edge.source);
+      if (!constructType) return edge;
 
-      const portConfig = sourceSchema.ports?.find(p => p.id === edge.sourceHandle);
-      if (!portConfig) return edge;
-      const portSchema = getPortSchema(portConfig.portType);
-      if (!portSchema) return edge;
+      const portMap = polarityLookup.get(constructType);
+      if (!portMap) return edge;
+
+      const polarity = edge.sourceHandle ? portMap.get(edge.sourceHandle) : undefined;
+      if (!polarity) return edge;
 
       return {
         ...edge,
-        data: { ...edge.data, polarity: portSchema.polarity },
+        data: { ...edge.data, polarity },
       };
     });
-  }, [filteredEdges, nodes, getSchema, getPortSchema]);
+  }, [filteredEdges, nodeConstructTypeMap, polarityLookup]);
 
   // Edge bundling: collapse parallel edges between same node pairs
   const { displayEdges, bundleMap } = useEdgeBundling(polarityEdges, nodeTypeMap);
   bundleMapRef.current = bundleMap;
 
-  // Orthogonal routing: compute waypoints for edges to route around obstacles
-  const routedEdges = useMemo(() => {
-    // Skip routing during drag
-    if (isDraggingRef.current) return displayEdges;
-
-    // Build obstacle rects from visible nodes (both constructs and organizers)
-    const obstacles: NodeRect[] = sortedNodes
-      .filter(n => !n.hidden && (n.type === 'construct' || n.type === 'organizer'))
-      .map(n => {
-        const dims = getNodeDimensions(n);
-        // Use absolute position if available, otherwise relative position
-        const position = (n as { internals?: { positionAbsolute?: { x: number; y: number } } }).internals?.positionAbsolute ?? n.position;
-        return {
-          id: n.id,
-          x: position.x,
-          y: position.y,
-          width: dims.width,
-          height: dims.height,
-        };
-      });
-
-    // Build edge inputs (only for non-attachment edges)
-    const edgeInputs = displayEdges
-      .filter(e => {
-        const dataRecord = e.data as Record<string, unknown> | undefined;
-        return !(dataRecord?.isAttachmentEdge === true);
-      })
-      .map(e => {
-        const srcObs = obstacles.find(o => o.id === e.source);
-        const tgtObs = obstacles.find(o => o.id === e.target);
-        if (!srcObs || !tgtObs) return null;
-        return { id: e.id, sourceRect: srcObs, targetRect: tgtObs };
-      })
-      .filter((input): input is { id: string; sourceRect: NodeRect; targetRect: NodeRect } => input !== null);
-
-    // Compute routes
-    const routes = computeOrthogonalRoutes(edgeInputs, obstacles);
-
-    // Inject waypoints into edge data
-    return displayEdges.map(e => {
-      const route = routes.get(e.id);
-      if (!route || route.waypoints.length < 2) return e;
-      return { ...e, data: { ...e.data, waypoints: route.waypoints } };
-    });
-  }, [displayEdges, sortedNodes, routeGeneration]);
+  // Orthogonal routing disabled — A* per-edge is O(edges * obstacles²) and fires
+  // on every state change because sortedNodes creates new references.
+  // TODO: re-enable with debounced/incremental routing that doesn't block the main thread.
+  const routedEdges = displayEdges;
 
   // Sync cascade output to RF's internal store (uncontrolled mode)
   const initialRender = useRef(true);
@@ -922,13 +955,20 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
       initialRender.current = false;
       return; // defaultNodes/defaultEdges handle initial render
     }
-    // Preserve RF's current selection state (cascade output doesn't track it)
-    const rfNodes = reactFlow.getNodes();
-    const selectedIds = new Set(rfNodes.filter(n => n.selected).map(n => n.id));
-    reactFlow.setNodes(sortedNodes.map(n => ({
-      ...n,
-      selected: selectedIds.has(n.id),
-    })));
+    // Functional update: merge new data while preserving RF-managed selection state.
+    // Only creates new objects for nodes where selection actually differs.
+    reactFlow.setNodes(prevNodes => {
+      const prevMap = new globalThis.Map(prevNodes.map(n => [n.id, n] as [string, Node]));
+      return sortedNodes.map(n => {
+        const prev = prevMap.get(n.id);
+        if (!prev) return n;
+        // If the node reference is the same (from cache) and selection matches, keep prev
+        if (prev === n) return prev;
+        // Preserve selection from RF's internal state
+        if (prev.selected) return { ...n, selected: true };
+        return n;
+      });
+    });
   }, [sortedNodes, reactFlow]);
 
   useEffect(() => {
@@ -1092,9 +1132,6 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
 
     // Clear Ctrl+drag visual feedback
     ctrlDragActiveRef.current = false;
-
-    // Trigger route recalculation after drag
-    setRouteGeneration(g => g + 1);
     mapWrapperRef.current?.classList.remove('ctrl-dragging');
 
     // Cancel any pending rAF
@@ -1141,16 +1178,11 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
   // Suppress unused - will be used for organizer selection via context menu
   void handleSelectOrganizer;
 
-  // Count organizers for debug display
-  const organizerCount = useMemo(() => nodes.filter(n => n.type === 'organizer').length, [nodes]);
-  const debugLines = useMemo(() => [
-    `LOD: ${lod.band}`,
-    `Organizers: ${organizerCount} | Nodes: ${sortedNodes.length}`,
-  ], [lod.band, organizerCount, sortedNodes.length]);
+  // Debug display disabled for performance (ZoomDebug re-renders on every zoom/pan frame)
 
   return (
     <div ref={mapWrapperRef} className="w-full h-full relative" style={{ backgroundColor: 'var(--color-canvas)' }}>
-      <ZoomDebug debugLines={debugLines} />
+      {/* ZoomDebug removed — re-renders every frame during zoom/pan */}
       <ReactFlow
         defaultNodes={sortedNodes}
         defaultEdges={displayEdges}
@@ -1276,7 +1308,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
           </div>
         )}
 
-        <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
+        <Background variant={BackgroundVariant.Dots} gap={16} size={1} color="var(--color-dot-grid)" />
         {/* Arrow marker definitions for directional edges */}
         <svg style={{ position: 'absolute', width: 0, height: 0 }}>
           <defs>

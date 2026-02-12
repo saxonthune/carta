@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react';
-import { Handle, Position, useConnection, useNodeId } from '@xyflow/react';
+import { memo, useRef, useState } from 'react';
+import { Handle, Position } from '@xyflow/react';
 import { getPortColor } from '@carta/domain';
 import type { PortConfig } from '@carta/domain';
 
@@ -24,25 +24,18 @@ interface PortDrawerProps {
  * with the invisible anchor handles on the node body. The prefix is stripped
  * in onConnect so persistent edges reference the clean port ID.
  */
-export default function PortDrawer({ ports, colorPickerPolicy, baseColor, instanceColor, onColorChange }: PortDrawerProps) {
+export default memo(function PortDrawer({ ports, colorPickerPolicy, baseColor, instanceColor, onColorChange }: PortDrawerProps) {
   const [expanded, setExpanded] = useState(false);
-  const connection = useConnection();
-  const nodeId = useNodeId();
   const colorInputRef = useRef<HTMLInputElement>(null);
 
   const showColorDropper = onColorChange && colorPickerPolicy && colorPickerPolicy !== 'defaultOnly';
-
-  // Keep drawer open while dragging from this node's drawer
-  const isDraggingFromHere = connection.inProgress && connection.fromNode?.id === nodeId;
 
   if (ports.length === 0) return null;
 
   return (
     <div
       className="relative w-full"
-      onMouseLeave={() => {
-        if (!isDraggingFromHere) setExpanded(false);
-      }}
+      onMouseLeave={() => setExpanded(false)}
     >
       {/* Hover trigger zone — sits below node boundary, clear of resize handles */}
       <div
@@ -145,4 +138,4 @@ export default function PortDrawer({ ports, colorPickerPolicy, baseColor, instan
       )}
     </div>
   );
-}
+})

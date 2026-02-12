@@ -2,8 +2,6 @@ import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import {
   ReactFlowProvider,
   ReactFlow,
-  Background,
-  BackgroundVariant,
   type Node,
   type Edge,
   type NodeChange,
@@ -40,7 +38,7 @@ import { usePresentation } from '../../hooks/usePresentation';
 import { useEdgeBundling } from '../../hooks/useEdgeBundling';
 import { useNarrative } from '../../hooks/useNarrative';
 import { useSchemaUndoRedo } from '../../hooks/useSchemaUndoRedo';
-import { ZoomDebug } from '../ui/ZoomDebug';
+// ZoomDebug disabled for performance
 import type { MetamapLayoutDirection } from '../../utils/metamapLayout';
 import type { ConstructSchema, SuggestedRelatedConstruct } from '@carta/domain';
 import { portRegistry, nodeContainedInOrganizer } from '@carta/domain';
@@ -822,7 +820,7 @@ function MetamapInner({ filterText }: MetamapInnerProps) {
   return (
     <div ref={containerRef} className="w-full h-full relative overflow-hidden">
       <div className="metamap-bg absolute inset-0 pointer-events-none" />
-      <ZoomDebug position="top-left" />
+      {/* ZoomDebug removed — re-renders every frame during zoom/pan */}
       <ReactFlow
         nodes={nodes}
         edges={displayEdges}
@@ -887,7 +885,7 @@ function MetamapInner({ filterText }: MetamapInnerProps) {
           </div>
         )}
 
-        <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
+        {/* Custom metamap-bg cross pattern is used instead of RF dots */}
       </ReactFlow>
       <Narrative narrative={narrative} onDismiss={hideNarrative} />
       {connectionModal && (
