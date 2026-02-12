@@ -930,14 +930,8 @@ export function flowLayout(
           };
           ynode.set('position', deepPlainToY(finalPos));
 
-          // Apply size
-          const style = ynode.get('style') as Y.Map<unknown> | undefined;
-          if (style) {
-            style.set('width', size.width);
-            style.set('height', size.height);
-          } else {
-            ynode.set('style', deepPlainToY({ width: size.width, height: size.height }));
-          }
+          // Apply size — always replace whole style to avoid Y.Map type mismatch
+          ynode.set('style', deepPlainToY({ width: size.width, height: size.height }));
           updated++;
         }
       }
@@ -1069,26 +1063,149 @@ export function arrangeLayout(
   }
 ): { updated: number; constraintsApplied: number } {
   const pageNodes = getPageMap(ydoc, 'nodes', pageId);
+  const pageEdges = getPageMap(ydoc, 'edges', pageId);
 
-  // 1. Get all constructs (filter to top-level only, no organizer children)
-  const allNodes = listConstructs(ydoc, pageId);
-  const topLevelNodes = allNodes.filter(n => !n.parentId && n.type === 'construct');
+  // PHASE 1: Gather data and partition nodes
+  const allConstructs = listConstructs(ydoc, pageId);
+  const allOrganizers = listOrganizers(ydoc, pageId);
 
-  // 2. Filter by scope if requested
-  let nodesToLayout = topLevelNodes;
-  if (options.scope && Array.isArray(options.scope)) {
-    const scopeSet = new Set(options.scope);
-    nodesToLayout = topLevelNodes.filter(n => scopeSet.has(n.data.semanticId));
+  // Partition constructs
+  const topLevelConstructs = allConstructs.filter(n => !n.parentId && n.type === 'construct');
+
+  // Build organizerMembers map: organize by parentId where parent is non-wagon organizer
+  const organizerMembers = new Map<string, CompilerNode[]>();
+  for (const construct of allConstructs) {
+    if (construct.parentId) {
+      const parent = allOrganizers.find(org => org.id === construct.parentId);
+      // Only include if parent is a non-wagon organizer
+      if (parent && !parent.attachedToSemanticId) {
+        const members = organizerMembers.get(construct.parentId) || [];
+        members.push(construct);
+        organizerMembers.set(construct.parentId, members);
+      }
+    }
   }
 
-  if (nodesToLayout.length === 0) {
+  // Filter organizers to non-wagon, non-collapsed organizers that have members
+  const participatingOrganizers = allOrganizers.filter(org =>
+    !org.attachedToSemanticId &&
+    !org.collapsed &&
+    organizerMembers.has(org.id)
+  );
+
+  // Apply scope filtering
+  let scopedTopLevelConstructs = topLevelConstructs;
+  let scopedParticipatingOrganizers = participatingOrganizers;
+
+  if (options.scope && Array.isArray(options.scope)) {
+    const scopeSet = new Set(options.scope);
+
+    // Filter top-level constructs by scope
+    scopedTopLevelConstructs = topLevelConstructs.filter(n => scopeSet.has(n.data.semanticId));
+
+    // Filter organizers: include if at least one member is in scope
+    scopedParticipatingOrganizers = participatingOrganizers.filter(org => {
+      const members = organizerMembers.get(org.id) || [];
+      return members.some(m => scopeSet.has(m.data.semanticId));
+    });
+
+    // Filter member lists to only scoped members
+    for (const [orgId, members] of organizerMembers.entries()) {
+      organizerMembers.set(orgId, members.filter(m => scopeSet.has(m.data.semanticId)));
+    }
+  }
+
+  if (scopedTopLevelConstructs.length === 0 && scopedParticipatingOrganizers.length === 0) {
     return { updated: 0, constraintsApplied: 0 };
   }
 
-  // 3. Compute layout unit sizes (construct + wagon tree bounding boxes)
+  // PHASE 2: Internal layout pass (per organizer)
+  const internalPositions = new Map<string, Map<string, { x: number; y: number }>>();
+  const organizerSizes = new Map<string, { width: number; height: number }>();
+  const organizerPositionDeltas = new Map<string, { x: number; y: number }>();
+
+  for (const organizer of scopedParticipatingOrganizers) {
+    const members = organizerMembers.get(organizer.id) || [];
+    if (members.length === 0) continue;
+
+    // Build ArrangeInput[] from members using absolute positions
+    const memberInputs: ArrangeInput[] = members.map(m => {
+      const absPos = toAbsolutePosition(m.position, organizer.position);
+      return {
+        id: m.id,
+        semanticId: m.data.semanticId,
+        constructType: m.data.constructType,
+        values: m.data.values ?? {},
+        x: absPos.x,
+        y: absPos.y,
+        width: 200,
+        height: 100,
+      };
+    });
+
+    // Collect internal edges (both endpoints are members)
+    const memberIds = new Set(members.map(m => m.id));
+    const internalEdges: ArrangeEdge[] = [];
+
+    pageEdges.forEach((yedge) => {
+      const source = yedge.get('source') as string;
+      const target = yedge.get('target') as string;
+      const sourceHandle = yedge.get('sourceHandle') as string | undefined;
+      const targetHandle = yedge.get('targetHandle') as string | undefined;
+
+      if (memberIds.has(source) && memberIds.has(target)) {
+        internalEdges.push({
+          sourceId: source,
+          targetId: target,
+          sourcePortId: sourceHandle ?? '',
+          targetPortId: targetHandle ?? '',
+        });
+      }
+    });
+
+    // Run arrange layout on internal members
+    const internalResult = computeArrangeLayout(memberInputs, {
+      strategy: options.strategy ?? 'preserve',
+      constraints: options.constraints,
+      nodeGap: options.nodeGap,
+      edges: internalEdges,
+      forceIterations: options.forceIterations,
+    });
+
+    // Convert absolute positions back to relative positions for storage
+    const relativePositions = new Map<string, { x: number; y: number }>();
+    for (const [memberId, absPos] of internalResult.positions) {
+      const relPos = toRelativePosition(absPos, organizer.position);
+      relativePositions.set(memberId, relPos);
+    }
+
+    // Compute organizer size needed for internal layout
+    const memberGeometries = Array.from(relativePositions.entries()).map(([, pos]) => ({
+      position: pos,
+      width: 200,
+      height: 100,
+    }));
+
+    const fitResult = computeOrganizerFit(memberGeometries, DEFAULT_ORGANIZER_LAYOUT);
+
+    // Adjust relative positions by childPositionDelta
+    for (const [memberId, relPos] of relativePositions.entries()) {
+      relativePositions.set(memberId, {
+        x: relPos.x + fitResult.childPositionDelta.x,
+        y: relPos.y + fitResult.childPositionDelta.y,
+      });
+    }
+
+    // Store for later
+    internalPositions.set(organizer.id, relativePositions);
+    organizerSizes.set(organizer.id, fitResult.size);
+    organizerPositionDeltas.set(organizer.id, fitResult.positionDelta);
+  }
+
+  // PHASE 3: Top-level layout
   const wagons = getWagonInfos(ydoc, pageId);
-  const constructSizes = computeLayoutUnitSizes(
-    nodesToLayout.map(n => ({
+  const topLevelConstructSizes = computeLayoutUnitSizes(
+    scopedTopLevelConstructs.map(n => ({
       id: n.id,
       semanticId: n.data.semanticId,
       x: n.position.x,
@@ -1099,63 +1216,152 @@ export function arrangeLayout(
     wagons,
   );
 
-  // 4. Build ArrangeInput[] with computed sizes
-  const arrangeInputs: ArrangeInput[] = nodesToLayout.map(n => {
-    const unitSize = constructSizes.get(n.id);
-    return {
-      id: n.id,
-      semanticId: n.data.semanticId,
-      constructType: n.data.constructType,
-      values: n.data.values ?? {},
-      x: n.position.x,
-      y: n.position.y,
+  // Build top-level layout graph
+  const topLevelInputs: ArrangeInput[] = [];
+
+  // Add top-level constructs
+  for (const construct of scopedTopLevelConstructs) {
+    const unitSize = topLevelConstructSizes.get(construct.id);
+    topLevelInputs.push({
+      id: construct.id,
+      semanticId: construct.data.semanticId,
+      constructType: construct.data.constructType,
+      values: construct.data.values ?? {},
+      x: construct.position.x,
+      y: construct.position.y,
       width: unitSize?.width ?? 200,
       height: unitSize?.height ?? 100,
-    };
-  });
+    });
+  }
 
-  // 5. Build ArrangeEdge[] from page edges (needed for flow constraint and force strategy)
-  const pageEdges = getPageMap(ydoc, 'edges', pageId);
-  const arrangeEdges: ArrangeEdge[] = [];
-  const nodeIdSet = new Set(arrangeInputs.map(n => n.id));
+  // Add organizers as composite nodes
+  for (const organizer of scopedParticipatingOrganizers) {
+    const size = organizerSizes.get(organizer.id);
+    if (size) {
+      topLevelInputs.push({
+        id: organizer.id,
+        semanticId: organizer.id, // organizers don't have semanticIds
+        constructType: 'organizer',
+        values: {},
+        x: organizer.position.x,
+        y: organizer.position.y,
+        width: size.width,
+        height: size.height,
+      });
+    }
+  }
+
+  // Build memberToOrganizer lookup
+  const memberToOrganizer = new Map<string, string>();
+  for (const organizer of scopedParticipatingOrganizers) {
+    const members = organizerMembers.get(organizer.id) || [];
+    for (const member of members) {
+      memberToOrganizer.set(member.id, organizer.id);
+    }
+  }
+
+  // Build top-level edges with remapping
+  const topLevelEdges: ArrangeEdge[] = [];
+  const edgeSet = new Set<string>(); // for deduplication
+
   pageEdges.forEach((yedge) => {
     const source = yedge.get('source') as string;
     const target = yedge.get('target') as string;
     const sourceHandle = yedge.get('sourceHandle') as string | undefined;
     const targetHandle = yedge.get('targetHandle') as string | undefined;
-    if (nodeIdSet.has(source) && nodeIdSet.has(target)) {
-      arrangeEdges.push({
-        sourceId: source,
-        targetId: target,
-        sourcePortId: sourceHandle ?? '',
-        targetPortId: targetHandle ?? '',
-      });
+
+    // Remap to organizers if needed
+    const effectiveSource = memberToOrganizer.get(source) ?? source;
+    const effectiveTarget = memberToOrganizer.get(target) ?? target;
+
+    // Skip internal edges (both endpoints in same organizer)
+    if (effectiveSource === effectiveTarget && memberToOrganizer.has(source)) {
+      return;
+    }
+
+    // Only include if both endpoints are in top-level graph
+    const topLevelIds = new Set(topLevelInputs.map(n => n.id));
+    if (topLevelIds.has(effectiveSource) && topLevelIds.has(effectiveTarget)) {
+      const edgeKey = `${effectiveSource}-${effectiveTarget}-${sourceHandle ?? ''}`;
+      if (!edgeSet.has(edgeKey)) {
+        edgeSet.add(edgeKey);
+        topLevelEdges.push({
+          sourceId: effectiveSource,
+          targetId: effectiveTarget,
+          sourcePortId: sourceHandle ?? '',
+          targetPortId: targetHandle ?? '',
+        });
+      }
     }
   });
 
-  // 6. Call computeArrangeLayout
-  const result = computeArrangeLayout(arrangeInputs, {
+  // Call computeArrangeLayout on top-level graph
+  const topLevelResult = computeArrangeLayout(topLevelInputs, {
     strategy: options.strategy ?? 'preserve',
     constraints: options.constraints,
     nodeGap: options.nodeGap,
-    edges: arrangeEdges,
+    edges: topLevelEdges,
     forceIterations: options.forceIterations,
   });
 
-  // 7. Apply positions in a transaction
+  // PHASE 4: Apply positions
+  let updated = 0;
+
   ydoc.transact(() => {
-    for (const [nodeId, pos] of result.positions) {
-      const ynode = pageNodes.get(nodeId);
-      if (ynode) {
-        ynode.set('position', deepPlainToY({ x: pos.x, y: pos.y }));
+    // Apply top-level construct positions
+    for (const construct of scopedTopLevelConstructs) {
+      const pos = topLevelResult.positions.get(construct.id);
+      if (pos) {
+        const ynode = pageNodes.get(construct.id);
+        if (ynode) {
+          ynode.set('position', deepPlainToY({ x: pos.x, y: pos.y }));
+          updated++;
+        }
+      }
+    }
+
+    // Apply organizer positions and sizes
+    for (const organizer of scopedParticipatingOrganizers) {
+      const pos = topLevelResult.positions.get(organizer.id);
+      const size = organizerSizes.get(organizer.id);
+      const delta = organizerPositionDeltas.get(organizer.id);
+
+      if (pos && size && delta) {
+        const ynode = pageNodes.get(organizer.id);
+        if (ynode) {
+          // Apply position with delta adjustment
+          const finalPos = {
+            x: pos.x + delta.x,
+            y: pos.y + delta.y,
+          };
+          ynode.set('position', deepPlainToY(finalPos));
+
+          // Apply size — always replace whole style to avoid Y.Map type mismatch
+          ynode.set('style', deepPlainToY({ width: size.width, height: size.height }));
+          updated++;
+        }
+      }
+    }
+
+    // Apply member positions (relative within organizers)
+    for (const organizer of scopedParticipatingOrganizers) {
+      const memberPositions = internalPositions.get(organizer.id);
+      if (memberPositions) {
+        for (const [memberId, relPos] of memberPositions.entries()) {
+          const ynode = pageNodes.get(memberId);
+          if (ynode) {
+            ynode.set('position', deepPlainToY(relPos));
+            updated++;
+          }
+        }
       }
     }
   }, MCP_ORIGIN);
 
-  // 8. Return results
+  // Return results
   return {
-    updated: result.positions.size,
-    constraintsApplied: result.constraintsApplied,
+    updated,
+    constraintsApplied: topLevelResult.constraintsApplied,
   };
 }
 
