@@ -53,7 +53,15 @@ interface ConstructEditorProps {
 }
 
 export default function ConstructEditor({ editSchema, onClose }: ConstructEditorProps) {
-  const { addSchema, updateSchema, getSchema } = useSchemas();
+  const {
+    addSchema,
+    updateSchema,
+    getSchema,
+    renameField,
+    removeField,
+    addFieldToSchema,
+    changeFieldType,
+  } = useSchemas();
   const { portSchemas, addPortSchema } = usePortSchemas();
   const { schemaGroups } = useSchemaGroups();
   const isEditMode = !!editSchema;
@@ -65,6 +73,21 @@ export default function ConstructEditor({ editSchema, onClose }: ConstructEditor
   );
   const [portsInitialized, setPortsInitialized] = useState(!!editSchema);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // In edit mode, sync formData with live schema for structural changes (fields)
+  useEffect(() => {
+    if (isEditMode && editSchema) {
+      const liveSchema = getSchema(editSchema.type);
+      if (liveSchema) {
+        // Only update fields (structural), keep local edits for non-structural
+        setFormData(prev => ({
+          ...prev,
+          fields: liveSchema.fields,
+        }));
+        setFieldAssignments(initFieldAssignments(liveSchema));
+      }
+    }
+  }, [isEditMode, editSchema, getSchema]);
 
   // Close on Escape
   useEffect(() => {
@@ -141,6 +164,43 @@ export default function ConstructEditor({ editSchema, onClose }: ConstructEditor
     }
   };
 
+  // Migration callbacks for edit mode
+  const handleRenameField = useCallback((oldName: string, newName: string) => {
+    if (!editSchema) return;
+    try {
+      renameField(editSchema.type, oldName, newName);
+    } catch (error) {
+      alert(`Failed to rename field: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }, [editSchema, renameField]);
+
+  const handleRemoveField = useCallback((fieldName: string) => {
+    if (!editSchema) return;
+    try {
+      removeField(editSchema.type, fieldName);
+    } catch (error) {
+      alert(`Failed to remove field: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }, [editSchema, removeField]);
+
+  const handleAddField = useCallback((field: FieldSchema, defaultValue?: unknown) => {
+    if (!editSchema) return;
+    try {
+      addFieldToSchema(editSchema.type, field, defaultValue);
+    } catch (error) {
+      alert(`Failed to add field: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }, [editSchema, addFieldToSchema]);
+
+  const handleChangeFieldType = useCallback((fieldName: string, newType: string, enumOptions?: string[]) => {
+    if (!editSchema) return;
+    try {
+      changeFieldType(editSchema.type, fieldName, newType, { enumOptions });
+    } catch (error) {
+      alert(`Failed to change field type: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }, [editSchema, changeFieldType]);
+
   return (
     <div
       className="fixed top-12 bottom-6 left-0 right-0 z-30 bg-black/50 flex items-center justify-center p-6"
@@ -191,6 +251,11 @@ export default function ConstructEditor({ editSchema, onClose }: ConstructEditor
                     setFormData={setFormData}
                     fieldAssignments={fieldAssignments}
                     setFieldAssignments={setFieldAssignments}
+                    isEditMode={isEditMode}
+                    onRenameField={isEditMode ? handleRenameField : undefined}
+                    onRemoveField={isEditMode ? handleRemoveField : undefined}
+                    onAddField={isEditMode ? handleAddField : undefined}
+                    onChangeFieldType={isEditMode ? handleChangeFieldType : undefined}
                   />
                 )}
                 {activeTab === 'ports' && (

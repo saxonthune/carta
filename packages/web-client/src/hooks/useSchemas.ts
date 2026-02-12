@@ -1,6 +1,14 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useDocumentContext } from '../contexts/DocumentContext';
-import type { ConstructSchema } from '@carta/domain';
+import type { ConstructSchema, FieldSchema } from '@carta/domain';
+import {
+  renameField as renameFieldOp,
+  removeField as removeFieldOp,
+  addField as addFieldOp,
+  changeFieldType as changeFieldTypeOp,
+  narrowEnumOptions as narrowEnumOptionsOp,
+  type MigrationResult,
+} from '@carta/document';
 
 /**
  * Focused hook for schema state and operations.
@@ -58,5 +66,59 @@ export function useSchemas() {
     [adapter]
   );
 
-  return { schemas, schemaById, getSchema, setSchemas, addSchema, updateSchema, removeSchema };
+  // Migration operations for field evolution
+  const renameField = useCallback(
+    (schemaType: string, oldName: string, newName: string): MigrationResult => {
+      const ydoc = (adapter as unknown as { ydoc: import('yjs').Doc }).ydoc;
+      return renameFieldOp(ydoc, schemaType, oldName, newName, 'user');
+    },
+    [adapter]
+  );
+
+  const removeField = useCallback(
+    (schemaType: string, fieldName: string): MigrationResult => {
+      const ydoc = (adapter as unknown as { ydoc: import('yjs').Doc }).ydoc;
+      return removeFieldOp(ydoc, schemaType, fieldName, 'user');
+    },
+    [adapter]
+  );
+
+  const addFieldToSchema = useCallback(
+    (schemaType: string, field: FieldSchema, defaultValue?: unknown): MigrationResult => {
+      const ydoc = (adapter as unknown as { ydoc: import('yjs').Doc }).ydoc;
+      return addFieldOp(ydoc, schemaType, field as unknown as Record<string, unknown>, defaultValue, 'user');
+    },
+    [adapter]
+  );
+
+  const changeFieldType = useCallback(
+    (schemaType: string, fieldName: string, newType: string, options?: { force?: boolean; enumOptions?: string[] }): MigrationResult => {
+      const ydoc = (adapter as unknown as { ydoc: import('yjs').Doc }).ydoc;
+      return changeFieldTypeOp(ydoc, schemaType, fieldName, newType, options, 'user');
+    },
+    [adapter]
+  );
+
+  const narrowEnumOptions = useCallback(
+    (schemaType: string, fieldName: string, newOptions: string[], valueMapping?: Record<string, string>): MigrationResult => {
+      const ydoc = (adapter as unknown as { ydoc: import('yjs').Doc }).ydoc;
+      return narrowEnumOptionsOp(ydoc, schemaType, fieldName, newOptions, valueMapping, 'user');
+    },
+    [adapter]
+  );
+
+  return {
+    schemas,
+    schemaById,
+    getSchema,
+    setSchemas,
+    addSchema,
+    updateSchema,
+    removeSchema,
+    renameField,
+    removeField,
+    addFieldToSchema,
+    changeFieldType,
+    narrowEnumOptions,
+  };
 }

@@ -26,9 +26,24 @@ interface FieldsStepProps {
   setFormData: React.Dispatch<React.SetStateAction<ConstructSchema>>;
   fieldAssignments: Map<string, { tier: DisplayTier | undefined; order: number }>;
   setFieldAssignments: React.Dispatch<React.SetStateAction<Map<string, { tier: DisplayTier | undefined; order: number }>>>;
+  isEditMode?: boolean;
+  onRenameField?: (oldName: string, newName: string) => void;
+  onRemoveField?: (fieldName: string) => void;
+  onAddField?: (field: FieldSchema, defaultValue?: unknown) => void;
+  onChangeFieldType?: (fieldName: string, newType: string, enumOptions?: string[]) => void;
 }
 
-export default function FieldsStep({ formData, setFormData, fieldAssignments, setFieldAssignments }: FieldsStepProps) {
+export default function FieldsStep({
+  formData,
+  setFormData,
+  fieldAssignments,
+  setFieldAssignments,
+  isEditMode = false,
+  onRenameField,
+  onRemoveField: onRemoveFieldCallback,
+  onAddField: onAddFieldCallback,
+  onChangeFieldType,
+}: FieldsStepProps) {
   const [activeField, setActiveField] = useState<FieldSchema | null>(null);
   const [editingFieldIndex, setEditingFieldIndex] = useState<number | null>(null);
   const [addingField, setAddingField] = useState(false);
@@ -144,20 +159,37 @@ export default function FieldsStep({ formData, setFormData, fieldAssignments, se
 
   // --- Field CRUD ---
   const addField = () => {
-    const newField: FieldSchema = {
-      name: `field_${formData.fields.length + 1}`,
-      label: '',
-      type: 'string',
-    };
-    setFormData(prev => ({ ...prev, fields: [...prev.fields, newField] }));
-    // Default new fields to unassigned (inspector only)
-    setFieldAssignments(prev => {
-      const next = new Map(prev);
-      next.set(newField.name, { tier: undefined, order: prev.size });
-      return next;
-    });
-    setAddingField(true);
-    setEditingFieldIndex(formData.fields.length);
+    if (isEditMode && onAddFieldCallback) {
+      // In edit mode, open the modal to create a field, then call migration
+      const newField: FieldSchema = {
+        name: `field_${formData.fields.length + 1}`,
+        label: '',
+        type: 'string',
+      };
+      setFormData(prev => ({ ...prev, fields: [...prev.fields, newField] }));
+      setFieldAssignments(prev => {
+        const next = new Map(prev);
+        next.set(newField.name, { tier: undefined, order: prev.size });
+        return next;
+      });
+      setAddingField(true);
+      setEditingFieldIndex(formData.fields.length);
+    } else {
+      // Creation mode: local state mutation
+      const newField: FieldSchema = {
+        name: `field_${formData.fields.length + 1}`,
+        label: '',
+        type: 'string',
+      };
+      setFormData(prev => ({ ...prev, fields: [...prev.fields, newField] }));
+      setFieldAssignments(prev => {
+        const next = new Map(prev);
+        next.set(newField.name, { tier: undefined, order: prev.size });
+        return next;
+      });
+      setAddingField(true);
+      setEditingFieldIndex(formData.fields.length);
+    }
   };
 
   const updateFieldAt = (index: number, updates: Partial<FieldSchema>) => {
@@ -165,6 +197,16 @@ export default function FieldsStep({ formData, setFormData, fieldAssignments, se
     if (updates.label !== undefined) {
       updates.name = toSnakeCase(updates.label);
     }
+
+    // In edit mode, if adding a new field, we need to track it until saved
+    const isAddingNewField = isEditMode && addingField && index === editingFieldIndex;
+
+    // Handle type changes in edit mode (call migration)
+    if (isEditMode && !isAddingNewField && updates.type && updates.type !== oldField.type && onChangeFieldType) {
+      const enumOptions = updates.type === 'enum' ? (updates.options?.map(o => o.value) || []) : undefined;
+      onChangeFieldType(oldField.name, updates.type, enumOptions);
+    }
+
     setFormData(prev => {
       const updated = {
         ...prev,
@@ -207,11 +249,26 @@ export default function FieldsStep({ formData, setFormData, fieldAssignments, se
         }
         return next;
       });
+
+      // In edit mode, call rename migration (unless we're adding a new field)
+      if (isEditMode && !isAddingNewField && onRenameField) {
+        onRenameField(oldField.name, updates.name);
+      }
     }
   };
 
   const removeField = (index: number) => {
     const field = formData.fields[index];
+
+    // In edit mode, call migration operation
+    if (isEditMode && onRemoveFieldCallback) {
+      if (window.confirm(`Remove field "${field.label || field.name}"? This will delete the field from the schema and remove all instance data.`)) {
+        onRemoveFieldCallback(field.name);
+      }
+      return;
+    }
+
+    // Creation mode: local state mutation
     setFormData(prev => {
       const updated = { ...prev, fields: prev.fields.filter((_, i) => i !== index) };
       // If the removed field was the enum color field, reset color mode
@@ -238,7 +295,22 @@ export default function FieldsStep({ formData, setFormData, fieldAssignments, se
     if (addingField && editingFieldIndex !== null) {
       const field = formData.fields[editingFieldIndex];
       if (field && !field.label.trim()) {
-        removeField(editingFieldIndex);
+        // Remove from local state (creation mode) or just don't save (edit mode)
+        if (!isEditMode) {
+          removeField(editingFieldIndex);
+        } else {
+          // Just remove from local state - it was never migrated
+          setFormData(prev => ({ ...prev, fields: prev.fields.filter((_, i) => i !== editingFieldIndex) }));
+          setFieldAssignments(prev => {
+            const next = new Map(prev);
+            next.delete(field.name);
+            return next;
+          });
+        }
+      } else if (isEditMode && onAddFieldCallback && field) {
+        // Save the new field via migration
+        const defaultValue = field.default;
+        onAddFieldCallback(field, defaultValue);
       }
     }
     setEditingFieldIndex(null);
