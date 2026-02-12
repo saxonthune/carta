@@ -26,6 +26,7 @@ import {
   CopySimple,
   Trash,
   Warning,
+  GridFour,
 } from '@phosphor-icons/react';
 import { useNodes } from '../../hooks/useNodes';
 import { useEdges } from '../../hooks/useEdges';
@@ -65,6 +66,7 @@ import { useNarrative } from '../../hooks/useNarrative';
 import Narrative from './Narrative';
 import { useLayoutActions } from '../../hooks/useLayoutActions';
 import ToolbarLayoutFlyouts from './ToolbarLayoutFlyouts';
+import LayoutView from './LayoutView';
 
 const nodeTypes = {
   custom: CustomNode,
@@ -294,6 +296,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
   const [selectionModeActive, setSelectionModeActive] = useState(false);
   const [renamingNodeId, setRenamingNodeId] = useState<string | null>(null);
   const [renamingOrganizerId, setRenamingOrganizerId] = useState<string | null>(null);
+  const [showLayoutView, setShowLayoutView] = useState(false);
   const { undo, redo, canUndo, canRedo } = useUndoRedo();
 
   // Suppress unused variable warning
@@ -1323,6 +1326,16 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
           )}
         </Controls>
 
+        {/* Layout view toggle — bottom left */}
+        <Tooltip content="Layout View">
+          <button
+            onClick={() => setShowLayoutView(true)}
+            className="absolute bottom-4 left-4 z-10 w-10 h-10 rounded-full bg-surface shadow-lg border border-border flex items-center justify-center text-content-muted hover:text-content hover:bg-surface-elevated transition-colors"
+          >
+            <GridFour weight="bold" size={18} />
+          </button>
+        </Tooltip>
+
         {/* Covered nodes warning badge */}
         {coveredNodeIds.length > 0 && (
           <div className="absolute top-[14px] left-[52px]">
@@ -1447,6 +1460,13 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
       })()}
 
       <Narrative narrative={narrative} onDismiss={hideNarrative} />
+
+      {/* Layout View Overlay */}
+      {showLayoutView && (
+        <div className="absolute inset-0 z-50 bg-canvas">
+          <LayoutView onClose={() => setShowLayoutView(false)} />
+        </div>
+      )}
     </div>
   );
 }

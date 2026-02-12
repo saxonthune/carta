@@ -14,6 +14,7 @@ export { usePresentation } from './usePresentation';
 export { useOrganizerOperations, type UseOrganizerOperationsResult } from './useOrganizerOperations';
 export { useLayoutActions, type UseLayoutActionsResult } from './useLayoutActions';
 export { useEdgeCleanup } from './useEdgeCleanup';
+export { usePinConstraints } from './usePinConstraints.js';
 
 // UI state
 export { useMapState } from './useMapState';
