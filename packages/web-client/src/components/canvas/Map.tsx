@@ -53,7 +53,7 @@ import type { ConstructValues, ConstructNodeData, OrganizerNodeData } from '@car
 import { nodeContainedInOrganizer, getDisplayName, resolveNodeColor } from '@carta/domain';
 import { usePresentation } from '../../hooks/usePresentation';
 import { computeEdgeAggregation, filterInvalidEdges } from '../../presentation/index';
-import { useOrganizerOperations, canNestInOrganizer } from '../../hooks/useOrganizerOperations';
+import { useOrganizerOperations } from '../../hooks/useOrganizerOperations';
 // getNodeDimensions unused after disabling orthogonal routing
 import ConstructEditor from '../ConstructEditor';
 import DynamicAnchorEdge from './DynamicAnchorEdge';
@@ -350,7 +350,6 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
   const {
     createOrganizer: createOrganizerFromIds,
     createAttachedOrganizer,
-    attachToOrganizer,
     detachFromOrganizer,
     toggleOrganizerCollapse,
     updateOrganizerColor,
@@ -490,6 +489,8 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     flowLayoutChildren,
     gridLayoutChildren,
     fitToChildren,
+    attachNodeToOrganizer,
+    detachNodeFromOrganizer,
     spreadSelected,
     spreadAll,
     compactAll,
@@ -1170,9 +1171,9 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
         const orgData = hoverOrganizer.data as OrganizerNodeData;
         const alreadyMember = node.parentId === hoverOrganizer.id;
         if (isCtrl && !alreadyMember) {
-          showNarrative({ kind: 'hint', text: `Add to ${orgData.name}`, variant: 'attach', position: { x: mouseX, y: mouseY } });
+          showNarrative({ kind: 'hint', text: `Release to add to ${orgData.name}`, variant: 'attach', position: { x: mouseX, y: mouseY } });
         } else if (isCtrl && alreadyMember) {
-          showNarrative({ kind: 'hint', text: `Detach from ${orgData.name}`, variant: 'detach', position: { x: mouseX, y: mouseY } });
+          showNarrative({ kind: 'hint', text: `Release to detach from ${orgData.name}`, variant: 'detach', position: { x: mouseX, y: mouseY } });
         } else if (!isCtrl && !alreadyMember) {
           showNarrative({ kind: 'hint', text: `Hold Ctrl to add to ${orgData.name}`, variant: 'neutral', position: { x: mouseX, y: mouseY } });
         } else {
@@ -1183,7 +1184,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
         const allNodes = reactFlow.getNodes();
         const parentOrg = allNodes.find(n => n.id === node.parentId);
         const parentName = parentOrg ? (parentOrg.data as OrganizerNodeData).name : 'organizer';
-        showNarrative({ kind: 'hint', text: `Detach from ${parentName}`, variant: 'detach', position: { x: mouseX, y: mouseY } });
+        showNarrative({ kind: 'hint', text: `Release to detach from ${parentName}`, variant: 'detach', position: { x: mouseX, y: mouseY } });
       } else {
         hideNarrative();
       }
@@ -1221,16 +1222,14 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
       const targetOrganizer = intersecting.find(n => n.type === 'organizer' && n.id !== node.id);
 
       if (targetOrganizer && targetOrganizer.id !== node.parentId) {
-        // Validate nesting before attaching
-        if (canNestInOrganizer(node, targetOrganizer, nodes)) {
-          attachToOrganizer(node.id, targetOrganizer.id);
-        }
+        // Use fresh-state attach from useLayoutActions (not useOrganizerOperations)
+        attachNodeToOrganizer(node.id, targetOrganizer.id);
       } else if (node.parentId) {
-        // Detach from current organizer
-        detachFromOrganizer(node.id);
+        // Use fresh-state detach from useLayoutActions (not useOrganizerOperations)
+        detachNodeFromOrganizer(node.id);
       }
     }
-  }, [reactFlow, suppressUpdates, attachToOrganizer, detachFromOrganizer, hideNarrative]);
+  }, [reactFlow, suppressUpdates, attachNodeToOrganizer, detachNodeFromOrganizer, hideNarrative]);
 
   // Handle organizer selection (click on organizer selects all nodes in it)
   const handleSelectOrganizer = useCallback((organizerId: string) => {

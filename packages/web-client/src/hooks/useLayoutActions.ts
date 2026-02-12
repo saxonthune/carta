@@ -10,8 +10,34 @@ import { hierarchicalLayout } from '../utils/hierarchicalLayout.js';
 import { getNodeDimensions } from '../utils/nodeDimensions.js';
 import type { SpreadInput } from '../utils/spreadNodes.js';
 import { computeOrthogonalRoutes, type NodeRect } from '../presentation/index.js';
+import { canNestInOrganizer } from './useOrganizerOperations.js';
 
 const ORGANIZER_CONTENT_TOP = DEFAULT_ORGANIZER_LAYOUT.padding + DEFAULT_ORGANIZER_LAYOUT.headerHeight;
+
+/**
+ * Compute absolute position for a node by walking the parent chain.
+ * Module-level helper extracted for use in attach/detach operations.
+ */
+function getAbsolutePosition(node: Node, allNodes: Node[]): { x: number; y: number } {
+  if (!node.parentId) return node.position;
+  const parent = allNodes.find(n => n.id === node.parentId);
+  if (!parent) return node.position;
+  const parentAbs = getAbsolutePosition(parent, allNodes);
+  return { x: parentAbs.x + node.position.x, y: parentAbs.y + node.position.y };
+}
+
+/**
+ * Convert absolute position to position relative to a parent.
+ */
+function toRelativePosition(
+  absolutePos: { x: number; y: number },
+  parentAbsolutePos: { x: number; y: number }
+): { x: number; y: number } {
+  return {
+    x: absolutePos.x - parentAbsolutePos.x,
+    y: absolutePos.y - parentAbsolutePos.y,
+  };
+}
 
 /**
  * Apply position patches across React Flow, local state, and Yjs.
@@ -166,6 +192,9 @@ export interface UseLayoutActionsResult {
   flowLayoutChildren: (organizerId: string) => void;
   gridLayoutChildren: (organizerId: string, cols?: number) => void;
   fitToChildren: (organizerId: string) => void;
+  // Organizer membership (ctrl+drag attach/detach)
+  attachNodeToOrganizer: (nodeId: string, organizerId: string) => void;
+  detachNodeFromOrganizer: (nodeId: string) => void;
   // Top-level (moved from Map.tsx)
   spreadSelected: () => void;
   spreadAll: () => void;
@@ -287,6 +316,8 @@ export function useLayoutActions({
       // Compute fit using domain function
       const fit = computeOrganizerFit(childGeometries);
 
+      console.debug('[organizer:layout:fit]', { organizerId, childCount: children.length, fit });
+
       const patches: Array<{ id: string; position: { x: number; y: number } }> = [];
 
       // Shift organizer position if children were at negative coords
@@ -325,6 +356,80 @@ export function useLayoutActions({
   );
 
   /**
+   * Attach a node to an organizer during ctrl+drag.
+   * Reads fresh RF state, validates nesting, computes relative position, applies 3-layer sync, and resizes organizer.
+   */
+  const attachNodeToOrganizer = useCallback(
+    (nodeId: string, organizerId: string) => {
+      const rfNodes = reactFlow.getNodes();
+      const node = rfNodes.find(n => n.id === nodeId);
+      const organizer = rfNodes.find(n => n.id === organizerId);
+      if (!node || !organizer) return;
+      if (!canNestInOrganizer(node, organizer, rfNodes)) return;
+
+      // Compute absolute positions from fresh RF state
+      const orgAbsPos = getAbsolutePosition(organizer, rfNodes);
+      const nodeAbsPos = node.parentId ? getAbsolutePosition(node, rfNodes) : node.position;
+      const relativePos = toRelativePosition(nodeAbsPos, orgAbsPos);
+
+      console.debug('[organizer:attach]', {
+        nodeId,
+        organizerId,
+        nodeAbsBefore: nodeAbsPos,
+        orgAbsPos,
+        relativePos,
+      });
+
+      // Apply to RF + local state (which syncs to Yjs via adapter.setNodes)
+      const updater = (nds: Node[]) =>
+        nds.map(n =>
+          n.id === nodeId ? { ...n, parentId: organizerId, position: relativePos } : n
+        );
+      reactFlow.setNodes(updater);
+      setNodesLocal(updater);
+
+      // Resize organizer to fit
+      const knownPositions = new Map([[nodeId, relativePos]]);
+      fitToChildren(organizerId, knownPositions);
+    },
+    [reactFlow, setNodesLocal, fitToChildren]
+  );
+
+  /**
+   * Detach a node from its organizer during ctrl+drag.
+   * Reads fresh RF state, computes absolute position, applies 3-layer sync, and resizes old organizer.
+   */
+  const detachNodeFromOrganizer = useCallback(
+    (nodeId: string) => {
+      const rfNodes = reactFlow.getNodes();
+      const node = rfNodes.find(n => n.id === nodeId);
+      if (!node?.parentId) return;
+
+      const oldOrganizerId = node.parentId;
+      const absolutePos = getAbsolutePosition(node, rfNodes);
+
+      console.debug('[organizer:detach]', {
+        nodeId,
+        oldOrganizerId,
+        relPosBefore: node.position,
+        absolutePos,
+      });
+
+      // Apply to RF + local state (which syncs to Yjs via adapter.setNodes)
+      const updater = (nds: Node[]) =>
+        nds.map(n =>
+          n.id === nodeId ? { ...n, parentId: undefined, extent: undefined, position: absolutePos } : n
+        );
+      reactFlow.setNodes(updater);
+      setNodesLocal(updater);
+
+      // Resize old organizer
+      fitToChildren(oldOrganizerId);
+    },
+    [reactFlow, setNodesLocal, fitToChildren]
+  );
+
+  /**
    * Spread children within organizer using de-overlap algorithm.
    */
   const spreadChildren = useCallback(
@@ -332,6 +437,8 @@ export function useLayoutActions({
       const rfNodes = reactFlow.getNodes();
       const children = getChildLayoutItems(rfNodes, organizerId);
       if (children.length < 2) return;
+
+      console.debug('[organizer:layout:spread]', { organizerId, childCount: children.length });
 
       const newPositions = deOverlapNodes(children);
 
@@ -366,6 +473,8 @@ export function useLayoutActions({
 
       // Compute grid
       const effectiveCols = cols ?? Math.ceil(Math.sqrt(children.length));
+
+      console.debug('[organizer:layout:grid]', { organizerId, childCount: children.length, cols: effectiveCols });
       const colWidth = Math.max(...children.map(n => n.width)) + 30;
       const rowHeight = Math.max(...children.map(n => n.height)) + 30;
       const padding = 20;
@@ -419,6 +528,8 @@ export function useLayoutActions({
         seen.add(key);
         scopedEdges.push({ source, target });
       }
+
+      console.debug('[organizer:layout:flow]', { organizerId, childCount: children.length, edgeCount: scopedEdges.length });
 
       const rawPositions = hierarchicalLayout(children, scopedEdges, { gap: 30, layerGap: 60 });
 
@@ -936,6 +1047,8 @@ export function useLayoutActions({
     flowLayoutChildren,
     gridLayoutChildren,
     fitToChildren,
+    attachNodeToOrganizer,
+    detachNodeFromOrganizer,
     spreadSelected,
     spreadAll,
     compactAll,
