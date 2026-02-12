@@ -38,8 +38,9 @@ import { useEdgeCleanup } from '../../hooks/useEdgeCleanup';
 import type { ConstructValues, ConstructNodeData, OrganizerNodeData } from '@carta/domain';
 import { nodeContainedInOrganizer, getDisplayName, resolveNodeColor } from '@carta/domain';
 import { usePresentation } from '../../hooks/usePresentation';
-import { computeEdgeAggregation, filterInvalidEdges } from '../../presentation/index';
+import { computeEdgeAggregation, filterInvalidEdges, computeOrthogonalRoutes, type NodeRect } from '../../presentation/index';
 import { useOrganizerOperations, canNestInOrganizer } from '../../hooks/useOrganizerOperations';
+import { getNodeDimensions } from '../../utils/nodeDimensions';
 import ConstructEditor from '../ConstructEditor';
 import DynamicAnchorEdge from './DynamicAnchorEdge';
 import ConstructDebugModal from '../modals/ConstructDebugModal';
@@ -179,6 +180,9 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
   // Ctrl+drag visual feedback (DOM class toggle, no re-renders)
   const mapWrapperRef = useRef<HTMLDivElement>(null);
   const ctrlDragActiveRef = useRef(false);
+
+  // Route generation counter to trigger re-routing after drag
+  const [routeGeneration, setRouteGeneration] = useState(0);
 
   const onNodesChange = useCallback((changes: NodeChange[]) => {
     const dragEndChanges: NodeChange[] = [];
@@ -849,6 +853,52 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
   const { displayEdges, bundleMap } = useEdgeBundling(polarityEdges, nodeTypeMap);
   bundleMapRef.current = bundleMap;
 
+  // Orthogonal routing: compute waypoints for edges to route around obstacles
+  const routedEdges = useMemo(() => {
+    // Skip routing during drag
+    if (isDraggingRef.current) return displayEdges;
+
+    // Build obstacle rects from visible nodes (both constructs and organizers)
+    const obstacles: NodeRect[] = sortedNodes
+      .filter(n => !n.hidden && (n.type === 'construct' || n.type === 'organizer'))
+      .map(n => {
+        const dims = getNodeDimensions(n);
+        // Use absolute position if available, otherwise relative position
+        const position = (n as { internals?: { positionAbsolute?: { x: number; y: number } } }).internals?.positionAbsolute ?? n.position;
+        return {
+          id: n.id,
+          x: position.x,
+          y: position.y,
+          width: dims.width,
+          height: dims.height,
+        };
+      });
+
+    // Build edge inputs (only for non-attachment edges)
+    const edgeInputs = displayEdges
+      .filter(e => {
+        const dataRecord = e.data as Record<string, unknown> | undefined;
+        return !(dataRecord?.isAttachmentEdge === true);
+      })
+      .map(e => {
+        const srcObs = obstacles.find(o => o.id === e.source);
+        const tgtObs = obstacles.find(o => o.id === e.target);
+        if (!srcObs || !tgtObs) return null;
+        return { id: e.id, sourceRect: srcObs, targetRect: tgtObs };
+      })
+      .filter((input): input is { id: string; sourceRect: NodeRect; targetRect: NodeRect } => input !== null);
+
+    // Compute routes
+    const routes = computeOrthogonalRoutes(edgeInputs, obstacles);
+
+    // Inject waypoints into edge data
+    return displayEdges.map(e => {
+      const route = routes.get(e.id);
+      if (!route || route.waypoints.length < 2) return e;
+      return { ...e, data: { ...e.data, waypoints: route.waypoints } };
+    });
+  }, [displayEdges, sortedNodes, routeGeneration]);
+
   // Sync cascade output to RF's internal store (uncontrolled mode)
   const initialRender = useRef(true);
 
@@ -868,8 +918,8 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
 
   useEffect(() => {
     if (initialRender.current) return;
-    reactFlow.setEdges(displayEdges);
-  }, [displayEdges, reactFlow]);
+    reactFlow.setEdges(routedEdges);
+  }, [routedEdges, reactFlow]);
 
   // Detect non-parented nodes visually covered by organizers they don't belong to
   const coveredNodeIds = useMemo(() => {
@@ -1027,6 +1077,9 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
 
     // Clear Ctrl+drag visual feedback
     ctrlDragActiveRef.current = false;
+
+    // Trigger route recalculation after drag
+    setRouteGeneration(g => g + 1);
     mapWrapperRef.current?.classList.remove('ctrl-dragging');
 
     // Cancel any pending rAF

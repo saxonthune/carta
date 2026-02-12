@@ -17,3 +17,5 @@ export { computeEdgeAggregation } from './edgeAggregation.js';
 export { computeSequenceBadges } from './sequenceBadges.js';
 export type { SequenceBadgeResult } from './sequenceBadges.js';
 export { filterInvalidEdges } from './edgeValidation.js';
+export { computeOrthogonalRoutes } from './orthogonalRouter.js';
+export type { NodeRect, Waypoint, RouteResult } from './orthogonalRouter.js';

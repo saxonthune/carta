@@ -1,6 +1,7 @@
 import { memo, useCallback } from 'react';
 import { getSmoothStepPath, Position, useStore, type EdgeProps } from '@xyflow/react';
 import type { BundleData } from '../../hooks/useEdgeBundling';
+import type { Waypoint } from '../../presentation/index';
 
 /** Extracted geometry for a node — only the values edges need. */
 interface NodeRect {
@@ -14,6 +15,15 @@ function nodeRectEqual(a: NodeRect | null, b: NodeRect | null): boolean {
   if (a === b) return true;
   if (!a || !b) return false;
   return a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
+}
+
+/**
+ * Build an SVG path from waypoints.
+ */
+function waypointsToPath(waypoints: Waypoint[]): string {
+  if (waypoints.length < 2) return '';
+  const [first, ...rest] = waypoints;
+  return `M ${first.x} ${first.y} ` + rest.map(p => `L ${p.x} ${p.y}`).join(' ');
 }
 
 /**
@@ -83,6 +93,7 @@ export default memo(function DynamicAnchorEdge({
   const hopDistance = dataRecord?.hopDistance as number | undefined;
   const dimmed = dataRecord?.dimmed as boolean | undefined;
   const polarity = dataRecord?.polarity as string | undefined;
+  const waypoints = dataRecord?.waypoints as Waypoint[] | undefined;
   const showArrow = !isAttachment && polarity !== 'bidirectional';
   const strokeWidth = isAttachment
     ? ((style as Record<string, unknown>).strokeWidth as number ?? 3)
@@ -136,14 +147,30 @@ export default memo(function DynamicAnchorEdge({
     tp = targetBoundary.position;
   }
 
-  const [edgePath, labelX, labelY] = getSmoothStepPath({
-    sourceX: sx,
-    sourceY: sy,
-    targetX: tx,
-    targetY: ty,
-    sourcePosition: sp,
-    targetPosition: tp,
-  });
+  // Use waypoints if available, otherwise fall back to smooth step path
+  let edgePath: string;
+  let labelX: number;
+  let labelY: number;
+
+  if (waypoints && waypoints.length >= 2) {
+    edgePath = waypointsToPath(waypoints);
+    // Label position: midpoint of waypoints array
+    const midIndex = Math.floor(waypoints.length / 2);
+    labelX = waypoints[midIndex].x;
+    labelY = waypoints[midIndex].y;
+  } else {
+    const [path, lx, ly] = getSmoothStepPath({
+      sourceX: sx,
+      sourceY: sy,
+      targetX: tx,
+      targetY: ty,
+      sourcePosition: sp,
+      targetPosition: tp,
+    });
+    edgePath = path;
+    labelX = lx;
+    labelY = ly;
+  }
 
   const edgeOpacity = dimmed ? 0.15 : 1;
   // Hop badge color: blue near start → green/yellow far
