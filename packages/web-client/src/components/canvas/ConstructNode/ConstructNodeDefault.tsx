@@ -28,7 +28,7 @@ export function ConstructNodeDefault({
 
   return (
     <div
-      className={`rounded-lg text-node-base text-content overflow-visible relative flex flex-col transition-shadow duration-150 min-w-[180px] min-h-[60px] ${selected ? 'ring-2 ring-accent/30' : ''}`}
+      className={`rounded-lg text-node-base text-content overflow-visible relative flex flex-col transition-shadow duration-150 min-w-[180px] max-w-[280px] min-h-[60px] ${selected ? 'ring-2 ring-accent/30' : ''}`}
       style={{
         backgroundColor: bgStyle.backgroundColor ?? `color-mix(in srgb, ${color} 15%, var(--color-surface))`,
         ...lodTransitionStyle,
@@ -72,7 +72,7 @@ export function ConstructNodeDefault({
       {/* Unified body: summary shows pill+minimal fields, details shows all fields */}
       <div className="px-2 py-2 flex flex-col gap-2">
         {/* Display name row */}
-        <div className="text-node-lg font-semibold text-content">
+        <div className="text-node-lg font-semibold text-content truncate">
           {getDisplayName(data, schema)}
         </div>
 

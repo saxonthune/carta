@@ -84,7 +84,7 @@ export function ConstructNodeSimple({
 
   return (
     <div
-      className={`rounded-lg overflow-visible relative flex flex-col min-w-[200px] min-h-[100px] w-full h-full ${selected ? 'ring-2 ring-accent/30' : ''}`}
+      className={`rounded-lg overflow-visible relative flex flex-col min-w-[200px] max-w-[280px] min-h-[100px] w-full h-full ${selected ? 'ring-2 ring-accent/30' : ''}`}
       style={{
         backgroundColor,
         ...lodTransitionStyle,

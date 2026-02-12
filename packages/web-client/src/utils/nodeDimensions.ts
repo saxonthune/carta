@@ -5,7 +5,7 @@ import type { Node } from '@xyflow/react';
  */
 const DEFAULT_DIMENSIONS = {
   organizer: { width: 400, height: 300 },
-  construct: { width: 200, height: 100 },
+  construct: { width: 280, height: 100 },
 };
 
 /**
