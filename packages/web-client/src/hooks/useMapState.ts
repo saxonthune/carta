@@ -90,6 +90,18 @@ export function useMapState() {
     [mouseDownPos]
   );
 
+  const onSelectionContextMenu = useCallback(
+    (event: React.MouseEvent) => {
+      event.preventDefault();
+      setContextMenu({
+        x: event.clientX,
+        y: event.clientY,
+        type: 'node',
+      });
+    },
+    []
+  );
+
   const onEdgeContextMenu = useCallback(
     (event: React.MouseEvent, edge: Edge) => {
       event.preventDefault();
@@ -152,6 +164,7 @@ export function useMapState() {
     // Handlers
     onPaneContextMenu,
     onNodeContextMenu,
+    onSelectionContextMenu,
     onEdgeContextMenu,
     onMouseDown,
     closeContextMenu,

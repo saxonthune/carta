@@ -283,6 +283,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     setDebugNodeId,
     onPaneContextMenu,
     onNodeContextMenu,
+    onSelectionContextMenu,
     onEdgeContextMenu,
     onMouseDown,
     closeContextMenu,
@@ -1225,6 +1226,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
         onNodeDoubleClick={handleNodeDoubleClick}
         onPaneContextMenu={onPaneContextMenu}
         onNodeContextMenu={onNodeContextMenu}
+        onSelectionContextMenu={onSelectionContextMenu}
         onEdgeContextMenu={onEdgeContextMenu}
         onEdgeClick={handleEdgeClick}
         onPaneClick={handlePaneClick}
