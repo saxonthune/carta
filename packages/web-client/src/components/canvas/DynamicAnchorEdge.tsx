@@ -18,12 +18,63 @@ function nodeRectEqual(a: NodeRect | null, b: NodeRect | null): boolean {
 }
 
 /**
- * Build an SVG path from waypoints.
+ * Build an SVG path from waypoints with rounded corners.
  */
 function waypointsToPath(waypoints: Waypoint[]): string {
   if (waypoints.length < 2) return '';
-  const [first, ...rest] = waypoints;
-  return `M ${first.x} ${first.y} ` + rest.map(p => `L ${p.x} ${p.y}`).join(' ');
+  if (waypoints.length === 2) {
+    // Straight line, no corners to round
+    return `M ${waypoints[0].x} ${waypoints[0].y} L ${waypoints[1].x} ${waypoints[1].y}`;
+  }
+
+  let path = `M ${waypoints[0].x} ${waypoints[0].y}`;
+
+  // Process each waypoint from index 1 to n-2 (intermediate bend points)
+  for (let i = 1; i < waypoints.length - 1; i++) {
+    const prev = waypoints[i - 1];
+    const curr = waypoints[i];
+    const next = waypoints[i + 1];
+
+    // Calculate segment lengths
+    const prevSegmentLength = Math.sqrt(
+      Math.pow(curr.x - prev.x, 2) + Math.pow(curr.y - prev.y, 2)
+    );
+    const nextSegmentLength = Math.sqrt(
+      Math.pow(next.x - curr.x, 2) + Math.pow(next.y - curr.y, 2)
+    );
+
+    // Compute corner radius: 6px, but clamped to half the shorter segment
+    const maxRadius = Math.min(prevSegmentLength / 2, nextSegmentLength / 2);
+    const radius = Math.min(6, maxRadius);
+
+    if (radius > 0) {
+      // Direction vectors (normalized to unit length)
+      const prevDx = (curr.x - prev.x) / prevSegmentLength;
+      const prevDy = (curr.y - prev.y) / prevSegmentLength;
+      const nextDx = (next.x - curr.x) / nextSegmentLength;
+      const nextDy = (next.y - curr.y) / nextSegmentLength;
+
+      // Approach point: radius pixels before the bend
+      const approachX = curr.x - prevDx * radius;
+      const approachY = curr.y - prevDy * radius;
+
+      // Departure point: radius pixels after the bend
+      const departureX = curr.x + nextDx * radius;
+      const departureY = curr.y + nextDy * radius;
+
+      // Draw line to approach point, then quadratic bezier curve to departure point
+      path += ` L ${approachX} ${approachY} Q ${curr.x} ${curr.y} ${departureX} ${departureY}`;
+    } else {
+      // Radius too small, just use sharp corner
+      path += ` L ${curr.x} ${curr.y}`;
+    }
+  }
+
+  // Final segment to last waypoint
+  const last = waypoints[waypoints.length - 1];
+  path += ` L ${last.x} ${last.y}`;
+
+  return path;
 }
 
 /**

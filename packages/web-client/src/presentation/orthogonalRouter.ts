@@ -75,6 +75,60 @@ function computeSingleRoute(
   const sourceBoundary = getRectBoundaryPoint(sourceRect, targetCenter);
   const targetBoundary = getRectBoundaryPoint(targetRect, sourceCenter);
 
+  // Short-circuit 1: Check for straight line (shared X or Y coordinate)
+  const tolerance = 5;
+  if (Math.abs(sourceBoundary.x - targetBoundary.x) < tolerance) {
+    // Vertical straight line
+    const straightPath = { x: sourceBoundary.x, y: sourceBoundary.y };
+    const straightEnd = { x: targetBoundary.x, y: targetBoundary.y };
+    if (!lineIntersectsObstacle(straightPath, straightEnd, obstacles, padding)) {
+      return { waypoints: [sourceBoundary, targetBoundary] };
+    }
+  } else if (Math.abs(sourceBoundary.y - targetBoundary.y) < tolerance) {
+    // Horizontal straight line
+    const straightPath = { x: sourceBoundary.x, y: sourceBoundary.y };
+    const straightEnd = { x: targetBoundary.x, y: targetBoundary.y };
+    if (!lineIntersectsObstacle(straightPath, straightEnd, obstacles, padding)) {
+      return { waypoints: [sourceBoundary, targetBoundary] };
+    }
+  }
+
+  // Short-circuit 2: Try L-shaped paths
+  // Horizontal-first L-shape: source → (target.x, source.y) → target
+  const hFirstCorner = { x: targetBoundary.x, y: sourceBoundary.y };
+  const hFirstValid =
+    !lineIntersectsObstacle(sourceBoundary, hFirstCorner, obstacles, padding) &&
+    !lineIntersectsObstacle(hFirstCorner, targetBoundary, obstacles, padding);
+
+  // Vertical-first L-shape: source → (source.x, target.y) → target
+  const vFirstCorner = { x: sourceBoundary.x, y: targetBoundary.y };
+  const vFirstValid =
+    !lineIntersectsObstacle(sourceBoundary, vFirstCorner, obstacles, padding) &&
+    !lineIntersectsObstacle(vFirstCorner, targetBoundary, obstacles, padding);
+
+  if (hFirstValid || vFirstValid) {
+    // If both are valid, prefer the shorter path
+    if (hFirstValid && vFirstValid) {
+      const hFirstLength =
+        Math.abs(targetBoundary.x - sourceBoundary.x) +
+        Math.abs(targetBoundary.y - sourceBoundary.y);
+      const vFirstLength =
+        Math.abs(sourceBoundary.y - targetBoundary.y) +
+        Math.abs(targetBoundary.x - sourceBoundary.x);
+
+      if (hFirstLength <= vFirstLength) {
+        return { waypoints: [sourceBoundary, hFirstCorner, targetBoundary] };
+      } else {
+        return { waypoints: [sourceBoundary, vFirstCorner, targetBoundary] };
+      }
+    } else if (hFirstValid) {
+      return { waypoints: [sourceBoundary, hFirstCorner, targetBoundary] };
+    } else {
+      return { waypoints: [sourceBoundary, vFirstCorner, targetBoundary] };
+    }
+  }
+
+  // Fall through to A* if short-circuits fail
   // Build grid from obstacles
   const gridLines = buildGridLines(obstacles, sourceBoundary, targetBoundary, padding);
 
