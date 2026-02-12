@@ -4,7 +4,7 @@
 /* Theme Variables */
 :root,
 [data-theme="light"] {
-  --color-canvas: #f0f1f3;
+  --color-canvas: #e4e6ea;
   --color-surface: #ffffff;
   --color-surface-alt: #f3f4f6;
   --color-surface-elevated: #ffffff;
