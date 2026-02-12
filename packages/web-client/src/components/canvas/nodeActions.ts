@@ -12,7 +12,7 @@ export interface NodeActions {
   onToggleCollapse: (nodeId: string) => void;
   onSpreadChildren: (nodeId: string) => void;
   onFlowLayoutChildren: (nodeId: string) => void;
-  onGridLayoutChildren: (nodeId: string) => void;
+  onGridLayoutChildren: (nodeId: string, cols?: number) => void;
   onFitToChildren: (nodeId: string) => void;
   onUpdateOrganizerColor: (nodeId: string, color: string) => void;
   onRenameOrganizer: (nodeId: string, newName: string) => void;

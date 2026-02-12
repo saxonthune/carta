@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import type { Node, ReactFlowInstance } from '@xyflow/react';
 import * as Y from 'yjs';
 import type { DocumentAdapter } from '@carta/domain';
-import { DEFAULT_ORGANIZER_LAYOUT, computeLayoutUnitSizes, type LayoutItem, type WagonInfo, resolvePinConstraints, type PinLayoutNode } from '@carta/domain';
+import { DEFAULT_ORGANIZER_LAYOUT, computeLayoutUnitSizes, computeOrganizerFit, type LayoutItem, type WagonInfo, resolvePinConstraints, type PinLayoutNode, type NodeGeometry } from '@carta/domain';
 import { listPinConstraints } from '@carta/document';
 import { deOverlapNodes } from '../utils/deOverlapNodes.js';
 import { compactNodes } from '../utils/compactNodes.js';
@@ -164,7 +164,7 @@ export interface UseLayoutActionsResult {
   // Organizer-scoped (existing)
   spreadChildren: (organizerId: string) => void;
   flowLayoutChildren: (organizerId: string) => void;
-  gridLayoutChildren: (organizerId: string) => void;
+  gridLayoutChildren: (organizerId: string, cols?: number) => void;
   fitToChildren: (organizerId: string) => void;
   // Top-level (moved from Map.tsx)
   spreadSelected: () => void;
@@ -254,26 +254,74 @@ export function useLayoutActions({
 
   /**
    * Fit organizer to its children's bounding box.
+   * Handles children at negative relative positions by shifting organizer position and adjusting all children.
+   * @param knownChildPositions - Optional map of known positions (to avoid reading stale React Flow state)
    */
   const fitToChildren = useCallback(
-    (organizerId: string) => {
+    (organizerId: string, knownChildPositions?: Map<string, { x: number; y: number }>) => {
       const rfNodes = reactFlow.getNodes();
-      const children = getChildLayoutItems(rfNodes, organizerId);
+
+      // Build children array, using known positions if provided
+      let children: SpreadInput[];
+      if (knownChildPositions) {
+        // Use known positions (avoids stale React Flow state)
+        const childNodes = rfNodes.filter(n => n.parentId === organizerId);
+        children = childNodes.map(n => {
+          const pos = knownChildPositions.get(n.id) ?? n.position;
+          const dims = getNodeDimensions(n);
+          return { id: n.id, x: pos.x, y: pos.y, ...dims };
+        });
+      } else {
+        children = getChildLayoutItems(rfNodes, organizerId);
+      }
+
       if (children.length === 0) return;
 
-      // Compute bounding box of all children
-      const rights = children.map(child => child.x + child.width);
-      const bottoms = children.map(child => child.y + child.height);
-      const maxRight = Math.max(...rights);
-      const maxBottom = Math.max(...bottoms);
+      // Convert SpreadInput format to NodeGeometry format
+      const childGeometries: NodeGeometry[] = children.map(c => ({
+        position: { x: c.x, y: c.y },
+        width: c.width,
+        height: c.height,
+      }));
 
-      const { padding, headerHeight } = DEFAULT_ORGANIZER_LAYOUT;
-      const newWidth = Math.max(maxRight + padding, 200);
-      const newHeight = Math.max(maxBottom + padding, headerHeight + padding * 2);
+      // Compute fit using domain function
+      const fit = computeOrganizerFit(childGeometries);
 
-      applyOrganizerSize(organizerId, newWidth, newHeight);
+      const patches: Array<{ id: string; position: { x: number; y: number } }> = [];
+
+      // Shift organizer position if children were at negative coords
+      if (fit.positionDelta.x !== 0 || fit.positionDelta.y !== 0) {
+        const orgNode = rfNodes.find(n => n.id === organizerId);
+        if (orgNode) {
+          patches.push({
+            id: organizerId,
+            position: {
+              x: orgNode.position.x + fit.positionDelta.x,
+              y: orgNode.position.y + fit.positionDelta.y,
+            },
+          });
+        }
+
+        // Shift all children by childPositionDelta
+        if (fit.childPositionDelta.x !== 0 || fit.childPositionDelta.y !== 0) {
+          for (const child of children) {
+            patches.push({
+              id: child.id,
+              position: {
+                x: child.x + fit.childPositionDelta.x,
+                y: child.y + fit.childPositionDelta.y,
+              },
+            });
+          }
+        }
+      }
+
+      if (patches.length > 0) {
+        applyPositionPatches(patches, reactFlow, setNodesLocal, adapter);
+      }
+      applyOrganizerSize(organizerId, fit.size.width, fit.size.height);
     },
-    [reactFlow, applyOrganizerSize]
+    [reactFlow, setNodesLocal, adapter, applyOrganizerSize]
   );
 
   /**
@@ -300,37 +348,40 @@ export function useLayoutActions({
       const patches = [...newPositions].map(([id, position]) => ({ id, position }));
       applyPositionPatches(patches, reactFlow, setNodesLocal, adapter);
 
-      fitToChildren(organizerId);
+      const knownPositions = new Map(patches.map(p => [p.id, p.position]));
+      fitToChildren(organizerId, knownPositions);
     },
     [reactFlow, setNodesLocal, adapter, fitToChildren]
   );
 
   /**
    * Grid layout children within organizer.
+   * @param cols - Optional number of columns (defaults to auto-computed sqrt)
    */
   const gridLayoutChildren = useCallback(
-    (organizerId: string) => {
+    (organizerId: string, cols?: number) => {
       const rfNodes = reactFlow.getNodes();
       const children = getChildLayoutItems(rfNodes, organizerId);
       if (children.length < 2) return;
 
       // Compute grid
-      const cols = Math.ceil(Math.sqrt(children.length));
+      const effectiveCols = cols ?? Math.ceil(Math.sqrt(children.length));
       const colWidth = Math.max(...children.map(n => n.width)) + 30;
       const rowHeight = Math.max(...children.map(n => n.height)) + 30;
       const padding = 20;
 
       const newPositions = new globalThis.Map<string, { x: number; y: number }>();
       children.forEach((child, idx) => {
-        const x = (idx % cols) * colWidth + padding;
-        const y = Math.floor(idx / cols) * rowHeight + ORGANIZER_CONTENT_TOP;
+        const x = (idx % effectiveCols) * colWidth + padding;
+        const y = Math.floor(idx / effectiveCols) * rowHeight + ORGANIZER_CONTENT_TOP;
         newPositions.set(child.id, { x, y });
       });
 
       const patches = [...newPositions].map(([id, position]) => ({ id, position }));
       applyPositionPatches(patches, reactFlow, setNodesLocal, adapter);
 
-      fitToChildren(organizerId);
+      const knownPositions = new Map(patches.map(p => [p.id, p.position]));
+      fitToChildren(organizerId, knownPositions);
     },
     [reactFlow, setNodesLocal, adapter, fitToChildren]
   );
@@ -389,7 +440,8 @@ export function useLayoutActions({
         const patches = [...newPositions].map(([id, position]) => ({ id, position }));
         applyPositionPatches(patches, reactFlow, setNodesLocal, adapter);
 
-        fitToChildren(organizerId);
+        const knownPositions = new Map(patches.map(p => [p.id, p.position]));
+        fitToChildren(organizerId, knownPositions);
       }
     },
     [reactFlow, setNodesLocal, adapter, fitToChildren]

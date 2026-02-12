@@ -174,6 +174,33 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
   const layoutMenuItems = useMemo(() => {
     if (!nodeActions || childCount <= 1) return null;
 
+    // For small organizers (≤3 children), show single grid option; for larger, show column presets
+    const gridItems = childCount <= 3
+      ? [
+          {
+            label: 'Arrange as grid',
+            handler: nodeActions.onGridLayoutChildren,
+            icon: <GridFour weight="bold" size={14} />,
+          },
+        ]
+      : [
+          {
+            label: 'Grid: 2 columns',
+            handler: (id: string) => nodeActions.onGridLayoutChildren(id, 2),
+            icon: <GridFour weight="bold" size={14} />,
+          },
+          {
+            label: 'Grid: 3 columns',
+            handler: (id: string) => nodeActions.onGridLayoutChildren(id, 3),
+            icon: <GridFour weight="bold" size={14} />,
+          },
+          {
+            label: 'Grid: auto',
+            handler: (id: string) => nodeActions.onGridLayoutChildren(id),
+            icon: <GridFour weight="bold" size={14} />,
+          },
+        ];
+
     return [
       {
         label: 'Spread apart',
@@ -185,11 +212,7 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
         handler: nodeActions.onFlowLayoutChildren,
         icon: <TreeStructure weight="bold" size={14} />,
       },
-      {
-        label: 'Arrange as grid',
-        handler: nodeActions.onGridLayoutChildren,
-        icon: <GridFour weight="bold" size={14} />,
-      },
+      ...gridItems,
       {
         label: 'Fit to contents',
         handler: nodeActions.onFitToChildren,

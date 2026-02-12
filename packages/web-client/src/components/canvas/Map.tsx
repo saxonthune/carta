@@ -699,7 +699,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     onToggleCollapse: (nodeId: string) => toggleOrganizerCollapseRef.current(nodeId),
     onSpreadChildren: (nodeId: string) => spreadChildrenRef.current(nodeId),
     onFlowLayoutChildren: (nodeId: string) => flowLayoutChildrenRef.current(nodeId),
-    onGridLayoutChildren: (nodeId: string) => gridLayoutChildrenRef.current(nodeId),
+    onGridLayoutChildren: (nodeId: string, cols?: number) => gridLayoutChildrenRef.current(nodeId, cols),
     onFitToChildren: (nodeId: string) => fitToChildrenRef.current(nodeId),
     onUpdateOrganizerColor: (nodeId: string, color: string) => updateOrganizerColorRef.current(nodeId, color),
     onRenameOrganizer: (nodeId: string, newName: string) => renameOrganizerRef.current(nodeId, newName),
