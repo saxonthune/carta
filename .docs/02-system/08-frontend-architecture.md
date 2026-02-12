@@ -113,7 +113,7 @@ The presentation model is a pure transformation layer between domain state and R
 
 | Feature | Data | Intent | Key Files |
 |---------|------|--------|-----------|
-| Canvas (instances) | Nodes, edges, connections | Build architecture | CanvasContainer.tsx, Map.tsx, useGraphOperations, useMapState |
+| Canvas (instances) | Nodes, edges, connections | Build architecture | CanvasContainer.tsx, Map.tsx, InspectorPanel.tsx, useGraphOperations, useMapState |
 | Metamap (schemas) | Schemas, groups, port schemas | Define types | Metamap.tsx |
 | Schema editing | Schema form, field tiers, ports | Create/edit types | ConstructEditor.tsx |
 | Compilation | Compiled output | Generate AI output | compiler/index.ts |
@@ -139,7 +139,7 @@ Organized by purpose:
 
 ### `components/canvas/index.ts`
 Canvas components and LOD:
-- **Components**: `Map`, `CanvasContainer`, `ConstructNode`, `OrganizerNode`, `DynamicAnchorEdge`, `PortDrawer`, `IndexBasedDropZones`, `AddConstructMenu`, `Narrative`
+- **Components**: `Map`, `CanvasContainer`, `ConstructNode`, `OrganizerNode`, `InspectorPanel`, `DynamicAnchorEdge`, `PortDrawer`, `IndexBasedDropZones`, `AddConstructMenu`, `Narrative`
 - **LOD**: `useLodBand`, `DEFAULT_LOD_POLICY`, `getLodConfig`, types
 
 **Note:** `ConstructNode` and `Header` are directories with modular implementations. ConstructNode has: `index.tsx` (dispatcher), `ConstructNodeMarker.tsx` (pill LOD, shared), `ConstructNodeDefault.tsx` (default nodeShape), `ConstructNodeSimple.tsx` (simple nodeShape, see doc03.01.14), `shared.ts` (utilities). Header has: `Header.tsx`, `ThemeMenu.tsx`, `SettingsMenu.tsx`, `ShareMenu.tsx`, `useClickOutside.ts`.
@@ -150,7 +150,7 @@ Schema view:
 
 ### `components/modals/index.ts`
 All modal dialogs:
-- `CompileModal`, `HelpModal`, `DocumentBrowserModal`, `ImportPreviewModal`, `ExportPreviewModal`, `ConstructFullViewModal`, `ConstructDebugModal`, `ClearWorkspaceModal`
+- `CompileModal`, `HelpModal`, `DocumentBrowserModal`, `ImportPreviewModal`, `ExportPreviewModal`, `ConstructDebugModal`, `ClearWorkspaceModal`
 
 ### `components/ui/index.ts`
 Organized by type:

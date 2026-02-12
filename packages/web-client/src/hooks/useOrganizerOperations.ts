@@ -82,7 +82,7 @@ export function useOrganizerOperations(): UseOrganizerOperationsResult {
   const { nodes, setNodes } = useNodes();
 
   const createOrganizer = useCallback((selectedNodeIds: string[]): string | null => {
-    if (selectedNodeIds.length < 2) return null;
+    if (selectedNodeIds.length < 1) return null;
 
     const organizerId = crypto.randomUUID();
     const color = ORGANIZER_COLORS[Math.floor(Math.random() * ORGANIZER_COLORS.length)];
@@ -98,7 +98,7 @@ export function useOrganizerOperations(): UseOrganizerOperationsResult {
       }
       return true;
     });
-    if (selectedNodes.length < 2) return null;
+    if (selectedNodes.length < 1) return null;
 
     // Build LayoutItem array for selected nodes
     const layoutItems: LayoutItem[] = selectedNodes.map(n => ({

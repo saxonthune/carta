@@ -325,10 +325,10 @@ export default function ContextMenu({
     }
 
     // Organizer operations
-    if (showMultipleSelected && onOrganizeSelected) {
+    if (onOrganizeSelected) {
       result.push({
         key: 'organize-selected',
-        label: `Organize ${selectedCount} Nodes`,
+        label: showMultipleSelected ? `Put ${selectedCount} Nodes in Organizer` : 'Put in Organizer',
         onClick: onOrganizeSelected,
       });
     }

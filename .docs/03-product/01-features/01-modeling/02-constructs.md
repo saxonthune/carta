@@ -22,16 +22,15 @@ Each construct has a **semantic ID**, auto-generated as `{type}-{timestamp}{rand
 
 ## Display Tiers
 
-Fields are assigned to display tiers that control visibility at different levels of detail:
+Fields are assigned to display tiers that control visibility:
 
-- **Pill**: Node title field (max 1), shown in pill LOD mode
-- **Minimal**: Key attributes shown in collapsed/summary view
-- **Details**: Additional fields shown in expanded details view
-- **Full**: All remaining fields, only visible in full view modal
+- **Pill**: Node title field (max 1 per schema), shown in pill LOD mode
+- **Summary**: Key attributes shown on the canvas
+- **Inspector-only**: Fields without displayTier, only visible in inspector panel
 
 ## Fields
 
-Field types: string, number, boolean, enum, date. Fields are edited inline on the node (details view) or in the full view modal. Each field has optional: default value, placeholder, required flag. Fields are assigned to display tiers (pill, minimal, details, full) that control when they appear at different levels of detail.
+Field types: string, number, boolean, enum, date. Fields are edited inline on the node or in the inspector panel (side panel that appears when selecting a node). Each field has optional: default value, placeholder, required flag. Fields are assigned to display tiers (pill, summary, or omitted for inspector-only) that control when they appear.
 
 ## Background Color
 

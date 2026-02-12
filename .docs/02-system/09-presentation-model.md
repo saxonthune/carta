@@ -236,6 +236,20 @@ computeSequenceBadges(nodes, edges) → { badges: Map<nodeId, ordinal> }
 
 This feature was designed in research session doc05.01 to address visual clarity in BPMN-style sequential processes. The badges are presentation-layer only — the compiler never sees them.
 
+### Node Sizing
+
+**Location:** `@carta/web-client/utils/nodeDimensions.ts`
+**Purpose:** Canonical function for reading node dimensions
+
+`getNodeDimensions(node)` returns `{width, height}` using a fallback chain:
+
+1. `node.style?.width/height` — Manual resize via NodeResizer
+2. `node.measured?.width/height` — React Flow computed dimensions
+3. `node.width/height` — Explicit dimensions
+4. Type-based default — Organizer: 400×300, Construct: 200×100
+
+This ensures consistent dimension reads across layout algorithms, resize persistence, and fitToChildren operations. All layout utilities should use this function instead of directly accessing node properties.
+
 ## Node Presentation Dispatch
 
 The presentation model also governs which component renders each construct. This is a two-key dispatch:

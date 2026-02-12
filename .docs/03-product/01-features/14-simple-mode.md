@@ -78,14 +78,14 @@ Additional shape variants (`circle`, `diamond`, `document`) were added to suppor
 | Aspect | `'default'` | `'card'` | `'simple'` | `'circle'` | `'diamond'` | `'document'` |
 |--------|-------------|----------|------------|------------|-------------|--------------|
 | Header bar | Yes (schema type, controls) | No | No | No | No | No |
-| Field grid | Yes (by displayTier) | Yes (minimal tier) | No | No | No | No |
+| Field grid | Yes (by displayTier) | Yes (summary tier) | No | No | No | No |
 | Display name | From marker-tier field | From marker-tier field | N/A—content IS the display | Centered in shape | Centered in shape | Centered in shape |
 | Shape | Rounded rect | Rounded rect | Rounded rect | Circle (aspect 1:1) | Diamond (rotated square) | Document shape |
 | Background | `bg-surface` | Schema/instance color tint | Schema/instance color tint (30% mix) | Color tint | Color tint | Color tint |
 | Port drawer | On hover | On hover | On hover (includes color dropper) | On hover | On hover | On hover |
-| View modes | Summary ↔ Details toggle | Summary ↔ Details toggle | None—single mode only | None | None | None |
-| Controls | Expand, pin, window, color | Expand, color | Color via port drawer dropper | Minimal | Minimal | Minimal |
-| Double-click | Enter details mode | Enter details mode | No-op | Open modal for field editing | Open modal for field editing | Open modal for field editing |
+| View modes | None—single mode only | None—single mode only | None—single mode only | None | None | None |
+| Controls | Color via port drawer | Color via port drawer | Color via port drawer dropper | Minimal | Minimal | Minimal |
+| Double-click | No-op | No-op | No-op | Open inspector for field editing | Open inspector for field editing | Open inspector for field editing |
 | Use case | General purpose | Compact display | Sketching, rough ideas | Events, states (BPMN) | Gateways, decisions | Artifacts, documents |
 | Architecture | Full-featured component | Simplified variant of default | Separate primitive, no shared UI complexity | Separate shape variant | Separate shape variant | Separate shape variant |
 
@@ -115,7 +115,7 @@ NUX seeds the first document with Notes. Simple mode is the ongoing experience o
 Rough-to-Refined is the conceptual workflow. Simple mode is its technical realization. The workflow doc describes what the user does; this doc describes what the tool shows.
 
 ### vs. Card nodeShape
-`nodeShape: 'card'` renders a label-dominant colored card with minimal-tier fields. `'simple'` goes further: no fields at all, content rendered directly as body text, no controls chrome. Card is for schemas that are lightweight but structured (Box); simple is for schemas that are pure freeform text (Note).
+`nodeShape: 'card'` renders a label-dominant colored card with summary-tier fields. `'simple'` goes further: no fields at all, content rendered directly as body text, no controls chrome. Card is for schemas that are lightweight but structured (Box); simple is for schemas that are pure freeform text (Note).
 
 ### vs. LOD bands
 LOD controls information density by zoom level. Simple mode controls information density by schema intent. They're orthogonal—a simple construct at marker zoom is a marker; at normal zoom it's a compact card.

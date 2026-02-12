@@ -123,7 +123,7 @@ describe('useOrganizerOperations Hook', () => {
 
     });
 
-    it('returns null when fewer than 2 nodes selected', async () => {
+    it('creates organizer for a single node', async () => {
       const result = await setup();
       const { adapter } = result.current.context;
 
@@ -142,8 +142,22 @@ describe('useOrganizerOperations Hook', () => {
         groupId = result.current.organizerOps.createOrganizer(['n1']);
       });
 
+      expect(groupId).not.toBeNull();
+      // Organizer + the original node
+      expect(result.current.nodes.nodes).toHaveLength(2);
+      const n1 = result.current.nodes.nodes.find(n => n.id === 'n1');
+      expect(n1?.parentId).toBe(groupId);
+    });
+
+    it('returns null when no nodes selected', async () => {
+      const result = await setup();
+
+      let groupId: string | null = null;
+      act(() => {
+        groupId = result.current.organizerOps.createOrganizer([]);
+      });
+
       expect(groupId).toBeNull();
-      expect(result.current.nodes.nodes).toHaveLength(1);
     });
   });
 

@@ -97,7 +97,7 @@ Defines a data slot on a construct type:
 | `semanticDescription` | AI compilation context |
 | `options` | Enum choices (enum type only) |
 | `displayHint` | Rendering hint (string type only) |
-| `displayTier` | Display tier: `pill`, `minimal`, `details`, or `full` |
+| `displayTier` | Display tier: `pill` (node title, max 1 per schema) or `summary` (shown on canvas). Omit for inspector-only fields. |
 | `displayOrder` | Sort order within the assigned tier |
 
 ### PortConfig
