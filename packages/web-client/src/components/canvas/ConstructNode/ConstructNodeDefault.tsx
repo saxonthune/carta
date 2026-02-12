@@ -28,9 +28,9 @@ export function ConstructNodeDefault({
 
   return (
     <div
-      className={`rounded-lg text-node-base text-content overflow-visible relative flex flex-col transition-shadow duration-150 min-w-[180px] max-w-[280px] min-h-[60px] ${selected ? 'ring-2 ring-accent/30' : ''}`}
+      className={`bg-surface rounded-lg text-node-base text-content overflow-visible relative flex flex-col transition-shadow duration-150 min-w-[180px] max-w-[280px] min-h-[60px] ${selected ? 'ring-2 ring-accent/30' : ''}`}
       style={{
-        backgroundColor: bgStyle.backgroundColor ?? `color-mix(in srgb, ${color} 15%, var(--color-surface))`,
+        ...bgStyle,
         ...lodTransitionStyle,
         boxShadow: selected ? 'var(--node-shadow-selected)' : 'var(--node-shadow)',
         borderLeft: `2px solid color-mix(in srgb, ${color} 70%, var(--color-surface-alt))`,
