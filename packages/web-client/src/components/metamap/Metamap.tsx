@@ -43,6 +43,7 @@ import { useSchemaUndoRedo } from '../../hooks/useSchemaUndoRedo';
 import { usePages } from '../../hooks/usePages';
 // ZoomDebug disabled for performance
 import type { MetamapLayoutDirection } from '../../utils/metamapLayout';
+import { UNGROUPED_SENTINEL } from '../../utils/metamapLayout';
 import type { ConstructSchema, SuggestedRelatedConstruct } from '@carta/domain';
 import { portRegistry, nodeContainedInOrganizer } from '@carta/domain';
 
@@ -228,9 +229,14 @@ function MetamapInner({ filterText }: MetamapInnerProps) {
 
       const intersecting = reactFlow.getIntersectingNodes(node);
       const hoverOrganizer = intersecting.find(n => n.type === 'organizer' && n.id !== node.id);
-      const hoverGroupId = hoverOrganizer
+      let hoverGroupId = hoverOrganizer
         ? (hoverOrganizer.data as OrganizerNodeData).groupId ?? null
         : null;
+
+      // Treat ungrouped organizer as null for visual feedback (no highlight for other groups)
+      if (hoverGroupId === UNGROUPED_SENTINEL && node.type === 'organizer') {
+        hoverGroupId = null;
+      }
 
       setDragHoverGroupId(hoverGroupId);
     },
@@ -251,6 +257,9 @@ function MetamapInner({ filterText }: MetamapInnerProps) {
         ? (targetOrganizer.data as OrganizerNodeData).groupId
         : undefined;
 
+      // Treat drop onto ungrouped organizer as "remove from group"
+      const effectiveTargetGroupId = targetGroupId === UNGROUPED_SENTINEL ? undefined : targetGroupId;
+
       if (node.type === 'schema-node') {
         // Handle schema node drag
         const schema = getSchema(node.id);
@@ -258,13 +267,16 @@ function MetamapInner({ filterText }: MetamapInnerProps) {
 
         const currentGroupId = schema.groupId;
 
-        if (targetGroupId && targetGroupId !== currentGroupId) {
-          updateSchema(schema.type, { groupId: targetGroupId });
-        } else if (!targetGroupId && currentGroupId) {
+        if (effectiveTargetGroupId && effectiveTargetGroupId !== currentGroupId) {
+          updateSchema(schema.type, { groupId: effectiveTargetGroupId });
+        } else if (!effectiveTargetGroupId && currentGroupId) {
           updateSchema(schema.type, { groupId: undefined });
         }
       } else if (node.type === 'organizer') {
         // Handle group drag into another group (nested groups)
+        // Don't allow nesting real groups inside the synthetic ungrouped organizer
+        if (targetGroupId === UNGROUPED_SENTINEL) return;
+
         const currentGroup = schemaGroups.find(g => g.id === (node.data as OrganizerNodeData).groupId);
         if (!currentGroup) return;
 
@@ -419,7 +431,8 @@ function MetamapInner({ filterText }: MetamapInnerProps) {
       setContextMenu({ x: event.clientX, y: event.clientY, schemaType: node.id });
     } else if (node.type === 'organizer') {
       const groupId = (node.data as OrganizerNodeData).groupId;
-      if (groupId) {
+      // Skip context menu for the synthetic ungrouped organizer
+      if (groupId && groupId !== UNGROUPED_SENTINEL) {
         setContextMenu({ x: event.clientX, y: event.clientY, groupId });
       }
     }

@@ -61,21 +61,23 @@ describe('computeMetamapLayout', () => {
       schemaGroups: [],
     });
 
-    expect(result.nodes).toHaveLength(8);
+    // Should have 1 ungrouped organizer + 8 schema nodes inside it = 9 total
+    expect(result.nodes).toHaveLength(9);
     expect(result.edges).toHaveLength(0);
 
-    // All nodes should be schema-node type with no parentId
-    for (const node of result.nodes) {
-      expect(node.type).toBe('schema-node');
-      expect(node.parentId).toBeUndefined();
-    }
+    // Find the ungrouped organizer
+    const ungroupedOrganizer = result.nodes.find(n => n.id === 'group:__ungrouped__');
+    expect(ungroupedOrganizer).toBeDefined();
+    expect(ungroupedOrganizer!.type).toBe('organizer');
+    expect(ungroupedOrganizer!.parentId).toBeUndefined();
+    expect(ungroupedOrganizer!.data.name).toBe('Ungrouped');
 
-    // Grid layout should position in 4 columns
-    // Check that x positions follow grid pattern (columns 0-3)
-    const xPositions = result.nodes.map(n => n.position.x);
-    const uniqueXPositions = new Set(xPositions);
-    // With 8 nodes in 4 columns, we expect 4 unique x positions
-    expect(uniqueXPositions.size).toBe(4);
+    // All schema nodes should have the ungrouped organizer as parent
+    const schemaNodes = result.nodes.filter(n => n.type === 'schema-node');
+    expect(schemaNodes).toHaveLength(8);
+    for (const node of schemaNodes) {
+      expect(node.parentId).toBe('group:__ungrouped__');
+    }
   });
 
   it('nests schemas inside their groups with correct parentId', () => {
@@ -94,16 +96,16 @@ describe('computeMetamapLayout', () => {
       schemaGroups,
     });
 
-    // Should have: 1 group node + 2 schema nodes inside + 1 ungrouped schema
-    expect(result.nodes).toHaveLength(4);
+    // Should have: 1 backend group + 2 schemas inside + 1 ungrouped organizer + 1 schema inside = 5 total
+    expect(result.nodes).toHaveLength(5);
 
-    // Find the group node
+    // Find the backend group node
     const groupNode = result.nodes.find(n => n.id === 'group:backend-group');
     expect(groupNode).toBeDefined();
     expect(groupNode!.type).toBe('organizer');
     expect(groupNode!.parentId).toBeUndefined();
 
-    // Find schemas in the group
+    // Find schemas in the backend group
     const serviceNode = result.nodes.find(n => n.id === 'service');
     const databaseNode = result.nodes.find(n => n.id === 'database');
     expect(serviceNode).toBeDefined();
@@ -111,10 +113,16 @@ describe('computeMetamapLayout', () => {
     expect(serviceNode!.parentId).toBe('group:backend-group');
     expect(databaseNode!.parentId).toBe('group:backend-group');
 
-    // Ungrouped schema has no parent
+    // Find the ungrouped organizer
+    const ungroupedOrganizer = result.nodes.find(n => n.id === 'group:__ungrouped__');
+    expect(ungroupedOrganizer).toBeDefined();
+    expect(ungroupedOrganizer!.type).toBe('organizer');
+    expect(ungroupedOrganizer!.data.name).toBe('Ungrouped');
+
+    // Ungrouped schema should be inside the ungrouped organizer
     const uiNode = result.nodes.find(n => n.id === 'ui-component');
     expect(uiNode).toBeDefined();
-    expect(uiNode!.parentId).toBeUndefined();
+    expect(uiNode!.parentId).toBe('group:__ungrouped__');
   });
 
   it('emits all nodes even when groups are collapsed (presentation layer handles hiding)', () => {
