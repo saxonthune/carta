@@ -818,21 +818,13 @@ export function useLayoutActions({
     // Compute routes
     const routes = computeOrthogonalRoutes(edgeInputs, obstacles);
 
-    // Apply waypoints to React Flow
-    reactFlow.setEdges(edges =>
-      edges.map(e => {
-        const route = routes.get(e.id);
-        if (!route || route.waypoints.length < 2) {
-          return { ...e, data: { ...e.data, waypoints: undefined } };
-        }
-        return { ...e, data: { ...e.data, waypoints: route.waypoints } };
-      })
-    );
-
-    // Persist waypoints to Yjs
+    // Persist waypoints to Yjs (sync effect will propagate to React Flow)
+    // Only patch edges that exist in Yjs (skip synthetic display-layer edges)
     const edgePatches: Array<{ id: string; data: Record<string, unknown> }> = [];
     const allEdgeIds = new Set(rfEdges.map(e => e.id));
     for (const edgeId of allEdgeIds) {
+      // Skip synthetic edges that don't exist in Yjs
+      if (edgeId.startsWith('agg-') || edgeId.startsWith('wagon-')) continue;
       const route = routes.get(edgeId);
       if (route && route.waypoints.length >= 2) {
         edgePatches.push({ id: edgeId, data: { waypoints: route.waypoints } });
@@ -844,19 +836,12 @@ export function useLayoutActions({
   }, [reactFlow, adapter]);
 
   /**
-   * Clear all edge routes (waypoints) from both React Flow and Yjs.
+   * Clear all edge routes (waypoints) from Yjs (sync effect will propagate to React Flow).
    */
   const clearRoutes = useCallback(() => {
-    // Clear from React Flow
-    reactFlow.setEdges(edges =>
-      edges.map(e =>
-        e.data?.waypoints ? { ...e, data: { ...e.data, waypoints: undefined } } : e
-      )
-    );
-    // Clear from Yjs
     const rfEdges = reactFlow.getEdges();
     const patches = rfEdges
-      .filter(e => e.data?.waypoints)
+      .filter(e => e.data?.waypoints && !e.id.startsWith('agg-') && !e.id.startsWith('wagon-'))
       .map(e => ({ id: e.id, data: { waypoints: null } }));
     if (patches.length > 0) {
       adapter.patchEdgeData?.(patches);

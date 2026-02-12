@@ -255,23 +255,16 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
         }
       }
 
-      // Capture edges that need waypoint clearing BEFORE mutating React Flow state
+      // Clear waypoints from Yjs (sync effect will propagate to React Flow)
+      // Skip synthetic edges that don't exist in Yjs
       const clearedEdgePatches = reactFlow.getEdges()
-        .filter(e => (affectedIds.has(e.source) || affectedIds.has(e.target)) && e.data?.waypoints)
+        .filter(e =>
+          (affectedIds.has(e.source) || affectedIds.has(e.target)) &&
+          e.data?.waypoints &&
+          !e.id.startsWith('agg-') && !e.id.startsWith('wagon-')
+        )
         .map(e => ({ id: e.id, data: { waypoints: null } }));
 
-      reactFlow.setEdges(edges =>
-        edges.map(e => {
-          if (affectedIds.has(e.source) || affectedIds.has(e.target)) {
-            if (e.data?.waypoints) {
-              return { ...e, data: { ...e.data, waypoints: undefined } };
-            }
-          }
-          return e;
-        })
-      );
-
-      // Also clear waypoints from Yjs
       if (clearedEdgePatches.length > 0) {
         adapter.patchEdgeData?.(clearedEdgePatches);
       }
