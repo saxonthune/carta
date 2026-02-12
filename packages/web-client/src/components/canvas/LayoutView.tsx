@@ -34,25 +34,59 @@ function LayoutViewInner({ onClose }: LayoutViewProps) {
 
   // Initialize layout nodes from real canvas organizers
   useEffect(() => {
-    // Find top-level organizers (no parentId)
-    const topLevelOrganizers = allNodes.filter(
-      (n): n is RFNode<OrganizerNodeData> => n.type === 'organizer' && !n.parentId
+    // Find eligible organizers: top-level organizers AND wagons attached to top-level constructs
+    const eligibleOrganizers = allNodes.filter(
+      (n): n is RFNode<OrganizerNodeData> => {
+        if (n.type !== 'organizer') return false;
+        if (!n.parentId) return true; // regular top-level organizer
+        // Wagon: has attachedToSemanticId and parent construct is top-level
+        const data = n.data as OrganizerNodeData;
+        if (!data.attachedToSemanticId) return false;
+        const parent = allNodes.find(p => p.id === n.parentId);
+        return parent ? !parent.parentId : false;
+      }
     );
 
-    const layoutNodes: RFNode[] = topLevelOrganizers.map((orgNode) => ({
-      id: orgNode.id,
-      type: 'layout-organizer',
-      position: orgNode.position,
-      draggable: true,
-      data: {
-        name: orgNode.data.name,
-        color: orgNode.data.color,
-      },
-      style: {
-        width: orgNode.measured?.width ?? orgNode.width ?? 400,
-        height: orgNode.measured?.height ?? orgNode.height ?? 300,
-      },
-    }));
+    const layoutNodes: RFNode[] = eligibleOrganizers.map((orgNode) => {
+      const orgData = orgNode.data as OrganizerNodeData;
+      let displayName = orgData.name;
+
+      // For wagons, append the construct title
+      if (orgData.attachedToSemanticId) {
+        const parentNode = allNodes.find(n => n.id === orgNode.parentId);
+        const constructTitle = parentNode
+          ? ((parentNode.data as any).title ?? (parentNode.data as any).semanticId ?? parentNode.id)
+          : orgData.attachedToSemanticId;
+        displayName = `${orgData.name} → ${constructTitle}`;
+      }
+
+      // Convert wagon positions to absolute for layout view
+      let position = orgNode.position;
+      if (orgNode.parentId) {
+        const parentNode = allNodes.find(n => n.id === orgNode.parentId);
+        if (parentNode) {
+          position = {
+            x: orgNode.position.x + parentNode.position.x,
+            y: orgNode.position.y + parentNode.position.y,
+          };
+        }
+      }
+
+      return {
+        id: orgNode.id,
+        type: 'layout-organizer',
+        position,
+        draggable: true,
+        data: {
+          name: displayName,
+          color: orgData.color,
+        },
+        style: {
+          width: orgNode.measured?.width ?? orgNode.width ?? 400,
+          height: orgNode.measured?.height ?? orgNode.height ?? 300,
+        },
+      };
+    });
 
     setLocalNodes(layoutNodes);
   }, [allNodes]);

@@ -791,20 +791,48 @@ export function useLayoutActions({
 
     const rfNodes = reactFlow.getNodes();
 
-    // Gather top-level organizer bounding boxes as PinLayoutNode[]
-    const organizers = rfNodes.filter(n => n.type === 'organizer' && !n.parentId);
-    const layoutNodes: PinLayoutNode[] = organizers.map(n => ({
-      id: n.id,
-      ...getNodeDimensions(n),
-      x: n.position.x,
-      y: n.position.y,
-    }));
+    // Gather top-level organizers AND top-level wagon organizers
+    const organizers = rfNodes.filter(n => {
+      if (n.type !== 'organizer') return false;
+      if (!n.parentId) return true; // regular top-level organizer
+      // Wagon: has attachedToSemanticId and parent construct is top-level
+      const data = n.data as any;
+      if (!data.attachedToSemanticId) return false;
+      const parent = rfNodes.find(p => p.id === n.parentId);
+      return parent ? !parent.parentId : false;
+    });
+
+    const layoutNodes: PinLayoutNode[] = organizers.map(n => {
+      const dims = getNodeDimensions(n);
+      let x = n.position.x;
+      let y = n.position.y;
+      // Convert wagon relative positions to absolute
+      if (n.parentId) {
+        const parent = rfNodes.find(p => p.id === n.parentId);
+        if (parent) {
+          x += parent.position.x;
+          y += parent.position.y;
+        }
+      }
+      return { id: n.id, ...dims, x, y };
+    });
 
     // Resolve pin constraints
     const result = resolvePinConstraints(layoutNodes, constraints);
 
+    // Convert wagon positions back to relative before applying patches
+    const patches = [...result.positions].map(([id, position]) => {
+      const node = rfNodes.find(n => n.id === id);
+      if (node?.parentId) {
+        const parent = rfNodes.find(p => p.id === node.parentId);
+        if (parent) {
+          return { id, position: { x: position.x - parent.position.x, y: position.y - parent.position.y } };
+        }
+      }
+      return { id, position };
+    });
+
     // Apply constrained positions (3-layer sync)
-    const patches = [...result.positions].map(([id, position]) => ({ id, position }));
     applyPositionPatches(patches, reactFlow, setNodesLocal, adapter);
 
     // De-overlap free-standing nodes against newly positioned organizers
