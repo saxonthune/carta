@@ -1,4 +1,5 @@
 import { memo, useCallback, useMemo, useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Handle, Position, NodeResizer, useNodeId, type NodeProps } from '@xyflow/react';
 import {
   ArrowsOutSimple,
@@ -67,8 +68,10 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
 
   const [showColorPicker, setShowColorPicker] = useState(false);
   const colorPickerRef = useRef<HTMLDivElement>(null);
+  const colorTriggerRef = useRef<HTMLDivElement>(null);
   const [showLayoutMenu, setShowLayoutMenu] = useState(false);
   const layoutMenuRef = useRef<HTMLDivElement>(null);
+  const layoutTriggerRef = useRef<HTMLButtonElement>(null);
 
   // Rename state
   const [editValue, setEditValue] = useState(name);
@@ -141,7 +144,10 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
   useEffect(() => {
     if (!showColorPicker) return;
     const handleClickOutside = (e: MouseEvent) => {
-      if (colorPickerRef.current && !colorPickerRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      const clickedTrigger = colorTriggerRef.current && colorTriggerRef.current.contains(target);
+      const clickedPicker = colorPickerRef.current && colorPickerRef.current.contains(target);
+      if (!clickedTrigger && !clickedPicker) {
         setShowColorPicker(false);
       }
     };
@@ -153,7 +159,10 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
   useEffect(() => {
     if (!showLayoutMenu) return;
     const handleClickOutside = (e: MouseEvent) => {
-      if (layoutMenuRef.current && !layoutMenuRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      const clickedTrigger = layoutTriggerRef.current && layoutTriggerRef.current.contains(target);
+      const clickedMenu = layoutMenuRef.current && layoutMenuRef.current.contains(target);
+      if (!clickedTrigger && !clickedMenu) {
         setShowLayoutMenu(false);
       }
     };
@@ -234,35 +243,13 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
             height: 44,
           }}
         >
-          <div className="relative">
+          <div>
             <div
+              ref={colorTriggerRef}
               className={`w-2.5 h-2.5 rounded-full shrink-0 ${nodeActions ? 'cursor-pointer' : ''}`}
               style={{ backgroundColor: color }}
               onClick={nodeActions ? handleColorClick : undefined}
             />
-            {/* Color picker popover for collapsed */}
-            {showColorPicker && nodeActions && (
-              <div
-                ref={colorPickerRef}
-                className="absolute top-full left-0 mt-1 z-50 p-2 rounded-lg shadow-lg flex gap-1.5"
-                style={{
-                  backgroundColor: 'var(--color-surface-elevated)',
-                  border: '1px solid var(--color-border)',
-                }}
-              >
-                {ORGANIZER_COLORS.map(c => (
-                  <button
-                    key={c}
-                    className="w-5 h-5 rounded-full border-2 border-transparent hover:border-white transition-all"
-                    style={{ backgroundColor: c }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleColorSelect(c);
-                    }}
-                  />
-                ))}
-              </div>
-            )}
           </div>
           {isRenaming && nodeActions ? (
             <input
@@ -306,6 +293,36 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
             </Tooltip>
           )}
         </div>
+        {/* Color picker popover for collapsed (portaled) */}
+        {showColorPicker && nodeActions && createPortal(
+          <div
+            ref={colorPickerRef}
+            className="fixed z-[999] p-2 rounded-lg shadow-lg flex gap-1.5"
+            style={{
+              top: colorTriggerRef.current
+                ? colorTriggerRef.current.getBoundingClientRect().bottom + 4
+                : 0,
+              left: colorTriggerRef.current
+                ? colorTriggerRef.current.getBoundingClientRect().left
+                : 0,
+              backgroundColor: 'var(--color-surface-elevated)',
+              border: '1px solid var(--color-border)',
+            }}
+          >
+            {ORGANIZER_COLORS.map(c => (
+              <button
+                key={c}
+                className="w-5 h-5 rounded-full border-2 border-transparent hover:border-white transition-all"
+                style={{ backgroundColor: c }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleColorSelect(c);
+                }}
+              />
+            ))}
+          </div>,
+          document.body
+        )}
       </div>
     );
   }
@@ -363,35 +380,13 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
           className="node-drag-handle flex items-center gap-2 px-3 py-2 rounded-t-xl cursor-grab"
           style={{ backgroundColor: `${color}15` }}
         >
-          <div className="relative">
+          <div>
             <div
+              ref={colorTriggerRef}
               className={`w-2.5 h-2.5 rounded-full shrink-0 ${nodeActions ? 'cursor-pointer' : ''}`}
               style={{ backgroundColor: color }}
               onClick={nodeActions ? handleColorClick : undefined}
             />
-            {/* Color picker popover for expanded */}
-            {showColorPicker && nodeActions && (
-              <div
-                ref={colorPickerRef}
-                className="absolute top-full left-0 mt-1 z-50 p-2 rounded-lg shadow-lg flex gap-1.5"
-                style={{
-                  backgroundColor: 'var(--color-surface-elevated)',
-                  border: '1px solid var(--color-border)',
-                }}
-              >
-                {ORGANIZER_COLORS.map(c => (
-                  <button
-                    key={c}
-                    className="w-5 h-5 rounded-full border-2 border-transparent hover:border-white transition-all"
-                    style={{ backgroundColor: c }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleColorSelect(c);
-                    }}
-                  />
-                ))}
-              </div>
-            )}
           </div>
           <div className="flex flex-col flex-1 min-w-0">
             {isRenaming && nodeActions ? (
@@ -430,9 +425,10 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
           )}
           {/* Layout menu (canvas only, 2+ children) */}
           {layoutMenuItems && (
-            <div className="relative">
+            <div>
               <Tooltip content="Layout options">
                 <button
+                  ref={layoutTriggerRef}
                   className="w-5 h-5 flex items-center justify-center rounded text-content-muted hover:text-content transition-colors shrink-0"
                   onClick={handleLayoutMenuClick}
                   title="Layout options"
@@ -440,32 +436,6 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
                   <DotsThreeVertical weight="bold" size={14} />
                 </button>
               </Tooltip>
-              {/* Layout menu popover */}
-              {showLayoutMenu && (
-                <div
-                  ref={layoutMenuRef}
-                  className="absolute top-full right-0 mt-1 z-50 py-1 rounded-lg shadow-lg min-w-[160px]"
-                  style={{
-                    backgroundColor: 'var(--color-surface-elevated)',
-                    border: '1px solid var(--color-border)',
-                  }}
-                >
-                  {layoutMenuItems.map(({ label, handler, icon }) => (
-                    <button
-                      key={label}
-                      className="w-full px-3 py-2 flex items-center gap-2 text-sm text-content hover:bg-content-muted/10 transition-colors"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (nodeId) handler(nodeId);
-                        setShowLayoutMenu(false);
-                      }}
-                    >
-                      <span className="shrink-0">{icon}</span>
-                      <span>{label}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
           )}
           {/* Eyeball toggle button (canvas only — metamap uses click to toggle) */}
@@ -486,6 +456,69 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
           )}
         </div>
       </div>
+      {/* Layout menu popover (portaled) */}
+      {showLayoutMenu && layoutMenuItems && createPortal(
+        <div
+          ref={layoutMenuRef}
+          className="fixed z-[999] py-1 rounded-lg shadow-lg min-w-[160px]"
+          style={{
+            top: layoutTriggerRef.current
+              ? layoutTriggerRef.current.getBoundingClientRect().bottom + 4
+              : 0,
+            left: layoutTriggerRef.current
+              ? layoutTriggerRef.current.getBoundingClientRect().right - 160
+              : 0,
+            backgroundColor: 'var(--color-surface-elevated)',
+            border: '1px solid var(--color-border)',
+          }}
+        >
+          {layoutMenuItems.map(({ label, handler, icon }) => (
+            <button
+              key={label}
+              className="w-full px-3 py-2 flex items-center gap-2 text-sm text-content hover:bg-content-muted/10 transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (nodeId) handler(nodeId);
+                setShowLayoutMenu(false);
+              }}
+            >
+              <span className="shrink-0">{icon}</span>
+              <span>{label}</span>
+            </button>
+          ))}
+        </div>,
+        document.body
+      )}
+      {/* Color picker popover for expanded (portaled) */}
+      {showColorPicker && nodeActions && createPortal(
+        <div
+          ref={colorPickerRef}
+          className="fixed z-[999] p-2 rounded-lg shadow-lg flex gap-1.5"
+          style={{
+            top: colorTriggerRef.current
+              ? colorTriggerRef.current.getBoundingClientRect().bottom + 4
+              : 0,
+            left: colorTriggerRef.current
+              ? colorTriggerRef.current.getBoundingClientRect().left
+              : 0,
+            backgroundColor: 'var(--color-surface-elevated)',
+            border: '1px solid var(--color-border)',
+          }}
+        >
+          {ORGANIZER_COLORS.map(c => (
+            <button
+              key={c}
+              className="w-5 h-5 rounded-full border-2 border-transparent hover:border-white transition-all"
+              style={{ backgroundColor: c }}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleColorSelect(c);
+              }}
+            />
+          ))}
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
