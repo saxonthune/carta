@@ -49,6 +49,7 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 | doc02.07 | `07-design-system.md` | Depth system, island pattern, colors, typography | design, ui, styling, lod | doc01.04 |
 | doc02.08 | `08-frontend-architecture.md` | Four-layer component model, state partitioning | components, hooks, architecture | doc02.02, doc02.07 |
 | doc02.09 | `09-presentation-model.md` | Presentation model, organizers, layout strategies, visual vs semantic | presentation, organizers, layout, rendering | doc02.08, doc02.02 |
+| doc02.10 | `10-canvas-data-pipelines.md` | Map.tsx memo cascades, node/edge pipelines, waypoint flow, write-back points | pipeline, edges, nodes, waypoints, sync, Map | doc02.08, doc02.09, doc02.02 |
 
 ## 03-product — Features, use cases, workflows
 
@@ -141,6 +142,9 @@ Quick lookup for file-path→doc mapping:
 | `collaboration` | doc03.01.03.02, doc02.05 |
 | `ui` | doc02.07, doc01.04 |
 | `organizers` | doc02.09, doc03.01.01.01 |
+| `pipeline` | doc02.10 |
+| `waypoints` | doc02.10 |
+| `sync` | doc02.10, doc02.02 |
 | `presentation` | doc02.09, doc02.08 |
 | `layout` | doc02.09 |
 | `rendering` | doc02.09, doc03.01.14, doc02.07 |

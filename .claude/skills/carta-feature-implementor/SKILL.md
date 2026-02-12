@@ -144,32 +144,53 @@ Read the selected plan file(s) fully before proceeding.
 
 ## Phase 2: Extract Context Requirements
 
-After reading the plan, identify what codebase context is needed. Plans reference:
+After reading the plan, identify what codebase context is needed using a **two-phase search** strategy. The goal is to locate relevant files cheaply (Phase 2A) before reading them (Phase 2B). Never launch an Explore agent for context gathering — it burns tokens on speculative reads.
 
-- **Architectural layers** — map to `.docs/` refs via MANIFEST tags
-- **Specific files or directories** — read directly
-- **Domain concepts** — look up via `.docs/MANIFEST.md` tag index
-- **Existing patterns** — find similar code to understand conventions
+### Phase 2A: Cheap Triage (Grep + MANIFEST)
 
-Read `.docs/MANIFEST.md` first, then read only the docs and source files the plan actually touches.
+1. **Read `.docs/MANIFEST.md`** — use the tag index to map plan keywords to doc refs.
+2. **Run 3-5 parallel Grep calls** directly from the main context for the plan's key terms. Use `output_mode: "files_with_matches"` to identify relevant files without reading content:
 
-### Context Gathering Strategy
-
-```
-Plan mentions "presentation model"
-  → MANIFEST tag: presentation, rendering → doc02.09, doc02.08
-  → Source: Glob('**/presentationModel*')
-
-Plan mentions "edge rendering"
-  → MANIFEST tag: canvas → doc03.01.01.01
-  → Source: Grep({ pattern: 'Edge', glob: '*.tsx' })
-
-Plan mentions "interaction layer"
-  → MANIFEST tag: hooks → doc02.02, doc02.08
-  → Source: Glob('**/hooks/use*.ts')
+```typescript
+// Example: plan mentions "edge routing" and "waypoints"
+Grep({ pattern: 'routeEdges|waypoints', output_mode: 'files_with_matches' })
+Grep({ pattern: 'patchEdgeData', output_mode: 'files_with_matches' })
+Grep({ pattern: 'PortDrawer', output_mode: 'files_with_matches' })
 ```
 
-Read docs and source in parallel. Target: read only what the plan references, not the whole codebase.
+This identifies the ~5 relevant files in seconds for near-zero tokens.
+
+3. **Map plan concepts to docs via MANIFEST tags:**
+
+```
+Plan mentions "presentation model" → tags: presentation, rendering → doc02.09, doc02.08
+Plan mentions "edge pipeline"      → tags: pipeline, edges, sync   → doc02.10
+Plan mentions "canvas interactions" → tags: canvas, hooks           → doc03.01.01.01, doc02.02
+Plan mentions "waypoints"          → tags: waypoints               → doc02.10
+```
+
+### Phase 2B: Targeted Reads
+
+Read only the files identified in Phase 2A. Prioritize:
+
+1. **`.docs/` refs** from MANIFEST — these give architectural context without reading source
+2. **Source files** from Grep hits — read the specific line ranges that matched, not entire files
+3. **Adjacent code** — if the plan modifies a function, read its callers (one level up) to understand impact
+
+**Do NOT:**
+- Launch an Explore agent or Task subagent for context gathering
+- Read entire directories speculatively
+- Read files not surfaced by Grep or referenced by the plan
+- Read the same file at multiple offsets — read it once with enough range
+
+### When to Escalate to an Explore Agent
+
+Only use `Task(subagent_type='Explore')` if:
+- Phase 2A Grep returns 0 hits for all search terms (genuinely unknown territory)
+- The plan involves a subsystem with no `.docs/` coverage and no obvious entry points
+- You've done Phase 2A and still can't identify which files to modify
+
+Even then, give the Explore agent a **surgical prompt** with specific questions and file paths to start from — not an open-ended "investigate thoroughly."
 
 ## Phase 3: Briefing
 
