@@ -1,5 +1,15 @@
 import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
+import {
+  ArrowUp,
+  ArrowUpRight,
+  ArrowRight,
+  ArrowDownRight,
+  ArrowDown,
+  ArrowDownLeft,
+  ArrowLeft,
+  ArrowUpLeft,
+} from '@phosphor-icons/react';
 
 export interface LayoutOrganizerNodeData extends Record<string, unknown> {
   name: string;
@@ -10,17 +20,17 @@ type LayoutOrganizerNodeProps = NodeProps & {
   data: LayoutOrganizerNodeData;
 };
 
-// Map directions to handle positions
+// Map directions to handle positions and icons
 const DIRECTION_HANDLES = [
-  { id: 'N', position: Position.Top, style: { left: '50%', top: 0 } },
-  { id: 'NE', position: Position.Top, style: { left: '100%', top: 0 } },
-  { id: 'E', position: Position.Right, style: { left: '100%', top: '50%' } },
-  { id: 'SE', position: Position.Right, style: { left: '100%', top: '100%' } },
-  { id: 'S', position: Position.Bottom, style: { left: '50%', top: '100%' } },
-  { id: 'SW', position: Position.Bottom, style: { left: 0, top: '100%' } },
-  { id: 'W', position: Position.Left, style: { left: 0, top: '50%' } },
-  { id: 'NW', position: Position.Left, style: { left: 0, top: 0 } },
-] as const;
+  { id: 'N', position: Position.Top, style: { left: '50%', top: 0 }, Icon: ArrowUp },
+  { id: 'NE', position: Position.Top, style: { left: '100%', top: 0 }, Icon: ArrowUpRight },
+  { id: 'E', position: Position.Right, style: { left: '100%', top: '50%' }, Icon: ArrowRight },
+  { id: 'SE', position: Position.Right, style: { left: '100%', top: '100%' }, Icon: ArrowDownRight },
+  { id: 'S', position: Position.Bottom, style: { left: '50%', top: '100%' }, Icon: ArrowDown },
+  { id: 'SW', position: Position.Bottom, style: { left: 0, top: '100%' }, Icon: ArrowDownLeft },
+  { id: 'W', position: Position.Left, style: { left: 0, top: '50%' }, Icon: ArrowLeft },
+  { id: 'NW', position: Position.Left, style: { left: 0, top: 0 }, Icon: ArrowUpLeft },
+];
 
 const LayoutOrganizerNode = memo((props: LayoutOrganizerNodeProps) => {
   const { data } = props;
@@ -60,13 +70,27 @@ const LayoutOrganizerNode = memo((props: LayoutOrganizerNodeProps) => {
         }}
       />
 
+      {/* Drag bar */}
+      <div
+        className="drag-handle absolute rounded-full cursor-grab active:cursor-grabbing"
+        style={{
+          top: 8,
+          left: '20%',
+          width: '60%',
+          height: 6,
+          backgroundColor: color
+            ? `color-mix(in srgb, ${color} 30%, var(--color-canvas))`
+            : 'var(--color-border)',
+        }}
+      />
+
       {/* Organizer name */}
       <div className="text-sm font-medium text-content px-4 text-center">
         {name}
       </div>
 
       {/* 8 directional source handles */}
-      {DIRECTION_HANDLES.map(({ id, position, style }) => (
+      {DIRECTION_HANDLES.map(({ id, position, style, Icon }) => (
         <Handle
           key={id}
           type="source"
@@ -74,14 +98,19 @@ const LayoutOrganizerNode = memo((props: LayoutOrganizerNodeProps) => {
           id={id}
           style={{
             ...style,
-            width: 8,
-            height: 8,
-            backgroundColor: color || 'var(--color-border)',
-            border: '1px solid var(--color-surface)',
+            width: 14,
+            height: 14,
+            backgroundColor: 'var(--color-accent)',
+            border: '2px solid var(--color-surface)',
             borderRadius: '50%',
             transform: 'translate(-50%, -50%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
-        />
+        >
+          <Icon size={8} weight="bold" color="var(--color-surface)" style={{ pointerEvents: 'none' }} />
+        </Handle>
       ))}
     </div>
   );

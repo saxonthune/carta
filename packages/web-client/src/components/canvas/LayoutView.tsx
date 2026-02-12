@@ -23,6 +23,8 @@ const layoutNodeTypes = {
   'layout-organizer': LayoutOrganizerNode,
 };
 
+const VALID_SOURCE_HANDLES = new Set(['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']);
+
 function LayoutViewInner({ onClose }: LayoutViewProps) {
   const { nodes: allNodes } = useNodes();
   const { constraints, addConstraint, removeConstraint } = usePinConstraints();
@@ -77,6 +79,7 @@ function LayoutViewInner({ onClose }: LayoutViewProps) {
         type: 'layout-organizer',
         position,
         draggable: true,
+        dragHandle: '.drag-handle',
         data: {
           name: displayName,
           color: orgData.color,
@@ -136,9 +139,11 @@ function LayoutViewInner({ onClose }: LayoutViewProps) {
     setLocalNodes((nds) => applyNodeChanges(changes, nds));
   }, []);
 
-  // Validate connection to prevent self-loops
+  // Validate connection to prevent self-loops and enforce correct handle usage
   const isValidConnection = useCallback((connection: Connection | RFEdge) => {
     if (connection.source === connection.target) return false;
+    if (!connection.sourceHandle || !VALID_SOURCE_HANDLES.has(connection.sourceHandle)) return false;
+    if (connection.targetHandle !== 'body') return false;
     return true;
   }, []);
 
