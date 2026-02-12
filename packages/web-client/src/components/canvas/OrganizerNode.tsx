@@ -19,6 +19,11 @@ export interface OrganizerNodeData extends BaseOrganizerNodeData {
   isDimmed?: boolean;
   nodeActions?: NodeActions;
 
+  // Rename state
+  isRenaming?: boolean;
+  onStartRenaming?: () => void;
+  onStopRenaming?: () => void;
+
   // Metamap-specific optional fields
   depth?: number;
   parentGroupName?: string;
@@ -47,12 +52,57 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
     nodeActions,
     depth = 0,
     parentGroupName,
+    isRenaming,
+    onStartRenaming,
+    onStopRenaming,
   } = data;
 
   const [showColorPicker, setShowColorPicker] = useState(false);
   const colorPickerRef = useRef<HTMLDivElement>(null);
   const [showLayoutMenu, setShowLayoutMenu] = useState(false);
   const layoutMenuRef = useRef<HTMLDivElement>(null);
+
+  // Rename state
+  const [editValue, setEditValue] = useState(name);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Focus input when entering rename mode
+  useEffect(() => {
+    if (isRenaming && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isRenaming]);
+
+  // Sync editValue when name changes externally
+  useEffect(() => {
+    if (!isRenaming) setEditValue(name);
+  }, [name, isRenaming]);
+
+  const handleNameClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (nodeActions && onStartRenaming) {
+      onStartRenaming();
+    }
+  }, [nodeActions, onStartRenaming]);
+
+  const commitRename = useCallback(() => {
+    const trimmed = editValue.trim();
+    if (trimmed && trimmed !== name && nodeId && nodeActions) {
+      nodeActions.onRenameOrganizer(nodeId, trimmed);
+    }
+    onStopRenaming?.();
+  }, [editValue, name, nodeId, nodeActions, onStopRenaming]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    e.stopPropagation();
+    if (e.key === 'Enter') {
+      commitRename();
+    } else if (e.key === 'Escape') {
+      setEditValue(name);
+      onStopRenaming?.();
+    }
+  }, [commitRename, name, onStopRenaming]);
 
   const handleToggle = useCallback(
     (e: React.MouseEvent) => {
@@ -236,9 +286,24 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
               </div>
             )}
           </div>
-          <span className="text-node-xs font-medium text-content truncate text-halo flex-1">
-            {name}
-          </span>
+          {isRenaming && nodeActions ? (
+            <input
+              ref={inputRef}
+              className="text-node-xs font-medium text-content bg-transparent border-none outline-none flex-1 min-w-0 p-0"
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              onBlur={commitRename}
+              onKeyDown={handleKeyDown}
+              onClick={(e) => e.stopPropagation()}
+            />
+          ) : (
+            <span
+              className="text-node-xs font-medium text-content truncate text-halo flex-1 cursor-text"
+              onClick={handleNameClick}
+            >
+              {name}
+            </span>
+          )}
           {childCount > 0 && (
             <span
               className="text-[10px] font-medium shrink-0 px-1.5 py-0.5 rounded-full"
@@ -351,9 +416,24 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
             )}
           </div>
           <div className="flex flex-col flex-1 min-w-0">
-            <span className="text-node-xs font-medium text-content text-halo">
-              {name}
-            </span>
+            {isRenaming && nodeActions ? (
+              <input
+                ref={inputRef}
+                className="text-node-xs font-medium text-content bg-transparent border-none outline-none min-w-0 p-0"
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                onBlur={commitRename}
+                onKeyDown={handleKeyDown}
+                onClick={(e) => e.stopPropagation()}
+              />
+            ) : (
+              <span
+                className="text-node-xs font-medium text-content text-halo cursor-text"
+                onClick={handleNameClick}
+              >
+                {name}
+              </span>
+            )}
             {parentGroupName && (
               <span className="text-[9px] text-content-subtle leading-tight">{parentGroupName}</span>
             )}

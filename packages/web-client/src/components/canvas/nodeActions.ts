@@ -15,4 +15,5 @@ export interface NodeActions {
   onGridLayoutChildren: (nodeId: string) => void;
   onFitToChildren: (nodeId: string) => void;
   onUpdateOrganizerColor: (nodeId: string, color: string) => void;
+  onRenameOrganizer: (nodeId: string, newName: string) => void;
 }

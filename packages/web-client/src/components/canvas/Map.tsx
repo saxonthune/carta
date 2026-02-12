@@ -252,6 +252,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
   const [selectionModeActive, setSelectionModeActive] = useState(false);
   const [renamingNodeId, setRenamingNodeId] = useState<string | null>(null);
+  const [renamingOrganizerId, setRenamingOrganizerId] = useState<string | null>(null);
   const { undo, redo, canUndo, canRedo } = useUndoRedo();
 
   // Suppress unused variable warning
@@ -300,6 +301,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     detachFromOrganizer,
     toggleOrganizerCollapse,
     updateOrganizerColor,
+    renameOrganizer,
   } = useOrganizerOperations();
 
   // Wrapper for createOrganizer that uses current selectedNodeIds
@@ -624,6 +626,8 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
   fitToChildrenRef.current = fitToChildren;
   const updateOrganizerColorRef = useRef(updateOrganizerColor);
   updateOrganizerColorRef.current = updateOrganizerColor;
+  const renameOrganizerRef = useRef(renameOrganizer);
+  renameOrganizerRef.current = renameOrganizer;
 
   // One stable dispatch object shared by ALL nodes (never changes identity)
   const nodeActions = useMemo(() => ({
@@ -636,6 +640,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     onGridLayoutChildren: (nodeId: string) => gridLayoutChildrenRef.current(nodeId),
     onFitToChildren: (nodeId: string) => fitToChildrenRef.current(nodeId),
     onUpdateOrganizerColor: (nodeId: string, color: string) => updateOrganizerColorRef.current(nodeId, color),
+    onRenameOrganizer: (nodeId: string, newName: string) => renameOrganizerRef.current(nodeId, newName),
   }), []);
 
   const nodesWithCallbacks = useMemo(() => {
@@ -662,6 +667,9 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
             childCount: childCountMap[node.id] || 0,
             isDimmed: isTraceActive && !traceResult?.nodeDistances.has(node.id),
             nodeActions,
+            isRenaming: renamingOrganizerId === node.id,
+            onStartRenaming: () => setRenamingOrganizerId(node.id),
+            onStopRenaming: () => setRenamingOrganizerId(null),
           },
         };
       }
@@ -678,7 +686,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
         },
       };
     });
-  }, [nodesWithHiddenFlags, childCountMap, organizerIds, renamingNodeId, nodeActions, isTraceActive, traceResult]);
+  }, [nodesWithHiddenFlags, childCountMap, organizerIds, renamingNodeId, renamingOrganizerId, nodeActions, isTraceActive, traceResult]);
 
   // Sort nodes: parents must come before their children (React Flow requirement)
   const sortedNodes = useMemo(() => {
@@ -1316,6 +1324,15 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
             const parent = nodes.find(n => n.id === node.parentId);
             return parent?.type === 'organizer';
           })()}
+          nodeIsOrganizer={(() => {
+            if (!contextMenu.nodeId) return false;
+            const node = nodes.find(n => n.id === contextMenu.nodeId);
+            return node?.type === 'organizer';
+          })()}
+          onRenameOrganizer={(nodeId: string) => {
+            setRenamingOrganizerId(nodeId);
+            closeContextMenu();
+          }}
           onDebugInfo={(nodeId) => { setDebugNodeId(nodeId); closeContextMenu(); }}
           onRevalidateEdges={() => { revalidateEdges(); closeContextMenu(); }}
         />

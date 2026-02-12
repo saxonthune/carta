@@ -57,6 +57,8 @@ interface ContextMenuProps {
   nodeInOrganizer?: boolean;
   onAttachOrganizer?: (nodeId: string) => void;
   nodeIsConstruct?: boolean;
+  nodeIsOrganizer?: boolean;
+  onRenameOrganizer?: (nodeId: string) => void;
   onSpreadSelected?: () => void;
   // Debug info
   onDebugInfo?: (nodeId: string) => void;
@@ -146,6 +148,8 @@ export default function ContextMenu({
   nodeInOrganizer,
   onAttachOrganizer,
   nodeIsConstruct,
+  nodeIsOrganizer,
+  onRenameOrganizer,
   onSpreadSelected,
   onDebugInfo,
   onRevalidateEdges,
@@ -164,7 +168,7 @@ export default function ContextMenu({
     }
     return [];
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [type, nodeId, edgeId, selectedCount, relatedConstructs, constructOptions, schemaGroups, canPaste, pages, activePage, selectedNodeIds, constructType, onEditSchema, onCopyNodesToNewPage, onOrganizeSelected, onRemoveFromOrganizer, nodeInOrganizer, onAttachOrganizer, nodeIsConstruct, onSpreadSelected, onDebugInfo, onRevalidateEdges]);
+  }, [type, nodeId, edgeId, selectedCount, relatedConstructs, constructOptions, schemaGroups, canPaste, pages, activePage, selectedNodeIds, constructType, onEditSchema, onCopyNodesToNewPage, onOrganizeSelected, onRemoveFromOrganizer, nodeInOrganizer, onAttachOrganizer, nodeIsConstruct, nodeIsOrganizer, onRenameOrganizer, onSpreadSelected, onDebugInfo, onRevalidateEdges]);
 
   function buildPaneMenuItems(): MenuItem[] {
     const result: MenuItem[] = [];
@@ -295,6 +299,14 @@ export default function ContextMenu({
         key: 'copy-to-page',
         label: 'Copy to Page',
         children,
+      });
+    }
+
+    if (!showMultipleSelected && nodeIsOrganizer && onRenameOrganizer && nodeId) {
+      result.push({
+        key: 'rename-organizer',
+        label: 'Rename',
+        onClick: () => onRenameOrganizer(nodeId),
       });
     }
 
