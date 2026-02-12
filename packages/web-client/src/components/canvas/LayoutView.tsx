@@ -3,9 +3,11 @@ import {
   ReactFlow,
   Background,
   ReactFlowProvider,
+  applyNodeChanges,
   type Connection,
   type Node as RFNode,
   type Edge as RFEdge,
+  type NodeChange,
 } from '@xyflow/react';
 import { resolvePinConstraints } from '@carta/domain';
 import type { PinLayoutNode, PinDirection, OrganizerNodeData } from '@carta/domain';
@@ -41,6 +43,7 @@ function LayoutViewInner({ onClose }: LayoutViewProps) {
       id: orgNode.id,
       type: 'layout-organizer',
       position: orgNode.position,
+      draggable: true,
       data: {
         name: orgNode.data.name,
         color: orgNode.data.color,
@@ -56,18 +59,31 @@ function LayoutViewInner({ onClose }: LayoutViewProps) {
 
   // Update edges whenever constraints change
   useEffect(() => {
-    const edges: RFEdge[] = constraints.map((c) => ({
-      id: c.id,
-      source: c.sourceOrganizerId,
-      sourceHandle: c.direction,
-      target: c.targetOrganizerId,
-      targetHandle: 'body',
-      type: 'default',
-      label: c.direction,
-      animated: false,
-    }));
+    // Build a name lookup from local nodes
+    const nameMap = new Map<string, string>();
+    for (const n of localNodes) {
+      nameMap.set(n.id, (n.data as { name: string }).name || n.id);
+    }
+
+    const edges: RFEdge[] = constraints.map((c) => {
+      const sourceName = nameMap.get(c.sourceOrganizerId) || c.sourceOrganizerId;
+      const targetName = nameMap.get(c.targetOrganizerId) || c.targetOrganizerId;
+      // Constraint means: sourceOrganizerId is positioned {direction} of targetOrganizerId
+      const label = `${sourceName} ${c.direction} of ${targetName}`;
+
+      return {
+        id: c.id,
+        source: c.targetOrganizerId,    // reference node (anchor)
+        sourceHandle: c.direction,
+        target: c.sourceOrganizerId,     // positioned node
+        targetHandle: 'body',
+        type: 'default',
+        label,
+        animated: false,
+      };
+    });
     setLocalEdges(edges);
-  }, [constraints]);
+  }, [constraints, localNodes]);
 
   // Handle new connection from dragging handle to organizer body
   const handleConnect = useCallback(
@@ -75,10 +91,16 @@ function LayoutViewInner({ onClose }: LayoutViewProps) {
       if (!connection.source || !connection.target || !connection.sourceHandle) return;
       if (connection.source === connection.target) return; // no self-loops
       const direction = connection.sourceHandle as PinDirection;
-      addConstraint(connection.source, connection.target, direction);
+      // Swap source and target: dragging from org1's NE handle to org2 means "org2 is NE of org1"
+      addConstraint(connection.target, connection.source, direction);
     },
     [addConstraint]
   );
+
+  // Handle node changes (for dragging)
+  const onNodesChange = useCallback((changes: NodeChange[]) => {
+    setLocalNodes((nds) => applyNodeChanges(changes, nds));
+  }, []);
 
   // Validate connection to prevent self-loops
   const isValidConnection = useCallback((connection: Connection | RFEdge) => {
@@ -152,6 +174,7 @@ function LayoutViewInner({ onClose }: LayoutViewProps) {
         nodes={localNodes}
         edges={localEdges}
         nodeTypes={layoutNodeTypes}
+        onNodesChange={onNodesChange}
         onConnect={handleConnect}
         isValidConnection={isValidConnection}
         onEdgeContextMenu={onEdgeContextMenu}

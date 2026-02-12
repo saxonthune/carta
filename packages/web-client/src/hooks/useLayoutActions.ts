@@ -1,7 +1,9 @@
 import { useCallback } from 'react';
 import type { Node, ReactFlowInstance } from '@xyflow/react';
+import * as Y from 'yjs';
 import type { DocumentAdapter } from '@carta/domain';
-import { DEFAULT_ORGANIZER_LAYOUT, computeLayoutUnitSizes, type LayoutItem, type WagonInfo } from '@carta/domain';
+import { DEFAULT_ORGANIZER_LAYOUT, computeLayoutUnitSizes, type LayoutItem, type WagonInfo, resolvePinConstraints, type PinLayoutNode } from '@carta/domain';
+import { listPinConstraints } from '@carta/document';
 import { deOverlapNodes } from '../utils/deOverlapNodes.js';
 import { compactNodes } from '../utils/compactNodes.js';
 import { hierarchicalLayout } from '../utils/hierarchicalLayout.js';
@@ -155,6 +157,7 @@ interface UseLayoutActionsDeps {
   setNodesLocal: React.Dispatch<React.SetStateAction<Node[]>>;
   adapter: DocumentAdapter;
   selectedNodeIds: string[];
+  ydoc: Y.Doc;
 }
 
 export interface UseLayoutActionsResult {
@@ -173,6 +176,7 @@ export interface UseLayoutActionsResult {
   distributeNodes: (axis: 'horizontal' | 'vertical') => void;
   flowLayout: (direction: 'LR' | 'RL' | 'TB' | 'BT') => void;
   routeEdges: () => void;
+  applyPinLayout: () => void;
 }
 
 /**
@@ -184,6 +188,7 @@ export function useLayoutActions({
   setNodesLocal,
   adapter,
   selectedNodeIds,
+  ydoc,
 }: UseLayoutActionsDeps): UseLayoutActionsResult {
   /**
    * Compute the layout unit size (construct + wagon tree bounding box) for nodes.
@@ -772,6 +777,61 @@ export function useLayoutActions({
     );
   }, [reactFlow]);
 
+  /**
+   * Apply pin constraint layout.
+   * Reads constraints from Yjs, resolves positions via resolvePinConstraints,
+   * applies constrained positions via 3-layer sync, then de-overlaps free-standing nodes.
+   */
+  const applyPinLayout = useCallback(() => {
+    const pageId = adapter.getActivePage();
+    if (!pageId) return;
+
+    const constraints = listPinConstraints(ydoc, pageId);
+    if (constraints.length === 0) return;
+
+    const rfNodes = reactFlow.getNodes();
+
+    // Gather top-level organizer bounding boxes as PinLayoutNode[]
+    const organizers = rfNodes.filter(n => n.type === 'organizer' && !n.parentId);
+    const layoutNodes: PinLayoutNode[] = organizers.map(n => ({
+      id: n.id,
+      ...getNodeDimensions(n),
+      x: n.position.x,
+      y: n.position.y,
+    }));
+
+    // Resolve pin constraints
+    const result = resolvePinConstraints(layoutNodes, constraints);
+
+    // Apply constrained positions (3-layer sync)
+    const patches = [...result.positions].map(([id, position]) => ({ id, position }));
+    applyPositionPatches(patches, reactFlow, setNodesLocal, adapter);
+
+    // De-overlap free-standing nodes against newly positioned organizers
+    const constrainedIds = new Set(result.positions.keys());
+    const allTopLevel = getTopLevelLayoutItems(reactFlow.getNodes(), computeLayoutUnits);
+
+    // Merge constrained positions into items for de-overlap
+    const updatedItems = allTopLevel.map(item => {
+      const newPos = result.positions.get(item.id);
+      return newPos ? { ...item, ...newPos } : item;
+    });
+
+    const deOverlapped = deOverlapNodes(updatedItems);
+
+    // Only apply patches for non-constrained nodes
+    const freePatches = [...deOverlapped]
+      .filter(([id]) => !constrainedIds.has(id))
+      .map(([id, position]) => ({ id, position }));
+    if (freePatches.length > 0) {
+      applyPositionPatches(freePatches, reactFlow, setNodesLocal, adapter);
+    }
+
+    if (result.warnings.length > 0) {
+      console.warn('Pin layout warnings:', result.warnings);
+    }
+  }, [reactFlow, setNodesLocal, adapter, ydoc, computeLayoutUnits]);
+
   return {
     spreadChildren,
     flowLayoutChildren,
@@ -785,5 +845,6 @@ export function useLayoutActions({
     distributeNodes,
     flowLayout,
     routeEdges,
+    applyPinLayout,
   };
 }

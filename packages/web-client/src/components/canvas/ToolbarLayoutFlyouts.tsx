@@ -15,6 +15,7 @@ import {
   AlignBottom,
   ArrowsOutLineVertical,
   Path,
+  MapPin,
 } from '@phosphor-icons/react';
 import { Tooltip } from '../ui';
 
@@ -25,6 +26,8 @@ interface ToolbarLayoutFlyoutsProps {
   alignNodes: (axis: 'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom') => void;
   distributeNodes: (axis: 'horizontal' | 'vertical') => void;
   routeEdges: () => void;
+  applyPinLayout: () => void;
+  hasPinConstraints: boolean;
   selectedCount: number;
 }
 
@@ -37,6 +40,8 @@ export default function ToolbarLayoutFlyouts({
   alignNodes,
   distributeNodes,
   routeEdges,
+  applyPinLayout,
+  hasPinConstraints,
   selectedCount,
 }: ToolbarLayoutFlyoutsProps) {
   const [openFlyout, setOpenFlyout] = useState<FlyoutType>(null);
@@ -107,6 +112,11 @@ export default function ToolbarLayoutFlyouts({
     setOpenFlyout(null);
   }, [routeEdges]);
 
+  const handleApplyPinLayout = useCallback(() => {
+    applyPinLayout();
+    setOpenFlyout(null);
+  }, [applyPinLayout]);
+
   return (
     <>
       {/* Auto-layout button and flyout */}
@@ -172,6 +182,17 @@ export default function ToolbarLayoutFlyouts({
             <div>
               <div className="text-2xs text-content-muted mb-1 px-1">Quick actions</div>
               <div className="flex flex-col gap-1">
+                <button
+                  className={`flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-surface-alt transition-colors text-left ${
+                    !hasPinConstraints ? 'opacity-40 cursor-not-allowed' : ''
+                  }`}
+                  onClick={handleApplyPinLayout}
+                  disabled={!hasPinConstraints}
+                  title={!hasPinConstraints ? 'No pin constraints on this page' : 'Apply pin constraint layout'}
+                >
+                  <MapPin weight="bold" size={16} />
+                  <span>Apply Pins</span>
+                </button>
                 <button
                   className="flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-surface-alt transition-colors text-left"
                   onClick={handleSpreadAll}

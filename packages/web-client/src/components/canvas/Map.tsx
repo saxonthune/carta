@@ -35,6 +35,7 @@ import { useSchemas } from '../../hooks/useSchemas';
 import { useSchemaGroups } from '../../hooks/useSchemaGroups';
 import { usePortSchemas } from '../../hooks/usePortSchemas';
 import { usePages } from '../../hooks/usePages';
+import { usePinConstraints } from '../../hooks/usePinConstraints';
 import CustomNode from './CustomNode';
 import ConstructNode from './ConstructNode';
 import OrganizerNode from './OrganizerNode';
@@ -105,7 +106,7 @@ export interface MapProps {
 }
 
 export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNodeDoubleClick, searchText }: MapProps) {
-  const { adapter } = useDocumentContext();
+  const { adapter, ydoc } = useDocumentContext();
   const { nodes, setNodes, setNodesLocal, suppressUpdates } = useNodes();
   const { edges, setEdges } = useEdges();
   const { schemas, getSchema } = useSchemas();
@@ -128,6 +129,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
   }, [schemas, revalidateEdges]);
   const { pages, activePage, setActivePage, createPage, copyNodesToPage } = usePages();
   const reactFlow = useReactFlow();
+  const { constraints: pinConstraints } = usePinConstraints();
 
   const edgeColor = useEdgeColor();
   const defaultEdgeOptions = useMemo(() => ({
@@ -488,11 +490,13 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     distributeNodes,
     flowLayout,
     routeEdges,
+    applyPinLayout,
   } = useLayoutActions({
     reactFlow,
     setNodesLocal,
     adapter,
     selectedNodeIds,
+    ydoc,
   });
 
   // Handle adding construct from pane context menu
@@ -1290,6 +1294,8 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
             alignNodes={alignNodes}
             distributeNodes={distributeNodes}
             routeEdges={routeEdges}
+            applyPinLayout={applyPinLayout}
+            hasPinConstraints={pinConstraints.length > 0}
             selectedCount={selectedNodeIds.length}
           />
           <Tooltip content={selectionModeActive ? "Exit Selection Mode (V)" : "Selection Mode (V)"}>
