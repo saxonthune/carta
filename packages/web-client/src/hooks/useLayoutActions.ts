@@ -176,6 +176,7 @@ export interface UseLayoutActionsResult {
   distributeNodes: (axis: 'horizontal' | 'vertical') => void;
   flowLayout: (direction: 'LR' | 'RL' | 'TB' | 'BT') => void;
   routeEdges: () => void;
+  clearRoutes: () => void;
   applyPinLayout: () => void;
 }
 
@@ -717,7 +718,7 @@ export function useLayoutActions({
   /**
    * Route edges around obstacles using orthogonal routing.
    * Computes waypoints for edges and applies them to React Flow's edge data.
-   * Waypoints are transient (not persisted to Yjs).
+   * Waypoints are persisted to Yjs.
    */
   const routeEdges = useCallback(() => {
     const rfNodes = reactFlow.getNodes();
@@ -765,7 +766,7 @@ export function useLayoutActions({
     // Compute routes
     const routes = computeOrthogonalRoutes(edgeInputs, obstacles);
 
-    // Apply waypoints to edges via React Flow's setEdges
+    // Apply waypoints to React Flow
     reactFlow.setEdges(edges =>
       edges.map(e => {
         const route = routes.get(e.id);
@@ -775,7 +776,40 @@ export function useLayoutActions({
         return { ...e, data: { ...e.data, waypoints: route.waypoints } };
       })
     );
-  }, [reactFlow]);
+
+    // Persist waypoints to Yjs
+    const edgePatches: Array<{ id: string; data: Record<string, unknown> }> = [];
+    const allEdgeIds = new Set(rfEdges.map(e => e.id));
+    for (const edgeId of allEdgeIds) {
+      const route = routes.get(edgeId);
+      if (route && route.waypoints.length >= 2) {
+        edgePatches.push({ id: edgeId, data: { waypoints: route.waypoints } });
+      } else {
+        edgePatches.push({ id: edgeId, data: { waypoints: null } });
+      }
+    }
+    adapter.patchEdgeData?.(edgePatches);
+  }, [reactFlow, adapter]);
+
+  /**
+   * Clear all edge routes (waypoints) from both React Flow and Yjs.
+   */
+  const clearRoutes = useCallback(() => {
+    // Clear from React Flow
+    reactFlow.setEdges(edges =>
+      edges.map(e =>
+        e.data?.waypoints ? { ...e, data: { ...e.data, waypoints: undefined } } : e
+      )
+    );
+    // Clear from Yjs
+    const rfEdges = reactFlow.getEdges();
+    const patches = rfEdges
+      .filter(e => e.data?.waypoints)
+      .map(e => ({ id: e.id, data: { waypoints: null } }));
+    if (patches.length > 0) {
+      adapter.patchEdgeData?.(patches);
+    }
+  }, [reactFlow, adapter]);
 
   /**
    * Apply pin constraint layout.
@@ -873,6 +907,7 @@ export function useLayoutActions({
     distributeNodes,
     flowLayout,
     routeEdges,
+    clearRoutes,
     applyPinLayout,
   };
 }

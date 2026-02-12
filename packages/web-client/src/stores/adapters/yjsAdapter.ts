@@ -720,6 +720,24 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       }, 'drag-commit');
     },
 
+    patchEdgeData(patches: Array<{ id: string; data: Record<string, unknown> }>) {
+      ydoc.transact(() => {
+        const pageEdges = getActivePageEdges();
+        if (!pageEdges) return;
+        for (const { id, data } of patches) {
+          const yedge = pageEdges.get(id) as Y.Map<unknown> | undefined;
+          if (!yedge) continue;
+          for (const [key, value] of Object.entries(data)) {
+            if (value === undefined || value === null) {
+              yedge.delete(key);
+            } else {
+              yedge.set(key, value);
+            }
+          }
+        }
+      }, 'user');
+    },
+
     // Mutations - Pages
     setActivePage(pageId: string) {
       if (!ypages.has(pageId)) return;

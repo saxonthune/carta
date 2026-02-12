@@ -255,6 +255,11 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
         }
       }
 
+      // Capture edges that need waypoint clearing BEFORE mutating React Flow state
+      const clearedEdgePatches = reactFlow.getEdges()
+        .filter(e => (affectedIds.has(e.source) || affectedIds.has(e.target)) && e.data?.waypoints)
+        .map(e => ({ id: e.id, data: { waypoints: null } }));
+
       reactFlow.setEdges(edges =>
         edges.map(e => {
           if (affectedIds.has(e.source) || affectedIds.has(e.target)) {
@@ -265,6 +270,11 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
           return e;
         })
       );
+
+      // Also clear waypoints from Yjs
+      if (clearedEdgePatches.length > 0) {
+        adapter.patchEdgeData?.(clearedEdgePatches);
+      }
     }
   }, [setNodesLocal, adapter, reactFlow]);
 
@@ -490,6 +500,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     distributeNodes,
     flowLayout,
     routeEdges,
+    clearRoutes,
     applyPinLayout,
   } = useLayoutActions({
     reactFlow,
@@ -951,24 +962,48 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     return map;
   }, [nodes]);
 
-  // Enrich edges with polarity data for arrowhead rendering
+  // Enrich edges with polarity data for arrowhead rendering and waypoints from Yjs
   // Uses stable lookup maps to avoid depending on raw `nodes` reference
   const polarityEdges = useMemo(() => {
     return filteredEdges.map(edge => {
-      if ((edge.data as Record<string, unknown>)?.isAttachmentEdge) return edge;
+      // Read waypoints from the raw edge (top-level property from Yjs)
+      const rawWaypoints = (edge as any).waypoints;
+
+      if ((edge.data as Record<string, unknown>)?.isAttachmentEdge) {
+        // Clean up top-level waypoints and optionally enrich data
+        const { waypoints: _wp, ...cleanEdge } = edge as any;
+        return rawWaypoints
+          ? { ...cleanEdge, data: { ...edge.data, waypoints: rawWaypoints } }
+          : cleanEdge;
+      }
 
       const constructType = nodeConstructTypeMap.get(edge.source);
-      if (!constructType) return edge;
+      if (!constructType) {
+        const { waypoints: _wp, ...cleanEdge } = edge as any;
+        return rawWaypoints
+          ? { ...cleanEdge, data: { ...edge.data, waypoints: rawWaypoints } }
+          : cleanEdge;
+      }
 
       const portMap = polarityLookup.get(constructType);
-      if (!portMap) return edge;
+      if (!portMap) {
+        const { waypoints: _wp, ...cleanEdge } = edge as any;
+        return rawWaypoints
+          ? { ...cleanEdge, data: { ...edge.data, waypoints: rawWaypoints } }
+          : cleanEdge;
+      }
 
       const polarity = edge.sourceHandle ? portMap.get(edge.sourceHandle) : undefined;
-      if (!polarity) return edge;
 
+      // Clean up top-level waypoints and enrich data with both polarity and waypoints
+      const { waypoints: _wp, ...cleanEdge } = edge as any;
       return {
-        ...edge,
-        data: { ...edge.data, polarity },
+        ...cleanEdge,
+        data: {
+          ...edge.data,
+          ...(polarity ? { polarity } : {}),
+          ...(rawWaypoints ? { waypoints: rawWaypoints } : {}),
+        },
       };
     });
   }, [filteredEdges, nodeConstructTypeMap, polarityLookup]);
@@ -1294,6 +1329,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
             alignNodes={alignNodes}
             distributeNodes={distributeNodes}
             routeEdges={routeEdges}
+            clearRoutes={clearRoutes}
             applyPinLayout={applyPinLayout}
             hasPinConstraints={pinConstraints.length > 0}
             selectedCount={selectedNodeIds.length}

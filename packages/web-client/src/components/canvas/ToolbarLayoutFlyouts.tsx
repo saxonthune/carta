@@ -16,6 +16,7 @@ import {
   ArrowsOutLineVertical,
   Path,
   MapPin,
+  X,
 } from '@phosphor-icons/react';
 import { Tooltip } from '../ui';
 
@@ -26,6 +27,7 @@ interface ToolbarLayoutFlyoutsProps {
   alignNodes: (axis: 'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom') => void;
   distributeNodes: (axis: 'horizontal' | 'vertical') => void;
   routeEdges: () => void;
+  clearRoutes: () => void;
   applyPinLayout: () => void;
   hasPinConstraints: boolean;
   selectedCount: number;
@@ -40,6 +42,7 @@ export default function ToolbarLayoutFlyouts({
   alignNodes,
   distributeNodes,
   routeEdges,
+  clearRoutes,
   applyPinLayout,
   hasPinConstraints,
   selectedCount,
@@ -111,6 +114,11 @@ export default function ToolbarLayoutFlyouts({
     routeEdges();
     setOpenFlyout(null);
   }, [routeEdges]);
+
+  const handleClearRoutes = useCallback(() => {
+    clearRoutes();
+    setOpenFlyout(null);
+  }, [clearRoutes]);
 
   const handleApplyPinLayout = useCallback(() => {
     applyPinLayout();
@@ -213,6 +221,13 @@ export default function ToolbarLayoutFlyouts({
                 >
                   <Path weight="bold" size={16} />
                   <span>Route Edges</span>
+                </button>
+                <button
+                  className="flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-surface-alt transition-colors text-left"
+                  onClick={handleClearRoutes}
+                >
+                  <X weight="bold" size={16} />
+                  <span>Clear Routes</span>
                 </button>
               </div>
             </div>
