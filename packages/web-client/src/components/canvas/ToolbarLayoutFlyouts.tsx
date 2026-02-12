@@ -14,6 +14,7 @@ import {
   AlignCenterVertical,
   AlignBottom,
   ArrowsOutLineVertical,
+  Path,
 } from '@phosphor-icons/react';
 import { Tooltip } from '../ui';
 
@@ -23,6 +24,7 @@ interface ToolbarLayoutFlyoutsProps {
   flowLayout: (direction: 'LR' | 'RL' | 'TB' | 'BT') => void;
   alignNodes: (axis: 'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom') => void;
   distributeNodes: (axis: 'horizontal' | 'vertical') => void;
+  routeEdges: () => void;
   selectedCount: number;
 }
 
@@ -34,6 +36,7 @@ export default function ToolbarLayoutFlyouts({
   flowLayout,
   alignNodes,
   distributeNodes,
+  routeEdges,
   selectedCount,
 }: ToolbarLayoutFlyoutsProps) {
   const [openFlyout, setOpenFlyout] = useState<FlyoutType>(null);
@@ -98,6 +101,11 @@ export default function ToolbarLayoutFlyouts({
     compactAll();
     setOpenFlyout(null);
   }, [compactAll]);
+
+  const handleRouteEdges = useCallback(() => {
+    routeEdges();
+    setOpenFlyout(null);
+  }, [routeEdges]);
 
   return (
     <>
@@ -177,6 +185,13 @@ export default function ToolbarLayoutFlyouts({
                 >
                   <TreeStructure weight="bold" size={16} />
                   <span>Compact</span>
+                </button>
+                <button
+                  className="flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-surface-alt transition-colors text-left"
+                  onClick={handleRouteEdges}
+                >
+                  <Path weight="bold" size={16} />
+                  <span>Route Edges</span>
                 </button>
               </div>
             </div>

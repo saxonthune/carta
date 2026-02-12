@@ -7,6 +7,7 @@ import { compactNodes } from '../utils/compactNodes.js';
 import { hierarchicalLayout } from '../utils/hierarchicalLayout.js';
 import { getNodeDimensions } from '../utils/nodeDimensions.js';
 import type { SpreadInput } from '../utils/spreadNodes.js';
+import { computeOrthogonalRoutes, type NodeRect } from '../presentation/index.js';
 
 const ORGANIZER_CONTENT_TOP = DEFAULT_ORGANIZER_LAYOUT.padding + DEFAULT_ORGANIZER_LAYOUT.headerHeight;
 
@@ -171,6 +172,7 @@ export interface UseLayoutActionsResult {
   alignNodes: (axis: 'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom') => void;
   distributeNodes: (axis: 'horizontal' | 'vertical') => void;
   flowLayout: (direction: 'LR' | 'RL' | 'TB' | 'BT') => void;
+  routeEdges: () => void;
 }
 
 /**
@@ -707,6 +709,69 @@ export function useLayoutActions({
     applyPositionPatches(patches, reactFlow, setNodesLocal, adapter);
   }, [reactFlow, setNodesLocal, adapter, computeLayoutUnits]);
 
+  /**
+   * Route edges around obstacles using orthogonal routing.
+   * Computes waypoints for edges and applies them to React Flow's edge data.
+   * Waypoints are transient (not persisted to Yjs).
+   */
+  const routeEdges = useCallback(() => {
+    const rfNodes = reactFlow.getNodes();
+    const rfEdges = reactFlow.getEdges();
+
+    // Build obstacle rects from all top-level nodes (constructs + organizers)
+    const topLevel = rfNodes.filter(n => !n.parentId);
+    const obstacles: NodeRect[] = topLevel.map(n => {
+      const dims = getNodeDimensions(n);
+      return {
+        id: n.id,
+        x: n.position.x,
+        y: n.position.y,
+        width: dims.width,
+        height: dims.height,
+      };
+    });
+
+    // Build edge inputs: map each edge to source/target rects
+    // Resolve child-of-organizer edges to their organizer's rect
+    const topLevelIds = new Set(topLevel.map(n => n.id));
+    const parentMap = new Map<string, string>();
+    for (const n of rfNodes) {
+      if (n.parentId) parentMap.set(n.id, n.parentId);
+    }
+    function resolveTopLevel(id: string): string | undefined {
+      if (topLevelIds.has(id)) return id;
+      const parent = parentMap.get(id);
+      return parent ? resolveTopLevel(parent) : undefined;
+    }
+
+    const obstacleMap = new Map(obstacles.map(o => [o.id, o]));
+    const edgeInputs: Array<{ id: string; sourceRect: NodeRect; targetRect: NodeRect }> = [];
+
+    for (const edge of rfEdges) {
+      const sourceId = resolveTopLevel(edge.source);
+      const targetId = resolveTopLevel(edge.target);
+      if (!sourceId || !targetId || sourceId === targetId) continue;
+      const sourceRect = obstacleMap.get(sourceId);
+      const targetRect = obstacleMap.get(targetId);
+      if (!sourceRect || !targetRect) continue;
+      edgeInputs.push({ id: edge.id, sourceRect, targetRect });
+    }
+
+    // Compute routes
+    const routes = computeOrthogonalRoutes(edgeInputs, obstacles);
+
+    // Apply waypoints to edges via React Flow's setEdges
+    reactFlow.setEdges(edges =>
+      edges.map(e => {
+        const route = routes.get(e.id);
+        if (!route || route.waypoints.length < 2) {
+          return { ...e, data: { ...e.data, waypoints: undefined } };
+        }
+        return { ...e, data: { ...e.data, waypoints: route.waypoints } };
+      })
+    );
+  }, [reactFlow]);
+
   return {
     spreadChildren,
     flowLayoutChildren,
@@ -719,5 +784,6 @@ export function useLayoutActions({
     alignNodes,
     distributeNodes,
     flowLayout,
+    routeEdges,
   };
 }

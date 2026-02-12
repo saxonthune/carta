@@ -235,6 +235,32 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     }
     if (commitPositions.length > 0) {
       adapter.patchNodes?.(commitPositions);
+
+      // Clear routed waypoints for edges connected to moved nodes
+      // Also resolve child-to-parent: if a node inside an organizer moves, clear edges connected to the organizer
+      const movedIds = new Set(commitPositions.map(p => p.id));
+      const rfNodes = reactFlow.getNodes();
+      const affectedIds = new Set<string>();
+
+      // Add moved node IDs and their parent organizers (if any)
+      for (const id of movedIds) {
+        affectedIds.add(id);
+        const node = rfNodes.find(n => n.id === id);
+        if (node?.parentId) {
+          affectedIds.add(node.parentId);
+        }
+      }
+
+      reactFlow.setEdges(edges =>
+        edges.map(e => {
+          if (affectedIds.has(e.source) || affectedIds.has(e.target)) {
+            if (e.data?.waypoints) {
+              return { ...e, data: { ...e.data, waypoints: undefined } };
+            }
+          }
+          return e;
+        })
+      );
     }
   }, [setNodesLocal, adapter, reactFlow]);
 
@@ -457,6 +483,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     alignNodes,
     distributeNodes,
     flowLayout,
+    routeEdges,
   } = useLayoutActions({
     reactFlow,
     setNodesLocal,
@@ -1257,6 +1284,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
             flowLayout={flowLayout}
             alignNodes={alignNodes}
             distributeNodes={distributeNodes}
+            routeEdges={routeEdges}
             selectedCount={selectedNodeIds.length}
           />
           <Tooltip content={selectionModeActive ? "Exit Selection Mode (V)" : "Selection Mode (V)"}>
