@@ -7,6 +7,12 @@ import {
   addField as addFieldOp,
   changeFieldType as changeFieldTypeOp,
   narrowEnumOptions as narrowEnumOptionsOp,
+  renamePort as renamePortOp,
+  removePort as removePortOp,
+  addPort as addPortOp,
+  changePortType as changePortTypeOp,
+  renameSchemaType as renameSchemaTypeOp,
+  countEdgesForPort as countEdgesForPortOp,
   type MigrationResult,
 } from '@carta/document';
 
@@ -107,6 +113,55 @@ export function useSchemas() {
     [adapter]
   );
 
+  // Migration operations for port evolution
+  const renamePort = useCallback(
+    (schemaType: string, oldPortId: string, newPortId: string): MigrationResult => {
+      const ydoc = (adapter as unknown as { ydoc: import('yjs').Doc }).ydoc;
+      return renamePortOp(ydoc, schemaType, oldPortId, newPortId, 'user');
+    },
+    [adapter]
+  );
+
+  const removePort = useCallback(
+    (schemaType: string, portId: string): MigrationResult => {
+      const ydoc = (adapter as unknown as { ydoc: import('yjs').Doc }).ydoc;
+      return removePortOp(ydoc, schemaType, portId, 'user');
+    },
+    [adapter]
+  );
+
+  const addPort = useCallback(
+    (schemaType: string, portConfig: Record<string, unknown>): MigrationResult => {
+      const ydoc = (adapter as unknown as { ydoc: import('yjs').Doc }).ydoc;
+      return addPortOp(ydoc, schemaType, portConfig, 'user');
+    },
+    [adapter]
+  );
+
+  const changePortType = useCallback(
+    (schemaType: string, portId: string, newPortType: string): MigrationResult => {
+      const ydoc = (adapter as unknown as { ydoc: import('yjs').Doc }).ydoc;
+      return changePortTypeOp(ydoc, schemaType, portId, newPortType, 'user');
+    },
+    [adapter]
+  );
+
+  const renameSchemaType = useCallback(
+    (oldType: string, newType: string): MigrationResult => {
+      const ydoc = (adapter as unknown as { ydoc: import('yjs').Doc }).ydoc;
+      return renameSchemaTypeOp(ydoc, oldType, newType, 'user');
+    },
+    [adapter]
+  );
+
+  const countEdgesForPort = useCallback(
+    (schemaType: string, portId: string): number => {
+      const ydoc = (adapter as unknown as { ydoc: import('yjs').Doc }).ydoc;
+      return countEdgesForPortOp(ydoc, schemaType, portId);
+    },
+    [adapter]
+  );
+
   return {
     schemas,
     schemaById,
@@ -120,5 +175,11 @@ export function useSchemas() {
     addFieldToSchema,
     changeFieldType,
     narrowEnumOptions,
+    renamePort,
+    removePort,
+    addPort,
+    changePortType,
+    renameSchemaType,
+    countEdgesForPort,
   };
 }

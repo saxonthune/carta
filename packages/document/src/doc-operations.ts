@@ -2218,6 +2218,49 @@ export function removePort(
 }
 
 /**
+ * Count edges connected through a specific port on instances of a schema type.
+ * Read-only — does not modify the document.
+ */
+export function countEdgesForPort(
+  ydoc: Y.Doc,
+  schemaType: string,
+  portId: string
+): number {
+  const yschemas = ydoc.getMap<Y.Map<unknown>>('schemas');
+  const yschema = yschemas.get(schemaType);
+  if (!yschema) return 0;
+
+  // Collect instance node IDs per page
+  const instanceNodeIds = new Map<string, Set<string>>();
+  forEachInstanceOfType(ydoc, schemaType, (_ydata, nodeId, pageId) => {
+    if (!instanceNodeIds.has(pageId)) instanceNodeIds.set(pageId, new Set());
+    instanceNodeIds.get(pageId)!.add(nodeId);
+  });
+
+  // Count edges (without deleting) — iterate manually
+  let count = 0;
+  const ypages = ydoc.getMap<Y.Map<unknown>>('pages');
+  const yedgesContainer = ydoc.getMap<Y.Map<unknown>>('edges');
+  ypages.forEach((_, pageId) => {
+    const pageInstances = instanceNodeIds.get(pageId);
+    if (!pageInstances) return;
+    const pageEdges = yedgesContainer.get(pageId) as Y.Map<Y.Map<unknown>> | undefined;
+    if (!pageEdges) return;
+    pageEdges.forEach((yedge) => {
+      const source = yedge.get('source') as string;
+      const target = yedge.get('target') as string;
+      const sourceHandle = yedge.get('sourceHandle') as string;
+      const targetHandle = yedge.get('targetHandle') as string;
+      if ((pageInstances.has(source) && sourceHandle === portId) ||
+          (pageInstances.has(target) && targetHandle === portId)) {
+        count++;
+      }
+    });
+  });
+  return count;
+}
+
+/**
  * Rename a schema type (tier 2).
  * Re-keys the schema, updates all instances, and updates suggestedTypes references in other schemas.
  */

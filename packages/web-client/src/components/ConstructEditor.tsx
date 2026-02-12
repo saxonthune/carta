@@ -61,6 +61,12 @@ export default function ConstructEditor({ editSchema, onClose }: ConstructEditor
     removeField,
     addFieldToSchema,
     changeFieldType,
+    renamePort,
+    removePort: removePortMigration,
+    addPort: addPortMigration,
+    changePortType,
+    renameSchemaType,
+    countEdgesForPort,
   } = useSchemas();
   const { portSchemas, addPortSchema } = usePortSchemas();
   const { schemaGroups } = useSchemaGroups();
@@ -74,15 +80,16 @@ export default function ConstructEditor({ editSchema, onClose }: ConstructEditor
   const [portsInitialized, setPortsInitialized] = useState(!!editSchema);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // In edit mode, sync formData with live schema for structural changes (fields)
+  // In edit mode, sync formData with live schema for structural changes (fields and ports)
   useEffect(() => {
     if (isEditMode && editSchema) {
       const liveSchema = getSchema(editSchema.type);
       if (liveSchema) {
-        // Only update fields (structural), keep local edits for non-structural
+        // Only update fields and ports (structural), keep local edits for non-structural
         setFormData(prev => ({
           ...prev,
           fields: liveSchema.fields,
+          ports: liveSchema.ports,
         }));
         setFieldAssignments(initFieldAssignments(liveSchema));
       }
@@ -128,6 +135,20 @@ export default function ConstructEditor({ editSchema, onClose }: ConstructEditor
       return;
     }
 
+    // If editing and display name changed such that type would change, rename type first
+    if (isEditMode && editSchema) {
+      const newType = toSnakeCase(formData.displayName);
+      if (newType !== editSchema.type) {
+        try {
+          renameSchemaType(editSchema.type, newType);
+          // After rename, continue with the rest of save using the new type
+        } catch (error) {
+          alert(`Failed to rename schema type: ${error instanceof Error ? error.message : String(error)}`);
+          return; // Abort save
+        }
+      }
+    }
+
     // Sync field assignments back to formData fields
     const updatedFields = formData.fields.map((field) => {
       const assignment = fieldAssignments.get(field.name);
@@ -143,20 +164,21 @@ export default function ConstructEditor({ editSchema, onClose }: ConstructEditor
       return result;
     });
 
+    const schemaType = toSnakeCase(formData.displayName);
     const schema: ConstructSchema = {
       ...formData,
       fields: updatedFields,
-      type: toSnakeCase(formData.displayName),
+      type: schemaType,
       compilation: formData.compilation || { format: 'json', sectionHeader: '' },
     };
 
     if (isEditMode) {
-      updateSchema(schema.type, schema);
+      updateSchema(schemaType, schema);
     } else {
       addSchema(schema);
     }
     onClose();
-  }, [validateBasics, formData, fieldAssignments, isEditMode, updateSchema, addSchema, onClose]);
+  }, [validateBasics, formData, fieldAssignments, isEditMode, editSchema, renameSchemaType, updateSchema, addSchema, onClose]);
 
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
@@ -201,6 +223,47 @@ export default function ConstructEditor({ editSchema, onClose }: ConstructEditor
     }
   }, [editSchema, changeFieldType]);
 
+  const handleRenamePort = useCallback((oldPortId: string, newPortId: string) => {
+    if (!editSchema) return;
+    try {
+      renamePort(editSchema.type, oldPortId, newPortId);
+    } catch (error) {
+      alert(`Failed to rename port: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }, [editSchema, renamePort]);
+
+  const handleRemovePort = useCallback((portId: string) => {
+    if (!editSchema) return;
+    try {
+      removePortMigration(editSchema.type, portId);
+    } catch (error) {
+      alert(`Failed to remove port: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }, [editSchema, removePortMigration]);
+
+  const handleAddPort = useCallback((portConfig: Record<string, unknown>) => {
+    if (!editSchema) return;
+    try {
+      addPortMigration(editSchema.type, portConfig);
+    } catch (error) {
+      alert(`Failed to add port: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }, [editSchema, addPortMigration]);
+
+  const handleChangePortType = useCallback((portId: string, newPortType: string) => {
+    if (!editSchema) return;
+    try {
+      changePortType(editSchema.type, portId, newPortType);
+    } catch (error) {
+      alert(`Failed to change port type: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }, [editSchema, changePortType]);
+
+  const handleCountEdgesForPort = useCallback((portId: string): number => {
+    if (!editSchema) return 0;
+    return countEdgesForPort(editSchema.type, portId);
+  }, [editSchema, countEdgesForPort]);
+
   return (
     <div
       className="fixed top-12 bottom-6 left-0 right-0 z-30 bg-black/50 flex items-center justify-center p-6"
@@ -243,6 +306,8 @@ export default function ConstructEditor({ editSchema, onClose }: ConstructEditor
                     errors={errors}
                     updateField={updateBasicField}
                     schemaGroups={schemaGroups}
+                    isEditMode={isEditMode}
+                    editSchemaType={editSchema?.type}
                   />
                 )}
                 {activeTab === 'fields' && (
@@ -266,6 +331,12 @@ export default function ConstructEditor({ editSchema, onClose }: ConstructEditor
                     addPortSchema={addPortSchema}
                     portsInitialized={portsInitialized}
                     setPortsInitialized={setPortsInitialized}
+                    isEditMode={isEditMode}
+                    onRenamePort={isEditMode ? handleRenamePort : undefined}
+                    onRemovePort={isEditMode ? handleRemovePort : undefined}
+                    onAddPort={isEditMode ? handleAddPort : undefined}
+                    onChangePortType={isEditMode ? handleChangePortType : undefined}
+                    onCountEdgesForPort={isEditMode ? handleCountEdgesForPort : undefined}
                   />
                 )}
               </div>

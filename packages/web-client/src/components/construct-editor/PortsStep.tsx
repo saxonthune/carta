@@ -13,6 +13,12 @@ interface PortsStepProps {
   addPortSchema: (schema: PortSchema) => void;
   portsInitialized: boolean;
   setPortsInitialized: (v: boolean) => void;
+  isEditMode?: boolean;
+  onRenamePort?: (oldPortId: string, newPortId: string) => void;
+  onRemovePort?: (portId: string) => void;
+  onAddPort?: (portConfig: Record<string, unknown>) => void;
+  onChangePortType?: (portId: string, newPortType: string) => void;
+  onCountEdgesForPort?: (portId: string) => number;
 }
 
 export default function PortsStep({
@@ -22,6 +28,12 @@ export default function PortsStep({
   addPortSchema,
   portsInitialized,
   setPortsInitialized,
+  isEditMode,
+  onRenamePort,
+  onRemovePort,
+  onAddPort,
+  onChangePortType,
+  onCountEdgesForPort,
 }: PortsStepProps) {
   const [portSubWizard, setPortSubWizard] = useState<{ portIndex: number | null; isNewPortSchema: boolean } | null>(null);
 
@@ -33,8 +45,15 @@ export default function PortsStep({
       portType,
       label: ps.displayName,
     };
-    setFormData(prev => ({ ...prev, ports: [...(prev.ports || []), newPort] }));
-    setPortSubWizard({ portIndex: (formData.ports || []).length, isNewPortSchema: false });
+
+    if (isEditMode && onAddPort) {
+      // In edit mode, delegate to migration callback
+      onAddPort(newPort as unknown as Record<string, unknown>);
+    } else {
+      // In create mode, use local state
+      setFormData(prev => ({ ...prev, ports: [...(prev.ports || []), newPort] }));
+      setPortSubWizard({ portIndex: (formData.ports || []).length, isNewPortSchema: false });
+    }
   };
 
   const updatePortAt = (index: number, updates: Partial<PortConfig>) => {
@@ -45,9 +64,17 @@ export default function PortsStep({
   };
 
   const removePort = (index: number) => {
-    setFormData(prev => ({ ...prev, ports: (prev.ports || []).filter((_, i) => i !== index) }));
-    if (portSubWizard?.portIndex === index) {
-      setPortSubWizard(null);
+    const portId = (formData.ports || [])[index]?.id;
+
+    if (isEditMode && onRemovePort && portId) {
+      // In edit mode, delegate to migration callback (PortsListStep will handle confirmation)
+      onRemovePort(portId);
+    } else {
+      // In create mode, remove from local state
+      setFormData(prev => ({ ...prev, ports: (prev.ports || []).filter((_, i) => i !== index) }));
+      if (portSubWizard?.portIndex === index) {
+        setPortSubWizard(null);
+      }
     }
   };
 
@@ -86,6 +113,11 @@ export default function PortsStep({
         onEdit={(index) => setPortSubWizard({ portIndex: index, isNewPortSchema: false })}
         onRemove={removePort}
         onAdd={addPortConfig}
+        isEditMode={isEditMode}
+        onRenamePort={onRenamePort}
+        onRemovePort={onRemovePort}
+        onChangePortType={onChangePortType}
+        onCountEdgesForPort={onCountEdgesForPort}
       />
 
       {portSubWizard && (

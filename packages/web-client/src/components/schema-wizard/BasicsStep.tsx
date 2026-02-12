@@ -25,9 +25,11 @@ interface BasicsStepProps {
   errors: Record<string, string>;
   updateField: (key: keyof ConstructSchema, value: unknown) => void;
   schemaGroups: Array<{ id: string; name: string; color?: string; parentId?: string }>;
+  isEditMode?: boolean;
+  editSchemaType?: string;
 }
 
-export default function BasicsStep({ formData, errors, updateField, schemaGroups }: BasicsStepProps) {
+export default function BasicsStep({ formData, errors, updateField, schemaGroups, isEditMode, editSchemaType }: BasicsStepProps) {
   const colorMode: ColorMode = formData.colorMode || 'default';
   const enumFields = formData.fields.filter(f => f.type === 'enum' && f.options && f.options.length > 0);
   const selectedEnumField = enumFields.find(f => f.name === formData.enumColorField);
@@ -92,6 +94,11 @@ export default function BasicsStep({ formData, errors, updateField, schemaGroups
         {formData.displayName && (
           <span className="block mt-1 text-[11px] text-content-muted">
             Type ID: <code className="text-content-subtle">{toSnakeCase(formData.displayName)}</code>
+          </span>
+        )}
+        {isEditMode && editSchemaType && toSnakeCase(formData.displayName) !== editSchemaType && (
+          <span className="block mt-1 text-[11px] text-warning">
+            Saving will rename type from <code>{editSchemaType}</code> to <code>{toSnakeCase(formData.displayName)}</code> across all instances.
           </span>
         )}
         {errors.displayName && <span className="block mt-1 text-xs text-danger">{errors.displayName}</span>}
