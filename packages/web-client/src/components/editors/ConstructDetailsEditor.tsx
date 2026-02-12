@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { SquaresFour, Crosshair, List, GitBranch } from '@phosphor-icons/react';
 import { useSchemas } from '../../hooks/useSchemas';
 import Button from '../ui/Button';
 import OverviewTab from '../construct-editor/OverviewTab';
@@ -225,36 +226,10 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
   };
 
   const tabs: Tab<EditorTab>[] = [
-    { id: 'basic', label: 'Overview', icon: (
-      <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-        <path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
-      </svg>
-    )},
-    { id: 'ports', label: 'Ports', icon: (
-      <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <circle cx="12" cy="12" r="3"/>
-        <path d="M12 1v6m0 6v6M1 12h6m6 0h6"/>
-      </svg>
-    )},
-    { id: 'fields', label: 'Fields', icon: (
-      <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <line x1="8" y1="6" x2="21" y2="6"/>
-        <line x1="8" y1="12" x2="21" y2="12"/>
-        <line x1="8" y1="18" x2="21" y2="18"/>
-        <line x1="3" y1="6" x2="3.01" y2="6"/>
-        <line x1="3" y1="12" x2="3.01" y2="12"/>
-        <line x1="3" y1="18" x2="3.01" y2="18"/>
-      </svg>
-    )},
-    { id: 'related', label: 'Related', icon: (
-      <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <circle cx="5" cy="12" r="3"/>
-        <circle cx="19" cy="6" r="3"/>
-        <circle cx="19" cy="18" r="3"/>
-        <path d="M8 12h4M12 12l4-4M12 12l4 4"/>
-      </svg>
-    )},
+    { id: 'basic', label: 'Overview', icon: <SquaresFour weight="regular" size={18} /> },
+    { id: 'ports', label: 'Ports', icon: <Crosshair weight="regular" size={18} /> },
+    { id: 'fields', label: 'Fields', icon: <List weight="regular" size={18} /> },
+    { id: 'related', label: 'Related', icon: <GitBranch weight="regular" size={18} /> },
   ];
 
   // Compact mode: horizontal tabs instead of vertical TabBar

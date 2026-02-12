@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Warning, CaretDown } from '@phosphor-icons/react';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import type { Page } from '@carta/domain';
@@ -169,17 +170,7 @@ export default function ImportPreviewModal({
       {/* Conflict warning */}
       {analysis.hasConflicts && (
         <div className="flex items-start gap-3 mb-4 p-3 bg-amber-50 rounded-lg border border-amber-200">
-          <svg
-            className="w-5 h-5 text-amber-500 shrink-0 mt-0.5"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-            <line x1="12" y1="9" x2="12" y2="13" />
-            <line x1="12" y1="17" x2="12.01" y2="17" />
-          </svg>
+          <Warning weight="bold" size={16} className="text-amber-500 shrink-0 mt-0.5" />
           <div>
             <p className="m-0 text-amber-800 font-medium text-sm">
               Schema conflicts detected
@@ -242,15 +233,11 @@ export default function ImportPreviewModal({
             className="w-full flex items-center gap-3 p-3 cursor-pointer hover:bg-surface-alt text-left"
             onClick={() => setSchemasExpanded(!schemasExpanded)}
           >
-            <svg
-              className={`w-4 h-4 text-content-muted transition-transform flex-shrink-0 ${schemasExpanded ? 'rotate-180' : ''}`}
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
+            <CaretDown
+              weight="bold"
+              size={14}
+              className={`text-content-muted transition-transform flex-shrink-0 ${schemasExpanded ? 'rotate-180' : ''}`}
+            />
             <div className="flex-1 min-w-0">
               <span className="text-content font-medium">Construct Schemas</span>
             </div>
@@ -302,15 +289,11 @@ export default function ImportPreviewModal({
             className="w-full flex items-center gap-3 p-3 cursor-pointer hover:bg-surface-alt text-left"
             onClick={() => setInstancesExpanded(!instancesExpanded)}
           >
-            <svg
-              className={`w-4 h-4 text-content-muted transition-transform flex-shrink-0 ${instancesExpanded ? 'rotate-180' : ''}`}
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
+            <CaretDown
+              weight="bold"
+              size={14}
+              className={`text-content-muted transition-transform flex-shrink-0 ${instancesExpanded ? 'rotate-180' : ''}`}
+            />
             <div className="flex-1 min-w-0">
               <span className="text-content font-medium">Instances</span>
             </div>

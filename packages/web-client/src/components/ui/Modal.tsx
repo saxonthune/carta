@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { X } from '@phosphor-icons/react';
 import Button from './Button';
 
 interface ModalProps {
@@ -68,21 +69,7 @@ export default function Modal({
             </div>
             {showCloseButton && (
               <Button variant="icon" onClick={onClose} aria-label="Close">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 20 20"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M15 5L5 15M5 5L15 15"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
+                <X weight="regular" size={20} />
               </Button>
             )}
           </div>

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Check, CaretRight } from '@phosphor-icons/react';
 
 export interface MenuItem {
   key: string;
@@ -75,16 +76,12 @@ function MenuLevel({ items, onClose, depth = 0 }: { items: MenuItem[]; onClose: 
               >
                 <span className="flex items-center gap-1.5">
                   {item.active && (
-                    <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
+                    <Check weight="bold" size={14} className="flex-shrink-0" />
                   )}
                   {item.label}
                 </span>
                 {hasChildren && (
-                  <svg className="w-4 h-4 ml-2 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <polyline points="9 18 15 12 9 6" />
-                  </svg>
+                  <CaretRight weight="bold" size={14} className="ml-2 flex-shrink-0" />
                 )}
               </button>
               {hasChildren && expandedKey === item.key && (

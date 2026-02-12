@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { X } from '@phosphor-icons/react';
 import {
   saveAISettings,
   BUILT_IN_MODELS,
@@ -181,9 +182,7 @@ export function AISettings({ onClose, onSave, initialSettings }: AISettingsProps
                     className="ml-2 p-1 text-content-subtle hover:text-danger rounded flex-shrink-0"
                     title="Remove model"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+                    <X weight="bold" size={14} />
                   </button>
                 </div>
               ))}

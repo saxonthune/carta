@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
+import { FolderOpen, Robot } from '@phosphor-icons/react';
 import { useDocumentContext } from '../../contexts/DocumentContext';
 import { config } from '../../config/featureFlags';
 import ConnectionStatus from '../ConnectionStatus';
@@ -217,9 +218,7 @@ export function Header({
             className="w-9 h-9 flex items-center justify-center rounded-lg cursor-pointer text-content-muted hover:bg-surface-alt hover:text-content transition-colors"
             onClick={() => setIsDocBrowserOpen(true)}
           >
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-            </svg>
+            <FolderOpen weight="regular" size={18} />
           </button>
         </Tooltip>
 
@@ -256,12 +255,7 @@ export function Header({
               className="w-9 h-9 flex items-center justify-center rounded-lg cursor-pointer text-content-muted hover:bg-surface-alt hover:text-content transition-colors"
               onClick={onToggleAI}
             >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 2a4 4 0 0 1 4 4v1h1a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3v-8a3 3 0 0 1 3-3h1V6a4 4 0 0 1 4-4z" />
-                <circle cx="9" cy="13" r="1.5" />
-                <circle cx="15" cy="13" r="1.5" />
-                <path d="M9 17h6" />
-              </svg>
+              <Robot weight="regular" size={18} />
             </button>
           </Tooltip>
         )}

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { DndContext, pointerWithin, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { DotsSixVertical, DotsThreeVertical, Stack, CaretDown } from '@phosphor-icons/react';
 import type { Page } from '@carta/domain';
 import PopoverMenu, { type PopoverMenuItem } from './ui/PopoverMenu';
 
@@ -108,14 +109,7 @@ function PageRow({
           {...attributes}
           {...listeners}
         >
-          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
-            <circle cx="9" cy="6" r="1.5" />
-            <circle cx="15" cy="6" r="1.5" />
-            <circle cx="9" cy="12" r="1.5" />
-            <circle cx="15" cy="12" r="1.5" />
-            <circle cx="9" cy="18" r="1.5" />
-            <circle cx="15" cy="18" r="1.5" />
-          </svg>
+          <DotsSixVertical weight="bold" size={14} />
         </div>
       )}
 
@@ -149,11 +143,7 @@ function PageRow({
                 className="p-1 rounded hover:bg-black/10 text-content-muted hover:text-content"
                 title="Page actions"
               >
-                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
-                  <circle cx="12" cy="5" r="1.5" />
-                  <circle cx="12" cy="12" r="1.5" />
-                  <circle cx="12" cy="19" r="1.5" />
-                </svg>
+                <DotsThreeVertical weight="bold" size={16} />
               </button>
             }
           />
@@ -311,11 +301,7 @@ export default function PageSwitcher({
           onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
         >
           <div className="flex items-center gap-1.5 w-full">
-            <svg className="w-3.5 h-3.5 text-content-muted flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 2L2 7l10 5 10-5-10-5z" />
-              <path d="M2 17l10 5 10-5" />
-              <path d="M2 12l10 5 10-5" />
-            </svg>
+            <Stack weight="regular" size={16} className="text-content-muted flex-shrink-0" />
             <span className="text-sm font-medium truncate" data-testid="page-name">
               {currentPage?.name || 'Main'}
             </span>
@@ -331,9 +317,7 @@ export default function PageSwitcher({
           onClick={() => setIsOpen(!isOpen)}
           title="Switch page"
         >
-          <svg className={`w-4 h-4 text-content-muted transition-transform ${isOpen ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M6 9l6 6 6-6" />
-          </svg>
+          <CaretDown weight="bold" size={14} className={`text-content-muted transition-transform ${isOpen ? 'rotate-180' : ''}`} />
         </button>
       </div>
 
@@ -420,14 +404,7 @@ export default function PageSwitcher({
               }}
               title={editMode ? 'Exit rearrange mode' : 'Rearrange pages'}
             >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                <circle cx="9" cy="6" r="1.5" />
-                <circle cx="15" cy="6" r="1.5" />
-                <circle cx="9" cy="12" r="1.5" />
-                <circle cx="15" cy="12" r="1.5" />
-                <circle cx="9" cy="18" r="1.5" />
-                <circle cx="15" cy="18" r="1.5" />
-              </svg>
+              <DotsSixVertical weight="bold" size={14} />
             </button>
           </div>
         </div>

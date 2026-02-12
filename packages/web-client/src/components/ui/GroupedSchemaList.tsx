@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
+import { CaretRight } from '@phosphor-icons/react';
 import type { ConstructSchema, SchemaGroup } from '@carta/domain';
 
 interface GroupedSchemaListProps {
@@ -131,15 +132,11 @@ export default function GroupedSchemaList({
         onClick={() => hasChildren && toggleGroup(node.group.id)}
       >
         {hasChildren && (
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            className={`w-3 h-3 transition-transform shrink-0 ${isCollapsed ? '' : 'rotate-90'}`}
-          >
-            <path d="M9 18l6-6-6-6" />
-          </svg>
+          <CaretRight
+            weight="bold"
+            size={14}
+            className={`transition-transform shrink-0 ${isCollapsed ? '' : 'rotate-90'}`}
+          />
         )}
         <span
           className="w-2.5 h-2.5 rounded-full shrink-0"

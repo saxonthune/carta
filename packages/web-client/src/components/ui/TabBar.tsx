@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { CaretRight, CaretLeft } from '@phosphor-icons/react';
 
 export interface Tab<T extends string> {
   id: T;
@@ -32,15 +33,11 @@ export default function TabBar<T extends string>({
       className="w-full flex items-center justify-center py-1.5 rounded-md text-content-muted hover:bg-surface-depth-3/50 hover:text-content transition-colors cursor-pointer"
       title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
     >
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
-        {collapsed ? (
-          // Expand arrow (pointing right/out)
-          <path d="M9 18l6-6-6-6" />
-        ) : (
-          // Collapse arrow (pointing left/in)
-          <path d="M15 18l-6-6 6-6" />
-        )}
-      </svg>
+      {collapsed ? (
+        <CaretRight weight="bold" size={16} />
+      ) : (
+        <CaretLeft weight="bold" size={16} />
+      )}
     </button>
   );
 

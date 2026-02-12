@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
+import { ArrowsClockwise } from '@phosphor-icons/react';
 import { useClickOutside } from './useClickOutside';
 import { seeds } from '../../utils/seeds';
 
@@ -34,10 +35,7 @@ export function SeedsMenu() {
         onClick={() => setIsOpen(!isOpen)}
         title="Load seed document"
       >
-        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M12 2a10 10 0 0 0-6.88 17.23l.9-1.8A8 8 0 1 1 12 20a7.95 7.95 0 0 1-4.23-1.22l-.9 1.8A10 10 0 1 0 12 2z" />
-          <path d="M12 6v6l4 2" />
-        </svg>
+        <ArrowsClockwise weight="regular" size={18} />
       </button>
       {isOpen && (
         <div className="absolute right-0 top-full mt-1 bg-surface border border-subtle rounded-lg shadow-lg overflow-hidden z-50 min-w-[280px]">

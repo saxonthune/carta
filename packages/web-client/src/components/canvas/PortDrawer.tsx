@@ -1,6 +1,7 @@
 import { memo, useRef, useState } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { getPortColor } from '@carta/domain';
+import { PencilSimple } from '@phosphor-icons/react';
 import type { PortConfig } from '@carta/domain';
 
 /** Prefix for drawer handles — stripped in onConnect to produce clean edge handle IDs */
@@ -107,9 +108,7 @@ export default memo(function PortDrawer({ ports, colorPickerPolicy, baseColor, i
                   title="Change color"
                   onClick={() => colorInputRef.current?.click()}
                 >
-                  <svg className="w-3 h-3 text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)]" viewBox="0 0 16 16" fill="currentColor">
-                    <path d="M13.354 3.354l-.708-.708a1 1 0 00-1.414 0L4.5 9.378l-.854 3.146a.5.5 0 00.607.607l3.146-.854 6.732-6.732a1 1 0 000-1.414l-.777-.777zM5.5 10.5l5.732-5.732 1 1L6.5 11.5l-1.5.5.5-1.5z" />
-                  </svg>
+                  <PencilSimple weight="regular" size={14} className="text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)]" />
                 </button>
                 {instanceColor && (
                   <button

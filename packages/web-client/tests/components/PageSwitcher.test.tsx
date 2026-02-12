@@ -100,14 +100,7 @@ describe('PageSwitcher', () => {
     it('should have a dropdown toggle button', () => {
       render(<PageSwitcher {...defaultProps} />);
 
-      // Find the chevron button (has SVG with chevron path)
-      const buttons = screen.getAllByRole('button');
-      const chevronButton = buttons.find(button => {
-        const svg = button.querySelector('svg');
-        if (!svg) return false;
-        const path = svg.querySelector('path');
-        return path?.getAttribute('d')?.includes('6 9l6 6');
-      });
+      const chevronButton = screen.getByTitle('Switch page');
 
       expect(chevronButton).toBeDefined();
     });
@@ -133,15 +126,7 @@ describe('PageSwitcher', () => {
       render(<PageSwitcher {...defaultProps} />);
 
       // Click the chevron button
-      const buttons = screen.getAllByRole('button');
-      const chevronButton = buttons.find(button => {
-        const svg = button.querySelector('svg');
-        if (!svg) return false;
-        const path = svg.querySelector('path');
-        return path?.getAttribute('d')?.includes('6 9l6 6');
-      });
-
-      await user.click(chevronButton!);
+      await user.click(screen.getByTitle('Switch page'));
 
       // Dropdown should show page name
       const pageRows = screen.getAllByText('Main');
@@ -159,15 +144,7 @@ describe('PageSwitcher', () => {
       render(<PageSwitcher {...defaultProps} pages={pages} activePage="page-1" />);
 
       // Open dropdown
-      const buttons = screen.getAllByRole('button');
-      const chevronButton = buttons.find(button => {
-        const svg = button.querySelector('svg');
-        if (!svg) return false;
-        const path = svg.querySelector('path');
-        return path?.getAttribute('d')?.includes('6 9l6 6');
-      });
-
-      await user.click(chevronButton!);
+      await user.click(screen.getByTitle('Switch page'));
 
       // All page names should appear
       expect(screen.getAllByText('Page 1').length).toBeGreaterThan(0);
@@ -186,15 +163,7 @@ describe('PageSwitcher', () => {
       render(<PageSwitcher {...defaultProps} pages={pages} activePage="page-1" onSetActivePage={onSetActivePage} />);
 
       // Open dropdown
-      const buttons = screen.getAllByRole('button');
-      const chevronButton = buttons.find(button => {
-        const svg = button.querySelector('svg');
-        if (!svg) return false;
-        const path = svg.querySelector('path');
-        return path?.getAttribute('d')?.includes('6 9l6 6');
-      });
-
-      await user.click(chevronButton!);
+      await user.click(screen.getByTitle('Switch page'));
 
       // Click on Page 2 row (not the trigger bar Page 1)
       const page2Elements = screen.getAllByText('Page 2');
@@ -208,15 +177,7 @@ describe('PageSwitcher', () => {
       render(<PageSwitcher {...defaultProps} />);
 
       // Open dropdown
-      const buttons = screen.getAllByRole('button');
-      const chevronButton = buttons.find(button => {
-        const svg = button.querySelector('svg');
-        if (!svg) return false;
-        const path = svg.querySelector('path');
-        return path?.getAttribute('d')?.includes('6 9l6 6');
-      });
-
-      await user.click(chevronButton!);
+      await user.click(screen.getByTitle('Switch page'));
 
       expect(screen.getByText('+ New Page')).toBeInTheDocument();
     });
@@ -226,23 +187,9 @@ describe('PageSwitcher', () => {
       render(<PageSwitcher {...defaultProps} />);
 
       // Open dropdown
-      const buttons = screen.getAllByRole('button');
-      const chevronButton = buttons.find(button => {
-        const svg = button.querySelector('svg');
-        if (!svg) return false;
-        const path = svg.querySelector('path');
-        return path?.getAttribute('d')?.includes('6 9l6 6');
-      });
+      await user.click(screen.getByTitle('Switch page'));
 
-      await user.click(chevronButton!);
-
-      // Find the rearrange button (has drag handle icon - 6 circles)
-      const rearrangeButton = screen.getAllByRole('button').find(button => {
-        const svg = button.querySelector('svg');
-        if (!svg) return false;
-        const circles = svg.querySelectorAll('circle');
-        return circles.length === 6; // Drag handle has 6 circles
-      });
+      const rearrangeButton = screen.getByTitle('Rearrange pages');
 
       expect(rearrangeButton).toBeDefined();
     });
@@ -252,21 +199,14 @@ describe('PageSwitcher', () => {
       render(<PageSwitcher {...defaultProps} />);
 
       // Open dropdown
-      const buttons = screen.getAllByRole('button');
-      const chevronButton = buttons.find(button => {
-        const svg = button.querySelector('svg');
-        if (!svg) return false;
-        const path = svg.querySelector('path');
-        return path?.getAttribute('d')?.includes('6 9l6 6');
-      });
-
-      await user.click(chevronButton!);
+      const chevronButton = screen.getByTitle('Switch page');
+      await user.click(chevronButton);
 
       // Verify dropdown is open
       expect(screen.getByText('+ New Page')).toBeInTheDocument();
 
       // Close dropdown
-      await user.click(chevronButton!);
+      await user.click(chevronButton);
 
       // New Page button should not be visible
       expect(screen.queryByText('+ New Page')).not.toBeInTheDocument();
@@ -282,15 +222,7 @@ describe('PageSwitcher', () => {
       render(<PageSwitcher {...defaultProps} pages={pages} activePage="page-1" />);
 
       // Open dropdown
-      const buttons = screen.getAllByRole('button');
-      const chevronButton = buttons.find(button => {
-        const svg = button.querySelector('svg');
-        if (!svg) return false;
-        const path = svg.querySelector('path');
-        return path?.getAttribute('d')?.includes('6 9l6 6');
-      });
-
-      await user.click(chevronButton!);
+      await user.click(screen.getByTitle('Switch page'));
 
       // Should not have buttons with "Rename page", "Duplicate page", or "Delete page" titles
       expect(screen.queryByTitle('Rename page')).not.toBeInTheDocument();
@@ -305,15 +237,7 @@ describe('PageSwitcher', () => {
       render(<PageSwitcher {...defaultProps} />);
 
       // Open dropdown
-      const buttons = screen.getAllByRole('button');
-      const chevronButton = buttons.find(button => {
-        const svg = button.querySelector('svg');
-        if (!svg) return false;
-        const path = svg.querySelector('path');
-        return path?.getAttribute('d')?.includes('6 9l6 6');
-      });
-
-      await user.click(chevronButton!);
+      await user.click(screen.getByTitle('Switch page'));
 
       // Query for textarea elements - should not exist in dropdown
       const textareas = screen.queryAllByRole('textbox', { name: /description/i });
@@ -332,15 +256,7 @@ describe('PageSwitcher', () => {
       expect(screen.getByPlaceholderText('Add a page description...')).toBeInTheDocument();
 
       // Now open dropdown
-      const buttons = screen.getAllByRole('button');
-      const chevronButton = buttons.find(button => {
-        const svg = button.querySelector('svg');
-        if (!svg) return false;
-        const path = svg.querySelector('path');
-        return path?.getAttribute('d')?.includes('6 9l6 6');
-      });
-
-      await user.click(chevronButton!);
+      await user.click(screen.getByTitle('Switch page'));
 
       // Textarea should disappear (mutual exclusion)
       expect(screen.queryByPlaceholderText('Add a page description...')).not.toBeInTheDocument();
@@ -354,15 +270,7 @@ describe('PageSwitcher', () => {
       expect(screen.getByText('Add description...')).toBeInTheDocument();
 
       // Open dropdown
-      const buttons = screen.getAllByRole('button');
-      const chevronButton = buttons.find(button => {
-        const svg = button.querySelector('svg');
-        if (!svg) return false;
-        const path = svg.querySelector('path');
-        return path?.getAttribute('d')?.includes('6 9l6 6');
-      });
-
-      await user.click(chevronButton!);
+      await user.click(screen.getByTitle('Switch page'));
 
       // Subtitle should remain visible when dropdown is open (no shrinking)
       expect(screen.getByText('Add description...')).toBeInTheDocument();

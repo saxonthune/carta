@@ -1,6 +1,7 @@
 import { memo, useState, useEffect, useRef, type KeyboardEvent } from 'react';
 import { Handle, Position, NodeResizer } from '@xyflow/react';
 
+import { List } from '@phosphor-icons/react';
 interface CustomNodeData {
   label: string;
   isRenaming?: boolean;
@@ -66,17 +67,7 @@ const CustomNode = memo(({ data, selected }: CustomNodeComponentProps) => {
       <Handle type="target" position={Position.Left} className="!bg-indigo-500 !w-2 !h-2" />
 
       <div className="flex items-center justify-center gap-1.5 px-2 py-1 bg-indigo-500 text-white cursor-move select-none border-b border-white/20 w-full shrink-0">
-        <svg
-          className="w-5 h-5 opacity-60"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-        >
-          <line x1="3" y1="6" x2="21" y2="6" />
-          <line x1="3" y1="12" x2="21" y2="12" />
-          <line x1="3" y1="18" x2="21" y2="18" />
-        </svg>
+        <List weight="regular" size={20} className="opacity-60" />
         <span className="text-xs opacity-80 uppercase">Node</span>
       </div>
 

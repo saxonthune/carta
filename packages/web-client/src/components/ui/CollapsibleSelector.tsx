@@ -1,4 +1,5 @@
 import { useState, useEffect, type ReactNode } from 'react';
+import { CaretDown } from '@phosphor-icons/react';
 
 export interface CollapsibleSelectorItem {
   id: string;
@@ -80,15 +81,7 @@ export default function CollapsibleSelector<T extends { id: string }>({
               </span>
             )}
           </div>
-          <svg
-            className="w-4 h-4 text-content-muted shrink-0"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <path d="M6 9l6 6 6-6" />
-          </svg>
+          <CaretDown weight="bold" size={16} className="text-content-muted shrink-0" />
         </button>
       )}
 
@@ -131,15 +124,7 @@ export default function CollapsibleSelector<T extends { id: string }>({
           <span className="text-xs text-content-muted italic flex-1">
             None selected
           </span>
-          <svg
-            className="w-4 h-4 text-content-muted shrink-0"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <path d="M6 9l6 6 6-6" />
-          </svg>
+          <CaretDown weight="bold" size={16} className="text-content-muted shrink-0" />
         </button>
       )}
     </div>

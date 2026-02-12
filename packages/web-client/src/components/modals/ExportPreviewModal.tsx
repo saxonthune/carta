@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { CaretDown } from '@phosphor-icons/react';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import type { Edge } from '@xyflow/react';
@@ -120,15 +121,11 @@ export default function ExportPreviewModal({
                         setSchemasExpanded(!schemasExpanded);
                       }}
                     >
-                      <svg
-                        className={`w-4 h-4 text-content-muted transition-transform ${schemasExpanded ? 'rotate-180' : ''}`}
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                      >
-                        <polyline points="6 9 12 15 18 9" />
-                      </svg>
+                      <CaretDown
+                        weight="bold"
+                        size={14}
+                        className={`text-content-muted transition-transform ${schemasExpanded ? 'rotate-180' : ''}`}
+                      />
                     </button>
                   )}
                 </div>
@@ -187,15 +184,11 @@ export default function ExportPreviewModal({
                         setPortSchemasExpanded(!portSchemasExpanded);
                       }}
                     >
-                      <svg
-                        className={`w-4 h-4 text-content-muted transition-transform ${portSchemasExpanded ? 'rotate-180' : ''}`}
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                      >
-                        <polyline points="6 9 12 15 18 9" />
-                      </svg>
+                      <CaretDown
+                        weight="bold"
+                        size={14}
+                        className={`text-content-muted transition-transform ${portSchemasExpanded ? 'rotate-180' : ''}`}
+                      />
                     </button>
                   )}
                 </div>
@@ -244,15 +237,11 @@ export default function ExportPreviewModal({
                         setSchemaGroupsExpanded(!schemaGroupsExpanded);
                       }}
                     >
-                      <svg
-                        className={`w-4 h-4 text-content-muted transition-transform ${schemaGroupsExpanded ? 'rotate-180' : ''}`}
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                      >
-                        <polyline points="6 9 12 15 18 9" />
-                      </svg>
+                      <CaretDown
+                        weight="bold"
+                        size={14}
+                        className={`text-content-muted transition-transform ${schemaGroupsExpanded ? 'rotate-180' : ''}`}
+                      />
                     </button>
                   )}
                 </div>

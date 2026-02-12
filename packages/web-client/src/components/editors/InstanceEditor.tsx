@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { FileText, ArrowsLeftRight, Eye, ArrowRight } from '@phosphor-icons/react';
 import type { Node } from '@xyflow/react';
 import { useSchemas } from '../../hooks/useSchemas';
 import { fieldRenderers } from '../fields';
@@ -49,21 +50,12 @@ export default function InstanceEditor({ node, onNodeUpdate }: InstanceEditorPro
     {
       id: 'details',
       label: 'Details',
-      icon: (
-        <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
-          <polyline points="13 2 13 9 20 9" />
-        </svg>
-      )
+      icon: <FileText weight="regular" size={18} />
     },
     {
       id: 'connections',
       label: 'Connections',
-      icon: (
-        <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M17 8l4 4-4 4M3 12h18" />
-        </svg>
-      )
+      icon: <ArrowsLeftRight weight="regular" size={18} />
     },
   ];
 
@@ -74,16 +66,7 @@ export default function InstanceEditor({ node, onNodeUpdate }: InstanceEditorPro
         className="flex items-center gap-2 px-4 py-2 text-white border-b border-white/20 shrink-0"
         style={{ backgroundColor: schema.color }}
       >
-        <svg
-          className="w-5 h-5"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-        >
-          <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-          <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-        </svg>
+        <Eye weight="regular" size={20} />
         <span className="text-sm font-semibold">Instance Editor</span>
         <span className="text-xs opacity-75">• {schema.displayName}</span>
       </div>
@@ -158,9 +141,7 @@ export default function InstanceEditor({ node, onNodeUpdate }: InstanceEditorPro
                     {data.connections.map((conn, idx) => (
                       <div key={idx} className="px-2.5 py-1.5 rounded bg-surface text-xs">
                         <div className="flex items-center gap-2 text-content-subtle">
-                          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M17 8l4 4-4 4M3 12h18" />
-                          </svg>
+                          <ArrowRight weight="bold" size={14} />
                           <span className="font-medium text-content">{conn.portId}</span>
                           <span>→</span>
                           <span className="font-mono text-content">{conn.targetSemanticId}</span>

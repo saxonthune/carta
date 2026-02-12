@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Folder, FolderOpen, CaretLeft } from '@phosphor-icons/react';
 import type { DocumentSummary } from '@carta/domain';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
@@ -101,19 +102,11 @@ function deriveFolderView(docs: DocumentSummary[], currentPath: string): FolderV
 }
 
 function FolderIcon() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z" />
-    </svg>
-  );
+  return <Folder weight="regular" size={18} />;
 }
 
 function FolderOpenIcon() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m6 14 1.45-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.55 6a2 2 0 0 1-1.94 1.5H4a2 2 0 0 1-2-2V5c0-1.1.9-2 2-2h3.93a2 2 0 0 1 1.66.9l.82 1.2a2 2 0 0 0 1.66.9H18a2 2 0 0 1 2 2v2" />
-    </svg>
-  );
+  return <FolderOpen weight="regular" size={18} />;
 }
 
 interface DocumentBrowserModalProps {
@@ -395,9 +388,7 @@ function DocumentBrowserContent({ onClose, required, adapter }: DocumentBrowserC
         {/* Vault Header Island (depth-2) */}
         <div className="bg-surface-depth-2 rounded-xl px-4 py-3 shadow-sm flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-sm text-content-muted min-w-0">
-            <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-            </svg>
+            <Folder weight="regular" size={18} className="shrink-0" />
             <span className="truncate">{adapter.displayAddress}</span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -446,9 +437,7 @@ function DocumentBrowserContent({ onClose, required, adapter }: DocumentBrowserC
                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer hover:bg-surface-depth-3/50 transition-colors border-none bg-transparent text-left"
                     onClick={navigateUp}
                   >
-                    <svg className="w-5 h-5 text-content-muted shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M19 12H5M12 19l-7-7 7-7" />
-                    </svg>
+                    <CaretLeft weight="bold" size={16} className="text-content-muted shrink-0" />
                     <span className="text-sm text-content-muted">..</span>
                   </button>
                 )}
