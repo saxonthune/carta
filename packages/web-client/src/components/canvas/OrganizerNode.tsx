@@ -1,5 +1,13 @@
 import { memo, useCallback, useMemo, useState, useRef, useEffect } from 'react';
 import { Handle, Position, NodeResizer, useNodeId, type NodeProps } from '@xyflow/react';
+import {
+  ArrowsOutSimple,
+  TreeStructure,
+  GridFour,
+  ArrowsInSimple,
+  DotsThreeVertical,
+  CaretUp,
+} from '@phosphor-icons/react';
 import { EyeIcon, EyeOffIcon } from '../ui/icons';
 import { Tooltip } from '../ui';
 import type { OrganizerNodeData as BaseOrganizerNodeData } from '@carta/domain';
@@ -161,52 +169,22 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
       {
         label: 'Spread apart',
         handler: nodeActions.onSpreadChildren,
-        icon: (
-          <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={2}>
-            <polyline points="15 3 21 3 21 9" />
-            <polyline points="9 21 3 21 3 15" />
-            <line x1="21" y1="3" x2="14" y2="10" />
-            <line x1="3" y1="21" x2="10" y2="14" />
-          </svg>
-        ),
+        icon: <ArrowsOutSimple weight="bold" size={14} />,
       },
       {
         label: 'Arrange as flow',
         handler: nodeActions.onFlowLayoutChildren,
-        icon: (
-          <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={2}>
-            <line x1="3" y1="6" x2="15" y2="6" />
-            <polyline points="12 3 15 6 12 9" />
-            <line x1="3" y1="12" x2="15" y2="12" />
-            <polyline points="12 9 15 12 12 15" />
-            <line x1="3" y1="18" x2="15" y2="18" />
-            <polyline points="12 15 15 18 12 21" />
-          </svg>
-        ),
+        icon: <TreeStructure weight="bold" size={14} />,
       },
       {
         label: 'Arrange as grid',
         handler: nodeActions.onGridLayoutChildren,
-        icon: (
-          <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={2}>
-            <rect x="3" y="3" width="7" height="7" rx="1" />
-            <rect x="14" y="3" width="7" height="7" rx="1" />
-            <rect x="3" y="14" width="7" height="7" rx="1" />
-            <rect x="14" y="14" width="7" height="7" rx="1" />
-          </svg>
-        ),
+        icon: <GridFour weight="bold" size={14} />,
       },
       {
         label: 'Fit to contents',
         handler: nodeActions.onFitToChildren,
-        icon: (
-          <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={2}>
-            <polyline points="4 14 4 20 10 20" />
-            <polyline points="20 10 20 4 14 4" />
-            <line x1="14" y1="10" x2="20" y2="4" />
-            <line x1="4" y1="20" x2="10" y2="14" />
-          </svg>
-        ),
+        icon: <ArrowsInSimple weight="bold" size={14} />,
       },
     ];
   }, [nodeActions, childCount]);
@@ -459,11 +437,7 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
                   onClick={handleLayoutMenuClick}
                   title="Layout options"
                 >
-                  <svg viewBox="0 0 24 24" width={14} height={14} fill="currentColor">
-                    <circle cx="12" cy="6" r="1.5" />
-                    <circle cx="12" cy="12" r="1.5" />
-                    <circle cx="12" cy="18" r="1.5" />
-                  </svg>
+                  <DotsThreeVertical weight="bold" size={14} />
                 </button>
               </Tooltip>
               {/* Layout menu popover */}
@@ -508,17 +482,7 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
           )}
           {/* Collapse chevron hint (metamap only) */}
           {!nodeActions && (
-            <svg
-              viewBox="0 0 24 24"
-              width="12"
-              height="12"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              className="text-content-subtle opacity-40 shrink-0"
-            >
-              <polyline points="18 15 12 9 6 15" />
-            </svg>
+            <CaretUp weight="bold" size={14} className="text-content-subtle opacity-40 shrink-0" />
           )}
         </div>
       </div>

@@ -13,6 +13,17 @@ import {
   applyNodeChanges,
   useReactFlow,
 } from '@xyflow/react';
+import {
+  ArrowUUpLeft,
+  ArrowUUpRight,
+  ArrowsClockwise,
+  ArrowDown,
+  ArrowRight,
+  Plus,
+  Minus,
+  CornersOut,
+  Warning,
+} from '@phosphor-icons/react';
 import SchemaNode from './SchemaNode';
 import OrganizerNode from '../canvas/OrganizerNode';
 import type { OrganizerNodeData } from '../canvas/OrganizerNode';
@@ -836,52 +847,29 @@ function MetamapInner({ filterText }: MetamapInnerProps) {
       >
         <Controls position="top-left" showZoom={false}>
           <ControlButton onClick={undo} title="Undo (Ctrl+Z)" className={canUndo ? '' : 'opacity-30 pointer-events-none'}>
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M1 4v6h6" />
-              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
-            </svg>
+            <ArrowUUpLeft weight="bold" />
           </ControlButton>
           <ControlButton onClick={redo} title="Redo (Ctrl+Y)" className={canRedo ? '' : 'opacity-30 pointer-events-none'}>
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M23 4v6h-6" />
-              <path d="M20.49 15a9 9 0 1 1-2.13-9.36L23 10" />
-            </svg>
+            <ArrowUUpRight weight="bold" />
           </ControlButton>
           <ControlButton onClick={reLayout} title="Re-layout">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
-              <polyline points="23 4 23 10 17 10" />
-              <polyline points="1 20 1 14 7 14" />
-              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
-            </svg>
+            <ArrowsClockwise weight="bold" />
           </ControlButton>
           <ControlButton onClick={toggleLayoutDirection} title={`Layout: ${layoutDirection === 'TB' ? 'Top-Bottom' : 'Left-Right'} (click to toggle)`}>
             {layoutDirection === 'TB' ? (
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="12" y1="3" x2="12" y2="21" />
-                <polyline points="8 17 12 21 16 17" />
-              </svg>
+              <ArrowDown weight="bold" />
             ) : (
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="3" y1="12" x2="21" y2="12" />
-                <polyline points="17 8 21 12 17 16" />
-              </svg>
+              <ArrowRight weight="bold" />
             )}
           </ControlButton>
           <ControlButton onClick={customZoomIn} title="Zoom In">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
+            <Plus weight="bold" />
           </ControlButton>
           <ControlButton onClick={customZoomOut} title="Zoom Out">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
+            <Minus weight="bold" />
           </ControlButton>
           <ControlButton onClick={() => reactFlow.fitView({ duration: 300 })} title="Fit to View">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
-            </svg>
+            <CornersOut weight="bold" />
           </ControlButton>
         </Controls>
 
@@ -893,9 +881,7 @@ function MetamapInner({ filterText }: MetamapInnerProps) {
               className="h-[32px] px-3 bg-amber-100 border border-amber-300 rounded cursor-pointer flex items-center gap-1.5 hover:bg-amber-200 transition-colors shadow-sm text-amber-800 text-xs font-medium"
               title={`${coveredNodeIds.length} node${coveredNodeIds.length > 1 ? 's' : ''} covered by organizers — click to rescue`}
             >
-              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-              </svg>
+              <Warning weight="bold" size={14} />
               {coveredNodeIds.length} covered
             </button>
           </div>

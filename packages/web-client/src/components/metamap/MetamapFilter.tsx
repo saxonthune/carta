@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
+import { MagnifyingGlass, X } from '@phosphor-icons/react';
 import type { ConstructSchema } from '@carta/domain';
 
 interface MetamapFilterProps {
@@ -43,10 +44,7 @@ export default function MetamapFilter({
     <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-2 bg-surface rounded-lg px-3 py-2"
       style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05)' }}
     >
-      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" className="text-content-subtle shrink-0">
-        <circle cx="11" cy="11" r="8" />
-        <line x1="21" y1="21" x2="16.65" y2="16.65" />
-      </svg>
+      <MagnifyingGlass weight="bold" size={16} className="text-content-subtle shrink-0" />
       <input
         ref={inputRef}
         type="text"
@@ -65,10 +63,7 @@ export default function MetamapFilter({
         onClick={onClose}
         className="text-content-subtle hover:text-content p-0.5 shrink-0"
       >
-        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2">
-          <line x1="18" y1="6" x2="6" y2="18" />
-          <line x1="6" y1="6" x2="18" y2="18" />
-        </svg>
+        <X weight="bold" size={16} />
       </button>
     </div>
   );

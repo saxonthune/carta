@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { ArrowRight } from '@phosphor-icons/react';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
@@ -345,9 +346,7 @@ export default function MetamapConnectionModal({
 
         {/* Arrow indicator */}
         <div className="flex items-center justify-center px-2">
-          <svg className="w-6 h-6 text-content-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M5 12h14M12 5l7 7-7 7" />
-          </svg>
+          <ArrowRight weight="bold" size={20} className="text-content-muted" />
         </div>
 
         <PortPanel

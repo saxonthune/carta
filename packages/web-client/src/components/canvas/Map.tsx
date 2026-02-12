@@ -15,6 +15,21 @@ import {
   type EdgeChange,
   BackgroundVariant,
 } from '@xyflow/react';
+import {
+  ArrowUUpLeft,
+  ArrowUUpRight,
+  Plus,
+  Minus,
+  CornersOut,
+  ArrowsOutSimple,
+  ArrowsInSimple,
+  TreeStructure,
+  CursorClick,
+  PencilSimple,
+  CopySimple,
+  Trash,
+  Warning,
+} from '@phosphor-icons/react';
 import { useNodes } from '../../hooks/useNodes';
 import { useEdges } from '../../hooks/useEdges';
 import { useDocumentContext } from '../../contexts/DocumentContext';
@@ -1177,9 +1192,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
               disabled={!canUndo}
               className={!canUndo ? 'disabled' : ''}
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M3 10h10a5 5 0 0 1 5 5v2M3 10l4-4M3 10l4 4" />
-              </svg>
+              <ArrowUUpLeft weight="bold" />
             </ControlButton>
           </Tooltip>
           <Tooltip content="Redo (Ctrl+Shift+Z)">
@@ -1188,65 +1201,37 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
               disabled={!canRedo}
               className={!canRedo ? 'disabled' : ''}
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 10H11a5 5 0 0 0-5 5v2M21 10l-4-4M21 10l-4 4" />
-              </svg>
+              <ArrowUUpRight weight="bold" />
             </ControlButton>
           </Tooltip>
           <Tooltip content="Zoom In">
             <ControlButton onClick={customZoomIn}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
+              <Plus weight="bold" />
             </ControlButton>
           </Tooltip>
           <Tooltip content="Zoom Out">
             <ControlButton onClick={customZoomOut}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
+              <Minus weight="bold" />
             </ControlButton>
           </Tooltip>
           <Tooltip content="Fit to View">
             <ControlButton onClick={() => reactFlow.fitView({ duration: 300 })}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
-              </svg>
+              <CornersOut weight="bold" />
             </ControlButton>
           </Tooltip>
           <Tooltip content="Fix Overlaps">
             <ControlButton onClick={spreadAll}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="2" y="6" width="8" height="8" rx="1" />
-                <rect x="14" y="10" width="8" height="8" rx="1" />
-                <path d="M10 13l4-4" />
-                <polyline points="14 9 14 13 10 9" />
-              </svg>
+              <ArrowsOutSimple weight="bold" />
             </ControlButton>
           </Tooltip>
           <Tooltip content="Compact Layout">
             <ControlButton onClick={compactAll}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="4 14 10 14 10 20" />
-                <polyline points="20 10 14 10 14 4" />
-                <line x1="14" y1="10" x2="21" y2="3" />
-                <line x1="3" y1="21" x2="10" y2="14" />
-              </svg>
+              <ArrowsInSimple weight="bold" />
             </ControlButton>
           </Tooltip>
           <Tooltip content="Hierarchical Layout">
             <ControlButton onClick={handleHierarchicalLayout}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="3" r="2" />
-                <circle cx="6" cy="12" r="2" />
-                <circle cx="18" cy="12" r="2" />
-                <circle cx="12" cy="21" r="2" />
-                <line x1="12" y1="5" x2="6" y2="10" />
-                <line x1="12" y1="5" x2="18" y2="10" />
-                <line x1="6" y1="14" x2="12" y2="19" />
-                <line x1="18" y1="14" x2="12" y2="19" />
-              </svg>
+              <TreeStructure weight="bold" />
             </ControlButton>
           </Tooltip>
           <Tooltip content={selectionModeActive ? "Exit Selection Mode (V)" : "Selection Mode (V)"}>
@@ -1255,10 +1240,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
               className={selectionModeActive ? 'active' : ''}
               style={selectionModeActive ? { backgroundColor: 'var(--xy-controls-button-background-color-hover, #f0f0f0)' } : undefined}
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="3" y="3" width="8" height="8" rx="1" strokeDasharray="3 2" />
-                <path d="M14 4l3 9 2.5-2.5L23 14l-3.5-3.5L22 8z" />
-              </svg>
+              <CursorClick weight="bold" />
             </ControlButton>
           </Tooltip>
           {selectedNodeIds.length > 0 && (
@@ -1269,27 +1251,17 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
                   disabled={selectedNodeIds.length !== 1}
                   className={selectedNodeIds.length !== 1 ? 'disabled' : ''}
                 >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                  </svg>
+                  <PencilSimple weight="bold" />
                 </ControlButton>
               </Tooltip>
               <Tooltip content="Copy (Ctrl+C)">
                 <ControlButton onClick={() => copyNodes()}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                  </svg>
+                  <CopySimple weight="bold" />
                 </ControlButton>
               </Tooltip>
               <Tooltip content="Delete (Del)">
                 <ControlButton onClick={deleteSelectedNodes} className="text-red-600">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M3 6h18" />
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
-                    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                  </svg>
+                  <Trash weight="bold" />
                 </ControlButton>
               </Tooltip>
             </>
@@ -1304,9 +1276,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
                 onClick={rescueCoveredNodes}
                 className="h-[32px] px-3 bg-amber-100 border border-amber-300 rounded cursor-pointer flex items-center gap-1.5 hover:bg-amber-200 transition-colors shadow-sm text-amber-800 text-xs font-medium"
               >
-                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                </svg>
+                <Warning weight="bold" size={14} />
                 {coveredNodeIds.length} covered
               </button>
             </Tooltip>

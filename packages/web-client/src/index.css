@@ -217,8 +217,8 @@ body,
 }
 
 .react-flow__controls-button svg {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
 }
 
 .react-flow__controls-button:hover:not(:disabled) {
