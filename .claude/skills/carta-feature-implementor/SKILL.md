@@ -38,34 +38,20 @@ Plan lifecycle state is tracked by directory location:
 
 ### Phase 0A: Debrief
 
-Check for completed and running agents:
+Run the status script to get a summary of all agents and plans:
 
 ```bash
-ls todo-tasks/.done/*.result.md 2>/dev/null
-ls todo-tasks/.running/*.md 2>/dev/null
+bash .claude/skills/carta-feature-implementor/status.sh
 ```
 
-**Completed agents** (files in `.done/`): For each `{slug}.result.md`, extract status using targeted reads:
+Review the output. For any completed agents where you need more detail (e.g., retried agents, failures), use `Read` to inspect the result file directly:
 
-```bash
-# 1. Read header fields (Status, Merge, Retried, Commits) — first 8-10 lines
-Read(file, { limit: 10 })
-
-# 2. Extract Notes section if present (agents are prompted to include one)
-Grep({ pattern: '## Notes', path: file, output_mode: 'content', -A: 20 })
+```typescript
+Read('todo-tasks/.done/{slug}.result.md', { limit: 10 })
+Grep({ pattern: '## Notes', path: 'todo-tasks/.done/{slug}.result.md', output_mode: 'content', -A: 20 })
 ```
 
-From these two reads, compose a **debrief summary**: 1-2 sentences capturing anything the user should know. Look for:
-- Status and merge result (from header)
-- Whether it was retried (`**Retried**: true`) — if so, note it
-- The `## Notes` section content — deviations from plan, caveats, known limitations, test warnings
-- If no `## Notes` section exists and status is SUCCESS, report: "Clean run, no concerns."
-
-**Only fall back to reading the full file** if the header shows `Retried: true` and there's no `## Notes` section — in that case the retry context may be buried in the Claude Summary.
-
-**Running agents** (files in `.running/`): Just list them and show the last 10 lines of `todo-tasks/.running/{slug}.log` (if log exists).
-
-Present status as a **table** with a Notes column that contains the debrief, not just commit count:
+Present status to the user as a **table** with a Notes column:
 
 ```markdown
 ## Agent Status
@@ -73,19 +59,8 @@ Present status as a **table** with a Notes column that contains the debrief, not
 | Agent | Status | Merge | Notes |
 |-------|--------|-------|-------|
 | **page-description-ui** | SUCCESS | merged | Clean run, no concerns. 3 commits. |
-| **component-smoke-tests** | SUCCESS | merged | Retried once (build failure). E2E tests use semantic selectors — may break if trigger bar title attributes change. 3 commits. |
+| **component-smoke-tests** | SUCCESS | merged | Retried once (build failure). 3 commits. |
 | **debug-logging** | RUNNING | — | Step 4: Run Headless Claude |
-```
-
-Then show remaining plans as a second table:
-
-```markdown
-## Remaining Plans
-
-| Plan | Summary |
-|------|---------|
-| `de-overlap-nodes.md` | Push overlapping nodes apart after layout |
-| `component-smoke-tests.md` | Smoke tests for key UI components |
 ```
 
 ### Phase 0B: Archive
@@ -93,11 +68,7 @@ Then show remaining plans as a second table:
 After the debrief has been presented to the user, offer to archive completed plans. **Never silently archive without showing the notes.**
 
 ```bash
-mkdir -p todo-tasks/.archived
-ts=$(date +%Y%m%d)
-# For each completed agent slug in .done/:
-[ -f "todo-tasks/.done/{slug}.md" ] && mv "todo-tasks/.done/{slug}.md" "todo-tasks/.archived/${ts}-{slug}.md"
-[ -f "todo-tasks/.done/{slug}.result.md" ] && mv "todo-tasks/.done/{slug}.result.md" "todo-tasks/.archived/${ts}-{slug}.result.md"
+bash .claude/skills/carta-feature-implementor/status.sh --archive
 ```
 
 If a worktree still exists for a completed agent (merge conflict cases), mention it so the user can resolve manually.

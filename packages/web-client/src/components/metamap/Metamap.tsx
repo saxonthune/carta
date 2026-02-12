@@ -965,7 +965,7 @@ function MetamapInner({ filterText }: MetamapInnerProps) {
   }, [contextMenu, getSchema, schemas, schemaGroups, expandedGroups, handleCreateRelationship, handleRemoveFromGroup, handleMoveToGroup, handleDeleteSchema, handleDeleteGroup, handleNewSchemaType, handleNewGroup, updateSchemaGroup]);
 
   return (
-    <div ref={containerRef} className="w-full h-full relative overflow-hidden">
+    <div ref={containerRef} className="w-full h-full relative overflow-hidden" style={{ backgroundColor: 'var(--color-canvas)' }}>
       <div className="metamap-bg absolute inset-0 pointer-events-none" />
       {/* ZoomDebug removed — re-renders every frame during zoom/pan */}
       <ReactFlow
