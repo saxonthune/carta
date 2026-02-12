@@ -11,6 +11,7 @@ export interface MenuItem {
   children?: MenuItem[];
   color?: string;
   active?: boolean;
+  renderContent?: React.ReactNode;
 }
 
 interface ContextMenuPrimitiveProps {
@@ -54,6 +55,18 @@ function MenuLevel({ items, onClose, depth = 0 }: { items: MenuItem[]; onClose: 
     <div className="bg-surface rounded-lg shadow-lg min-w-[150px] py-0.5">
       {items.map((item) => {
         const hasChildren = item.children && item.children.length > 0;
+
+        if (item.renderContent) {
+          return (
+            <div key={item.key}>
+              <div className="px-2 py-1.5">
+                {item.renderContent}
+              </div>
+              {item.dividerAfter && <div className="border-t border-border my-0.5" />}
+            </div>
+          );
+        }
+
         return (
           <div key={item.key}>
             <div

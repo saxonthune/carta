@@ -60,6 +60,12 @@ const defaultEdgeOptions = {
   type: 'bundled' as const,
 };
 
+const SCHEMA_COLORS = [
+  '#7c7fca', '#8a7cb8', '#9488b8', '#b87c8a',
+  '#c49a4c', '#c4a94e', '#5ba88e', '#5a9e9e',
+  '#6a8fc0', '#6b7280', '#8a7060', '#4a5568',
+];
+
 interface ConnectionModalState {
   sourceSchema: ConstructSchema;
   targetSchema: ConstructSchema;
@@ -79,6 +85,7 @@ function MetamapInner({ filterText }: MetamapInnerProps) {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; schemaType?: string; groupId?: string } | null>(null);
   const [expandedSchemas, setExpandedSchemas] = useState<Set<string>>(new Set());
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [renamingSchemaId, setRenamingSchemaId] = useState<string | null>(null);
   const [layoutDirection, setLayoutDirection] = useState<MetamapLayoutDirection>('TB');
   const [edgePopover, setEdgePopover] = useState<{
     sourceSchema: ConstructSchema;
@@ -251,13 +258,20 @@ function MetamapInner({ filterText }: MetamapInnerProps) {
               ...node.data,
               isDimmed: dimmedSchemaTypes.has(node.id),
               isHighlighted: matchingSchemaTypes ? matchingSchemaTypes.has(node.id) : false,
+              isRenaming: node.id === renamingSchemaId,
+              onStartRenaming: () => setRenamingSchemaId(node.id),
+              onStopRenaming: () => setRenamingSchemaId(null),
+              onCommitRename: (newName: string) => {
+                updateSchema(node.id, { displayName: newName });
+                setRenamingSchemaId(null);
+              },
             },
           };
         }
         return node;
       }) as Node[]);
     }
-  }, [layoutNodes, processedNodes, dragHoverGroupId, dimmedSchemaTypes, dimmedGroupIds, matchingSchemaTypes]);
+  }, [layoutNodes, processedNodes, dragHoverGroupId, dimmedSchemaTypes, dimmedGroupIds, matchingSchemaTypes, renamingSchemaId, updateSchema]);
 
   // Decoration sync: update hover/dimming without changing positions
   useEffect(() => {
@@ -280,12 +294,19 @@ function MetamapInner({ filterText }: MetamapInnerProps) {
             ...node.data,
             isDimmed: dimmedSchemaTypes.has(node.id),
             isHighlighted: matchingSchemaTypes ? matchingSchemaTypes.has(node.id) : false,
+            isRenaming: node.id === renamingSchemaId,
+            onStartRenaming: () => setRenamingSchemaId(node.id),
+            onStopRenaming: () => setRenamingSchemaId(null),
+            onCommitRename: (newName: string) => {
+              updateSchema(node.id, { displayName: newName });
+              setRenamingSchemaId(null);
+            },
           },
         };
       }
       return node;
     }));
-  }, [dragHoverGroupId, dimmedSchemaTypes, dimmedGroupIds, matchingSchemaTypes]);
+  }, [dragHoverGroupId, dimmedSchemaTypes, dimmedGroupIds, matchingSchemaTypes, renamingSchemaId, updateSchema]);
 
   const onNodesChange = useCallback((changes: NodeChange[]) => {
     setNodes(nds => applyNodeChanges(changes, nds));
@@ -789,6 +810,29 @@ function MetamapInner({ filterText }: MetamapInnerProps) {
             setEditorState({ open: true, editSchema: schema });
             setContextMenu(null);
           },
+        });
+
+        items.push({
+          key: 'change-color',
+          label: 'Change Color',
+          renderContent: (
+            <div className="flex flex-wrap gap-1 px-1 py-0.5">
+              {SCHEMA_COLORS.map(color => (
+                <button
+                  key={color}
+                  type="button"
+                  className={`w-5 h-5 rounded border-2 cursor-pointer transition-all hover:scale-110 ${
+                    schema.color === color ? 'border-white shadow-[0_0_0_2px_var(--color-accent)]' : 'border-transparent'
+                  }`}
+                  style={{ backgroundColor: color }}
+                  onClick={() => {
+                    updateSchema(schema.type, { color });
+                    setContextMenu(null);
+                  }}
+                />
+              ))}
+            </div>
+          ),
         });
 
         items.push({

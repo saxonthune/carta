@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { Plus } from '@phosphor-icons/react';
 import { portRegistry } from '@carta/domain';
@@ -10,6 +10,10 @@ export interface SchemaNodeData {
   isExpanded?: boolean;
   isDimmed?: boolean;
   isHighlighted?: boolean;
+  isRenaming?: boolean;
+  onStartRenaming?: () => void;
+  onStopRenaming?: () => void;
+  onCommitRename?: (newName: string) => void;
   [key: string]: unknown;
 }
 
@@ -19,9 +23,13 @@ interface SchemaNodeProps {
 }
 
 const SchemaNode = memo(({ data, selected }: SchemaNodeProps) => {
-  const { schema, isExpanded, isDimmed, isHighlighted } = data;
+  const { schema, isExpanded, isDimmed, isHighlighted, isRenaming, onStartRenaming, onStopRenaming, onCommitRename } = data;
   const ports = schema.ports || [];
   const lod = useLodBand();
+
+  // Rename state
+  const [editValue, setEditValue] = useState(schema.displayName);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // LOD transition crossfade
   const prevBandRef = useRef(lod.band);
@@ -34,6 +42,40 @@ const SchemaNode = memo(({ data, selected }: SchemaNodeProps) => {
       requestAnimationFrame(() => setLodTransitioning(false));
     }
   }, [lod.band]);
+
+  // Focus and select input when renaming starts
+  useEffect(() => {
+    if (isRenaming && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isRenaming]);
+
+  // Sync editValue when schema displayName changes externally
+  useEffect(() => {
+    if (!isRenaming) setEditValue(schema.displayName);
+  }, [schema.displayName, isRenaming]);
+
+  // Commit rename
+  const commitRename = useCallback(() => {
+    const trimmed = editValue.trim();
+    if (trimmed && trimmed !== schema.displayName && onCommitRename) {
+      onCommitRename(trimmed);
+    } else {
+      onStopRenaming?.();
+    }
+  }, [editValue, schema.displayName, onCommitRename, onStopRenaming]);
+
+  // Handle keyboard events
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    e.stopPropagation();
+    if (e.key === 'Enter') {
+      commitRename();
+    } else if (e.key === 'Escape') {
+      setEditValue(schema.displayName);
+      onStopRenaming?.();
+    }
+  }, [commitRename, schema.displayName, onStopRenaming]);
 
   const lodTransitionStyle: React.CSSProperties = {
     opacity: lodTransitioning ? 0 : 1,
@@ -142,7 +184,24 @@ const SchemaNode = memo(({ data, selected }: SchemaNodeProps) => {
 
       {/* Header */}
       <div className="px-3 py-2 bg-surface-alt rounded-t-lg">
-        <div className="font-semibold text-node-lg text-content text-halo">{schema.displayName}</div>
+        {isRenaming ? (
+          <input
+            ref={inputRef}
+            className="font-semibold text-node-lg text-content bg-transparent border-none outline-none w-full p-0"
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            onBlur={commitRename}
+            onKeyDown={handleKeyDown}
+            onClick={(e) => e.stopPropagation()}
+          />
+        ) : (
+          <div
+            className="font-semibold text-node-lg text-content text-halo cursor-text"
+            onClick={(e) => { e.stopPropagation(); onStartRenaming?.(); }}
+          >
+            {schema.displayName}
+          </div>
+        )}
         <div className="text-node-xs text-content-muted text-halo">{schema.type}</div>
       </div>
 
