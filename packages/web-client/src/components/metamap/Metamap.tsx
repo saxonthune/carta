@@ -22,6 +22,7 @@ import {
   CornersOut,
   Warning,
   Trash,
+  FolderMinus,
 } from '@phosphor-icons/react';
 import SchemaNode from './SchemaNode';
 import OrganizerNode from '../canvas/OrganizerNode';
@@ -32,7 +33,7 @@ import MetamapConnectionModal from './MetamapConnectionModal';
 import EdgeDetailPopover from './EdgeDetailPopover';
 import ConstructEditor from '../ConstructEditor';
 import ContextMenuPrimitive, { type MenuItem } from '../ui/ContextMenuPrimitive';
-import { DeleteEmptySchemasModal } from '../modals';
+import { DeleteEmptySchemasModal, DeleteEmptyGroupsModal } from '../modals';
 import { useSchemas } from '../../hooks/useSchemas';
 import { useSchemaGroups } from '../../hooks/useSchemaGroups';
 import { useMetamapLayout } from '../../hooks/useMetamapLayout';
@@ -44,7 +45,7 @@ import { usePages } from '../../hooks/usePages';
 // ZoomDebug disabled for performance
 import type { MetamapLayoutDirection } from '../../utils/metamapLayout';
 import { UNGROUPED_SENTINEL } from '../../utils/metamapLayout';
-import type { ConstructSchema, SuggestedRelatedConstruct } from '@carta/domain';
+import type { ConstructSchema, SuggestedRelatedConstruct, SchemaGroup } from '@carta/domain';
 import { portRegistry, nodeContainedInOrganizer } from '@carta/domain';
 
 const nodeTypes = {
@@ -88,6 +89,7 @@ function MetamapInner({ filterText }: MetamapInnerProps) {
     position: { x: number; y: number };
   } | null>(null);
   const [showDeleteEmpty, setShowDeleteEmpty] = useState(false);
+  const [showDeleteEmptyGroups, setShowDeleteEmptyGroups] = useState(false);
   const { nodes: layoutNodes, edges: layoutEdges, reLayout: triggerReLayout } = useMetamapLayout(schemas, schemaGroups, expandedSchemas, expandedGroups, layoutDirection);
 
   // Pipe through presentation layer for collapse hiding and edge remapping
@@ -122,6 +124,41 @@ function MetamapInner({ filterText }: MetamapInnerProps) {
     // Filter schemas to those NOT used
     return schemas.filter(s => !usedTypes.has(s.type));
   }, [schemas, pages]);
+
+  // Compute empty groups (groups with no schemas, recursively)
+  const emptyGroups = useMemo(() => {
+    // Build a set of groupIds that have at least one schema
+    const groupsWithSchemas = new Set<string>();
+    for (const schema of schemas) {
+      if (schema.groupId) groupsWithSchemas.add(schema.groupId);
+    }
+
+    // Build parent→children map
+    const childrenOf = new Map<string | undefined, SchemaGroup[]>();
+    for (const group of schemaGroups) {
+      const parent = group.parentId;
+      if (!childrenOf.has(parent)) childrenOf.set(parent, []);
+      childrenOf.get(parent)!.push(group);
+    }
+
+    // Recursive check: a group is "non-empty" if it has schemas OR any non-empty child
+    const nonEmpty = new Set<string>();
+    const markNonEmpty = (id: string) => {
+      if (nonEmpty.has(id)) return;
+      nonEmpty.add(id);
+      // Propagate up: if this group is non-empty, its parent is too
+      const group = schemaGroups.find(g => g.id === id);
+      if (group?.parentId) markNonEmpty(group.parentId);
+    };
+
+    // Seed: mark groups that directly contain schemas
+    for (const gid of groupsWithSchemas) {
+      markNonEmpty(gid);
+    }
+
+    // Empty groups = all groups not in nonEmpty set
+    return schemaGroups.filter(g => !nonEmpty.has(g.id));
+  }, [schemas, schemaGroups]);
 
   // Custom zoom with smaller step (1.15x instead of default 1.2x)
   const customZoomIn = useCallback(() => {
@@ -497,6 +534,13 @@ function MetamapInner({ filterText }: MetamapInnerProps) {
     }
     setShowDeleteEmpty(false);
   }, [emptySchemas, removeSchema]);
+
+  const handleDeleteEmptyGroups = useCallback(() => {
+    for (const group of emptyGroups) {
+      removeSchemaGroup(group.id);
+    }
+    setShowDeleteEmptyGroups(false);
+  }, [emptyGroups, removeSchemaGroup]);
 
   const handleSave = useCallback(
     (config: {
@@ -918,6 +962,13 @@ function MetamapInner({ filterText }: MetamapInnerProps) {
           >
             <Trash weight="bold" />
           </ControlButton>
+          <ControlButton
+            onClick={() => setShowDeleteEmptyGroups(true)}
+            title="Delete empty groups"
+            className={emptyGroups.length === 0 ? 'opacity-30 pointer-events-none' : ''}
+          >
+            <FolderMinus weight="bold" />
+          </ControlButton>
         </Controls>
 
         {/* Covered nodes warning badge */}
@@ -978,6 +1029,12 @@ function MetamapInner({ filterText }: MetamapInnerProps) {
         onClose={() => setShowDeleteEmpty(false)}
         emptySchemas={emptySchemas}
         onDelete={handleDeleteEmptySchemas}
+      />
+      <DeleteEmptyGroupsModal
+        isOpen={showDeleteEmptyGroups}
+        onClose={() => setShowDeleteEmptyGroups(false)}
+        emptyGroups={emptyGroups}
+        onDelete={handleDeleteEmptyGroups}
       />
     </div>
   );
