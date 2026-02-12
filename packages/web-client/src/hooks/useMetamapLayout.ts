@@ -6,6 +6,10 @@ import type { ConstructSchema, SchemaGroup } from '@carta/domain';
 /**
  * Hook wrapper around the pure computeMetamapLayout function.
  * Provides memoization and a reLayout callback for forcing recalculation.
+ *
+ * Layout is computed once on mount and on explicit reLayout() calls.
+ * Changes to expandedSchemas/expandedGroups do NOT trigger recomputation.
+ * The component is responsible for in-place resizing on expand/collapse.
  */
 export function useMetamapLayout(
   schemas: ConstructSchema[],
@@ -23,7 +27,7 @@ export function useMetamapLayout(
   const { nodes, edges } = useMemo(() => {
     void layoutVersion; // Force recalculation when version changes
     return computeMetamapLayout({ schemas, schemaGroups, expandedSchemas, expandedGroups, layoutDirection });
-  }, [schemas, schemaGroups, expandedSchemas, expandedGroups, layoutDirection, layoutVersion]);
+  }, [schemas, schemaGroups, layoutDirection, layoutVersion]);
 
   return { nodes, edges, reLayout };
 }

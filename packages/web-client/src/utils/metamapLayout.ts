@@ -11,7 +11,6 @@ export const GROUP_PADDING_BOTTOM = 40;
 export const COMPACT_HEIGHT = 80;
 export const COLLAPSED_GROUP_WIDTH = 180;
 export const COLLAPSED_GROUP_HEIGHT = 44;
-export const UNGROUPED_SENTINEL = '__ungrouped__';
 
 export type MetamapLayoutDirection = 'TB' | 'LR';
 
@@ -355,48 +354,122 @@ export function computeMetamapLayout(input: MetamapLayoutInput): MetamapLayoutOu
     allGroupBounds.set(rootId, bounds);
   }
 
-  // Create synthetic group for ungrouped schemas
-  if (ungroupedSchemas.length > 0) {
-    schemasByGroup.set(UNGROUPED_SENTINEL, ungroupedSchemas);
-    const bounds = layoutGroup(
-      UNGROUPED_SENTINEL,
-      schemasByGroup,
-      [],  // no child groups
-      groupTree,
-      groupMap,
-      edges,
-      expandedSchemas,
-      allGroupBounds,
-      expandedGroups,
-      layoutDirection,
-    );
-    allGroupBounds.set(UNGROUPED_SENTINEL, bounds);
+  // Phase 2: Inter-group layout for root groups + ungrouped schemas
+  const interG = new dagre.graphlib.Graph();
+  interG.setGraph({
+    rankdir: layoutDirection,
+    nodesep: 80,
+    ranksep: 60,
+    marginx: 0,
+    marginy: 0,
+  });
+  interG.setDefaultEdgeLabel(() => ({}));
+
+  for (const rootId of rootGroupIds) {
+    const bounds = allGroupBounds.get(rootId)!;
+    interG.setNode(`group:${rootId}`, { width: bounds.width, height: bounds.height });
+  }
+  for (const s of ungroupedSchemas) {
+    interG.setNode(s.type, { width: SCHEMA_NODE_WIDTH, height: estimateSchemaNodeHeight(s, expandedSchemas?.has(s.type)) });
   }
 
-  // Phase 2: Grid layout for all top-level groups (including ungrouped)
-  const topLevelIds: string[] = [...rootGroupIds];
-  if (ungroupedSchemas.length > 0) topLevelIds.push(UNGROUPED_SENTINEL);
-
-  const cols = Math.ceil(Math.sqrt(topLevelIds.length));
-  const GAP = 80;
-
-  // Find max cell size
-  let maxW = 0, maxH = 0;
-  for (const id of topLevelIds) {
-    const bounds = allGroupBounds.get(id)!;
-    maxW = Math.max(maxW, bounds.width);
-    maxH = Math.max(maxH, bounds.height);
+  // Cross-group edges (using root group of each schema)
+  const schemaToRootGroup = new Map<string, string>();
+  function findRootGroup(groupId: string): string {
+    const group = groupMap.get(groupId);
+    if (!group?.parentId) return groupId;
+    return findRootGroup(group.parentId);
+  }
+  for (const s of schemas) {
+    if (s.groupId && groupMap.has(s.groupId)) {
+      schemaToRootGroup.set(s.type, findRootGroup(s.groupId));
+    }
   }
 
-  // Position each group in the grid
-  const groupPositions = new Map<string, { x: number; y: number }>();
-  for (let i = 0; i < topLevelIds.length; i++) {
-    const col = i % cols;
-    const row = Math.floor(i / cols);
-    groupPositions.set(topLevelIds[i], {
-      x: col * (maxW + GAP),
-      y: row * (maxH + GAP),
+  // Resolve edge endpoints to inter-group node IDs
+  function resolveToInterGroupNode(edgeEndpoint: string): string | undefined {
+    const rootGroup = schemaToRootGroup.get(edgeEndpoint);
+    if (rootGroup) return `group:${rootGroup}`;
+    // Ungrouped schema — it's a direct inter-group node
+    return edgeEndpoint;
+  }
+
+  const addedGroupEdges = new Set<string>();
+  for (const e of edges) {
+    const srcNode = resolveToInterGroupNode(e.source);
+    const tgtNode = resolveToInterGroupNode(e.target);
+    if (!srcNode || !tgtNode || srcNode === tgtNode) continue;
+
+    const key = `${srcNode}->${tgtNode}`;
+    if (!addedGroupEdges.has(key)) {
+      interG.setEdge(srcNode, tgtNode);
+      addedGroupEdges.add(key);
+    }
+  }
+
+  // Use grid layout when there are many ungrouped schemas with sparse connectivity
+  const totalNodes = rootGroupIds.length + ungroupedSchemas.length;
+  const useGridLayout = ungroupedSchemas.length > 6 && addedGroupEdges.size < totalNodes;
+
+  // If using grid layout, manually position ungrouped schemas in a grid
+  if (useGridLayout) {
+    const COLS = 4;
+    const CELL_WIDTH = SCHEMA_NODE_WIDTH + 80;
+    const CELL_HEIGHT = 150;
+
+    // First, position root groups using dagre
+    const groupOnlyG = new dagre.graphlib.Graph();
+    groupOnlyG.setGraph({
+      rankdir: layoutDirection,
+      nodesep: 80,
+      ranksep: 60,
+      marginx: 0,
+      marginy: 0,
     });
+    groupOnlyG.setDefaultEdgeLabel(() => ({}));
+
+    for (const rootId of rootGroupIds) {
+      const bounds = allGroupBounds.get(rootId)!;
+      groupOnlyG.setNode(`group:${rootId}`, { width: bounds.width, height: bounds.height });
+    }
+
+    // Add edges between groups only
+    for (const key of addedGroupEdges) {
+      const [src, tgt] = key.split('->');
+      if (src.startsWith('group:') && tgt.startsWith('group:')) {
+        groupOnlyG.setEdge(src, tgt);
+      }
+    }
+
+    if (rootGroupIds.length > 0) {
+      dagre.layout(groupOnlyG);
+    }
+
+    // Copy group positions
+    for (const rootId of rootGroupIds) {
+      const interNode = groupOnlyG.node(`group:${rootId}`);
+      interG.node(`group:${rootId}`).x = interNode.x;
+      interG.node(`group:${rootId}`).y = interNode.y;
+    }
+
+    // Grid layout for ungrouped schemas
+    const gridStartY = rootGroupIds.length > 0
+      ? Math.max(...rootGroupIds.map(id => {
+          const node = groupOnlyG.node(`group:${id}`);
+          const bounds = allGroupBounds.get(id)!;
+          return node.y + bounds.height / 2;
+        })) + 100
+      : 0;
+
+    ungroupedSchemas.forEach((s, idx) => {
+      const col = idx % COLS;
+      const row = Math.floor(idx / COLS);
+      const node = interG.node(s.type);
+      node.x = col * CELL_WIDTH;
+      node.y = gridStartY + row * CELL_HEIGHT;
+    });
+  } else {
+    dagre.layout(interG);
   }
 
   // Assembly: emit ALL nodes in parent-first order
@@ -465,57 +538,30 @@ export function computeMetamapLayout(input: MetamapLayoutInput): MetamapLayoutOu
     }
   }
 
-  // Emit root groups with grid positions
+  // Emit root groups with inter-group positions
   for (const rootId of rootGroupIds) {
     const bounds = allGroupBounds.get(rootId)!;
-    const pos = groupPositions.get(rootId)!;
+    const interNode = interG.node(`group:${rootId}`);
     emitGroupNodes(
       rootId,
       undefined,
-      pos,
+      { x: interNode.x - bounds.width / 2, y: interNode.y - bounds.height / 2 },
       bounds,
     );
   }
 
-  // Emit ungrouped organizer with grid position
-  if (ungroupedSchemas.length > 0) {
-    const bounds = allGroupBounds.get(UNGROUPED_SENTINEL)!;
-    const pos = groupPositions.get(UNGROUPED_SENTINEL)!;
-    const reactFlowId = `group:${UNGROUPED_SENTINEL}`;
-    const isExpanded = !expandedGroups || expandedGroups.has(UNGROUPED_SENTINEL);
-
+  // Ungrouped schemas
+  for (const s of ungroupedSchemas) {
+    const interNode = interG.node(s.type);
     nodes.push({
-      id: reactFlowId,
-      type: 'organizer',
-      position: pos,
-      style: { width: bounds.width, height: bounds.height },
-      data: {
-        isOrganizer: true,
-        name: 'Ungrouped',
-        color: '#9ca3af',
-        collapsed: !isExpanded,
-        layout: 'freeform',
-        childCount: ungroupedSchemas.length,
-        depth: 0,
-        groupId: UNGROUPED_SENTINEL,
-      } satisfies OrganizerNodeData,
-      draggable: false,  // synthetic organizer is not draggable
-      selectable: false,
+      id: s.type,
+      type: 'schema-node',
+      position: {
+        x: interNode.x - SCHEMA_NODE_WIDTH / 2,
+        y: interNode.y - estimateSchemaNodeHeight(s, expandedSchemas?.has(s.type)) / 2,
+      },
+      data: { schema: s, isExpanded: expandedSchemas?.has(s.type) },
     });
-
-    // Emit child schema nodes
-    for (const [schemaType, schemaPos] of bounds.nodePositions) {
-      const schema = schemas.find(s => s.type === schemaType);
-      if (schema) {
-        nodes.push({
-          id: schemaType,
-          type: 'schema-node',
-          position: schemaPos,
-          parentId: reactFlowId,
-          data: { schema, isExpanded: expandedSchemas?.has(schemaType) },
-        });
-      }
-    }
   }
 
   return { nodes, edges };

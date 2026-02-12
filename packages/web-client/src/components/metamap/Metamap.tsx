@@ -44,7 +44,6 @@ import { useSchemaUndoRedo } from '../../hooks/useSchemaUndoRedo';
 import { usePages } from '../../hooks/usePages';
 // ZoomDebug disabled for performance
 import type { MetamapLayoutDirection } from '../../utils/metamapLayout';
-import { UNGROUPED_SENTINEL } from '../../utils/metamapLayout';
 import type { ConstructSchema, SuggestedRelatedConstruct, SchemaGroup } from '@carta/domain';
 import { portRegistry, nodeContainedInOrganizer } from '@carta/domain';
 
@@ -227,9 +226,42 @@ function MetamapInner({ filterText }: MetamapInnerProps) {
     prevFilterRef.current = filterText;
   }, [filterText, groupsWithMatches]);
 
-  // Sync presentation-processed nodes into local state, updating hover/dimming
+  // Layout sync: adopt new positions only when layoutNodes reference changes
+  const prevLayoutNodesRef = useRef(layoutNodes);
   useEffect(() => {
-    setNodes(processedNodes.map(node => {
+    if (layoutNodes !== prevLayoutNodesRef.current) {
+      prevLayoutNodesRef.current = layoutNodes;
+      // Full position adoption from new layout
+      setNodes(processedNodes.map(node => {
+        if (node.type === 'organizer') {
+          const groupId = (node.data as OrganizerNodeData).groupId;
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              isHovered: groupId === dragHoverGroupId,
+              isDimmed: groupId ? dimmedGroupIds.has(groupId) : false,
+            },
+          };
+        }
+        if (node.type === 'schema-node') {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              isDimmed: dimmedSchemaTypes.has(node.id),
+              isHighlighted: matchingSchemaTypes ? matchingSchemaTypes.has(node.id) : false,
+            },
+          };
+        }
+        return node;
+      }) as Node[]);
+    }
+  }, [layoutNodes, processedNodes, dragHoverGroupId, dimmedSchemaTypes, dimmedGroupIds, matchingSchemaTypes]);
+
+  // Decoration sync: update hover/dimming without changing positions
+  useEffect(() => {
+    setNodes(prev => prev.map(node => {
       if (node.type === 'organizer') {
         const groupId = (node.data as OrganizerNodeData).groupId;
         return {
@@ -252,8 +284,8 @@ function MetamapInner({ filterText }: MetamapInnerProps) {
         };
       }
       return node;
-    }) as Node[]);
-  }, [processedNodes, dragHoverGroupId, dimmedSchemaTypes, dimmedGroupIds, matchingSchemaTypes]);
+    }));
+  }, [dragHoverGroupId, dimmedSchemaTypes, dimmedGroupIds, matchingSchemaTypes]);
 
   const onNodesChange = useCallback((changes: NodeChange[]) => {
     setNodes(nds => applyNodeChanges(changes, nds));
@@ -266,14 +298,9 @@ function MetamapInner({ filterText }: MetamapInnerProps) {
 
       const intersecting = reactFlow.getIntersectingNodes(node);
       const hoverOrganizer = intersecting.find(n => n.type === 'organizer' && n.id !== node.id);
-      let hoverGroupId = hoverOrganizer
+      const hoverGroupId = hoverOrganizer
         ? (hoverOrganizer.data as OrganizerNodeData).groupId ?? null
         : null;
-
-      // Treat ungrouped organizer as null for visual feedback (no highlight for other groups)
-      if (hoverGroupId === UNGROUPED_SENTINEL && node.type === 'organizer') {
-        hoverGroupId = null;
-      }
 
       setDragHoverGroupId(hoverGroupId);
     },
@@ -294,9 +321,6 @@ function MetamapInner({ filterText }: MetamapInnerProps) {
         ? (targetOrganizer.data as OrganizerNodeData).groupId
         : undefined;
 
-      // Treat drop onto ungrouped organizer as "remove from group"
-      const effectiveTargetGroupId = targetGroupId === UNGROUPED_SENTINEL ? undefined : targetGroupId;
-
       if (node.type === 'schema-node') {
         // Handle schema node drag
         const schema = getSchema(node.id);
@@ -304,16 +328,13 @@ function MetamapInner({ filterText }: MetamapInnerProps) {
 
         const currentGroupId = schema.groupId;
 
-        if (effectiveTargetGroupId && effectiveTargetGroupId !== currentGroupId) {
-          updateSchema(schema.type, { groupId: effectiveTargetGroupId });
-        } else if (!effectiveTargetGroupId && currentGroupId) {
+        if (targetGroupId && targetGroupId !== currentGroupId) {
+          updateSchema(schema.type, { groupId: targetGroupId });
+        } else if (!targetGroupId && currentGroupId) {
           updateSchema(schema.type, { groupId: undefined });
         }
       } else if (node.type === 'organizer') {
         // Handle group drag into another group (nested groups)
-        // Don't allow nesting real groups inside the synthetic ungrouped organizer
-        if (targetGroupId === UNGROUPED_SENTINEL) return;
-
         const currentGroup = schemaGroups.find(g => g.id === (node.data as OrganizerNodeData).groupId);
         if (!currentGroup) return;
 
@@ -337,11 +358,9 @@ function MetamapInner({ filterText }: MetamapInnerProps) {
           next.add(groupId);
           return next;
         });
-        // Fit view after a tick so layout recalculates
-        setTimeout(() => reactFlow.fitView({ duration: 300 }), 50);
       }
     }
-  }, [expandedGroups, reactFlow]);
+  }, [expandedGroups]);
 
   const onNodeDoubleClick = useCallback((_event: React.MouseEvent, node: Node) => {
     if (node.type === 'schema-node') {
@@ -363,10 +382,9 @@ function MetamapInner({ filterText }: MetamapInnerProps) {
           next.delete(groupId);
           return next;
         });
-        setTimeout(() => reactFlow.fitView({ duration: 300 }), 50);
       }
     }
-  }, [expandedGroups, reactFlow]);
+  }, [expandedGroups]);
 
   const onEdgeClick = useCallback((event: React.MouseEvent, edge: Edge) => {
     const data = edge.data as { sourceType: string; targetType: string; relIndex: number; fromPortId?: string; toPortId?: string } | undefined;
@@ -468,8 +486,7 @@ function MetamapInner({ filterText }: MetamapInnerProps) {
       setContextMenu({ x: event.clientX, y: event.clientY, schemaType: node.id });
     } else if (node.type === 'organizer') {
       const groupId = (node.data as OrganizerNodeData).groupId;
-      // Skip context menu for the synthetic ungrouped organizer
-      if (groupId && groupId !== UNGROUPED_SENTINEL) {
+      if (groupId) {
         setContextMenu({ x: event.clientX, y: event.clientY, groupId });
       }
     }
