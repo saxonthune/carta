@@ -105,6 +105,9 @@ echo ""
 
 # ─── Step 5: Run Headless Claude ─────────────────────────────────────────────
 
+# Unset CLAUDECODE to allow nested claude invocations from parent sessions
+unset CLAUDECODE
+
 echo "── Running headless Claude ──"
 
 CLAUDE_PROMPT="Read the plan at todo-tasks/${PLAN_SLUG}.md and implement it fully. \

@@ -375,10 +375,12 @@ export function computeMetamapLayout(input: MetamapLayoutInput): MetamapLayoutOu
 
   // Cross-group edges (using root group of each schema)
   const schemaToRootGroup = new Map<string, string>();
-  function findRootGroup(groupId: string): string {
+  function findRootGroup(groupId: string, visited = new Set<string>()): string {
+    if (visited.has(groupId)) return groupId;
+    visited.add(groupId);
     const group = groupMap.get(groupId);
     if (!group?.parentId) return groupId;
-    return findRootGroup(group.parentId);
+    return findRootGroup(group.parentId, visited);
   }
   for (const s of schemas) {
     if (s.groupId && groupMap.has(s.groupId)) {

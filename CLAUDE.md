@@ -112,6 +112,21 @@ pnpm test:e2e      # E2E tests (Playwright, port 5273)
 
 All three must pass before committing. E2E uses port 5273 (separate from dev server 5173).
 
+## Codebase Exploration Strategy
+
+**Two-phase search**: Locate files cheaply before reading them.
+
+1. **Cheap triage** — Run parallel `Grep` calls with `output_mode: "files_with_matches"` to identify relevant files without reading content. Use `MANIFEST.md` tag index to map keywords to doc refs.
+2. **Targeted reads** — Read only the files surfaced by triage. Prefer `.docs/` refs first (architectural context without reading source), then source files at matched line ranges.
+
+**Do NOT**: Launch Explore agents for simple searches. Read entire directories speculatively. Read files not surfaced by Grep or referenced by the plan.
+
+**Escalate to Explore agent only if**: Grep returns 0 hits for all terms, the subsystem has no `.docs/` coverage, or you can't identify which files to modify after triage.
+
+## Known Pitfalls
+
+- **`reactFlow.getNodes()` is stale after `setNodes()`** — In uncontrolled mode, `getNodes()` called immediately after `setNodes(updater)` in the same synchronous block returns stale data. **Pattern**: Pass known positions forward as parameters instead of re-reading from the RF store. See doc05.03.
+
 ## Constraints
 
 - **`erasableSyntaxOnly`**: No `private`/`protected`/`public` constructor parameter shorthand. Declare fields explicitly.

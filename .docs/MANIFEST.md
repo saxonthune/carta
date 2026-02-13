@@ -44,6 +44,7 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 | doc02.04.03 | `04-decisions/03-output-formatter-registry.md` | ADR: extensible formatter registry | adr, compiler, formatters | doc03.01.02.01 |
 | doc02.04.04 | `04-decisions/04-unified-deployment.md` | ADR: simplified deployment config | adr, deployment, config | doc02.05 |
 | doc02.04.05 | `04-decisions/05-presentation-model-organizers.md` | ADR: presentation model, organizers replace visual groups | adr, presentation, organizers, layout | doc02.09 |
+| doc02.04.06 | `04-decisions/06-yjs-authoritative-layout.md` | ADR: Yjs-authoritative layout, RF as renderer only, eliminate 3-layer sync | adr, state, layout, yjs, react-flow | doc02.02, doc05.03 |
 | doc02.05 | `05-deployment-targets.md` | VITE_SYNC_URL, VITE_AI_MODE, document sources | deployment, config, server | doc02.01 |
 | doc02.06 | `06-metamodel.md` | M2/M1/M0 metamodel, DataKind, ConstructSchema | metamodel, schemas, ports | doc01.02 |
 | doc02.07 | `07-design-system.md` | Depth system, island pattern, colors, typography | design, ui, styling, lod | doc01.04 |
@@ -123,6 +124,7 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 | doc05.00 | `00-index.md` | Research session format and purpose | research, meta | — |
 | doc05.01 | `01-visual-semantics-in-organizers.md` | Shape differentiation, sequence badges, icon markers for organizer contents | research, notation, bpmn, presentation, organizers | doc02.09, doc02.07, doc02.06 |
 | doc05.02 | `02-token-efficiency-in-skills-and-agents.md` | Token optimization patterns: lean extraction, subagent isolation, surgical reads | research, tokens, efficiency, skills, agents | — |
+| doc05.03 | `03-wagon-aware-layout-architecture.md` | Wagon layout units, 3-layer sync, snap normalization, state pitfalls | research, layout, wagons, organizers, state | doc02.09, doc02.02 |
 
 ## Tag Index
 

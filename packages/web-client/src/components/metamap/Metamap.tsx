@@ -84,7 +84,7 @@ function MetamapInner({ filterText }: MetamapInnerProps) {
   const [editorState, setEditorState] = useState<{ open: boolean; editSchema?: ConstructSchema }>({ open: false });
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; schemaType?: string; groupId?: string } | null>(null);
   const [expandedSchemas, setExpandedSchemas] = useState<Set<string>>(new Set());
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => new Set(schemaGroups.map(g => g.id)));
   const [renamingSchemaId, setRenamingSchemaId] = useState<string | null>(null);
   const [layoutDirection, setLayoutDirection] = useState<MetamapLayoutDirection>('TB');
   const [edgePopover, setEdgePopover] = useState<{
