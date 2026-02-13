@@ -107,7 +107,7 @@ export interface MapProps {
 
 export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNodeDoubleClick, searchText }: MapProps) {
   const { adapter, ydoc } = useDocumentContext();
-  const { nodes, setNodes, setNodesLocal, suppressUpdates, registerRFPusher } = useNodes();
+  const { nodes, setNodes, setNodesLocal, suppressUpdates } = useNodes();
   const { edges, setEdges } = useEdges();
   const { schemas, getSchema } = useSchemas();
   const { getPortSchema } = usePortSchemas();
@@ -130,12 +130,6 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
   const { pages, activePage, setActivePage, createPage, copyNodesToPage } = usePages();
   const reactFlow = useReactFlow();
   const { constraints: pinConstraints } = usePinConstraints();
-
-  // Register RF pusher so Yjs observer can propagate to RF
-  useEffect(() => {
-    registerRFPusher((freshNodes) => reactFlow.setNodes(freshNodes));
-    return () => registerRFPusher(() => {});
-  }, [reactFlow, registerRFPusher]);
 
   const edgeColor = useEdgeColor();
   const defaultEdgeOptions = useMemo(() => ({
@@ -222,13 +216,17 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
         if (change.resizing) {
           resizingNodeIds.current.add(change.id);
         } else if (resizingNodeIds.current.has(change.id)) {
-          // Manual resize ended — persist dimensions to Yjs
-          resizingNodeIds.current.delete(change.id);
-          const node = reactFlow.getNode(change.id);
+          // Manual resize ended — persist dimensions to Yjs.
+          // Keep the ID in resizingNodeIds through the next animation frame
+          // so the sync module doesn't push stale style back to RF during
+          // the Yjs observer → React re-render → sync module cycle.
+          const resizedId = change.id;
+          const node = reactFlow.getNode(resizedId);
           const style = node?.style as Record<string, unknown> | undefined;
           if (style && (style.width != null || style.height != null)) {
-            adapter.patchNodes?.([{ id: change.id, style: { width: style.width, height: style.height } }]);
+            adapter.patchNodes?.([{ id: resizedId, style: { width: style.width, height: style.height } }]);
           }
+          requestAnimationFrame(() => { resizingNodeIds.current.delete(resizedId); });
         }
         // Apply dimension changes locally
         dimensionChanges.push(change);
@@ -872,6 +870,32 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
       return false;
     });
   }, [nodesWithCallbacks, searchText, getSchema]);
+
+  // Sync module: push enhanced+sorted nodes to RF when Yjs changes propagate
+  // through React state. Uses an updater to merge Yjs/enhancement changes while
+  // preserving RF internals (measured, width, height, selected, dragging).
+  const initialRenderRef = useRef(true);
+  useEffect(() => {
+    // Skip initial render — defaultNodes handles that
+    if (initialRenderRef.current) { initialRenderRef.current = false; return; }
+    // Skip during drag or resize — RF owns state during these interactions
+    if (suppressUpdates.current || isDraggingRef.current || resizingNodeIds.current.size > 0) return;
+    reactFlow.setNodes(rfNodes => {
+      const rfById = new globalThis.Map(rfNodes.map(n => [n.id, n]));
+      return sortedNodes.map((n): Node => {
+        const existing = rfById.get(n.id);
+        if (existing) {
+          // Preserve RF internals (measured, width, height, selected, dragging),
+          // update user properties from Yjs/enhancement pipeline
+          return Object.assign({}, existing, {
+            position: n.position, style: n.style, data: n.data,
+            hidden: n.hidden, parentId: n.parentId, type: n.type,
+          });
+        }
+        return n;
+      });
+    });
+  }, [sortedNodes]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Aggregate cross-organizer edges and remap collapsed edges
   const selectedNodeIdsSet = useMemo(() => new Set(selectedNodeIds), [selectedNodeIds]);
