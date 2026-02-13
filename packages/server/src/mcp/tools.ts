@@ -525,11 +525,33 @@ export function getToolDefinitions() {
     },
     {
       name: 'carta_create_schema',
-      description: `Create a custom construct schema. Smart defaults:
+      description: `Create a custom construct schema.
+
+Required top-level params: documentId (string), type (string, unique identifier), displayName (string), color (string, hex).
+Optional top-level params: semanticDescription (string), groupId (string), backgroundColorPolicy ('defaultOnly'|'tints'|'any', default 'defaultOnly'), enumIconField (string, field name), enumIconMap (object, enum value → Unicode char).
+
+Fields array (each field object):
+- name (string, required): field identifier
+- label (string, required): display label
+- type (enum, required): 'string'|'number'|'boolean'|'date'|'enum'
+- options (array of {value: string, semanticDescription?: string} objects, required for enum type)
+- displayTier (enum, optional): 'pill' (node title, max 1 per schema) | 'summary' (shown on canvas). Omit for inspector-only fields.
+- displayHint (enum, optional): 'multiline'|'code'|'password'|'url'|'color'
+- placeholder (string, optional)
+- default (any, optional)
+- semanticDescription (string, optional)
+- displayOrder (number, optional, default 0)
+
+Ports array (optional, each port object):
+- id (string, required): unique port identifier
+- portType (enum, required): 'flow-in'|'flow-out'|'parent'|'child'|'symmetric'|'intercept'|'relay'
+- label (string, required): display label
+- semanticDescription (string, optional)
+
+Smart defaults:
 - Primary fields (name, title, label, summary, condition) auto-get displayTier='summary'
 - If no ports specified, adds default ports: flow-in (left), flow-out (right), parent (bottom), child (top)
-- backgroundColorPolicy defaults to 'defaultOnly' (no color picker); use 'tints' for 7 swatches or 'any' for full picker
-- Use displayTier='pill' on a field to make it the node title (max 1 per schema)`,
+- backgroundColorPolicy defaults to 'defaultOnly' (no color picker); use 'tints' for 7 swatches or 'any' for full picker`,
       inputSchema: CreateSchemaInputSchema.shape,
     },
     {
