@@ -2,16 +2,13 @@ import { memo, useCallback, useMemo, useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Handle, Position, NodeResizer, useNodeId, type NodeProps } from '@xyflow/react';
 import {
-  ArrowsOutSimple,
-  TreeStructure,
-  GridFour,
-  ArrowsInSimple,
   DotsThreeVertical,
   CaretUp,
   PushPin,
 } from '@phosphor-icons/react';
 import { EyeIcon, EyeOffIcon } from '../ui/icons';
 import { Tooltip } from '../ui';
+import { MenuLevel, type MenuItem } from '../ui/ContextMenuPrimitive';
 import type { OrganizerNodeData as BaseOrganizerNodeData } from '@carta/domain';
 import type { NodeActions } from './nodeActions';
 
@@ -173,65 +170,48 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
   }, [showLayoutMenu]);
 
   // Layout menu items configuration
-  const layoutMenuItems = useMemo(() => {
-    if (!nodeActions || childCount <= 1) return null;
-
-    // For small organizers (≤3 children), show single grid option; for larger, show column presets
-    const gridItems = childCount <= 3
-      ? [
-          {
-            label: 'Arrange as grid',
-            handler: nodeActions.onGridLayoutChildren,
-            icon: <GridFour weight="bold" size={14} />,
-          },
-        ]
-      : [
-          {
-            label: 'Grid: 2 columns',
-            handler: (id: string) => nodeActions.onGridLayoutChildren(id, 2),
-            icon: <GridFour weight="bold" size={14} />,
-          },
-          {
-            label: 'Grid: 3 columns',
-            handler: (id: string) => nodeActions.onGridLayoutChildren(id, 3),
-            icon: <GridFour weight="bold" size={14} />,
-          },
-          {
-            label: 'Grid: auto',
-            handler: (id: string) => nodeActions.onGridLayoutChildren(id),
-            icon: <GridFour weight="bold" size={14} />,
-          },
-        ];
+  const layoutMenuItems = useMemo((): MenuItem[] | null => {
+    if (!nodeActions || !nodeId || childCount <= 1) return null;
 
     return [
       {
+        key: 'spread',
         label: 'Spread apart',
-        handler: nodeActions.onSpreadChildren,
-        icon: <ArrowsOutSimple weight="bold" size={14} />,
+        onClick: () => nodeActions.onSpreadChildren(nodeId),
       },
       {
+        key: 'flow',
         label: 'Arrange as flow',
-        handler: nodeActions.onFlowLayoutChildren,
-        icon: <TreeStructure weight="bold" size={14} />,
+        onClick: () => nodeActions.onFlowLayoutChildren(nodeId),
       },
-      ...gridItems,
       {
+        key: 'grid',
+        label: 'Grid',
+        children: [
+          { key: 'grid-1', label: '1 column', onClick: () => nodeActions.onGridLayoutChildren(nodeId, 1) },
+          { key: 'grid-2', label: '2 columns', onClick: () => nodeActions.onGridLayoutChildren(nodeId, 2) },
+          { key: 'grid-3', label: '3 columns', onClick: () => nodeActions.onGridLayoutChildren(nodeId, 3) },
+          { key: 'grid-4', label: '4 columns', onClick: () => nodeActions.onGridLayoutChildren(nodeId, 4) },
+          { key: 'grid-auto', label: 'Auto', onClick: () => nodeActions.onGridLayoutChildren(nodeId) },
+        ],
+      },
+      {
+        key: 'fit',
         label: 'Fit to contents',
-        handler: nodeActions.onFitToChildren,
-        icon: <ArrowsInSimple weight="bold" size={14} />,
+        onClick: () => nodeActions.onFitToChildren(nodeId),
       },
       {
+        key: 'pin',
         label: layoutPinned ? 'Unpin layout' : 'Pin layout',
-        handler: nodeActions.onToggleLayoutPin,
-        icon: <PushPin weight={layoutPinned ? 'fill' : 'bold'} size={14} />,
+        onClick: () => nodeActions.onToggleLayoutPin(nodeId),
       },
       {
+        key: 'tidy',
         label: 'Tidy all nested',
-        handler: (id: string) => nodeActions.onRecursiveLayout(id, 'spread'),
-        icon: <ArrowsOutSimple weight="bold" size={14} />,
+        onClick: () => nodeActions.onRecursiveLayout(nodeId, 'spread'),
       },
     ];
-  }, [nodeActions, childCount, layoutPinned]);
+  }, [nodeActions, nodeId, childCount, layoutPinned]);
 
   // Increased base color mix for better visibility; deeper nesting = stronger tint
   const bgMix = isHovered || isDropTarget ? 25 : 18 + depth * 4;
@@ -511,7 +491,7 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
       {showLayoutMenu && layoutMenuItems && createPortal(
         <div
           ref={layoutMenuRef}
-          className="fixed z-[999] py-1 rounded-lg shadow-lg min-w-[160px]"
+          className="fixed z-[999]"
           style={{
             top: layoutTriggerRef.current
               ? layoutTriggerRef.current.getBoundingClientRect().bottom + 4
@@ -519,24 +499,12 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
             left: layoutTriggerRef.current
               ? layoutTriggerRef.current.getBoundingClientRect().right - 160
               : 0,
-            backgroundColor: 'var(--color-surface-elevated)',
-            border: '1px solid var(--color-border)',
           }}
         >
-          {layoutMenuItems.map(({ label, handler, icon }) => (
-            <button
-              key={label}
-              className="w-full px-3 py-2 flex items-center gap-2 text-sm text-content hover:bg-content-muted/10 transition-colors"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (nodeId) handler(nodeId);
-                setShowLayoutMenu(false);
-              }}
-            >
-              <span className="shrink-0">{icon}</span>
-              <span>{label}</span>
-            </button>
-          ))}
+          <MenuLevel
+            items={layoutMenuItems}
+            onClose={() => setShowLayoutMenu(false)}
+          />
         </div>,
         document.body
       )}

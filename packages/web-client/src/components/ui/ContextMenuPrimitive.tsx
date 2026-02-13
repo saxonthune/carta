@@ -23,7 +23,7 @@ interface ContextMenuPrimitiveProps {
 
 const SUBMENU_CLOSE_DELAY = 100;
 
-function MenuLevel({ items, onClose, depth = 0 }: { items: MenuItem[]; onClose: () => void; depth?: number }) {
+export function MenuLevel({ items, onClose, depth = 0 }: { items: MenuItem[]; onClose: () => void; depth?: number }) {
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const timeoutRef = useRef<number | null>(null);
 
