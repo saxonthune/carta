@@ -507,6 +507,8 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     routeEdges,
     clearRoutes,
     applyPinLayout,
+    recursiveLayout,
+    toggleLayoutPin,
   } = useLayoutActions({
     reactFlow,
     setNodesLocal,
@@ -699,6 +701,10 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
   updateOrganizerColorRef.current = updateOrganizerColor;
   const renameOrganizerRef = useRef(renameOrganizer);
   renameOrganizerRef.current = renameOrganizer;
+  const recursiveLayoutRef = useRef(recursiveLayout);
+  recursiveLayoutRef.current = recursiveLayout;
+  const toggleLayoutPinRef = useRef(toggleLayoutPin);
+  toggleLayoutPinRef.current = toggleLayoutPin;
 
   // One stable dispatch object shared by ALL nodes (never changes identity)
   const nodeActions = useMemo(() => ({
@@ -712,6 +718,8 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     onFitToChildren: (nodeId: string) => fitToChildrenRef.current(nodeId),
     onUpdateOrganizerColor: (nodeId: string, color: string) => updateOrganizerColorRef.current(nodeId, color),
     onRenameOrganizer: (nodeId: string, newName: string) => renameOrganizerRef.current(nodeId, newName),
+    onRecursiveLayout: (nodeId: string, strategy: 'spread' | 'grid' | 'flow') => recursiveLayoutRef.current(nodeId, strategy),
+    onToggleLayoutPin: (nodeId: string) => toggleLayoutPinRef.current(nodeId),
   }), []);
 
   // Cache previous output so we can reuse node references when overlay data hasn't changed.

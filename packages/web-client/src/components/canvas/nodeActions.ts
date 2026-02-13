@@ -16,4 +16,6 @@ export interface NodeActions {
   onFitToChildren: (nodeId: string) => void;
   onUpdateOrganizerColor: (nodeId: string, color: string) => void;
   onRenameOrganizer: (nodeId: string, newName: string) => void;
+  onRecursiveLayout: (nodeId: string, strategy: 'spread' | 'grid' | 'flow') => void;
+  onToggleLayoutPin: (nodeId: string) => void;
 }

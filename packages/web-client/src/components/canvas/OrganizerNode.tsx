@@ -8,6 +8,7 @@ import {
   ArrowsInSimple,
   DotsThreeVertical,
   CaretUp,
+  PushPin,
 } from '@phosphor-icons/react';
 import { EyeIcon, EyeOffIcon } from '../ui/icons';
 import { Tooltip } from '../ui';
@@ -64,6 +65,7 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
     isRenaming,
     onStartRenaming,
     onStopRenaming,
+    layoutPinned,
   } = data;
 
   const [showColorPicker, setShowColorPicker] = useState(false);
@@ -218,8 +220,18 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
         handler: nodeActions.onFitToChildren,
         icon: <ArrowsInSimple weight="bold" size={14} />,
       },
+      {
+        label: layoutPinned ? 'Unpin layout' : 'Pin layout',
+        handler: nodeActions.onToggleLayoutPin,
+        icon: <PushPin weight={layoutPinned ? 'fill' : 'bold'} size={14} />,
+      },
+      {
+        label: 'Tidy all nested',
+        handler: (id: string) => nodeActions.onRecursiveLayout(id, 'spread'),
+        icon: <ArrowsOutSimple weight="bold" size={14} />,
+      },
     ];
-  }, [nodeActions, childCount]);
+  }, [nodeActions, childCount, layoutPinned]);
 
   // Increased base color mix for better visibility; deeper nesting = stronger tint
   const bgMix = isHovered || isDropTarget ? 25 : 18 + depth * 4;
@@ -302,6 +314,14 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
             >
               {childCount}
             </span>
+          )}
+          {layoutPinned && (
+            <PushPin
+              weight="fill"
+              size={12}
+              className="shrink-0 opacity-50"
+              style={{ color }}
+            />
           )}
           {/* Eyeball toggle button (canvas only) */}
           {nodeActions && (
@@ -445,6 +465,14 @@ function OrganizerNode({ data, selected }: OrganizerNodeProps) {
             >
               {childCount}
             </span>
+          )}
+          {layoutPinned && (
+            <PushPin
+              weight="fill"
+              size={12}
+              className="shrink-0 opacity-50"
+              style={{ color }}
+            />
           )}
           {/* Layout menu (canvas only, 2+ children) */}
           {layoutMenuItems && (

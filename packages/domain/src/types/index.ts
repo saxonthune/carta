@@ -228,6 +228,7 @@ export interface OrganizerNodeData {
   description?: string;
   layout: OrganizerLayout;
   attachedToSemanticId?: string;  // Semantic ID of owning construct (makes this a "wagon")
+  layoutPinned?: boolean;  // Protects children from recursive layout
   [key: string]: unknown;
 }
 

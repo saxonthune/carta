@@ -3,7 +3,7 @@ import type { Node, ReactFlowInstance } from '@xyflow/react';
 import * as Y from 'yjs';
 import type { DocumentAdapter } from '@carta/domain';
 import { DEFAULT_ORGANIZER_LAYOUT, computeLayoutUnitSizes, computeLayoutUnitBounds, computeOrganizerFit, type LayoutItem, type WagonInfo, resolvePinConstraints, type PinLayoutNode, type NodeGeometry } from '@carta/domain';
-import { listPinConstraints } from '@carta/document';
+import { listPinConstraints, updateOrganizer } from '@carta/document';
 import { deOverlapNodes } from '../utils/deOverlapNodes.js';
 import { compactNodes } from '../utils/compactNodes.js';
 import { hierarchicalLayout } from '../utils/hierarchicalLayout.js';
@@ -162,20 +162,77 @@ function getTopLevelEdges(
  * Construct dimensions use measured/explicit values (no wagon-tree expansion needed
  * since constructs inside organizers don't have wagons attached at this level).
  */
-function getChildLayoutItems(
+/**
+ * Get wagon-expanded layout items for organizer children.
+ * Returns items with expanded dimensions (for layout algorithms) and an offset
+ * map for converting layout positions back to construct positions.
+ */
+function getChildLayoutUnits(
   rfNodes: Node[],
-  organizerId: string
-): SpreadInput[] {
-  const children = rfNodes.filter(n => n.parentId === organizerId);
-  return children.map(n => {
-    const dims = getNodeDimensions(n);
+  organizerId: string,
+): { items: SpreadInput[]; offsets: Map<string, { x: number; y: number }> } {
+  const directChildren = rfNodes.filter(n => n.parentId === organizerId);
+  if (directChildren.length === 0) return { items: [], offsets: new Map() };
+
+  // Build LayoutItem and WagonInfo arrays (same pattern as getChildVisualFootprints)
+  const layoutItems: LayoutItem[] = directChildren.map(child => {
+    const dims = getNodeDimensions(child);
     return {
-      id: n.id,
-      x: n.position.x,
-      y: n.position.y,
+      id: child.id,
+      semanticId: (child.data as any)?.semanticId ?? child.id,
+      x: child.position.x,
+      y: child.position.y,
       ...dims,
     };
   });
+
+  const wagonInfos: WagonInfo[] = rfNodes
+    .filter(n => n.type === 'organizer' && n.parentId)
+    .map(n => ({
+      id: n.id,
+      parentId: n.parentId!,
+      x: n.position.x,
+      y: n.position.y,
+      ...getNodeDimensions(n),
+    }));
+
+  const bounds = computeLayoutUnitBounds(layoutItems, wagonInfos);
+  const offsets = new Map<string, { x: number; y: number }>();
+
+  const items: SpreadInput[] = directChildren.map(child => {
+    const childBounds = bounds.get(child.id);
+    const dims = getNodeDimensions(child);
+    if (!childBounds || (childBounds.offsetX === 0 && childBounds.offsetY === 0
+        && childBounds.width === dims.width && childBounds.height === dims.height)) {
+      offsets.set(child.id, { x: 0, y: 0 });
+      return { id: child.id, x: child.position.x, y: child.position.y, ...dims };
+    }
+    offsets.set(child.id, { x: childBounds.offsetX, y: childBounds.offsetY });
+    return {
+      id: child.id,
+      x: child.position.x + childBounds.offsetX,
+      y: child.position.y + childBounds.offsetY,
+      width: childBounds.width,
+      height: childBounds.height,
+    };
+  });
+
+  return { items, offsets };
+}
+
+/**
+ * Convert layout positions (wagon-expanded space) back to construct positions.
+ */
+function convertToConstructPositions(
+  newPositions: Map<string, { x: number; y: number }>,
+  offsets: Map<string, { x: number; y: number }>,
+): Map<string, { x: number; y: number }> {
+  const result = new Map<string, { x: number; y: number }>();
+  for (const [id, pos] of newPositions) {
+    const offset = offsets.get(id) ?? { x: 0, y: 0 };
+    result.set(id, { x: pos.x - offset.x, y: pos.y - offset.y });
+  }
+  return result;
 }
 
 /**
@@ -277,6 +334,9 @@ export interface UseLayoutActionsResult {
   routeEdges: () => void;
   clearRoutes: () => void;
   applyPinLayout: () => void;
+  // Recursive layout and pin control
+  recursiveLayout: (organizerId: string, strategy: 'spread' | 'grid' | 'flow') => void;
+  toggleLayoutPin: (organizerId: string) => void;
 }
 
 /**
@@ -540,12 +600,12 @@ export function useLayoutActions({
   const spreadChildren = useCallback(
     (organizerId: string) => {
       const rfNodes = reactFlow.getNodes();
-      const children = getChildLayoutItems(rfNodes, organizerId);
-      if (children.length < 2) return;
+      const { items, offsets } = getChildLayoutUnits(rfNodes, organizerId);
+      if (items.length < 2) return;
 
-      console.debug('[organizer:layout:spread]', { organizerId, childCount: children.length });
+      console.debug('[organizer:layout:spread]', { organizerId, childCount: items.length });
 
-      const newPositions = deOverlapNodes(children);
+      const newPositions = deOverlapNodes(items);
 
       // Ensure all positions are below the organizer header
       const allPositions = [...newPositions.values()];
@@ -557,7 +617,10 @@ export function useLayoutActions({
         }
       }
 
-      const patches = [...newPositions].map(([id, position]) => ({ id, position }));
+      // Convert back to construct positions
+      const constructPositions = convertToConstructPositions(newPositions, offsets);
+
+      const patches = [...constructPositions].map(([id, position]) => ({ id, position }));
       applyPositionPatches(patches, reactFlow, setNodesLocal, adapter);
 
       const knownPositions = new Map(patches.map(p => [p.id, p.position]));
@@ -573,25 +636,28 @@ export function useLayoutActions({
   const gridLayoutChildren = useCallback(
     (organizerId: string, cols?: number) => {
       const rfNodes = reactFlow.getNodes();
-      const children = getChildLayoutItems(rfNodes, organizerId);
-      if (children.length < 2) return;
+      const { items, offsets } = getChildLayoutUnits(rfNodes, organizerId);
+      if (items.length < 2) return;
 
       // Compute grid
-      const effectiveCols = cols ?? Math.ceil(Math.sqrt(children.length));
+      const effectiveCols = cols ?? Math.ceil(Math.sqrt(items.length));
 
-      console.debug('[organizer:layout:grid]', { organizerId, childCount: children.length, cols: effectiveCols });
-      const colWidth = Math.max(...children.map(n => n.width)) + 30;
-      const rowHeight = Math.max(...children.map(n => n.height)) + 30;
+      console.debug('[organizer:layout:grid]', { organizerId, childCount: items.length, cols: effectiveCols });
+      const colWidth = Math.max(...items.map(n => n.width)) + 30;
+      const rowHeight = Math.max(...items.map(n => n.height)) + 30;
       const padding = 20;
 
       const newPositions = new globalThis.Map<string, { x: number; y: number }>();
-      children.forEach((child, idx) => {
+      items.forEach((child, idx) => {
         const x = (idx % effectiveCols) * colWidth + padding;
         const y = Math.floor(idx / effectiveCols) * rowHeight + ORGANIZER_CONTENT_TOP;
         newPositions.set(child.id, { x, y });
       });
 
-      const patches = [...newPositions].map(([id, position]) => ({ id, position }));
+      // Convert back to construct positions
+      const constructPositions = convertToConstructPositions(newPositions, offsets);
+
+      const patches = [...constructPositions].map(([id, position]) => ({ id, position }));
       applyPositionPatches(patches, reactFlow, setNodesLocal, adapter);
 
       const knownPositions = new Map(patches.map(p => [p.id, p.position]));
@@ -606,11 +672,11 @@ export function useLayoutActions({
   const flowLayoutChildren = useCallback(
     (organizerId: string) => {
       const rfNodes = reactFlow.getNodes();
-      const children = getChildLayoutItems(rfNodes, organizerId);
-      if (children.length < 2) return;
+      const { items, offsets } = getChildLayoutUnits(rfNodes, organizerId);
+      if (items.length < 2) return;
 
       // Filter edges: between direct children, collapsing wagon-internal edges
-      const childIds = new Set(children.map(c => c.id));
+      const childIds = new Set(items.map(c => c.id));
       const rfEdges = reactFlow.getEdges();
 
       // Build map: nodes inside child wagons → wagon ID
@@ -634,9 +700,9 @@ export function useLayoutActions({
         scopedEdges.push({ source, target });
       }
 
-      console.debug('[organizer:layout:flow]', { organizerId, childCount: children.length, edgeCount: scopedEdges.length });
+      console.debug('[organizer:layout:flow]', { organizerId, childCount: items.length, edgeCount: scopedEdges.length });
 
-      const rawPositions = hierarchicalLayout(children, scopedEdges, { gap: 30, layerGap: 60 });
+      const rawPositions = hierarchicalLayout(items, scopedEdges, { gap: 30, layerGap: 60 });
 
       // Normalize positions to start from (padding, headerTop)
       const padding = 20;
@@ -653,7 +719,10 @@ export function useLayoutActions({
           });
         }
 
-        const patches = [...newPositions].map(([id, position]) => ({ id, position }));
+        // Convert back to construct positions
+        const constructPositions = convertToConstructPositions(newPositions, offsets);
+
+        const patches = [...constructPositions].map(([id, position]) => ({ id, position }));
         applyPositionPatches(patches, reactFlow, setNodesLocal, adapter);
 
         const knownPositions = new Map(patches.map(p => [p.id, p.position]));
@@ -1147,6 +1216,96 @@ export function useLayoutActions({
     }
   }, [reactFlow, setNodesLocal, adapter, ydoc, computeLayoutUnits]);
 
+  /**
+   * Recursively layout an organizer tree bottom-up.
+   * Applies the given strategy to each unpinned organizer, deepest first.
+   */
+  const recursiveLayout = useCallback(
+    (organizerId: string, strategy: 'spread' | 'grid' | 'flow') => {
+      const rfNodes = reactFlow.getNodes();
+
+      // Find all descendant organizers (breadth-first collection, then reverse for bottom-up)
+      const queue: string[] = [organizerId];
+      const organizers: string[] = []; // will process in reverse (bottom-up)
+
+      while (queue.length > 0) {
+        const current = queue.shift()!;
+        organizers.push(current);
+
+        // Find child organizers (wagons whose parent is a direct child of current organizer)
+        const directChildren = rfNodes.filter(n => n.parentId === current);
+        for (const child of directChildren) {
+          // Find wagon organizers attached to this child
+          const wagons = rfNodes.filter(n =>
+            n.type === 'organizer' && n.parentId === child.id
+          );
+          for (const wagon of wagons) {
+            queue.push(wagon.id);
+          }
+          // Also check if child itself is an organizer (nested non-wagon organizer case)
+          if (child.type === 'organizer') {
+            queue.push(child.id);
+          }
+        }
+      }
+
+      // Process bottom-up (reverse order)
+      for (let i = organizers.length - 1; i >= 0; i--) {
+        const orgId = organizers[i];
+        const orgNode = reactFlow.getNodes().find(n => n.id === orgId);
+        if (!orgNode) continue;
+
+        // Check if pinned — skip layout + fit but allow recursion (already done above)
+        const data = orgNode.data as any;
+        if (data.layoutPinned) continue;
+
+        // Apply strategy
+        const children = reactFlow.getNodes().filter(n => n.parentId === orgId);
+        if (children.length < 2 && strategy !== 'spread') continue;
+        if (children.length < 1) continue;
+
+        switch (strategy) {
+          case 'spread': spreadChildren(orgId); break;
+          case 'grid': gridLayoutChildren(orgId); break;
+          case 'flow': flowLayoutChildren(orgId); break;
+        }
+        // fitToChildren is called at the end of each layout action already
+      }
+    },
+    [reactFlow, spreadChildren, gridLayoutChildren, flowLayoutChildren]
+  );
+
+  /**
+   * Toggle layout pin on an organizer.
+   */
+  const toggleLayoutPin = useCallback(
+    (organizerId: string) => {
+      const rfNodes = reactFlow.getNodes();
+      const orgNode = rfNodes.find(n => n.id === organizerId);
+      if (!orgNode) return;
+
+      const data = orgNode.data as any;
+      const newPinned = !data.layoutPinned;
+
+      // Update React Flow + local state
+      const updater = (nds: Node[]) =>
+        nds.map(n =>
+          n.id === organizerId
+            ? { ...n, data: { ...n.data, layoutPinned: newPinned } }
+            : n
+        );
+      reactFlow.setNodes(updater);
+      setNodesLocal(updater);
+
+      // Persist to Yjs via document operations
+      const pageId = adapter.getActivePage();
+      if (pageId && ydoc) {
+        updateOrganizer(ydoc, pageId, organizerId, { layoutPinned: newPinned });
+      }
+    },
+    [reactFlow, setNodesLocal, adapter, ydoc]
+  );
+
   return {
     spreadChildren,
     flowLayoutChildren,
@@ -1165,5 +1324,7 @@ export function useLayoutActions({
     routeEdges,
     clearRoutes,
     applyPinLayout,
+    recursiveLayout,
+    toggleLayoutPin,
   };
 }

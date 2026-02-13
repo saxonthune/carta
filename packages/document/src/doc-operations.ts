@@ -1382,6 +1382,7 @@ export interface OrganizerInfo {
   collapsed: boolean;
   description?: string;
   attachedToSemanticId?: string;
+  layoutPinned?: boolean;
 }
 
 /**
@@ -1516,6 +1517,7 @@ export function updateOrganizer(
     layout?: OrganizerLayout;
     description?: string;
     attachedToSemanticId?: string;
+    layoutPinned?: boolean;
   }
 ): OrganizerInfo | null {
   const pageNodes = getPageMap(ydoc, 'nodes', pageId);
@@ -1534,6 +1536,7 @@ export function updateOrganizer(
     if (updates.layout !== undefined) ydataMap.set('layout', updates.layout);
     if (updates.description !== undefined) ydataMap.set('description', updates.description);
     if (updates.attachedToSemanticId !== undefined) ydataMap.set('attachedToSemanticId', updates.attachedToSemanticId);
+    if (updates.layoutPinned !== undefined) ydataMap.set('layoutPinned', updates.layoutPinned);
   }, MCP_ORIGIN);
 
   // Re-read to return updated state
@@ -1553,6 +1556,7 @@ export function updateOrganizer(
     collapsed: data.collapsed ?? false,
     description: data.description,
     attachedToSemanticId: data.attachedToSemanticId as string | undefined,
+    layoutPinned: data.layoutPinned as boolean | undefined,
   };
 }
 
