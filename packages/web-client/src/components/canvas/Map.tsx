@@ -107,7 +107,7 @@ export interface MapProps {
 
 export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNodeDoubleClick, searchText }: MapProps) {
   const { adapter, ydoc } = useDocumentContext();
-  const { nodes, setNodes, setNodesLocal, suppressUpdates } = useNodes();
+  const { nodes, setNodes, setNodesLocal, suppressUpdates, registerRFPusher } = useNodes();
   const { edges, setEdges } = useEdges();
   const { schemas, getSchema } = useSchemas();
   const { getPortSchema } = usePortSchemas();
@@ -130,6 +130,12 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
   const { pages, activePage, setActivePage, createPage, copyNodesToPage } = usePages();
   const reactFlow = useReactFlow();
   const { constraints: pinConstraints } = usePinConstraints();
+
+  // Register RF pusher so Yjs observer can propagate to RF
+  useEffect(() => {
+    registerRFPusher((freshNodes) => reactFlow.setNodes(freshNodes));
+    return () => registerRFPusher(() => {});
+  }, [reactFlow, registerRFPusher]);
 
   const edgeColor = useEdgeColor();
   const defaultEdgeOptions = useMemo(() => ({
@@ -192,8 +198,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
   const isDraggingRef = useRef(false);
   const draggedNodesRef = useRef<Set<string>>(new Set());
   const resizingNodeIds = useRef<Set<string>>(new Set());
-  // Suppress expandParent→Yjs writeback during layout actions (fitToChildren, etc.)
-  const suppressExpandParentWritebackRef = useRef<Set<string>>(new Set());
+  const fitToChildrenRef = useRef<((organizerId: string) => void) | null>(null);
 
   // Ctrl+drag visual feedback (DOM class toggle, no re-renders)
   const mapWrapperRef = useRef<HTMLDivElement>(null);
@@ -224,19 +229,8 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
           if (style && (style.width != null || style.height != null)) {
             adapter.patchNodes?.([{ id: change.id, style: { width: style.width, height: style.height } }]);
           }
-        } else if (organizerIdsRef.current.has(change.id) && change.dimensions) {
-          // expandParent (or other source) grew an organizer — persist to Yjs
-          // BUT skip entirely if a layout action just explicitly set this organizer's size
-          if (suppressExpandParentWritebackRef.current.has(change.id)) {
-            suppressExpandParentWritebackRef.current.delete(change.id);
-            continue; // skip both Yjs writeback AND local dimension update
-          }
-          adapter.patchNodes?.([{
-            id: change.id,
-            style: { width: change.dimensions.width, height: change.dimensions.height },
-          }]);
         }
-        // Apply dimension changes locally (unless skipped by continue above)
+        // Apply dimension changes locally
         dimensionChanges.push(change);
       }
       // Selection handled by RF internally + onSelectionChange callback
@@ -249,12 +243,24 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
       setNodesLocal(nds => applyNodeChanges(dimensionChanges, nds));
     }
     if (commitPositions.length > 0) {
-      adapter.patchNodes?.(commitPositions);
+      adapter.patchNodes?.(commitPositions, 'drag-commit');
+
+      // Fit organizers that contain moved nodes (replaces expandParent)
+      const rfNodes = reactFlow.getNodes();
+      const parentOrgs = new Set<string>();
+      for (const { id } of commitPositions) {
+        const node = rfNodes.find(n => n.id === id);
+        if (node?.parentId && organizerIdsRef.current.has(node.parentId)) {
+          parentOrgs.add(node.parentId);
+        }
+      }
+      for (const orgId of parentOrgs) {
+        fitToChildrenRef.current?.(orgId);
+      }
 
       // Clear routed waypoints for edges connected to moved nodes
       // Also resolve child-to-parent: if a node inside an organizer moves, clear edges connected to the organizer
       const movedIds = new Set(commitPositions.map(p => p.id));
-      const rfNodes = reactFlow.getNodes();
       const affectedIds = new Set<string>();
 
       // Add moved node IDs and their parent organizers (if any)
@@ -515,7 +521,6 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     adapter,
     selectedNodeIds,
     ydoc,
-    suppressExpandParentWriteback: suppressExpandParentWritebackRef,
   });
 
   // Handle adding construct from pane context menu
@@ -695,7 +700,6 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
   flowLayoutChildrenRef.current = flowLayoutChildren;
   const gridLayoutChildrenRef = useRef(gridLayoutChildren);
   gridLayoutChildrenRef.current = gridLayoutChildren;
-  const fitToChildrenRef = useRef(fitToChildren);
   fitToChildrenRef.current = fitToChildren;
   const updateOrganizerColorRef = useRef(updateOrganizerColor);
   updateOrganizerColorRef.current = updateOrganizerColor;
@@ -715,7 +719,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     onSpreadChildren: (nodeId: string) => spreadChildrenRef.current(nodeId),
     onFlowLayoutChildren: (nodeId: string) => flowLayoutChildrenRef.current(nodeId),
     onGridLayoutChildren: (nodeId: string, cols?: number) => gridLayoutChildrenRef.current(nodeId, cols),
-    onFitToChildren: (nodeId: string) => fitToChildrenRef.current(nodeId),
+    onFitToChildren: (nodeId: string) => fitToChildrenRef.current?.(nodeId),
     onUpdateOrganizerColor: (nodeId: string, color: string) => updateOrganizerColorRef.current(nodeId, color),
     onRenameOrganizer: (nodeId: string, newName: string) => renameOrganizerRef.current(nodeId, newName),
     onRecursiveLayout: (nodeId: string, strategy: 'spread' | 'grid' | 'flow') => recursiveLayoutRef.current(nodeId, strategy),
@@ -732,17 +736,6 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
   const orgRenameStop = useMemo(() => () => setRenamingOrganizerIdRef.current(null), []);
 
   const nodesWithCallbacks = useMemo(() => {
-    // Pre-compute which nodes should expand their parent
-    // Includes: nodes directly in organizers, AND wagons whose construct is in an organizer
-    const nodeById = new globalThis.Map(nodesWithHiddenFlags.map(n => [n.id, n] as [string, Node]));
-    const shouldExpandParent = (node: Node): boolean => {
-      if (!node.parentId) return false;
-      if (organizerIds.has(node.parentId)) return true;
-      const parent = nodeById.get(node.parentId);
-      if (parent?.parentId && organizerIds.has(parent.parentId)) return true;
-      return false;
-    };
-
     const cache = prevNodesCache.current;
     const newCache = new globalThis.Map<string, Node>();
 
@@ -786,12 +779,10 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
       // Construct node
       const isRenaming = node.id === renamingNodeId;
       const dimmed = isTraceActive && !traceResult?.nodeDistances.has(node.id);
-      const expandParent = shouldExpandParent(node) ? true : undefined;
 
       if (prev && prev.type !== 'organizer' &&
           prevData?.isRenaming === isRenaming &&
           prevData?.dimmed === dimmed &&
-          prev.expandParent === expandParent &&
           (prev as unknown as { _baseRef: unknown })._baseRef === node) {
         newCache.set(node.id, prev);
         return prev;
@@ -800,7 +791,6 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
       const newNode = {
         ...node,
         dragHandle: NODE_DRAG_HANDLE,
-        expandParent,
         _baseRef: node,
         data: {
           ...node.data,

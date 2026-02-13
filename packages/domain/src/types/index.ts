@@ -497,7 +497,7 @@ export interface DocumentAdapter {
   removeSchemaGroup(id: string): boolean;
 
   // Surgical node patches (bypasses full clear+rebuild for performance)
-  patchNodes?(patches: Array<{ id: string; position?: { x: number; y: number }; style?: Record<string, unknown> }>): void;
+  patchNodes?(patches: Array<{ id: string; position?: { x: number; y: number }; style?: Record<string, unknown> }>, origin?: string): void;
 
   // Surgical edge data patches (e.g., persisting waypoints without full edge rebuild)
   patchEdgeData?(patches: Array<{ id: string; data: Record<string, unknown> }>): void;

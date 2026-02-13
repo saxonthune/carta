@@ -316,8 +316,6 @@ interface UseLayoutActionsDeps {
   adapter: DocumentAdapter;
   selectedNodeIds: string[];
   ydoc: Y.Doc;
-  /** Set of organizer IDs to suppress expandParent→Yjs writeback for one cycle */
-  suppressExpandParentWriteback?: React.MutableRefObject<Set<string>>;
 }
 
 export interface UseLayoutActionsResult {
@@ -358,7 +356,6 @@ export function useLayoutActions({
   adapter,
   selectedNodeIds,
   ydoc,
-  suppressExpandParentWriteback,
 }: UseLayoutActionsDeps): UseLayoutActionsResult {
   /**
    * Compute the layout unit size (construct + wagon tree bounding box) for nodes.
@@ -411,13 +408,8 @@ export function useLayoutActions({
    */
   const applyOrganizerSize = useCallback(
     (organizerId: string, width: number, height: number) => {
-      // Suppress expandParent→Yjs writeback so RF doesn't immediately undo the resize
-      suppressExpandParentWriteback?.current.add(organizerId);
-
       // Must set BOTH style (CSS) AND width/height (RF internal dimensions).
-      // expandParent uses Math.max(currentDimensions, childNeeds) — a one-way ratchet.
-      // Setting style alone leaves the old measured/internal dimensions intact,
-      // so expandParent keeps the organizer at the old (larger) size.
+      // Setting style alone leaves the old measured/internal dimensions intact.
       // Setting width/height on the node overrides the internal dimensions.
       const patchMap = new Map([[organizerId, { width, height }]]);
       const updater = (nds: Node[]) =>
@@ -431,7 +423,7 @@ export function useLayoutActions({
       setNodesLocal(updater);
       adapter.patchNodes?.([{ id: organizerId, style: { width, height } }]);
     },
-    [reactFlow, setNodesLocal, adapter, suppressExpandParentWriteback]
+    [reactFlow, setNodesLocal, adapter]
   );
 
   /**

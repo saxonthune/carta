@@ -707,7 +707,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       }, 'user');
     },
 
-    patchNodes(patches: Array<{ id: string; position?: { x: number; y: number }; style?: Record<string, unknown> }>) {
+    patchNodes(patches: Array<{ id: string; position?: { x: number; y: number }; style?: Record<string, unknown> }>, origin?: string) {
       ydoc.transact(() => {
         const pageNodes = getActivePageNodes();
         if (!pageNodes) return;
@@ -717,7 +717,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
           if (position) ynode.set('position', position);
           if (style) ynode.set('style', style);
         }
-      }, 'drag-commit');
+      }, origin ?? 'layout');
     },
 
     patchEdgeData(patches: Array<{ id: string; data: Record<string, unknown> }>) {

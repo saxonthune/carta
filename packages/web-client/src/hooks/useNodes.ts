@@ -16,10 +16,16 @@ export function useNodes() {
   // remote Yjs changes overwriting local React Flow positions)
   const suppressUpdatesRef = useRef(false);
 
+  // Optional RF pusher — registered by Map.tsx once reactFlow is available
+  const rfPusherRef = useRef<((nodes: Node[]) => void) | null>(null);
+
   useEffect(() => {
     const handler = () => {
       if (suppressUpdatesRef.current) return;
-      setNodesState(adapter.getNodes() as Node[]);
+      const freshNodes = adapter.getNodes() as Node[];
+      setNodesState(freshNodes);
+      // Also push to RF if pusher is registered
+      rfPusherRef.current?.(freshNodes);
     };
     // Subscribe to node-specific changes (falls back to full subscribe if granular not available)
     const unsubscribe = adapter.subscribeToNodes
@@ -46,5 +52,9 @@ export function useNodes() {
     return adapter.generateNodeId();
   }, [adapter]);
 
-  return { nodes, setNodes, setNodesLocal: setNodesState, suppressUpdates: suppressUpdatesRef, updateNode, getNextNodeId };
+  const registerRFPusher = useCallback((pusher: (nodes: Node[]) => void) => {
+    rfPusherRef.current = pusher;
+  }, []);
+
+  return { nodes, setNodes, setNodesLocal: setNodesState, suppressUpdates: suppressUpdatesRef, updateNode, getNextNodeId, registerRFPusher };
 }
