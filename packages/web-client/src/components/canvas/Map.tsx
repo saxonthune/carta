@@ -51,6 +51,7 @@ import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import { useEdgeCleanup } from '../../hooks/useEdgeCleanup';
 import type { ConstructValues, ConstructNodeData, OrganizerNodeData } from '@carta/domain';
 import { nodeContainedInOrganizer, getDisplayName, resolveNodeColor } from '@carta/domain';
+import { rebuildPage } from '@carta/document';
 import { usePresentation } from '../../hooks/usePresentation';
 import { computeEdgeAggregation, filterInvalidEdges } from '../../presentation/index';
 import { useOrganizerOperations } from '../../hooks/useOrganizerOperations';
@@ -1497,6 +1498,13 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
           }}
           onDebugInfo={(nodeId) => { setDebugNodeId(nodeId); closeContextMenu(); }}
           onRevalidateEdges={() => { revalidateEdges(); closeContextMenu(); }}
+          onRebuildPage={() => {
+            if (ydoc && activePage) {
+              const result = rebuildPage(ydoc, activePage);
+              console.log('[rebuildPage]', result);
+            }
+            closeContextMenu();
+          }}
         />
       )}
 

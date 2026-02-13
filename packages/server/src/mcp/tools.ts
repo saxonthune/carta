@@ -181,6 +181,11 @@ const DeleteConstructsSchema = z.object({
   pageId: z.string().optional().describe('Target page ID (uses active page if omitted)'),
 });
 
+const RebuildPageSchema = z.object({
+  documentId: z.string().describe('The document ID'),
+  pageId: z.string().optional().describe('Target page ID (uses active page if omitted)'),
+});
+
 const BatchMutateSchema = z.object({
   documentId: z.string().describe('The document ID'),
   operations: z.array(z.discriminatedUnion('op', [
@@ -782,6 +787,11 @@ For create/update ops, values is a Record keyed by field name from the schema. U
       description: 'Resolve and apply pin constraints to organizer positions. Uses topological sort to determine positioning order, detects cycles, and computes absolute positions from relative constraints. Returns the number of organizers updated and any warnings. Optionally accepts pageId to target a specific page.',
       inputSchema: ApplyPinLayoutSchema.shape,
     },
+    {
+      name: 'carta_rebuild_page',
+      description: `Rebuild all Yjs data for a page by round-tripping through plain objects. Flushes corrupt Y.Map state, orphaned keys, and stale references while preserving node IDs, positions, fields, edges, and organizer membership. Debug tool — use when a page has rendering issues that don't appear on freshly-created pages.`,
+      inputSchema: RebuildPageSchema.shape,
+    },
   ];
 }
 
@@ -844,6 +854,7 @@ export interface ToolHandlers {
   carta_list_pin_constraints: ToolHandler;
   carta_remove_pin_constraint: ToolHandler;
   carta_apply_pin_layout: ToolHandler;
+  carta_rebuild_page: ToolHandler;
   [key: string]: ToolHandler;
 }
 
@@ -1497,6 +1508,17 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
         'POST',
         `/api/documents/${encodeURIComponent(documentId)}/layout/pin`,
         { gap, pageId }
+      );
+      if (result.error) return { error: result.error };
+      return result.data;
+    },
+
+    carta_rebuild_page: async (args) => {
+      const { documentId, pageId } = RebuildPageSchema.parse(args);
+      const result = await apiRequest<{ nodesRebuilt: number; edgesRebuilt: number; orphansDropped: string[] }>(
+        'POST',
+        `/api/documents/${encodeURIComponent(documentId)}/rebuild-page`,
+        { pageId }
       );
       if (result.error) return { error: result.error };
       return result.data;

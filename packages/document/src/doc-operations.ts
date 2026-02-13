@@ -46,7 +46,7 @@ import type {
 import { CompilerEngine } from '@carta/compiler';
 import { yToPlain, deepPlainToY, safeGet } from './yjs-helpers.js';
 import { generateNodeId, generatePageId } from './id-generators.js';
-import { MCP_ORIGIN, SERVER_FORMAT_VERSION } from './constants.js';
+import { MCP_ORIGIN, SERVER_FORMAT_VERSION, YDOC_MAPS } from './constants.js';
 
 /**
  * Ensure a node's data field is a Y.Map. After certain Yjs operations
@@ -3702,4 +3702,76 @@ export function applyPinLayout(
   }, MCP_ORIGIN);
 
   return { updated, warnings: result.warnings };
+}
+
+/**
+ * Rebuild all Yjs data for a page by round-tripping through plain objects.
+ * Flushes orphaned Y.Map keys, corrupt nested structures, and stale references.
+ * Preserves node IDs, positions, field values, styles, edges, and organizer membership.
+ */
+export function rebuildPage(
+  ydoc: Y.Doc,
+  pageId: string
+): { nodesRebuilt: number; edgesRebuilt: number; orphansDropped: string[] } {
+  const pageNodes = getPageMap(ydoc, YDOC_MAPS.NODES, pageId);
+  const pageEdges = getPageMap(ydoc, YDOC_MAPS.EDGES, pageId);
+  const orphans: string[] = [];
+
+  // 1. Snapshot everything as plain objects
+  const nodeSnapshots = new Map<string, Record<string, unknown>>();
+  pageNodes.forEach((ynode, id) => {
+    nodeSnapshots.set(id, yToPlain(ynode) as Record<string, unknown>);
+  });
+
+  const edgeSnapshots = new Map<string, Record<string, unknown>>();
+  pageEdges.forEach((yedge, id) => {
+    edgeSnapshots.set(id, yToPlain(yedge) as Record<string, unknown>);
+  });
+
+  // 2. Validate — drop orphan edges, fix dangling parentIds
+  const validNodeIds = new Set(nodeSnapshots.keys());
+
+  for (const [edgeId, edge] of edgeSnapshots) {
+    if (!validNodeIds.has(edge.source as string) || !validNodeIds.has(edge.target as string)) {
+      orphans.push(`edge ${edgeId}: dangling source/target`);
+      edgeSnapshots.delete(edgeId);
+    }
+  }
+
+  for (const [nodeId, node] of nodeSnapshots) {
+    if (node.parentId && !validNodeIds.has(node.parentId as string)) {
+      orphans.push(`node ${nodeId}: dangling parentId ${node.parentId}`);
+      delete node.parentId;
+    }
+    // Check organizer wagon attachment
+    const data = node.data as Record<string, unknown> | undefined;
+    if (data?.attachedToSemanticId) {
+      const targetExists = [...nodeSnapshots.values()].some(
+        n => (n.data as Record<string, unknown>)?.semanticId === data.attachedToSemanticId
+      );
+      if (!targetExists) {
+        orphans.push(`organizer ${nodeId}: dangling attachedToSemanticId ${data.attachedToSemanticId}`);
+        delete data.attachedToSemanticId;
+      }
+    }
+  }
+
+  // 3. Wipe and recreate in a single transaction
+  ydoc.transact(() => {
+    pageNodes.clear();
+    pageEdges.clear();
+
+    for (const [id, snapshot] of nodeSnapshots) {
+      pageNodes.set(id, deepPlainToY(snapshot) as Y.Map<unknown>);
+    }
+    for (const [id, snapshot] of edgeSnapshots) {
+      pageEdges.set(id, deepPlainToY(snapshot) as Y.Map<unknown>);
+    }
+  }, MCP_ORIGIN);
+
+  return {
+    nodesRebuilt: nodeSnapshots.size,
+    edgesRebuilt: edgeSnapshots.size,
+    orphansDropped: orphans,
+  };
 }
