@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import type { Node, ReactFlowInstance } from '@xyflow/react';
 import * as Y from 'yjs';
 import type { DocumentAdapter } from '@carta/domain';
-import { DEFAULT_ORGANIZER_LAYOUT, computeLayoutUnitSizes, computeOrganizerFit, type LayoutItem, type WagonInfo, resolvePinConstraints, type PinLayoutNode, type NodeGeometry } from '@carta/domain';
+import { DEFAULT_ORGANIZER_LAYOUT, computeLayoutUnitSizes, computeLayoutUnitBounds, computeOrganizerFit, type LayoutItem, type WagonInfo, resolvePinConstraints, type PinLayoutNode, type NodeGeometry } from '@carta/domain';
 import { listPinConstraints } from '@carta/document';
 import { deOverlapNodes } from '../utils/deOverlapNodes.js';
 import { compactNodes } from '../utils/compactNodes.js';
@@ -178,6 +178,72 @@ function getChildLayoutItems(
   });
 }
 
+/**
+ * Get visual footprints of organizer children (including their wagon trees).
+ * Returns NodeGeometry[] with expanded bounds that account for wagon organizers.
+ * This is used for fitToChildren to properly encompass wagon organizers.
+ */
+function getChildVisualFootprints(
+  rfNodes: Node[],
+  organizerId: string,
+  knownChildPositions?: Map<string, { x: number; y: number }>
+): NodeGeometry[] {
+  const directChildren = rfNodes.filter(n => n.parentId === organizerId);
+  if (directChildren.length === 0) return [];
+
+  // Build LayoutItem array for direct children
+  const layoutItems: LayoutItem[] = directChildren.map(child => {
+    const pos = knownChildPositions?.get(child.id) ?? child.position;
+    const dims = getNodeDimensions(child);
+    return {
+      id: child.id,
+      semanticId: (child.data as any)?.semanticId ?? child.id,
+      x: pos.x,
+      y: pos.y,
+      ...dims,
+    };
+  });
+
+  // Build WagonInfo array for all organizer wagons in the entire tree
+  const wagonInfos: WagonInfo[] = rfNodes
+    .filter(n => n.type === 'organizer' && n.parentId)
+    .map(n => {
+      const dims = getNodeDimensions(n);
+      return {
+        id: n.id,
+        parentId: n.parentId!,
+        x: n.position.x,
+        y: n.position.y,
+        ...dims,
+      };
+    });
+
+  // Compute layout unit bounds (includes wagon offsets)
+  const bounds = computeLayoutUnitBounds(layoutItems, wagonInfos);
+
+  // Convert to NodeGeometry with expanded bounds
+  return layoutItems.map(item => {
+    const itemBounds = bounds.get(item.id);
+    if (!itemBounds) {
+      // No wagons, use original dimensions
+      return {
+        position: { x: item.x, y: item.y },
+        width: item.width,
+        height: item.height,
+      };
+    }
+    // Apply wagon-expanded bounds
+    return {
+      position: {
+        x: item.x + itemBounds.offsetX,
+        y: item.y + itemBounds.offsetY,
+      },
+      width: itemBounds.width,
+      height: itemBounds.height,
+    };
+  });
+}
+
 interface UseLayoutActionsDeps {
   reactFlow: ReactFlowInstance;
   setNodesLocal: React.Dispatch<React.SetStateAction<Node[]>>;
@@ -197,6 +263,8 @@ export interface UseLayoutActionsResult {
   // Organizer membership (ctrl+drag attach/detach)
   attachNodeToOrganizer: (nodeId: string, organizerId: string) => void;
   detachNodeFromOrganizer: (nodeId: string) => void;
+  // Wagon positioning
+  positionWagonNextToConstruct: (wagonId: string) => void;
   // Top-level (moved from Map.tsx)
   spreadSelected: () => void;
   spreadAll: () => void;
@@ -289,41 +357,24 @@ export function useLayoutActions({
   /**
    * Fit organizer to its children's bounding box.
    * Handles children at negative relative positions by shifting organizer position and adjusting all children.
+   * Accounts for wagon organizers attached to children when calculating the fit.
    * @param knownChildPositions - Optional map of known positions (to avoid reading stale React Flow state)
    */
   const fitToChildren = useCallback(
     (organizerId: string, knownChildPositions?: Map<string, { x: number; y: number }>) => {
       const rfNodes = reactFlow.getNodes();
 
-      // Build children array, using known positions if provided
-      let children: SpreadInput[];
-      if (knownChildPositions) {
-        // Use known positions (avoids stale React Flow state)
-        const childNodes = rfNodes.filter(n => n.parentId === organizerId);
-        children = childNodes.map(n => {
-          const pos = knownChildPositions.get(n.id) ?? n.position;
-          const dims = getNodeDimensions(n);
-          return { id: n.id, x: pos.x, y: pos.y, ...dims };
-        });
-      } else {
-        children = getChildLayoutItems(rfNodes, organizerId);
-      }
+      // Get visual footprints (includes wagon-expanded bounds)
+      const childGeometries = getChildVisualFootprints(rfNodes, organizerId, knownChildPositions);
 
-      if (children.length === 0) return;
-
-      // Convert SpreadInput format to NodeGeometry format
-      const childGeometries: NodeGeometry[] = children.map(c => ({
-        position: { x: c.x, y: c.y },
-        width: c.width,
-        height: c.height,
-      }));
+      if (childGeometries.length === 0) return;
 
       // Compute fit using domain function
       const fit = computeOrganizerFit(childGeometries);
 
       const orgNode = rfNodes.find(n => n.id === organizerId);
       const currentSize = orgNode ? { width: (orgNode.style as any)?.width ?? orgNode.width, height: (orgNode.style as any)?.height ?? orgNode.height } : null;
-      console.debug('[organizer:layout:fit]', { organizerId, childCount: children.length, currentSize, computedSize: fit.size, fit });
+      console.debug('[organizer:layout:fit]', { organizerId, childCount: childGeometries.length, currentSize, computedSize: fit.size, fit });
 
       const patches: Array<{ id: string; position: { x: number; y: number } }> = [];
 
@@ -340,14 +391,17 @@ export function useLayoutActions({
           });
         }
 
-        // Shift all children by childPositionDelta
+        // Shift all direct children by childPositionDelta
+        // Only direct children get position patches; their wagon subtrees move with them via React Flow's parent chain
         if (fit.childPositionDelta.x !== 0 || fit.childPositionDelta.y !== 0) {
-          for (const child of children) {
+          const directChildren = rfNodes.filter(n => n.parentId === organizerId);
+          for (const child of directChildren) {
+            const currentPos = knownChildPositions?.get(child.id) ?? child.position;
             patches.push({
               id: child.id,
               position: {
-                x: child.x + fit.childPositionDelta.x,
-                y: child.y + fit.childPositionDelta.y,
+                x: currentPos.x + fit.childPositionDelta.x,
+                y: currentPos.y + fit.childPositionDelta.y,
               },
             });
           }
@@ -434,6 +488,50 @@ export function useLayoutActions({
       fitToChildren(oldOrganizerId);
     },
     [reactFlow, setNodesLocal, fitToChildren]
+  );
+
+  /**
+   * Position a wagon organizer next to its parent construct.
+   * Places the wagon to the right of the construct with a 20px gap, aligned to the top.
+   */
+  const positionWagonNextToConstruct = useCallback(
+    (wagonId: string) => {
+      const rfNodes = reactFlow.getNodes();
+      const wagon = rfNodes.find(n => n.id === wagonId);
+      if (!wagon?.parentId) return;
+
+      const parentConstruct = rfNodes.find(n => n.id === wagon.parentId);
+      if (!parentConstruct) return;
+
+      // Verify this is a wagon organizer (attached to a construct, not an organizer)
+      if (wagon.type !== 'organizer') return;
+      const wagonData = wagon.data as any;
+      if (!wagonData.attachedToSemanticId) return;
+
+      const constructDims = getNodeDimensions(parentConstruct);
+      const gap = 20;
+
+      // Position to the right of the construct, aligned to top
+      const newPosition = {
+        x: constructDims.width + gap,
+        y: 0,
+      };
+
+      console.debug('[organizer:wagon:snap]', {
+        wagonId,
+        parentId: wagon.parentId,
+        constructDims,
+        newPosition,
+      });
+
+      applyPositionPatches(
+        [{ id: wagonId, position: newPosition }],
+        reactFlow,
+        setNodesLocal,
+        adapter
+      );
+    },
+    [reactFlow, setNodesLocal, adapter]
   );
 
   /**
@@ -1056,6 +1154,7 @@ export function useLayoutActions({
     fitToChildren,
     attachNodeToOrganizer,
     detachNodeFromOrganizer,
+    positionWagonNextToConstruct,
     spreadSelected,
     spreadAll,
     compactAll,
