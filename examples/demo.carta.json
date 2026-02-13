@@ -4,30 +4,6 @@
   "description": "Exercises every core feature: custom schemas, all port polarities, organizers",
   "pages": [
     {
-      "id": "page_1770746802113_j0jx",
-      "name": "Demo contents",
-      "order": 0,
-      "nodes": [
-        {
-          "id": "4cff1083-1e8a-41a4-8c2a-829f66e169ee",
-          "type": "construct",
-          "position": {
-            "x": 696.5670305707793,
-            "y": 248.5848170520551
-          },
-          "data": {
-            "constructType": "note",
-            "semanticId": "note-e2u7htq",
-            "values": {
-              "content": "## Carta Demo Pages\n\n- **starter** — Onboarding: idea → break into pieces → connect\n- **saas** — 3-tier SaaS app: UI, API, Database + C# classes\n- **serverless** — AWS order processing: API Gateway → Lambda → DynamoDB → SNS/SQS\n- **front-end** — React UI flow: Login → Dashboard → Order Detail\n- **etl** — Data ingestion pipeline with stages\n- **sentence-diagram** — Grammar parse tree: \"The quick brown fox jumps over the lazy dog\"\n- **story-map** — Product story map: personas → user stories → features in MVP/v1.1/Backlog"
-            },
-            "viewLevel": "summary"
-          }
-        }
-      ],
-      "edges": []
-    },
-    {
       "id": "page-1770746834903-etwi",
       "name": "friendship.ai",
       "description": "The app that will change the world.",
@@ -37,8 +13,8 @@
           "id": "node_1770835894738_mqv8fe",
           "type": "organizer",
           "position": {
-            "x": -877.1062556650776,
-            "y": 50.163274640704074
+            "x": -1599.099771668139,
+            "y": 488.07995979733323
           },
           "data": {
             "isOrganizer": true,
@@ -48,16 +24,16 @@
             "layout": "freeform"
           },
           "style": {
-            "width": 2232,
-            "height": 205
+            "width": 630,
+            "height": 187
           }
         },
         {
           "id": "node_1770835896405_ey5yui",
           "type": "organizer",
           "position": {
-            "x": 219.8354700136406,
-            "y": 815.7650037982856
+            "x": -785.8748706486721,
+            "y": 443.8233188454973
           },
           "data": {
             "isOrganizer": true,
@@ -67,16 +43,16 @@
             "layout": "freeform"
           },
           "style": {
-            "width": 550,
-            "height": 400
+            "width": 770,
+            "height": 467
           }
         },
         {
           "id": "node_1770835897942_sus10m",
           "type": "organizer",
           "position": {
-            "x": 494.9682110306584,
-            "y": -177.08145316810192
+            "x": 56.58242630075267,
+            "y": 368.79492757697653
           },
           "data": {
             "isOrganizer": true,
@@ -86,16 +62,16 @@
             "layout": "freeform"
           },
           "style": {
-            "width": 500,
-            "height": 350
+            "width": 534,
+            "height": 556
           }
         },
         {
           "id": "node_1770835899248_hpxzo5",
           "type": "organizer",
           "position": {
-            "x": 1070.146544435273,
-            "y": 57.05964688864471
+            "x": 779.0644521333511,
+            "y": 381.8631572433221
           },
           "data": {
             "isOrganizer": true,
@@ -105,7 +81,7 @@
             "layout": "freeform"
           },
           "style": {
-            "width": 500,
+            "width": 530,
             "height": 500
           }
         },
@@ -137,7 +113,7 @@
           "id": "node_1770835930563_xa32l6",
           "type": "construct",
           "position": {
-            "x": 1123,
+            "x": 330,
             "y": 60
           },
           "data": {
@@ -161,8 +137,8 @@
           "id": "node_1770835930563_8geh8r",
           "type": "construct",
           "position": {
-            "x": 1.4210854715202004e-14,
-            "y": 50
+            "x": 15,
+            "y": 144.59375
           },
           "data": {
             "constructType": "ui-screen",
@@ -185,8 +161,8 @@
           "id": "node_1770835930563_4fhuza",
           "type": "construct",
           "position": {
-            "x": 200,
-            "y": 50
+            "x": 315,
+            "y": 187
           },
           "data": {
             "constructType": "ui-screen",
@@ -203,8 +179,8 @@
           "id": "node_1770835930563_bmtbtb",
           "type": "construct",
           "position": {
-            "x": 400,
-            "y": 50
+            "x": 465,
+            "y": 60.00000000000001
           },
           "data": {
             "constructType": "ui-screen",
@@ -227,8 +203,8 @@
           "id": "node_1770835930563_dccenm",
           "type": "construct",
           "position": {
-            "x": 40,
-            "y": 200
+            "x": 104.99999999999999,
+            "y": 317.375
           },
           "data": {
             "constructType": "ui-event",
@@ -252,8 +228,8 @@
           "id": "node_1770835930563_zxyyhr",
           "type": "construct",
           "position": {
-            "x": 400,
-            "y": 200
+            "x": 465,
+            "y": 314
           },
           "data": {
             "constructType": "ui-event",
@@ -277,8 +253,8 @@
           "id": "node_1770835930563_wga01l",
           "type": "construct",
           "position": {
-            "x": 20,
-            "y": 37.5
+            "x": 38,
+            "y": 60
           },
           "data": {
             "constructType": "rest-endpoint",
@@ -303,8 +279,8 @@
           "id": "node_1770835930563_a75tm3",
           "type": "construct",
           "position": {
-            "x": 20,
-            "y": 182.5
+            "x": 30.5,
+            "y": 403.99999999999994
           },
           "data": {
             "constructType": "rest-endpoint",
@@ -329,8 +305,8 @@
           "id": "node_1770835930563_8ecd9z",
           "type": "construct",
           "position": {
-            "x": 250,
-            "y": 110
+            "x": 329.25,
+            "y": 235.33333333333337
           },
           "data": {
             "constructType": "rest-endpoint",
@@ -362,8 +338,7 @@
             "constructType": "database",
             "semanticId": "database-zow3rzu",
             "values": {
-              "engine": "PostgreSQL",
-              "note": "Where loneliness becomes structured data"
+              "engine": "SQLite"
             },
             "connections": [
               {
@@ -514,7 +489,7 @@
       "id": "page-1770760906583-txl2",
       "name": "story-map",
       "description": "Product story map: personas, user stories, and feature prioritization",
-      "order": 2,
+      "order": 3,
       "nodes": [
         {
           "id": "node_1770760934574_ztqfqz",
@@ -1065,7 +1040,7 @@
       "id": "page-1770748978567-2g3l",
       "name": "front-end",
       "description": "React component architecture demo",
-      "order": 3,
+      "order": 4,
       "nodes": [
         {
           "id": "node_1770749021435_gqsjv7",
@@ -1373,7 +1348,7 @@
       "id": "page-1770748977835-xl8k",
       "name": "serverless",
       "description": "AWS serverless architecture demo",
-      "order": 4,
+      "order": 5,
       "nodes": [
         {
           "id": "node_1770749008128_ieo14o",
@@ -1661,7 +1636,7 @@
       "id": "page-1770746844520-lnzg",
       "name": "etl",
       "description": "Data ingestion ETL pipeline",
-      "order": 5,
+      "order": 6,
       "nodes": [
         {
           "id": "073d640b-708b-4fa6-b640-023485e071b2",
@@ -1678,8 +1653,8 @@
             "layout": "freeform"
           },
           "style": {
-            "width": 665.949924451995,
-            "height": 468.5396998836843
+            "width": 666,
+            "height": 469
           }
         },
         {
@@ -1844,8 +1819,8 @@
           "id": "e5cf0d58-4259-4b0c-9049-e9f60ed07b84",
           "type": "construct",
           "position": {
-            "x": 400,
-            "y": 620
+            "x": 421.4962221561712,
+            "y": 587.3575885776659
           },
           "data": {
             "constructType": "note",
@@ -1948,7 +1923,7 @@
       "id": "page-1770748979436-q0dr",
       "name": "sentence-diagram",
       "description": "Grammar parse tree: the quick brown fox jumps over the lazy dog",
-      "order": 6,
+      "order": 7,
       "nodes": [
         {
           "id": "node_1770749065246_3uu6zh",
@@ -2552,6 +2527,1804 @@
           "targetHandle": "modified-by"
         }
       ]
+    },
+    {
+      "id": "page-1770866154599-x8oi",
+      "name": "capability-map",
+      "description": "Personas, domains, deployables, features, capabilities web",
+      "order": 9,
+      "nodes": [
+        {
+          "id": "node_1770866172518_f7pzc9",
+          "type": "organizer",
+          "position": {
+            "x": 2075.896070357264,
+            "y": 62.873295905948055
+          },
+          "data": {
+            "isOrganizer": true,
+            "name": "Domains",
+            "color": "#4a8e5c",
+            "collapsed": false,
+            "layout": "freeform",
+            "description": "Business domains"
+          },
+          "style": {
+            "width": 1000,
+            "height": 350
+          }
+        },
+        {
+          "id": "node_1770866175830_51nate",
+          "type": "construct",
+          "position": {
+            "x": 665.8768291055503,
+            "y": 524.3718275570823
+          },
+          "data": {
+            "constructType": "test2-persona",
+            "semanticId": "test2-persona-zyaebyk",
+            "values": {
+              "name": "Product Manager",
+              "role": "Drives roadmap and prioritization"
+            },
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "test2-user-story-1hsjesr",
+                "targetPortId": "flow-in"
+              },
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "test2-user-story-1hsjh0j",
+                "targetPortId": "flow-in"
+              }
+            ]
+          }
+        },
+        {
+          "id": "node_1770866175830_xtvjto",
+          "type": "construct",
+          "position": {
+            "x": -172.5,
+            "y": 340
+          },
+          "data": {
+            "constructType": "test2-persona",
+            "semanticId": "test2-persona-zyaer9m",
+            "values": {
+              "name": "Developer",
+              "role": "Builds and integrates features"
+            },
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "test2-user-story-1hsjez3",
+                "targetPortId": "flow-in"
+              },
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "test2-user-story-1hsjhb4",
+                "targetPortId": "flow-in"
+              }
+            ]
+          }
+        },
+        {
+          "id": "node_1770866175830_ery6ru",
+          "type": "construct",
+          "position": {
+            "x": 177.5,
+            "y": 340
+          },
+          "data": {
+            "constructType": "test2-persona",
+            "semanticId": "test2-persona-zyae1fr",
+            "values": {
+              "name": "End User",
+              "role": "Consumes the product"
+            },
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "test2-user-story-1hsjce8",
+                "targetPortId": "flow-in"
+              },
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "test2-user-story-1hsje1c",
+                "targetPortId": "flow-in"
+              },
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "test2-user-story-1hsjnbp",
+                "targetPortId": "flow-in"
+              },
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "test2-user-story-1hsjfoe",
+                "targetPortId": "flow-in"
+              }
+            ]
+          }
+        },
+        {
+          "id": "node_1770866175830_6hym5v",
+          "type": "construct",
+          "position": {
+            "x": 677.5,
+            "y": 340
+          },
+          "data": {
+            "constructType": "test2-deployable",
+            "semanticId": "test2-deployable-zyaeeme",
+            "values": {
+              "name": "Web App",
+              "type": "web"
+            },
+            "connections": []
+          }
+        },
+        {
+          "id": "node_1770866175830_37rhwb",
+          "type": "construct",
+          "position": {
+            "x": 1252.5,
+            "y": 340
+          },
+          "data": {
+            "constructType": "test2-deployable",
+            "semanticId": "test2-deployable-zyaem16",
+            "values": {
+              "name": "Mobile App",
+              "type": "mobile"
+            },
+            "connections": []
+          }
+        },
+        {
+          "id": "node_1770866175830_sfy242",
+          "type": "construct",
+          "position": {
+            "x": 1827.5,
+            "y": 340
+          },
+          "data": {
+            "constructType": "test2-deployable",
+            "semanticId": "test2-deployable-zyae64c",
+            "values": {
+              "name": "API Server",
+              "type": "api"
+            },
+            "connections": []
+          }
+        },
+        {
+          "id": "node_1770866182557_70ul20",
+          "type": "construct",
+          "position": {
+            "x": 30,
+            "y": 30
+          },
+          "data": {
+            "constructType": "test2-domain",
+            "semanticId": "test2-domain-03h93ej",
+            "values": {
+              "name": "Authentication",
+              "description": "Identity, login, and access control"
+            },
+            "connections": [
+              {
+                "portId": "child",
+                "targetSemanticId": "test2-feature-0hjkuc9",
+                "targetPortId": "parent"
+              },
+              {
+                "portId": "child",
+                "targetSemanticId": "test2-feature-0hjk0l8",
+                "targetPortId": "parent"
+              },
+              {
+                "portId": "child",
+                "targetSemanticId": "test2-feature-0hjktl8",
+                "targetPortId": "parent"
+              }
+            ]
+          },
+          "parentId": "node_1770866172518_f7pzc9"
+        },
+        {
+          "id": "node_1770866182557_o1a0wj",
+          "type": "construct",
+          "position": {
+            "x": 270,
+            "y": 30
+          },
+          "data": {
+            "constructType": "test2-domain",
+            "semanticId": "test2-domain-03h9ubu",
+            "values": {
+              "name": "Payments",
+              "description": "Billing, subscriptions, and invoicing"
+            },
+            "connections": [
+              {
+                "portId": "child",
+                "targetSemanticId": "test2-feature-0hjkojc",
+                "targetPortId": "parent"
+              },
+              {
+                "portId": "child",
+                "targetSemanticId": "test2-feature-0hjkzck",
+                "targetPortId": "parent"
+              },
+              {
+                "portId": "child",
+                "targetSemanticId": "test2-feature-0hjkjzl",
+                "targetPortId": "parent"
+              }
+            ]
+          },
+          "parentId": "node_1770866172518_f7pzc9"
+        },
+        {
+          "id": "node_1770866182557_p9xh5s",
+          "type": "construct",
+          "position": {
+            "x": 510,
+            "y": 30
+          },
+          "data": {
+            "constructType": "test2-domain",
+            "semanticId": "test2-domain-03h9wd4",
+            "values": {
+              "name": "Notifications",
+              "description": "Push, email, and in-app alerts"
+            },
+            "connections": [
+              {
+                "portId": "child",
+                "targetSemanticId": "test2-feature-0hjkhtp",
+                "targetPortId": "parent"
+              },
+              {
+                "portId": "child",
+                "targetSemanticId": "test2-feature-0hjksxg",
+                "targetPortId": "parent"
+              }
+            ]
+          },
+          "parentId": "node_1770866172518_f7pzc9"
+        },
+        {
+          "id": "node_1770866182557_5y6cqg",
+          "type": "construct",
+          "position": {
+            "x": 750,
+            "y": 30
+          },
+          "data": {
+            "constructType": "test2-domain",
+            "semanticId": "test2-domain-03h9l6e",
+            "values": {
+              "name": "Analytics",
+              "description": "Usage tracking and reporting"
+            },
+            "connections": [
+              {
+                "portId": "child",
+                "targetSemanticId": "test2-feature-0hjk9sv",
+                "targetPortId": "parent"
+              },
+              {
+                "portId": "child",
+                "targetSemanticId": "test2-feature-0hjk51v",
+                "targetPortId": "parent"
+              }
+            ]
+          },
+          "parentId": "node_1770866172518_f7pzc9"
+        },
+        {
+          "id": "node_1770866188325_bm9ax8",
+          "type": "organizer",
+          "position": {
+            "x": -112.55822611490237,
+            "y": -591.363499890659
+          },
+          "data": {
+            "isOrganizer": true,
+            "name": "Web App Features",
+            "color": "#dc2626",
+            "collapsed": false,
+            "layout": "freeform",
+            "attachedToSemanticId": "test2-deployable-zyaeeme"
+          },
+          "style": {
+            "width": 500,
+            "height": 350
+          },
+          "parentId": "node_1770866175830_6hym5v"
+        },
+        {
+          "id": "node_1770866189675_wxzvip",
+          "type": "organizer",
+          "position": {
+            "x": -324.58651251739275,
+            "y": 123.25035428069754
+          },
+          "data": {
+            "isOrganizer": true,
+            "name": "Mobile App Features",
+            "color": "#8e4a8e",
+            "collapsed": false,
+            "layout": "freeform",
+            "attachedToSemanticId": "test2-deployable-zyaem16"
+          },
+          "style": {
+            "width": 350,
+            "height": 253
+          },
+          "parentId": "node_1770866175830_37rhwb"
+        },
+        {
+          "id": "node_1770866190946_cy6esy",
+          "type": "organizer",
+          "position": {
+            "x": -422.74775622224934,
+            "y": 248.89674622291398
+          },
+          "data": {
+            "isOrganizer": true,
+            "name": "API Server Features",
+            "color": "#0891b2",
+            "collapsed": false,
+            "layout": "freeform",
+            "attachedToSemanticId": "test2-deployable-zyae64c"
+          },
+          "style": {
+            "width": 500,
+            "height": 450
+          },
+          "parentId": "node_1770866175830_sfy242"
+        },
+        {
+          "id": "node_1770866200784_j0mocf",
+          "type": "construct",
+          "position": {
+            "x": 53.756476683937706,
+            "y": 74.34542314335056
+          },
+          "data": {
+            "constructType": "test2-feature",
+            "semanticId": "test2-feature-0hjkuc9",
+            "values": {
+              "name": "SSO Login",
+              "status": "shipped"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866188325_bm9ax8"
+        },
+        {
+          "id": "node_1770866200784_04hhoa",
+          "type": "construct",
+          "position": {
+            "x": 250,
+            "y": 30
+          },
+          "data": {
+            "constructType": "test2-feature",
+            "semanticId": "test2-feature-0hjk0l8",
+            "values": {
+              "name": "Password Reset",
+              "status": "shipped"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866188325_bm9ax8"
+        },
+        {
+          "id": "node_1770866200784_scjgj8",
+          "type": "construct",
+          "position": {
+            "x": 30,
+            "y": 170
+          },
+          "data": {
+            "constructType": "test2-feature",
+            "semanticId": "test2-feature-0hjkzck",
+            "values": {
+              "name": "Subscription Mgmt",
+              "status": "in-progress"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866188325_bm9ax8"
+        },
+        {
+          "id": "node_1770866200784_rfvf7h",
+          "type": "construct",
+          "position": {
+            "x": 250,
+            "y": 170
+          },
+          "data": {
+            "constructType": "test2-feature",
+            "semanticId": "test2-feature-0hjk9sv",
+            "values": {
+              "name": "Usage Dashboard",
+              "status": "in-progress"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866188325_bm9ax8"
+        },
+        {
+          "id": "node_1770866200784_blw5pz",
+          "type": "construct",
+          "position": {
+            "x": 30,
+            "y": 30
+          },
+          "data": {
+            "constructType": "test2-feature",
+            "semanticId": "test2-feature-0hjkhtp",
+            "values": {
+              "name": "Push Notifications",
+              "status": "shipped"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866189675_wxzvip"
+        },
+        {
+          "id": "node_1770866200784_82qeke",
+          "type": "construct",
+          "position": {
+            "x": 30,
+            "y": 170
+          },
+          "data": {
+            "constructType": "test2-feature",
+            "semanticId": "test2-feature-0hjktl8",
+            "values": {
+              "name": "Two-Factor Auth",
+              "status": "planned"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866189675_wxzvip"
+        },
+        {
+          "id": "node_1770866200784_5voa2g",
+          "type": "construct",
+          "position": {
+            "x": 113.4725374493089,
+            "y": 88.95612784881246
+          },
+          "data": {
+            "constructType": "test2-feature",
+            "semanticId": "test2-feature-0hjkojc",
+            "values": {
+              "name": "Payment Processing",
+              "status": "shipped"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866190946_cy6esy"
+        },
+        {
+          "id": "node_1770866200784_jqen4x",
+          "type": "construct",
+          "position": {
+            "x": 250,
+            "y": 30
+          },
+          "data": {
+            "constructType": "test2-feature",
+            "semanticId": "test2-feature-0hjksxg",
+            "values": {
+              "name": "Email Alerts",
+              "status": "in-progress"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866190946_cy6esy"
+        },
+        {
+          "id": "node_1770866200784_8700rp",
+          "type": "construct",
+          "position": {
+            "x": 30,
+            "y": 170
+          },
+          "data": {
+            "constructType": "test2-feature",
+            "semanticId": "test2-feature-0hjk51v",
+            "values": {
+              "name": "Event Tracking",
+              "status": "shipped"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866190946_cy6esy"
+        },
+        {
+          "id": "node_1770866200784_riff1y",
+          "type": "construct",
+          "position": {
+            "x": 250,
+            "y": 170
+          },
+          "data": {
+            "constructType": "test2-feature",
+            "semanticId": "test2-feature-0hjkjzl",
+            "values": {
+              "name": "Invoice Generation",
+              "status": "planned"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866190946_cy6esy"
+        },
+        {
+          "id": "node_1770866207411_x8ykoi",
+          "type": "organizer",
+          "position": {
+            "x": 0,
+            "y": 190
+          },
+          "data": {
+            "isOrganizer": true,
+            "name": "SSO Login Capabilities",
+            "color": "#5c9e9e",
+            "collapsed": false,
+            "layout": "freeform",
+            "attachedToSemanticId": "test2-feature-0hjkuc9"
+          },
+          "style": {
+            "width": 340,
+            "height": 150
+          },
+          "parentId": "node_1770866200784_j0mocf"
+        },
+        {
+          "id": "node_1770866208519_p41yek",
+          "type": "organizer",
+          "position": {
+            "x": 0,
+            "y": 190
+          },
+          "data": {
+            "isOrganizer": true,
+            "name": "Password Reset Capabilities",
+            "color": "#5c9e9e",
+            "collapsed": false,
+            "layout": "freeform",
+            "attachedToSemanticId": "test2-feature-0hjk0l8"
+          },
+          "style": {
+            "width": 340,
+            "height": 150
+          },
+          "parentId": "node_1770866200784_04hhoa"
+        },
+        {
+          "id": "node_1770866209942_48pkve",
+          "type": "organizer",
+          "position": {
+            "x": 0,
+            "y": 190
+          },
+          "data": {
+            "isOrganizer": true,
+            "name": "Payment Processing Capabilities",
+            "color": "#5c9e9e",
+            "collapsed": false,
+            "layout": "freeform",
+            "attachedToSemanticId": "test2-feature-0hjkojc"
+          },
+          "style": {
+            "width": 200,
+            "height": 150
+          },
+          "parentId": "node_1770866200784_5voa2g"
+        },
+        {
+          "id": "node_1770866211337_pj6qmd",
+          "type": "organizer",
+          "position": {
+            "x": 0,
+            "y": 190
+          },
+          "data": {
+            "isOrganizer": true,
+            "name": "Subscription Mgmt Capabilities",
+            "color": "#5c9e9e",
+            "collapsed": false,
+            "layout": "freeform",
+            "attachedToSemanticId": "test2-feature-0hjkzck"
+          },
+          "style": {
+            "width": 340,
+            "height": 150
+          },
+          "parentId": "node_1770866200784_scjgj8"
+        },
+        {
+          "id": "node_1770866212719_boxhvo",
+          "type": "organizer",
+          "position": {
+            "x": 0,
+            "y": 190
+          },
+          "data": {
+            "isOrganizer": true,
+            "name": "Push Notifications Capabilities",
+            "color": "#5c9e9e",
+            "collapsed": false,
+            "layout": "freeform",
+            "attachedToSemanticId": "test2-feature-0hjkhtp"
+          },
+          "style": {
+            "width": 200,
+            "height": 150
+          },
+          "parentId": "node_1770866200784_blw5pz"
+        },
+        {
+          "id": "node_1770866214153_os69l0",
+          "type": "organizer",
+          "position": {
+            "x": 0,
+            "y": 190
+          },
+          "data": {
+            "isOrganizer": true,
+            "name": "Email Alerts Capabilities",
+            "color": "#5c9e9e",
+            "collapsed": false,
+            "layout": "freeform",
+            "attachedToSemanticId": "test2-feature-0hjksxg"
+          },
+          "style": {
+            "width": 200,
+            "height": 150
+          },
+          "parentId": "node_1770866200784_jqen4x"
+        },
+        {
+          "id": "node_1770866215416_tgg34h",
+          "type": "organizer",
+          "position": {
+            "x": 0,
+            "y": 190
+          },
+          "data": {
+            "isOrganizer": true,
+            "name": "Usage Dashboard Capabilities",
+            "color": "#5c9e9e",
+            "collapsed": false,
+            "layout": "freeform",
+            "attachedToSemanticId": "test2-feature-0hjk9sv"
+          },
+          "style": {
+            "width": 340,
+            "height": 150
+          },
+          "parentId": "node_1770866200784_rfvf7h"
+        },
+        {
+          "id": "node_1770866216718_qac399",
+          "type": "organizer",
+          "position": {
+            "x": 0,
+            "y": 190
+          },
+          "data": {
+            "isOrganizer": true,
+            "name": "Event Tracking Capabilities",
+            "color": "#5c9e9e",
+            "collapsed": false,
+            "layout": "freeform",
+            "attachedToSemanticId": "test2-feature-0hjk51v"
+          },
+          "style": {
+            "width": 200,
+            "height": 150
+          },
+          "parentId": "node_1770866200784_8700rp"
+        },
+        {
+          "id": "node_1770866222917_hvajxo",
+          "type": "organizer",
+          "position": {
+            "x": 0,
+            "y": 190
+          },
+          "data": {
+            "isOrganizer": true,
+            "name": "Invoice Generation Capabilities",
+            "color": "#5c9e9e",
+            "collapsed": false,
+            "layout": "freeform",
+            "attachedToSemanticId": "test2-feature-0hjkjzl"
+          },
+          "style": {
+            "width": 200,
+            "height": 150
+          },
+          "parentId": "node_1770866200784_riff1y"
+        },
+        {
+          "id": "node_1770866224130_jizynl",
+          "type": "organizer",
+          "position": {
+            "x": 0,
+            "y": 190
+          },
+          "data": {
+            "isOrganizer": true,
+            "name": "Two-Factor Auth Capabilities",
+            "color": "#5c9e9e",
+            "collapsed": false,
+            "layout": "freeform",
+            "attachedToSemanticId": "test2-feature-0hjktl8"
+          },
+          "style": {
+            "width": 340,
+            "height": 150
+          },
+          "parentId": "node_1770866200784_82qeke"
+        },
+        {
+          "id": "node_1770866237686_f4hurk",
+          "type": "construct",
+          "position": {
+            "x": 20,
+            "y": 20
+          },
+          "data": {
+            "constructType": "test2-capability",
+            "semanticId": "test2-capability-1a0m3gk",
+            "values": {
+              "name": "Validate Credentials"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866207411_x8ykoi"
+        },
+        {
+          "id": "node_1770866237686_43wjd1",
+          "type": "construct",
+          "position": {
+            "x": 160,
+            "y": 20
+          },
+          "data": {
+            "constructType": "test2-capability",
+            "semanticId": "test2-capability-1a0mwar",
+            "values": {
+              "name": "Generate JWT"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866207411_x8ykoi"
+        },
+        {
+          "id": "node_1770866237686_8gmhqu",
+          "type": "construct",
+          "position": {
+            "x": 20,
+            "y": 20
+          },
+          "data": {
+            "constructType": "test2-capability",
+            "semanticId": "test2-capability-1a0myyl",
+            "values": {
+              "name": "Send Reset Email"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866208519_p41yek"
+        },
+        {
+          "id": "node_1770866237686_zdfjuz",
+          "type": "construct",
+          "position": {
+            "x": 160,
+            "y": 20
+          },
+          "data": {
+            "constructType": "test2-capability",
+            "semanticId": "test2-capability-1a0mfdk",
+            "values": {
+              "name": "Validate Reset Token"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866208519_p41yek"
+        },
+        {
+          "id": "node_1770866237686_u4ia7u",
+          "type": "construct",
+          "position": {
+            "x": 20,
+            "y": 20
+          },
+          "data": {
+            "constructType": "test2-capability",
+            "semanticId": "test2-capability-1a0m97f",
+            "values": {
+              "name": "Charge Card"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866209942_48pkve"
+        },
+        {
+          "id": "node_1770866237686_gyqq9h",
+          "type": "construct",
+          "position": {
+            "x": 20,
+            "y": 20
+          },
+          "data": {
+            "constructType": "test2-capability",
+            "semanticId": "test2-capability-1a0mo2x",
+            "values": {
+              "name": "Create Subscription"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866211337_pj6qmd"
+        },
+        {
+          "id": "node_1770866237686_xqvn73",
+          "type": "construct",
+          "position": {
+            "x": 160,
+            "y": 20
+          },
+          "data": {
+            "constructType": "test2-capability",
+            "semanticId": "test2-capability-1a0mf6s",
+            "values": {
+              "name": "Cancel Subscription"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866211337_pj6qmd"
+        },
+        {
+          "id": "node_1770866237686_we4le5",
+          "type": "construct",
+          "position": {
+            "x": 20,
+            "y": 20
+          },
+          "data": {
+            "constructType": "test2-capability",
+            "semanticId": "test2-capability-1a0m5vq",
+            "values": {
+              "name": "Send Push"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866212719_boxhvo"
+        },
+        {
+          "id": "node_1770866237686_uzn7xt",
+          "type": "construct",
+          "position": {
+            "x": 20,
+            "y": 20
+          },
+          "data": {
+            "constructType": "test2-capability",
+            "semanticId": "test2-capability-1a0muug",
+            "values": {
+              "name": "Compose Email"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866214153_os69l0"
+        },
+        {
+          "id": "node_1770866237686_4v78qy",
+          "type": "construct",
+          "position": {
+            "x": 20,
+            "y": 20
+          },
+          "data": {
+            "constructType": "test2-capability",
+            "semanticId": "test2-capability-1a0md3n",
+            "values": {
+              "name": "Render Charts"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866215416_tgg34h"
+        },
+        {
+          "id": "node_1770866237686_dtfff4",
+          "type": "construct",
+          "position": {
+            "x": 160,
+            "y": 20
+          },
+          "data": {
+            "constructType": "test2-capability",
+            "semanticId": "test2-capability-1a0mwvd",
+            "values": {
+              "name": "Aggregate Metrics"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866215416_tgg34h"
+        },
+        {
+          "id": "node_1770866237686_pqn3pg",
+          "type": "construct",
+          "position": {
+            "x": 20,
+            "y": 20
+          },
+          "data": {
+            "constructType": "test2-capability",
+            "semanticId": "test2-capability-1a0m5lu",
+            "values": {
+              "name": "Track Event"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866216718_qac399"
+        },
+        {
+          "id": "node_1770866237686_9im8oj",
+          "type": "construct",
+          "position": {
+            "x": 20,
+            "y": 20
+          },
+          "data": {
+            "constructType": "test2-capability",
+            "semanticId": "test2-capability-1a0mmkf",
+            "values": {
+              "name": "Generate PDF"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866222917_hvajxo"
+        },
+        {
+          "id": "node_1770866237686_k9bdji",
+          "type": "construct",
+          "position": {
+            "x": 20,
+            "y": 20
+          },
+          "data": {
+            "constructType": "test2-capability",
+            "semanticId": "test2-capability-1a0mssk",
+            "values": {
+              "name": "Verify TOTP"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866224130_jizynl"
+        },
+        {
+          "id": "node_1770866237686_ai7vwg",
+          "type": "construct",
+          "position": {
+            "x": 160,
+            "y": 20
+          },
+          "data": {
+            "constructType": "test2-capability",
+            "semanticId": "test2-capability-1a0m2mr",
+            "values": {
+              "name": "Enroll Authenticator"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866224130_jizynl"
+        },
+        {
+          "id": "node_1770866247763_3g6jod",
+          "type": "construct",
+          "position": {
+            "x": 20,
+            "y": 60
+          },
+          "data": {
+            "constructType": "test2-user-story",
+            "semanticId": "test2-user-story-1hsjesr",
+            "values": {
+              "title": "See usage dashboards",
+              "description": "As a PM, I want to view usage analytics"
+            },
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "test2-capability-1a0md3n",
+                "targetPortId": "flow-in"
+              },
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "test2-capability-1a0mwvd",
+                "targetPortId": "flow-in"
+              }
+            ]
+          },
+          "parentId": "ea418d72-f7d5-4fe7-adcb-5689c3b1e56f"
+        },
+        {
+          "id": "node_1770866247763_ji3hi8",
+          "type": "construct",
+          "position": {
+            "x": 230,
+            "y": 60
+          },
+          "data": {
+            "constructType": "test2-user-story",
+            "semanticId": "test2-user-story-1hsjh0j",
+            "values": {
+              "title": "Generate invoices",
+              "description": "As a PM, I want to generate customer invoices"
+            },
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "test2-capability-1a0mmkf",
+                "targetPortId": "flow-in"
+              }
+            ]
+          },
+          "parentId": "ea418d72-f7d5-4fe7-adcb-5689c3b1e56f"
+        },
+        {
+          "id": "node_1770866247763_j8d6gc",
+          "type": "construct",
+          "position": {
+            "x": 440,
+            "y": 60
+          },
+          "data": {
+            "constructType": "test2-user-story",
+            "semanticId": "test2-user-story-1hsjez3",
+            "values": {
+              "title": "Integrate SSO",
+              "description": "As a developer, I want to integrate SSO into my app"
+            },
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "test2-capability-1a0m3gk",
+                "targetPortId": "flow-in"
+              },
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "test2-capability-1a0mwar",
+                "targetPortId": "flow-in"
+              }
+            ]
+          },
+          "parentId": "ea418d72-f7d5-4fe7-adcb-5689c3b1e56f"
+        },
+        {
+          "id": "node_1770866247763_gr4zw3",
+          "type": "construct",
+          "position": {
+            "x": 20,
+            "y": 173
+          },
+          "data": {
+            "constructType": "test2-user-story",
+            "semanticId": "test2-user-story-1hsjhb4",
+            "values": {
+              "title": "Track events",
+              "description": "As a developer, I want to instrument event tracking"
+            },
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "test2-capability-1a0m5lu",
+                "targetPortId": "flow-in"
+              }
+            ]
+          },
+          "parentId": "ea418d72-f7d5-4fe7-adcb-5689c3b1e56f"
+        },
+        {
+          "id": "node_1770866247763_exsqy4",
+          "type": "construct",
+          "position": {
+            "x": 230,
+            "y": 173
+          },
+          "data": {
+            "constructType": "test2-user-story",
+            "semanticId": "test2-user-story-1hsjce8",
+            "values": {
+              "title": "Reset my password",
+              "description": "As an end user, I want to reset my forgotten password"
+            },
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "test2-capability-1a0myyl",
+                "targetPortId": "flow-in"
+              },
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "test2-capability-1a0mfdk",
+                "targetPortId": "flow-in"
+              }
+            ]
+          },
+          "parentId": "ea418d72-f7d5-4fe7-adcb-5689c3b1e56f"
+        },
+        {
+          "id": "node_1770866247763_prp6bi",
+          "type": "construct",
+          "position": {
+            "x": 440,
+            "y": 173
+          },
+          "data": {
+            "constructType": "test2-user-story",
+            "semanticId": "test2-user-story-1hsje1c",
+            "values": {
+              "title": "Get notifications",
+              "description": "As an end user, I want push notifications on my phone"
+            },
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "test2-capability-1a0m5vq",
+                "targetPortId": "flow-in"
+              }
+            ]
+          },
+          "parentId": "ea418d72-f7d5-4fe7-adcb-5689c3b1e56f"
+        },
+        {
+          "id": "node_1770866247763_kmg7la",
+          "type": "construct",
+          "position": {
+            "x": 20,
+            "y": 286
+          },
+          "data": {
+            "constructType": "test2-user-story",
+            "semanticId": "test2-user-story-1hsjnbp",
+            "values": {
+              "title": "Manage subscription",
+              "description": "As an end user, I want to upgrade or cancel my plan"
+            },
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "test2-capability-1a0mo2x",
+                "targetPortId": "flow-in"
+              },
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "test2-capability-1a0mf6s",
+                "targetPortId": "flow-in"
+              }
+            ]
+          },
+          "parentId": "ea418d72-f7d5-4fe7-adcb-5689c3b1e56f"
+        },
+        {
+          "id": "node_1770866247763_q49oin",
+          "type": "construct",
+          "position": {
+            "x": 230,
+            "y": 286
+          },
+          "data": {
+            "constructType": "test2-user-story",
+            "semanticId": "test2-user-story-1hsjfoe",
+            "values": {
+              "title": "Enable 2FA",
+              "description": "As an end user, I want to secure my account with 2FA"
+            },
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "test2-capability-1a0mssk",
+                "targetPortId": "flow-in"
+              },
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "test2-capability-1a0m2mr",
+                "targetPortId": "flow-in"
+              }
+            ]
+          },
+          "parentId": "ea418d72-f7d5-4fe7-adcb-5689c3b1e56f"
+        },
+        {
+          "id": "ea418d72-f7d5-4fe7-adcb-5689c3b1e56f",
+          "type": "organizer",
+          "position": {
+            "x": -463.02979192324676,
+            "y": -271.05131331733224
+          },
+          "data": {
+            "isOrganizer": true,
+            "name": "Domains",
+            "color": "#ec4899",
+            "collapsed": false,
+            "layout": "freeform"
+          },
+          "width": 294.6875,
+          "height": 1726.765523889048,
+          "style": {
+            "width": 620,
+            "height": 1727
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "edge_1770866270619_9z9k0i",
+          "source": "node_1770866175830_51nate",
+          "target": "node_1770866247763_3g6jod",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770866270619_wx5rec",
+          "source": "node_1770866175830_51nate",
+          "target": "node_1770866247763_ji3hi8",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770866270619_716z83",
+          "source": "node_1770866175830_xtvjto",
+          "target": "node_1770866247763_j8d6gc",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770866270619_zjvag7",
+          "source": "node_1770866175830_xtvjto",
+          "target": "node_1770866247763_gr4zw3",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770866270619_3d9r8g",
+          "source": "node_1770866175830_ery6ru",
+          "target": "node_1770866247763_exsqy4",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770866270619_i0pe44",
+          "source": "node_1770866175830_ery6ru",
+          "target": "node_1770866247763_prp6bi",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770866270619_1d9348",
+          "source": "node_1770866175830_ery6ru",
+          "target": "node_1770866247763_kmg7la",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770866270619_hfrqf6",
+          "source": "node_1770866175830_ery6ru",
+          "target": "node_1770866247763_q49oin",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770866270619_167izv",
+          "source": "node_1770866247763_3g6jod",
+          "target": "node_1770866237686_4v78qy",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770866270619_44uc8z",
+          "source": "node_1770866247763_3g6jod",
+          "target": "node_1770866237686_dtfff4",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770866270619_oxkqjg",
+          "source": "node_1770866247763_ji3hi8",
+          "target": "node_1770866237686_9im8oj",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770866270619_m64zp8",
+          "source": "node_1770866247763_j8d6gc",
+          "target": "node_1770866237686_f4hurk",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770866270619_g5oxcl",
+          "source": "node_1770866247763_j8d6gc",
+          "target": "node_1770866237686_43wjd1",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770866270619_o651k8",
+          "source": "node_1770866247763_gr4zw3",
+          "target": "node_1770866237686_pqn3pg",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770866270619_j0qvdx",
+          "source": "node_1770866247763_exsqy4",
+          "target": "node_1770866237686_8gmhqu",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770866270619_bqot5n",
+          "source": "node_1770866247763_exsqy4",
+          "target": "node_1770866237686_zdfjuz",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770866270619_ib3fvw",
+          "source": "node_1770866247763_prp6bi",
+          "target": "node_1770866237686_we4le5",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770866270619_9m6vyc",
+          "source": "node_1770866247763_kmg7la",
+          "target": "node_1770866237686_gyqq9h",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770866270619_gzssmt",
+          "source": "node_1770866247763_kmg7la",
+          "target": "node_1770866237686_xqvn73",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770866270619_9q2q0d",
+          "source": "node_1770866247763_q49oin",
+          "target": "node_1770866237686_k9bdji",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770866270619_dtbz8n",
+          "source": "node_1770866247763_q49oin",
+          "target": "node_1770866237686_ai7vwg",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770866270619_9gcdro",
+          "source": "node_1770866182557_70ul20",
+          "target": "node_1770866200784_j0mocf",
+          "sourceHandle": "child",
+          "targetHandle": "parent"
+        },
+        {
+          "id": "edge_1770866270619_1zb82p",
+          "source": "node_1770866182557_70ul20",
+          "target": "node_1770866200784_04hhoa",
+          "sourceHandle": "child",
+          "targetHandle": "parent"
+        },
+        {
+          "id": "edge_1770866270619_imyqq5",
+          "source": "node_1770866182557_70ul20",
+          "target": "node_1770866200784_82qeke",
+          "sourceHandle": "child",
+          "targetHandle": "parent"
+        },
+        {
+          "id": "edge_1770866270619_k720yn",
+          "source": "node_1770866182557_o1a0wj",
+          "target": "node_1770866200784_5voa2g",
+          "sourceHandle": "child",
+          "targetHandle": "parent"
+        },
+        {
+          "id": "edge_1770866270619_yldg73",
+          "source": "node_1770866182557_o1a0wj",
+          "target": "node_1770866200784_scjgj8",
+          "sourceHandle": "child",
+          "targetHandle": "parent"
+        },
+        {
+          "id": "edge_1770866270619_3n9rre",
+          "source": "node_1770866182557_o1a0wj",
+          "target": "node_1770866200784_riff1y",
+          "sourceHandle": "child",
+          "targetHandle": "parent"
+        },
+        {
+          "id": "edge_1770866270619_ovgiv8",
+          "source": "node_1770866182557_p9xh5s",
+          "target": "node_1770866200784_blw5pz",
+          "sourceHandle": "child",
+          "targetHandle": "parent"
+        },
+        {
+          "id": "edge_1770866270619_gjbdtx",
+          "source": "node_1770866182557_p9xh5s",
+          "target": "node_1770866200784_jqen4x",
+          "sourceHandle": "child",
+          "targetHandle": "parent"
+        },
+        {
+          "id": "edge_1770866270619_ule3yi",
+          "source": "node_1770866182557_5y6cqg",
+          "target": "node_1770866200784_rfvf7h",
+          "sourceHandle": "child",
+          "targetHandle": "parent"
+        },
+        {
+          "id": "edge_1770866270619_qv87u8",
+          "source": "node_1770866182557_5y6cqg",
+          "target": "node_1770866200784_8700rp",
+          "sourceHandle": "child",
+          "targetHandle": "parent"
+        }
+      ]
+    },
+    {
+      "id": "page-1770986708983-usne",
+      "name": "bpmn-order-fulfillment",
+      "description": "BPMN order fulfillment process showcasing rendering options: circles (events), diamonds (gateways), documents (data objects), default (activities), simple (notes), and organizers (pools/lanes)",
+      "order": 11,
+      "nodes": [
+        {
+          "id": "node_1770986721651_2aa20l",
+          "type": "construct",
+          "position": {
+            "x": 50,
+            "y": 250
+          },
+          "data": {
+            "constructType": "bpmn-event",
+            "semanticId": "bpmn-event-ro1fsih",
+            "values": {
+              "name": "Order Received",
+              "eventPosition": "Start",
+              "trigger": "Message"
+            },
+            "connections": [
+              {
+                "portId": "seq-out",
+                "targetSemanticId": "bpmn-activity-ro1f93d",
+                "targetPortId": "seq-in"
+              }
+            ]
+          }
+        },
+        {
+          "id": "node_1770986721651_jof9qk",
+          "type": "construct",
+          "position": {
+            "x": 250,
+            "y": 210
+          },
+          "data": {
+            "constructType": "bpmn-activity",
+            "semanticId": "bpmn-activity-ro1f93d",
+            "values": {
+              "name": "Validate Order",
+              "activityType": "Task",
+              "description": "Check order details and customer info"
+            },
+            "connections": [
+              {
+                "portId": "seq-out",
+                "targetSemanticId": "bpmn-gateway-ro1f5cd",
+                "targetPortId": "seq-in"
+              },
+              {
+                "portId": "data-link",
+                "targetSemanticId": "bpmn-data-object-ro1gato",
+                "targetPortId": "data-link"
+              }
+            ]
+          }
+        },
+        {
+          "id": "node_1770986721651_2e5mic",
+          "type": "construct",
+          "position": {
+            "x": 580,
+            "y": 250
+          },
+          "data": {
+            "constructType": "bpmn-gateway",
+            "semanticId": "bpmn-gateway-ro1f5cd",
+            "values": {
+              "name": "In Stock?",
+              "gatewayType": "Exclusive (XOR)",
+              "description": "Check if items are available in warehouse"
+            },
+            "connections": [
+              {
+                "portId": "seq-out",
+                "targetSemanticId": "bpmn-activity-ro1fryr",
+                "targetPortId": "seq-in"
+              },
+              {
+                "portId": "seq-out",
+                "targetSemanticId": "bpmn-activity-ro1goa6",
+                "targetPortId": "seq-in"
+              }
+            ]
+          }
+        },
+        {
+          "id": "node_1770986721651_689cb1",
+          "type": "construct",
+          "position": {
+            "x": 780,
+            "y": 110
+          },
+          "data": {
+            "constructType": "bpmn-activity",
+            "semanticId": "bpmn-activity-ro1fryr",
+            "values": {
+              "name": "Pick & Pack",
+              "activityType": "Task",
+              "description": "Retrieve items from warehouse and package"
+            },
+            "connections": [
+              {
+                "portId": "seq-out",
+                "targetSemanticId": "bpmn-gateway-ro1gynw",
+                "targetPortId": "seq-in"
+              }
+            ]
+          }
+        },
+        {
+          "id": "node_1770986721652_vcxz43",
+          "type": "construct",
+          "position": {
+            "x": 780,
+            "y": 370
+          },
+          "data": {
+            "constructType": "bpmn-activity",
+            "semanticId": "bpmn-activity-ro1goa6",
+            "values": {
+              "name": "Place Backorder",
+              "activityType": "Task",
+              "description": "Order items from supplier"
+            },
+            "connections": [
+              {
+                "portId": "seq-out",
+                "targetSemanticId": "bpmn-gateway-ro1gynw",
+                "targetPortId": "seq-in"
+              }
+            ]
+          }
+        },
+        {
+          "id": "node_1770986721652_gtuxay",
+          "type": "construct",
+          "position": {
+            "x": 1080,
+            "y": 250
+          },
+          "data": {
+            "constructType": "bpmn-gateway",
+            "semanticId": "bpmn-gateway-ro1gynw",
+            "values": {
+              "name": "Merge",
+              "gatewayType": "Exclusive (XOR)",
+              "description": "Rejoin after inventory decision"
+            },
+            "connections": [
+              {
+                "portId": "seq-out",
+                "targetSemanticId": "bpmn-activity-ro1grxt",
+                "targetPortId": "seq-in"
+              }
+            ]
+          }
+        },
+        {
+          "id": "node_1770986721652_iprkeo",
+          "type": "construct",
+          "position": {
+            "x": 1280,
+            "y": 210
+          },
+          "data": {
+            "constructType": "bpmn-activity",
+            "semanticId": "bpmn-activity-ro1grxt",
+            "values": {
+              "name": "Ship Order",
+              "activityType": "Task",
+              "description": "Dispatch package to customer"
+            },
+            "connections": [
+              {
+                "portId": "seq-out",
+                "targetSemanticId": "bpmn-event-ro1guu6",
+                "targetPortId": "seq-in"
+              },
+              {
+                "portId": "data-link",
+                "targetSemanticId": "bpmn-data-object-ro1g3k6",
+                "targetPortId": "data-link"
+              }
+            ]
+          }
+        },
+        {
+          "id": "node_1770986721652_nuteeo",
+          "type": "construct",
+          "position": {
+            "x": 1580,
+            "y": 250
+          },
+          "data": {
+            "constructType": "bpmn-event",
+            "semanticId": "bpmn-event-ro1guu6",
+            "values": {
+              "name": "Order Complete",
+              "eventPosition": "End",
+              "trigger": "None"
+            },
+            "connections": []
+          }
+        },
+        {
+          "id": "node_1770986721652_8nqlqy",
+          "type": "construct",
+          "position": {
+            "x": 380,
+            "y": 30
+          },
+          "data": {
+            "constructType": "bpmn-data-object",
+            "semanticId": "bpmn-data-object-ro1gato",
+            "values": {
+              "name": "Purchase Order",
+              "state": "Confirmed",
+              "description": "Customer order with line items and shipping address"
+            },
+            "connections": []
+          }
+        },
+        {
+          "id": "node_1770986721652_k50kpb",
+          "type": "construct",
+          "position": {
+            "x": 1380,
+            "y": 420
+          },
+          "data": {
+            "constructType": "bpmn-data-object",
+            "semanticId": "bpmn-data-object-ro1g3k6",
+            "values": {
+              "name": "Shipping Label",
+              "state": "Generated",
+              "description": "Carrier label with tracking number"
+            },
+            "connections": []
+          }
+        },
+        {
+          "id": "node_1770986721652_n1qc8z",
+          "type": "construct",
+          "position": {
+            "x": 50,
+            "y": -100
+          },
+          "data": {
+            "constructType": "note",
+            "semanticId": "note-ro1gfna",
+            "values": {
+              "content": "This page demonstrates Carta's rendering options:\n\n• Circles = Events (start/end)\n• Diamonds = Gateways (decisions)\n• Documents = Data Objects\n• Rounded rects = Activities\n• Sticky notes = Notes (simple mode)\n• Organizers = Pools & Lanes"
+            },
+            "connections": [],
+            "instanceColor": "#f7f37e"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "edge_1770986731323_65h09n",
+          "source": "node_1770986721651_2aa20l",
+          "target": "node_1770986721651_jof9qk",
+          "sourceHandle": "seq-out",
+          "targetHandle": "seq-in"
+        },
+        {
+          "id": "edge_1770986731323_kcqnoq",
+          "source": "node_1770986721651_jof9qk",
+          "target": "node_1770986721651_2e5mic",
+          "sourceHandle": "seq-out",
+          "targetHandle": "seq-in"
+        },
+        {
+          "id": "edge_1770986731323_eo3ji1",
+          "source": "node_1770986721651_2e5mic",
+          "target": "node_1770986721651_689cb1",
+          "sourceHandle": "seq-out",
+          "targetHandle": "seq-in"
+        },
+        {
+          "id": "edge_1770986731323_bpf6xs",
+          "source": "node_1770986721651_2e5mic",
+          "target": "node_1770986721652_vcxz43",
+          "sourceHandle": "seq-out",
+          "targetHandle": "seq-in"
+        },
+        {
+          "id": "edge_1770986731324_ymrqst",
+          "source": "node_1770986721651_689cb1",
+          "target": "node_1770986721652_gtuxay",
+          "sourceHandle": "seq-out",
+          "targetHandle": "seq-in"
+        },
+        {
+          "id": "edge_1770986731324_227fsy",
+          "source": "node_1770986721652_vcxz43",
+          "target": "node_1770986721652_gtuxay",
+          "sourceHandle": "seq-out",
+          "targetHandle": "seq-in"
+        },
+        {
+          "id": "edge_1770986731324_z8ulbc",
+          "source": "node_1770986721652_gtuxay",
+          "target": "node_1770986721652_iprkeo",
+          "sourceHandle": "seq-out",
+          "targetHandle": "seq-in"
+        },
+        {
+          "id": "edge_1770986731324_orhlkf",
+          "source": "node_1770986721652_iprkeo",
+          "target": "node_1770986721652_nuteeo",
+          "sourceHandle": "seq-out",
+          "targetHandle": "seq-in"
+        },
+        {
+          "id": "edge_1770986731324_8pi6jw",
+          "source": "node_1770986721651_jof9qk",
+          "target": "node_1770986721652_8nqlqy",
+          "sourceHandle": "data-link",
+          "targetHandle": "data-link"
+        },
+        {
+          "id": "edge_1770986731324_glgepq",
+          "source": "node_1770986721652_iprkeo",
+          "target": "node_1770986721652_k50kpb",
+          "sourceHandle": "data-link",
+          "targetHandle": "data-link"
+        }
+      ]
     }
   ],
   "customSchemas": [
@@ -2627,7 +4400,8 @@
       "compilation": {
         "format": "json",
         "sectionHeader": "# Pipelines"
-      }
+      },
+      "groupId": "grp_ks"
     },
     {
       "type": "ks-stage",
@@ -2688,7 +4462,8 @@
       ],
       "compilation": {
         "format": "json"
-      }
+      },
+      "groupId": "grp_ks"
     },
     {
       "type": "gram-sentence",
@@ -2715,7 +4490,8 @@
       ],
       "compilation": {
         "format": "json"
-      }
+      },
+      "groupId": "grp_gram"
     },
     {
       "type": "gram-np",
@@ -2769,7 +4545,8 @@
       ],
       "compilation": {
         "format": "json"
-      }
+      },
+      "groupId": "grp_gram"
     },
     {
       "type": "gram-vp",
@@ -2802,7 +4579,8 @@
       ],
       "compilation": {
         "format": "json"
-      }
+      },
+      "groupId": "grp_gram"
     },
     {
       "type": "gram-pp",
@@ -2840,7 +4618,8 @@
       ],
       "compilation": {
         "format": "json"
-      }
+      },
+      "groupId": "grp_gram"
     },
     {
       "type": "gram-noun",
@@ -2872,7 +4651,8 @@
       ],
       "compilation": {
         "format": "json"
-      }
+      },
+      "groupId": "grp_gram"
     },
     {
       "type": "gram-verb",
@@ -2904,7 +4684,8 @@
       ],
       "compilation": {
         "format": "json"
-      }
+      },
+      "groupId": "grp_gram"
     },
     {
       "type": "gram-adj",
@@ -2936,7 +4717,8 @@
       ],
       "compilation": {
         "format": "json"
-      }
+      },
+      "groupId": "grp_gram"
     },
     {
       "type": "gram-prep",
@@ -2962,98 +4744,8 @@
       ],
       "compilation": {
         "format": "json"
-      }
-    },
-    {
-      "type": "csharp-class",
-      "displayName": "C# Class",
-      "color": "#68217a",
-      "semanticDescription": "A C# class in an object-oriented architecture",
-      "fields": [
-        {
-          "name": "className",
-          "label": "Class Name",
-          "type": "string",
-          "placeholder": "e.g., UserService",
-          "displayTier": "pill",
-          "displayOrder": 0
-        },
-        {
-          "name": "namespace",
-          "label": "Namespace",
-          "type": "string",
-          "placeholder": "e.g., MyApp.Services",
-          "displayTier": "minimal",
-          "displayOrder": 1
-        },
-        {
-          "name": "stereotype",
-          "label": "Stereotype",
-          "type": "enum",
-          "options": [
-            {
-              "value": "Controller"
-            },
-            {
-              "value": "Service"
-            },
-            {
-              "value": "Repository"
-            },
-            {
-              "value": "Model"
-            },
-            {
-              "value": "Interface"
-            },
-            {
-              "value": "DTO"
-            },
-            {
-              "value": "Other"
-            }
-          ],
-          "displayTier": "minimal",
-          "displayOrder": 2
-        },
-        {
-          "name": "description",
-          "label": "Description",
-          "type": "string",
-          "placeholder": "Purpose of this class",
-          "displayTier": "details",
-          "displayOrder": 3
-        }
-      ],
-      "ports": [
-        {
-          "id": "flow-in",
-          "portType": "flow-in",
-          "label": "Depends On This",
-          "semanticDescription": "Other classes that depend on this class"
-        },
-        {
-          "id": "flow-out",
-          "portType": "flow-out",
-          "label": "Depends On",
-          "semanticDescription": "Classes this depends on"
-        },
-        {
-          "id": "parent",
-          "portType": "parent",
-          "label": "Members",
-          "semanticDescription": "Child classes or interfaces this owns"
-        },
-        {
-          "id": "child",
-          "portType": "child",
-          "label": "Belongs To",
-          "semanticDescription": "Parent class or namespace"
-        }
-      ],
-      "compilation": {
-        "format": "json"
-      }
+      },
+      "groupId": "grp_gram"
     },
     {
       "type": "gram-article",
@@ -3085,7 +4777,8 @@
       ],
       "compilation": {
         "format": "json"
-      }
+      },
+      "groupId": "grp_gram"
     },
     {
       "type": "persona",
@@ -3135,6 +4828,363 @@
       "compilation": {
         "format": "json"
       }
+    },
+    {
+      "type": "db-action",
+      "displayName": "DB Action",
+      "color": "#2d8e7a",
+      "semanticDescription": "Database operation or query executed by application code",
+      "fields": [
+        {
+          "name": "action",
+          "label": "Action",
+          "type": "string",
+          "semanticDescription": "Name of the database action",
+          "placeholder": "e.g., findUserById",
+          "displayTier": "pill",
+          "displayOrder": 0
+        },
+        {
+          "name": "operation",
+          "label": "Operation",
+          "type": "enum",
+          "semanticDescription": "Type of DB operation",
+          "options": [
+            {
+              "value": "SELECT"
+            },
+            {
+              "value": "INSERT"
+            },
+            {
+              "value": "UPDATE"
+            },
+            {
+              "value": "DELETE"
+            },
+            {
+              "value": "UPSERT"
+            }
+          ],
+          "default": "SELECT",
+          "displayTier": "minimal",
+          "displayOrder": 1
+        },
+        {
+          "name": "description",
+          "label": "Description",
+          "type": "string",
+          "semanticDescription": "What this action does",
+          "placeholder": "Brief description",
+          "displayTier": "minimal",
+          "displayOrder": 2
+        }
+      ],
+      "ports": [
+        {
+          "id": "flow-in",
+          "portType": "flow-in",
+          "label": "In"
+        },
+        {
+          "id": "flow-out",
+          "portType": "flow-out",
+          "label": "Out"
+        },
+        {
+          "id": "parent",
+          "portType": "parent",
+          "label": "Children"
+        },
+        {
+          "id": "child",
+          "portType": "child",
+          "label": "Parent"
+        }
+      ],
+      "compilation": {
+        "format": "json"
+      },
+      "enumIconField": "operation",
+      "enumIconMap": {
+        "SELECT": "R",
+        "INSERT": "C",
+        "UPDATE": "U",
+        "DELETE": "D",
+        "UPSERT": "P"
+      },
+      "nodeShape": "simple"
+    },
+    {
+      "type": "test2-persona",
+      "displayName": "Persona",
+      "color": "#d4764a",
+      "semanticDescription": "User persona representing a stakeholder archetype",
+      "fields": [
+        {
+          "name": "name",
+          "label": "Name",
+          "type": "string",
+          "displayTier": "pill",
+          "displayOrder": 0
+        },
+        {
+          "name": "role",
+          "label": "Role",
+          "type": "string",
+          "displayTier": "minimal",
+          "displayOrder": 1
+        }
+      ],
+      "ports": [
+        {
+          "id": "flow-out",
+          "portType": "flow-out",
+          "label": "User Stories"
+        },
+        {
+          "id": "flow-in",
+          "portType": "flow-in",
+          "label": "In"
+        }
+      ],
+      "compilation": {
+        "format": "json"
+      },
+      "groupId": "grp_test2"
+    },
+    {
+      "type": "test2-user-story",
+      "displayName": "User Story",
+      "color": "#c4a84a",
+      "semanticDescription": "User story describing desired functionality from a persona's perspective",
+      "fields": [
+        {
+          "name": "title",
+          "label": "Title",
+          "type": "string",
+          "displayTier": "pill",
+          "displayOrder": 0
+        },
+        {
+          "name": "description",
+          "label": "Description",
+          "type": "string",
+          "displayTier": "minimal",
+          "displayOrder": 1
+        }
+      ],
+      "ports": [
+        {
+          "id": "flow-in",
+          "portType": "flow-in",
+          "label": "From Persona"
+        },
+        {
+          "id": "flow-out",
+          "portType": "flow-out",
+          "label": "Consumes"
+        }
+      ],
+      "compilation": {
+        "format": "json"
+      },
+      "groupId": "grp_test2"
+    },
+    {
+      "type": "test2-domain",
+      "displayName": "Domain",
+      "color": "#4a8e5c",
+      "semanticDescription": "Business domain grouping related features",
+      "fields": [
+        {
+          "name": "name",
+          "label": "Name",
+          "type": "string",
+          "displayTier": "pill",
+          "displayOrder": 0
+        },
+        {
+          "name": "description",
+          "label": "Description",
+          "type": "string",
+          "displayTier": "minimal",
+          "displayOrder": 1
+        }
+      ],
+      "ports": [
+        {
+          "id": "child",
+          "portType": "child",
+          "label": "Features"
+        },
+        {
+          "id": "flow-in",
+          "portType": "flow-in",
+          "label": "In"
+        },
+        {
+          "id": "flow-out",
+          "portType": "flow-out",
+          "label": "Out"
+        }
+      ],
+      "compilation": {
+        "format": "json"
+      },
+      "groupId": "grp_test2"
+    },
+    {
+      "type": "test2-feature",
+      "displayName": "Feature",
+      "color": "#4a7fd4",
+      "semanticDescription": "Product feature belonging to a domain, deployed in an app",
+      "fields": [
+        {
+          "name": "name",
+          "label": "Name",
+          "type": "string",
+          "displayTier": "pill",
+          "displayOrder": 0
+        },
+        {
+          "name": "status",
+          "label": "Status",
+          "type": "enum",
+          "options": [
+            {
+              "value": "planned"
+            },
+            {
+              "value": "in-progress"
+            },
+            {
+              "value": "shipped"
+            }
+          ],
+          "default": "planned",
+          "displayTier": "minimal",
+          "displayOrder": 1
+        }
+      ],
+      "ports": [
+        {
+          "id": "parent",
+          "portType": "parent",
+          "label": "Domain"
+        },
+        {
+          "id": "child",
+          "portType": "child",
+          "label": "Capabilities"
+        },
+        {
+          "id": "flow-in",
+          "portType": "flow-in",
+          "label": "In"
+        },
+        {
+          "id": "flow-out",
+          "portType": "flow-out",
+          "label": "Out"
+        }
+      ],
+      "compilation": {
+        "format": "json"
+      },
+      "groupId": "grp_test2"
+    },
+    {
+      "type": "test2-deployable",
+      "displayName": "Deployable",
+      "color": "#8e4a8e",
+      "semanticDescription": "Deployable application that hosts features and capabilities",
+      "fields": [
+        {
+          "name": "name",
+          "label": "Name",
+          "type": "string",
+          "displayTier": "pill",
+          "displayOrder": 0
+        },
+        {
+          "name": "type",
+          "label": "Type",
+          "type": "enum",
+          "options": [
+            {
+              "value": "web"
+            },
+            {
+              "value": "mobile"
+            },
+            {
+              "value": "api"
+            },
+            {
+              "value": "worker"
+            }
+          ],
+          "default": "web",
+          "displayTier": "minimal",
+          "displayOrder": 1
+        },
+        {
+          "name": "stackNotes",
+          "label": "Stack Notes",
+          "type": "string",
+          "placeholder": "e.g., .NET 4.8, React 18, AWS Lambda",
+          "displayTier": "minimal",
+          "displayOrder": 2
+        }
+      ],
+      "ports": [
+        {
+          "id": "flow-in",
+          "portType": "flow-in",
+          "label": "In"
+        },
+        {
+          "id": "flow-out",
+          "portType": "flow-out",
+          "label": "Out"
+        }
+      ],
+      "compilation": {
+        "format": "json"
+      },
+      "groupId": "grp_test2"
+    },
+    {
+      "type": "test2-capability",
+      "displayName": "Capability",
+      "color": "#5c9e9e",
+      "semanticDescription": "Specific capability provided by a feature, consumed by user stories",
+      "fields": [
+        {
+          "name": "name",
+          "label": "Name",
+          "type": "string",
+          "displayTier": "pill",
+          "displayOrder": 0
+        }
+      ],
+      "ports": [
+        {
+          "id": "parent",
+          "portType": "parent",
+          "label": "Feature"
+        },
+        {
+          "id": "flow-in",
+          "portType": "flow-in",
+          "label": "Consumed By"
+        }
+      ],
+      "compilation": {
+        "format": "json"
+      },
+      "groupId": "grp_test2"
     }
   ],
   "portSchemas": [
@@ -3163,1223 +5213,579 @@
   ],
   "schemaGroups": [
     {
-      "id": "grp_rkti92f7r",
+      "id": "grp_fgay1o7nj",
       "name": "Software Design",
       "color": "#7c7fca",
       "description": "Core software design constructs"
     },
     {
-      "id": "grp_il088scsb",
+      "id": "grp_gi77xww21",
       "name": "API",
       "color": "#7c7fca",
       "description": "API endpoint and model constructs",
-      "parentId": "grp_rkti92f7r"
+      "parentId": "grp_fgay1o7nj"
     },
     {
-      "id": "grp_bzjpmdr6l",
+      "id": "grp_neiuhmkhc",
       "name": "Database",
       "color": "#c49a4c",
       "description": "Database schema and table constructs",
-      "parentId": "grp_rkti92f7r"
+      "parentId": "grp_fgay1o7nj"
     },
     {
-      "id": "grp_lntdqkj69",
+      "id": "grp_6xvwuck99",
       "name": "UI",
       "color": "#6a8fc0",
       "description": "User interface constructs",
-      "parentId": "grp_rkti92f7r"
+      "parentId": "grp_fgay1o7nj"
     },
     {
-      "id": "grp_sbh7szlv7",
+      "id": "grp_ewjl2wm59",
       "name": "User Story",
       "color": "#5ba88e",
       "description": "User stories and requirements",
-      "parentId": "grp_rkti92f7r"
+      "parentId": "grp_fgay1o7nj"
     },
     {
-      "id": "grp_gbiq0x4mh",
+      "id": "grp_0g3z7y13l",
       "name": "Sketching",
       "color": "#64748b",
       "description": "Quick, low-friction constructs for rough modeling"
     },
     {
-      "id": "grp_dds1emzil",
-      "name": "BPMN",
-      "color": "#3b82f6",
-      "description": "Simplified Business Process Model and Notation"
-    },
-    {
-      "id": "grp_fds84x9fi",
+      "id": "grp_csud841mi",
       "name": "AWS",
       "color": "#ff9900",
       "description": "Amazon Web Services cloud architecture constructs"
     },
     {
-      "id": "grp_25b3nge69",
+      "id": "grp_0v3n98g3h",
       "name": "Capability Model",
       "color": "#0ea5e9",
       "description": "Domain > Feature > Capability hierarchy with User Stories and Flows"
     },
     {
-      "id": "grp_vn1xax7bv",
+      "id": "grp_2qvkq1lnj",
       "name": "Software Design",
       "color": "#7c7fca",
       "description": "Core software design constructs"
     },
     {
-      "id": "grp_9oo9xu9zf",
+      "id": "grp_jhiw0flz1",
       "name": "API",
       "color": "#7c7fca",
       "description": "API endpoint and model constructs",
-      "parentId": "grp_vn1xax7bv"
+      "parentId": "grp_2qvkq1lnj"
     },
     {
-      "id": "grp_0f5kvs6uc",
+      "id": "grp_3mbdzjy9t",
       "name": "Database",
       "color": "#c49a4c",
       "description": "Database schema and table constructs",
-      "parentId": "grp_vn1xax7bv"
+      "parentId": "grp_2qvkq1lnj"
     },
     {
-      "id": "grp_naef3ayju",
+      "id": "grp_11j8kwvzz",
       "name": "UI",
       "color": "#6a8fc0",
       "description": "User interface constructs",
-      "parentId": "grp_vn1xax7bv"
+      "parentId": "grp_2qvkq1lnj"
     },
     {
-      "id": "grp_z88ywqa30",
+      "id": "grp_ofs6xzbzf",
       "name": "User Story",
       "color": "#5ba88e",
       "description": "User stories and requirements",
-      "parentId": "grp_vn1xax7bv"
+      "parentId": "grp_2qvkq1lnj"
     },
     {
-      "id": "grp_m8cvgf9gw",
+      "id": "grp_5m4s695eg",
       "name": "Sketching",
       "color": "#64748b",
       "description": "Quick, low-friction constructs for rough modeling"
     },
     {
-      "id": "grp_r5obfb7lj",
+      "id": "grp_7zna78tar",
       "name": "BPMN",
       "color": "#3b82f6",
       "description": "Simplified Business Process Model and Notation"
     },
     {
-      "id": "grp_zqttbhq97",
+      "id": "grp_1x3xflkm9",
       "name": "AWS",
       "color": "#ff9900",
       "description": "Amazon Web Services cloud architecture constructs"
     },
     {
-      "id": "grp_zfjz2gsh0",
+      "id": "grp_eo3hluq1r",
       "name": "Capability Model",
       "color": "#0ea5e9",
       "description": "Domain > Feature > Capability hierarchy with User Stories and Flows"
     },
     {
-      "id": "grp_3jwk0zh1k",
+      "id": "grp_hxote8prd",
       "name": "Software Design",
       "color": "#7c7fca",
       "description": "Core software design constructs"
     },
     {
-      "id": "grp_bmb5yw6n0",
+      "id": "grp_gkupcrarx",
       "name": "API",
       "color": "#7c7fca",
       "description": "API endpoint and model constructs",
-      "parentId": "grp_3jwk0zh1k"
+      "parentId": "grp_hxote8prd"
     },
     {
-      "id": "grp_j9veszw6g",
+      "id": "grp_wzwpdi72m",
       "name": "Database",
       "color": "#c49a4c",
       "description": "Database schema and table constructs",
-      "parentId": "grp_3jwk0zh1k"
+      "parentId": "grp_hxote8prd"
     },
     {
-      "id": "grp_3fykckdd4",
+      "id": "grp_n5sr18107",
       "name": "UI",
       "color": "#6a8fc0",
       "description": "User interface constructs",
-      "parentId": "grp_3jwk0zh1k"
+      "parentId": "grp_hxote8prd"
     },
     {
-      "id": "grp_lylb8om2l",
+      "id": "grp_4xv5ocke8",
       "name": "User Story",
       "color": "#5ba88e",
       "description": "User stories and requirements",
-      "parentId": "grp_3jwk0zh1k"
+      "parentId": "grp_hxote8prd"
     },
     {
-      "id": "grp_42dp35t10",
+      "id": "grp_n4xvczifv",
       "name": "Sketching",
       "color": "#64748b",
       "description": "Quick, low-friction constructs for rough modeling"
     },
     {
-      "id": "grp_rzgqp2fj8",
+      "id": "grp_oov3pj1fc",
       "name": "BPMN",
       "color": "#3b82f6",
       "description": "Simplified Business Process Model and Notation"
     },
     {
-      "id": "grp_agw9u0wnp",
+      "id": "grp_2ibtgffnn",
       "name": "AWS",
       "color": "#ff9900",
       "description": "Amazon Web Services cloud architecture constructs"
     },
     {
-      "id": "grp_f4rzp3lpa",
+      "id": "grp_bwtj7ae1a",
       "name": "Capability Model",
       "color": "#0ea5e9",
       "description": "Domain > Feature > Capability hierarchy with User Stories and Flows"
     },
     {
-      "id": "grp_5r0y2mg6v",
+      "id": "grp_9ql6odcko",
       "name": "Software Design",
       "color": "#7c7fca",
       "description": "Core software design constructs"
     },
     {
-      "id": "grp_cjc4jz959",
+      "id": "grp_sm0lt36zi",
       "name": "API",
       "color": "#7c7fca",
       "description": "API endpoint and model constructs",
-      "parentId": "grp_5r0y2mg6v"
+      "parentId": "grp_9ql6odcko"
     },
     {
-      "id": "grp_a6aj2ceqc",
+      "id": "grp_jx1hq0k5e",
       "name": "Database",
       "color": "#c49a4c",
       "description": "Database schema and table constructs",
-      "parentId": "grp_5r0y2mg6v"
+      "parentId": "grp_9ql6odcko"
     },
     {
-      "id": "grp_qw7ge3xo0",
+      "id": "grp_auo7v7dcy",
       "name": "UI",
       "color": "#6a8fc0",
       "description": "User interface constructs",
-      "parentId": "grp_5r0y2mg6v"
+      "parentId": "grp_9ql6odcko"
     },
     {
-      "id": "grp_y5iat81ym",
+      "id": "grp_6qxmovcif",
       "name": "User Story",
       "color": "#5ba88e",
       "description": "User stories and requirements",
-      "parentId": "grp_5r0y2mg6v"
+      "parentId": "grp_9ql6odcko"
     },
     {
-      "id": "grp_76jftb2gv",
+      "id": "grp_rhl38coya",
       "name": "Sketching",
       "color": "#64748b",
       "description": "Quick, low-friction constructs for rough modeling"
     },
     {
-      "id": "grp_iniofke4v",
+      "id": "grp_4sqa1n906",
       "name": "BPMN",
       "color": "#3b82f6",
       "description": "Simplified Business Process Model and Notation"
     },
     {
-      "id": "grp_t0svwuml2",
+      "id": "grp_99dm17ugr",
       "name": "AWS",
       "color": "#ff9900",
       "description": "Amazon Web Services cloud architecture constructs"
     },
     {
-      "id": "grp_cgjw9yedt",
+      "id": "grp_n81fm9m4j",
       "name": "Capability Model",
       "color": "#0ea5e9",
       "description": "Domain > Feature > Capability hierarchy with User Stories and Flows"
     },
     {
-      "id": "grp_yp9dehuue",
+      "id": "grp_jy0v0ezee",
       "name": "Software Design",
       "color": "#7c7fca",
       "description": "Core software design constructs"
     },
     {
-      "id": "grp_iz4js5izk",
+      "id": "grp_y0xzcqank",
       "name": "API",
       "color": "#7c7fca",
       "description": "API endpoint and model constructs",
-      "parentId": "grp_yp9dehuue"
+      "parentId": "grp_jy0v0ezee"
     },
     {
-      "id": "grp_a9bg34ncu",
+      "id": "grp_o0l6czyth",
       "name": "Database",
       "color": "#c49a4c",
       "description": "Database schema and table constructs",
-      "parentId": "grp_yp9dehuue"
+      "parentId": "grp_jy0v0ezee"
     },
     {
-      "id": "grp_sd2rxyokl",
+      "id": "grp_9o62r44n2",
       "name": "UI",
       "color": "#6a8fc0",
       "description": "User interface constructs",
-      "parentId": "grp_yp9dehuue"
+      "parentId": "grp_jy0v0ezee"
     },
     {
-      "id": "grp_x90je9b2b",
+      "id": "grp_3qz2vxpkb",
       "name": "User Story",
       "color": "#5ba88e",
       "description": "User stories and requirements",
-      "parentId": "grp_yp9dehuue"
+      "parentId": "grp_jy0v0ezee"
     },
     {
-      "id": "grp_v1lw8fhwz",
+      "id": "grp_l3xhrnv14",
       "name": "Sketching",
       "color": "#64748b",
       "description": "Quick, low-friction constructs for rough modeling"
     },
     {
-      "id": "grp_3wq7jg18y",
+      "id": "grp_22uw4gxuw",
       "name": "BPMN",
       "color": "#3b82f6",
       "description": "Simplified Business Process Model and Notation"
     },
     {
-      "id": "grp_7hoeduvme",
+      "id": "grp_sffw23f0s",
       "name": "AWS",
       "color": "#ff9900",
       "description": "Amazon Web Services cloud architecture constructs"
     },
     {
-      "id": "grp_u44ui62k8",
+      "id": "grp_ejsuzeqzm",
       "name": "Capability Model",
       "color": "#0ea5e9",
       "description": "Domain > Feature > Capability hierarchy with User Stories and Flows"
     },
     {
-      "id": "grp_61dbryjcu",
+      "id": "grp_3pj8c8nv9",
       "name": "Software Design",
       "color": "#7c7fca",
       "description": "Core software design constructs"
     },
     {
-      "id": "grp_zrffhfy5r",
+      "id": "grp_5k0v2kx5m",
       "name": "API",
       "color": "#7c7fca",
       "description": "API endpoint and model constructs",
-      "parentId": "grp_61dbryjcu"
+      "parentId": "grp_3pj8c8nv9"
     },
     {
-      "id": "grp_8i4b8uodj",
+      "id": "grp_a5kdg7f55",
       "name": "Database",
       "color": "#c49a4c",
       "description": "Database schema and table constructs",
-      "parentId": "grp_61dbryjcu"
+      "parentId": "grp_3pj8c8nv9"
     },
     {
-      "id": "grp_ic8aq7dzv",
+      "id": "grp_y264un3w3",
       "name": "UI",
       "color": "#6a8fc0",
       "description": "User interface constructs",
-      "parentId": "grp_61dbryjcu"
+      "parentId": "grp_3pj8c8nv9"
     },
     {
-      "id": "grp_5thl4t8zo",
+      "id": "grp_7qkcwavy5",
       "name": "User Story",
       "color": "#5ba88e",
       "description": "User stories and requirements",
-      "parentId": "grp_61dbryjcu"
+      "parentId": "grp_3pj8c8nv9"
     },
     {
-      "id": "grp_9sca7or0c",
+      "id": "grp_7y3lzyvzz",
       "name": "Sketching",
       "color": "#64748b",
       "description": "Quick, low-friction constructs for rough modeling"
     },
     {
-      "id": "grp_uhwz71rgu",
+      "id": "grp_mznxcteex",
       "name": "BPMN",
       "color": "#3b82f6",
       "description": "Simplified Business Process Model and Notation"
     },
     {
-      "id": "grp_gqovr4yxh",
+      "id": "grp_5hhceugw3",
       "name": "AWS",
       "color": "#ff9900",
       "description": "Amazon Web Services cloud architecture constructs"
     },
     {
-      "id": "grp_5o2mszvvi",
+      "id": "grp_oi5dhuevv",
       "name": "Capability Model",
       "color": "#0ea5e9",
       "description": "Domain > Feature > Capability hierarchy with User Stories and Flows"
     },
     {
-      "id": "grp_3ecj111ng",
+      "id": "grp_25opaim2m",
       "name": "Software Design",
       "color": "#7c7fca",
       "description": "Core software design constructs"
     },
     {
-      "id": "grp_rjvwa1f0a",
+      "id": "grp_2qrhqk4mq",
       "name": "API",
       "color": "#7c7fca",
       "description": "API endpoint and model constructs",
-      "parentId": "grp_3ecj111ng"
+      "parentId": "grp_25opaim2m"
     },
     {
-      "id": "grp_ihmh8bx5d",
+      "id": "grp_g1h2ea9ee",
       "name": "Database",
       "color": "#c49a4c",
       "description": "Database schema and table constructs",
-      "parentId": "grp_3ecj111ng"
+      "parentId": "grp_25opaim2m"
     },
     {
-      "id": "grp_i71bmy0kd",
+      "id": "grp_xrcdte6wz",
       "name": "UI",
       "color": "#6a8fc0",
       "description": "User interface constructs",
-      "parentId": "grp_3ecj111ng"
+      "parentId": "grp_25opaim2m"
     },
     {
-      "id": "grp_fk9j8mzeq",
+      "id": "grp_jghpj9z8x",
       "name": "User Story",
       "color": "#5ba88e",
       "description": "User stories and requirements",
-      "parentId": "grp_3ecj111ng"
+      "parentId": "grp_25opaim2m"
     },
     {
-      "id": "grp_h5szs3r3w",
+      "id": "grp_33n8h9x44",
       "name": "Sketching",
       "color": "#64748b",
       "description": "Quick, low-friction constructs for rough modeling"
     },
     {
-      "id": "grp_7qzy8xmmv",
+      "id": "grp_p1kh31vaw",
       "name": "BPMN",
       "color": "#3b82f6",
       "description": "Simplified Business Process Model and Notation"
     },
     {
-      "id": "grp_ycy5mlr0q",
+      "id": "grp_fz1m4jl3c",
       "name": "AWS",
       "color": "#ff9900",
       "description": "Amazon Web Services cloud architecture constructs"
     },
     {
-      "id": "grp_tc1i27vu8",
+      "id": "grp_ioie30tk6",
       "name": "Capability Model",
       "color": "#0ea5e9",
       "description": "Domain > Feature > Capability hierarchy with User Stories and Flows"
     },
     {
-      "id": "grp_s70x27qzo",
+      "id": "grp_r9ra7ajam",
       "name": "Software Design",
       "color": "#7c7fca",
       "description": "Core software design constructs"
     },
     {
-      "id": "grp_r2a5xgg6s",
+      "id": "grp_owowjure9",
       "name": "API",
       "color": "#7c7fca",
       "description": "API endpoint and model constructs",
-      "parentId": "grp_s70x27qzo"
+      "parentId": "grp_r9ra7ajam"
     },
     {
-      "id": "grp_aq3mtt66v",
+      "id": "grp_6zsaoz6ei",
       "name": "Database",
       "color": "#c49a4c",
       "description": "Database schema and table constructs",
-      "parentId": "grp_s70x27qzo"
+      "parentId": "grp_r9ra7ajam"
     },
     {
-      "id": "grp_uj36u2whk",
+      "id": "grp_wllpkidn7",
       "name": "UI",
       "color": "#6a8fc0",
       "description": "User interface constructs",
-      "parentId": "grp_s70x27qzo"
+      "parentId": "grp_r9ra7ajam"
     },
     {
-      "id": "grp_j6ang49xp",
+      "id": "grp_pa6vj4qlb",
       "name": "User Story",
       "color": "#5ba88e",
       "description": "User stories and requirements",
-      "parentId": "grp_s70x27qzo"
+      "parentId": "grp_r9ra7ajam"
     },
     {
-      "id": "grp_pun8j48sh",
+      "id": "grp_5z0llepxp",
       "name": "Sketching",
       "color": "#64748b",
       "description": "Quick, low-friction constructs for rough modeling"
     },
     {
-      "id": "grp_pvjvkyfhv",
+      "id": "grp_rc2bi8mld",
       "name": "BPMN",
       "color": "#3b82f6",
       "description": "Simplified Business Process Model and Notation"
     },
     {
-      "id": "grp_890qszqq6",
+      "id": "grp_f3lvic91g",
       "name": "AWS",
       "color": "#ff9900",
       "description": "Amazon Web Services cloud architecture constructs"
     },
     {
-      "id": "grp_7wfvbjz2h",
+      "id": "grp_h3kkcztkr",
       "name": "Capability Model",
       "color": "#0ea5e9",
       "description": "Domain > Feature > Capability hierarchy with User Stories and Flows"
     },
     {
-      "id": "grp_eb8wk0i5g",
+      "id": "grp_ikxqg7l8x",
       "name": "Software Design",
       "color": "#7c7fca",
       "description": "Core software design constructs"
     },
     {
-      "id": "grp_i1r4zmnb7",
+      "id": "grp_4r3efgskl",
       "name": "API",
       "color": "#7c7fca",
       "description": "API endpoint and model constructs",
-      "parentId": "grp_eb8wk0i5g"
+      "parentId": "grp_ikxqg7l8x"
     },
     {
-      "id": "grp_hfo07a095",
+      "id": "grp_d0xz29s9g",
       "name": "Database",
       "color": "#c49a4c",
       "description": "Database schema and table constructs",
-      "parentId": "grp_eb8wk0i5g"
+      "parentId": "grp_ikxqg7l8x"
     },
     {
-      "id": "grp_m1xw7h59r",
+      "id": "grp_yzx0ym4br",
       "name": "UI",
       "color": "#6a8fc0",
       "description": "User interface constructs",
-      "parentId": "grp_eb8wk0i5g"
+      "parentId": "grp_ikxqg7l8x"
     },
     {
-      "id": "grp_da5423wyv",
+      "id": "grp_9tdobkyq4",
       "name": "User Story",
       "color": "#5ba88e",
       "description": "User stories and requirements",
-      "parentId": "grp_eb8wk0i5g"
+      "parentId": "grp_ikxqg7l8x"
     },
     {
-      "id": "grp_9m9315oms",
+      "id": "grp_biyhxw1bm",
       "name": "Sketching",
       "color": "#64748b",
       "description": "Quick, low-friction constructs for rough modeling"
     },
     {
-      "id": "grp_dmwe9ariq",
+      "id": "grp_4ilt4jmwa",
       "name": "BPMN",
       "color": "#3b82f6",
       "description": "Simplified Business Process Model and Notation"
     },
     {
-      "id": "grp_jnls2a0c9",
+      "id": "grp_nrd7hev2x",
       "name": "AWS",
       "color": "#ff9900",
       "description": "Amazon Web Services cloud architecture constructs"
     },
     {
-      "id": "grp_x6wjfi0km",
+      "id": "grp_7gfliwayd",
       "name": "Capability Model",
       "color": "#0ea5e9",
       "description": "Domain > Feature > Capability hierarchy with User Stories and Flows"
     },
     {
-      "id": "grp_2g39tkoh7",
+      "id": "grp_cyhc08vll",
       "name": "Software Design",
       "color": "#7c7fca",
       "description": "Core software design constructs"
     },
     {
-      "id": "grp_jk0m3k4pb",
+      "id": "grp_hfbrux08z",
       "name": "API",
       "color": "#7c7fca",
       "description": "API endpoint and model constructs",
-      "parentId": "grp_2g39tkoh7"
+      "parentId": "grp_cyhc08vll"
     },
     {
-      "id": "grp_jyk5k2sce",
+      "id": "grp_di45fab7a",
       "name": "Database",
       "color": "#c49a4c",
       "description": "Database schema and table constructs",
-      "parentId": "grp_2g39tkoh7"
+      "parentId": "grp_cyhc08vll"
     },
     {
-      "id": "grp_p8djqorpo",
+      "id": "grp_692s1mjen",
       "name": "UI",
       "color": "#6a8fc0",
       "description": "User interface constructs",
-      "parentId": "grp_2g39tkoh7"
+      "parentId": "grp_cyhc08vll"
     },
     {
-      "id": "grp_xrzn0b2g4",
+      "id": "grp_8pphuezmg",
       "name": "User Story",
       "color": "#5ba88e",
       "description": "User stories and requirements",
-      "parentId": "grp_2g39tkoh7"
+      "parentId": "grp_cyhc08vll"
     },
     {
-      "id": "grp_ahyq37rq2",
+      "id": "grp_j6a1bj4ti",
       "name": "Sketching",
       "color": "#64748b",
       "description": "Quick, low-friction constructs for rough modeling"
     },
     {
-      "id": "grp_m6v8yim9g",
+      "id": "grp_0dgu11kdf",
       "name": "BPMN",
       "color": "#3b82f6",
       "description": "Simplified Business Process Model and Notation"
     },
     {
-      "id": "grp_m0m91v0wa",
+      "id": "grp_cskxlveql",
       "name": "AWS",
       "color": "#ff9900",
       "description": "Amazon Web Services cloud architecture constructs"
     },
     {
-      "id": "grp_ayg31827h",
-      "name": "Capability Model",
-      "color": "#0ea5e9",
-      "description": "Domain > Feature > Capability hierarchy with User Stories and Flows"
-    },
-    {
-      "id": "grp_wn2c97u1k",
-      "name": "Software Design",
-      "color": "#7c7fca",
-      "description": "Core software design constructs"
-    },
-    {
-      "id": "grp_cnloc7cea",
-      "name": "API",
-      "color": "#7c7fca",
-      "description": "API endpoint and model constructs",
-      "parentId": "grp_wn2c97u1k"
-    },
-    {
-      "id": "grp_m8l3h5pb2",
-      "name": "Database",
-      "color": "#c49a4c",
-      "description": "Database schema and table constructs",
-      "parentId": "grp_wn2c97u1k"
-    },
-    {
-      "id": "grp_ry99h4k95",
-      "name": "UI",
-      "color": "#6a8fc0",
-      "description": "User interface constructs",
-      "parentId": "grp_wn2c97u1k"
-    },
-    {
-      "id": "grp_8w2ur05q9",
-      "name": "User Story",
-      "color": "#5ba88e",
-      "description": "User stories and requirements",
-      "parentId": "grp_wn2c97u1k"
-    },
-    {
-      "id": "grp_rnktigvwz",
-      "name": "Sketching",
-      "color": "#64748b",
-      "description": "Quick, low-friction constructs for rough modeling"
-    },
-    {
-      "id": "grp_fhnsnyzuq",
-      "name": "BPMN",
-      "color": "#3b82f6",
-      "description": "Simplified Business Process Model and Notation"
-    },
-    {
-      "id": "grp_zo75m8ssc",
-      "name": "AWS",
-      "color": "#ff9900",
-      "description": "Amazon Web Services cloud architecture constructs"
-    },
-    {
-      "id": "grp_i064gp7w1",
-      "name": "Capability Model",
-      "color": "#0ea5e9",
-      "description": "Domain > Feature > Capability hierarchy with User Stories and Flows"
-    },
-    {
-      "id": "grp_4xtnvmtdo",
-      "name": "Software Design",
-      "color": "#7c7fca",
-      "description": "Core software design constructs"
-    },
-    {
-      "id": "grp_3esuqh90c",
-      "name": "API",
-      "color": "#7c7fca",
-      "description": "API endpoint and model constructs",
-      "parentId": "grp_4xtnvmtdo"
-    },
-    {
-      "id": "grp_cwt63o2dr",
-      "name": "Database",
-      "color": "#c49a4c",
-      "description": "Database schema and table constructs",
-      "parentId": "grp_4xtnvmtdo"
-    },
-    {
-      "id": "grp_6w1fnnl3z",
-      "name": "UI",
-      "color": "#6a8fc0",
-      "description": "User interface constructs",
-      "parentId": "grp_4xtnvmtdo"
-    },
-    {
-      "id": "grp_gzudkcaw2",
-      "name": "User Story",
-      "color": "#5ba88e",
-      "description": "User stories and requirements",
-      "parentId": "grp_4xtnvmtdo"
-    },
-    {
-      "id": "grp_0dk6ohobr",
-      "name": "Sketching",
-      "color": "#64748b",
-      "description": "Quick, low-friction constructs for rough modeling"
-    },
-    {
-      "id": "grp_qtucyct0d",
-      "name": "BPMN",
-      "color": "#3b82f6",
-      "description": "Simplified Business Process Model and Notation"
-    },
-    {
-      "id": "grp_j0pgi2rgs",
-      "name": "AWS",
-      "color": "#ff9900",
-      "description": "Amazon Web Services cloud architecture constructs"
-    },
-    {
-      "id": "grp_42kvhm11l",
-      "name": "Capability Model",
-      "color": "#0ea5e9",
-      "description": "Domain > Feature > Capability hierarchy with User Stories and Flows"
-    },
-    {
-      "id": "grp_4dfsfku39",
-      "name": "Software Design",
-      "color": "#7c7fca",
-      "description": "Core software design constructs"
-    },
-    {
-      "id": "grp_oqk2hebj4",
-      "name": "API",
-      "color": "#7c7fca",
-      "description": "API endpoint and model constructs",
-      "parentId": "grp_4dfsfku39"
-    },
-    {
-      "id": "grp_kuanra6d3",
-      "name": "Database",
-      "color": "#c49a4c",
-      "description": "Database schema and table constructs",
-      "parentId": "grp_4dfsfku39"
-    },
-    {
-      "id": "grp_lcqotpu1w",
-      "name": "UI",
-      "color": "#6a8fc0",
-      "description": "User interface constructs",
-      "parentId": "grp_4dfsfku39"
-    },
-    {
-      "id": "grp_xgu7qf0u9",
-      "name": "User Story",
-      "color": "#5ba88e",
-      "description": "User stories and requirements",
-      "parentId": "grp_4dfsfku39"
-    },
-    {
-      "id": "grp_eaxnx499g",
-      "name": "Sketching",
-      "color": "#64748b",
-      "description": "Quick, low-friction constructs for rough modeling"
-    },
-    {
-      "id": "grp_zct3l8nz2",
-      "name": "BPMN",
-      "color": "#3b82f6",
-      "description": "Simplified Business Process Model and Notation"
-    },
-    {
-      "id": "grp_tjngfgv2z",
-      "name": "AWS",
-      "color": "#ff9900",
-      "description": "Amazon Web Services cloud architecture constructs"
-    },
-    {
-      "id": "grp_8h0d23uyb",
-      "name": "Capability Model",
-      "color": "#0ea5e9",
-      "description": "Domain > Feature > Capability hierarchy with User Stories and Flows"
-    },
-    {
-      "id": "grp_0448i7iyu",
-      "name": "Software Design",
-      "color": "#7c7fca",
-      "description": "Core software design constructs"
-    },
-    {
-      "id": "grp_hpw1k4v2x",
-      "name": "API",
-      "color": "#7c7fca",
-      "description": "API endpoint and model constructs",
-      "parentId": "grp_0448i7iyu"
-    },
-    {
-      "id": "grp_j1satt7vz",
-      "name": "Database",
-      "color": "#c49a4c",
-      "description": "Database schema and table constructs",
-      "parentId": "grp_0448i7iyu"
-    },
-    {
-      "id": "grp_nxbla7xhu",
-      "name": "UI",
-      "color": "#6a8fc0",
-      "description": "User interface constructs",
-      "parentId": "grp_0448i7iyu"
-    },
-    {
-      "id": "grp_bv8czpvmh",
-      "name": "User Story",
-      "color": "#5ba88e",
-      "description": "User stories and requirements",
-      "parentId": "grp_0448i7iyu"
-    },
-    {
-      "id": "grp_353rpjqff",
-      "name": "Sketching",
-      "color": "#64748b",
-      "description": "Quick, low-friction constructs for rough modeling"
-    },
-    {
-      "id": "grp_5fy2ar3q3",
-      "name": "BPMN",
-      "color": "#3b82f6",
-      "description": "Simplified Business Process Model and Notation"
-    },
-    {
-      "id": "grp_vpy7duevf",
-      "name": "AWS",
-      "color": "#ff9900",
-      "description": "Amazon Web Services cloud architecture constructs"
-    },
-    {
-      "id": "grp_z0yhmkapo",
-      "name": "Capability Model",
-      "color": "#0ea5e9",
-      "description": "Domain > Feature > Capability hierarchy with User Stories and Flows"
-    },
-    {
-      "id": "grp_m79is260e",
-      "name": "Software Design",
-      "color": "#7c7fca",
-      "description": "Core software design constructs"
-    },
-    {
-      "id": "grp_4cr6jif2y",
-      "name": "API",
-      "color": "#7c7fca",
-      "description": "API endpoint and model constructs",
-      "parentId": "grp_m79is260e"
-    },
-    {
-      "id": "grp_15ltq4kzm",
-      "name": "Database",
-      "color": "#c49a4c",
-      "description": "Database schema and table constructs",
-      "parentId": "grp_m79is260e"
-    },
-    {
-      "id": "grp_e9gun32a8",
-      "name": "UI",
-      "color": "#6a8fc0",
-      "description": "User interface constructs",
-      "parentId": "grp_m79is260e"
-    },
-    {
-      "id": "grp_88q67awyr",
-      "name": "User Story",
-      "color": "#5ba88e",
-      "description": "User stories and requirements",
-      "parentId": "grp_m79is260e"
-    },
-    {
-      "id": "grp_69p6015vw",
-      "name": "Sketching",
-      "color": "#64748b",
-      "description": "Quick, low-friction constructs for rough modeling"
-    },
-    {
-      "id": "grp_6x0g7w83p",
-      "name": "BPMN",
-      "color": "#3b82f6",
-      "description": "Simplified Business Process Model and Notation"
-    },
-    {
-      "id": "grp_efq1zoh3k",
-      "name": "AWS",
-      "color": "#ff9900",
-      "description": "Amazon Web Services cloud architecture constructs"
-    },
-    {
-      "id": "grp_w8w89473c",
-      "name": "Capability Model",
-      "color": "#0ea5e9",
-      "description": "Domain > Feature > Capability hierarchy with User Stories and Flows"
-    },
-    {
-      "id": "grp_7d3hg4xix",
-      "name": "Software Design",
-      "color": "#7c7fca",
-      "description": "Core software design constructs"
-    },
-    {
-      "id": "grp_9s54q5yr6",
-      "name": "API",
-      "color": "#7c7fca",
-      "description": "API endpoint and model constructs",
-      "parentId": "grp_7d3hg4xix"
-    },
-    {
-      "id": "grp_prsf4q7in",
-      "name": "Database",
-      "color": "#c49a4c",
-      "description": "Database schema and table constructs",
-      "parentId": "grp_7d3hg4xix"
-    },
-    {
-      "id": "grp_2mgwgpeav",
-      "name": "UI",
-      "color": "#6a8fc0",
-      "description": "User interface constructs",
-      "parentId": "grp_7d3hg4xix"
-    },
-    {
-      "id": "grp_h23p0umpq",
-      "name": "User Story",
-      "color": "#5ba88e",
-      "description": "User stories and requirements",
-      "parentId": "grp_7d3hg4xix"
-    },
-    {
-      "id": "grp_zq72sc9c6",
-      "name": "Sketching",
-      "color": "#64748b",
-      "description": "Quick, low-friction constructs for rough modeling"
-    },
-    {
-      "id": "grp_kst7dhsc4",
-      "name": "BPMN",
-      "color": "#3b82f6",
-      "description": "Simplified Business Process Model and Notation"
-    },
-    {
-      "id": "grp_4523kjlov",
-      "name": "AWS",
-      "color": "#ff9900",
-      "description": "Amazon Web Services cloud architecture constructs"
-    },
-    {
-      "id": "grp_6dwekv7re",
-      "name": "Capability Model",
-      "color": "#0ea5e9",
-      "description": "Domain > Feature > Capability hierarchy with User Stories and Flows"
-    },
-    {
-      "id": "grp_tz3l30i31",
-      "name": "Software Design",
-      "color": "#7c7fca",
-      "description": "Core software design constructs"
-    },
-    {
-      "id": "grp_1kjjtrejb",
-      "name": "API",
-      "color": "#7c7fca",
-      "description": "API endpoint and model constructs",
-      "parentId": "grp_tz3l30i31"
-    },
-    {
-      "id": "grp_f7q2rhhhx",
-      "name": "Database",
-      "color": "#c49a4c",
-      "description": "Database schema and table constructs",
-      "parentId": "grp_tz3l30i31"
-    },
-    {
-      "id": "grp_zc6hi56vj",
-      "name": "UI",
-      "color": "#6a8fc0",
-      "description": "User interface constructs",
-      "parentId": "grp_tz3l30i31"
-    },
-    {
-      "id": "grp_bk25py7f9",
-      "name": "User Story",
-      "color": "#5ba88e",
-      "description": "User stories and requirements",
-      "parentId": "grp_tz3l30i31"
-    },
-    {
-      "id": "grp_e0usipr5l",
-      "name": "Sketching",
-      "color": "#64748b",
-      "description": "Quick, low-friction constructs for rough modeling"
-    },
-    {
-      "id": "grp_q2gb2j19l",
-      "name": "BPMN",
-      "color": "#3b82f6",
-      "description": "Simplified Business Process Model and Notation"
-    },
-    {
-      "id": "grp_oih3fgynk",
-      "name": "AWS",
-      "color": "#ff9900",
-      "description": "Amazon Web Services cloud architecture constructs"
-    },
-    {
-      "id": "grp_qwl4qqgom",
-      "name": "Capability Model",
-      "color": "#0ea5e9",
-      "description": "Domain > Feature > Capability hierarchy with User Stories and Flows"
-    },
-    {
-      "id": "grp_c1nmnt0tf",
-      "name": "Software Design",
-      "color": "#7c7fca",
-      "description": "Core software design constructs"
-    },
-    {
-      "id": "grp_r6xrl7kr9",
-      "name": "API",
-      "color": "#7c7fca",
-      "description": "API endpoint and model constructs",
-      "parentId": "grp_c1nmnt0tf"
-    },
-    {
-      "id": "grp_xqp0neo6c",
-      "name": "Database",
-      "color": "#c49a4c",
-      "description": "Database schema and table constructs",
-      "parentId": "grp_c1nmnt0tf"
-    },
-    {
-      "id": "grp_8eaow4ros",
-      "name": "UI",
-      "color": "#6a8fc0",
-      "description": "User interface constructs",
-      "parentId": "grp_c1nmnt0tf"
-    },
-    {
-      "id": "grp_o1ri7lvs8",
-      "name": "User Story",
-      "color": "#5ba88e",
-      "description": "User stories and requirements",
-      "parentId": "grp_c1nmnt0tf"
-    },
-    {
-      "id": "grp_bgvbgd9q0",
-      "name": "Sketching",
-      "color": "#64748b",
-      "description": "Quick, low-friction constructs for rough modeling"
-    },
-    {
-      "id": "grp_yvh7s15mk",
-      "name": "BPMN",
-      "color": "#3b82f6",
-      "description": "Simplified Business Process Model and Notation"
-    },
-    {
-      "id": "grp_lllh31yc3",
-      "name": "AWS",
-      "color": "#ff9900",
-      "description": "Amazon Web Services cloud architecture constructs"
-    },
-    {
-      "id": "grp_f30hqqcbo",
-      "name": "Capability Model",
-      "color": "#0ea5e9",
-      "description": "Domain > Feature > Capability hierarchy with User Stories and Flows"
-    },
-    {
-      "id": "grp_k2gpak64k",
-      "name": "Software Design",
-      "color": "#7c7fca",
-      "description": "Core software design constructs"
-    },
-    {
-      "id": "grp_opysay0yf",
-      "name": "API",
-      "color": "#7c7fca",
-      "description": "API endpoint and model constructs",
-      "parentId": "grp_k2gpak64k"
-    },
-    {
-      "id": "grp_pt8n0inme",
-      "name": "Database",
-      "color": "#c49a4c",
-      "description": "Database schema and table constructs",
-      "parentId": "grp_k2gpak64k"
-    },
-    {
-      "id": "grp_smuakq81d",
-      "name": "UI",
-      "color": "#6a8fc0",
-      "description": "User interface constructs",
-      "parentId": "grp_k2gpak64k"
-    },
-    {
-      "id": "grp_e7zr0irqg",
-      "name": "User Story",
-      "color": "#5ba88e",
-      "description": "User stories and requirements",
-      "parentId": "grp_k2gpak64k"
-    },
-    {
-      "id": "grp_773r29rpr",
-      "name": "Sketching",
-      "color": "#64748b",
-      "description": "Quick, low-friction constructs for rough modeling"
-    },
-    {
-      "id": "grp_4nj7s5e7n",
-      "name": "BPMN",
-      "color": "#3b82f6",
-      "description": "Simplified Business Process Model and Notation"
-    },
-    {
-      "id": "grp_jrz41dv89",
-      "name": "AWS",
-      "color": "#ff9900",
-      "description": "Amazon Web Services cloud architecture constructs"
-    },
-    {
-      "id": "grp_fmkmoim01",
-      "name": "Capability Model",
-      "color": "#0ea5e9",
-      "description": "Domain > Feature > Capability hierarchy with User Stories and Flows"
-    },
-    {
-      "id": "grp_lpwdf3aa7",
-      "name": "Software Design",
-      "color": "#7c7fca",
-      "description": "Core software design constructs"
-    },
-    {
-      "id": "grp_hxwhifvmj",
-      "name": "API",
-      "color": "#7c7fca",
-      "description": "API endpoint and model constructs",
-      "parentId": "grp_lpwdf3aa7"
-    },
-    {
-      "id": "grp_r4i10a5lm",
-      "name": "Database",
-      "color": "#c49a4c",
-      "description": "Database schema and table constructs",
-      "parentId": "grp_lpwdf3aa7"
-    },
-    {
-      "id": "grp_n72agh713",
-      "name": "UI",
-      "color": "#6a8fc0",
-      "description": "User interface constructs",
-      "parentId": "grp_lpwdf3aa7"
-    },
-    {
-      "id": "grp_pb2rik2i9",
-      "name": "User Story",
-      "color": "#5ba88e",
-      "description": "User stories and requirements",
-      "parentId": "grp_lpwdf3aa7"
-    },
-    {
-      "id": "grp_y4hdor4u7",
-      "name": "Sketching",
-      "color": "#64748b",
-      "description": "Quick, low-friction constructs for rough modeling"
-    },
-    {
-      "id": "grp_f4mzchhkc",
-      "name": "BPMN",
-      "color": "#3b82f6",
-      "description": "Simplified Business Process Model and Notation"
-    },
-    {
-      "id": "grp_fsvqqdvdk",
-      "name": "AWS",
-      "color": "#ff9900",
-      "description": "Amazon Web Services cloud architecture constructs"
-    },
-    {
-      "id": "grp_n8hp2m5o6",
-      "name": "Capability Model",
-      "color": "#0ea5e9",
-      "description": "Domain > Feature > Capability hierarchy with User Stories and Flows"
-    },
-    {
-      "id": "grp_hbc3ovtl1",
-      "name": "Software Design",
-      "color": "#7c7fca",
-      "description": "Core software design constructs"
-    },
-    {
-      "id": "grp_vdxcir0m6",
-      "name": "API",
-      "color": "#7c7fca",
-      "description": "API endpoint and model constructs",
-      "parentId": "grp_hbc3ovtl1"
-    },
-    {
-      "id": "grp_sddw2okmx",
-      "name": "Database",
-      "color": "#c49a4c",
-      "description": "Database schema and table constructs",
-      "parentId": "grp_hbc3ovtl1"
-    },
-    {
-      "id": "grp_aijt7jvne",
-      "name": "UI",
-      "color": "#6a8fc0",
-      "description": "User interface constructs",
-      "parentId": "grp_hbc3ovtl1"
-    },
-    {
-      "id": "grp_lkz8jwat5",
-      "name": "User Story",
-      "color": "#5ba88e",
-      "description": "User stories and requirements",
-      "parentId": "grp_hbc3ovtl1"
-    },
-    {
-      "id": "grp_wfo1us7ns",
-      "name": "Sketching",
-      "color": "#64748b",
-      "description": "Quick, low-friction constructs for rough modeling"
-    },
-    {
-      "id": "grp_l2g88ckg1",
-      "name": "BPMN",
-      "color": "#3b82f6",
-      "description": "Simplified Business Process Model and Notation"
-    },
-    {
-      "id": "grp_x2a9e4o47",
-      "name": "AWS",
-      "color": "#ff9900",
-      "description": "Amazon Web Services cloud architecture constructs"
-    },
-    {
-      "id": "grp_9f2koe13m",
+      "id": "grp_bgn0dgssv",
       "name": "Capability Model",
       "color": "#0ea5e9",
       "description": "Domain > Feature > Capability hierarchy with User Stories and Flows"
     }
   ],
-  "exportedAt": "2026-02-11T19:28:53.309Z"
+  "exportedAt": "2026-02-13T13:35:26.488Z"
 }
