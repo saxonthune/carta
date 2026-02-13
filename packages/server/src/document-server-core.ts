@@ -68,6 +68,7 @@ import {
   listPinConstraints,
   removePinConstraint,
   applyPinLayout,
+  rebuildPage,
 } from '@carta/document';
 import type { BatchOperation, BatchResult, MigrationResult } from '@carta/document';
 import type { FlowDirection, ArrangeStrategy, ArrangeConstraint, PinDirection } from '@carta/domain';
@@ -1434,6 +1435,27 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
         const result = applyPinLayout(docState.doc, pageId, {
           gap: body.gap,
         });
+
+        sendJson(res, 200, result);
+        return;
+      }
+
+      // POST - Rebuild page data
+      const rebuildPageMatch = path.match(/^\/api\/documents\/([^/]+)\/rebuild-page$/);
+      if (rebuildPageMatch && method === 'POST') {
+        const roomId = rebuildPageMatch[1]!;
+        const docState = await config.getDoc(roomId);
+        if (!docState) {
+          sendError(res, 404, 'Document not found', 'NOT_FOUND');
+          return;
+        }
+
+        const body = await parseJsonBody<{
+          pageId?: string;
+        }>(req);
+
+        const pageId = body.pageId || getActivePageId(docState.doc);
+        const result = rebuildPage(docState.doc, pageId);
 
         sendJson(res, 200, result);
         return;
