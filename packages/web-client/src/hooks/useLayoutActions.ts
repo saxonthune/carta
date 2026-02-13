@@ -11,7 +11,6 @@ import { getNodeDimensions } from '../utils/nodeDimensions.js';
 import type { SpreadInput } from '../utils/spreadNodes.js';
 import { computeOrthogonalRoutes, type NodeRect } from '../presentation/index.js';
 import { canNestInOrganizer } from './useOrganizerOperations.js';
-import { debugLog } from '../utils/debugLog.js';
 
 const ORGANIZER_CONTENT_TOP = DEFAULT_ORGANIZER_LAYOUT.padding + DEFAULT_ORGANIZER_LAYOUT.headerHeight;
 
@@ -40,26 +39,6 @@ function toRelativePosition(
   };
 }
 
-/**
- * Apply position patches across React Flow, local state, and Yjs.
- * Module-level helper to consolidate the 3-layer sync pattern.
- */
-function applyPositionPatches(
-  patches: Array<{ id: string; position: { x: number; y: number } }>,
-  reactFlow: ReactFlowInstance,
-  setNodesLocal: React.Dispatch<React.SetStateAction<Node[]>>,
-  adapter: DocumentAdapter,
-): void {
-  const patchMap = new Map(patches.map(p => [p.id, p.position]));
-  const updater = (nds: Node[]) =>
-    nds.map(n => {
-      const pos = patchMap.get(n.id);
-      return pos ? { ...n, position: pos } : n;
-    });
-  reactFlow.setNodes(updater);
-  setNodesLocal(updater);
-  if (patches.length > 0) adapter.patchNodes?.(patches);
-}
 
 /**
  * Apply style patches (width/height) across all 3 layers.
@@ -154,7 +133,6 @@ function getTopLevelEdges(
 function getChildLayoutUnits(
   rfNodes: Node[],
   organizerId: string,
-  knownWagonPositions?: Map<string, { x: number; y: number }>,
 ): { items: SpreadInput[]; offsets: Map<string, { x: number; y: number }> } {
   const directChildren = rfNodes.filter(n => n.parentId === organizerId);
   if (directChildren.length === 0) return { items: [], offsets: new Map() };
@@ -174,35 +152,16 @@ function getChildLayoutUnits(
   const wagonInfos: WagonInfo[] = rfNodes
     .filter(n => n.type === 'organizer' && n.parentId)
     .map(n => {
-      const knownPos = knownWagonPositions?.get(n.id);
       return {
         id: n.id,
         parentId: n.parentId!,
-        x: knownPos?.x ?? n.position.x,
-        y: knownPos?.y ?? n.position.y,
+        x: n.position.x,
+        y: n.position.y,
         ...getNodeDimensions(n),
       };
     });
 
-  // Debug: log wagon infos relevant to this organizer's children
-  const childIds = new Set(directChildren.map(c => c.id));
-  const relevantWagons = wagonInfos.filter(w => childIds.has(w.parentId));
-  debugLog('[getChildLayoutUnits] relevant wagons:', relevantWagons.map(w => ({
-    id: w.id,
-    parentId: w.parentId,
-    x: w.x, y: w.y,
-    width: w.width, height: w.height,
-  })));
-  debugLog('[getChildLayoutUnits] layout items:', layoutItems.map(l => ({
-    id: l.id,
-    x: l.x, y: l.y,
-    width: l.width, height: l.height,
-  })));
-
   const bounds = computeLayoutUnitBounds(layoutItems, wagonInfos);
-  debugLog('[getChildLayoutUnits] bounds:', [...bounds.entries()].map(([id, b]) => ({
-    id, offsetX: b.offsetX, offsetY: b.offsetY, width: b.width, height: b.height,
-  })));
   const offsets = new Map<string, { x: number; y: number }>();
 
   const items: SpreadInput[] = directChildren.map(child => {
@@ -249,22 +208,18 @@ function convertToConstructPositions(
 function getChildVisualFootprints(
   rfNodes: Node[],
   organizerId: string,
-  knownChildPositions?: Map<string, { x: number; y: number }>,
-  knownWagonPositions?: Map<string, { x: number; y: number }>,
-  excludeNodeIds?: Set<string>,
 ): NodeGeometry[] {
-  const directChildren = rfNodes.filter(n => n.parentId === organizerId && !excludeNodeIds?.has(n.id));
+  const directChildren = rfNodes.filter(n => n.parentId === organizerId);
   if (directChildren.length === 0) return [];
 
   // Build LayoutItem array for direct children
   const layoutItems: LayoutItem[] = directChildren.map(child => {
-    const pos = knownChildPositions?.get(child.id) ?? child.position;
     const dims = getNodeDimensions(child);
     return {
       id: child.id,
       semanticId: (child.data as any)?.semanticId ?? child.id,
-      x: pos.x,
-      y: pos.y,
+      x: child.position.x,
+      y: child.position.y,
       ...dims,
     };
   });
@@ -274,12 +229,11 @@ function getChildVisualFootprints(
     .filter(n => n.type === 'organizer' && n.parentId)
     .map(n => {
       const dims = getNodeDimensions(n);
-      const knownPos = knownWagonPositions?.get(n.id);
       return {
         id: n.id,
         parentId: n.parentId!,
-        x: knownPos?.x ?? n.position.x,
-        y: knownPos?.y ?? n.position.y,
+        x: n.position.x,
+        y: n.position.y,
         ...dims,
       };
     });
@@ -362,7 +316,7 @@ export function useLayoutActions({
    * Uses the domain's computeLayoutUnitSizes function.
    */
   const computeLayoutUnits = useCallback((nodeIds: string[]): Map<string, { width: number; height: number }> => {
-    const rfNodes = reactFlow.getNodes();
+    const rfNodes = adapter.getNodes() as Node[];
 
     // Build LayoutItem array for the specified nodes
     const layoutItems: LayoutItem[] = nodeIds.map(nodeId => {
@@ -401,71 +355,34 @@ export function useLayoutActions({
       });
 
     return computeLayoutUnitSizes(layoutItems, wagonInfos);
-  }, [reactFlow]);
+  }, [adapter]);
 
   /**
-   * Apply size changes to an organizer node across all 3 layers.
+   * Apply size changes to an organizer node.
    */
   const applyOrganizerSize = useCallback(
     (organizerId: string, width: number, height: number) => {
-      // Must set BOTH style (CSS) AND width/height (RF internal dimensions).
-      // Setting style alone leaves the old measured/internal dimensions intact.
-      // Setting width/height on the node overrides the internal dimensions.
-      const patchMap = new Map([[organizerId, { width, height }]]);
-      const updater = (nds: Node[]) =>
-        nds.map(n => {
-          const dims = patchMap.get(n.id);
-          return dims
-            ? { ...n, width: dims.width, height: dims.height, style: { ...n.style, width: dims.width, height: dims.height } }
-            : n;
-        });
-      reactFlow.setNodes(updater);
-      setNodesLocal(updater);
       adapter.patchNodes?.([{ id: organizerId, style: { width, height } }]);
     },
-    [reactFlow, setNodesLocal, adapter]
+    [adapter]
   );
 
   /**
    * Fit organizer to its children's bounding box.
    * Handles children at negative relative positions by shifting organizer position and adjusting all children.
    * Accounts for wagon organizers attached to children when calculating the fit.
-   * @param knownChildPositions - Optional map of known positions (to avoid reading stale React Flow state)
    */
   const fitToChildren = useCallback(
-    (organizerId: string, knownChildPositions?: Map<string, { x: number; y: number }>, knownWagonPositions?: Map<string, { x: number; y: number }>, excludeNodeIds?: Set<string>) => {
-      const rfNodes = reactFlow.getNodes();
-
-      // Log all direct children for diagnosis
-      const allDirectChildren = rfNodes.filter(n => n.parentId === organizerId);
-      debugLog('[organizer:layout:fit] directChildren', allDirectChildren.map(c => ({
-        id: c.id, type: c.type, pos: c.position,
-        w: (c.style as any)?.width ?? c.width, h: (c.style as any)?.height ?? c.height,
-        measured: c.measured?.width ? { w: c.measured.width, h: c.measured.height } : undefined,
-        data: { semanticId: (c.data as any)?.semanticId, attachedToSemanticId: (c.data as any)?.attachedToSemanticId },
-      })));
+    (organizerId: string) => {
+      const rfNodes = adapter.getNodes() as Node[];
 
       // Get visual footprints (includes wagon-expanded bounds)
-      const childGeometries = getChildVisualFootprints(rfNodes, organizerId, knownChildPositions, knownWagonPositions, excludeNodeIds);
+      const childGeometries = getChildVisualFootprints(rfNodes, organizerId);
 
       if (childGeometries.length === 0) return;
 
-      debugLog('[organizer:layout:fit] childGeometries', childGeometries);
-
       // Compute fit using domain function
       const fit = computeOrganizerFit(childGeometries);
-
-      const orgNode = rfNodes.find(n => n.id === organizerId);
-      const currentSize = orgNode ? { width: (orgNode.style as any)?.width ?? orgNode.width, height: (orgNode.style as any)?.height ?? orgNode.height } : null;
-      debugLog('[organizer:layout:fit]', {
-        organizerId, childCount: childGeometries.length, currentSize, computedSize: fit.size, fit,
-        orgDimensions: orgNode ? {
-          style: orgNode.style,
-          width: orgNode.width, height: orgNode.height,
-          measured: orgNode.measured,
-          expandParent: (orgNode as any).expandParent,
-        } : null,
-      });
 
       const patches: Array<{ id: string; position: { x: number; y: number } }> = [];
 
@@ -487,12 +404,11 @@ export function useLayoutActions({
         if (fit.childPositionDelta.x !== 0 || fit.childPositionDelta.y !== 0) {
           const directChildren = rfNodes.filter(n => n.parentId === organizerId);
           for (const child of directChildren) {
-            const currentPos = knownChildPositions?.get(child.id) ?? child.position;
             patches.push({
               id: child.id,
               position: {
-                x: currentPos.x + fit.childPositionDelta.x,
-                y: currentPos.y + fit.childPositionDelta.y,
+                x: child.position.x + fit.childPositionDelta.x,
+                y: child.position.y + fit.childPositionDelta.y,
               },
             });
           }
@@ -500,11 +416,11 @@ export function useLayoutActions({
       }
 
       if (patches.length > 0) {
-        applyPositionPatches(patches, reactFlow, setNodesLocal, adapter);
+        adapter.patchNodes?.(patches);
       }
       applyOrganizerSize(organizerId, fit.size.width, fit.size.height);
     },
-    [reactFlow, setNodesLocal, adapter, applyOrganizerSize]
+    [adapter, applyOrganizerSize]
   );
 
   /**
@@ -524,14 +440,6 @@ export function useLayoutActions({
       const nodeAbsPos = node.parentId ? getAbsolutePosition(node, rfNodes) : node.position;
       const relativePos = toRelativePosition(nodeAbsPos, orgAbsPos);
 
-      debugLog('[organizer:attach]', {
-        nodeId,
-        organizerId,
-        nodeAbsBefore: nodeAbsPos,
-        orgAbsPos,
-        relativePos,
-      });
-
       // Apply to RF + local state (which syncs to Yjs via adapter.setNodes)
       const updater = (nds: Node[]) =>
         nds.map(n =>
@@ -541,8 +449,7 @@ export function useLayoutActions({
       setNodesLocal(updater);
 
       // Resize organizer to fit
-      const knownPositions = new Map([[nodeId, relativePos]]);
-      fitToChildren(organizerId, knownPositions);
+      fitToChildren(organizerId);
     },
     [reactFlow, setNodesLocal, fitToChildren]
   );
@@ -560,13 +467,6 @@ export function useLayoutActions({
       const oldOrganizerId = node.parentId;
       const absolutePos = getAbsolutePosition(node, rfNodes);
 
-      debugLog('[organizer:detach]', {
-        nodeId,
-        oldOrganizerId,
-        relPosBefore: node.position,
-        absolutePos,
-      });
-
       // Apply to RF + local state (which syncs to Yjs via adapter.setNodes)
       const updater = (nds: Node[]) =>
         nds.map(n =>
@@ -575,8 +475,8 @@ export function useLayoutActions({
       reactFlow.setNodes(updater);
       setNodesLocal(updater);
 
-      // Resize old organizer — exclude the detached node since stale getNodes() still shows it as a child
-      fitToChildren(oldOrganizerId, undefined, undefined, new Set([nodeId]));
+      // Resize old organizer to fit remaining children
+      fitToChildren(oldOrganizerId);
     },
     [reactFlow, setNodesLocal, fitToChildren]
   );
@@ -587,7 +487,7 @@ export function useLayoutActions({
    */
   const positionWagonNextToConstruct = useCallback(
     (wagonId: string) => {
-      const rfNodes = reactFlow.getNodes();
+      const rfNodes = adapter.getNodes() as Node[];
       const wagon = rfNodes.find(n => n.id === wagonId);
       if (!wagon?.parentId) return;
 
@@ -608,36 +508,18 @@ export function useLayoutActions({
         y: 0,
       };
 
-      debugLog('[organizer:wagon:snap]', {
-        wagonId,
-        parentId: wagon.parentId,
-        constructDims,
-        newPosition,
-      });
-
-      applyPositionPatches(
-        [{ id: wagonId, position: newPosition }],
-        reactFlow,
-        setNodesLocal,
-        adapter
-      );
+      adapter.patchNodes?.([{ id: wagonId, position: newPosition }]);
     },
-    [reactFlow, setNodesLocal, adapter]
+    [adapter]
   );
 
   /**
    * Snap all wagon organizers within an organizer to their parent constructs.
    * Must be called before layout actions so expanded bounds reflect normalized wagon positions.
-   * Batches all position changes into a single applyPositionPatches call.
-   */
-  /**
-   * Snap all wagon organizers within an organizer to their parent constructs.
-   * Returns a Map of wagonId → snapped position (to pass forward since RF store
-   * may not reflect setNodes synchronously).
    */
   const snapWagonsInOrganizer = useCallback(
-    (organizerId: string): Map<string, { x: number; y: number }> => {
-      const rfNodes = reactFlow.getNodes();
+    (organizerId: string): void => {
+      const rfNodes = adapter.getNodes() as Node[];
       const children = rfNodes.filter(n => n.parentId === organizerId);
       const patches: Array<{ id: string; position: { x: number; y: number } }> = [];
 
@@ -652,24 +534,15 @@ export function useLayoutActions({
           const constructDims = getNodeDimensions(child);
           const gap = 10;
           const newPosition = { x: constructDims.width + gap, y: 0 };
-          debugLog('[organizer:wagon:batchSnap]', {
-            wagonId: wagon.id,
-            parentId: child.id,
-            oldPosition: wagon.position,
-            newPosition,
-          });
           patches.push({ id: wagon.id, position: newPosition });
         }
       }
 
       if (patches.length > 0) {
-        debugLog('[organizer:wagon:batchSnap] applying', { count: patches.length, patches });
-        applyPositionPatches(patches, reactFlow, setNodesLocal, adapter);
+        adapter.patchNodes?.(patches);
       }
-
-      return new Map(patches.map(p => [p.id, p.position]));
     },
-    [reactFlow, setNodesLocal, adapter]
+    [adapter]
   );
 
   /**
@@ -677,12 +550,10 @@ export function useLayoutActions({
    */
   const spreadChildren = useCallback(
     (organizerId: string) => {
-      const snappedWagons = snapWagonsInOrganizer(organizerId);
-      const rfNodes = reactFlow.getNodes();
-      const { items, offsets } = getChildLayoutUnits(rfNodes, organizerId, snappedWagons);
+      snapWagonsInOrganizer(organizerId);
+      const rfNodes = adapter.getNodes() as Node[];
+      const { items, offsets } = getChildLayoutUnits(rfNodes, organizerId);
       if (items.length < 2) return;
-
-      debugLog('[organizer:layout:spread]', { organizerId, childCount: items.length });
 
       const newPositions = deOverlapNodes(items);
 
@@ -700,12 +571,11 @@ export function useLayoutActions({
       const constructPositions = convertToConstructPositions(newPositions, offsets);
 
       const patches = [...constructPositions].map(([id, position]) => ({ id, position }));
-      applyPositionPatches(patches, reactFlow, setNodesLocal, adapter);
+      adapter.patchNodes?.(patches);
 
-      const knownPositions = new Map(patches.map(p => [p.id, p.position]));
-      fitToChildren(organizerId, knownPositions, snappedWagons);
+      fitToChildren(organizerId);
     },
-    [reactFlow, setNodesLocal, adapter, fitToChildren, snapWagonsInOrganizer]
+    [adapter, fitToChildren, snapWagonsInOrganizer]
   );
 
   /**
@@ -714,32 +584,19 @@ export function useLayoutActions({
    */
   const gridLayoutChildren = useCallback(
     (organizerId: string, cols?: number) => {
-      debugLog('[organizer:layout:grid] === START ===', { organizerId, cols });
+      // Step 1: Snap wagons
+      snapWagonsInOrganizer(organizerId);
 
-      // Step 1: Snap wagons (returns known positions since RF store may be stale)
-      const snappedWagons = snapWagonsInOrganizer(organizerId);
-
-      // Step 2: Read nodes and pass snapped positions forward
-      const rfNodes = reactFlow.getNodes();
-      const { items, offsets } = getChildLayoutUnits(rfNodes, organizerId, snappedWagons);
+      // Step 2: Read nodes
+      const rfNodes = adapter.getNodes() as Node[];
+      const { items, offsets } = getChildLayoutUnits(rfNodes, organizerId);
       if (items.length < 2) return;
 
-      debugLog('[organizer:layout:grid] layout units:', items.map(i => ({
-        id: i.id,
-        x: i.x, y: i.y,
-        width: i.width, height: i.height,
-      })));
-      debugLog('[organizer:layout:grid] offsets:', [...offsets.entries()].map(([id, o]) => ({
-        id, offsetX: o.x, offsetY: o.y,
-      })));
-
-      // Step 4: Compute grid
+      // Step 3: Compute grid
       const effectiveCols = cols ?? Math.ceil(Math.sqrt(items.length));
       const colWidth = Math.max(...items.map(n => n.width)) + 30;
       const rowHeight = Math.max(...items.map(n => n.height)) + 30;
       const padding = 20;
-
-      debugLog('[organizer:layout:grid] grid params:', { effectiveCols, colWidth, rowHeight, padding });
 
       const newPositions = new globalThis.Map<string, { x: number; y: number }>();
       items.forEach((child, idx) => {
@@ -748,27 +605,16 @@ export function useLayoutActions({
         newPositions.set(child.id, { x, y });
       });
 
-      debugLog('[organizer:layout:grid] expanded positions:', [...newPositions.entries()].map(([id, p]) => ({
-        id, x: p.x, y: p.y,
-      })));
-
-      // Step 5: Convert back to construct positions
+      // Step 4: Convert back to construct positions
       const constructPositions = convertToConstructPositions(newPositions, offsets);
 
-      debugLog('[organizer:layout:grid] construct positions:', [...constructPositions.entries()].map(([id, p]) => ({
-        id, x: p.x, y: p.y,
-      })));
-
       const patches = [...constructPositions].map(([id, position]) => ({ id, position }));
-      applyPositionPatches(patches, reactFlow, setNodesLocal, adapter);
+      adapter.patchNodes?.(patches);
 
-      // Step 6: Fit to children
-      const knownPositions = new Map(patches.map(p => [p.id, p.position]));
-      fitToChildren(organizerId, knownPositions, snappedWagons);
-
-      debugLog('[organizer:layout:grid] === END ===', {});
+      // Step 5: Fit to children
+      fitToChildren(organizerId);
     },
-    [reactFlow, setNodesLocal, adapter, fitToChildren, snapWagonsInOrganizer]
+    [adapter, fitToChildren, snapWagonsInOrganizer]
   );
 
   /**
@@ -776,9 +622,9 @@ export function useLayoutActions({
    */
   const flowLayoutChildren = useCallback(
     (organizerId: string) => {
-      const snappedWagons = snapWagonsInOrganizer(organizerId);
-      const rfNodes = reactFlow.getNodes();
-      const { items, offsets } = getChildLayoutUnits(rfNodes, organizerId, snappedWagons);
+      snapWagonsInOrganizer(organizerId);
+      const rfNodes = adapter.getNodes() as Node[];
+      const { items, offsets } = getChildLayoutUnits(rfNodes, organizerId);
       if (items.length < 2) return;
 
       // Filter edges: between direct children, collapsing wagon-internal edges
@@ -806,8 +652,6 @@ export function useLayoutActions({
         scopedEdges.push({ source, target });
       }
 
-      debugLog('[organizer:layout:flow]', { organizerId, childCount: items.length, edgeCount: scopedEdges.length });
-
       const rawPositions = hierarchicalLayout(items, scopedEdges, { gap: 30, layerGap: 60 });
 
       // Normalize positions to start from (padding, headerTop)
@@ -829,13 +673,12 @@ export function useLayoutActions({
         const constructPositions = convertToConstructPositions(newPositions, offsets);
 
         const patches = [...constructPositions].map(([id, position]) => ({ id, position }));
-        applyPositionPatches(patches, reactFlow, setNodesLocal, adapter);
+        adapter.patchNodes?.(patches);
 
-        const knownPositions = new Map(patches.map(p => [p.id, p.position]));
-        fitToChildren(organizerId, knownPositions, snappedWagons);
+        fitToChildren(organizerId);
       }
     },
-    [reactFlow, setNodesLocal, adapter, fitToChildren, snapWagonsInOrganizer]
+    [adapter, fitToChildren, snapWagonsInOrganizer]
   );
 
   /**
@@ -843,7 +686,7 @@ export function useLayoutActions({
    * Top-level layout action (moved from Map.tsx).
    */
   const spreadSelected = useCallback(() => {
-    const rfNodes = reactFlow.getNodes();
+    const rfNodes = adapter.getNodes() as Node[];
     const selected = rfNodes.filter(n => selectedNodeIds.includes(n.id));
     if (selected.length < 2) return;
 
@@ -862,15 +705,15 @@ export function useLayoutActions({
     const newPositions = deOverlapNodes(inputs);
 
     const patches = [...newPositions].map(([id, position]) => ({ id, position }));
-    applyPositionPatches(patches, reactFlow, setNodesLocal, adapter);
-  }, [reactFlow, selectedNodeIds, setNodesLocal, adapter, computeLayoutUnits]);
+    adapter.patchNodes?.(patches);
+  }, [adapter, selectedNodeIds, computeLayoutUnits]);
 
   /**
    * Spread all nodes on current level (within each organizer independently).
    * Top-level layout action (moved from Map.tsx).
    */
   const spreadAll = useCallback(() => {
-    const rfNodes = reactFlow.getNodes();
+    const rfNodes = adapter.getNodes() as Node[];
 
     // --- Top-level group (constructs + organizers) ---
     const topLevelItems = getTopLevelLayoutItems(rfNodes, computeLayoutUnits);
@@ -911,15 +754,15 @@ export function useLayoutActions({
 
     if (allNewPositions.size === 0) return;
     const patches = [...allNewPositions].map(([id, position]) => ({ id, position }));
-    applyPositionPatches(patches, reactFlow, setNodesLocal, adapter);
-  }, [reactFlow, setNodesLocal, adapter, computeLayoutUnits]);
+    adapter.patchNodes?.(patches);
+  }, [adapter, computeLayoutUnits]);
 
   /**
    * Compact all top-level nodes (remove whitespace, preserve spatial order).
    * Top-level layout action (moved from Map.tsx).
    */
   const compactAll = useCallback(() => {
-    const topLevelItems = getTopLevelLayoutItems(reactFlow.getNodes(), computeLayoutUnits);
+    const topLevelItems = getTopLevelLayoutItems(adapter.getNodes() as Node[], computeLayoutUnits);
     if (topLevelItems.length < 2) return;
 
     const compacted = compactNodes(topLevelItems);
@@ -933,15 +776,15 @@ export function useLayoutActions({
     const final = deOverlapNodes(compactedItems);
 
     const patches = [...final].map(([id, position]) => ({ id, position }));
-    applyPositionPatches(patches, reactFlow, setNodesLocal, adapter);
-  }, [reactFlow, setNodesLocal, adapter, computeLayoutUnits]);
+    adapter.patchNodes?.(patches);
+  }, [adapter, computeLayoutUnits]);
 
   /**
    * Hierarchical layout (top-to-bottom by edge flow).
    * Top-level layout action (moved from Map.tsx).
    */
   const hierarchicalLayoutAction = useCallback(() => {
-    const rfNodes = reactFlow.getNodes();
+    const rfNodes = adapter.getNodes() as Node[];
     const rfEdges = reactFlow.getEdges();
 
     const topLevelItems = getTopLevelLayoutItems(rfNodes, computeLayoutUnits);
@@ -961,15 +804,15 @@ export function useLayoutActions({
     const final = deOverlapNodes(positionedItems);
 
     const patches = [...final].map(([id, position]) => ({ id, position }));
-    applyPositionPatches(patches, reactFlow, setNodesLocal, adapter);
-  }, [reactFlow, setNodesLocal, adapter, computeLayoutUnits]);
+    adapter.patchNodes?.(patches);
+  }, [adapter, reactFlow, computeLayoutUnits]);
 
   /**
    * Align selected nodes along a specified axis.
    * Requires at least 2 selected nodes.
    */
   const alignNodes = useCallback((axis: 'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom') => {
-    const rfNodes = reactFlow.getNodes();
+    const rfNodes = adapter.getNodes() as Node[];
     const selected = rfNodes.filter(n => selectedNodeIds.includes(n.id));
     if (selected.length < 2) return;
 
@@ -1033,15 +876,15 @@ export function useLayoutActions({
     }
 
     const patches = [...newPositions].map(([id, position]) => ({ id, position }));
-    applyPositionPatches(patches, reactFlow, setNodesLocal, adapter);
-  }, [reactFlow, selectedNodeIds, setNodesLocal, adapter, computeLayoutUnits]);
+    adapter.patchNodes?.(patches);
+  }, [adapter, selectedNodeIds, computeLayoutUnits]);
 
   /**
    * Distribute selected nodes evenly along a specified axis.
    * Requires at least 3 selected nodes.
    */
   const distributeNodes = useCallback((axis: 'horizontal' | 'vertical') => {
-    const rfNodes = reactFlow.getNodes();
+    const rfNodes = adapter.getNodes() as Node[];
     const selected = rfNodes.filter(n => selectedNodeIds.includes(n.id));
     if (selected.length < 3) return;
 
@@ -1075,7 +918,7 @@ export function useLayoutActions({
       }
 
       const patches = [...newPositions].map(([id, position]) => ({ id, position }));
-      applyPositionPatches(patches, reactFlow, setNodesLocal, adapter);
+      adapter.patchNodes?.(patches);
     } else {
       // Sort by y position
       nodes.sort((a, b) => a.y - b.y);
@@ -1094,16 +937,16 @@ export function useLayoutActions({
       }
 
       const patches = [...newPositions].map(([id, position]) => ({ id, position }));
-      applyPositionPatches(patches, reactFlow, setNodesLocal, adapter);
+      adapter.patchNodes?.(patches);
     }
-  }, [reactFlow, selectedNodeIds, setNodesLocal, adapter, computeLayoutUnits]);
+  }, [adapter, selectedNodeIds, computeLayoutUnits]);
 
   /**
    * Flow layout with directional control.
    * Transforms the top-to-bottom hierarchical layout to LR/RL/TB/BT.
    */
   const flowLayout = useCallback((direction: 'LR' | 'RL' | 'TB' | 'BT') => {
-    const rfNodes = reactFlow.getNodes();
+    const rfNodes = adapter.getNodes() as Node[];
     const rfEdges = reactFlow.getEdges();
 
     const topLevelItems = getTopLevelLayoutItems(rfNodes, computeLayoutUnits);
@@ -1155,8 +998,8 @@ export function useLayoutActions({
     const final = deOverlapNodes(positionedItems);
 
     const patches = [...final].map(([id, position]) => ({ id, position }));
-    applyPositionPatches(patches, reactFlow, setNodesLocal, adapter);
-  }, [reactFlow, setNodesLocal, adapter, computeLayoutUnits]);
+    adapter.patchNodes?.(patches);
+  }, [adapter, reactFlow, computeLayoutUnits]);
 
   /**
    * Route edges around obstacles using orthogonal routing.
@@ -1242,7 +1085,7 @@ export function useLayoutActions({
   /**
    * Apply pin constraint layout.
    * Reads constraints from Yjs, resolves positions via resolvePinConstraints,
-   * applies constrained positions via 3-layer sync, then de-overlaps free-standing nodes.
+   * applies constrained positions, then de-overlaps free-standing nodes.
    */
   const applyPinLayout = useCallback(() => {
     const pageId = adapter.getActivePage();
@@ -1251,7 +1094,7 @@ export function useLayoutActions({
     const constraints = listPinConstraints(ydoc, pageId);
     if (constraints.length === 0) return;
 
-    const rfNodes = reactFlow.getNodes();
+    const rfNodes = adapter.getNodes() as Node[];
 
     // Gather top-level organizers AND top-level wagon organizers
     const organizers = rfNodes.filter(n => {
@@ -1294,12 +1137,12 @@ export function useLayoutActions({
       return { id, position };
     });
 
-    // Apply constrained positions (3-layer sync)
-    applyPositionPatches(patches, reactFlow, setNodesLocal, adapter);
+    // Apply constrained positions
+    adapter.patchNodes?.(patches);
 
     // De-overlap free-standing nodes against newly positioned organizers
     const constrainedIds = new Set(result.positions.keys());
-    const allTopLevel = getTopLevelLayoutItems(reactFlow.getNodes(), computeLayoutUnits);
+    const allTopLevel = getTopLevelLayoutItems(adapter.getNodes() as Node[], computeLayoutUnits);
 
     // Merge constrained positions into items for de-overlap
     const updatedItems = allTopLevel.map(item => {
@@ -1314,13 +1157,13 @@ export function useLayoutActions({
       .filter(([id]) => !constrainedIds.has(id))
       .map(([id, position]) => ({ id, position }));
     if (freePatches.length > 0) {
-      applyPositionPatches(freePatches, reactFlow, setNodesLocal, adapter);
+      adapter.patchNodes?.(freePatches);
     }
 
     if (result.warnings.length > 0) {
       console.warn('Pin layout warnings:', result.warnings);
     }
-  }, [reactFlow, setNodesLocal, adapter, ydoc, computeLayoutUnits]);
+  }, [adapter, ydoc, computeLayoutUnits]);
 
   /**
    * Recursively layout an organizer tree bottom-up.
@@ -1328,7 +1171,7 @@ export function useLayoutActions({
    */
   const recursiveLayout = useCallback(
     (organizerId: string, strategy: 'spread' | 'grid' | 'flow') => {
-      const rfNodes = reactFlow.getNodes();
+      const rfNodes = adapter.getNodes() as Node[];
 
       // Find all descendant organizers (breadth-first collection, then reverse for bottom-up)
       const queue: string[] = [organizerId];
@@ -1358,7 +1201,7 @@ export function useLayoutActions({
       // Process bottom-up (reverse order)
       for (let i = organizers.length - 1; i >= 0; i--) {
         const orgId = organizers[i];
-        const orgNode = reactFlow.getNodes().find(n => n.id === orgId);
+        const orgNode = (adapter.getNodes() as Node[]).find(n => n.id === orgId);
         if (!orgNode) continue;
 
         // Check if pinned — skip layout + fit but allow recursion (already done above)
@@ -1366,7 +1209,7 @@ export function useLayoutActions({
         if (data.layoutPinned) continue;
 
         // Apply strategy (each action snaps wagons internally via snapWagonsInOrganizer)
-        const children = reactFlow.getNodes().filter(n => n.parentId === orgId);
+        const children = (adapter.getNodes() as Node[]).filter(n => n.parentId === orgId);
         if (children.length < 2 && strategy !== 'spread') continue;
         if (children.length < 1) continue;
 
@@ -1378,7 +1221,7 @@ export function useLayoutActions({
         // fitToChildren is called at the end of each layout action already
       }
     },
-    [reactFlow, spreadChildren, gridLayoutChildren, flowLayoutChildren]
+    [adapter, spreadChildren, gridLayoutChildren, flowLayoutChildren]
   );
 
   /**
@@ -1386,7 +1229,7 @@ export function useLayoutActions({
    */
   const toggleLayoutPin = useCallback(
     (organizerId: string) => {
-      const rfNodes = reactFlow.getNodes();
+      const rfNodes = adapter.getNodes() as Node[];
       const orgNode = rfNodes.find(n => n.id === organizerId);
       if (!orgNode) return;
 
