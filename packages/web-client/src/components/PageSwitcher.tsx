@@ -292,12 +292,12 @@ export default function PageSwitcher({
     : 'Add description...';
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative max-w-[30vw]" ref={dropdownRef}>
       {/* Trigger bar */}
       <div className="flex items-end gap-1.5">
         {/* Left zone: page info (click to toggle description) */}
         <button
-          className="flex flex-col items-start gap-0.5 pl-3 pr-2 py-1.5 bg-surface text-content border border-border rounded-lg hover:bg-surface-alt transition-colors flex-1 text-left"
+          className="flex flex-col items-start gap-0.5 pl-3 pr-2 py-1.5 bg-surface text-content border border-border rounded-lg hover:bg-surface-alt transition-colors flex-1 min-w-0 text-left overflow-hidden"
           onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
         >
           <div className="flex items-center gap-1.5 w-full">
@@ -313,7 +313,7 @@ export default function PageSwitcher({
 
         {/* Right zone: dropdown chevron */}
         <button
-          className="flex items-center justify-center w-8 h-8 rounded-lg border border-border bg-surface hover:bg-surface-alt transition-colors"
+          className="flex items-center justify-center w-8 h-8 flex-shrink-0 rounded-lg border border-border bg-surface hover:bg-surface-alt transition-colors"
           onClick={() => setIsOpen(!isOpen)}
           title="Switch page"
         >

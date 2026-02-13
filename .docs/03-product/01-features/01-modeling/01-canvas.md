@@ -77,6 +77,27 @@ Each organizer has a layout strategy:
 | Collapse/expand | Click eye icon in organizer header |
 | Change layout | (Context menu on organizer) |
 
+**Ctrl+Drag Details:**
+
+**Adding to organizer:**
+1. Drag a construct over an organizer
+2. Hold Ctrl — narrative shows "Release to add to {organizer name}"
+3. Release to add construct as a member
+4. The construct's position becomes relative to the organizer
+5. The organizer automatically resizes to fit
+
+**Removing from organizer:**
+1. Drag a construct that's inside an organizer
+2. Hold Ctrl — narrative shows "Release to detach from {organizer name}"
+3. Release to detach
+4. The construct's position converts to absolute canvas coordinates
+5. The organizer shrinks to fit remaining members
+
+**Validation:**
+- Constructs can always be added to organizers
+- Wagon organizers can only be added if their construct is already a member
+- General-purpose organizers cannot nest (except via wagon attachment)
+
 ### Nesting Rules
 
 Organizers can nest — a freeform organizer can contain other organizers. Stack and grid organizers accept only constructs, not other organizers. Business rules are enforced at the attach point.

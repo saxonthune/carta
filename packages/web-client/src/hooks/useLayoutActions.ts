@@ -184,6 +184,8 @@ interface UseLayoutActionsDeps {
   adapter: DocumentAdapter;
   selectedNodeIds: string[];
   ydoc: Y.Doc;
+  /** Set of organizer IDs to suppress expandParent→Yjs writeback for one cycle */
+  suppressExpandParentWriteback?: React.MutableRefObject<Set<string>>;
 }
 
 export interface UseLayoutActionsResult {
@@ -219,6 +221,7 @@ export function useLayoutActions({
   adapter,
   selectedNodeIds,
   ydoc,
+  suppressExpandParentWriteback,
 }: UseLayoutActionsDeps): UseLayoutActionsResult {
   /**
    * Compute the layout unit size (construct + wagon tree bounding box) for nodes.
@@ -271,6 +274,8 @@ export function useLayoutActions({
    */
   const applyOrganizerSize = useCallback(
     (organizerId: string, width: number, height: number) => {
+      // Suppress expandParent→Yjs writeback so RF doesn't immediately undo the resize
+      suppressExpandParentWriteback?.current.add(organizerId);
       applyStylePatches(
         [{ id: organizerId, style: { width, height } }],
         reactFlow,
@@ -278,7 +283,7 @@ export function useLayoutActions({
         adapter
       );
     },
-    [reactFlow, setNodesLocal, adapter]
+    [reactFlow, setNodesLocal, adapter, suppressExpandParentWriteback]
   );
 
   /**
@@ -316,7 +321,9 @@ export function useLayoutActions({
       // Compute fit using domain function
       const fit = computeOrganizerFit(childGeometries);
 
-      console.debug('[organizer:layout:fit]', { organizerId, childCount: children.length, fit });
+      const orgNode = rfNodes.find(n => n.id === organizerId);
+      const currentSize = orgNode ? { width: (orgNode.style as any)?.width ?? orgNode.width, height: (orgNode.style as any)?.height ?? orgNode.height } : null;
+      console.debug('[organizer:layout:fit]', { organizerId, childCount: children.length, currentSize, computedSize: fit.size, fit });
 
       const patches: Array<{ id: string; position: { x: number; y: number } }> = [];
 

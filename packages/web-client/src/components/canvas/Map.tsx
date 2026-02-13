@@ -192,6 +192,8 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
   const isDraggingRef = useRef(false);
   const draggedNodesRef = useRef<Set<string>>(new Set());
   const resizingNodeIds = useRef<Set<string>>(new Set());
+  // Suppress expandParent→Yjs writeback during layout actions (fitToChildren, etc.)
+  const suppressExpandParentWritebackRef = useRef<Set<string>>(new Set());
 
   // Ctrl+drag visual feedback (DOM class toggle, no re-renders)
   const mapWrapperRef = useRef<HTMLDivElement>(null);
@@ -224,12 +226,17 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
           }
         } else if (organizerIdsRef.current.has(change.id) && change.dimensions) {
           // expandParent (or other source) grew an organizer — persist to Yjs
+          // BUT skip entirely if a layout action just explicitly set this organizer's size
+          if (suppressExpandParentWritebackRef.current.has(change.id)) {
+            suppressExpandParentWritebackRef.current.delete(change.id);
+            continue; // skip both Yjs writeback AND local dimension update
+          }
           adapter.patchNodes?.([{
             id: change.id,
             style: { width: change.dimensions.width, height: change.dimensions.height },
           }]);
         }
-        // Always apply dimension changes locally
+        // Apply dimension changes locally (unless skipped by continue above)
         dimensionChanges.push(change);
       }
       // Selection handled by RF internally + onSelectionChange callback
@@ -506,6 +513,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     adapter,
     selectedNodeIds,
     ydoc,
+    suppressExpandParentWriteback: suppressExpandParentWritebackRef,
   });
 
   // Handle adding construct from pane context menu

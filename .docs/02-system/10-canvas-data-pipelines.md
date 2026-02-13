@@ -128,6 +128,7 @@ Code that writes node/edge state back to Yjs or React Flow. These are the mutati
 | `routeEdges()` (useLayoutActions) | Waypoints | `adapter.patchEdgeData` |
 | `clearRoutes()` (useLayoutActions) | Clear waypoints | `adapter.patchEdgeData` |
 | Layout actions (useLayoutActions) | Node positions | `applyPositionPatches` → `setNodesLocal` + `adapter.patchNodes` |
+| Attach/detach (useLayoutActions) | Node parentId, position | `attachNodeToOrganizer` / `detachNodeFromOrganizer` → `setNodesLocal` + `adapter.patchNodes` |
 | Node sync effect (Map.tsx) | Merged nodes | `reactFlow.setNodes()` |
 | Edge sync effect (Map.tsx) | Pipeline edges | `reactFlow.setEdges()` |
 

@@ -40,6 +40,7 @@ export const bpmnSeed: SchemaSeed = {
       type: 'bpmn-event',
       displayName: 'Event',
       color: '#22c55e',
+      nodeShape: 'circle',
       semanticDescription: 'A start, intermediate, or end event in a business process',
       groupId: 'bpmn',
       fields: [
@@ -64,6 +65,7 @@ export const bpmnSeed: SchemaSeed = {
       type: 'bpmn-gateway',
       displayName: 'Gateway',
       color: '#f59e0b',
+      nodeShape: 'diamond',
       semanticDescription: 'A decision or merge point in a business process',
       groupId: 'bpmn',
       fields: [
@@ -132,6 +134,7 @@ export const bpmnSeed: SchemaSeed = {
       type: 'bpmn-data-object',
       displayName: 'Data Object',
       color: '#8b5cf6',
+      nodeShape: 'document',
       semanticDescription: 'An information artifact used or produced by activities',
       groupId: 'bpmn',
       fields: [

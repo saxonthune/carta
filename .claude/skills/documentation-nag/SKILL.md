@@ -5,291 +5,242 @@ context: fork
 model: sonnet
 ---
 
-# documentation-nag (Token-Optimized)
+# documentation-nag
 
-Analyzes recent code changes and updates documentation. Uses lazy loading, section-level retrieval, and completeness verification inspired by legal RAG research (doc00.05).
+Reads docs, reads code, finds where they disagree, fixes the docs. No git-history tricks — the detection is content-based.
 
 ## Source of Truth
 
 **`.docs/` is the canonical source of truth.** `CLAUDE.md` references `.docs/` — do NOT duplicate content into it.
 
-**CLAUDE.md policy:** Only update CLAUDE.md when a **new package, new top-level directory, or new major subsystem** is added. Bug fixes, feature tweaks, new hooks, new components, and refactors do NOT warrant CLAUDE.md changes. When in doubt, skip it.
+**CLAUDE.md policy:** Only update CLAUDE.md when a **new package, new top-level directory, or new major subsystem** is added. Bug fixes, feature tweaks, new hooks, new components, and refactors do NOT warrant CLAUDE.md changes.
 
 ---
 
-## Phase 0: Pre-flight Check
+## Phase 1: Identify What Areas Changed (1 Bash Call)
 
 ```bash
-BRANCH=$(git branch --show-current)
+bash .claude/skills/documentation-nag/analyze.sh
 ```
 
-- If branch contains `_claude`, **warn the user**: docs updates should run on the trunk branch after `/git-sync-trunk` merges worktree changes. Offer to continue anyway, but recommend switching to trunk first.
-- This ensures all worktree changes are visible and `.docs/` edits happen in one place (avoiding merge conflicts).
+This outputs changed files by package, new files, new exports/hooks/components. Use it to scope which docs to check — not to detect whether docs are stale.
+
+**The script tells you WHERE to look. Content comparison tells you WHETHER docs are stale.**
 
 ---
 
-## Phase 1: Identify Changes (Marker-Based Diff)
-
-Determine the diff base using a **fallback chain**:
-
-```bash
-# 1. Read marker file (primary)
-DOCS_BASE=""
-if [ -f .docs/.last-sync ]; then
-  CANDIDATE=$(cat .docs/.last-sync | tr -d '[:space:]')
-  # Verify the hash is reachable in current history
-  if git merge-base --is-ancestor "$CANDIDATE" HEAD 2>/dev/null; then
-    DOCS_BASE="$CANDIDATE"
-  fi
-fi
-
-# 2. Fallback: last commit that touched .docs/
-if [ -z "$DOCS_BASE" ]; then
-  DOCS_BASE=$(git log -1 --format=%H -- .docs/)
-fi
-
-# 3. Final fallback: HEAD~20
-if [ -z "$DOCS_BASE" ]; then
-  DOCS_BASE="HEAD~20"
-fi
-
-# Show scope
-git log --oneline "$DOCS_BASE"..HEAD -- ':!.docs/'
-git diff --stat "$DOCS_BASE"..HEAD -- ':!.docs/'
-git status --short
-```
-
-Report to user: "Analyzing N commits since last docs sync (base: `{DOCS_BASE_SHORT}`)."
-
-Extract:
-- Which packages changed (web-client, server, domain, etc.)
-- Which subsystems changed (hooks, components, stores, etc.)
-
----
-
-## Phase 2: Read MANIFEST and Map Tags
+## Phase 2: Map Changes to Docs via MANIFEST
 
 ```typescript
-// Always read MANIFEST first - it's the retrieval index
 Read('.docs/MANIFEST.md')
 ```
 
-Use the **Tag Index** at the bottom of MANIFEST to map changes → docs:
+Use the **Tag Index** to map changed areas to doc files:
 
-| Changed Path | Tags to Match | Relevant Docs |
-|-------------|---------------|---------------|
+| Code Change Area | Tags | Relevant Docs |
+|-----------------|------|---------------|
 | `hooks/use*.ts` | hooks, state | doc02.02, doc02.08 |
-| `components/canvas/*` | canvas, ui | doc03.01.01, doc02.07 |
-| `components/metamap/*` | metamap, schemas | doc03.01.05, doc02.06 |
-| `components/modals/*` | collaboration, ui | doc03.01.09, doc02.07 |
-| `components/ui/*` | ui, design | doc02.07 |
-| `stores/*`, `adapters/*` | state, adapters | doc02.02, doc02.03 |
-| `constructs/compiler/*` | compiler | doc03.01.07, doc02.03 |
-| `constructs/schemas/*` | schemas | doc02.06, doc03.01.02 |
-| `constructs/port*` | ports | doc03.01.03, doc02.06 |
-| `config/*` | deployment, config | doc02.05, doc04.01 |
-| `tests/*` | testing | doc04.02 |
-| `packages/server/*` | deployment, collaboration | doc02.05, doc03.01.09 |
-| `packages/desktop/*` | deployment, collaboration | doc02.05, doc03.01.09 |
+| `components/canvas/*` | canvas, ui | doc03.01.01.01, doc02.07 |
+| `components/metamap/*` | metamap, schemas | doc03.01.01.05, doc02.06 |
+| Edge routing, waypoints | pipeline, edges, waypoints | doc02.10 |
+| Organizers, layout | organizers, layout, presentation | doc02.09 |
+| Schemas, fields, ports | schemas, metamodel, ports | doc02.06, doc03.01.01.03, doc03.01.01.06 |
 | `packages/domain/*` | schemas, metamodel | doc02.06, doc01.03 |
 | `packages/document/*` | state, interfaces | doc02.02, doc02.03 |
+| `packages/server/*` | deployment, collaboration | doc02.05 |
+| `packages/compiler/*` | compiler | doc03.01.02.01 |
+
+Build a **doc checklist**: the docs to read and verify.
 
 ---
 
-## Phase 3: Section-Level Retrieval
+## Phase 3: Read the Docs AND the Code
 
-Instead of reading entire docs, use **targeted section reads**:
+This is the core. Read each doc on the checklist. Then read the corresponding code. Compare them.
+
+### 3A: Read Docs
+
+For each doc on the checklist, read it fully. Don't use section-level grep here — you need to understand the doc's claims holistically to spot gaps.
 
 ```typescript
-// Option A: Read specific section with grep
-Grep({
-  pattern: '### Hooks Layer',
-  path: '.docs/02-system/02-state.md',
-  output_mode: 'content',
-  context: 30  // Lines of context
-})
-
-// Option B: Read doc but only if you need multiple sections
-Read('.docs/02-system/02-state.md')
+// Read all relevant docs in parallel
+Read('.docs/02-system/09-presentation-model.md')
+Read('.docs/02-system/10-canvas-data-pipelines.md')
+Read('.docs/02-system/08-frontend-architecture.md')
+Read('.docs/02-system/06-metamodel.md')
+// etc.
 ```
 
-**Decision heuristic:**
-- Need 1 section → use Grep with context
-- Need 2+ sections → Read entire doc
-- Need to add new section → Read entire doc
+### 3B: Read Code to Verify Claims
+
+For each doc's claims, spot-check the code. Focus on:
+
+- **Tables of hooks/components/files** — are there new ones missing? Are listed ones deleted?
+- **Behavioral descriptions** — does the code still work that way?
+- **Architecture claims** — do the layers/patterns still match?
+
+```typescript
+// Example: doc02.08 has a hooks table. Check what hooks actually exist:
+Grep({ pattern: 'export function use[A-Z]', path: 'packages/web-client/src/hooks/', output_mode: 'content' })
+
+// Example: doc02.09 describes organizer features. Check what the code supports:
+Grep({ pattern: 'pin|constraint|PinConstraint', path: 'packages/web-client/src/', output_mode: 'files_with_matches' })
+
+// Example: doc02.10 describes edge pipeline. Check current implementation:
+Grep({ pattern: 'waypoint|routeEdges|patchEdgeData', path: 'packages/web-client/src/', output_mode: 'files_with_matches' })
+```
+
+### 3C: Build Gap Report
+
+For each gap between doc claims and code reality:
+
+```markdown
+### Gaps Found
+
+| Doc | What Doc Says (or Doesn't) | What Code Actually Does | Severity |
+|-----|---------------------------|------------------------|----------|
+| doc02.09 | No mention of pin constraints | `usePinConstraints` hook, `PinBadge` component exist | Major — new feature undocumented |
+| doc02.10 | Edge routing described as one-shot | Persistent waypoints now stored in Y.Doc | Major — behavior changed |
+| doc02.08 | Hooks table missing 3 hooks | `usePinConstraints`, `useIconMarkers`, `useFieldEvolution` exported | Minor — table incomplete |
+| doc02.06 | Field type changes not described | `changeFieldType` in schema editor, migration support | Major — new capability |
+```
+
+**Severity guide:**
+- **Major**: New feature/behavior completely absent from docs, or doc describes something that no longer works that way
+- **Minor**: Table entries missing, small description tweaks needed
+- **None**: Doc accurately describes the code (report this too, with evidence)
+
+**If no gaps found:** Report with evidence. "doc02.09 §Organizers accurately describes pin constraints at line 45, layout strategies at line 72" is credible. "Already synchronized" is not.
 
 ---
 
 ## Phase 4: Check Dependencies
 
-From MANIFEST, each doc has a **Deps** column. When editing a doc, also check its dependents:
+From MANIFEST's **Deps** column — when a doc needs updates, check docs that depend on it:
 
 ```typescript
-// Example: Editing doc02.02 (state.md)
-// MANIFEST shows doc02.08 depends on doc02.02
-// → Also read doc02.08 to check for cascading updates
-
-const editing = 'doc02.02';
-const dependents = ['doc02.08'];  // From MANIFEST Deps column (reverse lookup)
-
-for (const dep of dependents) {
-  // Check if dependent doc needs updates too
-  Grep({ pattern: 'doc02.02', path: getDocPath(dep) })
-}
+// Example: updating doc02.09 → doc02.10 depends on it
+Grep({ pattern: 'doc02\\.09', path: '.docs/02-system/10-canvas-data-pipelines.md' })
 ```
+
+Only flag dependents that reference the specific content being changed.
 
 ---
 
-## Phase 5: Generate Compact Edit Instructions
+## Phase 5: Generate Edit Instructions
 
-Use **diff-style patches with provenance**:
+For each gap, write concrete edit instructions with provenance:
 
 ```markdown
-## Edit: .docs/02-system/02-state.md
-Source: hooks/useVisualGroups.ts (new file)
+## Edit: .docs/02-system/09-presentation-model.md
+Source: packages/web-client/src/hooks/usePinConstraints.ts
+Section: §Organizers (after "Layout Strategies" subsection)
 
-```diff
-@@ line 45, in "### Hooks Layer" section @@
-+| `useVisualGroups` | Computes group nodes from flat storage |
-```
-```
+Add new subsection:
 
-**CLAUDE.md:** Skip unless a new package/directory/subsystem was added.
+### Pin Constraints
+
+Organizers support pinned constructs that maintain fixed positions during layout.
+Pin constraints are stored in the organizer's Y.Map and respected by all layout strategies.
+The `usePinConstraints` hook provides the data model; `PinBadge` renders the visual indicator.
+```
 
 **Provenance rules:**
-- Every edit must cite source (file path or doc section)
-- Use `§` to reference doc sections: `doc02.02 §Hooks Layer`
+- Every edit must cite source (code file path or doc section)
+- Use `§` to reference doc sections: `doc02.09 §Organizers`
+- If adding content, specify where it goes
 
 ---
 
 ## Phase 6: Launch Parallel Haiku Workers
 
-For each file, launch a haiku worker with **minimal context**:
+For each doc file that needs edits, launch a haiku worker:
 
 ```typescript
 Task({
   subagent_type: 'general-purpose',
   model: 'haiku',
-  prompt: `Apply this patch to ${file}:
+  prompt: `Apply these documentation updates to ${file}:
 
-Source: ${provenance}
-
-\`\`\`diff
-@@ line 45 @@
-+| \`useVisualGroups\` | Computes group nodes |
-\`\`\`
+${editInstructions}
 
 Instructions:
 1. Read ${file}
-2. Find line 45 (or the section header if line moved)
-3. Insert the + lines, remove any - lines
-4. Use Edit tool to apply`,
+2. Find the section indicated
+3. Apply the changes — add new content, update stale claims, fix references
+4. Use Edit tool to apply each change
+5. Preserve existing formatting and cross-reference style (docXX.YY)`,
   description: `Patch ${file}`
 })
 ```
 
-Launch ALL workers in a single message (parallel execution).
+Launch ALL workers in a single message.
 
 ---
 
-## Phase 7: Completeness Verification
-
-Before returning, verify:
+## Phase 7: Verification
 
 ### Coverage Check
-Every changed code path maps to at least one doc:
+
+Every significant code area maps to at least one verified doc:
 
 ```markdown
 ### Coverage Report
-| Changed File | Mapped Tags | Docs Updated |
-|-------------|-------------|--------------|
-| hooks/useVisualGroups.ts | hooks, state | doc02.02 ✓ |
-| components/canvas/VisualGroupNode.tsx | canvas, ui | doc03.01.01 ✓ |
-| stores/adapters/yjsAdapter.ts | state, adapters | doc02.02 ✓ |
-
-**Unmapped files:** none
-```
-
-### Dependency Check
-Docs that depend on edited docs were reviewed:
-
-```markdown
-### Dependency Check
-| Edited Doc | Dependents | Status |
-|-----------|------------|--------|
-| doc02.02 | doc02.08 | Checked, no changes needed |
+| Feature/Area | Code Evidence | Doc | Status |
+|-------------|---------------|-----|--------|
+| Pin constraints | usePinConstraints.ts, PinBadge.tsx | doc02.09 | Updated |
+| Persistent waypoints | waypointStore.ts | doc02.10 | Updated |
+| Schema field evolution | FieldEvolutionPanel.tsx | doc02.06 | Already current |
 ```
 
 ### Cross-Reference Integrity
-Existing `docXX.YY` references still resolve:
 
-```bash
-# Quick check for broken refs
-grep -rn "doc[0-9][0-9]\.[0-9][0-9]" .docs/ | grep -v MANIFEST
+```typescript
+Grep({ pattern: 'doc[0-9][0-9]\\.[0-9][0-9]', path: '.docs/', output_mode: 'content' })
+// Verify each ref appears in MANIFEST
 ```
 
 ---
 
-## Phase 8: Return Summary
-
-```markdown
-## Documentation Update Summary
-
-**Token efficiency:**
-- Docs read: 3 of 35 (91% saved)
-- Section-level reads: 2
-
-### Updated (with provenance)
-- .docs/02-system/02-state.md §Hooks Layer — Added useVisualGroups (source: new file)
-
-### CLAUDE.md Status
-No update needed (no new packages/directories/subsystems)
-
-### Dependency Cascade
-- doc02.08 checked — no updates needed
-
-### Coverage
-- 3/3 changed files mapped to docs ✓
-- 0 unmapped files
-
-### Skipped
-- .docs/03-product/* — No matching tags
-- .docs/04-operations/* — No matching tags
-
-### Sync Marker
-Updated `.docs/.last-sync` → `{HEAD_SHORT}`
-```
-
-After generating the summary, **write the current HEAD hash** to the marker file:
+## Phase 8: Update Sync Marker (1 Bash Call)
 
 ```bash
 git rev-parse HEAD > .docs/.last-sync
 ```
 
-This file is committed by the user alongside the docs changes. The next run will diff from this point.
+---
+
+## Phase 9: Return Summary
+
+```markdown
+## Documentation Update Summary
+
+**Docs checked:** X docs read and compared against code
+**Gaps found:** N (M major, P minor)
+
+### Gaps Fixed
+| Doc | Section | What Changed |
+|-----|---------|-------------|
+| doc02.09 | §Organizers | Added pin constraints section |
+| doc02.10 | §Edge Pipeline | Updated waypoint persistence description |
+
+### Verified Current (with evidence)
+| Doc | Section | Verified Against |
+|-----|---------|-----------------|
+| doc02.07 | §Icon System | Phosphor imports in code match doc (line 23) |
+
+### CLAUDE.md Status
+No update needed / Updated because [reason]
+
+### Sync Marker
+Updated `.docs/.last-sync` → `{HEAD_SHORT}`
+```
 
 ---
 
-## Quick Reference
+## Important Notes
 
-### Doc Path Resolution
-
-```typescript
-function getDocPath(ref: string): string {
-  // doc02.02 → .docs/02-system/02-state.md
-  // doc03.01.07 → .docs/03-product/01-features/07-compilation.md
-  // Use MANIFEST to resolve
-}
-```
-
-### Token Budget
-
-| Operation | Tokens | When |
-|-----------|--------|------|
-| MANIFEST only | ~2,500 | Initial scan |
-| MANIFEST + grep 2 sections | ~4,000 | Targeted update |
-| MANIFEST + 2 full docs | ~6,000 | Multi-section update |
-| MANIFEST + CLAUDE.md | ~12,000 | New package/subsystem only |
-| Full .docs/ | ~40,000 | Epoch bump only |
-
-**Target: Read <15% of docs for 90% of updates**
+- **Read docs and code, then compare.** The analyze script scopes the work; content comparison does the detection. Never conclude "already synchronized" from git metadata alone.
+- **Read docs fully, not by section.** When checking a doc for gaps, read the whole thing. Section-level grep misses "this entire topic is absent."
+- **Evidence for "no changes needed."** If a doc is current, say WHY — cite the lines that cover the relevant features. This is how users trust the result.
+- **Bash budget: 2 calls total.** The analyze script and the sync marker write. Everything else is Read/Grep/Edit/Task.

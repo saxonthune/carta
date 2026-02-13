@@ -57,7 +57,7 @@ The codebase provides **focused hooks** that subscribe to specific slices of doc
 - `usePages()` — pages, activePage, setActivePage, create/delete/update (renamed from useLevels)
 - `useDocumentMeta()` — title, description, setTitle, setDescription
 - `useOrganizerOperations()` — organizer operations (create, attach, detach, toggle collapse, rename, resize, delete, change layout)
-- `useLayoutActions()` — layout operations (organizer-scoped: spread/flow/grid/fit, top-level: spread/compact/hierarchical)
+- `useLayoutActions()` — layout operations (organizer-scoped: spread/flow/grid/fit, attach/detach nodes; top-level: spread/compact/hierarchical)
 - `usePresentation()` — transforms domain state into view state (node visibility, positioning, edge remapping) via the presentation model (doc02.09)
 - `useNarrative()` — narrator announcements for screen readers and visual feedback
 - `useSchemaUndoRedo()` — undo/redo for metamap schema operations

@@ -25,8 +25,8 @@ export function ConstructNodeDiamond({
     <div className="relative flex flex-col items-center" style={lodTransitionStyle}>
       <NodeResizer
         isVisible={selected}
-        minWidth={80}
-        minHeight={80}
+        minWidth={100}
+        minHeight={100}
         keepAspectRatio={true}
         lineClassName="!border-accent !border-2"
         handleClassName="!w-2 !h-2 !bg-accent !border-accent"
@@ -35,7 +35,7 @@ export function ConstructNodeDiamond({
       {/* Diamond shape: square container with rotated inner */}
       <div
         className="node-drag-handle cursor-move select-none relative"
-        style={{ width: '100%', aspectRatio: '1 / 1' }}
+        style={{ width: '100%', minWidth: 100, aspectRatio: '1 / 1' }}
       >
         {/* Rotated square */}
         <div

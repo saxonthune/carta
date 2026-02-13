@@ -117,6 +117,32 @@ React Flow handles this natively via chained `parentId`: the wagon's `parentId` 
 
 **Business rules** are enforced at the attach point (when a node is dragged into an organizer) by the `canNestInOrganizer` validation function in `useOrganizerOperations.ts`.
 
+### Ctrl+Drag Attach/Detach
+
+Users attach constructs to organizers or detach them using ctrl+drag:
+
+**Attach workflow:**
+1. User drags a construct over an organizer while holding Ctrl
+2. Narrative shows "Release to add to {organizer name}"
+3. On release, if validation passes (`canNestInOrganizer`), `attachNodeToOrganizer` (from `useLayoutActions`):
+   - Reads fresh React Flow state (prevents stale position bugs)
+   - Computes node's absolute position by walking parent chain
+   - Converts absolute position to position relative to organizer
+   - Applies 3-layer sync: RF + local state + Yjs
+   - Resizes organizer to fit new member
+
+**Detach workflow:**
+1. User drags a construct out of its organizer while holding Ctrl
+2. Narrative shows "Release to detach from {organizer name}"
+3. On release, `detachNodeFromOrganizer` (from `useLayoutActions`):
+   - Reads fresh React Flow state
+   - Computes node's absolute canvas position
+   - Applies 3-layer sync: RF + local state + Yjs (clears `parentId`, `extent`)
+   - Resizes old organizer to fit remaining members
+
+**Why useLayoutActions instead of useOrganizerOperations:**
+The ctrl+drag handlers read fresh React Flow state before position conversion. This prevents bugs where stale hook state causes incorrect relative/absolute position calculations. The operations are in `useLayoutActions` because they follow the same 3-layer sync pattern as other layout operations (see doc02.10).
+
 ### Collapse Behavior
 
 All organizer layouts share the same collapse behavior:
