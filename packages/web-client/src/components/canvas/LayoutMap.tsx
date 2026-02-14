@@ -4,7 +4,7 @@ import type { PinLayoutNode, PinDirection, OrganizerNodeData } from '@carta/doma
 import { useNodes, usePinConstraints } from '../../hooks';
 import LayoutMapOrganizerNode from './LayoutMapOrganizerNode';
 import ContextMenuPrimitive from '../ui/ContextMenuPrimitive';
-import { useViewport, useConnectionDrag, useNodeDrag, useKeyboardShortcuts, DotGrid, ConnectionPreview } from '../../canvas-engine/index.js';
+import { useViewport, useConnectionDrag, useNodeDrag, useKeyboardShortcuts, useBoxSelect, DotGrid, ConnectionPreview } from '../../canvas-engine/index.js';
 import { EdgeLabel } from '../../canvas-engine/EdgeLabel.js';
 
 interface LayoutMapProps {
@@ -163,15 +163,39 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
   // Viewport
   const { transform, containerRef, fitView } = useViewport({ minZoom: 0.15, maxZoom: 2 });
 
-  // Keyboard shortcuts (minimal, ready for future expansion with box-select)
+  // Box select
+  const getNodeRects = useCallback(
+    () =>
+      localNodes.map((n) => ({
+        id: n.id,
+        x: n.position.x,
+        y: n.position.y,
+        width: n.style?.width ?? 400,
+        height: n.style?.height ?? 300,
+      })),
+    [localNodes]
+  );
+
+  const { selectedIds, clearSelection, selectionRect } = useBoxSelect({
+    transform,
+    containerRef,
+    getNodeRects,
+  });
+
+  // Keyboard shortcuts
   useKeyboardShortcuts({
     shortcuts: [
       {
         key: ['Delete', 'Backspace'],
         action: () => {
-          // Delete the most recently right-clicked edge, if context menu was open
-          // For now, no-op — LayoutMap doesn't have selection yet.
-          // This wires up the infrastructure for when useBoxSelect is added.
+          if (selectedIds.length === 0) return;
+          // Remove all constraints involving selected nodes
+          for (const c of constraints) {
+            if (selectedIds.includes(c.sourceOrganizerId) || selectedIds.includes(c.targetOrganizerId)) {
+              removeConstraint(c.id);
+            }
+          }
+          clearSelection();
         },
       },
     ],
@@ -452,6 +476,12 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
       ref={containerRef}
       className="w-full h-full relative"
       style={{ overflow: 'hidden', touchAction: 'none', userSelect: 'none' }}
+      onPointerDown={(e) => {
+        const target = e.target as HTMLElement;
+        if (!target.closest?.('[data-no-pan]') && !e.shiftKey) {
+          clearSelection();
+        }
+      }}
     >
       {/* Background dot grid */}
       <DotGrid transform={transform} patternId="layout-map-dots" />
@@ -553,6 +583,8 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
               width: node.style?.width,
               height: node.style?.height,
               pointerEvents: 'auto',
+              outline: selectedIds.includes(node.id) ? '2px solid var(--color-accent)' : undefined,
+              outlineOffset: 2,
             }}
             onPointerDown={(e) => handleNodePointerDown(node.id, e)}
           >
@@ -641,6 +673,19 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
             {connectionHint.message}
           </div>
         </div>
+      )}
+
+      {/* Selection rectangle */}
+      {selectionRect && (
+        <div
+          className="fixed pointer-events-none border-2 border-accent/50 bg-accent/10 rounded-sm"
+          style={{
+            left: selectionRect.x,
+            top: selectionRect.y,
+            width: selectionRect.width,
+            height: selectionRect.height,
+          }}
+        />
       )}
     </div>
   );
