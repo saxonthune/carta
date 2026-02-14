@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ReactFlowProvider, type Node, type Edge } from '@xyflow/react';
 import Map from './Map';
 import Metamap from '../metamap/Metamap';
+import MetamapV2 from '../metamap-v2/MetamapV2';
 import ViewToggle from '../ViewToggle';
 import PageSwitcher from '../PageSwitcher';
 import Footer from '../Footer';
@@ -38,6 +39,7 @@ export default function CanvasContainer({
   const [viewMode, setViewMode] = useState<'instances' | 'metamap'>('instances');
   const [filterText, setFilterText] = useState('');
   const [instanceSearchText, setInstanceSearchText] = useState('');
+  const [useMetamapV2, setUseMetamapV2] = useState(false);
 
   return (
     <div className="flex-1 min-h-0 flex flex-col relative">
@@ -58,7 +60,12 @@ export default function CanvasContainer({
               placeholder="Filter schemas..."
             />
           )}
-          <ViewToggle mode={viewMode} onChange={setViewMode} />
+          <ViewToggle
+            mode={viewMode}
+            onChange={setViewMode}
+            metamapV2={useMetamapV2}
+            onToggleMetamapV2={() => setUseMetamapV2(v => !v)}
+          />
         </div>
       </div>
       {viewMode === 'instances' && (
@@ -86,6 +93,8 @@ export default function CanvasContainer({
               searchText={instanceSearchText}
             />
           </ReactFlowProvider>
+        ) : useMetamapV2 ? (
+          <MetamapV2 />
         ) : (
           <Metamap filterText={filterText} onFilterTextChange={setFilterText} />
         )}

@@ -4,6 +4,7 @@ export { useEdges } from './useEdges';
 export { useSchemas } from './useSchemas';
 export { usePortSchemas } from './usePortSchemas';
 export { useSchemaGroups } from './useSchemaGroups';
+export { useSchemaPackages } from './useSchemaPackages';
 export { usePages } from './usePages';
 export { useDocumentMeta } from './useDocumentMeta';
 

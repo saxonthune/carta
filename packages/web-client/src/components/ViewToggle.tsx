@@ -1,3 +1,4 @@
+import { Star } from '@phosphor-icons/react';
 import SegmentedControl from './ui/SegmentedControl';
 
 const VIEW_OPTIONS = [
@@ -8,8 +9,27 @@ const VIEW_OPTIONS = [
 interface ViewToggleProps {
   mode: 'instances' | 'metamap';
   onChange: (mode: 'instances' | 'metamap') => void;
+  metamapV2?: boolean;
+  onToggleMetamapV2?: () => void;
 }
 
-export default function ViewToggle({ mode, onChange }: ViewToggleProps) {
-  return <SegmentedControl options={VIEW_OPTIONS} value={mode} onChange={onChange} />;
+export default function ViewToggle({ mode, onChange, metamapV2, onToggleMetamapV2 }: ViewToggleProps) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <SegmentedControl options={VIEW_OPTIONS} value={mode} onChange={onChange} />
+      {mode === 'metamap' && onToggleMetamapV2 && (
+        <button
+          onClick={onToggleMetamapV2}
+          className={`w-7 h-7 flex items-center justify-center rounded-md transition-colors ${
+            metamapV2
+              ? 'bg-amber-500 text-white shadow-sm'
+              : 'bg-surface-alt text-content-muted hover:bg-surface-alt/80'
+          }`}
+          title={metamapV2 ? 'Switch to classic metamap' : 'Try new metamap'}
+        >
+          <Star weight={metamapV2 ? 'fill' : 'regular'} size={14} />
+        </button>
+      )}
+    </div>
+  );
 }
