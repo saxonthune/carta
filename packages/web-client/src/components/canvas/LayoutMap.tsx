@@ -157,6 +157,7 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
     x: number;
     y: number;
     mode: 'guidance' | 'valid' | 'invalid';
+    anchor: 'mouse' | 'target';
   } | null>(null);
 
   // Viewport
@@ -253,13 +254,26 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
             },
             nodeNameMapRef.current
           );
-          setConnectionHint({
-            valid: result.valid,
-            message: result.message,
-            x: e.clientX,
-            y: e.clientY,
-            mode: result.valid ? 'valid' : 'invalid',
-          });
+          if (result.valid) {
+            const rect = targetEl.getBoundingClientRect();
+            setConnectionHint({
+              valid: true,
+              message: result.message,
+              x: rect.left + rect.width / 2,
+              y: rect.top,
+              mode: 'valid',
+              anchor: 'target',
+            });
+          } else {
+            setConnectionHint({
+              valid: false,
+              message: result.message,
+              x: e.clientX,
+              y: e.clientY,
+              mode: 'invalid',
+              anchor: 'mouse',
+            });
+          }
           return;
         }
       }
@@ -270,6 +284,7 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
         x: e.clientX,
         y: e.clientY,
         mode: 'guidance',
+        anchor: 'mouse',
       });
     };
 
@@ -646,7 +661,9 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
           className="fixed z-[40] pointer-events-none"
           style={{
             left: connectionHint.x,
-            top: connectionHint.y - 40,
+            top: connectionHint.anchor === 'target'
+              ? connectionHint.y - 8
+              : connectionHint.y - 40,
             transform: 'translateX(-50%)',
           }}
         >
