@@ -28,6 +28,58 @@ interface LocalEdge {
 
 const VALID_SOURCE_HANDLES = new Set(['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']);
 
+interface ConnectionCandidate {
+  source: string;
+  sourceHandle: string;
+  target: string;
+  targetHandle: string;
+}
+
+interface ConnectionRule {
+  id: string;
+  message: string;
+  test: (candidate: ConnectionCandidate) => boolean; // true = passes
+}
+
+interface ValidationResult {
+  valid: boolean;
+  message: string; // description if valid, rejection reason if invalid
+}
+
+const LAYOUT_MAP_RULES: ConnectionRule[] = [
+  {
+    id: 'no-self-loop',
+    message: 'Cannot connect to self',
+    test: (c) => c.source !== c.target,
+  },
+  {
+    id: 'source-is-compass',
+    message: 'Must drag from a compass handle',
+    test: (c) => VALID_SOURCE_HANDLES.has(c.sourceHandle),
+  },
+  {
+    id: 'target-is-body',
+    message: 'Must drop on organizer body',
+    test: (c) => c.targetHandle === 'body',
+  },
+];
+
+function validateConnection(
+  rules: ConnectionRule[],
+  candidate: ConnectionCandidate,
+  nameMap: Map<string, string>
+): ValidationResult {
+  for (const rule of rules) {
+    if (!rule.test(candidate)) {
+      return { valid: false, message: rule.message };
+    }
+  }
+  const sourceName = nameMap.get(candidate.target) || candidate.target;
+  const targetName = nameMap.get(candidate.source) || candidate.source;
+  const direction = candidate.sourceHandle;
+  return { valid: true, message: `${sourceName} ${direction} of ${targetName}` };
+}
+
 function getHandlePosition(node: LocalNode, handleId: string | null | undefined): { x: number; y: number } {
   const w = node.style?.width ?? 400;
   const h = node.style?.height ?? 300;
@@ -65,6 +117,12 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
   const [edgeContextMenu, setEdgeContextMenu] = useState<{ x: number; y: number; edgeId: string } | null>(
     null
   );
+  const [connectionHint, setConnectionHint] = useState<{
+    valid: boolean;
+    message: string;
+    x: number;
+    y: number;
+  } | null>(null);
 
   // Viewport
   const { transform, containerRef, fitView } = useViewport({ minZoom: 0.15, maxZoom: 2 });
@@ -93,6 +151,16 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
     originalY: number;
   } | null>(null);
 
+  // Node name map for validation messages
+  const nodeNameMapRef = useRef(new Map<string, string>());
+  useEffect(() => {
+    const map = new Map<string, string>();
+    for (const n of localNodes) {
+      map.set(n.id, n.data.name || n.id);
+    }
+    nodeNameMapRef.current = map;
+  }, [localNodes]);
+
   // Connection drag
   const handleConnect = useCallback(
     (connection: { source: string; sourceHandle: string; target: string; targetHandle: string }) => {
@@ -106,10 +174,8 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
 
   const isValidConnection = useCallback(
     (connection: { source: string; sourceHandle: string; target: string; targetHandle: string }) => {
-      if (connection.source === connection.target) return false;
-      if (!VALID_SOURCE_HANDLES.has(connection.sourceHandle)) return false;
-      if (connection.targetHandle !== 'body') return false;
-      return true;
+      const result = validateConnection(LAYOUT_MAP_RULES, connection, nodeNameMapRef.current);
+      return result.valid;
     },
     []
   );
@@ -118,6 +184,50 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
     onConnect: handleConnect,
     isValidConnection,
   });
+
+  // Connection drag feedback - hit-test and show hints
+  useEffect(() => {
+    if (!connectionDrag) {
+      setConnectionHint(null);
+      return;
+    }
+
+    const handleMove = (e: PointerEvent) => {
+      const elements = document.elementsFromPoint(e.clientX, e.clientY);
+      const targetEl = elements.find((el) =>
+        el.hasAttribute('data-connection-target')
+      ) as HTMLElement | undefined;
+
+      if (targetEl) {
+        const targetNodeId = targetEl.getAttribute('data-node-id');
+        const targetHandleId = targetEl.getAttribute('data-handle-id');
+        if (targetNodeId && targetHandleId) {
+          const result = validateConnection(
+            LAYOUT_MAP_RULES,
+            {
+              source: connectionDrag.sourceNodeId,
+              sourceHandle: connectionDrag.sourceHandle,
+              target: targetNodeId,
+              targetHandle: targetHandleId,
+            },
+            nodeNameMapRef.current
+          );
+          setConnectionHint({
+            valid: result.valid,
+            message: result.message,
+            x: e.clientX,
+            y: e.clientY,
+          });
+          return;
+        }
+      }
+      // Not hovering over a valid target
+      setConnectionHint(null);
+    };
+
+    window.addEventListener('pointermove', handleMove);
+    return () => window.removeEventListener('pointermove', handleMove);
+  }, [connectionDrag]);
 
   // Initialize layout nodes from real canvas organizers
   useEffect(() => {
@@ -362,13 +472,22 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
           const screenSourceX = sourcePos.x * transform.k + transform.x;
           const screenSourceY = sourcePos.y * transform.k + transform.y;
 
+          // Get container offset for correct SVG coordinates
+          const containerRect = containerRef.current?.getBoundingClientRect();
+          const offsetX = containerRect?.left ?? 0;
+          const offsetY = containerRect?.top ?? 0;
+
+          const strokeColor = connectionHint
+            ? (connectionHint.valid ? 'var(--color-success, #22c55e)' : 'var(--color-error, #ef4444)')
+            : 'var(--color-accent)';
+
           return (
             <line
               x1={screenSourceX}
               y1={screenSourceY}
-              x2={connectionDrag.currentX}
-              y2={connectionDrag.currentY}
-              stroke="var(--color-accent)"
+              x2={connectionDrag.currentX - offsetX}
+              y2={connectionDrag.currentY - offsetY}
+              stroke={strokeColor}
               strokeWidth={2}
               strokeDasharray="4 4"
               style={{ pointerEvents: 'none' }}
@@ -445,6 +564,28 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
           ]}
           onClose={() => setEdgeContextMenu(null)}
         />
+      )}
+
+      {/* Connection hint narrative */}
+      {connectionHint && (
+        <div
+          className="fixed z-[40] pointer-events-none"
+          style={{
+            left: connectionHint.x,
+            top: connectionHint.y - 40,
+            transform: 'translateX(-50%)',
+          }}
+        >
+          <div
+            className={`rounded-md shadow-md px-2.5 py-1.5 text-xs font-medium whitespace-nowrap ${
+              connectionHint.valid
+                ? 'bg-emerald-600/90 text-white'
+                : 'bg-red-600/90 text-white'
+            }`}
+          >
+            {connectionHint.message}
+          </div>
+        </div>
       )}
     </div>
   );

@@ -54,21 +54,6 @@ const LayoutMapOrganizerNode = memo((props: LayoutMapOrganizerNodeProps) => {
         borderColor,
       }}
     >
-      {/* Body target handle - invisible, covers entire node */}
-      <ConnectionHandle
-        type="target"
-        id="body"
-        nodeId={id}
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          opacity: 0,
-        }}
-      />
-
       {/* Drag bar */}
       <div
         className="drag-handle absolute rounded-full cursor-grab active:cursor-grabbing"
@@ -83,9 +68,29 @@ const LayoutMapOrganizerNode = memo((props: LayoutMapOrganizerNodeProps) => {
         }}
       />
 
-      {/* Organizer name */}
-      <div className="text-sm font-medium text-content px-4 text-center">
-        {name}
+      {/* Label with connection target zone */}
+      <div className="relative px-4 text-center">
+        <ConnectionHandle
+          type="target"
+          id="body"
+          nodeId={id}
+          style={{
+            position: 'absolute',
+            top: -8,
+            left: -12,
+            right: -12,
+            bottom: -8,
+            width: 'calc(100% + 24px)',
+            height: 'calc(100% + 16px)',
+            borderRadius: 8,
+            border: '2px dashed transparent',
+            zIndex: 0,
+          }}
+          className="transition-colors hover:border-accent/40"
+        />
+        <span className="text-sm font-medium text-content relative" style={{ zIndex: 1 }}>
+          {name}
+        </span>
       </div>
 
       {/* 8 directional source handles */}
