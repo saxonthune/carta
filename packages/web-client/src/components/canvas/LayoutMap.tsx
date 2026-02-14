@@ -4,7 +4,7 @@ import type { PinLayoutNode, PinDirection, OrganizerNodeData } from '@carta/doma
 import { useNodes, usePinConstraints } from '../../hooks';
 import LayoutMapOrganizerNode from './LayoutMapOrganizerNode';
 import ContextMenuPrimitive from '../ui/ContextMenuPrimitive';
-import { useViewport, useConnectionDrag, useNodeDrag, useKeyboardShortcuts, useBoxSelect, DotGrid, ConnectionPreview } from '../../canvas-engine/index.js';
+import { Canvas, useCanvasContext, useNodeDrag, useKeyboardShortcuts, ConnectionPreview, type CanvasRef } from '../../canvas-engine/index.js';
 import { EdgeLabel } from '../../canvas-engine/EdgeLabel.js';
 import CanvasToolbar, { ToolbarButton, ToolbarDivider } from './CanvasToolbar';
 import { Tooltip } from '../ui';
@@ -144,46 +144,50 @@ export function getHandlePosition(node: LocalNode, handleId: string | null | und
   }
 }
 
-export default function LayoutMap({ onClose }: LayoutMapProps) {
-  const { nodes: allNodes } = useNodes();
-  const { constraints, addConstraint, removeConstraint } = usePinConstraints();
-
-  // Local state for layout view nodes/edges (independent from real canvas)
-  const [localNodes, setLocalNodes] = useState<LocalNode[]>([]);
-  const [localEdges, setLocalEdges] = useState<LocalEdge[]>([]);
-  const [edgeContextMenu, setEdgeContextMenu] = useState<{ x: number; y: number; edgeId: string } | null>(
-    null
-  );
-  const [connectionHint, setConnectionHint] = useState<{
+interface LayoutMapInnerProps {
+  localNodes: LocalNode[];
+  setLocalNodes: React.Dispatch<React.SetStateAction<LocalNode[]>>;
+  localNodesRef: React.MutableRefObject<LocalNode[]>;
+  constraints: any[];
+  removeConstraint: (id: string) => void;
+  onClose: () => void;
+  handleTestLayout: () => void;
+  canvasRef: React.RefObject<CanvasRef | null>;
+  edgeContextMenu: { x: number; y: number; edgeId: string } | null;
+  setEdgeContextMenu: React.Dispatch<React.SetStateAction<{ x: number; y: number; edgeId: string } | null>>;
+  connectionHint: {
     valid: boolean;
     message: string;
     x: number;
     y: number;
     mode: 'guidance' | 'valid' | 'invalid';
     anchor: 'mouse' | 'target';
-  } | null>(null);
+  } | null;
+  setConnectionHint: React.Dispatch<React.SetStateAction<{
+    valid: boolean;
+    message: string;
+    x: number;
+    y: number;
+    mode: 'guidance' | 'valid' | 'invalid';
+    anchor: 'mouse' | 'target';
+  } | null>>;
+}
 
-  // Viewport
-  const { transform, containerRef, fitView, zoomIn, zoomOut } = useViewport({ minZoom: 0.15, maxZoom: 2 });
-
-  // Box select
-  const getNodeRects = useCallback(
-    () =>
-      localNodes.map((n) => ({
-        id: n.id,
-        x: n.position.x,
-        y: n.position.y,
-        width: n.style?.width ?? 400,
-        height: n.style?.height ?? 300,
-      })),
-    [localNodes]
-  );
-
-  const { selectedIds, clearSelection, selectionRect } = useBoxSelect({
-    transform,
-    containerRef,
-    getNodeRects,
-  });
+function LayoutMapInner({
+  localNodes,
+  setLocalNodes,
+  localNodesRef,
+  constraints,
+  removeConstraint,
+  onClose,
+  handleTestLayout,
+  canvasRef,
+  edgeContextMenu,
+  setEdgeContextMenu,
+  connectionHint,
+  setConnectionHint,
+}: LayoutMapInnerProps) {
+  const { transform, connectionDrag, startConnection, selectedIds, clearSelection } = useCanvasContext();
 
   // Keyboard shortcuts
   useKeyboardShortcuts({
@@ -204,27 +208,6 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
     ],
   });
 
-  // Refs for accessing current values inside native event listeners (Pattern 2: stable callbacks)
-  const localNodesRef = useRef(localNodes);
-  localNodesRef.current = localNodes;
-  const transformRef = useRef(transform);
-  transformRef.current = transform;
-
-  // FitView on mount
-  const fitViewDoneRef = useRef(false);
-  useEffect(() => {
-    if (localNodes.length > 0 && !fitViewDoneRef.current) {
-      const rects = localNodes.map((n) => ({
-        x: n.position.x,
-        y: n.position.y,
-        width: n.style?.width ?? 400,
-        height: n.style?.height ?? 300,
-      }));
-      fitView(rects, 0.2);
-      fitViewDoneRef.current = true;
-    }
-  }, [localNodes, fitView]);
-
   // Drag origin for cumulative delta application
   const dragOriginRef = useRef<{ nodeId: string; x: number; y: number } | null>(null);
 
@@ -237,30 +220,6 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
     }
     nodeNameMapRef.current = map;
   }, [localNodes]);
-
-  // Connection drag
-  const handleConnect = useCallback(
-    (connection: { source: string; sourceHandle: string; target: string; targetHandle: string }) => {
-      if (connection.source === connection.target) return; // no self-loops
-      const direction = connection.sourceHandle as PinDirection;
-      // Swap source and target: dragging from org1's NE handle to org2 means "org2 is NE of org1"
-      addConstraint(connection.target, connection.source, direction);
-    },
-    [addConstraint]
-  );
-
-  const isValidConnection = useCallback(
-    (connection: { source: string; sourceHandle: string; target: string; targetHandle: string }) => {
-      const result = validateConnection(LAYOUT_MAP_RULES, connection, nodeNameMapRef.current);
-      return result.valid;
-    },
-    []
-  );
-
-  const { connectionDrag, startConnection } = useConnectionDrag({
-    onConnect: handleConnect,
-    isValidConnection,
-  });
 
   // Connection drag feedback - hit-test and show hints
   useEffect(() => {
@@ -326,6 +285,247 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
     window.addEventListener('pointermove', handleMove);
     return () => window.removeEventListener('pointermove', handleMove);
   }, [connectionDrag]);
+
+  // Handle node drag using canvas-engine primitive
+  const { onPointerDown: handleNodePointerDown } = useNodeDrag({
+    zoomScale: transform.k,
+    handleSelector: '.drag-handle',
+    callbacks: {
+      onDragStart: (nodeId) => {
+        // Store original position for cumulative delta application
+        const node = localNodesRef.current.find((n) => n.id === nodeId);
+        if (node) dragOriginRef.current = { nodeId, x: node.position.x, y: node.position.y };
+      },
+      onDrag: (nodeId, deltaX, deltaY) => {
+        const origin = dragOriginRef.current;
+        if (!origin || origin.nodeId !== nodeId) return;
+        setLocalNodes((prev) =>
+          prev.map((n) =>
+            n.id === nodeId
+              ? { ...n, position: { x: origin.x + deltaX, y: origin.y + deltaY } }
+              : n
+          )
+        );
+      },
+      onDragEnd: () => {
+        dragOriginRef.current = null;
+      },
+    },
+  });
+
+  // Edge context menu handling
+  const handleDeleteConstraint = useCallback(() => {
+    if (edgeContextMenu) {
+      removeConstraint(edgeContextMenu.edgeId);
+      setEdgeContextMenu(null);
+    }
+  }, [edgeContextMenu, removeConstraint]);
+
+  return (
+    <>
+      {/* Node HTML layer - rendered as Canvas children (inside transformed div) */}
+      {localNodes.map((node) => (
+        <div
+          key={node.id}
+          data-no-pan="true"
+          style={{
+            position: 'absolute',
+            left: node.position.x,
+            top: node.position.y,
+            width: node.style?.width,
+            height: node.style?.height,
+            pointerEvents: 'auto',
+            outline: selectedIds.includes(node.id) ? '2px solid var(--color-accent)' : undefined,
+            outlineOffset: 2,
+          }}
+          onPointerDown={(e) => handleNodePointerDown(node.id, e)}
+        >
+          <LayoutMapOrganizerNode id={node.id} data={node.data} onStartConnection={startConnection} />
+        </div>
+      ))}
+
+      {/* Toolbar */}
+      <CanvasToolbar>
+        <ToolbarButton onClick={() => canvasRef.current?.zoomIn()} tooltip="Zoom in">
+          <MagnifyingGlassPlus weight="bold" size={16} />
+        </ToolbarButton>
+        <ToolbarButton onClick={() => canvasRef.current?.zoomOut()} tooltip="Zoom out">
+          <MagnifyingGlassMinus weight="bold" size={16} />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => {
+            const rects = localNodes.map((n) => ({
+              x: n.position.x,
+              y: n.position.y,
+              width: n.style?.width ?? 400,
+              height: n.style?.height ?? 300,
+            }));
+            canvasRef.current?.fitView(rects, 0.2);
+          }}
+          tooltip="Fit view"
+        >
+          <CornersOut weight="bold" size={16} />
+        </ToolbarButton>
+        <ToolbarDivider />
+        <ToolbarButton onClick={handleTestLayout} tooltip="Test layout">
+          <ArrowsClockwise weight="bold" size={16} />
+        </ToolbarButton>
+      </CanvasToolbar>
+
+      {/* Close button */}
+      <div data-no-pan="true" className="absolute bottom-4 left-4 z-10">
+        <Tooltip content="Close" placement="right">
+          <button
+            onClick={onClose}
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-surface border border-border shadow-sm text-content-muted hover:bg-red-500 hover:border-red-500 hover:text-white transition-colors"
+          >
+            <X weight="bold" size={18} />
+          </button>
+        </Tooltip>
+      </div>
+
+      {/* Edge context menu */}
+      {edgeContextMenu && (
+        <ContextMenuPrimitive
+          x={edgeContextMenu.x}
+          y={edgeContextMenu.y}
+          items={[
+            {
+              key: 'delete',
+              label: 'Delete Constraint',
+              danger: true,
+              onClick: handleDeleteConstraint,
+            },
+          ]}
+          onClose={() => setEdgeContextMenu(null)}
+        />
+      )}
+
+      {/* Connection hint narrative */}
+      {connectionHint && (
+        <div
+          className="fixed z-[40] pointer-events-none"
+          style={{
+            left: connectionHint.x,
+            top: connectionHint.anchor === 'target'
+              ? connectionHint.y - 8
+              : connectionHint.y - 40,
+            transform: 'translateX(-50%)',
+          }}
+        >
+          <div
+            className={`rounded-md shadow-md px-2.5 py-1.5 text-xs font-medium whitespace-nowrap ${
+              connectionHint.mode === 'valid'
+                ? 'bg-emerald-600/90 text-white'
+                : connectionHint.mode === 'invalid'
+                  ? 'bg-red-600/90 text-white'
+                  : 'bg-surface-depth-1/90 text-content-muted border border-border'
+            }`}
+          >
+            {connectionHint.message}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+export default function LayoutMap({ onClose }: LayoutMapProps) {
+  const { nodes: allNodes } = useNodes();
+  const { constraints, addConstraint, removeConstraint } = usePinConstraints();
+  const canvasRef = useRef<CanvasRef>(null);
+
+  // Local state for layout view nodes/edges (independent from real canvas)
+  const [localNodes, setLocalNodes] = useState<LocalNode[]>([]);
+  const [localEdges, setLocalEdges] = useState<LocalEdge[]>([]);
+  const [edgeContextMenu, setEdgeContextMenu] = useState<{ x: number; y: number; edgeId: string } | null>(
+    null
+  );
+  const [connectionHint, setConnectionHint] = useState<{
+    valid: boolean;
+    message: string;
+    x: number;
+    y: number;
+    mode: 'guidance' | 'valid' | 'invalid';
+    anchor: 'mouse' | 'target';
+  } | null>(null);
+
+  // Refs for accessing current values inside native event listeners (Pattern 2: stable callbacks)
+  const localNodesRef = useRef(localNodes);
+  localNodesRef.current = localNodes;
+
+  // FitView on mount
+  const fitViewDoneRef = useRef(false);
+  useEffect(() => {
+    if (localNodes.length > 0 && !fitViewDoneRef.current) {
+      const rects = localNodes.map((n) => ({
+        x: n.position.x,
+        y: n.position.y,
+        width: n.style?.width ?? 400,
+        height: n.style?.height ?? 300,
+      }));
+      canvasRef.current?.fitView(rects, 0.2);
+      fitViewDoneRef.current = true;
+    }
+  }, [localNodes]);
+
+  // Connection drag callbacks
+  const handleConnect = useCallback(
+    (connection: { source: string; sourceHandle: string; target: string; targetHandle: string }) => {
+      if (connection.source === connection.target) return; // no self-loops
+      const direction = connection.sourceHandle as PinDirection;
+      // Swap source and target: dragging from org1's NE handle to org2 means "org2 is NE of org1"
+      addConstraint(connection.target, connection.source, direction);
+    },
+    [addConstraint]
+  );
+
+  const isValidConnection = useCallback(
+    (connection: { source: string; sourceHandle: string; target: string; targetHandle: string }) => {
+      const nameMap = new Map<string, string>();
+      for (const n of localNodesRef.current) {
+        nameMap.set(n.id, n.data.name || n.id);
+      }
+      const result = validateConnection(LAYOUT_MAP_RULES, connection, nameMap);
+      return result.valid;
+    },
+    []
+  );
+
+  const getNodeRects = useCallback(
+    () => localNodes.map((n) => ({
+      id: n.id,
+      x: n.position.x, y: n.position.y,
+      width: n.style?.width ?? 400, height: n.style?.height ?? 300,
+    })),
+    [localNodes]
+  );
+
+  const handleEdgeContextMenu = useCallback((event: React.MouseEvent, edgeId: string) => {
+    event.preventDefault();
+    setEdgeContextMenu({ x: event.clientX, y: event.clientY, edgeId });
+  }, []);
+
+  // Test Layout: resolve constraints and update local positions
+  const handleTestLayout = useCallback(() => {
+    const layoutNodes: PinLayoutNode[] = localNodes.map((n) => ({
+      id: n.id,
+      x: n.position.x,
+      y: n.position.y,
+      width: n.style?.width ?? 400,
+      height: n.style?.height ?? 300,
+    }));
+
+    const result = resolvePinConstraints(layoutNodes, constraints);
+
+    // Update local node positions
+    setLocalNodes((prev) =>
+      prev.map((n) => {
+        const pos = result.positions.get(n.id);
+        return pos ? { ...n, position: { x: pos.x, y: pos.y } } : n;
+      })
+    );
+  }, [localNodes, constraints]);
 
   // Initialize layout nodes from real canvas organizers
   useEffect(() => {
@@ -413,85 +613,21 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [constraints, nodeNameKey]);
 
-  // Handle node drag using canvas-engine primitive
-  const { onPointerDown: handleNodePointerDown } = useNodeDrag({
-    zoomScale: transform.k,
-    handleSelector: '.drag-handle',
-    callbacks: {
-      onDragStart: (nodeId) => {
-        // Store original position for cumulative delta application
-        const node = localNodesRef.current.find((n) => n.id === nodeId);
-        if (node) dragOriginRef.current = { nodeId, x: node.position.x, y: node.position.y };
-      },
-      onDrag: (nodeId, deltaX, deltaY) => {
-        const origin = dragOriginRef.current;
-        if (!origin || origin.nodeId !== nodeId) return;
-        setLocalNodes((prev) =>
-          prev.map((n) =>
-            n.id === nodeId
-              ? { ...n, position: { x: origin.x + deltaX, y: origin.y + deltaY } }
-              : n
-          )
-        );
-      },
-      onDragEnd: () => {
-        dragOriginRef.current = null;
-      },
-    },
-  });
-
-  // Edge context menu handling
-  const onEdgeContextMenu = useCallback((event: React.MouseEvent, edgeId: string) => {
-    event.preventDefault();
-    setEdgeContextMenu({ x: event.clientX, y: event.clientY, edgeId });
-  }, []);
-
-  const handleDeleteConstraint = useCallback(() => {
-    if (edgeContextMenu) {
-      removeConstraint(edgeContextMenu.edgeId);
-      setEdgeContextMenu(null);
-    }
-  }, [edgeContextMenu, removeConstraint]);
-
-  // Test Layout: resolve constraints and update local positions
-  const handleTestLayout = useCallback(() => {
-    const layoutNodes: PinLayoutNode[] = localNodes.map((n) => ({
-      id: n.id,
-      x: n.position.x,
-      y: n.position.y,
-      width: n.style?.width ?? 400,
-      height: n.style?.height ?? 300,
-    }));
-
-    const result = resolvePinConstraints(layoutNodes, constraints);
-
-    // Update local node positions
-    setLocalNodes((prev) =>
-      prev.map((n) => {
-        const pos = result.positions.get(n.id);
-        return pos ? { ...n, position: { x: pos.x, y: pos.y } } : n;
-      })
-    );
-  }, [localNodes, constraints]);
-
   return (
-    <div
-      ref={containerRef}
-      className="w-full h-full relative"
-      style={{ overflow: 'hidden', touchAction: 'none', userSelect: 'none' }}
-      onPointerDown={(e) => {
-        const target = e.target as HTMLElement;
-        if (!target.closest?.('[data-no-pan]') && !e.shiftKey) {
-          clearSelection();
+    <Canvas
+      ref={canvasRef}
+      viewportOptions={{ minZoom: 0.15, maxZoom: 2 }}
+      connectionDrag={{ onConnect: handleConnect, isValidConnection }}
+      boxSelect={{ getNodeRects }}
+      patternId="layout-map-dots"
+      onBackgroundPointerDown={(e) => {
+        if (!e.shiftKey) {
+          canvasRef.current?.clearSelection();
         }
       }}
-    >
-      {/* Background dot grid */}
-      <DotGrid transform={transform} patternId="layout-map-dots" />
-
-      {/* Edge SVG layer */}
-      <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0 }} className="pointer-events-none">
-        <g transform={`translate(${transform.x}, ${transform.y}) scale(${transform.k})`}>
+      className="w-full h-full"
+      renderEdges={() => (
+        <>
           {localEdges.map((edge) => {
             const sourceNode = localNodes.find((n) => n.id === edge.source);
             const targetNode = localNodes.find((n) => n.id === edge.target);
@@ -512,13 +648,13 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
                   y2={targetPos.y}
                   stroke="var(--color-accent)"
                   strokeWidth={2}
-                  onContextMenu={(e) => onEdgeContextMenu(e, edge.id)}
+                  onContextMenu={(e) => handleEdgeContextMenu(e, edge.id)}
                   style={{ cursor: 'context-menu' }}
                 />
                 <EdgeLabel
                   x={midX}
                   y={midY}
-                  onContextMenu={(e) => onEdgeContextMenu(e, edge.id)}
+                  onContextMenu={(e) => handleEdgeContextMenu(e, edge.id)}
                 >
                   <span style={{ fontSize: 11, color: 'var(--color-content-muted)' }}>
                     {edge.label}
@@ -527,170 +663,53 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
               </g>
             );
           })}
-        </g>
-
-        {/* Connection preview curve (screen coords, outside the transform group) */}
-        {connectionDrag && (() => {
-          const sourceNode = localNodes.find((n) => n.id === connectionDrag.sourceNodeId);
-          if (!sourceNode) return null;
-
-          const sourcePos = getHandlePosition(sourceNode, connectionDrag.sourceHandle);
-          const screenSourceX = sourcePos.x * transform.k + transform.x;
-          const screenSourceY = sourcePos.y * transform.k + transform.y;
-
-          // Get container offset for correct SVG coordinates
-          const containerRect = containerRef.current?.getBoundingClientRect();
-          const offsetX = containerRect?.left ?? 0;
-          const offsetY = containerRect?.top ?? 0;
-
-          const endX = connectionDrag.currentX - offsetX;
-          const endY = connectionDrag.currentY - offsetY;
-
-          const d = getConnectionPath(
-            screenSourceX, screenSourceY,
-            endX, endY,
-            connectionDrag.sourceHandle
-          );
-
-          const strokeColor = connectionHint && connectionHint.mode !== 'guidance'
-            ? (connectionHint.valid ? 'var(--color-success, #22c55e)' : 'var(--color-error, #ef4444)')
-            : 'var(--color-accent)';
-
-          return (
-            <ConnectionPreview
-              d={d}
-              stroke={strokeColor}
-            />
-          );
-        })()}
-      </svg>
-
-      {/* Node HTML layer */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.k})`,
-          transformOrigin: '0 0',
-          pointerEvents: 'none',
-        }}
-      >
-        {localNodes.map((node) => (
-          <div
-            key={node.id}
-            data-no-pan="true"
-            style={{
-              position: 'absolute',
-              left: node.position.x,
-              top: node.position.y,
-              width: node.style?.width,
-              height: node.style?.height,
-              pointerEvents: 'auto',
-              outline: selectedIds.includes(node.id) ? '2px solid var(--color-accent)' : undefined,
-              outlineOffset: 2,
-            }}
-            onPointerDown={(e) => handleNodePointerDown(node.id, e)}
-          >
-            <LayoutMapOrganizerNode id={node.id} data={node.data} onStartConnection={startConnection} />
-          </div>
-        ))}
-      </div>
-
-      {/* Toolbar */}
-      <CanvasToolbar>
-        <ToolbarButton onClick={zoomIn} tooltip="Zoom in">
-          <MagnifyingGlassPlus weight="bold" size={16} />
-        </ToolbarButton>
-        <ToolbarButton onClick={zoomOut} tooltip="Zoom out">
-          <MagnifyingGlassMinus weight="bold" size={16} />
-        </ToolbarButton>
-        <ToolbarButton
-          onClick={() => {
-            const rects = localNodes.map((n) => ({
-              x: n.position.x,
-              y: n.position.y,
-              width: n.style?.width ?? 400,
-              height: n.style?.height ?? 300,
-            }));
-            fitView(rects, 0.2);
-          }}
-          tooltip="Fit view"
-        >
-          <CornersOut weight="bold" size={16} />
-        </ToolbarButton>
-        <ToolbarDivider />
-        <ToolbarButton onClick={handleTestLayout} tooltip="Test layout">
-          <ArrowsClockwise weight="bold" size={16} />
-        </ToolbarButton>
-      </CanvasToolbar>
-
-      {/* Close button */}
-      <div data-no-pan="true" className="absolute bottom-4 left-4 z-10">
-        <Tooltip content="Close" placement="right">
-          <button
-            onClick={onClose}
-            className="w-10 h-10 flex items-center justify-center rounded-full bg-surface border border-border shadow-sm text-content-muted hover:bg-red-500 hover:border-red-500 hover:text-white transition-colors"
-          >
-            <X weight="bold" size={18} />
-          </button>
-        </Tooltip>
-      </div>
-
-      {/* Edge context menu */}
-      {edgeContextMenu && (
-        <ContextMenuPrimitive
-          x={edgeContextMenu.x}
-          y={edgeContextMenu.y}
-          items={[
-            {
-              key: 'delete',
-              label: 'Delete Constraint',
-              danger: true,
-              onClick: handleDeleteConstraint,
-            },
-          ]}
-          onClose={() => setEdgeContextMenu(null)}
-        />
+        </>
       )}
+      renderConnectionPreview={(drag, transform) => {
+        const sourceNode = localNodes.find((n) => n.id === drag.sourceNodeId);
+        if (!sourceNode) return null;
 
-      {/* Connection hint narrative */}
-      {connectionHint && (
-        <div
-          className="fixed z-[40] pointer-events-none"
-          style={{
-            left: connectionHint.x,
-            top: connectionHint.anchor === 'target'
-              ? connectionHint.y - 8
-              : connectionHint.y - 40,
-            transform: 'translateX(-50%)',
-          }}
-        >
-          <div
-            className={`rounded-md shadow-md px-2.5 py-1.5 text-xs font-medium whitespace-nowrap ${
-              connectionHint.mode === 'valid'
-                ? 'bg-emerald-600/90 text-white'
-                : connectionHint.mode === 'invalid'
-                  ? 'bg-red-600/90 text-white'
-                  : 'bg-surface-depth-1/90 text-content-muted border border-border'
-            }`}
-          >
-            {connectionHint.message}
-          </div>
-        </div>
-      )}
+        const sourcePos = getHandlePosition(sourceNode, drag.sourceHandle);
+        const screenSourceX = sourcePos.x * transform.k + transform.x;
+        const screenSourceY = sourcePos.y * transform.k + transform.y;
 
-      {/* Selection rectangle */}
-      {selectionRect && (
-        <div
-          className="fixed pointer-events-none border-2 border-accent/50 bg-accent/10 rounded-sm"
-          style={{
-            left: selectionRect.x,
-            top: selectionRect.y,
-            width: selectionRect.width,
-            height: selectionRect.height,
-          }}
-        />
-      )}
-    </div>
+        // Get container offset for correct SVG coordinates - not needed as drag coords are already screen-relative
+        const endX = drag.currentX;
+        const endY = drag.currentY;
+
+        const d = getConnectionPath(
+          screenSourceX, screenSourceY,
+          endX, endY,
+          drag.sourceHandle
+        );
+
+        // Use connectionHint to determine stroke color
+        const strokeColor = connectionHint && connectionHint.mode !== 'guidance'
+          ? (connectionHint.valid ? 'var(--color-success, #22c55e)' : 'var(--color-error, #ef4444)')
+          : 'var(--color-accent)';
+
+        return (
+          <ConnectionPreview
+            d={d}
+            stroke={strokeColor}
+          />
+        );
+      }}
+    >
+      <LayoutMapInner
+        localNodes={localNodes}
+        setLocalNodes={setLocalNodes}
+        localNodesRef={localNodesRef}
+        constraints={constraints}
+        removeConstraint={removeConstraint}
+        onClose={onClose}
+        handleTestLayout={handleTestLayout}
+        canvasRef={canvasRef}
+        edgeContextMenu={edgeContextMenu}
+        setEdgeContextMenu={setEdgeContextMenu}
+        connectionHint={connectionHint}
+        setConnectionHint={setConnectionHint}
+      />
+    </Canvas>
   );
 }

@@ -35,12 +35,19 @@ export interface CanvasProps {
   className?: string;
   /** Child nodes rendered inside the transformed div */
   children: React.ReactNode;
+  /** Pattern ID for DotGrid SVG pattern (avoids collisions when multiple canvases exist) */
+  patternId?: string;
+  /** Pointer down on the canvas background (not on a data-no-pan element). Useful for clearing selection. */
+  onBackgroundPointerDown?: (event: React.PointerEvent) => void;
 }
 
 export interface CanvasRef {
   fitView: (rects: Array<{ x: number; y: number; width: number; height: number }>, padding?: number) => void;
   screenToCanvas: (screenX: number, screenY: number) => { x: number; y: number };
   getTransform: () => Transform;
+  zoomIn: () => void;
+  zoomOut: () => void;
+  clearSelection: () => void;
 }
 
 export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
@@ -52,11 +59,13 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
     renderConnectionPreview,
     className,
     children,
+    patternId,
+    onBackgroundPointerDown,
   },
   ref
 ) {
   // 1. Setup viewport
-  const { transform, containerRef, fitView, screenToCanvas } = useViewport(viewportOptions);
+  const { transform, containerRef, fitView, screenToCanvas, zoomIn, zoomOut } = useViewport(viewportOptions);
 
   // 2. Setup connection drag (if enabled)
   const connectionDragResult = useConnectionDrag(
@@ -114,8 +123,11 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
       fitView,
       screenToCanvas,
       getTransform: () => transform,
+      zoomIn,
+      zoomOut,
+      clearSelection,
     }),
-    [fitView, screenToCanvas, transform]
+    [fitView, screenToCanvas, transform, zoomIn, zoomOut, clearSelection]
   );
 
   // 6. Setup context value
@@ -149,9 +161,17 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
         ref={containerRef}
         className={className}
         style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}
+        onPointerDown={(e) => {
+          if (onBackgroundPointerDown) {
+            const target = e.target as HTMLElement;
+            if (!target.closest?.('[data-no-pan]')) {
+              onBackgroundPointerDown(e);
+            }
+          }
+        }}
       >
         {/* Background grid */}
-        <DotGrid transform={transform} />
+        <DotGrid transform={transform} patternId={patternId} />
 
         {/* Node layer — transformed */}
         <div
