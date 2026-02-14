@@ -42,6 +42,10 @@ export interface MetamapV2Edge {
   sourceHandle?: string;
   targetHandle?: string;
   label?: string;
+  sourceType: string;     // same as source, for clarity in handlers
+  relIndex: number;       // index into source schema's suggestedRelated[]
+  fromPortId?: string;    // for narrative tooltip
+  toPortId?: string;      // for narrative tooltip
 }
 
 export interface MetamapV2LayoutOutput {
@@ -72,7 +76,9 @@ function extractEdges(schemas: ConstructSchema[]): MetamapV2Edge[] {
   const edgeIds = new Set<string>();
 
   for (const schema of schemas) {
-    for (const rel of schema.suggestedRelated || []) {
+    const suggestedRelated = schema.suggestedRelated || [];
+    for (let relIdx = 0; relIdx < suggestedRelated.length; relIdx++) {
+      const rel = suggestedRelated[relIdx];
       if (schema.type === rel.constructType) continue;
       if (!schemaTypes.has(rel.constructType)) continue;
 
@@ -94,6 +100,10 @@ function extractEdges(schemas: ConstructSchema[]): MetamapV2Edge[] {
         sourceHandle,
         targetHandle,
         label: rel.label || undefined,
+        sourceType: schema.type,
+        relIndex: relIdx,
+        fromPortId: rel.fromPortId,
+        toPortId: rel.toPortId,
       });
     }
   }
