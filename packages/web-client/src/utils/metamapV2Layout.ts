@@ -194,8 +194,11 @@ function layoutPackage(
   // Groups within this package
   const packageGroups = groups.filter(g => g.packageId === pkg.id);
 
-  // Schemas directly in package (not in any group)
-  const ungroupedSchemas = schemas.filter(s => s.packageId === pkg.id && !s.groupId);
+  // Schemas directly in package (not in any group, or in an orphaned group)
+  const packageGroupIds = new Set(packageGroups.map(g => g.id));
+  const ungroupedSchemas = schemas.filter(s =>
+    s.packageId === pkg.id && (!s.groupId || !packageGroupIds.has(s.groupId))
+  );
 
   // Layout each group
   const groupBounds = new Map<string, ContainerBounds>();
@@ -238,15 +241,26 @@ function layoutPackage(
   // Layout items in a grid
   const cols = Math.ceil(Math.sqrt(items.length));
   const GAP = 20;
+  const maxItemWidth = Math.max(...items.map(i => i.width));
+
+  // Pre-compute row heights for correct y accumulation
+  const totalRows = Math.ceil(items.length / cols);
+  const rowHeights: number[] = [];
+  for (let r = 0; r < totalRows; r++) {
+    const rowItems = items.filter((_, i) => Math.floor(i / cols) === r);
+    rowHeights.push(Math.max(...rowItems.map(i => i.height)));
+  }
+
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
 
   items.forEach((item, idx) => {
     const col = idx % cols;
     const row = Math.floor(idx / cols);
-    // Use max item width for uniform columns
-    const maxItemWidth = Math.max(...items.map(i => i.width));
     const x = col * (maxItemWidth + GAP);
-    const y = row * (Math.max(...items.filter((_, i) => Math.floor(i / cols) === row).map(i => i.height)) + GAP) * row;
+    let y = 0;
+    for (let r = 0; r < row; r++) {
+      y += rowHeights[r] + GAP;
+    }
 
     if (item.isGroup) {
       const groupId = item.id.replace('group:', '');
@@ -304,12 +318,18 @@ export function computeMetamapV2Layout(
     return { nodes: [], edges: [] };
   }
 
+  // Filter to only packages referenced by at least one schema
+  const referencedPackageIds = new Set(
+    schemas.map(s => s.packageId).filter((id): id is string => !!id)
+  );
+  const activePackages = schemaPackages.filter(p => referencedPackageIds.has(p.id));
+
   // Group schemas by package
   const schemasByPackage = new Map<string, ConstructSchema[]>();
   const ungroupedSchemas: ConstructSchema[] = [];
 
   for (const s of schemas) {
-    if (s.packageId && schemaPackages.some(p => p.id === s.packageId)) {
+    if (s.packageId && activePackages.some(p => p.id === s.packageId)) {
       const list = schemasByPackage.get(s.packageId) || [];
       list.push(s);
       schemasByPackage.set(s.packageId, list);
@@ -330,7 +350,7 @@ export function computeMetamapV2Layout(
 
   // Layout each package
   const packageBounds = new Map<string, ContainerBounds>();
-  for (const pkg of schemaPackages) {
+  for (const pkg of activePackages) {
     const pkgSchemas = schemasByPackage.get(pkg.id) || [];
     const bounds = layoutPackage(pkg, pkgSchemas, schemaGroups, schemasByGroup);
     packageBounds.set(pkg.id, bounds);
@@ -348,7 +368,7 @@ export function computeMetamapV2Layout(
   interG.setDefaultEdgeLabel(() => ({}));
 
   // Add packages
-  for (const pkg of schemaPackages) {
+  for (const pkg of activePackages) {
     const bounds = packageBounds.get(pkg.id)!;
     interG.setNode(`package:${pkg.id}`, { width: bounds.width, height: bounds.height });
   }
@@ -391,7 +411,7 @@ export function computeMetamapV2Layout(
   const nodes: MetamapV2Node[] = [];
 
   // Emit packages and their contents
-  for (const pkg of schemaPackages) {
+  for (const pkg of activePackages) {
     const bounds = packageBounds.get(pkg.id)!;
     const interNode = interG.node(`package:${pkg.id}`);
     const pkgPosition = {
