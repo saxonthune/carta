@@ -1,5 +1,7 @@
 import { memo } from 'react';
 import type { ConstructSchema } from '@carta/domain';
+import { ConnectionHandle } from '../../canvas-engine/index.js';
+import { Plus } from '@phosphor-icons/react';
 
 interface MetamapSchemaNodeProps {
   schema: ConstructSchema;
@@ -7,6 +9,7 @@ interface MetamapSchemaNodeProps {
   height: number;
   onPointerDown?: (e: React.PointerEvent) => void;
   onDoubleClick?: () => void;
+  onStartConnection?: (nodeId: string, handleId: string, event: React.PointerEvent) => void;
 }
 
 export const MetamapSchemaNode = memo(function MetamapSchemaNode({
@@ -14,15 +17,19 @@ export const MetamapSchemaNode = memo(function MetamapSchemaNode({
   width,
   height,
   onPointerDown,
-  onDoubleClick
+  onDoubleClick,
+  onStartConnection
 }: MetamapSchemaNodeProps) {
   const ports = schema.ports || [];
   return (
     <div
       data-no-pan="true"
+      data-connection-target="true"
+      data-node-id={schema.type}
+      data-handle-id="meta-connect"
       onPointerDown={onPointerDown}
       onDoubleClick={onDoubleClick}
-      className="bg-surface rounded-lg text-node-base text-content cursor-grab active:cursor-grabbing"
+      className="bg-surface rounded-lg text-node-base text-content cursor-grab active:cursor-grabbing relative"
       style={{
         width,
         height,
@@ -31,6 +38,15 @@ export const MetamapSchemaNode = memo(function MetamapSchemaNode({
         boxShadow: 'var(--node-shadow)',
       }}
     >
+      <ConnectionHandle
+        type="source"
+        id="meta-connect"
+        nodeId={schema.type}
+        onStartConnection={onStartConnection}
+        className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-white border border-border-subtle shadow-sm flex items-center justify-center cursor-crosshair hover:border-accent hover:shadow-md transition-all z-10"
+      >
+        <Plus size={10} weight="bold" className="text-content-muted" />
+      </ConnectionHandle>
       {/* Header */}
       <div className="px-3 py-2 bg-surface-alt rounded-t-lg">
         <div className="font-semibold text-node-lg text-content text-halo truncate">
