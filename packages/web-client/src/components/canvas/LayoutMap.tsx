@@ -5,6 +5,7 @@ import { useNodes, usePinConstraints } from '../../hooks';
 import LayoutMapOrganizerNode from './LayoutMapOrganizerNode';
 import ContextMenuPrimitive from '../ui/ContextMenuPrimitive';
 import { useViewport, useConnectionDrag } from '../../canvas-engine/index.js';
+import { EdgeLabel } from '../../canvas-engine/EdgeLabel.js';
 
 interface LayoutMapProps {
   onClose: () => void;
@@ -492,17 +493,15 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
                   onContextMenu={(e) => onEdgeContextMenu(e, edge.id)}
                   style={{ cursor: 'context-menu' }}
                 />
-                <text
+                <EdgeLabel
                   x={midX}
                   y={midY}
-                  fill="var(--color-content)"
-                  fontSize={12}
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  style={{ pointerEvents: 'none', userSelect: 'none' }}
+                  onContextMenu={(e) => onEdgeContextMenu(e, edge.id)}
                 >
-                  {edge.label}
-                </text>
+                  <span style={{ fontSize: 11, color: 'var(--color-content-muted)' }}>
+                    {edge.label}
+                  </span>
+                </EdgeLabel>
               </g>
             );
           })}
