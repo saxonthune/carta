@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ReactFlowProvider, type Node, type Edge } from '@xyflow/react';
 import Map from './Map';
+import MapV2 from './MapV2';
 import Metamap from '../metamap/Metamap';
 import MetamapV2 from '../metamap-v2/MetamapV2';
 import ViewToggle from '../ViewToggle';
@@ -40,6 +41,7 @@ export default function CanvasContainer({
   const [filterText, setFilterText] = useState('');
   const [instanceSearchText, setInstanceSearchText] = useState('');
   const [useMetamapV2, setUseMetamapV2] = useState(false);
+  const [useMapV2, setUseMapV2] = useState(false);
 
   return (
     <div className="flex-1 min-h-0 flex flex-col relative">
@@ -65,6 +67,8 @@ export default function CanvasContainer({
             onChange={setViewMode}
             metamapV2={useMetamapV2}
             onToggleMetamapV2={() => setUseMetamapV2(v => !v)}
+            mapV2={useMapV2}
+            onToggleMapV2={() => setUseMapV2(v => !v)}
           />
         </div>
       </div>
@@ -84,15 +88,19 @@ export default function CanvasContainer({
 
       <div className="flex-1 min-h-0">
         {viewMode === 'instances' ? (
-          <ReactFlowProvider>
-            <Map
-              title={title}
-              onNodesEdgesChange={onNodesEdgesChange}
-              onSelectionChange={onSelectionChange}
-              onNodeDoubleClick={onNodeDoubleClick}
-              searchText={instanceSearchText}
-            />
-          </ReactFlowProvider>
+          useMapV2 ? (
+            <MapV2 searchText={instanceSearchText} />
+          ) : (
+            <ReactFlowProvider>
+              <Map
+                title={title}
+                onNodesEdgesChange={onNodesEdgesChange}
+                onSelectionChange={onSelectionChange}
+                onNodeDoubleClick={onNodeDoubleClick}
+                searchText={instanceSearchText}
+              />
+            </ReactFlowProvider>
+          )
         ) : useMetamapV2 ? (
           <MetamapV2 />
         ) : (
