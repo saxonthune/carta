@@ -5,13 +5,24 @@ interface MetamapSchemaNodeProps {
   schema: ConstructSchema;
   width: number;
   height: number;
+  onPointerDown?: (e: React.PointerEvent) => void;
+  onDoubleClick?: () => void;
 }
 
-export const MetamapSchemaNode = memo(function MetamapSchemaNode({ schema, width, height }: MetamapSchemaNodeProps) {
+export const MetamapSchemaNode = memo(function MetamapSchemaNode({
+  schema,
+  width,
+  height,
+  onPointerDown,
+  onDoubleClick
+}: MetamapSchemaNodeProps) {
   const ports = schema.ports || [];
   return (
     <div
-      className="bg-surface rounded-lg text-node-base text-content"
+      data-no-pan="true"
+      onPointerDown={onPointerDown}
+      onDoubleClick={onDoubleClick}
+      className="bg-surface rounded-lg text-node-base text-content cursor-grab active:cursor-grabbing"
       style={{
         width,
         height,

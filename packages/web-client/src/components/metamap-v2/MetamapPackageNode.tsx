@@ -6,9 +6,16 @@ interface MetamapPackageNodeProps {
   width: number;
   height: number;
   schemaCount: number;
+  onPointerDown?: (e: React.PointerEvent) => void;
 }
 
-export const MetamapPackageNode = memo(function MetamapPackageNode({ pkg, width, height, schemaCount }: MetamapPackageNodeProps) {
+export const MetamapPackageNode = memo(function MetamapPackageNode({
+  pkg,
+  width,
+  height,
+  schemaCount,
+  onPointerDown
+}: MetamapPackageNodeProps) {
   return (
     <div
       className="rounded-xl"
@@ -19,11 +26,13 @@ export const MetamapPackageNode = memo(function MetamapPackageNode({ pkg, width,
         border: `2px solid color-mix(in srgb, ${pkg.color} 30%, var(--color-border-subtle))`,
       }}
       data-drop-target="true"
-      data-container-id={pkg.id}
+      data-container-id={`package:${pkg.id}`}
     >
       {/* Header */}
       <div
-        className="px-4 py-2.5 rounded-t-xl flex items-center gap-2"
+        data-no-pan="true"
+        onPointerDown={onPointerDown}
+        className="px-4 py-2.5 rounded-t-xl flex items-center gap-2 cursor-grab active:cursor-grabbing"
         style={{
           backgroundColor: `color-mix(in srgb, ${pkg.color} 15%, var(--color-surface-alt))`,
           borderBottom: `1px solid color-mix(in srgb, ${pkg.color} 20%, var(--color-border-subtle))`,

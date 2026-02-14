@@ -6,9 +6,16 @@ interface MetamapGroupNodeProps {
   width: number;
   height: number;
   schemaCount: number;
+  onPointerDown?: (e: React.PointerEvent) => void;
 }
 
-export const MetamapGroupNode = memo(function MetamapGroupNode({ group, width, height, schemaCount }: MetamapGroupNodeProps) {
+export const MetamapGroupNode = memo(function MetamapGroupNode({
+  group,
+  width,
+  height,
+  schemaCount,
+  onPointerDown
+}: MetamapGroupNodeProps) {
   const color = group.color || '#6366f1';
   return (
     <div
@@ -19,9 +26,15 @@ export const MetamapGroupNode = memo(function MetamapGroupNode({ group, width, h
         backgroundColor: `color-mix(in srgb, ${color} 5%, transparent)`,
         border: `1px dashed color-mix(in srgb, ${color} 40%, var(--color-border-subtle))`,
       }}
+      data-drop-target="true"
+      data-container-id={`group:${group.id}`}
     >
       {/* Header */}
-      <div className="px-3 py-1.5 flex items-center gap-2">
+      <div
+        data-no-pan="true"
+        onPointerDown={onPointerDown}
+        className="px-3 py-1.5 flex items-center gap-2 cursor-grab active:cursor-grabbing"
+      >
         <span
           className="w-2 h-2 rounded-sm flex-shrink-0"
           style={{ backgroundColor: color }}
