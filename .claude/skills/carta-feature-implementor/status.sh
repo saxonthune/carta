@@ -10,10 +10,12 @@ set -euo pipefail
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 TODO="${REPO_ROOT}/todo-tasks"
 ARCHIVE=false
+ARCHIVE_SUCCESS_ONLY=false
 
 for arg in "$@"; do
   case "$arg" in
     --archive) ARCHIVE=true ;;
+    --archive-success) ARCHIVE_SUCCESS_ONLY=true ;;
     *) echo "Unknown option: $arg"; exit 1 ;;
   esac
 done
@@ -101,13 +103,21 @@ fi
 
 # ─── Archive ─────────────────────────────────────────────────────────────────
 
-if [[ "$ARCHIVE" == "true" && -n "$DONE_FILES" ]]; then
+if [[ ( "$ARCHIVE" == "true" || "$ARCHIVE_SUCCESS_ONLY" == "true" ) && -n "$DONE_FILES" ]]; then
   echo "## Archiving"
   echo ""
   mkdir -p "${TODO}/.archived"
   ts=$(date +%Y%m%d)
   for result in ${DONE_FILES}; do
     slug=$(basename "$result" .result.md)
+    status=$(head -10 "$result" | grep '^\*\*Status\*\*' | sed 's/.*: //')
+
+    # --archive-success skips failures
+    if [[ "$ARCHIVE_SUCCESS_ONLY" == "true" && "$status" != "SUCCESS" ]]; then
+      echo "- Skipped ${slug} (${status} — not archiving failures)"
+      continue
+    fi
+
     [[ -f "${TODO}/.done/${slug}.md" ]] && mv "${TODO}/.done/${slug}.md" "${TODO}/.archived/${ts}-${slug}.md"
     mv "$result" "${TODO}/.archived/${ts}-${slug}.result.md"
     echo "- Archived ${slug}"

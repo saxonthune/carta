@@ -63,19 +63,40 @@ Present status to the user as a **table** with a Notes column:
 | **debug-logging** | RUNNING | — | Step 4: Run Headless Claude |
 ```
 
-### Phase 0B: Archive
+### Phase 0B: Archive & Triage Failures
 
-After the debrief has been presented to the user, offer to archive completed plans. **Never silently archive without showing the notes.**
+After the debrief, handle completed agents based on status:
+
+**Successful agents:** Archive automatically.
 
 ```bash
-bash .claude/skills/carta-feature-implementor/status.sh --archive
+bash .claude/skills/carta-feature-implementor/status.sh --archive-success
 ```
+
+**Failed agents:** Do NOT archive. Instead, ask the user what to do:
+
+```typescript
+AskUserQuestion({
+  questions: [{
+    question: "Agent '{slug}' failed. How should we proceed?",
+    header: "Failed agent",
+    options: [
+      { label: "Fix it now (Recommended)", description: "Investigate the failure and fix the code in the existing worktree" },
+      { label: "Re-groom and retry", description: "Refine the plan to avoid the failure, then re-launch" },
+      { label: "Archive and skip", description: "Move to archived, don't retry" }
+    ],
+    multiSelect: false
+  }]
+})
+```
+
+If "Fix it now": Switch to the agent's worktree, read the result file for error details, diagnose the failure, apply fixes, run `pnpm build && pnpm test`, commit, and merge. This is interactive — the skill acts as a debugging partner, not a headless agent.
 
 If a worktree still exists for a completed agent (merge conflict cases), mention it so the user can resolve manually.
 
-**If invoked with `status` keyword:** Show status with debrief, archive completed plans, and stop. Don't proceed to plan selection.
+**If invoked with `status` keyword:** Show status with debrief, archive successful agents, triage failures, and stop. Don't proceed to plan selection.
 
-**Otherwise:** Show status with debrief and archive completed plans (if any agents exist), then continue to Phase 1.
+**Otherwise:** Show status with debrief, archive successful agents, triage failures, then continue to Phase 1.
 
 ## Phase 1: Select a Plan
 
