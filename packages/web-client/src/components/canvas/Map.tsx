@@ -44,6 +44,7 @@ import ContextMenu, { type RelatedConstructOption } from '../ui/ContextMenu';
 import { Tooltip } from '../ui';
 import { useMapState } from '../../hooks/useMapState';
 import AddConstructMenu from './AddConstructMenu';
+import { guideContent } from '../../data/guideContent';
 import { useUndoRedo } from '../../hooks/useUndoRedo';
 import { useGraphOperations } from '../../hooks/useGraphOperations';
 import { useConnections } from '../../hooks/useConnections';
@@ -1323,7 +1324,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
         fitView
       >
         <Controls position="top-left" showZoom={false}>
-          <Tooltip content="Undo (Ctrl+Z)">
+          <Tooltip content="Undo (Ctrl+Z)" guideContent={guideContent['toolbar.undo']}>
             <ControlButton
               onClick={undo}
               disabled={!canUndo}
@@ -1332,7 +1333,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
               <ArrowUUpLeft weight="bold" />
             </ControlButton>
           </Tooltip>
-          <Tooltip content="Redo (Ctrl+Shift+Z)">
+          <Tooltip content="Redo (Ctrl+Shift+Z)" guideContent={guideContent['toolbar.redo']}>
             <ControlButton
               onClick={redo}
               disabled={!canRedo}
@@ -1341,17 +1342,17 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
               <ArrowUUpRight weight="bold" />
             </ControlButton>
           </Tooltip>
-          <Tooltip content="Zoom In">
+          <Tooltip content="Zoom In" guideContent={guideContent['toolbar.zoomIn']}>
             <ControlButton onClick={customZoomIn}>
               <Plus weight="bold" />
             </ControlButton>
           </Tooltip>
-          <Tooltip content="Zoom Out">
+          <Tooltip content="Zoom Out" guideContent={guideContent['toolbar.zoomOut']}>
             <ControlButton onClick={customZoomOut}>
               <Minus weight="bold" />
             </ControlButton>
           </Tooltip>
-          <Tooltip content="Fit to View">
+          <Tooltip content="Fit to View" guideContent={guideContent['toolbar.fitView']}>
             <ControlButton onClick={() => reactFlow.fitView({ duration: 300 })}>
               <CornersOut weight="bold" />
             </ControlButton>
@@ -1368,7 +1369,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
             hasPinConstraints={pinConstraints.length > 0}
             selectedCount={selectedNodeIds.length}
           />
-          <Tooltip content={selectionModeActive ? "Exit Selection Mode (V)" : "Selection Mode (V)"}>
+          <Tooltip content={selectionModeActive ? "Exit Selection Mode (V)" : "Selection Mode (V)"} guideContent={guideContent['toolbar.selectionMode']}>
             <ControlButton
               onClick={toggleSelectionMode}
               className={selectionModeActive ? 'active' : ''}
@@ -1379,7 +1380,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
           </Tooltip>
           {selectedNodeIds.length > 0 && (
             <>
-              <Tooltip content={selectedNodeIds.length === 1 ? "Rename (F2)" : "Select single node to rename"}>
+              <Tooltip content={selectedNodeIds.length === 1 ? "Rename (F2)" : "Select single node to rename"} guideContent={guideContent['toolbar.rename']}>
                 <ControlButton
                   onClick={startRename}
                   disabled={selectedNodeIds.length !== 1}
@@ -1388,12 +1389,12 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
                   <PencilSimple weight="bold" />
                 </ControlButton>
               </Tooltip>
-              <Tooltip content="Copy (Ctrl+C)">
+              <Tooltip content="Copy (Ctrl+C)" guideContent={guideContent['toolbar.copy']}>
                 <ControlButton onClick={() => copyNodes()}>
                   <CopySimple weight="bold" />
                 </ControlButton>
               </Tooltip>
-              <Tooltip content="Delete (Del)">
+              <Tooltip content="Delete (Del)" guideContent={guideContent['toolbar.delete']}>
                 <ControlButton onClick={deleteSelectedNodes} className="text-red-600">
                   <Trash weight="bold" />
                 </ControlButton>
@@ -1403,7 +1404,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
         </Controls>
 
         {/* Layout view toggle — bottom left */}
-        <Tooltip content="Layout View">
+        <Tooltip content="Layout View" guideContent={guideContent['toolbar.layoutView']}>
           <button
             onClick={() => setShowLayoutView(true)}
             className="absolute bottom-4 left-4 z-10 w-10 h-10 rounded-full bg-surface shadow-lg border border-border flex items-center justify-center text-content-muted hover:text-content hover:bg-surface-elevated transition-colors"
@@ -1413,7 +1414,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
         </Tooltip>
 
         {/* Layout Map toggle — bottom left, next to Layout View */}
-        <Tooltip content="Layout Map (experimental)">
+        <Tooltip content="Layout Map (experimental)" guideContent={guideContent['toolbar.layoutMap']}>
           <button
             onClick={() => setShowLayoutMap(true)}
             className="absolute bottom-4 left-16 z-10 w-10 h-10 rounded-full shadow-lg border flex items-center justify-center transition-colors"
@@ -1430,7 +1431,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
         {/* Covered nodes warning badge */}
         {coveredNodeIds.length > 0 && (
           <div className="absolute top-[14px] left-[52px]">
-            <Tooltip content={`${coveredNodeIds.length} node${coveredNodeIds.length > 1 ? 's' : ''} covered by organizers — click to rescue`}>
+            <Tooltip content={`${coveredNodeIds.length} node${coveredNodeIds.length > 1 ? 's' : ''} covered by organizers — click to rescue`} guideContent={guideContent['toolbar.rescueCovered']}>
               <button
                 onClick={rescueCoveredNodes}
                 className="h-[32px] px-3 bg-amber-100 border border-amber-300 rounded cursor-pointer flex items-center gap-1.5 hover:bg-amber-200 transition-colors shadow-sm text-amber-800 text-xs font-medium"

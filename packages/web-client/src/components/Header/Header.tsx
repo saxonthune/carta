@@ -16,6 +16,7 @@ import Textarea from '../ui/Textarea';
 import { Tooltip } from '../ui';
 import { hydrateSeed, builtInPortSchemas, type SchemaSeed } from '@carta/domain';
 import { seeds } from '../../utils/seeds';
+import { guideContent } from '../../data/guideContent';
 
 export interface HeaderProps {
   title: string;
@@ -172,7 +173,7 @@ export function Header({
       {/* Center section: Title */}
       <div className="relative" ref={projectInfoRef}>
         <div className="flex items-center justify-center">
-          <Tooltip content="Click to edit project info">
+          <Tooltip content="Click to edit project info" guideContent={guideContent['header.title']}>
             <h1
               className="m-0 text-lg font-semibold text-content cursor-pointer px-2 py-1 rounded hover:bg-surface-alt transition-colors"
               onClick={() => setIsProjectInfoOpen(!isProjectInfoOpen)}
@@ -226,7 +227,7 @@ export function Header({
         )}
 
         {/* Document browser button */}
-        <Tooltip content="Browse documents">
+        <Tooltip content="Browse documents" guideContent={guideContent['header.browse']}>
           <button
             className="w-9 h-9 flex items-center justify-center rounded-lg cursor-pointer text-content-muted hover:bg-surface-alt hover:text-content transition-colors"
             onClick={() => setIsDocBrowserOpen(true)}
@@ -235,7 +236,7 @@ export function Header({
           </button>
         </Tooltip>
 
-        <Tooltip content="Export project to .carta file">
+        <Tooltip content="Export project to .carta file" guideContent={guideContent['header.export']}>
           <button
             className="px-4 py-2 text-sm font-medium bg-surface text-content border border-border rounded-lg cursor-pointer hover:bg-surface-alt transition-colors"
             onClick={onExport}
@@ -244,7 +245,7 @@ export function Header({
           </button>
         </Tooltip>
 
-        <Tooltip content="Import project from .carta file">
+        <Tooltip content="Import project from .carta file" guideContent={guideContent['header.import']}>
           <button
             className="px-4 py-2 text-sm font-medium bg-surface text-content border border-border rounded-lg cursor-pointer hover:bg-surface-alt transition-colors"
             onClick={handleImportClick}
@@ -253,7 +254,7 @@ export function Header({
           </button>
         </Tooltip>
 
-        <Tooltip content="Compile project">
+        <Tooltip content="Compile project" guideContent={guideContent['header.compile']}>
           <button
             className="px-4 py-2 text-sm font-medium bg-emerald-500 text-white border-none rounded-lg cursor-pointer hover:bg-emerald-600 transition-colors"
             onClick={onCompile}
@@ -263,7 +264,7 @@ export function Header({
         </Tooltip>
 
         {onToggleAI && (
-          <Tooltip content="Open AI Assistant">
+          <Tooltip content="Open AI Assistant" guideContent={guideContent['header.ai']}>
             <button
               className="w-9 h-9 flex items-center justify-center rounded-lg cursor-pointer text-content-muted hover:bg-surface-alt hover:text-content transition-colors"
               onClick={onToggleAI}

@@ -4,6 +4,7 @@ import './index.css'
 import App from './App.tsx'
 import { DocumentProvider } from './contexts/DocumentContext'
 import { VaultProvider } from './contexts/VaultContext'
+import { GuideTooltipProvider } from './contexts/GuideTooltipContext'
 import { migrateCartaLocal } from './utils/migration'
 import { getLastDocumentId, setLastDocumentId } from './utils/preferences'
 import { createDocument } from './stores/documentRegistry'
@@ -72,15 +73,17 @@ async function bootWithDocumentId(documentId: string | null, seedName?: string) 
 
   root.render(
     <StrictMode>
-      <VaultProvider>
-        {documentId ? (
-          <DocumentProvider documentId={documentId} seedName={seedName}>
+      <GuideTooltipProvider>
+        <VaultProvider>
+          {documentId ? (
+            <DocumentProvider documentId={documentId} seedName={seedName}>
+              <App />
+            </DocumentProvider>
+          ) : (
             <App />
-          </DocumentProvider>
-        ) : (
-          <App />
-        )}
-      </VaultProvider>
+          )}
+        </VaultProvider>
+      </GuideTooltipProvider>
     </StrictMode>,
   );
 }
