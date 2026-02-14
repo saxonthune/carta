@@ -607,7 +607,17 @@ function MetamapV2Inner({
 }
 
 // Edge layer component
-function MetamapEdgeLayer({ edges, nodes }: { edges: MetamapV2Edge[]; nodes: MetamapV2Node[] }) {
+function MetamapEdgeLayer({
+  edges,
+  nodes,
+  onEdgeClick,
+  onEdgeDoubleClick,
+}: {
+  edges: MetamapV2Edge[];
+  nodes: MetamapV2Node[];
+  onEdgeClick?: (edge: MetamapV2Edge, event: React.MouseEvent) => void;
+  onEdgeDoubleClick?: (edge: MetamapV2Edge, event: React.MouseEvent) => void;
+}) {
   return (
     <>
       {edges.map(edge => {
@@ -627,6 +637,17 @@ function MetamapEdgeLayer({ edges, nodes }: { edges: MetamapV2Edge[]; nodes: Met
 
         return (
           <g key={edge.id}>
+            {/* Invisible hit area */}
+            <line
+              x1={sx} y1={sy}
+              x2={tx} y2={ty}
+              stroke="transparent"
+              strokeWidth={10}
+              style={{ cursor: 'pointer' }}
+              onClick={(e) => onEdgeClick?.(edge, e)}
+              onDoubleClick={(e) => onEdgeDoubleClick?.(edge, e)}
+            />
+            {/* Visible line */}
             <line
               x1={sx} y1={sy}
               x2={tx} y2={ty}
@@ -641,6 +662,7 @@ function MetamapEdgeLayer({ edges, nodes }: { edges: MetamapV2Edge[]; nodes: Met
                 textAnchor="middle"
                 fill="var(--color-content-subtle)"
                 fontSize={10}
+                style={{ pointerEvents: 'none' }}
               >
                 {edge.label}
               </text>
