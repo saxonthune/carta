@@ -1,8 +1,9 @@
 import { useRef, useEffect, useMemo, useState, useCallback } from 'react';
-import { Canvas, type CanvasRef, useCanvasContext, useNodeDrag, findContainerAt, ConnectionPreview } from '../../canvas-engine/index.js';
+import { Canvas, type CanvasRef, useCanvasContext, useNodeDrag, findContainerAt, ConnectionPreview, useKeyboardShortcuts } from '../../canvas-engine/index.js';
 import { useSchemas } from '../../hooks/useSchemas.js';
 import { useSchemaGroups } from '../../hooks/useSchemaGroups.js';
 import { useSchemaPackages } from '../../hooks/useSchemaPackages.js';
+import { useSchemaUndoRedo } from '../../hooks/useSchemaUndoRedo.js';
 import { computeMetamapV2Layout, type MetamapV2Node, type MetamapV2Edge } from '../../utils/metamapV2Layout.js';
 import { MetamapSchemaNode } from './MetamapSchemaNode.js';
 import { MetamapPackageNode } from './MetamapPackageNode.js';
@@ -364,6 +365,7 @@ export default function MetamapV2() {
           onContextMenu={setContextMenu}
           updateSchema={updateSchema}
           schemaGroups={schemaGroups}
+          modalsOpen={editorState.open || !!connectionModal}
         />
       </Canvas>
       <CanvasToolbar>
@@ -416,6 +418,7 @@ interface MetamapV2InnerProps {
   onContextMenu: (menu: { x: number; y: number; schemaType?: string; groupId?: string; packageId?: string }) => void;
   updateSchema: (type: string, updates: { packageId?: string; groupId?: string | undefined }) => void;
   schemaGroups: any[];
+  modalsOpen: boolean;
 }
 
 function MetamapV2Inner({
@@ -427,9 +430,21 @@ function MetamapV2Inner({
   onContextMenu,
   updateSchema,
   schemaGroups,
+  modalsOpen,
 }: MetamapV2InnerProps) {
   const { transform, ctrlHeld, startConnection } = useCanvasContext();
   const [highlightedContainerId, setHighlightedContainerId] = useState<string | null>(null);
+
+  // Keyboard shortcuts
+  const { undo, redo } = useSchemaUndoRedo();
+  useKeyboardShortcuts({
+    shortcuts: [
+      { key: 'z', mod: true, action: undo },
+      { key: 'y', mod: true, action: redo },
+      { key: 'z', mod: true, shift: true, action: redo },
+    ],
+    disabled: modalsOpen,
+  });
 
   // Drag origin tracking
   const dragOriginRef = useRef<{ nodeId: string; x: number; y: number } | null>(null);
