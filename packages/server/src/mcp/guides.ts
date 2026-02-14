@@ -1,14 +1,12 @@
 /**
- * Guide re-exports from @carta/core
- *
- * Note: This file exists because @carta/core/guides doesn't have proper
- * TypeScript declarations. The guides are exported from the main @carta/core
- * module in the JS bundle but not in the .d.ts file.
+ * Guide re-exports from @carta/domain
  */
 
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore - guides are exported from JS but not .d.ts
-export { GUIDES, METAMODEL_GUIDE, ANALYSIS_GUIDE } from '@carta/core';
+export {
+  GUIDES, METAMODEL_GUIDE, ANALYSIS_GUIDE,
+  DOMAIN_DIRECTORY_GUIDE, SOFTWARE_ARCHITECTURE_GUIDE, AWS_GUIDE, BPMN_GUIDE,
+} from '@carta/domain';
+export type { GuideId } from '@carta/domain';
 
 // Type definitions for the guides
 export interface GuideDefinition {

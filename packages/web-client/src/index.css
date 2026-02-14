@@ -1,0 +1,382 @@
+@import "tailwindcss";
+@import '@xyflow/react/dist/style.css';
+
+/* Theme Variables */
+:root,
+[data-theme="light"] {
+  --color-canvas: #e4e6ea;
+  --color-surface: #ffffff;
+  --color-surface-alt: #f3f4f6;
+  --color-surface-elevated: #ffffff;
+  --color-surface-depth-1: #f9fafb;
+  --color-surface-depth-2: #f3f4f6;
+  --color-surface-depth-3: #ffffff;
+  --color-surface-inset: #eef0f4;
+  --color-border: #d1d5db;
+  --color-border-subtle: #f3f4f6;
+  --color-content: #1f2937;
+  --color-content-muted: #6b7280;
+  --color-content-subtle: #9ca3af;
+  --color-accent: #6366f1;
+  --color-accent-hover: #4f46e5;
+  --color-accent-muted: #e0e7ff;
+  --color-danger: #ef4444;
+  --color-danger-hover: #dc2626;
+  --color-danger-muted: #fee2e2;
+  --text-halo-color: rgba(255, 255, 255, 0.85);
+  --node-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.04);
+  --node-shadow-selected: 0 1px 3px rgba(99, 102, 241, 0.12), 0 4px 16px rgba(99, 102, 241, 0.08);
+  --edge-default-color: #94a3b8;
+  --color-dot-grid: rgba(0, 0, 0, 0.28);
+  --deployable-fill-opacity: 0.12;
+  --deployable-stroke-opacity: 0.20;
+}
+
+[data-theme="dark"] {
+  --color-canvas: #09090b;
+  --color-surface: #18181b;
+  --color-surface-alt: #27272a;
+  --color-surface-elevated: #27272a;
+  --color-surface-depth-1: #27272a;
+  --color-surface-depth-2: #1f1f23;
+  --color-surface-depth-3: #18181b;
+  --color-surface-inset: #111113;
+  --color-border: #3f3f46;
+  --color-border-subtle: #27272a;
+  --color-content: #e4e4e7;
+  --color-content-muted: #a1a1aa;
+  --color-content-subtle: #71717a;
+  --color-accent: #818cf8;
+  --color-accent-hover: #6366f1;
+  --color-accent-muted: #312e81;
+  --color-danger: #f87171;
+  --color-danger-hover: #ef4444;
+  --color-danger-muted: #7f1d1d;
+  --text-halo-color: rgba(0, 0, 0, 0.8);
+  --node-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.2);
+  --node-shadow-selected: 0 1px 3px rgba(129, 140, 248, 0.2), 0 4px 16px rgba(129, 140, 248, 0.15);
+  --edge-default-color: #71717a;
+  --color-dot-grid: rgba(255, 255, 255, 0.2);
+  --deployable-fill-opacity: 0.06;
+  --deployable-stroke-opacity: 0.12;
+}
+
+[data-theme="warm"] {
+  --color-canvas: #0f0a08;
+  --color-surface: #1c1410;
+  --color-surface-alt: #2c2218;
+  --color-surface-elevated: #2c2218;
+  --color-surface-depth-1: #2c2218;
+  --color-surface-depth-2: #221814;
+  --color-surface-depth-3: #1c1410;
+  --color-surface-inset: #150f0b;
+  --color-border: #44362a;
+  --color-border-subtle: #2c2218;
+  --color-content: #e8d5c4;
+  --color-content-muted: #a8917a;
+  --color-content-subtle: #73614f;
+  --color-accent: #f59e0b;
+  --color-accent-hover: #d97706;
+  --color-accent-muted: #451a03;
+  --color-danger: #ef4444;
+  --color-danger-hover: #dc2626;
+  --color-danger-muted: #7f1d1d;
+  --text-halo-color: rgba(0, 0, 0, 0.8);
+  --node-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.2);
+  --node-shadow-selected: 0 1px 3px rgba(245, 158, 11, 0.2), 0 4px 16px rgba(245, 158, 11, 0.15);
+  --edge-default-color: #73614f;
+  --color-dot-grid: rgba(255, 255, 255, 0.2);
+  --deployable-fill-opacity: 0.06;
+  --deployable-stroke-opacity: 0.12;
+}
+
+@theme {
+  --color-canvas: var(--color-canvas);
+  --color-surface: var(--color-surface);
+  --color-surface-alt: var(--color-surface-alt);
+  --color-surface-elevated: var(--color-surface-elevated);
+  --color-surface-depth-1: var(--color-surface-depth-1);
+  --color-surface-depth-2: var(--color-surface-depth-2);
+  --color-surface-depth-3: var(--color-surface-depth-3);
+  --color-surface-inset: var(--color-surface-inset);
+  --color-border: var(--color-border);
+  --color-border-subtle: var(--color-border-subtle);
+  --color-content: var(--color-content);
+  --color-content-muted: var(--color-content-muted);
+  --color-content-subtle: var(--color-content-subtle);
+  --color-accent: var(--color-accent);
+  --color-accent-hover: var(--color-accent-hover);
+  --color-accent-muted: var(--color-accent-muted);
+  --color-danger: var(--color-danger);
+  --color-danger-hover: var(--color-danger-hover);
+  --color-danger-muted: var(--color-danger-muted);
+
+  --text-2xs: 0.6875rem; /* 11px */
+  --text-xs: 0.75rem; /* 12px */
+  --text-sm: 0.875rem; /* 14px */
+  --text-base: 0.9375rem; /* 15px */
+  --text-lg: 1.125rem; /* 18px */
+  --text-xl: 1.25rem; /* 20px */
+
+  --text-node-2xs: 0.5625rem; /* 9px */
+  --text-node-xs: 0.625rem; /* 10px */
+  --text-node-sm: 0.6875rem; /* 11px */
+  --text-node-base: 0.75rem; /* 12px */
+  --text-node-lg: 0.8125rem; /* 13px */
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  font-family: system-ui, -apple-system, sans-serif;
+  background: var(--color-surface);
+  color: var(--color-content);
+}
+
+/* Node header text legibility — large, soft, layered shadow */
+@utility text-halo {
+  text-shadow:
+    0 2px 12px var(--text-halo-color),
+    0 4px 24px color-mix(in srgb, var(--text-halo-color) 75%, transparent),
+    0 8px 48px color-mix(in srgb, var(--text-halo-color) 50%, transparent);
+}
+
+/* React Flow custom/construct node wrappers need transparent backgrounds */
+.react-flow__node-custom,
+.react-flow__node-construct {
+  background: transparent;
+  border: none;
+  padding: 0;
+  box-shadow: none;
+}
+
+.react-flow__node-custom.selected,
+.react-flow__node-construct.selected {
+  box-shadow: none;
+}
+
+/* Organizer node wrapper: transparent, no default chrome */
+.react-flow__node-organizer {
+  background: transparent;
+  border: none;
+  padding: 0;
+  box-shadow: none;
+}
+
+.react-flow__node-organizer.selected {
+  box-shadow: none;
+}
+
+/* Elevate node when port drawer is expanded so it overlays sibling nodes */
+.react-flow__node:has(.port-drawer-expanded) {
+  z-index: 9999 !important;
+}
+
+/* Ctrl+drag: red shadow on dragged nodes to indicate group detach */
+.ctrl-dragging .react-flow__node.dragging {
+  filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.7)) drop-shadow(0 0 4px rgba(239, 68, 68, 0.5));
+}
+
+/* Selection box */
+.react-flow__selection {
+  background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+  border: 1px dashed var(--color-accent);
+}
+
+/* Controls button disabled state */
+.react-flow__controls-button.disabled,
+.react-flow__controls-button:disabled {
+  color: var(--color-content-subtle);
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.react-flow__controls-button.disabled svg,
+.react-flow__controls-button:disabled svg {
+  stroke: var(--color-content-subtle);
+  fill: none;
+}
+
+/* React Flow controls styling */
+.react-flow__controls {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  overflow: visible;
+}
+
+.react-flow__controls-button {
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-content);
+  width: 32px;
+  height: 32px;
+}
+
+.react-flow__controls-button svg {
+  width: 18px;
+  height: 18px;
+}
+
+.react-flow__controls-button:hover:not(:disabled) {
+  background: var(--color-surface-alt);
+}
+
+/* Port handle styling */
+.port-handle {
+  width: 14px !important;
+  height: 14px !important;
+  border-radius: 4px !important;
+  border: 2px solid white !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.port-handle:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--color-accent) 50%, transparent);
+}
+
+/* Handle colors by port type - fallback if inline style not applied */
+.react-flow__handle[data-port-type="flow-in"] {
+  background: #3b82f6 !important;
+}
+
+.react-flow__handle[data-port-type="flow-out"] {
+  background: #22c55e !important;
+}
+
+.react-flow__handle[data-port-type="parent"] {
+  background: #f59e0b !important;
+}
+
+.react-flow__handle[data-port-type="child"] {
+  background: #f59e0b !important;
+}
+
+.react-flow__handle[data-port-type="symmetric"] {
+  background: #8b5cf6 !important;
+}
+
+/* Metamap background - PDX carpet-inspired alternating crosses */
+.metamap-bg {
+  /* Oversized to cover corners when rotated */
+  width: 150%;
+  height: 150%;
+  top: -25%;
+  left: -25%;
+  background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23000000' stroke-width='1.2' stroke-linecap='round' opacity='0.05'%3E%3Cpath d='M10 1 L10 19 M1 10 L19 10'/%3E%3Cpath d='M30 21 L30 39 M21 30 L39 30'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 40px 40px;
+  transform: rotate(-22.5deg);
+  z-index: 0;
+}
+
+[data-theme="dark"] .metamap-bg {
+  background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23ffffff' stroke-width='1.2' stroke-linecap='round' opacity='0.04'%3E%3Cpath d='M10 1 L10 19 M1 10 L19 10'/%3E%3Cpath d='M30 21 L30 39 M21 30 L39 30'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* Schema node styling */
+.react-flow__node-schema-node {
+  background: transparent;
+  border: none;
+  padding: 0;
+  box-shadow: none;
+}
+
+.react-flow__node-schema-node.selected {
+  box-shadow: none;
+}
+
+/* Meta-port handles (rounded square, matching .port-handle style) */
+.meta-port-diamond {
+  width: 14px !important;
+  height: 14px !important;
+  border-radius: 4px !important;
+  border: 2px solid white !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.meta-port-diamond:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--color-accent) 50%, transparent);
+}
+
+/* New connection handle with plus icon */
+.meta-port-connect {
+  width: 18px !important;
+  height: 18px !important;
+  background: white !important;
+  border: 2px solid var(--color-border) !important;
+  border-radius: 50% !important;
+  opacity: 0;
+  transition: opacity 0.2s ease, background-color 0.2s ease !important;
+}
+
+.group\/connect:hover .meta-port-connect {
+  opacity: 1;
+}
+
+.meta-port-plus {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border: 2px solid var(--color-border);
+  border-radius: 50%;
+  color: var(--color-content-muted);
+  pointer-events: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.group\/connect:hover .meta-port-plus {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: white;
+}
+
+.meta-port-tooltip {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 8px);
+  transform: translateY(-50%);
+  background: var(--color-surface-elevated);
+  color: var(--color-content);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--color-border);
+  z-index: 1000;
+}
+
+.group\/connect:hover .meta-port-tooltip {
+  opacity: 1;
+}
+
+
+/* Metamap edge hover - indicate clickability */
+.metamap-canvas .react-flow__edge:hover .react-flow__edge-path {
+  stroke-width: 2.5 !important;
+  stroke: var(--color-content-muted) !important;
+}
+
+.metamap-canvas .react-flow__edge {
+  cursor: pointer;
+}

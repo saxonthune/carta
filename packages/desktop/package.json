@@ -1,0 +1,34 @@
+{
+  "name": "@carta/desktop",
+  "version": "0.1.0-proto4",
+  "type": "module",
+  "main": "./dist/main/index.js",
+  "scripts": {
+    "build:deps": "pnpm --filter @carta/domain dev:build && pnpm --filter @carta/document dev:build && pnpm --filter @carta/compiler dev:build && pnpm --filter @carta/server dev:build",
+    "dev": "pnpm run build:deps && pnpm run compile && concurrently -k -n vite,electron -c blue,green \"pnpm --filter @carta/web-client demo --port 5373\" \"wait-on http://localhost:5373 && electron .\"",
+    "compile": "rimraf dist/main dist/preload && tsc && tsc -p tsconfig.preload.json",
+    "build": "pnpm --filter @carta/web-client build && pnpm --filter @carta/server build && pnpm run compile && node scripts/copy-renderer.mjs",
+    "package": "electron-builder"
+  },
+  "dependencies": {
+    "@carta/compiler": "workspace:*",
+    "@carta/document": "workspace:*",
+    "@carta/domain": "workspace:*",
+    "@carta/server": "workspace:*",
+    "debug": "^4.4.3",
+    "lib0": "^0.2.102",
+    "ws": "^8.18.0",
+    "y-protocols": "^1.0.6",
+    "yjs": "^13.6.29"
+  },
+  "devDependencies": {
+    "@types/debug": "^4.1.12",
+    "@types/node": "^24.10.1",
+    "@types/ws": "^8.18.1",
+    "concurrently": "^9.1.2",
+    "electron": "^34.0.0",
+    "electron-builder": "^25.1.8",
+    "typescript": "~5.9.3",
+    "wait-on": "^8.0.3"
+  }
+}

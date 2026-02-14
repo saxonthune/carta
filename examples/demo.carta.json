@@ -1,0 +1,5791 @@
+{
+  "version": 6,
+  "title": "Carta Demo",
+  "description": "Exercises every core feature: custom schemas, all port polarities, organizers",
+  "pages": [
+    {
+      "id": "page-1770746834903-etwi",
+      "name": "friendship.ai",
+      "description": "The app that will change the world.",
+      "order": 1,
+      "nodes": [
+        {
+          "id": "node_1770835894738_mqv8fe",
+          "type": "organizer",
+          "position": {
+            "x": -1599.099771668139,
+            "y": 488.07995979733323
+          },
+          "data": {
+            "isOrganizer": true,
+            "name": "User Stories",
+            "color": "#5ba88e",
+            "collapsed": false,
+            "layout": "freeform"
+          },
+          "style": {
+            "width": 630,
+            "height": 187
+          }
+        },
+        {
+          "id": "node_1770835896405_ey5yui",
+          "type": "organizer",
+          "position": {
+            "x": -785.8748706486721,
+            "y": 443.8233188454973
+          },
+          "data": {
+            "isOrganizer": true,
+            "name": "Mobile App",
+            "color": "#6a8fc0",
+            "collapsed": false,
+            "layout": "freeform"
+          },
+          "style": {
+            "width": 770,
+            "height": 467
+          }
+        },
+        {
+          "id": "node_1770835897942_sus10m",
+          "type": "organizer",
+          "position": {
+            "x": 56.58242630075267,
+            "y": 368.79492757697653
+          },
+          "data": {
+            "isOrganizer": true,
+            "name": "API",
+            "color": "#7c7fca",
+            "collapsed": false,
+            "layout": "freeform"
+          },
+          "style": {
+            "width": 534,
+            "height": 556
+          }
+        },
+        {
+          "id": "node_1770835899248_hpxzo5",
+          "type": "organizer",
+          "position": {
+            "x": 779.0644521333511,
+            "y": 381.8631572433221
+          },
+          "data": {
+            "isOrganizer": true,
+            "name": "Database",
+            "color": "#c49a4c",
+            "collapsed": false,
+            "layout": "freeform"
+          },
+          "style": {
+            "width": 530,
+            "height": 500
+          }
+        },
+        {
+          "id": "node_1770835930563_2jyb4x",
+          "type": "construct",
+          "position": {
+            "x": 20,
+            "y": 60
+          },
+          "data": {
+            "constructType": "user-story",
+            "semanticId": "user-story-zow3j73",
+            "values": {
+              "title": "Create Account",
+              "description": "As a lonely person, I want to create an account on friendship.ai so that I can finally have friends (for $9.99/mo)"
+            },
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "ui-screen-zow3fxo",
+                "targetPortId": "flow-in"
+              }
+            ]
+          },
+          "parentId": "node_1770835894738_mqv8fe"
+        },
+        {
+          "id": "node_1770835930563_xa32l6",
+          "type": "construct",
+          "position": {
+            "x": 330,
+            "y": 60
+          },
+          "data": {
+            "constructType": "user-story",
+            "semanticId": "user-story-zow37p2",
+            "values": {
+              "title": "Order Subscription",
+              "description": "As a user who craves validation, I want to subscribe to a premium plan so that I can unlock Platinum Friends™"
+            },
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "ui-screen-zow3z5l",
+                "targetPortId": "flow-in"
+              }
+            ]
+          },
+          "parentId": "node_1770835894738_mqv8fe"
+        },
+        {
+          "id": "node_1770835930563_8geh8r",
+          "type": "construct",
+          "position": {
+            "x": 15,
+            "y": 144.59375
+          },
+          "data": {
+            "constructType": "ui-screen",
+            "semanticId": "ui-screen-zow3fxo",
+            "values": {
+              "screenName": "Sign Up",
+              "description": "Email, password, and a checkbox agreeing friendship is worth paying for"
+            },
+            "connections": [
+              {
+                "portId": "parent",
+                "targetSemanticId": "ui-event-zow3wmq",
+                "targetPortId": "child"
+              }
+            ]
+          },
+          "parentId": "node_1770835896405_ey5yui"
+        },
+        {
+          "id": "node_1770835930563_4fhuza",
+          "type": "construct",
+          "position": {
+            "x": 315,
+            "y": 187
+          },
+          "data": {
+            "constructType": "ui-screen",
+            "semanticId": "ui-screen-zow3v23",
+            "values": {
+              "screenName": "Home",
+              "description": "Feed of algorithmically curated friend suggestions"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770835896405_ey5yui"
+        },
+        {
+          "id": "node_1770835930563_bmtbtb",
+          "type": "construct",
+          "position": {
+            "x": 465,
+            "y": 60.00000000000001
+          },
+          "data": {
+            "constructType": "ui-screen",
+            "semanticId": "ui-screen-zow3z5l",
+            "values": {
+              "screenName": "Subscription",
+              "description": "Pricing tiers: Free (no friends), Basic ($9.99, 3 friends), Platinum ($29.99, unlimited friends)"
+            },
+            "connections": [
+              {
+                "portId": "parent",
+                "targetSemanticId": "ui-event-zow3tgq",
+                "targetPortId": "child"
+              }
+            ]
+          },
+          "parentId": "node_1770835896405_ey5yui"
+        },
+        {
+          "id": "node_1770835930563_dccenm",
+          "type": "construct",
+          "position": {
+            "x": 104.99999999999999,
+            "y": 317.375
+          },
+          "data": {
+            "constructType": "ui-event",
+            "semanticId": "ui-event-zow3wmq",
+            "values": {
+              "eventName": "Tap Sign Up",
+              "trigger": "Button press",
+              "description": "Validates email isn't already monetized, creates account"
+            },
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "rest-endpoint-zow3j9q",
+                "targetPortId": "flow-in"
+              }
+            ]
+          },
+          "parentId": "node_1770835896405_ey5yui"
+        },
+        {
+          "id": "node_1770835930563_zxyyhr",
+          "type": "construct",
+          "position": {
+            "x": 465,
+            "y": 314
+          },
+          "data": {
+            "constructType": "ui-event",
+            "semanticId": "ui-event-zow3tgq",
+            "values": {
+              "eventName": "Tap Subscribe",
+              "trigger": "Button press",
+              "description": "Processes payment and upgrades friendship tier"
+            },
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "rest-endpoint-zow353m",
+                "targetPortId": "flow-in"
+              }
+            ]
+          },
+          "parentId": "node_1770835896405_ey5yui"
+        },
+        {
+          "id": "node_1770835930563_wga01l",
+          "type": "construct",
+          "position": {
+            "x": 38,
+            "y": 60
+          },
+          "data": {
+            "constructType": "rest-endpoint",
+            "semanticId": "rest-endpoint-zow3zli",
+            "values": {
+              "route": "/api/users",
+              "verb": "GET",
+              "summary": "List all monetizable users",
+              "responseType": "array"
+            },
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "database-zow3rzu",
+                "targetPortId": "link-in"
+              }
+            ]
+          },
+          "parentId": "node_1770835897942_sus10m"
+        },
+        {
+          "id": "node_1770835930563_a75tm3",
+          "type": "construct",
+          "position": {
+            "x": 30.5,
+            "y": 403.99999999999994
+          },
+          "data": {
+            "constructType": "rest-endpoint",
+            "semanticId": "rest-endpoint-zow3j9q",
+            "values": {
+              "route": "/api/users",
+              "verb": "POST",
+              "summary": "Register a new friendship seeker",
+              "responseType": "object"
+            },
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "database-zow3rzu",
+                "targetPortId": "link-in"
+              }
+            ]
+          },
+          "parentId": "node_1770835897942_sus10m"
+        },
+        {
+          "id": "node_1770835930563_8ecd9z",
+          "type": "construct",
+          "position": {
+            "x": 329.25,
+            "y": 235.33333333333337
+          },
+          "data": {
+            "constructType": "rest-endpoint",
+            "semanticId": "rest-endpoint-zow353m",
+            "values": {
+              "route": "/api/subscriptions",
+              "verb": "POST",
+              "summary": "Subscribe to a friendship tier",
+              "responseType": "object"
+            },
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "database-zow3rzu",
+                "targetPortId": "link-in"
+              }
+            ]
+          },
+          "parentId": "node_1770835897942_sus10m"
+        },
+        {
+          "id": "node_1770835930563_1lvhp3",
+          "type": "construct",
+          "position": {
+            "x": 20,
+            "y": 40
+          },
+          "data": {
+            "constructType": "database",
+            "semanticId": "database-zow3rzu",
+            "values": {
+              "engine": "SQLite"
+            },
+            "connections": [
+              {
+                "portId": "child",
+                "targetSemanticId": "table-zow30a9",
+                "targetPortId": "parent"
+              },
+              {
+                "portId": "child",
+                "targetSemanticId": "table-zow3cm7",
+                "targetPortId": "parent"
+              }
+            ]
+          },
+          "parentId": "node_1770835899248_hpxzo5"
+        },
+        {
+          "id": "node_1770835930563_hnjg7a",
+          "type": "construct",
+          "position": {
+            "x": 20,
+            "y": 160
+          },
+          "data": {
+            "constructType": "table",
+            "semanticId": "table-zow30a9",
+            "values": {
+              "tableName": "users",
+              "columns": "id SERIAL PK, email VARCHAR(255), password_hash VARCHAR(255), display_name VARCHAR(100), created_at TIMESTAMP"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770835899248_hpxzo5"
+        },
+        {
+          "id": "node_1770835930563_lro01e",
+          "type": "construct",
+          "position": {
+            "x": 250,
+            "y": 160
+          },
+          "data": {
+            "constructType": "table",
+            "semanticId": "table-zow3cm7",
+            "values": {
+              "tableName": "subscriptions",
+              "columns": "id SERIAL PK, user_id INT FK, plan VARCHAR(50), status VARCHAR(20), created_at TIMESTAMP"
+            },
+            "connections": [
+              {
+                "portId": "link-out",
+                "targetSemanticId": "table-zow30a9",
+                "targetPortId": "link-in"
+              }
+            ]
+          },
+          "parentId": "node_1770835899248_hpxzo5"
+        }
+      ],
+      "edges": [
+        {
+          "id": "edge_1770835930563_ng42ym",
+          "source": "node_1770835930563_2jyb4x",
+          "target": "node_1770835930563_8geh8r",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770835930563_1j05n6",
+          "source": "node_1770835930563_xa32l6",
+          "target": "node_1770835930563_bmtbtb",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770835930563_m0qeed",
+          "source": "node_1770835930563_8geh8r",
+          "target": "node_1770835930563_dccenm",
+          "sourceHandle": "parent",
+          "targetHandle": "child"
+        },
+        {
+          "id": "edge_1770835930563_m7phkc",
+          "source": "node_1770835930563_bmtbtb",
+          "target": "node_1770835930563_zxyyhr",
+          "sourceHandle": "parent",
+          "targetHandle": "child"
+        },
+        {
+          "id": "edge_1770835930563_cc15bl",
+          "source": "node_1770835930563_dccenm",
+          "target": "node_1770835930563_a75tm3",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770835930563_a6zkc6",
+          "source": "node_1770835930563_zxyyhr",
+          "target": "node_1770835930563_8ecd9z",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770835930563_coas1g",
+          "source": "node_1770835930563_wga01l",
+          "target": "node_1770835930563_1lvhp3",
+          "sourceHandle": "flow-out",
+          "targetHandle": "link-in"
+        },
+        {
+          "id": "edge_1770835930563_38jp5x",
+          "source": "node_1770835930563_a75tm3",
+          "target": "node_1770835930563_1lvhp3",
+          "sourceHandle": "flow-out",
+          "targetHandle": "link-in"
+        },
+        {
+          "id": "edge_1770835930563_d412e3",
+          "source": "node_1770835930563_8ecd9z",
+          "target": "node_1770835930563_1lvhp3",
+          "sourceHandle": "flow-out",
+          "targetHandle": "link-in"
+        },
+        {
+          "id": "edge_1770835930563_eh0kth",
+          "source": "node_1770835930563_1lvhp3",
+          "target": "node_1770835930563_hnjg7a",
+          "sourceHandle": "child",
+          "targetHandle": "parent"
+        },
+        {
+          "id": "edge_1770835930563_63uoz7",
+          "source": "node_1770835930563_1lvhp3",
+          "target": "node_1770835930563_lro01e",
+          "sourceHandle": "child",
+          "targetHandle": "parent"
+        },
+        {
+          "id": "edge_1770835930563_i8zhal",
+          "source": "node_1770835930563_lro01e",
+          "target": "node_1770835930563_hnjg7a",
+          "sourceHandle": "link-out",
+          "targetHandle": "link-in"
+        }
+      ]
+    },
+    {
+      "id": "page-1770760906583-txl2",
+      "name": "story-map",
+      "description": "Product story map: personas, user stories, and feature prioritization",
+      "order": 3,
+      "nodes": [
+        {
+          "id": "node_1770760934574_ztqfqz",
+          "type": "construct",
+          "position": {
+            "x": -29.288061382685584,
+            "y": 2.9007827335128873
+          },
+          "data": {
+            "constructType": "persona",
+            "semanticId": "persona-c9m6whh",
+            "values": {
+              "name": "PM Priya",
+              "role": "Product Manager",
+              "goal": "Track team progress and prioritize work"
+            },
+            "connections": [
+              {
+                "portId": "parent",
+                "targetSemanticId": "user-story-c9m6w4j",
+                "targetPortId": "child"
+              },
+              {
+                "portId": "parent",
+                "targetSemanticId": "user-story-c9m6en6",
+                "targetPortId": "child"
+              },
+              {
+                "portId": "parent",
+                "targetSemanticId": "user-story-c9m6zlt",
+                "targetPortId": "child"
+              }
+            ]
+          }
+        },
+        {
+          "id": "node_1770760934574_7snum7",
+          "type": "construct",
+          "position": {
+            "x": 450,
+            "y": 0
+          },
+          "data": {
+            "constructType": "persona",
+            "semanticId": "persona-c9m61jf",
+            "values": {
+              "name": "Dev Danny",
+              "role": "Senior Developer",
+              "goal": "Ship code without losing context"
+            },
+            "connections": [
+              {
+                "portId": "parent",
+                "targetSemanticId": "user-story-c9m650g",
+                "targetPortId": "child"
+              },
+              {
+                "portId": "parent",
+                "targetSemanticId": "user-story-c9m6qfd",
+                "targetPortId": "child"
+              },
+              {
+                "portId": "parent",
+                "targetSemanticId": "user-story-c9m60s8",
+                "targetPortId": "child"
+              }
+            ]
+          }
+        },
+        {
+          "id": "node_1770760934574_r2u5vp",
+          "type": "construct",
+          "position": {
+            "x": 875.6237061851627,
+            "y": 12.137545035077142
+          },
+          "data": {
+            "constructType": "persona",
+            "semanticId": "persona-c9m6dnc",
+            "values": {
+              "name": "Design Dana",
+              "role": "UX Designer",
+              "goal": "Validate designs with real user flows"
+            },
+            "connections": [
+              {
+                "portId": "parent",
+                "targetSemanticId": "user-story-c9m65by",
+                "targetPortId": "child"
+              },
+              {
+                "portId": "parent",
+                "targetSemanticId": "user-story-c9m6t9n",
+                "targetPortId": "child"
+              }
+            ]
+          }
+        },
+        {
+          "id": "node_1770760934574_9avyv5",
+          "type": "construct",
+          "position": {
+            "x": -140.15487221620845,
+            "y": 221.67906158482003
+          },
+          "data": {
+            "constructType": "user-story",
+            "semanticId": "user-story-c9m6w4j",
+            "values": {
+              "title": "View sprint board",
+              "description": "As a PM, I want a kanban board so that I can see what's in progress"
+            },
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "cm-feature-cpmbwyf",
+                "targetPortId": "flow-in"
+              }
+            ]
+          }
+        },
+        {
+          "id": "node_1770760934574_idx7xj",
+          "type": "construct",
+          "position": {
+            "x": -148.24656890625985,
+            "y": 374.37629381483714
+          },
+          "data": {
+            "constructType": "user-story",
+            "semanticId": "user-story-c9m6en6",
+            "values": {
+              "title": "Set priorities",
+              "description": "As a PM, I want to drag-rank items so that the team knows what to work on next"
+            },
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "cm-feature-cpmbuiv",
+                "targetPortId": "flow-in"
+              }
+            ]
+          }
+        },
+        {
+          "id": "node_1770760934574_zemx0p",
+          "type": "construct",
+          "position": {
+            "x": -154.9896494813027,
+            "y": 555.3944644600343
+          },
+          "data": {
+            "constructType": "user-story",
+            "semanticId": "user-story-c9m6zlt",
+            "values": {
+              "title": "Export roadmap",
+              "description": "As a PM, I want to export a roadmap PDF so that I can share with stakeholders"
+            },
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "cm-feature-cpmbdtu",
+                "targetPortId": "flow-in"
+              }
+            ]
+          }
+        },
+        {
+          "id": "node_1770760934574_9svcbc",
+          "type": "construct",
+          "position": {
+            "x": 450,
+            "y": 250
+          },
+          "data": {
+            "constructType": "user-story",
+            "semanticId": "user-story-c9m650g",
+            "values": {
+              "title": "Link PRs to tasks",
+              "description": "As a developer, I want to link GitHub PRs so that code reviews have context"
+            },
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "cm-feature-cpmbdlw",
+                "targetPortId": "flow-in"
+              }
+            ]
+          }
+        },
+        {
+          "id": "node_1770760934574_rlwpko",
+          "type": "construct",
+          "position": {
+            "x": 450,
+            "y": 400
+          },
+          "data": {
+            "constructType": "user-story",
+            "semanticId": "user-story-c9m6qfd",
+            "values": {
+              "title": "Keyboard shortcuts",
+              "description": "As a developer, I want keyboard shortcuts so that I can navigate without leaving the keyboard"
+            },
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "cm-feature-cpmbxxg",
+                "targetPortId": "flow-in"
+              }
+            ]
+          }
+        },
+        {
+          "id": "node_1770760934574_s47ec9",
+          "type": "construct",
+          "position": {
+            "x": 450,
+            "y": 550
+          },
+          "data": {
+            "constructType": "user-story",
+            "semanticId": "user-story-c9m60s8",
+            "values": {
+              "title": "API access",
+              "description": "As a developer, I want a REST API so that I can automate workflows"
+            },
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "cm-feature-cpmba4e",
+                "targetPortId": "flow-in"
+              }
+            ]
+          }
+        },
+        {
+          "id": "node_1770760934574_ml87ug",
+          "type": "construct",
+          "position": {
+            "x": 850,
+            "y": 250
+          },
+          "data": {
+            "constructType": "user-story",
+            "semanticId": "user-story-c9m65by",
+            "values": {
+              "title": "Attach mockups",
+              "description": "As a designer, I want to attach Figma links so that devs see the latest designs"
+            },
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "cm-feature-cpmblxn",
+                "targetPortId": "flow-in"
+              }
+            ]
+          }
+        },
+        {
+          "id": "node_1770760934574_rdwjb9",
+          "type": "construct",
+          "position": {
+            "x": 850,
+            "y": 400
+          },
+          "data": {
+            "constructType": "user-story",
+            "semanticId": "user-story-c9m6t9n",
+            "values": {
+              "title": "User flow diagrams",
+              "description": "As a designer, I want to embed flow diagrams so that the team understands the UX"
+            },
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "cm-feature-cpmb17b",
+                "targetPortId": "flow-in"
+              }
+            ]
+          }
+        },
+        {
+          "id": "node_1770760940012_v5e0ew",
+          "type": "organizer",
+          "position": {
+            "x": 100,
+            "y": 750
+          },
+          "data": {
+            "isOrganizer": true,
+            "name": "MVP",
+            "color": "#16a34a",
+            "collapsed": false,
+            "layout": "freeform",
+            "description": "Must-have for launch"
+          },
+          "style": {
+            "width": 600,
+            "height": 250
+          }
+        },
+        {
+          "id": "node_1770760941852_rpq8qt",
+          "type": "organizer",
+          "position": {
+            "x": 100,
+            "y": 1050
+          },
+          "data": {
+            "isOrganizer": true,
+            "name": "v1.1",
+            "color": "#ca8a04",
+            "collapsed": false,
+            "layout": "freeform",
+            "description": "Fast follow after launch"
+          },
+          "style": {
+            "width": 600,
+            "height": 250
+          }
+        },
+        {
+          "id": "node_1770760943460_93b3i6",
+          "type": "organizer",
+          "position": {
+            "x": 100,
+            "y": 1350
+          },
+          "data": {
+            "isOrganizer": true,
+            "name": "Backlog",
+            "color": "#64748b",
+            "collapsed": false,
+            "layout": "freeform",
+            "description": "Future consideration"
+          },
+          "style": {
+            "width": 600,
+            "height": 250
+          }
+        },
+        {
+          "id": "node_1770760955315_vn4i3k",
+          "type": "construct",
+          "position": {
+            "x": 20,
+            "y": 20
+          },
+          "data": {
+            "constructType": "cm-feature",
+            "semanticId": "cm-feature-cpmbwyf",
+            "values": {
+              "name": "Kanban Board",
+              "status": "In Progress"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770760940012_v5e0ew"
+        },
+        {
+          "id": "node_1770760955315_8fhpbu",
+          "type": "construct",
+          "position": {
+            "x": 220,
+            "y": 20
+          },
+          "data": {
+            "constructType": "cm-feature",
+            "semanticId": "cm-feature-cpmbuiv",
+            "values": {
+              "name": "Priority Ranking",
+              "status": "Planned"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770760940012_v5e0ew"
+        },
+        {
+          "id": "node_1770760955315_grwtpc",
+          "type": "construct",
+          "position": {
+            "x": 420,
+            "y": 20
+          },
+          "data": {
+            "constructType": "cm-feature",
+            "semanticId": "cm-feature-cpmblxn",
+            "values": {
+              "name": "Design Attachments",
+              "status": "Planned"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770760940012_v5e0ew"
+        },
+        {
+          "id": "node_1770760955315_4sxdk1",
+          "type": "construct",
+          "position": {
+            "x": 20,
+            "y": 20
+          },
+          "data": {
+            "constructType": "cm-feature",
+            "semanticId": "cm-feature-cpmbdlw",
+            "values": {
+              "name": "GitHub Integration",
+              "status": "Planned"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770760941852_rpq8qt"
+        },
+        {
+          "id": "node_1770760955315_l026dx",
+          "type": "construct",
+          "position": {
+            "x": 220,
+            "y": 20
+          },
+          "data": {
+            "constructType": "cm-feature",
+            "semanticId": "cm-feature-cpmbxxg",
+            "values": {
+              "name": "Keyboard Navigation",
+              "status": "Planned"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770760941852_rpq8qt"
+        },
+        {
+          "id": "node_1770760955315_t7kf53",
+          "type": "construct",
+          "position": {
+            "x": 420,
+            "y": 20
+          },
+          "data": {
+            "constructType": "cm-feature",
+            "semanticId": "cm-feature-cpmb17b",
+            "values": {
+              "name": "Flow Diagrams",
+              "status": "Planned"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770760941852_rpq8qt"
+        },
+        {
+          "id": "node_1770760955315_bgu545",
+          "type": "construct",
+          "position": {
+            "x": 20,
+            "y": 20
+          },
+          "data": {
+            "constructType": "cm-feature",
+            "semanticId": "cm-feature-cpmba4e",
+            "values": {
+              "name": "REST API",
+              "status": "Planned"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770760943460_93b3i6"
+        },
+        {
+          "id": "node_1770760955315_26mq0m",
+          "type": "construct",
+          "position": {
+            "x": 220,
+            "y": 20
+          },
+          "data": {
+            "constructType": "cm-feature",
+            "semanticId": "cm-feature-cpmbdtu",
+            "values": {
+              "name": "Roadmap Export",
+              "status": "Planned"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770760943460_93b3i6"
+        }
+      ],
+      "edges": [
+        {
+          "id": "edge_1770760955315_v7rpfg",
+          "source": "node_1770760934574_9avyv5",
+          "target": "node_1770760955315_vn4i3k",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770760955315_lf88zh",
+          "source": "node_1770760934574_idx7xj",
+          "target": "node_1770760955315_8fhpbu",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770760955315_qbqohs",
+          "source": "node_1770760934574_ml87ug",
+          "target": "node_1770760955315_grwtpc",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770760955315_r3bo9n",
+          "source": "node_1770760934574_9svcbc",
+          "target": "node_1770760955315_4sxdk1",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770760955315_bqokh8",
+          "source": "node_1770760934574_rlwpko",
+          "target": "node_1770760955315_l026dx",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770760955315_ifxfwa",
+          "source": "node_1770760934574_rdwjb9",
+          "target": "node_1770760955315_t7kf53",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770760955315_golq1s",
+          "source": "node_1770760934574_s47ec9",
+          "target": "node_1770760955315_bgu545",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770760955315_8vtruw",
+          "source": "node_1770760934574_zemx0p",
+          "target": "node_1770760955315_26mq0m",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        }
+      ]
+    },
+    {
+      "id": "page-1770748978567-2g3l",
+      "name": "front-end",
+      "description": "React component architecture demo",
+      "order": 4,
+      "nodes": [
+        {
+          "id": "node_1770749021435_gqsjv7",
+          "type": "construct",
+          "position": {
+            "x": 100,
+            "y": 200
+          },
+          "data": {
+            "constructType": "ui-screen",
+            "semanticId": "ui-screen-8xdn7l9",
+            "values": {
+              "screenName": "Login",
+              "description": "Email/password authentication with OAuth options"
+            },
+            "connections": [
+              {
+                "portId": "parent",
+                "targetSemanticId": "ui-event-8xdnaea",
+                "targetPortId": "child"
+              },
+              {
+                "portId": "parent",
+                "targetSemanticId": "ui-event-8xdoe8j",
+                "targetPortId": "child"
+              }
+            ]
+          }
+        },
+        {
+          "id": "node_1770749021435_htkyqo",
+          "type": "construct",
+          "position": {
+            "x": 350,
+            "y": 150
+          },
+          "data": {
+            "constructType": "ui-event",
+            "semanticId": "ui-event-8xdnaea",
+            "values": {
+              "eventName": "Submit Login",
+              "trigger": "Click login button"
+            },
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "ui-screen-8xdossj",
+                "targetPortId": "flow-in"
+              }
+            ]
+          }
+        },
+        {
+          "id": "node_1770749021436_qqwxop",
+          "type": "construct",
+          "position": {
+            "x": 350,
+            "y": 300
+          },
+          "data": {
+            "constructType": "ui-event",
+            "semanticId": "ui-event-8xdoe8j",
+            "values": {
+              "eventName": "Click Sign Up",
+              "trigger": "Click sign up link"
+            },
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "ui-screen-8xdoafv",
+                "targetPortId": "flow-in"
+              }
+            ]
+          }
+        },
+        {
+          "id": "node_1770749021436_6wt9q0",
+          "type": "construct",
+          "position": {
+            "x": 600,
+            "y": 350
+          },
+          "data": {
+            "constructType": "ui-screen",
+            "semanticId": "ui-screen-8xdoafv",
+            "values": {
+              "screenName": "Sign Up",
+              "description": "New user registration form"
+            },
+            "connections": []
+          }
+        },
+        {
+          "id": "node_1770749021436_z43ezr",
+          "type": "construct",
+          "position": {
+            "x": 600,
+            "y": 100
+          },
+          "data": {
+            "constructType": "ui-screen",
+            "semanticId": "ui-screen-8xdossj",
+            "values": {
+              "screenName": "Dashboard",
+              "description": "Main overview with recent orders and metrics"
+            },
+            "connections": [
+              {
+                "portId": "parent",
+                "targetSemanticId": "ui-event-8xdoazj",
+                "targetPortId": "child"
+              },
+              {
+                "portId": "parent",
+                "targetSemanticId": "ui-event-8xdoezi",
+                "targetPortId": "child"
+              }
+            ]
+          }
+        },
+        {
+          "id": "node_1770749021436_97it82",
+          "type": "construct",
+          "position": {
+            "x": 850,
+            "y": 50
+          },
+          "data": {
+            "constructType": "ui-event",
+            "semanticId": "ui-event-8xdoazj",
+            "values": {
+              "eventName": "View Order",
+              "trigger": "Click order row in table"
+            },
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "ui-screen-8xdo5ls",
+                "targetPortId": "flow-in"
+              }
+            ]
+          }
+        },
+        {
+          "id": "node_1770749021436_qoq6um",
+          "type": "construct",
+          "position": {
+            "x": 850,
+            "y": 200
+          },
+          "data": {
+            "constructType": "ui-event",
+            "semanticId": "ui-event-8xdoezi",
+            "values": {
+              "eventName": "Create Order",
+              "trigger": "Click 'New Order' button"
+            },
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "ui-screen-8xdoo7k",
+                "targetPortId": "flow-in"
+              }
+            ]
+          }
+        },
+        {
+          "id": "node_1770749021436_df7b7i",
+          "type": "construct",
+          "position": {
+            "x": 1100,
+            "y": 50
+          },
+          "data": {
+            "constructType": "ui-screen",
+            "semanticId": "ui-screen-8xdo5ls",
+            "values": {
+              "screenName": "Order Detail",
+              "description": "Full order info with line items, status, and actions"
+            },
+            "connections": []
+          }
+        },
+        {
+          "id": "node_1770749021436_ehrgzb",
+          "type": "construct",
+          "position": {
+            "x": 1100,
+            "y": 200
+          },
+          "data": {
+            "constructType": "ui-screen",
+            "semanticId": "ui-screen-8xdoo7k",
+            "values": {
+              "screenName": "New Order Form",
+              "description": "Multi-step form for creating a new order"
+            },
+            "connections": [
+              {
+                "portId": "parent",
+                "targetSemanticId": "ui-event-8xdoeuk",
+                "targetPortId": "child"
+              }
+            ]
+          }
+        },
+        {
+          "id": "node_1770749021436_riupte",
+          "type": "construct",
+          "position": {
+            "x": 1350,
+            "y": 200
+          },
+          "data": {
+            "constructType": "ui-event",
+            "semanticId": "ui-event-8xdoeuk",
+            "values": {
+              "eventName": "Submit Order",
+              "trigger": "Click submit on final step"
+            },
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "ui-screen-8xdo5ls",
+                "targetPortId": "flow-in"
+              }
+            ]
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "edge_1770749021436_ewg977",
+          "source": "node_1770749021435_gqsjv7",
+          "target": "node_1770749021435_htkyqo",
+          "sourceHandle": "parent",
+          "targetHandle": "child"
+        },
+        {
+          "id": "edge_1770749021436_f5e8kk",
+          "source": "node_1770749021435_gqsjv7",
+          "target": "node_1770749021436_qqwxop",
+          "sourceHandle": "parent",
+          "targetHandle": "child"
+        },
+        {
+          "id": "edge_1770749021436_wcwzki",
+          "source": "node_1770749021435_htkyqo",
+          "target": "node_1770749021436_z43ezr",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770749021436_vefd1h",
+          "source": "node_1770749021436_qqwxop",
+          "target": "node_1770749021436_6wt9q0",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770749021436_igenj0",
+          "source": "node_1770749021436_z43ezr",
+          "target": "node_1770749021436_97it82",
+          "sourceHandle": "parent",
+          "targetHandle": "child"
+        },
+        {
+          "id": "edge_1770749021436_3omsq8",
+          "source": "node_1770749021436_z43ezr",
+          "target": "node_1770749021436_qoq6um",
+          "sourceHandle": "parent",
+          "targetHandle": "child"
+        },
+        {
+          "id": "edge_1770749021436_5hk1x8",
+          "source": "node_1770749021436_97it82",
+          "target": "node_1770749021436_df7b7i",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770749021436_zw3n1w",
+          "source": "node_1770749021436_qoq6um",
+          "target": "node_1770749021436_ehrgzb",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770749021436_k1vuo0",
+          "source": "node_1770749021436_ehrgzb",
+          "target": "node_1770749021436_riupte",
+          "sourceHandle": "parent",
+          "targetHandle": "child"
+        },
+        {
+          "id": "edge_1770749021436_jtpk8x",
+          "source": "node_1770749021436_riupte",
+          "target": "node_1770749021436_df7b7i",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        }
+      ]
+    },
+    {
+      "id": "page-1770748977835-xl8k",
+      "name": "serverless",
+      "description": "AWS serverless architecture demo",
+      "order": 5,
+      "nodes": [
+        {
+          "id": "node_1770749008128_ieo14o",
+          "type": "construct",
+          "position": {
+            "x": 100,
+            "y": 200
+          },
+          "data": {
+            "constructType": "aws-api-gateway",
+            "semanticId": "aws-api-gateway-8n3zhd5",
+            "values": {
+              "name": "OrderAPI",
+              "apiType": "REST",
+              "stage": "prod"
+            },
+            "connections": [
+              {
+                "portId": "invoke-out",
+                "targetSemanticId": "aws-lambda-8n403iz",
+                "targetPortId": "trigger-in"
+              },
+              {
+                "portId": "invoke-out",
+                "targetSemanticId": "aws-lambda-8n40lvs",
+                "targetPortId": "trigger-in"
+              }
+            ]
+          }
+        },
+        {
+          "id": "node_1770749008128_r3hlgx",
+          "type": "construct",
+          "position": {
+            "x": 400,
+            "y": 100
+          },
+          "data": {
+            "constructType": "aws-lambda",
+            "semanticId": "aws-lambda-8n403iz",
+            "values": {
+              "name": "processOrder",
+              "runtime": "Node.js 20",
+              "description": "Validates and persists new orders"
+            },
+            "connections": [
+              {
+                "portId": "invoke-out",
+                "targetSemanticId": "aws-dynamodb-8n402eg",
+                "targetPortId": "access-in"
+              },
+              {
+                "portId": "invoke-out",
+                "targetSemanticId": "aws-sns-8n40txo",
+                "targetPortId": "publish-in"
+              }
+            ]
+          }
+        },
+        {
+          "id": "node_1770749008128_psyw99",
+          "type": "construct",
+          "position": {
+            "x": 400,
+            "y": 300
+          },
+          "data": {
+            "constructType": "aws-lambda",
+            "semanticId": "aws-lambda-8n40lvs",
+            "values": {
+              "name": "getOrder",
+              "runtime": "Node.js 20",
+              "description": "Retrieves order by ID"
+            },
+            "connections": [
+              {
+                "portId": "invoke-out",
+                "targetSemanticId": "aws-dynamodb-8n402eg",
+                "targetPortId": "access-in"
+              }
+            ]
+          }
+        },
+        {
+          "id": "node_1770749008128_7nav32",
+          "type": "construct",
+          "position": {
+            "x": 700,
+            "y": 200
+          },
+          "data": {
+            "constructType": "aws-dynamodb",
+            "semanticId": "aws-dynamodb-8n402eg",
+            "values": {
+              "tableName": "Orders",
+              "partitionKey": "orderId",
+              "sortKey": "createdAt",
+              "billingMode": "On-Demand"
+            },
+            "connections": []
+          }
+        },
+        {
+          "id": "node_1770749008128_a7dv7v",
+          "type": "construct",
+          "position": {
+            "x": 700,
+            "y": 0
+          },
+          "data": {
+            "constructType": "aws-sns",
+            "semanticId": "aws-sns-8n40txo",
+            "values": {
+              "name": "order-events",
+              "topicType": "Standard",
+              "purpose": "Order lifecycle events"
+            },
+            "connections": [
+              {
+                "portId": "subscribe-out",
+                "targetSemanticId": "aws-sqs-8n40h0v",
+                "targetPortId": "access-in"
+              },
+              {
+                "portId": "subscribe-out",
+                "targetSemanticId": "aws-lambda-8n40k24",
+                "targetPortId": "trigger-in"
+              }
+            ]
+          }
+        },
+        {
+          "id": "node_1770749008128_kuyvp0",
+          "type": "construct",
+          "position": {
+            "x": 1000,
+            "y": 0
+          },
+          "data": {
+            "constructType": "aws-sqs",
+            "semanticId": "aws-sqs-8n40h0v",
+            "values": {
+              "name": "notification-queue",
+              "queueType": "Standard",
+              "dlq": true
+            },
+            "connections": [
+              {
+                "portId": "trigger-out",
+                "targetSemanticId": "aws-lambda-8n40ev6",
+                "targetPortId": "trigger-in"
+              }
+            ]
+          }
+        },
+        {
+          "id": "node_1770749008128_uyutby",
+          "type": "construct",
+          "position": {
+            "x": 1300,
+            "y": 0
+          },
+          "data": {
+            "constructType": "aws-lambda",
+            "semanticId": "aws-lambda-8n40ev6",
+            "values": {
+              "name": "sendNotification",
+              "runtime": "Node.js 20",
+              "description": "Sends email/SMS notifications"
+            },
+            "connections": []
+          }
+        },
+        {
+          "id": "node_1770749008128_7x3hmc",
+          "type": "construct",
+          "position": {
+            "x": 1000,
+            "y": 300
+          },
+          "data": {
+            "constructType": "aws-s3",
+            "semanticId": "aws-s3-8n400hm",
+            "values": {
+              "name": "order-attachments",
+              "accessLevel": "Private",
+              "versioning": true,
+              "purpose": "Invoice PDFs and receipts"
+            },
+            "connections": []
+          }
+        },
+        {
+          "id": "node_1770749008128_zf6iyv",
+          "type": "construct",
+          "position": {
+            "x": 1000,
+            "y": 150
+          },
+          "data": {
+            "constructType": "aws-lambda",
+            "semanticId": "aws-lambda-8n40k24",
+            "values": {
+              "name": "generateInvoice",
+              "runtime": "Python 3.12",
+              "description": "Generates PDF invoices from order data"
+            },
+            "connections": [
+              {
+                "portId": "invoke-out",
+                "targetSemanticId": "aws-s3-8n400hm",
+                "targetPortId": "access-in"
+              }
+            ]
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "edge_1770749008129_4mcp55",
+          "source": "node_1770749008128_ieo14o",
+          "target": "node_1770749008128_r3hlgx",
+          "sourceHandle": "invoke-out",
+          "targetHandle": "trigger-in"
+        },
+        {
+          "id": "edge_1770749008129_3n9emc",
+          "source": "node_1770749008128_ieo14o",
+          "target": "node_1770749008128_psyw99",
+          "sourceHandle": "invoke-out",
+          "targetHandle": "trigger-in"
+        },
+        {
+          "id": "edge_1770749008129_5kd23l",
+          "source": "node_1770749008128_r3hlgx",
+          "target": "node_1770749008128_7nav32",
+          "sourceHandle": "invoke-out",
+          "targetHandle": "access-in"
+        },
+        {
+          "id": "edge_1770749008129_3j9rgs",
+          "source": "node_1770749008128_psyw99",
+          "target": "node_1770749008128_7nav32",
+          "sourceHandle": "invoke-out",
+          "targetHandle": "access-in"
+        },
+        {
+          "id": "edge_1770749008129_f87xm3",
+          "source": "node_1770749008128_r3hlgx",
+          "target": "node_1770749008128_a7dv7v",
+          "sourceHandle": "invoke-out",
+          "targetHandle": "publish-in"
+        },
+        {
+          "id": "edge_1770749008129_sdyye3",
+          "source": "node_1770749008128_a7dv7v",
+          "target": "node_1770749008128_kuyvp0",
+          "sourceHandle": "subscribe-out",
+          "targetHandle": "access-in"
+        },
+        {
+          "id": "edge_1770749008129_5u1h4s",
+          "source": "node_1770749008128_kuyvp0",
+          "target": "node_1770749008128_uyutby",
+          "sourceHandle": "trigger-out",
+          "targetHandle": "trigger-in"
+        },
+        {
+          "id": "edge_1770749008129_apxqgx",
+          "source": "node_1770749008128_zf6iyv",
+          "target": "node_1770749008128_7x3hmc",
+          "sourceHandle": "invoke-out",
+          "targetHandle": "access-in"
+        },
+        {
+          "id": "edge_1770749008129_oa93vm",
+          "source": "node_1770749008128_a7dv7v",
+          "target": "node_1770749008128_zf6iyv",
+          "sourceHandle": "subscribe-out",
+          "targetHandle": "trigger-in"
+        }
+      ]
+    },
+    {
+      "id": "page-1770746844520-lnzg",
+      "name": "etl",
+      "description": "Data ingestion ETL pipeline",
+      "order": 6,
+      "nodes": [
+        {
+          "id": "073d640b-708b-4fa6-b640-023485e071b2",
+          "type": "organizer",
+          "position": {
+            "x": -99,
+            "y": 50
+          },
+          "data": {
+            "isOrganizer": true,
+            "name": "ETL Pipeline",
+            "color": "#7c3aed",
+            "collapsed": false,
+            "layout": "freeform"
+          },
+          "style": {
+            "width": 666,
+            "height": 469
+          }
+        },
+        {
+          "id": "0f0f4de3-2d2a-4fbb-ae13-0af5314ce550",
+          "type": "construct",
+          "position": {
+            "x": 169,
+            "y": 50
+          },
+          "data": {
+            "constructType": "ks-pipeline",
+            "semanticId": "ks-pipeline-y9nxj4v",
+            "values": {
+              "name": "Ingest Pipeline",
+              "throughput": 5000
+            },
+            "viewLevel": "summary"
+          },
+          "parentId": "073d640b-708b-4fa6-b640-023485e071b2"
+        },
+        {
+          "id": "9a6e3d0a-921f-42d0-a5ca-c0127fbec253",
+          "type": "construct",
+          "position": {
+            "x": 169,
+            "y": 210
+          },
+          "data": {
+            "constructType": "ks-stage",
+            "semanticId": "ks-stage-y9nxz1t",
+            "values": {
+              "name": "Filter Invalid",
+              "transform": "filter"
+            },
+            "viewLevel": "summary"
+          },
+          "parentId": "073d640b-708b-4fa6-b640-023485e071b2"
+        },
+        {
+          "id": "9af87491-2f08-48bd-87d3-423fd7842638",
+          "type": "construct",
+          "position": {
+            "x": 465.94992445199506,
+            "y": 347.5396998836843
+          },
+          "data": {
+            "constructType": "ks-stage",
+            "semanticId": "ks-stage-y9nx46o",
+            "values": {
+              "name": "Normalize",
+              "transform": "map"
+            },
+            "viewLevel": "summary"
+          },
+          "parentId": "073d640b-708b-4fa6-b640-023485e071b2"
+        },
+        {
+          "id": "e47af497-04c0-4408-bea6-351aa7a98bd2",
+          "type": "construct",
+          "position": {
+            "x": 461.3486287912701,
+            "y": 57.63566180549937
+          },
+          "data": {
+            "constructType": "ks-stage",
+            "semanticId": "ks-stage-y9nxpjj",
+            "values": {
+              "name": "Aggregate",
+              "transform": "reduce"
+            },
+            "viewLevel": "summary"
+          },
+          "parentId": "073d640b-708b-4fa6-b640-023485e071b2"
+        },
+        {
+          "id": "f3c4be84-017a-4d72-9b10-a4928ca89c8f",
+          "type": "construct",
+          "position": {
+            "x": 650,
+            "y": 100
+          },
+          "data": {
+            "constructType": "ks-pipeline",
+            "semanticId": "ks-pipeline-y9nxw6r",
+            "values": {
+              "name": "Export Pipeline",
+              "throughput": 2000,
+              "notes": "Forwards processed data to API"
+            },
+            "viewLevel": "summary"
+          }
+        },
+        {
+          "id": "44dc5509-5139-4528-aa25-8b6cf0bde2e4",
+          "type": "construct",
+          "position": {
+            "x": 650,
+            "y": 350
+          },
+          "data": {
+            "constructType": "rest-endpoint",
+            "semanticId": "rest-endpoint-y9nxfcv",
+            "values": {
+              "route": "/api/ingest",
+              "verb": "POST",
+              "summary": "Receive raw data"
+            },
+            "viewLevel": "summary"
+          }
+        },
+        {
+          "id": "2df95a3a-bc76-481b-97bf-54ad11f94fa4",
+          "type": "construct",
+          "position": {
+            "x": 160.94573527780025,
+            "y": 434.35177067191614
+          },
+          "data": {
+            "constructType": "database",
+            "semanticId": "database-y9nx18h",
+            "values": {
+              "engine": "PostgreSQL",
+              "note": "Analytics warehouse"
+            },
+            "viewLevel": "summary"
+          }
+        },
+        {
+          "id": "59a4e62f-e73e-45d3-8ecf-222694966088",
+          "type": "construct",
+          "position": {
+            "x": 100,
+            "y": 620
+          },
+          "data": {
+            "constructType": "table",
+            "semanticId": "table-y9nxz5l",
+            "values": {
+              "tableName": "events",
+              "columns": "id UUID PK, type VARCHAR, payload JSON, ts TIMESTAMP"
+            },
+            "viewLevel": "summary"
+          }
+        },
+        {
+          "id": "6df450e2-cffc-4dd5-93c5-6c5f648cd1e9",
+          "type": "construct",
+          "position": {
+            "x": -69.44687984251544,
+            "y": 396.46658387760783
+          },
+          "data": {
+            "constructType": "note",
+            "semanticId": "note-y9nx2jc",
+            "values": {
+              "content": "TODO: Add retry logic for failed ingests"
+            },
+            "viewLevel": "summary"
+          }
+        },
+        {
+          "id": "e5cf0d58-4259-4b0c-9049-e9f60ed07b84",
+          "type": "construct",
+          "position": {
+            "x": 421.4962221561712,
+            "y": 587.3575885776659
+          },
+          "data": {
+            "constructType": "note",
+            "semanticId": "note-y9nxgpp",
+            "values": {
+              "content": "Consider adding CDC from the events table"
+            },
+            "viewLevel": "summary"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "edge-e209f006-cbc7-41da-9946-44a05105ec78",
+          "source": "0f0f4de3-2d2a-4fbb-ae13-0af5314ce550",
+          "target": "9a6e3d0a-921f-42d0-a5ca-c0127fbec253",
+          "sourceHandle": "parent",
+          "targetHandle": "child"
+        },
+        {
+          "id": "edge-5cd3763b-aebd-4ae7-8c5f-eb01376e20be",
+          "source": "0f0f4de3-2d2a-4fbb-ae13-0af5314ce550",
+          "target": "9af87491-2f08-48bd-87d3-423fd7842638",
+          "sourceHandle": "parent",
+          "targetHandle": "child"
+        },
+        {
+          "id": "edge-c6bdf7e4-c3e2-4107-a7d4-a7ff0e2dd35a",
+          "source": "0f0f4de3-2d2a-4fbb-ae13-0af5314ce550",
+          "target": "e47af497-04c0-4408-bea6-351aa7a98bd2",
+          "sourceHandle": "parent",
+          "targetHandle": "child"
+        },
+        {
+          "id": "edge-6dbea11e-3496-48f2-ae78-4ba4ba0e898e",
+          "source": "9a6e3d0a-921f-42d0-a5ca-c0127fbec253",
+          "target": "9af87491-2f08-48bd-87d3-423fd7842638",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge-769c9ad8-0ee1-4498-9e6a-b539fb43e182",
+          "source": "9af87491-2f08-48bd-87d3-423fd7842638",
+          "target": "e47af497-04c0-4408-bea6-351aa7a98bd2",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge-c116c823-466c-4ad3-b6cf-879144e63297",
+          "source": "0f0f4de3-2d2a-4fbb-ae13-0af5314ce550",
+          "target": "f3c4be84-017a-4d72-9b10-a4928ca89c8f",
+          "sourceHandle": "data-out",
+          "targetHandle": "data-in"
+        },
+        {
+          "id": "edge-4d5cbad6-efb3-44ec-95f8-78f1b429ce92",
+          "source": "0f0f4de3-2d2a-4fbb-ae13-0af5314ce550",
+          "target": "f3c4be84-017a-4d72-9b10-a4928ca89c8f",
+          "sourceHandle": "peer",
+          "targetHandle": "peer"
+        },
+        {
+          "id": "edge-042085aa-bf8c-4d9d-9c25-f543666a9ec4",
+          "source": "f3c4be84-017a-4d72-9b10-a4928ca89c8f",
+          "target": "44dc5509-5139-4528-aa25-8b6cf0bde2e4",
+          "sourceHandle": "relay-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge-59f49656-40bc-41f1-be33-90dce31fb2d0",
+          "source": "44dc5509-5139-4528-aa25-8b6cf0bde2e4",
+          "target": "0f0f4de3-2d2a-4fbb-ae13-0af5314ce550",
+          "sourceHandle": "flow-out",
+          "targetHandle": "intercept-in"
+        },
+        {
+          "id": "edge-b9c57232-9008-491a-b0d5-cbfb0fd31442",
+          "source": "59a4e62f-e73e-45d3-8ecf-222694966088",
+          "target": "2df95a3a-bc76-481b-97bf-54ad11f94fa4",
+          "sourceHandle": "parent",
+          "targetHandle": "child"
+        },
+        {
+          "id": "edge-1bee652b-3827-49fe-b43a-f89303cad64b",
+          "source": "6df450e2-cffc-4dd5-93c5-6c5f648cd1e9",
+          "target": "e5cf0d58-4259-4b0c-9049-e9f60ed07b84",
+          "sourceHandle": "link",
+          "targetHandle": "link"
+        },
+        {
+          "id": "edge-cd920287-51ae-4ebb-9a8f-ba873c4c6e16",
+          "source": "44dc5509-5139-4528-aa25-8b6cf0bde2e4",
+          "target": "2df95a3a-bc76-481b-97bf-54ad11f94fa4",
+          "sourceHandle": "flow-out",
+          "targetHandle": "link-in"
+        }
+      ]
+    },
+    {
+      "id": "page-1770748979436-q0dr",
+      "name": "sentence-diagram",
+      "description": "Grammar parse tree: the quick brown fox jumps over the lazy dog",
+      "order": 7,
+      "nodes": [
+        {
+          "id": "node_1770749065246_3uu6zh",
+          "type": "construct",
+          "position": {
+            "x": 31.66066428455717,
+            "y": 320.91661656475407
+          },
+          "data": {
+            "constructType": "gram-sentence",
+            "semanticId": "gram-sentence-9v6mjqw",
+            "values": {
+              "text": "The quick brown fox jumps over the lazy dog"
+            },
+            "connections": [
+              {
+                "portId": "parent",
+                "targetSemanticId": "gram-np-9v6mfki",
+                "targetPortId": "child"
+              },
+              {
+                "portId": "parent",
+                "targetSemanticId": "gram-vp-9v6m6h9",
+                "targetPortId": "child"
+              }
+            ]
+          }
+        },
+        {
+          "id": "node_1770749065246_ex3esm",
+          "type": "construct",
+          "position": {
+            "x": 20,
+            "y": 71.17955086337865
+          },
+          "data": {
+            "constructType": "gram-np",
+            "semanticId": "gram-np-9v6mfki",
+            "values": {
+              "label": "NP (subject)",
+              "role": "subject"
+            },
+            "connections": [
+              {
+                "portId": "parent",
+                "targetSemanticId": "gram-adj-9v6my2f",
+                "targetPortId": "child"
+              },
+              {
+                "portId": "parent",
+                "targetSemanticId": "gram-adj-9v6m4aj",
+                "targetPortId": "child"
+              },
+              {
+                "portId": "parent",
+                "targetSemanticId": "gram-noun-9v6mf0g",
+                "targetPortId": "child"
+              },
+              {
+                "portId": "parent",
+                "targetSemanticId": "gram-article-fdlnsif",
+                "targetPortId": "child"
+              }
+            ]
+          },
+          "parentId": "node_1770750461576_ctt0nj"
+        },
+        {
+          "id": "node_1770749065246_sogdnj",
+          "type": "construct",
+          "position": {
+            "x": 232.74661981391,
+            "y": 81.04956985692723
+          },
+          "data": {
+            "constructType": "gram-vp",
+            "semanticId": "gram-vp-9v6m6h9",
+            "values": {
+              "label": "VP"
+            },
+            "connections": [
+              {
+                "portId": "parent",
+                "targetSemanticId": "gram-verb-9v6mr7x",
+                "targetPortId": "child"
+              },
+              {
+                "portId": "parent",
+                "targetSemanticId": "gram-pp-9v6mrtk",
+                "targetPortId": "child"
+              }
+            ]
+          },
+          "parentId": "node_1770750461576_ctt0nj"
+        },
+        {
+          "id": "node_1770749065246_m8xyfw",
+          "type": "construct",
+          "position": {
+            "x": 223.78229571428994,
+            "y": 199.74915885105128
+          },
+          "data": {
+            "constructType": "gram-adj",
+            "semanticId": "gram-adj-9v6my2f",
+            "values": {
+              "word": "quick"
+            },
+            "connections": [
+              {
+                "portId": "modifies",
+                "targetSemanticId": "gram-noun-9v6mf0g",
+                "targetPortId": "modified-by"
+              }
+            ]
+          },
+          "parentId": "node_1770750462741_0terr2"
+        },
+        {
+          "id": "node_1770749065246_q5iqhe",
+          "type": "construct",
+          "position": {
+            "x": 464.04830953958185,
+            "y": 55.592268979798064
+          },
+          "data": {
+            "constructType": "gram-adj",
+            "semanticId": "gram-adj-9v6m4aj",
+            "values": {
+              "word": "brown"
+            },
+            "connections": [
+              {
+                "portId": "modifies",
+                "targetSemanticId": "gram-noun-9v6mf0g",
+                "targetPortId": "modified-by"
+              }
+            ]
+          },
+          "parentId": "node_1770750462741_0terr2"
+        },
+        {
+          "id": "node_1770749065246_nnpk0k",
+          "type": "construct",
+          "position": {
+            "x": 650,
+            "y": 159
+          },
+          "data": {
+            "constructType": "gram-noun",
+            "semanticId": "gram-noun-9v6mf0g",
+            "values": {
+              "word": "fox"
+            },
+            "connections": [],
+            "viewLevel": "summary"
+          },
+          "parentId": "node_1770750462741_0terr2"
+        },
+        {
+          "id": "node_1770749065246_uymhg6",
+          "type": "construct",
+          "position": {
+            "x": 20,
+            "y": 133
+          },
+          "data": {
+            "constructType": "gram-verb",
+            "semanticId": "gram-verb-9v6mr7x",
+            "values": {
+              "word": "jumps"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770750463803_1m0jo3"
+        },
+        {
+          "id": "node_1770749065246_h53jem",
+          "type": "construct",
+          "position": {
+            "x": 306.06459511618675,
+            "y": 95.19466686246267
+          },
+          "data": {
+            "constructType": "gram-pp",
+            "semanticId": "gram-pp-9v6mrtk",
+            "values": {
+              "label": "PP"
+            },
+            "connections": [
+              {
+                "portId": "parent",
+                "targetSemanticId": "gram-prep-9v6nsbe",
+                "targetPortId": "child"
+              },
+              {
+                "portId": "parent",
+                "targetSemanticId": "gram-np-9v6n2rn",
+                "targetPortId": "child"
+              },
+              {
+                "portId": "modifies",
+                "targetSemanticId": "gram-verb-9v6mr7x",
+                "targetPortId": "modified-by"
+              }
+            ]
+          },
+          "parentId": "node_1770750463803_1m0jo3"
+        },
+        {
+          "id": "node_1770749065247_h5tvjm",
+          "type": "construct",
+          "position": {
+            "x": 6.384011820954811,
+            "y": 74.23982268567704
+          },
+          "data": {
+            "constructType": "gram-prep",
+            "semanticId": "gram-prep-9v6nsbe",
+            "values": {
+              "word": "over"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770750464913_eziuij"
+        },
+        {
+          "id": "node_1770749065247_rjwonk",
+          "type": "construct",
+          "position": {
+            "x": 207.28800886571617,
+            "y": 77.85581086472223
+          },
+          "data": {
+            "constructType": "gram-np",
+            "semanticId": "gram-np-9v6n2rn",
+            "values": {
+              "label": "NP (object)",
+              "role": "object"
+            },
+            "connections": [
+              {
+                "portId": "parent",
+                "targetSemanticId": "gram-adj-9v6nvv8",
+                "targetPortId": "child"
+              },
+              {
+                "portId": "parent",
+                "targetSemanticId": "gram-noun-9v6ngcg",
+                "targetPortId": "child"
+              },
+              {
+                "portId": "parent",
+                "targetSemanticId": "gram-article-fdln4z9",
+                "targetPortId": "child"
+              }
+            ]
+          },
+          "parentId": "node_1770750464913_eziuij"
+        },
+        {
+          "id": "node_1770749065247_mh8wkb",
+          "type": "construct",
+          "position": {
+            "x": 20,
+            "y": 60
+          },
+          "data": {
+            "constructType": "gram-adj",
+            "semanticId": "gram-adj-9v6nvv8",
+            "values": {
+              "word": "lazy"
+            },
+            "connections": [
+              {
+                "portId": "modifies",
+                "targetSemanticId": "gram-noun-9v6ngcg",
+                "targetPortId": "modified-by"
+              }
+            ]
+          },
+          "parentId": "node_1770750466069_5uua8y"
+        },
+        {
+          "id": "node_1770749065247_lahv1p",
+          "type": "construct",
+          "position": {
+            "x": 230,
+            "y": 60
+          },
+          "data": {
+            "constructType": "gram-noun",
+            "semanticId": "gram-noun-9v6ngcg",
+            "values": {
+              "word": "dog"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770750466069_5uua8y"
+        },
+        {
+          "id": "node_1770750461576_ctt0nj",
+          "type": "organizer",
+          "position": {
+            "x": 37.25061983283149,
+            "y": 158.1245907412755
+          },
+          "data": {
+            "isOrganizer": true,
+            "name": "Constituents",
+            "color": "#1e293b",
+            "collapsed": false,
+            "layout": "freeform",
+            "attachedToSemanticId": "gram-sentence-9v6mjqw"
+          },
+          "style": {
+            "width": 444.51070964123426,
+            "height": 216.8731608741948
+          },
+          "parentId": "node_1770749065246_3uu6zh"
+        },
+        {
+          "id": "node_1770750462741_0terr2",
+          "type": "organizer",
+          "position": {
+            "x": -590.1043976820515,
+            "y": 279.9569631946772
+          },
+          "data": {
+            "isOrganizer": true,
+            "name": "Words",
+            "color": "#2563eb",
+            "collapsed": false,
+            "layout": "freeform",
+            "attachedToSemanticId": "gram-np-9v6mfki"
+          },
+          "style": {
+            "width": 870,
+            "height": 304
+          },
+          "parentId": "node_1770749065246_ex3esm"
+        },
+        {
+          "id": "node_1770750463803_1m0jo3",
+          "type": "organizer",
+          "position": {
+            "x": 160.40927938909533,
+            "y": 217.5193013942678
+          },
+          "data": {
+            "isOrganizer": true,
+            "name": "Constituents",
+            "color": "#dc2626",
+            "collapsed": false,
+            "layout": "freeform",
+            "attachedToSemanticId": "gram-vp-9v6m6h9"
+          },
+          "style": {
+            "width": 220,
+            "height": 262
+          },
+          "parentId": "node_1770749065246_sogdnj"
+        },
+        {
+          "id": "node_1770750464913_eziuij",
+          "type": "organizer",
+          "position": {
+            "x": 98.82707593254077,
+            "y": 274.17184229466454
+          },
+          "data": {
+            "isOrganizer": true,
+            "name": "Constituents",
+            "color": "#9333ea",
+            "collapsed": false,
+            "layout": "freeform",
+            "attachedToSemanticId": "gram-pp-9v6mrtk"
+          },
+          "style": {
+            "width": 427.28800886571617,
+            "height": 222.85581086472223
+          },
+          "parentId": "node_1770749065246_h53jem"
+        },
+        {
+          "id": "node_1770750466069_5uua8y",
+          "type": "organizer",
+          "position": {
+            "x": -67.64203320506385,
+            "y": 275.9547856881038
+          },
+          "data": {
+            "isOrganizer": true,
+            "name": "Words",
+            "color": "#2563eb",
+            "collapsed": false,
+            "layout": "freeform",
+            "attachedToSemanticId": "gram-np-9v6n2rn"
+          },
+          "style": {
+            "width": 450,
+            "height": 360
+          },
+          "parentId": "node_1770749065247_rjwonk"
+        },
+        {
+          "id": "node_1770756040859_k8zcip",
+          "type": "construct",
+          "position": {
+            "x": 47.64942150941587,
+            "y": 81.49261919878523
+          },
+          "data": {
+            "constructType": "gram-article",
+            "semanticId": "gram-article-fdlnsif",
+            "values": {
+              "word": "the"
+            },
+            "connections": [
+              {
+                "portId": "modifies",
+                "targetSemanticId": "gram-noun-9v6mf0g",
+                "targetPortId": "modified-by"
+              }
+            ]
+          },
+          "parentId": "node_1770750462741_0terr2"
+        },
+        {
+          "id": "node_1770756040859_q4qf1s",
+          "type": "construct",
+          "position": {
+            "x": 20,
+            "y": 215
+          },
+          "data": {
+            "constructType": "gram-article",
+            "semanticId": "gram-article-fdln4z9",
+            "values": {
+              "word": "the"
+            },
+            "connections": [
+              {
+                "portId": "modifies",
+                "targetSemanticId": "gram-noun-9v6ngcg",
+                "targetPortId": "modified-by"
+              }
+            ]
+          },
+          "parentId": "node_1770750466069_5uua8y"
+        },
+        {
+          "id": "b14c9c65-6823-4b9e-968b-610548951f4a",
+          "type": "construct",
+          "position": {
+            "x": 517.1897451068012,
+            "y": 309.2705366409542
+          },
+          "data": {
+            "constructType": "note",
+            "semanticId": "note-z7pf4fd",
+            "values": {
+              "content": "lorem ipsm"
+            },
+            "detailMode": "summary"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "edge_1770749065247_023e74",
+          "source": "node_1770749065246_3uu6zh",
+          "target": "node_1770749065246_ex3esm",
+          "sourceHandle": "parent",
+          "targetHandle": "child"
+        },
+        {
+          "id": "edge_1770749065247_jrc1zz",
+          "source": "node_1770749065246_3uu6zh",
+          "target": "node_1770749065246_sogdnj",
+          "sourceHandle": "parent",
+          "targetHandle": "child"
+        },
+        {
+          "id": "edge_1770749065247_umj589",
+          "source": "node_1770749065246_ex3esm",
+          "target": "node_1770749065246_m8xyfw",
+          "sourceHandle": "parent",
+          "targetHandle": "child"
+        },
+        {
+          "id": "edge_1770749065247_ifrwal",
+          "source": "node_1770749065246_ex3esm",
+          "target": "node_1770749065246_q5iqhe",
+          "sourceHandle": "parent",
+          "targetHandle": "child"
+        },
+        {
+          "id": "edge_1770749065247_etv4ls",
+          "source": "node_1770749065246_ex3esm",
+          "target": "node_1770749065246_nnpk0k",
+          "sourceHandle": "parent",
+          "targetHandle": "child"
+        },
+        {
+          "id": "edge_1770749065247_avkki2",
+          "source": "node_1770749065246_sogdnj",
+          "target": "node_1770749065246_uymhg6",
+          "sourceHandle": "parent",
+          "targetHandle": "child"
+        },
+        {
+          "id": "edge_1770749065247_l8pkql",
+          "source": "node_1770749065246_sogdnj",
+          "target": "node_1770749065246_h53jem",
+          "sourceHandle": "parent",
+          "targetHandle": "child"
+        },
+        {
+          "id": "edge_1770749065247_hmclks",
+          "source": "node_1770749065246_h53jem",
+          "target": "node_1770749065247_h5tvjm",
+          "sourceHandle": "parent",
+          "targetHandle": "child"
+        },
+        {
+          "id": "edge_1770749065247_dlu0pn",
+          "source": "node_1770749065246_h53jem",
+          "target": "node_1770749065247_rjwonk",
+          "sourceHandle": "parent",
+          "targetHandle": "child"
+        },
+        {
+          "id": "edge_1770749065247_ql8psx",
+          "source": "node_1770749065247_rjwonk",
+          "target": "node_1770749065247_mh8wkb",
+          "sourceHandle": "parent",
+          "targetHandle": "child"
+        },
+        {
+          "id": "edge_1770749065247_8idjdw",
+          "source": "node_1770749065247_rjwonk",
+          "target": "node_1770749065247_lahv1p",
+          "sourceHandle": "parent",
+          "targetHandle": "child"
+        },
+        {
+          "id": "edge_1770756040859_sykx9r",
+          "source": "node_1770749065246_ex3esm",
+          "target": "node_1770756040859_k8zcip",
+          "sourceHandle": "parent",
+          "targetHandle": "child"
+        },
+        {
+          "id": "edge_1770756040859_43157a",
+          "source": "node_1770749065247_rjwonk",
+          "target": "node_1770756040859_q4qf1s",
+          "sourceHandle": "parent",
+          "targetHandle": "child"
+        },
+        {
+          "id": "edge_1770756040859_x4mxk2",
+          "source": "node_1770756040859_k8zcip",
+          "target": "node_1770749065246_nnpk0k",
+          "sourceHandle": "modifies",
+          "targetHandle": "modified-by"
+        },
+        {
+          "id": "edge_1770756040859_ipzmvp",
+          "source": "node_1770756040859_q4qf1s",
+          "target": "node_1770749065247_lahv1p",
+          "sourceHandle": "modifies",
+          "targetHandle": "modified-by"
+        },
+        {
+          "id": "edge_1770756040859_jb0gi1",
+          "source": "node_1770749065246_m8xyfw",
+          "target": "node_1770749065246_nnpk0k",
+          "sourceHandle": "modifies",
+          "targetHandle": "modified-by"
+        },
+        {
+          "id": "edge_1770756040859_oehimv",
+          "source": "node_1770749065246_q5iqhe",
+          "target": "node_1770749065246_nnpk0k",
+          "sourceHandle": "modifies",
+          "targetHandle": "modified-by"
+        },
+        {
+          "id": "edge_1770756040859_y901hb",
+          "source": "node_1770749065247_mh8wkb",
+          "target": "node_1770749065247_lahv1p",
+          "sourceHandle": "modifies",
+          "targetHandle": "modified-by"
+        },
+        {
+          "id": "edge_1770756040859_w8jdxs",
+          "source": "node_1770749065246_h53jem",
+          "target": "node_1770749065246_uymhg6",
+          "sourceHandle": "modifies",
+          "targetHandle": "modified-by"
+        }
+      ]
+    },
+    {
+      "id": "page-1770866154599-x8oi",
+      "name": "capability-map",
+      "description": "Personas, domains, deployables, features, capabilities web",
+      "order": 9,
+      "nodes": [
+        {
+          "id": "node_1770866172518_f7pzc9",
+          "type": "organizer",
+          "position": {
+            "x": 2075.896070357264,
+            "y": 62.873295905948055
+          },
+          "data": {
+            "isOrganizer": true,
+            "name": "Domains",
+            "color": "#4a8e5c",
+            "collapsed": false,
+            "layout": "freeform",
+            "description": "Business domains"
+          },
+          "style": {
+            "width": 1000,
+            "height": 350
+          }
+        },
+        {
+          "id": "node_1770866175830_51nate",
+          "type": "construct",
+          "position": {
+            "x": 665.8768291055503,
+            "y": 524.3718275570823
+          },
+          "data": {
+            "constructType": "test2-persona",
+            "semanticId": "test2-persona-zyaebyk",
+            "values": {
+              "name": "Product Manager",
+              "role": "Drives roadmap and prioritization"
+            },
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "test2-user-story-1hsjesr",
+                "targetPortId": "flow-in"
+              },
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "test2-user-story-1hsjh0j",
+                "targetPortId": "flow-in"
+              }
+            ]
+          }
+        },
+        {
+          "id": "node_1770866175830_xtvjto",
+          "type": "construct",
+          "position": {
+            "x": -172.5,
+            "y": 340
+          },
+          "data": {
+            "constructType": "test2-persona",
+            "semanticId": "test2-persona-zyaer9m",
+            "values": {
+              "name": "Developer",
+              "role": "Builds and integrates features"
+            },
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "test2-user-story-1hsjez3",
+                "targetPortId": "flow-in"
+              },
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "test2-user-story-1hsjhb4",
+                "targetPortId": "flow-in"
+              }
+            ]
+          }
+        },
+        {
+          "id": "node_1770866175830_ery6ru",
+          "type": "construct",
+          "position": {
+            "x": 177.5,
+            "y": 340
+          },
+          "data": {
+            "constructType": "test2-persona",
+            "semanticId": "test2-persona-zyae1fr",
+            "values": {
+              "name": "End User",
+              "role": "Consumes the product"
+            },
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "test2-user-story-1hsjce8",
+                "targetPortId": "flow-in"
+              },
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "test2-user-story-1hsje1c",
+                "targetPortId": "flow-in"
+              },
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "test2-user-story-1hsjnbp",
+                "targetPortId": "flow-in"
+              },
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "test2-user-story-1hsjfoe",
+                "targetPortId": "flow-in"
+              }
+            ]
+          }
+        },
+        {
+          "id": "node_1770866175830_6hym5v",
+          "type": "construct",
+          "position": {
+            "x": 677.5,
+            "y": 340
+          },
+          "data": {
+            "constructType": "test2-deployable",
+            "semanticId": "test2-deployable-zyaeeme",
+            "values": {
+              "name": "Web App",
+              "type": "web"
+            },
+            "connections": []
+          }
+        },
+        {
+          "id": "node_1770866175830_37rhwb",
+          "type": "construct",
+          "position": {
+            "x": 1252.5,
+            "y": 340
+          },
+          "data": {
+            "constructType": "test2-deployable",
+            "semanticId": "test2-deployable-zyaem16",
+            "values": {
+              "name": "Mobile App",
+              "type": "mobile"
+            },
+            "connections": []
+          }
+        },
+        {
+          "id": "node_1770866175830_sfy242",
+          "type": "construct",
+          "position": {
+            "x": 1827.5,
+            "y": 340
+          },
+          "data": {
+            "constructType": "test2-deployable",
+            "semanticId": "test2-deployable-zyae64c",
+            "values": {
+              "name": "API Server",
+              "type": "api"
+            },
+            "connections": []
+          }
+        },
+        {
+          "id": "node_1770866182557_70ul20",
+          "type": "construct",
+          "position": {
+            "x": 30,
+            "y": 30
+          },
+          "data": {
+            "constructType": "test2-domain",
+            "semanticId": "test2-domain-03h93ej",
+            "values": {
+              "name": "Authentication",
+              "description": "Identity, login, and access control"
+            },
+            "connections": [
+              {
+                "portId": "child",
+                "targetSemanticId": "test2-feature-0hjkuc9",
+                "targetPortId": "parent"
+              },
+              {
+                "portId": "child",
+                "targetSemanticId": "test2-feature-0hjk0l8",
+                "targetPortId": "parent"
+              },
+              {
+                "portId": "child",
+                "targetSemanticId": "test2-feature-0hjktl8",
+                "targetPortId": "parent"
+              }
+            ]
+          },
+          "parentId": "node_1770866172518_f7pzc9"
+        },
+        {
+          "id": "node_1770866182557_o1a0wj",
+          "type": "construct",
+          "position": {
+            "x": 270,
+            "y": 30
+          },
+          "data": {
+            "constructType": "test2-domain",
+            "semanticId": "test2-domain-03h9ubu",
+            "values": {
+              "name": "Payments",
+              "description": "Billing, subscriptions, and invoicing"
+            },
+            "connections": [
+              {
+                "portId": "child",
+                "targetSemanticId": "test2-feature-0hjkojc",
+                "targetPortId": "parent"
+              },
+              {
+                "portId": "child",
+                "targetSemanticId": "test2-feature-0hjkzck",
+                "targetPortId": "parent"
+              },
+              {
+                "portId": "child",
+                "targetSemanticId": "test2-feature-0hjkjzl",
+                "targetPortId": "parent"
+              }
+            ]
+          },
+          "parentId": "node_1770866172518_f7pzc9"
+        },
+        {
+          "id": "node_1770866182557_p9xh5s",
+          "type": "construct",
+          "position": {
+            "x": 510,
+            "y": 30
+          },
+          "data": {
+            "constructType": "test2-domain",
+            "semanticId": "test2-domain-03h9wd4",
+            "values": {
+              "name": "Notifications",
+              "description": "Push, email, and in-app alerts"
+            },
+            "connections": [
+              {
+                "portId": "child",
+                "targetSemanticId": "test2-feature-0hjkhtp",
+                "targetPortId": "parent"
+              },
+              {
+                "portId": "child",
+                "targetSemanticId": "test2-feature-0hjksxg",
+                "targetPortId": "parent"
+              }
+            ]
+          },
+          "parentId": "node_1770866172518_f7pzc9"
+        },
+        {
+          "id": "node_1770866182557_5y6cqg",
+          "type": "construct",
+          "position": {
+            "x": 750,
+            "y": 30
+          },
+          "data": {
+            "constructType": "test2-domain",
+            "semanticId": "test2-domain-03h9l6e",
+            "values": {
+              "name": "Analytics",
+              "description": "Usage tracking and reporting"
+            },
+            "connections": [
+              {
+                "portId": "child",
+                "targetSemanticId": "test2-feature-0hjk9sv",
+                "targetPortId": "parent"
+              },
+              {
+                "portId": "child",
+                "targetSemanticId": "test2-feature-0hjk51v",
+                "targetPortId": "parent"
+              }
+            ]
+          },
+          "parentId": "node_1770866172518_f7pzc9"
+        },
+        {
+          "id": "node_1770866188325_bm9ax8",
+          "type": "organizer",
+          "position": {
+            "x": -112.55822611490237,
+            "y": -591.363499890659
+          },
+          "data": {
+            "isOrganizer": true,
+            "name": "Web App Features",
+            "color": "#dc2626",
+            "collapsed": false,
+            "layout": "freeform",
+            "attachedToSemanticId": "test2-deployable-zyaeeme"
+          },
+          "style": {
+            "width": 500,
+            "height": 350
+          },
+          "parentId": "node_1770866175830_6hym5v"
+        },
+        {
+          "id": "node_1770866189675_wxzvip",
+          "type": "organizer",
+          "position": {
+            "x": -324.58651251739275,
+            "y": 123.25035428069754
+          },
+          "data": {
+            "isOrganizer": true,
+            "name": "Mobile App Features",
+            "color": "#8e4a8e",
+            "collapsed": false,
+            "layout": "freeform",
+            "attachedToSemanticId": "test2-deployable-zyaem16"
+          },
+          "style": {
+            "width": 350,
+            "height": 253
+          },
+          "parentId": "node_1770866175830_37rhwb"
+        },
+        {
+          "id": "node_1770866190946_cy6esy",
+          "type": "organizer",
+          "position": {
+            "x": -422.74775622224934,
+            "y": 248.89674622291398
+          },
+          "data": {
+            "isOrganizer": true,
+            "name": "API Server Features",
+            "color": "#0891b2",
+            "collapsed": false,
+            "layout": "freeform",
+            "attachedToSemanticId": "test2-deployable-zyae64c"
+          },
+          "style": {
+            "width": 500,
+            "height": 450
+          },
+          "parentId": "node_1770866175830_sfy242"
+        },
+        {
+          "id": "node_1770866200784_j0mocf",
+          "type": "construct",
+          "position": {
+            "x": 53.756476683937706,
+            "y": 74.34542314335056
+          },
+          "data": {
+            "constructType": "test2-feature",
+            "semanticId": "test2-feature-0hjkuc9",
+            "values": {
+              "name": "SSO Login",
+              "status": "shipped"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866188325_bm9ax8"
+        },
+        {
+          "id": "node_1770866200784_04hhoa",
+          "type": "construct",
+          "position": {
+            "x": 250,
+            "y": 30
+          },
+          "data": {
+            "constructType": "test2-feature",
+            "semanticId": "test2-feature-0hjk0l8",
+            "values": {
+              "name": "Password Reset",
+              "status": "shipped"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866188325_bm9ax8"
+        },
+        {
+          "id": "node_1770866200784_scjgj8",
+          "type": "construct",
+          "position": {
+            "x": 30,
+            "y": 170
+          },
+          "data": {
+            "constructType": "test2-feature",
+            "semanticId": "test2-feature-0hjkzck",
+            "values": {
+              "name": "Subscription Mgmt",
+              "status": "in-progress"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866188325_bm9ax8"
+        },
+        {
+          "id": "node_1770866200784_rfvf7h",
+          "type": "construct",
+          "position": {
+            "x": 250,
+            "y": 170
+          },
+          "data": {
+            "constructType": "test2-feature",
+            "semanticId": "test2-feature-0hjk9sv",
+            "values": {
+              "name": "Usage Dashboard",
+              "status": "in-progress"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866188325_bm9ax8"
+        },
+        {
+          "id": "node_1770866200784_blw5pz",
+          "type": "construct",
+          "position": {
+            "x": 30,
+            "y": 30
+          },
+          "data": {
+            "constructType": "test2-feature",
+            "semanticId": "test2-feature-0hjkhtp",
+            "values": {
+              "name": "Push Notifications",
+              "status": "shipped"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866189675_wxzvip"
+        },
+        {
+          "id": "node_1770866200784_82qeke",
+          "type": "construct",
+          "position": {
+            "x": 30,
+            "y": 170
+          },
+          "data": {
+            "constructType": "test2-feature",
+            "semanticId": "test2-feature-0hjktl8",
+            "values": {
+              "name": "Two-Factor Auth",
+              "status": "planned"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866189675_wxzvip"
+        },
+        {
+          "id": "node_1770866200784_5voa2g",
+          "type": "construct",
+          "position": {
+            "x": 113.4725374493089,
+            "y": 88.95612784881246
+          },
+          "data": {
+            "constructType": "test2-feature",
+            "semanticId": "test2-feature-0hjkojc",
+            "values": {
+              "name": "Payment Processing",
+              "status": "shipped"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866190946_cy6esy"
+        },
+        {
+          "id": "node_1770866200784_jqen4x",
+          "type": "construct",
+          "position": {
+            "x": 250,
+            "y": 30
+          },
+          "data": {
+            "constructType": "test2-feature",
+            "semanticId": "test2-feature-0hjksxg",
+            "values": {
+              "name": "Email Alerts",
+              "status": "in-progress"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866190946_cy6esy"
+        },
+        {
+          "id": "node_1770866200784_8700rp",
+          "type": "construct",
+          "position": {
+            "x": 30,
+            "y": 170
+          },
+          "data": {
+            "constructType": "test2-feature",
+            "semanticId": "test2-feature-0hjk51v",
+            "values": {
+              "name": "Event Tracking",
+              "status": "shipped"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866190946_cy6esy"
+        },
+        {
+          "id": "node_1770866200784_riff1y",
+          "type": "construct",
+          "position": {
+            "x": 250,
+            "y": 170
+          },
+          "data": {
+            "constructType": "test2-feature",
+            "semanticId": "test2-feature-0hjkjzl",
+            "values": {
+              "name": "Invoice Generation",
+              "status": "planned"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866190946_cy6esy"
+        },
+        {
+          "id": "node_1770866207411_x8ykoi",
+          "type": "organizer",
+          "position": {
+            "x": 0,
+            "y": 190
+          },
+          "data": {
+            "isOrganizer": true,
+            "name": "SSO Login Capabilities",
+            "color": "#5c9e9e",
+            "collapsed": false,
+            "layout": "freeform",
+            "attachedToSemanticId": "test2-feature-0hjkuc9"
+          },
+          "style": {
+            "width": 340,
+            "height": 150
+          },
+          "parentId": "node_1770866200784_j0mocf"
+        },
+        {
+          "id": "node_1770866208519_p41yek",
+          "type": "organizer",
+          "position": {
+            "x": 0,
+            "y": 190
+          },
+          "data": {
+            "isOrganizer": true,
+            "name": "Password Reset Capabilities",
+            "color": "#5c9e9e",
+            "collapsed": false,
+            "layout": "freeform",
+            "attachedToSemanticId": "test2-feature-0hjk0l8"
+          },
+          "style": {
+            "width": 340,
+            "height": 150
+          },
+          "parentId": "node_1770866200784_04hhoa"
+        },
+        {
+          "id": "node_1770866209942_48pkve",
+          "type": "organizer",
+          "position": {
+            "x": 0,
+            "y": 190
+          },
+          "data": {
+            "isOrganizer": true,
+            "name": "Payment Processing Capabilities",
+            "color": "#5c9e9e",
+            "collapsed": false,
+            "layout": "freeform",
+            "attachedToSemanticId": "test2-feature-0hjkojc"
+          },
+          "style": {
+            "width": 200,
+            "height": 150
+          },
+          "parentId": "node_1770866200784_5voa2g"
+        },
+        {
+          "id": "node_1770866211337_pj6qmd",
+          "type": "organizer",
+          "position": {
+            "x": 0,
+            "y": 190
+          },
+          "data": {
+            "isOrganizer": true,
+            "name": "Subscription Mgmt Capabilities",
+            "color": "#5c9e9e",
+            "collapsed": false,
+            "layout": "freeform",
+            "attachedToSemanticId": "test2-feature-0hjkzck"
+          },
+          "style": {
+            "width": 340,
+            "height": 150
+          },
+          "parentId": "node_1770866200784_scjgj8"
+        },
+        {
+          "id": "node_1770866212719_boxhvo",
+          "type": "organizer",
+          "position": {
+            "x": 0,
+            "y": 190
+          },
+          "data": {
+            "isOrganizer": true,
+            "name": "Push Notifications Capabilities",
+            "color": "#5c9e9e",
+            "collapsed": false,
+            "layout": "freeform",
+            "attachedToSemanticId": "test2-feature-0hjkhtp"
+          },
+          "style": {
+            "width": 200,
+            "height": 150
+          },
+          "parentId": "node_1770866200784_blw5pz"
+        },
+        {
+          "id": "node_1770866214153_os69l0",
+          "type": "organizer",
+          "position": {
+            "x": 0,
+            "y": 190
+          },
+          "data": {
+            "isOrganizer": true,
+            "name": "Email Alerts Capabilities",
+            "color": "#5c9e9e",
+            "collapsed": false,
+            "layout": "freeform",
+            "attachedToSemanticId": "test2-feature-0hjksxg"
+          },
+          "style": {
+            "width": 200,
+            "height": 150
+          },
+          "parentId": "node_1770866200784_jqen4x"
+        },
+        {
+          "id": "node_1770866215416_tgg34h",
+          "type": "organizer",
+          "position": {
+            "x": 0,
+            "y": 190
+          },
+          "data": {
+            "isOrganizer": true,
+            "name": "Usage Dashboard Capabilities",
+            "color": "#5c9e9e",
+            "collapsed": false,
+            "layout": "freeform",
+            "attachedToSemanticId": "test2-feature-0hjk9sv"
+          },
+          "style": {
+            "width": 340,
+            "height": 150
+          },
+          "parentId": "node_1770866200784_rfvf7h"
+        },
+        {
+          "id": "node_1770866216718_qac399",
+          "type": "organizer",
+          "position": {
+            "x": 0,
+            "y": 190
+          },
+          "data": {
+            "isOrganizer": true,
+            "name": "Event Tracking Capabilities",
+            "color": "#5c9e9e",
+            "collapsed": false,
+            "layout": "freeform",
+            "attachedToSemanticId": "test2-feature-0hjk51v"
+          },
+          "style": {
+            "width": 200,
+            "height": 150
+          },
+          "parentId": "node_1770866200784_8700rp"
+        },
+        {
+          "id": "node_1770866222917_hvajxo",
+          "type": "organizer",
+          "position": {
+            "x": 0,
+            "y": 190
+          },
+          "data": {
+            "isOrganizer": true,
+            "name": "Invoice Generation Capabilities",
+            "color": "#5c9e9e",
+            "collapsed": false,
+            "layout": "freeform",
+            "attachedToSemanticId": "test2-feature-0hjkjzl"
+          },
+          "style": {
+            "width": 200,
+            "height": 150
+          },
+          "parentId": "node_1770866200784_riff1y"
+        },
+        {
+          "id": "node_1770866224130_jizynl",
+          "type": "organizer",
+          "position": {
+            "x": 0,
+            "y": 190
+          },
+          "data": {
+            "isOrganizer": true,
+            "name": "Two-Factor Auth Capabilities",
+            "color": "#5c9e9e",
+            "collapsed": false,
+            "layout": "freeform",
+            "attachedToSemanticId": "test2-feature-0hjktl8"
+          },
+          "style": {
+            "width": 340,
+            "height": 150
+          },
+          "parentId": "node_1770866200784_82qeke"
+        },
+        {
+          "id": "node_1770866237686_f4hurk",
+          "type": "construct",
+          "position": {
+            "x": 20,
+            "y": 20
+          },
+          "data": {
+            "constructType": "test2-capability",
+            "semanticId": "test2-capability-1a0m3gk",
+            "values": {
+              "name": "Validate Credentials"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866207411_x8ykoi"
+        },
+        {
+          "id": "node_1770866237686_43wjd1",
+          "type": "construct",
+          "position": {
+            "x": 160,
+            "y": 20
+          },
+          "data": {
+            "constructType": "test2-capability",
+            "semanticId": "test2-capability-1a0mwar",
+            "values": {
+              "name": "Generate JWT"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866207411_x8ykoi"
+        },
+        {
+          "id": "node_1770866237686_8gmhqu",
+          "type": "construct",
+          "position": {
+            "x": 20,
+            "y": 20
+          },
+          "data": {
+            "constructType": "test2-capability",
+            "semanticId": "test2-capability-1a0myyl",
+            "values": {
+              "name": "Send Reset Email"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866208519_p41yek"
+        },
+        {
+          "id": "node_1770866237686_zdfjuz",
+          "type": "construct",
+          "position": {
+            "x": 160,
+            "y": 20
+          },
+          "data": {
+            "constructType": "test2-capability",
+            "semanticId": "test2-capability-1a0mfdk",
+            "values": {
+              "name": "Validate Reset Token"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866208519_p41yek"
+        },
+        {
+          "id": "node_1770866237686_u4ia7u",
+          "type": "construct",
+          "position": {
+            "x": 20,
+            "y": 20
+          },
+          "data": {
+            "constructType": "test2-capability",
+            "semanticId": "test2-capability-1a0m97f",
+            "values": {
+              "name": "Charge Card"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866209942_48pkve"
+        },
+        {
+          "id": "node_1770866237686_gyqq9h",
+          "type": "construct",
+          "position": {
+            "x": 20,
+            "y": 20
+          },
+          "data": {
+            "constructType": "test2-capability",
+            "semanticId": "test2-capability-1a0mo2x",
+            "values": {
+              "name": "Create Subscription"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866211337_pj6qmd"
+        },
+        {
+          "id": "node_1770866237686_xqvn73",
+          "type": "construct",
+          "position": {
+            "x": 160,
+            "y": 20
+          },
+          "data": {
+            "constructType": "test2-capability",
+            "semanticId": "test2-capability-1a0mf6s",
+            "values": {
+              "name": "Cancel Subscription"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866211337_pj6qmd"
+        },
+        {
+          "id": "node_1770866237686_we4le5",
+          "type": "construct",
+          "position": {
+            "x": 20,
+            "y": 20
+          },
+          "data": {
+            "constructType": "test2-capability",
+            "semanticId": "test2-capability-1a0m5vq",
+            "values": {
+              "name": "Send Push"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866212719_boxhvo"
+        },
+        {
+          "id": "node_1770866237686_uzn7xt",
+          "type": "construct",
+          "position": {
+            "x": 20,
+            "y": 20
+          },
+          "data": {
+            "constructType": "test2-capability",
+            "semanticId": "test2-capability-1a0muug",
+            "values": {
+              "name": "Compose Email"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866214153_os69l0"
+        },
+        {
+          "id": "node_1770866237686_4v78qy",
+          "type": "construct",
+          "position": {
+            "x": 20,
+            "y": 20
+          },
+          "data": {
+            "constructType": "test2-capability",
+            "semanticId": "test2-capability-1a0md3n",
+            "values": {
+              "name": "Render Charts"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866215416_tgg34h"
+        },
+        {
+          "id": "node_1770866237686_dtfff4",
+          "type": "construct",
+          "position": {
+            "x": 160,
+            "y": 20
+          },
+          "data": {
+            "constructType": "test2-capability",
+            "semanticId": "test2-capability-1a0mwvd",
+            "values": {
+              "name": "Aggregate Metrics"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866215416_tgg34h"
+        },
+        {
+          "id": "node_1770866237686_pqn3pg",
+          "type": "construct",
+          "position": {
+            "x": 20,
+            "y": 20
+          },
+          "data": {
+            "constructType": "test2-capability",
+            "semanticId": "test2-capability-1a0m5lu",
+            "values": {
+              "name": "Track Event"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866216718_qac399"
+        },
+        {
+          "id": "node_1770866237686_9im8oj",
+          "type": "construct",
+          "position": {
+            "x": 20,
+            "y": 20
+          },
+          "data": {
+            "constructType": "test2-capability",
+            "semanticId": "test2-capability-1a0mmkf",
+            "values": {
+              "name": "Generate PDF"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866222917_hvajxo"
+        },
+        {
+          "id": "node_1770866237686_k9bdji",
+          "type": "construct",
+          "position": {
+            "x": 20,
+            "y": 20
+          },
+          "data": {
+            "constructType": "test2-capability",
+            "semanticId": "test2-capability-1a0mssk",
+            "values": {
+              "name": "Verify TOTP"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866224130_jizynl"
+        },
+        {
+          "id": "node_1770866237686_ai7vwg",
+          "type": "construct",
+          "position": {
+            "x": 160,
+            "y": 20
+          },
+          "data": {
+            "constructType": "test2-capability",
+            "semanticId": "test2-capability-1a0m2mr",
+            "values": {
+              "name": "Enroll Authenticator"
+            },
+            "connections": []
+          },
+          "parentId": "node_1770866224130_jizynl"
+        },
+        {
+          "id": "node_1770866247763_3g6jod",
+          "type": "construct",
+          "position": {
+            "x": 20,
+            "y": 60
+          },
+          "data": {
+            "constructType": "test2-user-story",
+            "semanticId": "test2-user-story-1hsjesr",
+            "values": {
+              "title": "See usage dashboards",
+              "description": "As a PM, I want to view usage analytics"
+            },
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "test2-capability-1a0md3n",
+                "targetPortId": "flow-in"
+              },
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "test2-capability-1a0mwvd",
+                "targetPortId": "flow-in"
+              }
+            ]
+          },
+          "parentId": "ea418d72-f7d5-4fe7-adcb-5689c3b1e56f"
+        },
+        {
+          "id": "node_1770866247763_ji3hi8",
+          "type": "construct",
+          "position": {
+            "x": 230,
+            "y": 60
+          },
+          "data": {
+            "constructType": "test2-user-story",
+            "semanticId": "test2-user-story-1hsjh0j",
+            "values": {
+              "title": "Generate invoices",
+              "description": "As a PM, I want to generate customer invoices"
+            },
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "test2-capability-1a0mmkf",
+                "targetPortId": "flow-in"
+              }
+            ]
+          },
+          "parentId": "ea418d72-f7d5-4fe7-adcb-5689c3b1e56f"
+        },
+        {
+          "id": "node_1770866247763_j8d6gc",
+          "type": "construct",
+          "position": {
+            "x": 440,
+            "y": 60
+          },
+          "data": {
+            "constructType": "test2-user-story",
+            "semanticId": "test2-user-story-1hsjez3",
+            "values": {
+              "title": "Integrate SSO",
+              "description": "As a developer, I want to integrate SSO into my app"
+            },
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "test2-capability-1a0m3gk",
+                "targetPortId": "flow-in"
+              },
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "test2-capability-1a0mwar",
+                "targetPortId": "flow-in"
+              }
+            ]
+          },
+          "parentId": "ea418d72-f7d5-4fe7-adcb-5689c3b1e56f"
+        },
+        {
+          "id": "node_1770866247763_gr4zw3",
+          "type": "construct",
+          "position": {
+            "x": 20,
+            "y": 173
+          },
+          "data": {
+            "constructType": "test2-user-story",
+            "semanticId": "test2-user-story-1hsjhb4",
+            "values": {
+              "title": "Track events",
+              "description": "As a developer, I want to instrument event tracking"
+            },
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "test2-capability-1a0m5lu",
+                "targetPortId": "flow-in"
+              }
+            ]
+          },
+          "parentId": "ea418d72-f7d5-4fe7-adcb-5689c3b1e56f"
+        },
+        {
+          "id": "node_1770866247763_exsqy4",
+          "type": "construct",
+          "position": {
+            "x": 230,
+            "y": 173
+          },
+          "data": {
+            "constructType": "test2-user-story",
+            "semanticId": "test2-user-story-1hsjce8",
+            "values": {
+              "title": "Reset my password",
+              "description": "As an end user, I want to reset my forgotten password"
+            },
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "test2-capability-1a0myyl",
+                "targetPortId": "flow-in"
+              },
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "test2-capability-1a0mfdk",
+                "targetPortId": "flow-in"
+              }
+            ]
+          },
+          "parentId": "ea418d72-f7d5-4fe7-adcb-5689c3b1e56f"
+        },
+        {
+          "id": "node_1770866247763_prp6bi",
+          "type": "construct",
+          "position": {
+            "x": 440,
+            "y": 173
+          },
+          "data": {
+            "constructType": "test2-user-story",
+            "semanticId": "test2-user-story-1hsje1c",
+            "values": {
+              "title": "Get notifications",
+              "description": "As an end user, I want push notifications on my phone"
+            },
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "test2-capability-1a0m5vq",
+                "targetPortId": "flow-in"
+              }
+            ]
+          },
+          "parentId": "ea418d72-f7d5-4fe7-adcb-5689c3b1e56f"
+        },
+        {
+          "id": "node_1770866247763_kmg7la",
+          "type": "construct",
+          "position": {
+            "x": 20,
+            "y": 286
+          },
+          "data": {
+            "constructType": "test2-user-story",
+            "semanticId": "test2-user-story-1hsjnbp",
+            "values": {
+              "title": "Manage subscription",
+              "description": "As an end user, I want to upgrade or cancel my plan"
+            },
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "test2-capability-1a0mo2x",
+                "targetPortId": "flow-in"
+              },
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "test2-capability-1a0mf6s",
+                "targetPortId": "flow-in"
+              }
+            ]
+          },
+          "parentId": "ea418d72-f7d5-4fe7-adcb-5689c3b1e56f"
+        },
+        {
+          "id": "node_1770866247763_q49oin",
+          "type": "construct",
+          "position": {
+            "x": 230,
+            "y": 286
+          },
+          "data": {
+            "constructType": "test2-user-story",
+            "semanticId": "test2-user-story-1hsjfoe",
+            "values": {
+              "title": "Enable 2FA",
+              "description": "As an end user, I want to secure my account with 2FA"
+            },
+            "connections": [
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "test2-capability-1a0mssk",
+                "targetPortId": "flow-in"
+              },
+              {
+                "portId": "flow-out",
+                "targetSemanticId": "test2-capability-1a0m2mr",
+                "targetPortId": "flow-in"
+              }
+            ]
+          },
+          "parentId": "ea418d72-f7d5-4fe7-adcb-5689c3b1e56f"
+        },
+        {
+          "id": "ea418d72-f7d5-4fe7-adcb-5689c3b1e56f",
+          "type": "organizer",
+          "position": {
+            "x": -463.02979192324676,
+            "y": -271.05131331733224
+          },
+          "data": {
+            "isOrganizer": true,
+            "name": "Domains",
+            "color": "#ec4899",
+            "collapsed": false,
+            "layout": "freeform"
+          },
+          "width": 294.6875,
+          "height": 1726.765523889048,
+          "style": {
+            "width": 620,
+            "height": 1727
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "edge_1770866270619_9z9k0i",
+          "source": "node_1770866175830_51nate",
+          "target": "node_1770866247763_3g6jod",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770866270619_wx5rec",
+          "source": "node_1770866175830_51nate",
+          "target": "node_1770866247763_ji3hi8",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770866270619_716z83",
+          "source": "node_1770866175830_xtvjto",
+          "target": "node_1770866247763_j8d6gc",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770866270619_zjvag7",
+          "source": "node_1770866175830_xtvjto",
+          "target": "node_1770866247763_gr4zw3",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770866270619_3d9r8g",
+          "source": "node_1770866175830_ery6ru",
+          "target": "node_1770866247763_exsqy4",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770866270619_i0pe44",
+          "source": "node_1770866175830_ery6ru",
+          "target": "node_1770866247763_prp6bi",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770866270619_1d9348",
+          "source": "node_1770866175830_ery6ru",
+          "target": "node_1770866247763_kmg7la",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770866270619_hfrqf6",
+          "source": "node_1770866175830_ery6ru",
+          "target": "node_1770866247763_q49oin",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770866270619_167izv",
+          "source": "node_1770866247763_3g6jod",
+          "target": "node_1770866237686_4v78qy",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770866270619_44uc8z",
+          "source": "node_1770866247763_3g6jod",
+          "target": "node_1770866237686_dtfff4",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770866270619_oxkqjg",
+          "source": "node_1770866247763_ji3hi8",
+          "target": "node_1770866237686_9im8oj",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770866270619_m64zp8",
+          "source": "node_1770866247763_j8d6gc",
+          "target": "node_1770866237686_f4hurk",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770866270619_g5oxcl",
+          "source": "node_1770866247763_j8d6gc",
+          "target": "node_1770866237686_43wjd1",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770866270619_o651k8",
+          "source": "node_1770866247763_gr4zw3",
+          "target": "node_1770866237686_pqn3pg",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770866270619_j0qvdx",
+          "source": "node_1770866247763_exsqy4",
+          "target": "node_1770866237686_8gmhqu",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770866270619_bqot5n",
+          "source": "node_1770866247763_exsqy4",
+          "target": "node_1770866237686_zdfjuz",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770866270619_ib3fvw",
+          "source": "node_1770866247763_prp6bi",
+          "target": "node_1770866237686_we4le5",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770866270619_9m6vyc",
+          "source": "node_1770866247763_kmg7la",
+          "target": "node_1770866237686_gyqq9h",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770866270619_gzssmt",
+          "source": "node_1770866247763_kmg7la",
+          "target": "node_1770866237686_xqvn73",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770866270619_9q2q0d",
+          "source": "node_1770866247763_q49oin",
+          "target": "node_1770866237686_k9bdji",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770866270619_dtbz8n",
+          "source": "node_1770866247763_q49oin",
+          "target": "node_1770866237686_ai7vwg",
+          "sourceHandle": "flow-out",
+          "targetHandle": "flow-in"
+        },
+        {
+          "id": "edge_1770866270619_9gcdro",
+          "source": "node_1770866182557_70ul20",
+          "target": "node_1770866200784_j0mocf",
+          "sourceHandle": "child",
+          "targetHandle": "parent"
+        },
+        {
+          "id": "edge_1770866270619_1zb82p",
+          "source": "node_1770866182557_70ul20",
+          "target": "node_1770866200784_04hhoa",
+          "sourceHandle": "child",
+          "targetHandle": "parent"
+        },
+        {
+          "id": "edge_1770866270619_imyqq5",
+          "source": "node_1770866182557_70ul20",
+          "target": "node_1770866200784_82qeke",
+          "sourceHandle": "child",
+          "targetHandle": "parent"
+        },
+        {
+          "id": "edge_1770866270619_k720yn",
+          "source": "node_1770866182557_o1a0wj",
+          "target": "node_1770866200784_5voa2g",
+          "sourceHandle": "child",
+          "targetHandle": "parent"
+        },
+        {
+          "id": "edge_1770866270619_yldg73",
+          "source": "node_1770866182557_o1a0wj",
+          "target": "node_1770866200784_scjgj8",
+          "sourceHandle": "child",
+          "targetHandle": "parent"
+        },
+        {
+          "id": "edge_1770866270619_3n9rre",
+          "source": "node_1770866182557_o1a0wj",
+          "target": "node_1770866200784_riff1y",
+          "sourceHandle": "child",
+          "targetHandle": "parent"
+        },
+        {
+          "id": "edge_1770866270619_ovgiv8",
+          "source": "node_1770866182557_p9xh5s",
+          "target": "node_1770866200784_blw5pz",
+          "sourceHandle": "child",
+          "targetHandle": "parent"
+        },
+        {
+          "id": "edge_1770866270619_gjbdtx",
+          "source": "node_1770866182557_p9xh5s",
+          "target": "node_1770866200784_jqen4x",
+          "sourceHandle": "child",
+          "targetHandle": "parent"
+        },
+        {
+          "id": "edge_1770866270619_ule3yi",
+          "source": "node_1770866182557_5y6cqg",
+          "target": "node_1770866200784_rfvf7h",
+          "sourceHandle": "child",
+          "targetHandle": "parent"
+        },
+        {
+          "id": "edge_1770866270619_qv87u8",
+          "source": "node_1770866182557_5y6cqg",
+          "target": "node_1770866200784_8700rp",
+          "sourceHandle": "child",
+          "targetHandle": "parent"
+        }
+      ]
+    },
+    {
+      "id": "page-1770986708983-usne",
+      "name": "bpmn-order-fulfillment",
+      "description": "BPMN order fulfillment process showcasing rendering options: circles (events), diamonds (gateways), documents (data objects), default (activities), simple (notes), and organizers (pools/lanes)",
+      "order": 11,
+      "nodes": [
+        {
+          "id": "node_1770986721651_2aa20l",
+          "type": "construct",
+          "position": {
+            "x": 50,
+            "y": 250
+          },
+          "data": {
+            "constructType": "bpmn-event",
+            "semanticId": "bpmn-event-ro1fsih",
+            "values": {
+              "name": "Order Received",
+              "eventPosition": "Start",
+              "trigger": "Message"
+            },
+            "connections": [
+              {
+                "portId": "seq-out",
+                "targetSemanticId": "bpmn-activity-ro1f93d",
+                "targetPortId": "seq-in"
+              }
+            ]
+          }
+        },
+        {
+          "id": "node_1770986721651_jof9qk",
+          "type": "construct",
+          "position": {
+            "x": 250,
+            "y": 210
+          },
+          "data": {
+            "constructType": "bpmn-activity",
+            "semanticId": "bpmn-activity-ro1f93d",
+            "values": {
+              "name": "Validate Order",
+              "activityType": "Task",
+              "description": "Check order details and customer info"
+            },
+            "connections": [
+              {
+                "portId": "seq-out",
+                "targetSemanticId": "bpmn-gateway-ro1f5cd",
+                "targetPortId": "seq-in"
+              },
+              {
+                "portId": "data-link",
+                "targetSemanticId": "bpmn-data-object-ro1gato",
+                "targetPortId": "data-link"
+              }
+            ]
+          }
+        },
+        {
+          "id": "node_1770986721651_2e5mic",
+          "type": "construct",
+          "position": {
+            "x": 580,
+            "y": 250
+          },
+          "data": {
+            "constructType": "bpmn-gateway",
+            "semanticId": "bpmn-gateway-ro1f5cd",
+            "values": {
+              "name": "In Stock?",
+              "gatewayType": "Exclusive (XOR)",
+              "description": "Check if items are available in warehouse"
+            },
+            "connections": [
+              {
+                "portId": "seq-out",
+                "targetSemanticId": "bpmn-activity-ro1fryr",
+                "targetPortId": "seq-in"
+              },
+              {
+                "portId": "seq-out",
+                "targetSemanticId": "bpmn-activity-ro1goa6",
+                "targetPortId": "seq-in"
+              }
+            ]
+          }
+        },
+        {
+          "id": "node_1770986721651_689cb1",
+          "type": "construct",
+          "position": {
+            "x": 780,
+            "y": 110
+          },
+          "data": {
+            "constructType": "bpmn-activity",
+            "semanticId": "bpmn-activity-ro1fryr",
+            "values": {
+              "name": "Pick & Pack",
+              "activityType": "Task",
+              "description": "Retrieve items from warehouse and package"
+            },
+            "connections": [
+              {
+                "portId": "seq-out",
+                "targetSemanticId": "bpmn-gateway-ro1gynw",
+                "targetPortId": "seq-in"
+              }
+            ]
+          }
+        },
+        {
+          "id": "node_1770986721652_vcxz43",
+          "type": "construct",
+          "position": {
+            "x": 780,
+            "y": 370
+          },
+          "data": {
+            "constructType": "bpmn-activity",
+            "semanticId": "bpmn-activity-ro1goa6",
+            "values": {
+              "name": "Place Backorder",
+              "activityType": "Task",
+              "description": "Order items from supplier"
+            },
+            "connections": [
+              {
+                "portId": "seq-out",
+                "targetSemanticId": "bpmn-gateway-ro1gynw",
+                "targetPortId": "seq-in"
+              }
+            ]
+          }
+        },
+        {
+          "id": "node_1770986721652_gtuxay",
+          "type": "construct",
+          "position": {
+            "x": 1080,
+            "y": 250
+          },
+          "data": {
+            "constructType": "bpmn-gateway",
+            "semanticId": "bpmn-gateway-ro1gynw",
+            "values": {
+              "name": "Merge",
+              "gatewayType": "Exclusive (XOR)",
+              "description": "Rejoin after inventory decision"
+            },
+            "connections": [
+              {
+                "portId": "seq-out",
+                "targetSemanticId": "bpmn-activity-ro1grxt",
+                "targetPortId": "seq-in"
+              }
+            ]
+          }
+        },
+        {
+          "id": "node_1770986721652_iprkeo",
+          "type": "construct",
+          "position": {
+            "x": 1280,
+            "y": 210
+          },
+          "data": {
+            "constructType": "bpmn-activity",
+            "semanticId": "bpmn-activity-ro1grxt",
+            "values": {
+              "name": "Ship Order",
+              "activityType": "Task",
+              "description": "Dispatch package to customer"
+            },
+            "connections": [
+              {
+                "portId": "seq-out",
+                "targetSemanticId": "bpmn-event-ro1guu6",
+                "targetPortId": "seq-in"
+              },
+              {
+                "portId": "data-link",
+                "targetSemanticId": "bpmn-data-object-ro1g3k6",
+                "targetPortId": "data-link"
+              }
+            ]
+          }
+        },
+        {
+          "id": "node_1770986721652_nuteeo",
+          "type": "construct",
+          "position": {
+            "x": 1580,
+            "y": 250
+          },
+          "data": {
+            "constructType": "bpmn-event",
+            "semanticId": "bpmn-event-ro1guu6",
+            "values": {
+              "name": "Order Complete",
+              "eventPosition": "End",
+              "trigger": "None"
+            },
+            "connections": []
+          }
+        },
+        {
+          "id": "node_1770986721652_8nqlqy",
+          "type": "construct",
+          "position": {
+            "x": 380,
+            "y": 30
+          },
+          "data": {
+            "constructType": "bpmn-data-object",
+            "semanticId": "bpmn-data-object-ro1gato",
+            "values": {
+              "name": "Purchase Order",
+              "state": "Confirmed",
+              "description": "Customer order with line items and shipping address"
+            },
+            "connections": []
+          }
+        },
+        {
+          "id": "node_1770986721652_k50kpb",
+          "type": "construct",
+          "position": {
+            "x": 1380,
+            "y": 420
+          },
+          "data": {
+            "constructType": "bpmn-data-object",
+            "semanticId": "bpmn-data-object-ro1g3k6",
+            "values": {
+              "name": "Shipping Label",
+              "state": "Generated",
+              "description": "Carrier label with tracking number"
+            },
+            "connections": []
+          }
+        },
+        {
+          "id": "node_1770986721652_n1qc8z",
+          "type": "construct",
+          "position": {
+            "x": 50,
+            "y": -100
+          },
+          "data": {
+            "constructType": "note",
+            "semanticId": "note-ro1gfna",
+            "values": {
+              "content": "This page demonstrates Carta's rendering options:\n\n• Circles = Events (start/end)\n• Diamonds = Gateways (decisions)\n• Documents = Data Objects\n• Rounded rects = Activities\n• Sticky notes = Notes (simple mode)\n• Organizers = Pools & Lanes"
+            },
+            "connections": [],
+            "instanceColor": "#f7f37e"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "edge_1770986731323_65h09n",
+          "source": "node_1770986721651_2aa20l",
+          "target": "node_1770986721651_jof9qk",
+          "sourceHandle": "seq-out",
+          "targetHandle": "seq-in"
+        },
+        {
+          "id": "edge_1770986731323_kcqnoq",
+          "source": "node_1770986721651_jof9qk",
+          "target": "node_1770986721651_2e5mic",
+          "sourceHandle": "seq-out",
+          "targetHandle": "seq-in"
+        },
+        {
+          "id": "edge_1770986731323_eo3ji1",
+          "source": "node_1770986721651_2e5mic",
+          "target": "node_1770986721651_689cb1",
+          "sourceHandle": "seq-out",
+          "targetHandle": "seq-in"
+        },
+        {
+          "id": "edge_1770986731323_bpf6xs",
+          "source": "node_1770986721651_2e5mic",
+          "target": "node_1770986721652_vcxz43",
+          "sourceHandle": "seq-out",
+          "targetHandle": "seq-in"
+        },
+        {
+          "id": "edge_1770986731324_ymrqst",
+          "source": "node_1770986721651_689cb1",
+          "target": "node_1770986721652_gtuxay",
+          "sourceHandle": "seq-out",
+          "targetHandle": "seq-in"
+        },
+        {
+          "id": "edge_1770986731324_227fsy",
+          "source": "node_1770986721652_vcxz43",
+          "target": "node_1770986721652_gtuxay",
+          "sourceHandle": "seq-out",
+          "targetHandle": "seq-in"
+        },
+        {
+          "id": "edge_1770986731324_z8ulbc",
+          "source": "node_1770986721652_gtuxay",
+          "target": "node_1770986721652_iprkeo",
+          "sourceHandle": "seq-out",
+          "targetHandle": "seq-in"
+        },
+        {
+          "id": "edge_1770986731324_orhlkf",
+          "source": "node_1770986721652_iprkeo",
+          "target": "node_1770986721652_nuteeo",
+          "sourceHandle": "seq-out",
+          "targetHandle": "seq-in"
+        },
+        {
+          "id": "edge_1770986731324_8pi6jw",
+          "source": "node_1770986721651_jof9qk",
+          "target": "node_1770986721652_8nqlqy",
+          "sourceHandle": "data-link",
+          "targetHandle": "data-link"
+        },
+        {
+          "id": "edge_1770986731324_glgepq",
+          "source": "node_1770986721652_iprkeo",
+          "target": "node_1770986721652_k50kpb",
+          "sourceHandle": "data-link",
+          "targetHandle": "data-link"
+        }
+      ]
+    }
+  ],
+  "customSchemas": [
+    {
+      "type": "ks-pipeline",
+      "displayName": "Pipeline",
+      "color": "#7c3aed",
+      "semanticDescription": "Data processing pipeline (kitchen-sink demo)",
+      "fields": [
+        {
+          "name": "name",
+          "label": "Name",
+          "type": "string",
+          "displayTier": "pill",
+          "displayOrder": 0,
+          "placeholder": "Pipeline name"
+        },
+        {
+          "name": "throughput",
+          "label": "Throughput",
+          "type": "number",
+          "displayTier": "minimal",
+          "displayOrder": 1,
+          "default": 1000
+        },
+        {
+          "name": "notes",
+          "label": "Notes",
+          "type": "string",
+          "displayHint": "multiline",
+          "displayTier": "details",
+          "displayOrder": 2
+        }
+      ],
+      "ports": [
+        {
+          "id": "data-in",
+          "portType": "data-sink",
+          "label": "Data In",
+          "semanticDescription": "Incoming data stream"
+        },
+        {
+          "id": "data-out",
+          "portType": "data-source",
+          "label": "Data Out",
+          "semanticDescription": "Processed data output"
+        },
+        {
+          "id": "relay-out",
+          "portType": "relay",
+          "label": "Relay",
+          "semanticDescription": "Pass-through relay port"
+        },
+        {
+          "id": "intercept-in",
+          "portType": "intercept",
+          "label": "Intercept",
+          "semanticDescription": "Pass-through intercept port"
+        },
+        {
+          "id": "peer",
+          "portType": "symmetric",
+          "label": "Peer",
+          "semanticDescription": "Bidirectional peer link"
+        },
+        {
+          "id": "parent",
+          "portType": "parent",
+          "label": "Stages",
+          "semanticDescription": "Pipeline stages"
+        }
+      ],
+      "compilation": {
+        "format": "json",
+        "sectionHeader": "# Pipelines"
+      },
+      "groupId": "grp_ks"
+    },
+    {
+      "type": "ks-stage",
+      "displayName": "Stage",
+      "color": "#db2777",
+      "semanticDescription": "A processing stage within a pipeline (kitchen-sink demo)",
+      "fields": [
+        {
+          "name": "name",
+          "label": "Name",
+          "type": "string",
+          "displayTier": "pill",
+          "displayOrder": 0,
+          "placeholder": "Stage name"
+        },
+        {
+          "name": "transform",
+          "label": "Transform",
+          "type": "enum",
+          "options": [
+            {
+              "value": "filter"
+            },
+            {
+              "value": "map"
+            },
+            {
+              "value": "reduce"
+            },
+            {
+              "value": "aggregate"
+            }
+          ],
+          "default": "map",
+          "displayTier": "minimal",
+          "displayOrder": 1
+        }
+      ],
+      "ports": [
+        {
+          "id": "child",
+          "portType": "child",
+          "label": "Pipeline",
+          "semanticDescription": "Parent pipeline"
+        },
+        {
+          "id": "flow-in",
+          "portType": "flow-in",
+          "label": "In",
+          "semanticDescription": "Stage input"
+        },
+        {
+          "id": "flow-out",
+          "portType": "flow-out",
+          "label": "Out",
+          "semanticDescription": "Stage output"
+        }
+      ],
+      "compilation": {
+        "format": "json"
+      },
+      "groupId": "grp_ks"
+    },
+    {
+      "type": "gram-sentence",
+      "displayName": "Sentence",
+      "color": "#1e293b",
+      "semanticDescription": "A complete sentence in a grammar parse tree",
+      "fields": [
+        {
+          "name": "text",
+          "label": "Text",
+          "type": "string",
+          "placeholder": "The full sentence",
+          "displayTier": "pill",
+          "displayOrder": 0
+        }
+      ],
+      "ports": [
+        {
+          "id": "parent",
+          "portType": "parent",
+          "label": "Constituents",
+          "semanticDescription": "Phrase-level constituents of this sentence"
+        }
+      ],
+      "compilation": {
+        "format": "json"
+      },
+      "groupId": "grp_gram"
+    },
+    {
+      "type": "gram-np",
+      "displayName": "Noun Phrase",
+      "color": "#2563eb",
+      "semanticDescription": "A noun phrase (NP) in a grammar parse tree",
+      "fields": [
+        {
+          "name": "label",
+          "label": "Label",
+          "type": "string",
+          "placeholder": "e.g., NP",
+          "displayTier": "pill",
+          "displayOrder": 0
+        },
+        {
+          "name": "role",
+          "label": "Role",
+          "type": "enum",
+          "options": [
+            {
+              "value": "subject"
+            },
+            {
+              "value": "object"
+            },
+            {
+              "value": "indirect object"
+            },
+            {
+              "value": "complement"
+            }
+          ],
+          "displayTier": "minimal",
+          "displayOrder": 1
+        }
+      ],
+      "ports": [
+        {
+          "id": "child",
+          "portType": "child",
+          "label": "Part of",
+          "semanticDescription": "Parent phrase or sentence"
+        },
+        {
+          "id": "parent",
+          "portType": "parent",
+          "label": "Words",
+          "semanticDescription": "Words in this phrase"
+        }
+      ],
+      "compilation": {
+        "format": "json"
+      },
+      "groupId": "grp_gram"
+    },
+    {
+      "type": "gram-vp",
+      "displayName": "Verb Phrase",
+      "color": "#dc2626",
+      "semanticDescription": "A verb phrase (VP) in a grammar parse tree",
+      "fields": [
+        {
+          "name": "label",
+          "label": "Label",
+          "type": "string",
+          "placeholder": "e.g., VP",
+          "displayTier": "pill",
+          "displayOrder": 0
+        }
+      ],
+      "ports": [
+        {
+          "id": "child",
+          "portType": "child",
+          "label": "Part of",
+          "semanticDescription": "Parent phrase or sentence"
+        },
+        {
+          "id": "parent",
+          "portType": "parent",
+          "label": "Constituents",
+          "semanticDescription": "Words and phrases in this VP"
+        }
+      ],
+      "compilation": {
+        "format": "json"
+      },
+      "groupId": "grp_gram"
+    },
+    {
+      "type": "gram-pp",
+      "displayName": "Prep Phrase",
+      "color": "#9333ea",
+      "semanticDescription": "A prepositional phrase (PP) in a grammar parse tree",
+      "fields": [
+        {
+          "name": "label",
+          "label": "Label",
+          "type": "string",
+          "displayTier": "pill",
+          "displayOrder": 0
+        }
+      ],
+      "ports": [
+        {
+          "id": "child",
+          "portType": "child",
+          "label": "Part of",
+          "semanticDescription": "Parent phrase"
+        },
+        {
+          "id": "parent",
+          "portType": "parent",
+          "label": "Constituents",
+          "semanticDescription": "Words and phrases in this PP"
+        },
+        {
+          "id": "modifies",
+          "portType": "flow-out",
+          "label": "Modifies",
+          "semanticDescription": "The verb or noun this PP modifies"
+        }
+      ],
+      "compilation": {
+        "format": "json"
+      },
+      "groupId": "grp_gram"
+    },
+    {
+      "type": "gram-noun",
+      "displayName": "Noun",
+      "color": "#2563eb",
+      "semanticDescription": "A noun (N) terminal in a grammar parse tree",
+      "fields": [
+        {
+          "name": "word",
+          "label": "Word",
+          "type": "string",
+          "displayTier": "pill",
+          "displayOrder": 0
+        }
+      ],
+      "ports": [
+        {
+          "id": "child",
+          "portType": "child",
+          "label": "Part of",
+          "semanticDescription": "Parent phrase"
+        },
+        {
+          "id": "modified-by",
+          "portType": "flow-in",
+          "label": "Modified by",
+          "semanticDescription": "Adjectives and articles that modify this noun"
+        }
+      ],
+      "compilation": {
+        "format": "json"
+      },
+      "groupId": "grp_gram"
+    },
+    {
+      "type": "gram-verb",
+      "displayName": "Verb",
+      "color": "#dc2626",
+      "semanticDescription": "A verb (V) terminal in a grammar parse tree",
+      "fields": [
+        {
+          "name": "word",
+          "label": "Word",
+          "type": "string",
+          "displayTier": "pill",
+          "displayOrder": 0
+        }
+      ],
+      "ports": [
+        {
+          "id": "child",
+          "portType": "child",
+          "label": "Part of",
+          "semanticDescription": "Parent phrase"
+        },
+        {
+          "id": "modified-by",
+          "portType": "flow-in",
+          "label": "Modified by",
+          "semanticDescription": "Adverbs or phrases that modify this verb"
+        }
+      ],
+      "compilation": {
+        "format": "json"
+      },
+      "groupId": "grp_gram"
+    },
+    {
+      "type": "gram-adj",
+      "displayName": "Adjective",
+      "color": "#16a34a",
+      "semanticDescription": "An adjective (Adj) terminal in a grammar parse tree",
+      "fields": [
+        {
+          "name": "word",
+          "label": "Word",
+          "type": "string",
+          "displayTier": "pill",
+          "displayOrder": 0
+        }
+      ],
+      "ports": [
+        {
+          "id": "child",
+          "portType": "child",
+          "label": "Part of",
+          "semanticDescription": "Parent phrase"
+        },
+        {
+          "id": "modifies",
+          "portType": "flow-out",
+          "label": "Modifies",
+          "semanticDescription": "The noun this adjective modifies"
+        }
+      ],
+      "compilation": {
+        "format": "json"
+      },
+      "groupId": "grp_gram"
+    },
+    {
+      "type": "gram-prep",
+      "displayName": "Preposition",
+      "color": "#9333ea",
+      "semanticDescription": "A preposition (P) terminal in a grammar parse tree",
+      "fields": [
+        {
+          "name": "word",
+          "label": "Word",
+          "type": "string",
+          "displayTier": "pill",
+          "displayOrder": 0
+        }
+      ],
+      "ports": [
+        {
+          "id": "child",
+          "portType": "child",
+          "label": "Part of",
+          "semanticDescription": "Parent phrase"
+        }
+      ],
+      "compilation": {
+        "format": "json"
+      },
+      "groupId": "grp_gram"
+    },
+    {
+      "type": "gram-article",
+      "displayName": "Article",
+      "color": "#64748b",
+      "semanticDescription": "An article (Det) terminal — 'the', 'a', 'an'",
+      "fields": [
+        {
+          "name": "word",
+          "label": "Word",
+          "type": "string",
+          "displayTier": "pill",
+          "displayOrder": 0
+        }
+      ],
+      "ports": [
+        {
+          "id": "child",
+          "portType": "child",
+          "label": "Part of",
+          "semanticDescription": "Parent phrase"
+        },
+        {
+          "id": "modifies",
+          "portType": "flow-out",
+          "label": "Modifies",
+          "semanticDescription": "The noun this article determines"
+        }
+      ],
+      "compilation": {
+        "format": "json"
+      },
+      "groupId": "grp_gram"
+    },
+    {
+      "type": "persona",
+      "displayName": "Persona",
+      "color": "#e11d48",
+      "semanticDescription": "A user persona representing a type of user with specific goals and pain points",
+      "fields": [
+        {
+          "name": "name",
+          "label": "Name",
+          "type": "string",
+          "placeholder": "e.g., DevOps Dana",
+          "displayTier": "pill",
+          "displayOrder": 0
+        },
+        {
+          "name": "role",
+          "label": "Role",
+          "type": "string",
+          "placeholder": "e.g., Senior DevOps Engineer",
+          "displayTier": "minimal",
+          "displayOrder": 1
+        },
+        {
+          "name": "goal",
+          "label": "Goal",
+          "type": "string",
+          "placeholder": "What they're trying to achieve",
+          "displayTier": "minimal",
+          "displayOrder": 2
+        }
+      ],
+      "ports": [
+        {
+          "id": "parent",
+          "portType": "parent",
+          "label": "Stories",
+          "semanticDescription": "User stories belonging to this persona"
+        },
+        {
+          "id": "flow-out",
+          "portType": "flow-out",
+          "label": "Uses",
+          "semanticDescription": "Features this persona uses"
+        }
+      ],
+      "compilation": {
+        "format": "json"
+      }
+    },
+    {
+      "type": "db-action",
+      "displayName": "DB Action",
+      "color": "#2d8e7a",
+      "semanticDescription": "Database operation or query executed by application code",
+      "fields": [
+        {
+          "name": "action",
+          "label": "Action",
+          "type": "string",
+          "semanticDescription": "Name of the database action",
+          "placeholder": "e.g., findUserById",
+          "displayTier": "pill",
+          "displayOrder": 0
+        },
+        {
+          "name": "operation",
+          "label": "Operation",
+          "type": "enum",
+          "semanticDescription": "Type of DB operation",
+          "options": [
+            {
+              "value": "SELECT"
+            },
+            {
+              "value": "INSERT"
+            },
+            {
+              "value": "UPDATE"
+            },
+            {
+              "value": "DELETE"
+            },
+            {
+              "value": "UPSERT"
+            }
+          ],
+          "default": "SELECT",
+          "displayTier": "minimal",
+          "displayOrder": 1
+        },
+        {
+          "name": "description",
+          "label": "Description",
+          "type": "string",
+          "semanticDescription": "What this action does",
+          "placeholder": "Brief description",
+          "displayTier": "minimal",
+          "displayOrder": 2
+        }
+      ],
+      "ports": [
+        {
+          "id": "flow-in",
+          "portType": "flow-in",
+          "label": "In"
+        },
+        {
+          "id": "flow-out",
+          "portType": "flow-out",
+          "label": "Out"
+        },
+        {
+          "id": "parent",
+          "portType": "parent",
+          "label": "Children"
+        },
+        {
+          "id": "child",
+          "portType": "child",
+          "label": "Parent"
+        }
+      ],
+      "compilation": {
+        "format": "json"
+      },
+      "enumIconField": "operation",
+      "enumIconMap": {
+        "SELECT": "R",
+        "INSERT": "C",
+        "UPDATE": "U",
+        "DELETE": "D",
+        "UPSERT": "P"
+      },
+      "nodeShape": "simple"
+    },
+    {
+      "type": "test2-persona",
+      "displayName": "Persona",
+      "color": "#d4764a",
+      "semanticDescription": "User persona representing a stakeholder archetype",
+      "fields": [
+        {
+          "name": "name",
+          "label": "Name",
+          "type": "string",
+          "displayTier": "pill",
+          "displayOrder": 0
+        },
+        {
+          "name": "role",
+          "label": "Role",
+          "type": "string",
+          "displayTier": "minimal",
+          "displayOrder": 1
+        }
+      ],
+      "ports": [
+        {
+          "id": "flow-out",
+          "portType": "flow-out",
+          "label": "User Stories"
+        },
+        {
+          "id": "flow-in",
+          "portType": "flow-in",
+          "label": "In"
+        }
+      ],
+      "compilation": {
+        "format": "json"
+      },
+      "groupId": "grp_test2"
+    },
+    {
+      "type": "test2-user-story",
+      "displayName": "User Story",
+      "color": "#c4a84a",
+      "semanticDescription": "User story describing desired functionality from a persona's perspective",
+      "fields": [
+        {
+          "name": "title",
+          "label": "Title",
+          "type": "string",
+          "displayTier": "pill",
+          "displayOrder": 0
+        },
+        {
+          "name": "description",
+          "label": "Description",
+          "type": "string",
+          "displayTier": "minimal",
+          "displayOrder": 1
+        }
+      ],
+      "ports": [
+        {
+          "id": "flow-in",
+          "portType": "flow-in",
+          "label": "From Persona"
+        },
+        {
+          "id": "flow-out",
+          "portType": "flow-out",
+          "label": "Consumes"
+        }
+      ],
+      "compilation": {
+        "format": "json"
+      },
+      "groupId": "grp_test2"
+    },
+    {
+      "type": "test2-domain",
+      "displayName": "Domain",
+      "color": "#4a8e5c",
+      "semanticDescription": "Business domain grouping related features",
+      "fields": [
+        {
+          "name": "name",
+          "label": "Name",
+          "type": "string",
+          "displayTier": "pill",
+          "displayOrder": 0
+        },
+        {
+          "name": "description",
+          "label": "Description",
+          "type": "string",
+          "displayTier": "minimal",
+          "displayOrder": 1
+        }
+      ],
+      "ports": [
+        {
+          "id": "child",
+          "portType": "child",
+          "label": "Features"
+        },
+        {
+          "id": "flow-in",
+          "portType": "flow-in",
+          "label": "In"
+        },
+        {
+          "id": "flow-out",
+          "portType": "flow-out",
+          "label": "Out"
+        }
+      ],
+      "compilation": {
+        "format": "json"
+      },
+      "groupId": "grp_test2"
+    },
+    {
+      "type": "test2-feature",
+      "displayName": "Feature",
+      "color": "#4a7fd4",
+      "semanticDescription": "Product feature belonging to a domain, deployed in an app",
+      "fields": [
+        {
+          "name": "name",
+          "label": "Name",
+          "type": "string",
+          "displayTier": "pill",
+          "displayOrder": 0
+        },
+        {
+          "name": "status",
+          "label": "Status",
+          "type": "enum",
+          "options": [
+            {
+              "value": "planned"
+            },
+            {
+              "value": "in-progress"
+            },
+            {
+              "value": "shipped"
+            }
+          ],
+          "default": "planned",
+          "displayTier": "minimal",
+          "displayOrder": 1
+        }
+      ],
+      "ports": [
+        {
+          "id": "parent",
+          "portType": "parent",
+          "label": "Domain"
+        },
+        {
+          "id": "child",
+          "portType": "child",
+          "label": "Capabilities"
+        },
+        {
+          "id": "flow-in",
+          "portType": "flow-in",
+          "label": "In"
+        },
+        {
+          "id": "flow-out",
+          "portType": "flow-out",
+          "label": "Out"
+        }
+      ],
+      "compilation": {
+        "format": "json"
+      },
+      "groupId": "grp_test2"
+    },
+    {
+      "type": "test2-deployable",
+      "displayName": "Deployable",
+      "color": "#8e4a8e",
+      "semanticDescription": "Deployable application that hosts features and capabilities",
+      "fields": [
+        {
+          "name": "name",
+          "label": "Name",
+          "type": "string",
+          "displayTier": "pill",
+          "displayOrder": 0
+        },
+        {
+          "name": "type",
+          "label": "Type",
+          "type": "enum",
+          "options": [
+            {
+              "value": "web"
+            },
+            {
+              "value": "mobile"
+            },
+            {
+              "value": "api"
+            },
+            {
+              "value": "worker"
+            }
+          ],
+          "default": "web",
+          "displayTier": "minimal",
+          "displayOrder": 1
+        },
+        {
+          "name": "stackNotes",
+          "label": "Stack Notes",
+          "type": "string",
+          "placeholder": "e.g., .NET 4.8, React 18, AWS Lambda",
+          "displayTier": "minimal",
+          "displayOrder": 2
+        }
+      ],
+      "ports": [
+        {
+          "id": "flow-in",
+          "portType": "flow-in",
+          "label": "In"
+        },
+        {
+          "id": "flow-out",
+          "portType": "flow-out",
+          "label": "Out"
+        }
+      ],
+      "compilation": {
+        "format": "json"
+      },
+      "groupId": "grp_test2"
+    },
+    {
+      "type": "test2-capability",
+      "displayName": "Capability",
+      "color": "#5c9e9e",
+      "semanticDescription": "Specific capability provided by a feature, consumed by user stories",
+      "fields": [
+        {
+          "name": "name",
+          "label": "Name",
+          "type": "string",
+          "displayTier": "pill",
+          "displayOrder": 0
+        }
+      ],
+      "ports": [
+        {
+          "id": "parent",
+          "portType": "parent",
+          "label": "Feature"
+        },
+        {
+          "id": "flow-in",
+          "portType": "flow-in",
+          "label": "Consumed By"
+        }
+      ],
+      "compilation": {
+        "format": "json"
+      },
+      "groupId": "grp_test2"
+    }
+  ],
+  "portSchemas": [
+    {
+      "id": "data-source",
+      "displayName": "Data Source",
+      "semanticDescription": "Emits data records",
+      "polarity": "source",
+      "compatibleWith": [
+        "data-sink"
+      ],
+      "expectedComplement": "data-sink",
+      "color": "#e11d48"
+    },
+    {
+      "id": "data-sink",
+      "displayName": "Data Sink",
+      "semanticDescription": "Consumes data records",
+      "polarity": "sink",
+      "compatibleWith": [
+        "data-source"
+      ],
+      "expectedComplement": "data-source",
+      "color": "#0891b2"
+    }
+  ],
+  "schemaGroups": [
+    {
+      "id": "grp_fgay1o7nj",
+      "name": "Software Design",
+      "color": "#7c7fca",
+      "description": "Core software design constructs"
+    },
+    {
+      "id": "grp_gi77xww21",
+      "name": "API",
+      "color": "#7c7fca",
+      "description": "API endpoint and model constructs",
+      "parentId": "grp_fgay1o7nj"
+    },
+    {
+      "id": "grp_neiuhmkhc",
+      "name": "Database",
+      "color": "#c49a4c",
+      "description": "Database schema and table constructs",
+      "parentId": "grp_fgay1o7nj"
+    },
+    {
+      "id": "grp_6xvwuck99",
+      "name": "UI",
+      "color": "#6a8fc0",
+      "description": "User interface constructs",
+      "parentId": "grp_fgay1o7nj"
+    },
+    {
+      "id": "grp_ewjl2wm59",
+      "name": "User Story",
+      "color": "#5ba88e",
+      "description": "User stories and requirements",
+      "parentId": "grp_fgay1o7nj"
+    },
+    {
+      "id": "grp_0g3z7y13l",
+      "name": "Sketching",
+      "color": "#64748b",
+      "description": "Quick, low-friction constructs for rough modeling"
+    },
+    {
+      "id": "grp_csud841mi",
+      "name": "AWS",
+      "color": "#ff9900",
+      "description": "Amazon Web Services cloud architecture constructs"
+    },
+    {
+      "id": "grp_0v3n98g3h",
+      "name": "Capability Model",
+      "color": "#0ea5e9",
+      "description": "Domain > Feature > Capability hierarchy with User Stories and Flows"
+    },
+    {
+      "id": "grp_2qvkq1lnj",
+      "name": "Software Design",
+      "color": "#7c7fca",
+      "description": "Core software design constructs"
+    },
+    {
+      "id": "grp_jhiw0flz1",
+      "name": "API",
+      "color": "#7c7fca",
+      "description": "API endpoint and model constructs",
+      "parentId": "grp_2qvkq1lnj"
+    },
+    {
+      "id": "grp_3mbdzjy9t",
+      "name": "Database",
+      "color": "#c49a4c",
+      "description": "Database schema and table constructs",
+      "parentId": "grp_2qvkq1lnj"
+    },
+    {
+      "id": "grp_11j8kwvzz",
+      "name": "UI",
+      "color": "#6a8fc0",
+      "description": "User interface constructs",
+      "parentId": "grp_2qvkq1lnj"
+    },
+    {
+      "id": "grp_ofs6xzbzf",
+      "name": "User Story",
+      "color": "#5ba88e",
+      "description": "User stories and requirements",
+      "parentId": "grp_2qvkq1lnj"
+    },
+    {
+      "id": "grp_5m4s695eg",
+      "name": "Sketching",
+      "color": "#64748b",
+      "description": "Quick, low-friction constructs for rough modeling"
+    },
+    {
+      "id": "grp_7zna78tar",
+      "name": "BPMN",
+      "color": "#3b82f6",
+      "description": "Simplified Business Process Model and Notation"
+    },
+    {
+      "id": "grp_1x3xflkm9",
+      "name": "AWS",
+      "color": "#ff9900",
+      "description": "Amazon Web Services cloud architecture constructs"
+    },
+    {
+      "id": "grp_eo3hluq1r",
+      "name": "Capability Model",
+      "color": "#0ea5e9",
+      "description": "Domain > Feature > Capability hierarchy with User Stories and Flows"
+    },
+    {
+      "id": "grp_hxote8prd",
+      "name": "Software Design",
+      "color": "#7c7fca",
+      "description": "Core software design constructs"
+    },
+    {
+      "id": "grp_gkupcrarx",
+      "name": "API",
+      "color": "#7c7fca",
+      "description": "API endpoint and model constructs",
+      "parentId": "grp_hxote8prd"
+    },
+    {
+      "id": "grp_wzwpdi72m",
+      "name": "Database",
+      "color": "#c49a4c",
+      "description": "Database schema and table constructs",
+      "parentId": "grp_hxote8prd"
+    },
+    {
+      "id": "grp_n5sr18107",
+      "name": "UI",
+      "color": "#6a8fc0",
+      "description": "User interface constructs",
+      "parentId": "grp_hxote8prd"
+    },
+    {
+      "id": "grp_4xv5ocke8",
+      "name": "User Story",
+      "color": "#5ba88e",
+      "description": "User stories and requirements",
+      "parentId": "grp_hxote8prd"
+    },
+    {
+      "id": "grp_n4xvczifv",
+      "name": "Sketching",
+      "color": "#64748b",
+      "description": "Quick, low-friction constructs for rough modeling"
+    },
+    {
+      "id": "grp_oov3pj1fc",
+      "name": "BPMN",
+      "color": "#3b82f6",
+      "description": "Simplified Business Process Model and Notation"
+    },
+    {
+      "id": "grp_2ibtgffnn",
+      "name": "AWS",
+      "color": "#ff9900",
+      "description": "Amazon Web Services cloud architecture constructs"
+    },
+    {
+      "id": "grp_bwtj7ae1a",
+      "name": "Capability Model",
+      "color": "#0ea5e9",
+      "description": "Domain > Feature > Capability hierarchy with User Stories and Flows"
+    },
+    {
+      "id": "grp_9ql6odcko",
+      "name": "Software Design",
+      "color": "#7c7fca",
+      "description": "Core software design constructs"
+    },
+    {
+      "id": "grp_sm0lt36zi",
+      "name": "API",
+      "color": "#7c7fca",
+      "description": "API endpoint and model constructs",
+      "parentId": "grp_9ql6odcko"
+    },
+    {
+      "id": "grp_jx1hq0k5e",
+      "name": "Database",
+      "color": "#c49a4c",
+      "description": "Database schema and table constructs",
+      "parentId": "grp_9ql6odcko"
+    },
+    {
+      "id": "grp_auo7v7dcy",
+      "name": "UI",
+      "color": "#6a8fc0",
+      "description": "User interface constructs",
+      "parentId": "grp_9ql6odcko"
+    },
+    {
+      "id": "grp_6qxmovcif",
+      "name": "User Story",
+      "color": "#5ba88e",
+      "description": "User stories and requirements",
+      "parentId": "grp_9ql6odcko"
+    },
+    {
+      "id": "grp_rhl38coya",
+      "name": "Sketching",
+      "color": "#64748b",
+      "description": "Quick, low-friction constructs for rough modeling"
+    },
+    {
+      "id": "grp_4sqa1n906",
+      "name": "BPMN",
+      "color": "#3b82f6",
+      "description": "Simplified Business Process Model and Notation"
+    },
+    {
+      "id": "grp_99dm17ugr",
+      "name": "AWS",
+      "color": "#ff9900",
+      "description": "Amazon Web Services cloud architecture constructs"
+    },
+    {
+      "id": "grp_n81fm9m4j",
+      "name": "Capability Model",
+      "color": "#0ea5e9",
+      "description": "Domain > Feature > Capability hierarchy with User Stories and Flows"
+    },
+    {
+      "id": "grp_jy0v0ezee",
+      "name": "Software Design",
+      "color": "#7c7fca",
+      "description": "Core software design constructs"
+    },
+    {
+      "id": "grp_y0xzcqank",
+      "name": "API",
+      "color": "#7c7fca",
+      "description": "API endpoint and model constructs",
+      "parentId": "grp_jy0v0ezee"
+    },
+    {
+      "id": "grp_o0l6czyth",
+      "name": "Database",
+      "color": "#c49a4c",
+      "description": "Database schema and table constructs",
+      "parentId": "grp_jy0v0ezee"
+    },
+    {
+      "id": "grp_9o62r44n2",
+      "name": "UI",
+      "color": "#6a8fc0",
+      "description": "User interface constructs",
+      "parentId": "grp_jy0v0ezee"
+    },
+    {
+      "id": "grp_3qz2vxpkb",
+      "name": "User Story",
+      "color": "#5ba88e",
+      "description": "User stories and requirements",
+      "parentId": "grp_jy0v0ezee"
+    },
+    {
+      "id": "grp_l3xhrnv14",
+      "name": "Sketching",
+      "color": "#64748b",
+      "description": "Quick, low-friction constructs for rough modeling"
+    },
+    {
+      "id": "grp_22uw4gxuw",
+      "name": "BPMN",
+      "color": "#3b82f6",
+      "description": "Simplified Business Process Model and Notation"
+    },
+    {
+      "id": "grp_sffw23f0s",
+      "name": "AWS",
+      "color": "#ff9900",
+      "description": "Amazon Web Services cloud architecture constructs"
+    },
+    {
+      "id": "grp_ejsuzeqzm",
+      "name": "Capability Model",
+      "color": "#0ea5e9",
+      "description": "Domain > Feature > Capability hierarchy with User Stories and Flows"
+    },
+    {
+      "id": "grp_3pj8c8nv9",
+      "name": "Software Design",
+      "color": "#7c7fca",
+      "description": "Core software design constructs"
+    },
+    {
+      "id": "grp_5k0v2kx5m",
+      "name": "API",
+      "color": "#7c7fca",
+      "description": "API endpoint and model constructs",
+      "parentId": "grp_3pj8c8nv9"
+    },
+    {
+      "id": "grp_a5kdg7f55",
+      "name": "Database",
+      "color": "#c49a4c",
+      "description": "Database schema and table constructs",
+      "parentId": "grp_3pj8c8nv9"
+    },
+    {
+      "id": "grp_y264un3w3",
+      "name": "UI",
+      "color": "#6a8fc0",
+      "description": "User interface constructs",
+      "parentId": "grp_3pj8c8nv9"
+    },
+    {
+      "id": "grp_7qkcwavy5",
+      "name": "User Story",
+      "color": "#5ba88e",
+      "description": "User stories and requirements",
+      "parentId": "grp_3pj8c8nv9"
+    },
+    {
+      "id": "grp_7y3lzyvzz",
+      "name": "Sketching",
+      "color": "#64748b",
+      "description": "Quick, low-friction constructs for rough modeling"
+    },
+    {
+      "id": "grp_mznxcteex",
+      "name": "BPMN",
+      "color": "#3b82f6",
+      "description": "Simplified Business Process Model and Notation"
+    },
+    {
+      "id": "grp_5hhceugw3",
+      "name": "AWS",
+      "color": "#ff9900",
+      "description": "Amazon Web Services cloud architecture constructs"
+    },
+    {
+      "id": "grp_oi5dhuevv",
+      "name": "Capability Model",
+      "color": "#0ea5e9",
+      "description": "Domain > Feature > Capability hierarchy with User Stories and Flows"
+    },
+    {
+      "id": "grp_25opaim2m",
+      "name": "Software Design",
+      "color": "#7c7fca",
+      "description": "Core software design constructs"
+    },
+    {
+      "id": "grp_2qrhqk4mq",
+      "name": "API",
+      "color": "#7c7fca",
+      "description": "API endpoint and model constructs",
+      "parentId": "grp_25opaim2m"
+    },
+    {
+      "id": "grp_g1h2ea9ee",
+      "name": "Database",
+      "color": "#c49a4c",
+      "description": "Database schema and table constructs",
+      "parentId": "grp_25opaim2m"
+    },
+    {
+      "id": "grp_xrcdte6wz",
+      "name": "UI",
+      "color": "#6a8fc0",
+      "description": "User interface constructs",
+      "parentId": "grp_25opaim2m"
+    },
+    {
+      "id": "grp_jghpj9z8x",
+      "name": "User Story",
+      "color": "#5ba88e",
+      "description": "User stories and requirements",
+      "parentId": "grp_25opaim2m"
+    },
+    {
+      "id": "grp_33n8h9x44",
+      "name": "Sketching",
+      "color": "#64748b",
+      "description": "Quick, low-friction constructs for rough modeling"
+    },
+    {
+      "id": "grp_p1kh31vaw",
+      "name": "BPMN",
+      "color": "#3b82f6",
+      "description": "Simplified Business Process Model and Notation"
+    },
+    {
+      "id": "grp_fz1m4jl3c",
+      "name": "AWS",
+      "color": "#ff9900",
+      "description": "Amazon Web Services cloud architecture constructs"
+    },
+    {
+      "id": "grp_ioie30tk6",
+      "name": "Capability Model",
+      "color": "#0ea5e9",
+      "description": "Domain > Feature > Capability hierarchy with User Stories and Flows"
+    },
+    {
+      "id": "grp_r9ra7ajam",
+      "name": "Software Design",
+      "color": "#7c7fca",
+      "description": "Core software design constructs"
+    },
+    {
+      "id": "grp_owowjure9",
+      "name": "API",
+      "color": "#7c7fca",
+      "description": "API endpoint and model constructs",
+      "parentId": "grp_r9ra7ajam"
+    },
+    {
+      "id": "grp_6zsaoz6ei",
+      "name": "Database",
+      "color": "#c49a4c",
+      "description": "Database schema and table constructs",
+      "parentId": "grp_r9ra7ajam"
+    },
+    {
+      "id": "grp_wllpkidn7",
+      "name": "UI",
+      "color": "#6a8fc0",
+      "description": "User interface constructs",
+      "parentId": "grp_r9ra7ajam"
+    },
+    {
+      "id": "grp_pa6vj4qlb",
+      "name": "User Story",
+      "color": "#5ba88e",
+      "description": "User stories and requirements",
+      "parentId": "grp_r9ra7ajam"
+    },
+    {
+      "id": "grp_5z0llepxp",
+      "name": "Sketching",
+      "color": "#64748b",
+      "description": "Quick, low-friction constructs for rough modeling"
+    },
+    {
+      "id": "grp_rc2bi8mld",
+      "name": "BPMN",
+      "color": "#3b82f6",
+      "description": "Simplified Business Process Model and Notation"
+    },
+    {
+      "id": "grp_f3lvic91g",
+      "name": "AWS",
+      "color": "#ff9900",
+      "description": "Amazon Web Services cloud architecture constructs"
+    },
+    {
+      "id": "grp_h3kkcztkr",
+      "name": "Capability Model",
+      "color": "#0ea5e9",
+      "description": "Domain > Feature > Capability hierarchy with User Stories and Flows"
+    },
+    {
+      "id": "grp_ikxqg7l8x",
+      "name": "Software Design",
+      "color": "#7c7fca",
+      "description": "Core software design constructs"
+    },
+    {
+      "id": "grp_4r3efgskl",
+      "name": "API",
+      "color": "#7c7fca",
+      "description": "API endpoint and model constructs",
+      "parentId": "grp_ikxqg7l8x"
+    },
+    {
+      "id": "grp_d0xz29s9g",
+      "name": "Database",
+      "color": "#c49a4c",
+      "description": "Database schema and table constructs",
+      "parentId": "grp_ikxqg7l8x"
+    },
+    {
+      "id": "grp_yzx0ym4br",
+      "name": "UI",
+      "color": "#6a8fc0",
+      "description": "User interface constructs",
+      "parentId": "grp_ikxqg7l8x"
+    },
+    {
+      "id": "grp_9tdobkyq4",
+      "name": "User Story",
+      "color": "#5ba88e",
+      "description": "User stories and requirements",
+      "parentId": "grp_ikxqg7l8x"
+    },
+    {
+      "id": "grp_biyhxw1bm",
+      "name": "Sketching",
+      "color": "#64748b",
+      "description": "Quick, low-friction constructs for rough modeling"
+    },
+    {
+      "id": "grp_4ilt4jmwa",
+      "name": "BPMN",
+      "color": "#3b82f6",
+      "description": "Simplified Business Process Model and Notation"
+    },
+    {
+      "id": "grp_nrd7hev2x",
+      "name": "AWS",
+      "color": "#ff9900",
+      "description": "Amazon Web Services cloud architecture constructs"
+    },
+    {
+      "id": "grp_7gfliwayd",
+      "name": "Capability Model",
+      "color": "#0ea5e9",
+      "description": "Domain > Feature > Capability hierarchy with User Stories and Flows"
+    },
+    {
+      "id": "grp_cyhc08vll",
+      "name": "Software Design",
+      "color": "#7c7fca",
+      "description": "Core software design constructs"
+    },
+    {
+      "id": "grp_hfbrux08z",
+      "name": "API",
+      "color": "#7c7fca",
+      "description": "API endpoint and model constructs",
+      "parentId": "grp_cyhc08vll"
+    },
+    {
+      "id": "grp_di45fab7a",
+      "name": "Database",
+      "color": "#c49a4c",
+      "description": "Database schema and table constructs",
+      "parentId": "grp_cyhc08vll"
+    },
+    {
+      "id": "grp_692s1mjen",
+      "name": "UI",
+      "color": "#6a8fc0",
+      "description": "User interface constructs",
+      "parentId": "grp_cyhc08vll"
+    },
+    {
+      "id": "grp_8pphuezmg",
+      "name": "User Story",
+      "color": "#5ba88e",
+      "description": "User stories and requirements",
+      "parentId": "grp_cyhc08vll"
+    },
+    {
+      "id": "grp_j6a1bj4ti",
+      "name": "Sketching",
+      "color": "#64748b",
+      "description": "Quick, low-friction constructs for rough modeling"
+    },
+    {
+      "id": "grp_0dgu11kdf",
+      "name": "BPMN",
+      "color": "#3b82f6",
+      "description": "Simplified Business Process Model and Notation"
+    },
+    {
+      "id": "grp_cskxlveql",
+      "name": "AWS",
+      "color": "#ff9900",
+      "description": "Amazon Web Services cloud architecture constructs"
+    },
+    {
+      "id": "grp_bgn0dgssv",
+      "name": "Capability Model",
+      "color": "#0ea5e9",
+      "description": "Domain > Feature > Capability hierarchy with User Stories and Flows"
+    }
+  ],
+  "exportedAt": "2026-02-13T13:35:26.488Z"
+}

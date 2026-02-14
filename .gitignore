@@ -23,11 +23,8 @@ dist-ssr
 *.sln
 *.sw?
 
-# Task queue (background agent processing)
-/tasks/inputs/
-/tasks/outputs/
-/tasks/failures/
-/tasks/clarifications/
+**/test-results/*
+**/playwright-report/*
 
-/test-results/*
-/playwright-report/*
+todo-tasks/
+compilation-test/
