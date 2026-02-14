@@ -18,6 +18,8 @@ export interface UseBoxSelectOptions {
   getNodeRects: () => NodeRect[];
   /** Called when selection changes */
   onSelectionChange?: (selectedIds: string[]) => void;
+  /** When provided, report hits to this callback instead of managing internal selectedIds state */
+  onBoxSelectHits?: (hitIds: string[]) => void;
 }
 
 export interface UseBoxSelectResult {
@@ -34,6 +36,7 @@ export function useBoxSelect({
   containerRef,
   getNodeRects,
   onSelectionChange,
+  onBoxSelectHits,
 }: UseBoxSelectOptions): UseBoxSelectResult {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [selectionRect, setSelectionRect] = useState<{
@@ -49,6 +52,8 @@ export function useBoxSelect({
   getNodeRectsRef.current = getNodeRects;
   const onSelectionChangeRef = useRef(onSelectionChange);
   onSelectionChangeRef.current = onSelectionChange;
+  const onBoxSelectHitsRef = useRef(onBoxSelectHits);
+  onBoxSelectHitsRef.current = onBoxSelectHits;
 
   const clearSelection = useCallback(() => {
     setSelectedIds([]);
@@ -102,8 +107,12 @@ export function useBoxSelect({
           .filter((nr) => rectsIntersect(canvasRect, nr))
           .map((nr) => nr.id);
 
-        setSelectedIds(hits);
-        onSelectionChangeRef.current?.(hits);
+        if (onBoxSelectHitsRef.current) {
+          onBoxSelectHitsRef.current(hits);
+        } else {
+          setSelectedIds(hits);
+          onSelectionChangeRef.current?.(hits);
+        }
       };
 
       const handlePointerUp = () => {

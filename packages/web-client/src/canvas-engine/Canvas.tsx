@@ -2,6 +2,7 @@ import React, { useState, useEffect, useImperativeHandle, forwardRef, useMemo } 
 import { useViewport, type UseViewportOptions, type Transform } from './useViewport.js';
 import { useConnectionDrag, type ConnectionDragState } from './useConnectionDrag.js';
 import { useBoxSelect } from './useBoxSelect.js';
+import { useSelection } from './useSelection.js';
 import { DotGrid } from './DotGrid.js';
 import { CanvasContext, type CanvasContextValue } from './CanvasContext.js';
 
@@ -75,13 +76,18 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
   );
   const { connectionDrag: connectionDragState, startConnection } = connectionDragResult;
 
-  // 3. Setup box select (if enabled)
+  // 3. Setup box select (if enabled) — delegate state to useSelection
+  // 3b. Setup unified selection (always on)
+  const selection = useSelection({});
+  const { selectedIds, clearSelection, isSelected, onNodePointerDown, setSelectedIds } = selection;
+
   const boxSelectResult = useBoxSelect(
     boxSelect
       ? {
           transform,
           containerRef,
           getNodeRects: boxSelect.getNodeRects,
+          onBoxSelectHits: selection.mergeBoxSelection,
         }
       : {
           transform,
@@ -89,7 +95,8 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
           getNodeRects: () => [],
         }
   );
-  const { selectedIds, clearSelection, selectionRect } = boxSelectResult;
+  const { selectionRect } = boxSelectResult;
+  // NOTE: selectedIds and clearSelection now come from useSelection, NOT from boxSelectResult
 
   // 4. Track Ctrl/Meta key state
   const [ctrlHeld, setCtrlHeld] = useState(false);
@@ -137,8 +144,11 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
       screenToCanvas,
       startConnection: connectionDrag ? startConnection : () => {},
       connectionDrag: connectionDrag ? connectionDragState : null,
-      selectedIds: boxSelect ? selectedIds : [],
-      clearSelection: boxSelect ? clearSelection : () => {},
+      selectedIds,
+      clearSelection,
+      isSelected,
+      onNodePointerDown,
+      setSelectedIds,
       ctrlHeld,
     }),
     [
@@ -147,9 +157,11 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
       connectionDrag,
       startConnection,
       connectionDragState,
-      boxSelect,
       selectedIds,
       clearSelection,
+      isSelected,
+      onNodePointerDown,
+      setSelectedIds,
       ctrlHeld,
     ]
   );

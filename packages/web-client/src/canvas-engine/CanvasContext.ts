@@ -11,10 +11,16 @@ export interface CanvasContextValue {
   startConnection: (nodeId: string, handleId: string, event: React.PointerEvent) => void;
   /** Current connection drag state, or null */
   connectionDrag: ConnectionDragState | null;
-  /** Currently selected node IDs from box select */
+  /** Currently selected node IDs */
   selectedIds: string[];
-  /** Clear box selection */
+  /** Clear all selection */
   clearSelection: () => void;
+  /** Check if a node is selected */
+  isSelected: (id: string) => boolean;
+  /** Handle node pointer-down with click/shift/ctrl semantics */
+  onNodePointerDown: (nodeId: string, event: React.PointerEvent) => void;
+  /** Replace selection with given IDs */
+  setSelectedIds: (ids: string[]) => void;
   /** Whether Ctrl/Meta key is currently held */
   ctrlHeld: boolean;
 }
