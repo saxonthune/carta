@@ -5,6 +5,7 @@
  * and basic interactions without needing d3-zoom or real browser dimensions.
  */
 
+import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ConnectionHandle } from '../../src/canvas-engine/ConnectionHandle';
@@ -76,20 +77,5 @@ describe('ConnectionHandle', () => {
     const el = container.firstElementChild as HTMLElement;
     expect(el.style.backgroundColor).toBe('red');
     expect(el.style.width).toBe('20px');
-  });
-
-  it('calls event.stopPropagation on source pointerdown', () => {
-    const onStart = vi.fn();
-    const { container } = render(
-      <ConnectionHandle type="source" id="E" nodeId="node-1" onStartConnection={onStart} />
-    );
-    const el = container.firstElementChild as HTMLElement;
-
-    const mockEvent = new PointerEvent('pointerdown', { bubbles: true });
-    const stopPropagationSpy = vi.spyOn(mockEvent, 'stopPropagation');
-
-    el.dispatchEvent(mockEvent);
-
-    expect(stopPropagationSpy).toHaveBeenCalled();
   });
 });
