@@ -75,6 +75,49 @@ interface ContainerBounds {
 }
 
 /**
+ * Compact dagre-positioned items into a roughly square bounding box.
+ * Preserves dagre's rank ordering (by Y then X).
+ */
+function compactToSquare(
+  items: Array<{ id: string; x: number; y: number; width: number; height: number }>,
+  gap: number = 40,
+): Map<string, { x: number; y: number }> {
+  if (items.length <= 1) {
+    const positions = new Map<string, { x: number; y: number }>();
+    for (const item of items) positions.set(item.id, { x: 0, y: 0 });
+    return positions;
+  }
+
+  // Sort by dagre position: Y primary, X secondary (preserves rank order)
+  const sorted = [...items].sort((a, b) => a.y - b.y || a.x - b.x);
+
+  // Compute total area to determine target width
+  const totalArea = sorted.reduce((sum, item) => sum + (item.width + gap) * (item.height + gap), 0);
+  const targetWidth = Math.sqrt(totalArea) * 1.1;
+
+  // Shelf pack
+  const positions = new Map<string, { x: number; y: number }>();
+  let cursorX = 0;
+  let cursorY = 0;
+  let rowHeight = 0;
+
+  for (const item of sorted) {
+    // Start new row if this item would exceed target width
+    if (cursorX > 0 && cursorX + item.width > targetWidth) {
+      cursorX = 0;
+      cursorY += rowHeight + gap;
+      rowHeight = 0;
+    }
+
+    positions.set(item.id, { x: cursorX, y: cursorY });
+    cursorX += item.width + gap;
+    rowHeight = Math.max(rowHeight, item.height);
+  }
+
+  return positions;
+}
+
+/**
  * Extract edges from schema relationships.
  */
 function extractEdges(schemas: ConstructSchema[]): MetamapV2Edge[] {
@@ -419,17 +462,43 @@ export function computeMetamapV2Layout(
 
   dagre.layout(interG);
 
+  // Extract dagre positions for compaction
+  const dagreItems: Array<{ id: string; x: number; y: number; width: number; height: number }> = [];
+
+  for (const pkg of activePackages) {
+    const bounds = packageBounds.get(pkg.id)!;
+    const interNode = interG.node(`package:${pkg.id}`);
+    dagreItems.push({
+      id: `package:${pkg.id}`,
+      x: interNode.x,
+      y: interNode.y,
+      width: bounds.width,
+      height: bounds.height,
+    });
+  }
+
+  for (const s of ungroupedSchemas) {
+    const interNode = interG.node(s.type);
+    dagreItems.push({
+      id: s.type,
+      x: interNode.x,
+      y: interNode.y,
+      width: SCHEMA_NODE_WIDTH,
+      height: SCHEMA_NODE_HEIGHT,
+    });
+  }
+
+  // Compact into square
+  const compactedPositions = compactToSquare(dagreItems);
+
   // Assemble nodes
   const nodes: MetamapV2Node[] = [];
 
   // Emit packages and their contents
   for (const pkg of activePackages) {
     const bounds = packageBounds.get(pkg.id)!;
-    const interNode = interG.node(`package:${pkg.id}`);
-    const pkgPosition = {
-      x: interNode.x - bounds.width / 2,
-      y: interNode.y - bounds.height / 2,
-    };
+    const compacted = compactedPositions.get(`package:${pkg.id}`)!;
+    const pkgPosition = { x: compacted.x, y: compacted.y };
 
     // Count schemas in package
     const pkgSchemas = schemasByPackage.get(pkg.id) || [];
@@ -524,7 +593,7 @@ export function computeMetamapV2Layout(
 
   // Ungrouped schemas (no package)
   for (const s of ungroupedSchemas) {
-    const interNode = interG.node(s.type);
+    const compacted = compactedPositions.get(s.type)!;
     const ports = s.ports || [];
     const portOffsets = new Map<string, number>();
     ports.forEach((port, index) => {
@@ -534,10 +603,7 @@ export function computeMetamapV2Layout(
     nodes.push({
       id: s.type,
       type: 'schema',
-      position: {
-        x: interNode.x - SCHEMA_NODE_WIDTH / 2,
-        y: interNode.y - SCHEMA_NODE_HEIGHT / 2,
-      },
+      position: { x: compacted.x, y: compacted.y },
       size: { width: SCHEMA_NODE_WIDTH, height: SCHEMA_NODE_HEIGHT },
       data: {
         kind: 'schema',

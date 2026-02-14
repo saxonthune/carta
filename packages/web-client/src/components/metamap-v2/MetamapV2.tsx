@@ -1,5 +1,5 @@
 import { useRef, useEffect, useMemo, useState, useCallback } from 'react';
-import { Canvas, type CanvasRef, useCanvasContext, useNodeDrag, findContainerAt, ConnectionPreview, useKeyboardShortcuts } from '../../canvas-engine/index.js';
+import { Canvas, type CanvasRef, useCanvasContext, useNodeDrag, findContainerAt, ConnectionPreview, useKeyboardShortcuts, CrossGrid } from '../../canvas-engine/index.js';
 import { useSchemas } from '../../hooks/useSchemas.js';
 import { useSchemaGroups } from '../../hooks/useSchemaGroups.js';
 import { useSchemaPackages } from '../../hooks/useSchemaPackages.js';
@@ -565,6 +565,9 @@ export default function MetamapV2() {
         viewportOptions={{ minZoom: 0.1, maxZoom: 2 }}
         connectionDrag={{ onConnect: handleConnect, isValidConnection }}
         onBackgroundPointerDown={() => setContextMenu(null)}
+        renderBackground={(transform, patternId) => (
+          <CrossGrid transform={transform} patternId={patternId || 'metamap-cross-grid'} />
+        )}
         renderEdges={() => (
           <MetamapEdgeLayer
             edges={layoutResult.edges}

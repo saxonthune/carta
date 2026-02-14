@@ -7,6 +7,7 @@ export { useBoxSelect } from './useBoxSelect.js';
 export { useSelection } from './useSelection.js';
 export { ConnectionHandle } from './ConnectionHandle.js';
 export { DotGrid } from './DotGrid.js';
+export { CrossGrid, type CrossGridProps } from './CrossGrid.js';
 export { ConnectionPreview } from './ConnectionPreview.js';
 export { Canvas } from './Canvas.js';
 export { CanvasContext, useCanvasContext } from './CanvasContext.js';

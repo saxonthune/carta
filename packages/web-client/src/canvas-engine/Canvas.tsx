@@ -40,6 +40,8 @@ export interface CanvasProps {
   patternId?: string;
   /** Pointer down on the canvas background (not on a data-no-pan element). Useful for clearing selection. */
   onBackgroundPointerDown?: (event: React.PointerEvent) => void;
+  /** Custom background renderer. Receives transform. If not provided, renders DotGrid. */
+  renderBackground?: (transform: Transform, patternId?: string) => React.ReactNode;
 }
 
 export interface CanvasRef {
@@ -62,6 +64,7 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
     children,
     patternId,
     onBackgroundPointerDown,
+    renderBackground,
   },
   ref
 ) {
@@ -183,7 +186,7 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
         }}
       >
         {/* Background grid */}
-        <DotGrid transform={transform} patternId={patternId} />
+        {renderBackground ? renderBackground(transform, patternId) : <DotGrid transform={transform} patternId={patternId} />}
 
         {/* Node layer — transformed */}
         <div
