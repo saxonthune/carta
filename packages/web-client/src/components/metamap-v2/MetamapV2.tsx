@@ -104,10 +104,20 @@ export default function MetamapV2() {
     position: { x: number; y: number };
   } | null>(null);
 
+  // Schema expand/collapse state
+  const [expandedSchemas, setExpandedSchemas] = useState<Set<string>>(new Set());
+
   const handleSchemaDoubleClick = useCallback((schemaType: string) => {
-    const schema = getSchema(schemaType);
-    if (schema) setEditorState({ open: true, editSchema: schema });
-  }, [getSchema]);
+    setExpandedSchemas(prev => {
+      const next = new Set(prev);
+      if (next.has(schemaType)) {
+        next.delete(schemaType);
+      } else {
+        next.add(schemaType);
+      }
+      return next;
+    });
+  }, []);
 
   // Edge interaction handlers
   const handleEdgeClick = useCallback((edge: MetamapV2Edge, event: React.MouseEvent) => {
@@ -454,6 +464,7 @@ export default function MetamapV2() {
           updateSchema={updateSchema}
           schemaGroups={schemaGroups}
           modalsOpen={editorState.open || !!connectionModal}
+          expandedSchemas={expandedSchemas}
         />
       </Canvas>
       <CanvasToolbar>
@@ -519,6 +530,7 @@ interface MetamapV2InnerProps {
   updateSchema: (type: string, updates: { packageId?: string; groupId?: string | undefined }) => void;
   schemaGroups: any[];
   modalsOpen: boolean;
+  expandedSchemas: Set<string>;
 }
 
 function MetamapV2Inner({
@@ -530,6 +542,7 @@ function MetamapV2Inner({
   updateSchema,
   schemaGroups,
   modalsOpen,
+  expandedSchemas,
 }: MetamapV2InnerProps) {
   const { transform, ctrlHeld, startConnection } = useCanvasContext();
   const [highlightedContainerId, setHighlightedContainerId] = useState<string | null>(null);
@@ -700,6 +713,7 @@ function MetamapV2Inner({
               onPointerDown={(e) => handleNodePointerDown(node.id, e)}
               onDoubleClick={() => onSchemaDoubleClick(node.id)}
               onStartConnection={startConnection}
+              isExpanded={expandedSchemas.has(node.id)}
             />
           )}
         </div>
