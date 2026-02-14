@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { ArrowRight } from '@phosphor-icons/react';
+import { ArrowRight, Warning } from '@phosphor-icons/react';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
@@ -186,7 +186,7 @@ function PortPanel({
   );
 }
 
-export default function MetamapConnectionModal({
+export function MetamapConnectionModal({
   sourceSchema,
   targetSchema,
   initialSourceHandle,
@@ -281,6 +281,52 @@ export default function MetamapConnectionModal({
     return { valid: true, error: '' };
   }, [sourceMode, targetMode, sourceExistingPortId, targetExistingPortId, sourceNewPolarity, targetNewPolarity, sourceNewLabel, targetNewLabel, sourceSchema, targetSchema]);
 
+  const duplicateWarning = useMemo(() => {
+    // Determine current selected polarities
+    let srcPolarity: Polarity | null = null;
+    let tgtPolarity: Polarity | null = null;
+
+    if (sourceMode === 'existing' && sourceExistingPortId) {
+      const port = (sourceSchema.ports || []).find(p => p.id === sourceExistingPortId);
+      const ps = port ? portRegistry.get(port.portType) : null;
+      srcPolarity = ps?.polarity ?? null;
+    } else if (sourceMode === 'new') {
+      srcPolarity = sourceNewPolarity;
+    }
+
+    if (targetMode === 'existing' && targetExistingPortId) {
+      const port = (targetSchema.ports || []).find(p => p.id === targetExistingPortId);
+      const ps = port ? portRegistry.get(port.portType) : null;
+      tgtPolarity = ps?.polarity ?? null;
+    } else if (targetMode === 'new') {
+      tgtPolarity = targetNewPolarity;
+    }
+
+    if (!srcPolarity || !tgtPolarity) return null;
+
+    // Check existing relationships from source → target
+    let count = 0;
+    for (const rel of sourceSchema.suggestedRelated || []) {
+      if (rel.constructType !== targetSchema.type) continue;
+      const fromPort = (sourceSchema.ports || []).find(p => p.id === rel.fromPortId);
+      const toPort = (targetSchema.ports || []).find(p => p.id === rel.toPortId);
+      const fromPs = fromPort ? portRegistry.get(fromPort.portType) : null;
+      const toPs = toPort ? portRegistry.get(toPort.portType) : null;
+      if (fromPs?.polarity === srcPolarity && toPs?.polarity === tgtPolarity) count++;
+    }
+    // Also check target → source (inverse direction)
+    for (const rel of targetSchema.suggestedRelated || []) {
+      if (rel.constructType !== sourceSchema.type) continue;
+      const fromPort = (targetSchema.ports || []).find(p => p.id === rel.fromPortId);
+      const toPort = (sourceSchema.ports || []).find(p => p.id === rel.toPortId);
+      const fromPs = fromPort ? portRegistry.get(fromPort.portType) : null;
+      const toPs = toPort ? portRegistry.get(toPort.portType) : null;
+      if (fromPs?.polarity === tgtPolarity && toPs?.polarity === srcPolarity) count++;
+    }
+
+    return count > 0 ? count : null;
+  }, [sourceSchema, targetSchema, sourceMode, targetMode, sourceExistingPortId, targetExistingPortId, sourceNewPolarity, targetNewPolarity]);
+
   const handleSave = () => {
     if (!validation.valid) return;
 
@@ -364,6 +410,19 @@ export default function MetamapConnectionModal({
           align="right"
         />
       </div>
+
+      {/* Duplicate polarity warning */}
+      {duplicateWarning && (
+        <div className="mt-3 px-3 py-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md flex items-start gap-2">
+          <Warning size={16} weight="fill" className="text-amber-500 mt-0.5 shrink-0" />
+          <span className="text-sm text-amber-800 dark:text-amber-200">
+            {duplicateWarning === 1
+              ? 'A relationship with this polarity already exists between these schemas.'
+              : `${duplicateWarning} relationships with this polarity already exist between these schemas.`}
+            {' '}You can still create another.
+          </span>
+        </div>
+      )}
 
       {/* Label fields */}
       <div className="mt-4 flex gap-3">
