@@ -101,15 +101,7 @@ function scanVaultForDocuments(): DocumentSummary[] {
         const stat = fs.statSync(filePath);
         const updatedAt = stat.mtime.toISOString();
 
-        // Count nodes across all pages
-        let nodeCount = 0;
-        if (Array.isArray(data.pages)) {
-          for (const page of data.pages) {
-            if (Array.isArray(page.nodes)) {
-              nodeCount += page.nodes.length;
-            }
-          }
-        }
+        const nodeCount = 0; // Skip counting for list performance
 
         documents.push({
           id: docId,

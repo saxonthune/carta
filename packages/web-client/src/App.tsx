@@ -1,8 +1,5 @@
-import { useCallback, useState, useRef, useEffect } from 'react';
+import { useCallback, useState, useRef, useEffect, lazy, Suspense } from 'react';
 import { type Node, type Edge } from '@xyflow/react';
-import ImportPreviewModal from './components/modals/ImportPreviewModal';
-import ExportPreviewModal from './components/modals/ExportPreviewModal';
-import CompileModal from './components/modals/CompileModal';
 import DocumentBrowserModal from './components/modals/DocumentBrowserModal';
 import Header from './components/Header';
 import CanvasContainer from './components/canvas/CanvasContainer';
@@ -20,9 +17,13 @@ import { exportProject, importProject, type CartaFile } from './utils/cartaFile'
 import { analyzeImport, type ImportAnalysis, type ImportOptions } from './utils/importAnalyzer';
 import { analyzeExport, type ExportAnalysis, type ExportOptions } from './utils/exportAnalyzer';
 import { importDocument, type ImportConfig } from './utils/documentImporter';
-import { AISidebar } from './ai';
 import { config } from './config/featureFlags';
 import InspectorPanel from './components/canvas/InspectorPanel';
+
+const ImportPreviewModal = lazy(() => import('./components/modals/ImportPreviewModal'));
+const ExportPreviewModal = lazy(() => import('./components/modals/ExportPreviewModal'));
+const CompileModal = lazy(() => import('./components/modals/CompileModal'));
+const AISidebar = lazy(() => import('./ai/components/AISidebar').then(m => ({ default: m.AISidebar })));
 
 // Note: Schema initialization is now handled by DocumentProvider
 
@@ -216,34 +217,42 @@ function AppContent() {
         />
       )}
 
-      <AISidebar
-        isOpen={aiSidebarOpen}
-        onToggle={() => setAiSidebarOpen(!aiSidebarOpen)}
-        width={aiSidebarWidth}
-      />
+      <Suspense fallback={null}>
+        <AISidebar
+          isOpen={aiSidebarOpen}
+          onToggle={() => setAiSidebarOpen(!aiSidebarOpen)}
+          width={aiSidebarWidth}
+        />
+      </Suspense>
 
       {/* Modals */}
       {importPreview && (
-        <ImportPreviewModal
-          analysis={importPreview.analysis}
-          pages={pages}
-          onConfirm={handleImportConfirm}
-          onCancel={handleImportCancel}
-        />
+        <Suspense fallback={null}>
+          <ImportPreviewModal
+            analysis={importPreview.analysis}
+            pages={pages}
+            onConfirm={handleImportConfirm}
+            onCancel={handleImportCancel}
+          />
+        </Suspense>
       )}
       {exportPreview && (
-        <ExportPreviewModal
-          analysis={exportPreview}
-          edges={nodesEdgesRef.current.edges}
-          onConfirm={handleExportConfirm}
-          onCancel={handleExportCancel}
-        />
+        <Suspense fallback={null}>
+          <ExportPreviewModal
+            analysis={exportPreview}
+            edges={nodesEdgesRef.current.edges}
+            onConfirm={handleExportConfirm}
+            onCancel={handleExportCancel}
+          />
+        </Suspense>
       )}
       {compileOutput && (
-        <CompileModal
-          output={compileOutput}
-          onClose={() => setCompileOutput(null)}
-        />
+        <Suspense fallback={null}>
+          <CompileModal
+            output={compileOutput}
+            onClose={() => setCompileOutput(null)}
+          />
+        </Suspense>
       )}
     </div>
   );

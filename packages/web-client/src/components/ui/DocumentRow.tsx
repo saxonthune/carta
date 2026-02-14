@@ -19,7 +19,7 @@ export default function DocumentRow({ title, updatedAt, nodeCount, filename, onC
         <div className="min-w-0">
           <div className="text-sm font-medium text-content truncate">{title}</div>
           <div className="text-xs text-content-muted">
-            {updatedAt} · {nodeCount} node{nodeCount === 1 ? '' : 's'}
+            {updatedAt}{nodeCount > 0 ? ` · ${nodeCount} node${nodeCount === 1 ? '' : 's'}` : ''}
           </div>
         </div>
         {filename && (
