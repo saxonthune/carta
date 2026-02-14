@@ -2,7 +2,7 @@ import type { SchemaSeed } from '../seed-loader.js';
 import { parentPort, flowInPort, flowOutPort, childPort } from '../port-schemas.js';
 
 export const capabilityModelSeed: SchemaSeed = {
-  group: {
+  package: {
     id: 'capability-model',
     name: 'Capability Model',
     color: '#0ea5e9',

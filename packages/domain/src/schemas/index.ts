@@ -6,6 +6,7 @@ export {
   builtInConstructSchemas,
   builtInPortSchemas,
   builtInSchemaGroups,
+  builtInSchemaPackages,
   hydrateBuiltIns,
   builtInSeedCatalog,
   hydrateSeed,

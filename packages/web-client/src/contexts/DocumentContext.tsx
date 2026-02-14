@@ -89,8 +89,9 @@ export function DocumentProvider({
       const hasSchemas = yjsAdapter.getSchemas().length > 0;
 
       if (!hasSchemas) {
-        const { groups, schemas } = hydrateBuiltIns();
+        const { packages, groups, schemas } = hydrateBuiltIns();
         yjsAdapter.transaction(() => {
+          yjsAdapter.setSchemaPackages(packages);
           yjsAdapter.setSchemaGroups(groups);
           yjsAdapter.setSchemas(schemas);
           yjsAdapter.setPortSchemas(builtInPortSchemas);

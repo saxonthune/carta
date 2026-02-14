@@ -1,4 +1,4 @@
-import type { ConstructSchema, PortSchema, SchemaGroup } from '../types/index.js';
+import type { ConstructSchema, PortSchema, SchemaGroup, SchemaPackage } from '../types/index.js';
 import { loadSeeds, hydrateSeeds, type SchemaSeed } from './seed-loader.js';
 import { softwareArchitectureSeed } from './seeds/software-architecture.js';
 import { sketchingSeed } from './seeds/sketching.js';
@@ -54,13 +54,19 @@ export const builtInPortSchemas: PortSchema[] = [
 /**
  * Load all seed files into groups and construct schemas.
  */
-const { groups, schemas, portSchemas: seedPortSchemas } = loadSeeds([
+const { packages, groups, schemas, portSchemas: seedPortSchemas } = loadSeeds([
   softwareArchitectureSeed,
   sketchingSeed,
   bpmnSeed,
   awsSeed,
   capabilityModelSeed,
 ]);
+
+/**
+ * Built-in Schema Packages (template form — seed-local ref IDs).
+ * Use hydrateBuiltIns() to get document-ready data with real UUIDs.
+ */
+export const builtInSchemaPackages: SchemaPackage[] = packages;
 
 /**
  * Built-in Schema Groups (template form — seed-local ref IDs).
@@ -75,14 +81,14 @@ export const builtInSchemaGroups: SchemaGroup[] = groups;
 export const builtInConstructSchemas: ConstructSchema[] = schemas;
 
 /**
- * Materialize built-in seeds into document-ready groups and schemas.
+ * Materialize built-in seeds into document-ready packages, groups, and schemas.
  *
- * When `existingGroups` is provided, groups matching by name reuse
+ * When `existingPackages` and `existingGroups` are provided, entities matching by name reuse
  * existing IDs — making "restore defaults" idempotent instead of
- * creating orphan groups.
+ * creating orphan entries.
  */
-export function hydrateBuiltIns(existingGroups?: SchemaGroup[]): { groups: SchemaGroup[]; schemas: ConstructSchema[]; portSchemas: PortSchema[] } {
-  return hydrateSeeds(groups, schemas, seedPortSchemas, existingGroups);
+export function hydrateBuiltIns(existingPackages?: SchemaPackage[], existingGroups?: SchemaGroup[]): { packages: SchemaPackage[]; groups: SchemaGroup[]; schemas: ConstructSchema[]; portSchemas: PortSchema[] } {
+  return hydrateSeeds(packages, groups, schemas, seedPortSchemas, existingPackages, existingGroups);
 }
 
 /**
@@ -97,13 +103,12 @@ export const builtInSeedCatalog: Array<{ name: string; seed: SchemaSeed; descrip
 ];
 
 /**
- * Hydrate a single seed into document-ready groups and schemas.
+ * Hydrate a single seed into document-ready data.
  *
- * When `existingGroups` is provided, groups matching by name reuse
- * existing IDs — making re-adding seeds idempotent instead of
- * creating duplicate groups.
+ * When `existingPackages` and `existingGroups` are provided, entities matching by name reuse
+ * existing IDs — making re-adding seeds idempotent instead of creating duplicates.
  */
-export function hydrateSeed(seed: SchemaSeed, existingGroups?: SchemaGroup[]): { groups: SchemaGroup[]; schemas: ConstructSchema[]; portSchemas: PortSchema[] } {
-  const { groups, schemas, portSchemas } = loadSeeds([seed]);
-  return hydrateSeeds(groups, schemas, portSchemas, existingGroups);
+export function hydrateSeed(seed: SchemaSeed, existingPackages?: SchemaPackage[], existingGroups?: SchemaGroup[]): { packages: SchemaPackage[]; groups: SchemaGroup[]; schemas: ConstructSchema[]; portSchemas: PortSchema[] } {
+  const { packages: seedPkgs, groups: seedGrps, schemas: seedSchemas, portSchemas } = loadSeeds([seed]);
+  return hydrateSeeds(seedPkgs, seedGrps, seedSchemas, portSchemas, existingPackages, existingGroups);
 }

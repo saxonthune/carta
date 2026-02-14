@@ -8,14 +8,17 @@ import type {
   ConstructNodeData,
   PortSchema,
   SchemaGroup,
+  SchemaPackage,
   Page,
 } from '@carta/domain';
 import {
   objectToYMap,
   yMapToObject,
   generateSchemaGroupId,
+  generateSchemaPackageId,
   generatePageId,
   migrateToPages,
+  migrateGroupsToPackages,
   deepPlainToY,
   updateSchema as updateSchemaOp,
 } from '@carta/document';
@@ -75,6 +78,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
   const yschemas = ydoc.getMap<Y.Map<unknown>>('schemas');
   const yportSchemas = ydoc.getMap<Y.Map<unknown>>('portSchemas');
   const yschemaGroups = ydoc.getMap<Y.Map<unknown>>('schemaGroups');
+  const yschemaPackages = ydoc.getMap<Y.Map<unknown>>('schemaPackages');
 
   // Persistence
   let indexeddbProvider: IndexeddbPersistence | null = null;
@@ -95,6 +99,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
   const schemaListeners = new Set<() => void>();
   const portSchemaListeners = new Set<() => void>();
   const schemaGroupListeners = new Set<() => void>();
+  const schemaPackageListeners = new Set<() => void>();
   const pageListeners = new Set<() => void>();
   const metaListeners = new Set<() => void>();
 
@@ -103,6 +108,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
   const notifySchemaListeners = () => schemaListeners.forEach((cb) => cb());
   const notifyPortSchemaListeners = () => portSchemaListeners.forEach((cb) => cb());
   const notifySchemaGroupListeners = () => schemaGroupListeners.forEach((cb) => cb());
+  const notifySchemaPackageListeners = () => schemaPackageListeners.forEach((cb) => cb());
   const notifyPageListeners = () => pageListeners.forEach((cb) => cb());
   const notifyMetaListeners = () => metaListeners.forEach((cb) => cb());
 
@@ -149,6 +155,10 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     notifySchemaGroupListeners();
     notifyListeners();
   };
+  const onSchemaPackagesChange = () => {
+    notifySchemaPackageListeners();
+    notifyListeners();
+  };
 
   // Set up Y.Doc observers
   const setupObservers = () => {
@@ -159,6 +169,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     yschemas.observeDeep(onSchemasChange);
     yportSchemas.observeDeep(onPortSchemasChange);
     yschemaGroups.observeDeep(onSchemaGroupsChange);
+    yschemaPackages.observeDeep(onSchemaPackagesChange);
     observersSetUp = true;
   };
 
@@ -275,6 +286,9 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
       // Migrate flat data to pages if needed
       migrateToPages(ydoc);
+
+      // Migrate top-level groups to packages if needed
+      migrateGroupsToPackages(ydoc);
 
       // Ensure at least one page exists (skip when syncing — server provides initial state)
       if (ypages.size === 0 && !options.deferDefaultPage) {
@@ -450,6 +464,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
         yschemas.unobserveDeep(onSchemasChange);
         yportSchemas.unobserveDeep(onPortSchemasChange);
         yschemaGroups.unobserveDeep(onSchemaGroupsChange);
+        yschemaPackages.unobserveDeep(onSchemaPackagesChange);
       }
 
       // Clear all granular listener sets
@@ -458,6 +473,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       schemaListeners.clear();
       portSchemaListeners.clear();
       schemaGroupListeners.clear();
+      schemaPackageListeners.clear();
       pageListeners.clear();
       metaListeners.clear();
       listeners.clear();
@@ -601,6 +617,21 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       const ygroup = yschemaGroups.get(id);
       if (!ygroup) return undefined;
       return yMapToObject<SchemaGroup>(ygroup);
+    },
+
+    // State access - Schema Packages
+    getSchemaPackages(): SchemaPackage[] {
+      const packages: SchemaPackage[] = [];
+      yschemaPackages.forEach((ypackage) => {
+        packages.push(yMapToObject<SchemaPackage>(ypackage));
+      });
+      return packages;
+    },
+
+    getSchemaPackage(id: string): SchemaPackage | undefined {
+      const ypackage = yschemaPackages.get(id);
+      if (!ypackage) return undefined;
+      return yMapToObject<SchemaPackage>(ypackage);
     },
 
     // Mutations - Graph (writes to active page)
@@ -1033,6 +1064,65 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       return exists;
     },
 
+    // Mutations - Schema Packages
+    setSchemaPackages(packages: SchemaPackage[]) {
+      ydoc.transact(() => {
+        yschemaPackages.clear();
+        for (const pkg of packages) {
+          yschemaPackages.set(pkg.id, objectToYMap(pkg as unknown as Record<string, unknown>));
+        }
+      }, 'user');
+    },
+
+    addSchemaPackage(pkg: Omit<SchemaPackage, 'id'> | SchemaPackage): SchemaPackage {
+      const id = ('id' in pkg && pkg.id) ? pkg.id : generateSchemaPackageId();
+      const newPackage: SchemaPackage = { ...pkg, id };
+      ydoc.transact(() => {
+        yschemaPackages.set(id, objectToYMap(newPackage as unknown as Record<string, unknown>));
+      }, 'user');
+      return newPackage;
+    },
+
+    updateSchemaPackage(id: string, updates: Partial<SchemaPackage>) {
+      ydoc.transact(() => {
+        const ypackage = yschemaPackages.get(id);
+        if (!ypackage) return;
+        const current = yMapToObject<SchemaPackage>(ypackage);
+        yschemaPackages.set(id, objectToYMap({ ...current, ...updates } as unknown as Record<string, unknown>));
+      }, 'user');
+    },
+
+    removeSchemaPackage(id: string): boolean {
+      const exists = yschemaPackages.has(id);
+      if (exists) {
+        ydoc.transact(() => {
+          // Clear packageId from schemas that reference this package
+          yschemas.forEach((yschema, schemaType) => {
+            const schema = yMapToObject<ConstructSchema>(yschema);
+            if (schema.packageId === id) {
+              yschemas.set(schemaType, objectToYMap({ ...schema, packageId: undefined } as unknown as Record<string, unknown>));
+            }
+          });
+          // Clear packageId from port schemas that reference this package
+          yportSchemas.forEach((yportSchema, portId) => {
+            const portSchema = yMapToObject<PortSchema>(yportSchema);
+            if (portSchema.packageId === id) {
+              yportSchemas.set(portId, objectToYMap({ ...portSchema, packageId: undefined } as unknown as Record<string, unknown>));
+            }
+          });
+          // Clear packageId from groups that reference this package
+          yschemaGroups.forEach((ygroup, groupId) => {
+            const group = yMapToObject<SchemaGroup>(ygroup);
+            if (group.packageId === id) {
+              yschemaGroups.set(groupId, objectToYMap({ ...group, packageId: undefined } as unknown as Record<string, unknown>));
+            }
+          });
+          yschemaPackages.delete(id);
+        }, 'user');
+      }
+      return exists;
+    },
+
     // Transaction with origin for MCP attribution
     transaction<T>(fn: () => T, origin: string = 'user'): T {
       let result: T;
@@ -1075,6 +1165,11 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       return () => schemaGroupListeners.delete(listener);
     },
 
+    subscribeToSchemaPackages(listener: () => void): () => void {
+      schemaPackageListeners.add(listener);
+      return () => schemaPackageListeners.delete(listener);
+    },
+
     subscribeToPages(listener: () => void): () => void {
       pageListeners.add(listener);
       return () => pageListeners.delete(listener);
@@ -1096,6 +1191,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
         schemas: adapter.getSchemas(),
         portSchemas: adapter.getPortSchemas(),
         schemaGroups: adapter.getSchemaGroups(),
+        schemaPackages: adapter.getSchemaPackages(),
       };
     },
 

@@ -5,7 +5,7 @@
  * Web-client re-exports these and adds browser-specific import/export functions.
  */
 
-import type { ConstructSchema, PortSchema, SchemaGroup, CartaSchemasFile } from '@carta/domain';
+import type { ConstructSchema, PortSchema, SchemaGroup, SchemaPackage, CartaSchemasFile } from '@carta/domain';
 import { CARTA_FILE_VERSION } from './constants.js';
 
 /**
@@ -31,6 +31,7 @@ export interface CartaFile {
   customSchemas: ConstructSchema[];
   portSchemas: PortSchema[];
   schemaGroups: SchemaGroup[];
+  schemaPackages: SchemaPackage[];
   exportedAt: string;
 }
 
@@ -206,6 +207,69 @@ export function validateCartaFile(data: unknown): CartaFile {
     }
   }
 
+  // Validate schemaPackages (optional for v6 and earlier, required for v7+)
+  if (!Array.isArray(obj.schemaPackages)) {
+    obj.schemaPackages = [];
+  }
+  for (const sp of obj.schemaPackages as unknown[]) {
+    if (!sp || typeof sp !== 'object') {
+      throw new Error('Invalid file: invalid schemaPackage structure');
+    }
+    const p = sp as Record<string, unknown>;
+    if (typeof p.id !== 'string' || typeof p.name !== 'string' || typeof p.color !== 'string') {
+      throw new Error(`Invalid file: schemaPackage missing required fields (id, name, color)`);
+    }
+  }
+
+  // v6→v7 migration: promote top-level groups to packages
+  if (obj.version <= 6 && Array.isArray(obj.schemaGroups) && obj.schemaGroups.length > 0) {
+    const groups = obj.schemaGroups as Array<Record<string, unknown>>;
+    const schemas = obj.customSchemas as Array<Record<string, unknown>>;
+    const portSchemas = obj.portSchemas as Array<Record<string, unknown>>;
+    const packages: Array<Record<string, unknown>> = [];
+
+    // Find top-level groups (no parentId)
+    const topLevelGroups = groups.filter(g => !g.parentId);
+
+    for (const topGroup of topLevelGroups) {
+      // Create a package from this top-level group
+      packages.push({
+        id: topGroup.id as string,
+        name: topGroup.name as string,
+        description: topGroup.description as string | undefined,
+        color: (topGroup.color as string) || '#7c7fca',
+      });
+
+      // Find all subgroups of this group
+      const subgroups = groups.filter(g => g.parentId === topGroup.id);
+
+      // Assign packageId to schemas in this group or its subgroups
+      const groupIds = new Set([topGroup.id, ...subgroups.map(g => g.id as string)]);
+      for (const schema of schemas) {
+        if (groupIds.has(schema.groupId as string)) {
+          schema.packageId = topGroup.id as string;
+        }
+      }
+
+      // Assign packageId to subgroups
+      for (const subgroup of subgroups) {
+        subgroup.packageId = topGroup.id as string;
+      }
+
+      // Assign packageId to port schemas in this group
+      for (const portSchema of portSchemas) {
+        if (portSchema.groupId === topGroup.id) {
+          portSchema.packageId = topGroup.id as string;
+        }
+      }
+    }
+
+    // Remove promoted groups from schemaGroups
+    obj.schemaGroups = groups.filter(g => g.parentId !== undefined);
+    obj.schemaPackages = packages;
+    obj.version = 7;
+  }
+
   // Repair orphaned connections before returning
   const repairedData = repairOrphanedConnections(obj);
 
@@ -217,6 +281,7 @@ export function validateCartaFile(data: unknown): CartaFile {
     customSchemas: repairedData.customSchemas as ConstructSchema[],
     portSchemas: repairedData.portSchemas as PortSchema[],
     schemaGroups: repairedData.schemaGroups as SchemaGroup[],
+    schemaPackages: repairedData.schemaPackages as SchemaPackage[],
     exportedAt: (repairedData.exportedAt as string) || new Date().toISOString(),
   };
 }
