@@ -6,4 +6,8 @@ export { useBoxSelect } from './useBoxSelect.js';
 export { ConnectionHandle } from './ConnectionHandle.js';
 export { DotGrid } from './DotGrid.js';
 export { ConnectionPreview } from './ConnectionPreview.js';
+export { Canvas } from './Canvas.js';
+export { CanvasContext, useCanvasContext } from './CanvasContext.js';
 export type { Transform } from './useViewport.js';
+export type { CanvasProps, CanvasRef } from './Canvas.js';
+export type { CanvasContextValue } from './CanvasContext.js';
