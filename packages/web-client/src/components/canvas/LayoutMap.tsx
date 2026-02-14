@@ -4,7 +4,7 @@ import type { PinLayoutNode, PinDirection, OrganizerNodeData } from '@carta/doma
 import { useNodes, usePinConstraints } from '../../hooks';
 import LayoutMapOrganizerNode from './LayoutMapOrganizerNode';
 import ContextMenuPrimitive from '../ui/ContextMenuPrimitive';
-import { useViewport, useConnectionDrag } from '../../canvas-engine/index.js';
+import { useViewport, useConnectionDrag, ConnectionPreview } from '../../canvas-engine/index.js';
 import { EdgeLabel } from '../../canvas-engine/EdgeLabel.js';
 
 interface LayoutMapProps {
@@ -558,13 +558,9 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
             : 'var(--color-accent)';
 
           return (
-            <path
+            <ConnectionPreview
               d={d}
-              fill="none"
               stroke={strokeColor}
-              strokeWidth={2}
-              strokeDasharray="4 4"
-              style={{ pointerEvents: 'none' }}
             />
           );
         })()}
