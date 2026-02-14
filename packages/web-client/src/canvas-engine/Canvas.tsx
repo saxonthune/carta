@@ -160,7 +160,7 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
       <div
         ref={containerRef}
         className={className}
-        style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}
+        style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden', userSelect: 'none' }}
         onPointerDown={(e) => {
           if (onBackgroundPointerDown) {
             const target = e.target as HTMLElement;
@@ -187,17 +187,26 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
 
         {/* Edge layer — SVG with same transform */}
         {renderEdges && (
-          <svg style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+          <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
             <g transform={`translate(${transform.x}, ${transform.y}) scale(${transform.k})`}>
               {renderEdges(transform)}
             </g>
           </svg>
         )}
 
-        {/* Connection preview — screen coords */}
+        {/* Connection preview — container-local coords */}
         {connectionDragState && renderConnectionPreview && (
-          <svg style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-            {renderConnectionPreview(connectionDragState, transform)}
+          <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+            {(() => {
+              // Convert viewport coords to container-local coords
+              const rect = containerRef.current?.getBoundingClientRect();
+              const localDrag: ConnectionDragState = {
+                ...connectionDragState,
+                currentX: connectionDragState.currentX - (rect?.left ?? 0),
+                currentY: connectionDragState.currentY - (rect?.top ?? 0),
+              };
+              return renderConnectionPreview(localDrag, transform);
+            })()}
           </svg>
         )}
 

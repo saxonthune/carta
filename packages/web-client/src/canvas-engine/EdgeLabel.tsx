@@ -35,7 +35,7 @@ export function EdgeLabel({
       y={y - foHeight / 2}
       width={foWidth}
       height={foHeight}
-      style={{ overflow: 'visible', pointerEvents: onContextMenu ? 'auto' : 'none' }}
+      style={{ overflow: 'visible', pointerEvents: 'none' }}
     >
       <div
         style={{

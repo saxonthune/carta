@@ -112,6 +112,8 @@ pnpm test:e2e      # E2E tests (Playwright, port 5273)
 
 All three must pass before committing. E2E uses port 5273 (separate from dev server 5173).
 
+**Vite dev server restart:** If the user is running `pnpm dev` and your changes require a Vite restart (e.g., new files, config changes, dependency updates, or Vite alias changes), tell the user to restart Vite. Do not restart it yourself — the user manages the dev server.
+
 ## Codebase Exploration Strategy
 
 **Two-phase search**: Locate files cheaply before reading them.
