@@ -4,6 +4,7 @@ import { useSchemas } from '../../hooks/useSchemas.js';
 import { useSchemaGroups } from '../../hooks/useSchemaGroups.js';
 import { useSchemaPackages } from '../../hooks/useSchemaPackages.js';
 import { useSchemaUndoRedo } from '../../hooks/useSchemaUndoRedo.js';
+import { useNarrative } from '../../hooks/useNarrative.js';
 import { computeMetamapV2Layout, type MetamapV2Node, type MetamapV2Edge } from '../../utils/metamapV2Layout.js';
 import { MetamapSchemaNode } from './MetamapSchemaNode.js';
 import { MetamapPackageNode } from './MetamapPackageNode.js';
@@ -11,8 +12,11 @@ import { MetamapGroupNode } from './MetamapGroupNode.js';
 import CanvasToolbar, { ToolbarButton, ToolbarDivider } from '../canvas/CanvasToolbar.js';
 import { MagnifyingGlassPlus, MagnifyingGlassMinus, CornersOut, ArrowsClockwise } from '@phosphor-icons/react';
 import ConstructEditor from '../ConstructEditor.js';
-import type { ConstructSchema } from '@carta/domain';
+import type { ConstructSchema, SuggestedRelatedConstruct } from '@carta/domain';
+import { portRegistry } from '@carta/domain';
 import { MetamapConnectionModal } from '../metamap/MetamapConnectionModal.js';
+import { EdgeDetailPopover } from '../metamap/EdgeDetailPopover.js';
+import { Narrative } from '../canvas/Narrative.js';
 import ContextMenuPrimitive, { type MenuItem } from '../ui/ContextMenuPrimitive.js';
 
 export default function MetamapV2() {
@@ -88,10 +92,88 @@ export default function MetamapV2() {
     packageId?: string;
   } | null>(null);
 
+  // Narrative tooltip state
+  const { narrative, showNarrative, hideNarrative } = useNarrative();
+
+  // Edge popover state
+  const [edgePopover, setEdgePopover] = useState<{
+    sourceSchema: ConstructSchema;
+    targetSchema: ConstructSchema;
+    relationship: SuggestedRelatedConstruct;
+    relationshipIndex: number;
+    position: { x: number; y: number };
+  } | null>(null);
+
   const handleSchemaDoubleClick = useCallback((schemaType: string) => {
     const schema = getSchema(schemaType);
     if (schema) setEditorState({ open: true, editSchema: schema });
   }, [getSchema]);
+
+  // Edge interaction handlers
+  const handleEdgeClick = useCallback((edge: MetamapV2Edge, event: React.MouseEvent) => {
+    const sourceSchema = getSchema(edge.sourceType);
+    const targetSchema = getSchema(edge.target);
+    if (!sourceSchema || !targetSchema) return;
+
+    const fromPort = sourceSchema.ports?.find(p => p.id === edge.fromPortId);
+    const toPort = targetSchema.ports?.find(p => p.id === edge.toPortId);
+    const fromPortSchema = fromPort ? portRegistry.get(fromPort.portType) : undefined;
+    const toPortSchema = toPort ? portRegistry.get(toPort.portType) : undefined;
+
+    showNarrative({
+      kind: 'edge',
+      from: {
+        name: sourceSchema.displayName,
+        schemaType: sourceSchema.type,
+        portLabel: fromPort?.label || 'default',
+        portColor: fromPortSchema?.color || '#6b7280',
+      },
+      to: {
+        name: targetSchema.displayName,
+        schemaType: targetSchema.type,
+        portLabel: toPort?.label || 'default',
+        portColor: toPortSchema?.color || '#6b7280',
+      },
+      position: { x: event.clientX, y: event.clientY },
+      anchor: 'above',
+    });
+  }, [getSchema, showNarrative]);
+
+  const handleEdgeDoubleClick = useCallback((edge: MetamapV2Edge, event: React.MouseEvent) => {
+    const sourceSchema = getSchema(edge.sourceType);
+    const targetSchema = getSchema(edge.target);
+    if (!sourceSchema || !targetSchema) return;
+
+    const relationship = sourceSchema.suggestedRelated?.[edge.relIndex];
+    if (!relationship) return;
+
+    hideNarrative();
+    setEdgePopover({
+      sourceSchema,
+      targetSchema,
+      relationship,
+      relationshipIndex: edge.relIndex,
+      position: { x: event.clientX, y: event.clientY },
+    });
+  }, [getSchema, hideNarrative]);
+
+  const handleEdgeUpdate = useCallback((relIndex: number, updates: Partial<SuggestedRelatedConstruct>) => {
+    if (!edgePopover) return;
+    const schema = edgePopover.sourceSchema;
+    const related = [...(schema.suggestedRelated || [])];
+    related[relIndex] = { ...related[relIndex], ...updates };
+    updateSchema(schema.type, { suggestedRelated: related });
+    setEdgePopover(null);
+  }, [edgePopover, updateSchema]);
+
+  const handleEdgeDelete = useCallback((relIndex: number) => {
+    if (!edgePopover) return;
+    const schema = edgePopover.sourceSchema;
+    const related = [...(schema.suggestedRelated || [])];
+    related.splice(relIndex, 1);
+    updateSchema(schema.type, { suggestedRelated: related });
+    setEdgePopover(null);
+  }, [edgePopover, updateSchema]);
 
   // Connection handlers
   const handleConnect = useCallback((connection: { source: string; sourceHandle: string; target: string; targetHandle: string }) => {
@@ -334,7 +416,14 @@ export default function MetamapV2() {
         viewportOptions={{ minZoom: 0.1, maxZoom: 2 }}
         connectionDrag={{ onConnect: handleConnect, isValidConnection }}
         onBackgroundPointerDown={() => setContextMenu(null)}
-        renderEdges={() => <MetamapEdgeLayer edges={layoutResult.edges} nodes={localNodes} />}
+        renderEdges={() => (
+          <MetamapEdgeLayer
+            edges={layoutResult.edges}
+            nodes={localNodes}
+            onEdgeClick={handleEdgeClick}
+            onEdgeDoubleClick={handleEdgeDoubleClick}
+          />
+        )}
         renderConnectionPreview={(drag, transform) => {
           const sourceNode = localNodes.find(n => n.id === drag.sourceNodeId);
           if (!sourceNode) return null;
@@ -402,6 +491,19 @@ export default function MetamapV2() {
           y={contextMenu.y}
           items={contextMenuItems}
           onClose={() => setContextMenu(null)}
+        />
+      )}
+      <Narrative narrative={narrative} onDismiss={hideNarrative} />
+      {edgePopover && (
+        <EdgeDetailPopover
+          sourceSchema={edgePopover.sourceSchema}
+          targetSchema={edgePopover.targetSchema}
+          relationship={edgePopover.relationship}
+          relationshipIndex={edgePopover.relationshipIndex}
+          position={edgePopover.position}
+          onUpdate={handleEdgeUpdate}
+          onDelete={handleEdgeDelete}
+          onClose={() => setEdgePopover(null)}
         />
       )}
     </div>
