@@ -24,8 +24,14 @@ export function useSchemaPackages() {
     [adapter]
   );
 
+  const updateSchemaPackage = useCallback(
+    (id: string, updates: Partial<SchemaPackage>) => adapter.updateSchemaPackage(id, updates),
+    [adapter]
+  );
+
   return {
     schemaPackages,
     getSchemaPackage,
+    updateSchemaPackage,
   };
 }
