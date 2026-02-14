@@ -147,6 +147,26 @@ export default function MetamapV2() {
     setConnectionModal(null);
   }, [updateSchema]);
 
+  // Re-layout handler
+  const handleRelayout = useCallback(() => {
+    initializedRef.current = false;
+    setLocalNodes(layoutResult.nodes);
+    localNodesRef.current = layoutResult.nodes;
+
+    // Fit view after re-layout
+    setTimeout(() => {
+      if (canvasRef.current) {
+        const rects = layoutResult.nodes.map(n => ({
+          x: getAbsoluteX(n, layoutResult.nodes),
+          y: getAbsoluteY(n, layoutResult.nodes),
+          width: n.size.width,
+          height: n.size.height,
+        }));
+        canvasRef.current.fitView(rects, 0.15);
+      }
+    }, 0);
+  }, [layoutResult.nodes]);
+
   // Context menu items
   const contextMenuItems = useMemo((): MenuItem[] => {
     if (!contextMenu) return [];
@@ -288,26 +308,6 @@ export default function MetamapV2() {
     return [];
   }, [contextMenu, getSchema, removeSchema, addSchemaGroup, removeSchemaGroup, schemas, updateSchema, handleRelayout]);
 
-  // Re-layout handler
-  const handleRelayout = useCallback(() => {
-    initializedRef.current = false;
-    setLocalNodes(layoutResult.nodes);
-    localNodesRef.current = layoutResult.nodes;
-
-    // Fit view after re-layout
-    setTimeout(() => {
-      if (canvasRef.current) {
-        const rects = layoutResult.nodes.map(n => ({
-          x: getAbsoluteX(n, layoutResult.nodes),
-          y: getAbsoluteY(n, layoutResult.nodes),
-          width: n.size.width,
-          height: n.size.height,
-        }));
-        canvasRef.current.fitView(rects, 0.15);
-      }
-    }, 0);
-  }, [layoutResult.nodes]);
-
   // Fit view handler
   const handleFitView = useCallback(() => {
     if (canvasRef.current && localNodes.length > 0) {
@@ -360,7 +360,6 @@ export default function MetamapV2() {
           localNodes={localNodes}
           setLocalNodes={setLocalNodes}
           localNodesRef={localNodesRef}
-          edges={layoutResult.edges}
           onSchemaDoubleClick={handleSchemaDoubleClick}
           onContextMenu={setContextMenu}
           updateSchema={updateSchema}
@@ -413,7 +412,6 @@ interface MetamapV2InnerProps {
   localNodes: MetamapV2Node[];
   setLocalNodes: React.Dispatch<React.SetStateAction<MetamapV2Node[]>>;
   localNodesRef: React.MutableRefObject<MetamapV2Node[]>;
-  edges: MetamapV2Edge[];
   onSchemaDoubleClick: (schemaType: string) => void;
   onContextMenu: (menu: { x: number; y: number; schemaType?: string; groupId?: string; packageId?: string }) => void;
   updateSchema: (type: string, updates: { packageId?: string; groupId?: string | undefined }) => void;
@@ -425,7 +423,6 @@ function MetamapV2Inner({
   localNodes,
   setLocalNodes,
   localNodesRef,
-  edges,
   onSchemaDoubleClick,
   onContextMenu,
   updateSchema,

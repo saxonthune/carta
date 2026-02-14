@@ -29,7 +29,7 @@ import OrganizerNode from '../canvas/OrganizerNode';
 import type { OrganizerNodeData } from '../canvas/OrganizerNode';
 import DynamicAnchorEdge from '../canvas/DynamicAnchorEdge';
 import Narrative from '../canvas/Narrative';
-import MetamapConnectionModal from './MetamapConnectionModal';
+import { MetamapConnectionModal } from './MetamapConnectionModal';
 import EdgeDetailPopover from './EdgeDetailPopover';
 import ConstructEditor from '../ConstructEditor';
 import ContextMenuPrimitive, { type MenuItem } from '../ui/ContextMenuPrimitive';
