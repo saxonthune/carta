@@ -40,6 +40,13 @@ export function useViewport(options: UseViewportOptions = {}): UseViewportResult
       .filter((event) => {
         // Allow wheel events always for zoom
         if (event.type === 'wheel') return true;
+        // For mouse/touch events, reject if the target is inside an
+        // interactive element (nodes, handles). Only allow pan from the
+        // background. Elements opt out of pan via [data-no-pan].
+        const target = event.target as HTMLElement;
+        if (target.closest?.('[data-no-pan]')) {
+          return false;
+        }
         // Allow mousedown on all buttons for pan
         if (event.type === 'mousedown') return true;
         // Allow touchstart for mobile

@@ -54,7 +54,29 @@ const LayoutMapOrganizerNode = memo((props: LayoutMapOrganizerNodeProps) => {
         borderColor,
       }}
     >
-      {/* Body target handle - invisible, covers entire node */}
+      {/* Drag bar */}
+      <div
+        className="drag-handle absolute rounded-full cursor-grab active:cursor-grabbing"
+        style={{
+          top: 8,
+          left: '20%',
+          width: '60%',
+          height: 6,
+          zIndex: 1,
+          backgroundColor: color
+            ? `color-mix(in srgb, ${color} 30%, var(--color-canvas))`
+            : 'var(--color-border)',
+        }}
+      />
+
+      {/* Organizer name */}
+      <div className="text-sm font-medium text-content px-4 text-center">
+        {name}
+      </div>
+
+      {/* Body target handle - invisible, covers entire node for connection drop.
+          z-index 0 so source handles (z-index 1) stack on top and receive
+          pointer events first. elementsFromPoint still finds this on drop. */}
       <ConnectionHandle
         type="target"
         id="body"
@@ -66,27 +88,9 @@ const LayoutMapOrganizerNode = memo((props: LayoutMapOrganizerNodeProps) => {
           width: '100%',
           height: '100%',
           opacity: 0,
+          zIndex: 0,
         }}
       />
-
-      {/* Drag bar */}
-      <div
-        className="drag-handle absolute rounded-full cursor-grab active:cursor-grabbing"
-        style={{
-          top: 8,
-          left: '20%',
-          width: '60%',
-          height: 6,
-          backgroundColor: color
-            ? `color-mix(in srgb, ${color} 30%, var(--color-canvas))`
-            : 'var(--color-border)',
-        }}
-      />
-
-      {/* Organizer name */}
-      <div className="text-sm font-medium text-content px-4 text-center">
-        {name}
-      </div>
 
       {/* 8 directional source handles */}
       {DIRECTION_HANDLES.map(({ id: handleId, style, Icon }) => (
@@ -99,6 +103,7 @@ const LayoutMapOrganizerNode = memo((props: LayoutMapOrganizerNodeProps) => {
           style={{
             ...style,
             position: 'absolute',
+            zIndex: 1,
             width: 14,
             height: 14,
             backgroundColor: 'var(--color-accent)',

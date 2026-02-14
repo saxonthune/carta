@@ -28,6 +28,39 @@ interface LocalEdge {
 
 const VALID_SOURCE_HANDLES = new Set(['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']);
 
+// Direction vectors for bezier control point offsets (unit vectors per compass direction)
+const DIRECTION_VECTORS: Record<string, { dx: number; dy: number }> = {
+  N: { dx: 0, dy: -1 },
+  NE: { dx: 0.707, dy: -0.707 },
+  E: { dx: 1, dy: 0 },
+  SE: { dx: 0.707, dy: 0.707 },
+  S: { dx: 0, dy: 1 },
+  SW: { dx: -0.707, dy: 0.707 },
+  W: { dx: -1, dy: 0 },
+  NW: { dx: -0.707, dy: -0.707 },
+};
+
+function getConnectionPath(
+  sx: number, sy: number,
+  tx: number, ty: number,
+  sourceHandle: string | null | undefined
+): string {
+  const dist = Math.sqrt((tx - sx) ** 2 + (ty - sy) ** 2);
+  const offset = Math.min(dist * 0.4, 120);
+
+  const dir = DIRECTION_VECTORS[sourceHandle ?? ''] ?? { dx: 0, dy: 0 };
+
+  // Control point 1: extends from source in the handle's direction
+  const c1x = sx + dir.dx * offset;
+  const c1y = sy + dir.dy * offset;
+
+  // Control point 2: approaches target from the opposite side
+  const c2x = tx - dir.dx * offset;
+  const c2y = ty - dir.dy * offset;
+
+  return `M ${sx},${sy} C ${c1x},${c1y} ${c2x},${c2y} ${tx},${ty}`;
+}
+
 function getHandlePosition(node: LocalNode, handleId: string | null | undefined): { x: number; y: number } {
   const w = node.style?.width ?? 400;
   const h = node.style?.height ?? 300;
@@ -69,6 +102,12 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
   // Viewport
   const { transform, containerRef, fitView } = useViewport({ minZoom: 0.15, maxZoom: 2 });
 
+  // Refs for accessing current values inside native event listeners (Pattern 2: stable callbacks)
+  const localNodesRef = useRef(localNodes);
+  localNodesRef.current = localNodes;
+  const transformRef = useRef(transform);
+  transformRef.current = transform;
+
   // FitView on mount
   const fitViewDoneRef = useRef(false);
   useEffect(() => {
@@ -84,7 +123,7 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
     }
   }, [localNodes, fitView]);
 
-  // Drag state
+  // Drag state (Pattern 1: ref-based drag, commit on drop)
   const dragStateRef = useRef<{
     nodeId: string;
     startX: number;
@@ -174,11 +213,15 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
     setLocalNodes(layoutNodes);
   }, [allNodes]);
 
-  // Update edges whenever constraints change
+  // Update edges when constraints or node names change (Pattern 3: decouple from position changes)
+  // Edge topology depends on constraints + node names, NOT positions.
+  // Positions are read at render time via getHandlePosition, so edge lines
+  // update visually without needing to rebuild the edge array on every drag frame.
+  const nodeNameKey = localNodes.map((n) => `${n.id}:${n.data.name}`).join(',');
   useEffect(() => {
-    // Build a name lookup from local nodes
+    const nodes = localNodesRef.current;
     const nameMap = new Map<string, string>();
-    for (const n of localNodes) {
+    for (const n of nodes) {
       nameMap.set(n.id, n.data.name || n.id);
     }
 
@@ -198,9 +241,12 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
       };
     });
     setLocalEdges(edges);
-  }, [constraints, localNodes]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [constraints, nodeNameKey]);
 
-  // Handle node drag
+  // Handle node drag (Pattern 1: ref-based drag, commit on drop)
+  // During drag, update position via setState but read current values from refs
+  // so the callback doesn't depend on frequently-changing state (Pattern 2).
   const handlePointerDown = useCallback(
     (nodeId: string, event: React.PointerEvent<HTMLDivElement>) => {
       const target = event.target as HTMLElement;
@@ -208,7 +254,7 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
 
       event.stopPropagation();
 
-      const node = localNodes.find((n) => n.id === nodeId);
+      const node = localNodesRef.current.find((n) => n.id === nodeId);
       if (!node) return;
 
       dragStateRef.current = {
@@ -220,22 +266,21 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
       };
 
       const handlePointerMove = (e: PointerEvent) => {
-        if (!dragStateRef.current) return;
+        const drag = dragStateRef.current;
+        if (!drag) return;
 
-        const deltaScreenX = e.clientX - dragStateRef.current.startX;
-        const deltaScreenY = e.clientY - dragStateRef.current.startY;
-
-        const deltaCanvasX = deltaScreenX / transform.k;
-        const deltaCanvasY = deltaScreenY / transform.k;
+        const k = transformRef.current.k;
+        const deltaCanvasX = (e.clientX - drag.startX) / k;
+        const deltaCanvasY = (e.clientY - drag.startY) / k;
 
         setLocalNodes((prev) =>
           prev.map((n) =>
-            n.id === dragStateRef.current!.nodeId
+            n.id === drag.nodeId
               ? {
                   ...n,
                   position: {
-                    x: dragStateRef.current!.originalX + deltaCanvasX,
-                    y: dragStateRef.current!.originalY + deltaCanvasY,
+                    x: drag.originalX + deltaCanvasX,
+                    y: drag.originalY + deltaCanvasY,
                   },
                 }
               : n
@@ -252,7 +297,7 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
       window.addEventListener('pointermove', handlePointerMove);
       window.addEventListener('pointerup', handlePointerUp);
     },
-    [localNodes, transform.k]
+    [] // No state dependencies — reads from refs
   );
 
   // Edge context menu handling
@@ -293,10 +338,10 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
     <div
       ref={containerRef}
       className="w-full h-full relative"
-      style={{ overflow: 'hidden', touchAction: 'none' }}
+      style={{ overflow: 'hidden', touchAction: 'none', userSelect: 'none' }}
     >
       {/* Background SVG — dot grid */}
-      <svg style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+      <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
         <defs>
           <pattern
             id="layout-map-dots"
@@ -312,7 +357,7 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
       </svg>
 
       {/* Edge SVG layer */}
-      <svg style={{ position: 'absolute', inset: 0 }} className="pointer-events-none">
+      <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0 }} className="pointer-events-none">
         <g transform={`translate(${transform.x}, ${transform.y}) scale(${transform.k})`}>
           {localEdges.map((edge) => {
             const sourceNode = localNodes.find((n) => n.id === edge.source);
@@ -353,7 +398,7 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
           })}
         </g>
 
-        {/* Connection preview line (screen coords, outside the transform group) */}
+        {/* Connection preview curve (screen coords, outside the transform group) */}
         {connectionDrag && (() => {
           const sourceNode = localNodes.find((n) => n.id === connectionDrag.sourceNodeId);
           if (!sourceNode) return null;
@@ -362,12 +407,16 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
           const screenSourceX = sourcePos.x * transform.k + transform.x;
           const screenSourceY = sourcePos.y * transform.k + transform.y;
 
+          const d = getConnectionPath(
+            screenSourceX, screenSourceY,
+            connectionDrag.currentX, connectionDrag.currentY,
+            connectionDrag.sourceHandle
+          );
+
           return (
-            <line
-              x1={screenSourceX}
-              y1={screenSourceY}
-              x2={connectionDrag.currentX}
-              y2={connectionDrag.currentY}
+            <path
+              d={d}
+              fill="none"
               stroke="var(--color-accent)"
               strokeWidth={2}
               strokeDasharray="4 4"
@@ -390,6 +439,7 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
         {localNodes.map((node) => (
           <div
             key={node.id}
+            data-no-pan="true"
             style={{
               position: 'absolute',
               left: node.position.x,
@@ -407,6 +457,7 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
 
       {/* Header bar */}
       <div
+        data-no-pan="true"
         className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-4 py-2"
         style={{
           backgroundColor: 'var(--color-surface)',
@@ -428,6 +479,19 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
             Close
           </button>
         </div>
+      </div>
+
+      {/* Bottom-left return button */}
+      <div
+        data-no-pan="true"
+        className="absolute bottom-4 left-4 z-10"
+      >
+        <button
+          onClick={onClose}
+          className="px-3 py-1.5 text-sm rounded bg-surface-depth-1 hover:bg-surface-depth-2 text-content border border-border transition-colors shadow-sm"
+        >
+          Return to Map
+        </button>
       </div>
 
       {/* Edge context menu */}

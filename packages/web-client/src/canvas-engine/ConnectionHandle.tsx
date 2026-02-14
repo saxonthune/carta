@@ -33,7 +33,9 @@ export function ConnectionHandle({
           'data-node-id': nodeId,
           'data-handle-id': id,
         }
-      : {};
+      : {
+          'data-no-pan': 'true',
+        };
 
   return (
     <div

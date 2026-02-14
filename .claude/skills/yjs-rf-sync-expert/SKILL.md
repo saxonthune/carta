@@ -1,21 +1,24 @@
 ---
 name: yjs-rf-sync-expert
-description: Expert on Yjs ↔ React Flow synchronization, resize/drag persistence, dimension handling, and state ownership. Invoke when debugging sync bugs (snap-back, lost dimensions, hitchy interactions) or designing new write-back paths.
+description: Expert on canvas synchronization, d3-zoom viewport, resize/drag persistence, dimension handling, and state ownership. Invoke when debugging canvas interaction bugs (pan/zoom, drag, connections, snap-back, lost dimensions) or designing new write-back paths.
 ---
 
 # yjs-rf-sync-expert
 
-Diagnoses and resolves synchronization bugs between Yjs (source of truth), React state (pipeline), and React Flow (renderer). Understands the Yjs-authoritative architecture, the sync module, resize/drag ownership rules, and common timing pitfalls.
+Diagnoses and resolves synchronization and interaction bugs across Carta's canvas layers: Yjs (source of truth), React state (pipeline), and the rendering layer (React Flow for Map.tsx, or the canvas-engine for LayoutMap/Metamap). Understands the Yjs-authoritative architecture, d3-zoom event model, drag/resize ownership, and common timing pitfalls.
 
 ## When This Triggers
 
 - Resize doesn't persist / snaps back to old size
 - Drag is hitchy or positions snap back
+- Pan/zoom interferes with drag or connections
+- Connection drag doesn't work / conflicts with viewport
 - "Parent node not found" errors
 - Layout actions don't visually update
 - Style changes lost after interaction
 - Dimension/position state ownership questions
 - Designing new write-back paths (e.g., new interactions that modify node state)
+- d3-zoom event filtering or coordinate transform issues
 
 ## Related Skills
 
@@ -84,7 +87,120 @@ User interaction
 
 At each step, ask: "Is the data correct here? Is anything stale?"
 
-## Architecture: Yjs-Authoritative Layout
+## d3-zoom & Canvas Engine Debugging
+
+### Key Resources — Always Check These
+
+For d3-zoom behavior, **always check the official docs and source**:
+
+```
+https://d3js.org/d3-zoom                                    # API docs, filter, transform, events
+https://github.com/d3/d3-zoom/blob/main/src/zoom.js         # Source — see exactly which events are listened to
+https://github.com/d3/d3-zoom/issues                        # Known issues and edge cases
+https://observablehq.com/@d3/drag-zoom                      # Canonical drag+zoom combination example
+```
+
+Use `WebFetch` to read these pages when debugging d3-zoom issues. The source code (`zoom.js`) is the authoritative reference for which events d3-zoom listens to and how it processes them.
+
+### d3-zoom Event Model
+
+d3-zoom attaches **native DOM listeners** (not React synthetic events) to the container element:
+
+```
+mousedown.zoom    → initiates pan (drag to pan)
+wheel.zoom        → zoom in/out
+dblclick.zoom     → zoom on double-click
+touchstart.zoom   → mobile pan/pinch initiation
+touchmove.zoom    → mobile pan/pinch
+touchend.zoom     → mobile gesture end
+```
+
+**Critical**: d3-zoom uses `event.stopImmediatePropagation()` on events it consumes. React's `stopPropagation()` does NOT prevent d3 from seeing events because:
+1. React synthetic events and native DOM events are separate systems
+2. d3's native `mousedown` listener fires independently of React's synthetic `onPointerDown`
+3. `stopPropagation()` on a React synthetic event has zero effect on d3's native listener on the same element
+
+### Preventing Pan on Interactive Elements
+
+Use d3-zoom's `.filter()` function — NOT React `stopPropagation`:
+
+```typescript
+d3Zoom().filter((event) => {
+  if (event.type === 'wheel') return true;  // always allow zoom
+  const target = event.target as HTMLElement;
+  if (target.closest?.('[data-no-pan]')) return false;  // skip interactive elements
+  return true;
+})
+```
+
+Mark interactive elements with `data-no-pan="true"`:
+- Node wrapper divs (prevent pan when clicking/dragging nodes)
+- Connection handle source elements (prevent pan during connection drag)
+- UI overlay elements (header bar, toolbars)
+
+### Common d3-zoom Bugs
+
+#### Bug: Pan triggers during node drag or connection drag
+
+**Symptoms**: Dragging a node or connection handle also pans the viewport.
+
+**Root cause**: d3-zoom's native `mousedown` listener fires on the container even when clicking on child elements. React's `stopPropagation` doesn't prevent this.
+
+**Fix**: Use `.filter()` to check `event.target.closest('[data-no-pan]')` and add `data-no-pan` to all interactive elements.
+
+#### Bug: Background dots only show in corner
+
+**Symptoms**: SVG dot pattern renders in a small area instead of filling the viewport.
+
+**Root cause**: The `<svg>` element has no explicit `width`/`height`. Without these, SVG defaults to 300x150px (SVG spec). The `<rect width="100%" height="100%">` resolves against this tiny default, not the container.
+
+**Fix**: Add `width="100%" height="100%"` to the `<svg>` element.
+
+#### Bug: fitView computes wrong bounds
+
+**Symptoms**: After fitView, nodes are off-screen or too small/large.
+
+**Root cause**: `containerRef.current.getBoundingClientRect()` returns zeros if the container hasn't been laid out yet (e.g., called during mount before first paint).
+
+**Fix**: Delay fitView until nodes are initialized AND the container has been measured. Use a ref flag to ensure it runs only once after both conditions are met.
+
+#### Bug: Zoom doesn't center on cursor
+
+**Symptoms**: Zoom centers on the container center instead of the mouse position.
+
+**Root cause**: d3-zoom's `translateExtent` or `extent` is misconfigured. By default, d3-zoom centers zoom on the pointer position — if this isn't happening, check if `extent` has been set to a fixed value.
+
+### Canvas Engine Architecture (LayoutMap, future Metamap/Map)
+
+```
+┌──────────────────────────────────────────────────────────┐
+│                    Yjs Y.Doc                              │
+│  Source of truth for: positions, dimensions, field values │
+└──────────────────┬───────────────────────────────────────┘
+                   │ Yjs observer
+                   ▼
+┌──────────────────────────────────────────────────────────┐
+│              useNodes React State                         │
+│  setNodesState(adapter.getNodes())                        │
+└──────────────────┬───────────────────────────────────────┘
+                   │ props
+                   ▼
+┌──────────────────────────────────────────────────────────┐
+│         Canvas Component (LayoutMap, etc.)                 │
+│  useViewport() → d3-zoom transform                        │
+│  Nodes rendered as positioned divs in transform group     │
+│  Edges rendered as SVG in transform group                 │
+│  Drag via pointer events → writes to Yjs on drop          │
+│  No sync module. No guards. Two layers, not three.        │
+└──────────────────────────────────────────────────────────┘
+```
+
+In this architecture:
+- User drags node → pointer events update local state during drag → writes to Yjs on pointerup
+- Yjs observer fires → React re-renders → canvas updates via new props
+- No intermediate `reactFlow.setNodes()` layer, no sync module, no guards
+
+## Architecture: Yjs-Authoritative Layout (React Flow — Map.tsx)
 
 ```
 ┌──────────────────────────────────────────────────────────┐
