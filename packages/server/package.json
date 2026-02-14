@@ -1,6 +1,6 @@
 {
   "name": "@carta/server",
-  "version": "0.1.0-proto4",
+  "version": "0.1.0-proto5",
   "type": "module",
   "exports": {
     "./mcp": {

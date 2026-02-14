@@ -12,12 +12,13 @@ Carta uses a three-level metamodel (M2/M1/M0) to provide modeling flexibility wh
 ```
 M2 (Designer-fixed)     M1 (User-defined)           M0 (Instances)
 ---------------------   -------------------------   ---------------------
-DataKind                ConstructSchema              ConstructNodeData
-DisplayHint             FieldSchema                    - constructType
-Polarity                PortConfig                     - semanticId
-PortSchema interface    PortSchema instances            - values {}
-                        SchemaGroup                    - connections[]
-                        Deployable                     - instanceColor?
+DataKind                SchemaPackage                ConstructNodeData
+DisplayHint             ConstructSchema                - constructType
+Polarity                FieldSchema                    - semanticId
+PortSchema interface    PortConfig                     - values {}
+                        PortSchema instances            - connections[]
+                        SchemaGroup (visual)            - instanceColor?
+                        Deployable
 ```
 
 **M2** defines the grammar — what kinds of things can exist. **M1** defines the vocabulary — what specific types exist in this document. **M0** holds the sentences — actual instances placed on the canvas.
@@ -71,6 +72,19 @@ Validation uses a two-step algorithm in `canConnect()`:
 
 Users define their domain vocabulary at this level. All M1 entities are stored in the Yjs Y.Doc and accessed through the DocumentAdapter.
 
+### SchemaPackage
+
+The unit of schema bundling and library portability. A package groups related schemas and their domain-specific port schemas into a self-contained vocabulary. Packages are what get published to and applied from the schema library (doc03.01.01.07).
+
+| Property | Purpose |
+|----------|---------|
+| `id` | Unique identifier |
+| `name` | Human-readable name (e.g., "Backend Stack") |
+| `description` | Optional description for library browsing |
+| `color` | Visual accent color |
+
+Schemas and port schemas declare their package membership via `packageId`. Schema groups (visual) also declare `packageId` to scope their nesting within a package. Port schemas without a `packageId` are document-level (cross-package connectors); the built-in port schemas (flow, parent/child, relay, intercept) serve as default cross-package connectors.
+
 ### ConstructSchema
 
 Defines a construct type. Key properties:
@@ -83,6 +97,8 @@ Defines a construct type. Key properties:
 | `semanticDescription` | AI compilation context |
 | `fields` | Array of FieldSchema |
 | `ports` | Array of PortConfig |
+| `packageId` | References SchemaPackage.id — which package this schema belongs to |
+| `groupId` | Optional visual grouping within the package (references SchemaGroup.id) |
 | `backgroundColorPolicy` | Controls instance color picker: `defaultOnly` (none), `tints` (7 swatches), `any` (full picker) |
 
 ### FieldSchema
@@ -128,6 +144,8 @@ User-editable port type definitions. Built-in defaults:
 
 Users can create custom port types via the Metamap view.
 
+Port schemas have an optional `packageId`. In-package ports (those with a `packageId`) are domain-specific vocabulary that travels with the package in libraries (e.g., "modifies/modified-by" in a sentence diagramming package). Document-level ports (no `packageId`) are cross-package connectors. The built-in port schemas above have no `packageId` — they serve as default cross-package plumbing.
+
 ## M0: Construct Instances
 
 Instances live on the canvas. Each has:
@@ -166,7 +184,7 @@ The `PortRegistry` class manages port schemas with polarity-based validation. It
 
 **Location:** `@carta/domain/schemas/built-ins.ts`
 
-Schema seeds are pre-packaged collections of related construct schemas for specific modeling domains (software architecture, BPMN, AWS, capability modeling, etc.). The domain package exports individual seeds for selective hydration:
+Schema seeds are the precursor to schema packages — pre-bundled collections of related construct schemas for specific modeling domains. In the library model (doc03.01.01.07), seeds will be repackaged as built-in schema packages forming the standard library.
 
 **Exports:**
 - `softwareArchitectureSeed` — Service, API endpoint, database, etc.
@@ -187,10 +205,10 @@ builtInSeedCatalog: Array<{
 
 **Hydration:**
 ```typescript
-hydrateSeed(seed: SchemaSeed, groupId?: string): ConstructSchema[]
+hydrateSeed(seed: SchemaSeed, packageId?: string): ConstructSchema[]
 ```
 
-Hydrates a single seed with fresh UUIDs and optional groupId override. This enables UI for adding schema collections without requiring full built-in hydration, supporting the schema seeding redesign.
+Hydrates a single seed with fresh UUIDs and optional packageId assignment. This enables UI for adding schema collections without requiring full built-in hydration.
 
 **Type export:**
 ```typescript

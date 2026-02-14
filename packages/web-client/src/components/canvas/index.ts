@@ -9,6 +9,7 @@ export { default as AddConstructMenu } from './AddConstructMenu';
 export { default as Narrative } from './Narrative';
 export { default as InspectorPanel } from './InspectorPanel';
 export { default as ToolbarLayoutFlyouts } from './ToolbarLayoutFlyouts';
+export { default as CanvasToolbar, ToolbarButton, ToolbarDivider } from './CanvasToolbar';
 
 // LOD
 export { useLodBand } from './lod/useLodBand';

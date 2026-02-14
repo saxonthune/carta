@@ -51,7 +51,9 @@ Canonical definitions for domain terms used throughout Carta. Use these terms co
 
 **Deployable**: A logical grouping for constructs representing a deployment unit (e.g., API Service, Database Layer, UI Application). Helps AI tools understand which components should be deployed together.
 
-**Schema Group**: A grouping of construct schemas for organizational purposes. Shown in context menus and the schema wizard.
+**Schema Package**: The unit of schema bundling and library portability. A package contains construct schemas, in-package port schemas, and optional schema groups for visual organization. Packages are what get published to and applied from the schema library. Example: "Backend Stack" package containing Service, Endpoint, Repository, and DataStore schemas with their domain-specific port types.
+
+**Schema Group**: A visual grouping of construct schemas within a package, used for metamap organization and menu nesting. Groups are cosmetic — they affect how schemas are displayed and navigated, not how they are bundled or compiled. A group always belongs to a package via `packageId`.
 
 **Virtual Folder**: A folder path derived from document metadata, not stored as a separate entity. Documents have a `folder` field (e.g., `/projects/webapp`) and the folder hierarchy is derived dynamically by the UI. Folders are created implicitly when documents are saved to them.
 

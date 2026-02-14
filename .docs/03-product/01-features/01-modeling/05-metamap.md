@@ -9,7 +9,7 @@ The Metamap is a schema-level visual editor — a second canvas view where users
 
 ## Schema Graph
 
-Construct schemas appear as nodes. Connections between schema nodes represent port relationships — which types can connect to which. Schema groups appear as container nodes.
+Construct schemas appear as nodes. Connections between schema nodes represent port relationships — which types can connect to which. Schema packages appear as top-level container nodes; schema groups appear as nested containers within packages for visual organization.
 
 ## Operations
 

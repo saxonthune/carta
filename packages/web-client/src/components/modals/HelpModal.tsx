@@ -24,8 +24,12 @@ export default function HelpModal({ isOpen, onClose }: HelpModalProps) {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Help" maxWidth="640px" blurBackdrop>
+      <p className="text-xs text-accent italic m-0 -mt-2 mb-3">
+        Note: guides are currently AI-generated from internal documentation. Real guides are on the way. Humans deserve to read human-crafted writing.
+      </p>
+
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-border mb-4 -mt-1">
+      <div className="flex gap-1 border-b border-border mb-4">
         {tabs.map((tab) => (
           <button
             key={tab}

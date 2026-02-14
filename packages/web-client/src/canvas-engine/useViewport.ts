@@ -21,6 +21,8 @@ export interface UseViewportResult {
     rects: Array<{ x: number; y: number; width: number; height: number }>,
     padding?: number
   ) => void;
+  zoomIn: () => void;
+  zoomOut: () => void;
   screenToCanvas: (screenX: number, screenY: number) => { x: number; y: number };
 }
 
@@ -115,6 +117,17 @@ export function useViewport(options: UseViewportOptions = {}): UseViewportResult
       .call(zoomRef.current.transform, newTransform);
   };
 
+  const zoomBy = (factor: number) => {
+    if (!containerRef.current || !zoomRef.current) return;
+    select(containerRef.current)
+      .transition()
+      .duration(200)
+      .call(zoomRef.current.scaleBy, factor);
+  };
+
+  const zoomIn = () => zoomBy(1.15);
+  const zoomOut = () => zoomBy(1 / 1.15);
+
   const screenToCanvas = (screenX: number, screenY: number): { x: number; y: number } => {
     if (!containerRef.current) return { x: screenX, y: screenY };
 
@@ -129,6 +142,8 @@ export function useViewport(options: UseViewportOptions = {}): UseViewportResult
     transform,
     containerRef: containerRef as React.RefObject<HTMLDivElement>,
     fitView,
+    zoomIn,
+    zoomOut,
     screenToCanvas,
   };
 }

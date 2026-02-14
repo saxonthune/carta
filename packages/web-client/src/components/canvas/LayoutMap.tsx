@@ -6,6 +6,9 @@ import LayoutMapOrganizerNode from './LayoutMapOrganizerNode';
 import ContextMenuPrimitive from '../ui/ContextMenuPrimitive';
 import { useViewport, useConnectionDrag, useNodeDrag, useKeyboardShortcuts, useBoxSelect, DotGrid, ConnectionPreview } from '../../canvas-engine/index.js';
 import { EdgeLabel } from '../../canvas-engine/EdgeLabel.js';
+import CanvasToolbar, { ToolbarButton, ToolbarDivider } from './CanvasToolbar';
+import { Tooltip } from '../ui';
+import { MagnifyingGlassPlus, MagnifyingGlassMinus, CornersOut, ArrowsClockwise, X } from '@phosphor-icons/react';
 
 interface LayoutMapProps {
   onClose: () => void;
@@ -161,7 +164,7 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
   } | null>(null);
 
   // Viewport
-  const { transform, containerRef, fitView } = useViewport({ minZoom: 0.15, maxZoom: 2 });
+  const { transform, containerRef, fitView, zoomIn, zoomOut } = useViewport({ minZoom: 0.15, maxZoom: 2 });
 
   // Box select
   const getNodeRects = useCallback(
@@ -593,43 +596,44 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
         ))}
       </div>
 
-      {/* Header bar */}
-      <div
-        data-no-pan="true"
-        className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-4 py-2"
-        style={{
-          backgroundColor: 'var(--color-surface)',
-          borderBottom: '1px solid var(--color-border)',
-        }}
-      >
-        <span className="text-sm font-medium text-content">Layout Map</span>
-        <div className="flex gap-2">
-          <button
-            onClick={handleTestLayout}
-            className="px-3 py-1.5 text-sm rounded bg-surface-depth-1 hover:bg-surface-depth-2 text-content border border-border transition-colors"
-          >
-            Test Layout
-          </button>
+      {/* Toolbar */}
+      <CanvasToolbar>
+        <ToolbarButton onClick={zoomIn} tooltip="Zoom in">
+          <MagnifyingGlassPlus weight="bold" size={16} />
+        </ToolbarButton>
+        <ToolbarButton onClick={zoomOut} tooltip="Zoom out">
+          <MagnifyingGlassMinus weight="bold" size={16} />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => {
+            const rects = localNodes.map((n) => ({
+              x: n.position.x,
+              y: n.position.y,
+              width: n.style?.width ?? 400,
+              height: n.style?.height ?? 300,
+            }));
+            fitView(rects, 0.2);
+          }}
+          tooltip="Fit view"
+        >
+          <CornersOut weight="bold" size={16} />
+        </ToolbarButton>
+        <ToolbarDivider />
+        <ToolbarButton onClick={handleTestLayout} tooltip="Test layout">
+          <ArrowsClockwise weight="bold" size={16} />
+        </ToolbarButton>
+      </CanvasToolbar>
+
+      {/* Close button */}
+      <div data-no-pan="true" className="absolute bottom-4 left-4 z-10">
+        <Tooltip content="Close" placement="right">
           <button
             onClick={onClose}
-            className="px-3 py-1.5 text-sm rounded bg-surface-depth-1 hover:bg-surface-depth-2 text-content border border-border transition-colors"
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-surface border border-border shadow-sm text-content-muted hover:bg-red-500 hover:border-red-500 hover:text-white transition-colors"
           >
-            Close
+            <X weight="bold" size={18} />
           </button>
-        </div>
-      </div>
-
-      {/* Bottom-left return button */}
-      <div
-        data-no-pan="true"
-        className="absolute bottom-4 left-4 z-10"
-      >
-        <button
-          onClick={onClose}
-          className="px-3 py-1.5 text-sm rounded bg-surface-depth-1 hover:bg-surface-depth-2 text-content border border-border transition-colors shadow-sm"
-        >
-          Return to Map
-        </button>
+        </Tooltip>
       </div>
 
       {/* Edge context menu */}
