@@ -4,11 +4,7 @@ import type { PinLayoutNode, PinDirection, OrganizerNodeData } from '@carta/doma
 import { useNodes, usePinConstraints } from '../../hooks';
 import LayoutMapOrganizerNode from './LayoutMapOrganizerNode';
 import ContextMenuPrimitive from '../ui/ContextMenuPrimitive';
-<<<<<<< HEAD
-import { useViewport, useConnectionDrag, DotGrid } from '../../canvas-engine/index.js';
-=======
-import { useViewport, useConnectionDrag, ConnectionPreview } from '../../canvas-engine/index.js';
->>>>>>> proto5_claude_extract-connection-preview
+import { useViewport, useConnectionDrag, useNodeDrag, DotGrid, ConnectionPreview } from '../../canvas-engine/index.js';
 import { EdgeLabel } from '../../canvas-engine/EdgeLabel.js';
 
 interface LayoutMapProps {
@@ -188,14 +184,8 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
     }
   }, [localNodes, fitView]);
 
-  // Drag state (Pattern 1: ref-based drag, commit on drop)
-  const dragStateRef = useRef<{
-    nodeId: string;
-    startX: number;
-    startY: number;
-    originalX: number;
-    originalY: number;
-  } | null>(null);
+  // Drag origin for cumulative delta application
+  const dragOriginRef = useRef<{ nodeId: string; x: number; y: number } | null>(null);
 
   // Node name map for validation messages
   const nodeNameMapRef = useRef(new Map<string, string>());
@@ -382,61 +372,32 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [constraints, nodeNameKey]);
 
-  // Handle node drag (Pattern 1: ref-based drag, commit on drop)
-  // During drag, update position via setState but read current values from refs
-  // so the callback doesn't depend on frequently-changing state (Pattern 2).
-  const handlePointerDown = useCallback(
-    (nodeId: string, event: React.PointerEvent<HTMLDivElement>) => {
-      const target = event.target as HTMLElement;
-      if (!target.closest('.drag-handle')) return;
-
-      event.stopPropagation();
-
-      const node = localNodesRef.current.find((n) => n.id === nodeId);
-      if (!node) return;
-
-      dragStateRef.current = {
-        nodeId,
-        startX: event.clientX,
-        startY: event.clientY,
-        originalX: node.position.x,
-        originalY: node.position.y,
-      };
-
-      const handlePointerMove = (e: PointerEvent) => {
-        const drag = dragStateRef.current;
-        if (!drag) return;
-
-        const k = transformRef.current.k;
-        const deltaCanvasX = (e.clientX - drag.startX) / k;
-        const deltaCanvasY = (e.clientY - drag.startY) / k;
-
+  // Handle node drag using canvas-engine primitive
+  const { onPointerDown: handleNodePointerDown } = useNodeDrag({
+    zoomScale: transform.k,
+    handleSelector: '.drag-handle',
+    callbacks: {
+      onDragStart: (nodeId) => {
+        // Store original position for cumulative delta application
+        const node = localNodesRef.current.find((n) => n.id === nodeId);
+        if (node) dragOriginRef.current = { nodeId, x: node.position.x, y: node.position.y };
+      },
+      onDrag: (nodeId, deltaX, deltaY) => {
+        const origin = dragOriginRef.current;
+        if (!origin || origin.nodeId !== nodeId) return;
         setLocalNodes((prev) =>
           prev.map((n) =>
-            n.id === drag.nodeId
-              ? {
-                  ...n,
-                  position: {
-                    x: drag.originalX + deltaCanvasX,
-                    y: drag.originalY + deltaCanvasY,
-                  },
-                }
+            n.id === nodeId
+              ? { ...n, position: { x: origin.x + deltaX, y: origin.y + deltaY } }
               : n
           )
         );
-      };
-
-      const handlePointerUp = () => {
-        dragStateRef.current = null;
-        window.removeEventListener('pointermove', handlePointerMove);
-        window.removeEventListener('pointerup', handlePointerUp);
-      };
-
-      window.addEventListener('pointermove', handlePointerMove);
-      window.addEventListener('pointerup', handlePointerUp);
+      },
+      onDragEnd: () => {
+        dragOriginRef.current = null;
+      },
     },
-    [] // No state dependencies — reads from refs
-  );
+  });
 
   // Edge context menu handling
   const onEdgeContextMenu = useCallback((event: React.MouseEvent, edgeId: string) => {
@@ -579,7 +540,7 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
               height: node.style?.height,
               pointerEvents: 'auto',
             }}
-            onPointerDown={(e) => handlePointerDown(node.id, e)}
+            onPointerDown={(e) => handleNodePointerDown(node.id, e)}
           >
             <LayoutMapOrganizerNode id={node.id} data={node.data} onStartConnection={startConnection} />
           </div>
