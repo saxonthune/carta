@@ -1,5 +1,5 @@
 import dagre from '@dagrejs/dagre';
-import type { ConstructSchema, SchemaGroup, SchemaPackage } from '@carta/domain';
+import type { ConstructSchema, SchemaGroup, SchemaPackage, SchemaRelationship } from '@carta/domain';
 
 // Layout constants
 const SCHEMA_NODE_WIDTH = 220;
@@ -55,7 +55,7 @@ export interface MetamapV2Edge {
   targetHandle?: string;
   label?: string;
   sourceType: string;     // same as source, for clarity in handlers
-  relIndex: number;       // index into source schema's suggestedRelated[]
+  relationshipId: string; // SchemaRelationship.id
   fromPortId?: string;    // for narrative tooltip
   toPortId?: string;      // for narrative tooltip
 }
@@ -120,7 +120,7 @@ function compactToSquare(
 /**
  * Extract edges from schema relationships.
  */
-function extractEdges(schemas: ConstructSchema[]): MetamapV2Edge[] {
+function extractEdges(schemas: ConstructSchema[], relationships: SchemaRelationship[]): MetamapV2Edge[] {
   const schemaTypes = new Set(schemas.map(s => s.type));
   const portLookup = new Map<string, Set<string>>();
   for (const s of schemas) {
@@ -128,39 +128,31 @@ function extractEdges(schemas: ConstructSchema[]): MetamapV2Edge[] {
   }
 
   const edges: MetamapV2Edge[] = [];
-  const edgeIds = new Set<string>();
 
-  for (const schema of schemas) {
-    const suggestedRelated = schema.suggestedRelated || [];
-    for (let relIdx = 0; relIdx < suggestedRelated.length; relIdx++) {
-      const rel = suggestedRelated[relIdx];
-      if (schema.type === rel.constructType) continue;
-      if (!schemaTypes.has(rel.constructType)) continue;
+  for (const rel of relationships) {
+    if (rel.sourceSchemaType === rel.targetSchemaType) continue;
+    if (!schemaTypes.has(rel.sourceSchemaType) || !schemaTypes.has(rel.targetSchemaType)) continue;
 
-      const sourceHasPort = rel.fromPortId && portLookup.get(schema.type)?.has(rel.fromPortId);
-      const targetHasPort = rel.toPortId && portLookup.get(rel.constructType)?.has(rel.toPortId);
+    const sourceHasPort = rel.sourcePortId && portLookup.get(rel.sourceSchemaType)?.has(rel.sourcePortId);
+    const targetHasPort = rel.targetPortId && portLookup.get(rel.targetSchemaType)?.has(rel.targetPortId);
 
-      const sourceHandle = sourceHasPort ? rel.fromPortId : undefined;
-      const targetHandle = targetHasPort ? rel.toPortId : undefined;
+    const sourceHandle = sourceHasPort ? rel.sourcePortId : undefined;
+    const targetHandle = targetHasPort ? rel.targetPortId : undefined;
 
-      const edgeId = `meta:${schema.type}:${sourceHandle || 'none'}->${rel.constructType}:${targetHandle || 'none'}`;
+    const edgeId = `meta:${rel.sourceSchemaType}:${sourceHandle || 'none'}->${rel.targetSchemaType}:${targetHandle || 'none'}`;
 
-      if (edgeIds.has(edgeId)) continue;
-      edgeIds.add(edgeId);
-
-      edges.push({
-        id: edgeId,
-        source: schema.type,
-        target: rel.constructType,
-        sourceHandle,
-        targetHandle,
-        label: rel.label || undefined,
-        sourceType: schema.type,
-        relIndex: relIdx,
-        fromPortId: rel.fromPortId,
-        toPortId: rel.toPortId,
-      });
-    }
+    edges.push({
+      id: edgeId,
+      source: rel.sourceSchemaType,
+      target: rel.targetSchemaType,
+      sourceHandle,
+      targetHandle,
+      label: rel.label || undefined,
+      sourceType: rel.sourceSchemaType,
+      relationshipId: rel.id,
+      fromPortId: rel.sourcePortId,
+      toPortId: rel.targetPortId,
+    });
   }
   return edges;
 }
@@ -366,8 +358,9 @@ export function computeMetamapV2Layout(
   schemas: ConstructSchema[],
   schemaGroups: SchemaGroup[],
   schemaPackages: SchemaPackage[],
+  relationships: SchemaRelationship[],
 ): MetamapV2LayoutOutput {
-  const edges = extractEdges(schemas);
+  const edges = extractEdges(schemas, relationships);
 
   if (schemas.length === 0) {
     return { nodes: [], edges: [] };

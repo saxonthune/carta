@@ -138,6 +138,20 @@ export interface SuggestedRelatedConstruct {
   label?: string;                // Optional: custom label for the menu (defaults to displayName)
 }
 
+/**
+ * Schema-level relationship stored in document-level schemaRelationships map
+ * Each relationship is stored once (not bidirectional duplicates)
+ */
+export interface SchemaRelationship {
+  id: string;
+  sourceSchemaType: string;
+  sourcePortId: string;
+  targetSchemaType: string;
+  targetPortId: string;
+  label?: string;
+  packageId?: string;            // Present = intra-package (travels with library), absent = document-scoped
+}
+
 // ===== M1: CONSTRUCT SCHEMA =====
 
 /**
@@ -371,6 +385,7 @@ export interface CartaDocumentV4 {
   portSchemas: PortSchema[];
   schemaGroups: SchemaGroup[];
   schemaPackages: SchemaPackage[];
+  schemaRelationships: SchemaRelationship[];
 }
 
 /**
@@ -493,6 +508,10 @@ export interface DocumentAdapter {
   getSchemaGroups(): SchemaGroup[];
   getSchemaGroup(id: string): SchemaGroup | undefined;
 
+  // State access - Schema Relationships
+  getSchemaRelationships(): SchemaRelationship[];
+  getSchemaRelationship(id: string): SchemaRelationship | undefined;
+
   // Mutations - Graph (writes to active level)
   setNodes(nodes: unknown[] | ((prev: unknown[]) => unknown[])): void;
   setEdges(edges: unknown[] | ((prev: unknown[]) => unknown[])): void;
@@ -537,6 +556,11 @@ export interface DocumentAdapter {
   updateSchemaPackage(id: string, updates: Partial<SchemaPackage>): void;
   removeSchemaPackage(id: string): boolean;
 
+  // Mutations - Schema Relationships
+  addSchemaRelationship(rel: SchemaRelationship): void;
+  updateSchemaRelationship(id: string, updates: Partial<SchemaRelationship>): void;
+  removeSchemaRelationship(id: string): boolean;
+
   // Surgical node patches (bypasses full clear+rebuild for performance)
   patchNodes?(patches: Array<{ id: string; position?: { x: number; y: number }; style?: Record<string, unknown> }>, origin?: string): void;
 
@@ -557,6 +581,7 @@ export interface DocumentAdapter {
   subscribeToPortSchemas?(listener: () => void): () => void;
   subscribeToSchemaGroups?(listener: () => void): () => void;
   subscribeToSchemaPackages?(listener: () => void): () => void;
+  subscribeToSchemaRelationships?(listener: () => void): () => void;
   subscribeToPages?(listener: () => void): () => void;
   subscribeToMeta?(listener: () => void): () => void;
 

@@ -9,6 +9,7 @@ import type {
   PortSchema,
   SchemaGroup,
   SchemaPackage,
+  SchemaRelationship,
   Page,
 } from '@carta/domain';
 import {
@@ -19,6 +20,7 @@ import {
   generatePageId,
   migrateToPages,
   migrateGroupsToPackages,
+  migrateSchemaRelationships,
   deepPlainToY,
   updateSchema as updateSchemaOp,
 } from '@carta/document';
@@ -79,6 +81,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
   const yportSchemas = ydoc.getMap<Y.Map<unknown>>('portSchemas');
   const yschemaGroups = ydoc.getMap<Y.Map<unknown>>('schemaGroups');
   const yschemaPackages = ydoc.getMap<Y.Map<unknown>>('schemaPackages');
+  const yschemaRelationships = ydoc.getMap<Y.Map<unknown>>('schemaRelationships');
 
   // Persistence
   let indexeddbProvider: IndexeddbPersistence | null = null;
@@ -100,6 +103,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
   const portSchemaListeners = new Set<() => void>();
   const schemaGroupListeners = new Set<() => void>();
   const schemaPackageListeners = new Set<() => void>();
+  const schemaRelationshipListeners = new Set<() => void>();
   const pageListeners = new Set<() => void>();
   const metaListeners = new Set<() => void>();
 
@@ -109,6 +113,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
   const notifyPortSchemaListeners = () => portSchemaListeners.forEach((cb) => cb());
   const notifySchemaGroupListeners = () => schemaGroupListeners.forEach((cb) => cb());
   const notifySchemaPackageListeners = () => schemaPackageListeners.forEach((cb) => cb());
+  const notifySchemaRelationshipListeners = () => schemaRelationshipListeners.forEach((cb) => cb());
   const notifyPageListeners = () => pageListeners.forEach((cb) => cb());
   const notifyMetaListeners = () => metaListeners.forEach((cb) => cb());
 
@@ -159,6 +164,10 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     notifySchemaPackageListeners();
     notifyListeners();
   };
+  const onSchemaRelationshipsChange = () => {
+    notifySchemaRelationshipListeners();
+    notifyListeners();
+  };
 
   // Set up Y.Doc observers
   const setupObservers = () => {
@@ -170,6 +179,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     yportSchemas.observeDeep(onPortSchemasChange);
     yschemaGroups.observeDeep(onSchemaGroupsChange);
     yschemaPackages.observeDeep(onSchemaPackagesChange);
+    yschemaRelationships.observeDeep(onSchemaRelationshipsChange);
     observersSetUp = true;
   };
 
@@ -289,6 +299,9 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
       // Migrate top-level groups to packages if needed
       migrateGroupsToPackages(ydoc);
+
+      // Migrate suggestedRelated to schemaRelationships if needed
+      migrateSchemaRelationships(ydoc);
 
       // Ensure at least one page exists (skip when syncing — server provides initial state)
       if (ypages.size === 0 && !options.deferDefaultPage) {
@@ -465,6 +478,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
         yportSchemas.unobserveDeep(onPortSchemasChange);
         yschemaGroups.unobserveDeep(onSchemaGroupsChange);
         yschemaPackages.unobserveDeep(onSchemaPackagesChange);
+        yschemaRelationships.unobserveDeep(onSchemaRelationshipsChange);
       }
 
       // Clear all granular listener sets
@@ -474,6 +488,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       portSchemaListeners.clear();
       schemaGroupListeners.clear();
       schemaPackageListeners.clear();
+      schemaRelationshipListeners.clear();
       pageListeners.clear();
       metaListeners.clear();
       listeners.clear();
@@ -1123,6 +1138,48 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       return exists;
     },
 
+    // State access - Schema Relationships
+    getSchemaRelationships(): SchemaRelationship[] {
+      const rels: SchemaRelationship[] = [];
+      yschemaRelationships.forEach((yrel) => {
+        rels.push(yMapToObject<SchemaRelationship>(yrel));
+      });
+      return rels;
+    },
+
+    getSchemaRelationship(id: string): SchemaRelationship | undefined {
+      const yrel = yschemaRelationships.get(id);
+      return yrel ? yMapToObject<SchemaRelationship>(yrel) : undefined;
+    },
+
+    // Mutations - Schema Relationships
+    addSchemaRelationship(rel: SchemaRelationship) {
+      ydoc.transact(() => {
+        yschemaRelationships.set(rel.id, objectToYMap(rel as unknown as Record<string, unknown>));
+      }, 'user');
+    },
+
+    updateSchemaRelationship(id: string, updates: Partial<SchemaRelationship>) {
+      const yrel = yschemaRelationships.get(id);
+      if (yrel) {
+        ydoc.transact(() => {
+          for (const [key, value] of Object.entries(updates)) {
+            yrel.set(key, value);
+          }
+        }, 'user');
+      }
+    },
+
+    removeSchemaRelationship(id: string): boolean {
+      const exists = yschemaRelationships.has(id);
+      if (exists) {
+        ydoc.transact(() => {
+          yschemaRelationships.delete(id);
+        }, 'user');
+      }
+      return exists;
+    },
+
     // Transaction with origin for MCP attribution
     transaction<T>(fn: () => T, origin: string = 'user'): T {
       let result: T;
@@ -1170,6 +1227,11 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       return () => schemaPackageListeners.delete(listener);
     },
 
+    subscribeToSchemaRelationships(listener: () => void): () => void {
+      schemaRelationshipListeners.add(listener);
+      return () => schemaRelationshipListeners.delete(listener);
+    },
+
     subscribeToPages(listener: () => void): () => void {
       pageListeners.add(listener);
       return () => pageListeners.delete(listener);
@@ -1192,6 +1254,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
         portSchemas: adapter.getPortSchemas(),
         schemaGroups: adapter.getSchemaGroups(),
         schemaPackages: adapter.getSchemaPackages(),
+        schemaRelationships: adapter.getSchemaRelationships(),
       };
     },
 

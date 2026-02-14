@@ -3,6 +3,7 @@ import { Canvas, type CanvasRef, useCanvasContext, useNodeDrag, findContainerAt,
 import { useSchemas } from '../../hooks/useSchemas.js';
 import { useSchemaGroups } from '../../hooks/useSchemaGroups.js';
 import { useSchemaPackages } from '../../hooks/useSchemaPackages.js';
+import { useSchemaRelationships } from '../../hooks/useSchemaRelationships.js';
 import { useSchemaUndoRedo } from '../../hooks/useSchemaUndoRedo.js';
 import { useNarrative } from '../../hooks/useNarrative.js';
 import { usePages } from '../../hooks/usePages.js';
@@ -31,13 +32,14 @@ export default function MetamapV2() {
   const { schemas, updateSchema, getSchema, removeSchema } = useSchemas();
   const { schemaGroups, addSchemaGroup, removeSchemaGroup, updateSchemaGroup } = useSchemaGroups();
   const { schemaPackages, updateSchemaPackage } = useSchemaPackages();
+  const { relationships, addRelationship, updateRelationship, removeRelationship } = useSchemaRelationships();
   const { undo, redo, canUndo, canRedo } = useSchemaUndoRedo();
   const canvasRef = useRef<CanvasRef>(null);
 
   // Compute layout from Yjs data
   const layoutResult = useMemo(
-    () => computeMetamapV2Layout(schemas, schemaGroups, schemaPackages),
-    [schemas, schemaGroups, schemaPackages]
+    () => computeMetamapV2Layout(schemas, schemaGroups, schemaPackages, relationships),
+    [schemas, schemaGroups, schemaPackages, relationships]
   );
 
   // Local position state (not persisted to Yjs)
@@ -104,7 +106,7 @@ export default function MetamapV2() {
     sourceSchema: ConstructSchema;
     targetSchema: ConstructSchema;
     relationship: SuggestedRelatedConstruct;
-    relationshipIndex: number;
+    relationshipId: string;
     position: { x: number; y: number };
   } | null>(null);
 
@@ -227,36 +229,40 @@ export default function MetamapV2() {
     const targetSchema = getSchema(edge.target);
     if (!sourceSchema || !targetSchema) return;
 
-    const relationship = sourceSchema.suggestedRelated?.[edge.relIndex];
+    const relationship = relationships.find(r => r.id === edge.relationshipId);
     if (!relationship) return;
 
     hideNarrative();
     setEdgePopover({
       sourceSchema,
       targetSchema,
-      relationship,
-      relationshipIndex: edge.relIndex,
+      relationship: {
+        constructType: relationship.targetSchemaType,
+        fromPortId: relationship.sourcePortId,
+        toPortId: relationship.targetPortId,
+        label: relationship.label,
+      },
+      relationshipId: edge.relationshipId,
       position: { x: event.clientX, y: event.clientY },
     });
-  }, [getSchema, hideNarrative]);
+  }, [getSchema, hideNarrative, relationships]);
 
-  const handleEdgeUpdate = useCallback((relIndex: number, updates: Partial<SuggestedRelatedConstruct>) => {
+  const handleEdgeUpdate = useCallback((relationshipId: string, updates: Partial<SuggestedRelatedConstruct>) => {
     if (!edgePopover) return;
-    const schema = edgePopover.sourceSchema;
-    const related = [...(schema.suggestedRelated || [])];
-    related[relIndex] = { ...related[relIndex], ...updates };
-    updateSchema(schema.type, { suggestedRelated: related });
+    // Map SuggestedRelatedConstruct updates to SchemaRelationship updates
+    const relUpdates: Record<string, unknown> = {};
+    if (updates.label !== undefined) relUpdates.label = updates.label;
+    if (Object.keys(relUpdates).length > 0) {
+      updateRelationship(relationshipId, relUpdates);
+    }
     setEdgePopover(null);
-  }, [edgePopover, updateSchema]);
+  }, [edgePopover, updateRelationship]);
 
-  const handleEdgeDelete = useCallback((relIndex: number) => {
+  const handleEdgeDelete = useCallback((relationshipId: string) => {
     if (!edgePopover) return;
-    const schema = edgePopover.sourceSchema;
-    const related = [...(schema.suggestedRelated || [])];
-    related.splice(relIndex, 1);
-    updateSchema(schema.type, { suggestedRelated: related });
+    removeRelationship(relationshipId);
     setEdgePopover(null);
-  }, [edgePopover, updateSchema]);
+  }, [edgePopover, removeRelationship]);
 
   // Connection handlers
   const handleConnect = useCallback((connection: { source: string; sourceHandle: string; target: string; targetHandle: string }) => {
@@ -281,36 +287,24 @@ export default function MetamapV2() {
     inverse: boolean;
     inverseLabel: string;
   }) => {
-    const existingRelated = config.sourceSchema.suggestedRelated || [];
-    updateSchema(config.sourceSchema.type, {
-      suggestedRelated: [
-        ...existingRelated,
-        {
-          constructType: config.targetSchema.type,
-          fromPortId: config.fromPortId,
-          toPortId: config.toPortId,
-          label: config.label || undefined,
-        },
-      ],
+    // Determine packageId: if both schemas share the same packageId, use it; otherwise undefined
+    const packageId = (config.sourceSchema.packageId && config.sourceSchema.packageId === config.targetSchema.packageId)
+      ? config.sourceSchema.packageId
+      : undefined;
+
+    const relId = `rel_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    addRelationship({
+      id: relId,
+      sourceSchemaType: config.sourceSchema.type,
+      sourcePortId: config.fromPortId,
+      targetSchemaType: config.targetSchema.type,
+      targetPortId: config.toPortId,
+      label: config.label || undefined,
+      packageId,
     });
 
-    if (config.inverse) {
-      const targetRelated = config.targetSchema.suggestedRelated || [];
-      updateSchema(config.targetSchema.type, {
-        suggestedRelated: [
-          ...targetRelated,
-          {
-            constructType: config.sourceSchema.type,
-            fromPortId: config.toPortId,
-            toPortId: config.fromPortId,
-            label: config.inverseLabel || undefined,
-          },
-        ],
-      });
-    }
-
     setConnectionModal(null);
-  }, [updateSchema]);
+  }, [addRelationship]);
 
   // Re-layout handler — marks a pending relayout so the next layoutResult
   // change (or current one) resets local positions to the computed layout.
@@ -732,7 +726,7 @@ export default function MetamapV2() {
           sourceSchema={edgePopover.sourceSchema}
           targetSchema={edgePopover.targetSchema}
           relationship={edgePopover.relationship}
-          relationshipIndex={edgePopover.relationshipIndex}
+          relationshipIndex={edgePopover.relationshipId}
           position={edgePopover.position}
           onUpdate={handleEdgeUpdate}
           onDelete={handleEdgeDelete}

@@ -7,6 +7,7 @@
 
 import * as Y from 'yjs';
 import { generatePageId } from './id-generators.js';
+import { objectToYMap } from './yjs-helpers.js';
 
 /**
  * Migrate flat data structure to page-based structure.
@@ -232,5 +233,84 @@ export function migrateGroupsToPackages(ydoc: Y.Doc): void {
       yschemaGroups.delete(groupId);
     }
   });
+}
+
+/**
+ * Migrate suggestedRelated arrays on individual schemas to a document-level
+ * schemaRelationships Y.Map. Deduplicates bidirectional entries.
+ *
+ * Runs once — skips if schemaRelationships already has entries.
+ */
+export function migrateSchemaRelationships(ydoc: Y.Doc): void {
+  const yschemas = ydoc.getMap<Y.Map<unknown>>('schemas');
+  const yrels = ydoc.getMap<Y.Map<unknown>>('schemaRelationships');
+
+  // Skip if already migrated (relationships map has entries)
+  if (yrels.size > 0) return;
+
+  // Check if any schema has suggestedRelated
+  let hasSuggestedRelated = false;
+  yschemas.forEach((yschema) => {
+    const sr = yschema.get('suggestedRelated');
+    if (sr && (sr as Y.Array<unknown>).length > 0) {
+      hasSuggestedRelated = true;
+    }
+  });
+  if (!hasSuggestedRelated) return;
+
+  ydoc.transact(() => {
+    const seen = new Set<string>();
+    let counter = 0;
+
+    yschemas.forEach((yschema, schemaType) => {
+      const srArray = yschema.get('suggestedRelated') as Y.Array<unknown> | undefined;
+      if (!srArray || srArray.length === 0) return;
+
+      const sourcePackageId = yschema.get('packageId') as string | undefined;
+
+      for (let i = 0; i < srArray.length; i++) {
+        const entry = srArray.get(i) as Y.Map<unknown>;
+        const targetType = entry.get('constructType') as string;
+        const fromPortId = (entry.get('fromPortId') as string) || '';
+        const toPortId = (entry.get('toPortId') as string) || '';
+
+        // Canonical dedup key: sort the two sides alphabetically by schema type
+        const sideA = schemaType < targetType
+          ? `${schemaType}:${fromPortId}`
+          : `${targetType}:${toPortId}`;
+        const sideB = schemaType < targetType
+          ? `${targetType}:${toPortId}`
+          : `${schemaType}:${fromPortId}`;
+        const dedupKey = `${sideA}|${sideB}`;
+
+        if (seen.has(dedupKey)) continue;
+        seen.add(dedupKey);
+
+        // Determine packageId: intra-package if both schemas share the same packageId
+        const targetSchema = yschemas.get(targetType);
+        const targetPackageId = targetSchema?.get('packageId') as string | undefined;
+        const packageId = (sourcePackageId && sourcePackageId === targetPackageId) ? sourcePackageId : undefined;
+
+        const relId = `rel_${Date.now()}_${counter++}`;
+        const rel: Record<string, unknown> = {
+          id: relId,
+          sourceSchemaType: schemaType,
+          sourcePortId: fromPortId,
+          targetSchemaType: targetType,
+          targetPortId: toPortId,
+          ...(packageId ? { packageId } : {}),
+        };
+
+        // Preserve label if present
+        const label = entry.get('label') as string | undefined;
+        if (label) rel.label = label;
+
+        yrels.set(relId, objectToYMap(rel));
+      }
+
+      // Remove suggestedRelated from this schema
+      yschema.delete('suggestedRelated');
+    });
+  }, 'migration');
 }
 

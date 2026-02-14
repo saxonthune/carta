@@ -34,6 +34,7 @@ import { useEdges } from '../../hooks/useEdges';
 import { useDocumentContext } from '../../contexts/DocumentContext';
 import { useSchemas } from '../../hooks/useSchemas';
 import { useSchemaGroups } from '../../hooks/useSchemaGroups';
+import { useSchemaRelationships } from '../../hooks/useSchemaRelationships';
 import { usePortSchemas } from '../../hooks/usePortSchemas';
 import { usePages } from '../../hooks/usePages';
 import { usePinConstraints } from '../../hooks/usePinConstraints';
@@ -98,6 +99,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
   const { nodes, setNodes, setNodesLocal, suppressUpdates } = useNodes();
   const { edges, setEdges } = useEdges();
   const { schemas, getSchema } = useSchemas();
+  const { relationships } = useSchemaRelationships();
   const { getPortSchema } = usePortSchemas();
 
   // Auto-cleanup edges when schemas change (port definitions may have changed)
@@ -423,27 +425,33 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
       if (!node || node.type !== 'construct') return [];
 
       const data = node.data as ConstructNodeData;
-      const schema = getSchema(data.constructType);
-      if (!schema || !schema.suggestedRelated || schema.suggestedRelated.length === 0) return [];
+      const schemaRels = relationships.filter(
+        r => r.sourceSchemaType === data.constructType || r.targetSchemaType === data.constructType
+      );
+      if (schemaRels.length === 0) return [];
 
       const result: RelatedConstructOption[] = [];
-      for (const related of schema.suggestedRelated) {
-        const relatedSchema = getSchema(related.constructType);
+      for (const rel of schemaRels) {
+        const isSource = rel.sourceSchemaType === data.constructType;
+        const relatedType = isSource ? rel.targetSchemaType : rel.sourceSchemaType;
+        const fromPortId = isSource ? rel.sourcePortId : rel.targetPortId;
+        const toPortId = isSource ? rel.targetPortId : rel.sourcePortId;
+        const relatedSchema = getSchema(relatedType);
         if (relatedSchema) {
           result.push({
-            constructType: related.constructType,
+            constructType: relatedType,
             displayName: relatedSchema.displayName,
             color: relatedSchema.color,
-            fromPortId: related.fromPortId,
-            toPortId: related.toPortId,
-            label: related.label,
+            fromPortId,
+            toPortId,
+            label: rel.label,
             groupId: relatedSchema.groupId,
           });
         }
       }
       return result;
     },
-    [nodes, getSchema]
+    [nodes, relationships, getSchema]
   );
 
   // Get all construct options for pane menu
