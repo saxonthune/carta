@@ -124,6 +124,7 @@ function AppContent() {
       customSchemas: schemas,
       portSchemas,
       schemaGroups,
+      schemaPackages: adapter.getSchemaPackages(),
     }, options);
 
     setExportPreview(null);

@@ -5,7 +5,7 @@
  */
 
 import * as Y from 'yjs';
-import type { ConstructSchema, PortSchema, SchemaGroup } from '@carta/domain';
+import type { ConstructSchema, PortSchema, SchemaGroup, SchemaPackage } from '@carta/domain';
 import { builtInConstructSchemas, builtInPortSchemas } from '@carta/domain';
 import { yToPlain, deepPlainToY } from './yjs-helpers.js';
 import { CARTA_FILE_VERSION } from './constants.js';
@@ -22,6 +22,7 @@ export function extractCartaFile(doc: Y.Doc): CartaFile {
   const yschemas = doc.getMap<Y.Map<unknown>>('schemas');
   const yportSchemas = doc.getMap<Y.Map<unknown>>('portSchemas');
   const yschemaGroups = doc.getMap<Y.Map<unknown>>('schemaGroups');
+  const yschemaPackages = doc.getMap<Y.Map<unknown>>('schemaPackages');
 
   const title = (ymeta.get('title') as string) || 'Untitled Project';
   const description = ymeta.get('description') as string | undefined;
@@ -90,6 +91,12 @@ export function extractCartaFile(doc: Y.Doc): CartaFile {
     schemaGroups.push(yToPlain(ysg) as SchemaGroup);
   });
 
+  // Extract schema packages
+  const schemaPackages: SchemaPackage[] = [];
+  yschemaPackages.forEach((ysp) => {
+    schemaPackages.push(yToPlain(ysp) as SchemaPackage);
+  });
+
   return {
     version: CARTA_FILE_VERSION,
     title,
@@ -98,6 +105,7 @@ export function extractCartaFile(doc: Y.Doc): CartaFile {
     customSchemas,
     portSchemas,
     schemaGroups,
+    schemaPackages,
     exportedAt: new Date().toISOString(),
   };
 }
@@ -115,6 +123,7 @@ export function hydrateYDocFromCartaFile(doc: Y.Doc, data: CartaFile): void {
   const yschemas = doc.getMap<Y.Map<unknown>>('schemas');
   const yportSchemas = doc.getMap<Y.Map<unknown>>('portSchemas');
   const yschemaGroups = doc.getMap<Y.Map<unknown>>('schemaGroups');
+  const yschemaPackages = doc.getMap<Y.Map<unknown>>('schemaPackages');
 
   doc.transact(() => {
     // Clear existing data
@@ -125,6 +134,7 @@ export function hydrateYDocFromCartaFile(doc: Y.Doc, data: CartaFile): void {
     yschemas.clear();
     yportSchemas.clear();
     yschemaGroups.clear();
+    yschemaPackages.clear();
 
     // Set metadata
     ymeta.set('title', data.title);
@@ -202,6 +212,12 @@ export function hydrateYDocFromCartaFile(doc: Y.Doc, data: CartaFile): void {
     for (const sg of data.schemaGroups) {
       const ysg = deepPlainToY(sg) as Y.Map<unknown>;
       yschemaGroups.set(sg.id, ysg);
+    }
+
+    // Set schema packages
+    for (const sp of data.schemaPackages) {
+      const ysp = deepPlainToY(sp) as Y.Map<unknown>;
+      yschemaPackages.set(sp.id, ysp);
     }
   });
 }

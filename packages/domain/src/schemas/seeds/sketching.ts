@@ -2,7 +2,7 @@ import type { SchemaSeed } from '../seed-loader.js';
 import { symmetricPort, flowInPort, flowOutPort, parentPort, childPort } from '../port-schemas.js';
 
 export const sketchingSeed: SchemaSeed = {
-  group: {
+  package: {
     id: 'sketching',
     name: 'Sketching',
     color: '#64748b',

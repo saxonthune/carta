@@ -1,19 +1,19 @@
 /**
- * Test: Clear Everything Should Clear Schema Groups
+ * Test: Clear Everything Should Clear Schema Groups and Packages
  *
- * Verifies that "Clear Everything" properly clears schema groups
+ * Verifies that "Clear Everything" properly clears schema groups and packages
  * and that the Groups tab UI reflects the cleared state.
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useSchemaGroups } from '../../src/hooks/useSchemaGroups';
 import { useDocumentContext } from '../../src/contexts/DocumentContext';
 import { TestProviders } from '../setup/testProviders';
-import { builtInSchemaGroups } from '@carta/domain';
+import { builtInSchemaGroups, builtInSchemaPackages } from '@carta/domain';
 
 describe('Clear Schema Groups', () => {
-  it('should clear schema groups when clearing everything', async () => {
+  it('should clear schema groups and packages when clearing everything', async () => {
     const { result } = renderHook(
       () => ({
         schemaGroups: useSchemaGroups(),
@@ -28,8 +28,9 @@ describe('Clear Schema Groups', () => {
 
     const { adapter } = result.current.context;
 
-    // Start with built-in schema groups
+    // Start with built-in schema groups and packages
     act(() => {
+      adapter.setSchemaPackages(builtInSchemaPackages);
       adapter.setSchemaGroups(builtInSchemaGroups);
     });
 
@@ -37,11 +38,11 @@ describe('Clear Schema Groups', () => {
       expect(result.current.schemaGroups.schemaGroups.length).toBeGreaterThan(0);
     });
 
-    // Verify we have the software architecture group
-    const softwareArchGroup = result.current.schemaGroups.schemaGroups.find(
-      g => g.id === 'software-design'
+    // Verify we have a subgroup (top-level groups are now packages)
+    const apiGroup = result.current.schemaGroups.schemaGroups.find(
+      g => g.id === 'api'
     );
-    expect(softwareArchGroup).toBeDefined();
+    expect(apiGroup).toBeDefined();
 
     // Clear everything (simulating onClear('all'))
     act(() => {
@@ -51,6 +52,7 @@ describe('Clear Schema Groups', () => {
         adapter.setSchemas([]);
         adapter.setPortSchemas([]);
         adapter.setSchemaGroups([]);
+        adapter.setSchemaPackages([]);
       });
     });
 
@@ -77,8 +79,9 @@ describe('Clear Schema Groups', () => {
 
     const { adapter } = result.current.context;
 
-    // Start with built-in schema groups
+    // Start with built-in schema groups and packages
     act(() => {
+      adapter.setSchemaPackages(builtInSchemaPackages);
       adapter.setSchemaGroups(builtInSchemaGroups);
     });
 
@@ -101,10 +104,10 @@ describe('Clear Schema Groups', () => {
       expect(result.current.schemaGroups.schemaGroups.length).toBe(initialGroupCount);
     });
 
-    // Verify software architecture group still exists
-    const softwareArchGroup = result.current.schemaGroups.schemaGroups.find(
-      g => g.id === 'software-design'
+    // Verify a subgroup still exists (top-level groups are now packages)
+    const apiGroup = result.current.schemaGroups.schemaGroups.find(
+      g => g.id === 'api'
     );
-    expect(softwareArchGroup).toBeDefined();
+    expect(apiGroup).toBeDefined();
   });
 });

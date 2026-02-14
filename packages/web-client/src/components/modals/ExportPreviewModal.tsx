@@ -64,6 +64,7 @@ export default function ExportPreviewModal({
       customSchemas: options.schemas ? analysis.schemas.items : [],
       portSchemas: options.portSchemas ? analysis.portSchemas.items : [],
       schemaGroups: options.schemaGroups ? analysis.schemaGroups.items : [],
+      schemaPackages: [],
       exportedAt: new Date().toISOString(),
     };
     return JSON.stringify(cartaFile, null, 2);

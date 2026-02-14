@@ -53,6 +53,7 @@ export interface PortSchema {
   expectedComplement?: string;   // UI hint only (context menus), not validation
   color: string;
   groupId?: string;              // References SchemaGroup.id for hierarchical organization
+  packageId?: string;            // References SchemaPackage.id for library bundling
 }
 
 
@@ -154,6 +155,7 @@ export interface ConstructSchema {
   suggestedRelated?: SuggestedRelatedConstruct[]; // Suggested related constructs for quick-add
   compilation: CompilationConfig;
   groupId?: string;          // References SchemaGroup.id for hierarchical organization
+  packageId?: string;        // References SchemaPackage.id for library bundling
   backgroundColorPolicy?: 'defaultOnly' | 'tints' | 'any';  // Controls instance color picker: 'defaultOnly' (no picker), 'tints' (7 tint swatches), 'any' (full color picker). default: 'defaultOnly'
   nodeShape?: 'default' | 'simple' | 'circle' | 'diamond' | 'document';                            // 'default': header bar + fields. 'simple': tinted surface, label-dominant, content-first, no header bar. default: 'default'
   colorMode?: 'default' | 'instance' | 'enum';                  // How node color is determined: 'default' (schema color), 'instance' (per-instance override), 'enum' (driven by enum field value). default: 'default'
@@ -256,6 +258,17 @@ export interface PinConstraint {
 // ===== HELPERS =====
 
 /**
+ * Schema package - Library bundling unit for portable schemas
+ * Schemas and their in-package port schemas travel together in library publish/apply
+ */
+export interface SchemaPackage {
+  id: string;
+  name: string;
+  description?: string;
+  color: string;
+}
+
+/**
  * Schema group - Hierarchical grouping for construct and port schemas
  * Uses flat storage with parent references for nesting (e.g., "Software Architecture > AWS > Lambda")
  */
@@ -263,6 +276,7 @@ export interface SchemaGroup {
   id: string;
   name: string;
   parentId?: string;    // undefined = root level
+  packageId?: string;   // References SchemaPackage.id for library bundling
   color?: string;
   description?: string;
 }
@@ -356,6 +370,7 @@ export interface CartaDocumentV4 {
   schemas: ConstructSchema[];
   portSchemas: PortSchema[];
   schemaGroups: SchemaGroup[];
+  schemaPackages: SchemaPackage[];
 }
 
 /**
@@ -512,6 +527,16 @@ export interface DocumentAdapter {
   updateSchemaGroup(id: string, updates: Partial<SchemaGroup>): void;
   removeSchemaGroup(id: string): boolean;
 
+  // State access - Schema Packages
+  getSchemaPackages(): SchemaPackage[];
+  getSchemaPackage(id: string): SchemaPackage | undefined;
+
+  // Mutations - Schema Packages
+  setSchemaPackages(packages: SchemaPackage[]): void;
+  addSchemaPackage(pkg: Omit<SchemaPackage, 'id'> | SchemaPackage): SchemaPackage;
+  updateSchemaPackage(id: string, updates: Partial<SchemaPackage>): void;
+  removeSchemaPackage(id: string): boolean;
+
   // Surgical node patches (bypasses full clear+rebuild for performance)
   patchNodes?(patches: Array<{ id: string; position?: { x: number; y: number }; style?: Record<string, unknown> }>, origin?: string): void;
 
@@ -531,6 +556,7 @@ export interface DocumentAdapter {
   subscribeToSchemas?(listener: () => void): () => void;
   subscribeToPortSchemas?(listener: () => void): () => void;
   subscribeToSchemaGroups?(listener: () => void): () => void;
+  subscribeToSchemaPackages?(listener: () => void): () => void;
   subscribeToPages?(listener: () => void): () => void;
   subscribeToMeta?(listener: () => void): () => void;
 

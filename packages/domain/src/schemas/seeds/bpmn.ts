@@ -2,7 +2,7 @@ import type { SchemaSeed } from '../seed-loader.js';
 import { flowInPort, flowOutPort, childPort, parentPort, symmetricPort, relayPort, interceptPort } from '../port-schemas.js';
 
 export const bpmnSeed: SchemaSeed = {
-  group: {
+  package: {
     id: 'bpmn',
     name: 'BPMN',
     color: '#3b82f6',

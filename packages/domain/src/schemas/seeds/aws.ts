@@ -2,7 +2,7 @@ import type { SchemaSeed } from '../seed-loader.js';
 import { flowInPort, flowOutPort, childPort, parentPort } from '../port-schemas.js';
 
 export const awsSeed: SchemaSeed = {
-  group: {
+  package: {
     id: 'aws',
     name: 'AWS',
     color: '#ff9900',

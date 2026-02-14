@@ -155,3 +155,82 @@ export function migrateRenderStyleToNodeShape(ydoc: Y.Doc): void {
   });
 }
 
+/**
+ * Migrate top-level schema groups to schema packages.
+ *
+ * Promotes root-level groups (those with no parentId) to packages.
+ * Assigns packageId to schemas, subgroups, and port schemas.
+ * Removes promoted groups from schemaGroups map.
+ */
+export function migrateGroupsToPackages(ydoc: Y.Doc): void {
+  const yschemaGroups = ydoc.getMap<Y.Map<unknown>>('schemaGroups');
+  const yschemaPackages = ydoc.getMap<Y.Map<unknown>>('schemaPackages');
+  const yschemas = ydoc.getMap<Y.Map<unknown>>('schemas');
+  const yportSchemas = ydoc.getMap<Y.Map<unknown>>('portSchemas');
+
+  if (yschemaPackages.size > 0) return; // Already migrated
+  if (yschemaGroups.size === 0) return; // Nothing to migrate
+
+  // Collect top-level groups and subgroups
+  const topLevelGroups: [string, Y.Map<unknown>][] = [];
+  const allGroups: [string, Y.Map<unknown>][] = [];
+
+  yschemaGroups.forEach((ygroup, groupId) => {
+    const group = ygroup as Y.Map<unknown>;
+    allGroups.push([groupId, group]);
+    if (!group.has('parentId')) {
+      topLevelGroups.push([groupId, group]);
+    }
+  });
+
+  if (topLevelGroups.length === 0) return; // No top-level groups to promote
+
+  ydoc.transact(() => {
+    // Process each top-level group
+    for (const [groupId, ygroup] of topLevelGroups) {
+      // Create package from top-level group
+      const packageMap = new Y.Map<unknown>();
+      packageMap.set('id', groupId);
+      packageMap.set('name', ygroup.get('name') as string);
+      const description = ygroup.get('description');
+      if (description !== undefined) {
+        packageMap.set('description', description);
+      }
+      packageMap.set('color', (ygroup.get('color') as string) || '#7c7fca');
+      yschemaPackages.set(groupId, packageMap);
+
+      // Find subgroups of this top-level group
+      const subgroupIds = new Set<string>();
+      for (const [subgroupId, ysubgroup] of allGroups) {
+        if (ysubgroup.get('parentId') === groupId) {
+          subgroupIds.add(subgroupId);
+          // Assign packageId to subgroup
+          ysubgroup.set('packageId', groupId);
+        }
+      }
+
+      // Assign packageId to schemas in this group or its subgroups
+      const relevantGroupIds = new Set([groupId, ...subgroupIds]);
+      yschemas.forEach((yschema) => {
+        const schema = yschema as Y.Map<unknown>;
+        const schemaGroupId = schema.get('groupId');
+        if (schemaGroupId && relevantGroupIds.has(schemaGroupId as string)) {
+          schema.set('packageId', groupId);
+        }
+      });
+
+      // Assign packageId to port schemas in this group
+      yportSchemas.forEach((yportSchema) => {
+        const portSchema = yportSchema as Y.Map<unknown>;
+        const portGroupId = portSchema.get('groupId');
+        if (portGroupId === groupId) {
+          portSchema.set('packageId', groupId);
+        }
+      });
+
+      // Remove promoted group from schemaGroups
+      yschemaGroups.delete(groupId);
+    }
+  });
+}
+
