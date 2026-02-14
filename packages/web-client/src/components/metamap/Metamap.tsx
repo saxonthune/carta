@@ -86,6 +86,24 @@ function MetamapInner({ filterText }: MetamapInnerProps) {
   const [expandedSchemas, setExpandedSchemas] = useState<Set<string>>(new Set());
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => new Set(schemaGroups.map(g => g.id)));
   const [renamingSchemaId, setRenamingSchemaId] = useState<string | null>(null);
+
+  // Sync expandedGroups when schemaGroups hydrates or new groups are added
+  useEffect(() => {
+    if (schemaGroups.length > 0) {
+      setExpandedGroups(prev => {
+        // Only add new groups — don't collapse groups the user manually collapsed
+        const next = new Set(prev);
+        for (const g of schemaGroups) {
+          // On first hydration (prev is empty), add all groups
+          // On subsequent updates (new group added), add the new one
+          if (prev.size === 0 || !next.has(g.id)) {
+            next.add(g.id);
+          }
+        }
+        return next;
+      });
+    }
+  }, [schemaGroups]);
   const [layoutDirection, setLayoutDirection] = useState<MetamapLayoutDirection>('TB');
   const [edgePopover, setEdgePopover] = useState<{
     sourceSchema: ConstructSchema;
@@ -788,10 +806,10 @@ function MetamapInner({ filterText }: MetamapInnerProps) {
   }, []);
 
   const reLayout = useCallback(() => {
-    // Reset expanded groups on re-layout
-    setExpandedGroups(new Set());
+    // Reset expanded groups to all expanded on re-layout
+    setExpandedGroups(new Set(schemaGroups.map(g => g.id)));
     triggerReLayout();
-  }, [triggerReLayout]);
+  }, [triggerReLayout, schemaGroups]);
 
   // Build context menu items based on context
   const contextMenuItems = useMemo((): MenuItem[] => {

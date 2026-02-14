@@ -195,63 +195,75 @@ export function layoutGroup(
   // Get direct schemas for this group
   const directSchemas = schemasByGroup.get(groupId) || [];
 
-  // Layout using dagre: schemas + child group bounding boxes as nodes
-  const g = new dagre.graphlib.Graph();
-  g.setGraph({
-    rankdir: layoutDirection,
-    nodesep: 20,
-    ranksep: 30,
-    marginx: 0,
-    marginy: 0,
-  });
-  g.setDefaultEdgeLabel(() => ({}));
-
-  for (const s of directSchemas) {
-    g.setNode(s.type, { width: SCHEMA_NODE_WIDTH, height: estimateSchemaNodeHeight(s, expandedSchemas?.has(s.type)) });
-  }
-
-  for (const [childId, bounds] of childBounds) {
-    g.setNode(`group:${childId}`, { width: bounds.width, height: bounds.height });
-  }
-
-  // Add intra-group edges between direct schemas
-  const directTypes = new Set(directSchemas.map(s => s.type));
-  for (const e of allEdges) {
-    if (directTypes.has(e.source) && directTypes.has(e.target)) {
-      g.setEdge(e.source, e.target);
-    }
-  }
-
-  // If group has content, run dagre
-  if (directSchemas.length > 0 || childBounds.size > 0) {
-    dagre.layout(g);
-  }
-
+  // Layout using sqrt-based grid: schemas + child group bounding boxes
   const nodePositions = new Map<string, { x: number; y: number }>();
   const childGroupPositions = new Map<string, { x: number; y: number; width: number; height: number }>();
 
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
 
+  const items: { id: string; width: number; height: number; isGroup: boolean }[] = [];
+
   for (const s of directSchemas) {
-    const node = g.node(s.type);
-    const x = node.x - SCHEMA_NODE_WIDTH / 2;
-    const y = node.y - node.height / 2;
-    nodePositions.set(s.type, { x, y });
-    minX = Math.min(minX, x);
-    minY = Math.min(minY, y);
-    maxX = Math.max(maxX, x + SCHEMA_NODE_WIDTH);
-    maxY = Math.max(maxY, y + node.height);
+    items.push({
+      id: s.type,
+      width: SCHEMA_NODE_WIDTH,
+      height: estimateSchemaNodeHeight(s, expandedSchemas?.has(s.type)),
+      isGroup: false,
+    });
   }
 
   for (const [childId, bounds] of childBounds) {
-    const node = g.node(`group:${childId}`);
-    const x = node.x - bounds.width / 2;
-    const y = node.y - bounds.height / 2;
-    childGroupPositions.set(childId, { x, y, width: bounds.width, height: bounds.height });
-    minX = Math.min(minX, x);
-    minY = Math.min(minY, y);
-    maxX = Math.max(maxX, x + bounds.width);
-    maxY = Math.max(maxY, y + bounds.height);
+    items.push({
+      id: `group:${childId}`,
+      width: bounds.width,
+      height: bounds.height,
+      isGroup: true,
+    });
+  }
+
+  if (items.length > 0) {
+    const cols = Math.ceil(Math.sqrt(items.length));
+    const GAP = 20;
+    let col = 0;
+    let row = 0;
+    // Track row heights for variable-height items
+    const rowHeights: number[] = [];
+    let currentRowMaxHeight = 0;
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      currentRowMaxHeight = Math.max(currentRowMaxHeight, item.height);
+
+      if (col >= cols) {
+        rowHeights.push(currentRowMaxHeight);
+        col = 0;
+        row++;
+        currentRowMaxHeight = item.height;
+      }
+
+      // Compute x from column widths, y from accumulated row heights
+      const x = col * (SCHEMA_NODE_WIDTH + GAP); // Use max item width for uniform columns
+      const y = rowHeights.reduce((sum, h) => sum + h + GAP, 0);
+
+      if (item.isGroup) {
+        const childId = item.id.replace('group:', '');
+        childGroupPositions.set(childId, { x, y, width: item.width, height: item.height });
+        minX = Math.min(minX, x);
+        minY = Math.min(minY, y);
+        maxX = Math.max(maxX, x + item.width);
+        maxY = Math.max(maxY, y + item.height);
+      } else {
+        nodePositions.set(item.id, { x, y });
+        minX = Math.min(minX, x);
+        minY = Math.min(minY, y);
+        maxX = Math.max(maxX, x + SCHEMA_NODE_WIDTH);
+        maxY = Math.max(maxY, y + item.height);
+      }
+
+      col++;
+    }
+    // Push final row height
+    if (currentRowMaxHeight > 0) rowHeights.push(currentRowMaxHeight);
   }
 
   // Handle empty group
