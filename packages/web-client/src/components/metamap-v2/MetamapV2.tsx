@@ -41,22 +41,17 @@ export default function MetamapV2() {
   const [localNodes, setLocalNodes] = useState<MetamapV2Node[]>([]);
   const localNodesRef = useRef<MetamapV2Node[]>([]);
   const initializedRef = useRef(false);
+  const pendingRelayoutRef = useRef(false);
 
-  // Track schema count to detect additions/removals and force re-layout
-  const schemaCountRef = useRef(schemas.length);
+  // Initialize local nodes from computed layout.
+  // Re-runs when layoutResult changes. On first mount or after a pending relayout,
+  // replaces local state with the freshly computed layout.
   useEffect(() => {
-    if (schemas.length !== schemaCountRef.current) {
-      schemaCountRef.current = schemas.length;
-      initializedRef.current = false; // Force re-layout on next render
-    }
-  }, [schemas.length]);
-
-  // Initialize local nodes from computed layout
-  useEffect(() => {
-    if (layoutResult.nodes.length > 0 && !initializedRef.current) {
+    if (layoutResult.nodes.length > 0 && (!initializedRef.current || pendingRelayoutRef.current)) {
       setLocalNodes(layoutResult.nodes);
       localNodesRef.current = layoutResult.nodes;
       initializedRef.current = true;
+      pendingRelayoutRef.current = false;
     }
   }, [layoutResult.nodes]);
 
@@ -248,24 +243,15 @@ export default function MetamapV2() {
     setConnectionModal(null);
   }, [updateSchema]);
 
-  // Re-layout handler
+  // Re-layout handler — marks a pending relayout so the next layoutResult
+  // change (or current one) resets local positions to the computed layout.
+  // For the toolbar "re-layout" button, we also immediately apply since
+  // layoutResult is already current.
   const handleRelayout = useCallback(() => {
-    initializedRef.current = false;
+    pendingRelayoutRef.current = true;
+    // If called from toolbar (no Yjs mutation pending), apply immediately
     setLocalNodes(layoutResult.nodes);
     localNodesRef.current = layoutResult.nodes;
-
-    // Fit view after re-layout
-    setTimeout(() => {
-      if (canvasRef.current) {
-        const rects = layoutResult.nodes.map(n => ({
-          x: getAbsoluteX(n, layoutResult.nodes),
-          y: getAbsoluteY(n, layoutResult.nodes),
-          width: n.size.width,
-          height: n.size.height,
-        }));
-        canvasRef.current.fitView(rects, 0.15);
-      }
-    }, 0);
   }, [layoutResult.nodes]);
 
   // Context menu items
@@ -551,6 +537,7 @@ export default function MetamapV2() {
           expandedSchemas={expandedSchemas}
           renamingSchemaId={renamingSchemaId}
           setRenamingSchemaId={setRenamingSchemaId}
+          onRelayout={handleRelayout}
         />
       </Canvas>
       <CanvasToolbar>
@@ -619,6 +606,7 @@ interface MetamapV2InnerProps {
   expandedSchemas: Set<string>;
   renamingSchemaId: string | null;
   setRenamingSchemaId: (id: string | null) => void;
+  onRelayout: () => void;
 }
 
 function MetamapV2Inner({
@@ -633,6 +621,7 @@ function MetamapV2Inner({
   expandedSchemas,
   renamingSchemaId,
   setRenamingSchemaId,
+  onRelayout,
 }: MetamapV2InnerProps) {
   const { transform, ctrlHeld, startConnection } = useCanvasContext();
   const [highlightedContainerId, setHighlightedContainerId] = useState<string | null>(null);
@@ -712,10 +701,10 @@ function MetamapV2Inner({
             updateSchema(schemaType, { packageId: undefined, groupId: undefined });
           }
 
-          // Force re-layout after reassignment
-          setTimeout(() => {
-            window.location.reload(); // Simplest way to force full re-layout
-          }, 100);
+          // Force re-layout after reassignment — the Yjs mutation will trigger
+          // a re-render with new schemas, recomputing layoutResult, and the
+          // useEffect will re-initialize localNodes since pendingRelayoutRef is set.
+          onRelayout();
         }
 
         dragOriginRef.current = null;
