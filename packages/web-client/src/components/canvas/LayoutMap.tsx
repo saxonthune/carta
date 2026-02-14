@@ -10,7 +10,7 @@ interface LayoutMapProps {
   onClose: () => void;
 }
 
-interface LocalNode {
+export interface LocalNode {
   id: string;
   position: { x: number; y: number };
   data: { name: string; color: string };
@@ -26,9 +26,9 @@ interface LocalEdge {
   label: string;
 }
 
-const VALID_SOURCE_HANDLES = new Set(['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']);
+export const VALID_SOURCE_HANDLES = new Set(['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']);
 
-function getHandlePosition(node: LocalNode, handleId: string | null | undefined): { x: number; y: number } {
+export function getHandlePosition(node: LocalNode, handleId: string | null | undefined): { x: number; y: number } {
   const w = node.style?.width ?? 400;
   const h = node.style?.height ?? 300;
   const cx = node.position.x + w / 2;
