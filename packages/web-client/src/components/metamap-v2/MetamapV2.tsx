@@ -260,7 +260,6 @@ export default function MetamapV2() {
 
   // Connection handlers
   const handleConnect = useCallback((connection: { source: string; sourceHandle: string; target: string; targetHandle: string }) => {
-    if (connection.source === connection.target) return;
     const source = getSchema(connection.source);
     const target = getSchema(connection.target);
     if (source && target) {
@@ -268,8 +267,9 @@ export default function MetamapV2() {
     }
   }, [getSchema]);
 
-  const isValidConnection = useCallback((connection: { source: string; sourceHandle: string; target: string; targetHandle: string }) => {
-    return connection.source !== connection.target;
+  const isValidConnection = useCallback((_connection: { source: string; sourceHandle: string; target: string; targetHandle: string }) => {
+    // Allow self-referential connections
+    return true;
   }, []);
 
   const handleSaveConnection = useCallback((config: {
@@ -578,8 +578,19 @@ export default function MetamapV2() {
           if (!sourceNode) return null;
           const absX = getAbsoluteX(sourceNode, localNodes);
           const absY = getAbsoluteY(sourceNode, localNodes);
-          const sx = absX + sourceNode.size.width / 2;
-          const sy = absY + sourceNode.size.height / 2;
+
+          // Get port Y offset if dragging from a specific port
+          const sourcePortOffset = drag.sourceHandle && drag.sourceHandle !== 'new-port' && sourceNode.portOffsets
+            ? sourceNode.portOffsets.get(drag.sourceHandle)
+            : undefined;
+
+          const sourceYOffset = sourcePortOffset !== undefined ? sourcePortOffset : sourceNode.size.height / 2;
+
+          // Anchor from right edge of node at port position
+          const DOT_OFFSET = 6;
+          const sx = absX + sourceNode.size.width + DOT_OFFSET;
+          const sy = absY + sourceYOffset;
+
           // Convert cursor screen coords to canvas coords
           const canvasX = (drag.currentX - transform.x) / transform.k;
           const canvasY = (drag.currentY - transform.y) / transform.k;
@@ -782,8 +793,9 @@ function MetamapV2Inner({
   undo,
   redo,
 }: MetamapV2InnerProps) {
-  const { transform, ctrlHeld, startConnection } = useCanvasContext();
+  const { transform, ctrlHeld, startConnection, connectionDrag } = useCanvasContext();
   const [highlightedContainerId, setHighlightedContainerId] = useState<string | null>(null);
+  const [hoveredSchemaId, setHoveredSchemaId] = useState<string | null>(null);
 
   // Keyboard shortcuts
   useKeyboardShortcuts({
@@ -931,47 +943,65 @@ function MetamapV2Inner({
         </div>
       ))}
       {/* Schema nodes rendered on top */}
-      {absoluteNodes.filter(n => n.type === 'schema').map(node => (
-        <div
-          key={node.id}
-          style={{
-            position: 'absolute',
-            left: node.absolutePosition.x,
-            top: node.absolutePosition.y,
-          }}
-          onContextMenu={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onContextMenu({ x: e.clientX, y: e.clientY, schemaType: node.id });
-          }}
-        >
-          {node.data.kind === 'schema' && (
-            <MetamapSchemaNode
-              schema={node.data.schema}
-              width={node.size.width}
-              height={node.size.height}
-              onPointerDown={(e) => handleNodePointerDown(node.id, e)}
-              onDoubleClick={() => onSchemaDoubleClick(node.id)}
-              onStartConnection={startConnection}
-              isExpanded={expandedSchemas.has(node.id)}
-              isRenaming={renamingSchemaId === node.id}
-              onStartRenaming={() => setRenamingSchemaId(node.id)}
-              onStopRenaming={() => setRenamingSchemaId(null)}
-              onCommitRename={(newName) => {
-                updateSchema(node.id, { displayName: newName });
-                setRenamingSchemaId(null);
-              }}
-              isDimmed={dimmedSchemaTypes.has(node.id)}
-              isHighlighted={matchingSchemaTypes ? matchingSchemaTypes.has(node.id) : false}
-            />
-          )}
-        </div>
-      ))}
+      {absoluteNodes.filter(n => n.type === 'schema').map(node => {
+        const isConnectionDragActive = !!connectionDrag;
+        const isTargetDuringDrag = isConnectionDragActive && hoveredSchemaId === node.id;
+
+        return (
+          <div
+            key={node.id}
+            style={{
+              position: 'absolute',
+              left: node.absolutePosition.x,
+              top: node.absolutePosition.y,
+            }}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onContextMenu({ x: e.clientX, y: e.clientY, schemaType: node.id });
+            }}
+            onPointerEnter={() => {
+              if (isConnectionDragActive) {
+                setHoveredSchemaId(node.id);
+              }
+            }}
+            onPointerLeave={() => {
+              if (isConnectionDragActive) {
+                setHoveredSchemaId(null);
+              }
+            }}
+          >
+            {node.data.kind === 'schema' && (
+              <MetamapSchemaNode
+                schema={node.data.schema}
+                width={node.size.width}
+                height={node.size.height}
+                onPointerDown={(e) => handleNodePointerDown(node.id, e)}
+                onDoubleClick={() => onSchemaDoubleClick(node.id)}
+                onStartConnection={startConnection}
+                isExpanded={expandedSchemas.has(node.id)}
+                isRenaming={renamingSchemaId === node.id}
+                onStartRenaming={() => setRenamingSchemaId(node.id)}
+                onStopRenaming={() => setRenamingSchemaId(null)}
+                onCommitRename={(newName) => {
+                  updateSchema(node.id, { displayName: newName });
+                  setRenamingSchemaId(null);
+                }}
+                isDimmed={dimmedSchemaTypes.has(node.id)}
+                isHighlighted={matchingSchemaTypes ? matchingSchemaTypes.has(node.id) : false}
+                isDrawerForced={isTargetDuringDrag}
+              />
+            )}
+          </div>
+        );
+      })}
     </>
   );
 }
 
 // Edge layer component
+const DOT_OFFSET = 6; // Must match MetamapSchemaNode DOT_OFFSET
+
 function MetamapEdgeLayer({
   edges,
   nodes,
@@ -995,32 +1025,59 @@ function MetamapEdgeLayer({
         const absX2 = getAbsoluteX(targetNode, nodes);
         const absY2 = getAbsoluteY(targetNode, nodes);
 
-        const sx = absX1 + sourceNode.size.width / 2;
-        const sy = absY1 + sourceNode.size.height;
-        const tx = absX2 + targetNode.size.width / 2;
-        const ty = absY2;
+        // Get port Y offsets from node portOffsets
+        const sourcePortOffset = edge.fromPortId && sourceNode.portOffsets
+          ? sourceNode.portOffsets.get(edge.fromPortId)
+          : undefined;
+        const targetPortOffset = edge.toPortId && targetNode.portOffsets
+          ? targetNode.portOffsets.get(edge.toPortId)
+          : undefined;
+
+        // Default to vertical center if port not found
+        const sourceYOffset = sourcePortOffset !== undefined ? sourcePortOffset : sourceNode.size.height / 2;
+        const targetYOffset = targetPortOffset !== undefined ? targetPortOffset : targetNode.size.height / 2;
+
+        // Anchor points on right edge of nodes
+        const sx = absX1 + sourceNode.size.width + DOT_OFFSET;
+        const sy = absY1 + sourceYOffset;
+        const tx = absX2 + targetNode.size.width + DOT_OFFSET;
+        const ty = absY2 + targetYOffset;
+
+        // Self-referential edge (loop)
+        const isSelfRef = edge.source === edge.target;
+        let pathD: string;
+
+        if (isSelfRef) {
+          const loopSize = 30;
+          pathD = `M ${sx},${sy} C ${sx + loopSize},${sy - loopSize} ${sx + loopSize},${sy + loopSize} ${sx},${sy}`;
+        } else {
+          // Bezier curve
+          const dx = Math.abs(tx - sx);
+          const cpOffset = Math.max(40, dx * 0.4);
+          pathD = `M ${sx},${sy} C ${sx + cpOffset},${sy} ${tx - cpOffset},${ty} ${tx},${ty}`;
+        }
 
         return (
           <g key={edge.id}>
             {/* Invisible hit area */}
-            <line
-              x1={sx} y1={sy}
-              x2={tx} y2={ty}
+            <path
+              d={pathD}
               stroke="transparent"
               strokeWidth={10}
+              fill="none"
               style={{ cursor: 'pointer' }}
               onClick={(e) => onEdgeClick?.(edge, e)}
               onDoubleClick={(e) => onEdgeDoubleClick?.(edge, e)}
             />
-            {/* Visible line */}
-            <line
-              x1={sx} y1={sy}
-              x2={tx} y2={ty}
+            {/* Visible path */}
+            <path
+              d={pathD}
               stroke="var(--color-content-subtle)"
               strokeWidth={1.5}
+              fill="none"
               style={{ pointerEvents: 'none' }}
             />
-            {edge.label && (
+            {edge.label && !isSelfRef && (
               <text
                 x={(sx + tx) / 2}
                 y={(sy + ty) / 2 - 6}

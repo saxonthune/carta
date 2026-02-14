@@ -8,6 +8,17 @@ const GROUP_PADDING = 30;
 const GROUP_HEADER_HEIGHT = 36;
 const PACKAGE_PADDING = 40;
 const PACKAGE_HEADER_HEIGHT = 48;
+const PORT_SPACING = 14;
+
+/**
+ * Compute Y offset for a port dot relative to the node's top edge.
+ * Ports are stacked vertically and centered on the node.
+ */
+export function portYOffset(index: number, count: number, nodeHeight: number): number {
+  const totalHeight = (count - 1) * PORT_SPACING;
+  const startY = (nodeHeight - totalHeight) / 2;
+  return startY + index * PORT_SPACING;
+}
 
 export interface MetamapV2Node {
   id: string;
@@ -16,6 +27,7 @@ export interface MetamapV2Node {
   size: { width: number; height: number };
   parentId?: string;  // container this node belongs to
   data: SchemaNodeData | PackageNodeData | GroupNodeData;
+  portOffsets?: Map<string, number>;  // portId → Y offset from node top
 }
 
 export interface SchemaNodeData {
@@ -462,6 +474,12 @@ export function computeMetamapV2Layout(
       for (const [schemaType, schemaPos] of tempBounds.schemaPositions) {
         const schema = groupSchemas.find(s => s.type === schemaType);
         if (schema) {
+          const ports = schema.ports || [];
+          const portOffsets = new Map<string, number>();
+          ports.forEach((port, index) => {
+            portOffsets.set(port.id, portYOffset(index, ports.length, SCHEMA_NODE_HEIGHT));
+          });
+
           nodes.push({
             id: schemaType,
             type: 'schema',
@@ -472,6 +490,7 @@ export function computeMetamapV2Layout(
               kind: 'schema',
               schema,
             },
+            portOffsets,
           });
         }
       }
@@ -481,6 +500,12 @@ export function computeMetamapV2Layout(
     for (const [schemaType, schemaPos] of bounds.schemaPositions) {
       const schema = pkgSchemas.find(s => s.type === schemaType && !s.groupId);
       if (schema) {
+        const ports = schema.ports || [];
+        const portOffsets = new Map<string, number>();
+        ports.forEach((port, index) => {
+          portOffsets.set(port.id, portYOffset(index, ports.length, SCHEMA_NODE_HEIGHT));
+        });
+
         nodes.push({
           id: schemaType,
           type: 'schema',
@@ -491,6 +516,7 @@ export function computeMetamapV2Layout(
             kind: 'schema',
             schema,
           },
+          portOffsets,
         });
       }
     }
@@ -499,6 +525,12 @@ export function computeMetamapV2Layout(
   // Ungrouped schemas (no package)
   for (const s of ungroupedSchemas) {
     const interNode = interG.node(s.type);
+    const ports = s.ports || [];
+    const portOffsets = new Map<string, number>();
+    ports.forEach((port, index) => {
+      portOffsets.set(port.id, portYOffset(index, ports.length, SCHEMA_NODE_HEIGHT));
+    });
+
     nodes.push({
       id: s.type,
       type: 'schema',
@@ -511,6 +543,7 @@ export function computeMetamapV2Layout(
         kind: 'schema',
         schema: s,
       },
+      portOffsets,
     });
   }
 
