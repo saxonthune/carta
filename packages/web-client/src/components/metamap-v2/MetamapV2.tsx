@@ -12,10 +12,11 @@ import { MagnifyingGlassPlus, MagnifyingGlassMinus, CornersOut, ArrowsClockwise 
 import ConstructEditor from '../ConstructEditor.js';
 import type { ConstructSchema } from '@carta/domain';
 import { MetamapConnectionModal } from '../metamap/MetamapConnectionModal.js';
+import ContextMenuPrimitive, { type MenuItem } from '../ui/ContextMenuPrimitive.js';
 
 export default function MetamapV2() {
-  const { schemas, updateSchema, getSchema } = useSchemas();
-  const { schemaGroups } = useSchemaGroups();
+  const { schemas, updateSchema, getSchema, removeSchema } = useSchemas();
+  const { schemaGroups, addSchemaGroup, removeSchemaGroup } = useSchemaGroups();
   const { schemaPackages } = useSchemaPackages();
   const canvasRef = useRef<CanvasRef>(null);
 
@@ -77,6 +78,15 @@ export default function MetamapV2() {
     targetSchema: ConstructSchema;
   } | null>(null);
 
+  // Context menu state
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    schemaType?: string;
+    groupId?: string;
+    packageId?: string;
+  } | null>(null);
+
   const handleSchemaDoubleClick = useCallback((schemaType: string) => {
     const schema = getSchema(schemaType);
     if (schema) setEditorState({ open: true, editSchema: schema });
@@ -136,6 +146,147 @@ export default function MetamapV2() {
     setConnectionModal(null);
   }, [updateSchema]);
 
+  // Context menu items
+  const contextMenuItems = useMemo((): MenuItem[] => {
+    if (!contextMenu) return [];
+
+    // Background menu
+    if (!contextMenu.schemaType && !contextMenu.groupId && !contextMenu.packageId) {
+      return [
+        {
+          key: 'new-schema',
+          label: 'New Construct Schema',
+          onClick: () => {
+            setEditorState({ open: true });
+            setContextMenu(null);
+          },
+        },
+        {
+          key: 'new-group',
+          label: 'New Group',
+          renderContent: (
+            <input
+              autoFocus
+              className="w-full px-2 py-1 text-sm bg-surface border border-border rounded"
+              placeholder="Group name..."
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && (e.target as HTMLInputElement).value.trim()) {
+                  addSchemaGroup({ name: (e.target as HTMLInputElement).value.trim(), color: '#6366f1' });
+                  setContextMenu(null);
+                  handleRelayout();
+                }
+                if (e.key === 'Escape') setContextMenu(null);
+              }}
+              onClick={(e) => e.stopPropagation()}
+            />
+          ),
+        },
+      ];
+    }
+
+    // Schema node menu
+    if (contextMenu.schemaType) {
+      const schema = getSchema(contextMenu.schemaType);
+      return [
+        {
+          key: 'edit-schema',
+          label: 'Edit Schema',
+          onClick: () => {
+            if (schema) setEditorState({ open: true, editSchema: schema });
+            setContextMenu(null);
+          },
+        },
+        {
+          key: 'divider-1',
+          label: '',
+          dividerAfter: true,
+        },
+        {
+          key: 'delete-schema',
+          label: 'Delete Schema',
+          danger: true,
+          onClick: () => {
+            removeSchema(contextMenu.schemaType!);
+            setContextMenu(null);
+          },
+        },
+      ];
+    }
+
+    // Group node menu
+    if (contextMenu.groupId) {
+      return [
+        {
+          key: 'rename-group',
+          label: 'Rename Group',
+          renderContent: (
+            <input
+              autoFocus
+              className="w-full px-2 py-1 text-sm bg-surface border border-border rounded"
+              placeholder="New name..."
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && (e.target as HTMLInputElement).value.trim()) {
+                  // TODO: implement rename group
+                  setContextMenu(null);
+                  handleRelayout();
+                }
+                if (e.key === 'Escape') setContextMenu(null);
+              }}
+              onClick={(e) => e.stopPropagation()}
+            />
+          ),
+        },
+        {
+          key: 'divider-1',
+          label: '',
+          dividerAfter: true,
+        },
+        {
+          key: 'delete-group',
+          label: 'Delete Group',
+          danger: true,
+          onClick: () => {
+            // Ungroup all schemas in this group first
+            const groupSchemas = schemas.filter(s => s.groupId === contextMenu.groupId);
+            groupSchemas.forEach(s => {
+              updateSchema(s.type, { groupId: undefined });
+            });
+            removeSchemaGroup(contextMenu.groupId!);
+            setContextMenu(null);
+          },
+        },
+      ];
+    }
+
+    // Package node menu
+    if (contextMenu.packageId) {
+      return [
+        {
+          key: 'rename-package',
+          label: 'Rename Package',
+          renderContent: (
+            <input
+              autoFocus
+              className="w-full px-2 py-1 text-sm bg-surface border border-border rounded"
+              placeholder="New name..."
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && (e.target as HTMLInputElement).value.trim()) {
+                  // TODO: implement rename package
+                  setContextMenu(null);
+                  handleRelayout();
+                }
+                if (e.key === 'Escape') setContextMenu(null);
+              }}
+              onClick={(e) => e.stopPropagation()}
+            />
+          ),
+        },
+      ];
+    }
+
+    return [];
+  }, [contextMenu, getSchema, removeSchema, addSchemaGroup, removeSchemaGroup, schemas, updateSchema, handleRelayout]);
+
   // Re-layout handler
   const handleRelayout = useCallback(() => {
     initializedRef.current = false;
@@ -170,11 +321,18 @@ export default function MetamapV2() {
   }, [localNodes]);
 
   return (
-    <div className="w-full h-full relative">
+    <div
+      className="w-full h-full relative"
+      onContextMenu={(e) => {
+        e.preventDefault();
+        setContextMenu({ x: e.clientX, y: e.clientY });
+      }}
+    >
       <Canvas
         ref={canvasRef}
         viewportOptions={{ minZoom: 0.1, maxZoom: 2 }}
         connectionDrag={{ onConnect: handleConnect, isValidConnection }}
+        onBackgroundPointerDown={() => setContextMenu(null)}
         renderEdges={() => null}
         renderConnectionPreview={(drag, transform) => {
           const sourceNode = localNodes.find(n => n.id === drag.sourceNodeId);
@@ -203,6 +361,7 @@ export default function MetamapV2() {
           localNodesRef={localNodesRef}
           edges={layoutResult.edges}
           onSchemaDoubleClick={handleSchemaDoubleClick}
+          onContextMenu={setContextMenu}
           updateSchema={updateSchema}
           schemaGroups={schemaGroups}
         />
@@ -236,6 +395,14 @@ export default function MetamapV2() {
           onCancel={() => setConnectionModal(null)}
         />
       )}
+      {contextMenu && (
+        <ContextMenuPrimitive
+          x={contextMenu.x}
+          y={contextMenu.y}
+          items={contextMenuItems}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
     </div>
   );
 }
@@ -246,6 +413,7 @@ interface MetamapV2InnerProps {
   localNodesRef: React.MutableRefObject<MetamapV2Node[]>;
   edges: MetamapV2Edge[];
   onSchemaDoubleClick: (schemaType: string) => void;
+  onContextMenu: (menu: { x: number; y: number; schemaType?: string; groupId?: string; packageId?: string }) => void;
   updateSchema: (type: string, updates: { packageId?: string; groupId?: string | undefined }) => void;
   schemaGroups: any[];
 }
@@ -256,6 +424,7 @@ function MetamapV2Inner({
   localNodesRef,
   edges,
   onSchemaDoubleClick,
+  onContextMenu,
   updateSchema,
   schemaGroups,
 }: MetamapV2InnerProps) {
@@ -412,6 +581,15 @@ function MetamapV2Inner({
             outline: highlightedContainerId === node.id ? '2px solid #10b981' : undefined,
             outlineOffset: highlightedContainerId === node.id ? '2px' : undefined,
           }}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (node.type === 'package' && node.data.kind === 'package') {
+              onContextMenu({ x: e.clientX, y: e.clientY, packageId: node.data.pkg.id });
+            } else if (node.type === 'group' && node.data.kind === 'group') {
+              onContextMenu({ x: e.clientX, y: e.clientY, groupId: node.data.group.id });
+            }
+          }}
         >
           {node.type === 'package' && node.data.kind === 'package' && (
             <MetamapPackageNode
@@ -441,6 +619,11 @@ function MetamapV2Inner({
             position: 'absolute',
             left: node.absolutePosition.x,
             top: node.absolutePosition.y,
+          }}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onContextMenu({ x: e.clientX, y: e.clientY, schemaType: node.id });
           }}
         >
           {node.data.kind === 'schema' && (
