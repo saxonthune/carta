@@ -156,6 +156,7 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
     message: string;
     x: number;
     y: number;
+    mode: 'guidance' | 'valid' | 'invalid';
   } | null>(null);
 
   // Viewport
@@ -257,12 +258,19 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
             message: result.message,
             x: e.clientX,
             y: e.clientY,
+            mode: result.valid ? 'valid' : 'invalid',
           });
           return;
         }
       }
       // Not hovering over a valid target
-      setConnectionHint(null);
+      setConnectionHint({
+        valid: false,
+        message: 'Drop on a node',
+        x: e.clientX,
+        y: e.clientY,
+        mode: 'guidance',
+      });
     };
 
     window.addEventListener('pointermove', handleMove);
@@ -530,7 +538,7 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
             connectionDrag.sourceHandle
           );
 
-          const strokeColor = connectionHint
+          const strokeColor = connectionHint && connectionHint.mode !== 'guidance'
             ? (connectionHint.valid ? 'var(--color-success, #22c55e)' : 'var(--color-error, #ef4444)')
             : 'var(--color-accent)';
 
@@ -644,9 +652,11 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
         >
           <div
             className={`rounded-md shadow-md px-2.5 py-1.5 text-xs font-medium whitespace-nowrap ${
-              connectionHint.valid
+              connectionHint.mode === 'valid'
                 ? 'bg-emerald-600/90 text-white'
-                : 'bg-red-600/90 text-white'
+                : connectionHint.mode === 'invalid'
+                  ? 'bg-red-600/90 text-white'
+                  : 'bg-surface-depth-1/90 text-content-muted border border-border'
             }`}
           >
             {connectionHint.message}
