@@ -24,6 +24,12 @@ export { useMetamapLayout } from './useMetamapLayout';
 export { useEdgeBundling } from './useEdgeBundling';
 export { useFlowTrace } from './useFlowTrace';
 
+// Map pipelines
+export { useEdgeColor } from './useEdgeColor';
+export { useMapNodePipeline } from './useMapNodePipeline';
+export { useMapEdgePipeline } from './useMapEdgePipeline';
+export { useCoveredNodes } from './useCoveredNodes';
+
 // Utilities
 export { useClipboard } from './useClipboard';
 export { useUndoRedo } from './useUndoRedo';

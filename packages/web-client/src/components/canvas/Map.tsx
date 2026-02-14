@@ -52,16 +52,14 @@ import { useClipboard } from '../../hooks/useClipboard';
 import { useKeyboardShortcuts } from '../../canvas-engine/index.js';
 import { useEdgeCleanup } from '../../hooks/useEdgeCleanup';
 import type { ConstructValues, ConstructNodeData, OrganizerNodeData } from '@carta/domain';
-import { nodeContainedInOrganizer, getDisplayName, resolveNodeColor } from '@carta/domain';
+import { getDisplayName, resolveNodeColor } from '@carta/domain';
 import { rebuildPage } from '@carta/document';
-import { usePresentation } from '../../hooks/usePresentation';
-import { computeEdgeAggregation, filterInvalidEdges } from '../../presentation/index';
 import { useOrganizerOperations } from '../../hooks/useOrganizerOperations';
 // getNodeDimensions unused after disabling orthogonal routing
 import ConstructEditor from '../ConstructEditor';
 import DynamicAnchorEdge from './DynamicAnchorEdge';
 import ConstructDebugModal from '../modals/ConstructDebugModal';
-import { useEdgeBundling, type BundleData } from '../../hooks/useEdgeBundling';
+import type { BundleData } from '../../hooks/useEdgeBundling';
 import { useFlowTrace } from '../../hooks/useFlowTrace';
 // useLodBand only needed inside ConstructNode, not at Map level
 // ZoomDebug disabled — causes re-renders on every zoom/pan frame (useStore + mousemove listener)
@@ -72,6 +70,10 @@ import { useLayoutActions } from '../../hooks/useLayoutActions';
 import ToolbarLayoutFlyouts from './ToolbarLayoutFlyouts';
 import LayoutView from './LayoutView';
 import LayoutMap from './LayoutMap';
+import { useEdgeColor } from '../../hooks/useEdgeColor';
+import { useMapNodePipeline } from '../../hooks/useMapNodePipeline';
+import { useMapEdgePipeline } from '../../hooks/useMapEdgePipeline';
+import { useCoveredNodes } from '../../hooks/useCoveredNodes';
 
 const nodeTypes = {
   custom: CustomNode,
@@ -82,24 +84,6 @@ const nodeTypes = {
 const edgeTypes = {
   bundled: DynamicAnchorEdge,
 };
-
-// Restrict dragging to header only - allows clicking fields to edit
-const NODE_DRAG_HANDLE = '.node-drag-handle';
-
-// Edge color from CSS variable, updated on theme change
-function useEdgeColor() {
-  const [color, setColor] = useState(() =>
-    getComputedStyle(document.documentElement).getPropertyValue('--edge-default-color').trim() || '#94a3b8'
-  );
-  useEffect(() => {
-    const observer = new MutationObserver(() => {
-      setColor(getComputedStyle(document.documentElement).getPropertyValue('--edge-default-color').trim() || '#94a3b8');
-    });
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-    return () => observer.disconnect();
-  }, []);
-  return color;
-}
 
 export interface MapProps {
   title: string;
@@ -170,9 +154,6 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
       }
     }
   }, [activePage, getViewport, setViewport, reactFlow]);
-
-  // Presentation model for collapse/hide logic and edge remapping
-  const { processedNodes: nodesWithHiddenFlags, edgeRemap } = usePresentation(nodes, edges);
 
   // Flow trace: Alt+hover to highlight forward flow
   const { traceResult, isTraceActive, onNodeMouseEnter, onNodeMouseLeave } = useFlowTrace(edges);
@@ -670,25 +651,6 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     }
   }, [nodes, selectedNodeIds, onSelectionChange]);
 
-  // Count children per parent node (organizers)
-  const childCountMap = useMemo(() => {
-    const counts: Record<string, number> = {};
-    for (const node of nodes) {
-      if (node.parentId) {
-        counts[node.parentId] = (counts[node.parentId] || 0) + 1;
-      }
-    }
-    return counts;
-  }, [nodes]);
-
-  // Set of organizer IDs for expandParent assignment
-  const organizerIds = useMemo(() => new Set(
-    nodesWithHiddenFlags.filter(n => n.type === 'organizer').map(n => n.id)
-  ), [nodesWithHiddenFlags]);
-
-  const organizerIdsRef = useRef(organizerIds);
-  organizerIdsRef.current = organizerIds;
-
   // Stable callback refs — update every render without triggering re-render
   const renameNodeRef = useRef(renameNode);
   renameNodeRef.current = renameNode;
@@ -730,152 +692,29 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     onToggleLayoutPin: (nodeId: string) => toggleLayoutPinRef.current(nodeId),
   }), []);
 
-  // Cache previous output so we can reuse node references when overlay data hasn't changed.
-  // This prevents RF from re-rendering all 50 nodes when only 1-2 actually changed.
-  const prevNodesCache = useRef<globalThis.Map<string, Node>>(new globalThis.Map());
   // Stable rename callbacks for organizers — avoids new closures per render
   const setRenamingOrganizerIdRef = useRef(setRenamingOrganizerId);
   setRenamingOrganizerIdRef.current = setRenamingOrganizerId;
   const orgRenameStart = useMemo(() => (id: string) => setRenamingOrganizerIdRef.current(id), []);
   const orgRenameStop = useMemo(() => () => setRenamingOrganizerIdRef.current(null), []);
 
-  const nodesWithCallbacks = useMemo(() => {
-    const cache = prevNodesCache.current;
-    const newCache = new globalThis.Map<string, Node>();
+  // Node pipeline: presentation model → callbacks → sort → search filter
+  const { sortedNodes, organizerIds, edgeRemap } = useMapNodePipeline({
+    nodes,
+    edges,
+    renamingNodeId,
+    renamingOrganizerId,
+    isTraceActive,
+    traceResult,
+    nodeActions,
+    orgRenameStart,
+    orgRenameStop,
+    searchText,
+    getSchema,
+  });
 
-    const result = nodesWithHiddenFlags.map((node) => {
-      const prev = cache.get(node.id);
-      const prevData = prev?.data as Record<string, unknown> | undefined;
-
-      if (node.type === 'organizer') {
-        const childCount = childCountMap[node.id] || 0;
-        const isDimmed = isTraceActive && !traceResult?.nodeDistances.has(node.id);
-        const isRenaming = renamingOrganizerId === node.id;
-
-        // Reuse previous reference if overlay data unchanged and base node unchanged
-        if (prev && prev.type === 'organizer' &&
-            prevData?.childCount === childCount &&
-            prevData?.isDimmed === isDimmed &&
-            prevData?.isRenaming === isRenaming &&
-            (prev as unknown as { _baseRef: unknown })._baseRef === node) {
-          newCache.set(node.id, prev);
-          return prev;
-        }
-
-        const newNode = {
-          ...node,
-          dragHandle: NODE_DRAG_HANDLE,
-          _baseRef: node, // track base node identity for cache hit detection
-          data: {
-            ...node.data,
-            childCount,
-            isDimmed,
-            nodeActions,
-            isRenaming,
-            onStartRenaming: orgRenameStart.bind(null, node.id),
-            onStopRenaming: orgRenameStop,
-          },
-        } as Node;
-        newCache.set(node.id, newNode);
-        return newNode;
-      }
-
-      // Construct node
-      const isRenaming = node.id === renamingNodeId;
-      const dimmed = isTraceActive && !traceResult?.nodeDistances.has(node.id);
-
-      if (prev && prev.type !== 'organizer' &&
-          prevData?.isRenaming === isRenaming &&
-          prevData?.dimmed === dimmed &&
-          (prev as unknown as { _baseRef: unknown })._baseRef === node) {
-        newCache.set(node.id, prev);
-        return prev;
-      }
-
-      const newNode = {
-        ...node,
-        dragHandle: NODE_DRAG_HANDLE,
-        _baseRef: node,
-        data: {
-          ...node.data,
-          nodeId: node.id,
-          isRenaming,
-          dimmed,
-          nodeActions,
-        },
-      } as Node;
-      newCache.set(node.id, newNode);
-      return newNode;
-    });
-
-    prevNodesCache.current = newCache;
-    return result;
-  }, [nodesWithHiddenFlags, childCountMap, organizerIds, renamingNodeId, renamingOrganizerId, nodeActions, isTraceActive, traceResult, orgRenameStart, orgRenameStop]);
-
-  // Sort nodes: parents must come before their children (React Flow requirement)
-  const sortedNodes = useMemo(() => {
-    const result: Node[] = [];
-    const added = new Set<string>();
-    const nodeById = new globalThis.Map(nodesWithCallbacks.map(n => [n.id, n] as [string, Node]));
-
-    // Recursive function to add a node and its ancestors first
-    const addNode = (node: Node, depth = 0) => {
-      if (added.has(node.id) || depth > 20) return;
-
-      // If this node has a parent, add the parent first
-      if (node.parentId && !added.has(node.parentId)) {
-        const parent = nodeById.get(node.parentId);
-        if (parent) addNode(parent, depth + 1);
-      }
-
-      added.add(node.id);
-      result.push(node);
-    };
-
-    // Add all nodes, ensuring parent-first ordering
-    for (const node of nodesWithCallbacks) {
-      addNode(node);
-    }
-
-    // Filter by search text if present
-    if (!searchText?.trim()) return result;
-
-    const lowerSearch = searchText.toLowerCase();
-    return result.filter((node) => {
-      // Organizers always show if any children match
-      if (node.type === 'organizer') return true;
-
-      // Only filter construct nodes - type guard
-      if (!('constructType' in node.data) || !('semanticId' in node.data) || !('values' in node.data)) {
-        return true;
-      }
-
-      const constructType = node.data.constructType as string;
-      const semanticId = node.data.semanticId as string;
-      const values = node.data.values as ConstructValues;
-
-      const schema = getSchema(constructType);
-      if (!schema) return false;
-
-      // Match against semantic ID
-      if (semanticId?.toLowerCase().includes(lowerSearch)) return true;
-
-      // Match against display name (derived from pill field or semanticId)
-      const pillField = schema.fields.find(f => f.displayTier === 'pill');
-      if (pillField) {
-        const pillValue = String(values[pillField.name] || '');
-        if (pillValue.toLowerCase().includes(lowerSearch)) return true;
-      }
-
-      // Match against any field values
-      for (const field of schema.fields) {
-        const value = String(values[field.name] || '');
-        if (value.toLowerCase().includes(lowerSearch)) return true;
-      }
-
-      return false;
-    });
-  }, [nodesWithCallbacks, searchText, getSchema]);
+  const organizerIdsRef = useRef(organizerIds);
+  organizerIdsRef.current = organizerIds;
 
   // Sync module: push enhanced+sorted nodes to RF when Yjs changes propagate
   // through React state. Uses an updater to merge Yjs/enhancement changes while
@@ -903,150 +742,19 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     });
   }, [sortedNodes]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Aggregate cross-organizer edges and remap collapsed edges
-  const selectedNodeIdsSet = useMemo(() => new Set(selectedNodeIds), [selectedNodeIds]);
-  const filteredEdges = useMemo(() => {
-    // Aggregate edges crossing organizer boundaries (replaces collapse remap + dedup)
-    let result = computeEdgeAggregation(edges, sortedNodes, edgeRemap, selectedNodeIdsSet);
-
-    // Remove edges whose resolved source or target is hidden (not in visible nodes)
-    const visibleNodeIds = new Set(
-      sortedNodes.filter(n => !n.hidden).map(n => n.id)
-    );
-    result = result.filter(edge =>
-      visibleNodeIds.has(edge.source) && visibleNodeIds.has(edge.target)
-    );
-
-    // Filter edges with invalid handle references (defensive layer against stale port refs)
-    result = filterInvalidEdges(result, sortedNodes, getSchema);
-
-    // Inject wagon attachment edges (thick dotted lines from construct to its attached organizer)
-    const wagonEdges: Edge[] = [];
-    for (const node of sortedNodes) {
-      if (node.type !== 'organizer' || node.hidden) continue;
-      const orgData = node.data as OrganizerNodeData;
-      if (!orgData.attachedToSemanticId) continue;
-      const owner = sortedNodes.find(n =>
-        n.type === 'construct' && !n.hidden &&
-        (n.data as ConstructNodeData).semanticId === orgData.attachedToSemanticId
-      );
-      if (!owner) continue;
-      wagonEdges.push({
-        id: `wagon-${node.id}`,
-        source: owner.id,
-        target: node.id,
-        sourceHandle: null,
-        targetHandle: 'group-connect',
-        type: 'bundled',
-        data: { isAttachmentEdge: true },
-        style: { strokeDasharray: '8 4', strokeWidth: 3, stroke: orgData.color },
-      });
-    }
-    if (wagonEdges.length > 0) {
-      result = [...result, ...wagonEdges];
-    }
-
-    // Augment edges with flow trace data
-    if (isTraceActive && traceResult) {
-      result = result.map(edge => {
-        const hopDistance = traceResult.edgeDistances.get(edge.id);
-        return {
-          ...edge,
-          data: {
-            ...edge.data,
-            hopDistance,
-            dimmed: hopDistance === undefined,
-          },
-        };
-      });
-    }
-
-    return result;
-  }, [edges, edgeRemap, sortedNodes, selectedNodeIdsSet, isTraceActive, traceResult, getSchema]);
-
-  // Stable node type map — only changes when nodes are added/removed/type changed
-  const nodeTypeMap = useMemo(
-    () => new globalThis.Map(nodes.map(n => [n.id, n.type ?? 'construct'] as [string, string])),
-    [nodes]
-  );
-
-  // Build a stable polarity lookup: constructType → portId → polarity
-  // Only recalculates when schemas change, not on every node movement.
-  const polarityLookup = useMemo(() => {
-    const lookup = new globalThis.Map<string, globalThis.Map<string, string>>();
-    for (const schema of schemas) {
-      if (!schema.ports) continue;
-      const portMap = new globalThis.Map<string, string>();
-      for (const port of schema.ports) {
-        const portSchema = getPortSchema(port.portType);
-        if (portSchema?.polarity) {
-          portMap.set(port.id, portSchema.polarity);
-        }
-      }
-      if (portMap.size > 0) lookup.set(schema.type, portMap);
-    }
-    return lookup;
-  }, [schemas, getPortSchema]);
-
-  // Stable map: nodeId → constructType (only changes when nodes are added/removed/type changed)
-  const nodeConstructTypeMap = useMemo(() => {
-    const map = new globalThis.Map<string, string>();
-    for (const n of nodes) {
-      if (n.type === 'construct') {
-        map.set(n.id, (n.data as ConstructNodeData).constructType);
-      }
-    }
-    return map;
-  }, [nodes]);
-
-  // Enrich edges with polarity data for arrowhead rendering and waypoints from Yjs
-  // Uses stable lookup maps to avoid depending on raw `nodes` reference
-  const polarityEdges = useMemo(() => {
-    return filteredEdges.map(edge => {
-      // Read waypoints from the raw edge (top-level property from Yjs)
-      const rawWaypoints = (edge as any).waypoints;
-
-      if ((edge.data as Record<string, unknown>)?.isAttachmentEdge) {
-        // Clean up top-level waypoints and optionally enrich data
-        const { waypoints: _wp, ...cleanEdge } = edge as any;
-        return rawWaypoints
-          ? { ...cleanEdge, data: { ...edge.data, waypoints: rawWaypoints } }
-          : cleanEdge;
-      }
-
-      const constructType = nodeConstructTypeMap.get(edge.source);
-      if (!constructType) {
-        const { waypoints: _wp, ...cleanEdge } = edge as any;
-        return rawWaypoints
-          ? { ...cleanEdge, data: { ...edge.data, waypoints: rawWaypoints } }
-          : cleanEdge;
-      }
-
-      const portMap = polarityLookup.get(constructType);
-      if (!portMap) {
-        const { waypoints: _wp, ...cleanEdge } = edge as any;
-        return rawWaypoints
-          ? { ...cleanEdge, data: { ...edge.data, waypoints: rawWaypoints } }
-          : cleanEdge;
-      }
-
-      const polarity = edge.sourceHandle ? portMap.get(edge.sourceHandle) : undefined;
-
-      // Clean up top-level waypoints and enrich data with both polarity and waypoints
-      const { waypoints: _wp, ...cleanEdge } = edge as any;
-      return {
-        ...cleanEdge,
-        data: {
-          ...edge.data,
-          ...(polarity ? { polarity } : {}),
-          ...(rawWaypoints ? { waypoints: rawWaypoints } : {}),
-        },
-      };
-    });
-  }, [filteredEdges, nodeConstructTypeMap, polarityLookup]);
-
-  // Edge bundling: collapse parallel edges between same node pairs
-  const { displayEdges, bundleMap } = useEdgeBundling(polarityEdges, nodeTypeMap);
+  // Edge pipeline: filter → aggregate → polarity → bundle
+  const { displayEdges, bundleMap } = useMapEdgePipeline({
+    edges,
+    sortedNodes,
+    edgeRemap,
+    selectedNodeIds,
+    schemas,
+    getSchema,
+    getPortSchema,
+    isTraceActive,
+    traceResult,
+    nodes,
+  });
   bundleMapRef.current = bundleMap;
 
   // Orthogonal routing disabled — A* per-edge is O(edges * obstacles²) and fires
@@ -1083,90 +791,13 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
     reactFlow.setEdges(routedEdges);
   }, [routedEdges, reactFlow]);
 
-  // Detect non-parented nodes visually covered by organizers they don't belong to
-  const coveredNodeIds = useMemo(() => {
-    const visibleOrganizers = sortedNodes.filter(n => n.type === 'organizer' && !n.hidden);
-    if (visibleOrganizers.length === 0) return [];
-
-    const covered: string[] = [];
-    for (const node of sortedNodes) {
-      if (node.type === 'organizer' || node.hidden || node.parentId) continue;
-      const nodeW = node.measured?.width ?? node.width ?? 200;
-      const nodeH = node.measured?.height ?? node.height ?? 100;
-      for (const org of visibleOrganizers) {
-        const orgW = (org.style?.width as number) ?? org.width ?? 200;
-        const orgH = (org.style?.height as number) ?? org.height ?? 200;
-        if (nodeContainedInOrganizer(
-          node.position, { width: nodeW, height: nodeH },
-          org.position, { width: orgW, height: orgH }
-        )) {
-          covered.push(node.id);
-          break;
-        }
-      }
-    }
-    return covered;
-  }, [sortedNodes]);
-
-  // Rescue covered nodes by moving them just outside the covering organizer
-  const rescueCoveredNodes = useCallback(() => {
-    const visibleOrganizers = sortedNodes.filter(n => n.type === 'organizer' && !n.hidden);
-    const margin = 20;
-    const rescuedIds: string[] = [];
-
-    setNodes(nds => nds.map(n => {
-      if (!coveredNodeIds.includes(n.id)) return n;
-
-      const nodeW = n.measured?.width ?? n.width ?? 200;
-      const nodeH = n.measured?.height ?? n.height ?? 100;
-
-      // Find the covering organizer
-      const coveringOrg = visibleOrganizers.find(org => {
-        const orgW = (org.style?.width as number) ?? org.width ?? 200;
-        const orgH = (org.style?.height as number) ?? org.height ?? 200;
-        return nodeContainedInOrganizer(
-          n.position, { width: nodeW, height: nodeH },
-          org.position, { width: orgW, height: orgH }
-        );
-      });
-      if (!coveringOrg) return n;
-
-      const orgW = (coveringOrg.style?.width as number) ?? coveringOrg.width ?? 200;
-      const orgH = (coveringOrg.style?.height as number) ?? coveringOrg.height ?? 200;
-
-      // Find nearest edge to node center
-      const cx = n.position.x + nodeW / 2;
-      const cy = n.position.y + nodeH / 2;
-      const distLeft = cx - coveringOrg.position.x;
-      const distRight = (coveringOrg.position.x + orgW) - cx;
-      const distTop = cy - coveringOrg.position.y;
-      const distBottom = (coveringOrg.position.y + orgH) - cy;
-      const minDist = Math.min(distLeft, distRight, distTop, distBottom);
-
-      let newPos = { ...n.position };
-      if (minDist === distLeft) {
-        newPos = { x: coveringOrg.position.x - nodeW - margin, y: n.position.y };
-      } else if (minDist === distRight) {
-        newPos = { x: coveringOrg.position.x + orgW + margin, y: n.position.y };
-      } else if (minDist === distTop) {
-        newPos = { x: n.position.x, y: coveringOrg.position.y - nodeH - margin };
-      } else {
-        newPos = { x: n.position.x, y: coveringOrg.position.y + orgH + margin };
-      }
-
-      rescuedIds.push(n.id);
-      return { ...n, position: newPos };
-    }));
-
-    // Select rescued nodes (visual only, use RF store directly)
-    if (rescuedIds.length > 0) {
-      reactFlow.setNodes(nds => nds.map(n => ({
-        ...n,
-        selected: rescuedIds.includes(n.id),
-      })));
-      setSelectedNodeIds(rescuedIds);
-    }
-  }, [sortedNodes, coveredNodeIds, setNodes, reactFlow, setSelectedNodeIds]);
+  // Covered nodes detection and rescue
+  const { coveredNodeIds, rescueCoveredNodes } = useCoveredNodes({
+    sortedNodes,
+    setNodes,
+    reactFlow,
+    setSelectedNodeIds,
+  });
 
   // Handle drag start/drag/stop for organizer attach/detach
   const rafIdRef = useRef<number | null>(null);
