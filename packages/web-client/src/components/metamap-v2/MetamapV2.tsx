@@ -107,6 +107,9 @@ export default function MetamapV2() {
   // Schema expand/collapse state
   const [expandedSchemas, setExpandedSchemas] = useState<Set<string>>(new Set());
 
+  // Schema rename state
+  const [renamingSchemaId, setRenamingSchemaId] = useState<string | null>(null);
+
   const handleSchemaDoubleClick = useCallback((schemaType: string) => {
     setExpandedSchemas(prev => {
       const next = new Set(prev);
@@ -465,6 +468,8 @@ export default function MetamapV2() {
           schemaGroups={schemaGroups}
           modalsOpen={editorState.open || !!connectionModal}
           expandedSchemas={expandedSchemas}
+          renamingSchemaId={renamingSchemaId}
+          setRenamingSchemaId={setRenamingSchemaId}
         />
       </Canvas>
       <CanvasToolbar>
@@ -527,10 +532,12 @@ interface MetamapV2InnerProps {
   localNodesRef: React.MutableRefObject<MetamapV2Node[]>;
   onSchemaDoubleClick: (schemaType: string) => void;
   onContextMenu: (menu: { x: number; y: number; schemaType?: string; groupId?: string; packageId?: string }) => void;
-  updateSchema: (type: string, updates: { packageId?: string; groupId?: string | undefined }) => void;
+  updateSchema: (type: string, updates: any) => void;
   schemaGroups: any[];
   modalsOpen: boolean;
   expandedSchemas: Set<string>;
+  renamingSchemaId: string | null;
+  setRenamingSchemaId: (id: string | null) => void;
 }
 
 function MetamapV2Inner({
@@ -543,6 +550,8 @@ function MetamapV2Inner({
   schemaGroups,
   modalsOpen,
   expandedSchemas,
+  renamingSchemaId,
+  setRenamingSchemaId,
 }: MetamapV2InnerProps) {
   const { transform, ctrlHeld, startConnection } = useCanvasContext();
   const [highlightedContainerId, setHighlightedContainerId] = useState<string | null>(null);
@@ -714,6 +723,13 @@ function MetamapV2Inner({
               onDoubleClick={() => onSchemaDoubleClick(node.id)}
               onStartConnection={startConnection}
               isExpanded={expandedSchemas.has(node.id)}
+              isRenaming={renamingSchemaId === node.id}
+              onStartRenaming={() => setRenamingSchemaId(node.id)}
+              onStopRenaming={() => setRenamingSchemaId(null)}
+              onCommitRename={(newName) => {
+                updateSchema(node.id, { displayName: newName });
+                setRenamingSchemaId(null);
+              }}
             />
           )}
         </div>
