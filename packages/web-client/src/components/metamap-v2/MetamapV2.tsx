@@ -27,8 +27,8 @@ const SCHEMA_COLORS = [
 
 export default function MetamapV2() {
   const { schemas, updateSchema, getSchema, removeSchema } = useSchemas();
-  const { schemaGroups, addSchemaGroup, removeSchemaGroup } = useSchemaGroups();
-  const { schemaPackages } = useSchemaPackages();
+  const { schemaGroups, addSchemaGroup, removeSchemaGroup, updateSchemaGroup } = useSchemaGroups();
+  const { schemaPackages, updateSchemaPackage } = useSchemaPackages();
   const canvasRef = useRef<CanvasRef>(null);
 
   // Compute layout from Yjs data
@@ -309,7 +309,7 @@ export default function MetamapV2() {
     // Schema node menu
     if (contextMenu.schemaType) {
       const schema = getSchema(contextMenu.schemaType);
-      return [
+      const items: MenuItem[] = [
         {
           key: 'edit-schema',
           label: 'Edit Schema',
@@ -340,21 +340,74 @@ export default function MetamapV2() {
             </div>
           ),
         },
-        {
-          key: 'divider-1',
-          label: '',
-          dividerAfter: true,
-        },
-        {
-          key: 'delete-schema',
-          label: 'Delete Schema',
-          danger: true,
-          onClick: () => {
-            removeSchema(contextMenu.schemaType!);
-            setContextMenu(null);
-          },
-        },
       ];
+
+      // Move to Group submenu
+      const availableGroups = schemaGroups.filter(g => g.id !== schema?.groupId);
+      if (availableGroups.length > 0) {
+        items.push({
+          key: 'move-to-group',
+          label: 'Move to Group',
+          children: availableGroups.map(g => ({
+            key: `move-to-${g.id}`,
+            label: g.name,
+            color: g.color,
+            onClick: () => {
+              updateSchema(contextMenu.schemaType!, { groupId: g.id });
+              setContextMenu(null);
+              handleRelayout();
+            },
+          })),
+        });
+      }
+
+      // Remove from Group
+      if (schema?.groupId) {
+        items.push({
+          key: 'remove-from-group',
+          label: 'Remove from Group',
+          onClick: () => {
+            updateSchema(contextMenu.schemaType!, { groupId: undefined });
+            setContextMenu(null);
+            handleRelayout();
+          },
+        });
+      }
+
+      // Move to Package submenu
+      const availablePackages = schemaPackages.filter(p => p.id !== schema?.packageId);
+      if (availablePackages.length > 0) {
+        items.push({
+          key: 'move-to-package',
+          label: 'Move to Package',
+          children: availablePackages.map(p => ({
+            key: `move-to-pkg-${p.id}`,
+            label: p.name,
+            onClick: () => {
+              updateSchema(contextMenu.schemaType!, { packageId: p.id, groupId: undefined });
+              setContextMenu(null);
+              handleRelayout();
+            },
+          })),
+        });
+      }
+
+      items.push({
+        key: 'divider-1',
+        label: '',
+        dividerAfter: true,
+      });
+      items.push({
+        key: 'delete-schema',
+        label: 'Delete Schema',
+        danger: true,
+        onClick: () => {
+          removeSchema(contextMenu.schemaType!);
+          setContextMenu(null);
+        },
+      });
+
+      return items;
     }
 
     // Group node menu
@@ -370,7 +423,7 @@ export default function MetamapV2() {
               placeholder="New name..."
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && (e.target as HTMLInputElement).value.trim()) {
-                  // TODO: implement rename group
+                  updateSchemaGroup(contextMenu.groupId!, { name: (e.target as HTMLInputElement).value.trim() });
                   setContextMenu(null);
                   handleRelayout();
                 }
@@ -415,7 +468,7 @@ export default function MetamapV2() {
               placeholder="New name..."
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && (e.target as HTMLInputElement).value.trim()) {
-                  // TODO: implement rename package
+                  updateSchemaPackage(contextMenu.packageId!, { name: (e.target as HTMLInputElement).value.trim() });
                   setContextMenu(null);
                   handleRelayout();
                 }
