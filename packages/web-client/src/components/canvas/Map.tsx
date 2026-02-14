@@ -27,6 +27,7 @@ import {
   Trash,
   Warning,
   GridFour,
+  Compass,
 } from '@phosphor-icons/react';
 import { useNodes } from '../../hooks/useNodes';
 import { useEdges } from '../../hooks/useEdges';
@@ -69,6 +70,7 @@ import Narrative from './Narrative';
 import { useLayoutActions } from '../../hooks/useLayoutActions';
 import ToolbarLayoutFlyouts from './ToolbarLayoutFlyouts';
 import LayoutView from './LayoutView';
+import LayoutMap from './LayoutMap';
 
 const nodeTypes = {
   custom: CustomNode,
@@ -318,6 +320,7 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
   const [renamingNodeId, setRenamingNodeId] = useState<string | null>(null);
   const [renamingOrganizerId, setRenamingOrganizerId] = useState<string | null>(null);
   const [showLayoutView, setShowLayoutView] = useState(false);
+  const [showLayoutMap, setShowLayoutMap] = useState(false);
   const { undo, redo, canUndo, canRedo } = useUndoRedo();
 
   // Suppress unused variable warning
@@ -1408,6 +1411,21 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
           </button>
         </Tooltip>
 
+        {/* Layout Map toggle — bottom left, next to Layout View */}
+        <Tooltip content="Layout Map (experimental)">
+          <button
+            onClick={() => setShowLayoutMap(true)}
+            className="absolute bottom-4 left-16 z-10 w-10 h-10 rounded-full shadow-lg border flex items-center justify-center transition-colors"
+            style={{
+              backgroundColor: 'rgb(234, 179, 8)',
+              borderColor: 'rgb(202, 138, 4)',
+              color: 'white',
+            }}
+          >
+            <Compass weight="bold" size={18} />
+          </button>
+        </Tooltip>
+
         {/* Covered nodes warning badge */}
         {coveredNodeIds.length > 0 && (
           <div className="absolute top-[14px] left-[52px]">
@@ -1544,6 +1562,13 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
       {showLayoutView && (
         <div className="absolute inset-0 z-50 bg-canvas">
           <LayoutView onClose={() => setShowLayoutView(false)} />
+        </div>
+      )}
+
+      {/* Layout Map Overlay */}
+      {showLayoutMap && (
+        <div className="absolute inset-0 z-50 bg-canvas">
+          <LayoutMap onClose={() => setShowLayoutMap(false)} />
         </div>
       )}
     </div>
