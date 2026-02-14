@@ -1,6 +1,5 @@
 import { memo, useState, useEffect, useRef, useCallback } from 'react';
 import type { ConstructSchema } from '@carta/domain';
-import { portRegistry } from '@carta/domain';
 import { ConnectionHandle } from '../../canvas-engine/index.js';
 import { Plus } from '@phosphor-icons/react';
 
@@ -154,15 +153,12 @@ export const MetamapSchemaNode = memo(function MetamapSchemaNode({
           {ports.length > 0 && (
             <div className="px-3 py-2 border-t border-border-subtle">
               <div className="text-node-xs text-content-subtle uppercase tracking-wide mb-1">Ports</div>
-              {ports.map((port) => {
-                const portSchema = portRegistry.get(port.portType);
-                return (
-                  <div key={port.id} className="flex gap-2 items-center text-node-xs py-0.5">
-                    <span className="text-content">{port.label}</span>
-                    <span className="text-content-subtle">({port.portType})</span>
-                  </div>
-                );
-              })}
+              {ports.map((port) => (
+                <div key={port.id} className="flex gap-2 items-center text-node-xs py-0.5">
+                  <span className="text-content">{port.label}</span>
+                  <span className="text-content-subtle">({port.portType})</span>
+                </div>
+              ))}
             </div>
           )}
         </>

@@ -15,8 +15,8 @@ import ConstructEditor from '../ConstructEditor.js';
 import type { ConstructSchema, SuggestedRelatedConstruct } from '@carta/domain';
 import { portRegistry } from '@carta/domain';
 import { MetamapConnectionModal } from '../metamap/MetamapConnectionModal.js';
-import { EdgeDetailPopover } from '../metamap/EdgeDetailPopover.js';
-import { Narrative } from '../canvas/Narrative.js';
+import EdgeDetailPopover from '../metamap/EdgeDetailPopover.js';
+import Narrative from '../canvas/Narrative.js';
 import ContextMenuPrimitive, { type MenuItem } from '../ui/ContextMenuPrimitive.js';
 
 const SCHEMA_COLORS = [
