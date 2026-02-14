@@ -26,7 +26,6 @@ export { useFlowTrace } from './useFlowTrace';
 // Utilities
 export { useClipboard } from './useClipboard';
 export { useUndoRedo } from './useUndoRedo';
-export { useKeyboardShortcuts } from './useKeyboardShortcuts';
 export { useAwareness } from './useAwareness';
 export { useDirtyStateGuard } from './useDirtyStateGuard';
 export { useClearDocument } from './useClearDocument';

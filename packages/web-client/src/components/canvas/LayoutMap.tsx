@@ -4,7 +4,7 @@ import type { PinLayoutNode, PinDirection, OrganizerNodeData } from '@carta/doma
 import { useNodes, usePinConstraints } from '../../hooks';
 import LayoutMapOrganizerNode from './LayoutMapOrganizerNode';
 import ContextMenuPrimitive from '../ui/ContextMenuPrimitive';
-import { useViewport, useConnectionDrag, useNodeDrag, DotGrid, ConnectionPreview } from '../../canvas-engine/index.js';
+import { useViewport, useConnectionDrag, useNodeDrag, useKeyboardShortcuts, DotGrid, ConnectionPreview } from '../../canvas-engine/index.js';
 import { EdgeLabel } from '../../canvas-engine/EdgeLabel.js';
 
 interface LayoutMapProps {
@@ -162,6 +162,20 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
 
   // Viewport
   const { transform, containerRef, fitView } = useViewport({ minZoom: 0.15, maxZoom: 2 });
+
+  // Keyboard shortcuts (minimal, ready for future expansion with box-select)
+  useKeyboardShortcuts({
+    shortcuts: [
+      {
+        key: ['Delete', 'Backspace'],
+        action: () => {
+          // Delete the most recently right-clicked edge, if context menu was open
+          // For now, no-op — LayoutMap doesn't have selection yet.
+          // This wires up the infrastructure for when useBoxSelect is added.
+        },
+      },
+    ],
+  });
 
   // Refs for accessing current values inside native event listeners (Pattern 2: stable callbacks)
   const localNodesRef = useRef(localNodes);

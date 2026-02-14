@@ -48,7 +48,7 @@ import { useUndoRedo } from '../../hooks/useUndoRedo';
 import { useGraphOperations } from '../../hooks/useGraphOperations';
 import { useConnections } from '../../hooks/useConnections';
 import { useClipboard } from '../../hooks/useClipboard';
-import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
+import { useKeyboardShortcuts } from '../../canvas-engine/index.js';
 import { useEdgeCleanup } from '../../hooks/useEdgeCleanup';
 import type { ConstructValues, ConstructNodeData, OrganizerNodeData } from '@carta/domain';
 import { nodeContainedInOrganizer, getDisplayName, resolveNodeColor } from '@carta/domain';
@@ -415,17 +415,18 @@ export default function Map({ title, onNodesEdgesChange, onSelectionChange, onNo
 
   // Use keyboard shortcuts hook
   useKeyboardShortcuts({
-    selectedNodeIds,
-    canPaste,
-    undo,
-    redo,
-    copyNodes,
-    pasteNodes,
-    deleteSelectedNodes,
-    startRename,
-    createOrganizer,
-    selectAll,
-    toggleSelectionMode,
+    shortcuts: [
+      { key: 'z', mod: true, action: undo },
+      { key: 'y', mod: true, action: redo },
+      { key: 'z', mod: true, shift: true, action: redo },
+      { key: 'c', mod: true, action: () => { if (selectedNodeIds.length > 0) copyNodes(); } },
+      { key: 'v', mod: true, action: () => { if (canPaste) pasteNodes(); } },
+      { key: 'g', mod: true, action: () => { if (selectedNodeIds.length >= 2 && createOrganizer) createOrganizer(); } },
+      { key: 'a', mod: true, action: () => { if (selectAll) selectAll(); } },
+      { key: ['v', 'V'], action: () => { if (toggleSelectionMode) toggleSelectionMode(); } },
+      { key: ['Delete', 'Backspace'], action: () => { if (selectedNodeIds.length > 0) deleteSelectedNodes(); } },
+      { key: 'F2', action: () => { if (selectedNodeIds.length === 1) startRename(); } },
+    ],
   });
 
   // Notify parent of nodes/edges changes for export

@@ -42,6 +42,7 @@ import { useEdgeBundling } from '../../hooks/useEdgeBundling';
 import { useNarrative } from '../../hooks/useNarrative';
 import { useSchemaUndoRedo } from '../../hooks/useSchemaUndoRedo';
 import { usePages } from '../../hooks/usePages';
+import { useKeyboardShortcuts } from '../../canvas-engine/index.js';
 // ZoomDebug disabled for performance
 import type { MetamapLayoutDirection } from '../../utils/metamapLayout';
 import type { ConstructSchema, SuggestedRelatedConstruct, SchemaGroup } from '@carta/domain';
@@ -698,37 +699,25 @@ function MetamapInner({ filterText }: MetamapInnerProps) {
   const { displayEdges } = useEdgeBundling(remappedEdges, nodeTypeMap);
 
   // Keyboard shortcuts for metamap
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
-
-      // Undo: Ctrl+Z
-      if ((event.ctrlKey || event.metaKey) && event.key === 'z' && !event.shiftKey) {
-        event.preventDefault();
-        undo();
-        return;
-      }
-      // Redo: Ctrl+Y or Ctrl+Shift+Z
-      if ((event.ctrlKey || event.metaKey) && (event.key === 'y' || (event.key === 'z' && event.shiftKey))) {
-        event.preventDefault();
-        redo();
-        return;
-      }
-      // Delete selected schema: Delete/Backspace
-      if (event.key === 'Delete' || event.key === 'Backspace') {
-        const selected = reactFlow.getNodes().filter(n => n.selected && n.type === 'schema-node');
-        for (const node of selected) {
-          const schema = getSchema(node.id);
-          if (schema) {
-            updateSchema(schema.type, { _deleted: true } as Partial<ConstructSchema>);
+  useKeyboardShortcuts({
+    shortcuts: [
+      { key: 'z', mod: true, action: undo },
+      { key: 'y', mod: true, action: redo },
+      { key: 'z', mod: true, shift: true, action: redo },
+      {
+        key: ['Delete', 'Backspace'],
+        action: () => {
+          const selected = reactFlow.getNodes().filter(n => n.selected && n.type === 'schema-node');
+          for (const node of selected) {
+            const schema = getSchema(node.id);
+            if (schema) {
+              updateSchema(schema.type, { _deleted: true } as Partial<ConstructSchema>);
+            }
           }
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [undo, redo, reactFlow, getSchema, updateSchema]);
+        },
+      },
+    ],
+  });
 
   // Detect non-parented schema nodes visually covered by organizers
   const coveredNodeIds = useMemo(() => {
