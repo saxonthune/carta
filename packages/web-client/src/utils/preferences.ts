@@ -7,3 +7,11 @@ export function getLastDocumentId(): string | null {
 export function setLastDocumentId(id: string): void {
   localStorage.setItem(`${PREFIX}last-document-id`, id);
 }
+
+export function getLastHelpTab(): string | null {
+  return localStorage.getItem(`${PREFIX}last-help-tab`);
+}
+
+export function setLastHelpTab(tab: string): void {
+  localStorage.setItem(`${PREFIX}last-help-tab`, tab);
+}
