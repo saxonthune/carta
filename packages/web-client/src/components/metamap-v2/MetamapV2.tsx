@@ -1,5 +1,5 @@
 import { useRef, useEffect, useMemo, useState, useCallback } from 'react';
-import { Canvas, type CanvasRef, useCanvasContext, useNodeDrag, findContainerAt } from '../../canvas-engine/index.js';
+import { Canvas, type CanvasRef, useCanvasContext, useNodeDrag, findContainerAt, ConnectionPreview } from '../../canvas-engine/index.js';
 import { useSchemas } from '../../hooks/useSchemas.js';
 import { useSchemaGroups } from '../../hooks/useSchemaGroups.js';
 import { useSchemaPackages } from '../../hooks/useSchemaPackages.js';
@@ -11,6 +11,7 @@ import CanvasToolbar, { ToolbarButton, ToolbarDivider } from '../canvas/CanvasTo
 import { MagnifyingGlassPlus, MagnifyingGlassMinus, CornersOut, ArrowsClockwise } from '@phosphor-icons/react';
 import ConstructEditor from '../ConstructEditor.js';
 import type { ConstructSchema } from '@carta/domain';
+import { MetamapConnectionModal } from '../metamap/MetamapConnectionModal.js';
 
 export default function MetamapV2() {
   const { schemas, updateSchema, getSchema } = useSchemas();
@@ -70,10 +71,70 @@ export default function MetamapV2() {
   // Schema editor state
   const [editorState, setEditorState] = useState<{ open: boolean; editSchema?: ConstructSchema }>({ open: false });
 
+  // Connection modal state
+  const [connectionModal, setConnectionModal] = useState<{
+    sourceSchema: ConstructSchema;
+    targetSchema: ConstructSchema;
+  } | null>(null);
+
   const handleSchemaDoubleClick = useCallback((schemaType: string) => {
     const schema = getSchema(schemaType);
     if (schema) setEditorState({ open: true, editSchema: schema });
   }, [getSchema]);
+
+  // Connection handlers
+  const handleConnect = useCallback((connection: { source: string; sourceHandle: string; target: string; targetHandle: string }) => {
+    if (connection.source === connection.target) return;
+    const source = getSchema(connection.source);
+    const target = getSchema(connection.target);
+    if (source && target) {
+      setConnectionModal({ sourceSchema: source, targetSchema: target });
+    }
+  }, [getSchema]);
+
+  const isValidConnection = useCallback((connection: { source: string; sourceHandle: string; target: string; targetHandle: string }) => {
+    return connection.source !== connection.target;
+  }, []);
+
+  const handleSaveConnection = useCallback((config: {
+    sourceSchema: ConstructSchema;
+    targetSchema: ConstructSchema;
+    fromPortId: string;
+    toPortId: string;
+    label: string;
+    inverse: boolean;
+    inverseLabel: string;
+  }) => {
+    const existingRelated = config.sourceSchema.suggestedRelated || [];
+    updateSchema(config.sourceSchema.type, {
+      suggestedRelated: [
+        ...existingRelated,
+        {
+          constructType: config.targetSchema.type,
+          fromPortId: config.fromPortId,
+          toPortId: config.toPortId,
+          label: config.label || undefined,
+        },
+      ],
+    });
+
+    if (config.inverse) {
+      const targetRelated = config.targetSchema.suggestedRelated || [];
+      updateSchema(config.targetSchema.type, {
+        suggestedRelated: [
+          ...targetRelated,
+          {
+            constructType: config.sourceSchema.type,
+            fromPortId: config.toPortId,
+            toPortId: config.fromPortId,
+            label: config.inverseLabel || undefined,
+          },
+        ],
+      });
+    }
+
+    setConnectionModal(null);
+  }, [updateSchema]);
 
   // Re-layout handler
   const handleRelayout = useCallback(() => {
@@ -113,7 +174,27 @@ export default function MetamapV2() {
       <Canvas
         ref={canvasRef}
         viewportOptions={{ minZoom: 0.1, maxZoom: 2 }}
+        connectionDrag={{ onConnect: handleConnect, isValidConnection }}
         renderEdges={() => null}
+        renderConnectionPreview={(drag, transform) => {
+          const sourceNode = localNodes.find(n => n.id === drag.sourceNodeId);
+          if (!sourceNode) return null;
+          const absX = getAbsoluteX(sourceNode, localNodes);
+          const absY = getAbsoluteY(sourceNode, localNodes);
+          const sx = absX + sourceNode.size.width / 2;
+          const sy = absY + sourceNode.size.height / 2;
+          // Convert cursor screen coords to canvas coords
+          const canvasX = (drag.currentX - transform.x) / transform.k;
+          const canvasY = (drag.currentY - transform.y) / transform.k;
+          return (
+            <ConnectionPreview
+              d={`M ${sx},${sy} L ${canvasX},${canvasY}`}
+              stroke="var(--color-accent)"
+              strokeWidth={2}
+              strokeDasharray="6 3"
+            />
+          );
+        }}
         className="w-full h-full"
       >
         <MetamapV2Inner
@@ -147,6 +228,14 @@ export default function MetamapV2() {
           onClose={() => setEditorState({ open: false })}
         />
       )}
+      {connectionModal && (
+        <MetamapConnectionModal
+          sourceSchema={connectionModal.sourceSchema}
+          targetSchema={connectionModal.targetSchema}
+          onSave={handleSaveConnection}
+          onCancel={() => setConnectionModal(null)}
+        />
+      )}
     </div>
   );
 }
@@ -170,7 +259,7 @@ function MetamapV2Inner({
   updateSchema,
   schemaGroups,
 }: MetamapV2InnerProps) {
-  const { transform, ctrlHeld } = useCanvasContext();
+  const { transform, ctrlHeld, startConnection } = useCanvasContext();
   const [highlightedContainerId, setHighlightedContainerId] = useState<string | null>(null);
 
   // Drag origin tracking
@@ -361,6 +450,7 @@ function MetamapV2Inner({
               height={node.size.height}
               onPointerDown={(e) => handleNodePointerDown(node.id, e)}
               onDoubleClick={() => onSchemaDoubleClick(node.id)}
+              onStartConnection={startConnection}
             />
           )}
         </div>
