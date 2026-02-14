@@ -19,6 +19,12 @@ import { EdgeDetailPopover } from '../metamap/EdgeDetailPopover.js';
 import { Narrative } from '../canvas/Narrative.js';
 import ContextMenuPrimitive, { type MenuItem } from '../ui/ContextMenuPrimitive.js';
 
+const SCHEMA_COLORS = [
+  '#7c7fca', '#8a7cb8', '#9488b8', '#b87c8a',
+  '#c49a4c', '#c4a94e', '#5ba88e', '#5a9e9e',
+  '#6a8fc0', '#6b7280', '#8a7060', '#4a5568',
+];
+
 export default function MetamapV2() {
   const { schemas, updateSchema, getSchema, removeSchema } = useSchemas();
   const { schemaGroups, addSchemaGroup, removeSchemaGroup } = useSchemaGroups();
@@ -311,6 +317,28 @@ export default function MetamapV2() {
             if (schema) setEditorState({ open: true, editSchema: schema });
             setContextMenu(null);
           },
+        },
+        {
+          key: 'change-color',
+          label: 'Change Color',
+          renderContent: (
+            <div className="flex flex-wrap gap-1 px-1 py-0.5">
+              {SCHEMA_COLORS.map(color => (
+                <button
+                  key={color}
+                  type="button"
+                  className={`w-5 h-5 rounded border-2 cursor-pointer transition-all hover:scale-110 ${
+                    schema?.color === color ? 'border-white shadow-[0_0_0_2px_var(--color-accent)]' : 'border-transparent'
+                  }`}
+                  style={{ backgroundColor: color }}
+                  onClick={() => {
+                    updateSchema(contextMenu.schemaType!, { color });
+                    setContextMenu(null);
+                  }}
+                />
+              ))}
+            </div>
+          ),
         },
         {
           key: 'divider-1',
