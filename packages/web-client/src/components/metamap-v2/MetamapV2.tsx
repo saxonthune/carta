@@ -5,12 +5,13 @@ import { useSchemaGroups } from '../../hooks/useSchemaGroups.js';
 import { useSchemaPackages } from '../../hooks/useSchemaPackages.js';
 import { useSchemaUndoRedo } from '../../hooks/useSchemaUndoRedo.js';
 import { useNarrative } from '../../hooks/useNarrative.js';
+import { usePages } from '../../hooks/usePages.js';
 import { computeMetamapV2Layout, type MetamapV2Node, type MetamapV2Edge } from '../../utils/metamapV2Layout.js';
 import { MetamapSchemaNode } from './MetamapSchemaNode.js';
 import { MetamapPackageNode } from './MetamapPackageNode.js';
 import { MetamapGroupNode } from './MetamapGroupNode.js';
 import CanvasToolbar, { ToolbarButton, ToolbarDivider } from '../canvas/CanvasToolbar.js';
-import { MagnifyingGlassPlus, MagnifyingGlassMinus, CornersOut, ArrowsClockwise } from '@phosphor-icons/react';
+import { MagnifyingGlassPlus, MagnifyingGlassMinus, CornersOut, ArrowsClockwise, MagnifyingGlass, X, Trash, FolderMinus, ArrowUUpLeft, ArrowUUpRight } from '@phosphor-icons/react';
 import ConstructEditor from '../ConstructEditor.js';
 import type { ConstructSchema, SuggestedRelatedConstruct } from '@carta/domain';
 import { portRegistry } from '@carta/domain';
@@ -18,6 +19,7 @@ import { MetamapConnectionModal } from '../metamap/MetamapConnectionModal.js';
 import EdgeDetailPopover from '../metamap/EdgeDetailPopover.js';
 import Narrative from '../canvas/Narrative.js';
 import ContextMenuPrimitive, { type MenuItem } from '../ui/ContextMenuPrimitive.js';
+import { DeleteEmptySchemasModal, DeleteEmptyGroupsModal } from '../modals/index.js';
 
 const SCHEMA_COLORS = [
   '#7c7fca', '#8a7cb8', '#9488b8', '#b87c8a',
@@ -29,6 +31,7 @@ export default function MetamapV2() {
   const { schemas, updateSchema, getSchema, removeSchema } = useSchemas();
   const { schemaGroups, addSchemaGroup, removeSchemaGroup, updateSchemaGroup } = useSchemaGroups();
   const { schemaPackages, updateSchemaPackage } = useSchemaPackages();
+  const { undo, redo, canUndo, canRedo } = useSchemaUndoRedo();
   const canvasRef = useRef<CanvasRef>(null);
 
   // Compute layout from Yjs data
@@ -111,6 +114,62 @@ export default function MetamapV2() {
   // Schema rename state
   const [renamingSchemaId, setRenamingSchemaId] = useState<string | null>(null);
 
+  // Filter state
+  const [filterText, setFilterText] = useState('');
+  const [filterVisible, setFilterVisible] = useState(false);
+
+  // Delete empty state
+  const [showDeleteEmpty, setShowDeleteEmpty] = useState(false);
+  const [showDeleteEmptyGroups, setShowDeleteEmptyGroups] = useState(false);
+
+  // Compute empty schemas and groups
+  const { pages } = usePages();
+  const emptySchemas = useMemo(() => {
+    const usedTypes = new Set<string>();
+    for (const page of pages) {
+      for (const node of (page.nodes as Array<{ data?: { constructType?: string } }>)) {
+        if (node.data?.constructType) usedTypes.add(node.data.constructType);
+      }
+    }
+    return schemas.filter(s => !usedTypes.has(s.type));
+  }, [schemas, pages]);
+
+  const emptyGroups = useMemo(() => {
+    const groupsWithSchemas = new Set<string>();
+    for (const schema of schemas) {
+      if (schema.groupId) groupsWithSchemas.add(schema.groupId);
+    }
+    return schemaGroups.filter(g => !groupsWithSchemas.has(g.id));
+  }, [schemas, schemaGroups]);
+
+  // Filter matching logic
+  const matchingSchemaTypes = useMemo(() => {
+    if (!filterText.trim()) return null;
+    const q = filterText.toLowerCase();
+    return new Set(
+      schemas.filter(s =>
+        s.displayName.toLowerCase().includes(q) || s.type.toLowerCase().includes(q)
+      ).map(s => s.type)
+    );
+  }, [filterText, schemas]);
+
+  const dimmedSchemaTypes = useMemo(() => {
+    if (!matchingSchemaTypes) return new Set<string>();
+    return new Set(schemas.filter(s => !matchingSchemaTypes.has(s.type)).map(s => s.type));
+  }, [matchingSchemaTypes, schemas]);
+
+  const containersWithMatches = useMemo(() => {
+    const result = new Set<string>();
+    if (!matchingSchemaTypes) return result;
+    for (const s of schemas) {
+      if (matchingSchemaTypes.has(s.type)) {
+        if (s.packageId) result.add(`package:${s.packageId}`);
+        if (s.groupId) result.add(`group:${s.groupId}`);
+      }
+    }
+    return result;
+  }, [matchingSchemaTypes, schemas]);
+
   const handleSchemaDoubleClick = useCallback((schemaType: string) => {
     setExpandedSchemas(prev => {
       const next = new Set(prev);
@@ -122,6 +181,16 @@ export default function MetamapV2() {
       return next;
     });
   }, []);
+
+  const handleDeleteEmptySchemas = useCallback(() => {
+    for (const schema of emptySchemas) removeSchema(schema.type);
+    setShowDeleteEmpty(false);
+  }, [emptySchemas, removeSchema]);
+
+  const handleDeleteEmptyGroups = useCallback(() => {
+    for (const group of emptyGroups) removeSchemaGroup(group.id);
+    setShowDeleteEmptyGroups(false);
+  }, [emptyGroups, removeSchemaGroup]);
 
   // Edge interaction handlers
   const handleEdgeClick = useCallback((edge: MetamapV2Edge, event: React.MouseEvent) => {
@@ -538,9 +607,60 @@ export default function MetamapV2() {
           renamingSchemaId={renamingSchemaId}
           setRenamingSchemaId={setRenamingSchemaId}
           onRelayout={handleRelayout}
+          dimmedSchemaTypes={dimmedSchemaTypes}
+          matchingSchemaTypes={matchingSchemaTypes}
+          containersWithMatches={containersWithMatches}
+          onOpenFilter={() => setFilterVisible(true)}
+          undo={undo}
+          redo={redo}
         />
       </Canvas>
+      {filterVisible && (
+        <div
+          className="absolute top-4 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-2 bg-surface rounded-lg px-3 py-2"
+          style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05)' }}
+        >
+          <MagnifyingGlass weight="bold" size={16} className="text-content-subtle shrink-0" />
+          <input
+            autoFocus
+            type="text"
+            value={filterText}
+            onChange={e => setFilterText(e.target.value)}
+            onKeyDown={e => {
+              e.stopPropagation();
+              if (e.key === 'Escape') {
+                setFilterText('');
+                setFilterVisible(false);
+              }
+            }}
+            placeholder="Filter schemas..."
+            className="bg-transparent border-none outline-none text-content text-sm w-48 placeholder:text-content-subtle"
+          />
+          {filterText.trim() && matchingSchemaTypes && (
+            <span className="text-[10px] font-medium text-content-subtle bg-surface-alt px-1.5 py-0.5 rounded shrink-0">
+              {matchingSchemaTypes.size} match{matchingSchemaTypes.size !== 1 ? 'es' : ''}
+            </span>
+          )}
+          <button
+            onClick={() => { setFilterText(''); setFilterVisible(false); }}
+            className="text-content-subtle hover:text-content p-0.5 shrink-0 cursor-pointer"
+          >
+            <X weight="bold" size={16} />
+          </button>
+        </div>
+      )}
       <CanvasToolbar>
+        <div className={canUndo ? '' : 'opacity-30 pointer-events-none'}>
+          <ToolbarButton onClick={undo} tooltip="Undo (Ctrl+Z)">
+            <ArrowUUpLeft size={16} />
+          </ToolbarButton>
+        </div>
+        <div className={canRedo ? '' : 'opacity-30 pointer-events-none'}>
+          <ToolbarButton onClick={redo} tooltip="Redo (Ctrl+Y)">
+            <ArrowUUpRight size={16} />
+          </ToolbarButton>
+        </div>
+        <ToolbarDivider />
         <ToolbarButton onClick={() => canvasRef.current?.zoomIn()} tooltip="Zoom in">
           <MagnifyingGlassPlus size={16} />
         </ToolbarButton>
@@ -554,6 +674,21 @@ export default function MetamapV2() {
         <ToolbarButton onClick={handleRelayout} tooltip="Re-layout">
           <ArrowsClockwise size={16} />
         </ToolbarButton>
+        <ToolbarDivider />
+        <ToolbarButton onClick={() => setFilterVisible(v => !v)} tooltip="Filter schemas (Ctrl+F)">
+          <MagnifyingGlass size={16} />
+        </ToolbarButton>
+        <ToolbarDivider />
+        <div className={emptySchemas.length === 0 ? 'opacity-30 pointer-events-none' : ''}>
+          <ToolbarButton onClick={() => setShowDeleteEmpty(true)} tooltip="Delete empty schemas">
+            <Trash size={16} />
+          </ToolbarButton>
+        </div>
+        <div className={emptyGroups.length === 0 ? 'opacity-30 pointer-events-none' : ''}>
+          <ToolbarButton onClick={() => setShowDeleteEmptyGroups(true)} tooltip="Delete empty groups">
+            <FolderMinus size={16} />
+          </ToolbarButton>
+        </div>
       </CanvasToolbar>
       {editorState.open && (
         <ConstructEditor
@@ -590,6 +725,18 @@ export default function MetamapV2() {
           onClose={() => setEdgePopover(null)}
         />
       )}
+      <DeleteEmptySchemasModal
+        isOpen={showDeleteEmpty}
+        onClose={() => setShowDeleteEmpty(false)}
+        emptySchemas={emptySchemas}
+        onDelete={handleDeleteEmptySchemas}
+      />
+      <DeleteEmptyGroupsModal
+        isOpen={showDeleteEmptyGroups}
+        onClose={() => setShowDeleteEmptyGroups(false)}
+        emptyGroups={emptyGroups}
+        onDelete={handleDeleteEmptyGroups}
+      />
     </div>
   );
 }
@@ -607,6 +754,12 @@ interface MetamapV2InnerProps {
   renamingSchemaId: string | null;
   setRenamingSchemaId: (id: string | null) => void;
   onRelayout: () => void;
+  dimmedSchemaTypes: Set<string>;
+  matchingSchemaTypes: Set<string> | null;
+  containersWithMatches: Set<string>;
+  onOpenFilter: () => void;
+  undo: () => void;
+  redo: () => void;
 }
 
 function MetamapV2Inner({
@@ -622,17 +775,23 @@ function MetamapV2Inner({
   renamingSchemaId,
   setRenamingSchemaId,
   onRelayout,
+  dimmedSchemaTypes,
+  matchingSchemaTypes,
+  containersWithMatches,
+  onOpenFilter,
+  undo,
+  redo,
 }: MetamapV2InnerProps) {
   const { transform, ctrlHeld, startConnection } = useCanvasContext();
   const [highlightedContainerId, setHighlightedContainerId] = useState<string | null>(null);
 
   // Keyboard shortcuts
-  const { undo, redo } = useSchemaUndoRedo();
   useKeyboardShortcuts({
     shortcuts: [
       { key: 'z', mod: true, action: undo },
       { key: 'y', mod: true, action: redo },
       { key: 'z', mod: true, shift: true, action: redo },
+      { key: 'f', mod: true, action: onOpenFilter },
     ],
     disabled: modalsOpen,
   });
@@ -756,6 +915,7 @@ function MetamapV2Inner({
               height={node.size.height}
               schemaCount={node.data.schemaCount}
               onPointerDown={(e) => handleNodePointerDown(node.id, e)}
+              isDimmed={matchingSchemaTypes !== null && !containersWithMatches.has(`package:${node.data.pkg.id}`)}
             />
           )}
           {node.type === 'group' && node.data.kind === 'group' && (
@@ -765,6 +925,7 @@ function MetamapV2Inner({
               height={node.size.height}
               schemaCount={node.data.schemaCount}
               onPointerDown={(e) => handleNodePointerDown(node.id, e)}
+              isDimmed={matchingSchemaTypes !== null && !containersWithMatches.has(`group:${node.data.group.id}`)}
             />
           )}
         </div>
@@ -800,6 +961,8 @@ function MetamapV2Inner({
                 updateSchema(node.id, { displayName: newName });
                 setRenamingSchemaId(null);
               }}
+              isDimmed={dimmedSchemaTypes.has(node.id)}
+              isHighlighted={matchingSchemaTypes ? matchingSchemaTypes.has(node.id) : false}
             />
           )}
         </div>

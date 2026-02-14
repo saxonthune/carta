@@ -7,6 +7,7 @@ interface MetamapGroupNodeProps {
   height: number;
   schemaCount: number;
   onPointerDown?: (e: React.PointerEvent) => void;
+  isDimmed?: boolean;
 }
 
 export const MetamapGroupNode = memo(function MetamapGroupNode({
@@ -14,7 +15,8 @@ export const MetamapGroupNode = memo(function MetamapGroupNode({
   width,
   height,
   schemaCount,
-  onPointerDown
+  onPointerDown,
+  isDimmed
 }: MetamapGroupNodeProps) {
   const color = group.color || '#6366f1';
   return (
@@ -25,6 +27,8 @@ export const MetamapGroupNode = memo(function MetamapGroupNode({
         height,
         backgroundColor: `color-mix(in srgb, ${color} 5%, transparent)`,
         border: `1px dashed color-mix(in srgb, ${color} 40%, var(--color-border-subtle))`,
+        opacity: isDimmed ? 0.3 : 1,
+        transition: 'opacity 200ms',
       }}
       data-drop-target="true"
       data-container-id={`group:${group.id}`}

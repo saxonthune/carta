@@ -7,6 +7,7 @@ interface MetamapPackageNodeProps {
   height: number;
   schemaCount: number;
   onPointerDown?: (e: React.PointerEvent) => void;
+  isDimmed?: boolean;
 }
 
 export const MetamapPackageNode = memo(function MetamapPackageNode({
@@ -14,7 +15,8 @@ export const MetamapPackageNode = memo(function MetamapPackageNode({
   width,
   height,
   schemaCount,
-  onPointerDown
+  onPointerDown,
+  isDimmed
 }: MetamapPackageNodeProps) {
   return (
     <div
@@ -24,6 +26,8 @@ export const MetamapPackageNode = memo(function MetamapPackageNode({
         height,
         backgroundColor: `color-mix(in srgb, ${pkg.color} 8%, var(--color-surface))`,
         border: `2px solid color-mix(in srgb, ${pkg.color} 30%, var(--color-border-subtle))`,
+        opacity: isDimmed ? 0.3 : 1,
+        transition: 'opacity 200ms',
       }}
       data-drop-target="true"
       data-container-id={`package:${pkg.id}`}

@@ -15,6 +15,8 @@ interface MetamapSchemaNodeProps {
   onStartRenaming?: () => void;
   onStopRenaming?: () => void;
   onCommitRename?: (newName: string) => void;
+  isDimmed?: boolean;
+  isHighlighted?: boolean;
 }
 
 export const MetamapSchemaNode = memo(function MetamapSchemaNode({
@@ -29,6 +31,8 @@ export const MetamapSchemaNode = memo(function MetamapSchemaNode({
   onStartRenaming,
   onStopRenaming,
   onCommitRename,
+  isDimmed,
+  isHighlighted,
 }: MetamapSchemaNodeProps) {
   const ports = schema.ports || [];
 
@@ -85,7 +89,12 @@ export const MetamapSchemaNode = memo(function MetamapSchemaNode({
         height: isExpanded ? 'auto' : height,
         border: '1px solid var(--color-border-subtle)',
         borderLeft: `3px solid color-mix(in srgb, ${schema.color} 70%, var(--color-surface-alt))`,
-        boxShadow: 'var(--node-shadow)',
+        boxShadow: isHighlighted
+          ? `0 0 0 2px ${schema.color}50, 0 0 12px ${schema.color}30`
+          : 'var(--node-shadow)',
+        opacity: isDimmed ? 0.2 : 1,
+        pointerEvents: isDimmed ? ('none' as const) : ('auto' as const),
+        transition: 'opacity 200ms',
       }}
     >
       <ConnectionHandle
