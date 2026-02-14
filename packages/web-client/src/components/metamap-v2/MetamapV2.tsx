@@ -334,7 +334,7 @@ export default function MetamapV2() {
         viewportOptions={{ minZoom: 0.1, maxZoom: 2 }}
         connectionDrag={{ onConnect: handleConnect, isValidConnection }}
         onBackgroundPointerDown={() => setContextMenu(null)}
-        renderEdges={() => null}
+        renderEdges={() => <MetamapEdgeLayer edges={layoutResult.edges} nodes={localNodes} />}
         renderConnectionPreview={(drag, transform) => {
           const sourceNode = localNodes.find(n => n.id === drag.sourceNodeId);
           if (!sourceNode) return null;
@@ -535,56 +535,8 @@ function MetamapV2Inner({
     }));
   }, [localNodes]);
 
-  // Render edges
-  const edgeElements = useMemo(() => {
-    return edges.map(edge => {
-      const sourceNode = absoluteNodes.find(n => n.id === edge.source);
-      const targetNode = absoluteNodes.find(n => n.id === edge.target);
-      if (!sourceNode || !targetNode) return null;
-
-      const sx = sourceNode.absolutePosition.x + sourceNode.size.width / 2;
-      const sy = sourceNode.absolutePosition.y + sourceNode.size.height;
-      const tx = targetNode.absolutePosition.x + targetNode.size.width / 2;
-      const ty = targetNode.absolutePosition.y;
-
-      return (
-        <g key={edge.id}>
-          <line
-            x1={sx} y1={sy}
-            x2={tx} y2={ty}
-            stroke="var(--color-content-subtle)"
-            strokeWidth={1.5}
-          />
-          {edge.label && (
-            <text
-              x={(sx + tx) / 2}
-              y={(sy + ty) / 2 - 6}
-              textAnchor="middle"
-              fill="var(--color-content-subtle)"
-              fontSize={10}
-            >
-              {edge.label}
-            </text>
-          )}
-        </g>
-      );
-    });
-  }, [edges, absoluteNodes]);
-
   return (
     <>
-      <svg
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          pointerEvents: 'none',
-        }}
-      >
-        {edgeElements}
-      </svg>
       {/* Container nodes (packages + groups) rendered first */}
       {absoluteNodes.filter(n => n.type === 'package' || n.type === 'group').map(node => (
         <div
@@ -653,6 +605,52 @@ function MetamapV2Inner({
           )}
         </div>
       ))}
+    </>
+  );
+}
+
+// Edge layer component
+function MetamapEdgeLayer({ edges, nodes }: { edges: MetamapV2Edge[]; nodes: MetamapV2Node[] }) {
+  return (
+    <>
+      {edges.map(edge => {
+        const sourceNode = nodes.find(n => n.id === edge.source);
+        const targetNode = nodes.find(n => n.id === edge.target);
+        if (!sourceNode || !targetNode) return null;
+
+        const absX1 = getAbsoluteX(sourceNode, nodes);
+        const absY1 = getAbsoluteY(sourceNode, nodes);
+        const absX2 = getAbsoluteX(targetNode, nodes);
+        const absY2 = getAbsoluteY(targetNode, nodes);
+
+        const sx = absX1 + sourceNode.size.width / 2;
+        const sy = absY1 + sourceNode.size.height;
+        const tx = absX2 + targetNode.size.width / 2;
+        const ty = absY2;
+
+        return (
+          <g key={edge.id}>
+            <line
+              x1={sx} y1={sy}
+              x2={tx} y2={ty}
+              stroke="var(--color-content-subtle)"
+              strokeWidth={1.5}
+              style={{ pointerEvents: 'none' }}
+            />
+            {edge.label && (
+              <text
+                x={(sx + tx) / 2}
+                y={(sy + ty) / 2 - 6}
+                textAnchor="middle"
+                fill="var(--color-content-subtle)"
+                fontSize={10}
+              >
+                {edge.label}
+              </text>
+            )}
+          </g>
+        );
+      })}
     </>
   );
 }
