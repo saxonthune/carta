@@ -1,4 +1,5 @@
 import type { SchemaSeed } from '../seed-loader.js';
+import { flowInPort, flowOutPort, childPort, parentPort } from '../port-schemas.js';
 
 export const awsSeed: SchemaSeed = {
   group: {
@@ -7,6 +8,7 @@ export const awsSeed: SchemaSeed = {
     color: '#ff9900',
     description: 'Amazon Web Services cloud architecture constructs',
   },
+  portSchemas: [flowInPort, flowOutPort, childPort, parentPort],
   schemas: [
     // Lambda Function
     {

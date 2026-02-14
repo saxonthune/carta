@@ -5,7 +5,7 @@
  * Web-client re-exports these and adds browser-specific import/export functions.
  */
 
-import type { ConstructSchema, PortSchema, SchemaGroup } from '@carta/domain';
+import type { ConstructSchema, PortSchema, SchemaGroup, CartaSchemasFile } from '@carta/domain';
 import { CARTA_FILE_VERSION } from './constants.js';
 
 /**
@@ -286,4 +286,135 @@ function repairOrphanedConnections(
     ...obj,
     pages: repairedPages,
   };
+}
+
+// ============================================
+// .carta-schemas file format (M1-only library packages)
+// ============================================
+
+/**
+ * Parse and validate a .carta-schemas file from raw string content
+ */
+export function importSchemasFromString(content: string): CartaSchemasFile {
+  const data = JSON.parse(content);
+  return validateCartaSchemasFile(data);
+}
+
+/**
+ * Validate the structure of a .carta-schemas file
+ */
+export function validateCartaSchemasFile(data: unknown): CartaSchemasFile {
+  if (!data || typeof data !== 'object') {
+    throw new Error('Invalid .carta-schemas file: expected JSON object');
+  }
+
+  const obj = data as Record<string, unknown>;
+
+  // Check formatVersion
+  if (obj.formatVersion !== 1) {
+    throw new Error('Invalid .carta-schemas file: formatVersion must be 1');
+  }
+
+  // Check required fields
+  if (typeof obj.name !== 'string') {
+    throw new Error('Invalid .carta-schemas file: missing or invalid name');
+  }
+
+  if (typeof obj.version !== 'number') {
+    throw new Error('Invalid .carta-schemas file: missing or invalid version');
+  }
+
+  if (typeof obj.exportedAt !== 'string') {
+    throw new Error('Invalid .carta-schemas file: missing or invalid exportedAt');
+  }
+
+  // Validate schemas array
+  if (!Array.isArray(obj.schemas)) {
+    throw new Error('Invalid .carta-schemas file: missing or invalid schemas array');
+  }
+
+  for (const schema of obj.schemas as unknown[]) {
+    if (!schema || typeof schema !== 'object') {
+      throw new Error('Invalid .carta-schemas file: invalid schema structure');
+    }
+    const s = schema as Record<string, unknown>;
+    if (typeof s.type !== 'string' || typeof s.displayName !== 'string' ||
+        typeof s.color !== 'string' || !Array.isArray(s.fields) || !s.compilation) {
+      throw new Error('Invalid .carta-schemas file: schema missing required fields');
+    }
+    if (s.ports !== undefined) {
+      if (!Array.isArray(s.ports)) {
+        throw new Error(`Invalid .carta-schemas file: schema "${s.type}" has invalid ports (must be array)`);
+      }
+      for (const port of s.ports as unknown[]) {
+        if (!port || typeof port !== 'object') {
+          throw new Error(`Invalid .carta-schemas file: schema "${s.type}" has invalid port structure`);
+        }
+        const p = port as Record<string, unknown>;
+        if (typeof p.id !== 'string' || typeof p.portType !== 'string' ||
+            typeof p.label !== 'string') {
+          throw new Error(`Invalid .carta-schemas file: schema "${s.type}" has port missing required fields (id, portType, label)`);
+        }
+      }
+    }
+  }
+
+  // Validate portSchemas array
+  if (!Array.isArray(obj.portSchemas)) {
+    throw new Error('Invalid .carta-schemas file: missing or invalid portSchemas array');
+  }
+
+  for (const ps of obj.portSchemas as unknown[]) {
+    if (!ps || typeof ps !== 'object') {
+      throw new Error('Invalid .carta-schemas file: invalid portSchema structure');
+    }
+    const p = ps as Record<string, unknown>;
+    if (typeof p.id !== 'string' || typeof p.displayName !== 'string' ||
+        typeof p.semanticDescription !== 'string' || typeof p.polarity !== 'string' ||
+        !Array.isArray(p.compatibleWith) ||
+        typeof p.color !== 'string') {
+      throw new Error(`Invalid .carta-schemas file: portSchema missing required fields (id, displayName, semanticDescription, polarity, compatibleWith, color)`);
+    }
+    const validPolarities = ['source', 'sink', 'bidirectional', 'relay', 'intercept'];
+    if (!validPolarities.includes(p.polarity as string)) {
+      throw new Error(`Invalid .carta-schemas file: portSchema "${p.id}" has invalid polarity "${p.polarity}"`);
+    }
+  }
+
+  // Validate schemaGroups array
+  if (!Array.isArray(obj.schemaGroups)) {
+    throw new Error('Invalid .carta-schemas file: missing or invalid schemaGroups array');
+  }
+
+  for (const sg of obj.schemaGroups as unknown[]) {
+    if (!sg || typeof sg !== 'object') {
+      throw new Error('Invalid .carta-schemas file: invalid schemaGroup structure');
+    }
+    const g = sg as Record<string, unknown>;
+    if (typeof g.id !== 'string' || typeof g.name !== 'string') {
+      throw new Error(`Invalid .carta-schemas file: schemaGroup missing required fields (id, name)`);
+    }
+    if (g.parentId !== undefined && typeof g.parentId !== 'string') {
+      throw new Error(`Invalid .carta-schemas file: schemaGroup "${g.id}" has invalid parentId (must be string)`);
+    }
+  }
+
+  return {
+    formatVersion: 1,
+    name: obj.name as string,
+    description: obj.description as string | undefined,
+    version: obj.version as number,
+    changelog: obj.changelog as string | undefined,
+    schemas: obj.schemas as ConstructSchema[],
+    portSchemas: obj.portSchemas as PortSchema[],
+    schemaGroups: obj.schemaGroups as SchemaGroup[],
+    exportedAt: obj.exportedAt as string,
+  };
+}
+
+/**
+ * Serialize a CartaSchemasFile to JSON string
+ */
+export function exportSchemasToString(file: CartaSchemasFile): string {
+  return JSON.stringify(file, null, 2);
 }

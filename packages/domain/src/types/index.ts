@@ -364,6 +364,22 @@ export interface CartaDocumentV4 {
 export type CartaDocument = CartaDocumentV3 | CartaDocumentV4;
 
 /**
+ * .carta-schemas file format
+ * M1-only JSON subset for schema library packages
+ */
+export interface CartaSchemasFile {
+  formatVersion: 1;
+  name: string;
+  description?: string;
+  version: number;
+  changelog?: string;
+  schemas: ConstructSchema[];
+  portSchemas: PortSchema[];
+  schemaGroups: SchemaGroup[];
+  exportedAt: string;
+}
+
+/**
  * Server-side document model.
  * Extends the base document with server metadata and uses concrete node/edge types.
  */

@@ -1,4 +1,4 @@
-import type { ConstructSchema, SchemaGroup } from '../types/index.js';
+import type { ConstructSchema, PortSchema, SchemaGroup } from '../types/index.js';
 
 /**
  * A self-contained seed: one root group, optional subgroups, and all schemas for those groups.
@@ -11,6 +11,7 @@ export interface SchemaSeed {
   group: SchemaGroup;
   subgroups?: SchemaGroup[];
   schemas: ConstructSchema[];
+  portSchemas: PortSchema[];
 }
 
 function generateGroupId(): string {
@@ -21,9 +22,10 @@ function generateGroupId(): string {
  * Flatten an array of seeds into template groups and schemas.
  * Group IDs are still seed-local refs — call hydrateSeeds() before writing to a document.
  */
-export function loadSeeds(seeds: SchemaSeed[]): { groups: SchemaGroup[]; schemas: ConstructSchema[] } {
+export function loadSeeds(seeds: SchemaSeed[]): { groups: SchemaGroup[]; schemas: ConstructSchema[]; portSchemas: PortSchema[] } {
   const groups: SchemaGroup[] = [];
   const schemas: ConstructSchema[] = [];
+  const portSchemaMap = new Map<string, PortSchema>();
 
   for (const seed of seeds) {
     groups.push(seed.group);
@@ -33,9 +35,14 @@ export function loadSeeds(seeds: SchemaSeed[]): { groups: SchemaGroup[]; schemas
       }
     }
     schemas.push(...seed.schemas);
+    for (const ps of seed.portSchemas) {
+      if (!portSchemaMap.has(ps.id)) {
+        portSchemaMap.set(ps.id, ps);
+      }
+    }
   }
 
-  return { groups, schemas };
+  return { groups, schemas, portSchemas: Array.from(portSchemaMap.values()) };
 }
 
 /**
@@ -44,6 +51,8 @@ export function loadSeeds(seeds: SchemaSeed[]): { groups: SchemaGroup[]; schemas
  * Every group ref ID is replaced with a fresh UUID. All schema groupId
  * and group parentId references are resolved to the new UUIDs.
  *
+ * Port schemas don't have group refs, so they pass through as-is.
+ *
  * When `existingGroups` is provided, groups are matched by name and
  * existing IDs are reused — making the output idempotent for groups
  * that already exist in the document.
@@ -51,8 +60,9 @@ export function loadSeeds(seeds: SchemaSeed[]): { groups: SchemaGroup[]; schemas
 export function hydrateSeeds(
   groups: SchemaGroup[],
   schemas: ConstructSchema[],
+  portSchemas: PortSchema[],
   existingGroups?: SchemaGroup[],
-): { groups: SchemaGroup[]; schemas: ConstructSchema[] } {
+): { groups: SchemaGroup[]; schemas: ConstructSchema[]; portSchemas: PortSchema[] } {
   // Build name → existing ID lookup
   const existingByName = new Map<string, string>();
   if (existingGroups) {
@@ -81,5 +91,5 @@ export function hydrateSeeds(
     groupId: s.groupId ? (refMap.get(s.groupId) ?? s.groupId) : undefined,
   }));
 
-  return { groups: hydratedGroups, schemas: hydratedSchemas };
+  return { groups: hydratedGroups, schemas: hydratedSchemas, portSchemas };
 }

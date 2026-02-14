@@ -1,4 +1,5 @@
 import type { SchemaSeed } from '../seed-loader.js';
+import { parentPort, flowInPort, flowOutPort, childPort } from '../port-schemas.js';
 
 export const capabilityModelSeed: SchemaSeed = {
   group: {
@@ -7,6 +8,7 @@ export const capabilityModelSeed: SchemaSeed = {
     color: '#0ea5e9',
     description: 'Domain > Feature > Capability hierarchy with User Stories and Flows',
   },
+  portSchemas: [parentPort, flowInPort, flowOutPort, childPort],
   schemas: [
     // Domain
     {

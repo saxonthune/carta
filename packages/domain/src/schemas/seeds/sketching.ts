@@ -1,4 +1,5 @@
 import type { SchemaSeed } from '../seed-loader.js';
+import { symmetricPort, flowInPort, flowOutPort, parentPort, childPort } from '../port-schemas.js';
 
 export const sketchingSeed: SchemaSeed = {
   group: {
@@ -7,6 +8,7 @@ export const sketchingSeed: SchemaSeed = {
     color: '#64748b',
     description: 'Quick, low-friction constructs for rough modeling',
   },
+  portSchemas: [symmetricPort, flowInPort, flowOutPort, parentPort, childPort],
   schemas: [
     // Note
     {

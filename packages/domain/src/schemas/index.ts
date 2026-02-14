@@ -14,6 +14,13 @@ export {
   bpmnSeed,
   awsSeed,
   capabilityModelSeed,
+  flowInPort,
+  flowOutPort,
+  parentPort,
+  childPort,
+  symmetricPort,
+  interceptPort,
+  relayPort,
 } from './built-ins.js';
 
 export type { SchemaSeed } from './seed-loader.js';

@@ -5,6 +5,15 @@ import { sketchingSeed } from './seeds/sketching.js';
 import { bpmnSeed } from './seeds/bpmn.js';
 import { awsSeed } from './seeds/aws.js';
 import { capabilityModelSeed } from './seeds/capability-model.js';
+import {
+  flowInPort,
+  flowOutPort,
+  parentPort,
+  childPort,
+  symmetricPort,
+  interceptPort,
+  relayPort,
+} from './port-schemas.js';
 
 // Export individual seeds for selective schema addition
 export { softwareArchitectureSeed } from './seeds/software-architecture.js';
@@ -19,74 +28,33 @@ export type { SchemaSeed } from './seed-loader.js';
  *
  * Default port type definitions with polarity-based connection semantics.
  * These define the reusable port types and their connection rules.
+ *
+ * Re-exported from port-schemas.ts to avoid circular dependency with seeds.
  */
+export {
+  flowInPort,
+  flowOutPort,
+  parentPort,
+  childPort,
+  symmetricPort,
+  interceptPort,
+  relayPort,
+} from './port-schemas.js';
+
 export const builtInPortSchemas: PortSchema[] = [
-  {
-    id: 'flow-in',
-    displayName: 'Flow In',
-    semanticDescription: 'Receives data or control flow',
-    polarity: 'sink',
-    compatibleWith: ['flow-out'],
-    expectedComplement: 'flow-out',
-    color: '#3b82f6',
-  },
-  {
-    id: 'flow-out',
-    displayName: 'Flow Out',
-    semanticDescription: 'Sends data or control flow',
-    polarity: 'source',
-    compatibleWith: ['flow-in'],
-    expectedComplement: 'flow-in',
-    color: '#22c55e',
-  },
-  {
-    id: 'parent',
-    displayName: 'Parent',
-    semanticDescription: 'Contains or owns the connected construct',
-    polarity: 'source',
-    compatibleWith: ['child'],
-    expectedComplement: 'child',
-    color: '#8b5cf6',
-  },
-  {
-    id: 'child',
-    displayName: 'Child',
-    semanticDescription: 'Is contained by or owned by the connected construct',
-    polarity: 'sink',
-    compatibleWith: ['parent'],
-    expectedComplement: 'parent',
-    color: '#8b5cf6',
-  },
-  {
-    id: 'symmetric',
-    displayName: 'Link',
-    semanticDescription: 'Bidirectional peer connection',
-    polarity: 'bidirectional',
-    compatibleWith: [],
-    color: '#64748b',
-  },
-  {
-    id: 'intercept',
-    displayName: 'Intercept',
-    semanticDescription: 'Pass-through input accepting any source connection (bypasses type checking)',
-    polarity: 'intercept',
-    compatibleWith: [],
-    color: '#f59e0b',
-  },
-  {
-    id: 'relay',
-    displayName: 'Relay',
-    semanticDescription: 'Pass-through output connecting to any sink port (bypasses type checking)',
-    polarity: 'relay',
-    compatibleWith: [],
-    color: '#f59e0b',
-  },
+  flowInPort,
+  flowOutPort,
+  parentPort,
+  childPort,
+  symmetricPort,
+  interceptPort,
+  relayPort,
 ];
 
 /**
  * Load all seed files into groups and construct schemas.
  */
-const { groups, schemas } = loadSeeds([
+const { groups, schemas, portSchemas: seedPortSchemas } = loadSeeds([
   softwareArchitectureSeed,
   sketchingSeed,
   bpmnSeed,
@@ -113,8 +81,8 @@ export const builtInConstructSchemas: ConstructSchema[] = schemas;
  * existing IDs — making "restore defaults" idempotent instead of
  * creating orphan groups.
  */
-export function hydrateBuiltIns(existingGroups?: SchemaGroup[]): { groups: SchemaGroup[]; schemas: ConstructSchema[] } {
-  return hydrateSeeds(groups, schemas, existingGroups);
+export function hydrateBuiltIns(existingGroups?: SchemaGroup[]): { groups: SchemaGroup[]; schemas: ConstructSchema[]; portSchemas: PortSchema[] } {
+  return hydrateSeeds(groups, schemas, seedPortSchemas, existingGroups);
 }
 
 /**
@@ -135,7 +103,7 @@ export const builtInSeedCatalog: Array<{ name: string; seed: SchemaSeed; descrip
  * existing IDs — making re-adding seeds idempotent instead of
  * creating duplicate groups.
  */
-export function hydrateSeed(seed: SchemaSeed, existingGroups?: SchemaGroup[]): { groups: SchemaGroup[]; schemas: ConstructSchema[] } {
-  const { groups, schemas } = loadSeeds([seed]);
-  return hydrateSeeds(groups, schemas, existingGroups);
+export function hydrateSeed(seed: SchemaSeed, existingGroups?: SchemaGroup[]): { groups: SchemaGroup[]; schemas: ConstructSchema[]; portSchemas: PortSchema[] } {
+  const { groups, schemas, portSchemas } = loadSeeds([seed]);
+  return hydrateSeeds(groups, schemas, portSchemas, existingGroups);
 }

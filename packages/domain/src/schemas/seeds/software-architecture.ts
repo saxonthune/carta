@@ -1,4 +1,5 @@
 import type { SchemaSeed } from '../seed-loader.js';
+import { flowInPort, flowOutPort, parentPort, childPort, symmetricPort } from '../port-schemas.js';
 
 export const softwareArchitectureSeed: SchemaSeed = {
   group: {
@@ -7,6 +8,7 @@ export const softwareArchitectureSeed: SchemaSeed = {
     color: '#7c7fca',
     description: 'Core software design constructs',
   },
+  portSchemas: [flowInPort, flowOutPort, parentPort, childPort, symmetricPort],
   subgroups: [
     {
       id: 'api',

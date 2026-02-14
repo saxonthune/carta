@@ -1,4 +1,5 @@
 import type { SchemaSeed } from '../seed-loader.js';
+import { flowInPort, flowOutPort, childPort, parentPort, symmetricPort, relayPort, interceptPort } from '../port-schemas.js';
 
 export const bpmnSeed: SchemaSeed = {
   group: {
@@ -7,6 +8,7 @@ export const bpmnSeed: SchemaSeed = {
     color: '#3b82f6',
     description: 'Simplified Business Process Model and Notation',
   },
+  portSchemas: [flowInPort, flowOutPort, childPort, parentPort, symmetricPort, relayPort, interceptPort],
   schemas: [
     // BPMN Activity (Task / Subprocess)
     {
