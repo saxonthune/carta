@@ -4,7 +4,7 @@ import type { PinLayoutNode, PinDirection, OrganizerNodeData } from '@carta/doma
 import { useNodes, usePinConstraints } from '../../hooks';
 import LayoutMapOrganizerNode from './LayoutMapOrganizerNode';
 import ContextMenuPrimitive from '../ui/ContextMenuPrimitive';
-import { useViewport, useConnectionDrag } from '../../canvas-engine/index.js';
+import { useViewport, useConnectionDrag, DotGrid } from '../../canvas-engine/index.js';
 import { EdgeLabel } from '../../canvas-engine/EdgeLabel.js';
 
 interface LayoutMapProps {
@@ -474,21 +474,8 @@ export default function LayoutMap({ onClose }: LayoutMapProps) {
       className="w-full h-full relative"
       style={{ overflow: 'hidden', touchAction: 'none', userSelect: 'none' }}
     >
-      {/* Background SVG — dot grid */}
-      <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-        <defs>
-          <pattern
-            id="layout-map-dots"
-            width={16}
-            height={16}
-            patternUnits="userSpaceOnUse"
-            patternTransform={`translate(${transform.x}, ${transform.y}) scale(${transform.k})`}
-          >
-            <circle cx={1} cy={1} r={1} fill="var(--color-dot-grid)" />
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#layout-map-dots)" />
-      </svg>
+      {/* Background dot grid */}
+      <DotGrid transform={transform} patternId="layout-map-dots" />
 
       {/* Edge SVG layer */}
       <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0 }} className="pointer-events-none">
