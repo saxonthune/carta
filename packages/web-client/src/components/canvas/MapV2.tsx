@@ -23,12 +23,105 @@ import AddConstructMenu from './AddConstructMenu';
 import ConstructEditor from '../ConstructEditor';
 import ConstructDebugModal from '../modals/ConstructDebugModal';
 import { getRectBoundaryPoint, waypointsToPath, computeBezierPath, type Waypoint } from '../../utils/edgeGeometry.js';
-import { canConnect, getHandleType, nodeContainedInOrganizer, type ConstructSchema } from '@carta/domain';
+import { canConnect, getHandleType, nodeContainedInOrganizer, type ConstructSchema, getFieldsForSummary, resolveNodeIcon, type ConstructNodeData, type DocumentAdapter } from '@carta/domain';
 import { stripHandlePrefix } from '../../utils/handlePrefix.js';
 import { generateSemanticId } from '../../utils/cartaFile';
+import type { LodBand } from './lod/lodPolicy.js';
 
 interface MapV2Props {
   searchText?: string;
+}
+
+// Field list component with editing state
+function MapV2FieldList({ schema, constructData, adapter, nodeId }: {
+  schema: ConstructSchema;
+  constructData: ConstructNodeData;
+  adapter: DocumentAdapter;
+  nodeId: string;
+}) {
+  const [editingField, setEditingField] = useState<string | null>(null);
+  const fields = getFieldsForSummary(schema);
+
+  if (fields.length === 0) return null;
+
+  return (
+    <div style={{ padding: '2px 8px 6px', display: 'flex', flexDirection: 'column', gap: 3 }}>
+      {fields.map(field => {
+        const value = constructData.values[field.name] ?? field.default;
+        const isMultiline = field.displayHint === 'multiline' || field.displayHint === 'code';
+
+        const commitValue = (newValue: unknown) => {
+          adapter.updateNode(nodeId, { values: { ...constructData.values, [field.name]: newValue } });
+          setEditingField(null);
+        };
+
+        if (editingField === field.name) {
+          return (
+            <div key={field.name} onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
+              <div style={{ fontSize: 10, color: 'var(--color-content-subtle)' }}>{field.label}</div>
+              {field.type === 'boolean' ? (
+                <input type="checkbox" checked={!!value} onChange={(e) => commitValue(e.target.checked)}
+                  onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Escape') setEditingField(null); }}
+                  autoFocus style={{ width: 16, height: 16, cursor: 'pointer' }} />
+              ) : field.type === 'enum' && field.options ? (
+                <select
+                  style={{ width: '100%', padding: '2px 4px', backgroundColor: 'var(--color-surface)', borderRadius: 4, fontSize: 11, color: 'var(--color-content)', border: '1px solid var(--color-accent)', outline: 'none' }}
+                  value={String(value ?? '')}
+                  onChange={(e) => commitValue(e.target.value)}
+                  onBlur={() => setEditingField(null)}
+                  onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Escape') setEditingField(null); }}
+                  autoFocus
+                >
+                  <option value="">Select...</option>
+                  {field.options.map(opt => <option key={opt.value} value={opt.value}>{opt.value}</option>)}
+                </select>
+              ) : isMultiline ? (
+                <textarea
+                  style={{ width: '100%', padding: '2px 4px', backgroundColor: 'var(--color-surface)', borderRadius: 4, fontSize: 11, color: 'var(--color-content)', border: '1px solid var(--color-accent)', outline: 'none', resize: 'vertical', minHeight: 60, fontFamily: 'monospace' }}
+                  defaultValue={String(value ?? '')}
+                  onBlur={(e) => commitValue(e.target.value)}
+                  onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Escape') setEditingField(null); }}
+                  autoFocus
+                />
+              ) : (
+                <input
+                  type={field.type === 'number' ? 'number' : 'text'}
+                  style={{ width: '100%', padding: '2px 4px', backgroundColor: 'var(--color-surface)', borderRadius: 4, fontSize: 11, color: 'var(--color-content)', border: '1px solid var(--color-accent)', outline: 'none' }}
+                  defaultValue={String(value ?? '')}
+                  onBlur={(e) => commitValue(field.type === 'number' ? Number(e.target.value) : e.target.value)}
+                  onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter') (e.target as HTMLElement).blur(); if (e.key === 'Escape') setEditingField(null); }}
+                  autoFocus
+                />
+              )}
+            </div>
+          );
+        }
+
+        // Read-only field
+        const display = value == null || value === '' ? '—' : String(value);
+        return (
+          <div key={field.name} style={{ cursor: 'pointer', padding: '1px 4px', margin: '0 -4px', borderRadius: 4 }}
+            onClick={(e) => { e.stopPropagation(); setEditingField(field.name); }}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            {isMultiline ? (
+              <>
+                <div style={{ fontSize: 10, color: 'var(--color-content-subtle)' }}>{field.label}:</div>
+                <div style={{ fontSize: 11, color: 'var(--color-content)', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', whiteSpace: 'pre-wrap' }}>{display}</div>
+              </>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, minWidth: 0 }}>
+                <span style={{ fontSize: 10, color: 'var(--color-content-subtle)', flexShrink: 0 }}>{field.label}:</span>
+                <span style={{ fontSize: 11, color: 'var(--color-content)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {field.type === 'boolean' ? (value ? 'Yes' : 'No') : display}
+                </span>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 // Inner component that uses canvas context
@@ -51,6 +144,15 @@ function MapV2Inner({ sortedNodes, getSchema, getPortSchema, onSelectionChange, 
 }) {
   const { adapter } = useDocumentContext();
   const { transform, isSelected, onNodePointerDown: onSelectPointerDown, selectedIds, startConnection, connectionDrag } = useCanvasContext();
+
+  // LOD band tracking based on zoom level
+  const [lodBand, setLodBand] = useState<LodBand>('normal');
+
+  useEffect(() => {
+    const zoom = transform.k;
+    const band: LodBand = zoom < 0.5 ? 'marker' : 'normal';
+    setLodBand(band);
+  }, [transform.k]);
 
   // Sync selection changes to outer component
   const selectedIdsRef = useRef(selectedIds);
@@ -252,51 +354,55 @@ function MapV2Inner({ sortedNodes, getSchema, getPortSchema, onSelectionChange, 
     return sourcePort?.portType ?? null;
   }, [connectionDrag, sortedNodes, getSchema]);
 
-  // Node rendering — interactive colored boxes with port drawer
-  const nodeElements = useMemo(() => {
-    return sortedNodes
-      .filter(n => !n.hidden)
-      .map(n => {
-        const isOrganizer = n.type === 'organizer';
-        const data = n.data as Record<string, unknown>;
-        const color = (data.color as string) ?? (isOrganizer ? '#7c3aed' : '#6b7280');
-        const label = (data.label as string) ?? (data.semanticId as string) ?? n.id;
-        let width = (n.style?.width as number) ?? (isOrganizer ? 300 : 200);
-        let height = (n.style?.height as number) ?? (isOrganizer ? 200 : 80);
+  // Node rendering — now with LOD support, inline editing, sequence badges, and dimmed nodes
+  const nodeElements = sortedNodes
+    .filter(n => !n.hidden)
+    .map(n => {
+      const isOrganizer = n.type === 'organizer';
+      const data = n.data as Record<string, unknown>;
+      const color = (data.color as string) ?? (isOrganizer ? '#7c3aed' : '#6b7280');
+      const label = (data.label as string) ?? (data.semanticId as string) ?? n.id;
+      let width = (n.style?.width as number) ?? (isOrganizer ? 300 : 200);
+      let height = (n.style?.height as number) ?? (isOrganizer ? 200 : 80);
 
-        // Apply resize deltas if this node is being resized
-        if (resizingNodeId === n.id && resizeDeltas) {
-          width = Math.max(100, width + resizeDeltas.dw);
-          height = Math.max(60, height + resizeDeltas.dh);
+      // Apply resize deltas if this node is being resized
+      if (resizingNodeId === n.id && resizeDeltas) {
+        width = Math.max(100, width + resizeDeltas.dw);
+        height = Math.max(60, height + resizeDeltas.dh);
+      }
+
+      // Compute absolute position (children have relative positions)
+      let absX = n.position.x;
+      let absY = n.position.y;
+      if (n.parentId) {
+        const parent = sortedNodes.find(p => p.id === n.parentId);
+        if (parent) {
+          absX += parent.position.x;
+          absY += parent.position.y;
         }
+      }
 
-        // Compute absolute position (children have relative positions)
-        let absX = n.position.x;
-        let absY = n.position.y;
-        if (n.parentId) {
-          const parent = sortedNodes.find(p => p.id === n.parentId);
-          if (parent) {
-            absX += parent.position.x;
-            absY += parent.position.y;
-          }
-        }
+      // Apply drag offset if this node is being dragged
+      const offset = dragOffsets.get(n.id);
+      if (offset) {
+        absX += offset.dx;
+        absY += offset.dy;
+      }
 
-        // Apply drag offset if this node is being dragged
-        const offset = dragOffsets.get(n.id);
-        if (offset) {
-          absX += offset.dx;
-          absY += offset.dy;
-        }
+      const selected = isSelected(n.id);
+      const schema = !isOrganizer ? getSchema((data as any).constructType) : null;
+      const isCovered = coveredNodeIds.includes(n.id);
+      const constructData = data as ConstructNodeData;
+      const dimmed = (data as any).dimmed;
+      const sequenceBadge = (data as any).sequenceBadge;
 
-        const selected = isSelected(n.id);
-        const schema = !isOrganizer ? getSchema((data as any).constructType) : null;
-        const isCovered = coveredNodeIds.includes(n.id);
-
+      // Marker variant rendering (LOD)
+      if (!isOrganizer && lodBand === 'marker' && schema && constructData) {
+        const icon = resolveNodeIcon(schema, constructData);
         return (
           <div
             key={n.id}
             data-node-id={n.id}
-            {...(isOrganizer ? { 'data-drop-target': 'true', 'data-container-id': n.id } : {})}
             onPointerDown={(e) => {
               onSelectPointerDown(n.id, e);
               onNodePointerDownDrag(n.id, e);
@@ -314,170 +420,297 @@ function MapV2Inner({ sortedNodes, getSchema, getPortSchema, onSelectionChange, 
               onNodeContextMenu(e, n.id);
             }}
             onDoubleClick={(e) => {
-              if (isOrganizer) {
-                e.stopPropagation();
-                toggleOrganizerCollapse(n.id);
-              } else {
-                e.stopPropagation();
-                onNodeDoubleClick(n.id);
-              }
+              e.stopPropagation();
+              onNodeDoubleClick(n.id);
             }}
             style={{
               position: 'absolute',
               left: absX,
               top: absY,
-              width,
-              height,
-              backgroundColor: isOrganizer ? 'transparent' : color,
-              border: isOrganizer ? `2px dashed ${color}` : `1px solid color-mix(in srgb, ${color} 70%, transparent)`,
-              borderRadius: isOrganizer ? 8 : 6,
-              opacity: isOrganizer ? 0.6 : 1,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: isOrganizer ? color : 'white',
-              fontSize: 12,
-              fontWeight: 500,
+              display: 'flex', alignItems: 'center', gap: 4,
+              backgroundColor: 'var(--color-surface)',
+              borderLeft: `2px solid ${color}`,
+              borderRadius: 4, padding: '2px 8px',
+              boxShadow: 'var(--node-shadow)',
+              height: 24, minWidth: 180, maxWidth: 500,
               overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              padding: '0 8px',
               cursor: 'grab',
               outline: selected ? '2px solid var(--color-accent, #3b82f6)' : 'none',
               outlineOffset: '2px',
+              opacity: dimmed ? 0.2 : 1,
+              pointerEvents: dimmed ? 'none' : 'auto',
+              transition: 'opacity 150ms ease',
             }}
           >
-            {label}
-            {/* Covered node warning badge */}
-            {isCovered && (
-              <div style={{
-                position: 'absolute',
-                top: -6,
-                right: -6,
-                width: 20,
-                height: 20,
-                borderRadius: '50%',
-                backgroundColor: '#ef4444',
-                color: 'white',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 12,
-                fontWeight: 700,
-                border: '2px solid var(--color-canvas, white)',
-              }}>
-                ⚠
-              </div>
-            )}
-            {isOrganizer && (
-              <div
-                style={{
-                  position: 'absolute',
-                  bottom: 0,
-                  right: 0,
-                  width: 12,
-                  height: 12,
-                  cursor: 'se-resize',
-                  backgroundColor: color,
-                  opacity: 0.5,
-                }}
-                onPointerDown={(e) => {
-                  e.stopPropagation();
-                  onResizePointerDown(n.id, { horizontal: 'right', vertical: 'bottom' }, e);
-                }}
-              />
-            )}
-            {/* Port drawer - collapsed state (dots strip) */}
-            {!isOrganizer && schema?.ports && schema.ports.length > 0 && !connectionDrag && (
-              <div style={{
-                position: 'absolute', bottom: 0, left: 0, right: 0, height: 12,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
-                backgroundColor: 'var(--color-surface-alt, rgba(0,0,0,0.1))',
-                borderRadius: '0 0 6px 6px',
-              }}>
-                {schema.ports.map((port: any) => {
-                  const portSchema = getPortSchema(port.portType);
-                  return (
-                    <div key={port.id} style={{
-                      width: 6, height: 6, borderRadius: '50%',
-                      backgroundColor: portSchema?.color ?? '#94a3b8',
-                    }} />
-                  );
-                })}
-              </div>
-            )}
-            {/* Port drawer - expanded state on hover */}
-            {hoveredNodeId === n.id && !isOrganizer && schema?.ports && schema.ports.length > 0 && !connectionDrag && (
-              <div style={{
-                position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 30,
-                backgroundColor: 'var(--color-surface-elevated, white)',
-                border: '1px solid var(--color-border, #e5e7eb)',
-                borderRadius: '0 0 8px 8px',
-                padding: '6px 8px',
-                display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center',
-              }}
-              onPointerEnter={() => setHoveredNodeId(n.id)}
-              onPointerLeave={() => setHoveredNodeId(null)}
-              >
-                {schema.ports.map((port: any) => {
-                  const portSchema = getPortSchema(port.portType);
-                  const portColor = portSchema?.color ?? '#94a3b8';
-                  return (
-                    <div key={port.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                      <ConnectionHandle
-                        type="source"
-                        id={port.id}
-                        nodeId={n.id}
-                        onStartConnection={startConnection}
-                        style={{
-                          width: 16, height: 16, borderRadius: '50%',
-                          backgroundColor: portColor, border: '2px solid white',
-                          cursor: 'crosshair',
-                        }}
-                      />
-                      <span style={{ fontSize: 9, color: 'var(--color-content-muted, #6b7280)' }}>
-                        {port.label}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-            {/* Drop zones during connection drag */}
-            {connectionDrag && connectionDrag.sourceNodeId !== n.id && !isOrganizer && schema?.ports && (
-              <div style={{
-                position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
-                borderRadius: 6, overflow: 'hidden', zIndex: 25,
-              }}>
-                {schema.ports.map((port: any) => {
-                  const portSchema = getPortSchema(port.portType);
-                  const isValid = sourcePortType ? canConnect(sourcePortType, port.portType) : false;
-                  const portColor = portSchema?.color ?? '#94a3b8';
-                  return (
-                    <ConnectionHandle
-                      key={port.id}
-                      type="target"
-                      id={port.id}
-                      nodeId={n.id}
-                      style={{
-                        flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        backgroundColor: isValid ? portColor + '40' : 'rgba(128,128,128,0.15)',
-                        border: isValid ? `2px solid ${portColor}` : '2px dotted rgba(128,128,128,0.4)',
-                        pointerEvents: isValid ? 'auto' : 'none',
-                        fontSize: 11, fontWeight: 600,
-                        color: isValid ? portColor : 'rgba(128,128,128,0.6)',
-                      }}
-                    >
-                      {port.label}
-                    </ConnectionHandle>
-                  );
-                })}
-              </div>
-            )}
+            <div style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: color, flexShrink: 0 }} />
+            {icon && <span style={{ fontSize: 12 }}>{icon}</span>}
+            <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--color-content)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {schema.displayName}: {label}
+            </span>
           </div>
         );
-      });
-  }, [sortedNodes, dragOffsets, resizingNodeId, resizeDeltas, isSelected, onSelectPointerDown, onNodePointerDownDrag, onResizePointerDown, getSchema, getPortSchema, hoveredNodeId, connectionDrag, sourcePortType, startConnection]);
+      }
+
+      // Full node rendering
+      return (
+        <div
+          key={n.id}
+          data-node-id={n.id}
+          {...(isOrganizer ? { 'data-drop-target': 'true', 'data-container-id': n.id } : {})}
+          onPointerDown={(e) => {
+            onSelectPointerDown(n.id, e);
+            onNodePointerDownDrag(n.id, e);
+          }}
+          onPointerEnter={() => {
+            setHoveredNodeId(n.id);
+            onNodeMouseEnter(n.id);
+          }}
+          onPointerLeave={() => {
+            setHoveredNodeId(null);
+            onNodeMouseLeave();
+          }}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            onNodeContextMenu(e, n.id);
+          }}
+          onDoubleClick={(e) => {
+            if (isOrganizer) {
+              e.stopPropagation();
+              toggleOrganizerCollapse(n.id);
+            } else {
+              e.stopPropagation();
+              onNodeDoubleClick(n.id);
+            }
+          }}
+          style={{
+            position: 'absolute',
+            left: absX,
+            top: absY,
+            width,
+            height: isOrganizer ? height : 'auto',
+            minHeight: isOrganizer ? 0 : height,
+            backgroundColor: isOrganizer ? 'transparent' : 'var(--color-surface)',
+            border: isOrganizer ? `2px dashed ${color}` : `2px solid ${color}`,
+            borderRadius: isOrganizer ? 8 : 6,
+            display: 'flex',
+            flexDirection: 'column',
+            color: isOrganizer ? color : 'var(--color-content)',
+            fontSize: 12,
+            fontWeight: 500,
+            overflow: isOrganizer ? 'hidden' : 'visible',
+            cursor: 'grab',
+            outline: selected ? '2px solid var(--color-accent, #3b82f6)' : 'none',
+            outlineOffset: '2px',
+            opacity: dimmed ? 0.2 : (isOrganizer ? 0.6 : 1),
+            pointerEvents: dimmed ? 'none' : 'auto',
+            transition: 'opacity 150ms ease',
+          }}
+        >
+          {/* Sequence badge */}
+          {sequenceBadge != null && !isOrganizer && lodBand !== 'marker' && (
+            <div style={{
+              position: 'absolute', top: -8, left: -8, zIndex: 10,
+              width: 20, height: 20, borderRadius: '50%',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 10, fontWeight: 600, lineHeight: 1, pointerEvents: 'none',
+              backgroundColor: 'var(--color-surface-alt)',
+              color: 'var(--color-content)',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
+              border: '1px solid var(--color-border)',
+            }}>
+              {sequenceBadge}
+            </div>
+          )}
+
+          {isOrganizer ? (
+            // Organizer label
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flex: 1,
+            }}>
+              {label}
+            </div>
+          ) : schema ? (
+            // Construct node with schema badge and fields
+            <>
+              {/* Header with schema badge and label */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '6px 8px',
+                borderBottom: `1px solid ${color}40`,
+              }}>
+                <div style={{
+                  padding: '2px 6px',
+                  borderRadius: 4,
+                  backgroundColor: `${color}20`,
+                  color: color,
+                  fontSize: 9,
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                }}>
+                  {schema.displayName}
+                </div>
+                <div style={{
+                  flex: 1,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}>
+                  {label}
+                </div>
+              </div>
+              {/* Fields with inline editing */}
+              <MapV2FieldList schema={schema} constructData={constructData} adapter={adapter} nodeId={n.id} />
+            </>
+          ) : (
+            // Construct without schema (fallback)
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flex: 1,
+              padding: '0 8px',
+            }}>
+              {label}
+            </div>
+          )}
+
+          {/* Covered node warning badge */}
+          {isCovered && (
+            <div style={{
+              position: 'absolute',
+              top: -6,
+              right: -6,
+              width: 20,
+              height: 20,
+              borderRadius: '50%',
+              backgroundColor: '#ef4444',
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 12,
+              fontWeight: 700,
+              border: '2px solid var(--color-canvas, white)',
+            }}>
+              ⚠
+            </div>
+          )}
+          {isOrganizer && (
+            <div
+              style={{
+                position: 'absolute',
+                bottom: 0,
+                right: 0,
+                width: 12,
+                height: 12,
+                cursor: 'se-resize',
+                backgroundColor: color,
+                opacity: 0.5,
+              }}
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                onResizePointerDown(n.id, { horizontal: 'right', vertical: 'bottom' }, e);
+              }}
+            />
+          )}
+          {/* Port drawer - collapsed state (dots strip) */}
+          {!isOrganizer && schema?.ports && schema.ports.length > 0 && !connectionDrag && (
+            <div style={{
+              position: 'absolute', bottom: 0, left: 0, right: 0, height: 12,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+              backgroundColor: 'var(--color-surface-alt, rgba(0,0,0,0.1))',
+              borderRadius: '0 0 6px 6px',
+            }}>
+              {schema.ports.map((port: any) => {
+                const portSchema = getPortSchema(port.portType);
+                return (
+                  <div key={port.id} style={{
+                    width: 6, height: 6, borderRadius: '50%',
+                    backgroundColor: portSchema?.color ?? '#94a3b8',
+                  }} />
+                );
+              })}
+            </div>
+          )}
+          {/* Port drawer - expanded state on hover */}
+          {hoveredNodeId === n.id && !isOrganizer && schema?.ports && schema.ports.length > 0 && !connectionDrag && (
+            <div style={{
+              position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 30,
+              backgroundColor: 'var(--color-surface-elevated, white)',
+              border: '1px solid var(--color-border, #e5e7eb)',
+              borderRadius: '0 0 8px 8px',
+              padding: '6px 8px',
+              display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center',
+            }}
+            onPointerEnter={() => setHoveredNodeId(n.id)}
+            onPointerLeave={() => setHoveredNodeId(null)}
+            >
+              {schema.ports.map((port: any) => {
+                const portSchema = getPortSchema(port.portType);
+                const portColor = portSchema?.color ?? '#94a3b8';
+                return (
+                  <div key={port.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                    <ConnectionHandle
+                      type="source"
+                      id={port.id}
+                      nodeId={n.id}
+                      onStartConnection={startConnection}
+                      style={{
+                        width: 16, height: 16, borderRadius: '50%',
+                        backgroundColor: portColor, border: '2px solid white',
+                        cursor: 'crosshair',
+                      }}
+                    />
+                    <span style={{ fontSize: 9, color: 'var(--color-content-muted, #6b7280)' }}>
+                      {port.label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {/* Drop zones during connection drag */}
+          {connectionDrag && connectionDrag.sourceNodeId !== n.id && !isOrganizer && schema?.ports && (
+            <div style={{
+              position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
+              borderRadius: 6, overflow: 'hidden', zIndex: 25,
+            }}>
+              {schema.ports.map((port: any) => {
+                const portSchema = getPortSchema(port.portType);
+                const isValid = sourcePortType ? canConnect(sourcePortType, port.portType) : false;
+                const portColor = portSchema?.color ?? '#94a3b8';
+                return (
+                  <ConnectionHandle
+                    key={port.id}
+                    type="target"
+                    id={port.id}
+                    nodeId={n.id}
+                    style={{
+                      flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      backgroundColor: isValid ? portColor + '40' : 'rgba(128,128,128,0.15)',
+                      border: isValid ? `2px solid ${portColor}` : '2px dotted rgba(128,128,128,0.4)',
+                      pointerEvents: isValid ? 'auto' : 'none',
+                      fontSize: 11, fontWeight: 600,
+                      color: isValid ? portColor : 'rgba(128,128,128,0.6)',
+                    }}
+                  >
+                    {port.label}
+                  </ConnectionHandle>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      );
+    });
 
   return (
     <>
