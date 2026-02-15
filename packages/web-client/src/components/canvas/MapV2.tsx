@@ -1165,7 +1165,7 @@ export default function MapV2({ searchText }: MapV2Props) {
       if (!nodeRect) continue;
       const nodeCenter = { x: nodeRect.x + nodeRect.width / 2, y: nodeRect.y + nodeRect.height / 2 };
 
-      for (const [side, edgeIds] of sideMap) {
+      for (const [, edgeIds] of sideMap) {
         edgeIds.sort((aId, bId) => {
           const aEdge = visibleEdges.find(e => e.id === aId);
           const bEdge = visibleEdges.find(e => e.id === bId);
