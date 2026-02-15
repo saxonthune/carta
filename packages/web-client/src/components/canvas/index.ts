@@ -1,5 +1,6 @@
 export { default as Map } from './Map';
 export { default as MapV2 } from './MapV2';
+export { default as MapV2Toolbar } from './MapV2Toolbar.js';
 export { default as CanvasContainer } from './CanvasContainer';
 export { default as ConstructNode } from './ConstructNode';
 export { default as OrganizerNode } from './OrganizerNode';

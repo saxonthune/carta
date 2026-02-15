@@ -21,14 +21,16 @@ interface ToolbarButtonProps {
   onClick: () => void;
   tooltip: string;
   children: React.ReactNode;
+  disabled?: boolean;
 }
 
-export function ToolbarButton({ onClick, tooltip, children }: ToolbarButtonProps) {
+export function ToolbarButton({ onClick, tooltip, children, disabled = false }: ToolbarButtonProps) {
   return (
     <Tooltip content={tooltip} placement="right">
       <button
         onClick={onClick}
-        className="w-8 h-8 flex items-center justify-center rounded hover:bg-surface-depth-1 text-content-muted hover:text-content transition-colors"
+        disabled={disabled}
+        className={`w-8 h-8 flex items-center justify-center rounded hover:bg-surface-depth-1 text-content-muted hover:text-content transition-colors ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
       >
         {children}
       </button>

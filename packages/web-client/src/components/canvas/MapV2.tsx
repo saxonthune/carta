@@ -10,9 +10,12 @@ import { useMapEdgePipeline } from '../../hooks/useMapEdgePipeline';
 import { useNarrative } from '../../hooks/useNarrative';
 import { useOrganizerOperations } from '../../hooks/useOrganizerOperations';
 import { useLayoutActions } from '../../hooks/useLayoutActions';
+import { useUndoRedo } from '../../hooks/useUndoRedo';
+import { usePinConstraints } from '../../hooks/usePinConstraints';
 import { useNodeLinks } from '../../canvas-engine/useNodeLinks';
 import { findContainerAt } from '../../canvas-engine/containment';
 import Narrative from './Narrative';
+import MapV2Toolbar from './MapV2Toolbar';
 import { getRectBoundaryPoint, waypointsToPath, computeBezierPath, type Waypoint } from '../../utils/edgeGeometry.js';
 import { canConnect, getHandleType, nodeContainedInOrganizer } from '@carta/domain';
 import { stripHandlePrefix } from '../../utils/handlePrefix.js';
@@ -22,9 +25,8 @@ interface MapV2Props {
 }
 
 // Inner component that uses canvas context
-function MapV2Inner({ sortedNodes, canvasRef, getSchema, getPortSchema, onSelectionChange, attachNodeToOrganizer, detachNodeFromOrganizer, toggleOrganizerCollapse, getFollowers, showNarrative, hideNarrative, coveredNodeIds, rescueCoveredNodes }: {
+function MapV2Inner({ sortedNodes, getSchema, getPortSchema, onSelectionChange, attachNodeToOrganizer, detachNodeFromOrganizer, toggleOrganizerCollapse, getFollowers, showNarrative, hideNarrative, coveredNodeIds }: {
   sortedNodes: any[];
-  canvasRef: React.RefObject<CanvasRef | null>;
   getSchema: (type: string) => any;
   getPortSchema: (type: string) => any;
   onSelectionChange: (ids: string[]) => void;
@@ -35,7 +37,6 @@ function MapV2Inner({ sortedNodes, canvasRef, getSchema, getPortSchema, onSelect
   showNarrative: (state: any) => void;
   hideNarrative: () => void;
   coveredNodeIds: string[];
-  rescueCoveredNodes: () => void;
 }) {
   const { adapter } = useDocumentContext();
   const { transform, isSelected, onNodePointerDown: onSelectPointerDown, selectedIds, startConnection, connectionDrag } = useCanvasContext();
@@ -454,58 +455,8 @@ function MapV2Inner({ sortedNodes, canvasRef, getSchema, getPortSchema, onSelect
       });
   }, [sortedNodes, dragOffsets, resizingNodeId, resizeDeltas, isSelected, onSelectPointerDown, onNodePointerDownDrag, onResizePointerDown, getSchema, getPortSchema, hoveredNodeId, connectionDrag, sourcePortType, startConnection]);
 
-  // Zoom controls style
-  const zoomButtonStyle: React.CSSProperties = {
-    width: 32,
-    height: 32,
-    border: '1px solid var(--color-border, #e5e7eb)',
-    borderRadius: 4,
-    backgroundColor: 'var(--color-surface, #fff)',
-    color: 'var(--color-text, #000)',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: 16,
-    fontWeight: 500,
-    padding: 0,
-  };
-
   return (
     <>
-      {/* Zoom controls */}
-      <div style={{ position: 'absolute', top: 8, left: 8, zIndex: 10, display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <button onClick={() => canvasRef.current?.zoomIn()} style={zoomButtonStyle}>+</button>
-        <button onClick={() => canvasRef.current?.zoomOut()} style={zoomButtonStyle}>−</button>
-        <button
-          onClick={() => {
-            const rects = sortedNodesRef.current.filter(n => !n.hidden && !n.parentId).map(n => ({
-              x: n.position.x,
-              y: n.position.y,
-              width: (n.style?.width as number) ?? (n.type === 'organizer' ? 300 : 200),
-              height: (n.style?.height as number) ?? (n.type === 'organizer' ? 200 : 80),
-            }));
-            canvasRef.current?.fitView(rects, 0.1);
-          }}
-          style={zoomButtonStyle}
-        >
-          ⊡
-        </button>
-        {coveredNodeIds.length > 0 && (
-          <button
-            onClick={rescueCoveredNodes}
-            style={{
-              ...zoomButtonStyle,
-              backgroundColor: '#ef4444',
-              color: 'white',
-              border: 'none',
-            }}
-            title={`Rescue ${coveredNodeIds.length} covered node${coveredNodeIds.length > 1 ? 's' : ''}`}
-          >
-            ⚠
-          </button>
-        )}
-      </div>
       {nodeElements}
     </>
   );
@@ -519,9 +470,14 @@ export default function MapV2({ searchText }: MapV2Props) {
   const { narrative, showNarrative, hideNarrative } = useNarrative();
   const { adapter, ydoc } = useDocumentContext();
   const { toggleOrganizerCollapse } = useOrganizerOperations();
+  const { undo, redo, canUndo, canRedo } = useUndoRedo();
+  const { constraints: pinConstraints } = usePinConstraints();
 
   // Track selected IDs for edge pipeline
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
+
+  // Selection mode state
+  const [selectionModeActive, setSelectionModeActive] = useState(false);
 
   // Node pipeline (needs same inputs as Map.tsx)
   // For interaction, pass stub/no-op values for modal-only params:
@@ -575,8 +531,19 @@ export default function MapV2({ searchText }: MapV2Props) {
     getIntersectingNodes: () => [], // Not used by attach/detach
   }), [sortedNodes, displayEdges, setNodes]);
 
-  // Layout actions for attach/detach
-  const { attachNodeToOrganizer, detachNodeFromOrganizer } = useLayoutActions({
+  // Layout actions
+  const {
+    attachNodeToOrganizer,
+    detachNodeFromOrganizer,
+    spreadAll,
+    compactAll,
+    flowLayout,
+    alignNodes,
+    distributeNodes,
+    routeEdges,
+    clearRoutes,
+    applyPinLayout,
+  } = useLayoutActions({
     reactFlow: reactFlowShim as any,
     setNodesLocal: setNodes,
     adapter,
@@ -621,81 +588,31 @@ export default function MapV2({ searchText }: MapV2Props) {
     return covered;
   }, [sortedNodes]);
 
-  // Rescue covered nodes
-  const rescueCoveredNodes = useCallback(() => {
-    const visibleOrganizers = sortedNodes.filter(n => n.type === 'organizer' && !n.hidden);
-    const margin = 20;
-    const patches: Array<{ id: string; position: { x: number; y: number } }> = [];
-
-    for (const nodeId of coveredNodeIds) {
-      const n = sortedNodes.find(node => node.id === nodeId);
-      if (!n) continue;
-
-      const nodeW = n.measured?.width ?? n.width ?? 200;
-      const nodeH = n.measured?.height ?? n.height ?? 100;
-
-      // Find the covering organizer
-      const coveringOrg = visibleOrganizers.find(org => {
-        const orgW = (org.style?.width as number) ?? org.width ?? 200;
-        const orgH = (org.style?.height as number) ?? org.height ?? 200;
-        return nodeContainedInOrganizer(
-          n.position, { width: nodeW, height: nodeH },
-          org.position, { width: orgW, height: orgH }
-        );
-      });
-      if (!coveringOrg) continue;
-
-      const orgW = (coveringOrg.style?.width as number) ?? coveringOrg.width ?? 200;
-      const orgH = (coveringOrg.style?.height as number) ?? coveringOrg.height ?? 200;
-
-      // Find nearest edge to node center
-      const cx = n.position.x + nodeW / 2;
-      const cy = n.position.y + nodeH / 2;
-      const distLeft = cx - coveringOrg.position.x;
-      const distRight = (coveringOrg.position.x + orgW) - cx;
-      const distTop = cy - coveringOrg.position.y;
-      const distBottom = (coveringOrg.position.y + orgH) - cy;
-      const minDist = Math.min(distLeft, distRight, distTop, distBottom);
-
-      let newPos = { ...n.position };
-      if (minDist === distLeft) {
-        newPos = { x: coveringOrg.position.x - nodeW - margin, y: n.position.y };
-      } else if (minDist === distRight) {
-        newPos = { x: coveringOrg.position.x + orgW + margin, y: n.position.y };
-      } else if (minDist === distTop) {
-        newPos = { x: n.position.x, y: coveringOrg.position.y - nodeH - margin };
-      } else {
-        newPos = { x: n.position.x, y: coveringOrg.position.y + orgH + margin };
-      }
-
-      patches.push({ id: nodeId, position: newPos });
-    }
-
-    if (patches.length > 0) {
-      adapter.patchNodes?.(patches, 'rescue-covered');
-      setSelectedNodeIds(coveredNodeIds);
-    }
-  }, [sortedNodes, coveredNodeIds, adapter, setSelectedNodeIds]);
 
   // Canvas ref + fit view on mount
   const canvasRef = useRef<CanvasRef>(null);
+
+  // Fit view handler
+  const handleFitView = useCallback(() => {
+    const rects = sortedNodes
+      .filter(n => !n.hidden && !n.parentId) // top-level only
+      .map(n => ({
+        x: n.position.x,
+        y: n.position.y,
+        width: (n.style?.width as number) ?? (n.type === 'organizer' ? 300 : 200),
+        height: (n.style?.height as number) ?? (n.type === 'organizer' ? 200 : 80),
+      }));
+    canvasRef.current?.fitView(rects, 0.1);
+  }, [sortedNodes]);
 
   // Fit view after first render
   const fitDone = useRef(false);
   useEffect(() => {
     if (sortedNodes.length > 0 && !fitDone.current && canvasRef.current) {
-      const rects = sortedNodes
-        .filter(n => !n.hidden && !n.parentId) // top-level only
-        .map(n => ({
-          x: n.position.x,
-          y: n.position.y,
-          width: (n.style?.width as number) ?? (n.type === 'organizer' ? 300 : 200),
-          height: (n.style?.height as number) ?? (n.type === 'organizer' ? 200 : 80),
-        }));
-      canvasRef.current.fitView(rects, 0.1);
+      handleFitView();
       fitDone.current = true;
     }
-  }, [sortedNodes]);
+  }, [sortedNodes, handleFitView]);
 
   // Helper to compute absolute positions for box select
   const getAbsolutePosition = useCallback((n: any) => {
@@ -980,7 +897,6 @@ export default function MapV2({ searchText }: MapV2Props) {
       >
         <MapV2Inner
           sortedNodes={sortedNodes}
-          canvasRef={canvasRef}
           getSchema={getSchema}
           getPortSchema={getPortSchema}
           onSelectionChange={setSelectedNodeIds}
@@ -991,9 +907,29 @@ export default function MapV2({ searchText }: MapV2Props) {
           showNarrative={showNarrative}
           hideNarrative={hideNarrative}
           coveredNodeIds={coveredNodeIds}
-          rescueCoveredNodes={rescueCoveredNodes}
         />
       </Canvas>
+      <MapV2Toolbar
+        undo={undo}
+        redo={redo}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        onZoomIn={() => canvasRef.current?.zoomIn()}
+        onZoomOut={() => canvasRef.current?.zoomOut()}
+        onFitView={handleFitView}
+        onSpreadAll={spreadAll}
+        onCompactAll={compactAll}
+        onFlowLayout={flowLayout}
+        onAlignNodes={alignNodes}
+        onDistributeNodes={distributeNodes}
+        onRouteEdges={routeEdges}
+        onClearRoutes={clearRoutes}
+        onApplyPinLayout={applyPinLayout}
+        selectionModeActive={selectionModeActive}
+        onToggleSelectionMode={() => setSelectionModeActive(prev => !prev)}
+        hasSelection={selectedNodeIds.length > 0}
+        hasPinConstraints={pinConstraints.length > 0}
+      />
       <Narrative narrative={narrative} onDismiss={hideNarrative} />
     </div>
   );
