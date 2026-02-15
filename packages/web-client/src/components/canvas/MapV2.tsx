@@ -23,7 +23,7 @@ import AddConstructMenu from './AddConstructMenu';
 import ConstructEditor from '../ConstructEditor';
 import ConstructDebugModal from '../modals/ConstructDebugModal';
 import { getRectBoundaryPoint, waypointsToPath, computeBezierPath, type Waypoint } from '../../utils/edgeGeometry.js';
-import { canConnect, getHandleType, nodeContainedInOrganizer, type ConstructSchema, getFieldsForSummary, resolveNodeIcon, type ConstructNodeData, type DocumentAdapter } from '@carta/domain';
+import { canConnect, getHandleType, nodeContainedInOrganizer, type ConstructSchema, getFieldsForSummary, resolveNodeIcon, getDisplayName, resolveNodeColor, type ConstructNodeData, type DocumentAdapter } from '@carta/domain';
 import { stripHandlePrefix } from '../../utils/handlePrefix.js';
 import { generateSemanticId } from '../../utils/cartaFile';
 import type { LodBand } from './lod/lodPolicy.js';
@@ -120,6 +120,176 @@ function MapV2FieldList({ schema, constructData, adapter, nodeId }: {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+// Shape rendering helper functions
+interface ShapeRenderProps {
+  key: string;
+  nodeId: string;
+  absX: number;
+  absY: number;
+  width: number;
+  height: number;
+  selected: boolean;
+  color: string;
+  label: string;
+  schema: ConstructSchema;
+  constructData: ConstructNodeData;
+  dimmed: boolean;
+  sequenceBadge: number | null;
+  onPointerDown: (e: React.PointerEvent) => void;
+  onPointerEnter: () => void;
+  onPointerLeave: () => void;
+  onContextMenu: (e: React.MouseEvent) => void;
+  onDoubleClick: (e: React.MouseEvent) => void;
+}
+
+function renderCircleNode(props: ShapeRenderProps) {
+  const { key, nodeId, absX, absY, width, selected, label, schema, constructData, dimmed, onPointerDown, onPointerEnter, onPointerLeave, onContextMenu, onDoubleClick } = props;
+  const resolvedColor = resolveNodeColor(schema, constructData);
+  return (
+    <div key={key} data-node-id={nodeId} data-no-pan="true"
+      onPointerDown={onPointerDown} onPointerEnter={onPointerEnter}
+      onPointerLeave={onPointerLeave} onContextMenu={onContextMenu}
+      onDoubleClick={onDoubleClick}
+      style={{
+        position: 'absolute', left: absX, top: absY,
+        width: Math.max(width, 80), aspectRatio: '1 / 1',
+        borderRadius: '50%',
+        backgroundColor: `color-mix(in srgb, ${resolvedColor} 25%, var(--color-surface))`,
+        border: `2px solid ${resolvedColor}`,
+        boxShadow: selected ? 'var(--node-shadow-selected)' : 'var(--node-shadow)',
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        cursor: 'grab', overflow: 'hidden',
+        opacity: dimmed ? 0.2 : 1,
+        pointerEvents: dimmed ? 'none' : 'auto',
+      }}>
+      <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-content)', textAlign: 'center', padding: '0 8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>
+        {label}
+      </span>
+      {(() => {
+        const icon = resolveNodeIcon(schema, constructData);
+        return icon ? <span style={{ fontSize: '1.5em', fontWeight: 700, lineHeight: 1, color: 'var(--color-content)' }}>{icon}</span> : null;
+      })()}
+    </div>
+  );
+}
+
+function renderDiamondNode(props: ShapeRenderProps) {
+  const { key, nodeId, absX, absY, width, selected, label, schema, constructData, dimmed, onPointerDown, onPointerEnter, onPointerLeave, onContextMenu, onDoubleClick } = props;
+  const resolvedColor = resolveNodeColor(schema, constructData);
+  const size = Math.max(width, 100);
+  return (
+    <div key={key} data-node-id={nodeId} data-no-pan="true"
+      onPointerDown={onPointerDown} onPointerEnter={onPointerEnter}
+      onPointerLeave={onPointerLeave} onContextMenu={onContextMenu}
+      onDoubleClick={onDoubleClick}
+      style={{
+        position: 'absolute', left: absX, top: absY,
+        width: size, height: size,
+        cursor: 'grab',
+        opacity: dimmed ? 0.2 : 1,
+        pointerEvents: dimmed ? 'none' : 'auto',
+      }}>
+      {/* Rotated square */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        transform: 'rotate(45deg)',
+        backgroundColor: `color-mix(in srgb, ${resolvedColor} 25%, var(--color-surface))`,
+        border: `2px solid ${resolvedColor}`,
+        borderRadius: 4,
+        boxShadow: selected ? 'var(--node-shadow-selected)' : 'var(--node-shadow)',
+      }} />
+      {/* Content overlay (not rotated) */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        pointerEvents: 'none',
+      }}>
+        <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-content)', textAlign: 'center', padding: '0 8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70%' }}>
+          {label}
+        </span>
+        {(() => {
+          const icon = resolveNodeIcon(schema, constructData);
+          return icon ? <span style={{ fontSize: '1.2em', fontWeight: 700, lineHeight: 1, color: 'var(--color-content)' }}>{icon}</span> : null;
+        })()}
+      </div>
+    </div>
+  );
+}
+
+function renderDocumentNode(props: ShapeRenderProps) {
+  const { key, nodeId, absX, absY, width, selected, label, schema, constructData, dimmed, onPointerDown, onPointerEnter, onPointerLeave, onContextMenu, onDoubleClick } = props;
+  const resolvedColor = resolveNodeColor(schema, constructData);
+  return (
+    <div key={key} data-node-id={nodeId} data-no-pan="true"
+      onPointerDown={onPointerDown} onPointerEnter={onPointerEnter}
+      onPointerLeave={onPointerLeave} onContextMenu={onContextMenu}
+      onDoubleClick={onDoubleClick}
+      style={{
+        position: 'absolute', left: absX, top: absY,
+        width, cursor: 'grab',
+        opacity: dimmed ? 0.2 : 1,
+        pointerEvents: dimmed ? 'none' : 'auto',
+      }}>
+      <div style={{
+        backgroundColor: `color-mix(in srgb, ${resolvedColor} 25%, var(--color-surface))`,
+        border: `2px solid ${resolvedColor}`,
+        borderBottom: 'none',
+        borderRadius: '4px 4px 0 0',
+        minHeight: 60, padding: 8,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        boxShadow: selected ? 'var(--node-shadow-selected)' : 'var(--node-shadow)',
+      }}>
+        <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-content)', textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>
+          {label}
+        </span>
+      </div>
+      <svg viewBox="0 0 200 20" preserveAspectRatio="none"
+        style={{ display: 'block', width: '100%', height: 12 }}>
+        <path
+          d="M0,0 L0,10 Q50,20 100,10 Q150,0 200,10 L200,0 Z"
+          fill={`color-mix(in srgb, ${resolvedColor} 25%, var(--color-surface))`}
+          stroke={resolvedColor} strokeWidth="2" vectorEffect="non-scaling-stroke"
+        />
+      </svg>
+    </div>
+  );
+}
+
+function renderSimpleNode(props: ShapeRenderProps) {
+  const { key, nodeId, absX, absY, width, height, selected, label, schema, constructData, dimmed, onPointerDown, onPointerEnter, onPointerLeave, onContextMenu, onDoubleClick } = props;
+  const resolvedColor = resolveNodeColor(schema, constructData);
+  const bgColor = resolvedColor !== schema.color
+    ? resolvedColor
+    : `color-mix(in srgb, ${schema.color} 30%, var(--color-surface))`;
+  return (
+    <div key={key} data-node-id={nodeId} data-no-pan="true"
+      onPointerDown={onPointerDown} onPointerEnter={onPointerEnter}
+      onPointerLeave={onPointerLeave} onContextMenu={onContextMenu}
+      onDoubleClick={onDoubleClick}
+      style={{
+        position: 'absolute', left: absX, top: absY,
+        width: Math.max(width, 200), minHeight: Math.max(height, 100),
+        backgroundColor: bgColor,
+        borderRadius: 8,
+        boxShadow: selected ? 'var(--node-shadow-selected)' : 'var(--node-shadow)',
+        cursor: 'grab', padding: 12,
+        display: 'flex', flexDirection: 'column',
+        opacity: dimmed ? 0.2 : 1,
+        pointerEvents: dimmed ? 'none' : 'auto',
+      }}>
+      {(() => {
+        const icon = resolveNodeIcon(schema, constructData);
+        return icon ? <span style={{ position: 'absolute', top: 4, right: 8, fontSize: 14, fontWeight: 700, color: 'var(--color-content)', opacity: 0.6 }}>{icon}</span> : null;
+      })()}
+      <div style={{ flex: 1, fontSize: 13, color: 'var(--color-content)', whiteSpace: 'pre-wrap', overflow: 'hidden' }}>
+        {String(constructData.values?.content ?? label)}
+      </div>
     </div>
   );
 }
@@ -361,7 +531,9 @@ function MapV2Inner({ sortedNodes, getSchema, getPortSchema, onSelectionChange, 
       const isOrganizer = n.type === 'organizer';
       const data = n.data as Record<string, unknown>;
       const color = (data.color as string) ?? (isOrganizer ? '#7c3aed' : '#6b7280');
-      const label = (data.label as string) ?? (data.semanticId as string) ?? n.id;
+      const schema = !isOrganizer ? getSchema((data as any).constructType) : null;
+      const constructData = data as ConstructNodeData;
+      const label = !isOrganizer && schema ? getDisplayName(constructData, schema) : ((data.name as string) ?? (data.label as string) ?? n.id);
       let width = (n.style?.width as number) ?? (isOrganizer ? 300 : 200);
       let height = (n.style?.height as number) ?? (isOrganizer ? 200 : 80);
 
@@ -390,15 +562,14 @@ function MapV2Inner({ sortedNodes, getSchema, getPortSchema, onSelectionChange, 
       }
 
       const selected = isSelected(n.id);
-      const schema = !isOrganizer ? getSchema((data as any).constructType) : null;
       const isCovered = coveredNodeIds.includes(n.id);
-      const constructData = data as ConstructNodeData;
       const dimmed = (data as any).dimmed;
       const sequenceBadge = (data as any).sequenceBadge;
 
       // Marker variant rendering (LOD)
       if (!isOrganizer && lodBand === 'marker' && schema && constructData) {
         const icon = resolveNodeIcon(schema, constructData);
+        const resolvedColor = resolveNodeColor(schema, constructData);
         return (
           <div
             key={n.id}
@@ -428,28 +599,72 @@ function MapV2Inner({ sortedNodes, getSchema, getPortSchema, onSelectionChange, 
               position: 'absolute',
               left: absX,
               top: absY,
-              display: 'flex', alignItems: 'center', gap: 4,
-              backgroundColor: 'var(--color-surface)',
-              borderLeft: `2px solid ${color}`,
-              borderRadius: 4, padding: '2px 8px',
-              boxShadow: 'var(--node-shadow)',
-              height: 24, minWidth: 180, maxWidth: 500,
+              display: 'flex', alignItems: 'center', gap: 8,
+              backgroundColor: `color-mix(in srgb, ${resolvedColor} 25%, var(--color-surface))`,
+              borderRadius: 8,
+              padding: '8px 16px',
+              boxShadow: selected ? 'var(--node-shadow-selected)' : 'var(--node-shadow)',
+              minWidth: 180, maxWidth: 500,
               overflow: 'hidden',
               cursor: 'grab',
-              outline: selected ? '2px solid var(--color-accent, #3b82f6)' : 'none',
-              outlineOffset: '2px',
               opacity: dimmed ? 0.2 : 1,
               pointerEvents: dimmed ? 'none' : 'auto',
               transition: 'opacity 150ms ease',
             }}
           >
-            <div style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: color, flexShrink: 0 }} />
-            {icon && <span style={{ fontSize: 12 }}>{icon}</span>}
-            <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--color-content)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {schema.displayName}: {label}
+            <div style={{ width: 12, height: 12, borderRadius: 3, backgroundColor: resolvedColor, flexShrink: 0 }} />
+            {icon && <span style={{ fontSize: 20 }}>{icon}</span>}
+            <span style={{ fontSize: 20, fontWeight: 600, color: 'var(--color-content)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <span style={{ opacity: 0.5 }}>{schema.displayName}:</span> {label}
             </span>
           </div>
         );
+      }
+
+      // Shape variant dispatch for non-organizer nodes
+      if (!isOrganizer && schema) {
+        const nodeShape = schema.nodeShape ?? 'default';
+        const shapeProps: ShapeRenderProps = {
+          key: n.id,
+          nodeId: n.id,
+          absX,
+          absY,
+          width,
+          height,
+          selected,
+          color,
+          label,
+          schema,
+          constructData,
+          dimmed,
+          sequenceBadge,
+          onPointerDown: (e) => {
+            onSelectPointerDown(n.id, e);
+            onNodePointerDownDrag(n.id, e);
+          },
+          onPointerEnter: () => {
+            setHoveredNodeId(n.id);
+            onNodeMouseEnter(n.id);
+          },
+          onPointerLeave: () => {
+            setHoveredNodeId(null);
+            onNodeMouseLeave();
+          },
+          onContextMenu: (e) => {
+            e.preventDefault();
+            onNodeContextMenu(e, n.id);
+          },
+          onDoubleClick: (e) => {
+            e.stopPropagation();
+            onNodeDoubleClick(n.id);
+          },
+        };
+
+        if (nodeShape === 'circle') return renderCircleNode(shapeProps);
+        if (nodeShape === 'diamond') return renderDiamondNode(shapeProps);
+        if (nodeShape === 'document') return renderDocumentNode(shapeProps);
+        if (nodeShape === 'simple') return renderSimpleNode(shapeProps);
+        // Fall through to default card rendering
       }
 
       // Full node rendering
@@ -491,9 +706,11 @@ function MapV2Inner({ sortedNodes, getSchema, getPortSchema, onSelectionChange, 
             width,
             height: isOrganizer ? height : 'auto',
             minHeight: isOrganizer ? 0 : height,
-            backgroundColor: isOrganizer ? 'transparent' : 'var(--color-surface)',
-            border: isOrganizer ? `2px dashed ${color}` : `2px solid ${color}`,
-            borderRadius: isOrganizer ? 8 : 6,
+            backgroundColor: isOrganizer ? `color-mix(in srgb, ${color} 18%, var(--color-canvas))` : 'var(--color-surface)',
+            border: isOrganizer ? `1px solid color-mix(in srgb, ${color} 35%, var(--color-canvas))` : 'none',
+            borderLeft: isOrganizer ? 'none' : `2px solid color-mix(in srgb, ${color} 70%, var(--color-surface-alt))`,
+            borderRadius: isOrganizer ? 12 : 8,
+            boxShadow: isOrganizer ? '0 1px 3px rgba(0,0,0,0.04)' : (selected ? 'var(--node-shadow-selected), 0 0 0 2px rgba(99,102,241,0.3)' : 'var(--node-shadow)'),
             display: 'flex',
             flexDirection: 'column',
             color: isOrganizer ? color : 'var(--color-content)',
@@ -501,9 +718,9 @@ function MapV2Inner({ sortedNodes, getSchema, getPortSchema, onSelectionChange, 
             fontWeight: 500,
             overflow: isOrganizer ? 'hidden' : 'visible',
             cursor: 'grab',
-            outline: selected ? '2px solid var(--color-accent, #3b82f6)' : 'none',
-            outlineOffset: '2px',
-            opacity: dimmed ? 0.2 : (isOrganizer ? 0.6 : 1),
+            minWidth: isOrganizer ? 0 : 180,
+            maxWidth: isOrganizer ? undefined : 280,
+            opacity: dimmed ? 0.2 : 1,
             pointerEvents: dimmed ? 'none' : 'auto',
             transition: 'opacity 150ms ease',
           }}
@@ -525,48 +742,85 @@ function MapV2Inner({ sortedNodes, getSchema, getPortSchema, onSelectionChange, 
           )}
 
           {isOrganizer ? (
-            // Organizer label
+            // Organizer header bar
             <div style={{
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              flex: 1,
+              gap: 8,
+              padding: '6px 12px',
+              borderRadius: '12px 12px 0 0',
+              backgroundColor: `${color}15`,
+              cursor: 'grab',
+              userSelect: 'none',
             }}>
-              {label}
+              {/* Color dot */}
+              <div style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: color, flexShrink: 0 }} />
+              {/* Name */}
+              <span style={{
+                fontSize: 12, fontWeight: 500,
+                color: 'var(--color-content)',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                flex: 1,
+              }}>
+                {label}
+              </span>
+              {/* Child count badge */}
+              {(() => {
+                const childCount = sortedNodes.filter(c => c.parentId === n.id && !c.hidden).length;
+                return childCount > 0 ? (
+                  <span style={{
+                    fontSize: 10, fontWeight: 500, flexShrink: 0,
+                    padding: '1px 6px', borderRadius: 9999,
+                    backgroundColor: `color-mix(in srgb, ${color} 20%, var(--color-canvas))`,
+                    color: `color-mix(in srgb, ${color} 80%, var(--color-content))`,
+                  }}>
+                    {childCount}
+                  </span>
+                ) : null;
+              })()}
             </div>
           ) : schema ? (
             // Construct node with schema badge and fields
             <>
-              {/* Header with schema badge and label */}
+              {/* Selection dot */}
+              {selected && (
+                <div style={{
+                  position: 'absolute', top: -4, right: -4, width: 8, height: 8,
+                  borderRadius: '50%', backgroundColor: 'var(--color-accent, #6366f1)',
+                  boxShadow: '0 0 0 2px var(--color-surface)',
+                }} />
+              )}
+              {/* Header with schema badge and icon */}
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
+                justifyContent: 'space-between',
                 gap: 6,
-                padding: '6px 8px',
-                borderBottom: `1px solid ${color}40`,
+                padding: '4px 8px',
+                cursor: 'move',
+                backgroundColor: 'var(--color-surface-alt)',
+                borderRadius: '8px 8px 0 0',
+                userSelect: 'none',
               }}>
-                <div style={{
-                  padding: '2px 6px',
-                  borderRadius: 4,
-                  backgroundColor: `${color}20`,
-                  color: color,
-                  fontSize: 9,
-                  fontWeight: 600,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px',
-                }}>
+                <span style={{ fontSize: 11, color: 'var(--color-content-muted)' }}>
                   {schema.displayName}
-                </div>
-                <div style={{
-                  flex: 1,
-                  fontSize: 12,
-                  fontWeight: 600,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}>
-                  {label}
-                </div>
+                </span>
+                {(() => {
+                  const icon = resolveNodeIcon(schema, constructData);
+                  return icon ? <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-content)', lineHeight: 1 }}>{icon}</span> : null;
+                })()}
+              </div>
+              {/* Display name */}
+              <div style={{
+                padding: '6px 8px 2px',
+                fontSize: 15,
+                fontWeight: 600,
+                color: 'var(--color-content)',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}>
+                {label}
               </div>
               {/* Fields with inline editing */}
               <MapV2FieldList schema={schema} constructData={constructData} adapter={adapter} nodeId={n.id} />
