@@ -47,6 +47,7 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 | doc02.04.04 | `04-decisions/04-unified-deployment.md` | ADR: simplified deployment config | adr, deployment, config | doc02.05 |
 | doc02.04.05 | `04-decisions/05-presentation-model-organizers.md` | ADR: presentation model, organizers replace visual groups | adr, presentation, organizers, layout | doc02.09 |
 | doc02.04.06 | `04-decisions/06-yjs-authoritative-layout.md` | ADR: Yjs-authoritative layout, RF as renderer only, eliminate 3-layer sync | adr, state, layout, yjs, react-flow | doc02.02, doc05.03 |
+| doc02.04.07 | `04-decisions/07-package-loading-architecture.md` | ADR: Package-based schema loading, dual identity (UUID + content hash), manifest, snapshots | adr, packages, loading, seeds, identity, library | doc02.06, doc03.01.01.07 |
 | doc02.05 | `05-deployment-targets.md` | VITE_SYNC_URL, VITE_AI_MODE, document sources | deployment, config, server | doc02.01 |
 | doc02.06 | `06-metamodel.md` | M2/M1/M0 metamodel, DataKind, ConstructSchema | metamodel, schemas, ports | doc01.02 |
 | doc02.07 | `07-design-system.md` | Depth system, island pattern, colors, typography | design, ui, styling, lod | doc01.04 |
@@ -68,7 +69,7 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 | doc03.01.01.04 | `01-features/01-modeling/04-pages.md` | Multi-page views, page switching | pages, views | — |
 | doc03.01.01.05 | `01-features/01-modeling/05-metamap.md` | Schema-level visual editor, schema nodes | metamap, schemas | doc02.06 |
 | doc03.01.01.06 | `01-features/01-modeling/06-schema-editor.md` | Wizard for creating/editing construct schemas | schemas, editor | doc02.06 |
-| doc03.01.01.07 | `01-features/01-modeling/07-schema-library.md` | Versioned schema packages, fork ancestry, library publish/apply | library, schemas, seeds, versioning | doc02.06, doc02.05 |
+| doc03.01.01.07 | `01-features/01-modeling/07-schema-library.md` | Schema package loading, dual identity, manifest, standard library, drift detection | library, schemas, seeds, versioning, packages, loading | doc02.06, doc02.05, doc02.04.07 |
 | doc03.01.14 | `01-features/14-simple-mode.md` | Sketch-phase rendering, composable render modes, separate primitives | sketching, simple, rendering, rough, architecture | doc03.03.08, doc02.07, doc02.08 |
 
 ### Output (doc03.01.02)
@@ -144,7 +145,10 @@ Quick lookup for file-path→doc mapping:
 | `viewport` | doc02.11 |
 | `schemas` | doc02.06, doc03.01.01.02, doc03.01.01.05, doc03.01.01.06, doc03.01.01.07 |
 | `library` | doc03.01.01.07 |
-| `seeds` | doc03.01.01.07, doc02.06 |
+| `seeds` | doc03.01.01.07, doc02.06, doc02.04.07 |
+| `packages` | doc02.04.07, doc03.01.01.07, doc02.06 |
+| `identity` | doc02.04.07 |
+| `loading` | doc02.04.07 |
 | `versioning` | doc03.01.01.07 |
 | `ports` | doc02.06, doc03.01.01.03, doc02.04.02 |
 | `compiler` | doc03.01.02.01, doc02.03, doc02.04.03 |

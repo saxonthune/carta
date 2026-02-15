@@ -196,37 +196,21 @@ The compiler finds children by traversing connections from child ports targeting
 
 The `PortRegistry` class manages port schemas with polarity-based validation. It receives schemas as a parameter (not a singleton). Components access port schemas through `usePortSchemas()`, and the registry syncs with document state.
 
-## Schema Seeds
+## Standard Library (replacing Schema Seeds)
 
-**Location:** `@carta/domain/schemas/built-ins.ts`
+**Location:** `@carta/domain` (being migrated from `schemas/built-ins.ts`)
 
-Schema seeds are the precursor to schema packages — pre-bundled collections of related construct schemas for specific modeling domains. In the library model (doc03.01.01.07), seeds will be repackaged as built-in schema packages forming the standard library.
+The old seed system (imperative functions that dump schemas into a document during initialization) is being replaced by the package loading architecture (doc02.04.07). Schema seeds are being repackaged as `SchemaPackageDefinition` objects — self-contained, portable package definitions with stable UUIDs that load through the idempotent `applyPackage()` function.
 
-**Exports:**
-- `softwareArchitectureSeed` — Service, API endpoint, database, etc.
-- `sketchingSeed` — Note, Box, etc.
-- `bpmnSeed` — Activities, events, gateways
-- `awsSeed` — EC2, S3, Lambda, etc.
-- `capabilityModelSeed` — Capabilities, sub-capabilities
+**Standard library packages:**
+- Software Architecture — Service, API endpoint, database, etc.
+- Sketching — Note, Box, etc.
+- BPMN — Activities, events, gateways
+- AWS — EC2, S3, Lambda, etc.
+- Capability Model — Capabilities, sub-capabilities
 
-**Catalog metadata:**
-```typescript
-builtInSeedCatalog: Array<{
-  id: string;
-  displayName: string;
-  description: string;
-  seed: SchemaSeed;
-}>
-```
+Each package has a stable UUID, display metadata for the package picker, and a complete `SchemaPackageDefinition` containing schemas, in-package port schemas, groups, and relationships.
 
-**Hydration:**
-```typescript
-hydrateSeed(seed: SchemaSeed, packageId?: string): ConstructSchema[]
-```
+**Loading:** All packages are opt-in. Users load them via the package picker (doc03.01.01.07). No auto-seeding. The document's package manifest tracks which packages have been loaded and provides drift detection via content hashing.
 
-Hydrates a single seed with fresh UUIDs and optional packageId assignment. This enables UI for adding schema collections without requiring full built-in hydration.
-
-**Type export:**
-```typescript
-export type { SchemaSeed } from './seed-loader.js';
-```
+**Legacy:** The old `SchemaSeed` type, `hydrateSeed()` function, and `builtInSeedCatalog` are being deprecated in favor of `SchemaPackageDefinition` and `applyPackage()`. See doc02.04.07 for the full architecture decision.
