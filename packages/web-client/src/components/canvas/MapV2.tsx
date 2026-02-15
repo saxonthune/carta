@@ -28,6 +28,8 @@ import { getRectBoundaryPoint, waypointsToPath, computeBezierPath, computeSideOf
 import { canConnect, getHandleType, nodeContainedInOrganizer, type ConstructSchema, type ConstructNodeData, getDisplayName, type DocumentAdapter } from '@carta/domain';
 import { stripHandlePrefix } from '../../utils/handlePrefix.js';
 import { generateSemanticId } from '../../utils/cartaFile';
+import { computeOrthogonalRoutes, type NodeRect } from '../../presentation/index.js';
+import { getNodeDimensions } from '../../utils/nodeDimensions.js';
 import type { LodBand } from './lod/lodPolicy.js';
 import { MapV2OrganizerNode, type OrganizerChromeProps } from './MapV2OrganizerNode';
 import { MapV2ConstructNode } from './MapV2ConstructNode';
@@ -307,6 +309,64 @@ function MapV2Content({
         if (clearedEdgePatches.length > 0) {
           adapter.patchEdgeData?.(clearedEdgePatches);
         }
+
+        // Auto-route edges connected to moved nodes
+        const scheduleRouting = typeof requestIdleCallback !== 'undefined' ? requestIdleCallback : (fn: () => void) => setTimeout(fn, 0);
+        scheduleRouting(() => {
+          const currentNodes = adapter.getNodes() as any[];
+          const currentEdges = adapter.getEdges() as any[];
+
+          // Build obstacle list from top-level nodes
+          const topLevel = currentNodes.filter((n: any) => !n.parentId);
+          const obstacles: NodeRect[] = topLevel.map((n: any) => {
+            const dims = getNodeDimensions(n);
+            return { id: n.id, x: n.position.x, y: n.position.y, width: dims.width, height: dims.height };
+          });
+
+          // Find edges connected to moved nodes (using affectedIds already computed above)
+          const edgesToRoute = currentEdges.filter((e: any) =>
+            (affectedIds.has(e.source) || affectedIds.has(e.target)) &&
+            !e.id.startsWith('agg-') && !e.id.startsWith('wagon-')
+          );
+
+          if (edgesToRoute.length === 0) return;
+
+          // Build edge inputs (resolve child nodes to top-level parent rects)
+          const topLevelIds = new Set(topLevel.map((n: any) => n.id));
+          const parentMap = new Map<string, string>();
+          for (const n of currentNodes) {
+            if (n.parentId) parentMap.set(n.id, n.parentId);
+          }
+          function resolveTopLevel(id: string): string | undefined {
+            if (topLevelIds.has(id)) return id;
+            const parent = parentMap.get(id);
+            return parent ? resolveTopLevel(parent) : undefined;
+          }
+
+          const obstacleMap = new Map(obstacles.map(o => [o.id, o]));
+          const edgeInputs = edgesToRoute
+            .map((e: any) => {
+              const srcId = resolveTopLevel(e.source);
+              const tgtId = resolveTopLevel(e.target);
+              if (!srcId || !tgtId || srcId === tgtId) return null;
+              const srcRect = obstacleMap.get(srcId);
+              const tgtRect = obstacleMap.get(tgtId);
+              if (!srcRect || !tgtRect) return null;
+              return { id: e.id, sourceRect: srcRect, targetRect: tgtRect };
+            })
+            .filter(Boolean) as Array<{ id: string; sourceRect: NodeRect; targetRect: NodeRect }>;
+
+          const routes = computeOrthogonalRoutes(edgeInputs, obstacles);
+
+          const patches = edgesToRoute.map((e: any) => {
+            const route = routes.get(e.id);
+            return {
+              id: e.id,
+              data: { waypoints: route && route.waypoints.length >= 2 ? route.waypoints : null },
+            };
+          });
+          adapter.patchEdgeData?.(patches);
+        });
 
         // Handle Ctrl+drag attach/detach
         if (lastEvent && node && node.type !== 'organizer') {
