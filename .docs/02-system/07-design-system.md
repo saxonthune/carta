@@ -139,9 +139,7 @@ Each view should have at most 1-2 primary actions. Other buttons recede visually
 | Color | Meaning | Usage |
 |-------|---------|-------|
 | `accent` (indigo) | Interactive, selected | Links, selection, focus rings |
-| `emerald/green` | Success, positive | Compile, Save, success states |
-| `amber/yellow` | Warning | Warnings, pending states |
-| `danger/red` | Destructive | Delete, errors, validation |
+| `danger` (red) | Destructive | Delete, errors, validation |
 | `content-muted` | De-emphasized | Secondary text, disabled |
 
 ## Typography

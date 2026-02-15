@@ -93,11 +93,13 @@ An **organized collection** is the set of nodes that belong to a single organize
 
 ### Layout Strategies
 
-Each organizer has a **layout strategy** that determines how its collection is arranged. Currently only `freeform` is implemented:
+Each organizer has a **layout strategy** that determines how its collection is arranged:
 
 | Strategy | Behavior | Use Case |
 |----------|----------|----------|
-| `freeform` | Members positioned freely within bounds. NodeResizer for manual sizing. This is the default and only layout. | General-purpose grouping, spatial clustering |
+| `freeform` | Members positioned freely within bounds. NodeResizer for manual sizing. This is the default layout. | General-purpose grouping, spatial clustering |
+
+**Planned strategies:** `stack` (one member visible at a time with arrow navigation) and `grid` (auto-arranged in a resizable grid) are planned but not yet implemented.
 
 Layout strategies follow a **Strategy pattern** — each is a pure function that computes member positions and visibility from the organizer's state:
 

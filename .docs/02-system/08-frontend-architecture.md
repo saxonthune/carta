@@ -153,7 +153,7 @@ Schema view:
 
 ### `components/modals/index.ts`
 All modal dialogs:
-- `CompileModal`, `HelpModal`, `DocumentBrowserModal`, `ImportPreviewModal`, `ExportPreviewModal`, `ConstructDebugModal`, `ClearWorkspaceModal`
+- `CompileModal`, `HelpModal`, `DocumentBrowserModal`, `ImportPreviewModal`, `ExportPreviewModal`, `ConstructDebugModal`, `ClearWorkspaceModal`, `DeleteEmptySchemasModal`, `DeleteEmptyGroupsModal`
 
 ### `components/ui/index.ts`
 Organized by type:
@@ -162,7 +162,7 @@ Organized by type:
 - **Menus**: `ContextMenu`, `ContextMenuPrimitive`, `PopoverMenu`
 - **Domain components**: `DocumentRow`, `FolderRow`, `GroupedSchemaList`, `SchemaGroupSelector`, `CollapsibleSelector`, `ChoiceCard`, `DraggableWindow`
 - **Debug utilities**: `ZoomDebug`
-- **Icons**: All icon exports
+- **Icons** (from `icons.tsx`): `PinIcon`, `WindowIcon`, `CloseIcon`, `ExpandIcon`, `CollapseIcon`, `EyeIcon`, `EyeOffIcon`
 
 ### `utils/index.ts`
 Organized by purpose:

@@ -69,7 +69,7 @@ Carta exposes an MCP (Model Context Protocol) server for AI tool integration. Th
 - `carta_list_schemas` — List all schemas (built-in + custom). Use `output="compact"` for token efficiency
 - `carta_get_schema` — Get schema by type
 - `carta_create_schema` — Create custom construct schema (smart defaults: primary fields auto-get displayTier='minimal', default ports added if none specified)
-- `carta_update_schema` — Update non-breaking schema properties (color, displayName, renderStyle, etc). Supports field metadata updates via fieldUpdates map. Cannot change type, fields array, or ports array
+- `carta_update_schema` — Update non-breaking schema properties (color, displayName, nodeShape, etc). Supports field metadata updates via fieldUpdates map. Cannot change type, fields array, or ports array
 - `carta_delete_schema` — Delete custom schema
 
 **Schema migration operations (tier 2):**
@@ -111,6 +111,22 @@ Carta exposes an MCP (Model Context Protocol) server for AI tool integration. Th
 **Layout operations:**
 - `carta_flow_layout` — Arrange nodes in topological order along a flow direction (TB/BT/LR/RL). Uses Sugiyama framework: layer assignment, crossing minimization, coordinate assignment. Only affects top-level nodes (not inside organizers). Supports sourcePort/sinkPort configuration, layerGap, nodeGap, and scope options
 - `carta_arrange` — Arrange nodes using declarative constraints. Strategies: `grid` (initial placement), `preserve` (adjust existing positions), `force` (organic spring layout). Constraint types: align, order, spacing, group, distribute, position, flow. Constraints apply sequentially to node sets selected by constructType or semanticId
+
+**Pin and layout constraints:**
+- `carta_pin_constraint` — Pin a construct to fixed position
+- `carta_list_pin_constraints` — List all pin constraints
+- `carta_remove_pin_constraint` — Remove a pin constraint
+- `carta_apply_pin_layout` — Apply pinned positions from constraints
+- `carta_rebuild_page` — Rebuild page layout from constraints
+
+**Package and library operations:**
+- `carta_create_package` — Create schema package
+- `carta_list_packages` — List schema packages
+- `carta_get_package` — Get package by ID
+- `carta_publish_package` — Publish package to library
+- `carta_list_library` — List library entries
+- `carta_get_library_entry` — Get library entry details
+- `carta_apply_library_entry` — Apply library entry to document
 
 **Compilation:**
 - `carta_compile` — Compile document to AI-readable output
