@@ -1,5 +1,5 @@
 import { useRef, useMemo, useCallback, useEffect, useState } from 'react';
-import { Canvas, type CanvasRef, useNodeDrag, useNodeResize, useCanvasContext, ConnectionHandle } from '../../canvas-engine/index.js';
+import { Canvas, type CanvasRef, useNodeDrag, useNodeResize, useCanvasContext, ConnectionHandle, useKeyboardShortcuts } from '../../canvas-engine/index.js';
 import { useDocumentContext } from '../../contexts/DocumentContext';
 import { useNodes } from '../../hooks/useNodes';
 import { useEdges } from '../../hooks/useEdges';
@@ -14,18 +14,25 @@ import { useUndoRedo } from '../../hooks/useUndoRedo';
 import { usePinConstraints } from '../../hooks/usePinConstraints';
 import { useNodeLinks } from '../../canvas-engine/useNodeLinks';
 import { findContainerAt } from '../../canvas-engine/containment';
+import { useMapState } from '../../hooks/useMapState';
+import { useFlowTrace } from '../../hooks/useFlowTrace';
 import Narrative from './Narrative';
 import MapV2Toolbar from './MapV2Toolbar';
+import ContextMenu from '../ui/ContextMenu';
+import AddConstructMenu from './AddConstructMenu';
+import ConstructEditor from '../ConstructEditor';
+import ConstructDebugModal from '../modals/ConstructDebugModal';
 import { getRectBoundaryPoint, waypointsToPath, computeBezierPath, type Waypoint } from '../../utils/edgeGeometry.js';
-import { canConnect, getHandleType, nodeContainedInOrganizer } from '@carta/domain';
+import { canConnect, getHandleType, nodeContainedInOrganizer, type ConstructSchema } from '@carta/domain';
 import { stripHandlePrefix } from '../../utils/handlePrefix.js';
+import { generateSemanticId } from '../../utils/cartaFile';
 
 interface MapV2Props {
   searchText?: string;
 }
 
 // Inner component that uses canvas context
-function MapV2Inner({ sortedNodes, getSchema, getPortSchema, onSelectionChange, attachNodeToOrganizer, detachNodeFromOrganizer, toggleOrganizerCollapse, getFollowers, showNarrative, hideNarrative, coveredNodeIds }: {
+function MapV2Inner({ sortedNodes, getSchema, getPortSchema, onSelectionChange, attachNodeToOrganizer, detachNodeFromOrganizer, toggleOrganizerCollapse, getFollowers, showNarrative, hideNarrative, coveredNodeIds, onNodeContextMenu, onNodeMouseEnter, onNodeMouseLeave, onNodeDoubleClick }: {
   sortedNodes: any[];
   getSchema: (type: string) => any;
   getPortSchema: (type: string) => any;
@@ -37,6 +44,10 @@ function MapV2Inner({ sortedNodes, getSchema, getPortSchema, onSelectionChange, 
   showNarrative: (state: any) => void;
   hideNarrative: () => void;
   coveredNodeIds: string[];
+  onNodeContextMenu: (e: React.MouseEvent, nodeId: string) => void;
+  onNodeMouseEnter: (nodeId: string) => void;
+  onNodeMouseLeave: () => void;
+  onNodeDoubleClick: (nodeId: string) => void;
 }) {
   const { adapter } = useDocumentContext();
   const { transform, isSelected, onNodePointerDown: onSelectPointerDown, selectedIds, startConnection, connectionDrag } = useCanvasContext();
@@ -290,12 +301,25 @@ function MapV2Inner({ sortedNodes, getSchema, getPortSchema, onSelectionChange, 
               onSelectPointerDown(n.id, e);
               onNodePointerDownDrag(n.id, e);
             }}
-            onPointerEnter={() => setHoveredNodeId(n.id)}
-            onPointerLeave={() => setHoveredNodeId(null)}
+            onPointerEnter={() => {
+              setHoveredNodeId(n.id);
+              onNodeMouseEnter(n.id);
+            }}
+            onPointerLeave={() => {
+              setHoveredNodeId(null);
+              onNodeMouseLeave();
+            }}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              onNodeContextMenu(e, n.id);
+            }}
             onDoubleClick={(e) => {
               if (isOrganizer) {
                 e.stopPropagation();
                 toggleOrganizerCollapse(n.id);
+              } else {
+                e.stopPropagation();
+                onNodeDoubleClick(n.id);
               }
             }}
             style={{
@@ -463,7 +487,7 @@ function MapV2Inner({ sortedNodes, getSchema, getPortSchema, onSelectionChange, 
 }
 
 export default function MapV2({ searchText }: MapV2Props) {
-  const { nodes, setNodes } = useNodes();
+  const { nodes, setNodes, getNextNodeId } = useNodes();
   const { edges, setEdges } = useEdges();
   const { schemas, getSchema } = useSchemas();
   const { getPortSchema } = usePortSchemas();
@@ -478,6 +502,23 @@ export default function MapV2({ searchText }: MapV2Props) {
 
   // Selection mode state
   const [selectionModeActive, setSelectionModeActive] = useState(false);
+
+  // MapState for context menus and modals
+  const {
+    contextMenu,
+    addMenu,
+    editorState,
+    debugNodeId,
+    setAddMenu,
+    setEditorState,
+    setDebugNodeId,
+    onPaneContextMenu,
+    onNodeContextMenu,
+    closeContextMenu,
+  } = useMapState();
+
+  // Clipboard state (inlined from useClipboard)
+  const [clipboard, setClipboard] = useState<any[]>([]);
 
   // Node pipeline (needs same inputs as Map.tsx)
   // For interaction, pass stub/no-op values for modal-only params:
@@ -496,13 +537,16 @@ export default function MapV2({ searchText }: MapV2Props) {
     onToggleLayoutPin: () => {},
   }), []);
 
+  // Flow trace (Alt+hover)
+  const { traceResult, isTraceActive, onNodeMouseEnter, onNodeMouseLeave } = useFlowTrace(edges);
+
   const { sortedNodes, edgeRemap } = useMapNodePipeline({
     nodes,
     edges,
     renamingNodeId: null,
     renamingOrganizerId: null,
-    isTraceActive: false,
-    traceResult: null,
+    isTraceActive,
+    traceResult,
     nodeActions,
     orgRenameStart: () => {},
     orgRenameStop: () => {},
@@ -518,8 +562,8 @@ export default function MapV2({ searchText }: MapV2Props) {
     schemas,
     getSchema,
     getPortSchema,
-    isTraceActive: false,
-    traceResult: null,
+    isTraceActive,
+    traceResult,
     nodes,
   });
 
@@ -588,6 +632,135 @@ export default function MapV2({ searchText }: MapV2Props) {
     return covered;
   }, [sortedNodes]);
 
+  // Clipboard operations (inlined from useClipboard to avoid RF dependency)
+  const copyNodes = useCallback((ids?: string[]) => {
+    const idsToCopy = ids || selectedNodeIds;
+    if (idsToCopy.length === 0) return;
+    const toCopy = sortedNodes.filter(n => idsToCopy.includes(n.id));
+    setClipboard(JSON.parse(JSON.stringify(toCopy)));
+  }, [sortedNodes, selectedNodeIds]);
+
+  const pasteNodes = useCallback((x?: number, y?: number) => {
+    if (clipboard.length === 0) return;
+    const minX = Math.min(...clipboard.map(n => n.position.x));
+    const minY = Math.min(...clipboard.map(n => n.position.y));
+
+    let basePosition = { x: minX + 50, y: minY + 50 };
+    if (x !== undefined && y !== undefined) {
+      const canvasPos = canvasRef.current?.screenToCanvas(x, y);
+      if (canvasPos) {
+        basePosition = canvasPos;
+      }
+    }
+
+    const newNodes = clipboard.map(clipNode => ({
+      ...clipNode,
+      id: getNextNodeId(),
+      position: { x: basePosition.x + (clipNode.position.x - minX), y: basePosition.y + (clipNode.position.y - minY) },
+      selected: true,
+      data: { ...clipNode.data, semanticId: generateSemanticId(clipNode.data.constructType) },
+    }));
+
+    setNodes(nds => [...nds.map(n => ({ ...n, selected: false })), ...newNodes]);
+  }, [clipboard, setNodes, getNextNodeId]);
+
+  // Graph operations (inlined from useGraphOperations to avoid RF dependency)
+  const addConstruct = useCallback((schema: ConstructSchema, x: number, y: number) => {
+    const canvasPos = canvasRef.current?.screenToCanvas(x, y);
+    if (!canvasPos) return;
+
+    const id = getNextNodeId();
+    const values: any = {};
+    if (Array.isArray(schema.fields)) {
+      schema.fields.forEach((field) => {
+        if (field.default !== undefined) {
+          values[field.name] = field.default;
+        }
+      });
+    }
+
+    const semanticId = generateSemanticId(schema.type);
+    const newNode: any = {
+      id,
+      type: 'construct',
+      position: canvasPos,
+      data: {
+        constructType: schema.type,
+        semanticId,
+        values,
+      },
+    };
+    setNodes((nds) => [...nds, newNode]);
+  }, [setNodes, getNextNodeId]);
+
+  const addNode = useCallback((x?: number, y?: number) => {
+    if (x !== undefined && y !== undefined) {
+      setAddMenu({ x, y });
+    } else {
+      setAddMenu({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
+    }
+  }, [setAddMenu]);
+
+  const deleteNode = useCallback((nodeIdToDelete: string) => {
+    setNodes((nds) => {
+      const idsToDelete = new Set([nodeIdToDelete]);
+      const findDescendants = (parentId: string, depth = 0) => {
+        if (depth > 20) return;
+        for (const n of nds) {
+          if (n.parentId === parentId && !idsToDelete.has(n.id)) {
+            idsToDelete.add(n.id);
+            findDescendants(n.id, depth + 1);
+          }
+        }
+      };
+      findDescendants(nodeIdToDelete);
+      return nds.filter((n) => !idsToDelete.has(n.id));
+    });
+    setEdges((eds) => eds.filter((e) => !nodeIdToDelete || (e.source !== nodeIdToDelete && e.target !== nodeIdToDelete)));
+  }, [setNodes, setEdges]);
+
+  const deleteSelectedNodes = useCallback(() => {
+    if (selectedNodeIds.length === 0) return;
+    setNodes((nds) => {
+      const idsToDelete = new Set(selectedNodeIds);
+      for (const id of selectedNodeIds) {
+        const findDescendants = (parentId: string, depth = 0) => {
+          if (depth > 20) return;
+          for (const n of nds) {
+            if (n.parentId === parentId && !idsToDelete.has(n.id)) {
+              idsToDelete.add(n.id);
+              findDescendants(n.id, depth + 1);
+            }
+          }
+        };
+        findDescendants(id);
+      }
+      return nds.filter((n) => !idsToDelete.has(n.id));
+    });
+    setEdges((eds) => eds.filter((e) => !selectedNodeIds.includes(e.source) && !selectedNodeIds.includes(e.target)));
+    setSelectedNodeIds([]);
+  }, [selectedNodeIds, setNodes, setEdges]);
+
+  const deleteEdge = useCallback((edgeId: string) => {
+    setEdges((eds) => eds.filter((e) => e.id !== edgeId));
+  }, [setEdges]);
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts({
+    shortcuts: [
+      { key: 'z', mod: true, action: undo },
+      { key: 'y', mod: true, action: redo },
+      { key: 'z', mod: true, shift: true, action: redo },
+      { key: 'c', mod: true, action: () => copyNodes() },
+      { key: 'v', mod: true, action: () => pasteNodes() },
+      { key: 'a', mod: true, action: () => {
+        const selectableIds = sortedNodes.filter(n => !n.hidden && n.type !== 'organizer').map(n => n.id);
+        setSelectedNodeIds(selectableIds);
+      }},
+      { key: ['Delete', 'Backspace'], action: deleteSelectedNodes },
+      { key: 'v', action: () => setSelectionModeActive(prev => !prev) },
+    ],
+  });
 
   // Canvas ref + fit view on mount
   const canvasRef = useRef<CanvasRef>(null);
@@ -709,6 +882,21 @@ export default function MapV2({ searchText }: MapV2Props) {
       return [...eds, newEdge];
     });
   }, [nodes, getSchema, setEdges]);
+
+  // Node double-click handler
+  const handleNodeDoubleClick = useCallback((nodeId: string) => {
+    const node = sortedNodes.find(n => n.id === nodeId);
+    if (!node || node.type === 'organizer') return;
+    const schema = getSchema((node.data as any).constructType);
+    if (schema) {
+      setEditorState({ open: true, editSchema: schema });
+    }
+  }, [sortedNodes, getSchema, setEditorState]);
+
+  // Node context menu handler
+  const handleNodeContextMenu = useCallback((e: React.MouseEvent, nodeId: string) => {
+    onNodeContextMenu(e, { id: nodeId } as any);
+  }, [onNodeContextMenu]);
 
   // Edge click handler
   const handleEdgeClick = useCallback((edge: any, event: React.MouseEvent) => {
@@ -858,7 +1046,15 @@ export default function MapV2({ searchText }: MapV2Props) {
   }, [sortedNodes, getAbsolutePosition, canvasRef]);
 
   return (
-    <div style={{ width: '100%', height: '100%', backgroundColor: 'var(--color-canvas)', position: 'relative' }}>
+    <div
+      style={{ width: '100%', height: '100%', backgroundColor: 'var(--color-canvas)', position: 'relative' }}
+      onContextMenu={(e) => {
+        // Only fire pane context menu if clicking on the background (not on nodes/edges)
+        const target = e.target as HTMLElement;
+        if (target.closest('[data-node-id]') || target.closest('path')) return;
+        onPaneContextMenu(e);
+      }}
+    >
       {/* SVG arrow marker definition */}
       <svg style={{ position: 'absolute', width: 0, height: 0 }}>
         <defs>
@@ -907,6 +1103,10 @@ export default function MapV2({ searchText }: MapV2Props) {
           showNarrative={showNarrative}
           hideNarrative={hideNarrative}
           coveredNodeIds={coveredNodeIds}
+          onNodeContextMenu={handleNodeContextMenu}
+          onNodeMouseEnter={(nodeId) => onNodeMouseEnter({} as any, { id: nodeId } as any)}
+          onNodeMouseLeave={() => onNodeMouseLeave({} as any, {} as any)}
+          onNodeDoubleClick={handleNodeDoubleClick}
         />
       </Canvas>
       <MapV2Toolbar
@@ -931,6 +1131,91 @@ export default function MapV2({ searchText }: MapV2Props) {
         hasPinConstraints={pinConstraints.length > 0}
       />
       <Narrative narrative={narrative} onDismiss={hideNarrative} />
+
+      {/* Context Menu */}
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          type={contextMenu.type}
+          nodeId={contextMenu.nodeId}
+          edgeId={contextMenu.edgeId}
+          selectedCount={selectedNodeIds.length}
+          onAddNode={addNode}
+          onAddConstruct={(constructType, x, y) => {
+            const schema = getSchema(constructType);
+            if (schema) addConstruct(schema, x, y);
+          }}
+          onDeleteNode={deleteNode}
+          onDeleteSelected={deleteSelectedNodes}
+          onDeleteEdge={deleteEdge}
+          onCopyNodes={copyNodes}
+          onPasteNodes={pasteNodes}
+          canPaste={clipboard.length > 0}
+          onClose={closeContextMenu}
+          onNewConstructSchema={() => setEditorState({ open: true })}
+          onEditSchema={(schemaType) => {
+            const schema = getSchema(schemaType);
+            if (schema) setEditorState({ open: true, editSchema: schema });
+          }}
+          constructType={(() => {
+            if (!contextMenu.nodeId) return undefined;
+            const node = nodes.find(n => n.id === contextMenu.nodeId);
+            return node?.type === 'construct' ? (node.data as any).constructType : undefined;
+          })()}
+          nodeIsConstruct={(() => {
+            if (!contextMenu.nodeId) return false;
+            const node = nodes.find(n => n.id === contextMenu.nodeId);
+            return node?.type === 'construct';
+          })()}
+          nodeInOrganizer={(() => {
+            if (!contextMenu.nodeId) return false;
+            const node = nodes.find(n => n.id === contextMenu.nodeId);
+            if (!node?.parentId) return false;
+            const parent = nodes.find(n => n.id === node.parentId);
+            return parent?.type === 'organizer';
+          })()}
+          nodeIsOrganizer={(() => {
+            if (!contextMenu.nodeId) return false;
+            const node = nodes.find(n => n.id === contextMenu.nodeId);
+            return node?.type === 'organizer';
+          })()}
+          onDebugInfo={(nodeId) => { setDebugNodeId(nodeId); closeContextMenu(); }}
+        />
+      )}
+
+      {/* Add Construct Menu */}
+      {addMenu && (
+        <AddConstructMenu
+          x={addMenu.x}
+          y={addMenu.y}
+          onAdd={addConstruct}
+          onClose={() => setAddMenu(null)}
+        />
+      )}
+
+      {/* Construct Editor (Schema Editor) */}
+      {editorState.open && (
+        <ConstructEditor
+          editSchema={editorState.editSchema}
+          onClose={() => setEditorState({ open: false })}
+        />
+      )}
+
+      {/* Debug Modal */}
+      {debugNodeId && (() => {
+        const node = nodes.find(n => n.id === debugNodeId);
+        if (!node || node.type === 'organizer') return null;
+        const data = node.data as any;
+        const schema = schemas.find(s => s.type === data.constructType);
+        return (
+          <ConstructDebugModal
+            node={node}
+            schema={schema}
+            onClose={() => setDebugNodeId(null)}
+          />
+        );
+      })()}
     </div>
   );
 }
