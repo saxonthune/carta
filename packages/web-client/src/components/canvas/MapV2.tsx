@@ -1,6 +1,6 @@
 import { useRef, useMemo, useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Canvas, type CanvasRef, useNodeDrag, useNodeResize, useCanvasContext, ConnectionHandle, useKeyboardShortcuts } from '../../canvas-engine/index.js';
+import { Canvas, type CanvasRef, useNodeDrag, useNodeResize, useCanvasContext, useKeyboardShortcuts } from '../../canvas-engine/index.js';
 import { useDocumentContext } from '../../contexts/DocumentContext';
 import { useNodes } from '../../hooks/useNodes';
 import { useEdges } from '../../hooks/useEdges';
@@ -23,314 +23,109 @@ import ContextMenu from '../ui/ContextMenu';
 import AddConstructMenu from './AddConstructMenu';
 import ConstructEditor from '../ConstructEditor';
 import ConstructDebugModal from '../modals/ConstructDebugModal';
-import { DotsThreeVertical, PushPin } from '@phosphor-icons/react';
-import { EyeIcon, EyeOffIcon } from '../ui/icons';
 import { MenuLevel, type MenuItem } from '../ui/ContextMenuPrimitive';
 import { getRectBoundaryPoint, waypointsToPath, computeBezierPath, type Waypoint } from '../../utils/edgeGeometry.js';
-import { canConnect, getHandleType, nodeContainedInOrganizer, type ConstructSchema, getFieldsForSummary, resolveNodeIcon, getDisplayName, resolveNodeColor, type ConstructNodeData, type DocumentAdapter } from '@carta/domain';
+import { canConnect, getHandleType, nodeContainedInOrganizer, type ConstructSchema, type ConstructNodeData, getDisplayName, type DocumentAdapter } from '@carta/domain';
 import { stripHandlePrefix } from '../../utils/handlePrefix.js';
 import { generateSemanticId } from '../../utils/cartaFile';
 import type { LodBand } from './lod/lodPolicy.js';
+import { MapV2OrganizerNode, type OrganizerChromeProps } from './MapV2OrganizerNode';
+import { MapV2ConstructNode } from './MapV2ConstructNode';
 
 interface MapV2Props {
   searchText?: string;
 }
 
-// Field list component with editing state
-function MapV2FieldList({ schema, constructData, adapter, nodeId }: {
-  schema: ConstructSchema;
-  constructData: ConstructNodeData;
-  adapter: DocumentAdapter;
-  nodeId: string;
-}) {
-  const [editingField, setEditingField] = useState<string | null>(null);
-  const fields = getFieldsForSummary(schema);
-
-  if (fields.length === 0) return null;
-
-  return (
-    <div style={{ padding: '2px 8px 6px', display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {fields.map(field => {
-        const value = constructData.values[field.name] ?? field.default;
-        const isMultiline = field.displayHint === 'multiline' || field.displayHint === 'code';
-
-        const commitValue = (newValue: unknown) => {
-          adapter.updateNode(nodeId, { values: { ...constructData.values, [field.name]: newValue } });
-          setEditingField(null);
-        };
-
-        if (editingField === field.name) {
-          return (
-            <div key={field.name} onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
-              <div style={{ fontSize: 10, color: 'var(--color-content-subtle)' }}>{field.label}</div>
-              {field.type === 'boolean' ? (
-                <input type="checkbox" checked={!!value} onChange={(e) => commitValue(e.target.checked)}
-                  onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Escape') setEditingField(null); }}
-                  autoFocus style={{ width: 16, height: 16, cursor: 'pointer' }} />
-              ) : field.type === 'enum' && field.options ? (
-                <select
-                  style={{ width: '100%', padding: '2px 4px', backgroundColor: 'var(--color-surface)', borderRadius: 4, fontSize: 11, color: 'var(--color-content)', border: '1px solid var(--color-accent)', outline: 'none' }}
-                  value={String(value ?? '')}
-                  onChange={(e) => commitValue(e.target.value)}
-                  onBlur={() => setEditingField(null)}
-                  onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Escape') setEditingField(null); }}
-                  autoFocus
-                >
-                  <option value="">Select...</option>
-                  {field.options.map(opt => <option key={opt.value} value={opt.value}>{opt.value}</option>)}
-                </select>
-              ) : isMultiline ? (
-                <textarea
-                  style={{ width: '100%', padding: '2px 4px', backgroundColor: 'var(--color-surface)', borderRadius: 4, fontSize: 11, color: 'var(--color-content)', border: '1px solid var(--color-accent)', outline: 'none', resize: 'vertical', minHeight: 60, fontFamily: 'monospace' }}
-                  defaultValue={String(value ?? '')}
-                  onBlur={(e) => commitValue(e.target.value)}
-                  onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Escape') setEditingField(null); }}
-                  autoFocus
-                />
-              ) : (
-                <input
-                  type={field.type === 'number' ? 'number' : 'text'}
-                  style={{ width: '100%', padding: '2px 4px', backgroundColor: 'var(--color-surface)', borderRadius: 4, fontSize: 11, color: 'var(--color-content)', border: '1px solid var(--color-accent)', outline: 'none' }}
-                  defaultValue={String(value ?? '')}
-                  onBlur={(e) => commitValue(field.type === 'number' ? Number(e.target.value) : e.target.value)}
-                  onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter') (e.target as HTMLElement).blur(); if (e.key === 'Escape') setEditingField(null); }}
-                  autoFocus
-                />
-              )}
-            </div>
-          );
-        }
-
-        // Read-only field
-        const display = value == null || value === '' ? '—' : String(value);
-        return (
-          <div key={field.name} style={{ cursor: 'pointer', padding: '1px 4px', margin: '0 -4px', borderRadius: 4 }}
-            onClick={(e) => { e.stopPropagation(); setEditingField(field.name); }}
-            onPointerDown={(e) => e.stopPropagation()}
-          >
-            {isMultiline ? (
-              <>
-                <div style={{ fontSize: 10, color: 'var(--color-content-subtle)' }}>{field.label}:</div>
-                <div style={{ fontSize: 11, color: 'var(--color-content)', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', whiteSpace: 'pre-wrap' }}>{display}</div>
-              </>
-            ) : (
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, minWidth: 0 }}>
-                <span style={{ fontSize: 10, color: 'var(--color-content-subtle)', flexShrink: 0 }}>{field.label}:</span>
-                <span style={{ fontSize: 11, color: 'var(--color-content)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {field.type === 'boolean' ? (value ? 'Yes' : 'No') : display}
-                </span>
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
+// Helper to compute absolute position including parent offset and drag offset
+function getAbsolutePosition(
+  node: any,
+  sortedNodes: any[],
+  dragOffsets: Map<string, { dx: number; dy: number }>
+): { x: number; y: number } {
+  let x = node.position.x;
+  let y = node.position.y;
+  if (node.parentId) {
+    const parent = sortedNodes.find(p => p.id === node.parentId);
+    if (parent) {
+      x += parent.position.x;
+      y += parent.position.y;
+      const parentOffset = dragOffsets.get(parent.id);
+      if (parentOffset) {
+        x += parentOffset.dx;
+        y += parentOffset.dy;
+      }
+    }
+  }
+  const offset = dragOffsets.get(node.id);
+  if (offset) {
+    x += offset.dx;
+    y += offset.dy;
+  }
+  return { x, y };
 }
 
-// Shape rendering helper functions
-interface ShapeRenderProps {
-  key: string;
-  nodeId: string;
-  absX: number;
-  absY: number;
-  width: number;
-  height: number;
-  selected: boolean;
-  color: string;
-  label: string;
-  schema: ConstructSchema;
-  constructData: ConstructNodeData;
-  dimmed: boolean;
-  sequenceBadge: number | null;
-  onPointerDown: (e: React.PointerEvent) => void;
-  onPointerEnter: () => void;
-  onPointerLeave: () => void;
-  onContextMenu: (e: React.MouseEvent) => void;
-  onDoubleClick: (e: React.MouseEvent) => void;
-}
 
-function renderCircleNode(props: ShapeRenderProps) {
-  const { key, nodeId, absX, absY, width, selected, label, schema, constructData, dimmed, onPointerDown, onPointerEnter, onPointerLeave, onContextMenu, onDoubleClick } = props;
-  const resolvedColor = resolveNodeColor(schema, constructData);
-  return (
-    <div key={key} data-node-id={nodeId} data-no-pan="true"
-      onPointerDown={onPointerDown} onPointerEnter={onPointerEnter}
-      onPointerLeave={onPointerLeave} onContextMenu={onContextMenu}
-      onDoubleClick={onDoubleClick}
-      style={{
-        position: 'absolute', left: absX, top: absY,
-        width: Math.max(width, 80), aspectRatio: '1 / 1',
-        borderRadius: '50%',
-        backgroundColor: `color-mix(in srgb, ${resolvedColor} 25%, var(--color-surface))`,
-        border: `2px solid ${resolvedColor}`,
-        boxShadow: selected ? 'var(--node-shadow-selected)' : 'var(--node-shadow)',
-        display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center',
-        cursor: 'grab', overflow: 'hidden',
-        opacity: dimmed ? 0.2 : 1,
-        pointerEvents: dimmed ? 'none' : 'auto',
-      }}>
-      <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-content)', textAlign: 'center', padding: '0 8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>
-        {label}
-      </span>
-      {(() => {
-        const icon = resolveNodeIcon(schema, constructData);
-        return icon ? <span style={{ fontSize: '1.5em', fontWeight: 700, lineHeight: 1, color: 'var(--color-content)' }}>{icon}</span> : null;
-      })()}
-    </div>
-  );
-}
-
-function renderDiamondNode(props: ShapeRenderProps) {
-  const { key, nodeId, absX, absY, width, selected, label, schema, constructData, dimmed, onPointerDown, onPointerEnter, onPointerLeave, onContextMenu, onDoubleClick } = props;
-  const resolvedColor = resolveNodeColor(schema, constructData);
-  const size = Math.max(width, 100);
-  return (
-    <div key={key} data-node-id={nodeId} data-no-pan="true"
-      onPointerDown={onPointerDown} onPointerEnter={onPointerEnter}
-      onPointerLeave={onPointerLeave} onContextMenu={onContextMenu}
-      onDoubleClick={onDoubleClick}
-      style={{
-        position: 'absolute', left: absX, top: absY,
-        width: size, height: size,
-        cursor: 'grab',
-        opacity: dimmed ? 0.2 : 1,
-        pointerEvents: dimmed ? 'none' : 'auto',
-      }}>
-      {/* Rotated square */}
-      <div style={{
-        position: 'absolute', inset: 0,
-        transform: 'rotate(45deg)',
-        backgroundColor: `color-mix(in srgb, ${resolvedColor} 25%, var(--color-surface))`,
-        border: `2px solid ${resolvedColor}`,
-        borderRadius: 4,
-        boxShadow: selected ? 'var(--node-shadow-selected)' : 'var(--node-shadow)',
-      }} />
-      {/* Content overlay (not rotated) */}
-      <div style={{
-        position: 'absolute', inset: 0,
-        display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center',
-        pointerEvents: 'none',
-      }}>
-        <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-content)', textAlign: 'center', padding: '0 8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70%' }}>
-          {label}
-        </span>
-        {(() => {
-          const icon = resolveNodeIcon(schema, constructData);
-          return icon ? <span style={{ fontSize: '1.2em', fontWeight: 700, lineHeight: 1, color: 'var(--color-content)' }}>{icon}</span> : null;
-        })()}
-      </div>
-    </div>
-  );
-}
-
-function renderDocumentNode(props: ShapeRenderProps) {
-  const { key, nodeId, absX, absY, width, selected, label, schema, constructData, dimmed, onPointerDown, onPointerEnter, onPointerLeave, onContextMenu, onDoubleClick } = props;
-  const resolvedColor = resolveNodeColor(schema, constructData);
-  return (
-    <div key={key} data-node-id={nodeId} data-no-pan="true"
-      onPointerDown={onPointerDown} onPointerEnter={onPointerEnter}
-      onPointerLeave={onPointerLeave} onContextMenu={onContextMenu}
-      onDoubleClick={onDoubleClick}
-      style={{
-        position: 'absolute', left: absX, top: absY,
-        width, cursor: 'grab',
-        opacity: dimmed ? 0.2 : 1,
-        pointerEvents: dimmed ? 'none' : 'auto',
-      }}>
-      <div style={{
-        backgroundColor: `color-mix(in srgb, ${resolvedColor} 25%, var(--color-surface))`,
-        border: `2px solid ${resolvedColor}`,
-        borderBottom: 'none',
-        borderRadius: '4px 4px 0 0',
-        minHeight: 60, padding: 8,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        boxShadow: selected ? 'var(--node-shadow-selected)' : 'var(--node-shadow)',
-      }}>
-        <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-content)', textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>
-          {label}
-        </span>
-      </div>
-      <svg viewBox="0 0 200 20" preserveAspectRatio="none"
-        style={{ display: 'block', width: '100%', height: 12 }}>
-        <path
-          d="M0,0 L0,10 Q50,20 100,10 Q150,0 200,10 L200,0 Z"
-          fill={`color-mix(in srgb, ${resolvedColor} 25%, var(--color-surface))`}
-          stroke={resolvedColor} strokeWidth="2" vectorEffect="non-scaling-stroke"
-        />
-      </svg>
-    </div>
-  );
-}
-
-function renderSimpleNode(props: ShapeRenderProps) {
-  const { key, nodeId, absX, absY, width, height, selected, label, schema, constructData, dimmed, onPointerDown, onPointerEnter, onPointerLeave, onContextMenu, onDoubleClick } = props;
-  const resolvedColor = resolveNodeColor(schema, constructData);
-  const bgColor = resolvedColor !== schema.color
-    ? resolvedColor
-    : `color-mix(in srgb, ${schema.color} 30%, var(--color-surface))`;
-  return (
-    <div key={key} data-node-id={nodeId} data-no-pan="true"
-      onPointerDown={onPointerDown} onPointerEnter={onPointerEnter}
-      onPointerLeave={onPointerLeave} onContextMenu={onContextMenu}
-      onDoubleClick={onDoubleClick}
-      style={{
-        position: 'absolute', left: absX, top: absY,
-        width: Math.max(width, 200), minHeight: Math.max(height, 100),
-        backgroundColor: bgColor,
-        borderRadius: 8,
-        boxShadow: selected ? 'var(--node-shadow-selected)' : 'var(--node-shadow)',
-        cursor: 'grab', padding: 12,
-        display: 'flex', flexDirection: 'column',
-        opacity: dimmed ? 0.2 : 1,
-        pointerEvents: dimmed ? 'none' : 'auto',
-      }}>
-      {(() => {
-        const icon = resolveNodeIcon(schema, constructData);
-        return icon ? <span style={{ position: 'absolute', top: 4, right: 8, fontSize: 14, fontWeight: 700, color: 'var(--color-content)', opacity: 0.6 }}>{icon}</span> : null;
-      })()}
-      <div style={{ flex: 1, fontSize: 13, color: 'var(--color-content)', whiteSpace: 'pre-wrap', overflow: 'hidden' }}>
-        {String(constructData.values?.content ?? label)}
-      </div>
-    </div>
-  );
-}
-
-// Inner component that uses canvas context
-function MapV2Inner({ sortedNodes, getSchema, getPortSchema, onSelectionChange, attachNodeToOrganizer, detachNodeFromOrganizer, toggleOrganizerCollapse, fitToChildren, getFollowers, showNarrative, hideNarrative, coveredNodeIds, onNodeContextMenu, onNodeMouseEnter, onNodeMouseLeave, onNodeDoubleClick, renamingOrgId, renameValue, setRenameValue, setRenamingOrgId, colorTriggerRefs, layoutTriggerRefs, setColorPickerOrgId, setLayoutMenuOrgId, handleOrgRename, commitOrgRename, dragOffsets, setDragOffsets, dragOffsetsRef }: {
+// Slim prop interface for MapV2Content
+interface MapV2ContentProps {
   sortedNodes: any[];
+  sortedNodesRef: React.MutableRefObject<any[]>;
   getSchema: (type: string) => any;
   getPortSchema: (type: string) => any;
-  onSelectionChange: (ids: string[]) => void;
-  attachNodeToOrganizer: (nodeId: string, organizerId: string) => void;
-  detachNodeFromOrganizer: (nodeId: string) => void;
-  toggleOrganizerCollapse: (organizerId: string) => void;
-  fitToChildren: (organizerId: string) => void;
-  getFollowers: (leaderId: string) => string[];
-  showNarrative: (state: any) => void;
-  renamingOrgId: string | null;
-  renameValue: string;
-  setRenameValue: (value: string) => void;
-  setRenamingOrgId: (value: string | null) => void;
-  colorTriggerRefs: React.MutableRefObject<Map<string, HTMLDivElement>>;
-  layoutTriggerRefs: React.MutableRefObject<Map<string, HTMLButtonElement>>;
-  setColorPickerOrgId: (value: string | null | ((prev: string | null) => string | null)) => void;
-  setLayoutMenuOrgId: (value: string | null | ((prev: string | null) => string | null)) => void;
-  handleOrgRename: (orgId: string) => void;
-  commitOrgRename: (orgId: string) => void;
-  hideNarrative: () => void;
-  coveredNodeIds: string[];
-  onNodeContextMenu: (e: React.MouseEvent, nodeId: string) => void;
-  onNodeMouseEnter: (nodeId: string) => void;
-  onNodeMouseLeave: () => void;
-  onNodeDoubleClick: (nodeId: string) => void;
+  adapter: DocumentAdapter;
+
+  // Drag offset state (lifted to parent for renderEdges)
   dragOffsets: Map<string, { dx: number; dy: number }>;
   setDragOffsets: React.Dispatch<React.SetStateAction<Map<string, { dx: number; dy: number }>>>;
   dragOffsetsRef: React.MutableRefObject<Map<string, { dx: number; dy: number }>>;
-}) {
-  const { adapter } = useDocumentContext();
+
+  // Interaction callbacks (defined in parent, need domain access)
+  getFollowers: (leaderId: string) => string[];
+  fitToChildren: (organizerId: string) => void;
+  attachNodeToOrganizer: (nodeId: string, organizerId: string) => void;
+  detachNodeFromOrganizer: (nodeId: string) => void;
+  toggleOrganizerCollapse: (organizerId: string) => void;
+  showNarrative: (state: any) => void;
+  hideNarrative: () => void;
+
+  // Event callbacks for chrome (parent handles these)
+  onNodeContextMenu: (e: React.MouseEvent, nodeId: string) => void;
+  onNodeDoubleClick: (nodeId: string) => void;
+  onNodeMouseEnter: (nodeId: string) => void;
+  onNodeMouseLeave: () => void;
+  onSelectionChange: (ids: string[]) => void;
+
+  // Organizer chrome state
+  organizerChrome: OrganizerChromeProps;
+
+  // Covered nodes (computed in parent)
+  coveredNodeIds: string[];
+}
+
+// Inner component that uses canvas context - renamed to MapV2Content with slim prop interface
+function MapV2Content({
+  sortedNodes,
+  sortedNodesRef,
+  getSchema,
+  getPortSchema,
+  adapter,
+  dragOffsets,
+  setDragOffsets,
+  dragOffsetsRef,
+  getFollowers,
+  fitToChildren,
+  attachNodeToOrganizer,
+  detachNodeFromOrganizer,
+  toggleOrganizerCollapse,
+  showNarrative,
+  hideNarrative,
+  onNodeContextMenu,
+  onNodeDoubleClick,
+  onNodeMouseEnter,
+  onNodeMouseLeave,
+  onSelectionChange,
+  organizerChrome,
+  coveredNodeIds,
+}: MapV2ContentProps) {
   const { transform, isSelected, onNodePointerDown: onSelectPointerDown, selectedIds, startConnection, connectionDrag } = useCanvasContext();
 
   // LOD band tracking based on zoom level
@@ -350,10 +145,6 @@ function MapV2Inner({ sortedNodes, getSchema, getPortSchema, onSelectionChange, 
       onSelectionChange(selectedIds);
     }
   }, [selectedIds, onSelectionChange]);
-
-  // Refs for stable callback access
-  const sortedNodesRef = useRef(sortedNodes);
-  useEffect(() => { sortedNodesRef.current = sortedNodes; }, [sortedNodes]);
 
   // Port drawer hover state
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
@@ -604,43 +395,75 @@ function MapV2Inner({ sortedNodes, getSchema, getPortSchema, onSelectionChange, 
       }
 
       // Compute absolute position (children have relative positions)
-      let absX = n.position.x;
-      let absY = n.position.y;
-      if (n.parentId) {
-        const parent = sortedNodes.find(p => p.id === n.parentId);
-        if (parent) {
-          absX += parent.position.x;
-          absY += parent.position.y;
-          // If parent is being dragged, children follow via parent's offset
-          const parentOffset = dragOffsets.get(parent.id);
-          if (parentOffset) {
-            absX += parentOffset.dx;
-            absY += parentOffset.dy;
-          }
-        }
-      }
-
-      // Apply drag offset if this node itself is being dragged
-      const offset = dragOffsets.get(n.id);
-      if (offset) {
-        absX += offset.dx;
-        absY += offset.dy;
-      }
+      const { x: absX, y: absY } = getAbsolutePosition(n, sortedNodes, dragOffsets);
 
       const selected = isSelected(n.id);
       const isCovered = coveredNodeIds.includes(n.id);
       const dimmed = (data as any).dimmed;
       const sequenceBadge = (data as any).sequenceBadge;
 
-      // Marker variant rendering (LOD)
-      if (!isOrganizer && lodBand === 'marker' && schema && constructData) {
-        const icon = resolveNodeIcon(schema, constructData);
-        const resolvedColor = resolveNodeColor(schema, constructData);
+      // Organizer rendering - delegate to MapV2OrganizerNode
+      if (isOrganizer) {
+        const collapsed = (data as any).collapsed ?? false;
+        const childCount = sortedNodesRef.current.filter(c => c.parentId === n.id).length;
+        const layoutPinned = (data as any).layoutPinned ?? false;
+
         return (
-          <div
+          <MapV2OrganizerNode
             key={n.id}
-            data-node-id={n.id}
-            data-no-pan="true"
+            node={n}
+            absX={absX}
+            absY={absY}
+            width={width}
+            height={height}
+            selected={selected}
+            collapsed={collapsed}
+            label={label}
+            color={color}
+            dimmed={dimmed}
+            childCount={childCount}
+            layoutPinned={layoutPinned}
+            onPointerDown={(e) => {
+              onSelectPointerDown(n.id, e);
+              onNodePointerDownDrag(n.id, e);
+            }}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              onNodeContextMenu(e, n.id);
+            }}
+            onDoubleClick={(e) => {
+              e.stopPropagation();
+              toggleOrganizerCollapse(n.id);
+            }}
+            onResizePointerDown={(e) => {
+              e.stopPropagation();
+              onResizePointerDown(n.id, { horizontal: 'right', vertical: 'bottom' }, e);
+            }}
+            chrome={organizerChrome}
+          />
+        );
+      }
+
+      // Construct rendering - delegate to MapV2ConstructNode
+      if (schema && constructData) {
+        return (
+          <MapV2ConstructNode
+            key={n.id}
+            node={n}
+            absX={absX}
+            absY={absY}
+            width={width}
+            height={height}
+            selected={selected}
+            label={label}
+            color={color}
+            schema={schema}
+            constructData={constructData}
+            dimmed={dimmed}
+            sequenceBadge={sequenceBadge}
+            lodBand={lodBand}
+            isCovered={isCovered}
+            adapter={adapter}
             onPointerDown={(e) => {
               onSelectPointerDown(n.id, e);
               onNodePointerDownDrag(n.id, e);
@@ -661,564 +484,21 @@ function MapV2Inner({ sortedNodes, getSchema, getPortSchema, onSelectionChange, 
               e.stopPropagation();
               onNodeDoubleClick(n.id);
             }}
-            style={{
-              position: 'absolute',
-              left: absX,
-              top: absY,
-              display: 'flex', alignItems: 'center', gap: 8,
-              backgroundColor: `color-mix(in srgb, ${resolvedColor} 25%, var(--color-surface))`,
-              borderRadius: 8,
-              padding: '8px 16px',
-              boxShadow: selected ? 'var(--node-shadow-selected)' : 'var(--node-shadow)',
-              minWidth: 180, maxWidth: 500,
-              overflow: 'hidden',
-              cursor: 'grab',
-              opacity: dimmed ? 0.2 : 1,
-              pointerEvents: dimmed ? 'none' : 'auto',
-              transition: 'opacity 150ms ease',
+            onResizePointerDown={(e) => {
+              e.stopPropagation();
+              onResizePointerDown(n.id, { horizontal: 'right', vertical: 'bottom' }, e);
             }}
-          >
-            <div style={{ width: 12, height: 12, borderRadius: 3, backgroundColor: resolvedColor, flexShrink: 0 }} />
-            {icon && <span style={{ fontSize: 20 }}>{icon}</span>}
-            <span style={{ fontSize: 20, fontWeight: 600, color: 'var(--color-content)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              <span style={{ opacity: 0.5 }}>{schema.displayName}:</span> {label}
-            </span>
-          </div>
+            hoveredNodeId={hoveredNodeId}
+            connectionDrag={connectionDrag}
+            sourcePortType={sourcePortType}
+            getPortSchema={getPortSchema}
+            startConnection={startConnection}
+          />
         );
       }
 
-      // Shape variant dispatch for non-organizer nodes
-      if (!isOrganizer && schema) {
-        const nodeShape = schema.nodeShape ?? 'default';
-        const shapeProps: ShapeRenderProps = {
-          key: n.id,
-          nodeId: n.id,
-          absX,
-          absY,
-          width,
-          height,
-          selected,
-          color,
-          label,
-          schema,
-          constructData,
-          dimmed,
-          sequenceBadge,
-          onPointerDown: (e) => {
-            onSelectPointerDown(n.id, e);
-            onNodePointerDownDrag(n.id, e);
-          },
-          onPointerEnter: () => {
-            setHoveredNodeId(n.id);
-            onNodeMouseEnter(n.id);
-          },
-          onPointerLeave: () => {
-            setHoveredNodeId(null);
-            onNodeMouseLeave();
-          },
-          onContextMenu: (e) => {
-            e.preventDefault();
-            onNodeContextMenu(e, n.id);
-          },
-          onDoubleClick: (e) => {
-            e.stopPropagation();
-            onNodeDoubleClick(n.id);
-          },
-        };
-
-        if (nodeShape === 'circle') return renderCircleNode(shapeProps);
-        if (nodeShape === 'diamond') return renderDiamondNode(shapeProps);
-        if (nodeShape === 'document') return renderDocumentNode(shapeProps);
-        if (nodeShape === 'simple') return renderSimpleNode(shapeProps);
-        // Fall through to default card rendering
-      }
-
-      // Collapsed organizer chip
-      if (isOrganizer && (data as any).collapsed) {
-        return (
-          <div
-            key={n.id}
-            data-node-id={n.id}
-            data-no-pan="true"
-            onPointerDown={(e) => { onSelectPointerDown(n.id, e); onNodePointerDownDrag(n.id, e); }}
-            onContextMenu={(e) => { e.preventDefault(); onNodeContextMenu(e, n.id); }}
-            style={{
-              position: 'absolute', left: absX, top: absY,
-              display: 'flex', alignItems: 'center', gap: 8,
-              padding: '6px 12px', minWidth: 140, height: 44,
-              backgroundColor: `color-mix(in srgb, ${color} 12%, var(--color-canvas))`,
-              border: `1px solid color-mix(in srgb, ${color} 30%, var(--color-canvas))`,
-              borderRadius: 8,
-              boxShadow: selected ? `0 0 0 2px ${color}30` : '0 1px 3px rgba(0,0,0,0.08)',
-              cursor: 'grab',
-              outline: selected ? '2px solid var(--color-accent, #3b82f6)' : 'none',
-              outlineOffset: '2px',
-              opacity: dimmed ? 0.2 : 1,
-            }}
-          >
-            {/* Color dot */}
-            <div
-              ref={(el) => { if (el) colorTriggerRefs.current.set(n.id, el); }}
-              style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: color, flexShrink: 0, cursor: 'pointer' }}
-              onClick={(e) => {
-                e.stopPropagation();
-                setColorPickerOrgId(prev => prev === n.id ? null : n.id);
-              }}
-            />
-            {/* Name / rename input */}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              {renamingOrgId === n.id ? (
-                <input
-                  autoFocus
-                  style={{
-                    width: '100%', background: 'transparent', border: 'none',
-                    outline: 'none', padding: 0, fontSize: 11, fontWeight: 500,
-                    color: 'var(--color-content)',
-                  }}
-                  value={renameValue}
-                  onChange={(e) => setRenameValue(e.target.value)}
-                  onBlur={() => commitOrgRename(n.id)}
-                  onKeyDown={(e) => {
-                    e.stopPropagation();
-                    if (e.key === 'Enter') commitOrgRename(n.id);
-                    if (e.key === 'Escape') setRenamingOrgId(null);
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                  onPointerDown={(e) => e.stopPropagation()}
-                />
-              ) : (
-                <span
-                  style={{ fontSize: 11, fontWeight: 500, color: 'var(--color-content)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'text' }}
-                  onClick={(e) => { e.stopPropagation(); handleOrgRename(n.id); }}
-                >
-                  {label}
-                </span>
-              )}
-            </div>
-            {/* Count */}
-            {(() => {
-              const cc = sortedNodesRef.current.filter(c => c.parentId === n.id).length;
-              return cc > 0 ? <span style={{ fontSize: 10, fontWeight: 500, padding: '1px 6px', borderRadius: 10, backgroundColor: `color-mix(in srgb, ${color} 20%, var(--color-canvas))`, color: `color-mix(in srgb, ${color} 80%, var(--color-content))` }}>{cc}</span> : null;
-            })()}
-            {/* Pin indicator */}
-            {(data as any).layoutPinned && (
-              <PushPin weight="fill" size={12} style={{ color, opacity: 0.5, flexShrink: 0 }} />
-            )}
-            {/* Expand button */}
-            <button
-              style={{ width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 4, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-content-muted)' }}
-              onClick={(e) => { e.stopPropagation(); toggleOrganizerCollapse(n.id); }}
-              onPointerDown={(e) => e.stopPropagation()}
-            >
-              <EyeOffIcon size={14} />
-            </button>
-          </div>
-        );
-      }
-
-      // Full node rendering
-      return (
-        <div
-          key={n.id}
-          data-node-id={n.id}
-          data-no-pan="true"
-          {...(isOrganizer ? { 'data-drop-target': 'true', 'data-container-id': n.id } : {})}
-          onPointerDown={(e) => {
-            onSelectPointerDown(n.id, e);
-            onNodePointerDownDrag(n.id, e);
-          }}
-          onPointerEnter={() => {
-            setHoveredNodeId(n.id);
-            onNodeMouseEnter(n.id);
-          }}
-          onPointerLeave={() => {
-            setHoveredNodeId(null);
-            onNodeMouseLeave();
-          }}
-          onContextMenu={(e) => {
-            e.preventDefault();
-            onNodeContextMenu(e, n.id);
-          }}
-          onDoubleClick={(e) => {
-            if (isOrganizer) {
-              e.stopPropagation();
-              toggleOrganizerCollapse(n.id);
-            } else {
-              e.stopPropagation();
-              onNodeDoubleClick(n.id);
-            }
-          }}
-          style={{
-            position: 'absolute',
-            left: absX,
-            top: absY,
-            width,
-            height: isOrganizer ? height : 'auto',
-            minHeight: isOrganizer ? 0 : height,
-            backgroundColor: isOrganizer ? `color-mix(in srgb, ${color} 18%, var(--color-canvas))` : 'var(--color-surface)',
-            border: isOrganizer ? `1px solid color-mix(in srgb, ${color} 35%, var(--color-canvas))` : 'none',
-            borderLeft: isOrganizer ? 'none' : `2px solid color-mix(in srgb, ${color} 70%, var(--color-surface-alt))`,
-            borderRadius: isOrganizer ? 12 : 8,
-            boxShadow: isOrganizer ? '0 1px 3px rgba(0,0,0,0.04)' : (selected ? 'var(--node-shadow-selected), 0 0 0 2px rgba(99,102,241,0.3)' : 'var(--node-shadow)'),
-            display: 'flex',
-            flexDirection: 'column',
-            color: isOrganizer ? color : 'var(--color-content)',
-            fontSize: 12,
-            fontWeight: 500,
-            overflow: isOrganizer ? 'hidden' : 'visible',
-            cursor: 'grab',
-            minWidth: isOrganizer ? 0 : 180,
-            maxWidth: isOrganizer ? undefined : 280,
-            opacity: dimmed ? 0.2 : 1,
-            pointerEvents: dimmed ? 'none' : 'auto',
-            transition: 'opacity 150ms ease',
-          }}
-        >
-          {/* Sequence badge */}
-          {sequenceBadge != null && !isOrganizer && lodBand !== 'marker' && (
-            <div style={{
-              position: 'absolute', top: -8, left: -8, zIndex: 10,
-              width: 20, height: 20, borderRadius: '50%',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 10, fontWeight: 600, lineHeight: 1, pointerEvents: 'none',
-              backgroundColor: 'var(--color-surface-alt)',
-              color: 'var(--color-content)',
-              boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
-              border: '1px solid var(--color-border)',
-            }}>
-              {sequenceBadge}
-            </div>
-          )}
-
-          {isOrganizer ? (
-            <>
-              {/* Organizer header bar */}
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  padding: '6px 10px',
-                  borderRadius: '8px 8px 0 0',
-                  backgroundColor: `${color}15`,
-                  cursor: 'grab',
-                }}
-                data-no-pan="true"
-              >
-                {/* Color dot */}
-                <div
-                  ref={(el) => { if (el) colorTriggerRefs.current.set(n.id, el); }}
-                  style={{
-                    width: 10, height: 10, borderRadius: '50%',
-                    backgroundColor: color, cursor: 'pointer', flexShrink: 0,
-                  }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setColorPickerOrgId(prev => prev === n.id ? null : n.id);
-                  }}
-                />
-
-                {/* Name / rename input */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  {renamingOrgId === n.id ? (
-                    <input
-                      autoFocus
-                      style={{
-                        width: '100%', background: 'transparent', border: 'none',
-                        outline: 'none', padding: 0, fontSize: 11, fontWeight: 500,
-                        color: 'var(--color-content)',
-                      }}
-                      value={renameValue}
-                      onChange={(e) => setRenameValue(e.target.value)}
-                      onBlur={() => commitOrgRename(n.id)}
-                      onKeyDown={(e) => {
-                        e.stopPropagation();
-                        if (e.key === 'Enter') commitOrgRename(n.id);
-                        if (e.key === 'Escape') setRenamingOrgId(null);
-                      }}
-                      onClick={(e) => e.stopPropagation()}
-                      onPointerDown={(e) => e.stopPropagation()}
-                    />
-                  ) : (
-                    <span
-                      style={{
-                        fontSize: 11, fontWeight: 500, cursor: 'text',
-                        color: 'var(--color-content)',
-                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                        display: 'block',
-                      }}
-                      onClick={(e) => { e.stopPropagation(); handleOrgRename(n.id); }}
-                    >
-                      {label}
-                    </span>
-                  )}
-                </div>
-
-                {/* Child count badge */}
-                {(() => {
-                  const childCount = sortedNodesRef.current.filter(c => c.parentId === n.id).length;
-                  return childCount > 0 ? (
-                    <span style={{
-                      fontSize: 10, fontWeight: 500, padding: '1px 6px',
-                      borderRadius: 10, flexShrink: 0,
-                      backgroundColor: `color-mix(in srgb, ${color} 20%, var(--color-canvas))`,
-                      color: `color-mix(in srgb, ${color} 80%, var(--color-content))`,
-                    }}>
-                      {childCount}
-                    </span>
-                  ) : null;
-                })()}
-
-                {/* Pin indicator */}
-                {(data as any).layoutPinned && (
-                  <PushPin weight="fill" size={12} style={{ color, opacity: 0.5, flexShrink: 0 }} />
-                )}
-
-                {/* Layout menu button */}
-                <button
-                  ref={(el) => { if (el) layoutTriggerRefs.current.set(n.id, el); }}
-                  style={{
-                    width: 20, height: 20, display: 'flex', alignItems: 'center',
-                    justifyContent: 'center', borderRadius: 4, border: 'none',
-                    background: 'transparent', cursor: 'pointer', flexShrink: 0,
-                    color: 'var(--color-content-muted)',
-                  }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setLayoutMenuOrgId(prev => prev === n.id ? null : n.id);
-                  }}
-                  onPointerDown={(e) => e.stopPropagation()}
-                >
-                  <DotsThreeVertical weight="bold" size={14} />
-                </button>
-
-                {/* Collapse toggle */}
-                <button
-                  style={{
-                    width: 20, height: 20, display: 'flex', alignItems: 'center',
-                    justifyContent: 'center', borderRadius: 4, border: 'none',
-                    background: 'transparent', cursor: 'pointer', flexShrink: 0,
-                    color: 'var(--color-content-muted)',
-                  }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleOrganizerCollapse(n.id);
-                  }}
-                  onPointerDown={(e) => e.stopPropagation()}
-                >
-                  <EyeIcon size={14} />
-                </button>
-              </div>
-              {/* Spacer for organizer body content area */}
-              <div style={{ flex: 1 }} />
-            </>
-          ) : schema ? (
-            // Construct node with schema badge and fields
-            <>
-              {/* Selection dot */}
-              {selected && (
-                <div style={{
-                  position: 'absolute', top: -4, right: -4, width: 8, height: 8,
-                  borderRadius: '50%', backgroundColor: 'var(--color-accent, #6366f1)',
-                  boxShadow: '0 0 0 2px var(--color-surface)',
-                }} />
-              )}
-              {/* Header with schema badge and icon */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 6,
-                padding: '4px 8px',
-                cursor: 'move',
-                backgroundColor: 'var(--color-surface-alt)',
-                borderRadius: '8px 8px 0 0',
-                userSelect: 'none',
-              }}>
-                <span style={{ fontSize: 11, color: 'var(--color-content-muted)' }}>
-                  {schema.displayName}
-                </span>
-                {(() => {
-                  const icon = resolveNodeIcon(schema, constructData);
-                  return icon ? <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-content)', lineHeight: 1 }}>{icon}</span> : null;
-                })()}
-              </div>
-              {/* Display name */}
-              <div style={{
-                padding: '6px 8px 2px',
-                fontSize: 15,
-                fontWeight: 600,
-                color: 'var(--color-content)',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}>
-                {label}
-              </div>
-              {/* Fields with inline editing */}
-              <MapV2FieldList schema={schema} constructData={constructData} adapter={adapter} nodeId={n.id} />
-            </>
-          ) : (
-            // Construct without schema (fallback)
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flex: 1,
-              padding: '0 8px',
-            }}>
-              {label}
-            </div>
-          )}
-
-          {/* Covered node warning badge */}
-          {isCovered && (
-            <div style={{
-              position: 'absolute',
-              top: -6,
-              right: -6,
-              width: 20,
-              height: 20,
-              borderRadius: '50%',
-              backgroundColor: '#ef4444',
-              color: 'white',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 12,
-              fontWeight: 700,
-              border: '2px solid var(--color-canvas, white)',
-            }}>
-              ⚠
-            </div>
-          )}
-          {isOrganizer && (
-            <div
-              style={{
-                position: 'absolute',
-                bottom: 0,
-                right: 0,
-                width: 12,
-                height: 12,
-                cursor: 'se-resize',
-                backgroundColor: color,
-                opacity: 0.5,
-              }}
-              onPointerDown={(e) => {
-                e.stopPropagation();
-                onResizePointerDown(n.id, { horizontal: 'right', vertical: 'bottom' }, e);
-              }}
-            />
-          )}
-          {/* Port drawer - collapsed state (dots strip) */}
-          {!isOrganizer && schema?.ports && schema.ports.length > 0 && !connectionDrag && (
-            <div style={{
-              position: 'absolute', bottom: 0, left: 0, right: 0, height: 12,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
-              backgroundColor: 'var(--color-surface-alt, rgba(0,0,0,0.1))',
-              borderRadius: '0 0 6px 6px',
-            }}>
-              {schema.ports.map((port: any) => {
-                const portSchema = getPortSchema(port.portType);
-                return (
-                  <div key={port.id} style={{
-                    width: 6, height: 6, borderRadius: '50%',
-                    backgroundColor: portSchema?.color ?? '#94a3b8',
-                  }} />
-                );
-              })}
-            </div>
-          )}
-          {/* Port drawer - expanded state on hover */}
-          {hoveredNodeId === n.id && !isOrganizer && schema?.ports && schema.ports.length > 0 && !connectionDrag && (
-            <div style={{
-              position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 30,
-              backgroundColor: 'var(--color-surface-elevated, white)',
-              border: '1px solid var(--color-border, #e5e7eb)',
-              borderRadius: '0 0 8px 8px',
-              padding: '6px 8px',
-              display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center',
-            }}
-            onPointerEnter={() => setHoveredNodeId(n.id)}
-            onPointerLeave={() => setHoveredNodeId(null)}
-            >
-              {schema.ports.map((port: any) => {
-                const portSchema = getPortSchema(port.portType);
-                const portColor = portSchema?.color ?? '#94a3b8';
-                return (
-                  <div key={port.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                    <ConnectionHandle
-                      type="source"
-                      id={port.id}
-                      nodeId={n.id}
-                      onStartConnection={startConnection}
-                      style={{
-                        width: 16, height: 16, borderRadius: '50%',
-                        backgroundColor: portColor, border: '2px solid white',
-                        cursor: 'crosshair',
-                      }}
-                    />
-                    <span style={{ fontSize: 9, color: 'var(--color-content-muted, #6b7280)' }}>
-                      {port.label}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-          {/* Drop zones during connection drag */}
-          {connectionDrag && connectionDrag.sourceNodeId !== n.id && !isOrganizer && schema?.ports && (
-            <div style={{
-              position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
-              borderRadius: 6, overflow: 'hidden', zIndex: 25,
-            }}>
-              {schema.ports.map((port: any) => {
-                const portSchema = getPortSchema(port.portType);
-                const isValid = sourcePortType ? canConnect(sourcePortType, port.portType) : false;
-                const portColor = portSchema?.color ?? '#94a3b8';
-                return (
-                  <ConnectionHandle
-                    key={port.id}
-                    type="target"
-                    id={port.id}
-                    nodeId={n.id}
-                    style={{
-                      flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      backgroundColor: isValid ? portColor + '40' : 'rgba(128,128,128,0.15)',
-                      border: isValid ? `2px solid ${portColor}` : '2px dotted rgba(128,128,128,0.4)',
-                      pointerEvents: isValid ? 'auto' : 'none',
-                      fontSize: 11, fontWeight: 600,
-                      color: isValid ? portColor : 'rgba(128,128,128,0.6)',
-                    }}
-                  >
-                    {port.label}
-                  </ConnectionHandle>
-                );
-              })}
-            </div>
-          )}
-          {/* Resize gripper for constructs (only when selected) */}
-          {!isOrganizer && selected && (
-            <div
-              style={{
-                position: 'absolute',
-                bottom: 0,
-                right: 0,
-                width: 10,
-                height: 10,
-                cursor: 'se-resize',
-                backgroundColor: 'var(--color-accent, #3b82f6)',
-                opacity: 0.5,
-                borderRadius: '2px 0 6px 0',
-              }}
-              onPointerDown={(e) => {
-                e.stopPropagation();
-                onResizePointerDown(n.id, { horizontal: 'right', vertical: 'bottom' }, e);
-              }}
-            />
-          )}
-        </div>
-      );
+      // Fallback for constructs without schema
+      return null;
     });
 
   return (
@@ -1628,19 +908,8 @@ export default function MapV2({ searchText }: MapV2Props) {
     }
   }, [sortedNodes, handleFitView]);
 
-  // Helper to compute absolute positions for box select
-  const getAbsolutePosition = useCallback((n: any) => {
-    let absX = n.position.x;
-    let absY = n.position.y;
-    if (n.parentId) {
-      const parent = sortedNodes.find(p => p.id === n.parentId);
-      if (parent) {
-        absX += parent.position.x;
-        absY += parent.position.y;
-      }
-    }
-    return { x: absX, y: absY };
-  }, [sortedNodes]);
+  // Empty drag offsets map for box select (uses static positions, not dragging state)
+  const emptyDragOffsets = useMemo(() => new Map<string, { dx: number; dy: number }>(), []);
 
   // Connection validation
   const handleValidateConnection = useCallback((conn: {
@@ -1789,19 +1058,7 @@ export default function MapV2({ searchText }: MapV2Props) {
       if (n.hidden) continue;
       const w = (n.style?.width as number) ?? (n.type === 'organizer' ? 300 : 200);
       const h = (n.style?.height as number) ?? (n.type === 'organizer' ? 200 : 80);
-      let x = n.position.x;
-      let y = n.position.y;
-      if (n.parentId) {
-        const parent = sortedNodes.find(p => p.id === n.parentId);
-        if (parent) {
-          x += parent.position.x;
-          y += parent.position.y;
-          const parentOffset = dragOffsets.get(parent.id);
-          if (parentOffset) { x += parentOffset.dx; y += parentOffset.dy; }
-        }
-      }
-      const offset = dragOffsets.get(n.id);
-      if (offset) { x += offset.dx; y += offset.dy; }
+      const { x, y } = getAbsolutePosition(n, sortedNodes, dragOffsets);
       nodeRects.set(n.id, { x, y, width: w, height: h });
     }
 
@@ -1875,7 +1132,7 @@ export default function MapV2({ searchText }: MapV2Props) {
   const renderConnectionPreview = useCallback((drag: any, transform: any) => {
     const sourceNode = sortedNodes.find(n => n.id === drag.sourceNodeId);
     if (!sourceNode) return null;
-    const { x: absX, y: absY } = getAbsolutePosition(sourceNode);
+    const { x: absX, y: absY } = getAbsolutePosition(sourceNode, sortedNodes, dragOffsets);
     const w = (sourceNode.style?.width as number) ?? 200;
     const h = (sourceNode.style?.height as number) ?? 80;
 
@@ -1891,7 +1148,7 @@ export default function MapV2({ searchText }: MapV2Props) {
           style={{ pointerEvents: 'none' }} />
       </g>
     );
-  }, [sortedNodes, getAbsolutePosition, canvasRef]);
+  }, [sortedNodes, dragOffsets, canvasRef]);
 
   return (
     <div
@@ -1924,7 +1181,7 @@ export default function MapV2({ searchText }: MapV2Props) {
         patternId="mapv2-grid"
         boxSelect={{
           getNodeRects: () => sortedNodes.filter(n => !n.hidden && n.type !== 'organizer').map(n => {
-            const { x, y } = getAbsolutePosition(n);
+            const { x, y } = getAbsolutePosition(n, sortedNodes, emptyDragOffsets);
             return {
               id: n.id,
               x,
@@ -1939,36 +1196,40 @@ export default function MapV2({ searchText }: MapV2Props) {
           setSelectedNodeIds([]);
         }}
       >
-        <MapV2Inner
+        <MapV2Content
           sortedNodes={sortedNodes}
+          sortedNodesRef={sortedNodesRef}
           getSchema={getSchema}
           getPortSchema={getPortSchema}
-          onSelectionChange={setSelectedNodeIds}
-          attachNodeToOrganizer={attachNodeToOrganizer}
-          detachNodeFromOrganizer={detachNodeFromOrganizer}
-          toggleOrganizerCollapse={toggleOrganizerCollapse}
-          fitToChildren={fitToChildren}
-          getFollowers={getFollowers}
-          showNarrative={showNarrative}
-          hideNarrative={hideNarrative}
-          coveredNodeIds={coveredNodeIds}
-          onNodeContextMenu={handleNodeContextMenu}
-          onNodeMouseEnter={(nodeId) => onNodeMouseEnter({} as any, { id: nodeId } as any)}
-          onNodeMouseLeave={() => onNodeMouseLeave({} as any, {} as any)}
-          onNodeDoubleClick={handleNodeDoubleClick}
-          renamingOrgId={renamingOrgId}
-          renameValue={renameValue}
-          setRenameValue={setRenameValue}
-          setRenamingOrgId={setRenamingOrgId}
-          colorTriggerRefs={colorTriggerRefs}
-          layoutTriggerRefs={layoutTriggerRefs}
-          setColorPickerOrgId={setColorPickerOrgId}
-          setLayoutMenuOrgId={setLayoutMenuOrgId}
-          handleOrgRename={handleOrgRename}
-          commitOrgRename={commitOrgRename}
+          adapter={adapter}
           dragOffsets={dragOffsets}
           setDragOffsets={setDragOffsets}
           dragOffsetsRef={dragOffsetsRef}
+          getFollowers={getFollowers}
+          fitToChildren={fitToChildren}
+          attachNodeToOrganizer={attachNodeToOrganizer}
+          detachNodeFromOrganizer={detachNodeFromOrganizer}
+          toggleOrganizerCollapse={toggleOrganizerCollapse}
+          showNarrative={showNarrative}
+          hideNarrative={hideNarrative}
+          onNodeContextMenu={handleNodeContextMenu}
+          onNodeDoubleClick={handleNodeDoubleClick}
+          onNodeMouseEnter={(nodeId: string) => onNodeMouseEnter({} as any, { id: nodeId } as any)}
+          onNodeMouseLeave={() => onNodeMouseLeave({} as any, {} as any)}
+          onSelectionChange={setSelectedNodeIds}
+          organizerChrome={{
+            renamingOrgId,
+            renameValue,
+            setRenameValue,
+            setRenamingOrgId,
+            handleOrgRename,
+            commitOrgRename,
+            colorTriggerRefs,
+            layoutTriggerRefs,
+            setColorPickerOrgId,
+            setLayoutMenuOrgId,
+          }}
+          coveredNodeIds={coveredNodeIds}
         />
       </Canvas>
       <MapV2Toolbar
