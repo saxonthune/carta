@@ -24,4 +24,4 @@ export {
   relayPort,
 } from './built-ins.js';
 
-export type { SchemaSeed } from './seed-loader.js';
+export type { SchemaSeed, SchemaRelationshipSeed } from './seed-loader.js';

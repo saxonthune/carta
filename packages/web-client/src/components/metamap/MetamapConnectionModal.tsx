@@ -1,3 +1,9 @@
+/**
+ * @deprecated This file uses the old React Flow-based metamap which reads suggestedRelated
+ * directly from ConstructSchema. Use MetamapV2 instead, which reads from schemaRelationships.
+ * This file will be deleted once the old metamap toggle is removed.
+ */
+
 import { useState, useMemo, useEffect } from 'react';
 import { ArrowRight, Warning } from '@phosphor-icons/react';
 import Modal from '../ui/Modal';

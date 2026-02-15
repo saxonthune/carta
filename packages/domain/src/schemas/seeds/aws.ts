@@ -29,11 +29,6 @@ export const awsSeed: SchemaSeed = {
         { name: 'timeout', label: 'Timeout (s)', type: 'number', semanticDescription: 'Execution timeout in seconds', default: 30, displayTier: 'summary', displayOrder: 3 },
         { name: 'description', label: 'Description', type: 'string', semanticDescription: 'Function purpose', placeholder: 'What does this function do?', displayTier: 'summary', displayOrder: 4 },
       ],
-      suggestedRelated: [
-        { constructType: 'aws-dynamodb', fromPortId: 'invoke-out', toPortId: 'access-in', label: 'Access DynamoDB' },
-        { constructType: 'aws-s3', fromPortId: 'invoke-out', toPortId: 'access-in', label: 'Access S3' },
-        { constructType: 'aws-sqs', fromPortId: 'invoke-out', toPortId: 'access-in', label: 'Send to SQS' },
-      ],
       compilation: { format: 'json', sectionHeader: '# AWS Lambda Functions' },
     },
 
@@ -53,9 +48,6 @@ export const awsSeed: SchemaSeed = {
         { name: 'apiType', label: 'Type', type: 'enum', semanticDescription: 'API type', options: [{ value: 'REST' }, { value: 'HTTP' }, { value: 'WebSocket' }], default: 'REST', displayTier: 'summary', displayOrder: 1 },
         { name: 'stage', label: 'Stage', type: 'string', semanticDescription: 'Deployment stage', placeholder: 'e.g., prod, dev', default: 'prod', displayTier: 'summary', displayOrder: 2 },
         { name: 'description', label: 'Description', type: 'string', semanticDescription: 'API purpose', placeholder: 'What does this API do?', displayTier: 'summary', displayOrder: 3 },
-      ],
-      suggestedRelated: [
-        { constructType: 'aws-lambda', fromPortId: 'invoke-out', toPortId: 'trigger-in', label: 'Invoke Lambda' },
       ],
       compilation: { format: 'json' },
     },
@@ -77,9 +69,6 @@ export const awsSeed: SchemaSeed = {
         { name: 'versioning', label: 'Versioning', type: 'boolean', semanticDescription: 'Enable versioning', default: false, displayTier: 'summary', displayOrder: 2 },
         { name: 'purpose', label: 'Purpose', type: 'string', semanticDescription: 'What this bucket stores', placeholder: 'e.g., User uploads, Static assets', displayTier: 'summary', displayOrder: 3 },
       ],
-      suggestedRelated: [
-        { constructType: 'aws-lambda', fromPortId: 'trigger-out', toPortId: 'trigger-in', label: 'Trigger Lambda' },
-      ],
       compilation: { format: 'json' },
     },
 
@@ -99,9 +88,6 @@ export const awsSeed: SchemaSeed = {
         { name: 'partitionKey', label: 'Partition Key', type: 'string', semanticDescription: 'Primary partition key', placeholder: 'e.g., userId', displayTier: 'summary', displayOrder: 1 },
         { name: 'sortKey', label: 'Sort Key', type: 'string', semanticDescription: 'Optional sort key', placeholder: 'e.g., timestamp', displayTier: 'summary', displayOrder: 2 },
         { name: 'billingMode', label: 'Billing', type: 'enum', semanticDescription: 'Capacity billing mode', options: [{ value: 'On-Demand' }, { value: 'Provisioned' }], default: 'On-Demand', displayTier: 'summary', displayOrder: 3 },
-      ],
-      suggestedRelated: [
-        { constructType: 'aws-lambda', fromPortId: 'stream-out', toPortId: 'trigger-in', label: 'Stream to Lambda' },
       ],
       compilation: { format: 'json' },
     },
@@ -123,9 +109,6 @@ export const awsSeed: SchemaSeed = {
         { name: 'visibilityTimeout', label: 'Visibility (s)', type: 'number', semanticDescription: 'Visibility timeout in seconds', default: 30, displayTier: 'summary', displayOrder: 2 },
         { name: 'dlq', label: 'DLQ', type: 'boolean', semanticDescription: 'Has dead-letter queue', default: true, displayTier: 'summary', displayOrder: 3 },
       ],
-      suggestedRelated: [
-        { constructType: 'aws-lambda', fromPortId: 'trigger-out', toPortId: 'trigger-in', label: 'Trigger Lambda' },
-      ],
       compilation: { format: 'json' },
     },
 
@@ -144,10 +127,6 @@ export const awsSeed: SchemaSeed = {
         { name: 'name', label: 'Name', type: 'string', semanticDescription: 'Topic name', placeholder: 'e.g., order-events', displayTier: 'pill', displayOrder: 0 },
         { name: 'topicType', label: 'Type', type: 'enum', semanticDescription: 'Topic type', options: [{ value: 'Standard' }, { value: 'FIFO' }], default: 'Standard', displayTier: 'summary', displayOrder: 1 },
         { name: 'purpose', label: 'Purpose', type: 'string', semanticDescription: 'What events this topic handles', placeholder: 'e.g., Order lifecycle events', displayTier: 'summary', displayOrder: 2 },
-      ],
-      suggestedRelated: [
-        { constructType: 'aws-sqs', fromPortId: 'subscribe-out', toPortId: 'access-in', label: 'Subscribe SQS' },
-        { constructType: 'aws-lambda', fromPortId: 'subscribe-out', toPortId: 'trigger-in', label: 'Subscribe Lambda' },
       ],
       compilation: { format: 'json' },
     },
@@ -169,9 +148,6 @@ export const awsSeed: SchemaSeed = {
         { name: 'instanceClass', label: 'Instance', type: 'string', semanticDescription: 'Instance class', placeholder: 'e.g., db.t3.micro', default: 'db.t3.micro', displayTier: 'summary', displayOrder: 2 },
         { name: 'multiAz', label: 'Multi-AZ', type: 'boolean', semanticDescription: 'Multi-AZ deployment', default: false, displayTier: 'summary', displayOrder: 3 },
       ],
-      suggestedRelated: [
-        { constructType: 'aws-vpc', fromPortId: 'child', toPortId: 'parent', label: 'Place in VPC' },
-      ],
       compilation: { format: 'json' },
     },
 
@@ -189,10 +165,6 @@ export const awsSeed: SchemaSeed = {
         { name: 'name', label: 'Name', type: 'string', semanticDescription: 'VPC name', placeholder: 'e.g., production-vpc', displayTier: 'pill', displayOrder: 0 },
         { name: 'cidr', label: 'CIDR', type: 'string', semanticDescription: 'IP address range', placeholder: 'e.g., 10.0.0.0/16', default: '10.0.0.0/16', displayTier: 'summary', displayOrder: 1 },
         { name: 'purpose', label: 'Purpose', type: 'string', semanticDescription: 'VPC purpose', placeholder: 'e.g., Production workloads', displayTier: 'summary', displayOrder: 2 },
-      ],
-      suggestedRelated: [
-        { constructType: 'aws-lambda', fromPortId: 'parent', toPortId: 'child', label: 'Add Lambda' },
-        { constructType: 'aws-rds', fromPortId: 'parent', toPortId: 'child', label: 'Add RDS' },
       ],
       compilation: { format: 'json', sectionHeader: '# AWS Infrastructure' },
     },
@@ -212,10 +184,6 @@ export const awsSeed: SchemaSeed = {
         { name: 'name', label: 'Name', type: 'string', semanticDescription: 'State machine name', placeholder: 'e.g., OrderProcessing', displayTier: 'pill', displayOrder: 0 },
         { name: 'type', label: 'Type', type: 'enum', semanticDescription: 'Execution type', options: [{ value: 'Standard' }, { value: 'Express' }], default: 'Standard', displayTier: 'summary', displayOrder: 1 },
         { name: 'description', label: 'Description', type: 'string', semanticDescription: 'Workflow purpose', placeholder: 'What does this workflow do?', displayTier: 'summary', displayOrder: 2 },
-      ],
-      suggestedRelated: [
-        { constructType: 'aws-sfn-task', fromPortId: 'parent', toPortId: 'child', label: 'Add Task' },
-        { constructType: 'aws-sfn-choice', fromPortId: 'parent', toPortId: 'child', label: 'Add Choice' },
       ],
       compilation: { format: 'json', sectionHeader: '# Step Functions Workflows' },
     },
@@ -239,10 +207,6 @@ export const awsSeed: SchemaSeed = {
         { name: 'timeout', label: 'Timeout (s)', type: 'number', semanticDescription: 'Task timeout', default: 300, displayTier: 'summary', displayOrder: 2 },
         { name: 'retry', label: 'Retry', type: 'boolean', semanticDescription: 'Enable automatic retries', default: true, displayTier: 'summary', displayOrder: 3 },
       ],
-      suggestedRelated: [
-        { constructType: 'aws-lambda', fromPortId: 'invoke-out', toPortId: 'trigger-in', label: 'Invoke Lambda' },
-        { constructType: 'aws-sfn-choice', fromPortId: 'seq-out', toPortId: 'seq-in', label: 'Add Choice' },
-      ],
       compilation: { format: 'json' },
     },
 
@@ -262,10 +226,6 @@ export const awsSeed: SchemaSeed = {
       fields: [
         { name: 'name', label: 'Name', type: 'string', semanticDescription: 'State name', placeholder: 'e.g., CheckOrderStatus', displayTier: 'pill', displayOrder: 0 },
         { name: 'description', label: 'Description', type: 'string', semanticDescription: 'Decision logic description', placeholder: 'What conditions are evaluated?', displayTier: 'summary', displayOrder: 1 },
-      ],
-      suggestedRelated: [
-        { constructType: 'aws-sfn-task', fromPortId: 'branch-out', toPortId: 'seq-in', label: 'Add Branch Task' },
-        { constructType: 'aws-sfn-terminal', fromPortId: 'branch-out', toPortId: 'seq-in', label: 'Add Terminal' },
       ],
       compilation: { format: 'json' },
     },
@@ -287,9 +247,6 @@ export const awsSeed: SchemaSeed = {
         { name: 'name', label: 'Name', type: 'string', semanticDescription: 'State name', placeholder: 'e.g., ParallelProcessing', displayTier: 'pill', displayOrder: 0 },
         { name: 'description', label: 'Description', type: 'string', semanticDescription: 'What runs in parallel', placeholder: 'What branches run concurrently?', displayTier: 'summary', displayOrder: 1 },
       ],
-      suggestedRelated: [
-        { constructType: 'aws-sfn-task', fromPortId: 'parent', toPortId: 'child', label: 'Add Branch' },
-      ],
       compilation: { format: 'json' },
     },
 
@@ -310,9 +267,6 @@ export const awsSeed: SchemaSeed = {
         { name: 'name', label: 'Name', type: 'string', semanticDescription: 'State name', placeholder: 'e.g., ProcessItems', displayTier: 'pill', displayOrder: 0 },
         { name: 'maxConcurrency', label: 'Max Concurrency', type: 'number', semanticDescription: 'Maximum parallel iterations', default: 0, displayTier: 'summary', displayOrder: 1 },
         { name: 'itemsPath', label: 'Items Path', type: 'string', semanticDescription: 'JSONPath to array to iterate', placeholder: '$.items', displayTier: 'summary', displayOrder: 2 },
-      ],
-      suggestedRelated: [
-        { constructType: 'aws-sfn-task', fromPortId: 'parent', toPortId: 'child', label: 'Add Iterator Task' },
       ],
       compilation: { format: 'json' },
     },

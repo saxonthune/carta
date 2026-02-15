@@ -90,11 +90,6 @@ export const softwareArchitectureSeed: SchemaSeed = {
           displayOrder: 3,
         },
       ],
-      suggestedRelated: [
-        { constructType: 'database', fromPortId: 'flow-out', toPortId: 'link-in', label: 'Connect to Database' },
-        { constructType: 'auth-policy', fromPortId: 'policy-in', toPortId: 'flow-out', label: 'Add Auth Policy' },
-        { constructType: 'rate-limit', fromPortId: 'policy-in', toPortId: 'flow-out', label: 'Add Rate Limit' },
-      ],
       compilation: { format: 'json', sectionHeader: '# REST Endpoints' },
     },
 
@@ -137,9 +132,6 @@ export const softwareArchitectureSeed: SchemaSeed = {
           displayTier: 'summary',
           displayOrder: 2,
         },
-      ],
-      suggestedRelated: [
-        { constructType: 'rest-endpoint', fromPortId: 'flow-out', toPortId: 'policy-in', label: 'Apply to Endpoint' },
       ],
       compilation: { format: 'json' },
     },
@@ -194,9 +186,6 @@ export const softwareArchitectureSeed: SchemaSeed = {
           displayOrder: 3,
         },
       ],
-      suggestedRelated: [
-        { constructType: 'rest-endpoint', fromPortId: 'flow-out', toPortId: 'policy-in', label: 'Apply to Endpoint' },
-      ],
       compilation: { format: 'json' },
     },
 
@@ -249,9 +238,6 @@ export const softwareArchitectureSeed: SchemaSeed = {
           displayOrder: 3,
         },
       ],
-      suggestedRelated: [
-        { constructType: 'rest-endpoint', fromPortId: 'flow-out', toPortId: 'policy-in', label: 'Apply to Endpoint' },
-      ],
       compilation: { format: 'json' },
     },
 
@@ -286,10 +272,6 @@ export const softwareArchitectureSeed: SchemaSeed = {
           displayTier: 'summary',
           displayOrder: 1,
         },
-      ],
-      suggestedRelated: [
-        { constructType: 'rest-endpoint', fromPortId: 'link-in', toPortId: 'flow-out', label: 'Add REST Endpoint' },
-        { constructType: 'table', fromPortId: 'child', toPortId: 'parent', label: 'Add Table' },
       ],
       compilation: { format: 'json', sectionHeader: '# Database Schema' },
     },
@@ -335,11 +317,6 @@ export const softwareArchitectureSeed: SchemaSeed = {
           displayOrder: 2,
         },
       ],
-      suggestedRelated: [
-        { constructType: 'database', fromPortId: 'parent', toPortId: 'child', label: 'Add to Database' },
-        { constructType: 'db-attribute', fromPortId: 'child', toPortId: 'parent', label: 'Add Attribute' },
-        { constructType: 'constraint', fromPortId: 'child', toPortId: 'parent', label: 'Add Constraint' },
-      ],
       compilation: { format: 'json' },
     },
 
@@ -359,9 +336,6 @@ export const softwareArchitectureSeed: SchemaSeed = {
       ports: [
         { id: 'parent', portType: 'parent', label: 'Table', semanticDescription: 'Table that owns this attribute' },
       ],
-      suggestedRelated: [
-        { constructType: 'table', fromPortId: 'parent', toPortId: 'child', label: 'Add to Table' },
-      ],
       compilation: { format: 'json' },
     },
 
@@ -380,9 +354,6 @@ export const softwareArchitectureSeed: SchemaSeed = {
       ],
       ports: [
         { id: 'parent', portType: 'parent', label: 'Table', semanticDescription: 'Table that owns this constraint' },
-      ],
-      suggestedRelated: [
-        { constructType: 'table', fromPortId: 'parent', toPortId: 'child', label: 'Add to Table' },
       ],
       compilation: { format: 'json' },
     },
@@ -427,9 +398,6 @@ export const softwareArchitectureSeed: SchemaSeed = {
       ports: [
         { id: 'child', portType: 'child', label: 'Controller', semanticDescription: 'Controller endpoint that uses this model' },
       ],
-      suggestedRelated: [
-        { constructType: 'rest-endpoint', fromPortId: 'child', toPortId: 'parent', label: 'Add to Endpoint' },
-      ],
       compilation: { format: 'json' },
     },
 
@@ -473,9 +441,6 @@ export const softwareArchitectureSeed: SchemaSeed = {
         { id: 'child', portType: 'child', label: 'Events', semanticDescription: 'Child events that originate from this event' },
         { id: 'flow-out', portType: 'flow-out', label: 'Flow Out', semanticDescription: 'Next UI flow that follows this event' },
       ],
-      suggestedRelated: [
-        { constructType: 'ui-screen', fromPortId: 'child', toPortId: 'parent', label: 'Add to UI Screen' },
-      ],
       compilation: { format: 'json' },
     },
 
@@ -510,10 +475,6 @@ export const softwareArchitectureSeed: SchemaSeed = {
         { id: 'flow-in', portType: 'flow-in', label: 'Flow In', semanticDescription: 'Incoming UI flow into this screen' },
         { id: 'parent', portType: 'parent', label: 'Events', semanticDescription: 'Events that belong to this screen' },
       ],
-      suggestedRelated: [
-        { constructType: 'user-story', fromPortId: 'flow-in', toPortId: 'flow-out', label: 'Connect from User Story' },
-        { constructType: 'ui-event', fromPortId: 'parent', toPortId: 'child', label: 'Add Event' },
-      ],
       compilation: { format: 'json' },
     },
 
@@ -547,9 +508,6 @@ export const softwareArchitectureSeed: SchemaSeed = {
       ports: [
         { id: 'flow-out', portType: 'flow-out', label: 'Flow Out', semanticDescription: 'Outcome or follow-on user story' },
       ],
-      suggestedRelated: [
-        { constructType: 'ui-screen', fromPortId: 'flow-out', toPortId: 'flow-in', label: 'Connect to UI Screen' },
-      ],
       compilation: { format: 'json' },
     },
 
@@ -577,5 +535,23 @@ export const softwareArchitectureSeed: SchemaSeed = {
       ],
       compilation: { format: 'json', sectionHeader: '# Implementation Details' },
     },
+  ],
+  relationships: [
+    // REST Endpoint relationships
+    { sourceSchemaType: 'rest-endpoint', sourcePortId: 'flow-out', targetSchemaType: 'database', targetPortId: 'link-in', label: 'Connect to Database' },
+    { sourceSchemaType: 'rest-endpoint', sourcePortId: 'policy-in', targetSchemaType: 'auth-policy', targetPortId: 'flow-out', label: 'Add Auth Policy' },
+    { sourceSchemaType: 'rest-endpoint', sourcePortId: 'policy-in', targetSchemaType: 'rate-limit', targetPortId: 'flow-out', label: 'Add Rate Limit' },
+    { sourceSchemaType: 'rest-endpoint', sourcePortId: 'policy-in', targetSchemaType: 'cache-policy', targetPortId: 'flow-out', label: 'Apply Cache Policy' },
+    // Database relationships
+    { sourceSchemaType: 'database', sourcePortId: 'child', targetSchemaType: 'table', targetPortId: 'parent', label: 'Add Table' },
+    // Table relationships
+    { sourceSchemaType: 'table', sourcePortId: 'child', targetSchemaType: 'db-attribute', targetPortId: 'parent', label: 'Add Attribute' },
+    { sourceSchemaType: 'table', sourcePortId: 'child', targetSchemaType: 'constraint', targetPortId: 'parent', label: 'Add Constraint' },
+    // API Model relationships
+    { sourceSchemaType: 'api-model', sourcePortId: 'child', targetSchemaType: 'rest-endpoint', targetPortId: 'parent', label: 'Add to Endpoint' },
+    // UI relationships
+    { sourceSchemaType: 'ui-event', sourcePortId: 'child', targetSchemaType: 'ui-screen', targetPortId: 'parent', label: 'Add to UI Screen' },
+    { sourceSchemaType: 'ui-screen', sourcePortId: 'flow-in', targetSchemaType: 'user-story', targetPortId: 'flow-out', label: 'Connect from User Story' },
+    { sourceSchemaType: 'ui-screen', sourcePortId: 'parent', targetSchemaType: 'ui-event', targetPortId: 'child', label: 'Add Event' },
   ],
 };

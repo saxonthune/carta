@@ -1,3 +1,9 @@
+/**
+ * @deprecated This file uses the old React Flow-based metamap which reads suggestedRelated
+ * directly from ConstructSchema. Use MetamapV2 instead, which reads from schemaRelationships.
+ * This file will be deleted once the old metamap toggle is removed.
+ */
+
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import {
   ReactFlowProvider,

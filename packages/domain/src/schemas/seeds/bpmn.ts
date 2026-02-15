@@ -29,11 +29,6 @@ export const bpmnSeed: SchemaSeed = {
         { id: 'parent', portType: 'parent', label: 'Sub-activities', semanticDescription: 'Child activities within this subprocess' },
         { id: 'data-link', portType: 'symmetric', label: 'Data', semanticDescription: 'Associated data objects' },
       ],
-      suggestedRelated: [
-        { constructType: 'bpmn-gateway', fromPortId: 'seq-out', toPortId: 'seq-in', label: 'Add Gateway' },
-        { constructType: 'bpmn-event', fromPortId: 'seq-out', toPortId: 'seq-in', label: 'Add Event' },
-        { constructType: 'bpmn-data-object', fromPortId: 'data-link', toPortId: 'data-link', label: 'Add Data Object' },
-      ],
       compilation: { format: 'json' },
     },
 
@@ -56,9 +51,6 @@ export const bpmnSeed: SchemaSeed = {
         { id: 'seq-out', portType: 'flow-out', label: 'Sequence Out', semanticDescription: 'Outgoing sequence flow (start/intermediate)' },
         { id: 'child', portType: 'child', label: 'Lane', semanticDescription: 'Lane or pool containing this event' },
       ],
-      suggestedRelated: [
-        { constructType: 'bpmn-activity', fromPortId: 'seq-out', toPortId: 'seq-in', label: 'Add Activity' },
-      ],
       compilation: { format: 'json' },
     },
 
@@ -80,10 +72,6 @@ export const bpmnSeed: SchemaSeed = {
         { id: 'seq-out', portType: 'flow-out', label: 'Sequence Out', semanticDescription: 'Outgoing sequence flows to branch' },
         { id: 'child', portType: 'child', label: 'Lane', semanticDescription: 'Lane or pool containing this gateway' },
       ],
-      suggestedRelated: [
-        { constructType: 'bpmn-activity', fromPortId: 'seq-out', toPortId: 'seq-in', label: 'Add Activity' },
-        { constructType: 'bpmn-event', fromPortId: 'seq-out', toPortId: 'seq-in', label: 'Add End Event' },
-      ],
       compilation: { format: 'json' },
     },
 
@@ -103,9 +91,6 @@ export const bpmnSeed: SchemaSeed = {
         { id: 'msg-out', portType: 'relay', label: 'Message Out', semanticDescription: 'Sends messages to other pools' },
         { id: 'msg-in', portType: 'intercept', label: 'Message In', semanticDescription: 'Receives messages from other pools' },
       ],
-      suggestedRelated: [
-        { constructType: 'bpmn-lane', fromPortId: 'parent', toPortId: 'child', label: 'Add Lane' },
-      ],
       compilation: { format: 'json', sectionHeader: '# Business Process' },
     },
 
@@ -123,10 +108,6 @@ export const bpmnSeed: SchemaSeed = {
       ports: [
         { id: 'child', portType: 'child', label: 'Pool', semanticDescription: 'Pool that contains this lane' },
         { id: 'parent', portType: 'parent', label: 'Elements', semanticDescription: 'Activities, events, and gateways in this lane' },
-      ],
-      suggestedRelated: [
-        { constructType: 'bpmn-activity', fromPortId: 'parent', toPortId: 'child', label: 'Add Activity' },
-        { constructType: 'bpmn-event', fromPortId: 'parent', toPortId: 'child', label: 'Add Event' },
       ],
       compilation: { format: 'json' },
     },
@@ -147,10 +128,23 @@ export const bpmnSeed: SchemaSeed = {
       ports: [
         { id: 'data-link', portType: 'symmetric', label: 'Used By', semanticDescription: 'Activities that use or produce this data' },
       ],
-      suggestedRelated: [
-        { constructType: 'bpmn-activity', fromPortId: 'data-link', toPortId: 'data-link', label: 'Link to Activity' },
-      ],
       compilation: { format: 'json' },
     },
+  ],
+  relationships: [
+    // Activity relationships
+    { sourceSchemaType: 'bpmn-activity', sourcePortId: 'seq-out', targetSchemaType: 'bpmn-gateway', targetPortId: 'seq-in', label: 'Add Gateway' },
+    { sourceSchemaType: 'bpmn-activity', sourcePortId: 'seq-out', targetSchemaType: 'bpmn-event', targetPortId: 'seq-in', label: 'Add Event' },
+    { sourceSchemaType: 'bpmn-activity', sourcePortId: 'data-link', targetSchemaType: 'bpmn-data-object', targetPortId: 'data-link', label: 'Add Data Object' },
+    // Event relationships
+    { sourceSchemaType: 'bpmn-event', sourcePortId: 'seq-out', targetSchemaType: 'bpmn-activity', targetPortId: 'seq-in', label: 'Add Activity' },
+    // Gateway relationships
+    { sourceSchemaType: 'bpmn-gateway', sourcePortId: 'seq-out', targetSchemaType: 'bpmn-activity', targetPortId: 'seq-in', label: 'Add Activity' },
+    { sourceSchemaType: 'bpmn-gateway', sourcePortId: 'seq-out', targetSchemaType: 'bpmn-event', targetPortId: 'seq-in', label: 'Add End Event' },
+    // Pool-Lane relationships
+    { sourceSchemaType: 'bpmn-pool', sourcePortId: 'parent', targetSchemaType: 'bpmn-lane', targetPortId: 'child', label: 'Add Lane' },
+    // Lane relationships
+    { sourceSchemaType: 'bpmn-lane', sourcePortId: 'parent', targetSchemaType: 'bpmn-activity', targetPortId: 'child', label: 'Add Activity' },
+    { sourceSchemaType: 'bpmn-lane', sourcePortId: 'parent', targetSchemaType: 'bpmn-event', targetPortId: 'child', label: 'Add Event' },
   ],
 };

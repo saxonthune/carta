@@ -1,3 +1,9 @@
+/**
+ * @deprecated This file uses the old React Flow-based metamap which reads suggestedRelated
+ * directly from ConstructSchema. Use MetamapV2 instead, which reads from schemaRelationships.
+ * This file will be deleted once the old metamap toggle is removed.
+ */
+
 import dagre from '@dagrejs/dagre';
 import type { Node, Edge } from '@xyflow/react';
 import type { ConstructSchema, SchemaGroup } from '@carta/domain';

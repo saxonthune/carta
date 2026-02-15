@@ -89,12 +89,16 @@ export function DocumentProvider({
       const hasSchemas = yjsAdapter.getSchemas().length > 0;
 
       if (!hasSchemas) {
-        const { packages, groups, schemas } = hydrateBuiltIns();
+        const { packages, groups, schemas, relationships } = hydrateBuiltIns();
         yjsAdapter.transaction(() => {
           yjsAdapter.setSchemaPackages(packages);
           yjsAdapter.setSchemaGroups(groups);
           yjsAdapter.setSchemas(schemas);
           yjsAdapter.setPortSchemas(builtInPortSchemas);
+          // Write seed relationships to the Y.Map
+          for (const rel of relationships) {
+            yjsAdapter.addSchemaRelationship(rel);
+          }
         }, 'init');
 
         // Seed content so the canvas isn't empty on first visit

@@ -128,6 +128,8 @@ export interface PortConfig {
 }
 
 /**
+ * @deprecated Use SchemaRelationship instead. Kept for old metamap compatibility.
+ *
  * Suggested related construct for schema-level quick-add menus
  * Defines a construct type that commonly relates to this construct type
  */
@@ -166,6 +168,7 @@ export interface ConstructSchema {
   semanticDescription?: string;      // Description shown during compilation (AI context)
   fields: FieldSchema[];
   ports?: PortConfig[];      // Port configurations for connections
+  /** @deprecated Use schemaRelationships Y.Map instead. Kept for old metamap compatibility. */
   suggestedRelated?: SuggestedRelatedConstruct[]; // Suggested related constructs for quick-add
   compilation: CompilationConfig;
   groupId?: string;          // References SchemaGroup.id for hierarchical organization

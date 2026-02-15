@@ -26,9 +26,6 @@ export const capabilityModelSeed: SchemaSeed = {
         { id: 'flow-in', portType: 'flow-in', label: 'Depends On', semanticDescription: 'Domains this domain depends on' },
         { id: 'flow-out', portType: 'flow-out', label: 'Depended By', semanticDescription: 'Domains that depend on this domain' },
       ],
-      suggestedRelated: [
-        { constructType: 'cm-feature', fromPortId: 'parent', toPortId: 'child', label: 'Add Feature' },
-      ],
       compilation: { format: 'json', sectionHeader: '# Domains' },
     },
 
@@ -49,10 +46,6 @@ export const capabilityModelSeed: SchemaSeed = {
         { id: 'parent', portType: 'parent', label: 'Capabilities', semanticDescription: 'Capabilities this feature provides' },
         { id: 'flow-in', portType: 'flow-in', label: 'Depends On', semanticDescription: 'Features this feature depends on' },
         { id: 'flow-out', portType: 'flow-out', label: 'Depended By', semanticDescription: 'Features that depend on this feature' },
-      ],
-      suggestedRelated: [
-        { constructType: 'cm-domain', fromPortId: 'child', toPortId: 'parent', label: 'Add to Domain' },
-        { constructType: 'cm-capability', fromPortId: 'parent', toPortId: 'child', label: 'Add Capability' },
       ],
       compilation: { format: 'json' },
     },
@@ -75,10 +68,6 @@ export const capabilityModelSeed: SchemaSeed = {
         { id: 'flow-in', portType: 'flow-in', label: 'Flow In', semanticDescription: 'Previous step in a user flow' },
         { id: 'flow-out', portType: 'flow-out', label: 'Flow Out', semanticDescription: 'Next step in a user flow' },
       ],
-      suggestedRelated: [
-        { constructType: 'cm-feature', fromPortId: 'child', toPortId: 'parent', label: 'Add to Feature' },
-        { constructType: 'cm-capability', fromPortId: 'flow-out', toPortId: 'flow-in', label: 'Chain Capability' },
-      ],
       compilation: { format: 'json' },
     },
 
@@ -96,9 +85,6 @@ export const capabilityModelSeed: SchemaSeed = {
       ],
       ports: [
         { id: 'flow-out', portType: 'flow-out', label: 'Implemented By', semanticDescription: 'User flows that implement this story' },
-      ],
-      suggestedRelated: [
-        { constructType: 'cm-user-flow', fromPortId: 'flow-out', toPortId: 'flow-in', label: 'Add User Flow' },
       ],
       compilation: { format: 'json', sectionHeader: '# User Stories' },
     },
@@ -121,11 +107,19 @@ export const capabilityModelSeed: SchemaSeed = {
         { id: 'parent', portType: 'parent', label: 'Steps', semanticDescription: 'Capabilities materialized in this flow' },
         { id: 'flow-out', portType: 'flow-out', label: 'Next', semanticDescription: 'Follow-on flow or outcome' },
       ],
-      suggestedRelated: [
-        { constructType: 'cm-capability', fromPortId: 'parent', toPortId: 'child', label: 'Add Step' },
-        { constructType: 'cm-user-story', fromPortId: 'flow-in', toPortId: 'flow-out', label: 'Link to Story' },
-      ],
       compilation: { format: 'json', sectionHeader: '# User Flows' },
     },
+  ],
+  relationships: [
+    // Domain-Feature relationships
+    { sourceSchemaType: 'cm-domain', sourcePortId: 'parent', targetSchemaType: 'cm-feature', targetPortId: 'child', label: 'Add Feature' },
+    // Feature-Capability relationships
+    { sourceSchemaType: 'cm-feature', sourcePortId: 'parent', targetSchemaType: 'cm-capability', targetPortId: 'child', label: 'Add Capability' },
+    // Capability chaining
+    { sourceSchemaType: 'cm-capability', sourcePortId: 'flow-out', targetSchemaType: 'cm-capability', targetPortId: 'flow-in', label: 'Chain Capability' },
+    // User Story-Flow relationships
+    { sourceSchemaType: 'cm-user-story', sourcePortId: 'flow-out', targetSchemaType: 'cm-user-flow', targetPortId: 'flow-in', label: 'Add User Flow' },
+    // User Flow-Capability relationships
+    { sourceSchemaType: 'cm-user-flow', sourcePortId: 'parent', targetSchemaType: 'cm-capability', targetPortId: 'child', label: 'Add Step' },
   ],
 };

@@ -127,7 +127,7 @@ describe('loadSeeds', () => {
 describe('hydrateSeeds', () => {
   it('all package IDs become UUIDs (pkg_xxx format) and group IDs (grp_xxx format)', () => {
     const { packages: tplPackages, groups: tplGroups, schemas: tplSchemas, portSchemas } = loadSeeds([seedA, seedB]);
-    const { packages, groups } = hydrateSeeds(tplPackages, tplGroups, tplSchemas, portSchemas);
+    const { packages, groups } = hydrateSeeds(tplPackages, tplGroups, tplSchemas, portSchemas, []);
     for (const p of packages) {
       expect(p.id).toMatch(/^pkg_/);
       expect(p.id).not.toBe('pkgA');
@@ -142,13 +142,13 @@ describe('hydrateSeeds', () => {
 
   it('portSchemas are hydrated with packageId refs resolved', () => {
     const { packages: tplPackages, groups: tplGroups, schemas: tplSchemas, portSchemas } = loadSeeds([seedA, seedB]);
-    const result = hydrateSeeds(tplPackages, tplGroups, tplSchemas, portSchemas);
+    const result = hydrateSeeds(tplPackages, tplGroups, tplSchemas, portSchemas, []);
     expect(result.portSchemas).toHaveLength(2);
   });
 
   it('schema packageIds and groupIds resolve to generated UUIDs', () => {
     const { packages: tplPackages, groups: tplGroups, schemas: tplSchemas, portSchemas } = loadSeeds([seedA]);
-    const { packages, schemas } = hydrateSeeds(tplPackages, tplGroups, tplSchemas, portSchemas);
+    const { packages, schemas } = hydrateSeeds(tplPackages, tplGroups, tplSchemas, portSchemas, []);
     const packageA = packages.find(p => p.name === 'Package A');
     const schemaA1 = schemas.find(s => s.type === 'schema-a1');
     expect(schemaA1?.packageId).toBe(packageA?.id);
@@ -156,7 +156,7 @@ describe('hydrateSeeds', () => {
 
   it('group packageIds resolve correctly', () => {
     const { packages: tplPackages, groups: tplGroups, schemas: tplSchemas, portSchemas } = loadSeeds([seedB]);
-    const { packages, groups } = hydrateSeeds(tplPackages, tplGroups, tplSchemas, portSchemas);
+    const { packages, groups } = hydrateSeeds(tplPackages, tplGroups, tplSchemas, portSchemas, []);
     const pkg = packages.find(p => p.name === 'Package B');
     const grp1 = groups.find(g => g.name === 'Group B1');
     const grp2 = groups.find(g => g.name === 'Group B2');
@@ -166,8 +166,8 @@ describe('hydrateSeeds', () => {
 
   it('two hydrations produce different UUIDs (non-idempotent)', () => {
     const { packages: tplPackages, groups: tplGroups, schemas: tplSchemas, portSchemas } = loadSeeds([seedA]);
-    const first = hydrateSeeds(tplPackages, tplGroups, tplSchemas, portSchemas);
-    const second = hydrateSeeds(tplPackages, tplGroups, tplSchemas, portSchemas);
+    const first = hydrateSeeds(tplPackages, tplGroups, tplSchemas, portSchemas, []);
+    const second = hydrateSeeds(tplPackages, tplGroups, tplSchemas, portSchemas, []);
     expect(first.packages[0].id).not.toBe(second.packages[0].id);
   });
 
@@ -176,9 +176,9 @@ describe('hydrateSeeds', () => {
   it('with existing matching by name: reuses existing IDs', () => {
     const { packages: tplPackages, groups: tplGroups, schemas: tplSchemas, portSchemas } = loadSeeds([seedA, seedB]);
     // First hydration creates the "existing" state
-    const first = hydrateSeeds(tplPackages, tplGroups, tplSchemas, portSchemas);
+    const first = hydrateSeeds(tplPackages, tplGroups, tplSchemas, portSchemas, []);
     // Second hydration passes first result as existing
-    const second = hydrateSeeds(tplPackages, tplGroups, tplSchemas, portSchemas, first.packages, first.groups);
+    const second = hydrateSeeds(tplPackages, tplGroups, tplSchemas, portSchemas, [], first.packages, first.groups);
     // All IDs should match
     for (const fp of first.packages) {
       const sp = second.packages.find(p => p.name === fp.name);
@@ -194,8 +194,8 @@ describe('hydrateSeeds', () => {
     const { packages: tplPackages, groups: tplGroups, schemas: tplSchemas, portSchemas } = loadSeeds([seedA, seedB]);
     // Only pass seedA's packages as existing
     const loadedA = loadSeeds([seedA]);
-    const firstA = hydrateSeeds(loadedA.packages, loadedA.groups, loadedA.schemas, loadedA.portSchemas);
-    const result = hydrateSeeds(tplPackages, tplGroups, tplSchemas, portSchemas, firstA.packages);
+    const firstA = hydrateSeeds(loadedA.packages, loadedA.groups, loadedA.schemas, loadedA.portSchemas, []);
+    const result = hydrateSeeds(tplPackages, tplGroups, tplSchemas, portSchemas, [], firstA.packages);
     // Package A should match
     const resA = result.packages.find(p => p.name === 'Package A');
     expect(resA?.id).toBe(firstA.packages[0].id);
@@ -207,8 +207,8 @@ describe('hydrateSeeds', () => {
 
   it('with empty existing: generates all new (same as before)', () => {
     const { packages: tplPackages, groups: tplGroups, schemas: tplSchemas, portSchemas } = loadSeeds([seedA]);
-    const withEmpty = hydrateSeeds(tplPackages, tplGroups, tplSchemas, portSchemas, [], []);
-    const without = hydrateSeeds(tplPackages, tplGroups, tplSchemas, portSchemas);
+    const withEmpty = hydrateSeeds(tplPackages, tplGroups, tplSchemas, portSchemas, [], [], []);
+    const without = hydrateSeeds(tplPackages, tplGroups, tplSchemas, portSchemas, []);
     // Both should have pkg_ format but different IDs
     expect(withEmpty.packages[0].id).toMatch(/^pkg_/);
     expect(without.packages[0].id).toMatch(/^pkg_/);
@@ -218,9 +218,9 @@ describe('hydrateSeeds', () => {
 
   it('calling twice with same existing produces identical output', () => {
     const { packages: tplPackages, groups: tplGroups, schemas: tplSchemas, portSchemas } = loadSeeds([seedA, seedB]);
-    const existing = hydrateSeeds(tplPackages, tplGroups, tplSchemas, portSchemas);
-    const first = hydrateSeeds(tplPackages, tplGroups, tplSchemas, portSchemas, existing.packages, existing.groups);
-    const second = hydrateSeeds(tplPackages, tplGroups, tplSchemas, portSchemas, existing.packages, existing.groups);
+    const existing = hydrateSeeds(tplPackages, tplGroups, tplSchemas, portSchemas, []);
+    const first = hydrateSeeds(tplPackages, tplGroups, tplSchemas, portSchemas, [], existing.packages, existing.groups);
+    const second = hydrateSeeds(tplPackages, tplGroups, tplSchemas, portSchemas, [], existing.packages, existing.groups);
     expect(first.packages.map(p => p.id)).toEqual(second.packages.map(p => p.id));
     expect(first.groups.map(g => g.id)).toEqual(second.groups.map(g => g.id));
     expect(first.schemas.map(s => s.packageId)).toEqual(second.schemas.map(s => s.packageId));

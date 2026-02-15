@@ -1,4 +1,9 @@
-import type { ConstructSchema, PortSchema, SchemaGroup, SchemaPackage } from '../types/index.js';
+import type { ConstructSchema, PortSchema, SchemaGroup, SchemaPackage, SchemaRelationship } from '../types/index.js';
+
+/**
+ * Seed-local relationship type that omits fields assigned during hydration.
+ */
+export type SchemaRelationshipSeed = Omit<SchemaRelationship, 'id' | 'packageId'>;
 
 /**
  * A self-contained seed: one package, optional groups, and all schemas for that package.
@@ -12,6 +17,7 @@ export interface SchemaSeed {
   groups?: SchemaGroup[];
   schemas: ConstructSchema[];
   portSchemas: PortSchema[];
+  relationships?: SchemaRelationshipSeed[];
 }
 
 function generateGroupId(): string {
@@ -22,15 +28,20 @@ function generatePackageId(): string {
   return 'pkg_' + Math.random().toString(36).substring(2, 11);
 }
 
+function generateRelationshipId(): string {
+  return 'rel_' + Math.random().toString(36).substring(2, 11);
+}
+
 /**
  * Flatten an array of seeds into template packages, groups, and schemas.
  * Package and group IDs are still seed-local refs — call hydrateSeeds() before writing to a document.
  */
-export function loadSeeds(seeds: SchemaSeed[]): { packages: SchemaPackage[]; groups: SchemaGroup[]; schemas: ConstructSchema[]; portSchemas: PortSchema[] } {
+export function loadSeeds(seeds: SchemaSeed[]): { packages: SchemaPackage[]; groups: SchemaGroup[]; schemas: ConstructSchema[]; portSchemas: PortSchema[]; relationships: SchemaRelationshipSeed[] } {
   const packages: SchemaPackage[] = [];
   const groups: SchemaGroup[] = [];
   const schemas: ConstructSchema[] = [];
   const portSchemaMap = new Map<string, PortSchema>();
+  const relationships: SchemaRelationshipSeed[] = [];
 
   for (const seed of seeds) {
     packages.push(seed.package);
@@ -50,9 +61,13 @@ export function loadSeeds(seeds: SchemaSeed[]): { packages: SchemaPackage[]; gro
         portSchemaMap.set(ps.id, updatedPs);
       }
     }
+    // Collect relationships from this seed
+    if (seed.relationships) {
+      relationships.push(...seed.relationships);
+    }
   }
 
-  return { packages, groups, schemas, portSchemas: Array.from(portSchemaMap.values()) };
+  return { packages, groups, schemas, portSchemas: Array.from(portSchemaMap.values()), relationships };
 }
 
 /**
@@ -71,9 +86,10 @@ export function hydrateSeeds(
   groups: SchemaGroup[],
   schemas: ConstructSchema[],
   portSchemas: PortSchema[],
+  relationships: SchemaRelationshipSeed[],
   existingPackages?: SchemaPackage[],
   existingGroups?: SchemaGroup[],
-): { packages: SchemaPackage[]; groups: SchemaGroup[]; schemas: ConstructSchema[]; portSchemas: PortSchema[] } {
+): { packages: SchemaPackage[]; groups: SchemaGroup[]; schemas: ConstructSchema[]; portSchemas: PortSchema[]; relationships: SchemaRelationship[] } {
   // Build name → existing ID lookup for packages
   const existingPackagesByName = new Map<string, string>();
   if (existingPackages) {
@@ -132,5 +148,15 @@ export function hydrateSeeds(
     groupId: ps.groupId ? (groupRefMap.get(ps.groupId) ?? ps.groupId) : undefined,
   }));
 
-  return { packages: hydratedPackages, groups: hydratedGroups, schemas: hydratedSchemas, portSchemas: hydratedPortSchemas };
+  // Hydrate relationships: assign id and packageId
+  const hydratedRelationships: SchemaRelationship[] = relationships.map(r => {
+    const sourceSchema = hydratedSchemas.find(s => s.type === r.sourceSchemaType);
+    return {
+      ...r,
+      id: generateRelationshipId(),
+      packageId: sourceSchema?.packageId,
+    };
+  });
+
+  return { packages: hydratedPackages, groups: hydratedGroups, schemas: hydratedSchemas, portSchemas: hydratedPortSchemas, relationships: hydratedRelationships };
 }
