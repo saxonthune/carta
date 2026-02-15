@@ -47,6 +47,20 @@ function App() {
 function AppContent() {
   const { adapter } = useDocumentContext();
 
+  useEffect(() => {
+    performance.mark('carta:app-mounted')
+    performance.measure('carta:boot-to-mount', 'carta:boot-start', 'carta:app-mounted')
+    performance.measure('carta:total-startup', 'carta:module-eval', 'carta:app-mounted')
+    if (import.meta.env.DEV) {
+      const entries = performance.getEntriesByType('measure').filter(e => e.name.startsWith('carta:'))
+      console.groupCollapsed('[carta] startup timing')
+      for (const e of entries) {
+        console.log(`${e.name}: ${e.duration.toFixed(1)}ms`)
+      }
+      console.groupEnd()
+    }
+  }, [])
+
   const { title, description, setTitle, setDescription } = useDocumentMeta();
   const { schemas } = useSchemas();
   const { schemaGroups } = useSchemaGroups();

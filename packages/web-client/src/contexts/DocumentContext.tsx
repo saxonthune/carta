@@ -70,6 +70,7 @@ export function DocumentProvider({
     let currentAdapter: ReturnType<typeof createYjsAdapter> | null = null;
 
     const initAdapter = async () => {
+      performance.mark('carta:adapter-init-start')
       // Skip IndexedDB when a server handles persistence (desktop or remote server)
       const shouldSkipPersistence = skipPersistence || config.isDesktop || config.hasSync;
 
@@ -170,6 +171,8 @@ export function DocumentProvider({
       }
 
       if (mounted) {
+        performance.mark('carta:adapter-ready')
+        performance.measure('carta:adapter-init', 'carta:adapter-init-start', 'carta:adapter-ready')
         setAdapter(yjsAdapter);
         setYdoc(yjsAdapter.ydoc);
         setMode(config.hasSync ? 'shared' : 'local');

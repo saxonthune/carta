@@ -299,7 +299,7 @@ function renderSimpleNode(props: ShapeRenderProps) {
 }
 
 // Inner component that uses canvas context
-function MapV2Inner({ sortedNodes, getSchema, getPortSchema, onSelectionChange, attachNodeToOrganizer, detachNodeFromOrganizer, toggleOrganizerCollapse, fitToChildren, getFollowers, showNarrative, hideNarrative, coveredNodeIds, onNodeContextMenu, onNodeMouseEnter, onNodeMouseLeave, onNodeDoubleClick, renamingOrgId, renameValue, setRenameValue, setRenamingOrgId, colorTriggerRefs, layoutTriggerRefs, setColorPickerOrgId, setLayoutMenuOrgId, handleOrgRename, commitOrgRename }: {
+function MapV2Inner({ sortedNodes, getSchema, getPortSchema, onSelectionChange, attachNodeToOrganizer, detachNodeFromOrganizer, toggleOrganizerCollapse, fitToChildren, getFollowers, showNarrative, hideNarrative, coveredNodeIds, onNodeContextMenu, onNodeMouseEnter, onNodeMouseLeave, onNodeDoubleClick, renamingOrgId, renameValue, setRenameValue, setRenamingOrgId, colorTriggerRefs, layoutTriggerRefs, setColorPickerOrgId, setLayoutMenuOrgId, handleOrgRename, commitOrgRename, dragOffsets, setDragOffsets, dragOffsetsRef }: {
   sortedNodes: any[];
   getSchema: (type: string) => any;
   getPortSchema: (type: string) => any;
@@ -326,6 +326,9 @@ function MapV2Inner({ sortedNodes, getSchema, getPortSchema, onSelectionChange, 
   onNodeMouseEnter: (nodeId: string) => void;
   onNodeMouseLeave: () => void;
   onNodeDoubleClick: (nodeId: string) => void;
+  dragOffsets: Map<string, { dx: number; dy: number }>;
+  setDragOffsets: React.Dispatch<React.SetStateAction<Map<string, { dx: number; dy: number }>>>;
+  dragOffsetsRef: React.MutableRefObject<Map<string, { dx: number; dy: number }>>;
 }) {
   const { adapter } = useDocumentContext();
   const { transform, isSelected, onNodePointerDown: onSelectPointerDown, selectedIds, startConnection, connectionDrag } = useCanvasContext();
@@ -355,8 +358,7 @@ function MapV2Inner({ sortedNodes, getSchema, getPortSchema, onSelectionChange, 
   // Port drawer hover state
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
 
-  // Drag state
-  const [dragOffsets, setDragOffsets] = useState<Map<string, { dx: number; dy: number }>>(new Map());
+  // Drag state — dragOffsets/setDragOffsets/dragOffsetsRef passed as props from parent
   const dragOriginRef = useRef<{ nodeId: string; x: number; y: number } | null>(null);
   const lastPointerEventRef = useRef<{ clientX: number; clientY: number; ctrlKey: boolean; metaKey: boolean } | null>(null);
   const rafIdRef = useRef<number | null>(null);
@@ -455,16 +457,18 @@ function MapV2Inner({ sortedNodes, getSchema, getPortSchema, onSelectionChange, 
           for (const id of allIdsToMove) {
             next.set(id, { dx: deltaX, dy: deltaY });
           }
+          dragOffsetsRef.current = next;
           return next;
         });
       },
       onDragEnd: (nodeId) => {
         const node = sortedNodesRef.current.find(n => n.id === nodeId);
         const lastEvent = lastPointerEventRef.current;
+        const currentOffsets = dragOffsetsRef.current;
 
         // Commit position changes first
         const patches: Array<{ id: string; position: { x: number; y: number } }> = [];
-        for (const [id, offset] of dragOffsets) {
+        for (const [id, offset] of currentOffsets) {
           const n = sortedNodesRef.current.find(n => n.id === id);
           if (n) {
             patches.push({ id, position: { x: n.position.x + offset.dx, y: n.position.y + offset.dy } });
@@ -476,7 +480,7 @@ function MapV2Inner({ sortedNodes, getSchema, getPortSchema, onSelectionChange, 
 
         // Auto-fit parent organizers whose children moved
         const parentOrgIds = new Set<string>();
-        for (const [id] of dragOffsets) {
+        for (const [id] of currentOffsets) {
           const n = sortedNodesRef.current.find(node => node.id === id);
           if (n?.parentId) {
             parentOrgIds.add(n.parentId);
@@ -527,7 +531,9 @@ function MapV2Inner({ sortedNodes, getSchema, getPortSchema, onSelectionChange, 
           }
         }
 
-        setDragOffsets(new Map());
+        const emptyMap = new Map<string, { dx: number; dy: number }>();
+        dragOffsetsRef.current = emptyMap;
+        setDragOffsets(emptyMap);
         dragOriginRef.current = null;
         lastPointerEventRef.current = null;
         hideNarrative();
@@ -605,10 +611,16 @@ function MapV2Inner({ sortedNodes, getSchema, getPortSchema, onSelectionChange, 
         if (parent) {
           absX += parent.position.x;
           absY += parent.position.y;
+          // If parent is being dragged, children follow via parent's offset
+          const parentOffset = dragOffsets.get(parent.id);
+          if (parentOffset) {
+            absX += parentOffset.dx;
+            absY += parentOffset.dy;
+          }
         }
       }
 
-      // Apply drag offset if this node is being dragged
+      // Apply drag offset if this node itself is being dragged
       const offset = dragOffsets.get(n.id);
       if (offset) {
         absX += offset.dx;
@@ -1230,6 +1242,10 @@ export default function MapV2({ searchText }: MapV2Props) {
   // Track selected IDs for edge pipeline
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
 
+  // Drag offsets — lifted to parent so renderEdges can read them
+  const [dragOffsets, setDragOffsets] = useState<Map<string, { dx: number; dy: number }>>(new Map());
+  const dragOffsetsRef = useRef<Map<string, { dx: number; dy: number }>>(dragOffsets);
+
   // Selection mode state
   const [selectionModeActive, setSelectionModeActive] = useState(false);
 
@@ -1767,7 +1783,7 @@ export default function MapV2({ searchText }: MapV2Props) {
 
   // Edge rendering — bezier paths with dynamic anchors
   const renderEdges = useCallback(() => {
-    // Build node rect lookup
+    // Build node rect lookup (includes drag offsets so edges follow nodes during drag)
     const nodeRects = new Map<string, { x: number; y: number; width: number; height: number }>();
     for (const n of sortedNodes) {
       if (n.hidden) continue;
@@ -1777,8 +1793,15 @@ export default function MapV2({ searchText }: MapV2Props) {
       let y = n.position.y;
       if (n.parentId) {
         const parent = sortedNodes.find(p => p.id === n.parentId);
-        if (parent) { x += parent.position.x; y += parent.position.y; }
+        if (parent) {
+          x += parent.position.x;
+          y += parent.position.y;
+          const parentOffset = dragOffsets.get(parent.id);
+          if (parentOffset) { x += parentOffset.dx; y += parentOffset.dy; }
+        }
       }
+      const offset = dragOffsets.get(n.id);
+      if (offset) { x += offset.dx; y += offset.dy; }
       nodeRects.set(n.id, { x, y, width: w, height: h });
     }
 
@@ -1846,7 +1869,7 @@ export default function MapV2({ searchText }: MapV2Props) {
         </g>
       );
     });
-  }, [sortedNodes, displayEdges, handleEdgeClick]);
+  }, [sortedNodes, displayEdges, dragOffsets, handleEdgeClick]);
 
   // Connection preview rendering
   const renderConnectionPreview = useCallback((drag: any, transform: any) => {
@@ -1943,6 +1966,9 @@ export default function MapV2({ searchText }: MapV2Props) {
           setLayoutMenuOrgId={setLayoutMenuOrgId}
           handleOrgRename={handleOrgRename}
           commitOrgRename={commitOrgRename}
+          dragOffsets={dragOffsets}
+          setDragOffsets={setDragOffsets}
+          dragOffsetsRef={dragOffsetsRef}
         />
       </Canvas>
       <MapV2Toolbar

@@ -10,6 +10,8 @@ import { getLastDocumentId, setLastDocumentId } from './utils/preferences'
 import { createDocument } from './stores/documentRegistry'
 import { config } from './config/featureFlags'
 
+performance.mark('carta:module-eval')
+
 // Suppress the benign ResizeObserver loop error.
 // This fires when a ResizeObserver callback triggers layout changes that produce
 // more resize observations than can be delivered in a single frame. The browser
@@ -25,6 +27,7 @@ window.addEventListener('error', (e) => {
 const root = createRoot(document.getElementById('root')!);
 
 async function boot() {
+  performance.mark('carta:boot-start')
   const urlParams = new URLSearchParams(window.location.search);
   const seedName = urlParams.get('seed');
   let documentId = urlParams.get('doc');
@@ -71,6 +74,8 @@ async function bootWithDocumentId(documentId: string | null, seedName?: string) 
     setLastDocumentId(documentId);
   }
 
+  performance.mark('carta:render-start')
+  performance.measure('carta:boot-resolve', 'carta:boot-start', 'carta:render-start')
   root.render(
     <StrictMode>
       <GuideTooltipProvider>
