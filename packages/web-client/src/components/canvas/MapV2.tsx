@@ -296,6 +296,7 @@ function MapV2Inner({ sortedNodes, getSchema, getPortSchema, onSelectionChange, 
           <div
             key={n.id}
             data-node-id={n.id}
+            data-no-pan="true"
             {...(isOrganizer ? { 'data-drop-target': 'true', 'data-container-id': n.id } : {})}
             onPointerDown={(e) => {
               onSelectPointerDown(n.id, e);
