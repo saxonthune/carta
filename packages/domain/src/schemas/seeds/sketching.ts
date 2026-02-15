@@ -21,14 +21,23 @@ export const sketchingSeed: SchemaSeed = {
       groupId: 'sketching',
       fields: [
         {
-          name: 'content',
-          label: 'Content',
+          name: 'title',
+          label: 'Title',
+          type: 'string',
+          semanticDescription: 'Note title or heading',
+          placeholder: 'Title...',
+          displayTier: 'pill',
+          displayOrder: 0,
+        },
+        {
+          name: 'body',
+          label: 'Body',
           type: 'string',
           displayHint: 'multiline',
-          semanticDescription: 'Freeform note content',
-          placeholder: 'Type here...',
+          semanticDescription: 'Note body content',
+          placeholder: 'Write something...',
           displayTier: 'summary',
-          displayOrder: 0,
+          displayOrder: 1,
         },
       ],
       ports: [

@@ -98,7 +98,6 @@ function MapV2FieldList({ schema, constructData, adapter, nodeId }: {
 
 // Shape rendering helper interface
 interface ShapeRenderProps {
-  key: string;
   nodeId: string;
   absX: number;
   absY: number;
@@ -134,10 +133,10 @@ function ResizeHandle({ selected, onResizePointerDown }: { selected: boolean; on
 }
 
 function renderCircleNode(props: ShapeRenderProps) {
-  const { key, nodeId, absX, absY, width, selected, label, schema, constructData, dimmed, onPointerDown, onPointerEnter, onPointerLeave, onContextMenu, onDoubleClick, onResizePointerDown } = props;
+  const { nodeId, absX, absY, width, selected, label, schema, constructData, dimmed, onPointerDown, onPointerEnter, onPointerLeave, onContextMenu, onDoubleClick, onResizePointerDown } = props;
   const resolvedColor = resolveNodeColor(schema, constructData);
   return (
-    <div key={key} data-node-id={nodeId} data-no-pan="true"
+    <div key={nodeId} data-node-id={nodeId} data-no-pan="true"
       onPointerDown={onPointerDown} onPointerEnter={onPointerEnter}
       onPointerLeave={onPointerLeave} onContextMenu={onContextMenu}
       onDoubleClick={onDoubleClick}
@@ -167,11 +166,11 @@ function renderCircleNode(props: ShapeRenderProps) {
 }
 
 function renderDiamondNode(props: ShapeRenderProps) {
-  const { key, nodeId, absX, absY, width, selected, label, schema, constructData, dimmed, onPointerDown, onPointerEnter, onPointerLeave, onContextMenu, onDoubleClick, onResizePointerDown } = props;
+  const { nodeId, absX, absY, width, selected, label, schema, constructData, dimmed, onPointerDown, onPointerEnter, onPointerLeave, onContextMenu, onDoubleClick, onResizePointerDown } = props;
   const resolvedColor = resolveNodeColor(schema, constructData);
   const size = Math.max(width, 100);
   return (
-    <div key={key} data-node-id={nodeId} data-no-pan="true"
+    <div key={nodeId} data-node-id={nodeId} data-no-pan="true"
       onPointerDown={onPointerDown} onPointerEnter={onPointerEnter}
       onPointerLeave={onPointerLeave} onContextMenu={onContextMenu}
       onDoubleClick={onDoubleClick}
@@ -212,10 +211,10 @@ function renderDiamondNode(props: ShapeRenderProps) {
 }
 
 function renderDocumentNode(props: ShapeRenderProps) {
-  const { key, nodeId, absX, absY, width, selected, label, schema, constructData, dimmed, onPointerDown, onPointerEnter, onPointerLeave, onContextMenu, onDoubleClick, onResizePointerDown } = props;
+  const { nodeId, absX, absY, width, selected, label, schema, constructData, dimmed, onPointerDown, onPointerEnter, onPointerLeave, onContextMenu, onDoubleClick, onResizePointerDown } = props;
   const resolvedColor = resolveNodeColor(schema, constructData);
   return (
-    <div key={key} data-node-id={nodeId} data-no-pan="true"
+    <div key={nodeId} data-node-id={nodeId} data-no-pan="true"
       onPointerDown={onPointerDown} onPointerEnter={onPointerEnter}
       onPointerLeave={onPointerLeave} onContextMenu={onContextMenu}
       onDoubleClick={onDoubleClick}
@@ -252,54 +251,126 @@ function renderDocumentNode(props: ShapeRenderProps) {
 }
 
 function SimpleNode(props: ShapeRenderProps & { adapter: DocumentAdapter }) {
-  const { key, nodeId, absX, absY, width, height, selected, label, schema, constructData, dimmed, onPointerDown, onPointerEnter, onPointerLeave, onContextMenu, onResizePointerDown, adapter } = props;
-  const [editing, setEditing] = useState(false);
+  const { nodeId, absX, absY, width, height, selected, schema, constructData, dimmed, onPointerDown, onPointerEnter, onPointerLeave, onContextMenu, onResizePointerDown, adapter } = props;
+  const [editingField, setEditingField] = useState<string | null>(null);
   const resolvedColor = resolveNodeColor(schema, constructData);
   const bgColor = resolvedColor !== schema.color
     ? resolvedColor
     : `color-mix(in srgb, ${schema.color} 30%, var(--color-surface))`;
-  const content = String(constructData.values?.content ?? label);
 
-  const commitEdit = (value: string) => {
-    adapter.updateNode(nodeId, { values: { ...constructData.values, content: value } });
-    setEditing(false);
+  // Get pill field (title) and summary fields (body) from schema
+  const pillField = schema.fields?.find(f => f.displayTier === 'pill');
+  const summaryFields = (schema.fields ?? [])
+    .filter(f => f.displayTier === 'summary')
+    .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+
+  const commitValue = (fieldName: string, newValue: unknown) => {
+    adapter.updateNode(nodeId, { values: { ...constructData.values, [fieldName]: newValue } });
+    setEditingField(null);
   };
 
   return (
-    <div key={key} data-node-id={nodeId} data-no-pan="true"
+    <div key={nodeId} data-node-id={nodeId} data-no-pan="true"
       onPointerDown={onPointerDown} onPointerEnter={onPointerEnter}
       onPointerLeave={onPointerLeave} onContextMenu={onContextMenu}
-      onDoubleClick={(e) => { e.stopPropagation(); setEditing(true); }}
+      onDoubleClick={(e) => {
+        e.stopPropagation();
+        // Focus first empty field, or pill field
+        const firstEmpty = pillField && !constructData.values?.[pillField.name]
+          ? pillField.name
+          : summaryFields.find(f => !constructData.values?.[f.name])?.name ?? pillField?.name;
+        if (firstEmpty) setEditingField(firstEmpty);
+      }}
       style={{
         position: 'absolute', left: absX, top: absY,
         width: Math.max(width, 200), minHeight: Math.max(height, 100),
         backgroundColor: bgColor,
         borderRadius: 8,
         boxShadow: selected ? 'var(--node-shadow-selected)' : 'var(--node-shadow)',
-        cursor: 'grab', padding: 12,
-        display: 'flex', flexDirection: 'column',
+        cursor: 'grab', padding: '8px 12px',
+        display: 'flex', flexDirection: 'column', gap: 2,
         opacity: dimmed ? 0.2 : 1,
         pointerEvents: dimmed ? 'none' : 'auto',
       }}>
+      {/* Icon in top-right */}
       {(() => {
         const icon = resolveNodeIcon(schema, constructData);
         return icon ? <span style={{ position: 'absolute', top: 4, right: 8, fontSize: 14, fontWeight: 700, color: 'var(--color-content)', opacity: 0.6 }}>{icon}</span> : null;
       })()}
-      {editing ? (
-        <div onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()} style={{ flex: 1, display: 'flex' }}>
-          <textarea
-            style={{ width: '100%', flex: 1, padding: 0, backgroundColor: 'transparent', border: 'none', outline: 'none', resize: 'none', fontSize: 13, color: 'var(--color-content)', fontFamily: 'inherit' }}
-            defaultValue={content}
-            onBlur={(e) => commitEdit(e.target.value)}
-            onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Escape') setEditing(false); }}
-            autoFocus
-          />
-        </div>
-      ) : (
-        <div style={{ flex: 1, fontSize: 13, color: 'var(--color-content)', whiteSpace: 'pre-wrap', overflow: 'hidden' }}>
-          {content}
-        </div>
-      )}
+
+      {/* Pill field (title) — bolder, larger */}
+      {pillField && (() => {
+        const value = constructData.values?.[pillField.name] ?? '';
+        if (editingField === pillField.name) {
+          return (
+            <div onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
+              <input
+                type="text"
+                style={{ width: '100%', padding: 0, backgroundColor: 'transparent', border: 'none', outline: 'none', fontSize: 15, fontWeight: 600, color: 'var(--color-content)', fontFamily: 'inherit' }}
+                defaultValue={String(value)}
+                placeholder={pillField.placeholder ?? 'Title...'}
+                onBlur={(e) => commitValue(pillField.name, e.target.value)}
+                onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter') (e.target as HTMLElement).blur(); if (e.key === 'Escape') setEditingField(null); }}
+                autoFocus
+              />
+            </div>
+          );
+        }
+        return (
+          <div
+            onClick={(e) => { e.stopPropagation(); setEditingField(pillField.name); }}
+            onPointerDown={(e) => e.stopPropagation()}
+            style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-content)', cursor: 'text', minHeight: 20 }}
+          >
+            {value ? String(value) : <span style={{ color: 'var(--color-content-subtle)', opacity: 0.5, fontWeight: 400 }}>{pillField.placeholder ?? 'Title...'}</span>}
+          </div>
+        );
+      })()}
+
+      {/* Summary fields (body) — regular weight, multiline-aware */}
+      {summaryFields.map(field => {
+        const value = constructData.values?.[field.name] ?? '';
+        const isMultiline = field.displayHint === 'multiline';
+
+        if (editingField === field.name) {
+          return (
+            <div key={field.name} onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()} style={{ flex: 1, display: 'flex' }}>
+              {isMultiline ? (
+                <textarea
+                  style={{ width: '100%', flex: 1, padding: 0, backgroundColor: 'transparent', border: 'none', outline: 'none', resize: 'none', fontSize: 13, color: 'var(--color-content)', fontFamily: 'inherit', minHeight: 40 }}
+                  defaultValue={String(value)}
+                  placeholder={field.placeholder ?? ''}
+                  onBlur={(e) => commitValue(field.name, e.target.value)}
+                  onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Escape') setEditingField(null); }}
+                  autoFocus
+                />
+              ) : (
+                <input
+                  type="text"
+                  style={{ width: '100%', padding: 0, backgroundColor: 'transparent', border: 'none', outline: 'none', fontSize: 13, color: 'var(--color-content)', fontFamily: 'inherit' }}
+                  defaultValue={String(value)}
+                  placeholder={field.placeholder ?? ''}
+                  onBlur={(e) => commitValue(field.name, e.target.value)}
+                  onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter') (e.target as HTMLElement).blur(); if (e.key === 'Escape') setEditingField(null); }}
+                  autoFocus
+                />
+              )}
+            </div>
+          );
+        }
+
+        return (
+          <div
+            key={field.name}
+            onClick={(e) => { e.stopPropagation(); setEditingField(field.name); }}
+            onPointerDown={(e) => e.stopPropagation()}
+            style={{ flex: isMultiline ? 1 : undefined, fontSize: 13, color: 'var(--color-content)', cursor: 'text', whiteSpace: isMultiline ? 'pre-wrap' : undefined, overflow: 'hidden', minHeight: isMultiline ? 40 : undefined }}
+          >
+            {value ? String(value) : <span style={{ color: 'var(--color-content-subtle)', opacity: 0.5 }}>{field.placeholder ?? ''}</span>}
+          </div>
+        );
+      })}
+
       <ResizeHandle selected={selected} onResizePointerDown={onResizePointerDown} />
     </div>
   );
@@ -421,7 +492,7 @@ export function MapV2ConstructNode({
   // Shape-based rendering
   const shapeMode = schema.nodeShape;
   const shapeProps = {
-    key: node.id, nodeId: node.id, absX, absY, width, height, selected,
+    nodeId: node.id, absX, absY, width, height, selected,
     color, label, schema, constructData, dimmed, sequenceBadge,
     onPointerDown, onPointerEnter, onPointerLeave, onContextMenu, onDoubleClick, onResizePointerDown,
   };
