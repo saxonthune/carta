@@ -1,4 +1,5 @@
 import { useRef, useMemo, useCallback, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Canvas, type CanvasRef, useNodeDrag, useNodeResize, useCanvasContext, ConnectionHandle, useKeyboardShortcuts } from '../../canvas-engine/index.js';
 import { useDocumentContext } from '../../contexts/DocumentContext';
 import { useNodes } from '../../hooks/useNodes';
@@ -22,6 +23,9 @@ import ContextMenu from '../ui/ContextMenu';
 import AddConstructMenu from './AddConstructMenu';
 import ConstructEditor from '../ConstructEditor';
 import ConstructDebugModal from '../modals/ConstructDebugModal';
+import { DotsThreeVertical, PushPin } from '@phosphor-icons/react';
+import { EyeIcon, EyeOffIcon } from '../ui/icons';
+import { MenuLevel, type MenuItem } from '../ui/ContextMenuPrimitive';
 import { getRectBoundaryPoint, waypointsToPath, computeBezierPath, type Waypoint } from '../../utils/edgeGeometry.js';
 import { canConnect, getHandleType, nodeContainedInOrganizer, type ConstructSchema, getFieldsForSummary, resolveNodeIcon, getDisplayName, resolveNodeColor, type ConstructNodeData, type DocumentAdapter } from '@carta/domain';
 import { stripHandlePrefix } from '../../utils/handlePrefix.js';
@@ -295,7 +299,7 @@ function renderSimpleNode(props: ShapeRenderProps) {
 }
 
 // Inner component that uses canvas context
-function MapV2Inner({ sortedNodes, getSchema, getPortSchema, onSelectionChange, attachNodeToOrganizer, detachNodeFromOrganizer, toggleOrganizerCollapse, fitToChildren, getFollowers, showNarrative, hideNarrative, coveredNodeIds, onNodeContextMenu, onNodeMouseEnter, onNodeMouseLeave, onNodeDoubleClick }: {
+function MapV2Inner({ sortedNodes, getSchema, getPortSchema, onSelectionChange, attachNodeToOrganizer, detachNodeFromOrganizer, toggleOrganizerCollapse, fitToChildren, getFollowers, showNarrative, hideNarrative, coveredNodeIds, onNodeContextMenu, onNodeMouseEnter, onNodeMouseLeave, onNodeDoubleClick, renamingOrgId, renameValue, setRenameValue, setRenamingOrgId, colorTriggerRefs, layoutTriggerRefs, setColorPickerOrgId, setLayoutMenuOrgId, handleOrgRename, commitOrgRename }: {
   sortedNodes: any[];
   getSchema: (type: string) => any;
   getPortSchema: (type: string) => any;
@@ -306,6 +310,16 @@ function MapV2Inner({ sortedNodes, getSchema, getPortSchema, onSelectionChange, 
   fitToChildren: (organizerId: string) => void;
   getFollowers: (leaderId: string) => string[];
   showNarrative: (state: any) => void;
+  renamingOrgId: string | null;
+  renameValue: string;
+  setRenameValue: (value: string) => void;
+  setRenamingOrgId: (value: string | null) => void;
+  colorTriggerRefs: React.MutableRefObject<Map<string, HTMLDivElement>>;
+  layoutTriggerRefs: React.MutableRefObject<Map<string, HTMLButtonElement>>;
+  setColorPickerOrgId: (value: string | null | ((prev: string | null) => string | null)) => void;
+  setLayoutMenuOrgId: (value: string | null | ((prev: string | null) => string | null)) => void;
+  handleOrgRename: (orgId: string) => void;
+  commitOrgRename: (orgId: string) => void;
   hideNarrative: () => void;
   coveredNodeIds: string[];
   onNodeContextMenu: (e: React.MouseEvent, nodeId: string) => void;
@@ -707,6 +721,89 @@ function MapV2Inner({ sortedNodes, getSchema, getPortSchema, onSelectionChange, 
         // Fall through to default card rendering
       }
 
+      // Collapsed organizer chip
+      if (isOrganizer && (data as any).collapsed) {
+        return (
+          <div
+            key={n.id}
+            data-node-id={n.id}
+            data-no-pan="true"
+            onPointerDown={(e) => { onSelectPointerDown(n.id, e); onNodePointerDownDrag(n.id, e); }}
+            onContextMenu={(e) => { e.preventDefault(); onNodeContextMenu(e, n.id); }}
+            style={{
+              position: 'absolute', left: absX, top: absY,
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '6px 12px', minWidth: 140, height: 44,
+              backgroundColor: `color-mix(in srgb, ${color} 12%, var(--color-canvas))`,
+              border: `1px solid color-mix(in srgb, ${color} 30%, var(--color-canvas))`,
+              borderRadius: 8,
+              boxShadow: selected ? `0 0 0 2px ${color}30` : '0 1px 3px rgba(0,0,0,0.08)',
+              cursor: 'grab',
+              outline: selected ? '2px solid var(--color-accent, #3b82f6)' : 'none',
+              outlineOffset: '2px',
+              opacity: dimmed ? 0.2 : 1,
+            }}
+          >
+            {/* Color dot */}
+            <div
+              ref={(el) => { if (el) colorTriggerRefs.current.set(n.id, el); }}
+              style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: color, flexShrink: 0, cursor: 'pointer' }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setColorPickerOrgId(prev => prev === n.id ? null : n.id);
+              }}
+            />
+            {/* Name / rename input */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              {renamingOrgId === n.id ? (
+                <input
+                  autoFocus
+                  style={{
+                    width: '100%', background: 'transparent', border: 'none',
+                    outline: 'none', padding: 0, fontSize: 11, fontWeight: 500,
+                    color: 'var(--color-content)',
+                  }}
+                  value={renameValue}
+                  onChange={(e) => setRenameValue(e.target.value)}
+                  onBlur={() => commitOrgRename(n.id)}
+                  onKeyDown={(e) => {
+                    e.stopPropagation();
+                    if (e.key === 'Enter') commitOrgRename(n.id);
+                    if (e.key === 'Escape') setRenamingOrgId(null);
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
+                />
+              ) : (
+                <span
+                  style={{ fontSize: 11, fontWeight: 500, color: 'var(--color-content)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'text' }}
+                  onClick={(e) => { e.stopPropagation(); handleOrgRename(n.id); }}
+                >
+                  {label}
+                </span>
+              )}
+            </div>
+            {/* Count */}
+            {(() => {
+              const cc = sortedNodesRef.current.filter(c => c.parentId === n.id).length;
+              return cc > 0 ? <span style={{ fontSize: 10, fontWeight: 500, padding: '1px 6px', borderRadius: 10, backgroundColor: `color-mix(in srgb, ${color} 20%, var(--color-canvas))`, color: `color-mix(in srgb, ${color} 80%, var(--color-content))` }}>{cc}</span> : null;
+            })()}
+            {/* Pin indicator */}
+            {(data as any).layoutPinned && (
+              <PushPin weight="fill" size={12} style={{ color, opacity: 0.5, flexShrink: 0 }} />
+            )}
+            {/* Expand button */}
+            <button
+              style={{ width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 4, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-content-muted)' }}
+              onClick={(e) => { e.stopPropagation(); toggleOrganizerCollapse(n.id); }}
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              <EyeOffIcon size={14} />
+            </button>
+          </div>
+        );
+      }
+
       // Full node rendering
       return (
         <div
@@ -782,43 +879,127 @@ function MapV2Inner({ sortedNodes, getSchema, getPortSchema, onSelectionChange, 
           )}
 
           {isOrganizer ? (
-            // Organizer header bar
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '6px 12px',
-              borderRadius: '12px 12px 0 0',
-              backgroundColor: `${color}15`,
-              cursor: 'grab',
-              userSelect: 'none',
-            }}>
-              {/* Color dot */}
-              <div style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: color, flexShrink: 0 }} />
-              {/* Name */}
-              <span style={{
-                fontSize: 12, fontWeight: 500,
-                color: 'var(--color-content)',
-                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                flex: 1,
-              }}>
-                {label}
-              </span>
-              {/* Child count badge */}
-              {(() => {
-                const childCount = sortedNodes.filter(c => c.parentId === n.id && !c.hidden).length;
-                return childCount > 0 ? (
-                  <span style={{
-                    fontSize: 10, fontWeight: 500, flexShrink: 0,
-                    padding: '1px 6px', borderRadius: 9999,
-                    backgroundColor: `color-mix(in srgb, ${color} 20%, var(--color-canvas))`,
-                    color: `color-mix(in srgb, ${color} 80%, var(--color-content))`,
-                  }}>
-                    {childCount}
-                  </span>
-                ) : null;
-              })()}
-            </div>
+            <>
+              {/* Organizer header bar */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '6px 10px',
+                  borderRadius: '8px 8px 0 0',
+                  backgroundColor: `${color}15`,
+                  cursor: 'grab',
+                }}
+                data-no-pan="true"
+              >
+                {/* Color dot */}
+                <div
+                  ref={(el) => { if (el) colorTriggerRefs.current.set(n.id, el); }}
+                  style={{
+                    width: 10, height: 10, borderRadius: '50%',
+                    backgroundColor: color, cursor: 'pointer', flexShrink: 0,
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setColorPickerOrgId(prev => prev === n.id ? null : n.id);
+                  }}
+                />
+
+                {/* Name / rename input */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  {renamingOrgId === n.id ? (
+                    <input
+                      autoFocus
+                      style={{
+                        width: '100%', background: 'transparent', border: 'none',
+                        outline: 'none', padding: 0, fontSize: 11, fontWeight: 500,
+                        color: 'var(--color-content)',
+                      }}
+                      value={renameValue}
+                      onChange={(e) => setRenameValue(e.target.value)}
+                      onBlur={() => commitOrgRename(n.id)}
+                      onKeyDown={(e) => {
+                        e.stopPropagation();
+                        if (e.key === 'Enter') commitOrgRename(n.id);
+                        if (e.key === 'Escape') setRenamingOrgId(null);
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      onPointerDown={(e) => e.stopPropagation()}
+                    />
+                  ) : (
+                    <span
+                      style={{
+                        fontSize: 11, fontWeight: 500, cursor: 'text',
+                        color: 'var(--color-content)',
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        display: 'block',
+                      }}
+                      onClick={(e) => { e.stopPropagation(); handleOrgRename(n.id); }}
+                    >
+                      {label}
+                    </span>
+                  )}
+                </div>
+
+                {/* Child count badge */}
+                {(() => {
+                  const childCount = sortedNodesRef.current.filter(c => c.parentId === n.id).length;
+                  return childCount > 0 ? (
+                    <span style={{
+                      fontSize: 10, fontWeight: 500, padding: '1px 6px',
+                      borderRadius: 10, flexShrink: 0,
+                      backgroundColor: `color-mix(in srgb, ${color} 20%, var(--color-canvas))`,
+                      color: `color-mix(in srgb, ${color} 80%, var(--color-content))`,
+                    }}>
+                      {childCount}
+                    </span>
+                  ) : null;
+                })()}
+
+                {/* Pin indicator */}
+                {(data as any).layoutPinned && (
+                  <PushPin weight="fill" size={12} style={{ color, opacity: 0.5, flexShrink: 0 }} />
+                )}
+
+                {/* Layout menu button */}
+                <button
+                  ref={(el) => { if (el) layoutTriggerRefs.current.set(n.id, el); }}
+                  style={{
+                    width: 20, height: 20, display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', borderRadius: 4, border: 'none',
+                    background: 'transparent', cursor: 'pointer', flexShrink: 0,
+                    color: 'var(--color-content-muted)',
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setLayoutMenuOrgId(prev => prev === n.id ? null : n.id);
+                  }}
+                  onPointerDown={(e) => e.stopPropagation()}
+                >
+                  <DotsThreeVertical weight="bold" size={14} />
+                </button>
+
+                {/* Collapse toggle */}
+                <button
+                  style={{
+                    width: 20, height: 20, display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', borderRadius: 4, border: 'none',
+                    background: 'transparent', cursor: 'pointer', flexShrink: 0,
+                    color: 'var(--color-content-muted)',
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleOrganizerCollapse(n.id);
+                  }}
+                  onPointerDown={(e) => e.stopPropagation()}
+                >
+                  <EyeIcon size={14} />
+                </button>
+              </div>
+              {/* Spacer for organizer body content area */}
+              <div style={{ flex: 1 }} />
+            </>
           ) : schema ? (
             // Construct node with schema badge and fields
             <>
@@ -1042,7 +1223,7 @@ export default function MapV2({ searchText }: MapV2Props) {
   const { getPortSchema } = usePortSchemas();
   const { narrative, showNarrative, hideNarrative } = useNarrative();
   const { adapter, ydoc } = useDocumentContext();
-  const { toggleOrganizerCollapse, createOrganizer } = useOrganizerOperations();
+  const { toggleOrganizerCollapse, createOrganizer, renameOrganizer, updateOrganizerColor } = useOrganizerOperations();
   const { undo, redo, canUndo, canRedo } = useUndoRedo();
   const { constraints: pinConstraints } = usePinConstraints();
 
@@ -1068,6 +1249,16 @@ export default function MapV2({ searchText }: MapV2Props) {
 
   // Clipboard state (inlined from useClipboard)
   const [clipboard, setClipboard] = useState<any[]>([]);
+
+  // Organizer interaction state
+  const [renamingOrgId, setRenamingOrgId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+  const [colorPickerOrgId, setColorPickerOrgId] = useState<string | null>(null);
+  const [layoutMenuOrgId, setLayoutMenuOrgId] = useState<string | null>(null);
+  const colorTriggerRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const layoutTriggerRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+
+  const ORGANIZER_COLORS = ['#7c3aed', '#0891b2', '#059669', '#d97706', '#dc2626', '#6366f1', '#ec4899'];
 
   // Node pipeline (needs same inputs as Map.tsx)
   // For interaction, pass stub/no-op values for modal-only params:
@@ -1137,6 +1328,11 @@ export default function MapV2({ searchText }: MapV2Props) {
     routeEdges,
     clearRoutes,
     applyPinLayout,
+    spreadChildren,
+    flowLayoutChildren,
+    gridLayoutChildren,
+    toggleLayoutPin,
+    recursiveLayout,
   } = useLayoutActions({
     reactFlow: reactFlowShim as any,
     setNodesLocal: setNodes,
@@ -1181,6 +1377,75 @@ export default function MapV2({ searchText }: MapV2Props) {
     }
     return covered;
   }, [sortedNodes]);
+
+  // Organizer action handlers
+  const sortedNodesRef = useRef(sortedNodes);
+  useEffect(() => {
+    sortedNodesRef.current = sortedNodes;
+  }, [sortedNodes]);
+
+  const handleOrgRename = useCallback((orgId: string) => {
+    const node = sortedNodesRef.current.find(n => n.id === orgId);
+    if (node) {
+      setRenameValue((node.data as any).name ?? '');
+      setRenamingOrgId(orgId);
+    }
+  }, []);
+
+  const commitOrgRename = useCallback((orgId: string) => {
+    const trimmed = renameValue.trim();
+    if (trimmed) {
+      renameOrganizer(orgId, trimmed);
+    }
+    setRenamingOrgId(null);
+  }, [renameValue, renameOrganizer]);
+
+  const handleOrgColorSelect = useCallback((orgId: string, color: string) => {
+    updateOrganizerColor(orgId, color);
+    setColorPickerOrgId(null);
+  }, [updateOrganizerColor]);
+
+  const getLayoutMenuItems = useCallback((orgId: string, isPinned: boolean): MenuItem[] => [
+    { key: 'spread', label: 'Spread apart', onClick: () => { spreadChildren(orgId); setLayoutMenuOrgId(null); } },
+    { key: 'flow', label: 'Arrange as flow', onClick: () => { flowLayoutChildren(orgId); setLayoutMenuOrgId(null); } },
+    {
+      key: 'grid', label: 'Grid',
+      children: [
+        { key: 'grid-1', label: '1 column', onClick: () => { gridLayoutChildren(orgId, 1); setLayoutMenuOrgId(null); } },
+        { key: 'grid-2', label: '2 columns', onClick: () => { gridLayoutChildren(orgId, 2); setLayoutMenuOrgId(null); } },
+        { key: 'grid-3', label: '3 columns', onClick: () => { gridLayoutChildren(orgId, 3); setLayoutMenuOrgId(null); } },
+        { key: 'grid-4', label: '4 columns', onClick: () => { gridLayoutChildren(orgId, 4); setLayoutMenuOrgId(null); } },
+        { key: 'grid-auto', label: 'Auto', onClick: () => { gridLayoutChildren(orgId); setLayoutMenuOrgId(null); } },
+      ],
+    },
+    { key: 'fit', label: 'Fit to contents', onClick: () => { fitToChildren(orgId); setLayoutMenuOrgId(null); } },
+    { key: 'pin', label: isPinned ? 'Unpin layout' : 'Pin layout', onClick: () => { toggleLayoutPin(orgId); setLayoutMenuOrgId(null); } },
+    { key: 'tidy', label: 'Tidy all nested', onClick: () => { recursiveLayout(orgId, 'spread'); setLayoutMenuOrgId(null); } },
+  ], [spreadChildren, flowLayoutChildren, gridLayoutChildren, fitToChildren, toggleLayoutPin, recursiveLayout]);
+
+  // Close color picker and layout menu on outside click
+  useEffect(() => {
+    if (!colorPickerOrgId && !layoutMenuOrgId) return;
+    const handleClick = (e: MouseEvent) => {
+      // Close color picker if click is outside
+      if (colorPickerOrgId) {
+        const trigger = colorTriggerRefs.current.get(colorPickerOrgId);
+        if (trigger && !trigger.contains(e.target as Node)) {
+          setColorPickerOrgId(null);
+        }
+      }
+      // Close layout menu if click is outside
+      if (layoutMenuOrgId) {
+        const trigger = layoutTriggerRefs.current.get(layoutMenuOrgId);
+        if (trigger && !trigger.contains(e.target as Node)) {
+          setLayoutMenuOrgId(null);
+        }
+      }
+    };
+    // Delay to avoid closing immediately from the triggering click
+    const timer = setTimeout(() => document.addEventListener('mousedown', handleClick), 0);
+    return () => { clearTimeout(timer); document.removeEventListener('mousedown', handleClick); };
+  }, [colorPickerOrgId, layoutMenuOrgId]);
 
   // Clipboard operations (inlined from useClipboard to avoid RF dependency)
   const copyNodes = useCallback((ids?: string[]) => {
@@ -1668,6 +1933,16 @@ export default function MapV2({ searchText }: MapV2Props) {
           onNodeMouseEnter={(nodeId) => onNodeMouseEnter({} as any, { id: nodeId } as any)}
           onNodeMouseLeave={() => onNodeMouseLeave({} as any, {} as any)}
           onNodeDoubleClick={handleNodeDoubleClick}
+          renamingOrgId={renamingOrgId}
+          renameValue={renameValue}
+          setRenameValue={setRenameValue}
+          setRenamingOrgId={setRenamingOrgId}
+          colorTriggerRefs={colorTriggerRefs}
+          layoutTriggerRefs={layoutTriggerRefs}
+          setColorPickerOrgId={setColorPickerOrgId}
+          setLayoutMenuOrgId={setLayoutMenuOrgId}
+          handleOrgRename={handleOrgRename}
+          commitOrgRename={commitOrgRename}
         />
       </Canvas>
       <MapV2Toolbar
@@ -1777,6 +2052,46 @@ export default function MapV2({ searchText }: MapV2Props) {
           />
         );
       })()}
+
+      {/* Color picker popover */}
+      {colorPickerOrgId && createPortal(
+        <div style={{
+          position: 'fixed', zIndex: 999, padding: 8, borderRadius: 8,
+          display: 'flex', gap: 6,
+          backgroundColor: 'var(--color-surface-elevated)',
+          border: '1px solid var(--color-border)',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          top: (() => { const el = colorTriggerRefs.current.get(colorPickerOrgId); return el ? el.getBoundingClientRect().bottom + 4 : 0; })(),
+          left: (() => { const el = colorTriggerRefs.current.get(colorPickerOrgId); return el ? el.getBoundingClientRect().left : 0; })(),
+        }}
+        onClick={(e) => e.stopPropagation()}
+        >
+          {ORGANIZER_COLORS.map(c => (
+            <button key={c} style={{ width: 20, height: 20, borderRadius: '50%', backgroundColor: c, border: '2px solid transparent', cursor: 'pointer' }}
+              onClick={() => handleOrgColorSelect(colorPickerOrgId, c)}
+            />
+          ))}
+        </div>,
+        document.body
+      )}
+
+      {/* Layout menu popover */}
+      {layoutMenuOrgId && createPortal(
+        <div style={{
+          position: 'fixed', zIndex: 999,
+          top: (() => { const el = layoutTriggerRefs.current.get(layoutMenuOrgId); return el ? el.getBoundingClientRect().bottom + 4 : 0; })(),
+          left: (() => { const el = layoutTriggerRefs.current.get(layoutMenuOrgId); return el ? el.getBoundingClientRect().right - 160 : 0; })(),
+        }}>
+          <MenuLevel
+            items={getLayoutMenuItems(
+              layoutMenuOrgId,
+              !!(sortedNodesRef.current.find(n => n.id === layoutMenuOrgId)?.data as any)?.layoutPinned
+            )}
+            onClose={() => setLayoutMenuOrgId(null)}
+          />
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
