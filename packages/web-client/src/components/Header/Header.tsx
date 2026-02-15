@@ -1,9 +1,10 @@
 import { useState, useRef, useCallback } from 'react';
-import { FolderOpen, Robot } from '@phosphor-icons/react';
+import { FolderOpen, Robot, Books } from '@phosphor-icons/react';
 import { useDocumentContext } from '../../contexts/DocumentContext';
 import { config } from '../../config/featureFlags';
 import ConnectionStatus from '../ConnectionStatus';
 import DocumentBrowserModal from '../modals/DocumentBrowserModal';
+import LibraryModal from '../modals/LibraryModal';
 import ClearWorkspaceModal from '../modals/ClearWorkspaceModal';
 import { cleanAllLocalData } from '../../stores/documentRegistry';
 import { ThemeMenu } from './ThemeMenu';
@@ -58,6 +59,7 @@ export function Header({
   const { mode, documentId, adapter } = useDocumentContext();
   const [isProjectInfoOpen, setIsProjectInfoOpen] = useState(false);
   const [isDocBrowserOpen, setIsDocBrowserOpen] = useState(false);
+  const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [isClearWorkspaceModalOpen, setIsClearWorkspaceModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const projectInfoRef = useRef<HTMLDivElement>(null);
@@ -230,6 +232,16 @@ export function Header({
           <ShareMenu documentId={documentId} mode={mode} />
         )}
 
+        {/* Schema library button */}
+        <Tooltip content="Schema Library">
+          <button
+            className="w-9 h-9 flex items-center justify-center rounded-lg cursor-pointer text-content-muted hover:bg-surface-alt hover:text-content transition-colors"
+            onClick={() => setIsLibraryOpen(true)}
+          >
+            <Books weight="regular" size={18} />
+          </button>
+        </Tooltip>
+
         {/* Document browser button */}
         <Tooltip content="Browse documents" guideContent={guideContent['header.browse']}>
           <button
@@ -299,6 +311,10 @@ export function Header({
 
       {isDocBrowserOpen && (
         <DocumentBrowserModal onClose={() => setIsDocBrowserOpen(false)} />
+      )}
+
+      {isLibraryOpen && (
+        <LibraryModal onClose={() => setIsLibraryOpen(false)} />
       )}
     </header>
   );

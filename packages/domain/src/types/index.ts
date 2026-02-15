@@ -623,6 +623,11 @@ export interface DocumentAdapter {
   // Optional collaboration methods (only on Yjs adapter)
   getConnectionStatus?(): 'disconnected' | 'connecting' | 'connected';
   getConnectedClients?(): number;
+
+  // State access - Library Entries (optional, read-only for UI)
+  getLibraryEntries?(): LibraryEntry[];
+  getLibraryEntry?(id: string): LibraryEntry | undefined;
+  subscribeToLibraryEntries?(listener: () => void): () => void;
 }
 
 /**
