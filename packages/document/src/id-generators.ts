@@ -10,6 +10,10 @@ export function generateSchemaPackageId(): string {
   return 'pkg_' + Math.random().toString(36).substring(2, 11);
 }
 
+export function generateLibraryEntryId(): string {
+  return 'lib-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6);
+}
+
 export function generatePageId(): string {
   return 'page-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6);
 }

@@ -283,6 +283,35 @@ export interface SchemaPackage {
   name: string;
   description?: string;
   color: string;
+  libraryEntryId?: string;   // ID of library entry this was applied from
+  appliedVersion?: number;    // Version number applied from library
+}
+
+/**
+ * Library entry version - A versioned snapshot of a schema package
+ */
+export interface LibraryEntryVersion {
+  version: number;
+  changelog?: string;
+  publishedAt: string;  // ISO 8601
+  snapshot: {
+    schemas: ConstructSchema[];
+    portSchemas: PortSchema[];
+    schemaGroups: SchemaGroup[];
+    schemaRelationships: SchemaRelationship[];
+  };
+}
+
+/**
+ * Library entry - A versioned library of schema packages
+ */
+export interface LibraryEntry {
+  id: string;
+  name: string;
+  description?: string;
+  color: string;
+  sourcePackageId: string;  // Active package this was published from
+  versions: LibraryEntryVersion[];
 }
 
 /**

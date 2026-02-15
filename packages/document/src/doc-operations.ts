@@ -42,10 +42,16 @@ import type {
   PinConstraint,
   PinDirection,
   PinLayoutNode,
+  SchemaPackage,
+  LibraryEntry,
+  LibraryEntryVersion,
+  PortSchema,
+  SchemaGroup,
+  SchemaRelationship,
 } from '@carta/domain';
 import { CompilerEngine } from '@carta/compiler';
 import { yToPlain, deepPlainToY, safeGet } from './yjs-helpers.js';
-import { generateNodeId, generatePageId } from './id-generators.js';
+import { generateNodeId, generatePageId, generateSchemaPackageId, generateLibraryEntryId } from './id-generators.js';
 import { MCP_ORIGIN, SERVER_FORMAT_VERSION, YDOC_MAPS } from './constants.js';
 
 /**
@@ -3773,5 +3779,463 @@ export function rebuildPage(
     nodesRebuilt: nodeSnapshots.size,
     edgesRebuilt: edgeSnapshots.size,
     orphansDropped: orphans,
+  };
+}
+
+// ===== SCHEMA PACKAGE OPERATIONS =====
+
+/**
+ * List all schema packages with member counts
+ */
+export function listPackages(ydoc: Y.Doc): Array<{
+  id: string;
+  name: string;
+  description?: string;
+  color: string;
+  libraryEntryId?: string;
+  appliedVersion?: number;
+  schemaCount: number;
+  portSchemaCount: number;
+  groupCount: number;
+}> {
+  const yschemaPackages = ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.SCHEMA_PACKAGES);
+  const yschemas = ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.SCHEMAS);
+  const yportSchemas = ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.PORT_SCHEMAS);
+  const yschemaGroups = ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.SCHEMA_GROUPS);
+
+  const packages: Array<{
+    id: string;
+    name: string;
+    description?: string;
+    color: string;
+    libraryEntryId?: string;
+    appliedVersion?: number;
+    schemaCount: number;
+    portSchemaCount: number;
+    groupCount: number;
+  }> = [];
+
+  yschemaPackages.forEach((ypackage) => {
+    const pkg = yToPlain(ypackage) as SchemaPackage;
+
+    // Count schemas with matching packageId
+    let schemaCount = 0;
+    yschemas.forEach((yschema) => {
+      const schema = yToPlain(yschema) as ConstructSchema;
+      if (schema.packageId === pkg.id) {
+        schemaCount++;
+      }
+    });
+
+    // Count port schemas with matching packageId
+    let portSchemaCount = 0;
+    yportSchemas.forEach((yportSchema) => {
+      const portSchema = yToPlain(yportSchema) as PortSchema;
+      if (portSchema.packageId === pkg.id) {
+        portSchemaCount++;
+      }
+    });
+
+    // Count schema groups with matching packageId
+    let groupCount = 0;
+    yschemaGroups.forEach((ygroup) => {
+      const group = yToPlain(ygroup) as SchemaGroup;
+      if (group.packageId === pkg.id) {
+        groupCount++;
+      }
+    });
+
+    packages.push({
+      id: pkg.id,
+      name: pkg.name,
+      description: pkg.description,
+      color: pkg.color,
+      libraryEntryId: pkg.libraryEntryId,
+      appliedVersion: pkg.appliedVersion,
+      schemaCount,
+      portSchemaCount,
+      groupCount,
+    });
+  });
+
+  return packages;
+}
+
+/**
+ * Get a schema package with all its members
+ */
+export function getPackage(ydoc: Y.Doc, packageId: string): {
+  package: SchemaPackage;
+  schemas: ConstructSchema[];
+  portSchemas: PortSchema[];
+  schemaGroups: SchemaGroup[];
+  schemaRelationships: SchemaRelationship[];
+} | null {
+  const yschemaPackages = ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.SCHEMA_PACKAGES);
+  const ypackage = yschemaPackages.get(packageId);
+  if (!ypackage) return null;
+
+  const pkg = yToPlain(ypackage) as SchemaPackage;
+
+  const yschemas = ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.SCHEMAS);
+  const yportSchemas = ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.PORT_SCHEMAS);
+  const yschemaGroups = ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.SCHEMA_GROUPS);
+
+  const schemas: ConstructSchema[] = [];
+  const portSchemas: PortSchema[] = [];
+  const schemaGroups: SchemaGroup[] = [];
+
+  yschemas.forEach((yschema) => {
+    const schema = yToPlain(yschema) as ConstructSchema;
+    if (schema.packageId === packageId) {
+      schemas.push(schema);
+    }
+  });
+
+  yportSchemas.forEach((yportSchema) => {
+    const portSchema = yToPlain(yportSchema) as PortSchema;
+    if (portSchema.packageId === packageId) {
+      portSchemas.push(portSchema);
+    }
+  });
+
+  yschemaGroups.forEach((ygroup) => {
+    const group = yToPlain(ygroup) as SchemaGroup;
+    if (group.packageId === packageId) {
+      schemaGroups.push(group);
+    }
+  });
+
+  // Note: SchemaRelationship doesn't have packageId in the types,
+  // so we return empty array for now
+  const schemaRelationships: SchemaRelationship[] = [];
+
+  return {
+    package: pkg,
+    schemas,
+    portSchemas,
+    schemaGroups,
+    schemaRelationships,
+  };
+}
+
+/**
+ * Create a new schema package
+ */
+export function createPackage(ydoc: Y.Doc, data: {
+  name: string;
+  description?: string;
+  color: string;
+}): SchemaPackage {
+  const yschemaPackages = ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.SCHEMA_PACKAGES);
+
+  const pkg: SchemaPackage = {
+    id: generateSchemaPackageId(),
+    name: data.name,
+    description: data.description,
+    color: data.color,
+  };
+
+  ydoc.transact(() => {
+    yschemaPackages.set(pkg.id, deepPlainToY(pkg) as Y.Map<unknown>);
+  }, MCP_ORIGIN);
+
+  return pkg;
+}
+
+/**
+ * Publish a schema package to the library
+ */
+export function publishPackage(ydoc: Y.Doc, data: {
+  packageId: string;
+  changelog?: string;
+}): { entryId: string; version: number; schemaCount: number } {
+  const yschemaPackages = ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.SCHEMA_PACKAGES);
+  const ypackage = yschemaPackages.get(data.packageId);
+  if (!ypackage) {
+    throw new Error(`Package not found: ${data.packageId}`);
+  }
+
+  const pkg = yToPlain(ypackage) as SchemaPackage;
+
+  // Collect all package members
+  const packageData = getPackage(ydoc, data.packageId);
+  if (!packageData) {
+    throw new Error(`Failed to retrieve package data: ${data.packageId}`);
+  }
+
+  const ylibraryEntries = ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.LIBRARY_ENTRIES);
+
+  // Check if there's an existing entry for this package
+  let existingEntryId: string | null = null;
+  ylibraryEntries.forEach((yentry, entryId) => {
+    const entry = yToPlain(yentry) as LibraryEntry;
+    if (entry.sourcePackageId === data.packageId) {
+      existingEntryId = entryId;
+    }
+  });
+
+  const snapshot = {
+    schemas: packageData.schemas,
+    portSchemas: packageData.portSchemas,
+    schemaGroups: packageData.schemaGroups,
+    schemaRelationships: packageData.schemaRelationships,
+  };
+
+  let entryId: string = '';
+  let version: number = 0;
+
+  ydoc.transact(() => {
+    if (existingEntryId) {
+      // Append new version to existing entry
+      const yentry = ylibraryEntries.get(existingEntryId) as Y.Map<unknown>;
+      const entry = yToPlain(yentry) as LibraryEntry;
+
+      version = entry.versions.length + 1;
+
+      const newVersion: LibraryEntryVersion = {
+        version,
+        changelog: data.changelog,
+        publishedAt: new Date().toISOString(),
+        snapshot,
+      };
+
+      const yversions = yentry.get('versions') as Y.Array<Y.Map<unknown>>;
+      yversions.push([deepPlainToY(newVersion) as Y.Map<unknown>]);
+
+      entryId = existingEntryId;
+    } else {
+      // Create new library entry
+      entryId = generateLibraryEntryId();
+      version = 1;
+
+      const newVersion: LibraryEntryVersion = {
+        version: 1,
+        changelog: data.changelog,
+        publishedAt: new Date().toISOString(),
+        snapshot,
+      };
+
+      const newEntry: LibraryEntry = {
+        id: entryId,
+        name: pkg.name,
+        description: pkg.description,
+        color: pkg.color,
+        sourcePackageId: data.packageId,
+        versions: [newVersion],
+      };
+
+      ylibraryEntries.set(entryId, deepPlainToY(newEntry) as Y.Map<unknown>);
+    }
+  }, MCP_ORIGIN);
+
+  return {
+    entryId,
+    version,
+    schemaCount: snapshot.schemas.length,
+  };
+}
+
+// ===== LIBRARY OPERATIONS =====
+
+/**
+ * List library entries with version summaries
+ */
+export function listLibrary(ydoc: Y.Doc): Array<{
+  id: string;
+  name: string;
+  description?: string;
+  color: string;
+  sourcePackageId: string;
+  latestVersion: number;
+  versionCount: number;
+  versions: Array<{ version: number; changelog?: string; publishedAt: string }>;
+}> {
+  const ylibraryEntries = ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.LIBRARY_ENTRIES);
+  const entries: Array<{
+    id: string;
+    name: string;
+    description?: string;
+    color: string;
+    sourcePackageId: string;
+    latestVersion: number;
+    versionCount: number;
+    versions: Array<{ version: number; changelog?: string; publishedAt: string }>;
+  }> = [];
+
+  ylibraryEntries.forEach((yentry) => {
+    const entry = yToPlain(yentry) as LibraryEntry;
+
+    const versionSummaries = entry.versions.map((v) => ({
+      version: v.version,
+      changelog: v.changelog,
+      publishedAt: v.publishedAt,
+    }));
+
+    entries.push({
+      id: entry.id,
+      name: entry.name,
+      description: entry.description,
+      color: entry.color,
+      sourcePackageId: entry.sourcePackageId,
+      latestVersion: entry.versions[entry.versions.length - 1]?.version ?? 1,
+      versionCount: entry.versions.length,
+      versions: versionSummaries,
+    });
+  });
+
+  return entries;
+}
+
+/**
+ * Get a library entry with full snapshot at a specific version
+ */
+export function getLibraryEntry(ydoc: Y.Doc, entryId: string, version?: number): LibraryEntry | null {
+  const ylibraryEntries = ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.LIBRARY_ENTRIES);
+  const yentry = ylibraryEntries.get(entryId);
+  if (!yentry) return null;
+
+  const entry = yToPlain(yentry) as LibraryEntry;
+
+  // If version is specified, return only that version
+  if (version !== undefined) {
+    const targetVersion = entry.versions.find((v) => v.version === version);
+    if (!targetVersion) {
+      throw new Error(`Version ${version} not found for library entry ${entryId}`);
+    }
+    return {
+      ...entry,
+      versions: [targetVersion],
+    };
+  }
+
+  // Otherwise return full entry with all versions
+  return entry;
+}
+
+/**
+ * Apply a library entry to the document as an active package
+ */
+export function applyLibraryEntry(ydoc: Y.Doc, data: {
+  entryId: string;
+  version?: number;
+}): { packageId: string; schemasApplied: number; action: 'created' | 'updated' } {
+  const ylibraryEntries = ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.LIBRARY_ENTRIES);
+  const yentry = ylibraryEntries.get(data.entryId);
+  if (!yentry) {
+    throw new Error(`Library entry not found: ${data.entryId}`);
+  }
+
+  const entry = yToPlain(yentry) as LibraryEntry;
+
+  // Get the target version
+  const targetVersion = data.version !== undefined
+    ? entry.versions.find((v) => v.version === data.version)
+    : entry.versions[entry.versions.length - 1];
+
+  if (!targetVersion) {
+    throw new Error(`Version ${data.version} not found for library entry ${data.entryId}`);
+  }
+
+  const yschemaPackages = ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.SCHEMA_PACKAGES);
+  const yschemas = ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.SCHEMAS);
+  const yportSchemas = ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.PORT_SCHEMAS);
+  const yschemaGroups = ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.SCHEMA_GROUPS);
+
+  // Check if a package with this libraryEntryId already exists
+  let existingPackageId: string | null = null;
+  yschemaPackages.forEach((ypackage, pkgId) => {
+    const pkg = yToPlain(ypackage) as SchemaPackage;
+    if (pkg.libraryEntryId === data.entryId) {
+      existingPackageId = pkgId;
+    }
+  });
+
+  let packageId: string = '';
+  let action: 'created' | 'updated' = 'created';
+
+  ydoc.transact(() => {
+    if (existingPackageId) {
+      // Update existing package
+      packageId = existingPackageId;
+      action = 'updated';
+
+      // Remove existing schemas, portSchemas, groups for this package
+      const schemasToDelete: string[] = [];
+      yschemas.forEach((yschema, schemaType) => {
+        const schema = yToPlain(yschema) as ConstructSchema;
+        if (schema.packageId === packageId) {
+          schemasToDelete.push(schemaType);
+        }
+      });
+      schemasToDelete.forEach((schemaType) => yschemas.delete(schemaType));
+
+      const portSchemasToDelete: string[] = [];
+      yportSchemas.forEach((yportSchema, portSchemaType) => {
+        const portSchema = yToPlain(yportSchema) as PortSchema;
+        if (portSchema.packageId === packageId) {
+          portSchemasToDelete.push(portSchemaType);
+        }
+      });
+      portSchemasToDelete.forEach((portSchemaType) => yportSchemas.delete(portSchemaType));
+
+      const groupsToDelete: string[] = [];
+      yschemaGroups.forEach((ygroup, groupId) => {
+        const group = yToPlain(ygroup) as SchemaGroup;
+        if (group.packageId === packageId) {
+          groupsToDelete.push(groupId);
+        }
+      });
+      groupsToDelete.forEach((groupId) => yschemaGroups.delete(groupId));
+
+      // Update package metadata
+      const updatedPackage: SchemaPackage = {
+        id: packageId,
+        name: entry.name,
+        description: entry.description,
+        color: entry.color,
+        libraryEntryId: data.entryId,
+        appliedVersion: targetVersion.version,
+      };
+      yschemaPackages.set(packageId, deepPlainToY(updatedPackage) as Y.Map<unknown>);
+    } else {
+      // Create new package
+      packageId = generateSchemaPackageId();
+      action = 'created';
+
+      const newPackage: SchemaPackage = {
+        id: packageId,
+        name: entry.name,
+        description: entry.description,
+        color: entry.color,
+        libraryEntryId: data.entryId,
+        appliedVersion: targetVersion.version,
+      };
+      yschemaPackages.set(packageId, deepPlainToY(newPackage) as Y.Map<unknown>);
+    }
+
+    // Apply snapshot schemas
+    for (const schema of targetVersion.snapshot.schemas) {
+      const schemaWithPackageId = { ...schema, packageId };
+      yschemas.set(schema.type, deepPlainToY(schemaWithPackageId) as Y.Map<unknown>);
+    }
+
+    // Apply snapshot portSchemas
+    for (const portSchema of targetVersion.snapshot.portSchemas) {
+      const portSchemaWithPackageId = { ...portSchema, packageId };
+      yportSchemas.set(portSchema.id, deepPlainToY(portSchemaWithPackageId) as Y.Map<unknown>);
+    }
+
+    // Apply snapshot schemaGroups
+    for (const group of targetVersion.snapshot.schemaGroups) {
+      const groupWithPackageId = { ...group, packageId };
+      yschemaGroups.set(group.id, deepPlainToY(groupWithPackageId) as Y.Map<unknown>);
+    }
+  }, MCP_ORIGIN);
+
+  return {
+    packageId,
+    schemasApplied: targetVersion.snapshot.schemas.length,
+    action,
   };
 }
