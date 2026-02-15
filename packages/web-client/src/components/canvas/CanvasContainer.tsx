@@ -89,7 +89,7 @@ export default function CanvasContainer({
       <div className="flex-1 min-h-0">
         {viewMode === 'instances' ? (
           useMapV2 ? (
-            <MapV2 searchText={instanceSearchText} />
+            <MapV2 searchText={instanceSearchText} onSelectionChange={onSelectionChange} />
           ) : (
             <ReactFlowProvider>
               <Map

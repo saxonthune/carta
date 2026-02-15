@@ -116,10 +116,25 @@ interface ShapeRenderProps {
   onPointerLeave: () => void;
   onContextMenu: (e: React.MouseEvent) => void;
   onDoubleClick: (e: React.MouseEvent) => void;
+  onResizePointerDown: (e: React.PointerEvent) => void;
+}
+
+function ResizeHandle({ selected, onResizePointerDown }: { selected: boolean; onResizePointerDown: (e: React.PointerEvent) => void }) {
+  if (!selected) return null;
+  return (
+    <div
+      style={{
+        position: 'absolute', bottom: 0, right: 0, width: 10, height: 10,
+        cursor: 'se-resize', backgroundColor: 'var(--color-accent, #3b82f6)',
+        opacity: 0.5, borderRadius: '2px 0 6px 0',
+      }}
+      onPointerDown={onResizePointerDown}
+    />
+  );
 }
 
 function renderCircleNode(props: ShapeRenderProps) {
-  const { key, nodeId, absX, absY, width, selected, label, schema, constructData, dimmed, onPointerDown, onPointerEnter, onPointerLeave, onContextMenu, onDoubleClick } = props;
+  const { key, nodeId, absX, absY, width, selected, label, schema, constructData, dimmed, onPointerDown, onPointerEnter, onPointerLeave, onContextMenu, onDoubleClick, onResizePointerDown } = props;
   const resolvedColor = resolveNodeColor(schema, constructData);
   return (
     <div key={key} data-node-id={nodeId} data-no-pan="true"
@@ -146,12 +161,13 @@ function renderCircleNode(props: ShapeRenderProps) {
         const icon = resolveNodeIcon(schema, constructData);
         return icon ? <span style={{ fontSize: '1.5em', fontWeight: 700, lineHeight: 1, color: 'var(--color-content)' }}>{icon}</span> : null;
       })()}
+      <ResizeHandle selected={selected} onResizePointerDown={onResizePointerDown} />
     </div>
   );
 }
 
 function renderDiamondNode(props: ShapeRenderProps) {
-  const { key, nodeId, absX, absY, width, selected, label, schema, constructData, dimmed, onPointerDown, onPointerEnter, onPointerLeave, onContextMenu, onDoubleClick } = props;
+  const { key, nodeId, absX, absY, width, selected, label, schema, constructData, dimmed, onPointerDown, onPointerEnter, onPointerLeave, onContextMenu, onDoubleClick, onResizePointerDown } = props;
   const resolvedColor = resolveNodeColor(schema, constructData);
   const size = Math.max(width, 100);
   return (
@@ -190,12 +206,13 @@ function renderDiamondNode(props: ShapeRenderProps) {
           return icon ? <span style={{ fontSize: '1.2em', fontWeight: 700, lineHeight: 1, color: 'var(--color-content)' }}>{icon}</span> : null;
         })()}
       </div>
+      <ResizeHandle selected={selected} onResizePointerDown={onResizePointerDown} />
     </div>
   );
 }
 
 function renderDocumentNode(props: ShapeRenderProps) {
-  const { key, nodeId, absX, absY, width, selected, label, schema, constructData, dimmed, onPointerDown, onPointerEnter, onPointerLeave, onContextMenu, onDoubleClick } = props;
+  const { key, nodeId, absX, absY, width, selected, label, schema, constructData, dimmed, onPointerDown, onPointerEnter, onPointerLeave, onContextMenu, onDoubleClick, onResizePointerDown } = props;
   const resolvedColor = resolveNodeColor(schema, constructData);
   return (
     <div key={key} data-node-id={nodeId} data-no-pan="true"
@@ -229,21 +246,30 @@ function renderDocumentNode(props: ShapeRenderProps) {
           stroke={resolvedColor} strokeWidth="2" vectorEffect="non-scaling-stroke"
         />
       </svg>
+      <ResizeHandle selected={selected} onResizePointerDown={onResizePointerDown} />
     </div>
   );
 }
 
-function renderSimpleNode(props: ShapeRenderProps) {
-  const { key, nodeId, absX, absY, width, height, selected, label, schema, constructData, dimmed, onPointerDown, onPointerEnter, onPointerLeave, onContextMenu, onDoubleClick } = props;
+function SimpleNode(props: ShapeRenderProps & { adapter: DocumentAdapter }) {
+  const { key, nodeId, absX, absY, width, height, selected, label, schema, constructData, dimmed, onPointerDown, onPointerEnter, onPointerLeave, onContextMenu, onResizePointerDown, adapter } = props;
+  const [editing, setEditing] = useState(false);
   const resolvedColor = resolveNodeColor(schema, constructData);
   const bgColor = resolvedColor !== schema.color
     ? resolvedColor
     : `color-mix(in srgb, ${schema.color} 30%, var(--color-surface))`;
+  const content = String(constructData.values?.content ?? label);
+
+  const commitEdit = (value: string) => {
+    adapter.updateNode(nodeId, { values: { ...constructData.values, content: value } });
+    setEditing(false);
+  };
+
   return (
     <div key={key} data-node-id={nodeId} data-no-pan="true"
       onPointerDown={onPointerDown} onPointerEnter={onPointerEnter}
       onPointerLeave={onPointerLeave} onContextMenu={onContextMenu}
-      onDoubleClick={onDoubleClick}
+      onDoubleClick={(e) => { e.stopPropagation(); setEditing(true); }}
       style={{
         position: 'absolute', left: absX, top: absY,
         width: Math.max(width, 200), minHeight: Math.max(height, 100),
@@ -259,9 +285,22 @@ function renderSimpleNode(props: ShapeRenderProps) {
         const icon = resolveNodeIcon(schema, constructData);
         return icon ? <span style={{ position: 'absolute', top: 4, right: 8, fontSize: 14, fontWeight: 700, color: 'var(--color-content)', opacity: 0.6 }}>{icon}</span> : null;
       })()}
-      <div style={{ flex: 1, fontSize: 13, color: 'var(--color-content)', whiteSpace: 'pre-wrap', overflow: 'hidden' }}>
-        {String(constructData.values?.content ?? label)}
-      </div>
+      {editing ? (
+        <div onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()} style={{ flex: 1, display: 'flex' }}>
+          <textarea
+            style={{ width: '100%', flex: 1, padding: 0, backgroundColor: 'transparent', border: 'none', outline: 'none', resize: 'none', fontSize: 13, color: 'var(--color-content)', fontFamily: 'inherit' }}
+            defaultValue={content}
+            onBlur={(e) => commitEdit(e.target.value)}
+            onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Escape') setEditing(false); }}
+            autoFocus
+          />
+        </div>
+      ) : (
+        <div style={{ flex: 1, fontSize: 13, color: 'var(--color-content)', whiteSpace: 'pre-wrap', overflow: 'hidden' }}>
+          {content}
+        </div>
+      )}
+      <ResizeHandle selected={selected} onResizePointerDown={onResizePointerDown} />
     </div>
   );
 }
@@ -380,34 +419,23 @@ export function MapV2ConstructNode({
   }
 
   // Shape-based rendering
-  const shapeMode = (constructData as any).shapeMode;
+  const shapeMode = schema.nodeShape;
+  const shapeProps = {
+    key: node.id, nodeId: node.id, absX, absY, width, height, selected,
+    color, label, schema, constructData, dimmed, sequenceBadge,
+    onPointerDown, onPointerEnter, onPointerLeave, onContextMenu, onDoubleClick, onResizePointerDown,
+  };
   if (shapeMode === 'circle') {
-    return renderCircleNode({
-      key: node.id, nodeId: node.id, absX, absY, width, height, selected,
-      color, label, schema, constructData, dimmed, sequenceBadge,
-      onPointerDown, onPointerEnter, onPointerLeave, onContextMenu, onDoubleClick,
-    });
+    return renderCircleNode(shapeProps);
   }
   if (shapeMode === 'diamond') {
-    return renderDiamondNode({
-      key: node.id, nodeId: node.id, absX, absY, width, height, selected,
-      color, label, schema, constructData, dimmed, sequenceBadge,
-      onPointerDown, onPointerEnter, onPointerLeave, onContextMenu, onDoubleClick,
-    });
+    return renderDiamondNode(shapeProps);
   }
   if (shapeMode === 'document') {
-    return renderDocumentNode({
-      key: node.id, nodeId: node.id, absX, absY, width, height, selected,
-      color, label, schema, constructData, dimmed, sequenceBadge,
-      onPointerDown, onPointerEnter, onPointerLeave, onContextMenu, onDoubleClick,
-    });
+    return renderDocumentNode(shapeProps);
   }
   if (shapeMode === 'simple') {
-    return renderSimpleNode({
-      key: node.id, nodeId: node.id, absX, absY, width, height, selected,
-      color, label, schema, constructData, dimmed, sequenceBadge,
-      onPointerDown, onPointerEnter, onPointerLeave, onContextMenu, onDoubleClick,
-    });
+    return <SimpleNode {...shapeProps} adapter={adapter} />;
   }
 
   // Default card rendering
@@ -549,7 +577,7 @@ export function MapV2ConstructNode({
       {schema?.ports && schema.ports.length > 0 && (connectionDrag || hoveredNodeId === node.id) && (
         <div style={{
           position: 'absolute',
-          bottom: 0, left: 0, right: 0,
+          top: '100%', left: 0, right: 0,
           backgroundColor: 'var(--color-surface)',
           borderTop: '1px solid var(--color-border)',
           borderRadius: '0 0 6px 6px',

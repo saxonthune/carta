@@ -34,6 +34,7 @@ import { MapV2ConstructNode } from './MapV2ConstructNode';
 
 interface MapV2Props {
   searchText?: string;
+  onSelectionChange?: (nodes: any[]) => void;
 }
 
 // Helper to compute absolute position including parent offset and drag offset
@@ -508,7 +509,7 @@ function MapV2Content({
   );
 }
 
-export default function MapV2({ searchText }: MapV2Props) {
+export default function MapV2({ searchText, onSelectionChange: onSelectionChangeProp }: MapV2Props) {
   const { nodes, setNodes, getNextNodeId } = useNodes();
   const { edges, setEdges } = useEdges();
   const { schemas, getSchema } = useSchemas();
@@ -521,6 +522,13 @@ export default function MapV2({ searchText }: MapV2Props) {
 
   // Track selected IDs for edge pipeline
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
+
+  // Notify parent of selection changes (for inspector panel)
+  useEffect(() => {
+    if (!onSelectionChangeProp) return;
+    const selectedNodes = nodes.filter(n => selectedNodeIds.includes(n.id));
+    onSelectionChangeProp(selectedNodes);
+  }, [selectedNodeIds, nodes, onSelectionChangeProp]);
 
   // Drag offsets — lifted to parent so renderEdges can read them
   const [dragOffsets, setDragOffsets] = useState<Map<string, { dx: number; dy: number }>>(new Map());

@@ -196,6 +196,7 @@ export function MapV2OrganizerNode({
           borderRadius: '8px 8px 0 0',
           backgroundColor: `${color}15`,
           cursor: 'grab',
+          userSelect: 'none',
         }}
         data-no-pan="true"
       >

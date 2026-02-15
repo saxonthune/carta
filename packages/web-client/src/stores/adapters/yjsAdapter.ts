@@ -143,8 +143,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     notifyPageListeners();
     notifyListeners();
   };
-  const onNodesChange = (_events: unknown, transaction: { origin: unknown }) => {
-    if (transaction?.origin === 'drag-commit') return;
+  const onNodesChange = () => {
     notifyNodeListeners();
     notifyListeners();
   };
