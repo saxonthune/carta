@@ -9,6 +9,7 @@ export { useSchemaRelationships } from './useSchemaRelationships';
 export { useLibrary } from './useLibrary';
 export { usePages } from './usePages';
 export { useDocumentMeta } from './useDocumentMeta';
+export { usePackagePicker } from './usePackagePicker.js';
 
 // Document operations
 export { useGraphOperations } from './useGraphOperations';

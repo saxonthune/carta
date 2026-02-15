@@ -4,7 +4,7 @@ import { useDocumentContext } from '../../contexts/DocumentContext';
 import { config } from '../../config/featureFlags';
 import ConnectionStatus from '../ConnectionStatus';
 import DocumentBrowserModal from '../modals/DocumentBrowserModal';
-import LibraryModal from '../modals/LibraryModal';
+import PackagePickerModal from '../modals/PackagePickerModal';
 import ClearWorkspaceModal from '../modals/ClearWorkspaceModal';
 import { cleanAllLocalData } from '../../stores/documentRegistry';
 import { ThemeMenu } from './ThemeMenu';
@@ -15,9 +15,9 @@ import { useClickOutside } from './useClickOutside';
 import Input from '../ui/Input';
 import Textarea from '../ui/Textarea';
 import { Tooltip } from '../ui';
-import { hydrateSeed, builtInPortSchemas, type SchemaSeed } from '@carta/domain';
 import { seeds } from '../../utils/seeds';
 import { guideContent } from '../../data/guideContent';
+import { builtInPortSchemas } from '@carta/domain';
 
 export interface HeaderProps {
   title: string;
@@ -87,40 +87,6 @@ export function Header({
     onClear?.('all');
   };
 
-  const handleAddBuiltInSchemas = (selectedSeeds: SchemaSeed[]) => {
-    adapter.transaction(() => {
-      // Ensure port schemas exist
-      const existingPortIds = new Set(adapter.getPortSchemas().map(p => p.id));
-      for (const ps of builtInPortSchemas) {
-        if (!existingPortIds.has(ps.id)) {
-          adapter.addPortSchema(ps);
-        }
-      }
-      // Get current packages and groups for dedup
-      const existingPackages = adapter.getSchemaPackages();
-      const existingGroups = adapter.getSchemaGroups();
-      // Hydrate and add each selected seed
-      for (const seed of selectedSeeds) {
-        const { packages, groups, schemas, relationships } = hydrateSeed(seed, existingPackages, existingGroups);
-        for (const p of packages) {
-          if (!existingPackages.some(ep => ep.id === p.id)) {
-            adapter.addSchemaPackage(p);
-          }
-        }
-        for (const g of groups) {
-          // Only add if not already present
-          if (!existingGroups.some(eg => eg.id === g.id)) {
-            adapter.addSchemaGroup(g);
-          }
-        }
-        for (const s of schemas) adapter.addSchema(s);
-        // Write seed relationships
-        for (const rel of relationships) {
-          adapter.addSchemaRelationship(rel);
-        }
-      }
-    }, 'user');
-  };
 
   const handleLoadExample = (seedName: string) => {
     const seedFn = seeds[seedName];
@@ -233,7 +199,7 @@ export function Header({
         )}
 
         {/* Schema library button */}
-        <Tooltip content="Schema Library">
+        <Tooltip content="Schema Packages">
           <button
             className="w-9 h-9 flex items-center justify-center rounded-lg cursor-pointer text-content-muted hover:bg-surface-alt hover:text-content transition-colors"
             onClick={() => setIsLibraryOpen(true)}
@@ -296,7 +262,6 @@ export function Header({
 
         <SettingsMenu
           onOpenClearModal={() => setIsClearWorkspaceModalOpen(true)}
-          onAddBuiltInSchemas={handleAddBuiltInSchemas}
           onLoadExample={handleLoadExample}
         />
       </div>
@@ -314,7 +279,7 @@ export function Header({
       )}
 
       {isLibraryOpen && (
-        <LibraryModal onClose={() => setIsLibraryOpen(false)} />
+        <PackagePickerModal onClose={() => setIsLibraryOpen(false)} />
       )}
     </header>
   );
