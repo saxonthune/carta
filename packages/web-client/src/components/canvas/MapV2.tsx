@@ -295,7 +295,7 @@ function renderSimpleNode(props: ShapeRenderProps) {
 }
 
 // Inner component that uses canvas context
-function MapV2Inner({ sortedNodes, getSchema, getPortSchema, onSelectionChange, attachNodeToOrganizer, detachNodeFromOrganizer, toggleOrganizerCollapse, getFollowers, showNarrative, hideNarrative, coveredNodeIds, onNodeContextMenu, onNodeMouseEnter, onNodeMouseLeave, onNodeDoubleClick }: {
+function MapV2Inner({ sortedNodes, getSchema, getPortSchema, onSelectionChange, attachNodeToOrganizer, detachNodeFromOrganizer, toggleOrganizerCollapse, fitToChildren, getFollowers, showNarrative, hideNarrative, coveredNodeIds, onNodeContextMenu, onNodeMouseEnter, onNodeMouseLeave, onNodeDoubleClick }: {
   sortedNodes: any[];
   getSchema: (type: string) => any;
   getPortSchema: (type: string) => any;
@@ -303,6 +303,7 @@ function MapV2Inner({ sortedNodes, getSchema, getPortSchema, onSelectionChange, 
   attachNodeToOrganizer: (nodeId: string, organizerId: string) => void;
   detachNodeFromOrganizer: (nodeId: string) => void;
   toggleOrganizerCollapse: (organizerId: string) => void;
+  fitToChildren: (organizerId: string) => void;
   getFollowers: (leaderId: string) => string[];
   showNarrative: (state: any) => void;
   hideNarrative: () => void;
@@ -457,6 +458,45 @@ function MapV2Inner({ sortedNodes, getSchema, getPortSchema, onSelectionChange, 
         }
         if (patches.length > 0) {
           adapter.patchNodes?.(patches, 'drag-commit');
+        }
+
+        // Auto-fit parent organizers whose children moved
+        const parentOrgIds = new Set<string>();
+        for (const [id] of dragOffsets) {
+          const n = sortedNodesRef.current.find(node => node.id === id);
+          if (n?.parentId) {
+            parentOrgIds.add(n.parentId);
+          }
+        }
+        for (const orgId of parentOrgIds) {
+          fitToChildren(orgId);
+        }
+
+        // Clear routed waypoints for edges connected to moved nodes
+        const movedIds = new Set(patches.map(p => p.id));
+        const affectedIds = new Set<string>();
+
+        // Add moved node IDs and their parent organizers
+        for (const id of movedIds) {
+          affectedIds.add(id);
+          const n = sortedNodesRef.current.find(node => node.id === id);
+          if (n?.parentId) {
+            affectedIds.add(n.parentId);
+          }
+        }
+
+        // Get current edges from adapter and clear waypoints
+        const currentEdges = adapter.getEdges() as any[];
+        const clearedEdgePatches = currentEdges
+          .filter(e =>
+            (affectedIds.has(e.source) || affectedIds.has(e.target)) &&
+            e.data?.waypoints &&
+            !e.id.startsWith('agg-') && !e.id.startsWith('wagon-')
+          )
+          .map(e => ({ id: e.id, data: { waypoints: null } }));
+
+        if (clearedEdgePatches.length > 0) {
+          adapter.patchEdgeData?.(clearedEdgePatches);
         }
 
         // Handle Ctrl+drag attach/detach
@@ -964,6 +1004,26 @@ function MapV2Inner({ sortedNodes, getSchema, getPortSchema, onSelectionChange, 
               })}
             </div>
           )}
+          {/* Resize gripper for constructs (only when selected) */}
+          {!isOrganizer && selected && (
+            <div
+              style={{
+                position: 'absolute',
+                bottom: 0,
+                right: 0,
+                width: 10,
+                height: 10,
+                cursor: 'se-resize',
+                backgroundColor: 'var(--color-accent, #3b82f6)',
+                opacity: 0.5,
+                borderRadius: '2px 0 6px 0',
+              }}
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                onResizePointerDown(n.id, { horizontal: 'right', vertical: 'bottom' }, e);
+              }}
+            />
+          )}
         </div>
       );
     });
@@ -982,7 +1042,7 @@ export default function MapV2({ searchText }: MapV2Props) {
   const { getPortSchema } = usePortSchemas();
   const { narrative, showNarrative, hideNarrative } = useNarrative();
   const { adapter, ydoc } = useDocumentContext();
-  const { toggleOrganizerCollapse } = useOrganizerOperations();
+  const { toggleOrganizerCollapse, createOrganizer } = useOrganizerOperations();
   const { undo, redo, canUndo, canRedo } = useUndoRedo();
   const { constraints: pinConstraints } = usePinConstraints();
 
@@ -1068,6 +1128,7 @@ export default function MapV2({ searchText }: MapV2Props) {
   const {
     attachNodeToOrganizer,
     detachNodeFromOrganizer,
+    fitToChildren,
     spreadAll,
     compactAll,
     flowLayout,
@@ -1245,6 +1306,16 @@ export default function MapV2({ searchText }: MapV2Props) {
       { key: 'a', mod: true, action: () => {
         const selectableIds = sortedNodes.filter(n => !n.hidden && n.type !== 'organizer').map(n => n.id);
         setSelectedNodeIds(selectableIds);
+      }},
+      { key: 'F2', action: () => {
+        if (selectedNodeIds.length === 1) {
+          handleNodeDoubleClick(selectedNodeIds[0]);
+        }
+      }},
+      { key: 'g', mod: true, action: () => {
+        if (selectedNodeIds.length > 0) {
+          createOrganizer(selectedNodeIds);
+        }
       }},
       { key: ['Delete', 'Backspace'], action: deleteSelectedNodes },
       { key: 'v', action: () => setSelectionModeActive(prev => !prev) },
@@ -1588,6 +1659,7 @@ export default function MapV2({ searchText }: MapV2Props) {
           attachNodeToOrganizer={attachNodeToOrganizer}
           detachNodeFromOrganizer={detachNodeFromOrganizer}
           toggleOrganizerCollapse={toggleOrganizerCollapse}
+          fitToChildren={fitToChildren}
           getFollowers={getFollowers}
           showNarrative={showNarrative}
           hideNarrative={hideNarrative}

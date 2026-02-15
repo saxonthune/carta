@@ -43,6 +43,9 @@ export function useNodeDrag(options: UseNodeDragOptions): UseNodeDragResult {
 
   const onPointerDown = useCallback(
     (nodeId: string, event: React.PointerEvent) => {
+      // Only respond to primary (left) mouse button — middle/right should pass through to pan
+      if (event.button !== 0) return;
+
       // If handleSelector is set, check if event target is inside the handle
       if (handleSelectorRef.current) {
         const target = event.target as HTMLElement;
