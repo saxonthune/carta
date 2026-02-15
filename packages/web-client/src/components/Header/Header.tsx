@@ -9,15 +9,12 @@ import ClearWorkspaceModal from '../modals/ClearWorkspaceModal';
 import { cleanAllLocalData } from '../../stores/documentRegistry';
 import { ThemeMenu } from './ThemeMenu';
 import { SettingsMenu } from './SettingsMenu';
-import { SeedsMenu } from './SeedsMenu';
 import { ShareMenu } from './ShareMenu';
 import { useClickOutside } from './useClickOutside';
 import Input from '../ui/Input';
 import Textarea from '../ui/Textarea';
 import { Tooltip } from '../ui';
-import { seeds } from '../../utils/seeds';
 import { guideContent } from '../../data/guideContent';
-import { builtInPortSchemas } from '@carta/domain';
 
 export interface HeaderProps {
   title: string;
@@ -85,26 +82,6 @@ export function Header({
 
   const handleClearEverything = () => {
     onClear?.('all');
-  };
-
-
-  const handleLoadExample = (seedName: string) => {
-    const seedFn = seeds[seedName];
-    if (!seedFn) return;
-
-    // Ensure port schemas exist before loading example
-    const existingPortIds = new Set(adapter.getPortSchemas().map(p => p.id));
-    for (const ps of builtInPortSchemas) {
-      if (!existingPortIds.has(ps.id)) {
-        adapter.addPortSchema(ps);
-      }
-    }
-
-    // Create new page and switch to it
-    const page = adapter.createPage(seedName);
-    adapter.setActivePage(page.id);
-    // Run seed function — it writes nodes/edges to the active page
-    seedFn(adapter);
   };
 
 
@@ -256,13 +233,10 @@ export function Header({
           </Tooltip>
         )}
 
-        {config.debug && <SeedsMenu />}
-
         <ThemeMenu />
 
         <SettingsMenu
           onOpenClearModal={() => setIsClearWorkspaceModalOpen(true)}
-          onLoadExample={handleLoadExample}
         />
       </div>
 

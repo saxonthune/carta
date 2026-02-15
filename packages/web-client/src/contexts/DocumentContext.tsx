@@ -2,9 +2,8 @@ import { createContext, useContext, useState, useEffect, type ReactNode } from '
 import * as Y from 'yjs';
 import type { DocumentAdapter } from '@carta/domain';
 import { createYjsAdapter, type YjsAdapterOptions } from '../stores/adapters/yjsAdapter';
-import { builtInPortSchemas, hydrateBuiltIns } from '@carta/domain';
+import { builtInPortSchemas } from '@carta/domain';
 import { config } from '../config/featureFlags';
-import { seeds } from '../utils/seeds';
 
 /**
  * Document context value
@@ -39,10 +38,6 @@ export interface DocumentProviderProps {
   syncUrl?: string;
   /** Skip IndexedDB persistence (for testing) */
   skipPersistence?: boolean;
-  /** Skip seeding starter content (for testing) */
-  skipStarterContent?: boolean;
-  /** Seed name to use for initial content (defaults to 'starter') */
-  seedName?: string;
 }
 
 /**
@@ -55,8 +50,6 @@ export function DocumentProvider({
   documentId,
   syncUrl = config.syncWsUrl ?? undefined,
   skipPersistence = false,
-  skipStarterContent = false,
-  seedName,
 }: DocumentProviderProps) {
   const [adapter, setAdapter] = useState<DocumentAdapter | null>(null);
   const [mode, setMode] = useState<'local' | 'shared'>('local');
@@ -86,29 +79,12 @@ export function DocumentProvider({
       currentAdapter = yjsAdapter;
       await yjsAdapter.initialize();
 
-      // Seed default schemas/groups/ports ONLY when document has no schemas (empty or new)
-      const hasSchemas = yjsAdapter.getSchemas().length > 0;
-
-      if (!hasSchemas) {
-        const { packages, groups, schemas, relationships } = hydrateBuiltIns();
+      // Ensure built-in port schemas exist (document template)
+      const hasPortSchemas = yjsAdapter.getPortSchemas().length > 0;
+      if (!hasPortSchemas) {
         yjsAdapter.transaction(() => {
-          yjsAdapter.setSchemaPackages(packages);
-          yjsAdapter.setSchemaGroups(groups);
-          yjsAdapter.setSchemas(schemas);
           yjsAdapter.setPortSchemas(builtInPortSchemas);
-          // Write seed relationships to the Y.Map
-          for (const rel of relationships) {
-            yjsAdapter.addSchemaRelationship(rel);
-          }
-        }, 'init');
-
-        // Seed content so the canvas isn't empty on first visit
-        if (!skipStarterContent) {
-          const seedFn = seeds[seedName ?? 'starter'];
-          if (seedFn) {
-            seedFn(yjsAdapter);
-          }
-        }
+        }, 'user');
       }
 
       // Migration: forward -> relay, intercept polarity update
@@ -201,7 +177,7 @@ export function DocumentProvider({
         currentAdapter.dispose();
       }
     };
-  }, [documentId, syncUrl, skipPersistence, skipStarterContent, seedName]);
+  }, [documentId, syncUrl, skipPersistence]);
 
   if (error) {
     return (

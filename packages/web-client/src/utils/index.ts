@@ -44,9 +44,6 @@ export { getLastDocumentId, setLastDocumentId } from './preferences';
 // Random names
 export { generateRandomName } from './randomNames';
 
-// Seeds
-export { seeds, type SeedFn } from './seeds';
-
 // String utilities
 export { stripHandlePrefix } from './handlePrefix';
 

@@ -10,7 +10,10 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import { useSchemaGroups } from '../../src/hooks/useSchemaGroups';
 import { useDocumentContext } from '../../src/contexts/DocumentContext';
 import { TestProviders } from '../setup/testProviders';
-import { builtInSchemaGroups, builtInSchemaPackages } from '@carta/domain';
+import { standardLibrary } from '@carta/domain';
+
+// Use the first standard library package for test data
+const testPackage = standardLibrary[0]; // Software Architecture
 
 describe('Clear Schema Groups', () => {
   it('should clear schema groups and packages when clearing everything', async () => {
@@ -28,10 +31,10 @@ describe('Clear Schema Groups', () => {
 
     const { adapter } = result.current.context;
 
-    // Start with built-in schema groups and packages
+    // Start with test schema groups and packages
     act(() => {
-      adapter.setSchemaPackages(builtInSchemaPackages);
-      adapter.setSchemaGroups(builtInSchemaGroups);
+      adapter.setSchemaPackages([testPackage]);
+      adapter.setSchemaGroups(testPackage.schemaGroups);
     });
 
     await waitFor(() => {
@@ -79,10 +82,10 @@ describe('Clear Schema Groups', () => {
 
     const { adapter } = result.current.context;
 
-    // Start with built-in schema groups and packages
+    // Start with test schema groups and packages
     act(() => {
-      adapter.setSchemaPackages(builtInSchemaPackages);
-      adapter.setSchemaGroups(builtInSchemaGroups);
+      adapter.setSchemaPackages([testPackage]);
+      adapter.setSchemaGroups(testPackage.schemaGroups);
     });
 
     await waitFor(() => {

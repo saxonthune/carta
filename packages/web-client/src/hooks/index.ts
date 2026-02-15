@@ -6,7 +6,6 @@ export { usePortSchemas } from './usePortSchemas';
 export { useSchemaGroups } from './useSchemaGroups';
 export { useSchemaPackages } from './useSchemaPackages';
 export { useSchemaRelationships } from './useSchemaRelationships';
-export { useLibrary } from './useLibrary';
 export { usePages } from './usePages';
 export { useDocumentMeta } from './useDocumentMeta';
 export { usePackagePicker } from './usePackagePicker.js';

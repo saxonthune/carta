@@ -23,8 +23,13 @@ import { useDocumentMeta } from '../../src/hooks/useDocumentMeta';
 import { useClearDocument } from '../../src/hooks/useClearDocument';
 import { useDocumentContext } from '../../src/contexts/DocumentContext';
 import { TestProviders } from '../setup/testProviders';
-import { builtInConstructSchemas, builtInPortSchemas, builtInSchemaGroups } from '@carta/domain';
+import { standardLibrary, builtInPortSchemas } from '@carta/domain';
 import { createTestNode } from '../setup/testHelpers';
+
+// Use the first standard library package's schemas as test data
+const testPackage = standardLibrary[0]; // Software Architecture
+const testSchemas = testPackage.schemas;
+const testGroups = testPackage.schemaGroups;
 
 describe('Clear Everything', () => {
   describe('Clear All Mode', () => {
@@ -95,7 +100,7 @@ describe('Clear Everything', () => {
 
       // Add some schemas
       act(() => {
-        adapter.setSchemas(builtInConstructSchemas);
+        adapter.setSchemas(testSchemas);
       });
 
       await waitFor(() => {
@@ -183,7 +188,7 @@ describe('Clear Everything', () => {
 
       // Add some schema groups
       act(() => {
-        adapter.setSchemaGroups(builtInSchemaGroups);
+        adapter.setSchemaGroups(testGroups);
       });
 
       await waitFor(() => {
@@ -266,7 +271,7 @@ describe('Clear Everything', () => {
 
       // Add nodes and schemas
       act(() => {
-        adapter.setSchemas(builtInConstructSchemas);
+        adapter.setSchemas(testSchemas);
         adapter.setNodes([
           createTestNode({ id: '1', type: 'controller', semanticId: 'controller-1' }),
         ]);
