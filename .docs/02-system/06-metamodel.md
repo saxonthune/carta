@@ -85,6 +85,22 @@ The unit of schema bundling and library portability. A package groups related sc
 
 Schemas and port schemas declare their package membership via `packageId`. Schema groups (visual) also declare `packageId` to scope their nesting within a package. Port schemas without a `packageId` are document-level (cross-package connectors); the built-in port schemas (flow, parent/child, relay, intercept) serve as default cross-package connectors.
 
+### SchemaRelationship
+
+Schema-level relationships stored in the document's `schemaRelationships` Y.Map. Each relationship is stored once (not bidirectional duplicates). Replaces the deprecated `suggestedRelated` array on schemas.
+
+| Property | Purpose |
+|----------|---------|
+| `id` | Unique identifier |
+| `sourceSchemaType` | Source schema type |
+| `sourcePortId` | Port on source schema |
+| `targetSchemaType` | Target schema type |
+| `targetPortId` | Port on target schema |
+| `label` | Optional label for the relationship |
+| `packageId` | Present = intra-package (travels with library), absent = document-scoped |
+
+Used by MetamapV2 to render edges between schema nodes and drive quick-add menus.
+
 ### ConstructSchema
 
 Defines a construct type. Key properties:

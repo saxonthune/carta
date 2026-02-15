@@ -25,6 +25,27 @@ Dependency direction: consumers depend on the engine, never the reverse. The eng
 
 ## Primitives
 
+The canvas-engine exports 11 primitives. The core primitives for most views are: `useViewport`, `useConnectionDrag`, `ConnectionHandle`, and `Canvas`. The others provide optional composition capabilities.
+
+### Canvas
+
+High-level canvas component that composes viewport, selection, drag, resize, and keyboard shortcuts into a single declarative API.
+
+```typescript
+interface CanvasProps {
+  nodes: Array<{ id: string; x: number; y: number; width: number; height: number }>;
+  onNodesChange?: (nodes: typeof nodes) => void;
+  renderNode: (node: typeof nodes[0]) => React.ReactNode;
+  // ... additional props for edges, selection, resize, etc.
+}
+```
+
+Consumers define node data and render functions; Canvas handles the interaction layer. See `LayoutMap.tsx` and `MetamapV2.tsx` for usage examples.
+
+### CanvasContext / useCanvasContext
+
+Context provider for canvas-engine composition. Provides viewport transform, selection state, and connection drag state to nested components. Used internally by Canvas component; consumers rarely need this directly.
+
 ### useViewport
 
 d3-zoom based pan/zoom management.
@@ -93,6 +114,127 @@ Lifecycle:
 5. `connectionDrag` resets to `null`
 
 The engine has no opinion on what constitutes a valid connection — consumers define that entirely via the `isValidConnection` callback.
+
+### useNodeDrag
+
+Node dragging with multi-select support, snap-to-grid, and containment awareness.
+
+```typescript
+interface UseNodeDragOptions {
+  nodes: Array<{ id: string; x: number; y: number }>;
+  onDragEnd: (deltas: Array<{ id: string; x: number; y: number }>) => void;
+  selectedNodeIds?: Set<string>;
+  snapToGrid?: number;  // Grid size in canvas units
+}
+```
+
+Dragging a selected node moves all selected nodes together. Consumers receive final positions on drag end.
+
+### useNodeResize
+
+Interactive node resizing with direction handles and min/max constraints.
+
+```typescript
+interface UseNodeResizeOptions {
+  onResize: (nodeId: string, width: number, height: number) => void;
+  minWidth?: number;
+  minHeight?: number;
+}
+
+interface UseNodeResizeResult {
+  startResize: (nodeId: string, direction: ResizeDirection, event: React.PointerEvent) => void;
+  resizeState: { nodeId: string; direction: ResizeDirection; width: number; height: number } | null;
+}
+```
+
+Supports 8 resize directions (N, NE, E, SE, S, SW, W, NW). Consumers apply resize handles and call `startResize` on pointer down.
+
+### useSelection
+
+Box-select and click-select with multi-select modifier support.
+
+```typescript
+interface UseSelectionOptions {
+  nodes: Array<{ id: string; x: number; y: number; width: number; height: number }>;
+  onSelectionChange: (selectedIds: Set<string>) => void;
+  modifierKey?: 'ctrl' | 'shift';  // For additive selection
+}
+```
+
+Box-select initiated by dragging in empty space. Click-select supports modifier keys for adding/removing from selection.
+
+### useNodeLinks
+
+Follower relationships between nodes — when a node moves, its followers move with it. Used for wagon attachment (organizer following its owning construct).
+
+```typescript
+interface UseNodeLinksOptions {
+  links: Array<{ followerId: string; leaderId: string }>;
+  onFollowerDragDecision?: (decision: FollowerDragDecision) => void;
+}
+
+interface FollowerDragDecision {
+  followerId: string;
+  leaderId: string;
+  action: 'follow' | 'detach';
+}
+```
+
+When a leader is dragged, followers move to maintain relative position. Consumers can intercept and choose to detach instead.
+
+### useKeyboardShortcuts
+
+Canvas-scoped keyboard shortcuts with modifier support.
+
+```typescript
+interface KeyBinding {
+  key: string;
+  ctrl?: boolean;
+  shift?: boolean;
+  alt?: boolean;
+  handler: () => void;
+}
+
+function useKeyboardShortcuts(bindings: KeyBinding[]): void
+```
+
+Only fires when canvas container is focused. Consumers define bindings declaratively.
+
+### useBoxSelect
+
+Low-level box-select primitive. `useSelection` wraps this with node hit-testing; use `useBoxSelect` directly when you need custom selection logic.
+
+```typescript
+interface UseBoxSelectResult {
+  boxSelectState: { startX: number; startY: number; currentX: number; currentY: number } | null;
+}
+```
+
+Returns screen-space coordinates. Consumers convert to canvas space and apply their own hit-testing.
+
+### DotGrid / CrossGrid
+
+Visual grid overlays for canvas backgrounds. `DotGrid` renders a dot pattern; `CrossGrid` renders crosses.
+
+```typescript
+interface CrossGridProps {
+  spacing?: number;  // Grid spacing in canvas units (default: 20)
+  color?: string;    // Grid color (default: theme-aware)
+}
+```
+
+Both respect the viewport transform and render in SVG. Purely visual — no interaction.
+
+### ConnectionPreview
+
+Renders the connection drag preview line. Used by `Canvas` component; consumers rarely need this directly.
+
+```typescript
+interface ConnectionPreviewProps {
+  connectionDrag: { sourceNodeId: string; currentX: number; currentY: number } | null;
+  sourcePosition: { x: number; y: number };  // Screen coords
+}
+```
 
 ### ConnectionHandle
 

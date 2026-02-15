@@ -132,15 +132,18 @@ Organized by purpose:
 
 ### `hooks/index.ts`
 Organized by purpose:
-- **Document state**: `useNodes`, `useEdges`, `useSchemas`, `usePortSchemas`, `useSchemaGroups`, `usePages`, `useDocumentMeta`
-- **Document operations**: `useGraphOperations`, `useConnections`, `usePresentation`, `useOrganizerOperations`, `useLayoutActions`
+- **Document state**: `useNodes`, `useEdges`, `useSchemas`, `usePortSchemas`, `useSchemaGroups`, `useSchemaPackages`, `useSchemaRelationships`, `useLibrary`, `usePages`, `useDocumentMeta`
+- **Document operations**: `useGraphOperations`, `useConnections`, `usePresentation`, `useOrganizerOperations`, `useLayoutActions`, `useEdgeCleanup`, `usePinConstraints`
 - **UI state**: `useMapState`, `useMetamapLayout`, `useEdgeBundling`, `useNarrative`, `useFlowTrace`
-- **Utilities**: `useClipboard`, `useUndoRedo`, `useKeyboardShortcuts`, `useAwareness`, `useDirtyStateGuard`, `useClearDocument`, `useEdgeCleanup`
+- **Map pipelines**: `useEdgeColor`, `useMapNodePipeline`, `useMapEdgePipeline`, `useCoveredNodes`
+- **Utilities**: `useClipboard`, `useUndoRedo`, `useAwareness`, `useDirtyStateGuard`, `useClearDocument`
 
 ### `components/canvas/index.ts`
 Canvas components and LOD:
-- **Components**: `Map`, `CanvasContainer`, `ConstructNode`, `OrganizerNode`, `InspectorPanel`, `DynamicAnchorEdge`, `PortDrawer`, `IndexBasedDropZones`, `AddConstructMenu`, `Narrative`
+- **Components**: `Map`, `MapV2`, `MapV2Toolbar`, `CanvasContainer`, `ConstructNode`, `OrganizerNode`, `InspectorPanel`, `DynamicAnchorEdge`, `PortDrawer`, `IndexBasedDropZones`, `AddConstructMenu`, `Narrative`, `ToolbarLayoutFlyouts`, `CanvasToolbar`
 - **LOD**: `useLodBand`, `DEFAULT_LOD_POLICY`, `getLodConfig`, types
+
+**Note:** `Map.tsx` (React Flow-based) and `MapV2.tsx` (canvas-engine-based) are parallel implementations. MapV2 uses the canvas-engine primitives for full control over rendering and interaction.
 
 **Note:** `ConstructNode` and `Header` are directories with modular implementations. ConstructNode has: `index.tsx` (dispatcher), `ConstructNodeMarker.tsx` (pill LOD, shared), `ConstructNodeDefault.tsx` (default nodeShape), `ConstructNodeSimple.tsx` (simple nodeShape, see doc03.01.14), `shared.ts` (utilities). Header has: `Header.tsx`, `ThemeMenu.tsx`, `SettingsMenu.tsx`, `ShareMenu.tsx`, `useClickOutside.ts`.
 

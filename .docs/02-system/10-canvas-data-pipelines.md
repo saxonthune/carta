@@ -9,6 +9,8 @@ Memo cascades and data flow in Map.tsx. Use this doc to trace how domain state b
 
 ## Node Pipeline
 
+**Note:** The node pipeline logic is extracted into `useMapNodePipeline` for Map.tsx. MapV2 uses a separate pipeline tailored to canvas-engine rendering. This doc describes the Map.tsx (React Flow) pipeline.
+
 ```
 Yjs Y.Doc
   │
@@ -38,6 +40,8 @@ Sync effect (useEffect)             → reactFlow.setNodes(sortedNodes)
 **Trigger chain:** Any Yjs node change OR local state change (dimension, search text, selection, rename mode, trace) causes `sortedNodes` to recompute, which triggers the sync effect to push to React Flow.
 
 ## Edge Pipeline
+
+**Note:** The edge pipeline logic is extracted into `useMapEdgePipeline` for Map.tsx. This hook encapsulates aggregation, filtering, polarity enrichment, and bundling. MapV2 uses a separate pipeline.
 
 ```
 Yjs Y.Doc
@@ -77,6 +81,53 @@ Sync effect (useEffect)             → reactFlow.setEdges(routedEdges)
 ```
 
 **Trigger chain:** Any Yjs edge change OR `sortedNodes` identity change (from node pipeline) causes `filteredEdges` to recompute, which cascades through `polarityEdges` → `displayEdges` → sync effect.
+
+## Pipeline Hooks
+
+### useMapNodePipeline
+
+Encapsulates the node pipeline from `useNodes()` → `sortedNodes`. Accepts inputs (nodes from Yjs, search text, rename state, trace state) and returns sorted nodes ready for React Flow sync.
+
+```typescript
+interface MapNodePipelineInputs {
+  nodes: Node[];
+  searchText: string;
+  renamingNodeId: string | null;
+  traceResult: FlowTraceResult | null;
+  // ... other dependencies
+}
+
+interface MapNodePipelineOutputs {
+  sortedNodes: Node[];
+  childCountMap: Map<string, number>;
+  organizerIds: Set<string>;
+}
+```
+
+Consumers: `Map.tsx` uses this to avoid inline memo chains. MapV2 does not use this hook — it has its own pipeline tailored to canvas-engine rendering.
+
+### useMapEdgePipeline
+
+Encapsulates the edge pipeline from `useEdges()` → `routedEdges`. Accepts inputs (edges from Yjs, sorted nodes, edge remap, selected IDs, trace state) and returns display edges ready for React Flow sync.
+
+```typescript
+interface MapEdgePipelineInputs {
+  edges: Edge[];
+  sortedNodes: Node[];
+  edgeRemap: Map<string, string>;
+  selectedNodeIdsSet: Set<string>;
+  isTraceActive: boolean;
+  traceResult: FlowTraceResult | null;
+  // ... other dependencies
+}
+
+interface MapEdgePipelineOutputs {
+  displayEdges: Edge[];
+  bundleMap: Map<string, string[]>;
+}
+```
+
+Consumers: `Map.tsx` uses this to extract edge aggregation, filtering, polarity enrichment, and bundling into a single hook. MapV2 does not use this hook.
 
 ## Edge ID Spaces
 
