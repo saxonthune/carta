@@ -11,7 +11,7 @@
 import * as Y from 'yjs';
 import {
   generateSemanticId,
-  builtInConstructSchemas,
+  standardLibrary,
   toAbsolutePosition,
   toRelativePosition,
   computeFlowLayout,
@@ -2302,7 +2302,8 @@ export function renameSchemaType(
   if (yschemas.has(newType)) throw new Error(`Schema already exists: ${newType}`);
 
   // Block renaming built-in schemas
-  if (builtInConstructSchemas.some(s => s.type === oldType)) {
+  const builtInTypes = new Set(standardLibrary.flatMap(pkg => pkg.schemas.map(s => s.type)));
+  if (builtInTypes.has(oldType)) {
     throw new Error(`Cannot rename built-in schema: ${oldType}`);
   }
 
@@ -3462,7 +3463,7 @@ export function extractDocument(ydoc: Y.Doc, roomId: string, pageId: string): Se
   const now = new Date().toISOString();
 
   // Only include custom schemas (filter out built-ins)
-  const builtInTypes = new Set(builtInConstructSchemas.map((s) => s.type));
+  const builtInTypes = new Set(standardLibrary.flatMap(pkg => pkg.schemas.map(s => s.type)));
   const customSchemas = schemas.filter((s) => !builtInTypes.has(s.type));
 
   return {

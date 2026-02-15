@@ -6,7 +6,7 @@
 
 import * as Y from 'yjs';
 import type { ConstructSchema, PortSchema, SchemaGroup, SchemaPackage, PackageManifestEntry } from '@carta/domain';
-import { builtInConstructSchemas, builtInPortSchemas } from '@carta/domain';
+import { standardLibrary, builtInPortSchemas } from '@carta/domain';
 import { yToPlain, deepPlainToY } from './yjs-helpers.js';
 import { CARTA_FILE_VERSION } from './constants.js';
 import type { CartaFile, CartaFilePage } from './file-format.js';
@@ -67,7 +67,7 @@ export function extractCartaFile(doc: Y.Doc): CartaFile {
   pages.sort((a, b) => a.order - b.order);
 
   // Extract custom schemas (filter out built-ins)
-  const builtInTypes = new Set(builtInConstructSchemas.map(s => s.type));
+  const builtInTypes = new Set(standardLibrary.flatMap(pkg => pkg.schemas.map(s => s.type)));
   const customSchemas: ConstructSchema[] = [];
   yschemas.forEach((yschema) => {
     const schema = yToPlain(yschema) as ConstructSchema;

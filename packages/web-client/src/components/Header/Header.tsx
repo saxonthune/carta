@@ -53,7 +53,7 @@ export function Header({
   onClear,
   onToggleAI,
 }: HeaderProps) {
-  const { mode, documentId, adapter } = useDocumentContext();
+  const { mode, documentId } = useDocumentContext();
   const [isProjectInfoOpen, setIsProjectInfoOpen] = useState(false);
   const [isDocBrowserOpen, setIsDocBrowserOpen] = useState(false);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
