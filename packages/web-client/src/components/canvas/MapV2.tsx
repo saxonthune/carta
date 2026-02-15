@@ -24,10 +24,12 @@ import AddConstructMenu from './AddConstructMenu';
 import ConstructEditor from '../ConstructEditor';
 import ConstructDebugModal from '../modals/ConstructDebugModal';
 import { MenuLevel, type MenuItem } from '../ui/ContextMenuPrimitive';
-import { getRectBoundaryPoint, waypointsToPath, computeBezierPath, type Waypoint } from '../../utils/edgeGeometry.js';
+import { getRectBoundaryPoint, waypointsToPath, computeBezierPath, computeSideOffset, type Waypoint } from '../../utils/edgeGeometry.js';
 import { canConnect, getHandleType, nodeContainedInOrganizer, type ConstructSchema, type ConstructNodeData, getDisplayName, type DocumentAdapter } from '@carta/domain';
 import { stripHandlePrefix } from '../../utils/handlePrefix.js';
 import { generateSemanticId } from '../../utils/cartaFile';
+import { computeOrthogonalRoutes, type NodeRect } from '../../presentation/index.js';
+import { getNodeDimensions } from '../../utils/nodeDimensions.js';
 import type { LodBand } from './lod/lodPolicy.js';
 import { MapV2OrganizerNode, type OrganizerChromeProps } from './MapV2OrganizerNode';
 import { MapV2ConstructNode } from './MapV2ConstructNode';
@@ -308,6 +310,64 @@ function MapV2Content({
         if (clearedEdgePatches.length > 0) {
           adapter.patchEdgeData?.(clearedEdgePatches);
         }
+
+        // Auto-route edges connected to moved nodes
+        const scheduleRouting = typeof requestIdleCallback !== 'undefined' ? requestIdleCallback : (fn: () => void) => setTimeout(fn, 0);
+        scheduleRouting(() => {
+          const currentNodes = adapter.getNodes() as any[];
+          const currentEdges = adapter.getEdges() as any[];
+
+          // Build obstacle list from top-level nodes
+          const topLevel = currentNodes.filter((n: any) => !n.parentId);
+          const obstacles: NodeRect[] = topLevel.map((n: any) => {
+            const dims = getNodeDimensions(n);
+            return { id: n.id, x: n.position.x, y: n.position.y, width: dims.width, height: dims.height };
+          });
+
+          // Find edges connected to moved nodes (using affectedIds already computed above)
+          const edgesToRoute = currentEdges.filter((e: any) =>
+            (affectedIds.has(e.source) || affectedIds.has(e.target)) &&
+            !e.id.startsWith('agg-') && !e.id.startsWith('wagon-')
+          );
+
+          if (edgesToRoute.length === 0) return;
+
+          // Build edge inputs (resolve child nodes to top-level parent rects)
+          const topLevelIds = new Set(topLevel.map((n: any) => n.id));
+          const parentMap = new Map<string, string>();
+          for (const n of currentNodes) {
+            if (n.parentId) parentMap.set(n.id, n.parentId);
+          }
+          function resolveTopLevel(id: string): string | undefined {
+            if (topLevelIds.has(id)) return id;
+            const parent = parentMap.get(id);
+            return parent ? resolveTopLevel(parent) : undefined;
+          }
+
+          const obstacleMap = new Map(obstacles.map(o => [o.id, o]));
+          const edgeInputs = edgesToRoute
+            .map((e: any) => {
+              const srcId = resolveTopLevel(e.source);
+              const tgtId = resolveTopLevel(e.target);
+              if (!srcId || !tgtId || srcId === tgtId) return null;
+              const srcRect = obstacleMap.get(srcId);
+              const tgtRect = obstacleMap.get(tgtId);
+              if (!srcRect || !tgtRect) return null;
+              return { id: e.id, sourceRect: srcRect, targetRect: tgtRect };
+            })
+            .filter(Boolean) as Array<{ id: string; sourceRect: NodeRect; targetRect: NodeRect }>;
+
+          const routes = computeOrthogonalRoutes(edgeInputs, obstacles);
+
+          const patches = edgesToRoute.map((e: any) => {
+            const route = routes.get(e.id);
+            return {
+              id: e.id,
+              data: { waypoints: route && route.waypoints.length >= 2 ? route.waypoints : null },
+            };
+          });
+          adapter.patchEdgeData?.(patches);
+        });
 
         // Handle Ctrl+drag attach/detach
         if (lastEvent && node && node.type !== 'organizer') {
@@ -1070,7 +1130,73 @@ export default function MapV2({ searchText, onSelectionChange: onSelectionChange
       nodeRects.set(n.id, { x, y, width: w, height: h });
     }
 
-    return displayEdges.filter(e => !e.hidden).map(e => {
+    // Build per-node, per-side edge groupings for distribution
+    const visibleEdges = displayEdges.filter(e => !e.hidden);
+    const nodeSideEdges = new Map<string, Map<string, string[]>>(); // nodeId -> side -> edgeIds[]
+
+    // First pass: group edges by node and side
+    for (const e of visibleEdges) {
+      const srcRect = nodeRects.get(e.source);
+      const tgtRect = nodeRects.get(e.target);
+      if (!srcRect || !tgtRect) continue;
+
+      const srcCenter = { x: srcRect.x + srcRect.width / 2, y: srcRect.y + srcRect.height / 2 };
+      const tgtCenter = { x: tgtRect.x + tgtRect.width / 2, y: tgtRect.y + tgtRect.height / 2 };
+
+      const srcBoundary = getRectBoundaryPoint(srcRect, tgtCenter);
+      const tgtBoundary = getRectBoundaryPoint(tgtRect, srcCenter);
+
+      // Group by source node + side
+      if (!nodeSideEdges.has(e.source)) {
+        nodeSideEdges.set(e.source, new Map());
+      }
+      const srcSideMap = nodeSideEdges.get(e.source)!;
+      if (!srcSideMap.has(srcBoundary.side)) {
+        srcSideMap.set(srcBoundary.side, []);
+      }
+      srcSideMap.get(srcBoundary.side)!.push(e.id);
+
+      // Group by target node + side
+      if (!nodeSideEdges.has(e.target)) {
+        nodeSideEdges.set(e.target, new Map());
+      }
+      const tgtSideMap = nodeSideEdges.get(e.target)!;
+      if (!tgtSideMap.has(tgtBoundary.side)) {
+        tgtSideMap.set(tgtBoundary.side, []);
+      }
+      tgtSideMap.get(tgtBoundary.side)!.push(e.id);
+    }
+
+    // Sort each side's edge list by angle to connected node (for stable ordering)
+    for (const [nodeId, sideMap] of nodeSideEdges) {
+      const nodeRect = nodeRects.get(nodeId);
+      if (!nodeRect) continue;
+      const nodeCenter = { x: nodeRect.x + nodeRect.width / 2, y: nodeRect.y + nodeRect.height / 2 };
+
+      for (const [, edgeIds] of sideMap) {
+        edgeIds.sort((aId, bId) => {
+          const aEdge = visibleEdges.find(e => e.id === aId);
+          const bEdge = visibleEdges.find(e => e.id === bId);
+          if (!aEdge || !bEdge) return 0;
+
+          // Get the connected node (opposite to current node)
+          const aOtherId = aEdge.source === nodeId ? aEdge.target : aEdge.source;
+          const bOtherId = bEdge.source === nodeId ? bEdge.target : bEdge.source;
+          const aOtherRect = nodeRects.get(aOtherId);
+          const bOtherRect = nodeRects.get(bOtherId);
+          if (!aOtherRect || !bOtherRect) return 0;
+
+          const aOtherCenter = { x: aOtherRect.x + aOtherRect.width / 2, y: aOtherRect.y + aOtherRect.height / 2 };
+          const bOtherCenter = { x: bOtherRect.x + bOtherRect.width / 2, y: bOtherRect.y + bOtherRect.height / 2 };
+
+          const aAngle = Math.atan2(aOtherCenter.y - nodeCenter.y, aOtherCenter.x - nodeCenter.x);
+          const bAngle = Math.atan2(bOtherCenter.y - nodeCenter.y, bOtherCenter.x - nodeCenter.x);
+          return aAngle - bAngle;
+        });
+      }
+    }
+
+    return visibleEdges.map(e => {
       const srcRect = nodeRects.get(e.source);
       const tgtRect = nodeRects.get(e.target);
       if (!srcRect || !tgtRect) return null;
@@ -1078,8 +1204,33 @@ export default function MapV2({ searchText, onSelectionChange: onSelectionChange
       const srcCenter = { x: srcRect.x + srcRect.width / 2, y: srcRect.y + srcRect.height / 2 };
       const tgtCenter = { x: tgtRect.x + tgtRect.width / 2, y: tgtRect.y + tgtRect.height / 2 };
 
-      const srcBoundary = getRectBoundaryPoint(srcRect, tgtCenter);
-      const tgtBoundary = getRectBoundaryPoint(tgtRect, srcCenter);
+      let srcBoundary = getRectBoundaryPoint(srcRect, tgtCenter);
+      let tgtBoundary = getRectBoundaryPoint(tgtRect, srcCenter);
+
+      // Apply per-side distribution offset
+      const srcSideEdges = nodeSideEdges.get(e.source)?.get(srcBoundary.side) ?? [];
+      const srcEdgeIndex = srcSideEdges.indexOf(e.id);
+      if (srcEdgeIndex !== -1 && srcSideEdges.length > 1) {
+        const sideLength = srcBoundary.side === 'top' || srcBoundary.side === 'bottom' ? srcRect.width : srcRect.height;
+        const offset = computeSideOffset(sideLength, srcSideEdges.length, srcEdgeIndex);
+        if (srcBoundary.side === 'top' || srcBoundary.side === 'bottom') {
+          srcBoundary = { ...srcBoundary, x: srcRect.x + offset };
+        } else {
+          srcBoundary = { ...srcBoundary, y: srcRect.y + offset };
+        }
+      }
+
+      const tgtSideEdges = nodeSideEdges.get(e.target)?.get(tgtBoundary.side) ?? [];
+      const tgtEdgeIndex = tgtSideEdges.indexOf(e.id);
+      if (tgtEdgeIndex !== -1 && tgtSideEdges.length > 1) {
+        const sideLength = tgtBoundary.side === 'top' || tgtBoundary.side === 'bottom' ? tgtRect.width : tgtRect.height;
+        const offset = computeSideOffset(sideLength, tgtSideEdges.length, tgtEdgeIndex);
+        if (tgtBoundary.side === 'top' || tgtBoundary.side === 'bottom') {
+          tgtBoundary = { ...tgtBoundary, x: tgtRect.x + offset };
+        } else {
+          tgtBoundary = { ...tgtBoundary, y: tgtRect.y + offset };
+        }
+      }
 
       const dataRecord = e.data as Record<string, unknown> | undefined;
       const waypoints = dataRecord?.waypoints as Waypoint[] | undefined;

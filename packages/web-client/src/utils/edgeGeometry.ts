@@ -144,3 +144,19 @@ export function computeBezierPath(
   const labelY = (sy + ty) / 2;
   return { path, labelX, labelY };
 }
+
+/**
+ * Given N edges on the same side of a node, return the offset position
+ * for the Kth edge (0-indexed). Distributes evenly along the side length
+ * with minimum spacing.
+ */
+export function computeSideOffset(
+  sideLength: number,  // width for top/bottom, height for left/right
+  edgeCount: number,    // total edges on this side
+  edgeIndex: number,    // which edge (0-indexed)
+  minSpacing: number = 20,
+): number {
+  if (edgeCount <= 1) return sideLength / 2; // centered
+  const spacing = Math.max(minSpacing, sideLength / (edgeCount + 1));
+  return spacing * (edgeIndex + 1);
+}
