@@ -1188,6 +1188,13 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       return exists;
     },
 
+    // Mutations - Package Manifest
+    addPackageManifestEntry(entry: PackageManifestEntry) {
+      ydoc.transact(() => {
+        ypackageManifest.set(entry.packageId, objectToYMap(entry as unknown as Record<string, unknown>));
+      }, 'user');
+    },
+
     // State access - Schema Relationships
     getSchemaRelationships(): SchemaRelationship[] {
       const rels: SchemaRelationship[] = [];

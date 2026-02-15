@@ -626,6 +626,9 @@ export interface DocumentAdapter {
   getPackageManifestEntry(packageId: string): PackageManifestEntry | undefined;
   subscribeToPackageManifest?(listener: () => void): () => void;
 
+  // Mutations - Package Manifest
+  addPackageManifestEntry(entry: PackageManifestEntry): void;
+
   // Mutations - Schema Relationships
   addSchemaRelationship(rel: SchemaRelationship): void;
   updateSchemaRelationship(id: string, updates: Partial<SchemaRelationship>): void;

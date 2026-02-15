@@ -25,3 +25,5 @@ export {
 } from './built-ins.js';
 
 export type { SchemaSeed, SchemaRelationshipSeed } from './seed-loader.js';
+
+export { applyPackage, isPackageModified, type ApplyPackageResult } from './package-loader.js';
