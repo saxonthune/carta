@@ -288,7 +288,38 @@ export interface SchemaPackage {
 }
 
 /**
+ * Portable package definition — the self-contained format for distributing
+ * schema vocabularies. Used by applyPackage() to load schemas into documents.
+ * Unlike SchemaPackage (which is the live document-level metadata), this is
+ * the complete, frozen definition that travels between documents and libraries.
+ */
+export interface SchemaPackageDefinition {
+  id: string;                              // UUID — stable identity
+  name: string;                            // display name
+  description: string;                     // for picker/catalog
+  color: string;                           // visual accent
+  schemas: ConstructSchema[];
+  portSchemas: PortSchema[];               // in-package ports only
+  schemaGroups: SchemaGroup[];
+  schemaRelationships: SchemaRelationship[];
+}
+
+/**
+ * Manifest entry tracking a loaded package in the document.
+ * Stored in the packageManifest Y.Map, keyed by packageId (UUID).
+ * Provides idempotency (check by UUID) and drift detection (compare contentHash).
+ */
+export interface PackageManifestEntry {
+  packageId: string;                       // UUID — idempotency key
+  contentHash: string;                     // SHA-256 of definition at load time
+  displayName: string;                     // label at load time
+  loadedAt: string;                        // ISO timestamp
+  snapshot: SchemaPackageDefinition;       // frozen copy of the definition as loaded
+}
+
+/**
  * Library entry version - A versioned snapshot of a schema package
+ * @deprecated Being replaced by SchemaPackageDefinition + applyPackage(). See doc02.04.07.
  */
 export interface LibraryEntryVersion {
   version: number;
@@ -304,6 +335,7 @@ export interface LibraryEntryVersion {
 
 /**
  * Library entry - A versioned library of schema packages
+ * @deprecated Being replaced by packageManifest + PackageManifestEntry. See doc02.04.07.
  */
 export interface LibraryEntry {
   id: string;
@@ -418,6 +450,7 @@ export interface CartaDocumentV4 {
   schemaGroups: SchemaGroup[];
   schemaPackages: SchemaPackage[];
   schemaRelationships: SchemaRelationship[];
+  packageManifest?: PackageManifestEntry[];  // Optional for backwards compat with existing docs
 }
 
 /**
@@ -587,6 +620,11 @@ export interface DocumentAdapter {
   addSchemaPackage(pkg: Omit<SchemaPackage, 'id'> | SchemaPackage): SchemaPackage;
   updateSchemaPackage(id: string, updates: Partial<SchemaPackage>): void;
   removeSchemaPackage(id: string): boolean;
+
+  // State access - Package Manifest (read-only; mutations added in plan 02)
+  getPackageManifest(): PackageManifestEntry[];
+  getPackageManifestEntry(packageId: string): PackageManifestEntry | undefined;
+  subscribeToPackageManifest?(listener: () => void): () => void;
 
   // Mutations - Schema Relationships
   addSchemaRelationship(rel: SchemaRelationship): void;

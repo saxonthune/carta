@@ -5,7 +5,7 @@
  */
 
 import * as Y from 'yjs';
-import type { ConstructSchema, PortSchema, SchemaGroup, SchemaPackage } from '@carta/domain';
+import type { ConstructSchema, PortSchema, SchemaGroup, SchemaPackage, PackageManifestEntry } from '@carta/domain';
 import { builtInConstructSchemas, builtInPortSchemas } from '@carta/domain';
 import { yToPlain, deepPlainToY } from './yjs-helpers.js';
 import { CARTA_FILE_VERSION } from './constants.js';
@@ -23,6 +23,7 @@ export function extractCartaFile(doc: Y.Doc): CartaFile {
   const yportSchemas = doc.getMap<Y.Map<unknown>>('portSchemas');
   const yschemaGroups = doc.getMap<Y.Map<unknown>>('schemaGroups');
   const yschemaPackages = doc.getMap<Y.Map<unknown>>('schemaPackages');
+  const ypackageManifest = doc.getMap<Y.Map<unknown>>('packageManifest');
 
   const title = (ymeta.get('title') as string) || 'Untitled Project';
   const description = ymeta.get('description') as string | undefined;
@@ -97,6 +98,12 @@ export function extractCartaFile(doc: Y.Doc): CartaFile {
     schemaPackages.push(yToPlain(ysp) as SchemaPackage);
   });
 
+  // Extract package manifest
+  const packageManifest: PackageManifestEntry[] = [];
+  ypackageManifest.forEach((ypm) => {
+    packageManifest.push(yToPlain(ypm) as PackageManifestEntry);
+  });
+
   return {
     version: CARTA_FILE_VERSION,
     title,
@@ -106,6 +113,7 @@ export function extractCartaFile(doc: Y.Doc): CartaFile {
     portSchemas,
     schemaGroups,
     schemaPackages,
+    packageManifest: packageManifest.length > 0 ? packageManifest : undefined,
     exportedAt: new Date().toISOString(),
   };
 }
@@ -124,6 +132,7 @@ export function hydrateYDocFromCartaFile(doc: Y.Doc, data: CartaFile): void {
   const yportSchemas = doc.getMap<Y.Map<unknown>>('portSchemas');
   const yschemaGroups = doc.getMap<Y.Map<unknown>>('schemaGroups');
   const yschemaPackages = doc.getMap<Y.Map<unknown>>('schemaPackages');
+  const ypackageManifest = doc.getMap<Y.Map<unknown>>('packageManifest');
 
   doc.transact(() => {
     // Clear existing data
@@ -135,6 +144,7 @@ export function hydrateYDocFromCartaFile(doc: Y.Doc, data: CartaFile): void {
     yportSchemas.clear();
     yschemaGroups.clear();
     yschemaPackages.clear();
+    ypackageManifest.clear();
 
     // Set metadata
     ymeta.set('title', data.title);
@@ -218,6 +228,14 @@ export function hydrateYDocFromCartaFile(doc: Y.Doc, data: CartaFile): void {
     for (const sp of data.schemaPackages) {
       const ysp = deepPlainToY(sp) as Y.Map<unknown>;
       yschemaPackages.set(sp.id, ysp);
+    }
+
+    // Set package manifest
+    if (data.packageManifest) {
+      for (const pm of data.packageManifest) {
+        const ypm = deepPlainToY(pm) as Y.Map<unknown>;
+        ypackageManifest.set(pm.packageId, ypm);
+      }
     }
   });
 }

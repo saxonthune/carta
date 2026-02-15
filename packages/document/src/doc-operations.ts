@@ -3945,6 +3945,7 @@ export function createPackage(ydoc: Y.Doc, data: {
 
 /**
  * Publish a schema package to the library
+ * @deprecated Being replaced by applyPackage() + packageManifest. See doc02.04.07.
  */
 export function publishPackage(ydoc: Y.Doc, data: {
   packageId: string;
@@ -4040,6 +4041,7 @@ export function publishPackage(ydoc: Y.Doc, data: {
 
 /**
  * List library entries with version summaries
+ * @deprecated Being replaced by applyPackage() + packageManifest. See doc02.04.07.
  */
 export function listLibrary(ydoc: Y.Doc): Array<{
   id: string;
@@ -4089,6 +4091,7 @@ export function listLibrary(ydoc: Y.Doc): Array<{
 
 /**
  * Get a library entry with full snapshot at a specific version
+ * @deprecated Being replaced by applyPackage() + packageManifest. See doc02.04.07.
  */
 export function getLibraryEntry(ydoc: Y.Doc, entryId: string, version?: number): LibraryEntry | null {
   const ylibraryEntries = ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.LIBRARY_ENTRIES);
@@ -4115,6 +4118,7 @@ export function getLibraryEntry(ydoc: Y.Doc, entryId: string, version?: number):
 
 /**
  * Apply a library entry to the document as an active package
+ * @deprecated Being replaced by applyPackage() + packageManifest. See doc02.04.07.
  */
 export function applyLibraryEntry(ydoc: Y.Doc, data: {
   entryId: string;

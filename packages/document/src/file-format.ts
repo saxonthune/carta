@@ -5,7 +5,7 @@
  * Web-client re-exports these and adds browser-specific import/export functions.
  */
 
-import type { ConstructSchema, PortSchema, SchemaGroup, SchemaPackage, CartaSchemasFile } from '@carta/domain';
+import type { ConstructSchema, PortSchema, SchemaGroup, SchemaPackage, PackageManifestEntry, CartaSchemasFile } from '@carta/domain';
 import { CARTA_FILE_VERSION } from './constants.js';
 
 /**
@@ -32,6 +32,7 @@ export interface CartaFile {
   portSchemas: PortSchema[];
   schemaGroups: SchemaGroup[];
   schemaPackages: SchemaPackage[];
+  packageManifest?: PackageManifestEntry[];
   exportedAt: string;
 }
 
@@ -221,6 +222,11 @@ export function validateCartaFile(data: unknown): CartaFile {
     }
   }
 
+  // Validate packageManifest (optional, default to empty array)
+  if (!Array.isArray(obj.packageManifest)) {
+    obj.packageManifest = [];
+  }
+
   // v6→v7 migration: promote top-level groups to packages
   if (obj.version <= 6 && Array.isArray(obj.schemaGroups) && obj.schemaGroups.length > 0) {
     const groups = obj.schemaGroups as Array<Record<string, unknown>>;
@@ -282,6 +288,7 @@ export function validateCartaFile(data: unknown): CartaFile {
     portSchemas: repairedData.portSchemas as PortSchema[],
     schemaGroups: repairedData.schemaGroups as SchemaGroup[],
     schemaPackages: repairedData.schemaPackages as SchemaPackage[],
+    packageManifest: repairedData.packageManifest as PackageManifestEntry[] | undefined,
     exportedAt: (repairedData.exportedAt as string) || new Date().toISOString(),
   };
 }

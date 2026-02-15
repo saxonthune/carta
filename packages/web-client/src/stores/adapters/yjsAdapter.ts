@@ -11,6 +11,7 @@ import type {
   SchemaPackage,
   SchemaRelationship,
   LibraryEntry,
+  PackageManifestEntry,
   Page,
 } from '@carta/domain';
 import {
@@ -84,6 +85,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
   const yschemaPackages = ydoc.getMap<Y.Map<unknown>>('schemaPackages');
   const yschemaRelationships = ydoc.getMap<Y.Map<unknown>>('schemaRelationships');
   const ylibraryEntries = ydoc.getMap<Y.Map<unknown>>('libraryEntries');
+  const ypackageManifest = ydoc.getMap<Y.Map<unknown>>('packageManifest');
 
   // Persistence
   let indexeddbProvider: IndexeddbPersistence | null = null;
@@ -107,6 +109,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
   const schemaPackageListeners = new Set<() => void>();
   const schemaRelationshipListeners = new Set<() => void>();
   const libraryEntryListeners = new Set<() => void>();
+  const packageManifestListeners = new Set<() => void>();
   const pageListeners = new Set<() => void>();
   const metaListeners = new Set<() => void>();
 
@@ -175,6 +178,10 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     notifyLibraryEntryListeners();
     notifyListeners();
   };
+  const onPackageManifestChange = () => {
+    listeners.forEach((l) => l());
+    packageManifestListeners.forEach((l) => l());
+  };
 
   // Set up Y.Doc observers
   const setupObservers = () => {
@@ -188,6 +195,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     yschemaPackages.observeDeep(onSchemaPackagesChange);
     yschemaRelationships.observeDeep(onSchemaRelationshipsChange);
     ylibraryEntries.observeDeep(onLibraryEntriesChange);
+    ypackageManifest.observeDeep(onPackageManifestChange);
     observersSetUp = true;
   };
 
@@ -488,6 +496,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
         yschemaPackages.unobserveDeep(onSchemaPackagesChange);
         yschemaRelationships.unobserveDeep(onSchemaRelationshipsChange);
         ylibraryEntries.unobserveDeep(onLibraryEntriesChange);
+        ypackageManifest.unobserveDeep(onPackageManifestChange);
       }
 
       // Clear all granular listener sets
@@ -498,6 +507,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       schemaGroupListeners.clear();
       schemaPackageListeners.clear();
       libraryEntryListeners.clear();
+      packageManifestListeners.clear();
       schemaRelationshipListeners.clear();
       pageListeners.clear();
       metaListeners.clear();
@@ -672,6 +682,21 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       const yentry = ylibraryEntries.get(id);
       if (!yentry) return undefined;
       return yMapToObject<LibraryEntry>(yentry);
+    },
+
+    // State access - Package Manifest
+    getPackageManifest(): PackageManifestEntry[] {
+      const entries: PackageManifestEntry[] = [];
+      ypackageManifest.forEach((yentry) => {
+        entries.push(yMapToObject<PackageManifestEntry>(yentry));
+      });
+      return entries;
+    },
+
+    getPackageManifestEntry(packageId: string): PackageManifestEntry | undefined {
+      const yentry = ypackageManifest.get(packageId);
+      if (!yentry) return undefined;
+      return yMapToObject<PackageManifestEntry>(yentry);
     },
 
     // Mutations - Graph (writes to active page)
@@ -1262,6 +1287,11 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       return () => libraryEntryListeners.delete(listener);
     },
 
+    subscribeToPackageManifest(listener: () => void): () => void {
+      packageManifestListeners.add(listener);
+      return () => packageManifestListeners.delete(listener);
+    },
+
     subscribeToPages(listener: () => void): () => void {
       pageListeners.add(listener);
       return () => pageListeners.delete(listener);
@@ -1285,6 +1315,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
         schemaGroups: adapter.getSchemaGroups(),
         schemaPackages: adapter.getSchemaPackages(),
         schemaRelationships: adapter.getSchemaRelationships(),
+        packageManifest: adapter.getPackageManifest(),
       };
     },
 
