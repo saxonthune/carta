@@ -551,7 +551,7 @@ export function useLayoutActions({
   const spreadChildren = useCallback(
     (organizerId: string) => {
       snapWagonsInOrganizer(organizerId);
-      const rfNodes = adapter.getNodes() as Node[];
+      const rfNodes = reactFlow.getNodes() as Node[];
       const { items, offsets } = getChildLayoutUnits(rfNodes, organizerId);
       if (items.length < 2) return;
 
@@ -588,7 +588,7 @@ export function useLayoutActions({
       snapWagonsInOrganizer(organizerId);
 
       // Step 2: Read nodes
-      const rfNodes = adapter.getNodes() as Node[];
+      const rfNodes = reactFlow.getNodes() as Node[];
       const { items, offsets } = getChildLayoutUnits(rfNodes, organizerId);
       if (items.length < 2) return;
 
@@ -623,7 +623,7 @@ export function useLayoutActions({
   const flowLayoutChildren = useCallback(
     (organizerId: string) => {
       snapWagonsInOrganizer(organizerId);
-      const rfNodes = adapter.getNodes() as Node[];
+      const rfNodes = reactFlow.getNodes() as Node[];
       const { items, offsets } = getChildLayoutUnits(rfNodes, organizerId);
       if (items.length < 2) return;
 
@@ -1039,6 +1039,23 @@ export function useLayoutActions({
     const obstacleMap = new Map(obstacles.map(o => [o.id, o]));
     const edgeInputs: Array<{ id: string; sourceRect: NodeRect; targetRect: NodeRect }> = [];
 
+    // Helper to calculate rect overlap percentage
+    const calculateOverlap = (rect1: NodeRect, rect2: NodeRect): number => {
+      const x1 = Math.max(rect1.x, rect2.x);
+      const y1 = Math.max(rect1.y, rect2.y);
+      const x2 = Math.min(rect1.x + rect1.width, rect2.x + rect2.width);
+      const y2 = Math.min(rect1.y + rect1.height, rect2.y + rect2.height);
+
+      if (x2 <= x1 || y2 <= y1) return 0; // No overlap
+
+      const overlapArea = (x2 - x1) * (y2 - y1);
+      const area1 = rect1.width * rect1.height;
+      const area2 = rect2.width * rect2.height;
+      const minArea = Math.min(area1, area2);
+
+      return minArea > 0 ? overlapArea / minArea : 0;
+    };
+
     for (const edge of rfEdges) {
       const sourceId = resolveTopLevel(edge.source);
       const targetId = resolveTopLevel(edge.target);
@@ -1046,6 +1063,11 @@ export function useLayoutActions({
       const sourceRect = obstacleMap.get(sourceId);
       const targetRect = obstacleMap.get(targetId);
       if (!sourceRect || !targetRect) continue;
+
+      // Skip edges where source and target rects overlap significantly (would produce degenerate routes)
+      const overlap = calculateOverlap(sourceRect, targetRect);
+      if (overlap > 0.5) continue;
+
       edgeInputs.push({ id: edge.id, sourceRect, targetRect });
     }
 

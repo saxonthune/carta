@@ -43,7 +43,7 @@ interface MapV2ToolbarProps {
   onApplyPinLayout: () => void;
   selectionModeActive: boolean;
   onToggleSelectionMode: () => void;
-  hasSelection: boolean;
+  selectedCount: number;
   hasPinConstraints: boolean;
 }
 
@@ -67,9 +67,11 @@ export default function MapV2Toolbar({
   onApplyPinLayout,
   selectionModeActive,
   onToggleSelectionMode,
-  hasSelection,
+  selectedCount,
   hasPinConstraints,
 }: MapV2ToolbarProps) {
+  const canAlign = selectedCount >= 2;
+  const canDistribute = selectedCount >= 3;
   const [openFlyout, setOpenFlyout] = useState<FlyoutType>(null);
   const [lastDirection, setLastDirection] = useState<'LR' | 'RL' | 'TB' | 'BT'>('LR');
   const layoutRef = useRef<HTMLDivElement>(null);
@@ -263,7 +265,7 @@ export default function MapV2Toolbar({
                   onClick={handleRouteEdges}
                 >
                   <Path weight="bold" size={16} />
-                  <span>Route Edges</span>
+                  <span>Auto-route Edges</span>
                 </button>
                 <button
                   className="flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-surface-alt transition-colors text-left"
@@ -281,14 +283,20 @@ export default function MapV2Toolbar({
       {/* Align flyout */}
       <div ref={alignRef} className="relative">
         <ToolbarButton
-          onClick={() => setOpenFlyout(openFlyout === 'align' ? null : 'align')}
-          tooltip="Align"
+          onClick={() => canAlign && setOpenFlyout(openFlyout === 'align' ? null : 'align')}
+          tooltip={canAlign ? "Align" : "Select 2+ nodes to align"}
+          disabled={!canAlign}
         >
           <AlignLeft weight="bold" size={18} />
         </ToolbarButton>
-        {openFlyout === 'align' && hasSelection && (
+        {openFlyout === 'align' && (
           <div className="absolute left-full ml-2 top-0 bg-surface border border-border rounded-lg shadow-lg z-50 p-2 min-w-[160px]">
-            <div className="grid grid-cols-3 gap-1">
+            {!canAlign ? (
+              <div className="text-content-muted text-xs px-2 py-1">
+                Select 2+ nodes
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-1">
               <button
                 className="flex items-center justify-center p-2 rounded border border-border hover:bg-surface-alt transition-colors"
                 onClick={() => handleAlign('left')}
@@ -332,6 +340,7 @@ export default function MapV2Toolbar({
                 <AlignBottom weight="bold" size={18} />
               </button>
             </div>
+            )}
           </div>
         )}
       </div>
@@ -339,31 +348,38 @@ export default function MapV2Toolbar({
       {/* Distribute flyout */}
       <div ref={distributeRef} className="relative">
         <ToolbarButton
-          onClick={() => setOpenFlyout(openFlyout === 'distribute' ? null : 'distribute')}
-          tooltip="Distribute"
+          onClick={() => canDistribute && setOpenFlyout(openFlyout === 'distribute' ? null : 'distribute')}
+          tooltip={canDistribute ? "Distribute" : "Select 3+ nodes to distribute"}
+          disabled={!canDistribute}
         >
           <ArrowsOutLineHorizontal weight="bold" size={18} />
         </ToolbarButton>
-        {openFlyout === 'distribute' && hasSelection && (
+        {openFlyout === 'distribute' && (
           <div className="absolute left-full ml-2 top-0 bg-surface border border-border rounded-lg shadow-lg z-50 p-2 min-w-[160px]">
-            <div className="flex flex-col gap-1">
-              <button
-                className="flex items-center gap-2 px-2 py-1.5 text-sm rounded border border-border hover:bg-surface-alt transition-colors text-left"
-                onClick={() => handleDistribute('horizontal')}
-                aria-label="Distribute horizontal"
-              >
-                <ArrowsOutLineHorizontal weight="bold" size={18} />
-                <span>Horizontal</span>
-              </button>
-              <button
-                className="flex items-center gap-2 px-2 py-1.5 text-sm rounded border border-border hover:bg-surface-alt transition-colors text-left"
-                onClick={() => handleDistribute('vertical')}
-                aria-label="Distribute vertical"
-              >
-                <ArrowsOutLineVertical weight="bold" size={18} />
-                <span>Vertical</span>
-              </button>
-            </div>
+            {!canDistribute ? (
+              <div className="text-content-muted text-xs px-2 py-1">
+                Select 3+ nodes
+              </div>
+            ) : (
+              <div className="flex flex-col gap-1">
+                <button
+                  className="flex items-center gap-2 px-2 py-1.5 text-sm rounded border border-border hover:bg-surface-alt transition-colors text-left"
+                  onClick={() => handleDistribute('horizontal')}
+                  aria-label="Distribute horizontal"
+                >
+                  <ArrowsOutLineHorizontal weight="bold" size={18} />
+                  <span>Horizontal</span>
+                </button>
+                <button
+                  className="flex items-center gap-2 px-2 py-1.5 text-sm rounded border border-border hover:bg-surface-alt transition-colors text-left"
+                  onClick={() => handleDistribute('vertical')}
+                  aria-label="Distribute vertical"
+                >
+                  <ArrowsOutLineVertical weight="bold" size={18} />
+                  <span>Vertical</span>
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

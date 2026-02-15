@@ -1415,7 +1415,7 @@ export default function MapV2({ searchText, onSelectionChange: onSelectionChange
         onApplyPinLayout={applyPinLayout}
         selectionModeActive={selectionModeActive}
         onToggleSelectionMode={() => setSelectionModeActive(prev => !prev)}
-        hasSelection={selectedNodeIds.length > 0}
+        selectedCount={selectedNodeIds.length}
         hasPinConstraints={pinConstraints.length > 0}
       />
       <Narrative narrative={narrative} onDismiss={hideNarrative} />
