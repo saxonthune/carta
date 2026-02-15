@@ -32,9 +32,11 @@ This skill does NOT implement code. Its output is a refined plan file that a hea
 
 Plan lifecycle state is tracked by directory location:
 - `todo-tasks/` — pending (needs grooming or execution)
-- `todo-tasks/.running/` — agent executing
+- `todo-tasks/.running/` — agent executing (`.md` files) or chain active (`.manifest` files)
 - `todo-tasks/.done/` — agent finished
 - `todo-tasks/.archived/` — reviewed and closed
+
+**Chain manifests**: `todo-tasks/.running/chain-*.manifest` files claim a sequence of plans. Plans listed in a manifest are "spoken for" — don't groom, launch, or suggest them. The status script marks these with ⛓️.
 
 ### Phase 0A: Debrief
 
@@ -93,6 +95,8 @@ AskUserQuestion({
 If "Fix it now": Switch to the agent's worktree, read the result file for error details, diagnose the failure, apply fixes, run `pnpm build && pnpm test`, commit, and merge. This is interactive — the skill acts as a debugging partner, not a headless agent.
 
 If a worktree still exists for a completed agent (merge conflict cases), mention it so the user can resolve manually.
+
+**Chain debrief**: If `status.sh` reports chains, show chain progress. For failed chains, read the manifest (`grep '^failed_phase:' todo-tasks/.running/chain-*.manifest`) and the failed phase's result file. Offer: fix in worktree, re-groom the failed phase, or archive and skip. For completed chains, archive the manifest: `mv todo-tasks/.running/chain-*.manifest todo-tasks/.archived/`.
 
 **If invoked with `status` keyword:** Show status with debrief, archive successful agents, triage failures, and stop. Don't proceed to plan selection.
 
@@ -318,6 +322,24 @@ Report:
 - Check progress: `tail -f todo-tasks/.running/{plan-name}.log`
 - Check results when done: `todo-tasks/.done/{plan-name}.result.md`
 
+### Chain Launch
+
+When multiple pre-groomed plans form a sequential dependency chain (e.g., phases of a larger project), offer chain execution instead of single-plan launch:
+
+```bash
+nohup bash .claude/skills/execute-plan/execute-chain.sh {chain-name} {plan1} {plan2} {plan3} ... > todo-tasks/.running/chain-{chain-name}.log 2>&1 &
+```
+
+The chain script runs plans sequentially, stopping on first failure. It creates a `.manifest` file that claims all phases (preventing parallel agents from touching them). If a plan is already running (launched before the chain), the chain waits for it.
+
+Example:
+```bash
+nohup bash .claude/skills/execute-plan/execute-chain.sh map-v2 \
+  map-v2-interaction map-v2-connections map-v2-organizers \
+  map-v2-toolbar-layout map-v2-parity map-v2-remove-rf \
+  > todo-tasks/.running/chain-map-v2.log 2>&1 &
+```
+
 ## Phase 7: Suggest Next Tasks
 
 After launching (or if the user declines), suggest safe next tasks. **Do not suggest plans that would conflict with running agents.**
@@ -336,6 +358,7 @@ After launching (or if the user declines), suggest safe next tasks. **Do not sug
 Read the first ~10 lines of each remaining plan in `todo-tasks/` to extract title, summary, and files touched. A plan is **unsafe to suggest** if:
 - It modifies the same files as a running agent's plan
 - It's already running as an agent (has a file in `todo-tasks/.running/`)
+- It's claimed by an active chain (listed in a `.running/chain-*.manifest`)
 
 ### Present suggestions
 

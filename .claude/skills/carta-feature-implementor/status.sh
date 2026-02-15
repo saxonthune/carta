@@ -57,6 +57,43 @@ if [[ -n "$DONE_FILES" ]]; then
   echo ""
 fi
 
+# ─── Chains ─────────────────────────────────────────────────────────────────
+
+CHAIN_FILES=$(ls "${TODO}/.running/"chain-*.manifest 2>/dev/null || true)
+CHAIN_CLAIMED=""
+
+if [[ -n "$CHAIN_FILES" ]]; then
+  echo "## Chains"
+  echo ""
+  for manifest in ${CHAIN_FILES}; do
+    chain=$(grep '^chain:' "$manifest" | sed 's/^chain: //')
+    phases=$(grep '^phases:' "$manifest" | sed 's/^phases: //')
+    current=$(grep '^current:' "$manifest" | sed 's/^current: //')
+    completed=$(grep '^completed:' "$manifest" | sed 's/^completed: //')
+    cstatus=$(grep '^status:' "$manifest" | sed 's/^status: //')
+    failed=$(grep '^failed_phase:' "$manifest" | sed 's/^failed_phase: //')
+
+    # Count phases
+    total=$(echo "$phases" | tr ',' '\n' | grep -c '.')
+    done_count=0
+    if [[ -n "$completed" ]]; then
+      done_count=$(echo "$completed" | tr ',' '\n' | grep -c '.')
+    fi
+
+    if [[ "$cstatus" == "complete" ]]; then
+      echo "- **${chain}** | COMPLETE | ${total}/${total} phases"
+    elif [[ "$cstatus" == "failed" ]]; then
+      echo "- **${chain}** | FAILED at **${failed}** | ${done_count}/${total} phases completed"
+    else
+      echo "- **${chain}** | RUNNING **${current}** | ${done_count}/${total} phases completed"
+    fi
+
+    # Track all phases claimed by chains (for pending plans section)
+    CHAIN_CLAIMED="${CHAIN_CLAIMED},${phases},"
+  done
+  echo ""
+fi
+
 # ─── Running Agents ──────────────────────────────────────────────────────────
 
 RUNNING_FILES=$(ls "${TODO}/.running/"*.md 2>/dev/null || true)
@@ -86,7 +123,11 @@ if [[ -n "$PENDING_FILES" ]]; then
   for plan in ${PENDING_FILES}; do
     slug=$(basename "$plan" .md)
     title=$(head -1 "$plan" | sed 's/^#* //')
-    echo "- **${slug}** — ${title}"
+    if [[ "$CHAIN_CLAIMED" == *",${slug},"* ]]; then
+      echo "- **${slug}** — ${title} ⛓️ (claimed by chain)"
+    else
+      echo "- **${slug}** — ${title}"
+    fi
   done
   echo ""
 fi
