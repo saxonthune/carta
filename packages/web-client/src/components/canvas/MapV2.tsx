@@ -19,11 +19,14 @@ import { useMapState } from '../../hooks/useMapState';
 import { useFlowTrace } from '../../hooks/useFlowTrace';
 import Narrative from './Narrative';
 import MapV2Toolbar from './MapV2Toolbar';
+import LayoutMap from './LayoutMap';
 import ContextMenu from '../ui/ContextMenu';
 import AddConstructMenu from './AddConstructMenu';
 import ConstructEditor from '../ConstructEditor';
 import ConstructDebugModal from '../modals/ConstructDebugModal';
 import { MenuLevel, type MenuItem } from '../ui/ContextMenuPrimitive';
+import { Tooltip } from '../ui';
+import { MapPin } from '@phosphor-icons/react';
 import { getRectBoundaryPoint, waypointsToPath, computeBezierPath, computeSideOffset, type Waypoint } from '../../utils/edgeGeometry.js';
 import { canConnect, getHandleType, nodeContainedInOrganizer, type ConstructSchema, type ConstructNodeData, getDisplayName, type DocumentAdapter } from '@carta/domain';
 import { stripHandlePrefix } from '../../utils/handlePrefix.js';
@@ -619,6 +622,9 @@ export default function MapV2({ searchText, onSelectionChange: onSelectionChange
   const [renameValue, setRenameValue] = useState('');
   const [colorPickerOrgId, setColorPickerOrgId] = useState<string | null>(null);
   const [layoutMenuOrgId, setLayoutMenuOrgId] = useState<string | null>(null);
+
+  // LayoutMap state
+  const [showLayoutMap, setShowLayoutMap] = useState(false);
   const colorTriggerRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const layoutTriggerRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
@@ -1537,6 +1543,27 @@ export default function MapV2({ searchText, onSelectionChange: onSelectionChange
           />
         </div>,
         document.body
+      )}
+
+      {/* LayoutMap overlay */}
+      {showLayoutMap && (
+        <div className="absolute inset-0 z-30">
+          <LayoutMap onClose={() => setShowLayoutMap(false)} />
+        </div>
+      )}
+
+      {/* LayoutMap floating button */}
+      {!showLayoutMap && (
+        <div className="absolute bottom-4 left-4 z-10">
+          <Tooltip content="Layout Map" placement="right">
+            <button
+              onClick={() => setShowLayoutMap(true)}
+              className="w-10 h-10 flex items-center justify-center rounded-full bg-surface border border-border shadow-sm text-content-muted hover:bg-accent hover:border-accent hover:text-white transition-colors"
+            >
+              <MapPin weight="bold" size={18} />
+            </button>
+          </Tooltip>
+        </div>
       )}
     </div>
   );

@@ -1,4 +1,3 @@
-import { Star } from '@phosphor-icons/react';
 import SegmentedControl from './ui/SegmentedControl';
 
 const VIEW_OPTIONS = [
@@ -22,27 +21,27 @@ export default function ViewToggle({ mode, onChange, metamapV2, onToggleMetamapV
       {mode === 'metamap' && onToggleMetamapV2 && (
         <button
           onClick={onToggleMetamapV2}
-          className={`w-7 h-7 flex items-center justify-center rounded-md transition-colors ${
+          className={`w-7 h-7 flex items-center justify-center rounded-md transition-colors text-xs ${
             metamapV2
-              ? 'bg-amber-500 text-white shadow-sm'
-              : 'bg-surface-alt text-content-muted hover:bg-surface-alt/80'
+              ? 'bg-surface-alt text-content-muted hover:bg-surface-alt/80'
+              : 'bg-amber-500 text-white shadow-sm'
           }`}
-          title={metamapV2 ? 'Switch to classic metamap' : 'Try new metamap'}
+          title={metamapV2 ? 'Switch to classic metamap' : 'Switch to new metamap'}
         >
-          <Star weight={metamapV2 ? 'fill' : 'regular'} size={14} />
+          💩
         </button>
       )}
       {mode === 'instances' && onToggleMapV2 && (
         <button
           onClick={onToggleMapV2}
-          className={`w-7 h-7 flex items-center justify-center rounded-md transition-colors ${
+          className={`w-7 h-7 flex items-center justify-center rounded-md transition-colors text-xs ${
             mapV2
-              ? 'bg-amber-500 text-white shadow-sm'
-              : 'bg-surface-alt text-content-muted hover:bg-surface-alt/80'
+              ? 'bg-surface-alt text-content-muted hover:bg-surface-alt/80'
+              : 'bg-amber-500 text-white shadow-sm'
           }`}
-          title={mapV2 ? 'Switch to classic map' : 'Try new map'}
+          title={mapV2 ? 'Switch to classic map' : 'Switch to new map'}
         >
-          <Star weight={mapV2 ? 'fill' : 'regular'} size={14} />
+          💩
         </button>
       )}
     </div>

@@ -40,8 +40,8 @@ export default function CanvasContainer({
   const [viewMode, setViewMode] = useState<'instances' | 'metamap'>('instances');
   const [filterText, setFilterText] = useState('');
   const [instanceSearchText, setInstanceSearchText] = useState('');
-  const [useMetamapV2, setUseMetamapV2] = useState(false);
-  const [useMapV2, setUseMapV2] = useState(false);
+  const [useMetamapV2, setUseMetamapV2] = useState(true);
+  const [useMapV2, setUseMapV2] = useState(true);
 
   return (
     <div className="flex-1 min-h-0 flex flex-col relative">
