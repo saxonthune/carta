@@ -52,3 +52,12 @@ export { stripHandlePrefix } from './handlePrefix';
 
 // Node dimensions
 export { getNodeDimensions } from './nodeDimensions';
+
+// Edge geometry
+export {
+  getRectBoundaryPoint,
+  waypointsToPath,
+  computeBezierPath,
+  type EdgeSide,
+  type Waypoint,
+} from './edgeGeometry.js';
