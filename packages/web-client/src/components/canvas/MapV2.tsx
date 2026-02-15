@@ -8,9 +8,13 @@ import { usePortSchemas } from '../../hooks/usePortSchemas';
 import { useMapNodePipeline } from '../../hooks/useMapNodePipeline';
 import { useMapEdgePipeline } from '../../hooks/useMapEdgePipeline';
 import { useNarrative } from '../../hooks/useNarrative';
+import { useOrganizerOperations } from '../../hooks/useOrganizerOperations';
+import { useLayoutActions } from '../../hooks/useLayoutActions';
+import { useNodeLinks } from '../../canvas-engine/useNodeLinks';
+import { findContainerAt } from '../../canvas-engine/containment';
 import Narrative from './Narrative';
 import { getRectBoundaryPoint, waypointsToPath, computeBezierPath, type Waypoint } from '../../utils/edgeGeometry.js';
-import { canConnect, getHandleType } from '@carta/domain';
+import { canConnect, getHandleType, nodeContainedInOrganizer } from '@carta/domain';
 import { stripHandlePrefix } from '../../utils/handlePrefix.js';
 
 interface MapV2Props {
@@ -18,12 +22,20 @@ interface MapV2Props {
 }
 
 // Inner component that uses canvas context
-function MapV2Inner({ sortedNodes, canvasRef, getSchema, getPortSchema, onSelectionChange }: {
+function MapV2Inner({ sortedNodes, canvasRef, getSchema, getPortSchema, onSelectionChange, attachNodeToOrganizer, detachNodeFromOrganizer, toggleOrganizerCollapse, getFollowers, showNarrative, hideNarrative, coveredNodeIds, rescueCoveredNodes }: {
   sortedNodes: any[];
   canvasRef: React.RefObject<CanvasRef | null>;
   getSchema: (type: string) => any;
   getPortSchema: (type: string) => any;
   onSelectionChange: (ids: string[]) => void;
+  attachNodeToOrganizer: (nodeId: string, organizerId: string) => void;
+  detachNodeFromOrganizer: (nodeId: string) => void;
+  toggleOrganizerCollapse: (organizerId: string) => void;
+  getFollowers: (leaderId: string) => string[];
+  showNarrative: (state: any) => void;
+  hideNarrative: () => void;
+  coveredNodeIds: string[];
+  rescueCoveredNodes: () => void;
 }) {
   const { adapter } = useDocumentContext();
   const { transform, isSelected, onNodePointerDown: onSelectPointerDown, selectedIds, startConnection, connectionDrag } = useCanvasContext();
@@ -47,6 +59,69 @@ function MapV2Inner({ sortedNodes, canvasRef, getSchema, getPortSchema, onSelect
   // Drag state
   const [dragOffsets, setDragOffsets] = useState<Map<string, { dx: number; dy: number }>>(new Map());
   const dragOriginRef = useRef<{ nodeId: string; x: number; y: number } | null>(null);
+  const lastPointerEventRef = useRef<{ clientX: number; clientY: number; ctrlKey: boolean; metaKey: boolean } | null>(null);
+  const rafIdRef = useRef<number | null>(null);
+
+  // Track pointer events during drag for Ctrl+drag hints
+  useEffect(() => {
+    if (!dragOriginRef.current) return;
+
+    const handlePointerMove = (e: PointerEvent) => {
+      lastPointerEventRef.current = { clientX: e.clientX, clientY: e.clientY, ctrlKey: e.ctrlKey, metaKey: e.metaKey };
+
+      // Throttle narrative updates via rAF
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+      }
+
+      const draggedNodeId = dragOriginRef.current?.nodeId;
+      if (!draggedNodeId) return;
+
+      rafIdRef.current = requestAnimationFrame(() => {
+        rafIdRef.current = null;
+        const node = sortedNodesRef.current.find(n => n.id === draggedNodeId);
+        if (!node || node.type === 'organizer') return;
+
+        const isCtrl = e.ctrlKey || e.metaKey;
+        const targetOrganizerId = findContainerAt(e.clientX, e.clientY);
+
+        if (targetOrganizerId && targetOrganizerId !== node.parentId) {
+          const targetOrg = sortedNodesRef.current.find(n => n.id === targetOrganizerId);
+          const orgData = targetOrg?.data as any;
+          const orgName = orgData?.name ?? 'organizer';
+
+          if (isCtrl) {
+            showNarrative({ kind: 'hint', text: `Release to add to ${orgName}`, variant: 'attach', position: { x: e.clientX, y: e.clientY } });
+          } else {
+            showNarrative({ kind: 'hint', text: `Hold Ctrl to add to ${orgName}`, variant: 'neutral', position: { x: e.clientX, y: e.clientY } });
+          }
+        } else if (targetOrganizerId && targetOrganizerId === node.parentId) {
+          const targetOrg = sortedNodesRef.current.find(n => n.id === targetOrganizerId);
+          const orgData = targetOrg?.data as any;
+          const orgName = orgData?.name ?? 'organizer';
+
+          if (isCtrl) {
+            showNarrative({ kind: 'hint', text: `Release to detach from ${orgName}`, variant: 'detach', position: { x: e.clientX, y: e.clientY } });
+          }
+        } else if (isCtrl && node.parentId && !targetOrganizerId) {
+          const parentOrg = sortedNodesRef.current.find(n => n.id === node.parentId);
+          const orgData = parentOrg?.data as any;
+          const orgName = orgData?.name ?? 'organizer';
+          showNarrative({ kind: 'hint', text: `Release to detach from ${orgName}`, variant: 'detach', position: { x: e.clientX, y: e.clientY } });
+        } else {
+          hideNarrative();
+        }
+      });
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+      }
+    };
+  }, [sortedNodesRef, showNarrative, hideNarrative]);
 
   // Resize state
   const [resizeDeltas, setResizeDeltas] = useState<{ dw: number; dh: number } | null>(null);
@@ -56,39 +131,68 @@ function MapV2Inner({ sortedNodes, canvasRef, getSchema, getPortSchema, onSelect
   const { onPointerDown: onNodePointerDownDrag } = useNodeDrag({
     zoomScale: transform.k,
     callbacks: {
-      onDragStart: (nodeId) => {
+      onDragStart: (nodeId, event) => {
         const node = sortedNodesRef.current.find(n => n.id === nodeId);
         if (node) {
           dragOriginRef.current = { nodeId, x: node.position.x, y: node.position.y };
         }
+        lastPointerEventRef.current = { clientX: event.clientX, clientY: event.clientY, ctrlKey: event.ctrlKey, metaKey: event.metaKey };
       },
       onDrag: (nodeId, deltaX, deltaY) => {
         const origin = dragOriginRef.current;
         if (!origin || origin.nodeId !== nodeId) return;
 
-        // If node is selected, move all selected nodes
-        const idsToMove = selectedIds.includes(nodeId) ? selectedIds : [nodeId];
+        // If node is selected, move all selected nodes + their wagon followers
+        let idsToMove = selectedIds.includes(nodeId) ? [...selectedIds] : [nodeId];
+        const allIdsToMove = new Set(idsToMove);
+        for (const id of idsToMove) {
+          for (const follower of getFollowers(id)) {
+            allIdsToMove.add(follower);
+          }
+        }
+
         setDragOffsets(prev => {
           const next = new Map(prev);
-          for (const id of idsToMove) {
+          for (const id of allIdsToMove) {
             next.set(id, { dx: deltaX, dy: deltaY });
           }
           return next;
         });
       },
-      onDragEnd: () => {
+      onDragEnd: (nodeId) => {
+        const node = sortedNodesRef.current.find(n => n.id === nodeId);
+        const lastEvent = lastPointerEventRef.current;
+
+        // Commit position changes first
         const patches: Array<{ id: string; position: { x: number; y: number } }> = [];
         for (const [id, offset] of dragOffsets) {
-          const node = sortedNodesRef.current.find(n => n.id === id);
-          if (node) {
-            patches.push({ id, position: { x: node.position.x + offset.dx, y: node.position.y + offset.dy } });
+          const n = sortedNodesRef.current.find(n => n.id === id);
+          if (n) {
+            patches.push({ id, position: { x: n.position.x + offset.dx, y: n.position.y + offset.dy } });
           }
         }
         if (patches.length > 0) {
           adapter.patchNodes?.(patches, 'drag-commit');
         }
+
+        // Handle Ctrl+drag attach/detach
+        if (lastEvent && node && node.type !== 'organizer') {
+          const isModifier = lastEvent.ctrlKey || lastEvent.metaKey;
+          if (isModifier) {
+            const targetOrganizerId = findContainerAt(lastEvent.clientX, lastEvent.clientY);
+
+            if (targetOrganizerId && targetOrganizerId !== node.parentId) {
+              attachNodeToOrganizer(nodeId, targetOrganizerId);
+            } else if (node.parentId && !targetOrganizerId) {
+              detachNodeFromOrganizer(nodeId);
+            }
+          }
+        }
+
         setDragOffsets(new Map());
         dragOriginRef.current = null;
+        lastPointerEventRef.current = null;
+        hideNarrative();
       },
     },
   });
@@ -174,17 +278,25 @@ function MapV2Inner({ sortedNodes, canvasRef, getSchema, getPortSchema, onSelect
 
         const selected = isSelected(n.id);
         const schema = !isOrganizer ? getSchema((data as any).constructType) : null;
+        const isCovered = coveredNodeIds.includes(n.id);
 
         return (
           <div
             key={n.id}
             data-node-id={n.id}
+            {...(isOrganizer ? { 'data-drop-target': 'true', 'data-container-id': n.id } : {})}
             onPointerDown={(e) => {
               onSelectPointerDown(n.id, e);
               onNodePointerDownDrag(n.id, e);
             }}
             onPointerEnter={() => setHoveredNodeId(n.id)}
             onPointerLeave={() => setHoveredNodeId(null)}
+            onDoubleClick={(e) => {
+              if (isOrganizer) {
+                e.stopPropagation();
+                toggleOrganizerCollapse(n.id);
+              }
+            }}
             style={{
               position: 'absolute',
               left: absX,
@@ -211,6 +323,27 @@ function MapV2Inner({ sortedNodes, canvasRef, getSchema, getPortSchema, onSelect
             }}
           >
             {label}
+            {/* Covered node warning badge */}
+            {isCovered && (
+              <div style={{
+                position: 'absolute',
+                top: -6,
+                right: -6,
+                width: 20,
+                height: 20,
+                borderRadius: '50%',
+                backgroundColor: '#ef4444',
+                color: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 12,
+                fontWeight: 700,
+                border: '2px solid var(--color-canvas, white)',
+              }}>
+                ⚠
+              </div>
+            )}
             {isOrganizer && (
               <div
                 style={{
@@ -358,6 +491,20 @@ function MapV2Inner({ sortedNodes, canvasRef, getSchema, getPortSchema, onSelect
         >
           ⊡
         </button>
+        {coveredNodeIds.length > 0 && (
+          <button
+            onClick={rescueCoveredNodes}
+            style={{
+              ...zoomButtonStyle,
+              backgroundColor: '#ef4444',
+              color: 'white',
+              border: 'none',
+            }}
+            title={`Rescue ${coveredNodeIds.length} covered node${coveredNodeIds.length > 1 ? 's' : ''}`}
+          >
+            ⚠
+          </button>
+        )}
       </div>
       {nodeElements}
     </>
@@ -365,11 +512,13 @@ function MapV2Inner({ sortedNodes, canvasRef, getSchema, getPortSchema, onSelect
 }
 
 export default function MapV2({ searchText }: MapV2Props) {
-  const { nodes } = useNodes();
+  const { nodes, setNodes } = useNodes();
   const { edges, setEdges } = useEdges();
   const { schemas, getSchema } = useSchemas();
   const { getPortSchema } = usePortSchemas();
   const { narrative, showNarrative, hideNarrative } = useNarrative();
+  const { adapter, ydoc } = useDocumentContext();
+  const { toggleOrganizerCollapse } = useOrganizerOperations();
 
   // Track selected IDs for edge pipeline
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
@@ -417,6 +566,116 @@ export default function MapV2({ searchText }: MapV2Props) {
     traceResult: null,
     nodes,
   });
+
+  // ReactFlow shim for useLayoutActions
+  const reactFlowShim = useMemo(() => ({
+    getNodes: () => sortedNodes,
+    setNodes: (updater: any) => setNodes(updater),
+    getEdges: () => displayEdges,
+    getIntersectingNodes: () => [], // Not used by attach/detach
+  }), [sortedNodes, displayEdges, setNodes]);
+
+  // Layout actions for attach/detach
+  const { attachNodeToOrganizer, detachNodeFromOrganizer } = useLayoutActions({
+    reactFlow: reactFlowShim as any,
+    setNodesLocal: setNodes,
+    adapter,
+    selectedNodeIds,
+    ydoc,
+  });
+
+  // Wagon links for leader/follower drag
+  const wagonLinks = useMemo(() => {
+    return sortedNodes
+      .filter(n => n.type === 'organizer' && n.parentId && (n.data as any).attachedToSemanticId)
+      .map(n => ({
+        id: `wagon-${n.id}`,
+        leader: n.parentId!, // the construct
+        follower: n.id,      // the wagon organizer
+      }));
+  }, [sortedNodes]);
+
+  const { getFollowers } = useNodeLinks({ links: wagonLinks });
+
+  // Covered nodes detection (inline, no hook dependency on ReactFlow)
+  const coveredNodeIds = useMemo(() => {
+    const visibleOrganizers = sortedNodes.filter(n => n.type === 'organizer' && !n.hidden);
+    if (visibleOrganizers.length === 0) return [];
+    const covered: string[] = [];
+    for (const node of sortedNodes) {
+      if (node.type === 'organizer' || node.hidden || node.parentId) continue;
+      const nodeW = node.measured?.width ?? node.width ?? 200;
+      const nodeH = node.measured?.height ?? node.height ?? 100;
+      for (const org of visibleOrganizers) {
+        const orgW = (org.style?.width as number) ?? org.width ?? 200;
+        const orgH = (org.style?.height as number) ?? org.height ?? 200;
+        if (nodeContainedInOrganizer(
+          node.position, { width: nodeW, height: nodeH },
+          org.position, { width: orgW, height: orgH }
+        )) {
+          covered.push(node.id);
+          break;
+        }
+      }
+    }
+    return covered;
+  }, [sortedNodes]);
+
+  // Rescue covered nodes
+  const rescueCoveredNodes = useCallback(() => {
+    const visibleOrganizers = sortedNodes.filter(n => n.type === 'organizer' && !n.hidden);
+    const margin = 20;
+    const patches: Array<{ id: string; position: { x: number; y: number } }> = [];
+
+    for (const nodeId of coveredNodeIds) {
+      const n = sortedNodes.find(node => node.id === nodeId);
+      if (!n) continue;
+
+      const nodeW = n.measured?.width ?? n.width ?? 200;
+      const nodeH = n.measured?.height ?? n.height ?? 100;
+
+      // Find the covering organizer
+      const coveringOrg = visibleOrganizers.find(org => {
+        const orgW = (org.style?.width as number) ?? org.width ?? 200;
+        const orgH = (org.style?.height as number) ?? org.height ?? 200;
+        return nodeContainedInOrganizer(
+          n.position, { width: nodeW, height: nodeH },
+          org.position, { width: orgW, height: orgH }
+        );
+      });
+      if (!coveringOrg) continue;
+
+      const orgW = (coveringOrg.style?.width as number) ?? coveringOrg.width ?? 200;
+      const orgH = (coveringOrg.style?.height as number) ?? coveringOrg.height ?? 200;
+
+      // Find nearest edge to node center
+      const cx = n.position.x + nodeW / 2;
+      const cy = n.position.y + nodeH / 2;
+      const distLeft = cx - coveringOrg.position.x;
+      const distRight = (coveringOrg.position.x + orgW) - cx;
+      const distTop = cy - coveringOrg.position.y;
+      const distBottom = (coveringOrg.position.y + orgH) - cy;
+      const minDist = Math.min(distLeft, distRight, distTop, distBottom);
+
+      let newPos = { ...n.position };
+      if (minDist === distLeft) {
+        newPos = { x: coveringOrg.position.x - nodeW - margin, y: n.position.y };
+      } else if (minDist === distRight) {
+        newPos = { x: coveringOrg.position.x + orgW + margin, y: n.position.y };
+      } else if (minDist === distTop) {
+        newPos = { x: n.position.x, y: coveringOrg.position.y - nodeH - margin };
+      } else {
+        newPos = { x: n.position.x, y: coveringOrg.position.y + orgH + margin };
+      }
+
+      patches.push({ id: nodeId, position: newPos });
+    }
+
+    if (patches.length > 0) {
+      adapter.patchNodes?.(patches, 'rescue-covered');
+      setSelectedNodeIds(coveredNodeIds);
+    }
+  }, [sortedNodes, coveredNodeIds, adapter, setSelectedNodeIds]);
 
   // Canvas ref + fit view on mount
   const canvasRef = useRef<CanvasRef>(null);
@@ -725,6 +984,14 @@ export default function MapV2({ searchText }: MapV2Props) {
           getSchema={getSchema}
           getPortSchema={getPortSchema}
           onSelectionChange={setSelectedNodeIds}
+          attachNodeToOrganizer={attachNodeToOrganizer}
+          detachNodeFromOrganizer={detachNodeFromOrganizer}
+          toggleOrganizerCollapse={toggleOrganizerCollapse}
+          getFollowers={getFollowers}
+          showNarrative={showNarrative}
+          hideNarrative={hideNarrative}
+          coveredNodeIds={coveredNodeIds}
+          rescueCoveredNodes={rescueCoveredNodes}
         />
       </Canvas>
       <Narrative narrative={narrative} onDismiss={hideNarrative} />
