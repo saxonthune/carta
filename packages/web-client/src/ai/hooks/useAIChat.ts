@@ -4,7 +4,6 @@ import { streamChat } from '../openrouter/client';
 import { toOpenRouterTools } from '../openrouter/adapter';
 import { getAllToolSchemas, executeTool } from '../tools/registry';
 import type { ChatMessage, ToolCall } from '../openrouter/types';
-import type { ToolContext } from '../tools/types';
 
 /**
  * Status of a tool call
@@ -36,23 +35,22 @@ export interface UseAIChatOptions {
 
 const SYSTEM_PROMPT = `You are an AI assistant helping users design software architectures in Carta.
 
-Carta is a visual editor where users create typed "constructs" (nodes) and connect them with edges to define relationships. Each construct has a type (like "controller", "service", "db_table") and fields specific to that type.
+You have tools for:
+- **Schemas**: Create, update, delete, migrate schemas and their fields/ports
+- **Constructs**: Create, read, update, delete constructs (nodes on the canvas)
+- **Connections**: Connect and disconnect constructs via ports
+- **Organizers**: Create groups, move constructs between them
+- **Pages**: Create, switch, rename, delete pages
+- **Layout**: Flow layout, arrange, pin constraints
+- **Batch**: Bulk create, bulk connect, batch mutate
+- **Compile**: Generate AI-readable output
+- **Library**: Schema packages, publish, apply
 
-You have access to tools to:
-- View the current document (getDocument) - returns all constructs, connections, schemas
-- Query specific nodes (getNode, queryNodes) - find nodes by ID, type, or field values
-- Add new constructs (addConstruct) - create new nodes on the canvas
-- Update node values (updateNode) - modify existing construct fields
-- Create connections (connectNodes) - link constructs via their ports
-- Delete nodes (deleteNode) - remove constructs and their connections
-
-When users ask you to make changes, use the appropriate tools. Always confirm what you've done after making changes.
-
-Keep responses concise and focused on the task at hand.`;
+Use the appropriate tools when users ask you to make changes. Always confirm what you've done.`;
 
 export function useAIChat(options: UseAIChatOptions) {
   const { apiKey, model } = options;
-  const { adapter } = useDocumentContext();
+  const { adapter, ydoc } = useDocumentContext();
 
   const [messages, setMessages] = useState<UIMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
@@ -124,7 +122,6 @@ export function useAIChat(options: UseAIChatOptions) {
     }
 
     const tools = toOpenRouterTools(getAllToolSchemas());
-    const toolContext: ToolContext = { adapter, origin: 'ai-sidebar' };
 
     // Start streaming
     setIsStreaming(true);
@@ -231,7 +228,8 @@ export function useAIChat(options: UseAIChatOptions) {
             // Invalid JSON, use empty object
           }
 
-          const result = executeTool(tc.function.name, parsedArgs, toolContext);
+          const pageId = adapter.getActivePage() || '';
+          const result = executeTool(tc.function.name, parsedArgs, ydoc, pageId);
 
           // Update the specific tool call status
           setMessages(prev => prev.map(m => {

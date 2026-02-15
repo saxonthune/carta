@@ -19,13 +19,9 @@ export { useAIChat, type UIMessage, type ToolCallStatus as ToolCallStatusType } 
 
 // Tools
 export {
-  cartaTools,
   getAllToolSchemas,
   executeTool,
-  type ToolSchema,
-  type ToolResult,
-  type ToolContext,
-  type CartaTool,
+  type SidebarToolSchema,
 } from './tools';
 
 // OpenRouter
