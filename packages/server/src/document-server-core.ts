@@ -72,6 +72,9 @@ import {
   listPackages,
   getPackage,
   createPackage,
+  listStandardPackages,
+  applyStandardPackage,
+  checkPackageDrift,
 } from '@carta/document';
 import type { BatchOperation, BatchResult, MigrationResult } from '@carta/document';
 import type { FlowDirection, ArrangeStrategy, ArrangeConstraint, PinDirection } from '@carta/domain';
@@ -1199,6 +1202,49 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
           return;
         }
         sendJson(res, 200, pkg);
+        return;
+      }
+
+      const stdPkgMatch = path.match(/^\/api\/documents\/([^/]+)\/standard-packages$/);
+      if (stdPkgMatch && method === 'GET') {
+        const roomId = stdPkgMatch[1]!;
+        const docState = await config.getDoc(roomId);
+        const packages = listStandardPackages(docState.doc);
+        sendJson(res, 200, { packages });
+        return;
+      }
+
+      const applyPkgMatch = path.match(/^\/api\/documents\/([^/]+)\/standard-packages\/apply$/);
+      if (applyPkgMatch && method === 'POST') {
+        const roomId = applyPkgMatch[1]!;
+        const docState = await config.getDoc(roomId);
+        const body = await parseJsonBody<{ packageId: string }>(req);
+        if (!body.packageId) {
+          sendError(res, 400, 'Missing required field: packageId', 'MISSING_FIELD');
+          return;
+        }
+        try {
+          const result = applyStandardPackage(docState.doc, body.packageId);
+          sendJson(res, 200, result);
+        } catch (err: unknown) {
+          const message = err instanceof Error ? err.message : String(err);
+          sendError(res, 400, message, 'APPLY_FAILED');
+        }
+        return;
+      }
+
+      const driftMatch = path.match(/^\/api\/documents\/([^/]+)\/standard-packages\/([^/]+)\/drift$/);
+      if (driftMatch && method === 'GET') {
+        const roomId = driftMatch[1]!;
+        const packageId = decodeURIComponent(driftMatch[2]!);
+        const docState = await config.getDoc(roomId);
+        try {
+          const result = checkPackageDrift(docState.doc, packageId);
+          sendJson(res, 200, result);
+        } catch (err: unknown) {
+          const message = err instanceof Error ? err.message : String(err);
+          sendError(res, 404, message, 'NOT_FOUND');
+        }
         return;
       }
 

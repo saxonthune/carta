@@ -473,6 +473,20 @@ const GetPackageSchema = z.object({
   packageId: z.string().describe('Schema package ID'),
 });
 
+const ListStandardPackagesSchema = z.object({
+  documentId: z.string().describe('The document ID'),
+});
+
+const ApplyStandardPackageSchema = z.object({
+  documentId: z.string().describe('The document ID'),
+  packageId: z.string().describe('Standard library package ID (e.g., "software-architecture", "bpmn")'),
+});
+
+const CheckPackageDriftSchema = z.object({
+  documentId: z.string().describe('The document ID'),
+  packageId: z.string().describe('Package ID to check for modifications'),
+});
+
 /**
  * Tool definitions for MCP
  */
@@ -826,6 +840,21 @@ For create/update ops, values is a Record keyed by field name from the schema. U
       description: 'Get a schema package with its member schemas, port schemas, groups, and relationships.',
       inputSchema: GetPackageSchema.shape,
     },
+    {
+      name: 'carta_list_standard_packages',
+      description: 'List all standard library packages with their status for a document. Status: "available" (not loaded), "loaded" (loaded, unmodified), "modified" (loaded but changed). Use carta_apply_package to load available packages.',
+      inputSchema: ListStandardPackagesSchema.shape,
+    },
+    {
+      name: 'carta_apply_package',
+      description: 'Apply a standard library package to a document by package ID. Idempotent: returns "skipped" if already loaded. Adds all schemas, port schemas, groups, and relationships from the package.',
+      inputSchema: ApplyStandardPackageSchema.shape,
+    },
+    {
+      name: 'carta_check_package_drift',
+      description: 'Check if a loaded package has been modified in the document. Compares current state against the snapshot stored at load time. Useful for diagnosing schema issues.',
+      inputSchema: CheckPackageDriftSchema.shape,
+    },
   ];
 }
 
@@ -892,6 +921,9 @@ export interface ToolHandlers {
   carta_create_package: ToolHandler;
   carta_list_packages: ToolHandler;
   carta_get_package: ToolHandler;
+  carta_list_standard_packages: ToolHandler;
+  carta_apply_package: ToolHandler;
+  carta_check_package_drift: ToolHandler;
   [key: string]: ToolHandler;
 }
 
@@ -1590,6 +1622,37 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
       const result = await apiRequest<unknown>(
         'GET',
         `/api/documents/${encodeURIComponent(documentId)}/packages/${encodeURIComponent(packageId)}`
+      );
+      if (result.error) return { error: result.error };
+      return result.data;
+    },
+
+    carta_list_standard_packages: async (args) => {
+      const { documentId } = ListStandardPackagesSchema.parse(args);
+      const result = await apiRequest<{ packages: unknown[] }>(
+        'GET',
+        `/api/documents/${encodeURIComponent(documentId)}/standard-packages`
+      );
+      if (result.error) return { error: result.error };
+      return result.data;
+    },
+
+    carta_apply_package: async (args) => {
+      const { documentId, packageId } = ApplyStandardPackageSchema.parse(args);
+      const result = await apiRequest<unknown>(
+        'POST',
+        `/api/documents/${encodeURIComponent(documentId)}/standard-packages/apply`,
+        { packageId }
+      );
+      if (result.error) return { error: result.error };
+      return result.data;
+    },
+
+    carta_check_package_drift: async (args) => {
+      const { documentId, packageId } = CheckPackageDriftSchema.parse(args);
+      const result = await apiRequest<unknown>(
+        'GET',
+        `/api/documents/${encodeURIComponent(documentId)}/standard-packages/${encodeURIComponent(packageId)}/drift`
       );
       if (result.error) return { error: result.error };
       return result.data;

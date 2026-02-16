@@ -21,6 +21,8 @@ import {
   computeOrganizerFit,
   DEFAULT_ORGANIZER_LAYOUT,
   resolvePinConstraints,
+  applyPackage,
+  isPackageModified,
 } from '@carta/domain';
 import type {
   CompilerNode,
@@ -46,6 +48,9 @@ import type {
   PortSchema,
   SchemaGroup,
   SchemaRelationship,
+  ApplyPackageResult,
+  DocumentAdapter,
+  PackageManifestEntry,
 } from '@carta/domain';
 import { CompilerEngine } from '@carta/compiler';
 import { yToPlain, deepPlainToY, safeGet } from './yjs-helpers.js';
@@ -3940,5 +3945,176 @@ export function createPackage(ydoc: Y.Doc, data: {
   }, MCP_ORIGIN);
 
   return pkg;
+}
+
+/**
+ * Build a DocumentAdapter shim from a Y.Doc.
+ * Implements only the subset needed by applyPackage and isPackageModified.
+ */
+function buildAdapterShim(ydoc: Y.Doc): DocumentAdapter {
+  const yschemas = ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.SCHEMAS);
+  const yportSchemas = ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.PORT_SCHEMAS);
+  const yschemaGroups = ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.SCHEMA_GROUPS);
+  const yschemaPackages = ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.SCHEMA_PACKAGES);
+  const yschemaRelationships = ydoc.getMap<Y.Map<unknown>>('schemaRelationships');
+  const ypackageManifest = ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.PACKAGE_MANIFEST);
+
+  return {
+    // Minimal interface - only implement what's needed
+    getPackageManifestEntry(id: string): PackageManifestEntry | undefined {
+      const yentry = ypackageManifest.get(id) as Y.Map<unknown> | undefined;
+      if (!yentry) return undefined;
+      return yToPlain(yentry) as PackageManifestEntry;
+    },
+
+    transaction<T>(fn: () => T, origin?: string): T {
+      let result: T;
+      ydoc.transact(() => {
+        result = fn();
+      }, origin);
+      return result!;
+    },
+
+    addSchemaPackage(pkg: Omit<SchemaPackage, 'id'> | SchemaPackage): SchemaPackage {
+      const fullPkg = 'id' in pkg ? pkg : { ...pkg, id: generateSchemaPackageId() };
+      yschemaPackages.set(fullPkg.id, deepPlainToY(fullPkg) as Y.Map<unknown>);
+      return fullPkg;
+    },
+
+    addSchema(schema: ConstructSchema): void {
+      yschemas.set(schema.type, deepPlainToY(schema) as Y.Map<unknown>);
+    },
+
+    addPortSchema(portSchema: PortSchema): void {
+      yportSchemas.set(portSchema.id, deepPlainToY(portSchema) as Y.Map<unknown>);
+    },
+
+    addSchemaGroup(group: Omit<SchemaGroup, 'id'> | SchemaGroup): SchemaGroup {
+      const fullGroup = 'id' in group ? group : { ...group, id: 'grp_' + Math.random().toString(36).substring(2, 11) };
+      yschemaGroups.set(fullGroup.id, deepPlainToY(fullGroup) as Y.Map<unknown>);
+      return fullGroup;
+    },
+
+    addSchemaRelationship(rel: SchemaRelationship): void {
+      yschemaRelationships.set(rel.id, deepPlainToY(rel) as Y.Map<unknown>);
+    },
+
+    addPackageManifestEntry(entry: PackageManifestEntry): void {
+      ypackageManifest.set(entry.packageId, deepPlainToY(entry) as Y.Map<unknown>);
+    },
+
+    getSchemas(): ConstructSchema[] {
+      const schemas: ConstructSchema[] = [];
+      yschemas.forEach((yschema) => {
+        schemas.push(yToPlain(yschema) as ConstructSchema);
+      });
+      return schemas;
+    },
+
+    getPortSchemas(): PortSchema[] {
+      const portSchemas: PortSchema[] = [];
+      yportSchemas.forEach((yportSchema) => {
+        portSchemas.push(yToPlain(yportSchema) as PortSchema);
+      });
+      return portSchemas;
+    },
+
+    getSchemaGroups(): SchemaGroup[] {
+      const groups: SchemaGroup[] = [];
+      yschemaGroups.forEach((ygroup) => {
+        groups.push(yToPlain(ygroup) as SchemaGroup);
+      });
+      return groups;
+    },
+
+    getSchemaRelationships(): SchemaRelationship[] {
+      const relationships: SchemaRelationship[] = [];
+      yschemaRelationships.forEach((yrel) => {
+        relationships.push(yToPlain(yrel) as SchemaRelationship);
+      });
+      return relationships;
+    },
+  } as DocumentAdapter;
+}
+
+/**
+ * List all standard library packages with their status relative to the document.
+ */
+export function listStandardPackages(ydoc: Y.Doc): Array<{
+  id: string;
+  name: string;
+  description: string;
+  color: string;
+  schemaCount: number;
+  status: 'available' | 'loaded' | 'modified';
+}> {
+  const ypackageManifest = ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.PACKAGE_MANIFEST);
+  const adapter = buildAdapterShim(ydoc);
+
+  return standardLibrary.map((pkg) => {
+    const manifestEntry = ypackageManifest.get(pkg.id) as Y.Map<unknown> | undefined;
+
+    let status: 'available' | 'loaded' | 'modified' = 'available';
+
+    if (manifestEntry) {
+      // Package is loaded - check if modified
+      try {
+        const modified = isPackageModified(adapter, pkg.id);
+        status = modified ? 'modified' : 'loaded';
+      } catch {
+        // If check fails, assume loaded
+        status = 'loaded';
+      }
+    }
+
+    return {
+      id: pkg.id,
+      name: pkg.name,
+      description: pkg.description || '',
+      color: pkg.color,
+      schemaCount: pkg.schemas.length,
+      status,
+    };
+  });
+}
+
+/**
+ * Apply a standard library package to the document by ID.
+ * Idempotent - returns 'skipped' if already loaded.
+ */
+export function applyStandardPackage(ydoc: Y.Doc, packageId: string): ApplyPackageResult {
+  const definition = standardLibrary.find(pkg => pkg.id === packageId);
+
+  if (!definition) {
+    throw new Error(`Unknown standard library package: ${packageId}`);
+  }
+
+  const adapter = buildAdapterShim(ydoc);
+  return applyPackage(adapter, definition);
+}
+
+/**
+ * Check if a loaded package has been modified in the document.
+ * Compares current state against the snapshot stored in the manifest.
+ */
+export function checkPackageDrift(ydoc: Y.Doc, packageId: string): {
+  packageId: string;
+  modified: boolean;
+  loadedAt?: string;
+} {
+  const adapter = buildAdapterShim(ydoc);
+  const manifestEntry = adapter.getPackageManifestEntry(packageId);
+
+  if (!manifestEntry) {
+    throw new Error(`Package manifest entry not found for packageId: ${packageId}`);
+  }
+
+  const modified = isPackageModified(adapter, packageId);
+
+  return {
+    packageId,
+    modified,
+    loadedAt: manifestEntry.loadedAt,
+  };
 }
 
