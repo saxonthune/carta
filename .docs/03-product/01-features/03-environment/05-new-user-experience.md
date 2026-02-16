@@ -1,15 +1,15 @@
 ---
 title: New User Experience
-status: draft
+status: active
 ---
 
 # New User Experience
 
-> **Status**: Being redesigned. The old auto-seeding NUX is removed. This doc describes the interim state and direction. See doc02.04.07 for the package loading architecture that replaces seeding.
+The new-document experience prioritizes **user control over convenience**. Schema packages are loaded explicitly via a package picker — no auto-seeding, no starter content. A new document starts with built-in port schemas only (flow, parent/child, relay, intercept, symmetric) and an empty canvas.
+
+This approach replaced the old auto-seeding system (removed 2026-02). See doc02.04.07 for the package loading architecture.
 
 ## Principle
-
-The new-document experience prioritizes **user control over convenience**. Schema packages are loaded explicitly via a package picker — no auto-seeding, no starter content. A new document starts with built-in port schemas only (flow, parent/child, relay, intercept, symmetric) and an empty canvas.
 
 This is a deliberate departure from the "plop into a working document" philosophy. The old approach caused fragile initialization bugs (duplicate schemas on reload) and gave users schemas they didn't ask for. The new approach treats the user as intentional: they choose their vocabulary.
 

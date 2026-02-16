@@ -74,6 +74,18 @@ Callable from initialization, package picker UI, or future library browser.
 - **Detailed diff**: Compare current state against `snapshot`. On-demand only.
 - **No live linking**: Loaded packages are forks. The document owns its copy.
 
+### UI Implementation
+
+**PackagePickerModal** — modal dialog for browsing and loading schema packages.
+
+- **Location**: `packages/web-client/src/components/modals/PackagePickerModal.tsx`
+- **Hook**: `usePackagePicker` provides package list, loaded status, and load action
+- **Displays**: Standard library packages with name, description, schema count, color, and load status
+- **Status indicators**: Available (can load), Loaded (already in document by UUID), Loaded (modified) (content hash differs from snapshot)
+- **Action**: Load button calls `applyPackage()` to write package to document + manifest
+
+The modal implements the "Loading a package (v1)" interaction flow described in the Interactions section.
+
 ## Design Decisions
 
 ### Fork ancestry, not live linking

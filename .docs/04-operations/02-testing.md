@@ -49,13 +49,21 @@ Test helpers live in `tests/e2e/helpers/CartaPage.ts` — a Page Object Model wi
 | Test File | Feature | Tests |
 |-----------|---------|-------|
 | `adapter-lifecycle.test.tsx` | Adapter lifecycle (doc02.02) | StrictMode double-mount handling, disposal during async init, timeout cancellation, operations on disposed adapters, subscription cleanup, rapid documentId changes |
+| `adapter-crud.test.tsx` | Adapter CRUD operations (doc02.02) | Basic create, read, update, delete operations on constructs, schemas, pages via DocumentAdapter |
+| `adapter-patch-methods.test.tsx` | Adapter patch methods (doc02.02) | Patch operations for updating specific fields without full object replacement |
+| `adapter-serialization.test.tsx` | Adapter serialization (doc02.02) | Round-trip serialization/deserialization of document state via adapter |
 | `port-validation.test.tsx` | Port polarity (doc03.01.01.03) | Polarity blocking (source-source, sink-sink), relay/intercept bypass, bidirectional compatibility, compatibleWith matching |
 | `pages.test.tsx` | Multi-page documents (doc03.01.01.04) | Page CRUD, isolation, copy/duplicate nodes |
 | `organizer.test.tsx` | Organizers (doc02.09, doc03.01.01.01) | Organizer CRUD via adapter, node-organizer association, page isolation, collapse state, nesting |
 | `organizer-operations.test.tsx` | Organizer operations (doc02.09) | Attach/detach constructs, layout strategies (spread/grid/flow/fit), business rules enforcement |
 | `organizer-geometry.test.tsx` | Organizer geometry (doc02.09) | Bounds computation, overlap detection, containment checks |
+| `organizer-logic.test.ts` | Organizer utilities (doc02.09) | Pure function tests for nesting validation, bounds computation, containment checks |
 | `presentation-model.test.ts` | Presentation model (doc02.09) | Visibility, positioning, edge remapping for organizers |
-| `seed-loader.test.ts` | Built-in schemas (doc02.06) | Seed loading, schema validation |
+| `clipboard-logic.test.ts` | Clipboard utilities (doc03.01.03.06) | Pure function tests for copy/paste coordinate math, bounds calculation, node transformation |
+| `connection-logic.test.ts` | Connection utilities (doc03.01.01.03) | Pure function tests for connection validation, normalization, handle direction |
+| `layout-geometry.test.ts` | Layout geometry (doc02.09) | Pure function tests for alignment, distribution, spacing calculations |
+| `layout-strategies.test.ts` | Layout strategies (doc02.09) | Pure function tests for grid, flow, spread, hierarchical layout algorithms |
+| `compiler-oracle.test.tsx` | Compiler oracle (doc03.01.02.01, doc05.04) | Using compiler output as test oracle: verify construct presence, connection representation, semantic ID rendering |
 | `folder-navigation.test.tsx` | Storage navigation (doc03.01.03.01) | Virtual folder derivation from forward-slash document names, breadcrumb paths, folder nesting |
 | `context-menu-*.test.tsx` | Context menus | Right-click, add related constructs |
 | `clear-*.test.tsx` | Document clearing | Clear instances, clear all, preserve title |
@@ -65,6 +73,11 @@ Test helpers live in `tests/e2e/helpers/CartaPage.ts` — a Page Object Model wi
 |-----------|---------|-------|
 | `document-server-core.test.ts` | Document server (doc02.05) | Document CRUD operations, page management, construct operations, connection management, organizer operations |
 | `document-server-smoke.test.ts` | Server startup (doc02.05) | Basic server lifecycle, port binding, health checks |
+
+### Compiler Tests
+| Test File | Feature | Tests |
+|-----------|---------|-------|
+| `compile.test.ts` | Compilation (doc03.01.02.01) | Basic compiler functionality: empty document message, construct output, relationship representation |
 
 Test providers (`testProviders.tsx`) use `skipPersistence` and `skipStarterContent` props to ensure clean test isolation.
 

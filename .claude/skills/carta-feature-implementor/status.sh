@@ -20,10 +20,22 @@ for arg in "$@"; do
 done
 
 # ─── Helper: parse result file ──────────────────────────────────────────────
-# Result files use simple key: value format (status:, merge:, commits:, etc.)
+# Result files use either:
+#   - Plain format: "status: success"
+#   - Markdown bold format: "**Status**: SUCCESS"
+#   - Manifest format: "status: running"
+# This function handles all three, case-insensitive key match, returns lowercase value.
 parse_result() {
   local file="$1" key="$2"
-  grep -m1 "^${key}:" "$file" 2>/dev/null | sed "s/^${key}: *//" || echo ""
+  local val=""
+  # Try plain format first: "key: value"
+  val=$(grep -m1 -i "^${key}:" "$file" 2>/dev/null | sed "s/^[^:]*: *//" || true)
+  # Try markdown bold format: "**Key**: value"
+  if [[ -z "$val" ]]; then
+    val=$(grep -m1 -i "^\*\*${key}\*\*:" "$file" 2>/dev/null | sed "s/^[^:]*: *//" || true)
+  fi
+  # Return lowercase
+  echo "${val,,}"
 }
 
 # ─── Completed Agents ───────────────────────────────────────────────────────

@@ -115,6 +115,20 @@ Some things feel like E2E but aren't. Schema editor field validation, page switc
 
 **Separate command layer from hook layer.** Extract operation logic from hooks into plain functions that take an adapter and return mutations. Testable without `renderHook`/`TestProviders`/`waitFor`. The presentation model already uses this pattern.
 
+#### Implemented Extractions
+
+The "separate command layer" pattern has been implemented for several domains via pure utility modules:
+
+| Module | Location | Purpose | Properties Tested |
+|--------|----------|---------|------------------|
+| `clipboardLogic.ts` | `packages/web-client/src/utils/` | Copy/paste coordinate math | Bounds calculation, paste positioning, node transformation with ID regeneration |
+| `connectionLogic.ts` | `packages/web-client/src/utils/` | Connection validation and normalization | Self-connection blocking, handle direction validation, port type compatibility |
+| `organizerLogic.ts` | `packages/web-client/src/utils/` | Organizer nesting and geometry | Absolute position calculation, nesting validation, containment checks |
+| `layoutGeometry.ts` | `packages/web-client/src/utils/` | Layout geometry operations | Alignment (left/center/right/top/middle/bottom), distribution, spacing |
+| `layoutStrategies.ts` | `packages/web-client/src/utils/` | Layout strategy algorithms | Grid positioning, hierarchical layout direction transforms |
+
+Each module exports pure functions that take data and return results. Hooks call these functions and apply results to the adapter. Tests exercise functions directly without React or Yjs. See doc04.02 for the corresponding integration tests.
+
 **Property-based tests over the adapter.** Round-trip properties are implicit in the adapter contract: `addSchema(s); getSchema(s.id)` returns equivalent to `s`. `undo()` after any single operation returns to prior state. Page isolation: operations on page A don't affect page B. One property covers thousands of concrete cases.
 
 **Compiler as semantic oracle.** The compiler transforms document state into structured text. For any manipulation: compile before, compile after, diff. "Adding a construct increases output by one block." "Renaming a schema updates all references." Tests through the full pipeline without a browser.

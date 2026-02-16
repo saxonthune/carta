@@ -132,7 +132,7 @@ Organized by purpose:
 
 ### `hooks/index.ts`
 Organized by purpose:
-- **Document state**: `useNodes`, `useEdges`, `useSchemas`, `usePortSchemas`, `useSchemaGroups`, `useSchemaPackages`, `useSchemaRelationships`, `usePages`, `useDocumentMeta`
+- **Document state**: `useNodes`, `useEdges`, `useSchemas`, `usePortSchemas`, `useSchemaGroups`, `useSchemaPackages`, `useSchemaRelationships`, `usePages`, `useDocumentMeta`, `usePackagePicker`
 - **Document operations**: `useGraphOperations`, `useConnections`, `usePresentation`, `useOrganizerOperations`, `useLayoutActions`, `useEdgeCleanup`, `usePinConstraints`
 - **UI state**: `useMapState`, `useMetamapLayout`, `useEdgeBundling`, `useNarrative`, `useFlowTrace`
 - **Map pipelines**: `useEdgeColor`, `useMapNodePipeline`, `useMapEdgePipeline`, `useCoveredNodes`
@@ -153,7 +153,7 @@ Schema view:
 
 ### `components/modals/index.ts`
 All modal dialogs:
-- `CompileModal`, `HelpModal`, `DocumentBrowserModal`, `ImportPreviewModal`, `ExportPreviewModal`, `ConstructDebugModal`, `ClearWorkspaceModal`, `DeleteEmptySchemasModal`, `DeleteEmptyGroupsModal`
+- `CompileModal`, `HelpModal`, `DocumentBrowserModal`, `ImportPreviewModal`, `ExportPreviewModal`, `ConstructDebugModal`, `ClearWorkspaceModal`, `DeleteEmptySchemasModal`, `DeleteEmptyGroupsModal`, `PackagePickerModal`
 
 ### `components/ui/index.ts`
 Organized by type:
@@ -168,11 +168,12 @@ Organized by type:
 Organized by purpose:
 - **File format**: `exportProject`, `CartaFile`, `CartaFilePage` types
 - **Import/export**: `importDocument`, `analyzeImport`, `analyzeExport`, related types
-- **Seeds**: `seeds` (provides seed documents: starter, kitchen-sink, saas, perf-150)
 - **Metamap layout**: `computeMetamapLayout`, layout constants, types
 - **Preferences**: `getLastDocumentId`, `setLastDocumentId`
 - **Random names**: `generateRandomName`
 - **String utilities**: `stripHandlePrefix`
+- **Node dimensions**: `getNodeDimensions`
+- **Edge geometry**: `getRectBoundaryPoint`, `waypointsToPath`, `computeBezierPath`, types
 
 ## Progressive Disclosure for Features
 
