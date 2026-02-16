@@ -11,14 +11,15 @@ import { getNodeDimensions } from '../utils/nodeDimensions.js';
 import type { SpreadInput } from '../utils/spreadNodes.js';
 import { computeOrthogonalRoutes, type NodeRect } from '../presentation/index.js';
 import { canNestInOrganizer } from './useOrganizerOperations.js';
+import { computeAlignment, computeDistribution } from '../utils/layoutGeometry.js';
 
-const ORGANIZER_CONTENT_TOP = DEFAULT_ORGANIZER_LAYOUT.padding + DEFAULT_ORGANIZER_LAYOUT.headerHeight;
+export const ORGANIZER_CONTENT_TOP = DEFAULT_ORGANIZER_LAYOUT.padding + DEFAULT_ORGANIZER_LAYOUT.headerHeight;
 
 /**
  * Compute absolute position for a node by walking the parent chain.
  * Module-level helper extracted for use in attach/detach operations.
  */
-function getAbsolutePosition(node: Node, allNodes: Node[]): { x: number; y: number } {
+export function getAbsolutePosition(node: Node, allNodes: Node[]): { x: number; y: number } {
   if (!node.parentId) return node.position;
   const parent = allNodes.find(n => n.id === node.parentId);
   if (!parent) return node.position;
@@ -29,7 +30,7 @@ function getAbsolutePosition(node: Node, allNodes: Node[]): { x: number; y: numb
 /**
  * Convert absolute position to position relative to a parent.
  */
-function toRelativePosition(
+export function toRelativePosition(
   absolutePos: { x: number; y: number },
   parentAbsolutePos: { x: number; y: number }
 ): { x: number; y: number } {
@@ -48,7 +49,7 @@ function toRelativePosition(
  * Organizer dimensions come from style.width/height. Construct dimensions come
  * from computeLayoutUnitSizes (which includes wagon bounding boxes).
  */
-function getTopLevelLayoutItems(
+export function getTopLevelLayoutItems(
   rfNodes: Node[],
   computeLayoutUnits: (nodeIds: string[]) => Map<string, { width: number; height: number }>
 ): SpreadInput[] {
@@ -84,7 +85,7 @@ function getTopLevelLayoutItems(
  * are dropped (internal). Edges from an organizer's child to an external node
  * are mapped to the organizer's ID. Deduplicates.
  */
-function getTopLevelEdges(
+export function getTopLevelEdges(
   rfNodes: Node[],
   rfEdges: Array<{ source: string; target: string }>,
   topLevelIds: Set<string>
@@ -130,7 +131,7 @@ function getTopLevelEdges(
  * Returns items with expanded dimensions (for layout algorithms) and an offset
  * map for converting layout positions back to construct positions.
  */
-function getChildLayoutUnits(
+export function getChildLayoutUnits(
   rfNodes: Node[],
   organizerId: string,
 ): { items: SpreadInput[]; offsets: Map<string, { x: number; y: number }> } {
@@ -188,7 +189,7 @@ function getChildLayoutUnits(
 /**
  * Convert layout positions (wagon-expanded space) back to construct positions.
  */
-function convertToConstructPositions(
+export function convertToConstructPositions(
   newPositions: Map<string, { x: number; y: number }>,
   offsets: Map<string, { x: number; y: number }>,
 ): Map<string, { x: number; y: number }> {
@@ -205,7 +206,7 @@ function convertToConstructPositions(
  * Returns NodeGeometry[] with expanded bounds that account for wagon organizers.
  * This is used for fitToChildren to properly encompass wagon organizers.
  */
-function getChildVisualFootprints(
+export function getChildVisualFootprints(
   rfNodes: Node[],
   organizerId: string,
 ): NodeGeometry[] {
@@ -828,53 +829,7 @@ export function useLayoutActions({
       };
     });
 
-    const newPositions = new Map<string, { x: number; y: number }>();
-
-    switch (axis) {
-      case 'left': {
-        const minX = Math.min(...nodes.map(n => n.x));
-        for (const n of nodes) {
-          newPositions.set(n.id, { x: minX, y: n.y });
-        }
-        break;
-      }
-      case 'center': {
-        const avgCenterX = nodes.reduce((sum, n) => sum + (n.x + n.width / 2), 0) / nodes.length;
-        for (const n of nodes) {
-          newPositions.set(n.id, { x: avgCenterX - n.width / 2, y: n.y });
-        }
-        break;
-      }
-      case 'right': {
-        const maxRight = Math.max(...nodes.map(n => n.x + n.width));
-        for (const n of nodes) {
-          newPositions.set(n.id, { x: maxRight - n.width, y: n.y });
-        }
-        break;
-      }
-      case 'top': {
-        const minY = Math.min(...nodes.map(n => n.y));
-        for (const n of nodes) {
-          newPositions.set(n.id, { x: n.x, y: minY });
-        }
-        break;
-      }
-      case 'middle': {
-        const avgCenterY = nodes.reduce((sum, n) => sum + (n.y + n.height / 2), 0) / nodes.length;
-        for (const n of nodes) {
-          newPositions.set(n.id, { x: n.x, y: avgCenterY - n.height / 2 });
-        }
-        break;
-      }
-      case 'bottom': {
-        const maxBottom = Math.max(...nodes.map(n => n.y + n.height));
-        for (const n of nodes) {
-          newPositions.set(n.id, { x: n.x, y: maxBottom - n.height });
-        }
-        break;
-      }
-    }
-
+    const newPositions = computeAlignment(nodes, axis);
     const patches = [...newPositions].map(([id, position]) => ({ id, position }));
     adapter.patchNodes?.(patches);
   }, [adapter, selectedNodeIds, computeLayoutUnits]);
@@ -900,45 +855,9 @@ export function useLayoutActions({
       };
     });
 
-    if (axis === 'horizontal') {
-      // Sort by x position
-      nodes.sort((a, b) => a.x - b.x);
-
-      const first = nodes[0];
-      const last = nodes[nodes.length - 1];
-      const span = (last.x + last.width) - first.x;
-      const totalWidth = nodes.reduce((sum, n) => sum + n.width, 0);
-      const gap = (span - totalWidth) / (nodes.length - 1);
-
-      let currentX = first.x;
-      const newPositions = new Map<string, { x: number; y: number }>();
-      for (const n of nodes) {
-        newPositions.set(n.id, { x: currentX, y: n.y });
-        currentX += n.width + gap;
-      }
-
-      const patches = [...newPositions].map(([id, position]) => ({ id, position }));
-      adapter.patchNodes?.(patches);
-    } else {
-      // Sort by y position
-      nodes.sort((a, b) => a.y - b.y);
-
-      const first = nodes[0];
-      const last = nodes[nodes.length - 1];
-      const span = (last.y + last.height) - first.y;
-      const totalHeight = nodes.reduce((sum, n) => sum + n.height, 0);
-      const gap = (span - totalHeight) / (nodes.length - 1);
-
-      let currentY = first.y;
-      const newPositions = new Map<string, { x: number; y: number }>();
-      for (const n of nodes) {
-        newPositions.set(n.id, { x: n.x, y: currentY });
-        currentY += n.height + gap;
-      }
-
-      const patches = [...newPositions].map(([id, position]) => ({ id, position }));
-      adapter.patchNodes?.(patches);
-    }
+    const newPositions = computeDistribution(nodes, axis);
+    const patches = [...newPositions].map(([id, position]) => ({ id, position }));
+    adapter.patchNodes?.(patches);
   }, [adapter, selectedNodeIds, computeLayoutUnits]);
 
   /**
