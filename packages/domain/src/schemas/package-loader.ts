@@ -7,12 +7,40 @@ import type {
   ConstructSchema,
   PortSchema,
   SchemaRelationship,
+  FieldSchema,
 } from '../types/index.js';
 
 export interface ApplyPackageResult {
   status: 'applied' | 'skipped';
   packageId: string;
   schemasLoaded?: number;
+}
+
+export interface FieldChange {
+  fieldName: string;
+  status: 'added' | 'removed' | 'modified';
+  detail?: string;
+}
+
+export interface SchemaDiff {
+  type: string;
+  displayName: string;
+  status: 'added' | 'removed' | 'modified';
+  fieldChanges?: FieldChange[];
+}
+
+export interface PortSchemaDiff {
+  id: string;
+  displayName: string;
+  status: 'added' | 'removed' | 'modified';
+}
+
+export interface PackageDiff {
+  packageName: string;
+  packageColor: string;
+  schemas: SchemaDiff[];
+  portSchemas: PortSchemaDiff[];
+  summary: { added: number; removed: number; modified: number };
 }
 
 /**
@@ -254,4 +282,129 @@ export function isPackageModified(
 
   // 5. Compare with manifest entry's hash
   return currentHash !== manifestEntry.contentHash;
+}
+
+/**
+ * Compare two sets of field schemas and return changes.
+ */
+function diffFields(snapshotFields: FieldSchema[], currentFields: FieldSchema[]): FieldChange[] {
+  const changes: FieldChange[] = [];
+  const snapshotByName = new Map(snapshotFields.map(f => [f.name, f]));
+  const currentByName = new Map(currentFields.map(f => [f.name, f]));
+
+  for (const [name, snapshotField] of snapshotByName) {
+    const currentField = currentByName.get(name);
+    if (!currentField) {
+      changes.push({ fieldName: name, status: 'removed' });
+    } else if (snapshotField.type !== currentField.type) {
+      changes.push({ fieldName: name, status: 'modified', detail: `type: ${snapshotField.type} → ${currentField.type}` });
+    } else if (snapshotField.displayTier !== currentField.displayTier) {
+      changes.push({ fieldName: name, status: 'modified', detail: `tier: ${snapshotField.displayTier || 'inspector'} → ${currentField.displayTier || 'inspector'}` });
+    }
+  }
+
+  for (const [name] of currentByName) {
+    if (!snapshotByName.has(name)) {
+      changes.push({ fieldName: name, status: 'added' });
+    }
+  }
+
+  return changes;
+}
+
+/**
+ * Compute a diff between a package's snapshot and its current state in the document.
+ * Shows added/removed/modified schemas and port schemas with field-level details.
+ *
+ * @param adapter - Document adapter interface
+ * @param packageId - Package ID to diff
+ * @returns PackageDiff or null if manifest entry not found
+ */
+export function computePackageDiff(
+  adapter: DocumentAdapter,
+  packageId: string
+): PackageDiff | null {
+  const manifestEntry = adapter.getPackageManifestEntry(packageId);
+  if (!manifestEntry) return null;
+
+  const snapshotSchemas = manifestEntry.snapshot.schemas;
+  const snapshotPortSchemas = manifestEntry.snapshot.portSchemas;
+
+  const currentSchemas = adapter.getSchemas().filter(s => s.packageId === packageId);
+  const currentPortSchemas = adapter.getPortSchemas().filter(p => p.packageId === packageId);
+
+  // Diff schemas by type (type is the identity key)
+  const snapshotByType = new Map(snapshotSchemas.map(s => [s.type, s]));
+  const currentByType = new Map(currentSchemas.map(s => [s.type, s]));
+
+  const schemaDiffs: SchemaDiff[] = [];
+
+  // Check for removed and modified schemas
+  for (const [type, snapshotSchema] of snapshotByType) {
+    const currentSchema = currentByType.get(type);
+    if (!currentSchema) {
+      schemaDiffs.push({
+        type,
+        displayName: snapshotSchema.displayName,
+        status: 'removed',
+      });
+    } else {
+      // Compare fields
+      const fieldChanges = diffFields(snapshotSchema.fields, currentSchema.fields);
+      if (fieldChanges.length > 0) {
+        schemaDiffs.push({
+          type,
+          displayName: currentSchema.displayName,
+          status: 'modified',
+          fieldChanges,
+        });
+      }
+    }
+  }
+
+  // Check for added schemas
+  for (const [type, currentSchema] of currentByType) {
+    if (!snapshotByType.has(type)) {
+      schemaDiffs.push({
+        type,
+        displayName: currentSchema.displayName,
+        status: 'added',
+      });
+    }
+  }
+
+  // Diff port schemas by id
+  const snapshotPortById = new Map(snapshotPortSchemas.map(p => [p.id, p]));
+  const currentPortById = new Map(currentPortSchemas.map(p => [p.id, p]));
+
+  const portDiffs: PortSchemaDiff[] = [];
+
+  for (const [id, snapshotPort] of snapshotPortById) {
+    const currentPort = currentPortById.get(id);
+    if (!currentPort) {
+      portDiffs.push({ id, displayName: snapshotPort.displayName, status: 'removed' });
+    } else if (JSON.stringify(snapshotPort) !== JSON.stringify(currentPort)) {
+      portDiffs.push({ id, displayName: currentPort.displayName, status: 'modified' });
+    }
+  }
+
+  for (const [id, currentPort] of currentPortById) {
+    if (!snapshotPortById.has(id)) {
+      portDiffs.push({ id, displayName: currentPort.displayName, status: 'added' });
+    }
+  }
+
+  const summary = {
+    added: schemaDiffs.filter(d => d.status === 'added').length,
+    removed: schemaDiffs.filter(d => d.status === 'removed').length,
+    modified: schemaDiffs.filter(d => d.status === 'modified').length,
+  };
+
+  return {
+    packageName: manifestEntry.displayName,
+    packageColor: manifestEntry.snapshot.color,
+    schemas: schemaDiffs,
+    portSchemas: portDiffs,
+    summary,
+  };
 }
