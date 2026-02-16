@@ -7,6 +7,7 @@ import {
   type SchemaPackageDefinition,
   type PackageManifestEntry,
   type ApplyPackageResult,
+  type SchemaPackage,
 } from '@carta/domain';
 
 export type PackageLoadStatus = 'available' | 'loaded' | 'modified';
@@ -16,6 +17,13 @@ export interface PackagePickerItem {
   status: PackageLoadStatus;
   manifestEntry?: PackageManifestEntry;
   schemaCount: number; // how many schemas in the doc match this packageId
+}
+
+export interface DocumentPackageItem {
+  package: SchemaPackage;
+  schemaCount: number;
+  isLibraryOrigin: boolean;
+  driftStatus: 'clean' | 'modified' | 'desync';
 }
 
 export function usePackagePicker() {
@@ -30,6 +38,17 @@ export function usePackagePicker() {
     const handler = () => setManifestEntries(adapter.getPackageManifest());
     const unsubscribe = adapter.subscribeToPackageManifest
       ? adapter.subscribeToPackageManifest(handler)
+      : adapter.subscribe(handler);
+    return unsubscribe;
+  }, [adapter]);
+
+  // Read schema packages reactively
+  const [schemaPackages, setSchemaPackages] = useState<SchemaPackage[]>(() => adapter.getSchemaPackages());
+
+  useEffect(() => {
+    const handler = () => setSchemaPackages(adapter.getSchemaPackages());
+    const unsubscribe = adapter.subscribeToSchemaPackages
+      ? adapter.subscribeToSchemaPackages(handler)
       : adapter.subscribe(handler);
     return unsubscribe;
   }, [adapter]);
@@ -89,5 +108,46 @@ export function usePackagePicker() {
     return applyPackage(adapter, definition);
   }, [adapter]);
 
-  return { items, loadPackage, repairPackage };
+  // Compute document packages with drift status
+  const documentPackages: DocumentPackageItem[] = useMemo(() => {
+    const allSchemas = adapter.getSchemas();
+    return schemaPackages.map((pkg) => {
+      const schemaCount = allSchemas.filter(s => s.packageId === pkg.id).length;
+      const isLibraryOrigin = standardLibrary.some(lib => lib.id === pkg.id);
+      let driftStatus: 'clean' | 'modified' | 'desync' = 'clean';
+      if (isLibraryOrigin) {
+        const entry = manifestEntries.find(e => e.packageId === pkg.id);
+        if (entry) {
+          if (schemaCount === 0) {
+            driftStatus = 'desync';
+          } else {
+            try {
+              driftStatus = isPackageModified(adapter, pkg.id) ? 'modified' : 'clean';
+            } catch {
+              driftStatus = 'desync';
+            }
+          }
+        }
+      }
+      return { package: pkg, schemaCount, isLibraryOrigin, driftStatus };
+    });
+  }, [schemaPackages, manifestEntries, adapter]);
+
+  // Compute unpackaged schemas
+  const unpackagedSchemas = useMemo(() => {
+    return adapter.getSchemas().filter(s => !s.packageId);
+  }, [adapter, manifestEntries]); // manifestEntries dep ensures reactivity on doc changes
+
+  // Create package action
+  const createPackage = useCallback((name: string, color: string, description: string, schemaTypes?: string[]) => {
+    const newPkg = adapter.addSchemaPackage({ name, color, description });
+    if (schemaTypes) {
+      for (const type of schemaTypes) {
+        adapter.updateSchema(type, { packageId: newPkg.id });
+      }
+    }
+    return newPkg;
+  }, [adapter]);
+
+  return { items, documentPackages, unpackagedSchemas, loadPackage, repairPackage, createPackage };
 }
