@@ -86,3 +86,78 @@ export async function waitFor(
   }
   throw new Error('waitFor timeout');
 }
+
+export interface ParsedConstructEntry {
+  id: string;
+  type: string;
+  references?: string[];
+  referencedBy?: string[];
+  organizedIn?: string;
+  organizedMembers?: string[];
+  [key: string]: unknown;
+}
+
+/**
+ * Parses compiler output into structured construct entries.
+ * The compiler outputs constructs as raw JSON arrays (not in code blocks).
+ * This function extracts all JSON arrays from the output, whether they're in code blocks or not.
+ */
+export function parseCompilerOutput(output: string): ParsedConstructEntry[] {
+  const entries: ParsedConstructEntry[] = [];
+
+  // Strategy: Split by section headers and look for JSON arrays
+  // The compiler outputs constructs under "## TypeDisplayName" headers followed by raw JSON arrays
+
+  // First, try to extract JSON code blocks (for organizers/schemas - we skip these as they're not arrays)
+  const jsonBlockRegex = /```json\n([\s\S]*?)\n```/g;
+  let match;
+  while ((match = jsonBlockRegex.exec(output)) !== null) {
+    try {
+      const parsed = JSON.parse(match[1]);
+      if (Array.isArray(parsed)) {
+        entries.push(...parsed);
+      }
+    } catch {
+      // Skip non-JSON blocks
+    }
+  }
+
+  // Second, look for raw JSON arrays (the main construct entries)
+  // These appear after "## DisplayName" headers
+  // We need to track bracket depth since arrays can contain nested arrays
+  const lines = output.split('\n');
+  let inJsonArray = false;
+  let jsonBuffer = '';
+  let bracketDepth = 0;
+
+  for (const line of lines) {
+    // Detect start of top-level JSON array (bracket depth 0 → 1)
+    if (!inJsonArray && line.trim() === '[') {
+      inJsonArray = true;
+      jsonBuffer = line;
+      bracketDepth = 1;
+    } else if (inJsonArray) {
+      jsonBuffer += '\n' + line;
+      // Update bracket depth
+      for (const char of line) {
+        if (char === '[') bracketDepth++;
+        if (char === ']') bracketDepth--;
+      }
+      // When we return to depth 0, we've closed the top-level array
+      if (bracketDepth === 0) {
+        try {
+          const parsed = JSON.parse(jsonBuffer);
+          if (Array.isArray(parsed)) {
+            entries.push(...parsed);
+          }
+        } catch {
+          // Skip invalid JSON
+        }
+        inJsonArray = false;
+        jsonBuffer = '';
+      }
+    }
+  }
+
+  return entries;
+}

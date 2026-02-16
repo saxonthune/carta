@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { useDocumentContext } from '../../src/contexts/DocumentContext';
 import { DocumentTestProvider } from '../setup/testProviders';
-import { createTestNode, createTestEdge } from '../setup/testHelpers';
+import { createTestNode, createTestEdge, parseCompilerOutput } from '../setup/testHelpers';
 import { CompilerEngine } from '@carta/compiler';
 import type { ConstructSchema } from '@carta/domain';
 
@@ -195,5 +195,92 @@ describe('Compiler as Semantic Oracle', () => {
     const output = compileDocument(adapter);
     expect(output).toContain('my-entity');
     expect(output).toContain('active');
+  });
+
+  it('renaming a construct updates its identity in compiler output', async () => {
+    const adapter = await getAdapter();
+    const schema: ConstructSchema = {
+      type: 'RenameTest',
+      displayName: 'Rename Test',
+      color: '#888888',
+      semanticDescription: '',
+      compilation: { format: 'json' },
+      ports: [],
+      fields: [],
+    };
+    adapter.addSchema(schema);
+
+    // Create two connected constructs
+    adapter.setNodes([
+      createTestNode({ id: 'r1', type: 'RenameTest', semanticId: 'old-name' }),
+      createTestNode({ id: 'r2', type: 'RenameTest', semanticId: 'other-node', x: 200 }),
+    ]);
+    adapter.setEdges([createTestEdge({ source: 'r1', target: 'r2' })]);
+
+    const beforeOutput = compileDocument(adapter);
+    const beforeEntries = parseCompilerOutput(beforeOutput);
+    expect(beforeEntries.find(e => e.id === 'old-name')).toBeTruthy();
+
+    // Rename r1 by re-setting nodes with updated semanticId
+    adapter.setNodes([
+      createTestNode({ id: 'r1', type: 'RenameTest', semanticId: 'new-name' }),
+      createTestNode({ id: 'r2', type: 'RenameTest', semanticId: 'other-node', x: 200 }),
+    ]);
+    // Keep same edges
+    const afterOutput = compileDocument(adapter);
+    const afterEntries = parseCompilerOutput(afterOutput);
+
+    // Old name gone, new name present
+    expect(afterEntries.find(e => e.id === 'old-name')).toBeUndefined();
+    expect(afterEntries.find(e => e.id === 'new-name')).toBeTruthy();
+
+    // The other node's referencedBy should reference the new name
+    const otherNode = afterEntries.find(e => e.id === 'other-node');
+    expect(otherNode?.referencedBy).toContain('new-name');
+    expect(otherNode?.referencedBy).not.toContain('old-name');
+  });
+
+  it('page isolation: compiling one page does not include constructs from another', async () => {
+    const adapter = await getAdapter();
+    const schema: ConstructSchema = {
+      type: 'PageTestNode',
+      displayName: 'Page Test Node',
+      color: '#888888',
+      semanticDescription: '',
+      compilation: { format: 'json' },
+      ports: [],
+      fields: [],
+    };
+    adapter.addSchema(schema);
+
+    // Add constructs to the default page (page A)
+    adapter.setNodes([
+      createTestNode({ id: 'pa1', type: 'PageTestNode', semanticId: 'page-a-construct' }),
+    ]);
+
+    // Create and switch to page B
+    const pageB = adapter.createPage('Page B');
+    adapter.setActivePage(pageB.id);
+
+    // Add constructs to page B
+    adapter.setNodes([
+      createTestNode({ id: 'pb1', type: 'PageTestNode', semanticId: 'page-b-construct' }),
+    ]);
+
+    // Compile from page B — should only contain page B constructs
+    const pageBOutput = compileDocument(adapter);
+    const pageBEntries = parseCompilerOutput(pageBOutput);
+    expect(pageBEntries.find(e => e.id === 'page-b-construct')).toBeTruthy();
+    expect(pageBEntries.find(e => e.id === 'page-a-construct')).toBeUndefined();
+
+    // Switch back to page A and compile — should only contain page A constructs
+    const pages = adapter.getPages();
+    const pageA = pages.find(p => p.id !== pageB.id)!;
+    adapter.setActivePage(pageA.id);
+
+    const pageAOutput = compileDocument(adapter);
+    const pageAEntries = parseCompilerOutput(pageAOutput);
+    expect(pageAEntries.find(e => e.id === 'page-a-construct')).toBeTruthy();
+    expect(pageAEntries.find(e => e.id === 'page-b-construct')).toBeUndefined();
   });
 });
