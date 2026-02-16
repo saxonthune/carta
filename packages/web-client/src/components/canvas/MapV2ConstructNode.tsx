@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ConnectionHandle } from '../../canvas-engine/index.js';
-import { type ConstructSchema, type ConstructNodeData, getFieldsForSummary, resolveNodeIcon, resolveNodeColor, type DocumentAdapter } from '@carta/domain';
+import { type ConstructSchema, type ConstructNodeData, getFieldsForSummary, resolveNodeIcon, resolveNodeColor, type DocumentAdapter, canConnect } from '@carta/domain';
 import type { LodBand } from './lod/lodPolicy.js';
 
 // Field list component with editing state
@@ -405,6 +405,9 @@ export interface MapV2ConstructNodeProps {
   sourcePortType: string | null;
   getPortSchema: (type: string) => any;
   startConnection: (nodeId: string, handleId: string, event: React.PointerEvent) => void;
+  // Narrative
+  showNarrative: (state: any) => void;
+  hideNarrative: () => void;
 }
 
 export function MapV2ConstructNode({
@@ -431,9 +434,11 @@ export function MapV2ConstructNode({
   onResizePointerDown,
   hoveredNodeId,
   connectionDrag,
-  sourcePortType: _sourcePortType,
+  sourcePortType,
   getPortSchema,
   startConnection,
+  showNarrative,
+  hideNarrative,
 }: MapV2ConstructNodeProps) {
   // Marker mode (LOD) rendering
   if (lodBand === 'marker' && !isCovered) {
@@ -666,36 +671,64 @@ export function MapV2ConstructNode({
 
             // During drag: show as target
             if (connectionDrag) {
+              // Check compatibility for dimming and narrator feedback
+              const isCompatible = sourcePortType ? canConnect(sourcePortType, port.portType) : false;
+              const opacity = isCompatible ? 1 : 0.3;
+
+              const handlePortHover = (e: React.PointerEvent) => {
+                if (isCompatible) {
+                  showNarrative({
+                    kind: 'hint',
+                    text: `Connect ${connectionDrag.sourceHandle} → ${port.label ?? port.id}`,
+                    variant: 'valid-connection',
+                    position: { x: e.clientX, y: e.clientY },
+                  });
+                } else {
+                  showNarrative({
+                    kind: 'hint',
+                    text: `Incompatible port types`,
+                    variant: 'invalid-connection',
+                    position: { x: e.clientX, y: e.clientY },
+                  });
+                }
+              };
+
               return (
-                <ConnectionHandle
+                <div
                   key={port.id}
-                  type="target"
-                  id={port.id}
-                  nodeId={node.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    padding: '6px 12px',
-                    minHeight: 36,
-                    cursor: 'crosshair',
-                    borderRadius: 4,
-                    margin: '0 4px',
-                  }}
+                  onPointerEnter={handlePortHover}
+                  onPointerLeave={() => hideNarrative()}
+                  style={{ opacity }}
                 >
-                  <div style={{
-                    width: 16, height: 16, borderRadius: '50%',
-                    backgroundColor: portColor,
-                    border: '2px solid var(--color-surface)',
-                    flexShrink: 0,
-                  }} />
-                  <span style={{
-                    fontSize: 12, color: 'var(--color-content)',
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                  }}>
-                    {port.label ?? port.id}
-                  </span>
-                </ConnectionHandle>
+                  <ConnectionHandle
+                    type="target"
+                    id={port.id}
+                    nodeId={node.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      padding: '6px 12px',
+                      minHeight: 36,
+                      cursor: 'crosshair',
+                      borderRadius: 4,
+                      margin: '0 4px',
+                    }}
+                  >
+                    <div style={{
+                      width: 16, height: 16, borderRadius: '50%',
+                      backgroundColor: portColor,
+                      border: '2px solid var(--color-surface)',
+                      flexShrink: 0,
+                    }} />
+                    <span style={{
+                      fontSize: 12, color: 'var(--color-content)',
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>
+                      {port.label ?? port.id}
+                    </span>
+                  </ConnectionHandle>
+                </div>
               );
             }
 

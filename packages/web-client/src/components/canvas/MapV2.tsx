@@ -557,6 +557,8 @@ function MapV2Content({
             sourcePortType={sourcePortType}
             getPortSchema={getPortSchema}
             startConnection={startConnection}
+            showNarrative={showNarrative}
+            hideNarrative={hideNarrative}
           />
         );
       }
