@@ -6,7 +6,6 @@
 
 import * as Y from 'yjs';
 import type { ConstructSchema, PortSchema, SchemaGroup, SchemaPackage, PackageManifestEntry } from '@carta/domain';
-import { standardLibrary, builtInPortSchemas } from '@carta/domain';
 import { yToPlain, deepPlainToY } from './yjs-helpers.js';
 import { CARTA_FILE_VERSION } from './constants.js';
 import type { CartaFile, CartaFilePage } from './file-format.js';
@@ -66,24 +65,16 @@ export function extractCartaFile(doc: Y.Doc): CartaFile {
   // Sort levels by order
   pages.sort((a, b) => a.order - b.order);
 
-  // Extract custom schemas (filter out built-ins)
-  const builtInTypes = new Set(standardLibrary.flatMap(pkg => pkg.schemas.map(s => s.type)));
+  // Extract all schemas (including package schemas — file must be self-contained)
   const customSchemas: ConstructSchema[] = [];
   yschemas.forEach((yschema) => {
-    const schema = yToPlain(yschema) as ConstructSchema;
-    if (!builtInTypes.has(schema.type)) {
-      customSchemas.push(schema);
-    }
+    customSchemas.push(yToPlain(yschema) as ConstructSchema);
   });
 
-  // Extract custom port schemas (filter out built-ins)
-  const builtInPortIds = new Set(builtInPortSchemas.map(p => p.id));
+  // Extract all port schemas
   const portSchemas: PortSchema[] = [];
   yportSchemas.forEach((yps) => {
-    const ps = yToPlain(yps) as PortSchema;
-    if (!builtInPortIds.has(ps.id)) {
-      portSchemas.push(ps);
-    }
+    portSchemas.push(yToPlain(yps) as PortSchema);
   });
 
   // Extract schema groups
