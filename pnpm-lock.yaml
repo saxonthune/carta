@@ -125,6 +125,9 @@ importers:
 
   packages/domain:
     dependencies:
+      '@carta/types':
+        specifier: workspace:*
+        version: link:../types
       js-sha256:
         specifier: ^0.11.0
         version: 0.11.1
@@ -190,6 +193,12 @@ importers:
       vitest:
         specifier: ^3.2.1
         version: 3.2.4(@types/debug@4.1.12)(@types/node@24.10.9)(@vitest/ui@3.2.4)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(tsx@4.21.0)
+
+  packages/types:
+    devDependencies:
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
 
   packages/web-client:
     dependencies:
