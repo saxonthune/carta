@@ -8,42 +8,8 @@ const VIEW_OPTIONS = [
 interface ViewToggleProps {
   mode: 'instances' | 'metamap';
   onChange: (mode: 'instances' | 'metamap') => void;
-  metamapV2?: boolean;
-  onToggleMetamapV2?: () => void;
-  mapV2?: boolean;
-  onToggleMapV2?: () => void;
 }
 
-export default function ViewToggle({ mode, onChange, metamapV2, onToggleMetamapV2, mapV2, onToggleMapV2 }: ViewToggleProps) {
-  return (
-    <div className="flex items-center gap-1.5">
-      <SegmentedControl options={VIEW_OPTIONS} value={mode} onChange={onChange} />
-      {mode === 'metamap' && onToggleMetamapV2 && (
-        <button
-          onClick={onToggleMetamapV2}
-          className={`w-7 h-7 flex items-center justify-center rounded-md transition-colors text-xs ${
-            metamapV2
-              ? 'bg-surface-alt text-content-muted hover:bg-surface-alt/80'
-              : 'bg-amber-500 text-white shadow-sm'
-          }`}
-          title={metamapV2 ? 'Switch to classic metamap' : 'Switch to new metamap'}
-        >
-          💩
-        </button>
-      )}
-      {mode === 'instances' && onToggleMapV2 && (
-        <button
-          onClick={onToggleMapV2}
-          className={`w-7 h-7 flex items-center justify-center rounded-md transition-colors text-xs ${
-            mapV2
-              ? 'bg-surface-alt text-content-muted hover:bg-surface-alt/80'
-              : 'bg-amber-500 text-white shadow-sm'
-          }`}
-          title={mapV2 ? 'Switch to classic map' : 'Switch to new map'}
-        >
-          💩
-        </button>
-      )}
-    </div>
-  );
+export default function ViewToggle({ mode, onChange }: ViewToggleProps) {
+  return <SegmentedControl options={VIEW_OPTIONS} value={mode} onChange={onChange} />;
 }

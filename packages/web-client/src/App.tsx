@@ -1,5 +1,4 @@
 import { useCallback, useState, useRef, useEffect, lazy, Suspense } from 'react';
-import { type Node, type Edge } from '@xyflow/react';
 import DocumentBrowserModal from './components/modals/DocumentBrowserModal';
 import Header from './components/Header';
 import CanvasContainer from './components/canvas/CanvasContainer';
@@ -10,7 +9,6 @@ import { useDocumentMeta } from './hooks/useDocumentMeta';
 import { useSchemas } from './hooks/useSchemas';
 import { useSchemaGroups } from './hooks/useSchemaGroups';
 import { usePages } from './hooks/usePages';
-import { useNodes } from './hooks/useNodes';
 import { useClearDocument } from './hooks/useClearDocument';
 import { useDocumentContext } from './contexts/DocumentContext';
 import { exportProject, importProject, type CartaFile } from './utils/cartaFile';
@@ -18,7 +16,6 @@ import { analyzeImport, type ImportAnalysis, type ImportOptions } from './utils/
 import { analyzeExport, type ExportAnalysis, type ExportOptions } from './utils/exportAnalyzer';
 import { importDocument, type ImportConfig } from './utils/documentImporter';
 import { config } from './config/featureFlags';
-import InspectorPanel from './components/canvas/InspectorPanel';
 
 const ImportPreviewModal = lazy(() => import('./components/modals/ImportPreviewModal'));
 const ExportPreviewModal = lazy(() => import('./components/modals/ExportPreviewModal'));
@@ -65,23 +62,20 @@ function AppContent() {
   const { schemas } = useSchemas();
   const { schemaGroups } = useSchemaGroups();
   const { pages, activePage, setActivePage, createPage, deletePage, updatePage, duplicatePage } = usePages();
-  const { updateNode } = useNodes();
   const [importPreview, setImportPreview] = useState<{ data: CartaFile; analysis: ImportAnalysis } | null>(null);
   const [pendingImport, setPendingImport] = useState<{ data: CartaFile; config: ImportConfig; schemasToImport: ConstructSchema[] } | null>(null);
   const [exportPreview, setExportPreview] = useState<ExportAnalysis | null>(null);
   const [compileOutput, setCompileOutput] = useState<string | null>(null);
-  const [selectedNodes, setSelectedNodes] = useState<Node[]>([]);
   const [aiSidebarOpen, setAiSidebarOpen] = useState(false);
   const [aiSidebarWidth] = useState(400);
-  const [inspectorOpen, setInspectorOpen] = useState(true);
-  const nodesEdgesRef = useRef<{ nodes: Node[]; edges: Edge[] }>({ nodes: [], edges: [] });
+  const nodesEdgesRef = useRef<{ nodes: any[]; edges: any[] }>({ nodes: [], edges: [] });
   const { clearDocument } = useClearDocument();
 
   // Initialize refs on mount
   useEffect(() => {
     nodesEdgesRef.current = {
-      nodes: adapter.getNodes() as Node[],
-      edges: adapter.getEdges() as Edge[],
+      nodes: adapter.getNodes() as any[],
+      edges: adapter.getEdges() as any[],
     };
   }, [adapter]);
 
@@ -110,16 +104,8 @@ function AppContent() {
     importDocument(adapter, data, config, schemasToImport);
   }, [pendingImport, adapter]);
 
-  const handleNodesEdgesChange = useCallback((nodes: Node[], edges: Edge[]) => {
-    nodesEdgesRef.current = { nodes, edges };
-  }, []);
-
-  const handleSelectionChange = useCallback((nodes: Node[]) => {
-    setSelectedNodes(nodes);
-  }, []);
-
-  const handleNodeDoubleClick = useCallback((_nodeId: string) => {
-    setInspectorOpen(true);
+  const handleSelectionChange = useCallback((_nodes: any[]) => {
+    // Selection handling removed with InspectorPanel (V1-only)
   }, []);
 
   const handleExport = useCallback(() => {
@@ -208,10 +194,7 @@ function AppContent() {
           onToggleAI={() => setAiSidebarOpen(!aiSidebarOpen)}
         />
         <CanvasContainer
-          title={title}
-          onNodesEdgesChange={handleNodesEdgesChange}
           onSelectionChange={handleSelectionChange}
-          onNodeDoubleClick={handleNodeDoubleClick}
           pages={pages}
           activePage={activePage}
           onSetActivePage={setActivePage}
@@ -221,15 +204,6 @@ function AppContent() {
           onDuplicatePage={duplicatePage}
         />
       </div>
-
-      {inspectorOpen && selectedNodes.length === 1 && selectedNodes[0].type === 'construct' && (
-        <InspectorPanel
-          node={selectedNodes[0]}
-          schemas={schemas}
-          onNodeUpdate={(nodeId, updates) => updateNode(nodeId, updates)}
-          onClose={() => setInspectorOpen(false)}
-        />
-      )}
 
       <Suspense fallback={null}>
         <AISidebar

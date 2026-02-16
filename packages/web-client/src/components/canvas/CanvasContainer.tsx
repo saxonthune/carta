@@ -1,9 +1,6 @@
 import { useState } from 'react';
-import { ReactFlowProvider, type Node, type Edge } from '@xyflow/react';
-import Map from './Map';
 import MapV2 from './MapV2';
 import LayoutMap from './LayoutMap';
-import Metamap from '../metamap/Metamap';
 import MetamapV2 from '../metamap-v2/MetamapV2';
 import ViewToggle from '../ViewToggle';
 import PageSwitcher from '../PageSwitcher';
@@ -14,10 +11,7 @@ import { MapPin } from '@phosphor-icons/react';
 import type { Page } from '@carta/domain';
 
 interface CanvasContainerProps {
-  title: string;
-  onNodesEdgesChange: (nodes: Node[], edges: Edge[]) => void;
-  onSelectionChange: (nodes: Node[]) => void;
-  onNodeDoubleClick: (nodeId: string) => void;
+  onSelectionChange: (nodes: any[]) => void;
   pages: Page[];
   activePage: string | undefined;
   onSetActivePage: (pageId: string) => void;
@@ -28,10 +22,7 @@ interface CanvasContainerProps {
 }
 
 export default function CanvasContainer({
-  title,
-  onNodesEdgesChange,
   onSelectionChange,
-  onNodeDoubleClick,
   pages,
   activePage,
   onSetActivePage,
@@ -43,8 +34,6 @@ export default function CanvasContainer({
   const [viewMode, setViewMode] = useState<'instances' | 'metamap'>('instances');
   const [filterText, setFilterText] = useState('');
   const [instanceSearchText, setInstanceSearchText] = useState('');
-  const [useMetamapV2, setUseMetamapV2] = useState(true);
-  const [useMapV2, setUseMapV2] = useState(true);
   const [showLayoutMap, setShowLayoutMap] = useState(false);
 
   return (
@@ -70,10 +59,6 @@ export default function CanvasContainer({
             <ViewToggle
               mode={viewMode}
               onChange={setViewMode}
-              metamapV2={useMetamapV2}
-              onToggleMetamapV2={() => setUseMetamapV2(v => !v)}
-              mapV2={useMapV2}
-              onToggleMapV2={() => setUseMapV2(v => !v)}
             />
           </div>
         </div>
@@ -96,23 +81,11 @@ export default function CanvasContainer({
         {viewMode === 'instances' ? (
           showLayoutMap ? (
             <LayoutMap onClose={() => setShowLayoutMap(false)} />
-          ) : useMapV2 ? (
-            <MapV2 searchText={instanceSearchText} onSelectionChange={onSelectionChange} />
           ) : (
-            <ReactFlowProvider>
-              <Map
-                title={title}
-                onNodesEdgesChange={onNodesEdgesChange}
-                onSelectionChange={onSelectionChange}
-                onNodeDoubleClick={onNodeDoubleClick}
-                searchText={instanceSearchText}
-              />
-            </ReactFlowProvider>
+            <MapV2 searchText={instanceSearchText} onSelectionChange={onSelectionChange} />
           )
-        ) : useMetamapV2 ? (
-          <MetamapV2 />
         ) : (
-          <Metamap filterText={filterText} onFilterTextChange={setFilterText} />
+          <MetamapV2 />
         )}
       </div>
       {viewMode === 'instances' && !showLayoutMap && (

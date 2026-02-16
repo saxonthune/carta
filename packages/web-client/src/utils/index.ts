@@ -23,21 +23,6 @@ export {
   type ExportOptions,
 } from './exportAnalyzer';
 
-// Metamap layout
-export {
-  computeMetamapLayout,
-  estimateSchemaNodeHeight,
-  SCHEMA_NODE_WIDTH,
-  GROUP_PADDING_X,
-  GROUP_PADDING_TOP,
-  GROUP_PADDING_BOTTOM,
-  COMPACT_HEIGHT,
-  COLLAPSED_GROUP_WIDTH,
-  COLLAPSED_GROUP_HEIGHT,
-  type MetamapLayoutInput,
-  type MetamapLayoutOutput,
-} from './metamapLayout';
-
 // Preferences
 export { getLastDocumentId, setLastDocumentId } from './preferences';
 

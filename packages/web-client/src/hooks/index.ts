@@ -11,8 +11,6 @@ export { useDocumentMeta } from './useDocumentMeta';
 export { usePackagePicker } from './usePackagePicker.js';
 
 // Document operations
-export { useGraphOperations } from './useGraphOperations';
-export { useConnections } from './useConnections';
 export { usePresentation } from './usePresentation';
 export { useOrganizerOperations, type UseOrganizerOperationsResult } from './useOrganizerOperations';
 export { useLayoutActions, type UseLayoutActionsResult } from './useLayoutActions';
@@ -22,7 +20,6 @@ export { usePinConstraints } from './usePinConstraints.js';
 // UI state
 export { useMapState } from './useMapState';
 export { useNarrative, type NarrativeState, type NarrativeEndpoint } from './useNarrative';
-export { useMetamapLayout } from './useMetamapLayout';
 export { useEdgeBundling } from './useEdgeBundling';
 export { useFlowTrace } from './useFlowTrace';
 
@@ -30,10 +27,8 @@ export { useFlowTrace } from './useFlowTrace';
 export { useEdgeColor } from './useEdgeColor';
 export { useMapNodePipeline } from './useMapNodePipeline';
 export { useMapEdgePipeline } from './useMapEdgePipeline';
-export { useCoveredNodes } from './useCoveredNodes';
 
 // Utilities
-export { useClipboard } from './useClipboard';
 export { useUndoRedo } from './useUndoRedo';
 export { useAwareness } from './useAwareness';
 export { useDirtyStateGuard } from './useDirtyStateGuard';
