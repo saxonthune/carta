@@ -32,6 +32,7 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 | doc01.04 | `04-ux-principles.md` | Fitts's Law, Hick's Law, visual design principles | ux, design, ui | — |
 | doc01.05 | `05-primary-sources/` | Author's original writings, directional intent | inspiration, vision, primary-source | — |
 | doc01.05.01 | `05-primary-sources/01-the-carta-experiment.md` | Artifact-driven development, code-minus-one abstraction layers | artifacts, abstraction, vision | doc01.01 |
+| doc01.05.02 | `05-primary-sources/02-verifiability-and-testability.md` | Epistemology of verification, test value hierarchy, testability architecture | testing, verification, epistemology, agents, testability, oracles, properties | doc04.02, doc02.02 |
 
 ## 02-system — Architecture and technical design
 
@@ -163,7 +164,11 @@ Quick lookup for file-path→doc mapping:
 | `presentation` | doc02.09, doc02.08 |
 | `layout` | doc02.09 |
 | `rendering` | doc02.09, doc03.01.14, doc02.07 |
-| `testing` | doc04.02 |
+| `testing` | doc04.02, doc01.05.02 |
+| `verification` | doc01.05.02 |
+| `epistemology` | doc01.05.02 |
+| `testability` | doc01.05.02 |
+| `oracles` | doc01.05.02 |
 | `mcp` | doc02.03, doc03.01.03.03 |
 | `research` | doc05.01, doc05.02 |
 | `tokens` | doc05.02 |

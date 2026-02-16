@@ -38,6 +38,8 @@ Glob({ pattern: 'todo-tasks/*.md' })
 
 **If specific plan named:** Match it against filenames (fuzzy — `flow-trace` matches `flow-trace-visualization.md`). Read it fully.
 
+**If epic named:** Match against the `{epic}-` prefix (e.g., "testability" matches all `testability-*.md` files). Present the full epic as a combined briefing, work through them sequentially.
+
 **If "first" specified:** Grab the first plan alphabetically. No prompting — just start working on it.
 
 **If "all" specified:** Read all plan files. Present a combined briefing, then work through them sequentially. Appropriate when plans are small and self-contained.
@@ -127,7 +129,15 @@ What exists today that's relevant:
 - Existing patterns the implementation should follow
 - Adjacent code that might be affected
 
-### 3. Considerations
+### 3. Verifiability Assessment
+Review the todo-task's `## Verifiability` section (if present). For each correctness property, assess:
+- Can this be tested at the adapter level (integration) or does it require E2E?
+- What oracle type applies? (partial, semantic/compiler, metamorphic, or manual-only)
+- Are there properties missing? If the builder only wrote smoke-level properties ("it renders"), surface this gap now.
+
+If the todo-task lacks a Verifiability section, write one with the user during the briefing. Ask: **"What would be true about this feature if implemented correctly, without referencing the implementation?"** See doc01.05.02.
+
+### 4. Considerations
 Open questions and tradeoffs the plan surfaces. These come from:
 - **Plan's own "Design Decisions to Make"** section (if present)
 - **Tensions** between what the plan asks for and what the code currently does
@@ -188,8 +198,41 @@ This is the key output. Rewrite the plan file in `todo-tasks/` so it's **unambig
 4. **Files to Modify** — Explicit list of files with what changes in each
 5. **Implementation Steps** — Ordered, concrete steps. Reference specific functions, line ranges, existing patterns. Each step should be independently verifiable.
 6. **Constraints** — Codebase rules the agent must follow (from CLAUDE.md, doc references)
-7. **Verification** — What `pnpm build && pnpm test` should confirm, plus any manual checks
-8. **Plan-specific checks** (optional) — Grep-based or script-based assertions the agent runs after implementation to verify negative constraints. Example: `! grep -q 'isEditingDescription' packages/web-client/src/components/PageSwitcher.tsx` to confirm removed code stays removed. These are crude but effective guardrails that complement the build/test gate.
+7. **Verification** — Correctness properties, postconditions, and test instructions (see below)
+
+### Verification Section
+
+The builder's todo-task includes a `## Verifiability` section with plain-language correctness properties. Your job is to **operationalize** each property into something the headless agent can execute. See doc01.05.02 for the full framework.
+
+For each correctness property from the todo-task:
+
+**1. Classify where truth lives:**
+- **Data model** (adapter in, adapter out) → integration test or script assertion
+- **Compiler output** (semantic oracle) → integration test comparing compiler output before/after
+- **Rendered composition** (requires browser) → E2E test or manual check
+
+**2. Write a concrete verification instruction the agent can follow:**
+
+| Property | Verification instruction |
+|----------|------------------------|
+| "Applying a package adds all its schemas" | Write integration test: call `applyPackage(doc, pkg)`, assert `adapter.getSchemas()` contains each schema from `pkg.schemas` |
+| "Compilation includes new construct type" | Write integration test: create construct of new type, compile, assert output contains type name |
+| "Port handles render at correct positions" | Add to E2E `port-connections.spec.ts`: create node with custom ports, assert handle count matches port count |
+| "Deleted code stays deleted" | Plan-specific check: `! grep -q 'oldFunctionName' path/to/file.ts` |
+
+**3. Prefer higher-value test patterns:**
+- **Property/round-trip tests** over example-based: `addSchema(s); getSchema(s.id)` returns equivalent to `s` — covers all schemas, not just the one in your example
+- **Compiler as oracle**: if the feature affects document semantics, assert on compiler output diff rather than internal state
+- **Adapter-level tests** over hook-level: test the operation logic directly against DocumentAdapter when possible, avoiding `renderHook`/`waitFor` ceremony
+- **Postcondition scripts** for structural constraints: grep-based checks that the agent runs after implementation
+
+**4. Flag untestable properties.** If a correctness property can't be operationalized into an automated check (e.g., "the UI feels responsive"), say so explicitly and mark it as a manual verification step. Don't pretend smoke tests cover it.
+
+The Verification section in the refined plan should contain:
+- `pnpm build && pnpm test` as the baseline gate
+- Specific new tests the agent must write, with file paths and assertion descriptions
+- Plan-specific postcondition scripts (grep/script checks)
+- Manual verification steps (if any) clearly marked as such
 
 ### What Makes a Good Headless Plan
 

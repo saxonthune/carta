@@ -16,3 +16,10 @@ This section contains the author's original writings that inspired and shaped Ca
 ## Relationship to other 01-context docs
 
 Primary sources are the raw thinking that produced `01-mission.md` and `02-principles.md`. Mission and principles are distilled and canonical; primary sources are the unfiltered reasoning behind them.
+
+## Documents
+
+| Ref | File | Summary |
+|-----|------|---------|
+| doc01.05.01 | `01-the-carta-experiment.md` | Artifact-driven development, code-minus-one abstraction layers |
+| doc01.05.02 | `02-verifiability-and-testability.md` | Epistemology of verification, test value hierarchy, testability architecture |
