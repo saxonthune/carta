@@ -180,7 +180,12 @@ export function useMapNodePipeline(inputs: MapNodePipelineInputs): MapNodePipeli
       const values = node.data.values as ConstructValues;
 
       const schema = getSchema(constructType);
-      if (!schema) return false;
+      if (!schema) {
+        // Schema-less constructs: match on constructType and semanticId only
+        if (constructType.toLowerCase().includes(lowerSearch)) return true;
+        if (semanticId?.toLowerCase().includes(lowerSearch)) return true;
+        return false;
+      }
 
       // Match against semantic ID
       if (semanticId?.toLowerCase().includes(lowerSearch)) return true;

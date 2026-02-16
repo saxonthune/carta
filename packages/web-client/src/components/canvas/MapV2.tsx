@@ -33,6 +33,7 @@ import { getNodeDimensions } from '../../utils/nodeDimensions.js';
 import type { LodBand } from './lod/lodPolicy.js';
 import { MapV2OrganizerNode, type OrganizerChromeProps } from './MapV2OrganizerNode';
 import { MapV2ConstructNode } from './MapV2ConstructNode';
+import MapV2PlaceholderNode from './MapV2PlaceholderNode.js';
 
 interface MapV2Props {
   searchText?: string;
@@ -560,8 +561,29 @@ function MapV2Content({
         );
       }
 
-      // Fallback for constructs without schema
-      return null;
+      // Fallback for constructs without schema — render placeholder
+      return (
+        <MapV2PlaceholderNode
+          key={n.id}
+          node={n}
+          absX={absX}
+          absY={absY}
+          width={width}
+          height={height}
+          selected={selected}
+          constructType={(data as any).constructType ?? 'unknown'}
+          semanticId={(data as any).semanticId}
+          dimmed={dimmed}
+          onPointerDown={(e) => {
+            onSelectPointerDown(n.id, e);
+            onNodePointerDownDrag(n.id, e);
+          }}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            onNodeContextMenu(e, n.id);
+          }}
+        />
+      );
     });
 
   return (
