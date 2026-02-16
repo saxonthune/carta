@@ -90,6 +90,7 @@ export const MetamapSchemaNode = memo(function MetamapSchemaNode({
       data-no-pan="true"
       data-connection-target="true"
       data-node-id={schema.type}
+      data-handle-id="default"
       onPointerDown={onPointerDown}
       onDoubleClick={onDoubleClick}
       onPointerEnter={() => setIsDrawerHovered(true)}

@@ -140,7 +140,7 @@ Organized by purpose:
 
 ### `components/canvas/index.ts`
 Canvas components and LOD:
-- **Components**: `Map`, `MapV2`, `MapV2Toolbar`, `CanvasContainer`, `ConstructNode`, `OrganizerNode`, `InspectorPanel`, `DynamicAnchorEdge`, `PortDrawer`, `IndexBasedDropZones`, `AddConstructMenu`, `Narrative`, `ToolbarLayoutFlyouts`, `CanvasToolbar`
+- **Components**: `Map`, `MapV2`, `MapV2Toolbar`, `CanvasContainer`, `ConstructNode`, `OrganizerNode`, `InspectorPanel`, `DynamicAnchorEdge`, `PortDrawer`, `IndexBasedDropZones` (Map v1 only), `AddConstructMenu`, `Narrative`, `ToolbarLayoutFlyouts`, `CanvasToolbar`
 - **LOD**: `useLodBand`, `DEFAULT_LOD_POLICY`, `getLodConfig`, types
 
 **Note:** `Map.tsx` (React Flow-based) and `MapV2.tsx` (canvas-engine-based) are parallel implementations. MapV2 uses the canvas-engine primitives for full control over rendering and interaction.
