@@ -317,34 +317,6 @@ export interface PackageManifestEntry {
   snapshot: SchemaPackageDefinition;       // frozen copy of the definition as loaded
 }
 
-/**
- * Library entry version - A versioned snapshot of a schema package
- * @deprecated Being replaced by SchemaPackageDefinition + applyPackage(). See doc02.04.07.
- */
-export interface LibraryEntryVersion {
-  version: number;
-  changelog?: string;
-  publishedAt: string;  // ISO 8601
-  snapshot: {
-    schemas: ConstructSchema[];
-    portSchemas: PortSchema[];
-    schemaGroups: SchemaGroup[];
-    schemaRelationships: SchemaRelationship[];
-  };
-}
-
-/**
- * Library entry - A versioned library of schema packages
- * @deprecated Being replaced by packageManifest + PackageManifestEntry. See doc02.04.07.
- */
-export interface LibraryEntry {
-  id: string;
-  name: string;
-  description?: string;
-  color: string;
-  sourcePackageId: string;  // Active package this was published from
-  versions: LibraryEntryVersion[];
-}
 
 /**
  * Schema group - Hierarchical grouping for construct and port schemas
@@ -664,11 +636,6 @@ export interface DocumentAdapter {
   // Optional collaboration methods (only on Yjs adapter)
   getConnectionStatus?(): 'disconnected' | 'connecting' | 'connected';
   getConnectedClients?(): number;
-
-  // State access - Library Entries (optional, read-only for UI)
-  getLibraryEntries?(): LibraryEntry[];
-  getLibraryEntry?(id: string): LibraryEntry | undefined;
-  subscribeToLibraryEntries?(listener: () => void): () => void;
 }
 
 /**

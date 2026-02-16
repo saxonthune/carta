@@ -8,7 +8,6 @@ export const YDOC_MAPS = {
   PORT_SCHEMAS: 'portSchemas',
   SCHEMA_GROUPS: 'schemaGroups',
   SCHEMA_PACKAGES: 'schemaPackages',
-  LIBRARY_ENTRIES: 'libraryEntries',
   PACKAGE_MANIFEST: 'packageManifest',
 } as const;
 

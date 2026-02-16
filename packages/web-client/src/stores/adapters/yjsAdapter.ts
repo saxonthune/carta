@@ -10,7 +10,6 @@ import type {
   SchemaGroup,
   SchemaPackage,
   SchemaRelationship,
-  LibraryEntry,
   PackageManifestEntry,
   Page,
 } from '@carta/domain';
@@ -84,7 +83,6 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
   const yschemaGroups = ydoc.getMap<Y.Map<unknown>>('schemaGroups');
   const yschemaPackages = ydoc.getMap<Y.Map<unknown>>('schemaPackages');
   const yschemaRelationships = ydoc.getMap<Y.Map<unknown>>('schemaRelationships');
-  const ylibraryEntries = ydoc.getMap<Y.Map<unknown>>('libraryEntries');
   const ypackageManifest = ydoc.getMap<Y.Map<unknown>>('packageManifest');
 
   // Persistence
@@ -108,7 +106,6 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
   const schemaGroupListeners = new Set<() => void>();
   const schemaPackageListeners = new Set<() => void>();
   const schemaRelationshipListeners = new Set<() => void>();
-  const libraryEntryListeners = new Set<() => void>();
   const packageManifestListeners = new Set<() => void>();
   const pageListeners = new Set<() => void>();
   const metaListeners = new Set<() => void>();
@@ -120,7 +117,6 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
   const notifySchemaGroupListeners = () => schemaGroupListeners.forEach((cb) => cb());
   const notifySchemaPackageListeners = () => schemaPackageListeners.forEach((cb) => cb());
   const notifySchemaRelationshipListeners = () => schemaRelationshipListeners.forEach((cb) => cb());
-  const notifyLibraryEntryListeners = () => libraryEntryListeners.forEach((cb) => cb());
   const notifyPageListeners = () => pageListeners.forEach((cb) => cb());
   const notifyMetaListeners = () => metaListeners.forEach((cb) => cb());
 
@@ -174,10 +170,6 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     notifySchemaRelationshipListeners();
     notifyListeners();
   };
-  const onLibraryEntriesChange = () => {
-    notifyLibraryEntryListeners();
-    notifyListeners();
-  };
   const onPackageManifestChange = () => {
     listeners.forEach((l) => l());
     packageManifestListeners.forEach((l) => l());
@@ -194,7 +186,6 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     yschemaGroups.observeDeep(onSchemaGroupsChange);
     yschemaPackages.observeDeep(onSchemaPackagesChange);
     yschemaRelationships.observeDeep(onSchemaRelationshipsChange);
-    ylibraryEntries.observeDeep(onLibraryEntriesChange);
     ypackageManifest.observeDeep(onPackageManifestChange);
     observersSetUp = true;
   };
@@ -495,7 +486,6 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
         yschemaGroups.unobserveDeep(onSchemaGroupsChange);
         yschemaPackages.unobserveDeep(onSchemaPackagesChange);
         yschemaRelationships.unobserveDeep(onSchemaRelationshipsChange);
-        ylibraryEntries.unobserveDeep(onLibraryEntriesChange);
         ypackageManifest.unobserveDeep(onPackageManifestChange);
       }
 
@@ -506,7 +496,6 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       portSchemaListeners.clear();
       schemaGroupListeners.clear();
       schemaPackageListeners.clear();
-      libraryEntryListeners.clear();
       packageManifestListeners.clear();
       schemaRelationshipListeners.clear();
       pageListeners.clear();
@@ -667,21 +656,6 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       const ypackage = yschemaPackages.get(id);
       if (!ypackage) return undefined;
       return yMapToObject<SchemaPackage>(ypackage);
-    },
-
-    // State access - Library Entries
-    getLibraryEntries(): LibraryEntry[] {
-      const entries: LibraryEntry[] = [];
-      ylibraryEntries.forEach((yentry) => {
-        entries.push(yMapToObject<LibraryEntry>(yentry));
-      });
-      return entries;
-    },
-
-    getLibraryEntry(id: string): LibraryEntry | undefined {
-      const yentry = ylibraryEntries.get(id);
-      if (!yentry) return undefined;
-      return yMapToObject<LibraryEntry>(yentry);
     },
 
     // State access - Package Manifest
@@ -1287,11 +1261,6 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     subscribeToSchemaRelationships(listener: () => void): () => void {
       schemaRelationshipListeners.add(listener);
       return () => schemaRelationshipListeners.delete(listener);
-    },
-
-    subscribeToLibraryEntries(listener: () => void): () => void {
-      libraryEntryListeners.add(listener);
-      return () => libraryEntryListeners.delete(listener);
     },
 
     subscribeToPackageManifest(listener: () => void): () => void {

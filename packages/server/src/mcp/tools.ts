@@ -473,28 +473,6 @@ const GetPackageSchema = z.object({
   packageId: z.string().describe('Schema package ID'),
 });
 
-const PublishPackageSchema = z.object({
-  documentId: z.string().describe('The document ID'),
-  packageId: z.string().describe('Schema package ID to publish'),
-  changelog: z.string().optional().describe('Version changelog'),
-});
-
-const ListLibrarySchema = z.object({
-  documentId: z.string().describe('The document ID'),
-});
-
-const GetLibraryEntrySchema = z.object({
-  documentId: z.string().describe('The document ID'),
-  entryId: z.string().describe('Library entry ID'),
-  version: z.number().optional().describe('Specific version number (omit for latest)'),
-});
-
-const ApplyLibraryEntrySchema = z.object({
-  documentId: z.string().describe('The document ID'),
-  entryId: z.string().describe('Library entry ID to apply'),
-  version: z.number().optional().describe('Specific version number (omit for latest)'),
-});
-
 /**
  * Tool definitions for MCP
  */
@@ -848,26 +826,6 @@ For create/update ops, values is a Record keyed by field name from the schema. U
       description: 'Get a schema package with its member schemas, port schemas, groups, and relationships.',
       inputSchema: GetPackageSchema.shape,
     },
-    {
-      name: 'carta_publish_package',
-      description: 'Publish an active package to the in-document library. Creates a versioned snapshot. If published before, bumps the version.',
-      inputSchema: PublishPackageSchema.shape,
-    },
-    {
-      name: 'carta_list_library',
-      description: 'List library entries with version summaries.',
-      inputSchema: ListLibrarySchema.shape,
-    },
-    {
-      name: 'carta_get_library_entry',
-      description: 'Get a library entry with its full snapshot at a specific version (or latest).',
-      inputSchema: GetLibraryEntrySchema.shape,
-    },
-    {
-      name: 'carta_apply_library_entry',
-      description: 'Apply a library entry to the document as an active package. Creates or updates the package with fork ancestry.',
-      inputSchema: ApplyLibraryEntrySchema.shape,
-    },
   ];
 }
 
@@ -934,10 +892,6 @@ export interface ToolHandlers {
   carta_create_package: ToolHandler;
   carta_list_packages: ToolHandler;
   carta_get_package: ToolHandler;
-  carta_publish_package: ToolHandler;
-  carta_list_library: ToolHandler;
-  carta_get_library_entry: ToolHandler;
-  carta_apply_library_entry: ToolHandler;
   [key: string]: ToolHandler;
 }
 
@@ -1636,51 +1590,6 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
       const result = await apiRequest<unknown>(
         'GET',
         `/api/documents/${encodeURIComponent(documentId)}/packages/${encodeURIComponent(packageId)}`
-      );
-      if (result.error) return { error: result.error };
-      return result.data;
-    },
-
-    carta_publish_package: async (args) => {
-      const { documentId, packageId, changelog } = PublishPackageSchema.parse(args);
-      const result = await apiRequest<{ entryId: string; version: number; schemaCount: number }>(
-        'POST',
-        `/api/documents/${encodeURIComponent(documentId)}/packages/${encodeURIComponent(packageId)}/publish`,
-        { changelog }
-      );
-      if (result.error) return { error: result.error };
-      return result.data;
-    },
-
-    carta_list_library: async (args) => {
-      const { documentId } = ListLibrarySchema.parse(args);
-      const result = await apiRequest<{ entries: unknown[] }>(
-        'GET',
-        `/api/documents/${encodeURIComponent(documentId)}/library`
-      );
-      if (result.error) return { error: result.error };
-      return result.data;
-    },
-
-    carta_get_library_entry: async (args) => {
-      const { documentId, entryId, version } = GetLibraryEntrySchema.parse(args);
-      const url = version !== undefined
-        ? `/api/documents/${encodeURIComponent(documentId)}/library/${encodeURIComponent(entryId)}?version=${version}`
-        : `/api/documents/${encodeURIComponent(documentId)}/library/${encodeURIComponent(entryId)}`;
-      const result = await apiRequest<{ entry: unknown }>(
-        'GET',
-        url
-      );
-      if (result.error) return { error: result.error };
-      return result.data;
-    },
-
-    carta_apply_library_entry: async (args) => {
-      const { documentId, entryId, version } = ApplyLibraryEntrySchema.parse(args);
-      const result = await apiRequest<{ packageId: string; schemasApplied: number; action: 'created' | 'updated' }>(
-        'POST',
-        `/api/documents/${encodeURIComponent(documentId)}/library/${encodeURIComponent(entryId)}/apply`,
-        { version }
       );
       if (result.error) return { error: result.error };
       return result.data;

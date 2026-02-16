@@ -31,9 +31,6 @@ import {
   getActivePage,
   listPackages,
   createPackage,
-  publishPackage,
-  listLibrary,
-  applyLibraryEntry,
 } from '../doc-operations.js';
 import type { ToolDefinition } from './types.js';
 import type { ConstructSchema } from '@carta/domain';
@@ -218,21 +215,6 @@ const CreatePackageInput = z.object({
 
 const GetPackageInput = z.object({
   packageId: z.string(),
-});
-
-const PublishPackageInput = z.object({
-  packageId: z.string(),
-  changelog: z.string().optional(),
-});
-
-const GetLibraryEntryInput = z.object({
-  entryId: z.string(),
-  version: z.number().optional(),
-});
-
-const ApplyLibraryEntryInput = z.object({
-  entryId: z.string(),
-  version: z.number().optional(),
 });
 
 // ============================================================
@@ -642,79 +624,6 @@ export const getPackageTool: ToolDefinition = {
   },
 };
 
-export const publishPackageTool: ToolDefinition = {
-  name: 'publish_package',
-  description: 'Publish an active package to the in-document library. Creates a versioned snapshot. If published before, bumps the version.',
-  inputSchema: PublishPackageInput,
-  needsPage: false,
-  execute: (params, ydoc, _pageId) => {
-    const input = PublishPackageInput.parse(params);
-    const result = publishPackage(ydoc, {
-      packageId: input.packageId,
-      changelog: input.changelog,
-    });
-    return { success: true, data: result };
-  },
-};
-
-export const listLibraryTool: ToolDefinition = {
-  name: 'list_library',
-  description: 'List library entries with version summaries.',
-  inputSchema: z.object({}),
-  needsPage: false,
-  execute: (_params, ydoc, _pageId) => {
-    const entries = listLibrary(ydoc);
-    return { success: true, data: { entries } };
-  },
-};
-
-export const getLibraryEntryTool: ToolDefinition = {
-  name: 'get_library_entry',
-  description: 'Get a library entry with its full snapshot at a specific version (or latest).',
-  inputSchema: GetLibraryEntryInput,
-  needsPage: false,
-  execute: (params, ydoc, _pageId) => {
-    const input = GetLibraryEntryInput.parse(params);
-
-    // Read directly from Yjs to get full entry with snapshots
-    const ylibraryEntries = ydoc.getMap('library-entries');
-    const yentry = ylibraryEntries.get(input.entryId);
-    if (!yentry) {
-      return { success: false, error: `Library entry not found: ${input.entryId}` };
-    }
-
-    // Convert to plain object
-    const entry = JSON.parse(JSON.stringify(yentry)) as any;
-
-    // Get specific version or latest
-    if (input.version !== undefined) {
-      const versionData = entry.versions?.find((v: any) => v.version === input.version);
-      if (!versionData) {
-        return { success: false, error: `Version ${input.version} not found for entry ${input.entryId}` };
-      }
-      return { success: true, data: { entry: { ...entry, snapshot: versionData.snapshot } } };
-    }
-
-    // Return latest version
-    const latestVersion = entry.versions?.[entry.versions.length - 1];
-    return { success: true, data: { entry: { ...entry, snapshot: latestVersion?.snapshot } } };
-  },
-};
-
-export const applyLibraryEntryTool: ToolDefinition = {
-  name: 'apply_library_entry',
-  description: 'Apply a library entry to the document as an active package. Creates or updates the package with fork ancestry.',
-  inputSchema: ApplyLibraryEntryInput,
-  needsPage: false,
-  execute: (params, ydoc, _pageId) => {
-    const input = ApplyLibraryEntryInput.parse(params);
-    const result = applyLibraryEntry(ydoc, {
-      entryId: input.entryId,
-      version: input.version,
-    });
-    return { success: true, data: result };
-  },
-};
 
 // ============================================================
 // Export all document tools
@@ -745,8 +654,4 @@ export const documentTools: ToolDefinition[] = [
   listPackagesTool,
   createPackageTool,
   getPackageTool,
-  publishPackageTool,
-  listLibraryTool,
-  getLibraryEntryTool,
-  applyLibraryEntryTool,
 ];

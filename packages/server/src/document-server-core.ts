@@ -72,10 +72,6 @@ import {
   listPackages,
   getPackage,
   createPackage,
-  publishPackage,
-  listLibrary,
-  getLibraryEntry,
-  applyLibraryEntry,
 } from '@carta/document';
 import type { BatchOperation, BatchResult, MigrationResult } from '@carta/document';
 import type { FlowDirection, ArrangeStrategy, ArrangeConstraint, PinDirection } from '@carta/domain';
@@ -1191,27 +1187,6 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
         }
       }
 
-      const packagePublishMatch = path.match(/^\/api\/documents\/([^/]+)\/packages\/([^/]+)\/publish$/);
-      if (packagePublishMatch && method === 'POST') {
-        const roomId = packagePublishMatch[1]!;
-        const packageId = decodeURIComponent(packagePublishMatch[2]!);
-        const docState = await config.getDoc(roomId);
-
-        const body = await parseJsonBody<{ changelog?: string }>(req);
-
-        try {
-          const result = publishPackage(docState.doc, {
-            packageId,
-            changelog: body.changelog,
-          });
-          sendJson(res, 200, result);
-        } catch (err: unknown) {
-          const message = err instanceof Error ? err.message : 'Publish failed';
-          sendError(res, 400, message, 'VALIDATION_ERROR');
-        }
-        return;
-      }
-
       const packageMatch = path.match(/^\/api\/documents\/([^/]+)\/packages\/([^/]+)$/);
       if (packageMatch && method === 'GET') {
         const roomId = packageMatch[1]!;
@@ -1224,62 +1199,6 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
           return;
         }
         sendJson(res, 200, pkg);
-        return;
-      }
-
-      // ===== LIBRARY =====
-
-      const libraryMatch = path.match(/^\/api\/documents\/([^/]+)\/library$/);
-      if (libraryMatch && method === 'GET') {
-        const roomId = libraryMatch[1]!;
-        const docState = await config.getDoc(roomId);
-
-        const entries = listLibrary(docState.doc);
-        sendJson(res, 200, { entries });
-        return;
-      }
-
-      const libraryApplyMatch = path.match(/^\/api\/documents\/([^/]+)\/library\/([^/]+)\/apply$/);
-      if (libraryApplyMatch && method === 'POST') {
-        const roomId = libraryApplyMatch[1]!;
-        const entryId = decodeURIComponent(libraryApplyMatch[2]!);
-        const docState = await config.getDoc(roomId);
-
-        const body = await parseJsonBody<{ version?: number }>(req);
-
-        try {
-          const result = applyLibraryEntry(docState.doc, {
-            entryId,
-            version: body.version,
-          });
-          sendJson(res, 200, result);
-        } catch (err: unknown) {
-          const message = err instanceof Error ? err.message : 'Apply failed';
-          sendError(res, 400, message, 'VALIDATION_ERROR');
-        }
-        return;
-      }
-
-      const libraryEntryMatch = path.match(/^\/api\/documents\/([^/]+)\/library\/([^/]+)$/);
-      if (libraryEntryMatch && method === 'GET') {
-        const roomId = libraryEntryMatch[1]!;
-        const entryId = decodeURIComponent(libraryEntryMatch[2]!);
-        const docState = await config.getDoc(roomId);
-
-        const versionParam = url.searchParams.get('version');
-        const version = versionParam ? parseInt(versionParam, 10) : undefined;
-
-        try {
-          const entry = getLibraryEntry(docState.doc, entryId, version);
-          if (!entry) {
-            sendError(res, 404, `Library entry not found: ${entryId}`, 'NOT_FOUND');
-            return;
-          }
-          sendJson(res, 200, { entry });
-        } catch (err: unknown) {
-          const message = err instanceof Error ? err.message : 'Failed to get library entry';
-          sendError(res, 400, message, 'VALIDATION_ERROR');
-        }
         return;
       }
 

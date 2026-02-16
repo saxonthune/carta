@@ -119,14 +119,10 @@ Carta exposes an MCP (Model Context Protocol) server for AI tool integration. Th
 - `carta_apply_pin_layout` — Apply pinned positions from constraints
 - `carta_rebuild_page` — Rebuild page layout from constraints
 
-**Package and library operations:**
+**Package operations:**
 - `carta_create_package` — Create schema package
 - `carta_list_packages` — List schema packages
 - `carta_get_package` — Get package by ID
-- `carta_publish_package` — Publish package to library
-- `carta_list_library` — List library entries
-- `carta_get_library_entry` — Get library entry details
-- `carta_apply_library_entry` — Apply library entry to document
 
 **Compilation:**
 - `carta_compile` — Compile document to AI-readable output
