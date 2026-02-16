@@ -13,12 +13,14 @@
   "scripts": {
     "build": "rimraf dist && tsc",
     "dev": "tsc --watch",
-    "dev:build": "tsc"
+    "dev:build": "tsc",
+    "test": "vitest --run"
   },
   "dependencies": {
     "@carta/domain": "workspace:*"
   },
   "devDependencies": {
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.1"
   }
 }
