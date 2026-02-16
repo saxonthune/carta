@@ -1,12 +1,12 @@
 import { useMemo } from 'react';
-import type { Node } from '@xyflow/react';
+import type { CartaNode } from '@carta/types';
 import Modal from '../ui/Modal';
 import { compiler } from '@carta/compiler';
 import { getDisplayName } from '@carta/domain';
 import type { ConstructNodeData, ConstructSchema } from '@carta/domain';
 
 interface ConstructDebugModalProps {
-  node: Node;
+  node: CartaNode;
   schema: ConstructSchema | undefined;
   onClose: () => void;
 }

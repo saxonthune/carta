@@ -517,14 +517,16 @@ export interface VaultAdapter {
  * Document adapter interface for abstracting persistence layer.
  * Currently implemented with localStorage, future: Yjs Y.Doc
  */
+import type { CartaNode, CartaEdge } from '@carta/types';
+
 export interface DocumentAdapter {
   // Load/save lifecycle
   initialize(): Promise<void>;
   dispose(): void;
 
   // State access - Graph (reads from active level)
-  getNodes(): unknown[];
-  getEdges(): unknown[];
+  getNodes(): CartaNode[];
+  getEdges(): CartaEdge[];
   getTitle(): string;
   getDescription(): string;
 
@@ -550,8 +552,8 @@ export interface DocumentAdapter {
   getSchemaRelationship(id: string): SchemaRelationship | undefined;
 
   // Mutations - Graph (writes to active level)
-  setNodes(nodes: unknown[] | ((prev: unknown[]) => unknown[])): void;
-  setEdges(edges: unknown[] | ((prev: unknown[]) => unknown[])): void;
+  setNodes(nodes: CartaNode[] | ((prev: CartaNode[]) => CartaNode[])): void;
+  setEdges(edges: CartaEdge[] | ((prev: CartaEdge[]) => CartaEdge[])): void;
   setTitle(title: string): void;
   setDescription(description: string): void;
   generateNodeId(): string;

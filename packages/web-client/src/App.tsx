@@ -1,4 +1,5 @@
 import { useCallback, useState, useRef, useEffect, lazy, Suspense } from 'react';
+import type { CartaNode, CartaEdge } from '@carta/types';
 import DocumentBrowserModal from './components/modals/DocumentBrowserModal';
 import Header from './components/Header';
 import CanvasContainer from './components/canvas/CanvasContainer';
@@ -68,14 +69,14 @@ function AppContent() {
   const [compileOutput, setCompileOutput] = useState<string | null>(null);
   const [aiSidebarOpen, setAiSidebarOpen] = useState(false);
   const [aiSidebarWidth] = useState(400);
-  const nodesEdgesRef = useRef<{ nodes: any[]; edges: any[] }>({ nodes: [], edges: [] });
+  const nodesEdgesRef = useRef<{ nodes: CartaNode[]; edges: CartaEdge[] }>({ nodes: [], edges: [] });
   const { clearDocument } = useClearDocument();
 
   // Initialize refs on mount
   useEffect(() => {
     nodesEdgesRef.current = {
-      nodes: adapter.getNodes() as any[],
-      edges: adapter.getEdges() as any[],
+      nodes: adapter.getNodes() as CartaNode[],
+      edges: adapter.getEdges() as CartaEdge[],
     };
   }, [adapter]);
 
@@ -104,7 +105,7 @@ function AppContent() {
     importDocument(adapter, data, config, schemasToImport);
   }, [pendingImport, adapter]);
 
-  const handleSelectionChange = useCallback((_nodes: any[]) => {
+  const handleSelectionChange = useCallback((_nodes: CartaNode[]) => {
     // Selection handling removed with InspectorPanel (V1-only)
   }, []);
 

@@ -1,4 +1,4 @@
-import type { Node, Edge } from '@xyflow/react';
+import type { CartaNode, CartaEdge } from '@carta/types';
 import type { CartaFile } from './cartaFile';
 import { syncWithDocumentStore, getPortsForSchema, getHandleType } from '@carta/domain';
 import type { DocumentAdapter, ConstructNodeData, ConstructSchema } from '@carta/domain';
@@ -92,8 +92,8 @@ function importIntoLevel(
   adapter.setActivePage(targetLevelId);
 
   // Flatten all file pages' nodes and edges
-  const allNodes = data.pages.flatMap(l => l.nodes) as Node[];
-  const allEdges = data.pages.flatMap(l => l.edges) as Edge[];
+  const allNodes = data.pages.flatMap(l => l.nodes) as CartaNode[];
+  const allEdges = data.pages.flatMap(l => l.edges) as CartaEdge[];
 
   // Import nodes and edges additively (importNodesAndEdges creates new IDs, so no conflicts)
   importNodesAndEdgesAdditive(adapter, allNodes, allEdges, config, schemasToImport);
@@ -184,7 +184,7 @@ function importWithLevels(
     adapter.setActivePage(pageId);
 
     // Import nodes and edges for this page
-    importNodesAndEdges(adapter, filePage.nodes as Node[], filePage.edges as Edge[], config, schemasToImport);
+    importNodesAndEdges(adapter, filePage.nodes as CartaNode[], filePage.edges as CartaEdge[], config, schemasToImport);
   }
 
   // Switch back to first page
@@ -198,8 +198,8 @@ function importWithLevels(
  */
 function importNodesAndEdges(
   adapter: DocumentAdapter,
-  nodes: Node[],
-  edges: Edge[],
+  nodes: CartaNode[],
+  edges: CartaEdge[],
   config: ImportConfig,
   schemasToImport: ConstructSchema[]
 ): void {
@@ -222,7 +222,7 @@ function importNodesAndEdges(
 
   // Build ID mapping for new node IDs
   const idMap: Record<string, string> = {};
-  const newNodes: Node[] = sorted.map((node) => {
+  const newNodes: CartaNode[] = sorted.map((node) => {
     const newId = crypto.randomUUID();
     idMap[node.id] = newId;
     const isChild = !!node.parentId;
@@ -242,8 +242,8 @@ function importNodesAndEdges(
   const schemaLookup = new Map(schemasToImport.map(s => [s.type, s]));
 
   // Remap edges and normalize direction
-  const newEdges: Edge[] = edgesToImport.map((edge) => {
-    let normalizedEdge: Edge = {
+  const newEdges: CartaEdge[] = edgesToImport.map((edge) => {
+    let normalizedEdge: CartaEdge = {
       ...edge,
       id: `edge-${Math.random()}`,
       source: idMap[edge.source] || edge.source,
@@ -298,8 +298,8 @@ function importNodesAndEdges(
  */
 function importNodesAndEdgesAdditive(
   adapter: DocumentAdapter,
-  nodes: Node[],
-  edges: Edge[],
+  nodes: CartaNode[],
+  edges: CartaEdge[],
   config: ImportConfig,
   schemasToImport: ConstructSchema[]
 ): void {
@@ -322,7 +322,7 @@ function importNodesAndEdgesAdditive(
 
   // Build ID mapping for new node IDs
   const idMap: Record<string, string> = {};
-  const newNodes: Node[] = sorted.map((node) => {
+  const newNodes: CartaNode[] = sorted.map((node) => {
     const newId = crypto.randomUUID();
     idMap[node.id] = newId;
     const isChild = !!node.parentId;
@@ -342,8 +342,8 @@ function importNodesAndEdgesAdditive(
   const schemaLookup = new Map(schemasToImport.map(s => [s.type, s]));
 
   // Remap edges and normalize direction
-  const newEdges: Edge[] = edgesToImport.map((edge) => {
-    let normalizedEdge: Edge = {
+  const newEdges: CartaEdge[] = edgesToImport.map((edge) => {
+    let normalizedEdge: CartaEdge = {
       ...edge,
       id: `edge-${Math.random()}`,
       source: idMap[edge.source] || edge.source,
@@ -389,8 +389,8 @@ function importNodesAndEdgesAdditive(
   });
 
   // Additive: merge with existing nodes and edges
-  const existingNodes = adapter.getNodes() as Node[];
-  const existingEdges = adapter.getEdges() as Edge[];
+  const existingNodes = adapter.getNodes() as CartaNode[];
+  const existingEdges = adapter.getEdges() as CartaEdge[];
   adapter.setNodes([...existingNodes, ...newNodes]);
   adapter.setEdges([...existingEdges, ...newEdges]);
 }

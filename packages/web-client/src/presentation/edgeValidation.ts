@@ -1,12 +1,12 @@
 /**
- * Edge validation for filtering edges with invalid port references.
+ * CartaEdge validation for filtering edges with invalid port references.
  *
  * After schema changes (port deletions, schema recreation), edges may reference
  * sourceHandle/targetHandle IDs that no longer exist on the node's schema.
  * This module provides defensive filtering at the presentation layer.
  */
 
-import type { Edge, Node } from '@xyflow/react';
+import type { CartaEdge, CartaNode } from '@carta/types';
 import type { ConstructSchema, ConstructNodeData } from '@carta/domain';
 import { getPortsForSchema } from '@carta/domain';
 
@@ -21,10 +21,10 @@ import { getPortsForSchema } from '@carta/domain';
  * - Edges where we can't determine the schema (pass through to avoid false positives)
  */
 export function filterInvalidEdges(
-  edges: Edge[],
-  nodes: Node[],
+  edges: CartaEdge[],
+  nodes: CartaNode[],
   getSchema: (type: string) => ConstructSchema | undefined
-): Edge[] {
+): CartaEdge[] {
   // Build port lookup: nodeId → Set<portId>
   const nodePortMap = new Map<string, Set<string>>();
 
@@ -43,8 +43,8 @@ export function filterInvalidEdges(
     }
   }
 
-  const validEdges: Edge[] = [];
-  const droppedEdges: Edge[] = [];
+  const validEdges: CartaEdge[] = [];
+  const droppedEdges: CartaEdge[] = [];
 
   for (const edge of edges) {
     // Handle null sourceHandle (wagon attachment edges)

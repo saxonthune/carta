@@ -11,6 +11,7 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "paths": {
+      "@carta/types": ["../types/src/index.ts"],
       "@carta/domain": ["../domain/src/index.ts"],
       "@carta/compiler": ["../compiler/src/index.ts"]
     }

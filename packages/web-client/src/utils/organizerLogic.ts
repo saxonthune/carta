@@ -1,4 +1,4 @@
-import type { Node } from '@xyflow/react';
+import type { CartaNode } from '@carta/types';
 import type { OrganizerNodeData } from '@carta/domain';
 import {
   computeOrganizerBounds,
@@ -14,7 +14,7 @@ import {
  * Compute the absolute canvas position of a node by walking its parentId chain.
  * For nodes without a parent, this returns node.position unchanged.
  */
-export function getAbsolutePosition(node: Node, allNodes: Node[]): { x: number; y: number } {
+export function getAbsolutePosition(node: CartaNode, allNodes: CartaNode[]): { x: number; y: number } {
   if (!node.parentId) return node.position;
   const parent = allNodes.find(n => n.id === node.parentId);
   if (!parent) return node.position;
@@ -27,7 +27,7 @@ export function getAbsolutePosition(node: Node, allNodes: Node[]): { x: number; 
  * - Constructs can always be added to organizers
  * - Organizers can only be added if they're wagon organizers whose construct is already a member
  */
-export function canNestInOrganizer(node: Node, targetOrganizer: Node, allNodes: Node[]): boolean {
+export function canNestInOrganizer(node: CartaNode, targetOrganizer: CartaNode, allNodes: CartaNode[]): boolean {
   // Constructs can always be added to organizers
   if (node.type === 'construct') return true;
 
@@ -55,8 +55,8 @@ export function canNestInOrganizer(node: Node, targetOrganizer: Node, allNodes: 
  * are the organizer dimensions that enclose all selected nodes with proper padding.
  */
 export function computeNewOrganizerBounds(
-  selectedNodes: Node[],
-  allNodes: Node[],
+  selectedNodes: CartaNode[],
+  allNodes: CartaNode[],
 ): { x: number; y: number; width: number; height: number } {
   const layoutItems: LayoutItem[] = selectedNodes.map(n => ({
     id: n.id,
@@ -100,9 +100,9 @@ export function computeNewOrganizerBounds(
  */
 export function computeDetachedNodes(
   organizerId: string,
-  organizer: Node,
-  allNodes: Node[],
-): Node[] {
+  organizer: CartaNode,
+  allNodes: CartaNode[],
+): CartaNode[] {
   const organizerAbsPos = getAbsolutePosition(organizer, allNodes);
   return allNodes
     .filter(n => n.id !== organizerId)
@@ -120,7 +120,7 @@ export function computeDetachedNodes(
  * Includes the parent ID itself in the returned set.
  * The maxDepth parameter prevents infinite loops in case of circular references.
  */
-export function collectDescendantIds(parentId: string, allNodes: Node[], maxDepth = 20): Set<string> {
+export function collectDescendantIds(parentId: string, allNodes: CartaNode[], maxDepth = 20): Set<string> {
   const ids = new Set<string>([parentId]);
   const findDescendants = (pid: string, depth: number) => {
     if (depth > maxDepth) return;

@@ -1,13 +1,13 @@
 import { useMemo, useRef } from 'react';
-import type { Node, Edge } from '@xyflow/react';
+import type { CartaNode, CartaEdge } from '@carta/types';
 import type { ConstructSchema, ConstructValues } from '@carta/domain';
 import { usePresentation } from './usePresentation';
 
 const NODE_DRAG_HANDLE = '.node-drag-handle';
 
 export interface MapNodePipelineInputs {
-  nodes: Node[];
-  edges: Edge[];
+  nodes: CartaNode[];
+  edges: CartaEdge[];
   renamingNodeId: string | null;
   renamingOrganizerId: string | null;
   isTraceActive: boolean;
@@ -20,9 +20,9 @@ export interface MapNodePipelineInputs {
 }
 
 export interface MapNodePipelineOutputs {
-  sortedNodes: Node[];
+  sortedNodes: CartaNode[];
   organizerIds: Set<string>;
-  processedNodes: Node[];
+  processedNodes: CartaNode[];
   edgeRemap: Map<string, string>;
 }
 
@@ -62,11 +62,11 @@ export function useMapNodePipeline(inputs: MapNodePipelineInputs): MapNodePipeli
 
   // Cache previous output so we can reuse node references when overlay data hasn't changed.
   // This prevents RF from re-rendering all 50 nodes when only 1-2 actually changed.
-  const prevNodesCache = useRef<globalThis.Map<string, Node>>(new globalThis.Map());
+  const prevNodesCache = useRef<globalThis.Map<string, CartaNode>>(new globalThis.Map());
 
   const nodesWithCallbacks = useMemo(() => {
     const cache = prevNodesCache.current;
-    const newCache = new globalThis.Map<string, Node>();
+    const newCache = new globalThis.Map<string, CartaNode>();
 
     const result = nodesWithHiddenFlags.map((node) => {
       const prev = cache.get(node.id);
@@ -100,7 +100,7 @@ export function useMapNodePipeline(inputs: MapNodePipelineInputs): MapNodePipeli
             onStartRenaming: orgRenameStart.bind(null, node.id),
             onStopRenaming: orgRenameStop,
           },
-        } as Node;
+        } as CartaNode;
         newCache.set(node.id, newNode);
         return newNode;
       }
@@ -128,7 +128,7 @@ export function useMapNodePipeline(inputs: MapNodePipelineInputs): MapNodePipeli
           dimmed,
           nodeActions,
         },
-      } as Node;
+      } as CartaNode;
       newCache.set(node.id, newNode);
       return newNode;
     });
@@ -139,12 +139,12 @@ export function useMapNodePipeline(inputs: MapNodePipelineInputs): MapNodePipeli
 
   // Sort nodes: parents must come before their children (React Flow requirement)
   const sortedNodes = useMemo(() => {
-    const result: Node[] = [];
+    const result: CartaNode[] = [];
     const added = new Set<string>();
-    const nodeById = new globalThis.Map(nodesWithCallbacks.map(n => [n.id, n] as [string, Node]));
+    const nodeById = new globalThis.Map(nodesWithCallbacks.map(n => [n.id, n] as [string, CartaNode]));
 
     // Recursive function to add a node and its ancestors first
-    const addNode = (node: Node, depth = 0) => {
+    const addNode = (node: CartaNode, depth = 0) => {
       if (added.has(node.id) || depth > 20) return;
 
       // If this node has a parent, add the parent first
@@ -205,7 +205,7 @@ export function useMapNodePipeline(inputs: MapNodePipelineInputs): MapNodePipeli
   return {
     sortedNodes,
     organizerIds,
-    processedNodes: nodesWithHiddenFlags,
+    processedNodes: nodesWithHiddenFlags as CartaNode[],
     edgeRemap,
   };
 }

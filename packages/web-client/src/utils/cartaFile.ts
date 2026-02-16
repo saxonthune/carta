@@ -1,4 +1,4 @@
-import type { Node, Edge } from '@xyflow/react';
+import type { CartaNode, CartaEdge } from '@carta/types';
 import type { ConstructSchema, PortSchema, SchemaGroup, SchemaPackage, Page } from '@carta/domain';
 import { toKebabCase } from '@carta/domain';
 import {
@@ -31,8 +31,8 @@ export function exportProject(data: {
     name: page.name,
     description: page.description,
     order: page.order,
-    nodes: (options?.nodes !== false ? page.nodes : []) as Node[],
-    edges: (options?.nodes !== false ? page.edges : []) as Edge[],
+    nodes: (options?.nodes !== false ? page.nodes : []) as CartaNode[],
+    edges: (options?.nodes !== false ? page.edges : []) as CartaEdge[],
   }));
 
   const cartaFile: CartaFile = {

@@ -1,12 +1,12 @@
 import { useMemo } from 'react';
-import type { Node, Edge } from '@xyflow/react';
+import type { CartaNode, CartaEdge } from '@carta/types';
 import type { ConstructSchema, ConstructNodeData, OrganizerNodeData } from '@carta/domain';
 import { computeEdgeAggregation, filterInvalidEdges } from '../presentation/index';
 import { useEdgeBundling } from './useEdgeBundling';
 
 export interface MapEdgePipelineInputs {
-  edges: Edge[];
-  sortedNodes: Node[];
+  edges: CartaEdge[];
+  sortedNodes: CartaNode[];
   edgeRemap: Map<string, string>;
   selectedNodeIds: string[];
   schemas: ConstructSchema[];
@@ -14,12 +14,12 @@ export interface MapEdgePipelineInputs {
   getPortSchema: (id: string) => { polarity?: string } | undefined;
   isTraceActive: boolean;
   traceResult: { edgeDistances: Map<string, number> } | null;
-  nodes: Node[];
+  nodes: CartaNode[];
 }
 
 export interface MapEdgePipelineOutputs {
-  displayEdges: Edge[];
-  bundleMap: globalThis.Map<string, Edge[]>;
+  displayEdges: CartaEdge[];
+  bundleMap: globalThis.Map<string, CartaEdge[]>;
 }
 
 export function useMapEdgePipeline(inputs: MapEdgePipelineInputs): MapEdgePipelineOutputs {
@@ -54,7 +54,7 @@ export function useMapEdgePipeline(inputs: MapEdgePipelineInputs): MapEdgePipeli
     result = filterInvalidEdges(result, sortedNodes, getSchema);
 
     // Inject wagon attachment edges (thick dotted lines from construct to its attached organizer)
-    const wagonEdges: Edge[] = [];
+    const wagonEdges: CartaEdge[] = [];
     for (const node of sortedNodes) {
       if (node.type !== 'organizer' || node.hidden) continue;
       const orgData = node.data as OrganizerNodeData;
@@ -178,7 +178,7 @@ export function useMapEdgePipeline(inputs: MapEdgePipelineInputs): MapEdgePipeli
     });
   }, [filteredEdges, nodeConstructTypeMap, polarityLookup]);
 
-  // Edge bundling: collapse parallel edges between same node pairs
+  // CartaEdge bundling: collapse parallel edges between same node pairs
   const { displayEdges, bundleMap } = useEdgeBundling(polarityEdges, nodeTypeMap);
 
   return {

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { Node, Edge } from '@xyflow/react';
+import type { CartaNode, CartaEdge } from '@carta/types';
 import { computePresentation, type PresentationOutput, computeSequenceBadges } from '../presentation';
 
 /**
@@ -7,7 +7,7 @@ import { computePresentation, type PresentationOutput, computeSequenceBadges } f
  * Processes organizer collapse/hide/layout via the presentation model
  * and builds edge remap for collapsed organizers.
  */
-export function usePresentation(nodes: Node[], edges: Edge[]): PresentationOutput {
+export function usePresentation(nodes: CartaNode[], edges: CartaEdge[]): PresentationOutput {
   return useMemo(() => {
     const result = computePresentation({ nodes: nodes as any, edges: edges as any });
 

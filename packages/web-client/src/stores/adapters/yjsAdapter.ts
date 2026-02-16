@@ -1,6 +1,6 @@
 import * as Y from 'yjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
-import type { Node, Edge } from '@xyflow/react';
+import type { CartaNode, CartaEdge } from '@carta/types';
 import type {
   DocumentAdapter,
   CartaDocumentV4,
@@ -518,23 +518,23 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     // State access - Graph (reads from active page)
-    getNodes(): Node[] {
+    getNodes(): CartaNode[] {
       const pageNodes = getActivePageNodes();
       if (!pageNodes) return [];
-      const nodes: Node[] = [];
+      const nodes: CartaNode[] = [];
       pageNodes.forEach((ynode, id) => {
-        const { extent: _extent, ...nodeObj } = yMapToObject<Node & { extent?: string }>(ynode);
+        const { extent: _extent, ...nodeObj } = yMapToObject<CartaNode & { extent?: string }>(ynode);
         nodes.push({ ...nodeObj, id });
       });
       return nodes;
     },
 
-    getEdges(): Edge[] {
+    getEdges(): CartaEdge[] {
       const pageEdges = getActivePageEdges();
       if (!pageEdges) return [];
-      const edges: Edge[] = [];
+      const edges: CartaEdge[] = [];
       pageEdges.forEach((yedge, id) => {
-        const edgeObj = yMapToObject<Edge>(yedge);
+        const edgeObj = yMapToObject<CartaEdge>(yedge);
         edges.push({ ...edgeObj, id });
       });
       return edges;
@@ -560,12 +560,12 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
         const nodes: unknown[] = [];
         pageNodesMap?.forEach((ynode, id) => {
-          nodes.push({ ...yMapToObject<Node>(ynode), id });
+          nodes.push({ ...yMapToObject<CartaNode>(ynode), id });
         });
 
         const edges: unknown[] = [];
         pageEdgesMap?.forEach((yedge, id) => {
-          edges.push({ ...yMapToObject<Edge>(yedge), id });
+          edges.push({ ...yMapToObject<CartaEdge>(yedge), id });
         });
 
         pages.push({ ...page, nodes, edges });
@@ -583,12 +583,12 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
       const nodes: unknown[] = [];
       pageNodesMap?.forEach((ynode, nid) => {
-        nodes.push({ ...yMapToObject<Node>(ynode), id: nid });
+        nodes.push({ ...yMapToObject<CartaNode>(ynode), id: nid });
       });
 
       const edges: unknown[] = [];
       pageEdgesMap?.forEach((yedge, eid) => {
-        edges.push({ ...yMapToObject<Edge>(yedge), id: eid });
+        edges.push({ ...yMapToObject<CartaEdge>(yedge), id: eid });
       });
 
       return { ...page, nodes, edges };
@@ -684,7 +684,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
         const pageNodes = getActivePageNodes();
         if (!pageNodes) return;
         pageNodes.clear();
-        for (const node of newNodes as Node[]) {
+        for (const node of newNodes as CartaNode[]) {
           const { id, ...rest } = node;
           pageNodes.set(id, objectToYMap(rest as Record<string, unknown>));
         }
@@ -701,7 +701,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
         const pageEdges = getActivePageEdges();
         if (!pageEdges) return;
         pageEdges.clear();
-        for (const edge of newEdges as Edge[]) {
+        for (const edge of newEdges as CartaEdge[]) {
           const { id, ...rest } = edge;
           pageEdges.set(id, objectToYMap(rest as Record<string, unknown>));
         }

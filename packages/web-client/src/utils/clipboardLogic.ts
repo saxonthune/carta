@@ -1,8 +1,8 @@
-import type { Node } from '@xyflow/react';
+import type { CartaNode } from '@carta/types';
 import { generateSemanticId } from './cartaFile';
 
 /** Compute the bounding box origin (minimum x, y) of a set of nodes */
-export function getClipboardBounds(nodes: Node[]): { minX: number; minY: number } {
+export function getClipboardBounds(nodes: CartaNode[]): { minX: number; minY: number } {
   return {
     minX: Math.min(...nodes.map(n => n.position.x)),
     minY: Math.min(...nodes.map(n => n.position.y)),
@@ -24,11 +24,11 @@ export function calculatePastePosition(
 
 /** Transform clipboard nodes into pasted copies with new IDs and positions */
 export function transformPastedNodes(
-  clipboardNodes: Node[],
+  clipboardNodes: CartaNode[],
   basePosition: { x: number; y: number },
   bounds: { minX: number; minY: number },
   getNextNodeId: () => string,
-): Node[] {
+): CartaNode[] {
   return clipboardNodes.map((clipNode) => {
     const newId = getNextNodeId();
     const offsetX = clipNode.position.x - bounds.minX;

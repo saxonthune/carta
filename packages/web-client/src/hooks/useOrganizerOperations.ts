@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import type { Node } from '@xyflow/react';
+import type { CartaNode } from '@carta/types';
 import { useNodes } from './useNodes';
 import {
   toRelativePosition,
@@ -19,7 +19,7 @@ export interface UseOrganizerOperationsResult {
   /** Create a new organizer from selected node IDs */
   createOrganizer: (selectedNodeIds: string[]) => string | null;
   /** Create an organizer attached to a specific construct (wagon) */
-  createAttachedOrganizer: (constructNodeId: string, constructSemanticId: string, inheritColor?: string) => string | null;
+  createAttachedOrganizer: (constructCartaNodeId: string, constructSemanticId: string, inheritColor?: string) => string | null;
   /** Attach a node to an organizer (converts to relative position) */
   attachToOrganizer: (nodeId: string, organizerId: string) => void;
   /** Detach a node from its organizer (converts to absolute position) */
@@ -52,7 +52,7 @@ export function useOrganizerOperations(): UseOrganizerOperationsResult {
     const color = ORGANIZER_COLORS[Math.floor(Math.random() * ORGANIZER_COLORS.length)];
 
     // Filter out non-wagon organizers from selection
-    const selectedNodes = nodes.filter(n => {
+    const selectedCartaNodes = nodes.filter(n => {
       if (!selectedNodeIds.includes(n.id)) return false;
       // Allow constructs and wagon organizers only
       if (n.type === 'construct') return true;
@@ -62,12 +62,12 @@ export function useOrganizerOperations(): UseOrganizerOperationsResult {
       }
       return true;
     });
-    if (selectedNodes.length < 1) return null;
+    if (selectedCartaNodes.length < 1) return null;
 
-    const bounds = computeNewOrganizerBounds(selectedNodes, nodes);
+    const bounds = computeNewOrganizerBounds(selectedCartaNodes, nodes);
     const organizerPosition = { x: bounds.x, y: bounds.y };
 
-    const organizerNode: Node<OrganizerNodeData> = {
+    const organizerCartaNode: CartaNode<OrganizerNodeData> = {
       id: organizerId,
       type: 'organizer',
       position: organizerPosition,
@@ -83,7 +83,7 @@ export function useOrganizerOperations(): UseOrganizerOperationsResult {
       },
     };
 
-    const updatedNodes = nodes.map(n => {
+    const updatedCartaNodes = nodes.map(n => {
       if (selectedNodeIds.includes(n.id)) {
         const relativePos = toRelativePosition(n.position, organizerPosition);
         return {
@@ -95,22 +95,22 @@ export function useOrganizerOperations(): UseOrganizerOperationsResult {
       return n;
     });
 
-    setNodes([organizerNode, ...updatedNodes]);
+    setNodes([organizerCartaNode, ...updatedCartaNodes]);
     return organizerId;
   }, [nodes, setNodes]);
 
-  const createAttachedOrganizer = useCallback((constructNodeId: string, constructSemanticId: string, inheritColor?: string): string | null => {
-    const constructNode = nodes.find(n => n.id === constructNodeId);
-    if (!constructNode) return null;
+  const createAttachedOrganizer = useCallback((constructCartaNodeId: string, constructSemanticId: string, inheritColor?: string): string | null => {
+    const constructCartaNode = nodes.find(n => n.id === constructCartaNodeId);
+    if (!constructCartaNode) return null;
 
     const organizerId = crypto.randomUUID();
     const color = inheritColor || ORGANIZER_COLORS[Math.floor(Math.random() * ORGANIZER_COLORS.length)];
-    const constructHeight = constructNode.measured?.height ?? constructNode.height ?? 150;
+    const constructHeight = constructCartaNode.measured?.height ?? constructCartaNode.height ?? 150;
 
-    const organizerNode: Node<OrganizerNodeData> = {
+    const organizerCartaNode: CartaNode<OrganizerNodeData> = {
       id: organizerId,
       type: 'organizer',
-      parentId: constructNodeId,
+      parentId: constructCartaNodeId,
       position: { x: 0, y: constructHeight + 40 },
       width: 300,
       height: 200,
@@ -125,7 +125,7 @@ export function useOrganizerOperations(): UseOrganizerOperationsResult {
       },
     };
 
-    setNodes(nds => [organizerNode, ...nds]);
+    setNodes(nds => [organizerCartaNode, ...nds]);
     return organizerId;
   }, [nodes, setNodes]);
 
@@ -199,8 +199,8 @@ export function useOrganizerOperations(): UseOrganizerOperationsResult {
       const idsToDelete = collectDescendantIds(organizerId, nodes);
       setNodes(nds => nds.filter(n => !idsToDelete.has(n.id)));
     } else {
-      const updatedNodes = computeDetachedNodes(organizerId, organizer, nodes);
-      setNodes(updatedNodes);
+      const updatedCartaNodes = computeDetachedNodes(organizerId, organizer, nodes);
+      setNodes(updatedCartaNodes);
     }
   }, [nodes, setNodes]);
 

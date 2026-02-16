@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { FileText, ArrowsLeftRight, Eye, ArrowRight } from '@phosphor-icons/react';
-import type { Node } from '@xyflow/react';
+import type { CartaNode } from '@carta/types';
 import { useSchemas } from '../../hooks/useSchemas';
 import { fieldRenderers } from '../fields';
 import TabBar, { type Tab } from '../ui/TabBar';
@@ -8,7 +8,7 @@ import { getDisplayName } from '@carta/domain';
 import type { ConstructNodeData, ConstructValues } from '@carta/domain';
 
 interface InstanceEditorProps {
-  node: Node;
+  node: CartaNode;
   onNodeUpdate: (nodeId: string, updates: Partial<ConstructNodeData>) => void;
 }
 

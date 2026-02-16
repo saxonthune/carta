@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { Edge } from '@xyflow/react';
+import type { CartaEdge } from '@carta/types';
 
 export interface BundleData {
   bundleCount: number;
@@ -10,12 +10,12 @@ export interface BundleData {
  * Groups parallel edges between the same node pair (same port types) into bundles.
  * Returns display edges where bundles are collapsed into a single representative edge.
  *
- * Accepts a nodeTypeMap (id → type) instead of full Node[] to avoid re-computing
+ * Accepts a nodeTypeMap (id → type) instead of full CartaNode[] to avoid re-computing
  * when only node positions/data change but topology is unchanged.
  */
-export function useEdgeBundling(edges: Edge[], nodeTypeMap: Map<string, string>): {
-  displayEdges: Edge[];
-  bundleMap: Map<string, Edge[]>;
+export function useEdgeBundling(edges: CartaEdge[], nodeTypeMap: Map<string, string>): {
+  displayEdges: CartaEdge[];
+  bundleMap: Map<string, CartaEdge[]>;
 } {
   return useMemo(() => {
     if (edges.length === 0) {
@@ -23,7 +23,7 @@ export function useEdgeBundling(edges: Edge[], nodeTypeMap: Map<string, string>)
     }
 
     // Build bundle key: normalized pair of nodeIds + port types
-    const bundles = new Map<string, Edge[]>();
+    const bundles = new Map<string, CartaEdge[]>();
 
     for (const edge of edges) {
       const sourceType = nodeTypeMap.get(edge.source);
@@ -48,7 +48,7 @@ export function useEdgeBundling(edges: Edge[], nodeTypeMap: Map<string, string>)
       bundles.get(key)!.push(edge);
     }
 
-    const displayEdges: Edge[] = [];
+    const displayEdges: CartaEdge[] = [];
 
     for (const [, bundledEdges] of bundles) {
       if (bundledEdges.length === 1) {

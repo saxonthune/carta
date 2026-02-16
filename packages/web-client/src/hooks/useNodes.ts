@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { Node } from '@xyflow/react';
+import type { CartaNode } from '@carta/types';
 import { useDocumentContext } from '../contexts/DocumentContext';
 import type { ConstructNodeData } from '@carta/domain';
 
@@ -10,7 +10,7 @@ import type { ConstructNodeData } from '@carta/domain';
 export function useNodes() {
   const { adapter } = useDocumentContext();
 
-  const [nodes, setNodesState] = useState<Node[]>(() => adapter.getNodes() as Node[]);
+  const [nodes, setNodesState] = useState<CartaNode[]>(() => adapter.getNodes() as CartaNode[]);
 
   // When true, subscriber skips state updates (used during drag to avoid
   // remote Yjs changes overwriting local React Flow positions)
@@ -19,7 +19,7 @@ export function useNodes() {
   useEffect(() => {
     const handler = () => {
       if (suppressUpdatesRef.current) return;
-      const freshNodes = adapter.getNodes() as Node[];
+      const freshNodes = adapter.getNodes() as CartaNode[];
       setNodesState(freshNodes);
     };
     // Subscribe to node-specific changes (falls back to full subscribe if granular not available)
@@ -30,8 +30,8 @@ export function useNodes() {
   }, [adapter]);
 
   const setNodes = useCallback(
-    (nodesOrUpdater: Node[] | ((prev: Node[]) => Node[])) => {
-      adapter.setNodes(nodesOrUpdater as unknown[] | ((prev: unknown[]) => unknown[]));
+    (nodesOrUpdater: CartaNode[] | ((prev: CartaNode[]) => CartaNode[])) => {
+      adapter.setNodes(nodesOrUpdater);
     },
     [adapter]
   );
