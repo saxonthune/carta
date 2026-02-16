@@ -431,7 +431,7 @@ export function MapV2ConstructNode({
   onResizePointerDown,
   hoveredNodeId,
   connectionDrag,
-  sourcePortType,
+  sourcePortType: _sourcePortType,
   getPortSchema,
   startConnection,
 }: MapV2ConstructNodeProps) {
@@ -652,75 +652,100 @@ export function MapV2ConstructNode({
           backgroundColor: 'var(--color-surface)',
           borderTop: '1px solid var(--color-border)',
           borderRadius: '0 0 6px 6px',
-          padding: '4px 6px',
+          padding: '4px 0',
           display: 'flex',
           flexDirection: 'column',
-          gap: 3,
           boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          zIndex: 30,
         }}>
           {schema.ports.map((port: any) => {
             const portSchema = getPortSchema(port.portType);
+            const portColor = portSchema?.color ?? '#888';
             const polarity = port.polarity ?? 'any';
             const isSource = polarity === 'output' || polarity === 'inout' || polarity === 'any';
-            const isTarget = polarity === 'input' || polarity === 'inout' || polarity === 'any';
 
-            // Validation during drag
-            const isValidTarget = connectionDrag && isTarget && sourcePortType
-              ? (() => {
-                const srcSchema = getPortSchema(sourcePortType);
-                if (!srcSchema || !portSchema) return false;
-                // Simple validation: same type or any
-                return srcSchema.id === portSchema.id || portSchema.id === 'any' || srcSchema.id === 'any';
-              })()
-              : false;
+            // During drag: show as target
+            if (connectionDrag) {
+              return (
+                <ConnectionHandle
+                  key={port.id}
+                  type="target"
+                  id={port.id}
+                  nodeId={node.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '6px 12px',
+                    minHeight: 36,
+                    cursor: 'crosshair',
+                    borderRadius: 4,
+                    margin: '0 4px',
+                  }}
+                >
+                  <div style={{
+                    width: 16, height: 16, borderRadius: '50%',
+                    backgroundColor: portColor,
+                    border: '2px solid var(--color-surface)',
+                    flexShrink: 0,
+                  }} />
+                  <span style={{
+                    fontSize: 12, color: 'var(--color-content)',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {port.label ?? port.id}
+                  </span>
+                </ConnectionHandle>
+              );
+            }
 
-            const isValidSource = !connectionDrag && isSource;
+            // No drag: show as source
+            if (isSource) {
+              return (
+                <ConnectionHandle
+                  key={port.id}
+                  type="source"
+                  id={port.id}
+                  nodeId={node.id}
+                  onStartConnection={startConnection}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '6px 12px',
+                    minHeight: 36,
+                    cursor: 'crosshair',
+                    borderRadius: 4,
+                    margin: '0 4px',
+                  }}
+                >
+                  <div style={{
+                    width: 16, height: 16, borderRadius: '50%',
+                    backgroundColor: portColor,
+                    border: '2px solid var(--color-surface)',
+                    flexShrink: 0,
+                  }} />
+                  <span style={{
+                    fontSize: 12, color: 'var(--color-content)',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {port.label ?? port.id}
+                  </span>
+                </ConnectionHandle>
+              );
+            }
 
+            // Non-source port (input-only), show as label
             return (
               <div key={port.id} style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-                fontSize: 10,
-                color: 'var(--color-content)',
-                opacity: (connectionDrag && !isValidTarget) ? 0.3 : 1,
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '6px 12px', minHeight: 36,
               }}>
-                {/* Connection source handle */}
-                {!connectionDrag && isValidSource && (
-                  <ConnectionHandle
-                    type="source"
-                    id={port.id}
-                    nodeId={node.id}
-                    onStartConnection={startConnection}
-                    style={{
-                      width: 10,
-                      height: 10,
-                      borderRadius: '50%',
-                      backgroundColor: portSchema?.color ?? '#888',
-                      cursor: 'crosshair',
-                      flexShrink: 0,
-                    }}
-                  />
-                )}
-                {/* Drop zone for connections */}
-                {connectionDrag && isValidTarget && (
-                  <ConnectionHandle
-                    type="target"
-                    id={port.id}
-                    nodeId={node.id}
-                    style={{
-                      width: 16,
-                      height: 16,
-                      borderRadius: '50%',
-                      backgroundColor: portSchema?.color ?? '#888',
-                      border: '2px solid var(--color-surface)',
-                      cursor: 'crosshair',
-                      marginLeft: -8,
-                    }}
-                  />
-                )}
-                {/* Port label */}
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <div style={{
+                  width: 16, height: 16, borderRadius: '50%',
+                  backgroundColor: portColor, flexShrink: 0,
+                }} />
+                <span style={{ fontSize: 12, color: 'var(--color-content)' }}>
                   {port.label ?? port.id}
                 </span>
               </div>
