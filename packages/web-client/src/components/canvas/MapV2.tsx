@@ -28,8 +28,8 @@ import { MenuLevel, type MenuItem } from '../ui/ContextMenuPrimitive';
 import { Tooltip } from '../ui';
 import { MapPin } from '@phosphor-icons/react';
 import { getRectBoundaryPoint, waypointsToPath, computeBezierPath, computeSideOffset, type Waypoint } from '../../utils/edgeGeometry.js';
-import { canConnect, getHandleType, nodeContainedInOrganizer, type ConstructSchema, type ConstructNodeData, getDisplayName, type DocumentAdapter } from '@carta/domain';
-import { stripHandlePrefix } from '../../utils/handlePrefix.js';
+import { nodeContainedInOrganizer, type ConstructSchema, type ConstructNodeData, getDisplayName, type DocumentAdapter } from '@carta/domain';
+import { validateConnection, normalizeConnection } from '../../utils/connectionLogic.js';
 import { generateSemanticId } from '../../utils/cartaFile';
 import { computeOrthogonalRoutes, type NodeRect } from '../../presentation/index.js';
 import { getNodeDimensions } from '../../utils/nodeDimensions.js';
@@ -990,28 +990,7 @@ export default function MapV2({ searchText, onSelectionChange: onSelectionChange
     source: string; sourceHandle: string;
     target: string; targetHandle: string;
   }) => {
-    if (conn.source === conn.target) return false;
-    if (!conn.sourceHandle || !conn.targetHandle) return false;
-
-    const cleanSourceHandle = stripHandlePrefix(conn.sourceHandle);
-    const cleanTargetHandle = stripHandlePrefix(conn.targetHandle);
-
-    const sourceNode = nodes.find(n => n.id === conn.source);
-    const targetNode = nodes.find(n => n.id === conn.target);
-    if (!sourceNode || !targetNode) return false;
-    if (sourceNode.type !== 'construct' || targetNode.type !== 'construct') return true;
-
-    const sourceData = sourceNode.data as Record<string, unknown>;
-    const targetData = targetNode.data as Record<string, unknown>;
-    const sourceSchema = getSchema((sourceData as any).constructType);
-    const targetSchema = getSchema((targetData as any).constructType);
-    if (!sourceSchema || !targetSchema) return false;
-
-    const sourcePort = sourceSchema.ports?.find((p: any) => p.id === cleanSourceHandle);
-    const targetPort = targetSchema.ports?.find((p: any) => p.id === cleanTargetHandle);
-    if (!sourcePort || !targetPort) return false;
-
-    return canConnect(sourcePort.portType, targetPort.portType);
+    return validateConnection(conn, getSchema, (id) => nodes.find(n => n.id === id));
   }, [nodes, getSchema]);
 
   // Connection creation
@@ -1019,50 +998,21 @@ export default function MapV2({ searchText, onSelectionChange: onSelectionChange
     source: string; sourceHandle: string;
     target: string; targetHandle: string;
   }) => {
-    const cleanSourceHandle = stripHandlePrefix(conn.sourceHandle);
-    const cleanTargetHandle = stripHandlePrefix(conn.targetHandle);
+    const normalized = normalizeConnection(conn, getSchema, (id) => nodes.find(n => n.id === id));
+    if (!normalized) return;
 
-    const sourceNode = nodes.find(n => n.id === conn.source);
-    const targetNode = nodes.find(n => n.id === conn.target);
-    if (!sourceNode || !targetNode) return;
-    if (sourceNode.type !== 'construct' || targetNode.type !== 'construct') return;
-
-    const sourceData = sourceNode.data as Record<string, unknown>;
-    const targetData = targetNode.data as Record<string, unknown>;
-    const sourceSchema = getSchema((sourceData as any).constructType);
-    const targetSchema = getSchema((targetData as any).constructType);
-    if (!sourceSchema || !targetSchema) return;
-
-    const sourcePort = sourceSchema.ports?.find((p: any) => p.id === cleanSourceHandle);
-    const targetPort = targetSchema.ports?.find((p: any) => p.id === cleanTargetHandle);
-    if (!sourcePort || !targetPort) return;
-
-    // Normalize direction: ensure source has 'source' handle type
-    const sourceHandleType = getHandleType(sourcePort.portType);
-    const targetHandleType = getHandleType(targetPort.portType);
-    const needsFlip = sourceHandleType === 'target' && targetHandleType === 'source';
-
-    const normalized = needsFlip
-      ? { source: conn.target, sourceHandle: cleanTargetHandle, target: conn.source, targetHandle: cleanSourceHandle }
-      : { source: conn.source, sourceHandle: cleanSourceHandle, target: conn.target, targetHandle: cleanTargetHandle };
-
-    // Add edge via setEdges
     setEdges((eds) => {
       const newEdge = {
         id: `e-${normalized.source}-${normalized.sourceHandle}-${normalized.target}-${normalized.targetHandle}`,
-        source: normalized.source,
-        sourceHandle: normalized.sourceHandle,
-        target: normalized.target,
-        targetHandle: normalized.targetHandle,
+        ...normalized,
       };
       // Check for duplicate
-      const exists = eds.some(e =>
+      if (eds.some(e =>
         e.source === newEdge.source &&
         e.sourceHandle === newEdge.sourceHandle &&
         e.target === newEdge.target &&
         e.targetHandle === newEdge.targetHandle
-      );
-      if (exists) return eds;
+      )) return eds;
       return [...eds, newEdge];
     });
   }, [nodes, getSchema, setEdges]);
