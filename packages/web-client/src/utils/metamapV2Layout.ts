@@ -366,11 +366,8 @@ export function computeMetamapV2Layout(
     return { nodes: [], edges: [] };
   }
 
-  // Filter to only packages referenced by at least one schema
-  const referencedPackageIds = new Set(
-    schemas.map(s => s.packageId).filter((id): id is string => !!id)
-  );
-  const activePackages = schemaPackages.filter(p => referencedPackageIds.has(p.id));
+  // Show all packages — even empty ones. Users need to see what's loaded.
+  const activePackages = schemaPackages;
 
   // Group schemas by package
   const schemasByPackage = new Map<string, ConstructSchema[]>();

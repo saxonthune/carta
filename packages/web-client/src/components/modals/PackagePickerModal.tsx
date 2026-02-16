@@ -10,10 +10,22 @@ interface PackagePickerModalProps {
 interface PackageCardProps {
   item: PackagePickerItem;
   onLoad: (item: PackagePickerItem) => void;
+  onRepair: (item: PackagePickerItem) => void;
 }
 
-function PackageCard({ item, onLoad }: PackageCardProps) {
-  const { definition, status } = item;
+function PackageCard({ item, onLoad, onRepair }: PackageCardProps) {
+  const { definition, status, schemaCount } = item;
+
+  const handleRepair = () => {
+    if (schemaCount > 0) {
+      // Reset to library version — warn about orphaned fields
+      const confirmed = window.confirm(
+        'This will replace your customized schemas with the standard library versions. Instance data is preserved but custom fields will become orphaned.'
+      );
+      if (!confirmed) return;
+    }
+    onRepair(item);
+  };
 
   return (
     <div className="bg-surface border border-border rounded-lg p-3 flex items-start gap-3">
@@ -38,8 +50,15 @@ function PackageCard({ item, onLoad }: PackageCardProps) {
             <span>Loaded</span>
           </div>
         )}
-        {status === 'modified' && (
-          <div className="text-xs text-amber-400">Modified</div>
+        {status === 'modified' && schemaCount === 0 && (
+          <Button size="sm" variant="accent" onClick={handleRepair}>
+            Repair
+          </Button>
+        )}
+        {status === 'modified' && schemaCount > 0 && (
+          <Button size="sm" variant="danger" onClick={handleRepair}>
+            Reset to Library
+          </Button>
         )}
       </div>
     </div>
@@ -47,10 +66,15 @@ function PackageCard({ item, onLoad }: PackageCardProps) {
 }
 
 export default function PackagePickerModal({ onClose }: PackagePickerModalProps) {
-  const { items, loadPackage } = usePackagePicker();
+  const { items, loadPackage, repairPackage } = usePackagePicker();
 
   const handleLoad = (item: PackagePickerItem) => {
     loadPackage(item.definition);
+    // State updates reactively via manifest subscription — no manual setState needed
+  };
+
+  const handleRepair = (item: PackagePickerItem) => {
+    repairPackage(item.definition);
     // State updates reactively via manifest subscription — no manual setState needed
   };
 
@@ -58,7 +82,7 @@ export default function PackagePickerModal({ onClose }: PackagePickerModalProps)
     <Modal isOpen={true} onClose={onClose} title="Schema Packages" maxWidth="520px">
       <div className="flex flex-col gap-2">
         {items.map((item) => (
-          <PackageCard key={item.definition.id} item={item} onLoad={handleLoad} />
+          <PackageCard key={item.definition.id} item={item} onLoad={handleLoad} onRepair={handleRepair} />
         ))}
       </div>
     </Modal>

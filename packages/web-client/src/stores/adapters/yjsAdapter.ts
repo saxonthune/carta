@@ -1169,6 +1169,16 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       }, 'user');
     },
 
+    removePackageManifestEntry(packageId: string): boolean {
+      const exists = ypackageManifest.has(packageId);
+      if (exists) {
+        ydoc.transact(() => {
+          ypackageManifest.delete(packageId);
+        }, 'user');
+      }
+      return exists;
+    },
+
     // State access - Schema Relationships
     getSchemaRelationships(): SchemaRelationship[] {
       const rels: SchemaRelationship[] = [];

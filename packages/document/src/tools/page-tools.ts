@@ -6,6 +6,7 @@
  */
 
 import { z } from 'zod';
+import * as Y from 'yjs';
 import {
   listConstructs,
   getConstruct,
@@ -31,6 +32,7 @@ import {
   applyPinLayout,
   rebuildPage,
 } from '../doc-operations.js';
+import { yToPlain } from '../yjs-helpers.js';
 import type { ToolDefinition } from './types.js';
 
 // ============================================================
@@ -292,7 +294,33 @@ export const getConstructTool: ToolDefinition = {
     if (!construct) {
       return { success: false, error: `Construct not found: ${input.semanticId}` };
     }
-    return { success: true, data: { construct } };
+
+    // Cross-reference values against schema to flag orphaned data
+    const yschemas = ydoc.getMap<Y.Map<unknown>>('schemas');
+    const yschema = yschemas.get(construct.data.constructType);
+    let orphanedValues: Record<string, unknown> | undefined;
+    if (yschema) {
+      const schema = yToPlain(yschema) as { fields?: Array<{ name: string }> };
+      const fieldNames = new Set((schema.fields ?? []).map(f => f.name));
+      const orphans: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(construct.data.values ?? {})) {
+        if (!fieldNames.has(key)) {
+          orphans[key] = value;
+        }
+      }
+      if (Object.keys(orphans).length > 0) {
+        orphanedValues = orphans;
+      }
+    }
+
+    return {
+      success: true,
+      data: {
+        construct,
+        ...(orphanedValues ? { orphanedValues } : {}),
+        ...(yschema ? {} : { warning: 'Schema not found for this construct type' }),
+      },
+    };
   },
 };
 

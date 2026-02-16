@@ -37,11 +37,28 @@ export default function InstanceEditor({ node, onNodeUpdate }: InstanceEditorPro
 
   if (!schema) {
     return (
-      <div className="p-4 text-content-muted">
-        <div className="bg-danger-muted border-2 border-danger rounded-lg p-3">
-          <p className="text-danger font-semibold">Unknown construct type:</p>
-          <p className="text-content mt-1">{data.constructType}</p>
+      <div className="p-4 space-y-3">
+        <div className="bg-danger-muted border-2 border-dashed border-danger rounded-lg p-3">
+          <p className="text-danger font-semibold">Missing schema: {data.constructType}</p>
+          <p className="text-content-muted text-xs mt-1">
+            This construct's schema is not loaded. Load the appropriate package to restore it.
+          </p>
         </div>
+        {data.values && Object.keys(data.values).length > 0 && (
+          <div className="bg-surface-depth-2 rounded-xl p-3">
+            <h3 className="text-xs font-semibold text-content-muted uppercase mb-3">Stored Data</h3>
+            <div className="space-y-2">
+              {Object.entries(data.values).map(([key, value]) => (
+                <div key={key} className="flex flex-col gap-0.5">
+                  <span className="text-[11px] font-mono text-content-muted">{key}</span>
+                  <div className="px-2.5 py-1.5 rounded text-sm text-content bg-surface-alt font-mono text-xs">
+                    {value != null ? String(value) : '(empty)'}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -130,6 +147,31 @@ export default function InstanceEditor({ node, onNodeUpdate }: InstanceEditorPro
                     </div>
                   </div>
                 )}
+
+                {/* Orphaned Data Island — values with no matching schema field */}
+                {(() => {
+                  const schemaFieldNames = new Set(schema.fields.map(f => f.name));
+                  const orphanedEntries = Object.entries(data.values)
+                    .filter(([key]) => !schemaFieldNames.has(key));
+                  if (orphanedEntries.length === 0) return null;
+                  return (
+                    <div className="bg-surface-depth-2 rounded-xl p-3 border border-dashed border-warning/40">
+                      <h3 className="text-xs font-semibold text-warning uppercase mb-3">
+                        Orphaned Data ({orphanedEntries.length})
+                      </h3>
+                      <div className="space-y-2">
+                        {orphanedEntries.map(([key, value]) => (
+                          <div key={key} className="flex flex-col gap-0.5">
+                            <span className="text-[11px] font-mono text-content-muted">{key}</span>
+                            <div className="px-2.5 py-1.5 rounded text-sm text-content-subtle bg-surface-alt font-mono text-xs">
+                              {value != null ? String(value) : '(empty)'}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
               </>
             )}
 

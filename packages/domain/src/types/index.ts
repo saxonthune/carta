@@ -602,6 +602,7 @@ export interface DocumentAdapter {
 
   // Mutations - Package Manifest
   addPackageManifestEntry(entry: PackageManifestEntry): void;
+  removePackageManifestEntry(packageId: string): boolean;
 
   // Mutations - Schema Relationships
   addSchemaRelationship(rel: SchemaRelationship): void;
