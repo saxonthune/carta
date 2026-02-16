@@ -1,11 +1,14 @@
 ---
-title: "ADR: Yjs-Authoritative Layout with RF as Renderer"
-status: proposed
+title: "ADR: Yjs-Authoritative Layout"
+status: implemented
 date: 2026-02-14
-tags: adr, state, layout, react-flow, yjs, architecture
+updated: 2026-02-16
+tags: adr, state, layout, yjs, architecture
 ---
 
-# ADR: Yjs-Authoritative Layout with RF as Renderer
+# ADR: Yjs-Authoritative Layout
+
+**Update 2026-02-16:** React Flow has been fully removed. This ADR's architectural principles remain valid but the implementation now uses canvas-engine as the renderer.
 
 ## Context
 
@@ -27,7 +30,7 @@ Every new layout feature (wagon-aware bounds, recursive layout, layout pins) mul
 
 ## Decision
 
-Make Yjs the authoritative store for all layout operations. React Flow becomes a pure renderer that receives position/size updates via a single sync module.
+Make Yjs the authoritative store for all layout operations. The canvas renderer becomes a pure presentation layer that receives position/size updates via a single sync module.
 
 ### Architecture
 

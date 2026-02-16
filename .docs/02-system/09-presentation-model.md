@@ -5,7 +5,7 @@ status: active
 
 # Presentation Model
 
-The presentation model is a pure transformation layer that converts domain state (constructs, schemas, connections, organizers) into view state (positioned, styled, visible/hidden React Flow nodes and edges). It owns all decisions about **how** data appears on screen, keeping the domain model free of rendering concerns.
+The presentation model is a pure transformation layer that converts domain state (constructs, schemas, connections, organizers) into view state (positioned, styled, visible/hidden canvas nodes and edges). It owns all decisions about **how** data appears on screen, keeping the domain model free of rendering concerns.
 
 ## Why This Layer Exists
 
@@ -13,15 +13,15 @@ Without the presentation model, rendering logic is scattered: Map.tsx enhances n
 
 - **Domain model** describes what exists and how it relates (constructs, schemas, connections)
 - **Presentation model** decides what the view should show given what exists
-- **React Flow** renders the result
+- **canvas-engine** renders the result
 
 This separation means new rendering behaviors (organizer layouts, render styles, LOD bands) are added in one place without touching domain logic or React Flow integration.
 
 ## Architecture
 
 ```
-Domain State                  Presentation Model                    React Flow
-─────────────                 ──────────────────                    ──────────
+Domain State                  Presentation Model                    Canvas
+─────────────                 ──────────────────                    ──────
 Constructs (M0)        →      Node visibility, positioning     →    nodes[]
 Schemas (M1)           →      Component selection (dispatch)   →    nodeTypes
 Connections            →      Edge routing, remapping           →    edges[]

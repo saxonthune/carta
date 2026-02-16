@@ -11,14 +11,14 @@ Internal library of composable primitives for building interactive canvas UIs. D
 
 ## Architecture Position
 
-Sits below feature components, above browser APIs. Peer to React Flow — eventually replaces it for views that need tighter control over rendering and interaction.
+Sits below feature components, above browser APIs. The sole canvas rendering layer for Carta.
 
 ```
-Feature components (LayoutMap, future Metamap, ...)
+Feature components (Map, Metamap, LayoutMap)
          ↓
-   canvas-engine          React Flow
-         ↓                    ↓
-   d3-zoom, DOM APIs     @xyflow/react
+   canvas-engine
+         ↓
+   d3-zoom, DOM APIs
 ```
 
 Dependency direction: consumers depend on the engine, never the reverse. The engine has no imports from `components/`, `hooks/`, or any domain package.

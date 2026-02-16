@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { Node } from '@xyflow/react';
+import type { CartaNode } from '@carta/types';
 import {
   getAbsolutePosition,
   canNestInOrganizer,
@@ -10,7 +10,7 @@ import {
 import { toRelativePosition } from '@carta/domain';
 
 // Helper to create a simple test node
-function makeNode(id: string, opts: Partial<Node> = {}): Node {
+function makeNode(id: string, opts: Partial<CartaNode> = {}): CartaNode {
   return {
     id,
     type: opts.type ?? 'construct',

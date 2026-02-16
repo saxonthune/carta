@@ -1,6 +1,5 @@
 import { useCallback } from 'react';
 import type { CartaNode } from '@carta/types';
-import type { ReactFlowInstance } from '@xyflow/react';
 import * as Y from 'yjs';
 import type { DocumentAdapter } from '@carta/domain';
 import { DEFAULT_ORGANIZER_LAYOUT, computeLayoutUnitSizes, computeLayoutUnitBounds, computeOrganizerFit, type LayoutItem, type WagonInfo, resolvePinConstraints, type PinLayoutNode, type NodeGeometry } from '@carta/domain';
@@ -265,6 +264,12 @@ export function getChildVisualFootprints(
       height: itemBounds.height,
     };
   });
+}
+
+interface ReactFlowInstance {
+  getNodes: () => unknown[];
+  setNodes: (updater: ((nodes: unknown[]) => unknown[]) | unknown[]) => void;
+  getEdges: () => Array<{ id: string; source: string; target: string; data?: any }>;
 }
 
 interface UseLayoutActionsDeps {
@@ -611,7 +616,7 @@ export function useLayoutActions({
 
       // Filter edges: between direct children, collapsing wagon-internal edges
       const childIds = new Set(items.map(c => c.id));
-      const rfEdges = reactFlow.getEdges();
+      const rfEdges = reactFlow.getEdges() as Array<{ id: string; source: string; target: string }>;
 
       // Build map: nodes inside child wagons → wagon ID
       const toChild = new Map<string, string>();
@@ -756,7 +761,7 @@ export function useLayoutActions({
    */
   const hierarchicalLayoutAction = useCallback(() => {
     const rfNodes = adapter.getNodes() as CartaNode[];
-    const rfEdges = reactFlow.getEdges();
+    const rfEdges = reactFlow.getEdges() as Array<{ id: string; source: string; target: string; data?: any }>;
 
     const topLevelItems = getTopLevelLayoutItems(rfNodes, computeLayoutUnits);
     if (topLevelItems.length < 2) return;
@@ -836,7 +841,7 @@ export function useLayoutActions({
    */
   const flowLayout = useCallback((direction: 'LR' | 'RL' | 'TB' | 'BT') => {
     const rfNodes = adapter.getNodes() as CartaNode[];
-    const rfEdges = reactFlow.getEdges();
+    const rfEdges = reactFlow.getEdges() as Array<{ id: string; source: string; target: string; data?: any }>;
 
     const topLevelItems = getTopLevelLayoutItems(rfNodes, computeLayoutUnits);
     if (topLevelItems.length < 2) return;
@@ -870,7 +875,7 @@ export function useLayoutActions({
    */
   const routeEdges = useCallback(() => {
     const rfNodes = reactFlow.getNodes() as unknown as CartaNode[];
-    const rfEdges = reactFlow.getEdges();
+    const rfEdges = reactFlow.getEdges() as Array<{ id: string; source: string; target: string; data?: any }>;
 
     // Build obstacle rects from all top-level nodes (constructs + organizers)
     const topLevel = rfNodes.filter(n => !n.parentId);
@@ -957,7 +962,7 @@ export function useLayoutActions({
    * Clear all edge routes (waypoints) from Yjs (sync effect will propagate to React Flow).
    */
   const clearRoutes = useCallback(() => {
-    const rfEdges = reactFlow.getEdges();
+    const rfEdges = reactFlow.getEdges() as Array<{ id: string; source: string; target: string; data?: any }>;
     const patches = rfEdges
       .filter(e => e.data?.waypoints && !e.id.startsWith('agg-') && !e.id.startsWith('wagon-'))
       .map(e => ({ id: e.id, data: { waypoints: null } }));

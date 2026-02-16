@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { Node } from '@xyflow/react';
+import type { CartaNode } from '@carta/types';
 import {
   getAbsolutePosition,
   toRelativePosition,
@@ -13,13 +13,13 @@ import { computeAlignment, computeDistribution } from '../../src/utils/layoutGeo
 describe('Layout Geometry Helpers', () => {
   describe('getAbsolutePosition', () => {
     it('node without parent returns node.position', () => {
-      const node: Node = {
+      const node: CartaNode = {
         id: 'n1',
         type: 'default',
         position: { x: 100, y: 200 },
         data: {},
       };
-      const allNodes: Node[] = [node];
+      const allNodes: CartaNode[] = [node];
 
       const result = getAbsolutePosition(node, allNodes);
 
@@ -27,20 +27,20 @@ describe('Layout Geometry Helpers', () => {
     });
 
     it('node with parent returns parent.position + node.position', () => {
-      const parent: Node = {
+      const parent: CartaNode = {
         id: 'parent',
         type: 'organizer',
         position: { x: 50, y: 75 },
         data: {},
       };
-      const child: Node = {
+      const child: CartaNode = {
         id: 'child',
         type: 'default',
         position: { x: 10, y: 20 },
         parentId: 'parent',
         data: {},
       };
-      const allNodes: Node[] = [parent, child];
+      const allNodes: CartaNode[] = [parent, child];
 
       const result = getAbsolutePosition(child, allNodes);
 
@@ -54,21 +54,21 @@ describe('Layout Geometry Helpers', () => {
         position: { x: 10, y: 10 },
         data: {},
       };
-      const parent: Node = {
+      const parent: CartaNode = {
         id: 'parent',
         type: 'organizer',
         position: { x: 20, y: 30 },
         parentId: 'gp',
         data: {},
       };
-      const child: Node = {
+      const child: CartaNode = {
         id: 'child',
         type: 'default',
         position: { x: 5, y: 7 },
         parentId: 'parent',
         data: {},
       };
-      const allNodes: Node[] = [grandparent, parent, child];
+      const allNodes: CartaNode[] = [grandparent, parent, child];
 
       const result = getAbsolutePosition(child, allNodes);
 
@@ -79,20 +79,20 @@ describe('Layout Geometry Helpers', () => {
 
   describe('toRelativePosition', () => {
     it('round-trip: toRelativePosition(getAbsolutePosition(child)) ≈ child.position', () => {
-      const parent: Node = {
+      const parent: CartaNode = {
         id: 'parent',
         type: 'organizer',
         position: { x: 100, y: 200 },
         data: {},
       };
-      const child: Node = {
+      const child: CartaNode = {
         id: 'child',
         type: 'default',
         position: { x: 25, y: 50 },
         parentId: 'parent',
         data: {},
       };
-      const allNodes: Node[] = [parent, child];
+      const allNodes: CartaNode[] = [parent, child];
 
       const absolutePos = getAbsolutePosition(child, allNodes);
       const parentAbsolutePos = getAbsolutePosition(parent, allNodes);

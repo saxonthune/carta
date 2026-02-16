@@ -7,11 +7,11 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import { getClipboardBounds, calculatePastePosition, transformPastedNodes } from '../../src/utils/clipboardLogic';
-import type { Node } from '@xyflow/react';
+import type { CartaNode } from '@carta/types';
 
 describe('getClipboardBounds', () => {
   it('returns bounds equal to position for single node', () => {
-    const nodes: Node[] = [
+    const nodes: CartaNode[] = [
       { id: '1', position: { x: 100, y: 200 }, data: {} },
     ];
     const bounds = getClipboardBounds(nodes);
@@ -19,7 +19,7 @@ describe('getClipboardBounds', () => {
   });
 
   it('returns minimum x and y across multiple nodes', () => {
-    const nodes: Node[] = [
+    const nodes: CartaNode[] = [
       { id: '1', position: { x: 100, y: 200 }, data: {} },
       { id: '2', position: { x: 50, y: 300 }, data: {} },
       { id: '3', position: { x: 150, y: 100 }, data: {} },
@@ -29,7 +29,7 @@ describe('getClipboardBounds', () => {
   });
 
   it('handles negative positions correctly', () => {
-    const nodes: Node[] = [
+    const nodes: CartaNode[] = [
       { id: '1', position: { x: -50, y: 100 }, data: {} },
       { id: '2', position: { x: 100, y: -200 }, data: {} },
       { id: '3', position: { x: 0, y: 0 }, data: {} },

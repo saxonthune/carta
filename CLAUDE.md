@@ -2,7 +2,7 @@
 
 ## Quick Start
 
-Carta is a visual software architecture editor using React Flow. Users create "Constructs" (typed nodes), connect them, and compile to AI-readable output.
+Carta is a visual software architecture editor. Users create "Constructs" (typed nodes), connect them, and compile to AI-readable output.
 
 @.docs/MANIFEST.md
 
@@ -33,7 +33,6 @@ Carta is a visual software architecture editor using React Flow. Users create "C
 | `/style-nag` | Audits and fixes UI styling against doc02.07 | After UI changes, or periodically |
 | `/frontend-architecture-nag` | Audits component layering against doc02.08 | After architectural changes |
 | `/test-builder` | Creates integration/E2E tests | When adding test coverage |
-| `/react-flow-expert` | React Flow performance, uncontrolled mode, presentation layer | Performance issues, designing visual features |
 | `/git-sync-trunk` | Syncs trunk branch with remote or main | Before creating worktrees, after remote updates |
 | `/git-sync-worktree` | Syncs worktree's claude branch with trunk via rebase | Every 30-60 min while working in a worktree |
 | `/execute-plan` | Launches background agent to implement a plan from todo-tasks/ | After agreeing on a plan interactively |
@@ -60,7 +59,6 @@ All skills follow the same pattern: opus reads `.docs/` and code, analyzes, gene
 | `/style-nag` | doc02.07 (design system), doc01.04 (UX principles) | `.claude/skills/style-nag/SKILL.md` |
 | `/frontend-architecture-nag` | doc02.08 (frontend architecture), doc02.01 (overview) | `.claude/skills/frontend-architecture-nag/SKILL.md` |
 | `/test-builder` | doc04.02 (testing), `packages/web-client/tests/README.md` | `.claude/skills/test-builder/SKILL.md` |
-| `/react-flow-expert` | doc02.09 (presentation model), Map.tsx, DynamicAnchorEdge.tsx | `.claude/skills/react-flow-expert/SKILL.md` |
 | `/git-sync-trunk` | Git worktree workflows | `.claude/skills/git-sync-trunk/SKILL.md` |
 | `/git-sync-worktree` | Git worktree workflows | `.claude/skills/git-sync-worktree/SKILL.md` |
 | `/execute-plan` | Plan executor workflow | `.claude/skills/execute-plan/SKILL.md` |
@@ -126,10 +124,6 @@ All three must pass before committing. E2E uses port 5273 (separate from dev ser
 **Do NOT**: Launch Explore agents for simple searches. Read entire directories speculatively. Read files not surfaced by Grep or referenced by the plan.
 
 **Escalate to Explore agent only if**: Grep returns 0 hits for all terms, the subsystem has no `.docs/` coverage, or you can't identify which files to modify after triage.
-
-## Known Pitfalls
-
-- **`reactFlow.getNodes()` is stale after `setNodes()`** — In uncontrolled mode, `getNodes()` called immediately after `setNodes(updater)` in the same synchronous block returns stale data. **Pattern**: Pass known positions forward as parameters instead of re-reading from the RF store. See doc05.03.
 
 ## Constraints
 

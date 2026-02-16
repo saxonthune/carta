@@ -1,5 +1,4 @@
 import { ReactNode } from 'react';
-import { ReactFlowProvider } from '@xyflow/react';
 import { DocumentProvider } from '../../src/contexts/DocumentContext';
 
 interface TestProvidersProps {
@@ -12,11 +11,9 @@ interface TestProvidersProps {
  */
 export function TestProviders({ children }: TestProvidersProps) {
   return (
-    <ReactFlowProvider>
-      <DocumentProvider documentId="test-document" skipPersistence={true}>
-        {children}
-      </DocumentProvider>
-    </ReactFlowProvider>
+    <DocumentProvider documentId="test-document" skipPersistence={true}>
+      {children}
+    </DocumentProvider>
   );
 }
 

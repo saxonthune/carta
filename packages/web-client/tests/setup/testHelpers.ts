@@ -1,4 +1,4 @@
-import type { Node, Edge } from '@xyflow/react';
+import type { CartaNode, CartaEdge } from '@carta/types';
 import type { ConstructNodeData } from '@carta/domain';
 
 /**
@@ -13,7 +13,7 @@ export function createTestNode(options: {
   values?: Record<string, unknown>;
   connections?: ConstructNodeData['connections'];
   groupId?: string;
-}): Node {
+}): CartaNode {
   const id = options.id ?? crypto.randomUUID();
   const constructType = options.type ?? 'Task';
   const semanticId = options.semanticId ?? `${constructType.toLowerCase()}-${Date.now()}`;
@@ -41,7 +41,7 @@ export function createTestEdge(options: {
   target: string;
   sourceHandle?: string;
   targetHandle?: string;
-}): Edge {
+}): CartaEdge {
   return {
     id: options.id ?? `edge-${options.source}-${options.target}`,
     source: options.source,
@@ -55,13 +55,13 @@ export function createTestEdge(options: {
  * Creates a sample document with nodes and edges for testing.
  */
 export function createSampleDocument() {
-  const nodes: Node[] = [
+  const nodes: CartaNode[] = [
     createTestNode({ id: '1', type: 'Task', semanticId: 'task-one', x: 0, y: 0 }),
     createTestNode({ id: '2', type: 'Task', semanticId: 'task-two', x: 200, y: 0 }),
     createTestNode({ id: '3', type: 'Service', semanticId: 'service-one', x: 400, y: 0 }),
   ];
 
-  const edges: Edge[] = [
+  const edges: CartaEdge[] = [
     createTestEdge({ source: '1', target: '2' }),
     createTestEdge({ source: '2', target: '3' }),
   ];
