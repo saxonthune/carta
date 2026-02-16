@@ -12,6 +12,7 @@ import type { SpreadInput } from '../utils/spreadNodes.js';
 import { computeOrthogonalRoutes, type NodeRect } from '../presentation/index.js';
 import { canNestInOrganizer } from './useOrganizerOperations.js';
 import { computeAlignment, computeDistribution } from '../utils/layoutGeometry.js';
+import { computeGridPositions, transformDirectionalPositions, computeWagonSnapPositions, normalizePositionsToContentArea } from '../utils/layoutStrategies.js';
 
 export const ORGANIZER_CONTENT_TOP = DEFAULT_ORGANIZER_LAYOUT.padding + DEFAULT_ORGANIZER_LAYOUT.headerHeight;
 
@@ -522,25 +523,13 @@ export function useLayoutActions({
     (organizerId: string): void => {
       const rfNodes = adapter.getNodes() as Node[];
       const children = rfNodes.filter(n => n.parentId === organizerId);
-      const patches: Array<{ id: string; position: { x: number; y: number } }> = [];
-
-      for (const child of children) {
-        if (child.type === 'organizer') continue;
-        const wagons = rfNodes.filter(n =>
-          n.type === 'organizer' && n.parentId === child.id
-        );
-        for (const wagon of wagons) {
-          const wagonData = wagon.data as any;
-          if (!wagonData.attachedToSemanticId) continue;
-          const constructDims = getNodeDimensions(child);
-          const gap = 10;
-          const newPosition = { x: constructDims.width + gap, y: 0 };
-          patches.push({ id: wagon.id, position: newPosition });
-        }
-      }
-
-      if (patches.length > 0) {
-        adapter.patchNodes?.(patches);
+      const snaps = computeWagonSnapPositions(
+        children as any, rfNodes as any,
+        (node) => getNodeDimensions(node as Node).width,
+        10,
+      );
+      if (snaps.length > 0) {
+        adapter.patchNodes?.(snaps);
       }
     },
     [adapter]
@@ -595,16 +584,7 @@ export function useLayoutActions({
 
       // Step 3: Compute grid
       const effectiveCols = cols ?? Math.ceil(Math.sqrt(items.length));
-      const colWidth = Math.max(...items.map(n => n.width)) + 30;
-      const rowHeight = Math.max(...items.map(n => n.height)) + 30;
-      const padding = 20;
-
-      const newPositions = new globalThis.Map<string, { x: number; y: number }>();
-      items.forEach((child, idx) => {
-        const x = (idx % effectiveCols) * colWidth + padding;
-        const y = Math.floor(idx / effectiveCols) * rowHeight + ORGANIZER_CONTENT_TOP;
-        newPositions.set(child.id, { x, y });
-      });
+      const newPositions = computeGridPositions(items, effectiveCols, ORGANIZER_CONTENT_TOP, 20);
 
       // Step 4: Convert back to construct positions
       const constructPositions = convertToConstructPositions(newPositions, offsets);
@@ -656,19 +636,8 @@ export function useLayoutActions({
       const rawPositions = hierarchicalLayout(items, scopedEdges, { gap: 30, layerGap: 60 });
 
       // Normalize positions to start from (padding, headerTop)
-      const padding = 20;
-      const positions = [...rawPositions.values()];
-      if (positions.length > 0) {
-        const minX = Math.min(...positions.map(p => p.x));
-        const minY = Math.min(...positions.map(p => p.y));
-
-        const newPositions = new globalThis.Map<string, { x: number; y: number }>();
-        for (const [id, pos] of rawPositions) {
-          newPositions.set(id, {
-            x: pos.x - minX + padding,
-            y: pos.y - minY + ORGANIZER_CONTENT_TOP,
-          });
-        }
+      if (rawPositions.size > 0) {
+        const newPositions = normalizePositionsToContentArea(rawPositions, ORGANIZER_CONTENT_TOP, 20);
 
         // Convert back to construct positions
         const constructPositions = convertToConstructPositions(newPositions, offsets);
@@ -879,35 +848,8 @@ export function useLayoutActions({
 
     // Transform coordinates based on direction
     // hierarchicalLayout produces TB layout (y increases down layers)
-    const transformed = new Map<string, { x: number; y: number }>();
-
-    if (direction === 'TB') {
-      // Already TB, use as-is
-      for (const [id, pos] of rawPositioned) {
-        transformed.set(id, pos);
-      }
-    } else if (direction === 'BT') {
-      // Mirror y positions
-      const positions = [...rawPositioned.values()];
-      const maxY = Math.max(...positions.map(p => p.y));
-      for (const [id, pos] of rawPositioned) {
-        const node = topLevelItems.find(n => n.id === id)!;
-        transformed.set(id, { x: pos.x, y: maxY - pos.y - node.height });
-      }
-    } else if (direction === 'LR') {
-      // Swap x and y
-      for (const [id, pos] of rawPositioned) {
-        transformed.set(id, { x: pos.y, y: pos.x });
-      }
-    } else if (direction === 'RL') {
-      // Swap x and y, then mirror x
-      const positions = [...rawPositioned.values()];
-      const maxY = Math.max(...positions.map(p => p.y));
-      for (const [id, pos] of rawPositioned) {
-        const node = topLevelItems.find(n => n.id === id)!;
-        transformed.set(id, { x: maxY - pos.y - node.height, y: pos.x });
-      }
-    }
+    const itemDims = new Map(topLevelItems.map(n => [n.id, { width: n.width, height: n.height }]));
+    const transformed = transformDirectionalPositions(rawPositioned, direction, itemDims);
 
     // Chain de-overlap to guarantee no overlaps
     const positionedItems = topLevelItems.map(n => ({
