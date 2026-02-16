@@ -5,7 +5,7 @@ import SegmentedControl from '../ui/SegmentedControl.js';
 import { usePackagePicker, type PackagePickerItem, type DocumentPackageItem } from '../../hooks/usePackagePicker.js';
 import { Check } from '@phosphor-icons/react';
 import type { ConstructSchema } from '@carta/domain';
-import { computePackageDiff, type PackageDiff } from '@carta/domain';
+import { computePackageDiff, computePackageDiffFromDefinitions, type PackageDiff } from '@carta/domain';
 import PackageDiffModal from './PackageDiffModal.js';
 import { useDocumentContext } from '../../contexts/DocumentContext.js';
 
@@ -24,10 +24,11 @@ interface PackageCardProps {
   onLoad: (item: PackagePickerItem) => void;
   onRepair: (item: PackagePickerItem) => void;
   onViewChanges?: (packageId: string) => void;
+  onViewLibraryUpdate?: (item: PackagePickerItem) => void;
 }
 
-function PackageCard({ item, onLoad, onRepair, onViewChanges }: PackageCardProps) {
-  const { definition, status, schemaCount } = item;
+function PackageCard({ item, onLoad, onRepair, onViewChanges, onViewLibraryUpdate }: PackageCardProps) {
+  const { definition, status, schemaCount, libraryUpdateAvailable } = item;
 
   const handleRepair = () => {
     if (schemaCount > 0) {
@@ -57,10 +58,24 @@ function PackageCard({ item, onLoad, onRepair, onViewChanges }: PackageCardProps
             Load
           </Button>
         )}
-        {status === 'loaded' && (
+        {status === 'loaded' && !libraryUpdateAvailable && (
           <div className="flex items-center gap-1 text-xs text-green-400">
             <Check size={14} weight="bold" />
             <span>Loaded</span>
+          </div>
+        )}
+        {status === 'loaded' && libraryUpdateAvailable && (
+          <div className="flex flex-col gap-1 items-end">
+            <div className="flex items-center gap-1 text-xs text-green-400">
+              <Check size={14} weight="bold" />
+              <span>Loaded</span>
+            </div>
+            <button
+              className="text-xs text-blue-400 hover:text-blue-300 cursor-pointer bg-transparent border-none underline"
+              onClick={() => onViewLibraryUpdate?.(item)}
+            >
+              Update Available
+            </button>
           </div>
         )}
         {status === 'modified' && schemaCount === 0 && (
@@ -87,7 +102,7 @@ function PackageCard({ item, onLoad, onRepair, onViewChanges }: PackageCardProps
 }
 
 function DocumentPackageCard({ item, onViewChanges }: { item: DocumentPackageItem; onViewChanges?: (id: string) => void }) {
-  const { package: pkg, schemaCount, isLibraryOrigin, driftStatus } = item;
+  const { package: pkg, schemaCount, isLibraryOrigin, driftStatus, libraryUpdateAvailable } = item;
 
   return (
     <div className="bg-surface border border-border rounded-lg p-3 flex items-start gap-3">
@@ -126,6 +141,9 @@ function DocumentPackageCard({ item, onViewChanges }: { item: DocumentPackageIte
           <div className="flex items-center gap-1 text-xs text-green-400">
             <Check size={14} weight="bold" />
           </div>
+        )}
+        {isLibraryOrigin && libraryUpdateAvailable && (
+          <span className="text-xs text-blue-400">Update Available</span>
         )}
       </div>
     </div>
@@ -257,7 +275,7 @@ export default function PackagePickerModal({ onClose }: PackagePickerModalProps)
   const { items, documentPackages, unpackagedSchemas, loadPackage, repairPackage, createPackage } = usePackagePicker();
   const { adapter } = useDocumentContext();
   const [activeTab, setActiveTab] = useState<PickerTab>('library');
-  const [diffState, setDiffState] = useState<PackageDiff | null>(null);
+  const [diffState, setDiffState] = useState<{ diff: PackageDiff; libraryDiff?: PackageDiff } | null>(null);
 
   const handleLoad = (item: PackagePickerItem) => {
     loadPackage(item.definition);
@@ -271,13 +289,40 @@ export default function PackagePickerModal({ onClose }: PackagePickerModalProps)
 
   const handleViewChanges = (packageId: string) => {
     const diff = computePackageDiff(adapter, packageId);
-    if (diff) setDiffState(diff);
+    if (!diff) return;
+
+    // Check for library update diff
+    const libraryItem = items.find(i => i.definition.id === packageId);
+    let libraryDiff: PackageDiff | undefined;
+    if (libraryItem?.libraryUpdateAvailable && libraryItem.manifestEntry) {
+      libraryDiff = computePackageDiffFromDefinitions(
+        libraryItem.manifestEntry.snapshot,
+        libraryItem.definition
+      );
+    }
+
+    setDiffState({ diff, libraryDiff });
+  };
+
+  const handleViewLibraryUpdate = (item: PackagePickerItem) => {
+    if (!item.manifestEntry) return;
+    const libraryDiff = computePackageDiffFromDefinitions(
+      item.manifestEntry.snapshot,
+      item.definition
+    );
+    const diff = computePackageDiff(adapter, item.definition.id);
+    if (diff) {
+      setDiffState({ diff, libraryDiff });
+    } else {
+      // No local changes, only library update
+      setDiffState({ diff: libraryDiff });
+    }
   };
 
   const handleResetFromDiff = () => {
     if (!diffState) return;
     // Find the library definition by matching package name/color back to items
-    const libraryItem = items.find(i => i.definition.name === diffState.packageName);
+    const libraryItem = items.find(i => i.definition.name === diffState.diff.packageName);
     if (libraryItem) {
       repairPackage(libraryItem.definition);
     }
@@ -293,7 +338,7 @@ export default function PackagePickerModal({ onClose }: PackagePickerModalProps)
           {activeTab === 'library' && (
             <div className="flex flex-col gap-2">
               {items.map((item) => (
-                <PackageCard key={item.definition.id} item={item} onLoad={handleLoad} onRepair={handleRepair} onViewChanges={handleViewChanges} />
+                <PackageCard key={item.definition.id} item={item} onLoad={handleLoad} onRepair={handleRepair} onViewChanges={handleViewChanges} onViewLibraryUpdate={handleViewLibraryUpdate} />
               ))}
             </div>
           )}
@@ -309,7 +354,8 @@ export default function PackagePickerModal({ onClose }: PackagePickerModalProps)
       </Modal>
       {diffState && (
         <PackageDiffModal
-          diff={diffState}
+          diff={diffState.diff}
+          libraryDiff={diffState.libraryDiff}
           onClose={() => setDiffState(null)}
           onReset={handleResetFromDiff}
         />

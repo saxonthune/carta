@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import Modal from '../ui/Modal.js';
 import Button from '../ui/Button.js';
+import SegmentedControl from '../ui/SegmentedControl.js';
 import { CaretDown, CaretRight } from '@phosphor-icons/react';
 import type { PackageDiff, SchemaDiff } from '@carta/domain';
 
 interface PackageDiffModalProps {
   diff: PackageDiff;
+  libraryDiff?: PackageDiff;
   onClose: () => void;
   onReset: () => void;
 }
@@ -53,46 +55,64 @@ function SchemaDiffRow({ diff }: { diff: SchemaDiff }) {
   );
 }
 
-export default function PackageDiffModal({ diff, onClose, onReset }: PackageDiffModalProps) {
+type DiffMode = 'local' | 'library';
+const DIFF_MODE_OPTIONS: { id: DiffMode; label: string }[] = [
+  { id: 'local', label: 'Your Changes' },
+  { id: 'library', label: 'Library Update' },
+];
+
+export default function PackageDiffModal({ diff, libraryDiff, onClose, onReset }: PackageDiffModalProps) {
+  const [diffMode, setDiffMode] = useState<DiffMode>(libraryDiff ? 'library' : 'local');
+  const activeDiff = diffMode === 'library' && libraryDiff ? libraryDiff : diff;
+
   const handleReset = () => {
-    const confirmed = window.confirm(
-      'This will replace all schemas in this package with the standard library versions. Instance data is preserved but custom fields will become orphaned.'
-    );
+    const message = diffMode === 'library'
+      ? 'This will update all schemas in this package to the latest library versions. Instance data is preserved but custom fields will become orphaned.'
+      : 'This will replace all schemas in this package with the standard library versions. Instance data is preserved but custom fields will become orphaned.';
+    const confirmed = window.confirm(message);
     if (!confirmed) return;
     onReset();
     onClose();
   };
 
+  const buttonLabel = diffMode === 'library' ? 'Update to Library Version' : 'Reset to Library';
+
   return (
-    <Modal isOpen={true} onClose={onClose} title={`${diff.packageName} — Changes`} maxWidth="480px">
+    <Modal isOpen={true} onClose={onClose} title={`${activeDiff.packageName} — Changes`} maxWidth="480px">
       <div className="flex flex-col gap-3">
+        {/* Mode toggle */}
+        {libraryDiff && (
+          <div className="flex justify-center">
+            <SegmentedControl options={DIFF_MODE_OPTIONS} value={diffMode} onChange={setDiffMode} />
+          </div>
+        )}
         {/* Summary */}
         <div className="text-sm text-content-muted">
-          {diff.summary.added > 0 && <span className="text-green-400">{diff.summary.added} added</span>}
-          {diff.summary.added > 0 && (diff.summary.removed > 0 || diff.summary.modified > 0) && ', '}
-          {diff.summary.removed > 0 && <span className="text-red-400">{diff.summary.removed} removed</span>}
-          {diff.summary.removed > 0 && diff.summary.modified > 0 && ', '}
-          {diff.summary.modified > 0 && <span className="text-amber-400">{diff.summary.modified} modified</span>}
-          {diff.summary.added === 0 && diff.summary.removed === 0 && diff.summary.modified === 0 && (
+          {activeDiff.summary.added > 0 && <span className="text-green-400">{activeDiff.summary.added} added</span>}
+          {activeDiff.summary.added > 0 && (activeDiff.summary.removed > 0 || activeDiff.summary.modified > 0) && ', '}
+          {activeDiff.summary.removed > 0 && <span className="text-red-400">{activeDiff.summary.removed} removed</span>}
+          {activeDiff.summary.removed > 0 && activeDiff.summary.modified > 0 && ', '}
+          {activeDiff.summary.modified > 0 && <span className="text-amber-400">{activeDiff.summary.modified} modified</span>}
+          {activeDiff.summary.added === 0 && activeDiff.summary.removed === 0 && activeDiff.summary.modified === 0 && (
             <span>No schema changes detected</span>
           )}
         </div>
 
         {/* Schema diffs */}
-        {diff.schemas.length > 0 && (
+        {activeDiff.schemas.length > 0 && (
           <div className="flex flex-col gap-1">
             <div className="text-xs font-medium text-content-muted uppercase">Schemas</div>
-            {diff.schemas.map((sd) => (
+            {activeDiff.schemas.map((sd) => (
               <SchemaDiffRow key={sd.type} diff={sd} />
             ))}
           </div>
         )}
 
         {/* Port schema diffs */}
-        {diff.portSchemas.length > 0 && (
+        {activeDiff.portSchemas.length > 0 && (
           <div className="flex flex-col gap-1">
             <div className="text-xs font-medium text-content-muted uppercase">Port Schemas</div>
-            {diff.portSchemas.map((pd) => (
+            {activeDiff.portSchemas.map((pd) => (
               <div key={pd.id} className="flex items-center gap-2 border border-border rounded px-2 py-1.5">
                 <span className="text-sm text-content">{pd.displayName}</span>
                 <StatusBadge status={pd.status} />
@@ -104,7 +124,7 @@ export default function PackageDiffModal({ diff, onClose, onReset }: PackageDiff
         {/* Footer */}
         <div className="flex justify-end pt-2 border-t border-border">
           <Button size="sm" variant="danger" onClick={handleReset}>
-            Reset to Library
+            {buttonLabel}
           </Button>
         </div>
       </div>

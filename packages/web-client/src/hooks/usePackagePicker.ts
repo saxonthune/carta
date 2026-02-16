@@ -4,6 +4,7 @@ import {
   standardLibrary,
   applyPackage,
   isPackageModified,
+  isLibraryNewer,
   type SchemaPackageDefinition,
   type PackageManifestEntry,
   type ApplyPackageResult,
@@ -17,6 +18,7 @@ export interface PackagePickerItem {
   status: PackageLoadStatus;
   manifestEntry?: PackageManifestEntry;
   schemaCount: number; // how many schemas in the doc match this packageId
+  libraryUpdateAvailable: boolean;
 }
 
 export interface DocumentPackageItem {
@@ -24,6 +26,7 @@ export interface DocumentPackageItem {
   schemaCount: number;
   isLibraryOrigin: boolean;
   driftStatus: 'clean' | 'modified' | 'desync';
+  libraryUpdateAvailable: boolean;
 }
 
 export function usePackagePicker() {
@@ -59,8 +62,9 @@ export function usePackagePicker() {
     return standardLibrary.map((def) => {
       const entry = manifestEntries.find(e => e.packageId === def.id);
       const schemaCount = allSchemas.filter(s => s.packageId === def.id).length;
+      const libraryUpdateAvailable = entry ? isLibraryNewer(entry, def) : false;
       if (!entry) {
-        return { definition: def, status: 'available' as const, schemaCount };
+        return { definition: def, status: 'available' as const, schemaCount, libraryUpdateAvailable };
       }
       // Check drift
       const modified = isPackageModified(adapter, def.id);
@@ -69,6 +73,7 @@ export function usePackagePicker() {
         status: modified ? 'modified' as const : 'loaded' as const,
         manifestEntry: entry,
         schemaCount,
+        libraryUpdateAvailable,
       };
     });
   }, [manifestEntries, adapter]);
@@ -114,9 +119,11 @@ export function usePackagePicker() {
     return schemaPackages.map((pkg) => {
       const schemaCount = allSchemas.filter(s => s.packageId === pkg.id).length;
       const isLibraryOrigin = standardLibrary.some(lib => lib.id === pkg.id);
+      const libraryDef = standardLibrary.find(lib => lib.id === pkg.id);
+      const entry = manifestEntries.find(e => e.packageId === pkg.id);
+      const libraryUpdateAvailable = (entry && libraryDef) ? isLibraryNewer(entry, libraryDef) : false;
       let driftStatus: 'clean' | 'modified' | 'desync' = 'clean';
       if (isLibraryOrigin) {
-        const entry = manifestEntries.find(e => e.packageId === pkg.id);
         if (entry) {
           if (schemaCount === 0) {
             driftStatus = 'desync';
@@ -129,7 +136,7 @@ export function usePackagePicker() {
           }
         }
       }
-      return { package: pkg, schemaCount, isLibraryOrigin, driftStatus };
+      return { package: pkg, schemaCount, isLibraryOrigin, driftStatus, libraryUpdateAvailable };
     });
   }, [schemaPackages, manifestEntries, adapter]);
 

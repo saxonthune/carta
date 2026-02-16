@@ -285,6 +285,23 @@ export function isPackageModified(
 }
 
 /**
+ * Check if the current standard library version is newer than the loaded snapshot.
+ * Compares the snapshot stored in the manifest against the current library definition.
+ *
+ * @param manifestEntry - Package manifest entry containing the snapshot
+ * @param libraryDefinition - Current library definition to compare against
+ * @returns true if library version differs from snapshot, false if unchanged
+ */
+export function isLibraryNewer(
+  manifestEntry: PackageManifestEntry,
+  libraryDefinition: SchemaPackageDefinition
+): boolean {
+  const snapshotHash = computeContentHash(manifestEntry.snapshot);
+  const libraryHash = computeContentHash(libraryDefinition);
+  return snapshotHash !== libraryHash;
+}
+
+/**
  * Compare two sets of field schemas and return changes.
  */
 function diffFields(snapshotFields: FieldSchema[], currentFields: FieldSchema[]): FieldChange[] {
@@ -313,27 +330,12 @@ function diffFields(snapshotFields: FieldSchema[], currentFields: FieldSchema[])
 }
 
 /**
- * Compute a diff between a package's snapshot and its current state in the document.
- * Shows added/removed/modified schemas and port schemas with field-level details.
- *
- * @param adapter - Document adapter interface
- * @param packageId - Package ID to diff
- * @returns PackageDiff or null if manifest entry not found
+ * Diff two arrays of construct schemas by type.
  */
-export function computePackageDiff(
-  adapter: DocumentAdapter,
-  packageId: string
-): PackageDiff | null {
-  const manifestEntry = adapter.getPackageManifestEntry(packageId);
-  if (!manifestEntry) return null;
-
-  const snapshotSchemas = manifestEntry.snapshot.schemas;
-  const snapshotPortSchemas = manifestEntry.snapshot.portSchemas;
-
-  const currentSchemas = adapter.getSchemas().filter(s => s.packageId === packageId);
-  const currentPortSchemas = adapter.getPortSchemas().filter(p => p.packageId === packageId);
-
-  // Diff schemas by type (type is the identity key)
+function diffSchemaArrays(
+  snapshotSchemas: ConstructSchema[],
+  currentSchemas: ConstructSchema[]
+): SchemaDiff[] {
   const snapshotByType = new Map(snapshotSchemas.map(s => [s.type, s]));
   const currentByType = new Map(currentSchemas.map(s => [s.type, s]));
 
@@ -373,9 +375,18 @@ export function computePackageDiff(
     }
   }
 
-  // Diff port schemas by id
-  const snapshotPortById = new Map(snapshotPortSchemas.map(p => [p.id, p]));
-  const currentPortById = new Map(currentPortSchemas.map(p => [p.id, p]));
+  return schemaDiffs;
+}
+
+/**
+ * Diff two arrays of port schemas by id.
+ */
+function diffPortSchemaArrays(
+  snapshotPorts: PortSchema[],
+  currentPorts: PortSchema[]
+): PortSchemaDiff[] {
+  const snapshotPortById = new Map(snapshotPorts.map(p => [p.id, p]));
+  const currentPortById = new Map(currentPorts.map(p => [p.id, p]));
 
   const portDiffs: PortSchemaDiff[] = [];
 
@@ -394,6 +405,33 @@ export function computePackageDiff(
     }
   }
 
+  return portDiffs;
+}
+
+/**
+ * Compute a diff between a package's snapshot and its current state in the document.
+ * Shows added/removed/modified schemas and port schemas with field-level details.
+ *
+ * @param adapter - Document adapter interface
+ * @param packageId - Package ID to diff
+ * @returns PackageDiff or null if manifest entry not found
+ */
+export function computePackageDiff(
+  adapter: DocumentAdapter,
+  packageId: string
+): PackageDiff | null {
+  const manifestEntry = adapter.getPackageManifestEntry(packageId);
+  if (!manifestEntry) return null;
+
+  const snapshotSchemas = manifestEntry.snapshot.schemas;
+  const snapshotPortSchemas = manifestEntry.snapshot.portSchemas;
+
+  const currentSchemas = adapter.getSchemas().filter(s => s.packageId === packageId);
+  const currentPortSchemas = adapter.getPortSchemas().filter(p => p.packageId === packageId);
+
+  const schemaDiffs = diffSchemaArrays(snapshotSchemas, currentSchemas);
+  const portDiffs = diffPortSchemaArrays(snapshotPortSchemas, currentPortSchemas);
+
   const summary = {
     added: schemaDiffs.filter(d => d.status === 'added').length,
     removed: schemaDiffs.filter(d => d.status === 'removed').length,
@@ -403,6 +441,36 @@ export function computePackageDiff(
   return {
     packageName: manifestEntry.displayName,
     packageColor: manifestEntry.snapshot.color,
+    schemas: schemaDiffs,
+    portSchemas: portDiffs,
+    summary,
+  };
+}
+
+/**
+ * Compute a diff between two schema package definitions.
+ * This is used to compare snapshot vs library when detecting updates.
+ *
+ * @param baseline - Baseline definition (typically the snapshot)
+ * @param current - Current definition (typically the library)
+ * @returns PackageDiff showing differences
+ */
+export function computePackageDiffFromDefinitions(
+  baseline: SchemaPackageDefinition,
+  current: SchemaPackageDefinition
+): PackageDiff {
+  const schemaDiffs = diffSchemaArrays(baseline.schemas, current.schemas);
+  const portDiffs = diffPortSchemaArrays(baseline.portSchemas, current.portSchemas);
+
+  const summary = {
+    added: schemaDiffs.filter(d => d.status === 'added').length,
+    removed: schemaDiffs.filter(d => d.status === 'removed').length,
+    modified: schemaDiffs.filter(d => d.status === 'modified').length,
+  };
+
+  return {
+    packageName: current.name,
+    packageColor: current.color,
     schemas: schemaDiffs,
     portSchemas: portDiffs,
     summary,
