@@ -192,7 +192,7 @@ Review the todo-task's `## Verifiability` section (if present). For each correct
 - What oracle type applies? (partial, semantic/compiler, metamorphic, or manual-only)
 - Are there properties missing? If the builder only wrote smoke-level properties ("it renders"), surface this gap now.
 
-If the todo-task lacks a Verifiability section, write one with the user during the briefing. Ask: **"What would be true about this feature if implemented correctly, without referencing the implementation?"** See doc01.05.02.
+If the todo-task lacks a Verifiability section, write one with the user during the briefing. Ask: **"What would be true about this feature if implemented correctly, without referencing the implementation?"** See doc05.04.
 
 ### 4. Considerations
 Open questions and tradeoffs the plan surfaces. These come from:
@@ -259,7 +259,7 @@ This is the key output. Rewrite the plan file in `todo-tasks/` so it's **unambig
 
 ### Verification Section
 
-The todo-task should include correctness properties (from the builder's `## Verifiability` section). Your job is to **operationalize** each into executable verification. See doc01.05.02 for the full framework.
+The todo-task should include correctness properties (from the builder's `## Verifiability` section). Your job is to **operationalize** each into executable verification. See doc05.04 for the full framework.
 
 For each correctness property:
 

@@ -1,7 +1,7 @@
 ---
 title: Verifiability and Testability
 status: active
-role: primary-source
+date: 2026-02-15
 tags: testing, verification, epistemology, agents, testability, oracles, properties
 ---
 
@@ -131,6 +131,55 @@ Some things feel like E2E but aren't. Schema editor field validation, page switc
 
 Architectural choices that shrink this distance — pure functions, compilation oracles, command functions separate from hooks — make both integration and E2E tests easier by giving more observation points closer to where truth lives.
 
+## Partitioning a Project into Verifiable Domains
+
+The verification question and the decomposition question are the same question asked twice:
+
+> **Partitioning**: "What are the independently describable parts of this system?"
+> **Verification**: "What would be true about each part if it worked correctly?"
+
+If you can't state an invariant for a partition, it's not a real partition — it's an implementation grouping. If you can't describe a feature without referencing its implementation, it's not a feature — it's a code detail.
+
+### Decomposition Methods
+
+Four methods for partitioning a project, each with different verification affinities:
+
+**1. Capability/Domain (DDD-style)** — Ask: "What does this system *know about*?" Group by nouns — entities and their invariants. Bounded contexts formalize this. Verification affinity: domain logic is almost always integration-testable. Each domain has invariants that can be stated as properties.
+
+**2. User Activity (Story Mapping-style)** — Ask: "What does the user *do*?" Group by verbs — workflows and interactions. Activities that stay in the data model are integration-testable; activities involving interaction need E2E. The story map visually separates these.
+
+**3. Abstraction Level (C4 Model)** — Ask: "At what zoom level am I looking?" System context → containers → components → code. Each level has a natural test type: system = E2E smoke, container = cross-package integration, component = within-package integration, code = unit/property tests.
+
+**4. Risk/Confidence** — Ask: "What am I least sure about?" Partition by certainty, not structure. Novel components need more verification investment. Commodities rely on existing tests. This is where epistemic layers (L0/L1/L2) become a column in the inventory.
+
+### The Verification Inventory
+
+These methods converge on a single artifact — a table where rows are features/domains and columns capture what matters for verification:
+
+| Domain | Activities | Key Invariants | Oracle | Test Level | Confidence |
+|--------|-----------|----------------|--------|------------|------------|
+| Schemas | Define, edit, group, package | Type uniqueness, field DataKind exhaustive | Adapter round-trip | Integration | L1 |
+| Ports | Add to schema, connect, validate | Polarity blocks same-direction, compatibleWith symmetry | Adapter + validation fn | Integration | L1 |
+| Constructs | Create, place, edit fields, delete | semanticId uniqueness per page, values match schema | Compiler oracle | Integration | L0 |
+| Connections | Connect, disconnect, validate | Stored on source node, bidirectional reference integrity | Compiler oracle | Integration | L0 |
+| Pages | Create, switch, delete, duplicate | Page isolation, at least one page always exists | Adapter round-trip | Integration | L1 |
+| Organizers | Group, nest, collapse, layout | Bounds enclose members, collapse hides descendants | Presentation model (pure fn) | Integration | L1 |
+| Compilation | Compile document | Every construct once, relationships accurate | Self-referential | Integration | L0 |
+| Canvas | Pan, zoom, drag, select, LOD | Positions persist, LOD transitions, viewport math | Requires rendered geometry | E2E | L1 |
+| Packages | Apply, publish, drift detection | Applied schemas match manifest, dual identity | Adapter + manifest check | Integration | L0 |
+| Collaboration | Sync, awareness, conflict resolution | Convergence (both clients see same state) | Two-adapter comparison | Integration | L0 |
+| Storage | Save, load, browse, create docs | Round-trip (save then load = original) | Adapter.toJSON() round-trip | Integration | L1 |
+
+Columns:
+- **Domain**: what the system knows about (DDD noun)
+- **Activities**: what users do with it (story mapping verb)
+- **Key Invariants**: "what would be true if implemented correctly" — the correctness properties
+- **Oracle**: how you check correctness
+- **Test Level**: integration vs E2E, driven by where truth lives
+- **Confidence**: epistemic status (L0 conjecture / L1 logically verified / L2 empirically validated)
+
+This inventory is the artifact where partitioning and verification meet. Each row is a domain with its own truth. Each row's invariants are the specification. Each row's oracle is how you check it. The confidence column is how sure you are right now.
+
 ## Implications for the Design Process
 
 When grooming plans for agent execution:
@@ -157,3 +206,9 @@ When grooming plans for agent execution:
 - [Software Engineering at Google: Unit Testing](https://abseil.io/resources/swe-book/html/ch12.html)
 - [Google Testing Blog: SMURF — Beyond the Test Pyramid](https://testing.googleblog.com/2024/10/smurf-beyond-test-pyramid.html)
 - [Google Testing Blog: Guide to Writing Testable Code](https://testing.googleblog.com/2008/11/guide-to-writing-testable-code.html)
+- [Bounded Context — Martin Fowler](https://martinfowler.com/bliki/BoundedContext.html)
+- [Context Mapper: Domain-Driven Architecture Modeling (Springer)](https://link.springer.com/chapter/10.1007/978-3-030-67445-8_11)
+- [C4 Model — Abstractions](https://c4model.com/abstractions)
+- [Collaborative LLM Agents for C4 Architecture Design (arxiv)](https://arxiv.org/html/2510.22787v1)
+- [User Story Mapping — Jeff Patton (ACM)](https://dl.acm.org/doi/10.5555/2688795)
+- [Requirements Traceability Matrix — Verification (IEEE)](https://ieeexplore.ieee.org/document/8780518/)

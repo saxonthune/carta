@@ -32,7 +32,6 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 | doc01.04 | `04-ux-principles.md` | Fitts's Law, Hick's Law, visual design principles | ux, design, ui | — |
 | doc01.05 | `05-primary-sources/` | Author's original writings, directional intent | inspiration, vision, primary-source | — |
 | doc01.05.01 | `05-primary-sources/01-the-carta-experiment.md` | Artifact-driven development, code-minus-one abstraction layers | artifacts, abstraction, vision | doc01.01 |
-| doc01.05.02 | `05-primary-sources/02-verifiability-and-testability.md` | Epistemology of verification, test value hierarchy, testability architecture | testing, verification, epistemology, agents, testability, oracles, properties | doc04.02, doc02.02 |
 
 ## 02-system — Architecture and technical design
 
@@ -131,6 +130,7 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 | doc05.01 | `01-visual-semantics-in-organizers.md` | Shape differentiation, sequence badges, icon markers for organizer contents | research, notation, bpmn, presentation, organizers | doc02.09, doc02.07, doc02.06 |
 | doc05.02 | `02-token-efficiency-in-skills-and-agents.md` | Token optimization patterns: lean extraction, subagent isolation, surgical reads | research, tokens, efficiency, skills, agents | — |
 | doc05.03 | `03-wagon-aware-layout-architecture.md` | Wagon layout units, 3-layer sync, snap normalization, state pitfalls | research, layout, wagons, organizers, state | doc02.09, doc02.02 |
+| doc05.04 | `04-verifiability-and-testability.md` | Epistemology of verification, test value hierarchy, decomposition inventory, testability architecture | testing, verification, epistemology, agents, testability, oracles, properties | doc04.02, doc02.02 |
 
 ## Tag Index
 
@@ -164,11 +164,11 @@ Quick lookup for file-path→doc mapping:
 | `presentation` | doc02.09, doc02.08 |
 | `layout` | doc02.09 |
 | `rendering` | doc02.09, doc03.01.14, doc02.07 |
-| `testing` | doc04.02, doc01.05.02 |
-| `verification` | doc01.05.02 |
-| `epistemology` | doc01.05.02 |
-| `testability` | doc01.05.02 |
-| `oracles` | doc01.05.02 |
+| `testing` | doc04.02, doc05.04 |
+| `verification` | doc05.04 |
+| `epistemology` | doc05.04 |
+| `testability` | doc05.04 |
+| `oracles` | doc05.04 |
 | `mcp` | doc02.03, doc03.01.03.03 |
 | `research` | doc05.01, doc05.02 |
 | `tokens` | doc05.02 |

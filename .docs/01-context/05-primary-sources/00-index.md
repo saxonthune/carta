@@ -22,4 +22,3 @@ Primary sources are the raw thinking that produced `01-mission.md` and `02-princ
 | Ref | File | Summary |
 |-----|------|---------|
 | doc01.05.01 | `01-the-carta-experiment.md` | Artifact-driven development, code-minus-one abstraction layers |
-| doc01.05.02 | `02-verifiability-and-testability.md` | Epistemology of verification, test value hierarchy, testability architecture |
