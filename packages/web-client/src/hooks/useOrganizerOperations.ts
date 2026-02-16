@@ -2,16 +2,16 @@ import { useCallback } from 'react';
 import type { Node } from '@xyflow/react';
 import { useNodes } from './useNodes';
 import {
-  computeOrganizerBounds,
   toRelativePosition,
-  toAbsolutePosition,
-  DEFAULT_ORGANIZER_LAYOUT,
-  computeLayoutUnitSizes,
-  type NodeGeometry,
-  type LayoutItem,
-  type WagonInfo,
 } from '@carta/domain';
 import type { OrganizerNodeData } from '@carta/domain';
+import {
+  getAbsolutePosition,
+  canNestInOrganizer,
+  computeNewOrganizerBounds,
+  computeDetachedNodes,
+  collectDescendantIds,
+} from '../utils/organizerLogic';
 // Simple organizer color palette
 const ORGANIZER_COLORS = ['#7c3aed', '#0891b2', '#059669', '#d97706', '#dc2626', '#6366f1', '#ec4899'];
 
@@ -34,45 +34,9 @@ export interface UseOrganizerOperationsResult {
   deleteOrganizer: (organizerId: string, deleteMembers?: boolean) => void;
 }
 
-/**
- * Compute the absolute canvas position of a node by walking its parentId chain.
- * For nodes without a parent, this returns node.position unchanged.
- */
-function getAbsolutePosition(node: Node, allNodes: Node[]): { x: number; y: number } {
-  if (!node.parentId) return node.position;
-  const parent = allNodes.find(n => n.id === node.parentId);
-  if (!parent) return node.position;
-  const parentAbs = getAbsolutePosition(parent, allNodes);
-  return { x: parentAbs.x + node.position.x, y: parentAbs.y + node.position.y };
-}
-
-/**
- * Validate whether a node can be nested inside an organizer.
- * - Constructs can always be added to organizers
- * - Organizers can only be added if they're wagon organizers whose construct is already a member
- * Exported for use in Map.tsx drag handlers.
- */
-export function canNestInOrganizer(node: Node, targetOrganizer: Node, allNodes: Node[]): boolean {
-  // Constructs can always be added to organizers
-  if (node.type === 'construct') return true;
-
-  // Organizers can only be added if they're wagon organizers
-  // whose construct is already a member of the target organizer
-  if (node.type === 'organizer') {
-    const data = node.data as OrganizerNodeData;
-    if (!data.attachedToSemanticId) return false; // non-wagon organizer — reject
-
-    // Find the construct this wagon is attached to
-    const ownerConstruct = allNodes.find(n =>
-      n.type === 'construct' &&
-      (n.data as { semanticId?: string }).semanticId === data.attachedToSemanticId
-    );
-    // Allow only if the construct is already in the target organizer
-    return ownerConstruct?.parentId === targetOrganizer.id;
-  }
-
-  return true;
-}
+// Re-export canNestInOrganizer for backwards compatibility
+// (Map.tsx and MapV2.tsx may import it from this hook file)
+export { canNestInOrganizer } from '../utils/organizerLogic';
 
 /**
  * Hook providing organizer operations.
@@ -100,43 +64,7 @@ export function useOrganizerOperations(): UseOrganizerOperationsResult {
     });
     if (selectedNodes.length < 1) return null;
 
-    // Build LayoutItem array for selected nodes
-    const layoutItems: LayoutItem[] = selectedNodes.map(n => ({
-      id: n.id,
-      semanticId: (n.data as any)?.semanticId ?? n.id,
-      x: n.position.x,
-      y: n.position.y,
-      width: n.measured?.width ?? n.width ?? 200,
-      height: n.measured?.height ?? n.height ?? 100,
-    }));
-
-    // Build WagonInfo array for all organizer wagons
-    const wagonInfos: WagonInfo[] = nodes
-      .filter(n => n.type === 'organizer' && n.parentId)
-      .map(n => ({
-        id: n.id,
-        parentId: n.parentId!,
-        x: n.position.x,
-        y: n.position.y,
-        width: (n.style?.width as number) ?? n.measured?.width ?? n.width ?? 400,
-        height: (n.style?.height as number) ?? n.measured?.height ?? n.height ?? 300,
-      }));
-
-    // Compute layout unit sizes using domain function
-    const unitSizes = computeLayoutUnitSizes(layoutItems, wagonInfos);
-
-    // Compute geometries including wagon trees for each selected node
-    const nodeGeometries: NodeGeometry[] = selectedNodes.map(n => {
-      const layoutUnit = unitSizes.get(n.id) ?? { width: 200, height: 100 };
-      return {
-        position: n.position,
-        width: layoutUnit.width,
-        height: layoutUnit.height,
-        measured: n.measured,
-      };
-    });
-
-    const bounds = computeOrganizerBounds(nodeGeometries, DEFAULT_ORGANIZER_LAYOUT);
+    const bounds = computeNewOrganizerBounds(selectedNodes, nodes);
     const organizerPosition = { x: bounds.x, y: bounds.y };
 
     const organizerNode: Node<OrganizerNodeData> = {
@@ -268,31 +196,11 @@ export function useOrganizerOperations(): UseOrganizerOperationsResult {
     if (!organizer) return;
 
     if (deleteMembers) {
-      const idsToDelete = new Set<string>([organizerId]);
-      const findDescendants = (parentId: string, depth = 0) => {
-        if (depth > 20) return;
-        for (const node of nodes) {
-          if (node.parentId === parentId && !idsToDelete.has(node.id)) {
-            idsToDelete.add(node.id);
-            findDescendants(node.id, depth + 1);
-          }
-        }
-      };
-      findDescendants(organizerId);
+      const idsToDelete = collectDescendantIds(organizerId, nodes);
       setNodes(nds => nds.filter(n => !idsToDelete.has(n.id)));
     } else {
-      const organizerAbsPos = getAbsolutePosition(organizer, nodes);
-      setNodes(nds => {
-        return nds
-          .filter(n => n.id !== organizerId)
-          .map(n => {
-            if (n.parentId === organizerId) {
-              const absolutePosition = toAbsolutePosition(n.position, organizerAbsPos);
-              return { ...n, parentId: undefined, extent: undefined, position: absolutePosition };
-            }
-            return n;
-          });
-      });
+      const updatedNodes = computeDetachedNodes(organizerId, organizer, nodes);
+      setNodes(updatedNodes);
     }
   }, [nodes, setNodes]);
 
