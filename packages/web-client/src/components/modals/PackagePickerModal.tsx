@@ -5,9 +5,10 @@ import SegmentedControl from '../ui/SegmentedControl.js';
 import { usePackagePicker, type PackagePickerItem, type DocumentPackageItem } from '../../hooks/usePackagePicker.js';
 import { Check } from '@phosphor-icons/react';
 import type { ConstructSchema } from '@carta/domain';
-import { computePackageDiff, computePackageDiffFromDefinitions, type PackageDiff } from '@carta/domain';
+import { computePackageDiff, computePackageDiffFromDefinitions, extractPackageDefinition, type PackageDiff } from '@carta/domain';
 import PackageDiffModal from './PackageDiffModal.js';
 import { useDocumentContext } from '../../contexts/DocumentContext.js';
+import { downloadCartaSchemas } from '../../utils/cartaFile.js';
 
 interface PackagePickerModalProps {
   onClose: () => void;
@@ -101,7 +102,11 @@ function PackageCard({ item, onLoad, onRepair, onViewChanges, onViewLibraryUpdat
   );
 }
 
-function DocumentPackageCard({ item, onViewChanges }: { item: DocumentPackageItem; onViewChanges?: (id: string) => void }) {
+function DocumentPackageCard({ item, onViewChanges, onPublish }: {
+  item: DocumentPackageItem;
+  onViewChanges?: (id: string) => void;
+  onPublish?: (id: string) => void;
+}) {
   const { package: pkg, schemaCount, isLibraryOrigin, driftStatus, libraryUpdateAvailable } = item;
 
   return (
@@ -144,6 +149,11 @@ function DocumentPackageCard({ item, onViewChanges }: { item: DocumentPackageIte
         )}
         {isLibraryOrigin && libraryUpdateAvailable && (
           <span className="text-xs text-blue-400">Update Available</span>
+        )}
+        {schemaCount > 0 && (
+          <Button size="sm" variant="ghost" onClick={() => onPublish?.(pkg.id)}>
+            Publish
+          </Button>
         )}
       </div>
     </div>
@@ -235,9 +245,10 @@ interface DocumentTabProps {
   unpackagedSchemas: ConstructSchema[];
   onCreatePackage: (name: string, color: string, description: string, schemaTypes?: string[]) => void;
   onViewChanges?: (id: string) => void;
+  onPublish?: (id: string) => void;
 }
 
-function DocumentTab({ packages, unpackagedSchemas, onCreatePackage, onViewChanges }: DocumentTabProps) {
+function DocumentTab({ packages, unpackagedSchemas, onCreatePackage, onViewChanges, onPublish }: DocumentTabProps) {
   const [showCreateForm, setShowCreateForm] = useState(false);
 
   return (
@@ -248,7 +259,7 @@ function DocumentTab({ packages, unpackagedSchemas, onCreatePackage, onViewChang
         </div>
       )}
       {packages.map((item) => (
-        <DocumentPackageCard key={item.package.id} item={item} onViewChanges={onViewChanges} />
+        <DocumentPackageCard key={item.package.id} item={item} onViewChanges={onViewChanges} onPublish={onPublish} />
       ))}
       {showCreateForm ? (
         <CreatePackageForm
@@ -328,6 +339,13 @@ export default function PackagePickerModal({ onClose }: PackagePickerModalProps)
     }
   };
 
+  const handlePublish = (packageId: string) => {
+    const definition = extractPackageDefinition(adapter, packageId);
+    if (definition) {
+      downloadCartaSchemas(definition);
+    }
+  };
+
   return (
     <>
       <Modal isOpen={true} onClose={onClose} title="Schema Packages" maxWidth="520px">
@@ -348,6 +366,7 @@ export default function PackagePickerModal({ onClose }: PackagePickerModalProps)
               unpackagedSchemas={unpackagedSchemas}
               onCreatePackage={createPackage}
               onViewChanges={handleViewChanges}
+              onPublish={handlePublish}
             />
           )}
         </div>

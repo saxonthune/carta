@@ -1,5 +1,5 @@
 import type { CartaNode, CartaEdge } from '@carta/types';
-import type { ConstructSchema, PortSchema, SchemaGroup, SchemaPackage, Page } from '@carta/domain';
+import type { ConstructSchema, PortSchema, SchemaGroup, SchemaPackage, Page, SchemaPackageDefinition } from '@carta/domain';
 import { toKebabCase } from '@carta/domain';
 import {
   CARTA_FILE_VERSION,
@@ -86,4 +86,28 @@ export async function importProject(file: File): Promise<CartaFile> {
 
     reader.readAsText(file);
   });
+}
+
+/**
+ * Download a schema package as a .carta-schemas file
+ */
+export function downloadCartaSchemas(definition: SchemaPackageDefinition): void {
+  const wrapper = {
+    formatVersion: 1,
+    type: 'carta-schemas',
+    package: definition,
+  };
+  const json = JSON.stringify(wrapper, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+
+  const filename = `${definition.name.toLowerCase().replace(/\s+/g, '-')}.carta-schemas`;
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }

@@ -476,3 +476,46 @@ export function computePackageDiffFromDefinitions(
     summary,
   };
 }
+
+/**
+ * Extract a package definition from the document for publishing.
+ * Strips packageId from all items since the definition is self-contained.
+ *
+ * @param adapter - Document adapter interface
+ * @param packageId - Package ID to extract
+ * @returns SchemaPackageDefinition or null if package not found
+ */
+export function extractPackageDefinition(
+  adapter: DocumentAdapter,
+  packageId: string
+): SchemaPackageDefinition | null {
+  const pkg = adapter.getSchemaPackage(packageId);
+  if (!pkg) return null;
+
+  const schemas = adapter.getSchemas()
+    .filter(s => s.packageId === packageId)
+    .map(({ packageId: _pid, ...rest }) => rest) as ConstructSchema[];
+
+  const portSchemas = adapter.getPortSchemas()
+    .filter(p => p.packageId === packageId)
+    .map(({ packageId: _pid, ...rest }) => rest) as PortSchema[];
+
+  const schemaGroups = adapter.getSchemaGroups()
+    .filter(g => g.packageId === packageId)
+    .map(({ packageId: _pid, ...rest }) => rest) as SchemaGroup[];
+
+  const schemaRelationships = adapter.getSchemaRelationships()
+    .filter(r => r.packageId === packageId)
+    .map(({ packageId: _pid, ...rest }) => rest) as SchemaRelationship[];
+
+  return {
+    id: pkg.id,
+    name: pkg.name,
+    description: pkg.description || '',
+    color: pkg.color,
+    schemas,
+    portSchemas,
+    schemaGroups,
+    schemaRelationships,
+  };
+}
