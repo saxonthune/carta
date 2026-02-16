@@ -560,7 +560,7 @@ export default function MetamapV2() {
         connectionDrag={{ onConnect: handleConnect, isValidConnection }}
         onBackgroundPointerDown={() => setContextMenu(null)}
         renderBackground={(transform, patternId) => (
-          <CrossGrid transform={transform} patternId={patternId || 'metamap-cross-grid'} />
+          <CrossGrid transform={transform} patternId={patternId || 'metamap-cross-grid'} rotation={-20} />
         )}
         renderEdges={() => (
           <MetamapEdgeLayer

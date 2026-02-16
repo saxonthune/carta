@@ -9,6 +9,7 @@ export interface CrossGridProps {
   strokeWidth?: number;
   crossSize?: number;
   backgroundColor?: string;
+  rotation?: number;
 }
 
 export function CrossGrid({
@@ -19,10 +20,13 @@ export function CrossGrid({
   strokeWidth = 1.2,
   crossSize = 18,
   backgroundColor = 'transparent',
+  rotation = 0,
 }: CrossGridProps): React.ReactElement {
   const half = crossSize / 2;
   const c1 = spacing * 0.25; // center of first cross
   const c2 = spacing * 0.75; // center of second cross (offset)
+
+  const rotateStr = rotation ? ` rotate(${rotation})` : '';
 
   return (
     <svg
@@ -36,7 +40,7 @@ export function CrossGrid({
           width={spacing}
           height={spacing}
           patternUnits="userSpaceOnUse"
-          patternTransform={`translate(${transform.x}, ${transform.y}) scale(${transform.k})`}
+          patternTransform={`translate(${transform.x}, ${transform.y}) scale(${transform.k})${rotateStr}`}
         >
           {/* Cross at top-left quadrant */}
           <line x1={c1} y1={c1 - half} x2={c1} y2={c1 + half}
