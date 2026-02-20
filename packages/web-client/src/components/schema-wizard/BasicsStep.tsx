@@ -3,8 +3,7 @@ import Select from '../ui/Select';
 import Textarea from '../ui/Textarea';
 import { toSnakeCase } from '../../utils/stringUtils';
 import type { ConstructSchema } from '@carta/domain';
-
-type RenderStyle = NonNullable<ConstructSchema['nodeShape']>;
+import StylePresetPicker from './StylePresetPicker';
 
 const DEFAULT_COLORS = [
   '#7c7fca', '#8a7cb8', '#9488b8', '#b87c8a',
@@ -114,32 +113,7 @@ export default function BasicsStep({ formData, errors, updateField, schemaGroups
         </div>
       </div>
 
-      <div>
-        <label className="block mb-1 text-sm font-medium text-content">Appearance</label>
-        <div>
-          <label className="block mb-1 text-[11px] text-content-muted">Render Style</label>
-          <Select
-            value={formData.nodeShape || 'default'}
-            onChange={(e) => updateField('nodeShape', e.target.value as RenderStyle)}
-          >
-            <option value="default">Default</option>
-            <option value="simple">Simple</option>
-            <option value="card">Card</option>
-            <option value="circle">Circle</option>
-            <option value="diamond">Diamond</option>
-            <option value="document">Document</option>
-          </Select>
-        </div>
-        <label className="flex items-center gap-2 text-sm text-content cursor-pointer mt-2">
-          <input
-            type="checkbox"
-            checked={formData.instanceColors || false}
-            onChange={(e) => updateField('instanceColors', e.target.checked || undefined)}
-            className="w-4 h-4 accent-accent"
-          />
-          <span className="text-[11px] text-content-muted">Allow per-instance colors</span>
-        </label>
-      </div>
+      <StylePresetPicker formData={formData} updateField={updateField} />
     </div>
   );
 }

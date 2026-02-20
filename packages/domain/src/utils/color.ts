@@ -85,8 +85,8 @@ export function resolveNodeColor(
  * Coerces old property shapes on read — no migration pipeline needed.
  * Call this wherever schemas are read from Yjs.
  */
-export function normalizeSchema<T extends Record<string, unknown>>(raw: T): T {
-  const schema = { ...raw };
+export function normalizeSchema<T>(raw: T): T {
+  const schema = { ...raw } as Record<string, unknown>;
   // Migrate old color properties to instanceColors
   if (schema.colorMode === 'instance' || schema.colorMode === 'enum' ||
       schema.backgroundColorPolicy === 'tints' || schema.backgroundColorPolicy === 'any') {
