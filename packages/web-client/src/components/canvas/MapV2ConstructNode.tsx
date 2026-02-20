@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { ConnectionHandle } from '../../canvas-engine/index.js';
 import { type ConstructSchema, type ConstructNodeData, getFieldsForSummary, resolveNodeColor, type DocumentAdapter, canConnect } from '@carta/domain';
 import type { LodBand } from './lod/lodPolicy.js';
@@ -326,6 +326,7 @@ function SimpleNode(props: ShapeRenderProps & { adapter: DocumentAdapter }) {
     node, hoveredNodeId, connectionDrag, sourcePortType, getPortSchema, startConnection, showNarrative, hideNarrative,
   } = props;
   const [editingField, setEditingField] = useState<string | null>(null);
+  const [showPicker, setShowPicker] = useState(false);
   const resolvedColor = resolveNodeColor(schema, constructData);
   const bgColor = resolvedColor !== schema.color
     ? resolvedColor
@@ -361,15 +362,49 @@ function SimpleNode(props: ShapeRenderProps & { adapter: DocumentAdapter }) {
         display: 'flex', flexDirection: 'column',
         opacity: dimmed ? 0.2 : 1,
         pointerEvents: dimmed ? 'none' : 'auto',
-      }}>
+        '--bg-color': bgColor,
+      } as React.CSSProperties}>
       {/* Drag header strip */}
       <div style={{
         height: 28,
-        backgroundColor: `color-mix(in srgb, ${bgColor} 85%, var(--color-surface-alt))`,
         borderRadius: '8px 8px 0 0',
         cursor: 'grab',
         flexShrink: 0,
-      }} />
+        display: 'flex',
+        alignItems: 'center',
+        padding: '0 8px',
+      }}>
+        {schema.instanceColors && (
+          <div style={{ position: 'relative' }}>
+            <div
+              onClick={(e) => { e.stopPropagation(); setShowPicker(p => !p); }}
+              onPointerDown={(e) => e.stopPropagation()}
+              style={{
+                width: 16, height: 16, borderRadius: '50%',
+                backgroundColor: resolvedColor,
+                cursor: 'pointer',
+                border: '2px solid rgba(0,0,0,0.15)',
+                flexShrink: 0,
+              }}
+            />
+            {showPicker && (
+              <div
+                style={{ position: 'absolute', top: 22, left: 0, zIndex: 100 }}
+                onClick={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
+              >
+                <ColorPicker
+                  value={constructData.instanceColor}
+                  onChange={(color) => {
+                    adapter.updateNode(nodeId, { instanceColor: color ?? undefined });
+                    setShowPicker(false);
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Content area with padding */}
       <div style={{ padding: '4px 12px 8px', display: 'flex', flexDirection: 'column', gap: 2, flex: 1 }}>
@@ -385,7 +420,7 @@ function SimpleNode(props: ShapeRenderProps & { adapter: DocumentAdapter }) {
               {isMultiline ? (
                 <textarea
                   style={{ width: '100%', flex: 1, padding: 0, backgroundColor: 'transparent', border: 'none', outline: 'none', resize: 'none',
-                    fontSize: isTitle ? 15 : 13, fontWeight: isTitle ? 600 : 400, color: 'var(--color-content)', fontFamily: 'inherit', minHeight: 40 }}
+                    fontSize: isTitle ? 15 : 13, fontWeight: isTitle ? 600 : 400, color: 'inherit', fontFamily: 'inherit', minHeight: 40 }}
                   defaultValue={String(value)}
                   placeholder={field.placeholder ?? ''}
                   onBlur={(e) => commitValue(field.name, e.target.value)}
@@ -396,7 +431,7 @@ function SimpleNode(props: ShapeRenderProps & { adapter: DocumentAdapter }) {
                 <input
                   type="text"
                   style={{ width: '100%', padding: 0, backgroundColor: 'transparent', border: 'none', outline: 'none',
-                    fontSize: isTitle ? 15 : 13, fontWeight: isTitle ? 600 : 400, color: 'var(--color-content)', fontFamily: 'inherit' }}
+                    fontSize: isTitle ? 15 : 13, fontWeight: isTitle ? 600 : 400, color: 'inherit', fontFamily: 'inherit' }}
                   defaultValue={String(value)}
                   placeholder={field.placeholder ?? ''}
                   onBlur={(e) => commitValue(field.name, e.target.value)}
@@ -417,7 +452,7 @@ function SimpleNode(props: ShapeRenderProps & { adapter: DocumentAdapter }) {
               flex: isMultiline ? 1 : undefined,
               fontSize: isTitle ? 15 : 13,
               fontWeight: isTitle ? 600 : 400,
-              color: 'var(--color-content)',
+              color: 'oklch(from var(--bg-color) clamp(0, round(1.21 - l), 1) 0 0)',
               cursor: 'text',
               whiteSpace: isMultiline ? 'pre-wrap' : undefined,
               overflow: 'hidden',
@@ -429,11 +464,6 @@ function SimpleNode(props: ShapeRenderProps & { adapter: DocumentAdapter }) {
         );
       })}
 
-      {schema.instanceColors && selected && (
-        <div style={{ marginTop: 2 }}>
-          <ColorPicker value={constructData.instanceColor} onChange={(color) => adapter.updateNode(nodeId, { instanceColor: color ?? undefined })} />
-        </div>
-      )}
       </div>
 
       <ResizeHandle selected={selected} onResizePointerDown={onResizePointerDown} />

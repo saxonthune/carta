@@ -56,14 +56,14 @@ export function hslToHex(h: number, s: number, l: number): string {
 }
 
 export const INSTANCE_COLOR_PALETTE = [
-  '#ef4444', // red
-  '#f97316', // orange
-  '#eab308', // yellow
-  '#22c55e', // green
-  '#06b6d4', // cyan
-  '#3b82f6', // blue
-  '#8b5cf6', // violet
-  '#ec4899', // pink
+  '#e8a0a0', // red     — hsl(0, 55%, 77%)
+  '#e8b88a', // orange  — hsl(25, 60%, 73%)
+  '#e0d08a', // yellow  — hsl(48, 50%, 71%)
+  '#8ad4a0', // green   — hsl(140, 45%, 68%)
+  '#8ac8d4', // cyan    — hsl(190, 45%, 68%)
+  '#8aace8', // blue    — hsl(220, 60%, 73%)
+  '#b8a0e0', // violet  — hsl(265, 45%, 75%)
+  '#e0a0c8', // pink    — hsl(330, 50%, 75%)
 ];
 
 /**
@@ -102,19 +102,3 @@ export function normalizeSchema<T>(raw: T): T {
   return schema as T;
 }
 
-/**
- * Returns 'white' or 'black' text color for optimal contrast against the given background.
- * Uses WCAG relative luminance formula.
- */
-export function getContrastTextColor(hex: string): 'white' | 'black' {
-  // Convert hex to RGB
-  const r = parseInt(hex.slice(1, 3), 16) / 255;
-  const g = parseInt(hex.slice(3, 5), 16) / 255;
-  const b = parseInt(hex.slice(5, 7), 16) / 255;
-
-  // Calculate relative luminance (WCAG formula)
-  const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-
-  // Use white text on dark backgrounds, black on light backgrounds
-  return luminance > 0.5 ? 'black' : 'white';
-}
