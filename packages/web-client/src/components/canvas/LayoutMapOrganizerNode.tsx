@@ -19,7 +19,7 @@ export interface LayoutMapOrganizerNodeData {
 interface LayoutMapOrganizerNodeProps {
   id: string;
   data: LayoutMapOrganizerNodeData;
-  onStartConnection: (nodeId: string, handleId: string, event: React.PointerEvent) => void;
+  onStartConnection: (nodeId: string, handleId: string, clientX: number, clientY: number) => void;
 }
 
 // Map directions to handle positions and icons

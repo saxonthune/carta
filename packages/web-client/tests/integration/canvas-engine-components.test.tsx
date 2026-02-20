@@ -39,7 +39,7 @@ describe('ConnectionHandle', () => {
     );
     const el = container.firstElementChild as HTMLElement;
     fireEvent.pointerDown(el);
-    expect(onStart).toHaveBeenCalledWith('node-1', 'E', expect.any(Object));
+    expect(onStart).toHaveBeenCalledWith('node-1', 'E', expect.any(Number), expect.any(Number));
   });
 
   it('does NOT fire onStartConnection for target type', () => {

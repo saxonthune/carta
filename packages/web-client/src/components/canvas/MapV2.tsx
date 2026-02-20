@@ -1262,26 +1262,22 @@ export default function MapV2({ searchText, onSelectionChange: onSelectionChange
   }, [sortedNodes, displayEdges, dragOffsets, handleEdgeClick]);
 
   // Connection preview rendering
-  const renderConnectionPreview = useCallback((drag: any, transform: any) => {
-    const sourceNode = sortedNodes.find(n => n.id === drag.sourceNodeId);
-    if (!sourceNode) return null;
-    const { x: absX, y: absY } = getAbsolutePosition(sourceNode, sortedNodes, dragOffsets);
-    const w = (sourceNode.style?.width as number) ?? 200;
-    const h = (sourceNode.style?.height as number) ?? 80;
+  // coords are container-local pixels (Canvas handles all coordinate conversion)
+  const renderConnectionPreview = useCallback((coords: any) => {
+    const dx = coords.currentX - coords.startX;
+    const dy = coords.currentY - coords.startY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const offset = Math.min(dist * 0.4, 120);
 
-    const sx = absX + w / 2;
-    const sy = absY + h;
-    const canvasPos = canvasRef.current?.screenToCanvas(drag.currentX, drag.currentY);
-    if (!canvasPos) return null;
+    // Vertical bezier for map (top-down flow)
+    const d = `M ${coords.startX},${coords.startY} C ${coords.startX},${coords.startY + offset} ${coords.currentX},${coords.currentY - offset} ${coords.currentX},${coords.currentY}`;
 
     return (
-      <g transform={`translate(${transform.x}, ${transform.y}) scale(${transform.k})`}>
-        <line x1={sx} y1={sy} x2={canvasPos.x} y2={canvasPos.y}
-          stroke="var(--color-accent, #3b82f6)" strokeWidth={2} strokeDasharray="4 4"
-          style={{ pointerEvents: 'none' }} />
-      </g>
+      <path d={d} fill="none"
+        stroke="var(--color-accent, #3b82f6)" strokeWidth={2} strokeDasharray="6 3"
+        style={{ pointerEvents: 'none' }} />
     );
-  }, [sortedNodes, dragOffsets, canvasRef]);
+  }, []);
 
   return (
     <div
@@ -1327,6 +1323,7 @@ export default function MapV2({ searchText, onSelectionChange: onSelectionChange
         onBackgroundPointerDown={() => {
           canvasRef.current?.clearSelection();
           setSelectedNodeIds([]);
+          closeContextMenu();
         }}
       >
         <MapV2Content

@@ -80,14 +80,35 @@ For each doc's claims, spot-check the code. Focus on:
 - **Architecture claims** — do the layers/patterns still match?
 
 ```typescript
-// Example: doc02.08 has a hooks table. Check what hooks actually exist:
-Grep({ pattern: 'export function use[A-Z]', path: 'packages/web-client/src/hooks/', output_mode: 'content' })
-
 // Example: doc02.09 describes organizer features. Check what the code supports:
 Grep({ pattern: 'pin|constraint|PinConstraint', path: 'packages/web-client/src/', output_mode: 'files_with_matches' })
 
 // Example: doc02.10 describes edge pipeline. Check current implementation:
 Grep({ pattern: 'waypoint|routeEdges|patchEdgeData', path: 'packages/web-client/src/', output_mode: 'files_with_matches' })
+```
+
+### 3B-extra: Barrel Export Reconciliation (always runs)
+
+**doc02.08 lists every export from 7 barrel files.** These lists drift silently — deletions, renames, and additions don't always trigger a git-scoped check. **Always** reconcile the barrel tables against actual barrel files, regardless of what Phase 1 found.
+
+Read all barrel files in parallel:
+```typescript
+Read('packages/web-client/src/hooks/index.ts')
+Read('packages/web-client/src/contexts/index.ts')
+Read('packages/web-client/src/components/canvas/index.ts')
+Read('packages/web-client/src/components/metamap/index.ts')
+Read('packages/web-client/src/components/modals/index.ts')
+Read('packages/web-client/src/components/ui/index.ts')
+Read('packages/web-client/src/utils/index.ts')
+```
+
+For each barrel file, compare the **actual exports** against the **documented exports** in doc02.08's corresponding section. Flag:
+- **Listed in doc but not in code** — stale entry, remove from doc
+- **In code but not in doc** — missing entry, add to doc
+
+Also reconcile doc02.03 §MCP Tools against the actual tool registrations:
+```typescript
+Grep({ pattern: "name: 'carta_", path: 'packages/server/src/mcp/tools.ts', output_mode: 'content' })
 ```
 
 ### 3C: Build Gap Report

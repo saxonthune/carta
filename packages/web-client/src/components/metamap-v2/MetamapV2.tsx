@@ -12,7 +12,7 @@ import { MetamapSchemaNode } from './MetamapSchemaNode.js';
 import { MetamapPackageNode } from './MetamapPackageNode.js';
 import { MetamapGroupNode } from './MetamapGroupNode.js';
 import CanvasToolbar, { ToolbarButton, ToolbarDivider } from '../canvas/CanvasToolbar.js';
-import { MagnifyingGlassPlus, MagnifyingGlassMinus, CornersOut, ArrowsClockwise, MagnifyingGlass, X, Trash, FolderMinus, ArrowUUpLeft, ArrowUUpRight } from '@phosphor-icons/react';
+import { MagnifyingGlassPlus, MagnifyingGlassMinus, CornersOut, ArrowsClockwise, MagnifyingGlass, X, Trash, FolderMinus, ArrowUUpLeft, ArrowUUpRight, Books } from '@phosphor-icons/react';
 import ConstructEditor from '../ConstructEditor.js';
 import type { ConstructSchema, SuggestedRelatedConstruct } from '@carta/domain';
 import { portRegistry } from '@carta/domain';
@@ -20,7 +20,8 @@ import { MetamapConnectionModal } from '../metamap/MetamapConnectionModal.js';
 import EdgeDetailPopover from '../metamap/EdgeDetailPopover.js';
 import Narrative from '../canvas/Narrative.js';
 import ContextMenuPrimitive, { type MenuItem } from '../ui/ContextMenuPrimitive.js';
-import { DeleteEmptySchemasModal, DeleteEmptyGroupsModal } from '../modals/index.js';
+import { DeleteEmptySchemasModal, DeleteEmptyGroupsModal, PackagePickerModal } from '../modals/index.js';
+import { Tooltip } from '../ui/index.js';
 
 const SCHEMA_COLORS = [
   '#7c7fca', '#8a7cb8', '#9488b8', '#b87c8a',
@@ -119,6 +120,9 @@ export default function MetamapV2() {
   // Filter state
   const [filterText, setFilterText] = useState('');
   const [filterVisible, setFilterVisible] = useState(false);
+
+  // Schema library state
+  const [isLibraryOpen, setIsLibraryOpen] = useState(false);
 
   // Delete empty state
   const [showDeleteEmpty, setShowDeleteEmpty] = useState(false);
@@ -549,6 +553,7 @@ export default function MetamapV2() {
   return (
     <div
       className="w-full h-full relative"
+      style={{ backgroundColor: 'var(--color-canvas)' }}
       onContextMenu={(e) => {
         e.preventDefault();
         setContextMenu({ x: e.clientX, y: e.clientY });
@@ -570,30 +575,19 @@ export default function MetamapV2() {
             onEdgeDoubleClick={handleEdgeDoubleClick}
           />
         )}
-        renderConnectionPreview={(drag, transform) => {
-          const sourceNode = localNodes.find(n => n.id === drag.sourceNodeId);
-          if (!sourceNode) return null;
-          const absX = getAbsoluteX(sourceNode, localNodes);
-          const absY = getAbsoluteY(sourceNode, localNodes);
+        renderConnectionPreview={(coords) => {
+          // coords are already container-local pixels (Canvas handles all conversion)
+          const dx = coords.currentX - coords.startX;
+          const dy = coords.currentY - coords.startY;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const offset = Math.min(dist * 0.4, 120);
 
-          // Get port Y offset if dragging from a specific port
-          const sourcePortOffset = drag.sourceHandle && drag.sourceHandle !== 'new-port' && sourceNode.portOffsets
-            ? sourceNode.portOffsets.get(drag.sourceHandle)
-            : undefined;
+          // Horizontal bezier: control points extend right from source, left toward target
+          const d = `M ${coords.startX},${coords.startY} C ${coords.startX + offset},${coords.startY} ${coords.currentX - offset},${coords.currentY} ${coords.currentX},${coords.currentY}`;
 
-          const sourceYOffset = sourcePortOffset !== undefined ? sourcePortOffset : sourceNode.size.height / 2;
-
-          // Anchor from right edge of node at port position
-          const DOT_OFFSET = 6;
-          const sx = absX + sourceNode.size.width + DOT_OFFSET;
-          const sy = absY + sourceYOffset;
-
-          // Convert cursor screen coords to canvas coords
-          const canvasX = (drag.currentX - transform.x) / transform.k;
-          const canvasY = (drag.currentY - transform.y) / transform.k;
           return (
             <ConnectionPreview
-              d={`M ${sx},${sy} L ${canvasX},${canvasY}`}
+              d={d}
               stroke="var(--color-accent)"
               strokeWidth={2}
               strokeDasharray="6 3"
@@ -657,6 +651,16 @@ export default function MetamapV2() {
           </button>
         </div>
       )}
+      <div className="absolute top-3 right-3 z-10">
+        <Tooltip content="Schema Packages">
+          <button
+            className="w-9 h-9 flex items-center justify-center rounded-lg cursor-pointer text-content-muted bg-surface border border-border hover:bg-surface-alt hover:text-content transition-colors"
+            onClick={() => setIsLibraryOpen(true)}
+          >
+            <Books weight="regular" size={18} />
+          </button>
+        </Tooltip>
+      </div>
       <CanvasToolbar>
         <div className={canUndo ? '' : 'opacity-30 pointer-events-none'}>
           <ToolbarButton onClick={undo} tooltip="Undo (Ctrl+Z)">
@@ -745,6 +749,9 @@ export default function MetamapV2() {
         emptyGroups={emptyGroups}
         onDelete={handleDeleteEmptyGroups}
       />
+      {isLibraryOpen && (
+        <PackagePickerModal onClose={() => setIsLibraryOpen(false)} />
+      )}
     </div>
   );
 }
@@ -942,6 +949,7 @@ function MetamapV2Inner({
       {/* Schema nodes rendered on top */}
       {absoluteNodes.filter(n => n.type === 'schema').map(node => {
         const isConnectionDragActive = !!connectionDrag;
+        const isSourceDuringDrag = isConnectionDragActive && connectionDrag.sourceNodeId === node.id;
         const isTargetDuringDrag = isConnectionDragActive && hoveredSchemaId === node.id;
 
         return (
@@ -986,7 +994,7 @@ function MetamapV2Inner({
                 }}
                 isDimmed={dimmedSchemaTypes.has(node.id)}
                 isHighlighted={matchingSchemaTypes ? matchingSchemaTypes.has(node.id) : false}
-                isDrawerForced={isTargetDuringDrag}
+                isDrawerForced={isSourceDuringDrag || isTargetDuringDrag}
               />
             )}
           </div>

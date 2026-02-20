@@ -14,7 +14,7 @@ export { CanvasContext, useCanvasContext } from './CanvasContext.js';
 export { computeBounds, findContainerAt, isPointInRect } from './containment.js';
 export { useNodeLinks } from './useNodeLinks.js';
 export type { Transform } from './useViewport.js';
-export type { CanvasProps, CanvasRef } from './Canvas.js';
+export type { CanvasProps, CanvasRef, ConnectionPreviewCoords } from './Canvas.js';
 export type { CanvasContextValue } from './CanvasContext.js';
 export type { Rect, ComputeBoundsOptions } from './containment.js';
 export type { NodeLink, FollowerDragDecision, UseNodeLinksOptions, UseNodeLinksResult } from './useNodeLinks.js';

@@ -26,6 +26,8 @@ Carta is a visual software architecture editor. Users create "Constructs" (typed
 
 | Skill | Purpose | When to use |
 |-------|---------|-------------|
+| `/carta-builder` | Design thinking and document modeling for Carta | Before `/carta-feature-implementor`, to resolve decisions |
+| `/project-builder` | Dogfooding reflector for external projects | While building non-Carta projects, to identify Carta improvements |
 | `/carta-feature-groomer` | Researches codebase, discusses approach, refines plans into specs | Before `/carta-feature-implementor`, to resolve decisions |
 | `/carta-feature-implementor` | Status, launch, triage, chain orchestration | After grooming, to launch plans and manage agents |
 | `/documentation-nag` | Keeps `.docs/` and derived files in sync with code | After significant code changes |
@@ -52,6 +54,8 @@ All skills follow the same pattern: opus reads `.docs/` and code, analyzes, gene
 
 | Skill | Reference Docs | Config |
 |-------|---------------|--------|
+| `/carta-builder` | `.docs/MANIFEST.md`, MCP tools | `.claude/skills/carta-builder/SKILL.md` |
+| `/project-builder` | `.docs/MANIFEST.md`, MCP tools, external project context | `.claude/skills/project-builder/SKILL.md` |
 | `/carta-feature-groomer` | `.docs/MANIFEST.md`, plan files, codebase | `.claude/skills/carta-feature-groomer/SKILL.md` |
 | `/carta-feature-implementor` | Plan files, status script | `.claude/skills/carta-feature-implementor/SKILL.md` |
 | `/documentation-nag` | `.docs/` (all titles) | `.claude/skills/documentation-nag/SKILL.md` |

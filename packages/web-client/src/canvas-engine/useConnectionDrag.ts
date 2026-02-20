@@ -3,9 +3,12 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 export interface ConnectionDragState {
   sourceNodeId: string;
   sourceHandle: string;
-  // Current cursor position in screen coords (for preview line)
-  currentX: number;
-  currentY: number;
+  /** Start position in canvas coordinates (zoom-invariant anchor) */
+  startCanvasX: number;
+  startCanvasY: number;
+  /** Current cursor position in screen coordinates (updated each frame) */
+  currentScreenX: number;
+  currentScreenY: number;
 }
 
 export interface UseConnectionDragOptions {
@@ -21,20 +24,24 @@ export interface UseConnectionDragOptions {
     target: string;
     targetHandle: string;
   }) => boolean;
+  /** Convert screen coords to canvas coords (for zoom-invariant start anchor) */
+  screenToCanvas: (screenX: number, screenY: number) => { x: number; y: number };
 }
 
 export interface UseConnectionDragResult {
   connectionDrag: ConnectionDragState | null;
-  startConnection: (sourceNodeId: string, sourceHandle: string, event: React.PointerEvent) => void;
+  startConnection: (sourceNodeId: string, sourceHandle: string, clientX: number, clientY: number) => void;
 }
 
 export function useConnectionDrag({
   onConnect,
   isValidConnection,
+  screenToCanvas,
 }: UseConnectionDragOptions): UseConnectionDragResult {
   const [connectionDrag, setConnectionDrag] = useState<ConnectionDragState | null>(null);
   const onConnectRef = useRef(onConnect);
   const isValidConnectionRef = useRef(isValidConnection);
+  const screenToCanvasRef = useRef(screenToCanvas);
 
   // Keep refs up to date
   useEffect(() => {
@@ -45,27 +52,47 @@ export function useConnectionDrag({
     isValidConnectionRef.current = isValidConnection;
   }, [isValidConnection]);
 
+  useEffect(() => {
+    screenToCanvasRef.current = screenToCanvas;
+  }, [screenToCanvas]);
+
   const startConnection = useCallback(
-    (sourceNodeId: string, sourceHandle: string, event: React.PointerEvent) => {
+    (sourceNodeId: string, sourceHandle: string, clientX: number, clientY: number) => {
+      const canvasStart = screenToCanvasRef.current(clientX, clientY);
       setConnectionDrag({
         sourceNodeId,
         sourceHandle,
-        currentX: event.clientX,
-        currentY: event.clientY,
+        startCanvasX: canvasStart.x,
+        startCanvasY: canvasStart.y,
+        currentScreenX: clientX,
+        currentScreenY: clientY,
       });
 
-      const handlePointerMove = (e: PointerEvent) => {
+      // RAF-throttled cursor tracking: collect latest position, flush once per frame
+      let latestX = clientX;
+      let latestY = clientY;
+      let rafId = 0;
+
+      const flushPosition = () => {
+        rafId = 0;
         setConnectionDrag((prev) => {
           if (!prev) return prev;
-          return {
-            ...prev,
-            currentX: e.clientX,
-            currentY: e.clientY,
-          };
+          if (prev.currentScreenX === latestX && prev.currentScreenY === latestY) return prev;
+          return { ...prev, currentScreenX: latestX, currentScreenY: latestY };
         });
       };
 
+      const handlePointerMove = (e: PointerEvent) => {
+        latestX = e.clientX;
+        latestY = e.clientY;
+        if (!rafId) {
+          rafId = requestAnimationFrame(flushPosition);
+        }
+      };
+
       const handlePointerUp = (e: PointerEvent) => {
+        if (rafId) cancelAnimationFrame(rafId);
+
         // Hit-test to find a connection target
         const elements = document.elementsFromPoint(e.clientX, e.clientY);
         const targetElement = elements.find((el) =>

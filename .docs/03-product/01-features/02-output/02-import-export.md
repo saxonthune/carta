@@ -36,4 +36,12 @@ Bundled example `.carta` files in the `/examples/` directory are accessible via 
 
 ## File Format
 
-Version 5 includes: title, description, pages (each with nodes/edges/deployables), custom schemas, port schemas, schema groups. The format is self-contained — a `.carta` file contains everything needed to reconstruct the document.
+The `.carta` file format includes: title, description, pages (each with nodes/edges), custom schemas (ALL schemas including package schemas), port schemas, schema groups, schema packages, and package manifest entries.
+
+### Self-contained principle
+
+A `.carta` file contains everything needed to reconstruct the document. **All schemas are exported, including standard library package schemas.** The export path does not filter out built-in types — the file must survive a round-trip (export → import) without data loss. The package manifest and content hash system (see doc03.01.01.07) handles drift detection independently; the export path should not second-guess it.
+
+### Desktop persistence
+
+The desktop server uses `extractCartaFile` → JSON → `hydrateYDocFromCartaFile` for save/load cycles. The self-contained principle ensures no data is lost across these cycles.

@@ -76,15 +76,35 @@ Callable from initialization, package picker UI, or future library browser.
 
 ### UI Implementation
 
-**PackagePickerModal** — modal dialog for browsing and loading schema packages.
+**PackagePickerModal** — tabbed modal for browsing, loading, and managing schema packages.
 
 - **Location**: `packages/web-client/src/components/modals/PackagePickerModal.tsx`
-- **Hook**: `usePackagePicker` provides package list, loaded status, and load action
-- **Displays**: Standard library packages with name, description, schema count, color, and load status
-- **Status indicators**: Available (can load), Loaded (already in document by UUID), Loaded (modified) (content hash differs from snapshot)
-- **Action**: Load button calls `applyPackage()` to write package to document + manifest
+- **Hook**: `usePackagePicker` provides package list, loaded status, load/repair/create actions
 
-The modal implements the "Loading a package (v1)" interaction flow described in the Interactions section.
+**Library tab** — Browse and load standard library packages:
+- Each card shows: color dot, name, description, schema count, load status
+- Status indicators: Available (can load), Loaded (green check), Modified (amber), Update Available (blue)
+- Actions: Load, Repair (0 schemas desync), Reset to Library (modified), Update to Library Version (newer library available)
+- "View Changes" on modified packages opens the Package Diff Modal
+
+**Document tab** — Manage all packages loaded in the document:
+- Lists every `SchemaPackage` in the document (library-origin and user-created)
+- Each card shows: name, color, schema count, origin badge ("Library" vs custom)
+- For library-origin: drift status (clean/modified/desync) and update availability
+- "View Changes" and "Publish" actions per package
+- "+ Create Package" button: inline form with name, color, description, optional schema selection from unpackaged schemas
+
+**Package Diff Modal** — Schema-level change summary:
+- Opened from "View Changes" on modified or update-available packages
+- Shows schemas grouped by status: Added (green), Removed (red), Modified (amber)
+- Modified schemas expand to show field-level changes
+- When both local modifications and library updates exist: toggle between "Your Changes" (doc vs snapshot) and "Library Update" (snapshot vs library)
+- Footer action: "Reset to Library" or "Update to Library Version"
+
+**Publish** — Export `.carta-schemas` file:
+- Available on Document tab for packages with schemas
+- Extracts current document state as `SchemaPackageDefinition`
+- Downloads as `.carta-schemas` JSON file (portable package format)
 
 ## Design Decisions
 
@@ -98,9 +118,15 @@ Rationale: Live linking violates single source of truth. The document's schemas 
 
 Built-in port schemas (flow-in/out, parent/child, relay, intercept, symmetric) are part of every new document's initial state — like how a new document has empty maps for nodes and schemas. They are M2-level plumbing, not opt-in packages. They have no `packageId`.
 
-### Loading is one-way and permanent (v1)
+### Loading and repair
 
-Loading a package is a one-time operation. Re-loading the same UUID is blocked. There is no "reset to library version" action in v1. The snapshot data supports building this in the future, but the initial implementation focuses on clean loading and drift visibility.
+Loading a package is a one-time operation. Re-loading the same UUID is blocked by the manifest idempotency check. However, packages can enter desynced states (e.g., schemas lost during export/import, partial sync). A **repair** action in the package picker allows users to reset a package to the standard library version:
+
+1. Clear the manifest entry (removes idempotency block)
+2. Remove existing schemas, port schemas, groups, and relationships for the package
+3. Re-apply the package from the standard library definition
+
+For packages with 0 schemas (desync), this is labeled "Repair." For packages with user-modified schemas, this is labeled "Reset to library version" with a confirmation warning — instance data is preserved but custom fields become orphaned (visible in the instance editor).
 
 ### Library files live where documents live
 
@@ -139,44 +165,73 @@ Each has a catalog entry with displayName, description, and color for the packag
 
 ## Interactions
 
-### Loading a package (v1)
+### Loading a package
 
-1. User opens package picker (from toolbar, metamap, or new document flow)
-2. Browse standard library packages (and vault libraries when available)
-3. Each package shows: name, description, schema count, color, loaded/modified status
-4. Select → preview schemas and port vocabulary
-5. Load → `applyPackage()` writes to document + manifest
+1. User opens package picker → Library tab
+2. Browse standard library packages
+3. Each package shows: name, description, schema count, color, status
+4. Load → `applyPackage()` writes to document + manifest
 
-### Checking for drift (v1)
+### Checking for drift
 
-The package picker and metamap show drift status per package:
+The package picker shows drift status per loaded package:
 
 - **Loaded** — matches snapshot (content hash unchanged)
-- **Loaded (modified)** — differs from snapshot (content hash changed)
+- **Modified** — document schemas differ from snapshot (user edits)
+- **Update Available** — snapshot differs from current standard library (app shipped newer version)
+- **Repair available** — manifest exists but 0 schemas match the packageId (desync)
 
-Detailed diff view (what changed) is a future enhancement; the data is already in the snapshot.
+### Viewing changes (diff)
 
-### Publishing to library (future)
+"View Changes" on a modified package opens the **Package Diff Modal**:
 
-1. Right-click schema package in metamap → "Publish to library"
-2. Diff view: current package state vs. snapshot (or blank if user-created)
-3. Cherry-pick changes to promote
-4. Save as `.carta-schemas` file
+1. Shows schema-level summary: added/removed/modified schemas with field-level details
+2. When both local modifications and library updates exist, toggle between "Your Changes" and "Library Update" views
+3. Footer action: "Reset to Library" or "Update to Library Version"
 
-### Checking for library updates (future)
+### Creating a package
 
-1. User triggers "Check library updates"
-2. Compare document's snapshot against library's current version
-3. Diff view with merge options
+1. User opens package picker → Document tab
+2. Click "+ Create Package"
+3. Enter name, color, description
+4. Optionally select unpackaged schemas to include
+5. Creates `SchemaPackage` entry; selected schemas get `packageId` assigned
+6. New package appears in metamap as a container; additional schemas can be dragged in
 
-## Library File Format (future)
+### Publishing a package
 
-A `.carta-schemas` file containing M1 definitions only:
+1. User opens package picker → Document tab
+2. Click "Publish" on any package with schemas
+3. Current document state is extracted as a `SchemaPackageDefinition`
+4. Downloads as a `.carta-schemas` file
+
+### Orphaned data visibility
+
+When a schema is reset or replaced, construct instances may retain field values that no longer match the schema's field definitions. This orphaned data is:
+
+- **Visible in the instance editor**: An "Orphaned Data" section below schema fields shows key-value pairs that don't match any current field name. Read-only display.
+- **Visible in MCP responses**: `get_construct` includes an `orphanedValues` key when orphans are detected, so AI tools can assist with data migration.
+- **Never auto-deleted**: Orphaned data persists until explicitly removed by the user or AI tools. This preserves work that may be recoverable via field renaming or schema edits.
+
+## Library File Format
+
+A `.carta-schemas` file — the portable package format:
+
+```json
+{
+  "formatVersion": 1,
+  "type": "carta-schemas",
+  "package": { ...SchemaPackageDefinition }
+}
+```
+
+Contains M1 definitions only:
 
 - SchemaPackage metadata (name, description, color)
-- Schemas (`ConstructSchema[]`) with matching `packageId`
-- In-package port schemas (`PortSchema[]`) with matching `packageId`
-- Schema groups (`SchemaGroup[]`) within the package
+- Schemas (`ConstructSchema[]`)
+- In-package port schemas (`PortSchema[]`)
+- Schema groups (`SchemaGroup[]`)
+- Schema relationships (`SchemaRelationship[]`)
 - No instances, no pages, no M0 data
 
 ## Metamap Presentation
@@ -189,8 +244,10 @@ A `.carta-schemas` file containing M1 definitions only:
 
 - Remote sync protocol (libraries are files; sync is the vault's job)
 - Multi-user concurrent library editing
-- Automatic update notifications
+- Automatic update notifications (update detection is user-initiated via package picker)
 - Library dependency resolution
 - Library marketplace or sharing platform
 - Port classification metadata — bundling is derived from reference graph
-- Reset-to-library-version action (data supports it; UI is future)
+- Per-schema revert in diff view (whole-package reset only)
+- Merge/cherry-pick between library and document versions
+- Importing `.carta-schemas` files (future — would use `applyPackage`)

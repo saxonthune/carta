@@ -47,6 +47,10 @@ Schema nodes support two display modes, toggled by double-clicking:
 - **Compact** (default): Shows schema name, type, and field/port counts in a condensed 80px-height card
 - **Expanded**: Shows full detail including field list and port list with labels
 
+## Package Visibility
+
+All loaded packages appear in the metamap, including empty packages (packages with 0 schemas). This ensures users can always see what packages are loaded in their document, even when schemas have been lost due to sync issues or export/import round-trips. Empty packages render as containers with no schema nodes inside.
+
 ## Relationship to Map
 
 The Map (doc03.01.01.01) shows instances. The Metamap shows types. Changes in the Metamap (adding ports to a schema, creating new schemas) immediately affect what's available in the Map. The two views are toggled via a view switcher on the canvas.

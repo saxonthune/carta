@@ -14,7 +14,7 @@ interface MetamapSchemaNodeProps {
   height: number;
   onPointerDown?: (e: React.PointerEvent) => void;
   onDoubleClick?: () => void;
-  onStartConnection?: (nodeId: string, handleId: string, event: React.PointerEvent) => void;
+  onStartConnection?: (nodeId: string, handleId: string, clientX: number, clientY: number) => void;
   isExpanded?: boolean;
   isRenaming?: boolean;
   onStartRenaming?: () => void;
@@ -214,70 +214,47 @@ export const MetamapSchemaNode = memo(function MetamapSchemaNode({
             left: width,
             top: 0,
             width: DRAWER_WIDTH,
-            minHeight: height,
             borderLeft: 'none',
             zIndex: isDrawerForced ? 40 : 30,
-            transition: 'width 150ms ease-out',
+            display: 'flex',
+            flexDirection: 'column',
           }}
           onPointerDown={(e) => e.stopPropagation()}
         >
           {/* "(+) New Port" row */}
-          <div
+          <ConnectionHandle
+            type="source"
+            id="new-port"
+            nodeId={schema.type}
+            onStartConnection={onStartConnection}
             className="flex items-center gap-2 px-3 py-2 border-b border-border-subtle hover:bg-surface-alt cursor-crosshair"
             style={{ minHeight: 32 }}
           >
-            <ConnectionHandle
-              type="source"
-              id="new-port"
-              nodeId={schema.type}
-              onStartConnection={onStartConnection}
-              className="flex-shrink-0"
-            >
-              <div className="w-4 h-4 rounded-full bg-surface-alt border border-border flex items-center justify-center">
-                <Plus size={8} weight="bold" className="text-content-subtle" />
-              </div>
-            </ConnectionHandle>
+            <div className="w-4 h-4 rounded-full bg-surface-alt border border-border flex items-center justify-center flex-shrink-0">
+              <Plus size={8} weight="bold" className="text-content-subtle" />
+            </div>
             <span className="text-node-xs text-content-subtle">New Port</span>
-          </div>
+          </ConnectionHandle>
 
           {/* Port rows */}
-          {ports.map((port, index) => {
-            const yOffset = portYOffset(index, ports.length, height);
+          {ports.map((port) => {
             const portColor = getPortColor(port.portType);
             return (
-              <div
+              <ConnectionHandle
                 key={port.id}
-                className="flex items-center gap-2 px-3 hover:bg-surface-alt cursor-crosshair"
-                style={{
-                  position: 'absolute',
-                  top: yOffset,
-                  transform: 'translateY(-50%)',
-                  width: '100%',
-                  minHeight: 24,
-                }}
+                type="source"
+                id={port.id}
+                nodeId={schema.type}
+                onStartConnection={onStartConnection}
+                className="flex items-center gap-2 px-3 py-1.5 hover:bg-surface-alt cursor-crosshair"
+                style={{ minHeight: 28 }}
               >
-                <ConnectionHandle
-                  type="source"
-                  id={port.id}
-                  nodeId={schema.type}
-                  onStartConnection={onStartConnection}
-                  className="flex-shrink-0"
-                >
-                  <div
-                    className="w-3 h-3 rounded-full border-2 border-surface"
-                    style={{ backgroundColor: portColor }}
-                  />
-                </ConnectionHandle>
-                <ConnectionHandle
-                  type="target"
-                  id={port.id}
-                  nodeId={schema.type}
-                  onStartConnection={onStartConnection}
-                  className="flex-1"
-                >
-                  <span className="text-node-xs text-content truncate">{port.label}</span>
-                </ConnectionHandle>
-              </div>
+                <div
+                  className="w-3 h-3 rounded-full border-2 border-surface flex-shrink-0"
+                  style={{ backgroundColor: portColor }}
+                />
+                <span className="text-node-xs text-content truncate">{port.label}</span>
+              </ConnectionHandle>
             );
           })}
         </div>

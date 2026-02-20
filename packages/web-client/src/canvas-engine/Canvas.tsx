@@ -1,10 +1,22 @@
 import React, { useState, useEffect, useImperativeHandle, forwardRef, useMemo } from 'react';
 import { useViewport, type UseViewportOptions, type Transform } from './useViewport.js';
-import { useConnectionDrag, type ConnectionDragState } from './useConnectionDrag.js';
+import { useConnectionDrag } from './useConnectionDrag.js';
 import { useBoxSelect } from './useBoxSelect.js';
 import { useSelection } from './useSelection.js';
 import { DotGrid } from './DotGrid.js';
 import { CanvasContext, type CanvasContextValue } from './CanvasContext.js';
+
+/** Container-local coords passed to renderConnectionPreview. Both start and current are in pixel space relative to the canvas container. */
+export interface ConnectionPreviewCoords {
+  sourceNodeId: string;
+  sourceHandle: string;
+  /** Start position in container-local pixels (zoom-stable: re-derived from canvas coords each frame) */
+  startX: number;
+  startY: number;
+  /** Current cursor position in container-local pixels */
+  currentX: number;
+  currentY: number;
+}
 
 export interface CanvasProps {
   /** Viewport options */
@@ -30,8 +42,8 @@ export interface CanvasProps {
   };
   /** Render the SVG edge layer. Receives transform for the <g> group. */
   renderEdges?: (transform: Transform) => React.ReactNode;
-  /** Render the connection preview line during connection drag. Receives drag state. */
-  renderConnectionPreview?: (drag: ConnectionDragState, transform: Transform) => React.ReactNode;
+  /** Render the connection preview line during connection drag. All coords are container-local pixels. */
+  renderConnectionPreview?: (coords: ConnectionPreviewCoords, transform: Transform) => React.ReactNode;
   /** CSS class for the container */
   className?: string;
   /** Child nodes rendered inside the transformed div */
@@ -73,9 +85,9 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
 
   // 2. Setup connection drag (if enabled)
   const connectionDragResult = useConnectionDrag(
-    connectionDrag || {
-      onConnect: () => {},
-    }
+    connectionDrag
+      ? { ...connectionDrag, screenToCanvas }
+      : { onConnect: () => {}, screenToCanvas }
   );
   const { connectionDrag: connectionDragState, startConnection } = connectionDragResult;
 
@@ -213,14 +225,20 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
         {connectionDragState && renderConnectionPreview && (
           <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
             {(() => {
-              // Convert viewport coords to container-local coords
               const rect = containerRef.current?.getBoundingClientRect();
-              const localDrag: ConnectionDragState = {
-                ...connectionDragState,
-                currentX: connectionDragState.currentX - (rect?.left ?? 0),
-                currentY: connectionDragState.currentY - (rect?.top ?? 0),
+              const offsetX = rect?.left ?? 0;
+              const offsetY = rect?.top ?? 0;
+              // Start: canvas → container-local (re-derived each frame, so zoom-stable)
+              // Current: screen → container-local
+              const coords: ConnectionPreviewCoords = {
+                sourceNodeId: connectionDragState.sourceNodeId,
+                sourceHandle: connectionDragState.sourceHandle,
+                startX: connectionDragState.startCanvasX * transform.k + transform.x,
+                startY: connectionDragState.startCanvasY * transform.k + transform.y,
+                currentX: connectionDragState.currentScreenX - offsetX,
+                currentY: connectionDragState.currentScreenY - offsetY,
               };
-              return renderConnectionPreview(localDrag, transform);
+              return renderConnectionPreview(coords, transform);
             })()}
           </svg>
         )}

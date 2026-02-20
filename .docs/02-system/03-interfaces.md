@@ -123,6 +123,9 @@ Carta exposes an MCP (Model Context Protocol) server for AI tool integration. Th
 - `carta_create_package` — Create schema package
 - `carta_list_packages` — List schema packages
 - `carta_get_package` — Get package by ID
+- `carta_list_standard_packages` — List standard library packages with status (available/loaded/modified) for a document
+- `carta_apply_package` — Apply a standard library package to a document (idempotent)
+- `carta_check_package_drift` — Check if a loaded package has been modified compared to its snapshot
 
 **Compilation:**
 - `carta_compile` — Compile document to AI-readable output

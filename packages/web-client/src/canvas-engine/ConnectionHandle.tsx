@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 
 export interface ConnectionHandleProps {
   type: 'source' | 'target';
@@ -7,7 +7,7 @@ export interface ConnectionHandleProps {
   style?: React.CSSProperties;
   className?: string;
   children?: React.ReactNode;
-  onStartConnection?: (nodeId: string, handleId: string, event: React.PointerEvent) => void;
+  onStartConnection?: (nodeId: string, handleId: string, clientX: number, clientY: number) => void;
 }
 
 export function ConnectionHandle({
@@ -19,10 +19,18 @@ export function ConnectionHandle({
   children,
   onStartConnection,
 }: ConnectionHandleProps): React.ReactElement {
+  const elRef = useRef<HTMLDivElement>(null);
+
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (type === 'source' && onStartConnection) {
       event.stopPropagation();
-      onStartConnection(nodeId, id, event);
+      // Anchor the connection line at the right-edge midpoint of this element
+      if (elRef.current) {
+        const rect = elRef.current.getBoundingClientRect();
+        onStartConnection(nodeId, id, rect.right, rect.top + rect.height / 2);
+      } else {
+        onStartConnection(nodeId, id, event.clientX, event.clientY);
+      }
     }
   };
 
@@ -39,6 +47,7 @@ export function ConnectionHandle({
 
   return (
     <div
+      ref={elRef}
       style={style}
       className={className}
       onPointerDown={type === 'source' ? handlePointerDown : undefined}
