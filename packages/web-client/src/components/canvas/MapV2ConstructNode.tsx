@@ -277,11 +277,22 @@ function SimpleNode(props: ShapeRenderProps & { adapter: DocumentAdapter }) {
         backgroundColor: bgColor,
         borderRadius: 8,
         boxShadow: selected ? 'var(--node-shadow-selected)' : 'var(--node-shadow)',
-        cursor: 'grab', padding: '8px 12px',
-        display: 'flex', flexDirection: 'column', gap: 2,
+        cursor: 'grab', padding: 0,
+        display: 'flex', flexDirection: 'column',
         opacity: dimmed ? 0.2 : 1,
         pointerEvents: dimmed ? 'none' : 'auto',
       }}>
+      {/* Drag header strip */}
+      <div style={{
+        height: 28,
+        backgroundColor: `color-mix(in srgb, ${bgColor} 85%, var(--color-surface-alt))`,
+        borderRadius: '8px 8px 0 0',
+        cursor: 'grab',
+        flexShrink: 0,
+      }} />
+
+      {/* Content area with padding */}
+      <div style={{ padding: '4px 12px 8px', display: 'flex', flexDirection: 'column', gap: 2, flex: 1 }}>
       {visibleFields.map((field, index) => {
         const isTitle = index === 0;
         const value = constructData.values?.[field.name] ?? '';
@@ -343,6 +354,7 @@ function SimpleNode(props: ShapeRenderProps & { adapter: DocumentAdapter }) {
           <ColorPicker value={constructData.instanceColor} onChange={(color) => adapter.updateNode(nodeId, { instanceColor: color ?? undefined })} />
         </div>
       )}
+      </div>
 
       <ResizeHandle selected={selected} onResizePointerDown={onResizePointerDown} />
     </div>
