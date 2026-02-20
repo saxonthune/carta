@@ -12,7 +12,7 @@ export const awsPackage: SchemaPackageDefinition = {
       displayName: 'Lambda',
       color: '#ff9900',
       semanticDescription: 'AWS Lambda serverless function',
-      groupId: 'aws',
+
       ports: [
         { id: 'trigger-in', portType: 'flow-in', label: 'Triggers', semanticDescription: 'Event sources that invoke this function' },
         { id: 'invoke-out', portType: 'flow-out', label: 'Invokes', semanticDescription: 'Services this function calls' },
@@ -34,7 +34,7 @@ export const awsPackage: SchemaPackageDefinition = {
       displayName: 'API Gateway',
       color: '#ff9900',
       semanticDescription: 'AWS API Gateway REST or HTTP API',
-      groupId: 'aws',
+
       ports: [
         { id: 'flow-in', portType: 'flow-in', label: 'Requests', semanticDescription: 'Incoming API requests' },
         { id: 'invoke-out', portType: 'flow-out', label: 'Backend', semanticDescription: 'Backend integrations (Lambda, HTTP)' },
@@ -54,7 +54,7 @@ export const awsPackage: SchemaPackageDefinition = {
       displayName: 'S3 Bucket',
       color: '#569a31',
       semanticDescription: 'AWS S3 object storage bucket',
-      groupId: 'aws',
+
       ports: [
         { id: 'access-in', portType: 'flow-in', label: 'Accessed By', semanticDescription: 'Services that read/write this bucket' },
         { id: 'trigger-out', portType: 'flow-out', label: 'Triggers', semanticDescription: 'Event notifications to Lambda/SQS/SNS' },
@@ -74,7 +74,7 @@ export const awsPackage: SchemaPackageDefinition = {
       displayName: 'DynamoDB',
       color: '#4053d6',
       semanticDescription: 'AWS DynamoDB NoSQL table',
-      groupId: 'aws',
+
       ports: [
         { id: 'access-in', portType: 'flow-in', label: 'Accessed By', semanticDescription: 'Services that read/write this table' },
         { id: 'stream-out', portType: 'flow-out', label: 'Streams', semanticDescription: 'DynamoDB Streams triggers' },
@@ -94,7 +94,7 @@ export const awsPackage: SchemaPackageDefinition = {
       displayName: 'SQS Queue',
       color: '#ff4f8b',
       semanticDescription: 'AWS SQS message queue',
-      groupId: 'aws',
+
       ports: [
         { id: 'access-in', portType: 'flow-in', label: 'Producers', semanticDescription: 'Services that send messages to this queue' },
         { id: 'trigger-out', portType: 'flow-out', label: 'Consumers', semanticDescription: 'Services that consume from this queue' },
@@ -114,7 +114,7 @@ export const awsPackage: SchemaPackageDefinition = {
       displayName: 'SNS Topic',
       color: '#d93f68',
       semanticDescription: 'AWS SNS pub/sub topic',
-      groupId: 'aws',
+
       ports: [
         { id: 'publish-in', portType: 'flow-in', label: 'Publishers', semanticDescription: 'Services that publish to this topic' },
         { id: 'subscribe-out', portType: 'flow-out', label: 'Subscribers', semanticDescription: 'Services subscribed to this topic' },
@@ -133,7 +133,7 @@ export const awsPackage: SchemaPackageDefinition = {
       displayName: 'RDS Database',
       color: '#4053d6',
       semanticDescription: 'AWS RDS relational database instance',
-      groupId: 'aws',
+
       ports: [
         { id: 'access-in', portType: 'flow-in', label: 'Clients', semanticDescription: 'Services that connect to this database' },
         { id: 'child', portType: 'child', label: 'VPC', semanticDescription: 'VPC this database runs in' },
@@ -153,7 +153,7 @@ export const awsPackage: SchemaPackageDefinition = {
       displayName: 'VPC',
       color: '#8c4fff',
       semanticDescription: 'AWS Virtual Private Cloud network',
-      groupId: 'aws',
+
       ports: [
         { id: 'parent', portType: 'parent', label: 'Resources', semanticDescription: 'Resources running in this VPC' },
       ],
@@ -171,7 +171,7 @@ export const awsPackage: SchemaPackageDefinition = {
       displayName: 'State Machine',
       color: '#ff4f8b',
       semanticDescription: 'AWS Step Functions state machine workflow',
-      groupId: 'aws',
+
       ports: [
         { id: 'trigger-in', portType: 'flow-in', label: 'Triggers', semanticDescription: 'Services that start this workflow' },
         { id: 'parent', portType: 'parent', label: 'States', semanticDescription: 'States within this state machine' },
@@ -190,7 +190,7 @@ export const awsPackage: SchemaPackageDefinition = {
       displayName: 'Task State',
       color: '#ff9900',
       semanticDescription: 'Step Functions task state that performs work',
-      groupId: 'aws',
+
       ports: [
         { id: 'seq-in', portType: 'flow-in', label: 'From', semanticDescription: 'Previous state in sequence' },
         { id: 'seq-out', portType: 'flow-out', label: 'Next', semanticDescription: 'Next state in sequence' },
@@ -212,7 +212,7 @@ export const awsPackage: SchemaPackageDefinition = {
       displayName: 'Choice State',
       color: '#f59e0b',
       semanticDescription: 'Step Functions choice state for branching logic',
-      groupId: 'aws',
+
       ports: [
         { id: 'seq-in', portType: 'flow-in', label: 'From', semanticDescription: 'Previous state in sequence' },
         { id: 'branch-out', portType: 'flow-out', label: 'Branches', semanticDescription: 'Conditional branches' },
@@ -232,7 +232,7 @@ export const awsPackage: SchemaPackageDefinition = {
       displayName: 'Parallel State',
       color: '#22c55e',
       semanticDescription: 'Step Functions parallel state for concurrent execution',
-      groupId: 'aws',
+
       ports: [
         { id: 'seq-in', portType: 'flow-in', label: 'From', semanticDescription: 'Previous state in sequence' },
         { id: 'seq-out', portType: 'flow-out', label: 'Next', semanticDescription: 'Next state after all branches complete' },
@@ -252,7 +252,7 @@ export const awsPackage: SchemaPackageDefinition = {
       displayName: 'Map State',
       color: '#8b5cf6',
       semanticDescription: 'Step Functions map state for iterating over arrays',
-      groupId: 'aws',
+
       ports: [
         { id: 'seq-in', portType: 'flow-in', label: 'From', semanticDescription: 'Previous state in sequence' },
         { id: 'seq-out', portType: 'flow-out', label: 'Next', semanticDescription: 'Next state after iteration completes' },
@@ -273,7 +273,7 @@ export const awsPackage: SchemaPackageDefinition = {
       displayName: 'Wait State',
       color: '#64748b',
       semanticDescription: 'Step Functions wait state for delays',
-      groupId: 'aws',
+
       ports: [
         { id: 'seq-in', portType: 'flow-in', label: 'From', semanticDescription: 'Previous state in sequence' },
         { id: 'seq-out', portType: 'flow-out', label: 'Next', semanticDescription: 'Next state after wait' },
@@ -293,7 +293,7 @@ export const awsPackage: SchemaPackageDefinition = {
       displayName: 'Terminal State',
       color: '#dc2626',
       semanticDescription: 'Step Functions succeed or fail terminal state',
-      groupId: 'aws',
+
       ports: [
         { id: 'seq-in', portType: 'flow-in', label: 'From', semanticDescription: 'Previous state in sequence' },
         { id: 'child', portType: 'child', label: 'State Machine', semanticDescription: 'State machine containing this state' },

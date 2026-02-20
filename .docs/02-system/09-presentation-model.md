@@ -294,8 +294,10 @@ The presentation model also governs which component renders each construct. This
 | `'circle'` | ConstructNodeMarker | ConstructNodeCircle |
 | `'diamond'` | ConstructNodeMarker | ConstructNodeDiamond |
 | `'document'` | ConstructNodeMarker | ConstructNodeDocument |
+| `'stadium'` | ConstructNodeMarker | ConstructNodeStadium |
+| `'parallelogram'` | ConstructNodeMarker | ConstructNodeParallelogram |
 
-The shape variants (`circle`, `diamond`, `document`) support notation-specific rendering for BPMN and other visual languages (see doc05.01). Circle renders as a circular node (events, states), diamond as a diamond shape (gateways, decisions), and document as a document-shaped icon (artifacts, data objects).
+The shape variants (`circle`, `diamond`, `document`, `stadium`, `parallelogram`) support notation-specific rendering for BPMN, ISO 5807 flowcharts, and other visual languages (see doc05.01). Circle renders as a circular node (events, states), diamond as a diamond shape (gateways, decisions), document as a document-shaped icon (artifacts, data objects), stadium as a capsule/pill with fully rounded ends (flowchart terminals), and parallelogram as a skewed quadrilateral (flowchart data/I/O).
 
 Adding a new render style = add a component + add a row to the dispatch table. No other changes needed. Variant components are pure (no hooks), receive identical `ConstructNodeVariantProps`, and share only the data contract and connection infrastructure.
 

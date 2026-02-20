@@ -12,7 +12,7 @@ export const capabilityModelPackage: SchemaPackageDefinition = {
       displayName: 'Domain',
       color: '#0ea5e9',
       semanticDescription: 'A top-level business or product domain grouping related features',
-      groupId: 'capability-model',
+
       fields: [
         { name: 'name', label: 'Name', type: 'string', semanticDescription: 'Domain name', placeholder: 'e.g., Commerce, Identity, Content', displayTier: 'pill', displayOrder: 0 },
         { name: 'description', label: 'Description', type: 'string', displayHint: 'multiline', semanticDescription: 'What this domain encompasses', placeholder: 'Describe the domain boundary and responsibilities', displayTier: 'summary', displayOrder: 1 },
@@ -31,7 +31,7 @@ export const capabilityModelPackage: SchemaPackageDefinition = {
       displayName: 'Feature',
       color: '#38bdf8',
       semanticDescription: 'A coherent set of capabilities within a domain',
-      groupId: 'capability-model',
+
       fields: [
         { name: 'name', label: 'Name', type: 'string', semanticDescription: 'Feature name', placeholder: 'e.g., Authentication, Checkout, Search', displayTier: 'pill', displayOrder: 0 },
         { name: 'status', label: 'Status', type: 'enum', semanticDescription: 'Implementation maturity', options: [{ value: 'Planned' }, { value: 'In Progress' }, { value: 'Shipped' }, { value: 'Deprecated' }], default: 'Planned', displayTier: 'summary', displayOrder: 1 },
@@ -52,7 +52,7 @@ export const capabilityModelPackage: SchemaPackageDefinition = {
       displayName: 'Capability',
       color: '#7dd3fc',
       semanticDescription: 'An atomic ability the system provides, materialized in user flows',
-      groupId: 'capability-model',
+
       fields: [
         { name: 'name', label: 'Name', type: 'string', semanticDescription: 'Capability name (verb phrase)', placeholder: 'e.g., Validate Credentials, Process Payment', displayTier: 'pill', displayOrder: 0 },
         { name: 'preconditions', label: 'Preconditions', type: 'string', semanticDescription: 'What must be true before this capability can execute', placeholder: 'e.g., User is authenticated', displayTier: 'summary', displayOrder: 1 },
@@ -73,7 +73,7 @@ export const capabilityModelPackage: SchemaPackageDefinition = {
       displayName: 'User Story',
       color: '#f472b6',
       semanticDescription: 'A user need or goal, implemented by one or more user flows',
-      groupId: 'capability-model',
+
       fields: [
         { name: 'title', label: 'Title', type: 'string', semanticDescription: 'Short story title', placeholder: 'e.g., Subscribe to Premium Plan', displayTier: 'pill', displayOrder: 0 },
         { name: 'story', label: 'Story', type: 'string', semanticDescription: 'Full user story', placeholder: 'As a [persona], I want [goal] so that [benefit]', displayTier: 'summary', displayOrder: 1 },
@@ -91,7 +91,7 @@ export const capabilityModelPackage: SchemaPackageDefinition = {
       displayName: 'User Flow',
       color: '#c084fc',
       semanticDescription: 'A sequence of materialized capabilities that implements a user story',
-      groupId: 'capability-model',
+
       fields: [
         { name: 'name', label: 'Name', type: 'string', semanticDescription: 'Flow name', placeholder: 'e.g., Premium Subscription Flow', displayTier: 'pill', displayOrder: 0 },
         { name: 'trigger', label: 'Trigger', type: 'string', semanticDescription: 'What initiates this flow', placeholder: 'e.g., User clicks "Upgrade"', displayTier: 'summary', displayOrder: 1 },

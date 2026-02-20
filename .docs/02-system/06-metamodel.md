@@ -115,7 +115,9 @@ Defines a construct type. Key properties:
 | `ports` | Array of PortConfig |
 | `packageId` | References SchemaPackage.id — which package this schema belongs to |
 | `groupId` | Optional visual grouping within the package (references SchemaGroup.id) |
-| `backgroundColorPolicy` | Controls instance color picker: `defaultOnly` (none), `tints` (7 swatches), `any` (full picker) |
+| `instanceColors` | `true` = per-instance color palette picker enabled; absent/false = schema color only |
+| `isFavorite` | `true` = schema pinned to top-level context menu for quick "Add X" access |
+| `nodeShape` | Visual shape: `default`, `simple`, `circle`, `diamond`, `document` |
 
 ### FieldSchema
 
@@ -196,11 +198,11 @@ The compiler finds children by traversing connections from child ports targeting
 
 The `PortRegistry` class manages port schemas with polarity-based validation. It receives schemas as a parameter (not a singleton). Components access port schemas through `usePortSchemas()`, and the registry syncs with document state.
 
-## Standard Library (replacing Schema Seeds)
+## Standard Library
 
-**Location:** `@carta/domain` (being migrated from `schemas/built-ins.ts`)
+**Location:** `@carta/domain` — `schemas/package-loader.ts` and `schemas/packages/`
 
-The old seed system (imperative functions that dump schemas into a document during initialization) is being replaced by the package loading architecture (doc02.04.07). Schema seeds are being repackaged as `SchemaPackageDefinition` objects — self-contained, portable package definitions with stable UUIDs that load through the idempotent `applyPackage()` function.
+Schema packages are `SchemaPackageDefinition` objects — self-contained, portable package definitions with stable UUIDs that load through the idempotent `applyPackage()` function (doc02.04.07). The old imperative seed system has been removed.
 
 **Standard library packages:**
 - Software Architecture — Service, API endpoint, database, etc.
@@ -213,4 +215,11 @@ Each package has a stable UUID, display metadata for the package picker, and a c
 
 **Loading:** All packages are opt-in. Users load them via the package picker (doc03.01.01.07). No auto-seeding. The document's package manifest tracks which packages have been loaded and provides drift detection via content hashing.
 
-**Legacy:** The old `SchemaSeed` type, `hydrateSeed()` function, and `builtInSeedCatalog` are being deprecated in favor of `SchemaPackageDefinition` and `applyPackage()`. See doc02.04.07 for the full architecture decision.
+**Key functions** exported from `@carta/domain`:
+- `applyPackage(adapter, definition)` — idempotent package load
+- `isPackageModified(adapter, packageId)` — fast drift check via content hash
+- `isLibraryNewer(manifestEntry, libraryDefinition)` — detects app-shipped library updates
+- `computePackageDiff(adapter, packageId)` — detailed field-level diff against snapshot
+- `computePackageDiffFromDefinitions(baseline, current)` — diff two definitions (snapshot vs library)
+- `extractPackageDefinition(adapter, packageId)` — extract current state for publishing
+- `debugPackageDrift(adapter, packageId)` — diagnostic helper when drift status and diff view disagree

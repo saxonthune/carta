@@ -70,8 +70,11 @@ Callable from initialization, package picker UI, or future library browser.
 
 ### Drift detection
 
-- **Instant check**: Hash current schemas for a packageId, compare to manifest's `contentHash`. Clean or dirty.
-- **Detailed diff**: Compare current state against `snapshot`. On-demand only.
+- **Instant check**: `isPackageModified(adapter, packageId)` — hash current schemas for a packageId, compare to manifest's `contentHash`. Clean or dirty.
+- **Library update check**: `isLibraryNewer(manifestEntry, libraryDefinition)` — compare snapshot hash against current library definition hash.
+- **Detailed diff (doc vs snapshot)**: `computePackageDiff(adapter, packageId)` — compare current document state against snapshot with field-level detail. On-demand only.
+- **Detailed diff (snapshot vs library)**: `computePackageDiffFromDefinitions(baseline, current)` — diff two definitions directly. Used to show "Library Update" changes when a newer library version exists.
+- **Diagnostic helper**: `debugPackageDrift(adapter, packageId)` — dumps intermediate state (group mapping, hashes, reconstructed definition) to diagnose why a package shows as "Modified" when the diff view shows no changes. Development/debug use only.
 - **No live linking**: Loaded packages are forks. The document owns its copy.
 
 ### UI Implementation

@@ -27,7 +27,7 @@ Canonical definitions for domain terms used throughout Carta. Use these terms co
 
 **LOD Band**: One of two discrete zoom-based rendering modes (`marker`, `normal`) that control node detail level. Marker (zoom < 0.5) shows tinted surface chips with accent dot and name. Normal (zoom >= 0.5) shows full card with all controls. See doc02.07 for visual specs.
 
-**Node Shape**: The visual style of a construct node. Shapes include `default` (standard card), `simple` (plain rectangle), `circle`, `diamond`, and `document`. Defined on the construct schema via the `nodeShape` field.
+**Node Shape**: The visual style of a construct node. Shapes include `default` (standard card), `simple` (plain rectangle), `circle`, `diamond`, `document`, `stadium` (capsule/pill with fully rounded ends), and `parallelogram` (skewed quadrilateral for I/O). Defined on the construct schema via the `nodeShape` field.
 
 ## Ports and Connections
 

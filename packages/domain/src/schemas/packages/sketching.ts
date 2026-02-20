@@ -15,7 +15,6 @@ export const sketchingPackage: SchemaPackageDefinition = {
       nodeShape: 'simple',
       instanceColors: true,
       isFavorite: true,
-      groupId: 'sketching',
       fields: [
         {
           name: 'title',
@@ -50,7 +49,6 @@ export const sketchingPackage: SchemaPackageDefinition = {
       color: '#64748b',
       nodeShape: 'simple',
       instanceColors: true,
-      groupId: 'sketching',
       semanticDescription: 'Generic box for rough modeling',
       fields: [
         { name: 'label', label: 'Label', type: 'string', displayTier: 'pill', displayOrder: 0, placeholder: 'Label...' },

@@ -73,19 +73,19 @@ Note gets `nodeShape: 'simple'` to opt into the simple render variation. This is
 
 ### Comparison with other nodeShapes
 
-Additional shape variants (`circle`, `diamond`, `document`) were added to support BPMN and other notation-specific rendering (doc05.01). These follow the same architecture: schema-driven nodeShape dispatch to separate components.
+Additional shape variants (`circle`, `diamond`, `document`, `stadium`, `parallelogram`) were added to support BPMN, ISO 5807 flowcharts, and other notation-specific rendering (doc05.01). These follow the same architecture: schema-driven nodeShape dispatch to separate components.
 
-| Aspect | `'default'` | `'card'` | `'simple'` | `'circle'` | `'diamond'` | `'document'` |
-|--------|-------------|----------|------------|------------|-------------|--------------|
-| Header bar | Yes (schema type, controls) | No | No | No | No | No |
-| Field grid | Yes (by displayTier) | Yes (summary tier) | No | No | No | No |
-| Display name | From marker-tier field | From marker-tier field | N/A—content IS the display | Centered in shape | Centered in shape | Centered in shape |
-| Shape | Rounded rect | Rounded rect | Rounded rect | Circle (aspect 1:1) | Diamond (rotated square) | Document shape |
-| Background | `bg-surface` | Schema/instance color tint | Schema/instance color tint (30% mix) | Color tint | Color tint | Color tint |
-| Port drawer | On hover | On hover | On hover (includes color dropper) | On hover | On hover | On hover |
-| View modes | None—single mode only | None—single mode only | None—single mode only | None | None | None |
-| Controls | Color via port drawer | Color via port drawer | Color via port drawer dropper | Minimal | Minimal | Minimal |
-| Double-click | No-op | No-op | No-op | Open inspector for field editing | Open inspector for field editing | Open inspector for field editing |
+| Aspect | `'default'` | `'card'` | `'simple'` | `'circle'` | `'diamond'` | `'document'` | `'stadium'` | `'parallelogram'` |
+|--------|-------------|----------|------------|------------|-------------|--------------|-------------|-------------------|
+| Header bar | Yes (schema type, controls) | No | No | No | No | No | No | No |
+| Field grid | Yes (by displayTier) | Yes (summary tier) | No | No | No | No | No | No |
+| Display name | From marker-tier field | From marker-tier field | N/A—content IS the display | Centered in shape | Centered in shape | Centered in shape | Centered in shape | Centered in shape |
+| Shape | Rounded rect | Rounded rect | Rounded rect | Circle (aspect 1:1) | Diamond (rotated square) | Document shape | Capsule (fully rounded ends) | Skewed quadrilateral |
+| Background | `bg-surface` | Schema/instance color tint | Schema/instance color tint (30% mix) | Color tint | Color tint | Color tint | Color tint | Color tint |
+| Port drawer | On hover | On hover | On hover (includes color dropper) | On hover | On hover | On hover | On hover | On hover |
+| View modes | None—single mode only | None—single mode only | None—single mode only | None | None | None | None | None |
+| Controls | Color via port drawer | Color via port drawer | Color via port drawer dropper | Minimal | Minimal | Minimal | Minimal | Minimal |
+| Double-click | No-op | No-op | No-op | Open inspector for field editing | Open inspector for field editing | Open inspector for field editing | Open inspector for field editing | Open inspector for field editing |
 | Use case | General purpose | Compact display | Sketching, rough ideas | Events, states (BPMN) | Gateways, decisions | Artifacts, documents |
 | Architecture | Full-featured component | Simplified variant of default | Separate primitive, no shared UI complexity | Separate shape variant | Separate shape variant | Separate shape variant |
 
