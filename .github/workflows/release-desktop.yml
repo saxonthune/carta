@@ -22,7 +22,12 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: desktop-${{ matrix.os }}
-          path: packages/desktop/release/*
+          path: |
+            packages/desktop/release/*.dmg
+            packages/desktop/release/*.AppImage
+            packages/desktop/release/*.deb
+            packages/desktop/release/*.exe
+            packages/desktop/release/*.zip
 
   release:
     needs: build
