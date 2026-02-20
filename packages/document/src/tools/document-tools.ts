@@ -93,7 +93,7 @@ const UpdateSchemaInput = z.object({
   groupId: z.string().optional(),
   packageId: z.string().nullable().optional(),
   instanceColors: z.boolean().optional(),
-  nodeShape: z.enum(['default', 'simple', 'circle', 'diamond', 'document']).optional(),
+  nodeShape: z.enum(['default', 'simple', 'circle', 'diamond', 'document', 'parallelogram', 'stadium']).optional(),
   fieldUpdates: z.record(z.object({
     label: z.string().optional(),
     semanticDescription: z.string().optional(),

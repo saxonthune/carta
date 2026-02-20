@@ -174,7 +174,7 @@ export interface ConstructSchema {
   groupId?: string;          // References SchemaGroup.id for hierarchical organization
   packageId?: string;        // References SchemaPackage.id for library bundling
   instanceColors?: boolean;                                      // true = per-instance palette picker; false/absent = schema color only
-  nodeShape?: 'default' | 'simple' | 'circle' | 'diamond' | 'document';                            // 'default': header bar + fields. 'simple': tinted surface, label-dominant, content-first, no header bar. default: 'default'
+  nodeShape?: 'default' | 'simple' | 'circle' | 'diamond' | 'document' | 'parallelogram' | 'stadium';                            // 'default': header bar + fields. 'simple': tinted surface, label-dominant, content-first, no header bar. default: 'default'
   isFavorite?: boolean;                                          // Pin to top-level context menu for quick access
 }
 

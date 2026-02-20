@@ -601,7 +601,7 @@ Smart defaults:
         groupId: z.string().optional().describe('New schema group ID'),
         packageId: z.string().nullable().optional().describe('Schema package ID (null to remove from package)'),
         instanceColors: z.boolean().optional().describe('true = per-instance color palette; false/absent = schema color only'),
-        nodeShape: z.enum(['default', 'simple', 'circle', 'diamond', 'document']).optional().describe('Node render style'),
+        nodeShape: z.enum(['default', 'simple', 'circle', 'diamond', 'document', 'parallelogram', 'stadium']).optional().describe('Node render style'),
         enumIconField: z.string().optional().describe('Field name for icon markers'),
         enumIconMap: z.record(z.string()).optional().describe('Enum value → Unicode character mapping'),
         fieldUpdates: z.record(z.object({
@@ -1137,7 +1137,7 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
         groupId: z.string().optional(),
         packageId: z.string().nullable().optional(),
         backgroundColorPolicy: z.enum(['defaultOnly', 'tints', 'any']).optional(),
-        nodeShape: z.enum(['default', 'simple', 'circle', 'diamond', 'document']).optional(),
+        nodeShape: z.enum(['default', 'simple', 'circle', 'diamond', 'document', 'parallelogram', 'stadium']).optional(),
         fieldUpdates: z.record(z.object({
           label: z.string().optional(),
           semanticDescription: z.string().optional(),

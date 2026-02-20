@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { type Icon, Square, Note, Circle, Diamond, FileText, CaretDown } from '@phosphor-icons/react';
+import { type Icon, Square, Note, Circle, Diamond, FileText, Parallelogram, Pill, CaretDown } from '@phosphor-icons/react';
 import Select from '../ui/Select';
 import type { ConstructSchema } from '@carta/domain';
 
@@ -20,7 +20,9 @@ const STYLE_PRESETS: StylePreset[] = [
   { id: 'sticky',   label: 'Sticky Note', icon: Note,      properties: { nodeShape: 'simple',   instanceColors: true  } },
   { id: 'circle',   label: 'Circle',      icon: Circle,    properties: { nodeShape: 'circle',   instanceColors: false } },
   { id: 'diamond',  label: 'Diamond',     icon: Diamond,   properties: { nodeShape: 'diamond',  instanceColors: false } },
-  { id: 'document', label: 'Document',    icon: FileText,  properties: { nodeShape: 'document', instanceColors: false } },
+  { id: 'document',      label: 'Document',      icon: FileText,      properties: { nodeShape: 'document',      instanceColors: false } },
+  { id: 'parallelogram', label: 'Parallelogram', icon: Parallelogram, properties: { nodeShape: 'parallelogram', instanceColors: false } },
+  { id: 'stadium',       label: 'Stadium',       icon: Pill,          properties: { nodeShape: 'stadium',       instanceColors: false } },
 ];
 
 function findMatchingPreset(formData: ConstructSchema): StylePreset | null {
@@ -101,6 +103,8 @@ export default function StylePresetPicker({ formData, updateField }: StylePreset
               <option value="circle">Circle</option>
               <option value="diamond">Diamond</option>
               <option value="document">Document</option>
+              <option value="parallelogram">Parallelogram</option>
+              <option value="stadium">Stadium</option>
             </Select>
           </div>
           <label className="flex items-center gap-2 text-sm text-content cursor-pointer">

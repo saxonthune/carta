@@ -252,6 +252,75 @@ function renderDocumentNode(props: ShapeRenderProps) {
   );
 }
 
+function renderParallelogramNode(props: ShapeRenderProps) {
+  const { nodeId, absX, absY, width, selected, label, schema, constructData, dimmed, onPointerDown, onPointerEnter, onPointerLeave, onContextMenu, onDoubleClick, onResizePointerDown } = props;
+  const resolvedColor = resolveNodeColor(schema, constructData);
+  const W = Math.max(width, 120);
+  const H = 60;
+  const S = W * 0.2;
+  return (
+    <div key={nodeId} data-node-id={nodeId} data-no-pan="true"
+      onPointerDown={onPointerDown} onPointerEnter={onPointerEnter}
+      onPointerLeave={onPointerLeave} onContextMenu={onContextMenu}
+      onDoubleClick={onDoubleClick}
+      style={{
+        position: 'absolute', left: absX, top: absY,
+        width: W, height: H,
+        cursor: 'grab',
+        opacity: dimmed ? 0.2 : 1,
+        pointerEvents: dimmed ? 'none' : 'auto',
+      }}>
+      <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H}
+        style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}>
+        <path
+          d={`M${S},0 L${W},0 L${W - S},${H} L0,${H} Z`}
+          fill={`color-mix(in srgb, ${resolvedColor} 25%, var(--color-surface))`}
+          stroke={resolvedColor} strokeWidth="2"
+          style={{ filter: selected ? 'drop-shadow(var(--node-shadow-selected))' : 'drop-shadow(var(--node-shadow))' }}
+        />
+      </svg>
+      <div style={{
+        position: 'absolute', inset: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        pointerEvents: 'none',
+      }}>
+        <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-content)', textAlign: 'center', padding: '0 8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70%' }}>
+          {label}
+        </span>
+      </div>
+      <ResizeHandle selected={selected} onResizePointerDown={onResizePointerDown} />
+    </div>
+  );
+}
+
+function renderStadiumNode(props: ShapeRenderProps) {
+  const { nodeId, absX, absY, width, selected, label, schema, constructData, dimmed, onPointerDown, onPointerEnter, onPointerLeave, onContextMenu, onDoubleClick, onResizePointerDown } = props;
+  const resolvedColor = resolveNodeColor(schema, constructData);
+  return (
+    <div key={nodeId} data-node-id={nodeId} data-no-pan="true"
+      onPointerDown={onPointerDown} onPointerEnter={onPointerEnter}
+      onPointerLeave={onPointerLeave} onContextMenu={onContextMenu}
+      onDoubleClick={onDoubleClick}
+      style={{
+        position: 'absolute', left: absX, top: absY,
+        width: Math.max(width, 120), minHeight: 60,
+        borderRadius: 9999,
+        backgroundColor: `color-mix(in srgb, ${resolvedColor} 25%, var(--color-surface))`,
+        border: `2px solid ${resolvedColor}`,
+        boxShadow: selected ? 'var(--node-shadow-selected)' : 'var(--node-shadow)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        cursor: 'grab', overflow: 'hidden',
+        opacity: dimmed ? 0.2 : 1,
+        pointerEvents: dimmed ? 'none' : 'auto',
+      }}>
+      <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-content)', textAlign: 'center', padding: '0 16px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>
+        {label}
+      </span>
+      <ResizeHandle selected={selected} onResizePointerDown={onResizePointerDown} />
+    </div>
+  );
+}
+
 function SimpleNode(props: ShapeRenderProps & { adapter: DocumentAdapter }) {
   const { nodeId, absX, absY, width, height, selected, schema, constructData, dimmed, onPointerDown, onPointerEnter, onPointerLeave, onContextMenu, onResizePointerDown, adapter,
     node, hoveredNodeId, connectionDrag, sourcePortType, getPortSchema, startConnection, showNarrative, hideNarrative,
@@ -665,6 +734,12 @@ export function MapV2ConstructNode({
   }
   if (shapeMode === 'simple') {
     return <SimpleNode {...shapeProps} adapter={adapter} />;
+  }
+  if (shapeMode === 'parallelogram') {
+    return renderParallelogramNode(shapeProps);
+  }
+  if (shapeMode === 'stadium') {
+    return renderStadiumNode(shapeProps);
   }
 
   // Default card rendering
