@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { ConnectionHandle } from '../../canvas-engine/index.js';
-import { type ConstructSchema, type ConstructNodeData, getFieldsForSummary, resolveNodeIcon, resolveNodeColor, type DocumentAdapter, canConnect } from '@carta/domain';
+import { type ConstructSchema, type ConstructNodeData, getFieldsForSummary, resolveNodeColor, type DocumentAdapter, canConnect } from '@carta/domain';
 import type { LodBand } from './lod/lodPolicy.js';
+import ColorPicker from '../ui/ColorPicker.js';
 
 // Field list component with editing state
 function MapV2FieldList({ schema, constructData, adapter, nodeId }: {
@@ -156,10 +157,6 @@ function renderCircleNode(props: ShapeRenderProps) {
       <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-content)', textAlign: 'center', padding: '0 8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>
         {label}
       </span>
-      {(() => {
-        const icon = resolveNodeIcon(schema, constructData);
-        return icon ? <span style={{ fontSize: '1.5em', fontWeight: 700, lineHeight: 1, color: 'var(--color-content)' }}>{icon}</span> : null;
-      })()}
       <ResizeHandle selected={selected} onResizePointerDown={onResizePointerDown} />
     </div>
   );
@@ -200,10 +197,6 @@ function renderDiamondNode(props: ShapeRenderProps) {
         <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-content)', textAlign: 'center', padding: '0 8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70%' }}>
           {label}
         </span>
-        {(() => {
-          const icon = resolveNodeIcon(schema, constructData);
-          return icon ? <span style={{ fontSize: '1.2em', fontWeight: 700, lineHeight: 1, color: 'var(--color-content)' }}>{icon}</span> : null;
-        })()}
       </div>
       <ResizeHandle selected={selected} onResizePointerDown={onResizePointerDown} />
     </div>
@@ -292,12 +285,6 @@ function SimpleNode(props: ShapeRenderProps & { adapter: DocumentAdapter }) {
         opacity: dimmed ? 0.2 : 1,
         pointerEvents: dimmed ? 'none' : 'auto',
       }}>
-      {/* Icon in top-right */}
-      {(() => {
-        const icon = resolveNodeIcon(schema, constructData);
-        return icon ? <span style={{ position: 'absolute', top: 4, right: 8, fontSize: 14, fontWeight: 700, color: 'var(--color-content)', opacity: 0.6 }}>{icon}</span> : null;
-      })()}
-
       {/* Pill field (title) — bolder, larger */}
       {pillField && (() => {
         const value = constructData.values?.[pillField.name] ?? '';
@@ -371,6 +358,12 @@ function SimpleNode(props: ShapeRenderProps & { adapter: DocumentAdapter }) {
         );
       })}
 
+      {schema.instanceColors && selected && (
+        <div style={{ marginTop: 2 }}>
+          <ColorPicker value={constructData.instanceColor} onChange={(color) => adapter.updateNode(nodeId, { instanceColor: color ?? undefined })} />
+        </div>
+      )}
+
       <ResizeHandle selected={selected} onResizePointerDown={onResizePointerDown} />
     </div>
   );
@@ -443,7 +436,6 @@ export function MapV2ConstructNode({
   // Marker mode (LOD) rendering
   if (lodBand === 'marker' && !isCovered) {
     const resolvedColor = resolveNodeColor(schema, constructData);
-    const icon = resolveNodeIcon(schema, constructData);
     return (
       <div
         key={node.id}
@@ -472,7 +464,6 @@ export function MapV2ConstructNode({
         }}
       >
         <div style={{ width: 12, height: 12, borderRadius: 3, backgroundColor: resolvedColor, flexShrink: 0 }} />
-        {icon && <span style={{ fontSize: 20 }}>{icon}</span>}
         {sequenceBadge != null && (
           <div style={{
             width: 20, height: 20, borderRadius: '50%',
@@ -574,7 +565,7 @@ export function MapV2ConstructNode({
         }} />
       )}
 
-      {/* Header with schema badge and icon */}
+      {/* Header with schema badge */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
@@ -589,10 +580,6 @@ export function MapV2ConstructNode({
         <span style={{ fontSize: 11, color: 'var(--color-content-muted)' }}>
           {schema.displayName}
         </span>
-        {(() => {
-          const icon = resolveNodeIcon(schema, constructData);
-          return icon ? <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-content)', lineHeight: 1 }}>{icon}</span> : null;
-        })()}
       </div>
 
       {/* Display name */}
@@ -610,6 +597,13 @@ export function MapV2ConstructNode({
 
       {/* Fields */}
       <MapV2FieldList schema={schema} constructData={constructData} adapter={adapter} nodeId={node.id} />
+
+      {/* Palette picker — shown when instanceColors is enabled and node is selected */}
+      {schema.instanceColors && selected && (
+        <div style={{ padding: '2px 8px' }}>
+          <ColorPicker value={constructData.instanceColor} onChange={(color) => adapter.updateNode(node.id, { instanceColor: color ?? undefined })} />
+        </div>
+      )}
 
       {/* Resize handle */}
       {selected && (

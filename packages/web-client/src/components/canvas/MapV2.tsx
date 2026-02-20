@@ -655,7 +655,6 @@ export default function MapV2({ searchText, onSelectionChange: onSelectionChange
   const nodeActions = useMemo(() => ({
     onRename: () => {},
     onValuesChange: () => {},
-    onInstanceColorChange: () => {},
     onToggleCollapse: () => {},
     onSpreadChildren: () => {},
     onFlowLayoutChildren: () => {},

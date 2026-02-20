@@ -1,59 +1,42 @@
-import { generateTints } from '@carta/domain';
+import { INSTANCE_COLOR_PALETTE } from '@carta/domain';
 
 export interface ColorPickerProps {
-  policy: 'defaultOnly' | 'tints' | 'any';
-  baseColor: string;
   value: string | undefined;
   onChange: (color: string | null) => void;
 }
 
-export default function ColorPicker({ policy, baseColor, value, onChange }: ColorPickerProps) {
-  if (policy === 'defaultOnly') return null;
-
-  if (policy === 'tints') {
-    const tints = generateTints(baseColor, 7);
-    return (
-      <div className="flex gap-1 items-center">
-        {tints.map((tint) => (
-          <button
-            key={tint}
-            type="button"
-            className={`w-4 h-4 rounded border-2 cursor-pointer transition-all hover:scale-110 ${value === tint ? 'border-accent shadow-[0_0_0_2px_var(--color-accent)]' : 'border-transparent'}`}
-            style={{ backgroundColor: tint }}
-            onClick={(e) => { e.stopPropagation(); onChange(tint); }}
-          />
-        ))}
-        {value && (
-          <button
-            type="button"
-            className="w-4 h-4 rounded border border-content-muted/30 cursor-pointer text-content-muted hover:text-content text-node-2xs flex items-center justify-center bg-surface hover:bg-surface-depth-1 transition-colors"
-            onClick={(e) => { e.stopPropagation(); onChange(null); }}
-            title="Reset to default"
-          >
-            ×
-          </button>
-        )}
-      </div>
-    );
-  }
-
-  // policy === 'any'
+export default function ColorPicker({ value, onChange }: ColorPickerProps) {
   return (
-    <div className="flex gap-2 items-center">
-      <input
-        type="color"
-        className="w-5 h-5 p-0 border border-content-muted/20 rounded cursor-pointer"
-        value={value || baseColor}
-        onChange={(e) => { e.stopPropagation(); onChange(e.target.value); }}
-      />
+    <div className="flex gap-1 items-center flex-wrap" onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
+      {INSTANCE_COLOR_PALETTE.map((color) => (
+        <button
+          key={color}
+          type="button"
+          className={`w-5 h-5 rounded-full border-2 cursor-pointer transition-all hover:scale-110 ${value === color ? 'border-white shadow-[0_0_0_2px_var(--color-accent)]' : 'border-transparent'}`}
+          style={{ backgroundColor: color }}
+          onClick={() => onChange(color)}
+        />
+      ))}
+      {/* Custom color slot */}
+      <label className="w-5 h-5 rounded-full border border-content-muted/30 cursor-pointer flex items-center justify-center bg-surface hover:bg-surface-depth-1 transition-colors overflow-hidden relative"
+        title="Custom color">
+        <span className="text-[10px] text-content-muted">✎</span>
+        <input
+          type="color"
+          className="absolute inset-0 opacity-0 cursor-pointer"
+          value={value || '#888888'}
+          onChange={(e) => onChange(e.target.value)}
+        />
+      </label>
+      {/* Reset button */}
       {value && (
         <button
           type="button"
-          className="px-2 py-1 text-xs rounded border border-content-muted/30 cursor-pointer text-content-muted hover:text-content bg-surface hover:bg-surface-depth-1 transition-colors"
-          onClick={(e) => { e.stopPropagation(); onChange(null); }}
+          className="w-5 h-5 rounded-full border border-content-muted/30 cursor-pointer text-content-muted hover:text-content text-[10px] flex items-center justify-center bg-surface hover:bg-surface-depth-1 transition-colors"
+          onClick={() => onChange(null)}
           title="Reset to default"
         >
-          Reset
+          ×
         </button>
       )}
     </div>

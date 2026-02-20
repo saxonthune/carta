@@ -55,55 +55,51 @@ export function hslToHex(h: number, s: number, l: number): string {
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
-export function generateTints(hex: string, stops = 7): string[] {
-  const { h, s } = hexToHsl(hex);
-  const tints: string[] = [];
-  // Vary lightness from 92% (lightest) down to 45% (darkest)
-  for (let i = 0; i < stops; i++) {
-    const l = 92 - (i * (92 - 45)) / (stops - 1);
-    tints.push(hslToHex(h, s, l));
-  }
-  return tints;
-}
+export const INSTANCE_COLOR_PALETTE = [
+  '#ef4444', // red
+  '#f97316', // orange
+  '#eab308', // yellow
+  '#22c55e', // green
+  '#06b6d4', // cyan
+  '#3b82f6', // blue
+  '#8b5cf6', // violet
+  '#ec4899', // pink
+];
 
 /**
- * Resolves the display color for a construct node based on schema color mode.
- * - 'enum': uses enumColorMap lookup on the designated field value, falls back to schema color
- * - 'instance': uses instanceColor if set, falls back to schema color
- * - 'default' / undefined: schema color
+ * Resolves the display color for a construct node.
+ * If instanceColors is enabled on the schema and an instanceColor is set, uses the instance color.
+ * Otherwise uses the schema color.
  */
 export function resolveNodeColor(
-  schema: { color: string; colorMode?: string; enumColorField?: string; enumColorMap?: Record<string, string> },
-  data: { instanceColor?: string; values?: Record<string, unknown> },
+  schema: { color: string; instanceColors?: boolean },
+  data: { instanceColor?: string },
 ): string {
-  if (schema.colorMode === 'enum' && schema.enumColorField && schema.enumColorMap) {
-    const fieldValue = String(data.values?.[schema.enumColorField] ?? '');
-    if (fieldValue && schema.enumColorMap[fieldValue]) {
-      return schema.enumColorMap[fieldValue];
-    }
-    return schema.color;
+  if (schema.instanceColors && data.instanceColor) {
+    return data.instanceColor;
   }
-  if (schema.colorMode === 'instance') {
-    return data.instanceColor || schema.color;
-  }
-  // default / undefined
-  return data.instanceColor || schema.color;
+  return schema.color;
 }
 
 /**
- * Resolves the icon marker character for a construct node based on schema enum icon mapping.
- * Returns undefined if no icon is configured or the current value has no mapping.
+ * Coerces old property shapes on read — no migration pipeline needed.
+ * Call this wherever schemas are read from Yjs.
  */
-export function resolveNodeIcon(
-  schema: { enumIconField?: string; enumIconMap?: Record<string, string> },
-  data: { values?: Record<string, unknown> },
-): string | undefined {
-  if (!schema.enumIconField || !schema.enumIconMap) return undefined;
-  const fieldValue = String(data.values?.[schema.enumIconField] ?? '');
-  if (fieldValue && schema.enumIconMap[fieldValue]) {
-    return schema.enumIconMap[fieldValue];
+export function normalizeSchema<T extends Record<string, unknown>>(raw: T): T {
+  const schema = { ...raw };
+  // Migrate old color properties to instanceColors
+  if (schema.colorMode === 'instance' || schema.colorMode === 'enum' ||
+      schema.backgroundColorPolicy === 'tints' || schema.backgroundColorPolicy === 'any') {
+    schema.instanceColors = true;
   }
-  return undefined;
+  // Remove old properties
+  delete schema.colorMode;
+  delete schema.backgroundColorPolicy;
+  delete schema.enumColorField;
+  delete schema.enumColorMap;
+  delete schema.enumIconField;
+  delete schema.enumIconMap;
+  return schema as T;
 }
 
 /**

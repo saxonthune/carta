@@ -136,16 +136,10 @@ export default function ConstructDebugModal({
                   <span className="text-content font-mono text-xs break-all">{schema.nodeShape}</span>
                 </div>
               )}
-              {schema.backgroundColorPolicy && (
+              {schema.instanceColors && (
                 <div className="flex gap-2 text-sm">
-                  <span className="text-content-subtle min-w-[120px] shrink-0">Background Color Policy</span>
-                  <span className="text-content font-mono text-xs break-all">{schema.backgroundColorPolicy}</span>
-                </div>
-              )}
-              {schema.colorMode && (
-                <div className="flex gap-2 text-sm">
-                  <span className="text-content-subtle min-w-[120px] shrink-0">Color Mode</span>
-                  <span className="text-content font-mono text-xs break-all">{schema.colorMode}</span>
+                  <span className="text-content-subtle min-w-[120px] shrink-0">Instance Colors</span>
+                  <span className="text-content font-mono text-xs break-all">enabled</span>
                 </div>
               )}
               {schema.groupId && (

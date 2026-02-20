@@ -55,9 +55,7 @@ const CreateSchemaInput = z.object({
   semanticDescription: z.string().optional().describe('Description for AI context'),
   groupId: z.string().optional().describe('Schema group ID for organizing schemas'),
   packageId: z.string().optional().describe('Schema package ID to assign this schema to'),
-  backgroundColorPolicy: z.enum(['defaultOnly', 'tints', 'any']).optional().describe('Controls instance color picker'),
-  enumIconField: z.string().optional().describe('Field name (type enum) that drives icon marker on nodes'),
-  enumIconMap: z.record(z.string()).optional().describe('Enum value → Unicode character mapping'),
+  instanceColors: z.boolean().optional().describe('true = per-instance color palette; false/absent = schema color only'),
   fields: z
     .array(
       z.object({
@@ -94,13 +92,8 @@ const UpdateSchemaInput = z.object({
   semanticDescription: z.string().optional(),
   groupId: z.string().optional(),
   packageId: z.string().nullable().optional(),
-  backgroundColorPolicy: z.enum(['defaultOnly', 'tints', 'any']).optional(),
+  instanceColors: z.boolean().optional(),
   nodeShape: z.enum(['default', 'simple', 'circle', 'diamond', 'document']).optional(),
-  colorMode: z.enum(['default', 'instance', 'enum']).optional(),
-  enumColorField: z.string().optional(),
-  enumColorMap: z.record(z.string()).optional(),
-  enumIconField: z.string().optional(),
-  enumIconMap: z.record(z.string()).optional(),
   fieldUpdates: z.record(z.object({
     label: z.string().optional(),
     semanticDescription: z.string().optional(),
@@ -270,7 +263,7 @@ export const createSchemaTool: ToolDefinition = {
   description: `Create a custom construct schema.
 
 Required top-level params: type (string, unique identifier), displayName (string), color (string, hex).
-Optional top-level params: semanticDescription (string), groupId (string), backgroundColorPolicy ('defaultOnly'|'tints'|'any', default 'defaultOnly'), enumIconField (string, field name), enumIconMap (object, enum value → Unicode char).
+Optional top-level params: semanticDescription (string), groupId (string), instanceColors (boolean, default false — enables per-instance color palette picker).
 
 Fields array (each field object):
 - name (string, required): field identifier
@@ -293,7 +286,7 @@ Ports array (optional, each port object):
 Smart defaults:
 - Primary fields (name, title, label, summary, condition) auto-get displayTier='summary'
 - If no ports specified, adds default ports: flow-in (left), flow-out (right), parent (bottom), child (top)
-- backgroundColorPolicy defaults to 'defaultOnly' (no color picker); use 'tints' for 7 swatches or 'any' for full picker`,
+- instanceColors defaults to false (no color picker); set to true to enable a per-instance palette picker`,
   inputSchema: CreateSchemaInput,
   needsPage: false,
   execute: (params, ydoc, _pageId) => {

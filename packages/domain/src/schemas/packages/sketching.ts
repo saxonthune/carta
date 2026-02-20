@@ -13,7 +13,7 @@ export const sketchingPackage: SchemaPackageDefinition = {
       color: '#c4a94e',
       semanticDescription: 'A freeform note or annotation',
       nodeShape: 'simple',
-      backgroundColorPolicy: 'tints',
+      instanceColors: true,
       isFavorite: true,
       groupId: 'sketching',
       fields: [
@@ -49,7 +49,7 @@ export const sketchingPackage: SchemaPackageDefinition = {
       displayName: 'Box',
       color: '#64748b',
       nodeShape: 'simple',
-      backgroundColorPolicy: 'tints',
+      instanceColors: true,
       groupId: 'sketching',
       semanticDescription: 'Generic box for rough modeling',
       fields: [

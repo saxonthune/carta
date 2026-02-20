@@ -23,6 +23,7 @@ import {
   resolvePinConstraints,
   applyPackage,
   isPackageModified,
+  normalizeSchema,
 } from '@carta/domain';
 import type {
   CompilerNode,
@@ -1802,7 +1803,7 @@ export function getSchema(ydoc: Y.Doc, type: string): ConstructSchema | null {
   const yschemas = ydoc.getMap<Y.Map<unknown>>('schemas');
   const yschema = yschemas.get(type);
   if (yschema) {
-    return yToPlain(yschema) as ConstructSchema;
+    return normalizeSchema(yToPlain(yschema) as ConstructSchema);
   }
 
   return null;
@@ -4006,7 +4007,7 @@ function buildAdapterShim(ydoc: Y.Doc): DocumentAdapter {
     getSchemas(): ConstructSchema[] {
       const schemas: ConstructSchema[] = [];
       yschemas.forEach((yschema) => {
-        schemas.push(yToPlain(yschema) as ConstructSchema);
+        schemas.push(normalizeSchema(yToPlain(yschema) as ConstructSchema));
       });
       return schemas;
     },

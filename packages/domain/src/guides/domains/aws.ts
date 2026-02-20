@@ -37,6 +37,6 @@ Reference seed: \`aws\`
 - Group by service type: Compute, Storage, Messaging, Monitoring (use organizers)
 - Orange theme for Lambda functions (AWS branding)
 - Connection color coding: invoke=orange, flow=blue, policy=red
-- S3 and DynamoDB: use \`tints\` backgroundColorPolicy for data services
+- S3 and DynamoDB: use \`instanceColors: true\` for per-instance color distinction
 - Step Functions as organizers containing orchestrated Lambdas
 `;

@@ -33,7 +33,7 @@ Reference seed: \`software-architecture\`
 
 ## Display Recommendations
 - Group by layer: API, Database, UI, User Story (use organizers)
-- REST Endpoints: use \`tints\` backgroundColorPolicy to distinguish by domain
-- Enum coloring on \`verb\` field for REST Endpoints (GET=green, POST=blue, etc.)
+- REST Endpoints: use \`instanceColors: true\` to let users distinguish by domain
+- Per-instance color picking available when \`instanceColors\` is enabled on the schema
 - Tables as children of Database nodes (parent/child ports)
 `;
