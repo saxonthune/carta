@@ -21,6 +21,7 @@
     "test:ui": "pnpm --filter @carta/web-client test:ui",
     "test:coverage": "pnpm --filter @carta/web-client test:coverage",
     "test:e2e": "pnpm --filter @carta/web-client test:e2e",
+    "test:static": "pnpm build && pnpm --filter @carta/web-client test:static",
     "test:e2e:ui": "pnpm --filter @carta/web-client test:e2e:ui",
     "test:all": "pnpm --filter @carta/web-client test:all",
     "lint": "eslint .",
