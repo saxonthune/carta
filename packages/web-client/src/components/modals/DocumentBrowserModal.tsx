@@ -253,12 +253,13 @@ function DocumentBrowserContent({ onClose, required, adapter }: DocumentBrowserC
   const [customFilename, setCustomFilename] = useState(false);
   const [filenameOverride, setFilenameOverride] = useState('');
 
-  const derivedFilename = useMemo(() => {
+  const derivedFilenameBase = useMemo(() => {
     const slug = toKebabCase(newTitle.trim() || defaultName);
-    return (slug || 'untitled') + '.carta.json';
+    return slug || 'untitled';
   }, [newTitle, defaultName]);
 
-  const resolvedFilename = customFilename ? filenameOverride : derivedFilename;
+  const resolvedFilenameBase = customFilename ? filenameOverride : derivedFilenameBase;
+  const resolvedFilename = resolvedFilenameBase + '.carta.json';
 
   // Filter documents by search query (case-insensitive substring match)
   const filteredDocuments = useMemo(() => {
@@ -309,22 +310,21 @@ function DocumentBrowserContent({ onClose, required, adapter }: DocumentBrowserC
     fetchDocuments();
   }, [fetchDocuments]);
 
-  const sanitizeFilename = (value: string): string => {
-    // Strip chars invalid in filenames, ensure .carta.json suffix
+  const sanitizeFilenameBase = (value: string): string => {
+    // Strip chars invalid in filenames and any .carta.json suffix the user may paste
     const stripped = value.replace(/[/\\:*?"<>|]/g, '');
-    if (stripped.endsWith('.carta.json')) return stripped;
     const base = stripped.replace(/\.carta(\.json)?$/, '').replace(/\.json$/, '');
-    return (base || 'untitled') + '.carta.json';
+    return base || 'untitled';
   };
 
   const handleFilenameOverrideChange = (value: string) => {
-    setFilenameOverride(sanitizeFilename(value));
+    setFilenameOverride(sanitizeFilenameBase(value));
   };
 
   const handleCustomFilenameToggle = (checked: boolean) => {
     setCustomFilename(checked);
     if (checked && !filenameOverride) {
-      setFilenameOverride(derivedFilename);
+      setFilenameOverride(derivedFilenameBase);
     }
   };
 
@@ -556,15 +556,18 @@ function DocumentBrowserContent({ onClose, required, adapter }: DocumentBrowserC
               </div>
               <div className="flex flex-col gap-1 pl-1">
                 {customFilename ? (
-                  <Input
-                    value={filenameOverride}
-                    onChange={(e) => handleFilenameOverrideChange(e.target.value)}
-                    disabled={creating}
-                    className="text-sm"
-                    placeholder="filename.carta.json"
-                  />
+                  <div className="flex items-center gap-0">
+                    <Input
+                      value={filenameOverride}
+                      onChange={(e) => handleFilenameOverrideChange(e.target.value)}
+                      disabled={creating}
+                      className="text-sm"
+                      placeholder="filename"
+                    />
+                    <span className="text-xs text-content-muted whitespace-nowrap pl-1.5">.carta.json</span>
+                  </div>
                 ) : (
-                  <span className="text-xs text-content-muted">{derivedFilename}</span>
+                  <span className="text-xs text-content-muted">{derivedFilenameBase}.carta.json</span>
                 )}
                 <label className="flex items-center gap-1.5 text-xs text-content-muted cursor-pointer select-none">
                   <input
