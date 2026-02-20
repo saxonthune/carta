@@ -32,3 +32,5 @@ export { default as DraggableWindow } from './DraggableWindow';
 
 // Icons
 export * from './icons';
+
+export { SimpleMarkdown } from './SimpleMarkdown.js';

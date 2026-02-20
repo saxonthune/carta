@@ -12,7 +12,7 @@ export type DataKind = 'string' | 'number' | 'boolean' | 'date' | 'enum';
 /**
  * Display hints for string type presentation
  */
-export type DisplayHint = 'multiline' | 'code' | 'password' | 'url' | 'color';
+export type DisplayHint = 'multiline' | 'code' | 'password' | 'url' | 'color' | 'markdown';
 
 /**
  * Display tier for field visibility

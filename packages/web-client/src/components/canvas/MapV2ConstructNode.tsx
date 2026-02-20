@@ -3,6 +3,7 @@ import { ConnectionHandle } from '../../canvas-engine/index.js';
 import { type ConstructSchema, type ConstructNodeData, getFieldsForSummary, resolveNodeColor, type DocumentAdapter, canConnect } from '@carta/domain';
 import type { LodBand } from './lod/lodPolicy.js';
 import ColorPicker from '../ui/ColorPicker.js';
+import { SimpleMarkdown } from '../ui/SimpleMarkdown.js';
 
 // Field list component with editing state
 function MapV2FieldList({ schema, constructData, adapter, nodeId }: {
@@ -425,7 +426,7 @@ function SimpleNode(props: ShapeRenderProps & { adapter: DocumentAdapter }) {
       {visibleFields.map((field, index) => {
         const isTitle = index === 0;
         const value = constructData.values?.[field.name] ?? '';
-        const isMultiline = field.displayHint === 'multiline';
+        const isMultiline = field.displayHint === 'multiline' || field.displayHint === 'markdown';
 
         if (editingField === field.name) {
           return (
@@ -473,7 +474,13 @@ function SimpleNode(props: ShapeRenderProps & { adapter: DocumentAdapter }) {
               minHeight: isMultiline ? 40 : isTitle ? 20 : undefined,
             }}
           >
-            {value ? String(value) : <span style={{ opacity: 0.4, fontWeight: 400 }}>{field.placeholder ?? ''}</span>}
+            {value ? (
+              field.displayHint === 'markdown'
+                ? <SimpleMarkdown content={String(value)} />
+                : String(value)
+            ) : (
+              <span style={{ opacity: 0.4, fontWeight: 400 }}>{field.placeholder ?? ''}</span>
+            )}
           </div>
         );
       })}

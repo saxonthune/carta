@@ -29,7 +29,7 @@ export const sketchingPackage: SchemaPackageDefinition = {
           name: 'body',
           label: 'Body',
           type: 'string',
-          displayHint: 'multiline',
+          displayHint: 'markdown',
           semanticDescription: 'Note body content',
           placeholder: 'Write something...',
           displayTier: 'summary',
