@@ -551,7 +551,31 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
 
         if (method === 'GET') {
           const typeFilter = url.searchParams.get('type') || undefined;
-          if (typeFilter) {
+          const outputMode = url.searchParams.get('output');
+
+          if (outputMode === 'full') {
+            // Full output: return raw construct data with values, position, connections
+            const constructs = listConstructs(docState.doc, pageId, typeFilter ? { constructType: typeFilter } : undefined);
+            const constructData = constructs
+              .filter(c => c.type !== 'organizer')
+              .map(c => ({
+                semanticId: c.data.semanticId,
+                constructType: c.data.constructType,
+                values: c.data.values,
+                position: c.position,
+                parentId: c.parentId,
+                connections: c.data.connections || [],
+              }));
+            const organizers = constructs
+              .filter(c => c.type === 'organizer')
+              .map(c => ({
+                id: c.id,
+                name: (c.data as Record<string, unknown>).name as string ?? '',
+                color: (c.data as Record<string, unknown>).color as string ?? '',
+                memberCount: constructs.filter(n => n.parentId === c.id).length,
+              }));
+            sendJson(res, 200, { constructs: constructData, organizers });
+          } else if (typeFilter) {
             // Filtered query — can't use the shared helper
             const constructs = listConstructs(docState.doc, pageId, { constructType: typeFilter });
             const schemas = listSchemas(docState.doc);
@@ -724,7 +748,23 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
             sendError(res, 404, `Construct not found: ${semanticId}`, 'NOT_FOUND');
             return;
           }
-          sendJson(res, 200, { construct: construct.data });
+          const outputMode = url.searchParams.get('output');
+          if (outputMode === 'compact') {
+            const schemas = listSchemas(docState.doc);
+            const schema = schemas.find(s => s.type === construct.data.constructType);
+            const pillField = schema?.fields.find(f => f.displayTier === 'pill');
+            const displayName = pillField ? String(construct.data.values?.[pillField.name] || '') : construct.data.semanticId;
+            sendJson(res, 200, {
+              construct: {
+                semanticId: construct.data.semanticId,
+                constructType: construct.data.constructType,
+                displayName,
+                connections: construct.data.connections || [],
+              }
+            });
+          } else {
+            sendJson(res, 200, { construct: construct.data });
+          }
           return;
         }
 

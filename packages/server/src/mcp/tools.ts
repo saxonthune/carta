@@ -67,6 +67,7 @@ const ListConstructsSchema = z.object({
   documentId: z.string().describe('The document ID'),
   constructType: z.string().optional().describe('Filter by construct type (e.g. "service", "api-endpoint")'),
   pageId: z.string().optional().describe('Target a specific page instead of the active page'),
+  output: z.enum(['compact', 'full']).optional().describe('Output detail level. "compact" (default): {semanticId, constructType, displayName, parentId}. "full": adds values, position, connections for each construct.'),
 });
 
 const CreateConstructSchema = z.object({
@@ -94,6 +95,7 @@ const DeleteConstructSchema = z.object({
 const GetConstructSchema = z.object({
   documentId: z.string().describe('The document ID'),
   semanticId: z.string().describe('The semantic ID of the construct'),
+  output: z.enum(['compact', 'full']).optional().describe('Output detail level. "compact": {semanticId, constructType, displayName, connections}. "full" (default): all field values, position, references.'),
 });
 
 const ConnectConstructsSchema = z.object({
@@ -700,13 +702,13 @@ Smart defaults:
     },
     {
       name: 'carta_list_constructs',
-      description: 'List constructs in a document (compact summaries). Use carta_get_construct for full details. Optionally filter by constructType or target a specific page.',
+      description: 'List constructs in a document. Default returns compact summaries. Use output="full" to include field values, positions, and connections. Optionally filter by constructType or target a specific page.',
       inputSchema: ListConstructsSchema.shape,
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
     },
     {
       name: 'carta_get_construct',
-      description: 'Get a construct by semantic ID',
+      description: 'Get a construct by semantic ID. Use output="compact" for a lightweight summary without field values.',
       inputSchema: GetConstructSchema.shape,
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
     },
@@ -1336,10 +1338,11 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
     },
 
     carta_list_constructs: async (args) => {
-      const { documentId, constructType, pageId } = ListConstructsSchema.parse(args);
+      const { documentId, constructType, pageId, output } = ListConstructsSchema.parse(args);
       const params = new URLSearchParams();
       if (constructType) params.set('type', constructType);
       if (pageId) params.set('pageId', pageId);
+      if (output) params.set('output', output);
       const qs = params.toString() ? `?${params.toString()}` : '';
       const result = await apiRequest<{ constructs: unknown[]; organizers: unknown[] }>(
         'GET',
@@ -1350,10 +1353,11 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
     },
 
     carta_get_construct: async (args) => {
-      const { documentId, semanticId } = GetConstructSchema.parse(args);
+      const { documentId, semanticId, output } = GetConstructSchema.parse(args);
+      const outputQs = output ? `?output=${output}` : '';
       const result = await apiRequest<{ construct: unknown }>(
         'GET',
-        `/api/documents/${encodeURIComponent(documentId)}/constructs/${encodeURIComponent(semanticId)}`
+        `/api/documents/${encodeURIComponent(documentId)}/constructs/${encodeURIComponent(semanticId)}${outputQs}`
       );
       if (result.error) return { error: result.error };
       return result.data;
