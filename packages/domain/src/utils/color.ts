@@ -90,7 +90,7 @@ export function normalizeSchema<T>(raw: T): T {
   // Migrate old color properties to instanceColors
   if (schema.colorMode === 'instance' || schema.colorMode === 'enum' ||
       schema.backgroundColorPolicy === 'tints' || schema.backgroundColorPolicy === 'any') {
-    schema.instanceColors = true;
+    (schema as Record<string, unknown>).instanceColors = true;
   }
   // Remove old properties
   delete schema.colorMode;

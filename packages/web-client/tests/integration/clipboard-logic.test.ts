@@ -204,3 +204,29 @@ describe('transformPastedNodes', () => {
     expect(outputDistance).toEqual(inputDistance);
   });
 });
+
+describe('instanceColor preservation', () => {
+  it('preserves instanceColor through paste transform', () => {
+    const getNextNodeId = () => 'new-1';
+    const clipboardNodes = [
+      { id: '1', position: { x: 0, y: 0 }, data: { constructType: 'Note', instanceColor: '#ef4444' } },
+    ];
+    const bounds = { minX: 0, minY: 0 };
+    const basePosition = { x: 100, y: 100 };
+
+    const result = transformPastedNodes(clipboardNodes, basePosition, bounds, getNextNodeId);
+    expect(result[0].data.instanceColor).toBe('#ef4444');
+  });
+
+  it('does not inject instanceColor when source has none', () => {
+    const getNextNodeId = () => 'new-1';
+    const clipboardNodes = [
+      { id: '1', position: { x: 0, y: 0 }, data: { constructType: 'Service' } },
+    ];
+    const bounds = { minX: 0, minY: 0 };
+    const basePosition = { x: 100, y: 100 };
+
+    const result = transformPastedNodes(clipboardNodes, basePosition, bounds, getNextNodeId);
+    expect(result[0].data.instanceColor).toBeUndefined();
+  });
+});

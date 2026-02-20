@@ -251,10 +251,9 @@ function SimpleNode(props: ShapeRenderProps & { adapter: DocumentAdapter }) {
     ? resolvedColor
     : `color-mix(in srgb, ${schema.color} 30%, var(--color-surface))`;
 
-  // Get pill field (title) and summary fields (body) from schema
-  const pillField = schema.fields?.find(f => f.displayTier === 'pill');
-  const summaryFields = (schema.fields ?? [])
-    .filter(f => f.displayTier === 'summary')
+  // All visible fields (any displayTier set), sorted by displayOrder
+  const visibleFields = (schema.fields ?? [])
+    .filter(f => f.displayTier != null)
     .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
 
   const commitValue = (fieldName: string, newValue: unknown) => {
@@ -268,11 +267,9 @@ function SimpleNode(props: ShapeRenderProps & { adapter: DocumentAdapter }) {
       onPointerLeave={onPointerLeave} onContextMenu={onContextMenu}
       onDoubleClick={(e) => {
         e.stopPropagation();
-        // Focus first empty field, or pill field
-        const firstEmpty = pillField && !constructData.values?.[pillField.name]
-          ? pillField.name
-          : summaryFields.find(f => !constructData.values?.[f.name])?.name ?? pillField?.name;
-        if (firstEmpty) setEditingField(firstEmpty);
+        const firstEmpty = visibleFields.find(f => !constructData.values?.[f.name]);
+        if (firstEmpty) setEditingField(firstEmpty.name);
+        else if (visibleFields.length > 0) setEditingField(visibleFields[0].name);
       }}
       style={{
         position: 'absolute', left: absX, top: absY,
@@ -285,46 +282,19 @@ function SimpleNode(props: ShapeRenderProps & { adapter: DocumentAdapter }) {
         opacity: dimmed ? 0.2 : 1,
         pointerEvents: dimmed ? 'none' : 'auto',
       }}>
-      {/* Pill field (title) — bolder, larger */}
-      {pillField && (() => {
-        const value = constructData.values?.[pillField.name] ?? '';
-        if (editingField === pillField.name) {
-          return (
-            <div onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
-              <input
-                type="text"
-                style={{ width: '100%', padding: 0, backgroundColor: 'transparent', border: 'none', outline: 'none', fontSize: 15, fontWeight: 600, color: 'var(--color-content)', fontFamily: 'inherit' }}
-                defaultValue={String(value)}
-                placeholder={pillField.placeholder ?? 'Title...'}
-                onBlur={(e) => commitValue(pillField.name, e.target.value)}
-                onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter') (e.target as HTMLElement).blur(); if (e.key === 'Escape') setEditingField(null); }}
-                autoFocus
-              />
-            </div>
-          );
-        }
-        return (
-          <div
-            onClick={(e) => { e.stopPropagation(); setEditingField(pillField.name); }}
-            onPointerDown={(e) => e.stopPropagation()}
-            style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-content)', cursor: 'text', minHeight: 20 }}
-          >
-            {value ? String(value) : <span style={{ color: 'var(--color-content-subtle)', opacity: 0.5, fontWeight: 400 }}>{pillField.placeholder ?? 'Title...'}</span>}
-          </div>
-        );
-      })()}
-
-      {/* Summary fields (body) — regular weight, multiline-aware */}
-      {summaryFields.map(field => {
+      {visibleFields.map((field, index) => {
+        const isTitle = index === 0;
         const value = constructData.values?.[field.name] ?? '';
         const isMultiline = field.displayHint === 'multiline';
 
         if (editingField === field.name) {
           return (
-            <div key={field.name} onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()} style={{ flex: 1, display: 'flex' }}>
+            <div key={field.name} onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}
+              style={{ flex: isMultiline ? 1 : undefined, display: isMultiline ? 'flex' : undefined }}>
               {isMultiline ? (
                 <textarea
-                  style={{ width: '100%', flex: 1, padding: 0, backgroundColor: 'transparent', border: 'none', outline: 'none', resize: 'none', fontSize: 13, color: 'var(--color-content)', fontFamily: 'inherit', minHeight: 40 }}
+                  style={{ width: '100%', flex: 1, padding: 0, backgroundColor: 'transparent', border: 'none', outline: 'none', resize: 'none',
+                    fontSize: isTitle ? 15 : 13, fontWeight: isTitle ? 600 : 400, color: 'var(--color-content)', fontFamily: 'inherit', minHeight: 40 }}
                   defaultValue={String(value)}
                   placeholder={field.placeholder ?? ''}
                   onBlur={(e) => commitValue(field.name, e.target.value)}
@@ -334,7 +304,8 @@ function SimpleNode(props: ShapeRenderProps & { adapter: DocumentAdapter }) {
               ) : (
                 <input
                   type="text"
-                  style={{ width: '100%', padding: 0, backgroundColor: 'transparent', border: 'none', outline: 'none', fontSize: 13, color: 'var(--color-content)', fontFamily: 'inherit' }}
+                  style={{ width: '100%', padding: 0, backgroundColor: 'transparent', border: 'none', outline: 'none',
+                    fontSize: isTitle ? 15 : 13, fontWeight: isTitle ? 600 : 400, color: 'var(--color-content)', fontFamily: 'inherit' }}
                   defaultValue={String(value)}
                   placeholder={field.placeholder ?? ''}
                   onBlur={(e) => commitValue(field.name, e.target.value)}
@@ -351,9 +322,18 @@ function SimpleNode(props: ShapeRenderProps & { adapter: DocumentAdapter }) {
             key={field.name}
             onClick={(e) => { e.stopPropagation(); setEditingField(field.name); }}
             onPointerDown={(e) => e.stopPropagation()}
-            style={{ flex: isMultiline ? 1 : undefined, fontSize: 13, color: 'var(--color-content)', cursor: 'text', whiteSpace: isMultiline ? 'pre-wrap' : undefined, overflow: 'hidden', minHeight: isMultiline ? 40 : undefined }}
+            style={{
+              flex: isMultiline ? 1 : undefined,
+              fontSize: isTitle ? 15 : 13,
+              fontWeight: isTitle ? 600 : 400,
+              color: 'var(--color-content)',
+              cursor: 'text',
+              whiteSpace: isMultiline ? 'pre-wrap' : undefined,
+              overflow: 'hidden',
+              minHeight: isMultiline ? 40 : isTitle ? 20 : undefined,
+            }}
           >
-            {value ? String(value) : <span style={{ color: 'var(--color-content-subtle)', opacity: 0.5 }}>{field.placeholder ?? ''}</span>}
+            {value ? String(value) : <span style={{ color: 'var(--color-content-subtle)', opacity: 0.5, fontWeight: 400 }}>{field.placeholder ?? ''}</span>}
           </div>
         );
       })}
