@@ -3,7 +3,7 @@ import Modal from '../ui/Modal.js';
 import Button from '../ui/Button.js';
 import SegmentedControl from '../ui/SegmentedControl.js';
 import { CaretDown, CaretRight } from '@phosphor-icons/react';
-import type { PackageDiff, SchemaDiff } from '@carta/domain';
+import type { PackageDiff, SchemaDiff, GroupDiff, RelationshipDiff } from '@carta/domain';
 
 interface PackageDiffModalProps {
   diff: PackageDiff;
@@ -116,6 +116,34 @@ export default function PackageDiffModal({ diff, libraryDiff, onClose, onReset }
               <div key={pd.id} className="flex items-center gap-2 border border-border rounded px-2 py-1.5">
                 <span className="text-sm text-content">{pd.displayName}</span>
                 <StatusBadge status={pd.status} />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Group diffs */}
+        {activeDiff.groups && activeDiff.groups.length > 0 && (
+          <div className="flex flex-col gap-1">
+            <div className="text-xs font-medium text-content-muted uppercase">Groups</div>
+            {activeDiff.groups.map((gd: GroupDiff) => (
+              <div key={gd.name} className="flex items-center gap-2 border border-border rounded px-2 py-1.5">
+                <span className="text-sm text-content">{gd.name}</span>
+                <StatusBadge status={gd.status} />
+                {gd.detail && <span className="text-xs text-content-muted italic">{gd.detail}</span>}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Relationship diffs */}
+        {activeDiff.relationships && activeDiff.relationships.length > 0 && (
+          <div className="flex flex-col gap-1">
+            <div className="text-xs font-medium text-content-muted uppercase">Relationships</div>
+            {activeDiff.relationships.map((rd: RelationshipDiff) => (
+              <div key={`${rd.sourceSchemaType}-${rd.targetSchemaType}`} className="flex items-center gap-2 border border-border rounded px-2 py-1.5">
+                <span className="text-sm text-content">{rd.sourceSchemaType} → {rd.targetSchemaType}</span>
+                <StatusBadge status={rd.status} />
+                {rd.detail && <span className="text-xs text-content-muted italic">{rd.detail}</span>}
               </div>
             ))}
           </div>

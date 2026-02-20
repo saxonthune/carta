@@ -5,7 +5,7 @@ import SegmentedControl from '../ui/SegmentedControl.js';
 import { usePackagePicker, type PackagePickerItem, type DocumentPackageItem } from '../../hooks/usePackagePicker.js';
 import { Check } from '@phosphor-icons/react';
 import type { ConstructSchema } from '@carta/domain';
-import { computePackageDiff, computePackageDiffFromDefinitions, extractPackageDefinition, type PackageDiff } from '@carta/domain';
+import { computePackageDiff, computePackageDiffFromDefinitions, extractPackageDefinition, debugPackageDrift, type PackageDiff } from '@carta/domain';
 import PackageDiffModal from './PackageDiffModal.js';
 import { useDocumentContext } from '../../contexts/DocumentContext.js';
 import { downloadCartaSchemas } from '../../utils/cartaFile.js';
@@ -26,9 +26,10 @@ interface PackageCardProps {
   onRepair: (item: PackagePickerItem) => void;
   onViewChanges?: (packageId: string) => void;
   onViewLibraryUpdate?: (item: PackagePickerItem) => void;
+  onDebug?: (packageId: string) => void;
 }
 
-function PackageCard({ item, onLoad, onRepair, onViewChanges, onViewLibraryUpdate }: PackageCardProps) {
+function PackageCard({ item, onLoad, onRepair, onViewChanges, onViewLibraryUpdate, onDebug }: PackageCardProps) {
   const { definition, status, schemaCount, libraryUpdateAvailable } = item;
 
   const handleRepair = () => {
@@ -96,6 +97,14 @@ function PackageCard({ item, onLoad, onRepair, onViewChanges, onViewLibraryUpdat
               Reset to Library
             </Button>
           </>
+        )}
+        {(status === 'loaded' || status === 'modified') && (
+          <button
+            className="text-xs text-content-muted hover:text-content cursor-pointer bg-transparent border-none underline"
+            onClick={() => onDebug?.(definition.id)}
+          >
+            Debug
+          </button>
         )}
       </div>
     </div>
@@ -330,6 +339,29 @@ export default function PackagePickerModal({ onClose }: PackagePickerModalProps)
     }
   };
 
+  const handleDebug = (packageId: string) => {
+    const result = debugPackageDrift(adapter, packageId);
+    console.group(`[Carta Debug] Package drift: ${packageId}`);
+    if ('error' in result) {
+      console.error(result.error);
+    } else {
+      console.log('Summary:', {
+        schemaCount: result.schemaCount,
+        portSchemaCount: result.portSchemaCount,
+        groupCount: result.groupCount,
+        relationshipCount: result.relationshipCount,
+        unmappedGroups: result.unmappedGroups,
+        isModified: result.isModified,
+      });
+      console.log('Manifest hash:', result.manifestHash);
+      console.log('Reconstructed hash:', result.reconstructedHash);
+      console.log('Snapshot:', result.snapshot);
+      console.log('Reconstructed:', result.reconstructed);
+      console.log('Group mapping:', result.groupMapping);
+    }
+    console.groupEnd();
+  };
+
   const handleResetFromDiff = () => {
     if (!diffState) return;
     // Find the library definition by matching package name/color back to items
@@ -356,7 +388,7 @@ export default function PackagePickerModal({ onClose }: PackagePickerModalProps)
           {activeTab === 'library' && (
             <div className="flex flex-col gap-2">
               {items.map((item) => (
-                <PackageCard key={item.definition.id} item={item} onLoad={handleLoad} onRepair={handleRepair} onViewChanges={handleViewChanges} onViewLibraryUpdate={handleViewLibraryUpdate} />
+                <PackageCard key={item.definition.id} item={item} onLoad={handleLoad} onRepair={handleRepair} onViewChanges={handleViewChanges} onViewLibraryUpdate={handleViewLibraryUpdate} onDebug={handleDebug} />
               ))}
             </div>
           )}

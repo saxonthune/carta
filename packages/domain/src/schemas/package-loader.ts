@@ -35,11 +35,26 @@ export interface PortSchemaDiff {
   status: 'added' | 'removed' | 'modified';
 }
 
+export interface GroupDiff {
+  name: string;
+  status: 'added' | 'removed' | 'modified';
+  detail?: string;
+}
+
+export interface RelationshipDiff {
+  sourceSchemaType: string;
+  targetSchemaType: string;
+  status: 'added' | 'removed' | 'modified';
+  detail?: string;
+}
+
 export interface PackageDiff {
   packageName: string;
   packageColor: string;
   schemas: SchemaDiff[];
   portSchemas: PortSchemaDiff[];
+  groups?: GroupDiff[];
+  relationships?: RelationshipDiff[];
   summary: { added: number; removed: number; modified: number };
 }
 
@@ -48,7 +63,7 @@ export interface PackageDiff {
  * Uses JSON.stringify with sorted keys for determinism.
  * Strips runtime-generated IDs (relationship.id, group IDs) for stable comparison.
  */
-function computeContentHash(definition: SchemaPackageDefinition): string {
+export function computeContentHash(definition: SchemaPackageDefinition): string {
   // Sort the definition for deterministic serialization
   // Strip runtime IDs that get regenerated on each load
   const sortedDef = {
@@ -409,6 +424,87 @@ function diffPortSchemaArrays(
 }
 
 /**
+ * Diff two arrays of schema groups by name.
+ */
+function diffGroupArrays(
+  snapshotGroups: SchemaGroup[],
+  currentGroups: SchemaGroup[]
+): GroupDiff[] {
+  const snapshotByName = new Map(snapshotGroups.map(g => [g.name, g]));
+  const currentByName = new Map(currentGroups.map(g => [g.name, g]));
+
+  const groupDiffs: GroupDiff[] = [];
+
+  for (const [name, snapshotGroup] of snapshotByName) {
+    const currentGroup = currentByName.get(name);
+    if (!currentGroup) {
+      groupDiffs.push({ name, status: 'removed' });
+    } else {
+      const changes: string[] = [];
+      if (snapshotGroup.color !== currentGroup.color) {
+        changes.push(`color: ${snapshotGroup.color ?? 'none'} → ${currentGroup.color ?? 'none'}`);
+      }
+      const snapshotHasParent = snapshotGroup.parentId !== undefined;
+      const currentHasParent = currentGroup.parentId !== undefined;
+      if (snapshotHasParent !== currentHasParent) {
+        changes.push(`parent: ${snapshotHasParent ? 'yes' : 'none'} → ${currentHasParent ? 'yes' : 'none'}`);
+      }
+      if (changes.length > 0) {
+        groupDiffs.push({ name, status: 'modified', detail: changes.join(', ') });
+      }
+    }
+  }
+
+  for (const [name] of currentByName) {
+    if (!snapshotByName.has(name)) {
+      groupDiffs.push({ name, status: 'added' });
+    }
+  }
+
+  return groupDiffs;
+}
+
+/**
+ * Diff two arrays of schema relationships by sourceSchemaType+targetSchemaType composite key.
+ */
+function diffRelationshipArrays(
+  snapshotRels: SchemaRelationship[],
+  currentRels: SchemaRelationship[]
+): RelationshipDiff[] {
+  const key = (r: SchemaRelationship) => `${r.sourceSchemaType}::${r.targetSchemaType}`;
+  const snapshotByKey = new Map(snapshotRels.map(r => [key(r), r]));
+  const currentByKey = new Map(currentRels.map(r => [key(r), r]));
+
+  const relDiffs: RelationshipDiff[] = [];
+
+  for (const [k, snapshotRel] of snapshotByKey) {
+    const currentRel = currentByKey.get(k);
+    if (!currentRel) {
+      relDiffs.push({ sourceSchemaType: snapshotRel.sourceSchemaType, targetSchemaType: snapshotRel.targetSchemaType, status: 'removed' });
+    } else {
+      const changes: string[] = [];
+      if (snapshotRel.sourcePortId !== currentRel.sourcePortId) {
+        changes.push(`sourcePortId: ${snapshotRel.sourcePortId} → ${currentRel.sourcePortId}`);
+      }
+      if (snapshotRel.targetPortId !== currentRel.targetPortId) {
+        changes.push(`targetPortId: ${snapshotRel.targetPortId} → ${currentRel.targetPortId}`);
+      }
+      if (changes.length > 0) {
+        relDiffs.push({ sourceSchemaType: snapshotRel.sourceSchemaType, targetSchemaType: snapshotRel.targetSchemaType, status: 'modified', detail: changes.join(', ') });
+      }
+    }
+  }
+
+  for (const [k, currentRel] of currentByKey) {
+    if (!snapshotByKey.has(k)) {
+      relDiffs.push({ sourceSchemaType: currentRel.sourceSchemaType, targetSchemaType: currentRel.targetSchemaType, status: 'added' });
+    }
+  }
+
+  return relDiffs;
+}
+
+/**
  * Compute a diff between a package's snapshot and its current state in the document.
  * Shows added/removed/modified schemas and port schemas with field-level details.
  *
@@ -425,17 +521,36 @@ export function computePackageDiff(
 
   const snapshotSchemas = manifestEntry.snapshot.schemas;
   const snapshotPortSchemas = manifestEntry.snapshot.portSchemas;
+  const snapshotGroups = manifestEntry.snapshot.schemaGroups;
+  const snapshotRelationships = manifestEntry.snapshot.schemaRelationships;
 
   const currentSchemas = adapter.getSchemas().filter(s => s.packageId === packageId);
   const currentPortSchemas = adapter.getPortSchemas().filter(p => p.packageId === packageId);
+  const currentGroups = adapter.getSchemaGroups()
+    .filter(g => g.packageId === packageId)
+    .map(({ packageId: _pid, ...rest }) => rest) as SchemaGroup[];
+  const currentRelationships = adapter.getSchemaRelationships()
+    .filter(r => r.packageId === packageId)
+    .map(({ packageId: _pid, ...rest }) => rest) as SchemaRelationship[];
 
   const schemaDiffs = diffSchemaArrays(snapshotSchemas, currentSchemas);
   const portDiffs = diffPortSchemaArrays(snapshotPortSchemas, currentPortSchemas);
+  const groupDiffs = diffGroupArrays(snapshotGroups, currentGroups);
+  const relDiffs = diffRelationshipArrays(snapshotRelationships, currentRelationships);
 
   const summary = {
-    added: schemaDiffs.filter(d => d.status === 'added').length,
-    removed: schemaDiffs.filter(d => d.status === 'removed').length,
-    modified: schemaDiffs.filter(d => d.status === 'modified').length,
+    added: schemaDiffs.filter(d => d.status === 'added').length +
+      portDiffs.filter(d => d.status === 'added').length +
+      groupDiffs.filter(d => d.status === 'added').length +
+      relDiffs.filter(d => d.status === 'added').length,
+    removed: schemaDiffs.filter(d => d.status === 'removed').length +
+      portDiffs.filter(d => d.status === 'removed').length +
+      groupDiffs.filter(d => d.status === 'removed').length +
+      relDiffs.filter(d => d.status === 'removed').length,
+    modified: schemaDiffs.filter(d => d.status === 'modified').length +
+      portDiffs.filter(d => d.status === 'modified').length +
+      groupDiffs.filter(d => d.status === 'modified').length +
+      relDiffs.filter(d => d.status === 'modified').length,
   };
 
   return {
@@ -443,6 +558,8 @@ export function computePackageDiff(
     packageColor: manifestEntry.snapshot.color,
     schemas: schemaDiffs,
     portSchemas: portDiffs,
+    groups: groupDiffs.length > 0 ? groupDiffs : undefined,
+    relationships: relDiffs.length > 0 ? relDiffs : undefined,
     summary,
   };
 }
@@ -517,5 +634,91 @@ export function extractPackageDefinition(
     portSchemas,
     schemaGroups,
     schemaRelationships,
+  };
+}
+
+/**
+ * Debug helper: dumps the intermediate state used by isPackageModified to the caller.
+ * Use this to diagnose why a package shows as "Modified" when "View Changes" shows nothing.
+ *
+ * @param adapter - Document adapter interface
+ * @param packageId - Package ID to debug
+ * @returns Diagnostic object with snapshot, reconstructed state, and group mapping details
+ */
+export function debugPackageDrift(
+  adapter: DocumentAdapter,
+  packageId: string
+) {
+  const manifestEntry = adapter.getPackageManifestEntry(packageId);
+  if (!manifestEntry) return { error: 'No manifest entry found' };
+
+  const allSchemas = adapter.getSchemas();
+  const allPortSchemas = adapter.getPortSchemas();
+  const allGroups = adapter.getSchemaGroups();
+  const allRelationships = adapter.getSchemaRelationships();
+
+  const currentSchemas = allSchemas.filter(s => s.packageId === packageId);
+  const currentPortSchemas = allPortSchemas.filter(p => p.packageId === packageId);
+  const currentGroups = allGroups.filter(g => g.packageId === packageId);
+  const currentRelationships = allRelationships.filter(r => r.packageId === packageId);
+
+  // Build group mapping diagnostics
+  const groupMapping: Array<{ current: string; snapshot: string | null; name: string; color: string | undefined }> = [];
+  const groupIdReverseMap = new Map<string, string>();
+  for (const currentGroup of currentGroups) {
+    const snapshotGroup = manifestEntry.snapshot.schemaGroups.find(sg =>
+      sg.name === currentGroup.name && sg.color === currentGroup.color
+    );
+    groupMapping.push({
+      current: currentGroup.id,
+      snapshot: snapshotGroup?.id ?? null,
+      name: currentGroup.name,
+      color: currentGroup.color,
+    });
+    if (snapshotGroup) {
+      groupIdReverseMap.set(currentGroup.id, snapshotGroup.id);
+    }
+  }
+
+  // Build reconstructed definition (same logic as isPackageModified)
+  const reconstructed: SchemaPackageDefinition = {
+    id: manifestEntry.snapshot.id,
+    name: manifestEntry.snapshot.name,
+    description: manifestEntry.snapshot.description,
+    color: manifestEntry.snapshot.color,
+    schemas: currentSchemas.map(schema => ({
+      ...schema,
+      groupId: schema.groupId ? groupIdReverseMap.get(schema.groupId) : undefined,
+      packageId: undefined as unknown as string,
+    })).map(({ packageId: _pid, ...rest }) => rest) as ConstructSchema[],
+    portSchemas: currentPortSchemas.map(portSchema => ({
+      ...portSchema,
+      groupId: portSchema.groupId ? groupIdReverseMap.get(portSchema.groupId) : undefined,
+      packageId: undefined as unknown as string,
+    })).map(({ packageId: _pid, ...rest }) => rest) as PortSchema[],
+    schemaGroups: currentGroups.map(group => {
+      const originalId = groupIdReverseMap.get(group.id) || group.id;
+      const originalParentId = group.parentId ? groupIdReverseMap.get(group.parentId) : undefined;
+      const { packageId: _pid, ...rest } = { ...group, id: originalId, parentId: originalParentId };
+      return rest as SchemaGroup;
+    }),
+    schemaRelationships: currentRelationships.map(({ packageId: _pid, ...rest }) => rest) as SchemaRelationship[],
+  };
+
+  const manifestHash = manifestEntry.contentHash;
+  const reconstructedHash = computeContentHash(reconstructed);
+
+  return {
+    manifestHash,
+    reconstructedHash,
+    isModified: manifestHash !== reconstructedHash,
+    snapshot: manifestEntry.snapshot,
+    reconstructed,
+    groupMapping,
+    unmappedGroups: groupMapping.filter(g => g.snapshot === null),
+    schemaCount: { snapshot: manifestEntry.snapshot.schemas.length, current: currentSchemas.length },
+    portSchemaCount: { snapshot: manifestEntry.snapshot.portSchemas.length, current: currentPortSchemas.length },
+    groupCount: { snapshot: manifestEntry.snapshot.schemaGroups.length, current: currentGroups.length },
+    relationshipCount: { snapshot: manifestEntry.snapshot.schemaRelationships.length, current: currentRelationships.length },
   };
 }
