@@ -321,6 +321,20 @@ function renderStadiumNode(props: ShapeRenderProps) {
   );
 }
 
+function getAdaptiveTextColor(bg: string, schemaColor: string): string {
+  // If bg is a color-mix expression, we can't parse it in JS.
+  // Use the schema color as the reference — at 30% mix with white-ish surface,
+  // the result is always lighter than the schema color, so the schema color
+  // is a conservative (darker) proxy for contrast decisions.
+  const hex = bg.startsWith('#') ? bg : schemaColor;
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
+  // WCAG relative luminance
+  const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return luminance > 0.5 ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.95)';
+}
+
 function SimpleNode(props: ShapeRenderProps & { adapter: DocumentAdapter }) {
   const { nodeId, absX, absY, width, height, selected, schema, constructData, dimmed, onPointerDown, onPointerEnter, onPointerLeave, onContextMenu, onResizePointerDown, adapter,
     node, hoveredNodeId, connectionDrag, sourcePortType, getPortSchema, startConnection, showNarrative, hideNarrative,
@@ -331,6 +345,7 @@ function SimpleNode(props: ShapeRenderProps & { adapter: DocumentAdapter }) {
   const bgColor = resolvedColor !== schema.color
     ? resolvedColor
     : `color-mix(in srgb, ${schema.color} 30%, var(--color-surface))`;
+  const adaptiveTextColor = getAdaptiveTextColor(bgColor, schema.color);
 
   // All visible fields (any displayTier set), sorted by displayOrder
   const visibleFields = (schema.fields ?? [])
@@ -362,8 +377,7 @@ function SimpleNode(props: ShapeRenderProps & { adapter: DocumentAdapter }) {
         display: 'flex', flexDirection: 'column',
         opacity: dimmed ? 0.2 : 1,
         pointerEvents: dimmed ? 'none' : 'auto',
-        '--bg-color': bgColor,
-      } as React.CSSProperties}>
+      }}>
       {/* Drag header strip */}
       <div style={{
         height: 28,
@@ -407,7 +421,7 @@ function SimpleNode(props: ShapeRenderProps & { adapter: DocumentAdapter }) {
       </div>
 
       {/* Content area with padding */}
-      <div style={{ padding: '4px 12px 8px', display: 'flex', flexDirection: 'column', gap: 2, flex: 1 }}>
+      <div style={{ padding: '4px 12px 8px', display: 'flex', flexDirection: 'column', gap: 2, flex: 1, color: adaptiveTextColor }}>
       {visibleFields.map((field, index) => {
         const isTitle = index === 0;
         const value = constructData.values?.[field.name] ?? '';
@@ -452,21 +466,34 @@ function SimpleNode(props: ShapeRenderProps & { adapter: DocumentAdapter }) {
               flex: isMultiline ? 1 : undefined,
               fontSize: isTitle ? 15 : 13,
               fontWeight: isTitle ? 600 : 400,
-              color: 'oklch(from var(--bg-color) clamp(0, round(1.21 - l), 1) 0 0)',
+              color: 'inherit',
               cursor: 'text',
               whiteSpace: isMultiline ? 'pre-wrap' : undefined,
               overflow: 'hidden',
               minHeight: isMultiline ? 40 : isTitle ? 20 : undefined,
             }}
           >
-            {value ? String(value) : <span style={{ color: 'var(--color-content-subtle)', opacity: 0.5, fontWeight: 400 }}>{field.placeholder ?? ''}</span>}
+            {value ? String(value) : <span style={{ opacity: 0.4, fontWeight: 400 }}>{field.placeholder ?? ''}</span>}
           </div>
         );
       })}
 
       </div>
 
-      <ResizeHandle selected={selected} onResizePointerDown={onResizePointerDown} />
+      {/* Resize handle — visible on hover, prominent on select */}
+      <div
+        style={{
+          position: 'absolute', bottom: 2, right: 2,
+          width: 12, height: 12,
+          cursor: 'se-resize',
+          opacity: selected ? 0.6 : (hoveredNodeId === node.id ? 0.3 : 0),
+          transition: 'opacity 150ms ease',
+          background: `linear-gradient(135deg, transparent 50%, ${adaptiveTextColor} 50%)`,
+          borderRadius: 2,
+          zIndex: 5,
+        }}
+        onPointerDown={onResizePointerDown}
+      />
 
       {/* Port drawer - collapsed state (dots strip) */}
       {schema?.ports && schema.ports.length > 0 && !connectionDrag && (
