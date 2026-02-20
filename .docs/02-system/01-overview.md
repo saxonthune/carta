@@ -58,17 +58,17 @@ Target dependency graph (packages can only depend on packages above them):
 
 ```
                     @carta/types
-                         |
+                         ↓
                     @carta/domain
-                   /      |      \
-       @carta/compiler  @carta/document
-                   |    /        \
-        @carta/web-client   @carta/server
-               |
-        @carta/desktop
+                    ↙    ↓    ↘
+        @carta/compiler  @carta/document
+                    ↓    ↙       ↘
+         @carta/web-client   @carta/server
+                ↓
+         @carta/desktop
 ```
 
-Currently `@carta/domain`, `@carta/document`, `@carta/compiler`, `@carta/server`, `@carta/web-client`, and `@carta/desktop` exist as packages.
+All packages exist as shown. `@carta/types` provides platform-agnostic graph types (`CartaNode`, `CartaEdge`) used by adapters, hooks, and presentation layer — no React Flow or rendering dependencies.
 
 ### Barrel Exports
 

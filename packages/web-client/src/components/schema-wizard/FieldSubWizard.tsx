@@ -19,6 +19,7 @@ const DISPLAY_HINTS: { value: DisplayHint | ''; label: string }[] = [
   { value: 'multiline', label: 'Multiline' },
   { value: 'code', label: 'Code' },
   { value: 'url', label: 'URL' },
+  { value: 'markdown', label: 'Markdown' },
 ];
 
 interface FieldSubWizardProps {

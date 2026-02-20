@@ -8,7 +8,6 @@ import type { ConstructValues } from '@carta/domain';
 export interface NodeActions {
   onRename: (nodeId: string, newName: string) => void;
   onValuesChange: (nodeId: string, values: ConstructValues) => void;
-  onInstanceColorChange: (nodeId: string, color: string | null) => void;
   onToggleCollapse: (nodeId: string) => void;
   onSpreadChildren: (nodeId: string) => void;
   onFlowLayoutChildren: (nodeId: string) => void;

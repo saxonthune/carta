@@ -43,7 +43,7 @@ The folder structure is a UI presentation layer. The storage backend stores docu
 
 ### Search and Filtering
 
-(Not yet implemented.) The vault should support search by document title, with results shown inline in the current view.
+A search bar filters documents by title (case-insensitive substring match). When searching, results show all matched documents across all folders (ignoring folder hierarchy), sorted by most recent. Folders are hidden during search to reduce noise.
 
 ## Presentation
 
@@ -63,11 +63,15 @@ A persistent sidebar that coexists with the canvas. Allows browsing while keepin
 
 | Action | Behavior |
 |--------|----------|
-| **Create** | New document with default title ("Untitled Project"). In required mode, created immediately and opened. |
+| **Create** | User enters a title; a random name is pre-populated. A live filename preview shows the derived `.carta.json` filename (e.g., `my-service.carta.json`) as the user types. The filename can be overridden manually. |
 | **Open** | Navigate to `?doc={documentId}`. Yjs adapter connects to the new document. |
 | **Rename** | Editable from both the document browser and the header title. |
 | **Move** | Change the document's folder path. The old folder disappears if empty. |
 | **Delete** | (Not yet implemented in UI.) Server-side only. |
+
+### Filename Preview
+
+When creating a document, the modal shows a live preview of the `.carta.json` filename. The filename derives from the document title via `toKebabCase()` (e.g., "My Service" → `my-service.carta.json`). The user can toggle to manual override to type a custom filename. This preview is display-only — it helps users understand how their document will appear on the filesystem without requiring them to manage filenames explicitly.
 
 ## Mode-Specific Behavior
 

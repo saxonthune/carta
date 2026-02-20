@@ -55,70 +55,50 @@ export function hslToHex(h: number, s: number, l: number): string {
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
-export function generateTints(hex: string, stops = 7): string[] {
-  const { h, s } = hexToHsl(hex);
-  const tints: string[] = [];
-  // Vary lightness from 92% (lightest) down to 45% (darkest)
-  for (let i = 0; i < stops; i++) {
-    const l = 92 - (i * (92 - 45)) / (stops - 1);
-    tints.push(hslToHex(h, s, l));
-  }
-  return tints;
-}
+export const INSTANCE_COLOR_PALETTE = [
+  '#e8a0a0', // red     — hsl(0, 55%, 77%)
+  '#e8b88a', // orange  — hsl(25, 60%, 73%)
+  '#e0d08a', // yellow  — hsl(48, 50%, 71%)
+  '#8ad4a0', // green   — hsl(140, 45%, 68%)
+  '#8ac8d4', // cyan    — hsl(190, 45%, 68%)
+  '#8aace8', // blue    — hsl(220, 60%, 73%)
+  '#b8a0e0', // violet  — hsl(265, 45%, 75%)
+  '#e0a0c8', // pink    — hsl(330, 50%, 75%)
+];
 
 /**
- * Resolves the display color for a construct node based on schema color mode.
- * - 'enum': uses enumColorMap lookup on the designated field value, falls back to schema color
- * - 'instance': uses instanceColor if set, falls back to schema color
- * - 'default' / undefined: schema color
+ * Resolves the display color for a construct node.
+ * If instanceColors is enabled on the schema and an instanceColor is set, uses the instance color.
+ * Otherwise uses the schema color.
  */
 export function resolveNodeColor(
-  schema: { color: string; colorMode?: string; enumColorField?: string; enumColorMap?: Record<string, string> },
-  data: { instanceColor?: string; values?: Record<string, unknown> },
+  schema: { color: string; instanceColors?: boolean },
+  data: { instanceColor?: string },
 ): string {
-  if (schema.colorMode === 'enum' && schema.enumColorField && schema.enumColorMap) {
-    const fieldValue = String(data.values?.[schema.enumColorField] ?? '');
-    if (fieldValue && schema.enumColorMap[fieldValue]) {
-      return schema.enumColorMap[fieldValue];
-    }
-    return schema.color;
+  if (schema.instanceColors && data.instanceColor) {
+    return data.instanceColor;
   }
-  if (schema.colorMode === 'instance') {
-    return data.instanceColor || schema.color;
-  }
-  // default / undefined
-  return data.instanceColor || schema.color;
+  return schema.color;
 }
 
 /**
- * Resolves the icon marker character for a construct node based on schema enum icon mapping.
- * Returns undefined if no icon is configured or the current value has no mapping.
+ * Coerces old property shapes on read — no migration pipeline needed.
+ * Call this wherever schemas are read from Yjs.
  */
-export function resolveNodeIcon(
-  schema: { enumIconField?: string; enumIconMap?: Record<string, string> },
-  data: { values?: Record<string, unknown> },
-): string | undefined {
-  if (!schema.enumIconField || !schema.enumIconMap) return undefined;
-  const fieldValue = String(data.values?.[schema.enumIconField] ?? '');
-  if (fieldValue && schema.enumIconMap[fieldValue]) {
-    return schema.enumIconMap[fieldValue];
+export function normalizeSchema<T>(raw: T): T {
+  const schema = { ...raw } as Record<string, unknown>;
+  // Migrate old color properties to instanceColors
+  if (schema.colorMode === 'instance' || schema.colorMode === 'enum' ||
+      schema.backgroundColorPolicy === 'tints' || schema.backgroundColorPolicy === 'any') {
+    (schema as Record<string, unknown>).instanceColors = true;
   }
-  return undefined;
+  // Remove old properties
+  delete schema.colorMode;
+  delete schema.backgroundColorPolicy;
+  delete schema.enumColorField;
+  delete schema.enumColorMap;
+  delete schema.enumIconField;
+  delete schema.enumIconMap;
+  return schema as T;
 }
 
-/**
- * Returns 'white' or 'black' text color for optimal contrast against the given background.
- * Uses WCAG relative luminance formula.
- */
-export function getContrastTextColor(hex: string): 'white' | 'black' {
-  // Convert hex to RGB
-  const r = parseInt(hex.slice(1, 3), 16) / 255;
-  const g = parseInt(hex.slice(3, 5), 16) / 255;
-  const b = parseInt(hex.slice(5, 7), 16) / 255;
-
-  // Calculate relative luminance (WCAG formula)
-  const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-
-  // Use white text on dark backgrounds, black on light backgrounds
-  return luminance > 0.5 ? 'black' : 'white';
-}

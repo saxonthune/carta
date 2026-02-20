@@ -1,33 +1,23 @@
-import type { AnyCartaTool, ToolSchema, ToolResult, ToolContext } from './types';
+import { toolDefinitions, executeTool as sharedExecuteTool } from '@carta/document';
+import type { ToolResult } from '@carta/document';
+import type * as Y from 'yjs';
+import { zodToJsonSchema } from './zod-adapter.js';
 
-// Tool implementations will be imported and registered here
-import { getDocumentTool } from './getDocument';
-import { getNodeTool } from './getNode';
-import { addConstructTool } from './addConstruct';
-import { updateNodeTool } from './updateNode';
-import { connectNodesTool } from './connectNodes';
-import { deleteNodeTool } from './deleteNode';
-import { queryNodesTool } from './queryNodes';
-
-/**
- * Registry of all Carta tools
- * Keyed by tool name for O(1) lookup
- */
-export const cartaTools: Record<string, AnyCartaTool> = {
-  getDocument: getDocumentTool,
-  getNode: getNodeTool,
-  addConstruct: addConstructTool,
-  updateNode: updateNodeTool,
-  connectNodes: connectNodesTool,
-  deleteNode: deleteNodeTool,
-  queryNodes: queryNodesTool,
-};
+export interface SidebarToolSchema {
+  name: string;
+  description: string;
+  parameters: Record<string, unknown>; // JSON Schema for OpenRouter
+}
 
 /**
  * Get all tool schemas for registration with AI providers
  */
-export function getAllToolSchemas(): ToolSchema[] {
-  return Object.values(cartaTools).map(tool => tool.schema);
+export function getAllToolSchemas(): SidebarToolSchema[] {
+  return toolDefinitions.map(tool => ({
+    name: tool.name,
+    description: tool.description,
+    parameters: zodToJsonSchema(tool.inputSchema),
+  }));
 }
 
 /**
@@ -36,22 +26,8 @@ export function getAllToolSchemas(): ToolSchema[] {
 export function executeTool(
   name: string,
   params: unknown,
-  context: ToolContext
+  ydoc: Y.Doc,
+  pageId: string
 ): ToolResult {
-  const tool = cartaTools[name];
-  if (!tool) {
-    return {
-      success: false,
-      error: `Unknown tool: ${name}`,
-    };
-  }
-
-  try {
-    return tool.execute(params, context);
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Tool execution failed',
-    };
-  }
+  return sharedExecuteTool(name, params, ydoc, pageId);
 }

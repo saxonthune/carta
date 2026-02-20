@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Folder, FolderOpen, CaretLeft } from '@phosphor-icons/react';
 import type { DocumentSummary } from '@carta/domain';
+import { toKebabCase } from '@carta/domain';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
@@ -249,6 +250,16 @@ function DocumentBrowserContent({ onClose, required, adapter }: DocumentBrowserC
   // Generate a random name once when modal opens
   const defaultName = useMemo(() => generateRandomName(), []);
   const [newTitle, setNewTitle] = useState(defaultName);
+  const [customFilename, setCustomFilename] = useState(false);
+  const [filenameOverride, setFilenameOverride] = useState('');
+
+  const derivedFilenameBase = useMemo(() => {
+    const slug = toKebabCase(newTitle.trim() || defaultName);
+    return slug || 'untitled';
+  }, [newTitle, defaultName]);
+
+  const resolvedFilenameBase = customFilename ? filenameOverride : derivedFilenameBase;
+  const resolvedFilename = resolvedFilenameBase + '.carta.json';
 
   // Filter documents by search query (case-insensitive substring match)
   const filteredDocuments = useMemo(() => {
@@ -299,13 +310,31 @@ function DocumentBrowserContent({ onClose, required, adapter }: DocumentBrowserC
     fetchDocuments();
   }, [fetchDocuments]);
 
+  const sanitizeFilenameBase = (value: string): string => {
+    // Strip chars invalid in filenames and any .carta.json suffix the user may paste
+    const stripped = value.replace(/[/\\:*?"<>|]/g, '');
+    const base = stripped.replace(/\.carta(\.json)?$/, '').replace(/\.json$/, '');
+    return base || 'untitled';
+  };
+
+  const handleFilenameOverrideChange = (value: string) => {
+    setFilenameOverride(sanitizeFilenameBase(value));
+  };
+
+  const handleCustomFilenameToggle = (checked: boolean) => {
+    setCustomFilename(checked);
+    if (checked && !filenameOverride) {
+      setFilenameOverride(derivedFilenameBase);
+    }
+  };
+
   const handleCreate = async () => {
     const titleToUse = newTitle.trim() || defaultName;
     if (!titleToUse) return;
 
     setCreating(true);
     try {
-      const documentId = await adapter.createDocument(titleToUse, currentPath);
+      const documentId = await adapter.createDocument(titleToUse, currentPath, resolvedFilename);
       handleSelect(documentId);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create document');
@@ -499,30 +528,58 @@ function DocumentBrowserContent({ onClose, required, adapter }: DocumentBrowserC
               </Button>
             </div>
           ) : (
-            <div className="flex gap-2 items-center">
-              <Input
-                placeholder="Document title"
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleCreate();
-                }}
-                disabled={creating}
-                className="flex-1"
-              />
-              <Button
-                variant="secondary"
-                onClick={() => setShowNewFolder(true)}
-              >
-                New Folder
-              </Button>
-              <Button
-                variant="primary"
-                onClick={handleCreate}
-                disabled={creating}
-              >
-                {creating ? 'Creating...' : 'Create'}
-              </Button>
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2 items-center">
+                <Input
+                  placeholder="Document title"
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleCreate();
+                  }}
+                  disabled={creating}
+                  className="flex-1"
+                />
+                <Button
+                  variant="secondary"
+                  onClick={() => setShowNewFolder(true)}
+                >
+                  New Folder
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={handleCreate}
+                  disabled={creating}
+                >
+                  {creating ? 'Creating...' : 'Create'}
+                </Button>
+              </div>
+              <div className="flex flex-col gap-1 pl-1">
+                {customFilename ? (
+                  <div className="flex items-center gap-0">
+                    <Input
+                      value={filenameOverride}
+                      onChange={(e) => handleFilenameOverrideChange(e.target.value)}
+                      disabled={creating}
+                      className="text-sm"
+                      placeholder="filename"
+                    />
+                    <span className="text-xs text-content-muted whitespace-nowrap pl-1.5">.carta.json</span>
+                  </div>
+                ) : (
+                  <span className="text-xs text-content-muted">{derivedFilenameBase}.carta.json</span>
+                )}
+                <label className="flex items-center gap-1.5 text-xs text-content-muted cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={customFilename}
+                    onChange={(e) => handleCustomFilenameToggle(e.target.checked)}
+                    disabled={creating}
+                    className="cursor-pointer"
+                  />
+                  Set filename separately
+                </label>
+              </div>
             </div>
           )}
         </div>

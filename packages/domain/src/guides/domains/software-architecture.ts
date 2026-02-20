@@ -10,18 +10,71 @@ Ask these to customize the vocabulary:
 - "Do you need database modeling?" → adds Database + Table schemas with parent/child
 - "Are you modeling UI components?" → adds UI Component + UI Event schemas
 
-## Recommended Schemas
-Reference seed: \`software-architecture\`
+## Schema Reference
 
-| Schema | Purpose | Pill Field | Key Display |
-|--------|---------|-----------|-------------|
-| REST Endpoint | HTTP API endpoint | route | verb as enum summary, tints bg |
-| Auth Policy | Access control rule | name | authType enum |
-| Database | Data store | name | engine enum |
-| Table | DB table | name | parent→Database |
-| API Model | Request/response shape | name | — |
-| UI Component | Frontend element | name | componentType enum |
-| User Story | Requirement | title | status enum |
+Reference package: \`software-architecture\`
+
+### API Group
+
+**REST Endpoint** (\`rest-endpoint\`) — #7c7fca
+- Fields: route (string, pill), verb (enum: GET/POST/PUT/PATCH/DELETE, summary), summary (string, summary), responseType (enum: object/array/string/number/boolean/void, summary)
+- Ports: flow-in ← Flow In, flow-out → Flow Out, parent → Models, policy-in ← Policies
+
+**Auth Policy** (\`auth-policy\`) — #dc2626
+- Fields: name (string, pill), authType (enum: API Key/JWT/OAuth2/Basic/IAM/Custom, summary), description (string, summary)
+- Ports: flow-out → Applies To
+
+**Rate Limit** (\`rate-limit\`) — #f59e0b
+- Fields: name (string, pill), requests (number, summary), window (enum: second/minute/hour/day, summary), scope (enum: per-user/per-ip/global, summary)
+- Ports: flow-out → Applies To
+
+**Cache Policy** (\`cache-policy\`) — #06b6d4
+- Fields: name (string, pill), ttl (number, summary), location (enum: edge/origin/both, summary), varyBy (string, summary)
+- Ports: flow-out → Applies To
+
+**API Model** (\`api-model\`) — #7c7fca
+- Fields: modelName (string, pill), modelType (enum: request/response, summary), data (string, summary)
+- Ports: child ← Controller
+
+### Database Group
+
+**Database** (\`database\`) — #c49a4c
+- Fields: engine (enum: PostgreSQL/MySQL/SQLite/SQL Server/MongoDB, pill), note (string, summary)
+- Ports: link-in ← Referenced By, child ← Tables
+
+**Table** (\`table\`) — #8a7cb8
+- Fields: tableName (string, pill), columns (string, summary), constraints (string)
+- Ports: link-in ← Referenced By, link-out → References, parent → Database, child ← Attributes & Constraints
+
+**DB Attribute** (\`db-attribute\`) — #8a7cb8
+- Fields: name (string, pill), dataType (enum: VARCHAR/INT/BIGINT/BOOLEAN/DATE/TIMESTAMP/TEXT/JSON, summary), primaryKey (boolean, summary), nullable (boolean, summary)
+- Ports: parent → Table
+
+**Constraint** (\`constraint\`) — #9488b8
+- Fields: name (string, pill), constraintType (enum: PRIMARY KEY/UNIQUE/FOREIGN KEY/CHECK/NOT NULL/DEFAULT, summary), columns (string, summary), definition (string)
+- Ports: parent → Table
+
+### UI Group
+
+**UI Event** (\`ui-event\`) — #5ba88e
+- Fields: eventName (string, pill), trigger (string, summary), description (string, summary)
+- Ports: child ← Events, flow-out → Flow Out
+
+**UI Screen** (\`ui-screen\`) — #6a8fc0
+- Fields: screenName (string, pill), description (string, summary)
+- Ports: flow-in ← Flow In, parent → Events
+
+### User Story Group
+
+**User Story** (\`user-story\`) — #5ba88e
+- Fields: title (string, pill), description (string, summary)
+- Ports: flow-out → Flow Out
+
+### Ungrouped
+
+**Implementation Details** (\`implementation-details\`) — #6b7280
+- Fields: details (string, pill)
+- Ports: link ↔ Related To
 
 ## Connection Patterns
 - API Gateway →(flow-out)→ REST Endpoint →(flow-out)→ Service
@@ -33,7 +86,7 @@ Reference seed: \`software-architecture\`
 
 ## Display Recommendations
 - Group by layer: API, Database, UI, User Story (use organizers)
-- REST Endpoints: use \`tints\` backgroundColorPolicy to distinguish by domain
-- Enum coloring on \`verb\` field for REST Endpoints (GET=green, POST=blue, etc.)
+- REST Endpoints: use \`instanceColors: true\` to let users distinguish by domain
+- Per-instance color picking available when \`instanceColors\` is enabled on the schema
 - Tables as children of Database nodes (parent/child ports)
 `;

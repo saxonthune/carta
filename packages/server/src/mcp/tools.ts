@@ -67,6 +67,7 @@ const ListConstructsSchema = z.object({
   documentId: z.string().describe('The document ID'),
   constructType: z.string().optional().describe('Filter by construct type (e.g. "service", "api-endpoint")'),
   pageId: z.string().optional().describe('Target a specific page instead of the active page'),
+  output: z.enum(['compact', 'full']).optional().describe('Output detail level. "compact" (default): {semanticId, constructType, displayName, parentId}. "full": adds values, position, connections for each construct.'),
 });
 
 const CreateConstructSchema = z.object({
@@ -94,6 +95,7 @@ const DeleteConstructSchema = z.object({
 const GetConstructSchema = z.object({
   documentId: z.string().describe('The document ID'),
   semanticId: z.string().describe('The semantic ID of the construct'),
+  output: z.enum(['compact', 'full']).optional().describe('Output detail level. "compact": {semanticId, constructType, displayName, connections}. "full" (default): all field values, position, references.'),
 });
 
 const ConnectConstructsSchema = z.object({
@@ -341,9 +343,8 @@ const CreateSchemaInputSchema = z.object({
   color: z.string().describe('Hex color for the node'),
   semanticDescription: z.string().optional().describe('Description for AI context'),
   groupId: z.string().optional().describe('Schema group ID for organizing schemas'),
-  backgroundColorPolicy: z.enum(['defaultOnly', 'tints', 'any']).optional().describe('Controls instance color picker: "defaultOnly" (no picker), "tints" (7 tint swatches), "any" (full color picker). Default: "defaultOnly"'),
-  enumIconField: z.string().optional().describe('Field name (type enum) that drives icon marker on nodes'),
-  enumIconMap: z.record(z.string()).optional().describe('Enum value → Unicode character mapping for icon markers'),
+  packageId: z.string().optional().describe('Schema package ID to assign this schema to'),
+  instanceColors: z.boolean().optional().describe('true = per-instance color palette; false/absent = schema color only'),
   fields: z
     .array(
       z.object({
@@ -455,6 +456,37 @@ const ChangePortTypeSchema = z.object({
   newPortType: z.string().describe('New port type reference'),
 });
 
+// Schema Package & Library Schemas
+const CreatePackageSchema = z.object({
+  documentId: z.string().describe('The document ID'),
+  name: z.string().describe('Package name'),
+  description: z.string().optional().describe('Package description'),
+  color: z.string().describe('Hex color for the package'),
+});
+
+const ListPackagesSchema = z.object({
+  documentId: z.string().describe('The document ID'),
+});
+
+const GetPackageSchema = z.object({
+  documentId: z.string().describe('The document ID'),
+  packageId: z.string().describe('Schema package ID'),
+});
+
+const ListStandardPackagesSchema = z.object({
+  documentId: z.string().describe('The document ID'),
+});
+
+const ApplyStandardPackageSchema = z.object({
+  documentId: z.string().describe('The document ID'),
+  packageId: z.string().describe('Standard library package ID (e.g., "software-architecture", "bpmn")'),
+});
+
+const CheckPackageDriftSchema = z.object({
+  documentId: z.string().describe('The document ID'),
+  packageId: z.string().describe('Package ID to check for modifications'),
+});
+
 /**
  * Tool definitions for MCP
  */
@@ -464,61 +496,73 @@ export function getToolDefinitions() {
       name: 'carta_list_active_documents',
       description: 'List documents with active browser connections (Yjs collaboration mode only)',
       inputSchema: z.object({}).shape,
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
     },
     {
       name: 'carta_list_documents',
       description: 'List all Carta documents',
       inputSchema: z.object({}).shape,
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
     },
     {
       name: 'carta_get_document',
       description: 'Get a Carta document by ID',
       inputSchema: DocumentIdSchema.shape,
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
     },
     {
       name: 'carta_create_document',
       description: 'Create a new Carta document',
       inputSchema: CreateDocumentSchema.shape,
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
     },
     {
       name: 'carta_delete_document',
       description: 'Delete a Carta document by ID',
       inputSchema: DeleteDocumentSchema.shape,
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
     },
     {
       name: 'carta_rename_document',
       description: 'Rename a Carta document',
       inputSchema: RenameDocumentSchema.shape,
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
     },
     {
       name: 'carta_list_pages',
       description: 'List all pages in a document (returns pages array and activePage ID)',
       inputSchema: DocumentIdSchema.shape,
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
     },
     {
       name: 'carta_create_page',
       description: 'Create a new page in a document',
       inputSchema: CreatePageSchema.shape,
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
     },
     {
       name: 'carta_rename_page',
       description: 'Rename or update a page (name, description, order)',
       inputSchema: RenamePageSchema.shape,
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
     },
     {
       name: 'carta_delete_page',
       description: 'Delete a page (document must have more than one page)',
       inputSchema: DeletePageSchema.shape,
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
     },
     {
       name: 'carta_set_active_page',
       description: 'Switch the active page. Returns enriched context: page info, constructs, organizers, edge count, and custom schemas — so you can orient in a single call. Accepts pageName as alternative to pageId.',
       inputSchema: SetActivePageSchema.shape,
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
     },
     {
       name: 'carta_list_schemas',
       description: 'List all available construct schemas (built-in and custom). Use output="compact" to reduce token usage.',
       inputSchema: ListSchemasSchema.shape,
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
     },
     {
       name: 'carta_get_schema',
@@ -527,13 +571,14 @@ export function getToolDefinitions() {
         documentId: z.string(),
         type: z.string(),
       }).shape,
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
     },
     {
       name: 'carta_create_schema',
       description: `Create a custom construct schema.
 
 Required top-level params: documentId (string), type (string, unique identifier), displayName (string), color (string, hex).
-Optional top-level params: semanticDescription (string), groupId (string), backgroundColorPolicy ('defaultOnly'|'tints'|'any', default 'defaultOnly'), enumIconField (string, field name), enumIconMap (object, enum value → Unicode char).
+Optional top-level params: semanticDescription (string), groupId (string), instanceColors (boolean, default false — enables per-instance color palette picker).
 
 Fields array (each field object):
 - name (string, required): field identifier
@@ -556,8 +601,9 @@ Ports array (optional, each port object):
 Smart defaults:
 - Primary fields (name, title, label, summary, condition) auto-get displayTier='summary'
 - If no ports specified, adds default ports: flow-in (left), flow-out (right), parent (bottom), child (top)
-- backgroundColorPolicy defaults to 'defaultOnly' (no color picker); use 'tints' for 7 swatches or 'any' for full picker`,
+- instanceColors defaults to false (no color picker); set to true to enable a per-instance palette picker`,
       inputSchema: CreateSchemaInputSchema.shape,
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
     },
     {
       name: 'carta_update_schema',
@@ -569,11 +615,9 @@ Smart defaults:
         color: z.string().optional().describe('New hex color for the node'),
         semanticDescription: z.string().optional().describe('New description for AI context'),
         groupId: z.string().optional().describe('New schema group ID'),
-        backgroundColorPolicy: z.enum(['defaultOnly', 'tints', 'any']).optional().describe('Controls instance color picker'),
-        nodeShape: z.enum(['default', 'simple', 'circle', 'diamond', 'document']).optional().describe('Node render style'),
-        colorMode: z.enum(['default', 'instance', 'enum']).optional().describe('How node color is determined'),
-        enumColorField: z.string().optional().describe('Field name for enum color mode'),
-        enumColorMap: z.record(z.string()).optional().describe('Enum value → hex color mapping'),
+        packageId: z.string().nullable().optional().describe('Schema package ID (null to remove from package)'),
+        instanceColors: z.boolean().optional().describe('true = per-instance color palette; false/absent = schema color only'),
+        nodeShape: z.enum(['default', 'simple', 'circle', 'diamond', 'document', 'parallelogram', 'stadium']).optional().describe('Node render style'),
         enumIconField: z.string().optional().describe('Field name for icon markers'),
         enumIconMap: z.record(z.string()).optional().describe('Enum value → Unicode character mapping'),
         fieldUpdates: z.record(z.object({
@@ -585,56 +629,67 @@ Smart defaults:
           placeholder: z.string().optional(),
         })).optional().describe('Map of field name → metadata updates (non-structural only)'),
       }).shape,
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
     },
     {
       name: 'carta_rename_field',
       description: 'Rename a field in a schema and migrate all instance values to the new name. Updates displayField reference if needed.',
       inputSchema: RenameFieldSchema.shape,
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
     },
     {
       name: 'carta_remove_field',
       description: 'Remove a field from a schema and delete its values from all instances. Clears displayField reference if needed.',
       inputSchema: RemoveFieldSchema.shape,
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
     },
     {
       name: 'carta_add_field',
       description: 'Add a new field to a schema. Optionally populate existing instances with a default value.',
       inputSchema: AddFieldSchema.shape,
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
     },
     {
       name: 'carta_rename_port',
       description: 'Rename a port in a schema and update all edge connections to use the new port ID.',
       inputSchema: RenamePortSchema.shape,
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
     },
     {
       name: 'carta_remove_port',
       description: 'Remove a port from a schema and delete all edges connected through it.',
       inputSchema: RemovePortSchema.shape,
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
     },
     {
       name: 'carta_rename_schema_type',
       description: 'Rename a schema type. Updates all instances and cross-references in other schemas.',
       inputSchema: RenameSchemaTypeSchema.shape,
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
     },
     {
       name: 'carta_change_field_type',
       description: 'Change a field\'s data type. Returns a dry-run preview by default showing how many instances would lose data. Set force=true to execute.',
       inputSchema: ChangeFieldTypeSchema.shape,
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
     },
     {
       name: 'carta_narrow_enum_options',
       description: 'Update enum field options. Remaps values via valueMapping or clears orphaned values.',
       inputSchema: NarrowEnumOptionsSchema.shape,
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
     },
     {
       name: 'carta_add_port',
       description: 'Add a new port to a schema. No instance fixup needed.',
       inputSchema: AddPortSchema.shape,
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
     },
     {
       name: 'carta_change_port_type',
       description: 'Change a port\'s type reference. Disconnects edges that become incompatible with the new port type.',
       inputSchema: ChangePortTypeSchema.shape,
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
     },
     {
       name: 'carta_delete_schema',
@@ -643,16 +698,19 @@ Smart defaults:
         documentId: z.string().describe('The document ID'),
         type: z.string().describe('The schema type to delete'),
       }).shape,
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
     },
     {
       name: 'carta_list_constructs',
-      description: 'List constructs in a document (compact summaries). Use carta_get_construct for full details. Optionally filter by constructType or target a specific page.',
+      description: 'List constructs in a document. Default returns compact summaries. Use output="full" to include field values, positions, and connections. Optionally filter by constructType or target a specific page.',
       inputSchema: ListConstructsSchema.shape,
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
     },
     {
       name: 'carta_get_construct',
-      description: 'Get a construct by semantic ID',
+      description: 'Get a construct by semantic ID. Use output="compact" for a lightweight summary without field values.',
       inputSchema: GetConstructSchema.shape,
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
     },
     {
       name: 'carta_create_construct',
@@ -663,6 +721,7 @@ Example: for a schema with fields [{name: "file", ...}, {name: "layer", ...}], p
 
 When parentId is set, x/y are relative to the organizer. Nodes without x/y default to (0,0). Optionally accepts pageId to target a specific page.`,
       inputSchema: CreateConstructSchema.shape,
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
     },
     {
       name: 'carta_update_construct',
@@ -671,21 +730,25 @@ When parentId is set, x/y are relative to the organizer. Nodes without x/y defau
 values: Partial record keyed by field name from the schema — only include fields to change. Use carta_get_schema(type) to discover field names.
 instanceColor: hex string or null to clear. Visual-only override for node background.`,
       inputSchema: UpdateConstructSchema.shape,
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
     },
     {
       name: 'carta_delete_construct',
       description: 'Delete a construct',
       inputSchema: DeleteConstructSchema.shape,
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
     },
     {
       name: 'carta_connect_constructs',
       description: 'Connect two constructs via ports. Optionally accepts pageId to target a specific page.',
       inputSchema: ConnectConstructsSchema.shape,
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
     },
     {
       name: 'carta_disconnect_constructs',
       description: 'Disconnect two constructs. Optionally accepts pageId to target a specific page.',
       inputSchema: DisconnectConstructsSchema.shape,
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
     },
     {
       name: 'carta_create_constructs',
@@ -696,51 +759,61 @@ values: Record keyed by field name from the schema for that constructType. Use c
 
 Nodes without x/y are auto-placed in a grid. Optionally accepts pageId to target a specific page.`,
       inputSchema: BulkCreateConstructsSchema.shape,
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
     },
     {
       name: 'carta_connect_constructs_bulk',
       description: 'Connect multiple construct pairs in a single call. Best-effort: individual failures are reported, not aborted. Optionally accepts pageId to target a specific page.',
       inputSchema: BulkConnectSchema.shape,
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
     },
     {
       name: 'carta_get_document_summary',
       description: 'Get a compact document summary with page/construct/edge counts. Use include=["constructs","schemas"] to embed detailed data for a specific page (defaults to active page). Accepts pageName as alternative to pageId.',
       inputSchema: DocumentSummarySchema.shape,
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
     },
     {
       name: 'carta_create_organizer',
       description: 'Create an organizer node to visually group constructs. Use carta_create_construct with parentId to place constructs inside it. Optionally accepts pageId to target a specific page.',
       inputSchema: CreateOrganizerSchema.shape,
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
     },
     {
       name: 'carta_update_organizer',
       description: 'Update organizer properties (name, color, collapsed, layout, description)',
       inputSchema: UpdateOrganizerSchema.shape,
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
     },
     {
       name: 'carta_delete_organizer',
       description: 'Delete an organizer. By default, detaches member constructs (converts to absolute positions). Set deleteMembers=true to also delete members.',
       inputSchema: DeleteOrganizerSchema.shape,
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
     },
     {
       name: 'carta_list_port_types',
       description: 'List available port types and their compatibility rules',
       inputSchema: DocumentIdSchema.shape,
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
     },
     {
       name: 'carta_compile',
       description: 'Compile a document to AI-readable output',
       inputSchema: DocumentIdSchema.shape,
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
     },
     {
       name: 'carta_move_construct',
       description: 'Move a construct into or out of an organizer. Position is auto-converted between absolute and relative. Connections are preserved. Optionally accepts pageId to target a specific page.',
       inputSchema: MoveConstructSchema.shape,
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
     },
     {
       name: 'carta_delete_constructs',
       description: 'Delete multiple constructs in a single transaction. Cleans up edges, connections, and attached wagons. Best-effort: per-item results. Optionally accepts pageId to target a specific page.',
       inputSchema: DeleteConstructsSchema.shape,
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
     },
     {
       name: 'carta_batch_mutate',
@@ -756,41 +829,85 @@ Here "@0" resolves to the semanticId generated by the create at index 0.
 
 For create/update ops, values is a Record keyed by field name from the schema. Use carta_get_schema(type) to discover field names. semanticId is auto-generated for create ops; use "@N" placeholders to reference it in later ops.`,
       inputSchema: BatchMutateSchema.shape,
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
     },
     {
       name: 'carta_flow_layout',
       description: 'Arrange nodes in topological order along a flow direction. Uses port connections to determine hierarchy — nodes with no incoming flow edges become sources (layer 0). Supports TB/BT/LR/RL directions. Only affects top-level nodes (not inside organizers). Optionally accepts pageId to target a specific page.',
       inputSchema: FlowLayoutSchema.shape,
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
     },
     {
       name: 'carta_arrange',
       description: 'Arrange nodes using declarative constraints. Strategies: "grid" (initial), "preserve" (adjust), "force" (organic spring layout). Constraints: align, order, spacing, group, distribute, position, flow (topological DAG layout). Constraints apply sequentially. Optionally accepts pageId to target a specific page.',
       inputSchema: ArrangeLayoutSchema.shape,
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
     },
     {
       name: 'carta_pin_constraint',
       description: 'Create a pin constraint between two organizers. Declares that sourceOrganizerId should be positioned relative to targetOrganizerId in the specified direction (N, NE, E, SE, S, SW, W, NW). The constraint is stored per-page and resolved on demand. Optionally accepts pageId to target a specific page.',
       inputSchema: PinConstraintSchema.shape,
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
     },
     {
       name: 'carta_list_pin_constraints',
       description: 'List all pin constraints for a page. Returns an array of constraints with their IDs, source/target organizer IDs, direction, and optional gap. Optionally accepts pageId to target a specific page.',
       inputSchema: ListPinConstraintsSchema.shape,
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
     },
     {
       name: 'carta_remove_pin_constraint',
       description: 'Remove a pin constraint by ID. Returns success status. Optionally accepts pageId to target a specific page.',
       inputSchema: RemovePinConstraintSchema.shape,
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
     },
     {
       name: 'carta_apply_pin_layout',
       description: 'Resolve and apply pin constraints to organizer positions. Uses topological sort to determine positioning order, detects cycles, and computes absolute positions from relative constraints. Returns the number of organizers updated and any warnings. Optionally accepts pageId to target a specific page.',
       inputSchema: ApplyPinLayoutSchema.shape,
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
     },
     {
       name: 'carta_rebuild_page',
       description: `Rebuild all Yjs data for a page by round-tripping through plain objects. Flushes corrupt Y.Map state, orphaned keys, and stale references while preserving node IDs, positions, fields, edges, and organizer membership. Debug tool — use when a page has rendering issues that don't appear on freshly-created pages.`,
       inputSchema: RebuildPageSchema.shape,
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
+    },
+    {
+      name: 'carta_create_package',
+      description: 'Create a schema package for grouping related schemas. Schemas can be assigned to the package via packageId.',
+      inputSchema: CreatePackageSchema.shape,
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+    },
+    {
+      name: 'carta_list_packages',
+      description: 'List schema packages with member schema counts.',
+      inputSchema: ListPackagesSchema.shape,
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
+    },
+    {
+      name: 'carta_get_package',
+      description: 'Get a schema package with its member schemas, port schemas, groups, and relationships.',
+      inputSchema: GetPackageSchema.shape,
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
+    },
+    {
+      name: 'carta_list_standard_packages',
+      description: 'List all standard library packages with their status for a document. Status: "available" (not loaded), "loaded" (loaded, unmodified), "modified" (loaded but changed). Use carta_apply_package to load available packages.',
+      inputSchema: ListStandardPackagesSchema.shape,
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
+    },
+    {
+      name: 'carta_apply_package',
+      description: 'Apply a standard library package to a document by package ID. Idempotent: returns "skipped" if already loaded. Adds all schemas, port schemas, groups, and relationships from the package.',
+      inputSchema: ApplyStandardPackageSchema.shape,
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
+    },
+    {
+      name: 'carta_check_package_drift',
+      description: 'Check if a loaded package has been modified in the document. Compares current state against the snapshot stored at load time. Useful for diagnosing schema issues.',
+      inputSchema: CheckPackageDriftSchema.shape,
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
     },
   ];
 }
@@ -855,6 +972,12 @@ export interface ToolHandlers {
   carta_remove_pin_constraint: ToolHandler;
   carta_apply_pin_layout: ToolHandler;
   carta_rebuild_page: ToolHandler;
+  carta_create_package: ToolHandler;
+  carta_list_packages: ToolHandler;
+  carta_get_package: ToolHandler;
+  carta_list_standard_packages: ToolHandler;
+  carta_apply_package: ToolHandler;
+  carta_check_package_drift: ToolHandler;
   [key: string]: ToolHandler;
 }
 
@@ -1052,9 +1175,9 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
           displayName: input.displayName,
           color: input.color,
           semanticDescription: input.semanticDescription,
-          backgroundColorPolicy: input.backgroundColorPolicy,
-          enumIconField: input.enumIconField,
-          enumIconMap: input.enumIconMap,
+          groupId: input.groupId,
+          packageId: input.packageId,
+          instanceColors: input.instanceColors,
           fields: input.fields,
           ports: input.ports,
         }
@@ -1071,13 +1194,9 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
         color: z.string().optional(),
         semanticDescription: z.string().optional(),
         groupId: z.string().optional(),
+        packageId: z.string().nullable().optional(),
         backgroundColorPolicy: z.enum(['defaultOnly', 'tints', 'any']).optional(),
-        nodeShape: z.enum(['default', 'simple', 'circle', 'diamond', 'document']).optional(),
-        colorMode: z.enum(['default', 'instance', 'enum']).optional(),
-        enumColorField: z.string().optional(),
-        enumColorMap: z.record(z.string()).optional(),
-        enumIconField: z.string().optional(),
-        enumIconMap: z.record(z.string()).optional(),
+        nodeShape: z.enum(['default', 'simple', 'circle', 'diamond', 'document', 'parallelogram', 'stadium']).optional(),
         fieldUpdates: z.record(z.object({
           label: z.string().optional(),
           semanticDescription: z.string().optional(),
@@ -1219,10 +1338,11 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
     },
 
     carta_list_constructs: async (args) => {
-      const { documentId, constructType, pageId } = ListConstructsSchema.parse(args);
+      const { documentId, constructType, pageId, output } = ListConstructsSchema.parse(args);
       const params = new URLSearchParams();
       if (constructType) params.set('type', constructType);
       if (pageId) params.set('pageId', pageId);
+      if (output) params.set('output', output);
       const qs = params.toString() ? `?${params.toString()}` : '';
       const result = await apiRequest<{ constructs: unknown[]; organizers: unknown[] }>(
         'GET',
@@ -1233,10 +1353,11 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
     },
 
     carta_get_construct: async (args) => {
-      const { documentId, semanticId } = GetConstructSchema.parse(args);
+      const { documentId, semanticId, output } = GetConstructSchema.parse(args);
+      const outputQs = output ? `?output=${output}` : '';
       const result = await apiRequest<{ construct: unknown }>(
         'GET',
-        `/api/documents/${encodeURIComponent(documentId)}/constructs/${encodeURIComponent(semanticId)}`
+        `/api/documents/${encodeURIComponent(documentId)}/constructs/${encodeURIComponent(semanticId)}${outputQs}`
       );
       if (result.error) return { error: result.error };
       return result.data;
@@ -1519,6 +1640,68 @@ export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandle
         'POST',
         `/api/documents/${encodeURIComponent(documentId)}/rebuild-page`,
         { pageId }
+      );
+      if (result.error) return { error: result.error };
+      return result.data;
+    },
+
+    carta_create_package: async (args) => {
+      const { documentId, name, description, color } = CreatePackageSchema.parse(args);
+      const result = await apiRequest<{ package: unknown }>(
+        'POST',
+        `/api/documents/${encodeURIComponent(documentId)}/packages`,
+        { name, description, color }
+      );
+      if (result.error) return { error: result.error };
+      return result.data;
+    },
+
+    carta_list_packages: async (args) => {
+      const { documentId } = ListPackagesSchema.parse(args);
+      const result = await apiRequest<{ packages: unknown[] }>(
+        'GET',
+        `/api/documents/${encodeURIComponent(documentId)}/packages`
+      );
+      if (result.error) return { error: result.error };
+      return result.data;
+    },
+
+    carta_get_package: async (args) => {
+      const { documentId, packageId } = GetPackageSchema.parse(args);
+      const result = await apiRequest<unknown>(
+        'GET',
+        `/api/documents/${encodeURIComponent(documentId)}/packages/${encodeURIComponent(packageId)}`
+      );
+      if (result.error) return { error: result.error };
+      return result.data;
+    },
+
+    carta_list_standard_packages: async (args) => {
+      const { documentId } = ListStandardPackagesSchema.parse(args);
+      const result = await apiRequest<{ packages: unknown[] }>(
+        'GET',
+        `/api/documents/${encodeURIComponent(documentId)}/standard-packages`
+      );
+      if (result.error) return { error: result.error };
+      return result.data;
+    },
+
+    carta_apply_package: async (args) => {
+      const { documentId, packageId } = ApplyStandardPackageSchema.parse(args);
+      const result = await apiRequest<unknown>(
+        'POST',
+        `/api/documents/${encodeURIComponent(documentId)}/standard-packages/apply`,
+        { packageId }
+      );
+      if (result.error) return { error: result.error };
+      return result.data;
+    },
+
+    carta_check_package_drift: async (args) => {
+      const { documentId, packageId } = CheckPackageDriftSchema.parse(args);
+      const result = await apiRequest<unknown>(
+        'GET',
+        `/api/documents/${encodeURIComponent(documentId)}/standard-packages/${encodeURIComponent(packageId)}/drift`
       );
       if (result.error) return { error: result.error };
       return result.data;

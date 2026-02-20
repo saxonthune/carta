@@ -1,19 +1,18 @@
 /**
- * Built-in schemas - default construct types, port types, and schema groups
+ * Built-in schemas - port types and package loading
  */
 
 export {
-  builtInConstructSchemas,
   builtInPortSchemas,
-  builtInSchemaGroups,
-  hydrateBuiltIns,
-  builtInSeedCatalog,
-  hydrateSeed,
-  softwareArchitectureSeed,
-  sketchingSeed,
-  bpmnSeed,
-  awsSeed,
-  capabilityModelSeed,
+  flowInPort,
+  flowOutPort,
+  parentPort,
+  childPort,
+  symmetricPort,
+  interceptPort,
+  relayPort,
 } from './built-ins.js';
 
-export type { SchemaSeed } from './seed-loader.js';
+export { applyPackage, isPackageModified, isLibraryNewer, computePackageDiff, computePackageDiffFromDefinitions, extractPackageDefinition, debugPackageDrift, computeContentHash, type ApplyPackageResult, type PackageDiff, type SchemaDiff, type FieldChange, type PortSchemaDiff, type GroupDiff, type RelationshipDiff } from './package-loader.js';
+
+export * from './packages/index.js';

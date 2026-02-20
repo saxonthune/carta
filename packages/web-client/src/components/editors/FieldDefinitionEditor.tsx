@@ -33,6 +33,7 @@ const DISPLAY_HINTS: { value: DisplayHint | ''; label: string }[] = [
   { value: 'password', label: 'Password' },
   { value: 'url', label: 'URL' },
   { value: 'color', label: 'Color' },
+  { value: 'markdown', label: 'Markdown' },
 ];
 
 export default function FieldDefinitionEditor({

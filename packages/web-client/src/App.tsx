@@ -1,8 +1,5 @@
-import { useCallback, useState, useRef, useEffect } from 'react';
-import { type Node, type Edge } from '@xyflow/react';
-import ImportPreviewModal from './components/modals/ImportPreviewModal';
-import ExportPreviewModal from './components/modals/ExportPreviewModal';
-import CompileModal from './components/modals/CompileModal';
+import { useCallback, useState, useRef, useEffect, lazy, Suspense } from 'react';
+import type { CartaNode, CartaEdge } from '@carta/types';
 import DocumentBrowserModal from './components/modals/DocumentBrowserModal';
 import Header from './components/Header';
 import CanvasContainer from './components/canvas/CanvasContainer';
@@ -13,16 +10,18 @@ import { useDocumentMeta } from './hooks/useDocumentMeta';
 import { useSchemas } from './hooks/useSchemas';
 import { useSchemaGroups } from './hooks/useSchemaGroups';
 import { usePages } from './hooks/usePages';
-import { useNodes } from './hooks/useNodes';
 import { useClearDocument } from './hooks/useClearDocument';
 import { useDocumentContext } from './contexts/DocumentContext';
 import { exportProject, importProject, type CartaFile } from './utils/cartaFile';
 import { analyzeImport, type ImportAnalysis, type ImportOptions } from './utils/importAnalyzer';
 import { analyzeExport, type ExportAnalysis, type ExportOptions } from './utils/exportAnalyzer';
 import { importDocument, type ImportConfig } from './utils/documentImporter';
-import { AISidebar } from './ai';
 import { config } from './config/featureFlags';
-import InspectorPanel from './components/canvas/InspectorPanel';
+
+const ImportPreviewModal = lazy(() => import('./components/modals/ImportPreviewModal'));
+const ExportPreviewModal = lazy(() => import('./components/modals/ExportPreviewModal'));
+const CompileModal = lazy(() => import('./components/modals/CompileModal'));
+const AISidebar = lazy(() => import('./ai/components/AISidebar').then(m => ({ default: m.AISidebar })));
 
 // Note: Schema initialization is now handled by DocumentProvider
 
@@ -46,27 +45,38 @@ function App() {
 function AppContent() {
   const { adapter } = useDocumentContext();
 
+  useEffect(() => {
+    performance.mark('carta:app-mounted')
+    performance.measure('carta:boot-to-mount', 'carta:boot-start', 'carta:app-mounted')
+    performance.measure('carta:total-startup', 'carta:module-eval', 'carta:app-mounted')
+    if (import.meta.env.DEV) {
+      const entries = performance.getEntriesByType('measure').filter(e => e.name.startsWith('carta:'))
+      console.groupCollapsed('[carta] startup timing')
+      for (const e of entries) {
+        console.log(`${e.name}: ${e.duration.toFixed(1)}ms`)
+      }
+      console.groupEnd()
+    }
+  }, [])
+
   const { title, description, setTitle, setDescription } = useDocumentMeta();
   const { schemas } = useSchemas();
   const { schemaGroups } = useSchemaGroups();
   const { pages, activePage, setActivePage, createPage, deletePage, updatePage, duplicatePage } = usePages();
-  const { updateNode } = useNodes();
   const [importPreview, setImportPreview] = useState<{ data: CartaFile; analysis: ImportAnalysis } | null>(null);
   const [pendingImport, setPendingImport] = useState<{ data: CartaFile; config: ImportConfig; schemasToImport: ConstructSchema[] } | null>(null);
   const [exportPreview, setExportPreview] = useState<ExportAnalysis | null>(null);
   const [compileOutput, setCompileOutput] = useState<string | null>(null);
-  const [selectedNodes, setSelectedNodes] = useState<Node[]>([]);
   const [aiSidebarOpen, setAiSidebarOpen] = useState(false);
   const [aiSidebarWidth] = useState(400);
-  const [inspectorOpen, setInspectorOpen] = useState(true);
-  const nodesEdgesRef = useRef<{ nodes: Node[]; edges: Edge[] }>({ nodes: [], edges: [] });
+  const nodesEdgesRef = useRef<{ nodes: CartaNode[]; edges: CartaEdge[] }>({ nodes: [], edges: [] });
   const { clearDocument } = useClearDocument();
 
   // Initialize refs on mount
   useEffect(() => {
     nodesEdgesRef.current = {
-      nodes: adapter.getNodes() as Node[],
-      edges: adapter.getEdges() as Edge[],
+      nodes: adapter.getNodes() as CartaNode[],
+      edges: adapter.getEdges() as CartaEdge[],
     };
   }, [adapter]);
 
@@ -95,16 +105,8 @@ function AppContent() {
     importDocument(adapter, data, config, schemasToImport);
   }, [pendingImport, adapter]);
 
-  const handleNodesEdgesChange = useCallback((nodes: Node[], edges: Edge[]) => {
-    nodesEdgesRef.current = { nodes, edges };
-  }, []);
-
-  const handleSelectionChange = useCallback((nodes: Node[]) => {
-    setSelectedNodes(nodes);
-  }, []);
-
-  const handleNodeDoubleClick = useCallback((_nodeId: string) => {
-    setInspectorOpen(true);
+  const handleSelectionChange = useCallback((_nodes: CartaNode[]) => {
+    // Selection handling removed with InspectorPanel (V1-only)
   }, []);
 
   const handleExport = useCallback(() => {
@@ -124,6 +126,7 @@ function AppContent() {
       customSchemas: schemas,
       portSchemas,
       schemaGroups,
+      schemaPackages: adapter.getSchemaPackages(),
     }, options);
 
     setExportPreview(null);
@@ -192,10 +195,7 @@ function AppContent() {
           onToggleAI={() => setAiSidebarOpen(!aiSidebarOpen)}
         />
         <CanvasContainer
-          title={title}
-          onNodesEdgesChange={handleNodesEdgesChange}
           onSelectionChange={handleSelectionChange}
-          onNodeDoubleClick={handleNodeDoubleClick}
           pages={pages}
           activePage={activePage}
           onSetActivePage={setActivePage}
@@ -206,43 +206,42 @@ function AppContent() {
         />
       </div>
 
-      {inspectorOpen && selectedNodes.length === 1 && selectedNodes[0].type === 'construct' && (
-        <InspectorPanel
-          node={selectedNodes[0]}
-          schemas={schemas}
-          onNodeUpdate={(nodeId, updates) => updateNode(nodeId, updates)}
-          onClose={() => setInspectorOpen(false)}
+      <Suspense fallback={null}>
+        <AISidebar
+          isOpen={aiSidebarOpen}
+          onToggle={() => setAiSidebarOpen(!aiSidebarOpen)}
+          width={aiSidebarWidth}
         />
-      )}
-
-      <AISidebar
-        isOpen={aiSidebarOpen}
-        onToggle={() => setAiSidebarOpen(!aiSidebarOpen)}
-        width={aiSidebarWidth}
-      />
+      </Suspense>
 
       {/* Modals */}
       {importPreview && (
-        <ImportPreviewModal
-          analysis={importPreview.analysis}
-          pages={pages}
-          onConfirm={handleImportConfirm}
-          onCancel={handleImportCancel}
-        />
+        <Suspense fallback={null}>
+          <ImportPreviewModal
+            analysis={importPreview.analysis}
+            pages={pages}
+            onConfirm={handleImportConfirm}
+            onCancel={handleImportCancel}
+          />
+        </Suspense>
       )}
       {exportPreview && (
-        <ExportPreviewModal
-          analysis={exportPreview}
-          edges={nodesEdgesRef.current.edges}
-          onConfirm={handleExportConfirm}
-          onCancel={handleExportCancel}
-        />
+        <Suspense fallback={null}>
+          <ExportPreviewModal
+            analysis={exportPreview}
+            edges={nodesEdgesRef.current.edges}
+            onConfirm={handleExportConfirm}
+            onCancel={handleExportCancel}
+          />
+        </Suspense>
       )}
       {compileOutput && (
-        <CompileModal
-          output={compileOutput}
-          onClose={() => setCompileOutput(null)}
-        />
+        <Suspense fallback={null}>
+          <CompileModal
+            output={compileOutput}
+            onClose={() => setCompileOutput(null)}
+          />
+        </Suspense>
       )}
     </div>
   );

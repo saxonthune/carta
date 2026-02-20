@@ -1,7 +1,8 @@
 {
   "name": "carta",
   "private": true,
-  "version": "0.1.0proto4",
+  "version": "0.1.0-proto.5",
+  "packageManager": "pnpm@10.28.1",
   "license": "AGPL-3.0-only",
   "type": "module",
   "pnpm": {
@@ -15,11 +16,12 @@
     "build": "pnpm --filter @carta/web-client build",
     "build:all": "pnpm -r build",
     "preview": "pnpm --filter @carta/web-client preview",
-    "test": "pnpm --filter @carta/document typecheck && pnpm --filter @carta/domain test && pnpm --filter @carta/document test && pnpm --filter @carta/web-client test && pnpm --filter @carta/server test",
+    "test": "pnpm --filter @carta/document typecheck && pnpm --filter @carta/domain test && pnpm --filter @carta/compiler test && pnpm --filter @carta/document test && pnpm --filter @carta/web-client test && pnpm --filter @carta/server test",
     "test:watch": "pnpm --filter @carta/web-client test:watch",
     "test:ui": "pnpm --filter @carta/web-client test:ui",
     "test:coverage": "pnpm --filter @carta/web-client test:coverage",
     "test:e2e": "pnpm --filter @carta/web-client test:e2e",
+    "test:static": "pnpm build && pnpm --filter @carta/web-client test:static",
     "test:e2e:ui": "pnpm --filter @carta/web-client test:e2e:ui",
     "test:all": "pnpm --filter @carta/web-client test:all",
     "lint": "eslint .",

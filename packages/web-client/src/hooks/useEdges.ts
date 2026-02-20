@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { Edge } from '@xyflow/react';
+import type { CartaEdge } from '@carta/types';
 import { useDocumentContext } from '../contexts/DocumentContext';
 
 /**
@@ -9,18 +9,18 @@ import { useDocumentContext } from '../contexts/DocumentContext';
 export function useEdges() {
   const { adapter } = useDocumentContext();
 
-  const [edges, setEdgesState] = useState<Edge[]>(() => adapter.getEdges() as Edge[]);
+  const [edges, setEdgesState] = useState<CartaEdge[]>(() => adapter.getEdges() as CartaEdge[]);
 
   useEffect(() => {
     const unsubscribe = adapter.subscribeToEdges
-      ? adapter.subscribeToEdges(() => setEdgesState(adapter.getEdges() as Edge[]))
-      : adapter.subscribe(() => setEdgesState(adapter.getEdges() as Edge[]));
+      ? adapter.subscribeToEdges(() => setEdgesState(adapter.getEdges() as CartaEdge[]))
+      : adapter.subscribe(() => setEdgesState(adapter.getEdges() as CartaEdge[]));
     return unsubscribe;
   }, [adapter]);
 
   const setEdges = useCallback(
-    (edgesOrUpdater: Edge[] | ((prev: Edge[]) => Edge[])) => {
-      adapter.setEdges(edgesOrUpdater as unknown[] | ((prev: unknown[]) => unknown[]));
+    (edgesOrUpdater: CartaEdge[] | ((prev: CartaEdge[]) => CartaEdge[])) => {
+      adapter.setEdges(edgesOrUpdater);
     },
     [adapter]
   );

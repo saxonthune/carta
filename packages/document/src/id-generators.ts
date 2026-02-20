@@ -6,6 +6,10 @@ export function generateSchemaGroupId(): string {
   return 'grp_' + Math.random().toString(36).substring(2, 11);
 }
 
+export function generateSchemaPackageId(): string {
+  return 'pkg_' + Math.random().toString(36).substring(2, 11);
+}
+
 export function generatePageId(): string {
   return 'page-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6);
 }

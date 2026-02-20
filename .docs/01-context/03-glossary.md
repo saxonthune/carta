@@ -17,7 +17,7 @@ Canonical definitions for domain terms used throughout Carta. Use these terms co
 
 **Full View Window**: A draggable, pinnable window that displays comprehensive node information (all fields, deployable, identity, connections, compile preview). Opened via the full view icon button in node headers. Features no backdrop darkening and uses island UX patterns.
 
-**Display Tier**: The visibility level assigned to a field on a construct schema. Four tiers: `pill` (node title, max 1 field), `minimal` (collapsed/summary view), `details` (expanded details view), `full` (only in full view modal). Controls which fields appear at different levels of detail.
+**Display Tier**: The visibility level assigned to a field on a construct schema. Two tiers: `pill` (node title, max 1 field) and `summary` (shown on canvas). Fields without a tier are inspector-only (not shown on canvas).
 
 **Semantic ID**: A unique identifier for a construct instance, auto-generated as `{type}-{timestamp}{random}`. Used as the primary identifier throughout the system, including in compiled output.
 
@@ -25,11 +25,9 @@ Canonical definitions for domain terms used throughout Carta. Use these terms co
 
 **Page**: A separate architectural view or layer within a document. Each page has its own nodes, edges, and deployables. Schemas are shared across pages.
 
-**LOD Band**: One of three discrete zoom-based rendering modes (marker, compact, normal) that control node detail level. Marker shows title only, compact shows title + minimal fields, normal shows all fields based on display tier. Bands switch at zoom thresholds 0.5 and 1.0.
+**LOD Band**: One of two discrete zoom-based rendering modes (`marker`, `normal`) that control node detail level. Marker (zoom < 0.5) shows tinted surface chips with accent dot and name. Normal (zoom >= 0.5) shows full card with all controls. See doc02.07 for visual specs.
 
-**Node Shape**: The visual style of a construct node. Shapes include `box` (default rectangle), `simple` (plain rectangle), `circle`, `diamond`, and `document`. Defined on the construct schema via the `nodeShape` field. Not to be confused with LOD Band or Detail Mode.
-
-**Detail Mode**: The expansion state of a construct node's field display. Two values: `minimal` (collapsed, shows title and minimal-tier fields) or `details` (expanded, shows title, minimal, and details-tier fields). Controlled by the expand/collapse chevron in the node header. Separate from LOD Band — Detail Mode is user-controlled per-node, LOD Band is global zoom-based.
+**Node Shape**: The visual style of a construct node. Shapes include `default` (standard card), `simple` (plain rectangle), `circle`, `diamond`, `document`, `stadium` (capsule/pill with fully rounded ends), and `parallelogram` (skewed quadrilateral for I/O). Defined on the construct schema via the `nodeShape` field.
 
 ## Ports and Connections
 
@@ -51,7 +49,9 @@ Canonical definitions for domain terms used throughout Carta. Use these terms co
 
 **Deployable**: A logical grouping for constructs representing a deployment unit (e.g., API Service, Database Layer, UI Application). Helps AI tools understand which components should be deployed together.
 
-**Schema Group**: A grouping of construct schemas for organizational purposes. Shown in context menus and the schema wizard.
+**Schema Package**: The unit of schema bundling and library portability. A package contains construct schemas, in-package port schemas, and optional schema groups for visual organization. Packages are what get published to and applied from the schema library. Example: "Backend Stack" package containing Service, Endpoint, Repository, and DataStore schemas with their domain-specific port types.
+
+**Schema Group**: A visual grouping of construct schemas within a package, used for metamap organization and menu nesting. Groups are cosmetic — they affect how schemas are displayed and navigated, not how they are bundled or compiled. A group always belongs to a package via `packageId`.
 
 **Virtual Folder**: A folder path derived from document metadata, not stored as a separate entity. Documents have a `folder` field (e.g., `/projects/webapp`) and the folder hierarchy is derived dynamically by the UI. Folders are created implicitly when documents are saved to them.
 
@@ -59,7 +59,7 @@ Canonical definitions for domain terms used throughout Carta. Use these terms co
 
 **Organized Collection**: The set of constructs that belong to a single organizer. The organizer is the container; the collection is its contents.
 
-**Layout Strategy**: The arrangement algorithm used by an organizer. `freeform` (free positioning within bounds), `stack` (one member visible at a time with arrow navigation), `grid` (auto-arranged in a resizable grid). Layout strategies are a Strategy pattern — each computes member positions and visibility as a pure function.
+**Layout Strategy**: The arrangement algorithm used by an organizer. Currently only `freeform` (free positioning within bounds) is implemented. Planned: `stack` (one member visible at a time with arrow navigation), `grid` (auto-arranged in a resizable grid). Layout strategies are a Strategy pattern — each computes member positions and visibility as a pure function.
 
 **Presentation Model**: A stateless transformation layer that converts domain state into view state. Decides node visibility (organizer collapse), positioning (layout strategies), component selection (render style + LOD dispatch), and edge routing (remapping for collapsed organizers). Lives in the Visual Editor Layer but is conceptually distinct from React components. See doc02.09.
 

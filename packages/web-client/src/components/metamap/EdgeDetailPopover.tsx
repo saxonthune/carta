@@ -3,14 +3,17 @@ import type { ConstructSchema, SuggestedRelatedConstruct } from '@carta/domain';
 
 const STRUCTURAL_PORT_TYPES = new Set(['parent', 'child', 'flow-in', 'flow-out']);
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type RelationshipKey = any;
+
 interface EdgeDetailPopoverProps {
   sourceSchema: ConstructSchema;
   targetSchema: ConstructSchema;
   relationship: SuggestedRelatedConstruct;
-  relationshipIndex: number;
+  relationshipIndex: RelationshipKey;
   position: { x: number; y: number };
-  onUpdate: (index: number, updates: Partial<SuggestedRelatedConstruct>) => void;
-  onDelete: (index: number) => void;
+  onUpdate: (index: RelationshipKey, updates: Partial<SuggestedRelatedConstruct>) => void;
+  onDelete: (index: RelationshipKey) => void;
   onClose: () => void;
 }
 

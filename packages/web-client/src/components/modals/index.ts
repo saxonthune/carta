@@ -7,3 +7,5 @@ export { default as ConstructDebugModal } from './ConstructDebugModal';
 export { default as ClearWorkspaceModal } from './ClearWorkspaceModal';
 export { default as DeleteEmptySchemasModal } from './DeleteEmptySchemasModal';
 export { default as DeleteEmptyGroupsModal } from './DeleteEmptyGroupsModal';
+export { default as PackagePickerModal } from './PackagePickerModal';
+export { default as PackageDiffModal } from './PackageDiffModal';

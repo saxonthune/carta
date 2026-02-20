@@ -10,19 +10,39 @@ Ask these to customize the vocabulary:
 - "Message events between pools?" → adds Message Flow connections
 - "Timer or error events?" → uses Intermediate Event types
 
-## Recommended Schemas
-Reference seed: \`bpmn\`
+## Schema Reference
 
-| Schema | Purpose | Pill Field | Key Display |
-|--------|---------|-----------|-------------|
-| Start Event | Process trigger | name | circle shape, green |
-| End Event | Process termination | name | circle shape, red |
-| Activity | Work unit (task) | name | rectangle shape |
-| Gateway | Decision/merge point | name | diamond shape, type enum |
-| Intermediate Event | Mid-process event | name | circle shape, type enum |
-| Pool | Process participant | name | organizer, contains lanes |
-| Lane | Responsibility group | name | organizer within pool |
-| Data Object | Information artifact | name | document icon |
+Reference package: \`bpmn\`
+
+### Flow Elements
+
+**Activity** (\`bpmn-activity\`) — #3b82f6
+- Fields: name (string, pill), activityType (enum: Task/Subprocess/Call Activity, summary), description (string, summary)
+- Ports: seq-in ← Sequence In, seq-out → Sequence Out, child ← Lane, parent → Sub-activities, data-link ↔ Data
+
+**Event** (\`bpmn-event\`) — #22c55e — shape: circle
+- Fields: name (string, pill), eventPosition (enum: Start/Intermediate/End, summary), trigger (enum: None/Message/Timer/Error/Signal, summary), description (string, summary)
+- Ports: seq-in ← Sequence In, seq-out → Sequence Out, child ← Lane
+
+**Gateway** (\`bpmn-gateway\`) — #f59e0b — shape: diamond
+- Fields: name (string, pill), gatewayType (enum: Exclusive (XOR)/Parallel (AND)/Inclusive (OR)/Event-Based, summary), description (string, summary)
+- Ports: seq-in ← Sequence In, seq-out → Sequence Out, child ← Lane
+
+### Swimlanes
+
+**Pool** (\`bpmn-pool\`) — #6366f1
+- Fields: name (string, pill), description (string, summary)
+- Ports: parent → Lanes, msg-out (relay) → Message Out, msg-in (intercept) ← Message In
+
+**Lane** (\`bpmn-lane\`) — #818cf8
+- Fields: name (string, pill), description (string, summary)
+- Ports: child ← Pool, parent → Elements
+
+### Artifacts
+
+**Data Object** (\`bpmn-data-object\`) — #8b5cf6 — shape: document
+- Fields: name (string, pill), state (string, summary), description (string, summary)
+- Ports: data-link ↔ Used By
 
 ## Connection Patterns
 - Start Event →(seq-out)→ Activity →(seq-out)→ Gateway

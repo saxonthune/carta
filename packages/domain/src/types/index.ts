@@ -12,7 +12,7 @@ export type DataKind = 'string' | 'number' | 'boolean' | 'date' | 'enum';
 /**
  * Display hints for string type presentation
  */
-export type DisplayHint = 'multiline' | 'code' | 'password' | 'url' | 'color';
+export type DisplayHint = 'multiline' | 'code' | 'password' | 'url' | 'color' | 'markdown';
 
 /**
  * Display tier for field visibility
@@ -53,6 +53,7 @@ export interface PortSchema {
   expectedComplement?: string;   // UI hint only (context menus), not validation
   color: string;
   groupId?: string;              // References SchemaGroup.id for hierarchical organization
+  packageId?: string;            // References SchemaPackage.id for library bundling
 }
 
 
@@ -127,6 +128,8 @@ export interface PortConfig {
 }
 
 /**
+ * @deprecated Use SchemaRelationship instead. Kept for old metamap compatibility.
+ *
  * Suggested related construct for schema-level quick-add menus
  * Defines a construct type that commonly relates to this construct type
  */
@@ -135,6 +138,20 @@ export interface SuggestedRelatedConstruct {
   fromPortId?: string;           // Optional: port on THIS construct (source)
   toPortId?: string;             // Optional: port on the RELATED construct (target)
   label?: string;                // Optional: custom label for the menu (defaults to displayName)
+}
+
+/**
+ * Schema-level relationship stored in document-level schemaRelationships map
+ * Each relationship is stored once (not bidirectional duplicates)
+ */
+export interface SchemaRelationship {
+  id: string;
+  sourceSchemaType: string;
+  sourcePortId: string;
+  targetSchemaType: string;
+  targetPortId: string;
+  label?: string;
+  packageId?: string;            // Present = intra-package (travels with library), absent = document-scoped
 }
 
 // ===== M1: CONSTRUCT SCHEMA =====
@@ -151,16 +168,14 @@ export interface ConstructSchema {
   semanticDescription?: string;      // Description shown during compilation (AI context)
   fields: FieldSchema[];
   ports?: PortConfig[];      // Port configurations for connections
+  /** @deprecated Use schemaRelationships Y.Map instead. Kept for old metamap compatibility. */
   suggestedRelated?: SuggestedRelatedConstruct[]; // Suggested related constructs for quick-add
   compilation: CompilationConfig;
   groupId?: string;          // References SchemaGroup.id for hierarchical organization
-  backgroundColorPolicy?: 'defaultOnly' | 'tints' | 'any';  // Controls instance color picker: 'defaultOnly' (no picker), 'tints' (7 tint swatches), 'any' (full color picker). default: 'defaultOnly'
-  nodeShape?: 'default' | 'simple' | 'circle' | 'diamond' | 'document';                            // 'default': header bar + fields. 'simple': tinted surface, label-dominant, content-first, no header bar. default: 'default'
-  colorMode?: 'default' | 'instance' | 'enum';                  // How node color is determined: 'default' (schema color), 'instance' (per-instance override), 'enum' (driven by enum field value). default: 'default'
-  enumColorField?: string;                                       // Field name (type 'enum') that drives color when colorMode is 'enum'
-  enumColorMap?: Record<string, string>;                         // Enum value → hex color mapping for enum color mode
-  enumIconField?: string;                                        // Field name (type 'enum') that drives icon marker
-  enumIconMap?: Record<string, string>;                          // Enum value → Unicode character/text for icon marker
+  packageId?: string;        // References SchemaPackage.id for library bundling
+  instanceColors?: boolean;                                      // true = per-instance palette picker; false/absent = schema color only
+  nodeShape?: 'default' | 'simple' | 'circle' | 'diamond' | 'document' | 'parallelogram' | 'stadium';                            // 'default': header bar + fields. 'simple': tinted surface, label-dominant, content-first, no header bar. default: 'default'
+  isFavorite?: boolean;                                          // Pin to top-level context menu for quick access
 }
 
 // ===== M0: INSTANCE DATA =====
@@ -205,7 +220,6 @@ export interface ConstructNodeData {
   // UI state
   nodeId?: string;           // Technical UUID (passed from Map for display purposes)
   onValuesChange?: (values: ConstructValues) => void;
-  onInstanceColorChange?: (color: string | null) => void;
   // Index signature for React Flow compatibility
   [key: string]: unknown;
 }
@@ -256,6 +270,50 @@ export interface PinConstraint {
 // ===== HELPERS =====
 
 /**
+ * Schema package - Library bundling unit for portable schemas
+ * Schemas and their in-package port schemas travel together in library publish/apply
+ */
+export interface SchemaPackage {
+  id: string;
+  name: string;
+  description?: string;
+  color: string;
+  libraryEntryId?: string;   // ID of library entry this was applied from
+  appliedVersion?: number;    // Version number applied from library
+}
+
+/**
+ * Portable package definition — the self-contained format for distributing
+ * schema vocabularies. Used by applyPackage() to load schemas into documents.
+ * Unlike SchemaPackage (which is the live document-level metadata), this is
+ * the complete, frozen definition that travels between documents and libraries.
+ */
+export interface SchemaPackageDefinition {
+  id: string;                              // UUID — stable identity
+  name: string;                            // display name
+  description: string;                     // for picker/catalog
+  color: string;                           // visual accent
+  schemas: ConstructSchema[];
+  portSchemas: PortSchema[];               // in-package ports only
+  schemaGroups: SchemaGroup[];
+  schemaRelationships: SchemaRelationship[];
+}
+
+/**
+ * Manifest entry tracking a loaded package in the document.
+ * Stored in the packageManifest Y.Map, keyed by packageId (UUID).
+ * Provides idempotency (check by UUID) and drift detection (compare contentHash).
+ */
+export interface PackageManifestEntry {
+  packageId: string;                       // UUID — idempotency key
+  contentHash: string;                     // SHA-256 of definition at load time
+  displayName: string;                     // label at load time
+  loadedAt: string;                        // ISO timestamp
+  snapshot: SchemaPackageDefinition;       // frozen copy of the definition as loaded
+}
+
+
+/**
  * Schema group - Hierarchical grouping for construct and port schemas
  * Uses flat storage with parent references for nesting (e.g., "Software Architecture > AWS > Lambda")
  */
@@ -263,6 +321,7 @@ export interface SchemaGroup {
   id: string;
   name: string;
   parentId?: string;    // undefined = root level
+  packageId?: string;   // References SchemaPackage.id for library bundling
   color?: string;
   description?: string;
 }
@@ -356,12 +415,31 @@ export interface CartaDocumentV4 {
   schemas: ConstructSchema[];
   portSchemas: PortSchema[];
   schemaGroups: SchemaGroup[];
+  schemaPackages: SchemaPackage[];
+  schemaRelationships: SchemaRelationship[];
+  packageManifest?: PackageManifestEntry[];  // Optional for backwards compat with existing docs
 }
 
 /**
  * Union type for all document versions
  */
 export type CartaDocument = CartaDocumentV3 | CartaDocumentV4;
+
+/**
+ * .carta-schemas file format
+ * M1-only JSON subset for schema library packages
+ */
+export interface CartaSchemasFile {
+  formatVersion: 1;
+  name: string;
+  description?: string;
+  version: number;
+  changelog?: string;
+  schemas: ConstructSchema[];
+  portSchemas: PortSchema[];
+  schemaGroups: SchemaGroup[];
+  exportedAt: string;
+}
 
 /**
  * Server-side document model.
@@ -410,7 +488,7 @@ export interface VaultAdapter {
   listDocuments(): Promise<DocumentSummary[]>;
 
   /** Create a new document. Returns the document ID. */
-  createDocument(title: string, folder?: string): Promise<string>;
+  createDocument(title: string, folder?: string, filename?: string): Promise<string>;
 
   /** Delete a document by ID. Returns true if deleted. */
   deleteDocument(id: string): Promise<boolean>;
@@ -434,14 +512,16 @@ export interface VaultAdapter {
  * Document adapter interface for abstracting persistence layer.
  * Currently implemented with localStorage, future: Yjs Y.Doc
  */
+import type { CartaNode, CartaEdge } from '@carta/types';
+
 export interface DocumentAdapter {
   // Load/save lifecycle
   initialize(): Promise<void>;
   dispose(): void;
 
   // State access - Graph (reads from active level)
-  getNodes(): unknown[];
-  getEdges(): unknown[];
+  getNodes(): CartaNode[];
+  getEdges(): CartaEdge[];
   getTitle(): string;
   getDescription(): string;
 
@@ -462,9 +542,13 @@ export interface DocumentAdapter {
   getSchemaGroups(): SchemaGroup[];
   getSchemaGroup(id: string): SchemaGroup | undefined;
 
+  // State access - Schema Relationships
+  getSchemaRelationships(): SchemaRelationship[];
+  getSchemaRelationship(id: string): SchemaRelationship | undefined;
+
   // Mutations - Graph (writes to active level)
-  setNodes(nodes: unknown[] | ((prev: unknown[]) => unknown[])): void;
-  setEdges(edges: unknown[] | ((prev: unknown[]) => unknown[])): void;
+  setNodes(nodes: CartaNode[] | ((prev: CartaNode[]) => CartaNode[])): void;
+  setEdges(edges: CartaEdge[] | ((prev: CartaEdge[]) => CartaEdge[])): void;
   setTitle(title: string): void;
   setDescription(description: string): void;
   generateNodeId(): string;
@@ -496,6 +580,30 @@ export interface DocumentAdapter {
   updateSchemaGroup(id: string, updates: Partial<SchemaGroup>): void;
   removeSchemaGroup(id: string): boolean;
 
+  // State access - Schema Packages
+  getSchemaPackages(): SchemaPackage[];
+  getSchemaPackage(id: string): SchemaPackage | undefined;
+
+  // Mutations - Schema Packages
+  setSchemaPackages(packages: SchemaPackage[]): void;
+  addSchemaPackage(pkg: Omit<SchemaPackage, 'id'> | SchemaPackage): SchemaPackage;
+  updateSchemaPackage(id: string, updates: Partial<SchemaPackage>): void;
+  removeSchemaPackage(id: string): boolean;
+
+  // State access - Package Manifest (read-only; mutations added in plan 02)
+  getPackageManifest(): PackageManifestEntry[];
+  getPackageManifestEntry(packageId: string): PackageManifestEntry | undefined;
+  subscribeToPackageManifest?(listener: () => void): () => void;
+
+  // Mutations - Package Manifest
+  addPackageManifestEntry(entry: PackageManifestEntry): void;
+  removePackageManifestEntry(packageId: string): boolean;
+
+  // Mutations - Schema Relationships
+  addSchemaRelationship(rel: SchemaRelationship): void;
+  updateSchemaRelationship(id: string, updates: Partial<SchemaRelationship>): void;
+  removeSchemaRelationship(id: string): boolean;
+
   // Surgical node patches (bypasses full clear+rebuild for performance)
   patchNodes?(patches: Array<{ id: string; position?: { x: number; y: number }; style?: Record<string, unknown> }>, origin?: string): void;
 
@@ -515,6 +623,8 @@ export interface DocumentAdapter {
   subscribeToSchemas?(listener: () => void): () => void;
   subscribeToPortSchemas?(listener: () => void): () => void;
   subscribeToSchemaGroups?(listener: () => void): () => void;
+  subscribeToSchemaPackages?(listener: () => void): () => void;
+  subscribeToSchemaRelationships?(listener: () => void): () => void;
   subscribeToPages?(listener: () => void): () => void;
   subscribeToMeta?(listener: () => void): () => void;
 

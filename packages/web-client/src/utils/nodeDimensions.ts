@@ -1,4 +1,4 @@
-import type { Node } from '@xyflow/react';
+import type { CartaNode } from '@carta/types';
 
 /**
  * Default dimensions for different node types.
@@ -20,7 +20,7 @@ const DEFAULT_DIMENSIONS = {
  * This ensures consistent dimension reads across layout, resize persistence,
  * and fitToChildren operations.
  */
-export function getNodeDimensions(node: Node): { width: number; height: number } {
+export function getNodeDimensions(node: CartaNode): { width: number; height: number } {
   const defaults = node.type === 'organizer'
     ? DEFAULT_DIMENSIONS.organizer
     : DEFAULT_DIMENSIONS.construct;

@@ -1,6 +1,6 @@
 import * as Y from 'yjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
-import type { Node, Edge } from '@xyflow/react';
+import type { CartaNode, CartaEdge } from '@carta/types';
 import type {
   DocumentAdapter,
   CartaDocumentV4,
@@ -8,14 +8,20 @@ import type {
   ConstructNodeData,
   PortSchema,
   SchemaGroup,
+  SchemaPackage,
+  SchemaRelationship,
+  PackageManifestEntry,
   Page,
 } from '@carta/domain';
 import {
   objectToYMap,
   yMapToObject,
   generateSchemaGroupId,
+  generateSchemaPackageId,
   generatePageId,
   migrateToPages,
+  migrateGroupsToPackages,
+  migrateSchemaRelationships,
   deepPlainToY,
   updateSchema as updateSchemaOp,
 } from '@carta/document';
@@ -75,6 +81,9 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
   const yschemas = ydoc.getMap<Y.Map<unknown>>('schemas');
   const yportSchemas = ydoc.getMap<Y.Map<unknown>>('portSchemas');
   const yschemaGroups = ydoc.getMap<Y.Map<unknown>>('schemaGroups');
+  const yschemaPackages = ydoc.getMap<Y.Map<unknown>>('schemaPackages');
+  const yschemaRelationships = ydoc.getMap<Y.Map<unknown>>('schemaRelationships');
+  const ypackageManifest = ydoc.getMap<Y.Map<unknown>>('packageManifest');
 
   // Persistence
   let indexeddbProvider: IndexeddbPersistence | null = null;
@@ -95,6 +104,9 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
   const schemaListeners = new Set<() => void>();
   const portSchemaListeners = new Set<() => void>();
   const schemaGroupListeners = new Set<() => void>();
+  const schemaPackageListeners = new Set<() => void>();
+  const schemaRelationshipListeners = new Set<() => void>();
+  const packageManifestListeners = new Set<() => void>();
   const pageListeners = new Set<() => void>();
   const metaListeners = new Set<() => void>();
 
@@ -103,6 +115,8 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
   const notifySchemaListeners = () => schemaListeners.forEach((cb) => cb());
   const notifyPortSchemaListeners = () => portSchemaListeners.forEach((cb) => cb());
   const notifySchemaGroupListeners = () => schemaGroupListeners.forEach((cb) => cb());
+  const notifySchemaPackageListeners = () => schemaPackageListeners.forEach((cb) => cb());
+  const notifySchemaRelationshipListeners = () => schemaRelationshipListeners.forEach((cb) => cb());
   const notifyPageListeners = () => pageListeners.forEach((cb) => cb());
   const notifyMetaListeners = () => metaListeners.forEach((cb) => cb());
 
@@ -128,8 +142,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     notifyPageListeners();
     notifyListeners();
   };
-  const onNodesChange = (_events: unknown, transaction: { origin: unknown }) => {
-    if (transaction?.origin === 'drag-commit') return;
+  const onNodesChange = () => {
     notifyNodeListeners();
     notifyListeners();
   };
@@ -149,6 +162,18 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     notifySchemaGroupListeners();
     notifyListeners();
   };
+  const onSchemaPackagesChange = () => {
+    notifySchemaPackageListeners();
+    notifyListeners();
+  };
+  const onSchemaRelationshipsChange = () => {
+    notifySchemaRelationshipListeners();
+    notifyListeners();
+  };
+  const onPackageManifestChange = () => {
+    listeners.forEach((l) => l());
+    packageManifestListeners.forEach((l) => l());
+  };
 
   // Set up Y.Doc observers
   const setupObservers = () => {
@@ -159,6 +184,9 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     yschemas.observeDeep(onSchemasChange);
     yportSchemas.observeDeep(onPortSchemasChange);
     yschemaGroups.observeDeep(onSchemaGroupsChange);
+    yschemaPackages.observeDeep(onSchemaPackagesChange);
+    yschemaRelationships.observeDeep(onSchemaRelationshipsChange);
+    ypackageManifest.observeDeep(onPackageManifestChange);
     observersSetUp = true;
   };
 
@@ -275,6 +303,12 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
       // Migrate flat data to pages if needed
       migrateToPages(ydoc);
+
+      // Migrate top-level groups to packages if needed
+      migrateGroupsToPackages(ydoc);
+
+      // Migrate suggestedRelated to schemaRelationships if needed
+      migrateSchemaRelationships(ydoc);
 
       // Ensure at least one page exists (skip when syncing — server provides initial state)
       if (ypages.size === 0 && !options.deferDefaultPage) {
@@ -450,6 +484,9 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
         yschemas.unobserveDeep(onSchemasChange);
         yportSchemas.unobserveDeep(onPortSchemasChange);
         yschemaGroups.unobserveDeep(onSchemaGroupsChange);
+        yschemaPackages.unobserveDeep(onSchemaPackagesChange);
+        yschemaRelationships.unobserveDeep(onSchemaRelationshipsChange);
+        ypackageManifest.unobserveDeep(onPackageManifestChange);
       }
 
       // Clear all granular listener sets
@@ -458,6 +495,9 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       schemaListeners.clear();
       portSchemaListeners.clear();
       schemaGroupListeners.clear();
+      schemaPackageListeners.clear();
+      packageManifestListeners.clear();
+      schemaRelationshipListeners.clear();
       pageListeners.clear();
       metaListeners.clear();
       listeners.clear();
@@ -478,23 +518,23 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     // State access - Graph (reads from active page)
-    getNodes(): Node[] {
+    getNodes(): CartaNode[] {
       const pageNodes = getActivePageNodes();
       if (!pageNodes) return [];
-      const nodes: Node[] = [];
+      const nodes: CartaNode[] = [];
       pageNodes.forEach((ynode, id) => {
-        const { extent: _extent, ...nodeObj } = yMapToObject<Node & { extent?: string }>(ynode);
+        const { extent: _extent, ...nodeObj } = yMapToObject<CartaNode & { extent?: string }>(ynode);
         nodes.push({ ...nodeObj, id });
       });
       return nodes;
     },
 
-    getEdges(): Edge[] {
+    getEdges(): CartaEdge[] {
       const pageEdges = getActivePageEdges();
       if (!pageEdges) return [];
-      const edges: Edge[] = [];
+      const edges: CartaEdge[] = [];
       pageEdges.forEach((yedge, id) => {
-        const edgeObj = yMapToObject<Edge>(yedge);
+        const edgeObj = yMapToObject<CartaEdge>(yedge);
         edges.push({ ...edgeObj, id });
       });
       return edges;
@@ -520,12 +560,12 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
         const nodes: unknown[] = [];
         pageNodesMap?.forEach((ynode, id) => {
-          nodes.push({ ...yMapToObject<Node>(ynode), id });
+          nodes.push({ ...yMapToObject<CartaNode>(ynode), id });
         });
 
         const edges: unknown[] = [];
         pageEdgesMap?.forEach((yedge, id) => {
-          edges.push({ ...yMapToObject<Edge>(yedge), id });
+          edges.push({ ...yMapToObject<CartaEdge>(yedge), id });
         });
 
         pages.push({ ...page, nodes, edges });
@@ -543,12 +583,12 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
       const nodes: unknown[] = [];
       pageNodesMap?.forEach((ynode, nid) => {
-        nodes.push({ ...yMapToObject<Node>(ynode), id: nid });
+        nodes.push({ ...yMapToObject<CartaNode>(ynode), id: nid });
       });
 
       const edges: unknown[] = [];
       pageEdgesMap?.forEach((yedge, eid) => {
-        edges.push({ ...yMapToObject<Edge>(yedge), id: eid });
+        edges.push({ ...yMapToObject<CartaEdge>(yedge), id: eid });
       });
 
       return { ...page, nodes, edges };
@@ -603,6 +643,36 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       return yMapToObject<SchemaGroup>(ygroup);
     },
 
+    // State access - Schema Packages
+    getSchemaPackages(): SchemaPackage[] {
+      const packages: SchemaPackage[] = [];
+      yschemaPackages.forEach((ypackage) => {
+        packages.push(yMapToObject<SchemaPackage>(ypackage));
+      });
+      return packages;
+    },
+
+    getSchemaPackage(id: string): SchemaPackage | undefined {
+      const ypackage = yschemaPackages.get(id);
+      if (!ypackage) return undefined;
+      return yMapToObject<SchemaPackage>(ypackage);
+    },
+
+    // State access - Package Manifest
+    getPackageManifest(): PackageManifestEntry[] {
+      const entries: PackageManifestEntry[] = [];
+      ypackageManifest.forEach((yentry) => {
+        entries.push(yMapToObject<PackageManifestEntry>(yentry));
+      });
+      return entries;
+    },
+
+    getPackageManifestEntry(packageId: string): PackageManifestEntry | undefined {
+      const yentry = ypackageManifest.get(packageId);
+      if (!yentry) return undefined;
+      return yMapToObject<PackageManifestEntry>(yentry);
+    },
+
     // Mutations - Graph (writes to active page)
     setNodes(nodesOrUpdater) {
       ydoc.transact(() => {
@@ -614,7 +684,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
         const pageNodes = getActivePageNodes();
         if (!pageNodes) return;
         pageNodes.clear();
-        for (const node of newNodes as Node[]) {
+        for (const node of newNodes as CartaNode[]) {
           const { id, ...rest } = node;
           pageNodes.set(id, objectToYMap(rest as Record<string, unknown>));
         }
@@ -631,7 +701,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
         const pageEdges = getActivePageEdges();
         if (!pageEdges) return;
         pageEdges.clear();
-        for (const edge of newEdges as Edge[]) {
+        for (const edge of newEdges as CartaEdge[]) {
           const { id, ...rest } = edge;
           pageEdges.set(id, objectToYMap(rest as Record<string, unknown>));
         }
@@ -1033,6 +1103,124 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       return exists;
     },
 
+    // Mutations - Schema Packages
+    setSchemaPackages(packages: SchemaPackage[]) {
+      ydoc.transact(() => {
+        yschemaPackages.clear();
+        for (const pkg of packages) {
+          yschemaPackages.set(pkg.id, objectToYMap(pkg as unknown as Record<string, unknown>));
+        }
+      }, 'user');
+    },
+
+    addSchemaPackage(pkg: Omit<SchemaPackage, 'id'> | SchemaPackage): SchemaPackage {
+      const id = ('id' in pkg && pkg.id) ? pkg.id : generateSchemaPackageId();
+      const newPackage: SchemaPackage = { ...pkg, id };
+      ydoc.transact(() => {
+        yschemaPackages.set(id, objectToYMap(newPackage as unknown as Record<string, unknown>));
+      }, 'user');
+      return newPackage;
+    },
+
+    updateSchemaPackage(id: string, updates: Partial<SchemaPackage>) {
+      ydoc.transact(() => {
+        const ypackage = yschemaPackages.get(id);
+        if (!ypackage) return;
+        const current = yMapToObject<SchemaPackage>(ypackage);
+        yschemaPackages.set(id, objectToYMap({ ...current, ...updates } as unknown as Record<string, unknown>));
+      }, 'user');
+    },
+
+    removeSchemaPackage(id: string): boolean {
+      const exists = yschemaPackages.has(id);
+      if (exists) {
+        ydoc.transact(() => {
+          // Clear packageId from schemas that reference this package
+          yschemas.forEach((yschema, schemaType) => {
+            const schema = yMapToObject<ConstructSchema>(yschema);
+            if (schema.packageId === id) {
+              yschemas.set(schemaType, objectToYMap({ ...schema, packageId: undefined } as unknown as Record<string, unknown>));
+            }
+          });
+          // Clear packageId from port schemas that reference this package
+          yportSchemas.forEach((yportSchema, portId) => {
+            const portSchema = yMapToObject<PortSchema>(yportSchema);
+            if (portSchema.packageId === id) {
+              yportSchemas.set(portId, objectToYMap({ ...portSchema, packageId: undefined } as unknown as Record<string, unknown>));
+            }
+          });
+          // Clear packageId from groups that reference this package
+          yschemaGroups.forEach((ygroup, groupId) => {
+            const group = yMapToObject<SchemaGroup>(ygroup);
+            if (group.packageId === id) {
+              yschemaGroups.set(groupId, objectToYMap({ ...group, packageId: undefined } as unknown as Record<string, unknown>));
+            }
+          });
+          yschemaPackages.delete(id);
+        }, 'user');
+      }
+      return exists;
+    },
+
+    // Mutations - Package Manifest
+    addPackageManifestEntry(entry: PackageManifestEntry) {
+      ydoc.transact(() => {
+        ypackageManifest.set(entry.packageId, objectToYMap(entry as unknown as Record<string, unknown>));
+      }, 'user');
+    },
+
+    removePackageManifestEntry(packageId: string): boolean {
+      const exists = ypackageManifest.has(packageId);
+      if (exists) {
+        ydoc.transact(() => {
+          ypackageManifest.delete(packageId);
+        }, 'user');
+      }
+      return exists;
+    },
+
+    // State access - Schema Relationships
+    getSchemaRelationships(): SchemaRelationship[] {
+      const rels: SchemaRelationship[] = [];
+      yschemaRelationships.forEach((yrel) => {
+        rels.push(yMapToObject<SchemaRelationship>(yrel));
+      });
+      return rels;
+    },
+
+    getSchemaRelationship(id: string): SchemaRelationship | undefined {
+      const yrel = yschemaRelationships.get(id);
+      return yrel ? yMapToObject<SchemaRelationship>(yrel) : undefined;
+    },
+
+    // Mutations - Schema Relationships
+    addSchemaRelationship(rel: SchemaRelationship) {
+      ydoc.transact(() => {
+        yschemaRelationships.set(rel.id, objectToYMap(rel as unknown as Record<string, unknown>));
+      }, 'user');
+    },
+
+    updateSchemaRelationship(id: string, updates: Partial<SchemaRelationship>) {
+      const yrel = yschemaRelationships.get(id);
+      if (yrel) {
+        ydoc.transact(() => {
+          for (const [key, value] of Object.entries(updates)) {
+            yrel.set(key, value);
+          }
+        }, 'user');
+      }
+    },
+
+    removeSchemaRelationship(id: string): boolean {
+      const exists = yschemaRelationships.has(id);
+      if (exists) {
+        ydoc.transact(() => {
+          yschemaRelationships.delete(id);
+        }, 'user');
+      }
+      return exists;
+    },
+
     // Transaction with origin for MCP attribution
     transaction<T>(fn: () => T, origin: string = 'user'): T {
       let result: T;
@@ -1075,6 +1263,21 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       return () => schemaGroupListeners.delete(listener);
     },
 
+    subscribeToSchemaPackages(listener: () => void): () => void {
+      schemaPackageListeners.add(listener);
+      return () => schemaPackageListeners.delete(listener);
+    },
+
+    subscribeToSchemaRelationships(listener: () => void): () => void {
+      schemaRelationshipListeners.add(listener);
+      return () => schemaRelationshipListeners.delete(listener);
+    },
+
+    subscribeToPackageManifest(listener: () => void): () => void {
+      packageManifestListeners.add(listener);
+      return () => packageManifestListeners.delete(listener);
+    },
+
     subscribeToPages(listener: () => void): () => void {
       pageListeners.add(listener);
       return () => pageListeners.delete(listener);
@@ -1096,6 +1299,9 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
         schemas: adapter.getSchemas(),
         portSchemas: adapter.getPortSchemas(),
         schemaGroups: adapter.getSchemaGroups(),
+        schemaPackages: adapter.getSchemaPackages(),
+        schemaRelationships: adapter.getSchemaRelationships(),
+        packageManifest: adapter.getPackageManifest(),
       };
     },
 

@@ -5,7 +5,7 @@ status: active
 
 # Presentation Model
 
-The presentation model is a pure transformation layer that converts domain state (constructs, schemas, connections, organizers) into view state (positioned, styled, visible/hidden React Flow nodes and edges). It owns all decisions about **how** data appears on screen, keeping the domain model free of rendering concerns.
+The presentation model is a pure transformation layer that converts domain state (constructs, schemas, connections, organizers) into view state (positioned, styled, visible/hidden canvas nodes and edges). It owns all decisions about **how** data appears on screen, keeping the domain model free of rendering concerns.
 
 ## Why This Layer Exists
 
@@ -13,15 +13,15 @@ Without the presentation model, rendering logic is scattered: Map.tsx enhances n
 
 - **Domain model** describes what exists and how it relates (constructs, schemas, connections)
 - **Presentation model** decides what the view should show given what exists
-- **React Flow** renders the result
+- **canvas-engine** renders the result
 
 This separation means new rendering behaviors (organizer layouts, render styles, LOD bands) are added in one place without touching domain logic or React Flow integration.
 
 ## Architecture
 
 ```
-Domain State                  Presentation Model                    React Flow
-─────────────                 ──────────────────                    ──────────
+Domain State                  Presentation Model                    Canvas
+─────────────                 ──────────────────                    ──────
 Constructs (M0)        →      Node visibility, positioning     →    nodes[]
 Schemas (M1)           →      Component selection (dispatch)   →    nodeTypes
 Connections            →      Edge routing, remapping           →    edges[]
@@ -93,11 +93,13 @@ An **organized collection** is the set of nodes that belong to a single organize
 
 ### Layout Strategies
 
-Each organizer has a **layout strategy** that determines how its collection is arranged. Currently only `freeform` is implemented:
+Each organizer has a **layout strategy** that determines how its collection is arranged:
 
 | Strategy | Behavior | Use Case |
 |----------|----------|----------|
-| `freeform` | Members positioned freely within bounds. NodeResizer for manual sizing. This is the default and only layout. | General-purpose grouping, spatial clustering |
+| `freeform` | Members positioned freely within bounds. NodeResizer for manual sizing. This is the default layout. | General-purpose grouping, spatial clustering |
+
+**Planned strategies:** `stack` (one member visible at a time with arrow navigation) and `grid` (auto-arranged in a resizable grid) are planned but not yet implemented.
 
 Layout strategies follow a **Strategy pattern** — each is a pure function that computes member positions and visibility from the organizer's state:
 
@@ -292,8 +294,10 @@ The presentation model also governs which component renders each construct. This
 | `'circle'` | ConstructNodeMarker | ConstructNodeCircle |
 | `'diamond'` | ConstructNodeMarker | ConstructNodeDiamond |
 | `'document'` | ConstructNodeMarker | ConstructNodeDocument |
+| `'stadium'` | ConstructNodeMarker | ConstructNodeStadium |
+| `'parallelogram'` | ConstructNodeMarker | ConstructNodeParallelogram |
 
-The shape variants (`circle`, `diamond`, `document`) support notation-specific rendering for BPMN and other visual languages (see doc05.01). Circle renders as a circular node (events, states), diamond as a diamond shape (gateways, decisions), and document as a document-shaped icon (artifacts, data objects).
+The shape variants (`circle`, `diamond`, `document`, `stadium`, `parallelogram`) support notation-specific rendering for BPMN, ISO 5807 flowcharts, and other visual languages (see doc05.01). Circle renders as a circular node (events, states), diamond as a diamond shape (gateways, decisions), document as a document-shaped icon (artifacts, data objects), stadium as a capsule/pill with fully rounded ends (flowchart terminals), and parallelogram as a skewed quadrilateral (flowchart data/I/O).
 
 Adding a new render style = add a component + add a row to the dispatch table. No other changes needed. Variant components are pure (no hooks), receive identical `ConstructNodeVariantProps`, and share only the data contract and connection infrastructure.
 

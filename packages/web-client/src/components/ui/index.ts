@@ -33,5 +33,4 @@ export { default as DraggableWindow } from './DraggableWindow';
 // Icons
 export * from './icons';
 
-// Debug
-export { ZoomDebug, type ZoomDebugProps } from './ZoomDebug';
+export { SimpleMarkdown } from './SimpleMarkdown.js';

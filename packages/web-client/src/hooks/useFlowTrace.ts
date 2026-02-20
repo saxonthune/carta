@@ -1,12 +1,14 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import type { Edge, NodeMouseHandler } from '@xyflow/react';
+import type { CartaEdge } from '@carta/types';
 import { traceGraph, type TraceResult } from '../presentation/traceGraph.js';
+
+type NodeMouseHandler = (event: React.MouseEvent, node: { id: string }) => void;
 
 /**
  * Manages Alt+hover flow trace state.
  * Alt+hover a construct to see its forward flow traced with hop badges.
  */
-export function useFlowTrace(allEdges: Edge[]) {
+export function useFlowTrace(allEdges: CartaEdge[]) {
   const [altPressed, setAltPressed] = useState(false);
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
 

@@ -4,18 +4,17 @@ import { useDocumentContext } from '../../contexts/DocumentContext';
 import { config } from '../../config/featureFlags';
 import ConnectionStatus from '../ConnectionStatus';
 import DocumentBrowserModal from '../modals/DocumentBrowserModal';
+
 import ClearWorkspaceModal from '../modals/ClearWorkspaceModal';
 import { cleanAllLocalData } from '../../stores/documentRegistry';
 import { ThemeMenu } from './ThemeMenu';
 import { SettingsMenu } from './SettingsMenu';
-import { SeedsMenu } from './SeedsMenu';
 import { ShareMenu } from './ShareMenu';
 import { useClickOutside } from './useClickOutside';
 import Input from '../ui/Input';
 import Textarea from '../ui/Textarea';
 import { Tooltip } from '../ui';
-import { hydrateSeed, builtInPortSchemas, type SchemaSeed } from '@carta/domain';
-import { seeds } from '../../utils/seeds';
+import { guideContent } from '../../data/guideContent';
 
 export interface HeaderProps {
   title: string;
@@ -54,9 +53,10 @@ export function Header({
   onClear,
   onToggleAI,
 }: HeaderProps) {
-  const { mode, documentId, adapter } = useDocumentContext();
+  const { mode, documentId } = useDocumentContext();
   const [isProjectInfoOpen, setIsProjectInfoOpen] = useState(false);
   const [isDocBrowserOpen, setIsDocBrowserOpen] = useState(false);
+
   const [isClearWorkspaceModalOpen, setIsClearWorkspaceModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const projectInfoRef = useRef<HTMLDivElement>(null);
@@ -82,50 +82,6 @@ export function Header({
 
   const handleClearEverything = () => {
     onClear?.('all');
-  };
-
-  const handleAddBuiltInSchemas = (selectedSeeds: SchemaSeed[]) => {
-    adapter.transaction(() => {
-      // Ensure port schemas exist
-      const existingPortIds = new Set(adapter.getPortSchemas().map(p => p.id));
-      for (const ps of builtInPortSchemas) {
-        if (!existingPortIds.has(ps.id)) {
-          adapter.addPortSchema(ps);
-        }
-      }
-      // Get current groups for dedup
-      const existingGroups = adapter.getSchemaGroups();
-      // Hydrate and add each selected seed group
-      for (const seed of selectedSeeds) {
-        const { groups, schemas } = hydrateSeed(seed, existingGroups);
-        for (const g of groups) {
-          // Only add if not already present
-          if (!existingGroups.some(eg => eg.id === g.id)) {
-            adapter.addSchemaGroup(g);
-          }
-        }
-        for (const s of schemas) adapter.addSchema(s);
-      }
-    }, 'user');
-  };
-
-  const handleLoadExample = (seedName: string) => {
-    const seedFn = seeds[seedName];
-    if (!seedFn) return;
-
-    // Ensure port schemas exist before loading example
-    const existingPortIds = new Set(adapter.getPortSchemas().map(p => p.id));
-    for (const ps of builtInPortSchemas) {
-      if (!existingPortIds.has(ps.id)) {
-        adapter.addPortSchema(ps);
-      }
-    }
-
-    // Create new page and switch to it
-    const page = adapter.createPage(seedName);
-    adapter.setActivePage(page.id);
-    // Run seed function — it writes nodes/edges to the active page
-    seedFn(adapter);
   };
 
 
@@ -166,7 +122,7 @@ export function Header({
       {/* Center section: Title */}
       <div className="relative" ref={projectInfoRef}>
         <div className="flex items-center justify-center">
-          <Tooltip content="Click to edit project info">
+          <Tooltip content="Click to edit project info" guideContent={guideContent['header.title']}>
             <h1
               className="m-0 text-lg font-semibold text-content cursor-pointer px-2 py-1 rounded hover:bg-surface-alt transition-colors"
               onClick={() => setIsProjectInfoOpen(!isProjectInfoOpen)}
@@ -220,7 +176,7 @@ export function Header({
         )}
 
         {/* Document browser button */}
-        <Tooltip content="Browse documents">
+        <Tooltip content="Browse documents" guideContent={guideContent['header.browse']}>
           <button
             className="w-9 h-9 flex items-center justify-center rounded-lg cursor-pointer text-content-muted hover:bg-surface-alt hover:text-content transition-colors"
             onClick={() => setIsDocBrowserOpen(true)}
@@ -229,7 +185,7 @@ export function Header({
           </button>
         </Tooltip>
 
-        <Tooltip content="Export project to .carta file">
+        <Tooltip content="Export project to .carta file" guideContent={guideContent['header.export']}>
           <button
             className="px-4 py-2 text-sm font-medium bg-surface text-content border border-border rounded-lg cursor-pointer hover:bg-surface-alt transition-colors"
             onClick={onExport}
@@ -238,7 +194,7 @@ export function Header({
           </button>
         </Tooltip>
 
-        <Tooltip content="Import project from .carta file">
+        <Tooltip content="Import project from .carta file" guideContent={guideContent['header.import']}>
           <button
             className="px-4 py-2 text-sm font-medium bg-surface text-content border border-border rounded-lg cursor-pointer hover:bg-surface-alt transition-colors"
             onClick={handleImportClick}
@@ -247,7 +203,7 @@ export function Header({
           </button>
         </Tooltip>
 
-        <Tooltip content="Compile project">
+        <Tooltip content="Compile project" guideContent={guideContent['header.compile']}>
           <button
             className="px-4 py-2 text-sm font-medium bg-emerald-500 text-white border-none rounded-lg cursor-pointer hover:bg-emerald-600 transition-colors"
             onClick={onCompile}
@@ -257,7 +213,7 @@ export function Header({
         </Tooltip>
 
         {onToggleAI && (
-          <Tooltip content="Open AI Assistant">
+          <Tooltip content="Open AI Assistant" guideContent={guideContent['header.ai']}>
             <button
               className="w-9 h-9 flex items-center justify-center rounded-lg cursor-pointer text-content-muted hover:bg-surface-alt hover:text-content transition-colors"
               onClick={onToggleAI}
@@ -267,14 +223,10 @@ export function Header({
           </Tooltip>
         )}
 
-        {config.debug && <SeedsMenu />}
-
         <ThemeMenu />
 
         <SettingsMenu
           onOpenClearModal={() => setIsClearWorkspaceModalOpen(true)}
-          onAddBuiltInSchemas={handleAddBuiltInSchemas}
-          onLoadExample={handleLoadExample}
         />
       </div>
 
@@ -289,6 +241,7 @@ export function Header({
       {isDocBrowserOpen && (
         <DocumentBrowserModal onClose={() => setIsDocBrowserOpen(false)} />
       )}
+
     </header>
   );
 }

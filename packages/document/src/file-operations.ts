@@ -5,8 +5,7 @@
  */
 
 import * as Y from 'yjs';
-import type { ConstructSchema, PortSchema, SchemaGroup } from '@carta/domain';
-import { builtInConstructSchemas, builtInPortSchemas } from '@carta/domain';
+import type { ConstructSchema, PortSchema, SchemaGroup, SchemaPackage, PackageManifestEntry } from '@carta/domain';
 import { yToPlain, deepPlainToY } from './yjs-helpers.js';
 import { CARTA_FILE_VERSION } from './constants.js';
 import type { CartaFile, CartaFilePage } from './file-format.js';
@@ -22,6 +21,8 @@ export function extractCartaFile(doc: Y.Doc): CartaFile {
   const yschemas = doc.getMap<Y.Map<unknown>>('schemas');
   const yportSchemas = doc.getMap<Y.Map<unknown>>('portSchemas');
   const yschemaGroups = doc.getMap<Y.Map<unknown>>('schemaGroups');
+  const yschemaPackages = doc.getMap<Y.Map<unknown>>('schemaPackages');
+  const ypackageManifest = doc.getMap<Y.Map<unknown>>('packageManifest');
 
   const title = (ymeta.get('title') as string) || 'Untitled Project';
   const description = ymeta.get('description') as string | undefined;
@@ -64,30 +65,34 @@ export function extractCartaFile(doc: Y.Doc): CartaFile {
   // Sort levels by order
   pages.sort((a, b) => a.order - b.order);
 
-  // Extract custom schemas (filter out built-ins)
-  const builtInTypes = new Set(builtInConstructSchemas.map(s => s.type));
+  // Extract all schemas (including package schemas — file must be self-contained)
   const customSchemas: ConstructSchema[] = [];
   yschemas.forEach((yschema) => {
-    const schema = yToPlain(yschema) as ConstructSchema;
-    if (!builtInTypes.has(schema.type)) {
-      customSchemas.push(schema);
-    }
+    customSchemas.push(yToPlain(yschema) as ConstructSchema);
   });
 
-  // Extract custom port schemas (filter out built-ins)
-  const builtInPortIds = new Set(builtInPortSchemas.map(p => p.id));
+  // Extract all port schemas
   const portSchemas: PortSchema[] = [];
   yportSchemas.forEach((yps) => {
-    const ps = yToPlain(yps) as PortSchema;
-    if (!builtInPortIds.has(ps.id)) {
-      portSchemas.push(ps);
-    }
+    portSchemas.push(yToPlain(yps) as PortSchema);
   });
 
   // Extract schema groups
   const schemaGroups: SchemaGroup[] = [];
   yschemaGroups.forEach((ysg) => {
     schemaGroups.push(yToPlain(ysg) as SchemaGroup);
+  });
+
+  // Extract schema packages
+  const schemaPackages: SchemaPackage[] = [];
+  yschemaPackages.forEach((ysp) => {
+    schemaPackages.push(yToPlain(ysp) as SchemaPackage);
+  });
+
+  // Extract package manifest
+  const packageManifest: PackageManifestEntry[] = [];
+  ypackageManifest.forEach((ypm) => {
+    packageManifest.push(yToPlain(ypm) as PackageManifestEntry);
   });
 
   return {
@@ -98,6 +103,8 @@ export function extractCartaFile(doc: Y.Doc): CartaFile {
     customSchemas,
     portSchemas,
     schemaGroups,
+    schemaPackages,
+    packageManifest: packageManifest.length > 0 ? packageManifest : undefined,
     exportedAt: new Date().toISOString(),
   };
 }
@@ -115,6 +122,8 @@ export function hydrateYDocFromCartaFile(doc: Y.Doc, data: CartaFile): void {
   const yschemas = doc.getMap<Y.Map<unknown>>('schemas');
   const yportSchemas = doc.getMap<Y.Map<unknown>>('portSchemas');
   const yschemaGroups = doc.getMap<Y.Map<unknown>>('schemaGroups');
+  const yschemaPackages = doc.getMap<Y.Map<unknown>>('schemaPackages');
+  const ypackageManifest = doc.getMap<Y.Map<unknown>>('packageManifest');
 
   doc.transact(() => {
     // Clear existing data
@@ -125,6 +134,8 @@ export function hydrateYDocFromCartaFile(doc: Y.Doc, data: CartaFile): void {
     yschemas.clear();
     yportSchemas.clear();
     yschemaGroups.clear();
+    yschemaPackages.clear();
+    ypackageManifest.clear();
 
     // Set metadata
     ymeta.set('title', data.title);
@@ -202,6 +213,20 @@ export function hydrateYDocFromCartaFile(doc: Y.Doc, data: CartaFile): void {
     for (const sg of data.schemaGroups) {
       const ysg = deepPlainToY(sg) as Y.Map<unknown>;
       yschemaGroups.set(sg.id, ysg);
+    }
+
+    // Set schema packages
+    for (const sp of data.schemaPackages) {
+      const ysp = deepPlainToY(sp) as Y.Map<unknown>;
+      yschemaPackages.set(sp.id, ysp);
+    }
+
+    // Set package manifest
+    if (data.packageManifest) {
+      for (const pm of data.packageManifest) {
+        const ypm = deepPlainToY(pm) as Y.Map<unknown>;
+        ypackageManifest.set(pm.packageId, ypm);
+      }
     }
   });
 }

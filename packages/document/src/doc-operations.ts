@@ -11,7 +11,7 @@
 import * as Y from 'yjs';
 import {
   generateSemanticId,
-  builtInConstructSchemas,
+  standardLibrary,
   toAbsolutePosition,
   toRelativePosition,
   computeFlowLayout,
@@ -21,6 +21,9 @@ import {
   computeOrganizerFit,
   DEFAULT_ORGANIZER_LAYOUT,
   resolvePinConstraints,
+  applyPackage,
+  isPackageModified,
+  normalizeSchema,
 } from '@carta/domain';
 import type {
   CompilerNode,
@@ -42,10 +45,17 @@ import type {
   PinConstraint,
   PinDirection,
   PinLayoutNode,
+  SchemaPackage,
+  PortSchema,
+  SchemaGroup,
+  SchemaRelationship,
+  ApplyPackageResult,
+  DocumentAdapter,
+  PackageManifestEntry,
 } from '@carta/domain';
 import { CompilerEngine } from '@carta/compiler';
 import { yToPlain, deepPlainToY, safeGet } from './yjs-helpers.js';
-import { generateNodeId, generatePageId } from './id-generators.js';
+import { generateNodeId, generatePageId, generateSchemaPackageId } from './id-generators.js';
 import { MCP_ORIGIN, SERVER_FORMAT_VERSION, YDOC_MAPS } from './constants.js';
 
 /**
@@ -1793,7 +1803,7 @@ export function getSchema(ydoc: Y.Doc, type: string): ConstructSchema | null {
   const yschemas = ydoc.getMap<Y.Map<unknown>>('schemas');
   const yschema = yschemas.get(type);
   if (yschema) {
-    return yToPlain(yschema) as ConstructSchema;
+    return normalizeSchema(yToPlain(yschema) as Record<string, unknown>) as unknown as ConstructSchema;
   }
 
   return null;
@@ -2296,7 +2306,8 @@ export function renameSchemaType(
   if (yschemas.has(newType)) throw new Error(`Schema already exists: ${newType}`);
 
   // Block renaming built-in schemas
-  if (builtInConstructSchemas.some(s => s.type === oldType)) {
+  const builtInTypes = new Set(standardLibrary.flatMap(pkg => pkg.schemas.map(s => s.type)));
+  if (builtInTypes.has(oldType)) {
     throw new Error(`Cannot rename built-in schema: ${oldType}`);
   }
 
@@ -3456,7 +3467,7 @@ export function extractDocument(ydoc: Y.Doc, roomId: string, pageId: string): Se
   const now = new Date().toISOString();
 
   // Only include custom schemas (filter out built-ins)
-  const builtInTypes = new Set(builtInConstructSchemas.map((s) => s.type));
+  const builtInTypes = new Set(standardLibrary.flatMap(pkg => pkg.schemas.map(s => s.type)));
   const customSchemas = schemas.filter((s) => !builtInTypes.has(s.type));
 
   return {
@@ -3775,3 +3786,336 @@ export function rebuildPage(
     orphansDropped: orphans,
   };
 }
+
+// ===== SCHEMA PACKAGE OPERATIONS =====
+
+/**
+ * List all schema packages with member counts
+ */
+export function listPackages(ydoc: Y.Doc): Array<{
+  id: string;
+  name: string;
+  description?: string;
+  color: string;
+  libraryEntryId?: string;
+  appliedVersion?: number;
+  schemaCount: number;
+  portSchemaCount: number;
+  groupCount: number;
+}> {
+  const yschemaPackages = ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.SCHEMA_PACKAGES);
+  const yschemas = ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.SCHEMAS);
+  const yportSchemas = ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.PORT_SCHEMAS);
+  const yschemaGroups = ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.SCHEMA_GROUPS);
+
+  const packages: Array<{
+    id: string;
+    name: string;
+    description?: string;
+    color: string;
+    libraryEntryId?: string;
+    appliedVersion?: number;
+    schemaCount: number;
+    portSchemaCount: number;
+    groupCount: number;
+  }> = [];
+
+  yschemaPackages.forEach((ypackage) => {
+    const pkg = yToPlain(ypackage) as SchemaPackage;
+
+    // Count schemas with matching packageId
+    let schemaCount = 0;
+    yschemas.forEach((yschema) => {
+      const schema = yToPlain(yschema) as ConstructSchema;
+      if (schema.packageId === pkg.id) {
+        schemaCount++;
+      }
+    });
+
+    // Count port schemas with matching packageId
+    let portSchemaCount = 0;
+    yportSchemas.forEach((yportSchema) => {
+      const portSchema = yToPlain(yportSchema) as PortSchema;
+      if (portSchema.packageId === pkg.id) {
+        portSchemaCount++;
+      }
+    });
+
+    // Count schema groups with matching packageId
+    let groupCount = 0;
+    yschemaGroups.forEach((ygroup) => {
+      const group = yToPlain(ygroup) as SchemaGroup;
+      if (group.packageId === pkg.id) {
+        groupCount++;
+      }
+    });
+
+    packages.push({
+      id: pkg.id,
+      name: pkg.name,
+      description: pkg.description,
+      color: pkg.color,
+      libraryEntryId: pkg.libraryEntryId,
+      appliedVersion: pkg.appliedVersion,
+      schemaCount,
+      portSchemaCount,
+      groupCount,
+    });
+  });
+
+  return packages;
+}
+
+/**
+ * Get a schema package with all its members
+ */
+export function getPackage(ydoc: Y.Doc, packageId: string): {
+  package: SchemaPackage;
+  schemas: ConstructSchema[];
+  portSchemas: PortSchema[];
+  schemaGroups: SchemaGroup[];
+  schemaRelationships: SchemaRelationship[];
+} | null {
+  const yschemaPackages = ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.SCHEMA_PACKAGES);
+  const ypackage = yschemaPackages.get(packageId);
+  if (!ypackage) return null;
+
+  const pkg = yToPlain(ypackage) as SchemaPackage;
+
+  const yschemas = ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.SCHEMAS);
+  const yportSchemas = ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.PORT_SCHEMAS);
+  const yschemaGroups = ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.SCHEMA_GROUPS);
+
+  const schemas: ConstructSchema[] = [];
+  const portSchemas: PortSchema[] = [];
+  const schemaGroups: SchemaGroup[] = [];
+
+  yschemas.forEach((yschema) => {
+    const schema = yToPlain(yschema) as ConstructSchema;
+    if (schema.packageId === packageId) {
+      schemas.push(schema);
+    }
+  });
+
+  yportSchemas.forEach((yportSchema) => {
+    const portSchema = yToPlain(yportSchema) as PortSchema;
+    if (portSchema.packageId === packageId) {
+      portSchemas.push(portSchema);
+    }
+  });
+
+  yschemaGroups.forEach((ygroup) => {
+    const group = yToPlain(ygroup) as SchemaGroup;
+    if (group.packageId === packageId) {
+      schemaGroups.push(group);
+    }
+  });
+
+  // Note: SchemaRelationship doesn't have packageId in the types,
+  // so we return empty array for now
+  const schemaRelationships: SchemaRelationship[] = [];
+
+  return {
+    package: pkg,
+    schemas,
+    portSchemas,
+    schemaGroups,
+    schemaRelationships,
+  };
+}
+
+/**
+ * Create a new schema package
+ */
+export function createPackage(ydoc: Y.Doc, data: {
+  name: string;
+  description?: string;
+  color: string;
+}): SchemaPackage {
+  const yschemaPackages = ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.SCHEMA_PACKAGES);
+
+  const pkg: SchemaPackage = {
+    id: generateSchemaPackageId(),
+    name: data.name,
+    description: data.description,
+    color: data.color,
+  };
+
+  ydoc.transact(() => {
+    yschemaPackages.set(pkg.id, deepPlainToY(pkg) as Y.Map<unknown>);
+  }, MCP_ORIGIN);
+
+  return pkg;
+}
+
+/**
+ * Build a DocumentAdapter shim from a Y.Doc.
+ * Implements only the subset needed by applyPackage and isPackageModified.
+ */
+function buildAdapterShim(ydoc: Y.Doc): DocumentAdapter {
+  const yschemas = ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.SCHEMAS);
+  const yportSchemas = ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.PORT_SCHEMAS);
+  const yschemaGroups = ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.SCHEMA_GROUPS);
+  const yschemaPackages = ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.SCHEMA_PACKAGES);
+  const yschemaRelationships = ydoc.getMap<Y.Map<unknown>>('schemaRelationships');
+  const ypackageManifest = ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.PACKAGE_MANIFEST);
+
+  return {
+    // Minimal interface - only implement what's needed
+    getPackageManifestEntry(id: string): PackageManifestEntry | undefined {
+      const yentry = ypackageManifest.get(id) as Y.Map<unknown> | undefined;
+      if (!yentry) return undefined;
+      return yToPlain(yentry) as PackageManifestEntry;
+    },
+
+    transaction<T>(fn: () => T, origin?: string): T {
+      let result: T;
+      ydoc.transact(() => {
+        result = fn();
+      }, origin);
+      return result!;
+    },
+
+    addSchemaPackage(pkg: Omit<SchemaPackage, 'id'> | SchemaPackage): SchemaPackage {
+      const fullPkg = 'id' in pkg ? pkg : { ...pkg, id: generateSchemaPackageId() };
+      yschemaPackages.set(fullPkg.id, deepPlainToY(fullPkg) as Y.Map<unknown>);
+      return fullPkg;
+    },
+
+    addSchema(schema: ConstructSchema): void {
+      yschemas.set(schema.type, deepPlainToY(schema) as Y.Map<unknown>);
+    },
+
+    addPortSchema(portSchema: PortSchema): void {
+      yportSchemas.set(portSchema.id, deepPlainToY(portSchema) as Y.Map<unknown>);
+    },
+
+    addSchemaGroup(group: Omit<SchemaGroup, 'id'> | SchemaGroup): SchemaGroup {
+      const fullGroup = 'id' in group ? group : { ...group, id: 'grp_' + Math.random().toString(36).substring(2, 11) };
+      yschemaGroups.set(fullGroup.id, deepPlainToY(fullGroup) as Y.Map<unknown>);
+      return fullGroup;
+    },
+
+    addSchemaRelationship(rel: SchemaRelationship): void {
+      yschemaRelationships.set(rel.id, deepPlainToY(rel) as Y.Map<unknown>);
+    },
+
+    addPackageManifestEntry(entry: PackageManifestEntry): void {
+      ypackageManifest.set(entry.packageId, deepPlainToY(entry) as Y.Map<unknown>);
+    },
+
+    getSchemas(): ConstructSchema[] {
+      const schemas: ConstructSchema[] = [];
+      yschemas.forEach((yschema) => {
+        schemas.push(normalizeSchema(yToPlain(yschema) as Record<string, unknown>) as unknown as ConstructSchema);
+      });
+      return schemas;
+    },
+
+    getPortSchemas(): PortSchema[] {
+      const portSchemas: PortSchema[] = [];
+      yportSchemas.forEach((yportSchema) => {
+        portSchemas.push(yToPlain(yportSchema) as PortSchema);
+      });
+      return portSchemas;
+    },
+
+    getSchemaGroups(): SchemaGroup[] {
+      const groups: SchemaGroup[] = [];
+      yschemaGroups.forEach((ygroup) => {
+        groups.push(yToPlain(ygroup) as SchemaGroup);
+      });
+      return groups;
+    },
+
+    getSchemaRelationships(): SchemaRelationship[] {
+      const relationships: SchemaRelationship[] = [];
+      yschemaRelationships.forEach((yrel) => {
+        relationships.push(yToPlain(yrel) as SchemaRelationship);
+      });
+      return relationships;
+    },
+  } as DocumentAdapter;
+}
+
+/**
+ * List all standard library packages with their status relative to the document.
+ */
+export function listStandardPackages(ydoc: Y.Doc): Array<{
+  id: string;
+  name: string;
+  description: string;
+  color: string;
+  schemaCount: number;
+  status: 'available' | 'loaded' | 'modified';
+}> {
+  const ypackageManifest = ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.PACKAGE_MANIFEST);
+  const adapter = buildAdapterShim(ydoc);
+
+  return standardLibrary.map((pkg) => {
+    const manifestEntry = ypackageManifest.get(pkg.id) as Y.Map<unknown> | undefined;
+
+    let status: 'available' | 'loaded' | 'modified' = 'available';
+
+    if (manifestEntry) {
+      // Package is loaded - check if modified
+      try {
+        const modified = isPackageModified(adapter, pkg.id);
+        status = modified ? 'modified' : 'loaded';
+      } catch {
+        // If check fails, assume loaded
+        status = 'loaded';
+      }
+    }
+
+    return {
+      id: pkg.id,
+      name: pkg.name,
+      description: pkg.description || '',
+      color: pkg.color,
+      schemaCount: pkg.schemas.length,
+      status,
+    };
+  });
+}
+
+/**
+ * Apply a standard library package to the document by ID.
+ * Idempotent - returns 'skipped' if already loaded.
+ */
+export function applyStandardPackage(ydoc: Y.Doc, packageId: string): ApplyPackageResult {
+  const definition = standardLibrary.find(pkg => pkg.id === packageId);
+
+  if (!definition) {
+    throw new Error(`Unknown standard library package: ${packageId}`);
+  }
+
+  const adapter = buildAdapterShim(ydoc);
+  return applyPackage(adapter, definition);
+}
+
+/**
+ * Check if a loaded package has been modified in the document.
+ * Compares current state against the snapshot stored in the manifest.
+ */
+export function checkPackageDrift(ydoc: Y.Doc, packageId: string): {
+  packageId: string;
+  modified: boolean;
+  loadedAt?: string;
+} {
+  const adapter = buildAdapterShim(ydoc);
+  const manifestEntry = adapter.getPackageManifestEntry(packageId);
+
+  if (!manifestEntry) {
+    throw new Error(`Package manifest entry not found for packageId: ${packageId}`);
+  }
+
+  const modified = isPackageModified(adapter, packageId);
+
+  return {
+    packageId,
+    modified,
+    loadedAt: manifestEntry.loadedAt,
+  };
+}
+

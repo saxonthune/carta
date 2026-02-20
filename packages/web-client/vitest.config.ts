@@ -12,6 +12,10 @@ export default defineConfig({
     setupFiles: ['./tests/setup/vitest.setup.ts'],
     include: ['tests/**/*.test.{ts,tsx}'],
     exclude: ['node_modules', 'dist'],
+    pool: 'forks',
+    poolOptions: {
+      forks: { maxForks: 2, minForks: 1, execArgv: ['--max-old-space-size=1024'] },
+    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],

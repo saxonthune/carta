@@ -9,7 +9,7 @@ The Metamap is a schema-level visual editor — a second canvas view where users
 
 ## Schema Graph
 
-Construct schemas appear as nodes. Connections between schema nodes represent port relationships — which types can connect to which. Schema groups appear as container nodes.
+Construct schemas appear as nodes. Connections between schema nodes represent port relationships — which types can connect to which. Schema packages appear as top-level container nodes; schema groups appear as nested containers within packages for visual organization.
 
 ## Operations
 
@@ -46,6 +46,10 @@ Clicking an edge in the Metamap opens a popover showing:
 Schema nodes support two display modes, toggled by double-clicking:
 - **Compact** (default): Shows schema name, type, and field/port counts in a condensed 80px-height card
 - **Expanded**: Shows full detail including field list and port list with labels
+
+## Package Visibility
+
+All loaded packages appear in the metamap, including empty packages (packages with 0 schemas). This ensures users can always see what packages are loaded in their document, even when schemas have been lost due to sync issues or export/import round-trips. Empty packages render as containers with no schema nodes inside.
 
 ## Relationship to Map
 

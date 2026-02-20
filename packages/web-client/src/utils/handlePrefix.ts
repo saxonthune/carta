@@ -1,5 +1,6 @@
-import { DRAWER_HANDLE_PREFIX } from '../components/canvas/PortDrawer';
-import { DROPZONE_HANDLE_PREFIX } from '../components/canvas/IndexBasedDropZones';
+// V1-era constants, inlined after PortDrawer and IndexBasedDropZones were deleted
+const DRAWER_HANDLE_PREFIX = 'drawer:';
+const DROPZONE_HANDLE_PREFIX = 'dropzone:';
 
 /**
  * Strip `drawer:` or `dropzone:` prefix from a handle ID,

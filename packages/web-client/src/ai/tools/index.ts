@@ -1,21 +1,6 @@
-// Tool types
-export type {
-  ToolSchema,
-  ToolResult,
-  ToolContext,
-  CartaTool,
-  AnyCartaTool,
-  JSONSchemaProperty,
-} from './types';
+// Tool registry - exports shared tool definitions from @carta/document
+export { getAllToolSchemas, executeTool } from './registry.js';
+export type { SidebarToolSchema } from './registry.js';
 
-// Tool registry
-export { cartaTools, getAllToolSchemas, executeTool } from './registry';
-
-// Individual tools (for direct import if needed)
-export { getDocumentTool } from './getDocument';
-export { getNodeTool } from './getNode';
-export { addConstructTool } from './addConstruct';
-export { updateNodeTool } from './updateNode';
-export { connectNodesTool } from './connectNodes';
-export { deleteNodeTool } from './deleteNode';
-export { queryNodesTool } from './queryNodes';
+// Zod adapter for converting Zod schemas to JSON Schema
+export { zodToJsonSchema } from './zod-adapter.js';

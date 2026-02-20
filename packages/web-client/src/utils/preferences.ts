@@ -7,3 +7,20 @@ export function getLastDocumentId(): string | null {
 export function setLastDocumentId(id: string): void {
   localStorage.setItem(`${PREFIX}last-document-id`, id);
 }
+
+export function getLastHelpTab(): string | null {
+  return localStorage.getItem(`${PREFIX}last-help-tab`);
+}
+
+export function setLastHelpTab(tab: string): void {
+  localStorage.setItem(`${PREFIX}last-help-tab`, tab);
+}
+
+export function getGuideTooltips(): 'on' | 'off' {
+  const value = localStorage.getItem(`${PREFIX}guide-tooltips`);
+  return value === 'on' ? 'on' : 'off';
+}
+
+export function setGuideTooltips(value: 'on' | 'off'): void {
+  localStorage.setItem(`${PREFIX}guide-tooltips`, value);
+}

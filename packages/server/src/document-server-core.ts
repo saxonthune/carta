@@ -15,7 +15,7 @@ import * as encoding from 'lib0/encoding';
 import * as decoding from 'lib0/decoding';
 import * as syncProtocol from 'y-protocols/sync';
 import createDebug from 'debug';
-import { portRegistry, type DocumentSummary } from '@carta/domain';
+import { portRegistry, toKebabCase, type DocumentSummary } from '@carta/domain';
 export type { DocumentSummary };
 
 const log = createDebug('carta:server');
@@ -69,6 +69,12 @@ import {
   removePinConstraint,
   applyPinLayout,
   rebuildPage,
+  listPackages,
+  getPackage,
+  createPackage,
+  listStandardPackages,
+  applyStandardPackage,
+  checkPackageDrift,
 } from '@carta/document';
 import type { BatchOperation, BatchResult, MigrationResult } from '@carta/document';
 import type { FlowDirection, ArrangeStrategy, ArrangeConstraint, PinDirection } from '@carta/domain';
@@ -92,7 +98,7 @@ export interface DocumentServerConfig {
   /** List all documents (from persistence, not just in-memory). */
   listDocuments(): Promise<DocumentSummary[]>;
   /** Optional hook called after a new document is created via the REST API. */
-  onDocumentCreated?(docId: string, docState: DocState): Promise<void> | void;
+  onDocumentCreated?(docId: string, docState: DocState, filename: string): Promise<void> | void;
   /** Delete a document from persistence. Returns true if deleted. */
   deleteDocument(docId: string): Promise<boolean>;
   /** Return active rooms with connection counts. If not provided, /api/rooms falls back to listDocuments with clientCount: 0. */
@@ -373,9 +379,10 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
       }
 
       if (path === '/api/documents' && method === 'POST') {
-        const body = await parseJsonBody<{ title?: string; folder?: string }>(req);
+        const body = await parseJsonBody<{ title?: string; folder?: string; filename?: string }>(req);
         const title = body.title || 'Untitled Project';
         const folder = body.folder || '/';
+        const filename = body.filename || (toKebabCase(title) || 'untitled') + '.carta.json';
         const roomId = `doc_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
         const docState = await config.getDoc(roomId);
@@ -383,6 +390,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
           const ymeta = docState.doc.getMap('meta');
           ymeta.set('title', title);
           ymeta.set('folder', folder);
+          ymeta.set('filename', filename);
           ymeta.set('version', 3);
 
           // Initialize default page if none exists
@@ -399,7 +407,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
           }
         }, 'server');
 
-        await config.onDocumentCreated?.(roomId, docState);
+        await config.onDocumentCreated?.(roomId, docState, filename);
 
         const document = extractDocument(docState.doc, roomId, getActivePageId(docState.doc));
         sendJson(res, 201, { document });
@@ -543,7 +551,31 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
 
         if (method === 'GET') {
           const typeFilter = url.searchParams.get('type') || undefined;
-          if (typeFilter) {
+          const outputMode = url.searchParams.get('output');
+
+          if (outputMode === 'full') {
+            // Full output: return raw construct data with values, position, connections
+            const constructs = listConstructs(docState.doc, pageId, typeFilter ? { constructType: typeFilter } : undefined);
+            const constructData = constructs
+              .filter(c => c.type !== 'organizer')
+              .map(c => ({
+                semanticId: c.data.semanticId,
+                constructType: c.data.constructType,
+                values: c.data.values,
+                position: c.position,
+                parentId: c.parentId,
+                connections: c.data.connections || [],
+              }));
+            const organizers = constructs
+              .filter(c => c.type === 'organizer')
+              .map(c => ({
+                id: c.id,
+                name: (c.data as Record<string, unknown>).name as string ?? '',
+                color: (c.data as Record<string, unknown>).color as string ?? '',
+                memberCount: constructs.filter(n => n.parentId === c.id).length,
+              }));
+            sendJson(res, 200, { constructs: constructData, organizers });
+          } else if (typeFilter) {
             // Filtered query — can't use the shared helper
             const constructs = listConstructs(docState.doc, pageId, { constructType: typeFilter });
             const schemas = listSchemas(docState.doc);
@@ -716,7 +748,23 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
             sendError(res, 404, `Construct not found: ${semanticId}`, 'NOT_FOUND');
             return;
           }
-          sendJson(res, 200, { construct: construct.data });
+          const outputMode = url.searchParams.get('output');
+          if (outputMode === 'compact') {
+            const schemas = listSchemas(docState.doc);
+            const schema = schemas.find(s => s.type === construct.data.constructType);
+            const pillField = schema?.fields.find(f => f.displayTier === 'pill');
+            const displayName = pillField ? String(construct.data.values?.[pillField.name] || '') : construct.data.semanticId;
+            sendJson(res, 200, {
+              construct: {
+                semanticId: construct.data.semanticId,
+                constructType: construct.data.constructType,
+                displayName,
+                connections: construct.data.connections || [],
+              }
+            });
+          } else {
+            sendJson(res, 200, { construct: construct.data });
+          }
           return;
         }
 
@@ -983,6 +1031,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
             color: string;
             semanticDescription?: string;
             groupId?: string;
+            packageId?: string;
             enumIconField?: string;
             enumIconMap?: Record<string, string>;
             fields: Array<{
@@ -1018,6 +1067,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
             color: body.color,
             semanticDescription: body.semanticDescription,
             groupId: body.groupId,
+            packageId: body.packageId,
             enumIconField: body.enumIconField,
             enumIconMap: body.enumIconMap,
             fields: body.fields,
@@ -1149,6 +1199,95 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
           sendJson(res, 200, { deleted: true });
           return;
         }
+      }
+
+      // ===== SCHEMA PACKAGES =====
+
+      const packagesMatch = path.match(/^\/api\/documents\/([^/]+)\/packages$/);
+      if (packagesMatch) {
+        const roomId = packagesMatch[1]!;
+        const docState = await config.getDoc(roomId);
+
+        if (method === 'GET') {
+          const packages = listPackages(docState.doc);
+          sendJson(res, 200, { packages });
+          return;
+        }
+
+        if (method === 'POST') {
+          const body = await parseJsonBody<{
+            name: string;
+            description?: string;
+            color: string;
+          }>(req);
+
+          if (!body.name || !body.color) {
+            sendError(res, 400, 'Missing required fields (name, color)', 'MISSING_FIELD');
+            return;
+          }
+
+          const pkg = createPackage(docState.doc, body);
+          sendJson(res, 201, { package: pkg });
+          return;
+        }
+      }
+
+      const packageMatch = path.match(/^\/api\/documents\/([^/]+)\/packages\/([^/]+)$/);
+      if (packageMatch && method === 'GET') {
+        const roomId = packageMatch[1]!;
+        const packageId = decodeURIComponent(packageMatch[2]!);
+        const docState = await config.getDoc(roomId);
+
+        const pkg = getPackage(docState.doc, packageId);
+        if (!pkg) {
+          sendError(res, 404, `Package not found: ${packageId}`, 'NOT_FOUND');
+          return;
+        }
+        sendJson(res, 200, pkg);
+        return;
+      }
+
+      const stdPkgMatch = path.match(/^\/api\/documents\/([^/]+)\/standard-packages$/);
+      if (stdPkgMatch && method === 'GET') {
+        const roomId = stdPkgMatch[1]!;
+        const docState = await config.getDoc(roomId);
+        const packages = listStandardPackages(docState.doc);
+        sendJson(res, 200, { packages });
+        return;
+      }
+
+      const applyPkgMatch = path.match(/^\/api\/documents\/([^/]+)\/standard-packages\/apply$/);
+      if (applyPkgMatch && method === 'POST') {
+        const roomId = applyPkgMatch[1]!;
+        const docState = await config.getDoc(roomId);
+        const body = await parseJsonBody<{ packageId: string }>(req);
+        if (!body.packageId) {
+          sendError(res, 400, 'Missing required field: packageId', 'MISSING_FIELD');
+          return;
+        }
+        try {
+          const result = applyStandardPackage(docState.doc, body.packageId);
+          sendJson(res, 200, result);
+        } catch (err: unknown) {
+          const message = err instanceof Error ? err.message : String(err);
+          sendError(res, 400, message, 'APPLY_FAILED');
+        }
+        return;
+      }
+
+      const driftMatch = path.match(/^\/api\/documents\/([^/]+)\/standard-packages\/([^/]+)\/drift$/);
+      if (driftMatch && method === 'GET') {
+        const roomId = driftMatch[1]!;
+        const packageId = decodeURIComponent(driftMatch[2]!);
+        const docState = await config.getDoc(roomId);
+        try {
+          const result = checkPackageDrift(docState.doc, packageId);
+          sendJson(res, 200, result);
+        } catch (err: unknown) {
+          const message = err instanceof Error ? err.message : String(err);
+          sendError(res, 404, message, 'NOT_FOUND');
+        }
+        return;
       }
 
       // ===== COMPILE =====

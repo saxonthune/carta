@@ -3,21 +3,12 @@ import Select from '../ui/Select';
 import Textarea from '../ui/Textarea';
 import { toSnakeCase } from '../../utils/stringUtils';
 import type { ConstructSchema } from '@carta/domain';
-
-type BackgroundColorPolicy = NonNullable<ConstructSchema['backgroundColorPolicy']>;
-type RenderStyle = NonNullable<ConstructSchema['nodeShape']>;
-type ColorMode = NonNullable<ConstructSchema['colorMode']>;
+import StylePresetPicker from './StylePresetPicker';
 
 const DEFAULT_COLORS = [
   '#7c7fca', '#8a7cb8', '#9488b8', '#b87c8a',
   '#c49a4c', '#c4a94e', '#5ba88e', '#5a9e9e',
   '#6a8fc0', '#6b7280', '#8a7060', '#4a5568'
-];
-
-const COLOR_MODES: { value: ColorMode; label: string }[] = [
-  { value: 'default', label: 'Schema Default' },
-  { value: 'instance', label: 'Per Instance' },
-  { value: 'enum', label: 'By Field' },
 ];
 
 interface BasicsStepProps {
@@ -30,56 +21,6 @@ interface BasicsStepProps {
 }
 
 export default function BasicsStep({ formData, errors, updateField, schemaGroups, isEditMode, editSchemaType }: BasicsStepProps) {
-  const colorMode: ColorMode = formData.colorMode || 'default';
-  const enumFields = formData.fields.filter(f => f.type === 'enum' && f.options && f.options.length > 0);
-  const selectedEnumField = enumFields.find(f => f.name === formData.enumColorField);
-  const selectedIconEnumField = enumFields.find(f => f.name === formData.enumIconField);
-
-  const handleColorModeChange = (mode: ColorMode) => {
-    updateField('colorMode', mode);
-    if (mode !== 'enum') {
-      updateField('enumColorField', undefined);
-      updateField('enumColorMap', undefined);
-    }
-  };
-
-  const handleEnumFieldSelect = (fieldName: string) => {
-    updateField('enumColorField', fieldName);
-    const field = enumFields.find(f => f.name === fieldName);
-    if (field?.options) {
-      const map: Record<string, string> = {};
-      field.options.forEach((opt, i) => {
-        map[opt.value] = DEFAULT_COLORS[i % DEFAULT_COLORS.length];
-      });
-      updateField('enumColorMap', map);
-    }
-  };
-
-  const handleEnumColorChange = (optionValue: string, color: string) => {
-    const current = formData.enumColorMap || {};
-    updateField('enumColorMap', { ...current, [optionValue]: color });
-  };
-
-  const handleIconFieldSelect = (fieldName: string) => {
-    updateField('enumIconField', fieldName);
-    if (!fieldName) {
-      updateField('enumIconMap', undefined);
-      return;
-    }
-    const field = enumFields.find(f => f.name === fieldName);
-    if (field?.options) {
-      const map: Record<string, string> = {};
-      // Don't pre-populate icons — user should choose them
-      field.options.forEach(opt => { map[opt.value] = ''; });
-      updateField('enumIconMap', map);
-    }
-  };
-
-  const handleIconChange = (optionValue: string, icon: string) => {
-    const current = formData.enumIconMap || {};
-    updateField('enumIconMap', { ...current, [optionValue]: icon });
-  };
-
   return (
     <div className="flex flex-col gap-4">
       <div>
@@ -136,9 +77,22 @@ export default function BasicsStep({ formData, errors, updateField, schemaGroups
       </div>
 
       <div>
-        <label className="block mb-1 text-sm font-medium text-content">
-          {colorMode === 'enum' ? 'Fallback Color' : 'Color'}
+        <label className="flex items-center gap-2 text-sm text-content cursor-pointer">
+          <input
+            type="checkbox"
+            checked={formData.isFavorite || false}
+            onChange={(e) => updateField('isFavorite', e.target.checked || undefined)}
+            className="w-4 h-4 accent-accent"
+          />
+          <span className="font-medium">Favorite</span>
         </label>
+        <span className="block mt-1 ml-6 text-[11px] text-content-muted">
+          Pin to the top of the right-click menu for quick access
+        </span>
+      </div>
+
+      <div>
+        <label className="block mb-1 text-sm font-medium text-content">Color</label>
         <div className="flex flex-wrap gap-1.5 items-center">
           {DEFAULT_COLORS.map(color => (
             <button
@@ -159,161 +113,7 @@ export default function BasicsStep({ formData, errors, updateField, schemaGroups
         </div>
       </div>
 
-      <div>
-        <label className="block mb-1 text-sm font-medium text-content">Appearance</label>
-        <div className="flex gap-4">
-          <div className="flex-1">
-            <label className="block mb-1 text-[11px] text-content-muted">Render Style</label>
-            <Select
-              value={formData.nodeShape || 'default'}
-              onChange={(e) => updateField('nodeShape', e.target.value as RenderStyle)}
-            >
-              <option value="default">Default</option>
-              <option value="simple">Simple</option>
-              <option value="card">Card</option>
-              <option value="circle">Circle</option>
-              <option value="diamond">Diamond</option>
-              <option value="document">Document</option>
-            </Select>
-          </div>
-          <div className="flex-1">
-            <label className="block mb-1 text-[11px] text-content-muted">Color Mode</label>
-            <div className="flex rounded overflow-hidden border border-content-muted/20">
-              {COLOR_MODES.map(mode => (
-                <button
-                  key={mode.value}
-                  type="button"
-                  className={`flex-1 px-2 py-1.5 text-[11px] font-medium transition-colors cursor-pointer border-none ${colorMode === mode.value ? 'bg-accent text-white' : 'bg-surface text-content-muted hover:bg-surface-alt'}`}
-                  onClick={() => handleColorModeChange(mode.value)}
-                >
-                  {mode.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Per-instance sub-options */}
-        {colorMode === 'instance' && (
-          <div className="mt-2">
-            <label className="block mb-1 text-[11px] text-content-muted">Instance Color Policy</label>
-            <Select
-              value={formData.backgroundColorPolicy || 'defaultOnly'}
-              onChange={(e) => updateField('backgroundColorPolicy', e.target.value as BackgroundColorPolicy)}
-            >
-              <option value="defaultOnly">Default Only</option>
-              <option value="tints">Tints</option>
-              <option value="any">Any Color</option>
-            </Select>
-          </div>
-        )}
-
-        {/* Enum color mapper */}
-        {colorMode === 'enum' && (
-          <div className="mt-2 flex flex-col gap-2">
-            <div>
-              <label className="block mb-1 text-[11px] text-content-muted">Enum Field</label>
-              {enumFields.length === 0 ? (
-                <span className="text-[11px] text-content-muted">No enum fields defined. Add an enum field in the Fields step first.</span>
-              ) : (
-                <Select
-                  value={formData.enumColorField || ''}
-                  onChange={(e) => handleEnumFieldSelect(e.target.value)}
-                >
-                  <option value="">Select a field...</option>
-                  {enumFields.map(f => (
-                    <option key={f.name} value={f.name}>{f.label || f.name}</option>
-                  ))}
-                </Select>
-              )}
-            </div>
-
-            {selectedEnumField?.options && formData.enumColorMap && (
-              <div>
-                <label className="block mb-1 text-[11px] text-content-muted">Colors per Value</label>
-                <div className="flex flex-col gap-1">
-                  {selectedEnumField.options.map(opt => (
-                    <div key={opt.value} className="flex items-center gap-2">
-                      <input
-                        type="color"
-                        className="w-6 h-6 p-0 border border-content-muted/20 rounded cursor-pointer"
-                        value={formData.enumColorMap![opt.value] || formData.color}
-                        onChange={(e) => handleEnumColorChange(opt.value, e.target.value)}
-                      />
-                      <span className="text-xs text-content">{opt.value}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Icon Marker (shown when colorMode is enum) */}
-            <div className="mt-2 pt-2 border-t border-content-muted/10">
-              <label className="block mb-1 text-[11px] text-content-muted">Icon Marker</label>
-              <div className="flex items-center gap-2 mb-1">
-                <Select
-                  value={formData.enumIconField || ''}
-                  onChange={(e) => handleIconFieldSelect(e.target.value)}
-                >
-                  <option value="">None</option>
-                  {enumFields.map(f => (
-                    <option key={f.name} value={f.name}>{f.label || f.name}</option>
-                  ))}
-                </Select>
-              </div>
-              {selectedIconEnumField?.options && formData.enumIconMap && (
-                <div className="flex flex-col gap-1">
-                  {selectedIconEnumField.options.map(opt => (
-                    <div key={opt.value} className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        className="w-8 h-6 p-0 text-center bg-surface border border-content-muted/20 rounded text-sm"
-                        maxLength={2}
-                        value={formData.enumIconMap![opt.value] || ''}
-                        onChange={(e) => handleIconChange(opt.value, e.target.value)}
-                        placeholder="·"
-                      />
-                      <span className="text-xs text-content">{opt.value}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {colorMode !== 'enum' && enumFields.length > 0 && (
-          <div className="mt-2">
-            <label className="block mb-1 text-[11px] text-content-muted">Icon Marker</label>
-            <Select
-              value={formData.enumIconField || ''}
-              onChange={(e) => handleIconFieldSelect(e.target.value)}
-            >
-              <option value="">None</option>
-              {enumFields.map(f => (
-                <option key={f.name} value={f.name}>{f.label || f.name}</option>
-              ))}
-            </Select>
-            {selectedIconEnumField?.options && formData.enumIconMap && (
-              <div className="flex flex-col gap-1 mt-1">
-                {selectedIconEnumField.options.map(opt => (
-                  <div key={opt.value} className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      className="w-8 h-6 p-0 text-center bg-surface border border-content-muted/20 rounded text-sm"
-                      maxLength={2}
-                      value={formData.enumIconMap![opt.value] || ''}
-                      onChange={(e) => handleIconChange(opt.value, e.target.value)}
-                      placeholder="·"
-                    />
-                    <span className="text-xs text-content">{opt.value}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+      <StylePresetPicker formData={formData} updateField={updateField} />
     </div>
   );
 }

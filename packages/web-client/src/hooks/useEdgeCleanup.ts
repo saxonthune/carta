@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import type { Node, Edge } from '@xyflow/react';
+import type { CartaNode, CartaEdge } from '@carta/types';
 import { useDocumentContext } from '../contexts/DocumentContext';
 import { useSchemas } from './useSchemas';
 import type { ConstructNodeData } from '@carta/domain';
@@ -19,8 +19,8 @@ export function useEdgeCleanup() {
   const { getSchema } = useSchemas();
 
   const revalidateEdges = useCallback(() => {
-    const edges = adapter.getEdges() as Edge[];
-    const nodes = adapter.getNodes() as Node[];
+    const edges = adapter.getEdges() as CartaEdge[];
+    const nodes = adapter.getNodes() as CartaNode[];
 
     // Build port lookup: nodeId → Set<portId>
     const nodePortMap = new Map<string, Set<string>>();

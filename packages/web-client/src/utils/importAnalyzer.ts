@@ -1,10 +1,12 @@
-import type { Node } from '@xyflow/react';
+import type { CartaNode } from '@carta/types';
 import type { CartaFile } from './cartaFile';
-import { builtInConstructSchemas } from '@carta/domain';
+import { standardLibrary } from '@carta/domain';
 import type { ConstructSchema, ConstructNodeData, PortSchema, SchemaGroup } from '@carta/domain';
 
 // Set of built-in schema types for quick lookup
-const BUILT_IN_TYPES = new Set(builtInConstructSchemas.map(s => s.type));
+const BUILT_IN_TYPES = new Set(
+  standardLibrary.flatMap(pkg => pkg.schemas.map(s => s.type))
+);
 
 /**
  * Status of an analyzed item
@@ -33,9 +35,9 @@ export interface AnalyzedSchema {
  * Analyzed node item
  */
 export interface AnalyzedNode {
-  item: Node<ConstructNodeData>;
+  item: CartaNode<ConstructNodeData>;
   status: ItemStatus;
-  existingItem?: Node<ConstructNodeData>;
+  existingItem?: CartaNode<ConstructNodeData>;
 }
 
 /**
@@ -94,11 +96,11 @@ export const defaultImportOptions = (analysis: ImportAnalysis): ImportOptions =>
 export function analyzeImport(
   file: CartaFile,
   fileName: string,
-  currentNodes: Node[] = [],
+  currentNodes: CartaNode[] = [],
   currentSchemas: ConstructSchema[] = []
 ): ImportAnalysis {
   // Flatten all nodes/edges across pages for analysis
-  const fileNodes = file.pages.flatMap(l => l.nodes) as Node[];
+  const fileNodes = file.pages.flatMap(l => l.nodes) as CartaNode[];
   const fileEdges = file.pages.flatMap(l => l.edges);
 
   // Analyze schemas
@@ -128,9 +130,9 @@ export function analyzeImport(
     });
 
     return {
-      item: node as Node<ConstructNodeData>,
+      item: node as CartaNode<ConstructNodeData>,
       status: existingNode ? 'conflict' : 'new',
-      existingItem: existingNode as Node<ConstructNodeData> | undefined,
+      existingItem: existingNode as CartaNode<ConstructNodeData> | undefined,
     };
   });
 

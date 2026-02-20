@@ -128,9 +128,9 @@ function BundleNarrative({ connections, position, anchor }: {
 }
 
 function HintNarrative({ text, variant, position }: { text: string; variant: string; position: { x: number; y: number } }) {
-  const colorClass = variant === 'attach'
+  const colorClass = variant === 'attach' || variant === 'valid-connection'
     ? 'bg-emerald-600/90 text-white'
-    : variant === 'detach'
+    : variant === 'detach' || variant === 'invalid-connection'
       ? 'bg-red-600/90 text-white'
       : 'bg-surface-elevated text-content';
 

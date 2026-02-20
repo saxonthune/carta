@@ -30,6 +30,8 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 | doc01.02 | `02-principles.md` | 12 design principles: symmetric storage, inverse derivability | principles, design | doc01.01 |
 | doc01.03 | `03-glossary.md` | Canonical vocabulary: construct, schema, port, polarity | glossary, terms | — |
 | doc01.04 | `04-ux-principles.md` | Fitts's Law, Hick's Law, visual design principles | ux, design, ui | — |
+| doc01.05 | `05-primary-sources/` | Author's original writings, directional intent | inspiration, vision, primary-source | — |
+| doc01.05.01 | `05-primary-sources/01-the-carta-experiment.md` | Artifact-driven development, code-minus-one abstraction layers | artifacts, abstraction, vision | doc01.01 |
 
 ## 02-system — Architecture and technical design
 
@@ -45,12 +47,14 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 | doc02.04.04 | `04-decisions/04-unified-deployment.md` | ADR: simplified deployment config | adr, deployment, config | doc02.05 |
 | doc02.04.05 | `04-decisions/05-presentation-model-organizers.md` | ADR: presentation model, organizers replace visual groups | adr, presentation, organizers, layout | doc02.09 |
 | doc02.04.06 | `04-decisions/06-yjs-authoritative-layout.md` | ADR: Yjs-authoritative layout, RF as renderer only, eliminate 3-layer sync | adr, state, layout, yjs, react-flow | doc02.02, doc05.03 |
+| doc02.04.07 | `04-decisions/07-package-loading-architecture.md` | ADR: Package-based schema loading, dual identity (UUID + content hash), manifest, snapshots | adr, packages, loading, seeds, identity, library | doc02.06, doc03.01.01.07 |
 | doc02.05 | `05-deployment-targets.md` | VITE_SYNC_URL, VITE_AI_MODE, document sources | deployment, config, server | doc02.01 |
 | doc02.06 | `06-metamodel.md` | M2/M1/M0 metamodel, DataKind, ConstructSchema | metamodel, schemas, ports | doc01.02 |
 | doc02.07 | `07-design-system.md` | Depth system, island pattern, colors, typography | design, ui, styling, lod | doc01.04 |
 | doc02.08 | `08-frontend-architecture.md` | Four-layer component model, state partitioning | components, hooks, architecture | doc02.02, doc02.07 |
 | doc02.09 | `09-presentation-model.md` | Presentation model, organizers, layout strategies, visual vs semantic | presentation, organizers, layout, rendering | doc02.08, doc02.02 |
 | doc02.10 | `10-canvas-data-pipelines.md` | Map.tsx memo cascades, node/edge pipelines, waypoint flow, write-back points | pipeline, edges, nodes, waypoints, sync, Map | doc02.08, doc02.09, doc02.02 |
+| doc02.11 | `11-canvas-engine.md` | Canvas engine primitives: useViewport, useConnectionDrag, ConnectionHandle, composition pattern | canvas-engine, viewport, connections, primitives | doc02.08 |
 
 ## 03-product — Features, use cases, workflows
 
@@ -65,6 +69,7 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 | doc03.01.01.04 | `01-features/01-modeling/04-pages.md` | Multi-page views, page switching | pages, views | — |
 | doc03.01.01.05 | `01-features/01-modeling/05-metamap.md` | Schema-level visual editor, schema nodes | metamap, schemas | doc02.06 |
 | doc03.01.01.06 | `01-features/01-modeling/06-schema-editor.md` | Wizard for creating/editing construct schemas | schemas, editor | doc02.06 |
+| doc03.01.01.07 | `01-features/01-modeling/07-schema-library.md` | Schema package loading, dual identity, manifest, standard library, drift detection | library, schemas, seeds, versioning, packages, loading | doc02.06, doc02.05, doc02.04.07 |
 | doc03.01.14 | `01-features/14-simple-mode.md` | Sketch-phase rendering, composable render modes, separate primitives | sketching, simple, rendering, rough, architecture | doc03.03.08, doc02.07, doc02.08 |
 
 ### Output (doc03.01.02)
@@ -125,6 +130,7 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 | doc05.01 | `01-visual-semantics-in-organizers.md` | Shape differentiation, sequence badges, icon markers for organizer contents | research, notation, bpmn, presentation, organizers | doc02.09, doc02.07, doc02.06 |
 | doc05.02 | `02-token-efficiency-in-skills-and-agents.md` | Token optimization patterns: lean extraction, subagent isolation, surgical reads | research, tokens, efficiency, skills, agents | — |
 | doc05.03 | `03-wagon-aware-layout-architecture.md` | Wagon layout units, 3-layer sync, snap normalization, state pitfalls | research, layout, wagons, organizers, state | doc02.09, doc02.02 |
+| doc05.04 | `04-verifiability-and-testability.md` | Epistemology of verification, test value hierarchy, decomposition inventory, testability architecture | testing, verification, epistemology, agents, testability, oracles, properties | doc04.02, doc02.02 |
 
 ## Tag Index
 
@@ -136,7 +142,15 @@ Quick lookup for file-path→doc mapping:
 | `state` | doc02.02, doc02.04.01 |
 | `components` | doc02.08, doc02.07 |
 | `canvas` | doc03.01.01.01, doc02.07 |
-| `schemas` | doc02.06, doc03.01.01.02, doc03.01.01.05, doc03.01.01.06 |
+| `canvas-engine` | doc02.11 |
+| `viewport` | doc02.11 |
+| `schemas` | doc02.06, doc03.01.01.02, doc03.01.01.05, doc03.01.01.06, doc03.01.01.07 |
+| `library` | doc03.01.01.07 |
+| `seeds` | doc03.01.01.07, doc02.06, doc02.04.07 |
+| `packages` | doc02.04.07, doc03.01.01.07, doc02.06 |
+| `identity` | doc02.04.07 |
+| `loading` | doc02.04.07 |
+| `versioning` | doc03.01.01.07 |
 | `ports` | doc02.06, doc03.01.01.03, doc02.04.02 |
 | `compiler` | doc03.01.02.01, doc02.03, doc02.04.03 |
 | `deployment` | doc02.05, doc04.03, doc02.04.04 |
@@ -150,10 +164,17 @@ Quick lookup for file-path→doc mapping:
 | `presentation` | doc02.09, doc02.08 |
 | `layout` | doc02.09 |
 | `rendering` | doc02.09, doc03.01.14, doc02.07 |
-| `testing` | doc04.02 |
+| `testing` | doc04.02, doc05.04 |
+| `verification` | doc05.04 |
+| `epistemology` | doc05.04 |
+| `testability` | doc05.04 |
+| `oracles` | doc05.04 |
 | `mcp` | doc02.03, doc03.01.03.03 |
 | `research` | doc05.01, doc05.02 |
 | `tokens` | doc05.02 |
 | `efficiency` | doc05.02 |
 | `notation` | doc05.01, doc02.07 |
 | `bpmn` | doc05.01 |
+| `primary-source` | doc01.05 |
+| `vision` | doc01.05, doc01.05.01 |
+| `inspiration` | doc01.05 |

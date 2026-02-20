@@ -8,7 +8,7 @@ import FieldsTab from '../construct-editor/FieldsTab';
 import RelatedTab from '../construct-editor/RelatedTab';
 import TabBar, { type Tab } from '../ui/TabBar';
 import { toSnakeCase } from '../../utils/stringUtils';
-import type { ConstructSchema, FieldSchema, PortConfig, SuggestedRelatedConstruct } from '@carta/domain';
+import type { ConstructSchema, FieldSchema, PortConfig } from '@carta/domain';
 
 interface ConstructDetailsEditorProps {
   construct: ConstructSchema | null;
@@ -199,32 +199,6 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
     }));
   };
 
-  // Suggested related constructs management functions
-  const addSuggestedRelated = () => {
-    const newRelated: SuggestedRelatedConstruct = {
-      constructType: '',
-      // fromPortId and toPortId left undefined initially
-    };
-    setFormData(prev => ({
-      ...prev,
-      suggestedRelated: [...(prev.suggestedRelated || []), newRelated]
-    }));
-  };
-
-  const updateSuggestedRelated = (index: number, updates: Partial<SuggestedRelatedConstruct>) => {
-    setFormData(prev => ({
-      ...prev,
-      suggestedRelated: (prev.suggestedRelated || []).map((r, i) => i === index ? { ...r, ...updates } : r)
-    }));
-  };
-
-  const removeSuggestedRelated = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      suggestedRelated: (prev.suggestedRelated || []).filter((_, i) => i !== index)
-    }));
-  };
-
   const tabs: Tab<EditorTab>[] = [
     { id: 'basic', label: 'Overview', icon: <SquaresFour weight="regular" size={18} /> },
     { id: 'ports', label: 'Ports', icon: <Crosshair weight="regular" size={18} /> },
@@ -301,12 +275,7 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
             />
           )}
           {activeTab === 'related' && (
-            <RelatedTab
-              formData={formData}
-              addSuggestedRelated={addSuggestedRelated}
-              updateSuggestedRelated={updateSuggestedRelated}
-              removeSuggestedRelated={removeSuggestedRelated}
-            />
+            <RelatedTab schemaType={formData.type} />
           )}
         </div>
       </div>
@@ -366,12 +335,7 @@ const ConstructDetailsEditor = forwardRef<{ save: () => void }, ConstructDetails
             />
           )}
           {activeTab === 'related' && (
-            <RelatedTab
-              formData={formData}
-              addSuggestedRelated={addSuggestedRelated}
-              updateSuggestedRelated={updateSuggestedRelated}
-              removeSuggestedRelated={removeSuggestedRelated}
-            />
+            <RelatedTab schemaType={formData.type} />
           )}
         </div>
       </div>

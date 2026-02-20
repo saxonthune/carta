@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import type { Node, Edge } from '@xyflow/react';
+import type { CartaNode, CartaEdge } from '@carta/types';
 import type { ConstructSchema } from '@carta/domain';
 
 export interface ContextMenuState {
@@ -59,7 +59,7 @@ export function useMapState() {
   );
 
   const onNodeContextMenu = useCallback(
-    (event: React.MouseEvent, node: Node) => {
+    (event: React.MouseEvent, node: CartaNode) => {
       event.preventDefault();
 
       // Only show context menu if mouse hasn't moved significantly
@@ -103,7 +103,7 @@ export function useMapState() {
   );
 
   const onEdgeContextMenu = useCallback(
-    (event: React.MouseEvent, edge: Edge) => {
+    (event: React.MouseEvent, edge: CartaEdge) => {
       event.preventDefault();
 
       // Only show context menu if mouse hasn't moved significantly

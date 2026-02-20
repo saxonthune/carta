@@ -34,6 +34,7 @@ export function useClearDocument() {
         adapter.setSchemas([]);
         adapter.setPortSchemas([]);
         adapter.setSchemaGroups([]);
+        adapter.setSchemaPackages([]);
       }
     });
     // No reload needed - Yjs subscription propagates changes automatically

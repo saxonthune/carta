@@ -32,50 +32,58 @@ This skill does NOT implement code. Its output is a refined plan file that a hea
 
 Plan lifecycle state is tracked by directory location:
 - `todo-tasks/` — pending (needs grooming or execution)
-- `todo-tasks/.running/` — agent executing
+- `todo-tasks/.running/` — agent executing (`.md` files) or chain active (`.manifest` files)
 - `todo-tasks/.done/` — agent finished
 - `todo-tasks/.archived/` — reviewed and closed
 
+**Chain manifests**: `todo-tasks/.running/chain-*.manifest` files claim a sequence of plans. Plans listed in a manifest are "spoken for" — don't groom, launch, or suggest them. The status script marks these with ⛓️.
+
 ### Phase 0A: Debrief
 
-Run the status script to get a summary of all agents and plans:
+Run the status script — it provides ALL information needed in one call (completed agents table, chain status with log tails, running agents with log tails, stale worktrees, pending plans, and a summary line):
 
 ```bash
 bash .claude/skills/carta-feature-implementor/status.sh
 ```
 
-Review the output. For any completed agents where you need more detail (e.g., retried agents, failures), use `Read` to inspect the result file directly:
+Present the output directly to the user. The script already formats tables and includes notes. No follow-up `ls`, `Read`, or `Grep` commands are needed for the debrief — the script covers it all.
 
-```typescript
-Read('todo-tasks/.done/{slug}.result.md', { limit: 10 })
-Grep({ pattern: '## Notes', path: 'todo-tasks/.done/{slug}.result.md', output_mode: 'content', -A: 20 })
-```
+### Phase 0B: Archive & Triage Failures
 
-Present status to the user as a **table** with a Notes column:
+After the debrief, handle completed agents based on status:
 
-```markdown
-## Agent Status
-
-| Agent | Status | Merge | Notes |
-|-------|--------|-------|-------|
-| **page-description-ui** | SUCCESS | merged | Clean run, no concerns. 3 commits. |
-| **component-smoke-tests** | SUCCESS | merged | Retried once (build failure). 3 commits. |
-| **debug-logging** | RUNNING | — | Step 4: Run Headless Claude |
-```
-
-### Phase 0B: Archive
-
-After the debrief has been presented to the user, offer to archive completed plans. **Never silently archive without showing the notes.**
+**Successful agents:** Archive automatically.
 
 ```bash
-bash .claude/skills/carta-feature-implementor/status.sh --archive
+bash .claude/skills/carta-feature-implementor/status.sh --archive-success
 ```
+
+**Failed agents:** Do NOT archive. Instead, ask the user what to do:
+
+```typescript
+AskUserQuestion({
+  questions: [{
+    question: "Agent '{slug}' failed. How should we proceed?",
+    header: "Failed agent",
+    options: [
+      { label: "Fix it now (Recommended)", description: "Investigate the failure and fix the code in the existing worktree" },
+      { label: "Re-groom and retry", description: "Refine the plan to avoid the failure, then re-launch" },
+      { label: "Archive and skip", description: "Move to archived, don't retry" }
+    ],
+    multiSelect: false
+  }]
+})
+```
+
+If "Fix it now": Switch to the agent's worktree, read the result file for error details, diagnose the failure, apply fixes, run `pnpm build && pnpm test`, commit, and merge. This is interactive — the skill acts as a debugging partner, not a headless agent.
 
 If a worktree still exists for a completed agent (merge conflict cases), mention it so the user can resolve manually.
 
-**If invoked with `status` keyword:** Show status with debrief, archive completed plans, and stop. Don't proceed to plan selection.
+**Chain debrief**: If `status.sh` reports chains, show chain progress. For failed chains, read the manifest (`grep '^failed_phase:' todo-tasks/.running/chain-*.manifest`) and the failed phase's result file. Offer: fix in worktree, re-groom the failed phase, or archive and skip. For completed chains, archive the manifest: `mv todo-tasks/.running/chain-*.manifest todo-tasks/.archived/`.
 
-**Otherwise:** Show status with debrief and archive completed plans (if any agents exist), then continue to Phase 1.
+**If invoked with `status` keyword:** Show status with debrief, archive successful agents, triage failures, and stop. Don't proceed to plan selection.
+
+**Otherwise:** Show status with debrief, archive successful agents, triage failures, then continue to Phase 1.
 
 ## Phase 1: Select a Plan
 
@@ -86,6 +94,8 @@ Glob({ pattern: 'todo-tasks/*.md' })
 ```
 
 **If specific plan named:** Match it against filenames (fuzzy — `flow-trace` matches `flow-trace-visualization.md`). Read it fully.
+
+**If epic named:** Match against the `{epic}-` prefix (e.g., "testability" matches all `testability-*.md` files). Present the full epic as a combined briefing, work through them sequentially.
 
 **If "first" specified:** Grab the first plan alphabetically. No prompting — just start working on it.
 
@@ -176,7 +186,15 @@ What exists today that's relevant:
 - Existing patterns the implementation should follow
 - Adjacent code that might be affected
 
-### 3. Considerations
+### 3. Verifiability Assessment
+Review the todo-task's `## Verifiability` section (if present). For each correctness property, assess:
+- Can this be tested at the adapter level (integration) or does it require E2E?
+- What oracle type applies? (partial, semantic/compiler, metamorphic, or manual-only)
+- Are there properties missing? If the builder only wrote smoke-level properties ("it renders"), surface this gap now.
+
+If the todo-task lacks a Verifiability section, write one with the user during the briefing. Ask: **"What would be true about this feature if implemented correctly, without referencing the implementation?"** See doc05.04.
+
+### 4. Considerations
 Open questions and tradeoffs the plan surfaces. These come from:
 - **Plan's own "Design Decisions to Make"** section (if present)
 - **Tensions** between what the plan asks for and what the code currently does
@@ -237,8 +255,41 @@ This is the key output. Rewrite the plan file in `todo-tasks/` so it's **unambig
 4. **Files to Modify** — Explicit list of files with what changes in each
 5. **Implementation Steps** — Ordered, concrete steps. Reference specific functions, line ranges, existing patterns. Each step should be independently verifiable.
 6. **Constraints** — Codebase rules the agent must follow (from CLAUDE.md, doc references)
-7. **Verification** — What `pnpm build && pnpm test` should confirm, plus any manual checks
-8. **Plan-specific checks** (optional) — Grep-based or script-based assertions the agent runs after implementation to verify negative constraints. Example: `! grep -q 'isEditingDescription' packages/web-client/src/components/PageSwitcher.tsx` to confirm removed code stays removed. These are crude but effective guardrails that complement the build/test gate.
+7. **Verification** — Correctness properties, postconditions, and test instructions (see below)
+
+### Verification Section
+
+The todo-task should include correctness properties (from the builder's `## Verifiability` section). Your job is to **operationalize** each into executable verification. See doc05.04 for the full framework.
+
+For each correctness property:
+
+**1. Classify where truth lives:**
+- **Data model** (adapter in, adapter out) → integration test or script assertion
+- **Compiler output** (semantic oracle) → integration test comparing compiler output before/after
+- **Rendered composition** (requires browser) → E2E test or manual check
+
+**2. Write a concrete verification instruction the agent can follow:**
+
+| Property | Verification instruction |
+|----------|------------------------|
+| "Applying a package adds all its schemas" | Write integration test: call `applyPackage(doc, pkg)`, assert `adapter.getSchemas()` contains each schema from `pkg.schemas` |
+| "Compilation includes new construct type" | Write integration test: create construct of new type, compile, assert output contains type name |
+| "Port handles render at correct positions" | Add to E2E `port-connections.spec.ts`: create node with custom ports, assert handle count matches port count |
+| "Deleted code stays deleted" | Plan-specific check: `! grep -q 'oldFunctionName' path/to/file.ts` |
+
+**3. Prefer higher-value test patterns:**
+- **Property/round-trip tests** over example-based: `addSchema(s); getSchema(s.id)` returns equivalent to `s`
+- **Compiler as oracle**: if the feature affects document semantics, assert on compiler output diff
+- **Adapter-level tests** over hook-level: test operation logic against DocumentAdapter directly when possible
+- **Postcondition scripts** for structural constraints: grep-based checks run after implementation
+
+**4. Flag untestable properties.** If a correctness property can't be automated (e.g., "the UI feels responsive"), mark it as manual verification. Don't pretend smoke tests cover it.
+
+The Verification section in the refined plan should contain:
+- `pnpm build && pnpm test` as the baseline gate
+- Specific new tests the agent must write, with file paths and assertion descriptions
+- Plan-specific postcondition scripts (grep/script checks)
+- Manual verification steps (if any) clearly marked as such
 
 ### What Makes a Good Headless Plan
 
@@ -297,6 +348,25 @@ Report:
 - Check progress: `tail -f todo-tasks/.running/{plan-name}.log`
 - Check results when done: `todo-tasks/.done/{plan-name}.result.md`
 
+### Chain Launch
+
+When multiple pre-groomed plans form a sequential dependency chain (e.g., an epic), offer chain execution instead of single-plan launch. The `{epic}-` prefix in filenames makes this natural — all tasks in an epic sort together and can be launched as a chain:
+
+```bash
+nohup bash .claude/skills/execute-plan/execute-chain.sh {epic} {epic}-01-{slug} {epic}-02-{slug} ... > todo-tasks/.running/chain-{epic}.log 2>&1 &
+```
+
+The chain script runs plans sequentially, stopping on first failure. It creates a `.manifest` file that claims all phases (preventing parallel agents from touching them). If a plan is already running (launched before the chain), the chain waits for it.
+
+Example:
+```bash
+nohup bash .claude/skills/execute-plan/execute-chain.sh testability \
+  testability-01-compiler-tests testability-02-adapter-round-trips \
+  testability-03-extract-connections testability-04-extract-organizer-ops \
+  testability-05-compiler-oracle \
+  > todo-tasks/.running/chain-testability.log 2>&1 &
+```
+
 ## Phase 7: Suggest Next Tasks
 
 After launching (or if the user declines), suggest safe next tasks. **Do not suggest plans that would conflict with running agents.**
@@ -315,6 +385,7 @@ After launching (or if the user declines), suggest safe next tasks. **Do not sug
 Read the first ~10 lines of each remaining plan in `todo-tasks/` to extract title, summary, and files touched. A plan is **unsafe to suggest** if:
 - It modifies the same files as a running agent's plan
 - It's already running as an agent (has a file in `todo-tasks/.running/`)
+- It's claimed by an active chain (listed in a `.running/chain-*.manifest`)
 
 ### Present suggestions
 

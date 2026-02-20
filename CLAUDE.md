@@ -2,7 +2,7 @@
 
 ## Quick Start
 
-Carta is a visual software architecture editor using React Flow. Users create "Constructs" (typed nodes), connect them, and compile to AI-readable output.
+Carta is a visual software architecture editor. Users create "Constructs" (typed nodes), connect them, and compile to AI-readable output.
 
 @.docs/MANIFEST.md
 
@@ -26,13 +26,15 @@ Carta is a visual software architecture editor using React Flow. Users create "C
 
 | Skill | Purpose | When to use |
 |-------|---------|-------------|
-| `/carta-feature-implementor` | Grooms todo-tasks/ plans into implementation-ready specs | Before `/execute-plan`, to resolve decisions and refine |
+| `/carta-builder` | Design thinking and document modeling for Carta | Before `/carta-feature-implementor`, to resolve decisions |
+| `/project-builder` | Dogfooding reflector for external projects | While building non-Carta projects, to identify Carta improvements |
+| `/carta-feature-groomer` | Researches codebase, discusses approach, refines plans into specs | Before `/carta-feature-implementor`, to resolve decisions |
+| `/carta-feature-implementor` | Status, launch, triage, chain orchestration | After grooming, to launch plans and manage agents |
 | `/documentation-nag` | Keeps `.docs/` and derived files in sync with code | After significant code changes |
 | `/documentation-auditor` | Audits `.docs/` claims against codebase, finds stale refs | Periodically, or before releases |
 | `/style-nag` | Audits and fixes UI styling against doc02.07 | After UI changes, or periodically |
 | `/frontend-architecture-nag` | Audits component layering against doc02.08 | After architectural changes |
 | `/test-builder` | Creates integration/E2E tests | When adding test coverage |
-| `/react-flow-expert` | React Flow performance, uncontrolled mode, presentation layer | Performance issues, designing visual features |
 | `/git-sync-trunk` | Syncs trunk branch with remote or main | Before creating worktrees, after remote updates |
 | `/git-sync-worktree` | Syncs worktree's claude branch with trunk via rebase | Every 30-60 min while working in a worktree |
 | `/execute-plan` | Launches background agent to implement a plan from todo-tasks/ | After agreeing on a plan interactively |
@@ -52,13 +54,15 @@ All skills follow the same pattern: opus reads `.docs/` and code, analyzes, gene
 
 | Skill | Reference Docs | Config |
 |-------|---------------|--------|
-| `/carta-feature-implementor` | `.docs/MANIFEST.md`, plan files | `.claude/skills/carta-feature-implementor/SKILL.md` |
+| `/carta-builder` | `.docs/MANIFEST.md`, MCP tools | `.claude/skills/carta-builder/SKILL.md` |
+| `/project-builder` | `.docs/MANIFEST.md`, MCP tools, external project context | `.claude/skills/project-builder/SKILL.md` |
+| `/carta-feature-groomer` | `.docs/MANIFEST.md`, plan files, codebase | `.claude/skills/carta-feature-groomer/SKILL.md` |
+| `/carta-feature-implementor` | Plan files, status script | `.claude/skills/carta-feature-implementor/SKILL.md` |
 | `/documentation-nag` | `.docs/` (all titles) | `.claude/skills/documentation-nag/SKILL.md` |
 | `/documentation-auditor` | `.docs/MANIFEST.md`, barrel exports, type defs | `.claude/skills/documentation-auditor/SKILL.md` |
 | `/style-nag` | doc02.07 (design system), doc01.04 (UX principles) | `.claude/skills/style-nag/SKILL.md` |
 | `/frontend-architecture-nag` | doc02.08 (frontend architecture), doc02.01 (overview) | `.claude/skills/frontend-architecture-nag/SKILL.md` |
 | `/test-builder` | doc04.02 (testing), `packages/web-client/tests/README.md` | `.claude/skills/test-builder/SKILL.md` |
-| `/react-flow-expert` | doc02.09 (presentation model), Map.tsx, DynamicAnchorEdge.tsx | `.claude/skills/react-flow-expert/SKILL.md` |
 | `/git-sync-trunk` | Git worktree workflows | `.claude/skills/git-sync-trunk/SKILL.md` |
 | `/git-sync-worktree` | Git worktree workflows | `.claude/skills/git-sync-worktree/SKILL.md` |
 | `/execute-plan` | Plan executor workflow | `.claude/skills/execute-plan/SKILL.md` |
@@ -112,6 +116,8 @@ pnpm test:e2e      # E2E tests (Playwright, port 5273)
 
 All three must pass before committing. E2E uses port 5273 (separate from dev server 5173).
 
+**Vite dev server restart:** If the user is running `pnpm dev` and your changes require a Vite restart (e.g., new files, config changes, dependency updates, or Vite alias changes), tell the user to restart Vite. Do not restart it yourself — the user manages the dev server.
+
 ## Codebase Exploration Strategy
 
 **Two-phase search**: Locate files cheaply before reading them.
@@ -122,10 +128,6 @@ All three must pass before committing. E2E uses port 5273 (separate from dev ser
 **Do NOT**: Launch Explore agents for simple searches. Read entire directories speculatively. Read files not surfaced by Grep or referenced by the plan.
 
 **Escalate to Explore agent only if**: Grep returns 0 hits for all terms, the subsystem has no `.docs/` coverage, or you can't identify which files to modify after triage.
-
-## Known Pitfalls
-
-- **`reactFlow.getNodes()` is stale after `setNodes()`** — In uncontrolled mode, `getNodes()` called immediately after `setNodes(updater)` in the same synchronous block returns stale data. **Pattern**: Pass known positions forward as parameters instead of re-reading from the RF store. See doc05.03.
 
 ## Constraints
 

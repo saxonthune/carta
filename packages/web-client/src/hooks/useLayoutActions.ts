@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import type { Node, ReactFlowInstance } from '@xyflow/react';
+import type { CartaNode } from '@carta/types';
 import * as Y from 'yjs';
 import type { DocumentAdapter } from '@carta/domain';
 import { DEFAULT_ORGANIZER_LAYOUT, computeLayoutUnitSizes, computeLayoutUnitBounds, computeOrganizerFit, type LayoutItem, type WagonInfo, resolvePinConstraints, type PinLayoutNode, type NodeGeometry } from '@carta/domain';
@@ -11,14 +11,16 @@ import { getNodeDimensions } from '../utils/nodeDimensions.js';
 import type { SpreadInput } from '../utils/spreadNodes.js';
 import { computeOrthogonalRoutes, type NodeRect } from '../presentation/index.js';
 import { canNestInOrganizer } from './useOrganizerOperations.js';
+import { computeAlignment, computeDistribution } from '../utils/layoutGeometry.js';
+import { computeGridPositions, transformDirectionalPositions, computeWagonSnapPositions, normalizePositionsToContentArea } from '../utils/layoutStrategies.js';
 
-const ORGANIZER_CONTENT_TOP = DEFAULT_ORGANIZER_LAYOUT.padding + DEFAULT_ORGANIZER_LAYOUT.headerHeight;
+export const ORGANIZER_CONTENT_TOP = DEFAULT_ORGANIZER_LAYOUT.padding + DEFAULT_ORGANIZER_LAYOUT.headerHeight;
 
 /**
  * Compute absolute position for a node by walking the parent chain.
  * Module-level helper extracted for use in attach/detach operations.
  */
-function getAbsolutePosition(node: Node, allNodes: Node[]): { x: number; y: number } {
+export function getAbsolutePosition(node: CartaNode, allNodes: CartaNode[]): { x: number; y: number } {
   if (!node.parentId) return node.position;
   const parent = allNodes.find(n => n.id === node.parentId);
   if (!parent) return node.position;
@@ -29,7 +31,7 @@ function getAbsolutePosition(node: Node, allNodes: Node[]): { x: number; y: numb
 /**
  * Convert absolute position to position relative to a parent.
  */
-function toRelativePosition(
+export function toRelativePosition(
   absolutePos: { x: number; y: number },
   parentAbsolutePos: { x: number; y: number }
 ): { x: number; y: number } {
@@ -48,8 +50,8 @@ function toRelativePosition(
  * Organizer dimensions come from style.width/height. Construct dimensions come
  * from computeLayoutUnitSizes (which includes wagon bounding boxes).
  */
-function getTopLevelLayoutItems(
-  rfNodes: Node[],
+export function getTopLevelLayoutItems(
+  rfNodes: CartaNode[],
   computeLayoutUnits: (nodeIds: string[]) => Map<string, { width: number; height: number }>
 ): SpreadInput[] {
   const topLevel = rfNodes.filter(n => !n.parentId);
@@ -84,8 +86,8 @@ function getTopLevelLayoutItems(
  * are dropped (internal). Edges from an organizer's child to an external node
  * are mapped to the organizer's ID. Deduplicates.
  */
-function getTopLevelEdges(
-  rfNodes: Node[],
+export function getTopLevelEdges(
+  rfNodes: CartaNode[],
   rfEdges: Array<{ source: string; target: string }>,
   topLevelIds: Set<string>
 ): Array<{ source: string; target: string }> {
@@ -130,8 +132,8 @@ function getTopLevelEdges(
  * Returns items with expanded dimensions (for layout algorithms) and an offset
  * map for converting layout positions back to construct positions.
  */
-function getChildLayoutUnits(
-  rfNodes: Node[],
+export function getChildLayoutUnits(
+  rfNodes: CartaNode[],
   organizerId: string,
 ): { items: SpreadInput[]; offsets: Map<string, { x: number; y: number }> } {
   const directChildren = rfNodes.filter(n => n.parentId === organizerId);
@@ -188,7 +190,7 @@ function getChildLayoutUnits(
 /**
  * Convert layout positions (wagon-expanded space) back to construct positions.
  */
-function convertToConstructPositions(
+export function convertToConstructPositions(
   newPositions: Map<string, { x: number; y: number }>,
   offsets: Map<string, { x: number; y: number }>,
 ): Map<string, { x: number; y: number }> {
@@ -205,8 +207,8 @@ function convertToConstructPositions(
  * Returns NodeGeometry[] with expanded bounds that account for wagon organizers.
  * This is used for fitToChildren to properly encompass wagon organizers.
  */
-function getChildVisualFootprints(
-  rfNodes: Node[],
+export function getChildVisualFootprints(
+  rfNodes: CartaNode[],
   organizerId: string,
 ): NodeGeometry[] {
   const directChildren = rfNodes.filter(n => n.parentId === organizerId);
@@ -264,9 +266,15 @@ function getChildVisualFootprints(
   });
 }
 
+interface CanvasAccessor {
+  getNodes: () => unknown[];
+  setNodes: (updater: ((nodes: unknown[]) => unknown[]) | unknown[]) => void;
+  getEdges: () => Array<{ id: string; source: string; target: string; data?: any }>;
+}
+
 interface UseLayoutActionsDeps {
-  reactFlow: ReactFlowInstance;
-  setNodesLocal: React.Dispatch<React.SetStateAction<Node[]>>;
+  canvas: CanvasAccessor;
+  setNodesLocal: React.Dispatch<React.SetStateAction<CartaNode[]>>;
   adapter: DocumentAdapter;
   selectedNodeIds: string[];
   ydoc: Y.Doc;
@@ -305,7 +313,7 @@ export interface UseLayoutActionsResult {
  * Each operation follows the 3-layer sync pattern: React Flow → local state → Yjs.
  */
 export function useLayoutActions({
-  reactFlow,
+  canvas,
   setNodesLocal,
   adapter,
   selectedNodeIds,
@@ -316,7 +324,7 @@ export function useLayoutActions({
    * Uses the domain's computeLayoutUnitSizes function.
    */
   const computeLayoutUnits = useCallback((nodeIds: string[]): Map<string, { width: number; height: number }> => {
-    const rfNodes = adapter.getNodes() as Node[];
+    const rfNodes = adapter.getNodes() as CartaNode[];
 
     // Build LayoutItem array for the specified nodes
     const layoutItems: LayoutItem[] = nodeIds.map(nodeId => {
@@ -327,7 +335,7 @@ export function useLayoutActions({
           semanticId: nodeId,
           x: 0,
           y: 0,
-          ...getNodeDimensions({ type: 'construct' } as Node),
+          ...getNodeDimensions({ type: 'construct' } as CartaNode),
         };
       }
       const dims = getNodeDimensions(node);
@@ -374,7 +382,7 @@ export function useLayoutActions({
    */
   const fitToChildren = useCallback(
     (organizerId: string) => {
-      const rfNodes = adapter.getNodes() as Node[];
+      const rfNodes = adapter.getNodes() as CartaNode[];
 
       // Get visual footprints (includes wagon-expanded bounds)
       const childGeometries = getChildVisualFootprints(rfNodes, organizerId);
@@ -429,7 +437,7 @@ export function useLayoutActions({
    */
   const attachNodeToOrganizer = useCallback(
     (nodeId: string, organizerId: string) => {
-      const rfNodes = reactFlow.getNodes();
+      const rfNodes = canvas.getNodes() as unknown as CartaNode[];
       const node = rfNodes.find(n => n.id === nodeId);
       const organizer = rfNodes.find(n => n.id === organizerId);
       if (!node || !organizer) return;
@@ -441,17 +449,17 @@ export function useLayoutActions({
       const relativePos = toRelativePosition(nodeAbsPos, orgAbsPos);
 
       // Apply to RF + local state (which syncs to Yjs via adapter.setNodes)
-      const updater = (nds: Node[]) =>
+      const updater = (nds: CartaNode[]) =>
         nds.map(n =>
           n.id === nodeId ? { ...n, parentId: organizerId, position: relativePos } : n
         );
-      reactFlow.setNodes(updater);
+      canvas.setNodes(updater as any);
       setNodesLocal(updater);
 
       // Resize organizer to fit
       fitToChildren(organizerId);
     },
-    [reactFlow, setNodesLocal, fitToChildren]
+    [canvas, setNodesLocal, fitToChildren]
   );
 
   /**
@@ -460,7 +468,7 @@ export function useLayoutActions({
    */
   const detachNodeFromOrganizer = useCallback(
     (nodeId: string) => {
-      const rfNodes = reactFlow.getNodes();
+      const rfNodes = canvas.getNodes() as unknown as CartaNode[];
       const node = rfNodes.find(n => n.id === nodeId);
       if (!node?.parentId) return;
 
@@ -468,17 +476,17 @@ export function useLayoutActions({
       const absolutePos = getAbsolutePosition(node, rfNodes);
 
       // Apply to RF + local state (which syncs to Yjs via adapter.setNodes)
-      const updater = (nds: Node[]) =>
+      const updater = (nds: CartaNode[]) =>
         nds.map(n =>
           n.id === nodeId ? { ...n, parentId: undefined, extent: undefined, position: absolutePos } : n
         );
-      reactFlow.setNodes(updater);
+      canvas.setNodes(updater as any);
       setNodesLocal(updater);
 
       // Resize old organizer to fit remaining children
       fitToChildren(oldOrganizerId);
     },
-    [reactFlow, setNodesLocal, fitToChildren]
+    [canvas, setNodesLocal, fitToChildren]
   );
 
   /**
@@ -487,7 +495,7 @@ export function useLayoutActions({
    */
   const positionWagonNextToConstruct = useCallback(
     (wagonId: string) => {
-      const rfNodes = adapter.getNodes() as Node[];
+      const rfNodes = adapter.getNodes() as CartaNode[];
       const wagon = rfNodes.find(n => n.id === wagonId);
       if (!wagon?.parentId) return;
 
@@ -519,27 +527,15 @@ export function useLayoutActions({
    */
   const snapWagonsInOrganizer = useCallback(
     (organizerId: string): void => {
-      const rfNodes = adapter.getNodes() as Node[];
+      const rfNodes = adapter.getNodes() as CartaNode[];
       const children = rfNodes.filter(n => n.parentId === organizerId);
-      const patches: Array<{ id: string; position: { x: number; y: number } }> = [];
-
-      for (const child of children) {
-        if (child.type === 'organizer') continue;
-        const wagons = rfNodes.filter(n =>
-          n.type === 'organizer' && n.parentId === child.id
-        );
-        for (const wagon of wagons) {
-          const wagonData = wagon.data as any;
-          if (!wagonData.attachedToSemanticId) continue;
-          const constructDims = getNodeDimensions(child);
-          const gap = 10;
-          const newPosition = { x: constructDims.width + gap, y: 0 };
-          patches.push({ id: wagon.id, position: newPosition });
-        }
-      }
-
-      if (patches.length > 0) {
-        adapter.patchNodes?.(patches);
+      const snaps = computeWagonSnapPositions(
+        children as any, rfNodes as any,
+        (node) => getNodeDimensions(node as CartaNode).width,
+        10,
+      );
+      if (snaps.length > 0) {
+        adapter.patchNodes?.(snaps);
       }
     },
     [adapter]
@@ -551,7 +547,7 @@ export function useLayoutActions({
   const spreadChildren = useCallback(
     (organizerId: string) => {
       snapWagonsInOrganizer(organizerId);
-      const rfNodes = adapter.getNodes() as Node[];
+      const rfNodes = canvas.getNodes() as unknown as CartaNode[];
       const { items, offsets } = getChildLayoutUnits(rfNodes, organizerId);
       if (items.length < 2) return;
 
@@ -588,22 +584,13 @@ export function useLayoutActions({
       snapWagonsInOrganizer(organizerId);
 
       // Step 2: Read nodes
-      const rfNodes = adapter.getNodes() as Node[];
+      const rfNodes = canvas.getNodes() as unknown as CartaNode[];
       const { items, offsets } = getChildLayoutUnits(rfNodes, organizerId);
       if (items.length < 2) return;
 
       // Step 3: Compute grid
       const effectiveCols = cols ?? Math.ceil(Math.sqrt(items.length));
-      const colWidth = Math.max(...items.map(n => n.width)) + 30;
-      const rowHeight = Math.max(...items.map(n => n.height)) + 30;
-      const padding = 20;
-
-      const newPositions = new globalThis.Map<string, { x: number; y: number }>();
-      items.forEach((child, idx) => {
-        const x = (idx % effectiveCols) * colWidth + padding;
-        const y = Math.floor(idx / effectiveCols) * rowHeight + ORGANIZER_CONTENT_TOP;
-        newPositions.set(child.id, { x, y });
-      });
+      const newPositions = computeGridPositions(items, effectiveCols, ORGANIZER_CONTENT_TOP, 20);
 
       // Step 4: Convert back to construct positions
       const constructPositions = convertToConstructPositions(newPositions, offsets);
@@ -623,13 +610,13 @@ export function useLayoutActions({
   const flowLayoutChildren = useCallback(
     (organizerId: string) => {
       snapWagonsInOrganizer(organizerId);
-      const rfNodes = adapter.getNodes() as Node[];
+      const rfNodes = canvas.getNodes() as unknown as CartaNode[];
       const { items, offsets } = getChildLayoutUnits(rfNodes, organizerId);
       if (items.length < 2) return;
 
       // Filter edges: between direct children, collapsing wagon-internal edges
       const childIds = new Set(items.map(c => c.id));
-      const rfEdges = reactFlow.getEdges();
+      const rfEdges = canvas.getEdges() as Array<{ id: string; source: string; target: string }>;
 
       // Build map: nodes inside child wagons → wagon ID
       const toChild = new Map<string, string>();
@@ -655,19 +642,8 @@ export function useLayoutActions({
       const rawPositions = hierarchicalLayout(items, scopedEdges, { gap: 30, layerGap: 60 });
 
       // Normalize positions to start from (padding, headerTop)
-      const padding = 20;
-      const positions = [...rawPositions.values()];
-      if (positions.length > 0) {
-        const minX = Math.min(...positions.map(p => p.x));
-        const minY = Math.min(...positions.map(p => p.y));
-
-        const newPositions = new globalThis.Map<string, { x: number; y: number }>();
-        for (const [id, pos] of rawPositions) {
-          newPositions.set(id, {
-            x: pos.x - minX + padding,
-            y: pos.y - minY + ORGANIZER_CONTENT_TOP,
-          });
-        }
+      if (rawPositions.size > 0) {
+        const newPositions = normalizePositionsToContentArea(rawPositions, ORGANIZER_CONTENT_TOP, 20);
 
         // Convert back to construct positions
         const constructPositions = convertToConstructPositions(newPositions, offsets);
@@ -686,7 +662,7 @@ export function useLayoutActions({
    * Top-level layout action (moved from Map.tsx).
    */
   const spreadSelected = useCallback(() => {
-    const rfNodes = adapter.getNodes() as Node[];
+    const rfNodes = adapter.getNodes() as CartaNode[];
     const selected = rfNodes.filter(n => selectedNodeIds.includes(n.id));
     if (selected.length < 2) return;
 
@@ -713,7 +689,7 @@ export function useLayoutActions({
    * Top-level layout action (moved from Map.tsx).
    */
   const spreadAll = useCallback(() => {
-    const rfNodes = adapter.getNodes() as Node[];
+    const rfNodes = adapter.getNodes() as CartaNode[];
 
     // --- Top-level group (constructs + organizers) ---
     const topLevelItems = getTopLevelLayoutItems(rfNodes, computeLayoutUnits);
@@ -762,7 +738,7 @@ export function useLayoutActions({
    * Top-level layout action (moved from Map.tsx).
    */
   const compactAll = useCallback(() => {
-    const topLevelItems = getTopLevelLayoutItems(adapter.getNodes() as Node[], computeLayoutUnits);
+    const topLevelItems = getTopLevelLayoutItems(adapter.getNodes() as CartaNode[], computeLayoutUnits);
     if (topLevelItems.length < 2) return;
 
     const compacted = compactNodes(topLevelItems);
@@ -784,8 +760,8 @@ export function useLayoutActions({
    * Top-level layout action (moved from Map.tsx).
    */
   const hierarchicalLayoutAction = useCallback(() => {
-    const rfNodes = adapter.getNodes() as Node[];
-    const rfEdges = reactFlow.getEdges();
+    const rfNodes = adapter.getNodes() as CartaNode[];
+    const rfEdges = canvas.getEdges() as Array<{ id: string; source: string; target: string; data?: any }>;
 
     const topLevelItems = getTopLevelLayoutItems(rfNodes, computeLayoutUnits);
     if (topLevelItems.length < 2) return;
@@ -805,14 +781,14 @@ export function useLayoutActions({
 
     const patches = [...final].map(([id, position]) => ({ id, position }));
     adapter.patchNodes?.(patches);
-  }, [adapter, reactFlow, computeLayoutUnits]);
+  }, [adapter, canvas, computeLayoutUnits]);
 
   /**
    * Align selected nodes along a specified axis.
    * Requires at least 2 selected nodes.
    */
   const alignNodes = useCallback((axis: 'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom') => {
-    const rfNodes = adapter.getNodes() as Node[];
+    const rfNodes = adapter.getNodes() as CartaNode[];
     const selected = rfNodes.filter(n => selectedNodeIds.includes(n.id));
     if (selected.length < 2) return;
 
@@ -828,53 +804,7 @@ export function useLayoutActions({
       };
     });
 
-    const newPositions = new Map<string, { x: number; y: number }>();
-
-    switch (axis) {
-      case 'left': {
-        const minX = Math.min(...nodes.map(n => n.x));
-        for (const n of nodes) {
-          newPositions.set(n.id, { x: minX, y: n.y });
-        }
-        break;
-      }
-      case 'center': {
-        const avgCenterX = nodes.reduce((sum, n) => sum + (n.x + n.width / 2), 0) / nodes.length;
-        for (const n of nodes) {
-          newPositions.set(n.id, { x: avgCenterX - n.width / 2, y: n.y });
-        }
-        break;
-      }
-      case 'right': {
-        const maxRight = Math.max(...nodes.map(n => n.x + n.width));
-        for (const n of nodes) {
-          newPositions.set(n.id, { x: maxRight - n.width, y: n.y });
-        }
-        break;
-      }
-      case 'top': {
-        const minY = Math.min(...nodes.map(n => n.y));
-        for (const n of nodes) {
-          newPositions.set(n.id, { x: n.x, y: minY });
-        }
-        break;
-      }
-      case 'middle': {
-        const avgCenterY = nodes.reduce((sum, n) => sum + (n.y + n.height / 2), 0) / nodes.length;
-        for (const n of nodes) {
-          newPositions.set(n.id, { x: n.x, y: avgCenterY - n.height / 2 });
-        }
-        break;
-      }
-      case 'bottom': {
-        const maxBottom = Math.max(...nodes.map(n => n.y + n.height));
-        for (const n of nodes) {
-          newPositions.set(n.id, { x: n.x, y: maxBottom - n.height });
-        }
-        break;
-      }
-    }
-
+    const newPositions = computeAlignment(nodes, axis);
     const patches = [...newPositions].map(([id, position]) => ({ id, position }));
     adapter.patchNodes?.(patches);
   }, [adapter, selectedNodeIds, computeLayoutUnits]);
@@ -884,7 +814,7 @@ export function useLayoutActions({
    * Requires at least 3 selected nodes.
    */
   const distributeNodes = useCallback((axis: 'horizontal' | 'vertical') => {
-    const rfNodes = adapter.getNodes() as Node[];
+    const rfNodes = adapter.getNodes() as CartaNode[];
     const selected = rfNodes.filter(n => selectedNodeIds.includes(n.id));
     if (selected.length < 3) return;
 
@@ -900,45 +830,9 @@ export function useLayoutActions({
       };
     });
 
-    if (axis === 'horizontal') {
-      // Sort by x position
-      nodes.sort((a, b) => a.x - b.x);
-
-      const first = nodes[0];
-      const last = nodes[nodes.length - 1];
-      const span = (last.x + last.width) - first.x;
-      const totalWidth = nodes.reduce((sum, n) => sum + n.width, 0);
-      const gap = (span - totalWidth) / (nodes.length - 1);
-
-      let currentX = first.x;
-      const newPositions = new Map<string, { x: number; y: number }>();
-      for (const n of nodes) {
-        newPositions.set(n.id, { x: currentX, y: n.y });
-        currentX += n.width + gap;
-      }
-
-      const patches = [...newPositions].map(([id, position]) => ({ id, position }));
-      adapter.patchNodes?.(patches);
-    } else {
-      // Sort by y position
-      nodes.sort((a, b) => a.y - b.y);
-
-      const first = nodes[0];
-      const last = nodes[nodes.length - 1];
-      const span = (last.y + last.height) - first.y;
-      const totalHeight = nodes.reduce((sum, n) => sum + n.height, 0);
-      const gap = (span - totalHeight) / (nodes.length - 1);
-
-      let currentY = first.y;
-      const newPositions = new Map<string, { x: number; y: number }>();
-      for (const n of nodes) {
-        newPositions.set(n.id, { x: n.x, y: currentY });
-        currentY += n.height + gap;
-      }
-
-      const patches = [...newPositions].map(([id, position]) => ({ id, position }));
-      adapter.patchNodes?.(patches);
-    }
+    const newPositions = computeDistribution(nodes, axis);
+    const patches = [...newPositions].map(([id, position]) => ({ id, position }));
+    adapter.patchNodes?.(patches);
   }, [adapter, selectedNodeIds, computeLayoutUnits]);
 
   /**
@@ -946,8 +840,8 @@ export function useLayoutActions({
    * Transforms the top-to-bottom hierarchical layout to LR/RL/TB/BT.
    */
   const flowLayout = useCallback((direction: 'LR' | 'RL' | 'TB' | 'BT') => {
-    const rfNodes = adapter.getNodes() as Node[];
-    const rfEdges = reactFlow.getEdges();
+    const rfNodes = adapter.getNodes() as CartaNode[];
+    const rfEdges = canvas.getEdges() as Array<{ id: string; source: string; target: string; data?: any }>;
 
     const topLevelItems = getTopLevelLayoutItems(rfNodes, computeLayoutUnits);
     if (topLevelItems.length < 2) return;
@@ -960,35 +854,8 @@ export function useLayoutActions({
 
     // Transform coordinates based on direction
     // hierarchicalLayout produces TB layout (y increases down layers)
-    const transformed = new Map<string, { x: number; y: number }>();
-
-    if (direction === 'TB') {
-      // Already TB, use as-is
-      for (const [id, pos] of rawPositioned) {
-        transformed.set(id, pos);
-      }
-    } else if (direction === 'BT') {
-      // Mirror y positions
-      const positions = [...rawPositioned.values()];
-      const maxY = Math.max(...positions.map(p => p.y));
-      for (const [id, pos] of rawPositioned) {
-        const node = topLevelItems.find(n => n.id === id)!;
-        transformed.set(id, { x: pos.x, y: maxY - pos.y - node.height });
-      }
-    } else if (direction === 'LR') {
-      // Swap x and y
-      for (const [id, pos] of rawPositioned) {
-        transformed.set(id, { x: pos.y, y: pos.x });
-      }
-    } else if (direction === 'RL') {
-      // Swap x and y, then mirror x
-      const positions = [...rawPositioned.values()];
-      const maxY = Math.max(...positions.map(p => p.y));
-      for (const [id, pos] of rawPositioned) {
-        const node = topLevelItems.find(n => n.id === id)!;
-        transformed.set(id, { x: maxY - pos.y - node.height, y: pos.x });
-      }
-    }
+    const itemDims = new Map(topLevelItems.map(n => [n.id, { width: n.width, height: n.height }]));
+    const transformed = transformDirectionalPositions(rawPositioned, direction, itemDims);
 
     // Chain de-overlap to guarantee no overlaps
     const positionedItems = topLevelItems.map(n => ({
@@ -999,7 +866,7 @@ export function useLayoutActions({
 
     const patches = [...final].map(([id, position]) => ({ id, position }));
     adapter.patchNodes?.(patches);
-  }, [adapter, reactFlow, computeLayoutUnits]);
+  }, [adapter, canvas, computeLayoutUnits]);
 
   /**
    * Route edges around obstacles using orthogonal routing.
@@ -1007,8 +874,8 @@ export function useLayoutActions({
    * Waypoints are persisted to Yjs.
    */
   const routeEdges = useCallback(() => {
-    const rfNodes = reactFlow.getNodes();
-    const rfEdges = reactFlow.getEdges();
+    const rfNodes = canvas.getNodes() as unknown as CartaNode[];
+    const rfEdges = canvas.getEdges() as Array<{ id: string; source: string; target: string; data?: any }>;
 
     // Build obstacle rects from all top-level nodes (constructs + organizers)
     const topLevel = rfNodes.filter(n => !n.parentId);
@@ -1039,6 +906,23 @@ export function useLayoutActions({
     const obstacleMap = new Map(obstacles.map(o => [o.id, o]));
     const edgeInputs: Array<{ id: string; sourceRect: NodeRect; targetRect: NodeRect }> = [];
 
+    // Helper to calculate rect overlap percentage
+    const calculateOverlap = (rect1: NodeRect, rect2: NodeRect): number => {
+      const x1 = Math.max(rect1.x, rect2.x);
+      const y1 = Math.max(rect1.y, rect2.y);
+      const x2 = Math.min(rect1.x + rect1.width, rect2.x + rect2.width);
+      const y2 = Math.min(rect1.y + rect1.height, rect2.y + rect2.height);
+
+      if (x2 <= x1 || y2 <= y1) return 0; // No overlap
+
+      const overlapArea = (x2 - x1) * (y2 - y1);
+      const area1 = rect1.width * rect1.height;
+      const area2 = rect2.width * rect2.height;
+      const minArea = Math.min(area1, area2);
+
+      return minArea > 0 ? overlapArea / minArea : 0;
+    };
+
     for (const edge of rfEdges) {
       const sourceId = resolveTopLevel(edge.source);
       const targetId = resolveTopLevel(edge.target);
@@ -1046,6 +930,11 @@ export function useLayoutActions({
       const sourceRect = obstacleMap.get(sourceId);
       const targetRect = obstacleMap.get(targetId);
       if (!sourceRect || !targetRect) continue;
+
+      // Skip edges where source and target rects overlap significantly (would produce degenerate routes)
+      const overlap = calculateOverlap(sourceRect, targetRect);
+      if (overlap > 0.5) continue;
+
       edgeInputs.push({ id: edge.id, sourceRect, targetRect });
     }
 
@@ -1067,20 +956,20 @@ export function useLayoutActions({
       }
     }
     adapter.patchEdgeData?.(edgePatches);
-  }, [reactFlow, adapter]);
+  }, [canvas, adapter]);
 
   /**
    * Clear all edge routes (waypoints) from Yjs (sync effect will propagate to React Flow).
    */
   const clearRoutes = useCallback(() => {
-    const rfEdges = reactFlow.getEdges();
+    const rfEdges = canvas.getEdges() as Array<{ id: string; source: string; target: string; data?: any }>;
     const patches = rfEdges
       .filter(e => e.data?.waypoints && !e.id.startsWith('agg-') && !e.id.startsWith('wagon-'))
       .map(e => ({ id: e.id, data: { waypoints: null } }));
     if (patches.length > 0) {
       adapter.patchEdgeData?.(patches);
     }
-  }, [reactFlow, adapter]);
+  }, [canvas, adapter]);
 
   /**
    * Apply pin constraint layout.
@@ -1094,7 +983,7 @@ export function useLayoutActions({
     const constraints = listPinConstraints(ydoc, pageId);
     if (constraints.length === 0) return;
 
-    const rfNodes = adapter.getNodes() as Node[];
+    const rfNodes = adapter.getNodes() as CartaNode[];
 
     // Gather top-level organizers AND top-level wagon organizers
     const organizers = rfNodes.filter(n => {
@@ -1142,7 +1031,7 @@ export function useLayoutActions({
 
     // De-overlap free-standing nodes against newly positioned organizers
     const constrainedIds = new Set(result.positions.keys());
-    const allTopLevel = getTopLevelLayoutItems(adapter.getNodes() as Node[], computeLayoutUnits);
+    const allTopLevel = getTopLevelLayoutItems(adapter.getNodes() as CartaNode[], computeLayoutUnits);
 
     // Merge constrained positions into items for de-overlap
     const updatedItems = allTopLevel.map(item => {
@@ -1171,7 +1060,7 @@ export function useLayoutActions({
    */
   const recursiveLayout = useCallback(
     (organizerId: string, strategy: 'spread' | 'grid' | 'flow') => {
-      const rfNodes = adapter.getNodes() as Node[];
+      const rfNodes = adapter.getNodes() as CartaNode[];
 
       // Find all descendant organizers (breadth-first collection, then reverse for bottom-up)
       const queue: string[] = [organizerId];
@@ -1201,7 +1090,7 @@ export function useLayoutActions({
       // Process bottom-up (reverse order)
       for (let i = organizers.length - 1; i >= 0; i--) {
         const orgId = organizers[i];
-        const orgNode = (adapter.getNodes() as Node[]).find(n => n.id === orgId);
+        const orgNode = (adapter.getNodes() as CartaNode[]).find(n => n.id === orgId);
         if (!orgNode) continue;
 
         // Check if pinned — skip layout + fit but allow recursion (already done above)
@@ -1209,7 +1098,7 @@ export function useLayoutActions({
         if (data.layoutPinned) continue;
 
         // Apply strategy (each action snaps wagons internally via snapWagonsInOrganizer)
-        const children = (adapter.getNodes() as Node[]).filter(n => n.parentId === orgId);
+        const children = (adapter.getNodes() as CartaNode[]).filter(n => n.parentId === orgId);
         if (children.length < 2 && strategy !== 'spread') continue;
         if (children.length < 1) continue;
 
@@ -1229,7 +1118,7 @@ export function useLayoutActions({
    */
   const toggleLayoutPin = useCallback(
     (organizerId: string) => {
-      const rfNodes = adapter.getNodes() as Node[];
+      const rfNodes = adapter.getNodes() as CartaNode[];
       const orgNode = rfNodes.find(n => n.id === organizerId);
       if (!orgNode) return;
 
@@ -1237,13 +1126,13 @@ export function useLayoutActions({
       const newPinned = !data.layoutPinned;
 
       // Update React Flow + local state
-      const updater = (nds: Node[]) =>
+      const updater = (nds: CartaNode[]) =>
         nds.map(n =>
           n.id === organizerId
             ? { ...n, data: { ...n.data, layoutPinned: newPinned } }
             : n
         );
-      reactFlow.setNodes(updater);
+      canvas.setNodes(updater as any);
       setNodesLocal(updater);
 
       // Persist to Yjs via document operations
@@ -1252,7 +1141,7 @@ export function useLayoutActions({
         updateOrganizer(ydoc, pageId, organizerId, { layoutPinned: newPinned });
       }
     },
-    [reactFlow, setNodesLocal, adapter, ydoc]
+    [canvas, setNodesLocal, adapter, ydoc]
   );
 
   return {

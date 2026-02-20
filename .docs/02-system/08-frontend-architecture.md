@@ -113,7 +113,7 @@ The presentation model is a pure transformation layer between domain state and R
 
 | Feature | Data | Intent | Key Files |
 |---------|------|--------|-----------|
-| Canvas (instances) | Nodes, edges, connections | Build architecture | CanvasContainer.tsx, Map.tsx, InspectorPanel.tsx, useGraphOperations, useMapState |
+| Canvas (instances) | Nodes, edges, connections | Build architecture | CanvasContainer.tsx, Map.tsx, InspectorPanel.tsx, useLayoutActions, useMapState |
 | Metamap (schemas) | Schemas, groups, port schemas | Define types | Metamap.tsx |
 | Schema editing | Schema form, field tiers, ports | Create/edit types | ConstructEditor.tsx |
 | Compilation | Compiled output | Generate AI output | compiler/index.ts |
@@ -132,25 +132,28 @@ Organized by purpose:
 
 ### `hooks/index.ts`
 Organized by purpose:
-- **Document state**: `useNodes`, `useEdges`, `useSchemas`, `usePortSchemas`, `useSchemaGroups`, `usePages`, `useDocumentMeta`
-- **Document operations**: `useGraphOperations`, `useConnections`, `usePresentation`, `useOrganizerOperations`, `useLayoutActions`
-- **UI state**: `useMapState`, `useMetamapLayout`, `useEdgeBundling`, `useNarrative`, `useFlowTrace`
-- **Utilities**: `useClipboard`, `useUndoRedo`, `useKeyboardShortcuts`, `useAwareness`, `useDirtyStateGuard`, `useClearDocument`, `useEdgeCleanup`
+- **Document state**: `useNodes`, `useEdges`, `useSchemas`, `usePortSchemas`, `useSchemaGroups`, `useSchemaPackages`, `useSchemaRelationships`, `usePages`, `useDocumentMeta`, `usePackagePicker`
+- **Document operations**: `usePresentation`, `useOrganizerOperations`, `useLayoutActions`, `useEdgeCleanup`, `usePinConstraints`
+- **UI state**: `useMapState`, `useNarrative`, `useEdgeBundling`, `useFlowTrace`
+- **Map pipelines**: `useEdgeColor`, `useMapNodePipeline`, `useMapEdgePipeline`
+- **Utilities**: `useUndoRedo`, `useAwareness`, `useDirtyStateGuard`, `useClearDocument`
 
 ### `components/canvas/index.ts`
 Canvas components and LOD:
-- **Components**: `Map`, `CanvasContainer`, `ConstructNode`, `OrganizerNode`, `InspectorPanel`, `DynamicAnchorEdge`, `PortDrawer`, `IndexBasedDropZones`, `AddConstructMenu`, `Narrative`
-- **LOD**: `useLodBand`, `DEFAULT_LOD_POLICY`, `getLodConfig`, types
+- **Components**: `MapV2`, `MapV2Toolbar`, `CanvasContainer`, `AddConstructMenu`, `Narrative`, `CanvasToolbar`
+- **LOD**: `DEFAULT_LOD_POLICY`, `getLodConfig`, types
 
-**Note:** `ConstructNode` and `Header` are directories with modular implementations. ConstructNode has: `index.tsx` (dispatcher), `ConstructNodeMarker.tsx` (pill LOD, shared), `ConstructNodeDefault.tsx` (default nodeShape), `ConstructNodeSimple.tsx` (simple nodeShape, see doc03.01.14), `shared.ts` (utilities). Header has: `Header.tsx`, `ThemeMenu.tsx`, `SettingsMenu.tsx`, `ShareMenu.tsx`, `useClickOutside.ts`.
+**Note:** React Flow has been fully removed. `MapV2.tsx` uses canvas-engine primitives for full control over rendering and interaction. `MapV2PlaceholderNode` renders constructs whose schemas are missing from the document (drift detection fallback).
+
+**Note:** `MapV2ConstructNode.tsx` renders construct nodes on the canvas. `Header` is a directory with modular implementations: `Header.tsx`, `ThemeMenu.tsx`, `SettingsMenu.tsx`, `ShareMenu.tsx`, `useClickOutside.ts`.
 
 ### `components/metamap/index.ts`
 Schema view:
-- `Metamap`, `SchemaNode`, `EdgeDetailPopover`, `MetamapConnectionModal`, `MetamapFilter`
+- `EdgeDetailPopover`, `MetamapConnectionModal`, `MetamapFilter`
 
 ### `components/modals/index.ts`
 All modal dialogs:
-- `CompileModal`, `HelpModal`, `DocumentBrowserModal`, `ImportPreviewModal`, `ExportPreviewModal`, `ConstructDebugModal`, `ClearWorkspaceModal`
+- `CompileModal`, `HelpModal`, `DocumentBrowserModal`, `ImportPreviewModal`, `ExportPreviewModal`, `ConstructDebugModal`, `ClearWorkspaceModal`, `DeleteEmptySchemasModal`, `DeleteEmptyGroupsModal`, `PackagePickerModal`, `PackageDiffModal`
 
 ### `components/ui/index.ts`
 Organized by type:
@@ -158,18 +161,17 @@ Organized by type:
 - **Navigation**: `TabBar`, `SegmentedControl`, `Breadcrumb`, `SearchBar`
 - **Menus**: `ContextMenu`, `ContextMenuPrimitive`, `PopoverMenu`
 - **Domain components**: `DocumentRow`, `FolderRow`, `GroupedSchemaList`, `SchemaGroupSelector`, `CollapsibleSelector`, `ChoiceCard`, `DraggableWindow`
-- **Debug utilities**: `ZoomDebug`
-- **Icons**: All icon exports
+- **Icons** (from `icons.tsx`): `PinIcon`, `WindowIcon`, `CloseIcon`, `ExpandIcon`, `CollapseIcon`, `EyeIcon`, `EyeOffIcon`
 
 ### `utils/index.ts`
 Organized by purpose:
 - **File format**: `exportProject`, `CartaFile`, `CartaFilePage` types
 - **Import/export**: `importDocument`, `analyzeImport`, `analyzeExport`, related types
-- **Seeds**: `seeds` (provides seed documents: starter, kitchen-sink, saas, perf-150)
-- **Metamap layout**: `computeMetamapLayout`, layout constants, types
 - **Preferences**: `getLastDocumentId`, `setLastDocumentId`
 - **Random names**: `generateRandomName`
 - **String utilities**: `stripHandlePrefix`
+- **Node dimensions**: `getNodeDimensions`
+- **Edge geometry**: `getRectBoundaryPoint`, `waypointsToPath`, `computeBezierPath`, types
 
 ## Progressive Disclosure for Features
 

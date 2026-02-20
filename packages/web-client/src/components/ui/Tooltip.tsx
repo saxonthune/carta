@@ -1,9 +1,12 @@
 import { useRef, useState, useCallback, useEffect, cloneElement, isValidElement } from 'react';
 import { createPortal } from 'react-dom';
+import { useGuideTooltips } from '../../contexts/GuideTooltipContext';
 
 interface TooltipProps {
   /** Tooltip text content */
   content: string;
+  /** Optional guide tooltip content — shown when guide mode is enabled */
+  guideContent?: string;
   /** Delay in ms before showing (default: 150) */
   delay?: number;
   /** Preferred placement — will flip if clipped by viewport */
@@ -165,12 +168,17 @@ function cloneElementWithRef(
   return cloneElement(child, mergedProps);
 }
 
-export default function Tooltip({ content, delay = 150, placement = 'top', children }: TooltipProps) {
+export default function Tooltip({ content, guideContent, delay = 150, placement = 'top', children }: TooltipProps) {
+  const { enabled: guideEnabled } = useGuideTooltips();
   const [visible, setVisible] = useState(false);
   const [position, setPosition] = useState<Position | null>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<number | null>(null);
+
+  // Determine which content to display
+  const isGuideMode = guideEnabled && guideContent !== undefined;
+  const displayContent = isGuideMode ? guideContent : content;
 
   const show = useCallback(() => {
     timeoutRef.current = window.setTimeout(() => {
@@ -206,7 +214,7 @@ export default function Tooltip({ content, delay = 150, placement = 'top', child
     };
   }, []);
 
-  if (!content) return children;
+  if (!displayContent) return children;
 
   return (
     <>
@@ -221,10 +229,15 @@ export default function Tooltip({ content, delay = 150, placement = 'top', child
         <div
           ref={tooltipRef}
           role="tooltip"
-          className="fixed z-[999] px-2 py-1 text-2xs rounded bg-surface-elevated text-content border border-subtle shadow-md pointer-events-none whitespace-nowrap"
+          className={
+            isGuideMode
+              ? "fixed z-[999] px-2 py-1 text-2xs rounded bg-guide-muted text-guide border border-guide/20 shadow-md pointer-events-none max-w-[240px]"
+              : "fixed z-[999] px-2 py-1 text-2xs rounded bg-surface-elevated text-content border border-subtle shadow-md pointer-events-none whitespace-nowrap"
+          }
           style={{ top: position.top, left: position.left }}
         >
-          {content}
+          {isGuideMode && <span className="font-semibold mr-1">?</span>}
+          {displayContent}
         </div>,
         document.body,
       )}

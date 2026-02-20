@@ -4,10 +4,13 @@ import './index.css'
 import App from './App.tsx'
 import { DocumentProvider } from './contexts/DocumentContext'
 import { VaultProvider } from './contexts/VaultContext'
+import { GuideTooltipProvider } from './contexts/GuideTooltipContext'
 import { migrateCartaLocal } from './utils/migration'
 import { getLastDocumentId, setLastDocumentId } from './utils/preferences'
 import { createDocument } from './stores/documentRegistry'
 import { config } from './config/featureFlags'
+
+performance.mark('carta:module-eval')
 
 // Suppress the benign ResizeObserver loop error.
 // This fires when a ResizeObserver callback triggers layout changes that produce
@@ -24,24 +27,14 @@ window.addEventListener('error', (e) => {
 const root = createRoot(document.getElementById('root')!);
 
 async function boot() {
+  performance.mark('carta:boot-start')
   const urlParams = new URLSearchParams(window.location.search);
-  const seedName = urlParams.get('seed');
-  let documentId = urlParams.get('doc');
+  const documentId = urlParams.get('doc');
 
-  // ?seed=<name> forces creation of a fresh document with seed content
-  if (seedName) {
-    documentId = await createDocument('Untitled Project');
-    // Replace URL so reload opens the same document instead of re-seeding
-    const newUrl = new URL(window.location.href);
-    newUrl.searchParams.delete('seed');
-    newUrl.searchParams.set('doc', documentId);
-    history.replaceState(null, '', newUrl.toString());
-  }
-
-  await bootWithDocumentId(documentId, seedName ?? undefined);
+  await bootWithDocumentId(documentId);
 }
 
-async function bootWithDocumentId(documentId: string | null, seedName?: string) {
+async function bootWithDocumentId(documentId: string | null) {
   if (!documentId) {
     if (config.isDesktop) {
       // Desktop mode: try last-opened document, otherwise show DocumentBrowserModal
@@ -70,17 +63,21 @@ async function bootWithDocumentId(documentId: string | null, seedName?: string) 
     setLastDocumentId(documentId);
   }
 
+  performance.mark('carta:render-start')
+  performance.measure('carta:boot-resolve', 'carta:boot-start', 'carta:render-start')
   root.render(
     <StrictMode>
-      <VaultProvider>
-        {documentId ? (
-          <DocumentProvider documentId={documentId} seedName={seedName}>
+      <GuideTooltipProvider>
+        <VaultProvider>
+          {documentId ? (
+            <DocumentProvider documentId={documentId}>
+              <App />
+            </DocumentProvider>
+          ) : (
             <App />
-          </DocumentProvider>
-        ) : (
-          <App />
-        )}
-      </VaultProvider>
+          )}
+        </VaultProvider>
+      </GuideTooltipProvider>
     </StrictMode>,
   );
 }

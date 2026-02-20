@@ -54,7 +54,7 @@ export async function getDocumentMetadata(id: string): Promise<DocumentSummary |
   });
 }
 
-export async function createDocument(title?: string): Promise<string> {
+export async function createDocument(title?: string, filename?: string): Promise<string> {
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
   const metadata: DocumentSummary = {
@@ -64,6 +64,7 @@ export async function createDocument(title?: string): Promise<string> {
     createdAt: now,
     updatedAt: now,
     nodeCount: 0,
+    ...(filename ? { filename } : {}),
   };
 
   const db = await openRegistry();

@@ -32,6 +32,17 @@ You are a design thinker for Carta. Your output is **conversation and todo-tasks
 
 Write to `todo-tasks/` at the repo root. Frontload the summary — another agent reads only the first 10 lines to decide whether to work on it.
 
+### File naming
+
+Use the pattern `{epic}-{nn}-{slug}.md` where:
+- **epic**: short kebab-case name for the chain/initiative (e.g., `testability`, `map-v2`, `packages`)
+- **nn**: two-digit sequence number within the epic (e.g., `01`, `02`)
+- **slug**: descriptive kebab-case name for the individual task
+
+Examples: `testability-01-compiler-tests.md`, `map-v2-03-organizers.md`, `packages-02-drift-detection.md`
+
+This groups related tasks lexically and makes chain launches self-documenting. When creating the first task in a new epic, start at `01`. Standalone tasks with no epic use just `{nn}-{slug}.md`.
+
 ```markdown
 # Feature Title
 
@@ -55,6 +66,35 @@ Write to `todo-tasks/` at the repo root. Frontload the summary — another agent
 **What belongs**: User-visible behavior, resolved design decisions, constraints, affected areas at the feature level.
 
 **What does NOT belong**: Variable names, file paths, prop names, "change X to Y" instructions, implementation details. The implementor will discover these during grooming. A todo-task with implementation hints has paid for the same investigation twice.
+
+### Verifiability section (required)
+
+Every todo-task must include a `## Verifiability` section. This is where you answer — with the user — the question:
+
+> **What would be true about this feature if it were implemented correctly, stated without reference to the implementation?**
+
+If you can't answer this without describing code, the feature isn't specified well enough yet. Keep designing.
+
+Write 3-5 **correctness properties** as plain-language statements. Classify each:
+
+| Property | Oracle type | Test level |
+|----------|------------|------------|
+| "Connections between incompatible port polarities are rejected" | Partial oracle (state check) | Integration |
+| "Compilation output contains one block per construct per page" | Semantic oracle (compiler diff) | Integration |
+| "Dragging a node updates its persisted position" | Composition (requires render + write-back) | E2E |
+
+**Oracle types** (from weakest to strongest):
+- **Smoke**: didn't crash
+- **Exact**: known right answer (golden file)
+- **Partial**: known *properties* of the right answer (non-empty, round-trips, sorted)
+- **Semantic**: observable through the compiler output
+- **Metamorphic**: known *relationships between outputs* given related inputs
+
+Push toward partial/semantic/metamorphic oracles. If all properties are smoke-level ("it renders without errors"), the feature design is too vague.
+
+**Integration vs E2E rule of thumb**: if the property can be stated in terms of DocumentAdapter operations and their results, it's an integration test. If it requires the rendering pipeline or user interaction, it's E2E. Prefer integration — push as many properties as possible into adapter-testable territory through design choices.
+
+This section does NOT specify tests — the groomer and executor handle that. It specifies *what correctness means* so they know what to verify.
 
 ## Pipeline position
 

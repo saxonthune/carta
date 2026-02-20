@@ -42,6 +42,8 @@ interface DesktopDocState extends DocState {
   saveTimer: ReturnType<typeof setTimeout> | null;
   /** Whether this doc should be persisted to disk (loaded from file or explicitly created) */
   persist: boolean;
+  /** Human-readable filename on disk, e.g. "my-project.carta.json" */
+  filename: string;
 }
 
 export interface EmbeddedServerInfo {
@@ -62,6 +64,8 @@ let vaultDir: string;
 let userDataDir: string;
 let serverInfoPath: string;
 const docs = new Map<string, DesktopDocState>();
+/** Maps opaque docId → human-readable filename (e.g. "my-project.carta.json") */
+const docIdToFilename = new Map<string, string>();
 let httpServer: http.Server | null = null;
 let wss: WebSocketServer | null = null;
 
@@ -73,8 +77,21 @@ function ensureVaultDir(): void {
   }
 }
 
-function getDocPath(docId: string): string {
-  return path.join(vaultDir, `${docId}.json`);
+function getDocPath(filename: string): string {
+  return path.join(vaultDir, filename);
+}
+
+/**
+ * Find a unique filename in the vault, appending -2, -3, etc. on collision.
+ */
+function resolveUniqueFilename(filename: string): string {
+  if (!fs.existsSync(getDocPath(filename))) return filename;
+  const base = filename.replace(/\.carta\.json$/, '');
+  let counter = 2;
+  while (fs.existsSync(getDocPath(`${base}-${counter}.carta.json`))) {
+    counter++;
+  }
+  return `${base}-${counter}.carta.json`;
 }
 
 /**
@@ -89,27 +106,22 @@ function scanVaultForDocuments(): DocumentSummary[] {
     for (const file of files) {
       if (!file.endsWith('.json')) continue;
 
-      const docId = file.slice(0, -5); // Remove .json extension
       const filePath = path.join(vaultDir, file);
 
       try {
         const content = fs.readFileSync(filePath, 'utf-8');
         const data = JSON.parse(content);
 
+        // Use stored docId if present (human-readable filename files), else derive from filename
+        const docId = (data.docId as string | undefined) || file.slice(0, -5);
+        docIdToFilename.set(docId, file);
+
         const title = data.title || docId;
         const folder = '/'; // Flat folder structure for now
         const stat = fs.statSync(filePath);
         const updatedAt = stat.mtime.toISOString();
 
-        // Count nodes across all pages
-        let nodeCount = 0;
-        if (Array.isArray(data.pages)) {
-          for (const page of data.pages) {
-            if (Array.isArray(page.nodes)) {
-              nodeCount += page.nodes.length;
-            }
-          }
-        }
+        const nodeCount = 0; // Skip counting for list performance
 
         documents.push({
           id: docId,
@@ -135,9 +147,11 @@ function scanVaultForDocuments(): DocumentSummary[] {
  */
 function saveDocToJson(docId: string, doc: Y.Doc): void {
   ensureVaultDir();
+  const filename = docs.get(docId)?.filename || docIdToFilename.get(docId) || `${docId}.json`;
   const cartaFile = extractCartaFile(doc);
-  const jsonContent = JSON.stringify(cartaFile, null, 2);
-  fs.writeFileSync(getDocPath(docId), jsonContent, 'utf-8');
+  // Embed docId in the file so scanVaultForDocuments can reconstruct the mapping
+  const jsonContent = JSON.stringify({ docId, ...cartaFile }, null, 2);
+  fs.writeFileSync(getDocPath(filename), jsonContent, 'utf-8');
 }
 
 /**
@@ -145,7 +159,8 @@ function saveDocToJson(docId: string, doc: Y.Doc): void {
  * Returns true if file exists and was loaded successfully.
  */
 function loadDocFromJson(docId: string, doc: Y.Doc): boolean {
-  const docPath = getDocPath(docId);
+  const filename = docIdToFilename.get(docId) || `${docId}.json`;
+  const docPath = getDocPath(filename);
   if (!fs.existsSync(docPath)) return false;
 
   try {
@@ -242,8 +257,10 @@ function createHelloWorldDocument(): string {
   };
 
   ensureVaultDir();
-  const jsonContent = JSON.stringify(cartaFile, null, 2);
-  fs.writeFileSync(getDocPath(docId), jsonContent, 'utf-8');
+  const filename = 'hello-world.carta.json';
+  docIdToFilename.set(docId, filename);
+  const jsonContent = JSON.stringify({ docId, ...cartaFile }, null, 2);
+  fs.writeFileSync(getDocPath(filename), jsonContent, 'utf-8');
 
   log('Created hello-world document: %s', docId);
   return docId;
@@ -290,7 +307,8 @@ function getOrCreateDoc(docId: string): DesktopDocState {
 
   const doc = new Y.Doc();
   const loaded = loadDocFromJson(docId, doc);
-  docState = { doc, conns: new Set(), dirty: false, saveTimer: null, persist: loaded };
+  const filename = docIdToFilename.get(docId) || '';
+  docState = { doc, conns: new Set(), dirty: false, saveTimer: null, persist: loaded, filename };
   docs.set(docId, docState);
 
   // Migrate flat docs to page-based structure
@@ -320,18 +338,22 @@ const { handleHttpRequest, setupWSConnection } = createDocumentServer({
   listDocuments: async (): Promise<DocumentSummary[]> => {
     return scanVaultForDocuments();
   },
-  onDocumentCreated: async (docId: string, docState: DocState) => {
-    // Mark as persistable so future updates are saved
+  onDocumentCreated: async (docId: string, docState: DocState, filename: string) => {
     const desktopState = docState as DesktopDocState;
+    const resolvedFilename = resolveUniqueFilename(filename);
+    desktopState.filename = resolvedFilename;
     desktopState.persist = true;
+    docIdToFilename.set(docId, resolvedFilename);
     saveDocToJson(docId, docState.doc);
   },
   deleteDocument: async (docId: string): Promise<boolean> => {
     docs.delete(docId);
-    const docPath = getDocPath(docId);
+    const filename = docIdToFilename.get(docId) || `${docId}.json`;
+    const docPath = getDocPath(filename);
     if (fs.existsSync(docPath)) {
       fs.unlinkSync(docPath);
     }
+    docIdToFilename.delete(docId);
     return true;
   },
   healthMeta: {

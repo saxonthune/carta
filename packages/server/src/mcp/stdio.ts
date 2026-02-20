@@ -112,6 +112,7 @@ async function main() {
           (key) => !(tool.inputSchema as Record<string, { optional?: boolean }>)[key]?.optional
         ),
       },
+      annotations: tool.annotations,
     }));
     return { tools };
   });
