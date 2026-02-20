@@ -218,7 +218,15 @@ export default function ConstructEditor({ editSchema, onClose }: ConstructEditor
     if (isEditMode) {
       // Field/port migrations happen live via inline callbacks — only send safe keys here
       const { type: _, fields: _f, ports: _p, ...safeUpdates } = schema;
-      updateSchema(schemaType, safeUpdates);
+
+      // Build fieldUpdates map for non-structural field property changes
+      // (displayHint, semanticDescription, placeholder, displayTier, displayOrder, label)
+      const fieldUpdates: Record<string, Record<string, unknown>> = {};
+      for (const field of updatedFields) {
+        const { name, type: _ft, options: _fo, ...metadata } = field;
+        fieldUpdates[name] = metadata;
+      }
+      updateSchema(schemaType, { ...safeUpdates, fieldUpdates } as Partial<ConstructSchema>);
     } else {
       addSchema(schema);
     }

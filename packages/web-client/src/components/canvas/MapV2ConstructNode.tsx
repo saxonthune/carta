@@ -422,7 +422,7 @@ function SimpleNode(props: ShapeRenderProps & { adapter: DocumentAdapter }) {
       </div>
 
       {/* Content area with padding */}
-      <div style={{ padding: '4px 12px 8px', display: 'flex', flexDirection: 'column', gap: 2, flex: 1, color: adaptiveTextColor }}>
+      <div style={{ padding: '4px 12px 20px', display: 'flex', flexDirection: 'column', gap: 2, flex: 1, color: adaptiveTextColor }}>
       {visibleFields.map((field, index) => {
         const isTitle = index === 0;
         const value = constructData.values?.[field.name] ?? '';
@@ -431,7 +431,8 @@ function SimpleNode(props: ShapeRenderProps & { adapter: DocumentAdapter }) {
         if (editingField === field.name) {
           return (
             <div key={field.name} onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}
-              style={{ flex: isMultiline ? 1 : undefined, display: isMultiline ? 'flex' : undefined }}>
+              style={{ flex: isMultiline ? 1 : undefined, display: isMultiline ? 'flex' : undefined,
+                backgroundColor: 'rgba(0,0,0,0.08)', borderRadius: 4, padding: '2px 4px', margin: '-2px -4px' }}>
               {isMultiline ? (
                 <textarea
                   style={{ width: '100%', flex: 1, padding: 0, backgroundColor: 'transparent', border: 'none', outline: 'none', resize: 'none',

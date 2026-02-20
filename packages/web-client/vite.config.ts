@@ -28,4 +28,21 @@ export default defineConfig({
   optimizeDeps: {
     include: ['@dagrejs/dagre'],
   },
+  base: process.env.GITHUB_PAGES ? '/carta/' : '/',
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('/react-dom/') || id.includes('/react/'))
+              return 'vendor-react'
+            if (id.includes('/yjs/') || id.includes('/y-websocket/') || id.includes('/lib0/'))
+              return 'vendor-yjs'
+            if (id.includes('/@dagrejs/'))
+              return 'vendor-dagre'
+          }
+        },
+      },
+    },
+  },
 })
