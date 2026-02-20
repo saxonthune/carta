@@ -91,6 +91,6 @@ options: [
 
 **To modify the document:**
 - Use \`carta_create_construct\`, \`carta_update_construct\`, \`carta_delete_construct\`
-- Use \`carta_create_connection\`, \`carta_delete_connection\`
+- Use \`carta_connect_constructs\`, \`carta_disconnect_constructs\`
 - Use \`carta_create_schema\`, \`carta_update_schema\` to define new construct types
 `;
