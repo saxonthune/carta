@@ -6,7 +6,6 @@
     "moduleResolution": "bundler",
     "declaration": true,
     "declarationMap": true,
-    "composite": true,
     "outDir": "./dist",
     "rootDir": "./src",
     "strict": true,
