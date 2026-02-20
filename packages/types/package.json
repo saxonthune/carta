@@ -1,6 +1,6 @@
 {
   "name": "@carta/types",
-  "version": "0.1.0-proto.5",
+  "version": "0.1.0-alpha.0",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

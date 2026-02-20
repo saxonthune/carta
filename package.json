@@ -1,7 +1,7 @@
 {
   "name": "carta",
   "private": true,
-  "version": "0.1.0-proto.5",
+  "version": "0.1.0-alpha.0",
   "packageManager": "pnpm@10.28.1",
   "license": "AGPL-3.0-only",
   "type": "module",
