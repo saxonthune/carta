@@ -117,6 +117,15 @@ interface ShapeRenderProps {
   onContextMenu: (e: React.MouseEvent) => void;
   onDoubleClick: (e: React.MouseEvent) => void;
   onResizePointerDown: (e: React.PointerEvent) => void;
+  // Port rendering
+  node: any;
+  hoveredNodeId: string | null;
+  connectionDrag: any;
+  sourcePortType: string | null;
+  getPortSchema: (type: string) => any;
+  startConnection: (nodeId: string, handleId: string, clientX: number, clientY: number) => void;
+  showNarrative: (state: any) => void;
+  hideNarrative: () => void;
 }
 
 function ResizeHandle({ selected, onResizePointerDown }: { selected: boolean; onResizePointerDown: (e: React.PointerEvent) => void }) {
@@ -244,7 +253,9 @@ function renderDocumentNode(props: ShapeRenderProps) {
 }
 
 function SimpleNode(props: ShapeRenderProps & { adapter: DocumentAdapter }) {
-  const { nodeId, absX, absY, width, height, selected, schema, constructData, dimmed, onPointerDown, onPointerEnter, onPointerLeave, onContextMenu, onResizePointerDown, adapter } = props;
+  const { nodeId, absX, absY, width, height, selected, schema, constructData, dimmed, onPointerDown, onPointerEnter, onPointerLeave, onContextMenu, onResizePointerDown, adapter,
+    node, hoveredNodeId, connectionDrag, sourcePortType, getPortSchema, startConnection, showNarrative, hideNarrative,
+  } = props;
   const [editingField, setEditingField] = useState<string | null>(null);
   const resolvedColor = resolveNodeColor(schema, constructData);
   const bgColor = resolvedColor !== schema.color
@@ -357,6 +368,164 @@ function SimpleNode(props: ShapeRenderProps & { adapter: DocumentAdapter }) {
       </div>
 
       <ResizeHandle selected={selected} onResizePointerDown={onResizePointerDown} />
+
+      {/* Port drawer - collapsed state (dots strip) */}
+      {schema?.ports && schema.ports.length > 0 && !connectionDrag && (
+        <div style={{
+          position: 'absolute', bottom: 0, left: 0, right: 0, height: 12,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+          backgroundColor: 'var(--color-surface-alt, rgba(0,0,0,0.1))',
+          borderRadius: '0 0 6px 6px',
+        }}>
+          {schema.ports.map((port: any) => {
+            const portSchema = getPortSchema(port.portType);
+            return (
+              <div key={port.id} style={{
+                width: 6, height: 6, borderRadius: '50%',
+                backgroundColor: portSchema?.color ?? '#888',
+              }} />
+            );
+          })}
+        </div>
+      )}
+
+      {/* Port drawer - expanded state (during drag or hover) */}
+      {schema?.ports && schema.ports.length > 0 && (connectionDrag || hoveredNodeId === node.id) && (
+        <div style={{
+          position: 'absolute',
+          top: '100%', left: 0, right: 0,
+          backgroundColor: 'var(--color-surface)',
+          borderTop: '1px solid var(--color-border)',
+          borderRadius: '0 0 6px 6px',
+          padding: '4px 0',
+          display: 'flex',
+          flexDirection: 'column',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          zIndex: 30,
+        }}>
+          {schema.ports.map((port: any) => {
+            const portSchema = getPortSchema(port.portType);
+            const portColor = portSchema?.color ?? '#888';
+            const polarity = port.polarity ?? 'any';
+            const isSource = polarity === 'output' || polarity === 'inout' || polarity === 'any';
+
+            // During drag: show as target
+            if (connectionDrag) {
+              // Check compatibility for dimming and narrator feedback
+              const isCompatible = sourcePortType ? canConnect(sourcePortType, port.portType) : false;
+              const opacity = isCompatible ? 1 : 0.3;
+
+              const handlePortHover = (e: React.PointerEvent) => {
+                if (isCompatible) {
+                  showNarrative({
+                    kind: 'hint',
+                    text: `Connect ${connectionDrag.sourceHandle} → ${port.label ?? port.id}`,
+                    variant: 'valid-connection',
+                    position: { x: e.clientX, y: e.clientY },
+                  });
+                } else {
+                  showNarrative({
+                    kind: 'hint',
+                    text: `Incompatible port types`,
+                    variant: 'invalid-connection',
+                    position: { x: e.clientX, y: e.clientY },
+                  });
+                }
+              };
+
+              return (
+                <div
+                  key={port.id}
+                  onPointerEnter={handlePortHover}
+                  onPointerLeave={() => hideNarrative()}
+                  style={{ opacity }}
+                >
+                  <ConnectionHandle
+                    type="target"
+                    id={port.id}
+                    nodeId={node.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      padding: '6px 12px',
+                      minHeight: 36,
+                      cursor: 'crosshair',
+                      borderRadius: 4,
+                      margin: '0 4px',
+                    }}
+                  >
+                    <div style={{
+                      width: 16, height: 16, borderRadius: '50%',
+                      backgroundColor: portColor,
+                      border: '2px solid var(--color-surface)',
+                      flexShrink: 0,
+                    }} />
+                    <span style={{
+                      fontSize: 12, color: 'var(--color-content)',
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>
+                      {port.label ?? port.id}
+                    </span>
+                  </ConnectionHandle>
+                </div>
+              );
+            }
+
+            // No drag: show as source
+            if (isSource) {
+              return (
+                <ConnectionHandle
+                  key={port.id}
+                  type="source"
+                  id={port.id}
+                  nodeId={node.id}
+                  onStartConnection={startConnection}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '6px 12px',
+                    minHeight: 36,
+                    cursor: 'crosshair',
+                    borderRadius: 4,
+                    margin: '0 4px',
+                  }}
+                >
+                  <div style={{
+                    width: 16, height: 16, borderRadius: '50%',
+                    backgroundColor: portColor,
+                    border: '2px solid var(--color-surface)',
+                    flexShrink: 0,
+                  }} />
+                  <span style={{
+                    fontSize: 12, color: 'var(--color-content)',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {port.label ?? port.id}
+                  </span>
+                </ConnectionHandle>
+              );
+            }
+
+            // Non-source port (input-only), show as label
+            return (
+              <div key={port.id} style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '6px 12px', minHeight: 36,
+              }}>
+                <div style={{
+                  width: 16, height: 16, borderRadius: '50%',
+                  backgroundColor: portColor, flexShrink: 0,
+                }} />
+                <span style={{ fontSize: 12, color: 'var(--color-content)' }}>
+                  {port.label ?? port.id}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -483,6 +652,7 @@ export function MapV2ConstructNode({
     nodeId: node.id, absX, absY, width, height, selected,
     color, label, schema, constructData, dimmed, sequenceBadge,
     onPointerDown, onPointerEnter, onPointerLeave, onContextMenu, onDoubleClick, onResizePointerDown,
+    node, hoveredNodeId, connectionDrag, sourcePortType, getPortSchema, startConnection, showNarrative, hideNarrative,
   };
   if (shapeMode === 'circle') {
     return renderCircleNode(shapeProps);

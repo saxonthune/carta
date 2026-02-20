@@ -37,30 +37,11 @@ export const sketchingPackage: SchemaPackageDefinition = {
         },
       ],
       ports: [
+        { id: 'in', portType: 'flow-in', label: 'In' },
+        { id: 'out', portType: 'flow-out', label: 'Out' },
         { id: 'link', portType: 'symmetric', label: 'Link' },
       ],
       compilation: { format: 'json', sectionHeader: '# Notes' },
-    },
-
-    // Box
-    {
-      type: 'box',
-      displayName: 'Box',
-      color: '#64748b',
-      nodeShape: 'simple',
-      instanceColors: true,
-      semanticDescription: 'Generic box for rough modeling',
-      fields: [
-        { name: 'label', label: 'Label', type: 'string', displayTier: 'pill', displayOrder: 0, placeholder: 'Label...' },
-        { name: 'notes', label: 'Notes', type: 'string', displayHint: 'multiline', displayTier: 'summary', displayOrder: 1, placeholder: 'Notes...' },
-      ],
-      ports: [
-        { id: 'flow-in', portType: 'flow-in', label: 'In' },
-        { id: 'flow-out', portType: 'flow-out', label: 'Out' },
-        { id: 'parent', portType: 'parent', label: 'Parent' },
-        { id: 'child', portType: 'child', label: 'Child' },
-      ],
-      compilation: { format: 'json' },
     },
   ],
   portSchemas: [],
