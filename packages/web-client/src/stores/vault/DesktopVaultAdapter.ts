@@ -50,7 +50,7 @@ export class DesktopVaultAdapter implements VaultAdapter {
     }));
   }
 
-  async createDocument(title: string, folder?: string): Promise<string> {
+  async createDocument(title: string, folder?: string, filename?: string): Promise<string> {
     if (this.needsVaultSetup) {
       throw new Error('Vault not initialized');
     }
@@ -58,7 +58,7 @@ export class DesktopVaultAdapter implements VaultAdapter {
     const response = await fetch(`${this.syncUrl}/api/documents`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, folder: folder || '/' }),
+      body: JSON.stringify({ title, folder: folder || '/', ...(filename ? { filename } : {}) }),
     });
     if (!response.ok) {
       throw new Error(`Failed to create document: ${response.statusText}`);

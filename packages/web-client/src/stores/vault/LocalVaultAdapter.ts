@@ -13,8 +13,8 @@ export class LocalVaultAdapter implements VaultAdapter {
     return listLocalDocuments();
   }
 
-  async createDocument(title: string): Promise<string> {
-    return createDocument(title);
+  async createDocument(title: string, _folder?: string, filename?: string): Promise<string> {
+    return createDocument(title, filename);
   }
 
   async deleteDocument(id: string): Promise<boolean> {

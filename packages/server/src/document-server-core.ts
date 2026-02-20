@@ -15,7 +15,7 @@ import * as encoding from 'lib0/encoding';
 import * as decoding from 'lib0/decoding';
 import * as syncProtocol from 'y-protocols/sync';
 import createDebug from 'debug';
-import { portRegistry, type DocumentSummary } from '@carta/domain';
+import { portRegistry, toKebabCase, type DocumentSummary } from '@carta/domain';
 export type { DocumentSummary };
 
 const log = createDebug('carta:server');
@@ -98,7 +98,7 @@ export interface DocumentServerConfig {
   /** List all documents (from persistence, not just in-memory). */
   listDocuments(): Promise<DocumentSummary[]>;
   /** Optional hook called after a new document is created via the REST API. */
-  onDocumentCreated?(docId: string, docState: DocState): Promise<void> | void;
+  onDocumentCreated?(docId: string, docState: DocState, filename: string): Promise<void> | void;
   /** Delete a document from persistence. Returns true if deleted. */
   deleteDocument(docId: string): Promise<boolean>;
   /** Return active rooms with connection counts. If not provided, /api/rooms falls back to listDocuments with clientCount: 0. */
@@ -379,9 +379,10 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
       }
 
       if (path === '/api/documents' && method === 'POST') {
-        const body = await parseJsonBody<{ title?: string; folder?: string }>(req);
+        const body = await parseJsonBody<{ title?: string; folder?: string; filename?: string }>(req);
         const title = body.title || 'Untitled Project';
         const folder = body.folder || '/';
+        const filename = body.filename || (toKebabCase(title) || 'untitled') + '.carta.json';
         const roomId = `doc_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
         const docState = await config.getDoc(roomId);
@@ -389,6 +390,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
           const ymeta = docState.doc.getMap('meta');
           ymeta.set('title', title);
           ymeta.set('folder', folder);
+          ymeta.set('filename', filename);
           ymeta.set('version', 3);
 
           // Initialize default page if none exists
@@ -405,7 +407,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
           }
         }, 'server');
 
-        await config.onDocumentCreated?.(roomId, docState);
+        await config.onDocumentCreated?.(roomId, docState, filename);
 
         const document = extractDocument(docState.doc, roomId, getActivePageId(docState.doc));
         sendJson(res, 201, { document });

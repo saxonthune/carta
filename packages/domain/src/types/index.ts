@@ -494,7 +494,7 @@ export interface VaultAdapter {
   listDocuments(): Promise<DocumentSummary[]>;
 
   /** Create a new document. Returns the document ID. */
-  createDocument(title: string, folder?: string): Promise<string>;
+  createDocument(title: string, folder?: string, filename?: string): Promise<string>;
 
   /** Delete a document by ID. Returns true if deleted. */
   deleteDocument(id: string): Promise<boolean>;
