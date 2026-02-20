@@ -180,6 +180,7 @@ export interface ConstructSchema {
   enumColorMap?: Record<string, string>;                         // Enum value → hex color mapping for enum color mode
   enumIconField?: string;                                        // Field name (type 'enum') that drives icon marker
   enumIconMap?: Record<string, string>;                          // Enum value → Unicode character/text for icon marker
+  isFavorite?: boolean;                                          // Pin to top-level context menu for quick access
 }
 
 // ===== M0: INSTANCE DATA =====

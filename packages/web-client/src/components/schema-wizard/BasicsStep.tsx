@@ -136,6 +136,21 @@ export default function BasicsStep({ formData, errors, updateField, schemaGroups
       </div>
 
       <div>
+        <label className="flex items-center gap-2 text-sm text-content cursor-pointer">
+          <input
+            type="checkbox"
+            checked={formData.isFavorite || false}
+            onChange={(e) => updateField('isFavorite', e.target.checked || undefined)}
+            className="w-4 h-4 accent-accent"
+          />
+          <span className="font-medium">Favorite</span>
+        </label>
+        <span className="block mt-1 ml-6 text-[11px] text-content-muted">
+          Pin to the top of the right-click menu for quick access
+        </span>
+      </div>
+
+      <div>
         <label className="block mb-1 text-sm font-medium text-content">
           {colorMode === 'enum' ? 'Fallback Color' : 'Color'}
         </label>

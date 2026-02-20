@@ -19,6 +19,7 @@ export interface ConstructOption {
   displayName: string;
   color: string;
   groupId?: string;
+  isFavorite?: boolean;
 }
 
 interface ContextMenuProps {
@@ -176,11 +177,16 @@ export default function ContextMenu({
     const result: MenuItem[] = [];
 
     if (onAddConstruct) {
-      result.push({
-        key: 'add-note',
-        label: 'Add Note',
-        onClick: () => onAddConstruct('note', x, y),
-      });
+      // Top-level entries for favorite schemas
+      const favorites = constructOptions?.filter(c => c.isFavorite) || [];
+      for (const fav of favorites) {
+        result.push({
+          key: `add-fav-${fav.constructType}`,
+          label: `Add ${fav.displayName}`,
+          color: fav.color,
+          onClick: () => onAddConstruct(fav.constructType, x, y),
+        });
+      }
 
       if (constructOptions && constructOptions.length > 0) {
         const children = groupIntoMenuItems(

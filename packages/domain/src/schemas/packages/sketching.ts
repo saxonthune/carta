@@ -14,6 +14,7 @@ export const sketchingPackage: SchemaPackageDefinition = {
       semanticDescription: 'A freeform note or annotation',
       nodeShape: 'simple',
       backgroundColorPolicy: 'tints',
+      isFavorite: true,
       groupId: 'sketching',
       fields: [
         {

@@ -5,6 +5,7 @@ import { useDocumentContext } from '../../contexts/DocumentContext';
 import { useNodes } from '../../hooks/useNodes';
 import { useEdges } from '../../hooks/useEdges';
 import { useSchemas } from '../../hooks/useSchemas';
+import { useSchemaGroups } from '../../hooks/useSchemaGroups';
 import { usePortSchemas } from '../../hooks/usePortSchemas';
 import { useMapNodePipeline } from '../../hooks/useMapNodePipeline';
 import { useMapEdgePipeline } from '../../hooks/useMapEdgePipeline';
@@ -597,6 +598,7 @@ export default function MapV2({ searchText, onSelectionChange: onSelectionChange
   const { nodes, setNodes, getNextNodeId } = useNodes();
   const { edges, setEdges } = useEdges();
   const { schemas, getSchema } = useSchemas();
+  const { schemaGroups } = useSchemaGroups();
   const { getPortSchema } = usePortSchemas();
   const { narrative, showNarrative, hideNarrative } = useNarrative();
   const { adapter, ydoc } = useDocumentContext();
@@ -1394,6 +1396,14 @@ export default function MapV2({ searchText, onSelectionChange: onSelectionChange
           nodeId={contextMenu.nodeId}
           edgeId={contextMenu.edgeId}
           selectedCount={selectedNodeIds.length}
+          constructOptions={schemas.map(s => ({
+            constructType: s.type,
+            displayName: s.displayName,
+            color: s.color,
+            groupId: s.groupId,
+            isFavorite: s.isFavorite,
+          }))}
+          schemaGroups={schemaGroups}
           onAddNode={addNode}
           onAddConstruct={(constructType, x, y) => {
             const schema = getSchema(constructType);
