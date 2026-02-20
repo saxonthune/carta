@@ -216,7 +216,9 @@ export default function ConstructEditor({ editSchema, onClose }: ConstructEditor
     };
 
     if (isEditMode) {
-      updateSchema(schemaType, schema);
+      // Field/port migrations happen live via inline callbacks — only send safe keys here
+      const { type: _, fields: _f, ports: _p, ...safeUpdates } = schema;
+      updateSchema(schemaType, safeUpdates);
     } else {
       addSchema(schema);
     }
