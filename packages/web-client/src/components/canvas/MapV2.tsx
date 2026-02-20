@@ -696,8 +696,8 @@ export default function MapV2({ searchText, onSelectionChange: onSelectionChange
     nodes,
   });
 
-  // ReactFlow shim for useLayoutActions
-  const reactFlowShim = useMemo(() => ({
+  // Canvas accessor for useLayoutActions
+  const canvasAccessor = useMemo(() => ({
     getNodes: () => sortedNodes,
     setNodes: (updater: any) => setNodes(updater),
     getEdges: () => displayEdges,
@@ -723,7 +723,7 @@ export default function MapV2({ searchText, onSelectionChange: onSelectionChange
     toggleLayoutPin,
     recursiveLayout,
   } = useLayoutActions({
-    reactFlow: reactFlowShim as any,
+    canvas: canvasAccessor as any,
     setNodesLocal: setNodes,
     adapter,
     selectedNodeIds,
@@ -743,7 +743,7 @@ export default function MapV2({ searchText, onSelectionChange: onSelectionChange
 
   const { getFollowers } = useNodeLinks({ links: wagonLinks });
 
-  // Covered nodes detection (inline, no hook dependency on ReactFlow)
+  // Covered nodes detection (inline, no hook dependency on canvas accessor)
   const coveredNodeIds = useMemo(() => {
     const visibleOrganizers = sortedNodes.filter(n => n.type === 'organizer' && !n.hidden);
     if (visibleOrganizers.length === 0) return [];
