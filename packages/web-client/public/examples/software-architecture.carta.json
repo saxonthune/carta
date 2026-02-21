@@ -1,0 +1,319 @@
+{
+  "version": 7,
+  "title": "Software Architecture",
+  "description": "A simple software architecture example showing a web app, API server, database, cache, and message queue.",
+  "pages": [
+    {
+      "id": "page-arch-01",
+      "name": "Architecture",
+      "order": 0,
+      "nodes": [
+        {
+          "id": "node-webapp-01",
+          "type": "construct",
+          "position": { "x": 100, "y": 200 },
+          "data": {
+            "constructType": "web-app",
+            "semanticId": "web-app-01",
+            "fieldValues": { "name": "Web App" },
+            "connections": [
+              {
+                "portId": "api-out",
+                "targetSemanticId": "api-server-01",
+                "targetPortId": "api-in"
+              }
+            ]
+          }
+        },
+        {
+          "id": "node-api-01",
+          "type": "construct",
+          "position": { "x": 400, "y": 200 },
+          "data": {
+            "constructType": "api-server",
+            "semanticId": "api-server-01",
+            "fieldValues": { "name": "API Server" },
+            "connections": [
+              {
+                "portId": "data-out",
+                "targetSemanticId": "database-01",
+                "targetPortId": "data-in"
+              },
+              {
+                "portId": "cache-out",
+                "targetSemanticId": "cache-01",
+                "targetPortId": "cache-in"
+              },
+              {
+                "portId": "queue-out",
+                "targetSemanticId": "queue-01",
+                "targetPortId": "queue-in"
+              }
+            ]
+          }
+        },
+        {
+          "id": "node-db-01",
+          "type": "construct",
+          "position": { "x": 700, "y": 100 },
+          "data": {
+            "constructType": "database",
+            "semanticId": "database-01",
+            "fieldValues": { "name": "PostgreSQL" },
+            "connections": []
+          }
+        },
+        {
+          "id": "node-cache-01",
+          "type": "construct",
+          "position": { "x": 700, "y": 280 },
+          "data": {
+            "constructType": "cache",
+            "semanticId": "cache-01",
+            "fieldValues": { "name": "Redis Cache" },
+            "connections": []
+          }
+        },
+        {
+          "id": "node-queue-01",
+          "type": "construct",
+          "position": { "x": 700, "y": 460 },
+          "data": {
+            "constructType": "message-queue",
+            "semanticId": "queue-01",
+            "fieldValues": { "name": "Message Queue" },
+            "connections": []
+          }
+        },
+        {
+          "id": "node-worker-01",
+          "type": "construct",
+          "position": { "x": 1000, "y": 460 },
+          "data": {
+            "constructType": "api-server",
+            "semanticId": "worker-01",
+            "fieldValues": { "name": "Background Worker" },
+            "connections": []
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "edge-webapp-api",
+          "source": "node-webapp-01",
+          "target": "node-api-01",
+          "sourceHandle": "api-out",
+          "targetHandle": "api-in"
+        },
+        {
+          "id": "edge-api-db",
+          "source": "node-api-01",
+          "target": "node-db-01",
+          "sourceHandle": "data-out",
+          "targetHandle": "data-in"
+        },
+        {
+          "id": "edge-api-cache",
+          "source": "node-api-01",
+          "target": "node-cache-01",
+          "sourceHandle": "cache-out",
+          "targetHandle": "cache-in"
+        },
+        {
+          "id": "edge-api-queue",
+          "source": "node-api-01",
+          "target": "node-queue-01",
+          "sourceHandle": "queue-out",
+          "targetHandle": "queue-in"
+        },
+        {
+          "id": "edge-queue-worker",
+          "source": "node-queue-01",
+          "target": "node-worker-01",
+          "sourceHandle": "queue-out",
+          "targetHandle": "api-in"
+        }
+      ]
+    }
+  ],
+  "customSchemas": [
+    {
+      "type": "web-app",
+      "displayName": "Web App",
+      "color": "#6366f1",
+      "fields": [
+        {
+          "id": "field-name",
+          "label": "Name",
+          "fieldType": "text",
+          "isDisplayField": true,
+          "isSemanticId": false
+        }
+      ],
+      "ports": [
+        {
+          "id": "api-out",
+          "portType": "http-source",
+          "label": "API"
+        }
+      ],
+      "compilation": {
+        "template": "{{name}}"
+      }
+    },
+    {
+      "type": "api-server",
+      "displayName": "API Server",
+      "color": "#10b981",
+      "fields": [
+        {
+          "id": "field-name",
+          "label": "Name",
+          "fieldType": "text",
+          "isDisplayField": true,
+          "isSemanticId": false
+        }
+      ],
+      "ports": [
+        {
+          "id": "api-in",
+          "portType": "http-sink",
+          "label": "API In"
+        },
+        {
+          "id": "data-out",
+          "portType": "data-source",
+          "label": "Data"
+        },
+        {
+          "id": "cache-out",
+          "portType": "data-source",
+          "label": "Cache"
+        },
+        {
+          "id": "queue-out",
+          "portType": "data-source",
+          "label": "Queue"
+        }
+      ],
+      "compilation": {
+        "template": "{{name}}"
+      }
+    },
+    {
+      "type": "database",
+      "displayName": "Database",
+      "color": "#f59e0b",
+      "fields": [
+        {
+          "id": "field-name",
+          "label": "Name",
+          "fieldType": "text",
+          "isDisplayField": true,
+          "isSemanticId": false
+        }
+      ],
+      "ports": [
+        {
+          "id": "data-in",
+          "portType": "data-sink",
+          "label": "Data In"
+        }
+      ],
+      "compilation": {
+        "template": "{{name}}"
+      }
+    },
+    {
+      "type": "cache",
+      "displayName": "Cache",
+      "color": "#ef4444",
+      "fields": [
+        {
+          "id": "field-name",
+          "label": "Name",
+          "fieldType": "text",
+          "isDisplayField": true,
+          "isSemanticId": false
+        }
+      ],
+      "ports": [
+        {
+          "id": "cache-in",
+          "portType": "data-sink",
+          "label": "Cache In"
+        }
+      ],
+      "compilation": {
+        "template": "{{name}}"
+      }
+    },
+    {
+      "type": "message-queue",
+      "displayName": "Message Queue",
+      "color": "#8b5cf6",
+      "fields": [
+        {
+          "id": "field-name",
+          "label": "Name",
+          "fieldType": "text",
+          "isDisplayField": true,
+          "isSemanticId": false
+        }
+      ],
+      "ports": [
+        {
+          "id": "queue-in",
+          "portType": "data-sink",
+          "label": "Queue In"
+        },
+        {
+          "id": "queue-out",
+          "portType": "data-source",
+          "label": "Queue Out"
+        }
+      ],
+      "compilation": {
+        "template": "{{name}}"
+      }
+    }
+  ],
+  "portSchemas": [
+    {
+      "id": "http-source",
+      "displayName": "HTTP Source",
+      "semanticDescription": "Outgoing HTTP/API connections",
+      "polarity": "source",
+      "compatibleWith": ["http-sink"],
+      "color": "#6366f1"
+    },
+    {
+      "id": "http-sink",
+      "displayName": "HTTP Sink",
+      "semanticDescription": "Incoming HTTP/API connections",
+      "polarity": "sink",
+      "compatibleWith": ["http-source"],
+      "color": "#6366f1"
+    },
+    {
+      "id": "data-source",
+      "displayName": "Data Source",
+      "semanticDescription": "Outgoing data connections",
+      "polarity": "source",
+      "compatibleWith": ["data-sink"],
+      "color": "#f59e0b"
+    },
+    {
+      "id": "data-sink",
+      "displayName": "Data Sink",
+      "semanticDescription": "Incoming data connections",
+      "polarity": "sink",
+      "compatibleWith": ["data-source"],
+      "color": "#f59e0b"
+    }
+  ],
+  "schemaGroups": [],
+  "schemaPackages": [],
+  "packageManifest": [],
+  "exportedAt": "2026-02-21T00:00:00.000Z"
+}

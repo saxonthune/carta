@@ -11,6 +11,7 @@ import { useSchemas } from './hooks/useSchemas';
 import { useSchemaGroups } from './hooks/useSchemaGroups';
 import { usePages } from './hooks/usePages';
 import { useClearDocument } from './hooks/useClearDocument';
+import { useExampleLoader } from './hooks/useExampleLoader';
 import { useDocumentContext } from './contexts/DocumentContext';
 import { exportProject, importProject, type CartaFile } from './utils/cartaFile';
 import { analyzeImport, type ImportAnalysis, type ImportOptions } from './utils/importAnalyzer';
@@ -21,6 +22,7 @@ import { config } from './config/featureFlags';
 const ImportPreviewModal = lazy(() => import('./components/modals/ImportPreviewModal'));
 const ExportPreviewModal = lazy(() => import('./components/modals/ExportPreviewModal'));
 const CompileModal = lazy(() => import('./components/modals/CompileModal'));
+const ExampleConfirmModal = lazy(() => import('./components/modals/ExampleConfirmModal'));
 const AISidebar = lazy(() => import('./ai/components/AISidebar').then(m => ({ default: m.AISidebar })));
 
 // Note: Schema initialization is now handled by DocumentProvider
@@ -71,6 +73,7 @@ function AppContent() {
   const [aiSidebarWidth] = useState(400);
   const nodesEdgesRef = useRef<{ nodes: CartaNode[]; edges: CartaEdge[] }>({ nodes: [], edges: [] });
   const { clearDocument } = useClearDocument();
+  const { showConfirmModal: showExampleConfirm, exampleTitle, onConfirm: onExampleConfirm, onCancel: onExampleCancel } = useExampleLoader();
 
   // Initialize refs on mount
   useEffect(() => {
@@ -240,6 +243,16 @@ function AppContent() {
           <CompileModal
             output={compileOutput}
             onClose={() => setCompileOutput(null)}
+          />
+        </Suspense>
+      )}
+      {showExampleConfirm && (
+        <Suspense fallback={null}>
+          <ExampleConfirmModal
+            isOpen={showExampleConfirm}
+            exampleTitle={exampleTitle}
+            onConfirm={onExampleConfirm}
+            onCancel={onExampleCancel}
           />
         </Suspense>
       )}
