@@ -177,6 +177,9 @@ importers:
       zod:
         specifier: ^3.25.76
         version: 3.25.76
+      zod-to-json-schema:
+        specifier: ^3.24.5
+        version: 3.25.1(zod@3.25.76)
     devDependencies:
       '@types/debug':
         specifier: ^4.1.12

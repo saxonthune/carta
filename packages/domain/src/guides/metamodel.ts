@@ -61,7 +61,7 @@ Connections are only valid between compatible port types:
 
 Custom port types (e.g. \`policy-in\`, \`invoke-out\`) inherit their polarity from the base port type they extend. For example, \`policy-in\` with \`portType: "flow-in"\` is compatible with any \`flow-out\` or \`relay\` port.
 
-Use \`carta_list_port_types\` to see all port types and their compatibility rules for a specific document.
+Use \`carta_list_port_types\` to see all port types and their compatibility rules for a specific document (takes documentId).
 
 ## Organizers
 
@@ -98,17 +98,17 @@ options: [
 - Use \`carta_compile\` to get the complete AI-readable representation.
 
 **To explore incrementally:**
-1. Use \`carta_list_pages\` to see all pages
-2. Use \`carta_set_active_page\` to switch views
-3. Use \`carta_get_document_summary\` with \`include: ['constructs', 'schemas']\` to see page contents
+1. Use \`carta_page op:list\` to see all pages
+2. Use \`carta_page op:set_active\` to switch views
+3. Use \`carta_page op:summary\` with \`include: ['constructs', 'schemas']\` to see page contents
 
 **To read a specific construct:**
-- Use \`carta_get_construct\` with its \`semanticId\`.
+- Use \`carta_construct op:get\` with its \`semanticId\`.
 
 **To modify the document:**
-- Use \`carta_create_construct\`, \`carta_update_construct\`, \`carta_delete_construct\`
-- Use \`carta_connect_constructs\`, \`carta_disconnect_constructs\`
-- Use \`carta_create_schema\`, \`carta_update_schema\` to define new construct types
+- Use \`carta_construct op:create\`, \`carta_construct op:update\`, \`carta_construct op:delete\`
+- Use \`carta_connection op:connect\`, \`carta_connection op:disconnect\`
+- Use \`carta_schema op:create\`, \`carta_schema op:update\` to define new construct types
 
 ## Cookbook — Common Tool Patterns
 
@@ -145,8 +145,8 @@ When \`parentId\` is set, x/y positions are relative to the organizer. Omit x/y 
 
 ### Discover schemas before creating constructs
 
-1. \`carta_list_schemas\` with \`output: "compact"\` — see all available types
-2. \`carta_get_schema\` — get field names, types, and port configurations for a specific type
+1. \`carta_schema op:list\` with \`output: "compact"\` — see all available types
+2. \`carta_schema op:get\` — get field names, types, and port configurations for a specific type
 3. Then create constructs with the correct \`values\` keys
 
 ### Arrange nodes with flow layout
@@ -160,7 +160,7 @@ When \`parentId\` is set, x/y positions are relative to the organizer. Omit x/y 
 }
 \`\`\`
 
-Use \`carta_flow_layout\` for topological DAG arrangement. Supports TB/BT/LR/RL.
+Use \`carta_layout op:flow\` for topological DAG arrangement. Supports TB/BT/LR/RL.
 
 ### Arrange nodes with constraints
 
@@ -176,7 +176,7 @@ Use \`carta_flow_layout\` for topological DAG arrangement. Supports TB/BT/LR/RL.
 }
 \`\`\`
 
-Use \`carta_arrange\` for declarative constraint-based layout. Strategies: "grid" (initial), "preserve" (adjust), "force" (spring layout).
+Use \`carta_layout op:arrange\` for declarative constraint-based layout. Strategies: "grid" (initial), "preserve" (adjust), "force" (spring layout).
 
 ### Move a construct between organizers
 
@@ -188,11 +188,11 @@ Use \`carta_arrange\` for declarative constraint-based layout. Strategies: "grid
 }
 \`\`\`
 
-Use \`carta_move_construct\`. Set \`parentId\` to \`null\` to detach from an organizer.
+Use \`carta_construct op:move\`. Set \`parentId\` to \`null\` to detach from an organizer.
 
 ### Analyze an existing document
 
-1. \`carta_get_document_summary\` with \`include: ["constructs", "schemas"]\` — get everything in one call
+1. \`carta_page op:summary\` with \`include: ["constructs", "schemas"]\` — get everything in one call
 2. \`carta_compile\` — get the AI-readable output for full context
 3. Look for orphan constructs (no connections), empty fields, unused schemas
 `;

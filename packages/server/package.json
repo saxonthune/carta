@@ -40,7 +40,8 @@
     "y-protocols": "^1.0.6",
     "y-websocket": "^3.0.0",
     "yjs": "^13.6.29",
-    "zod": "^3.25.76"
+    "zod": "^3.25.76",
+    "zod-to-json-schema": "^3.24.5"
   },
   "devDependencies": {
     "@types/debug": "^4.1.12",

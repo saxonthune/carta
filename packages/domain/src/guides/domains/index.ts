@@ -16,6 +16,6 @@ Read a specific domain guide for schema recommendations, discovery questions, an
 1. Read this directory to find the right domain
 2. Fetch the specific guide URI for schema recommendations
 3. Ask the user the discovery questions from the guide
-4. Create schemas using \`carta_create_schema\`, referencing the guide's recommendations
+4. Create schemas using \`carta_schema op:create\`, referencing the guide's recommendations
 5. Customize based on user answers — guides are advisory, not prescriptive
 `;

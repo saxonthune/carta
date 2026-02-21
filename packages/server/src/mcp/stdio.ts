@@ -105,13 +105,7 @@ async function main() {
     const tools = getToolDefinitions().map((tool) => ({
       name: tool.name,
       description: tool.description,
-      inputSchema: {
-        type: 'object' as const,
-        properties: tool.inputSchema,
-        required: Object.keys(tool.inputSchema).filter(
-          (key) => !(tool.inputSchema as Record<string, { optional?: boolean }>)[key]?.optional
-        ),
-      },
+      inputSchema: tool.inputSchema,
       annotations: tool.annotations,
     }));
     return { tools };
