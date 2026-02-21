@@ -17,14 +17,23 @@ An AI sidebar for chat-based interaction with the Carta document.
 
 ## AI Tools
 
-The AI assistant can manipulate the document through tool calls:
-- **getDocument**: Read full document state
-- **getNode**: Get a specific construct by semantic ID
-- **addConstruct**: Create a new construct instance
-- **updateNode**: Update construct field values
-- **connectNodes**: Connect two constructs via ports
-- **deleteNode**: Remove a construct
-- **queryNodes**: Search constructs by type or semantic ID pattern
+The AI sidebar can manipulate the document through tool calls. Tools are defined in `@carta/document` and exposed to the AI provider via JSON Schema. They operate on the local Yjs document and do not require the document server to be running.
+
+Schema tools: `list_schemas`, `get_schema`, `create_schema`, `update_schema`, `delete_schema`, `rename_field`, `remove_field`, `add_field`, `rename_port`, `remove_port`, `add_port`, `change_port_type`, `rename_schema_type`, `change_field_type`, `narrow_enum_options`
+
+Page tools: `list_pages`, `create_page`, `rename_page`, `delete_page`, `set_active_page`, `compile`
+
+Construct tools: `list_constructs`, `get_construct`, `create_construct`, `update_construct`, `delete_construct`, `create_constructs`, `delete_constructs`, `move_construct`
+
+Connection tools: `connect_constructs`, `disconnect_constructs`, `connect_constructs_bulk`
+
+Organizer tools: `list_organizers`, `create_organizer`, `update_organizer`, `delete_organizer`
+
+Layout tools: `flow_layout`, `arrange`, `pin_constraint`, `list_pin_constraints`, `remove_pin_constraint`, `apply_pin_layout`, `rebuild_page`
+
+Batch tools: `batch_mutate`
+
+Package tools: `list_packages`, `create_package`, `get_package`
 
 ## Configuration
 
