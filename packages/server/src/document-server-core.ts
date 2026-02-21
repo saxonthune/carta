@@ -924,7 +924,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
           }
 
           const pageId = body.pageId || getActivePageId(docState.doc);
-          const edge = connect(
+          const result = connect(
             docState.doc,
             pageId,
             body.sourceSemanticId,
@@ -932,11 +932,11 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
             body.targetSemanticId,
             body.targetPortId
           );
-          if (!edge) {
-            sendError(res, 400, 'Failed to connect constructs', 'CONNECT_FAILED');
+          if ('error' in result) {
+            sendError(res, 400, result.error, 'CONNECT_FAILED');
             return;
           }
-          sendJson(res, 201, { edge });
+          sendJson(res, 201, { edge: result.edge });
           return;
         }
 

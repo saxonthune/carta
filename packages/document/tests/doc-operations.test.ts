@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import * as Y from 'yjs';
-import { createPage, listPages, updatePage, deletePage, flowLayout, createConstruct, connect, updateConstruct, getConstruct, createSchema, renameField, removeField, addField, renamePort, removePort, renameSchemaType, changeFieldType, narrowEnumOptions, addPort, changePortType, listConstructs } from '../src/doc-operations';
+import { createPage, listPages, updatePage, deletePage, flowLayout, createConstruct, connect, connectBulk, updateConstruct, getConstruct, getSchema, createSchema, renameField, removeField, addField, renamePort, removePort, renameSchemaType, changeFieldType, narrowEnumOptions, addPort, changePortType, listConstructs } from '../src/doc-operations';
 import { deepPlainToY, yToPlain } from '../src/yjs-helpers';
 
 describe('page operations', () => {
@@ -59,6 +59,17 @@ describe('page operations', () => {
   });
 });
 
+/** Helper: create a minimal schema for test constructs */
+function createTestSchema(doc: Y.Doc, type: string, fields: Array<{ name: string; label: string; type: string }> = [], ports?: Array<{ id: string; portType: string; label: string }>) {
+  createSchema(doc, {
+    type,
+    displayName: type,
+    color: '#00ff00',
+    fields: fields as any,
+    ...(ports ? { ports: ports as any } : {}),
+  });
+}
+
 describe('flowLayout operation', () => {
   let doc: Y.Doc;
   let pageId: string;
@@ -67,6 +78,7 @@ describe('flowLayout operation', () => {
     doc = new Y.Doc();
     const page = createPage(doc, 'Test Page');
     pageId = page.id;
+    createTestSchema(doc, 'service');
   });
 
   it('should apply layout to page with nodes', () => {
@@ -145,6 +157,8 @@ describe('construct field values', () => {
     doc = new Y.Doc();
     const page = createPage(doc, 'Test');
     pageId = page.id;
+    createTestSchema(doc, 'note', [{ name: 'content', label: 'Content', type: 'string' }]);
+    createTestSchema(doc, 'service', [{ name: 'name', label: 'Name', type: 'string' }, { name: 'description', label: 'Description', type: 'string' }]);
   });
 
   it('should persist field values on create', () => {
@@ -969,5 +983,183 @@ describe('schema migration operations', () => {
 
       expect(() => changePortType(doc, 'Task', 'nonexistent', 'flow-in')).toThrow('Port not found: nonexistent');
     });
+  });
+});
+
+describe('connection validation', () => {
+  let doc: Y.Doc;
+  let pageId: string;
+
+  beforeEach(() => {
+    doc = new Y.Doc();
+    const page = createPage(doc, 'Test Page');
+    pageId = page.id;
+  });
+
+  it('connect() rejects non-existent source port ID', () => {
+    createTestSchema(doc, 'Alpha', [], [
+      { id: 'flow-out', portType: 'flow-out', label: 'Out' },
+      { id: 'flow-in', portType: 'flow-in', label: 'In' },
+    ]);
+    const a = createConstruct(doc, pageId, 'Alpha');
+    const b = createConstruct(doc, pageId, 'Alpha');
+
+    const result = connect(doc, pageId, a.data.semanticId, 'bogus', b.data.semanticId, 'flow-in');
+    expect('error' in result).toBe(true);
+    if ('error' in result) {
+      expect(result.error).toContain('Port not found');
+      expect(result.error).toContain('bogus');
+    }
+  });
+
+  it('connect() rejects incompatible port types', () => {
+    createTestSchema(doc, 'Sender', [], [
+      { id: 'out', portType: 'flow-out', label: 'Out' },
+    ]);
+    createTestSchema(doc, 'AlsoSender', [], [
+      { id: 'out', portType: 'flow-out', label: 'Out' },
+    ]);
+    const a = createConstruct(doc, pageId, 'Sender');
+    const b = createConstruct(doc, pageId, 'AlsoSender');
+
+    const result = connect(doc, pageId, a.data.semanticId, 'out', b.data.semanticId, 'out');
+    expect('error' in result).toBe(true);
+    if ('error' in result) {
+      expect(result.error).toContain('Incompatible port types');
+    }
+  });
+
+  it('connect() succeeds for compatible port types', () => {
+    createTestSchema(doc, 'Node', [], [
+      { id: 'flow-out', portType: 'flow-out', label: 'Out' },
+      { id: 'flow-in', portType: 'flow-in', label: 'In' },
+    ]);
+    const a = createConstruct(doc, pageId, 'Node');
+    const b = createConstruct(doc, pageId, 'Node');
+
+    const result = connect(doc, pageId, a.data.semanticId, 'flow-out', b.data.semanticId, 'flow-in');
+    expect('edge' in result).toBe(true);
+    if ('edge' in result) {
+      expect(result.edge.sourceHandle).toBe('flow-out');
+      expect(result.edge.targetHandle).toBe('flow-in');
+    }
+  });
+
+  it('connectBulk() reports per-connection errors', () => {
+    createTestSchema(doc, 'Node', [], [
+      { id: 'flow-out', portType: 'flow-out', label: 'Out' },
+      { id: 'flow-in', portType: 'flow-in', label: 'In' },
+    ]);
+    const a = createConstruct(doc, pageId, 'Node');
+    const b = createConstruct(doc, pageId, 'Node');
+
+    const results = connectBulk(doc, pageId, [
+      // Valid connection
+      { sourceSemanticId: a.data.semanticId, sourcePortId: 'flow-out', targetSemanticId: b.data.semanticId, targetPortId: 'flow-in' },
+      // Invalid: non-existent port
+      { sourceSemanticId: a.data.semanticId, sourcePortId: 'bogus', targetSemanticId: b.data.semanticId, targetPortId: 'flow-in' },
+      // Invalid: incompatible
+      { sourceSemanticId: a.data.semanticId, sourcePortId: 'flow-out', targetSemanticId: b.data.semanticId, targetPortId: 'flow-out' },
+    ]);
+
+    expect(results.length).toBe(3);
+    // First: success
+    expect(results[0]!.edge).not.toBeNull();
+    expect(results[0]!.error).toBeUndefined();
+    // Second: port not found
+    expect(results[1]!.edge).toBeNull();
+    expect(results[1]!.error).toContain('Port not found');
+    // Third: incompatible
+    expect(results[2]!.edge).toBeNull();
+    expect(results[2]!.error).toContain('Incompatible port types');
+  });
+});
+
+describe('construct creation validation', () => {
+  let doc: Y.Doc;
+  let pageId: string;
+
+  beforeEach(() => {
+    doc = new Y.Doc();
+    const page = createPage(doc, 'Test Page');
+    pageId = page.id;
+  });
+
+  it('createConstruct() throws for non-existent schema type', () => {
+    expect(() => createConstruct(doc, pageId, 'NonExistent')).toThrow('Unknown schema type: NonExistent');
+  });
+
+  it('createConstruct() succeeds for valid schema type', () => {
+    createTestSchema(doc, 'Task', [{ name: 'title', label: 'Title', type: 'string' }]);
+    const node = createConstruct(doc, pageId, 'Task', { title: 'Test' });
+    expect(node.data.constructType).toBe('Task');
+    expect(node.data.values.title).toBe('Test');
+  });
+});
+
+describe('round-trip invariants', () => {
+  let doc: Y.Doc;
+  let pageId: string;
+
+  beforeEach(() => {
+    doc = new Y.Doc();
+    const page = createPage(doc, 'Test Page');
+    pageId = page.id;
+  });
+
+  it('every edge references ports that exist on endpoint schemas', () => {
+    createTestSchema(doc, 'Service', [{ name: 'name', label: 'Name', type: 'string' }], [
+      { id: 'flow-out', portType: 'flow-out', label: 'Out' },
+      { id: 'flow-in', portType: 'flow-in', label: 'In' },
+    ]);
+
+    const a = createConstruct(doc, pageId, 'Service', { name: 'A' });
+    const b = createConstruct(doc, pageId, 'Service', { name: 'B' });
+    const c = createConstruct(doc, pageId, 'Service', { name: 'C' });
+
+    connect(doc, pageId, a.data.semanticId, 'flow-out', b.data.semanticId, 'flow-in');
+    connect(doc, pageId, b.data.semanticId, 'flow-out', c.data.semanticId, 'flow-in');
+
+    // List all edges and verify port references
+    const pageEdges = doc.getMap('edges').get(pageId) as Y.Map<Y.Map<unknown>>;
+    const constructs = listConstructs(doc, pageId);
+    const constructMap = new Map(constructs.map(c => [c.id, c]));
+
+    pageEdges.forEach((yedge) => {
+      const sourceId = yedge.get('source') as string;
+      const targetId = yedge.get('target') as string;
+      const sourceHandle = yedge.get('sourceHandle') as string;
+      const targetHandle = yedge.get('targetHandle') as string;
+
+      const sourceNode = constructMap.get(sourceId);
+      const targetNode = constructMap.get(targetId);
+      expect(sourceNode).toBeDefined();
+      expect(targetNode).toBeDefined();
+
+      const sourceSchema = getSchema(doc, sourceNode!.data.constructType);
+      const targetSchema = getSchema(doc, targetNode!.data.constructType);
+      expect(sourceSchema).not.toBeNull();
+      expect(targetSchema).not.toBeNull();
+
+      const sourcePorts = sourceSchema!.ports || [];
+      const targetPorts = targetSchema!.ports || [];
+      expect(sourcePorts.some(p => p.id === sourceHandle)).toBe(true);
+      expect(targetPorts.some(p => p.id === targetHandle)).toBe(true);
+    });
+  });
+
+  it('every construct has a schema that exists in the document', () => {
+    createTestSchema(doc, 'Service', [{ name: 'name', label: 'Name', type: 'string' }]);
+    createTestSchema(doc, 'Database', [{ name: 'engine', label: 'Engine', type: 'string' }]);
+
+    createConstruct(doc, pageId, 'Service', { name: 'Auth' });
+    createConstruct(doc, pageId, 'Database', { engine: 'postgres' });
+    createConstruct(doc, pageId, 'Service', { name: 'API' });
+
+    const constructs = listConstructs(doc, pageId);
+    for (const construct of constructs) {
+      const schema = getSchema(doc, construct.data.constructType);
+      expect(schema).not.toBeNull();
+    }
   });
 });

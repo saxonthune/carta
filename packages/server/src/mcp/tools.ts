@@ -184,7 +184,7 @@ const PageOpSchema = z.discriminatedUnion('op', [
   }),
 ]);
 
-const SchemaOpSchema = z.discriminatedUnion('op', [
+export const SchemaOpSchema = z.discriminatedUnion('op', [
   z.object({
     op: z.literal('list'),
     documentId: z.string().describe('The document ID'),
@@ -216,7 +216,7 @@ const SchemaOpSchema = z.discriminatedUnion('op', [
           options: z.array(z.object({ value: z.string(), semanticDescription: z.string().optional() })).optional(),
           default: z.unknown().optional(),
           placeholder: z.string().optional(),
-          displayHint: z.enum(['multiline', 'code', 'password', 'url', 'color']).optional(),
+          displayHint: z.enum(['multiline', 'code', 'password', 'url', 'color', 'markdown']).optional(),
           displayTier: z.enum(['pill', 'summary']).optional().describe('Display tier: pill (node title), summary (shown on canvas). Omit for inspector-only fields.'),
           displayOrder: z.number().optional().describe('Sort order within a tier (default 0)'),
         })
@@ -250,7 +250,7 @@ const SchemaOpSchema = z.discriminatedUnion('op', [
     fieldUpdates: z.record(z.object({
       label: z.string().optional(),
       semanticDescription: z.string().optional(),
-      displayHint: z.enum(['multiline', 'code', 'password', 'url', 'color']).optional(),
+      displayHint: z.enum(['multiline', 'code', 'password', 'url', 'color', 'markdown']).optional(),
       displayTier: z.enum(['pill', 'summary']).optional(),
       displayOrder: z.number().optional(),
       placeholder: z.string().optional(),
@@ -263,7 +263,7 @@ const SchemaOpSchema = z.discriminatedUnion('op', [
   }),
 ]);
 
-const SchemaMigrateOpSchema = z.discriminatedUnion('op', [
+export const SchemaMigrateOpSchema = z.discriminatedUnion('op', [
   z.object({
     op: z.literal('rename_field'),
     documentId: z.string().describe('The document ID'),
@@ -283,7 +283,7 @@ const SchemaMigrateOpSchema = z.discriminatedUnion('op', [
     schemaType: z.string().describe('The schema type to modify'),
     field: z.object({
       name: z.string().describe('Field name'),
-      type: z.enum(['string', 'number', 'boolean', 'enum', 'url']).describe('Field data type'),
+      type: z.enum(['string', 'number', 'boolean', 'date', 'enum']).describe('Field data type'),
       options: z.array(z.string()).optional().describe('Enum options (required if type is enum)'),
       label: z.string().optional().describe('Display label'),
       displayTier: z.enum(['pill', 'summary']).optional(),
@@ -347,7 +347,7 @@ const SchemaMigrateOpSchema = z.discriminatedUnion('op', [
   }),
 ]);
 
-const ConstructOpSchema = z.discriminatedUnion('op', [
+export const ConstructOpSchema = z.discriminatedUnion('op', [
   z.object({
     op: z.literal('list'),
     documentId: z.string().describe('The document ID'),
@@ -412,7 +412,7 @@ const ConstructOpSchema = z.discriminatedUnion('op', [
   }),
 ]);
 
-const ConnectionOpSchema = z.discriminatedUnion('op', [
+export const ConnectionOpSchema = z.discriminatedUnion('op', [
   z.object({
     op: z.literal('connect'),
     documentId: z.string().describe('The document ID'),

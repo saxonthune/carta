@@ -17,6 +17,7 @@ import {
   computeFlowLayout,
   computeArrangeLayout,
   canConnect,
+  getPortsForSchema,
   computeLayoutUnitSizes,
   computeOrganizerFit,
   DEFAULT_ORGANIZER_LAYOUT,
@@ -343,6 +344,12 @@ export function createConstruct(
   position = { x: 100, y: 100 },
   parentId?: string
 ): CompilerNode {
+  // Validate schema exists
+  const schema = getSchema(ydoc, constructType);
+  if (!schema) {
+    throw new Error(`Unknown schema type: ${constructType}`);
+  }
+
   const semanticId = generateSemanticId(constructType);
   const nodeId = generateNodeId();
 
@@ -1639,7 +1646,7 @@ export function connect(
   sourcePortId: string,
   targetSemanticId: string,
   targetPortId: string
-): CompilerEdge | null {
+): { edge: CompilerEdge } | { error: string } {
   const pageNodes = getPageMap(ydoc, 'nodes', pageId);
   const pageEdges = getPageMap(ydoc, 'edges', pageId);
 
@@ -1647,6 +1654,8 @@ export function connect(
   let sourceNodeId: string | null = null;
   let targetNodeId: string | null = null;
   let sourceYdata: Y.Map<unknown> | null = null;
+  let sourceConstructType: string | null = null;
+  let targetConstructType: string | null = null;
 
   pageNodes.forEach((ynode, id) => {
     const ydata = ynode.get('data') as Y.Map<unknown> | Record<string, unknown> | undefined;
@@ -1655,14 +1664,47 @@ export function connect(
       if (sid === sourceSemanticId) {
         sourceNodeId = id;
         sourceYdata = ensureYMap(ynode, ydata);
+        sourceConstructType = safeGet(ydata, 'constructType') as string;
       }
       if (sid === targetSemanticId) {
         targetNodeId = id;
+        targetConstructType = safeGet(ydata, 'constructType') as string;
       }
     }
   });
 
-  if (!sourceNodeId || !targetNodeId || !sourceYdata) return null;
+  if (!sourceNodeId || !targetNodeId || !sourceYdata) {
+    return { error: !sourceNodeId ? `Source not found: ${sourceSemanticId}` : `Target not found: ${targetSemanticId}` };
+  }
+
+  // Validate ports exist on schemas and are compatible
+  const sourceSchema = sourceConstructType ? getSchema(ydoc, sourceConstructType) : null;
+  const targetSchema = targetConstructType ? getSchema(ydoc, targetConstructType) : null;
+
+  if (sourceSchema) {
+    const sourcePorts = getPortsForSchema(sourceSchema.ports);
+    if (!sourcePorts.find(p => p.id === sourcePortId)) {
+      return { error: `Port not found: ${sourcePortId} on schema ${sourceConstructType}` };
+    }
+  }
+
+  if (targetSchema) {
+    const targetPorts = getPortsForSchema(targetSchema.ports);
+    if (!targetPorts.find(p => p.id === targetPortId)) {
+      return { error: `Port not found: ${targetPortId} on schema ${targetConstructType}` };
+    }
+  }
+
+  // Validate port type compatibility
+  if (sourceSchema && targetSchema) {
+    const sourcePorts = getPortsForSchema(sourceSchema.ports);
+    const targetPorts = getPortsForSchema(targetSchema.ports);
+    const sourcePort = sourcePorts.find(p => p.id === sourcePortId);
+    const targetPort = targetPorts.find(p => p.id === targetPortId);
+    if (sourcePort && targetPort && !canConnect(sourcePort.portType, targetPort.portType)) {
+      return { error: `Incompatible port types: ${sourcePort.portType} → ${targetPort.portType}` };
+    }
+  }
 
   const edgeId = `edge_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
@@ -1691,11 +1733,13 @@ export function connect(
   }, MCP_ORIGIN);
 
   return {
-    id: edgeId,
-    source: sourceNodeId,
-    target: targetNodeId,
-    sourceHandle: sourcePortId,
-    targetHandle: targetPortId,
+    edge: {
+      id: edgeId,
+      source: sourceNodeId,
+      target: targetNodeId,
+      sourceHandle: sourcePortId,
+      targetHandle: targetPortId,
+    },
   };
 }
 
@@ -2845,13 +2889,14 @@ export function connectBulk(
   const pageNodes = getPageMap(ydoc, 'nodes', pageId);
   const pageEdges = getPageMap(ydoc, 'edges', pageId);
 
-  // Build a lookup of semanticId → { nodeId, ydata }
-  const nodeMap = new Map<string, { nodeId: string; ydata: Y.Map<unknown> }>();
+  // Build a lookup of semanticId → { nodeId, ydata, constructType }
+  const nodeMap = new Map<string, { nodeId: string; ydata: Y.Map<unknown>; constructType: string }>();
   pageNodes.forEach((ynode, id) => {
     const ydata = ynode.get('data') as Y.Map<unknown> | Record<string, unknown> | undefined;
     if (ydata) {
       const sid = safeGet(ydata, 'semanticId') as string | undefined;
-      if (sid) nodeMap.set(sid, { nodeId: id, ydata: ensureYMap(ynode, ydata) });
+      const ct = safeGet(ydata, 'constructType') as string | undefined;
+      if (sid && ct) nodeMap.set(sid, { nodeId: id, ydata: ensureYMap(ynode, ydata), constructType: ct });
     }
   });
 
@@ -2870,6 +2915,38 @@ export function connectBulk(
             : `Target not found: ${conn.targetSemanticId}`,
         });
         continue;
+      }
+
+      // Validate ports exist on schemas
+      const sourceSchema = getSchema(ydoc, source.constructType);
+      const targetSchema = getSchema(ydoc, target.constructType);
+
+      if (sourceSchema) {
+        const sourcePorts = getPortsForSchema(sourceSchema.ports);
+        if (!sourcePorts.find(p => p.id === conn.sourcePortId)) {
+          results.push({ edge: null, error: `Port not found: ${conn.sourcePortId} on schema ${source.constructType}` });
+          continue;
+        }
+      }
+
+      if (targetSchema) {
+        const targetPorts = getPortsForSchema(targetSchema.ports);
+        if (!targetPorts.find(p => p.id === conn.targetPortId)) {
+          results.push({ edge: null, error: `Port not found: ${conn.targetPortId} on schema ${target.constructType}` });
+          continue;
+        }
+      }
+
+      // Validate port type compatibility
+      if (sourceSchema && targetSchema) {
+        const sourcePorts = getPortsForSchema(sourceSchema.ports);
+        const targetPorts = getPortsForSchema(targetSchema.ports);
+        const sourcePort = sourcePorts.find(p => p.id === conn.sourcePortId);
+        const targetPort = targetPorts.find(p => p.id === conn.targetPortId);
+        if (sourcePort && targetPort && !canConnect(sourcePort.portType, targetPort.portType)) {
+          results.push({ edge: null, error: `Incompatible port types: ${sourcePort.portType} → ${targetPort.portType}` });
+          continue;
+        }
       }
 
       const edgeId = `edge_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;

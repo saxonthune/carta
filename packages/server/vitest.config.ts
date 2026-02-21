@@ -19,6 +19,7 @@ export default defineConfig({
       '@carta/domain': path.resolve(__dirname, '../domain/src/index.ts'),
       '@carta/compiler': path.resolve(__dirname, '../compiler/src/index.ts'),
       '@carta/document': path.resolve(__dirname, '../document/src/index.ts'),
+      'zod-to-json-schema': path.resolve(__dirname, '../../node_modules/.pnpm/zod-to-json-schema@3.25.1_zod@3.25.76/node_modules/zod-to-json-schema/dist/esm/index.js'),
     },
   },
 });
