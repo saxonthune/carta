@@ -11,6 +11,7 @@
   --color-surface-depth-2: #f3f4f6;
   --color-surface-depth-3: #ffffff;
   --color-surface-inset: #eef0f4;
+  --color-surface-selected: color-mix(in srgb, #6366f1 8%, #f9fafb);
   --color-border: #d1d5db;
   --color-border-subtle: #f3f4f6;
   --color-content: #1f2937;
@@ -42,6 +43,7 @@
   --color-surface-depth-2: #1f1f23;
   --color-surface-depth-3: #18181b;
   --color-surface-inset: #111113;
+  --color-surface-selected: color-mix(in srgb, #818cf8 12%, #27272a);
   --color-border: #3f3f46;
   --color-border-subtle: #27272a;
   --color-content: #e4e4e7;
@@ -73,6 +75,7 @@
   --color-surface-depth-2: #221814;
   --color-surface-depth-3: #1c1410;
   --color-surface-inset: #150f0b;
+  --color-surface-selected: color-mix(in srgb, #f59e0b 10%, #2c2218);
   --color-border: #44362a;
   --color-border-subtle: #2c2218;
   --color-content: #e8d5c4;

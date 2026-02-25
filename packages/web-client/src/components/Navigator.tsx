@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { DndContext, pointerWithin, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { DotsSixVertical, DotsThreeVertical, CaretDown, Plus } from '@phosphor-icons/react';
+import { DotsSixVertical, DotsThreeVertical, CaretDown, Plus, DiamondsFour } from '@phosphor-icons/react';
 import type { Page } from '@carta/domain';
 import PopoverMenu, { type PopoverMenuItem } from './ui/PopoverMenu';
 
@@ -111,7 +111,7 @@ function PageRow({
       ref={setNodeRef}
       style={style}
       data-testid={`navigator-page-${page.id}`}
-      className={`flex items-center gap-2 pr-2 min-h-[36px] cursor-pointer hover:bg-surface-alt group transition-colors ${isDragging ? 'shadow-lg' : ''}`}
+      className={`flex items-center gap-2 pr-2 min-h-[36px] cursor-pointer group transition-colors ${isDragging ? 'shadow-lg' : ''} ${isActive ? 'bg-[var(--color-surface-selected)]' : 'hover:bg-surface-alt'}`}
       onClick={handleClick}
     >
       {/* Active page indicator bar */}
@@ -179,10 +179,10 @@ function Section({ title, onAdd, addLabel, children, extraActions }: SectionProp
   const [collapsed, setCollapsed] = useState(false);
 
   return (
-    <div className="flex flex-col">
-      <div className="flex items-center gap-1 px-2 py-1.5">
+    <div className="bg-surface-depth-2 rounded-xl flex flex-col overflow-hidden">
+      <div className="flex items-center gap-1 px-3 py-1.5">
         <button
-          className="flex items-center gap-1 flex-1 text-left text-[11px] font-semibold text-content-muted uppercase tracking-wide hover:text-content transition-colors"
+          className="flex items-center gap-1 flex-1 text-left text-sm font-medium text-content-muted hover:text-content transition-colors"
           onClick={() => setCollapsed(!collapsed)}
         >
           <CaretDown
@@ -316,6 +316,22 @@ export default function Navigator({
       style={{ width: 256 }}
     >
       <div className="flex flex-col gap-2 p-2 pt-3">
+        {/* Metamap view toggle */}
+        <div className="flex items-center px-1">
+          <button
+            data-testid="navigator-metamap"
+            className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${
+              isMetamapActive
+                ? 'bg-accent text-white'
+                : 'text-content-muted hover:bg-surface-alt hover:text-content'
+            }`}
+            onClick={onSelectMetamap}
+            title="Metamap"
+          >
+            <DiamondsFour weight={isMetamapActive ? 'fill' : 'bold'} size={18} />
+          </button>
+        </div>
+
         {/* Pages section */}
         <Section
           title="Pages"
@@ -370,18 +386,6 @@ export default function Navigator({
           )}
         </Section>
 
-        {/* Metamap section */}
-        <Section title="Metamap">
-          <div
-            data-testid="navigator-metamap"
-            className={`flex items-center min-h-[36px] cursor-pointer hover:bg-surface-alt group transition-colors`}
-            onClick={onSelectMetamap}
-          >
-            <div className={`w-[3px] self-stretch rounded-r flex-shrink-0 ${isMetamapActive ? 'bg-accent' : ''}`} />
-            <span className="flex-1 text-sm truncate text-content px-2">Metamap</span>
-          </div>
-        </Section>
-
         {/* Resources section */}
         <Section
           title="Resources"
@@ -399,7 +403,7 @@ export default function Navigator({
                 <div
                   key={r.id}
                   data-testid={`navigator-resource-${r.id}`}
-                  className={`flex items-center min-h-[36px] cursor-pointer hover:bg-surface-alt group transition-colors`}
+                  className={`flex items-center min-h-[36px] cursor-pointer group transition-colors ${isActive ? 'bg-[var(--color-surface-selected)]' : 'hover:bg-surface-alt'}`}
                   onClick={() => onSelectResource(r.id)}
                 >
                   <div className={`w-[3px] self-stretch rounded-r flex-shrink-0 ${isActive ? 'bg-accent' : ''}`} />
