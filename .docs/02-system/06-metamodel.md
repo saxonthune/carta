@@ -29,7 +29,7 @@ These types are fixed at design time. Users cannot add, remove, or modify them.
 
 ### DataKind
 
-The five primitive data types for field values. Every field has exactly one (see doc01.02, "DataKind Is Exhaustive").
+The six data types for field values. Every field has exactly one (see doc01.02, "DataKind Is Exhaustive").
 
 | Kind | Description | Example Values |
 |------|-------------|----------------|
@@ -38,6 +38,9 @@ The five primitive data types for field values. Every field has exactly one (see
 | `boolean` | True/false | true, false |
 | `date` | Date values | "2024-01-15" |
 | `enum` | Fixed choices | "GET", "POST", "PUT" |
+| `resource` | Reference to a document resource | `{ resourceId: "abc-123", pathHint: "Page.nodes" }` |
+
+The first five kinds are scalar values. The sixth — `resource` — is a reference type introduced by doc02.04.08. Its value is a compound `{ resourceId, pathHint? }` pointing to a Resource entity in the document and optionally hinting at a location within the resource body. The `pathHint` is a freeform string — Carta stores and displays it but does not validate or navigate it, because resource bodies are format-agnostic (see doc02.04.08, "Resource bodies are opaque to Carta").
 
 ### DisplayHint
 
