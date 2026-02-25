@@ -3500,9 +3500,37 @@ export function batchMutate(
 /**
  * Compile a page's document to AI-readable output
  */
+function getAllResources(ydoc: Y.Doc): Resource[] {
+  const yresources = ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.RESOURCES);
+  const resources: Resource[] = [];
+  yresources.forEach((yresource) => {
+    const yversions = yresource.get('versions') as Y.Array<Y.Map<unknown>>;
+    const versions: ResourceVersion[] = [];
+    yversions.forEach((yver) => {
+      versions.push({
+        versionId: yver.get('versionId') as string,
+        contentHash: yver.get('contentHash') as string,
+        publishedAt: yver.get('publishedAt') as string,
+        label: yver.get('label') as string | undefined,
+        body: yver.get('body') as string,
+      });
+    });
+    resources.push({
+      id: yresource.get('id') as string,
+      name: yresource.get('name') as string,
+      format: yresource.get('format') as string,
+      body: yresource.get('body') as string,
+      currentHash: yresource.get('currentHash') as string,
+      versions,
+    });
+  });
+  return resources;
+}
+
 export function compile(ydoc: Y.Doc, pageId: string): string {
   const nodes = listConstructs(ydoc, pageId);
   const schemas = listSchemas(ydoc);
+  const resources = getAllResources(ydoc);
 
   // Get edges for page
   const pageEdges = getPageMap(ydoc, 'edges', pageId);
@@ -3518,7 +3546,7 @@ export function compile(ydoc: Y.Doc, pageId: string): string {
   });
 
   const compilerEngine = new CompilerEngine();
-  return compilerEngine.compile(nodes, edges, { schemas });
+  return compilerEngine.compile(nodes, edges, { schemas, resources });
 }
 
 // ===== DOCUMENT EXTRACTION =====

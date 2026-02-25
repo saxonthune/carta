@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { CompilerEngine } from '../src/index.js';
-import type { CompilerNode, CompilerEdge, ConstructSchema } from '@carta/domain';
+import type { CompilerNode, CompilerEdge, ConstructSchema, Resource } from '@carta/domain';
 
 const compiler = new CompilerEngine();
 
@@ -132,5 +132,88 @@ describe('CompilerEngine', () => {
     const betaMatches = result.match(/"unique-task-beta"/g) ?? [];
     expect(alphaMatches.length).toBeGreaterThanOrEqual(1);
     expect(betaMatches.length).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe('resource compilation', () => {
+  it('compiles document with resources into resources section', () => {
+    const schema = makeSchema({ type: 'Service', displayName: 'Service' });
+    const node = makeNode('n1', 'Service', 'auth-service');
+    const resources: Resource[] = [{
+      id: 'res-1',
+      name: 'Auth API',
+      format: 'typescript',
+      body: 'export interface AuthUser { id: string; email: string; }',
+      currentHash: 'abc123',
+      versions: [],
+    }];
+    const result = compiler.compile([node], [], { schemas: [schema], resources });
+    expect(result).toContain('Resources');
+    expect(result).toContain('Auth API');
+    expect(result).toContain('typescript');
+    expect(result).toContain('AuthUser');
+  });
+
+  it('includes referencedBy when construct has resource-type field', () => {
+    const schema = makeSchema({
+      type: 'Service',
+      displayName: 'Service',
+      fields: [{ name: 'api', label: 'API', type: 'resource' as any }],
+    });
+    const node = makeNode('n1', 'Service', 'auth-service');
+    node.data.values = { api: { resourceId: 'res-1', pathHint: 'AuthUser' } };
+    const resources: Resource[] = [{
+      id: 'res-1',
+      name: 'Auth API',
+      format: 'typescript',
+      body: 'export interface AuthUser { id: string; }',
+      currentHash: 'abc123',
+      versions: [],
+    }];
+    const result = compiler.compile([node], [], { schemas: [schema], resources });
+    expect(result).toContain('referencedBy');
+    expect(result).toContain('auth-service');
+    expect(result).toContain('AuthUser');
+  });
+
+  it('includes resource with no references', () => {
+    const schema = makeSchema({ type: 'Service', displayName: 'Service' });
+    const node = makeNode('n1', 'Service', 'auth-service');
+    const resources: Resource[] = [{
+      id: 'res-1',
+      name: 'Unreferenced Spec',
+      format: 'openapi',
+      body: '{}',
+      currentHash: 'abc123',
+      versions: [],
+    }];
+    const result = compiler.compile([node], [], { schemas: [schema], resources });
+    expect(result).toContain('Unreferenced Spec');
+  });
+
+  it('omits resources section when no resources exist', () => {
+    const schema = makeSchema({ type: 'Service', displayName: 'Service' });
+    const node = makeNode('n1', 'Service', 'auth-service');
+    const result = compiler.compile([node], [], { schemas: [schema], resources: [] });
+    expect(result).not.toContain('Resources');
+  });
+
+  it('includes latest version info when resource has published versions', () => {
+    const resources: Resource[] = [{
+      id: 'res-1',
+      name: 'Auth API',
+      format: 'typescript',
+      body: 'export interface AuthUser { id: string; }',
+      currentHash: 'abc123',
+      versions: [{
+        versionId: 'ver-1',
+        contentHash: 'abc123',
+        publishedAt: '2026-02-24T00:00:00Z',
+        label: 'Initial release',
+        body: 'export interface AuthUser { id: string; }',
+      }],
+    }];
+    const result = compiler.compile([], [], { schemas: [], resources });
+    expect(result).toContain('Initial release');
   });
 });
