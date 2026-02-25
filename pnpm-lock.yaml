@@ -109,6 +109,9 @@ importers:
       '@carta/domain':
         specifier: workspace:*
         version: link:../domain
+      js-sha256:
+        specifier: ^0.11.0
+        version: 0.11.1
       yjs:
         specifier: ^13.6.29
         version: 13.6.29
@@ -229,6 +232,9 @@ importers:
       d3-zoom:
         specifier: ^3.0.0
         version: 3.0.0
+      js-sha256:
+        specifier: ^0.11.0
+        version: 0.11.1
       marked:
         specifier: ^15.0.0
         version: 15.0.12
