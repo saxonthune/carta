@@ -5,7 +5,7 @@ import Header from './components/Header';
 import CanvasContainer from './components/canvas/CanvasContainer';
 import { compiler } from '@carta/compiler';
 import { syncWithDocumentStore } from '@carta/domain';
-import type { ConstructSchema } from '@carta/domain';
+import type { ConstructSchema, Resource } from '@carta/domain';
 import { useDocumentMeta } from './hooks/useDocumentMeta';
 import { useSchemas } from './hooks/useSchemas';
 import { useSchemaGroups } from './hooks/useSchemaGroups';
@@ -121,6 +121,12 @@ function AppContent() {
 
   const handleExportConfirm = useCallback((options: ExportOptions) => {
     const portSchemas = adapter.getPortSchemas();
+    const resourceSummaries = adapter.getResources();
+    const resources: Resource[] = [];
+    for (const summary of resourceSummaries) {
+      const full = adapter.getResource(summary.id);
+      if (full) resources.push(full);
+    }
 
     exportProject({
       title,
@@ -130,6 +136,7 @@ function AppContent() {
       portSchemas,
       schemaGroups,
       schemaPackages: adapter.getSchemaPackages(),
+      resources,
     }, options);
 
     setExportPreview(null);

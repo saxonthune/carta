@@ -1,5 +1,5 @@
 import type { CartaNode, CartaEdge } from '@carta/types';
-import type { ConstructSchema, PortSchema, SchemaGroup, SchemaPackage, Page, SchemaPackageDefinition } from '@carta/domain';
+import type { ConstructSchema, PortSchema, SchemaGroup, SchemaPackage, Page, SchemaPackageDefinition, Resource } from '@carta/domain';
 import { toKebabCase } from '@carta/domain';
 import {
   CARTA_FILE_VERSION,
@@ -24,6 +24,7 @@ export function exportProject(data: {
   portSchemas: PortSchema[];
   schemaGroups: SchemaGroup[];
   schemaPackages: SchemaPackage[];
+  resources?: Resource[];
 }, options?: ExportOptions): void {
   // Convert pages to file format
   const filePages: CartaFilePage[] = data.pages.map(page => ({
@@ -44,6 +45,7 @@ export function exportProject(data: {
     portSchemas: options?.portSchemas !== false ? data.portSchemas : [],
     schemaGroups: options?.schemaGroups !== false ? data.schemaGroups : [],
     schemaPackages: data.schemaPackages,
+    resources: data.resources && data.resources.length > 0 ? data.resources : undefined,
     exportedAt: new Date().toISOString(),
   };
 

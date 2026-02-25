@@ -5,7 +5,7 @@
  */
 
 import * as Y from 'yjs';
-import type { ConstructSchema, PortSchema, SchemaGroup, SchemaPackage, PackageManifestEntry } from '@carta/domain';
+import type { ConstructSchema, PortSchema, SchemaGroup, SchemaPackage, PackageManifestEntry, Resource } from '@carta/domain';
 import { yToPlain, deepPlainToY } from './yjs-helpers.js';
 import { CARTA_FILE_VERSION } from './constants.js';
 import type { CartaFile, CartaFilePage } from './file-format.js';
@@ -95,6 +95,13 @@ export function extractCartaFile(doc: Y.Doc): CartaFile {
     packageManifest.push(yToPlain(ypm) as PackageManifestEntry);
   });
 
+  // Extract resources
+  const yresources = doc.getMap<Y.Map<unknown>>('resources');
+  const resources: Resource[] = [];
+  yresources.forEach((yresource) => {
+    resources.push(yToPlain(yresource) as Resource);
+  });
+
   return {
     version: CARTA_FILE_VERSION,
     title,
@@ -105,6 +112,7 @@ export function extractCartaFile(doc: Y.Doc): CartaFile {
     schemaGroups,
     schemaPackages,
     packageManifest: packageManifest.length > 0 ? packageManifest : undefined,
+    resources: resources.length > 0 ? resources : undefined,
     exportedAt: new Date().toISOString(),
   };
 }
@@ -124,6 +132,7 @@ export function hydrateYDocFromCartaFile(doc: Y.Doc, data: CartaFile): void {
   const yschemaGroups = doc.getMap<Y.Map<unknown>>('schemaGroups');
   const yschemaPackages = doc.getMap<Y.Map<unknown>>('schemaPackages');
   const ypackageManifest = doc.getMap<Y.Map<unknown>>('packageManifest');
+  const yresources = doc.getMap<Y.Map<unknown>>('resources');
 
   doc.transact(() => {
     // Clear existing data
@@ -136,6 +145,7 @@ export function hydrateYDocFromCartaFile(doc: Y.Doc, data: CartaFile): void {
     yschemaGroups.clear();
     yschemaPackages.clear();
     ypackageManifest.clear();
+    yresources.clear();
 
     // Set metadata
     ymeta.set('title', data.title);
@@ -226,6 +236,32 @@ export function hydrateYDocFromCartaFile(doc: Y.Doc, data: CartaFile): void {
       for (const pm of data.packageManifest) {
         const ypm = deepPlainToY(pm) as Y.Map<unknown>;
         ypackageManifest.set(pm.packageId, ypm);
+      }
+    }
+
+    // Set resources — build Y.Maps manually so versions is a Y.Array of Y.Maps
+    if (data.resources) {
+      for (const resource of data.resources) {
+        const yresource = new Y.Map<unknown>();
+        yresource.set('id', resource.id);
+        yresource.set('name', resource.name);
+        yresource.set('format', resource.format);
+        yresource.set('body', resource.body);
+        yresource.set('currentHash', resource.currentHash);
+
+        const yversions = new Y.Array<Y.Map<unknown>>();
+        for (const version of resource.versions) {
+          const yversion = new Y.Map<unknown>();
+          yversion.set('versionId', version.versionId);
+          yversion.set('contentHash', version.contentHash);
+          yversion.set('publishedAt', version.publishedAt);
+          if (version.label) yversion.set('label', version.label);
+          yversion.set('body', version.body);
+          yversions.push([yversion]);
+        }
+        yresource.set('versions', yversions);
+
+        yresources.set(resource.id, yresource);
       }
     }
   });
