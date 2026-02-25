@@ -12,6 +12,7 @@ const DATA_KINDS: { value: DataKind; label: string; description: string }[] = [
   { value: 'boolean', label: 'Boolean', description: 'Yes/no, true/false, or on/off toggles.' },
   { value: 'date', label: 'Date', description: 'Timestamps or calendar dates.' },
   { value: 'enum', label: 'Enum', description: 'Pick from a predefined list of options (like dropdowns).' },
+  { value: 'resource', label: 'Resource', description: 'Reference to a document resource (API spec, schema, data contract). The value stores a resource link with optional path hint.' },
 ];
 
 const DISPLAY_HINTS: { value: DisplayHint | ''; label: string }[] = [
