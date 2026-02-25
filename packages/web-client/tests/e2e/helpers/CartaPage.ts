@@ -309,39 +309,45 @@ export class CartaPage {
   }
 
   /**
-   * Get the page switcher trigger bar container.
+   * Ensure the navigator panel is visible.
    */
-  getPageSwitcherTrigger(): Locator {
-    // Look for the button with title "Switch page" and work up from there
-    return this.page.locator('button[title="Switch page"]').locator('..');
+  async ensureNavigatorOpen(): Promise<void> {
+    const panel = this.page.getByTestId('navigator-panel');
+    const isVisible = await panel.isVisible();
+    if (!isVisible) {
+      const toggleButton = this.page.locator('button').filter({ has: this.page.locator('svg') }).first();
+      // Click the List icon toggle button in the header
+      await this.page.locator('header button').filter({ hasText: '' }).nth(0).click();
+      await this.page.waitForTimeout(300);
+    }
   }
 
   /**
-   * Get the current page name from the trigger bar.
+   * Get the current active page name from the navigator.
    */
   async getCurrentPageName(): Promise<string> {
-    // Find the span with data-testid="page-name"
-    const nameSpan = this.page.locator('[data-testid="page-name"]');
-    return (await nameSpan.textContent()) ?? '';
+    // Find the page row with the accent indicator bar (active state)
+    // We look for navigator page rows where the accent bar is visible
+    const activePageRow = this.page.locator('[data-testid^="navigator-page-"]').filter({
+      has: this.page.locator('div.bg-accent'),
+    });
+    const text = await activePageRow.locator('span').first().textContent();
+    return text ?? '';
   }
 
   /**
-   * Open the page dropdown by clicking the chevron button.
-   */
-  async openPageDropdown(): Promise<void> {
-    // Click the button with title "Switch page"
-    const chevronButton = this.page.locator('button[title="Switch page"]');
-    await chevronButton.click();
-    await this.page.waitForTimeout(300);
-  }
-
-  /**
-   * Get locators for page rows in the open dropdown.
-   * Returns all page row elements that are NOT the "New Page" button.
+   * Get locators for all page rows in the navigator panel.
    */
   getPageRows(): Locator {
-    // Page rows are within the dropdown, excluding the "New Page" button row
-    // They contain a 3px active indicator bar and page name
-    return this.page.locator('div.flex.items-center.gap-2').filter({ has: this.page.locator('div.w-\\[3px\\]') });
+    return this.page.locator('[data-testid^="navigator-page-"]');
+  }
+
+  /**
+   * Click the "+" button in the Pages section header to create a new page.
+   */
+  async clickCreatePage(): Promise<void> {
+    const createButton = this.page.locator('button[title="New page"]');
+    await createButton.click();
+    await this.page.waitForTimeout(300);
   }
 }

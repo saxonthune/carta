@@ -1,11 +1,14 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useResources } from '../hooks/useResources';
 import { useDocumentContext } from '../contexts/DocumentContext';
 
-export default function ResourceView() {
+interface ResourceViewProps {
+  resourceId: string;
+}
+
+export default function ResourceView({ resourceId }: ResourceViewProps) {
   const { adapter } = useDocumentContext();
   const { resources, getFullResource } = useResources();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editingBody, setEditingBody] = useState<string>('');
   const [editingName, setEditingName] = useState<string>('');
   const [editingFormat, setEditingFormat] = useState<string>('');
@@ -14,66 +17,49 @@ export default function ResourceView() {
   const [viewingVersion, setViewingVersion] = useState<{ versionId: string; body: string; label?: string; publishedAt: string } | null>(null);
   const [publishLabel, setPublishLabel] = useState('');
 
-  const selectResource = useCallback((id: string) => {
-    const full = getFullResource(id);
+  // Load resource data when resourceId changes
+  useEffect(() => {
+    const full = getFullResource(resourceId);
     if (full) {
-      setSelectedId(id);
       setEditingBody(full.body);
       setEditingName(full.name);
       setEditingFormat(full.format);
-      const history = adapter.getResourceHistory(id);
-      setHistoryVersions(history);
+      setHistoryVersions(adapter.getResourceHistory(resourceId));
       setShowHistory(false);
       setViewingVersion(null);
       setPublishLabel('');
     }
-  }, [adapter, getFullResource]);
-
-  const handleCreate = useCallback(() => {
-    const created = adapter.createResource('New Resource', 'freeform', '');
-    selectResource(created.id);
-  }, [adapter, selectResource]);
+  }, [resourceId, adapter, getFullResource]);
 
   const handleDelete = useCallback((id: string) => {
     adapter.deleteResource(id);
-    if (selectedId === id) {
-      setSelectedId(null);
-    }
-  }, [adapter, selectedId]);
+  }, [adapter]);
 
   const handleBodyChange = useCallback((body: string) => {
     setEditingBody(body);
-    if (selectedId) {
-      adapter.updateResource(selectedId, { body });
-    }
-  }, [adapter, selectedId]);
+    adapter.updateResource(resourceId, { body });
+  }, [adapter, resourceId]);
 
   const handleNameChange = useCallback((name: string) => {
     setEditingName(name);
-    if (selectedId) {
-      adapter.updateResource(selectedId, { name });
-    }
-  }, [adapter, selectedId]);
+    adapter.updateResource(resourceId, { name });
+  }, [adapter, resourceId]);
 
   const handleFormatChange = useCallback((format: string) => {
     setEditingFormat(format);
-    if (selectedId) {
-      adapter.updateResource(selectedId, { format });
-    }
-  }, [adapter, selectedId]);
+    adapter.updateResource(resourceId, { format });
+  }, [adapter, resourceId]);
 
   const handlePublish = useCallback(() => {
-    if (!selectedId) return;
-    const version = adapter.publishResourceVersion(selectedId, publishLabel || undefined);
+    const version = adapter.publishResourceVersion(resourceId, publishLabel || undefined);
     if (version) {
       setPublishLabel('');
-      setHistoryVersions(adapter.getResourceHistory(selectedId));
+      setHistoryVersions(adapter.getResourceHistory(resourceId));
     }
-  }, [adapter, selectedId, publishLabel]);
+  }, [adapter, resourceId, publishLabel]);
 
   const handleViewVersion = useCallback((versionId: string) => {
-    if (!selectedId) return;
-    const version = adapter.getResourceVersion(selectedId, versionId);
+    const version = adapter.getResourceVersion(resourceId, versionId);
     if (version) {
       setViewingVersion({
         versionId: version.versionId,
@@ -82,54 +68,16 @@ export default function ResourceView() {
         publishedAt: version.publishedAt,
       });
     }
-  }, [adapter, selectedId]);
+  }, [adapter, resourceId]);
 
   const handleCloseVersion = useCallback(() => {
     setViewingVersion(null);
   }, []);
 
-  const selectedResource = selectedId ? resources.find(r => r.id === selectedId) : null;
+  const selectedResource = resources.find(r => r.id === resourceId);
 
   return (
     <div className="flex h-full">
-      {/* Resource list panel */}
-      <div className="w-64 border-r border-border bg-surface flex flex-col">
-        <div className="px-3 py-2 border-b border-border flex items-center justify-between">
-          <span className="text-sm font-semibold text-content">Resources</span>
-          <button
-            onClick={handleCreate}
-            className="px-2 py-1 text-xs rounded bg-accent text-white hover:bg-accent-hover transition-colors"
-          >
-            + New
-          </button>
-        </div>
-        <div className="flex-1 overflow-y-auto">
-          {resources.length === 0 ? (
-            <div className="px-3 py-4 text-sm text-content-muted text-center">
-              No resources yet. Create one to get started.
-            </div>
-          ) : (
-            resources.map((r) => (
-              <div
-                key={r.id}
-                onClick={() => selectResource(r.id)}
-                className={`px-3 py-2 cursor-pointer border-b border-border/50 transition-colors ${
-                  selectedId === r.id ? 'bg-accent/10 border-l-2 border-l-accent' : 'hover:bg-surface-elevated'
-                }`}
-              >
-                <div className="text-sm font-medium text-content truncate">{r.name}</div>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-[10px] px-1.5 py-0.5 bg-surface-alt rounded text-content-muted">{r.format}</span>
-                  {r.versionCount > 0 && (
-                    <span className="text-[10px] text-content-muted">{r.versionCount} ver.</span>
-                  )}
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-
       {/* Editor panel */}
       <div className="flex-1 flex flex-col min-w-0">
         {selectedResource ? (
@@ -253,8 +201,8 @@ export default function ResourceView() {
         ) : (
           <div className="flex-1 flex items-center justify-center text-content-muted">
             <div className="text-center">
-              <div className="text-lg mb-2">No resource selected</div>
-              <div className="text-sm">Select a resource from the list or create a new one.</div>
+              <div className="text-lg mb-2">Resource not found</div>
+              <div className="text-sm">This resource may have been deleted.</div>
             </div>
           </div>
         )}

@@ -2,18 +2,31 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { DndContext, pointerWithin, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { DotsSixVertical, DotsThreeVertical, Stack, CaretDown } from '@phosphor-icons/react';
+import { DotsSixVertical, DotsThreeVertical, CaretDown, Plus } from '@phosphor-icons/react';
 import type { Page } from '@carta/domain';
 import PopoverMenu, { type PopoverMenuItem } from './ui/PopoverMenu';
 
-interface PageSwitcherProps {
+type ActiveView =
+  | { type: 'page'; pageId: string }
+  | { type: 'metamap' }
+  | { type: 'resource'; resourceId: string };
+
+interface NavigatorProps {
+  isOpen: boolean;
+  // Pages
   pages: Page[];
-  activePage: string | undefined;
   onSetActivePage: (pageId: string) => void;
   onCreatePage: (name: string) => void;
   onDeletePage: (pageId: string) => boolean;
-  onUpdatePage: (pageId: string, updates: Partial<Omit<Page, 'id' | 'nodes' | 'edges' | 'deployables'>>) => void;
+  onUpdatePage: (pageId: string, updates: Partial<Omit<Page, 'id' | 'nodes' | 'edges'>>) => void;
   onDuplicatePage: (pageId: string, newName: string) => void;
+  // Resources
+  resources: Array<{ id: string; name: string; format: string; currentHash: string; versionCount: number }>;
+  onSelectResource: (resourceId: string) => void;
+  onCreateResource: () => void;
+  // View state
+  activeView: ActiveView;
+  onSelectMetamap: () => void;
 }
 
 interface PageRowProps {
@@ -97,7 +110,8 @@ function PageRow({
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-center gap-2 pr-2 min-h-[40px] cursor-pointer hover:bg-surface-alt group transition-colors ${isDragging ? 'shadow-lg' : ''}`}
+      data-testid={`navigator-page-${page.id}`}
+      className={`flex items-center gap-2 pr-2 min-h-[36px] cursor-pointer hover:bg-surface-alt group transition-colors ${isDragging ? 'shadow-lg' : ''}`}
       onClick={handleClick}
     >
       {/* Active page indicator bar */}
@@ -153,44 +167,69 @@ function PageRow({
   );
 }
 
-export default function PageSwitcher({
+interface SectionProps {
+  title: string;
+  onAdd?: () => void;
+  addLabel?: string;
+  children: React.ReactNode;
+  extraActions?: React.ReactNode;
+}
+
+function Section({ title, onAdd, addLabel, children, extraActions }: SectionProps) {
+  const [collapsed, setCollapsed] = useState(false);
+
+  return (
+    <div className="flex flex-col">
+      <div className="flex items-center gap-1 px-2 py-1.5">
+        <button
+          className="flex items-center gap-1 flex-1 text-left text-[11px] font-semibold text-content-muted uppercase tracking-wide hover:text-content transition-colors"
+          onClick={() => setCollapsed(!collapsed)}
+        >
+          <CaretDown
+            weight="bold"
+            size={10}
+            className={`transition-transform ${collapsed ? '-rotate-90' : ''}`}
+          />
+          {title}
+        </button>
+        {extraActions}
+        {onAdd && (
+          <button
+            className="w-5 h-5 flex items-center justify-center rounded text-content-muted hover:bg-surface-alt hover:text-content transition-colors"
+            onClick={onAdd}
+            title={addLabel}
+          >
+            <Plus weight="bold" size={12} />
+          </button>
+        )}
+      </div>
+      {!collapsed && children}
+    </div>
+  );
+}
+
+export default function Navigator({
+  isOpen,
   pages,
-  activePage,
   onSetActivePage,
   onCreatePage,
   onDeletePage,
   onUpdatePage,
   onDuplicatePage,
-}: PageSwitcherProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  resources,
+  onSelectResource,
+  onCreateResource,
+  activeView,
+  onSelectMetamap,
+}: NavigatorProps) {
   const [editMode, setEditMode] = useState(false);
   const [editingPageId, setEditingPageId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
-  const [descriptionValue, setDescriptionValue] = useState('');
 
-  const dropdownRef = useRef<HTMLDivElement>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
   const editFocusCounter = useRef(0);
 
-  const currentPage = pages.find(l => l.id === activePage);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-        setEditingPageId(null);
-        setEditMode(false);
-      }
-    };
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-  }, [isOpen]);
-
-  // Focus input when editing in dropdown
+  // Focus input when editing starts
   useEffect(() => {
     if (editingPageId && editInputRef.current) {
       editInputRef.current.focus();
@@ -198,33 +237,6 @@ export default function PageSwitcher({
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingPageId, editFocusCounter.current]);
-
-  // Update description value when page changes
-  useEffect(() => {
-    setDescriptionValue(currentPage?.description || '');
-  }, [currentPage?.id, currentPage?.description]);
-
-  // Reset edit mode when dropdown closes
-  useEffect(() => {
-    if (!isOpen) {
-      setEditMode(false);
-      setEditingPageId(null);
-    }
-  }, [isOpen]);
-
-  // Mutual exclusion: opening dropdown closes description
-  useEffect(() => {
-    if (isOpen) {
-      setIsDescriptionExpanded(false);
-    }
-  }, [isOpen]);
-
-  // Mutual exclusion: opening description closes dropdown
-  useEffect(() => {
-    if (isDescriptionExpanded) {
-      setIsOpen(false);
-    }
-  }, [isDescriptionExpanded]);
 
   const handleStartRename = useCallback((page: Page) => {
     setEditingPageId(page.id);
@@ -259,13 +271,7 @@ export default function PageSwitcher({
 
   const handleCreatePage = useCallback(() => {
     onCreatePage(`Page ${pages.length + 1}`);
-    setIsOpen(false);
   }, [pages.length, onCreatePage]);
-
-  const handleSelectPage = useCallback((pageId: string) => {
-    onSetActivePage(pageId);
-    setIsOpen(false);
-  }, [onSetActivePage]);
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
@@ -284,64 +290,39 @@ export default function PageSwitcher({
     }
   }, [pages, onUpdatePage]);
 
+  if (!isOpen) return null;
+
   const sortedPages = [...pages].sort((a, b) => a.order - b.order);
   const pageIds = sortedPages.map(l => l.id);
+  const isMetamapActive = activeView.type === 'metamap';
 
-  const descriptionSubtitle = currentPage?.description
-    ? currentPage.description.split('\n')[0]
-    : 'Add description...';
+  const reorderButton = (
+    <button
+      className={`w-5 h-5 flex items-center justify-center rounded transition-colors ${editMode ? 'bg-accent text-white' : 'text-content-muted hover:bg-surface-alt hover:text-content'}`}
+      onClick={() => {
+        setEditMode(!editMode);
+        setEditingPageId(null);
+      }}
+      title={editMode ? 'Exit reorder mode' : 'Reorder pages'}
+    >
+      <DotsSixVertical weight="bold" size={12} />
+    </button>
+  );
 
   return (
-    <div className="relative max-w-[30vw]" ref={dropdownRef}>
-      {/* Trigger bar */}
-      <div className="flex items-end gap-1.5">
-        {/* Left zone: page info (click to toggle description) */}
-        <button
-          className="flex flex-col items-start gap-0.5 pl-3 pr-2 py-1.5 bg-surface text-content border border-border rounded-lg hover:bg-surface-alt transition-colors flex-1 min-w-0 text-left overflow-hidden"
-          onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+    <div
+      data-testid="navigator-panel"
+      className="h-full bg-surface-depth-1 border-r border-border flex flex-col flex-shrink-0 overflow-y-auto"
+      style={{ width: 256 }}
+    >
+      <div className="flex flex-col gap-2 p-2 pt-3">
+        {/* Pages section */}
+        <Section
+          title="Pages"
+          onAdd={handleCreatePage}
+          addLabel="New page"
+          extraActions={reorderButton}
         >
-          <div className="flex items-center gap-1.5 w-full">
-            <Stack weight="regular" size={16} className="text-content-muted flex-shrink-0" />
-            <span className="text-sm font-medium truncate" data-testid="page-name">
-              {currentPage?.name || 'Main'}
-            </span>
-          </div>
-          <span className={`text-xs truncate w-full pl-5 ${currentPage?.description ? 'text-content-muted' : 'text-content-muted italic'}`}>
-            {descriptionSubtitle}
-          </span>
-        </button>
-
-        {/* Right zone: dropdown chevron */}
-        <button
-          className="flex items-center justify-center w-8 h-8 flex-shrink-0 rounded-lg border border-border bg-surface hover:bg-surface-alt transition-colors"
-          onClick={() => setIsOpen(!isOpen)}
-          title="Switch page"
-        >
-          <CaretDown weight="bold" size={14} className={`text-content-muted transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-        </button>
-      </div>
-
-      {/* Description expanded (grows the trigger bar) */}
-      {isDescriptionExpanded && !isOpen && (
-        <div className="mt-1 bg-surface border border-border rounded-lg overflow-hidden">
-          <textarea
-            className="w-full px-3 py-2 text-sm bg-surface border-none outline-none resize-y text-content min-h-[80px]"
-            placeholder="Add a page description..."
-            value={descriptionValue}
-            onChange={(e) => setDescriptionValue(e.target.value)}
-            onBlur={() => {
-              if (activePage) {
-                onUpdatePage(activePage, { description: descriptionValue.trim() || undefined });
-              }
-            }}
-          />
-        </div>
-      )}
-
-      {/* Page selector dropdown */}
-      {isOpen && (
-        <div className="absolute right-0 top-full mt-1 bg-surface border border-border rounded-lg shadow-lg overflow-hidden z-50 min-w-[260px]">
-          {/* Page rows */}
           {editMode ? (
             <DndContext collisionDetection={pointerWithin} onDragEnd={handleDragEnd}>
               <SortableContext items={pageIds} strategy={verticalListSortingStrategy}>
@@ -349,13 +330,13 @@ export default function PageSwitcher({
                   <PageRow
                     key={page.id}
                     page={page}
-                    isActive={page.id === activePage}
+                    isActive={activeView.type === 'page' && activeView.pageId === page.id}
                     editMode={editMode}
                     isEditing={editingPageId === page.id}
                     editName={editName}
                     editInputRef={editInputRef}
                     pagesCount={pages.length}
-                    onSelect={handleSelectPage}
+                    onSelect={(pageId) => { onSetActivePage(pageId); }}
                     onStartRename={handleStartRename}
                     onFinishEdit={handleFinishEdit}
                     onCancelEdit={handleCancelEdit}
@@ -371,13 +352,13 @@ export default function PageSwitcher({
               <PageRow
                 key={page.id}
                 page={page}
-                isActive={page.id === activePage}
+                isActive={activeView.type === 'page' && activeView.pageId === page.id}
                 editMode={false}
                 isEditing={editingPageId === page.id}
                 editName={editName}
                 editInputRef={editInputRef}
                 pagesCount={pages.length}
-                onSelect={handleSelectPage}
+                onSelect={(pageId) => { onSetActivePage(pageId); }}
                 onStartRename={handleStartRename}
                 onFinishEdit={handleFinishEdit}
                 onCancelEdit={handleCancelEdit}
@@ -387,28 +368,51 @@ export default function PageSwitcher({
               />
             ))
           )}
+        </Section>
 
-          {/* Bottom bar */}
-          <div className="border-t border-border flex items-center justify-between">
-            <button
-              className="flex-1 text-left px-3 py-2 text-sm cursor-pointer text-content-muted hover:bg-surface-alt hover:text-content transition-colors border-none bg-surface"
-              onClick={handleCreatePage}
-            >
-              + New Page
-            </button>
-            <button
-              className={`px-3 py-2 text-sm cursor-pointer transition-colors border-none ${editMode ? 'bg-accent text-white' : 'bg-surface text-content-muted hover:bg-surface-alt hover:text-content'}`}
-              onClick={() => {
-                setEditMode(!editMode);
-                setEditingPageId(null);
-              }}
-              title={editMode ? 'Exit rearrange mode' : 'Rearrange pages'}
-            >
-              <DotsSixVertical weight="bold" size={14} />
-            </button>
+        {/* Metamap section */}
+        <Section title="Metamap">
+          <div
+            data-testid="navigator-metamap"
+            className={`flex items-center min-h-[36px] cursor-pointer hover:bg-surface-alt group transition-colors`}
+            onClick={onSelectMetamap}
+          >
+            <div className={`w-[3px] self-stretch rounded-r flex-shrink-0 ${isMetamapActive ? 'bg-accent' : ''}`} />
+            <span className="flex-1 text-sm truncate text-content px-2">Metamap</span>
           </div>
-        </div>
-      )}
+        </Section>
+
+        {/* Resources section */}
+        <Section
+          title="Resources"
+          onAdd={onCreateResource}
+          addLabel="New resource"
+        >
+          {resources.length === 0 ? (
+            <div className="px-3 py-2 text-xs text-content-muted italic">
+              No resources yet.
+            </div>
+          ) : (
+            resources.map((r) => {
+              const isActive = activeView.type === 'resource' && activeView.resourceId === r.id;
+              return (
+                <div
+                  key={r.id}
+                  data-testid={`navigator-resource-${r.id}`}
+                  className={`flex items-center min-h-[36px] cursor-pointer hover:bg-surface-alt group transition-colors`}
+                  onClick={() => onSelectResource(r.id)}
+                >
+                  <div className={`w-[3px] self-stretch rounded-r flex-shrink-0 ${isActive ? 'bg-accent' : ''}`} />
+                  <div className="flex-1 flex items-center gap-2 px-2 min-w-0">
+                    <span className="text-sm font-medium text-content truncate flex-1">{r.name}</span>
+                    <span className="text-[10px] px-1.5 py-0.5 bg-surface-alt rounded text-content-muted flex-shrink-0">{r.format}</span>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </Section>
+      </div>
     </div>
   );
 }

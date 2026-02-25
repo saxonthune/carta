@@ -3,6 +3,7 @@ import type { CartaNode, CartaEdge } from '@carta/types';
 import DocumentBrowserModal from './components/modals/DocumentBrowserModal';
 import Header from './components/Header';
 import CanvasContainer from './components/canvas/CanvasContainer';
+import Navigator from './components/Navigator';
 import { compiler } from '@carta/compiler';
 import { syncWithDocumentStore } from '@carta/domain';
 import type { ConstructSchema, Resource } from '@carta/domain';
@@ -10,6 +11,7 @@ import { useDocumentMeta } from './hooks/useDocumentMeta';
 import { useSchemas } from './hooks/useSchemas';
 import { useSchemaGroups } from './hooks/useSchemaGroups';
 import { usePages } from './hooks/usePages';
+import { useResources } from './hooks/useResources';
 import { useClearDocument } from './hooks/useClearDocument';
 import { useExampleLoader } from './hooks/useExampleLoader';
 import { useDocumentContext } from './contexts/DocumentContext';
@@ -18,6 +20,11 @@ import { analyzeImport, type ImportAnalysis, type ImportOptions } from './utils/
 import { analyzeExport, type ExportAnalysis, type ExportOptions } from './utils/exportAnalyzer';
 import { importDocument, type ImportConfig } from './utils/documentImporter';
 import { config } from './config/featureFlags';
+
+type ActiveView =
+  | { type: 'page'; pageId: string }
+  | { type: 'metamap' }
+  | { type: 'resource'; resourceId: string };
 
 const ImportPreviewModal = lazy(() => import('./components/modals/ImportPreviewModal'));
 const ExportPreviewModal = lazy(() => import('./components/modals/ExportPreviewModal'));
@@ -65,10 +72,24 @@ function AppContent() {
   const { schemas } = useSchemas();
   const { schemaGroups } = useSchemaGroups();
   const { pages, activePage, setActivePage, createPage, deletePage, updatePage, duplicatePage } = usePages();
+  const { resources } = useResources();
+  const [navigatorOpen, setNavigatorOpen] = useState(true);
+  const [activeView, setActiveView] = useState<ActiveView>(() => ({
+    type: 'page',
+    pageId: activePage || pages[0]?.id || '',
+  }));
   const [importPreview, setImportPreview] = useState<{ data: CartaFile; analysis: ImportAnalysis } | null>(null);
   const [pendingImport, setPendingImport] = useState<{ data: CartaFile; config: ImportConfig; schemasToImport: ConstructSchema[] } | null>(null);
   const [exportPreview, setExportPreview] = useState<ExportAnalysis | null>(null);
   const [compileOutput, setCompileOutput] = useState<string | null>(null);
+  // Keep activeView in sync when activePage changes externally
+  useEffect(() => {
+    if (activePage && activeView.type === 'page') {
+      setActiveView({ type: 'page', pageId: activePage });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activePage]);
+
   const [aiSidebarOpen, setAiSidebarOpen] = useState(false);
   const [aiSidebarWidth] = useState(400);
   const nodesEdgesRef = useRef<{ nodes: CartaNode[]; edges: CartaEdge[] }>({ nodes: [], edges: [] });
@@ -111,6 +132,11 @@ function AppContent() {
   const handleSelectionChange = useCallback((_nodes: CartaNode[]) => {
     // Selection handling removed with InspectorPanel (V1-only)
   }, []);
+
+  const handleCreateResource = useCallback(() => {
+    const created = adapter.createResource('New Resource', 'freeform', '');
+    setActiveView({ type: 'resource', resourceId: created.id });
+  }, [adapter]);
 
   const handleExport = useCallback(() => {
     const { nodes, edges } = nodesEdgesRef.current;
@@ -192,6 +218,20 @@ function AppContent() {
 
   return (
     <div className="h-screen flex">
+      <Navigator
+        isOpen={navigatorOpen}
+        pages={pages}
+        onSetActivePage={(pageId) => { setActivePage(pageId); setActiveView({ type: 'page', pageId }); }}
+        onCreatePage={createPage}
+        onDeletePage={deletePage}
+        onUpdatePage={updatePage}
+        onDuplicatePage={duplicatePage}
+        resources={resources}
+        onSelectResource={(resourceId) => setActiveView({ type: 'resource', resourceId })}
+        onCreateResource={handleCreateResource}
+        activeView={activeView}
+        onSelectMetamap={() => setActiveView({ type: 'metamap' })}
+      />
       <div className="flex-1 flex flex-col min-w-0">
         <Header
           title={title}
@@ -203,16 +243,11 @@ function AppContent() {
           onCompile={handleCompile}
           onClear={clearDocument}
           onToggleAI={() => setAiSidebarOpen(!aiSidebarOpen)}
+          onToggleNavigator={() => setNavigatorOpen(!navigatorOpen)}
         />
         <CanvasContainer
           onSelectionChange={handleSelectionChange}
-          pages={pages}
-          activePage={activePage}
-          onSetActivePage={setActivePage}
-          onCreatePage={createPage}
-          onDeletePage={deletePage}
-          onUpdatePage={updatePage}
-          onDuplicatePage={duplicatePage}
+          activeView={activeView}
         />
       </div>
 

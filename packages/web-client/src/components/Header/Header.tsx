@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { FolderOpen, Robot } from '@phosphor-icons/react';
+import { FolderOpen, Robot, List } from '@phosphor-icons/react';
 import { useDocumentContext } from '../../contexts/DocumentContext';
 import { config } from '../../config/featureFlags';
 import ConnectionStatus from '../ConnectionStatus';
@@ -26,6 +26,7 @@ export interface HeaderProps {
   onCompile: () => void;
   onClear?: (mode: 'instances' | 'all') => void;
   onToggleAI?: () => void;
+  onToggleNavigator?: () => void;
 }
 
 /**
@@ -52,6 +53,7 @@ export function Header({
   onCompile,
   onClear,
   onToggleAI,
+  onToggleNavigator,
 }: HeaderProps) {
   const { mode, documentId } = useDocumentContext();
   const [isProjectInfoOpen, setIsProjectInfoOpen] = useState(false);
@@ -90,6 +92,16 @@ export function Header({
       {/* Left section: Logo and debug info */}
       <div className="flex items-center justify-start pl-3 gap-2">
         <span className="text-xl font-bold tracking-tight text-content select-none">Carta</span>
+        {onToggleNavigator && (
+          <Tooltip content="Toggle navigator">
+            <button
+              className="w-9 h-9 flex items-center justify-center rounded-lg cursor-pointer text-content-muted hover:bg-surface-alt hover:text-content transition-colors"
+              onClick={onToggleNavigator}
+            >
+              <List weight="regular" size={18} />
+            </button>
+          </Tooltip>
+        )}
         {config.debug && (
           <div className="flex items-center gap-1.5 text-[10px] font-mono text-content-muted">
             <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400">DEV</span>
