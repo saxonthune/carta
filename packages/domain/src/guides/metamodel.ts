@@ -14,7 +14,7 @@ Carta uses a three-level metamodel to represent software architectures. Document
 ## The Three Levels
 
 **M2: Fixed Primitives** - Built into Carta, cannot be changed:
-- \`DataKind\`: string, number, boolean, date, enum
+- \`DataKind\`: string, number, boolean, date, enum, resource
 - \`Polarity\`: source, sink, bidirectional, relay, intercept
 - \`PortSchema\`: Defines port types with polarity and compatibility
 

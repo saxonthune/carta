@@ -20,7 +20,7 @@ import {
 // but if someone adds a value to a Zod schema without updating the TS type, this test WILL catch it.
 // The real safety net is: Zod enum ⊇ canonical AND Zod enum ⊆ canonical.
 
-const CANONICAL_DATA_KINDS = ['string', 'number', 'boolean', 'date', 'enum'] as const;
+const CANONICAL_DATA_KINDS = ['string', 'number', 'boolean', 'date', 'enum', 'resource'] as const;
 const CANONICAL_DISPLAY_HINTS = ['multiline', 'code', 'password', 'url', 'color', 'markdown'] as const;
 const CANONICAL_DISPLAY_TIERS = ['pill', 'summary'] as const;
 const CANONICAL_NODE_SHAPES = ['default', 'simple', 'circle', 'diamond', 'document', 'parallelogram', 'stadium'] as const;

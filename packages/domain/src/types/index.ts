@@ -7,7 +7,7 @@
 /**
  * M2 primitive data types
  */
-export type DataKind = 'string' | 'number' | 'boolean' | 'date' | 'enum';
+export type DataKind = 'string' | 'number' | 'boolean' | 'date' | 'enum' | 'resource';
 
 /**
  * Display hints for string type presentation
@@ -98,6 +98,16 @@ export interface FieldSchema {
   displayOrder?: number;               // Sort order within a tier (default: 0)
 }
 
+
+/**
+ * Compound value for resource-type fields.
+ * Stored in ConstructValues when a field has type: 'resource'.
+ */
+export interface ResourceFieldValue {
+  resourceId: string;
+  pathHint?: string;
+  versionHash?: string;
+}
 
 /**
  * Configuration for how a construct compiles to output
@@ -265,6 +275,34 @@ export interface PinConstraint {
   targetOrganizerId: string;     // the reference organizer
   direction: PinDirection;       // where source sits relative to target
   gap?: number;                  // optional spacing override (default: 60)
+}
+
+// ===== RESOURCES =====
+
+/**
+ * A published version snapshot of a resource.
+ * Frozen copy — body is immutable after publish.
+ */
+export interface ResourceVersion {
+  versionId: string;
+  contentHash: string;
+  publishedAt: string;
+  label?: string;
+  body: string;
+}
+
+/**
+ * A document-level versioned data contract.
+ * Resources are materializations of external artifacts (APIs, schemas, types).
+ * See doc02.04.08 for full design rationale.
+ */
+export interface Resource {
+  id: string;
+  name: string;
+  format: string;
+  body: string;
+  currentHash: string;
+  versions: ResourceVersion[];
 }
 
 // ===== HELPERS =====
