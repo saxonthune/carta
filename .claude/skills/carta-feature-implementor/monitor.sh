@@ -29,17 +29,25 @@ for md in "$TODO"/.running/*.md; do
   printf "▶ %s\n" "$slug"
 done
 
-# Recent completions (last 10 min)
-for r in "$TODO"/.done/*.result.md; do
-  age=$(( $(date +%s) - $(stat -c %Y "$r") ))
-  (( age > 600 )) && continue
-  found=true
-  slug=$(basename "$r" .result.md)
-  status=$(sed -n 's/^[*]*[Ss]tatus[*]*: *//p' "$r" | head -1 | tr '[:upper:]' '[:lower:]')
-  case "$status" in
-    *success*) printf "✅ %s (%dm ago)\n" "$slug" "$((age/60))" ;;
-    *)         printf "❌ %s (%dm ago)\n" "$slug" "$((age/60))" ;;
-  esac
-done
+# 3 most recent completions (by mtime, newest first)
+results=("$TODO"/.done/*.result.md)
+if (( ${#results[@]} )); then
+  now=$(date +%s)
+  printf '%s\n' "${results[@]}" | while read -r r; do
+    printf '%d %s\n' "$(stat -c %Y "$r")" "$r"
+  done | sort -rn | head -3 | while read -r _ts r; do
+    found=true
+    age=$(( now - $(stat -c %Y "$r") ))
+    slug=$(basename "$r" .result.md)
+    status=$(sed -n 's/^[*]*[Ss]tatus[*]*: *//p' "$r" | head -1 | tr '[:upper:]' '[:lower:]')
+    if (( age < 3600 )); then ago="$((age/60))m"
+    elif (( age < 86400 )); then ago="$((age/3600))h"
+    else ago="$((age/86400))d"; fi
+    case "$status" in
+      *success*) printf "✅ %s (%s ago)\n" "$slug" "$ago" ;;
+      *)         printf "❌ %s (%s ago)\n" "$slug" "$ago" ;;
+    esac
+  done
+fi
 
 $found || echo "(idle)"

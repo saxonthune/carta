@@ -55,6 +55,21 @@ Each package shows:
 
 Loaded packages (by UUID) are greyed out / blocked from re-loading. See doc03.01.01.07 for full library architecture.
 
+## Example Loader (`?example=` query param)
+
+A lightweight example loading system allows linking directly to a pre-built document. Appending `?example=software-architecture` to any Carta URL triggers the `useExampleLoader` hook to fetch `/examples/software-architecture.carta.json` from the public directory.
+
+**Behavior:**
+- If the current document is blank (all pages empty), the example is imported immediately and silently — no confirmation needed.
+- If the document has content, an `ExampleConfirmModal` appears asking the user to confirm before replacing their work.
+- On confirm or cancel, the `?example=` param is stripped from the URL via `history.replaceState` to prevent re-triggering on reload.
+
+**Public examples directory:** `packages/web-client/public/examples/` — `.carta.json` files here are served as static assets. The canonical example is `software-architecture.carta.json`.
+
+**Hook:** `useExampleLoader` (in `packages/web-client/src/hooks/useExampleLoader.ts`). Not exported from the hooks barrel — it is used directly in `App.tsx`.
+
+**Modal:** `ExampleConfirmModal` (in `packages/web-client/src/components/modals/ExampleConfirmModal.tsx`). Not in the modals barrel — it is lazy-imported directly in `App.tsx`.
+
 ## Future: Guided NUX
 
 After the package loading system stabilizes, a guided first-time experience can be designed on top of it — potentially including starter content that uses the user's chosen packages. This is deliberately deferred until the lower-level design is solid.

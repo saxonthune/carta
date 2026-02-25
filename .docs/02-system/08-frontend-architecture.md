@@ -132,7 +132,7 @@ Organized by purpose:
 
 ### `hooks/index.ts`
 Organized by purpose:
-- **Document state**: `useNodes`, `useEdges`, `useSchemas`, `usePortSchemas`, `useSchemaGroups`, `useSchemaPackages`, `useSchemaRelationships`, `usePages`, `useDocumentMeta`, `usePackagePicker`
+- **Document state**: `useNodes`, `useEdges`, `useSchemas`, `usePortSchemas`, `useSchemaGroups`, `useSchemaPackages`, `useResources`, `useSchemaRelationships`, `usePages`, `useDocumentMeta`, `usePackagePicker`
 - **Document operations**: `usePresentation`, `useOrganizerOperations`, `useLayoutActions`, `useEdgeCleanup`, `usePinConstraints`
 - **UI state**: `useMapState`, `useNarrative`, `useEdgeBundling`, `useFlowTrace`
 - **Map pipelines**: `useEdgeColor`, `useMapNodePipeline`, `useMapEdgePipeline`

@@ -1676,7 +1676,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
           if (!versionId) return { body: resource.body };
           const ver = getResourceVersion(docState.doc, resourceId, versionId);
           if (!ver) return null;
-          return { body: ver.body, versionId: ver.id, contentHash: ver.contentHash };
+          return { body: ver.body, versionId: ver.versionId, contentHash: ver.contentHash };
         };
 
         const fromSide = resolveBody(fromVersionId);

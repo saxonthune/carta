@@ -106,6 +106,20 @@ This section does NOT specify tests — the groomer and executor handle that. It
 
 This skill is the **first step**. It never touches the second or third.
 
+## MCP tools vs REST API fallback
+
+MCP tools (`carta_document`, `carta_schema`, etc.) are the preferred interface. If MCP tools are unavailable due to Claude Code tool-surfacing bugs (known issue as of Feb 2026), fall back to the **REST API** via curl against the document server (discovered from `~/.config/@carta/desktop/server.json` or default `http://127.0.0.1:51234`). The MCP tools are thin wrappers over these endpoints — see doc02.03 for the REST API reference. Key patterns:
+
+- `GET /api/documents` — list documents
+- `GET /api/documents/:id/summary?include=constructs,schemas` — page summary
+- `POST /api/documents/:id/compile` — compile
+- `POST /api/documents/:id/batch` — batch mutate (same `@N` placeholder syntax)
+- `POST /api/documents/:id/schemas` — create schema
+- `POST /api/documents/:id/constructs` — create construct
+- `POST /api/documents/:id/resources` — create resource
+- `POST /api/documents/:id/resources/:rid/publish` — publish resource version
+- `POST /api/documents/:id/layout/flow` — flow layout
+
 ## MCP document conventions
 
 - **semanticId**: descriptive kebab-case (`carta-domain`, `canvas-editing`)

@@ -7,10 +7,11 @@ status: active
 
 ## File Format (.carta)
 
-Version 5 JSON format containing:
+Version 7 JSON format containing:
 - Title and description
 - Pages (each with nodes, edges, deployables)
 - Custom schemas, port schemas, schema groups
+- Resources (versioned data contracts — added in v7)
 - Backwards compatible with v4 and earlier
 
 Import validates structure and shows a preview modal with conflict detection (existing items with same ID). Export offers selective export by category.
@@ -42,6 +43,7 @@ JSON output structured for AI consumption:
 - Schema definitions with ports and semantic descriptions
 - Construct instances grouped by deployable, then by type
 - Bidirectional relationship metadata (references/referencedBy) using semantic IDs
+- Resources section: resource bodies (verbatim, format-agnostic) with a `referencedBy` graph showing which constructs reference each resource and via which field/pathHint. Emitted only when resources exist in the document.
 
 ## MCP Server
 
@@ -61,6 +63,7 @@ carta_connection { op: connect | disconnect | connect_bulk }
 carta_organizer { op: create | update | delete }
 carta_layout   { op: flow | arrange | pin | list_pins | remove_pin | apply_pins }
 carta_package  { op: list | get | create | list_standard | apply | check_drift }
+carta_resource { op: list | get | create | update | delete | publish | history | diff }
 carta_compile
 carta_batch_mutate
 carta_list_port_types
@@ -139,6 +142,16 @@ carta_rebuild_page
 - `op: list_standard` — List standard library packages with status (available/loaded/modified)
 - `op: apply` — Load a standard library package by ID (idempotent)
 - `op: check_drift` — Compare loaded package against its snapshot to detect modifications
+
+**`carta_resource`** — Resource operations (versioned data contracts: API specs, TypeScript types, schemas)
+- `op: list` — List all resources (id, name, format, currentHash, version count)
+- `op: get` — Get resource by id (includes current body)
+- `op: create` — Create resource with name, format, body
+- `op: update` — Edit the working copy body (no version created)
+- `op: delete` — Delete resource (fields referencing it become orphaned)
+- `op: publish` — Create a published version snapshot from the current working copy
+- `op: history` — Return the version timeline for a resource
+- `op: diff` — Compare two versions, or working copy against a published version
 
 **`carta_compile`** — Compile document to AI-readable output (takes `documentId`)
 

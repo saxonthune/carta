@@ -130,7 +130,7 @@ Defines a data slot on a construct type:
 |----------|---------|
 | `name` | Internal key |
 | `label` | Display label |
-| `type` | One of the five DataKinds |
+| `type` | One of the six DataKinds |
 | `semanticDescription` | AI compilation context |
 | `options` | Enum choices (enum type only) |
 | `displayHint` | Rendering hint (string type only) |
