@@ -655,6 +655,21 @@ export interface DocumentAdapter {
   // Subscriptions for observing changes
   subscribe(listener: () => void): () => void;
 
+  // State access - Resources
+  getResources(): Array<{ id: string; name: string; format: string; currentHash: string; versionCount: number }>;
+  getResource(id: string): Resource | undefined;
+
+  // Mutations - Resources
+  createResource(name: string, format: string, body: string): Resource;
+  updateResource(id: string, updates: { name?: string; format?: string; body?: string }): Resource | undefined;
+  deleteResource(id: string): boolean;
+  publishResourceVersion(id: string, label?: string): ResourceVersion | undefined;
+  getResourceHistory(id: string): Omit<ResourceVersion, 'body'>[];
+  getResourceVersion(id: string, versionId: string): ResourceVersion | undefined;
+
+  // Subscriptions - Resources
+  subscribeToResources?(listener: () => void): () => void;
+
   // Granular subscriptions (optional for interface compatibility)
   subscribeToNodes?(listener: () => void): () => void;
   subscribeToEdges?(listener: () => void): () => void;

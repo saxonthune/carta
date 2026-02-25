@@ -9,6 +9,7 @@ export const YDOC_MAPS = {
   SCHEMA_GROUPS: 'schemaGroups',
   SCHEMA_PACKAGES: 'schemaPackages',
   PACKAGE_MANIFEST: 'packageManifest',
+  RESOURCES: 'resources',
 } as const;
 
 export const MCP_ORIGIN = 'mcp';
