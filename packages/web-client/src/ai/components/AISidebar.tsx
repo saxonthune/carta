@@ -128,10 +128,11 @@ export function AISidebar({ isOpen, onToggle, width }: AISidebarProps) {
                 )}
               </div>
             ) : (
-              messages.map((message) => (
+              messages.map((message, index) => (
                 <ChatMessage
                   key={message.id}
                   message={message}
+                  isStreaming={isStreaming && message.role === 'assistant' && index === messages.length - 1}
                   onClick={message.role === 'assistant' ? () => setSelectedMessage(message) : undefined}
                 />
               ))
@@ -189,6 +190,7 @@ export function AISidebar({ isOpen, onToggle, width }: AISidebarProps) {
         <MessageDetailModal
           message={selectedMessage}
           onClose={() => setSelectedMessage(null)}
+          error={error}
         />
       )}
     </div>
