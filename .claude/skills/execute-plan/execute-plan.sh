@@ -99,7 +99,7 @@ echo ""
 
 echo "── Installing dependencies ──"
 cd "${WORKTREE_DIR}"
-pnpm install --frozen-lockfile
+pnpm install
 echo "Dependencies installed"
 echo ""
 
