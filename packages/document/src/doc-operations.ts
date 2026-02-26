@@ -57,7 +57,7 @@ import type {
   ResourceVersion,
 } from '@carta/domain';
 import { sha256 } from 'js-sha256';
-import { CompilerEngine } from '@carta/compiler';
+import { CompilerEngine } from './compiler/index.js';
 import { yToPlain, deepPlainToY, safeGet } from './yjs-helpers.js';
 import { generateNodeId, generatePageId, generateSchemaPackageId, generateResourceId, generateVersionId } from './id-generators.js';
 import { MCP_ORIGIN, SERVER_FORMAT_VERSION, YDOC_MAPS } from './constants.js';

@@ -19,7 +19,6 @@
   },
   "dependencies": {
     "@carta/domain": "workspace:*",
-    "@carta/compiler": "workspace:*",
     "js-sha256": "^0.11.0",
     "yjs": "^13.6.29",
     "zod": "^3.24.1"

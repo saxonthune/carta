@@ -17,7 +17,6 @@ export default defineConfig({
   resolve: {
     alias: {
       '@carta/domain': path.resolve(__dirname, '../domain/src/index.ts'),
-      '@carta/compiler': path.resolve(__dirname, '../compiler/src/index.ts'),
       '@carta/geometry': path.resolve(__dirname, '../geometry/src/index.ts'),
     },
   },

@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import type { CartaNode } from '@carta/types';
 import Modal from '../ui/Modal';
-import { compiler } from '@carta/compiler';
+import { compiler } from '@carta/document';
 import { getDisplayName } from '@carta/domain';
 import type { ConstructNodeData, ConstructSchema } from '@carta/domain';
 

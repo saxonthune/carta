@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { CompilerEngine } from '../src/index.js';
+import { CompilerEngine } from '../src/compiler/index.js';
 import type { CompilerNode, CompilerEdge, ConstructSchema, Resource } from '@carta/domain';
 
 const compiler = new CompilerEngine();
