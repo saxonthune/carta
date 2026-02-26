@@ -1,6 +1,6 @@
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
-import type { SchemaGroup } from '@carta/domain';
+import type { SchemaGroup } from '@carta/schema';
 
 interface DeleteEmptyGroupsModalProps {
   isOpen: boolean;

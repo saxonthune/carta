@@ -1,4 +1,4 @@
-import type { ConstructNodeData, ConstructSchema } from '@carta/domain';
+import type { ConstructNodeData, ConstructSchema } from '@carta/schema';
 
 /**
  * JSON Formatter

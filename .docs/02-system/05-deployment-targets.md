@@ -179,7 +179,7 @@ This boundary keeps the core focused and lets different consumers (enterprise, S
 
 | Package | Status |
 |---------|--------|
-| `@carta/domain` | Done — types, ports, schemas, utils extracted |
+| `@carta/schema` | Done — types, ports, schemas, utils extracted |
 | `@carta/document` | Done — Y.Doc operations, Yjs helpers, file format, migrations, level-aware CRUD |
 | `@carta/compiler` | Done — compilation engine |
 | `@carta/web-client` | Done — extracted to `packages/web-client/` |

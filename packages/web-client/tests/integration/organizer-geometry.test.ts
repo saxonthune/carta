@@ -2,7 +2,7 @@
  * Test: Organizer Geometry Pure Functions
  *
  * Unit tests for pure geometry functions used in organizer operations.
- * These functions are in @carta/domain and have no React/DOM dependencies.
+ * These functions are in @carta/schema and have no React/DOM dependencies.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -18,7 +18,7 @@ import {
   DEFAULT_ORGANIZER_LAYOUT,
   type NodeGeometry,
   type NodeWithParent,
-} from '@carta/domain';
+} from '@carta/schema';
 
 describe('Organizer Geometry Functions', () => {
   describe('computeOrganizerBounds', () => {

@@ -1,6 +1,6 @@
 import Button from '../ui/Button';
 import FieldDefinitionEditor from '../editors/FieldDefinitionEditor';
-import type { ConstructSchema, FieldSchema } from '@carta/domain';
+import type { ConstructSchema, FieldSchema } from '@carta/schema';
 
 interface FieldsTabProps {
   formData: ConstructSchema;

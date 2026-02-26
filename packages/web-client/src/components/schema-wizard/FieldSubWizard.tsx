@@ -4,7 +4,7 @@ import Select from '../ui/Select';
 import Textarea from '../ui/Textarea';
 import { toSnakeCase } from '../../utils/stringUtils';
 import FieldPreview from './FieldPreview';
-import type { FieldSchema, DataKind, DisplayHint, DisplayTier } from '@carta/domain';
+import type { FieldSchema, DataKind, DisplayHint, DisplayTier } from '@carta/schema';
 
 const DATA_KINDS: { value: DataKind; label: string; description: string }[] = [
   { value: 'string', label: 'String', description: 'Free-form text. Use for names, descriptions, URLs, or any textual data.' },

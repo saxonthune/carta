@@ -1,7 +1,7 @@
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import DraggableField from './DraggableField';
-import type { FieldSchema, DisplayTier } from '@carta/domain';
+import type { FieldSchema, DisplayTier } from '@carta/schema';
 
 interface TierZoneProps {
   tier: DisplayTier | undefined;

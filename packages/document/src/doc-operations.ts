@@ -25,7 +25,7 @@ import {
   applyPackage,
   isPackageModified,
   normalizeSchema,
-} from '@carta/domain';
+} from '@carta/schema';
 import type {
   CompilerNode,
   CompilerEdge,
@@ -55,7 +55,7 @@ import type {
   PackageManifestEntry,
   Resource,
   ResourceVersion,
-} from '@carta/domain';
+} from '@carta/schema';
 import { sha256 } from 'js-sha256';
 import { CompilerEngine } from './compiler/index.js';
 import { yToPlain, deepPlainToY, safeGet } from './yjs-helpers.js';

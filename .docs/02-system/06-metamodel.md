@@ -203,7 +203,7 @@ The `PortRegistry` class manages port schemas with polarity-based validation. It
 
 ## Standard Library
 
-**Location:** `@carta/domain` — `schemas/package-loader.ts` and `schemas/packages/`
+**Location:** `@carta/schema` — `schemas/package-loader.ts` and `schemas/packages/`
 
 Schema packages are `SchemaPackageDefinition` objects — self-contained, portable package definitions with stable UUIDs that load through the idempotent `applyPackage()` function (doc02.04.07). The old imperative seed system has been removed.
 
@@ -218,7 +218,7 @@ Each package has a stable UUID, display metadata for the package picker, and a c
 
 **Loading:** All packages are opt-in. Users load them via the package picker (doc03.01.01.07). No auto-seeding. The document's package manifest tracks which packages have been loaded and provides drift detection via content hashing.
 
-**Key functions** exported from `@carta/domain`:
+**Key functions** exported from `@carta/schema`:
 - `applyPackage(adapter, definition)` — idempotent package load
 - `isPackageModified(adapter, packageId)` — fast drift check via content hash
 - `isLibraryNewer(manifestEntry, libraryDefinition)` — detects app-shipped library updates

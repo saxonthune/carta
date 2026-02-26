@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { ConstructSchema } from '@carta/domain';
+import type { ConstructSchema } from '@carta/schema';
 
 interface PreviewTabProps {
   formData: ConstructSchema;

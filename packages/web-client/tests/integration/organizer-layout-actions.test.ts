@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { computeOrganizerFit, DEFAULT_ORGANIZER_LAYOUT, type NodeGeometry } from '@carta/domain';
+import { computeOrganizerFit, DEFAULT_ORGANIZER_LAYOUT, type NodeGeometry } from '@carta/schema';
 
 // These tests verify layout action OUTCOMES as pure functions,
 // without needing React hooks infrastructure.

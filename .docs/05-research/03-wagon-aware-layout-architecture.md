@@ -38,7 +38,7 @@ Key implications:
 
 ## Layout Unit Expansion
 
-A "layout unit" is the bounding box of a construct plus its entire wagon tree. The expansion is computed by `computeLayoutUnitBounds()` in `@carta/domain`:
+A "layout unit" is the bounding box of a construct plus its entire wagon tree. The expansion is computed by `computeLayoutUnitBounds()` in `@carta/schema`:
 
 ```
 Construct (180×100)    Wagon (420×163)
@@ -110,7 +110,7 @@ Helper functions `applyPositionPatches()` and `applyStylePatches()` encapsulate 
 
 | Function | Location | Purpose |
 |----------|----------|---------|
-| `computeLayoutUnitBounds()` | `@carta/domain/utils/layoutUnitSize.ts` | Computes construct+wagon bounding box with offsets |
+| `computeLayoutUnitBounds()` | `@carta/schema/utils/layoutUnitSize.ts` | Computes construct+wagon bounding box with offsets |
 | `getChildLayoutUnits()` | `useLayoutActions.ts` (module-level) | Returns SpreadInput[] with expanded dims + offset map |
 | `convertToConstructPositions()` | `useLayoutActions.ts` (module-level) | Converts expanded-space positions back to construct positions |
 | `getChildVisualFootprints()` | `useLayoutActions.ts` (module-level) | Returns NodeGeometry[] for fitToChildren |
@@ -135,6 +135,6 @@ Helper functions `applyPositionPatches()` and `applyStylePatches()` encapsulate 
 ## Outcome
 
 - Implementation in `useLayoutActions.ts` (wagon-aware grid/spread/flow/fit)
-- `computeLayoutUnitBounds` added to `@carta/domain` (doc02.09 update needed)
+- `computeLayoutUnitBounds` added to `@carta/schema` (doc02.09 update needed)
 - `layoutPinned` flag added to `OrganizerNodeData`
 - Recursive layout via `recursiveLayout()` with bottom-up processing

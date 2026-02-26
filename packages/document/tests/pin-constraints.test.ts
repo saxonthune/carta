@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import * as Y from 'yjs';
 import { createPage, addPinConstraint, listPinConstraints, removePinConstraint, applyPinLayout, createOrganizer } from '../src/doc-operations';
-import { resolvePinConstraints } from '@carta/domain';
-import type { PinLayoutNode } from '@carta/domain';
+import { resolvePinConstraints } from '@carta/schema';
+import type { PinLayoutNode } from '@carta/schema';
 
 describe('pin constraints - Yjs operations', () => {
   let doc: Y.Doc;

@@ -1,7 +1,7 @@
 import type { CartaNode } from '@carta/types';
 import type { CartaFile } from './cartaFile';
-import { standardLibrary } from '@carta/domain';
-import type { ConstructSchema, ConstructNodeData, PortSchema, SchemaGroup, Resource } from '@carta/domain';
+import { standardLibrary } from '@carta/schema';
+import type { ConstructSchema, ConstructNodeData, PortSchema, SchemaGroup, Resource } from '@carta/schema';
 
 // Set of built-in schema types for quick lookup
 const BUILT_IN_TYPES = new Set(

@@ -1,12 +1,12 @@
 /**
- * Guide re-exports from @carta/domain
+ * Guide re-exports from @carta/schema
  */
 
 export {
   GUIDES, METAMODEL_GUIDE, ANALYSIS_GUIDE,
   DOMAIN_DIRECTORY_GUIDE, SOFTWARE_ARCHITECTURE_GUIDE, AWS_GUIDE, BPMN_GUIDE,
-} from '@carta/domain';
-export type { GuideId } from '@carta/domain';
+} from '@carta/schema';
+export type { GuideId } from '@carta/schema';
 
 // Type definitions for the guides
 export interface GuideDefinition {

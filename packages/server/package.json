@@ -30,7 +30,7 @@
   },
   "dependencies": {
     "@carta/document": "workspace:*",
-    "@carta/domain": "workspace:*",
+    "@carta/schema": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.25.3",
     "debug": "^4.4.3",
     "lib0": "^0.2.102",

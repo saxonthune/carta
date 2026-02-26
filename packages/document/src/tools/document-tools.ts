@@ -45,8 +45,8 @@ import {
   listConstructs,
 } from '../doc-operations.js';
 import type { ToolDefinition } from './types.js';
-import type { ConstructSchema } from '@carta/domain';
-import { portRegistry } from '@carta/domain';
+import type { ConstructSchema } from '@carta/schema';
+import { portRegistry } from '@carta/schema';
 
 // ============================================================
 // Zod Schemas (copied from MCP tools, minus documentId)

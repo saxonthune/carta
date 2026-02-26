@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { CartaNode } from '@carta/types';
 import { useDocumentContext } from '../contexts/DocumentContext';
-import type { ConstructNodeData } from '@carta/domain';
+import type { ConstructNodeData } from '@carta/schema';
 
 /**
  * Focused hook for node state and operations.

@@ -5,7 +5,7 @@ import { extractCartaFile, hydrateYDocFromCartaFile } from '../src/file-operatio
 import { validateCartaFile } from '../src/file-format';
 import { CARTA_FILE_VERSION } from '../src/constants';
 import type { CartaFile } from '../src/file-format';
-import type { Resource } from '@carta/domain';
+import type { Resource } from '@carta/schema';
 
 describe('resource file format', () => {
   let doc: Y.Doc;

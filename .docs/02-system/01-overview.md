@@ -10,7 +10,7 @@ Carta is structured as five layers that can evolve independently.
 ## Layers
 
 ```
-Domain Layer (@carta/domain)
+Domain Layer (@carta/schema)
   Core types, port registry, built-in schemas, utilities
   Platform-agnostic — no React, no Yjs
 
@@ -59,7 +59,7 @@ Target dependency graph (packages can only depend on packages above them):
 ```
                     @carta/types
                          ↓
-                    @carta/domain
+                    @carta/schema
                     ↙    ↓    ↘
         @carta/compiler  @carta/document
                     ↓    ↙       ↘
@@ -75,7 +75,7 @@ All packages exist as shown. `@carta/types` provides platform-agnostic graph typ
 Packages and feature directories use barrel exports (`index.ts`) for organized public APIs:
 
 **Packages:**
-- `@carta/domain` exports from subdirectories: types, ports, schemas, utils, guides
+- `@carta/schema` exports from subdirectories: types, ports, schemas, utils, guides
 - `@carta/document` exports all shared Yjs helpers, file format, migrations
 - `@carta/compiler` exports CompilerEngine and formatters
 

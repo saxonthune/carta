@@ -8,7 +8,7 @@ import FieldsTab from '../construct-editor/FieldsTab';
 import RelatedTab from '../construct-editor/RelatedTab';
 import TabBar, { type Tab } from '../ui/TabBar';
 import { toSnakeCase } from '../../utils/stringUtils';
-import type { ConstructSchema, FieldSchema, PortConfig } from '@carta/domain';
+import type { ConstructSchema, FieldSchema, PortConfig } from '@carta/schema';
 
 interface ConstructDetailsEditorProps {
   construct: ConstructSchema | null;

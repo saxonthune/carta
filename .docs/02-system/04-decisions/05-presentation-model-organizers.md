@@ -26,7 +26,7 @@ The codebase has visual grouping logic scattered across Map.tsx (data enhancemen
 **Goal:** Clean type foundation.
 
 **Files to change:**
-- `packages/domain/src/types/index.ts`
+- `packages/schema/src/types/index.ts`
   - Rename `VisualGroupNodeData` → `OrganizerNodeData`
   - Add `layout: OrganizerLayout` field (`'freeform' | 'stack' | 'grid'`)
   - Add layout-specific state fields: `stackIndex?: number`, `gridColumns?: number`
@@ -34,12 +34,12 @@ The codebase has visual grouping logic scattered across Map.tsx (data enhancemen
   - Remove `allowsGrouping` from `PortConfig` (virtual parent support)
   - Keep `groupId` on `ConstructSchema` and `PortSchema` unchanged (that's schema groups, unrelated)
 
-- `packages/domain/src/utils/group-geometry.ts`
+- `packages/schema/src/utils/group-geometry.ts`
   - Rename to `organizer-geometry.ts`
   - Update function names: `computeGroupBounds` → `computeOrganizerBounds`, etc.
   - Add `nodeOverlapsOrganizer`, `nodeContainedInOrganizer` (rename from group variants)
 
-- `packages/domain/src/utils/index.ts`
+- `packages/schema/src/utils/index.ts`
   - Update barrel export
 
 ### Phase 2: Presentation Model (New Module)

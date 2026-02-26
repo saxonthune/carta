@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useDocumentContext } from '../contexts/DocumentContext';
-import type { SchemaGroup } from '@carta/domain';
+import type { SchemaGroup } from '@carta/schema';
 
 /**
  * Focused hook for schema group state and operations.

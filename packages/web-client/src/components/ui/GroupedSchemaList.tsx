@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo } from 'react';
 import { CaretRight } from '@phosphor-icons/react';
-import type { ConstructSchema, SchemaGroup } from '@carta/domain';
+import type { ConstructSchema, SchemaGroup } from '@carta/schema';
 
 interface GroupedSchemaListProps {
   schemas: ConstructSchema[];

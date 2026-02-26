@@ -7,8 +7,8 @@
  */
 
 import type { CartaEdge, CartaNode } from '@carta/types';
-import type { ConstructSchema, ConstructNodeData } from '@carta/domain';
-import { getPortsForSchema } from '@carta/domain';
+import type { ConstructSchema, ConstructNodeData } from '@carta/schema';
+import { getPortsForSchema } from '@carta/schema';
 
 /**
  * Filter out edges whose sourceHandle or targetHandle references

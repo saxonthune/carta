@@ -1,4 +1,4 @@
-import type { ConstructSchema } from '@carta/domain';
+import type { ConstructSchema } from '@carta/schema';
 import SchemaGroupSelector from '../ui/SchemaGroupSelector';
 import Input from '../ui/Input';
 import Textarea from '../ui/Textarea';

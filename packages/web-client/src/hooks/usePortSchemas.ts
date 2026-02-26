@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useDocumentContext } from '../contexts/DocumentContext';
-import type { PortSchema } from '@carta/domain';
+import type { PortSchema } from '@carta/schema';
 
 /**
  * Focused hook for port schema state and operations.

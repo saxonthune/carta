@@ -650,7 +650,7 @@ describe('schema migration operations', () => {
     });
 
     it('should throw if trying to rename built-in schema', () => {
-      // Built-in schemas are defined in @carta/domain
+      // Built-in schemas are defined in @carta/schema
       // 'rest-endpoint' is from softwareArchitectureSeed
       createSchema(doc, {
         type: 'rest-endpoint',

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { useDocumentContext } from '../../src/contexts/DocumentContext';
 import { DocumentTestProvider } from '../setup/testProviders';
-import type { ConstructSchema, PortSchema, SchemaGroup, SchemaPackage } from '@carta/domain';
+import type { ConstructSchema, PortSchema, SchemaGroup, SchemaPackage } from '@carta/schema';
 
 // Get a ready adapter via the DocumentContext hook
 async function getAdapter() {

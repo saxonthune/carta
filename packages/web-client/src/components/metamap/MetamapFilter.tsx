@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { MagnifyingGlass, X } from '@phosphor-icons/react';
-import type { ConstructSchema } from '@carta/domain';
+import type { ConstructSchema } from '@carta/schema';
 
 interface MetamapFilterProps {
   schemas: ConstructSchema[];

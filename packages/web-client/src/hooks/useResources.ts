@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useDocumentContext } from '../contexts/DocumentContext';
-import type { Resource } from '@carta/domain';
+import type { Resource } from '@carta/schema';
 
 export function useResources() {
   const { adapter } = useDocumentContext();

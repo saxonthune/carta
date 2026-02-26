@@ -1,6 +1,6 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import type { FieldSchema } from '@carta/domain';
+import type { FieldSchema } from '@carta/schema';
 import { DotsSixVertical, PencilSimple, Trash } from '@phosphor-icons/react';
 
 interface DraggableFieldProps {

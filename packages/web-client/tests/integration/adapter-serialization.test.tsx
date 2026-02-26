@@ -3,7 +3,7 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { useDocumentContext } from '../../src/contexts/DocumentContext';
 import { DocumentTestProvider } from '../setup/testProviders';
 import { createTestNode, createTestEdge } from '../setup/testHelpers';
-import type { ConstructSchema, PortSchema, SchemaGroup, SchemaPackage, SchemaRelationship } from '@carta/domain';
+import type { ConstructSchema, PortSchema, SchemaGroup, SchemaPackage, SchemaRelationship } from '@carta/schema';
 
 // Get a ready adapter via the DocumentContext hook
 async function getAdapter() {

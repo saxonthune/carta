@@ -3,7 +3,7 @@ import { DndContext, pointerWithin, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { DotsSixVertical, DotsThreeVertical, CaretDown, Plus, DiamondsFour } from '@phosphor-icons/react';
-import type { Page } from '@carta/domain';
+import type { Page } from '@carta/schema';
 import PopoverMenu, { type PopoverMenuItem } from './ui/PopoverMenu';
 
 type ActiveView =

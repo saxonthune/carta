@@ -2,7 +2,7 @@ import Input from '../ui/Input';
 import Select from '../ui/Select';
 import Textarea from '../ui/Textarea';
 import { toSnakeCase } from '../../utils/stringUtils';
-import type { ConstructSchema } from '@carta/domain';
+import type { ConstructSchema } from '@carta/schema';
 import StylePresetPicker from './StylePresetPicker';
 
 const DEFAULT_COLORS = [

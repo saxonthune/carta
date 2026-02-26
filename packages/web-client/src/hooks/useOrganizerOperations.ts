@@ -3,8 +3,8 @@ import type { CartaNode } from '@carta/types';
 import { useNodes } from './useNodes';
 import {
   toRelativePosition,
-} from '@carta/domain';
-import type { OrganizerNodeData } from '@carta/domain';
+} from '@carta/schema';
+import type { OrganizerNodeData } from '@carta/schema';
 import {
   getAbsolutePosition,
   canNestInOrganizer,
@@ -40,7 +40,7 @@ export { canNestInOrganizer } from '../utils/organizerLogic';
 
 /**
  * Hook providing organizer operations.
- * Uses pure geometry functions from @carta/domain for testability.
+ * Uses pure geometry functions from @carta/schema for testability.
  */
 export function useOrganizerOperations(): UseOrganizerOperationsResult {
   const { nodes, setNodes } = useNodes();

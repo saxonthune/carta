@@ -160,7 +160,7 @@ Carta provides several automated layout algorithms for arranging nodes on the ca
 
 ### Flow Layout (Domain)
 
-**Location:** `@carta/domain/utils/flowLayout.ts`
+**Location:** `@carta/schema/utils/flowLayout.ts`
 **Purpose:** Topological layout using the Sugiyama framework
 **Algorithm:** Layer assignment → crossing minimization → coordinate assignment
 **Directions:** TB (top-bottom), BT (bottom-top), LR (left-right), RL (right-left)
@@ -209,7 +209,7 @@ All layout algorithms return `Map<string, {x, y}>` for easy integration with nod
 
 ### Constraint Layout (Domain)
 
-**Location:** `@carta/domain/utils/constraintLayout.ts`
+**Location:** `@carta/schema/utils/constraintLayout.ts`
 **Purpose:** Declarative constraint-based node arrangement
 **Algorithm:** Sequential constraint resolution with strategy-driven initial placement
 
@@ -305,7 +305,7 @@ Adding a new render style = add a component + add a row to the dispatch table. N
 
 | Layer | Relationship |
 |-------|-------------|
-| **Domain** (`@carta/domain`) | Presentation model consumes domain types but never modifies them |
+| **Domain** (`@carta/schema`) | Presentation model consumes domain types but never modifies them |
 | **Document** (`@carta/document`) | Presentation model reads via adapter hooks, never writes |
 | **Compiler** (`@carta/compiler`) | Compiler ignores organizers; presentation model ignores compilation |
 | **React Flow** | Presentation model produces React Flow-compatible node/edge arrays |

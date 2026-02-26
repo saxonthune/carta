@@ -4,7 +4,7 @@ import { useDocumentContext } from '../../src/contexts/DocumentContext';
 import { DocumentTestProvider } from '../setup/testProviders';
 import { createTestNode, createTestEdge, parseCompilerOutput } from '../setup/testHelpers';
 import { CompilerEngine } from '@carta/document';
-import type { ConstructSchema } from '@carta/domain';
+import type { ConstructSchema } from '@carta/schema';
 
 const compiler = new CompilerEngine();
 

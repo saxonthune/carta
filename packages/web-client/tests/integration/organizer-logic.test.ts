@@ -7,7 +7,7 @@ import {
   computeDetachedNodes,
   collectDescendantIds,
 } from '../../src/utils/organizerLogic';
-import { toRelativePosition } from '@carta/domain';
+import { toRelativePosition } from '@carta/schema';
 
 // Helper to create a simple test node
 function makeNode(id: string, opts: Partial<CartaNode> = {}): CartaNode {

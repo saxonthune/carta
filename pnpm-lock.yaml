@@ -38,9 +38,9 @@ importers:
       '@carta/document':
         specifier: workspace:*
         version: link:../document
-      '@carta/domain':
+      '@carta/schema':
         specifier: workspace:*
-        version: link:../domain
+        version: link:../schema
       '@carta/server':
         specifier: workspace:*
         version: link:../server
@@ -87,9 +87,9 @@ importers:
 
   packages/document:
     dependencies:
-      '@carta/domain':
+      '@carta/schema':
         specifier: workspace:*
-        version: link:../domain
+        version: link:../schema
       js-sha256:
         specifier: ^0.11.0
         version: 0.11.1
@@ -107,7 +107,13 @@ importers:
         specifier: ^3.2.1
         version: 3.2.4(@types/debug@4.1.12)(@types/node@24.10.9)(@vitest/ui@3.2.4)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(tsx@4.21.0)
 
-  packages/domain:
+  packages/geometry:
+    devDependencies:
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+
+  packages/schema:
     dependencies:
       '@carta/geometry':
         specifier: workspace:*
@@ -126,20 +132,14 @@ importers:
         specifier: ^3.2.1
         version: 3.2.4(@types/debug@4.1.12)(@types/node@24.10.9)(@vitest/ui@3.2.4)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(tsx@4.21.0)
 
-  packages/geometry:
-    devDependencies:
-      typescript:
-        specifier: ^5.8.3
-        version: 5.9.3
-
   packages/server:
     dependencies:
       '@carta/document':
         specifier: workspace:*
         version: link:../document
-      '@carta/domain':
+      '@carta/schema':
         specifier: workspace:*
-        version: link:../domain
+        version: link:../schema
       '@modelcontextprotocol/sdk':
         specifier: ^1.25.3
         version: 1.25.3(hono@4.11.5)(zod@3.25.76)

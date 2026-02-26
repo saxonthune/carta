@@ -1,5 +1,5 @@
 import dagre from '@dagrejs/dagre';
-import type { ConstructSchema, SchemaGroup, SchemaPackage, SchemaRelationship } from '@carta/domain';
+import type { ConstructSchema, SchemaGroup, SchemaPackage, SchemaRelationship } from '@carta/schema';
 
 // Layout constants
 const SCHEMA_NODE_WIDTH = 220;

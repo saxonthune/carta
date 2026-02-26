@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import type { DocumentAdapter } from '@carta/domain';
+import type { DocumentAdapter } from '@carta/schema';
 import { useDocumentContext } from '../contexts/DocumentContext';
 import { importProjectFromString } from '../utils/cartaFile';
 import { importDocument } from '../utils/documentImporter';

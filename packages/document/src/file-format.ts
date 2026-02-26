@@ -5,7 +5,7 @@
  * Web-client re-exports these and adds browser-specific import/export functions.
  */
 
-import type { ConstructSchema, PortSchema, SchemaGroup, SchemaPackage, PackageManifestEntry, CartaSchemasFile, Resource } from '@carta/domain';
+import type { ConstructSchema, PortSchema, SchemaGroup, SchemaPackage, PackageManifestEntry, CartaSchemasFile, Resource } from '@carta/schema';
 import { CARTA_FILE_VERSION } from './constants.js';
 
 /**

@@ -5,7 +5,7 @@
  */
 
 import * as Y from 'yjs';
-import type { ConstructSchema, PortSchema, SchemaGroup, SchemaPackage, PackageManifestEntry, Resource } from '@carta/domain';
+import type { ConstructSchema, PortSchema, SchemaGroup, SchemaPackage, PackageManifestEntry, Resource } from '@carta/schema';
 import { yToPlain, deepPlainToY } from './yjs-helpers.js';
 import { CARTA_FILE_VERSION } from './constants.js';
 import type { CartaFile, CartaFilePage } from './file-format.js';

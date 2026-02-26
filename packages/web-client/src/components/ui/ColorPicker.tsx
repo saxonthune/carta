@@ -1,4 +1,4 @@
-import { INSTANCE_COLOR_PALETTE } from '@carta/domain';
+import { INSTANCE_COLOR_PALETTE } from '@carta/schema';
 
 export interface ColorPickerProps {
   value: string | undefined;

@@ -26,7 +26,7 @@ import {
   CARTA_FILE_VERSION,
   generatePageId,
 } from '@carta/document';
-import { generateDocumentId, generateSemanticId } from '@carta/domain';
+import { generateDocumentId, generateSemanticId } from '@carta/schema';
 import {
   createDocumentServer,
   type DocState,

@@ -1,4 +1,4 @@
-import type { DataKind } from '@carta/domain';
+import type { DataKind } from '@carta/schema';
 import StringField from './StringField';
 import NumberField from './NumberField';
 import BooleanField from './BooleanField';

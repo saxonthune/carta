@@ -1,5 +1,5 @@
 /**
- * @carta/domain - Core domain logic for Carta
+ * @carta/schema - Core domain logic for Carta
  *
  * This package contains platform-agnostic business logic with no UI or storage dependencies.
  * It can be used by web clients, desktop clients, servers, and CLI tools.

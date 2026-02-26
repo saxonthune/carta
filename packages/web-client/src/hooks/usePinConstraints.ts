@@ -6,7 +6,7 @@ import {
   removePinConstraint,
   listPinConstraints,
 } from '@carta/document';
-import type { PinConstraint, PinDirection } from '@carta/domain';
+import type { PinConstraint, PinDirection } from '@carta/schema';
 
 export function usePinConstraints() {
   const { ydoc } = useDocumentContext();

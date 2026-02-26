@@ -4,7 +4,7 @@ import PortsListStep from '../schema-wizard/PortsListStep';
 import PortSubWizard from '../schema-wizard/PortSubWizard';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
-import type { ConstructSchema, PortConfig, PortSchema } from '@carta/domain';
+import type { ConstructSchema, PortConfig, PortSchema } from '@carta/schema';
 
 interface PortsStepProps {
   formData: ConstructSchema;

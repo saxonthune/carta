@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import type { VaultAdapter } from '@carta/domain';
+import type { VaultAdapter } from '@carta/schema';
 import { createVaultAdapter } from '../stores/vault/createVaultAdapter';
 
 interface VaultContextValue {

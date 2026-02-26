@@ -15,7 +15,7 @@ import * as encoding from 'lib0/encoding';
 import * as decoding from 'lib0/decoding';
 import * as syncProtocol from 'y-protocols/sync';
 import createDebug from 'debug';
-import { portRegistry, toKebabCase, type DocumentSummary } from '@carta/domain';
+import { portRegistry, toKebabCase, type DocumentSummary } from '@carta/schema';
 export type { DocumentSummary };
 
 const log = createDebug('carta:server');
@@ -85,7 +85,7 @@ import {
   getResourceVersion,
 } from '@carta/document';
 import type { BatchOperation, BatchResult, MigrationResult } from '@carta/document';
-import type { FlowDirection, ArrangeStrategy, ArrangeConstraint, PinDirection } from '@carta/domain';
+import type { FlowDirection, ArrangeStrategy, ArrangeConstraint, PinDirection } from '@carta/schema';
 
 // ===== TYPES =====
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { DocumentSummary } from '@carta/domain';
+import type { DocumentSummary } from '@carta/schema';
 
 interface FolderView {
   currentPath: string;

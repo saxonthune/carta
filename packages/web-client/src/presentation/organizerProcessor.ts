@@ -3,7 +3,7 @@
  * Extracted from usePresentation — no React dependencies.
  */
 
-import type { OrganizerNodeData } from '@carta/domain';
+import type { OrganizerNodeData } from '@carta/schema';
 
 /** Minimal node shape for processing (compatible with React Flow Node) */
 export interface ProcessableNode {

@@ -83,11 +83,13 @@ Packages can only depend on packages above them in the graph.
 ```
                     @carta/types
                          ↓
-                    @carta/domain
-                    ↙    ↓    ↘
-        @carta/compiler  @carta/document
-                    ↓    ↙       ↘
-         @carta/web-client   @carta/server
+                   @carta/geometry
+                         ↓
+                    @carta/schema
+                    ↓         ↘
+          @carta/document   @carta/server(*)
+                ↓
+         @carta/web-client
                 ↓
          @carta/desktop
 ```
@@ -95,9 +97,9 @@ Packages can only depend on packages above them in the graph.
 | Package | Location | Purpose |
 |---------|----------|---------|
 | `@carta/types` | `packages/types/` | Shared TypeScript types, no runtime deps |
-| `@carta/domain` | `packages/domain/` | Domain model, port registry, built-in schemas, utils |
+| `@carta/geometry` | `packages/geometry/` | Geometry primitives, layout algorithms |
+| `@carta/schema` | `packages/schema/` | Schema system, port registry, built-in schemas, utils |
 | `@carta/document` | `packages/document/` | Shared Y.Doc operations, Yjs helpers, file format, migrations |
-| `@carta/compiler` | `packages/compiler/` | Compilation engine (Carta → AI-readable output) |
 | `@carta/web-client` | `packages/web-client/` | React web app |
 | `@carta/server` | `packages/server/` | Document server + MCP server |
 | `@carta/desktop` | `packages/desktop/` | Electron desktop app with embedded document server |

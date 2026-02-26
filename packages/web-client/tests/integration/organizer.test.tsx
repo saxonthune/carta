@@ -15,7 +15,7 @@ import { useNodes } from '../../src/hooks/useNodes';
 import { useDocumentContext } from '../../src/contexts/DocumentContext';
 import { TestProviders } from '../setup/testProviders';
 import { createTestNode } from '../setup/testHelpers';
-import type { OrganizerNodeData } from '@carta/domain';
+import type { OrganizerNodeData } from '@carta/schema';
 
 function useTestHarness() {
   return {

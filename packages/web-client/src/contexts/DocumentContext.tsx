@@ -1,8 +1,8 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import * as Y from 'yjs';
-import type { DocumentAdapter } from '@carta/domain';
+import type { DocumentAdapter } from '@carta/schema';
 import { createYjsAdapter, type YjsAdapterOptions } from '../stores/adapters/yjsAdapter';
-import { builtInPortSchemas } from '@carta/domain';
+import { builtInPortSchemas } from '@carta/schema';
 import { config } from '../config/featureFlags';
 
 /**

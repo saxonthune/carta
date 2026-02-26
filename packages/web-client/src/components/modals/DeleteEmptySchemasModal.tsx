@@ -1,6 +1,6 @@
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
-import type { ConstructSchema } from '@carta/domain';
+import type { ConstructSchema } from '@carta/schema';
 
 interface DeleteEmptySchemasModalProps {
   isOpen: boolean;

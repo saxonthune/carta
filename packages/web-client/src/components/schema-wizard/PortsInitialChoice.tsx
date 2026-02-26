@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { PortSchema, PortConfig } from '@carta/domain';
+import type { PortSchema, PortConfig } from '@carta/schema';
 
 interface PortsInitialChoiceProps {
   portSchemas: PortSchema[];

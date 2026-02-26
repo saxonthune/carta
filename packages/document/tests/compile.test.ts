@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { CompilerEngine } from '../src/compiler/index.js';
-import type { CompilerNode, CompilerEdge, ConstructSchema, Resource } from '@carta/domain';
+import type { CompilerNode, CompilerEdge, ConstructSchema, Resource } from '@carta/schema';
 
 const compiler = new CompilerEngine();
 

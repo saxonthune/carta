@@ -1,4 +1,4 @@
-import type { VaultAdapter } from '@carta/domain';
+import type { VaultAdapter } from '@carta/schema';
 import { config } from '../../config/featureFlags';
 import { ServerVaultAdapter } from './ServerVaultAdapter';
 import { LocalVaultAdapter } from './LocalVaultAdapter';

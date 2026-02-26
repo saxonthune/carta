@@ -1,4 +1,4 @@
 /**
- * Re-export string utilities from @carta/domain
+ * Re-export string utilities from @carta/schema
  */
-export { toSnakeCase, toKebabCase } from '@carta/domain';
+export { toSnakeCase, toKebabCase } from '@carta/schema';

@@ -10,7 +10,7 @@ import Button from './ui/Button';
 import SegmentedControl from './ui/SegmentedControl';
 import ConfirmationModal from './ui/ConfirmationModal';
 import { toSnakeCase } from '../utils/stringUtils';
-import type { ConstructSchema, DisplayTier, FieldSchema } from '@carta/domain';
+import type { ConstructSchema, DisplayTier, FieldSchema } from '@carta/schema';
 
 type EditorTab = 'basics' | 'fields' | 'ports';
 

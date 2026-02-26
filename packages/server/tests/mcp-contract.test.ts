@@ -1,12 +1,12 @@
 /**
  * MCP ↔ domain type contract tests
  *
- * Catches enum drift between @carta/domain canonical types and MCP Zod schemas.
+ * Catches enum drift between @carta/schema canonical types and MCP Zod schemas.
  * Also verifies MCP tool surface covers all mutating doc-operations.
  */
 
 import { describe, it, expect } from 'vitest';
-import { builtInPortSchemas } from '@carta/domain';
+import { builtInPortSchemas } from '@carta/schema';
 import {
   SchemaOpSchema,
   SchemaMigrateOpSchema,
@@ -14,9 +14,9 @@ import {
   getToolDefinitions,
 } from '../src/mcp/tools.js';
 
-// ─── Canonical enum values (single source of truth from @carta/domain types) ──
+// ─── Canonical enum values (single source of truth from @carta/schema types) ──
 
-// These arrays mirror the TypeScript union types in @carta/domain/src/types/index.ts.
+// These arrays mirror the TypeScript union types in @carta/schema/src/types/index.ts.
 // If someone adds a value to the TS type but not here, the test below won't catch it —
 // but if someone adds a value to a Zod schema without updating the TS type, this test WILL catch it.
 // The real safety net is: Zod enum ⊇ canonical AND Zod enum ⊆ canonical.

@@ -1,8 +1,8 @@
 import { useCallback } from 'react';
 import type { CartaNode } from '@carta/types';
 import * as Y from 'yjs';
-import type { DocumentAdapter } from '@carta/domain';
-import { DEFAULT_ORGANIZER_LAYOUT, computeLayoutUnitSizes, computeLayoutUnitBounds, computeOrganizerFit, type LayoutItem, type WagonInfo, resolvePinConstraints, type PinLayoutNode, type NodeGeometry } from '@carta/domain';
+import type { DocumentAdapter } from '@carta/schema';
+import { DEFAULT_ORGANIZER_LAYOUT, computeLayoutUnitSizes, computeLayoutUnitBounds, computeOrganizerFit, type LayoutItem, type WagonInfo, resolvePinConstraints, type PinLayoutNode, type NodeGeometry } from '@carta/schema';
 import { listPinConstraints, updateOrganizer } from '@carta/document';
 import { deOverlapNodes } from '../utils/deOverlapNodes.js';
 import { compactNodes } from '../utils/compactNodes.js';

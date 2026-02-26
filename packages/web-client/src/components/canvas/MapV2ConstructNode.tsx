@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ConnectionHandle } from '../../canvas-engine/index.js';
-import { type ConstructSchema, type ConstructNodeData, getFieldsForSummary, resolveNodeColor, type DocumentAdapter, canConnect } from '@carta/domain';
+import { type ConstructSchema, type ConstructNodeData, getFieldsForSummary, resolveNodeColor, type DocumentAdapter, canConnect } from '@carta/schema';
 import type { LodBand } from './lod/lodPolicy.js';
 import ColorPicker from '../ui/ColorPicker.js';
 import { SimpleMarkdown } from '../ui/SimpleMarkdown.js';

@@ -7,7 +7,7 @@ import type {
   OrganizerNodeData,
   Resource,
   ResourceFieldValue,
-} from '@carta/domain';
+} from '@carta/schema';
 import { formatJSON } from './formatters/json.js';
 
 type FormatterFn = (

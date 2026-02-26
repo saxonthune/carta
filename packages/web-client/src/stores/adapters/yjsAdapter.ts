@@ -14,7 +14,7 @@ import type {
   Page,
   Resource,
   ResourceVersion,
-} from '@carta/domain';
+} from '@carta/schema';
 import { sha256 } from 'js-sha256';
 import {
   objectToYMap,

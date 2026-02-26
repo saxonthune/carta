@@ -169,7 +169,7 @@ In desktop mode, the local MCP server auto-discovers via `{userData}/server.json
 
 ## Guides API
 
-Carta provides static markdown resources for AI agents, exposed as MCP resources from `@carta/domain`. All guides use `mimeType: text/markdown`.
+Carta provides static markdown resources for AI agents, exposed as MCP resources from `@carta/schema`. All guides use `mimeType: text/markdown`.
 
 | Guide | Constant | URI | Purpose |
 |-------|----------|-----|---------|
@@ -180,7 +180,7 @@ Carta provides static markdown resources for AI agents, exposed as MCP resources
 | AWS Cloud | `AWS_GUIDE` | `carta://guide/domains/aws` | Schema recommendations for Lambda, API Gateway, DynamoDB, S3, and serverless patterns |
 | BPMN Process | `BPMN_GUIDE` | `carta://guide/domains/bpmn` | Schema recommendations for business processes, workflows, events, and gateways |
 
-Guides are consumed by MCP clients to provide context to AI agents when working with Carta documents. They are versioned with the `@carta/domain` package and stay synchronized with the metamodel. The `GUIDES` constant (exported from `@carta/domain`) is a typed map from guide key to `{ uri, name, description, mimeType }`.
+Guides are consumed by MCP clients to provide context to AI agents when working with Carta documents. They are versioned with the `@carta/schema` package and stay synchronized with the metamodel. The `GUIDES` constant (exported from `@carta/schema`) is a typed map from guide key to `{ uri, name, description, mimeType }`.
 
 ## WebSocket Protocol
 

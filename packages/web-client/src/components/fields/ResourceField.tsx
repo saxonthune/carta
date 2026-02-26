@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { FieldSchema, ResourceFieldValue } from '@carta/domain';
+import type { FieldSchema, ResourceFieldValue } from '@carta/schema';
 import { useResources } from '../../hooks/useResources';
 
 interface ResourceFieldProps {

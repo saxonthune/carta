@@ -1,6 +1,6 @@
 import type { CartaNode, CartaEdge } from '@carta/types';
-import type { ConstructSchema, PortSchema, SchemaGroup, SchemaPackage, Page, SchemaPackageDefinition, Resource } from '@carta/domain';
-import { toKebabCase } from '@carta/domain';
+import type { ConstructSchema, PortSchema, SchemaGroup, SchemaPackage, Page, SchemaPackageDefinition, Resource } from '@carta/schema';
+import { toKebabCase } from '@carta/schema';
 import {
   CARTA_FILE_VERSION,
   validateCartaFile,
@@ -9,7 +9,7 @@ import type { CartaFile, CartaFilePage } from '@carta/document';
 import type { ExportOptions } from './exportAnalyzer';
 
 // Re-export for convenience
-export { generateSemanticId } from '@carta/domain';
+export { generateSemanticId } from '@carta/schema';
 export { CARTA_FILE_VERSION, validateCartaFile, importProjectFromString } from '@carta/document';
 export type { CartaFile, CartaFilePage } from '@carta/document';
 

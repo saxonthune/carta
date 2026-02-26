@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Warning, CaretDown } from '@phosphor-icons/react';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
-import type { Page } from '@carta/domain';
+import type { Page } from '@carta/schema';
 import type { ImportAnalysis, ImportOptions, AnalyzedSchema, AnalyzedNode } from '../../utils/importAnalyzer';
 import { defaultImportOptions } from '../../utils/importAnalyzer';
 
