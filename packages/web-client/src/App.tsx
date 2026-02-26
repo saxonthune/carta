@@ -59,12 +59,19 @@ function AppContent() {
     performance.measure('carta:boot-to-mount', 'carta:boot-start', 'carta:app-mounted')
     performance.measure('carta:total-startup', 'carta:module-eval', 'carta:app-mounted')
     if (import.meta.env.DEV) {
-      const entries = performance.getEntriesByType('measure').filter(e => e.name.startsWith('carta:'))
-      console.groupCollapsed('[carta] startup timing')
-      for (const e of entries) {
-        console.log(`${e.name}: ${e.duration.toFixed(1)}ms`)
-      }
-      console.groupEnd()
+      // Defer slightly to catch canvas-mounted mark which fires in a child useEffect
+      requestAnimationFrame(() => {
+        const measures = performance.getEntriesByType('measure')
+          .filter(e => e.name.startsWith('carta:'))
+          .sort((a, b) => a.startTime - b.startTime)
+        console.groupCollapsed('[carta] startup waterfall')
+        console.table(measures.map(m => ({
+          phase: m.name.replace('carta:', ''),
+          start: `${m.startTime.toFixed(0)}ms`,
+          duration: `${m.duration.toFixed(1)}ms`,
+        })))
+        console.groupEnd()
+      })
     }
   }, [])
 

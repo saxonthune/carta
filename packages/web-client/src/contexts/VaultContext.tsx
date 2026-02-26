@@ -14,7 +14,12 @@ export function VaultProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (adapter.init) {
-      adapter.init().then(() => setReady(true));
+      performance.mark('carta:vault-init-start')
+      adapter.init().then(() => {
+        performance.mark('carta:vault-ready')
+        performance.measure('carta:vault-init', 'carta:vault-init-start', 'carta:vault-ready')
+        setReady(true)
+      });
     }
   }, [adapter]);
 

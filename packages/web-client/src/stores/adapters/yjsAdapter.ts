@@ -353,6 +353,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
     async initialize(): Promise<void> {
       // Set up IndexedDB persistence (unless skipped for testing)
+      performance.mark('carta:indexeddb-start')
       if (!options.skipPersistence) {
         const dbName = roomId ? `carta-doc-${roomId}` : 'carta-local';
         const SYNC_TIMEOUT_MS = 10_000;
@@ -453,6 +454,8 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
           }
         }
       }
+      performance.mark('carta:indexeddb-ready')
+      performance.measure('carta:indexeddb-hydration', 'carta:indexeddb-start', 'carta:indexeddb-ready')
 
       // Initialize defaults after loading from IndexedDB
       initializeDefaults();

@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import MapV2 from './MapV2';
 import LayoutMap from './LayoutMap';
 import MetamapV2 from '../metamap-v2/MetamapV2';
@@ -26,6 +26,11 @@ export default function CanvasContainer({
   const [filterText, setFilterText] = useState('');
   const [instanceSearchText, setInstanceSearchText] = useState('');
   const [showLayoutMap, setShowLayoutMap] = useState(false);
+
+  useEffect(() => {
+    performance.mark('carta:canvas-mounted')
+    performance.measure('carta:render-to-canvas', 'carta:render-start', 'carta:canvas-mounted')
+  }, [])
 
   return (
     <div className="flex-1 min-h-0 flex flex-col relative">
