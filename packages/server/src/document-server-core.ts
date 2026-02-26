@@ -1729,6 +1729,34 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
         }
       }
 
+      // ===== YJS BINARY STATE (for MCP stdio remote access) =====
+
+      const yjsStateMatch = path.match(/^\/api\/documents\/([^/]+)\/yjs-state$/);
+      if (yjsStateMatch && method === 'GET') {
+        const roomId = decodeURIComponent(yjsStateMatch[1]!);
+        const docState = await config.getDoc(roomId);
+        const state = Y.encodeStateAsUpdate(docState.doc);
+        const base64 = Buffer.from(state).toString('base64');
+        sendJson(res, 200, { state: base64 });
+        return;
+      }
+
+      const yjsUpdateMatch = path.match(/^\/api\/documents\/([^/]+)\/yjs-update$/);
+      if (yjsUpdateMatch && method === 'POST') {
+        const roomId = decodeURIComponent(yjsUpdateMatch[1]!);
+        const body = await parseJsonBody<{ update?: string }>(req);
+        if (!body.update) {
+          sendError(res, 400, 'Missing update field (base64-encoded Yjs update)', 'BAD_REQUEST');
+          return;
+        }
+        const docState = await config.getDoc(roomId);
+        const update = new Uint8Array(Buffer.from(body.update, 'base64'));
+        Y.applyUpdate(docState.doc, update);
+        broadcastUpdate(docState, update, null);
+        sendJson(res, 200, { applied: true });
+        return;
+      }
+
       // ===== NOT FOUND =====
       sendError(res, 404, 'Not found', 'NOT_FOUND');
     } catch (err) {

@@ -1,11 +1,24 @@
 /**
  * MCP Tool definitions for Carta
  *
- * All tools communicate with the document server via HTTP REST API.
+ * Dispatches multi-op MCP tools to @carta/document executeTool.
+ * No HTTP calls — callers supply a ToolHandlerConfig with a getDoc callback
+ * for Y.Doc access and optional document-management callbacks.
  */
 
 import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
+import {
+  executeTool,
+  getActivePage,
+  extractDocument,
+  listPages,
+  listConstructs,
+  listSchemas,
+  listOrganizers,
+} from '@carta/document';
+import type * as Y from 'yjs';
+import type { DocState, DocumentSummary } from '../document-server-core.js';
 
 // ─── Shared sub-schemas ───────────────────────────────────────────────────────
 
@@ -734,507 +747,417 @@ export interface ToolHandlers {
   [key: string]: ToolHandler;
 }
 
-export interface ToolHandlerOptions {
-  serverUrl?: string;
+/**
+ * DocState extended with an optional flush() method for remote (stdio) mode.
+ * flush() sends accumulated Y.Doc updates back to the remote server.
+ */
+export interface DocStateWithFlush extends DocState {
+  flush?(): Promise<void>;
+}
+
+/**
+ * Configuration for createToolHandlers.
+ *
+ * Callers supply a getDoc callback for per-document Y.Doc access.
+ * Multi-document management operations (list, create, delete, rename) use
+ * optional callbacks — in stdio mode these make HTTP calls; in embedded mode
+ * they delegate to the server config.
+ */
+export interface ToolHandlerConfig {
+  /** Resolve a document ID to an in-memory DocState (real or reconstructed). */
+  getDoc(docId: string): Promise<DocStateWithFlush>;
+  /** List all persisted documents. */
+  listDocuments?(): Promise<DocumentSummary[]>;
+  /** List rooms with active WebSocket connections and client counts. */
+  listActiveRooms?(): Promise<Array<{ documentId: string; clientCount: number }>>;
+  /** Create a new document and return its metadata. */
+  createDocument?(title: string): Promise<unknown>;
+  /** Delete a document by ID. */
+  deleteDocument?(docId: string): Promise<boolean>;
+  /** Rename a document and return its updated metadata. */
+  renameDocument?(docId: string, title: string): Promise<unknown>;
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/** Unwrap a ToolResult, returning the data or an error object. */
+function unwrap(result: { success: boolean; data?: unknown; error?: string }): unknown {
+  if (!result.success) {
+    return { error: result.error ?? 'Tool execution failed' };
+  }
+  return result.data;
+}
+
+/** Resolve pageId from explicit pageId or active page in the Y.Doc. */
+function resolvePageId(ydoc: Y.Doc, pageId?: string | null): string {
+  if (pageId) return pageId;
+  return getActivePage(ydoc) ?? '';
+}
+
+/**
+ * Build a page summary response matching the server's /summary endpoint shape.
+ * Used by carta_page op:summary (direct implementation — different schema from
+ * the shared pageSummaryTool).
+ */
+function buildPageSummary(
+  ydoc: Y.Doc,
+  targetPageId?: string,
+  targetPageName?: string,
+  include?: string[]
+): unknown {
+  const ymeta = ydoc.getMap('meta');
+  const title = (ymeta.get('title') as string) || 'Untitled Project';
+  const pages = listPages(ydoc);
+  const activePage = getActivePage(ydoc);
+  const schemas = listSchemas(ydoc);
+  const yschemasMap = ydoc.getMap('schemas');
+  const customSchemaCount = schemas.filter(s => yschemasMap.has(s.type)).length;
+
+  let totalConstructs = 0;
+  let totalOrganizers = 0;
+  let totalEdges = 0;
+
+  const pageSummaries = pages.map(page => {
+    const constructs = listConstructs(ydoc, page.id);
+    const constructCount = constructs.filter(c => c.type !== 'organizer').length;
+    const organizerCount = constructs.filter(c => c.type === 'organizer').length;
+    const yedges = ydoc.getMap<unknown>('edges');
+    const pageEdgeMap = yedges.get(page.id) as Map<unknown, unknown> | undefined;
+    const edgeCount = pageEdgeMap ? (pageEdgeMap as { size?: number }).size ?? 0 : 0;
+    totalConstructs += constructCount;
+    totalOrganizers += organizerCount;
+    totalEdges += edgeCount;
+    return { id: page.id, name: page.name, constructCount, organizerCount, edgeCount };
+  });
+
+  const response: Record<string, unknown> = {
+    title,
+    activePage,
+    pages: pageSummaries,
+    customSchemaCount,
+    totalConstructs,
+    totalOrganizers,
+    totalEdges,
+  };
+
+  if (include && include.length > 0) {
+    // Resolve target page for embedded data
+    let embedPageId = targetPageId;
+    if (!embedPageId && targetPageName) {
+      const page = pages.find(p => p.name.toLowerCase() === targetPageName.toLowerCase());
+      embedPageId = page?.id;
+    }
+    embedPageId = embedPageId ?? activePage ?? undefined;
+
+    if (embedPageId) {
+      if (include.includes('constructs')) {
+        const allNodes = listConstructs(ydoc, embedPageId);
+        const organizers = listOrganizers(ydoc, embedPageId);
+        const constructs = allNodes
+          .filter(c => c.type !== 'organizer')
+          .map(c => ({
+            semanticId: c.data.semanticId,
+            constructType: c.data.constructType,
+            displayName: (c.data.values as Record<string, unknown> | undefined)?.name as string ?? c.data.semanticId,
+            pageId: embedPageId,
+            parentId: c.parentId,
+          }));
+        response.constructs = constructs;
+        response.organizers = organizers;
+      }
+      if (include.includes('schemas')) {
+        response.customSchemas = schemas
+          .filter(s => yschemasMap.has(s.type))
+          .map(s => ({ type: s.type, displayName: s.displayName, groupId: s.groupId }));
+      }
+    }
+  }
+
+  return response;
 }
 
 // ─── Tool handlers ────────────────────────────────────────────────────────────
 
-export function createToolHandlers(options: ToolHandlerOptions = {}): ToolHandlers {
-  const apiUrl = options.serverUrl || process.env.CARTA_SERVER_URL || process.env.CARTA_COLLAB_API_URL || 'http://localhost:1234';
-
-  async function apiRequest<T>(
-    method: string,
-    path: string,
-    body?: unknown
-  ): Promise<{ data?: T; error?: string }> {
-    try {
-      const response = await fetch(`${apiUrl}${path}`, {
-        method,
-        headers: body ? { 'Content-Type': 'application/json' } : undefined,
-        body: body ? JSON.stringify(body) : undefined,
-      });
-
-      const data = (await response.json()) as T & { error?: string };
-
-      if (!response.ok) {
-        return { error: data.error || `HTTP ${response.status}: ${response.statusText}` };
-      }
-
-      return { data };
-    } catch (error) {
-      return {
-        error: `Failed to connect to document server at ${apiUrl}. Is it running? Start it with: pnpm document-server`,
-      };
-    }
-  }
-
+export function createToolHandlers(config: ToolHandlerConfig): ToolHandlers {
   return {
     carta_document: async (args) => {
       const input = DocumentOpSchema.parse(args);
       switch (input.op) {
         case 'list': {
-          const result = await apiRequest<{ documents: unknown[] }>('GET', '/api/documents');
-          if (result.error) return { error: result.error };
-          return result.data;
+          const documents = await config.listDocuments?.() ?? [];
+          return { documents };
         }
         case 'list_active': {
-          const result = await apiRequest<{ documents: Array<{ documentId: string; clientCount: number }> }>('GET', '/api/rooms');
-          if (result.error) return { error: result.error, hint: 'Start the document server with: pnpm document-server' };
-          return result.data;
+          const rooms = await config.listActiveRooms?.() ?? [];
+          return { documents: rooms };
         }
         case 'get': {
-          const result = await apiRequest<{ document: unknown }>('GET', `/api/documents/${encodeURIComponent(input.documentId)}`);
-          if (result.error) return { error: result.error };
-          return result.data;
+          const docState = await config.getDoc(input.documentId);
+          const document = extractDocument(docState.doc, input.documentId, resolvePageId(docState.doc));
+          return { document };
         }
         case 'create': {
-          const result = await apiRequest<{ document: unknown }>('POST', '/api/documents', { title: input.title });
-          if (result.error) return { error: result.error };
-          return result.data;
+          return await config.createDocument?.(input.title) ?? { error: 'createDocument not configured' };
         }
         case 'delete': {
-          const result = await apiRequest<{ deleted: boolean }>('DELETE', `/api/documents/${encodeURIComponent(input.documentId)}`);
-          if (result.error) return { error: result.error };
-          return result.data;
+          const deleted = await config.deleteDocument?.(input.documentId) ?? false;
+          return { deleted };
         }
         case 'rename': {
-          const result = await apiRequest<{ document: unknown }>('PATCH', `/api/documents/${encodeURIComponent(input.documentId)}`, { title: input.title });
-          if (result.error) return { error: result.error };
-          return result.data;
+          return await config.renameDocument?.(input.documentId, input.title) ?? { error: 'renameDocument not configured' };
         }
       }
     },
 
     carta_page: async (args) => {
       const input = PageOpSchema.parse(args);
-      switch (input.op) {
-        case 'list': {
-          const result = await apiRequest<{ pages: unknown[]; activePage: string }>('GET', `/api/documents/${encodeURIComponent(input.documentId)}/pages`);
-          if (result.error) return { error: result.error };
-          return result.data;
+      const docState = await config.getDoc(input.documentId);
+      try {
+        switch (input.op) {
+          case 'list':
+            return unwrap(executeTool('list_pages', {}, docState.doc, ''));
+          case 'create':
+            return unwrap(executeTool('create_page', { name: input.name, description: input.description }, docState.doc, ''));
+          case 'update':
+            return unwrap(executeTool('rename_page', { pageId: input.pageId, name: input.name, description: input.description, order: input.order }, docState.doc, ''));
+          case 'delete':
+            return unwrap(executeTool('delete_page', { pageId: input.pageId }, docState.doc, ''));
+          case 'set_active':
+            return unwrap(executeTool('set_active_page', { pageId: input.pageId, pageName: input.pageName }, docState.doc, ''));
+          case 'summary':
+            return buildPageSummary(docState.doc, input.pageId, input.pageName, input.include);
         }
-        case 'create': {
-          const result = await apiRequest<{ page: unknown }>('POST', `/api/documents/${encodeURIComponent(input.documentId)}/pages`, { name: input.name, description: input.description });
-          if (result.error) return { error: result.error };
-          return result.data;
-        }
-        case 'update': {
-          const result = await apiRequest<{ page: unknown }>('PATCH', `/api/documents/${encodeURIComponent(input.documentId)}/pages/${encodeURIComponent(input.pageId)}`, { name: input.name, description: input.description, order: input.order });
-          if (result.error) return { error: result.error };
-          return result.data;
-        }
-        case 'delete': {
-          const result = await apiRequest<{ deleted: boolean }>('DELETE', `/api/documents/${encodeURIComponent(input.documentId)}/pages/${encodeURIComponent(input.pageId)}`);
-          if (result.error) return { error: result.error };
-          return result.data;
-        }
-        case 'set_active': {
-          const result = await apiRequest<{
-            activePage: string;
-            page: unknown;
-            constructs: unknown[];
-            organizers: unknown[];
-            edgeCount: number;
-            customSchemas: unknown[];
-          }>('POST', `/api/documents/${encodeURIComponent(input.documentId)}/pages/active`, { pageId: input.pageId, pageName: input.pageName });
-          if (result.error) return { error: result.error };
-          return result.data;
-        }
-        case 'summary': {
-          const params = new URLSearchParams();
-          if (input.pageId) params.set('pageId', input.pageId);
-          if (input.pageName) params.set('pageName', input.pageName);
-          if (input.include && input.include.length > 0) params.set('include', input.include.join(','));
-          const qs = params.toString() ? `?${params.toString()}` : '';
-          const result = await apiRequest<unknown>('GET', `/api/documents/${encodeURIComponent(input.documentId)}/summary${qs}`);
-          if (result.error) return { error: result.error };
-          return result.data;
-        }
+      } finally {
+        await docState.flush?.();
       }
     },
 
     carta_schema: async (args) => {
       const input = SchemaOpSchema.parse(args);
-      switch (input.op) {
-        case 'list': {
-          const params = new URLSearchParams();
-          if (input.output) params.set('output', input.output);
-          if (input.groupId) params.set('groupId', input.groupId);
-          const qs = params.toString() ? `?${params.toString()}` : '';
-          const result = await apiRequest<{ schemas: unknown[] }>('GET', `/api/documents/${encodeURIComponent(input.documentId)}/schemas${qs}`);
-          if (result.error) return { error: result.error };
-          return result.data;
+      const docState = await config.getDoc(input.documentId);
+      try {
+        switch (input.op) {
+          case 'list':
+            return unwrap(executeTool('list_schemas', { output: input.output, groupId: input.groupId }, docState.doc, ''));
+          case 'get':
+            return unwrap(executeTool('get_schema', { type: input.type }, docState.doc, ''));
+          case 'create': {
+            const { op: _op, documentId: _docId, ...params } = input;
+            return unwrap(executeTool('create_schema', params, docState.doc, ''));
+          }
+          case 'update': {
+            const { op: _op, documentId: _docId, ...params } = input;
+            return unwrap(executeTool('update_schema', params, docState.doc, ''));
+          }
+          case 'delete':
+            return unwrap(executeTool('delete_schema', { type: input.type }, docState.doc, ''));
         }
-        case 'get': {
-          const result = await apiRequest<{ schema: unknown }>('GET', `/api/documents/${encodeURIComponent(input.documentId)}/schemas/${encodeURIComponent(input.type)}`);
-          if (result.error) return { error: result.error };
-          return result.data;
-        }
-        case 'create': {
-          const result = await apiRequest<{ schema: unknown }>('POST', `/api/documents/${encodeURIComponent(input.documentId)}/schemas`, {
-            type: input.type,
-            displayName: input.displayName,
-            color: input.color,
-            semanticDescription: input.semanticDescription,
-            groupId: input.groupId,
-            packageId: input.packageId,
-            instanceColors: input.instanceColors,
-            fields: input.fields,
-            ports: input.ports,
-          });
-          if (result.error) return { error: result.error };
-          return result.data;
-        }
-        case 'update': {
-          const { documentId, type, op: _op, ...updates } = input;
-          const result = await apiRequest<{ schema: unknown }>('PATCH', `/api/documents/${encodeURIComponent(documentId)}/schemas/${encodeURIComponent(type)}`, updates);
-          if (result.error) return { error: result.error };
-          return result.data;
-        }
-        case 'delete': {
-          const result = await apiRequest<{ deleted: boolean }>('DELETE', `/api/documents/${encodeURIComponent(input.documentId)}/schemas/${encodeURIComponent(input.type)}`);
-          if (result.error) return { error: result.error };
-          return result.data;
-        }
+      } finally {
+        await docState.flush?.();
       }
     },
 
     carta_schema_migrate: async (args) => {
       const input = SchemaMigrateOpSchema.parse(args);
-      switch (input.op) {
-        case 'rename_field': {
-          const result = await apiRequest<unknown>('POST', `/api/documents/${encodeURIComponent(input.documentId)}/schemas/${encodeURIComponent(input.schemaType)}/migrate`, { operation: 'renameField', oldName: input.oldName, newName: input.newName });
-          if (result.error) return { error: result.error };
-          return result.data;
+      const docState = await config.getDoc(input.documentId);
+      try {
+        switch (input.op) {
+          case 'rename_field':
+            return unwrap(executeTool('rename_field', { schemaType: input.schemaType, oldName: input.oldName, newName: input.newName }, docState.doc, ''));
+          case 'remove_field':
+            return unwrap(executeTool('remove_field', { schemaType: input.schemaType, fieldName: input.fieldName }, docState.doc, ''));
+          case 'add_field':
+            return unwrap(executeTool('add_field', { schemaType: input.schemaType, field: input.field, defaultValue: input.defaultValue }, docState.doc, ''));
+          case 'rename_port':
+            return unwrap(executeTool('rename_port', { schemaType: input.schemaType, oldPortId: input.oldPortId, newPortId: input.newPortId }, docState.doc, ''));
+          case 'remove_port':
+            return unwrap(executeTool('remove_port', { schemaType: input.schemaType, portId: input.portId }, docState.doc, ''));
+          case 'add_port':
+            return unwrap(executeTool('add_port', { schemaType: input.schemaType, portConfig: input.portConfig }, docState.doc, ''));
+          case 'rename_type':
+            return unwrap(executeTool('rename_schema_type', { schemaType: input.schemaType, newType: input.newType }, docState.doc, ''));
+          case 'change_field_type':
+            return unwrap(executeTool('change_field_type', { schemaType: input.schemaType, fieldName: input.fieldName, newType: input.newType, force: input.force, enumOptions: input.enumOptions }, docState.doc, ''));
+          case 'narrow_enum':
+            return unwrap(executeTool('narrow_enum_options', { schemaType: input.schemaType, fieldName: input.fieldName, newOptions: input.newOptions, valueMapping: input.valueMapping }, docState.doc, ''));
+          case 'change_port_type':
+            return unwrap(executeTool('change_port_type', { schemaType: input.schemaType, portId: input.portId, newPortType: input.newPortType }, docState.doc, ''));
         }
-        case 'remove_field': {
-          const result = await apiRequest<unknown>('POST', `/api/documents/${encodeURIComponent(input.documentId)}/schemas/${encodeURIComponent(input.schemaType)}/migrate`, { operation: 'removeField', fieldName: input.fieldName });
-          if (result.error) return { error: result.error };
-          return result.data;
-        }
-        case 'add_field': {
-          const result = await apiRequest<unknown>('POST', `/api/documents/${encodeURIComponent(input.documentId)}/schemas/${encodeURIComponent(input.schemaType)}/migrate`, { operation: 'addField', field: input.field, defaultValue: input.defaultValue });
-          if (result.error) return { error: result.error };
-          return result.data;
-        }
-        case 'rename_port': {
-          const result = await apiRequest<unknown>('POST', `/api/documents/${encodeURIComponent(input.documentId)}/schemas/${encodeURIComponent(input.schemaType)}/migrate`, { operation: 'renamePort', oldPortId: input.oldPortId, newPortId: input.newPortId });
-          if (result.error) return { error: result.error };
-          return result.data;
-        }
-        case 'remove_port': {
-          const result = await apiRequest<unknown>('POST', `/api/documents/${encodeURIComponent(input.documentId)}/schemas/${encodeURIComponent(input.schemaType)}/migrate`, { operation: 'removePort', portId: input.portId });
-          if (result.error) return { error: result.error };
-          return result.data;
-        }
-        case 'add_port': {
-          const result = await apiRequest<unknown>('POST', `/api/documents/${encodeURIComponent(input.documentId)}/schemas/${encodeURIComponent(input.schemaType)}/migrate`, { operation: 'addPort', portConfig: input.portConfig });
-          if (result.error) return { error: result.error };
-          return result.data;
-        }
-        case 'rename_type': {
-          const result = await apiRequest<unknown>('POST', `/api/documents/${encodeURIComponent(input.documentId)}/schemas/${encodeURIComponent(input.schemaType)}/migrate`, { operation: 'renameSchemaType', newType: input.newType });
-          if (result.error) return { error: result.error };
-          return result.data;
-        }
-        case 'change_field_type': {
-          const result = await apiRequest<unknown>('POST', `/api/documents/${encodeURIComponent(input.documentId)}/schemas/${encodeURIComponent(input.schemaType)}/migrate`, { operation: 'changeFieldType', fieldName: input.fieldName, newType: input.newType, force: input.force, enumOptions: input.enumOptions });
-          if (result.error) return { error: result.error };
-          return result.data;
-        }
-        case 'narrow_enum': {
-          const result = await apiRequest<unknown>('POST', `/api/documents/${encodeURIComponent(input.documentId)}/schemas/${encodeURIComponent(input.schemaType)}/migrate`, { operation: 'narrowEnumOptions', fieldName: input.fieldName, newOptions: input.newOptions, valueMapping: input.valueMapping });
-          if (result.error) return { error: result.error };
-          return result.data;
-        }
-        case 'change_port_type': {
-          const result = await apiRequest<unknown>('POST', `/api/documents/${encodeURIComponent(input.documentId)}/schemas/${encodeURIComponent(input.schemaType)}/migrate`, { operation: 'changePortType', portId: input.portId, newPortType: input.newPortType });
-          if (result.error) return { error: result.error };
-          return result.data;
-        }
+      } finally {
+        await docState.flush?.();
       }
     },
 
     carta_construct: async (args) => {
       const input = ConstructOpSchema.parse(args);
-      switch (input.op) {
-        case 'list': {
-          const params = new URLSearchParams();
-          if (input.constructType) params.set('type', input.constructType);
-          if (input.pageId) params.set('pageId', input.pageId);
-          if (input.output) params.set('output', input.output);
-          const qs = params.toString() ? `?${params.toString()}` : '';
-          const result = await apiRequest<{ constructs: unknown[]; organizers: unknown[] }>('GET', `/api/documents/${encodeURIComponent(input.documentId)}/constructs${qs}`);
-          if (result.error) return { error: result.error };
-          return result.data;
+      const docState = await config.getDoc(input.documentId);
+      const pageId = resolvePageId(docState.doc, input.op !== 'list' && input.op !== 'get' && 'pageId' in input ? input.pageId : 'pageId' in input ? input.pageId : undefined);
+      try {
+        switch (input.op) {
+          case 'list':
+            return unwrap(executeTool('list_constructs', { constructType: input.constructType, output: input.output }, docState.doc, resolvePageId(docState.doc, input.pageId)));
+          case 'get':
+            return unwrap(executeTool('get_construct', { semanticId: input.semanticId, output: input.output }, docState.doc, resolvePageId(docState.doc)));
+          case 'create':
+            return unwrap(executeTool('create_construct', { constructType: input.constructType, values: input.values, x: input.x, y: input.y, parentId: input.parentId }, docState.doc, resolvePageId(docState.doc, input.pageId)));
+          case 'create_bulk':
+            return unwrap(executeTool('create_constructs', { constructs: input.constructs }, docState.doc, resolvePageId(docState.doc, input.pageId)));
+          case 'update':
+            return unwrap(executeTool('update_construct', { semanticId: input.semanticId, values: input.values, instanceColor: input.instanceColor }, docState.doc, resolvePageId(docState.doc)));
+          case 'delete':
+            return unwrap(executeTool('delete_construct', { semanticId: input.semanticId }, docState.doc, resolvePageId(docState.doc)));
+          case 'delete_bulk':
+            return unwrap(executeTool('delete_constructs', { semanticIds: input.semanticIds }, docState.doc, resolvePageId(docState.doc, input.pageId)));
+          case 'move':
+            return unwrap(executeTool('move_construct', { semanticId: input.semanticId, parentId: input.parentId, x: input.x, y: input.y }, docState.doc, resolvePageId(docState.doc, input.pageId)));
         }
-        case 'get': {
-          const outputQs = input.output ? `?output=${input.output}` : '';
-          const result = await apiRequest<{ construct: unknown }>('GET', `/api/documents/${encodeURIComponent(input.documentId)}/constructs/${encodeURIComponent(input.semanticId)}${outputQs}`);
-          if (result.error) return { error: result.error };
-          return result.data;
-        }
-        case 'create': {
-          const result = await apiRequest<{ construct: unknown }>('POST', `/api/documents/${encodeURIComponent(input.documentId)}/constructs`, { constructType: input.constructType, values: input.values, x: input.x, y: input.y, parentId: input.parentId, pageId: input.pageId });
-          if (result.error) return { error: result.error };
-          return result.data;
-        }
-        case 'create_bulk': {
-          const result = await apiRequest<{ constructs: unknown[] }>('POST', `/api/documents/${encodeURIComponent(input.documentId)}/constructs/bulk`, { constructs: input.constructs, pageId: input.pageId });
-          if (result.error) return { error: result.error };
-          return result.data;
-        }
-        case 'update': {
-          const result = await apiRequest<{ construct: unknown }>('PATCH', `/api/documents/${encodeURIComponent(input.documentId)}/constructs/${encodeURIComponent(input.semanticId)}`, { values: input.values, instanceColor: input.instanceColor });
-          if (result.error) return { error: result.error };
-          return result.data;
-        }
-        case 'delete': {
-          const result = await apiRequest<{ deleted: boolean }>('DELETE', `/api/documents/${encodeURIComponent(input.documentId)}/constructs/${encodeURIComponent(input.semanticId)}`);
-          if (result.error) return { error: result.error };
-          return result.data;
-        }
-        case 'delete_bulk': {
-          const result = await apiRequest<{ results: unknown[] }>('DELETE', `/api/documents/${encodeURIComponent(input.documentId)}/constructs/bulk`, { semanticIds: input.semanticIds, pageId: input.pageId });
-          if (result.error) return { error: result.error };
-          return result.data;
-        }
-        case 'move': {
-          const result = await apiRequest<{ construct: unknown; parentId: string | null }>('POST', `/api/documents/${encodeURIComponent(input.documentId)}/constructs/${encodeURIComponent(input.semanticId)}/move`, { parentId: input.parentId, x: input.x, y: input.y, pageId: input.pageId });
-          if (result.error) return { error: result.error };
-          return result.data;
-        }
+      } finally {
+        await docState.flush?.();
       }
     },
 
     carta_connection: async (args) => {
       const input = ConnectionOpSchema.parse(args);
-      switch (input.op) {
-        case 'connect': {
-          const result = await apiRequest<{ edge: unknown }>('POST', `/api/documents/${encodeURIComponent(input.documentId)}/connections`, {
-            sourceSemanticId: input.sourceSemanticId,
-            sourcePortId: input.sourcePortId,
-            targetSemanticId: input.targetSemanticId,
-            targetPortId: input.targetPortId,
-            pageId: input.pageId,
-          });
-          if (result.error) return { error: result.error };
-          return result.data;
+      const docState = await config.getDoc(input.documentId);
+      const pageId = resolvePageId(docState.doc, input.pageId);
+      try {
+        switch (input.op) {
+          case 'connect':
+            return unwrap(executeTool('connect_constructs', { sourceSemanticId: input.sourceSemanticId, sourcePortId: input.sourcePortId, targetSemanticId: input.targetSemanticId, targetPortId: input.targetPortId }, docState.doc, pageId));
+          case 'disconnect':
+            return unwrap(executeTool('disconnect_constructs', { sourceSemanticId: input.sourceSemanticId, sourcePortId: input.sourcePortId, targetSemanticId: input.targetSemanticId }, docState.doc, pageId));
+          case 'connect_bulk':
+            return unwrap(executeTool('connect_constructs_bulk', { connections: input.connections }, docState.doc, pageId));
         }
-        case 'disconnect': {
-          const result = await apiRequest<{ disconnected: boolean }>('DELETE', `/api/documents/${encodeURIComponent(input.documentId)}/connections`, {
-            sourceSemanticId: input.sourceSemanticId,
-            sourcePortId: input.sourcePortId,
-            targetSemanticId: input.targetSemanticId,
-            pageId: input.pageId,
-          });
-          if (result.error) return { error: result.error };
-          return result.data;
-        }
-        case 'connect_bulk': {
-          const result = await apiRequest<{ results: unknown[] }>('POST', `/api/documents/${encodeURIComponent(input.documentId)}/connections/bulk`, { connections: input.connections, pageId: input.pageId });
-          if (result.error) return { error: result.error };
-          return result.data;
-        }
+      } finally {
+        await docState.flush?.();
       }
     },
 
     carta_organizer: async (args) => {
       const input = OrganizerOpSchema.parse(args);
-      switch (input.op) {
-        case 'create': {
-          const result = await apiRequest<{ organizer: unknown }>('POST', `/api/documents/${encodeURIComponent(input.documentId)}/organizers`, {
-            name: input.name,
-            color: input.color,
-            x: input.x,
-            y: input.y,
-            width: input.width,
-            height: input.height,
-            layout: input.layout,
-            description: input.description,
-            attachedToSemanticId: input.attachedToSemanticId,
-            pageId: input.pageId,
-          });
-          if (result.error) return { error: result.error };
-          return result.data;
+      const docState = await config.getDoc(input.documentId);
+      const pageId = resolvePageId(docState.doc, input.op === 'create' ? input.pageId : undefined);
+      try {
+        switch (input.op) {
+          case 'create':
+            return unwrap(executeTool('create_organizer', { name: input.name, color: input.color, x: input.x, y: input.y, width: input.width, height: input.height, layout: input.layout, description: input.description, attachedToSemanticId: input.attachedToSemanticId }, docState.doc, pageId));
+          case 'update':
+            return unwrap(executeTool('update_organizer', { organizerId: input.organizerId, name: input.name, color: input.color, collapsed: input.collapsed, layout: input.layout, description: input.description }, docState.doc, resolvePageId(docState.doc)));
+          case 'delete':
+            return unwrap(executeTool('delete_organizer', { organizerId: input.organizerId, deleteMembers: input.deleteMembers }, docState.doc, resolvePageId(docState.doc)));
         }
-        case 'update': {
-          const result = await apiRequest<{ organizer: unknown }>('PATCH', `/api/documents/${encodeURIComponent(input.documentId)}/organizers/${encodeURIComponent(input.organizerId)}`, {
-            name: input.name,
-            color: input.color,
-            collapsed: input.collapsed,
-            layout: input.layout,
-            description: input.description,
-          });
-          if (result.error) return { error: result.error };
-          return result.data;
-        }
-        case 'delete': {
-          const params = input.deleteMembers ? '?deleteMembers=true' : '';
-          const result = await apiRequest<{ deleted: boolean }>('DELETE', `/api/documents/${encodeURIComponent(input.documentId)}/organizers/${encodeURIComponent(input.organizerId)}${params}`);
-          if (result.error) return { error: result.error };
-          return result.data;
-        }
+      } finally {
+        await docState.flush?.();
       }
     },
 
     carta_layout: async (args) => {
       const input = LayoutOpSchema.parse(args);
-      switch (input.op) {
-        case 'flow': {
-          const result = await apiRequest<{ updated: number; layers: Record<string, number> }>('POST', `/api/documents/${encodeURIComponent(input.documentId)}/layout/flow`, { direction: input.direction, sourcePort: input.sourcePort, sinkPort: input.sinkPort, layerGap: input.layerGap, nodeGap: input.nodeGap, scope: input.scope, pageId: input.pageId });
-          if (result.error) return { error: result.error };
-          return result.data;
+      const docState = await config.getDoc(input.documentId);
+      const pageId = resolvePageId(docState.doc, input.pageId);
+      try {
+        switch (input.op) {
+          case 'flow':
+            return unwrap(executeTool('flow_layout', { direction: input.direction, sourcePort: input.sourcePort, sinkPort: input.sinkPort, layerGap: input.layerGap, nodeGap: input.nodeGap, scope: input.scope }, docState.doc, pageId));
+          case 'arrange':
+            return unwrap(executeTool('arrange', { strategy: input.strategy, constraints: input.constraints, scope: input.scope, nodeGap: input.nodeGap, forceIterations: input.forceIterations }, docState.doc, pageId));
+          case 'pin':
+            return unwrap(executeTool('pin_constraint', { sourceOrganizerId: input.sourceOrganizerId, targetOrganizerId: input.targetOrganizerId, direction: input.direction, gap: input.gap }, docState.doc, pageId));
+          case 'list_pins':
+            return unwrap(executeTool('list_pin_constraints', {}, docState.doc, pageId));
+          case 'remove_pin':
+            return unwrap(executeTool('remove_pin_constraint', { constraintId: input.constraintId }, docState.doc, pageId));
+          case 'apply_pins':
+            return unwrap(executeTool('apply_pin_layout', { gap: input.gap }, docState.doc, pageId));
         }
-        case 'arrange': {
-          const result = await apiRequest<{ updated: number; constraintsApplied: number }>('POST', `/api/documents/${encodeURIComponent(input.documentId)}/layout/arrange`, { strategy: input.strategy, constraints: input.constraints, scope: input.scope, nodeGap: input.nodeGap, forceIterations: input.forceIterations, pageId: input.pageId });
-          if (result.error) return { error: result.error };
-          return result.data;
-        }
-        case 'pin': {
-          const result = await apiRequest<{ constraint: unknown }>('POST', `/api/documents/${encodeURIComponent(input.documentId)}/pin-constraints`, { sourceOrganizerId: input.sourceOrganizerId, targetOrganizerId: input.targetOrganizerId, direction: input.direction, gap: input.gap, pageId: input.pageId });
-          if (result.error) return { error: result.error };
-          return result.data;
-        }
-        case 'list_pins': {
-          const params = new URLSearchParams();
-          if (input.pageId) params.set('pageId', input.pageId);
-          const queryString = params.toString();
-          const url = `/api/documents/${encodeURIComponent(input.documentId)}/pin-constraints${queryString ? '?' + queryString : ''}`;
-          const result = await apiRequest<{ constraints: unknown[] }>('GET', url);
-          if (result.error) return { error: result.error };
-          return result.data;
-        }
-        case 'remove_pin': {
-          const params = new URLSearchParams();
-          if (input.pageId) params.set('pageId', input.pageId);
-          const queryString = params.toString();
-          const url = `/api/documents/${encodeURIComponent(input.documentId)}/pin-constraints/${encodeURIComponent(input.constraintId)}${queryString ? '?' + queryString : ''}`;
-          const result = await apiRequest<{ success: boolean }>('DELETE', url);
-          if (result.error) return { error: result.error };
-          return result.data;
-        }
-        case 'apply_pins': {
-          const result = await apiRequest<{ updated: number; warnings: string[] }>('POST', `/api/documents/${encodeURIComponent(input.documentId)}/layout/pin`, { gap: input.gap, pageId: input.pageId });
-          if (result.error) return { error: result.error };
-          return result.data;
-        }
+      } finally {
+        await docState.flush?.();
       }
     },
 
     carta_package: async (args) => {
       const input = PackageOpSchema.parse(args);
-      switch (input.op) {
-        case 'list': {
-          const result = await apiRequest<{ packages: unknown[] }>('GET', `/api/documents/${encodeURIComponent(input.documentId)}/packages`);
-          if (result.error) return { error: result.error };
-          return result.data;
+      const docState = await config.getDoc(input.documentId);
+      try {
+        switch (input.op) {
+          case 'list':
+            return unwrap(executeTool('list_packages', {}, docState.doc, ''));
+          case 'get':
+            return unwrap(executeTool('get_package', { packageId: input.packageId }, docState.doc, ''));
+          case 'create':
+            return unwrap(executeTool('create_package', { name: input.name, description: input.description, color: input.color }, docState.doc, ''));
+          case 'list_standard':
+            return unwrap(executeTool('list_standard_packages', {}, docState.doc, ''));
+          case 'apply':
+            return unwrap(executeTool('apply_standard_package', { packageId: input.packageId }, docState.doc, ''));
+          case 'check_drift':
+            return unwrap(executeTool('check_package_drift', { packageId: input.packageId }, docState.doc, ''));
         }
-        case 'get': {
-          const result = await apiRequest<unknown>('GET', `/api/documents/${encodeURIComponent(input.documentId)}/packages/${encodeURIComponent(input.packageId)}`);
-          if (result.error) return { error: result.error };
-          return result.data;
-        }
-        case 'create': {
-          const result = await apiRequest<{ package: unknown }>('POST', `/api/documents/${encodeURIComponent(input.documentId)}/packages`, { name: input.name, description: input.description, color: input.color });
-          if (result.error) return { error: result.error };
-          return result.data;
-        }
-        case 'list_standard': {
-          const result = await apiRequest<{ packages: unknown[] }>('GET', `/api/documents/${encodeURIComponent(input.documentId)}/standard-packages`);
-          if (result.error) return { error: result.error };
-          return result.data;
-        }
-        case 'apply': {
-          const result = await apiRequest<unknown>('POST', `/api/documents/${encodeURIComponent(input.documentId)}/standard-packages/apply`, { packageId: input.packageId });
-          if (result.error) return { error: result.error };
-          return result.data;
-        }
-        case 'check_drift': {
-          const result = await apiRequest<unknown>('GET', `/api/documents/${encodeURIComponent(input.documentId)}/standard-packages/${encodeURIComponent(input.packageId)}/drift`);
-          if (result.error) return { error: result.error };
-          return result.data;
-        }
+      } finally {
+        await docState.flush?.();
       }
     },
 
     carta_compile: async (args) => {
       const { documentId } = DocumentIdSchema.parse(args);
-      const result = await apiRequest<{ output: string }>('GET', `/api/documents/${encodeURIComponent(documentId)}/compile`);
-      if (result.error) return { error: result.error };
-      return result.data;
+      const docState = await config.getDoc(documentId);
+      const pageId = resolvePageId(docState.doc);
+      return unwrap(executeTool('compile', {}, docState.doc, pageId));
     },
 
     carta_batch_mutate: async (args) => {
-      const { documentId, operations, pageId } = BatchMutateSchema.parse(args);
-      const result = await apiRequest<{ results: unknown[] }>('POST', `/api/documents/${encodeURIComponent(documentId)}/batch`, { operations, pageId });
-      if (result.error) return { error: result.error };
-      return result.data;
+      const { documentId, operations, pageId: inputPageId } = BatchMutateSchema.parse(args);
+      const docState = await config.getDoc(documentId);
+      const pageId = resolvePageId(docState.doc, inputPageId);
+      try {
+        return unwrap(executeTool('batch_mutate', { operations }, docState.doc, pageId));
+      } finally {
+        await docState.flush?.();
+      }
     },
 
     carta_list_port_types: async (args) => {
       const { documentId } = DocumentIdSchema.parse(args);
-      const result = await apiRequest<{ portTypes: unknown[] }>('GET', `/api/documents/${encodeURIComponent(documentId)}/port-types`);
-      if (result.error) return { error: result.error };
-      return result.data;
+      const docState = await config.getDoc(documentId);
+      return unwrap(executeTool('list_port_types', {}, docState.doc, ''));
     },
 
     carta_rebuild_page: async (args) => {
-      const { documentId, pageId } = RebuildPageSchema.parse(args);
-      const result = await apiRequest<{ nodesRebuilt: number; edgesRebuilt: number; orphansDropped: string[] }>('POST', `/api/documents/${encodeURIComponent(documentId)}/rebuild-page`, { pageId });
-      if (result.error) return { error: result.error };
-      return result.data;
+      const { documentId, pageId: inputPageId } = RebuildPageSchema.parse(args);
+      const docState = await config.getDoc(documentId);
+      const pageId = resolvePageId(docState.doc, inputPageId);
+      try {
+        return unwrap(executeTool('rebuild_page', {}, docState.doc, pageId));
+      } finally {
+        await docState.flush?.();
+      }
     },
 
     carta_resource: async (args) => {
       const input = ResourceOpSchema.parse(args);
-      const docId = encodeURIComponent(input.documentId);
-      switch (input.op) {
-        case 'list': {
-          const result = await apiRequest<{ resources: unknown[] }>('GET', `/api/documents/${docId}/resources`);
-          if (result.error) return { error: result.error };
-          return result.data;
+      const docState = await config.getDoc(input.documentId);
+      try {
+        switch (input.op) {
+          case 'list':
+            return unwrap(executeTool('list_resources', {}, docState.doc, ''));
+          case 'get':
+            return unwrap(executeTool('get_resource', { id: input.resourceId }, docState.doc, ''));
+          case 'create':
+            return unwrap(executeTool('create_resource', { name: input.name, format: input.format, body: input.body }, docState.doc, ''));
+          case 'update':
+            return unwrap(executeTool('update_resource', { id: input.resourceId, name: input.name, format: input.format, body: input.body }, docState.doc, ''));
+          case 'delete':
+            return unwrap(executeTool('delete_resource', { id: input.resourceId }, docState.doc, ''));
+          case 'publish':
+            return unwrap(executeTool('publish_resource', { id: input.resourceId, label: input.label }, docState.doc, ''));
+          case 'history':
+            return unwrap(executeTool('resource_history', { id: input.resourceId }, docState.doc, ''));
+          case 'diff':
+            return unwrap(executeTool('resource_diff', { id: input.resourceId, fromVersionId: input.fromVersionId, toVersionId: input.toVersionId }, docState.doc, ''));
         }
-        case 'get': {
-          const result = await apiRequest<{ resource: unknown }>('GET', `/api/documents/${docId}/resources/${encodeURIComponent(input.resourceId)}`);
-          if (result.error) return { error: result.error };
-          return result.data;
-        }
-        case 'create': {
-          const result = await apiRequest<{ resource: unknown }>('POST', `/api/documents/${docId}/resources`, { name: input.name, format: input.format, body: input.body });
-          if (result.error) return { error: result.error };
-          return result.data;
-        }
-        case 'update': {
-          const result = await apiRequest<{ resource: unknown }>('PATCH', `/api/documents/${docId}/resources/${encodeURIComponent(input.resourceId)}`, { name: input.name, format: input.format, body: input.body });
-          if (result.error) return { error: result.error };
-          return result.data;
-        }
-        case 'delete': {
-          const result = await apiRequest<{ deleted: boolean }>('DELETE', `/api/documents/${docId}/resources/${encodeURIComponent(input.resourceId)}`);
-          if (result.error) return { error: result.error };
-          return result.data;
-        }
-        case 'publish': {
-          const result = await apiRequest<{ version: unknown }>('POST', `/api/documents/${docId}/resources/${encodeURIComponent(input.resourceId)}/publish`, { label: input.label });
-          if (result.error) return { error: result.error };
-          return result.data;
-        }
-        case 'history': {
-          const result = await apiRequest<{ versions: unknown[] }>('GET', `/api/documents/${docId}/resources/${encodeURIComponent(input.resourceId)}/history`);
-          if (result.error) return { error: result.error };
-          return result.data;
-        }
-        case 'diff': {
-          const params = new URLSearchParams();
-          if (input.fromVersionId) params.set('from', input.fromVersionId);
-          if (input.toVersionId) params.set('to', input.toVersionId);
-          const qs = params.toString() ? `?${params.toString()}` : '';
-          const result = await apiRequest<unknown>('GET', `/api/documents/${docId}/resources/${encodeURIComponent(input.resourceId)}/diff${qs}`);
-          if (result.error) return { error: result.error };
-          return result.data;
-        }
+      } finally {
+        await docState.flush?.();
       }
     },
   };
