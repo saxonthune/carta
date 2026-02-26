@@ -64,8 +64,24 @@ let vaultDir: string;
 let userDataDir: string;
 let serverInfoPath: string;
 const docs = new Map<string, DesktopDocState>();
-/** Maps opaque docId → human-readable filename (e.g. "my-project.carta.json") */
-const docIdToFilename = new Map<string, string>();
+/**
+ * Derive a document ID from its filename on disk.
+ * "my-project.carta.json" → "my-project"
+ * "legacy-file.json"      → "legacy-file"
+ */
+function filenameToDocId(filename: string): string {
+  if (filename.endsWith('.carta.json')) return filename.slice(0, -'.carta.json'.length);
+  if (filename.endsWith('.json')) return filename.slice(0, -'.json'.length);
+  return filename;
+}
+
+/**
+ * Derive the on-disk filename from a document ID.
+ * "my-project" → "my-project.carta.json"
+ */
+function docIdToFilename(docId: string): string {
+  return `${docId}.carta.json`;
+}
 let httpServer: http.Server | null = null;
 let wss: WebSocketServer | null = null;
 
@@ -112,9 +128,8 @@ function scanVaultForDocuments(): DocumentSummary[] {
         const content = fs.readFileSync(filePath, 'utf-8');
         const data = JSON.parse(content);
 
-        // Use stored docId if present (human-readable filename files), else derive from filename
-        const docId = (data.docId as string | undefined) || file.slice(0, -5);
-        docIdToFilename.set(docId, file);
+        // Derive ID from filename — filesystem is the source of truth
+        const docId = filenameToDocId(file);
 
         const title = data.title || docId;
         const folder = '/'; // Flat folder structure for now
@@ -147,10 +162,9 @@ function scanVaultForDocuments(): DocumentSummary[] {
  */
 function saveDocToJson(docId: string, doc: Y.Doc): void {
   ensureVaultDir();
-  const filename = docs.get(docId)?.filename || docIdToFilename.get(docId) || `${docId}.json`;
+  const filename = docs.get(docId)?.filename || docIdToFilename(docId);
   const cartaFile = extractCartaFile(doc);
-  // Embed docId in the file so scanVaultForDocuments can reconstruct the mapping
-  const jsonContent = JSON.stringify({ docId, ...cartaFile }, null, 2);
+  const jsonContent = JSON.stringify(cartaFile, null, 2);
   fs.writeFileSync(getDocPath(filename), jsonContent, 'utf-8');
 }
 
@@ -159,7 +173,7 @@ function saveDocToJson(docId: string, doc: Y.Doc): void {
  * Returns true if file exists and was loaded successfully.
  */
 function loadDocFromJson(docId: string, doc: Y.Doc): boolean {
-  const filename = docIdToFilename.get(docId) || `${docId}.json`;
+  const filename = docIdToFilename(docId);
   const docPath = getDocPath(filename);
   if (!fs.existsSync(docPath)) return false;
 
@@ -258,8 +272,7 @@ function createHelloWorldDocument(): string {
 
   ensureVaultDir();
   const filename = 'hello-world.carta.json';
-  docIdToFilename.set(docId, filename);
-  const jsonContent = JSON.stringify({ docId, ...cartaFile }, null, 2);
+  const jsonContent = JSON.stringify(cartaFile, null, 2);
   fs.writeFileSync(getDocPath(filename), jsonContent, 'utf-8');
 
   log('Created hello-world document: %s', docId);
@@ -307,7 +320,7 @@ function getOrCreateDoc(docId: string): DesktopDocState {
 
   const doc = new Y.Doc();
   const loaded = loadDocFromJson(docId, doc);
-  const filename = docIdToFilename.get(docId) || '';
+  const filename = docIdToFilename(docId);
   docState = { doc, conns: new Set(), dirty: false, saveTimer: null, persist: loaded, filename };
   docs.set(docId, docState);
 
@@ -343,17 +356,15 @@ const { handleHttpRequest, setupWSConnection } = createDocumentServer({
     const resolvedFilename = resolveUniqueFilename(filename);
     desktopState.filename = resolvedFilename;
     desktopState.persist = true;
-    docIdToFilename.set(docId, resolvedFilename);
     saveDocToJson(docId, docState.doc);
   },
   deleteDocument: async (docId: string): Promise<boolean> => {
+    const filename = docs.get(docId)?.filename || docIdToFilename(docId);
     docs.delete(docId);
-    const filename = docIdToFilename.get(docId) || `${docId}.json`;
     const docPath = getDocPath(filename);
     if (fs.existsSync(docPath)) {
       fs.unlinkSync(docPath);
     }
-    docIdToFilename.delete(docId);
     return true;
   },
   healthMeta: {

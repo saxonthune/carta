@@ -89,9 +89,8 @@ export function Header({
 
   return (
     <header className="h-12 bg-surface border-b border-border grid grid-cols-[1fr_auto_1fr] items-center px-0 shrink-0">
-      {/* Left section: Logo and debug info */}
+      {/* Left section: Navigator toggle, title, and debug info */}
       <div className="flex items-center justify-start pl-3 gap-2">
-        <span className="text-xl font-bold tracking-tight text-content select-none">Carta</span>
         {onToggleNavigator && (
           <Tooltip content="Toggle navigator">
             <button
@@ -102,6 +101,7 @@ export function Header({
             </button>
           </Tooltip>
         )}
+        <span className="text-xl font-bold tracking-tight text-content select-none">Carta</span>
         {config.debug && (
           <div className="flex items-center gap-1.5 text-[10px] font-mono text-content-muted">
             <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400">DEV</span>

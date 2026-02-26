@@ -2,7 +2,6 @@ import { useState, useEffect, lazy, Suspense } from 'react';
 import MapV2 from './MapV2';
 import LayoutMap from './LayoutMap';
 import MetamapV2 from '../metamap-v2/MetamapV2';
-import Footer from '../Footer';
 import SearchBar from '../ui/SearchBar';
 import { Tooltip } from '../ui';
 import { MapPin } from '@phosphor-icons/react';
@@ -83,7 +82,6 @@ export default function CanvasContainer({
           </Tooltip>
         </div>
       )}
-      <Footer />
     </div>
   );
 }

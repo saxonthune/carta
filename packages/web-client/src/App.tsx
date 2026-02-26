@@ -4,6 +4,7 @@ import DocumentBrowserModal from './components/modals/DocumentBrowserModal';
 import Header from './components/Header';
 import CanvasContainer from './components/canvas/CanvasContainer';
 import Navigator from './components/Navigator';
+import Footer from './components/Footer';
 import { compiler } from '@carta/compiler';
 import { syncWithDocumentStore } from '@carta/domain';
 import type { ConstructSchema, Resource } from '@carta/domain';
@@ -264,6 +265,7 @@ function AppContent() {
           />
         </Suspense>
       </div>
+      <Footer />
 
       {/* Modals */}
       {importPreview && (
