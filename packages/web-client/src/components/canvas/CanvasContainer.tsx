@@ -33,7 +33,7 @@ export default function CanvasContainer({
   }, [])
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col relative">
+    <div className="flex-1 min-w-0 min-h-0 flex flex-col relative">
       {/* Canvas toolbar overlay */}
       {!showLayoutMap && activeView.type !== 'resource' && (
         <div className="absolute top-3 left-0 right-0 z-10 flex justify-center pointer-events-none">

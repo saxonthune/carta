@@ -224,47 +224,46 @@ function AppContent() {
   }, [schemas]);
 
   return (
-    <div className="h-screen flex">
-      <Navigator
-        isOpen={navigatorOpen}
-        pages={pages}
-        onSetActivePage={(pageId) => { setActivePage(pageId); setActiveView({ type: 'page', pageId }); }}
-        onCreatePage={createPage}
-        onDeletePage={deletePage}
-        onUpdatePage={updatePage}
-        onDuplicatePage={duplicatePage}
-        resources={resources}
-        onSelectResource={(resourceId) => setActiveView({ type: 'resource', resourceId })}
-        onCreateResource={handleCreateResource}
-        activeView={activeView}
-        onSelectMetamap={() => setActiveView({ type: 'metamap' })}
+    <div className="h-screen flex flex-col">
+      <Header
+        title={title}
+        description={description}
+        onTitleChange={setTitle}
+        onDescriptionChange={setDescription}
+        onExport={handleExport}
+        onImport={handleImport}
+        onCompile={handleCompile}
+        onClear={clearDocument}
+        onToggleAI={() => setAiSidebarOpen(!aiSidebarOpen)}
+        onToggleNavigator={() => setNavigatorOpen(!navigatorOpen)}
       />
-      <div className="flex-1 flex flex-col min-w-0">
-        <Header
-          title={title}
-          description={description}
-          onTitleChange={setTitle}
-          onDescriptionChange={setDescription}
-          onExport={handleExport}
-          onImport={handleImport}
-          onCompile={handleCompile}
-          onClear={clearDocument}
-          onToggleAI={() => setAiSidebarOpen(!aiSidebarOpen)}
-          onToggleNavigator={() => setNavigatorOpen(!navigatorOpen)}
+      <div className="flex-1 flex min-h-0">
+        <Navigator
+          isOpen={navigatorOpen}
+          pages={pages}
+          onSetActivePage={(pageId) => { setActivePage(pageId); setActiveView({ type: 'page', pageId }); }}
+          onCreatePage={createPage}
+          onDeletePage={deletePage}
+          onUpdatePage={updatePage}
+          onDuplicatePage={duplicatePage}
+          resources={resources}
+          onSelectResource={(resourceId) => setActiveView({ type: 'resource', resourceId })}
+          onCreateResource={handleCreateResource}
+          activeView={activeView}
+          onSelectMetamap={() => setActiveView({ type: 'metamap' })}
         />
         <CanvasContainer
           onSelectionChange={handleSelectionChange}
           activeView={activeView}
         />
+        <Suspense fallback={null}>
+          <AISidebar
+            isOpen={aiSidebarOpen}
+            onToggle={() => setAiSidebarOpen(!aiSidebarOpen)}
+            width={aiSidebarWidth}
+          />
+        </Suspense>
       </div>
-
-      <Suspense fallback={null}>
-        <AISidebar
-          isOpen={aiSidebarOpen}
-          onToggle={() => setAiSidebarOpen(!aiSidebarOpen)}
-          width={aiSidebarWidth}
-        />
-      </Suspense>
 
       {/* Modals */}
       {importPreview && (

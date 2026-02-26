@@ -1492,13 +1492,6 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       ws.on('sync', () => {
         connectionStatus = 'connected';
 
-        // Log post-sync pages state for debugging
-        const pageEntries: Array<{ key: string; name: string }> = [];
-        ypages.forEach((ypage, key) => {
-          pageEntries.push({ key, name: ypage.get('name') as string });
-        });
-        console.debug('[pages] Post-sync pages state', { roomId: newRoomId, pages: pageEntries });
-
         // Safety net: if server had no pages either, create the default
         if (ypages.size === 0) {
           console.debug('[pages] No pages after sync, creating default Main page', { roomId: newRoomId });
