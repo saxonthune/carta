@@ -4,18 +4,15 @@
     "module": "ESNext",
     "lib": ["ES2020"],
     "moduleResolution": "bundler",
-    "noEmit": true,
+    "declaration": true,
+    "declarationMap": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "paths": {
-      "@carta/types": ["../types/src/index.ts"],
-      "@carta/domain": ["../domain/src/index.ts"],
-      "@carta/compiler": ["../compiler/src/index.ts"],
-      "@carta/geometry": ["../geometry/src/index.ts"]
-    }
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

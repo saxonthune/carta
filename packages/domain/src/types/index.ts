@@ -256,27 +256,6 @@ export interface OrganizerNodeData {
   [key: string]: unknown;
 }
 
-// ===== PIN CONSTRAINTS =====
-
-/**
- * Direction for pin constraints between organizers.
- * Describes where the source organizer sits relative to the target organizer.
- */
-export type PinDirection = 'N' | 'NE' | 'E' | 'SE' | 'S' | 'SW' | 'W' | 'NW';
-
-/**
- * Pin constraint between two organizers.
- * Declares that sourceOrganizerId should be positioned relative to targetOrganizerId.
- * Stored per-page in a dedicated Y.Array.
- */
-export interface PinConstraint {
-  id: string;                    // unique ID for this constraint
-  sourceOrganizerId: string;     // the organizer being positioned
-  targetOrganizerId: string;     // the reference organizer
-  direction: PinDirection;       // where source sits relative to target
-  gap?: number;                  // optional spacing override (default: 60)
-}
-
 // ===== RESOURCES =====
 
 /**

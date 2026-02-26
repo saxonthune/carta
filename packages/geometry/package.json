@@ -1,5 +1,5 @@
 {
-  "name": "@carta/domain",
+  "name": "@carta/geometry",
   "version": "0.1.0-alpha.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -13,16 +13,10 @@
   "scripts": {
     "build": "rimraf dist && tsc",
     "dev": "tsc --watch",
-    "dev:build": "tsc",
-    "test": "vitest run"
+    "dev:build": "tsc"
   },
-  "dependencies": {
-    "@carta/types": "workspace:*",
-    "@carta/geometry": "workspace:*",
-    "js-sha256": "^0.11.0"
-  },
+  "dependencies": {},
   "devDependencies": {
-    "typescript": "^5.8.3",
-    "vitest": "^3.2.1"
+    "typescript": "^5.8.3"
   }
 }

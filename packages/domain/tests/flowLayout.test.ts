@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeFlowLayout, type FlowLayoutInput, type FlowLayoutEdge, type FlowLayoutOptions } from '../src/utils/flowLayout';
+import { computeFlowLayout, type FlowLayoutInput, type FlowLayoutEdge, type FlowLayoutOptions } from '@carta/geometry';
 
 // Test helpers
 function node(id: string, x = 0, y = 0): FlowLayoutInput {

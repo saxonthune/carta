@@ -6,7 +6,7 @@
  * between organizers into absolute positions.
  */
 
-import type { PinConstraint, PinDirection } from '../types/index.js';
+import type { PinConstraint, PinDirection } from './types.js';
 
 export interface PinLayoutNode {
   id: string;           // organizer or wagon-composite ID

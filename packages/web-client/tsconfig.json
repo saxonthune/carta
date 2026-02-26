@@ -21,7 +21,8 @@
       "@carta/types": ["../types/src/index.ts"],
       "@carta/domain": ["../domain/src/index.ts"],
       "@carta/compiler": ["../compiler/src/index.ts"],
-      "@carta/document": ["../document/src/index.ts"]
+      "@carta/document": ["../document/src/index.ts"],
+      "@carta/geometry": ["../geometry/src/index.ts"]
     },
 
     /* Linting */
