@@ -19,6 +19,7 @@ Carta uses a three-level depth system to create visual hierarchy in multi-panel 
 | 2 (Middle) | `--color-surface-depth-2` | `bg-surface-depth-2` | Island containers within sidebars |
 | 3 (Innermost) | `--color-surface-depth-3` | `bg-surface-depth-3` | Main content areas, editor panels |
 | Inset (Display wells) | `--color-surface-inset` | `bg-surface-inset` | Recessed display areas, showcasing content |
+| Selected | `--color-surface-selected` | `bg-[var(--color-surface-selected)]` | Active item highlight in navigation |
 
 ### Theme Behavior
 
