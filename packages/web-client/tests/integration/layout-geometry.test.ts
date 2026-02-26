@@ -1,17 +1,17 @@
 import { describe, it, expect } from 'vitest';
 import type { CartaNode } from '@carta/types';
 import {
-  getAbsolutePosition,
-  toRelativePosition,
   getTopLevelLayoutItems,
   getTopLevelEdges,
   convertToConstructPositions,
   ORGANIZER_CONTENT_TOP,
 } from '../../src/hooks/useLayoutActions.js';
+import { resolveAbsolutePosition } from '../../src/canvas-engine/index.js';
+import { toRelativePosition } from '@carta/geometry';
 import { computeAlignment, computeDistribution } from '../../src/utils/layoutGeometry.js';
 
 describe('Layout Geometry Helpers', () => {
-  describe('getAbsolutePosition', () => {
+  describe('resolveAbsolutePosition', () => {
     it('node without parent returns node.position', () => {
       const node: CartaNode = {
         id: 'n1',
@@ -21,7 +21,7 @@ describe('Layout Geometry Helpers', () => {
       };
       const allNodes: CartaNode[] = [node];
 
-      const result = getAbsolutePosition(node, allNodes);
+      const result = resolveAbsolutePosition('n1', allNodes);
 
       expect(result).toEqual({ x: 100, y: 200 });
     });
@@ -42,13 +42,13 @@ describe('Layout Geometry Helpers', () => {
       };
       const allNodes: CartaNode[] = [parent, child];
 
-      const result = getAbsolutePosition(child, allNodes);
+      const result = resolveAbsolutePosition('child', allNodes);
 
       expect(result).toEqual({ x: 60, y: 95 });
     });
 
     it('nested parents walks chain correctly', () => {
-      const grandparent: Node = {
+      const grandparent: CartaNode = {
         id: 'gp',
         type: 'organizer',
         position: { x: 10, y: 10 },
@@ -70,7 +70,7 @@ describe('Layout Geometry Helpers', () => {
       };
       const allNodes: CartaNode[] = [grandparent, parent, child];
 
-      const result = getAbsolutePosition(child, allNodes);
+      const result = resolveAbsolutePosition('child', allNodes);
 
       // 10 + 20 + 5 = 35, 10 + 30 + 7 = 47
       expect(result).toEqual({ x: 35, y: 47 });
@@ -78,7 +78,7 @@ describe('Layout Geometry Helpers', () => {
   });
 
   describe('toRelativePosition', () => {
-    it('round-trip: toRelativePosition(getAbsolutePosition(child)) ≈ child.position', () => {
+    it('round-trip: toRelativePosition(resolveAbsolutePosition(child)) ≈ child.position', () => {
       const parent: CartaNode = {
         id: 'parent',
         type: 'organizer',
@@ -94,8 +94,8 @@ describe('Layout Geometry Helpers', () => {
       };
       const allNodes: CartaNode[] = [parent, child];
 
-      const absolutePos = getAbsolutePosition(child, allNodes);
-      const parentAbsolutePos = getAbsolutePosition(parent, allNodes);
+      const absolutePos = resolveAbsolutePosition('child', allNodes);
+      const parentAbsolutePos = resolveAbsolutePosition('parent', allNodes);
       const relativePos = toRelativePosition(absolutePos, parentAbsolutePos);
 
       expect(relativePos).toEqual({ x: 25, y: 50 });

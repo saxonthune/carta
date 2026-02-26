@@ -2,7 +2,8 @@ import { useCallback } from 'react';
 import type { CartaNode } from '@carta/types';
 import * as Y from 'yjs';
 import type { DocumentAdapter } from '@carta/schema';
-import { DEFAULT_ORGANIZER_LAYOUT, computeLayoutUnitSizes, computeLayoutUnitBounds, computeOrganizerFit, type LayoutItem, type WagonInfo, resolvePinConstraints, type PinLayoutNode, type NodeGeometry } from '@carta/schema';
+import { DEFAULT_ORGANIZER_LAYOUT, computeLayoutUnitSizes, computeLayoutUnitBounds, type LayoutItem, type WagonInfo, resolvePinConstraints, type PinLayoutNode, type NodeGeometry } from '@carta/schema';
+import { computeAttach, computeDetach, computeContainerFit } from '../canvas-engine/index.js';
 import { listPinConstraints, updateOrganizer } from '@carta/document';
 import { deOverlapNodes } from '../utils/deOverlapNodes.js';
 import { compactNodes } from '../utils/compactNodes.js';
@@ -15,32 +16,6 @@ import { computeAlignment, computeDistribution } from '../utils/layoutGeometry.j
 import { computeGridPositions, transformDirectionalPositions, computeWagonSnapPositions, normalizePositionsToContentArea } from '../utils/layoutStrategies.js';
 
 export const ORGANIZER_CONTENT_TOP = DEFAULT_ORGANIZER_LAYOUT.padding + DEFAULT_ORGANIZER_LAYOUT.headerHeight;
-
-/**
- * Compute absolute position for a node by walking the parent chain.
- * Module-level helper extracted for use in attach/detach operations.
- */
-export function getAbsolutePosition(node: CartaNode, allNodes: CartaNode[]): { x: number; y: number } {
-  if (!node.parentId) return node.position;
-  const parent = allNodes.find(n => n.id === node.parentId);
-  if (!parent) return node.position;
-  const parentAbs = getAbsolutePosition(parent, allNodes);
-  return { x: parentAbs.x + node.position.x, y: parentAbs.y + node.position.y };
-}
-
-/**
- * Convert absolute position to position relative to a parent.
- */
-export function toRelativePosition(
-  absolutePos: { x: number; y: number },
-  parentAbsolutePos: { x: number; y: number }
-): { x: number; y: number } {
-  return {
-    x: absolutePos.x - parentAbsolutePos.x,
-    y: absolutePos.y - parentAbsolutePos.y,
-  };
-}
-
 
 /**
  * Apply style patches (width/height) across all 3 layers.
@@ -389,8 +364,8 @@ export function useLayoutActions({
 
       if (childGeometries.length === 0) return;
 
-      // Compute fit using domain function
-      const fit = computeOrganizerFit(childGeometries);
+      // Compute fit via canvas engine
+      const fit = computeContainerFit(childGeometries);
 
       const patches: Array<{ id: string; position: { x: number; y: number } }> = [];
 
@@ -443,10 +418,8 @@ export function useLayoutActions({
       if (!node || !organizer) return;
       if (!canNestInOrganizer(node, organizer, rfNodes)) return;
 
-      // Compute absolute positions from fresh RF state
-      const orgAbsPos = getAbsolutePosition(organizer, rfNodes);
-      const nodeAbsPos = node.parentId ? getAbsolutePosition(node, rfNodes) : node.position;
-      const relativePos = toRelativePosition(nodeAbsPos, orgAbsPos);
+      // Compute relative position via canvas engine
+      const relativePos = computeAttach(nodeId, organizerId, rfNodes);
 
       // Apply to RF + local state (which syncs to Yjs via adapter.setNodes)
       const updater = (nds: CartaNode[]) =>
@@ -473,7 +446,7 @@ export function useLayoutActions({
       if (!node?.parentId) return;
 
       const oldOrganizerId = node.parentId;
-      const absolutePos = getAbsolutePosition(node, rfNodes);
+      const absolutePos = computeDetach(nodeId, rfNodes);
 
       // Apply to RF + local state (which syncs to Yjs via adapter.setNodes)
       const updater = (nds: CartaNode[]) =>
