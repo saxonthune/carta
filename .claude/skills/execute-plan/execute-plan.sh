@@ -220,9 +220,50 @@ if [[ "$VERIFIED" == "true" ]]; then
       git branch -D "${BRANCH}" 2>/dev/null || true
       echo "Removed worktree and branch"
     else
-      git merge --abort 2>/dev/null || true
-      MERGE_STATUS="conflict"
-      echo "Merge conflict! Branch ${BRANCH} left intact for manual merge."
+      # Check if conflicts are doc-only — if so, resolve by accepting trunk
+      CONFLICTED_FILES=$(git diff --name-only --diff-filter=U 2>/dev/null || true)
+      NON_DOC_CONFLICTS=""
+      DROPPED_DOC_FILES=""
+
+      if [[ -n "$CONFLICTED_FILES" ]]; then
+        while IFS= read -r file; do
+          if [[ "$file" == .docs/* ]]; then
+            DROPPED_DOC_FILES+="${file}"$'\n'
+          else
+            NON_DOC_CONFLICTS+="${file}"$'\n'
+          fi
+        done <<< "$CONFLICTED_FILES"
+      fi
+
+      if [[ -z "$NON_DOC_CONFLICTS" && -n "$DROPPED_DOC_FILES" ]]; then
+        # All conflicts are in .docs/ — accept trunk's version and continue
+        echo "Doc-only conflicts detected. Accepting trunk versions:"
+        while IFS= read -r file; do
+          [[ -z "$file" ]] && continue
+          echo "  dropping agent edits: ${file}"
+          git checkout --ours "${file}"
+          git add "${file}"
+        done <<< "$DROPPED_DOC_FILES"
+
+        if git commit -m "feat: ${PLAN_SLUG} (agent)"; then
+          MERGE_STATUS="success (doc conflicts resolved — agent doc edits dropped)"
+          echo "Merged ${BRANCH} into ${TRUNK} (doc conflicts auto-resolved)"
+
+          # Clean up worktree and branch
+          echo "── Cleaning up worktree and branch ──"
+          git worktree remove --force "${WORKTREE_DIR}" 2>/dev/null || true
+          git branch -D "${BRANCH}" 2>/dev/null || true
+          echo "Removed worktree and branch"
+        else
+          git merge --abort 2>/dev/null || true
+          MERGE_STATUS="conflict"
+          echo "Merge conflict! Branch ${BRANCH} left intact for manual merge."
+        fi
+      else
+        git merge --abort 2>/dev/null || true
+        MERGE_STATUS="conflict"
+        echo "Merge conflict! Branch ${BRANCH} left intact for manual merge."
+      fi
     fi
   else
     MERGE_STATUS="skipped (--no-merge)"

@@ -32,19 +32,6 @@ Grouped content within panels uses Level 2 islands with `rounded-xl`. This creat
 
 **Figure-Ground Pairing**: Each depth level needs a companion tone to create internal hierarchy. The `surface-inset` token provides a recessed tone that's always darker/deeper than the surface it sits on, creating "display wells" that draw the eye to their contents.
 
-**Simple sidebar example:**
-```
-┌──────┬──────────────────┬───────────────────┐
-│ Tabs │  Sidebar (L1)    │  Main Content     │
-│ (L1) │  ┌────────────┐  │  (L3)             │
-│      │  │ Island (L2)│  │                   │
-│      │  └────────────┘  │                   │
-│      │  ┌────────────┐  │                   │
-│      │  │ Island (L2)│  │                   │
-│      │  └────────────┘  │                   │
-└──────┴──────────────────┴───────────────────┘
-```
-
 **Nested island example** (ConstructEditor modal):
 ```
 ┌─ Modal (depth-1) ────────────────────────────┐
