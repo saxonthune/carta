@@ -1,4 +1,4 @@
-import type { CartaNode } from '@carta/types';
+import type { CartaNode } from '@carta/schema';
 import { generateSemanticId } from './cartaFile';
 
 /** Compute the bounding box origin (minimum x, y) of a set of nodes */

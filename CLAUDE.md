@@ -81,8 +81,6 @@ All skills follow the same pattern: opus reads `.docs/` and code, analyzes, gene
 Packages can only depend on packages above them in the graph.
 
 ```
-                    @carta/types
-                         ↓
                    @carta/geometry
                          ↓
                     @carta/schema
@@ -96,7 +94,6 @@ Packages can only depend on packages above them in the graph.
 
 | Package | Location | Purpose |
 |---------|----------|---------|
-| `@carta/types` | `packages/types/` | Shared TypeScript types, no runtime deps |
 | `@carta/geometry` | `packages/geometry/` | Geometry primitives, layout algorithms |
 | `@carta/schema` | `packages/schema/` | Schema system, port registry, built-in schemas, utils |
 | `@carta/document` | `packages/document/` | Shared Y.Doc operations, Yjs helpers, file format, migrations |

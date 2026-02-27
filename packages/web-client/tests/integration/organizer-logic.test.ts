@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { CartaNode } from '@carta/types';
+import type { CartaNode } from '@carta/schema';
 import {
   getAbsolutePosition,
   canNestInOrganizer,

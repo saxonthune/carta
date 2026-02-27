@@ -1,7 +1,6 @@
 import { useCallback } from 'react';
-import type { CartaNode } from '@carta/types';
 import * as Y from 'yjs';
-import type { DocumentAdapter } from '@carta/schema';
+import type { DocumentAdapter, CartaNode } from '@carta/schema';
 import { DEFAULT_ORGANIZER_LAYOUT, computeLayoutUnitSizes, computeLayoutUnitBounds, type LayoutItem, type WagonInfo, resolvePinConstraints, type PinLayoutNode, type NodeGeometry } from '@carta/schema';
 import { computeAttach, computeDetach, computeContainerFit } from '../canvas-engine/index.js';
 import { listPinConstraints, updateOrganizer } from '@carta/document';

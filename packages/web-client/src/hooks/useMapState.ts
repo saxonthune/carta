@@ -1,6 +1,5 @@
 import { useState, useCallback } from 'react';
-import type { CartaNode, CartaEdge } from '@carta/types';
-import type { ConstructSchema } from '@carta/schema';
+import type { ConstructSchema, CartaNode, CartaEdge } from '@carta/schema';
 
 export interface ContextMenuState {
   x: number;

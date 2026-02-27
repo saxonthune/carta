@@ -54,8 +54,6 @@ Visual Editor Layer (packages/web-client/src/components/, packages/web-client/sr
 Target dependency graph (packages can only depend on packages above them):
 
 ```
-                    @carta/types
-                         ↓
                    @carta/geometry
                          ↓
                     @carta/schema
@@ -67,7 +65,7 @@ Target dependency graph (packages can only depend on packages above them):
          @carta/desktop
 ```
 
-All packages exist as shown. `@carta/types` provides platform-agnostic graph types (`CartaNode`, `CartaEdge`) used by adapters, hooks, and presentation layer — no React Flow or rendering dependencies. `@carta/geometry` provides geometry primitives and layout algorithms; `@carta/schema` re-exports geometry utilities via its `utils/` barrel. The compiler is merged into `@carta/document` — there is no separate `@carta/compiler` package.
+All packages exist as shown. `@carta/geometry` provides geometry primitives and layout algorithms; `@carta/schema` provides the domain layer including platform-agnostic graph types (`CartaNode`, `CartaEdge`) used by adapters, hooks, and the presentation layer — no React Flow or rendering dependencies — and re-exports geometry utilities via its `utils/` barrel. The compiler is merged into `@carta/document` — there is no separate `@carta/compiler` package.
 
 ### Barrel Exports
 

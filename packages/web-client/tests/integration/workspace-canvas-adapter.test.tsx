@@ -15,8 +15,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { createYjsAdapter } from '../../src/stores/adapters/yjsAdapter';
 import type { WorkspaceCanvasSchemas } from '../../src/stores/adapters/yjsAdapter';
-import type { ConstructSchema, PortSchema, SchemaGroup } from '@carta/schema';
-import type { CartaNode } from '@carta/types';
+import type { ConstructSchema, PortSchema, SchemaGroup, CartaNode } from '@carta/schema';
 
 const CANVAS_PAGE_ID = 'canvas';
 

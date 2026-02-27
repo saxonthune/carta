@@ -1,5 +1,4 @@
 import { useCallback, useState, useRef, useEffect, lazy, Suspense } from 'react';
-import type { CartaNode, CartaEdge } from '@carta/types';
 import DocumentBrowserModal from './components/modals/DocumentBrowserModal';
 import Header from './components/Header';
 import CanvasContainer from './components/canvas/CanvasContainer';
@@ -12,7 +11,7 @@ import { DocumentProvider } from './contexts/DocumentContext';
 import { List } from '@phosphor-icons/react';
 import { compiler } from '@carta/document';
 import { syncWithDocumentStore } from '@carta/schema';
-import type { ConstructSchema } from '@carta/schema';
+import type { ConstructSchema, CartaNode, CartaEdge } from '@carta/schema';
 import { useDocumentMeta } from './hooks/useDocumentMeta';
 import { useSchemas } from './hooks/useSchemas';
 import { useSchemaGroups } from './hooks/useSchemaGroups';

@@ -1,5 +1,4 @@
-import type { CartaNode } from '@carta/types';
-import type { OrganizerNodeData } from '@carta/schema';
+import type { OrganizerNodeData, CartaNode } from '@carta/schema';
 import {
   computeOrganizerBounds,
   toAbsolutePosition,

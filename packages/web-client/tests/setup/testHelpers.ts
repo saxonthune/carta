@@ -1,5 +1,4 @@
-import type { CartaNode, CartaEdge } from '@carta/types';
-import type { ConstructNodeData } from '@carta/schema';
+import type { ConstructNodeData, CartaNode, CartaEdge } from '@carta/schema';
 
 /**
  * Creates a test node with sensible defaults.

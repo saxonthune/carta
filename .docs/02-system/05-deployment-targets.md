@@ -203,9 +203,8 @@ Examples:
 
 | Package | Status |
 |---------|--------|
-| `@carta/types` | Done — platform-agnostic graph types (CartaNode, CartaEdge) |
 | `@carta/geometry` | Done — geometry primitives and layout algorithms |
-| `@carta/schema` | Done — types, ports, schemas, utils extracted; re-exports geometry via utils |
+| `@carta/schema` | Done — types, ports, schemas, utils extracted; re-exports geometry via utils; exports CartaNode/CartaEdge graph types |
 | `@carta/document` | Done — Y.Doc operations, Yjs helpers, file format, migrations, level-aware CRUD, compiler |
 | `@carta/web-client` | Done — extracted to `packages/web-client/` |
 | `@carta/server` | Done — document server + MCP server, imports from `@carta/document` |

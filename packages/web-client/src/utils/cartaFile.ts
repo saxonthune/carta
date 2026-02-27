@@ -1,5 +1,4 @@
-import type { CartaNode, CartaEdge } from '@carta/types';
-import type { ConstructSchema, PortSchema, SchemaGroup, SchemaPackage, Page, SchemaPackageDefinition } from '@carta/schema';
+import type { ConstructSchema, PortSchema, SchemaGroup, SchemaPackage, Page, SchemaPackageDefinition, CartaNode, CartaEdge } from '@carta/schema';
 import { toKebabCase } from '@carta/schema';
 import {
   CARTA_FILE_VERSION,

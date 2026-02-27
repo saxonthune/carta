@@ -1,4 +1,4 @@
-import type { CartaNode } from '@carta/types';
+import type { CartaNode } from '@carta/schema';
 
 /**
  * Default dimensions for different node types.

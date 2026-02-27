@@ -468,7 +468,9 @@ export interface VaultAdapter {
  * Document adapter interface for abstracting persistence layer.
  * Currently implemented with localStorage, future: Yjs Y.Doc
  */
-import type { CartaNode, CartaEdge } from '@carta/types';
+import type { CartaNode, CartaEdge } from './graph.js';
+
+export type { CartaNode, CartaEdge } from './graph.js';
 
 export interface DocumentAdapter {
   // Load/save lifecycle

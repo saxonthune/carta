@@ -6,8 +6,7 @@
  * This module provides defensive filtering at the presentation layer.
  */
 
-import type { CartaEdge, CartaNode } from '@carta/types';
-import type { ConstructSchema, ConstructNodeData } from '@carta/schema';
+import type { ConstructSchema, ConstructNodeData, CartaEdge, CartaNode } from '@carta/schema';
 import { getPortsForSchema } from '@carta/schema';
 
 /**

@@ -30,7 +30,6 @@ export default defineConfig({
       // Use require.resolve to handle pnpm's .pnpm directory structure
       '@dagrejs/dagre': require.resolve('@dagrejs/dagre'),
       // Map workspace packages to source files for development
-      '@carta/types': path.resolve(__dirname, '../types/src/index.ts'),
       '@carta/schema': path.resolve(__dirname, '../schema/src/index.ts'),
       '@carta/document': path.resolve(__dirname, '../document/src/index.ts'),
       '@carta/geometry': path.resolve(__dirname, '../geometry/src/index.ts'),

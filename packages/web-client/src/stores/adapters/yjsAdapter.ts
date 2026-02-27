@@ -1,6 +1,5 @@
 import * as Y from 'yjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
-import type { CartaNode, CartaEdge } from '@carta/types';
 import type {
   DocumentAdapter,
   CartaDocumentV4,
@@ -14,6 +13,8 @@ import type {
   Page,
   SpecGroup,
   SpecGroupItem,
+  CartaNode,
+  CartaEdge,
 } from '@carta/schema';
 import {
   objectToYMap,

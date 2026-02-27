@@ -43,7 +43,7 @@ The desktop app starts an embedded document server, then opens the web client co
 
 All packages live in `packages/`, including the web client (`@carta/web-client`). Cross-package dependencies are resolved via Vite/TypeScript aliases.
 
-Currently existing packages: `@carta/types`, `@carta/geometry`, `@carta/schema`, `@carta/document`, `@carta/server`, `@carta/web-client`, `@carta/desktop`. See doc02.01 for the target dependency graph. Note: `@carta/compiler` has been merged into `@carta/document`.
+Currently existing packages: `@carta/geometry`, `@carta/schema`, `@carta/document`, `@carta/server`, `@carta/web-client`, `@carta/desktop`. See doc02.01 for the target dependency graph. Note: `@carta/compiler` has been merged into `@carta/document`.
 
 ## Key Directories
 

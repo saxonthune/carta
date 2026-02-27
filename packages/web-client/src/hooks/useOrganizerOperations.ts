@@ -1,8 +1,7 @@
 import { useCallback } from 'react';
-import type { CartaNode } from '@carta/types';
 import { useNodes } from './useNodes';
 import { toRelativePosition } from '@carta/schema';
-import type { OrganizerNodeData } from '@carta/schema';
+import type { OrganizerNodeData, CartaNode } from '@carta/schema';
 import {
   canNestInOrganizer,
   computeNewOrganizerBounds,
