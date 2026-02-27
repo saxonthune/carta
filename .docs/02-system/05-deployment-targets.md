@@ -175,6 +175,23 @@ Carta is the **editing platform**. The following concerns are integration surfac
 
 This boundary keeps the core focused and lets different consumers (enterprise, SaaS, solo) build on top without bloating the platform.
 
+## Workspace Server
+
+The **workspace server** is a `DocumentServerConfig` implementation that serves a `.carta/` directory. One Y.Doc room per `.canvas.json` file. The room name is the canvas path relative to `.carta/`, without the `.canvas.json` extension.
+
+Examples:
+- `.carta/overview.canvas.json` → room `overview`
+- `.carta/01-api/endpoint-map.canvas.json` → room `01-api/endpoint-map`
+
+**Persistence model:**
+- **JSON canonical**: `.carta/{path}.canvas.json` — human-readable, VCS-friendly
+- **Binary sidecar cache**: `.carta/.state/{flat-name}.ystate` — fast reload via `Y.applyUpdate`
+- On load: sidecar is preferred when its `mtime` is newer than the JSON file
+- On update: changes are debounced (2 s) and flushed to both files
+- On shutdown: `stopWorkspaceServer()` flushes all dirty docs synchronously before closing
+
+**Entry point**: `startWorkspaceServer({ cartaDir, port?, host? })` in `packages/server/src/workspace-server.ts`. Used by the future `carta serve .` CLI (workspace-12).
+
 ## Monorepo Package Status
 
 | Package | Status |

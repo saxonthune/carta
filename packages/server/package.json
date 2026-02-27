@@ -14,6 +14,10 @@
     "./document-server-core": {
       "types": "./dist/document-server-core.d.ts",
       "import": "./dist/document-server-core.js"
+    },
+    "./workspace-server": {
+      "types": "./dist/workspace-server.d.ts",
+      "import": "./dist/workspace-server.js"
     }
   },
   "bin": {
