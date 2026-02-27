@@ -572,58 +572,6 @@ const PackageOpSchema = z.discriminatedUnion('op', [
   }),
 ]);
 
-// ─── Resource op schema ───────────────────────────────────────────────────────
-
-export const ResourceOpSchema = z.discriminatedUnion('op', [
-  z.object({
-    op: z.literal('list'),
-    documentId: z.string().describe('The document ID'),
-  }),
-  z.object({
-    op: z.literal('get'),
-    documentId: z.string().describe('The document ID'),
-    resourceId: z.string().describe('Resource ID'),
-  }),
-  z.object({
-    op: z.literal('create'),
-    documentId: z.string().describe('The document ID'),
-    name: z.string().describe('Resource name'),
-    format: z.string().describe('Format identifier (e.g., "typescript", "json-schema", "openapi", "freeform")'),
-    body: z.string().describe('Resource body content'),
-  }),
-  z.object({
-    op: z.literal('update'),
-    documentId: z.string().describe('The document ID'),
-    resourceId: z.string().describe('Resource ID'),
-    name: z.string().optional().describe('New name'),
-    format: z.string().optional().describe('New format'),
-    body: z.string().optional().describe('New body content (updates working copy, does NOT create a version)'),
-  }),
-  z.object({
-    op: z.literal('delete'),
-    documentId: z.string().describe('The document ID'),
-    resourceId: z.string().describe('Resource ID to delete'),
-  }),
-  z.object({
-    op: z.literal('publish'),
-    documentId: z.string().describe('The document ID'),
-    resourceId: z.string().describe('Resource ID'),
-    label: z.string().optional().describe('Version label (e.g., "Added billing address")'),
-  }),
-  z.object({
-    op: z.literal('history'),
-    documentId: z.string().describe('The document ID'),
-    resourceId: z.string().describe('Resource ID'),
-  }),
-  z.object({
-    op: z.literal('diff'),
-    documentId: z.string().describe('The document ID'),
-    resourceId: z.string().describe('Resource ID'),
-    fromVersionId: z.string().optional().describe('Version ID to compare from (omit for current working copy)'),
-    toVersionId: z.string().optional().describe('Version ID to compare to (omit for current working copy)'),
-  }),
-]);
-
 // ─── Tool definitions ─────────────────────────────────────────────────────────
 
 export function getToolDefinitions() {
@@ -716,12 +664,6 @@ For create/update ops, values is a Record keyed by field name from the schema. U
       inputSchema: zodToJsonSchema(RebuildPageSchema, { $refStrategy: 'none' }),
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
     },
-    {
-      name: 'carta_resource',
-      description: `Resource operations. Resources are versioned data contracts (API specs, TypeScript types, schemas) stored at the document level.\nops: list (all resources), get (resource by ID with current body), create (new resource with name/format/body), update (edit working copy — does NOT create a version), delete (remove resource), publish (snapshot current body as a new version), history (version timeline), diff (compare versions or working copy vs version)`,
-      inputSchema: zodToJsonSchema(ResourceOpSchema, { $refStrategy: 'none' }),
-      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
-    },
   ];
 }
 
@@ -743,7 +685,6 @@ export interface ToolHandlers {
   carta_batch_mutate: ToolHandler;
   carta_list_port_types: ToolHandler;
   carta_rebuild_page: ToolHandler;
-  carta_resource: ToolHandler;
   [key: string]: ToolHandler;
 }
 
@@ -1134,31 +1075,6 @@ export function createToolHandlers(config: ToolHandlerConfig): ToolHandlers {
       }
     },
 
-    carta_resource: async (args) => {
-      const input = ResourceOpSchema.parse(args);
-      const docState = await config.getDoc(input.documentId);
-      try {
-        switch (input.op) {
-          case 'list':
-            return unwrap(executeTool('list_resources', {}, docState.doc, ''));
-          case 'get':
-            return unwrap(executeTool('get_resource', { id: input.resourceId }, docState.doc, ''));
-          case 'create':
-            return unwrap(executeTool('create_resource', { name: input.name, format: input.format, body: input.body }, docState.doc, ''));
-          case 'update':
-            return unwrap(executeTool('update_resource', { id: input.resourceId, name: input.name, format: input.format, body: input.body }, docState.doc, ''));
-          case 'delete':
-            return unwrap(executeTool('delete_resource', { id: input.resourceId }, docState.doc, ''));
-          case 'publish':
-            return unwrap(executeTool('publish_resource', { id: input.resourceId, label: input.label }, docState.doc, ''));
-          case 'history':
-            return unwrap(executeTool('resource_history', { id: input.resourceId }, docState.doc, ''));
-          case 'diff':
-            return unwrap(executeTool('resource_diff', { id: input.resourceId, fromVersionId: input.fromVersionId, toVersionId: input.toVersionId }, docState.doc, ''));
-        }
-      } finally {
-        await docState.flush?.();
-      }
-    },
   };
+
 }

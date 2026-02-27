@@ -8,8 +8,7 @@ import PopoverMenu, { type PopoverMenuItem } from './ui/PopoverMenu';
 
 type ActiveView =
   | { type: 'page'; pageId: string }
-  | { type: 'metamap' }
-  | { type: 'resource'; resourceId: string };
+  | { type: 'metamap' };
 
 interface NavigatorProps {
   isOpen: boolean;
@@ -20,10 +19,6 @@ interface NavigatorProps {
   onDeletePage: (pageId: string) => boolean;
   onUpdatePage: (pageId: string, updates: Partial<Omit<Page, 'id' | 'nodes' | 'edges'>>) => void;
   onDuplicatePage: (pageId: string, newName: string) => void;
-  // Resources
-  resources: Array<{ id: string; name: string; format: string; currentHash: string; versionCount: number }>;
-  onSelectResource: (resourceId: string) => void;
-  onCreateResource: () => void;
   // View state
   activeView: ActiveView;
   onSelectMetamap: () => void;
@@ -33,7 +28,7 @@ interface NavigatorProps {
   onUpdateSpecGroup: (id: string, updates: { name?: string; description?: string; order?: number; items?: SpecGroupItem[] }) => void;
   onDeleteSpecGroup: (id: string) => void;
   onAssignToSpecGroup: (groupId: string, item: SpecGroupItem) => void;
-  onRemoveFromSpecGroup: (itemType: 'page' | 'resource', itemId: string) => void;
+  onRemoveFromSpecGroup: (itemType: 'page', itemId: string) => void;
 }
 
 interface PageRowProps {
@@ -146,41 +141,6 @@ function PageRow({
   );
 }
 
-interface ResourceRowProps {
-  resource: { id: string; name: string; format: string };
-  isActive: boolean;
-  onSelect: (resourceId: string) => void;
-  menuItems?: PopoverMenuItem[];
-}
-
-function ResourceRow({ resource, isActive, onSelect, menuItems }: ResourceRowProps) {
-  return (
-    <div
-      data-testid={`navigator-resource-${resource.id}`}
-      className={`flex items-center min-h-[36px] cursor-pointer group transition-colors ${isActive ? 'bg-[var(--color-surface-selected)]' : 'hover:bg-surface-alt'}`}
-      onClick={() => onSelect(resource.id)}
-    >
-      <div className={`w-[3px] self-stretch rounded-r flex-shrink-0 ${isActive ? 'bg-accent' : ''}`} />
-      <div className="flex-1 flex items-center gap-2 px-2 min-w-0">
-        <span className="text-sm font-medium text-content truncate flex-1">{resource.name}</span>
-        <span className="text-[10px] px-1.5 py-0.5 bg-surface-alt rounded text-content-muted flex-shrink-0">{resource.format}</span>
-      </div>
-      {menuItems && menuItems.length > 0 && (
-        <div className="opacity-0 group-hover:opacity-100 transition-opacity pr-2" onClick={(e) => e.stopPropagation()}>
-          <PopoverMenu
-            items={menuItems}
-            trigger={
-              <button className="p-1 rounded hover:bg-black/10 text-content-muted hover:text-content" title="Resource actions">
-                <DotsThreeVertical weight="bold" size={16} />
-              </button>
-            }
-          />
-        </div>
-      )}
-    </div>
-  );
-}
-
 interface SectionProps {
   title: string;
   onAdd?: () => void;
@@ -230,9 +190,6 @@ export default function Navigator({
   onDeletePage,
   onUpdatePage,
   onDuplicatePage,
-  resources,
-  onSelectResource,
-  onCreateResource,
   activeView,
   onSelectMetamap,
   specGroups,
@@ -360,9 +317,7 @@ export default function Navigator({
   const hasGroups = specGroups.length > 0;
   const sortedGroups = [...specGroups].sort((a, b) => a.order - b.order);
   const groupedPageIds = new Set(sortedGroups.flatMap(g => g.items.filter(i => i.type === 'page').map(i => i.id)));
-  const groupedResourceIds = new Set(sortedGroups.flatMap(g => g.items.filter(i => i.type === 'resource').map(i => i.id)));
   const ungroupedPages = sortedPages.filter(p => !groupedPageIds.has(p.id));
-  const ungroupedResources = resources.filter(r => !groupedResourceIds.has(r.id));
 
   const reorderButton = (
     <button
@@ -410,27 +365,6 @@ export default function Navigator({
     }
     items.push({ key: 'remove-from-group', label: 'Remove from group', onClick: () => onRemoveFromSpecGroup('page', page.id) });
     return items;
-  }
-
-  // Menu items for a resource inside a group
-  function groupedResourceMenuItems(resourceId: string, currentGroupId: string): PopoverMenuItem[] {
-    const items: PopoverMenuItem[] = [];
-    for (const group of sortedGroups) {
-      if (group.id !== currentGroupId) {
-        items.push({ key: `move-to-${group.id}`, label: `Move to ${group.name}`, onClick: () => onAssignToSpecGroup(group.id, { type: 'resource', id: resourceId }) });
-      }
-    }
-    items.push({ key: 'remove-from-group', label: 'Remove from group', onClick: () => onRemoveFromSpecGroup('resource', resourceId) });
-    return items;
-  }
-
-  // Menu items for an ungrouped resource when groups exist
-  function ungroupedResourceMenuItems(resourceId: string): PopoverMenuItem[] {
-    return sortedGroups.map(group => ({
-      key: `move-to-${group.id}`,
-      label: `Move to ${group.name}`,
-      onClick: () => onAssignToSpecGroup(group.id, { type: 'resource', id: resourceId }),
-    }));
   }
 
   return (
@@ -530,18 +464,6 @@ export default function Navigator({
                               menuItems={groupedPageMenuItems(page, group.id)}
                             />
                           );
-                        } else if (item.type === 'resource') {
-                          const resource = resources.find(r => r.id === item.id);
-                          if (!resource) return null;
-                          return (
-                            <ResourceRow
-                              key={resource.id}
-                              resource={resource}
-                              isActive={activeView.type === 'resource' && activeView.resourceId === resource.id}
-                              onSelect={onSelectResource}
-                              menuItems={groupedResourceMenuItems(resource.id, group.id)}
-                            />
-                          );
                         }
                         return null;
                       })}
@@ -557,7 +479,7 @@ export default function Navigator({
             })}
 
             {/* Ungrouped section (only when items exist) */}
-            {(ungroupedPages.length > 0 || ungroupedResources.length > 0) && (
+            {ungroupedPages.length > 0 && (
               <Section title="Ungrouped" onAdd={handleCreatePage} addLabel="New page">
                 {ungroupedPages.map(page => (
                   <PageRow
@@ -573,15 +495,6 @@ export default function Navigator({
                     onCancelEdit={handleCancelEdit}
                     onEditNameChange={setEditName}
                     menuItems={flatPageMenuItems(page)}
-                  />
-                ))}
-                {ungroupedResources.map(r => (
-                  <ResourceRow
-                    key={r.id}
-                    resource={r}
-                    isActive={activeView.type === 'resource' && activeView.resourceId === r.id}
-                    onSelect={onSelectResource}
-                    menuItems={ungroupedResourceMenuItems(r.id)}
                   />
                 ))}
               </Section>
@@ -640,28 +553,6 @@ export default function Navigator({
                     onCancelEdit={handleCancelEdit}
                     onEditNameChange={setEditName}
                     menuItems={flatPageMenuItems(page)}
-                  />
-                ))
-              )}
-            </Section>
-
-            {/* Resources section */}
-            <Section
-              title="Resources"
-              onAdd={onCreateResource}
-              addLabel="New resource"
-            >
-              {resources.length === 0 ? (
-                <div className="px-3 py-2 text-xs text-content-muted italic">
-                  No resources yet.
-                </div>
-              ) : (
-                resources.map((r) => (
-                  <ResourceRow
-                    key={r.id}
-                    resource={r}
-                    isActive={activeView.type === 'resource' && activeView.resourceId === r.id}
-                    onSelect={onSelectResource}
                   />
                 ))
               )}

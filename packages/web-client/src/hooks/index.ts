@@ -5,7 +5,6 @@ export { useSchemas } from './useSchemas';
 export { usePortSchemas } from './usePortSchemas';
 export { useSchemaGroups } from './useSchemaGroups';
 export { useSchemaPackages } from './useSchemaPackages';
-export { useResources } from './useResources';
 export { useSpecGroups } from './useSpecGroups';
 export { useSchemaRelationships } from './useSchemaRelationships';
 export { usePages } from './usePages';

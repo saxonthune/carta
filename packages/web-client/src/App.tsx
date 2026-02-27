@@ -12,12 +12,11 @@ import { DocumentProvider } from './contexts/DocumentContext';
 import { List } from '@phosphor-icons/react';
 import { compiler } from '@carta/document';
 import { syncWithDocumentStore } from '@carta/schema';
-import type { ConstructSchema, Resource } from '@carta/schema';
+import type { ConstructSchema } from '@carta/schema';
 import { useDocumentMeta } from './hooks/useDocumentMeta';
 import { useSchemas } from './hooks/useSchemas';
 import { useSchemaGroups } from './hooks/useSchemaGroups';
 import { usePages } from './hooks/usePages';
-import { useResources } from './hooks/useResources';
 import { useSpecGroups } from './hooks/useSpecGroups';
 import { useClearDocument } from './hooks/useClearDocument';
 import { useExampleLoader } from './hooks/useExampleLoader';
@@ -30,8 +29,7 @@ import { config } from './config/featureFlags';
 
 type ActiveView =
   | { type: 'page'; pageId: string }
-  | { type: 'metamap' }
-  | { type: 'resource'; resourceId: string };
+  | { type: 'metamap' };
 
 const ImportPreviewModal = lazy(() => import('./components/modals/ImportPreviewModal'));
 const ExportPreviewModal = lazy(() => import('./components/modals/ExportPreviewModal'));
@@ -154,7 +152,6 @@ function AppContent() {
   const { schemas } = useSchemas();
   const { schemaGroups } = useSchemaGroups();
   const { pages, activePage, setActivePage, createPage, deletePage, updatePage, duplicatePage } = usePages();
-  const { resources } = useResources();
   const { specGroups, createSpecGroup, updateSpecGroup, deleteSpecGroup, assignToSpecGroup, removeFromSpecGroup } = useSpecGroups();
   const [navigatorOpen, setNavigatorOpen] = useState(true);
   const [activeView, setActiveView] = useState<ActiveView>(() => ({
@@ -216,11 +213,6 @@ function AppContent() {
     // Selection handling removed with InspectorPanel (V1-only)
   }, []);
 
-  const handleCreateResource = useCallback(() => {
-    const created = adapter.createResource('New Resource', 'freeform', '');
-    setActiveView({ type: 'resource', resourceId: created.id });
-  }, [adapter]);
-
   const handleExport = useCallback(() => {
     const { nodes, edges } = nodesEdgesRef.current;
     const portSchemas = adapter.getPortSchemas();
@@ -230,12 +222,6 @@ function AppContent() {
 
   const handleExportConfirm = useCallback((options: ExportOptions) => {
     const portSchemas = adapter.getPortSchemas();
-    const resourceSummaries = adapter.getResources();
-    const resources: Resource[] = [];
-    for (const summary of resourceSummaries) {
-      const full = adapter.getResource(summary.id);
-      if (full) resources.push(full);
-    }
 
     exportProject({
       title,
@@ -245,7 +231,6 @@ function AppContent() {
       portSchemas,
       schemaGroups,
       schemaPackages: adapter.getSchemaPackages(),
-      resources,
     }, options);
 
     setExportPreview(null);
@@ -322,9 +307,6 @@ function AppContent() {
           onDeletePage={deletePage}
           onUpdatePage={updatePage}
           onDuplicatePage={duplicatePage}
-          resources={resources}
-          onSelectResource={(resourceId) => setActiveView({ type: 'resource', resourceId })}
-          onCreateResource={handleCreateResource}
           activeView={activeView}
           onSelectMetamap={() => setActiveView({ type: 'metamap' })}
           specGroups={specGroups}

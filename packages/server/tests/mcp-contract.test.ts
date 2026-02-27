@@ -10,7 +10,6 @@ import { builtInPortSchemas } from '@carta/schema';
 import {
   SchemaOpSchema,
   SchemaMigrateOpSchema,
-  ResourceOpSchema,
   getToolDefinitions,
 } from '../src/mcp/tools.js';
 
@@ -202,12 +201,6 @@ describe('MCP tool surface coverage', () => {
       batchMutate: 'carta_batch_mutate',
       compile: 'carta_compile',
       rebuildPage: 'carta_rebuild_page',
-
-      // Resource operations
-      createResource: 'carta_resource',
-      updateResource: 'carta_resource',
-      deleteResource: 'carta_resource',
-      publishResourceVersion: 'carta_resource',
     };
 
     // Read-only or internal operations that don't need MCP tools
@@ -228,10 +221,6 @@ describe('MCP tool surface coverage', () => {
       'getPackage',
       'listStandardPackages',
       'checkPackageDrift',
-      'listResources',
-      'getResource',
-      'getResourceHistory',
-      'getResourceVersion',
     ]);
 
     // Verify every mapped tool exists
@@ -251,11 +240,3 @@ describe('MCP tool surface coverage', () => {
   });
 });
 
-// ─── ResourceOpSchema contract ────────────────────────────────────────────────
-
-describe('ResourceOpSchema operations', () => {
-  it('ResourceOpSchema is exported and has expected ops', () => {
-    const ops = ResourceOpSchema.options.map(o => o.shape.op._def.value);
-    expect(ops.sort()).toEqual(['create', 'delete', 'diff', 'get', 'history', 'list', 'publish', 'update']);
-  });
-});
