@@ -26,10 +26,10 @@ As patterns emerge, start replacing generic constructs with typed schemas. Group
 
 ## Refinement Phase
 
-Tighten the model for compilation. Ensure all constructs have meaningful field values. Verify port connections are semantically correct. Assign deployables. The model is now structured enough for AI consumption.
+Tighten the model for compilation. Ensure all constructs have meaningful field values. Verify port connections are semantically correct. The model is now structured enough for AI consumption.
 
 - Fill in field values
-- Assign deployables for grouping
+- Verify connections are semantically correct
 - Compile and review output
 - Iterate on schema definitions if compilation reveals gaps
 

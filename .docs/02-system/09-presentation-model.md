@@ -99,7 +99,7 @@ Each organizer has a **layout strategy** that determines how its collection is a
 |----------|----------|----------|
 | `freeform` | Members positioned freely within bounds. NodeResizer for manual sizing. This is the default layout. | General-purpose grouping, spatial clustering |
 
-**Planned strategies:** `stack` (one member visible at a time with arrow navigation) and `grid` (auto-arranged in a resizable grid) are planned but not yet implemented.
+Stack and grid strategies were explored but removed. Only freeform is currently supported.
 
 Layout strategies follow a **Strategy pattern** — each is a pure function that computes member positions and visibility from the organizer's state:
 

@@ -43,7 +43,7 @@ Layout:      AppLayout, CanvasLayout
 | Lifetime | Where | Examples |
 |----------|-------|----------|
 | App (global) | Context / localStorage | Theme, AI API key |
-| Document | Yjs Y.Doc via adapter | Nodes, edges, schemas, deployables |
+| Document | Yjs Y.Doc via adapter | Nodes, edges, schemas |
 | Component | useState | Modal open/close, hover, rename mode |
 | URL | URL params | `?doc={id}` in server mode |
 
@@ -132,11 +132,12 @@ Organized by purpose:
 
 ### `hooks/index.ts`
 Organized by purpose:
-- **Document state**: `useNodes`, `useEdges`, `useSchemas`, `usePortSchemas`, `useSchemaGroups`, `useSchemaPackages`, `useResources`, `useSchemaRelationships`, `usePages`, `useDocumentMeta`, `usePackagePicker`
+- **Document state**: `useNodes`, `useEdges`, `useSchemas`, `usePortSchemas`, `useSchemaGroups`, `useSchemaPackages`, `useSpecGroups`, `useSchemaRelationships`, `usePages`, `useDocumentMeta`, `usePackagePicker`
 - **Document operations**: `usePresentation`, `useOrganizerOperations`, `useLayoutActions`, `useEdgeCleanup`, `usePinConstraints`
 - **UI state**: `useMapState`, `useNarrative`, `useEdgeBundling`, `useFlowTrace`
 - **Map pipelines**: `useEdgeColor`, `useMapNodePipeline`, `useMapEdgePipeline`
-- **Utilities**: `useUndoRedo`, `useAwareness`, `useDirtyStateGuard`, `useClearDocument`
+- **Utilities**: `useUndoRedo`, `useClearDocument`
+- **Workspace mode**: `useWorkspaceMode`
 
 ### `components/canvas/index.ts`
 Canvas components and LOD:

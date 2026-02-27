@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Compact agent monitor. Usage: watch -n5 bash .claude/skills/carta-feature-implementor/monitor.sh
-TODO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/todo-tasks"
+TODO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/todo-tasks"
 shopt -s nullglob
 now=$(date +%s)
 T=$'\t'
@@ -17,8 +17,8 @@ elapsed() {
   else echo "$((age/86400))d$((age%86400/3600))h"; fi
 }
 
-lines=$(
-# Chains
+# Active: chains + solo running agents
+active=$(
 for m in "$TODO"/.running/chain-*.manifest; do
   [[ -r "$m" ]] || continue
   chain=$(sed -n 's/^chain: *//p' "$m" 2>/dev/null)
@@ -36,13 +36,13 @@ for m in "$TODO"/.running/chain-*.manifest; do
   esac
 done
 
-# Solo running agents (not claimed by a chain)
 for md in "$TODO"/.running/*.md; do
   [[ -r "$md" ]] || continue
   slug=$(basename "$md" .md)
-  grep -ql "$slug" "$TODO"/.running/chain-*.manifest 2>/dev/null && continue
+  claimed=false; for _m in "$TODO"/.running/chain-*.manifest; do grep -ql "$slug" "$_m" 2>/dev/null && claimed=true && break; done; $claimed && continue
   echo "▶${T}${slug}${T}${T}${T}$(elapsed "$md")"
 done
+)
 
 # Collect chain-claimed slugs
 chain_slugs=""
@@ -51,8 +51,9 @@ for m in "$TODO"/.running/chain-*.manifest; do
   chain_slugs+=" $(sed -n 's/^phases: *//p' "$m" 2>/dev/null | tr ',' ' ') "
 done
 
-# 3 most recent completions (by mtime, newest first), excluding chain members
-results=("$TODO"/.done/*.result.md)
+# 3 most recent completions (by mtime, newest first) from .done/ and .archived/
+recent=$(
+results=("$TODO"/.done/*.result.md "$TODO"/.archived/*.result.md)
 if (( ${#results[@]} )); then
   printf '%s\n' "${results[@]}" | while read -r r; do
     [[ -r "$r" ]] || continue
@@ -74,8 +75,13 @@ if (( ${#results[@]} )); then
 fi
 )
 
-if [[ -n "$lines" ]]; then
-  echo "$lines" | column -t -s "$T"
+# Output
+if [[ -n "$active" ]]; then
+  echo "$active" | column -t -s "$T"
 else
-  echo "(idle)"
+  echo "(no plans running)"
+fi
+if [[ -n "$recent" ]]; then
+  echo
+  echo "$recent" | column -t -s "$T"
 fi

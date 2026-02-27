@@ -16,7 +16,7 @@ All document state lives in a Yjs Y.Doc, accessed through the DocumentAdapter in
 | Lifetime | Where | Examples |
 |----------|-------|----------|
 | App (global) | Context / localStorage | Theme, AI API key |
-| Document | Yjs Y.Doc via adapter | Nodes, edges, schemas, deployables, pages |
+| Document | Yjs Y.Doc via adapter | Nodes, edges, schemas, pages |
 | Component | useState | Modal open/close, hover, rename mode |
 | URL | URL params | `?doc={id}` in server mode |
 
@@ -27,10 +27,9 @@ All document state lives in a Yjs Y.Doc, accessed through the DocumentAdapter in
 - **Schemas**: Construct type definitions (shared across pages)
 - **Port Schemas**: Port type definitions (shared across pages)
 - **Schema Groups**: Schema organization metadata
-- **Deployables**: Logical groupings (per-page)
 - **Organizers**: Visual grouping containers with layout strategies (per-page). See doc02.09
-- **Pages**: Separate architectural views, each with own nodes/edges/deployables
-- **Spec Groups**: Document-level organizational groups containing ordered mix of pages and resources (doc02.06)
+- **Pages**: Separate architectural views, each with own nodes/edges
+- **Spec Groups**: Document-level organizational groups containing ordered list of pages (doc02.06)
 
 ### Persistence
 
@@ -112,7 +111,6 @@ mode enabled by passing `workspaceCanvas: WorkspaceCanvasSchemas` to `createYjsA
   injected payload. All schema mutation methods are no-ops (log a warning).
 - **Pages**: Single synthetic page (`WORKSPACE_CANVAS_PAGE_ID = 'canvas'`). Page
   management methods (`createPage`, `deletePage`, `setActivePage`) are no-ops.
-- **Resources**: Not supported per-canvas. `getResources()` returns `[]`.
 - **Persistence**: Server-side only (no IndexedDB). The server maintains a binary
   `.ystate` sidecar for fast reconnect.
 - **Migrations**: Skipped entirely — workspace canvas Y.Docs are always fresh.

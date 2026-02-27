@@ -19,11 +19,11 @@ Deleting user data should only happen when the user consciously decides to delet
 
 ## Single Source of Truth
 
-Yjs Y.Doc is the only state store. All document state (nodes, edges, schemas, deployables, port schemas) lives in Yjs. UI state (selection, menus, modals) stays in component useState.
+Yjs Y.Doc is the only state store. All document state (nodes, edges, schemas, port schemas) lives in Yjs. UI state (selection, menus, modals) stays in component useState.
 
 ## No Singleton Registries
 
-Schema and deployable data is accessed through the document adapter, not global imports. Functions receive their dependencies as parameters.
+Schema data is accessed through the document adapter, not global imports. Functions receive their dependencies as parameters.
 
 ## Edges Carry No Metadata
 
@@ -50,7 +50,7 @@ Don't embed structured data (like parameters or columns) as table fields inside 
 
 ## DataKind Is Exhaustive
 
-Every field must have exactly one of the six data kinds: string, number, boolean, date, enum, resource. The first five are scalar values. The sixth — `resource` — is a reference type: its value is a compound `{ resourceId, pathHint? }` pointing to a document-level resource entity and optionally hinting at a location within it (see doc02.04.08). There are no other special field types. DisplayHints (multiline, code, url, etc.) affect rendering only, not data storage.
+Every field must have exactly one of the five data kinds: string, number, boolean, date, enum. All five are scalar values. There are no other special field types. DisplayHints (multiline, code, url, etc.) affect rendering only, not data storage.
 
 ## Dual Identity System
 

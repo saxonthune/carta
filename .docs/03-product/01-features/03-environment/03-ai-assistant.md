@@ -53,7 +53,7 @@ AI access varies by deployment target (see doc02.05 for full matrix):
 
 ## MCP Server
 
-Carta exposes an MCP server (doc02.03) for integration with external AI tools like Claude Code. The MCP server provides the same document manipulation capabilities as the sidebar tools, plus schema and deployable operations.
+Carta exposes an MCP server (doc02.03) for integration with external AI tools like Claude Code. The MCP server provides the same document manipulation capabilities as the sidebar tools, plus schema and layout operations.
 
 ### Desktop MCP Auto-Discovery
 

@@ -41,13 +41,6 @@ Controlled by the schema's `backgroundColorPolicy`:
 
 Instance color overrides are stored per-instance and can be reset to default.
 
-## Deployable Assignment
+## Visual Organization
 
-Each construct can be assigned to a deployable (doc01.03) via a dropdown in the details view. Deployable assignment affects compilation grouping and visual background highlighting on the canvas.
-
-## Virtual Parents
-
-Virtual parent nodes are container constructs that visually group child constructs. Three collapse states:
-- **Expanded**: Shows children inside a resizable container
-- **No-edges**: Shows children but hides connecting edges
-- **Collapsed**: Pill display with child count badge
+Constructs can be grouped into organizers (doc02.09) for spatial organization on the canvas. Organizers are visual-only — they are never compiled. See doc01.03 for the distinction between organizers (spatial) and connections (semantic).

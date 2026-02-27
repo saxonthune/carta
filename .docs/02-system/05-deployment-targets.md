@@ -54,7 +54,7 @@ A **document source** is where documents live. The app supports three source typ
 |--------|----------|------------|-----------------|
 | **Browser** | Any web browser | IndexedDB | Local registry in IndexedDB |
 | **Server** | Any (requires server URL) | Server database | REST API `GET /api/documents` |
-| **Folder** | Desktop (Electron) or Chromium (File System Access API) | Filesystem `.carta` files | Directory listing |
+| **Folder** | Desktop (Electron) | Filesystem `.carta` files | Directory listing |
 
 ### Source availability by deployment
 

@@ -1,7 +1,10 @@
 ---
 title: "Resources: versioned data contracts in the metamodel"
-status: draft
+status: archived
+superseded-by: "Filesystem-first workspace (ADR 009) — resources became regular files in the workspace directory"
 ---
+
+> **Archived.** The resource concept was removed during the workspace epic. Filesystem workspace files (`.carta/` directory with arbitrary text files) replace the resource concept. This ADR is retained for historical context only.
 
 # Decision 008: Resources — Versioned Data Contracts in the Metamodel
 

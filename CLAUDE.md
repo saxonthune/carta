@@ -106,8 +106,6 @@ Packages can only depend on packages above them in the graph.
 
 Cross-package dependencies are resolved via Vite/TypeScript aliases. Packages use `index.ts` barrel exports for public APIs. Web client feature directories (hooks, components/canvas, components/metamap, components/modals, components/ui) each have barrel exports.
 
-**Stale/dead code:** `@carta/core` (`packages/core/`) has divergent types the server still depends on. `packages/app/` is dead code.
-
 ## Build & Test
 
 ```bash

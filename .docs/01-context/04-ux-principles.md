@@ -67,7 +67,7 @@ These govern how all visual elements — canvas content, editors, panels, modals
 
 Every visual context has a **figure** (what the user is focused on) and a **ground** (the surface it sits on). The ground must always be quieter than the figure.
 
-- **Canvas**: Nodes are the figure. The canvas background, deployable regions, and edges are ground. Nodes should have the highest contrast and most refined form; everything else exists to support them.
+- **Canvas**: Nodes are the figure. The canvas background, organizer regions, and edges are ground. Nodes should have the highest contrast and most refined form; everything else exists to support them.
 - **Editors/Modals**: Form fields and controls are the figure. Panel backgrounds, island containers, and section dividers are ground.
 - **Practical test**: Squint at the screen. If background elements compete with foreground elements for attention, the figure/ground relationship is broken.
 

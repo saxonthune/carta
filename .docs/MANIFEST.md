@@ -48,8 +48,8 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 | doc02.04.05 | `04-decisions/05-presentation-model-organizers.md` | ADR: presentation model, organizers replace visual groups | adr, presentation, organizers, layout | doc02.09 |
 | doc02.04.06 | `04-decisions/06-yjs-authoritative-layout.md` | ADR: Yjs-authoritative layout, RF as renderer only, eliminate 3-layer sync | adr, state, layout, yjs, react-flow | doc02.02, doc05.03 |
 | doc02.04.07 | `04-decisions/07-package-loading-architecture.md` | ADR: Package-based schema loading, dual identity (UUID + content hash), manifest, snapshots | adr, packages, loading, seeds, identity, library | doc02.06, doc03.01.01.07 |
-| doc02.04.08 | `04-decisions/08-resources.md` | ADR: Resources — versioned data contracts, resource DataKind, working copy + publish model | adr, resources, datakind, versioning, mcp | doc02.06, doc02.03 |
-| doc02.04.09 | `04-decisions/09-filesystem-workspace.md` | ADR: Filesystem-first workspace — `.carta/` directory, JSON canonical with binary sidecar, spec groups as directories, narrowed MCP surface, `carta serve .` | adr, workspace, filesystem, deployment, mcp, groups | doc02.04.04, doc02.04.08, doc02.05 |
+| doc02.04.08 | `04-decisions/08-resources.md` | **Archived.** ADR: Resources — superseded by filesystem-first workspace (ADR 009) | adr, archived | — |
+| doc02.04.09 | `04-decisions/09-filesystem-workspace.md` | ADR: Filesystem-first workspace — `.carta/` directory, JSON canonical with binary sidecar, spec groups as directories, narrowed MCP surface, `carta serve .` | adr, workspace, filesystem, deployment, mcp, groups | doc02.04.04, doc02.05 |
 | doc02.05 | `05-deployment-targets.md` | VITE_SYNC_URL, VITE_AI_MODE, document sources | deployment, config, server | doc02.01 |
 | doc02.06 | `06-metamodel.md` | M2/M1/M0 metamodel, DataKind, ConstructSchema | metamodel, schemas, ports | doc01.02 |
 | doc02.07 | `07-design-system.md` | Depth system, island pattern, colors, typography | design, ui, styling, lod | doc01.04 |
@@ -171,10 +171,10 @@ Quick lookup for file-path→doc mapping:
 | `epistemology` | doc05.04 |
 | `testability` | doc05.04 |
 | `oracles` | doc05.04 |
-| `resources` | doc02.04.08, doc02.03, doc02.06 |
+| `resources` | doc02.04.08 (archived) |
 | `workspace` | doc02.04.09, doc02.05 |
 | `filesystem` | doc02.04.09 |
-| `datakind` | doc02.04.08, doc02.06, doc01.02 |
+| `datakind` | doc02.06, doc01.02 |
 | `mcp` | doc02.03, doc03.01.03.03 |
 | `research` | doc05.01, doc05.02 |
 | `tokens` | doc05.02 |

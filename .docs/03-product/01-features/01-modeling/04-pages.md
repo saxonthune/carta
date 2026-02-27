@@ -5,11 +5,11 @@ status: active
 
 # Pages
 
-Pages are separate architectural views within a single document. Each page has its own nodes, edges, and deployables. Schemas, port schemas, and schema groups are shared across all pages.
+Pages are separate architectural views within a single document. Each page has its own nodes and edges. Schemas, port schemas, and schema groups are shared across all pages.
 
 ## Component Structure
 
-Page navigation lives in the **Navigator panel** (`Navigator.tsx`) — a persistent left-side panel (VS Code / Obsidian style) that also lists resources and provides access to the metamap. The Navigator is opened/closed via a toggle in the shell layout.
+Page navigation lives in the **Navigator panel** (`Navigator.tsx`) — a persistent left-side panel (VS Code / Obsidian style) that provides access to the metamap. The Navigator is opened/closed via a toggle in the shell layout.
 
 The Navigator has a **Pages section** with:
 - A list of all pages, with the active page highlighted by an accent bar
@@ -18,8 +18,6 @@ The Navigator has a **Pages section** with:
 - A **+ button** to create a new page
 
 A **Metamap toggle button** at the top of the Navigator switches to the schema view.
-
-A **Resources section** below Pages lists all document resources, each clickable to open its `ResourceView`.
 
 ## Operations
 
@@ -33,14 +31,14 @@ A **Resources section** below Pages lists all document resources, each clickable
 
 ## Spec Groups
 
-Pages (and resources) can be organized into named **spec groups** via the Navigator. Spec groups provide semantic organization for the specification hierarchy — for example, "Product Vision", "API Contract", "Implementation Detail".
+Pages can be organized into named **spec groups** via the Navigator. Spec groups provide semantic organization for the specification hierarchy — for example, "Product Vision", "API Contract", "Implementation Detail".
 
-- Groups appear as collapsible sections in the Navigator, each containing an ordered mix of pages and resources
-- Items are assigned to groups via the **Move to...** context menu on any page or resource row
+- Groups appear as collapsible sections in the Navigator, each containing an ordered list of pages
+- Items are assigned to groups via the **Move to...** context menu on any page row
 - **Remove from group** returns an item to the ungrouped section at the bottom
 - Groups are created with the **+ New Group** button at the bottom of the Navigator
 - Groups can be renamed (inline edit via the group context menu) and deleted (items become ungrouped)
-- When no groups exist, the Navigator shows the standard flat Pages + Resources layout unchanged
+- When no groups exist, the Navigator shows the standard flat Pages layout unchanged
 
 Group membership is stored on the group's `items` array (not on the page or resource). Cross-group drag-and-drop and item reordering within groups via drag are not yet implemented; use the context menu to move items.
 

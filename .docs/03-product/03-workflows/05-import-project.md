@@ -9,7 +9,7 @@ status: draft
 
 1. Click "Import" in the header (or drag-and-drop a .carta file)
 2. The Import Preview Modal shows all items from the file
-3. Items are categorized: schemas, instances, deployables
+3. Items are categorized: schemas, instances
 4. Each item shows status: conflict (amber), new (green), existing (gray)
 5. Select which items to import via checkboxes
 6. Choose import target:

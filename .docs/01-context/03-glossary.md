@@ -15,7 +15,7 @@ Canonical definitions for domain terms used throughout Carta. Use these terms co
 
 **Field**: A named data slot on a construct schema. Types include string, number, boolean, enum, and date. Field values are the user-entered data on construct instances.
 
-**Full View Window**: A draggable, pinnable window that displays comprehensive node information (all fields, deployable, identity, connections, compile preview). Opened via the full view icon button in node headers. Features no backdrop darkening and uses island UX patterns.
+**Full View Window**: A draggable, pinnable window that displays comprehensive node information (all fields, identity, connections, compile preview). Opened via the full view icon button in node headers. Features no backdrop darkening and uses island UX patterns.
 
 **Display Tier**: The visibility level assigned to a field on a construct schema. Two tiers: `pill` (node title, max 1 field) and `summary` (shown on canvas). Fields without a tier are inspector-only (not shown on canvas).
 
@@ -23,7 +23,7 @@ Canonical definitions for domain terms used throughout Carta. Use these terms co
 
 **Display Name**: The human-readable title of a construct instance, derived from the schema's `displayField` value or falling back to the semantic ID.
 
-**Page**: A separate architectural view or layer within a document. Each page has its own nodes, edges, and deployables. Schemas are shared across pages.
+**Page**: A separate architectural view or layer within a document. Each page has its own nodes and edges. Schemas are shared across pages.
 
 **LOD Band**: One of two discrete zoom-based rendering modes (`marker`, `normal`) that control node detail level. Marker (zoom < 0.5) shows tinted surface chips with accent dot and name. Normal (zoom >= 0.5) shows full card with all controls. See doc02.07 for visual specs.
 
@@ -47,19 +47,17 @@ Canonical definitions for domain terms used throughout Carta. Use these terms co
 
 ## Organization
 
-**Deployable**: A logical grouping for constructs representing a deployment unit (e.g., API Service, Database Layer, UI Application). Helps AI tools understand which components should be deployed together.
-
 **Schema Package**: The unit of schema bundling and library portability. A package contains construct schemas, in-package port schemas, and optional schema groups for visual organization. Packages are what get published to and applied from the schema library. Example: "Backend Stack" package containing Service, Endpoint, Repository, and DataStore schemas with their domain-specific port types.
 
 **Schema Group**: A visual grouping of construct schemas within a package, used for metamap organization and menu nesting. Groups are cosmetic — they affect how schemas are displayed and navigated, not how they are bundled or compiled. A group always belongs to a package via `packageId`.
 
 **Virtual Folder**: A folder path derived from document metadata, not stored as a separate entity. Documents have a `folder` field (e.g., `/projects/webapp`) and the folder hierarchy is derived dynamically by the UI. Folders are created implicitly when documents are saved to them.
 
-**Organizer**: A canvas-level grouping mechanism for visual organization. Organizers let users arrange constructs into collections without affecting the semantic model — they are never compiled. Each organizer has a **layout strategy** (`freeform`, `stack`, `grid`) that determines how its members are arranged. Organizers can nest (a freeform organizer can contain other organizers). Constructs inside an organizer are **members**, not children — "parent/child" is reserved for the port system. See doc02.09.
+**Organizer**: A canvas-level grouping mechanism for visual organization. Organizers let users arrange constructs into collections without affecting the semantic model — they are never compiled. Each organizer uses a `freeform` layout strategy (free positioning within bounds). Organizers can nest only via wagons (a construct's wagon organizer inherits nesting from its parent organizer). Constructs inside an organizer are **members**, not children — "parent/child" is reserved for the port system. See doc02.09.
 
 **Organized Collection**: The set of constructs that belong to a single organizer. The organizer is the container; the collection is its contents.
 
-**Layout Strategy**: The arrangement algorithm used by an organizer. Currently only `freeform` (free positioning within bounds) is implemented. Planned: `stack` (one member visible at a time with arrow navigation), `grid` (auto-arranged in a resizable grid). Layout strategies are a Strategy pattern — each computes member positions and visibility as a pure function.
+**Layout Strategy**: The arrangement algorithm used by an organizer. Currently only `freeform` (free positioning within bounds) is implemented. Layout strategies follow a Strategy pattern — each computes member positions and visibility as a pure function.
 
 **Presentation Model**: A stateless transformation layer that converts domain state into view state. Decides node visibility (organizer collapse), positioning (layout strategies), component selection (render style + LOD dispatch), and edge routing (remapping for collapsed organizers). Lives in the Visual Editor Layer but is conceptually distinct from React components. See doc02.09.
 

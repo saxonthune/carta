@@ -17,7 +17,7 @@ Domain Layer (@carta/schema)
 
 Document Layer (@carta/document)
   Shared Y.Doc operations, Yjs helpers, file format, migrations
-  Level-aware CRUD for constructs, edges, deployables, schemas
+  Level-aware CRUD for constructs, edges, schemas
   Compilation engine (compiler merged into this package)
   Platform-agnostic — no React, no browser APIs
 
@@ -91,5 +91,5 @@ Packages and feature directories use barrel exports (`index.ts`) for organized p
 User adds node -> adapter fetches schema -> editor creates node with semanticId
 User edits fields -> node data updated -> synced to Yjs Y.Doc -> persisted to IndexedDB
 User drags port to port -> portRegistry.canConnect() validates -> connection stored on construct -> edge rendered
-User compiles -> compiler receives schemas/deployables -> generates relationship semantics -> AI output
+User compiles -> compiler receives schemas -> generates relationship semantics -> AI output
 ```

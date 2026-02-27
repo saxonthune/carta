@@ -5,7 +5,7 @@ status: active
 
 # Design System
 
-Visual and interaction standards for the Carta application UI. Part 1 covers **application chrome** (headers, modals, panels). Part 2 covers **canvas content** (nodes, edges, deployables, LOD). Visual design principles that underpin both are in doc01.04.
+Visual and interaction standards for the Carta application UI. Part 1 covers **application chrome** (headers, modals, panels). Part 2 covers **canvas content** (nodes, edges, organizers, LOD). Visual design principles that underpin both are in doc01.04.
 
 ## Depth System
 
@@ -196,7 +196,7 @@ The `Modal` primitive (`ui/Modal.tsx`) supports a `blurBackdrop` prop that adds 
 
 # Part 2: Canvas Content
 
-Visual specifications for user-created content on the canvas — nodes, edges, deployable backgrounds, and LOD rendering. Governed by the visual design principles in doc01.04.
+Visual specifications for user-created content on the canvas — nodes, edges, organizer backgrounds, and LOD rendering. Governed by the visual design principles in doc01.04.
 
 ## Schema Color Palette
 
@@ -260,17 +260,17 @@ Node cards are the primary visual elements on the canvas. Their design follows t
 
 - Accent-colored `ring-2` or `box-shadow` glow — not a thick border that changes the card's geometry.
 
-## Deployable Backgrounds
+## Organizer Backgrounds
 
-Deployable backgrounds are **ground**, not **figure**. They must be the quietest visual layer on the canvas.
+Organizer backgrounds are **ground**, not **figure**. They must be the quietest visual layer on the canvas.
 
 ### Rules
 
-1. **Theme-adaptive fill**: 6% opacity of the deployable color across all themes (via CSS vars: `--deployable-fill-opacity`), 12% stroke opacity. Labels use 16px font, 600 weight, 85% opacity at normal zoom. Visibility adapts per-theme via CSS custom properties.
-2. **Interactive labels**: Deployable labels support click-to-select-all and drag-to-move-group interactions at normal zoom levels.
+1. **Theme-adaptive fill**: 6% opacity of the organizer color across all themes, 12% stroke opacity. Labels use 16px font, 600 weight, 85% opacity at normal zoom. Visibility adapts per-theme via CSS custom properties.
+2. **Interactive labels**: Organizer labels support click-to-select-all and drag-to-move-group interactions at normal zoom levels.
 3. **No dashed borders**: Remove dashed stroke outlines. If a border is needed at all, use a 1px solid line at 10-15% opacity.
 4. **Label placement**: Bottom-right corner, small text, muted color. Labels should fade in progressively with zoom — invisible at marker level, subtle at compact, readable at normal.
-5. **No visual competition**: The deployable background should never draw the eye away from the nodes it contains.
+5. **No visual competition**: The organizer background should never draw the eye away from the nodes it contains.
 
 ## Metamap Visual Design
 

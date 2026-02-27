@@ -7,11 +7,10 @@ status: active
 
 ## File Format (.carta)
 
-Version 7 JSON format containing:
+Version 8 JSON format containing:
 - Title and description
-- Pages (each with nodes, edges, deployables)
-- Custom schemas, port schemas, schema groups
-- Resources (versioned data contracts — added in v7)
+- Pages (each with nodes, edges)
+- Custom schemas, port schemas, schema groups, schema packages, package manifest
 - Backwards compatible with v4 and earlier
 
 Import validates structure and shows a preview modal with conflict detection (existing items with same ID). Export offers selective export by category.
@@ -48,7 +47,7 @@ When the server is configured with a workspace path (`.carta/` directory), addit
 | `/api/workspace/schemas` | GET | Parsed schemas.json content |
 | `/api/workspace/files/:path` | GET | Read text file content; returns `{ content: string, path: string }` |
 
-These endpoints are read-only. File mutations happen through Y.Doc operations (canvas editing, text file rooms) or direct filesystem access (resources).
+These endpoints are read-only. File mutations happen through Y.Doc operations (canvas editing, text file rooms).
 
 ## Compiler Output
 
@@ -58,7 +57,6 @@ The compiler transforms a single canvas into a context-window-friendly JSON repr
 - **Schema definitions**: Construct schemas referenced by this canvas, with ports and semantic descriptions
 - **Constructs by type**: Construct instances grouped by schema type
 - **Relationship metadata**: Bidirectional reference maps (references/referencedBy) using semantic IDs
-- **Resources section**: Resource bodies (verbatim, format-agnostic) with a `referencedBy` graph showing which constructs reference each resource and via which field/pathHint. Emitted only when resources exist
 
 ## MCP Server
 
@@ -168,4 +166,4 @@ Server mode uses y-websocket for real-time collaboration. The Yjs CRDT handles c
 
 ## DocumentAdapter Interface
 
-The internal contract between UI and storage. Methods for CRUD on all document entities (nodes, edges, schemas, deployables, pages, port schemas, schema groups). Subscribe for change notifications. Transaction support for atomic multi-operation changes.
+The internal contract between UI and storage. Methods for CRUD on all document entities (nodes, edges, schemas, pages, port schemas, schema groups). Subscribe for change notifications. Transaction support for atomic multi-operation changes.

@@ -18,7 +18,6 @@ Polarity                FieldSchema                    - semanticId
 PortSchema interface    PortConfig                     - values {}
                         PortSchema instances            - connections[]
                         SchemaGroup (visual)            - instanceColor?
-                        Deployable
 ```
 
 **M2** defines the grammar — what kinds of things can exist. **M1** defines the vocabulary — what specific types exist in this document. **M0** holds the sentences — actual instances placed on the canvas.
@@ -29,7 +28,7 @@ These types are fixed at design time. Users cannot add, remove, or modify them.
 
 ### DataKind
 
-The six data types for field values. Every field has exactly one (see doc01.02, "DataKind Is Exhaustive").
+The five data types for field values. Every field has exactly one (see doc01.02, "DataKind Is Exhaustive").
 
 | Kind | Description | Example Values |
 |------|-------------|----------------|
@@ -38,9 +37,8 @@ The six data types for field values. Every field has exactly one (see doc01.02, 
 | `boolean` | True/false | true, false |
 | `date` | Date values | "2024-01-15" |
 | `enum` | Fixed choices | "GET", "POST", "PUT" |
-| `resource` | Reference to a document resource | `{ resourceId: "abc-123", pathHint: "Page.nodes", versionHash: "sha256-..." }` |
 
-The first five kinds are scalar values. The sixth — `resource` — is a reference type introduced by doc02.04.08. Its value is a compound `{ resourceId, pathHint?, versionHash? }` pointing to a Resource entity in the document, optionally hinting at a location within the resource body, and optionally pinning to a specific published version via content hash. The `pathHint` is a freeform string — Carta stores and displays it but does not validate or navigate it, because resource bodies are format-agnostic (see doc02.04.08, "Resource bodies are opaque to Carta").
+All five are scalar values.
 
 ### DisplayHint
 
@@ -54,6 +52,7 @@ Optional presentation hints for string fields. Affects rendering only, not stora
 | `password` | Password input |
 | `url` | URL input |
 | `color` | Color picker |
+| `markdown` | Markdown editor/renderer |
 
 ### Polarity
 
@@ -130,7 +129,7 @@ Defines a data slot on a construct type:
 |----------|---------|
 | `name` | Internal key |
 | `label` | Display label |
-| `type` | One of the six DataKinds |
+| `type` | One of the five DataKinds |
 | `semanticDescription` | AI compilation context |
 | `options` | Enum choices (enum type only) |
 | `displayHint` | Rendering hint (string type only) |
@@ -147,7 +146,6 @@ Configures a port on a construct type:
 | `portType` | References a PortSchema.id |
 | `label` | Display label |
 | `suggestedTypes` | Hint for what construct types to connect |
-| `allowsGrouping` | Enables virtual parent grouping |
 
 ### PortSchema
 
@@ -177,7 +175,6 @@ Instances live on the canvas. Each has:
 | `semanticId` | Human/AI-readable identifier (see doc01.02, "Dual Identity System") |
 | `values` | Field values keyed by field name |
 | `connections` | Array of {portId, targetSemanticId, targetPortId} |
-| `deployableId` | Optional logical grouping assignment |
 | `instanceColor` | Visual-only color override (not compiled) |
 
 Node titles derive from field values (typically the first field), falling back to `semanticId`. There is no separate `name` field (see doc01.03, "Display Name").

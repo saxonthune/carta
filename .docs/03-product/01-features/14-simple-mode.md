@@ -9,7 +9,7 @@ Simple mode is the experience of starting an idea. It applies to anyone at the b
 
 ## Problem
 
-Carta's construct system is powerful but front-loaded. Even with sketching schemas (Note, Box), the user sees field labels, port drawers, summary/detail toggles, deployable assignments—UI that implies a level of rigor the user isn't ready for. When starting an idea:
+Carta's construct system is powerful but front-loaded. Even with sketching schemas (Note, Box), the user sees field labels, port drawers, summary/detail toggles—UI that implies a level of rigor the user isn't ready for. When starting an idea:
 
 - **Adding is slow**: Right-click → menu → choose type → fill fields. Each node costs attention.
 - **Removing is costly**: Deleting a richly connected node feels wasteful if you spent time on fields.
@@ -44,7 +44,7 @@ Note gets `nodeShape: 'simple'` to opt into the simple render variation. This is
 2. **Near-zero deletion cost**: Simple constructs look light enough that deleting one doesn't feel like losing work.
 3. **Near-zero rewiring cost**: Connections between Notes use the symmetric port. Connections are made via standard port drawer UI on hover.
 4. **Visual distinction**: Notes render in a lighter style that communicates "sketch" rather than "specification." They look like index cards or sticky notes, not data entry forms.
-5. **Minimal chrome**: Simple render suppresses most UI elements—no header bar, no field grid, no detail toggles, no deployable selectors. Port drawer appears on hover for connections and color picking.
+5. **Minimal chrome**: Simple render suppresses most UI elements—no header bar, no field grid, no detail toggles. Port drawer appears on hover for connections and color picking.
 
 ### Technical Requirements
 

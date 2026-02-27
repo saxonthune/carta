@@ -173,7 +173,7 @@ The codebase has visual grouping logic scattered across Map.tsx (data enhancemen
 **Goal:** Clean organizer handling in compiler.
 
 **Files to change:**
-- `packages/compiler/src/index.ts`
+- `packages/document/src/compiler/index.ts`
   - Update filter: `visual-group` → `organizer`
   - Remove virtual-parent filtering (type no longer exists)
   - Keep organizers excluded from semantic output

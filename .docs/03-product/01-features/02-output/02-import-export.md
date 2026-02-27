@@ -5,12 +5,12 @@ status: active
 
 # Import and Export
 
-Carta documents can be saved to and loaded from `.carta` files (JSON format, currently version 5).
+Carta documents can be saved to and loaded from `.carta` files (JSON format, currently version 8).
 
 ## Export
 
 1. Click export in the header
-2. Export Preview Modal shows what will be included, organized by category: schemas, instances, deployables, port schemas, schema groups
+2. Export Preview Modal shows what will be included, organized by category: schemas, instances, port schemas, schema groups
 3. Selective export: choose which categories and items to include
 4. Preview raw JSON before downloading
 5. Downloads as a `.carta` file
@@ -24,7 +24,7 @@ Carta documents can be saved to and loaded from `.carta` files (JSON format, cur
    - **New items**: items not present in current document (green indicator)
    - **Existing items**: already present, unchanged (gray indicator)
 4. Selective import: choose which items to include via checkboxes
-5. Items are grouped by category: schemas, instances, deployables
+5. Items are grouped by category: schemas, instances
 6. **Target page picker**: choose where to import content:
    - **Replace document**: Clears all pages and replaces with imported content (destructive)
    - **Into "[Page name]"**: Merges imported content into an existing page (additive)

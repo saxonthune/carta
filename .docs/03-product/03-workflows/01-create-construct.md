@@ -12,7 +12,7 @@ status: draft
 3. Click a schema type to create an instance at the clicked position
 4. The construct appears with default field values and a generated semantic ID
 5. Click the construct to select it, then edit fields in the details panel
-6. Optionally assign a deployable via the dropdown in details view
+6. Optionally organize into an organizer by dragging into a group
 
 ## Alternative: Add Related Construct
 

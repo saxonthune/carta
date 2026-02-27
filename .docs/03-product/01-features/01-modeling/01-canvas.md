@@ -113,7 +113,7 @@ Nodes have a "full view" button in their header that opens a draggable, pinnable
 - **Draggable**: Click and drag the header to reposition
 - **Pinnable**: Pin button keeps window open when clicking outside (otherwise auto-closes)
 - **No backdrop**: Window floats over canvas without darkening background
-- **Island UX**: Follows depth-3 ground with depth-2 island sections for Fields, Deployable, Identity, Connections, and Compile Preview
-- **Read-only**: Displays all field values, deployable assignment, semantic/technical IDs, connections, and single-construct compile preview
+- **Island UX**: Follows depth-3 ground with depth-2 island sections for Fields, Identity, Connections, and Compile Preview
+- **Read-only**: Displays all field values, semantic/technical IDs, connections, and single-construct compile preview
 
 This allows comparing detailed information while continuing to work on the canvas.
