@@ -21,7 +21,8 @@
     }
   },
   "bin": {
-    "carta-mcp": "./dist/mcp/stdio.js"
+    "carta-mcp": "./dist/mcp/stdio.js",
+    "carta": "./dist/cli.js"
   },
   "scripts": {
     "build": "rimraf dist && tsc",
@@ -29,6 +30,7 @@
     "dev:build": "tsc",
     "mcp": "node dist/mcp/stdio.js",
     "document-server": "node dist/document-server-cli.js",
+    "init": "node dist/cli.js init",
     "test": "vitest run",
     "test:watch": "vitest"
   },
