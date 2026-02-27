@@ -26,6 +26,19 @@ declare global {
 const isDesktop = typeof window !== 'undefined' && !!window.electronAPI?.isDesktop;
 
 /**
+ * Runtime config injected by `carta serve` into index.html.
+ * Takes precedence over build-time VITE_SYNC_URL.
+ */
+interface CartaConfig {
+  syncUrl?: string;
+}
+
+function getRuntimeConfig(): CartaConfig | null {
+  if (typeof window === 'undefined') return null;
+  return (window as unknown as { __CARTA_CONFIG__?: CartaConfig }).__CARTA_CONFIG__ ?? null;
+}
+
+/**
  * In desktop mode, the embedded server URL can come from:
  * 1. URL query params (set by Electron main in dev mode)
  * 2. Will be fetched via IPC at runtime (production)
@@ -72,7 +85,7 @@ export const config = {
   debug: getDebugMode(),
   syncUrl: isDesktop
     ? (getDesktopServerUrl() || 'http://127.0.0.1:51234')
-    : (import.meta.env.VITE_SYNC_URL || null) as string | null,
+    : (getRuntimeConfig()?.syncUrl || import.meta.env.VITE_SYNC_URL || null) as string | null,
   aiMode: (import.meta.env.VITE_AI_MODE || 'none') as 'none' | 'user-key' | 'server-proxy',
   isDesktop,
 

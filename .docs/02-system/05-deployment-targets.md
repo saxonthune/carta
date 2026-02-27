@@ -156,6 +156,7 @@ The MCP binary verifies the PID is still running before using the URL. Default p
 | Desktop (connected) | remote URL | `user-key` | true | Multi-document, remote server + folder + local MCP |
 | Enterprise | `https://carta.internal` | `server-proxy` | false | Multi-document, server storage, managed AI |
 | SaaS | `https://api.carta.io` | `server-proxy` | false | Multi-document, server storage, metered AI |
+| Workspace CLI | auto (self) | `user-key` | false | Multi-document, workspace server, `carta serve .` |
 
 See doc03.02.03 (Enterprise), doc03.02.04 (Solo User), doc03.02.05 (SaaS Provider) for detailed use case scenarios.
 
@@ -190,7 +191,9 @@ Examples:
 - On update: changes are debounced (2 s) and flushed to both files
 - On shutdown: `stopWorkspaceServer()` flushes all dirty docs synchronously before closing
 
-**Entry point**: `startWorkspaceServer({ cartaDir, port?, host? })` in `packages/server/src/workspace-server.ts`. Used by the future `carta serve .` CLI (workspace-12).
+**Entry point**: `startWorkspaceServer({ cartaDir, port?, host?, clientDir? })` in `packages/server/src/workspace-server.ts`.
+
+**CLI entry point**: `carta serve [directory]` starts the workspace server for the `.carta/` directory in `[directory]` (defaults to `.`). It also serves the pre-built `@carta/web-client` bundle with runtime configuration injection — the server injects `window.__CARTA_CONFIG__ = { syncUrl }` into `index.html` so the client auto-connects to the server without a rebuild. Port defaults to 51234 with auto-increment if busy. Flags: `--port N`, `--host H`.
 
 ## Monorepo Package Status
 

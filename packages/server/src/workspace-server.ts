@@ -52,6 +52,8 @@ export interface StartWorkspaceServerOptions {
   cartaDir: string;
   port?: number;
   host?: string;
+  /** Absolute path to built web-client dist/ directory. When set, serves static files. */
+  clientDir?: string;
 }
 
 // ===== CONSTANTS =====
@@ -59,6 +61,89 @@ export interface StartWorkspaceServerOptions {
 export const SAVE_DEBOUNCE_MS = 2000;
 const STATE_DIR = '.state';
 const DEFAULT_PORT = 51234;
+
+const MIME_TYPES: Record<string, string> = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'application/javascript',
+  '.css': 'text/css',
+  '.json': 'application/json',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.ico': 'image/x-icon',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf',
+  '.map': 'application/json',
+};
+
+// ===== STATIC FILE SERVING =====
+
+function serveStaticFile(clientDir: string, urlPath: string, res: http.ServerResponse, serverUrl: string): boolean {
+  // Normalize path (prevent directory traversal)
+  const safePath = path.normalize(urlPath).replace(/^(\.\.[/\\])+/, '');
+  let filePath = path.join(clientDir, safePath);
+
+  // SPA fallback: if file doesn't exist, serve index.html
+  let isIndexFallback = false;
+  if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
+    filePath = path.join(clientDir, 'index.html');
+    isIndexFallback = true;
+  }
+
+  if (!fs.existsSync(filePath)) return false;
+
+  // Ensure resolved path is within clientDir (security)
+  const resolved = fs.realpathSync(filePath);
+  const resolvedClientDir = fs.realpathSync(clientDir);
+  if (!resolved.startsWith(resolvedClientDir)) return false;
+
+  const ext = path.extname(filePath);
+  const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+
+  if (ext === '.html' || isIndexFallback) {
+    // Inject __CARTA_CONFIG__ into HTML
+    let html = fs.readFileSync(filePath, 'utf-8');
+    const configScript = `<script>window.__CARTA_CONFIG__=${JSON.stringify({ syncUrl: serverUrl })}</script>`;
+    html = html.replace('</head>', `${configScript}\n</head>`);
+    res.writeHead(200, { 'Content-Type': contentType, 'Content-Length': Buffer.byteLength(html) });
+    res.end(html);
+  } else {
+    const content = fs.readFileSync(filePath);
+    res.writeHead(200, { 'Content-Type': contentType, 'Content-Length': content.length });
+    res.end(content);
+  }
+  return true;
+}
+
+// ===== PORT HELPERS =====
+
+/**
+ * Find an available port by probing with temporary net.Server instances.
+ * Uses port 0 to let the OS pick when startPort is 0.
+ * Returns the chosen port number.
+ */
+async function findAvailablePort(startPort: number, host: string, maxAttempts = 10): Promise<number> {
+  const net = await import('node:net');
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const port = startPort === 0 ? 0 : startPort + attempt;
+    const result = await new Promise<number | null>((resolve) => {
+      const probe = net.createServer();
+      probe.once('error', () => {
+        probe.close();
+        resolve(null);
+      });
+      probe.listen(port, host, () => {
+        const addr = probe.address() as { port: number };
+        probe.close(() => resolve(addr.port));
+      });
+    });
+    if (result !== null) return result;
+    // Port 0 always succeeds (OS picks), so this only fires for specific ports
+    log('Port %d in use, trying %d', port, port + 1);
+    if (startPort === 0) break; // port 0 should never fail
+  }
+  throw new Error(`No available port found in range ${startPort}-${startPort + maxAttempts - 1}`);
+}
 
 // ===== MODULE-LEVEL SERVER STATE =====
 
@@ -212,7 +297,7 @@ export function scheduleSave(cartaDir: string, roomName: string, docState: Works
  * Rooms are loaded on demand.
  */
 export async function startWorkspaceServer(options: StartWorkspaceServerOptions): Promise<WorkspaceServerInfo> {
-  const { cartaDir, host = '127.0.0.1' } = options;
+  const { cartaDir, host = '127.0.0.1', clientDir } = options;
   const port = options.port ?? DEFAULT_PORT;
 
   // Validate workspace
@@ -308,7 +393,20 @@ export async function startWorkspaceServer(options: StartWorkspaceServerOptions)
     workspacePath: cartaDir,
   });
 
+  let serverUrl = '';
+
   const server = http.createServer((req, res) => {
+    const url = new URL(req.url || '/', `http://${req.headers.host}`);
+    const urlPath = url.pathname;
+
+    // Serve static files for non-API paths when clientDir is configured
+    if (clientDir && req.method === 'GET') {
+      const isApiPath = urlPath.startsWith('/api/') || urlPath === '/health' || urlPath === '/rooms';
+      if (!isApiPath) {
+        if (serveStaticFile(clientDir, urlPath, res, serverUrl)) return;
+      }
+    }
+
     handleHttpRequest(req, res).catch((err) => {
       log('Unhandled HTTP error: %O', err);
       res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -324,20 +422,16 @@ export async function startWorkspaceServer(options: StartWorkspaceServerOptions)
     setupWSConnection(conn, roomName);
   });
 
+  const chosenPort = await findAvailablePort(port, host);
   const actualPort = await new Promise<number>((resolve, reject) => {
-    server.on('error', (err: NodeJS.ErrnoException) => {
-      if (err.code === 'EADDRINUSE') {
-        reject(new Error(`Port ${port} is already in use`));
-      } else {
-        reject(err);
-      }
-    });
-    server.listen(port, host, () => {
+    server.once('error', reject);
+    server.listen(chosenPort, host, () => {
       const addr = server.address() as { port: number };
-      log('Workspace server running on %s:%d', host, addr.port);
       resolve(addr.port);
     });
   });
+  serverUrl = `http://${host}:${actualPort}`;
+  log('Workspace server running on %s:%d', host, actualPort);
 
   activeServer = { server, wss, docs, cartaDir };
 
