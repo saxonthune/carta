@@ -32,8 +32,22 @@ import {
   migrateSchemaRelationships,
   deepPlainToY,
   updateSchema as updateSchemaOp,
+  WORKSPACE_CANVAS_PAGE_ID,
 } from '@carta/document';
 import { updateDocumentMetadata } from '../documentRegistry';
+
+/**
+ * Workspace canvas mode schema injection payload.
+ * Schemas are read-only in workspace mode; all mutation methods are no-ops.
+ */
+export interface WorkspaceCanvasSchemas {
+  schemas: ConstructSchema[];
+  portSchemas: PortSchema[];
+  schemaGroups: SchemaGroup[];
+  schemaRelationships: SchemaRelationship[];
+  schemaPackages: SchemaPackage[];
+  packageManifest: PackageManifestEntry[];
+}
 
 /**
  * Options for creating a Yjs adapter
@@ -46,6 +60,11 @@ export interface YjsAdapterOptions {
   skipPersistence?: boolean;
   /** Skip default page creation — set when the adapter will sync with a server that provides initial state */
   deferDefaultPage?: boolean;
+  /**
+   * Workspace canvas mode: schemas injected from server, no IndexedDB,
+   * page/resource/schema mutation methods are no-ops.
+   */
+  workspaceCanvas?: WorkspaceCanvasSchemas;
 }
 
 /**
@@ -218,7 +237,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
   let registryTimer: ReturnType<typeof setTimeout> | null = null;
   let registryPending = false;
   const syncRegistryMetadata = () => {
-    if (!roomId || options.skipPersistence) return;
+    if (!roomId || options.skipPersistence || options.workspaceCanvas) return;
     if (registryTimer && !registryPending) {
       // Leading edge already fired, just mark pending for trailing
       registryPending = true;
@@ -314,6 +333,27 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
   // Initialize with default values if empty
   const initializeDefaults = () => {
+    // Workspace canvas mode: skip migrations, create the shim page if needed
+    if (options.workspaceCanvas) {
+      ydoc.transact(() => {
+        if (!ymeta.has('version')) {
+          ymeta.set('version', 4);
+        }
+        // Create the single synthetic canvas page if the Y.Doc is empty
+        // (server hydration should have set this, but this is the safety net)
+        if (ypages.size === 0) {
+          const pageData = new Y.Map<unknown>();
+          pageData.set('id', WORKSPACE_CANVAS_PAGE_ID);
+          pageData.set('name', 'Canvas');
+          pageData.set('order', 0);
+          ypages.set(WORKSPACE_CANVAS_PAGE_ID, pageData);
+          ymeta.set('activePage', WORKSPACE_CANVAS_PAGE_ID);
+          console.debug('[workspace] Created shim canvas page in initializeDefaults');
+        }
+      }, 'init');
+      return;
+    }
+
     ydoc.transact(() => {
       if (!ymeta.has('version')) {
         ymeta.set('version', 4);
@@ -363,9 +403,9 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     ydoc,
 
     async initialize(): Promise<void> {
-      // Set up IndexedDB persistence (unless skipped for testing)
+      // Set up IndexedDB persistence (unless skipped for testing or workspace canvas mode)
       performance.mark('carta:indexeddb-start')
-      if (!options.skipPersistence) {
+      if (!options.skipPersistence && !options.workspaceCanvas) {
         const dbName = roomId ? `carta-doc-${roomId}` : 'carta-local';
         const SYNC_TIMEOUT_MS = 10_000;
 
@@ -572,15 +612,20 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     getTitle(): string {
+      if (options.workspaceCanvas) return '';
       return (ymeta.get('title') as string) || '';
     },
 
     getDescription(): string {
+      if (options.workspaceCanvas) return '';
       return (ymeta.get('description') as string) || '';
     },
 
     // State access - Pages
     getPages(): Page[] {
+      if (options.workspaceCanvas) {
+        return [{ id: WORKSPACE_CANVAS_PAGE_ID, name: 'Canvas', order: 0, description: '', nodes: [], edges: [] }];
+      }
       const pages: Page[] = [];
       ypages.forEach((ypage) => {
         const page = yMapToObject<Page>(ypage);
@@ -626,11 +671,13 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     getActivePage(): string | undefined {
+      if (options.workspaceCanvas) return WORKSPACE_CANVAS_PAGE_ID;
       return getActivePageId();
     },
 
     // State access - Schemas
     getSchemas(): ConstructSchema[] {
+      if (options.workspaceCanvas) return options.workspaceCanvas.schemas;
       const schemas: ConstructSchema[] = [];
       yschemas.forEach((yschema) => {
         schemas.push(yMapToObject<ConstructSchema>(yschema));
@@ -639,6 +686,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     getSchema(type: string): ConstructSchema | undefined {
+      if (options.workspaceCanvas) return options.workspaceCanvas.schemas.find(s => s.type === type);
       const yschema = yschemas.get(type);
       if (!yschema) return undefined;
       return yMapToObject<ConstructSchema>(yschema);
@@ -646,6 +694,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
     // State access - Port Schemas
     getPortSchemas(): PortSchema[] {
+      if (options.workspaceCanvas) return options.workspaceCanvas.portSchemas;
       const schemas: PortSchema[] = [];
       yportSchemas.forEach((yschema) => {
         schemas.push(yMapToObject<PortSchema>(yschema));
@@ -654,6 +703,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     getPortSchema(id: string): PortSchema | undefined {
+      if (options.workspaceCanvas) return options.workspaceCanvas.portSchemas.find(s => s.id === id);
       const yschema = yportSchemas.get(id);
       if (!yschema) return undefined;
       return yMapToObject<PortSchema>(yschema);
@@ -661,6 +711,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
     // State access - Schema Groups
     getSchemaGroups(): SchemaGroup[] {
+      if (options.workspaceCanvas) return options.workspaceCanvas.schemaGroups;
       const groups: SchemaGroup[] = [];
       yschemaGroups.forEach((ygroup) => {
         groups.push(yMapToObject<SchemaGroup>(ygroup));
@@ -669,6 +720,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     getSchemaGroup(id: string): SchemaGroup | undefined {
+      if (options.workspaceCanvas) return options.workspaceCanvas.schemaGroups.find(g => g.id === id);
       const ygroup = yschemaGroups.get(id);
       if (!ygroup) return undefined;
       return yMapToObject<SchemaGroup>(ygroup);
@@ -676,6 +728,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
     // State access - Schema Packages
     getSchemaPackages(): SchemaPackage[] {
+      if (options.workspaceCanvas) return options.workspaceCanvas.schemaPackages;
       const packages: SchemaPackage[] = [];
       yschemaPackages.forEach((ypackage) => {
         packages.push(yMapToObject<SchemaPackage>(ypackage));
@@ -684,6 +737,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     getSchemaPackage(id: string): SchemaPackage | undefined {
+      if (options.workspaceCanvas) return options.workspaceCanvas.schemaPackages.find(p => p.id === id);
       const ypackage = yschemaPackages.get(id);
       if (!ypackage) return undefined;
       return yMapToObject<SchemaPackage>(ypackage);
@@ -691,6 +745,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
     // State access - Package Manifest
     getPackageManifest(): PackageManifestEntry[] {
+      if (options.workspaceCanvas) return options.workspaceCanvas.packageManifest;
       const entries: PackageManifestEntry[] = [];
       ypackageManifest.forEach((yentry) => {
         entries.push(yMapToObject<PackageManifestEntry>(yentry));
@@ -699,6 +754,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     getPackageManifestEntry(packageId: string): PackageManifestEntry | undefined {
+      if (options.workspaceCanvas) return options.workspaceCanvas.packageManifest.find(e => e.packageId === packageId);
       const yentry = ypackageManifest.get(packageId);
       if (!yentry) return undefined;
       return yMapToObject<PackageManifestEntry>(yentry);
@@ -740,12 +796,14 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     setTitle(title: string) {
+      if (options.workspaceCanvas) return;
       ydoc.transact(() => {
         ymeta.set('title', title);
       }, 'user');
     },
 
     setDescription(description: string) {
+      if (options.workspaceCanvas) return;
       ydoc.transact(() => {
         ymeta.set('description', description);
       }, 'user');
@@ -841,6 +899,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
     // Mutations - Pages
     setActivePage(pageId: string) {
+      if (options.workspaceCanvas) return;
       if (!ypages.has(pageId)) return;
       ydoc.transact(() => {
         ymeta.set('activePage', pageId);
@@ -848,6 +907,9 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     createPage(name: string, description?: string): Page {
+      if (options.workspaceCanvas) {
+        return { id: WORKSPACE_CANVAS_PAGE_ID, name: 'Canvas', order: 0, description: '', nodes: [], edges: [] };
+      }
       const id = generatePageId();
       // Find max order
       let maxOrder = -1;
@@ -884,6 +946,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     deletePage(pageId: string): boolean {
+      if (options.workspaceCanvas) return false;
       if (!ypages.has(pageId)) return false;
       // Don't allow deleting the last page
       if (ypages.size <= 1) return false;
@@ -907,6 +970,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     updatePage(pageId: string, updates: Partial<Omit<Page, 'id' | 'nodes' | 'edges' | 'deployables'>>) {
+      if (options.workspaceCanvas) return;
       ydoc.transact(() => {
         const ypage = ypages.get(pageId);
         if (!ypage) return;
@@ -917,6 +981,9 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     duplicatePage(pageId: string, newName: string): Page {
+      if (options.workspaceCanvas) {
+        return { id: WORKSPACE_CANVAS_PAGE_ID, name: 'Canvas', order: 0, description: '', nodes: [], edges: [] };
+      }
       const sourcePage = ypages.get(pageId);
       if (!sourcePage) throw new Error(`Page ${pageId} not found`);
 
@@ -971,6 +1038,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     copyNodesToPage(nodeIds: string[], targetPageId: string) {
+      if (options.workspaceCanvas) return;
       if (!ypages.has(targetPageId)) return;
       const sourceNodes = getActivePageNodes();
       const sourceEdges = getActivePageEdges();
@@ -1018,6 +1086,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
     // Mutations - Schemas
     setSchemas(schemas: ConstructSchema[]) {
+      if (options.workspaceCanvas) { console.warn('[workspace] setSchemas is a no-op in workspace canvas mode'); return; }
       ydoc.transact(() => {
         yschemas.clear();
         for (const schema of schemas) {
@@ -1027,17 +1096,20 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     addSchema(schema: ConstructSchema) {
+      if (options.workspaceCanvas) { console.warn('[workspace] addSchema is a no-op in workspace canvas mode'); return; }
       ydoc.transact(() => {
         yschemas.set(schema.type, objectToYMap(schema as unknown as Record<string, unknown>));
       }, 'user');
     },
 
     updateSchema(type: string, updates: Partial<ConstructSchema>) {
+      if (options.workspaceCanvas) { console.warn('[workspace] updateSchema is a no-op in workspace canvas mode'); return; }
       // Delegate to shared doc-operation with 'user' origin
       updateSchemaOp(ydoc, type, updates as unknown as Record<string, unknown>, 'user');
     },
 
     removeSchema(type: string): boolean {
+      if (options.workspaceCanvas) { console.warn('[workspace] removeSchema is a no-op in workspace canvas mode'); return false; }
       const exists = yschemas.has(type);
       if (exists) {
         ydoc.transact(() => {
@@ -1049,6 +1121,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
     // Mutations - Port Schemas
     setPortSchemas(schemas: PortSchema[]) {
+      if (options.workspaceCanvas) { console.warn('[workspace] setPortSchemas is a no-op in workspace canvas mode'); return; }
       ydoc.transact(() => {
         yportSchemas.clear();
         for (const schema of schemas) {
@@ -1058,12 +1131,14 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     addPortSchema(schema: PortSchema) {
+      if (options.workspaceCanvas) { console.warn('[workspace] addPortSchema is a no-op in workspace canvas mode'); return; }
       ydoc.transact(() => {
         yportSchemas.set(schema.id, objectToYMap(schema as unknown as Record<string, unknown>));
       }, 'user');
     },
 
     updatePortSchema(id: string, updates: Partial<PortSchema>) {
+      if (options.workspaceCanvas) { console.warn('[workspace] updatePortSchema is a no-op in workspace canvas mode'); return; }
       ydoc.transact(() => {
         const yschema = yportSchemas.get(id);
         if (!yschema) return;
@@ -1073,6 +1148,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     removePortSchema(id: string): boolean {
+      if (options.workspaceCanvas) { console.warn('[workspace] removePortSchema is a no-op in workspace canvas mode'); return false; }
       const exists = yportSchemas.has(id);
       if (exists) {
         ydoc.transact(() => {
@@ -1084,6 +1160,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
     // Mutations - Schema Groups
     setSchemaGroups(groups: SchemaGroup[]) {
+      if (options.workspaceCanvas) { console.warn('[workspace] setSchemaGroups is a no-op in workspace canvas mode'); return; }
       ydoc.transact(() => {
         yschemaGroups.clear();
         for (const group of groups) {
@@ -1093,6 +1170,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     addSchemaGroup(group: Omit<SchemaGroup, 'id'> | SchemaGroup): SchemaGroup {
+      if (options.workspaceCanvas) { console.warn('[workspace] addSchemaGroup is a no-op in workspace canvas mode'); return { ...group, id: ('id' in group && group.id) ? group.id : generateSchemaGroupId() }; }
       const id = ('id' in group && group.id) ? group.id : generateSchemaGroupId();
       const newGroup: SchemaGroup = { ...group, id };
       ydoc.transact(() => {
@@ -1102,6 +1180,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     updateSchemaGroup(id: string, updates: Partial<SchemaGroup>) {
+      if (options.workspaceCanvas) { console.warn('[workspace] updateSchemaGroup is a no-op in workspace canvas mode'); return; }
       ydoc.transact(() => {
         const ygroup = yschemaGroups.get(id);
         if (!ygroup) return;
@@ -1111,6 +1190,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     removeSchemaGroup(id: string): boolean {
+      if (options.workspaceCanvas) { console.warn('[workspace] removeSchemaGroup is a no-op in workspace canvas mode'); return false; }
       const exists = yschemaGroups.has(id);
       if (exists) {
         ydoc.transact(() => {
@@ -1136,6 +1216,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
     // Mutations - Schema Packages
     setSchemaPackages(packages: SchemaPackage[]) {
+      if (options.workspaceCanvas) { console.warn('[workspace] setSchemaPackages is a no-op in workspace canvas mode'); return; }
       ydoc.transact(() => {
         yschemaPackages.clear();
         for (const pkg of packages) {
@@ -1145,6 +1226,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     addSchemaPackage(pkg: Omit<SchemaPackage, 'id'> | SchemaPackage): SchemaPackage {
+      if (options.workspaceCanvas) { console.warn('[workspace] addSchemaPackage is a no-op in workspace canvas mode'); return { ...pkg, id: ('id' in pkg && pkg.id) ? pkg.id : generateSchemaPackageId() }; }
       const id = ('id' in pkg && pkg.id) ? pkg.id : generateSchemaPackageId();
       const newPackage: SchemaPackage = { ...pkg, id };
       ydoc.transact(() => {
@@ -1154,6 +1236,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     updateSchemaPackage(id: string, updates: Partial<SchemaPackage>) {
+      if (options.workspaceCanvas) { console.warn('[workspace] updateSchemaPackage is a no-op in workspace canvas mode'); return; }
       ydoc.transact(() => {
         const ypackage = yschemaPackages.get(id);
         if (!ypackage) return;
@@ -1163,6 +1246,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     removeSchemaPackage(id: string): boolean {
+      if (options.workspaceCanvas) { console.warn('[workspace] removeSchemaPackage is a no-op in workspace canvas mode'); return false; }
       const exists = yschemaPackages.has(id);
       if (exists) {
         ydoc.transact(() => {
@@ -1195,12 +1279,14 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
     // Mutations - Package Manifest
     addPackageManifestEntry(entry: PackageManifestEntry) {
+      if (options.workspaceCanvas) { console.warn('[workspace] addPackageManifestEntry is a no-op in workspace canvas mode'); return; }
       ydoc.transact(() => {
         ypackageManifest.set(entry.packageId, objectToYMap(entry as unknown as Record<string, unknown>));
       }, 'user');
     },
 
     removePackageManifestEntry(packageId: string): boolean {
+      if (options.workspaceCanvas) { console.warn('[workspace] removePackageManifestEntry is a no-op in workspace canvas mode'); return false; }
       const exists = ypackageManifest.has(packageId);
       if (exists) {
         ydoc.transact(() => {
@@ -1212,6 +1298,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
     // State access - Schema Relationships
     getSchemaRelationships(): SchemaRelationship[] {
+      if (options.workspaceCanvas) return options.workspaceCanvas.schemaRelationships;
       const rels: SchemaRelationship[] = [];
       yschemaRelationships.forEach((yrel) => {
         rels.push(yMapToObject<SchemaRelationship>(yrel));
@@ -1220,18 +1307,21 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     getSchemaRelationship(id: string): SchemaRelationship | undefined {
+      if (options.workspaceCanvas) return options.workspaceCanvas.schemaRelationships.find(r => r.id === id);
       const yrel = yschemaRelationships.get(id);
       return yrel ? yMapToObject<SchemaRelationship>(yrel) : undefined;
     },
 
     // Mutations - Schema Relationships
     addSchemaRelationship(rel: SchemaRelationship) {
+      if (options.workspaceCanvas) { console.warn('[workspace] addSchemaRelationship is a no-op in workspace canvas mode'); return; }
       ydoc.transact(() => {
         yschemaRelationships.set(rel.id, objectToYMap(rel as unknown as Record<string, unknown>));
       }, 'user');
     },
 
     updateSchemaRelationship(id: string, updates: Partial<SchemaRelationship>) {
+      if (options.workspaceCanvas) { console.warn('[workspace] updateSchemaRelationship is a no-op in workspace canvas mode'); return; }
       const yrel = yschemaRelationships.get(id);
       if (yrel) {
         ydoc.transact(() => {
@@ -1243,6 +1333,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     removeSchemaRelationship(id: string): boolean {
+      if (options.workspaceCanvas) { console.warn('[workspace] removeSchemaRelationship is a no-op in workspace canvas mode'); return false; }
       const exists = yschemaRelationships.has(id);
       if (exists) {
         ydoc.transact(() => {
@@ -1270,6 +1361,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
     // State access - Resources
     getResources(): Array<{ id: string; name: string; format: string; currentHash: string; versionCount: number }> {
+      if (options.workspaceCanvas) return [];
       const results: Array<{ id: string; name: string; format: string; currentHash: string; versionCount: number }> = [];
       yresources.forEach((yresource) => {
         const yversions = yresource.get('versions') as Y.Array<Y.Map<unknown>> | undefined;
@@ -1285,6 +1377,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     getResource(id: string): Resource | undefined {
+      if (options.workspaceCanvas) return undefined;
       const yresource = yresources.get(id);
       if (!yresource) return undefined;
       const yversions = yresource.get('versions') as Y.Array<Y.Map<unknown>>;
@@ -1310,6 +1403,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
     // Mutations - Resources
     createResource(name: string, format: string, body: string): Resource {
+      if (options.workspaceCanvas) throw new Error('createResource is not supported in workspace canvas mode');
       const id = generateResourceId();
       const currentHash = sha256(body);
       ydoc.transact(() => {
@@ -1327,6 +1421,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     updateResource(id: string, updates: { name?: string; format?: string; body?: string }): Resource | undefined {
+      if (options.workspaceCanvas) return undefined;
       const yresource = yresources.get(id);
       if (!yresource) return undefined;
       ydoc.transact(() => {
@@ -1341,6 +1436,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     deleteResource(id: string): boolean {
+      if (options.workspaceCanvas) return false;
       const exists = yresources.has(id);
       if (exists) {
         ydoc.transact(() => {
@@ -1351,6 +1447,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     publishResourceVersion(id: string, label?: string): ResourceVersion | undefined {
+      if (options.workspaceCanvas) return undefined;
       const yresource = yresources.get(id);
       if (!yresource) return undefined;
       const body = yresource.get('body') as string;
@@ -1371,6 +1468,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     getResourceHistory(id: string): Omit<ResourceVersion, 'body'>[] {
+      if (options.workspaceCanvas) return [];
       const yresource = yresources.get(id);
       if (!yresource) return [];
       const yversions = yresource.get('versions') as Y.Array<Y.Map<unknown>>;
@@ -1387,6 +1485,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     getResourceVersion(id: string, versionId: string): ResourceVersion | undefined {
+      if (options.workspaceCanvas) return undefined;
       const yresource = yresources.get(id);
       if (!yresource) return undefined;
       const yversions = yresource.get('versions') as Y.Array<Y.Map<unknown>>;
@@ -1645,18 +1744,30 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       ws.on('sync', () => {
         connectionStatus = 'connected';
 
-        // Safety net: if server had no pages either, create the default
+        // Safety net: if server had no pages either, create the appropriate default
         if (ypages.size === 0) {
-          console.debug('[pages] No pages after sync, creating default Main page', { roomId: newRoomId });
-          ydoc.transact(() => {
-            const pageId = generatePageId();
-            const pageData = new Y.Map<unknown>();
-            pageData.set('id', pageId);
-            pageData.set('name', 'Main');
-            pageData.set('order', 0);
-            ypages.set(pageId, pageData);
-            ymeta.set('activePage', pageId);
-          }, 'init');
+          if (options.workspaceCanvas) {
+            console.debug('[workspace] No pages after sync, creating shim canvas page', { roomId: newRoomId });
+            ydoc.transact(() => {
+              const pageData = new Y.Map<unknown>();
+              pageData.set('id', WORKSPACE_CANVAS_PAGE_ID);
+              pageData.set('name', 'Canvas');
+              pageData.set('order', 0);
+              ypages.set(WORKSPACE_CANVAS_PAGE_ID, pageData);
+              ymeta.set('activePage', WORKSPACE_CANVAS_PAGE_ID);
+            }, 'init');
+          } else {
+            console.debug('[pages] No pages after sync, creating default Main page', { roomId: newRoomId });
+            ydoc.transact(() => {
+              const pageId = generatePageId();
+              const pageData = new Y.Map<unknown>();
+              pageData.set('id', pageId);
+              pageData.set('name', 'Main');
+              pageData.set('order', 0);
+              ypages.set(pageId, pageData);
+              ymeta.set('activePage', pageId);
+            }, 'init');
+          }
         }
 
         notifyListeners();

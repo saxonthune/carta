@@ -100,3 +100,24 @@ Proper cleanup prevents memory leaks and race conditions, especially in React St
 - External `unsubscribe()` functions safe to call even after disposal
 
 See `packages/web-client/tests/integration/adapter-lifecycle.test.tsx` for comprehensive lifecycle tests.
+
+### Workspace Canvas Mode
+
+In workspace mode, each `.canvas.json` file maps to its own Y.Doc room on the
+server. The client creates a `DocumentAdapter` per canvas with `workspaceCanvas`
+mode enabled by passing `workspaceCanvas: WorkspaceCanvasSchemas` to `createYjsAdapter`.
+
+- **Schemas**: Injected from `GET /api/workspace/schemas`, not stored in Y.Doc.
+  All schema accessor methods (`getSchemas`, `getPortSchemas`, etc.) read from the
+  injected payload. All schema mutation methods are no-ops (log a warning).
+- **Pages**: Single synthetic page (`WORKSPACE_CANVAS_PAGE_ID = 'canvas'`). Page
+  management methods (`createPage`, `deletePage`, `setActivePage`) are no-ops.
+- **Resources**: Not supported per-canvas. `getResources()` returns `[]`.
+- **Persistence**: Server-side only (no IndexedDB). The server maintains a binary
+  `.ystate` sidecar for fast reconnect.
+- **Migrations**: Skipped entirely — workspace canvas Y.Docs are always fresh.
+- **Switching canvases**: `DocumentProvider` uses `key={selectedCanvas}` so React
+  unmounts and remounts the provider when the user selects a different canvas.
+  The old adapter is disposed via the useEffect cleanup, closing the WebSocket.
+- **Node/edge CRUD**: Works normally — nodes and edges are stored in the Y.Doc
+  and synced to the server via the WebSocket connection.

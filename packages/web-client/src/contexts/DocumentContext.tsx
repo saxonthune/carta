@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import * as Y from 'yjs';
 import type { DocumentAdapter } from '@carta/schema';
-import { createYjsAdapter, type YjsAdapterOptions } from '../stores/adapters/yjsAdapter';
+import { createYjsAdapter, type YjsAdapterOptions, type WorkspaceCanvasSchemas } from '../stores/adapters/yjsAdapter';
 import { builtInPortSchemas } from '@carta/schema';
 import { config } from '../config/featureFlags';
 
@@ -38,6 +38,11 @@ export interface DocumentProviderProps {
   syncUrl?: string;
   /** Skip IndexedDB persistence (for testing) */
   skipPersistence?: boolean;
+  /**
+   * Workspace canvas mode — inject schemas from server, skip IndexedDB and migrations.
+   * When set, the adapter uses WORKSPACE_CANVAS_PAGE_ID as the single synthetic page.
+   */
+  workspaceCanvas?: WorkspaceCanvasSchemas;
 }
 
 /**
@@ -50,6 +55,7 @@ export function DocumentProvider({
   documentId,
   syncUrl = config.syncWsUrl ?? undefined,
   skipPersistence = false,
+  workspaceCanvas,
 }: DocumentProviderProps) {
   const [adapter, setAdapter] = useState<DocumentAdapter | null>(null);
   const [mode, setMode] = useState<'local' | 'shared'>('local');
@@ -64,6 +70,37 @@ export function DocumentProvider({
 
     const initAdapter = async () => {
       performance.mark('carta:adapter-init-start')
+
+      // Workspace canvas mode: schemas injected, no IndexedDB, no migrations
+      if (workspaceCanvas) {
+        const yjsAdapter = createYjsAdapter({
+          mode: 'local',
+          roomId: documentId,
+          skipPersistence: true,
+          deferDefaultPage: true,
+          workspaceCanvas,
+        });
+        currentAdapter = yjsAdapter;
+        await yjsAdapter.initialize();
+
+        if (mounted) {
+          performance.mark('carta:adapter-ready')
+          performance.measure('carta:adapter-init', 'carta:adapter-init-start', 'carta:adapter-ready')
+          setAdapter(yjsAdapter);
+          setYdoc(yjsAdapter.ydoc);
+          setMode('shared');
+          setIsReady(true);
+        }
+
+        // Connect to workspace server WebSocket
+        if (syncUrl && mounted) {
+          yjsAdapter.connectToRoom(documentId, syncUrl).catch((err) => {
+            console.error('Failed to connect to workspace server:', err);
+          });
+        }
+        return;
+      }
+
       // Skip IndexedDB when a server handles persistence (desktop or remote server)
       const shouldSkipPersistence = skipPersistence || config.isDesktop || config.hasSync;
 
@@ -180,7 +217,7 @@ export function DocumentProvider({
         currentAdapter.dispose();
       }
     };
-  }, [documentId, syncUrl, skipPersistence]);
+  }, [documentId, syncUrl, skipPersistence, workspaceCanvas]);
 
   if (error) {
     return (

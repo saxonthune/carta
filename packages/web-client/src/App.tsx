@@ -7,7 +7,8 @@ import Navigator from './components/Navigator';
 import WorkspaceNavigator from './components/WorkspaceNavigator';
 import Footer from './components/Footer';
 import { useWorkspaceMode } from './hooks/useWorkspaceMode';
-import type { WorkspaceTree } from './hooks/useWorkspaceMode';
+import type { WorkspaceTree, WorkspaceCanvasSchemas } from './hooks/useWorkspaceMode';
+import { DocumentProvider } from './contexts/DocumentContext';
 import { List } from '@phosphor-icons/react';
 import { compiler } from '@carta/document';
 import { syncWithDocumentStore } from '@carta/schema';
@@ -41,16 +42,16 @@ const AISidebar = lazy(() => import('./ai/components/AISidebar').then(m => ({ de
 // Note: Schema initialization is now handled by DocumentProvider
 
 function App() {
-  const { isWorkspace, loading: workspaceLoading, workspaceTree } = useWorkspaceMode();
+  const { isWorkspace, loading: workspaceLoading, workspaceTree, schemas } = useWorkspaceMode();
 
   // Wait briefly while we detect whether the server is a workspace server
   if (workspaceLoading) {
     return null;
   }
 
-  // Workspace mode: render the workspace layout (no DocumentContext needed)
+  // Workspace mode: render the workspace layout (no DocumentContext needed at the top level)
   if (isWorkspace && workspaceTree) {
-    return <WorkspaceAppLayout tree={workspaceTree} />;
+    return <WorkspaceAppLayout tree={workspaceTree} schemas={schemas} />;
   }
 
   // In server mode without a ?doc= param, show document browser so user can pick/create.
@@ -71,10 +72,12 @@ function App() {
 
 interface WorkspaceAppLayoutProps {
   tree: WorkspaceTree;
+  schemas: WorkspaceCanvasSchemas | null;
 }
 
-function WorkspaceAppLayout({ tree }: WorkspaceAppLayoutProps) {
+function WorkspaceAppLayout({ tree, schemas }: WorkspaceAppLayoutProps) {
   const [navigatorOpen, setNavigatorOpen] = useState(true);
+  const [selectedCanvas, setSelectedCanvas] = useState<string | null>(null);
 
   return (
     <div className="h-screen flex flex-col">
@@ -95,14 +98,28 @@ function WorkspaceAppLayout({ tree }: WorkspaceAppLayoutProps) {
         <WorkspaceNavigator
           isOpen={navigatorOpen}
           tree={tree}
-          selectedCanvas={null}
-          onSelectCanvas={() => {
-            // No-op until workspace-09 wires DocumentAdapter per-canvas
-          }}
+          selectedCanvas={selectedCanvas}
+          onSelectCanvas={(canvasPath) => setSelectedCanvas(canvasPath)}
         />
-        <div className="flex-1 flex items-center justify-center text-content-muted">
-          <p className="text-sm">Select a canvas to start editing (coming soon)</p>
-        </div>
+        {selectedCanvas && schemas ? (
+          <DocumentProvider
+            key={selectedCanvas}
+            documentId={selectedCanvas}
+            syncUrl={config.syncWsUrl ?? undefined}
+            workspaceCanvas={schemas}
+          >
+            <CanvasContainer
+              onSelectionChange={() => {}}
+              activeView={{ type: 'page', pageId: 'canvas' }}
+            />
+          </DocumentProvider>
+        ) : (
+          <div className="flex-1 flex items-center justify-center text-content-muted">
+            <p className="text-sm">
+              {schemas ? 'Select a canvas to start editing' : 'Select a canvas to start editing (loading schemas...)'}
+            </p>
+          </div>
+        )}
       </div>
       <Footer />
     </div>
