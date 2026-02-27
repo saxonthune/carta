@@ -55,11 +55,13 @@ import type {
   PackageManifestEntry,
   Resource,
   ResourceVersion,
+  SpecGroup,
+  SpecGroupItem,
 } from '@carta/schema';
 import { sha256 } from 'js-sha256';
 import { CompilerEngine } from './compiler/index.js';
 import { yToPlain, deepPlainToY, safeGet } from './yjs-helpers.js';
-import { generateNodeId, generatePageId, generateSchemaPackageId, generateResourceId, generateVersionId } from './id-generators.js';
+import { generateNodeId, generatePageId, generateSchemaPackageId, generateResourceId, generateVersionId, generateSpecGroupId } from './id-generators.js';
 import { MCP_ORIGIN, SERVER_FORMAT_VERSION, YDOC_MAPS } from './constants.js';
 
 /**
@@ -265,6 +267,9 @@ export function deletePage(ydoc: Y.Doc, pageId: string): boolean {
   const ypages = ydoc.getMap<Y.Map<unknown>>('pages');
   if (!ypages.has(pageId)) return false;
   if (ypages.size <= 1) return false;
+
+  // Remove from any spec group before deleting
+  removeFromSpecGroup(ydoc, 'page', pageId);
 
   ydoc.transact(() => {
     ypages.delete(pageId);
@@ -4155,6 +4160,8 @@ export function deleteResource(ydoc: Y.Doc, id: string): boolean {
   const yresources = getResourcesMap(ydoc);
   const exists = yresources.has(id);
   if (exists) {
+    // Remove from any spec group before deleting
+    removeFromSpecGroup(ydoc, 'resource', id);
     ydoc.transact(() => {
       yresources.delete(id);
     }, MCP_ORIGIN);
@@ -4398,5 +4405,177 @@ export function checkPackageDrift(ydoc: Y.Doc, packageId: string): {
     modified,
     loadedAt: manifestEntry.loadedAt,
   };
+}
+
+// ==================== Spec Group Operations ====================
+
+function getSpecGroupsMap(ydoc: Y.Doc): Y.Map<Y.Map<unknown>> {
+  return ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.SPEC_GROUPS);
+}
+
+function ySpecGroupToPlain(ysg: Y.Map<unknown>): SpecGroup {
+  const yitems = ysg.get('items') as Y.Array<Y.Map<unknown>>;
+  const items: SpecGroupItem[] = [];
+  yitems.forEach((yitem) => {
+    items.push({
+      type: yitem.get('type') as 'page' | 'resource',
+      id: yitem.get('id') as string,
+    });
+  });
+  return {
+    id: ysg.get('id') as string,
+    name: ysg.get('name') as string,
+    description: ysg.get('description') as string | undefined,
+    order: ysg.get('order') as number,
+    items,
+  };
+}
+
+/**
+ * List all spec groups sorted by order.
+ */
+export function listSpecGroups(ydoc: Y.Doc): SpecGroup[] {
+  const yspecGroups = getSpecGroupsMap(ydoc);
+  const results: SpecGroup[] = [];
+  yspecGroups.forEach((ysg) => {
+    results.push(ySpecGroupToPlain(ysg));
+  });
+  return results.sort((a, b) => a.order - b.order);
+}
+
+/**
+ * Get a single spec group by ID.
+ */
+export function getSpecGroup(ydoc: Y.Doc, id: string): SpecGroup | undefined {
+  const yspecGroups = getSpecGroupsMap(ydoc);
+  const ysg = yspecGroups.get(id);
+  if (!ysg) return undefined;
+  return ySpecGroupToPlain(ysg);
+}
+
+/**
+ * Create a new spec group and store it in the Y.Doc.
+ */
+export function createSpecGroup(ydoc: Y.Doc, name: string, description?: string): SpecGroup {
+  const yspecGroups = getSpecGroupsMap(ydoc);
+  const id = generateSpecGroupId();
+
+  // Compute next order value
+  let maxOrder = -1;
+  yspecGroups.forEach((ysg) => {
+    const o = ysg.get('order') as number;
+    if (o > maxOrder) maxOrder = o;
+  });
+  const order = maxOrder + 1;
+
+  ydoc.transact(() => {
+    const ysg = new Y.Map<unknown>();
+    ysg.set('id', id);
+    ysg.set('name', name);
+    if (description !== undefined) ysg.set('description', description);
+    ysg.set('order', order);
+    const yitems = new Y.Array<Y.Map<unknown>>();
+    ysg.set('items', yitems);
+    yspecGroups.set(id, ysg);
+  }, MCP_ORIGIN);
+
+  return { id, name, description, order, items: [] };
+}
+
+/**
+ * Update a spec group's fields.
+ */
+export function updateSpecGroup(
+  ydoc: Y.Doc,
+  id: string,
+  updates: { name?: string; description?: string; order?: number; items?: SpecGroupItem[] }
+): SpecGroup | undefined {
+  const yspecGroups = getSpecGroupsMap(ydoc);
+  const ysg = yspecGroups.get(id);
+  if (!ysg) return undefined;
+
+  ydoc.transact(() => {
+    if (updates.name !== undefined) ysg.set('name', updates.name);
+    if (updates.description !== undefined) ysg.set('description', updates.description);
+    if (updates.order !== undefined) ysg.set('order', updates.order);
+    if (updates.items !== undefined) {
+      const yitems = ysg.get('items') as Y.Array<Y.Map<unknown>>;
+      yitems.delete(0, yitems.length);
+      for (const item of updates.items) {
+        const yitem = new Y.Map<unknown>();
+        yitem.set('type', item.type);
+        yitem.set('id', item.id);
+        yitems.push([yitem]);
+      }
+    }
+  }, MCP_ORIGIN);
+
+  return getSpecGroup(ydoc, id);
+}
+
+/**
+ * Delete a spec group by ID. Items become ungrouped (no cascade delete).
+ * Returns true if it existed.
+ */
+export function deleteSpecGroup(ydoc: Y.Doc, id: string): boolean {
+  const yspecGroups = getSpecGroupsMap(ydoc);
+  const exists = yspecGroups.has(id);
+  if (exists) {
+    ydoc.transact(() => {
+      yspecGroups.delete(id);
+    }, MCP_ORIGIN);
+  }
+  return exists;
+}
+
+/**
+ * Assign a page or resource to a spec group.
+ * Enforces single-parent: removes from any existing group first.
+ */
+export function assignToSpecGroup(ydoc: Y.Doc, groupId: string, item: SpecGroupItem): SpecGroup | undefined {
+  // Enforce single-parent invariant
+  removeFromSpecGroup(ydoc, item.type, item.id);
+
+  const yspecGroups = getSpecGroupsMap(ydoc);
+  const ysg = yspecGroups.get(groupId);
+  if (!ysg) return undefined;
+
+  ydoc.transact(() => {
+    const yitems = ysg.get('items') as Y.Array<Y.Map<unknown>>;
+    const yitem = new Y.Map<unknown>();
+    yitem.set('type', item.type);
+    yitem.set('id', item.id);
+    yitems.push([yitem]);
+  }, MCP_ORIGIN);
+
+  return getSpecGroup(ydoc, groupId);
+}
+
+/**
+ * Remove a page or resource from whichever spec group contains it.
+ * Returns true if it was found and removed.
+ */
+export function removeFromSpecGroup(ydoc: Y.Doc, itemType: 'page' | 'resource', itemId: string): boolean {
+  const yspecGroups = getSpecGroupsMap(ydoc);
+  let found = false;
+
+  yspecGroups.forEach((ysg) => {
+    if (found) return;
+    const yitems = ysg.get('items') as Y.Array<Y.Map<unknown>>;
+    let idx = -1;
+    yitems.forEach((yitem, i) => {
+      if (yitem.get('type') === itemType && yitem.get('id') === itemId) {
+        idx = i;
+      }
+    });
+    if (idx >= 0) {
+      ydoc.transact(() => {
+        yitems.delete(idx, 1);
+      }, MCP_ORIGIN);
+      found = true;
+    }
+  });
+
+  return found;
 }
 

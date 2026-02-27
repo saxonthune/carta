@@ -26,3 +26,7 @@ export function generateVersionId(): string {
   return 'ver_' + Math.random().toString(36).substring(2, 11);
 }
 
+export function generateSpecGroupId(): string {
+  return 'sg_' + Math.random().toString(36).substring(2, 11);
+}
+

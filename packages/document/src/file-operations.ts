@@ -8,7 +8,7 @@ import * as Y from 'yjs';
 import type { ConstructSchema, PortSchema, SchemaGroup, SchemaPackage, PackageManifestEntry, Resource } from '@carta/schema';
 import { yToPlain, deepPlainToY } from './yjs-helpers.js';
 import { CARTA_FILE_VERSION } from './constants.js';
-import type { CartaFile, CartaFilePage } from './file-format.js';
+import type { CartaFile, CartaFilePage, CartaFileSpecGroup } from './file-format.js';
 
 /**
  * Extract a CartaFile from a Y.Doc for saving.
@@ -102,6 +102,13 @@ export function extractCartaFile(doc: Y.Doc): CartaFile {
     resources.push(yToPlain(yresource) as Resource);
   });
 
+  // Extract spec groups
+  const yspecGroups = doc.getMap<Y.Map<unknown>>('specGroups');
+  const specGroups: CartaFileSpecGroup[] = [];
+  yspecGroups.forEach((ysg) => {
+    specGroups.push(yToPlain(ysg) as CartaFileSpecGroup);
+  });
+
   return {
     version: CARTA_FILE_VERSION,
     title,
@@ -113,6 +120,7 @@ export function extractCartaFile(doc: Y.Doc): CartaFile {
     schemaPackages,
     packageManifest: packageManifest.length > 0 ? packageManifest : undefined,
     resources: resources.length > 0 ? resources : undefined,
+    specGroups: specGroups.length > 0 ? specGroups : undefined,
     exportedAt: new Date().toISOString(),
   };
 }
@@ -133,6 +141,7 @@ export function hydrateYDocFromCartaFile(doc: Y.Doc, data: CartaFile): void {
   const yschemaPackages = doc.getMap<Y.Map<unknown>>('schemaPackages');
   const ypackageManifest = doc.getMap<Y.Map<unknown>>('packageManifest');
   const yresources = doc.getMap<Y.Map<unknown>>('resources');
+  const yspecGroups = doc.getMap<Y.Map<unknown>>('specGroups');
 
   doc.transact(() => {
     // Clear existing data
@@ -146,6 +155,7 @@ export function hydrateYDocFromCartaFile(doc: Y.Doc, data: CartaFile): void {
     yschemaPackages.clear();
     ypackageManifest.clear();
     yresources.clear();
+    yspecGroups.clear();
 
     // Set metadata
     ymeta.set('title', data.title);
@@ -262,6 +272,26 @@ export function hydrateYDocFromCartaFile(doc: Y.Doc, data: CartaFile): void {
         yresource.set('versions', yversions);
 
         yresources.set(resource.id, yresource);
+      }
+    }
+
+    // Set spec groups — build Y.Maps manually so items is a Y.Array of Y.Maps
+    if (data.specGroups) {
+      for (const sg of data.specGroups) {
+        const ysg = new Y.Map<unknown>();
+        ysg.set('id', sg.id);
+        ysg.set('name', sg.name);
+        if (sg.description !== undefined) ysg.set('description', sg.description);
+        ysg.set('order', sg.order);
+        const yitems = new Y.Array<Y.Map<unknown>>();
+        for (const item of sg.items) {
+          const yitem = new Y.Map<unknown>();
+          yitem.set('type', item.type);
+          yitem.set('id', item.id);
+          yitems.push([yitem]);
+        }
+        ysg.set('items', yitems);
+        yspecGroups.set(sg.id, ysg);
       }
     }
   });

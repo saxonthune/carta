@@ -284,6 +284,30 @@ export interface Resource {
   versions: ResourceVersion[];
 }
 
+// ===== SPEC GROUPS =====
+
+/**
+ * An ordered item reference within a SpecGroup.
+ * Can point to either a page or a resource.
+ */
+export interface SpecGroupItem {
+  type: 'page' | 'resource';
+  id: string;
+}
+
+/**
+ * Document-level organizational group containing an ordered mix of pages and resources.
+ * Represents a level of specificity in the Code-N ladder (e.g., "Product Vision", "API Implementation").
+ * Membership is stored on the group's items array, not on member entities.
+ */
+export interface SpecGroup {
+  id: string;
+  name: string;
+  description?: string;
+  order: number;
+  items: SpecGroupItem[];
+}
+
 // ===== HELPERS =====
 
 /**
@@ -648,6 +672,20 @@ export interface DocumentAdapter {
 
   // Subscriptions - Resources
   subscribeToResources?(listener: () => void): () => void;
+
+  // State access - Spec Groups (navigator groups)
+  getSpecGroups(): SpecGroup[];
+  getSpecGroup(id: string): SpecGroup | undefined;
+
+  // Mutations - Spec Groups
+  createSpecGroup(name: string, description?: string): SpecGroup;
+  updateSpecGroup(id: string, updates: { name?: string; description?: string; order?: number; items?: SpecGroupItem[] }): SpecGroup | undefined;
+  deleteSpecGroup(id: string): boolean;
+  assignToSpecGroup(groupId: string, item: SpecGroupItem): SpecGroup | undefined;
+  removeFromSpecGroup(itemType: 'page' | 'resource', itemId: string): boolean;
+
+  // Subscriptions - Spec Groups
+  subscribeToSpecGroups?(listener: () => void): () => void;
 
   // Granular subscriptions (optional for interface compatibility)
   subscribeToNodes?(listener: () => void): () => void;

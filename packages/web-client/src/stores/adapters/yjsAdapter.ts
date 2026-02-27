@@ -14,6 +14,8 @@ import type {
   Page,
   Resource,
   ResourceVersion,
+  SpecGroup,
+  SpecGroupItem,
 } from '@carta/schema';
 import { sha256 } from 'js-sha256';
 import {
@@ -24,6 +26,7 @@ import {
   generatePageId,
   generateResourceId,
   generateVersionId,
+  generateSpecGroupId,
   migrateToPages,
   migrateGroupsToPackages,
   migrateSchemaRelationships,
@@ -90,6 +93,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
   const yschemaRelationships = ydoc.getMap<Y.Map<unknown>>('schemaRelationships');
   const ypackageManifest = ydoc.getMap<Y.Map<unknown>>('packageManifest');
   const yresources = ydoc.getMap<Y.Map<unknown>>('resources');
+  const yspecGroups = ydoc.getMap<Y.Map<unknown>>('specGroups');
 
   // Persistence
   let indexeddbProvider: IndexeddbPersistence | null = null;
@@ -116,6 +120,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
   const pageListeners = new Set<() => void>();
   const metaListeners = new Set<() => void>();
   const resourceListeners = new Set<() => void>();
+  const specGroupListeners = new Set<() => void>();
 
   const notifyNodeListeners = () => nodeListeners.forEach((cb) => cb());
   const notifyEdgeListeners = () => edgeListeners.forEach((cb) => cb());
@@ -127,6 +132,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
   const notifyPageListeners = () => pageListeners.forEach((cb) => cb());
   const notifyMetaListeners = () => metaListeners.forEach((cb) => cb());
   const notifyResourceListeners = () => resourceListeners.forEach((cb) => cb());
+  const notifySpecGroupListeners = () => specGroupListeners.forEach((cb) => cb());
 
   // Track whether observers have been set up (to avoid unobserving before setup)
   let observersSetUp = false;
@@ -186,6 +192,10 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     notifyResourceListeners();
     notifyListeners();
   };
+  const onSpecGroupsChange = () => {
+    notifySpecGroupListeners();
+    notifyListeners();
+  };
 
   // Set up Y.Doc observers
   const setupObservers = () => {
@@ -200,6 +210,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     yschemaRelationships.observeDeep(onSchemaRelationshipsChange);
     ypackageManifest.observeDeep(onPackageManifestChange);
     yresources.observeDeep(onResourcesChange);
+    yspecGroups.observeDeep(onSpecGroupsChange);
     observersSetUp = true;
   };
 
@@ -504,6 +515,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
         yschemaRelationships.unobserveDeep(onSchemaRelationshipsChange);
         ypackageManifest.unobserveDeep(onPackageManifestChange);
         yresources.unobserveDeep(onResourcesChange);
+        yspecGroups.unobserveDeep(onSpecGroupsChange);
       }
 
       // Clear all granular listener sets
@@ -518,6 +530,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       pageListeners.clear();
       metaListeners.clear();
       resourceListeners.clear();
+      specGroupListeners.clear();
       listeners.clear();
 
       // Clean up providers
@@ -1395,6 +1408,146 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     subscribeToResources(listener: () => void): () => void {
       resourceListeners.add(listener);
       return () => resourceListeners.delete(listener);
+    },
+
+    // State access - Spec Groups
+    getSpecGroups(): SpecGroup[] {
+      const results: SpecGroup[] = [];
+      yspecGroups.forEach((ysg) => {
+        const yitems = ysg.get('items') as Y.Array<Y.Map<unknown>>;
+        const items: SpecGroupItem[] = [];
+        yitems.forEach((yitem) => {
+          items.push({
+            type: yitem.get('type') as 'page' | 'resource',
+            id: yitem.get('id') as string,
+          });
+        });
+        results.push({
+          id: ysg.get('id') as string,
+          name: ysg.get('name') as string,
+          description: ysg.get('description') as string | undefined,
+          order: ysg.get('order') as number,
+          items,
+        });
+      });
+      return results.sort((a, b) => a.order - b.order);
+    },
+
+    getSpecGroup(id: string): SpecGroup | undefined {
+      const ysg = yspecGroups.get(id);
+      if (!ysg) return undefined;
+      const yitems = ysg.get('items') as Y.Array<Y.Map<unknown>>;
+      const items: SpecGroupItem[] = [];
+      yitems.forEach((yitem) => {
+        items.push({
+          type: yitem.get('type') as 'page' | 'resource',
+          id: yitem.get('id') as string,
+        });
+      });
+      return {
+        id: ysg.get('id') as string,
+        name: ysg.get('name') as string,
+        description: ysg.get('description') as string | undefined,
+        order: ysg.get('order') as number,
+        items,
+      };
+    },
+
+    // Mutations - Spec Groups
+    createSpecGroup(name: string, description?: string): SpecGroup {
+      const id = generateSpecGroupId();
+      let maxOrder = -1;
+      yspecGroups.forEach((ysg) => {
+        const o = ysg.get('order') as number;
+        if (o > maxOrder) maxOrder = o;
+      });
+      const order = maxOrder + 1;
+      ydoc.transact(() => {
+        const ysg = new Y.Map<unknown>();
+        ysg.set('id', id);
+        ysg.set('name', name);
+        if (description !== undefined) ysg.set('description', description);
+        ysg.set('order', order);
+        const yitems = new Y.Array<Y.Map<unknown>>();
+        ysg.set('items', yitems);
+        yspecGroups.set(id, ysg);
+      }, 'user');
+      return { id, name, description, order, items: [] };
+    },
+
+    updateSpecGroup(
+      id: string,
+      updates: { name?: string; description?: string; order?: number; items?: SpecGroupItem[] }
+    ): SpecGroup | undefined {
+      const ysg = yspecGroups.get(id);
+      if (!ysg) return undefined;
+      ydoc.transact(() => {
+        if (updates.name !== undefined) ysg.set('name', updates.name);
+        if (updates.description !== undefined) ysg.set('description', updates.description);
+        if (updates.order !== undefined) ysg.set('order', updates.order);
+        if (updates.items !== undefined) {
+          const yitems = ysg.get('items') as Y.Array<Y.Map<unknown>>;
+          yitems.delete(0, yitems.length);
+          for (const item of updates.items) {
+            const yitem = new Y.Map<unknown>();
+            yitem.set('type', item.type);
+            yitem.set('id', item.id);
+            yitems.push([yitem]);
+          }
+        }
+      }, 'user');
+      return this.getSpecGroup(id);
+    },
+
+    deleteSpecGroup(id: string): boolean {
+      const exists = yspecGroups.has(id);
+      if (exists) {
+        ydoc.transact(() => {
+          yspecGroups.delete(id);
+        }, 'user');
+      }
+      return exists;
+    },
+
+    assignToSpecGroup(groupId: string, item: SpecGroupItem): SpecGroup | undefined {
+      // Enforce single-parent: remove from any existing group first
+      this.removeFromSpecGroup(item.type, item.id);
+      const ysg = yspecGroups.get(groupId);
+      if (!ysg) return undefined;
+      ydoc.transact(() => {
+        const yitems = ysg.get('items') as Y.Array<Y.Map<unknown>>;
+        const yitem = new Y.Map<unknown>();
+        yitem.set('type', item.type);
+        yitem.set('id', item.id);
+        yitems.push([yitem]);
+      }, 'user');
+      return this.getSpecGroup(groupId);
+    },
+
+    removeFromSpecGroup(itemType: 'page' | 'resource', itemId: string): boolean {
+      let found = false;
+      yspecGroups.forEach((ysg) => {
+        if (found) return;
+        const yitems = ysg.get('items') as Y.Array<Y.Map<unknown>>;
+        let idx = -1;
+        yitems.forEach((yitem, i) => {
+          if (yitem.get('type') === itemType && yitem.get('id') === itemId) {
+            idx = i;
+          }
+        });
+        if (idx >= 0) {
+          ydoc.transact(() => {
+            yitems.delete(idx, 1);
+          }, 'user');
+          found = true;
+        }
+      });
+      return found;
+    },
+
+    subscribeToSpecGroups(listener: () => void): () => void {
+      specGroupListeners.add(listener);
+      return () => specGroupListeners.delete(listener);
     },
 
     // Granular subscriptions for focused hooks
