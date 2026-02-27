@@ -1,15 +1,13 @@
 import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron';
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { dirname, join, basename } from 'path';
 import createDebug from 'debug';
 import { is, getRendererUrl } from './config.js';
-import { startEmbeddedServer, stopEmbeddedServer, ensureVaultHasDocument, type EmbeddedServerInfo } from './server.js';
+import { startDesktopServer, stopDesktopServer, initializeWorkspace, type WorkspaceServerInfo } from './server.js';
 import {
   readPreferences,
   writePreferences,
-  getDefaultVaultPath,
   isFirstRun,
-  ensureVaultExists,
 } from './preferences.js';
 
 const log = createDebug('carta:desktop');
@@ -18,7 +16,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 let mainWindow: BrowserWindow | null = null;
-let serverInfo: EmbeddedServerInfo | null = null;
+let serverInfo: WorkspaceServerInfo | null = null;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -89,25 +87,20 @@ ipcMain.handle('get-server-info', () => serverInfo);
 ipcMain.handle('get-mcp-config', () => getMcpConfigSnippet());
 ipcMain.handle('get-mcp-script-path', () => getMcpScriptPath());
 
-// IPC handlers for vault management
+// IPC handlers for workspace management
 ipcMain.handle('is-first-run', () => {
   return isFirstRun(app.getPath('userData'));
 });
 
-ipcMain.handle('get-vault-path', () => {
+ipcMain.handle('get-workspace-path', () => {
   const prefs = readPreferences(app.getPath('userData'));
-  return prefs.vaultPath;
+  return prefs.workspacePath;
 });
 
-ipcMain.handle('get-default-vault-path', () => {
-  return getDefaultVaultPath();
-});
-
-ipcMain.handle('choose-vault-folder', async () => {
+ipcMain.handle('choose-workspace-folder', async () => {
   const result = await dialog.showOpenDialog({
     properties: ['openDirectory', 'createDirectory'],
-    title: 'Choose Carta Vault Folder',
-    defaultPath: getDefaultVaultPath(),
+    title: 'Choose Project Folder',
   });
 
   if (result.canceled || result.filePaths.length === 0) {
@@ -117,32 +110,35 @@ ipcMain.handle('choose-vault-folder', async () => {
   return result.filePaths[0];
 });
 
-ipcMain.handle('reveal-vault', async () => {
+ipcMain.handle('reveal-workspace', async () => {
   const prefs = readPreferences(app.getPath('userData'));
-  if (prefs.vaultPath) {
-    await shell.openPath(prefs.vaultPath);
+  if (prefs.workspacePath) {
+    await shell.openPath(prefs.workspacePath);
   }
 });
 
-ipcMain.handle('initialize-vault', async (_event, vaultPath: string) => {
+ipcMain.handle('initialize-workspace', async (_event, workspacePath: string) => {
   try {
-    ensureVaultExists(vaultPath);
     const userDataPath = app.getPath('userData');
-    const prefs = readPreferences(userDataPath);
-    prefs.vaultPath = vaultPath;
-    writePreferences(userDataPath, prefs);
 
-    // Stop existing server if running (handles vault change case)
+    // Scaffold .carta/ inside the project directory (idempotent)
+    initializeWorkspace(workspacePath, basename(workspacePath));
+
+    // Stop existing server if running (handles workspace change case)
     if (serverInfo) {
-      await stopEmbeddedServer();
+      await stopDesktopServer();
     }
 
-    serverInfo = await startEmbeddedServer(userDataPath, vaultPath);
-    const documentId = ensureVaultHasDocument();
-    log('Vault initialized: %s, documentId: %s', serverInfo.url, documentId);
-    return { url: serverInfo.url, wsUrl: serverInfo.wsUrl, port: serverInfo.port, documentId };
+    serverInfo = await startDesktopServer(userDataPath, workspacePath);
+
+    const prefs = readPreferences(userDataPath);
+    prefs.workspacePath = workspacePath;
+    writePreferences(userDataPath, prefs);
+
+    log('Workspace initialized: %s', serverInfo.url);
+    return { url: serverInfo.url, wsUrl: serverInfo.wsUrl, port: serverInfo.port };
   } catch (err) {
-    log('Failed to initialize vault: %O', err);
+    log('Failed to initialize workspace: %O', err);
     throw err;
   }
 });
@@ -151,16 +147,17 @@ app.whenReady().then(async () => {
   const userDataPath = app.getPath('userData');
   const prefs = readPreferences(userDataPath);
 
-  // Only start server if vault is configured
-  if (prefs.vaultPath) {
+  // Start workspace server automatically if a valid workspace is configured
+  if (prefs.workspacePath) {
     try {
-      serverInfo = await startEmbeddedServer(userDataPath, prefs.vaultPath);
-      log('Embedded server started: %s', serverInfo.url);
+      serverInfo = await startDesktopServer(userDataPath, prefs.workspacePath);
+      log('Workspace server started: %s', serverInfo.url);
     } catch (err) {
-      log('Failed to start embedded server: %O', err);
+      log('Failed to start workspace server: %O', err);
+      // Continue to create window — web client will show workspace selection dialog
     }
   } else {
-    log('First run - waiting for vault selection');
+    log('No workspace configured - waiting for workspace selection');
   }
 
   createWindow();
@@ -183,10 +180,10 @@ app.on('before-quit', async (event) => {
   event.preventDefault();
 
   try {
-    await stopEmbeddedServer();
-    log('Embedded server stopped, documents saved');
+    await stopDesktopServer();
+    log('Workspace server stopped, documents saved');
   } catch (err) {
-    log('Error stopping embedded server: %O', err);
+    log('Error stopping workspace server: %O', err);
   }
 
   // Actually quit now

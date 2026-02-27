@@ -2,12 +2,12 @@ import type { VaultAdapter, DocumentSummary } from '@carta/schema';
 
 /**
  * Vault adapter for the Electron desktop app.
- * Uses the embedded document server for CRUD and Electron IPC for vault management.
+ * Uses the workspace server for CRUD and Electron IPC for workspace management.
  */
 export class DesktopVaultAdapter implements VaultAdapter {
   readonly canChangeVault = true;
   displayAddress: string;
-  needsVaultSetup: boolean;
+  needsWorkspaceSetup: boolean;
   private syncUrl: string;
   private electronAPI: NonNullable<typeof window.electronAPI>;
 
@@ -18,22 +18,22 @@ export class DesktopVaultAdapter implements VaultAdapter {
     this.syncUrl = syncUrl;
     this.electronAPI = electronAPI;
     this.displayAddress = '';
-    this.needsVaultSetup = false;
+    this.needsWorkspaceSetup = false;
   }
 
   async init(): Promise<void> {
     const firstRun = await this.electronAPI.isFirstRun();
     if (firstRun) {
-      this.needsVaultSetup = true;
+      this.needsWorkspaceSetup = true;
       this.displayAddress = '';
       return;
     }
-    const vaultPath = await this.electronAPI.getVaultPath();
-    this.displayAddress = vaultPath ?? 'Local Vault';
+    const workspacePath = await this.electronAPI.getWorkspacePath();
+    this.displayAddress = workspacePath ?? 'Local Workspace';
   }
 
   async listDocuments(): Promise<DocumentSummary[]> {
-    if (this.needsVaultSetup) return [];
+    if (this.needsWorkspaceSetup) return [];
 
     const response = await fetch(`${this.syncUrl}/api/documents`);
     if (!response.ok) {
@@ -51,8 +51,8 @@ export class DesktopVaultAdapter implements VaultAdapter {
   }
 
   async createDocument(title: string, folder?: string, filename?: string): Promise<string> {
-    if (this.needsVaultSetup) {
-      throw new Error('Vault not initialized');
+    if (this.needsWorkspaceSetup) {
+      throw new Error('Workspace not initialized');
     }
 
     const response = await fetch(`${this.syncUrl}/api/documents`, {
@@ -76,18 +76,18 @@ export class DesktopVaultAdapter implements VaultAdapter {
     return !!data.deleted;
   }
 
-  async initializeVault(vaultPath: string): Promise<{ documentId: string; syncUrl: string; wsUrl: string }> {
-    const result = await this.electronAPI.initializeVault(vaultPath);
+  async initializeWorkspace(workspacePath: string): Promise<{ syncUrl: string; wsUrl: string; port: number }> {
+    const result = await this.electronAPI.initializeWorkspace(workspacePath);
     this.syncUrl = result.url;
-    this.displayAddress = vaultPath;
-    this.needsVaultSetup = false;
-    return { documentId: result.documentId, syncUrl: result.url, wsUrl: result.wsUrl };
+    this.displayAddress = workspacePath;
+    this.needsWorkspaceSetup = false;
+    return { syncUrl: result.url, wsUrl: result.wsUrl, port: result.port };
   }
 
   async changeVault(): Promise<void> {
-    const newPath = await this.electronAPI.chooseVaultFolder();
+    const newPath = await this.electronAPI.chooseWorkspaceFolder();
     if (newPath) {
-      await this.electronAPI.initializeVault(newPath);
+      await this.electronAPI.initializeWorkspace(newPath);
       window.location.reload();
     }
   }

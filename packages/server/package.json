@@ -18,6 +18,10 @@
     "./workspace-server": {
       "types": "./dist/workspace-server.d.ts",
       "import": "./dist/workspace-server.js"
+    },
+    "./init": {
+      "types": "./dist/init.d.ts",
+      "import": "./dist/init.js"
     }
   },
   "bin": {

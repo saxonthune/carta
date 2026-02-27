@@ -111,7 +111,7 @@ The desktop app separates two concerns that were previously conflated in the emb
 
 1. **MCP server** (always runs locally): Reads the currently-open Y.Doc in memory. Works regardless of where the document came from — local folder or remote server. Provides zero-latency AI tool access.
 
-2. **Document server** (source-dependent): Either the embedded local server (for folder sources) or the remote server (when connected to a storage host). Handles persistence and collaboration sync.
+2. **Document server** (source-dependent): Either `startWorkspaceServer()` from `@carta/server` (for workspace sources) or the remote server (when connected to a storage host). The desktop is a thin wrapper — it picks a project directory, calls `scaffoldWorkspace()` + `startWorkspaceServer()`, writes `server.json` for MCP discovery, and loads the web client. All server logic lives in `@carta/server`.
 
 ```
 Claude Desktop ──stdio──▶ MCP binary ──HTTP──▶ Local MCP Server
@@ -120,14 +120,14 @@ Claude Desktop ──stdio──▶ MCP binary ──HTTP──▶ Local MCP Ser
                                                     │
                                           ┌─────────┴─────────┐
                                           │                    │
-                                    Folder source         Remote server
-                                    (embedded server,     (WebSocket sync,
-                                     filesystem I/O)       server is SoT)
+                                    Workspace source      Remote server
+                                    (workspace server,    (WebSocket sync,
+                                     .carta/ on disk)      server is SoT)
 ```
 
 This means an enterprise user can work with server-hosted documents while their local Claude Desktop gets fast MCP access to the locally-synced Y.Doc — no round-trip to the server for AI tool reads.
 
-**MCP auto-discovery:** The desktop embedded server writes `server.json` to `{userData}/` containing its URL and PID. The MCP stdio binary (`packages/server/src/mcp/stdio.ts`) reads this file automatically, enabling zero-config integration with Claude Desktop.
+**MCP auto-discovery:** The desktop workspace server writes `server.json` to `{userData}/` containing its URL and PID. The MCP stdio binary (`packages/server/src/mcp/stdio.ts`) reads this file automatically, enabling zero-config integration with Claude Desktop.
 
 Discovery priority: `CARTA_SERVER_URL` env var → `server.json` auto-discovery → fallback `http://localhost:1234`.
 
@@ -209,4 +209,4 @@ Examples:
 | `@carta/document` | Done — Y.Doc operations, Yjs helpers, file format, migrations, level-aware CRUD, compiler |
 | `@carta/web-client` | Done — extracted to `packages/web-client/` |
 | `@carta/server` | Done — document server + MCP server, imports from `@carta/document` |
-| `@carta/desktop` | Done — Electron app with embedded document server, MCP bundling |
+| `@carta/desktop` | Done — Electron app with workspace server integration, thin wrapper around `@carta/server` |

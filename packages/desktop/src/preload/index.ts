@@ -12,11 +12,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getServerInfo: () => ipcRenderer.invoke('get-server-info'),
   getMcpConfig: () => ipcRenderer.invoke('get-mcp-config'),
   getMcpScriptPath: () => ipcRenderer.invoke('get-mcp-script-path'),
-  // Vault management
+  // Workspace management
   isFirstRun: () => ipcRenderer.invoke('is-first-run'),
-  getVaultPath: () => ipcRenderer.invoke('get-vault-path'),
-  getDefaultVaultPath: () => ipcRenderer.invoke('get-default-vault-path'),
-  chooseVaultFolder: () => ipcRenderer.invoke('choose-vault-folder'),
-  initializeVault: (path: string) => ipcRenderer.invoke('initialize-vault', path),
-  revealVault: () => ipcRenderer.invoke('reveal-vault'),
+  getWorkspacePath: () => ipcRenderer.invoke('get-workspace-path'),
+  chooseWorkspaceFolder: () => ipcRenderer.invoke('choose-workspace-folder'),
+  initializeWorkspace: (path: string) => ipcRenderer.invoke('initialize-workspace', path),
+  revealWorkspace: () => ipcRenderer.invoke('reveal-workspace'),
 });

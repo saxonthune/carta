@@ -502,11 +502,11 @@ export interface VaultAdapter {
   /** Change vault location. Reloads the app after switching. Only callable when canChangeVault is true. */
   changeVault?(): Promise<void>;
 
-  /** True when desktop vault folder hasn't been selected yet (first-run state) */
-  readonly needsVaultSetup?: boolean;
+  /** True when desktop workspace folder hasn't been selected yet (first-run state) */
+  readonly needsWorkspaceSetup?: boolean;
 
-  /** Initialize a vault at the given path. Returns server info and first document ID. */
-  initializeVault?(vaultPath: string): Promise<{ documentId: string; syncUrl: string; wsUrl: string }>;
+  /** Initialize a workspace at the given path. Returns server info. */
+  initializeWorkspace?(workspacePath: string): Promise<{ syncUrl: string; wsUrl: string; port: number }>;
 }
 
 // ===== PERSISTENCE =====
