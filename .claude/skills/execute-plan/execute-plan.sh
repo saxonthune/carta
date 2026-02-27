@@ -154,11 +154,15 @@ else
 fi
 echo ""
 
-# ─── Step 7: Retry on Failure ────────────────────────────────────────────────
+# ─── Step 7: Retry on Failure (up to MAX_RETRIES) ────────────────────────────
 
 RETRIED=false
-if [[ "$VERIFIED" == "false" ]]; then
-  echo "── Retrying with error context ──"
+MAX_RETRIES=4
+RETRY_COUNT=0
+
+while [[ "$VERIFIED" == "false" && "$RETRY_COUNT" -lt "$MAX_RETRIES" ]]; do
+  RETRY_COUNT=$((RETRY_COUNT + 1))
+  echo "── Retry ${RETRY_COUNT}/${MAX_RETRIES} with error context ──"
   RETRIED=true
 
   ERROR_TAIL=$(echo "${BUILD_TEST_OUTPUT}" | tail -50)
@@ -170,35 +174,44 @@ ${ERROR_TAIL}
 Fix the issues, then run 'pnpm build && pnpm test' again. Commit your fixes."
 
   if [[ -n "$SESSION_ID" ]]; then
-    claude -p \
+    RETRY_OUTPUT=$(claude -p \
       --resume "${SESSION_ID}" \
       --permission-mode bypassPermissions \
       --output-format json \
       --max-turns 50 \
       --max-budget-usd "${RETRY_BUDGET}" \
-      "${RETRY_PROMPT}" 2>&1 || true
+      "${RETRY_PROMPT}" 2>&1) || true
+    # Update session ID from retry output
+    NEW_SESSION_ID=$(echo "${RETRY_OUTPUT}" | jq -r '.session_id // empty' 2>/dev/null || echo "")
+    if [[ -n "$NEW_SESSION_ID" ]]; then
+      SESSION_ID="$NEW_SESSION_ID"
+    fi
   else
-    claude -p \
+    RETRY_OUTPUT=$(claude -p \
       --allowedTools "Read,Write,Edit,Glob,Grep,Bash" \
       --permission-mode bypassPermissions \
       --output-format json \
       --max-turns 50 \
       --model sonnet \
       --max-budget-usd "${RETRY_BUDGET}" \
-      "${RETRY_PROMPT}" 2>&1 || true
+      "${RETRY_PROMPT}" 2>&1) || true
+    NEW_SESSION_ID=$(echo "${RETRY_OUTPUT}" | jq -r '.session_id // empty' 2>/dev/null || echo "")
+    if [[ -n "$NEW_SESSION_ID" ]]; then
+      SESSION_ID="$NEW_SESSION_ID"
+    fi
   fi
 
   echo ""
-  echo "── Re-verifying build & tests ──"
+  echo "── Re-verifying build & tests (attempt ${RETRY_COUNT}) ──"
   BUILD_TEST_OUTPUT=""
   if cd "${WORKTREE_DIR}" && BUILD_TEST_OUTPUT=$(pnpm build 2>&1) && BUILD_TEST_OUTPUT+=$'\n'"$(pnpm test 2>&1)"; then
     VERIFIED=true
-    echo "Build and tests PASSED on retry"
+    echo "Build and tests PASSED on retry ${RETRY_COUNT}"
   else
-    echo "Build or tests STILL FAILING after retry"
+    echo "Build or tests STILL FAILING after retry ${RETRY_COUNT}"
   fi
   echo ""
-fi
+done
 
 # ─── Step 8: Merge or Report ─────────────────────────────────────────────────
 

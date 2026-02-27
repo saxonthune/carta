@@ -96,11 +96,11 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 
 | Ref | File | Summary | Tags | Deps |
 |-----|------|---------|------|------|
-| doc03.02.01 | `02-use-cases/01-architect.md` | Software architect persona | persona, architect | — |
-| doc03.02.02 | `02-use-cases/02-team-lead.md` | Team lead persona | persona, team | — |
-| doc03.02.03 | `02-use-cases/03-enterprise-self-hosted.md` | Enterprise storage host, managed AI | enterprise, selfhost | doc02.05 |
-| doc03.02.04 | `02-use-cases/04-solo-user.md` | Single-document browser, desktop standalone | solo, desktop | doc02.05 |
-| doc03.02.05 | `02-use-cases/05-saas-provider.md` | Storage host, auth/billing surfaces | saas, provider | doc02.05 |
+| doc03.02.01 | `02-use-cases/01-architect.md` | Software architect: workspace in a repo, `carta serve .` | persona, architect, workspace | doc02.04.09 |
+| doc03.02.02 | `02-use-cases/02-team-lead.md` | Team lead: schema governance, PR review of canvas changes | persona, team, schemas, git | doc02.04.09 |
+| doc03.02.03 | `02-use-cases/03-enterprise-self-hosted.md` | Team workspace: shared server wraps git repo, commits on behalf of web users | team, workspace, git | doc02.04.09, doc02.05 |
+| doc03.02.04 | `02-use-cases/04-solo-user.md` | Browser playground or local workspace server | solo, playground, workspace | doc02.05 |
+| doc03.02.05 | `02-use-cases/05-saas-provider.md` | **Archived.** Superseded by workspace model (ADR 009) | archived | — |
 
 ### Workflows (doc03.03)
 

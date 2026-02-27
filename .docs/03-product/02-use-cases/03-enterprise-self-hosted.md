@@ -1,62 +1,60 @@
 ---
-title: Enterprise Self-Hosted
+title: Team Workspace
 status: active
 ---
 
-# Enterprise Self-Hosted
+# Team Workspace
 
 ## Scenario
 
-An enterprise hosts an internal Carta server (the **storage host**) for all employees. Users connect via the official desktop app or a company-hosted web URL.
+A team works on a shared codebase. The `.carta/` workspace lives in the repository alongside source code. Developers run `carta serve .` locally. Non-developers (product managers, domain experts) connect to a shared workspace server via the web client. The server performs git operations on their behalf.
 
 ## Deployment Configuration
 
 | Setting | Value |
 |---------|-------|
-| `VITE_SYNC_URL` | `https://carta.internal` (company's server) |
-| `VITE_AI_MODE` | `server-proxy` |
+| `VITE_SYNC_URL` | `https://carta.internal` or `http://localhost:51234` |
+| `VITE_AI_MODE` | `user-key` or `server-proxy` |
 
-The server handles document persistence, collaboration sync, and AI proxying. The enterprise chooses their backing store (MongoDB, DynamoDB, etc.) and AI provider (AWS Bedrock, Azure OpenAI, etc.).
+The workspace server wraps a git clone of the team's repository. It serves the web client, manages Yjs rooms per canvas, and commits/pushes to the remote on behalf of web users.
 
 ## User Flows
 
-### Web client
+### Developer (local)
 
-- User navigates to the company URL (e.g., `https://carta.internal`)
-- Auth is handled by the enterprise's SSO/OAuth layer (integration surface)
-- Document browser shows server-hosted documents, organized by whatever grouping the storage host provides (folders, tags, projects — all metadata on documents)
-- User creates or opens a document; collaboration is automatic with other connected users
-- AI chat routes through the server to the enterprise's AI provider — no API key needed
+- Runs `carta serve .` in their repo checkout
+- Edits canvases in the browser, changes write to disk via debouncer
+- Versions changes with git directly (`git add`, `git commit`, `git push`)
+- AI agents (Claude Code, Cursor) read `.carta/` files directly, use MCP for canvas/schema editing
+- Pulls teammate changes via `git pull` — filesystem watcher reconciles any open Yjs rooms
 
-### Desktop app
+### Product manager (web client)
 
-- User opens the desktop app and connects to the company server URL
-- Same document browser and collaboration as the web client
-- **Local MCP**: Desktop runs a local MCP server that reads the locally-synced Y.Doc — zero-latency AI tool access for Claude Desktop, even when working with server-hosted documents
-- **Remote MCP**: Server also exposes MCP via REST API for AI assistants that are online
+- Opens the team's workspace server URL in a browser
+- Browses the workspace tree in the navigator (spec groups = directories)
+- Creates canvases, adds constructs, uses AI sidebar
+- Clicks "Publish to repository" when ready to share
+  - Sees files they changed (pre-selected) and others' uncommitted changes (visible, not selected)
+  - Writes a commit message → server runs `git commit --author="PM Name <pm@company.com>" && git push`
+- If they close their laptop without publishing, auto-quiesce commits their changes as a safety net
 
-### Why local MCP matters for enterprise
+### Real-time collaboration
 
-An enterprise user working with server-hosted documents still benefits from local MCP. The desktop app syncs the Y.Doc locally via Yjs CRDT. The local MCP server reads this replica, providing:
-- Fast reads without server round-trips
-- Offline access to the last-synced state
-- Same data as the server (Yjs guarantees convergence)
+- Two web users editing the same canvas see each other's changes in real time via Yjs
+- A developer running `carta serve .` locally does NOT see web users' real-time edits (separate server instances)
+- Cross-instance sharing happens through git: web user publishes → developer pulls
 
-The only divergence window is when a user is offline with unsynced local changes.
+## Git Integration
 
-## Document Organization
+The workspace server tracks which user edited which file (`Map<filePath, Set<userId>>`). On publish, it stages the selected files, commits with the user's author identity, and pushes. See ADR 009's "Git integration" section for the full publish model.
 
-The enterprise's storage host manages document organization — not Carta. The server might organize documents by team, project, or folder. This is metadata on documents (e.g., `folder: "/Team Alpha/Q1 Planning"`), rendered by Carta's document browser as a navigable structure.
-
-## AI Access
-
-The enterprise configures their server with AI provider credentials. `AI_MODE=server-proxy` means the UI only shows the server-managed chat option. Users never see or provide API keys.
-
-**Can the enterprise block employees from using outside AI?** Not technically — the Carta UI simply doesn't offer a "bring your own key" option. This is a UX boundary, not a security guarantee.
+The server does not manage branches. Everyone works on the same branch. The remote is GitHub/GitLab/etc. — the server is not a git hosting service.
 
 ## Features Used
 
-- doc03.01.03.02 (Collaboration) — real-time sync via server
-- doc03.01.03.03 (AI Assistant) — server-proxied chat
 - doc03.01.01.01 (Canvas) — primary workspace
+- doc03.01.01.02 (Constructs) — modeling components
+- doc03.01.01.03 (Ports and Connections) — defining relationships
 - doc03.01.02.01 (Compilation) — AI-readable output
+- doc03.01.03.02 (Collaboration) — real-time sync between web users
+- doc03.01.03.03 (AI Assistant) — sidebar chat, MCP tools

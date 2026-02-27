@@ -182,19 +182,80 @@ The server:
 This is the same server used by:
 - **Desktop app**: Electron wraps it with native chrome, tray icon, auto-launch
 - **Local development**: Developer runs `npx carta serve .` in their repo
-- **Enterprise/SaaS**: Hosted server with auth, permissions, multi-workspace
+- **Team server**: Hosted on internal infrastructure, wraps a git clone, commits on behalf of web users
+
+### Git integration: the server as git intermediary
+
+The workspace lives in a git repository. Developers interact with it via `git` directly. Non-developers (product managers, domain experts) interact via the web client, and the server performs git operations on their behalf. This follows the **git-backed CMS** pattern established by Decap CMS, TinaCMS, GitBook, and Prose.io: web UI for humans, git commits as persistence, the repository as single source of truth.
+
+#### Layering: Yjs for real-time, git for durable sharing
+
+Yjs and git serve different timescales and audiences:
+
+| Concern | Mechanism |
+|---------|-----------|
+| Two users editing the same canvas simultaneously | Yjs CRDT over WebSocket |
+| Edits persist to disk | Debounced `.canvas.json` writes (workspace-06) |
+| External changes (developer edits, `git pull`) reconcile with active rooms | Filesystem watcher (workspace-07) |
+| Sharing changes with people not currently connected | Git commit + push |
+
+Users with the web client open never need git to collaborate with each other — they're in the same Yjs room. Git is the boundary between "people with the web client open" and "everyone else working in the repo."
+
+#### Publish model
+
+**Explicit publish** is the primary mechanism. The user clicks "Publish to repository" in the web client. The server stages files, commits, and pushes.
+
+**Auto-quiesce** is the safety net. When all WebSocket rooms have been idle for N minutes, or the last client disconnects, or the server shuts down, the server auto-commits any uncommitted changes. This prevents data loss if a user closes their laptop without publishing. The auto-commit captures all uncommitted changes (never a partial subset).
+
+| Trigger | Scope | Commit message |
+|---------|-------|----------------|
+| User clicks "Publish" | User-selected files | User-provided (or default) |
+| All rooms idle for N minutes | All uncommitted changes | `Auto-save` |
+| Last client disconnects | All uncommitted changes | `Auto-save` |
+| Server shutdown | All uncommitted changes | `Auto-save` |
+
+#### Selective staging
+
+When a user publishes, the server shows which files have uncommitted changes, grouped by who touched them:
+
+- **Your changes** — files in rooms the publishing user edited. Pre-selected.
+- **Other changes** — files in rooms other users edited. Visible but not selected.
+
+The user can select or deselect any file before committing. This prevents accidentally committing another user's half-finished work. The server tracks `Map<filePath, Set<userId>>` — updated when a Yjs room processes an edit, cleared per-file on commit.
+
+#### Author identity
+
+Each git commit includes `--author` mapping the web client user to a git identity. In the simplest case, the server operator configures a default author. In a team deployment, the server maps authenticated users to git author strings (e.g., `Jane PM <jane@company.com>`).
+
+#### Server git operations
+
+The server wraps these git CLI operations:
+
+| Operation | When | Notes |
+|-----------|------|-------|
+| `git status` | On client connect, surfaces dirty/clean state to web client | |
+| `git add <files>` | On publish (selected files) or auto-quiesce (all dirty files) | |
+| `git commit` | After staging | `--author` from user identity mapping |
+| `git push` | After commit, to configured remote | Fails gracefully if no remote configured |
+| `git pull` | On client connect, periodic, or manual trigger | Filesystem watcher reconciles Yjs rooms after pull modifies files |
+
+**Merge conflicts**: Canvas JSON is machine-written, so conflicts from concurrent git edits are rare. If `git pull` encounters a conflict, the server surfaces it to the user rather than auto-resolving. In practice, "theirs" (accept the developer's version) or "ours" (keep the web client's version) is usually correct — line-level merge of `.canvas.json` is not meaningful.
+
+**No branch management in v1**: The server works on a single branch. Branch-per-user workflows are a future sophistication.
+
+**No remote hosting**: The server is not a git hosting service. The remote is GitHub, GitLab, etc. The server just runs `git push`.
 
 ### Deployment modes
 
-| Mode | How it starts | Filesystem | Collaboration |
-|------|--------------|-----------|--------------|
-| **Desktop app** | Launch Carta.app | Embedded server, real filesystem | Local or remote |
-| **Local server** | `npx carta serve .` | Standalone server, any browser | Local (single user) or LAN |
-| **Remote server** | Enterprise/SaaS hosted | Server-side filesystem or object store | Multi-user WebSocket |
-| **Demo site** | Visit carta.dev | No filesystem, IndexedDB single canvas | None |
+| Mode | How it starts | Filesystem | Collaboration | Git |
+|------|--------------|-----------|--------------|-----|
+| **Local server** | `npx carta serve .` | Standalone server, any browser | WebSocket (LAN or tunneled) | Developer uses git directly |
+| **Team server** | Hosted on internal infra or cloud | Server-side filesystem (git clone) | Multi-user WebSocket | Server commits on behalf of web users |
+| **Desktop app** | Launch Carta.app | Embedded server, real filesystem | Local | Developer uses git directly |
+| **Demo site** | Visit carta.dev | No filesystem, IndexedDB single canvas | None | None |
 
 Only two architectures:
-1. **Server-backed** (desktop, local CLI, remote hosted) — full workspace, collaboration, MCP
+1. **Server-backed** (local CLI, team server, desktop) — full workspace, collaboration, MCP, optional git integration
 2. **Serverless** (demo site) — single canvas playground in IndexedDB, no workspace features
 
 The web client does not use the File System Access API or IndexedDB filesystem emulation. Workspace features require a server (local or remote). This keeps the browser client simple — it always connects to a server for workspace operations.
