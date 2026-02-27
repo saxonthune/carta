@@ -54,48 +54,49 @@ Universal pattern: the config directory stores app state (how to view/edit), not
 
 ## Decision
 
-### Workspace = directory with `.carta/` config
+### Workspace = project directory with `.carta/` vault
 
-A Carta workspace is a directory containing a `.carta/` configuration directory and content files organized by the user. The `.carta/` directory plays the same role as `.obsidian/`, `.vscode/`, or `.idea/` — it stores Carta-specific configuration and transient state, not content.
+A Carta workspace is a project directory containing a `.carta/` vault directory. The `.carta/workspace.json` describes the project in `..` — the parent directory is the project root. All Carta content (canvases, schemas, spec groups, resources) lives inside `.carta/`, keeping the project source tree clean. This is the vault model: `.carta/` contains everything Carta manages, coexisting with the project's own source code.
 
 ```
 my-project/
-├── .carta/
-│   ├── workspace.json          # Workspace metadata: title, version, compiler config
-│   ├── ui-state.json           # Gitignored: active page, panel sizes, zoom levels
-│   └── .state/                 # Gitignored: binary Y.Doc sidecars for collaboration
-│       ├── endpoint-map.ystate
-│       └── service-layers.ystate
+├── .carta/                              # Carta vault — all content here
+│   ├── workspace.json                   # Workspace metadata: title, description
+│   ├── ui-state.json                    # Gitignored: active page, panel sizes, zoom levels
+│   ├── .state/                          # Gitignored: binary Y.Doc sidecars for collaboration
+│   │   ├── endpoint-map.ystate
+│   │   └── service-layers.ystate
+│   │
+│   ├── 01-product-vision/               # Spec group = directory
+│   │   ├── _group.json                  # Group metadata: name, description
+│   │   ├── domain-sketch.canvas.json    # Canvas file (JSON)
+│   │   └── user-stories.md              # Resource: just a file
+│   │
+│   ├── 02-api-contract/
+│   │   ├── _group.json
+│   │   ├── endpoint-map.canvas.json
+│   │   ├── prospect-api.ts              # Resource: TypeScript type
+│   │   └── openapi-spec.yaml            # Resource: OpenAPI
+│   │
+│   └── schemas/                         # Shared across all canvases
+│       └── schemas.json                 # All schemas, port schemas, groups, relationships
 │
-├── 01-product-vision/          # Spec group = directory
-│   ├── _group.json             # Group metadata: name, description
-│   ├── domain-sketch.canvas    # Canvas file (JSON)
-│   └── user-stories.md         # Resource: just a file
-│
-├── 02-api-contract/
-│   ├── _group.json
-│   ├── endpoint-map.canvas
-│   ├── prospect-api.ts         # Resource: TypeScript type
-│   └── openapi-spec.yaml       # Resource: OpenAPI
-│
-├── schemas/                    # Shared across all canvases
-│   ├── endpoint.schema.json
-│   └── service.schema.json
-│
-└── .gitignore                  # Ignores .carta/ui-state.json, .carta/.state/
+├── src/                                 # Project source (untouched by Carta)
+│   └── ...
+└── .gitignore                           # Ignores .carta/ui-state.json, .carta/.state/
 ```
 
 ### Content file types
 
-**`.canvas` files** — JSON representation of a canvas page. Contains nodes (constructs with positions, field values, connections), edges, and organizers. Human-readable, git-diffable. One canvas per file. This is the Carta-native format, equivalent to a "page" in the current model.
+**`.canvas.json` files** — JSON representation of a canvas page. Contains nodes (constructs with positions, field values, connections), edges, and organizers in a single `nodes` array (organizers distinguished by `isOrganizer: true`). Human-readable, git-diffable. One canvas per file. This is the Carta-native format, equivalent to a "page" in the current model.
 
-**`.schema.json` files** — Schema definitions. Shared across all canvases in the workspace. Contains construct type definitions with fields, ports, display properties. Equivalent to the current schema entries in the Y.Doc.
+**`schemas/schemas.json`** — All-in-one schema file containing construct schemas, port schemas, schema groups, schema relationships, and schema packages. Shared across all canvases in the workspace. Starting with all-in-one for simplicity; can be split into per-package files later as the format stabilizes.
 
 **`_group.json` files** — Spec group metadata. The directory IS the group; this file provides its name and description. The `_` prefix convention signals metadata, not content.
 
 **Resource files** — Any format: TypeScript, JSON Schema, OpenAPI, DBML, Markdown, freeform text. Carta stores and compiles them but does not parse or validate their content (same principle as ADR 008). The filesystem IS the resource storage — no Carta-specific resource format.
 
-**`workspace.json`** — Workspace manifest. Contains workspace title, schema version, compiler configuration. Does NOT contain file listings — the filesystem is the manifest.
+**`workspace.json`** — Workspace manifest. Contains workspace title and description. Does NOT contain file listings — the filesystem is the manifest.
 
 ### Dual representation: JSON canonical, binary sidecar
 
@@ -113,14 +114,14 @@ This means `git diff` always shows the real state. External tools (AI agents, te
 
 ### Spec groups = directories
 
-Spec groups are directories with numbered prefixes (`01-product-vision/`, `02-api-contract/`). Ordering is lexical — the same convention as `.docs/` titles. This means:
+Spec groups are directories inside `.carta/` with numbered prefixes (`01-product-vision/`, `02-api-contract/`). Ordering is lexical — the same convention as `.docs/` titles. This means:
 
 - The directory structure IS the spec group hierarchy
 - Renaming/reordering is a filesystem operation (rename the directory)
 - Nesting is supported naturally (subdirectories)
 - `_group.json` provides the human-readable name and description that appears in the navigator and compiler output
 
-Files not inside a spec group directory (e.g., at the workspace root) appear in an "ungrouped" section.
+Files not inside a spec group directory (e.g., directly in `.carta/`) appear in an "ungrouped" section.
 
 ### MCP narrows to canvas + schema editing
 
@@ -148,14 +149,14 @@ carta_workspace { op: status | init }
 
 ### `carta init` emits workspace scaffold + agent instructions
 
-Initializing a workspace creates the `.carta/` directory and can optionally emit agent instruction files:
+Initializing a workspace creates the `.carta/` directory inside the project root:
 
 ```
 $ npx carta init
 
 Created .carta/workspace.json
-Created schemas/
-Created .gitignore entries
+Created .carta/schemas/
+Updated .gitignore
 ```
 
 The workspace scaffold can include a `CLAUDE.md` or skill file that teaches AI agents how to work with the workspace — when to use MCP tools (canvas/schema editing) vs. direct file operations (resources), how the spec group hierarchy works, how to compile.
@@ -255,10 +256,15 @@ This is enabled by the filesystem-first architecture because:
 
 The standalone Carta app (`carta serve .`) would then serve users who want the integrated experience (navigator, spec groups, multi-canvas tabs) without installing VS Code or Zed.
 
+## Resolved design decisions
+
+1. **Canvas JSON format**: `.canvas.json` files — one per canvas. Nodes and organizers share a single `nodes` array (organizers identified by `isOrganizer: true`). Same shape as current Y.Doc page data.
+2. **Cross-canvas references**: Not supported initially. Each canvas is self-contained. Shared semantics come from shared schemas and resources. Future: `targetCanvas` field on connections with `file:semanticId` pairs.
+3. **Schema file granularity**: All-in-one `schemas/schemas.json` to start. Contains schemas, port schemas, schema groups, schema relationships, and schema packages. Can be split into per-package files later.
+4. **Content location**: Vault model — all Carta content lives inside `.carta/`. The project source tree stays clean. `.carta/workspace.json` describes the project in `..`.
+5. **Compilation scope**: Per-canvas is the unit of compilation. Workspace-level compilation composes per-canvas transforms.
+
 ## Open questions
 
-1. **Canvas JSON schema**: What is the exact JSON structure of a `.canvas` file? Likely a subset of the current `.carta` export format (one page's worth of nodes, edges, organizers) plus a header referencing which schema files it uses
-2. **Cross-canvas references**: Can a construct on one canvas reference a construct on another canvas? If so, references need to be `file:semanticId` pairs. If not, the compiler handles cross-canvas relationships through shared schema and resource references
-3. **Schema file granularity**: One `.schema.json` per schema, or one file containing all schemas? Per-schema is more git-friendly (atomic diffs). All-in-one is simpler to manage. Could support both via a `schemas/` directory convention
-4. **Hot reload**: When an external tool modifies a `.canvas` or `.schema.json` file while Carta is running, how does the server detect and reconcile? Filesystem watching with debounce (Zed uses 100ms). Conflict resolution when both Carta and an external tool modify the same file simultaneously
-5. **Compilation scope**: Does `carta compile .` compile the entire workspace, or can you compile a single spec group? Probably both: `carta compile .` for full workspace, `carta compile ./02-api-contract/` for a single group
+1. **Hot reload**: When an external tool modifies a `.canvas.json` or `schemas.json` file while Carta is running, how does the server detect and reconcile? Filesystem watching with debounce (Zed uses 100ms). Conflict resolution when both Carta and an external tool modify the same file simultaneously.
+2. **Compiler rename**: "Compilation" overstates what the operation does — it's a transform that strips coordinates and produces context-window-friendly output. Consider renaming to `transform`, `render`, or `present` in a future pass.

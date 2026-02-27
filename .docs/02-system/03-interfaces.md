@@ -51,12 +51,13 @@ These endpoints are read-only. File mutations happen through Y.Doc operations (c
 
 ## Compiler Output
 
-JSON output structured for AI consumption:
-- Deployable groupings
-- Schema definitions with ports and semantic descriptions
-- Construct instances grouped by deployable, then by type
-- Bidirectional relationship metadata (references/referencedBy) using semantic IDs
-- Resources section: resource bodies (verbatim, format-agnostic) with a `referencedBy` graph showing which constructs reference each resource and via which field/pathHint. Emitted only when resources exist in the document.
+The compiler transforms a single canvas into a context-window-friendly JSON representation — stripping coordinates and visual-only data while preserving semantic structure. Output sections:
+
+- **Organizer groupings**: Visual groupings with member lists (for AI spatial context)
+- **Schema definitions**: Construct schemas referenced by this canvas, with ports and semantic descriptions
+- **Constructs by type**: Construct instances grouped by schema type
+- **Relationship metadata**: Bidirectional reference maps (references/referencedBy) using semantic IDs
+- **Resources section**: Resource bodies (verbatim, format-agnostic) with a `referencedBy` graph showing which constructs reference each resource and via which field/pathHint. Emitted only when resources exist
 
 ## MCP Server
 
