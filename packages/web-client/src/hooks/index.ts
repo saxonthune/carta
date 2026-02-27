@@ -31,8 +31,6 @@ export { useMapEdgePipeline } from './useMapEdgePipeline';
 
 // Utilities
 export { useUndoRedo } from './useUndoRedo';
-export { useAwareness } from './useAwareness';
-export { useDirtyStateGuard } from './useDirtyStateGuard';
 export { useClearDocument } from './useClearDocument';
 
 // Workspace mode

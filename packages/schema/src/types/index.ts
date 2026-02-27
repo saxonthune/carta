@@ -57,29 +57,6 @@ export interface PortSchema {
 }
 
 
-// ===== M1: REGISTRY INFRASTRUCTURE =====
-
-/**
- * Base interface for registry items
- */
-export interface RegistryItem {
-  id: string;
-  name: string;
-  description?: string;
-}
-
-/**
- * Generic registry interface
- */
-export interface Registry<T extends RegistryItem> {
-  get(id: string): T | undefined;
-  getAll(): T[];
-  add(item: Omit<T, 'id'>): T;
-  update(id: string, updates: Partial<T>): T | undefined;
-  remove(id: string): boolean;
-  clear(): void;
-}
-
 // ===== M1: FIELD & COMPILATION =====
 
 /**
@@ -382,25 +359,6 @@ export interface Page {
   edges: unknown[];           // Edge[] - page-specific edges
 }
 
-/** @deprecated Use Page instead */
-export type Level = Page;
-
-/**
- * Complete Carta document structure (v3 - legacy)
- * Represents the full state of a project (web client / export format)
- * @deprecated Use CartaDocumentV4 for new documents
- */
-export interface CartaDocumentV3 {
-  version: 3;
-  title: string;
-  description?: string;
-  nodes: unknown[];           // Node<ConstructNodeData>[] - using unknown to avoid @xyflow/react import
-  edges: unknown[];           // Edge[] - using unknown to avoid @xyflow/react import
-  schemas: ConstructSchema[];
-  portSchemas: PortSchema[];
-  schemaGroups: SchemaGroup[];
-}
-
 /**
  * Complete Carta document structure (v4 - current)
  * Represents the full state of a project with pages support
@@ -422,11 +380,6 @@ export interface CartaDocumentV4 {
   schemaRelationships: SchemaRelationship[];
   packageManifest?: PackageManifestEntry[];  // Optional for backwards compat with existing docs
 }
-
-/**
- * Union type for all document versions
- */
-export type CartaDocument = CartaDocumentV3 | CartaDocumentV4;
 
 /**
  * .carta-schemas file format

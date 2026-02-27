@@ -150,7 +150,7 @@ Canvas components and LOD:
 
 ### `components/metamap/index.ts`
 Schema view:
-- `EdgeDetailPopover`, `MetamapConnectionModal`, `MetamapFilter`
+- `EdgeDetailPopover`, `MetamapConnectionModal`
 
 ### `components/modals/index.ts`
 All modal dialogs:
