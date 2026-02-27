@@ -160,7 +160,7 @@ Carta provides several automated layout algorithms for arranging nodes on the ca
 
 ### Flow Layout (Domain)
 
-**Location:** `@carta/schema/utils/flowLayout.ts`
+**Location:** `@carta/geometry/src/flowLayout.ts`
 **Purpose:** Topological layout using the Sugiyama framework
 **Algorithm:** Layer assignment → crossing minimization → coordinate assignment
 **Directions:** TB (top-bottom), BT (bottom-top), LR (left-right), RL (right-left)
@@ -179,9 +179,9 @@ Flow layout analyzes port connections to determine hierarchy:
 - `scope` — 'all' or array of node IDs to layout
 
 This algorithm is exposed via:
-- MCP tool: `carta_flow_layout`
+- MCP tool: `carta_layout op:flow`
 - REST endpoint: `POST /api/documents/:id/layout/flow`
-- Client utility: imported from domain package
+- Client utility: imported from geometry package
 
 ### Hierarchical Layout (Web Client)
 
@@ -209,7 +209,7 @@ All layout algorithms return `Map<string, {x, y}>` for easy integration with nod
 
 ### Constraint Layout (Domain)
 
-**Location:** `@carta/schema/utils/constraintLayout.ts`
+**Location:** `@carta/geometry/src/constraintLayout.ts`
 **Purpose:** Declarative constraint-based node arrangement
 **Algorithm:** Sequential constraint resolution with strategy-driven initial placement
 
@@ -290,7 +290,6 @@ The presentation model also governs which component renders each construct. This
 |-------------------|---------------------|------------------------|
 | `'default'` | ConstructNodeMarker | ConstructNodeDefault |
 | `'simple'` | ConstructNodeMarker | ConstructNodeSimple |
-| `'card'` | ConstructNodeMarker | ConstructNodeCard |
 | `'circle'` | ConstructNodeMarker | ConstructNodeCircle |
 | `'diamond'` | ConstructNodeMarker | ConstructNodeDiamond |
 | `'document'` | ConstructNodeMarker | ConstructNodeDocument |
@@ -307,7 +306,7 @@ Adding a new render style = add a component + add a row to the dispatch table. N
 |-------|-------------|
 | **Domain** (`@carta/schema`) | Presentation model consumes domain types but never modifies them |
 | **Document** (`@carta/document`) | Presentation model reads via adapter hooks, never writes |
-| **Compiler** (`@carta/compiler`) | Compiler ignores organizers; presentation model ignores compilation |
+| **Compiler** (`@carta/document` compiler) | Compiler ignores organizers; presentation model ignores compilation |
 | **React Flow** | Presentation model produces React Flow-compatible node/edge arrays |
 
 The presentation model lives in the **Visual Editor Layer** (doc02.01) but is conceptually distinct from React components. It is the bridge between "what exists" and "what you see."

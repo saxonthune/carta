@@ -27,6 +27,8 @@ The server exposes REST endpoints for document management:
 | `/api/documents/:id` | GET | Get document details |
 | `/api/documents/:id` | DELETE | Delete a document |
 | `/api/documents/:id/layout/flow` | POST | Apply topological flow layout to active page |
+| `/api/documents/:id/layout/arrange` | POST | Apply constraint-based layout to active page |
+| `/api/documents/:id/layout/pin` | POST | Manage pin constraints for relative organizer positioning |
 
 Document summary includes:
 - `id`: Document ID (used in WebSocket room name)

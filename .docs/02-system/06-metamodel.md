@@ -38,9 +38,9 @@ The six data types for field values. Every field has exactly one (see doc01.02, 
 | `boolean` | True/false | true, false |
 | `date` | Date values | "2024-01-15" |
 | `enum` | Fixed choices | "GET", "POST", "PUT" |
-| `resource` | Reference to a document resource | `{ resourceId: "abc-123", pathHint: "Page.nodes" }` |
+| `resource` | Reference to a document resource | `{ resourceId: "abc-123", pathHint: "Page.nodes", versionHash: "sha256-..." }` |
 
-The first five kinds are scalar values. The sixth — `resource` — is a reference type introduced by doc02.04.08. Its value is a compound `{ resourceId, pathHint? }` pointing to a Resource entity in the document and optionally hinting at a location within the resource body. The `pathHint` is a freeform string — Carta stores and displays it but does not validate or navigate it, because resource bodies are format-agnostic (see doc02.04.08, "Resource bodies are opaque to Carta").
+The first five kinds are scalar values. The sixth — `resource` — is a reference type introduced by doc02.04.08. Its value is a compound `{ resourceId, pathHint?, versionHash? }` pointing to a Resource entity in the document, optionally hinting at a location within the resource body, and optionally pinning to a specific published version via content hash. The `pathHint` is a freeform string — Carta stores and displays it but does not validate or navigate it, because resource bodies are format-agnostic (see doc02.04.08, "Resource bodies are opaque to Carta").
 
 ### DisplayHint
 
@@ -120,7 +120,7 @@ Defines a construct type. Key properties:
 | `groupId` | Optional visual grouping within the package (references SchemaGroup.id) |
 | `instanceColors` | `true` = per-instance color palette picker enabled; absent/false = schema color only |
 | `isFavorite` | `true` = schema pinned to top-level context menu for quick "Add X" access |
-| `nodeShape` | Visual shape: `default`, `simple`, `circle`, `diamond`, `document` |
+| `nodeShape` | Visual shape: `default`, `simple`, `circle`, `diamond`, `document`, `parallelogram`, `stadium` |
 
 ### FieldSchema
 

@@ -235,9 +235,7 @@ This resolves the tension between "format-agnostic" and "compilation-sufficient"
 
 Resources get their own top-level view, equivalent in stature to the Map, Metamap, and Layout Map views. Selecting a resource opens a dedicated view for viewing and editing its body.
 
-**POC approach:** The resource view is an uncoupled component — a resource list and a body editor. It does not need to integrate with the existing page selector at launch.
-
-**Future direction:** A left-side navigation panel (VS Code / Obsidian style) will let users switch between page selector and resource selector. The page selector drives map/metamap/layout views; the resource selector drives the resource editor view. This unifies navigation but is out of scope for the initial implementation.
+**Implemented:** Resources are surfaced in the **Navigator panel** (`Navigator.tsx`) — a persistent left-side panel (VS Code / Obsidian style). The Navigator has a Pages section and a Resources section. Clicking a resource row opens the `ResourceView` component. Page switching and resource navigation are unified in a single panel, alongside a metamap toggle button at the top.
 
 ### File format
 

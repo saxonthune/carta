@@ -30,7 +30,7 @@ The compiler outputs three main sections:
 
 ## Compiler Architecture
 
-The compiler is a pure function that receives schemas and deployables as explicit parameters — no global state. It lives in `@carta/compiler` package. Format-specific output is handled by formatters (currently JSON only, extensible).
+The compiler is a pure function that receives schemas and deployables as explicit parameters — no global state. It lives in the `@carta/document` package (under `src/compiler/`). Format-specific output is handled by formatters (currently JSON only, extensible).
 
 ## User Interface
 
