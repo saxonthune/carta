@@ -9,6 +9,8 @@
  */
 
 import * as http from 'node:http';
+import * as fs from 'node:fs';
+import * as nodePath from 'node:path';
 import * as Y from 'yjs';
 import { WebSocket } from 'ws';
 import * as encoding from 'lib0/encoding';
@@ -85,7 +87,9 @@ import {
   getResourceVersion,
 } from '@carta/document';
 import type { BatchOperation, BatchResult, MigrationResult } from '@carta/document';
+import { parseSchemasFile } from '@carta/document';
 import type { FlowDirection, ArrangeStrategy, ArrangeConstraint, PinDirection } from '@carta/schema';
+import { scanWorkspace } from './workspace-scanner.js';
 
 // ===== TYPES =====
 
@@ -113,6 +117,8 @@ export interface DocumentServerConfig {
   getActiveRooms?(): Array<{ roomId: string; clientCount: number }>;
   /** Extra fields merged into the /health response. */
   healthMeta?: Record<string, unknown>;
+  /** Absolute path to .carta/ directory. When set, workspace endpoints are enabled. */
+  workspacePath?: string;
 }
 
 /**
@@ -375,6 +381,34 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
           const documents = await config.listDocuments();
           sendJson(res, 200, { rooms: documents.map(d => ({ roomId: d.id, clientCount: 0 })) });
         }
+        return;
+      }
+
+      // ===== WORKSPACE =====
+
+      if (path === '/api/workspace' && method === 'GET') {
+        if (!config.workspacePath) {
+          sendError(res, 404, 'Workspace mode not enabled', 'NOT_FOUND');
+          return;
+        }
+        const tree = scanWorkspace(config.workspacePath);
+        sendJson(res, 200, tree);
+        return;
+      }
+
+      if (path === '/api/workspace/schemas' && method === 'GET') {
+        if (!config.workspacePath) {
+          sendError(res, 404, 'Workspace mode not enabled', 'NOT_FOUND');
+          return;
+        }
+        const schemasFilePath = nodePath.join(config.workspacePath, 'schemas', 'schemas.json');
+        if (!fs.existsSync(schemasFilePath)) {
+          sendError(res, 404, 'schemas.json not found', 'NOT_FOUND');
+          return;
+        }
+        const content = fs.readFileSync(schemasFilePath, 'utf-8');
+        const schemas = parseSchemasFile(content);
+        sendJson(res, 200, schemas);
         return;
       }
 

@@ -38,6 +38,17 @@ Document summary includes:
 - `nodeCount`: Number of constructs
 - `version`: Document format version
 
+## Workspace REST API
+
+When the server is configured with a workspace path (`.carta/` directory), additional endpoints are available:
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/workspace` | GET | Workspace tree: manifest, groups, files |
+| `/api/workspace/schemas` | GET | Parsed schemas.json content |
+
+These endpoints are read-only. File mutations happen through Y.Doc operations (canvas editing) or direct filesystem access (resources).
+
 ## Compiler Output
 
 JSON output structured for AI consumption:
