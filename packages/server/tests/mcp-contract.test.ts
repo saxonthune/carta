@@ -9,7 +9,6 @@ import { describe, it, expect } from 'vitest';
 import { builtInPortSchemas } from '@carta/schema';
 import {
   SchemaOpSchema,
-  SchemaMigrateOpSchema,
   getToolDefinitions,
 } from '../src/mcp/tools.js';
 
@@ -54,8 +53,8 @@ describe('MCP ↔ domain type contracts', () => {
       expect(fieldTypeEnum.sort()).toEqual([...CANONICAL_DATA_KINDS].sort());
     });
 
-    it('SchemaMigrateOpSchema add_field field.type matches canonical DataKind', () => {
-      const addFieldOp = findDiscriminatedOption(SchemaMigrateOpSchema, 'add_field');
+    it('SchemaOpSchema add_field field.type matches canonical DataKind', () => {
+      const addFieldOp = findDiscriminatedOption(SchemaOpSchema, 'add_field');
       expect(addFieldOp).toBeDefined();
 
       const fieldTypeEnum = getZodEnumValues(addFieldOp!.shape.field.shape.type);
@@ -63,8 +62,8 @@ describe('MCP ↔ domain type contracts', () => {
       expect(fieldTypeEnum.sort()).toEqual([...CANONICAL_DATA_KINDS].sort());
     });
 
-    it('SchemaMigrateOpSchema change_field_type newType matches canonical DataKind', () => {
-      const changeOp = findDiscriminatedOption(SchemaMigrateOpSchema, 'change_field_type');
+    it('SchemaOpSchema change_field_type newType matches canonical DataKind', () => {
+      const changeOp = findDiscriminatedOption(SchemaOpSchema, 'change_field_type');
       expect(changeOp).toBeDefined();
 
       const newTypeEnum = getZodEnumValues(changeOp!.shape.newType);
@@ -134,11 +133,34 @@ describe('MCP ↔ domain type contracts', () => {
 
     expect(nodeShapeEnum.sort()).toEqual([...CANONICAL_NODE_SHAPES].sort());
   });
+
+  it('SchemaOpSchema has migrate ops (add_field, rename_field, etc.)', () => {
+    const ops = SchemaOpSchema.options.map((o) => o.shape.op._def.value as string);
+    const migrateOps = ['rename_field', 'remove_field', 'add_field', 'rename_port', 'remove_port', 'add_port', 'rename_type', 'change_field_type', 'narrow_enum', 'change_port_type'];
+    for (const op of migrateOps) {
+      expect(ops, `SchemaOpSchema missing migrate op: ${op}`).toContain(op);
+    }
+  });
 });
 
 // ─── MCP tool surface coverage ────────────────────────────────────────────────
 
 describe('MCP tool surface coverage', () => {
+  it('getToolDefinitions() returns exactly 5 tools', () => {
+    const toolDefs = getToolDefinitions();
+    expect(toolDefs).toHaveLength(5);
+  });
+
+  it('tool names are the expected workspace-oriented set', () => {
+    const toolDefs = getToolDefinitions();
+    const toolNames = toolDefs.map((t) => t.name);
+    expect(toolNames).toContain('carta_canvas');
+    expect(toolNames).toContain('carta_schema');
+    expect(toolNames).toContain('carta_layout');
+    expect(toolNames).toContain('carta_compile');
+    expect(toolNames).toContain('carta_workspace');
+  });
+
   it('all mutating doc-operations are reachable via MCP tools', () => {
     const toolDefs = getToolDefinitions();
     const toolNames = toolDefs.map((t) => t.name);
@@ -146,17 +168,17 @@ describe('MCP tool surface coverage', () => {
     // Mapping: doc-operations function → MCP tool that exposes it
     const expectedCoverage: Record<string, string> = {
       // Construct operations
-      createConstruct: 'carta_construct',
-      updateConstruct: 'carta_construct',
-      deleteConstruct: 'carta_construct',
-      moveConstruct: 'carta_construct',
-      createConstructsBulk: 'carta_construct',
-      deleteConstructsBulk: 'carta_construct',
+      createConstruct: 'carta_canvas',
+      updateConstruct: 'carta_canvas',
+      deleteConstruct: 'carta_canvas',
+      moveConstruct: 'carta_canvas',
+      createConstructsBulk: 'carta_canvas',
+      deleteConstructsBulk: 'carta_canvas',
 
       // Connection operations
-      connect: 'carta_connection',
-      disconnect: 'carta_connection',
-      connectBulk: 'carta_connection',
+      connect: 'carta_canvas',
+      disconnect: 'carta_canvas',
+      connectBulk: 'carta_canvas',
 
       // Schema operations
       createSchema: 'carta_schema',
@@ -164,27 +186,21 @@ describe('MCP tool surface coverage', () => {
       removeSchema: 'carta_schema',
 
       // Schema migrations
-      renameField: 'carta_schema_migrate',
-      removeField: 'carta_schema_migrate',
-      addField: 'carta_schema_migrate',
-      renamePort: 'carta_schema_migrate',
-      removePort: 'carta_schema_migrate',
-      addPort: 'carta_schema_migrate',
-      renameSchemaType: 'carta_schema_migrate',
-      changeFieldType: 'carta_schema_migrate',
-      narrowEnumOptions: 'carta_schema_migrate',
-      changePortType: 'carta_schema_migrate',
-
-      // Page operations
-      createPage: 'carta_page',
-      updatePage: 'carta_page',
-      deletePage: 'carta_page',
-      setActivePage: 'carta_page',
+      renameField: 'carta_schema',
+      removeField: 'carta_schema',
+      addField: 'carta_schema',
+      renamePort: 'carta_schema',
+      removePort: 'carta_schema',
+      addPort: 'carta_schema',
+      renameSchemaType: 'carta_schema',
+      changeFieldType: 'carta_schema',
+      narrowEnumOptions: 'carta_schema',
+      changePortType: 'carta_schema',
 
       // Organizer operations
-      createOrganizer: 'carta_organizer',
-      updateOrganizer: 'carta_organizer',
-      deleteOrganizer: 'carta_organizer',
+      createOrganizer: 'carta_canvas',
+      updateOrganizer: 'carta_canvas',
+      deleteOrganizer: 'carta_canvas',
 
       // Layout operations
       flowLayout: 'carta_layout',
@@ -194,16 +210,15 @@ describe('MCP tool surface coverage', () => {
       applyPinLayout: 'carta_layout',
 
       // Package operations
-      createPackage: 'carta_package',
-      applyStandardPackage: 'carta_package',
+      createPackage: 'carta_schema',
+      applyStandardPackage: 'carta_schema',
 
       // Batch & compile
-      batchMutate: 'carta_batch_mutate',
+      batchMutate: 'carta_canvas',
       compile: 'carta_compile',
-      rebuildPage: 'carta_rebuild_page',
     };
 
-    // Read-only or internal operations that don't need MCP tools
+    // Read-only, internal, or not exposed in workspace-only MCP surface
     const readOnlyOrInternal = new Set([
       'listPages',
       'getActivePage',
@@ -221,6 +236,13 @@ describe('MCP tool surface coverage', () => {
       'getPackage',
       'listStandardPackages',
       'checkPackageDrift',
+      // Page management not exposed in workspace mode (single-page canvases)
+      'createPage',
+      'updatePage',
+      'deletePage',
+      'setActivePage',
+      // Debug tool removed from workspace surface
+      'rebuildPage',
     ]);
 
     // Verify every mapped tool exists
@@ -239,4 +261,3 @@ describe('MCP tool surface coverage', () => {
     expect(coveredOps.size).toBeGreaterThan(0);
   });
 });
-

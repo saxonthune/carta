@@ -1,15 +1,15 @@
 /**
- * Metamodel Guide - How to read and understand Carta documents
+ * Metamodel Guide - How to read and understand Carta canvases
  *
  * This guide teaches AI agents how Carta's three-level metamodel works,
- * how to traverse connections, and how to interpret document structure.
+ * how to traverse connections, and how to interpret canvas structure.
  */
 
 export const METAMODEL_GUIDE = `# Carta Metamodel Guide
 
 ## Overview
 
-Carta uses a three-level metamodel to represent software architectures. Documents contain multiple pages, each with constructs (typed nodes), connections, and organizers (visual grouping containers).
+Carta uses a three-level metamodel to represent software architectures. Workspace canvases contain constructs (typed nodes), connections, and organizers (visual grouping containers). Each canvas is a single-page file in the workspace.
 
 ## The Three Levels
 
@@ -18,7 +18,7 @@ Carta uses a three-level metamodel to represent software architectures. Document
 - \`Polarity\`: source, sink, bidirectional, relay, intercept
 - \`PortSchema\`: Defines port types with polarity and compatibility
 
-**M1: User-Defined Schemas** - Construct types defined per-document:
+**M1: User-Defined Schemas** - Construct types defined per-canvas:
 
 \`\`\`typescript
 interface ConstructSchema {
@@ -61,15 +61,15 @@ Connections are only valid between compatible port types:
 
 Custom port types (e.g. \`policy-in\`, \`invoke-out\`) inherit their polarity from the base port type they extend. For example, \`policy-in\` with \`portType: "flow-in"\` is compatible with any \`flow-out\` or \`relay\` port.
 
-Use \`carta_list_port_types\` to see all port types and their compatibility rules for a specific document (takes documentId).
+Use \`carta_schema op:list_port_types\` to see all port types and their compatibility rules for a specific canvas (takes canvasId).
 
 ## Organizers
 
 Organizers are visual grouping containers. Constructs are placed inside via \`parentId\` field. Organizers are **not compiled** — they exist purely for visual organization on the canvas.
 
-## Pages
+## Workspace Canvases
 
-Documents have multiple pages. Each page is a separate canvas view. MCP tools target the active page by default unless a \`pageId\` is specified.
+Workspace canvases are single-page files in the \`.carta/\` directory. There is no multi-page concept — each canvas is its own file. Use \`carta_workspace op:status\` to see all canvases in the workspace.
 
 ## Node Identity
 
@@ -94,31 +94,29 @@ options: [
 
 ## Tool Workflows
 
-**To understand a document's full structure:**
+**To understand a canvas's full structure:**
 - Use \`carta_compile\` to get the complete AI-readable representation.
 
 **To explore incrementally:**
-1. Use \`carta_page op:list\` to see all pages
-2. Use \`carta_page op:set_active\` to switch views
-3. Use \`carta_page op:summary\` with \`include: ['constructs', 'schemas']\` to see page contents
+1. Use \`carta_workspace op:status\` to see all canvases in the workspace
+2. Use \`carta_canvas op:summary\` with \`include: ['constructs', 'schemas']\` to see canvas contents
+3. Use \`carta_canvas op:get\` for the full canvas with all construct data
 
-**To read a specific construct:**
-- Use \`carta_construct op:get\` with its \`semanticId\`.
-
-**To modify the document:**
-- Use \`carta_construct op:create\`, \`carta_construct op:update\`, \`carta_construct op:delete\`
-- Use \`carta_connection op:connect\`, \`carta_connection op:disconnect\`
+**To modify the canvas:**
+- Use \`carta_canvas op:create\`, \`carta_canvas op:update\`, \`carta_canvas op:delete\`
+- Use \`carta_canvas op:connect\`, \`carta_canvas op:disconnect\`
 - Use \`carta_schema op:create\`, \`carta_schema op:update\` to define new construct types
 
 ## Cookbook — Common Tool Patterns
 
 ### Create and connect in one call
 
-Use \`carta_batch_mutate\` with \`@N\` placeholders to create constructs and connect them atomically:
+Use \`carta_canvas op:batch\` with \`@N\` placeholders to create constructs and connect them atomically:
 
 \`\`\`json
 {
-  "documentId": "...",
+  "canvasId": "01-vision/domain-sketch",
+  "op": "batch",
   "operations": [
     { "op": "create", "constructType": "service", "values": { "name": "Auth Service" } },
     { "op": "create", "constructType": "service", "values": { "name": "API Gateway" } },
@@ -133,7 +131,8 @@ Use \`carta_batch_mutate\` with \`@N\` placeholders to create constructs and con
 
 \`\`\`json
 {
-  "documentId": "...",
+  "canvasId": "01-vision/domain-sketch",
+  "op": "batch",
   "operations": [
     { "op": "create", "constructType": "service", "values": { "name": "User DB" }, "parentId": "org-abc123" },
     { "op": "create", "constructType": "service", "values": { "name": "Session DB" }, "parentId": "org-abc123" }
@@ -153,7 +152,8 @@ When \`parentId\` is set, x/y positions are relative to the organizer. Omit x/y 
 
 \`\`\`json
 {
-  "documentId": "...",
+  "canvasId": "01-vision/domain-sketch",
+  "op": "flow",
   "direction": "LR",
   "layerGap": 250,
   "nodeGap": 150
@@ -166,7 +166,8 @@ Use \`carta_layout op:flow\` for topological DAG arrangement. Supports TB/BT/LR/
 
 \`\`\`json
 {
-  "documentId": "...",
+  "canvasId": "01-vision/domain-sketch",
+  "op": "arrange",
   "strategy": "preserve",
   "constraints": [
     { "type": "group", "by": "constructType", "axis": "x" },
@@ -182,17 +183,18 @@ Use \`carta_layout op:arrange\` for declarative constraint-based layout. Strateg
 
 \`\`\`json
 {
-  "documentId": "...",
+  "canvasId": "01-vision/domain-sketch",
+  "op": "move",
   "semanticId": "service-abc123",
   "parentId": "org-target456"
 }
 \`\`\`
 
-Use \`carta_construct op:move\`. Set \`parentId\` to \`null\` to detach from an organizer.
+Use \`carta_canvas op:move\`. Set \`parentId\` to \`null\` to detach from an organizer.
 
-### Analyze an existing document
+### Analyze an existing canvas
 
-1. \`carta_page op:summary\` with \`include: ["constructs", "schemas"]\` — get everything in one call
+1. \`carta_canvas op:summary\` with \`include: ["constructs", "schemas"]\` — get everything in one call
 2. \`carta_compile\` — get the AI-readable output for full context
 3. Look for orphan constructs (no connections), empty fields, unused schemas
 `;

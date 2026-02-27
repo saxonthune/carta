@@ -3,7 +3,11 @@
  *
  * Dispatches multi-op MCP tools to @carta/document executeTool.
  * No HTTP calls — callers supply a ToolHandlerConfig with a getDoc callback
- * for Y.Doc access and optional document-management callbacks.
+ * for Y.Doc access and optional canvas-management callbacks.
+ *
+ * Workspace-only: 5 tools replacing the legacy 13-tool surface.
+ * All tools use canvasId (not documentId). No page management — workspace
+ * canvases are single-page.
  */
 
 import { z } from 'zod';
@@ -78,140 +82,192 @@ const ArrangeConstraintSchema = z.discriminatedUnion('type', [
   }),
 ]);
 
-// ─── Standalone schemas (unchanged tools) ────────────────────────────────────
+// ─── Canvas ID schema ─────────────────────────────────────────────────────────
 
-const BatchMutateSchema = z.object({
-  documentId: z.string().describe('The document ID'),
-  operations: z.array(z.discriminatedUnion('op', [
-    z.object({
-      op: z.literal('create'),
-      constructType: z.string().describe('The type of construct to create'),
-      values: z.record(z.unknown()).optional(),
-      x: z.number().optional(),
-      y: z.number().optional(),
-      parentId: z.string().optional().describe('Organizer node ID, or "@N" to reference result of operation N'),
-    }),
-    z.object({
-      op: z.literal('update'),
-      semanticId: z.string().describe('Semantic ID or "@N" placeholder'),
-      values: z.record(z.unknown()).optional(),
-      instanceColor: z.string().nullable().optional(),
-    }),
-    z.object({
-      op: z.literal('delete'),
-      semanticId: z.string().describe('Semantic ID or "@N" placeholder'),
-    }),
-    z.object({
-      op: z.literal('connect'),
-      sourceSemanticId: z.string().describe('Source semantic ID or "@N" placeholder'),
-      sourcePortId: z.string(),
-      targetSemanticId: z.string().describe('Target semantic ID or "@N" placeholder'),
-      targetPortId: z.string(),
-    }),
-    z.object({
-      op: z.literal('disconnect'),
-      sourceSemanticId: z.string().describe('Source semantic ID or "@N" placeholder'),
-      sourcePortId: z.string(),
-      targetSemanticId: z.string().describe('Target semantic ID or "@N" placeholder'),
-    }),
-    z.object({
-      op: z.literal('move'),
-      semanticId: z.string().describe('Semantic ID or "@N" placeholder'),
-      parentId: z.string().nullable().describe('Target organizer ID, null to detach, or "@N" placeholder'),
-      x: z.number().optional(),
-      y: z.number().optional(),
-    }),
-  ])).describe('Operations to execute in order within a single transaction'),
-  pageId: z.string().optional().describe('Target page ID (uses active page if omitted)'),
+const CanvasIdSchema = z.object({
+  canvasId: z.string().describe('Canvas identifier (room name / relative path stem, e.g. "01-vision/domain-sketch")'),
 });
 
-const DocumentIdSchema = z.object({
-  documentId: z.string().describe('The document ID'),
-});
+// ─── Batch operations array (internal, no outer wrapper) ─────────────────────
 
-const RebuildPageSchema = z.object({
-  documentId: z.string().describe('The document ID'),
-  pageId: z.string().optional().describe('Target page ID (uses active page if omitted)'),
-});
-
-// ─── Consolidated discriminated union schemas ─────────────────────────────────
-
-const DocumentOpSchema = z.discriminatedUnion('op', [
-  z.object({ op: z.literal('list') }),
-  z.object({ op: z.literal('list_active') }),
-  z.object({
-    op: z.literal('get'),
-    documentId: z.string().describe('The document ID'),
-  }),
+const BatchOperationSchema = z.array(z.discriminatedUnion('op', [
   z.object({
     op: z.literal('create'),
-    title: z.string().describe('Document title'),
-  }),
-  z.object({
-    op: z.literal('delete'),
-    documentId: z.string().describe('The document ID to delete'),
-  }),
-  z.object({
-    op: z.literal('rename'),
-    documentId: z.string().describe('The document ID'),
-    title: z.string().describe('New document title'),
-  }),
-]);
-
-const PageOpSchema = z.discriminatedUnion('op', [
-  z.object({
-    op: z.literal('list'),
-    documentId: z.string().describe('The document ID'),
-  }),
-  z.object({
-    op: z.literal('create'),
-    documentId: z.string().describe('The document ID'),
-    name: z.string().describe('Name for the new page'),
-    description: z.string().optional().describe('Optional page description'),
+    constructType: z.string().describe('The type of construct to create'),
+    values: z.record(z.unknown()).optional(),
+    x: z.number().optional(),
+    y: z.number().optional(),
+    parentId: z.string().optional().describe('Organizer node ID, or "@N" to reference result of operation N'),
   }),
   z.object({
     op: z.literal('update'),
-    documentId: z.string().describe('The document ID'),
-    pageId: z.string().describe('The page ID to update'),
-    name: z.string().optional().describe('New page name'),
-    description: z.string().optional().describe('New page description'),
-    order: z.number().optional().describe('New sort order'),
+    semanticId: z.string().describe('Semantic ID or "@N" placeholder'),
+    values: z.record(z.unknown()).optional(),
+    instanceColor: z.string().nullable().optional(),
   }),
   z.object({
     op: z.literal('delete'),
-    documentId: z.string().describe('The document ID'),
-    pageId: z.string().describe('The page ID to delete'),
+    semanticId: z.string().describe('Semantic ID or "@N" placeholder'),
   }),
   z.object({
-    op: z.literal('set_active'),
-    documentId: z.string().describe('The document ID'),
-    pageId: z.string().optional().describe('The page ID to set as active'),
-    pageName: z.string().optional().describe('The page name to set as active (alternative to pageId, case-insensitive)'),
+    op: z.literal('connect'),
+    sourceSemanticId: z.string().describe('Source semantic ID or "@N" placeholder'),
+    sourcePortId: z.string(),
+    targetSemanticId: z.string().describe('Target semantic ID or "@N" placeholder'),
+    targetPortId: z.string(),
+  }),
+  z.object({
+    op: z.literal('disconnect'),
+    sourceSemanticId: z.string().describe('Source semantic ID or "@N" placeholder'),
+    sourcePortId: z.string(),
+    targetSemanticId: z.string().describe('Target semantic ID or "@N" placeholder'),
+  }),
+  z.object({
+    op: z.literal('move'),
+    semanticId: z.string().describe('Semantic ID or "@N" placeholder'),
+    parentId: z.string().nullable().describe('Target organizer ID, null to detach, or "@N" placeholder'),
+    x: z.number().optional(),
+    y: z.number().optional(),
+  }),
+])).describe('Operations to execute in order within a single transaction');
+
+// ─── Canvas operations (merged: construct, connection, organizer, batch, read) ─
+
+export const CanvasOpSchema = z.discriminatedUnion('op', [
+  z.object({ op: z.literal('list') }),
+  z.object({
+    op: z.literal('get'),
+    canvasId: z.string().describe('Canvas identifier'),
   }),
   z.object({
     op: z.literal('summary'),
-    documentId: z.string().describe('The document ID'),
-    pageId: z.string().optional().describe('Target a specific page for embedded data'),
-    pageName: z.string().optional().describe('Target a specific page by name (alternative to pageId, case-insensitive)'),
-    include: z.array(z.enum(['constructs', 'schemas'])).optional().describe('Embed additional data in the response: "constructs" (construct list + organizers for the target page), "schemas" (custom schema list)'),
+    canvasId: z.string().describe('Canvas identifier'),
+    include: z.array(z.enum(['constructs', 'schemas'])).optional().describe('Embed additional data in the response: "constructs" (construct list + organizers), "schemas" (custom schema list)'),
+  }),
+  z.object({
+    op: z.literal('create'),
+    canvasId: z.string().describe('Canvas identifier'),
+    constructType: z.string().describe('The type of construct to create'),
+    values: z.record(z.unknown()).optional().describe('Initial field values'),
+    x: z.number().optional().describe('X position on canvas'),
+    y: z.number().optional().describe('Y position on canvas'),
+    parentId: z.string().optional().describe('Organizer node ID — when set, position is relative to the organizer'),
+  }),
+  z.object({
+    op: z.literal('create_bulk'),
+    canvasId: z.string().describe('Canvas identifier'),
+    constructs: z.array(z.object({
+      constructType: z.string().describe('The type of construct to create'),
+      values: z.record(z.unknown()).optional().describe('Initial field values'),
+      x: z.number().optional().describe('X position on canvas (auto-placed if omitted)'),
+      y: z.number().optional().describe('Y position on canvas (auto-placed if omitted)'),
+      parentId: z.string().optional().describe('Organizer node ID'),
+    })).describe('Array of constructs to create'),
+  }),
+  z.object({
+    op: z.literal('update'),
+    canvasId: z.string().describe('Canvas identifier'),
+    semanticId: z.string().describe('The semantic ID of the construct'),
+    values: z.record(z.unknown()).optional().describe('Field values to update'),
+    instanceColor: z.string().nullable().optional().describe('Hex color override for node background (visual only)'),
+  }),
+  z.object({
+    op: z.literal('delete'),
+    canvasId: z.string().describe('Canvas identifier'),
+    semanticId: z.string().describe('The semantic ID of the construct to delete'),
+  }),
+  z.object({
+    op: z.literal('delete_bulk'),
+    canvasId: z.string().describe('Canvas identifier'),
+    semanticIds: z.array(z.string()).describe('Array of semantic IDs to delete'),
+  }),
+  z.object({
+    op: z.literal('move'),
+    canvasId: z.string().describe('Canvas identifier'),
+    semanticId: z.string().describe('The semantic ID of the construct to move'),
+    parentId: z.string().nullable().describe('Target organizer node ID, or null to detach from current organizer'),
+    x: z.number().optional().describe('New X position (auto-converted if omitted)'),
+    y: z.number().optional().describe('New Y position (auto-converted if omitted)'),
+  }),
+  z.object({
+    op: z.literal('connect'),
+    canvasId: z.string().describe('Canvas identifier'),
+    sourceSemanticId: z.string().describe('Source construct semantic ID'),
+    sourcePortId: z.string().describe('Source port ID'),
+    targetSemanticId: z.string().describe('Target construct semantic ID'),
+    targetPortId: z.string().describe('Target port ID'),
+  }),
+  z.object({
+    op: z.literal('disconnect'),
+    canvasId: z.string().describe('Canvas identifier'),
+    sourceSemanticId: z.string().describe('Source construct semantic ID'),
+    sourcePortId: z.string().describe('Source port ID'),
+    targetSemanticId: z.string().describe('Target construct semantic ID'),
+  }),
+  z.object({
+    op: z.literal('connect_bulk'),
+    canvasId: z.string().describe('Canvas identifier'),
+    connections: z.array(z.object({
+      sourceSemanticId: z.string().describe('Source construct semantic ID'),
+      sourcePortId: z.string().describe('Source port ID'),
+      targetSemanticId: z.string().describe('Target construct semantic ID'),
+      targetPortId: z.string().describe('Target port ID'),
+    })).describe('Array of connections to create'),
+  }),
+  z.object({
+    op: z.literal('create_organizer'),
+    canvasId: z.string().describe('Canvas identifier'),
+    name: z.string().describe('Organizer name'),
+    color: z.string().optional().describe('Hex color (random from palette if omitted)'),
+    x: z.number().optional().describe('X position on canvas'),
+    y: z.number().optional().describe('Y position on canvas'),
+    width: z.number().optional().describe('Width in pixels (default: 400)'),
+    height: z.number().optional().describe('Height in pixels (default: 300)'),
+    layout: z.enum(['freeform']).optional().describe('Layout strategy (default: freeform)'),
+    description: z.string().optional().describe('Optional description'),
+    attachedToSemanticId: z.string().optional().describe('Semantic ID of construct to attach this organizer to (creates a "wagon")'),
+  }),
+  z.object({
+    op: z.literal('update_organizer'),
+    canvasId: z.string().describe('Canvas identifier'),
+    organizerId: z.string().describe('The organizer node ID'),
+    name: z.string().optional().describe('New name'),
+    color: z.string().optional().describe('New hex color'),
+    collapsed: z.boolean().optional().describe('Collapse/expand the organizer'),
+    layout: z.enum(['freeform']).optional().describe('New layout strategy'),
+    description: z.string().optional().describe('New description'),
+  }),
+  z.object({
+    op: z.literal('delete_organizer'),
+    canvasId: z.string().describe('Canvas identifier'),
+    organizerId: z.string().describe('The organizer node ID'),
+    deleteMembers: z.boolean().optional().describe('If true, delete member constructs too. Default: false (detach members)'),
+  }),
+  z.object({
+    op: z.literal('batch'),
+    canvasId: z.string().describe('Canvas identifier'),
+    operations: BatchOperationSchema,
   }),
 ]);
 
+// ─── Schema operations (merged: schema, migrate, package, list_port_types) ────
+
 export const SchemaOpSchema = z.discriminatedUnion('op', [
+  // Schema CRUD
   z.object({
     op: z.literal('list'),
-    documentId: z.string().describe('The document ID'),
+    canvasId: z.string().describe('Canvas identifier'),
     output: z.enum(['compact', 'full']).optional().describe('Output mode: "compact" returns {type, displayName, groupId} only. Default: "full"'),
     groupId: z.string().optional().describe('Filter schemas by groupId'),
   }),
   z.object({
     op: z.literal('get'),
-    documentId: z.string().describe('The document ID'),
+    canvasId: z.string().describe('Canvas identifier'),
     type: z.string().describe('The schema type to retrieve'),
   }),
   z.object({
     op: z.literal('create'),
-    documentId: z.string().describe('The document ID'),
+    canvasId: z.string().describe('Canvas identifier'),
     type: z.string().describe('Unique type identifier'),
     displayName: z.string().describe('Human-readable name'),
     color: z.string().describe('Hex color for the node'),
@@ -249,7 +305,7 @@ export const SchemaOpSchema = z.discriminatedUnion('op', [
   }),
   z.object({
     op: z.literal('update'),
-    documentId: z.string().describe('The document ID'),
+    canvasId: z.string().describe('Canvas identifier'),
     type: z.string().describe('The schema type to update'),
     displayName: z.string().optional().describe('New human-readable name'),
     color: z.string().optional().describe('New hex color for the node'),
@@ -271,28 +327,27 @@ export const SchemaOpSchema = z.discriminatedUnion('op', [
   }),
   z.object({
     op: z.literal('delete'),
-    documentId: z.string().describe('The document ID'),
+    canvasId: z.string().describe('Canvas identifier'),
     type: z.string().describe('The schema type to delete'),
   }),
-]);
 
-export const SchemaMigrateOpSchema = z.discriminatedUnion('op', [
+  // Schema migrations
   z.object({
     op: z.literal('rename_field'),
-    documentId: z.string().describe('The document ID'),
+    canvasId: z.string().describe('Canvas identifier'),
     schemaType: z.string().describe('The schema type to modify'),
     oldName: z.string().describe('Current field name'),
     newName: z.string().describe('New field name'),
   }),
   z.object({
     op: z.literal('remove_field'),
-    documentId: z.string().describe('The document ID'),
+    canvasId: z.string().describe('Canvas identifier'),
     schemaType: z.string().describe('The schema type to modify'),
     fieldName: z.string().describe('Field name to remove'),
   }),
   z.object({
     op: z.literal('add_field'),
-    documentId: z.string().describe('The document ID'),
+    canvasId: z.string().describe('Canvas identifier'),
     schemaType: z.string().describe('The schema type to modify'),
     field: z.object({
       name: z.string().describe('Field name'),
@@ -306,20 +361,20 @@ export const SchemaMigrateOpSchema = z.discriminatedUnion('op', [
   }),
   z.object({
     op: z.literal('rename_port'),
-    documentId: z.string().describe('The document ID'),
+    canvasId: z.string().describe('Canvas identifier'),
     schemaType: z.string().describe('The schema type to modify'),
     oldPortId: z.string().describe('Current port ID'),
     newPortId: z.string().describe('New port ID'),
   }),
   z.object({
     op: z.literal('remove_port'),
-    documentId: z.string().describe('The document ID'),
+    canvasId: z.string().describe('Canvas identifier'),
     schemaType: z.string().describe('The schema type to modify'),
     portId: z.string().describe('Port ID to remove'),
   }),
   z.object({
     op: z.literal('add_port'),
-    documentId: z.string().describe('The document ID'),
+    canvasId: z.string().describe('Canvas identifier'),
     schemaType: z.string().describe('The schema type to modify'),
     portConfig: z.object({
       id: z.string().describe('Unique port ID within the schema'),
@@ -330,13 +385,13 @@ export const SchemaMigrateOpSchema = z.discriminatedUnion('op', [
   }),
   z.object({
     op: z.literal('rename_type'),
-    documentId: z.string().describe('The document ID'),
+    canvasId: z.string().describe('Canvas identifier'),
     schemaType: z.string().describe('The current schema type to rename'),
     newType: z.string().describe('The new schema type identifier'),
   }),
   z.object({
     op: z.literal('change_field_type'),
-    documentId: z.string().describe('The document ID'),
+    canvasId: z.string().describe('Canvas identifier'),
     schemaType: z.string().describe('The schema type to modify'),
     fieldName: z.string().describe('Field name to change type of'),
     newType: z.enum(['string', 'number', 'boolean', 'date', 'enum', 'resource']).describe('New data type'),
@@ -345,7 +400,7 @@ export const SchemaMigrateOpSchema = z.discriminatedUnion('op', [
   }),
   z.object({
     op: z.literal('narrow_enum'),
-    documentId: z.string().describe('The document ID'),
+    canvasId: z.string().describe('Canvas identifier'),
     schemaType: z.string().describe('The schema type to modify'),
     fieldName: z.string().describe('Enum field name'),
     newOptions: z.array(z.string()).describe('New enum options list'),
@@ -353,223 +408,101 @@ export const SchemaMigrateOpSchema = z.discriminatedUnion('op', [
   }),
   z.object({
     op: z.literal('change_port_type'),
-    documentId: z.string().describe('The document ID'),
+    canvasId: z.string().describe('Canvas identifier'),
     schemaType: z.string().describe('The schema type to modify'),
     portId: z.string().describe('Port ID to change'),
     newPortType: z.string().describe('New port type reference'),
   }),
-]);
 
-export const ConstructOpSchema = z.discriminatedUnion('op', [
+  // Package operations (renamed to avoid collision with schema list/get/create)
   z.object({
-    op: z.literal('list'),
-    documentId: z.string().describe('The document ID'),
-    constructType: z.string().optional().describe('Filter by construct type (e.g. "service", "api-endpoint")'),
-    pageId: z.string().optional().describe('Target a specific page instead of the active page'),
-    output: z.enum(['compact', 'full']).optional().describe('Output detail level. "compact" (default): {semanticId, constructType, displayName, parentId}. "full": adds values, position, connections for each construct.'),
+    op: z.literal('list_packages'),
+    canvasId: z.string().describe('Canvas identifier'),
   }),
   z.object({
-    op: z.literal('get'),
-    documentId: z.string().describe('The document ID'),
-    semanticId: z.string().describe('The semantic ID of the construct'),
-    output: z.enum(['compact', 'full']).optional().describe('Output detail level. "compact": {semanticId, constructType, displayName, connections}. "full" (default): all field values, position, references.'),
+    op: z.literal('get_package'),
+    canvasId: z.string().describe('Canvas identifier'),
+    packageId: z.string().describe('Schema package ID'),
   }),
   z.object({
-    op: z.literal('create'),
-    documentId: z.string().describe('The document ID'),
-    constructType: z.string().describe('The type of construct to create'),
-    values: z.record(z.unknown()).optional().describe('Initial field values'),
-    x: z.number().optional().describe('X position on canvas'),
-    y: z.number().optional().describe('Y position on canvas'),
-    parentId: z.string().optional().describe('Organizer node ID — when set, position is relative to the organizer'),
-    pageId: z.string().optional().describe('Target page ID (uses active page if omitted)'),
+    op: z.literal('create_package'),
+    canvasId: z.string().describe('Canvas identifier'),
+    name: z.string().describe('Package name'),
+    description: z.string().optional().describe('Package description'),
+    color: z.string().describe('Hex color for the package'),
   }),
   z.object({
-    op: z.literal('create_bulk'),
-    documentId: z.string().describe('The document ID'),
-    constructs: z.array(z.object({
-      constructType: z.string().describe('The type of construct to create'),
-      values: z.record(z.unknown()).optional().describe('Initial field values'),
-      x: z.number().optional().describe('X position on canvas (auto-placed if omitted)'),
-      y: z.number().optional().describe('Y position on canvas (auto-placed if omitted)'),
-      parentId: z.string().optional().describe('Organizer node ID'),
-    })).describe('Array of constructs to create'),
-    pageId: z.string().optional().describe('Target page ID (uses active page if omitted)'),
+    op: z.literal('list_standard_packages'),
+    canvasId: z.string().describe('Canvas identifier'),
   }),
   z.object({
-    op: z.literal('update'),
-    documentId: z.string().describe('The document ID'),
-    semanticId: z.string().describe('The semantic ID of the construct'),
-    values: z.record(z.unknown()).optional().describe('Field values to update'),
-    instanceColor: z.string().nullable().optional().describe('Hex color override for node background (visual only)'),
+    op: z.literal('apply_package'),
+    canvasId: z.string().describe('Canvas identifier'),
+    packageId: z.string().describe('Standard library package ID (e.g., "software-architecture", "bpmn")'),
   }),
   z.object({
-    op: z.literal('delete'),
-    documentId: z.string().describe('The document ID'),
-    semanticId: z.string().describe('The semantic ID of the construct to delete'),
+    op: z.literal('check_drift'),
+    canvasId: z.string().describe('Canvas identifier'),
+    packageId: z.string().describe('Package ID to check for modifications'),
   }),
+
+  // Port types
   z.object({
-    op: z.literal('delete_bulk'),
-    documentId: z.string().describe('The document ID'),
-    semanticIds: z.array(z.string()).describe('Array of semantic IDs to delete'),
-    pageId: z.string().optional().describe('Target page ID (uses active page if omitted)'),
-  }),
-  z.object({
-    op: z.literal('move'),
-    documentId: z.string().describe('The document ID'),
-    semanticId: z.string().describe('The semantic ID of the construct to move'),
-    parentId: z.string().nullable().describe('Target organizer node ID, or null to detach from current organizer'),
-    x: z.number().optional().describe('New X position (auto-converted if omitted)'),
-    y: z.number().optional().describe('New Y position (auto-converted if omitted)'),
-    pageId: z.string().optional().describe('Target page ID (uses active page if omitted)'),
+    op: z.literal('list_port_types'),
+    canvasId: z.string().describe('Canvas identifier'),
   }),
 ]);
 
-export const ConnectionOpSchema = z.discriminatedUnion('op', [
-  z.object({
-    op: z.literal('connect'),
-    documentId: z.string().describe('The document ID'),
-    sourceSemanticId: z.string().describe('Source construct semantic ID'),
-    sourcePortId: z.string().describe('Source port ID'),
-    targetSemanticId: z.string().describe('Target construct semantic ID'),
-    targetPortId: z.string().describe('Target port ID'),
-    pageId: z.string().optional().describe('Target page ID (uses active page if omitted)'),
-  }),
-  z.object({
-    op: z.literal('disconnect'),
-    documentId: z.string().describe('The document ID'),
-    sourceSemanticId: z.string().describe('Source construct semantic ID'),
-    sourcePortId: z.string().describe('Source port ID'),
-    targetSemanticId: z.string().describe('Target construct semantic ID'),
-    pageId: z.string().optional().describe('Target page ID (uses active page if omitted)'),
-  }),
-  z.object({
-    op: z.literal('connect_bulk'),
-    documentId: z.string().describe('The document ID'),
-    connections: z.array(z.object({
-      sourceSemanticId: z.string().describe('Source construct semantic ID'),
-      sourcePortId: z.string().describe('Source port ID'),
-      targetSemanticId: z.string().describe('Target construct semantic ID'),
-      targetPortId: z.string().describe('Target port ID'),
-    })).describe('Array of connections to create'),
-    pageId: z.string().optional().describe('Target page ID (uses active page if omitted)'),
-  }),
-]);
-
-const OrganizerOpSchema = z.discriminatedUnion('op', [
-  z.object({
-    op: z.literal('create'),
-    documentId: z.string().describe('The document ID'),
-    name: z.string().describe('Organizer name'),
-    color: z.string().optional().describe('Hex color (random from palette if omitted)'),
-    x: z.number().optional().describe('X position on canvas'),
-    y: z.number().optional().describe('Y position on canvas'),
-    width: z.number().optional().describe('Width in pixels (default: 400)'),
-    height: z.number().optional().describe('Height in pixels (default: 300)'),
-    layout: z.enum(['freeform']).optional().describe('Layout strategy (default: freeform)'),
-    description: z.string().optional().describe('Optional description'),
-    attachedToSemanticId: z.string().optional().describe('Semantic ID of construct to attach this organizer to (creates a "wagon")'),
-    pageId: z.string().optional().describe('Target page ID (uses active page if omitted)'),
-  }),
-  z.object({
-    op: z.literal('update'),
-    documentId: z.string().describe('The document ID'),
-    organizerId: z.string().describe('The organizer node ID'),
-    name: z.string().optional().describe('New name'),
-    color: z.string().optional().describe('New hex color'),
-    collapsed: z.boolean().optional().describe('Collapse/expand the organizer'),
-    layout: z.enum(['freeform']).optional().describe('New layout strategy'),
-    description: z.string().optional().describe('New description'),
-  }),
-  z.object({
-    op: z.literal('delete'),
-    documentId: z.string().describe('The document ID'),
-    organizerId: z.string().describe('The organizer node ID'),
-    deleteMembers: z.boolean().optional().describe('If true, delete member constructs too. Default: false (detach members)'),
-  }),
-]);
+// ─── Layout operations ────────────────────────────────────────────────────────
 
 const LayoutOpSchema = z.discriminatedUnion('op', [
   z.object({
     op: z.literal('flow'),
-    documentId: z.string().describe('The document ID'),
+    canvasId: z.string().describe('Canvas identifier'),
     direction: z.enum(['TB', 'BT', 'LR', 'RL']).describe('Layout direction: TB (top-to-bottom), BT, LR, RL'),
     sourcePort: z.string().optional().describe('Port ID defining downstream flow (default: "flow-out")'),
     sinkPort: z.string().optional().describe('Port ID defining upstream flow (default: "flow-in")'),
     layerGap: z.number().optional().describe('Gap between layers in pixels (default: 250)'),
     nodeGap: z.number().optional().describe('Gap between nodes in same layer (default: 150)'),
     scope: z.union([z.literal('all'), z.array(z.string())]).optional().describe('"all" or array of semanticIds to layout (default: "all")'),
-    pageId: z.string().optional().describe('Target page ID (uses active page if omitted)'),
   }),
   z.object({
     op: z.literal('arrange'),
-    documentId: z.string().describe('The document ID'),
+    canvasId: z.string().describe('Canvas identifier'),
     strategy: z.enum(['grid', 'preserve', 'force']).optional().describe('Base layout strategy (default: "preserve")'),
     constraints: z.array(ArrangeConstraintSchema).describe('Declarative layout constraints applied sequentially'),
     scope: z.union([z.literal('all'), z.array(z.string())]).optional().describe('"all" or array of semanticIds (default: "all")'),
     nodeGap: z.number().optional().describe('Default gap between nodes in px (default: 40)'),
     forceIterations: z.number().optional().describe('Iteration count for force strategy (default: 50)'),
-    pageId: z.string().optional().describe('Target page ID (uses active page if omitted)'),
   }),
   z.object({
     op: z.literal('pin'),
-    documentId: z.string().describe('The document ID'),
+    canvasId: z.string().describe('Canvas identifier'),
     sourceOrganizerId: z.string().describe('The organizer being positioned'),
     targetOrganizerId: z.string().describe('The reference organizer'),
     direction: z.enum(['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']).describe('Where source sits relative to target'),
     gap: z.number().optional().describe('Spacing between organizers in pixels (default: 60)'),
-    pageId: z.string().optional().describe('Target page ID (uses active page if omitted)'),
   }),
   z.object({
     op: z.literal('list_pins'),
-    documentId: z.string().describe('The document ID'),
-    pageId: z.string().optional().describe('Target page ID (uses active page if omitted)'),
+    canvasId: z.string().describe('Canvas identifier'),
   }),
   z.object({
     op: z.literal('remove_pin'),
-    documentId: z.string().describe('The document ID'),
+    canvasId: z.string().describe('Canvas identifier'),
     constraintId: z.string().describe('The constraint ID to remove'),
-    pageId: z.string().optional().describe('Target page ID (uses active page if omitted)'),
   }),
   z.object({
     op: z.literal('apply_pins'),
-    documentId: z.string().describe('The document ID'),
+    canvasId: z.string().describe('Canvas identifier'),
     gap: z.number().optional().describe('Default spacing between organizers in pixels (default: 60)'),
-    pageId: z.string().optional().describe('Target page ID (uses active page if omitted)'),
   }),
 ]);
 
-const PackageOpSchema = z.discriminatedUnion('op', [
-  z.object({
-    op: z.literal('list'),
-    documentId: z.string().describe('The document ID'),
-  }),
-  z.object({
-    op: z.literal('get'),
-    documentId: z.string().describe('The document ID'),
-    packageId: z.string().describe('Schema package ID'),
-  }),
-  z.object({
-    op: z.literal('create'),
-    documentId: z.string().describe('The document ID'),
-    name: z.string().describe('Package name'),
-    description: z.string().optional().describe('Package description'),
-    color: z.string().describe('Hex color for the package'),
-  }),
-  z.object({
-    op: z.literal('list_standard'),
-    documentId: z.string().describe('The document ID'),
-  }),
-  z.object({
-    op: z.literal('apply'),
-    documentId: z.string().describe('The document ID'),
-    packageId: z.string().describe('Standard library package ID (e.g., "software-architecture", "bpmn")'),
-  }),
-  z.object({
-    op: z.literal('check_drift'),
-    documentId: z.string().describe('The document ID'),
-    packageId: z.string().describe('Package ID to check for modifications'),
-  }),
+// ─── Workspace operations ─────────────────────────────────────────────────────
+
+const WorkspaceOpSchema = z.discriminatedUnion('op', [
+  z.object({ op: z.literal('status') }),
 ]);
 
 // ─── Tool definitions ─────────────────────────────────────────────────────────
@@ -577,92 +510,34 @@ const PackageOpSchema = z.discriminatedUnion('op', [
 export function getToolDefinitions() {
   return [
     {
-      name: 'carta_document',
-      description: `Document operations.\nops: list (all documents), list_active (documents with active browser connections), get (by ID), create (new document with title), delete (by ID), rename (change title)`,
-      inputSchema: zodToJsonSchema(DocumentOpSchema, { $refStrategy: 'none' }),
-      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
-    },
-    {
-      name: 'carta_page',
-      description: `Page operations.\nops: list (all pages + activePage ID), create (new page with name), update (rename, description, order), delete (must have >1 page), set_active (switch active page — returns constructs/organizers/schemas for orientation), summary (compact document summary with counts; accepts include=["constructs","schemas"] for embedded data; accepts pageName alternative)`,
-      inputSchema: zodToJsonSchema(PageOpSchema, { $refStrategy: 'none' }),
+      name: 'carta_canvas',
+      description: `Canvas operations — read, mutate constructs, connections, organizers, and batch.\nops: list (all canvases in workspace), get (full canvas contents), summary (compact counts + optional embedded data), create (construct), create_bulk, update (construct fields), delete (construct), delete_bulk, move (construct into/out of organizer), connect, disconnect, connect_bulk, create_organizer, update_organizer, delete_organizer, batch (heterogeneous mutations in one transaction with @N placeholders)`,
+      inputSchema: zodToJsonSchema(CanvasOpSchema, { $refStrategy: 'none' }),
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
     },
     {
       name: 'carta_schema',
-      description: `Schema operations.\nops: list (all schemas; output="compact" reduces tokens; filter by groupId), get (schema by type), create (new custom schema with fields/ports — see below), update (non-breaking properties only: color, displayName, nodeShape, fieldUpdates, etc.), delete (by type).\n\nFor op:create — Required: documentId, type, displayName, color. Fields array: [{name, label, type: string|number|boolean|date|enum, options?, displayTier?: pill|summary, displayHint?, placeholder?, default?, semanticDescription?, displayOrder?}]. Ports array (optional): [{id, portType: flow-in|flow-out|parent|child|symmetric|intercept|relay, label, semanticDescription?}]. Smart defaults: auto displayTier for primary fields, default ports if none specified.`,
+      description: `Schema, migration, package, and port type operations.\nops: list (all schemas; output="compact" reduces tokens; filter by groupId), get (schema by type), create (new schema with fields/ports), update (non-breaking properties only), delete (by type), rename_field, remove_field, add_field, rename_port, remove_port, add_port, rename_type, change_field_type, narrow_enum, change_port_type, list_packages, get_package, create_package, list_standard_packages, apply_package, check_drift, list_port_types`,
       inputSchema: zodToJsonSchema(SchemaOpSchema, { $refStrategy: 'none' }),
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
     },
     {
-      name: 'carta_schema_migrate',
-      description: `Schema migration operations (structural changes with instance fixup).\nops: rename_field (rename + migrate all values), remove_field (delete + clear instances), add_field (add new field; optionally populate existing), rename_port (update all edges), remove_port (delete + disconnect edges), add_port (no fixup needed), rename_type (update all instances + cross-refs), change_field_type (dry-run by default; set force=true to execute), narrow_enum (update enum options + remap values), change_port_type (disconnects incompatible edges)`,
-      inputSchema: zodToJsonSchema(SchemaMigrateOpSchema, { $refStrategy: 'none' }),
-      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
-    },
-    {
-      name: 'carta_construct',
-      description: `Construct (node) operations.\nops: list (all constructs; filter by constructType; output="full" includes values/position/connections), get (by semanticId; output="compact" is lightweight), create (new instance; semanticId auto-generated; values keyed by field name; parentId for organizer-relative placement), create_bulk (multiple in one transaction; all-or-nothing; nodes without x/y auto-placed), update (partial values or instanceColor), delete (by semanticId), delete_bulk (multiple in one transaction; cleans up edges/wagons), move (into/out of organizer; parentId=null to detach; preserves connections)`,
-      inputSchema: zodToJsonSchema(ConstructOpSchema, { $refStrategy: 'none' }),
-      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
-    },
-    {
-      name: 'carta_connection',
-      description: `Connection operations.\nops: connect (link two constructs via ports; accepts pageId), disconnect (remove connection between constructs), connect_bulk (multiple connections; best-effort; individual failures reported)`,
-      inputSchema: zodToJsonSchema(ConnectionOpSchema, { $refStrategy: 'none' }),
-      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
-    },
-    {
-      name: 'carta_organizer',
-      description: `Organizer operations.\nops: create (new visual grouping container; accepts attachedToSemanticId to create a "wagon"), update (name, color, collapsed, layout, description), delete (detaches members by default; deleteMembers=true also deletes them)`,
-      inputSchema: zodToJsonSchema(OrganizerOpSchema, { $refStrategy: 'none' }),
-      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
-    },
-    {
       name: 'carta_layout',
-      description: `Layout operations.\nops: flow (topological DAG layout along TB/BT/LR/RL direction; uses port connections for hierarchy), arrange (declarative constraint-based layout; strategies: grid/preserve/force; constraints: align, order, spacing, group, distribute, position, flow), pin (declare relative positioning between organizers; directions: N/NE/E/SE/S/SW/W/NW), list_pins (list all pin constraints for a page), remove_pin (remove a pin constraint by ID), apply_pins (resolve and apply all pin constraints; returns updated count + warnings)`,
+      description: `Layout operations.\nops: flow (topological DAG layout along TB/BT/LR/RL direction), arrange (declarative constraint-based layout; strategies: grid/preserve/force; constraints: align, order, spacing, group, distribute, position, flow), pin (declare relative positioning between organizers), list_pins (list all pin constraints), remove_pin (remove a pin constraint by ID), apply_pins (resolve and apply all pin constraints)`,
       inputSchema: zodToJsonSchema(LayoutOpSchema, { $refStrategy: 'none' }),
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
     },
     {
-      name: 'carta_package',
-      description: `Schema package operations.\nops: list (packages with member counts), get (package with schemas/ports/groups/relationships), create (new package; schemas assigned via packageId on schema), list_standard (all standard library packages with status: available/loaded/modified), apply (load a standard library package by ID; idempotent), check_drift (compare loaded package against its snapshot to detect modifications)`,
-      inputSchema: zodToJsonSchema(PackageOpSchema, { $refStrategy: 'none' }),
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
-    },
-    {
       name: 'carta_compile',
-      description: 'Compile a document to AI-readable output',
-      inputSchema: zodToJsonSchema(DocumentIdSchema, { $refStrategy: 'none' }),
+      description: 'Compile a canvas to AI-readable output',
+      inputSchema: zodToJsonSchema(CanvasIdSchema, { $refStrategy: 'none' }),
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
     },
     {
-      name: 'carta_batch_mutate',
-      description: `Execute heterogeneous operations in a single transaction. Supports: create, update, delete, connect, disconnect, move. Optionally accepts pageId to target a specific page.
-
-Use "@N" placeholder syntax to reference results from earlier operations in the same batch. Example:
-  [
-    { "op": "create", "constructType": "service", "values": { "name": "Auth" } },
-    { "op": "create", "constructType": "service", "values": { "name": "Gateway" } },
-    { "op": "connect", "sourceSemanticId": "@0", "sourcePortId": "flow-out", "targetSemanticId": "@1", "targetPortId": "flow-in" }
-  ]
-Here "@0" resolves to the semanticId generated by the create at index 0.
-
-For create/update ops, values is a Record keyed by field name from the schema. Use carta_schema op:get to discover field names. semanticId is auto-generated for create ops; use "@N" placeholders to reference it in later ops.`,
-      inputSchema: zodToJsonSchema(BatchMutateSchema, { $refStrategy: 'none' }),
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
-    },
-    {
-      name: 'carta_list_port_types',
-      description: 'List available port types and their compatibility rules',
-      inputSchema: zodToJsonSchema(DocumentIdSchema, { $refStrategy: 'none' }),
+      name: 'carta_workspace',
+      description: `Workspace operations.\nops: status (workspace tree: groups, canvases, files, schemas metadata)`,
+      inputSchema: zodToJsonSchema(WorkspaceOpSchema, { $refStrategy: 'none' }),
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
-    },
-    {
-      name: 'carta_rebuild_page',
-      description: `Rebuild all Yjs data for a page by round-tripping through plain objects. Flushes corrupt Y.Map state, orphaned keys, and stale references while preserving node IDs, positions, fields, edges, and organizer membership. Debug tool — use when a page has rendering issues that don't appear on freshly-created pages.`,
-      inputSchema: zodToJsonSchema(RebuildPageSchema, { $refStrategy: 'none' }),
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
     },
   ];
 }
@@ -672,19 +547,11 @@ For create/update ops, values is a Record keyed by field name from the schema. U
 type ToolHandler = (args: Record<string, unknown>) => Promise<unknown>;
 
 export interface ToolHandlers {
-  carta_document: ToolHandler;
-  carta_page: ToolHandler;
+  carta_canvas: ToolHandler;
   carta_schema: ToolHandler;
-  carta_schema_migrate: ToolHandler;
-  carta_construct: ToolHandler;
-  carta_connection: ToolHandler;
-  carta_organizer: ToolHandler;
   carta_layout: ToolHandler;
-  carta_package: ToolHandler;
   carta_compile: ToolHandler;
-  carta_batch_mutate: ToolHandler;
-  carta_list_port_types: ToolHandler;
-  carta_rebuild_page: ToolHandler;
+  carta_workspace: ToolHandler;
   [key: string]: ToolHandler;
 }
 
@@ -699,24 +566,17 @@ export interface DocStateWithFlush extends DocState {
 /**
  * Configuration for createToolHandlers.
  *
- * Callers supply a getDoc callback for per-document Y.Doc access.
- * Multi-document management operations (list, create, delete, rename) use
- * optional callbacks — in stdio mode these make HTTP calls; in embedded mode
- * they delegate to the server config.
+ * Callers supply a getDoc callback for per-canvas Y.Doc access.
+ * Workspace-level operations use optional callbacks — in stdio mode these
+ * make HTTP calls; in embedded mode they delegate to the server config.
  */
 export interface ToolHandlerConfig {
-  /** Resolve a document ID to an in-memory DocState (real or reconstructed). */
-  getDoc(docId: string): Promise<DocStateWithFlush>;
-  /** List all persisted documents. */
-  listDocuments?(): Promise<DocumentSummary[]>;
-  /** List rooms with active WebSocket connections and client counts. */
-  listActiveRooms?(): Promise<Array<{ documentId: string; clientCount: number }>>;
-  /** Create a new document and return its metadata. */
-  createDocument?(title: string): Promise<unknown>;
-  /** Delete a document by ID. */
-  deleteDocument?(docId: string): Promise<boolean>;
-  /** Rename a document and return its updated metadata. */
-  renameDocument?(docId: string, title: string): Promise<unknown>;
+  /** Resolve a canvas ID to an in-memory DocState (real or reconstructed). */
+  getDoc(canvasId: string): Promise<DocStateWithFlush>;
+  /** List all canvases in the workspace. */
+  listCanvases?(): Promise<DocumentSummary[]>;
+  /** Get workspace tree (groups, files, metadata). */
+  getWorkspaceTree?(): Promise<unknown>;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -729,16 +589,14 @@ function unwrap(result: { success: boolean; data?: unknown; error?: string }): u
   return result.data;
 }
 
-/** Resolve pageId from explicit pageId or active page in the Y.Doc. */
-function resolvePageId(ydoc: Y.Doc, pageId?: string | null): string {
-  if (pageId) return pageId;
+/** Resolve pageId from the active page in the Y.Doc. Workspace canvases are single-page. */
+function resolvePageId(ydoc: Y.Doc): string {
   return getActivePage(ydoc) ?? '';
 }
 
 /**
- * Build a page summary response matching the server's /summary endpoint shape.
- * Used by carta_page op:summary (direct implementation — different schema from
- * the shared pageSummaryTool).
+ * Build a canvas summary response.
+ * Used by carta_canvas op:summary.
  */
 function buildPageSummary(
   ydoc: Y.Doc,
@@ -800,7 +658,6 @@ function buildPageSummary(
             semanticId: c.data.semanticId,
             constructType: c.data.constructType,
             displayName: (c.data.values as Record<string, unknown> | undefined)?.name as string ?? c.data.semanticId,
-            pageId: embedPageId,
             parentId: c.parentId,
           }));
         response.constructs = constructs;
@@ -821,52 +678,49 @@ function buildPageSummary(
 
 export function createToolHandlers(config: ToolHandlerConfig): ToolHandlers {
   return {
-    carta_document: async (args) => {
-      const input = DocumentOpSchema.parse(args);
-      switch (input.op) {
-        case 'list': {
-          const documents = await config.listDocuments?.() ?? [];
-          return { documents };
-        }
-        case 'list_active': {
-          const rooms = await config.listActiveRooms?.() ?? [];
-          return { documents: rooms };
-        }
-        case 'get': {
-          const docState = await config.getDoc(input.documentId);
-          const document = extractDocument(docState.doc, input.documentId, resolvePageId(docState.doc));
-          return { document };
-        }
-        case 'create': {
-          return await config.createDocument?.(input.title) ?? { error: 'createDocument not configured' };
-        }
-        case 'delete': {
-          const deleted = await config.deleteDocument?.(input.documentId) ?? false;
-          return { deleted };
-        }
-        case 'rename': {
-          return await config.renameDocument?.(input.documentId, input.title) ?? { error: 'renameDocument not configured' };
-        }
-      }
-    },
 
-    carta_page: async (args) => {
-      const input = PageOpSchema.parse(args);
-      const docState = await config.getDoc(input.documentId);
+    carta_canvas: async (args) => {
+      const input = CanvasOpSchema.parse(args);
+
+      if (input.op === 'list') {
+        const canvases = await config.listCanvases?.() ?? [];
+        return { canvases };
+      }
+
+      const docState = await config.getDoc(input.canvasId);
+      const pageId = resolvePageId(docState.doc);
       try {
         switch (input.op) {
-          case 'list':
-            return unwrap(executeTool('list_pages', {}, docState.doc, ''));
-          case 'create':
-            return unwrap(executeTool('create_page', { name: input.name, description: input.description }, docState.doc, ''));
-          case 'update':
-            return unwrap(executeTool('rename_page', { pageId: input.pageId, name: input.name, description: input.description, order: input.order }, docState.doc, ''));
-          case 'delete':
-            return unwrap(executeTool('delete_page', { pageId: input.pageId }, docState.doc, ''));
-          case 'set_active':
-            return unwrap(executeTool('set_active_page', { pageId: input.pageId, pageName: input.pageName }, docState.doc, ''));
+          case 'get':
+            return { canvas: extractDocument(docState.doc, input.canvasId, pageId) };
           case 'summary':
-            return buildPageSummary(docState.doc, input.pageId, input.pageName, input.include);
+            return buildPageSummary(docState.doc, undefined, undefined, input.include);
+          case 'create':
+            return unwrap(executeTool('create_construct', { constructType: input.constructType, values: input.values, x: input.x, y: input.y, parentId: input.parentId }, docState.doc, pageId));
+          case 'create_bulk':
+            return unwrap(executeTool('create_constructs', { constructs: input.constructs }, docState.doc, pageId));
+          case 'update':
+            return unwrap(executeTool('update_construct', { semanticId: input.semanticId, values: input.values, instanceColor: input.instanceColor }, docState.doc, pageId));
+          case 'delete':
+            return unwrap(executeTool('delete_construct', { semanticId: input.semanticId }, docState.doc, pageId));
+          case 'delete_bulk':
+            return unwrap(executeTool('delete_constructs', { semanticIds: input.semanticIds }, docState.doc, pageId));
+          case 'move':
+            return unwrap(executeTool('move_construct', { semanticId: input.semanticId, parentId: input.parentId, x: input.x, y: input.y }, docState.doc, pageId));
+          case 'connect':
+            return unwrap(executeTool('connect_constructs', { sourceSemanticId: input.sourceSemanticId, sourcePortId: input.sourcePortId, targetSemanticId: input.targetSemanticId, targetPortId: input.targetPortId }, docState.doc, pageId));
+          case 'disconnect':
+            return unwrap(executeTool('disconnect_constructs', { sourceSemanticId: input.sourceSemanticId, sourcePortId: input.sourcePortId, targetSemanticId: input.targetSemanticId }, docState.doc, pageId));
+          case 'connect_bulk':
+            return unwrap(executeTool('connect_constructs_bulk', { connections: input.connections }, docState.doc, pageId));
+          case 'create_organizer':
+            return unwrap(executeTool('create_organizer', { name: input.name, color: input.color, x: input.x, y: input.y, width: input.width, height: input.height, layout: input.layout, description: input.description, attachedToSemanticId: input.attachedToSemanticId }, docState.doc, pageId));
+          case 'update_organizer':
+            return unwrap(executeTool('update_organizer', { organizerId: input.organizerId, name: input.name, color: input.color, collapsed: input.collapsed, layout: input.layout, description: input.description }, docState.doc, pageId));
+          case 'delete_organizer':
+            return unwrap(executeTool('delete_organizer', { organizerId: input.organizerId, deleteMembers: input.deleteMembers }, docState.doc, pageId));
+          case 'batch':
+            return unwrap(executeTool('batch_mutate', { operations: input.operations }, docState.doc, pageId));
         }
       } finally {
         await docState.flush?.();
@@ -875,34 +729,26 @@ export function createToolHandlers(config: ToolHandlerConfig): ToolHandlers {
 
     carta_schema: async (args) => {
       const input = SchemaOpSchema.parse(args);
-      const docState = await config.getDoc(input.documentId);
+      const docState = await config.getDoc(input.canvasId);
       try {
         switch (input.op) {
+          // Schema CRUD
           case 'list':
             return unwrap(executeTool('list_schemas', { output: input.output, groupId: input.groupId }, docState.doc, ''));
           case 'get':
             return unwrap(executeTool('get_schema', { type: input.type }, docState.doc, ''));
           case 'create': {
-            const { op: _op, documentId: _docId, ...params } = input;
+            const { op: _op, canvasId: _cid, ...params } = input;
             return unwrap(executeTool('create_schema', params, docState.doc, ''));
           }
           case 'update': {
-            const { op: _op, documentId: _docId, ...params } = input;
+            const { op: _op, canvasId: _cid, ...params } = input;
             return unwrap(executeTool('update_schema', params, docState.doc, ''));
           }
           case 'delete':
             return unwrap(executeTool('delete_schema', { type: input.type }, docState.doc, ''));
-        }
-      } finally {
-        await docState.flush?.();
-      }
-    },
 
-    carta_schema_migrate: async (args) => {
-      const input = SchemaMigrateOpSchema.parse(args);
-      const docState = await config.getDoc(input.documentId);
-      try {
-        switch (input.op) {
+          // Schema migrations
           case 'rename_field':
             return unwrap(executeTool('rename_field', { schemaType: input.schemaType, oldName: input.oldName, newName: input.newName }, docState.doc, ''));
           case 'remove_field':
@@ -923,70 +769,24 @@ export function createToolHandlers(config: ToolHandlerConfig): ToolHandlers {
             return unwrap(executeTool('narrow_enum_options', { schemaType: input.schemaType, fieldName: input.fieldName, newOptions: input.newOptions, valueMapping: input.valueMapping }, docState.doc, ''));
           case 'change_port_type':
             return unwrap(executeTool('change_port_type', { schemaType: input.schemaType, portId: input.portId, newPortType: input.newPortType }, docState.doc, ''));
-        }
-      } finally {
-        await docState.flush?.();
-      }
-    },
 
-    carta_construct: async (args) => {
-      const input = ConstructOpSchema.parse(args);
-      const docState = await config.getDoc(input.documentId);
-      const pageId = resolvePageId(docState.doc, input.op !== 'list' && input.op !== 'get' && 'pageId' in input ? input.pageId : 'pageId' in input ? input.pageId : undefined);
-      try {
-        switch (input.op) {
-          case 'list':
-            return unwrap(executeTool('list_constructs', { constructType: input.constructType, output: input.output }, docState.doc, resolvePageId(docState.doc, input.pageId)));
-          case 'get':
-            return unwrap(executeTool('get_construct', { semanticId: input.semanticId, output: input.output }, docState.doc, resolvePageId(docState.doc)));
-          case 'create':
-            return unwrap(executeTool('create_construct', { constructType: input.constructType, values: input.values, x: input.x, y: input.y, parentId: input.parentId }, docState.doc, resolvePageId(docState.doc, input.pageId)));
-          case 'create_bulk':
-            return unwrap(executeTool('create_constructs', { constructs: input.constructs }, docState.doc, resolvePageId(docState.doc, input.pageId)));
-          case 'update':
-            return unwrap(executeTool('update_construct', { semanticId: input.semanticId, values: input.values, instanceColor: input.instanceColor }, docState.doc, resolvePageId(docState.doc)));
-          case 'delete':
-            return unwrap(executeTool('delete_construct', { semanticId: input.semanticId }, docState.doc, resolvePageId(docState.doc)));
-          case 'delete_bulk':
-            return unwrap(executeTool('delete_constructs', { semanticIds: input.semanticIds }, docState.doc, resolvePageId(docState.doc, input.pageId)));
-          case 'move':
-            return unwrap(executeTool('move_construct', { semanticId: input.semanticId, parentId: input.parentId, x: input.x, y: input.y }, docState.doc, resolvePageId(docState.doc, input.pageId)));
-        }
-      } finally {
-        await docState.flush?.();
-      }
-    },
+          // Package operations
+          case 'list_packages':
+            return unwrap(executeTool('list_packages', {}, docState.doc, ''));
+          case 'get_package':
+            return unwrap(executeTool('get_package', { packageId: input.packageId }, docState.doc, ''));
+          case 'create_package':
+            return unwrap(executeTool('create_package', { name: input.name, description: input.description, color: input.color }, docState.doc, ''));
+          case 'list_standard_packages':
+            return unwrap(executeTool('list_standard_packages', {}, docState.doc, ''));
+          case 'apply_package':
+            return unwrap(executeTool('apply_standard_package', { packageId: input.packageId }, docState.doc, ''));
+          case 'check_drift':
+            return unwrap(executeTool('check_package_drift', { packageId: input.packageId }, docState.doc, ''));
 
-    carta_connection: async (args) => {
-      const input = ConnectionOpSchema.parse(args);
-      const docState = await config.getDoc(input.documentId);
-      const pageId = resolvePageId(docState.doc, input.pageId);
-      try {
-        switch (input.op) {
-          case 'connect':
-            return unwrap(executeTool('connect_constructs', { sourceSemanticId: input.sourceSemanticId, sourcePortId: input.sourcePortId, targetSemanticId: input.targetSemanticId, targetPortId: input.targetPortId }, docState.doc, pageId));
-          case 'disconnect':
-            return unwrap(executeTool('disconnect_constructs', { sourceSemanticId: input.sourceSemanticId, sourcePortId: input.sourcePortId, targetSemanticId: input.targetSemanticId }, docState.doc, pageId));
-          case 'connect_bulk':
-            return unwrap(executeTool('connect_constructs_bulk', { connections: input.connections }, docState.doc, pageId));
-        }
-      } finally {
-        await docState.flush?.();
-      }
-    },
-
-    carta_organizer: async (args) => {
-      const input = OrganizerOpSchema.parse(args);
-      const docState = await config.getDoc(input.documentId);
-      const pageId = resolvePageId(docState.doc, input.op === 'create' ? input.pageId : undefined);
-      try {
-        switch (input.op) {
-          case 'create':
-            return unwrap(executeTool('create_organizer', { name: input.name, color: input.color, x: input.x, y: input.y, width: input.width, height: input.height, layout: input.layout, description: input.description, attachedToSemanticId: input.attachedToSemanticId }, docState.doc, pageId));
-          case 'update':
-            return unwrap(executeTool('update_organizer', { organizerId: input.organizerId, name: input.name, color: input.color, collapsed: input.collapsed, layout: input.layout, description: input.description }, docState.doc, resolvePageId(docState.doc)));
-          case 'delete':
-            return unwrap(executeTool('delete_organizer', { organizerId: input.organizerId, deleteMembers: input.deleteMembers }, docState.doc, resolvePageId(docState.doc)));
+          // Port types
+          case 'list_port_types':
+            return unwrap(executeTool('list_port_types', {}, docState.doc, ''));
         }
       } finally {
         await docState.flush?.();
@@ -995,8 +795,8 @@ export function createToolHandlers(config: ToolHandlerConfig): ToolHandlers {
 
     carta_layout: async (args) => {
       const input = LayoutOpSchema.parse(args);
-      const docState = await config.getDoc(input.documentId);
-      const pageId = resolvePageId(docState.doc, input.pageId);
+      const docState = await config.getDoc(input.canvasId);
+      const pageId = resolvePageId(docState.doc);
       try {
         switch (input.op) {
           case 'flow':
@@ -1017,64 +817,20 @@ export function createToolHandlers(config: ToolHandlerConfig): ToolHandlers {
       }
     },
 
-    carta_package: async (args) => {
-      const input = PackageOpSchema.parse(args);
-      const docState = await config.getDoc(input.documentId);
-      try {
-        switch (input.op) {
-          case 'list':
-            return unwrap(executeTool('list_packages', {}, docState.doc, ''));
-          case 'get':
-            return unwrap(executeTool('get_package', { packageId: input.packageId }, docState.doc, ''));
-          case 'create':
-            return unwrap(executeTool('create_package', { name: input.name, description: input.description, color: input.color }, docState.doc, ''));
-          case 'list_standard':
-            return unwrap(executeTool('list_standard_packages', {}, docState.doc, ''));
-          case 'apply':
-            return unwrap(executeTool('apply_standard_package', { packageId: input.packageId }, docState.doc, ''));
-          case 'check_drift':
-            return unwrap(executeTool('check_package_drift', { packageId: input.packageId }, docState.doc, ''));
-        }
-      } finally {
-        await docState.flush?.();
-      }
-    },
-
     carta_compile: async (args) => {
-      const { documentId } = DocumentIdSchema.parse(args);
-      const docState = await config.getDoc(documentId);
+      const { canvasId } = CanvasIdSchema.parse(args);
+      const docState = await config.getDoc(canvasId);
       const pageId = resolvePageId(docState.doc);
       return unwrap(executeTool('compile', {}, docState.doc, pageId));
     },
 
-    carta_batch_mutate: async (args) => {
-      const { documentId, operations, pageId: inputPageId } = BatchMutateSchema.parse(args);
-      const docState = await config.getDoc(documentId);
-      const pageId = resolvePageId(docState.doc, inputPageId);
-      try {
-        return unwrap(executeTool('batch_mutate', { operations }, docState.doc, pageId));
-      } finally {
-        await docState.flush?.();
-      }
-    },
-
-    carta_list_port_types: async (args) => {
-      const { documentId } = DocumentIdSchema.parse(args);
-      const docState = await config.getDoc(documentId);
-      return unwrap(executeTool('list_port_types', {}, docState.doc, ''));
-    },
-
-    carta_rebuild_page: async (args) => {
-      const { documentId, pageId: inputPageId } = RebuildPageSchema.parse(args);
-      const docState = await config.getDoc(documentId);
-      const pageId = resolvePageId(docState.doc, inputPageId);
-      try {
-        return unwrap(executeTool('rebuild_page', {}, docState.doc, pageId));
-      } finally {
-        await docState.flush?.();
+    carta_workspace: async (args) => {
+      const input = WorkspaceOpSchema.parse(args);
+      switch (input.op) {
+        case 'status':
+          return await config.getWorkspaceTree?.() ?? { error: 'Workspace not configured' };
       }
     },
 
   };
-
 }

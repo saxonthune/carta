@@ -94,18 +94,17 @@ async function httpRequest<T>(
 }
 
 /**
- * Build a ToolHandlerConfig backed by HTTP calls to a remote document server.
+ * Build a ToolHandlerConfig backed by HTTP calls to a remote workspace server.
  *
- * Per-document tool calls (getDoc) fetch the binary Yjs state, reconstruct
+ * Per-canvas tool calls (getDoc) fetch the binary Yjs state, reconstruct
  * a local Y.Doc, run tool execution in-process, then flush accumulated updates
  * back to the server via the yjs-update endpoint.
  *
- * Multi-document management calls (listDocuments, createDocument, etc.) use
- * the REST API directly.
+ * Workspace-level calls (listCanvases, getWorkspaceTree) use the REST API directly.
  */
 function buildRemoteConfig(serverUrl: string): ToolHandlerConfig {
-  async function getDoc(docId: string): Promise<DocStateWithFlush> {
-    const result = await httpRequest<{ state: string }>(serverUrl, 'GET', `/api/documents/${encodeURIComponent(docId)}/yjs-state`);
+  async function getDoc(canvasId: string): Promise<DocStateWithFlush> {
+    const result = await httpRequest<{ state: string }>(serverUrl, 'GET', `/api/documents/${encodeURIComponent(canvasId)}/yjs-state`);
     if (result.error || !result.data) {
       throw new Error(result.error ?? 'Failed to fetch Y.Doc state');
     }
@@ -125,41 +124,23 @@ function buildRemoteConfig(serverUrl: string): ToolHandlerConfig {
       const merged = Y.mergeUpdates(pendingUpdates);
       pendingUpdates.length = 0;
       const update = Buffer.from(merged).toString('base64');
-      await httpRequest(serverUrl, 'POST', `/api/documents/${encodeURIComponent(docId)}/yjs-update`, { update });
+      await httpRequest(serverUrl, 'POST', `/api/documents/${encodeURIComponent(canvasId)}/yjs-update`, { update });
     };
 
     return { doc, conns: new Set(), flush };
   }
 
-  async function listDocuments() {
+  async function listCanvases() {
     const result = await httpRequest<{ documents: unknown[] }>(serverUrl, 'GET', '/api/documents');
     return (result.data?.documents ?? []) as import('../document-server-core.js').DocumentSummary[];
   }
 
-  async function listActiveRooms() {
-    const result = await httpRequest<{ rooms: Array<{ roomId: string; clientCount: number }> }>(serverUrl, 'GET', '/api/rooms');
-    const rooms = result.data?.rooms ?? [];
-    return rooms.map(r => ({ documentId: r.roomId, clientCount: r.clientCount }));
+  async function getWorkspaceTree(): Promise<unknown> {
+    const result = await httpRequest<unknown>(serverUrl, 'GET', '/api/workspace');
+    return result.data ?? { error: result.error ?? 'Failed to fetch workspace tree' };
   }
 
-  async function createDocument(title: string) {
-    const result = await httpRequest(serverUrl, 'POST', '/api/documents', { title });
-    if (result.error) return { error: result.error };
-    return result.data;
-  }
-
-  async function deleteDocument(docId: string): Promise<boolean> {
-    const result = await httpRequest<{ deleted: boolean }>(serverUrl, 'DELETE', `/api/documents/${encodeURIComponent(docId)}`);
-    return result.data?.deleted ?? false;
-  }
-
-  async function renameDocument(docId: string, title: string) {
-    const result = await httpRequest(serverUrl, 'PATCH', `/api/documents/${encodeURIComponent(docId)}`, { title });
-    if (result.error) return { error: result.error };
-    return result.data;
-  }
-
-  return { getDoc, listDocuments, listActiveRooms, createDocument, deleteDocument, renameDocument };
+  return { getDoc, listCanvases, getWorkspaceTree };
 }
 
 /**

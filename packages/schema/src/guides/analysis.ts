@@ -14,7 +14,7 @@ This guide helps you analyze Carta documents for structural issues, completeness
 ## Workflow
 
 1. **Start with \`carta_compile\`** — Get the complete AI-readable representation
-2. **Read schemas via \`carta_list_schemas\`** — Understand what construct types exist in THIS document
+2. **Read schemas via \`carta_schema op:list\`** — Understand what construct types exist in THIS canvas
 3. **Use \`semanticDescription\` fields** — Understand what things mean in this specific domain
 
 ## Generic Structural Checks
