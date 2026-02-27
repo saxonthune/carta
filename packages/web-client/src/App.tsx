@@ -55,7 +55,7 @@ function App() {
 
   // In server mode without a ?doc= param, show document browser so user can pick/create.
   // In local mode, main.tsx always resolves a documentId before rendering, so skip this gate.
-  if (config.hasSync) {
+  if (config.documentBrowser) {
     const urlParams = new URLSearchParams(window.location.search);
     if (!urlParams.has('doc')) {
       return (

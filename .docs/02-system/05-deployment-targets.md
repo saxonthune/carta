@@ -33,8 +33,10 @@ Everything else is derived:
 |------------------|-------|
 | `hasSync` | `!!serverUrl` |
 | `collaboration` | `hasSync` (WebSocket sync requires a server) |
-| `syncWsUrl` | `syncUrl` with `http` → `ws` |
 | `documentBrowser` | `hasSync` (single-document mode otherwise) |
+| `singleDocument` | `!hasSync` |
+| `hasAI` | `aiMode !== 'none'` |
+| `syncWsUrl` | `syncUrl` with `http` → `ws` |
 
 ### Why two variables, not three or five
 
@@ -68,6 +70,8 @@ A **document source** is where documents live. The app supports three source typ
 ### Demo site / solo browser: single-document mode
 
 When no server URL is configured and the app runs in a browser, it operates in **single-document mode** — like Excalidraw. One document auto-created in IndexedDB, no document browser, no multi-document management. The user edits directly.
+
+On first visit (no existing documents in IndexedDB), the app injects `?example=software-architecture` into the URL. The `useExampleLoader` hook fetches the example file and imports it into the blank document. To change the default example, update `DEFAULT_EXAMPLE` in `main.tsx`.
 
 ### Server-connected: multi-document mode
 

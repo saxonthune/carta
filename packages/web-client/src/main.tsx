@@ -10,6 +10,9 @@ import { getLastDocumentId, setLastDocumentId } from './utils/preferences'
 import { createDocument } from './stores/documentRegistry'
 import { config } from './config/featureFlags'
 
+// Default example for first-time single-document visitors
+const DEFAULT_EXAMPLE = 'software-architecture';
+
 performance.mark('carta:module-eval')
 
 // Suppress the benign ResizeObserver loop error.
@@ -54,6 +57,12 @@ async function bootWithDocumentId(documentId: string | null) {
       // Auto-create if no existing document (NUX: no modal gate)
       if (!documentId) {
         documentId = await createDocument('Untitled Project');
+        // First visit: inject default example so useExampleLoader imports it
+        const url = new URL(window.location.href);
+        if (!url.searchParams.has('example')) {
+          url.searchParams.set('example', DEFAULT_EXAMPLE);
+          history.replaceState(null, '', url.toString());
+        }
       }
     }
   }

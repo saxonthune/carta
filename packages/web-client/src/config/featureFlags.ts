@@ -92,6 +92,18 @@ export const config = {
   /** Whether a sync server is configured (enables collaboration, multi-document mode) */
   get hasSync(): boolean { return !!this.syncUrl; },
 
+  /** Whether collaboration (WebSocket sync) is available */
+  get collaboration(): boolean { return this.hasSync; },
+
+  /** Whether the document browser should be available */
+  get documentBrowser(): boolean { return this.hasSync; },
+
+  /** Whether we're in single-document mode (demo site or solo browser) */
+  get singleDocument(): boolean { return !this.hasSync; },
+
+  /** Whether AI features are available */
+  get hasAI(): boolean { return this.aiMode !== 'none'; },
+
   /** WebSocket URL for sync (derived from syncUrl or desktop params) */
   get syncWsUrl(): string | null {
     if (!this.syncUrl) return null;

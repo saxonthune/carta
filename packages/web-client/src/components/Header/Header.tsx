@@ -111,7 +111,7 @@ export function Header({
             {config.isDesktop && (
               <span className="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-600 dark:text-purple-400">DESKTOP</span>
             )}
-            {config.aiMode !== 'none' && (
+            {config.hasAI && (
               <span className="px-1.5 py-0.5 rounded bg-green-500/20 text-green-600 dark:text-green-400">AI:{config.aiMode}</span>
             )}
             {mode === 'local' && (
@@ -180,22 +180,24 @@ export function Header({
         />
 
         {/* Connection Status — only when collaboration is active and not a local server */}
-        {config.hasSync && mode === 'shared' && !isLocalServer() && <ConnectionStatus />}
+        {config.collaboration && mode === 'shared' && !isLocalServer() && <ConnectionStatus />}
 
         {/* Share button and menu — only when connected to a remote server */}
-        {config.hasSync && !isLocalServer() && (
+        {config.collaboration && !isLocalServer() && (
           <ShareMenu documentId={documentId} mode={mode} />
         )}
 
-        {/* Document browser button */}
-        <Tooltip content="Browse documents" guideContent={guideContent['header.browse']}>
-          <button
-            className="w-9 h-9 flex items-center justify-center rounded-lg cursor-pointer text-content-muted hover:bg-surface-alt hover:text-content transition-colors"
-            onClick={() => setIsDocBrowserOpen(true)}
-          >
-            <FolderOpen weight="regular" size={18} />
-          </button>
-        </Tooltip>
+        {/* Document browser button — only in multi-document mode */}
+        {config.documentBrowser && (
+          <Tooltip content="Browse documents" guideContent={guideContent['header.browse']}>
+            <button
+              className="w-9 h-9 flex items-center justify-center rounded-lg cursor-pointer text-content-muted hover:bg-surface-alt hover:text-content transition-colors"
+              onClick={() => setIsDocBrowserOpen(true)}
+            >
+              <FolderOpen weight="regular" size={18} />
+            </button>
+          </Tooltip>
+        )}
 
         <Tooltip content="Export project to .carta file" guideContent={guideContent['header.export']}>
           <button
@@ -224,7 +226,7 @@ export function Header({
           </button>
         </Tooltip>
 
-        {onToggleAI && (
+        {config.hasAI && onToggleAI && (
           <Tooltip content="Open AI Assistant" guideContent={guideContent['header.ai']}>
             <button
               className="w-9 h-9 flex items-center justify-center rounded-lg cursor-pointer text-content-muted hover:bg-surface-alt hover:text-content transition-colors"
