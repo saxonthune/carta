@@ -382,3 +382,4 @@ ${resourcesJson}
 export const compiler = new CompilerEngine();
 export default compiler;
 export { formatJSON } from './formatters/json.js';
+export { compileCanvasFile } from './workspace-adapter.js';
