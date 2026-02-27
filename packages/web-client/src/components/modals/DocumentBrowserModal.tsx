@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Folder, FolderOpen, CaretLeft } from '@phosphor-icons/react';
-import type { DocumentSummary } from '@carta/domain';
-import { toKebabCase } from '@carta/domain';
+import type { DocumentSummary } from '@carta/schema';
+import { toKebabCase } from '@carta/schema';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import Input from '../ui/Input';

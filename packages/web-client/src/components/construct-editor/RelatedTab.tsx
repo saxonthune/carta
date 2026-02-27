@@ -1,7 +1,7 @@
 import { useSchemas } from '../../hooks/useSchemas';
 import { useSchemaRelationships } from '../../hooks/useSchemaRelationships';
-import { canConnect } from '@carta/domain';
-import type { SchemaRelationship } from '@carta/domain';
+import { canConnect } from '@carta/schema';
+import type { SchemaRelationship } from '@carta/schema';
 
 interface RelatedTabProps {
   schemaType: string;

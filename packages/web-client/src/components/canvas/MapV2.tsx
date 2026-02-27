@@ -26,7 +26,7 @@ import ConstructEditor from '../ConstructEditor';
 import ConstructDebugModal from '../modals/ConstructDebugModal';
 import { MenuLevel, type MenuItem } from '../ui/ContextMenuPrimitive';
 import { getRectBoundaryPoint, waypointsToPath, computeBezierPath, computeSideOffset, type Waypoint } from '../../utils/edgeGeometry.js';
-import { nodeContainedInOrganizer, type ConstructSchema, type ConstructNodeData, getDisplayName, type DocumentAdapter } from '@carta/domain';
+import { nodeContainedInOrganizer, type ConstructSchema, type ConstructNodeData, getDisplayName, type DocumentAdapter } from '@carta/schema';
 import { validateConnection, normalizeConnection } from '../../utils/connectionLogic.js';
 import { generateSemanticId } from '../../utils/cartaFile';
 import { computeOrthogonalRoutes, type NodeRect } from '../../presentation/index.js';

@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { FolderOpen, Robot } from '@phosphor-icons/react';
+import { FolderOpen, Robot, List } from '@phosphor-icons/react';
 import { useDocumentContext } from '../../contexts/DocumentContext';
 import { config } from '../../config/featureFlags';
 import ConnectionStatus from '../ConnectionStatus';
@@ -26,6 +26,7 @@ export interface HeaderProps {
   onCompile: () => void;
   onClear?: (mode: 'instances' | 'all') => void;
   onToggleAI?: () => void;
+  onToggleNavigator?: () => void;
 }
 
 /**
@@ -52,6 +53,7 @@ export function Header({
   onCompile,
   onClear,
   onToggleAI,
+  onToggleNavigator,
 }: HeaderProps) {
   const { mode, documentId } = useDocumentContext();
   const [isProjectInfoOpen, setIsProjectInfoOpen] = useState(false);
@@ -87,8 +89,18 @@ export function Header({
 
   return (
     <header className="h-12 bg-surface border-b border-border grid grid-cols-[1fr_auto_1fr] items-center px-0 shrink-0">
-      {/* Left section: Logo and debug info */}
+      {/* Left section: Navigator toggle, title, and debug info */}
       <div className="flex items-center justify-start pl-3 gap-2">
+        {onToggleNavigator && (
+          <Tooltip content="Toggle navigator">
+            <button
+              className="w-9 h-9 flex items-center justify-center rounded-lg cursor-pointer text-content-muted hover:bg-surface-alt hover:text-content transition-colors"
+              onClick={onToggleNavigator}
+            >
+              <List weight="regular" size={18} />
+            </button>
+          </Tooltip>
+        )}
         <span className="text-xl font-bold tracking-tight text-content select-none">Carta</span>
         {config.debug && (
           <div className="flex items-center gap-1.5 text-[10px] font-mono text-content-muted">

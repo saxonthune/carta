@@ -1,6 +1,6 @@
 import { useCallback, useRef, useEffect } from 'react';
 import { useSchemas } from '../../hooks/useSchemas';
-import type { ConstructSchema } from '@carta/domain';
+import type { ConstructSchema } from '@carta/schema';
 
 interface AddConstructMenuProps {
   x: number;

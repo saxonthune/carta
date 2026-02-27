@@ -3,14 +3,19 @@ import type { CartaNode, CartaEdge } from '@carta/types';
 import DocumentBrowserModal from './components/modals/DocumentBrowserModal';
 import Header from './components/Header';
 import CanvasContainer from './components/canvas/CanvasContainer';
-import { compiler } from '@carta/compiler';
-import { syncWithDocumentStore } from '@carta/domain';
-import type { ConstructSchema } from '@carta/domain';
+import Navigator from './components/Navigator';
+import Footer from './components/Footer';
+import { compiler } from '@carta/document';
+import { syncWithDocumentStore } from '@carta/schema';
+import type { ConstructSchema, Resource } from '@carta/schema';
 import { useDocumentMeta } from './hooks/useDocumentMeta';
 import { useSchemas } from './hooks/useSchemas';
 import { useSchemaGroups } from './hooks/useSchemaGroups';
 import { usePages } from './hooks/usePages';
+import { useResources } from './hooks/useResources';
+import { useSpecGroups } from './hooks/useSpecGroups';
 import { useClearDocument } from './hooks/useClearDocument';
+import { useExampleLoader } from './hooks/useExampleLoader';
 import { useDocumentContext } from './contexts/DocumentContext';
 import { exportProject, importProject, type CartaFile } from './utils/cartaFile';
 import { analyzeImport, type ImportAnalysis, type ImportOptions } from './utils/importAnalyzer';
@@ -18,9 +23,15 @@ import { analyzeExport, type ExportAnalysis, type ExportOptions } from './utils/
 import { importDocument, type ImportConfig } from './utils/documentImporter';
 import { config } from './config/featureFlags';
 
+type ActiveView =
+  | { type: 'page'; pageId: string }
+  | { type: 'metamap' }
+  | { type: 'resource'; resourceId: string };
+
 const ImportPreviewModal = lazy(() => import('./components/modals/ImportPreviewModal'));
 const ExportPreviewModal = lazy(() => import('./components/modals/ExportPreviewModal'));
 const CompileModal = lazy(() => import('./components/modals/CompileModal'));
+const ExampleConfirmModal = lazy(() => import('./components/modals/ExampleConfirmModal'));
 const AISidebar = lazy(() => import('./ai/components/AISidebar').then(m => ({ default: m.AISidebar })));
 
 // Note: Schema initialization is now handled by DocumentProvider
@@ -50,12 +61,19 @@ function AppContent() {
     performance.measure('carta:boot-to-mount', 'carta:boot-start', 'carta:app-mounted')
     performance.measure('carta:total-startup', 'carta:module-eval', 'carta:app-mounted')
     if (import.meta.env.DEV) {
-      const entries = performance.getEntriesByType('measure').filter(e => e.name.startsWith('carta:'))
-      console.groupCollapsed('[carta] startup timing')
-      for (const e of entries) {
-        console.log(`${e.name}: ${e.duration.toFixed(1)}ms`)
-      }
-      console.groupEnd()
+      // Defer slightly to catch canvas-mounted mark which fires in a child useEffect
+      requestAnimationFrame(() => {
+        const measures = performance.getEntriesByType('measure')
+          .filter(e => e.name.startsWith('carta:'))
+          .sort((a, b) => a.startTime - b.startTime)
+        console.groupCollapsed('[carta] startup waterfall')
+        console.table(measures.map(m => ({
+          phase: m.name.replace('carta:', ''),
+          start: `${m.startTime.toFixed(0)}ms`,
+          duration: `${m.duration.toFixed(1)}ms`,
+        })))
+        console.groupEnd()
+      })
     }
   }, [])
 
@@ -63,14 +81,30 @@ function AppContent() {
   const { schemas } = useSchemas();
   const { schemaGroups } = useSchemaGroups();
   const { pages, activePage, setActivePage, createPage, deletePage, updatePage, duplicatePage } = usePages();
+  const { resources } = useResources();
+  const { specGroups, createSpecGroup, updateSpecGroup, deleteSpecGroup, assignToSpecGroup, removeFromSpecGroup } = useSpecGroups();
+  const [navigatorOpen, setNavigatorOpen] = useState(true);
+  const [activeView, setActiveView] = useState<ActiveView>(() => ({
+    type: 'page',
+    pageId: activePage || pages[0]?.id || '',
+  }));
   const [importPreview, setImportPreview] = useState<{ data: CartaFile; analysis: ImportAnalysis } | null>(null);
   const [pendingImport, setPendingImport] = useState<{ data: CartaFile; config: ImportConfig; schemasToImport: ConstructSchema[] } | null>(null);
   const [exportPreview, setExportPreview] = useState<ExportAnalysis | null>(null);
   const [compileOutput, setCompileOutput] = useState<string | null>(null);
+  // Keep activeView in sync when activePage changes externally
+  useEffect(() => {
+    if (activePage && activeView.type === 'page') {
+      setActiveView({ type: 'page', pageId: activePage });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activePage]);
+
   const [aiSidebarOpen, setAiSidebarOpen] = useState(false);
   const [aiSidebarWidth] = useState(400);
   const nodesEdgesRef = useRef<{ nodes: CartaNode[]; edges: CartaEdge[] }>({ nodes: [], edges: [] });
   const { clearDocument } = useClearDocument();
+  const { showConfirmModal: showExampleConfirm, exampleTitle, onConfirm: onExampleConfirm, onCancel: onExampleCancel } = useExampleLoader();
 
   // Initialize refs on mount
   useEffect(() => {
@@ -109,6 +143,11 @@ function AppContent() {
     // Selection handling removed with InspectorPanel (V1-only)
   }, []);
 
+  const handleCreateResource = useCallback(() => {
+    const created = adapter.createResource('New Resource', 'freeform', '');
+    setActiveView({ type: 'resource', resourceId: created.id });
+  }, [adapter]);
+
   const handleExport = useCallback(() => {
     const { nodes, edges } = nodesEdgesRef.current;
     const portSchemas = adapter.getPortSchemas();
@@ -118,6 +157,12 @@ function AppContent() {
 
   const handleExportConfirm = useCallback((options: ExportOptions) => {
     const portSchemas = adapter.getPortSchemas();
+    const resourceSummaries = adapter.getResources();
+    const resources: Resource[] = [];
+    for (const summary of resourceSummaries) {
+      const full = adapter.getResource(summary.id);
+      if (full) resources.push(full);
+    }
 
     exportProject({
       title,
@@ -127,6 +172,7 @@ function AppContent() {
       portSchemas,
       schemaGroups,
       schemaPackages: adapter.getSchemaPackages(),
+      resources,
     }, options);
 
     setExportPreview(null);
@@ -181,38 +227,53 @@ function AppContent() {
   }, [schemas]);
 
   return (
-    <div className="h-screen flex">
-      <div className="flex-1 flex flex-col min-w-0">
-        <Header
-          title={title}
-          description={description}
-          onTitleChange={setTitle}
-          onDescriptionChange={setDescription}
-          onExport={handleExport}
-          onImport={handleImport}
-          onCompile={handleCompile}
-          onClear={clearDocument}
-          onToggleAI={() => setAiSidebarOpen(!aiSidebarOpen)}
-        />
-        <CanvasContainer
-          onSelectionChange={handleSelectionChange}
+    <div className="h-screen flex flex-col">
+      <Header
+        title={title}
+        description={description}
+        onTitleChange={setTitle}
+        onDescriptionChange={setDescription}
+        onExport={handleExport}
+        onImport={handleImport}
+        onCompile={handleCompile}
+        onClear={clearDocument}
+        onToggleAI={() => setAiSidebarOpen(!aiSidebarOpen)}
+        onToggleNavigator={() => setNavigatorOpen(!navigatorOpen)}
+      />
+      <div className="flex-1 flex min-h-0">
+        <Navigator
+          isOpen={navigatorOpen}
           pages={pages}
-          activePage={activePage}
-          onSetActivePage={setActivePage}
+          onSetActivePage={(pageId) => { setActivePage(pageId); setActiveView({ type: 'page', pageId }); }}
           onCreatePage={createPage}
           onDeletePage={deletePage}
           onUpdatePage={updatePage}
           onDuplicatePage={duplicatePage}
+          resources={resources}
+          onSelectResource={(resourceId) => setActiveView({ type: 'resource', resourceId })}
+          onCreateResource={handleCreateResource}
+          activeView={activeView}
+          onSelectMetamap={() => setActiveView({ type: 'metamap' })}
+          specGroups={specGroups}
+          onCreateSpecGroup={(name) => { createSpecGroup(name); }}
+          onUpdateSpecGroup={updateSpecGroup}
+          onDeleteSpecGroup={deleteSpecGroup}
+          onAssignToSpecGroup={assignToSpecGroup}
+          onRemoveFromSpecGroup={removeFromSpecGroup}
         />
+        <CanvasContainer
+          onSelectionChange={handleSelectionChange}
+          activeView={activeView}
+        />
+        <Suspense fallback={null}>
+          <AISidebar
+            isOpen={aiSidebarOpen}
+            onToggle={() => setAiSidebarOpen(!aiSidebarOpen)}
+            width={aiSidebarWidth}
+          />
+        </Suspense>
       </div>
-
-      <Suspense fallback={null}>
-        <AISidebar
-          isOpen={aiSidebarOpen}
-          onToggle={() => setAiSidebarOpen(!aiSidebarOpen)}
-          width={aiSidebarWidth}
-        />
-      </Suspense>
+      <Footer />
 
       {/* Modals */}
       {importPreview && (
@@ -240,6 +301,16 @@ function AppContent() {
           <CompileModal
             output={compileOutput}
             onClose={() => setCompileOutput(null)}
+          />
+        </Suspense>
+      )}
+      {showExampleConfirm && (
+        <Suspense fallback={null}>
+          <ExampleConfirmModal
+            isOpen={showExampleConfirm}
+            exampleTitle={exampleTitle}
+            onConfirm={onExampleConfirm}
+            onCancel={onExampleCancel}
           />
         </Suspense>
       )}

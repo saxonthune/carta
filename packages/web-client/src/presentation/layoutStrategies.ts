@@ -3,7 +3,7 @@
  * No React dependencies — testable with plain data.
  */
 
-import type { NodeGeometry } from '@carta/domain';
+import type { NodeGeometry } from '@carta/schema';
 
 export interface LayoutResult {
   /** Computed positions for members (keyed by member index) */

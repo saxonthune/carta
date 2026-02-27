@@ -1,17 +1,15 @@
 import { useCallback } from 'react';
 import type { CartaNode } from '@carta/types';
 import { useNodes } from './useNodes';
+import { toRelativePosition } from '@carta/schema';
+import type { OrganizerNodeData } from '@carta/schema';
 import {
-  toRelativePosition,
-} from '@carta/domain';
-import type { OrganizerNodeData } from '@carta/domain';
-import {
-  getAbsolutePosition,
   canNestInOrganizer,
   computeNewOrganizerBounds,
   computeDetachedNodes,
   collectDescendantIds,
 } from '../utils/organizerLogic';
+import { computeAttach, computeDetach } from '../canvas-engine/index.js';
 // Simple organizer color palette
 const ORGANIZER_COLORS = ['#7c3aed', '#0891b2', '#059669', '#d97706', '#dc2626', '#6366f1', '#ec4899'];
 
@@ -40,7 +38,7 @@ export { canNestInOrganizer } from '../utils/organizerLogic';
 
 /**
  * Hook providing organizer operations.
- * Uses pure geometry functions from @carta/domain for testability.
+ * Uses pure geometry functions from @carta/schema for testability.
  */
 export function useOrganizerOperations(): UseOrganizerOperationsResult {
   const { nodes, setNodes } = useNodes();
@@ -137,9 +135,7 @@ export function useOrganizerOperations(): UseOrganizerOperationsResult {
     // Validate nesting rules
     if (!canNestInOrganizer(node, organizer, nodes)) return;
 
-    const organizerAbsPos = getAbsolutePosition(organizer, nodes);
-    const nodeAbsPos = node.parentId ? getAbsolutePosition(node, nodes) : node.position;
-    const relativePosition = toRelativePosition(nodeAbsPos, organizerAbsPos);
+    const relativePosition = computeAttach(nodeId, organizerId, nodes);
 
     setNodes(nds => nds.map(n =>
       n.id === nodeId
@@ -152,7 +148,7 @@ export function useOrganizerOperations(): UseOrganizerOperationsResult {
     const node = nodes.find(n => n.id === nodeId);
     if (!node?.parentId) return;
 
-    const absolutePosition = getAbsolutePosition(node, nodes);
+    const absolutePosition = computeDetach(nodeId, nodes);
 
     setNodes(nds => nds.map(n =>
       n.id === nodeId

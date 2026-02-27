@@ -1,4 +1,4 @@
-import { canConnect, getHandleType, type ConstructSchema } from '@carta/domain';
+import { canConnect, getHandleType, type ConstructSchema } from '@carta/schema';
 import { stripHandlePrefix } from './handlePrefix.js';
 
 /** Input for connection validation/creation */

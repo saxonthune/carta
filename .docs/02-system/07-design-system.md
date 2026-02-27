@@ -19,6 +19,7 @@ Carta uses a three-level depth system to create visual hierarchy in multi-panel 
 | 2 (Middle) | `--color-surface-depth-2` | `bg-surface-depth-2` | Island containers within sidebars |
 | 3 (Innermost) | `--color-surface-depth-3` | `bg-surface-depth-3` | Main content areas, editor panels |
 | Inset (Display wells) | `--color-surface-inset` | `bg-surface-inset` | Recessed display areas, showcasing content |
+| Selected | `--color-surface-selected` | `bg-[var(--color-surface-selected)]` | Active item highlight in navigation |
 
 ### Theme Behavior
 
@@ -30,19 +31,6 @@ Carta uses a three-level depth system to create visual hierarchy in multi-panel 
 Grouped content within panels uses Level 2 islands with `rounded-xl`. This creates clear visual boundaries without borders.
 
 **Figure-Ground Pairing**: Each depth level needs a companion tone to create internal hierarchy. The `surface-inset` token provides a recessed tone that's always darker/deeper than the surface it sits on, creating "display wells" that draw the eye to their contents.
-
-**Simple sidebar example:**
-```
-┌──────┬──────────────────┬───────────────────┐
-│ Tabs │  Sidebar (L1)    │  Main Content     │
-│ (L1) │  ┌────────────┐  │  (L3)             │
-│      │  │ Island (L2)│  │                   │
-│      │  └────────────┘  │                   │
-│      │  ┌────────────┐  │                   │
-│      │  │ Island (L2)│  │                   │
-│      │  └────────────┘  │                   │
-└──────┴──────────────────┴───────────────────┘
-```
 
 **Nested island example** (ConstructEditor modal):
 ```

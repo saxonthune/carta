@@ -1,8 +1,8 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import * as Y from 'yjs';
-import type { DocumentAdapter } from '@carta/domain';
+import type { DocumentAdapter } from '@carta/schema';
 import { createYjsAdapter, type YjsAdapterOptions } from '../stores/adapters/yjsAdapter';
-import { builtInPortSchemas } from '@carta/domain';
+import { builtInPortSchemas } from '@carta/schema';
 import { config } from '../config/featureFlags';
 
 /**
@@ -88,6 +88,7 @@ export function DocumentProvider({
       }
 
       // Migration: forward -> relay, intercept polarity update
+      performance.mark('carta:migration-start')
       const migrationVersion = yjsAdapter.ydoc.getMap('meta').get('migrationVersion') as number | undefined;
       if ((migrationVersion || 0) < 1) {
         yjsAdapter.transaction(() => {
@@ -145,6 +146,8 @@ export function DocumentProvider({
           yjsAdapter.ydoc.getMap('meta').set('migrationVersion', 1);
         }, 'migration');
       }
+      performance.mark('carta:migration-end')
+      performance.measure('carta:migration', 'carta:migration-start', 'carta:migration-end')
 
       if (mounted) {
         performance.mark('carta:adapter-ready')

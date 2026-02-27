@@ -9,7 +9,7 @@ Carta is a visual software architecture editor. Users design systems by creating
 
 ## Core Goal
 
-Bridge the gap between high-level architecture design and AI-assisted code generation. Provide a visual interface that produces structured, machine-readable specifications.
+Professionalize vibe coding. Provide an instrument panel rich enough that users never need to touch source code — the same way compilers let users stay out of assembly. Bridge the gap between high-level architecture design and AI-assisted code generation through a visual interface that produces structured, machine-readable specifications.
 
 ## The Dual Mandate
 

@@ -14,7 +14,7 @@ status: active
 
 ```bash
 pnpm install
-pnpm dev          # Static mode (single-user, no server)
+pnpm demo         # Static mode (single-user, no server)
 ```
 
 Visit `http://localhost:5173`.
@@ -23,7 +23,7 @@ Visit `http://localhost:5173`.
 
 ```bash
 pnpm server       # Start MongoDB + document server
-pnpm dev:client   # Start client in server mode
+pnpm client       # Start client in server mode
 ```
 
 Visit `http://localhost:5173/?doc=my-document-id`.
@@ -43,7 +43,7 @@ The desktop app starts an embedded document server, then opens the web client co
 
 All packages live in `packages/`, including the web client (`@carta/web-client`). Cross-package dependencies are resolved via Vite/TypeScript aliases.
 
-Currently existing packages: `@carta/domain`, `@carta/document`, `@carta/compiler`, `@carta/server`, `@carta/web-client`, `@carta/desktop`. See doc02.01 for the target dependency graph.
+Currently existing packages: `@carta/types`, `@carta/geometry`, `@carta/schema`, `@carta/document`, `@carta/server`, `@carta/web-client`, `@carta/desktop`. See doc02.01 for the target dependency graph. Note: `@carta/compiler` has been merged into `@carta/document`.
 
 ## Key Directories
 
@@ -54,12 +54,13 @@ packages/
     hooks/          React hooks
     contexts/       React contexts (DocumentContext)
     stores/         Document adapter and Yjs implementation
-    constructs/     Port registry, schemas, compiler
+    canvas-engine/  Canvas rendering primitives
     ai/             AI sidebar and tools
     utils/          Utilities (file I/O, display, examples)
-  domain/           Shared types, port registry, built-in schemas
-  document/         Shared Y.Doc operations, Yjs helpers, file format, migrations
-  compiler/         Compilation engine
+  types/            Platform-agnostic graph types (CartaNode, CartaEdge)
+  geometry/         Geometry primitives and layout algorithms
+  schema/           Shared types, port registry, built-in schemas
+  document/         Shared Y.Doc operations, Yjs helpers, file format, migrations, compiler
   server/           Document server + MCP server
   desktop/          Electron desktop app with embedded server
 ```

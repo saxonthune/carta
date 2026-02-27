@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { CartaNode, CartaEdge } from '@carta/types';
-import type { ConstructSchema, ConstructNodeData, OrganizerNodeData } from '@carta/domain';
+import type { ConstructSchema, ConstructNodeData, OrganizerNodeData } from '@carta/schema';
 import { computeEdgeAggregation, filterInvalidEdges } from '../presentation/index';
 import { useEdgeBundling } from './useEdgeBundling';
 

@@ -1,5 +1,5 @@
 import type { CartaNode } from '@carta/types';
-import type { OrganizerNodeData } from '@carta/domain';
+import type { OrganizerNodeData } from '@carta/schema';
 import {
   computeOrganizerBounds,
   toAbsolutePosition,
@@ -8,7 +8,7 @@ import {
   type NodeGeometry,
   type LayoutItem,
   type WagonInfo,
-} from '@carta/domain';
+} from '@carta/schema';
 
 /**
  * Compute the absolute canvas position of a node by walking its parentId chain.

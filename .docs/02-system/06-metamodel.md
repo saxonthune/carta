@@ -29,7 +29,7 @@ These types are fixed at design time. Users cannot add, remove, or modify them.
 
 ### DataKind
 
-The five primitive data types for field values. Every field has exactly one (see doc01.02, "DataKind Is Exhaustive").
+The six data types for field values. Every field has exactly one (see doc01.02, "DataKind Is Exhaustive").
 
 | Kind | Description | Example Values |
 |------|-------------|----------------|
@@ -38,6 +38,9 @@ The five primitive data types for field values. Every field has exactly one (see
 | `boolean` | True/false | true, false |
 | `date` | Date values | "2024-01-15" |
 | `enum` | Fixed choices | "GET", "POST", "PUT" |
+| `resource` | Reference to a document resource | `{ resourceId: "abc-123", pathHint: "Page.nodes", versionHash: "sha256-..." }` |
+
+The first five kinds are scalar values. The sixth — `resource` — is a reference type introduced by doc02.04.08. Its value is a compound `{ resourceId, pathHint?, versionHash? }` pointing to a Resource entity in the document, optionally hinting at a location within the resource body, and optionally pinning to a specific published version via content hash. The `pathHint` is a freeform string — Carta stores and displays it but does not validate or navigate it, because resource bodies are format-agnostic (see doc02.04.08, "Resource bodies are opaque to Carta").
 
 ### DisplayHint
 
@@ -117,7 +120,7 @@ Defines a construct type. Key properties:
 | `groupId` | Optional visual grouping within the package (references SchemaGroup.id) |
 | `instanceColors` | `true` = per-instance color palette picker enabled; absent/false = schema color only |
 | `isFavorite` | `true` = schema pinned to top-level context menu for quick "Add X" access |
-| `nodeShape` | Visual shape: `default`, `simple`, `circle`, `diamond`, `document` |
+| `nodeShape` | Visual shape: `default`, `simple`, `circle`, `diamond`, `document`, `parallelogram`, `stadium` |
 
 ### FieldSchema
 
@@ -127,7 +130,7 @@ Defines a data slot on a construct type:
 |----------|---------|
 | `name` | Internal key |
 | `label` | Display label |
-| `type` | One of the five DataKinds |
+| `type` | One of the six DataKinds |
 | `semanticDescription` | AI compilation context |
 | `options` | Enum choices (enum type only) |
 | `displayHint` | Rendering hint (string type only) |
@@ -200,7 +203,7 @@ The `PortRegistry` class manages port schemas with polarity-based validation. It
 
 ## Standard Library
 
-**Location:** `@carta/domain` — `schemas/package-loader.ts` and `schemas/packages/`
+**Location:** `@carta/schema` — `schemas/package-loader.ts` and `schemas/packages/`
 
 Schema packages are `SchemaPackageDefinition` objects — self-contained, portable package definitions with stable UUIDs that load through the idempotent `applyPackage()` function (doc02.04.07). The old imperative seed system has been removed.
 
@@ -215,7 +218,7 @@ Each package has a stable UUID, display metadata for the package picker, and a c
 
 **Loading:** All packages are opt-in. Users load them via the package picker (doc03.01.01.07). No auto-seeding. The document's package manifest tracks which packages have been loaded and provides drift detection via content hashing.
 
-**Key functions** exported from `@carta/domain`:
+**Key functions** exported from `@carta/schema`:
 - `applyPackage(adapter, definition)` — idempotent package load
 - `isPackageModified(adapter, packageId)` — fast drift check via content hash
 - `isLibraryNewer(manifestEntry, libraryDefinition)` — detects app-shipped library updates

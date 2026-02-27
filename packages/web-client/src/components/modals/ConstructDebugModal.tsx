@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
 import type { CartaNode } from '@carta/types';
 import Modal from '../ui/Modal';
-import { compiler } from '@carta/compiler';
-import { getDisplayName } from '@carta/domain';
-import type { ConstructNodeData, ConstructSchema } from '@carta/domain';
+import { compiler } from '@carta/document';
+import { getDisplayName } from '@carta/schema';
+import type { ConstructNodeData, ConstructSchema } from '@carta/schema';
 
 interface ConstructDebugModalProps {
   node: CartaNode;

@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 
 export interface PopoverMenuItem {
   key: string;
@@ -15,37 +16,63 @@ export interface PopoverMenuProps {
 
 export default function PopoverMenu({ items, trigger, align = 'right' }: PopoverMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState({ top: 0, left: 0 });
 
-  // Close menu when clicking outside
+  const updatePosition = useCallback(() => {
+    if (!triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    setPosition({
+      top: rect.bottom + 4,
+      left: align === 'right' ? rect.right : rect.left,
+    });
+  }, [align]);
+
+  // Position on open and reposition on scroll/resize
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
+    if (!isOpen) return;
+    updatePosition();
 
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
+    const scrollParent = triggerRef.current?.closest('[class*="overflow"]');
+    scrollParent?.addEventListener('scroll', updatePosition);
+    window.addEventListener('resize', updatePosition);
+    return () => {
+      scrollParent?.removeEventListener('scroll', updatePosition);
+      window.removeEventListener('resize', updatePosition);
+    };
+  }, [isOpen, updatePosition]);
+
+  // Close on click outside
+  useEffect(() => {
+    if (!isOpen) return;
+    const handler = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (
+        triggerRef.current?.contains(target) ||
+        menuRef.current?.contains(target)
+      ) return;
+      setIsOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
   }, [isOpen]);
 
-  const handleItemClick = (item: PopoverMenuItem) => {
-    item.onClick();
-    setIsOpen(false);
-  };
-
   return (
-    <div className="relative inline-block" ref={containerRef}>
+    <div className="relative inline-block" ref={triggerRef}>
       <div onClick={() => setIsOpen(!isOpen)}>
         {trigger}
       </div>
-      {isOpen && (
+      {isOpen && createPortal(
         <div
-          className={`absolute top-full mt-1 bg-surface border border-border rounded-lg shadow-lg overflow-hidden z-50 min-w-[140px] ${
-            align === 'right' ? 'right-0' : 'left-0'
-          }`}
+          ref={menuRef}
+          className="fixed bg-surface border border-border rounded-lg shadow-lg overflow-hidden z-50 min-w-[140px]"
+          style={{
+            top: position.top,
+            ...(align === 'right'
+              ? { right: window.innerWidth - position.left }
+              : { left: position.left }),
+          }}
         >
           {items.map((item) => (
             <button
@@ -53,12 +80,13 @@ export default function PopoverMenu({ items, trigger, align = 'right' }: Popover
               className={`w-full text-left px-3 py-1.5 text-sm hover:bg-surface-alt transition-colors border-none bg-transparent cursor-pointer ${
                 item.danger ? 'text-red-500' : 'text-content'
               }`}
-              onClick={() => handleItemClick(item)}
+              onClick={() => { item.onClick(); setIsOpen(false); }}
             >
               {item.label}
             </button>
           ))}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

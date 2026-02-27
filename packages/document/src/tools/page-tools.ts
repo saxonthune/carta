@@ -41,10 +41,12 @@ import type { ToolDefinition } from './types.js';
 
 const ListConstructsInput = z.object({
   constructType: z.string().optional(),
+  output: z.enum(['compact', 'full']).optional(),
 });
 
 const GetConstructInput = z.object({
   semanticId: z.string(),
+  output: z.enum(['compact', 'full']).optional(),
 });
 
 const CreateConstructInput = z.object({
@@ -271,7 +273,7 @@ const ApplyPinLayoutInput = z.object({
 
 export const listConstructsTool: ToolDefinition = {
   name: 'list_constructs',
-  description: 'List constructs in a document (compact summaries). Use carta_get_construct for full details. Optionally filter by constructType or target a specific page.',
+  description: 'List constructs in a document (compact summaries). Use output="full" to include values, position, and connections. Optionally filter by constructType or target a specific page.',
   inputSchema: ListConstructsInput,
   needsPage: true,
   execute: (params, ydoc, pageId) => {
@@ -279,13 +281,19 @@ export const listConstructsTool: ToolDefinition = {
     const options = input.constructType ? { constructType: input.constructType } : undefined;
     const constructs = listConstructs(ydoc, pageId, options);
     const organizers = listOrganizers(ydoc, pageId);
+
+    if (input.output === 'full') {
+      const full = constructs.map(c => getConstruct(ydoc, pageId, c.data.semanticId)).filter(Boolean);
+      return { success: true, data: { constructs: full, organizers } };
+    }
+
     return { success: true, data: { constructs, organizers } };
   },
 };
 
 export const getConstructTool: ToolDefinition = {
   name: 'get_construct',
-  description: 'Get a construct by semantic ID',
+  description: 'Get a construct by semantic ID. Use output="compact" to return only { semanticId, type, page }.',
   inputSchema: GetConstructInput,
   needsPage: true,
   execute: (params, ydoc, pageId) => {
@@ -293,6 +301,19 @@ export const getConstructTool: ToolDefinition = {
     const construct = getConstruct(ydoc, pageId, input.semanticId);
     if (!construct) {
       return { success: false, error: `Construct not found: ${input.semanticId}` };
+    }
+
+    if (input.output === 'compact') {
+      return {
+        success: true,
+        data: {
+          construct: {
+            semanticId: construct.data.semanticId,
+            type: construct.data.constructType,
+            page: pageId,
+          },
+        },
+      };
     }
 
     // Cross-reference values against schema to flag orphaned data

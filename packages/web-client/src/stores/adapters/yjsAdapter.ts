@@ -12,13 +12,21 @@ import type {
   SchemaRelationship,
   PackageManifestEntry,
   Page,
-} from '@carta/domain';
+  Resource,
+  ResourceVersion,
+  SpecGroup,
+  SpecGroupItem,
+} from '@carta/schema';
+import { sha256 } from 'js-sha256';
 import {
   objectToYMap,
   yMapToObject,
   generateSchemaGroupId,
   generateSchemaPackageId,
   generatePageId,
+  generateResourceId,
+  generateVersionId,
+  generateSpecGroupId,
   migrateToPages,
   migrateGroupsToPackages,
   migrateSchemaRelationships,
@@ -84,6 +92,8 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
   const yschemaPackages = ydoc.getMap<Y.Map<unknown>>('schemaPackages');
   const yschemaRelationships = ydoc.getMap<Y.Map<unknown>>('schemaRelationships');
   const ypackageManifest = ydoc.getMap<Y.Map<unknown>>('packageManifest');
+  const yresources = ydoc.getMap<Y.Map<unknown>>('resources');
+  const yspecGroups = ydoc.getMap<Y.Map<unknown>>('specGroups');
 
   // Persistence
   let indexeddbProvider: IndexeddbPersistence | null = null;
@@ -109,6 +119,8 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
   const packageManifestListeners = new Set<() => void>();
   const pageListeners = new Set<() => void>();
   const metaListeners = new Set<() => void>();
+  const resourceListeners = new Set<() => void>();
+  const specGroupListeners = new Set<() => void>();
 
   const notifyNodeListeners = () => nodeListeners.forEach((cb) => cb());
   const notifyEdgeListeners = () => edgeListeners.forEach((cb) => cb());
@@ -119,6 +131,8 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
   const notifySchemaRelationshipListeners = () => schemaRelationshipListeners.forEach((cb) => cb());
   const notifyPageListeners = () => pageListeners.forEach((cb) => cb());
   const notifyMetaListeners = () => metaListeners.forEach((cb) => cb());
+  const notifyResourceListeners = () => resourceListeners.forEach((cb) => cb());
+  const notifySpecGroupListeners = () => specGroupListeners.forEach((cb) => cb());
 
   // Track whether observers have been set up (to avoid unobserving before setup)
   let observersSetUp = false;
@@ -174,6 +188,14 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     listeners.forEach((l) => l());
     packageManifestListeners.forEach((l) => l());
   };
+  const onResourcesChange = () => {
+    notifyResourceListeners();
+    notifyListeners();
+  };
+  const onSpecGroupsChange = () => {
+    notifySpecGroupListeners();
+    notifyListeners();
+  };
 
   // Set up Y.Doc observers
   const setupObservers = () => {
@@ -187,6 +209,8 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     yschemaPackages.observeDeep(onSchemaPackagesChange);
     yschemaRelationships.observeDeep(onSchemaRelationshipsChange);
     ypackageManifest.observeDeep(onPackageManifestChange);
+    yresources.observeDeep(onResourcesChange);
+    yspecGroups.observeDeep(onSpecGroupsChange);
     observersSetUp = true;
   };
 
@@ -340,6 +364,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
     async initialize(): Promise<void> {
       // Set up IndexedDB persistence (unless skipped for testing)
+      performance.mark('carta:indexeddb-start')
       if (!options.skipPersistence) {
         const dbName = roomId ? `carta-doc-${roomId}` : 'carta-local';
         const SYNC_TIMEOUT_MS = 10_000;
@@ -440,6 +465,8 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
           }
         }
       }
+      performance.mark('carta:indexeddb-ready')
+      performance.measure('carta:indexeddb-hydration', 'carta:indexeddb-start', 'carta:indexeddb-ready')
 
       // Initialize defaults after loading from IndexedDB
       initializeDefaults();
@@ -487,6 +514,8 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
         yschemaPackages.unobserveDeep(onSchemaPackagesChange);
         yschemaRelationships.unobserveDeep(onSchemaRelationshipsChange);
         ypackageManifest.unobserveDeep(onPackageManifestChange);
+        yresources.unobserveDeep(onResourcesChange);
+        yspecGroups.unobserveDeep(onSpecGroupsChange);
       }
 
       // Clear all granular listener sets
@@ -500,6 +529,8 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       schemaRelationshipListeners.clear();
       pageListeners.clear();
       metaListeners.clear();
+      resourceListeners.clear();
+      specGroupListeners.clear();
       listeners.clear();
 
       // Clean up providers
@@ -1237,6 +1268,288 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       };
     },
 
+    // State access - Resources
+    getResources(): Array<{ id: string; name: string; format: string; currentHash: string; versionCount: number }> {
+      const results: Array<{ id: string; name: string; format: string; currentHash: string; versionCount: number }> = [];
+      yresources.forEach((yresource) => {
+        const yversions = yresource.get('versions') as Y.Array<Y.Map<unknown>> | undefined;
+        results.push({
+          id: yresource.get('id') as string,
+          name: yresource.get('name') as string,
+          format: yresource.get('format') as string,
+          currentHash: yresource.get('currentHash') as string,
+          versionCount: yversions ? yversions.length : 0,
+        });
+      });
+      return results;
+    },
+
+    getResource(id: string): Resource | undefined {
+      const yresource = yresources.get(id);
+      if (!yresource) return undefined;
+      const yversions = yresource.get('versions') as Y.Array<Y.Map<unknown>>;
+      const versions: ResourceVersion[] = [];
+      yversions.forEach((yver) => {
+        versions.push({
+          versionId: yver.get('versionId') as string,
+          contentHash: yver.get('contentHash') as string,
+          publishedAt: yver.get('publishedAt') as string,
+          label: yver.get('label') as string | undefined,
+          body: yver.get('body') as string,
+        });
+      });
+      return {
+        id: yresource.get('id') as string,
+        name: yresource.get('name') as string,
+        format: yresource.get('format') as string,
+        body: yresource.get('body') as string,
+        currentHash: yresource.get('currentHash') as string,
+        versions,
+      };
+    },
+
+    // Mutations - Resources
+    createResource(name: string, format: string, body: string): Resource {
+      const id = generateResourceId();
+      const currentHash = sha256(body);
+      ydoc.transact(() => {
+        const yresource = new Y.Map<unknown>();
+        yresource.set('id', id);
+        yresource.set('name', name);
+        yresource.set('format', format);
+        yresource.set('body', body);
+        yresource.set('currentHash', currentHash);
+        const yversions = new Y.Array<Y.Map<unknown>>();
+        yresource.set('versions', yversions);
+        yresources.set(id, yresource);
+      }, 'user');
+      return { id, name, format, body, currentHash, versions: [] };
+    },
+
+    updateResource(id: string, updates: { name?: string; format?: string; body?: string }): Resource | undefined {
+      const yresource = yresources.get(id);
+      if (!yresource) return undefined;
+      ydoc.transact(() => {
+        if (updates.name !== undefined) yresource.set('name', updates.name);
+        if (updates.format !== undefined) yresource.set('format', updates.format);
+        if (updates.body !== undefined) {
+          yresource.set('body', updates.body);
+          yresource.set('currentHash', sha256(updates.body));
+        }
+      }, 'user');
+      return adapter.getResource(id);
+    },
+
+    deleteResource(id: string): boolean {
+      const exists = yresources.has(id);
+      if (exists) {
+        ydoc.transact(() => {
+          yresources.delete(id);
+        }, 'user');
+      }
+      return exists;
+    },
+
+    publishResourceVersion(id: string, label?: string): ResourceVersion | undefined {
+      const yresource = yresources.get(id);
+      if (!yresource) return undefined;
+      const body = yresource.get('body') as string;
+      const contentHash = yresource.get('currentHash') as string;
+      const versionId = generateVersionId();
+      const publishedAt = new Date().toISOString();
+      ydoc.transact(() => {
+        const yversions = yresource.get('versions') as Y.Array<Y.Map<unknown>>;
+        const yver = new Y.Map<unknown>();
+        yver.set('versionId', versionId);
+        yver.set('contentHash', contentHash);
+        yver.set('publishedAt', publishedAt);
+        if (label !== undefined) yver.set('label', label);
+        yver.set('body', body);
+        yversions.push([yver]);
+      }, 'user');
+      return { versionId, contentHash, publishedAt, label, body };
+    },
+
+    getResourceHistory(id: string): Omit<ResourceVersion, 'body'>[] {
+      const yresource = yresources.get(id);
+      if (!yresource) return [];
+      const yversions = yresource.get('versions') as Y.Array<Y.Map<unknown>>;
+      const results: Omit<ResourceVersion, 'body'>[] = [];
+      yversions.forEach((yver) => {
+        results.push({
+          versionId: yver.get('versionId') as string,
+          contentHash: yver.get('contentHash') as string,
+          publishedAt: yver.get('publishedAt') as string,
+          label: yver.get('label') as string | undefined,
+        });
+      });
+      return results;
+    },
+
+    getResourceVersion(id: string, versionId: string): ResourceVersion | undefined {
+      const yresource = yresources.get(id);
+      if (!yresource) return undefined;
+      const yversions = yresource.get('versions') as Y.Array<Y.Map<unknown>>;
+      let found: ResourceVersion | undefined;
+      yversions.forEach((yver) => {
+        if (yver.get('versionId') === versionId) {
+          found = {
+            versionId: yver.get('versionId') as string,
+            contentHash: yver.get('contentHash') as string,
+            publishedAt: yver.get('publishedAt') as string,
+            label: yver.get('label') as string | undefined,
+            body: yver.get('body') as string,
+          };
+        }
+      });
+      return found;
+    },
+
+    subscribeToResources(listener: () => void): () => void {
+      resourceListeners.add(listener);
+      return () => resourceListeners.delete(listener);
+    },
+
+    // State access - Spec Groups
+    getSpecGroups(): SpecGroup[] {
+      const results: SpecGroup[] = [];
+      yspecGroups.forEach((ysg) => {
+        const yitems = ysg.get('items') as Y.Array<Y.Map<unknown>>;
+        const items: SpecGroupItem[] = [];
+        yitems.forEach((yitem) => {
+          items.push({
+            type: yitem.get('type') as 'page' | 'resource',
+            id: yitem.get('id') as string,
+          });
+        });
+        results.push({
+          id: ysg.get('id') as string,
+          name: ysg.get('name') as string,
+          description: ysg.get('description') as string | undefined,
+          order: ysg.get('order') as number,
+          items,
+        });
+      });
+      return results.sort((a, b) => a.order - b.order);
+    },
+
+    getSpecGroup(id: string): SpecGroup | undefined {
+      const ysg = yspecGroups.get(id);
+      if (!ysg) return undefined;
+      const yitems = ysg.get('items') as Y.Array<Y.Map<unknown>>;
+      const items: SpecGroupItem[] = [];
+      yitems.forEach((yitem) => {
+        items.push({
+          type: yitem.get('type') as 'page' | 'resource',
+          id: yitem.get('id') as string,
+        });
+      });
+      return {
+        id: ysg.get('id') as string,
+        name: ysg.get('name') as string,
+        description: ysg.get('description') as string | undefined,
+        order: ysg.get('order') as number,
+        items,
+      };
+    },
+
+    // Mutations - Spec Groups
+    createSpecGroup(name: string, description?: string): SpecGroup {
+      const id = generateSpecGroupId();
+      let maxOrder = -1;
+      yspecGroups.forEach((ysg) => {
+        const o = ysg.get('order') as number;
+        if (o > maxOrder) maxOrder = o;
+      });
+      const order = maxOrder + 1;
+      ydoc.transact(() => {
+        const ysg = new Y.Map<unknown>();
+        ysg.set('id', id);
+        ysg.set('name', name);
+        if (description !== undefined) ysg.set('description', description);
+        ysg.set('order', order);
+        const yitems = new Y.Array<Y.Map<unknown>>();
+        ysg.set('items', yitems);
+        yspecGroups.set(id, ysg);
+      }, 'user');
+      return { id, name, description, order, items: [] };
+    },
+
+    updateSpecGroup(
+      id: string,
+      updates: { name?: string; description?: string; order?: number; items?: SpecGroupItem[] }
+    ): SpecGroup | undefined {
+      const ysg = yspecGroups.get(id);
+      if (!ysg) return undefined;
+      ydoc.transact(() => {
+        if (updates.name !== undefined) ysg.set('name', updates.name);
+        if (updates.description !== undefined) ysg.set('description', updates.description);
+        if (updates.order !== undefined) ysg.set('order', updates.order);
+        if (updates.items !== undefined) {
+          const yitems = ysg.get('items') as Y.Array<Y.Map<unknown>>;
+          yitems.delete(0, yitems.length);
+          for (const item of updates.items) {
+            const yitem = new Y.Map<unknown>();
+            yitem.set('type', item.type);
+            yitem.set('id', item.id);
+            yitems.push([yitem]);
+          }
+        }
+      }, 'user');
+      return this.getSpecGroup(id);
+    },
+
+    deleteSpecGroup(id: string): boolean {
+      const exists = yspecGroups.has(id);
+      if (exists) {
+        ydoc.transact(() => {
+          yspecGroups.delete(id);
+        }, 'user');
+      }
+      return exists;
+    },
+
+    assignToSpecGroup(groupId: string, item: SpecGroupItem): SpecGroup | undefined {
+      // Enforce single-parent: remove from any existing group first
+      this.removeFromSpecGroup(item.type, item.id);
+      const ysg = yspecGroups.get(groupId);
+      if (!ysg) return undefined;
+      ydoc.transact(() => {
+        const yitems = ysg.get('items') as Y.Array<Y.Map<unknown>>;
+        const yitem = new Y.Map<unknown>();
+        yitem.set('type', item.type);
+        yitem.set('id', item.id);
+        yitems.push([yitem]);
+      }, 'user');
+      return this.getSpecGroup(groupId);
+    },
+
+    removeFromSpecGroup(itemType: 'page' | 'resource', itemId: string): boolean {
+      let found = false;
+      yspecGroups.forEach((ysg) => {
+        if (found) return;
+        const yitems = ysg.get('items') as Y.Array<Y.Map<unknown>>;
+        let idx = -1;
+        yitems.forEach((yitem, i) => {
+          if (yitem.get('type') === itemType && yitem.get('id') === itemId) {
+            idx = i;
+          }
+        });
+        if (idx >= 0) {
+          ydoc.transact(() => {
+            yitems.delete(idx, 1);
+          }, 'user');
+          found = true;
+        }
+      });
+      return found;
+    },
+
+    subscribeToSpecGroups(listener: () => void): () => void {
+      specGroupListeners.add(listener);
+      return () => specGroupListeners.delete(listener);
+    },
+
     // Granular subscriptions for focused hooks
     subscribeToNodes(listener: () => void): () => void {
       nodeListeners.add(listener);
@@ -1331,13 +1644,6 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       const ws = wsProvider as { on: (event: string, cb: () => void) => void };
       ws.on('sync', () => {
         connectionStatus = 'connected';
-
-        // Log post-sync pages state for debugging
-        const pageEntries: Array<{ key: string; name: string }> = [];
-        ypages.forEach((ypage, key) => {
-          pageEntries.push({ key, name: ypage.get('name') as string });
-        });
-        console.debug('[pages] Post-sync pages state', { roomId: newRoomId, pages: pageEntries });
 
         // Safety net: if server had no pages either, create the default
         if (ypages.size === 0) {

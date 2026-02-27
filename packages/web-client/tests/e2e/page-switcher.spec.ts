@@ -2,12 +2,13 @@ import { test, expect } from '@playwright/test';
 import { CartaPage } from './helpers/CartaPage';
 
 /**
- * Page Switcher E2E Tests
+ * Navigator Panel E2E Tests
  *
- * Verifies page switching UI interactions end-to-end.
- * Tests cover trigger bar, dropdown, page creation, switching, and renaming.
+ * Verifies navigation interactions end-to-end via the left-side navigator panel.
+ * Tests cover page display, page creation, switching, renaming, and absence of
+ * old ViewToggle/PageSwitcher UI.
  */
-test.describe('Page Switcher', () => {
+test.describe('Navigator Panel', () => {
   let cartaPage: CartaPage;
 
   test.beforeEach(async ({ page }) => {
@@ -15,76 +16,41 @@ test.describe('Page Switcher', () => {
     await cartaPage.goto();
   });
 
-  test('should display page name in trigger bar', async ({ page }) => {
+  test('should display page list in navigator with correct page names', async ({ page }) => {
     // Wait for canvas to be ready
     const canvas = page.locator('.react-flow');
     await expect(canvas).toBeVisible({ timeout: 10000 });
 
-    // The page switcher should show the starter page name
+    // Navigator panel should be visible by default
+    const navigatorPanel = page.getByTestId('navigator-panel');
+    await expect(navigatorPanel).toBeVisible();
+
+    // Should show at least one page entry
+    const pageRows = cartaPage.getPageRows();
+    const count = await pageRows.count();
+    expect(count).toBeGreaterThan(0);
+
+    // The active page should show 'Starter'
     const pageName = await cartaPage.getCurrentPageName();
     expect(pageName).toBe('Starter');
   });
 
-  test('should open dropdown and show page list', async ({ page }) => {
+  test('should switch active page by clicking a page entry', async ({ page }) => {
     const canvas = page.locator('.react-flow');
     await expect(canvas).toBeVisible({ timeout: 10000 });
 
-    // Open the page dropdown
-    await cartaPage.openPageDropdown();
-
-    // Verify the dropdown is visible (contains page rows)
-    const pageRows = await cartaPage.getPageRows();
-    const count = await pageRows.count();
-    expect(count).toBeGreaterThan(0);
-
-    // Should show "New Page" button
-    const newPageButton = page.getByText('+ New Page');
-    await expect(newPageButton).toBeVisible();
-  });
-
-  test('should create a new page', async ({ page }) => {
-    const canvas = page.locator('.react-flow');
-    await expect(canvas).toBeVisible({ timeout: 10000 });
-
-    // Get initial page count
-    await cartaPage.openPageDropdown();
-    const initialPageRows = await cartaPage.getPageRows();
-    const initialCount = await initialPageRows.count();
-
-    // Click "New Page"
-    const newPageButton = page.getByText('+ New Page');
-    await newPageButton.click();
-
-    // Wait for dropdown to close and new page to appear
-    await page.waitForTimeout(500);
-
-    // Open dropdown again to verify new page was created
-    await cartaPage.openPageDropdown();
-    const pageRows = await cartaPage.getPageRows();
-    const newCount = await pageRows.count();
-    expect(newCount).toBe(initialCount + 1);
-  });
-
-  test('should switch active page', async ({ page }) => {
-    const canvas = page.locator('.react-flow');
-    await expect(canvas).toBeVisible({ timeout: 10000 });
-
-    // Get the initial page name
     const initialName = await cartaPage.getCurrentPageName();
 
-    // Create a second page
-    await cartaPage.openPageDropdown();
-    const newPageButton = page.getByText('+ New Page');
-    await newPageButton.click();
-    await page.waitForTimeout(1000);
+    // Create a second page using the "+" button
+    await cartaPage.clickCreatePage();
+    await page.waitForTimeout(500);
 
-    // Open dropdown and verify we have 2 pages now
-    await cartaPage.openPageDropdown();
-    const pageRows = await cartaPage.getPageRows();
+    // Should now have 2 page entries
+    const pageRows = cartaPage.getPageRows();
     const count = await pageRows.count();
     expect(count).toBeGreaterThan(1);
 
-    // Find a page row that's not the current page and click it
+    // Find a page row that is not the current active page and click it
     const allRows = await pageRows.all();
     let targetRow = null;
     for (const row of allRows) {
@@ -99,24 +65,55 @@ test.describe('Page Switcher', () => {
       await targetRow.click();
       await page.waitForTimeout(500);
 
-      // Verify we switched pages
+      // Verify the active page changed
       const currentName = await cartaPage.getCurrentPageName();
       expect(currentName).not.toBe(initialName);
     }
   });
 
-  test('should rename a page via overflow menu', async ({ page }) => {
+  test('should create a new page via "+" button in Pages section', async ({ page }) => {
+    const canvas = page.locator('.react-flow');
+    await expect(canvas).toBeVisible({ timeout: 10000 });
+
+    // Get initial page count
+    const initialRows = cartaPage.getPageRows();
+    const initialCount = await initialRows.count();
+
+    // Click the "+" button in the Pages section header
+    await cartaPage.clickCreatePage();
+    await page.waitForTimeout(500);
+
+    // Verify a new page was added
+    const newCount = await cartaPage.getPageRows().count();
+    expect(newCount).toBe(initialCount + 1);
+  });
+
+  test('should show metamap when clicking metamap entry', async ({ page }) => {
+    const canvas = page.locator('.react-flow');
+    await expect(canvas).toBeVisible({ timeout: 10000 });
+
+    // Click the metamap entry in the navigator
+    const metamapEntry = page.getByTestId('navigator-metamap');
+    await metamapEntry.click();
+    await page.waitForTimeout(500);
+
+    // Verify we're no longer on the canvas (react-flow should not be the main view)
+    // The metamap renders its own component - check that react-flow is gone or metamap is present
+    const reactFlow = page.locator('.react-flow');
+    // MapV2 should not be visible in metamap mode
+    // (MetamapV2 renders differently from MapV2)
+    await expect(metamapEntry.locator('..').locator('div.bg-accent')).toBeVisible();
+  });
+
+  test('should rename a page via hover menu in navigator', async ({ page }) => {
     const canvas = page.locator('.react-flow');
     await expect(canvas).toBeVisible({ timeout: 10000 });
 
     // Get the current page name
     const initialName = await cartaPage.getCurrentPageName();
 
-    // Open the page dropdown
-    await cartaPage.openPageDropdown();
-
-    // Find a page row with the initial name
-    const pageRows = await cartaPage.getPageRows();
+    // Find the page row with the current page name
+    const pageRows = cartaPage.getPageRows();
     const allRows = await pageRows.all();
     let targetRow = null;
     for (const row of allRows) {
@@ -133,7 +130,7 @@ test.describe('Page Switcher', () => {
     await targetRow!.hover();
     await page.waitForTimeout(300);
 
-    // Find and click the overflow menu button (has 3 vertical dots)
+    // Find and click the overflow menu button
     const overflowButton = targetRow!.locator('button[title="Page actions"]');
     await overflowButton.click();
     await page.waitForTimeout(300);
@@ -150,16 +147,27 @@ test.describe('Page Switcher', () => {
     // Clear and type new name, then press Enter
     await input.fill('Renamed Page');
     await page.keyboard.press('Enter');
-
-    // Wait for update
     await page.waitForTimeout(500);
 
-    // Close the dropdown by clicking elsewhere or pressing Escape
-    await page.keyboard.press('Escape');
-    await page.waitForTimeout(300);
-
-    // Verify the name changed
+    // Verify the name changed in the navigator
     const newName = await cartaPage.getCurrentPageName();
     expect(newName).toBe('Renamed Page');
+  });
+
+  test('ViewToggle and PageSwitcher dropdown are no longer present in the DOM', async ({ page }) => {
+    const canvas = page.locator('.react-flow');
+    await expect(canvas).toBeVisible({ timeout: 10000 });
+
+    // Old ViewToggle segmented control should not exist
+    const viewToggle = page.locator('[data-testid="view-toggle"]');
+    await expect(viewToggle).not.toBeVisible();
+
+    // Old page switcher dropdown button should not exist
+    const oldDropdownButton = page.locator('button[title="Switch page"]');
+    await expect(oldDropdownButton).not.toBeVisible();
+
+    // Old page-name test id should not exist
+    const oldPageName = page.locator('[data-testid="page-name"]');
+    await expect(oldPageName).not.toBeVisible();
   });
 });

@@ -1,6 +1,6 @@
 import type { CartaNode, CartaEdge } from '@carta/types';
-import type { ConstructSchema, PortSchema, SchemaGroup, SchemaPackage, Page, SchemaPackageDefinition } from '@carta/domain';
-import { toKebabCase } from '@carta/domain';
+import type { ConstructSchema, PortSchema, SchemaGroup, SchemaPackage, Page, SchemaPackageDefinition, Resource } from '@carta/schema';
+import { toKebabCase } from '@carta/schema';
 import {
   CARTA_FILE_VERSION,
   validateCartaFile,
@@ -9,7 +9,7 @@ import type { CartaFile, CartaFilePage } from '@carta/document';
 import type { ExportOptions } from './exportAnalyzer';
 
 // Re-export for convenience
-export { generateSemanticId } from '@carta/domain';
+export { generateSemanticId } from '@carta/schema';
 export { CARTA_FILE_VERSION, validateCartaFile, importProjectFromString } from '@carta/document';
 export type { CartaFile, CartaFilePage } from '@carta/document';
 
@@ -24,6 +24,7 @@ export function exportProject(data: {
   portSchemas: PortSchema[];
   schemaGroups: SchemaGroup[];
   schemaPackages: SchemaPackage[];
+  resources?: Resource[];
 }, options?: ExportOptions): void {
   // Convert pages to file format
   const filePages: CartaFilePage[] = data.pages.map(page => ({
@@ -44,6 +45,7 @@ export function exportProject(data: {
     portSchemas: options?.portSchemas !== false ? data.portSchemas : [],
     schemaGroups: options?.schemaGroups !== false ? data.schemaGroups : [],
     schemaPackages: data.schemaPackages,
+    resources: data.resources && data.resources.length > 0 ? data.resources : undefined,
     exportedAt: new Date().toISOString(),
   };
 

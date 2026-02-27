@@ -12,8 +12,8 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { PortRegistry } from '@carta/domain';
-import type { PortSchema } from '@carta/domain';
+import { PortRegistry } from '@carta/schema';
+import type { PortSchema } from '@carta/schema';
 
 describe('Port Validation', () => {
   // Create test port schemas for different scenarios

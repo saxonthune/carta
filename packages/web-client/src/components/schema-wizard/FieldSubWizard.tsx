@@ -4,7 +4,7 @@ import Select from '../ui/Select';
 import Textarea from '../ui/Textarea';
 import { toSnakeCase } from '../../utils/stringUtils';
 import FieldPreview from './FieldPreview';
-import type { FieldSchema, DataKind, DisplayHint, DisplayTier } from '@carta/domain';
+import type { FieldSchema, DataKind, DisplayHint, DisplayTier } from '@carta/schema';
 
 const DATA_KINDS: { value: DataKind; label: string; description: string }[] = [
   { value: 'string', label: 'String', description: 'Free-form text. Use for names, descriptions, URLs, or any textual data.' },
@@ -12,6 +12,7 @@ const DATA_KINDS: { value: DataKind; label: string; description: string }[] = [
   { value: 'boolean', label: 'Boolean', description: 'Yes/no, true/false, or on/off toggles.' },
   { value: 'date', label: 'Date', description: 'Timestamps or calendar dates.' },
   { value: 'enum', label: 'Enum', description: 'Pick from a predefined list of options (like dropdowns).' },
+  { value: 'resource', label: 'Resource', description: 'Reference to a document resource (API spec, schema, data contract). The value stores a resource link with optional path hint.' },
 ];
 
 const DISPLAY_HINTS: { value: DisplayHint | ''; label: string }[] = [

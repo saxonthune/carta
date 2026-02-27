@@ -6,7 +6,7 @@
  * them without opening every Yjs database.
  */
 
-import type { DocumentSummary } from '@carta/domain';
+import type { DocumentSummary } from '@carta/schema';
 
 const DB_NAME = 'carta-registry';
 const DB_VERSION = 1;

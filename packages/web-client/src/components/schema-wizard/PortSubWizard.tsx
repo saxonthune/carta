@@ -3,7 +3,7 @@ import Input from '../ui/Input';
 import Select from '../ui/Select';
 import Textarea from '../ui/Textarea';
 import { toKebabCase } from '../../utils/stringUtils';
-import type { PortConfig, PortSchema, Polarity } from '@carta/domain';
+import type { PortConfig, PortSchema, Polarity } from '@carta/schema';
 
 const DEFAULT_COLORS = [
   '#6366f1', '#8b5cf6', '#ec4899', '#ef4444',

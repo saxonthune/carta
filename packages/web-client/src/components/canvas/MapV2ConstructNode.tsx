@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ConnectionHandle } from '../../canvas-engine/index.js';
-import { type ConstructSchema, type ConstructNodeData, getFieldsForSummary, resolveNodeColor, type DocumentAdapter, canConnect } from '@carta/domain';
+import { type ConstructSchema, type ConstructNodeData, getFieldsForSummary, resolveNodeColor, type DocumentAdapter, canConnect } from '@carta/schema';
 import type { LodBand } from './lod/lodPolicy.js';
 import ColorPicker from '../ui/ColorPicker.js';
 import { SimpleMarkdown } from '../ui/SimpleMarkdown.js';
@@ -70,11 +70,41 @@ function MapV2FieldList({ schema, constructData, adapter, nodeId }: {
           );
         }
 
+        // Resource field: show resource name + pathHint (not inline-editable)
+        if (field.type === 'resource') {
+          const fieldVal = value as { resourceId?: string; pathHint?: string; versionHash?: string } | undefined;
+          const resourceName = fieldVal?.resourceId ? adapter.getResource(fieldVal.resourceId)?.name : undefined;
+          const isOrphaned = fieldVal?.resourceId && !resourceName;
+
+          let isStale = false;
+          if (fieldVal?.resourceId && fieldVal?.versionHash) {
+            const resourceList = adapter.getResources();
+            const resourceSummary = resourceList.find(r => r.id === fieldVal.resourceId);
+            isStale = !!resourceSummary && resourceSummary.currentHash !== fieldVal.versionHash;
+          }
+
+          return (
+            <div key={field.name} style={{ display: 'flex', alignItems: 'baseline', gap: 4, minWidth: 0 }}>
+              <span style={{ fontSize: 10, color: 'var(--color-content-subtle)', flexShrink: 0 }}>{field.label}:</span>
+              {isOrphaned ? (
+                <span style={{ fontSize: 11, color: 'var(--color-danger)', fontStyle: 'italic' }}>Missing resource</span>
+              ) : resourceName ? (
+                <span style={{ fontSize: 11, color: 'var(--color-content)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 3 }}>
+                  {isStale && <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', backgroundColor: 'var(--color-warning)', flexShrink: 0 }} />}
+                  {resourceName}{fieldVal?.pathHint ? ` → ${fieldVal.pathHint}` : ''}
+                </span>
+              ) : (
+                <span style={{ fontSize: 11, color: 'var(--color-content-subtle)', fontStyle: 'italic' }}>—</span>
+              )}
+            </div>
+          );
+        }
+
         const display = value != null ? String(value) : '';
         return (
           <div
             key={field.name}
-            onClick={(e) => { e.stopPropagation(); setEditingField(field.name); }}
+            onClick={(e) => { e.stopPropagation(); if (field.type !== 'resource') setEditingField(field.name); }}
             onPointerDown={(e) => e.stopPropagation()}
             style={{ cursor: 'pointer', minWidth: 0 }}
           >

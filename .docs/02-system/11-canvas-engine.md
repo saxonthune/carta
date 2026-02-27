@@ -25,7 +25,7 @@ Dependency direction: consumers depend on the engine, never the reverse. The eng
 
 ## Primitives
 
-The canvas-engine exports 11 primitives. The core primitives for most views are: `useViewport`, `useConnectionDrag`, `ConnectionHandle`, and `Canvas`. The others provide optional composition capabilities.
+The canvas-engine exports 14 hook/component primitives plus utility functions from `containment.ts` and `containerOps.ts`. The core primitives for most views are: `useViewport`, `useConnectionDrag`, `ConnectionHandle`, and `Canvas`. The others provide optional composition capabilities.
 
 ### Canvas
 

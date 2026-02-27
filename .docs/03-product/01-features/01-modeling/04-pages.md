@@ -9,31 +9,46 @@ Pages are separate architectural views within a single document. Each page has i
 
 ## Component Structure
 
-The page feature is the union of three distinct parts:
+Page navigation lives in the **Navigator panel** (`Navigator.tsx`) — a persistent left-side panel (VS Code / Obsidian style) that also lists resources and provides access to the metamap. The Navigator is opened/closed via a toggle in the shell layout.
 
-1. **Current Page Info** — always-visible bar showing the active page name and description icon. Click the name to rename it inline (Obsidian/Excalidraw pattern: current-item names are click-to-edit text fields). Click the description icon to expand the description editor panel below.
-2. **Page Description Panel** — collapsible panel that appears below the page info bar when the description icon is clicked. Shows a markdown editor for the current page's description. This separation keeps the page selector focused on navigation.
-3. **Page Selector** — dropdown opened via the chevron trigger. Its purpose is *switching* between pages, plus bulk management (create, delete, duplicate, reorder). It no longer handles page descriptions — that's moved to the dedicated panel.
+The Navigator has a **Pages section** with:
+- A list of all pages, with the active page highlighted by an accent bar
+- Per-page **PopoverMenu** (three-dot button, hover to reveal) for rename, duplicate, delete
+- A **reorder mode** toggle (drag handle icon) that enables drag-and-drop sorting via `@dnd-kit/core`
+- A **+ button** to create a new page
 
-This separation reflects a UX principle: operations on the current context (rename, describe) belong in the persistent display; operations that change which context is active (switch) belong in a transient selector.
+A **Metamap toggle button** at the top of the Navigator switches to the schema view.
+
+A **Resources section** below Pages lists all document resources, each clickable to open its `ResourceView`.
 
 ## Operations
 
-- **Rename (current)**: Click the page name in the toolbar bar to rename inline — no dropdown needed
-- **Edit description (current)**: Click the description icon to expand the description panel below
-- **Switch**: Click the chevron to open the page selector; click a page row to switch
-- **Create**: "+ New Page" at the bottom of the selector dropdown
-- **Duplicate**: Hover a page row in the selector, click the copy icon
-- **Delete**: Hover a page row in the selector, click the X icon (confirmation required if page has content)
-- **Reorder**: Enter edit mode (pencil button, visible when selector is open) to drag-and-drop reorder
-- **Rename (other)**: In the selector's edit mode, click a page name to rename inline
+- **Switch**: Click a page row in the Navigator panel
+- **Create**: Click the + button in the Navigator's Pages section header
+- **Duplicate**: Hover a page row, click three-dot menu → Duplicate
+- **Delete**: Hover a page row, click three-dot menu → Delete (confirmation required if page has content)
+- **Reorder**: Click the reorder mode button to enter drag mode; drag page rows to reposition
+- **Rename**: Hover a page row, click three-dot menu → Rename; or enter reorder mode and click the page name
 - **Copy nodes to page**: From the canvas context menu, copy selected nodes to another page
+
+## Spec Groups
+
+Pages (and resources) can be organized into named **spec groups** via the Navigator. Spec groups provide semantic organization for the specification hierarchy — for example, "Product Vision", "API Contract", "Implementation Detail".
+
+- Groups appear as collapsible sections in the Navigator, each containing an ordered mix of pages and resources
+- Items are assigned to groups via the **Move to...** context menu on any page or resource row
+- **Remove from group** returns an item to the ungrouped section at the bottom
+- Groups are created with the **+ New Group** button at the bottom of the Navigator
+- Groups can be renamed (inline edit via the group context menu) and deleted (items become ungrouped)
+- When no groups exist, the Navigator shows the standard flat Pages + Resources layout unchanged
+
+Group membership is stored on the group's `items` array (not on the page or resource). Cross-group drag-and-drop and item reordering within groups via drag are not yet implemented; use the context menu to move items.
 
 ## Behavior
 
 - Switching pages swaps the visible nodes and edges on the canvas
 - Undo/redo history is per-page (the Y.UndoManager is recreated on page switch)
-- The page feature displays in the canvas toolbar area (top-right)
+- The Navigator panel displays in the left shell area
 - Export includes all pages; import restores them
-- Drag-and-drop reordering uses @dnd-kit/core with vertical list sorting strategy
-- In edit mode, clicking a page name starts inline editing; outside edit mode, clicking switches pages
+- Drag-and-drop reordering uses `@dnd-kit/core` with vertical list sorting strategy
+- In reorder mode, clicking a page name starts inline editing; outside reorder mode, clicking switches pages

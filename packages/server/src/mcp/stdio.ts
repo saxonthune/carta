@@ -5,7 +5,8 @@
  * This server exposes Carta functionality via the Model Context Protocol,
  * allowing AI agents to read, analyze, and modify Carta documents.
  *
- * All operations communicate with the document server via HTTP REST API.
+ * Document access uses the Yjs binary state endpoint for in-process-equivalent
+ * tool execution, eliminating per-operation HTTP round-trips.
  */
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
@@ -20,8 +21,10 @@ import {
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
+import * as Y from 'yjs';
 import createDebug from 'debug';
 import { getToolDefinitions, createToolHandlers } from './tools.js';
+import type { ToolHandlerConfig, DocStateWithFlush } from './tools.js';
 import { getResourceDefinitions, getResourceContent } from './resources.js';
 
 const log = createDebug('carta:mcp');
@@ -64,6 +67,102 @@ function discoverDesktopServer(): string | null {
 }
 
 /**
+ * Make an HTTP request to the document server.
+ */
+async function httpRequest<T>(
+  serverUrl: string,
+  method: string,
+  urlPath: string,
+  body?: unknown
+): Promise<{ data?: T; error?: string }> {
+  try {
+    const response = await fetch(`${serverUrl}${urlPath}`, {
+      method,
+      headers: body ? { 'Content-Type': 'application/json' } : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    const data = (await response.json()) as T & { error?: string };
+    if (!response.ok) {
+      return { error: data.error || `HTTP ${response.status}: ${response.statusText}` };
+    }
+    return { data };
+  } catch (error) {
+    return {
+      error: `Failed to connect to document server at ${serverUrl}. Is it running? Start it with: pnpm document-server`,
+    };
+  }
+}
+
+/**
+ * Build a ToolHandlerConfig backed by HTTP calls to a remote document server.
+ *
+ * Per-document tool calls (getDoc) fetch the binary Yjs state, reconstruct
+ * a local Y.Doc, run tool execution in-process, then flush accumulated updates
+ * back to the server via the yjs-update endpoint.
+ *
+ * Multi-document management calls (listDocuments, createDocument, etc.) use
+ * the REST API directly.
+ */
+function buildRemoteConfig(serverUrl: string): ToolHandlerConfig {
+  async function getDoc(docId: string): Promise<DocStateWithFlush> {
+    const result = await httpRequest<{ state: string }>(serverUrl, 'GET', `/api/documents/${encodeURIComponent(docId)}/yjs-state`);
+    if (result.error || !result.data) {
+      throw new Error(result.error ?? 'Failed to fetch Y.Doc state');
+    }
+
+    const doc = new Y.Doc();
+    const stateBytes = new Uint8Array(Buffer.from(result.data.state, 'base64'));
+    Y.applyUpdate(doc, stateBytes);
+
+    // Track accumulated updates for flush
+    const pendingUpdates: Uint8Array[] = [];
+    doc.on('update', (update: Uint8Array) => {
+      pendingUpdates.push(update);
+    });
+
+    const flush = async (): Promise<void> => {
+      if (pendingUpdates.length === 0) return;
+      const merged = Y.mergeUpdates(pendingUpdates);
+      pendingUpdates.length = 0;
+      const update = Buffer.from(merged).toString('base64');
+      await httpRequest(serverUrl, 'POST', `/api/documents/${encodeURIComponent(docId)}/yjs-update`, { update });
+    };
+
+    return { doc, conns: new Set(), flush };
+  }
+
+  async function listDocuments() {
+    const result = await httpRequest<{ documents: unknown[] }>(serverUrl, 'GET', '/api/documents');
+    return (result.data?.documents ?? []) as import('../document-server-core.js').DocumentSummary[];
+  }
+
+  async function listActiveRooms() {
+    const result = await httpRequest<{ rooms: Array<{ roomId: string; clientCount: number }> }>(serverUrl, 'GET', '/api/rooms');
+    const rooms = result.data?.rooms ?? [];
+    return rooms.map(r => ({ documentId: r.roomId, clientCount: r.clientCount }));
+  }
+
+  async function createDocument(title: string) {
+    const result = await httpRequest(serverUrl, 'POST', '/api/documents', { title });
+    if (result.error) return { error: result.error };
+    return result.data;
+  }
+
+  async function deleteDocument(docId: string): Promise<boolean> {
+    const result = await httpRequest<{ deleted: boolean }>(serverUrl, 'DELETE', `/api/documents/${encodeURIComponent(docId)}`);
+    return result.data?.deleted ?? false;
+  }
+
+  async function renameDocument(docId: string, title: string) {
+    const result = await httpRequest(serverUrl, 'PATCH', `/api/documents/${encodeURIComponent(docId)}`, { title });
+    if (result.error) return { error: result.error };
+    return result.data;
+  }
+
+  return { getDoc, listDocuments, listActiveRooms, createDocument, deleteDocument, renameDocument };
+}
+
+/**
  * Start MCP server with stdio transport
  * This is for CLI/Claude Desktop integration
  */
@@ -83,8 +182,8 @@ async function main() {
 
   log('Carta MCP server using HTTP API (%s)', serverUrl);
 
-  // Create tool handlers that use HTTP API
-  const toolHandlers = createToolHandlers({ serverUrl });
+  // Create tool handlers backed by the remote document server
+  const toolHandlers = createToolHandlers(buildRemoteConfig(serverUrl));
 
   // Create MCP server with tools AND resources capabilities
   const server = new Server(
@@ -105,13 +204,7 @@ async function main() {
     const tools = getToolDefinitions().map((tool) => ({
       name: tool.name,
       description: tool.description,
-      inputSchema: {
-        type: 'object' as const,
-        properties: tool.inputSchema,
-        required: Object.keys(tool.inputSchema).filter(
-          (key) => !(tool.inputSchema as Record<string, { optional?: boolean }>)[key]?.optional
-        ),
-      },
+      inputSchema: tool.inputSchema,
       annotations: tool.annotations,
     }));
     return { tools };

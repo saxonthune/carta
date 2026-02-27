@@ -7,7 +7,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { validateConnection, normalizeConnection } from '../../src/utils/connectionLogic';
-import type { ConstructSchema } from '@carta/domain';
+import type { ConstructSchema } from '@carta/schema';
 
 // Test schemas with ports
 const schemas: Record<string, ConstructSchema> = {

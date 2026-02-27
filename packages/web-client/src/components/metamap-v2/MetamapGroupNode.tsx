@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import type { SchemaGroup } from '@carta/domain';
+import type { SchemaGroup } from '@carta/schema';
 
 interface MetamapGroupNodeProps {
   group: SchemaGroup;

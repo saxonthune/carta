@@ -4,8 +4,8 @@ import type { CartaNode } from '@carta/types';
 import { useSchemas } from '../../hooks/useSchemas';
 import { fieldRenderers } from '../fields';
 import TabBar, { type Tab } from '../ui/TabBar';
-import { getDisplayName } from '@carta/domain';
-import type { ConstructNodeData, ConstructValues } from '@carta/domain';
+import { getDisplayName } from '@carta/schema';
+import type { ConstructNodeData, ConstructValues } from '@carta/schema';
 
 interface InstanceEditorProps {
   node: CartaNode;

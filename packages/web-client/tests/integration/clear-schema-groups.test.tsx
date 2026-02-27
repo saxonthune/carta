@@ -10,7 +10,7 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import { useSchemaGroups } from '../../src/hooks/useSchemaGroups';
 import { useDocumentContext } from '../../src/contexts/DocumentContext';
 import { TestProviders } from '../setup/testProviders';
-import { standardLibrary } from '@carta/domain';
+import { standardLibrary } from '@carta/schema';
 
 // Use the first standard library package for test data
 const testPackage = standardLibrary[0]; // Software Architecture

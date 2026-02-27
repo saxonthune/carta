@@ -1,5 +1,5 @@
 import type { CartaNode, CartaEdge } from '@carta/types';
-import type { ConstructSchema, ConstructNodeData, PortSchema, SchemaGroup } from '@carta/domain';
+import type { ConstructSchema, ConstructNodeData, PortSchema, SchemaGroup } from '@carta/schema';
 
 /**
  * Category of items for export

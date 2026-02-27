@@ -5,6 +5,7 @@ import type { UIMessage } from '../hooks/useAIChat';
 interface MessageDetailModalProps {
   message: UIMessage;
   onClose: () => void;
+  error?: string | null;
 }
 
 interface CollapsibleSectionProps {
@@ -41,7 +42,7 @@ function CollapsibleSection({ title, content, defaultExpanded = false }: Collaps
   );
 }
 
-export function MessageDetailModal({ message, onClose }: MessageDetailModalProps) {
+export function MessageDetailModal({ message, onClose, error }: MessageDetailModalProps) {
   // Format JSON with proper indentation
   const formatJSON = (value: unknown): string => {
     try {
@@ -161,6 +162,37 @@ export function MessageDetailModal({ message, onClose }: MessageDetailModalProps
               </div>
             </div>
           )}
+
+          {/* API Error section */}
+          {error && (
+            <div>
+              <h3 className="text-sm font-medium text-danger mb-2">API Error</h3>
+              <div className="bg-danger-muted border border-danger rounded px-4 py-3 text-sm text-danger whitespace-pre-wrap">
+                {error}
+              </div>
+            </div>
+          )}
+
+          {/* Debug section */}
+          <div>
+            <h3 className="text-sm font-medium text-content-muted mb-2">Debug</h3>
+            <CollapsibleSection
+              title="Raw Message"
+              content={JSON.stringify({
+                id: message.id,
+                role: message.role,
+                contentLength: message.content?.length ?? 0,
+                toolCallCount: message.toolCalls?.length ?? 0,
+                toolCallStatuses: message.toolCalls?.map(tc => ({
+                  name: tc.name,
+                  status: tc.status,
+                  hasResult: tc.result !== undefined,
+                  hasError: !!tc.error,
+                })),
+                timestamp: message.timestamp.toISOString(),
+              }, null, 2)}
+            />
+          </div>
 
           {/* Show message if no content or tool calls */}
           {!message.content && (!message.toolCalls || message.toolCalls.length === 0) && (

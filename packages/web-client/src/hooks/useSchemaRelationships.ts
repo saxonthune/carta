@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useDocumentContext } from '../contexts/DocumentContext';
-import type { SchemaRelationship } from '@carta/domain';
+import type { SchemaRelationship } from '@carta/schema';
 
 /**
  * Focused hook for schema relationship state and operations.

@@ -23,7 +23,7 @@ import { useDocumentMeta } from '../../src/hooks/useDocumentMeta';
 import { useClearDocument } from '../../src/hooks/useClearDocument';
 import { useDocumentContext } from '../../src/contexts/DocumentContext';
 import { TestProviders } from '../setup/testProviders';
-import { standardLibrary, builtInPortSchemas } from '@carta/domain';
+import { standardLibrary, builtInPortSchemas } from '@carta/schema';
 import { createTestNode } from '../setup/testHelpers';
 
 // Use the first standard library package's schemas as test data

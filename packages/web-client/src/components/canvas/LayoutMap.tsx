@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { resolvePinConstraints } from '@carta/domain';
-import type { PinLayoutNode, PinDirection, OrganizerNodeData } from '@carta/domain';
+import { resolvePinConstraints } from '@carta/schema';
+import type { PinLayoutNode, PinDirection, OrganizerNodeData } from '@carta/schema';
 import { useNodes, usePinConstraints } from '../../hooks';
 import LayoutMapOrganizerNode from './LayoutMapOrganizerNode';
 import ContextMenuPrimitive from '../ui/ContextMenuPrimitive';

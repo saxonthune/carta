@@ -3,7 +3,7 @@ import Modal from '../ui/Modal.js';
 import Button from '../ui/Button.js';
 import SegmentedControl from '../ui/SegmentedControl.js';
 import { CaretDown, CaretRight } from '@phosphor-icons/react';
-import type { PackageDiff, SchemaDiff, GroupDiff, RelationshipDiff } from '@carta/domain';
+import type { PackageDiff, SchemaDiff, GroupDiff, RelationshipDiff } from '@carta/schema';
 
 interface PackageDiffModalProps {
   diff: PackageDiff;

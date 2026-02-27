@@ -83,11 +83,13 @@ Packages can only depend on packages above them in the graph.
 ```
                     @carta/types
                          ↓
-                    @carta/domain
-                    ↙    ↓    ↘
-        @carta/compiler  @carta/document
-                    ↓    ↙       ↘
-         @carta/web-client   @carta/server
+                   @carta/geometry
+                         ↓
+                    @carta/schema
+                    ↓         ↘
+          @carta/document   @carta/server(*)
+                ↓
+         @carta/web-client
                 ↓
          @carta/desktop
 ```
@@ -95,9 +97,9 @@ Packages can only depend on packages above them in the graph.
 | Package | Location | Purpose |
 |---------|----------|---------|
 | `@carta/types` | `packages/types/` | Shared TypeScript types, no runtime deps |
-| `@carta/domain` | `packages/domain/` | Domain model, port registry, built-in schemas, utils |
+| `@carta/geometry` | `packages/geometry/` | Geometry primitives, layout algorithms |
+| `@carta/schema` | `packages/schema/` | Schema system, port registry, built-in schemas, utils |
 | `@carta/document` | `packages/document/` | Shared Y.Doc operations, Yjs helpers, file format, migrations |
-| `@carta/compiler` | `packages/compiler/` | Compilation engine (Carta → AI-readable output) |
 | `@carta/web-client` | `packages/web-client/` | React web app |
 | `@carta/server` | `packages/server/` | Document server + MCP server |
 | `@carta/desktop` | `packages/desktop/` | Electron desktop app with embedded document server |
@@ -109,12 +111,12 @@ Cross-package dependencies are resolved via Vite/TypeScript aliases. Packages us
 ## Build & Test
 
 ```bash
-pnpm build         # Build all packages (checks TypeScript compilation)
-pnpm test          # Integration tests (Vitest)
+pnpm build         # Build web-client (typechecks transitive deps via tsc -b)
+pnpm test          # All package tests: geometry, schema, document, web-client, server (Vitest)
 pnpm test:e2e      # E2E tests (Playwright, port 5273)
 ```
 
-All three must pass before committing. E2E uses port 5273 (separate from dev server 5173).
+`pnpm build` and `pnpm test` must both pass before committing. `pnpm test` runs every workspace package that has tests — if you add a test script to a new package, add it to the root `test` script in `package.json`. E2E uses port 5273 (separate from dev server 5173).
 
 **Vite dev server restart:** If the user is running `pnpm dev` and your changes require a Vite restart (e.g., new files, config changes, dependency updates, or Vite alias changes), tell the user to restart Vite. Do not restart it yourself — the user manages the dev server.
 

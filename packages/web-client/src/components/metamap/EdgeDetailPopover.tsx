@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import type { ConstructSchema, SuggestedRelatedConstruct } from '@carta/domain';
+import type { ConstructSchema, SuggestedRelatedConstruct } from '@carta/schema';
 
 const STRUCTURAL_PORT_TYPES = new Set(['parent', 'child', 'flow-in', 'flow-out']);
 

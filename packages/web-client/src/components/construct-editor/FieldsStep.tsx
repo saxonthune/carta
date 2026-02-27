@@ -14,7 +14,7 @@ import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import FieldSubWizard from '../schema-wizard/FieldSubWizard';
 import { toSnakeCase } from '../../utils/stringUtils';
-import type { ConstructSchema, FieldSchema, DisplayTier } from '@carta/domain';
+import type { ConstructSchema, FieldSchema, DisplayTier } from '@carta/schema';
 
 const TIERS: { tier: DisplayTier; label: string; description: string; maxItems?: number }[] = [
   { tier: 'pill', label: 'Title (Pill)', description: 'Node title shown in pill and compact modes. Only one field allowed.', maxItems: 1 },

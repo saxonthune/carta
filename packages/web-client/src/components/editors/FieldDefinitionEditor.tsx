@@ -4,7 +4,7 @@ import { toSnakeCase } from '../../utils/stringUtils';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
 import Textarea from '../ui/Textarea';
-import type { FieldSchema, DataKind, DisplayHint, DisplayTier } from '@carta/domain';
+import type { FieldSchema, DataKind, DisplayHint, DisplayTier } from '@carta/schema';
 
 interface FieldDefinitionEditorProps {
   field: FieldSchema;
@@ -24,6 +24,7 @@ const DATA_KINDS: { value: DataKind; label: string }[] = [
   { value: 'boolean', label: 'Boolean' },
   { value: 'date', label: 'Date' },
   { value: 'enum', label: 'Enum' },
+  { value: 'resource', label: 'Resource' },
 ];
 
 const DISPLAY_HINTS: { value: DisplayHint | ''; label: string }[] = [

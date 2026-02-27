@@ -1,7 +1,7 @@
 import type { CartaNode, CartaEdge } from '@carta/types';
 import type { CartaFile } from './cartaFile';
-import { syncWithDocumentStore, getPortsForSchema, getHandleType } from '@carta/domain';
-import type { DocumentAdapter, ConstructNodeData, ConstructSchema } from '@carta/domain';
+import { syncWithDocumentStore, getPortsForSchema, getHandleType } from '@carta/schema';
+import type { DocumentAdapter, ConstructNodeData, ConstructSchema } from '@carta/schema';
 
 export interface ImportConfig {
   schemas: Set<string>;

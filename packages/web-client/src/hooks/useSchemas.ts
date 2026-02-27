@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useDocumentContext } from '../contexts/DocumentContext';
-import type { ConstructSchema, FieldSchema } from '@carta/domain';
+import type { ConstructSchema, FieldSchema } from '@carta/schema';
 import {
   renameField as renameFieldOp,
   removeField as removeFieldOp,

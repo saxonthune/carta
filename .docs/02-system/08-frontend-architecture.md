@@ -93,7 +93,7 @@ App.tsx (layout orchestration)
   CanvasContainer.tsx (container: view switching + level navigation)
     Map.tsx (container: instances canvas)
       ConstructNode (domain: receives data via props)
-    Metamap.tsx (container: schema canvas)
+    MetamapV2.tsx (container: schema canvas)
       SchemaNode (domain)
 ```
 
@@ -113,8 +113,8 @@ The presentation model is a pure transformation layer between domain state and R
 
 | Feature | Data | Intent | Key Files |
 |---------|------|--------|-----------|
-| Canvas (instances) | Nodes, edges, connections | Build architecture | CanvasContainer.tsx, Map.tsx, InspectorPanel.tsx, useLayoutActions, useMapState |
-| Metamap (schemas) | Schemas, groups, port schemas | Define types | Metamap.tsx |
+| Canvas (instances) | Nodes, edges, connections | Build architecture | CanvasContainer.tsx, Map.tsx, useLayoutActions, useMapState |
+| Metamap (schemas) | Schemas, groups, port schemas | Define types | MetamapV2.tsx |
 | Schema editing | Schema form, field tiers, ports | Create/edit types | ConstructEditor.tsx |
 | Compilation | Compiled output | Generate AI output | compiler/index.ts |
 | Import/Export | File I/O | Persist and share | cartaFile.ts |
@@ -132,7 +132,7 @@ Organized by purpose:
 
 ### `hooks/index.ts`
 Organized by purpose:
-- **Document state**: `useNodes`, `useEdges`, `useSchemas`, `usePortSchemas`, `useSchemaGroups`, `useSchemaPackages`, `useSchemaRelationships`, `usePages`, `useDocumentMeta`, `usePackagePicker`
+- **Document state**: `useNodes`, `useEdges`, `useSchemas`, `usePortSchemas`, `useSchemaGroups`, `useSchemaPackages`, `useResources`, `useSchemaRelationships`, `usePages`, `useDocumentMeta`, `usePackagePicker`
 - **Document operations**: `usePresentation`, `useOrganizerOperations`, `useLayoutActions`, `useEdgeCleanup`, `usePinConstraints`
 - **UI state**: `useMapState`, `useNarrative`, `useEdgeBundling`, `useFlowTrace`
 - **Map pipelines**: `useEdgeColor`, `useMapNodePipeline`, `useMapEdgePipeline`
@@ -160,7 +160,7 @@ Organized by type:
 - **Primitives**: `Button`, `Input`, `Textarea`, `Select`, `Modal`, `ConfirmationModal`, `ColorPicker`, `Tooltip`
 - **Navigation**: `TabBar`, `SegmentedControl`, `Breadcrumb`, `SearchBar`
 - **Menus**: `ContextMenu`, `ContextMenuPrimitive`, `PopoverMenu`
-- **Domain components**: `DocumentRow`, `FolderRow`, `GroupedSchemaList`, `SchemaGroupSelector`, `CollapsibleSelector`, `ChoiceCard`, `DraggableWindow`
+- **Domain components**: `DocumentRow`, `FolderRow`, `GroupedSchemaList`, `SchemaGroupSelector`, `CollapsibleSelector`, `ChoiceCard`, `DraggableWindow`, `SimpleMarkdown`
 - **Icons** (from `icons.tsx`): `PinIcon`, `WindowIcon`, `CloseIcon`, `ExpandIcon`, `CollapseIcon`, `EyeIcon`, `EyeOffIcon`
 
 ### `utils/index.ts`

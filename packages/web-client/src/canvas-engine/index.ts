@@ -12,6 +12,8 @@ export { ConnectionPreview } from './ConnectionPreview.js';
 export { Canvas } from './Canvas.js';
 export { CanvasContext, useCanvasContext } from './CanvasContext.js';
 export { computeBounds, findContainerAt, isPointInRect } from './containment.js';
+export { resolveAbsolutePosition, computeAttach, computeDetach, computeContainerFit } from './containerOps.js';
+export type { ContainerNode, ContainerFitConfig } from './containerOps.js';
 export { useNodeLinks } from './useNodeLinks.js';
 export type { Transform } from './useViewport.js';
 export type { CanvasProps, CanvasRef, ConnectionPreviewCoords } from './Canvas.js';

@@ -1,4 +1,4 @@
-import type { FieldSchema } from '@carta/domain';
+import type { FieldSchema } from '@carta/schema';
 import { PencilSimple, Trash } from '@phosphor-icons/react';
 
 interface FieldsListStepProps {

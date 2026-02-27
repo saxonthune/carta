@@ -1,4 +1,4 @@
-import type { VaultAdapter, DocumentSummary } from '@carta/domain';
+import type { VaultAdapter, DocumentSummary } from '@carta/schema';
 
 /**
  * Vault adapter for the Electron desktop app.

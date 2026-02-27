@@ -1,4 +1,4 @@
-import type { FieldSchema } from '@carta/domain';
+import type { FieldSchema } from '@carta/schema';
 
 interface EnumFieldProps {
   field: FieldSchema;

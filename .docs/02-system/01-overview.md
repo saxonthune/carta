@@ -10,13 +10,15 @@ Carta is structured as five layers that can evolve independently.
 ## Layers
 
 ```
-Domain Layer (@carta/domain)
+Domain Layer (@carta/schema)
   Core types, port registry, built-in schemas, utilities
   Platform-agnostic — no React, no Yjs
+  Geometry utilities via @carta/geometry dependency
 
 Document Layer (@carta/document)
   Shared Y.Doc operations, Yjs helpers, file format, migrations
   Level-aware CRUD for constructs, edges, deployables, schemas
+  Compilation engine (compiler merged into this package)
   Platform-agnostic — no React, no browser APIs
 
 Document Adapter Layer (packages/web-client/src/stores/, packages/web-client/src/contexts/)
@@ -33,16 +35,11 @@ Presentation Model (packages/web-client/src/presentation/)
   See doc02.09
 
 Visual Editor Layer (packages/web-client/src/components/, packages/web-client/src/hooks/)
-  React Flow canvas, node rendering, user interactions
+  Canvas engine, node rendering, user interactions
   Feature directories: canvas/, metamap/, modals/, editors/, ui/
   CanvasContainer orchestrates Map (instance view) and Metamap (schema view)
   Consumes presentation model output — does not compute layout or visibility
   Does not know how to compile or persist
-
-Compiler Layer (@carta/compiler)
-  Transforms canvas state into AI-readable output
-  Pure functions — receives schemas/deployables as parameters
-  Does not know about the visual editor
 ```
 
 ## Why This Separation
@@ -59,25 +56,27 @@ Target dependency graph (packages can only depend on packages above them):
 ```
                     @carta/types
                          ↓
-                    @carta/domain
-                    ↙    ↓    ↘
-        @carta/compiler  @carta/document
-                    ↓    ↙       ↘
-         @carta/web-client   @carta/server
+                   @carta/geometry
+                         ↓
+                    @carta/schema
+                    ↓         ↘
+          @carta/document   @carta/server(*)
+                ↓
+         @carta/web-client
                 ↓
          @carta/desktop
 ```
 
-All packages exist as shown. `@carta/types` provides platform-agnostic graph types (`CartaNode`, `CartaEdge`) used by adapters, hooks, and presentation layer — no React Flow or rendering dependencies.
+All packages exist as shown. `@carta/types` provides platform-agnostic graph types (`CartaNode`, `CartaEdge`) used by adapters, hooks, and presentation layer — no React Flow or rendering dependencies. `@carta/geometry` provides geometry primitives and layout algorithms; `@carta/schema` re-exports geometry utilities via its `utils/` barrel. The compiler is merged into `@carta/document` — there is no separate `@carta/compiler` package.
 
 ### Barrel Exports
 
 Packages and feature directories use barrel exports (`index.ts`) for organized public APIs:
 
 **Packages:**
-- `@carta/domain` exports from subdirectories: types, ports, schemas, utils, guides
-- `@carta/document` exports all shared Yjs helpers, file format, migrations
-- `@carta/compiler` exports CompilerEngine and formatters
+- `@carta/geometry` exports geometry primitives and layout algorithms
+- `@carta/schema` exports from subdirectories: types, ports, schemas, utils, guides (utils re-exports `@carta/geometry`)
+- `@carta/document` exports all shared Yjs helpers, file format, migrations, and compilation engine
 
 **Web client feature directories:**
 - `hooks/` — Organized by purpose: document state, UI state, utilities

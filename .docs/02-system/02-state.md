@@ -30,6 +30,7 @@ All document state lives in a Yjs Y.Doc, accessed through the DocumentAdapter in
 - **Deployables**: Logical groupings (per-page)
 - **Organizers**: Visual grouping containers with layout strategies (per-page). See doc02.09
 - **Pages**: Separate architectural views, each with own nodes/edges/deployables
+- **Spec Groups**: Document-level organizational groups containing ordered mix of pages and resources (doc02.06)
 
 ### Persistence
 
@@ -56,6 +57,7 @@ The codebase provides **focused hooks** that subscribe to specific slices of doc
 - `useSchemaGroups()` — schemaGroups, getSchemaGroup, add/update/remove
 - `usePages()` — pages, activePage, setActivePage, create/delete/update (renamed from useLevels)
 - `useDocumentMeta()` — title, description, setTitle, setDescription
+- `useSpecGroups()` — specGroups, create/update/delete/assign/remove
 - `useOrganizerOperations()` — organizer operations (create, attach, detach, toggle collapse, rename, resize, delete, change layout)
 - `useLayoutActions()` — layout operations (organizer-scoped: spread/flow/grid/fit, attach/detach nodes; top-level: spread/compact/hierarchical)
 - `usePresentation()` — transforms domain state into view state (node visibility, positioning, edge remapping) via the presentation model (doc02.09)

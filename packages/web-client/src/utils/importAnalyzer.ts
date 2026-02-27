@@ -1,7 +1,7 @@
 import type { CartaNode } from '@carta/types';
 import type { CartaFile } from './cartaFile';
-import { standardLibrary } from '@carta/domain';
-import type { ConstructSchema, ConstructNodeData, PortSchema, SchemaGroup } from '@carta/domain';
+import { standardLibrary } from '@carta/schema';
+import type { ConstructSchema, ConstructNodeData, PortSchema, SchemaGroup, Resource } from '@carta/schema';
 
 // Set of built-in schema types for quick lookup
 const BUILT_IN_TYPES = new Set(
@@ -63,6 +63,7 @@ export interface ImportAnalysis {
   // These are always imported (not selectable) but shown for information
   portSchemas: { items: PortSchema[]; count: number };
   schemaGroups: { items: SchemaGroup[]; count: number };
+  resources: { items: Resource[]; count: number };
 
   hasConflicts: boolean;
 
@@ -172,6 +173,10 @@ export function analyzeImport(
     schemaGroups: {
       items: file.schemaGroups || [],
       count: file.schemaGroups?.length || 0,
+    },
+    resources: {
+      items: file.resources || [],
+      count: file.resources?.length || 0,
     },
     hasConflicts,
     filePageCount: file.pages.length,

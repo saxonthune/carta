@@ -3,8 +3,8 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { useDocumentContext } from '../../src/contexts/DocumentContext';
 import { DocumentTestProvider } from '../setup/testProviders';
 import { createTestNode, createTestEdge, parseCompilerOutput } from '../setup/testHelpers';
-import { CompilerEngine } from '@carta/compiler';
-import type { ConstructSchema } from '@carta/domain';
+import { CompilerEngine } from '@carta/document';
+import type { ConstructSchema } from '@carta/schema';
 
 const compiler = new CompilerEngine();
 

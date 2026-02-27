@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { type Icon, Square, Note, Circle, Diamond, FileText, Parallelogram, Pill, CaretDown } from '@phosphor-icons/react';
 import Select from '../ui/Select';
-import type { ConstructSchema } from '@carta/domain';
+import type { ConstructSchema } from '@carta/schema';
 
 type RenderStyle = NonNullable<ConstructSchema['nodeShape']>;
 

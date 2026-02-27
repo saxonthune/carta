@@ -156,7 +156,7 @@ When a user connects schemas in different packages, any new port types are docum
 
 ## Standard Library
 
-The existing schema seeds are repackaged as `SchemaPackageDefinition` objects with stable UUIDs, shipped in `@carta/domain`:
+The existing schema seeds are repackaged as `SchemaPackageDefinition` objects with stable UUIDs, shipped in `@carta/schema`:
 
 - Software Architecture (services, APIs, databases)
 - BPMN (activities, events, gateways)

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { PortConfig, PortSchema } from '@carta/domain';
+import type { PortConfig, PortSchema } from '@carta/schema';
 import { PencilSimple, Trash } from '@phosphor-icons/react';
 
 interface PortsListStepProps {

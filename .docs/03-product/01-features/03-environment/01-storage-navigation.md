@@ -131,7 +131,7 @@ In `main.tsx`, the `VaultProvider` wraps the entire app **outside** the `Documen
 
 | File | Purpose |
 |------|---------|
-| `packages/domain/src/types/index.ts` | VaultAdapter interface definition |
+| `packages/schema/src/types/index.ts` | VaultAdapter interface definition |
 | `packages/web-client/src/stores/vault/LocalVaultAdapter.ts` | IndexedDB-backed adapter for single-document mode |
 | `packages/web-client/src/stores/vault/ServerVaultAdapter.ts` | HTTP-based adapter for server mode |
 | `packages/web-client/src/stores/vault/DesktopVaultAdapter.ts` | Desktop adapter with filesystem persistence |

@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "carta": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "packages/server/dist/mcp/stdio.js"
+      ],
+      "env": {
+        "CARTA_SERVER_URL": "http://127.0.0.1:51234"
+      }
+    }
+  }
+}

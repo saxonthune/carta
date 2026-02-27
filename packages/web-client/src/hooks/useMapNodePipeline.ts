@@ -1,6 +1,6 @@
 import { useMemo, useRef } from 'react';
 import type { CartaNode, CartaEdge } from '@carta/types';
-import type { ConstructSchema, ConstructValues } from '@carta/domain';
+import type { ConstructSchema, ConstructValues } from '@carta/schema';
 import { usePresentation } from './usePresentation';
 
 const NODE_DRAG_HANDLE = '.node-drag-handle';

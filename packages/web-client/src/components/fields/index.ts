@@ -1,11 +1,12 @@
-import type { DataKind } from '@carta/domain';
+import type { DataKind } from '@carta/schema';
 import StringField from './StringField';
 import NumberField from './NumberField';
 import BooleanField from './BooleanField';
 import DateField from './DateField';
 import EnumField from './EnumField';
+import ResourceField from './ResourceField';
 
-export { StringField, NumberField, BooleanField, DateField, EnumField };
+export { StringField, NumberField, BooleanField, DateField, EnumField, ResourceField };
 
 /**
  * Field renderer registry - maps data kinds to their components
@@ -16,6 +17,7 @@ export const fieldRenderers: Record<DataKind, React.ComponentType<any>> = {
   boolean: BooleanField,
   date: DateField,
   enum: EnumField,
+  resource: ResourceField,
 };
 
 export default fieldRenderers;

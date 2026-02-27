@@ -252,8 +252,8 @@ This is the key output. Rewrite the plan file in `todo-tasks/` so it's **unambig
 1. **Motivation** — Why this change (1-2 sentences, for commit messages)
 2. **Design constraint** — One sentence stating the core design decision. Example: "All description UI lives in the trigger bar, NOT in the dropdown." This anchors the agent before it reads implementation details.
 3. **Do NOT** — Explicit list of things the agent must NOT do. This prevents scope creep and "path of least resistance" implementations. Include anything from the "Out of Scope" discussion, plus any structurally easy but wrong approaches the agent might be tempted by. Place this near the top — headless agents may not read the full document with equal attention.
-4. **Files to Modify** — Explicit list of files with what changes in each
-5. **Implementation Steps** — Ordered, concrete steps. Reference specific functions, line ranges, existing patterns. Each step should be independently verifiable.
+4. **Files to Modify** — Explicit list of files with what changes in each. **Must include `.docs/` files.** Use MANIFEST.md tags to find docs affected by the plan's subsystem. Include concrete edit instructions (what to add/change in each doc), not just "update docs." If no doc is affected, state that explicitly.
+5. **Implementation Steps** — Ordered, concrete steps. Reference specific functions, line ranges, existing patterns. Each step should be independently verifiable. Doc updates are a step like any other — not a separate phase.
 6. **Constraints** — Codebase rules the agent must follow (from CLAUDE.md, doc references)
 7. **Verification** — Correctness properties, postconditions, and test instructions (see below)
 

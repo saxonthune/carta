@@ -67,7 +67,7 @@ Built-in port schemas (flow-in/out, parent/child, relay, intercept, symmetric) a
 
 ### Standard library
 
-Existing schema seeds are repackaged as `SchemaPackageDefinition` objects with stable UUIDs. Shipped with the app in `@carta/domain`. All packages are opt-in — no auto-seeding.
+Existing schema seeds are repackaged as `SchemaPackageDefinition` objects with stable UUIDs. Shipped with the app in `@carta/schema`. All packages are opt-in — no auto-seeding.
 
 ## Consequences
 

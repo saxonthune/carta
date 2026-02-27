@@ -15,7 +15,7 @@ import * as encoding from 'lib0/encoding';
 import * as decoding from 'lib0/decoding';
 import * as syncProtocol from 'y-protocols/sync';
 import createDebug from 'debug';
-import { portRegistry, toKebabCase, type DocumentSummary } from '@carta/domain';
+import { portRegistry, toKebabCase, type DocumentSummary } from '@carta/schema';
 export type { DocumentSummary };
 
 const log = createDebug('carta:server');
@@ -75,9 +75,17 @@ import {
   listStandardPackages,
   applyStandardPackage,
   checkPackageDrift,
+  listResources,
+  getResource,
+  createResource,
+  updateResource,
+  deleteResource,
+  publishResourceVersion,
+  getResourceHistory,
+  getResourceVersion,
 } from '@carta/document';
 import type { BatchOperation, BatchResult, MigrationResult } from '@carta/document';
-import type { FlowDirection, ArrangeStrategy, ArrangeConstraint, PinDirection } from '@carta/domain';
+import type { FlowDirection, ArrangeStrategy, ArrangeConstraint, PinDirection } from '@carta/schema';
 
 // ===== TYPES =====
 
@@ -924,7 +932,7 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
           }
 
           const pageId = body.pageId || getActivePageId(docState.doc);
-          const edge = connect(
+          const result = connect(
             docState.doc,
             pageId,
             body.sourceSemanticId,
@@ -932,11 +940,11 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
             body.targetSemanticId,
             body.targetPortId
           );
-          if (!edge) {
-            sendError(res, 400, 'Failed to connect constructs', 'CONNECT_FAILED');
+          if ('error' in result) {
+            sendError(res, 400, result.error, 'CONNECT_FAILED');
             return;
           }
-          sendJson(res, 201, { edge });
+          sendJson(res, 201, { edge: result.edge });
           return;
         }
 
@@ -1597,6 +1605,155 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
         const result = rebuildPage(docState.doc, pageId);
 
         sendJson(res, 200, result);
+        return;
+      }
+
+      // ===== RESOURCES =====
+
+      const resourcesMatch = path.match(/^\/api\/documents\/([^/]+)\/resources$/);
+      if (resourcesMatch) {
+        const roomId = decodeURIComponent(resourcesMatch[1]!);
+        const docState = await config.getDoc(roomId);
+
+        if (method === 'GET') {
+          const resources = listResources(docState.doc);
+          sendJson(res, 200, { resources });
+          return;
+        }
+
+        if (method === 'POST') {
+          const body = await parseJsonBody<{ name: string; format: string; body: string }>(req);
+          if (!body.name || !body.format || body.body === undefined) {
+            sendError(res, 400, 'Missing required fields (name, format, body)', 'MISSING_FIELD');
+            return;
+          }
+          const resource = createResource(docState.doc, body.name, body.format, body.body);
+          sendJson(res, 201, { resource });
+          return;
+        }
+      }
+
+      const resourcePublishMatch = path.match(/^\/api\/documents\/([^/]+)\/resources\/([^/]+)\/publish$/);
+      if (resourcePublishMatch && method === 'POST') {
+        const roomId = decodeURIComponent(resourcePublishMatch[1]!);
+        const resourceId = decodeURIComponent(resourcePublishMatch[2]!);
+        const docState = await config.getDoc(roomId);
+        const body = await parseJsonBody<{ label?: string }>(req);
+        const version = publishResourceVersion(docState.doc, resourceId, body.label);
+        if (!version) {
+          sendError(res, 404, `Resource not found: ${resourceId}`, 'NOT_FOUND');
+          return;
+        }
+        sendJson(res, 200, { version });
+        return;
+      }
+
+      const resourceHistoryMatch = path.match(/^\/api\/documents\/([^/]+)\/resources\/([^/]+)\/history$/);
+      if (resourceHistoryMatch && method === 'GET') {
+        const roomId = decodeURIComponent(resourceHistoryMatch[1]!);
+        const resourceId = decodeURIComponent(resourceHistoryMatch[2]!);
+        const docState = await config.getDoc(roomId);
+        const versions = getResourceHistory(docState.doc, resourceId);
+        sendJson(res, 200, { versions });
+        return;
+      }
+
+      const resourceDiffMatch = path.match(/^\/api\/documents\/([^/]+)\/resources\/([^/]+)\/diff$/);
+      if (resourceDiffMatch && method === 'GET') {
+        const roomId = decodeURIComponent(resourceDiffMatch[1]!);
+        const resourceId = decodeURIComponent(resourceDiffMatch[2]!);
+        const docState = await config.getDoc(roomId);
+        const fromVersionId = url.searchParams.get('from') ?? undefined;
+        const toVersionId = url.searchParams.get('to') ?? undefined;
+
+        const resource = getResource(docState.doc, resourceId);
+        if (!resource) {
+          sendError(res, 404, `Resource not found: ${resourceId}`, 'NOT_FOUND');
+          return;
+        }
+
+        const resolveBody = (versionId?: string) => {
+          if (!versionId) return { body: resource.body };
+          const ver = getResourceVersion(docState.doc, resourceId, versionId);
+          if (!ver) return null;
+          return { body: ver.body, versionId: ver.versionId, contentHash: ver.contentHash };
+        };
+
+        const fromSide = resolveBody(fromVersionId);
+        const toSide = resolveBody(toVersionId);
+
+        if (fromSide === null) {
+          sendError(res, 404, `Version not found: ${fromVersionId}`, 'NOT_FOUND');
+          return;
+        }
+        if (toSide === null) {
+          sendError(res, 404, `Version not found: ${toVersionId}`, 'NOT_FOUND');
+          return;
+        }
+
+        sendJson(res, 200, { from: fromSide, to: toSide });
+        return;
+      }
+
+      const resourceMatch = path.match(/^\/api\/documents\/([^/]+)\/resources\/([^/]+)$/);
+      if (resourceMatch) {
+        const roomId = decodeURIComponent(resourceMatch[1]!);
+        const resourceId = decodeURIComponent(resourceMatch[2]!);
+        const docState = await config.getDoc(roomId);
+
+        if (method === 'GET') {
+          const resource = getResource(docState.doc, resourceId);
+          if (!resource) {
+            sendError(res, 404, `Resource not found: ${resourceId}`, 'NOT_FOUND');
+            return;
+          }
+          sendJson(res, 200, { resource });
+          return;
+        }
+
+        if (method === 'PATCH') {
+          const body = await parseJsonBody<{ name?: string; format?: string; body?: string }>(req);
+          const resource = updateResource(docState.doc, resourceId, body);
+          if (!resource) {
+            sendError(res, 404, `Resource not found: ${resourceId}`, 'NOT_FOUND');
+            return;
+          }
+          sendJson(res, 200, { resource });
+          return;
+        }
+
+        if (method === 'DELETE') {
+          const deleted = deleteResource(docState.doc, resourceId);
+          sendJson(res, 200, { deleted });
+          return;
+        }
+      }
+
+      // ===== YJS BINARY STATE (for MCP stdio remote access) =====
+
+      const yjsStateMatch = path.match(/^\/api\/documents\/([^/]+)\/yjs-state$/);
+      if (yjsStateMatch && method === 'GET') {
+        const roomId = decodeURIComponent(yjsStateMatch[1]!);
+        const docState = await config.getDoc(roomId);
+        const state = Y.encodeStateAsUpdate(docState.doc);
+        const base64 = Buffer.from(state).toString('base64');
+        sendJson(res, 200, { state: base64 });
+        return;
+      }
+
+      const yjsUpdateMatch = path.match(/^\/api\/documents\/([^/]+)\/yjs-update$/);
+      if (yjsUpdateMatch && method === 'POST') {
+        const roomId = decodeURIComponent(yjsUpdateMatch[1]!);
+        const body = await parseJsonBody<{ update?: string }>(req);
+        if (!body.update) {
+          sendError(res, 400, 'Missing update field (base64-encoded Yjs update)', 'BAD_REQUEST');
+          return;
+        }
+        const docState = await config.getDoc(roomId);
+        const update = new Uint8Array(Buffer.from(body.update, 'base64'));
+        Y.applyUpdate(docState.doc, update);
+        broadcastUpdate(docState, update, null);
+        sendJson(res, 200, { applied: true });
         return;
       }
 

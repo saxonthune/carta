@@ -31,9 +31,22 @@ import {
   getActivePage,
   listPackages,
   createPackage,
+  listResources,
+  getResource,
+  createResource,
+  updateResource,
+  deleteResource,
+  publishResourceVersion,
+  getResourceHistory,
+  getResourceVersion,
+  listStandardPackages,
+  applyStandardPackage,
+  checkPackageDrift,
+  listConstructs,
 } from '../doc-operations.js';
 import type { ToolDefinition } from './types.js';
-import type { ConstructSchema } from '@carta/domain';
+import type { ConstructSchema } from '@carta/schema';
+import { portRegistry } from '@carta/schema';
 
 // ============================================================
 // Zod Schemas (copied from MCP tools, minus documentId)
@@ -61,12 +74,12 @@ const CreateSchemaInput = z.object({
       z.object({
         name: z.string(),
         label: z.string(),
-        type: z.enum(['string', 'number', 'boolean', 'date', 'enum']),
+        type: z.enum(['string', 'number', 'boolean', 'date', 'enum', 'resource']),
         semanticDescription: z.string().optional(),
         options: z.array(z.object({ value: z.string(), semanticDescription: z.string().optional() })).optional(),
         default: z.unknown().optional(),
         placeholder: z.string().optional(),
-        displayHint: z.enum(['multiline', 'code', 'password', 'url', 'color']).optional(),
+        displayHint: z.enum(['multiline', 'code', 'password', 'url', 'color', 'markdown']).optional(),
         displayTier: z.enum(['pill', 'summary']).optional(),
         displayOrder: z.number().optional(),
       })
@@ -94,10 +107,11 @@ const UpdateSchemaInput = z.object({
   packageId: z.string().nullable().optional(),
   instanceColors: z.boolean().optional(),
   nodeShape: z.enum(['default', 'simple', 'circle', 'diamond', 'document', 'parallelogram', 'stadium']).optional(),
+  backgroundColorPolicy: z.enum(['defaultOnly', 'tints', 'any']).optional(),
   fieldUpdates: z.record(z.object({
     label: z.string().optional(),
     semanticDescription: z.string().optional(),
-    displayHint: z.enum(['multiline', 'code', 'password', 'url', 'color']).optional(),
+    displayHint: z.enum(['multiline', 'code', 'password', 'url', 'color', 'markdown']).optional(),
     displayTier: z.enum(['pill', 'summary']).optional(),
     displayOrder: z.number().optional(),
     placeholder: z.string().optional(),
@@ -123,7 +137,7 @@ const AddFieldInput = z.object({
   schemaType: z.string(),
   field: z.object({
     name: z.string(),
-    type: z.enum(['string', 'number', 'boolean', 'enum', 'url']),
+    type: z.enum(['string', 'number', 'boolean', 'date', 'enum', 'resource']),
     options: z.array(z.string()).optional(),
     label: z.string().optional(),
     displayTier: z.enum(['pill', 'summary']).optional(),
@@ -167,7 +181,7 @@ const RenameSchemaTypeInput = z.object({
 const ChangeFieldTypeInput = z.object({
   schemaType: z.string(),
   fieldName: z.string(),
-  newType: z.enum(['string', 'number', 'boolean', 'date', 'enum']),
+  newType: z.enum(['string', 'number', 'boolean', 'date', 'enum', 'resource']),
   force: z.boolean().optional(),
   enumOptions: z.array(z.string()).optional(),
 });
@@ -619,6 +633,306 @@ export const getPackageTool: ToolDefinition = {
 
 
 // ============================================================
+// Resource Tools
+// ============================================================
+
+const ListResourcesInput = z.object({});
+
+export const listResourcesTool: ToolDefinition = {
+  name: 'list_resources',
+  description: 'List all resources in the document',
+  inputSchema: ListResourcesInput,
+  needsPage: false,
+  execute: (_params, ydoc, _pageId) => {
+    const resources = listResources(ydoc);
+    return { success: true, data: { resources } };
+  },
+};
+
+const GetResourceInput = z.object({
+  id: z.string().describe('Resource ID'),
+});
+
+export const getResourceTool: ToolDefinition = {
+  name: 'get_resource',
+  description: 'Get a resource by ID, including its current body and version history',
+  inputSchema: GetResourceInput,
+  needsPage: false,
+  execute: (params, ydoc, _pageId) => {
+    const input = GetResourceInput.parse(params);
+    const resource = getResource(ydoc, input.id);
+    if (!resource) {
+      return { success: false, error: `Resource not found: ${input.id}` };
+    }
+    return { success: true, data: { resource } };
+  },
+};
+
+const CreateResourceInput = z.object({
+  name: z.string().describe('Resource name'),
+  format: z.string().describe('Resource format (e.g. openapi, json, markdown)'),
+  body: z.string().describe('Resource body content'),
+});
+
+export const createResourceTool: ToolDefinition = {
+  name: 'create_resource',
+  description: 'Create a new resource in the document',
+  inputSchema: CreateResourceInput,
+  needsPage: false,
+  execute: (params, ydoc, _pageId) => {
+    const input = CreateResourceInput.parse(params);
+    const resource = createResource(ydoc, input.name, input.format, input.body);
+    return { success: true, data: { resource } };
+  },
+};
+
+const UpdateResourceInput = z.object({
+  id: z.string().describe('Resource ID'),
+  name: z.string().optional().describe('New resource name'),
+  format: z.string().optional().describe('New resource format'),
+  body: z.string().optional().describe('New resource body content'),
+});
+
+export const updateResourceTool: ToolDefinition = {
+  name: 'update_resource',
+  description: 'Update a resource\'s name, format, or body (working copy)',
+  inputSchema: UpdateResourceInput,
+  needsPage: false,
+  execute: (params, ydoc, _pageId) => {
+    const input = UpdateResourceInput.parse(params);
+    const { id, ...updates } = input;
+    const resource = updateResource(ydoc, id, updates);
+    if (!resource) {
+      return { success: false, error: `Resource not found: ${id}` };
+    }
+    return { success: true, data: { resource } };
+  },
+};
+
+const DeleteResourceInput = z.object({
+  id: z.string().describe('Resource ID'),
+});
+
+export const deleteResourceTool: ToolDefinition = {
+  name: 'delete_resource',
+  description: 'Delete a resource and all its versions',
+  inputSchema: DeleteResourceInput,
+  needsPage: false,
+  execute: (params, ydoc, _pageId) => {
+    const input = DeleteResourceInput.parse(params);
+    const deleted = deleteResource(ydoc, input.id);
+    if (!deleted) {
+      return { success: false, error: `Resource not found: ${input.id}` };
+    }
+    return { success: true, data: { deleted: true } };
+  },
+};
+
+const PublishResourceInput = z.object({
+  id: z.string().describe('Resource ID'),
+  label: z.string().optional().describe('Optional version label'),
+});
+
+export const publishResourceTool: ToolDefinition = {
+  name: 'publish_resource',
+  description: 'Publish the current working copy of a resource as a new immutable version',
+  inputSchema: PublishResourceInput,
+  needsPage: false,
+  execute: (params, ydoc, _pageId) => {
+    const input = PublishResourceInput.parse(params);
+    const version = publishResourceVersion(ydoc, input.id, input.label);
+    if (!version) {
+      return { success: false, error: `Resource not found or body unchanged: ${input.id}` };
+    }
+    return { success: true, data: { version } };
+  },
+};
+
+const ResourceHistoryInput = z.object({
+  id: z.string().describe('Resource ID'),
+});
+
+export const resourceHistoryTool: ToolDefinition = {
+  name: 'resource_history',
+  description: 'Get the version history of a resource (without bodies, for efficiency)',
+  inputSchema: ResourceHistoryInput,
+  needsPage: false,
+  execute: (params, ydoc, _pageId) => {
+    const input = ResourceHistoryInput.parse(params);
+    const history = getResourceHistory(ydoc, input.id);
+    return { success: true, data: { history } };
+  },
+};
+
+const ResourceDiffInput = z.object({
+  id: z.string().describe('Resource ID'),
+  fromVersionId: z.string().optional().describe('Version ID to diff from (omit for working copy)'),
+  toVersionId: z.string().optional().describe('Version ID to diff to (omit for working copy)'),
+});
+
+export const resourceDiffTool: ToolDefinition = {
+  name: 'resource_diff',
+  description: 'Compare two versions of a resource. Omit fromVersionId or toVersionId to use working copy.',
+  inputSchema: ResourceDiffInput,
+  needsPage: false,
+  execute: (params, ydoc, _pageId) => {
+    const input = ResourceDiffInput.parse(params);
+    const resource = getResource(ydoc, input.id);
+    if (!resource) {
+      return { success: false, error: `Resource not found: ${input.id}` };
+    }
+
+    let fromBody: string;
+    let toBody: string;
+
+    if (input.fromVersionId) {
+      const fromVersion = getResourceVersion(ydoc, input.id, input.fromVersionId);
+      if (!fromVersion) {
+        return { success: false, error: `Version not found: ${input.fromVersionId}` };
+      }
+      fromBody = fromVersion.body;
+    } else {
+      fromBody = resource.body;
+    }
+
+    if (input.toVersionId) {
+      const toVersion = getResourceVersion(ydoc, input.id, input.toVersionId);
+      if (!toVersion) {
+        return { success: false, error: `Version not found: ${input.toVersionId}` };
+      }
+      toBody = toVersion.body;
+    } else {
+      toBody = resource.body;
+    }
+
+    return { success: true, data: { from: fromBody, to: toBody } };
+  },
+};
+
+// ============================================================
+// Standard Library Package Tools
+// ============================================================
+
+export const listStandardPackagesTool: ToolDefinition = {
+  name: 'list_standard_packages',
+  description: 'List all standard library packages with their status (available, loaded, or modified)',
+  inputSchema: z.object({}),
+  needsPage: false,
+  execute: (_params, ydoc, _pageId) => {
+    const packages = listStandardPackages(ydoc);
+    return { success: true, data: { packages } };
+  },
+};
+
+const ApplyStandardPackageInput = z.object({
+  packageId: z.string().describe('Standard library package ID to apply'),
+});
+
+export const applyStandardPackageTool: ToolDefinition = {
+  name: 'apply_standard_package',
+  description: 'Apply a standard library package to the document. Idempotent — returns "skipped" if already loaded.',
+  inputSchema: ApplyStandardPackageInput,
+  needsPage: false,
+  execute: (params, ydoc, _pageId) => {
+    const input = ApplyStandardPackageInput.parse(params);
+    try {
+      const result = applyStandardPackage(ydoc, input.packageId);
+      return { success: true, data: result };
+    } catch (e) {
+      return { success: false, error: e instanceof Error ? e.message : String(e) };
+    }
+  },
+};
+
+const CheckPackageDriftInput = z.object({
+  packageId: z.string().describe('Standard library package ID to check'),
+});
+
+export const checkPackageDriftTool: ToolDefinition = {
+  name: 'check_package_drift',
+  description: 'Check whether a loaded standard library package has been modified in the document',
+  inputSchema: CheckPackageDriftInput,
+  needsPage: false,
+  execute: (params, ydoc, _pageId) => {
+    const input = CheckPackageDriftInput.parse(params);
+    try {
+      const result = checkPackageDrift(ydoc, input.packageId);
+      return { success: true, data: result };
+    } catch (e) {
+      return { success: false, error: e instanceof Error ? e.message : String(e) };
+    }
+  },
+};
+
+// ============================================================
+// Port Type Listing Tool
+// ============================================================
+
+export const listPortTypesTool: ToolDefinition = {
+  name: 'list_port_types',
+  description: 'List all registered port types with their polarity and description',
+  inputSchema: z.object({}),
+  needsPage: false,
+  execute: (_params, _ydoc, _pageId) => {
+    const portTypes = portRegistry.getAll();
+    return { success: true, data: { portTypes } };
+  },
+};
+
+// ============================================================
+// Page Summary Tool
+// ============================================================
+
+const PageSummaryInput = z.object({
+  include: z.array(z.enum(['constructs', 'schemas'])).optional()
+    .describe('Optional sections to embed in the summary'),
+});
+
+export const pageSummaryTool: ToolDefinition = {
+  name: 'page_summary',
+  description: 'Return compact document stats (page count, construct count, schema count) with optional embedded data. Use include=["constructs","schemas"] to embed list data.',
+  inputSchema: PageSummaryInput,
+  needsPage: false,
+  execute: (params, ydoc, _pageId) => {
+    const input = PageSummaryInput.parse(params);
+    const pages = listPages(ydoc);
+    const activePage = getActivePage(ydoc);
+    const schemas = listSchemas(ydoc);
+
+    // Count constructs across all pages
+    let totalConstructs = 0;
+    const constructsByPage: Record<string, number> = {};
+    for (const page of pages) {
+      const constructs = listConstructs(ydoc, page.id);
+      constructsByPage[page.id] = constructs.length;
+      totalConstructs += constructs.length;
+    }
+
+    const summary: Record<string, unknown> = {
+      pageCount: pages.length,
+      activePage,
+      constructCount: totalConstructs,
+      constructsByPage,
+      schemaCount: schemas.length,
+    };
+
+    if (input.include?.includes('constructs') && activePage) {
+      summary.constructs = listConstructs(ydoc, activePage);
+    }
+
+    if (input.include?.includes('schemas')) {
+      summary.schemas = schemas.map(s => ({
+        type: s.type,
+        displayName: s.displayName,
+        groupId: s.groupId,
+      }));
+    }
+
+    return { success: true, data: summary };
+  },
+};
+
+// ============================================================
 // Export all document tools
 // ============================================================
 
@@ -647,4 +961,21 @@ export const documentTools: ToolDefinition[] = [
   listPackagesTool,
   createPackageTool,
   getPackageTool,
+  // Resource tools
+  listResourcesTool,
+  getResourceTool,
+  createResourceTool,
+  updateResourceTool,
+  deleteResourceTool,
+  publishResourceTool,
+  resourceHistoryTool,
+  resourceDiffTool,
+  // Standard library tools
+  listStandardPackagesTool,
+  applyStandardPackageTool,
+  checkPackageDriftTool,
+  // Port type listing
+  listPortTypesTool,
+  // Page summary
+  pageSummaryTool,
 ];

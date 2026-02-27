@@ -1,4 +1,4 @@
-import type { ConstructValues } from '@carta/domain';
+import type { ConstructValues } from '@carta/schema';
 
 /**
  * Stable dispatch object shared across all nodes.

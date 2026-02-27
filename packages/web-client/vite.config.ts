@@ -4,13 +4,24 @@ import { fileURLToPath } from 'url'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import { visualizer } from 'rollup-plugin-visualizer'
 
 const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    ...(process.env.ANALYZE ? [visualizer({
+      filename: 'stats.html',
+      open: true,
+      gzipSize: true,
+      brotliSize: true,
+      template: 'treemap',
+    })] : []),
+  ],
   resolve: {
     alias: {
       // dagre's ESM build is fake ESM (CJS wrapped in export default) that uses
@@ -20,9 +31,9 @@ export default defineConfig({
       '@dagrejs/dagre': require.resolve('@dagrejs/dagre'),
       // Map workspace packages to source files for development
       '@carta/types': path.resolve(__dirname, '../types/src/index.ts'),
-      '@carta/domain': path.resolve(__dirname, '../domain/src/index.ts'),
-      '@carta/compiler': path.resolve(__dirname, '../compiler/src/index.ts'),
+      '@carta/schema': path.resolve(__dirname, '../schema/src/index.ts'),
       '@carta/document': path.resolve(__dirname, '../document/src/index.ts'),
+      '@carta/geometry': path.resolve(__dirname, '../geometry/src/index.ts'),
     },
   },
   optimizeDeps: {

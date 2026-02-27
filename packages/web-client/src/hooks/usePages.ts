@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useDocumentContext } from '../contexts/DocumentContext';
-import type { Page } from '@carta/domain';
+import type { Page } from '@carta/schema';
 
 /**
  * Focused hook for page state and operations.

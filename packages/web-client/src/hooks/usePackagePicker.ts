@@ -9,7 +9,7 @@ import {
   type PackageManifestEntry,
   type ApplyPackageResult,
   type SchemaPackage,
-} from '@carta/domain';
+} from '@carta/schema';
 
 export type PackageLoadStatus = 'available' | 'loaded' | 'modified';
 

@@ -1,5 +1,5 @@
-import { getPortsForSchema, getPortColor } from '@carta/domain';
-import type { ConstructSchema, FieldSchema, DisplayTier } from '@carta/domain';
+import { getPortsForSchema, getPortColor } from '@carta/schema';
+import type { ConstructSchema, FieldSchema, DisplayTier } from '@carta/schema';
 
 interface EditorPreviewProps {
   schema: ConstructSchema;

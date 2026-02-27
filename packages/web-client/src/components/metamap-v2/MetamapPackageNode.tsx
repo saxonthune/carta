@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import type { SchemaPackage } from '@carta/domain';
+import type { SchemaPackage } from '@carta/schema';
 
 interface MetamapPackageNodeProps {
   pkg: SchemaPackage;
