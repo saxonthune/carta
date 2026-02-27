@@ -3,7 +3,7 @@ import { DndContext, pointerWithin, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { DotsSixVertical, DotsThreeVertical, CaretDown, Plus, DiamondsFour } from '@phosphor-icons/react';
-import type { Page } from '@carta/schema';
+import type { Page, SpecGroup, SpecGroupItem } from '@carta/schema';
 import PopoverMenu, { type PopoverMenuItem } from './ui/PopoverMenu';
 
 type ActiveView =
@@ -27,6 +27,13 @@ interface NavigatorProps {
   // View state
   activeView: ActiveView;
   onSelectMetamap: () => void;
+  // Spec Groups
+  specGroups: SpecGroup[];
+  onCreateSpecGroup: (name: string) => void;
+  onUpdateSpecGroup: (id: string, updates: { name?: string; description?: string; order?: number; items?: SpecGroupItem[] }) => void;
+  onDeleteSpecGroup: (id: string) => void;
+  onAssignToSpecGroup: (groupId: string, item: SpecGroupItem) => void;
+  onRemoveFromSpecGroup: (itemType: 'page' | 'resource', itemId: string) => void;
 }
 
 interface PageRowProps {
@@ -36,14 +43,11 @@ interface PageRowProps {
   isEditing: boolean;
   editName: string;
   editInputRef: React.RefObject<HTMLInputElement | null>;
-  pagesCount: number;
   onSelect: (pageId: string) => void;
-  onStartRename: (page: Page) => void;
   onFinishEdit: () => void;
   onCancelEdit: () => void;
   onEditNameChange: (value: string) => void;
-  onDuplicate: (page: Page) => void;
-  onDelete: (pageId: string) => void;
+  menuItems: PopoverMenuItem[];
 }
 
 function PageRow({
@@ -53,14 +57,11 @@ function PageRow({
   isEditing,
   editName,
   editInputRef,
-  pagesCount,
   onSelect,
-  onStartRename,
   onFinishEdit,
   onCancelEdit,
   onEditNameChange,
-  onDuplicate,
-  onDelete,
+  menuItems,
 }: PageRowProps) {
   const {
     attributes,
@@ -83,28 +84,6 @@ function PageRow({
       onSelect(page.id);
     }
   };
-
-  const menuItems: PopoverMenuItem[] = [
-    {
-      key: 'rename',
-      label: 'Rename',
-      onClick: () => onStartRename(page),
-    },
-    {
-      key: 'duplicate',
-      label: 'Duplicate',
-      onClick: () => onDuplicate(page),
-    },
-  ];
-
-  if (pagesCount > 1) {
-    menuItems.push({
-      key: 'delete',
-      label: 'Delete',
-      onClick: () => onDelete(page.id),
-      danger: true,
-    });
-  }
 
   return (
     <div
@@ -148,7 +127,7 @@ function PageRow({
         </span>
       )}
 
-      {!editMode && !isEditing && (
+      {!editMode && !isEditing && menuItems.length > 0 && (
         <div className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
           <PopoverMenu
             items={menuItems}
@@ -157,6 +136,41 @@ function PageRow({
                 className="p-1 rounded hover:bg-black/10 text-content-muted hover:text-content"
                 title="Page actions"
               >
+                <DotsThreeVertical weight="bold" size={16} />
+              </button>
+            }
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface ResourceRowProps {
+  resource: { id: string; name: string; format: string };
+  isActive: boolean;
+  onSelect: (resourceId: string) => void;
+  menuItems?: PopoverMenuItem[];
+}
+
+function ResourceRow({ resource, isActive, onSelect, menuItems }: ResourceRowProps) {
+  return (
+    <div
+      data-testid={`navigator-resource-${resource.id}`}
+      className={`flex items-center min-h-[36px] cursor-pointer group transition-colors ${isActive ? 'bg-[var(--color-surface-selected)]' : 'hover:bg-surface-alt'}`}
+      onClick={() => onSelect(resource.id)}
+    >
+      <div className={`w-[3px] self-stretch rounded-r flex-shrink-0 ${isActive ? 'bg-accent' : ''}`} />
+      <div className="flex-1 flex items-center gap-2 px-2 min-w-0">
+        <span className="text-sm font-medium text-content truncate flex-1">{resource.name}</span>
+        <span className="text-[10px] px-1.5 py-0.5 bg-surface-alt rounded text-content-muted flex-shrink-0">{resource.format}</span>
+      </div>
+      {menuItems && menuItems.length > 0 && (
+        <div className="opacity-0 group-hover:opacity-100 transition-opacity pr-2" onClick={(e) => e.stopPropagation()}>
+          <PopoverMenu
+            items={menuItems}
+            trigger={
+              <button className="p-1 rounded hover:bg-black/10 text-content-muted hover:text-content" title="Resource actions">
                 <DotsThreeVertical weight="bold" size={16} />
               </button>
             }
@@ -221,15 +235,25 @@ export default function Navigator({
   onCreateResource,
   activeView,
   onSelectMetamap,
+  specGroups,
+  onCreateSpecGroup,
+  onUpdateSpecGroup,
+  onDeleteSpecGroup,
+  onAssignToSpecGroup,
+  onRemoveFromSpecGroup,
 }: NavigatorProps) {
   const [editMode, setEditMode] = useState(false);
   const [editingPageId, setEditingPageId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
+  const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
+  const [editGroupName, setEditGroupName] = useState('');
+  const [collapsedGroupIds, setCollapsedGroupIds] = useState<Set<string>>(new Set());
 
   const editInputRef = useRef<HTMLInputElement>(null);
   const editFocusCounter = useRef(0);
+  const groupEditInputRef = useRef<HTMLInputElement>(null);
 
-  // Focus input when editing starts
+  // Focus page rename input
   useEffect(() => {
     if (editingPageId && editInputRef.current) {
       editInputRef.current.focus();
@@ -237,6 +261,14 @@ export default function Navigator({
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingPageId, editFocusCounter.current]);
+
+  // Focus group rename input
+  useEffect(() => {
+    if (editingGroupId && groupEditInputRef.current) {
+      groupEditInputRef.current.focus();
+      groupEditInputRef.current.select();
+    }
+  }, [editingGroupId]);
 
   const handleStartRename = useCallback((page: Page) => {
     setEditingPageId(page.id);
@@ -277,12 +309,12 @@ export default function Navigator({
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
-    const sortedPages = [...pages].sort((a, b) => a.order - b.order);
-    const oldIndex = sortedPages.findIndex(l => l.id === active.id);
-    const newIndex = sortedPages.findIndex(l => l.id === over.id);
+    const sorted = [...pages].sort((a, b) => a.order - b.order);
+    const oldIndex = sorted.findIndex(l => l.id === active.id);
+    const newIndex = sorted.findIndex(l => l.id === over.id);
     if (oldIndex === -1 || newIndex === -1) return;
 
-    const reordered = arrayMove(sortedPages, oldIndex, newIndex);
+    const reordered = arrayMove(sorted, oldIndex, newIndex);
     for (let i = 0; i < reordered.length; i++) {
       if (reordered[i].order !== i) {
         onUpdatePage(reordered[i].id, { order: i });
@@ -290,11 +322,47 @@ export default function Navigator({
     }
   }, [pages, onUpdatePage]);
 
+  const handleCreateGroup = useCallback(() => {
+    onCreateSpecGroup(`Group ${specGroups.length + 1}`);
+  }, [specGroups.length, onCreateSpecGroup]);
+
+  const handleStartGroupRename = useCallback((group: SpecGroup) => {
+    setEditingGroupId(group.id);
+    setEditGroupName(group.name);
+  }, []);
+
+  const handleFinishGroupRename = useCallback(() => {
+    if (editingGroupId && editGroupName.trim()) {
+      onUpdateSpecGroup(editingGroupId, { name: editGroupName.trim() });
+    }
+    setEditingGroupId(null);
+  }, [editingGroupId, editGroupName, onUpdateSpecGroup]);
+
+  const handleCancelGroupRename = useCallback(() => {
+    setEditingGroupId(null);
+  }, []);
+
+  const toggleGroupCollapsed = useCallback((groupId: string) => {
+    setCollapsedGroupIds(prev => {
+      const next = new Set(prev);
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
+      return next;
+    });
+  }, []);
+
   if (!isOpen) return null;
 
   const sortedPages = [...pages].sort((a, b) => a.order - b.order);
   const pageIds = sortedPages.map(l => l.id);
   const isMetamapActive = activeView.type === 'metamap';
+
+  const hasGroups = specGroups.length > 0;
+  const sortedGroups = [...specGroups].sort((a, b) => a.order - b.order);
+  const groupedPageIds = new Set(sortedGroups.flatMap(g => g.items.filter(i => i.type === 'page').map(i => i.id)));
+  const groupedResourceIds = new Set(sortedGroups.flatMap(g => g.items.filter(i => i.type === 'resource').map(i => i.id)));
+  const ungroupedPages = sortedPages.filter(p => !groupedPageIds.has(p.id));
+  const ungroupedResources = resources.filter(r => !groupedResourceIds.has(r.id));
 
   const reorderButton = (
     <button
@@ -308,6 +376,62 @@ export default function Navigator({
       <DotsSixVertical weight="bold" size={12} />
     </button>
   );
+
+  // Menu items for a page in the flat/ungrouped section
+  function flatPageMenuItems(page: Page): PopoverMenuItem[] {
+    const items: PopoverMenuItem[] = [
+      { key: 'rename', label: 'Rename', onClick: () => handleStartRename(page) },
+      { key: 'duplicate', label: 'Duplicate', onClick: () => handleDuplicate(page) },
+    ];
+    if (pages.length > 1) {
+      items.push({ key: 'delete', label: 'Delete', onClick: () => handleDelete(page.id), danger: true });
+    }
+    if (hasGroups) {
+      for (const group of sortedGroups) {
+        items.push({ key: `move-to-${group.id}`, label: `Move to ${group.name}`, onClick: () => onAssignToSpecGroup(group.id, { type: 'page', id: page.id }) });
+      }
+    }
+    return items;
+  }
+
+  // Menu items for a page that is already inside a specific group
+  function groupedPageMenuItems(page: Page, currentGroupId: string): PopoverMenuItem[] {
+    const items: PopoverMenuItem[] = [
+      { key: 'rename', label: 'Rename', onClick: () => handleStartRename(page) },
+      { key: 'duplicate', label: 'Duplicate', onClick: () => handleDuplicate(page) },
+    ];
+    if (pages.length > 1) {
+      items.push({ key: 'delete', label: 'Delete', onClick: () => handleDelete(page.id), danger: true });
+    }
+    for (const group of sortedGroups) {
+      if (group.id !== currentGroupId) {
+        items.push({ key: `move-to-${group.id}`, label: `Move to ${group.name}`, onClick: () => onAssignToSpecGroup(group.id, { type: 'page', id: page.id }) });
+      }
+    }
+    items.push({ key: 'remove-from-group', label: 'Remove from group', onClick: () => onRemoveFromSpecGroup('page', page.id) });
+    return items;
+  }
+
+  // Menu items for a resource inside a group
+  function groupedResourceMenuItems(resourceId: string, currentGroupId: string): PopoverMenuItem[] {
+    const items: PopoverMenuItem[] = [];
+    for (const group of sortedGroups) {
+      if (group.id !== currentGroupId) {
+        items.push({ key: `move-to-${group.id}`, label: `Move to ${group.name}`, onClick: () => onAssignToSpecGroup(group.id, { type: 'resource', id: resourceId }) });
+      }
+    }
+    items.push({ key: 'remove-from-group', label: 'Remove from group', onClick: () => onRemoveFromSpecGroup('resource', resourceId) });
+    return items;
+  }
+
+  // Menu items for an ungrouped resource when groups exist
+  function ungroupedResourceMenuItems(resourceId: string): PopoverMenuItem[] {
+    return sortedGroups.map(group => ({
+      key: `move-to-${group.id}`,
+      label: `Move to ${group.name}`,
+      onClick: () => onAssignToSpecGroup(group.id, { type: 'resource', id: resourceId }),
+    }));
+  }
 
   return (
     <div
@@ -332,90 +456,226 @@ export default function Navigator({
           </button>
         </div>
 
-        {/* Pages section */}
-        <Section
-          title="Pages"
-          onAdd={handleCreatePage}
-          addLabel="New page"
-          extraActions={reorderButton}
-        >
-          {editMode ? (
-            <DndContext collisionDetection={pointerWithin} onDragEnd={handleDragEnd}>
-              <SortableContext items={pageIds} strategy={verticalListSortingStrategy}>
-                {sortedPages.map((page) => (
+        {hasGroups ? (
+          <>
+            {/* Group sections */}
+            {sortedGroups.map(group => {
+              const isGroupCollapsed = collapsedGroupIds.has(group.id);
+              return (
+                <div key={group.id} className="bg-surface-depth-2 rounded-xl flex flex-col overflow-hidden">
+                  {/* Group header */}
+                  <div className="flex items-center gap-1 px-3 py-1.5">
+                    <button
+                      className="flex items-center gap-1 flex-1 text-left text-sm font-medium text-content-muted hover:text-content transition-colors min-w-0"
+                      onClick={() => toggleGroupCollapsed(group.id)}
+                    >
+                      <CaretDown
+                        weight="bold"
+                        size={10}
+                        className={`flex-shrink-0 transition-transform ${isGroupCollapsed ? '-rotate-90' : ''}`}
+                      />
+                      {editingGroupId === group.id ? (
+                        <input
+                          ref={groupEditInputRef}
+                          className="flex-1 min-w-0 py-0 text-sm bg-transparent border-none outline-none text-content font-medium"
+                          value={editGroupName}
+                          onChange={(e) => setEditGroupName(e.target.value)}
+                          onBlur={handleFinishGroupRename}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleFinishGroupRename();
+                            if (e.key === 'Escape') handleCancelGroupRename();
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      ) : (
+                        <span className="truncate">{group.name}</span>
+                      )}
+                    </button>
+                    <PopoverMenu
+                      items={[
+                        { key: 'rename', label: 'Rename', onClick: () => handleStartGroupRename(group) },
+                        { key: 'delete', label: 'Delete group', onClick: () => onDeleteSpecGroup(group.id), danger: true },
+                      ]}
+                      trigger={
+                        <button
+                          className="w-5 h-5 flex-shrink-0 flex items-center justify-center rounded text-content-muted hover:bg-surface-alt hover:text-content transition-colors"
+                          title="Group actions"
+                        >
+                          <DotsThreeVertical weight="bold" size={12} />
+                        </button>
+                      }
+                    />
+                  </div>
+
+                  {/* Group items */}
+                  {!isGroupCollapsed && (
+                    <>
+                      {group.items.map(item => {
+                        if (item.type === 'page') {
+                          const page = pages.find(p => p.id === item.id);
+                          if (!page) return null;
+                          return (
+                            <PageRow
+                              key={page.id}
+                              page={page}
+                              isActive={activeView.type === 'page' && activeView.pageId === page.id}
+                              editMode={false}
+                              isEditing={editingPageId === page.id}
+                              editName={editName}
+                              editInputRef={editInputRef}
+                              onSelect={(pageId) => { onSetActivePage(pageId); }}
+                              onFinishEdit={handleFinishEdit}
+                              onCancelEdit={handleCancelEdit}
+                              onEditNameChange={setEditName}
+                              menuItems={groupedPageMenuItems(page, group.id)}
+                            />
+                          );
+                        } else if (item.type === 'resource') {
+                          const resource = resources.find(r => r.id === item.id);
+                          if (!resource) return null;
+                          return (
+                            <ResourceRow
+                              key={resource.id}
+                              resource={resource}
+                              isActive={activeView.type === 'resource' && activeView.resourceId === resource.id}
+                              onSelect={onSelectResource}
+                              menuItems={groupedResourceMenuItems(resource.id, group.id)}
+                            />
+                          );
+                        }
+                        return null;
+                      })}
+                      {group.items.length === 0 && (
+                        <div className="px-3 py-2 text-xs text-content-muted italic">
+                          Empty group.
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              );
+            })}
+
+            {/* Ungrouped section (only when items exist) */}
+            {(ungroupedPages.length > 0 || ungroupedResources.length > 0) && (
+              <Section title="Ungrouped" onAdd={handleCreatePage} addLabel="New page">
+                {ungroupedPages.map(page => (
                   <PageRow
                     key={page.id}
                     page={page}
                     isActive={activeView.type === 'page' && activeView.pageId === page.id}
-                    editMode={editMode}
+                    editMode={false}
                     isEditing={editingPageId === page.id}
                     editName={editName}
                     editInputRef={editInputRef}
-                    pagesCount={pages.length}
                     onSelect={(pageId) => { onSetActivePage(pageId); }}
-                    onStartRename={handleStartRename}
                     onFinishEdit={handleFinishEdit}
                     onCancelEdit={handleCancelEdit}
                     onEditNameChange={setEditName}
-                    onDuplicate={handleDuplicate}
-                    onDelete={handleDelete}
+                    menuItems={flatPageMenuItems(page)}
                   />
                 ))}
-              </SortableContext>
-            </DndContext>
-          ) : (
-            sortedPages.map((page) => (
-              <PageRow
-                key={page.id}
-                page={page}
-                isActive={activeView.type === 'page' && activeView.pageId === page.id}
-                editMode={false}
-                isEditing={editingPageId === page.id}
-                editName={editName}
-                editInputRef={editInputRef}
-                pagesCount={pages.length}
-                onSelect={(pageId) => { onSetActivePage(pageId); }}
-                onStartRename={handleStartRename}
-                onFinishEdit={handleFinishEdit}
-                onCancelEdit={handleCancelEdit}
-                onEditNameChange={setEditName}
-                onDuplicate={handleDuplicate}
-                onDelete={handleDelete}
-              />
-            ))
-          )}
-        </Section>
+                {ungroupedResources.map(r => (
+                  <ResourceRow
+                    key={r.id}
+                    resource={r}
+                    isActive={activeView.type === 'resource' && activeView.resourceId === r.id}
+                    onSelect={onSelectResource}
+                    menuItems={ungroupedResourceMenuItems(r.id)}
+                  />
+                ))}
+              </Section>
+            )}
 
-        {/* Resources section */}
-        <Section
-          title="Resources"
-          onAdd={onCreateResource}
-          addLabel="New resource"
-        >
-          {resources.length === 0 ? (
-            <div className="px-3 py-2 text-xs text-content-muted italic">
-              No resources yet.
-            </div>
-          ) : (
-            resources.map((r) => {
-              const isActive = activeView.type === 'resource' && activeView.resourceId === r.id;
-              return (
-                <div
-                  key={r.id}
-                  data-testid={`navigator-resource-${r.id}`}
-                  className={`flex items-center min-h-[36px] cursor-pointer group transition-colors ${isActive ? 'bg-[var(--color-surface-selected)]' : 'hover:bg-surface-alt'}`}
-                  onClick={() => onSelectResource(r.id)}
-                >
-                  <div className={`w-[3px] self-stretch rounded-r flex-shrink-0 ${isActive ? 'bg-accent' : ''}`} />
-                  <div className="flex-1 flex items-center gap-2 px-2 min-w-0">
-                    <span className="text-sm font-medium text-content truncate flex-1">{r.name}</span>
-                    <span className="text-[10px] px-1.5 py-0.5 bg-surface-alt rounded text-content-muted flex-shrink-0">{r.format}</span>
-                  </div>
+            {/* New Group button */}
+            <button
+              className="w-full py-2 text-sm text-content-muted hover:text-content hover:bg-surface-alt rounded-lg transition-colors"
+              onClick={handleCreateGroup}
+            >
+              + New Group
+            </button>
+          </>
+        ) : (
+          <>
+            {/* Flat layout — no groups */}
+            <Section
+              title="Pages"
+              onAdd={handleCreatePage}
+              addLabel="New page"
+              extraActions={reorderButton}
+            >
+              {editMode ? (
+                <DndContext collisionDetection={pointerWithin} onDragEnd={handleDragEnd}>
+                  <SortableContext items={pageIds} strategy={verticalListSortingStrategy}>
+                    {sortedPages.map((page) => (
+                      <PageRow
+                        key={page.id}
+                        page={page}
+                        isActive={activeView.type === 'page' && activeView.pageId === page.id}
+                        editMode={editMode}
+                        isEditing={editingPageId === page.id}
+                        editName={editName}
+                        editInputRef={editInputRef}
+                        onSelect={(pageId) => { onSetActivePage(pageId); }}
+                        onFinishEdit={handleFinishEdit}
+                        onCancelEdit={handleCancelEdit}
+                        onEditNameChange={setEditName}
+                        menuItems={flatPageMenuItems(page)}
+                      />
+                    ))}
+                  </SortableContext>
+                </DndContext>
+              ) : (
+                sortedPages.map((page) => (
+                  <PageRow
+                    key={page.id}
+                    page={page}
+                    isActive={activeView.type === 'page' && activeView.pageId === page.id}
+                    editMode={false}
+                    isEditing={editingPageId === page.id}
+                    editName={editName}
+                    editInputRef={editInputRef}
+                    onSelect={(pageId) => { onSetActivePage(pageId); }}
+                    onFinishEdit={handleFinishEdit}
+                    onCancelEdit={handleCancelEdit}
+                    onEditNameChange={setEditName}
+                    menuItems={flatPageMenuItems(page)}
+                  />
+                ))
+              )}
+            </Section>
+
+            {/* Resources section */}
+            <Section
+              title="Resources"
+              onAdd={onCreateResource}
+              addLabel="New resource"
+            >
+              {resources.length === 0 ? (
+                <div className="px-3 py-2 text-xs text-content-muted italic">
+                  No resources yet.
                 </div>
-              );
-            })
-          )}
-        </Section>
+              ) : (
+                resources.map((r) => (
+                  <ResourceRow
+                    key={r.id}
+                    resource={r}
+                    isActive={activeView.type === 'resource' && activeView.resourceId === r.id}
+                    onSelect={onSelectResource}
+                  />
+                ))
+              )}
+            </Section>
+
+            {/* New Group button — always visible so users can bootstrap groups */}
+            <button
+              className="w-full py-2 text-sm text-content-muted hover:text-content hover:bg-surface-alt rounded-lg transition-colors"
+              onClick={handleCreateGroup}
+            >
+              + New Group
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

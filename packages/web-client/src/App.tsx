@@ -13,6 +13,7 @@ import { useSchemas } from './hooks/useSchemas';
 import { useSchemaGroups } from './hooks/useSchemaGroups';
 import { usePages } from './hooks/usePages';
 import { useResources } from './hooks/useResources';
+import { useSpecGroups } from './hooks/useSpecGroups';
 import { useClearDocument } from './hooks/useClearDocument';
 import { useExampleLoader } from './hooks/useExampleLoader';
 import { useDocumentContext } from './contexts/DocumentContext';
@@ -81,6 +82,7 @@ function AppContent() {
   const { schemaGroups } = useSchemaGroups();
   const { pages, activePage, setActivePage, createPage, deletePage, updatePage, duplicatePage } = usePages();
   const { resources } = useResources();
+  const { specGroups, createSpecGroup, updateSpecGroup, deleteSpecGroup, assignToSpecGroup, removeFromSpecGroup } = useSpecGroups();
   const [navigatorOpen, setNavigatorOpen] = useState(true);
   const [activeView, setActiveView] = useState<ActiveView>(() => ({
     type: 'page',
@@ -252,6 +254,12 @@ function AppContent() {
           onCreateResource={handleCreateResource}
           activeView={activeView}
           onSelectMetamap={() => setActiveView({ type: 'metamap' })}
+          specGroups={specGroups}
+          onCreateSpecGroup={(name) => { createSpecGroup(name); }}
+          onUpdateSpecGroup={updateSpecGroup}
+          onDeleteSpecGroup={deleteSpecGroup}
+          onAssignToSpecGroup={assignToSpecGroup}
+          onRemoveFromSpecGroup={removeFromSpecGroup}
         />
         <CanvasContainer
           onSelectionChange={handleSelectionChange}

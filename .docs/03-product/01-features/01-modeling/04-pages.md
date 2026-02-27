@@ -31,6 +31,19 @@ A **Resources section** below Pages lists all document resources, each clickable
 - **Rename**: Hover a page row, click three-dot menu → Rename; or enter reorder mode and click the page name
 - **Copy nodes to page**: From the canvas context menu, copy selected nodes to another page
 
+## Spec Groups
+
+Pages (and resources) can be organized into named **spec groups** via the Navigator. Spec groups provide semantic organization for the specification hierarchy — for example, "Product Vision", "API Contract", "Implementation Detail".
+
+- Groups appear as collapsible sections in the Navigator, each containing an ordered mix of pages and resources
+- Items are assigned to groups via the **Move to...** context menu on any page or resource row
+- **Remove from group** returns an item to the ungrouped section at the bottom
+- Groups are created with the **+ New Group** button at the bottom of the Navigator
+- Groups can be renamed (inline edit via the group context menu) and deleted (items become ungrouped)
+- When no groups exist, the Navigator shows the standard flat Pages + Resources layout unchanged
+
+Group membership is stored on the group's `items` array (not on the page or resource). Cross-group drag-and-drop and item reordering within groups via drag are not yet implemented; use the context menu to move items.
+
 ## Behavior
 
 - Switching pages swaps the visible nodes and edges on the canvas
