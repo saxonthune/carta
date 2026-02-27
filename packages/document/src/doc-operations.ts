@@ -53,15 +53,12 @@ import type {
   ApplyPackageResult,
   DocumentAdapter,
   PackageManifestEntry,
-  Resource,
-  ResourceVersion,
   SpecGroup,
   SpecGroupItem,
 } from '@carta/schema';
-import { sha256 } from 'js-sha256';
 import { CompilerEngine } from './compiler/index.js';
 import { yToPlain, deepPlainToY, safeGet } from './yjs-helpers.js';
-import { generateNodeId, generatePageId, generateSchemaPackageId, generateResourceId, generateVersionId, generateSpecGroupId } from './id-generators.js';
+import { generateNodeId, generatePageId, generateSchemaPackageId, generateSpecGroupId } from './id-generators.js';
 import { MCP_ORIGIN, SERVER_FORMAT_VERSION, YDOC_MAPS } from './constants.js';
 
 /**
@@ -3505,37 +3502,9 @@ export function batchMutate(
 /**
  * Compile a page's document to AI-readable output
  */
-function getAllResources(ydoc: Y.Doc): Resource[] {
-  const yresources = ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.RESOURCES);
-  const resources: Resource[] = [];
-  yresources.forEach((yresource) => {
-    const yversions = yresource.get('versions') as Y.Array<Y.Map<unknown>>;
-    const versions: ResourceVersion[] = [];
-    yversions.forEach((yver) => {
-      versions.push({
-        versionId: yver.get('versionId') as string,
-        contentHash: yver.get('contentHash') as string,
-        publishedAt: yver.get('publishedAt') as string,
-        label: yver.get('label') as string | undefined,
-        body: yver.get('body') as string,
-      });
-    });
-    resources.push({
-      id: yresource.get('id') as string,
-      name: yresource.get('name') as string,
-      format: yresource.get('format') as string,
-      body: yresource.get('body') as string,
-      currentHash: yresource.get('currentHash') as string,
-      versions,
-    });
-  });
-  return resources;
-}
-
 export function compile(ydoc: Y.Doc, pageId: string): string {
   const nodes = listConstructs(ydoc, pageId);
   const schemas = listSchemas(ydoc);
-  const resources = getAllResources(ydoc);
 
   // Get edges for page
   const pageEdges = getPageMap(ydoc, 'edges', pageId);
@@ -3551,7 +3520,7 @@ export function compile(ydoc: Y.Doc, pageId: string): string {
   });
 
   const compilerEngine = new CompilerEngine();
-  return compilerEngine.compile(nodes, edges, { schemas, resources });
+  return compilerEngine.compile(nodes, edges, { schemas });
 }
 
 // ===== DOCUMENT EXTRACTION =====
@@ -4061,181 +4030,6 @@ export function createPackage(ydoc: Y.Doc, data: {
   return pkg;
 }
 
-// ==================== Resource Operations ====================
-
-function getResourcesMap(ydoc: Y.Doc): Y.Map<Y.Map<unknown>> {
-  return ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.RESOURCES);
-}
-
-/**
- * List all resources as summaries (no version bodies).
- */
-export function listResources(ydoc: Y.Doc): Array<{ id: string; name: string; format: string; currentHash: string; versionCount: number }> {
-  const yresources = getResourcesMap(ydoc);
-  const results: Array<{ id: string; name: string; format: string; currentHash: string; versionCount: number }> = [];
-  yresources.forEach((yresource) => {
-    const yversions = yresource.get('versions') as Y.Array<Y.Map<unknown>> | undefined;
-    results.push({
-      id: yresource.get('id') as string,
-      name: yresource.get('name') as string,
-      format: yresource.get('format') as string,
-      currentHash: yresource.get('currentHash') as string,
-      versionCount: yversions ? yversions.length : 0,
-    });
-  });
-  return results;
-}
-
-/**
- * Get a single resource by ID, including all version bodies.
- */
-export function getResource(ydoc: Y.Doc, id: string): Resource | undefined {
-  const yresources = getResourcesMap(ydoc);
-  const yresource = yresources.get(id);
-  if (!yresource) return undefined;
-  const yversions = yresource.get('versions') as Y.Array<Y.Map<unknown>>;
-  const versions: ResourceVersion[] = [];
-  yversions.forEach((yver) => {
-    versions.push({
-      versionId: yver.get('versionId') as string,
-      contentHash: yver.get('contentHash') as string,
-      publishedAt: yver.get('publishedAt') as string,
-      label: yver.get('label') as string | undefined,
-      body: yver.get('body') as string,
-    });
-  });
-  return {
-    id: yresource.get('id') as string,
-    name: yresource.get('name') as string,
-    format: yresource.get('format') as string,
-    body: yresource.get('body') as string,
-    currentHash: yresource.get('currentHash') as string,
-    versions,
-  };
-}
-
-/**
- * Create a new resource and store it in the Y.Doc.
- */
-export function createResource(ydoc: Y.Doc, name: string, format: string, body: string): Resource {
-  const yresources = getResourcesMap(ydoc);
-  const id = generateResourceId();
-  const currentHash = sha256(body);
-  ydoc.transact(() => {
-    const yresource = new Y.Map<unknown>();
-    yresource.set('id', id);
-    yresource.set('name', name);
-    yresource.set('format', format);
-    yresource.set('body', body);
-    yresource.set('currentHash', currentHash);
-    const yversions = new Y.Array<Y.Map<unknown>>();
-    yresource.set('versions', yversions);
-    yresources.set(id, yresource);
-  }, MCP_ORIGIN);
-  return { id, name, format, body, currentHash, versions: [] };
-}
-
-/**
- * Update a resource's fields. If body changes, recomputes the hash.
- */
-export function updateResource(ydoc: Y.Doc, id: string, updates: { name?: string; format?: string; body?: string }): Resource | undefined {
-  const yresources = getResourcesMap(ydoc);
-  const yresource = yresources.get(id);
-  if (!yresource) return undefined;
-  ydoc.transact(() => {
-    if (updates.name !== undefined) yresource.set('name', updates.name);
-    if (updates.format !== undefined) yresource.set('format', updates.format);
-    if (updates.body !== undefined) {
-      yresource.set('body', updates.body);
-      yresource.set('currentHash', sha256(updates.body));
-    }
-  }, MCP_ORIGIN);
-  return getResource(ydoc, id);
-}
-
-/**
- * Delete a resource by ID. Returns true if it existed.
- */
-export function deleteResource(ydoc: Y.Doc, id: string): boolean {
-  const yresources = getResourcesMap(ydoc);
-  const exists = yresources.has(id);
-  if (exists) {
-    // Remove from any spec group before deleting
-    removeFromSpecGroup(ydoc, 'resource', id);
-    ydoc.transact(() => {
-      yresources.delete(id);
-    }, MCP_ORIGIN);
-  }
-  return exists;
-}
-
-/**
- * Publish the current body of a resource as a frozen version snapshot.
- */
-export function publishResourceVersion(ydoc: Y.Doc, id: string, label?: string): ResourceVersion | undefined {
-  const yresources = getResourcesMap(ydoc);
-  const yresource = yresources.get(id);
-  if (!yresource) return undefined;
-  const body = yresource.get('body') as string;
-  const contentHash = yresource.get('currentHash') as string;
-  const versionId = generateVersionId();
-  const publishedAt = new Date().toISOString();
-  ydoc.transact(() => {
-    const yversions = yresource.get('versions') as Y.Array<Y.Map<unknown>>;
-    const yver = new Y.Map<unknown>();
-    yver.set('versionId', versionId);
-    yver.set('contentHash', contentHash);
-    yver.set('publishedAt', publishedAt);
-    if (label !== undefined) yver.set('label', label);
-    yver.set('body', body);
-    yversions.push([yver]);
-  }, MCP_ORIGIN);
-  return { versionId, contentHash, publishedAt, label, body };
-}
-
-/**
- * Get all published versions for a resource, without their bodies.
- */
-export function getResourceHistory(ydoc: Y.Doc, id: string): Omit<ResourceVersion, 'body'>[] {
-  const yresources = getResourcesMap(ydoc);
-  const yresource = yresources.get(id);
-  if (!yresource) return [];
-  const yversions = yresource.get('versions') as Y.Array<Y.Map<unknown>>;
-  const results: Omit<ResourceVersion, 'body'>[] = [];
-  yversions.forEach((yver) => {
-    results.push({
-      versionId: yver.get('versionId') as string,
-      contentHash: yver.get('contentHash') as string,
-      publishedAt: yver.get('publishedAt') as string,
-      label: yver.get('label') as string | undefined,
-    });
-  });
-  return results;
-}
-
-/**
- * Get a specific published version of a resource by version ID, including body.
- */
-export function getResourceVersion(ydoc: Y.Doc, id: string, versionId: string): ResourceVersion | undefined {
-  const yresources = getResourcesMap(ydoc);
-  const yresource = yresources.get(id);
-  if (!yresource) return undefined;
-  const yversions = yresource.get('versions') as Y.Array<Y.Map<unknown>>;
-  let found: ResourceVersion | undefined;
-  yversions.forEach((yver) => {
-    if (yver.get('versionId') === versionId) {
-      found = {
-        versionId: yver.get('versionId') as string,
-        contentHash: yver.get('contentHash') as string,
-        publishedAt: yver.get('publishedAt') as string,
-        label: yver.get('label') as string | undefined,
-        body: yver.get('body') as string,
-      };
-    }
-  });
-  return found;
-}
-
 /**
  * Build a DocumentAdapter shim from a Y.Doc.
  * Implements only the subset needed by applyPackage and isPackageModified.
@@ -4418,7 +4212,7 @@ function ySpecGroupToPlain(ysg: Y.Map<unknown>): SpecGroup {
   const items: SpecGroupItem[] = [];
   yitems.forEach((yitem) => {
     items.push({
-      type: yitem.get('type') as 'page' | 'resource',
+      type: yitem.get('type') as 'page',
       id: yitem.get('id') as string,
     });
   });
@@ -4555,7 +4349,7 @@ export function assignToSpecGroup(ydoc: Y.Doc, groupId: string, item: SpecGroupI
  * Remove a page or resource from whichever spec group contains it.
  * Returns true if it was found and removed.
  */
-export function removeFromSpecGroup(ydoc: Y.Doc, itemType: 'page' | 'resource', itemId: string): boolean {
+export function removeFromSpecGroup(ydoc: Y.Doc, itemType: 'page', itemId: string): boolean {
   const yspecGroups = getSpecGroupsMap(ydoc);
   let found = false;
 

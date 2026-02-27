@@ -32,7 +32,7 @@ export function useSpecGroups() {
     [adapter]
   );
   const removeFromSpecGroup = useCallback(
-    (itemType: 'page' | 'resource', itemId: string) => adapter.removeFromSpecGroup(itemType, itemId),
+    (itemType: 'page', itemId: string) => adapter.removeFromSpecGroup(itemType, itemId),
     [adapter]
   );
 

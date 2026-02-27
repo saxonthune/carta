@@ -18,14 +18,6 @@ export function generateNodeId(): string {
   return 'node_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
 }
 
-export function generateResourceId(): string {
-  return 'res_' + Math.random().toString(36).substring(2, 11);
-}
-
-export function generateVersionId(): string {
-  return 'ver_' + Math.random().toString(36).substring(2, 11);
-}
-
 export function generateSpecGroupId(): string {
   return 'sg_' + Math.random().toString(36).substring(2, 11);
 }

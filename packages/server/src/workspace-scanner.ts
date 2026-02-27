@@ -16,7 +16,7 @@ import { parseWorkspaceManifest, parseGroupMeta, type WorkspaceManifest, type Gr
 export interface WorkspaceFileEntry {
   name: string;    // filename (e.g., 'endpoint-map.canvas.json')
   path: string;    // relative to .carta/ (e.g., '01-api-contract/endpoint-map.canvas.json')
-  type: 'canvas' | 'resource';  // canvas if .canvas.json, resource otherwise
+  type: 'canvas' | 'file';  // canvas if .canvas.json, file otherwise
   size: number;    // file size in bytes
 }
 
@@ -49,8 +49,8 @@ const SKIP_FILES = new Set(['workspace.json', 'ui-state.json']);
  * Classify a filename as canvas or resource.
  * A file is canvas if its name ends with '.canvas.json'.
  */
-function classifyFile(name: string): 'canvas' | 'resource' {
-  return name.endsWith('.canvas.json') ? 'canvas' : 'resource';
+function classifyFile(name: string): 'canvas' | 'file' {
+  return name.endsWith('.canvas.json') ? 'canvas' : 'file';
 }
 
 /**

@@ -56,22 +56,11 @@ function makePortSchema(id: string) {
   };
 }
 
-function makeResource(id: string, name: string, format: string, body: string) {
-  return {
-    id,
-    name,
-    format,
-    body,
-    currentHash: 'abc123',
-    versions: [],
-  };
-}
-
 function makeSpecGroup(
   id: string,
   name: string,
   order: number,
-  items: Array<{ type: 'page' | 'resource'; id: string }>,
+  items: Array<{ type: 'page'; id: string }>,
   description?: string,
 ): CartaFileSpecGroup {
   return { id, name, order, items, description };
@@ -87,7 +76,6 @@ function makeMinimalCartaFile(overrides: Partial<CartaFile> = {}): CartaFile {
     schemaGroups: [],
     schemaPackages: [],
     packageManifest: [],
-    resources: [],
     exportedAt: '2024-01-01T00:00:00Z',
     ...overrides,
   };
@@ -102,7 +90,6 @@ describe('explodeCartaFile — round-trip', () => {
     const schema1 = makeSchema('Service');
     const schema2 = makeSchema('Database');
     const portSchema = makePortSchema('port-http');
-    const resource = makeResource('res-1', 'Prospect API', 'ts', 'export interface ProspectAPI {}');
 
     const cartaFile = makeMinimalCartaFile({
       title: 'My Architecture',
@@ -110,7 +97,6 @@ describe('explodeCartaFile — round-trip', () => {
       pages: [makePage('p1', 'Overview', 1), makePage('p2', 'Data Flow', 2)],
       customSchemas: [schema1, schema2],
       portSchemas: [portSchema],
-      resources: [resource],
     });
 
     const files = explodeCartaFile(cartaFile);
@@ -142,10 +128,6 @@ describe('explodeCartaFile — round-trip', () => {
     expect(dataFlowContent).toBeDefined();
     const dataFlowCanvas = parseCanvasFile(dataFlowContent!);
     expect(dataFlowCanvas.nodes).toHaveLength(1);
-
-    // resource file content (raw body, not JSON)
-    const resourceContent = files.get('prospect-api.ts');
-    expect(resourceContent).toBe('export interface ProspectAPI {}');
   });
 
   it('all schemas appear in schemas/schemas.json', () => {
@@ -184,23 +166,17 @@ describe('explodeCartaFile — round-trip', () => {
 // ============================================
 
 describe('explodeCartaFile — spec groups', () => {
-  it('pages and resources land in correct group directories', () => {
+  it('pages land in correct group directories', () => {
     const cartaFile = makeMinimalCartaFile({
       pages: [
         makePage('p1', 'Vision', 1),
         makePage('p2', 'Backend', 2),
         makePage('p3', 'Frontend', 3),
       ],
-      resources: [
-        makeResource('r1', 'API Spec', 'ts', 'export type API = {}'),
-        makeResource('r2', 'DB Schema', 'sql', 'CREATE TABLE foo (id INT);'),
-      ],
       specGroups: [
         makeSpecGroup('sg1', 'Product Vision', 1, [{ type: 'page', id: 'p1' }], 'High-level vision'),
         makeSpecGroup('sg2', 'Backend', 2, [
           { type: 'page', id: 'p2' },
-          { type: 'resource', id: 'r1' },
-          { type: 'resource', id: 'r2' },
         ]),
       ],
     });
@@ -221,10 +197,6 @@ describe('explodeCartaFile — spec groups', () => {
 
     // Ungrouped page at root
     expect(files.has('frontend.canvas.json')).toBe(true);
-
-    // Resources in group dir
-    expect(files.has('02-backend/api-spec.ts')).toBe(true);
-    expect(files.has('02-backend/db-schema.sql')).toBe(true);
   });
 
   it('spec group directory uses zero-padded order', () => {
@@ -263,7 +235,6 @@ describe('explodeCartaFile — ungrouped (no spec groups)', () => {
   it('all files are at the root level when no spec groups', () => {
     const cartaFile = makeMinimalCartaFile({
       pages: [makePage('p1', 'Main', 1), makePage('p2', 'Detail', 2)],
-      resources: [makeResource('r1', 'API Types', 'ts', 'export type Foo = string;')],
     });
 
     const files = explodeCartaFile(cartaFile);
@@ -276,7 +247,6 @@ describe('explodeCartaFile — ungrouped (no spec groups)', () => {
 
     expect(files.has('main.canvas.json')).toBe(true);
     expect(files.has('detail.canvas.json')).toBe(true);
-    expect(files.has('api-types.ts')).toBe(true);
   });
 });
 
@@ -332,8 +302,7 @@ describe('explodeCartaFile — empty/minimal document', () => {
       pages: [emptyPage],
       customSchemas: [],
       portSchemas: [],
-      resources: [],
-    });
+      });
 
     const files = explodeCartaFile(cartaFile);
 

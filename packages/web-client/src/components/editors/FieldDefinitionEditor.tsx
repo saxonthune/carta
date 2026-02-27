@@ -24,7 +24,6 @@ const DATA_KINDS: { value: DataKind; label: string }[] = [
   { value: 'boolean', label: 'Boolean' },
   { value: 'date', label: 'Date' },
   { value: 'enum', label: 'Enum' },
-  { value: 'resource', label: 'Resource' },
 ];
 
 const DISPLAY_HINTS: { value: DisplayHint | ''; label: string }[] = [

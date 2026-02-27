@@ -5,7 +5,7 @@
  * Web-client re-exports these and adds browser-specific import/export functions.
  */
 
-import type { ConstructSchema, PortSchema, SchemaGroup, SchemaPackage, PackageManifestEntry, CartaSchemasFile, Resource } from '@carta/schema';
+import type { ConstructSchema, PortSchema, SchemaGroup, SchemaPackage, PackageManifestEntry, CartaSchemasFile } from '@carta/schema';
 import { CARTA_FILE_VERSION } from './constants.js';
 
 /**
@@ -28,7 +28,7 @@ export interface CartaFileSpecGroup {
   name: string;
   description?: string;
   order: number;
-  items: Array<{ type: 'page' | 'resource'; id: string }>;
+  items: Array<{ type: 'page'; id: string }>;
 }
 
 /**
@@ -44,7 +44,6 @@ export interface CartaFile {
   schemaGroups: SchemaGroup[];
   schemaPackages: SchemaPackage[];
   packageManifest?: PackageManifestEntry[];
-  resources?: Resource[];
   specGroups?: CartaFileSpecGroup[];
   exportedAt: string;
 }
@@ -240,37 +239,6 @@ export function validateCartaFile(data: unknown): CartaFile {
     obj.packageManifest = [];
   }
 
-  // Validate resources (optional, backward-compatible)
-  if (obj.resources !== undefined) {
-    if (!Array.isArray(obj.resources)) {
-      throw new Error('Invalid file: resources must be an array');
-    }
-    for (const resource of obj.resources as unknown[]) {
-      if (!resource || typeof resource !== 'object') {
-        throw new Error('Invalid file: invalid resource structure');
-      }
-      const r = resource as Record<string, unknown>;
-      if (typeof r.id !== 'string' || typeof r.name !== 'string' ||
-          typeof r.format !== 'string' || typeof r.body !== 'string' ||
-          typeof r.currentHash !== 'string') {
-        throw new Error('Invalid file: resource missing required fields (id, name, format, body, currentHash)');
-      }
-      if (!Array.isArray(r.versions)) {
-        throw new Error(`Invalid file: resource "${r.id}" missing versions array`);
-      }
-      for (const ver of r.versions as unknown[]) {
-        if (!ver || typeof ver !== 'object') {
-          throw new Error(`Invalid file: resource "${r.id}" has invalid version structure`);
-        }
-        const v = ver as Record<string, unknown>;
-        if (typeof v.versionId !== 'string' || typeof v.contentHash !== 'string' ||
-            typeof v.publishedAt !== 'string' || typeof v.body !== 'string') {
-          throw new Error(`Invalid file: resource "${r.id}" has version missing required fields`);
-        }
-      }
-    }
-  }
-
   // v6→v7 migration: promote top-level groups to packages
   if (obj.version <= 6 && Array.isArray(obj.schemaGroups) && obj.schemaGroups.length > 0) {
     const groups = obj.schemaGroups as Array<Record<string, unknown>>;
@@ -333,7 +301,6 @@ export function validateCartaFile(data: unknown): CartaFile {
     schemaGroups: repairedData.schemaGroups as SchemaGroup[],
     schemaPackages: repairedData.schemaPackages as SchemaPackage[],
     packageManifest: repairedData.packageManifest as PackageManifestEntry[] | undefined,
-    resources: (repairedData.resources as Resource[] | undefined) || [],
     specGroups: (repairedData.specGroups as CartaFileSpecGroup[] | undefined),
     exportedAt: (repairedData.exportedAt as string) || new Date().toISOString(),
   };

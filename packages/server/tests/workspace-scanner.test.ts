@@ -96,7 +96,7 @@ describe('scanWorkspace', () => {
 
     const resourceFile = group.files.find(f => f.name === 'openapi.ts')!;
     expect(resourceFile).toBeDefined();
-    expect(resourceFile.type).toBe('resource');
+    expect(resourceFile.type).toBe('file');
     expect(resourceFile.path).toBe('01-api-contract/openapi.ts');
 
     // Ungrouped files

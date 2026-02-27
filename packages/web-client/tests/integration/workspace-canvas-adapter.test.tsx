@@ -7,7 +7,7 @@
  * - Returns the synthetic WORKSPACE_CANVAS_PAGE_ID page
  * - Treats page mutations as no-ops
  * - Allows node/edge CRUD (the core canvas functionality)
- * - Returns empty arrays for resource methods
+ * - Returns expected defaults for read-only adapter methods
  * - Fires subscriber callbacks on node/edge changes
  * - Cleans up correctly on dispose
  */
@@ -193,17 +193,6 @@ describe('Workspace Canvas Adapter', () => {
     adapter.dispose();
   });
 
-  it('getResources() returns empty array', async () => {
-    const adapter = await makeWorkspaceAdapter();
-    expect(adapter.getResources()).toEqual([]);
-    adapter.dispose();
-  });
-
-  it('getResource() returns undefined', async () => {
-    const adapter = await makeWorkspaceAdapter();
-    expect(adapter.getResource('anything')).toBeUndefined();
-    adapter.dispose();
-  });
 
   it('getTitle() returns empty string', async () => {
     const adapter = await makeWorkspaceAdapter();

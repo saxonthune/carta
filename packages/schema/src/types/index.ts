@@ -7,7 +7,7 @@
 /**
  * M2 primitive data types
  */
-export type DataKind = 'string' | 'number' | 'boolean' | 'date' | 'enum' | 'resource';
+export type DataKind = 'string' | 'number' | 'boolean' | 'date' | 'enum';
 
 /**
  * Display hints for string type presentation
@@ -98,16 +98,6 @@ export interface FieldSchema {
   displayOrder?: number;               // Sort order within a tier (default: 0)
 }
 
-
-/**
- * Compound value for resource-type fields.
- * Stored in ConstructValues when a field has type: 'resource'.
- */
-export interface ResourceFieldValue {
-  resourceId: string;
-  pathHint?: string;
-  versionHash?: string;
-}
 
 /**
  * Configuration for how a construct compiles to output
@@ -256,47 +246,19 @@ export interface OrganizerNodeData {
   [key: string]: unknown;
 }
 
-// ===== RESOURCES =====
-
-/**
- * A published version snapshot of a resource.
- * Frozen copy — body is immutable after publish.
- */
-export interface ResourceVersion {
-  versionId: string;
-  contentHash: string;
-  publishedAt: string;
-  label?: string;
-  body: string;
-}
-
-/**
- * A document-level versioned data contract.
- * Resources are materializations of external artifacts (APIs, schemas, types).
- * See doc02.04.08 for full design rationale.
- */
-export interface Resource {
-  id: string;
-  name: string;
-  format: string;
-  body: string;
-  currentHash: string;
-  versions: ResourceVersion[];
-}
-
 // ===== SPEC GROUPS =====
 
 /**
  * An ordered item reference within a SpecGroup.
- * Can point to either a page or a resource.
+ * Can point to a page.
  */
 export interface SpecGroupItem {
-  type: 'page' | 'resource';
+  type: 'page';
   id: string;
 }
 
 /**
- * Document-level organizational group containing an ordered mix of pages and resources.
+ * Document-level organizational group containing an ordered list of pages.
  * Represents a level of specificity in the Code-N ladder (e.g., "Product Vision", "API Implementation").
  * Membership is stored on the group's items array, not on member entities.
  */
@@ -658,21 +620,6 @@ export interface DocumentAdapter {
   // Subscriptions for observing changes
   subscribe(listener: () => void): () => void;
 
-  // State access - Resources
-  getResources(): Array<{ id: string; name: string; format: string; currentHash: string; versionCount: number }>;
-  getResource(id: string): Resource | undefined;
-
-  // Mutations - Resources
-  createResource(name: string, format: string, body: string): Resource;
-  updateResource(id: string, updates: { name?: string; format?: string; body?: string }): Resource | undefined;
-  deleteResource(id: string): boolean;
-  publishResourceVersion(id: string, label?: string): ResourceVersion | undefined;
-  getResourceHistory(id: string): Omit<ResourceVersion, 'body'>[];
-  getResourceVersion(id: string, versionId: string): ResourceVersion | undefined;
-
-  // Subscriptions - Resources
-  subscribeToResources?(listener: () => void): () => void;
-
   // State access - Spec Groups (navigator groups)
   getSpecGroups(): SpecGroup[];
   getSpecGroup(id: string): SpecGroup | undefined;
@@ -682,7 +629,7 @@ export interface DocumentAdapter {
   updateSpecGroup(id: string, updates: { name?: string; description?: string; order?: number; items?: SpecGroupItem[] }): SpecGroup | undefined;
   deleteSpecGroup(id: string): boolean;
   assignToSpecGroup(groupId: string, item: SpecGroupItem): SpecGroup | undefined;
-  removeFromSpecGroup(itemType: 'page' | 'resource', itemId: string): boolean;
+  removeFromSpecGroup(itemType: 'page', itemId: string): boolean;
 
   // Subscriptions - Spec Groups
   subscribeToSpecGroups?(listener: () => void): () => void;

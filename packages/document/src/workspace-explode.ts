@@ -41,14 +41,11 @@ export function explodeCartaFile(cartaFile: CartaFile): Map<string, string> {
 
   // --- Build lookup: item id → spec group ---
   const pageGroupMap = new Map<string, CartaFileSpecGroup>();
-  const resourceGroupMap = new Map<string, CartaFileSpecGroup>();
 
   for (const group of cartaFile.specGroups ?? []) {
     for (const item of group.items) {
       if (item.type === 'page') {
         pageGroupMap.set(item.id, group);
-      } else if (item.type === 'resource') {
-        resourceGroupMap.set(item.id, group);
       }
     }
   }
@@ -95,15 +92,6 @@ export function explodeCartaFile(cartaFile: CartaFile): Map<string, string> {
     const group = pageGroupMap.get(page.id);
     const path = group ? `${groupDirName(group)}/${filename}` : filename;
     files.set(path, JSON.stringify(canvas, null, 2));
-  }
-
-  // --- Resource files ---
-  for (const resource of cartaFile.resources ?? []) {
-    const slug = slugify(resource.name);
-    const filename = `${slug}.${resource.format}`;
-    const group = resourceGroupMap.get(resource.id);
-    const path = group ? `${groupDirName(group)}/${filename}` : filename;
-    files.set(path, resource.body);
   }
 
   return files;

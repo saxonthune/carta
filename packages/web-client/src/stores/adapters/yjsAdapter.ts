@@ -1344,19 +1344,6 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       };
     },
 
-    // Resources — removed (workspace files replace Y.Doc resources)
-    getResources() { return []; },
-    getResource() { return undefined; },
-    createResource(_name: string, _format: string, _body: string) {
-      throw new Error('Resources are not supported — use workspace files');
-    },
-    updateResource() { return undefined; },
-    deleteResource() { return false; },
-    publishResourceVersion() { return undefined; },
-    getResourceHistory() { return []; },
-    getResourceVersion() { return undefined; },
-    subscribeToResources(_listener: () => void) { return () => {}; },
-
     // State access - Spec Groups
     getSpecGroups(): SpecGroup[] {
       const results: SpecGroup[] = [];
@@ -1365,7 +1352,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
         const items: SpecGroupItem[] = [];
         yitems.forEach((yitem) => {
           items.push({
-            type: yitem.get('type') as 'page' | 'resource',
+            type: yitem.get('type') as 'page',
             id: yitem.get('id') as string,
           });
         });
@@ -1387,7 +1374,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       const items: SpecGroupItem[] = [];
       yitems.forEach((yitem) => {
         items.push({
-          type: yitem.get('type') as 'page' | 'resource',
+          type: yitem.get('type') as 'page',
           id: yitem.get('id') as string,
         });
       });
@@ -1471,7 +1458,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       return this.getSpecGroup(groupId);
     },
 
-    removeFromSpecGroup(itemType: 'page' | 'resource', itemId: string): boolean {
+    removeFromSpecGroup(itemType: 'page', itemId: string): boolean {
       let found = false;
       yspecGroups.forEach((ysg) => {
         if (found) return;

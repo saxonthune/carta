@@ -10,8 +10,6 @@ import {
   removeFromSpecGroup,
   createPage,
   deletePage,
-  createResource,
-  deleteResource,
 } from '../src/doc-operations.js';
 import { extractCartaFile, hydrateYDocFromCartaFile } from '../src/file-operations.js';
 
@@ -141,32 +139,18 @@ describe('spec group CRUD', () => {
     expect(items.some((i) => i.id === page2.id)).toBe(true);
   });
 
-  it('deleteResource removes resource reference from group items', () => {
-    const resource = createResource(doc, 'My API', 'openapi', '{}');
-    const sg = createSpecGroup(doc, 'Group');
-    assignToSpecGroup(doc, sg.id, { type: 'resource', id: resource.id });
-
-    expect(getSpecGroup(doc, sg.id)!.items).toHaveLength(1);
-
-    deleteResource(doc, resource.id);
-    expect(getSpecGroup(doc, sg.id)!.items).toHaveLength(0);
-  });
-
   it('items ordering: insertion order is preserved', () => {
     const sg = createSpecGroup(doc, 'Ordered Group');
     const pageA = createPage(doc, 'A');
-    const resource = createResource(doc, 'R', 'json', '{}');
     const pageC = createPage(doc, 'C');
 
     assignToSpecGroup(doc, sg.id, { type: 'page', id: pageA.id });
-    assignToSpecGroup(doc, sg.id, { type: 'resource', id: resource.id });
     assignToSpecGroup(doc, sg.id, { type: 'page', id: pageC.id });
 
     const items = getSpecGroup(doc, sg.id)!.items;
-    expect(items).toHaveLength(3);
+    expect(items).toHaveLength(2);
     expect(items[0]).toEqual({ type: 'page', id: pageA.id });
-    expect(items[1]).toEqual({ type: 'resource', id: resource.id });
-    expect(items[2]).toEqual({ type: 'page', id: pageC.id });
+    expect(items[1]).toEqual({ type: 'page', id: pageC.id });
   });
 
   it('updateSpecGroup items replaces ordering', () => {
@@ -196,17 +180,15 @@ describe('spec group file round-trip', () => {
     const doc1 = new Y.Doc();
     createPage(doc1, 'Default');
     const page = createPage(doc1, 'My Page');
-    const resource = createResource(doc1, 'API', 'openapi', 'openapi: 3.0.0');
     const sg = createSpecGroup(doc1, 'Vision', 'High level');
     assignToSpecGroup(doc1, sg.id, { type: 'page', id: page.id });
-    assignToSpecGroup(doc1, sg.id, { type: 'resource', id: resource.id });
 
     const file = extractCartaFile(doc1);
     expect(file.specGroups).toBeDefined();
     expect(file.specGroups!.length).toBe(1);
     expect(file.specGroups![0]!.name).toBe('Vision');
     expect(file.specGroups![0]!.description).toBe('High level');
-    expect(file.specGroups![0]!.items).toHaveLength(2);
+    expect(file.specGroups![0]!.items).toHaveLength(1);
 
     // Hydrate into a new doc and verify
     const doc2 = new Y.Doc();
@@ -217,9 +199,8 @@ describe('spec group file round-trip', () => {
     expect(groups[0]!.id).toBe(sg.id);
     expect(groups[0]!.name).toBe('Vision');
     expect(groups[0]!.description).toBe('High level');
-    expect(groups[0]!.items).toHaveLength(2);
+    expect(groups[0]!.items).toHaveLength(1);
     expect(groups[0]!.items[0]).toEqual({ type: 'page', id: page.id });
-    expect(groups[0]!.items[1]).toEqual({ type: 'resource', id: resource.id });
   });
 
   it('extractCartaFile returns undefined specGroups when none exist', () => {

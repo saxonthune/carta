@@ -6,7 +6,7 @@ import type { WorkspaceCanvasSchemas } from '../stores/adapters/yjsAdapter';
 interface WorkspaceFileEntry {
   name: string;
   path: string;
-  type: 'canvas' | 'resource';
+  type: 'canvas' | 'file';
   size: number;
 }
 

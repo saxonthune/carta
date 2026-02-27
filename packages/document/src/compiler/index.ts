@@ -5,8 +5,6 @@ import type {
   CompilationFormat,
   ConstructSchema,
   OrganizerNodeData,
-  Resource,
-  ResourceFieldValue,
 } from '@carta/schema';
 import { formatJSON } from './formatters/json.js';
 
@@ -30,7 +28,6 @@ const formatters: Record<CompilationFormat, FormatterFn> = {
  */
 export interface CompileOptions {
   schemas: ConstructSchema[];
-  resources?: Resource[];
 }
 
 /**
@@ -104,14 +101,6 @@ export class CompilerEngine {
 
     if (typeOutputs.length > 0) {
       sections.push(`# Constructs\n\n${typeOutputs.join('\n\n')}`);
-    }
-
-    // Add resources section if any resources exist
-    if (options.resources && options.resources.length > 0) {
-      const resourcesSection = this.compileResources(options.resources, compilableNodes, options.schemas);
-      if (resourcesSection) {
-        sections.push(resourcesSection);
-      }
     }
 
     if (sections.length === 0) {
@@ -315,63 +304,6 @@ ${schemasJson}
         },
       };
     });
-  }
-
-  private compileResources(
-    resources: Resource[],
-    nodes: CompilerNode[],
-    schemas: ConstructSchema[]
-  ): string | null {
-    // Build reference graph: for each resource, find constructs that reference it
-    const schemaMap = new Map(schemas.map(s => [s.type, s]));
-    const referencedByMap = new Map<string, Array<{ constructSemanticId: string; schemaType: string; field: string; pathHint?: string }>>();
-
-    for (const node of nodes) {
-      const schema = schemaMap.get(node.data.constructType);
-      if (!schema) continue;
-
-      for (const fieldDef of schema.fields) {
-        if (fieldDef.type !== 'resource') continue;
-        const fieldValue = node.data.values[fieldDef.name] as ResourceFieldValue | undefined;
-        if (!fieldValue?.resourceId) continue;
-
-        const refs = referencedByMap.get(fieldValue.resourceId) || [];
-        refs.push({
-          constructSemanticId: node.data.semanticId,
-          schemaType: node.data.constructType,
-          field: fieldDef.name,
-          ...(fieldValue.pathHint && { pathHint: fieldValue.pathHint }),
-        });
-        referencedByMap.set(fieldValue.resourceId, refs);
-      }
-    }
-
-    // Build compiled resources array
-    const compiledResources = resources.map(r => {
-      const latestVersion = r.versions.length > 0 ? r.versions[r.versions.length - 1] : undefined;
-      return {
-        name: r.name,
-        format: r.format,
-        body: r.body,
-        ...(latestVersion && {
-          version: {
-            label: latestVersion.label,
-            publishedAt: latestVersion.publishedAt,
-          },
-        }),
-        referencedBy: referencedByMap.get(r.id) || [],
-      };
-    });
-
-    const resourcesJson = JSON.stringify({ resources: compiledResources }, null, 2);
-
-    return `# Resources
-
-Data contracts and external artifacts referenced by constructs. Resource bodies are included verbatim — interpret them according to their declared format.
-
-\`\`\`json
-${resourcesJson}
-\`\`\``;
   }
 
   getAvailableFormats(): CompilationFormat[] {
