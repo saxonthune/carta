@@ -4323,7 +4323,7 @@ export function deleteSpecGroup(ydoc: Y.Doc, id: string): boolean {
 }
 
 /**
- * Assign a page or resource to a spec group.
+ * Assign a page to a spec group.
  * Enforces single-parent: removes from any existing group first.
  */
 export function assignToSpecGroup(ydoc: Y.Doc, groupId: string, item: SpecGroupItem): SpecGroup | undefined {
@@ -4346,7 +4346,7 @@ export function assignToSpecGroup(ydoc: Y.Doc, groupId: string, item: SpecGroupI
 }
 
 /**
- * Remove a page or resource from whichever spec group contains it.
+ * Remove a page from whichever spec group contains it.
  * Returns true if it was found and removed.
  */
 export function removeFromSpecGroup(ydoc: Y.Doc, itemType: 'page', itemId: string): boolean {

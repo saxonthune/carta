@@ -66,7 +66,7 @@ const CreateSchemaInput = z.object({
       z.object({
         name: z.string(),
         label: z.string(),
-        type: z.enum(['string', 'number', 'boolean', 'date', 'enum', 'resource']),
+        type: z.enum(['string', 'number', 'boolean', 'date', 'enum']),
         semanticDescription: z.string().optional(),
         options: z.array(z.object({ value: z.string(), semanticDescription: z.string().optional() })).optional(),
         default: z.unknown().optional(),
@@ -129,7 +129,7 @@ const AddFieldInput = z.object({
   schemaType: z.string(),
   field: z.object({
     name: z.string(),
-    type: z.enum(['string', 'number', 'boolean', 'date', 'enum', 'resource']),
+    type: z.enum(['string', 'number', 'boolean', 'date', 'enum']),
     options: z.array(z.string()).optional(),
     label: z.string().optional(),
     displayTier: z.enum(['pill', 'summary']).optional(),
@@ -173,7 +173,7 @@ const RenameSchemaTypeInput = z.object({
 const ChangeFieldTypeInput = z.object({
   schemaType: z.string(),
   fieldName: z.string(),
-  newType: z.enum(['string', 'number', 'boolean', 'date', 'enum', 'resource']),
+  newType: z.enum(['string', 'number', 'boolean', 'date', 'enum']),
   force: z.boolean().optional(),
   enumOptions: z.array(z.string()).optional(),
 });

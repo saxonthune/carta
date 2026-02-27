@@ -57,7 +57,7 @@ export interface YjsAdapterOptions {
   deferDefaultPage?: boolean;
   /**
    * Workspace canvas mode: schemas injected from server, no IndexedDB,
-   * page/resource/schema mutation methods are no-ops.
+   * page/schema mutation methods are no-ops.
    */
   workspaceCanvas?: WorkspaceCanvasSchemas;
 }

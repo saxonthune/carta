@@ -280,7 +280,7 @@ export const SchemaOpSchema = z.discriminatedUnion('op', [
         z.object({
           name: z.string(),
           label: z.string(),
-          type: z.enum(['string', 'number', 'boolean', 'date', 'enum', 'resource']),
+          type: z.enum(['string', 'number', 'boolean', 'date', 'enum']),
           semanticDescription: z.string().optional(),
           options: z.array(z.object({ value: z.string(), semanticDescription: z.string().optional() })).optional(),
           default: z.unknown().optional(),
@@ -351,7 +351,7 @@ export const SchemaOpSchema = z.discriminatedUnion('op', [
     schemaType: z.string().describe('The schema type to modify'),
     field: z.object({
       name: z.string().describe('Field name'),
-      type: z.enum(['string', 'number', 'boolean', 'date', 'enum', 'resource']).describe('Field data type'),
+      type: z.enum(['string', 'number', 'boolean', 'date', 'enum']).describe('Field data type'),
       options: z.array(z.string()).optional().describe('Enum options (required if type is enum)'),
       label: z.string().optional().describe('Display label'),
       displayTier: z.enum(['pill', 'summary']).optional(),
@@ -394,7 +394,7 @@ export const SchemaOpSchema = z.discriminatedUnion('op', [
     canvasId: z.string().describe('Canvas identifier'),
     schemaType: z.string().describe('The schema type to modify'),
     fieldName: z.string().describe('Field name to change type of'),
-    newType: z.enum(['string', 'number', 'boolean', 'date', 'enum', 'resource']).describe('New data type'),
+    newType: z.enum(['string', 'number', 'boolean', 'date', 'enum']).describe('New data type'),
     force: z.boolean().optional().describe('Set to true to execute. Default (false/omitted) returns a dry-run preview.'),
     enumOptions: z.array(z.string()).optional().describe('Enum options (required when newType is enum)'),
   }),

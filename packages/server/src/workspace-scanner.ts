@@ -46,7 +46,7 @@ const SKIP_DIRS = new Set(['.state', 'schemas']);
 const SKIP_FILES = new Set(['workspace.json', 'ui-state.json']);
 
 /**
- * Classify a filename as canvas or resource.
+ * Classify a filename as canvas.
  * A file is canvas if its name ends with '.canvas.json'.
  */
 function classifyFile(name: string): 'canvas' | 'file' {
