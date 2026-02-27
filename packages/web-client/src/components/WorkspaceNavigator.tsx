@@ -5,10 +5,10 @@ import type { WorkspaceTree } from '../hooks/useWorkspaceMode';
 interface WorkspaceNavigatorProps {
   isOpen: boolean;
   tree: WorkspaceTree;
-  /** Currently selected canvas path (room name), or null */
-  selectedCanvas: string | null;
-  /** Called when user clicks a canvas — no-op until workspace-09 wires DocumentAdapter per-canvas */
+  /** Currently selected file path (canvas or text), or null */
+  selectedPath: string | null;
   onSelectCanvas: (canvasPath: string) => void;
+  onSelectFile: (filePath: string) => void;
 }
 
 interface GroupSectionProps {
@@ -76,12 +76,20 @@ function CanvasRow({ name, path: _path, isSelected, onClick }: CanvasRowProps) {
 
 interface ResourceRowProps {
   name: string;
+  path: string;
+  isSelected: boolean;
+  onClick: () => void;
 }
 
-function ResourceRow({ name }: ResourceRowProps) {
+function ResourceRow({ name, path: _path, isSelected, onClick }: ResourceRowProps) {
   return (
-    <div className="flex items-center min-h-[36px] transition-colors">
-      <div className="w-[3px] self-stretch rounded-r flex-shrink-0" />
+    <div
+      className={`flex items-center min-h-[36px] cursor-pointer group transition-colors ${
+        isSelected ? 'bg-[var(--color-surface-selected)]' : 'hover:bg-surface-alt'
+      }`}
+      onClick={onClick}
+    >
+      <div className={`w-[3px] self-stretch rounded-r flex-shrink-0 ${isSelected ? 'bg-accent' : ''}`} />
       <div className="flex-1 flex items-center gap-2 px-2 min-w-0">
         <File weight="regular" size={14} className="flex-shrink-0 text-content-muted" />
         <span className="text-sm font-medium text-content truncate flex-1">{name}</span>
@@ -96,8 +104,9 @@ function ResourceRow({ name }: ResourceRowProps) {
 export default function WorkspaceNavigator({
   isOpen,
   tree,
-  selectedCanvas,
+  selectedPath,
   onSelectCanvas,
+  onSelectFile,
 }: WorkspaceNavigatorProps) {
   if (!isOpen) return null;
 
@@ -121,11 +130,17 @@ export default function WorkspaceNavigator({
                     key={file.path}
                     name={file.name}
                     path={file.path}
-                    isSelected={selectedCanvas === file.path}
+                    isSelected={selectedPath === file.path}
                     onClick={() => onSelectCanvas(file.path)}
                   />
                 ) : (
-                  <ResourceRow key={file.path} name={file.name} />
+                  <ResourceRow
+                    key={file.path}
+                    name={file.name}
+                    path={file.path}
+                    isSelected={selectedPath === file.path}
+                    onClick={() => onSelectFile(file.path)}
+                  />
                 )
               ))
             )}
@@ -140,11 +155,17 @@ export default function WorkspaceNavigator({
                   key={file.path}
                   name={file.name}
                   path={file.path}
-                  isSelected={selectedCanvas === file.path}
+                  isSelected={selectedPath === file.path}
                   onClick={() => onSelectCanvas(file.path)}
                 />
               ) : (
-                <ResourceRow key={file.path} name={file.name} />
+                <ResourceRow
+                  key={file.path}
+                  name={file.name}
+                  path={file.path}
+                  isSelected={selectedPath === file.path}
+                  onClick={() => onSelectFile(file.path)}
+                />
               )
             ))}
           </GroupSection>

@@ -36,6 +36,7 @@ const ExportPreviewModal = lazy(() => import('./components/modals/ExportPreviewM
 const CompileModal = lazy(() => import('./components/modals/CompileModal'));
 const ExampleConfirmModal = lazy(() => import('./components/modals/ExampleConfirmModal'));
 const AISidebar = lazy(() => import('./ai/components/AISidebar').then(m => ({ default: m.AISidebar })));
+const TextEditor = lazy(() => import('./components/TextEditor'));
 
 // Note: Schema initialization is now handled by DocumentProvider
 
@@ -73,9 +74,14 @@ interface WorkspaceAppLayoutProps {
   schemas: WorkspaceCanvasSchemas | null;
 }
 
+type WorkspaceSelection =
+  | { type: 'canvas'; path: string }
+  | { type: 'file'; path: string }
+  | null;
+
 function WorkspaceAppLayout({ tree, schemas }: WorkspaceAppLayoutProps) {
   const [navigatorOpen, setNavigatorOpen] = useState(true);
-  const [selectedCanvas, setSelectedCanvas] = useState<string | null>(null);
+  const [selection, setSelection] = useState<WorkspaceSelection>(null);
 
   return (
     <div className="h-screen flex flex-col">
@@ -96,13 +102,14 @@ function WorkspaceAppLayout({ tree, schemas }: WorkspaceAppLayoutProps) {
         <WorkspaceNavigator
           isOpen={navigatorOpen}
           tree={tree}
-          selectedCanvas={selectedCanvas}
-          onSelectCanvas={(canvasPath) => setSelectedCanvas(canvasPath)}
+          selectedPath={selection?.path ?? null}
+          onSelectCanvas={(path) => setSelection({ type: 'canvas', path })}
+          onSelectFile={(path) => setSelection({ type: 'file', path })}
         />
-        {selectedCanvas && schemas ? (
+        {selection?.type === 'canvas' && schemas ? (
           <DocumentProvider
-            key={selectedCanvas}
-            documentId={selectedCanvas}
+            key={selection.path}
+            documentId={selection.path}
             syncUrl={config.syncWsUrl ?? undefined}
             workspaceCanvas={schemas}
           >
@@ -111,11 +118,17 @@ function WorkspaceAppLayout({ tree, schemas }: WorkspaceAppLayoutProps) {
               activeView={{ type: 'page', pageId: 'canvas' }}
             />
           </DocumentProvider>
+        ) : selection?.type === 'file' ? (
+          <Suspense fallback={<div className="flex-1 flex items-center justify-center text-content-muted">Loading editor...</div>}>
+            <TextEditor
+              key={selection.path}
+              filePath={selection.path}
+              syncUrl={config.syncWsUrl!}
+            />
+          </Suspense>
         ) : (
           <div className="flex-1 flex items-center justify-center text-content-muted">
-            <p className="text-sm">
-              {schemas ? 'Select a canvas to start editing' : 'Select a canvas to start editing (loading schemas...)'}
-            </p>
+            <p className="text-sm">Select a file to start editing</p>
           </div>
         )}
       </div>
