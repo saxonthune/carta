@@ -266,5 +266,13 @@ The standalone Carta app (`carta serve .`) would then serve users who want the i
 
 ## Open questions
 
-1. **Hot reload**: When an external tool modifies a `.canvas.json` or `schemas.json` file while Carta is running, how does the server detect and reconcile? Filesystem watching with debounce (Zed uses 100ms). Conflict resolution when both Carta and an external tool modify the same file simultaneously.
+### Resolved: Hot reload strategy
+
+The workspace server watches `.carta/` with `fs.watch({ recursive: true })` and 100ms debounce. Reconciliation uses idle/active room semantics:
+
+- **Room not loaded**: No action — next open loads fresh from disk
+- **Room loaded, not dirty**: Re-hydrate Y.Doc from disk (safe, no unsaved edits)
+- **Room loaded, dirty**: Ignore external change — user's CRDT state wins, next save overwrites disk
+
+This is "last writer wins" at the room level. Resource files (`.ts`, `.md`) are not reconciled — they're plain files managed by git.
 2. **Compiler rename**: "Compilation" overstates what the operation does — it's a transform that strips coordinates and produces context-window-friendly output. Consider renaming to `transform`, `render`, or `present` in a future pass.

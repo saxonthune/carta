@@ -25,6 +25,7 @@ import {
   type DocumentSummary,
 } from './document-server-core.js';
 import { scanWorkspace } from './workspace-scanner.js';
+import { WorkspaceWatcher } from './workspace-watcher.js';
 
 const log = createDebug('carta:workspace-server');
 
@@ -66,6 +67,8 @@ let activeServer: {
   docs: Map<string, WorkspaceDocState>;
   cartaDir: string;
 } | null = null;
+
+let watcher: WorkspaceWatcher | null = null;
 
 // ===== CORE FUNCTIONS =====
 
@@ -290,6 +293,55 @@ export async function startWorkspaceServer(options: StartWorkspaceServerOptions)
 
   activeServer = { server, wss, docs, cartaDir };
 
+  // Start directory watcher (async alongside server — does not block startup)
+  watcher = new WorkspaceWatcher(cartaDir);
+
+  watcher.on('canvas-changed', (canvasPath: string) => {
+    const docState = docs.get(canvasPath);
+    if (!docState) return; // Room not loaded — no action needed
+
+    if (docState.dirty) {
+      log('canvas %s changed externally but room is dirty — ignoring (user edits win)', canvasPath);
+      return;
+    }
+
+    // Room is clean (not dirty) — safe to re-hydrate from disk
+    log('canvas %s changed externally, re-hydrating from disk', canvasPath);
+    try {
+      const canvasFilePath = resolveCanvasPath(cartaDir, canvasPath);
+      const content = fs.readFileSync(canvasFilePath, 'utf-8');
+      const canvas = parseCanvasFile(content);
+      hydrateYDocFromCanvasFile(docState.doc, canvas);
+      // hydrateYDocFromCanvasFile clears and repopulates inside a transaction,
+      // which triggers Y.Doc update observers, which broadcast to connected clients
+    } catch (err) {
+      log('failed to re-hydrate canvas %s: %O', canvasPath, err);
+    }
+  });
+
+  watcher.on('canvas-deleted', (canvasPath: string) => {
+    // Evict room if loaded
+    const docState = docs.get(canvasPath);
+    if (docState) {
+      // Clear any pending save timer
+      if (docState.saveTimer) clearTimeout(docState.saveTimer);
+      // Close all WebSocket connections to this room
+      for (const conn of docState.conns) {
+        conn.close();
+      }
+      docs.delete(canvasPath);
+      log('evicted room for deleted canvas: %s', canvasPath);
+    }
+  });
+
+  watcher.on('schemas-changed', () => {
+    log('schemas.json changed externally');
+    // Future: broadcast schema update to all connected clients
+    // For now, clients will get fresh schemas on next REST fetch
+  });
+
+  watcher.start();
+
   const url = `http://${host}:${actualPort}`;
   const wsUrl = `ws://${host}:${actualPort}`;
 
@@ -303,6 +355,12 @@ export async function stopWorkspaceServer(): Promise<void> {
   if (!activeServer) return;
 
   const { server, wss, docs, cartaDir } = activeServer;
+
+  // Stop directory watcher before flushing docs
+  if (watcher) {
+    watcher.stop();
+    watcher = null;
+  }
 
   // Flush all dirty docs before closing
   for (const [roomName, docState] of docs) {
