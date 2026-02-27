@@ -35,3 +35,6 @@ export { useUndoRedo } from './useUndoRedo';
 export { useAwareness } from './useAwareness';
 export { useDirtyStateGuard } from './useDirtyStateGuard';
 export { useClearDocument } from './useClearDocument';
+
+// Workspace mode
+export { useWorkspaceMode, type WorkspaceTree, type WorkspaceMode } from './useWorkspaceMode';

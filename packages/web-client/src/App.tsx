@@ -4,7 +4,11 @@ import DocumentBrowserModal from './components/modals/DocumentBrowserModal';
 import Header from './components/Header';
 import CanvasContainer from './components/canvas/CanvasContainer';
 import Navigator from './components/Navigator';
+import WorkspaceNavigator from './components/WorkspaceNavigator';
 import Footer from './components/Footer';
+import { useWorkspaceMode } from './hooks/useWorkspaceMode';
+import type { WorkspaceTree } from './hooks/useWorkspaceMode';
+import { List } from '@phosphor-icons/react';
 import { compiler } from '@carta/document';
 import { syncWithDocumentStore } from '@carta/schema';
 import type { ConstructSchema, Resource } from '@carta/schema';
@@ -37,6 +41,18 @@ const AISidebar = lazy(() => import('./ai/components/AISidebar').then(m => ({ de
 // Note: Schema initialization is now handled by DocumentProvider
 
 function App() {
+  const { isWorkspace, loading: workspaceLoading, workspaceTree } = useWorkspaceMode();
+
+  // Wait briefly while we detect whether the server is a workspace server
+  if (workspaceLoading) {
+    return null;
+  }
+
+  // Workspace mode: render the workspace layout (no DocumentContext needed)
+  if (isWorkspace && workspaceTree) {
+    return <WorkspaceAppLayout tree={workspaceTree} />;
+  }
+
   // In server mode without a ?doc= param, show document browser so user can pick/create.
   // In local mode, main.tsx always resolves a documentId before rendering, so skip this gate.
   if (config.hasSync) {
@@ -51,6 +67,46 @@ function App() {
   }
 
   return <AppContent />;
+}
+
+interface WorkspaceAppLayoutProps {
+  tree: WorkspaceTree;
+}
+
+function WorkspaceAppLayout({ tree }: WorkspaceAppLayoutProps) {
+  const [navigatorOpen, setNavigatorOpen] = useState(true);
+
+  return (
+    <div className="h-screen flex flex-col">
+      {/* Minimal workspace header */}
+      <div className="h-10 bg-surface-alt border-b border-border flex items-center px-3 gap-3 shrink-0">
+        <button
+          className="w-7 h-7 flex items-center justify-center rounded text-content-muted hover:bg-surface-alt hover:text-content transition-colors"
+          onClick={() => setNavigatorOpen(!navigatorOpen)}
+          title="Toggle navigator"
+        >
+          <List weight="bold" size={16} />
+        </button>
+        <span className="text-sm font-medium text-content truncate">
+          {tree.manifest.title}
+        </span>
+      </div>
+      <div className="flex-1 flex min-h-0">
+        <WorkspaceNavigator
+          isOpen={navigatorOpen}
+          tree={tree}
+          selectedCanvas={null}
+          onSelectCanvas={() => {
+            // No-op until workspace-09 wires DocumentAdapter per-canvas
+          }}
+        />
+        <div className="flex-1 flex items-center justify-center text-content-muted">
+          <p className="text-sm">Select a canvas to start editing (coming soon)</p>
+        </div>
+      </div>
+      <Footer />
+    </div>
+  );
 }
 
 function AppContent() {

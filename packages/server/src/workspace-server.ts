@@ -256,6 +256,7 @@ export async function startWorkspaceServer(options: StartWorkspaceServerOptions)
     healthMeta: {
       get rooms() { return docs.size; },
       persistence: 'workspace',
+      workspace: true,
     },
     workspacePath: cartaDir,
   });
