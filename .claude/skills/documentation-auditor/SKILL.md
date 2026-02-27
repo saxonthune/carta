@@ -1,13 +1,13 @@
 ---
 name: documentation-auditor
-description: Audits .docs/ claims against actual codebase, finding stale references, missing exports, wrong type signatures, and phantom files
+description: Audits .carta/ claims against actual codebase, finding stale references, missing exports, wrong type signatures, and phantom files
 context: fork
 model: sonnet
 ---
 
 # documentation-auditor
 
-Reverse-audits documentation against the codebase. While `/documentation-nag` is forward-sync (commits → docs), this skill is reverse-audit (docs → code). It finds claims in `.docs/` that no longer match reality.
+Reverse-audits documentation against the codebase. While `/documentation-nag` is forward-sync (commits → docs), this skill is reverse-audit (docs → code). It finds claims in `.carta/` that no longer match reality.
 
 ## When This Triggers
 
@@ -32,7 +32,7 @@ Reverse-audits documentation against the codebase. While `/documentation-nag` is
 # With argument: audit specific doc(s)
 ```
 
-**If specific doc named:** Match against MANIFEST refs (e.g., `doc02.08` → `.docs/02-system/08-frontend-architecture.md`). Audit only that file.
+**If specific doc named:** Match against MANIFEST refs (e.g., `doc02.08` → `.carta/02-system/08-frontend-architecture.md`). Audit only that file.
 
 **If no argument:** Read MANIFEST, then audit all active docs. Process them in priority order:
 1. System docs (02-system/) — highest density of verifiable claims

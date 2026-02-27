@@ -13,7 +13,7 @@ Consult doc02.01 for architecture overview. Key principle: the three layers (vis
 
 1. Identify which layer(s) the feature touches
 2. Add to the appropriate package or directory
-3. If it's a new user-facing capability, add a feature doc in `.docs/03-product/features/`
+3. If it's a new user-facing capability, add a feature doc in `.carta/03-product/features/`
 4. Run tests (`npm run test`, `npm run test:e2e`)
 5. Update relevant documentation using cross-references (doc00.03)
 

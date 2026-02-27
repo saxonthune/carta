@@ -9,14 +9,14 @@ Audits Carta components for layering violations, state misplacement, and refacto
 
 ## Reference Documentation
 
-Architecture principles live in `.docs/` (source of truth):
+Architecture principles live in `.carta/` (source of truth):
 - **Frontend architecture** (doc02.08): Four-layer model, state partitioning, container pattern, feature boundaries, audit checklist
 - **Architecture overview** (doc02.01): Layer separation, monorepo structure, data flow
 
 Read these before auditing:
 ```
-.docs/02-system/08-frontend-architecture.md
-.docs/02-system/01-overview.md
+.carta/02-system/08-frontend-architecture.md
+.carta/02-system/01-overview.md
 CLAUDE.md
 ```
 
@@ -59,8 +59,8 @@ You are opus. You do the analysis work:
 
 ### 1. Read Reference Docs
 ```typescript
-Read('.docs/02-system/08-frontend-architecture.md');
-Read('.docs/02-system/01-overview.md');
+Read('.carta/02-system/08-frontend-architecture.md');
+Read('.carta/02-system/01-overview.md');
 Read('CLAUDE.md');
 ```
 

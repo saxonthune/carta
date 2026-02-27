@@ -9,14 +9,14 @@ Audits and fixes UI styling inconsistencies in Carta's application chrome (not u
 
 ## Reference Documentation
 
-Standards live in `.docs/` (source of truth):
+Standards live in `.carta/` (source of truth):
 - **Design system** (doc02.07): Depth system, spacing scale, button hierarchy, semantic colors, typography, text-halo
 - **UX principles** (doc01.04): Fitts's Law, Hick's Law, Doherty Threshold, feedback latency targets
 
 Read these before auditing:
 ```
-.docs/02-system/07-design-system.md
-.docs/01-context/04-ux-principles.md
+.carta/02-system/07-design-system.md
+.carta/01-context/04-ux-principles.md
 src/index.css
 ```
 
@@ -62,8 +62,8 @@ You are opus. You do the analysis work:
 
 ### 1. Read Reference Docs (Parallel)
 ```typescript
-Read('.docs/02-system/07-design-system.md');
-Read('.docs/01-context/04-ux-principles.md');
+Read('.carta/02-system/07-design-system.md');
+Read('.carta/01-context/04-ux-principles.md');
 Read('src/index.css');
 ```
 

@@ -114,7 +114,7 @@ This means `git diff` always shows the real state. External tools (AI agents, te
 
 ### Spec groups = directories
 
-Spec groups are directories inside `.carta/` with numbered prefixes (`01-product-vision/`, `02-api-contract/`). Ordering is lexical — the same convention as `.docs/` titles. This means:
+Spec groups are directories inside `.carta/` with numbered prefixes (`01-product-vision/`, `02-api-contract/`). Ordering is lexical — the same convention as `.carta/` titles. This means:
 
 - The directory structure IS the spec group hierarchy
 - Renaming/reordering is a filesystem operation (rename the directory)
@@ -277,7 +277,7 @@ The `VITE_SYNC_URL` / `VITE_AI_MODE` configuration model survives. `VITE_SYNC_UR
 - **AI agent interoperability** — agents read/write spec files directly without MCP. Canvas and schema editing still needs MCP, but the workspace is legible to any tool
 - **OS-level capabilities for free** — file search (ripgrep, Spotlight), file management (rename, move, delete), access control (permissions, .gitignore), backup (Time Machine, cloud sync), diffing (git diff)
 - **Spec groups without new domain entities** — directories with numbered prefixes. No Y.Doc schema for groups, no migration, no new state management
-- **`.docs/` as a pattern, not a one-off** — the xx.yy.zz numbering convention becomes a Carta feature. Carta is "`.docs/` with a canvas editor, schema validation, and compilation"
+- **`.carta/` as a pattern, not a one-off** — the xx.yy.zz numbering convention becomes a Carta feature. Carta is "`.carta/` with a canvas editor, schema validation, and compilation"
 - **Desktop app becomes optional** — `npx carta serve .` gives the full experience in any browser
 
 ### What we lose or must migrate

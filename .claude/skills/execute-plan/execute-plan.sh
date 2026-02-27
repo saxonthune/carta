@@ -240,7 +240,7 @@ if [[ "$VERIFIED" == "true" ]]; then
 
       if [[ -n "$CONFLICTED_FILES" ]]; then
         while IFS= read -r file; do
-          if [[ "$file" == .docs/* ]]; then
+          if [[ "$file" == .carta/* ]]; then
             DROPPED_DOC_FILES+="${file}"$'\n'
           else
             NON_DOC_CONFLICTS+="${file}"$'\n'
@@ -249,7 +249,7 @@ if [[ "$VERIFIED" == "true" ]]; then
       fi
 
       if [[ -z "$NON_DOC_CONFLICTS" && -n "$DROPPED_DOC_FILES" ]]; then
-        # All conflicts are in .docs/ — accept trunk's version and continue
+        # All conflicts are in .carta/ — accept trunk's version and continue
         echo "Doc-only conflicts detected. Accepting trunk versions:"
         while IFS= read -r file; do
           [[ -z "$file" ]] && continue

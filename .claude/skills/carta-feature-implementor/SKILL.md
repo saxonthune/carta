@@ -129,7 +129,7 @@ After reading the plan, identify what codebase context is needed using a **two-p
 
 ### Phase 2A: Cheap Triage (Grep + MANIFEST)
 
-1. **Read `.docs/MANIFEST.md`** — use the tag index to map plan keywords to doc refs.
+1. **Read `.carta/MANIFEST.md`** — use the tag index to map plan keywords to doc refs.
 2. **Run 3-5 parallel Grep calls** directly from the main context for the plan's key terms. Use `output_mode: "files_with_matches"` to identify relevant files without reading content:
 
 ```typescript
@@ -154,7 +154,7 @@ Plan mentions "waypoints"          → tags: waypoints               → doc02.1
 
 Read only the files identified in Phase 2A. Prioritize:
 
-1. **`.docs/` refs** from MANIFEST — these give architectural context without reading source
+1. **`.carta/` refs** from MANIFEST — these give architectural context without reading source
 2. **Source files** from Grep hits — read the specific line ranges that matched, not entire files
 3. **Adjacent code** — if the plan modifies a function, read its callers (one level up) to understand impact
 
@@ -168,7 +168,7 @@ Read only the files identified in Phase 2A. Prioritize:
 
 Only use `Task(subagent_type='Explore')` if:
 - Phase 2A Grep returns 0 hits for all search terms (genuinely unknown territory)
-- The plan involves a subsystem with no `.docs/` coverage and no obvious entry points
+- The plan involves a subsystem with no `.carta/` coverage and no obvious entry points
 - You've done Phase 2A and still can't identify which files to modify
 
 Even then, give the Explore agent a **surgical prompt** with specific questions and file paths to start from — not an open-ended "investigate thoroughly."
@@ -252,7 +252,7 @@ This is the key output. Rewrite the plan file in `todo-tasks/` so it's **unambig
 1. **Motivation** — Why this change (1-2 sentences, for commit messages)
 2. **Design constraint** — One sentence stating the core design decision. Example: "All description UI lives in the trigger bar, NOT in the dropdown." This anchors the agent before it reads implementation details.
 3. **Do NOT** — Explicit list of things the agent must NOT do. This prevents scope creep and "path of least resistance" implementations. Include anything from the "Out of Scope" discussion, plus any structurally easy but wrong approaches the agent might be tempted by. Place this near the top — headless agents may not read the full document with equal attention.
-4. **Files to Modify** — Explicit list of files with what changes in each. **Must include `.docs/` files.** Use MANIFEST.md tags to find docs affected by the plan's subsystem. Include concrete edit instructions (what to add/change in each doc), not just "update docs." If no doc is affected, state that explicitly.
+4. **Files to Modify** — Explicit list of files with what changes in each. **Must include `.carta/` files.** Use MANIFEST.md tags to find docs affected by the plan's subsystem. Include concrete edit instructions (what to add/change in each doc), not just "update docs." If no doc is affected, state that explicitly.
 5. **Implementation Steps** — Ordered, concrete steps. Reference specific functions, line ranges, existing patterns. Each step should be independently verifiable. Doc updates are a step like any other — not a separate phase.
 6. **Constraints** — Codebase rules the agent must follow (from CLAUDE.md, doc references)
 7. **Verification** — Correctness properties, postconditions, and test instructions (see below)

@@ -5,13 +5,13 @@ status: active
 
 # AI Retrieval Patterns
 
-How AI agents efficiently and thoroughly navigate `.docs/`. Inspired by legal AI retrieval-augmented generation (RAG) research.
+How AI agents efficiently and thoroughly navigate `.carta/`. Inspired by legal AI retrieval-augmented generation (RAG) research.
 
 ## The Legal Parallel
 
 Legal codes share key characteristics with our documentation:
 
-| Legal Domain | .docs/ Equivalent |
+| Legal Domain | .carta/ Equivalent |
 |--------------|-------------------|
 | Constitutions (foundational principles) | `01-context/` (mission, principles) |
 | Statutes (structured rules) | `02-system/` (architecture, interfaces) |
@@ -29,7 +29,7 @@ From [Bridging Legal Knowledge and AI (2025)](https://arxiv.org/abs/2502.20364):
 
 > "Systems store vectorized representations treating each document type uniquely. Constitutional provisions are split into paragraphs for granular semantic search, statutes are divided into sections with metadata."
 
-**Applied to .docs/:**
+**Applied to .carta/:**
 - `01-context/` → read fully (foundational, rarely changes)
 - `02-system/` → read section headers, then targeted sections
 - `03-product/` → index by feature tags, read on-demand
@@ -73,7 +73,7 @@ Instead of reading entire docs, grep for specific sections:
 
 ```bash
 # Read only the "Hooks Layer" section from state.md
-grep -A 50 "### Hooks Layer" .docs/02-system/02-state.md
+grep -A 50 "### Hooks Layer" .carta/02-system/02-state.md
 ```
 
 ### 5. Dependency Graphs
@@ -121,7 +121,7 @@ The manifest serves as the retrieval index. Enhanced structure:
 | MANIFEST only | ~1,700 | Initial orientation |
 | MANIFEST + 1 doc | ~3,500 | Single-subsystem change |
 | MANIFEST + 3 docs | ~6,000 | Cross-cutting change |
-| Full .docs/ read | ~38,000 | Major refactor, epoch bump |
+| Full .carta/ read | ~38,000 | Major refactor, epoch bump |
 
 Target: **90% of documentation updates should read <10% of docs**.
 

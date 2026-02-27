@@ -1,0 +1,1399 @@
+{
+  "formatVersion": 1,
+  "nodes": [
+    {
+      "id": "node_1770592189746_w96rfz",
+      "type": "organizer",
+      "position": {
+        "x": -398.8376959756374,
+        "y": -786.4849404262036
+      },
+      "data": {
+        "isOrganizer": true,
+        "name": "Loop 1: Modeling & Discovery",
+        "color": "#3b82f6",
+        "collapsed": false,
+        "layout": "freeform",
+        "description": "carta-builder reads code, models in Carta document, discovers issues and gaps while modeling. Outputs todo-tasks."
+      },
+      "style": {
+        "width": 900,
+        "height": 450
+      }
+    },
+    {
+      "id": "node_1770592191978_es0mcc",
+      "type": "organizer",
+      "position": {
+        "x": -801.9668332029298,
+        "y": 103.8028634699233
+      },
+      "data": {
+        "isOrganizer": true,
+        "name": "Loop 2: Grooming & Execution",
+        "color": "#22c55e",
+        "collapsed": false,
+        "layout": "freeform",
+        "description": "carta-feature-implementor picks up todo-tasks, grooms into implementation-ready plans, launches headless agents, verifies results."
+      },
+      "style": {
+        "width": 1559.285904260956,
+        "height": 513.1929358430705
+      }
+    },
+    {
+      "id": "node_1770592205962_ct0f10",
+      "type": "construct",
+      "position": {
+        "x": 20,
+        "y": 140
+      },
+      "data": {
+        "constructType": "bpmn-event",
+        "semanticId": "bpmn-event-vtsalvd",
+        "values": {
+          "name": "Start session",
+          "eventPosition": "Start",
+          "trigger": "None",
+          "description": "User invokes /carta-builder"
+        },
+        "connections": [
+          {
+            "portId": "seq-out",
+            "targetSemanticId": "bpmn-activity-vtsa6nv",
+            "targetPortId": "seq-in"
+          }
+        ]
+      },
+      "parentId": "node_1770592189746_w96rfz"
+    },
+    {
+      "id": "node_1770592205962_we7vz9",
+      "type": "construct",
+      "position": {
+        "x": 180,
+        "y": -10
+      },
+      "data": {
+        "constructType": "bpmn-activity",
+        "semanticId": "bpmn-activity-vtsa6nv",
+        "values": {
+          "name": "Read codebase",
+          "activityType": "Task",
+          "description": "Read .docs/MANIFEST.md, source files, existing Carta document. Orient on both sides."
+        },
+        "connections": [
+          {
+            "portId": "seq-out",
+            "targetSemanticId": "bpmn-activity-vtsa5cn",
+            "targetPortId": "seq-in"
+          }
+        ]
+      },
+      "parentId": "node_1770592189746_w96rfz"
+    },
+    {
+      "id": "node_1770592205962_o7bfze",
+      "type": "construct",
+      "position": {
+        "x": 380,
+        "y": 144.85368974462574
+      },
+      "data": {
+        "constructType": "bpmn-activity",
+        "semanticId": "bpmn-activity-vtsa5cn",
+        "values": {
+          "name": "Model in Carta",
+          "activityType": "Task",
+          "description": "Create/update constructs, connections, organizers. Reify code structure into diagram."
+        },
+        "connections": [
+          {
+            "portId": "seq-out",
+            "targetSemanticId": "bpmn-gateway-vtsaqtf",
+            "targetPortId": "seq-in"
+          }
+        ]
+      },
+      "parentId": "node_1770592189746_w96rfz"
+    },
+    {
+      "id": "node_1770592205962_ywacpw",
+      "type": "construct",
+      "position": {
+        "x": 580,
+        "y": 24.853689744625747
+      },
+      "data": {
+        "constructType": "bpmn-gateway",
+        "semanticId": "bpmn-gateway-vtsaqtf",
+        "values": {
+          "name": "Issue found?",
+          "gatewayType": "Exclusive (XOR)",
+          "description": "Does modeling reveal a gap, bug, missing feature, or friction?"
+        },
+        "connections": [
+          {
+            "portId": "seq-out",
+            "targetSemanticId": "bpmn-activity-vtsanou",
+            "targetPortId": "seq-in"
+          },
+          {
+            "portId": "seq-out",
+            "targetSemanticId": "bpmn-activity-vtsbqgr",
+            "targetPortId": "seq-in"
+          }
+        ]
+      },
+      "parentId": "node_1770592189746_w96rfz"
+    },
+    {
+      "id": "node_1770592205962_0dlmzq",
+      "type": "construct",
+      "position": {
+        "x": 633.885783700304,
+        "y": 264.85368974462574
+      },
+      "data": {
+        "constructType": "bpmn-activity",
+        "semanticId": "bpmn-activity-vtsanou",
+        "values": {
+          "name": "Write todo-task",
+          "activityType": "Task",
+          "description": "Write motivation, scope, design direction to todo-tasks/*.md. Frontload summary in first 10 lines."
+        },
+        "connections": [
+          {
+            "portId": "data-link",
+            "targetSemanticId": "bpmn-data-object-wd18pvg",
+            "targetPortId": "data-link"
+          }
+        ]
+      },
+      "parentId": "node_1770592189746_w96rfz"
+    },
+    {
+      "id": "node_1770592205963_ta4sdz",
+      "type": "construct",
+      "position": {
+        "x": 1121.0386605896751,
+        "y": 20.303185796215658
+      },
+      "data": {
+        "constructType": "bpmn-activity",
+        "semanticId": "bpmn-activity-vtsbqgr",
+        "values": {
+          "name": "Compile & reflect",
+          "activityType": "Task",
+          "description": "Compile document, check if output is useful to AI. Surface friction between diagram and code."
+        },
+        "connections": [
+          {
+            "portId": "seq-out",
+            "targetSemanticId": "bpmn-activity-vtsa5cn",
+            "targetPortId": "seq-in"
+          }
+        ]
+      },
+      "parentId": "node_1770592189746_w96rfz"
+    },
+    {
+      "id": "node_1770592221649_y6nzis",
+      "type": "construct",
+      "position": {
+        "x": 255.21779846796693,
+        "y": 393.1929358430704
+      },
+      "data": {
+        "constructType": "bpmn-activity",
+        "semanticId": "bpmn-activity-w5w1mlu",
+        "values": {
+          "name": "Pick up task",
+          "activityType": "Task",
+          "description": "/carta-feature-implementor lists todo-tasks/, checks running agents, selects a plan to groom."
+        },
+        "connections": [
+          {
+            "portId": "seq-out",
+            "targetSemanticId": "bpmn-activity-w5w1bo9",
+            "targetPortId": "seq-in"
+          }
+        ]
+      },
+      "parentId": "node_1770592191978_es0mcc"
+    },
+    {
+      "id": "node_1770592221649_4agpot",
+      "type": "construct",
+      "position": {
+        "x": 115.96848016348513,
+        "y": 229.46445534967367
+      },
+      "data": {
+        "constructType": "bpmn-activity",
+        "semanticId": "bpmn-activity-w5w1bo9",
+        "values": {
+          "name": "Groom plan",
+          "activityType": "Task",
+          "description": "Read code context, brief user, resolve design decisions, add Do NOT section, concrete file refs, plan-specific checks."
+        },
+        "connections": [
+          {
+            "portId": "seq-out",
+            "targetSemanticId": "bpmn-activity-w5w13iv",
+            "targetPortId": "seq-in"
+          },
+          {
+            "portId": "data-link",
+            "targetSemanticId": "bpmn-data-object-wd18hxt",
+            "targetPortId": "data-link"
+          }
+        ]
+      },
+      "parentId": "node_1770592191978_es0mcc"
+    },
+    {
+      "id": "node_1770592221649_azxz7a",
+      "type": "construct",
+      "position": {
+        "x": 370.3085619416274,
+        "y": 88.76038876375141
+      },
+      "data": {
+        "constructType": "bpmn-activity",
+        "semanticId": "bpmn-activity-w5w13iv",
+        "values": {
+          "name": "Execute in worktree",
+          "activityType": "Subprocess",
+          "description": "/execute-plan launches headless Sonnet in a git worktree. Agent echoes constraints, implements step-by-step, commits incrementally."
+        },
+        "connections": [
+          {
+            "portId": "seq-out",
+            "targetSemanticId": "bpmn-gateway-w5w13e5",
+            "targetPortId": "seq-in"
+          },
+          {
+            "portId": "seq-out",
+            "targetSemanticId": "bpmn-event-wybqb9d",
+            "targetPortId": "seq-in"
+          }
+        ]
+      },
+      "parentId": "node_1770592191978_es0mcc"
+    },
+    {
+      "id": "node_1770592221649_2rzm5t",
+      "type": "construct",
+      "position": {
+        "x": 721.1621001843073,
+        "y": 115.96040731953744
+      },
+      "data": {
+        "constructType": "bpmn-gateway",
+        "semanticId": "bpmn-gateway-w5w13e5",
+        "values": {
+          "name": "Build & test pass?",
+          "gatewayType": "Exclusive (XOR)",
+          "description": "pnpm build && pnpm test + plan-specific grep checks"
+        },
+        "connections": [
+          {
+            "portId": "seq-out",
+            "targetSemanticId": "bpmn-activity-w5w1ndp",
+            "targetPortId": "seq-in"
+          },
+          {
+            "portId": "seq-out",
+            "targetSemanticId": "bpmn-activity-w5w1xfh",
+            "targetPortId": "seq-in"
+          }
+        ]
+      },
+      "style": {
+        "width": 173.95701937826848,
+        "height": 60
+      },
+      "parentId": "node_1770592191978_es0mcc"
+    },
+    {
+      "id": "node_1770592221649_dktggi",
+      "type": "construct",
+      "position": {
+        "x": 604.8955204739291,
+        "y": 360.72984112046885
+      },
+      "data": {
+        "constructType": "bpmn-activity",
+        "semanticId": "bpmn-activity-w5w1ndp",
+        "values": {
+          "name": "Fix violations",
+          "activityType": "Task",
+          "description": "Agent fixes build/test failures or plan constraint violations. Runs verify-against-plan checklist."
+        },
+        "connections": [
+          {
+            "portId": "seq-out",
+            "targetSemanticId": "bpmn-gateway-w5w13e5",
+            "targetPortId": "seq-in"
+          }
+        ]
+      },
+      "parentId": "node_1770592191978_es0mcc"
+    },
+    {
+      "id": "node_1770592221649_f43bdo",
+      "type": "construct",
+      "position": {
+        "x": 993.3328135087515,
+        "y": 120.66664053274694
+      },
+      "data": {
+        "constructType": "bpmn-activity",
+        "semanticId": "bpmn-activity-w5w1xfh",
+        "values": {
+          "name": "Merge to trunk",
+          "activityType": "Task",
+          "description": "On success, worktree branch merges into trunk. Plan archived to todo-tasks/.archived/."
+        },
+        "connections": [
+          {
+            "portId": "seq-out",
+            "targetSemanticId": "bpmn-event-w5w1lr2",
+            "targetPortId": "seq-in"
+          }
+        ]
+      },
+      "parentId": "node_1770592191978_es0mcc"
+    },
+    {
+      "id": "node_1770592221649_rn5jq4",
+      "type": "construct",
+      "position": {
+        "x": 1259.285904260956,
+        "y": 260.48791965636116
+      },
+      "data": {
+        "constructType": "bpmn-event",
+        "semanticId": "bpmn-event-w5w1lr2",
+        "values": {
+          "name": "Debrief",
+          "eventPosition": "End",
+          "trigger": "None",
+          "description": "Compare agent output to plan intent. Feed learnings back into skill/agent configs."
+        },
+        "connections": [
+          {
+            "portId": "seq-out",
+            "targetSemanticId": "bpmn-data-object-wd189o3",
+            "targetPortId": "data-link"
+          }
+        ]
+      },
+      "parentId": "node_1770592191978_es0mcc"
+    },
+    {
+      "id": "node_1770592230908_4fts9l",
+      "type": "construct",
+      "position": {
+        "x": 455.6682682427904,
+        "y": -184.6289440105977
+      },
+      "data": {
+        "constructType": "bpmn-data-object",
+        "semanticId": "bpmn-data-object-wd18pvg",
+        "values": {
+          "name": "todo-tasks/*.md",
+          "state": "Ungroomed",
+          "description": "Plan files with motivation, scope, design direction. Written by carta-builder, consumed by implementor."
+        },
+        "connections": [
+          {
+            "portId": "data-link",
+            "targetSemanticId": "bpmn-activity-w5w1mlu",
+            "targetPortId": "data-link"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_1770592230908_3wt48y",
+      "type": "construct",
+      "position": {
+        "x": 843.612666724821,
+        "y": 271.4437874703974
+      },
+      "data": {
+        "constructType": "bpmn-data-object",
+        "semanticId": "bpmn-data-object-wd18hxt",
+        "values": {
+          "name": "Groomed plan",
+          "state": "Implementation-ready",
+          "description": "Refined plan with Do NOT section, concrete file refs, plan-specific checks. Unambiguous enough for headless agent."
+        },
+        "connections": [
+          {
+            "portId": "data-link",
+            "targetSemanticId": "bpmn-activity-w5w13iv",
+            "targetPortId": "data-link"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_1770592230908_vujnq9",
+      "type": "construct",
+      "position": {
+        "x": 620.7076110100418,
+        "y": 1067.3582715249781
+      },
+      "data": {
+        "constructType": "bpmn-data-object",
+        "semanticId": "bpmn-data-object-wd189o3",
+        "values": {
+          "name": "Agent configs",
+          "state": "Evolving",
+          "description": "plan-executor.md, SKILL.md files. Updated via debrief when agent drift is detected."
+        },
+        "connections": []
+      }
+    },
+    {
+      "id": "node_1770593918851_7zuvc5",
+      "type": "organizer",
+      "position": {
+        "x": -317.845933609397,
+        "y": 1080.516004498972
+      },
+      "data": {
+        "isOrganizer": true,
+        "name": "Loop 3: Headless Execution (in worktree)",
+        "color": "#f59e0b",
+        "collapsed": false,
+        "layout": "freeform",
+        "description": "What the plan-executor agent does autonomously inside a git worktree. Reads plan, echoes constraints, implements, verifies, commits."
+      },
+      "style": {
+        "width": 750,
+        "height": 450
+      }
+    },
+    {
+      "id": "node_1770593938118_r9w7d1",
+      "type": "construct",
+      "position": {
+        "x": 20,
+        "y": 86.954345703125
+      },
+      "data": {
+        "constructType": "bpmn-event",
+        "semanticId": "bpmn-event-wybqb9d",
+        "values": {
+          "name": "Agent starts",
+          "eventPosition": "Start",
+          "trigger": "None",
+          "description": "execute-plan.sh creates worktree, installs deps, launches claude -p with plan prompt"
+        },
+        "connections": [
+          {
+            "portId": "seq-out",
+            "targetSemanticId": "bpmn-activity-wybq7v9",
+            "targetPortId": "seq-in"
+          }
+        ]
+      },
+      "parentId": "node_1770593918851_7zuvc5"
+    },
+    {
+      "id": "node_1770593938118_s4wrdd",
+      "type": "construct",
+      "position": {
+        "x": 160,
+        "y": -33.045654296875
+      },
+      "data": {
+        "constructType": "bpmn-activity",
+        "semanticId": "bpmn-activity-wybq7v9",
+        "values": {
+          "name": "Read plan & echo constraints",
+          "activityType": "Task",
+          "description": "Read todo-tasks/*.md. List back Do NOT items, Design constraint, Out of Scope. This is the guardrail checklist."
+        },
+        "connections": [
+          {
+            "portId": "seq-out",
+            "targetSemanticId": "bpmn-activity-wybqbdm",
+            "targetPortId": "seq-in"
+          }
+        ]
+      },
+      "parentId": "node_1770593918851_7zuvc5"
+    },
+    {
+      "id": "node_1770593938118_elrkst",
+      "type": "construct",
+      "position": {
+        "x": 350,
+        "y": 94.51660156250003
+      },
+      "data": {
+        "constructType": "bpmn-activity",
+        "semanticId": "bpmn-activity-wybqbdm",
+        "values": {
+          "name": "Orient",
+          "activityType": "Task",
+          "description": "Read .docs/MANIFEST.md, relevant docs, existing source files that will be modified. Understand before changing."
+        },
+        "connections": [
+          {
+            "portId": "seq-out",
+            "targetSemanticId": "bpmn-activity-wybqqie",
+            "targetPortId": "seq-in"
+          }
+        ]
+      },
+      "parentId": "node_1770593918851_7zuvc5"
+    },
+    {
+      "id": "node_1770593938118_rvcu5w",
+      "type": "construct",
+      "position": {
+        "x": 520,
+        "y": -25.483398437499837
+      },
+      "data": {
+        "constructType": "bpmn-activity",
+        "semanticId": "bpmn-activity-wybqqie",
+        "values": {
+          "name": "Implement step-by-step",
+          "activityType": "Task",
+          "description": "Work through plan steps in order. Commit after each logical unit. Stage specific files, not git add -A."
+        },
+        "connections": [
+          {
+            "portId": "seq-out",
+            "targetSemanticId": "bpmn-activity-wybq7xv",
+            "targetPortId": "seq-in"
+          }
+        ]
+      },
+      "parentId": "node_1770593918851_7zuvc5"
+    },
+    {
+      "id": "node_1770593938118_9tgzei",
+      "type": "construct",
+      "position": {
+        "x": 350,
+        "y": 344.012451171875
+      },
+      "data": {
+        "constructType": "bpmn-activity",
+        "semanticId": "bpmn-activity-wybq7xv",
+        "values": {
+          "name": "Verify against plan",
+          "activityType": "Task",
+          "description": "Review changes against constraint checklist. Confirm no files outside Files to Modify touched, no Do NOT violations, no scope creep."
+        },
+        "connections": [
+          {
+            "portId": "seq-out",
+            "targetSemanticId": "bpmn-activity-wybqge7",
+            "targetPortId": "seq-in"
+          }
+        ]
+      },
+      "parentId": "node_1770593918851_7zuvc5"
+    },
+    {
+      "id": "node_1770593938118_mikqhk",
+      "type": "construct",
+      "position": {
+        "x": 520,
+        "y": 224.012451171875
+      },
+      "data": {
+        "constructType": "bpmn-activity",
+        "semanticId": "bpmn-activity-wybqge7",
+        "values": {
+          "name": "Run plan-specific checks",
+          "activityType": "Task",
+          "description": "Execute grep-based assertions from plan. E.g., ! grep -q 'isEditingDescription' to verify removed code stays gone."
+        },
+        "connections": [
+          {
+            "portId": "seq-out",
+            "targetSemanticId": "bpmn-gateway-wybqqyk",
+            "targetPortId": "seq-in"
+          }
+        ]
+      },
+      "parentId": "node_1770593918851_7zuvc5"
+    },
+    {
+      "id": "node_1770593938118_hjdv34",
+      "type": "construct",
+      "position": {
+        "x": 160,
+        "y": 214.51660156249991
+      },
+      "data": {
+        "constructType": "bpmn-gateway",
+        "semanticId": "bpmn-gateway-wybqqyk",
+        "values": {
+          "name": "pnpm build && test?",
+          "gatewayType": "Exclusive (XOR)",
+          "description": "Run pnpm build && pnpm test (NOT test:e2e). Fix failures before finishing."
+        },
+        "connections": [
+          {
+            "portId": "seq-out",
+            "targetSemanticId": "bpmn-event-wybq2a9",
+            "targetPortId": "seq-in"
+          },
+          {
+            "portId": "seq-out",
+            "targetSemanticId": "bpmn-activity-wybqqie",
+            "targetPortId": "seq-in"
+          }
+        ]
+      },
+      "parentId": "node_1770593918851_7zuvc5"
+    },
+    {
+      "id": "node_1770593938118_3kwvdt",
+      "type": "construct",
+      "position": {
+        "x": 20,
+        "y": 334.5166015624999
+      },
+      "data": {
+        "constructType": "bpmn-event",
+        "semanticId": "bpmn-event-wybq2a9",
+        "values": {
+          "name": "Done",
+          "eventPosition": "End",
+          "trigger": "None",
+          "description": "Output summary: commits, files changed, build/test status, deviations from plan."
+        },
+        "connections": [
+          {
+            "portId": "seq-out",
+            "targetSemanticId": "bpmn-gateway-w5w13e5",
+            "targetPortId": "seq-in"
+          }
+        ]
+      },
+      "parentId": "node_1770593918851_7zuvc5"
+    },
+    {
+      "id": "node_1770593950170_2m10dv",
+      "type": "organizer",
+      "position": {
+        "x": 1360.6281375880521,
+        "y": -629.6231389347339
+      },
+      "data": {
+        "isOrganizer": true,
+        "name": "Example: Directional Auto-Layout \u2014 Discovery",
+        "color": "#60a5fa",
+        "collapsed": false,
+        "layout": "freeform",
+        "description": "While modeling the Architecture page, carta-builder noticed the existing spread/compact layouts ignore edge direction. This matters for flow diagrams. Wrote todo-task."
+      },
+      "style": {
+        "width": 900,
+        "height": 350
+      }
+    },
+    {
+      "id": "node_1770593953115_fud231",
+      "type": "organizer",
+      "position": {
+        "x": 1338.0447152864033,
+        "y": 198.5505193496739
+      },
+      "data": {
+        "isOrganizer": true,
+        "name": "Example: Directional Auto-Layout \u2014 Grooming",
+        "color": "#4ade80",
+        "collapsed": false,
+        "layout": "freeform",
+        "description": "Implementor read the task, explored spreadNodes.ts and Map.tsx, resolved decisions (TB only, top-level nodes only, Sugiyama algorithm), refined into step-by-step plan."
+      },
+      "style": {
+        "width": 1089.6618305917593,
+        "height": 286.41129973247297
+      }
+    },
+    {
+      "id": "node_1770593955828_u9y8cq",
+      "type": "organizer",
+      "position": {
+        "x": 1363.6984728999098,
+        "y": 785.6871049575775
+      },
+      "data": {
+        "isOrganizer": true,
+        "name": "Example: Directional Auto-Layout \u2014 Execution",
+        "color": "#fbbf24",
+        "collapsed": false,
+        "layout": "freeform",
+        "description": "Headless Sonnet agent created hierarchicalLayout.ts (267 lines), added toolbar button to Map.tsx, passed build+test. One commit: 9ded784."
+      },
+      "style": {
+        "width": 1049.3142512094732,
+        "height": 224.8191223794747
+      }
+    },
+    {
+      "id": "node_1770593967188_2uhcf6",
+      "type": "construct",
+      "position": {
+        "x": -49.99999999999997,
+        "y": 60
+      },
+      "data": {
+        "constructType": "bpmn-activity",
+        "semanticId": "bpmn-activity-xkr8n2d",
+        "values": {
+          "name": "Model Architecture page",
+          "activityType": "Task",
+          "description": "carta-builder reading packages, creating Module constructs, connecting them with flow edges to show data dependencies."
+        },
+        "connections": [
+          {
+            "portId": "seq-out",
+            "targetSemanticId": "bpmn-activity-xkr8r38",
+            "targetPortId": "seq-in"
+          }
+        ]
+      },
+      "parentId": "node_1770593950170_2m10dv"
+    },
+    {
+      "id": "node_1770593967188_5hkwxw",
+      "type": "construct",
+      "position": {
+        "x": 250.00000000000003,
+        "y": 60
+      },
+      "data": {
+        "constructType": "bpmn-activity",
+        "semanticId": "bpmn-activity-xkr8r38",
+        "values": {
+          "name": "Try layout tools",
+          "activityType": "Task",
+          "description": "Used spread and compact layout on the Architecture page. Nodes went into a grid \u2014 edge direction was lost. Sources and sinks ended up side-by-side."
+        },
+        "connections": [
+          {
+            "portId": "seq-out",
+            "targetSemanticId": "bpmn-activity-xkr8z97",
+            "targetPortId": "seq-in"
+          }
+        ]
+      },
+      "parentId": "node_1770593950170_2m10dv"
+    },
+    {
+      "id": "node_1770593967188_bq2bj6",
+      "type": "construct",
+      "position": {
+        "x": 550,
+        "y": 120
+      },
+      "data": {
+        "constructType": "bpmn-activity",
+        "semanticId": "bpmn-activity-xkr8z97",
+        "values": {
+          "name": "Identify gap",
+          "activityType": "Task",
+          "description": "Existing layouts (spreadNodes, compactNodes) are grid-based. No algorithm considers edge topology. Users modeling data flow or dependency chains need directional layout."
+        },
+        "connections": [
+          {
+            "portId": "seq-out",
+            "targetSemanticId": "bpmn-activity-xkr81oj",
+            "targetPortId": "seq-in"
+          }
+        ]
+      },
+      "parentId": "node_1770593950170_2m10dv"
+    },
+    {
+      "id": "node_1770593967188_s8o0yf",
+      "type": "construct",
+      "position": {
+        "x": 700,
+        "y": 0
+      },
+      "data": {
+        "constructType": "bpmn-activity",
+        "semanticId": "bpmn-activity-xkr81oj",
+        "values": {
+          "name": "Write todo-task",
+          "activityType": "Task",
+          "description": "Created directional-auto-layout.md: scope = new feature, 1 new file + 1 modified, summary of Sugiyama approach. Frontloaded summary in first 10 lines."
+        },
+        "connections": [
+          {
+            "portId": "data-link",
+            "targetSemanticId": "bpmn-data-object-y7gbukf",
+            "targetPortId": "data-link"
+          }
+        ]
+      },
+      "parentId": "node_1770593950170_2m10dv"
+    },
+    {
+      "id": "node_1770593977500_eb26ab",
+      "type": "construct",
+      "position": {
+        "x": 20,
+        "y": 166.41129973247297
+      },
+      "data": {
+        "constructType": "bpmn-activity",
+        "semanticId": "bpmn-activity-xspo75u",
+        "values": {
+          "name": "Read task + explore code",
+          "activityType": "Task",
+          "description": "Read directional-auto-layout.md. Explored spreadNodes.ts (existing pattern), compactNodes.ts, Map.tsx toolbar section. Understood SpreadInput type."
+        },
+        "connections": [
+          {
+            "portId": "seq-out",
+            "targetSemanticId": "bpmn-activity-xspowhs",
+            "targetPortId": "seq-in"
+          }
+        ]
+      },
+      "parentId": "node_1770593953115_fud231"
+    },
+    {
+      "id": "node_1770593977500_3jxq57",
+      "type": "construct",
+      "position": {
+        "x": 243.98860443837742,
+        "y": 103.38816010819446
+      },
+      "data": {
+        "constructType": "bpmn-activity",
+        "semanticId": "bpmn-activity-xspowhs",
+        "values": {
+          "name": "Resolve decisions",
+          "activityType": "Task",
+          "description": "TB-only (not LR). Top-level nodes only (organizers treated as single nodes). DFS cycle-breaking. Reuse SpreadInput type. Centroid preservation required."
+        },
+        "connections": [
+          {
+            "portId": "seq-out",
+            "targetSemanticId": "bpmn-activity-xspou6u",
+            "targetPortId": "seq-in"
+          }
+        ]
+      },
+      "parentId": "node_1770593953115_fud231"
+    },
+    {
+      "id": "node_1770593977500_8ssci0",
+      "type": "construct",
+      "position": {
+        "x": 489.6618305917592,
+        "y": 60
+      },
+      "data": {
+        "constructType": "bpmn-activity",
+        "semanticId": "bpmn-activity-xspou6u",
+        "values": {
+          "name": "Refine plan",
+          "activityType": "Task",
+          "description": "Rewrote plan with: exact function signature, algorithm steps 1-7, Map.tsx callback code, toolbar button SVG, file locations with line numbers."
+        },
+        "connections": [
+          {
+            "portId": "seq-out",
+            "targetSemanticId": "bpmn-activity-xspoffp",
+            "targetPortId": "seq-in"
+          },
+          {
+            "portId": "data-link",
+            "targetSemanticId": "bpmn-data-object-y7gby9l",
+            "targetPortId": "data-link"
+          }
+        ]
+      },
+      "parentId": "node_1770593953115_fud231"
+    },
+    {
+      "id": "node_1770593977500_ihp71u",
+      "type": "construct",
+      "position": {
+        "x": 789.6618305917593,
+        "y": 60
+      },
+      "data": {
+        "constructType": "bpmn-activity",
+        "semanticId": "bpmn-activity-xspoffp",
+        "values": {
+          "name": "Launch agent",
+          "activityType": "Task",
+          "description": "execute-plan.sh directional-auto-layout \u2192 created worktree carta-agent-directional-auto-layout, installed deps, launched claude -p."
+        },
+        "connections": []
+      },
+      "parentId": "node_1770593953115_fud231"
+    },
+    {
+      "id": "node_1770593987978_m1k55u",
+      "type": "construct",
+      "position": {
+        "x": 20,
+        "y": 60
+      },
+      "data": {
+        "constructType": "bpmn-activity",
+        "semanticId": "bpmn-activity-y0sqc7r",
+        "values": {
+          "name": "Read plan, echo constraints",
+          "activityType": "Task",
+          "description": "Agent listed: TB only, top-level only, reuse SpreadInput, centroid preservation required, pure function (no React deps)."
+        },
+        "connections": [
+          {
+            "portId": "seq-out",
+            "targetSemanticId": "bpmn-activity-y0sqbyb",
+            "targetPortId": "seq-in"
+          }
+        ]
+      },
+      "parentId": "node_1770593955828_u9y8cq"
+    },
+    {
+      "id": "node_1770593987978_twuvqu",
+      "type": "construct",
+      "position": {
+        "x": 306.2095008063155,
+        "y": 104.81912237947469
+      },
+      "data": {
+        "constructType": "bpmn-activity",
+        "semanticId": "bpmn-activity-y0sqbyb",
+        "values": {
+          "name": "Create hierarchicalLayout.ts",
+          "activityType": "Task",
+          "description": "267 lines. Built adjacency, DFS cycle-breaking, longest-path layer assignment, barycenter ordering, coordinate assignment, centroid shift."
+        },
+        "connections": [
+          {
+            "portId": "seq-out",
+            "targetSemanticId": "bpmn-activity-y0sqazg",
+            "targetPortId": "seq-in"
+          }
+        ]
+      },
+      "parentId": "node_1770593955828_u9y8cq"
+    },
+    {
+      "id": "node_1770593987978_lblz9d",
+      "type": "construct",
+      "position": {
+        "x": 578.6285024189465,
+        "y": 68.28562802368305
+      },
+      "data": {
+        "constructType": "bpmn-activity",
+        "semanticId": "bpmn-activity-y0sqazg",
+        "values": {
+          "name": "Add toolbar button to Map.tsx",
+          "activityType": "Task",
+          "description": "Added handleHierarchicalLayout callback (same pattern as handleCompactAll), tree-shaped SVG icon in ControlButton."
+        },
+        "connections": [
+          {
+            "portId": "seq-out",
+            "targetSemanticId": "bpmn-event-y0sqhih",
+            "targetPortId": "seq-in"
+          }
+        ]
+      },
+      "parentId": "node_1770593955828_u9y8cq"
+    },
+    {
+      "id": "node_1770593987978_nrzm4a",
+      "type": "construct",
+      "position": {
+        "x": 749.3142512094732,
+        "y": 103.42874395263392
+      },
+      "data": {
+        "constructType": "bpmn-event",
+        "semanticId": "bpmn-event-y0sqhih",
+        "values": {
+          "name": "Build+test pass",
+          "eventPosition": "End",
+          "trigger": "None",
+          "description": "pnpm build \u2713, 212 web-client tests \u2713, 13 server tests \u2713. Commit 9ded784. Merged to trunk."
+        },
+        "connections": []
+      },
+      "parentId": "node_1770593955828_u9y8cq"
+    },
+    {
+      "id": "node_1770593996603_pfrjrx",
+      "type": "construct",
+      "position": {
+        "x": 1174.535124832615,
+        "y": -124.13461496193376
+      },
+      "data": {
+        "constructType": "bpmn-data-object",
+        "semanticId": "bpmn-data-object-y7gbukf",
+        "values": {
+          "name": "directional-auto-layout.md",
+          "state": "Ungroomed",
+          "description": "Scope: new feature, 1 new + 1 modified. Sugiyama-style TB layout. Motivation: spread/compact ignore edges."
+        },
+        "connections": [
+          {
+            "portId": "data-link",
+            "targetSemanticId": "bpmn-activity-xspo75u",
+            "targetPortId": "data-link"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_1770593996603_klns4u",
+      "type": "construct",
+      "position": {
+        "x": 768.6386656319133,
+        "y": -227.24384413304512
+      },
+      "data": {
+        "constructType": "bpmn-data-object",
+        "semanticId": "bpmn-data-object-y7gby9l",
+        "values": {
+          "name": "Groomed plan",
+          "state": "Implementation-ready",
+          "description": "Exact function sig, SpreadInput reuse, 7 algorithm steps, Map.tsx callback code, toolbar SVG, line number refs."
+        },
+        "connections": [
+          {
+            "portId": "data-link",
+            "targetSemanticId": "bpmn-activity-y0sqc7r",
+            "targetPortId": "data-link"
+          }
+        ]
+      }
+    },
+    {
+      "id": "09822d7c-b171-4323-a135-aa626d99933b",
+      "type": "construct",
+      "position": {
+        "x": 475.70761101004183,
+        "y": 2137.3321195759427
+      },
+      "data": {
+        "constructType": "note",
+        "semanticId": "note-937yxli",
+        "values": {
+          "content": "yes. hello world\n\n\n\n"
+        }
+      },
+      "style": {
+        "width": 388.43338156524715,
+        "height": 251.84025815893796
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge_1770592205963_fplgau",
+      "source": "node_1770592205962_ct0f10",
+      "target": "node_1770592205962_we7vz9",
+      "sourceHandle": "seq-out",
+      "targetHandle": "seq-in"
+    },
+    {
+      "id": "edge_1770592205963_3pqlma",
+      "source": "node_1770592205962_we7vz9",
+      "target": "node_1770592205962_o7bfze",
+      "sourceHandle": "seq-out",
+      "targetHandle": "seq-in"
+    },
+    {
+      "id": "edge_1770592205963_1ptenk",
+      "source": "node_1770592205962_o7bfze",
+      "target": "node_1770592205962_ywacpw",
+      "sourceHandle": "seq-out",
+      "targetHandle": "seq-in"
+    },
+    {
+      "id": "edge_1770592205963_nxxdum",
+      "source": "node_1770592205962_ywacpw",
+      "target": "node_1770592205962_0dlmzq",
+      "sourceHandle": "seq-out",
+      "targetHandle": "seq-in"
+    },
+    {
+      "id": "edge_1770592205963_ok6684",
+      "source": "node_1770592205962_ywacpw",
+      "target": "node_1770592205963_ta4sdz",
+      "sourceHandle": "seq-out",
+      "targetHandle": "seq-in"
+    },
+    {
+      "id": "edge_1770592205963_8ste58",
+      "source": "node_1770592205963_ta4sdz",
+      "target": "node_1770592205962_o7bfze",
+      "sourceHandle": "seq-out",
+      "targetHandle": "seq-in"
+    },
+    {
+      "id": "edge_1770592221649_luu3ux",
+      "source": "node_1770592221649_y6nzis",
+      "target": "node_1770592221649_4agpot",
+      "sourceHandle": "seq-out",
+      "targetHandle": "seq-in"
+    },
+    {
+      "id": "edge_1770592221649_tzwamh",
+      "source": "node_1770592221649_4agpot",
+      "target": "node_1770592221649_azxz7a",
+      "sourceHandle": "seq-out",
+      "targetHandle": "seq-in"
+    },
+    {
+      "id": "edge_1770592221649_9aek0n",
+      "source": "node_1770592221649_azxz7a",
+      "target": "node_1770592221649_2rzm5t",
+      "sourceHandle": "seq-out",
+      "targetHandle": "seq-in"
+    },
+    {
+      "id": "edge_1770592221649_jyvjmd",
+      "source": "node_1770592221649_2rzm5t",
+      "target": "node_1770592221649_dktggi",
+      "sourceHandle": "seq-out",
+      "targetHandle": "seq-in"
+    },
+    {
+      "id": "edge_1770592221649_rc6wfk",
+      "source": "node_1770592221649_dktggi",
+      "target": "node_1770592221649_2rzm5t",
+      "sourceHandle": "seq-out",
+      "targetHandle": "seq-in"
+    },
+    {
+      "id": "edge_1770592221649_ekfp0m",
+      "source": "node_1770592221649_2rzm5t",
+      "target": "node_1770592221649_f43bdo",
+      "sourceHandle": "seq-out",
+      "targetHandle": "seq-in"
+    },
+    {
+      "id": "edge_1770592221649_f6x079",
+      "source": "node_1770592221649_f43bdo",
+      "target": "node_1770592221649_rn5jq4",
+      "sourceHandle": "seq-out",
+      "targetHandle": "seq-in"
+    },
+    {
+      "id": "edge_1770592230908_wcjn99",
+      "source": "node_1770592205962_0dlmzq",
+      "target": "node_1770592230908_4fts9l",
+      "sourceHandle": "data-link",
+      "targetHandle": "data-link"
+    },
+    {
+      "id": "edge_1770592230908_tqudg8",
+      "source": "node_1770592230908_4fts9l",
+      "target": "node_1770592221649_y6nzis",
+      "sourceHandle": "data-link",
+      "targetHandle": "data-link"
+    },
+    {
+      "id": "edge_1770592230908_9i7z4k",
+      "source": "node_1770592221649_4agpot",
+      "target": "node_1770592230908_3wt48y",
+      "sourceHandle": "data-link",
+      "targetHandle": "data-link"
+    },
+    {
+      "id": "edge_1770592230908_lfczbq",
+      "source": "node_1770592230908_3wt48y",
+      "target": "node_1770592221649_azxz7a",
+      "sourceHandle": "data-link",
+      "targetHandle": "data-link"
+    },
+    {
+      "id": "edge_1770592230908_gts8fd",
+      "source": "node_1770592221649_rn5jq4",
+      "target": "node_1770592230908_vujnq9",
+      "sourceHandle": "seq-out",
+      "targetHandle": "data-link"
+    },
+    {
+      "id": "edge_1770593938118_crpm3d",
+      "source": "node_1770593938118_r9w7d1",
+      "target": "node_1770593938118_s4wrdd",
+      "sourceHandle": "seq-out",
+      "targetHandle": "seq-in"
+    },
+    {
+      "id": "edge_1770593938118_73zo2s",
+      "source": "node_1770593938118_s4wrdd",
+      "target": "node_1770593938118_elrkst",
+      "sourceHandle": "seq-out",
+      "targetHandle": "seq-in"
+    },
+    {
+      "id": "edge_1770593938118_iz37od",
+      "source": "node_1770593938118_elrkst",
+      "target": "node_1770593938118_rvcu5w",
+      "sourceHandle": "seq-out",
+      "targetHandle": "seq-in"
+    },
+    {
+      "id": "edge_1770593938118_ijuxgz",
+      "source": "node_1770593938118_rvcu5w",
+      "target": "node_1770593938118_9tgzei",
+      "sourceHandle": "seq-out",
+      "targetHandle": "seq-in"
+    },
+    {
+      "id": "edge_1770593938118_jmo09l",
+      "source": "node_1770593938118_9tgzei",
+      "target": "node_1770593938118_mikqhk",
+      "sourceHandle": "seq-out",
+      "targetHandle": "seq-in"
+    },
+    {
+      "id": "edge_1770593938118_8cmpha",
+      "source": "node_1770593938118_mikqhk",
+      "target": "node_1770593938118_hjdv34",
+      "sourceHandle": "seq-out",
+      "targetHandle": "seq-in"
+    },
+    {
+      "id": "edge_1770593938118_02meyz",
+      "source": "node_1770593938118_hjdv34",
+      "target": "node_1770593938118_3kwvdt",
+      "sourceHandle": "seq-out",
+      "targetHandle": "seq-in"
+    },
+    {
+      "id": "edge_1770593938118_pr2lfr",
+      "source": "node_1770593938118_hjdv34",
+      "target": "node_1770593938118_rvcu5w",
+      "sourceHandle": "seq-out",
+      "targetHandle": "seq-in"
+    },
+    {
+      "id": "edge_1770593943813_44zlbb",
+      "source": "node_1770592221649_azxz7a",
+      "target": "node_1770593938118_r9w7d1",
+      "sourceHandle": "seq-out",
+      "targetHandle": "seq-in"
+    },
+    {
+      "id": "edge_1770593943813_q7leow",
+      "source": "node_1770593938118_3kwvdt",
+      "target": "node_1770592221649_2rzm5t",
+      "sourceHandle": "seq-out",
+      "targetHandle": "seq-in"
+    },
+    {
+      "id": "edge_1770593967188_4pk92v",
+      "source": "node_1770593967188_2uhcf6",
+      "target": "node_1770593967188_5hkwxw",
+      "sourceHandle": "seq-out",
+      "targetHandle": "seq-in"
+    },
+    {
+      "id": "edge_1770593967188_a7gx2f",
+      "source": "node_1770593967188_5hkwxw",
+      "target": "node_1770593967188_bq2bj6",
+      "sourceHandle": "seq-out",
+      "targetHandle": "seq-in"
+    },
+    {
+      "id": "edge_1770593967188_gouvwy",
+      "source": "node_1770593967188_bq2bj6",
+      "target": "node_1770593967188_s8o0yf",
+      "sourceHandle": "seq-out",
+      "targetHandle": "seq-in"
+    },
+    {
+      "id": "edge_1770593977501_3dp6n6",
+      "source": "node_1770593977500_eb26ab",
+      "target": "node_1770593977500_3jxq57",
+      "sourceHandle": "seq-out",
+      "targetHandle": "seq-in"
+    },
+    {
+      "id": "edge_1770593977501_qoj027",
+      "source": "node_1770593977500_3jxq57",
+      "target": "node_1770593977500_8ssci0",
+      "sourceHandle": "seq-out",
+      "targetHandle": "seq-in"
+    },
+    {
+      "id": "edge_1770593977501_withgz",
+      "source": "node_1770593977500_8ssci0",
+      "target": "node_1770593977500_ihp71u",
+      "sourceHandle": "seq-out",
+      "targetHandle": "seq-in"
+    },
+    {
+      "id": "edge_1770593987978_bzqqmu",
+      "source": "node_1770593987978_m1k55u",
+      "target": "node_1770593987978_twuvqu",
+      "sourceHandle": "seq-out",
+      "targetHandle": "seq-in"
+    },
+    {
+      "id": "edge_1770593987978_sjv9b2",
+      "source": "node_1770593987978_twuvqu",
+      "target": "node_1770593987978_lblz9d",
+      "sourceHandle": "seq-out",
+      "targetHandle": "seq-in"
+    },
+    {
+      "id": "edge_1770593987978_mprq7h",
+      "source": "node_1770593987978_lblz9d",
+      "target": "node_1770593987978_nrzm4a",
+      "sourceHandle": "seq-out",
+      "targetHandle": "seq-in"
+    },
+    {
+      "id": "edge_1770593996603_caasa0",
+      "source": "node_1770593967188_s8o0yf",
+      "target": "node_1770593996603_pfrjrx",
+      "sourceHandle": "data-link",
+      "targetHandle": "data-link"
+    },
+    {
+      "id": "edge_1770593996603_v5bj32",
+      "source": "node_1770593996603_pfrjrx",
+      "target": "node_1770593977500_eb26ab",
+      "sourceHandle": "data-link",
+      "targetHandle": "data-link"
+    },
+    {
+      "id": "edge_1770593996603_xmdq4l",
+      "source": "node_1770593977500_8ssci0",
+      "target": "node_1770593996603_klns4u",
+      "sourceHandle": "data-link",
+      "targetHandle": "data-link"
+    },
+    {
+      "id": "edge_1770593996603_zp1pco",
+      "source": "node_1770593996603_klns4u",
+      "target": "node_1770593987978_m1k55u",
+      "sourceHandle": "data-link",
+      "targetHandle": "data-link"
+    }
+  ]
+}

@@ -1,0 +1,630 @@
+{
+  "formatVersion": 1,
+  "nodes": [
+    {
+      "id": "node_1771022901328_go3kq1",
+      "type": "construct",
+      "position": {
+        "x": -219.75113306383656,
+        "y": -203.0219460659367
+      },
+      "data": {
+        "constructType": "carta-component",
+        "semanticId": "carta-component-b4gg2zg",
+        "values": {
+          "file": "Map.tsx",
+          "layer": "canvas",
+          "memo": false,
+          "description": "Main canvas component. Owns ReactFlow instance, enhancement pipeline (callbacks, styles, sorting), and sync module that pushes Yjs changes to RF."
+        },
+        "connections": [
+          {
+            "portId": "child",
+            "targetSemanticId": "carta-component-b4ggsee",
+            "targetPortId": "parent"
+          },
+          {
+            "portId": "child",
+            "targetSemanticId": "carta-component-b4gg8td",
+            "targetPortId": "parent"
+          },
+          {
+            "portId": "child",
+            "targetSemanticId": "carta-component-b4gg9uh",
+            "targetPortId": "parent"
+          },
+          {
+            "portId": "flow-out",
+            "targetSemanticId": "carta-utility-c356d3n",
+            "targetPortId": "flow-in"
+          },
+          {
+            "portId": "flow-out",
+            "targetSemanticId": "carta-utility-c5zenww",
+            "targetPortId": "flow-in"
+          }
+        ]
+      },
+      "style": {
+        "width": 1047.896110724359,
+        "height": 652.0801148873225
+      }
+    },
+    {
+      "id": "node_1771022901328_n90q5p",
+      "type": "construct",
+      "position": {
+        "x": 43.636543366906416,
+        "y": 242.3415995391244
+      },
+      "data": {
+        "constructType": "carta-component",
+        "semanticId": "carta-component-b4ggsee",
+        "values": {
+          "file": "ConstructNode.tsx",
+          "layer": "canvas",
+          "memo": true,
+          "description": "Custom RF node type for constructs. Renders fields, ports, resize handle. Receives data via node.data from Map enhancement pipeline."
+        },
+        "connections": []
+      },
+      "parentId": "node_1771023092634_iq33pc"
+    },
+    {
+      "id": "node_1771022901328_zb2zpj",
+      "type": "construct",
+      "position": {
+        "x": 324.32722959194246,
+        "y": 174.2683546424339
+      },
+      "data": {
+        "constructType": "carta-component",
+        "semanticId": "carta-component-b4gg8td",
+        "values": {
+          "file": "OrganizerNode.tsx",
+          "layer": "canvas",
+          "memo": true,
+          "description": "Custom RF node type for organizers. Renders group container with title bar, resizable. Children nest via parentId."
+        },
+        "connections": []
+      },
+      "parentId": "node_1771023092634_iq33pc"
+    },
+    {
+      "id": "node_1771022901328_ksq5l9",
+      "type": "construct",
+      "position": {
+        "x": 186.72628332989353,
+        "y": 60
+      },
+      "data": {
+        "constructType": "carta-component",
+        "semanticId": "carta-component-b4gg9uh",
+        "values": {
+          "file": "DynamicAnchorEdge.tsx",
+          "layer": "canvas",
+          "memo": true,
+          "description": "Custom RF edge type. Computes anchor points dynamically based on node positions and port locations."
+        },
+        "connections": []
+      },
+      "parentId": "node_1771023092634_iq33pc"
+    },
+    {
+      "id": "node_1771022901328_fs5h9n",
+      "type": "construct",
+      "position": {
+        "x": 20,
+        "y": 60
+      },
+      "data": {
+        "constructType": "carta-adapter",
+        "semanticId": "carta-adapter-b4gg6y4",
+        "values": {
+          "file": "yjsAdapter.ts",
+          "store": "yjs",
+          "description": "Primary adapter. Wraps Y.Doc, exposes getNodes/setNodes/patchNodes/subscribe. Single source of truth for all document state."
+        },
+        "connections": [
+          {
+            "portId": "flow-out",
+            "targetSemanticId": "carta-context-b4ggntw",
+            "targetPortId": "flow-in"
+          },
+          {
+            "portId": "flow-out",
+            "targetSemanticId": "carta-hook-buxjmf4",
+            "targetPortId": "flow-in"
+          }
+        ]
+      },
+      "parentId": "node_1771023086448_apoq6d"
+    },
+    {
+      "id": "node_1771022901328_ro65jc",
+      "type": "construct",
+      "position": {
+        "x": 330,
+        "y": 60
+      },
+      "data": {
+        "constructType": "carta-context",
+        "semanticId": "carta-context-b4ggntw",
+        "values": {
+          "file": "DocumentContext.tsx",
+          "provides": "adapter (DocumentAdapter), documentId, activePageId. All hooks access the adapter through this context."
+        },
+        "connections": [
+          {
+            "portId": "flow-out",
+            "targetSemanticId": "carta-hook-buxjmf4",
+            "targetPortId": "flow-in"
+          },
+          {
+            "portId": "flow-out",
+            "targetSemanticId": "carta-hook-bvpljzq",
+            "targetPortId": "flow-in"
+          },
+          {
+            "portId": "flow-out",
+            "targetSemanticId": "carta-hook-bxmwqrg",
+            "targetPortId": "flow-in"
+          },
+          {
+            "portId": "flow-out",
+            "targetSemanticId": "carta-hook-byku8b7",
+            "targetPortId": "flow-in"
+          },
+          {
+            "portId": "flow-out",
+            "targetSemanticId": "carta-hook-bzir63w",
+            "targetPortId": "flow-in"
+          }
+        ]
+      },
+      "parentId": "node_1771023086448_apoq6d"
+    },
+    {
+      "id": "node_1771022935639_h0btwv",
+      "type": "construct",
+      "position": {
+        "x": 20,
+        "y": 60
+      },
+      "data": {
+        "constructType": "carta-hook",
+        "semanticId": "carta-hook-buxjmf4",
+        "values": {
+          "file": "useNodes.ts",
+          "returns": "nodes, setNodes, setNodesLocal, suppressUpdates, updateNode, getNextNodeId",
+          "package": "web-client"
+        },
+        "connections": [
+          {
+            "portId": "flow-out",
+            "targetSemanticId": "carta-component-b4gg2zg",
+            "targetPortId": "flow-in"
+          }
+        ]
+      },
+      "parentId": "node_1771023084351_6abgjz"
+    },
+    {
+      "id": "node_1771022936649_k4s2yt",
+      "type": "construct",
+      "position": {
+        "x": 330,
+        "y": 60
+      },
+      "data": {
+        "constructType": "carta-hook",
+        "semanticId": "carta-hook-bvpljzq",
+        "values": {
+          "file": "useEdges.ts",
+          "returns": "edges, setEdges",
+          "package": "web-client"
+        },
+        "connections": [
+          {
+            "portId": "flow-out",
+            "targetSemanticId": "carta-component-b4gg2zg",
+            "targetPortId": "flow-in"
+          }
+        ]
+      },
+      "parentId": "node_1771023084351_6abgjz"
+    },
+    {
+      "id": "node_1771022938033_mahn73",
+      "type": "construct",
+      "position": {
+        "x": 20,
+        "y": 190
+      },
+      "data": {
+        "constructType": "carta-hook",
+        "semanticId": "carta-hook-bws1pla",
+        "values": {
+          "file": "useLayoutActions.ts",
+          "returns": "fitToChildren, arrangeChildren, flowLayout",
+          "package": "web-client"
+        },
+        "connections": [
+          {
+            "portId": "flow-out",
+            "targetSemanticId": "carta-component-b4gg2zg",
+            "targetPortId": "flow-in"
+          },
+          {
+            "portId": "flow-out",
+            "targetSemanticId": "carta-utility-c4kf3ig",
+            "targetPortId": "flow-in"
+          },
+          {
+            "portId": "flow-out",
+            "targetSemanticId": "carta-adapter-b4gg6y4",
+            "targetPortId": "flow-in"
+          }
+        ]
+      },
+      "parentId": "node_1771023084351_6abgjz"
+    },
+    {
+      "id": "node_1771022939144_7ravx8",
+      "type": "construct",
+      "position": {
+        "x": 330,
+        "y": 190
+      },
+      "data": {
+        "constructType": "carta-hook",
+        "semanticId": "carta-hook-bxmwqrg",
+        "values": {
+          "file": "usePages.ts",
+          "returns": "pages, activePage, setActivePage, createPage",
+          "package": "web-client"
+        },
+        "connections": [
+          {
+            "portId": "flow-out",
+            "targetSemanticId": "carta-component-b4gg2zg",
+            "targetPortId": "flow-in"
+          }
+        ]
+      },
+      "parentId": "node_1771023084351_6abgjz"
+    },
+    {
+      "id": "node_1771022940366_1ecr7l",
+      "type": "construct",
+      "position": {
+        "x": 20,
+        "y": 320
+      },
+      "data": {
+        "constructType": "carta-hook",
+        "semanticId": "carta-hook-byku8b7",
+        "values": {
+          "file": "useSchemas.ts",
+          "returns": "schemas, getSchema, schemasByGroup",
+          "package": "web-client"
+        },
+        "connections": [
+          {
+            "portId": "flow-out",
+            "targetSemanticId": "carta-component-b4gg2zg",
+            "targetPortId": "flow-in"
+          }
+        ]
+      },
+      "parentId": "node_1771023084351_6abgjz"
+    },
+    {
+      "id": "node_1771022941587_4iv6wy",
+      "type": "construct",
+      "position": {
+        "x": 330,
+        "y": 320
+      },
+      "data": {
+        "constructType": "carta-hook",
+        "semanticId": "carta-hook-bzir63w",
+        "values": {
+          "file": "usePinConstraints.ts",
+          "returns": "pinConstraints, setPinConstraint, removePinConstraint",
+          "package": "web-client"
+        },
+        "connections": [
+          {
+            "portId": "flow-out",
+            "targetSemanticId": "carta-component-b4gg2zg",
+            "targetPortId": "flow-in"
+          }
+        ]
+      },
+      "parentId": "node_1771023084351_6abgjz"
+    },
+    {
+      "id": "node_1771022946282_qps2p7",
+      "type": "construct",
+      "position": {
+        "x": 20,
+        "y": 60
+      },
+      "data": {
+        "constructType": "carta-utility",
+        "semanticId": "carta-utility-c356d3n",
+        "values": {
+          "file": "computePresentation.ts",
+          "pure": true,
+          "description": "Transforms raw Yjs nodes into presentation nodes. Applies organizer nesting, visibility, page filtering."
+        },
+        "connections": []
+      },
+      "parentId": "node_1771023087944_2weqwq"
+    },
+    {
+      "id": "node_1771022948127_ppqv3v",
+      "type": "construct",
+      "position": {
+        "x": 330,
+        "y": 60
+      },
+      "data": {
+        "constructType": "carta-utility",
+        "semanticId": "carta-utility-c4kf3ig",
+        "values": {
+          "file": "metamapLayout.ts",
+          "pure": true,
+          "description": "Layout algorithms for metamap and canvas. Computes positions for arrange, flow layout, fit-to-children."
+        },
+        "connections": []
+      },
+      "parentId": "node_1771023087944_2weqwq"
+    },
+    {
+      "id": "node_1771022949962_wkyj76",
+      "type": "construct",
+      "position": {
+        "x": 20,
+        "y": 190
+      },
+      "data": {
+        "constructType": "carta-utility",
+        "semanticId": "carta-utility-c5zenww",
+        "values": {
+          "file": "portRegistry.ts",
+          "pure": true,
+          "description": "Maps port types to polarity, validation rules, and rendering config. Used by edge pipeline and connection validation."
+        },
+        "connections": []
+      },
+      "parentId": "node_1771023087944_2weqwq"
+    },
+    {
+      "id": "node_1771023084351_6abgjz",
+      "type": "organizer",
+      "position": {
+        "x": 1720.1467730383636,
+        "y": -121.87325294116349
+      },
+      "data": {
+        "isOrganizer": true,
+        "name": "Hooks",
+        "color": "#22c55e",
+        "collapsed": false,
+        "layout": "freeform",
+        "description": "Custom React hooks consumed by Map.tsx. Each subscribes to DocumentAdapter via DocumentContext.",
+        "layoutPinned": false
+      },
+      "style": {
+        "width": 630,
+        "height": 440
+      }
+    },
+    {
+      "id": "node_1771023086448_apoq6d",
+      "type": "organizer",
+      "position": {
+        "x": 2004.980216614507,
+        "y": 633.8016257683098
+      },
+      "data": {
+        "isOrganizer": true,
+        "name": "State",
+        "color": "#8b5cf6",
+        "collapsed": false,
+        "layout": "freeform",
+        "description": "Context provider and backing adapter. Single source of truth chain: Y.Doc \u2192 yjsAdapter \u2192 DocumentContext."
+      },
+      "style": {
+        "width": 630,
+        "height": 180
+      }
+    },
+    {
+      "id": "node_1771023087944_2weqwq",
+      "type": "organizer",
+      "position": {
+        "x": 1206.5198441756743,
+        "y": 658.8062165393685
+      },
+      "data": {
+        "isOrganizer": true,
+        "name": "Utilities",
+        "color": "#64748b",
+        "collapsed": false,
+        "layout": "freeform",
+        "description": "Pure computation modules. No React state, no side effects."
+      },
+      "style": {
+        "width": 630,
+        "height": 310
+      }
+    },
+    {
+      "id": "node_1771023092634_iq33pc",
+      "type": "organizer",
+      "position": {
+        "x": 403.56888113241655,
+        "y": 269.7385153481981
+      },
+      "data": {
+        "isOrganizer": true,
+        "name": "Rendered Children",
+        "color": "#3b82f6",
+        "collapsed": false,
+        "layout": "freeform",
+        "description": "Node types registered with ReactFlow and rendered by Map.tsx.",
+        "attachedToSemanticId": "carta-component-b4gg2zg"
+      },
+      "style": {
+        "width": 624.3272295919425,
+        "height": 362.3415995391244
+      },
+      "parentId": "node_1771022901328_go3kq1"
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge_1771022964846_k4h3vo",
+      "source": "node_1771022901328_fs5h9n",
+      "target": "node_1771022901328_ro65jc",
+      "sourceHandle": "flow-out",
+      "targetHandle": "flow-in"
+    },
+    {
+      "id": "edge_1771022964846_cbb9ga",
+      "source": "node_1771022901328_ro65jc",
+      "target": "node_1771022935639_h0btwv",
+      "sourceHandle": "flow-out",
+      "targetHandle": "flow-in"
+    },
+    {
+      "id": "edge_1771022964846_wa3sbv",
+      "source": "node_1771022901328_ro65jc",
+      "target": "node_1771022936649_k4s2yt",
+      "sourceHandle": "flow-out",
+      "targetHandle": "flow-in"
+    },
+    {
+      "id": "edge_1771022964846_mks9vw",
+      "source": "node_1771022901328_ro65jc",
+      "target": "node_1771022939144_7ravx8",
+      "sourceHandle": "flow-out",
+      "targetHandle": "flow-in"
+    },
+    {
+      "id": "edge_1771022964846_pvm964",
+      "source": "node_1771022901328_ro65jc",
+      "target": "node_1771022940366_1ecr7l",
+      "sourceHandle": "flow-out",
+      "targetHandle": "flow-in"
+    },
+    {
+      "id": "edge_1771022964846_wmayba",
+      "source": "node_1771022901328_ro65jc",
+      "target": "node_1771022941587_4iv6wy",
+      "sourceHandle": "flow-out",
+      "targetHandle": "flow-in"
+    },
+    {
+      "id": "edge_1771022964846_41dryn",
+      "source": "node_1771022935639_h0btwv",
+      "target": "node_1771022901328_go3kq1",
+      "sourceHandle": "flow-out",
+      "targetHandle": "flow-in"
+    },
+    {
+      "id": "edge_1771022964846_t0smuj",
+      "source": "node_1771022936649_k4s2yt",
+      "target": "node_1771022901328_go3kq1",
+      "sourceHandle": "flow-out",
+      "targetHandle": "flow-in"
+    },
+    {
+      "id": "edge_1771022964846_pb8n27",
+      "source": "node_1771022938033_mahn73",
+      "target": "node_1771022901328_go3kq1",
+      "sourceHandle": "flow-out",
+      "targetHandle": "flow-in"
+    },
+    {
+      "id": "edge_1771022964846_6gl1u6",
+      "source": "node_1771022940366_1ecr7l",
+      "target": "node_1771022901328_go3kq1",
+      "sourceHandle": "flow-out",
+      "targetHandle": "flow-in"
+    },
+    {
+      "id": "edge_1771022964846_32cl0d",
+      "source": "node_1771022939144_7ravx8",
+      "target": "node_1771022901328_go3kq1",
+      "sourceHandle": "flow-out",
+      "targetHandle": "flow-in"
+    },
+    {
+      "id": "edge_1771022964846_earc40",
+      "source": "node_1771022941587_4iv6wy",
+      "target": "node_1771022901328_go3kq1",
+      "sourceHandle": "flow-out",
+      "targetHandle": "flow-in"
+    },
+    {
+      "id": "edge_1771022964847_bntnam",
+      "source": "node_1771022901328_go3kq1",
+      "target": "node_1771022901328_n90q5p",
+      "sourceHandle": "child",
+      "targetHandle": "parent"
+    },
+    {
+      "id": "edge_1771022964847_2epx6v",
+      "source": "node_1771022901328_go3kq1",
+      "target": "node_1771022901328_zb2zpj",
+      "sourceHandle": "child",
+      "targetHandle": "parent"
+    },
+    {
+      "id": "edge_1771022964847_o7c4n8",
+      "source": "node_1771022901328_go3kq1",
+      "target": "node_1771022901328_ksq5l9",
+      "sourceHandle": "child",
+      "targetHandle": "parent"
+    },
+    {
+      "id": "edge_1771022964847_obx7z2",
+      "source": "node_1771022938033_mahn73",
+      "target": "node_1771022948127_ppqv3v",
+      "sourceHandle": "flow-out",
+      "targetHandle": "flow-in"
+    },
+    {
+      "id": "edge_1771022964847_emhrvd",
+      "source": "node_1771022901328_go3kq1",
+      "target": "node_1771022946282_qps2p7",
+      "sourceHandle": "flow-out",
+      "targetHandle": "flow-in"
+    },
+    {
+      "id": "edge_1771022964847_iy4dxp",
+      "source": "node_1771022901328_go3kq1",
+      "target": "node_1771022949962_wkyj76",
+      "sourceHandle": "flow-out",
+      "targetHandle": "flow-in"
+    },
+    {
+      "id": "edge_1771022969919_yv5r4c",
+      "source": "node_1771022901328_fs5h9n",
+      "target": "node_1771022935639_h0btwv",
+      "sourceHandle": "flow-out",
+      "targetHandle": "flow-in"
+    },
+    {
+      "id": "edge_1771022971135_ezmkt5",
+      "source": "node_1771022938033_mahn73",
+      "target": "node_1771022901328_fs5h9n",
+      "sourceHandle": "flow-out",
+      "targetHandle": "flow-in"
+    }
+  ]
+}

@@ -9,7 +9,7 @@ Creates integration and E2E tests for Carta features. Does NOT write unit tests.
 
 ## Reference Documentation
 
-Testing guidance lives in `.docs/` (source of truth):
+Testing guidance lives in `.carta/` (source of truth):
 - **Testing operations** (doc04.02): Test commands, CI configuration
 - **Architecture overview** (doc02.01): Layer separation, data flow
 

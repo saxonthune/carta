@@ -1,4 +1,4 @@
-# .docs/ Manifest
+# .carta/ Manifest
 
 Machine-readable index for AI navigation. Read this file first, then open only the docs relevant to your query.
 

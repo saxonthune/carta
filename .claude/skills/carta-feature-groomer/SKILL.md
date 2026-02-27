@@ -72,7 +72,7 @@ After reading the plan, identify what codebase context is needed using a **two-p
 
 ### Phase 2A: Cheap Triage (Grep + MANIFEST)
 
-1. **Read `.docs/MANIFEST.md`** — use the tag index to map plan keywords to doc refs.
+1. **Read `.carta/MANIFEST.md`** — use the tag index to map plan keywords to doc refs.
 2. **Run 3-5 parallel Grep calls** directly from the main context for the plan's key terms. Use `output_mode: "files_with_matches"` to identify relevant files without reading content:
 
 ```typescript
@@ -97,7 +97,7 @@ Plan mentions "waypoints"          → tags: waypoints               → doc02.1
 
 Read only the files identified in Phase 2A. Prioritize:
 
-1. **`.docs/` refs** from MANIFEST — these give architectural context without reading source
+1. **`.carta/` refs** from MANIFEST — these give architectural context without reading source
 2. **Source files** from Grep hits — read the specific line ranges that matched, not entire files
 3. **Adjacent code** — if the plan modifies a function, read its callers (one level up) to understand impact
 
@@ -111,7 +111,7 @@ Read only the files identified in Phase 2A. Prioritize:
 
 Only use `Task(subagent_type='Explore')` if:
 - Phase 2A Grep returns 0 hits for all search terms (genuinely unknown territory)
-- The plan involves a subsystem with no `.docs/` coverage and no obvious entry points
+- The plan involves a subsystem with no `.carta/` coverage and no obvious entry points
 - You've done Phase 2A and still can't identify which files to modify
 
 Even then, give the Explore agent a **surgical prompt** with specific questions and file paths to start from — not an open-ended "investigate thoroughly."

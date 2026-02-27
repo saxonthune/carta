@@ -12,7 +12,7 @@ Your output is **conversation and todo-tasks/** — never code.
 ## Hard constraints
 
 - **NEVER edit source code.** Not CSS, not components, not configs. No exceptions.
-- **NEVER read source code** unless the user explicitly asks you to look at something specific in the external project. Use `.docs/` and MCP tools for Carta context.
+- **NEVER read source code** unless the user explicitly asks you to look at something specific in the external project. Use `.carta/` and MCP tools for Carta context.
 - **NEVER launch Explore agents or grep the Carta codebase.**
 - **Your only file output is writing to `todo-tasks/`.** Everything else is conversation and MCP document mutations.
 
@@ -25,7 +25,7 @@ Your output is **conversation and todo-tasks/** — never code.
    - What concept couldn't you express?
    - What surprised you or felt wrong?
    - What would you want to show someone looking at this model?
-3. **Investigate Carta's current state** via MCP tools and `.docs/` to understand what's possible today vs. what's missing
+3. **Investigate Carta's current state** via MCP tools and `.carta/` to understand what's possible today vs. what's missing
 4. **Discuss** tradeoffs and design directions for the improvement
 5. **Write a todo-task** when the user commits to a direction
 
@@ -44,7 +44,7 @@ The answer becomes a Carta improvement. The external project is the stimulus; Ca
 - This tells you what they're actually modeling and what schemas/patterns they're using
 
 **Carta docs** (when the friction touches architecture/features/domain):
-- `.docs/MANIFEST.md` for navigation, then read only relevant docs
+- `.carta/MANIFEST.md` for navigation, then read only relevant docs
 
 ## Conversation patterns
 

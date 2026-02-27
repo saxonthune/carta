@@ -9,9 +9,9 @@ status: active
 
 Git is the version system. No version numbers in documents.
 
-- File history: `git log --follow .docs/03-product/features/canvas.md`
+- File history: `git log --follow .carta/03-product/features/canvas.md`
 - Point-in-time snapshots: use git tags (`git tag docs-v1.0`)
-- Blame for specific lines: `git blame .docs/02-system/01-overview.md`
+- Blame for specific lines: `git blame .carta/02-system/01-overview.md`
 
 ## Epochs
 
@@ -30,7 +30,7 @@ epoch: 1
 Staleness audit:
 
 ```bash
-grep -rn "epoch: 1" .docs/    # Find docs not yet reviewed for epoch 2
+grep -rn "epoch: 1" .carta/    # Find docs not yet reviewed for epoch 2
 ```
 
 Epochs are coarse-grained — bump only on major shifts, not routine changes.

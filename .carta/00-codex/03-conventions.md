@@ -18,7 +18,7 @@ Two digits per segment, unlimited depth. Nesting can go as deep as the directory
 The regex pattern `doc\d{2}(\.\d{2})*` matches all references and is grep-friendly:
 
 ```bash
-grep -rn "doc03\.01" .docs/
+grep -rn "doc03\.01" .carta/
 ```
 
 ## Front Matter

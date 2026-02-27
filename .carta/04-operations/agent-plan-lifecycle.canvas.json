@@ -1,0 +1,260 @@
+{
+  "formatVersion": 1,
+  "nodes": [
+    {
+      "id": "node_1770672521601_a4oq5j",
+      "type": "construct",
+      "position": {
+        "x": 329.90261776930714,
+        "y": -113.66637960522992
+      },
+      "data": {
+        "constructType": "note",
+        "semanticId": "note-p9q9mef",
+        "values": {
+          "content": " {\"content\":\"PLAN\n                                      LIFECYCLE\\n\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\\n\\ntodo-tasks/{slug}.md                    \u2190 authored by /carta-builder or\n                                      human\\n        \u2502\\n        \u2502  /carta-feature-implementor\\n        \u2502  Phase 1: SELECT  \u2500\u2500\u2500 reads plan,\n                                      presents to user\\n        \u2502  Phase 2: CONTEXT \u2500\u2500\u2500 reads .docs/ and source files\\n        \u2502  Phase 3:\n                                      BRIEFING \u2500\u2500 presents tradeoffs, asks questions\\n        \u2502  Phase 4: SCOPE \u2500\u2500\u2500\u2500\u2500 split if too large\\n\n                                           \u2502  Phase 5: REFINE \u2500\u2500\u2500\u2500 rewrites plan in-place\\n        \u2502  Phase 6: HAND OFF \u2500\u2500 offers to launch\\n\n                                              \u2502\\n        \u25bc\\n\u250c\u2500 execute-plan.sh \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510\\n\u2502\n                                                                                        \u2502\\n\u2502  Step 1: VALIDATE & MOVE\n                                                    \u2502\\n\u2502    READ   todo-tasks/{slug}.md                                \u2502\\n\u2502    MOVE\n                                      todo-tasks/{slug}.md \u2192 todo-tasks/.running/{slug}.md\u2502\\n\u2502           ^^^^^^^^^^^^^^^^^^^^\n                                                      \u2502\\n\u2502           file no longer in pending \u2014 can't be re-launched    \u2502\\n\u2502\n                                                                                     \u2502\\n\u2502  Step 2: CREATE WORKTREE\n                                                 \u2502\\n\u2502    git worktree add -b {trunk}_claude_{slug}                  \u2502\\n\u2502\n                                                                                \u2502\\n\u2502  Step 3: COPY PLAN INTO WORKTREE\n                                            \u2502\\n\u2502    COPY   .running/{slug}.md \u2192 {worktree}/todo-tasks/{slug}.md\u2502\\n\u2502\n                                                                           \u2502\\n\u2502  Steps 5-7: Claude runs in worktree, builds, tests, retries\n                                      \u2502\\n\u2502                                                               \u2502\\n\u2502  Step 8: MERGE OR REPORT\n                                                                     \u2502\\n\u2502    if verified:  git merge \u2192 remove worktree \u2192 remove branch  \u2502\\n\u2502\n                                         if failed:    leave worktree intact for debugging          \u2502\\n\u2502\n                                                                \u2502\\n\u2502  Step 9: FINALIZE                                             \u2502\\n\u2502\n                                      MOVE   .running/{slug}.md \u2192 .done/{slug}.md                \u2502\\n\u2502    DELETE .running/{slug}.log\n                                                             \u2502\\n\u2502    WRITE  .done/{slug}.result.md                              \u2502\\n\u2502\n\n                                      \u2502\\n\u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518\\n        \u2502\\n\n                                      \u25bc\\ntodo-tasks/.done/{slug}.md + {slug}.result.md\\n        \u2502\\n        \u2502  /carta-feature-implementor\n                                      (next session)\\n        \u2502  Phase 0A: DEBRIEF \u2500\u2500 reads result header + notes\\n        \u2502  Phase 0B:\n                                      ARCHIVE \u2500\u2500 moves .done/ \u2192 .archived/\\n        \u2502\\n        \u25bc\\ntodo-tasks/.archived/{date}-{slug}.md +\n                                      {date}-{slug}.result.md\\n\\n\\nKEY SAFETY PROPERTY\\n\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\\n  pending \u2192 .running\n                                      execute-plan.sh step 1 (atomic mv)\\n  .running \u2192 .done       execute-plan.sh step 9 (only after\n                                      merge/report)\\n  .done \u2192 .archived      Phase 0B (only after debrief shown to user)\\n\\n  A plan can\n                                      ONLY reach .archived by passing through .running and .done.\\n  The old bug: plans were archived\n                                      directly from pending based on\\n  finding a result file in a separate directory\n                                      (.claude/agent-results/).\"})"
+        },
+        "connections": [],
+        "viewLevel": "summary"
+      }
+    },
+    {
+      "id": "node_1770672521601_0u0t1c",
+      "type": "construct",
+      "position": {
+        "x": 78.21119179444075,
+        "y": -35.197929909959726
+      },
+      "data": {
+        "constructType": "bpmn-data-object",
+        "semanticId": "bpmn-data-object-p9q9hyp",
+        "values": {},
+        "connections": [
+          {
+            "portId": "data-link",
+            "targetSemanticId": "bpmn-activity-p9q9y8n",
+            "targetPortId": "data-link"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_1770672521601_mcnl12",
+      "type": "construct",
+      "position": {
+        "x": 78.21119179444075,
+        "y": 254.80207009004027
+      },
+      "data": {
+        "constructType": "bpmn-data-object",
+        "semanticId": "bpmn-data-object-p9q9qpd",
+        "values": {},
+        "connections": [
+          {
+            "portId": "data-link",
+            "targetSemanticId": "bpmn-activity-p9qa735",
+            "targetPortId": "data-link"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_1770672521601_axhapa",
+      "type": "construct",
+      "position": {
+        "x": 390.65714435363304,
+        "y": 232.356117530848
+      },
+      "data": {
+        "constructType": "bpmn-data-object",
+        "semanticId": "bpmn-data-object-p9q968k",
+        "values": {},
+        "connections": [
+          {
+            "portId": "data-link",
+            "targetSemanticId": "bpmn-activity-p9qaotr",
+            "targetPortId": "data-link"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_1770672521601_r2wy4f",
+      "type": "construct",
+      "position": {
+        "x": 435.45638019851725,
+        "y": 606.2110974456311
+      },
+      "data": {
+        "constructType": "bpmn-data-object",
+        "semanticId": "bpmn-data-object-p9q9hwt",
+        "values": {
+          "name": ""
+        },
+        "connections": [
+          {
+            "portId": "data-link",
+            "targetSemanticId": "bpmn-event-p9qa4cg",
+            "targetPortId": "seq-in"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_1770672521601_vz2tow",
+      "type": "construct",
+      "position": {
+        "x": 78.21119179444075,
+        "y": 109.80207009004027
+      },
+      "data": {
+        "constructType": "bpmn-activity",
+        "semanticId": "bpmn-activity-p9q9y8n",
+        "values": {},
+        "connections": [
+          {
+            "portId": "seq-out",
+            "targetSemanticId": "bpmn-data-object-p9q9qpd",
+            "targetPortId": "data-link"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_1770672521602_sda2cd",
+      "type": "construct",
+      "position": {
+        "x": 413.6311114535737,
+        "y": 40.25948497596967
+      },
+      "data": {
+        "constructType": "bpmn-activity",
+        "semanticId": "bpmn-activity-p9qa735",
+        "values": {},
+        "connections": [
+          {
+            "portId": "seq-out",
+            "targetSemanticId": "bpmn-data-object-p9q968k",
+            "targetPortId": "data-link"
+          }
+        ],
+        "viewLevel": "summary"
+      }
+    },
+    {
+      "id": "node_1770672521602_9l6z1q",
+      "type": "construct",
+      "position": {
+        "x": 348.15530521874297,
+        "y": 409.5196714707649
+      },
+      "data": {
+        "constructType": "bpmn-activity",
+        "semanticId": "bpmn-activity-p9qaotr",
+        "values": {},
+        "connections": [
+          {
+            "portId": "seq-out",
+            "targetSemanticId": "bpmn-data-object-p9q9hwt",
+            "targetPortId": "data-link"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_1770672521602_8t6qtb",
+      "type": "construct",
+      "position": {
+        "x": 78.21119179444075,
+        "y": -218.19792990995973
+      },
+      "data": {
+        "constructType": "bpmn-event",
+        "semanticId": "bpmn-event-p9qaz91",
+        "values": {
+          "name": ""
+        },
+        "connections": [
+          {
+            "portId": "seq-out",
+            "targetSemanticId": "bpmn-data-object-p9q9hyp",
+            "targetPortId": "data-link"
+          }
+        ],
+        "viewLevel": "summary"
+      }
+    },
+    {
+      "id": "node_1770672521602_tl16qe",
+      "type": "construct",
+      "position": {
+        "x": 361.9396854787073,
+        "y": 778.7798579655599
+      },
+      "data": {
+        "constructType": "bpmn-event",
+        "semanticId": "bpmn-event-p9qa4cg",
+        "values": {},
+        "connections": []
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge_1770672530067_sfh53r",
+      "source": "node_1770672521602_8t6qtb",
+      "target": "node_1770672521601_0u0t1c",
+      "sourceHandle": "seq-out",
+      "targetHandle": "data-link"
+    },
+    {
+      "id": "edge_1770672530067_8a9j7j",
+      "source": "node_1770672521601_0u0t1c",
+      "target": "node_1770672521601_vz2tow",
+      "sourceHandle": "data-link",
+      "targetHandle": "data-link"
+    },
+    {
+      "id": "edge_1770672530067_qesh99",
+      "source": "node_1770672521601_vz2tow",
+      "target": "node_1770672521601_mcnl12",
+      "sourceHandle": "seq-out",
+      "targetHandle": "data-link"
+    },
+    {
+      "id": "edge_1770672530067_p5l85z",
+      "source": "node_1770672521601_mcnl12",
+      "target": "node_1770672521602_sda2cd",
+      "sourceHandle": "data-link",
+      "targetHandle": "data-link"
+    },
+    {
+      "id": "edge_1770672530067_8j2op9",
+      "source": "node_1770672521602_sda2cd",
+      "target": "node_1770672521601_axhapa",
+      "sourceHandle": "seq-out",
+      "targetHandle": "data-link"
+    },
+    {
+      "id": "edge_1770672530067_0inte0",
+      "source": "node_1770672521601_axhapa",
+      "target": "node_1770672521602_9l6z1q",
+      "sourceHandle": "data-link",
+      "targetHandle": "data-link"
+    },
+    {
+      "id": "edge_1770672530067_wditg3",
+      "source": "node_1770672521602_9l6z1q",
+      "target": "node_1770672521601_r2wy4f",
+      "sourceHandle": "seq-out",
+      "targetHandle": "data-link"
+    },
+    {
+      "id": "edge_1770672530067_pr15xm",
+      "source": "node_1770672521601_r2wy4f",
+      "target": "node_1770672521602_tl16qe",
+      "sourceHandle": "data-link",
+      "targetHandle": "seq-in"
+    }
+  ]
+}

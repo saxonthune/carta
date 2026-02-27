@@ -11,7 +11,7 @@ Reads docs, reads code, finds where they disagree, fixes the docs. No git-histor
 
 ## Source of Truth
 
-**`.docs/` is the canonical source of truth.** `CLAUDE.md` references `.docs/` — do NOT duplicate content into it.
+**`.carta/` is the canonical source of truth.** `CLAUDE.md` references `.carta/` — do NOT duplicate content into it.
 
 **CLAUDE.md policy:** Only update CLAUDE.md when a **new package, new top-level directory, or new major subsystem** is added. Bug fixes, feature tweaks, new hooks, new components, and refactors do NOT warrant CLAUDE.md changes.
 
@@ -32,7 +32,7 @@ This outputs changed files by package, new files, new exports/hooks/components. 
 ## Phase 2: Map Changes to Docs via MANIFEST
 
 ```typescript
-Read('.docs/MANIFEST.md')
+Read('.carta/MANIFEST.md')
 ```
 
 Use the **Tag Index** to map changed areas to doc files:
@@ -64,10 +64,10 @@ For each doc on the checklist, read it fully. Don't use section-level grep here 
 
 ```typescript
 // Read all relevant docs in parallel
-Read('.docs/02-system/09-presentation-model.md')
-Read('.docs/02-system/10-canvas-data-pipelines.md')
-Read('.docs/02-system/08-frontend-architecture.md')
-Read('.docs/02-system/06-metamodel.md')
+Read('.carta/02-system/09-presentation-model.md')
+Read('.carta/02-system/10-canvas-data-pipelines.md')
+Read('.carta/02-system/08-frontend-architecture.md')
+Read('.carta/02-system/06-metamodel.md')
 // etc.
 ```
 
@@ -141,7 +141,7 @@ From MANIFEST's **Deps** column — when a doc needs updates, check docs that de
 
 ```typescript
 // Example: updating doc02.09 → doc02.10 depends on it
-Grep({ pattern: 'doc02\\.09', path: '.docs/02-system/10-canvas-data-pipelines.md' })
+Grep({ pattern: 'doc02\\.09', path: '.carta/02-system/10-canvas-data-pipelines.md' })
 ```
 
 Only flag dependents that reference the specific content being changed.
@@ -153,7 +153,7 @@ Only flag dependents that reference the specific content being changed.
 For each gap, write concrete edit instructions with provenance:
 
 ```markdown
-## Edit: .docs/02-system/09-presentation-model.md
+## Edit: .carta/02-system/09-presentation-model.md
 Source: packages/web-client/src/hooks/usePinConstraints.ts
 Section: §Organizers (after "Layout Strategies" subsection)
 
@@ -217,7 +217,7 @@ Every significant code area maps to at least one verified doc:
 ### Cross-Reference Integrity
 
 ```typescript
-Grep({ pattern: 'doc[0-9][0-9]\\.[0-9][0-9]', path: '.docs/', output_mode: 'content' })
+Grep({ pattern: 'doc[0-9][0-9]\\.[0-9][0-9]', path: '.carta/', output_mode: 'content' })
 // Verify each ref appears in MANIFEST
 ```
 
@@ -226,7 +226,7 @@ Grep({ pattern: 'doc[0-9][0-9]\\.[0-9][0-9]', path: '.docs/', output_mode: 'cont
 ## Phase 8: Update Sync Marker (1 Bash Call)
 
 ```bash
-git rev-parse HEAD > .docs/.last-sync
+git rev-parse HEAD > .carta/.last-sync
 ```
 
 ---
@@ -254,7 +254,7 @@ git rev-parse HEAD > .docs/.last-sync
 No update needed / Updated because [reason]
 
 ### Sync Marker
-Updated `.docs/.last-sync` → `{HEAD_SHORT}`
+Updated `.carta/.last-sync` → `{HEAD_SHORT}`
 ```
 
 ---

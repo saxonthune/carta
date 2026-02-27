@@ -4,7 +4,7 @@
 
 Carta is a visual software architecture editor. Users create "Constructs" (typed nodes), connect them, and compile to AI-readable output.
 
-@.docs/MANIFEST.md
+@.carta/MANIFEST.md
 
 ## Development Philosophy
 
@@ -12,7 +12,7 @@ Carta is a visual software architecture editor. Users create "Constructs" (typed
 
 ## Documentation
 
-**`.docs/` is the canonical source of truth.** Cross-references use `docXX.YY.ZZ` syntax (e.g., `doc02.06` = metamodel). Key docs:
+**`.carta/` is the canonical source of truth** — it's a Carta workspace containing both documentation and architecture diagrams. Cross-references use `docXX.YY.ZZ` syntax (e.g., `doc02.06` = metamodel). Key docs:
 
 - **Architecture**: doc02.01 (overview), doc02.02 (state), doc02.08 (frontend)
 - **Metamodel**: doc02.06 (schemas, ports, fields)
@@ -30,8 +30,8 @@ Carta is a visual software architecture editor. Users create "Constructs" (typed
 | `/project-builder` | Dogfooding reflector for external projects | While building non-Carta projects, to identify Carta improvements |
 | `/carta-feature-groomer` | Researches codebase, discusses approach, refines plans into specs | Before `/carta-feature-implementor`, to resolve decisions |
 | `/carta-feature-implementor` | Status, launch, triage, chain orchestration | After grooming, to launch plans and manage agents |
-| `/documentation-nag` | Keeps `.docs/` and derived files in sync with code | After significant code changes |
-| `/documentation-auditor` | Audits `.docs/` claims against codebase, finds stale refs | Periodically, or before releases |
+| `/documentation-nag` | Keeps `.carta/` and derived files in sync with code | After significant code changes |
+| `/documentation-auditor` | Audits `.carta/` claims against codebase, finds stale refs | Periodically, or before releases |
 | `/style-nag` | Audits and fixes UI styling against doc02.07 | After UI changes, or periodically |
 | `/frontend-architecture-nag` | Audits component layering against doc02.08 | After architectural changes |
 | `/test-builder` | Creates integration/E2E tests | When adding test coverage |
@@ -50,16 +50,16 @@ Carta is a visual software architecture editor. Users create "Constructs" (typed
 
 ### Skill Details
 
-All skills follow the same pattern: opus reads `.docs/` and code, analyzes, generates edit instructions, launches parallel haiku workers.
+All skills follow the same pattern: opus reads `.carta/` and code, analyzes, generates edit instructions, launches parallel haiku workers.
 
 | Skill | Reference Docs | Config |
 |-------|---------------|--------|
-| `/carta-builder` | `.docs/MANIFEST.md`, MCP tools | `.claude/skills/carta-builder/SKILL.md` |
-| `/project-builder` | `.docs/MANIFEST.md`, MCP tools, external project context | `.claude/skills/project-builder/SKILL.md` |
-| `/carta-feature-groomer` | `.docs/MANIFEST.md`, plan files, codebase | `.claude/skills/carta-feature-groomer/SKILL.md` |
+| `/carta-builder` | `.carta/MANIFEST.md`, MCP tools | `.claude/skills/carta-builder/SKILL.md` |
+| `/project-builder` | `.carta/MANIFEST.md`, MCP tools, external project context | `.claude/skills/project-builder/SKILL.md` |
+| `/carta-feature-groomer` | `.carta/MANIFEST.md`, plan files, codebase | `.claude/skills/carta-feature-groomer/SKILL.md` |
 | `/carta-feature-implementor` | Plan files, status script | `.claude/skills/carta-feature-implementor/SKILL.md` |
-| `/documentation-nag` | `.docs/` (all titles) | `.claude/skills/documentation-nag/SKILL.md` |
-| `/documentation-auditor` | `.docs/MANIFEST.md`, barrel exports, type defs | `.claude/skills/documentation-auditor/SKILL.md` |
+| `/documentation-nag` | `.carta/` (all titles) | `.claude/skills/documentation-nag/SKILL.md` |
+| `/documentation-auditor` | `.carta/MANIFEST.md`, barrel exports, type defs | `.claude/skills/documentation-auditor/SKILL.md` |
 | `/style-nag` | doc02.07 (design system), doc01.04 (UX principles) | `.claude/skills/style-nag/SKILL.md` |
 | `/frontend-architecture-nag` | doc02.08 (frontend architecture), doc02.01 (overview) | `.claude/skills/frontend-architecture-nag/SKILL.md` |
 | `/test-builder` | doc04.02 (testing), `packages/web-client/tests/README.md` | `.claude/skills/test-builder/SKILL.md` |
@@ -120,11 +120,11 @@ pnpm test:e2e      # E2E tests (Playwright, port 5273)
 **Two-phase search**: Locate files cheaply before reading them.
 
 1. **Cheap triage** — Run parallel `Grep` calls with `output_mode: "files_with_matches"` to identify relevant files without reading content. Use `MANIFEST.md` tag index to map keywords to doc refs.
-2. **Targeted reads** — Read only the files surfaced by triage. Prefer `.docs/` refs first (architectural context without reading source), then source files at matched line ranges.
+2. **Targeted reads** — Read only the files surfaced by triage. Prefer `.carta/` refs first (architectural context without reading source), then source files at matched line ranges.
 
 **Do NOT**: Launch Explore agents for simple searches. Read entire directories speculatively. Read files not surfaced by Grep or referenced by the plan.
 
-**Escalate to Explore agent only if**: Grep returns 0 hits for all terms, the subsystem has no `.docs/` coverage, or you can't identify which files to modify after triage.
+**Escalate to Explore agent only if**: Grep returns 0 hits for all terms, the subsystem has no `.carta/` coverage, or you can't identify which files to modify after triage.
 
 ## Constraints
 
