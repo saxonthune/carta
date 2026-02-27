@@ -1,6 +1,6 @@
 ---
 name: docs-lookup
-description: Answers questions about project documentation. Triggers on references to .docs, doc references (docXX.YY), or questions about Carta's design, architecture, features, or principles.
+description: Answers questions about project documentation. Triggers on references to .carta/, doc references (docXX.YY), or questions about Carta's design, architecture, features, or principles.
 ---
 
 # docs-lookup
@@ -9,7 +9,7 @@ Efficiently navigates `.carta/` to answer questions about Carta's documentation,
 
 ## When This Triggers
 
-- "What does .docs say about X?"
+- "What does .carta/ say about X?"
 - "What's the doc for Y?"
 - "Look up docXX.YY"
 - Questions about Carta's architecture, principles, features, metamodel, design system, etc.
