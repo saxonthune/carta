@@ -404,6 +404,29 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
         return;
       }
 
+      // GET /api/workspace/files/* — read file content
+      const filesPrefix = '/api/workspace/files/';
+      if (path.startsWith(filesPrefix) && method === 'GET') {
+        if (!config.workspacePath) {
+          sendError(res, 404, 'Workspace mode not enabled', 'NOT_FOUND');
+          return;
+        }
+        const relPath = decodeURIComponent(path.slice(filesPrefix.length));
+        const resolved = nodePath.resolve(config.workspacePath, relPath);
+        // Security: ensure resolved path is within workspace directory
+        if (!resolved.startsWith(config.workspacePath + nodePath.sep) && resolved !== config.workspacePath) {
+          sendError(res, 400, 'Invalid path', 'BAD_REQUEST');
+          return;
+        }
+        if (!fs.existsSync(resolved) || !fs.statSync(resolved).isFile()) {
+          sendError(res, 404, 'File not found', 'NOT_FOUND');
+          return;
+        }
+        const fileContent = fs.readFileSync(resolved, 'utf-8');
+        sendJson(res, 200, { content: fileContent, path: relPath });
+        return;
+      }
+
       // ===== DOCUMENTS =====
 
       if (path === '/api/documents' && method === 'GET') {

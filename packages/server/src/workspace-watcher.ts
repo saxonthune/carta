@@ -1,7 +1,7 @@
 /**
  * WorkspaceWatcher — watches the .carta/ directory for external file changes.
  *
- * Emits typed events when canvas files or schemas change externally.
+ * Emits typed events when canvas files, schemas, or text files change externally.
  * Integrates with workspace-server.ts to re-hydrate idle rooms on change.
  *
  * See ADR 009 (doc02.04.09) — resolved: hot reload strategy.
@@ -65,9 +65,13 @@ export class WorkspaceWatcher extends EventEmitter {
           if (entry.isDirectory() && entry.name !== '.state') {
             walk(path.join(dir, entry.name), relPath);
           } else if (entry.isFile()) {
-            if (entry.name.endsWith('.canvas.json') || relPath === 'schemas/schemas.json') {
-              files.add(relPath);
-            }
+            // Skip metadata-only files — track all content files
+            if (
+              entry.name === '_group.json' ||
+              entry.name === 'workspace.json' ||
+              entry.name === 'ui-state.json'
+            ) continue;
+            files.add(relPath);
           }
         }
       } catch { /* directory may not exist */ }
@@ -128,11 +132,35 @@ export class WorkspaceWatcher extends EventEmitter {
       return;
     }
 
-    // Non-canvas file or directory change — just a tree structure change
-    // (new resource file, deleted group directory, etc.)
-    if (exists !== wasKnown) {
-      if (exists) this.knownFiles.add(filename);
-      else this.knownFiles.delete(filename);
+    // _group.json changes → tree structure change only
+    if (filename.endsWith('_group.json')) {
+      if (exists !== wasKnown) {
+        if (exists) this.knownFiles.add(filename);
+        else this.knownFiles.delete(filename);
+        this.emit('tree-changed');
+      }
+      return;
+    }
+
+    // workspace.json / ui-state.json — ignore
+    const basename = filename.split('/').pop() ?? filename;
+    if (basename === 'workspace.json' || basename === 'ui-state.json') {
+      return;
+    }
+
+    // Text file changes
+    if (exists && wasKnown) {
+      log('text file changed: %s', filename);
+      this.emit('text-file-changed', filename);
+    } else if (exists && !wasKnown) {
+      log('text file created: %s', filename);
+      this.knownFiles.add(filename);
+      this.emit('text-file-changed', filename);
+      this.emit('tree-changed');
+    } else if (!exists && wasKnown) {
+      log('text file deleted: %s', filename);
+      this.knownFiles.delete(filename);
+      this.emit('text-file-deleted', filename);
       this.emit('tree-changed');
     }
   }

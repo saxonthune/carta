@@ -3,7 +3,7 @@
  *
  * Implements DocumentServerConfig for workspace mode: loading .canvas.json files
  * into Y.Doc rooms, saving changes back with debounce, and managing binary .ystate
- * sidecars for fast reload.
+ * sidecars for fast reload. Also supports text file rooms (Y.Doc with Y.Text).
  *
  * See ADR 009 (doc02.04.09) for workspace format design.
  */
@@ -32,8 +32,9 @@ const log = createDebug('carta:workspace-server');
 // ===== TYPES =====
 
 interface WorkspaceDocState extends DocState {
-  /** Relative path from .carta/ dir (e.g., "01-product-vision/domain-sketch") */
-  canvasPath: string;
+  type: 'canvas' | 'text';
+  /** Relative path from .carta/ dir (e.g., "01-vision/sketch.canvas.json" or "01-vision/notes.md") */
+  filePath: string;
   /** Whether pending changes need saving */
   dirty: boolean;
   /** Debounce timer for JSON save */
@@ -126,7 +127,8 @@ export function loadCanvasDoc(cartaDir: string, roomName: string): WorkspaceDocS
   return {
     doc,
     conns: new Set(),
-    canvasPath,
+    type: 'canvas',
+    filePath: `${roomName}.canvas.json`,
     dirty: false,
     saveTimer: null,
   };
@@ -157,6 +159,33 @@ export function saveCanvasDoc(cartaDir: string, roomName: string, doc: Y.Doc): v
 }
 
 /**
+ * Load a text file Y.Doc from disk.
+ * Creates a Y.Doc with a single Y.Text('content') populated from the file.
+ * Throws if the file does not exist.
+ */
+export function loadTextDoc(cartaDir: string, roomName: string): WorkspaceDocState {
+  const filePath = path.join(cartaDir, roomName);
+  if (!fs.existsSync(filePath)) {
+    throw new Error(`Text file not found: ${filePath}`);
+  }
+  const content = fs.readFileSync(filePath, 'utf-8');
+  const doc = new Y.Doc();
+  doc.getText('content').insert(0, content);
+  log('Loaded text room %s from file', roomName);
+  return { doc, conns: new Set(), type: 'text', filePath: roomName, dirty: false, saveTimer: null };
+}
+
+/**
+ * Save a text Y.Doc's Y.Text('content') back to the file on disk.
+ */
+export function saveTextDoc(cartaDir: string, roomName: string, doc: Y.Doc): void {
+  const filePath = path.join(cartaDir, roomName);
+  const content = doc.getText('content').toString();
+  fs.writeFileSync(filePath, content, 'utf-8');
+  log('Saved text file %s to disk', roomName);
+}
+
+/**
  * Schedule a debounced save for a dirty doc.
  */
 export function scheduleSave(cartaDir: string, roomName: string, docState: WorkspaceDocState): void {
@@ -164,7 +193,11 @@ export function scheduleSave(cartaDir: string, roomName: string, docState: Works
   if (docState.saveTimer) clearTimeout(docState.saveTimer);
   docState.saveTimer = setTimeout(() => {
     if (docState.dirty) {
-      saveCanvasDoc(cartaDir, roomName, docState.doc);
+      if (docState.type === 'canvas') {
+        saveCanvasDoc(cartaDir, roomName, docState.doc);
+      } else {
+        saveTextDoc(cartaDir, roomName, docState.doc);
+      }
       docState.dirty = false;
     }
     docState.saveTimer = null;
@@ -175,7 +208,8 @@ export function scheduleSave(cartaDir: string, roomName: string, docState: Works
 
 /**
  * Start a workspace server for a .carta/ directory.
- * One Y.Doc room per .canvas.json file. Rooms are loaded on demand.
+ * Supports canvas rooms (.canvas.json) and text file rooms (any text file).
+ * Rooms are loaded on demand.
  */
 export async function startWorkspaceServer(options: StartWorkspaceServerOptions): Promise<WorkspaceServerInfo> {
   const { cartaDir, host = '127.0.0.1' } = options;
@@ -200,7 +234,20 @@ export async function startWorkspaceServer(options: StartWorkspaceServerOptions)
       let docState = docs.get(roomName);
       if (docState) return docState;
 
-      docState = loadCanvasDoc(cartaDir, roomName);
+      // Try canvas first (room name without extension → .canvas.json)
+      const canvasFilePath = resolveCanvasPath(cartaDir, roomName);
+      if (fs.existsSync(canvasFilePath)) {
+        docState = loadCanvasDoc(cartaDir, roomName);
+      } else {
+        // Try as text file (room name IS the relative path including extension)
+        const textFilePath = path.join(cartaDir, roomName);
+        if (fs.existsSync(textFilePath) && fs.statSync(textFilePath).isFile()) {
+          docState = loadTextDoc(cartaDir, roomName);
+        } else {
+          throw new Error(`No canvas or text file found for room: ${roomName}`);
+        }
+      }
+
       docs.set(roomName, docState);
 
       docState.doc.on('update', () => {
@@ -341,6 +388,37 @@ export async function startWorkspaceServer(options: StartWorkspaceServerOptions)
     // For now, clients will get fresh schemas on next REST fetch
   });
 
+  watcher.on('text-file-changed', (filePath: string) => {
+    const docState = docs.get(filePath);
+    if (!docState || docState.type !== 'text') return;
+    if (docState.dirty) {
+      log('text file %s changed externally but room is dirty — ignoring', filePath);
+      return;
+    }
+    log('text file %s changed externally, re-hydrating', filePath);
+    try {
+      const absPath = path.join(cartaDir, filePath);
+      const content = fs.readFileSync(absPath, 'utf-8');
+      docState.doc.transact(() => {
+        const ytext = docState.doc.getText('content');
+        ytext.delete(0, ytext.length);
+        ytext.insert(0, content);
+      });
+    } catch (err) {
+      log('failed to re-hydrate text file %s: %O', filePath, err);
+    }
+  });
+
+  watcher.on('text-file-deleted', (filePath: string) => {
+    const docState = docs.get(filePath);
+    if (docState) {
+      if (docState.saveTimer) clearTimeout(docState.saveTimer);
+      for (const conn of docState.conns) conn.close();
+      docs.delete(filePath);
+      log('evicted room for deleted text file: %s', filePath);
+    }
+  });
+
   watcher.start();
 
   const url = `http://${host}:${actualPort}`;
@@ -370,7 +448,11 @@ export async function stopWorkspaceServer(): Promise<void> {
       docState.saveTimer = null;
     }
     if (docState.dirty) {
-      saveCanvasDoc(cartaDir, roomName, docState.doc);
+      if (docState.type === 'canvas') {
+        saveCanvasDoc(cartaDir, roomName, docState.doc);
+      } else {
+        saveTextDoc(cartaDir, roomName, docState.doc);
+      }
       docState.dirty = false;
     }
   }

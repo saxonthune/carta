@@ -219,3 +219,71 @@ describe('WorkspaceWatcher', () => {
     await treePromise;
   });
 });
+
+describe('text file events', () => {
+  it('text file creation emits text-file-changed and tree-changed', async () => {
+    const cartaDir = mkCartaDir();
+    writeJson(path.join(cartaDir, 'workspace.json'), { formatVersion: 1, title: 'Test' });
+
+    const w = mkWatcher(cartaDir);
+    w.start();
+
+    const changedPromise = waitForEvent(w, 'text-file-changed');
+    const treePromise = waitForEvent(w, 'tree-changed');
+
+    fs.writeFileSync(path.join(cartaDir, 'notes.md'), '# Hello\n', 'utf-8');
+
+    const [filePath] = await changedPromise;
+    expect(filePath).toBe('notes.md');
+    await treePromise;
+  });
+
+  it('text file modification emits text-file-changed', async () => {
+    const cartaDir = mkCartaDir();
+    writeJson(path.join(cartaDir, 'workspace.json'), { formatVersion: 1, title: 'Test' });
+    fs.writeFileSync(path.join(cartaDir, 'existing.md'), '# Initial\n', 'utf-8');
+
+    const w = mkWatcher(cartaDir);
+    w.start();
+
+    const changedPromise = waitForEvent(w, 'text-file-changed');
+
+    fs.writeFileSync(path.join(cartaDir, 'existing.md'), '# Updated\n', 'utf-8');
+
+    const [filePath] = await changedPromise;
+    expect(filePath).toBe('existing.md');
+  });
+
+  it('text file deletion emits text-file-deleted and tree-changed', async () => {
+    const cartaDir = mkCartaDir();
+    writeJson(path.join(cartaDir, 'workspace.json'), { formatVersion: 1, title: 'Test' });
+    fs.writeFileSync(path.join(cartaDir, 'delete-me.md'), '# Delete\n', 'utf-8');
+
+    const w = mkWatcher(cartaDir);
+    w.start();
+
+    const deletedPromise = waitForEvent(w, 'text-file-deleted');
+    const treePromise = waitForEvent(w, 'tree-changed');
+
+    fs.unlinkSync(path.join(cartaDir, 'delete-me.md'));
+
+    const [filePath] = await deletedPromise;
+    expect(filePath).toBe('delete-me.md');
+    await treePromise;
+  });
+
+  it('canvas files still emit canvas events (not text-file events)', async () => {
+    const cartaDir = mkCartaDir();
+    writeJson(path.join(cartaDir, 'workspace.json'), { formatVersion: 1, title: 'Test' });
+
+    const w = mkWatcher(cartaDir);
+    w.start();
+
+    const canvasPromise = waitForEvent(w, 'canvas-created');
+
+    writeJson(path.join(cartaDir, 'diagram.canvas.json'), EMPTY_CANVAS);
+
+    const [canvasPath] = await canvasPromise;
+    expect(canvasPath).toBe('diagram');
+  });
+});

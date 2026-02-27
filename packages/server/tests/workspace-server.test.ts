@@ -10,6 +10,8 @@ import {
   stopWorkspaceServer,
   loadCanvasDoc,
   saveCanvasDoc,
+  loadTextDoc,
+  saveTextDoc,
   scheduleSave,
   resolveCanvasPath,
   resolveSidecarPath,
@@ -114,7 +116,7 @@ describe('loadCanvasDoc', () => {
     expect(docState.doc).toBeInstanceOf(Y.Doc);
     expect(docState.dirty).toBe(false);
     expect(docState.saveTimer).toBeNull();
-    expect(docState.canvasPath).toBe(resolveCanvasPath(cartaDir, 'my-canvas'));
+    expect(docState.filePath).toBe('my-canvas.canvas.json');
 
     // Y.Doc should have the synthetic page set up by hydrateYDocFromCanvasFile
     const ypages = docState.doc.getMap('pages');
@@ -367,5 +369,86 @@ describe('resolveSidecarPath', () => {
   it('preserves simple room names without slashes', () => {
     const sidecarPath = resolveSidecarPath('/tmp/.carta', 'overview');
     expect(sidecarPath).toContain('overview.ystate');
+  });
+});
+
+describe('text file rooms', () => {
+  it('loadTextDoc reads file into Y.Text', () => {
+    const cartaDir = mkCartaDir();
+    writeJson(path.join(cartaDir, 'workspace.json'), WORKSPACE_MANIFEST);
+
+    const mdPath = path.join(cartaDir, 'notes.md');
+    const mdContent = '# Hello\nThis is a text file.\n';
+    fs.writeFileSync(mdPath, mdContent, 'utf-8');
+
+    const docState = loadTextDoc(cartaDir, 'notes.md');
+
+    expect(docState.doc).toBeInstanceOf(Y.Doc);
+    expect(docState.type).toBe('text');
+    expect(docState.filePath).toBe('notes.md');
+    expect(docState.dirty).toBe(false);
+    expect(docState.saveTimer).toBeNull();
+    expect(docState.doc.getText('content').toString()).toBe(mdContent);
+  });
+
+  it('loadTextDoc throws when file does not exist', () => {
+    const cartaDir = mkCartaDir();
+    writeJson(path.join(cartaDir, 'workspace.json'), WORKSPACE_MANIFEST);
+
+    expect(() => loadTextDoc(cartaDir, 'nonexistent.md')).toThrow('Text file not found');
+  });
+
+  it('saveTextDoc writes Y.Text to file', () => {
+    const cartaDir = mkCartaDir();
+    writeJson(path.join(cartaDir, 'workspace.json'), WORKSPACE_MANIFEST);
+
+    const mdPath = path.join(cartaDir, 'save-text.md');
+    fs.writeFileSync(mdPath, '', 'utf-8');
+
+    const docState = loadTextDoc(cartaDir, 'save-text.md');
+    docState.doc.getText('content').insert(0, '# Updated content\n');
+    saveTextDoc(cartaDir, 'save-text.md', docState.doc);
+
+    const written = fs.readFileSync(mdPath, 'utf-8');
+    expect(written).toBe('# Updated content\n');
+  });
+
+  it('canvas and text rooms coexist with correct types', () => {
+    const cartaDir = mkCartaDir();
+    writeJson(path.join(cartaDir, 'workspace.json'), WORKSPACE_MANIFEST);
+    writeJson(path.join(cartaDir, 'overview.canvas.json'), EMPTY_CANVAS);
+    const mdPath = path.join(cartaDir, 'notes.md');
+    fs.writeFileSync(mdPath, 'Hello world', 'utf-8');
+
+    const canvasState = loadCanvasDoc(cartaDir, 'overview');
+    const textState = loadTextDoc(cartaDir, 'notes.md');
+
+    expect(canvasState.type).toBe('canvas');
+    expect(textState.type).toBe('text');
+  });
+
+  it('scheduleSave for text room writes file after debounce', () => {
+    vi.useFakeTimers();
+
+    const cartaDir = mkCartaDir();
+    writeJson(path.join(cartaDir, 'workspace.json'), WORKSPACE_MANIFEST);
+    const mdPath = path.join(cartaDir, 'debounce-text.md');
+    fs.writeFileSync(mdPath, 'original', 'utf-8');
+
+    const docState = loadTextDoc(cartaDir, 'debounce-text.md');
+    docState.doc.getText('content').delete(0, docState.doc.getText('content').length);
+    docState.doc.getText('content').insert(0, 'updated content');
+
+    scheduleSave(cartaDir, 'debounce-text.md', docState);
+    expect(docState.dirty).toBe(true);
+
+    // Before debounce fires, file unchanged
+    expect(fs.readFileSync(mdPath, 'utf-8')).toBe('original');
+
+    vi.advanceTimersByTime(SAVE_DEBOUNCE_MS + 100);
+
+    expect(docState.dirty).toBe(false);
+    expect(docState.saveTimer).toBeNull();
+    expect(fs.readFileSync(mdPath, 'utf-8')).toBe('updated content');
   });
 });

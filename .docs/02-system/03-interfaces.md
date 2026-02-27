@@ -46,8 +46,9 @@ When the server is configured with a workspace path (`.carta/` directory), addit
 |----------|--------|---------|
 | `/api/workspace` | GET | Workspace tree: manifest, groups, files |
 | `/api/workspace/schemas` | GET | Parsed schemas.json content |
+| `/api/workspace/files/:path` | GET | Read text file content; returns `{ content: string, path: string }` |
 
-These endpoints are read-only. File mutations happen through Y.Doc operations (canvas editing) or direct filesystem access (resources).
+These endpoints are read-only. File mutations happen through Y.Doc operations (canvas editing, text file rooms) or direct filesystem access (resources).
 
 ## Compiler Output
 
