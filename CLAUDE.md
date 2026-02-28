@@ -16,7 +16,7 @@ Carta is a visual software architecture editor. Users create "Constructs" (typed
 
 - **Architecture**: doc02.01 (overview), doc02.02 (state), doc02.08 (frontend)
 - **Metamodel**: doc02.06 (schemas, ports, fields)
-- **Deployment**: doc02.05 (server/local/desktop modes)
+- **Deployment**: doc02.05 (server/local modes)
 - **Features**: doc03.01.xx (modeling, output, environment)
 - **Testing**: doc04.02
 
@@ -88,8 +88,6 @@ Packages can only depend on packages above them in the graph.
           @carta/document   @carta/server(*)
                 ↓
          @carta/web-client
-                ↓
-         @carta/desktop
 ```
 
 | Package | Location | Purpose |
@@ -99,7 +97,6 @@ Packages can only depend on packages above them in the graph.
 | `@carta/document` | `packages/document/` | Shared Y.Doc operations, Yjs helpers, file format, migrations |
 | `@carta/web-client` | `packages/web-client/` | React web app |
 | `@carta/server` | `packages/server/` | Document server + MCP server |
-| `@carta/desktop` | `packages/desktop/` | Electron desktop app with embedded document server |
 
 Cross-package dependencies are resolved via Vite/TypeScript aliases. Packages use `index.ts` barrel exports for public APIs. Web client feature directories (hooks, components/canvas, components/metamap, components/modals, components/ui) each have barrel exports.
 
