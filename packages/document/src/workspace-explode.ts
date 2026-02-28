@@ -7,8 +7,8 @@
  * See ADR 009 (doc02.04.09) for workspace format design.
  */
 
-import type { CartaFile, CartaFileSpecGroup } from './file-format.js';
-import type { WorkspaceManifest, CanvasFile, SchemasFile, GroupMeta } from './workspace-format.js';
+import type { CartaFile } from './file-format.js';
+import type { WorkspaceManifest, CanvasFile, SchemasFile } from './workspace-format.js';
 
 /**
  * Slugify a string: lowercase, replace non-alphanumeric with `-`,
@@ -23,14 +23,6 @@ function slugify(name: string): string {
 }
 
 /**
- * Build the directory name for a spec group: `{order:02d}-{slug}`.
- */
-function groupDirName(group: CartaFileSpecGroup): string {
-  const paddedOrder = String(group.order).padStart(2, '0');
-  return `${paddedOrder}-${slugify(group.name)}`;
-}
-
-/**
  * Convert a monolithic CartaFile into a workspace directory structure.
  *
  * Returns a map of relative paths (within .carta/) to file contents (JSON strings).
@@ -39,22 +31,14 @@ function groupDirName(group: CartaFileSpecGroup): string {
 export function explodeCartaFile(cartaFile: CartaFile): Map<string, string> {
   const files = new Map<string, string>();
 
-  // --- Build lookup: item id → spec group ---
-  const pageGroupMap = new Map<string, CartaFileSpecGroup>();
-
-  for (const group of cartaFile.specGroups ?? []) {
-    for (const item of group.items) {
-      if (item.type === 'page') {
-        pageGroupMap.set(item.id, group);
-      }
-    }
-  }
-
   // --- workspace.json ---
   const manifest: WorkspaceManifest = {
     formatVersion: 1,
     title: cartaFile.title,
     ...(cartaFile.description !== undefined ? { description: cartaFile.description } : {}),
+    ...(cartaFile.groupMetadata !== undefined && Object.keys(cartaFile.groupMetadata).length > 0
+      ? { groups: cartaFile.groupMetadata }
+      : {}),
   };
   files.set('workspace.json', JSON.stringify(manifest, null, 2));
 
@@ -70,16 +54,6 @@ export function explodeCartaFile(cartaFile: CartaFile): Map<string, string> {
   };
   files.set('schemas/schemas.json', JSON.stringify(schemasFile, null, 2));
 
-  // --- Spec group _group.json files ---
-  for (const group of cartaFile.specGroups ?? []) {
-    const dir = groupDirName(group);
-    const meta: GroupMeta = {
-      name: group.name,
-      ...(group.description !== undefined ? { description: group.description } : {}),
-    };
-    files.set(`${dir}/_group.json`, JSON.stringify(meta, null, 2));
-  }
-
   // --- Canvas files (one per page) ---
   for (const page of cartaFile.pages) {
     const canvas: CanvasFile = {
@@ -89,8 +63,7 @@ export function explodeCartaFile(cartaFile: CartaFile): Map<string, string> {
     };
     const slug = slugify(page.name);
     const filename = `${slug}.canvas.json`;
-    const group = pageGroupMap.get(page.id);
-    const path = group ? `${groupDirName(group)}/${filename}` : filename;
+    const path = page.group ? `${page.group}/${filename}` : filename;
     files.set(path, JSON.stringify(canvas, null, 2));
   }
 

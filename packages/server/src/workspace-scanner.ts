@@ -8,7 +8,7 @@
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { parseWorkspaceManifest, parseGroupMeta, type WorkspaceManifest, type GroupMeta } from '@carta/document';
+import { parseWorkspaceManifest, type WorkspaceManifest, type GroupMeta } from '@carta/document';
 
 // ===== TYPES =====
 
@@ -20,11 +20,11 @@ export interface WorkspaceFileEntry {
   size: number;    // file size in bytes
 }
 
-/** A spec group (directory with _group.json) */
+/** A group (directory listed in workspace.json groups map) */
 export interface WorkspaceGroup {
-  name: string;          // from _group.json
-  description?: string;  // from _group.json
-  dirName: string;       // directory name (e.g., '01-api-contract')
+  name: string;          // from workspace.json groups[key].name
+  description?: string;  // from workspace.json groups[key].description
+  dirName: string;       // directory name / group key (e.g., '01-api-contract')
   path: string;          // relative to .carta/
   files: WorkspaceFileEntry[];
 }
@@ -95,11 +95,9 @@ export function scanWorkspace(cartaDir: string): WorkspaceTree {
     if (entry.isDirectory()) {
       if (SKIP_DIRS.has(entry.name)) continue;  // Skip .state/, schemas/
 
-      // Step 4: Check for _group.json
-      const groupMetaPath = path.join(cartaDir, entry.name, '_group.json');
-      if (!fs.existsSync(groupMetaPath)) continue;  // Not a spec group
-
-      const meta: GroupMeta = parseGroupMeta(fs.readFileSync(groupMetaPath, 'utf-8'));
+      // Step 4: Check if this directory is a known group (in manifest.groups)
+      const groupMeta: GroupMeta | undefined = manifest.groups?.[entry.name];
+      if (!groupMeta) continue;  // Not a group directory
 
       // Scan files in the group directory
       const groupEntries = fs.readdirSync(path.join(cartaDir, entry.name), { withFileTypes: true });
@@ -107,8 +105,7 @@ export function scanWorkspace(cartaDir: string): WorkspaceTree {
 
       for (const groupEntry of groupEntries) {
         if (!groupEntry.isFile()) continue;
-        if (groupEntry.name === '_group.json') continue;  // Skip metadata
-        if (groupEntry.name.startsWith('.')) continue;     // Skip hidden
+        if (groupEntry.name.startsWith('.')) continue;  // Skip hidden
 
         const relPath = `${entry.name}/${groupEntry.name}`;
         const absPath = path.join(cartaDir, entry.name, groupEntry.name);
@@ -118,8 +115,8 @@ export function scanWorkspace(cartaDir: string): WorkspaceTree {
       files.sort((a, b) => a.name.localeCompare(b.name));
 
       groups.push({
-        name: meta.name,
-        description: meta.description,
+        name: groupMeta.name,
+        description: groupMeta.description,
         dirName: entry.name,
         path: entry.name,
         files,
