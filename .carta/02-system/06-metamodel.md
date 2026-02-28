@@ -84,6 +84,8 @@ The unit of schema bundling and library portability. A package groups related sc
 | `name` | Human-readable name (e.g., "Backend Stack") |
 | `description` | Optional description for library browsing |
 | `color` | Visual accent color |
+| `libraryEntryId` | ID of library entry this was applied from (tracks provenance) |
+| `appliedVersion` | Version number applied from library (for drift detection) |
 
 Schemas and port schemas declare their package membership via `packageId`. Schema groups (visual) also declare `packageId` to scope their nesting within a package. Port schemas without a `packageId` are document-level (cross-package connectors); the built-in port schemas (flow, parent/child, relay, intercept) serve as default cross-package connectors.
 
@@ -119,6 +121,8 @@ Defines a construct type. Key properties:
 | `groupId` | Optional visual grouping within the package (references SchemaGroup.id) |
 | `instanceColors` | `true` = per-instance color palette picker enabled; absent/false = schema color only |
 | `isFavorite` | `true` = schema pinned to top-level context menu for quick "Add X" access |
+| `compilation` | `CompilationConfig` — format and template for compiled output |
+| `icon` | Optional icon identifier |
 | `nodeShape` | Visual shape: `default`, `simple`, `circle`, `diamond`, `document`, `parallelogram`, `stadium` |
 
 ### FieldSchema
@@ -145,7 +149,10 @@ Configures a port on a construct type:
 | `id` | Unique within construct |
 | `portType` | References a PortSchema.id |
 | `label` | Display label |
+| `semanticDescription` | Optional usage description for compiled output |
 | `suggestedTypes` | Hint for what construct types to connect |
+| `suggestedPorts` | Port IDs that commonly connect here |
+| `dataType` | Optional data type annotation |
 
 ### PortSchema
 

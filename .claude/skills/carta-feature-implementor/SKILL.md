@@ -357,32 +357,27 @@ AskUserQuestion({
 If the user says launch:
 
 ```bash
-mkdir -p todo-tasks/.running
-nohup bash .claude/skills/execute-plan/execute-plan.sh {plan-name} > todo-tasks/.running/{plan-name}.log 2>&1 &
+bash .claude/skills/execute-plan/launch.sh {plan-name}
 ```
 
-Report:
-- Agent is running in background
-- Check progress: `tail -f todo-tasks/.running/{plan-name}.log`
-- Check results when done: `todo-tasks/.done/{plan-name}.result.md`
+The script handles backgrounding, log capture, and directory creation. It prints progress/result paths.
 
 ### Chain Launch
 
 When multiple pre-groomed plans form a sequential dependency chain (e.g., an epic), offer chain execution instead of single-plan launch. The `{epic}-` prefix in filenames makes this natural — all tasks in an epic sort together and can be launched as a chain:
 
 ```bash
-nohup bash .claude/skills/execute-plan/execute-chain.sh {epic} {epic}-01-{slug} {epic}-02-{slug} ... > todo-tasks/.running/chain-{epic}.log 2>&1 &
+bash .claude/skills/execute-plan/launch-chain.sh {epic} {epic}-01-{slug} {epic}-02-{slug} ...
 ```
 
 The chain script runs plans sequentially, stopping on first failure. It creates a `.manifest` file that claims all phases (preventing parallel agents from touching them). If a plan is already running (launched before the chain), the chain waits for it.
 
 Example:
 ```bash
-nohup bash .claude/skills/execute-plan/execute-chain.sh testability \
+bash .claude/skills/execute-plan/launch-chain.sh testability \
   testability-01-compiler-tests testability-02-adapter-round-trips \
   testability-03-extract-connections testability-04-extract-organizer-ops \
-  testability-05-compiler-oracle \
-  > todo-tasks/.running/chain-testability.log 2>&1 &
+  testability-05-compiler-oracle
 ```
 
 ## Phase 7: Suggest Next Tasks

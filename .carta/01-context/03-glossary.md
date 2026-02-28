@@ -21,7 +21,7 @@ Canonical definitions for domain terms used throughout Carta. Use these terms co
 
 **Semantic ID**: A unique identifier for a construct instance, auto-generated as `{type}-{timestamp}{random}`. Used as the primary identifier throughout the system, including in compiled output.
 
-**Display Name**: The human-readable title of a construct instance, derived from the schema's `displayField` value or falling back to the semantic ID.
+**Display Name**: The human-readable title of a construct instance, derived from the value of the field with `displayTier: 'pill'` on the schema, falling back to the semantic ID.
 
 **Page**: A separate architectural view or layer within a document. Each page has its own nodes and edges. Schemas are shared across pages.
 

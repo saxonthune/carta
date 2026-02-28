@@ -116,7 +116,7 @@ The presentation model is a pure transformation layer between domain state and R
 | Canvas (instances) | Nodes, edges, connections | Build architecture | CanvasContainer.tsx, Map.tsx, useLayoutActions, useMapState |
 | Metamap (schemas) | Schemas, groups, port schemas | Define types | MetamapV2.tsx |
 | Schema editing | Schema form, field tiers, ports | Create/edit types | ConstructEditor.tsx |
-| Compilation | Compiled output | Generate AI output | compiler/index.ts |
+| Compilation | Compiled output | Generate AI output | `@carta/document` (compiler package) |
 | Import/Export | File I/O | Persist and share | cartaFile.ts |
 | Help / About | Config display, version | Show app info | Footer.tsx, HelpModal.tsx |
 | AI Assistant | Chat, tool calls | AI-assisted editing | ai/ directory |
