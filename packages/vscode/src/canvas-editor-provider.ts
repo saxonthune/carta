@@ -4,30 +4,54 @@ import * as path from 'node:path';
 import type { WorkspaceServerInfo } from '@carta/server/embedded-host';
 import { deriveRoomName } from './find-carta-workspace.js';
 
+export function buildDevModeHtml(roomName: string | null): string {
+  const devServerUrl = 'http://localhost:5173';
+  const iframeSrc = roomName
+    ? `${devServerUrl}?doc=${encodeURIComponent(roomName)}`
+    : devServerUrl;
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; frame-src ${devServerUrl};">
+  <style>html, body, iframe { margin: 0; padding: 0; width: 100%; height: 100%; border: none; overflow: hidden; }</style>
+</head>
+<body>
+  <iframe src="${iframeSrc}"></iframe>
+</body>
+</html>`;
+}
+
 export class CartaCanvasEditorProvider implements vscode.CustomReadonlyEditorProvider {
   private extensionUri: vscode.Uri;
   private getServerInfo: () => WorkspaceServerInfo | null;
   private cartaDir: string | null;
+  private devMode: boolean;
 
   constructor(
     extensionUri: vscode.Uri,
     getServerInfo: () => WorkspaceServerInfo | null,
     cartaDir: string | null,
+    devMode: boolean,
   ) {
     this.extensionUri = extensionUri;
     this.getServerInfo = getServerInfo;
     this.cartaDir = cartaDir;
+    this.devMode = devMode;
   }
 
   static register(
     context: vscode.ExtensionContext,
     getServerInfo: () => WorkspaceServerInfo | null,
     cartaDir: string | null,
+    devMode: boolean,
   ): vscode.Disposable {
     const provider = new CartaCanvasEditorProvider(
       context.extensionUri,
       getServerInfo,
       cartaDir,
+      devMode,
     );
     return vscode.window.registerCustomEditorProvider(
       'carta.canvasEditor',
@@ -44,6 +68,17 @@ export class CartaCanvasEditorProvider implements vscode.CustomReadonlyEditorPro
     document: vscode.CustomDocument,
     webviewPanel: vscode.WebviewPanel,
   ): void {
+    const serverInfo = this.getServerInfo();
+    const roomName = this.cartaDir
+      ? deriveRoomName(this.cartaDir, document.uri.fsPath)
+      : null;
+
+    if (this.devMode) {
+      webviewPanel.webview.options = { enableScripts: true };
+      webviewPanel.webview.html = buildDevModeHtml(roomName);
+      return;
+    }
+
     const webview = webviewPanel.webview;
     webview.options = {
       enableScripts: true,
@@ -51,12 +86,6 @@ export class CartaCanvasEditorProvider implements vscode.CustomReadonlyEditorPro
         vscode.Uri.joinPath(this.extensionUri, 'dist', 'web-client'),
       ],
     };
-
-    const serverInfo = this.getServerInfo();
-    const roomName = this.cartaDir
-      ? deriveRoomName(this.cartaDir, document.uri.fsPath)
-      : null;
-
     webview.html = this.buildWebviewHtml(webview, serverInfo, roomName);
   }
 

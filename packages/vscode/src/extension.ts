@@ -10,6 +10,7 @@ let host: EmbeddedHost | null = null;
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const cartaDir = findCartaWorkspace();
+  const devMode = vscode.workspace.getConfiguration('carta').get<boolean>('devMode', false);
 
   if (cartaDir) {
     try {
@@ -27,6 +28,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       context,
       () => host?.info ?? null,
       cartaDir,
+      devMode,
     ),
   );
 

@@ -20,11 +20,23 @@
     "commands": [{
       "command": "carta.initWorkspace",
       "title": "Carta: Initialize Workspace"
-    }]
+    }],
+    "configuration": {
+      "title": "Carta",
+      "properties": {
+        "carta.devMode": {
+          "type": "boolean",
+          "default": false,
+          "description": "Load WebView from Vite dev server (http://localhost:5173) for hot reload. Requires running pnpm dev separately."
+        }
+      }
+    }
   },
   "scripts": {
     "build": "node esbuild.config.mjs && node scripts/copy-web-client.mjs",
     "watch": "node esbuild.config.mjs --watch",
+    "test": "vitest run",
+    "test:integration": "vscode-test",
     "package": "vsce package",
     "publish": "vsce publish"
   },
@@ -33,8 +45,12 @@
   },
   "devDependencies": {
     "@carta/web-client": "workspace:*",
+    "@types/mocha": "^10.0.0",
     "@types/vscode": "^1.85.0",
+    "@vscode/test-cli": "^0.0.10",
+    "@vscode/test-electron": "^2.4.0",
     "@vscode/vsce": "^3.0.0",
-    "esbuild": "^0.25.0"
+    "esbuild": "^0.25.0",
+    "vitest": "^3.2.0"
   }
 }

@@ -1,0 +1,12 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build Carta Extension",
+      "type": "shell",
+      "command": "pnpm --filter carta-vscode build",
+      "group": "build",
+      "problemMatcher": ["$tsc"]
+    }
+  ]
+}
