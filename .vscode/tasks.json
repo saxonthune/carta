@@ -2,11 +2,46 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "Vite Dev Server",
+      "type": "shell",
+      "command": "pnpm --filter @carta/web-client demo",
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": { "regexp": "." },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "VITE",
+          "endsPattern": "ready in"
+        }
+      },
+      "presentation": { "reveal": "silent", "panel": "dedicated" }
+    },
+    {
       "label": "Build Carta Extension",
       "type": "shell",
-      "command": "pnpm --filter carta-vscode build",
+      "command": "pnpm --filter @carta/web-client build && pnpm --filter carta-vscode build",
       "group": "build",
       "problemMatcher": ["$tsc"]
+    },
+    {
+      "label": "Watch Carta Extension",
+      "type": "shell",
+      "command": "pnpm --filter carta-vscode watch",
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": { "regexp": "." },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "Watching",
+          "endsPattern": "Watching"
+        }
+      },
+      "presentation": { "reveal": "silent", "panel": "dedicated" }
+    },
+    {
+      "label": "Carta Extension (Dev Mode)",
+      "dependsOn": ["Vite Dev Server", "Build Carta Extension", "Watch Carta Extension"],
+      "dependsOrder": "sequence"
     }
   ]
 }
