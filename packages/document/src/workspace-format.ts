@@ -14,7 +14,10 @@ import type {
   SchemaRelationship,
   SchemaPackage,
   PackageManifestEntry,
+  GroupMeta,
 } from '@carta/schema';
+
+export type { GroupMeta };
 
 // ============================================
 // Types
@@ -27,14 +30,7 @@ export interface WorkspaceManifest {
   formatVersion: 1;
   title: string;
   description?: string;
-}
-
-/**
- * Spec group metadata — .carta/{group-dir}/_group.json
- */
-export interface GroupMeta {
-  name: string;
-  description?: string;
+  groups?: Record<string, GroupMeta>;
 }
 
 /**
@@ -88,34 +84,32 @@ export function validateWorkspaceManifest(data: unknown): WorkspaceManifest {
     throw new Error('Invalid workspace.json: description must be a string');
   }
 
+  let groups: Record<string, GroupMeta> | undefined;
+  if (obj.groups !== undefined) {
+    if (!obj.groups || typeof obj.groups !== 'object' || Array.isArray(obj.groups)) {
+      throw new Error('Invalid workspace.json: groups must be an object');
+    }
+    groups = {};
+    for (const [key, value] of Object.entries(obj.groups as Record<string, unknown>)) {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        throw new Error(`Invalid workspace.json: groups["${key}"] must be an object`);
+      }
+      const v = value as Record<string, unknown>;
+      if (typeof v.name !== 'string') {
+        throw new Error(`Invalid workspace.json: groups["${key}"].name must be a string`);
+      }
+      if (v.description !== undefined && typeof v.description !== 'string') {
+        throw new Error(`Invalid workspace.json: groups["${key}"].description must be a string`);
+      }
+      groups[key] = { name: v.name, description: v.description as string | undefined };
+    }
+  }
+
   return {
     formatVersion: 1,
     title: obj.title,
     description: obj.description as string | undefined,
-  };
-}
-
-/**
- * Validate the structure of a GroupMeta
- */
-export function validateGroupMeta(data: unknown): GroupMeta {
-  if (!data || typeof data !== 'object') {
-    throw new Error('Invalid _group.json: expected JSON object');
-  }
-
-  const obj = data as Record<string, unknown>;
-
-  if (typeof obj.name !== 'string') {
-    throw new Error('Invalid _group.json: missing or invalid name');
-  }
-
-  if (obj.description !== undefined && typeof obj.description !== 'string') {
-    throw new Error('Invalid _group.json: description must be a string');
-  }
-
-  return {
-    name: obj.name,
-    description: obj.description as string | undefined,
+    ...(groups !== undefined ? { groups } : {}),
   };
 }
 
@@ -336,14 +330,6 @@ export function parseWorkspaceManifest(content: string): WorkspaceManifest {
 }
 
 /**
- * Parse and validate _group.json from raw string content
- */
-export function parseGroupMeta(content: string): GroupMeta {
-  const data = JSON.parse(content);
-  return validateGroupMeta(data);
-}
-
-/**
  * Parse and validate a .canvas.json file from raw string content
  */
 export function parseCanvasFile(content: string): CanvasFile {
@@ -368,13 +354,6 @@ export function parseSchemasFile(content: string): SchemasFile {
  */
 export function serializeWorkspaceManifest(manifest: WorkspaceManifest): string {
   return JSON.stringify(manifest, null, 2);
-}
-
-/**
- * Serialize a GroupMeta to JSON string
- */
-export function serializeGroupMeta(meta: GroupMeta): string {
-  return JSON.stringify(meta, null, 2);
 }
 
 /**
