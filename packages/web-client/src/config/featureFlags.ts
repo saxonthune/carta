@@ -4,6 +4,8 @@
  */
 interface CartaConfig {
   syncUrl?: string;
+  /** Set to true when running inside the VS Code extension webview */
+  embedded?: boolean;
 }
 
 function getRuntimeConfig(): CartaConfig | null {
@@ -38,6 +40,8 @@ export const config = {
   debug: getDebugMode(),
   syncUrl: (getRuntimeConfig()?.syncUrl || import.meta.env.VITE_SYNC_URL || null) as string | null,
   aiMode: (import.meta.env.VITE_AI_MODE || 'none') as 'none' | 'user-key' | 'server-proxy',
+  /** True when running inside the VS Code extension webview */
+  embedded: getRuntimeConfig()?.embedded ?? false,
 
   /** Whether a sync server is configured (enables collaboration, multi-document mode) */
   get hasSync(): boolean { return !!this.syncUrl; },

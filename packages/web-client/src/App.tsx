@@ -42,6 +42,11 @@ const TextEditor = lazy(() => import('./components/TextEditor'));
 function App() {
   const { isWorkspace, loading: workspaceLoading, workspaceTree, schemas } = useWorkspaceMode();
 
+  // Embedded mode (VS Code webview): render just the canvas with its own DocumentProvider
+  if (config.embedded) {
+    return <EmbeddedContent />;
+  }
+
   // Wait briefly while we detect whether the server is a workspace server
   if (workspaceLoading) {
     return null;
@@ -381,6 +386,58 @@ function AppContent() {
           />
         </Suspense>
       )}
+    </div>
+  );
+}
+
+function EmbeddedContent() {
+  const { loading, schemas } = useWorkspaceMode();
+
+  if (loading) return null;
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const documentId = urlParams.get('doc');
+  if (!documentId) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-surface text-content-muted">
+        No document specified
+      </div>
+    );
+  }
+
+  return (
+    <DocumentProvider
+      documentId={documentId}
+      workspaceCanvas={schemas ?? undefined}
+    >
+      <EmbeddedCanvas />
+    </DocumentProvider>
+  );
+}
+
+function EmbeddedCanvas() {
+  const { adapter } = useDocumentContext();
+  const { pages, activePage } = usePages();
+
+  useEffect(() => {
+    syncWithDocumentStore(adapter.getPortSchemas());
+    const unsubscribe = adapter.subscribe(() => {
+      syncWithDocumentStore(adapter.getPortSchemas());
+    });
+    return unsubscribe;
+  }, [adapter]);
+
+  const activeView: ActiveView = {
+    type: 'page',
+    pageId: activePage || pages[0]?.id || '',
+  };
+
+  return (
+    <div className="h-screen w-full flex flex-col">
+      <CanvasContainer
+        onSelectionChange={() => {}}
+        activeView={activeView}
+      />
     </div>
   );
 }
