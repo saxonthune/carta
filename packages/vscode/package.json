@@ -1,0 +1,39 @@
+{
+  "name": "carta-vscode",
+  "displayName": "Carta",
+  "description": "Visual software architecture editor for .carta workspaces",
+  "version": "0.0.1",
+  "publisher": "carta",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Visualization"],
+  "activationEvents": [
+    "workspaceContains:**/.carta/workspace.json"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "customEditors": [{
+      "viewType": "carta.canvasEditor",
+      "displayName": "Carta Canvas",
+      "selector": [{ "filenamePattern": "*.canvas.json" }],
+      "priority": "default"
+    }],
+    "commands": [{
+      "command": "carta.initWorkspace",
+      "title": "Carta: Initialize Workspace"
+    }]
+  },
+  "scripts": {
+    "build": "node esbuild.config.mjs && node scripts/copy-web-client.mjs",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "dependencies": {
+    "@carta/server": "workspace:*"
+  },
+  "devDependencies": {
+    "@carta/web-client": "workspace:*",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.0.0",
+    "esbuild": "^0.25.0"
+  }
+}
