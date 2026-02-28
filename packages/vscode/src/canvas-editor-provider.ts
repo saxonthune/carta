@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import * as crypto from 'node:crypto';
 import type { WorkspaceServerInfo } from '@carta/server/embedded-host';
 import { deriveRoomName } from './find-carta-workspace.js';
 
@@ -123,22 +124,26 @@ export class CartaCanvasEditorProvider implements vscode.CustomReadonlyEditorPro
       },
     );
 
+    // Generate a nonce for inline scripts to satisfy CSP
+    const nonce = crypto.randomUUID().replace(/-/g, '');
+
     // Inject __CARTA_CONFIG__ and auto-navigate script before </head>
     // The auto-navigate script sets ?doc=ROOM_NAME on the WebView URL via history.replaceState.
     // This runs synchronously before module scripts, so main.tsx reads it from URLSearchParams.
-    const cartaConfig: Record<string, unknown> = { embedded: true };
-    if (serverInfo) cartaConfig.syncUrl = serverInfo.url;
-
+    const cartaConfig = {
+      ...(serverInfo ? { syncUrl: serverInfo.url } : {}),
+      embedded: true,
+    };
     const configScripts = [
-      `<script>window.__CARTA_CONFIG__=${JSON.stringify(cartaConfig)}</script>`,
+      `<script nonce="${nonce}">window.__CARTA_CONFIG__=${JSON.stringify(cartaConfig)}</script>`,
       roomName
-        ? `<script>history.replaceState(null, '', '?doc=' + ${JSON.stringify(encodeURIComponent(roomName))});</script>`
+        ? `<script nonce="${nonce}">history.replaceState(null, '', '?doc=' + ${JSON.stringify(encodeURIComponent(roomName))});</script>`
         : '',
     ].filter(Boolean).join('\n');
 
     // Inject CSP meta tag before </head>
     const cspSource = webview.cspSource;
-    const cspMeta = `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src ${cspSource}; style-src ${cspSource} 'unsafe-inline'; connect-src ws://127.0.0.1:* http://127.0.0.1:*; img-src ${cspSource} data:; font-src ${cspSource};">`;
+    const cspMeta = `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-${nonce}' ${cspSource}; style-src ${cspSource} 'unsafe-inline'; connect-src ws://127.0.0.1:* http://127.0.0.1:*; img-src ${cspSource} data:; font-src ${cspSource};">`;
 
     html = html.replace('</head>', `${cspMeta}\n${configScripts}\n</head>`);
 

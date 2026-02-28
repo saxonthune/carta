@@ -4,6 +4,7 @@
  */
 interface CartaConfig {
   syncUrl?: string;
+  /** Set to true when running inside the VS Code extension webview */
   embedded?: boolean;
 }
 
@@ -52,7 +53,6 @@ export const config = {
   debug: getDebugMode(),
   syncUrl: (runtimeConfig.syncUrl || import.meta.env.VITE_SYNC_URL || null) as string | null,
   aiMode: (import.meta.env.VITE_AI_MODE || 'none') as 'none' | 'user-key' | 'server-proxy',
-
   /** Whether the app is embedded in a host (e.g. VS Code WebView) — canvas-only, no chrome */
   embedded: runtimeConfig.embedded === true,
 

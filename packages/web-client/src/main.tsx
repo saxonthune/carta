@@ -38,6 +38,20 @@ async function boot() {
 }
 
 async function bootWithDocumentId(documentId: string | null) {
+  if (config.embedded) {
+    // Embedded mode manages its own DocumentProvider (needs workspace schemas)
+    root.render(
+      <StrictMode>
+        <GuideTooltipProvider>
+          <VaultProvider>
+            <App />
+          </VaultProvider>
+        </GuideTooltipProvider>
+      </StrictMode>,
+    );
+    return;
+  }
+
   if (!documentId) {
     if (config.hasSync) {
       // Server mode: URL is source of truth. No ?doc= means show DocumentBrowserModal.
