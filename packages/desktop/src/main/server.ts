@@ -1,16 +1,16 @@
 /**
- * Desktop Server — thin wrapper around the workspace server.
+ * Desktop Server — thin wrapper around the embedded host.
  *
- * Picks a project directory, calls scaffoldWorkspace() + startWorkspaceServer(),
- * and writes server.json to userData for MCP discovery.
- * All document server logic lives in @carta/server, not here.
+ * Picks a project directory, starts the embedded host (workspace server +
+ * server.json discovery), and manages lifecycle. All document server logic
+ * lives in @carta/server.
  */
 
-import * as fs from 'node:fs';
 import * as path from 'node:path';
 import createDebug from 'debug';
-import { startWorkspaceServer, stopWorkspaceServer } from '@carta/server/workspace-server';
-import type { WorkspaceServerInfo } from '@carta/server/workspace-server';
+import { startEmbeddedHost } from '@carta/server/embedded-host';
+import type { EmbeddedHost } from '@carta/server/embedded-host';
+import type { WorkspaceServerInfo } from '@carta/server/embedded-host';
 import { scaffoldWorkspace } from '@carta/server/init';
 import type { ScaffoldResult } from '@carta/server/init';
 
@@ -18,7 +18,7 @@ export type { WorkspaceServerInfo };
 
 const log = createDebug('carta:desktop-server');
 
-let serverInfoPath: string | null = null;
+let host: EmbeddedHost | null = null;
 
 /**
  * Start the workspace server for a project directory.
@@ -29,28 +29,22 @@ export async function startDesktopServer(
   workspacePath: string,
 ): Promise<WorkspaceServerInfo> {
   const cartaDir = path.join(workspacePath, '.carta');
-  serverInfoPath = path.join(userDataPath, 'server.json');
+  // Use Electron's userData path for backwards compat with existing MCP configs
+  const discoveryPath = path.join(userDataPath, 'server.json');
 
-  const info = await startWorkspaceServer({ cartaDir });
-
-  const serverJson = { url: info.url, wsUrl: info.wsUrl, pid: process.pid };
-  fs.writeFileSync(serverInfoPath, JSON.stringify(serverJson, null, 2));
-
-  log('Running at %s, cartaDir: %s', info.url, cartaDir);
-  return info;
+  host = await startEmbeddedHost({ cartaDir, discoveryPath });
+  log('Running at %s, cartaDir: %s', host.info.url, cartaDir);
+  return host.info;
 }
 
 /**
  * Stop the workspace server and clean up server.json.
  */
 export async function stopDesktopServer(): Promise<void> {
-  await stopWorkspaceServer();
-
-  if (serverInfoPath && fs.existsSync(serverInfoPath)) {
-    fs.unlinkSync(serverInfoPath);
-    serverInfoPath = null;
+  if (host) {
+    await host.stop();
+    host = null;
   }
-
   log('Stopped');
 }
 

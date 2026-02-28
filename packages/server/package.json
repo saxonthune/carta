@@ -22,6 +22,14 @@
     "./init": {
       "types": "./dist/init.d.ts",
       "import": "./dist/init.js"
+    },
+    "./server-discovery": {
+      "types": "./dist/server-discovery.d.ts",
+      "import": "./dist/server-discovery.js"
+    },
+    "./embedded-host": {
+      "types": "./dist/embedded-host.d.ts",
+      "import": "./dist/embedded-host.js"
     }
   },
   "bin": {

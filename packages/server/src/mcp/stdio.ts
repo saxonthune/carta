@@ -18,53 +18,14 @@ import {
   ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 
-import * as fs from 'node:fs';
-import * as path from 'node:path';
-import * as os from 'node:os';
 import * as Y from 'yjs';
 import createDebug from 'debug';
+import { readServerDiscovery, getDefaultDiscoveryPath } from '../server-discovery.js';
 import { getToolDefinitions, createToolHandlers } from './tools.js';
 import type { ToolHandlerConfig, DocStateWithFlush } from './tools.js';
 import { getResourceDefinitions, getResourceContent } from './resources.js';
 
 const log = createDebug('carta:mcp');
-
-/**
- * Discover the Carta Desktop embedded server URL from server.json.
- * Checks platform-specific Electron userData paths.
- */
-function discoverDesktopServer(): string | null {
-  const platform = os.platform();
-  let userDataPath: string;
-
-  if (platform === 'darwin') {
-    userDataPath = path.join(os.homedir(), 'Library', 'Application Support', '@carta', 'desktop');
-  } else if (platform === 'win32') {
-    userDataPath = path.join(process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'), '@carta', 'desktop');
-  } else {
-    userDataPath = path.join(os.homedir(), '.config', '@carta', 'desktop');
-  }
-
-  const serverJsonPath = path.join(userDataPath, 'server.json');
-  if (!fs.existsSync(serverJsonPath)) return null;
-
-  try {
-    const data = JSON.parse(fs.readFileSync(serverJsonPath, 'utf-8'));
-    if (data.url && data.pid) {
-      // Verify the process is still running
-      try {
-        process.kill(data.pid, 0);
-        return data.url;
-      } catch {
-        // Process not running, stale server.json
-        return null;
-      }
-    }
-  } catch {
-    return null;
-  }
-  return null;
-}
 
 /**
  * Make an HTTP request to the document server.
@@ -158,7 +119,7 @@ async function main() {
       }
       return null;
     })() ||
-    discoverDesktopServer() ||
+    readServerDiscovery(getDefaultDiscoveryPath())?.url ||
     'http://localhost:1234';
 
   log('Carta MCP server using HTTP API (%s)', serverUrl);
