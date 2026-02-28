@@ -1,5 +1,31 @@
 {
   "formatVersion": 1,
   "title": "Carta",
-  "description": "Carta-building-carta-building-carta"
+  "description": "Carta-building-carta-building-carta",
+  "groups": {
+    "00-codex": {
+      "name": "Codex",
+      "description": "Meta-documentation: how to read docs, cross-reference syntax, maintenance"
+    },
+    "01-context": {
+      "name": "Context",
+      "description": "Mission, principles, vocabulary, UX guidelines"
+    },
+    "02-system": {
+      "name": "System",
+      "description": "Architecture, technical design, ADRs"
+    },
+    "03-product": {
+      "name": "Product",
+      "description": "Features, use cases, workflows"
+    },
+    "04-operations": {
+      "name": "Operations",
+      "description": "Development, testing, deployment, contributing"
+    },
+    "05-research": {
+      "name": "Research",
+      "description": "Design explorations and research sessions"
+    }
+  }
 }

@@ -4,9 +4,8 @@ import {
   parseWorkspaceManifest,
   parseCanvasFile,
   parseSchemasFile,
-  parseGroupMeta,
 } from '../src/workspace-format';
-import type { CartaFile, CartaFilePage, CartaFileSpecGroup } from '../src/file-format';
+import type { CartaFile, CartaFilePage } from '../src/file-format';
 
 // ============================================
 // Helpers
@@ -54,16 +53,6 @@ function makePortSchema(id: string) {
     compatibleWith: [id],
     color: '#00ff00',
   };
-}
-
-function makeSpecGroup(
-  id: string,
-  name: string,
-  order: number,
-  items: Array<{ type: 'page'; id: string }>,
-  description?: string,
-): CartaFileSpecGroup {
-  return { id, name, order, items, description };
 }
 
 function makeMinimalCartaFile(overrides: Partial<CartaFile> = {}): CartaFile {
@@ -162,60 +151,43 @@ describe('explodeCartaFile — round-trip', () => {
 });
 
 // ============================================
-// Spec group test
+// Group test (page.group + groupMetadata)
 // ============================================
 
-describe('explodeCartaFile — spec groups', () => {
+describe('explodeCartaFile — groups', () => {
   it('pages land in correct group directories', () => {
+    const p1: CartaFilePage = { ...makePage('p1', 'Vision', 1), group: '01-context' };
+    const p2: CartaFilePage = { ...makePage('p2', 'Backend', 2), group: '02-system' };
+    const p3 = makePage('p3', 'Frontend', 3); // ungrouped
+
     const cartaFile = makeMinimalCartaFile({
-      pages: [
-        makePage('p1', 'Vision', 1),
-        makePage('p2', 'Backend', 2),
-        makePage('p3', 'Frontend', 3),
-      ],
-      specGroups: [
-        makeSpecGroup('sg1', 'Product Vision', 1, [{ type: 'page', id: 'p1' }], 'High-level vision'),
-        makeSpecGroup('sg2', 'Backend', 2, [
-          { type: 'page', id: 'p2' },
-        ]),
-      ],
+      pages: [p1, p2, p3],
+      groupMetadata: {
+        '01-context': { name: 'Context', description: 'Mission' },
+        '02-system': { name: 'System' },
+      },
     });
 
     const files = explodeCartaFile(cartaFile);
 
-    // _group.json files
-    const group1Meta = parseGroupMeta(files.get('01-product-vision/_group.json')!);
-    expect(group1Meta.name).toBe('Product Vision');
-    expect(group1Meta.description).toBe('High-level vision');
-
-    const group2Meta = parseGroupMeta(files.get('02-backend/_group.json')!);
-    expect(group2Meta.name).toBe('Backend');
+    // Groups are in workspace.json, not _group.json
+    const manifest = parseWorkspaceManifest(files.get('workspace.json')!);
+    expect(manifest.groups!['01-context']).toEqual({ name: 'Context', description: 'Mission' });
+    expect(manifest.groups!['02-system']).toEqual({ name: 'System' });
 
     // Pages in correct dirs
-    expect(files.has('01-product-vision/vision.canvas.json')).toBe(true);
-    expect(files.has('02-backend/backend.canvas.json')).toBe(true);
+    expect(files.has('01-context/vision.canvas.json')).toBe(true);
+    expect(files.has('02-system/backend.canvas.json')).toBe(true);
 
     // Ungrouped page at root
     expect(files.has('frontend.canvas.json')).toBe(true);
   });
 
-  it('spec group directory uses zero-padded order', () => {
-    const cartaFile = makeMinimalCartaFile({
-      pages: [makePage('p1', 'Overview', 1)],
-      specGroups: [
-        makeSpecGroup('sg5', 'Final Review', 5, [{ type: 'page', id: 'p1' }]),
-      ],
-    });
-
-    const files = explodeCartaFile(cartaFile);
-    expect(files.has('05-final-review/_group.json')).toBe(true);
-    expect(files.has('05-final-review/overview.canvas.json')).toBe(true);
-  });
-
   it('canvas files parse correctly when in group directory', () => {
+    const p1: CartaFilePage = { ...makePage('p1', 'API Design', 1), group: '01-backend' };
     const cartaFile = makeMinimalCartaFile({
-      pages: [makePage('p1', 'API Design', 1)],
-      specGroups: [makeSpecGroup('sg1', 'Backend', 1, [{ type: 'page', id: 'p1' }])],
+      pages: [p1],
+      groupMetadata: { '01-backend': { name: 'Backend' } },
     });
 
     const files = explodeCartaFile(cartaFile);
@@ -224,6 +196,13 @@ describe('explodeCartaFile — spec groups', () => {
     const canvas = parseCanvasFile(canvasContent!);
     expect(canvas.formatVersion).toBe(1);
     expect(canvas.nodes).toHaveLength(1);
+  });
+
+  it('workspace.json omits groups when no groupMetadata', () => {
+    const cartaFile = makeMinimalCartaFile();
+    const files = explodeCartaFile(cartaFile);
+    const manifest = parseWorkspaceManifest(files.get('workspace.json')!);
+    expect(manifest.groups).toBeUndefined();
   });
 });
 

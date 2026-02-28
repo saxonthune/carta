@@ -67,7 +67,6 @@ export class WorkspaceWatcher extends EventEmitter {
           } else if (entry.isFile()) {
             // Skip metadata-only files — track all content files
             if (
-              entry.name === '_group.json' ||
               entry.name === 'workspace.json' ||
               entry.name === 'ui-state.json'
             ) continue;
@@ -132,19 +131,15 @@ export class WorkspaceWatcher extends EventEmitter {
       return;
     }
 
-    // _group.json changes → tree structure change only
-    if (filename.endsWith('_group.json')) {
-      if (exists !== wasKnown) {
-        if (exists) this.knownFiles.add(filename);
-        else this.knownFiles.delete(filename);
-        this.emit('tree-changed');
-      }
+    // workspace.json changes → tree structure change (groups may have changed)
+    const basename = filename.split('/').pop() ?? filename;
+    if (basename === 'workspace.json') {
+      this.emit('tree-changed');
       return;
     }
 
-    // workspace.json / ui-state.json — ignore
-    const basename = filename.split('/').pop() ?? filename;
-    if (basename === 'workspace.json' || basename === 'ui-state.json') {
+    // ui-state.json — ignore
+    if (basename === 'ui-state.json') {
       return;
     }
 

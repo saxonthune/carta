@@ -42,8 +42,11 @@ describe('scanWorkspace', () => {
   it('returns correct tree for workspace with group, ungrouped file, and schemas', () => {
     const cartaDir = mkCartaDir();
 
-    // workspace.json
-    writeJson(path.join(cartaDir, 'workspace.json'), WORKSPACE_MANIFEST);
+    // workspace.json with groups
+    writeJson(path.join(cartaDir, 'workspace.json'), {
+      ...WORKSPACE_MANIFEST,
+      groups: { '01-api-contract': GROUP_META },
+    });
 
     // schemas/schemas.json
     writeJson(path.join(cartaDir, 'schemas', 'schemas.json'), {
@@ -58,7 +61,6 @@ describe('scanWorkspace', () => {
     // Group directory: 01-api-contract
     const groupDir = path.join(cartaDir, '01-api-contract');
     fs.mkdirSync(groupDir);
-    writeJson(path.join(groupDir, '_group.json'), GROUP_META);
     writeJson(path.join(groupDir, 'endpoint-map.canvas.json'), {
       formatVersion: 1, nodes: [], edges: [],
     });
@@ -164,12 +166,17 @@ describe('scanWorkspace', () => {
 
   it('sorts groups by dirName', () => {
     const cartaDir = mkCartaDir();
-    writeJson(path.join(cartaDir, 'workspace.json'), WORKSPACE_MANIFEST);
+    writeJson(path.join(cartaDir, 'workspace.json'), {
+      ...WORKSPACE_MANIFEST,
+      groups: {
+        '03-deployment': { name: '03-deployment' },
+        '01-api': { name: '01-api' },
+        '02-data-model': { name: '02-data-model' },
+      },
+    });
 
     for (const dirName of ['03-deployment', '01-api', '02-data-model']) {
-      const groupDir = path.join(cartaDir, dirName);
-      fs.mkdirSync(groupDir);
-      writeJson(path.join(groupDir, '_group.json'), { name: dirName });
+      fs.mkdirSync(path.join(cartaDir, dirName));
     }
 
     const tree = scanWorkspace(cartaDir);
@@ -177,19 +184,24 @@ describe('scanWorkspace', () => {
     expect(tree.groups.map(g => g.dirName)).toEqual(['01-api', '02-data-model', '03-deployment']);
   });
 
-  it('excludes _group.json from group files', () => {
+  it('ignores directories not listed in manifest groups', () => {
     const cartaDir = mkCartaDir();
-    writeJson(path.join(cartaDir, 'workspace.json'), WORKSPACE_MANIFEST);
+    writeJson(path.join(cartaDir, 'workspace.json'), {
+      ...WORKSPACE_MANIFEST,
+      groups: { '01-specs': { name: 'Specs' } },
+    });
 
+    // Listed group
     const groupDir = path.join(cartaDir, '01-specs');
     fs.mkdirSync(groupDir);
-    writeJson(path.join(groupDir, '_group.json'), { name: 'Specs' });
     writeJson(path.join(groupDir, 'spec.canvas.json'), { formatVersion: 1, nodes: [], edges: [] });
 
-    const tree = scanWorkspace(cartaDir);
-    const group = tree.groups[0]!;
+    // Unlisted directory — should be ignored
+    fs.mkdirSync(path.join(cartaDir, '99-unknown'));
 
-    expect(group.files.map(f => f.name)).not.toContain('_group.json');
-    expect(group.files).toHaveLength(1);
+    const tree = scanWorkspace(cartaDir);
+
+    expect(tree.groups).toHaveLength(1);
+    expect(tree.groups[0]!.files).toHaveLength(1);
   });
 });

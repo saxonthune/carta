@@ -8,7 +8,7 @@ import * as Y from 'yjs';
 import type { ConstructSchema, PortSchema, SchemaGroup, SchemaPackage, PackageManifestEntry } from '@carta/schema';
 import { yToPlain, deepPlainToY } from './yjs-helpers.js';
 import { CARTA_FILE_VERSION } from './constants.js';
-import type { CartaFile, CartaFilePage, CartaFileSpecGroup } from './file-format.js';
+import type { CartaFile, CartaFilePage } from './file-format.js';
 
 /**
  * Extract a CartaFile from a Y.Doc for saving.
@@ -30,7 +30,7 @@ export function extractCartaFile(doc: Y.Doc): CartaFile {
   // Extract levels with their data
   const pages: CartaFilePage[] = [];
   ypages.forEach((ypage, pageId) => {
-    const pageData = yToPlain(ypage) as { id: string; name: string; description?: string; order: number };
+    const pageData = yToPlain(ypage) as { id: string; name: string; description?: string; group?: string; order: number };
 
     // Get nodes for this page
     const pageNodes = ynodes.get(pageId) as Y.Map<Y.Map<unknown>> | undefined;
@@ -56,6 +56,7 @@ export function extractCartaFile(doc: Y.Doc): CartaFile {
       id: pageData.id,
       name: pageData.name,
       description: pageData.description,
+      group: pageData.group,
       order: pageData.order,
       nodes,
       edges,
@@ -95,11 +96,14 @@ export function extractCartaFile(doc: Y.Doc): CartaFile {
     packageManifest.push(yToPlain(ypm) as PackageManifestEntry);
   });
 
-  // Extract spec groups
-  const yspecGroups = doc.getMap<Y.Map<unknown>>('specGroups');
-  const specGroups: CartaFileSpecGroup[] = [];
-  yspecGroups.forEach((ysg) => {
-    specGroups.push(yToPlain(ysg) as CartaFileSpecGroup);
+  // Extract group metadata
+  const ygroupMetadata = doc.getMap<Y.Map<unknown>>('groupMetadata');
+  const groupMetadata: Record<string, { name: string; description?: string }> = {};
+  ygroupMetadata.forEach((ymeta, key) => {
+    groupMetadata[key] = {
+      name: ymeta.get('name') as string,
+      description: ymeta.get('description') as string | undefined,
+    };
   });
 
   return {
@@ -112,7 +116,7 @@ export function extractCartaFile(doc: Y.Doc): CartaFile {
     schemaGroups,
     schemaPackages,
     packageManifest: packageManifest.length > 0 ? packageManifest : undefined,
-    specGroups: specGroups.length > 0 ? specGroups : undefined,
+    groupMetadata: Object.keys(groupMetadata).length > 0 ? groupMetadata : undefined,
     exportedAt: new Date().toISOString(),
   };
 }
@@ -132,7 +136,7 @@ export function hydrateYDocFromCartaFile(doc: Y.Doc, data: CartaFile): void {
   const yschemaGroups = doc.getMap<Y.Map<unknown>>('schemaGroups');
   const yschemaPackages = doc.getMap<Y.Map<unknown>>('schemaPackages');
   const ypackageManifest = doc.getMap<Y.Map<unknown>>('packageManifest');
-  const yspecGroups = doc.getMap<Y.Map<unknown>>('specGroups');
+  const ygroupMetadata = doc.getMap<Y.Map<unknown>>('groupMetadata');
 
   doc.transact(() => {
     // Clear existing data
@@ -145,7 +149,7 @@ export function hydrateYDocFromCartaFile(doc: Y.Doc, data: CartaFile): void {
     yschemaGroups.clear();
     yschemaPackages.clear();
     ypackageManifest.clear();
-    yspecGroups.clear();
+    ygroupMetadata.clear();
 
     // Set metadata
     ymeta.set('title', data.title);
@@ -165,6 +169,7 @@ export function hydrateYDocFromCartaFile(doc: Y.Doc, data: CartaFile): void {
       pageMap.set('id', page.id);
       pageMap.set('name', page.name);
       if (page.description) pageMap.set('description', page.description);
+      if (page.group !== undefined) pageMap.set('group', page.group);
       pageMap.set('order', page.order);
       ypages.set(page.id, pageMap);
 
@@ -239,23 +244,13 @@ export function hydrateYDocFromCartaFile(doc: Y.Doc, data: CartaFile): void {
       }
     }
 
-    // Set spec groups — build Y.Maps manually so items is a Y.Array of Y.Maps
-    if (data.specGroups) {
-      for (const sg of data.specGroups) {
-        const ysg = new Y.Map<unknown>();
-        ysg.set('id', sg.id);
-        ysg.set('name', sg.name);
-        if (sg.description !== undefined) ysg.set('description', sg.description);
-        ysg.set('order', sg.order);
-        const yitems = new Y.Array<Y.Map<unknown>>();
-        for (const item of sg.items) {
-          const yitem = new Y.Map<unknown>();
-          yitem.set('type', item.type);
-          yitem.set('id', item.id);
-          yitems.push([yitem]);
-        }
-        ysg.set('items', yitems);
-        yspecGroups.set(sg.id, ysg);
+    // Set group metadata
+    if (data.groupMetadata) {
+      for (const [key, meta] of Object.entries(data.groupMetadata)) {
+        const ymeta = new Y.Map<unknown>();
+        ymeta.set('name', meta.name);
+        if (meta.description !== undefined) ymeta.set('description', meta.description);
+        ygroupMetadata.set(key, ymeta);
       }
     }
   });

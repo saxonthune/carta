@@ -15,20 +15,10 @@ export interface CartaFilePage {
   id: string;
   name: string;
   description?: string;
+  group?: string;
   order: number;
   nodes: unknown[];
   edges: unknown[];
-}
-
-/**
- * Spec group entry in a .carta file
- */
-export interface CartaFileSpecGroup {
-  id: string;
-  name: string;
-  description?: string;
-  order: number;
-  items: Array<{ type: 'page'; id: string }>;
 }
 
 /**
@@ -44,7 +34,7 @@ export interface CartaFile {
   schemaGroups: SchemaGroup[];
   schemaPackages: SchemaPackage[];
   packageManifest?: PackageManifestEntry[];
-  specGroups?: CartaFileSpecGroup[];
+  groupMetadata?: Record<string, { name: string; description?: string }>;
   exportedAt: string;
 }
 
@@ -301,7 +291,7 @@ export function validateCartaFile(data: unknown): CartaFile {
     schemaGroups: repairedData.schemaGroups as SchemaGroup[],
     schemaPackages: repairedData.schemaPackages as SchemaPackage[],
     packageManifest: repairedData.packageManifest as PackageManifestEntry[] | undefined,
-    specGroups: (repairedData.specGroups as CartaFileSpecGroup[] | undefined),
+    groupMetadata: repairedData.groupMetadata as Record<string, { name: string; description?: string }> | undefined,
     exportedAt: (repairedData.exportedAt as string) || new Date().toISOString(),
   };
 }

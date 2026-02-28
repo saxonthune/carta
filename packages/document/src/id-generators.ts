@@ -18,7 +18,3 @@ export function generateNodeId(): string {
   return 'node_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
 }
 
-export function generateSpecGroupId(): string {
-  return 'sg_' + Math.random().toString(36).substring(2, 11);
-}
-
