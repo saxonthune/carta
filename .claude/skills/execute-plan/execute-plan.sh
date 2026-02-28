@@ -25,7 +25,7 @@ if [[ -z "$PLAN_SLUG" ]]; then
   echo "Usage: execute-plan.sh <plan-name> [--no-merge]"
   echo ""
   echo "Available plans:"
-  ls todo-tasks/*.md 2>/dev/null | sed 's|todo-tasks/||;s|\.md$||' | sed 's/^/  /'
+  ls todo-tasks/*.md 2>/dev/null | grep -v '\.epic\.md$' | sed 's|todo-tasks/||;s|\.md$||' | sed 's/^/  /'
   exit 1
 fi
 

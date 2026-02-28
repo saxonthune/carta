@@ -75,6 +75,32 @@ if (( ${#results[@]} )); then
 fi
 )
 
+# Epics: compact one-line-per-epic summary
+epics=$(
+for ef in "$TODO"/*.epic.md; do
+  [[ -r "$ef" ]] || continue
+  epic=$(basename "$ef" .epic.md)
+  total=0; done_n=0; running=0; failed=0
+  for tf in "$TODO/${epic}"-[0-9]*.md "$TODO/.running/${epic}"-[0-9]*.md "$TODO/.done/${epic}"-[0-9]*.md; do
+    [[ -f "$tf" ]] || continue
+    ts=$(basename "$tf" .md)
+    ((total++))
+    if [[ -f "$TODO/.done/${ts}.result.md" ]]; then
+      s=$(sed -n 's/^[*]*[Ss]tatus[*]*: *//p' "$TODO/.done/${ts}.result.md" 2>/dev/null | head -1 | tr '[:upper:]' '[:lower:]')
+      case "$s" in *success*) ((done_n++)) ;; *) ((failed++)) ;; esac
+    elif [[ -f "$TODO/.running/${ts}.md" ]]; then
+      ((running++))
+    fi
+  done
+  if (( total == 0 )); then continue; fi
+  icon="📋"
+  (( failed > 0 )) && icon="⚠️"
+  (( running > 0 )) && icon="▶"
+  (( done_n == total )) && icon="✅"
+  echo "${icon}${T}${epic}${T}${done_n}/${total} done${T}${running} running${T}${failed} failed"
+done
+)
+
 # Output
 if [[ -n "$active" ]]; then
   echo "$active" | column -t -s "$T"
@@ -84,4 +110,8 @@ fi
 if [[ -n "$recent" ]]; then
   echo
   echo "$recent" | column -t -s "$T"
+fi
+if [[ -n "$epics" ]]; then
+  echo
+  echo "$epics" | column -t -s "$T"
 fi

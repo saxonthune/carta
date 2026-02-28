@@ -30,25 +30,27 @@ This skill does NOT implement code or launch agents. Its output is a refined pla
 
 ## Phase 1: Select a Plan
 
-List plans in `todo-tasks/`:
+List plans in `todo-tasks/`, excluding epic overviews:
 
 ```typescript
-Glob({ pattern: 'todo-tasks/*.md' })
+Glob({ pattern: 'todo-tasks/*.md' })  // then filter out *.epic.md
 ```
 
-**If specific plan named:** Match it against filenames (fuzzy — `flow-trace` matches `flow-trace-visualization.md`). Read it fully.
+**Epic files (`*.epic.md`) are NOT groomable plans.** Never present them as plan options, never try to execute them. They are context documents — read them for background when grooming tasks from the same epic.
 
-**If epic named:** Match against the `{epic}-` prefix (e.g., "testability" matches all `testability-*.md` files). Present the full epic as a combined briefing, work through them sequentially.
+**If specific plan named:** Match it against task filenames (fuzzy — `flow-trace` matches `flow-trace-visualization.md`). Read it fully. If it belongs to an epic (has `{epic}-` prefix), also read `{epic}.epic.md` for context.
 
-**If "first" specified:** Grab the first plan alphabetically. No prompting — just start working on it.
+**If epic named:** Match against the `{epic}-` prefix (e.g., "testability" matches all `testability-*.md` task files). Read the `{epic}.epic.md` overview first, then present the epic's pending tasks as a combined briefing. Work through them sequentially.
 
-**If "all" specified:** Read all plan files. Present a combined briefing, then work through them sequentially. Appropriate when plans are small and self-contained.
+**If "first" specified:** Grab the first task plan alphabetically (skip `.epic.md`). No prompting — just start working on it.
 
-**If no argument (default):** Read the first ~10 lines of each plan file (enough to get the title and motivation), then present a summary to the user:
+**If "all" specified:** Read all task plan files. Present a combined briefing, then work through them sequentially. Appropriate when plans are small and self-contained.
+
+**If no argument (default):** Read the first ~10 lines of each task plan file (enough to get the title and motivation), then present a summary to the user:
 
 ```typescript
-// Read heads of all plans
-for (const file of planFiles) {
+// Read heads of all task plans (not .epic.md)
+for (const file of taskFiles) {
   Read(file, { limit: 10 })
 }
 
@@ -57,14 +59,14 @@ AskUserQuestion({
     question: "Which plan should we groom?",
     header: "Plan",
     options: [
-      // one per plan, label = title, description = first-line summary from motivation section
+      // one per task plan, label = title, description = first-line summary from motivation section
     ],
     multiSelect: false
   }]
 })
 ```
 
-Read the selected plan file(s) fully before proceeding.
+Read the selected plan file(s) fully before proceeding. For epic tasks, also read the `.epic.md` for additional context.
 
 ## Phase 2: Extract Context Requirements
 

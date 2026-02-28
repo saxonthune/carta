@@ -205,10 +205,73 @@ if [[ ${#STALE_WTS[@]} -gt 0 ]]; then
   echo ""
 fi
 
+# ─── Epics ─────────────────────────────────────────────────────────────────
+# Epic files (*.epic.md) are NOT groomable plans — they're initiative overviews.
+# Show each epic with auto-computed phase statuses.
+
+EPIC_FILES=()
+while IFS= read -r f; do
+  EPIC_FILES+=("$f")
+done < <(ls "${TODO}/"*.epic.md 2>/dev/null || true)
+
+if [[ ${#EPIC_FILES[@]} -gt 0 && -n "${EPIC_FILES[0]}" ]]; then
+  echo "## Epics"
+  echo ""
+  for epic_file in "${EPIC_FILES[@]}"; do
+    epic_slug=$(basename "$epic_file" .epic.md)
+    epic_title=$(head -1 "$epic_file" | sed 's/^#* //')
+    echo "### ${epic_title}"
+    echo ""
+    echo "| Phase | Status | Notes |"
+    echo "|-------|--------|-------|"
+
+    # Find all task files for this epic across all directories
+    for task_file in "${TODO}/${epic_slug}"-[0-9]*.md "${TODO}/.running/${epic_slug}"-[0-9]*.md "${TODO}/.done/${epic_slug}"-[0-9]*.md; do
+      [[ -f "$task_file" ]] || continue
+      task_slug=$(basename "$task_file" .md)
+      task_title=$(head -1 "$task_file" | sed 's/^#* //')
+
+      # Determine status by location
+      if [[ -f "${TODO}/.done/${task_slug}.result.md" ]]; then
+        result_status=$(parse_result "${TODO}/.done/${task_slug}.result.md" "status")
+        if [[ "$result_status" == "success" ]]; then
+          echo "| ${task_slug} | DONE | ${task_title} |"
+        else
+          echo "| ${task_slug} | FAILED | ${task_title} |"
+        fi
+      elif [[ -f "${TODO}/.running/${task_slug}.md" ]]; then
+        echo "| ${task_slug} | RUNNING | ${task_title} |"
+      elif [[ -f "${TODO}/${task_slug}.md" ]]; then
+        echo "| ${task_slug} | PENDING | ${task_title} |"
+      fi
+    done
+
+    # Also check archived results
+    for archived_result in "${TODO}/.archived/"*"-${epic_slug}"-[0-9]*.result.md; do
+      [[ -f "$archived_result" ]] || continue
+      # Extract the task slug (strip date prefix and .result.md suffix)
+      archived_base=$(basename "$archived_result" .result.md)
+      task_slug="${archived_base#[0-9]*-}"
+      # Skip if already shown from .done/
+      [[ -f "${TODO}/.done/${task_slug}.result.md" ]] && continue
+      result_status=$(parse_result "$archived_result" "status")
+      if [[ "$result_status" == "success" ]]; then
+        echo "| ${task_slug} | ARCHIVED | Done |"
+      else
+        echo "| ${task_slug} | ARCHIVED (failed) | Needs review |"
+      fi
+    done
+
+    echo ""
+  done
+fi
+
 # ─── Pending Plans ──────────────────────────────────────────────────────────
+# Exclude *.epic.md — those are shown in the Epics section above.
 
 PENDING_MDS=()
 while IFS= read -r f; do
+  [[ "$f" == *.epic.md ]] && continue
   PENDING_MDS+=("$f")
 done < <(ls "${TODO}/"*.md 2>/dev/null || true)
 
@@ -237,10 +300,12 @@ pending_n=${#PENDING_MDS[@]}
 [[ -z "${PENDING_MDS[0]:-}" ]] && pending_n=0
 chain_n=${#CHAIN_MANIFESTS[@]}
 [[ -z "${CHAIN_MANIFESTS[0]:-}" ]] && chain_n=0
+epic_n=${#EPIC_FILES[@]}
+[[ -z "${EPIC_FILES[0]:-}" ]] && epic_n=0
 stale_n=${#STALE_WTS[@]}
 
 echo "---"
-echo "Summary: ${done_n} completed, ${running_n} running, ${chain_n} chains, ${pending_n} pending, ${stale_n} stale worktrees"
+echo "Summary: ${done_n} completed, ${running_n} running, ${chain_n} chains, ${pending_n} pending, ${epic_n} epics, ${stale_n} stale worktrees"
 
 if [[ "$HAS_FAILURES" == "true" ]]; then
   echo "⚠️  Failures detected — triage needed before proceeding."

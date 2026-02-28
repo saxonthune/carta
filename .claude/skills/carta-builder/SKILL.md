@@ -34,14 +34,26 @@ Write to `todo-tasks/` at the repo root. Frontload the summary — another agent
 
 ### File naming
 
-Use the pattern `{epic}-{nn}-{slug}.md` where:
+**Tasks** use the pattern `{epic}-{nn}-{slug}.md` where:
 - **epic**: short kebab-case name for the chain/initiative (e.g., `testability`, `map-v2`, `packages`)
-- **nn**: two-digit sequence number within the epic (e.g., `01`, `02`)
+- **nn**: two-digit sequence number within the epic, starting at `01`
 - **slug**: descriptive kebab-case name for the individual task
 
 Examples: `testability-01-compiler-tests.md`, `map-v2-03-organizers.md`, `packages-02-drift-detection.md`
 
-This groups related tasks lexically and makes chain launches self-documenting. When creating the first task in a new epic, start at `01`. Standalone tasks with no epic use just `{nn}-{slug}.md`.
+This groups related tasks lexically and makes chain launches self-documenting. Standalone tasks with no epic use just `{slug}.md`.
+
+**Epics** use the pattern `{epic}.epic.md` — a separate file that describes the initiative's motivation, phasing, and status. Always create an epic file when writing 2+ related tasks.
+
+Example layout:
+```
+todo-tasks/
+  vscode.epic.md                  ← epic overview (NOT a groomable task)
+  vscode-01-extract-server.md     ← task
+  vscode-02-extension-scaffold.md ← task
+```
+
+### Task template
 
 ```markdown
 # Feature Title
@@ -62,6 +74,48 @@ This groups related tasks lexically and makes chain launches self-documenting. W
 
 [What this task deliberately does NOT cover...]
 ```
+
+### Epic template
+
+```markdown
+# {Epic Name} Epic
+
+> **Summary**: One sentence describing the initiative's goal.
+
+## Motivation
+
+[Why this initiative exists...]
+
+## Tasks
+
+| Phase | Task | Summary |
+|-------|------|---------|
+| 01 | {epic}-01-{slug} | One-line description |
+| 02 | {epic}-02-{slug} | One-line description |
+
+## Dependencies
+
+[Which tasks can parallelize, which are sequential...]
+
+## Out of scope
+
+[What this epic deliberately does NOT cover...]
+
+## Status
+
+Updated automatically by the groomer during debrief.
+
+| Phase | Status | Branch | Notes |
+|-------|--------|--------|-------|
+| 01 | PENDING | — | — |
+| 02 | PENDING | — | — |
+
+### Adjustments
+
+_None yet._
+```
+
+The groomer auto-updates the Status table during Phase 0 debrief. The builder may add entries to the Adjustments log when scope changes based on real conditions — e.g., dropping a phase, splitting a task, or reordering based on what earlier phases revealed.
 
 **What belongs**: User-visible behavior, resolved design decisions, constraints, affected areas at the feature level.
 
