@@ -1,14 +1,26 @@
 /**
- * Runtime config injected by `carta serve` into index.html.
- * Takes precedence over build-time VITE_SYNC_URL.
+ * Runtime config injected by `carta serve` into index.html,
+ * or passed via URL params when embedded in an iframe.
  */
 interface CartaConfig {
   syncUrl?: string;
+  embedded?: boolean;
 }
 
-function getRuntimeConfig(): CartaConfig | null {
-  if (typeof window === 'undefined') return null;
-  return (window as unknown as { __CARTA_CONFIG__?: CartaConfig }).__CARTA_CONFIG__ ?? null;
+function getRuntimeConfig(): CartaConfig {
+  if (typeof window === 'undefined') return {};
+  const injected = (window as unknown as { __CARTA_CONFIG__?: CartaConfig }).__CARTA_CONFIG__ ?? {};
+
+  // URL params override injected config (used by dev-mode iframe in VS Code)
+  const params = new URLSearchParams(window.location.search);
+  const syncUrlParam = params.get('syncUrl');
+  const embeddedParam = params.get('embedded');
+
+  return {
+    ...injected,
+    ...(syncUrlParam ? { syncUrl: syncUrlParam } : {}),
+    ...(embeddedParam === 'true' ? { embedded: true } : {}),
+  };
 }
 
 /**
@@ -33,11 +45,16 @@ function getDebugMode(): boolean {
  *
  * Everything else is derived.
  */
+const runtimeConfig = getRuntimeConfig();
+
 export const config = {
   /** Debug mode: shows additional info in UI */
   debug: getDebugMode(),
-  syncUrl: (getRuntimeConfig()?.syncUrl || import.meta.env.VITE_SYNC_URL || null) as string | null,
+  syncUrl: (runtimeConfig.syncUrl || import.meta.env.VITE_SYNC_URL || null) as string | null,
   aiMode: (import.meta.env.VITE_AI_MODE || 'none') as 'none' | 'user-key' | 'server-proxy',
+
+  /** Whether the app is embedded in a host (e.g. VS Code WebView) — canvas-only, no chrome */
+  embedded: runtimeConfig.embedded === true,
 
   /** Whether a sync server is configured (enables collaboration, multi-document mode) */
   get hasSync(): boolean { return !!this.syncUrl; },

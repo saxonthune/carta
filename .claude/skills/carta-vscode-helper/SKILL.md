@@ -25,14 +25,12 @@ Read these docs for the full picture:
 | doc03.02.04 | **Secondary persona.** Solo user. Extension is the zero-setup local workspace experience. |
 | doc02.03 | **Interfaces.** REST endpoints, WebSocket rooms, MCP tools the embedded server must provide. |
 
-## What's Been Built (vscode.epic.md)
+## What's Been Built
 
-| Phase | Status | What It Did |
-|-------|--------|-------------|
-| 01 | DONE | Extracted `EmbeddedHost` API from server — `startEmbeddedHost({ cartaDir })` starts server + writes `server.json` |
-| 02 | DONE | Extension scaffold — `CartaCanvasEditorProvider`, WebView HTML, server lifecycle, `carta.initWorkspace` command |
-| 03 | DONE | Removed Electron desktop package |
-| 04 | DONE | Dev experience — `launch.json`, dev-mode WebView, esbuild watch |
+- Extracted `EmbeddedHost` API — `startEmbeddedHost({ cartaDir })` starts server + writes `server.json`
+- Extension scaffold — `CartaCanvasEditorProvider`, WebView HTML, server lifecycle, `carta.initWorkspace` command
+- Removed Electron desktop package
+- Dev experience — `launch.json`, dev-mode WebView, esbuild watch
 
 ## Extension Architecture
 
@@ -71,6 +69,98 @@ Two launch configs in `.vscode/launch.json`:
 **Bundled Mode** (production-like): F5 with "Carta Extension (Bundled)" selected. Builds and launches. No Vite server.
 
 See `vscode-extension-dev` skill for HMR coverage table and debugging commands.
+
+## Document Loading Flow (Extension → Canvas)
+
+Understanding this flow is essential for debugging "no nodes appear" and similar issues.
+
+```
+VS Code opens .canvas.json
+  ↓
+canvas-editor-provider.ts: deriveRoomName(cartaDir, filePath)
+  → e.g., "02-system/architecture" (strips .canvas.json, normalizes separators)
+  ↓
+Dev mode: buildDevModeHtml(roomName, serverUrl)
+  → <iframe src="http://localhost:5173?doc=ROOM&embedded=true&syncUrl=URL">
+Bundled mode: buildWebviewHtml(webview, serverInfo, roomName)
+  → Injects __CARTA_CONFIG__ + history.replaceState(?doc=ROOM) before </head>
+  ↓
+featureFlags.ts: getRuntimeConfig()
+  → URL params override __CARTA_CONFIG__ (embedded, syncUrl)
+  → config.embedded = true, config.hasSync = !!syncUrl
+  ↓
+main.tsx: boot()
+  → documentId = urlParams.get('doc')  // room name
+  → <DocumentProvider documentId={documentId}> (NO workspaceCanvas prop)
+  ↓
+DocumentContext.tsx: non-workspace path
+  → deferDefaultPage = true (config.hasSync)
+  → skipPersistence = true (config.hasSync)
+  → Adapter created, initialized (empty Y.Doc)
+  → Migration runs (on empty doc, harmless)
+  → setIsReady(true) — UI renders immediately
+  → connectToRoom(documentId, syncWsUrl) — async, non-blocking
+  ↓
+y-websocket: WebsocketProvider(syncUrl, roomId, ydoc)
+  → WebSocket URL = ws://127.0.0.1:PORT/02-system/architecture
+  ↓
+workspace-server.ts: wss.on('connection')
+  → roomName = url.pathname.slice(1)  // "02-system/architecture"
+  → getDoc(roomName) → loadCanvasDoc(cartaDir, roomName)
+  ↓
+loadCanvasDoc:
+  → Try .state/02-system--architecture.ystate (binary, fast)
+  → Fallback: 02-system/architecture.canvas.json → parseCanvasFile → hydrateYDocFromCanvasFile
+  ↓
+hydrateYDocFromCanvasFile (workspace-hydrate.ts):
+  → Creates synthetic page: id='canvas' (WORKSPACE_CANVAS_PAGE_ID)
+  → ymeta.set('activePage', 'canvas')
+  → ynodes.set('canvas', pageNodesMap)  // all nodes under 'canvas' page
+  → yedges.set('canvas', pageEdgesMap)
+  ↓
+Yjs sync protocol: server sends full Y.Doc state to client
+  ↓
+Client Y.Doc updated → observers fire:
+  → onMetaChange → notifyNodeListeners (active page changed)
+  → onNodesChange → notifyNodeListeners
+  → onPagesChange → notifyPageListeners
+  ↓
+usePages: activePage = 'canvas', pages = [{id: 'canvas', name: 'Canvas'}]
+useNodes: adapter.getNodes() → getActivePageNodes('canvas') → nodes[]
+  ↓
+App.tsx: EmbeddedContent renders CanvasContainer with activeView={page:'canvas'}
+  → MapV2 renders nodes on canvas
+```
+
+### Key Differences: Embedded vs Browser Workspace Mode
+
+| Aspect | Browser (`WorkspaceAppLayout`) | VS Code (`EmbeddedContent`) |
+|--------|-------------------------------|----------------------------|
+| Schema source | `useWorkspaceMode()` fetches from `/api/workspace/schemas` | **Not fetched** — no `workspaceCanvas` prop |
+| DocumentProvider | `workspaceCanvas={schemas}` prop set | No `workspaceCanvas` prop |
+| Active page | Hardcoded `{ pageId: 'canvas' }` | Dynamic from `usePages()` |
+| App chrome | Workspace navigator, header | Canvas only |
+
+### Common Failure Points
+
+1. **Embedded server not started** — `serverInfo` is null → no `syncUrl` in iframe → client falls back to local mode with empty IndexedDB → no nodes
+2. **CSP blocks inline scripts (bundled mode)** — `script-src` doesn't include `'unsafe-inline'` → `__CARTA_CONFIG__` and `history.replaceState` never run → `config.embedded = false`, no `?doc=` → wrong UI, empty doc
+3. **`pnpm dev` not running (dev mode)** — iframe fails to load Vite dev server → blank WebView
+4. **Workspace canvas schemas not injected** — embedded path skips `useWorkspaceMode()` → constructs render without schema metadata (field names, colors missing, but nodes should still appear)
+5. **Room name mismatch** — `deriveRoomName` must produce exact match for `loadCanvasDoc` path resolution
+
+### Web Client Key Files (for debugging)
+
+| File | What It Does |
+|------|-------------|
+| `packages/web-client/src/config/featureFlags.ts` | Runtime config: reads `__CARTA_CONFIG__` + URL params, derives `embedded`, `hasSync`, `syncWsUrl` |
+| `packages/web-client/src/main.tsx` | Entry point: reads `?doc=` param, wraps in `DocumentProvider` |
+| `packages/web-client/src/App.tsx` | `EmbeddedContent` — canvas-only rendering when `config.embedded = true` |
+| `packages/web-client/src/contexts/DocumentContext.tsx` | Creates adapter, handles workspace vs non-workspace paths, connects WebSocket |
+| `packages/web-client/src/stores/adapters/yjsAdapter.ts` | Y.Doc wrapper: `getNodes()`, `connectToRoom()`, observers, page management |
+| `packages/web-client/src/hooks/useNodes.ts` | Subscribes to node changes via `adapter.subscribeToNodes()` |
+| `packages/web-client/src/hooks/usePages.ts` | Subscribes to page changes, provides `activePage` |
+| `packages/document/src/workspace-hydrate.ts` | `hydrateYDocFromCanvasFile()` — loads JSON into Y.Doc with synthetic 'canvas' page |
 
 ## What's Next
 

@@ -4,18 +4,27 @@ import * as path from 'node:path';
 import type { WorkspaceServerInfo } from '@carta/server/embedded-host';
 import { deriveRoomName } from './find-carta-workspace.js';
 
-export function buildDevModeHtml(roomName: string | null): string {
+export function buildDevModeHtml(roomName: string | null, serverUrl: string | null): string {
   const devServerUrl = 'http://localhost:5173';
-  const iframeSrc = roomName
-    ? `${devServerUrl}?doc=${encodeURIComponent(roomName)}`
-    : devServerUrl;
+  const params = new URLSearchParams();
+  if (roomName) params.set('doc', roomName);
+  params.set('embedded', 'true');
+  if (serverUrl) params.set('syncUrl', serverUrl);
+
+  const query = params.toString();
+  const iframeSrc = query ? `${devServerUrl}?${query}` : devServerUrl;
+
+  // connect-src needed for WebSocket sync to the embedded server
+  const connectSrc = serverUrl
+    ? `connect-src ${serverUrl.replace('http', 'ws')} ${serverUrl};`
+    : '';
 
   return `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; frame-src ${devServerUrl};">
-  <style>html, body, iframe { margin: 0; padding: 0; width: 100%; height: 100%; border: none; overflow: hidden; }</style>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; frame-src ${devServerUrl}; ${connectSrc}">
+  <style>html, body { margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden; } iframe { display: block; width: 100vw; height: 100vh; border: none; }</style>
 </head>
 <body>
   <iframe src="${iframeSrc}"></iframe>
@@ -75,7 +84,7 @@ export class CartaCanvasEditorProvider implements vscode.CustomReadonlyEditorPro
 
     if (this.devMode) {
       webviewPanel.webview.options = { enableScripts: true };
-      webviewPanel.webview.html = buildDevModeHtml(roomName);
+      webviewPanel.webview.html = buildDevModeHtml(roomName, serverInfo?.url ?? null);
       return;
     }
 
@@ -117,10 +126,11 @@ export class CartaCanvasEditorProvider implements vscode.CustomReadonlyEditorPro
     // Inject __CARTA_CONFIG__ and auto-navigate script before </head>
     // The auto-navigate script sets ?doc=ROOM_NAME on the WebView URL via history.replaceState.
     // This runs synchronously before module scripts, so main.tsx reads it from URLSearchParams.
+    const cartaConfig: Record<string, unknown> = { embedded: true };
+    if (serverInfo) cartaConfig.syncUrl = serverInfo.url;
+
     const configScripts = [
-      serverInfo
-        ? `<script>window.__CARTA_CONFIG__=${JSON.stringify({ syncUrl: serverInfo.url })}</script>`
-        : '',
+      `<script>window.__CARTA_CONFIG__=${JSON.stringify(cartaConfig)}</script>`,
       roomName
         ? `<script>history.replaceState(null, '', '?doc=' + ${JSON.stringify(encodeURIComponent(roomName))});</script>`
         : '',

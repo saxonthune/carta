@@ -40,6 +40,11 @@ const TextEditor = lazy(() => import('./components/TextEditor'));
 // Note: Schema initialization is now handled by DocumentProvider
 
 function App() {
+  // Embedded mode: canvas-only, no chrome (used by VS Code WebView)
+  if (config.embedded) {
+    return <EmbeddedContent />;
+  }
+
   const { isWorkspace, loading: workspaceLoading, workspaceTree, schemas } = useWorkspaceMode();
 
   // Wait briefly while we detect whether the server is a workspace server
@@ -132,6 +137,38 @@ function WorkspaceAppLayout({ tree, schemas }: WorkspaceAppLayoutProps) {
         )}
       </div>
       <Footer />
+    </div>
+  );
+}
+
+/**
+ * Minimal embedded rendering: canvas only, no app chrome.
+ * Used when Carta is hosted inside a VS Code WebView.
+ */
+function EmbeddedContent() {
+  const { adapter } = useDocumentContext();
+  const { pages, activePage } = usePages();
+
+  // Sync port registry
+  useEffect(() => {
+    syncWithDocumentStore(adapter.getPortSchemas());
+    const unsubscribe = adapter.subscribe(() => {
+      syncWithDocumentStore(adapter.getPortSchemas());
+    });
+    return unsubscribe;
+  }, [adapter]);
+
+  const activeView: ActiveView = {
+    type: 'page',
+    pageId: activePage || pages[0]?.id || '',
+  };
+
+  return (
+    <div className="h-screen w-full flex flex-col">
+      <CanvasContainer
+        onSelectionChange={() => {}}
+        activeView={activeView}
+      />
     </div>
   );
 }
