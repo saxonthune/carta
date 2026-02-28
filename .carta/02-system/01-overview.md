@@ -61,8 +61,6 @@ Target dependency graph (packages can only depend on packages above them):
           @carta/document   @carta/server(*)
                 ↓
          @carta/web-client
-                ↓
-         @carta/desktop
 ```
 
 All packages exist as shown. `@carta/geometry` provides geometry primitives and layout algorithms; `@carta/schema` provides the domain layer including platform-agnostic graph types (`CartaNode`, `CartaEdge`) used by adapters, hooks, and the presentation layer — no React Flow or rendering dependencies — and re-exports geometry utilities via its `utils/` barrel. The compiler is merged into `@carta/document` — there is no separate `@carta/compiler` package.

@@ -108,9 +108,6 @@ export function Header({
             <span className={`px-1.5 py-0.5 rounded ${mode === 'shared' ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400' : 'bg-slate-500/20 text-slate-600 dark:text-slate-400'}`}>
               {mode === 'shared' ? 'SERVER' : 'LOCAL'}
             </span>
-            {config.isDesktop && (
-              <span className="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-600 dark:text-purple-400">DESKTOP</span>
-            )}
             {config.hasAI && (
               <span className="px-1.5 py-0.5 rounded bg-green-500/20 text-green-600 dark:text-green-400">AI:{config.aiMode}</span>
             )}

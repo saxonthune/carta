@@ -39,12 +39,7 @@ async function boot() {
 
 async function bootWithDocumentId(documentId: string | null) {
   if (!documentId) {
-    if (config.isDesktop) {
-      // Desktop mode: try last-opened document, otherwise show DocumentBrowserModal
-      // (On first run the server isn't running yet — vault picker handles setup)
-      const lastDocId = getLastDocumentId();
-      documentId = lastDocId;
-    } else if (config.hasSync) {
+    if (config.hasSync) {
       // Server mode: URL is source of truth. No ?doc= means show DocumentBrowserModal.
       // Don't use localStorage — that's for local mode only.
       documentId = null;
@@ -67,8 +62,8 @@ async function bootWithDocumentId(documentId: string | null) {
     }
   }
 
-  // Remember last-opened document (local and desktop modes)
-  if (documentId && (config.isDesktop || !config.hasSync)) {
+  // Remember last-opened document (local mode)
+  if (documentId && !config.hasSync) {
     setLastDocumentId(documentId);
   }
 
