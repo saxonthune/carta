@@ -5,11 +5,6 @@
   "packageManager": "pnpm@10.28.1",
   "license": "AGPL-3.0-only",
   "type": "module",
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "electron"
-    ]
-  },
   "scripts": {
     "demo": "pnpm --filter @carta/web-client demo",
     "client": "pnpm --filter @carta/web-client client",
@@ -28,10 +23,7 @@
     "server": "docker compose up -d mongodb && pnpm --filter @carta/server build && pnpm --filter @carta/server document-server",
     "serve": "pnpm build:all && node packages/server/dist/cli.js serve .",
     "server:memory": "pnpm --filter @carta/server build && STORAGE=memory pnpm --filter @carta/server document-server",
-    "server:stop": "docker compose down",
-    "desktop": "pnpm --filter @carta/desktop dev",
-    "build:desktop": "pnpm --filter @carta/desktop build",
-    "package:desktop": "pnpm --filter @carta/desktop package"
+    "server:stop": "docker compose down"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.3",
