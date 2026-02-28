@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Folder, FolderOpen, CaretLeft } from '@phosphor-icons/react';
+import { Folder, CaretLeft } from '@phosphor-icons/react';
 import type { DocumentSummary } from '@carta/schema';
 import { toKebabCase } from '@carta/schema';
 import Modal from '../ui/Modal';
@@ -9,7 +9,6 @@ import Breadcrumb from '../ui/Breadcrumb';
 import SearchBar from '../ui/SearchBar';
 import FolderRow from '../ui/FolderRow';
 import DocumentRow from '../ui/DocumentRow';
-import ChoiceCard from '../ui/ChoiceCard';
 import { useVault } from '../../contexts/VaultContext';
 import { generateRandomName } from '../../utils/randomNames';
 
@@ -102,10 +101,6 @@ function deriveFolderView(docs: DocumentSummary[], currentPath: string): FolderV
   };
 }
 
-function FolderOpenIcon() {
-  return <FolderOpen weight="regular" size={18} />;
-}
-
 interface DocumentBrowserModalProps {
   onClose: () => void;
   /** When true, modal cannot be dismissed — user must select or create a document */
@@ -114,89 +109,7 @@ interface DocumentBrowserModalProps {
 
 export default function DocumentBrowserModal({ onClose, required = false }: DocumentBrowserModalProps) {
   const { adapter } = useVault();
-
-  // Desktop first-run: show workspace picker instead of document browser
-  if (adapter.needsWorkspaceSetup) {
-    return <WorkspaceSetupModal onClose={onClose} />;
-  }
-
   return <DocumentBrowserContent onClose={onClose} required={required} adapter={adapter} />;
-}
-
-function WorkspaceSetupModal({ onClose }: { onClose: () => void }) {
-  const { adapter } = useVault();
-  const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
-  const [error, setError] = useState<string | null>(null);
-
-  async function handleChooseFolder() {
-    if (!adapter.initializeWorkspace || !window.electronAPI) return;
-    setStatus('loading');
-    setError(null);
-    try {
-      const path = await window.electronAPI.chooseWorkspaceFolder();
-      if (!path) {
-        setStatus('idle');
-        return;
-      }
-      const result = await adapter.initializeWorkspace(path);
-      redirectToWorkspace(result);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to set up workspace');
-      setStatus('error');
-    }
-  }
-
-  function redirectToWorkspace(result: { syncUrl: string; wsUrl: string }) {
-    const currentUrl = new URL(window.location.href);
-    currentUrl.searchParams.set('desktopServer', result.syncUrl);
-    currentUrl.searchParams.set('desktopWs', result.wsUrl);
-    currentUrl.searchParams.delete('doc');
-    window.location.href = currentUrl.toString();
-  }
-
-  const isLoading = status === 'loading';
-
-  return (
-    <Modal
-      isOpen={true}
-      onClose={onClose}
-      title="Welcome to Carta"
-      maxWidth="80vw"
-      showCloseButton={false}
-      preventBackdropClose={true}
-    >
-      <div className="bg-surface-depth-3 -mx-5 -my-4 px-4 py-4 flex flex-col gap-3">
-        <div className="bg-surface-depth-2 rounded-xl px-4 py-4 shadow-sm">
-          <p className="text-sm text-content-muted mb-4">
-            Choose a project folder. Carta will create a <code>.carta/</code> directory inside it
-            to store your canvases — human-readable JSON files you can version control.
-          </p>
-          <div className="space-y-3">
-            <ChoiceCard
-              icon={<FolderOpenIcon />}
-              title="Choose folder..."
-              description="Select a project directory for your workspace"
-              onClick={handleChooseFolder}
-              disabled={isLoading}
-            />
-          </div>
-
-          {isLoading && (
-            <div className="mt-4 text-center text-content-muted text-sm">
-              <div className="inline-block animate-spin rounded-full h-4 w-4 border-2 border-accent border-t-transparent mr-2 align-middle" />
-              Setting up your workspace...
-            </div>
-          )}
-
-          {error && (
-            <div className="mt-4 p-3 rounded-lg bg-danger/10 border border-danger/20 text-danger text-sm">
-              {error}
-            </div>
-          )}
-        </div>
-      </div>
-    </Modal>
-  );
 }
 
 interface DocumentBrowserContentProps {
@@ -390,11 +303,6 @@ function DocumentBrowserContent({ onClose, required, adapter }: DocumentBrowserC
             <span className="truncate">{adapter.displayAddress}</span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            {window.electronAPI?.revealWorkspace && (
-              <Button variant="ghost" size="sm" onClick={() => window.electronAPI!.revealWorkspace()}>
-                Reveal
-              </Button>
-            )}
             {adapter.canChangeVault && (
               <Button variant="ghost" size="sm" onClick={() => adapter.changeVault?.()}>
                 Change Vault

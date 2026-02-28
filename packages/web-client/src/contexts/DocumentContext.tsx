@@ -101,8 +101,8 @@ export function DocumentProvider({
         return;
       }
 
-      // Skip IndexedDB when a server handles persistence (desktop or remote server)
-      const shouldSkipPersistence = skipPersistence || config.isDesktop || config.hasSync;
+      // Skip IndexedDB when a server handles persistence
+      const shouldSkipPersistence = skipPersistence || config.hasSync;
 
       const options: YjsAdapterOptions = {
         mode: 'local',
