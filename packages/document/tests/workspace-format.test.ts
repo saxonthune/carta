@@ -1,21 +1,17 @@
 import { describe, it, expect } from 'vitest';
 import {
   validateWorkspaceManifest,
-  validateGroupMeta,
   validateCanvasFile,
   validateSchemasFile,
   parseWorkspaceManifest,
-  parseGroupMeta,
   parseCanvasFile,
   parseSchemasFile,
   serializeWorkspaceManifest,
-  serializeGroupMeta,
   serializeCanvasFile,
   serializeSchemasFile,
 } from '../src/workspace-format';
 import type {
   WorkspaceManifest,
-  GroupMeta,
   CanvasFile,
   SchemasFile,
 } from '../src/workspace-format';
@@ -90,44 +86,40 @@ describe('WorkspaceManifest', () => {
 });
 
 // ============================================
-// GroupMeta
+// WorkspaceManifest groups validation
 // ============================================
 
-describe('GroupMeta', () => {
-  const validGroupMeta: GroupMeta = {
-    name: 'Infrastructure',
-    description: 'Infrastructure components',
-  };
-
-  it('valid group meta round-trips through parse/serialize', () => {
-    const serialized = serializeGroupMeta(validGroupMeta);
-    const parsed = parseGroupMeta(serialized);
-    expect(parsed).toEqual(validGroupMeta);
+describe('WorkspaceManifest groups', () => {
+  it('manifest with groups round-trips', () => {
+    const manifest: WorkspaceManifest = {
+      formatVersion: 1,
+      title: 'With Groups',
+      groups: {
+        '01-context': { name: 'Context', description: 'Mission and principles' },
+        '02-system': { name: 'System' },
+      },
+    };
+    const serialized = serializeWorkspaceManifest(manifest);
+    const parsed = parseWorkspaceManifest(serialized);
+    expect(parsed).toEqual(manifest);
   });
 
-  it('group meta without description round-trips', () => {
-    const meta: GroupMeta = { name: 'Frontend' };
-    const serialized = serializeGroupMeta(meta);
-    const parsed = parseGroupMeta(serialized);
-    expect(parsed).toEqual(meta);
-  });
-
-  it('missing name throws', () => {
-    expect(() => validateGroupMeta({ description: 'no name' })).toThrow('missing or invalid name');
-  });
-
-  it('non-string name throws', () => {
-    expect(() => validateGroupMeta({ name: 123 })).toThrow('missing or invalid name');
-  });
-
-  it('non-object input throws', () => {
-    expect(() => validateGroupMeta(null)).toThrow('expected JSON object');
-  });
-
-  it('invalid description type throws', () => {
-    expect(() => validateGroupMeta({ name: 'Infra', description: true })).toThrow(
-      'description must be a string',
+  it('non-object groups throws', () => {
+    expect(() => validateWorkspaceManifest({ formatVersion: 1, title: 'T', groups: 'bad' })).toThrow(
+      'groups must be an object',
     );
+  });
+
+  it('group entry missing name throws', () => {
+    expect(() =>
+      validateWorkspaceManifest({ formatVersion: 1, title: 'T', groups: { g1: { description: 'no name' } } }),
+    ).toThrow('groups["g1"].name must be a string');
+  });
+
+  it('group entry with non-string description throws', () => {
+    expect(() =>
+      validateWorkspaceManifest({ formatVersion: 1, title: 'T', groups: { g1: { name: 'G', description: 42 } } }),
+    ).toThrow('groups["g1"].description must be a string');
   });
 });
 
