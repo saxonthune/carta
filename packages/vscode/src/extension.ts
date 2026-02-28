@@ -9,13 +9,18 @@ import { findCartaWorkspace } from './find-carta-workspace.js';
 let host: EmbeddedHost | null = null;
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
+  const output = vscode.window.createOutputChannel('Carta');
   const cartaDir = findCartaWorkspace();
   const devMode = vscode.workspace.getConfiguration('carta').get<boolean>('devMode', false);
+
+  output.appendLine(`Carta workspace: ${cartaDir ?? 'none'}`);
 
   if (cartaDir) {
     try {
       host = await startEmbeddedHost({ cartaDir });
+      output.appendLine(`Server started: ${host!.info.url}`);
     } catch (err) {
+      output.appendLine(`Server failed: ${err instanceof Error ? err.message : String(err)}`);
       vscode.window.showErrorMessage(
         `Carta: Failed to start workspace server: ${err instanceof Error ? err.message : String(err)}`,
       );
@@ -29,6 +34,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       () => host?.info ?? null,
       cartaDir,
       devMode,
+      output,
     ),
   );
 

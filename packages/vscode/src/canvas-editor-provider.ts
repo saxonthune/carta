@@ -38,17 +38,20 @@ export class CartaCanvasEditorProvider implements vscode.CustomReadonlyEditorPro
   private getServerInfo: () => WorkspaceServerInfo | null;
   private cartaDir: string | null;
   private devMode: boolean;
+  output: vscode.OutputChannel;
 
   constructor(
     extensionUri: vscode.Uri,
     getServerInfo: () => WorkspaceServerInfo | null,
     cartaDir: string | null,
     devMode: boolean,
+    output: vscode.OutputChannel,
   ) {
     this.extensionUri = extensionUri;
     this.getServerInfo = getServerInfo;
     this.cartaDir = cartaDir;
     this.devMode = devMode;
+    this.output = output;
   }
 
   static register(
@@ -56,12 +59,14 @@ export class CartaCanvasEditorProvider implements vscode.CustomReadonlyEditorPro
     getServerInfo: () => WorkspaceServerInfo | null,
     cartaDir: string | null,
     devMode: boolean,
+    output: vscode.OutputChannel,
   ): vscode.Disposable {
     const provider = new CartaCanvasEditorProvider(
       context.extensionUri,
       getServerInfo,
       cartaDir,
       devMode,
+      output,
     );
     return vscode.window.registerCustomEditorProvider(
       'carta.canvasEditor',
@@ -83,6 +88,10 @@ export class CartaCanvasEditorProvider implements vscode.CustomReadonlyEditorPro
       ? deriveRoomName(this.cartaDir, document.uri.fsPath)
       : null;
 
+    this.output.appendLine(
+      `Opening canvas: room=${roomName}, server=${serverInfo?.url ?? 'none'}, devMode=${this.devMode}`
+    );
+
     if (this.devMode) {
       webviewPanel.webview.options = { enableScripts: true };
       webviewPanel.webview.html = buildDevModeHtml(roomName, serverInfo?.url ?? null);
@@ -97,6 +106,18 @@ export class CartaCanvasEditorProvider implements vscode.CustomReadonlyEditorPro
       ],
     };
     webview.html = this.buildWebviewHtml(webview, serverInfo, roomName);
+
+    // Listen for pong from web client
+    webviewPanel.webview.onDidReceiveMessage((msg) => {
+      if (msg.type === 'carta:pong') {
+        this.output.appendLine(`[webview] ${roomName}: ${JSON.stringify(msg.status)}`);
+      }
+    });
+
+    // Send ping after a delay to let the app boot
+    setTimeout(() => {
+      webviewPanel.webview.postMessage({ type: 'carta:ping' });
+    }, 3000);
   }
 
   private buildWebviewHtml(

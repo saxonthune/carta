@@ -36,6 +36,7 @@ const CompileModal = lazy(() => import('./components/modals/CompileModal'));
 const ExampleConfirmModal = lazy(() => import('./components/modals/ExampleConfirmModal'));
 const AISidebar = lazy(() => import('./ai/components/AISidebar').then(m => ({ default: m.AISidebar })));
 const TextEditor = lazy(() => import('./components/TextEditor'));
+const EmbeddedDebugOverlay = lazy(() => import('./components/EmbeddedDebugOverlay'));
 
 // Note: Schema initialization is now handled by DocumentProvider
 
@@ -391,6 +392,34 @@ function AppContent() {
 function EmbeddedContent() {
   const { loading, schemas } = useWorkspaceMode();
 
+  // Respond to carta:ping from VS Code extension host (bundled mode only)
+  useEffect(() => {
+    if (!config.embedded) return;
+
+    // acquireVsCodeApi() can only be called once per WebView lifecycle
+    const vscodeApi = (window as any).acquireVsCodeApi?.();
+    if (!vscodeApi) return;
+
+    const handler = (event: MessageEvent) => {
+      if (event.data?.type === 'carta:ping') {
+        const urlParams = new URLSearchParams(window.location.search);
+        vscodeApi.postMessage({
+          type: 'carta:pong',
+          status: {
+            embedded: config.embedded,
+            syncUrl: config.syncUrl,
+            documentId: urlParams.get('doc'),
+            hasSync: config.hasSync,
+            loaded: !loading,
+          },
+        });
+      }
+    };
+
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [loading]);
+
   if (loading) return null;
 
   const urlParams = new URLSearchParams(window.location.search);
@@ -436,6 +465,11 @@ function EmbeddedCanvas() {
         onSelectionChange={() => {}}
         activeView={activeView}
       />
+      {config.debug && config.embedded && (
+        <Suspense fallback={null}>
+          <EmbeddedDebugOverlay />
+        </Suspense>
+      )}
     </div>
   );
 }
