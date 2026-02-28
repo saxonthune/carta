@@ -11,26 +11,14 @@ Context-aware assistant for developing Carta's VS Code extension. For general VS
 
 A VS Code extension that lets users interact with a `.carta/` workspace directory entirely from VS Code — no terminal commands, no separate browser window. Double-click a `.canvas.json` file, get a full canvas editor.
 
-This replaces the former Electron desktop app with a lighter, more integrated experience.
-
 ## Product Context
-
-Read these docs for the full picture:
 
 | Doc | What It Tells You |
 |-----|-------------------|
-| doc02.04.09 | **Workspace model.** `.carta/` is a directory vault: `.canvas.json` files, `schemas/schemas.json`, spec group directories, `.state/` binary cache. JSON is canonical; Y.Doc binary is for real-time sync. Workspace server reconciles JSON↔binary via filesystem watcher. |
-| doc02.05 | **Deployment config.** Extension is a server-backed deployment. Inject `VITE_SYNC_URL` via `__CARTA_CONFIG__` at WebView load. Enables multi-document mode, workspace navigation, AI sidebar. |
-| doc03.02.01 | **Primary persona.** Software architect with workspace in a git repo. Extension replaces `carta serve .` + browser. They create canvases, iterate with AI agents, git commit. |
-| doc03.02.04 | **Secondary persona.** Solo user. Extension is the zero-setup local workspace experience. |
+| doc02.04.09 | **Workspace model.** `.carta/` is a directory vault: `.canvas.json` files, `schemas/schemas.json`, spec group directories, `.state/` binary cache. JSON is canonical; Y.Doc binary is for real-time sync. |
+| doc02.05 | **Deployment config.** Extension is a server-backed deployment. Inject `VITE_SYNC_URL` via `__CARTA_CONFIG__` at WebView load. |
+| doc03.02.01 | **Primary persona.** Software architect with workspace in a git repo. |
 | doc02.03 | **Interfaces.** REST endpoints, WebSocket rooms, MCP tools the embedded server must provide. |
-
-## What's Been Built
-
-- Extracted `EmbeddedHost` API — `startEmbeddedHost({ cartaDir })` starts server + writes `server.json`
-- Extension scaffold — `CartaCanvasEditorProvider`, WebView HTML, server lifecycle, `carta.initWorkspace` command
-- Removed Electron desktop package
-- Dev experience — `launch.json`, dev-mode WebView, esbuild watch
 
 ## Extension Architecture
 
@@ -64,15 +52,13 @@ Read these docs for the full picture:
 
 Two launch configs in `.vscode/launch.json`:
 
-**Dev Mode** (hot reload): F5 with "Carta Extension (Dev Mode)" selected. Starts Vite dev server, builds everything, launches EDH. Set `carta.devMode: true` in EDH settings.
+**Dev Mode** (hot reload): F5 with "Carta Extension (Dev Mode)" selected. Requires `pnpm dev` running separately. Set `carta.devMode: true` in EDH settings.
 
-**Bundled Mode** (production-like): F5 with "Carta Extension (Bundled)" selected. Builds and launches. No Vite server.
+**Bundled Mode** (production-like): F5 with "Carta Extension (Bundled)" selected. No Vite server needed.
 
-See `vscode-extension-dev` skill for HMR coverage table and debugging commands.
+**Viewing raw JSON**: Right-click a `.canvas.json` tab → "Reopen Editor With..." → "Text Editor". Or in explorer: right-click → "Open With..." → "Text Editor". This is built-in VS Code behavior for any file with a custom editor.
 
 ## Document Loading Flow (Extension → Canvas)
-
-Understanding this flow is essential for debugging "no nodes appear" and similar issues.
 
 ```
 VS Code opens .canvas.json
@@ -137,17 +123,17 @@ App.tsx: EmbeddedContent renders CanvasContainer with activeView={page:'canvas'}
 | Aspect | Browser (`WorkspaceAppLayout`) | VS Code (`EmbeddedContent`) |
 |--------|-------------------------------|----------------------------|
 | Schema source | `useWorkspaceMode()` fetches from `/api/workspace/schemas` | **Not fetched** — no `workspaceCanvas` prop |
-| DocumentProvider | `workspaceCanvas={schemas}` prop set | No `workspaceCanvas` prop |
+| DocumentProvider | `workspaceCanvas={schemas}` prop set | No `workspaceCanvas` prop — takes non-workspace adapter path |
 | Active page | Hardcoded `{ pageId: 'canvas' }` | Dynamic from `usePages()` |
 | App chrome | Workspace navigator, header | Canvas only |
 
-### Common Failure Points
+### Open Issues
 
-1. **Embedded server not started** — `serverInfo` is null → no `syncUrl` in iframe → client falls back to local mode with empty IndexedDB → no nodes
-2. **CSP blocks inline scripts (bundled mode)** — `script-src` doesn't include `'unsafe-inline'` → `__CARTA_CONFIG__` and `history.replaceState` never run → `config.embedded = false`, no `?doc=` → wrong UI, empty doc
-3. **`pnpm dev` not running (dev mode)** — iframe fails to load Vite dev server → blank WebView
-4. **Workspace canvas schemas not injected** — embedded path skips `useWorkspaceMode()` → constructs render without schema metadata (field names, colors missing, but nodes should still appear)
-5. **Room name mismatch** — `deriveRoomName` must produce exact match for `loadCanvasDoc` path resolution
+**CSP blocks inline scripts in bundled mode.** `buildWebviewHtml` injects inline `<script>` tags but CSP `script-src` only allows `${cspSource}` (no `'unsafe-inline'`). Both config scripts are silently blocked → app doesn't know it's embedded, has no syncUrl, renders empty standalone mode. Fix: use nonces.
+
+**Embedded mode has no schemas.** `EmbeddedContent` renders inside a `DocumentProvider` without `workspaceCanvas`. Schemas are workspace-level (not per-canvas), so `hydrateYDocFromCanvasFile` doesn't include them. Nodes sync but render without schema metadata. Fix: restructure embedded boot to fetch `/api/workspace/schemas` before creating `DocumentProvider`.
+
+**No diagnostic output anywhere in the loading chain.** Extension → WebView → config → adapter → WebSocket → server → hydrate → sync → render has zero logging. When nodes don't appear, there's no way to determine which step failed. See "Diagnosability" section.
 
 ### Web Client Key Files (for debugging)
 
@@ -162,13 +148,31 @@ App.tsx: EmbeddedContent renders CanvasContainer with activeView={page:'canvas'}
 | `packages/web-client/src/hooks/usePages.ts` | Subscribes to page changes, provides `activePage` |
 | `packages/document/src/workspace-hydrate.ts` | `hydrateYDocFromCanvasFile()` — loads JSON into Y.Doc with synthetic 'canvas' page |
 
+## Diagnosability
+
+The loading chain crosses 5 process boundaries (extension host → WebView → iframe → WebSocket → server) with no structured logging. This makes "no nodes appear" impossible to debug without reading source.
+
+**Recommended: WebView status overlay.** Add a diagnostic overlay to `EmbeddedContent` that shows the current state of the loading pipeline:
+
+```
+[extension] server: ✓ http://127.0.0.1:51234
+[config]    embedded: ✓  syncUrl: ✓  doc: "02-system/architecture"
+[adapter]   ready: ✓  pages: 1  activePage: "canvas"
+[ws]        status: connected  nodes: 17  edges: 19
+```
+
+This could be toggled via a VS Code setting (`carta.debug`) or a message from the extension host.
+
+**Recommended: Extension output channel.** Create a `vscode.window.createOutputChannel('Carta')` and log key lifecycle events: server start/stop, room name derivation, WebView resolve. This gives the user `Output > Carta` in VS Code.
+
+**Recommended: postMessage health check.** After creating the WebView, send a `ping` message. The web client responds with its current config state (`embedded`, `syncUrl`, `documentId`, `connectionStatus`, `nodeCount`). Log the response to the output channel. This closes the observability gap between extension host and WebView content.
+
 ## What's Next
 
-The extension currently uses `CustomReadonlyEditorProvider` — it displays canvases but doesn't participate in VS Code's save/undo model. The web client manages its own state through Yjs and the workspace server.
-
-Future work areas:
-- **Embedded mode rendering** — hide app chrome (header, footer, sidebar) when running inside a WebView
-- **CustomEditorProvider migration** — integrate with VS Code save/undo/redo by wrapping Yjs doc as a `CustomDocument`
-- **Tree view** — workspace structure in VS Code sidebar (spec groups, canvases, schemas)
-- **MCP integration** — expose MCP tools to AI agents running in the same VS Code instance
+- **Fix CSP nonce** — unblock bundled mode
+- **Fix schema injection** — fetch from `/api/workspace/schemas` in embedded boot
+- **Add diagnostic overlay + output channel** — make the loading chain observable
+- **CustomEditorProvider migration** — integrate with VS Code save/undo/redo
+- **Tree view** — workspace structure in VS Code sidebar
+- **MCP integration** — expose MCP tools to AI agents in the same VS Code instance
 - **VSIX packaging** — `vsce package --no-dependencies` for distribution
