@@ -53,4 +53,24 @@ Check whether the compiled output has enough detail for an LLM to generate code:
 1. **Blockers:** Missing connections or fields that prevent understanding the design
 2. **Important:** Incomplete schemas or missing semantic descriptions
 3. **Nice-to-have:** Naming consistency, visual organization
+
+## Using Compiled Output as a Specification
+
+After running \`carta_compile\`, the output is a structured specification. Here's how to interpret each section for code generation:
+
+**Organizer groupings** → Module or package boundaries. Each organizer represents a logical grouping — map these to directories, packages, or namespaces in your codebase.
+
+**Schema definitions** → Type contracts. Each schema with its fields defines the interface for a category of components. Use field names, types, and semantic descriptions to generate type definitions, interfaces, or class structures.
+
+**Constructs by type** → Instances. Each construct is a concrete component. Field values provide configuration, naming, and behavioral details.
+
+**Relationship metadata** → Dependency graph. The references/referencedBy maps show which components depend on each other. Use these to generate imports, injection, API calls, or event subscriptions.
+
+### Checking Code Consistency
+
+To verify code matches the spec:
+1. Compile the canvas
+2. For each construct, check: does a corresponding code artifact exist?
+3. For each relationship, check: does the code reflect this dependency?
+4. For each field value, check: does the code use this configuration?
 `;

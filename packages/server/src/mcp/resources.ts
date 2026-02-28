@@ -5,6 +5,7 @@
 import {
   GUIDES, METAMODEL_GUIDE, ANALYSIS_GUIDE,
   DOMAIN_DIRECTORY_GUIDE, SOFTWARE_ARCHITECTURE_GUIDE, AWS_GUIDE, BPMN_GUIDE,
+  REVERSE_ENGINEERING_GUIDE,
 } from './guides.js';
 
 /**
@@ -34,6 +35,7 @@ const GUIDE_CONTENT: Record<string, string> = {
   [GUIDES['domains/software-architecture'].uri]: SOFTWARE_ARCHITECTURE_GUIDE,
   [GUIDES['domains/aws'].uri]: AWS_GUIDE,
   [GUIDES['domains/bpmn'].uri]: BPMN_GUIDE,
+  [GUIDES['reverse-engineering'].uri]: REVERSE_ENGINEERING_GUIDE,
 };
 
 /**

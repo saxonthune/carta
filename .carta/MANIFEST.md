@@ -21,6 +21,7 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 | doc00.03 | `03-conventions.md` | docXX.YY syntax, front matter, file naming | docs, conventions | — |
 | doc00.04 | `04-maintenance.md` | Git versioning, epochs, adding/deprecating | docs, maintenance | — |
 | doc00.05 | `05-ai-retrieval.md` | AI retrieval patterns, legal RAG inspiration | docs, ai, retrieval | — |
+| doc00.06 | `06-ai-agent-integration.md` | AI workflow patterns: spec-to-code, code-to-spec, MCP setup, guide directory | ai, workflow, mcp, guides | doc02.03 |
 
 ## 01-context — Mission, principles, vocabulary
 
@@ -175,7 +176,7 @@ Quick lookup for file-path→doc mapping:
 | `workspace` | doc02.04.09, doc02.05 |
 | `filesystem` | doc02.04.09 |
 | `datakind` | doc02.06, doc01.02 |
-| `mcp` | doc02.03, doc03.01.03.03 |
+| `mcp` | doc02.03, doc03.01.03.03, doc00.06 |
 | `research` | doc05.01, doc05.02 |
 | `tokens` | doc05.02 |
 | `efficiency` | doc05.02 |
@@ -184,3 +185,6 @@ Quick lookup for file-path→doc mapping:
 | `primary-source` | doc01.05 |
 | `vision` | doc01.05, doc01.05.01 |
 | `inspiration` | doc01.05 |
+| `ai` | doc00.05, doc00.06 |
+| `workflow` | doc00.06 |
+| `guides` | doc00.06 |
