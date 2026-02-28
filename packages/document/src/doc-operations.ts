@@ -53,12 +53,11 @@ import type {
   ApplyPackageResult,
   DocumentAdapter,
   PackageManifestEntry,
-  SpecGroup,
-  SpecGroupItem,
+  GroupMeta,
 } from '@carta/schema';
 import { CompilerEngine } from './compiler/index.js';
 import { yToPlain, deepPlainToY, safeGet } from './yjs-helpers.js';
-import { generateNodeId, generatePageId, generateSchemaPackageId, generateSpecGroupId } from './id-generators.js';
+import { generateNodeId, generatePageId, generateSchemaPackageId } from './id-generators.js';
 import { MCP_ORIGIN, SERVER_FORMAT_VERSION, YDOC_MAPS } from './constants.js';
 
 /**
@@ -144,6 +143,7 @@ export interface PageInfo {
   id: string;
   name: string;
   description?: string;
+  group?: string;
   order: number;
 }
 
@@ -168,6 +168,7 @@ export function listPages(ydoc: Y.Doc): PageInfo[] {
       id,
       name: (ypage.get('name') as string) ?? 'Untitled',
       description: ypage.get('description') as string | undefined,
+      group: ypage.get('group') as string | undefined,
       order: (ypage.get('order') as number) ?? 0,
     });
   });
@@ -206,7 +207,7 @@ export function setActivePage(ydoc: Y.Doc, pageId: string): void {
 /**
  * Create a new page in a document
  */
-export function createPage(ydoc: Y.Doc, name: string, description?: string): PageInfo {
+export function createPage(ydoc: Y.Doc, name: string, description?: string, group?: string): PageInfo {
   const pageId = generatePageId();
   const ypages = ydoc.getMap<Y.Map<unknown>>('pages');
 
@@ -224,11 +225,12 @@ export function createPage(ydoc: Y.Doc, name: string, description?: string): Pag
     pageData.set('id', pageId);
     pageData.set('name', name);
     if (description) pageData.set('description', description);
+    if (group !== undefined) pageData.set('group', group);
     pageData.set('order', order);
     ypages.set(pageId, pageData);
   }, MCP_ORIGIN);
 
-  return { id: pageId, name, description, order };
+  return { id: pageId, name, description, group, order };
 }
 
 /**
@@ -237,7 +239,7 @@ export function createPage(ydoc: Y.Doc, name: string, description?: string): Pag
 export function updatePage(
   ydoc: Y.Doc,
   pageId: string,
-  updates: { name?: string; description?: string; order?: number }
+  updates: { name?: string; description?: string; group?: string | null; order?: number }
 ): PageInfo | null {
   const ypages = ydoc.getMap<Y.Map<unknown>>('pages');
   const ypage = ypages.get(pageId);
@@ -246,6 +248,13 @@ export function updatePage(
   ydoc.transact(() => {
     if (updates.name !== undefined) ypage.set('name', updates.name);
     if (updates.description !== undefined) ypage.set('description', updates.description);
+    if (updates.group !== undefined) {
+      if (updates.group === null) {
+        ypage.delete('group');
+      } else {
+        ypage.set('group', updates.group);
+      }
+    }
     if (updates.order !== undefined) ypage.set('order', updates.order);
   }, MCP_ORIGIN);
 
@@ -253,6 +262,7 @@ export function updatePage(
     id: pageId,
     name: (ypage.get('name') as string) ?? 'Untitled',
     description: ypage.get('description') as string | undefined,
+    group: ypage.get('group') as string | undefined,
     order: (ypage.get('order') as number) ?? 0,
   };
 }
@@ -264,9 +274,6 @@ export function deletePage(ydoc: Y.Doc, pageId: string): boolean {
   const ypages = ydoc.getMap<Y.Map<unknown>>('pages');
   if (!ypages.has(pageId)) return false;
   if (ypages.size <= 1) return false;
-
-  // Remove from any spec group before deleting
-  removeFromSpecGroup(ydoc, 'page', pageId);
 
   ydoc.transact(() => {
     ypages.delete(pageId);
@@ -4201,175 +4208,49 @@ export function checkPackageDrift(ydoc: Y.Doc, packageId: string): {
   };
 }
 
-// ==================== Spec Group Operations ====================
+// ==================== Group Metadata Operations ====================
 
-function getSpecGroupsMap(ydoc: Y.Doc): Y.Map<Y.Map<unknown>> {
-  return ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.SPEC_GROUPS);
-}
-
-function ySpecGroupToPlain(ysg: Y.Map<unknown>): SpecGroup {
-  const yitems = ysg.get('items') as Y.Array<Y.Map<unknown>>;
-  const items: SpecGroupItem[] = [];
-  yitems.forEach((yitem) => {
-    items.push({
-      type: yitem.get('type') as 'page',
-      id: yitem.get('id') as string,
-    });
-  });
-  return {
-    id: ysg.get('id') as string,
-    name: ysg.get('name') as string,
-    description: ysg.get('description') as string | undefined,
-    order: ysg.get('order') as number,
-    items,
-  };
+function getGroupMetadataMap(ydoc: Y.Doc): Y.Map<Y.Map<unknown>> {
+  return ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.GROUP_METADATA);
 }
 
 /**
- * List all spec groups sorted by order.
+ * Get all group metadata as a plain record, keyed by group key.
  */
-export function listSpecGroups(ydoc: Y.Doc): SpecGroup[] {
-  const yspecGroups = getSpecGroupsMap(ydoc);
-  const results: SpecGroup[] = [];
-  yspecGroups.forEach((ysg) => {
-    results.push(ySpecGroupToPlain(ysg));
+export function getGroupMetadata(ydoc: Y.Doc): Record<string, GroupMeta> {
+  const ymap = getGroupMetadataMap(ydoc);
+  const result: Record<string, GroupMeta> = {};
+  ymap.forEach((ymeta, key) => {
+    result[key] = {
+      name: ymeta.get('name') as string,
+      description: ymeta.get('description') as string | undefined,
+    };
   });
-  return results.sort((a, b) => a.order - b.order);
+  return result;
 }
 
 /**
- * Get a single spec group by ID.
+ * Set or replace metadata for a group key.
  */
-export function getSpecGroup(ydoc: Y.Doc, id: string): SpecGroup | undefined {
-  const yspecGroups = getSpecGroupsMap(ydoc);
-  const ysg = yspecGroups.get(id);
-  if (!ysg) return undefined;
-  return ySpecGroupToPlain(ysg);
-}
-
-/**
- * Create a new spec group and store it in the Y.Doc.
- */
-export function createSpecGroup(ydoc: Y.Doc, name: string, description?: string): SpecGroup {
-  const yspecGroups = getSpecGroupsMap(ydoc);
-  const id = generateSpecGroupId();
-
-  // Compute next order value
-  let maxOrder = -1;
-  yspecGroups.forEach((ysg) => {
-    const o = ysg.get('order') as number;
-    if (o > maxOrder) maxOrder = o;
-  });
-  const order = maxOrder + 1;
-
+export function setGroupMetadata(ydoc: Y.Doc, key: string, meta: GroupMeta): void {
+  const ymap = getGroupMetadataMap(ydoc);
   ydoc.transact(() => {
-    const ysg = new Y.Map<unknown>();
-    ysg.set('id', id);
-    ysg.set('name', name);
-    if (description !== undefined) ysg.set('description', description);
-    ysg.set('order', order);
-    const yitems = new Y.Array<Y.Map<unknown>>();
-    ysg.set('items', yitems);
-    yspecGroups.set(id, ysg);
+    const ymeta = new Y.Map<unknown>();
+    ymeta.set('name', meta.name);
+    if (meta.description !== undefined) ymeta.set('description', meta.description);
+    ymap.set(key, ymeta);
   }, MCP_ORIGIN);
-
-  return { id, name, description, order, items: [] };
 }
 
 /**
- * Update a spec group's fields.
+ * Delete metadata for a group key.
  */
-export function updateSpecGroup(
-  ydoc: Y.Doc,
-  id: string,
-  updates: { name?: string; description?: string; order?: number; items?: SpecGroupItem[] }
-): SpecGroup | undefined {
-  const yspecGroups = getSpecGroupsMap(ydoc);
-  const ysg = yspecGroups.get(id);
-  if (!ysg) return undefined;
-
-  ydoc.transact(() => {
-    if (updates.name !== undefined) ysg.set('name', updates.name);
-    if (updates.description !== undefined) ysg.set('description', updates.description);
-    if (updates.order !== undefined) ysg.set('order', updates.order);
-    if (updates.items !== undefined) {
-      const yitems = ysg.get('items') as Y.Array<Y.Map<unknown>>;
-      yitems.delete(0, yitems.length);
-      for (const item of updates.items) {
-        const yitem = new Y.Map<unknown>();
-        yitem.set('type', item.type);
-        yitem.set('id', item.id);
-        yitems.push([yitem]);
-      }
-    }
-  }, MCP_ORIGIN);
-
-  return getSpecGroup(ydoc, id);
-}
-
-/**
- * Delete a spec group by ID. Items become ungrouped (no cascade delete).
- * Returns true if it existed.
- */
-export function deleteSpecGroup(ydoc: Y.Doc, id: string): boolean {
-  const yspecGroups = getSpecGroupsMap(ydoc);
-  const exists = yspecGroups.has(id);
-  if (exists) {
+export function deleteGroupMetadata(ydoc: Y.Doc, key: string): void {
+  const ymap = getGroupMetadataMap(ydoc);
+  if (ymap.has(key)) {
     ydoc.transact(() => {
-      yspecGroups.delete(id);
+      ymap.delete(key);
     }, MCP_ORIGIN);
   }
-  return exists;
-}
-
-/**
- * Assign a page to a spec group.
- * Enforces single-parent: removes from any existing group first.
- */
-export function assignToSpecGroup(ydoc: Y.Doc, groupId: string, item: SpecGroupItem): SpecGroup | undefined {
-  // Enforce single-parent invariant
-  removeFromSpecGroup(ydoc, item.type, item.id);
-
-  const yspecGroups = getSpecGroupsMap(ydoc);
-  const ysg = yspecGroups.get(groupId);
-  if (!ysg) return undefined;
-
-  ydoc.transact(() => {
-    const yitems = ysg.get('items') as Y.Array<Y.Map<unknown>>;
-    const yitem = new Y.Map<unknown>();
-    yitem.set('type', item.type);
-    yitem.set('id', item.id);
-    yitems.push([yitem]);
-  }, MCP_ORIGIN);
-
-  return getSpecGroup(ydoc, groupId);
-}
-
-/**
- * Remove a page from whichever spec group contains it.
- * Returns true if it was found and removed.
- */
-export function removeFromSpecGroup(ydoc: Y.Doc, itemType: 'page', itemId: string): boolean {
-  const yspecGroups = getSpecGroupsMap(ydoc);
-  let found = false;
-
-  yspecGroups.forEach((ysg) => {
-    if (found) return;
-    const yitems = ysg.get('items') as Y.Array<Y.Map<unknown>>;
-    let idx = -1;
-    yitems.forEach((yitem, i) => {
-      if (yitem.get('type') === itemType && yitem.get('id') === itemId) {
-        idx = i;
-      }
-    });
-    if (idx >= 0) {
-      ydoc.transact(() => {
-        yitems.delete(idx, 1);
-      }, MCP_ORIGIN);
-      found = true;
-    }
-  });
-
-  return found;
 }
 
