@@ -503,7 +503,7 @@ export interface DocumentAdapter {
   setActivePage(pageId: string): void;
   createPage(name: string, description?: string): Page;
   deletePage(pageId: string): boolean;
-  updatePage(pageId: string, updates: Partial<Omit<Page, 'id' | 'nodes' | 'edges' | 'deployables'>> & { group?: string | null }): void;
+  updatePage(pageId: string, updates: Partial<Omit<Page, 'id' | 'nodes' | 'edges' | 'deployables' | 'group'>> & { group?: string | null }): void;
   duplicatePage(pageId: string, newName: string): Page;
   copyNodesToPage(nodeIds: string[], targetPageId: string): void;
 

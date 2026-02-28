@@ -164,7 +164,7 @@ function AppContent() {
   const { schemas } = useSchemas();
   const { schemaGroups } = useSchemaGroups();
   const { pages, activePage, setActivePage, createPage, deletePage, updatePage, duplicatePage } = usePages();
-  const { specGroups, createSpecGroup, updateSpecGroup, deleteSpecGroup, assignToSpecGroup, removeFromSpecGroup } = useSpecGroups();
+  const { groupMetadata, setGroupMetadata: setGroupMeta, deleteGroupMetadata, setPageGroup } = useSpecGroups();
   const [navigatorOpen, setNavigatorOpen] = useState(true);
   const [activeView, setActiveView] = useState<ActiveView>(() => ({
     type: 'page',
@@ -321,12 +321,10 @@ function AppContent() {
           onDuplicatePage={duplicatePage}
           activeView={activeView}
           onSelectMetamap={() => setActiveView({ type: 'metamap' })}
-          specGroups={specGroups}
-          onCreateSpecGroup={(name) => { createSpecGroup(name); }}
-          onUpdateSpecGroup={updateSpecGroup}
-          onDeleteSpecGroup={deleteSpecGroup}
-          onAssignToSpecGroup={assignToSpecGroup}
-          onRemoveFromSpecGroup={removeFromSpecGroup}
+          groupMetadata={groupMetadata}
+          onSetGroupMetadata={setGroupMeta}
+          onDeleteGroup={deleteGroupMetadata}
+          onSetPageGroup={setPageGroup}
         />
         <CanvasContainer
           onSelectionChange={handleSelectionChange}
