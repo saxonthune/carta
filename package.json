@@ -29,6 +29,7 @@
     "serve": "pnpm build:all && node packages/server/dist/cli.js serve .",
     "server:memory": "pnpm --filter @carta/server build && STORAGE=memory pnpm --filter @carta/server document-server",
     "server:stop": "docker compose down",
+    "vscode": "pnpm --filter @carta/web-client build && pnpm --filter carta-vscode build && pnpm --filter carta-vscode watch",
     "desktop": "pnpm --filter @carta/desktop dev",
     "build:desktop": "pnpm --filter @carta/desktop build",
     "package:desktop": "pnpm --filter @carta/desktop package"

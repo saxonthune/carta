@@ -1,6 +1,8 @@
 import * as esbuild from 'esbuild';
 
-await esbuild.build({
+const watch = process.argv.includes('--watch');
+
+const options = {
   entryPoints: ['src/extension.ts'],
   bundle: true,
   outfile: 'dist/extension.js',
@@ -8,4 +10,12 @@ await esbuild.build({
   format: 'cjs',
   external: ['vscode'],
   sourcemap: true,
-});
+};
+
+if (watch) {
+  const ctx = await esbuild.context(options);
+  await ctx.watch();
+  console.log('Watching for extension changes...');
+} else {
+  await esbuild.build(options);
+}

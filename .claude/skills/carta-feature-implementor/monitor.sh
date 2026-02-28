@@ -76,28 +76,56 @@ fi
 )
 
 # Epics: compact one-line-per-epic summary
+# Collects task slugs from all directories (pending, running, done, archived)
+# then deduplicates and checks status for each unique slug.
 epics=$(
 for ef in "$TODO"/*.epic.md; do
   [[ -r "$ef" ]] || continue
   epic=$(basename "$ef" .epic.md)
-  total=0; done_n=0; running=0; failed=0
+
+  # Collect unique task slugs across all directories
+  declare -A seen_slugs=()
   for tf in "$TODO/${epic}"-[0-9]*.md "$TODO/.running/${epic}"-[0-9]*.md "$TODO/.done/${epic}"-[0-9]*.md; do
     [[ -f "$tf" ]] || continue
-    ts=$(basename "$tf" .md)
+    [[ "$tf" == *.result.md ]] && continue
+    seen_slugs[$(basename "$tf" .md)]=1
+  done
+  # Archived files have date prefix: YYYYMMDD-{slug}.md
+  for tf in "$TODO/.archived/"*"-${epic}"-[0-9]*.md; do
+    [[ -f "$tf" ]] || continue
+    [[ "$tf" == *.result.md ]] && continue
+    slug=$(basename "$tf" .md)
+    slug="${slug#[0-9]*-}"  # strip date prefix
+    seen_slugs["$slug"]=1
+  done
+
+  total=0; done_n=0; running=0; failed=0
+  for ts in "${!seen_slugs[@]}"; do
     ((total++))
     if [[ -f "$TODO/.done/${ts}.result.md" ]]; then
       s=$(sed -n 's/^[*]*[Ss]tatus[*]*: *//p' "$TODO/.done/${ts}.result.md" 2>/dev/null | head -1 | tr '[:upper:]' '[:lower:]')
       case "$s" in *success*) ((done_n++)) ;; *) ((failed++)) ;; esac
+    elif ls "$TODO/.archived/"*"-${ts}.result.md" &>/dev/null; then
+      rf=$(ls "$TODO/.archived/"*"-${ts}.result.md" 2>/dev/null | head -1)
+      s=$(sed -n 's/^[*]*[Ss]tatus[*]*: *//p' "$rf" 2>/dev/null | head -1 | tr '[:upper:]' '[:lower:]')
+      case "$s" in *success*) ((done_n++)) ;; *) ((failed++)) ;; esac
     elif [[ -f "$TODO/.running/${ts}.md" ]]; then
       ((running++))
     fi
+    # else: pending — counted in total but no category counter
   done
+  unset seen_slugs
+
   if (( total == 0 )); then continue; fi
   icon="📋"
   (( failed > 0 )) && icon="⚠️"
   (( running > 0 )) && icon="▶"
   (( done_n == total )) && icon="✅"
-  echo "${icon}${T}${epic}${T}${done_n}/${total} done${T}${running} running${T}${failed} failed"
+  # Show compact summary — only include non-zero categories after done
+  summary="${done_n}/${total} done"
+  (( running > 0 )) && summary+="${T}${running} running"
+  (( failed > 0 )) && summary+="${T}${failed} failed"
+  echo "${icon}${T}${epic}${T}${summary}"
 done
 )
 

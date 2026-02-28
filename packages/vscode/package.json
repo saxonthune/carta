@@ -24,6 +24,7 @@
   },
   "scripts": {
     "build": "node esbuild.config.mjs && node scripts/copy-web-client.mjs",
+    "watch": "node esbuild.config.mjs --watch",
     "package": "vsce package",
     "publish": "vsce publish"
   },
