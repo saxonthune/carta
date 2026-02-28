@@ -223,28 +223,14 @@ export interface OrganizerNodeData {
   [key: string]: unknown;
 }
 
-// ===== SPEC GROUPS =====
+// ===== GROUPS =====
 
 /**
- * An ordered item reference within a SpecGroup.
- * Can point to a page.
+ * Group metadata — value type in WorkspaceManifest.groups and Y.Doc groupMetadata map.
  */
-export interface SpecGroupItem {
-  type: 'page';
-  id: string;
-}
-
-/**
- * Document-level organizational group containing an ordered list of pages.
- * Represents a level of specificity in the Code-N ladder (e.g., "Product Vision", "API Implementation").
- * Membership is stored on the group's items array, not on member entities.
- */
-export interface SpecGroup {
-  id: string;
+export interface GroupMeta {
   name: string;
   description?: string;
-  order: number;
-  items: SpecGroupItem[];
 }
 
 // ===== HELPERS =====
@@ -354,6 +340,7 @@ export interface Page {
   id: string;                 // 'page-{timestamp}-{random}'
   name: string;               // User-editable page name
   description?: string;       // Optional page description
+  group?: string;             // Group key (e.g., '01-context') — group membership
   order: number;              // For sorting (0, 1, 2, ...)
   nodes: unknown[];           // Node<ConstructNodeData>[] - page-specific nodes
   edges: unknown[];           // Edge[] - page-specific edges
@@ -516,7 +503,7 @@ export interface DocumentAdapter {
   setActivePage(pageId: string): void;
   createPage(name: string, description?: string): Page;
   deletePage(pageId: string): boolean;
-  updatePage(pageId: string, updates: Partial<Omit<Page, 'id' | 'nodes' | 'edges' | 'deployables'>>): void;
+  updatePage(pageId: string, updates: Partial<Omit<Page, 'id' | 'nodes' | 'edges' | 'deployables'>> & { group?: string | null }): void;
   duplicatePage(pageId: string, newName: string): Page;
   copyNodesToPage(nodeIds: string[], targetPageId: string): void;
 
@@ -575,19 +562,15 @@ export interface DocumentAdapter {
   // Subscriptions for observing changes
   subscribe(listener: () => void): () => void;
 
-  // State access - Spec Groups (navigator groups)
-  getSpecGroups(): SpecGroup[];
-  getSpecGroup(id: string): SpecGroup | undefined;
+  // State access - Group Metadata
+  getGroupMetadata(): Record<string, GroupMeta>;
 
-  // Mutations - Spec Groups
-  createSpecGroup(name: string, description?: string): SpecGroup;
-  updateSpecGroup(id: string, updates: { name?: string; description?: string; order?: number; items?: SpecGroupItem[] }): SpecGroup | undefined;
-  deleteSpecGroup(id: string): boolean;
-  assignToSpecGroup(groupId: string, item: SpecGroupItem): SpecGroup | undefined;
-  removeFromSpecGroup(itemType: 'page', itemId: string): boolean;
+  // Mutations - Group Metadata
+  setGroupMetadata(key: string, meta: GroupMeta): void;
+  deleteGroupMetadata(key: string): void;
 
-  // Subscriptions - Spec Groups
-  subscribeToSpecGroups?(listener: () => void): () => void;
+  // Subscriptions - Group Metadata
+  subscribeToGroupMetadata?(listener: () => void): () => void;
 
   // Granular subscriptions (optional for interface compatibility)
   subscribeToNodes?(listener: () => void): () => void;
