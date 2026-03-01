@@ -77,6 +77,12 @@ Canonical definitions for domain terms used throughout Carta. Use these terms co
 
 **Storage Host**: The operator running a Carta server — an enterprise IT department, a SaaS provider, or the embedded server in the desktop app. Controls persistence, document organization (via metadata), authentication, and AI access. Carta's contract with storage hosts is minimal: "give me documents with optional grouping metadata." See doc02.05.
 
+**Workspace**: A `.carta/` directory containing a project's specifications, documentation, and architecture diagrams. Workspaces follow a standard directory structure (numbered titles) and are the canonical source of truth for a project's design. A workspace can be authored manually, via the visual editor, or via AI agents through MCP.
+
+**Format Spec**: The set of conventions that define a valid `.carta/` workspace — directory structure, file naming, cross-reference syntax, front matter format, and MANIFEST.md structure. The format spec is what `carta init` scaffolds and what tooling validates against.
+
+**Instance**: A specific project's `.carta/` workspace, as opposed to the format spec that defines the structure. Carta's own `.carta/` directory is an instance — it follows the format spec while containing Carta-specific content.
+
 **Compilation**: The process of transforming visual canvas state into AI-readable structured output (currently JSON format).
 
 **Configuration**: Two build-time environment variables set by the operator: `VITE_SYNC_URL` (server to connect to; absent = single-document browser mode) and `VITE_AI_MODE` (how AI chat gets credentials: `none`, `user-key`, `server-proxy`). Desktop mode is runtime-detected via Electron API. All other behavior (collaboration, document browser, WebSocket sync) is derived from whether a server URL is present. See doc02.05.

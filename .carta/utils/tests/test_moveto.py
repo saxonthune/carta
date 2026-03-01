@@ -288,5 +288,168 @@ class TestMovetoActualMove(unittest.TestCase):
         )
 
 
+class TestSameDirReorder(unittest.TestCase):
+    """Test same-directory reordering (Bug 2 fix)."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.carta_copy = _copy_carta(Path(self.tmpdir.name))
+        utils_copy = self.carta_copy / "utils"
+        shutil.copytree(str(_UTILS_DIR), str(utils_copy), dirs_exist_ok=False)
+
+    def tearDown(self):
+        self.tmpdir.cleanup()
+
+    def _run_moveto(self, *args: str) -> subprocess.CompletedProcess:
+        moveto = self.carta_copy / "utils" / "moveto"
+        return subprocess.run(
+            [sys.executable, str(moveto)] + list(args),
+            capture_output=True, text=True,
+        )
+
+    def test_move_later_entry_to_first(self):
+        """Moving a later entry to position 1 should not leave gaps."""
+        # 03-product -> position 1
+        result = self._run_moveto("03-product", ".", "--order", "1")
+        self.assertEqual(result.returncode, 0, f"moveto failed:\n{result.stderr}\n{result.stdout}")
+
+        # Check: entries should be 01-product, 02-context, 03-system, 04-operations, 05-research
+        entries = sorted(
+            e.name for e in self.carta_copy.iterdir()
+            if re.match(r'^\d{2}-', e.name)
+        )
+        prefixes = [int(re.match(r'^(\d{2})-', n).group(1)) for n in entries]
+        # No gaps: consecutive from min to max
+        self.assertEqual(prefixes, list(range(prefixes[0], prefixes[0] + len(prefixes))),
+                         f"Expected no gaps in numbering: {entries}")
+        # Product is at position 01 (after 00-codex)
+        product_entries = [e for e in entries if "product" in e]
+        self.assertEqual(len(product_entries), 1)
+        self.assertTrue(product_entries[0].startswith("01-"),
+                         f"Expected product at position 01: {product_entries[0]}")
+
+    def test_move_first_entry_to_last(self):
+        """Moving the first entry to the end should not leave gaps."""
+        # Count entries before
+        entries_before = [
+            e for e in self.carta_copy.iterdir()
+            if re.match(r'^\d{2}-', e.name)
+        ]
+        max_prefix = max(
+            int(re.match(r'^(\d{2})-', e.name).group(1))
+            for e in entries_before
+        )
+
+        result = self._run_moveto("01-context", ".", "--order", str(max_prefix))
+        self.assertEqual(result.returncode, 0, f"moveto failed:\n{result.stderr}\n{result.stdout}")
+
+        entries = sorted(
+            e.name for e in self.carta_copy.iterdir()
+            if re.match(r'^\d{2}-', e.name)
+        )
+        prefixes = [int(re.match(r'^(\d{2})-', n).group(1)) for n in entries]
+        self.assertEqual(prefixes, list(range(prefixes[0], prefixes[0] + len(prefixes))),
+                         f"Expected no gaps in numbering: {entries}")
+        # Context is last
+        self.assertTrue("context" in entries[-1],
+                         f"Expected context at last position: {entries[-1]}")
+
+
+class TestCrossSiblingMove(unittest.TestCase):
+    """Test cross-sibling moves where dest gets gap-closed (Bug 1 fix)."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.carta_copy = _copy_carta(Path(self.tmpdir.name))
+        utils_copy = self.carta_copy / "utils"
+        shutil.copytree(str(_UTILS_DIR), str(utils_copy), dirs_exist_ok=False)
+
+    def tearDown(self):
+        self.tmpdir.cleanup()
+
+    def _run_moveto(self, *args: str) -> subprocess.CompletedProcess:
+        moveto = self.carta_copy / "utils" / "moveto"
+        return subprocess.run(
+            [sys.executable, str(moveto)] + list(args),
+            capture_output=True, text=True,
+        )
+
+    def _assert_no_duplicate_prefixes(self, carta_root: Path) -> None:
+        excluded = {carta_root / ".state", carta_root / "utils"}
+        for dirpath in carta_root.rglob("*"):
+            if not dirpath.is_dir():
+                continue
+            if any(excl in dirpath.parents or dirpath == excl for excl in excluded):
+                continue
+            prefixes = []
+            for entry in dirpath.iterdir():
+                m = re.match(r'^(\d{2})-', entry.name)
+                if m:
+                    prefixes.append(int(m.group(1)))
+            duplicates = [p for p in prefixes if prefixes.count(p) > 1]
+            self.assertEqual(
+                duplicates, [],
+                f"Duplicate prefixes in {dirpath}: {sorted(set(duplicates))}",
+            )
+
+    def _collect_orphaned_refs(self, carta_root: Path) -> list[tuple]:
+        excluded = {carta_root / ".state", carta_root / "utils"}
+        pattern = re.compile(r'(?<!\w)doc\d{2}(?:\.\d{2})+(?!\.[a-zA-Z0-9])')
+        orphans = []
+        for md in carta_root.rglob("*.md"):
+            if any(excl in md.parents or md == excl for excl in excluded):
+                continue
+            for m in pattern.finditer(md.read_text(encoding="utf-8")):
+                try:
+                    ref_to_path(m.group(), carta_root)
+                except (FileNotFoundError, ValueError, OSError):
+                    orphans.append((md.relative_to(carta_root), m.group()))
+        return orphans
+
+    def test_move_context_into_sibling_product(self):
+        """Move 01-context into 03-product (dest gets gap-closed from 03→02)."""
+        pre_existing_orphans = set(
+            ref for _, ref in self._collect_orphaned_refs(self.carta_copy)
+        )
+
+        result = self._run_moveto("doc01", "doc03", "--order", "1")
+        self.assertEqual(result.returncode, 0, f"moveto failed:\n{result.stderr}\n{result.stdout}")
+
+        # Top-level should have no gaps
+        entries = sorted(
+            e.name for e in self.carta_copy.iterdir()
+            if re.match(r'^\d{2}-', e.name)
+        )
+        prefixes = [int(re.match(r'^(\d{2})-', n).group(1)) for n in entries]
+        self.assertEqual(prefixes, list(range(0, len(prefixes))),
+                         f"Expected no gaps in top-level numbering: {entries}")
+
+        # Context should be inside product (which is now 02-product)
+        product_dir = None
+        for e in self.carta_copy.iterdir():
+            if "product" in e.name:
+                product_dir = e
+                break
+        self.assertIsNotNone(product_dir, "Product directory not found")
+
+        context_entries = [e for e in product_dir.iterdir() if "context" in e.name]
+        self.assertEqual(len(context_entries), 1,
+                         f"Expected context inside product: {list(product_dir.iterdir())}")
+        self.assertTrue(context_entries[0].name.startswith("01-"),
+                         f"Context should be at position 01: {context_entries[0].name}")
+
+        # No duplicate prefixes anywhere
+        self._assert_no_duplicate_prefixes(self.carta_copy)
+
+        # No new orphaned refs
+        orphans = self._collect_orphaned_refs(self.carta_copy)
+        new_orphans = [(f, r) for f, r in orphans if r not in pre_existing_orphans]
+        self.assertEqual(
+            new_orphans, [],
+            f"New orphaned refs introduced:\n"
+            + "\n".join(f"  {r} in {f}" for f, r in new_orphans),
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

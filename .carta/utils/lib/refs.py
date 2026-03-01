@@ -71,6 +71,25 @@ def path_to_ref(path: Path, carta_root: Path) -> str:
 # Rename map computation
 # ---------------------------------------------------------------------------
 
+def trace_path(original: Path, moves: list[tuple[Path, Path]]) -> Path:
+    """Trace an original path through a sequence of execution-ordered moves.
+
+    Handles cascading renames: if a parent directory is moved after a child
+    was bumped, the child's final path reflects both operations.
+
+    Uses ``Path.relative_to`` to detect when ``current`` is equal to or nested
+    under a move's ``old`` path, then rebases it under ``new``.
+    """
+    current = original
+    for old, new in moves:
+        try:
+            rel = current.relative_to(old)
+            current = new / rel
+        except ValueError:
+            pass  # old is not a prefix of current
+    return current
+
+
 def compute_rename_map(
     moves: list[tuple[Path, Path]],
     carta_root: Path,
@@ -78,32 +97,32 @@ def compute_rename_map(
     """Given a list of (old_path, new_path) filesystem moves, compute
     the complete {old_ref: new_ref} map.
 
-    Includes the moved items and all their children recursively (for dirs).
-    The moves list should already include sibling renumbering entries from
-    gap-closing and bumping — this function just converts paths to refs.
+    Uses ``trace_path`` to compose cascading renames correctly.  For example,
+    if a child is bumped inside a directory that is also gap-closed, the
+    child's final ref accounts for both operations.
     """
+    seen: set[str] = set()
     result: dict[str, str] = {}
 
-    for old_path, new_path in moves:
-        # Compute ref for the moved item itself
-        try:
-            old_ref = path_to_ref(old_path, carta_root)
-            new_ref = path_to_ref(new_path, carta_root)
-            result[old_ref] = new_ref
-        except ValueError:
-            pass  # skip entries without valid numeric prefixes
-
-        # If it's a directory, add all children recursively
+    for old_path, _ in moves:
+        items = [old_path]
         if old_path.is_dir():
-            for child in old_path.rglob("*"):
-                child_rel = child.relative_to(old_path)
-                child_new = new_path / child_rel
-                try:
-                    child_old_ref = path_to_ref(child, carta_root)
-                    child_new_ref = path_to_ref(child_new, carta_root)
-                    result[child_old_ref] = child_new_ref
-                except ValueError:
-                    pass  # skip non-ref files (e.g. MANIFEST.md)
+            items.extend(old_path.rglob("*"))
+
+        for item in items:
+            resolved = str(item.resolve())
+            if resolved in seen:
+                continue
+            seen.add(resolved)
+
+            final = trace_path(item, moves)
+            try:
+                old_ref = path_to_ref(item, carta_root)
+                new_ref = path_to_ref(final, carta_root)
+                if old_ref != new_ref:
+                    result[old_ref] = new_ref
+            except ValueError:
+                pass  # skip non-ref paths
 
     return result
 

@@ -5,9 +5,19 @@ status: active
 
 # Architecture Overview
 
-Carta is structured as five layers that can evolve independently.
+## Product Surfaces
+
+Carta exposes five product surfaces:
+
+1. **Typed diagramming tool** — the visual canvas editor (richest feature): create constructs, connect via ports, organize visually
+2. **Workspace format** (`.carta/`) — a standard directory structure for software project specifications, readable by humans and AI agents
+3. **Compilation engine** — transforms visual models into AI-readable structured output
+4. **Hosted mode** — web client + server that performs git operations on behalf of nontechnical users, enabling collaboration and version control without CLI
+5. **MCP server** — programmatic access for AI agents to read and modify workspace state
 
 ## Layers
+
+Carta's runtime is structured as five layers that can evolve independently.
 
 ```
 Domain Layer (@carta/schema)

@@ -85,39 +85,107 @@ def compute_all_moves(
 ) -> list[tuple[Path, Path]]:
     """Compute the complete list of (old_path, new_path) filesystem moves.
 
-    Includes:
-    - The main move (source → dest_dir/new_prefix-slug)
-    - Destination sibling bumps (prefix >= insertion_prefix, bumped +1)
-    - Source sibling gap-closing (prefix > source_prefix, decremented -1)
+    Delegates to same-dir or cross-dir strategy based on whether the source's
+    parent is the destination directory.
 
-    Returns moves in execution-safe order:
-    1. Dest bumps (highest prefix first, to avoid conflicts)
-    2. Source gap-closing (lowest prefix first)
-    3. Main source move
+    Returns moves in execution-safe order.
     """
     source_prefix = get_numeric_prefix(source_path.name)
     if source_prefix is None:
         raise ValueError(f"Source has no numeric prefix: {source_path.name}")
 
     source_slug = get_slug(source_path.name)
-
-    # Compute insertion prefix (taking into account the source being removed
-    # if source and dest are the same directory)
     same_dir = source_path.parent.resolve() == dest_dir.resolve()
 
+    if same_dir:
+        return _compute_same_dir_moves(
+            source_path, dest_dir, order, source_prefix, source_slug,
+        )
+    else:
+        return _compute_cross_dir_moves(
+            source_path, dest_dir, order, source_prefix, source_slug,
+        )
+
+
+def _compute_same_dir_moves(
+    source_path: Path,
+    dest_dir: Path,
+    order: int | None,
+    source_prefix: int,
+    source_slug: str,
+) -> list[tuple[Path, Path]]:
+    """Compute moves for reordering within the same directory.
+
+    Uses range-based logic: only items between the old and new positions
+    are renumbered.  Items outside that range are untouched.
+
+    Moving UP  (insertion < source): items in [insertion, source-1] get +1
+    Moving DOWN (insertion > source): items in [source+1, insertion] get -1
+    """
     if order is None:
-        # Append: find current max in dest (excluding source if same dir)
+        entries = list_numbered_entries(dest_dir)
+        others = [e for e in entries if e.resolve() != source_path.resolve()]
+        existing = [get_numeric_prefix(p.name) for p in others]
+        insertion_prefix = (max(existing) + 1) if existing else 1
+    else:
+        insertion_prefix = order
+
+    if insertion_prefix == source_prefix:
+        return []  # no-op
+
+    moves: list[tuple[Path, Path]] = []
+    entries = list_numbered_entries(dest_dir)
+
+    if insertion_prefix < source_prefix:
+        # Moving UP: shift items in [insertion, source-1] by +1, highest first
+        candidates = [
+            e for e in entries
+            if insertion_prefix <= get_numeric_prefix(e.name) <= source_prefix - 1
+            and e.resolve() != source_path.resolve()
+        ]
+        for entry in sorted(candidates, key=lambda p: get_numeric_prefix(p.name), reverse=True):
+            pfx = get_numeric_prefix(entry.name)
+            new_name = f"{pfx + 1:02d}-{get_slug(entry.name)}"
+            moves.append((entry, entry.parent / new_name))
+    else:
+        # Moving DOWN: shift items in [source+1, insertion] by -1, lowest first
+        candidates = [
+            e for e in entries
+            if source_prefix + 1 <= get_numeric_prefix(e.name) <= insertion_prefix
+            and e.resolve() != source_path.resolve()
+        ]
+        for entry in sorted(candidates, key=lambda p: get_numeric_prefix(p.name)):
+            pfx = get_numeric_prefix(entry.name)
+            new_name = f"{pfx - 1:02d}-{get_slug(entry.name)}"
+            moves.append((entry, entry.parent / new_name))
+
+    # Main move (last, after shifts free the slot)
+    new_name = f"{insertion_prefix:02d}-{source_slug}"
+    moves.append((source_path, dest_dir / new_name))
+
+    return moves
+
+
+def _compute_cross_dir_moves(
+    source_path: Path,
+    dest_dir: Path,
+    order: int | None,
+    source_prefix: int,
+    source_slug: str,
+) -> list[tuple[Path, Path]]:
+    """Compute moves for moving an entry to a different directory.
+
+    Includes destination bumps, source gap-closing, and the main move.
+    Accounts for dest_dir itself being renamed by gap-closing (cross-sibling case).
+    """
+    if order is None:
         dest_entries = list_numbered_entries(dest_dir)
-        if same_dir:
-            dest_entries = [e for e in dest_entries if e.resolve() != source_path.resolve()]
         existing_prefixes = [get_numeric_prefix(p.name) for p in dest_entries]
         insertion_prefix = (max(existing_prefixes) + 1) if existing_prefixes else 1
     else:
         insertion_prefix = order
 
     new_source_name = f"{insertion_prefix:02d}-{source_slug}"
-    new_source_path = dest_dir / new_source_name
-
     moves: list[tuple[Path, Path]] = []
 
     # 1. Destination sibling bumps (prefix >= insertion_prefix), highest first
@@ -125,7 +193,6 @@ def compute_all_moves(
     bump_candidates = [
         p for p in dest_entries
         if get_numeric_prefix(p.name) >= insertion_prefix
-        and p.resolve() != source_path.resolve()  # don't bump the source itself
     ]
     for entry in sorted(bump_candidates, key=lambda p: get_numeric_prefix(p.name), reverse=True):
         old_prefix = get_numeric_prefix(entry.name)
@@ -138,18 +205,19 @@ def compute_all_moves(
         if get_numeric_prefix(p.name) > source_prefix
         and p.resolve() != source_path.resolve()
     ]
-    if same_dir:
-        # Don't gap-close entries that were just bumped in dest
-        bump_paths = {m[0].resolve() for m in moves}
-        source_siblings = [p for p in source_siblings if p.resolve() not in bump_paths]
-
     for entry in sorted(source_siblings, key=lambda p: get_numeric_prefix(p.name)):
         old_prefix = get_numeric_prefix(entry.name)
         new_name = f"{old_prefix - 1:02d}-{get_slug(entry.name)}"
         moves.append((entry, entry.parent / new_name))
 
-    # 3. Main source move
-    moves.append((source_path, new_source_path))
+    # 3. Main move — if dest_dir was gap-closed, use the renamed path
+    actual_dest_dir = dest_dir
+    for old, new in moves:
+        if old.resolve() == dest_dir.resolve():
+            actual_dest_dir = new
+            break
+
+    moves.append((source_path, actual_dest_dir / new_source_name))
 
     return moves
 

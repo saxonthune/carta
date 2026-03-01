@@ -5,7 +5,7 @@ status: active
 
 # About This Codex
 
-This is the canonical documentation for Carta. It uses a numbered title system where each title covers one category of knowledge, organized by reader intent.
+This is the canonical documentation for Carta — the spec-driven development standard and its visual editor. It uses a numbered title system where each title covers one category of knowledge, organized by reader intent.
 
 ## How to Read
 

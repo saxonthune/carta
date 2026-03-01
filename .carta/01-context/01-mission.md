@@ -5,11 +5,11 @@ status: active
 
 # Mission
 
-Carta is a visual software architecture editor. Users design systems by creating typed nodes (constructs), connecting them through ports, and compiling the result into AI-readable output that drives code generation.
+Carta is a standard for spec-driven software development. Its richest feature is a typed diagramming tool — canvases with typed constructs, ports, and connections. Its second richest is hosted mode: a web client backed by a server that performs git operations on behalf of nontechnical users. Across all surfaces, the compilation engine transforms structured models into AI-readable output that drives code generation.
 
 ## Core Goal
 
-Professionalize vibe coding. Provide an instrument panel rich enough that users never need to touch source code — the same way compilers let users stay out of assembly. Bridge the gap between high-level architecture design and AI-assisted code generation through a visual interface that produces structured, machine-readable specifications.
+Professionalize vibe coding. Provide a platform rich enough that users never need to touch source code — the same way compilers let users stay out of assembly. Bridge the gap between high-level architecture design and AI-assisted code generation through structured, machine-readable specifications.
 
 ## The Dual Mandate
 
