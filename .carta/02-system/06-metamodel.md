@@ -1,6 +1,9 @@
 ---
 title: Metamodel Architecture
 status: active
+summary: M2/M1/M0 metamodel, DataKind, ConstructSchema
+tags: [metamodel, schemas, ports]
+deps: [doc01.01.02]
 ---
 
 # Metamodel Architecture

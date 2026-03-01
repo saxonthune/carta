@@ -1,6 +1,9 @@
 ---
 title: Import and Export
 status: active
+summary: .carta file format, import/export
+tags: [files, import, export]
+deps: [doc01.01.03]
 ---
 
 # Import and Export

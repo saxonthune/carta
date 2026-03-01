@@ -1,6 +1,9 @@
 ---
 title: Deployment Targets
 status: active
+summary: VITE_SYNC_URL, VITE_AI_MODE, document sources
+tags: [deployment, config, server]
+deps: [doc01.01.01]
 ---
 
 # Deployment Targets

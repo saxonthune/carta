@@ -1,6 +1,9 @@
 ---
 title: Glossary
 status: active
+summary: Canonical vocabulary: construct, schema, port, polarity
+tags: [glossary, terms]
+deps: []
 ---
 
 # Glossary

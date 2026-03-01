@@ -1,6 +1,9 @@
 ---
 title: Architecture Overview
 status: active
+summary: Layer architecture, monorepo structure, data flow
+tags: [architecture, packages]
+deps: []
 ---
 
 # Architecture Overview

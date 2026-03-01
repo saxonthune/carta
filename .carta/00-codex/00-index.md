@@ -1,6 +1,9 @@
 ---
 title: Codex Index
 status: active
+summary: Codex section index: what meta-documentation covers
+tags: [index, meta]
+deps: []
 ---
 
 # Codex

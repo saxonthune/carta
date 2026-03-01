@@ -1,6 +1,9 @@
 ---
 title: AI Retrieval Patterns
 status: active
+summary: AI retrieval patterns, legal RAG inspiration
+tags: [docs, ai, retrieval]
+deps: []
 ---
 
 # AI Retrieval Patterns

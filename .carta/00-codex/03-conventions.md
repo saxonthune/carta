@@ -1,6 +1,9 @@
 ---
 title: Conventions
 status: active
+summary: docXX.YY syntax, front matter, file naming
+tags: [docs, conventions]
+deps: []
 ---
 
 # Conventions

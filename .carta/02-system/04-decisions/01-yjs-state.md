@@ -1,6 +1,9 @@
 ---
-title: "Use Yjs as single state store"
+title: Use Yjs as single state store
 status: active
+summary: ADR: Yjs as single state store
+tags: [adr, yjs, state]
+deps: [doc01.01.02]
 ---
 
 # Decision 001: Use Yjs as Single State Store

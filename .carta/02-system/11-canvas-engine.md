@@ -1,6 +1,9 @@
 ---
 title: Canvas Engine
 status: active
+summary: Canvas engine primitives: useViewport, useConnectionDrag, ConnectionHandle, composition pattern
+tags: [canvas-engine, viewport, connections, primitives]
+deps: [doc02.08]
 ---
 
 # Canvas Engine

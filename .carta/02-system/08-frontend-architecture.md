@@ -1,6 +1,9 @@
 ---
 title: Frontend Architecture
 status: active
+summary: Four-layer component model, state partitioning
+tags: [components, hooks, architecture]
+deps: [doc01.01.02, doc02.07]
 ---
 
 # Frontend Architecture

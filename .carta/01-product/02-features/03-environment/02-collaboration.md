@@ -1,6 +1,9 @@
 ---
 title: Collaboration
 status: active
+summary: Real-time sync, sharing, WebSocket
+tags: [collaboration, server, sync]
+deps: [doc01.01.05]
 ---
 
 # Collaboration

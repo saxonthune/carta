@@ -1,6 +1,9 @@
 ---
 title: New User Experience
 status: active
+summary: First-load starter document, auto-create
+tags: [onboarding, starter]
+deps: []
 ---
 
 # New User Experience

@@ -1,6 +1,9 @@
 ---
 title: Testing
 status: active
+summary: Test commands, CI, integration, E2E
+tags: [testing, ci, e2e]
+deps: []
 ---
 
 # Testing

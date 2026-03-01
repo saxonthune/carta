@@ -1,6 +1,9 @@
 ---
 title: Ports and Connections
 status: active
+summary: Port model, polarity, validation, edge rendering
+tags: [ports, connections, edges]
+deps: [doc02.06]
 ---
 
 # Ports and Connections

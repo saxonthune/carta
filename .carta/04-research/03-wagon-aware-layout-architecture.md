@@ -1,8 +1,10 @@
 ---
 title: Wagon-Aware Layout Architecture
 status: active
+summary: Wagon layout units, 3-layer sync, snap normalization, state pitfalls
+tags: [layout, organizers, wagons, presentation, state-management]
+deps: [doc01.09, doc02.01.02]
 date: 2026-02-13
-tags: layout, organizers, wagons, presentation, state-management
 ---
 
 # Wagon-Aware Layout Architecture

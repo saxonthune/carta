@@ -1,6 +1,9 @@
 ---
 title: Metamap
 status: active
+summary: Schema-level visual editor, schema nodes
+tags: [metamap, schemas]
+deps: [doc02.06]
 ---
 
 # Metamap

@@ -1,6 +1,9 @@
 ---
-title: "Five-value polarity model for ports"
+title: Five-value polarity model for ports
 status: active
+summary: ADR: five-value polarity model
+tags: [adr, ports, polarity]
+deps: [doc02.06]
 ---
 
 # Decision 002: Five-Value Polarity Model for Ports

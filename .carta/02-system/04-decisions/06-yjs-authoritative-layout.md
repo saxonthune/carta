@@ -1,9 +1,11 @@
 ---
-title: "ADR: Yjs-Authoritative Layout"
+title: ADR: Yjs-Authoritative Layout
 status: implemented
+summary: ADR: Yjs-authoritative layout, RF as renderer only, eliminate 3-layer sync
+tags: [adr, state, layout, yjs, architecture]
+deps: [doc01.01.02, doc04.03]
 date: 2026-02-14
 updated: 2026-02-16
-tags: adr, state, layout, yjs, architecture
 ---
 
 # ADR: Yjs-Authoritative Layout

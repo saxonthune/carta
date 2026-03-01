@@ -1,6 +1,9 @@
 ---
 title: Connect Constructs
 status: draft
+summary: Connect constructs workflow
+tags: [workflow, connections]
+deps: [doc01.02.01.03]
 ---
 
 # Connect Constructs

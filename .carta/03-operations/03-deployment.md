@@ -1,6 +1,9 @@
 ---
 title: Deployment
 status: draft
+summary: Build, deploy, env vars
+tags: [deployment, build]
+deps: [doc02.01.05]
 ---
 
 # Deployment

@@ -1,6 +1,9 @@
 ---
 title: SaaS Provider
 status: archived
+summary: **Archived.** Superseded by workspace model (ADR 009)
+tags: [archived]
+deps: []
 ---
 
 # SaaS Provider (Archived)

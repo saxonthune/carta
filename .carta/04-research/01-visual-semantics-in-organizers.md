@@ -1,8 +1,10 @@
 ---
 title: Visual Semantics in Organizers
 status: implemented
+summary: Shape differentiation, sequence badges, icon markers for organizer contents
+tags: [presentation, rendering, organizers, bpmn, notation, dual-mandate]
+deps: [doc01.09, doc01.07, doc01.06]
 date: 2026-02-08
-tags: presentation, rendering, organizers, bpmn, notation, dual-mandate
 ---
 
 # Visual Semantics in Organizers

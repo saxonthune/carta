@@ -1,6 +1,9 @@
 ---
 title: Presentation Model
 status: active
+summary: Presentation model, organizers, layout strategies, visual vs semantic
+tags: [presentation, organizers, layout, rendering]
+deps: [doc02.08, doc01.01.02]
 ---
 
 # Presentation Model

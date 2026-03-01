@@ -1,6 +1,9 @@
 ---
 title: AI Assistant
 status: draft
+summary: AI sidebar, chat, MCP tools
+tags: [ai, chat, mcp]
+deps: [doc01.01.03]
 ---
 
 # AI Assistant

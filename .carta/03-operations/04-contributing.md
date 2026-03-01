@@ -1,6 +1,9 @@
 ---
 title: Contributing
 status: draft
+summary: Contribution guidelines, PR process
+tags: [contributing, pr]
+deps: []
 ---
 
 # Contributing

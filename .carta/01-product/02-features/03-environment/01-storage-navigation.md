@@ -1,6 +1,9 @@
 ---
 title: Storage Navigation
 status: draft
+summary: Vault browsing, filesystem-style document management
+tags: [storage, navigation, vault, documents]
+deps: [doc01.01.05]
 ---
 
 # Storage Navigation

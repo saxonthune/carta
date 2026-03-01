@@ -1,6 +1,9 @@
 ---
 title: UX Principles
 status: active
+summary: Fitts's Law, Hick's Law, visual design principles
+tags: [ux, design, ui]
+deps: []
 ---
 
 # UX Principles

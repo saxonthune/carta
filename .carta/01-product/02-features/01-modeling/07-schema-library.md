@@ -1,6 +1,9 @@
 ---
 title: Schema Library
 status: active
+summary: Schema package loading, dual identity, manifest, standard library, drift detection
+tags: [library, schemas, seeds, versioning, packages, loading]
+deps: [doc02.06, doc01.01.05, doc01.04.07]
 ---
 
 # Schema Library

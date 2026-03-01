@@ -1,6 +1,9 @@
 ---
 title: Compilation
 status: active
+summary: Compiler, formatters, AI-readable output
+tags: [compiler, output]
+deps: [doc01.01.03]
 ---
 
 # Compilation

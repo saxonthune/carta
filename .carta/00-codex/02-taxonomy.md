@@ -1,6 +1,9 @@
 ---
 title: Taxonomy
 status: active
+summary: Title system rationale, Diataxis spirit
+tags: [docs, structure]
+deps: []
 ---
 
 # Taxonomy

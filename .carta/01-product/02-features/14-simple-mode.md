@@ -1,6 +1,9 @@
 ---
 title: Simple Mode
 status: draft
+summary: Sketch-phase rendering, composable render modes, separate primitives
+tags: [sketching, simple, rendering, rough, architecture]
+deps: [doc01.04.08, doc02.07, doc02.08]
 ---
 
 # Simple Mode

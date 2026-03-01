@@ -1,6 +1,9 @@
 ---
 title: Canvas Data Pipelines
 status: active
+summary: Map.tsx memo cascades, node/edge pipelines, waypoint flow, write-back points
+tags: [pipeline, edges, nodes, waypoints, sync, Map]
+deps: [doc02.08, doc02.09, doc01.01.02]
 ---
 
 # Canvas Data Pipelines

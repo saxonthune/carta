@@ -1,6 +1,9 @@
 ---
-title: "ADR: Presentation Model and Organizers"
+title: ADR: Presentation Model and Organizers
 status: accepted
+summary: ADR: presentation model, organizers replace visual groups
+tags: [adr, presentation, organizers, layout]
+deps: [doc02.09]
 ---
 
 # ADR: Presentation Model and Organizers

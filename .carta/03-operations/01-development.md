@@ -1,6 +1,9 @@
 ---
 title: Development
 status: active
+summary: Dev setup, commands, environment
+tags: [dev, setup, commands]
+deps: []
 ---
 
 # Development

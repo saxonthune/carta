@@ -1,6 +1,9 @@
 ---
 title: Keyboard and Clipboard
 status: active
+summary: Shortcuts, copy/paste, undo/redo
+tags: [keyboard, clipboard, undo]
+deps: []
 ---
 
 # Keyboard and Clipboard

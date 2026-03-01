@@ -1,6 +1,9 @@
 ---
 title: Solo User
 status: active
+summary: Browser playground or local workspace server
+tags: [solo, playground, workspace]
+deps: [doc01.01.05]
 ---
 
 # Solo User

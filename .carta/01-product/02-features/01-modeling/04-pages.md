@@ -1,6 +1,9 @@
 ---
 title: Pages
 status: active
+summary: Multi-page views, page switching
+tags: [pages, views]
+deps: []
 ---
 
 # Pages

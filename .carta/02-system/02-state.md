@@ -1,6 +1,9 @@
 ---
 title: State Management
 status: active
+summary: Yjs Y.Doc, state partitioning, hooks, adapters
+tags: [state, yjs, hooks, adapters]
+deps: [doc01.01.01]
 ---
 
 # State Management

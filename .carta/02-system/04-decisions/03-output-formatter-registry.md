@@ -1,6 +1,9 @@
 ---
-title: "Extensible output formatter registry"
+title: Extensible output formatter registry
 status: draft
+summary: ADR: extensible formatter registry
+tags: [adr, compiler, formatters]
+deps: [doc01.02.02.01]
 ---
 
 # Decision 03: Extensible Output Formatter Registry

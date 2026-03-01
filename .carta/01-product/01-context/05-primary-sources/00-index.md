@@ -1,6 +1,9 @@
 ---
 title: Primary Sources
 status: active
+summary: Author's original writings, directional intent
+tags: [inspiration, vision, primary-source]
+deps: []
 ---
 
 # Primary Sources

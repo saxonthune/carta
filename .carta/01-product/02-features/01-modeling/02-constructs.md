@@ -1,6 +1,9 @@
 ---
 title: Constructs
 status: active
+summary: Typed nodes, schemas, fields, semantic ID
+tags: [constructs, schemas, nodes]
+deps: [doc02.06]
 ---
 
 # Constructs

@@ -1,6 +1,9 @@
 ---
 title: Context Index
 status: active
+summary: Context section index: mission, principles, vocabulary
+tags: [index, context]
+deps: []
 ---
 
 # Context

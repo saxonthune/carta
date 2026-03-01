@@ -1,6 +1,9 @@
 ---
 title: Iterative Modeling on the Map
 status: active
+summary: Iterative modeling on the map
+tags: [workflow, modeling]
+deps: []
 ---
 
 # Iterative Modeling on the Map

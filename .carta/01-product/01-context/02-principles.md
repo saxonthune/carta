@@ -1,6 +1,9 @@
 ---
 title: Principles
 status: active
+summary: 12 design principles: symmetric storage, inverse derivability
+tags: [principles, design]
+deps: [doc01.01.01]
 ---
 
 # Principles

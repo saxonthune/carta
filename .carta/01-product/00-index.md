@@ -1,6 +1,9 @@
 ---
 title: Product Index
 status: active
+summary: Product section index: feature catalog, use cases, workflows
+tags: [index, product, catalog]
+deps: []
 ---
 
 # Product

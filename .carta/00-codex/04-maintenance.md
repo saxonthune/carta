@@ -1,6 +1,9 @@
 ---
 title: Maintenance
 status: active
+summary: Git versioning, epochs, adding/deprecating
+tags: [docs, maintenance]
+deps: []
 ---
 
 # Maintenance

@@ -1,6 +1,9 @@
 ---
 title: Import a Project
 status: draft
+summary: Import project workflow
+tags: [workflow, import]
+deps: [doc01.02.02.02]
 ---
 
 # Import a Project

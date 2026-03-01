@@ -1,6 +1,9 @@
 ---
 title: Define a Schema
 status: draft
+summary: Define schema workflow
+tags: [workflow, schemas]
+deps: [doc01.02.01.06]
 ---
 
 # Define a Schema

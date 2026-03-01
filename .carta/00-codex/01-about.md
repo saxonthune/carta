@@ -1,6 +1,9 @@
 ---
 title: About This Codex
 status: active
+summary: How to read docs, cross-reference syntax
+tags: [docs, meta]
+deps: []
 ---
 
 # About This Codex

@@ -1,6 +1,9 @@
 ---
 title: Schema Design Patterns
 status: active
+summary: Schema design patterns
+tags: [workflow, patterns]
+deps: [doc02.06]
 ---
 
 # Schema Design Patterns

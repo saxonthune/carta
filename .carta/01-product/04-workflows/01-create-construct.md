@@ -1,6 +1,9 @@
 ---
 title: Create a Construct
 status: draft
+summary: Create construct workflow
+tags: [workflow, constructs]
+deps: [doc01.02.01.02]
 ---
 
 # Create a Construct

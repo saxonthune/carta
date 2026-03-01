@@ -1,6 +1,9 @@
 ---
 title: System Index
 status: active
+summary: System section index: architecture, state, interfaces, decisions
+tags: [index, architecture]
+deps: []
 ---
 
 # System

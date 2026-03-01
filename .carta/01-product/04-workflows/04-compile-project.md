@@ -1,6 +1,9 @@
 ---
 title: Compile a Project
 status: draft
+summary: Compile project workflow
+tags: [workflow, compiler]
+deps: [doc01.02.02.01]
 ---
 
 # Compile a Project

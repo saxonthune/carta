@@ -1,6 +1,9 @@
 ---
 title: Theming
 status: active
+summary: Light/dark/warm themes
+tags: [themes, styling]
+deps: [doc02.07]
 ---
 
 # Theming

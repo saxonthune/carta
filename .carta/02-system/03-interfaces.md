@@ -1,6 +1,9 @@
 ---
 title: Interfaces
 status: active
+summary: File format, compiler output, MCP, WebSocket
+tags: [interfaces, api, mcp]
+deps: [doc01.01.02]
 ---
 
 # Interfaces

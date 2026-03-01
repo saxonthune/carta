@@ -1,6 +1,9 @@
 ---
 title: Design System
 status: active
+summary: Depth system, island pattern, colors, typography
+tags: [design, ui, styling, lod]
+deps: [doc01.01.04]
 ---
 
 # Design System

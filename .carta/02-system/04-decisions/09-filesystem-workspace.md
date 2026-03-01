@@ -1,7 +1,10 @@
 ---
-title: "Filesystem-first workspace architecture"
+title: Filesystem-first workspace architecture
 status: draft
-supersedes: "Unified deployment model (ADR 004), partially"
+summary: ADR: Filesystem-first workspace — `.carta/` directory, JSON canonical with binary sidecar, spec groups as directories, narrowed MCP surface, `carta serve .`
+tags: [adr, workspace, filesystem, deployment, mcp, groups]
+deps: [doc01.04.04, doc01.01.05]
+supersedes: Unified deployment model (ADR 004), partially
 ---
 
 # Decision 009: Filesystem-First Workspace Architecture

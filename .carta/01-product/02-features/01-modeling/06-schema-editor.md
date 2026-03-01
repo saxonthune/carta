@@ -1,6 +1,9 @@
 ---
 title: Schema Editor
 status: active
+summary: Wizard for creating/editing construct schemas
+tags: [schemas, editor]
+deps: [doc02.06]
 ---
 
 # Schema Editor

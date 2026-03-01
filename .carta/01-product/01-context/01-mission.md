@@ -1,6 +1,9 @@
 ---
 title: Mission
 status: active
+summary: Core goal, dual mandate
+tags: [mission, principles]
+deps: []
 ---
 
 # Mission

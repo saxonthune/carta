@@ -1,6 +1,9 @@
 ---
 title: Operations Index
 status: active
+summary: Operations section index: dev setup, testing, deployment, contributing
+tags: [index, operations]
+deps: []
 ---
 
 # Operations

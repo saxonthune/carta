@@ -1,6 +1,9 @@
 ---
 title: Software Architect
 status: active
+summary: Software architect: workspace in a repo, `carta serve .`
+tags: [persona, architect, workspace]
+deps: [doc02.04.09]
 ---
 
 # Software Architect

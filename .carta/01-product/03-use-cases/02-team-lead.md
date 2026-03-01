@@ -1,6 +1,9 @@
 ---
 title: Team Lead
 status: active
+summary: Team lead: schema governance, PR review of canvas changes
+tags: [persona, team, schemas, git]
+deps: [doc02.04.09]
 ---
 
 # Team Lead

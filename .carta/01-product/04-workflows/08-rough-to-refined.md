@@ -1,6 +1,9 @@
 ---
 title: Rough to Refined
 status: active
+summary: Rough to refined modeling
+tags: [workflow, modeling]
+deps: []
 ---
 
 # Rough to Refined

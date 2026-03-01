@@ -1,6 +1,9 @@
 ---
-title: "Package-based schema loading with dual identity"
+title: Package-based schema loading with dual identity
 status: active
+summary: ADR: Package-based schema loading, dual identity (UUID + content hash), manifest, snapshots
+tags: [adr, packages, loading, seeds, identity, library]
+deps: [doc02.06, doc01.02.01.07]
 ---
 
 # Decision 007: Package-Based Schema Loading with Dual Identity

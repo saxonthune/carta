@@ -1,7 +1,10 @@
 ---
-title: "Simplified deployment configuration"
+title: Simplified deployment configuration
 status: active
-supersedes: "Unified deployment model with build-time feature flags (original)"
+summary: ADR: simplified deployment config
+tags: [adr, deployment, config]
+deps: [doc01.01.05]
+supersedes: Unified deployment model with build-time feature flags (original)
 ---
 
 # Decision 004: Simplified Deployment Configuration

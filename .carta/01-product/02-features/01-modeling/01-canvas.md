@@ -1,6 +1,9 @@
 ---
 title: Canvas
 status: active
+summary: Pan, zoom, LOD rendering, node manipulation
+tags: [canvas, lod, zoom]
+deps: [doc02.07]
 ---
 
 # Canvas

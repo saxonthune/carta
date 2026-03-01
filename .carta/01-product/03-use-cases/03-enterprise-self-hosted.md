@@ -1,6 +1,9 @@
 ---
 title: Team Workspace
 status: active
+summary: Team workspace: shared server wraps git repo, commits on behalf of web users
+tags: [team, workspace, git]
+deps: [doc02.04.09, doc01.01.05]
 ---
 
 # Team Workspace
