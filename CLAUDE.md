@@ -18,7 +18,7 @@ Carta is a visual software architecture editor. Users create "Constructs" (typed
 - **Metamodel**: doc02.06 (schemas, ports, fields)
 - **Deployment**: doc02.05 (server/local modes)
 - **Features**: doc03.01.xx (modeling, output, environment)
-- **Testing**: doc04.02
+- **Testing**: doc03.02
 
 ## Skills & Agents
 
@@ -60,9 +60,9 @@ All skills follow the same pattern: opus reads `.carta/` and code, analyzes, gen
 | `/carta-feature-implementor` | Plan files, status script | `.claude/skills/carta-feature-implementor/SKILL.md` |
 | `/documentation-nag` | `.carta/` (all titles) | `.claude/skills/documentation-nag/SKILL.md` |
 | `/documentation-auditor` | `.carta/MANIFEST.md`, barrel exports, type defs | `.claude/skills/documentation-auditor/SKILL.md` |
-| `/style-nag` | doc02.07 (design system), doc01.04 (UX principles) | `.claude/skills/style-nag/SKILL.md` |
+| `/style-nag` | doc02.07 (design system), doc01.01.04 (UX principles) | `.claude/skills/style-nag/SKILL.md` |
 | `/frontend-architecture-nag` | doc02.08 (frontend architecture), doc02.01 (overview) | `.claude/skills/frontend-architecture-nag/SKILL.md` |
-| `/test-builder` | doc04.02 (testing), `packages/web-client/tests/README.md` | `.claude/skills/test-builder/SKILL.md` |
+| `/test-builder` | doc03.02 (testing), `packages/web-client/tests/README.md` | `.claude/skills/test-builder/SKILL.md` |
 | `/git-sync-trunk` | Git worktree workflows | `.claude/skills/git-sync-trunk/SKILL.md` |
 | `/git-sync-worktree` | Git worktree workflows | `.claude/skills/git-sync-worktree/SKILL.md` |
 | `/execute-plan` | Plan executor workflow | `.claude/skills/execute-plan/SKILL.md` |

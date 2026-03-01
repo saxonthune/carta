@@ -40,15 +40,15 @@ Use the **Tag Index** to map changed areas to doc files:
 | Code Change Area | Tags | Relevant Docs |
 |-----------------|------|---------------|
 | `hooks/use*.ts` | hooks, state | doc02.02, doc02.08 |
-| `components/canvas/*` | canvas, ui | doc03.01.01.01, doc02.07 |
-| `components/metamap/*` | metamap, schemas | doc03.01.01.05, doc02.06 |
+| `components/canvas/*` | canvas, ui | doc01.02.01.01, doc02.07 |
+| `components/metamap/*` | metamap, schemas | doc01.02.01.05, doc02.06 |
 | Edge routing, waypoints | pipeline, edges, waypoints | doc02.10 |
 | Organizers, layout | organizers, layout, presentation | doc02.09 |
-| Schemas, fields, ports | schemas, metamodel, ports | doc02.06, doc03.01.01.03, doc03.01.01.06 |
-| `packages/domain/*` | schemas, metamodel | doc02.06, doc01.03 |
+| Schemas, fields, ports | schemas, metamodel, ports | doc02.06, doc01.02.01.03, doc01.02.01.06 |
+| `packages/domain/*` | schemas, metamodel | doc02.06, doc01.01.03 |
 | `packages/document/*` | state, interfaces | doc02.02, doc02.03 |
 | `packages/server/*` | deployment, collaboration | doc02.05 |
-| `packages/compiler/*` | compiler | doc03.01.02.01 |
+| `packages/compiler/*` | compiler | doc01.02.02.01 |
 
 Build a **doc checklist**: the docs to read and verify.
 

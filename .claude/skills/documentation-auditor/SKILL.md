@@ -190,7 +190,7 @@ Present findings as a structured report. Group by severity:
 | Doc | Claim | Issue |
 |-----|-------|-------|
 | doc02.09 §LOD bands | References `pill` band | Code uses `marker` band |
-| doc03.01.14 | References `renderStyle` | Code uses `nodeShape` |
+| doc01.02.14 | References `renderStyle` | Code uses `nodeShape` |
 
 ### Info (undocumented)
 
@@ -255,6 +255,6 @@ These docs have the highest density of verifiable, drift-prone claims:
 | doc02.03 (interfaces) | MCP tool inventory, API surface |
 | doc02.06 (metamodel) | Type definitions, field enums |
 | doc02.07 (design system) | CSS variable names, token values |
-| doc01.03 (glossary) | Term definitions, canonical names |
+| doc01.01.03 (glossary) | Term definitions, canonical names |
 
 When running without arguments, start with these five before expanding to the full set.

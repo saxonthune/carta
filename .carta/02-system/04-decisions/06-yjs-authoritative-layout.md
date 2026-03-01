@@ -21,7 +21,7 @@ Layout actions (grid, spread, flow, fit-to-children) must update node positions,
 
 This creates several classes of bugs:
 
-- **Stale reads**: `reactFlow.getNodes()` returns stale data immediately after `reactFlow.setNodes()` in the same synchronous block (doc05.03). Requires passing "known positions" forward as parameters — a fragile workaround.
+- **Stale reads**: `reactFlow.getNodes()` returns stale data immediately after `reactFlow.setNodes()` in the same synchronous block (doc04.03). Requires passing "known positions" forward as parameters — a fragile workaround.
 - **expandParent ratchet**: RF's `expandParent` uses `Math.max(currentDimensions, childNeeds)` — it only grows, never shrinks. Setting `style.height` is overridden by internal `measured.height`. Required setting explicit `width`/`height` on the node object as a workaround.
 - **Suppression hacks**: `suppressExpandParentWriteback` ref prevents dimension changes from writing back to Yjs during layout, but doesn't prevent RF's internal expansion.
 - **3-layer sync**: `applyPositionPatches()` and `applyStylePatches()` must update RF + React + Yjs atomically, but can't guarantee consistency because each layer processes updates at different times.

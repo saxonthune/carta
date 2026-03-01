@@ -79,11 +79,11 @@ This is the most important architectural distinction in Carta:
 
 ### Why This Distinction Matters
 
-The dual mandate (doc01.01) requires Carta to be useful for both human visual organization and AI-readable output. Organizers serve the human; connections serve the AI. If these were conflated:
+The dual mandate (doc01.01.01) requires Carta to be useful for both human visual organization and AI-readable output. Organizers serve the human; connections serve the AI. If these were conflated:
 
 - Dropping a node into an organizer would create a semantic relationship the user didn't intend
 - The AI would see organizational convenience as architectural meaning
-- Users would have two ways to express "A contains B" (put B in A's organizer, OR connect B's child port to A's parent port), violating "Necessary and Sufficient Primitives" (doc01.02)
+- Users would have two ways to express "A contains B" (put B in A's organizer, OR connect B's child port to A's parent port), violating "Necessary and Sufficient Primitives" (doc01.01.02)
 
 By keeping them separate, the user gets spatial freedom without semantic noise.
 
@@ -262,7 +262,7 @@ Sequence badges are small numbered overlays (1, 2, 3...) that appear on construc
 computeSequenceBadges(nodes, edges) → { badges: Map<nodeId, ordinal> }
 ```
 
-This feature was designed in research session doc05.01 to address visual clarity in BPMN-style sequential processes. The badges are presentation-layer only — the compiler never sees them.
+This feature was designed in research session doc04.01 to address visual clarity in BPMN-style sequential processes. The badges are presentation-layer only — the compiler never sees them.
 
 ### Node Sizing
 
@@ -296,7 +296,7 @@ The presentation model also governs which component renders each construct. This
 | `'stadium'` | ConstructNodeMarker | ConstructNodeStadium |
 | `'parallelogram'` | ConstructNodeMarker | ConstructNodeParallelogram |
 
-The shape variants (`circle`, `diamond`, `document`, `stadium`, `parallelogram`) support notation-specific rendering for BPMN, ISO 5807 flowcharts, and other visual languages (see doc05.01). Circle renders as a circular node (events, states), diamond as a diamond shape (gateways, decisions), document as a document-shaped icon (artifacts, data objects), stadium as a capsule/pill with fully rounded ends (flowchart terminals), and parallelogram as a skewed quadrilateral (flowchart data/I/O).
+The shape variants (`circle`, `diamond`, `document`, `stadium`, `parallelogram`) support notation-specific rendering for BPMN, ISO 5807 flowcharts, and other visual languages (see doc04.01). Circle renders as a circular node (events, states), diamond as a diamond shape (gateways, decisions), document as a document-shaped icon (artifacts, data objects), stadium as a capsule/pill with fully rounded ends (flowchart terminals), and parallelogram as a skewed quadrilateral (flowchart data/I/O).
 
 Adding a new render style = add a component + add a row to the dispatch table. No other changes needed. Variant components are pure (no hooks), receive identical `ConstructNodeVariantProps`, and share only the data contract and connection infrastructure.
 

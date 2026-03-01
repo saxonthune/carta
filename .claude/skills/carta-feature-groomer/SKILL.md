@@ -91,7 +91,7 @@ This identifies the ~5 relevant files in seconds for near-zero tokens.
 ```
 Plan mentions "presentation model" → tags: presentation, rendering → doc02.09, doc02.08
 Plan mentions "edge pipeline"      → tags: pipeline, edges, sync   → doc02.10
-Plan mentions "canvas interactions" → tags: canvas, hooks           → doc03.01.01.01, doc02.02
+Plan mentions "canvas interactions" → tags: canvas, hooks           → doc01.02.01.01, doc02.02
 Plan mentions "waypoints"          → tags: waypoints               → doc02.10
 ```
 
@@ -137,7 +137,7 @@ Review the todo-task's `## Verifiability` section (if present). For each correct
 - What oracle type applies? (partial, semantic/compiler, metamorphic, or manual-only)
 - Are there properties missing? If the builder only wrote smoke-level properties ("it renders"), surface this gap now.
 
-If the todo-task lacks a Verifiability section, write one with the user during the briefing. Ask: **"What would be true about this feature if implemented correctly, without referencing the implementation?"** See doc05.04.
+If the todo-task lacks a Verifiability section, write one with the user during the briefing. Ask: **"What would be true about this feature if implemented correctly, without referencing the implementation?"** See doc04.04.
 
 ### 4. Considerations
 Open questions and tradeoffs the plan surfaces. These come from:
@@ -204,7 +204,7 @@ This is the key output. Rewrite the plan file in `todo-tasks/` so it's **unambig
 
 ### Verification Section
 
-The builder's todo-task includes a `## Verifiability` section with plain-language correctness properties. Your job is to **operationalize** each property into something the headless agent can execute. See doc05.04 for the full framework.
+The builder's todo-task includes a `## Verifiability` section with plain-language correctness properties. Your job is to **operationalize** each property into something the headless agent can execute. See doc04.04 for the full framework.
 
 For each correctness property from the todo-task:
 

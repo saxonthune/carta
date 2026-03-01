@@ -28,7 +28,7 @@ These types are fixed at design time. Users cannot add, remove, or modify them.
 
 ### DataKind
 
-The five data types for field values. Every field has exactly one (see doc01.02, "DataKind Is Exhaustive").
+The five data types for field values. Every field has exactly one (see doc01.01.02, "DataKind Is Exhaustive").
 
 | Kind | Description | Example Values |
 |------|-------------|----------------|
@@ -42,7 +42,7 @@ All five are scalar values.
 
 ### DisplayHint
 
-Optional presentation hints for string fields. Affects rendering only, not storage (see doc01.02, "DataKind Is Exhaustive").
+Optional presentation hints for string fields. Affects rendering only, not storage (see doc01.01.02, "DataKind Is Exhaustive").
 
 | Hint | Renders As |
 |------|------------|
@@ -76,7 +76,7 @@ Users define their domain vocabulary at this level. All M1 entities are stored i
 
 ### SchemaPackage
 
-The unit of schema bundling and library portability. A package groups related schemas and their domain-specific port schemas into a self-contained vocabulary. Packages are what get published to and applied from the schema library (doc03.01.01.07).
+The unit of schema bundling and library portability. A package groups related schemas and their domain-specific port schemas into a self-contained vocabulary. Packages are what get published to and applied from the schema library (doc01.02.01.07).
 
 | Property | Purpose |
 |----------|---------|
@@ -179,12 +179,12 @@ Instances live on the canvas. Each has:
 | Property | Purpose |
 |----------|---------|
 | `constructType` | References a ConstructSchema.type |
-| `semanticId` | Human/AI-readable identifier (see doc01.02, "Dual Identity System") |
+| `semanticId` | Human/AI-readable identifier (see doc01.01.02, "Dual Identity System") |
 | `values` | Field values keyed by field name |
 | `connections` | Array of {portId, targetSemanticId, targetPortId} |
 | `instanceColor` | Visual-only color override (not compiled) |
 
-Node titles derive from field values (typically the first field), falling back to `semanticId`. There is no separate `name` field (see doc01.03, "Display Name").
+Node titles derive from field values (typically the first field), falling back to `semanticId`. There is no separate `name` field (see doc01.01.03, "Display Name").
 
 ### Organizers Are Not Part of the Metamodel
 
@@ -192,7 +192,7 @@ Organizers (visual grouping containers) exist at the canvas/presentation layer, 
 
 ## Child Construct Pattern
 
-Instead of embedding structured data as table fields, use child constructs connected via parent-child ports (see doc01.02, "No Embedded Tables").
+Instead of embedding structured data as table fields, use child constructs connected via parent-child ports (see doc01.01.02, "No Embedded Tables").
 
 ```
 Old: Controller.params = [{name: "id", in: "path", ...}]
@@ -220,7 +220,7 @@ Schema packages are `SchemaPackageDefinition` objects — self-contained, portab
 
 Each package has a stable UUID, display metadata for the package picker, and a complete `SchemaPackageDefinition` containing schemas, in-package port schemas, groups, and relationships.
 
-**Loading:** All packages are opt-in. Users load them via the package picker (doc03.01.01.07). No auto-seeding. The document's package manifest tracks which packages have been loaded and provides drift detection via content hashing.
+**Loading:** All packages are opt-in. Users load them via the package picker (doc01.02.01.07). No auto-seeding. The document's package manifest tracks which packages have been loaded and provides drift detection via content hashing.
 
 **Key functions** exported from `@carta/schema`:
 - `applyPackage(adapter, definition)` — idempotent package load

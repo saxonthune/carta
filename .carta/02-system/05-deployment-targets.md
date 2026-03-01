@@ -109,7 +109,7 @@ Document grouping (folders, projects, tags) is **document metadata managed by th
 | SaaS | `https://api.carta.io` | `server-proxy` | Multi-document, server storage, metered AI |
 | Workspace CLI | injected via `__CARTA_CONFIG__` | `user-key` | Multi-document, workspace server, `carta serve .` |
 
-See doc03.02.03 (Enterprise), doc03.02.04 (Solo User) for detailed use case scenarios.
+See doc01.03.03 (Enterprise), doc01.03.04 (Solo User) for detailed use case scenarios.
 
 ## Preferences
 

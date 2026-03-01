@@ -36,12 +36,12 @@ Some questions cross title boundaries. Common patterns:
 
 | Question type | Start with | Then check |
 |---------------|------------|------------|
-| "How does X work?" | doc02 (system) | doc03.01 (features) |
-| "Why was X designed this way?" | doc02.04 (decisions) | doc01.02 (principles) |
-| "What does X mean?" | doc01.03 (glossary) | — |
-| "How do I do X?" | doc03.03 (workflows) | doc04 (operations) |
-| "What are the rules for X?" | doc01.02 (principles) | doc02 (system) |
-| "What's the UI pattern for X?" | doc02.07 (design system) | doc01.04 (UX principles) |
+| "How does X work?" | doc02 (system) | doc01.02 (features) |
+| "Why was X designed this way?" | doc02.04 (decisions) | doc01.01.02 (principles) |
+| "What does X mean?" | doc01.01.03 (glossary) | — |
+| "How do I do X?" | doc01.04 (workflows) | doc03 (operations) |
+| "What are the rules for X?" | doc01.01.02 (principles) | doc02 (system) |
+| "What's the UI pattern for X?" | doc02.07 (design system) | doc01.01.04 (UX principles) |
 | "How are components structured?" | doc02.08 (frontend arch) | doc02.01 (overview) |
 
 ### Step 4: Answer with references

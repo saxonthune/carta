@@ -12,7 +12,7 @@ Carta's document model is a monolithic Y.Doc: a single CRDT document containing 
 
 ### The Code-N ladder
 
-The core thesis (doc01.05.01) asks: what is the maximum distance between code and its nearest artifact, such that AI can translate between the two reliably? The answer is a ladder of specification levels:
+The core thesis (doc01.01.05.01) asks: what is the maximum distance between code and its nearest artifact, such that AI can translate between the two reliably? The answer is a ladder of specification levels:
 
 ```
 napkin description → Code-∞

@@ -53,7 +53,7 @@ This means a single resource can represent an arbitrarily complex model (a full 
 
 ### The `resource` DataKind
 
-Resources introduce the first reference type to Carta's DataKind system, expanding it from five scalar kinds to six (see doc01.02, doc02.06).
+Resources introduce the first reference type to Carta's DataKind system, expanding it from five scalar kinds to six (see doc01.01.02, doc02.06).
 
 A field of type `resource` stores a compound value:
 
@@ -262,7 +262,7 @@ Resources are included in the `.carta` file as a top-level `resources` array, al
 }
 ```
 
-Import follows the same merge-not-replace pattern as schemas (doc01.02, "Deletion Requires Conscious Intent"). Conflict detection on import: if a resource with the same ID already exists, show it in the preview modal.
+Import follows the same merge-not-replace pattern as schemas (doc01.01.02, "Deletion Requires Conscious Intent"). Conflict detection on import: if a resource with the same ID already exists, show it in the preview modal.
 
 ### Y.Doc storage
 
@@ -289,7 +289,7 @@ New methods on DocumentAdapter:
 ## Consequences
 
 - The metamodel gains a new entity class (Resource) at M1 level — user-defined, document-scoped, versioned
-- DataKind expands from five scalar types to six (adding `resource` as the first reference type). The "DataKind Is Exhaustive" principle (doc01.02) and metamodel doc (doc02.06) are updated accordingly
+- DataKind expands from five scalar types to six (adding `resource` as the first reference type). The "DataKind Is Exhaustive" principle (doc01.01.02) and metamodel doc (doc02.06) are updated accordingly
 - Compiler output gains a `resources` section: resource bodies + reference graph from constructs that point to them
 - MCP tool surface grows by one multiplexed tool (`carta_resource`)
 - Schema packages and resources are orthogonal — a schema can belong to a package AND have a resource-type field

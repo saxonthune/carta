@@ -11,7 +11,7 @@ Audits and fixes UI styling inconsistencies in Carta's application chrome (not u
 
 Standards live in `.carta/` (source of truth):
 - **Design system** (doc02.07): Depth system, spacing scale, button hierarchy, semantic colors, typography, text-halo
-- **UX principles** (doc01.04): Fitts's Law, Hick's Law, Doherty Threshold, feedback latency targets
+- **UX principles** (doc01.01.04): Fitts's Law, Hick's Law, Doherty Threshold, feedback latency targets
 
 Read these before auditing:
 ```

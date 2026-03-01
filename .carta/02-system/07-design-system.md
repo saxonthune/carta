@@ -5,7 +5,7 @@ status: active
 
 # Design System
 
-Visual and interaction standards for the Carta application UI. Part 1 covers **application chrome** (headers, modals, panels). Part 2 covers **canvas content** (nodes, edges, organizers, LOD). Visual design principles that underpin both are in doc01.04.
+Visual and interaction standards for the Carta application UI. Part 1 covers **application chrome** (headers, modals, panels). Part 2 covers **canvas content** (nodes, edges, organizers, LOD). Visual design principles that underpin both are in doc01.01.04.
 
 ## Depth System
 
@@ -196,7 +196,7 @@ The `Modal` primitive (`ui/Modal.tsx`) supports a `blurBackdrop` prop that adds 
 
 # Part 2: Canvas Content
 
-Visual specifications for user-created content on the canvas — nodes, edges, organizer backgrounds, and LOD rendering. Governed by the visual design principles in doc01.04.
+Visual specifications for user-created content on the canvas — nodes, edges, organizer backgrounds, and LOD rendering. Governed by the visual design principles in doc01.01.04.
 
 ## Schema Color Palette
 
@@ -232,7 +232,7 @@ When a user selects "Custom color", show a color picker but encourage staying wi
 
 ## Node Card Design
 
-Node cards are the primary visual elements on the canvas. Their design follows the figure/ground principle from doc01.04.
+Node cards are the primary visual elements on the canvas. Their design follows the figure/ground principle from doc01.01.04.
 
 ### Visual Structure
 
@@ -305,7 +305,7 @@ Edges are secondary visual elements — they show relationships but should not d
 
 ## LOD Rendering Specs
 
-LOD bands control visual complexity at different zoom levels. The philosophy is "zoom reveals, it doesn't transform" (doc01.04).
+LOD bands control visual complexity at different zoom levels. The philosophy is "zoom reveals, it doesn't transform" (doc01.01.04).
 
 ### Band Definitions
 
