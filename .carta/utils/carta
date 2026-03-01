@@ -1,0 +1,47 @@
+#!/usr/bin/env python3
+"""carta — workspace tools for managing .carta/ documentation structure.
+
+Usage:
+    carta <command> [options]
+
+Commands:
+    move                 Move and/or reorder a doc entry
+    punch                Expand a leaf file into a directory (not implemented)
+    flatten              Dissolve a directory, hoisting children (not implemented)
+    regenerate           Rebuild MANIFEST.md from doc frontmatter
+    migrate-frontmatter  Inject MANIFEST data into doc frontmatter (one-time)
+    init                 Initialize workspace.json
+"""
+
+import sys
+from pathlib import Path
+
+# Ensure lib/ is importable
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import click
+
+from lib.commands.move import move
+from lib.commands.regenerate import regenerate
+from lib.commands.migrate import migrate_frontmatter
+from lib.commands.init import init
+from lib.commands.punch import punch
+from lib.commands.flatten import flatten
+
+
+@click.group()
+def cli() -> None:
+    """Workspace tools for managing .carta/ documentation structure."""
+    pass
+
+
+cli.add_command(move)
+cli.add_command(regenerate)
+cli.add_command(migrate_frontmatter, name="migrate-frontmatter")
+cli.add_command(init)
+cli.add_command(punch)
+cli.add_command(flatten)
+
+
+if __name__ == "__main__":
+    cli()

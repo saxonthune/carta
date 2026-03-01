@@ -12,7 +12,12 @@ deps: []
 
 These tools live in `.carta/utils/` and operate on the numbered directory/file convention (`NN-slug`). All structural operations rewrite cross-references (`docXX.YY`) across the workspace.
 
-**Semantic gap**: The docs use the name `move` for what is currently implemented as the script `moveto`. The script will be renamed to match.
+**Unified CLI**: All workspace operations are available via a single `carta` entry point. An AI agent discovers all operations with `python3 .carta/utils/carta --help`.
+
+```bash
+python3 .carta/utils/carta --help            # list all commands
+python3 .carta/utils/carta <command> --help  # command-specific help
+```
 
 ## Operations
 
@@ -21,7 +26,7 @@ These tools live in `.carta/utils/` and operate on the numbered directory/file c
 Move and/or rename a doc entry. Combines relocation and slug renaming in a single operation, like `mv`.
 
 ```
-move <source> <destination> [--order N] [--rename <slug>] [--dry-run]
+carta move <source> <destination> [--order N] [--rename <slug>] [--dry-run]
 ```
 
 **Capabilities**:
@@ -37,13 +42,13 @@ move <source> <destination> [--order N] [--rename <slug>] [--dry-run]
 
 **Examples**:
 ```bash
-move doc01.02.01 doc01 --order 2           # promote modeling into product at position 2
-move doc01.02.01 . --rename diagramming    # rename slug in place
-move doc01.02.01 doc01 --order 2 --rename diagramming  # move + rename
-move doc01.02 . --order 5                  # reorder within same directory
+carta move doc01.02.01 doc01 --order 2           # promote modeling into product at position 2
+carta move doc01.02.01 . --rename diagramming    # rename slug in place
+carta move doc01.02.01 doc01 --order 2 --rename diagramming  # move + rename
+carta move doc01.02 . --order 5                  # reorder within same directory
 ```
 
-**Status**: Implemented as `moveto` (move and reorder). `--rename` not yet implemented.
+**Status**: Implemented (`carta move`). `--rename` not yet implemented.
 
 ### punch
 
@@ -63,10 +68,10 @@ Named because you're punching a hole in the flat surface and expanding into a ne
 
 **Example**:
 ```bash
-punch doc01.02.01.01    # 01-canvas.md → 01-canvas/00-index.md
+carta punch doc01.02.01.01    # 01-canvas.md → 01-canvas/00-index.md
 ```
 
-**Status**: Not implemented.
+**Status**: Stub only (`carta punch` exists but exits with error).
 
 ### flatten
 
@@ -94,12 +99,12 @@ Named for the most common programming term for reducing nesting by one level.
 
 **Example**:
 ```bash
-flatten doc01.02               # dissolve features/, promote children into product
-flatten doc01.02 --keep-index  # same, but 00-index.md becomes a numbered sibling
-flatten doc01.02 --at 5        # append children starting at position 5
+carta flatten doc01.02               # dissolve features/, promote children into product
+carta flatten doc01.02 --keep-index  # same, but 00-index.md becomes a numbered sibling
+carta flatten doc01.02 --at 5        # append children starting at position 5
 ```
 
-**Status**: Not implemented.
+**Status**: Stub only (`carta flatten` exists but exits with error).
 
 ### regenerate
 
@@ -151,11 +156,11 @@ deps: [doc02.07]
 
 **Example**:
 ```bash
-regenerate              # rebuild MANIFEST.md from frontmatter
-regenerate --dry-run    # print what would be generated without writing
+carta regenerate              # rebuild MANIFEST.md from frontmatter
+carta regenerate --dry-run    # print what would be generated without writing
 ```
 
-**Status**: Not implemented. Requires migrating `summary`, `tags`, and `deps` from MANIFEST.md into each doc's frontmatter first.
+**Status**: Implemented (`carta regenerate`).
 
 ## Frontmatter migration
 
@@ -177,19 +182,19 @@ Using these operations to complete the product restructuring:
 
 ```bash
 # Rename feature groups to match the three first-class features
-move doc01.02.01 . --rename diagramming    # modeling → diagramming
-move doc01.02.02 . --rename standard       # output → standard
-move doc01.02.03 . --rename hosted         # environment → hosted
+carta move doc01.02.01 . --rename diagramming    # modeling → diagramming
+carta move doc01.02.02 . --rename standard       # output → standard
+carta move doc01.02.03 . --rename hosted         # environment → hosted
 
 # Move orphan features out of hosted before flatten
-move doc01.02.03.03 doc01.02               # ai-assistant → features level
-move doc01.02.03.04 doc01.02               # theming → features level
-move doc01.02.03.05 doc01.02               # NUX → features level
-move doc01.02.03.06 doc01.02               # keyboard → features level
+carta move doc01.02.03.03 doc01.02               # ai-assistant → features level
+carta move doc01.02.03.04 doc01.02               # theming → features level
+carta move doc01.02.03.05 doc01.02               # NUX → features level
+carta move doc01.02.03.06 doc01.02               # keyboard → features level
 
 # Flatten the features intermediary
-flatten doc01.02                           # promote everything into 01-product
+carta flatten doc01.02                           # promote everything into 01-product
 
 # Regenerate manifest from the new structure
-regenerate
+carta regenerate
 ```

@@ -1,34 +1,14 @@
-#!/usr/bin/env python3
-"""moveto — move a .carta/ doc entry to a new parent with automatic ref renumbering.
+"""move.py — move-specific helpers for computing filesystem moves.
 
-Usage:
-    moveto <source> <destination> [--order N] [--mkdir] [--dry-run]
-
-Arguments:
-    source       Doc ref (e.g. doc02.06) or relative path (e.g. 02-system/06-metamodel.md)
-    destination  Parent directory ref or path to move into. Must be a directory.
-    --order N    Insert at position N (1-indexed). Default: append to end.
-    --mkdir      Create destination if it doesn't exist. NOT IMPLEMENTED.
-    --dry-run    Print planned moves and rename map without executing.
+These functions are reusable by the move, punch, and flatten commands.
 """
 
-import sys
 import re
-import argparse
-import shutil
 from pathlib import Path
-
-# Ensure lib/ is importable when script is run directly
-_UTILS_DIR = Path(__file__).resolve().parent
-sys.path.insert(0, str(_UTILS_DIR))
-
-from lib.workspace import find_carta_root, load_workspace, get_external_ref_paths
-from lib.refs import ref_to_path, path_to_ref, compute_rename_map, collect_md_files, rewrite_refs
-from lib.manifest import parse_manifest, apply_rename_to_manifest, serialize_manifest
 
 
 # ---------------------------------------------------------------------------
-# Helpers
+# Ref argument resolution
 # ---------------------------------------------------------------------------
 
 _REF_RE = re.compile(r'^doc\d{2}(\.\d{2})*$')
@@ -36,12 +16,17 @@ _REF_RE = re.compile(r'^doc\d{2}(\.\d{2})*$')
 
 def resolve_arg(arg: str, carta_root: Path) -> Path:
     """Resolve a ref or relative path argument to an absolute filesystem path."""
+    from .refs import ref_to_path
     if _REF_RE.match(arg):
         return ref_to_path(arg, carta_root)
     # Treat as path relative to carta_root
     path = (carta_root / arg).resolve()
     return path
 
+
+# ---------------------------------------------------------------------------
+# Numeric prefix helpers
+# ---------------------------------------------------------------------------
 
 def get_numeric_prefix(name: str) -> int | None:
     """Extract the leading 2-digit numeric prefix from a directory entry name."""
@@ -77,6 +62,10 @@ def compute_insertion_prefix(dest_dir: Path, order: int | None) -> int:
         return (max(existing_prefixes) + 1) if existing_prefixes else 1
     return order
 
+
+# ---------------------------------------------------------------------------
+# Move computation
+# ---------------------------------------------------------------------------
 
 def compute_all_moves(
     source_path: Path,
@@ -222,6 +211,10 @@ def _compute_cross_dir_moves(
     return moves
 
 
+# ---------------------------------------------------------------------------
+# Output
+# ---------------------------------------------------------------------------
+
 def print_rename_map(rename_map: dict[str, str], moves: list[tuple[Path, Path]]) -> None:
     """Print the planned rename map and filesystem moves."""
     print("=== Planned filesystem moves ===")
@@ -231,134 +224,3 @@ def print_rename_map(rename_map: dict[str, str], moves: list[tuple[Path, Path]])
     print("=== Ref rename map ===")
     for old_ref, new_ref in sorted(rename_map.items()):
         print(f"  {old_ref} -> {new_ref}")
-
-
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
-
-def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="Move a .carta/ doc entry to a new parent with automatic ref renumbering.",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-    parser.add_argument("source", help="Doc ref or relative path of the entry to move")
-    parser.add_argument("destination", help="Parent directory ref or path to move into")
-    parser.add_argument(
-        "--order", type=int, default=None, metavar="N",
-        help="Insert at position N (1-indexed). Default: append to end.",
-    )
-    parser.add_argument(
-        "--mkdir", action="store_true",
-        help="Create destination if it doesn't exist (NOT IMPLEMENTED).",
-    )
-    parser.add_argument(
-        "--dry-run", action="store_true",
-        help="Print planned moves without executing.",
-    )
-    args = parser.parse_args()
-
-    if args.mkdir:
-        print("Error: --mkdir is not implemented.", file=sys.stderr)
-        return 1
-
-    if args.order is not None and args.order < 1:
-        print("Error: --order must be >= 1 (position 0 is reserved for index files).", file=sys.stderr)
-        return 1
-
-    # Resolve .carta/ root
-    carta_root = find_carta_root()
-
-    # Resolve source and destination
-    try:
-        source_path = resolve_arg(args.source, carta_root)
-    except (FileNotFoundError, ValueError) as e:
-        print(f"Error resolving source {args.source!r}: {e}", file=sys.stderr)
-        return 1
-
-    if not source_path.exists():
-        print(f"Error: source does not exist: {source_path}", file=sys.stderr)
-        return 1
-
-    try:
-        dest_path = resolve_arg(args.destination, carta_root)
-    except (FileNotFoundError, ValueError) as e:
-        print(f"Error resolving destination {args.destination!r}: {e}", file=sys.stderr)
-        return 1
-
-    if not dest_path.exists():
-        print(f"Error: destination does not exist: {dest_path}", file=sys.stderr)
-        return 1
-
-    if not dest_path.is_dir():
-        print(
-            f"Error: destination is not a directory: {dest_path}\n"
-            "Use --mkdir to create it (not implemented).",
-            file=sys.stderr,
-        )
-        return 1
-
-    # Check destination capacity
-    dest_entries = list_numbered_entries(dest_path)
-    if len(dest_entries) >= 99:
-        print(f"Error: destination has >= 99 items: {dest_path}", file=sys.stderr)
-        return 1
-
-    # Compute all filesystem moves
-    try:
-        moves = compute_all_moves(source_path, dest_path, args.order)
-    except ValueError as e:
-        print(f"Error computing moves: {e}", file=sys.stderr)
-        return 1
-
-    # Compute rename map from moves (before any filesystem operations)
-    rename_map = compute_rename_map(moves, carta_root)
-
-    if args.dry_run:
-        print_rename_map(rename_map, moves)
-        print("\n(dry-run: no files modified)")
-        return 0
-
-    # Execute filesystem moves
-    for old_path, new_path in moves:
-        if old_path.exists():
-            shutil.move(str(old_path), str(new_path))
-
-    # Parse MANIFEST.md BEFORE rewriting (so we have the original ref structure)
-    manifest_path = carta_root / "MANIFEST.md"
-    manifest_data = parse_manifest(manifest_path) if manifest_path.exists() else None
-
-    # Rewrite refs across all .md files EXCEPT MANIFEST.md
-    # (MANIFEST.md is handled separately via apply_rename_to_manifest, which
-    #  updates both the structural parts (Ref, File, Deps, row migration) and
-    #  verbatim text (preamble, tag index) in one consistent pass.)
-    ws = load_workspace(carta_root)
-    external_paths = get_external_ref_paths(ws, carta_root)
-    md_files = [
-        f for f in collect_md_files(carta_root, external_paths)
-        if f.resolve() != manifest_path.resolve()
-    ]
-    rewrite_results = rewrite_refs(md_files, rename_map)
-
-    # Update MANIFEST.md structurally (also handles all ref text substitution within it)
-    if manifest_data is not None:
-        updated_data = apply_rename_to_manifest(manifest_data, rename_map, carta_root)
-        manifest_path.write_text(serialize_manifest(updated_data), encoding="utf-8")
-
-    # Print summary
-    print(f"Moved {len(moves)} item(s):")
-    for old, new in moves:
-        print(f"  {old.name} -> {new}")
-
-    refs_touched = len(rewrite_results)
-    total_replacements = sum(rewrite_results.values())
-    print(f"Refs updated: {total_replacements} replacement(s) across {refs_touched} file(s)")
-    print(f"Rename map ({len(rename_map)} entries):")
-    for old_ref, new_ref in sorted(rename_map.items()):
-        print(f"  {old_ref} -> {new_ref}")
-
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())

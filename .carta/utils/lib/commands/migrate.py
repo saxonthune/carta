@@ -1,26 +1,14 @@
-#!/usr/bin/env python3
-"""migrate-frontmatter — inject MANIFEST.md metadata into doc frontmatter (one-time).
-
-Usage:
-    migrate-frontmatter [--dry-run]
-
-Reads MANIFEST.md, finds each referenced doc file, and injects summary, tags,
-and deps into that file's YAML frontmatter. Skips files that already have all
-three fields. Does not overwrite existing non-empty values.
-"""
+"""migrate command — inject MANIFEST.md metadata into doc frontmatter (one-time)."""
 
 import re
-import sys
-import argparse
 from pathlib import Path
 
-_UTILS_DIR = Path(__file__).resolve().parent
-sys.path.insert(0, str(_UTILS_DIR))
+import click
 
-from lib.workspace import find_carta_root
-from lib.manifest import parse_manifest, ManifestRow
-from lib.refs import ref_to_path
-from lib.frontmatter import read_frontmatter, write_frontmatter
+from ..workspace import find_carta_root
+from ..manifest import parse_manifest, ManifestRow
+from ..refs import ref_to_path
+from ..frontmatter import read_frontmatter, write_frontmatter
 
 
 # ---------------------------------------------------------------------------
@@ -55,16 +43,16 @@ def resolve_row_path(row: ManifestRow, carta_root: Path) -> Path | None:
     try:
         path = ref_to_path(row.ref, carta_root)
     except (FileNotFoundError, ValueError) as e:
-        print(f"WARN: cannot resolve {row.ref}: {e}", file=sys.stderr)
+        click.echo(f"WARN: cannot resolve {row.ref}: {e}", err=True)
         return None
 
     if path.is_dir():
         index = path / "00-index.md"
         if not index.exists():
-            print(
+            click.echo(
                 f"WARN: {row.ref} → {path.relative_to(carta_root)}/ "
                 f"has no 00-index.md, skipping",
-                file=sys.stderr,
+                err=True,
             )
             return None
         return index
@@ -107,13 +95,13 @@ def inject_row_frontmatter(
 
     rel = path.relative_to(carta_root)
     if dry_run:
-        print(f"  [dry-run] would update {rel}")
+        click.echo(f"  [dry-run] would update {rel}")
         if "summary" not in fm or not fm["summary"]:
-            print(f"    summary: {new_summary!r}")
+            click.echo(f"    summary: {new_summary!r}")
         if "tags" not in fm:
-            print(f"    tags: {new_tags}")
+            click.echo(f"    tags: {new_tags}")
         if "deps" not in fm:
-            print(f"    deps: {new_deps}")
+            click.echo(f"    deps: {new_deps}")
     else:
         write_frontmatter(path, updated, body)
 
@@ -149,7 +137,7 @@ def inject_placeholder_frontmatter(
 
     if dry_run:
         rel = path.relative_to(carta_root)
-        print(f"  [dry-run] would add placeholders to {rel}")
+        click.echo(f"  [dry-run] would add placeholders to {rel}")
     else:
         write_frontmatter(path, updated, body)
 
@@ -157,26 +145,19 @@ def inject_placeholder_frontmatter(
 
 
 # ---------------------------------------------------------------------------
-# Main
+# Click command
 # ---------------------------------------------------------------------------
 
-def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="Inject MANIFEST.md metadata into doc frontmatter (one-time migration).",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-    parser.add_argument(
-        "--dry-run", action="store_true",
-        help="Print what would change without writing.",
-    )
-    args = parser.parse_args()
-
+@click.command(name="migrate-frontmatter")
+@click.option("--dry-run", is_flag=True, help="Print what would change without writing.")
+def migrate_frontmatter(dry_run: bool) -> None:
+    """Inject MANIFEST.md metadata into doc frontmatter (one-time migration)."""
     carta_root = find_carta_root()
     manifest_path = carta_root / "MANIFEST.md"
 
     if not manifest_path.exists():
-        print(f"Error: MANIFEST.md not found at {manifest_path}", file=sys.stderr)
-        return 1
+        click.echo(f"Error: MANIFEST.md not found at {manifest_path}", err=True)
+        raise SystemExit(1)
 
     # Parse MANIFEST.md into rows
     manifest_data = parse_manifest(manifest_path)
@@ -186,7 +167,7 @@ def main() -> int:
             if isinstance(chunk, ManifestRow):
                 rows_by_ref[chunk.ref] = chunk
 
-    print(f"Found {len(rows_by_ref)} MANIFEST rows")
+    click.echo(f"Found {len(rows_by_ref)} MANIFEST rows")
 
     # Inject metadata from MANIFEST rows into doc frontmatter
     updated_count = 0
@@ -194,10 +175,10 @@ def main() -> int:
         path = resolve_row_path(row, carta_root)
         if path is None:
             continue
-        if inject_row_frontmatter(path, carta_root, row, dry_run=args.dry_run):
+        if inject_row_frontmatter(path, carta_root, row, dry_run=dry_run):
             updated_count += 1
 
-    print(f"{'Would update' if args.dry_run else 'Updated'} {updated_count} files from MANIFEST rows")
+    click.echo(f"{'Would update' if dry_run else 'Updated'} {updated_count} files from MANIFEST rows")
 
     # Walk all .md files without MANIFEST rows and add empty placeholders
     excluded = {carta_root / "utils"}
@@ -212,16 +193,10 @@ def main() -> int:
         if not re.match(r'^\d{2}-', md.name):
             continue
 
-        if inject_placeholder_frontmatter(md, carta_root, dry_run=args.dry_run):
+        if inject_placeholder_frontmatter(md, carta_root, dry_run=dry_run):
             placeholder_count += 1
 
-    print(f"{'Would add' if args.dry_run else 'Added'} placeholders to {placeholder_count} unlisted files")
+    click.echo(f"{'Would add' if dry_run else 'Added'} placeholders to {placeholder_count} unlisted files")
 
-    if args.dry_run:
-        print("\n(dry-run: no files modified)")
-
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())
+    if dry_run:
+        click.echo("\n(dry-run: no files modified)")

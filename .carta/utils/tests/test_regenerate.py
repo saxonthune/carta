@@ -21,8 +21,7 @@ from lib.refs import ref_to_path
 from lib.frontmatter import read_frontmatter, write_frontmatter
 
 _REAL_CARTA_ROOT = find_carta_root()
-_MIGRATE_SCRIPT = _UTILS_DIR / "migrate-frontmatter"
-_REGENERATE_SCRIPT = _UTILS_DIR / "regenerate"
+_CARTA_SCRIPT = _UTILS_DIR / "carta"
 
 
 # ---------------------------------------------------------------------------
@@ -136,9 +135,9 @@ class TestMigrateAddsMissingFields(unittest.TestCase):
         self.tmpdir.cleanup()
 
     def _run_migrate(self, *args: str) -> subprocess.CompletedProcess:
-        script = self.carta_copy / "utils" / "migrate-frontmatter"
+        carta = self.carta_copy / "utils" / "carta"
         return subprocess.run(
-            [sys.executable, str(script)] + list(args),
+            [sys.executable, str(carta), "migrate-frontmatter"] + list(args),
             capture_output=True, text=True,
         )
 
@@ -188,9 +187,9 @@ class TestMigratePreservesExistingFields(unittest.TestCase):
         self.tmpdir.cleanup()
 
     def _run_migrate(self, *args: str) -> subprocess.CompletedProcess:
-        script = self.carta_copy / "utils" / "migrate-frontmatter"
+        carta = self.carta_copy / "utils" / "carta"
         return subprocess.run(
-            [sys.executable, str(script)] + list(args),
+            [sys.executable, str(carta), "migrate-frontmatter"] + list(args),
             capture_output=True, text=True,
         )
 
@@ -225,9 +224,9 @@ class TestRegenerateIncludesAllDocs(unittest.TestCase):
         self.tmpdir.cleanup()
 
     def _run_regenerate(self, *args: str) -> subprocess.CompletedProcess:
-        script = self.carta_copy / "utils" / "regenerate"
+        carta = self.carta_copy / "utils" / "carta"
         return subprocess.run(
-            [sys.executable, str(script)] + list(args),
+            [sys.executable, str(carta), "regenerate"] + list(args),
             capture_output=True, text=True,
         )
 
@@ -283,9 +282,9 @@ class TestTagIndexComplete(unittest.TestCase):
         self.tmpdir.cleanup()
 
     def _run_regenerate(self, *args: str) -> subprocess.CompletedProcess:
-        script = self.carta_copy / "utils" / "regenerate"
+        carta = self.carta_copy / "utils" / "carta"
         return subprocess.run(
-            [sys.executable, str(script)] + list(args),
+            [sys.executable, str(carta), "regenerate"] + list(args),
             capture_output=True, text=True,
         )
 
@@ -355,9 +354,9 @@ class TestRefsResolve(unittest.TestCase):
         self.tmpdir.cleanup()
 
     def _run_regenerate(self, *args: str) -> subprocess.CompletedProcess:
-        script = self.carta_copy / "utils" / "regenerate"
+        carta = self.carta_copy / "utils" / "carta"
         return subprocess.run(
-            [sys.executable, str(script)] + list(args),
+            [sys.executable, str(carta), "regenerate"] + list(args),
             capture_output=True, text=True,
         )
 

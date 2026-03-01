@@ -1,28 +1,17 @@
-#!/usr/bin/env python3
-"""regenerate — rebuild MANIFEST.md from the filesystem and doc frontmatter.
-
-Usage:
-    regenerate [--dry-run]
-
-Walks the .carta/ directory tree, reads frontmatter from each numbered .md
-file, computes doc refs, and emits a fresh MANIFEST.md. The preamble (header
-text) is read from manifest-preamble.md in the same directory.
-
-Default: overwrites .carta/MANIFEST.md
---dry-run: prints to stdout instead of writing.
-"""
+"""regenerate command — rebuild MANIFEST.md from doc frontmatter."""
 
 import re
-import sys
-import argparse
 from pathlib import Path
 
-_UTILS_DIR = Path(__file__).resolve().parent
-sys.path.insert(0, str(_UTILS_DIR))
+import click
 
-from lib.workspace import find_carta_root
-from lib.refs import path_to_ref
-from lib.frontmatter import read_frontmatter
+from ..workspace import find_carta_root
+from ..refs import path_to_ref
+from ..frontmatter import read_frontmatter
+
+
+# utils/ directory: lib/commands/ -> lib/ -> utils/
+_UTILS_DIR = Path(__file__).resolve().parent.parent.parent
 
 
 # ---------------------------------------------------------------------------
@@ -245,26 +234,19 @@ def build_tag_index(all_entries: list[dict]) -> list[str]:
 
 
 # ---------------------------------------------------------------------------
-# Main
+# Core logic (callable from other commands)
 # ---------------------------------------------------------------------------
 
-def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="Rebuild MANIFEST.md from doc frontmatter.",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-    parser.add_argument(
-        "--dry-run", action="store_true",
-        help="Print generated MANIFEST.md to stdout instead of writing.",
-    )
-    args = parser.parse_args()
+def do_regenerate(carta_root: Path, dry_run: bool = False) -> None:
+    """Rebuild MANIFEST.md from doc frontmatter.
 
-    carta_root = find_carta_root()
+    Callable from other commands (e.g. move) after structural changes.
+    """
     preamble_path = _UTILS_DIR / "manifest-preamble.md"
 
     if not preamble_path.exists():
-        print(f"Error: manifest-preamble.md not found at {preamble_path}", file=sys.stderr)
-        return 1
+        click.echo(f"Error: manifest-preamble.md not found at {preamble_path}", err=True)
+        raise SystemExit(1)
 
     preamble = preamble_path.read_text(encoding="utf-8")
 
@@ -293,15 +275,21 @@ def main() -> int:
 
     output = preamble + "\n".join(output_lines)
 
-    if args.dry_run:
-        print(output, end="")
+    if dry_run:
+        click.echo(output, nl=False)
     else:
         manifest_path = carta_root / "MANIFEST.md"
         manifest_path.write_text(output, encoding="utf-8")
-        print(f"Wrote {manifest_path}")
-
-    return 0
+        click.echo(f"Wrote {manifest_path}")
 
 
-if __name__ == "__main__":
-    sys.exit(main())
+# ---------------------------------------------------------------------------
+# Click command
+# ---------------------------------------------------------------------------
+
+@click.command()
+@click.option("--dry-run", is_flag=True, help="Print generated MANIFEST.md to stdout instead of writing.")
+def regenerate(dry_run: bool) -> None:
+    """Rebuild MANIFEST.md from doc frontmatter."""
+    carta_root = find_carta_root()
+    do_regenerate(carta_root, dry_run=dry_run)
