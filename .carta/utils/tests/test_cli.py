@@ -498,5 +498,79 @@ class TestRename(unittest.TestCase):
         assert before == after, "Files were modified during --dry-run"
 
 
+class TestPunch(unittest.TestCase):
+    """Test punch command."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.carta_copy = _copy_carta(Path(self.tmpdir.name))
+        utils_copy = self.carta_copy / "utils"
+        shutil.copytree(str(_UTILS_DIR), str(utils_copy), dirs_exist_ok=False)
+
+    def tearDown(self):
+        self.tmpdir.cleanup()
+
+    def _run_punch(self, *args):
+        carta = self.carta_copy / "utils" / "carta"
+        return subprocess.run(
+            [sys.executable, str(carta), "punch"] + list(args),
+            capture_output=True, text=True,
+        )
+
+    def test_punch_leaf_file(self):
+        """Punching a leaf file creates NN-slug/00-index.md."""
+        # Find a leaf .md file with a numeric prefix
+        codex = self.carta_copy / "00-codex"
+        leaf = codex / "01-about.md"
+        assert leaf.exists(), f"Expected leaf file: {leaf}"
+        original_content = leaf.read_text(encoding="utf-8")
+
+        result = self._run_punch("doc00.01")
+        assert result.returncode == 0, f"punch failed:\n{result.stderr}"
+
+        # Original file should be gone
+        assert not leaf.exists(), "Original file should not exist after punch"
+
+        # Directory should exist
+        new_dir = codex / "01-about"
+        assert new_dir.is_dir(), f"Expected directory: {new_dir}"
+
+        # 00-index.md should have original content
+        index = new_dir / "00-index.md"
+        assert index.exists(), f"Expected 00-index.md in {new_dir}"
+        assert index.read_text(encoding="utf-8") == original_content
+
+    def test_punch_directory_errors(self):
+        """Punching a directory should fail."""
+        result = self._run_punch("doc02.04")  # 04-decisions/ is a directory
+        assert result.returncode != 0, "punch should fail on directory"
+        assert "directory" in result.stderr.lower()
+
+    def test_punch_dry_run(self):
+        """--dry-run should not modify files."""
+        leaf = self.carta_copy / "00-codex" / "01-about.md"
+        before = leaf.read_bytes()
+        result = self._run_punch("doc00.01", "--dry-run")
+        assert result.returncode == 0, result.stderr
+        assert leaf.exists(), "File should still exist after dry-run"
+        assert leaf.read_bytes() == before
+
+    def test_punch_preserves_siblings(self):
+        """Siblings should not be renumbered after punch."""
+        codex = self.carta_copy / "00-codex"
+        siblings_before = sorted(e.name for e in codex.iterdir() if re.match(r'^\d{2}-', e.name))
+
+        self._run_punch("doc00.01")
+
+        siblings_after = sorted(e.name for e in codex.iterdir() if re.match(r'^\d{2}-', e.name))
+        # 01-about.md should become 01-about/ — same prefix, different type
+        # All other siblings unchanged
+        for s in siblings_before:
+            if s == "01-about.md":
+                assert "01-about" in siblings_after, f"01-about dir should exist: {siblings_after}"
+            else:
+                assert s in siblings_after, f"Sibling {s} should be unchanged: {siblings_after}"
+
+
 if __name__ == "__main__":
     unittest.main()

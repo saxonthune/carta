@@ -71,7 +71,7 @@ Named because you're punching a hole in the flat surface and expanding into a ne
 carta punch doc01.02.01.01    # 01-canvas.md → 01-canvas/00-index.md
 ```
 
-**Status**: Stub only (`carta punch` exists but exits with error).
+**Status**: Implemented (`carta punch`).
 
 ### flatten
 
