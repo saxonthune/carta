@@ -28,6 +28,7 @@ dist-ssr
 **/test-results/*
 **/playwright-report/*
 
+__pycache__/
 todo-tasks/
 compilation-test/
 stats.html
