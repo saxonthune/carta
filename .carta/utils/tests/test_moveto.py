@@ -54,7 +54,7 @@ class TestRefToPath(unittest.TestCase):
         self.assertTrue(path.name.startswith("04-"))
 
     def test_ref_to_path_roundtrip(self):
-        known_refs = ["doc02.06", "doc00.01", "doc03.01.01.01", "doc02.04"]
+        known_refs = ["doc02.06", "doc00.01", "doc01.02.01.01", "doc02.04"]
         for ref in known_refs:
             with self.subTest(ref=ref):
                 resolved = ref_to_path(ref, self.root)
@@ -228,8 +228,8 @@ class TestMovetoActualMove(unittest.TestCase):
         # Source no longer exists at old location
         self.assertFalse(source.exists(), "Source should not exist at old location")
 
-        # File exists at new location (appended to 01-context/)
-        dest_dir = self.carta_copy / "01-context"
+        # File exists at new location (appended to 01-product/)
+        dest_dir = self.carta_copy / "01-product"
         new_files = list(dest_dir.glob("*ai-retrieval*"))
         self.assertEqual(len(new_files), 1, f"Expected exactly one ai-retrieval file in dest: {list(dest_dir.iterdir())}")
 
@@ -309,11 +309,11 @@ class TestSameDirReorder(unittest.TestCase):
 
     def test_move_later_entry_to_first(self):
         """Moving a later entry to position 1 should not leave gaps."""
-        # 03-product -> position 1
-        result = self._run_moveto("03-product", ".", "--order", "1")
+        # 03-operations -> position 1
+        result = self._run_moveto("03-operations", ".", "--order", "1")
         self.assertEqual(result.returncode, 0, f"moveto failed:\n{result.stderr}\n{result.stdout}")
 
-        # Check: entries should be 01-product, 02-context, 03-system, 04-operations, 05-research
+        # Check: entries should be 01-operations, 02-product, 03-system, 04-research (renumbered)
         entries = sorted(
             e.name for e in self.carta_copy.iterdir()
             if re.match(r'^\d{2}-', e.name)
@@ -322,11 +322,11 @@ class TestSameDirReorder(unittest.TestCase):
         # No gaps: consecutive from min to max
         self.assertEqual(prefixes, list(range(prefixes[0], prefixes[0] + len(prefixes))),
                          f"Expected no gaps in numbering: {entries}")
-        # Product is at position 01 (after 00-codex)
-        product_entries = [e for e in entries if "product" in e]
-        self.assertEqual(len(product_entries), 1)
-        self.assertTrue(product_entries[0].startswith("01-"),
-                         f"Expected product at position 01: {product_entries[0]}")
+        # Operations is at position 01 (after 00-codex)
+        ops_entries = [e for e in entries if "operations" in e]
+        self.assertEqual(len(ops_entries), 1)
+        self.assertTrue(ops_entries[0].startswith("01-"),
+                         f"Expected operations at position 01: {ops_entries[0]}")
 
     def test_move_first_entry_to_last(self):
         """Moving the first entry to the end should not leave gaps."""
@@ -340,7 +340,7 @@ class TestSameDirReorder(unittest.TestCase):
             for e in entries_before
         )
 
-        result = self._run_moveto("01-context", ".", "--order", str(max_prefix))
+        result = self._run_moveto("01-product", ".", "--order", str(max_prefix))
         self.assertEqual(result.returncode, 0, f"moveto failed:\n{result.stderr}\n{result.stdout}")
 
         entries = sorted(
@@ -350,9 +350,9 @@ class TestSameDirReorder(unittest.TestCase):
         prefixes = [int(re.match(r'^(\d{2})-', n).group(1)) for n in entries]
         self.assertEqual(prefixes, list(range(prefixes[0], prefixes[0] + len(prefixes))),
                          f"Expected no gaps in numbering: {entries}")
-        # Context is last
-        self.assertTrue("context" in entries[-1],
-                         f"Expected context at last position: {entries[-1]}")
+        # Product is last
+        self.assertTrue("product" in entries[-1],
+                         f"Expected product at last position: {entries[-1]}")
 
 
 class TestCrossSiblingMove(unittest.TestCase):
@@ -406,8 +406,8 @@ class TestCrossSiblingMove(unittest.TestCase):
                     orphans.append((md.relative_to(carta_root), m.group()))
         return orphans
 
-    def test_move_context_into_sibling_product(self):
-        """Move 01-context into 03-product (dest gets gap-closed from 03→02)."""
+    def test_move_product_into_sibling_operations(self):
+        """Move 01-product into 03-operations (dest gets gap-closed from 03→02)."""
         pre_existing_orphans = set(
             ref for _, ref in self._collect_orphaned_refs(self.carta_copy)
         )
@@ -424,19 +424,19 @@ class TestCrossSiblingMove(unittest.TestCase):
         self.assertEqual(prefixes, list(range(0, len(prefixes))),
                          f"Expected no gaps in top-level numbering: {entries}")
 
-        # Context should be inside product (which is now 02-product)
-        product_dir = None
+        # Operations dir (gap-closed from 03 to 02)
+        ops_dir = None
         for e in self.carta_copy.iterdir():
-            if "product" in e.name:
-                product_dir = e
+            if "operations" in e.name:
+                ops_dir = e
                 break
-        self.assertIsNotNone(product_dir, "Product directory not found")
+        self.assertIsNotNone(ops_dir, "Operations directory not found")
 
-        context_entries = [e for e in product_dir.iterdir() if "context" in e.name]
-        self.assertEqual(len(context_entries), 1,
-                         f"Expected context inside product: {list(product_dir.iterdir())}")
-        self.assertTrue(context_entries[0].name.startswith("01-"),
-                         f"Context should be at position 01: {context_entries[0].name}")
+        product_entries = [e for e in ops_dir.iterdir() if "product" in e.name]
+        self.assertEqual(len(product_entries), 1,
+                         f"Expected product inside operations: {list(ops_dir.iterdir())}")
+        self.assertTrue(product_entries[0].name.startswith("01-"),
+                         f"Product should be at position 01: {product_entries[0].name}")
 
         # No duplicate prefixes anywhere
         self._assert_no_duplicate_prefixes(self.carta_copy)
