@@ -16,6 +16,7 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 
 | Ref | File | Summary | Tags | Deps |
 |-----|------|---------|------|------|
+| doc00.00 | `00-index.md` | Codex section index: what meta-documentation covers | index, meta | — |
 | doc00.01 | `01-about.md` | How to read docs, cross-reference syntax | docs, meta | — |
 | doc00.02 | `02-taxonomy.md` | Title system rationale, Diataxis spirit | docs, structure | — |
 | doc00.03 | `03-conventions.md` | docXX.YY syntax, front matter, file naming | docs, conventions | — |
@@ -27,6 +28,7 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 
 | Ref | File | Summary | Tags | Deps |
 |-----|------|---------|------|------|
+| doc01.00 | `00-index.md` | Context section index: mission, principles, vocabulary | index, context | — |
 | doc01.01 | `01-mission.md` | Core goal, dual mandate | mission, principles | — |
 | doc01.02 | `02-principles.md` | 12 design principles: symmetric storage, inverse derivability | principles, design | doc01.01 |
 | doc01.03 | `03-glossary.md` | Canonical vocabulary: construct, schema, port, polarity | glossary, terms | — |
@@ -38,6 +40,7 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 
 | Ref | File | Summary | Tags | Deps |
 |-----|------|---------|------|------|
+| doc02.00 | `00-index.md` | System section index: architecture, state, interfaces, decisions | index, architecture | — |
 | doc02.01 | `01-overview.md` | Layer architecture, monorepo structure, data flow | architecture, packages | — |
 | doc02.02 | `02-state.md` | Yjs Y.Doc, state partitioning, hooks, adapters | state, yjs, hooks, adapters | doc02.01 |
 | doc02.03 | `03-interfaces.md` | File format, compiler output, MCP, WebSocket | interfaces, api, mcp | doc02.02 |
@@ -65,7 +68,7 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 
 | Ref | File | Summary | Tags | Deps |
 |-----|------|---------|------|------|
-| doc03.00 | `00-index.md` | Feature catalog, use case table, workflow table | index, catalog | — |
+| doc03.00 | `00-index.md` | Product section index: feature catalog, use cases, workflows | index, product, catalog | — |
 | doc03.01.01.01 | `01-features/01-modeling/01-canvas.md` | Pan, zoom, LOD rendering, node manipulation | canvas, lod, zoom | doc02.07 |
 | doc03.01.01.02 | `01-features/01-modeling/02-constructs.md` | Typed nodes, schemas, fields, semantic ID | constructs, schemas, nodes | doc02.06 |
 | doc03.01.01.03 | `01-features/01-modeling/03-ports-and-connections.md` | Port model, polarity, validation, edge rendering | ports, connections, edges | doc02.06 |
@@ -120,6 +123,7 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 
 | Ref | File | Summary | Tags | Deps |
 |-----|------|---------|------|------|
+| doc04.00 | `00-index.md` | Operations section index: dev setup, testing, deployment, contributing | index, operations | — |
 | doc04.01 | `01-development.md` | Dev setup, commands, environment | dev, setup, commands | — |
 | doc04.02 | `02-testing.md` | Test commands, CI, integration, E2E | testing, ci, e2e | — |
 | doc04.03 | `03-deployment.md` | Build, deploy, env vars | deployment, build | doc02.05 |
@@ -129,7 +133,7 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 
 | Ref | File | Summary | Tags | Deps |
 |-----|------|---------|------|------|
-| doc05.00 | `00-index.md` | Research session format and purpose | research, meta | — |
+| doc05.00 | `00-index.md` | Research section index: session format, what belongs here | index, research | — |
 | doc05.01 | `01-visual-semantics-in-organizers.md` | Shape differentiation, sequence badges, icon markers for organizer contents | research, notation, bpmn, presentation, organizers | doc02.09, doc02.07, doc02.06 |
 | doc05.02 | `02-token-efficiency-in-skills-and-agents.md` | Token optimization patterns: lean extraction, subagent isolation, surgical reads | research, tokens, efficiency, skills, agents | — |
 | doc05.03 | `03-wagon-aware-layout-architecture.md` | Wagon layout units, 3-layer sync, snap normalization, state pitfalls | research, layout, wagons, organizers, state | doc02.09, doc02.02 |

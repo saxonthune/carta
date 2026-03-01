@@ -55,7 +55,26 @@ Numbers determine ordering. Leave gaps when useful — you can add `02-something
 
 ## Index Files
 
-Each title directory may contain a `00-index.md` that provides an overview and table of contents for that title. Not required for small titles.
+Every title directory should contain a `00-index.md` that orients readers to the section. This is the human entry point — what you read when you open a directory and want to understand what's here and why.
+
+### Required structure
+
+1. **Purpose** — one sentence: what this title covers
+2. **Audience** — who reads this and when
+3. **What belongs here / what doesn't** — boundary rules to prevent misplacement
+4. **Contents** — lightweight list of what's inside (names and one-liners)
+
+### Relationship to MANIFEST.md
+
+MANIFEST.md is the **machine-readable retrieval index** — a flat table with refs, summaries, tags, and dependency links. AI agents read MANIFEST to find documents. It is not meant to be read by humans for orientation.
+
+00-index.md is the **human-readable section guide** — narrative framing that explains organizational logic. When an AI needs to explain a section to a user, it reads the 00-index.
+
+The two serve different readers and should not duplicate each other. MANIFEST tracks every document with retrieval metadata. 00-index explains why the section is organized the way it is.
+
+### Subdirectory indexes
+
+Subdirectories may also have a `00-index.md` when their organizational logic needs explanation (e.g., `05-primary-sources/00-index.md`). This is optional — use when the directory's purpose isn't obvious from its name and contents.
 
 ## Writing Style
 
