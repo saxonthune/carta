@@ -83,28 +83,20 @@ flatten <source> [--keep-index] [--at <position>] [--dry-run]
 
 Named for the most common programming term for reducing nesting by one level.
 
-**Open design decisions**:
-
-**00-index handling**: When flattening a directory, what happens to its `00-index.md`?
-- `--keep-index`: Demote the index to a regular numbered file in the parent (preserves content, needs a slot)
-- Default (discard): The index is deleted. Appropriate when the index was boilerplate. Risky if it contained meaningful content.
-- Possible safety measure: refuse to discard if the index exceeds some line threshold, require `--force` or `--keep-index`
-
-**Insertion position**: Where do the hoisted children land among existing parent siblings?
-- `--at N`: Insert starting at position N (bumps existing siblings)
-- Default: The flattened directory occupied slot M. Its children replace it starting at M, bumping later siblings. This preserves the "position in the story" of the content.
-- Alternative default: Append to end (safest, no renumbering of existing siblings)
-
-**Renumbering**: Children arrive with their own `NN-` prefixes which are meaningless in the new context. All children get renumbered sequentially starting from the insertion position.
+**Resolved decisions**:
+- **00-index handling**: Default discard with 10-line safety threshold. If >10 non-blank body lines, requires `--keep-index` or `--force`.
+- **--keep-index**: Demotes index to `NN-{parent-slug}.md` (e.g., `02-features/00-index.md` → `NN-features.md`).
+- **Insertion position**: `--at N` overrides. Default: replace at flattened directory's position. Children fill sequential slots.
 
 **Example**:
 ```bash
 carta flatten doc01.02               # dissolve features/, promote children into product
 carta flatten doc01.02 --keep-index  # same, but 00-index.md becomes a numbered sibling
-carta flatten doc01.02 --at 5        # append children starting at position 5
+carta flatten doc01.02 --at 5        # insert children starting at position 5
+carta flatten doc01.02 --force       # discard index even if it has significant content
 ```
 
-**Status**: Stub only (`carta flatten` exists but exits with error).
+**Status**: Implemented (`carta flatten`).
 
 ### regenerate
 

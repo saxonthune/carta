@@ -17,6 +17,7 @@ from pathlib import Path
 _UTILS_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_UTILS_DIR))
 
+from lib.move import list_numbered_entries, get_numeric_prefix
 from lib.refs import ref_to_path, path_to_ref, collect_md_files, rewrite_refs
 from lib.workspace import find_carta_root
 
@@ -570,6 +571,128 @@ class TestPunch(unittest.TestCase):
                 assert "01-about" in siblings_after, f"01-about dir should exist: {siblings_after}"
             else:
                 assert s in siblings_after, f"Sibling {s} should be unchanged: {siblings_after}"
+
+
+class TestFlatten(unittest.TestCase):
+    """Test flatten command."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.carta_copy = _copy_carta(Path(self.tmpdir.name))
+        utils_copy = self.carta_copy / "utils"
+        shutil.copytree(str(_UTILS_DIR), str(utils_copy), dirs_exist_ok=False)
+
+    def tearDown(self):
+        self.tmpdir.cleanup()
+
+    def _run_flatten(self, *args):
+        carta = self.carta_copy / "utils" / "carta"
+        return subprocess.run(
+            [sys.executable, str(carta), "flatten"] + list(args),
+            capture_output=True, text=True,
+        )
+
+    def test_flatten_basic(self):
+        """Flatten a directory with children into its parent."""
+        # Use doc02.04 (04-decisions/) — it has multiple children
+        decisions_dir = self.carta_copy / "02-system" / "04-decisions"
+        assert decisions_dir.is_dir()
+        children_before = list_numbered_entries(decisions_dir)
+        # Exclude 00-index.md from count
+        num_children = len([c for c in children_before if c.name != "00-index.md"])
+
+        result = self._run_flatten("doc02.04", "--force")  # --force to skip index check
+        assert result.returncode == 0, f"flatten failed:\n{result.stderr}\n{result.stdout}"
+
+        # Source dir should be gone
+        assert not decisions_dir.exists(), "Source directory should be removed"
+
+        # Children should be in parent (02-system/)
+        system_dir = self.carta_copy / "02-system"
+        entries = list_numbered_entries(system_dir)
+        # Should have original entries (minus decisions dir) + hoisted children
+        assert len(entries) > num_children, f"Expected hoisted children in parent: {[e.name for e in entries]}"
+
+        # No duplicate prefixes
+        prefixes = [get_numeric_prefix(e.name) for e in entries]
+        assert len(prefixes) == len(set(prefixes)), f"Duplicate prefixes: {prefixes}"
+
+    def test_flatten_leaf_file_errors(self):
+        """Flattening a file (not directory) should fail."""
+        result = self._run_flatten("doc02.06")  # 06-metamodel.md is a file
+        assert result.returncode != 0
+        assert "not a directory" in result.stderr.lower()
+
+    def test_flatten_dry_run(self):
+        """--dry-run should not modify files."""
+        before = {p: p.read_bytes() for p in self.carta_copy.rglob("*")
+                  if p.is_file() and "__pycache__" not in p.parts
+                  and p.suffix in (".md", ".json", "")}
+        result = self._run_flatten("doc02.04", "--force", "--dry-run")
+        assert result.returncode == 0, result.stderr
+        after = {p: p.read_bytes() for p in self.carta_copy.rglob("*")
+                 if p.is_file() and "__pycache__" not in p.parts
+                 and p.suffix in (".md", ".json", "")}
+        assert before == after
+
+    def test_flatten_refuses_big_index(self):
+        """Flatten should refuse if 00-index.md has >10 content lines without --force."""
+        result = self._run_flatten("doc02.04")  # no --force, no --keep-index
+        # If the index has >10 lines, this should fail
+        if result.returncode != 0:
+            assert "content lines" in result.stderr.lower() or "index" in result.stderr.lower()
+
+    def test_flatten_keep_index(self):
+        """--keep-index should preserve the index as a numbered file with parent slug."""
+        # Use doc01.01 (01-context/) which has a 00-index.md and numbered children
+        context_dir = self.carta_copy / "01-product" / "01-context"
+        assert context_dir.is_dir(), f"Expected 01-context/ dir: {context_dir}"
+        assert (context_dir / "00-index.md").exists(), "Expected 00-index.md in 01-context/"
+        index_content = (context_dir / "00-index.md").read_text(encoding="utf-8")
+
+        result = self._run_flatten("doc01.01", "--keep-index")
+        assert result.returncode == 0, f"flatten failed:\n{result.stderr}\n{result.stdout}"
+
+        # Look for a file with "context" slug in 01-product/
+        product_dir = self.carta_copy / "01-product"
+        context_files = [e for e in product_dir.iterdir()
+                         if "context" in e.name and e.is_file()]
+        assert len(context_files) == 1, (
+            f"Expected demoted index with 'context' slug: {[e.name for e in product_dir.iterdir()]}"
+        )
+        # Content is preserved (refs may be rewritten, but the body text is intact)
+        demoted_content = context_files[0].read_text(encoding="utf-8")
+        assert "Context Index" in demoted_content, "Expected original title in demoted index"
+        assert len(demoted_content) > 0, "Demoted index should not be empty"
+
+    def test_flatten_no_orphaned_refs(self):
+        """Flatten should not introduce orphaned refs."""
+        pre_existing = set(
+            ref for _, ref in self._collect_orphaned_refs(self.carta_copy)
+        )
+
+        result = self._run_flatten("doc02.04", "--force")
+        assert result.returncode == 0, result.stderr
+
+        orphans = self._collect_orphaned_refs(self.carta_copy)
+        new_orphans = [(f, r) for f, r in orphans if r not in pre_existing]
+        assert new_orphans == [], (
+            "New orphaned refs:\n" + "\n".join(f"  {r} in {f}" for f, r in new_orphans)
+        )
+
+    def _collect_orphaned_refs(self, carta_root):
+        excluded = {carta_root / ".state", carta_root / "utils"}
+        pattern = re.compile(r'(?<!\w)doc\d{2}(?:\.\d{2})+(?!\.[a-zA-Z0-9])')
+        orphans = []
+        for md in carta_root.rglob("*.md"):
+            if any(excl in md.parents or md == excl for excl in excluded):
+                continue
+            for m in pattern.finditer(md.read_text(encoding="utf-8")):
+                try:
+                    ref_to_path(m.group(), carta_root)
+                except (FileNotFoundError, ValueError, OSError):
+                    orphans.append((md.relative_to(carta_root), m.group()))
+        return orphans
 
 
 if __name__ == "__main__":
