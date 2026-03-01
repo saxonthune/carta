@@ -1,7 +1,7 @@
-"""Integration tests for the moveto toolchain.
+"""Integration tests for the carta CLI toolchain.
 
 Run with:
-    cd .carta/utils && python3 -m unittest tests.test_moveto -v
+    cd .carta/utils && python3 -m pytest tests/test_cli.py -v
 """
 
 import os
@@ -22,7 +22,7 @@ from lib.workspace import find_carta_root
 
 # Real .carta/ root (used to copy fixtures)
 _REAL_CARTA_ROOT = find_carta_root()
-_MOVETO_SCRIPT = _UTILS_DIR / "moveto"
+_CARTA_SCRIPT = _UTILS_DIR / "carta"
 
 
 def _copy_carta(dest: Path) -> Path:
@@ -165,9 +165,9 @@ class TestMovetoDryRun(unittest.TestCase):
 
     def test_dry_run_no_modification(self):
         """--dry-run should print output but not change files."""
-        moveto = self.carta_copy / "utils" / "moveto"
+        carta = self.carta_copy / "utils" / "carta"
 
-        # Snapshot only text-like files that moveto could plausibly modify.
+        # Snapshot only text-like files that carta move could plausibly modify.
         # Exclude __pycache__ (created by Python imports in subprocess).
         def snapshot(root: Path) -> dict[Path, bytes]:
             return {
@@ -181,19 +181,19 @@ class TestMovetoDryRun(unittest.TestCase):
         before = snapshot(self.carta_copy)
 
         result = subprocess.run(
-            [sys.executable, str(moveto), "doc00.05", "doc01", "--dry-run"],
+            [sys.executable, str(carta), "move", "doc00.05", "doc01", "--dry-run"],
             capture_output=True, text=True,
         )
 
         after = snapshot(self.carta_copy)
 
-        self.assertEqual(result.returncode, 0, f"moveto failed:\n{result.stderr}")
+        self.assertEqual(result.returncode, 0, f"carta move failed:\n{result.stderr}")
         self.assertIn("rename map", result.stdout.lower())
         self.assertEqual(before, after, "Files were modified during --dry-run")
 
 
 class TestMovetoActualMove(unittest.TestCase):
-    """Test an actual moveto operation end-to-end."""
+    """Test an actual carta move operation end-to-end."""
 
     def setUp(self):
         self.tmpdir = tempfile.TemporaryDirectory()
@@ -204,10 +204,10 @@ class TestMovetoActualMove(unittest.TestCase):
     def tearDown(self):
         self.tmpdir.cleanup()
 
-    def _run_moveto(self, *args: str) -> subprocess.CompletedProcess:
-        moveto = self.carta_copy / "utils" / "moveto"
+    def _run_move(self, *args: str) -> subprocess.CompletedProcess:
+        carta = self.carta_copy / "utils" / "carta"
         return subprocess.run(
-            [sys.executable, str(moveto)] + list(args),
+            [sys.executable, str(carta), "move"] + list(args),
             capture_output=True, text=True,
         )
 
@@ -222,8 +222,8 @@ class TestMovetoActualMove(unittest.TestCase):
         source = self.carta_copy / "00-codex" / "05-ai-retrieval.md"
         self.assertTrue(source.exists(), "Source must exist before move")
 
-        result = self._run_moveto("doc00.05", "doc01")
-        self.assertEqual(result.returncode, 0, f"moveto failed:\n{result.stderr}\n{result.stdout}")
+        result = self._run_move("doc00.05", "doc01")
+        self.assertEqual(result.returncode, 0, f"carta move failed:\n{result.stderr}\n{result.stdout}")
 
         # Source no longer exists at old location
         self.assertFalse(source.exists(), "Source should not exist at old location")
@@ -300,18 +300,18 @@ class TestSameDirReorder(unittest.TestCase):
     def tearDown(self):
         self.tmpdir.cleanup()
 
-    def _run_moveto(self, *args: str) -> subprocess.CompletedProcess:
-        moveto = self.carta_copy / "utils" / "moveto"
+    def _run_move(self, *args: str) -> subprocess.CompletedProcess:
+        carta = self.carta_copy / "utils" / "carta"
         return subprocess.run(
-            [sys.executable, str(moveto)] + list(args),
+            [sys.executable, str(carta), "move"] + list(args),
             capture_output=True, text=True,
         )
 
     def test_move_later_entry_to_first(self):
         """Moving a later entry to position 1 should not leave gaps."""
         # 03-operations -> position 1
-        result = self._run_moveto("03-operations", ".", "--order", "1")
-        self.assertEqual(result.returncode, 0, f"moveto failed:\n{result.stderr}\n{result.stdout}")
+        result = self._run_move("03-operations", ".", "--order", "1")
+        self.assertEqual(result.returncode, 0, f"carta move failed:\n{result.stderr}\n{result.stdout}")
 
         # Check: entries should be 01-operations, 02-product, 03-system, 04-research (renumbered)
         entries = sorted(
@@ -340,8 +340,8 @@ class TestSameDirReorder(unittest.TestCase):
             for e in entries_before
         )
 
-        result = self._run_moveto("01-product", ".", "--order", str(max_prefix))
-        self.assertEqual(result.returncode, 0, f"moveto failed:\n{result.stderr}\n{result.stdout}")
+        result = self._run_move("01-product", ".", "--order", str(max_prefix))
+        self.assertEqual(result.returncode, 0, f"carta move failed:\n{result.stderr}\n{result.stdout}")
 
         entries = sorted(
             e.name for e in self.carta_copy.iterdir()
@@ -367,10 +367,10 @@ class TestCrossSiblingMove(unittest.TestCase):
     def tearDown(self):
         self.tmpdir.cleanup()
 
-    def _run_moveto(self, *args: str) -> subprocess.CompletedProcess:
-        moveto = self.carta_copy / "utils" / "moveto"
+    def _run_move(self, *args: str) -> subprocess.CompletedProcess:
+        carta = self.carta_copy / "utils" / "carta"
         return subprocess.run(
-            [sys.executable, str(moveto)] + list(args),
+            [sys.executable, str(carta), "move"] + list(args),
             capture_output=True, text=True,
         )
 
@@ -412,8 +412,8 @@ class TestCrossSiblingMove(unittest.TestCase):
             ref for _, ref in self._collect_orphaned_refs(self.carta_copy)
         )
 
-        result = self._run_moveto("doc01", "doc03", "--order", "1")
-        self.assertEqual(result.returncode, 0, f"moveto failed:\n{result.stderr}\n{result.stdout}")
+        result = self._run_move("doc01", "doc03", "--order", "1")
+        self.assertEqual(result.returncode, 0, f"carta move failed:\n{result.stderr}\n{result.stdout}")
 
         # Top-level should have no gaps
         entries = sorted(
@@ -449,6 +449,53 @@ class TestCrossSiblingMove(unittest.TestCase):
             f"New orphaned refs introduced:\n"
             + "\n".join(f"  {r} in {f}" for f, r in new_orphans),
         )
+
+
+class TestRename(unittest.TestCase):
+    """Test --rename flag for move."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.carta_copy = _copy_carta(Path(self.tmpdir.name))
+        utils_copy = self.carta_copy / "utils"
+        shutil.copytree(str(_UTILS_DIR), str(utils_copy), dirs_exist_ok=False)
+
+    def tearDown(self):
+        self.tmpdir.cleanup()
+
+    def _run_move(self, *args: str) -> subprocess.CompletedProcess:
+        carta = self.carta_copy / "utils" / "carta"
+        return subprocess.run(
+            [sys.executable, str(carta), "move"] + list(args),
+            capture_output=True, text=True,
+        )
+
+    def test_rename_in_place(self):
+        """--rename with same dir should only change the slug."""
+        # Rename 01-product → 01-diagramming (same position)
+        result = self._run_move("01-product", ".", "--rename", "diagramming")
+        assert result.returncode == 0, result.stderr
+        entries = [e.name for e in self.carta_copy.iterdir() if re.match(r'^\d{2}-', e.name)]
+        assert any("diagramming" in e for e in entries), f"Expected diagramming in {entries}"
+        assert not any("product" in e for e in entries), f"product should be renamed: {entries}"
+
+    def test_rename_with_move(self):
+        """--rename combined with a destination should move and rename."""
+        result = self._run_move("doc00.05", "doc01", "--rename", "retrieval-patterns")
+        assert result.returncode == 0, result.stderr
+        dest_dir = self.carta_copy / "01-product"
+        new_files = [e.name for e in dest_dir.iterdir() if "retrieval-patterns" in e.name]
+        assert len(new_files) == 1, f"Expected retrieval-patterns in dest: {list(dest_dir.iterdir())}"
+
+    def test_rename_dry_run(self):
+        """--rename --dry-run should not modify files."""
+        before = {p: p.read_bytes() for p in self.carta_copy.rglob("*")
+                  if p.is_file() and "__pycache__" not in p.parts and p.suffix in (".md", ".json", "")}
+        result = self._run_move("01-product", ".", "--rename", "diagramming", "--dry-run")
+        assert result.returncode == 0, result.stderr
+        after = {p: p.read_bytes() for p in self.carta_copy.rglob("*")
+                 if p.is_file() and "__pycache__" not in p.parts and p.suffix in (".md", ".json", "")}
+        assert before == after, "Files were modified during --dry-run"
 
 
 if __name__ == "__main__":

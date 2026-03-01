@@ -24,9 +24,11 @@ from .regenerate import do_regenerate
               help="Insert at position N (1-indexed). Default: append to end.")
 @click.option("--mkdir", is_flag=True,
               help="Create destination if it doesn't exist (NOT IMPLEMENTED).")
+@click.option("--rename", "rename_slug", default=None, metavar="SLUG",
+              help="Rename the entry's slug (the part after NN-).")
 @click.option("--dry-run", is_flag=True,
               help="Print planned moves without executing.")
-def move(source: str, destination: str, order: int | None, mkdir: bool, dry_run: bool) -> None:
+def move(source: str, destination: str, order: int | None, mkdir: bool, rename_slug: str | None, dry_run: bool) -> None:
     """Move and/or reorder a doc entry with automatic ref renumbering."""
     if mkdir:
         click.echo("Error: --mkdir is not implemented.", err=True)
@@ -51,6 +53,10 @@ def move(source: str, destination: str, order: int | None, mkdir: bool, dry_run:
 
     if not source_path.exists():
         click.echo(f"Error: source does not exist: {source_path}", err=True)
+        raise SystemExit(1)
+
+    if rename_slug and source_path.name == "00-index.md":
+        click.echo("Error: cannot rename 00-index.md files.", err=True)
         raise SystemExit(1)
 
     try:
@@ -79,7 +85,7 @@ def move(source: str, destination: str, order: int | None, mkdir: bool, dry_run:
 
     # Compute all filesystem moves
     try:
-        moves = compute_all_moves(source_path, dest_path, order)
+        moves = compute_all_moves(source_path, dest_path, order, rename_slug=rename_slug)
     except ValueError as e:
         click.echo(f"Error computing moves: {e}", err=True)
         raise SystemExit(1)

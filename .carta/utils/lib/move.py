@@ -71,6 +71,7 @@ def compute_all_moves(
     source_path: Path,
     dest_dir: Path,
     order: int | None,
+    rename_slug: str | None = None,
 ) -> list[tuple[Path, Path]]:
     """Compute the complete list of (old_path, new_path) filesystem moves.
 
@@ -88,11 +89,11 @@ def compute_all_moves(
 
     if same_dir:
         return _compute_same_dir_moves(
-            source_path, dest_dir, order, source_prefix, source_slug,
+            source_path, dest_dir, order, source_prefix, source_slug, rename_slug,
         )
     else:
         return _compute_cross_dir_moves(
-            source_path, dest_dir, order, source_prefix, source_slug,
+            source_path, dest_dir, order, source_prefix, source_slug, rename_slug,
         )
 
 
@@ -102,6 +103,7 @@ def _compute_same_dir_moves(
     order: int | None,
     source_prefix: int,
     source_slug: str,
+    rename_slug: str | None = None,
 ) -> list[tuple[Path, Path]]:
     """Compute moves for reordering within the same directory.
 
@@ -120,7 +122,10 @@ def _compute_same_dir_moves(
         insertion_prefix = order
 
     if insertion_prefix == source_prefix:
-        return []  # no-op
+        if rename_slug and rename_slug != source_slug:
+            new_name = f"{source_prefix:02d}-{rename_slug}"
+            return [(source_path, dest_dir / new_name)]
+        return []  # true no-op
 
     moves: list[tuple[Path, Path]] = []
     entries = list_numbered_entries(dest_dir)
@@ -149,7 +154,8 @@ def _compute_same_dir_moves(
             moves.append((entry, entry.parent / new_name))
 
     # Main move (last, after shifts free the slot)
-    new_name = f"{insertion_prefix:02d}-{source_slug}"
+    effective_slug = rename_slug if rename_slug else source_slug
+    new_name = f"{insertion_prefix:02d}-{effective_slug}"
     moves.append((source_path, dest_dir / new_name))
 
     return moves
@@ -161,6 +167,7 @@ def _compute_cross_dir_moves(
     order: int | None,
     source_prefix: int,
     source_slug: str,
+    rename_slug: str | None = None,
 ) -> list[tuple[Path, Path]]:
     """Compute moves for moving an entry to a different directory.
 
@@ -174,7 +181,8 @@ def _compute_cross_dir_moves(
     else:
         insertion_prefix = order
 
-    new_source_name = f"{insertion_prefix:02d}-{source_slug}"
+    effective_slug = rename_slug if rename_slug else source_slug
+    new_source_name = f"{insertion_prefix:02d}-{effective_slug}"
     moves: list[tuple[Path, Path]] = []
 
     # 1. Destination sibling bumps (prefix >= insertion_prefix), highest first

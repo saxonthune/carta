@@ -48,7 +48,7 @@ carta move doc01.02.01 doc01 --order 2 --rename diagramming  # move + rename
 carta move doc01.02 . --order 5                  # reorder within same directory
 ```
 
-**Status**: Implemented (`carta move`). `--rename` not yet implemented.
+**Status**: Implemented (`carta move`).
 
 ### punch
 
