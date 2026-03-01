@@ -52,7 +52,7 @@ A VS Code extension that lets users interact with a `.carta/` workspace director
 
 Two launch configs in `.vscode/launch.json`:
 
-**Dev Mode** (hot reload): F5 with "Carta Extension (Dev Mode)" selected. Requires `pnpm dev` running separately. Set `carta.devMode: true` in EDH settings.
+**Dev Mode** (hot reload): F5 with "Carta Extension (Dev Mode)" selected. The pre-launch task starts Vite automatically (`pnpm demo`). Set `carta.devMode: true` in EDH settings.
 
 **Bundled Mode** (production-like): F5 with "Carta Extension (Bundled)" selected. No Vite server needed.
 

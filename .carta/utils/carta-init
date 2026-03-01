@@ -1,0 +1,48 @@
+#!/usr/bin/env python3
+"""carta-init — initialize workspace.json with externalRefPaths.
+
+Adds the `externalRefPaths` field to .carta/workspace.json if not already
+present. Preserves all existing fields.
+
+Usage:
+    carta-init
+"""
+
+import sys
+import json
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from lib.workspace import find_carta_root
+
+DEFAULT_EXTERNAL_REF_PATHS = [
+    "CLAUDE.md",
+    ".claude/skills/**/*.md",
+    ".cursor/**/*.md",
+]
+
+
+def main() -> int:
+    try:
+        carta_root = find_carta_root()
+    except FileNotFoundError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+    ws_path = carta_root / "workspace.json"
+    ws = json.loads(ws_path.read_text(encoding="utf-8"))
+
+    if "externalRefPaths" in ws:
+        print(f"workspace.json already has externalRefPaths: {ws['externalRefPaths']}")
+        return 0
+
+    ws["externalRefPaths"] = DEFAULT_EXTERNAL_REF_PATHS
+    ws_path.write_text(json.dumps(ws, indent=2) + "\n", encoding="utf-8")
+    print(f"Added externalRefPaths to {ws_path}")
+    print(json.dumps({"externalRefPaths": ws["externalRefPaths"]}, indent=2))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -94,7 +94,15 @@ export class CartaCanvasEditorProvider implements vscode.CustomReadonlyEditorPro
 
     if (this.devMode) {
       webviewPanel.webview.options = { enableScripts: true };
-      webviewPanel.webview.html = buildDevModeHtml(roomName, serverInfo?.url ?? null);
+      const serverUrl = serverInfo?.url ?? null;
+      webviewPanel.webview.html = buildDevModeHtml(roomName, serverUrl);
+
+      // Log the iframe URL for browser debugging
+      const params = new URLSearchParams();
+      if (roomName) params.set('doc', roomName);
+      params.set('embedded', 'true');
+      if (serverUrl) params.set('syncUrl', serverUrl);
+      this.output.appendLine(`  iframe: http://localhost:5173?${params.toString()}`);
       return;
     }
 

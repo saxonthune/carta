@@ -24,8 +24,12 @@ export default function CanvasContainer({
   const [showLayoutMap, setShowLayoutMap] = useState(false);
 
   useEffect(() => {
-    performance.mark('carta:canvas-mounted')
-    performance.measure('carta:render-to-canvas', 'carta:render-start', 'carta:canvas-mounted')
+    try {
+      performance.mark('carta:canvas-mounted')
+      performance.measure('carta:render-to-canvas', 'carta:render-start', 'carta:canvas-mounted')
+    } catch {
+      // carta:render-start mark not set — skip measurement
+    }
   }, [])
 
   return (

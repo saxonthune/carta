@@ -5,7 +5,10 @@
       "name": "Carta Extension (Dev Mode)",
       "type": "extensionHost",
       "request": "launch",
-      "args": ["--extensionDevelopmentPath=${workspaceFolder}/packages/vscode"],
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/packages/vscode",
+        "--folder-uri=${workspaceFolder}/../carta-workspace-debug"
+      ],
       "outFiles": ["${workspaceFolder}/packages/vscode/dist/**/*.js"],
       "preLaunchTask": "Carta Extension (Dev Mode)",
       "sourceMaps": true
@@ -14,7 +17,10 @@
       "name": "Carta Extension (Bundled)",
       "type": "extensionHost",
       "request": "launch",
-      "args": ["--extensionDevelopmentPath=${workspaceFolder}/packages/vscode"],
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/packages/vscode",
+        "--folder-uri=${workspaceFolder}/../carta-workspace-debug"
+      ],
       "outFiles": ["${workspaceFolder}/packages/vscode/dist/**/*.js"],
       "preLaunchTask": "Build Carta Extension",
       "sourceMaps": true
