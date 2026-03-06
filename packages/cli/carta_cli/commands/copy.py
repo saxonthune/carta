@@ -8,7 +8,6 @@ import click
 
 from ..entries import resolve_arg, list_numbered_entries
 from ..numbering import get_numeric_prefix, compute_insertion_prefix
-from ..workspace import find_carta_root
 from .regenerate import do_regenerate
 
 
@@ -20,14 +19,15 @@ from .regenerate import do_regenerate
 @click.option("--rename", "rename_slug", default=None, metavar="SLUG",
               help="Slug for the copied file (default: derived from source filename).")
 @click.option("--dry-run", is_flag=True, help="Print planned changes without executing.")
-def copy(source_file: str, destination: str, order: int | None,
+@click.pass_context
+def copy(ctx: click.Context, source_file: str, destination: str, order: int | None,
          rename_slug: str | None, dry_run: bool) -> None:
     """Copy a file into the workspace at a given position.
 
     Copies SOURCE_FILE into DESTINATION directory with automatic numbering.
     Useful for restoring files from backup into a restructured workspace.
     """
-    carta_root = find_carta_root()
+    carta_root = ctx.obj["workspace"]
     source_path = Path(source_file).resolve()
 
     if order is not None and order < 1:

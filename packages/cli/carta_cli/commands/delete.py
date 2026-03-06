@@ -11,7 +11,7 @@ from ..numbering import get_numeric_prefix, get_slug
 from ..planning import compute_rename_map
 from ..ref_convert import path_to_ref
 from ..rewriter import collect_md_files, rewrite_refs
-from ..workspace import find_carta_root, load_workspace, get_external_ref_paths
+from ..workspace import load_workspace, get_external_ref_paths
 from .regenerate import do_regenerate
 
 
@@ -71,9 +71,10 @@ def _find_orphaned_refs(
 @click.option("--dry-run", is_flag=True, help="Print planned changes without executing.")
 @click.option("--output-mapping", is_flag=True,
               help="Print the computed rename map as JSON to stdout after execution.")
-def delete(targets: tuple[str, ...], dry_run: bool, output_mapping: bool) -> None:
+@click.pass_context
+def delete(ctx: click.Context, targets: tuple[str, ...], dry_run: bool, output_mapping: bool) -> None:
     """Delete one or more doc entries with automatic gap-closing."""
-    carta_root = find_carta_root()
+    carta_root = ctx.obj["workspace"]
 
     # Resolve all targets
     target_paths: list[Path] = []

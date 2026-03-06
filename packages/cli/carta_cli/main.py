@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """carta — workspace tools for managing .carta/ documentation structure.
 
 Usage:
@@ -17,30 +16,42 @@ Commands:
     init                 Initialize workspace.json
 """
 
-import sys
 from pathlib import Path
-
-# Ensure lib/ is importable
-sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import click
 
-from lib.commands.create import create
-from lib.commands.delete import delete
-from lib.commands.move_cmd import move
-from lib.commands.regenerate import regenerate
-from lib.commands.migrate import migrate_frontmatter
-from lib.commands.init import init
-from lib.commands.punch import punch
-from lib.commands.flatten import flatten
-from lib.commands.rewrite import rewrite
-from lib.commands.copy import copy
+from .workspace import find_workspace
+from .commands.create import create
+from .commands.delete import delete
+from .commands.move_cmd import move
+from .commands.regenerate import regenerate
+from .commands.migrate import migrate_frontmatter
+from .commands.init import init
+from .commands.punch import punch
+from .commands.flatten import flatten
+from .commands.rewrite import rewrite
+from .commands.copy import copy
 
 
 @click.group()
-def cli() -> None:
+@click.option(
+    "--workspace", "-w",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    default=None,
+    help="Path to the .carta/ workspace directory. Default: auto-detect from cwd.",
+)
+@click.pass_context
+def cli(ctx: click.Context, workspace: Path | None) -> None:
     """Workspace tools for managing .carta/ documentation structure."""
-    pass
+    ctx.ensure_object(dict)
+    if workspace is not None:
+        ctx.obj["workspace"] = workspace
+    else:
+        try:
+            ctx.obj["workspace"] = find_workspace()
+        except FileNotFoundError as e:
+            click.echo(f"Error: {e}", err=True)
+            raise SystemExit(1)
 
 
 cli.add_command(create)

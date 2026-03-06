@@ -1,7 +1,7 @@
 """Integration tests for the carta CLI toolchain.
 
 Run with:
-    cd .carta/utils && python3 -m pytest tests/test_cli.py -v
+    python3 -m pytest packages/cli/tests/test_cli.py -v
 """
 
 import os
@@ -13,30 +13,34 @@ import tempfile
 import unittest
 from pathlib import Path
 
-# Ensure lib/ is importable
-_UTILS_DIR = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(_UTILS_DIR))
+# Ensure carta_cli is importable without prior pip install
+_CLI_DIR = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(_CLI_DIR))
 
-from lib.entries import list_numbered_entries
-from lib.numbering import get_numeric_prefix
-from lib.ref_convert import ref_to_path, path_to_ref
-from lib.rewriter import collect_md_files, rewrite_refs
-from lib.workspace import find_carta_root
+from carta_cli.entries import list_numbered_entries
+from carta_cli.numbering import get_numeric_prefix
+from carta_cli.ref_convert import ref_to_path, path_to_ref
+from carta_cli.rewriter import collect_md_files, rewrite_refs
+from carta_cli.workspace import find_workspace
 
 # Real .carta/ root (used to copy fixtures)
-_REAL_CARTA_ROOT = find_carta_root()
-_CARTA_SCRIPT = _UTILS_DIR / "carta"
+_REAL_CARTA_ROOT = find_workspace()
+_ENV_WITH_CLI = {**os.environ, "PYTHONPATH": str(_CLI_DIR)}
 
 
 def _copy_carta(dest: Path) -> Path:
     """Copy the real .carta/ into dest/. Returns dest/.carta/."""
     carta_copy = dest / ".carta"
     shutil.copytree(str(_REAL_CARTA_ROOT), str(carta_copy), dirs_exist_ok=False)
-    # Remove the utils/ directory from the copy to avoid re-entrancy
-    utils_copy = carta_copy / "utils"
-    if utils_copy.exists():
-        shutil.rmtree(str(utils_copy))
     return carta_copy
+
+
+def _run_carta(carta_copy: Path, *args: str) -> subprocess.CompletedProcess:
+    """Run the carta CLI against a workspace copy."""
+    return subprocess.run(
+        [sys.executable, "-m", "carta_cli.main", "--workspace", str(carta_copy)] + list(args),
+        capture_output=True, text=True, env=_ENV_WITH_CLI,
+    )
 
 
 class TestRefToPath(unittest.TestCase):
@@ -46,8 +50,8 @@ class TestRefToPath(unittest.TestCase):
         self.root = _REAL_CARTA_ROOT
 
     def test_ref_to_path_file(self):
-        path = ref_to_path("doc02.06", self.root)
-        self.assertTrue(path.name.startswith("06-"))
+        path = ref_to_path("doc02.01", self.root)
+        self.assertTrue(path.name.startswith("01-"))
         self.assertTrue(path.name.endswith(".md"))
         self.assertTrue(path.exists(), f"Expected file to exist: {path}")
 
@@ -57,7 +61,7 @@ class TestRefToPath(unittest.TestCase):
         self.assertTrue(path.name.startswith("04-"))
 
     def test_ref_to_path_roundtrip(self):
-        known_refs = ["doc02.06", "doc00.01", "doc01.02.01.01", "doc02.04"]
+        known_refs = ["doc02.01", "doc00.01", "doc01.01.01", "doc02.04"]
         for ref in known_refs:
             with self.subTest(ref=ref):
                 resolved = ref_to_path(ref, self.root)
@@ -138,7 +142,7 @@ class TestComputeRenameMap(unittest.TestCase):
 
     def test_gap_closing(self):
         """After removing 01-foo, 02-bar should become 01-bar."""
-        from lib.planning import compute_rename_map
+        from carta_cli.planning import compute_rename_map
         old_foo = self.tmp / "01-a" / "01-foo.md"
         new_foo = self.tmp / "02-b" / "01-foo.md"
         old_bar = self.tmp / "01-a" / "02-bar.md"
@@ -159,34 +163,24 @@ class TestMovetoDryRun(unittest.TestCase):
     def setUp(self):
         self.tmpdir = tempfile.TemporaryDirectory()
         self.carta_copy = _copy_carta(Path(self.tmpdir.name))
-        # We need a fresh copy of utils/ in the carta_copy for the script to find carta_root
-        utils_copy = self.carta_copy / "utils"
-        shutil.copytree(str(_UTILS_DIR), str(utils_copy), dirs_exist_ok=False)
 
     def tearDown(self):
         self.tmpdir.cleanup()
 
     def test_dry_run_no_modification(self):
         """--dry-run should print output but not change files."""
-        carta = self.carta_copy / "utils" / "carta"
-
         # Snapshot only text-like files that carta move could plausibly modify.
-        # Exclude __pycache__ (created by Python imports in subprocess).
         def snapshot(root: Path) -> dict[Path, bytes]:
             return {
                 p: p.read_bytes()
                 for p in root.rglob("*")
                 if p.is_file()
-                and "__pycache__" not in p.parts
                 and p.suffix in (".md", ".json", ".txt", "")
             }
 
         before = snapshot(self.carta_copy)
 
-        result = subprocess.run(
-            [sys.executable, str(carta), "move", "doc00.05", "doc01", "--dry-run"],
-            capture_output=True, text=True,
-        )
+        result = _run_carta(self.carta_copy, "move", "doc00.05", "doc01", "--dry-run")
 
         after = snapshot(self.carta_copy)
 
@@ -201,18 +195,9 @@ class TestMovetoActualMove(unittest.TestCase):
     def setUp(self):
         self.tmpdir = tempfile.TemporaryDirectory()
         self.carta_copy = _copy_carta(Path(self.tmpdir.name))
-        utils_copy = self.carta_copy / "utils"
-        shutil.copytree(str(_UTILS_DIR), str(utils_copy), dirs_exist_ok=False)
 
     def tearDown(self):
         self.tmpdir.cleanup()
-
-    def _run_move(self, *args: str) -> subprocess.CompletedProcess:
-        carta = self.carta_copy / "utils" / "carta"
-        return subprocess.run(
-            [sys.executable, str(carta), "move"] + list(args),
-            capture_output=True, text=True,
-        )
 
     def test_actual_move_doc00_05_to_doc01(self):
         """Move doc00.05 (05-ai-retrieval.md) into doc01 (01-context/)."""
@@ -225,7 +210,7 @@ class TestMovetoActualMove(unittest.TestCase):
         source = self.carta_copy / "00-codex" / "05-ai-retrieval.md"
         self.assertTrue(source.exists(), "Source must exist before move")
 
-        result = self._run_move("doc00.05", "doc01")
+        result = _run_carta(self.carta_copy, "move", "doc00.05", "doc01")
         self.assertEqual(result.returncode, 0, f"carta move failed:\n{result.stderr}\n{result.stdout}")
 
         # Source no longer exists at old location
@@ -244,7 +229,7 @@ class TestMovetoActualMove(unittest.TestCase):
 
     def _assert_no_duplicate_prefixes(self, carta_root: Path) -> None:
         """Assert no directory has two entries with the same 2-digit numeric prefix."""
-        excluded = {carta_root / ".state", carta_root / "utils"}
+        excluded = {carta_root / ".state"}
         for dirpath in carta_root.rglob("*"):
             if not dirpath.is_dir():
                 continue
@@ -263,7 +248,7 @@ class TestMovetoActualMove(unittest.TestCase):
 
     def _collect_orphaned_refs(self, carta_root: Path) -> list[tuple]:
         """Return (relative_md_path, ref) pairs for all unresolvable refs."""
-        excluded = {carta_root / ".state", carta_root / "utils"}
+        excluded = {carta_root / ".state"}
         pattern = re.compile(r'(?<!\w)doc\d{2}(?:\.\d{2})+(?!\.[a-zA-Z0-9])')
         orphans = []
 
@@ -297,26 +282,16 @@ class TestSameDirReorder(unittest.TestCase):
     def setUp(self):
         self.tmpdir = tempfile.TemporaryDirectory()
         self.carta_copy = _copy_carta(Path(self.tmpdir.name))
-        utils_copy = self.carta_copy / "utils"
-        shutil.copytree(str(_UTILS_DIR), str(utils_copy), dirs_exist_ok=False)
 
     def tearDown(self):
         self.tmpdir.cleanup()
 
-    def _run_move(self, *args: str) -> subprocess.CompletedProcess:
-        carta = self.carta_copy / "utils" / "carta"
-        return subprocess.run(
-            [sys.executable, str(carta), "move"] + list(args),
-            capture_output=True, text=True,
-        )
-
     def test_move_later_entry_to_first(self):
         """Moving a later entry to position 1 should not leave gaps."""
-        # 03-operations -> position 1
-        result = self._run_move("03-operations", ".", "--order", "1")
+        # 02-architecture -> position 1
+        result = _run_carta(self.carta_copy, "move", "02-architecture", ".", "--order", "1")
         self.assertEqual(result.returncode, 0, f"carta move failed:\n{result.stderr}\n{result.stdout}")
 
-        # Check: entries should be 01-operations, 02-product, 03-system, 04-research (renumbered)
         entries = sorted(
             e.name for e in self.carta_copy.iterdir()
             if re.match(r'^\d{2}-', e.name)
@@ -325,11 +300,11 @@ class TestSameDirReorder(unittest.TestCase):
         # No gaps: consecutive from min to max
         self.assertEqual(prefixes, list(range(prefixes[0], prefixes[0] + len(prefixes))),
                          f"Expected no gaps in numbering: {entries}")
-        # Operations is at position 01 (after 00-codex)
-        ops_entries = [e for e in entries if "operations" in e]
-        self.assertEqual(len(ops_entries), 1)
-        self.assertTrue(ops_entries[0].startswith("01-"),
-                         f"Expected operations at position 01: {ops_entries[0]}")
+        # Architecture is at position 01 (after 00-codex)
+        arch_entries = [e for e in entries if "architecture" in e]
+        self.assertEqual(len(arch_entries), 1)
+        self.assertTrue(arch_entries[0].startswith("01-"),
+                         f"Expected architecture at position 01: {arch_entries[0]}")
 
     def test_move_first_entry_to_last(self):
         """Moving the first entry to the end should not leave gaps."""
@@ -343,7 +318,7 @@ class TestSameDirReorder(unittest.TestCase):
             for e in entries_before
         )
 
-        result = self._run_move("01-product", ".", "--order", str(max_prefix))
+        result = _run_carta(self.carta_copy, "move", "01-product", ".", "--order", str(max_prefix))
         self.assertEqual(result.returncode, 0, f"carta move failed:\n{result.stderr}\n{result.stdout}")
 
         entries = sorted(
@@ -364,21 +339,12 @@ class TestCrossSiblingMove(unittest.TestCase):
     def setUp(self):
         self.tmpdir = tempfile.TemporaryDirectory()
         self.carta_copy = _copy_carta(Path(self.tmpdir.name))
-        utils_copy = self.carta_copy / "utils"
-        shutil.copytree(str(_UTILS_DIR), str(utils_copy), dirs_exist_ok=False)
 
     def tearDown(self):
         self.tmpdir.cleanup()
 
-    def _run_move(self, *args: str) -> subprocess.CompletedProcess:
-        carta = self.carta_copy / "utils" / "carta"
-        return subprocess.run(
-            [sys.executable, str(carta), "move"] + list(args),
-            capture_output=True, text=True,
-        )
-
     def _assert_no_duplicate_prefixes(self, carta_root: Path) -> None:
-        excluded = {carta_root / ".state", carta_root / "utils"}
+        excluded = {carta_root / ".state"}
         for dirpath in carta_root.rglob("*"):
             if not dirpath.is_dir():
                 continue
@@ -396,7 +362,7 @@ class TestCrossSiblingMove(unittest.TestCase):
             )
 
     def _collect_orphaned_refs(self, carta_root: Path) -> list[tuple]:
-        excluded = {carta_root / ".state", carta_root / "utils"}
+        excluded = {carta_root / ".state"}
         pattern = re.compile(r'(?<!\w)doc\d{2}(?:\.\d{2})+(?!\.[a-zA-Z0-9])')
         orphans = []
         for md in carta_root.rglob("*.md"):
@@ -409,13 +375,13 @@ class TestCrossSiblingMove(unittest.TestCase):
                     orphans.append((md.relative_to(carta_root), m.group()))
         return orphans
 
-    def test_move_product_into_sibling_operations(self):
-        """Move 01-product into 03-operations (dest gets gap-closed from 03→02)."""
+    def test_move_product_into_sibling_architecture(self):
+        """Move 01-product into 02-architecture (dest gets gap-closed from 02→01)."""
         pre_existing_orphans = set(
             ref for _, ref in self._collect_orphaned_refs(self.carta_copy)
         )
 
-        result = self._run_move("doc01", "doc03", "--order", "1")
+        result = _run_carta(self.carta_copy, "move", "doc01", "doc02", "--order", "1")
         self.assertEqual(result.returncode, 0, f"carta move failed:\n{result.stderr}\n{result.stdout}")
 
         # Top-level should have no gaps
@@ -427,17 +393,17 @@ class TestCrossSiblingMove(unittest.TestCase):
         self.assertEqual(prefixes, list(range(0, len(prefixes))),
                          f"Expected no gaps in top-level numbering: {entries}")
 
-        # Operations dir (gap-closed from 03 to 02)
-        ops_dir = None
+        # Architecture dir (gap-closed from 02 to 01)
+        arch_dir = None
         for e in self.carta_copy.iterdir():
-            if "operations" in e.name:
-                ops_dir = e
+            if "architecture" in e.name:
+                arch_dir = e
                 break
-        self.assertIsNotNone(ops_dir, "Operations directory not found")
+        self.assertIsNotNone(arch_dir, "Architecture directory not found")
 
-        product_entries = [e for e in ops_dir.iterdir() if "product" in e.name]
+        product_entries = [e for e in arch_dir.iterdir() if "product" in e.name]
         self.assertEqual(len(product_entries), 1,
-                         f"Expected product inside operations: {list(ops_dir.iterdir())}")
+                         f"Expected product inside architecture: {list(arch_dir.iterdir())}")
         self.assertTrue(product_entries[0].name.startswith("01-"),
                          f"Product should be at position 01: {product_entries[0].name}")
 
@@ -460,23 +426,14 @@ class TestRename(unittest.TestCase):
     def setUp(self):
         self.tmpdir = tempfile.TemporaryDirectory()
         self.carta_copy = _copy_carta(Path(self.tmpdir.name))
-        utils_copy = self.carta_copy / "utils"
-        shutil.copytree(str(_UTILS_DIR), str(utils_copy), dirs_exist_ok=False)
 
     def tearDown(self):
         self.tmpdir.cleanup()
 
-    def _run_move(self, *args: str) -> subprocess.CompletedProcess:
-        carta = self.carta_copy / "utils" / "carta"
-        return subprocess.run(
-            [sys.executable, str(carta), "move"] + list(args),
-            capture_output=True, text=True,
-        )
-
     def test_rename_in_place(self):
         """--rename with same dir should only change the slug."""
         # Rename 01-product → 01-diagramming (same position)
-        result = self._run_move("01-product", ".", "--rename", "diagramming")
+        result = _run_carta(self.carta_copy, "move", "01-product", ".", "--rename", "diagramming")
         assert result.returncode == 0, result.stderr
         entries = [e.name for e in self.carta_copy.iterdir() if re.match(r'^\d{2}-', e.name)]
         assert any("diagramming" in e for e in entries), f"Expected diagramming in {entries}"
@@ -484,7 +441,7 @@ class TestRename(unittest.TestCase):
 
     def test_rename_with_move(self):
         """--rename combined with a destination should move and rename."""
-        result = self._run_move("doc00.05", "doc01", "--rename", "retrieval-patterns")
+        result = _run_carta(self.carta_copy, "move", "doc00.05", "doc01", "--rename", "retrieval-patterns")
         assert result.returncode == 0, result.stderr
         dest_dir = self.carta_copy / "01-product"
         new_files = [e.name for e in dest_dir.iterdir() if "retrieval-patterns" in e.name]
@@ -493,11 +450,11 @@ class TestRename(unittest.TestCase):
     def test_rename_dry_run(self):
         """--rename --dry-run should not modify files."""
         before = {p: p.read_bytes() for p in self.carta_copy.rglob("*")
-                  if p.is_file() and "__pycache__" not in p.parts and p.suffix in (".md", ".json", "")}
-        result = self._run_move("01-product", ".", "--rename", "diagramming", "--dry-run")
+                  if p.is_file() and p.suffix in (".md", ".json", "")}
+        result = _run_carta(self.carta_copy, "move", "01-product", ".", "--rename", "diagramming", "--dry-run")
         assert result.returncode == 0, result.stderr
         after = {p: p.read_bytes() for p in self.carta_copy.rglob("*")
-                 if p.is_file() and "__pycache__" not in p.parts and p.suffix in (".md", ".json", "")}
+                 if p.is_file() and p.suffix in (".md", ".json", "")}
         assert before == after, "Files were modified during --dry-run"
 
 
@@ -507,18 +464,9 @@ class TestPunch(unittest.TestCase):
     def setUp(self):
         self.tmpdir = tempfile.TemporaryDirectory()
         self.carta_copy = _copy_carta(Path(self.tmpdir.name))
-        utils_copy = self.carta_copy / "utils"
-        shutil.copytree(str(_UTILS_DIR), str(utils_copy), dirs_exist_ok=False)
 
     def tearDown(self):
         self.tmpdir.cleanup()
-
-    def _run_punch(self, *args):
-        carta = self.carta_copy / "utils" / "carta"
-        return subprocess.run(
-            [sys.executable, str(carta), "punch"] + list(args),
-            capture_output=True, text=True,
-        )
 
     def test_punch_leaf_file(self):
         """Punching a leaf file creates NN-slug/00-index.md."""
@@ -528,7 +476,7 @@ class TestPunch(unittest.TestCase):
         assert leaf.exists(), f"Expected leaf file: {leaf}"
         original_content = leaf.read_text(encoding="utf-8")
 
-        result = self._run_punch("doc00.01")
+        result = _run_carta(self.carta_copy, "punch", "doc00.01")
         assert result.returncode == 0, f"punch failed:\n{result.stderr}"
 
         # Original file should be gone
@@ -545,7 +493,7 @@ class TestPunch(unittest.TestCase):
 
     def test_punch_directory_errors(self):
         """Punching a directory should fail."""
-        result = self._run_punch("doc02.04")  # 04-decisions/ is a directory
+        result = _run_carta(self.carta_copy, "punch", "doc02.04")  # 04-decisions/ is a directory
         assert result.returncode != 0, "punch should fail on directory"
         assert "directory" in result.stderr.lower()
 
@@ -553,7 +501,7 @@ class TestPunch(unittest.TestCase):
         """--dry-run should not modify files."""
         leaf = self.carta_copy / "00-codex" / "01-about.md"
         before = leaf.read_bytes()
-        result = self._run_punch("doc00.01", "--dry-run")
+        result = _run_carta(self.carta_copy, "punch", "doc00.01", "--dry-run")
         assert result.returncode == 0, result.stderr
         assert leaf.exists(), "File should still exist after dry-run"
         assert leaf.read_bytes() == before
@@ -563,7 +511,7 @@ class TestPunch(unittest.TestCase):
         codex = self.carta_copy / "00-codex"
         siblings_before = sorted(e.name for e in codex.iterdir() if re.match(r'^\d{2}-', e.name))
 
-        self._run_punch("doc00.01")
+        _run_carta(self.carta_copy, "punch", "doc00.01")
 
         siblings_after = sorted(e.name for e in codex.iterdir() if re.match(r'^\d{2}-', e.name))
         # 01-about.md should become 01-about/ — same prefix, different type
@@ -581,36 +529,27 @@ class TestFlatten(unittest.TestCase):
     def setUp(self):
         self.tmpdir = tempfile.TemporaryDirectory()
         self.carta_copy = _copy_carta(Path(self.tmpdir.name))
-        utils_copy = self.carta_copy / "utils"
-        shutil.copytree(str(_UTILS_DIR), str(utils_copy), dirs_exist_ok=False)
 
     def tearDown(self):
         self.tmpdir.cleanup()
 
-    def _run_flatten(self, *args):
-        carta = self.carta_copy / "utils" / "carta"
-        return subprocess.run(
-            [sys.executable, str(carta), "flatten"] + list(args),
-            capture_output=True, text=True,
-        )
-
     def test_flatten_basic(self):
         """Flatten a directory with children into its parent."""
-        # Use doc02.04 (04-decisions/) — it has multiple children
-        decisions_dir = self.carta_copy / "02-system" / "04-decisions"
+        # Use doc02.06 (06-decisions/) — it has multiple children
+        decisions_dir = self.carta_copy / "02-architecture" / "06-decisions"
         assert decisions_dir.is_dir()
         children_before = list_numbered_entries(decisions_dir)
         # Exclude 00-index.md from count
         num_children = len([c for c in children_before if c.name != "00-index.md"])
 
-        result = self._run_flatten("doc02.04", "--force")  # --force to skip index check
+        result = _run_carta(self.carta_copy, "flatten", "doc02.06", "--force")
         assert result.returncode == 0, f"flatten failed:\n{result.stderr}\n{result.stdout}"
 
         # Source dir should be gone
         assert not decisions_dir.exists(), "Source directory should be removed"
 
-        # Children should be in parent (02-system/)
-        system_dir = self.carta_copy / "02-system"
+        # Children should be in parent (02-architecture/)
+        system_dir = self.carta_copy / "02-architecture"
         entries = list_numbered_entries(system_dir)
         # Should have original entries (minus decisions dir) + hoisted children
         assert len(entries) > num_children, f"Expected hoisted children in parent: {[e.name for e in entries]}"
@@ -621,50 +560,48 @@ class TestFlatten(unittest.TestCase):
 
     def test_flatten_leaf_file_errors(self):
         """Flattening a file (not directory) should fail."""
-        result = self._run_flatten("doc02.06")  # 06-metamodel.md is a file
+        result = _run_carta(self.carta_copy, "flatten", "doc02.01")  # 01-overview.md is a file
         assert result.returncode != 0
         assert "not a directory" in result.stderr.lower()
 
     def test_flatten_dry_run(self):
         """--dry-run should not modify files."""
         before = {p: p.read_bytes() for p in self.carta_copy.rglob("*")
-                  if p.is_file() and "__pycache__" not in p.parts
+                  if p.is_file()
                   and p.suffix in (".md", ".json", "")}
-        result = self._run_flatten("doc02.04", "--force", "--dry-run")
+        result = _run_carta(self.carta_copy, "flatten", "doc02.06", "--force", "--dry-run")
         assert result.returncode == 0, result.stderr
         after = {p: p.read_bytes() for p in self.carta_copy.rglob("*")
-                 if p.is_file() and "__pycache__" not in p.parts
+                 if p.is_file()
                  and p.suffix in (".md", ".json", "")}
         assert before == after
 
     def test_flatten_refuses_big_index(self):
         """Flatten should refuse if 00-index.md has >10 content lines without --force."""
-        result = self._run_flatten("doc02.04")  # no --force, no --keep-index
+        result = _run_carta(self.carta_copy, "flatten", "doc02.06")  # no --force, no --keep-index
         # If the index has >10 lines, this should fail
         if result.returncode != 0:
             assert "content lines" in result.stderr.lower() or "index" in result.stderr.lower()
 
     def test_flatten_keep_index(self):
         """--keep-index should preserve the index as a numbered file with parent slug."""
-        # Use doc01.01 (01-context/) which has a 00-index.md and numbered children
-        context_dir = self.carta_copy / "01-product" / "01-context"
-        assert context_dir.is_dir(), f"Expected 01-context/ dir: {context_dir}"
-        assert (context_dir / "00-index.md").exists(), "Expected 00-index.md in 01-context/"
-        index_content = (context_dir / "00-index.md").read_text(encoding="utf-8")
+        # Use doc01.01 (01-goals/) which has a 00-index.md and numbered children
+        goals_dir = self.carta_copy / "01-product" / "01-goals"
+        assert goals_dir.is_dir(), f"Expected 01-goals/ dir: {goals_dir}"
+        assert (goals_dir / "00-index.md").exists(), "Expected 00-index.md in 01-goals/"
 
-        result = self._run_flatten("doc01.01", "--keep-index")
+        result = _run_carta(self.carta_copy, "flatten", "doc01.01", "--keep-index")
         assert result.returncode == 0, f"flatten failed:\n{result.stderr}\n{result.stdout}"
 
-        # Look for a file with "context" slug in 01-product/
+        # Look for a file with "goals" slug in 01-product/
         product_dir = self.carta_copy / "01-product"
-        context_files = [e for e in product_dir.iterdir()
-                         if "context" in e.name and e.is_file()]
-        assert len(context_files) == 1, (
-            f"Expected demoted index with 'context' slug: {[e.name for e in product_dir.iterdir()]}"
+        goals_files = [e for e in product_dir.iterdir()
+                       if "goals" in e.name and e.is_file()]
+        assert len(goals_files) == 1, (
+            f"Expected demoted index with 'goals' slug: {[e.name for e in product_dir.iterdir()]}"
         )
-        # Content is preserved (refs may be rewritten, but the body text is intact)
-        demoted_content = context_files[0].read_text(encoding="utf-8")
-        assert "Context Index" in demoted_content, "Expected original title in demoted index"
+        # Content is preserved
+        demoted_content = goals_files[0].read_text(encoding="utf-8")
         assert len(demoted_content) > 0, "Demoted index should not be empty"
 
     def test_flatten_no_orphaned_refs(self):
@@ -673,7 +610,7 @@ class TestFlatten(unittest.TestCase):
             ref for _, ref in self._collect_orphaned_refs(self.carta_copy)
         )
 
-        result = self._run_flatten("doc02.04", "--force")
+        result = _run_carta(self.carta_copy, "flatten", "doc02.06", "--force")
         assert result.returncode == 0, result.stderr
 
         orphans = self._collect_orphaned_refs(self.carta_copy)
@@ -683,7 +620,7 @@ class TestFlatten(unittest.TestCase):
         )
 
     def _collect_orphaned_refs(self, carta_root):
-        excluded = {carta_root / ".state", carta_root / "utils"}
+        excluded = {carta_root / ".state"}
         pattern = re.compile(r'(?<!\w)doc\d{2}(?:\.\d{2})+(?!\.[a-zA-Z0-9])')
         orphans = []
         for md in carta_root.rglob("*.md"):
@@ -703,21 +640,12 @@ class TestDelete(unittest.TestCase):
     def setUp(self):
         self.tmpdir = tempfile.TemporaryDirectory()
         self.carta_copy = _copy_carta(Path(self.tmpdir.name))
-        utils_copy = self.carta_copy / "utils"
-        shutil.copytree(str(_UTILS_DIR), str(utils_copy), dirs_exist_ok=False)
 
     def tearDown(self):
         self.tmpdir.cleanup()
 
-    def _run_delete(self, *args):
-        carta = self.carta_copy / "utils" / "carta"
-        return subprocess.run(
-            [sys.executable, str(carta), "delete"] + list(args),
-            capture_output=True, text=True,
-        )
-
     def _assert_no_duplicate_prefixes(self, carta_root):
-        excluded = {carta_root / ".state", carta_root / "utils"}
+        excluded = {carta_root / ".state"}
         for dirpath in carta_root.rglob("*"):
             if not dirpath.is_dir():
                 continue
@@ -732,7 +660,7 @@ class TestDelete(unittest.TestCase):
             assert duplicates == [], f"Duplicate prefixes in {dirpath}: {sorted(set(duplicates))}"
 
     def _collect_orphaned_refs(self, carta_root):
-        excluded = {carta_root / ".state", carta_root / "utils"}
+        excluded = {carta_root / ".state"}
         pattern = re.compile(r'(?<!\w)doc\d{2}(?:\.\d{2})+(?!\.[a-zA-Z0-9])')
         orphans = []
         for md in carta_root.rglob("*.md"):
@@ -754,7 +682,7 @@ class TestDelete(unittest.TestCase):
         entries_before = list_numbered_entries(codex)
         count_before = len(entries_before)
 
-        result = self._run_delete("doc00.03")
+        result = _run_carta(self.carta_copy, "delete", "doc00.03")
         assert result.returncode == 0, f"delete failed:\n{result.stderr}\n{result.stdout}"
 
         # File should be gone
@@ -773,12 +701,12 @@ class TestDelete(unittest.TestCase):
 
     def test_delete_directory(self):
         """Delete a directory, verify dir + contents gone and siblings gap-closed."""
-        # Delete doc02.04 (04-decisions/)
-        system = self.carta_copy / "02-system"
-        target = system / "04-decisions"
+        # Delete doc02.06 (06-decisions/)
+        arch = self.carta_copy / "02-architecture"
+        target = arch / "06-decisions"
         assert target.is_dir()
 
-        result = self._run_delete("doc02.04")
+        result = _run_carta(self.carta_copy, "delete", "doc02.06")
         assert result.returncode == 0, f"delete failed:\n{result.stderr}\n{result.stdout}"
 
         assert not target.exists()
@@ -790,7 +718,7 @@ class TestDelete(unittest.TestCase):
         entries_before = list_numbered_entries(codex)
         count_before = len(entries_before)
 
-        result = self._run_delete("doc00.02", "doc00.04")
+        result = _run_carta(self.carta_copy, "delete", "doc00.02", "doc00.04")
         assert result.returncode == 0, f"delete failed:\n{result.stderr}\n{result.stdout}"
 
         entries_after = list_numbered_entries(codex)
@@ -806,26 +734,26 @@ class TestDelete(unittest.TestCase):
     def test_delete_dry_run(self):
         """--dry-run should not modify files."""
         before = {p: p.read_bytes() for p in self.carta_copy.rglob("*")
-                  if p.is_file() and "__pycache__" not in p.parts
+                  if p.is_file()
                   and p.suffix in (".md", ".json", "")}
-        result = self._run_delete("doc00.03", "--dry-run")
+        result = _run_carta(self.carta_copy, "delete", "doc00.03", "--dry-run")
         assert result.returncode == 0, result.stderr
         after = {p: p.read_bytes() for p in self.carta_copy.rglob("*")
-                 if p.is_file() and "__pycache__" not in p.parts
+                 if p.is_file()
                  and p.suffix in (".md", ".json", "")}
         assert before == after, "Files were modified during --dry-run"
 
     def test_delete_orphan_warning(self):
         """Delete entry referenced by other docs, verify warning in output."""
-        # doc02.06 (metamodel) is referenced by many docs
-        result = self._run_delete("doc02.06", "--dry-run")
+        # doc02.04.02 (metamodel) is referenced by many docs
+        result = _run_carta(self.carta_copy, "delete", "doc02.04.02", "--dry-run")
         assert result.returncode == 0, result.stderr
         assert "orphan" in result.stdout.lower(), \
             f"Expected orphan warning in output:\n{result.stdout}"
 
     def test_delete_nonexistent_errors(self):
         """Non-zero exit on bad ref."""
-        result = self._run_delete("doc99.99")
+        result = _run_carta(self.carta_copy, "delete", "doc99.99")
         assert result.returncode != 0
 
     def test_delete_no_new_orphans(self):
@@ -838,7 +766,7 @@ class TestDelete(unittest.TestCase):
         entries = list_numbered_entries(codex)
         last = entries[-1]
 
-        result = self._run_delete(str(last.relative_to(self.carta_copy)))
+        result = _run_carta(self.carta_copy, "delete", str(last.relative_to(self.carta_copy)))
         assert result.returncode == 0, f"delete failed:\n{result.stderr}\n{result.stdout}"
 
         orphans = self._collect_orphaned_refs(self.carta_copy)
@@ -854,18 +782,9 @@ class TestCreate(unittest.TestCase):
     def setUp(self):
         self.tmpdir = tempfile.TemporaryDirectory()
         self.carta_copy = _copy_carta(Path(self.tmpdir.name))
-        utils_copy = self.carta_copy / "utils"
-        shutil.copytree(str(_UTILS_DIR), str(utils_copy), dirs_exist_ok=False)
 
     def tearDown(self):
         self.tmpdir.cleanup()
-
-    def _run_create(self, *args):
-        carta = self.carta_copy / "utils" / "carta"
-        return subprocess.run(
-            [sys.executable, str(carta), "create"] + list(args),
-            capture_output=True, text=True,
-        )
 
     def test_create_appends(self):
         """Create with no --order appends at max+1 position."""
@@ -873,7 +792,7 @@ class TestCreate(unittest.TestCase):
         entries_before = list_numbered_entries(codex)
         max_prefix = max(get_numeric_prefix(e.name) for e in entries_before)
 
-        result = self._run_create("doc00", "test-doc")
+        result = _run_carta(self.carta_copy, "create", "doc00", "test-doc")
         assert result.returncode == 0, f"create failed:\n{result.stderr}\n{result.stdout}"
 
         # File should exist at max+1
@@ -881,7 +800,7 @@ class TestCreate(unittest.TestCase):
         assert expected.exists(), f"Expected file at {expected}"
 
         # Check frontmatter
-        from lib.frontmatter import read_frontmatter
+        from carta_cli.frontmatter import read_frontmatter
         fm, body = read_frontmatter(expected)
         assert fm["title"] == "Test Doc"
         assert fm["status"] == "draft"
@@ -898,7 +817,7 @@ class TestCreate(unittest.TestCase):
         max_prefix = max(get_numeric_prefix(e.name) for e in entries)
         free_pos = max_prefix + 5  # definitely free
 
-        result = self._run_create("doc00", "free-slot", "--order", str(free_pos))
+        result = _run_carta(self.carta_copy, "create", "doc00", "free-slot", "--order", str(free_pos))
         assert result.returncode == 0, f"create failed:\n{result.stderr}\n{result.stdout}"
 
         expected = codex / f"{free_pos:02d}-free-slot.md"
@@ -906,32 +825,32 @@ class TestCreate(unittest.TestCase):
 
     def test_create_at_occupied_position_errors(self):
         """Create with --order at occupied slot should error."""
-        result = self._run_create("doc00", "bad-slot", "--order", "1")
+        result = _run_carta(self.carta_copy, "create", "doc00", "bad-slot", "--order", "1")
         assert result.returncode != 0
         assert "occupied" in result.stderr.lower()
 
     def test_create_with_title(self):
         """--title overrides slug-derived title."""
-        result = self._run_create("doc00", "my-thing", "--title", "My Custom Title")
+        result = _run_carta(self.carta_copy, "create", "doc00", "my-thing", "--title", "My Custom Title")
         assert result.returncode == 0, f"create failed:\n{result.stderr}\n{result.stdout}"
 
         codex = self.carta_copy / "00-codex"
         created = [e for e in codex.iterdir() if "my-thing" in e.name]
         assert len(created) == 1
 
-        from lib.frontmatter import read_frontmatter
+        from carta_cli.frontmatter import read_frontmatter
         fm, _ = read_frontmatter(created[0])
         assert fm["title"] == "My Custom Title"
 
     def test_create_dry_run(self):
         """--dry-run should not create files."""
         before = {p: p.read_bytes() for p in self.carta_copy.rglob("*")
-                  if p.is_file() and "__pycache__" not in p.parts
+                  if p.is_file()
                   and p.suffix in (".md", ".json", "")}
-        result = self._run_create("doc00", "phantom", "--dry-run")
+        result = _run_carta(self.carta_copy, "create", "doc00", "phantom", "--dry-run")
         assert result.returncode == 0, result.stderr
         after = {p: p.read_bytes() for p in self.carta_copy.rglob("*")
-                 if p.is_file() and "__pycache__" not in p.parts
+                 if p.is_file()
                  and p.suffix in (".md", ".json", "")}
         assert before == after, "Files were modified during --dry-run"
 
@@ -942,28 +861,19 @@ class TestMkdir(unittest.TestCase):
     def setUp(self):
         self.tmpdir = tempfile.TemporaryDirectory()
         self.carta_copy = _copy_carta(Path(self.tmpdir.name))
-        utils_copy = self.carta_copy / "utils"
-        shutil.copytree(str(_UTILS_DIR), str(utils_copy), dirs_exist_ok=False)
 
     def tearDown(self):
         self.tmpdir.cleanup()
 
-    def _run_move(self, *args):
-        carta = self.carta_copy / "utils" / "carta"
-        return subprocess.run(
-            [sys.executable, str(carta), "move"] + list(args),
-            capture_output=True, text=True,
-        )
-
     def test_mkdir_creates_destination(self):
         """Move with --mkdir to nonexistent path creates dir with 00-index.md."""
         # Create a new dir path under an existing section
-        new_dir = "02-system/99-new-section"
-        result = self._run_move("doc02.06", new_dir, "--mkdir")
+        new_dir = "02-architecture/99-new-section"
+        result = _run_carta(self.carta_copy, "move", "doc02.01", new_dir, "--mkdir")
         assert result.returncode == 0, f"move --mkdir failed:\n{result.stderr}\n{result.stdout}"
 
         # The dir may have been renumbered by gap-closing, so look for "new-section" by slug
-        system = self.carta_copy / "02-system"
+        system = self.carta_copy / "02-architecture"
         new_section_dirs = [e for e in system.iterdir() if "new-section" in e.name and e.is_dir()]
         assert len(new_section_dirs) == 1, f"Expected new-section dir: {[e.name for e in system.iterdir()]}"
 
@@ -971,28 +881,28 @@ class TestMkdir(unittest.TestCase):
         assert (dest / "00-index.md").exists(), "00-index.md should be created"
 
         # Source should be moved into the new dir
-        moved = [e for e in dest.iterdir() if "metamodel" in e.name]
-        assert len(moved) == 1, f"Expected metamodel in new dir: {list(dest.iterdir())}"
+        moved = [e for e in dest.iterdir() if "overview" in e.name]
+        assert len(moved) == 1, f"Expected overview in new dir: {list(dest.iterdir())}"
 
     def test_mkdir_dry_run(self):
         """--mkdir --dry-run should not create dirs (but creates+cleans up internally)."""
-        new_dir = "02-system/99-new-section"
-        before_dirs = set(str(p) for p in self.carta_copy.rglob("*") if p.is_dir() and "__pycache__" not in p.parts)
+        new_dir = "02-architecture/99-new-section"
+        before_dirs = set(str(p) for p in self.carta_copy.rglob("*") if p.is_dir())
 
-        result = self._run_move("doc02.06", new_dir, "--mkdir", "--dry-run")
+        result = _run_carta(self.carta_copy, "move", "doc02.06", new_dir, "--mkdir", "--dry-run")
         assert result.returncode == 0, f"move --mkdir --dry-run failed:\n{result.stderr}\n{result.stdout}"
 
-        after_dirs = set(str(p) for p in self.carta_copy.rglob("*") if p.is_dir() and "__pycache__" not in p.parts)
+        after_dirs = set(str(p) for p in self.carta_copy.rglob("*") if p.is_dir())
         assert before_dirs == after_dirs, "Directories were created during --dry-run"
 
     def test_mkdir_existing_dir_noop(self):
         """--mkdir when dest exists works normally (no error, no extra dir)."""
-        result = self._run_move("doc00.05", "doc01", "--mkdir")
+        result = _run_carta(self.carta_copy, "move", "doc00.05", "doc01", "--mkdir")
         assert result.returncode == 0, f"move --mkdir failed:\n{result.stderr}\n{result.stdout}"
 
     def test_move_without_mkdir_still_errors(self):
         """Without --mkdir, moving to nonexistent path should error."""
-        result = self._run_move("doc02.06", "02-system/99-nonexistent")
+        result = _run_carta(self.carta_copy, "move", "doc02.06", "02-architecture/99-nonexistent")
         assert result.returncode != 0
 
 

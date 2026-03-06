@@ -10,7 +10,7 @@ from ..entries import resolve_arg, list_numbered_entries
 from ..numbering import get_numeric_prefix, get_slug
 from ..planning import compute_rename_map
 from ..rewriter import collect_md_files, rewrite_refs
-from ..workspace import find_carta_root, load_workspace, get_external_ref_paths
+from ..workspace import load_workspace, get_external_ref_paths
 from ..frontmatter import read_frontmatter
 from .regenerate import do_regenerate
 
@@ -31,10 +31,11 @@ def _count_content_lines(path: Path) -> int:
               help="Insert children starting at position N. Default: flattened dir's position.")
 @click.option("--dry-run", is_flag=True,
               help="Print planned changes without executing.")
-def flatten(source: str, keep_index: bool, force: bool,
+@click.pass_context
+def flatten(ctx: click.Context, source: str, keep_index: bool, force: bool,
             at_position: int | None, dry_run: bool) -> None:
     """Dissolve a directory, hoisting children into the parent."""
-    carta_root = find_carta_root()
+    carta_root = ctx.obj["workspace"]
 
     try:
         source_path = resolve_arg(source, carta_root)

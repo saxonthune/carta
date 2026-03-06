@@ -1,7 +1,7 @@
 """Tests for regenerate and migrate-frontmatter toolchain.
 
 Run with:
-    cd .carta/utils && python3 -m pytest tests/test_regenerate.py -v
+    python3 -m pytest packages/cli/tests/test_regenerate.py -v
 """
 
 import re
@@ -12,16 +12,16 @@ import tempfile
 import unittest
 from pathlib import Path
 
-# Ensure lib/ is importable
-_UTILS_DIR = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(_UTILS_DIR))
+# Ensure carta_cli is importable without prior pip install
+_CLI_DIR = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(_CLI_DIR))
 
-from lib.workspace import find_carta_root
-from lib.ref_convert import ref_to_path
-from lib.frontmatter import read_frontmatter, write_frontmatter
+from carta_cli.workspace import find_workspace
+from carta_cli.ref_convert import ref_to_path
+from carta_cli.frontmatter import read_frontmatter, write_frontmatter
 
-_REAL_CARTA_ROOT = find_carta_root()
-_CARTA_SCRIPT = _UTILS_DIR / "carta"
+_REAL_CARTA_ROOT = find_workspace()
+_ENV_WITH_CLI = {**__import__("os").environ, "PYTHONPATH": str(_CLI_DIR)}
 
 
 # ---------------------------------------------------------------------------
@@ -32,12 +32,15 @@ def _copy_carta(dest: Path) -> Path:
     """Copy the real .carta/ into dest/. Returns dest/.carta/."""
     carta_copy = dest / ".carta"
     shutil.copytree(str(_REAL_CARTA_ROOT), str(carta_copy), dirs_exist_ok=False)
-    utils_copy = carta_copy / "utils"
-    if utils_copy.exists():
-        shutil.rmtree(str(utils_copy))
-    # Copy utils/ back so scripts are runnable
-    shutil.copytree(str(_UTILS_DIR), str(utils_copy), dirs_exist_ok=False)
     return carta_copy
+
+
+def _run_carta(carta_copy: Path, *args: str) -> subprocess.CompletedProcess:
+    """Run the carta CLI against a workspace copy."""
+    return subprocess.run(
+        [sys.executable, "-m", "carta_cli.main", "--workspace", str(carta_copy)] + list(args),
+        capture_output=True, text=True, env=_ENV_WITH_CLI,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -134,13 +137,6 @@ class TestMigrateAddsMissingFields(unittest.TestCase):
     def tearDown(self):
         self.tmpdir.cleanup()
 
-    def _run_migrate(self, *args: str) -> subprocess.CompletedProcess:
-        carta = self.carta_copy / "utils" / "carta"
-        return subprocess.run(
-            [sys.executable, str(carta), "migrate-frontmatter"] + list(args),
-            capture_output=True, text=True,
-        )
-
     def test_migrate_adds_fields(self):
         """A doc with only title/status gets summary/tags/deps after migration."""
         # Use a doc we know starts with just title/status (strip its frontmatter)
@@ -150,7 +146,7 @@ class TestMigrateAddsMissingFields(unittest.TestCase):
         stripped = {"title": fm.get("title", "About"), "status": fm.get("status", "active")}
         write_frontmatter(target, stripped, body)
 
-        result = self._run_migrate()
+        result = _run_carta(self.carta_copy, "migrate-frontmatter")
         self.assertEqual(result.returncode, 0, f"migrate failed:\n{result.stderr}")
 
         fm2, _ = read_frontmatter(target)
@@ -164,7 +160,7 @@ class TestMigrateAddsMissingFields(unittest.TestCase):
         target = self.carta_copy / "00-codex" / "02-taxonomy.md"
         before = target.read_bytes()
 
-        result = self._run_migrate("--dry-run")
+        result = _run_carta(self.carta_copy, "migrate-frontmatter", "--dry-run")
         self.assertEqual(result.returncode, 0, f"migrate --dry-run failed:\n{result.stderr}")
 
         after = target.read_bytes()
@@ -186,13 +182,6 @@ class TestMigratePreservesExistingFields(unittest.TestCase):
     def tearDown(self):
         self.tmpdir.cleanup()
 
-    def _run_migrate(self, *args: str) -> subprocess.CompletedProcess:
-        carta = self.carta_copy / "utils" / "carta"
-        return subprocess.run(
-            [sys.executable, str(carta), "migrate-frontmatter"] + list(args),
-            capture_output=True, text=True,
-        )
-
     def test_existing_summary_not_overwritten(self):
         """An existing non-empty summary is preserved after migration."""
         target = self.carta_copy / "00-codex" / "03-conventions.md"
@@ -201,7 +190,7 @@ class TestMigratePreservesExistingFields(unittest.TestCase):
         fm["summary"] = original_summary
         write_frontmatter(target, fm, body)
 
-        result = self._run_migrate()
+        result = _run_carta(self.carta_copy, "migrate-frontmatter")
         self.assertEqual(result.returncode, 0)
 
         fm2, _ = read_frontmatter(target)
@@ -223,27 +212,17 @@ class TestRegenerateIncludesAllDocs(unittest.TestCase):
     def tearDown(self):
         self.tmpdir.cleanup()
 
-    def _run_regenerate(self, *args: str) -> subprocess.CompletedProcess:
-        carta = self.carta_copy / "utils" / "carta"
-        return subprocess.run(
-            [sys.executable, str(carta), "regenerate"] + list(args),
-            capture_output=True, text=True,
-        )
-
     def test_all_docs_appear(self):
-        """Every numbered .md file (excluding MANIFEST.md and utils/) has a row."""
-        result = self._run_regenerate("--dry-run")
+        """Every numbered .md file (excluding MANIFEST.md) has a row."""
+        result = _run_carta(self.carta_copy, "regenerate", "--dry-run")
         self.assertEqual(result.returncode, 0, f"regenerate failed:\n{result.stderr}")
 
         output = result.stdout
 
         # Find all numbered .md files under carta_copy
-        excluded = {self.carta_copy / "utils"}
         numeric_re = re.compile(r'^\d{2}-')
         md_files = []
         for md in self.carta_copy.rglob("*.md"):
-            if any(excl in md.parents for excl in excluded):
-                continue
             if md.name == "MANIFEST.md":
                 continue
             if numeric_re.match(md.name):
@@ -256,8 +235,9 @@ class TestRegenerateIncludesAllDocs(unittest.TestCase):
             if f"`{filename}`" not in output and f"`{filename.replace('.md', '')}`" not in output:
                 # Try checking by ref
                 try:
-                    from lib.ref_convert import path_to_ref
-                    ref = path_to_ref(md, self.carta_copy)
+                    ref = ref_to_path.__module__ and __import__(
+                        "carta_cli.ref_convert", fromlist=["path_to_ref"]
+                    ).path_to_ref(md, self.carta_copy)
                     if ref not in output:
                         missing.append(str(md.relative_to(self.carta_copy)))
                 except ValueError:
@@ -281,27 +261,17 @@ class TestTagIndexComplete(unittest.TestCase):
     def tearDown(self):
         self.tmpdir.cleanup()
 
-    def _run_regenerate(self, *args: str) -> subprocess.CompletedProcess:
-        carta = self.carta_copy / "utils" / "carta"
-        return subprocess.run(
-            [sys.executable, str(carta), "regenerate"] + list(args),
-            capture_output=True, text=True,
-        )
-
     def test_tag_index_contains_all_tags(self):
         """Every tag declared in a doc's frontmatter appears in the tag index."""
-        result = self._run_regenerate("--dry-run")
+        result = _run_carta(self.carta_copy, "regenerate", "--dry-run")
         self.assertEqual(result.returncode, 0, f"regenerate failed:\n{result.stderr}")
         output = result.stdout
 
         # Collect all tags from all doc frontmatter
-        excluded = {self.carta_copy / "utils"}
         numeric_re = re.compile(r'^\d{2}-')
         all_tags = set()
 
         for md in self.carta_copy.rglob("*.md"):
-            if any(excl in md.parents for excl in excluded):
-                continue
             if md.name == "MANIFEST.md":
                 continue
             if not numeric_re.match(md.name):
@@ -327,7 +297,7 @@ class TestTagIndexComplete(unittest.TestCase):
 
     def test_deps_column_uses_emdash_for_empty(self):
         """Rows with no deps show — not an empty string."""
-        result = self._run_regenerate("--dry-run")
+        result = _run_carta(self.carta_copy, "regenerate", "--dry-run")
         self.assertEqual(result.returncode, 0)
 
         rows = [l for l in result.stdout.splitlines() if l.startswith("| doc")]
@@ -353,16 +323,9 @@ class TestRefsResolve(unittest.TestCase):
     def tearDown(self):
         self.tmpdir.cleanup()
 
-    def _run_regenerate(self, *args: str) -> subprocess.CompletedProcess:
-        carta = self.carta_copy / "utils" / "carta"
-        return subprocess.run(
-            [sys.executable, str(carta), "regenerate"] + list(args),
-            capture_output=True, text=True,
-        )
-
     def test_all_refs_resolve(self):
         """ref_to_path resolves each doc ref emitted in the generated MANIFEST."""
-        result = self._run_regenerate("--dry-run")
+        result = _run_carta(self.carta_copy, "regenerate", "--dry-run")
         self.assertEqual(result.returncode, 0, f"regenerate failed:\n{result.stderr}")
 
         # Extract all doc refs from table rows (first column)

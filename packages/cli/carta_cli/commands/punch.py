@@ -7,18 +7,18 @@ import click
 
 from ..entries import resolve_arg
 from ..numbering import get_numeric_prefix
-from ..workspace import find_carta_root
 
 
 @click.command()
 @click.argument("source")
 @click.option("--dry-run", is_flag=True, help="Print planned changes without executing.")
-def punch(source: str, dry_run: bool) -> None:
+@click.pass_context
+def punch(ctx: click.Context, source: str, dry_run: bool) -> None:
     """Expand a leaf file into a directory.
 
     Turns NN-slug.md into NN-slug/00-index.md. The doc ref remains stable.
     """
-    carta_root = find_carta_root()
+    carta_root = ctx.obj["workspace"]
 
     try:
         source_path = resolve_arg(source, carta_root)

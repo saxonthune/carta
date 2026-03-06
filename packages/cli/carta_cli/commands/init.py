@@ -5,8 +5,6 @@ from pathlib import Path
 
 import click
 
-from ..workspace import find_carta_root
-
 
 DEFAULT_EXTERNAL_REF_PATHS = [
     "CLAUDE.md",
@@ -16,13 +14,10 @@ DEFAULT_EXTERNAL_REF_PATHS = [
 
 
 @click.command()
-def init() -> None:
+@click.pass_context
+def init(ctx: click.Context) -> None:
     """Initialize workspace.json with externalRefPaths."""
-    try:
-        carta_root = find_carta_root()
-    except FileNotFoundError as e:
-        click.echo(f"Error: {e}", err=True)
-        raise SystemExit(1)
+    carta_root = ctx.obj["workspace"]
 
     ws_path = carta_root / "workspace.json"
     ws = json.loads(ws_path.read_text(encoding="utf-8"))

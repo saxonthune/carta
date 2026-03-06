@@ -6,12 +6,11 @@ from pathlib import Path
 def collect_md_files(carta_root: Path, external_paths: list[Path]) -> list[Path]:
     """Return all .md files to scan for ref updates.
 
-    Includes all .md files under carta_root (excluding .state/ and utils/),
+    Includes all .md files under carta_root (excluding .state/),
     plus the external_paths resolved from workspace.json.
     """
     excluded_dirs = {
         carta_root / ".state",
-        carta_root / "utils",
     }
 
     files: list[Path] = []

@@ -1,6 +1,5 @@
 """move command — move and/or reorder a doc entry with automatic ref renumbering."""
 
-import sys
 import shutil
 from pathlib import Path
 
@@ -11,7 +10,7 @@ from ..numbering import get_slug
 from ..planning import compute_all_moves, compute_rename_map, print_rename_map
 from ..rewriter import collect_md_files, rewrite_refs
 from ..frontmatter import write_frontmatter
-from ..workspace import find_carta_root, load_workspace, get_external_ref_paths
+from ..workspace import load_workspace, get_external_ref_paths
 from .regenerate import do_regenerate
 
 
@@ -36,7 +35,8 @@ def _create_index_for_new_dir(dir_path: Path) -> None:
               help="Rename the entry's slug (the part after NN-).")
 @click.option("--dry-run", is_flag=True,
               help="Print planned moves without executing.")
-def move(source: str, destination: str, order: int | None, mkdir: bool, rename_slug: str | None, dry_run: bool) -> None:
+@click.pass_context
+def move(ctx: click.Context, source: str, destination: str, order: int | None, mkdir: bool, rename_slug: str | None, dry_run: bool) -> None:
     """Move and/or reorder a doc entry with automatic ref renumbering."""
     if order is not None and order < 1:
         click.echo(
@@ -46,7 +46,7 @@ def move(source: str, destination: str, order: int | None, mkdir: bool, rename_s
         raise SystemExit(1)
 
     # Resolve .carta/ root
-    carta_root = find_carta_root()
+    carta_root = ctx.obj["workspace"]
 
     # Resolve source and destination
     try:

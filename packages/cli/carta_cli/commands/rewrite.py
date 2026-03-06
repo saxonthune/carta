@@ -7,7 +7,7 @@ from pathlib import Path
 import click
 
 from ..rewriter import collect_md_files, rewrite_refs
-from ..workspace import find_carta_root, load_workspace, get_external_ref_paths
+from ..workspace import load_workspace, get_external_ref_paths
 
 
 @click.command()
@@ -16,7 +16,8 @@ from ..workspace import find_carta_root, load_workspace, get_external_ref_paths
 @click.option('--from-json', 'json_file', type=click.Path(exists=True),
               help='Read mappings from a JSON file ({"old": "new", ...}).')
 @click.option('--dry-run', is_flag=True, help='Show what would change without modifying files.')
-def rewrite(mappings: tuple[str, ...], json_file: str | None, dry_run: bool) -> None:
+@click.pass_context
+def rewrite(ctx: click.Context, mappings: tuple[str, ...], json_file: str | None, dry_run: bool) -> None:
     """Rewrite doc refs across the workspace using user-supplied mappings."""
     rename_map: dict[str, str] = {}
 
@@ -45,7 +46,7 @@ def rewrite(mappings: tuple[str, ...], json_file: str | None, dry_run: bool) -> 
         click.echo("Error: no mappings provided. Use --map or --from-json.", err=True)
         raise SystemExit(1)
 
-    carta_root = find_carta_root()
+    carta_root = ctx.obj["workspace"]
     ws = load_workspace(carta_root)
     external_paths = get_external_ref_paths(ws, carta_root)
 

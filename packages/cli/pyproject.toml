@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "carta-cli"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "click",
+    "pyyaml",
+]
+
+[project.scripts]
+carta = "carta_cli.main:cli"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["carta_cli*"]
+
+[tool.setuptools.package-data]
+carta_cli = ["manifest-preamble.md"]
