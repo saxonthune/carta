@@ -69,7 +69,9 @@ def _find_orphaned_refs(
 @click.command()
 @click.argument("targets", nargs=-1, required=True)
 @click.option("--dry-run", is_flag=True, help="Print planned changes without executing.")
-def delete(targets: tuple[str, ...], dry_run: bool) -> None:
+@click.option("--output-mapping", is_flag=True,
+              help="Print the computed rename map as JSON to stdout after execution.")
+def delete(targets: tuple[str, ...], dry_run: bool, output_mapping: bool) -> None:
     """Delete one or more doc entries with automatic gap-closing."""
     carta_root = find_carta_root()
 
@@ -175,6 +177,12 @@ def delete(targets: tuple[str, ...], dry_run: bool) -> None:
             for fpath, line, ref in orphaned:
                 click.echo(f"  {ref} in {_display_path(fpath)}")
 
+        if output_mapping and rename_map:
+            import json
+            click.echo(json.dumps(rename_map, indent=2))
+        elif output_mapping:
+            click.echo("{}")
+
         click.echo("\n(dry-run: no files modified)")
         return
 
@@ -223,6 +231,12 @@ def delete(targets: tuple[str, ...], dry_run: bool) -> None:
         click.echo(f"\nWarning: {len(orphaned)} orphaned ref(s) remain in the workspace:")
         for fpath, line, ref in orphaned:
             click.echo(f"  {ref} in {_display_path(fpath)}")
+
+    if output_mapping and rename_map:
+        import json
+        click.echo(json.dumps(rename_map, indent=2))
+    elif output_mapping:
+        click.echo("{}")
 
 
 def _is_under(path: Path, parent: Path) -> bool:

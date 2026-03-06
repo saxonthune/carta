@@ -10,6 +10,8 @@ Commands:
     move                 Move and/or reorder a doc entry
     punch                Expand a leaf file into a directory
     flatten              Dissolve a directory, hoisting children
+    copy                 Copy a file into the workspace at a given position
+    rewrite              Rewrite doc refs using user-supplied mappings
     regenerate           Rebuild MANIFEST.md from doc frontmatter
     migrate-frontmatter  Inject MANIFEST data into doc frontmatter (one-time)
     init                 Initialize workspace.json
@@ -31,6 +33,8 @@ from lib.commands.migrate import migrate_frontmatter
 from lib.commands.init import init
 from lib.commands.punch import punch
 from lib.commands.flatten import flatten
+from lib.commands.rewrite import rewrite
+from lib.commands.copy import copy
 
 
 @click.group()
@@ -47,6 +51,8 @@ cli.add_command(migrate_frontmatter, name="migrate-frontmatter")
 cli.add_command(init)
 cli.add_command(punch)
 cli.add_command(flatten)
+cli.add_command(rewrite)
+cli.add_command(copy)
 
 
 if __name__ == "__main__":

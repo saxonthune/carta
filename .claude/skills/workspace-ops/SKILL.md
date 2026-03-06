@@ -46,7 +46,7 @@ carta create doc00 test-doc --dry-run              # preview only
 Delete one or more doc entries with automatic gap-closing.
 
 ```
-carta delete <target>... [--dry-run]
+carta delete <target>... [--dry-run] [--output-mapping]
 ```
 
 - Accepts refs (`doc01.02`) or paths (`01-product/02-features`)
@@ -55,12 +55,14 @@ carta delete <target>... [--dry-run]
 - Rewrites refs for renumbered siblings
 - Warns about orphaned refs (refs in prose pointing to deleted docs are left as-is)
 - Runs `regenerate` automatically
+- `--output-mapping` — print the computed rename map as JSON to stdout after execution
 
 **Examples**:
 ```bash
-carta delete doc01.03.01                    # delete a single doc
-carta delete doc01.02 doc01.03           # delete multiple entries
-carta delete doc01.03.01 --dry-run          # preview deletions + orphan warnings
+carta delete doc01.03.01                                # delete a single doc
+carta delete doc01.02 doc01.03                          # delete multiple entries
+carta delete doc01.03.01 --dry-run                      # preview deletions + orphan warnings
+carta delete doc01.03.01 --output-mapping > map.json    # capture rename map for rewrite
 ```
 
 ### move
@@ -120,6 +122,34 @@ carta flatten doc01.02                # dissolve features/, promote children
 carta flatten doc01.02 --keep-index   # same, but keep index as sibling
 ```
 
+### rewrite
+
+Rewrite doc refs across the workspace using user-supplied mappings.
+
+```
+carta rewrite --map old=new [--map old2=new2 ...] [--from-json mappings.json] [--dry-run]
+```
+
+- `--map` / `-m` — repeatable flag for individual ref mappings
+- `--from-json` — read mappings from a JSON file `{"old_ref": "new_ref", ...}`
+- Always use `--dry-run` first to preview changes
+
+**When to use:** After restoring backup files into a restructured workspace, when refs in the restored files point to old locations.
+
+### copy
+
+Copy a file into the workspace at a given position.
+
+```
+carta copy <source_file> <destination> [--order N] [--rename slug] [--dry-run]
+```
+
+- `<source_file>` — path to the file to copy (can be outside the workspace)
+- `<destination>` — ref or path to an existing directory
+- `--rename` — override the slug (default: derived from source filename)
+
+**When to use:** Restoring a backup file into a new position in a restructured workspace.
+
 ### regenerate
 
 Rebuild MANIFEST.md from filesystem and doc frontmatter.
@@ -171,3 +201,32 @@ deps: [doc01.03.07]
 | `summary` | yes | One-line description for MANIFEST |
 | `tags` | yes | Keywords for retrieval (inline YAML list) |
 | `deps` | no | Doc refs to check when this doc changes |
+
+## Migration Patterns
+
+### Backup-Delete-Rebuild
+
+For large restructurings where `move` alone isn't sufficient:
+
+1. **Backup** the `.carta/` directory
+2. **Delete** sections with `carta delete` — use `--output-mapping` to capture ref changes
+3. **Rebuild** the new structure with `carta create`, `carta punch`, etc.
+4. **Restore** content from backup using `carta copy`
+5. **Rewrite** stale refs using `carta rewrite` — use `--dry-run` first
+
+Example workflow:
+```bash
+# Capture the ref mapping from deletion
+carta delete doc01.02 --output-mapping > /tmp/delete-map.json
+
+# ... rebuild structure ...
+
+# Restore a file from backup
+carta copy /tmp/backup/03-my-doc.md doc01.05 --rename my-doc
+
+# Fix stale refs in restored files
+carta rewrite --from-json /tmp/delete-map.json --dry-run
+carta rewrite --from-json /tmp/delete-map.json
+```
+
+**Warning:** Backup files retain their original refs. Always run `carta rewrite` after restoring content from backup.
