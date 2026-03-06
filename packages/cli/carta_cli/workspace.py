@@ -4,16 +4,16 @@ from pathlib import Path
 import json
 
 
-def find_carta_root() -> Path:
-    """Walk up from this file's location to find the .carta/ root (contains workspace.json)."""
-    # This file is at .carta/utils/lib/workspace.py
-    # .carta/ root is two levels up: lib -> utils -> .carta/
-    candidate = Path(__file__).resolve().parent.parent.parent
-    if (candidate / "workspace.json").exists():
-        return candidate
+def find_workspace() -> Path:
+    """Walk up from cwd to find the .carta/ workspace root (contains workspace.json)."""
+    current = Path.cwd().resolve()
+    for candidate in [current, *current.parents]:
+        carta_dir = candidate / ".carta"
+        if (carta_dir / "workspace.json").exists():
+            return carta_dir
     raise FileNotFoundError(
-        f"workspace.json not found at {candidate}. "
-        "Is this script inside a .carta/utils/lib/ directory?"
+        "workspace.json not found in any .carta/ directory above the current directory. "
+        "Are you inside a Carta workspace?"
     )
 
 

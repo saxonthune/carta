@@ -5,13 +5,12 @@ from pathlib import Path
 
 import click
 
-from ..workspace import find_carta_root
 from ..ref_convert import path_to_ref
 from ..frontmatter import read_frontmatter
 
 
-# utils/ directory: lib/commands/ -> lib/ -> utils/
-_UTILS_DIR = Path(__file__).resolve().parent.parent.parent
+# Package directory: lib/commands/ -> lib/ -> carta_cli/
+_PACKAGE_DIR = Path(__file__).resolve().parent.parent
 
 
 # ---------------------------------------------------------------------------
@@ -242,7 +241,7 @@ def do_regenerate(carta_root: Path, dry_run: bool = False) -> None:
 
     Callable from other commands (e.g. move) after structural changes.
     """
-    preamble_path = _UTILS_DIR / "manifest-preamble.md"
+    preamble_path = _PACKAGE_DIR / "manifest-preamble.md"
 
     if not preamble_path.exists():
         click.echo(f"Error: manifest-preamble.md not found at {preamble_path}", err=True)
@@ -289,7 +288,8 @@ def do_regenerate(carta_root: Path, dry_run: bool = False) -> None:
 
 @click.command()
 @click.option("--dry-run", is_flag=True, help="Print generated MANIFEST.md to stdout instead of writing.")
-def regenerate(dry_run: bool) -> None:
+@click.pass_context
+def regenerate(ctx: click.Context, dry_run: bool) -> None:
     """Rebuild MANIFEST.md from doc frontmatter."""
-    carta_root = find_carta_root()
+    carta_root = ctx.obj["workspace"]
     do_regenerate(carta_root, dry_run=dry_run)

@@ -8,7 +8,6 @@ import click
 from ..entries import resolve_arg, list_numbered_entries
 from ..numbering import get_numeric_prefix, compute_insertion_prefix
 from ..frontmatter import write_frontmatter
-from ..workspace import find_carta_root
 from .regenerate import do_regenerate
 
 
@@ -19,9 +18,10 @@ from .regenerate import do_regenerate
               help="Insert at position N (1-indexed). Default: append to end.")
 @click.option("--title", default=None, help="Title for the new doc. Default: derived from slug.")
 @click.option("--dry-run", is_flag=True, help="Print planned changes without executing.")
-def create(destination: str, slug: str, order: int | None, title: str | None, dry_run: bool) -> None:
+@click.pass_context
+def create(ctx: click.Context, destination: str, slug: str, order: int | None, title: str | None, dry_run: bool) -> None:
     """Create a new doc entry with blank frontmatter at a given position."""
-    carta_root = find_carta_root()
+    carta_root = ctx.obj["workspace"]
 
     # Validate slug has no numeric prefix
     if re.match(r'^\d{2}-', slug):

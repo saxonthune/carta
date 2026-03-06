@@ -5,7 +5,6 @@ from pathlib import Path
 
 import click
 
-from ..workspace import find_carta_root
 from ..manifest import parse_manifest, ManifestRow
 from ..ref_convert import ref_to_path
 from ..frontmatter import read_frontmatter, write_frontmatter
@@ -150,9 +149,10 @@ def inject_placeholder_frontmatter(
 
 @click.command(name="migrate-frontmatter")
 @click.option("--dry-run", is_flag=True, help="Print what would change without writing.")
-def migrate_frontmatter(dry_run: bool) -> None:
+@click.pass_context
+def migrate_frontmatter(ctx: click.Context, dry_run: bool) -> None:
     """Inject MANIFEST.md metadata into doc frontmatter (one-time migration)."""
-    carta_root = find_carta_root()
+    carta_root = ctx.obj["workspace"]
     manifest_path = carta_root / "MANIFEST.md"
 
     if not manifest_path.exists():
@@ -181,12 +181,9 @@ def migrate_frontmatter(dry_run: bool) -> None:
     click.echo(f"{'Would update' if dry_run else 'Updated'} {updated_count} files from MANIFEST rows")
 
     # Walk all .md files without MANIFEST rows and add empty placeholders
-    excluded = {carta_root / "utils"}
     placeholder_count = 0
 
     for md in sorted(carta_root.rglob("*.md")):
-        if any(excl in md.parents for excl in excluded):
-            continue
         if md.name == "MANIFEST.md":
             continue
         # Only process files with numeric prefix
