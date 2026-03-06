@@ -122,6 +122,9 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 | doc04.02 | `02-token-efficiency-in-skills-and-agents.md` | Token optimization patterns: lean extraction, subagent isolation, surgical reads | tokens, efficiency, skills, agents, context-engineering | — |
 | doc04.03 | `03-wagon-aware-layout-architecture.md` | Wagon layout units, 3-layer sync, snap normalization, state pitfalls | layout, organizers, wagons, presentation, state-management | doc01.09, doc02.01.02 |
 | doc04.04 | `04-verifiability-and-testability.md` | Epistemology of verification, test value hierarchy, decomposition inventory, testability architecture | testing, verification, epistemology, agents, testability, oracles, properties | doc03.02, doc02.01.02 |
+| doc04.05 | `05-decomposition-and-composition-theory.md` | Mathematical foundations for spec-driven development: Simon, information theory, Hadamard, category theory | decomposition, composition, information-theory, modularity, spec-driven, category-theory, complexity | doc01.01.02, doc01.01.05.01 |
+| doc04.06 | `06-spec-code-reconciliation.md` | Two-source-of-truth model, filesystem formats, deterministic scripts, LLM-assisted reconciliation | spec-driven, reconciliation, formats, scripts, static-analysis, llm | doc01.01.02, doc01.01.05.01, doc04.05, doc02.04.09 |
+| doc04.07 | `07-documentation-systems-and-retrieval.md` | Principles behind hierarchical docs, retrieval quality evaluation, spec quality metrics, agent-driven elicitation | docs, retrieval, ai, specifications, elicitation, information-architecture, evaluation | doc00.05, doc04.05, doc04.06 |
 
 ## Tag Index
 
@@ -134,7 +137,7 @@ Quick lookup for file-path→doc mapping:
 | `adapters` | doc02.02 |
 | `adr` | doc02.04.01, doc02.04.02, doc02.04.03, doc02.04.04, doc02.04.05, doc02.04.06, doc02.04.07, doc02.04.08, doc02.04.09 |
 | `agents` | doc04.02, doc04.04 |
-| `ai` | doc00.05, doc00.06, doc01.02.03.03 |
+| `ai` | doc00.05, doc00.06, doc01.02.03.03, doc04.07 |
 | `api` | doc02.03 |
 | `architect` | doc01.03.01 |
 | `architecture` | doc01.02.14, doc02.00, doc02.01, doc02.04.06, doc02.08 |
@@ -145,6 +148,7 @@ Quick lookup for file-path→doc mapping:
 | `canvas` | doc01.02.01.01 |
 | `canvas-engine` | doc02.11 |
 | `catalog` | doc01.00 |
+| `category-theory` | doc04.05 |
 | `category theory` | doc01.01.05.01 |
 | `chat` | doc01.02.03.03 |
 | `ci` | doc03.02 |
@@ -154,7 +158,9 @@ Quick lookup for file-path→doc mapping:
 | `collaboration` | doc01.02.03.02 |
 | `commands` | doc03.01 |
 | `compiler` | doc01.02.02.01, doc01.04.04, doc02.04.03 |
+| `complexity` | doc04.05 |
 | `components` | doc02.08 |
+| `composition` | doc04.05 |
 | `config` | doc02.04.04, doc02.05 |
 | `connections` | doc01.02.01.03, doc01.04.02, doc02.11 |
 | `constructs` | doc01.02.01.02, doc01.04.01 |
@@ -162,20 +168,24 @@ Quick lookup for file-path→doc mapping:
 | `context-engineering` | doc04.02 |
 | `contributing` | doc03.04 |
 | `conventions` | doc00.03 |
+| `decomposition` | doc04.05 |
 | `deployment` | doc02.04.04, doc02.04.09, doc02.05, doc03.03 |
 | `design` | doc01.01.02, doc01.01.04, doc02.07 |
 | `dev` | doc03.01 |
-| `docs` | doc00.01, doc00.02, doc00.03, doc00.04, doc00.05 |
+| `docs` | doc00.01, doc00.02, doc00.03, doc00.04, doc00.05, doc04.07 |
 | `documents` | doc01.02.03.01 |
 | `dual-mandate` | doc04.01 |
 | `e2e` | doc03.02 |
 | `edges` | doc01.02.01.03, doc02.10 |
 | `editor` | doc01.02.01.06 |
+| `elicitation` | doc04.07 |
+| `evaluation` | doc04.07 |
 | `efficiency` | doc04.02 |
 | `epistemology` | doc04.04 |
 | `export` | doc01.02.02.02 |
 | `files` | doc01.02.02.02 |
 | `filesystem` | doc02.04.09 |
+| `formats` | doc04.06 |
 | `formatters` | doc02.04.03 |
 | `git` | doc01.03.02, doc01.03.03 |
 | `glossary` | doc01.01.03 |
@@ -184,13 +194,16 @@ Quick lookup for file-path→doc mapping:
 | `hooks` | doc02.02, doc02.08 |
 | `identity` | doc02.04.07 |
 | `import` | doc01.02.02.02, doc01.04.05 |
+| `information-architecture` | doc04.07 |
 | `index` | doc00.00, doc01.00, doc01.01.00, doc02.00, doc03.00, doc04.00 |
+| `information-theory` | doc04.05 |
 | `inspiration` | doc01.01.05.00 |
 | `interfaces` | doc02.03 |
 | `keyboard` | doc01.02.03.06 |
 | `layout` | doc02.04.05, doc02.04.06, doc02.09, doc04.03 |
 | `library` | doc01.02.01.07, doc02.04.07 |
 | `loading` | doc01.02.01.07, doc02.04.07 |
+| `llm` | doc04.06 |
 | `lod` | doc01.02.01.01, doc02.07 |
 | `maintenance` | doc00.04 |
 | `manifest` | doc01.05 |
@@ -200,6 +213,7 @@ Quick lookup for file-path→doc mapping:
 | `metamodel` | doc02.06 |
 | `mission` | doc01.01.01 |
 | `modeling` | doc01.04.06, doc01.04.08 |
+| `modularity` | doc04.05 |
 | `morphisms` | doc01.01.05.01 |
 | `navigation` | doc01.02.03.01 |
 | `nodes` | doc01.02.01.02, doc02.10 |
@@ -225,19 +239,24 @@ Quick lookup for file-path→doc mapping:
 | `principles` | doc01.01.01, doc01.01.02 |
 | `product` | doc01.00 |
 | `properties` | doc04.04 |
+| `reconciliation` | doc04.06 |
 | `rendering` | doc01.02.14, doc02.09, doc04.01 |
 | `research` | doc04.00 |
-| `retrieval` | doc00.05 |
+| `retrieval` | doc00.05, doc04.07 |
 | `rough` | doc01.02.14 |
 | `schemas` | doc01.02.01.02, doc01.02.01.05, doc01.02.01.06, doc01.02.01.07, doc01.03.02, doc01.04.03, doc02.06 |
 | `seeds` | doc01.02.01.07, doc02.04.07 |
 | `server` | doc01.02.03.02, doc02.05 |
 | `setup` | doc03.01 |
 | `simple` | doc01.02.14 |
+| `scripts` | doc04.06 |
 | `sketching` | doc01.02.14 |
 | `skills` | doc04.02 |
 | `solo` | doc01.03.04 |
+| `spec-driven` | doc04.05, doc04.06 |
+| `specifications` | doc04.07 |
 | `starter` | doc01.02.03.05 |
+| `static-analysis` | doc04.06 |
 | `state` | doc02.02, doc02.04.01, doc02.04.06 |
 | `state-management` | doc04.03 |
 | `storage` | doc01.02.03.01 |

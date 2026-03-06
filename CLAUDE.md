@@ -38,6 +38,9 @@ Carta is a visual software architecture editor. Users create "Constructs" (typed
 | `/git-sync-trunk` | Syncs trunk branch with remote or main | Before creating worktrees, after remote updates |
 | `/git-sync-worktree` | Syncs worktree's claude branch with trunk via rebase | Every 30-60 min while working in a worktree |
 | `/execute-plan` | Launches background agent to implement a plan from todo-tasks/ | After agreeing on a plan interactively |
+| `/spec-builder` | Elicits requirements via structured interviewing, produces shape files | When defining new modules, features, or services |
+| `/carta-spec-builder` | Composes spec-builder with .carta/ workspace knowledge and script pipeline | When building specs inside a .carta/ workspace |
+| `/workspace-ops` | Reference for carta CLI structural operations (create, delete, move, punch, flatten) | When restructuring `.carta/` docs |
 
 **Agents** (launch with `Task` tool): Long-running autonomous workers.
 
@@ -66,6 +69,9 @@ All skills follow the same pattern: opus reads `.carta/` and code, analyzes, gen
 | `/git-sync-trunk` | Git worktree workflows | `.claude/skills/git-sync-trunk/SKILL.md` |
 | `/git-sync-worktree` | Git worktree workflows | `.claude/skills/git-sync-worktree/SKILL.md` |
 | `/execute-plan` | Plan executor workflow | `.claude/skills/execute-plan/SKILL.md` |
+| `/spec-builder` | doc04.06 (reconciliation), doc04.07 (spec quality) | `.claude/skills/spec-builder/SKILL.md` |
+| `/carta-spec-builder` | doc04.06, doc04.07, `.carta/` workspace structure | `.claude/skills/carta-spec-builder/SKILL.md` |
+| `/workspace-ops` | doc01.05 (workspace tools) | `.claude/skills/workspace-ops/SKILL.md` |
 
 ### Agent Details
 

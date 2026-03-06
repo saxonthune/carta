@@ -5,9 +5,11 @@ Usage:
     carta <command> [options]
 
 Commands:
+    create               Create a new doc entry
+    delete               Delete doc entries with gap-closing
     move                 Move and/or reorder a doc entry
-    punch                Expand a leaf file into a directory (not implemented)
-    flatten              Dissolve a directory, hoisting children (not implemented)
+    punch                Expand a leaf file into a directory
+    flatten              Dissolve a directory, hoisting children
     regenerate           Rebuild MANIFEST.md from doc frontmatter
     migrate-frontmatter  Inject MANIFEST data into doc frontmatter (one-time)
     init                 Initialize workspace.json
@@ -21,6 +23,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import click
 
+from lib.commands.create import create
+from lib.commands.delete import delete
 from lib.commands.move import move
 from lib.commands.regenerate import regenerate
 from lib.commands.migrate import migrate_frontmatter
@@ -35,6 +39,8 @@ def cli() -> None:
     pass
 
 
+cli.add_command(create)
+cli.add_command(delete)
 cli.add_command(move)
 cli.add_command(regenerate)
 cli.add_command(migrate_frontmatter, name="migrate-frontmatter")

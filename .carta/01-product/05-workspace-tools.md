@@ -21,12 +21,68 @@ python3 .carta/utils/carta <command> --help  # command-specific help
 
 ## Operations
 
+### create
+
+Create a new doc entry with blank frontmatter at a given position.
+
+```
+carta create <destination> <slug> [--order N] [--title "..."] [--dry-run]
+```
+
+**Capabilities**:
+- Create a new `.md` file with draft frontmatter and heading
+- Position at a specific slot (`--order`) or append to end
+- Custom title via `--title` (default: derived from slug)
+
+**Mechanics**:
+- Validates the position is free (errors if occupied — no sibling bumping)
+- Writes `NN-slug.md` with `title`, `status: draft`, empty `summary`, `tags`, `deps`
+- Runs `regenerate` to update MANIFEST.md
+
+**Examples**:
+```bash
+carta create doc00 test-doc                        # append to 00-codex/
+carta create doc01 new-feature --order 3           # create at position 03
+carta create doc02 my-section --title "My Section" # custom title
+```
+
+**Status**: Implemented (`carta create`).
+
+### delete
+
+Delete one or more doc entries with automatic gap-closing and ref rewriting.
+
+```
+carta delete <target>... [--dry-run]
+```
+
+**Capabilities**:
+- Delete files and directories (recursive)
+- Gap-close siblings (renumber sequentially)
+- Rewrite refs for renumbered siblings
+- Warn about orphaned refs (refs in prose pointing to deleted docs)
+
+**Mechanics**:
+- Resolves targets via ref (`doc01.02`) or path (`01-product/02-features`)
+- For each affected parent directory: removes targets, renumbers remaining entries 01, 02, 03...
+- Rewrites all `docXX.YY` refs for renamed siblings
+- Leaves refs *to* deleted docs as-is (prints warnings)
+
+**Examples**:
+```bash
+carta delete doc04.01                    # delete a single doc
+carta delete doc01.02 doc01.03           # delete multiple entries
+carta delete doc04.01 --dry-run          # preview deletions and orphan warnings
+```
+
+**Status**: Implemented (`carta delete`).
+
 ### move
 
 Move and/or rename a doc entry. Combines relocation and slug renaming in a single operation, like `mv`.
 
 ```
-carta move <source> <destination> [--order N] [--rename <slug>] [--dry-run]
+carta move <source> <destination> [--order N] [--rename <slug>] [--mkdir] [--dry-run]
 ```
 
 **Capabilities**:
@@ -34,6 +90,7 @@ carta move <source> <destination> [--order N] [--rename <slug>] [--dry-run]
 - Reorder an entry within its current directory (same-dir)
 - Rename an entry's slug without moving it (`--rename` only)
 - Combined move + rename in one operation
+- Create destination directory on-the-fly (`--mkdir`)
 
 **Mechanics**:
 - Bumps destination siblings to make room at the insertion point
@@ -46,6 +103,7 @@ carta move doc01.02.01 doc01 --order 2           # promote modeling into product
 carta move doc01.02.01 . --rename diagramming    # rename slug in place
 carta move doc01.02.01 doc01 --order 2 --rename diagramming  # move + rename
 carta move doc01.02 . --order 5                  # reorder within same directory
+carta move doc04 01-product/05-research --mkdir  # move into new directory
 ```
 
 **Status**: Implemented (`carta move`).

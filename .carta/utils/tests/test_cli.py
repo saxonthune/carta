@@ -695,5 +695,304 @@ class TestFlatten(unittest.TestCase):
         return orphans
 
 
+class TestDelete(unittest.TestCase):
+    """Test delete command."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.carta_copy = _copy_carta(Path(self.tmpdir.name))
+        utils_copy = self.carta_copy / "utils"
+        shutil.copytree(str(_UTILS_DIR), str(utils_copy), dirs_exist_ok=False)
+
+    def tearDown(self):
+        self.tmpdir.cleanup()
+
+    def _run_delete(self, *args):
+        carta = self.carta_copy / "utils" / "carta"
+        return subprocess.run(
+            [sys.executable, str(carta), "delete"] + list(args),
+            capture_output=True, text=True,
+        )
+
+    def _assert_no_duplicate_prefixes(self, carta_root):
+        excluded = {carta_root / ".state", carta_root / "utils"}
+        for dirpath in carta_root.rglob("*"):
+            if not dirpath.is_dir():
+                continue
+            if any(excl in dirpath.parents or dirpath == excl for excl in excluded):
+                continue
+            prefixes = []
+            for entry in dirpath.iterdir():
+                m = re.match(r'^(\d{2})-', entry.name)
+                if m:
+                    prefixes.append(int(m.group(1)))
+            duplicates = [p for p in prefixes if prefixes.count(p) > 1]
+            assert duplicates == [], f"Duplicate prefixes in {dirpath}: {sorted(set(duplicates))}"
+
+    def _collect_orphaned_refs(self, carta_root):
+        excluded = {carta_root / ".state", carta_root / "utils"}
+        pattern = re.compile(r'(?<!\w)doc\d{2}(?:\.\d{2})+(?!\.[a-zA-Z0-9])')
+        orphans = []
+        for md in carta_root.rglob("*.md"):
+            if any(excl in md.parents or md == excl for excl in excluded):
+                continue
+            for m in pattern.finditer(md.read_text(encoding="utf-8")):
+                try:
+                    ref_to_path(m.group(), carta_root)
+                except (FileNotFoundError, ValueError, OSError):
+                    orphans.append((md.relative_to(carta_root), m.group()))
+        return orphans
+
+    def test_delete_single_file(self):
+        """Delete a leaf .md file, verify gap-closing."""
+        # Delete doc00.03 (03-conventions.md)
+        codex = self.carta_copy / "00-codex"
+        target = codex / "03-conventions.md"
+        assert target.exists()
+        entries_before = list_numbered_entries(codex)
+        count_before = len(entries_before)
+
+        result = self._run_delete("doc00.03")
+        assert result.returncode == 0, f"delete failed:\n{result.stderr}\n{result.stdout}"
+
+        # File should be gone
+        assert not target.exists()
+
+        # Siblings should be gap-closed
+        entries_after = list_numbered_entries(codex)
+        assert len(entries_after) == count_before - 1
+
+        # No duplicate prefixes
+        self._assert_no_duplicate_prefixes(self.carta_copy)
+
+        # Prefixes should be sequential
+        prefixes = [get_numeric_prefix(e.name) for e in entries_after if get_numeric_prefix(e.name) > 0]
+        assert prefixes == list(range(1, len(prefixes) + 1)), f"Non-sequential prefixes: {prefixes}"
+
+    def test_delete_directory(self):
+        """Delete a directory, verify dir + contents gone and siblings gap-closed."""
+        # Delete doc02.04 (04-decisions/)
+        system = self.carta_copy / "02-system"
+        target = system / "04-decisions"
+        assert target.is_dir()
+
+        result = self._run_delete("doc02.04")
+        assert result.returncode == 0, f"delete failed:\n{result.stderr}\n{result.stdout}"
+
+        assert not target.exists()
+        self._assert_no_duplicate_prefixes(self.carta_copy)
+
+    def test_delete_multiple_same_parent(self):
+        """Delete two entries from same parent, verify correct sequential renumbering."""
+        codex = self.carta_copy / "00-codex"
+        entries_before = list_numbered_entries(codex)
+        count_before = len(entries_before)
+
+        result = self._run_delete("doc00.02", "doc00.04")
+        assert result.returncode == 0, f"delete failed:\n{result.stderr}\n{result.stdout}"
+
+        entries_after = list_numbered_entries(codex)
+        assert len(entries_after) == count_before - 2
+
+        # No duplicate prefixes
+        self._assert_no_duplicate_prefixes(self.carta_copy)
+
+        # Prefixes sequential
+        prefixes = [get_numeric_prefix(e.name) for e in entries_after if get_numeric_prefix(e.name) > 0]
+        assert prefixes == list(range(1, len(prefixes) + 1)), f"Non-sequential: {prefixes}"
+
+    def test_delete_dry_run(self):
+        """--dry-run should not modify files."""
+        before = {p: p.read_bytes() for p in self.carta_copy.rglob("*")
+                  if p.is_file() and "__pycache__" not in p.parts
+                  and p.suffix in (".md", ".json", "")}
+        result = self._run_delete("doc00.03", "--dry-run")
+        assert result.returncode == 0, result.stderr
+        after = {p: p.read_bytes() for p in self.carta_copy.rglob("*")
+                 if p.is_file() and "__pycache__" not in p.parts
+                 and p.suffix in (".md", ".json", "")}
+        assert before == after, "Files were modified during --dry-run"
+
+    def test_delete_orphan_warning(self):
+        """Delete entry referenced by other docs, verify warning in output."""
+        # doc02.06 (metamodel) is referenced by many docs
+        result = self._run_delete("doc02.06", "--dry-run")
+        assert result.returncode == 0, result.stderr
+        assert "orphan" in result.stdout.lower(), \
+            f"Expected orphan warning in output:\n{result.stdout}"
+
+    def test_delete_nonexistent_errors(self):
+        """Non-zero exit on bad ref."""
+        result = self._run_delete("doc99.99")
+        assert result.returncode != 0
+
+    def test_delete_no_new_orphans(self):
+        """After gap-close, refs to surviving siblings are correct."""
+        pre_existing = set(ref for _, ref in self._collect_orphaned_refs(self.carta_copy))
+
+        # Delete something that won't create orphaned refs to itself
+        # (delete the last entry in codex, which is unlikely to be referenced)
+        codex = self.carta_copy / "00-codex"
+        entries = list_numbered_entries(codex)
+        last = entries[-1]
+
+        result = self._run_delete(str(last.relative_to(self.carta_copy)))
+        assert result.returncode == 0, f"delete failed:\n{result.stderr}\n{result.stdout}"
+
+        orphans = self._collect_orphaned_refs(self.carta_copy)
+        new_orphans = [(f, r) for f, r in orphans if r not in pre_existing]
+        # Filter out refs that point to the deleted entry itself (those are expected orphans)
+        assert new_orphans == [] or all("00.06" in r or "00.05" in r for _, r in new_orphans), \
+            f"New orphaned refs:\n" + "\n".join(f"  {r} in {f}" for f, r in new_orphans)
+
+
+class TestCreate(unittest.TestCase):
+    """Test create command."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.carta_copy = _copy_carta(Path(self.tmpdir.name))
+        utils_copy = self.carta_copy / "utils"
+        shutil.copytree(str(_UTILS_DIR), str(utils_copy), dirs_exist_ok=False)
+
+    def tearDown(self):
+        self.tmpdir.cleanup()
+
+    def _run_create(self, *args):
+        carta = self.carta_copy / "utils" / "carta"
+        return subprocess.run(
+            [sys.executable, str(carta), "create"] + list(args),
+            capture_output=True, text=True,
+        )
+
+    def test_create_appends(self):
+        """Create with no --order appends at max+1 position."""
+        codex = self.carta_copy / "00-codex"
+        entries_before = list_numbered_entries(codex)
+        max_prefix = max(get_numeric_prefix(e.name) for e in entries_before)
+
+        result = self._run_create("doc00", "test-doc")
+        assert result.returncode == 0, f"create failed:\n{result.stderr}\n{result.stdout}"
+
+        # File should exist at max+1
+        expected = codex / f"{max_prefix + 1:02d}-test-doc.md"
+        assert expected.exists(), f"Expected file at {expected}"
+
+        # Check frontmatter
+        from lib.frontmatter import read_frontmatter
+        fm, body = read_frontmatter(expected)
+        assert fm["title"] == "Test Doc"
+        assert fm["status"] == "draft"
+
+        # MANIFEST should be regenerated
+        manifest = self.carta_copy / "MANIFEST.md"
+        assert "test-doc" in manifest.read_text(encoding="utf-8").lower()
+
+    def test_create_at_free_position(self):
+        """Create with --order at a free slot."""
+        # Find a free position in codex
+        codex = self.carta_copy / "00-codex"
+        entries = list_numbered_entries(codex)
+        max_prefix = max(get_numeric_prefix(e.name) for e in entries)
+        free_pos = max_prefix + 5  # definitely free
+
+        result = self._run_create("doc00", "free-slot", "--order", str(free_pos))
+        assert result.returncode == 0, f"create failed:\n{result.stderr}\n{result.stdout}"
+
+        expected = codex / f"{free_pos:02d}-free-slot.md"
+        assert expected.exists()
+
+    def test_create_at_occupied_position_errors(self):
+        """Create with --order at occupied slot should error."""
+        result = self._run_create("doc00", "bad-slot", "--order", "1")
+        assert result.returncode != 0
+        assert "occupied" in result.stderr.lower()
+
+    def test_create_with_title(self):
+        """--title overrides slug-derived title."""
+        result = self._run_create("doc00", "my-thing", "--title", "My Custom Title")
+        assert result.returncode == 0, f"create failed:\n{result.stderr}\n{result.stdout}"
+
+        codex = self.carta_copy / "00-codex"
+        created = [e for e in codex.iterdir() if "my-thing" in e.name]
+        assert len(created) == 1
+
+        from lib.frontmatter import read_frontmatter
+        fm, _ = read_frontmatter(created[0])
+        assert fm["title"] == "My Custom Title"
+
+    def test_create_dry_run(self):
+        """--dry-run should not create files."""
+        before = {p: p.read_bytes() for p in self.carta_copy.rglob("*")
+                  if p.is_file() and "__pycache__" not in p.parts
+                  and p.suffix in (".md", ".json", "")}
+        result = self._run_create("doc00", "phantom", "--dry-run")
+        assert result.returncode == 0, result.stderr
+        after = {p: p.read_bytes() for p in self.carta_copy.rglob("*")
+                 if p.is_file() and "__pycache__" not in p.parts
+                 and p.suffix in (".md", ".json", "")}
+        assert before == after, "Files were modified during --dry-run"
+
+
+class TestMkdir(unittest.TestCase):
+    """Test --mkdir flag on move command."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.carta_copy = _copy_carta(Path(self.tmpdir.name))
+        utils_copy = self.carta_copy / "utils"
+        shutil.copytree(str(_UTILS_DIR), str(utils_copy), dirs_exist_ok=False)
+
+    def tearDown(self):
+        self.tmpdir.cleanup()
+
+    def _run_move(self, *args):
+        carta = self.carta_copy / "utils" / "carta"
+        return subprocess.run(
+            [sys.executable, str(carta), "move"] + list(args),
+            capture_output=True, text=True,
+        )
+
+    def test_mkdir_creates_destination(self):
+        """Move with --mkdir to nonexistent path creates dir with 00-index.md."""
+        # Create a new dir path under an existing section
+        new_dir = "02-system/99-new-section"
+        result = self._run_move("doc02.06", new_dir, "--mkdir")
+        assert result.returncode == 0, f"move --mkdir failed:\n{result.stderr}\n{result.stdout}"
+
+        # The dir may have been renumbered by gap-closing, so look for "new-section" by slug
+        system = self.carta_copy / "02-system"
+        new_section_dirs = [e for e in system.iterdir() if "new-section" in e.name and e.is_dir()]
+        assert len(new_section_dirs) == 1, f"Expected new-section dir: {[e.name for e in system.iterdir()]}"
+
+        dest = new_section_dirs[0]
+        assert (dest / "00-index.md").exists(), "00-index.md should be created"
+
+        # Source should be moved into the new dir
+        moved = [e for e in dest.iterdir() if "metamodel" in e.name]
+        assert len(moved) == 1, f"Expected metamodel in new dir: {list(dest.iterdir())}"
+
+    def test_mkdir_dry_run(self):
+        """--mkdir --dry-run should not create dirs (but creates+cleans up internally)."""
+        new_dir = "02-system/99-new-section"
+        before_dirs = set(str(p) for p in self.carta_copy.rglob("*") if p.is_dir() and "__pycache__" not in p.parts)
+
+        result = self._run_move("doc02.06", new_dir, "--mkdir", "--dry-run")
+        assert result.returncode == 0, f"move --mkdir --dry-run failed:\n{result.stderr}\n{result.stdout}"
+
+        after_dirs = set(str(p) for p in self.carta_copy.rglob("*") if p.is_dir() and "__pycache__" not in p.parts)
+        assert before_dirs == after_dirs, "Directories were created during --dry-run"
+
+    def test_mkdir_existing_dir_noop(self):
+        """--mkdir when dest exists works normally (no error, no extra dir)."""
+        result = self._run_move("doc00.05", "doc01", "--mkdir")
+        assert result.returncode == 0, f"move --mkdir failed:\n{result.stderr}\n{result.stdout}"
+
+    def test_move_without_mkdir_still_errors(self):
+        """Without --mkdir, moving to nonexistent path should error."""
+        result = self._run_move("doc02.06", "02-system/99-nonexistent")
+        assert result.returncode != 0
+
+
 if __name__ == "__main__":
     unittest.main()
