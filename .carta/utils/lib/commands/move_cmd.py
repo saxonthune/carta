@@ -6,14 +6,10 @@ from pathlib import Path
 
 import click
 
-from ..move import (
-    resolve_arg,
-    compute_all_moves,
-    print_rename_map,
-    list_numbered_entries,
-    get_slug,
-)
-from ..refs import compute_rename_map, collect_md_files, rewrite_refs
+from ..entries import resolve_arg, list_numbered_entries
+from ..numbering import get_slug
+from ..planning import compute_all_moves, compute_rename_map, print_rename_map
+from ..rewriter import collect_md_files, rewrite_refs
 from ..frontmatter import write_frontmatter
 from ..workspace import find_carta_root, load_workspace, get_external_ref_paths
 from .regenerate import do_regenerate

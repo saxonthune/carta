@@ -7,7 +7,7 @@ import click
 
 from ..workspace import find_carta_root
 from ..manifest import parse_manifest, ManifestRow
-from ..refs import ref_to_path
+from ..ref_convert import ref_to_path
 from ..frontmatter import read_frontmatter, write_frontmatter
 
 

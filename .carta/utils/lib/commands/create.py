@@ -5,7 +5,8 @@ from pathlib import Path
 
 import click
 
-from ..move import resolve_arg, list_numbered_entries, get_numeric_prefix, compute_insertion_prefix
+from ..entries import resolve_arg, list_numbered_entries
+from ..numbering import get_numeric_prefix, compute_insertion_prefix
 from ..frontmatter import write_frontmatter
 from ..workspace import find_carta_root
 from .regenerate import do_regenerate
@@ -47,7 +48,7 @@ def create(destination: str, slug: str, order: int | None, title: str | None, dr
         raise SystemExit(1)
 
     # Compute insertion prefix
-    prefix = compute_insertion_prefix(dest_path, order)
+    prefix = compute_insertion_prefix(list_numbered_entries(dest_path), order)
 
     # Check if position is occupied
     entries = list_numbered_entries(dest_path)

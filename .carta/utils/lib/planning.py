@@ -1,71 +1,9 @@
-"""move.py — move-specific helpers for computing filesystem moves.
-
-These functions are reusable by the move, punch, and flatten commands.
-"""
-
-import re
 from pathlib import Path
 
+from .numbering import get_numeric_prefix, get_slug
+from .entries import list_numbered_entries
+from .ref_convert import path_to_ref
 
-# ---------------------------------------------------------------------------
-# Ref argument resolution
-# ---------------------------------------------------------------------------
-
-_REF_RE = re.compile(r'^doc\d{2}(\.\d{2})*$')
-
-
-def resolve_arg(arg: str, carta_root: Path) -> Path:
-    """Resolve a ref or relative path argument to an absolute filesystem path."""
-    from .refs import ref_to_path
-    if _REF_RE.match(arg):
-        return ref_to_path(arg, carta_root)
-    # Treat as path relative to carta_root
-    path = (carta_root / arg).resolve()
-    return path
-
-
-# ---------------------------------------------------------------------------
-# Numeric prefix helpers
-# ---------------------------------------------------------------------------
-
-def get_numeric_prefix(name: str) -> int | None:
-    """Extract the leading 2-digit numeric prefix from a directory entry name."""
-    m = re.match(r'^(\d{2})-', name)
-    return int(m.group(1)) if m else None
-
-
-def get_slug(name: str) -> str:
-    """Get everything after NN- from a directory entry name."""
-    m = re.match(r'^\d{2}-(.*)', name)
-    return m.group(1) if m else name
-
-
-def list_numbered_entries(directory: Path) -> list[Path]:
-    """Return directory entries that have a 2-digit numeric prefix, sorted by prefix."""
-    entries = [
-        p for p in directory.iterdir()
-        if get_numeric_prefix(p.name) is not None
-    ]
-    return sorted(entries, key=lambda p: get_numeric_prefix(p.name))
-
-
-def compute_insertion_prefix(dest_dir: Path, order: int | None) -> int:
-    """Compute the numeric prefix for the new item in dest_dir.
-
-    If order is None, appends (max_existing + 1).
-    If order is given, inserts at that position.
-    """
-    entries = list_numbered_entries(dest_dir)
-    existing_prefixes = [get_numeric_prefix(p.name) for p in entries]
-
-    if order is None:
-        return (max(existing_prefixes) + 1) if existing_prefixes else 1
-    return order
-
-
-# ---------------------------------------------------------------------------
-# Move computation
-# ---------------------------------------------------------------------------
 
 def compute_all_moves(
     source_path: Path,
@@ -219,10 +157,6 @@ def _compute_cross_dir_moves(
     return moves
 
 
-# ---------------------------------------------------------------------------
-# Output
-# ---------------------------------------------------------------------------
-
 def print_rename_map(rename_map: dict[str, str], moves: list[tuple[Path, Path]]) -> None:
     """Print the planned rename map and filesystem moves."""
     print("=== Planned filesystem moves ===")
@@ -232,3 +166,59 @@ def print_rename_map(rename_map: dict[str, str], moves: list[tuple[Path, Path]])
     print("=== Ref rename map ===")
     for old_ref, new_ref in sorted(rename_map.items()):
         print(f"  {old_ref} -> {new_ref}")
+
+
+def trace_path(original: Path, moves: list[tuple[Path, Path]]) -> Path:
+    """Trace an original path through a sequence of execution-ordered moves.
+
+    Handles cascading renames: if a parent directory is moved after a child
+    was bumped, the child's final path reflects both operations.
+
+    Uses ``Path.relative_to`` to detect when ``current`` is equal to or nested
+    under a move's ``old`` path, then rebases it under ``new``.
+    """
+    current = original
+    for old, new in moves:
+        try:
+            rel = current.relative_to(old)
+            current = new / rel
+        except ValueError:
+            pass  # old is not a prefix of current
+    return current
+
+
+def compute_rename_map(
+    moves: list[tuple[Path, Path]],
+    carta_root: Path,
+) -> dict[str, str]:
+    """Given a list of (old_path, new_path) filesystem moves, compute
+    the complete {old_ref: new_ref} map.
+
+    Uses ``trace_path`` to compose cascading renames correctly.  For example,
+    if a child is bumped inside a directory that is also gap-closed, the
+    child's final ref accounts for both operations.
+    """
+    seen: set[str] = set()
+    result: dict[str, str] = {}
+
+    for old_path, _ in moves:
+        items = [old_path]
+        if old_path.is_dir():
+            items.extend(old_path.rglob("*"))
+
+        for item in items:
+            resolved = str(item.resolve())
+            if resolved in seen:
+                continue
+            seen.add(resolved)
+
+            final = trace_path(item, moves)
+            try:
+                old_ref = path_to_ref(item, carta_root)
+                new_ref = path_to_ref(final, carta_root)
+                if old_ref != new_ref:
+                    result[old_ref] = new_ref
+            except ValueError:
+                pass  # skip non-ref paths
+
+    return result

@@ -17,8 +17,10 @@ from pathlib import Path
 _UTILS_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_UTILS_DIR))
 
-from lib.move import list_numbered_entries, get_numeric_prefix
-from lib.refs import ref_to_path, path_to_ref, collect_md_files, rewrite_refs
+from lib.entries import list_numbered_entries
+from lib.numbering import get_numeric_prefix
+from lib.ref_convert import ref_to_path, path_to_ref
+from lib.rewriter import collect_md_files, rewrite_refs
 from lib.workspace import find_carta_root
 
 # Real .carta/ root (used to copy fixtures)
@@ -136,7 +138,7 @@ class TestComputeRenameMap(unittest.TestCase):
 
     def test_gap_closing(self):
         """After removing 01-foo, 02-bar should become 01-bar."""
-        from lib.refs import compute_rename_map
+        from lib.planning import compute_rename_map
         old_foo = self.tmp / "01-a" / "01-foo.md"
         new_foo = self.tmp / "02-b" / "01-foo.md"
         old_bar = self.tmp / "01-a" / "02-bar.md"

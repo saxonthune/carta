@@ -6,7 +6,7 @@ from pathlib import Path
 import click
 
 from ..workspace import find_carta_root
-from ..refs import path_to_ref
+from ..ref_convert import path_to_ref
 from ..frontmatter import read_frontmatter
 
 

@@ -25,7 +25,7 @@ import click
 
 from lib.commands.create import create
 from lib.commands.delete import delete
-from lib.commands.move import move
+from lib.commands.move_cmd import move
 from lib.commands.regenerate import regenerate
 from lib.commands.migrate import migrate_frontmatter
 from lib.commands.init import init

@@ -5,7 +5,8 @@ from pathlib import Path
 
 import click
 
-from ..move import resolve_arg, get_numeric_prefix
+from ..entries import resolve_arg
+from ..numbering import get_numeric_prefix
 from ..workspace import find_carta_root
 
 

@@ -17,7 +17,7 @@ _UTILS_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_UTILS_DIR))
 
 from lib.workspace import find_carta_root
-from lib.refs import ref_to_path
+from lib.ref_convert import ref_to_path
 from lib.frontmatter import read_frontmatter, write_frontmatter
 
 _REAL_CARTA_ROOT = find_carta_root()
@@ -256,7 +256,7 @@ class TestRegenerateIncludesAllDocs(unittest.TestCase):
             if f"`{filename}`" not in output and f"`{filename.replace('.md', '')}`" not in output:
                 # Try checking by ref
                 try:
-                    from lib.refs import path_to_ref
+                    from lib.ref_convert import path_to_ref
                     ref = path_to_ref(md, self.carta_copy)
                     if ref not in output:
                         missing.append(str(md.relative_to(self.carta_copy)))

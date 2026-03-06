@@ -6,8 +6,11 @@ from pathlib import Path
 
 import click
 
-from ..move import resolve_arg, get_numeric_prefix, get_slug, list_numbered_entries
-from ..refs import compute_rename_map, collect_md_files, rewrite_refs, path_to_ref
+from ..entries import resolve_arg, list_numbered_entries
+from ..numbering import get_numeric_prefix, get_slug
+from ..planning import compute_rename_map
+from ..ref_convert import path_to_ref
+from ..rewriter import collect_md_files, rewrite_refs
 from ..workspace import find_carta_root, load_workspace, get_external_ref_paths
 from .regenerate import do_regenerate
 
