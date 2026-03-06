@@ -36,6 +36,7 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 | doc01.02.03 | `02-features/03-vscode-extension.md` | Canvas viewer and workspace browser for VS Code | vscode, extension, canvas | doc01.02.01, doc01.02.04 |
 | doc01.02.04 | `02-features/04-canvas.md` | Visual architecture editor — typed constructs, ports, connections, LOD rendering | canvas, editor, constructs, ports | doc01.01.01 |
 | doc01.02.05 | `02-features/05-web-platform.md` | Future web client with git-backed server for nontechnical users | web, server, collaboration, git | doc01.02.04 |
+| doc01.02.06 | `02-features/06-cli-user-flow.md` | How users install the carta CLI, hydrate a repo, and use it for workspace operations | cli, workflow, installation, use-case | doc01.02.02 |
 
 ### Goals Index
 
@@ -125,7 +126,7 @@ Quick lookup for file-path→doc mapping:
 | `canvas-engine` | doc02.04.06 |
 | `category theory` | doc01.01.04.01 |
 | `category-theory` | doc01.03.05 |
-| `cli` | doc01.02.02 |
+| `cli` | doc01.02.02, doc01.02.06 |
 | `coding` | doc01.01.04.01 |
 | `collaboration` | doc01.02.05 |
 | `compiler` | doc02.06.03 |
@@ -165,6 +166,7 @@ Quick lookup for file-path→doc mapping:
 | `information-architecture` | doc01.03.07 |
 | `information-theory` | doc01.03.05, doc01.03.06 |
 | `inspiration` | doc01.01.04.00 |
+| `installation` | doc01.02.06 |
 | `layout` | doc01.03.03, doc02.04.04, doc02.06.05, doc02.06.06 |
 | `library` | doc02.06.07 |
 | `llm` | doc01.03.06 |
@@ -215,6 +217,7 @@ Quick lookup for file-path→doc mapping:
 | `tokens` | doc01.03.02 |
 | `tools` | doc01.02.02 |
 | `ui` | doc02.04.07 |
+| `use-case` | doc01.02.06 |
 | `verification` | doc01.03.04 |
 | `viewport` | doc02.04.06 |
 | `vision` | doc01.01.04.00 |
@@ -222,6 +225,6 @@ Quick lookup for file-path→doc mapping:
 | `wagons` | doc01.03.03 |
 | `waypoints` | doc02.04.05 |
 | `web` | doc01.02.05, doc02.05 |
-| `workflow` | doc00.06 |
+| `workflow` | doc00.06, doc01.02.06 |
 | `workspace` | doc01.02.01, doc01.02.02, doc02.06.09 |
 | `yjs` | doc02.04.01, doc02.06.01, doc02.06.06 |
