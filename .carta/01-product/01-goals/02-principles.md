@@ -1,7 +1,7 @@
 ---
 title: Principles
 status: active
-summary: 12 design principles: symmetric storage, inverse derivability
+summary: Design principles: symmetric storage, inverse derivability, arrangement agnosticism
 tags: [principles, design]
 deps: [doc01.01.01]
 ---
@@ -83,6 +83,18 @@ type DocState = { isReady: boolean; adapter: ReadyAdapter | null; error: string 
 When a context provider gates rendering on readiness, the context value exposed to children should be the narrowed "ready" type — no null checks, no `isReady` booleans. The gate and the type are the same thing.
 
 For functions that access state that may not exist yet (e.g. Yjs maps before sync), return `null` rather than a sentinel value that pretends to be valid. Callers handle the absence explicitly. This is the "parse, don't validate" principle: encode invariants in types rather than checking them at runtime.
+
+## Spec Agnosticism
+
+The format provides structural machinery — frontmatter, cross-references, numbering, MANIFEST generation — and stays out of everything else. Carta never makes implicit judgments about how specs should be arranged, typed, categorized, or written. This includes:
+
+- **Arrangement**: Which specs go in which directories
+- **Typing**: Whether specs have a "kind" (entity, process, shape, etc.)
+- **Granularity**: How much belongs in one file vs when to punch
+- **Abstraction level**: Whether specs are high-level research or low-level code shapes
+- **Prose style**: What goes in the markdown body
+
+Users and their AI agents make all these decisions. The tooling supports them without enforcing or suggesting a canonical approach. See doc01.03.08 for the full vocabulary of format concerns vs user concerns.
 
 ## Organizers Are Not Connections
 

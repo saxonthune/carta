@@ -37,7 +37,7 @@ Carta is a spec-driven development tool. The primary product is the `.carta/` wo
 | `/execute-plan` | Launches background agent to implement a plan from todo-tasks/ | After agreeing on a plan interactively |
 | `/spec-builder` | Elicits requirements via structured interviewing, produces shape files | When defining new modules, features, or services |
 | `/carta-spec-builder` | Composes spec-builder with .carta/ workspace knowledge and script pipeline | When building specs inside a .carta/ workspace |
-| `/workspace-ops` | Reference for carta CLI structural operations (create, delete, move, punch, flatten) | When restructuring `.carta/` docs |
+| `/carta-cli` | carta CLI reference: init, create, delete, move, punch, flatten, rewrite, regenerate | When initializing workspaces or restructuring `.carta/` docs |
 
 **Agents** (launch with `Task` tool): Long-running autonomous workers.
 
@@ -66,7 +66,7 @@ All skills follow the same pattern: opus reads `.carta/` and code, analyzes, gen
 | `/execute-plan` | Plan executor workflow | `.claude/skills/execute-plan/SKILL.md` |
 | `/spec-builder` | doc01.03.06 (reconciliation), doc01.03.07 (spec quality) | `.claude/skills/spec-builder/SKILL.md` |
 | `/carta-spec-builder` | doc01.03.06, doc01.03.07, `.carta/` workspace structure | `.claude/skills/carta-spec-builder/SKILL.md` |
-| `/workspace-ops` | doc01.02.02 (workspace scripts) | `.claude/skills/workspace-ops/SKILL.md` |
+| `/carta-cli` | doc01.02.02 (workspace scripts), doc01.02.06 (CLI user flow) | `.claude/skills/carta-cli/SKILL.md` |
 
 ### Agent Details
 
@@ -98,6 +98,7 @@ Packages can only depend on packages above them in the graph.
 | `@carta/document` | `packages/document/` | Shared Y.Doc operations, Yjs helpers, file format, migrations |
 | `@carta/web-client` | `packages/web-client/` | React web app |
 | `@carta/server` | `packages/server/` | Document server + MCP server |
+| `carta-cli` | `packages/cli/` | Python CLI for workspace operations (pip install) |
 
 Cross-package dependencies are resolved via Vite/TypeScript aliases. Packages use `index.ts` barrel exports for public APIs. Web client feature directories (hooks, components/canvas, components/metamap, components/modals, components/ui) each have barrel exports.
 

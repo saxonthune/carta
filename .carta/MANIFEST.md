@@ -35,7 +35,10 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 | doc01.02.02 | `02-features/02-workspace-scripts.md` | CLI tools for workspace structure and spec-code reconciliation | cli, workspace, tools, reconciliation, scripts | doc01.02.01 |
 | doc01.02.03 | `02-features/03-vscode-extension.md` | Canvas viewer and workspace browser for VS Code | vscode, extension, canvas | doc01.02.01, doc01.02.04 |
 | doc01.02.04 | `02-features/04-canvas.md` | Visual architecture editor — typed constructs, ports, connections, LOD rendering | canvas, editor, constructs, ports | doc01.01.01 |
-| doc01.02.05 | `02-features/05-web-platform.md` | Future web client with git-backed server for nontechnical users | web, server, collaboration, git | doc01.02.04 |
+| doc01.02.05.00 | `02-features/05-web-platform/00-index.md` | Web client for nontechnical spec editing — conversational AI and direct editing flows | web, server, collaboration, git, ai, specs | doc01.02.04, doc01.02.01, doc01.01.02 |
+| doc01.02.05.01 | `02-features/05-web-platform/01-conversational-flow.md` | AI-heavy interaction flavor — agent elicits domain knowledge and produces specs | web, ai, specs, workflow | doc01.02.05.00 |
+| doc01.02.05.02 | `02-features/05-web-platform/02-direct-editing-flow.md` | Editor-heavy interaction flavor — user writes, AI transforms into well-formed specs | web, ai, specs, workflow, editor | doc01.02.05.00 |
+| doc01.02.05.03 | `02-features/05-web-platform/03-conflict-resolution.md` | Server-side conflict handling for simultaneous nontechnical users | web, collaboration, conflicts, server | doc01.02.05.00, doc02.05 |
 | doc01.02.06 | `02-features/06-cli-user-flow.md` | How users install the carta CLI, hydrate a repo, and use it for workspace operations | cli, workflow, installation, use-case | doc01.02.02 |
 
 ### Goals Index
@@ -45,7 +48,7 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 
 | doc01.01.00 | `01-goals/00-index.md` | Goals section index: mission, principles, vocabulary | index, goals | — |
 | doc01.01.01 | `01-goals/01-mission.md` | Core goal — spec-driven development tool | mission, principles | — |
-| doc01.01.02 | `01-goals/02-principles.md` | 12 design principles: symmetric storage, inverse derivability | principles, design | doc01.01.01 |
+| doc01.01.02 | `01-goals/02-principles.md` | Design principles: symmetric storage, inverse derivability, arrangement agnosticism | principles, design | doc01.01.01 |
 | doc01.01.03 | `01-goals/03-glossary.md` | Canonical vocabulary: workspace, spec, shape, reconciliation | glossary, terms | — |
 | doc01.01.04.00 | `01-goals/04-primary-sources/00-index.md` | Author's original writings, directional intent | inspiration, vision, primary-source | — |
 | doc01.01.04.01 | `01-goals/04-primary-sources/01-the-carta-experiment.md` | Artifact-driven development, code-minus-one abstraction layers | AI, coding, planning, category theory, morphisms, artifact-driven development | doc01.01.01 |
@@ -63,6 +66,7 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 | doc01.03.05 | `03-research/05-decomposition-and-composition-theory.md` | Mathematical foundations for spec-driven development — what makes a good decomposition, and how pieces compose back | decomposition, composition, information-theory, modularity, spec-driven, category-theory, complexity | doc01.01.02, doc01.01.04.01 |
 | doc01.03.06 | `03-research/06-spec-code-reconciliation.md` | Two-source-of-truth model, filesystem data formats, deterministic scripts, LLM-assisted reconciliation between product specs and codebases | spec-driven, reconciliation, formats, scripts, decomposition, information-theory, llm, static-analysis | doc01.01.02, doc01.01.04.01, doc02.06.09 |
 | doc01.03.07 | `03-research/07-documentation-systems-and-retrieval.md` | Principles behind hierarchical docs systems, agentic search improvement, scientific comparison of docs structures, and what makes individual specs good enough for code generation | docs, retrieval, ai, specifications, elicitation, information-architecture, evaluation | doc00.05, doc01.03.06 |
+| doc01.03.08 | `03-research/08-spec-format-vocabulary.md` | What parts of the spec format Carta has opinions on vs what's up to users — format concerns vs user concerns | specs, vocabulary, format, agnosticism, workspace, principles | doc01.02.01, doc01.01.02, doc01.01.03, doc01.03.06 |
 
 ## 02-architecture — Architecture Index
 
@@ -117,7 +121,8 @@ Quick lookup for file-path→doc mapping:
 | `adapters` | doc02.04.01 |
 | `adr` | doc02.06.00, doc02.06.01, doc02.06.02, doc02.06.03, doc02.06.04, doc02.06.05, doc02.06.06, doc02.06.07, doc02.06.08, doc02.06.09 |
 | `agents` | doc01.03.02, doc01.03.04 |
-| `ai` | doc00.05, doc00.06, doc01.03.07 |
+| `agnosticism` | doc01.03.08 |
+| `ai` | doc00.05, doc00.06, doc01.02.05.00, doc01.02.05.01, doc01.02.05.02, doc01.03.07 |
 | `architecture` | doc02.00, doc02.01, doc02.02, doc02.03, doc02.04.00, doc02.04.03, doc02.05, doc02.06.06 |
 | `archived` | doc02.06.08 |
 | `artifact-driven development` | doc01.01.04.01 |
@@ -128,12 +133,13 @@ Quick lookup for file-path→doc mapping:
 | `category-theory` | doc01.03.05 |
 | `cli` | doc01.02.02, doc01.02.06 |
 | `coding` | doc01.01.04.01 |
-| `collaboration` | doc01.02.05 |
+| `collaboration` | doc01.02.05.00, doc01.02.05.03 |
 | `compiler` | doc02.06.03 |
 | `complexity` | doc01.03.05 |
 | `components` | doc02.04.03 |
 | `composition` | doc01.03.05 |
 | `config` | doc02.06.04 |
+| `conflicts` | doc01.02.05.03 |
 | `connections` | doc02.04.06 |
 | `constructs` | doc01.02.04 |
 | `context-engineering` | doc01.03.02 |
@@ -145,17 +151,17 @@ Quick lookup for file-path→doc mapping:
 | `docs` | doc00.01, doc00.02, doc00.03, doc00.04, doc00.05, doc01.02.01, doc01.03.07 |
 | `dual-mandate` | doc01.03.01 |
 | `edges` | doc02.04.05 |
-| `editor` | doc01.02.04 |
+| `editor` | doc01.02.04, doc01.02.05.02 |
 | `efficiency` | doc01.03.02 |
 | `elicitation` | doc01.03.07 |
 | `epistemology` | doc01.03.04 |
 | `evaluation` | doc01.03.07 |
 | `extension` | doc01.02.03, doc02.03 |
 | `filesystem` | doc02.06.09 |
-| `format` | doc01.02.01 |
+| `format` | doc01.02.01, doc01.03.08 |
 | `formats` | doc01.03.06 |
 | `formatters` | doc02.06.03 |
-| `git` | doc01.02.05, doc02.05 |
+| `git` | doc01.02.05.00, doc02.05 |
 | `glossary` | doc01.01.03, doc02.04.08 |
 | `goals` | doc01.01.00 |
 | `groups` | doc02.06.09 |
@@ -191,7 +197,7 @@ Quick lookup for file-path→doc mapping:
 | `presentation` | doc01.03.01, doc01.03.03, doc02.04.04, doc02.06.05 |
 | `primary-source` | doc01.01.04.00 |
 | `primitives` | doc02.04.06 |
-| `principles` | doc01.01.01, doc01.01.02 |
+| `principles` | doc01.01.01, doc01.01.02, doc01.03.08 |
 | `product` | doc01.00 |
 | `properties` | doc01.03.04 |
 | `reconciliation` | doc01.02.02, doc01.03.06, doc02.02 |
@@ -201,10 +207,11 @@ Quick lookup for file-path→doc mapping:
 | `schemas` | doc02.04.02 |
 | `scripts` | doc01.02.02, doc01.03.06, doc02.02 |
 | `seeds` | doc02.06.07 |
-| `server` | doc01.02.05, doc02.05 |
+| `server` | doc01.02.05.00, doc01.02.05.03, doc02.05 |
 | `skills` | doc01.03.02 |
 | `spec-driven` | doc01.03.05, doc01.03.06 |
 | `specifications` | doc01.03.07 |
+| `specs` | doc01.02.05.00, doc01.02.05.01, doc01.02.05.02, doc01.03.08 |
 | `state` | doc02.04.01, doc02.06.01, doc02.06.06 |
 | `state-management` | doc01.03.03 |
 | `static-analysis` | doc01.03.06 |
@@ -221,10 +228,11 @@ Quick lookup for file-path→doc mapping:
 | `verification` | doc01.03.04 |
 | `viewport` | doc02.04.06 |
 | `vision` | doc01.01.04.00 |
+| `vocabulary` | doc01.03.08 |
 | `vscode` | doc01.02.03, doc02.03 |
 | `wagons` | doc01.03.03 |
 | `waypoints` | doc02.04.05 |
-| `web` | doc01.02.05, doc02.05 |
-| `workflow` | doc00.06, doc01.02.06 |
-| `workspace` | doc01.02.01, doc01.02.02, doc02.06.09 |
+| `web` | doc01.02.05.00, doc01.02.05.01, doc01.02.05.02, doc01.02.05.03, doc02.05 |
+| `workflow` | doc00.06, doc01.02.05.01, doc01.02.05.02, doc01.02.06 |
+| `workspace` | doc01.02.01, doc01.02.02, doc01.03.08, doc02.06.09 |
 | `yjs` | doc02.04.01, doc02.06.01, doc02.06.06 |

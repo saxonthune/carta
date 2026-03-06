@@ -1,20 +1,30 @@
-# Workspace Operations
+# carta-cli
 
-Reference for structural changes to `.carta/` workspaces.
+Reference for the `carta` CLI — structural operations on `.carta/` workspaces.
 
 ## When This Triggers
 - "restructure the docs" / "move docs around" / "delete a section" / "create a new doc"
-- `/workspace-ops`
+- "initialize a workspace" / "carta init"
+- `/carta-cli`
 
 ## Key Principle
 Structural changes via `carta` CLI. Content via Write/Edit. Always regenerate at end.
 
+## Installation
+```bash
+pip install -e packages/cli   # development (editable)
+pip install carta-cli          # production (future)
+```
+
 ## Running Commands
 ```bash
-python3 .carta/utils/carta <command> [options]
-python3 .carta/utils/carta --help           # list all commands
-python3 .carta/utils/carta <command> --help  # command-specific help
+carta <command> [options]
+carta --help                # list all commands
+carta <command> --help      # command-specific help
+carta -w /path/.carta <cmd> # explicit workspace path
 ```
+
+The CLI finds `.carta/` by walking up from cwd (like `git` finds `.git/`).
 
 ## Commands
 
@@ -149,6 +159,25 @@ carta copy <source_file> <destination> [--order N] [--rename slug] [--dry-run]
 - `--rename` — override the slug (default: derived from source filename)
 
 **When to use:** Restoring a backup file into a new position in a restructured workspace.
+
+### init
+
+Initialize a new `.carta/` workspace in the current directory.
+
+```
+carta init [--name "Project Name"]
+```
+
+- Creates `.carta/` with `workspace.json`, `MANIFEST.md`, `00-codex/00-index.md`
+- Hydrates `.claude/skills/carta-cli/SKILL.md` for AI agent integration
+- Safe to run in an existing project — creates only `.carta/` and the skill file
+- `--name` — workspace title (default: parent directory name)
+
+**Example**:
+```bash
+cd my-project
+carta init --name "My Project"
+```
 
 ### regenerate
 

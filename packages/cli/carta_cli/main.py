@@ -13,7 +13,7 @@ Commands:
     rewrite              Rewrite doc refs using user-supplied mappings
     regenerate           Rebuild MANIFEST.md from doc frontmatter
     migrate-frontmatter  Inject MANIFEST data into doc frontmatter (one-time)
-    init                 Initialize workspace.json
+    init                 Initialize a new .carta/ workspace
 """
 
 from pathlib import Path
@@ -44,6 +44,10 @@ from .commands.copy import copy
 def cli(ctx: click.Context, workspace: Path | None) -> None:
     """Workspace tools for managing .carta/ documentation structure."""
     ctx.ensure_object(dict)
+    # `init` doesn't require an existing workspace — skip discovery for it
+    if ctx.invoked_subcommand == "init":
+        ctx.obj["workspace"] = None
+        return
     if workspace is not None:
         ctx.obj["workspace"] = workspace
     else:
