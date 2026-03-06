@@ -162,7 +162,7 @@ This skill is the **first step**. It never touches the second or third.
 
 ## MCP tools vs REST API fallback
 
-MCP tools (`carta_document`, `carta_schema`, etc.) are the preferred interface. If MCP tools are unavailable due to Claude Code tool-surfacing bugs (known issue as of Feb 2026), fall back to the **REST API** via curl against the document server (discovered from `~/.config/@carta/desktop/server.json` or default `http://127.0.0.1:51234`). The MCP tools are thin wrappers over these endpoints — see doc02.03 for the REST API reference. Key patterns:
+MCP tools (`carta_document`, `carta_schema`, etc.) are the preferred interface. If MCP tools are unavailable due to Claude Code tool-surfacing bugs (known issue as of Feb 2026), fall back to the **REST API** via curl against the document server (discovered from `~/.config/@carta/desktop/server.json` or default `http://127.0.0.1:51234`). The MCP tools are thin wrappers over these endpoints — see the web platform architecture doc (MANIFEST tag: `server, deployment`) for the REST API reference. Key patterns:
 
 - `GET /api/documents` — list documents
 - `GET /api/documents/:id/summary?include=constructs,schemas` — page summary

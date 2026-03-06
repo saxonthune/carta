@@ -13,12 +13,14 @@ A VS Code extension that lets users interact with a `.carta/` workspace director
 
 ## Product Context
 
-| Doc | What It Tells You |
-|-----|-------------------|
-| doc02.04.09 | **Workspace model.** `.carta/` is a directory vault: `.canvas.json` files, `schemas/schemas.json`, spec group directories, `.state/` binary cache. JSON is canonical; Y.Doc binary is for real-time sync. |
-| doc02.05 | **Deployment config.** Extension is a server-backed deployment. Inject `VITE_SYNC_URL` via `__CARTA_CONFIG__` at WebView load. |
-| doc01.03.01 | **Primary persona.** Software architect with workspace in a git repo. |
-| doc02.03 | **Interfaces.** REST endpoints, WebSocket rooms, MCP tools the embedded server must provide. |
+Read MANIFEST.md and look up these topics via the Tag Index:
+
+| Topic | Tags to search | What it tells you |
+|-------|---------------|-------------------|
+| Workspace model | `workspace, filesystem` | `.carta/` directory structure, JSON canonical format, binary sidecar |
+| Deployment config | `adr, deployment` | Server-backed deployment, `VITE_SYNC_URL` injection |
+| Primary persona | `mission, principles` | Software architect with workspace in a git repo |
+| VS Code extension | `vscode, extension` | Extension architecture, product features |
 
 ## Extension Architecture
 

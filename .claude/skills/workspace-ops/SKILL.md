@@ -37,7 +37,7 @@ carta create <destination> <slug> [--order N] [--title "..."] [--dry-run]
 ```bash
 carta create doc00 test-doc                        # append to 00-codex/
 carta create doc01 new-feature --order 3           # create at position 03
-carta create doc02 my-section --title "My Section" # custom title
+carta create doc01.03 my-section --title "My Section" # custom title
 carta create doc00 test-doc --dry-run              # preview only
 ```
 
@@ -58,9 +58,9 @@ carta delete <target>... [--dry-run]
 
 **Examples**:
 ```bash
-carta delete doc04.01                    # delete a single doc
+carta delete doc01.03.01                    # delete a single doc
 carta delete doc01.02 doc01.03           # delete multiple entries
-carta delete doc04.01 --dry-run          # preview deletions + orphan warnings
+carta delete doc01.03.01 --dry-run          # preview deletions + orphan warnings
 ```
 
 ### move
@@ -82,7 +82,7 @@ carta move <source> <destination> [--order N] [--rename <slug>] [--mkdir] [--dry
 carta move doc01.02.01 doc01 --order 2                           # promote into parent
 carta move doc01.02.01 . --rename diagramming                   # rename slug in place
 carta move doc01.02.01 doc01 --order 2 --rename diagramming     # move + rename
-carta move doc04 01-product --mkdir --order 3 --rename research  # move into new dir
+carta move doc01.03 01-product --mkdir --order 3 --rename research  # move into new dir
 ```
 
 ### punch
@@ -160,7 +160,7 @@ title: Canvas
 status: draft
 summary: Pan, zoom, LOD rendering
 tags: [canvas, lod, zoom]
-deps: [doc02.07]
+deps: [doc01.03.07]
 ---
 ```
 

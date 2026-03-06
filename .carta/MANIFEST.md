@@ -23,108 +23,87 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 | doc00.03 | `03-conventions.md` | docXX.YY syntax, front matter, file naming | docs, conventions | — |
 | doc00.04 | `04-maintenance.md` | Git versioning, epochs, adding/deprecating | docs, maintenance | — |
 | doc00.05 | `05-ai-retrieval.md` | AI retrieval patterns, legal RAG inspiration | docs, ai, retrieval | — |
-| doc00.06 | `06-ai-agent-integration.md` | AI workflow patterns: spec-to-code, code-to-spec, MCP setup, guide directory | ai, workflow, mcp, guides | doc02.03 |
+| doc00.06 | `06-ai-agent-integration.md` | AI workflow patterns: spec-to-code, code-to-spec, MCP setup, guide directory | ai, workflow, mcp, guides | doc01.03.03 |
 
 ## 01-product — Product Index
 
 | Ref | File | Summary | Tags | Deps |
 |-----|------|---------|------|------|
 
-| doc01.00 | `00-index.md` | Product section index: feature catalog, use cases, workflows | index, product, catalog | — |
-| doc01.02.01.01 | `02-features/01-modeling/01-canvas.md` | Pan, zoom, LOD rendering, node manipulation | canvas, lod, zoom | doc02.07 |
-| doc01.02.01.02 | `02-features/01-modeling/02-constructs.md` | Typed nodes, schemas, fields, semantic ID | constructs, schemas, nodes | doc02.06 |
-| doc01.02.01.03 | `02-features/01-modeling/03-ports-and-connections.md` | Port model, polarity, validation, edge rendering | ports, connections, edges | doc02.06 |
-| doc01.02.01.04 | `02-features/01-modeling/04-pages.md` | Multi-page views, page switching | pages, views | — |
-| doc01.02.01.05 | `02-features/01-modeling/05-metamap.md` | Schema-level visual editor, schema nodes | metamap, schemas | doc02.06 |
-| doc01.02.01.06 | `02-features/01-modeling/06-schema-editor.md` | Wizard for creating/editing construct schemas | schemas, editor | doc02.06 |
-| doc01.02.01.07 | `02-features/01-modeling/07-schema-library.md` | Schema package loading, dual identity, manifest, standard library, drift detection | library, schemas, seeds, versioning, packages, loading | doc02.06, doc01.01.05, doc01.04.07 |
-| doc01.02.02.01 | `02-features/02-output/01-compilation.md` | Compiler, formatters, AI-readable output | compiler, output | doc01.01.03 |
-| doc01.02.02.02 | `02-features/02-output/02-import-export.md` | .carta file format, import/export | files, import, export | doc01.01.03 |
-| doc01.02.03.01 | `02-features/03-environment/01-storage-navigation.md` | Vault browsing, filesystem-style document management | storage, navigation, vault, documents | doc01.01.05 |
-| doc01.02.03.02 | `02-features/03-environment/02-collaboration.md` | Real-time sync, sharing, WebSocket | collaboration, server, sync | doc01.01.05 |
-| doc01.02.03.03 | `02-features/03-environment/03-ai-assistant.md` | AI sidebar, chat, MCP tools | ai, chat, mcp | doc01.01.03 |
-| doc01.02.03.04 | `02-features/03-environment/04-theming.md` | Light/dark/warm themes | themes, styling | doc02.07 |
-| doc01.02.03.05 | `02-features/03-environment/05-new-user-experience.md` | First-load starter document, auto-create | onboarding, starter | — |
-| doc01.02.03.06 | `02-features/03-environment/06-keyboard-and-clipboard.md` | Shortcuts, copy/paste, undo/redo | keyboard, clipboard, undo | — |
-| doc01.02.14 | `02-features/14-simple-mode.md` | Sketch-phase rendering, composable render modes, separate primitives | sketching, simple, rendering, rough, architecture | doc01.04.08, doc02.07, doc02.08 |
-| doc01.03.01 | `03-use-cases/01-architect.md` | Software architect: workspace in a repo, `carta serve .` | persona, architect, workspace | doc02.04.09 |
-| doc01.03.02 | `03-use-cases/02-team-lead.md` | Team lead: schema governance, PR review of canvas changes | persona, team, schemas, git | doc02.04.09 |
-| doc01.03.03 | `03-use-cases/03-enterprise-self-hosted.md` | Team workspace: shared server wraps git repo, commits on behalf of web users | team, workspace, git | doc02.04.09, doc01.01.05 |
-| doc01.03.04 | `03-use-cases/04-solo-user.md` | Browser playground or local workspace server | solo, playground, workspace | doc01.01.05 |
-| doc01.03.05 | `03-use-cases/05-saas-provider.md` | **Archived.** Superseded by workspace model (ADR 009) | archived | — |
-| doc01.04.01 | `04-workflows/01-create-construct.md` | Create construct workflow | workflow, constructs | doc01.02.01.02 |
-| doc01.04.02 | `04-workflows/02-connect-constructs.md` | Connect constructs workflow | workflow, connections | doc01.02.01.03 |
-| doc01.04.03 | `04-workflows/03-define-schema.md` | Define schema workflow | workflow, schemas | doc01.02.01.06 |
-| doc01.04.04 | `04-workflows/04-compile-project.md` | Compile project workflow | workflow, compiler | doc01.02.02.01 |
-| doc01.04.05 | `04-workflows/05-import-project.md` | Import project workflow | workflow, import | doc01.02.02.02 |
-| doc01.04.06 | `04-workflows/06-iterative-modeling.md` | Iterative modeling on the map | workflow, modeling | — |
-| doc01.04.07 | `04-workflows/07-schema-design-patterns.md` | Schema design patterns | workflow, patterns | doc02.06 |
-| doc01.04.08 | `04-workflows/08-rough-to-refined.md` | Rough to refined modeling | workflow, modeling | — |
-| doc01.05 | `05-workspace-tools.md` | Operations for managing .carta/ workspace structure | workspace, tools, cli, manifest | — |
+| doc01.00 | `00-index.md` | Product section index: goals, features, research | index, product | — |
+| doc01.02.01 | `02-features/01-docs-system.md` | The .carta/ workspace format — hierarchical docs, frontmatter, cross-references, MANIFEST | docs, workspace, format | doc01.01.01 |
+| doc01.02.02 | `02-features/02-workspace-scripts.md` | CLI tools for workspace structure and spec-code reconciliation | cli, workspace, tools, reconciliation, scripts | doc01.02.01 |
+| doc01.02.03 | `02-features/03-vscode-extension.md` | Canvas viewer and workspace browser for VS Code | vscode, extension, canvas | doc01.02.01, doc01.02.04 |
+| doc01.02.04 | `02-features/04-canvas.md` | Visual architecture editor — typed constructs, ports, connections, LOD rendering | canvas, editor, constructs, ports | doc01.01.01 |
+| doc01.02.05 | `02-features/05-web-platform.md` | Future web client with git-backed server for nontechnical users | web, server, collaboration, git | doc01.02.04 |
 
-### Context Index
+### Goals Index
 
 | Ref | File | Summary | Tags | Deps |
 |-----|------|---------|------|------|
 
-| doc01.01.00 | `01-context/00-index.md` | Context section index: mission, principles, vocabulary | index, context | — |
-| doc01.01.01 | `01-context/01-mission.md` | Core goal, dual mandate | mission, principles | — |
-| doc01.01.02 | `01-context/02-principles.md` | 12 design principles: symmetric storage, inverse derivability | principles, design | doc01.01.01 |
-| doc01.01.03 | `01-context/03-glossary.md` | Canonical vocabulary: construct, schema, port, polarity | glossary, terms | — |
-| doc01.01.04 | `01-context/04-ux-principles.md` | Fitts's Law, Hick's Law, visual design principles | ux, design, ui | — |
-| doc01.01.05.00 | `01-context/05-primary-sources/00-index.md` | Author's original writings, directional intent | inspiration, vision, primary-source | — |
-| doc01.01.05.01 | `01-context/05-primary-sources/01-the-carta-experiment.md` | Artifact-driven development, code-minus-one abstraction layers | AI, coding, planning, category theory, morphisms, artifact-driven development | doc01.01.01 |
+| doc01.01.00 | `01-goals/00-index.md` | Goals section index: mission, principles, vocabulary | index, goals | — |
+| doc01.01.01 | `01-goals/01-mission.md` | Core goal — spec-driven development tool | mission, principles | — |
+| doc01.01.02 | `01-goals/02-principles.md` | 12 design principles: symmetric storage, inverse derivability | principles, design | doc01.01.01 |
+| doc01.01.03 | `01-goals/03-glossary.md` | Canonical vocabulary: workspace, spec, shape, reconciliation | glossary, terms | — |
+| doc01.01.04.00 | `01-goals/04-primary-sources/00-index.md` | Author's original writings, directional intent | inspiration, vision, primary-source | — |
+| doc01.01.04.01 | `01-goals/04-primary-sources/01-the-carta-experiment.md` | Artifact-driven development, code-minus-one abstraction layers | AI, coding, planning, category theory, morphisms, artifact-driven development | doc01.01.01 |
 
-## 02-system — System Index
+### Research Sessions
 
 | Ref | File | Summary | Tags | Deps |
 |-----|------|---------|------|------|
 
-| doc02.00 | `00-index.md` | System section index: architecture, state, interfaces, decisions | index, architecture | — |
+| doc01.03.00 | `03-research/00-index.md` | Research section index: session format, what belongs here | index, research | — |
+| doc01.03.01 | `03-research/01-visual-semantics-in-organizers.md` | Shape differentiation, sequence badges, icon markers for organizer contents | presentation, rendering, organizers, bpmn, notation, dual-mandate | doc01.09, doc01.07, doc01.06 |
+| doc01.03.02 | `03-research/02-token-efficiency-in-skills-and-agents.md` | Token optimization patterns: lean extraction, subagent isolation, surgical reads | tokens, efficiency, skills, agents, context-engineering | — |
+| doc01.03.03 | `03-research/03-wagon-aware-layout-architecture.md` | Wagon layout units, 3-layer sync, snap normalization, state pitfalls | layout, organizers, wagons, presentation, state-management | doc01.09, doc02.01.02 |
+| doc01.03.04 | `03-research/04-verifiability-and-testability.md` | Epistemology of verification, test value hierarchy, decomposition inventory, testability architecture | testing, verification, epistemology, agents, testability, oracles, properties | doc01.03.02, doc02.01.02 |
+| doc01.03.05 | `03-research/05-decomposition-and-composition-theory.md` | Mathematical foundations for spec-driven development — what makes a good decomposition, and how pieces compose back | decomposition, composition, information-theory, modularity, spec-driven, category-theory, complexity | doc01.01.02, doc01.01.04.01 |
+| doc01.03.06 | `03-research/06-spec-code-reconciliation.md` | Two-source-of-truth model, filesystem data formats, deterministic scripts, LLM-assisted reconciliation between product specs and codebases | spec-driven, reconciliation, formats, scripts, decomposition, information-theory, llm, static-analysis | doc01.01.02, doc01.01.04.01, doc02.06.09 |
+| doc01.03.07 | `03-research/07-documentation-systems-and-retrieval.md` | Principles behind hierarchical docs systems, agentic search improvement, scientific comparison of docs structures, and what makes individual specs good enough for code generation | docs, retrieval, ai, specifications, elicitation, information-architecture, evaluation | doc00.05, doc01.03.06 |
+
+## 02-architecture — Architecture Index
+
+| Ref | File | Summary | Tags | Deps |
+|-----|------|---------|------|------|
+
+| doc02.00 | `00-index.md` | Architecture section index: overview, script pipeline, canvas, decisions | index, architecture | — |
 | doc02.01 | `01-overview.md` | Layer architecture, monorepo structure, data flow | architecture, packages | — |
-| doc02.02 | `02-state.md` | Yjs Y.Doc, state partitioning, hooks, adapters | state, yjs, hooks, adapters | doc01.01.01 |
-| doc02.03 | `03-interfaces.md` | File format, compiler output, MCP, WebSocket | interfaces, api, mcp | doc01.01.02 |
-| doc02.04.01 | `04-decisions/01-yjs-state.md` | ADR: Yjs as single state store | adr, yjs, state | doc01.01.02 |
-| doc02.04.02 | `04-decisions/02-port-polarity.md` | ADR: five-value polarity model | adr, ports, polarity | doc02.06 |
-| doc02.04.03 | `04-decisions/03-output-formatter-registry.md` | ADR: extensible formatter registry | adr, compiler, formatters | doc01.02.02.01 |
-| doc02.04.04 | `04-decisions/04-unified-deployment.md` | ADR: simplified deployment config | adr, deployment, config | doc01.01.05 |
-| doc02.04.05 | `04-decisions/05-presentation-model-organizers.md` | ADR: presentation model, organizers replace visual groups | adr, presentation, organizers, layout | doc02.09 |
-| doc02.04.06 | `04-decisions/06-yjs-authoritative-layout.md` | ADR: Yjs-authoritative layout, RF as renderer only, eliminate 3-layer sync | adr, state, layout, yjs, architecture | doc01.01.02, doc04.03 |
-| doc02.04.07 | `04-decisions/07-package-loading-architecture.md` | ADR: Package-based schema loading, dual identity (UUID + content hash), manifest, snapshots | adr, packages, loading, seeds, identity, library | doc02.06, doc01.02.01.07 |
-| doc02.04.08 | `04-decisions/08-resources.md` | **Archived.** ADR: Resources — superseded by filesystem-first workspace (ADR 009) | adr, archived | — |
-| doc02.04.09 | `04-decisions/09-filesystem-workspace.md` | ADR: Filesystem-first workspace — `.carta/` directory, JSON canonical with binary sidecar, spec groups as directories, narrowed MCP surface, `carta serve .` | adr, workspace, filesystem, deployment, mcp, groups | doc01.04.04, doc01.01.05 |
-| doc02.05 | `05-deployment-targets.md` | VITE_SYNC_URL, VITE_AI_MODE, document sources | deployment, config, server | doc01.01.01 |
-| doc02.06 | `06-metamodel.md` | M2/M1/M0 metamodel, DataKind, ConstructSchema | metamodel, schemas, ports | doc01.01.02 |
-| doc02.07 | `07-design-system.md` | Depth system, island pattern, colors, typography | design, ui, styling, lod | doc01.01.04 |
-| doc02.08 | `08-frontend-architecture.md` | Four-layer component model, state partitioning | components, hooks, architecture | doc01.01.02, doc02.07 |
-| doc02.09 | `09-presentation-model.md` | Presentation model, organizers, layout strategies, visual vs semantic | presentation, organizers, layout, rendering | doc02.08, doc01.01.02 |
-| doc02.10 | `10-canvas-data-pipelines.md` | Map.tsx memo cascades, node/edge pipelines, waypoint flow, write-back points | pipeline, edges, nodes, waypoints, sync, Map | doc02.08, doc02.09, doc01.01.02 |
-| doc02.11 | `11-canvas-engine.md` | Canvas engine primitives: useViewport, useConnectionDrag, ConnectionHandle, composition pattern | canvas-engine, viewport, connections, primitives | doc02.08 |
+| doc02.02 | `02-script-pipeline.md` | Architecture of the five-stage reconciliation script pipeline | scripts, reconciliation, pipeline, architecture | doc01.02.02 |
+| doc02.03 | `03-vscode-extension.md` | Extension architecture — WebView canvas viewer, workspace tree provider | vscode, extension, architecture | doc01.02.03 |
+| doc02.05 | `05-web-platform.md` | Future server architecture — git-backed workspace, WebSocket sync, REST API | server, web, architecture, git | doc01.02.05 |
 
-## 03-operations — Operations Index
+### Canvas Architecture Index
 
 | Ref | File | Summary | Tags | Deps |
 |-----|------|---------|------|------|
 
-| doc03.00 | `00-index.md` | Operations section index: dev setup, testing, deployment, contributing | index, operations | — |
-| doc03.01 | `01-development.md` | Dev setup, commands, environment | dev, setup, commands | — |
-| doc03.02 | `02-testing.md` | Test commands, CI, integration, E2E | testing, ci, e2e | — |
-| doc03.03 | `03-deployment.md` | Build, deploy, env vars | deployment, build | doc02.01.05 |
-| doc03.04 | `04-contributing.md` | Contribution guidelines, PR process | contributing, pr | — |
+| doc02.04.00 | `04-canvas/00-index.md` | Canvas subsystem architecture: state, metamodel, frontend, presentation, pipelines, engine, design | index, canvas, architecture | doc01.02.04 |
+| doc02.04.01 | `04-canvas/01-state.md` | Yjs Y.Doc, state partitioning, hooks, adapters | state, yjs, hooks, adapters | doc01.01.01 |
+| doc02.04.02 | `04-canvas/02-metamodel.md` | M2/M1/M0 metamodel, DataKind, ConstructSchema | metamodel, schemas, ports | doc01.01.02 |
+| doc02.04.03 | `04-canvas/03-frontend-architecture.md` | Four-layer component model, state partitioning | components, hooks, architecture | doc01.01.02, doc02.04.07 |
+| doc02.04.04 | `04-canvas/04-presentation-model.md` | Presentation model, organizers, layout strategies, visual vs semantic | presentation, organizers, layout, rendering | doc02.04.03, doc01.01.02 |
+| doc02.04.05 | `04-canvas/05-data-pipelines.md` | Map.tsx memo cascades, node/edge pipelines, waypoint flow, write-back points | pipeline, edges, nodes, waypoints, sync, Map | doc02.04.03, doc02.04.04, doc01.01.02 |
+| doc02.04.06 | `04-canvas/06-engine.md` | Canvas engine primitives: useViewport, useConnectionDrag, ConnectionHandle, composition pattern | canvas-engine, viewport, connections, primitives | doc02.04.03 |
+| doc02.04.07 | `04-canvas/07-design-system.md` | Depth system, island pattern, colors, typography | design, ui, styling, lod | — |
+| doc02.04.08 | `04-canvas/08-glossary.md` | Canvas-specific vocabulary — construct, schema, port, polarity, organizer, LOD | glossary, canvas, terms | doc02.04.02 |
 
-## 04-research — Research Sessions
+### Decisions Index
 
 | Ref | File | Summary | Tags | Deps |
 |-----|------|---------|------|------|
 
-| doc04.00 | `00-index.md` | Research section index: session format, what belongs here | index, research | — |
-| doc04.01 | `01-visual-semantics-in-organizers.md` | Shape differentiation, sequence badges, icon markers for organizer contents | presentation, rendering, organizers, bpmn, notation, dual-mandate | doc01.09, doc01.07, doc01.06 |
-| doc04.02 | `02-token-efficiency-in-skills-and-agents.md` | Token optimization patterns: lean extraction, subagent isolation, surgical reads | tokens, efficiency, skills, agents, context-engineering | — |
-| doc04.03 | `03-wagon-aware-layout-architecture.md` | Wagon layout units, 3-layer sync, snap normalization, state pitfalls | layout, organizers, wagons, presentation, state-management | doc01.09, doc02.01.02 |
-| doc04.04 | `04-verifiability-and-testability.md` | Epistemology of verification, test value hierarchy, decomposition inventory, testability architecture | testing, verification, epistemology, agents, testability, oracles, properties | doc03.02, doc02.01.02 |
-| doc04.05 | `05-decomposition-and-composition-theory.md` | Mathematical foundations for spec-driven development: Simon, information theory, Hadamard, category theory | decomposition, composition, information-theory, modularity, spec-driven, category-theory, complexity | doc01.01.02, doc01.01.05.01 |
-| doc04.06 | `06-spec-code-reconciliation.md` | Two-source-of-truth model, filesystem formats, deterministic scripts, LLM-assisted reconciliation | spec-driven, reconciliation, formats, scripts, static-analysis, llm | doc01.01.02, doc01.01.05.01, doc04.05, doc02.04.09 |
-| doc04.07 | `07-documentation-systems-and-retrieval.md` | Principles behind hierarchical docs, retrieval quality evaluation, spec quality metrics, agent-driven elicitation | docs, retrieval, ai, specifications, elicitation, information-architecture, evaluation | doc00.05, doc04.05, doc04.06 |
+| doc02.06.00 | `06-decisions/00-index.md` | Architecture Decision Records | index, adr, decisions | — |
+| doc02.06.01 | `06-decisions/01-yjs-state.md` | ADR: Yjs as single state store | adr, yjs, state | doc01.01.02 |
+| doc02.06.02 | `06-decisions/02-port-polarity.md` | ADR: five-value polarity model | adr, ports, polarity | doc02.04.02 |
+| doc02.06.03 | `06-decisions/03-output-formatter-registry.md` | ADR: extensible formatter registry | adr, compiler, formatters | — |
+| doc02.06.04 | `06-decisions/04-unified-deployment.md` | ADR: simplified deployment config | adr, deployment, config | doc01.01.04 |
+| doc02.06.05 | `06-decisions/05-presentation-model-organizers.md` | ADR: presentation model, organizers replace visual groups | adr, presentation, organizers, layout | doc02.04.04 |
+| doc02.06.06 | `06-decisions/06-yjs-authoritative-layout.md` | ADR: Yjs-authoritative layout, RF as renderer only, eliminate 3-layer sync | adr, state, layout, yjs, architecture | doc01.01.02, doc01.03.03 |
+| doc02.06.07 | `06-decisions/07-package-loading-architecture.md` | ADR: Package-based schema loading, dual identity (UUID + content hash), manifest, snapshots | adr, packages, loading, seeds, identity, library | doc02.04.02 |
+| doc02.06.08 | `06-decisions/08-resources.md` | **Archived.** ADR: Resources — superseded by filesystem-first workspace (ADR 009) | adr, archived | — |
+| doc02.06.09 | `06-decisions/09-filesystem-workspace.md` | ADR: Filesystem-first workspace — `.carta/` directory, JSON canonical with binary sidecar, spec groups as directories, narrowed MCP surface, `carta serve .` | adr, workspace, filesystem, deployment, mcp, groups | doc01.01.04 |
 
 ## Tag Index
 
@@ -132,156 +111,117 @@ Quick lookup for file-path→doc mapping:
 
 | Tag | Relevant Docs |
 |-----|---------------|
-| `AI` | doc01.01.05.01 |
-| `Map` | doc02.10 |
-| `adapters` | doc02.02 |
-| `adr` | doc02.04.01, doc02.04.02, doc02.04.03, doc02.04.04, doc02.04.05, doc02.04.06, doc02.04.07, doc02.04.08, doc02.04.09 |
-| `agents` | doc04.02, doc04.04 |
-| `ai` | doc00.05, doc00.06, doc01.02.03.03, doc04.07 |
-| `api` | doc02.03 |
-| `architect` | doc01.03.01 |
-| `architecture` | doc01.02.14, doc02.00, doc02.01, doc02.04.06, doc02.08 |
-| `archived` | doc01.03.05, doc02.04.08 |
-| `artifact-driven development` | doc01.01.05.01 |
-| `bpmn` | doc04.01 |
-| `build` | doc03.03 |
-| `canvas` | doc01.02.01.01 |
-| `canvas-engine` | doc02.11 |
-| `catalog` | doc01.00 |
-| `category-theory` | doc04.05 |
-| `category theory` | doc01.01.05.01 |
-| `chat` | doc01.02.03.03 |
-| `ci` | doc03.02 |
-| `cli` | doc01.05 |
-| `clipboard` | doc01.02.03.06 |
-| `coding` | doc01.01.05.01 |
-| `collaboration` | doc01.02.03.02 |
-| `commands` | doc03.01 |
-| `compiler` | doc01.02.02.01, doc01.04.04, doc02.04.03 |
-| `complexity` | doc04.05 |
-| `components` | doc02.08 |
-| `composition` | doc04.05 |
-| `config` | doc02.04.04, doc02.05 |
-| `connections` | doc01.02.01.03, doc01.04.02, doc02.11 |
-| `constructs` | doc01.02.01.02, doc01.04.01 |
-| `context` | doc01.01.00 |
-| `context-engineering` | doc04.02 |
-| `contributing` | doc03.04 |
+| `AI` | doc01.01.04.01 |
+| `Map` | doc02.04.05 |
+| `adapters` | doc02.04.01 |
+| `adr` | doc02.06.00, doc02.06.01, doc02.06.02, doc02.06.03, doc02.06.04, doc02.06.05, doc02.06.06, doc02.06.07, doc02.06.08, doc02.06.09 |
+| `agents` | doc01.03.02, doc01.03.04 |
+| `ai` | doc00.05, doc00.06, doc01.03.07 |
+| `architecture` | doc02.00, doc02.01, doc02.02, doc02.03, doc02.04.00, doc02.04.03, doc02.05, doc02.06.06 |
+| `archived` | doc02.06.08 |
+| `artifact-driven development` | doc01.01.04.01 |
+| `bpmn` | doc01.03.01 |
+| `canvas` | doc01.02.03, doc01.02.04, doc02.04.00, doc02.04.08 |
+| `canvas-engine` | doc02.04.06 |
+| `category theory` | doc01.01.04.01 |
+| `category-theory` | doc01.03.05 |
+| `cli` | doc01.02.02 |
+| `coding` | doc01.01.04.01 |
+| `collaboration` | doc01.02.05 |
+| `compiler` | doc02.06.03 |
+| `complexity` | doc01.03.05 |
+| `components` | doc02.04.03 |
+| `composition` | doc01.03.05 |
+| `config` | doc02.06.04 |
+| `connections` | doc02.04.06 |
+| `constructs` | doc01.02.04 |
+| `context-engineering` | doc01.03.02 |
 | `conventions` | doc00.03 |
-| `decomposition` | doc04.05 |
-| `deployment` | doc02.04.04, doc02.04.09, doc02.05, doc03.03 |
-| `design` | doc01.01.02, doc01.01.04, doc02.07 |
-| `dev` | doc03.01 |
-| `docs` | doc00.01, doc00.02, doc00.03, doc00.04, doc00.05, doc04.07 |
-| `documents` | doc01.02.03.01 |
-| `dual-mandate` | doc04.01 |
-| `e2e` | doc03.02 |
-| `edges` | doc01.02.01.03, doc02.10 |
-| `editor` | doc01.02.01.06 |
-| `elicitation` | doc04.07 |
-| `evaluation` | doc04.07 |
-| `efficiency` | doc04.02 |
-| `epistemology` | doc04.04 |
-| `export` | doc01.02.02.02 |
-| `files` | doc01.02.02.02 |
-| `filesystem` | doc02.04.09 |
-| `formats` | doc04.06 |
-| `formatters` | doc02.04.03 |
-| `git` | doc01.03.02, doc01.03.03 |
-| `glossary` | doc01.01.03 |
-| `groups` | doc02.04.09 |
+| `decisions` | doc02.06.00 |
+| `decomposition` | doc01.03.05, doc01.03.06 |
+| `deployment` | doc02.06.04, doc02.06.09 |
+| `design` | doc01.01.02, doc02.04.07 |
+| `docs` | doc00.01, doc00.02, doc00.03, doc00.04, doc00.05, doc01.02.01, doc01.03.07 |
+| `dual-mandate` | doc01.03.01 |
+| `edges` | doc02.04.05 |
+| `editor` | doc01.02.04 |
+| `efficiency` | doc01.03.02 |
+| `elicitation` | doc01.03.07 |
+| `epistemology` | doc01.03.04 |
+| `evaluation` | doc01.03.07 |
+| `extension` | doc01.02.03, doc02.03 |
+| `filesystem` | doc02.06.09 |
+| `format` | doc01.02.01 |
+| `formats` | doc01.03.06 |
+| `formatters` | doc02.06.03 |
+| `git` | doc01.02.05, doc02.05 |
+| `glossary` | doc01.01.03, doc02.04.08 |
+| `goals` | doc01.01.00 |
+| `groups` | doc02.06.09 |
 | `guides` | doc00.06 |
-| `hooks` | doc02.02, doc02.08 |
-| `identity` | doc02.04.07 |
-| `import` | doc01.02.02.02, doc01.04.05 |
-| `information-architecture` | doc04.07 |
-| `index` | doc00.00, doc01.00, doc01.01.00, doc02.00, doc03.00, doc04.00 |
-| `information-theory` | doc04.05 |
-| `inspiration` | doc01.01.05.00 |
-| `interfaces` | doc02.03 |
-| `keyboard` | doc01.02.03.06 |
-| `layout` | doc02.04.05, doc02.04.06, doc02.09, doc04.03 |
-| `library` | doc01.02.01.07, doc02.04.07 |
-| `loading` | doc01.02.01.07, doc02.04.07 |
-| `llm` | doc04.06 |
-| `lod` | doc01.02.01.01, doc02.07 |
+| `hooks` | doc02.04.01, doc02.04.03 |
+| `identity` | doc02.06.07 |
+| `index` | doc00.00, doc01.00, doc01.01.00, doc01.03.00, doc02.00, doc02.04.00, doc02.06.00 |
+| `information-architecture` | doc01.03.07 |
+| `information-theory` | doc01.03.05, doc01.03.06 |
+| `inspiration` | doc01.01.04.00 |
+| `layout` | doc01.03.03, doc02.04.04, doc02.06.05, doc02.06.06 |
+| `library` | doc02.06.07 |
+| `llm` | doc01.03.06 |
+| `loading` | doc02.06.07 |
+| `lod` | doc02.04.07 |
 | `maintenance` | doc00.04 |
-| `manifest` | doc01.05 |
-| `mcp` | doc00.06, doc01.02.03.03, doc02.03, doc02.04.09 |
+| `mcp` | doc00.06, doc02.06.09 |
 | `meta` | doc00.00, doc00.01 |
-| `metamap` | doc01.02.01.05 |
-| `metamodel` | doc02.06 |
+| `metamodel` | doc02.04.02 |
 | `mission` | doc01.01.01 |
-| `modeling` | doc01.04.06, doc01.04.08 |
-| `modularity` | doc04.05 |
-| `morphisms` | doc01.01.05.01 |
-| `navigation` | doc01.02.03.01 |
-| `nodes` | doc01.02.01.02, doc02.10 |
-| `notation` | doc04.01 |
-| `onboarding` | doc01.02.03.05 |
-| `operations` | doc03.00 |
-| `oracles` | doc04.04 |
-| `organizers` | doc02.04.05, doc02.09, doc04.01, doc04.03 |
-| `output` | doc01.02.02.01 |
-| `packages` | doc01.02.01.07, doc02.01, doc02.04.07 |
-| `pages` | doc01.02.01.04 |
-| `patterns` | doc01.04.07 |
-| `persona` | doc01.03.01, doc01.03.02 |
-| `pipeline` | doc02.10 |
-| `planning` | doc01.01.05.01 |
-| `playground` | doc01.03.04 |
-| `polarity` | doc02.04.02 |
-| `ports` | doc01.02.01.03, doc02.04.02, doc02.06 |
-| `pr` | doc03.04 |
-| `presentation` | doc02.04.05, doc02.09, doc04.01, doc04.03 |
-| `primary-source` | doc01.01.05.00 |
-| `primitives` | doc02.11 |
+| `modularity` | doc01.03.05 |
+| `morphisms` | doc01.01.04.01 |
+| `nodes` | doc02.04.05 |
+| `notation` | doc01.03.01 |
+| `oracles` | doc01.03.04 |
+| `organizers` | doc01.03.01, doc01.03.03, doc02.04.04, doc02.06.05 |
+| `packages` | doc02.01, doc02.06.07 |
+| `pipeline` | doc02.02, doc02.04.05 |
+| `planning` | doc01.01.04.01 |
+| `polarity` | doc02.06.02 |
+| `ports` | doc01.02.04, doc02.04.02, doc02.06.02 |
+| `presentation` | doc01.03.01, doc01.03.03, doc02.04.04, doc02.06.05 |
+| `primary-source` | doc01.01.04.00 |
+| `primitives` | doc02.04.06 |
 | `principles` | doc01.01.01, doc01.01.02 |
 | `product` | doc01.00 |
-| `properties` | doc04.04 |
-| `reconciliation` | doc04.06 |
-| `rendering` | doc01.02.14, doc02.09, doc04.01 |
-| `research` | doc04.00 |
-| `retrieval` | doc00.05, doc04.07 |
-| `rough` | doc01.02.14 |
-| `schemas` | doc01.02.01.02, doc01.02.01.05, doc01.02.01.06, doc01.02.01.07, doc01.03.02, doc01.04.03, doc02.06 |
-| `seeds` | doc01.02.01.07, doc02.04.07 |
-| `server` | doc01.02.03.02, doc02.05 |
-| `setup` | doc03.01 |
-| `simple` | doc01.02.14 |
-| `scripts` | doc04.06 |
-| `sketching` | doc01.02.14 |
-| `skills` | doc04.02 |
-| `solo` | doc01.03.04 |
-| `spec-driven` | doc04.05, doc04.06 |
-| `specifications` | doc04.07 |
-| `starter` | doc01.02.03.05 |
-| `static-analysis` | doc04.06 |
-| `state` | doc02.02, doc02.04.01, doc02.04.06 |
-| `state-management` | doc04.03 |
-| `storage` | doc01.02.03.01 |
+| `properties` | doc01.03.04 |
+| `reconciliation` | doc01.02.02, doc01.03.06, doc02.02 |
+| `rendering` | doc01.03.01, doc02.04.04 |
+| `research` | doc01.03.00 |
+| `retrieval` | doc00.05, doc01.03.07 |
+| `schemas` | doc02.04.02 |
+| `scripts` | doc01.02.02, doc01.03.06, doc02.02 |
+| `seeds` | doc02.06.07 |
+| `server` | doc01.02.05, doc02.05 |
+| `skills` | doc01.03.02 |
+| `spec-driven` | doc01.03.05, doc01.03.06 |
+| `specifications` | doc01.03.07 |
+| `state` | doc02.04.01, doc02.06.01, doc02.06.06 |
+| `state-management` | doc01.03.03 |
+| `static-analysis` | doc01.03.06 |
 | `structure` | doc00.02 |
-| `styling` | doc01.02.03.04, doc02.07 |
-| `sync` | doc01.02.03.02, doc02.10 |
-| `team` | doc01.03.02, doc01.03.03 |
-| `terms` | doc01.01.03 |
-| `testability` | doc04.04 |
-| `testing` | doc03.02, doc04.04 |
-| `themes` | doc01.02.03.04 |
-| `tokens` | doc04.02 |
-| `tools` | doc01.05 |
-| `ui` | doc01.01.04, doc02.07 |
-| `undo` | doc01.02.03.06 |
-| `ux` | doc01.01.04 |
-| `vault` | doc01.02.03.01 |
-| `verification` | doc04.04 |
-| `versioning` | doc01.02.01.07 |
-| `viewport` | doc02.11 |
-| `views` | doc01.02.01.04 |
-| `vision` | doc01.01.05.00 |
-| `wagons` | doc04.03 |
-| `waypoints` | doc02.10 |
-| `workflow` | doc00.06, doc01.04.01, doc01.04.02, doc01.04.03, doc01.04.04, doc01.04.05, doc01.04.06, doc01.04.07, doc01.04.08 |
-| `workspace` | doc01.03.01, doc01.03.03, doc01.03.04, doc01.05, doc02.04.09 |
-| `yjs` | doc02.02, doc02.04.01, doc02.04.06 |
-| `zoom` | doc01.02.01.01 |
+| `styling` | doc02.04.07 |
+| `sync` | doc02.04.05 |
+| `terms` | doc01.01.03, doc02.04.08 |
+| `testability` | doc01.03.04 |
+| `testing` | doc01.03.04 |
+| `tokens` | doc01.03.02 |
+| `tools` | doc01.02.02 |
+| `ui` | doc02.04.07 |
+| `verification` | doc01.03.04 |
+| `viewport` | doc02.04.06 |
+| `vision` | doc01.01.04.00 |
+| `vscode` | doc01.02.03, doc02.03 |
+| `wagons` | doc01.03.03 |
+| `waypoints` | doc02.04.05 |
+| `web` | doc01.02.05, doc02.05 |
+| `workflow` | doc00.06 |
+| `workspace` | doc01.02.01, doc01.02.02, doc02.06.09 |
+| `yjs` | doc02.04.01, doc02.06.01, doc02.06.06 |

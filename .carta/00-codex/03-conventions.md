@@ -12,11 +12,11 @@ deps: []
 
 Use `docXX.YY` to reference another document. Every segment is two digits:
 
-- `doc01.01.03` — title 01 (context), item 03 (glossary)
-- `doc01.02.02.01` — title 03 (product), subdir 01 (features), subdir 02 (output), item 01 (compilation)
-- `doc02.04.01` — title 02 (system), subdir 04 (decisions), item 01
+- `doc01.01.03` — title 01 (product), subdir 01 (goals), item 03 (glossary)
+- `doc02.04.02` — title 02 (architecture), subdir 04 (canvas), item 02 (metamodel)
+- `doc02.06.01` — title 02 (architecture), subdir 06 (decisions), item 01
 
-Two digits per segment, unlimited depth. Nesting can go as deep as the directory structure requires — `doc03.01.01.03.02.01` is perfectly valid if the file tree warrants it. Each segment maps to a numbered directory or file. If a directory exceeds 99 items, split it into subdirectories rather than widening the numbering.
+Two digits per segment, unlimited depth. Nesting can go as deep as the directory structure requires — `doc01.01.04.01` is perfectly valid if the file tree warrants it. Each segment maps to a numbered directory or file. If a directory exceeds 99 items, split it into subdirectories rather than widening the numbering.
 
 The regex pattern `doc\d{2}(\.\d{2})*` matches all references and is grep-friendly:
 
@@ -52,7 +52,7 @@ NN-slug.md
 
 Examples: `01-mission.md`, `03-glossary.md`, `01-yjs-state.md`.
 
-Directories follow the same pattern: `00-codex/`, `01-context/`, `02-system/`.
+Directories follow the same pattern: `00-codex/`, `01-goals/`, `02-architecture/`.
 
 Numbers determine ordering. Leave gaps when useful — you can add `02-something.md` between `01` and `03` later.
 
@@ -77,7 +77,7 @@ The two serve different readers and should not duplicate each other. MANIFEST tr
 
 ### Subdirectory indexes
 
-Subdirectories may also have a `00-index.md` when their organizational logic needs explanation (e.g., `05-primary-sources/00-index.md`). This is optional — use when the directory's purpose isn't obvious from its name and contents.
+Subdirectories may also have a `00-index.md` when their organizational logic needs explanation (e.g., `04-primary-sources/00-index.md`). This is optional — use when the directory's purpose isn't obvious from its name and contents.
 
 ## Writing Style
 

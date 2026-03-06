@@ -34,19 +34,18 @@ Open only the files identified from the manifest. Most questions can be answered
 
 Some questions cross title boundaries. Common patterns:
 
-| Question type | Start with | Then check |
-|---------------|------------|------------|
-| "How does X work?" | doc02 (system) | doc01.02 (features) |
-| "Why was X designed this way?" | doc02.04 (decisions) | doc01.01.02 (principles) |
-| "What does X mean?" | doc01.01.03 (glossary) | — |
-| "How do I do X?" | doc01.04 (workflows) | doc03 (operations) |
-| "What are the rules for X?" | doc01.01.02 (principles) | doc02 (system) |
-| "What's the UI pattern for X?" | doc02.07 (design system) | doc01.01.04 (UX principles) |
-| "How are components structured?" | doc02.08 (frontend arch) | doc02.01 (overview) |
+| Question type | Look for tags | Then check |
+|---------------|--------------|------------|
+| "How does X work?" | architecture, components, hooks | features |
+| "Why was X designed this way?" | adr, principles | — |
+| "What does X mean?" | glossary, terms | — |
+| "What are the rules for X?" | principles, design | architecture |
+| "What's the UI pattern for X?" | design, ui, styling | — |
+| "How are components structured?" | components, architecture | — |
 
 ### Step 4: Answer with references
 
-Always cite the doc ref (e.g., "Per doc02.06, the metamodel uses three levels..."). This lets the user trace your answer back to the source.
+Always cite the doc ref (e.g., "Per docXX.YY, the metamodel uses three levels..."). This lets the user trace your answer back to the source.
 
 ## Do NOT
 

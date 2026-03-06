@@ -12,17 +12,15 @@ This is the canonical documentation for Carta — the spec-driven development st
 
 ## How to Read
 
-**New to the project?** Start with `01-context/` — mission, principles, and glossary.
+**New to the project?** Start with `01-product/01-goals/` — mission, principles, and glossary.
 
-**Need to understand internals?** Read `02-system/` — architecture, state management, interfaces, and design decisions.
+**Want to know what Carta does?** Browse `01-product/02-features/` — documentation system, canvas, workspace scripts.
 
-**Want to know what Carta does?** Browse `03-product/` — feature catalog, use cases, and step-by-step workflows.
-
-**Need to build, test, or deploy?** See `04-operations/`.
+**Need to understand internals?** Read `02-architecture/` — system architecture, canvas subsystem, and design decisions.
 
 ## Cross-References
 
-Documents reference each other using `doc` syntax: `docXX.YY.ZZ` where each segment is a two-digit number mapping to the directory/file numbering. For example, `doc01.02.02.01` refers to title 03 (product), subdir 01 (features), subdir 02 (output), item 01 (compilation).
+Documents reference each other using `doc` syntax: `docXX.YY.ZZ` where each segment is a two-digit number mapping to the directory/file numbering. For example, `doc01.02.04` refers to title 01 (product), subdir 02 (features), item 04 (canvas).
 
 See doc00.03 for full conventions.
 

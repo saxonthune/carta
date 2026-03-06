@@ -1,74 +1,46 @@
 ---
 title: Product Index
 status: active
-summary: Product section index: feature catalog, use cases, workflows
-tags: [index, product, catalog]
+summary: Product section index: goals, features, research
+tags: [index, product]
 deps: []
 ---
 
 # Product
 
-This title documents what Carta does (features), who uses it (use cases), and how they use it (workflows).
+This title documents what Carta is (goals), what it does (features), and exploratory research.
 
-## Feature Catalog (doc01.02)
+## Goals (doc01.01)
 
-Features are organized into three groups by reader intent.
+Mission, principles, vocabulary, and foundational intent. Read this first to orient yourself.
 
-### Modeling (doc01.02.01)
+| Ref | Item | Summary |
+|-----|------|---------|
+| doc01.01.01 | Mission | Core goal — spec-driven development tool |
+| doc01.01.02 | Principles | Design principles: symmetric storage, inverse derivability |
+| doc01.01.03 | Glossary | Canonical vocabulary: workspace, spec, shape, reconciliation |
+| doc01.01.04 | Primary Sources | Author's original writings, directional intent |
 
-Features for creating and structuring the architecture model: the canvas, the things on it, and how they relate.
+## Features (doc01.02)
 
-| ID | Feature | Status | Description |
-|----|---------|--------|-------------|
-| doc01.02.01.01 | Canvas | active | Primary editing surface: pan, zoom, node manipulation |
-| doc01.02.01.02 | Constructs | active | Typed nodes: schemas, fields, display, color |
-| doc01.02.01.03 | Ports and Connections | active | Port model, polarity, validation, edge rendering |
-| doc01.02.01.04 | Levels | active | Multi-level architectural views within a document |
-| doc01.02.01.05 | Metamap | active | Schema-level visual editor |
-| doc01.02.01.06 | Schema Editor | active | Wizard for creating and editing construct schemas |
-| doc01.02.14 | Simple Mode | draft | Sketch-phase rendering: composable architecture for render modes, separate primitives |
+| Ref | Feature | Status | Summary |
+|-----|---------|--------|---------|
+| doc01.02.01 | Documentation System | active | The .carta/ workspace format |
+| doc01.02.02 | Workspace Scripts | active | CLI tools and reconciliation pipeline |
+| doc01.02.03 | VS Code Extension | draft | Canvas viewer and workspace browser |
+| doc01.02.04 | Canvas | active | Visual architecture editor |
+| doc01.02.05 | Web Platform | draft | Hosted web client with git-backed server |
 
-### Output (doc01.02.02)
+## Research (doc01.03)
 
-Features for getting value out of the model: compilation to AI-readable output and file interchange.
+Exploratory sessions on design problems and architectural questions.
 
-| ID | Feature | Status | Description |
-|----|---------|--------|-------------|
-| doc01.02.02.01 | Compilation | active | Transform canvas state to AI-readable output |
-| doc01.02.02.02 | Import and Export | active | .carta file format, selective import/export with preview |
-
-### Environment (doc01.02.03)
-
-Features for the app experience itself: storage, collaboration, personalization, and interaction.
-
-| ID | Feature | Status | Description |
-|----|---------|--------|-------------|
-| doc01.02.03.01 | Storage Navigation | draft | Vault browsing, filesystem-style document management |
-| doc01.02.03.02 | Collaboration | active | Server mode, real-time sync, sharing |
-| doc01.02.03.03 | AI Assistant | draft | AI sidebar with chat and document manipulation tools |
-| doc01.02.03.04 | Theming | active | Light/dark/warm themes |
-| doc01.02.03.05 | New User Experience | active | First-load starter document, auto-create, no blank canvas |
-| doc01.02.03.06 | Keyboard and Clipboard | active | Shortcuts, copy/paste, undo/redo |
-
-## Use Cases (doc01.03)
-
-| ID | Persona / Scenario | Description |
-|----|---------------------|-------------|
-| doc01.03.01 | Software Architect | Designs system architecture visually, compiles for AI |
-| doc01.03.02 | Team Lead | Defines construct schemas for team standardization |
-| doc01.03.03 | Enterprise Self-Hosted | Internal server, managed AI (Bedrock), desktop + web access |
-| doc01.03.04 | Solo User | Static site or desktop app, local storage, own API key |
-| doc01.03.05 | SaaS Provider | Multi-tenant hosted service with auth, billing, metered AI |
-
-## Workflows (doc01.04)
-
-| ID | Workflow | Features Used |
-|----|----------|---------------|
-| doc01.04.01 | Create a Construct | doc01.02.01.01, doc01.02.01.02 |
-| doc01.04.02 | Connect Constructs | doc01.02.01.01, doc01.02.01.03 |
-| doc01.04.03 | Define a Schema | doc01.02.01.05, doc01.02.01.06 |
-| doc01.04.04 | Compile a Project | doc01.02.02.01 |
-| doc01.04.05 | Import a Project | doc01.02.02.02 |
-| doc01.04.06 | Iterative Modeling on the Map | doc01.02.01.01, doc01.02.01.02, doc01.02.01.03, doc01.02.01.04, doc01.02.03.06 |
-| doc01.04.07 | Schema Design Patterns | doc01.02.01.03, doc01.02.01.05, doc01.02.01.06 |
-| doc01.04.08 | Rough to Refined | doc01.02.01.01, doc01.02.01.02, doc01.02.01.05 |
+| Ref | Topic | Summary |
+|-----|-------|---------|
+| doc01.03.01 | Visual Semantics | Shape differentiation, sequence badges, icon markers |
+| doc01.03.02 | Token Efficiency | Token optimization patterns for skills and agents |
+| doc01.03.03 | Wagon-Aware Layout | Wagon layout units, snap normalization |
+| doc01.03.04 | Verifiability | Test value hierarchy, testability architecture |
+| doc01.03.05 | Decomposition Theory | Mathematical foundations for spec-driven development |
+| doc01.03.06 | Spec-Code Reconciliation | Two-source-of-truth model, reconciliation scripts |
+| doc01.03.07 | Documentation Systems | Hierarchical docs, retrieval quality, spec quality metrics |
