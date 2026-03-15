@@ -15,7 +15,7 @@ How Carta is built. System architecture, component design, and implementation de
 | Ref | Item | Summary |
 |-----|------|---------|
 | doc02.01 | Overview | Layer architecture, monorepo structure, data flow |
-| doc02.02 | Script Pipeline | Reconciliation script architecture |
+| doc02.02 | Reconciliation Architecture | Spec-code reconciliation design considerations |
 | doc02.03 | VS Code Extension | Extension architecture |
 | doc02.04 | Canvas | Canvas subsystem architecture (8 docs) |
 | doc02.05 | Web Platform | Server architecture |

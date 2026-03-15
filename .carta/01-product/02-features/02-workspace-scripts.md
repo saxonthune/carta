@@ -1,39 +1,33 @@
 ---
 title: Workspace Scripts
 status: active
-summary: CLI tools for workspace structure and spec-code reconciliation
-tags: [cli, workspace, tools, reconciliation, scripts]
+summary: CLI tools for managing .carta/ workspace structure — create, delete, move, punch, flatten, regenerate
+tags: [cli, workspace, tools, scripts]
 deps: [doc01.02.01]
 ---
 
 # Workspace Scripts
 
-Command-line tools for managing `.carta/` workspace structure and keeping specifications synchronized with code.
+The `carta` CLI manages the physical structure of a `.carta/` workspace. It handles numbering, gap-closing, and cross-reference rewriting so that users and AI agents can focus on content.
 
-## Structural Operations (carta CLI)
-
-The `carta` CLI manages the physical structure of a workspace:
+## Commands
 
 | Command | Purpose |
 |---------|---------|
+| `init` | Initialize a new `.carta/` workspace |
 | `create` | Create a new doc entry with blank frontmatter |
 | `delete` | Delete entries with automatic gap-closing and ref rewriting |
 | `move` | Move/reorder entries with automatic ref renumbering |
 | `punch` | Expand a leaf file into a directory (NN-slug.md → NN-slug/00-index.md) |
 | `flatten` | Dissolve a directory, hoisting children into the parent |
+| `copy` | Copy a file into the workspace at a given position |
+| `rewrite` | Rewrite doc refs using user-supplied mappings |
 | `regenerate` | Rebuild MANIFEST.md from document frontmatter |
-| `init` | Initialize workspace.json |
 
 All structural operations maintain cross-reference integrity — refs in surviving documents are rewritten to reflect new positions.
 
-## Reconciliation Scripts
+## Scope Boundary
 
-Reconciliation scripts compare workspace specifications against code artifacts, detecting drift and generating patches. The five-stage pipeline:
+The `carta` CLI is a **workspace structure tool**. It operates on the `.carta/` directory's physical layout — files, directories, numbering, frontmatter, and cross-references.
 
-1. **Extract**: Parse code into an intermediate representation
-2. **Compare**: Diff spec shapes against the intermediate
-3. **Propose**: Generate patches (spec→code or code→spec)
-4. **Apply**: Write changes to the target (code or spec files)
-5. **Verify**: Confirm consistency after application
-
-See doc02.02 for the architecture of the script pipeline.
+Spec-code reconciliation — comparing specifications against source code, extracting code shapes, detecting drift — is a separate product concern (doc01.02.07). The CLI does not parse source code or reason about spec-code alignment.

@@ -26,10 +26,12 @@ Mission, principles, vocabulary, and foundational intent. Read this first to ori
 | Ref | Feature | Status | Summary |
 |-----|---------|--------|---------|
 | doc01.02.01 | Documentation System | active | The .carta/ workspace format |
-| doc01.02.02 | Workspace Scripts | active | CLI tools and reconciliation pipeline |
+| doc01.02.02 | Workspace Scripts | active | CLI tools for workspace structure |
 | doc01.02.03 | VS Code Extension | draft | Canvas viewer and workspace browser |
 | doc01.02.04 | Canvas | active | Visual architecture editor |
 | doc01.02.05 | Web Platform | draft | Hosted web client with git-backed server |
+| doc01.02.06 | CLI User Flow | draft | Installation, hydration, workspace operations |
+| doc01.02.07 | Spec-Code Reconciliation | draft | Comparing specs against code to detect drift |
 
 ## Research (doc01.03)
 

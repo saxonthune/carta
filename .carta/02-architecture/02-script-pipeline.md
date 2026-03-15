@@ -1,60 +1,32 @@
 ---
-title: Script Pipeline
+title: Reconciliation Architecture
 status: draft
-summary: Architecture of the five-stage reconciliation script pipeline
-tags: [scripts, reconciliation, pipeline, architecture]
-deps: [doc01.02.02]
+summary: Architecture considerations for spec-code reconciliation — mechanism-agnostic, research-stage
+tags: [reconciliation, architecture, specs, alignment]
+deps: [doc01.02.07]
 ---
 
-# Script Pipeline
+# Reconciliation Architecture
 
-Architecture of the reconciliation scripts that keep `.carta/` specifications synchronized with code.
+Architecture considerations for comparing `.carta/` specifications against source code. This document will evolve as reconciliation moves from research (doc01.03.06) into implementation.
 
-## Five-Stage Pipeline
+## Design Constraints
 
-```
-Code Artifacts          .carta/ Specs
-     |                       |
-     v                       v
-  Extract               Read Specs
-     |                       |
-     v                       v
-  Intermediate -----> Compare <----- Shape Files
-                        |
-                        v
-                     Propose
-                        |
-                   +----+----+
-                   v         v
-              Apply to    Apply to
-                Code       Specs
-                   |         |
-                   v         v
-                  Verify  Verify
-```
+1. **Mechanism-agnostic**: Carta does not prescribe a specific reconciliation pipeline. The architecture should support multiple approaches — LLM-assisted, static analysis, hybrid — without coupling to any one.
 
-### Stage 1: Extract
+2. **Workspace scripts are separate**: The `carta` CLI (doc01.02.02) manages workspace structure. Reconciliation tooling is a distinct concern that may *use* workspace scripts but is not part of them.
 
-Parse code artifacts into a normalized intermediate representation. Each extractor is language/framework-specific (TypeScript modules, React components, database schemas).
+3. **Specs are the source of truth for intent**: Reconciliation compares specs (intent) against code (reality). The comparison may surface drift in either direction — specs that don't match code, or code that has no corresponding spec.
 
-### Stage 2: Compare
+4. **Format alignment**: Whatever mechanism extracts information from code should produce output comparable to what the workspace format provides — structured data with identifiers, relationships, and typed metadata.
 
-Diff the intermediate representation against spec shape files. Produces a structured diff: added, removed, modified, and unchanged items.
+## Open Questions
 
-### Stage 3: Propose
+- What is the right intermediate representation for code-side extraction?
+- Should reconciliation be a `carta` subcommand, a separate tool, or an AI agent workflow?
+- How do we handle the gap between deterministic extraction (what scripts can do) and semantic comparison (what LLMs can do)?
 
-Generate patches from the diff. Two directions:
-- **Spec->Code**: Generate code changes to match specs
-- **Code->Spec**: Generate spec updates to match code
+## References
 
-### Stage 4: Apply
-
-Write proposed changes. Code patches go through standard file editing. Spec patches use the `carta` CLI for structural changes or direct file writes for content changes.
-
-### Stage 5: Verify
-
-Confirm consistency after application. Re-run extract+compare to verify zero diff.
-
-## Script Configuration
-
-Scripts are configured in `workspace.json` under the `scripts` key. Each script declares its extractor, target spec directory, and comparison strategy.
+- doc01.02.07 — Feature description (spec-code reconciliation)
+- doc01.03.06 — Research session (two-source-of-truth model, data formats, script architecture)

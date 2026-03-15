@@ -15,7 +15,7 @@ Carta is a spec-driven development tool. The primary product is the `.carta/` wo
 **`.carta/` is the canonical source of truth** — a Carta workspace containing specifications and architecture docs. Cross-references use `docXX.YY.ZZ` syntax (e.g., `doc02.04.02` = metamodel). Key docs:
 
 - **Product**: doc01.01 (goals), doc01.02 (features), doc01.03 (research)
-- **Architecture**: doc02.01 (overview), doc02.02 (script pipeline), doc02.03 (vscode extension)
+- **Architecture**: doc02.01 (overview), doc02.02 (reconciliation), doc02.03 (vscode extension)
 - **Canvas**: doc02.04.01 (state), doc02.04.02 (metamodel), doc02.04.03 (frontend), doc02.04.07 (design system)
 - **Decisions**: doc02.06 (ADRs)
 

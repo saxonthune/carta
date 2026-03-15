@@ -3,7 +3,7 @@ title: Spec-Code Reconciliation Architecture
 status: active
 summary: Two-source-of-truth model, filesystem data formats, deterministic scripts, LLM-assisted reconciliation between product specs and codebases
 tags: [spec-driven, reconciliation, formats, scripts, decomposition, information-theory, llm, static-analysis]
-deps: [doc01.01.02, doc01.01.04.01, doc02.06.09]
+deps: [doc01.01.02, doc01.01.04.01, doc01.02.07, doc02.06.09]
 ---
 
 # Spec-Code Reconciliation Architecture
