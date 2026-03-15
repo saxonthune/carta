@@ -25,3 +25,4 @@ Primary sources are the raw thinking that produced `01-mission.md` and `02-princ
 | Ref | File | Summary |
 |-----|------|---------|
 | doc01.01.04.01 | `01-the-carta-experiment.md` | Artifact-driven development, code-minus-one abstraction layers |
+| doc01.01.04.02 | `02-theoretical-foundations.md` | Why spec-driven development works with AI — Alexander, Simon, Shannon, decreasing indirection thesis |

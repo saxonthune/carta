@@ -101,15 +101,11 @@ Some mechanisms are format-level but their *content* is user-level:
 | `workspace.json` | File existence, required fields | Title, description, custom metadata |
 | Tags | Field type (string array) | Tag vocabulary, conventions |
 
-## Init and Templates
+## Init
 
-`carta init` creates the bare minimum: `workspace.json`, `MANIFEST.md`, `00-codex/00-index.md`. This is format-level scaffolding — the minimum valid workspace.
+`carta init` creates the bare minimum: `workspace.json`, `MANIFEST.md`, `00-codex/00-index.md`. This is format-level scaffolding — the minimum valid workspace. No templates, no pre-created directories, no seed files beyond the codex.
 
-**Should `carta init` offer templates?** A template would pre-create directories and seed files — e.g., `carta init --template product-engineering` would create `01-product/`, `02-architecture/`, etc. But every template is an implicit opinion about arrangement. Templates carry weight, especially with nontechnical users who may treat the initial structure as canonical.
-
-The tension: templates are helpful for getting started, but they risk violating agnosticism by suggesting "this is how specs should be organized." The format's answer should probably be: **templates are convenience, not prescription.** If they exist, they should be clearly labeled as starting points that can be discarded entirely. And `carta init` with no template should remain the default — a blank workspace with no opinions.
-
-An alternative to templates: let the AI agent (in the conversational flow, doc01.02.05.01) scaffold the workspace interactively. "What's this project about? Let me set up a workspace for you." This moves arrangement decisions to the user's session rather than baking them into the CLI.
+All arrangement decisions come from the user or their AI agent after init. In the web platform's conversational flow (doc01.02.05.01), the agent can scaffold the workspace interactively — "What's this project about? Let me set up a workspace for you." This keeps arrangement decisions in the user's session rather than baked into the CLI.
 
 ## Why This Matters
 
@@ -121,5 +117,4 @@ An alternative to templates: let the AI agent (in the conversational flow, doc01
 ## Open Questions
 
 1. Should the format grow a `type` field in the future, or should spec typing always be a user concern? What would have to be true for typing to become a format concern?
-2. Should `carta init` offer templates at all, or should initial arrangement always come from the user/agent?
-3. Are there format concerns we're missing — things the tooling should enforce but currently doesn't?
+2. Are there format concerns we're missing — things the tooling should enforce but currently doesn't?

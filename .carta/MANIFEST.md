@@ -52,6 +52,7 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 | doc01.01.03 | `01-goals/03-glossary.md` | Canonical vocabulary: workspace, spec, shape, reconciliation | glossary, terms | — |
 | doc01.01.04.00 | `01-goals/04-primary-sources/00-index.md` | Author's original writings, directional intent | inspiration, vision, primary-source | — |
 | doc01.01.04.01 | `01-goals/04-primary-sources/01-the-carta-experiment.md` | Artifact-driven development, code-minus-one abstraction layers | AI, coding, planning, category theory, morphisms, artifact-driven development | doc01.01.01 |
+| doc01.01.04.02 | `01-goals/04-primary-sources/02-theoretical-foundations.md` | Why spec-driven development works with AI — Alexander, Simon, Shannon, decreasing indirection thesis | spec-driven, AI, theory, patterns, complexity, information-theory, artifact-driven development | doc01.01.01, doc01.01.04.01, doc01.03.05 |
 
 ### Research Sessions
 
@@ -67,6 +68,7 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 | doc01.03.06 | `03-research/06-spec-code-reconciliation.md` | Two-source-of-truth model, filesystem data formats, deterministic scripts, LLM-assisted reconciliation between product specs and codebases | spec-driven, reconciliation, formats, scripts, decomposition, information-theory, llm, static-analysis | doc01.01.02, doc01.01.04.01, doc02.06.09 |
 | doc01.03.07 | `03-research/07-documentation-systems-and-retrieval.md` | Principles behind hierarchical docs systems, agentic search improvement, scientific comparison of docs structures, and what makes individual specs good enough for code generation | docs, retrieval, ai, specifications, elicitation, information-architecture, evaluation | doc00.05, doc01.03.06 |
 | doc01.03.08 | `03-research/08-spec-format-vocabulary.md` | What parts of the spec format Carta has opinions on vs what's up to users — format concerns vs user concerns | specs, vocabulary, format, agnosticism, workspace, principles | doc01.02.01, doc01.01.02, doc01.01.03, doc01.03.06 |
+| doc01.03.09 | `03-research/09-product-as-transition-system.md` | Product-as-transition-system, architecture decision taxonomy (~100 decisions), product properties that make architecture deducible, five framings for tooling (annotations, dimensions, constraints, flows, types) | product-modeling, transition-systems, verification, architecture, reachability, spec-driven, artifact-driven development | doc01.01.04.01, doc01.01.04.02, doc01.03.05 |
 
 ## 02-architecture — Architecture Index
 
@@ -116,16 +118,16 @@ Quick lookup for file-path→doc mapping:
 
 | Tag | Relevant Docs |
 |-----|---------------|
-| `AI` | doc01.01.04.01 |
+| `AI` | doc01.01.04.01, doc01.01.04.02 |
 | `Map` | doc02.04.05 |
 | `adapters` | doc02.04.01 |
 | `adr` | doc02.06.00, doc02.06.01, doc02.06.02, doc02.06.03, doc02.06.04, doc02.06.05, doc02.06.06, doc02.06.07, doc02.06.08, doc02.06.09 |
 | `agents` | doc01.03.02, doc01.03.04 |
 | `agnosticism` | doc01.03.08 |
 | `ai` | doc00.05, doc00.06, doc01.02.05.00, doc01.02.05.01, doc01.02.05.02, doc01.03.07 |
-| `architecture` | doc02.00, doc02.01, doc02.02, doc02.03, doc02.04.00, doc02.04.03, doc02.05, doc02.06.06 |
+| `architecture` | doc02.00, doc02.01, doc02.02, doc02.03, doc02.04.00, doc02.04.03, doc02.05, doc02.06.06, doc01.03.09 |
 | `archived` | doc02.06.08 |
-| `artifact-driven development` | doc01.01.04.01 |
+| `artifact-driven development` | doc01.01.04.01, doc01.01.04.02, doc01.03.09 |
 | `bpmn` | doc01.03.01 |
 | `canvas` | doc01.02.03, doc01.02.04, doc02.04.00, doc02.04.08 |
 | `canvas-engine` | doc02.04.06 |
@@ -135,7 +137,7 @@ Quick lookup for file-path→doc mapping:
 | `coding` | doc01.01.04.01 |
 | `collaboration` | doc01.02.05.00, doc01.02.05.03 |
 | `compiler` | doc02.06.03 |
-| `complexity` | doc01.03.05 |
+| `complexity` | doc01.03.05, doc01.01.04.02 |
 | `components` | doc02.04.03 |
 | `composition` | doc01.03.05 |
 | `config` | doc02.06.04 |
@@ -170,7 +172,7 @@ Quick lookup for file-path→doc mapping:
 | `identity` | doc02.06.07 |
 | `index` | doc00.00, doc01.00, doc01.01.00, doc01.03.00, doc02.00, doc02.04.00, doc02.06.00 |
 | `information-architecture` | doc01.03.07 |
-| `information-theory` | doc01.03.05, doc01.03.06 |
+| `information-theory` | doc01.03.05, doc01.03.06, doc01.01.04.02 |
 | `inspiration` | doc01.01.04.00 |
 | `installation` | doc01.02.06 |
 | `layout` | doc01.03.03, doc02.04.04, doc02.06.05, doc02.06.06 |
@@ -209,7 +211,10 @@ Quick lookup for file-path→doc mapping:
 | `seeds` | doc02.06.07 |
 | `server` | doc01.02.05.00, doc01.02.05.03, doc02.05 |
 | `skills` | doc01.03.02 |
-| `spec-driven` | doc01.03.05, doc01.03.06 |
+| `patterns` | doc01.01.04.02 |
+| `product-modeling` | doc01.03.09 |
+| `reachability` | doc01.03.09 |
+| `spec-driven` | doc01.03.05, doc01.03.06, doc01.01.04.02, doc01.03.09 |
 | `specifications` | doc01.03.07 |
 | `specs` | doc01.02.05.00, doc01.02.05.01, doc01.02.05.02, doc01.03.08 |
 | `state` | doc02.04.01, doc02.06.01, doc02.06.06 |
@@ -221,11 +226,13 @@ Quick lookup for file-path→doc mapping:
 | `terms` | doc01.01.03, doc02.04.08 |
 | `testability` | doc01.03.04 |
 | `testing` | doc01.03.04 |
+| `theory` | doc01.01.04.02 |
 | `tokens` | doc01.03.02 |
 | `tools` | doc01.02.02 |
 | `ui` | doc02.04.07 |
 | `use-case` | doc01.02.06 |
-| `verification` | doc01.03.04 |
+| `transition-systems` | doc01.03.09 |
+| `verification` | doc01.03.04, doc01.03.09 |
 | `viewport` | doc02.04.06 |
 | `vision` | doc01.01.04.00 |
 | `vocabulary` | doc01.03.08 |
