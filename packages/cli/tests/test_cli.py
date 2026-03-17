@@ -4,6 +4,7 @@ Run with:
     python3 -m pytest packages/cli/tests/test_cli.py -v
 """
 
+import json
 import os
 import re
 import shutil
@@ -21,7 +22,7 @@ from carta_cli.entries import list_numbered_entries
 from carta_cli.numbering import get_numeric_prefix
 from carta_cli.ref_convert import ref_to_path, path_to_ref
 from carta_cli.rewriter import collect_md_files, rewrite_refs
-from carta_cli.workspace import find_workspace
+from carta_cli.workspace import find_workspace, MARKER
 
 # Real .carta/ root (used to copy fixtures)
 _REAL_CARTA_ROOT = find_workspace()
@@ -29,9 +30,12 @@ _ENV_WITH_CLI = {**os.environ, "PYTHONPATH": str(_CLI_DIR)}
 
 
 def _copy_carta(dest: Path) -> Path:
-    """Copy the real .carta/ into dest/. Returns dest/.carta/."""
+    """Copy the real .carta/ into dest/. Also creates .carta.json marker. Returns dest/.carta/."""
     carta_copy = dest / ".carta"
     shutil.copytree(str(_REAL_CARTA_ROOT), str(carta_copy), dirs_exist_ok=False)
+    # Create .carta.json marker at dest root so load_workspace() works
+    marker = dest / MARKER
+    marker.write_text(json.dumps({"root": ".carta/", "title": "Test"}), encoding="utf-8")
     return carta_copy
 
 
@@ -41,6 +45,122 @@ def _run_carta(carta_copy: Path, *args: str) -> subprocess.CompletedProcess:
         [sys.executable, "-m", "carta_cli.main", "--workspace", str(carta_copy)] + list(args),
         capture_output=True, text=True, env=_ENV_WITH_CLI,
     )
+
+
+class TestFindWorkspace(unittest.TestCase):
+    """Tests for find_workspace() via .carta.json marker."""
+
+    def test_discovers_workspace_via_marker(self):
+        """find_workspace() discovers docs dir from .carta.json root field."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            docs_dir = Path(tmpdir) / ".docs"
+            docs_dir.mkdir()
+            marker = Path(tmpdir) / MARKER
+            marker.write_text(json.dumps({"root": ".docs/"}))
+            old_cwd = os.getcwd()
+            try:
+                os.chdir(tmpdir)
+                result = find_workspace()
+                self.assertEqual(result.name, ".docs")
+                self.assertTrue(result.is_dir())
+            finally:
+                os.chdir(old_cwd)
+
+    def test_default_root_is_carta(self):
+        """find_workspace() defaults to .carta/ when root is omitted."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            docs_dir = Path(tmpdir) / ".carta"
+            docs_dir.mkdir()
+            marker = Path(tmpdir) / MARKER
+            marker.write_text(json.dumps({"title": "test"}))
+            old_cwd = os.getcwd()
+            try:
+                os.chdir(tmpdir)
+                result = find_workspace()
+                self.assertEqual(result.name, ".carta")
+            finally:
+                os.chdir(old_cwd)
+
+    def test_errors_when_no_marker(self):
+        """find_workspace() errors when no .carta.json exists."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            old_cwd = os.getcwd()
+            try:
+                os.chdir(tmpdir)
+                with self.assertRaises(FileNotFoundError) as ctx:
+                    find_workspace()
+                self.assertIn(MARKER, str(ctx.exception))
+            finally:
+                os.chdir(old_cwd)
+
+    def test_errors_when_root_dir_missing(self):
+        """find_workspace() errors when root dir from marker doesn't exist."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            marker = Path(tmpdir) / MARKER
+            marker.write_text(json.dumps({"root": ".nonexistent/"}))
+            old_cwd = os.getcwd()
+            try:
+                os.chdir(tmpdir)
+                with self.assertRaises(FileNotFoundError) as ctx:
+                    find_workspace()
+                self.assertIn(".nonexistent/", str(ctx.exception))
+            finally:
+                os.chdir(old_cwd)
+
+
+class TestInitDir(unittest.TestCase):
+    """Tests for carta init --dir."""
+
+    def test_init_custom_dir(self):
+        """carta init --dir .docs creates .carta.json at root with correct root field."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            result = subprocess.run(
+                [sys.executable, "-m", "carta_cli.main", "init", "--dir", ".docs", "--name", "TestProject"],
+                capture_output=True, text=True, env=_ENV_WITH_CLI, cwd=tmpdir,
+            )
+            self.assertEqual(result.returncode, 0, f"init failed:\n{result.stderr}\n{result.stdout}")
+
+            # .carta.json at project root
+            marker_path = Path(tmpdir) / MARKER
+            self.assertTrue(marker_path.exists(), f"{MARKER} should exist at project root")
+            marker_data = json.loads(marker_path.read_text())
+            self.assertEqual(marker_data["root"], ".docs/")
+            self.assertEqual(marker_data["title"], "TestProject")
+
+            # Docs directory created
+            docs_dir = Path(tmpdir) / ".docs"
+            self.assertTrue((docs_dir / "MANIFEST.md").exists())
+            self.assertTrue((docs_dir / "00-codex" / "00-index.md").exists())
+
+            manifest = (docs_dir / "MANIFEST.md").read_text(encoding="utf-8")
+            self.assertTrue(manifest.startswith("# .docs/ Manifest"),
+                            f"MANIFEST header should use .docs/: {manifest[:50]}")
+
+    def test_init_default_dir(self):
+        """carta init with no --dir creates .carta/ and .carta.json with root=.carta/."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            result = subprocess.run(
+                [sys.executable, "-m", "carta_cli.main", "init", "--name", "DefaultTest"],
+                capture_output=True, text=True, env=_ENV_WITH_CLI, cwd=tmpdir,
+            )
+            self.assertEqual(result.returncode, 0, f"init failed:\n{result.stderr}\n{result.stdout}")
+
+            marker_path = Path(tmpdir) / MARKER
+            self.assertTrue(marker_path.exists())
+            marker_data = json.loads(marker_path.read_text())
+            self.assertEqual(marker_data["root"], ".carta/")
+
+    def test_init_refuses_existing(self):
+        """carta init refuses when .carta.json already exists."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create marker first
+            (Path(tmpdir) / MARKER).write_text("{}")
+            result = subprocess.run(
+                [sys.executable, "-m", "carta_cli.main", "init"],
+                capture_output=True, text=True, env=_ENV_WITH_CLI, cwd=tmpdir,
+            )
+            self.assertEqual(result.returncode, 0)
+            self.assertIn("already exists", result.stdout)
 
 
 class TestRefToPath(unittest.TestCase):

@@ -1,10 +1,12 @@
-"""init command — scaffold a new .carta/ workspace."""
+"""init command — scaffold a new workspace."""
 
 import json
 from importlib import resources
 from pathlib import Path
 
 import click
+
+from ..workspace import MARKER
 
 
 def _read_template(name: str) -> str:
@@ -14,26 +16,43 @@ def _read_template(name: str) -> str:
 
 @click.command()
 @click.option("--name", default=None, help="Workspace title. Default: parent directory name.")
+@click.option("--dir", "dirname", default=".carta", help="Name of the workspace directory. Default: .carta")
 @click.pass_context
-def init(ctx: click.Context, name: str | None) -> None:
-    """Initialize a new .carta/ workspace in the current directory."""
+def init(ctx: click.Context, name: str | None, dirname: str) -> None:
+    """Initialize a new workspace in the current directory."""
     project_root = Path.cwd().resolve()
-    carta_dir = project_root / ".carta"
+    marker_path = project_root / MARKER
+    carta_dir = project_root / dirname
 
-    if (carta_dir / "workspace.json").exists():
-        click.echo(f"Workspace already exists: {carta_dir / 'workspace.json'}")
+    if marker_path.exists():
+        click.echo(f"Workspace already exists: {marker_path}")
         click.echo("Use other carta commands to modify the existing workspace.")
         return
 
     title = name or project_root.name
 
-    # Create .carta/ directory structure
+    # Create workspace directory structure
     codex_dir = carta_dir / "00-codex"
     codex_dir.mkdir(parents=True, exist_ok=True)
 
-    # Write workspace.json from template
-    ws_content = _read_template("workspace.json").replace("{{title}}", title)
-    (carta_dir / "workspace.json").write_text(ws_content, encoding="utf-8")
+    # Write .carta.json marker at project root
+    marker_content = {
+        "root": f"{dirname}/",
+        "title": title,
+        "description": "",
+        "groups": {
+            "00-codex": {
+                "name": "Codex",
+                "description": "Meta-documentation: how to read docs, cross-reference syntax, maintenance",
+            }
+        },
+        "externalRefPaths": [
+            "CLAUDE.md",
+            ".claude/skills/**/*.md",
+            ".cursor/**/*.md",
+        ],
+    }
+    marker_path.write_text(json.dumps(marker_content, indent=2) + "\n", encoding="utf-8")
 
     # Write 00-codex/00-index.md from template
     index_content = _read_template("00-index.md").replace("{{title}}", title)
@@ -41,7 +60,7 @@ def init(ctx: click.Context, name: str | None) -> None:
 
     # Write empty MANIFEST.md (will be populated by regenerate)
     (carta_dir / "MANIFEST.md").write_text(
-        "# .carta/ Manifest\n\nMachine-readable index for AI navigation. "
+        f"# {dirname}/ Manifest\n\nMachine-readable index for AI navigation. "
         "Run `carta regenerate` to populate.\n",
         encoding="utf-8",
     )
@@ -51,7 +70,8 @@ def init(ctx: click.Context, name: str | None) -> None:
     skill_dir.mkdir(parents=True, exist_ok=True)
     skill_path = skill_dir / "SKILL.md"
     if not skill_path.exists():
-        skill_path.write_text(_read_template("skill.md"), encoding="utf-8")
+        skill_content = _read_template("skill.md").replace("{{dir_name}}", dirname)
+        skill_path.write_text(skill_content, encoding="utf-8")
         click.echo(f"  Hydrated: .claude/skills/carta-cli/SKILL.md")
     else:
         click.echo(f"  Skipped:  .claude/skills/carta-cli/SKILL.md (already exists)")
@@ -61,10 +81,10 @@ def init(ctx: click.Context, name: str | None) -> None:
     from .regenerate import do_regenerate
     do_regenerate(carta_dir)
 
-    click.echo(f"\nInitialized .carta/ workspace: {title}")
-    click.echo(f"  Created:  .carta/workspace.json")
-    click.echo(f"  Created:  .carta/00-codex/00-index.md")
-    click.echo(f"  Created:  .carta/MANIFEST.md")
+    click.echo(f"\nInitialized {dirname}/ workspace: {title}")
+    click.echo(f"  Created:  {MARKER}")
+    click.echo(f"  Created:  {dirname}/00-codex/00-index.md")
+    click.echo(f"  Created:  {dirname}/MANIFEST.md")
     click.echo(f"\nNext steps:")
     click.echo(f"  carta create 00-codex my-first-doc   # add a document")
     click.echo(f"  carta --help                          # see all commands")

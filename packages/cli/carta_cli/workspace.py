@@ -1,29 +1,47 @@
-"""workspace.py — read workspace.json and resolve externalRefPaths."""
+"""workspace.py — read .carta.json marker and resolve workspace paths."""
 
 from pathlib import Path
 import json
 
+MARKER = ".carta.json"
 
-def find_workspace() -> Path:
-    """Walk up from cwd to find the .carta/ workspace root (contains workspace.json)."""
+
+def find_marker() -> Path:
+    """Walk up from cwd to find .carta.json (like git finds .git/)."""
     current = Path.cwd().resolve()
     for candidate in [current, *current.parents]:
-        carta_dir = candidate / ".carta"
-        if (carta_dir / "workspace.json").exists():
-            return carta_dir
+        marker = candidate / MARKER
+        if marker.exists():
+            return marker
     raise FileNotFoundError(
-        "workspace.json not found in any .carta/ directory above the current directory. "
+        f"{MARKER} not found in any directory above cwd. "
         "Are you inside a Carta workspace?"
     )
 
 
+def find_workspace() -> Path:
+    """Find the workspace docs directory via .carta.json marker."""
+    marker = find_marker()
+    config = json.loads(marker.read_text())
+    root_rel = config.get("root", ".carta/")
+    workspace = (marker.parent / root_rel).resolve()
+    if not workspace.is_dir():
+        raise FileNotFoundError(
+            f"Workspace root {root_rel!r} from {marker} does not exist."
+        )
+    return workspace
+
+
 def load_workspace(root: Path) -> dict:
-    """Parse workspace.json from the .carta/ root."""
-    return json.loads((root / "workspace.json").read_text())
+    """Parse .carta.json from the repo root (parent of docs directory)."""
+    marker = root.parent / MARKER
+    if not marker.exists():
+        raise FileNotFoundError(f"{MARKER} not found at {marker}")
+    return json.loads(marker.read_text())
 
 
 def get_external_ref_paths(ws: dict, root: Path) -> list[Path]:
-    """Expand externalRefPaths globs relative to the repo root (parent of .carta/).
+    """Expand externalRefPaths globs relative to the repo root (parent of workspace dir).
 
     Returns a flat list of resolved Path objects for all matching files.
     Only returns paths that exist.

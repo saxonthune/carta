@@ -248,6 +248,8 @@ def do_regenerate(carta_root: Path, dry_run: bool = False) -> None:
         raise SystemExit(1)
 
     preamble = preamble_path.read_text(encoding="utf-8")
+    dir_name = carta_root.name
+    preamble = preamble.replace("{{dir_name}}", dir_name)
 
     # Discover top-level title directories (NN-slug pattern)
     title_dirs = sorted(

@@ -1,0 +1,24 @@
+{
+  "root": ".carta/",
+  "title": "Carta",
+  "description": "",
+  "groups": {
+    "00-codex": {
+      "name": "Codex Index",
+      "description": "Meta-documentation: how to read docs, cross-reference syntax, conventions, maintenance"
+    },
+    "01-product": {
+      "name": "Product Index",
+      "description": "Product-level docs: goals, features, research"
+    },
+    "02-architecture": {
+      "name": "Architecture Index",
+      "description": "Architecture docs: overview, subsystems, decisions"
+    }
+  },
+  "externalRefPaths": [
+    "CLAUDE.md",
+    ".claude/skills/**/*.md",
+    ".cursor/**/*.md"
+  ]
+}

@@ -45,7 +45,7 @@ def move(ctx: click.Context, source: str, destination: str, order: int | None, m
         )
         raise SystemExit(1)
 
-    # Resolve .carta/ root
+    # Resolve workspace root
     carta_root = ctx.obj["workspace"]
 
     # Resolve source and destination

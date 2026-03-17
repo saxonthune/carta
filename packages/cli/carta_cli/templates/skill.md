@@ -1,6 +1,6 @@
 # carta-cli
 
-Reference for the `carta` CLI — structural operations on `.carta/` workspaces.
+Reference for the `carta` CLI — structural operations on `{{dir_name}}/` workspaces.
 
 ## When This Triggers
 - "restructure the docs" / "move docs around" / "delete a section" / "create a new doc"
@@ -14,15 +14,15 @@ Structural changes via `carta` CLI. Content via Write/Edit. Always regenerate at
 carta <command> [options]
 carta --help                # list all commands
 carta <command> --help      # command-specific help
-carta -w /path/.carta <cmd> # explicit workspace path
+carta -w /path/{{dir_name}} <cmd> # explicit workspace path
 ```
 
-The CLI finds `.carta/` by walking up from cwd (like `git` finds `.git/`).
+The CLI finds the workspace by walking up from cwd (like `git` finds `.git/`).
 
 ## Commands
 
 ### init
-Initialize a new `.carta/` workspace. Already done for this project.
+Initialize a new workspace. Already done for this project.
 
 ### create
 ```
@@ -74,7 +74,7 @@ Rebuild MANIFEST.md from filesystem and doc frontmatter. All structural commands
 
 ## Frontmatter Schema
 
-Every `.carta/` doc has YAML frontmatter:
+Every workspace doc has YAML frontmatter:
 
 ```yaml
 ---

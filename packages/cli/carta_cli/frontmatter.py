@@ -1,4 +1,4 @@
-"""frontmatter.py — YAML frontmatter read/write utilities for .carta/ docs."""
+"""frontmatter.py — YAML frontmatter read/write utilities for workspace docs."""
 
 import re
 from pathlib import Path
