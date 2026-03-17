@@ -1,45 +1,27 @@
 /**
- * Desktop mode detection via Electron preload API or URL query params.
+ * Runtime config injected by `carta serve` into index.html,
+ * or passed via URL params when embedded in an iframe.
  */
-interface ElectronAPI {
-  platform: string;
-  versions: { node: string; chrome: string; electron: string };
-  isDesktop: boolean;
-  getServerInfo: () => Promise<{ url: string; wsUrl: string; port: number } | null>;
-  getMcpConfig: () => Promise<string>;
-  getMcpScriptPath: () => Promise<string>;
-  // Vault management
-  isFirstRun: () => Promise<boolean>;
-  getVaultPath: () => Promise<string | null>;
-  getDefaultVaultPath: () => Promise<string>;
-  chooseVaultFolder: () => Promise<string | null>;
-  initializeVault: (path: string) => Promise<{ url: string; wsUrl: string; port: number; documentId: string }>;
-  revealVault: () => Promise<void>;
+interface CartaConfig {
+  syncUrl?: string;
+  /** Set to true when running inside the VS Code extension webview */
+  embedded?: boolean;
 }
 
-declare global {
-  interface Window {
-    electronAPI?: ElectronAPI;
-  }
-}
+function getRuntimeConfig(): CartaConfig {
+  if (typeof window === 'undefined') return {};
+  const injected = (window as unknown as { __CARTA_CONFIG__?: CartaConfig }).__CARTA_CONFIG__ ?? {};
 
-const isDesktop = typeof window !== 'undefined' && !!window.electronAPI?.isDesktop;
-
-/**
- * In desktop mode, the embedded server URL can come from:
- * 1. URL query params (set by Electron main in dev mode)
- * 2. Will be fetched via IPC at runtime (production)
- */
-function getDesktopServerUrl(): string | null {
-  if (typeof window === 'undefined') return null;
+  // URL params override injected config (used by dev-mode iframe in VS Code)
   const params = new URLSearchParams(window.location.search);
-  return params.get('desktopServer');
-}
+  const syncUrlParam = params.get('syncUrl');
+  const embeddedParam = params.get('embedded');
 
-function getDesktopWsUrl(): string | null {
-  if (typeof window === 'undefined') return null;
-  const params = new URLSearchParams(window.location.search);
-  return params.get('desktopWs');
+  return {
+    ...injected,
+    ...(syncUrlParam ? { syncUrl: syncUrlParam } : {}),
+    ...(embeddedParam === 'true' ? { embedded: true } : {}),
+  };
 }
 
 /**
@@ -55,36 +37,43 @@ function getDebugMode(): boolean {
 }
 
 /**
- * Simplified configuration: 2 env vars + 1 detected.
+ * Simplified configuration: 2 env vars.
  *
  * Env vars:
  *   VITE_SYNC_URL  — Sync server URL. Presence = multi-document mode with real-time sync.
  *   VITE_AI_MODE   — 'none' | 'user-key' | 'server-proxy' (default: 'none')
  *   VITE_DEBUG     — 'true' | 'false' (default: DEV mode)
  *
- * Detected:
- *   isDesktop — true when running in Electron
- *
  * Everything else is derived.
  */
+const runtimeConfig = getRuntimeConfig();
+
 export const config = {
   /** Debug mode: shows additional info in UI */
   debug: getDebugMode(),
-  syncUrl: isDesktop
-    ? (getDesktopServerUrl() || 'http://127.0.0.1:51234')
-    : (import.meta.env.VITE_SYNC_URL || null) as string | null,
+  syncUrl: (runtimeConfig.syncUrl || import.meta.env.VITE_SYNC_URL || null) as string | null,
   aiMode: (import.meta.env.VITE_AI_MODE || 'none') as 'none' | 'user-key' | 'server-proxy',
-  isDesktop,
+  /** Whether the app is embedded in a host (e.g. VS Code WebView) — canvas-only, no chrome */
+  embedded: runtimeConfig.embedded === true,
 
   /** Whether a sync server is configured (enables collaboration, multi-document mode) */
   get hasSync(): boolean { return !!this.syncUrl; },
 
-  /** WebSocket URL for sync (derived from syncUrl or desktop params) */
+  /** Whether collaboration (WebSocket sync) is available */
+  get collaboration(): boolean { return this.hasSync; },
+
+  /** Whether the document browser should be available */
+  get documentBrowser(): boolean { return this.hasSync; },
+
+  /** Whether we're in single-document mode (demo site or solo browser) */
+  get singleDocument(): boolean { return !this.hasSync; },
+
+  /** Whether AI features are available */
+  get hasAI(): boolean { return this.aiMode !== 'none'; },
+
+  /** WebSocket URL for sync (derived from syncUrl) */
   get syncWsUrl(): string | null {
     if (!this.syncUrl) return null;
-    if (isDesktop) {
-      return getDesktopWsUrl() || this.syncUrl.replace('http', 'ws');
-    }
     return this.syncUrl.replace('http', 'ws');
   },
 };

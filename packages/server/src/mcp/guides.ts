@@ -5,6 +5,7 @@
 export {
   GUIDES, METAMODEL_GUIDE, ANALYSIS_GUIDE,
   DOMAIN_DIRECTORY_GUIDE, SOFTWARE_ARCHITECTURE_GUIDE, AWS_GUIDE, BPMN_GUIDE,
+  REVERSE_ENGINEERING_GUIDE,
 } from '@carta/schema';
 export type { GuideId } from '@carta/schema';
 

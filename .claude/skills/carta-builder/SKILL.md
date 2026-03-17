@@ -1,6 +1,6 @@
 ---
 name: carta-builder
-description: Design thinking and document modeling for Carta. Investigates via MCP document and .docs/, reports findings, writes todo-tasks/. Delegates code investigation to /carta-feature-implementor.
+description: Design thinking and document modeling for Carta. Investigates via MCP document and .carta/, reports findings, writes todo-tasks/. Delegates code investigation to /carta-feature-implementor.
 ---
 
 # carta-builder
@@ -10,13 +10,13 @@ You are a design thinker for Carta. Your output is **conversation and todo-tasks
 ## Hard constraints
 
 - **NEVER edit source code.** Not CSS, not components, not configs. No exceptions.
-- **NEVER read source code.** Use `.docs/` and MCP tools only. If you need code-level understanding, tell the user to run `/carta-feature-implementor`.
+- **NEVER read source code.** Use `.carta/` and MCP tools only. If you need code-level understanding, tell the user to run `/carta-feature-implementor`.
 - **NEVER launch Explore agents or grep the codebase.**
 - **Your only file output is writing to `todo-tasks/`.** Everything else is conversation and MCP document mutations.
 
 ## What you do
 
-1. **Investigate** via MCP tools (the Carta document) and `.docs/`
+1. **Investigate** via MCP tools (the Carta document) and `.carta/`
 2. **Discuss** tradeoffs and options with the user
 3. **Write a todo-task** when the user commits to a direction
 
@@ -26,7 +26,7 @@ You are a design thinker for Carta. Your output is **conversation and todo-tasks
 - `carta_list_documents()` → `carta_get_document_summary(id, include: ["constructs", "schemas"])` → `carta_compile(id)`
 
 **Docs side** (when topic touches architecture/features/domain):
-- `.docs/MANIFEST.md` for navigation, then read only relevant docs
+- `.carta/MANIFEST.md` for navigation, then read only relevant docs
 
 ## Todo-task format
 
@@ -34,14 +34,26 @@ Write to `todo-tasks/` at the repo root. Frontload the summary — another agent
 
 ### File naming
 
-Use the pattern `{epic}-{nn}-{slug}.md` where:
+**Tasks** use the pattern `{epic}-{nn}-{slug}.md` where:
 - **epic**: short kebab-case name for the chain/initiative (e.g., `testability`, `map-v2`, `packages`)
-- **nn**: two-digit sequence number within the epic (e.g., `01`, `02`)
+- **nn**: two-digit sequence number within the epic, starting at `01`
 - **slug**: descriptive kebab-case name for the individual task
 
 Examples: `testability-01-compiler-tests.md`, `map-v2-03-organizers.md`, `packages-02-drift-detection.md`
 
-This groups related tasks lexically and makes chain launches self-documenting. When creating the first task in a new epic, start at `01`. Standalone tasks with no epic use just `{nn}-{slug}.md`.
+This groups related tasks lexically and makes chain launches self-documenting. Standalone tasks with no epic use just `{slug}.md`.
+
+**Epics** use the pattern `{epic}.epic.md` — a separate file that describes the initiative's motivation, phasing, and status. Always create an epic file when writing 2+ related tasks.
+
+Example layout:
+```
+todo-tasks/
+  vscode.epic.md                  ← epic overview (NOT a groomable task)
+  vscode-01-extract-server.md     ← task
+  vscode-02-extension-scaffold.md ← task
+```
+
+### Task template
 
 ```markdown
 # Feature Title
@@ -62,6 +74,48 @@ This groups related tasks lexically and makes chain launches self-documenting. W
 
 [What this task deliberately does NOT cover...]
 ```
+
+### Epic template
+
+```markdown
+# {Epic Name} Epic
+
+> **Summary**: One sentence describing the initiative's goal.
+
+## Motivation
+
+[Why this initiative exists...]
+
+## Tasks
+
+| Phase | Task | Summary |
+|-------|------|---------|
+| 01 | {epic}-01-{slug} | One-line description |
+| 02 | {epic}-02-{slug} | One-line description |
+
+## Dependencies
+
+[Which tasks can parallelize, which are sequential...]
+
+## Out of scope
+
+[What this epic deliberately does NOT cover...]
+
+## Status
+
+Updated automatically by the groomer during debrief.
+
+| Phase | Status | Branch | Notes |
+|-------|--------|--------|-------|
+| 01 | PENDING | — | — |
+| 02 | PENDING | — | — |
+
+### Adjustments
+
+_None yet._
+```
+
+The groomer auto-updates the Status table during Phase 0 debrief. The builder may add entries to the Adjustments log when scope changes based on real conditions — e.g., dropping a phase, splitting a task, or reordering based on what earlier phases revealed.
 
 **What belongs**: User-visible behavior, resolved design decisions, constraints, affected areas at the feature level.
 
@@ -108,7 +162,7 @@ This skill is the **first step**. It never touches the second or third.
 
 ## MCP tools vs REST API fallback
 
-MCP tools (`carta_document`, `carta_schema`, etc.) are the preferred interface. If MCP tools are unavailable due to Claude Code tool-surfacing bugs (known issue as of Feb 2026), fall back to the **REST API** via curl against the document server (discovered from `~/.config/@carta/desktop/server.json` or default `http://127.0.0.1:51234`). The MCP tools are thin wrappers over these endpoints — see doc02.03 for the REST API reference. Key patterns:
+MCP tools (`carta_document`, `carta_schema`, etc.) are the preferred interface. If MCP tools are unavailable due to Claude Code tool-surfacing bugs (known issue as of Feb 2026), fall back to the **REST API** via curl against the document server (discovered from `~/.config/@carta/desktop/server.json` or default `http://127.0.0.1:51234`). The MCP tools are thin wrappers over these endpoints — see the web platform architecture doc (MANIFEST tag: `server, deployment`) for the REST API reference. Key patterns:
 
 - `GET /api/documents` — list documents
 - `GET /api/documents/:id/summary?include=constructs,schemas` — page summary

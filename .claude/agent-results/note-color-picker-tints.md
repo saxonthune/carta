@@ -28,7 +28,7 @@ I've successfully implemented the plan to change the Note and Box constructs fro
 2. **`packages/domain/src/guides/metamodel.ts`**:
    - Line 256: Updated example text from "allows fully customizable note colors" to "offers curated color swatches instead of a full picker"
 
-3. **`.docs/03-product/01-features/14-simple-mode.md`**:
+3. **`.carta/03-product/01-features/14-simple-mode.md`**:
    - Line 37: Updated description to reflect curated tint swatches instead of any color
 
 ### Verification

@@ -81,31 +81,49 @@ If a worktree still exists for a completed agent (merge conflict cases), mention
 
 **Chain debrief**: If `status.sh` reports chains, show chain progress. For failed chains, read the manifest (`grep '^failed_phase:' todo-tasks/.running/chain-*.manifest`) and the failed phase's result file. Offer: fix in worktree, re-groom the failed phase, or archive and skip. For completed chains, archive the manifest: `mv todo-tasks/.running/chain-*.manifest todo-tasks/.archived/`.
 
-**If invoked with `status` keyword:** Show status with debrief, archive successful agents, triage failures, and stop. Don't proceed to plan selection.
+### Phase 0C: Update Epic Status
 
-**Otherwise:** Show status with debrief, archive successful agents, triage failures, then continue to Phase 1.
+After archiving and triage, update any `.epic.md` files whose tasks have changed state. For each `*.epic.md` in `todo-tasks/`:
+
+1. Read the epic's `## Status` table
+2. Cross-reference each phase against `.done/`, `.running/`, `.archived/`, and pending `todo-tasks/`
+3. Update the status table rows:
+   - `DONE` — result in `.done/` or `.archived/` with status=success
+   - `FAILED` — result with status≠success
+   - `RUNNING` — plan in `.running/`
+   - `PENDING` — plan still in `todo-tasks/`
+   - `DROPPED` — no plan file found anywhere (removed during triage)
+4. Add a dated note to `### Adjustments` if anything changed since last debrief (e.g., "2026-02-27: Phase 03 failed, re-groomed with narrower scope")
+
+This keeps the epic as a living dashboard. Update sparingly — only when status actually changed.
+
+**If invoked with `status` keyword:** Show status with debrief, archive successful agents, triage failures, update epic status, and stop. Don't proceed to plan selection.
+
+**Otherwise:** Show status with debrief, archive successful agents, triage failures, update epic status, then continue to Phase 1.
 
 ## Phase 1: Select a Plan
 
-List plans in `todo-tasks/`:
+List plans in `todo-tasks/`, excluding epic overviews:
 
 ```typescript
-Glob({ pattern: 'todo-tasks/*.md' })
+Glob({ pattern: 'todo-tasks/*.md' })  // then filter out *.epic.md
 ```
 
-**If specific plan named:** Match it against filenames (fuzzy — `flow-trace` matches `flow-trace-visualization.md`). Read it fully.
+**Epic files (`*.epic.md`) are NOT groomable plans.** Never present them as plan options, never try to execute them. They are context documents — read them for background when grooming tasks from the same epic.
 
-**If epic named:** Match against the `{epic}-` prefix (e.g., "testability" matches all `testability-*.md` files). Present the full epic as a combined briefing, work through them sequentially.
+**If specific plan named:** Match it against task filenames (fuzzy — `flow-trace` matches `flow-trace-visualization.md`). Read it fully. If it belongs to an epic (has `{epic}-` prefix), also read `{epic}.epic.md` for context.
 
-**If "first" specified:** Grab the first plan alphabetically. No prompting — just start working on it.
+**If epic named:** Match against the `{epic}-` prefix (e.g., "testability" matches all `testability-*.md` task files). Read the `{epic}.epic.md` overview first, then present the epic's pending tasks as a combined briefing. Work through them sequentially.
 
-**If "all" specified:** Read all plan files. Present a combined briefing, then work through them sequentially. Appropriate when plans are small and self-contained.
+**If "first" specified:** Grab the first task plan alphabetically (skip `.epic.md`). No prompting — just start working on it.
 
-**If no argument (default):** Read the first ~10 lines of each plan file (enough to get the title and motivation), then present a summary to the user:
+**If "all" specified:** Read all task plan files. Present a combined briefing, then work through them sequentially. Appropriate when plans are small and self-contained.
+
+**If no argument (default):** Read the first ~10 lines of each task plan file (enough to get the title and motivation), then present a summary to the user:
 
 ```typescript
-// Read heads of all plans
-for (const file of planFiles) {
+// Read heads of all task plans (not .epic.md)
+for (const file of taskFiles) {
   Read(file, { limit: 10 })
 }
 
@@ -114,14 +132,14 @@ AskUserQuestion({
     question: "Which plan should we groom?",
     header: "Plan",
     options: [
-      // one per plan, label = title, description = first-line summary from motivation section
+      // one per task plan, label = title, description = first-line summary from motivation section
     ],
     multiSelect: false
   }]
 })
 ```
 
-Read the selected plan file(s) fully before proceeding.
+Read the selected plan file(s) fully before proceeding. For epic tasks, also read the `.epic.md` for additional context.
 
 ## Phase 2: Extract Context Requirements
 
@@ -129,7 +147,7 @@ After reading the plan, identify what codebase context is needed using a **two-p
 
 ### Phase 2A: Cheap Triage (Grep + MANIFEST)
 
-1. **Read `.docs/MANIFEST.md`** — use the tag index to map plan keywords to doc refs.
+1. **Read `.carta/MANIFEST.md`** — use the tag index to map plan keywords to doc refs.
 2. **Run 3-5 parallel Grep calls** directly from the main context for the plan's key terms. Use `output_mode: "files_with_matches"` to identify relevant files without reading content:
 
 ```typescript
@@ -143,18 +161,14 @@ This identifies the ~5 relevant files in seconds for near-zero tokens.
 
 3. **Map plan concepts to docs via MANIFEST tags:**
 
-```
-Plan mentions "presentation model" → tags: presentation, rendering → doc02.09, doc02.08
-Plan mentions "edge pipeline"      → tags: pipeline, edges, sync   → doc02.10
-Plan mentions "canvas interactions" → tags: canvas, hooks           → doc03.01.01.01, doc02.02
-Plan mentions "waypoints"          → tags: waypoints               → doc02.10
-```
+Use the Tag Index at the bottom of MANIFEST.md to map plan concepts to doc refs.
+Example: plan mentions "presentation model" → look for tags `presentation`, `rendering` → read the listed docs.
 
 ### Phase 2B: Targeted Reads
 
 Read only the files identified in Phase 2A. Prioritize:
 
-1. **`.docs/` refs** from MANIFEST — these give architectural context without reading source
+1. **`.carta/` refs** from MANIFEST — these give architectural context without reading source
 2. **Source files** from Grep hits — read the specific line ranges that matched, not entire files
 3. **Adjacent code** — if the plan modifies a function, read its callers (one level up) to understand impact
 
@@ -168,7 +182,7 @@ Read only the files identified in Phase 2A. Prioritize:
 
 Only use `Task(subagent_type='Explore')` if:
 - Phase 2A Grep returns 0 hits for all search terms (genuinely unknown territory)
-- The plan involves a subsystem with no `.docs/` coverage and no obvious entry points
+- The plan involves a subsystem with no `.carta/` coverage and no obvious entry points
 - You've done Phase 2A and still can't identify which files to modify
 
 Even then, give the Explore agent a **surgical prompt** with specific questions and file paths to start from — not an open-ended "investigate thoroughly."
@@ -192,7 +206,7 @@ Review the todo-task's `## Verifiability` section (if present). For each correct
 - What oracle type applies? (partial, semantic/compiler, metamorphic, or manual-only)
 - Are there properties missing? If the builder only wrote smoke-level properties ("it renders"), surface this gap now.
 
-If the todo-task lacks a Verifiability section, write one with the user during the briefing. Ask: **"What would be true about this feature if implemented correctly, without referencing the implementation?"** See doc05.04.
+If the todo-task lacks a Verifiability section, write one with the user during the briefing. Ask: **"What would be true about this feature if implemented correctly, without referencing the implementation?"** See the research docs (tag: `testing, verification`).
 
 ### 4. Considerations
 Open questions and tradeoffs the plan surfaces. These come from:
@@ -252,14 +266,14 @@ This is the key output. Rewrite the plan file in `todo-tasks/` so it's **unambig
 1. **Motivation** — Why this change (1-2 sentences, for commit messages)
 2. **Design constraint** — One sentence stating the core design decision. Example: "All description UI lives in the trigger bar, NOT in the dropdown." This anchors the agent before it reads implementation details.
 3. **Do NOT** — Explicit list of things the agent must NOT do. This prevents scope creep and "path of least resistance" implementations. Include anything from the "Out of Scope" discussion, plus any structurally easy but wrong approaches the agent might be tempted by. Place this near the top — headless agents may not read the full document with equal attention.
-4. **Files to Modify** — Explicit list of files with what changes in each. **Must include `.docs/` files.** Use MANIFEST.md tags to find docs affected by the plan's subsystem. Include concrete edit instructions (what to add/change in each doc), not just "update docs." If no doc is affected, state that explicitly.
+4. **Files to Modify** — Explicit list of files with what changes in each. **Must include `.carta/` files.** Use MANIFEST.md tags to find docs affected by the plan's subsystem. Include concrete edit instructions (what to add/change in each doc), not just "update docs." If no doc is affected, state that explicitly.
 5. **Implementation Steps** — Ordered, concrete steps. Reference specific functions, line ranges, existing patterns. Each step should be independently verifiable. Doc updates are a step like any other — not a separate phase.
 6. **Constraints** — Codebase rules the agent must follow (from CLAUDE.md, doc references)
 7. **Verification** — Correctness properties, postconditions, and test instructions (see below)
 
 ### Verification Section
 
-The todo-task should include correctness properties (from the builder's `## Verifiability` section). Your job is to **operationalize** each into executable verification. See doc05.04 for the full framework.
+The todo-task should include correctness properties (from the builder's `## Verifiability` section). Your job is to **operationalize** each into executable verification. See the research docs (tag: `testing, verification`) for the full framework.
 
 For each correctness property:
 
@@ -339,32 +353,27 @@ AskUserQuestion({
 If the user says launch:
 
 ```bash
-mkdir -p todo-tasks/.running
-nohup bash .claude/skills/execute-plan/execute-plan.sh {plan-name} > todo-tasks/.running/{plan-name}.log 2>&1 &
+bash .claude/skills/execute-plan/launch.sh {plan-name}
 ```
 
-Report:
-- Agent is running in background
-- Check progress: `tail -f todo-tasks/.running/{plan-name}.log`
-- Check results when done: `todo-tasks/.done/{plan-name}.result.md`
+The script handles backgrounding, log capture, and directory creation. It prints progress/result paths.
 
 ### Chain Launch
 
 When multiple pre-groomed plans form a sequential dependency chain (e.g., an epic), offer chain execution instead of single-plan launch. The `{epic}-` prefix in filenames makes this natural — all tasks in an epic sort together and can be launched as a chain:
 
 ```bash
-nohup bash .claude/skills/execute-plan/execute-chain.sh {epic} {epic}-01-{slug} {epic}-02-{slug} ... > todo-tasks/.running/chain-{epic}.log 2>&1 &
+bash .claude/skills/execute-plan/launch-chain.sh {epic} {epic}-01-{slug} {epic}-02-{slug} ...
 ```
 
 The chain script runs plans sequentially, stopping on first failure. It creates a `.manifest` file that claims all phases (preventing parallel agents from touching them). If a plan is already running (launched before the chain), the chain waits for it.
 
 Example:
 ```bash
-nohup bash .claude/skills/execute-plan/execute-chain.sh testability \
+bash .claude/skills/execute-plan/launch-chain.sh testability \
   testability-01-compiler-tests testability-02-adapter-round-trips \
   testability-03-extract-connections testability-04-extract-organizer-ops \
-  testability-05-compiler-oracle \
-  > todo-tasks/.running/chain-testability.log 2>&1 &
+  testability-05-compiler-oracle
 ```
 
 ## Phase 7: Suggest Next Tasks
@@ -382,7 +391,7 @@ After launching (or if the user declines), suggest safe next tasks. **Do not sug
 
 ### Identify safe plans
 
-Read the first ~10 lines of each remaining plan in `todo-tasks/` to extract title, summary, and files touched. A plan is **unsafe to suggest** if:
+Read the first ~10 lines of each remaining task plan in `todo-tasks/` (skip `*.epic.md`). A plan is **unsafe to suggest** if:
 - It modifies the same files as a running agent's plan
 - It's already running as an agent (has a file in `todo-tasks/.running/`)
 - It's claimed by an active chain (listed in a `.running/chain-*.manifest`)

@@ -18,53 +18,14 @@ import {
   ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 
-import * as fs from 'node:fs';
-import * as path from 'node:path';
-import * as os from 'node:os';
 import * as Y from 'yjs';
 import createDebug from 'debug';
+import { readServerDiscovery, getDefaultDiscoveryPath } from '../server-discovery.js';
 import { getToolDefinitions, createToolHandlers } from './tools.js';
 import type { ToolHandlerConfig, DocStateWithFlush } from './tools.js';
 import { getResourceDefinitions, getResourceContent } from './resources.js';
 
 const log = createDebug('carta:mcp');
-
-/**
- * Discover the Carta Desktop embedded server URL from server.json.
- * Checks platform-specific Electron userData paths.
- */
-function discoverDesktopServer(): string | null {
-  const platform = os.platform();
-  let userDataPath: string;
-
-  if (platform === 'darwin') {
-    userDataPath = path.join(os.homedir(), 'Library', 'Application Support', '@carta', 'desktop');
-  } else if (platform === 'win32') {
-    userDataPath = path.join(process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'), '@carta', 'desktop');
-  } else {
-    userDataPath = path.join(os.homedir(), '.config', '@carta', 'desktop');
-  }
-
-  const serverJsonPath = path.join(userDataPath, 'server.json');
-  if (!fs.existsSync(serverJsonPath)) return null;
-
-  try {
-    const data = JSON.parse(fs.readFileSync(serverJsonPath, 'utf-8'));
-    if (data.url && data.pid) {
-      // Verify the process is still running
-      try {
-        process.kill(data.pid, 0);
-        return data.url;
-      } catch {
-        // Process not running, stale server.json
-        return null;
-      }
-    }
-  } catch {
-    return null;
-  }
-  return null;
-}
 
 /**
  * Make an HTTP request to the document server.
@@ -94,18 +55,17 @@ async function httpRequest<T>(
 }
 
 /**
- * Build a ToolHandlerConfig backed by HTTP calls to a remote document server.
+ * Build a ToolHandlerConfig backed by HTTP calls to a remote workspace server.
  *
- * Per-document tool calls (getDoc) fetch the binary Yjs state, reconstruct
+ * Per-canvas tool calls (getDoc) fetch the binary Yjs state, reconstruct
  * a local Y.Doc, run tool execution in-process, then flush accumulated updates
  * back to the server via the yjs-update endpoint.
  *
- * Multi-document management calls (listDocuments, createDocument, etc.) use
- * the REST API directly.
+ * Workspace-level calls (listCanvases, getWorkspaceTree) use the REST API directly.
  */
 function buildRemoteConfig(serverUrl: string): ToolHandlerConfig {
-  async function getDoc(docId: string): Promise<DocStateWithFlush> {
-    const result = await httpRequest<{ state: string }>(serverUrl, 'GET', `/api/documents/${encodeURIComponent(docId)}/yjs-state`);
+  async function getDoc(canvasId: string): Promise<DocStateWithFlush> {
+    const result = await httpRequest<{ state: string }>(serverUrl, 'GET', `/api/documents/${encodeURIComponent(canvasId)}/yjs-state`);
     if (result.error || !result.data) {
       throw new Error(result.error ?? 'Failed to fetch Y.Doc state');
     }
@@ -125,41 +85,23 @@ function buildRemoteConfig(serverUrl: string): ToolHandlerConfig {
       const merged = Y.mergeUpdates(pendingUpdates);
       pendingUpdates.length = 0;
       const update = Buffer.from(merged).toString('base64');
-      await httpRequest(serverUrl, 'POST', `/api/documents/${encodeURIComponent(docId)}/yjs-update`, { update });
+      await httpRequest(serverUrl, 'POST', `/api/documents/${encodeURIComponent(canvasId)}/yjs-update`, { update });
     };
 
     return { doc, conns: new Set(), flush };
   }
 
-  async function listDocuments() {
+  async function listCanvases() {
     const result = await httpRequest<{ documents: unknown[] }>(serverUrl, 'GET', '/api/documents');
     return (result.data?.documents ?? []) as import('../document-server-core.js').DocumentSummary[];
   }
 
-  async function listActiveRooms() {
-    const result = await httpRequest<{ rooms: Array<{ roomId: string; clientCount: number }> }>(serverUrl, 'GET', '/api/rooms');
-    const rooms = result.data?.rooms ?? [];
-    return rooms.map(r => ({ documentId: r.roomId, clientCount: r.clientCount }));
+  async function getWorkspaceTree(): Promise<unknown> {
+    const result = await httpRequest<unknown>(serverUrl, 'GET', '/api/workspace');
+    return result.data ?? { error: result.error ?? 'Failed to fetch workspace tree' };
   }
 
-  async function createDocument(title: string) {
-    const result = await httpRequest(serverUrl, 'POST', '/api/documents', { title });
-    if (result.error) return { error: result.error };
-    return result.data;
-  }
-
-  async function deleteDocument(docId: string): Promise<boolean> {
-    const result = await httpRequest<{ deleted: boolean }>(serverUrl, 'DELETE', `/api/documents/${encodeURIComponent(docId)}`);
-    return result.data?.deleted ?? false;
-  }
-
-  async function renameDocument(docId: string, title: string) {
-    const result = await httpRequest(serverUrl, 'PATCH', `/api/documents/${encodeURIComponent(docId)}`, { title });
-    if (result.error) return { error: result.error };
-    return result.data;
-  }
-
-  return { getDoc, listDocuments, listActiveRooms, createDocument, deleteDocument, renameDocument };
+  return { getDoc, listCanvases, getWorkspaceTree };
 }
 
 /**
@@ -177,7 +119,7 @@ async function main() {
       }
       return null;
     })() ||
-    discoverDesktopServer() ||
+    readServerDiscovery(getDefaultDiscoveryPath())?.url ||
     'http://localhost:1234';
 
   log('Carta MCP server using HTTP API (%s)', serverUrl);

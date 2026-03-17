@@ -50,7 +50,7 @@ This codebase changes rapidly. Tests must earn their keep — every test should 
 
 Before writing tests, read these:
 
-1. `.docs/04-operations/02-testing.md` - Testing operations and commands
+1. `.carta/04-operations/02-testing.md` - Testing operations and commands
 2. `tests/README.md` - Test philosophy and structure
 3. `tests/setup/testProviders.tsx` - React context wrappers
 4. `tests/setup/testHelpers.ts` - Test utilities (createTestNode, etc.)

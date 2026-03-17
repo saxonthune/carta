@@ -1,18 +1,21 @@
 import { useCallback, useState, useRef, useEffect, lazy, Suspense } from 'react';
-import type { CartaNode, CartaEdge } from '@carta/types';
 import DocumentBrowserModal from './components/modals/DocumentBrowserModal';
 import Header from './components/Header';
 import CanvasContainer from './components/canvas/CanvasContainer';
 import Navigator from './components/Navigator';
+import WorkspaceNavigator from './components/WorkspaceNavigator';
 import Footer from './components/Footer';
+import { useWorkspaceMode } from './hooks/useWorkspaceMode';
+import type { WorkspaceTree, WorkspaceCanvasSchemas } from './hooks/useWorkspaceMode';
+import { DocumentProvider } from './contexts/DocumentContext';
+import { List } from '@phosphor-icons/react';
 import { compiler } from '@carta/document';
 import { syncWithDocumentStore } from '@carta/schema';
-import type { ConstructSchema, Resource } from '@carta/schema';
+import type { ConstructSchema, CartaNode, CartaEdge } from '@carta/schema';
 import { useDocumentMeta } from './hooks/useDocumentMeta';
 import { useSchemas } from './hooks/useSchemas';
 import { useSchemaGroups } from './hooks/useSchemaGroups';
 import { usePages } from './hooks/usePages';
-import { useResources } from './hooks/useResources';
 import { useSpecGroups } from './hooks/useSpecGroups';
 import { useClearDocument } from './hooks/useClearDocument';
 import { useExampleLoader } from './hooks/useExampleLoader';
@@ -25,21 +28,39 @@ import { config } from './config/featureFlags';
 
 type ActiveView =
   | { type: 'page'; pageId: string }
-  | { type: 'metamap' }
-  | { type: 'resource'; resourceId: string };
+  | { type: 'metamap' };
 
 const ImportPreviewModal = lazy(() => import('./components/modals/ImportPreviewModal'));
 const ExportPreviewModal = lazy(() => import('./components/modals/ExportPreviewModal'));
 const CompileModal = lazy(() => import('./components/modals/CompileModal'));
 const ExampleConfirmModal = lazy(() => import('./components/modals/ExampleConfirmModal'));
 const AISidebar = lazy(() => import('./ai/components/AISidebar').then(m => ({ default: m.AISidebar })));
+const TextEditor = lazy(() => import('./components/TextEditor'));
+const EmbeddedDebugOverlay = lazy(() => import('./components/EmbeddedDebugOverlay'));
 
 // Note: Schema initialization is now handled by DocumentProvider
 
 function App() {
+  // Embedded mode: canvas-only, no chrome (used by VS Code WebView)
+  if (config.embedded) {
+    return <EmbeddedContent />;
+  }
+
+  const { isWorkspace, loading: workspaceLoading, workspaceTree, schemas } = useWorkspaceMode();
+
+  // Wait briefly while we detect whether the server is a workspace server
+  if (workspaceLoading) {
+    return null;
+  }
+
+  // Workspace mode: render the workspace layout (no DocumentContext needed at the top level)
+  if (isWorkspace && workspaceTree) {
+    return <WorkspaceAppLayout tree={workspaceTree} schemas={schemas} />;
+  }
+
   // In server mode without a ?doc= param, show document browser so user can pick/create.
   // In local mode, main.tsx always resolves a documentId before rendering, so skip this gate.
-  if (config.hasSync) {
+  if (config.documentBrowser) {
     const urlParams = new URLSearchParams(window.location.search);
     if (!urlParams.has('doc')) {
       return (
@@ -51,6 +72,74 @@ function App() {
   }
 
   return <AppContent />;
+}
+
+interface WorkspaceAppLayoutProps {
+  tree: WorkspaceTree;
+  schemas: WorkspaceCanvasSchemas | null;
+}
+
+type WorkspaceSelection =
+  | { type: 'canvas'; path: string }
+  | { type: 'file'; path: string }
+  | null;
+
+function WorkspaceAppLayout({ tree, schemas }: WorkspaceAppLayoutProps) {
+  const [navigatorOpen, setNavigatorOpen] = useState(true);
+  const [selection, setSelection] = useState<WorkspaceSelection>(null);
+
+  return (
+    <div className="h-screen flex flex-col">
+      {/* Minimal workspace header */}
+      <div className="h-10 bg-surface-alt border-b border-border flex items-center px-3 gap-3 shrink-0">
+        <button
+          className="w-7 h-7 flex items-center justify-center rounded text-content-muted hover:bg-surface-alt hover:text-content transition-colors"
+          onClick={() => setNavigatorOpen(!navigatorOpen)}
+          title="Toggle navigator"
+        >
+          <List weight="bold" size={16} />
+        </button>
+        <span className="text-sm font-medium text-content truncate">
+          {tree.manifest.title}
+        </span>
+      </div>
+      <div className="flex-1 flex min-h-0">
+        <WorkspaceNavigator
+          isOpen={navigatorOpen}
+          tree={tree}
+          selectedPath={selection?.path ?? null}
+          onSelectCanvas={(path) => setSelection({ type: 'canvas', path })}
+          onSelectFile={(path) => setSelection({ type: 'file', path })}
+        />
+        {selection?.type === 'canvas' && schemas ? (
+          <DocumentProvider
+            key={selection.path}
+            documentId={selection.path}
+            syncUrl={config.syncWsUrl ?? undefined}
+            workspaceCanvas={schemas}
+          >
+            <CanvasContainer
+              onSelectionChange={() => {}}
+              activeView={{ type: 'page', pageId: 'canvas' }}
+            />
+          </DocumentProvider>
+        ) : selection?.type === 'file' ? (
+          <Suspense fallback={<div className="flex-1 flex items-center justify-center text-content-muted">Loading editor...</div>}>
+            <TextEditor
+              key={selection.path}
+              filePath={selection.path}
+              syncUrl={config.syncWsUrl!}
+            />
+          </Suspense>
+        ) : (
+          <div className="flex-1 flex items-center justify-center text-content-muted">
+            <p className="text-sm">Select a file to start editing</p>
+          </div>
+        )}
+      </div>
+      <Footer />
+    </div>
+  );
 }
 
 function AppContent() {
@@ -81,8 +170,7 @@ function AppContent() {
   const { schemas } = useSchemas();
   const { schemaGroups } = useSchemaGroups();
   const { pages, activePage, setActivePage, createPage, deletePage, updatePage, duplicatePage } = usePages();
-  const { resources } = useResources();
-  const { specGroups, createSpecGroup, updateSpecGroup, deleteSpecGroup, assignToSpecGroup, removeFromSpecGroup } = useSpecGroups();
+  const { groupMetadata, setGroupMetadata: setGroupMeta, deleteGroupMetadata, setPageGroup } = useSpecGroups();
   const [navigatorOpen, setNavigatorOpen] = useState(true);
   const [activeView, setActiveView] = useState<ActiveView>(() => ({
     type: 'page',
@@ -143,11 +231,6 @@ function AppContent() {
     // Selection handling removed with InspectorPanel (V1-only)
   }, []);
 
-  const handleCreateResource = useCallback(() => {
-    const created = adapter.createResource('New Resource', 'freeform', '');
-    setActiveView({ type: 'resource', resourceId: created.id });
-  }, [adapter]);
-
   const handleExport = useCallback(() => {
     const { nodes, edges } = nodesEdgesRef.current;
     const portSchemas = adapter.getPortSchemas();
@@ -157,12 +240,6 @@ function AppContent() {
 
   const handleExportConfirm = useCallback((options: ExportOptions) => {
     const portSchemas = adapter.getPortSchemas();
-    const resourceSummaries = adapter.getResources();
-    const resources: Resource[] = [];
-    for (const summary of resourceSummaries) {
-      const full = adapter.getResource(summary.id);
-      if (full) resources.push(full);
-    }
 
     exportProject({
       title,
@@ -172,7 +249,6 @@ function AppContent() {
       portSchemas,
       schemaGroups,
       schemaPackages: adapter.getSchemaPackages(),
-      resources,
     }, options);
 
     setExportPreview(null);
@@ -249,17 +325,12 @@ function AppContent() {
           onDeletePage={deletePage}
           onUpdatePage={updatePage}
           onDuplicatePage={duplicatePage}
-          resources={resources}
-          onSelectResource={(resourceId) => setActiveView({ type: 'resource', resourceId })}
-          onCreateResource={handleCreateResource}
           activeView={activeView}
           onSelectMetamap={() => setActiveView({ type: 'metamap' })}
-          specGroups={specGroups}
-          onCreateSpecGroup={(name) => { createSpecGroup(name); }}
-          onUpdateSpecGroup={updateSpecGroup}
-          onDeleteSpecGroup={deleteSpecGroup}
-          onAssignToSpecGroup={assignToSpecGroup}
-          onRemoveFromSpecGroup={removeFromSpecGroup}
+          groupMetadata={groupMetadata}
+          onSetGroupMetadata={setGroupMeta}
+          onDeleteGroup={deleteGroupMetadata}
+          onSetPageGroup={setPageGroup}
         />
         <CanvasContainer
           onSelectionChange={handleSelectionChange}
@@ -312,6 +383,91 @@ function AppContent() {
             onConfirm={onExampleConfirm}
             onCancel={onExampleCancel}
           />
+        </Suspense>
+      )}
+    </div>
+  );
+}
+
+function EmbeddedContent() {
+  const { loading, schemas } = useWorkspaceMode();
+
+  // Respond to carta:ping from VS Code extension host (bundled mode only)
+  useEffect(() => {
+    if (!config.embedded) return;
+
+    // acquireVsCodeApi() can only be called once per WebView lifecycle
+    const vscodeApi = (window as any).acquireVsCodeApi?.();
+    if (!vscodeApi) return;
+
+    const handler = (event: MessageEvent) => {
+      if (event.data?.type === 'carta:ping') {
+        const urlParams = new URLSearchParams(window.location.search);
+        vscodeApi.postMessage({
+          type: 'carta:pong',
+          status: {
+            embedded: config.embedded,
+            syncUrl: config.syncUrl,
+            documentId: urlParams.get('doc'),
+            hasSync: config.hasSync,
+            loaded: !loading,
+          },
+        });
+      }
+    };
+
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [loading]);
+
+  if (loading) return null;
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const documentId = urlParams.get('doc');
+  if (!documentId) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-surface text-content-muted">
+        No document specified
+      </div>
+    );
+  }
+
+  return (
+    <DocumentProvider
+      documentId={documentId}
+      workspaceCanvas={schemas ?? undefined}
+    >
+      <EmbeddedCanvas />
+    </DocumentProvider>
+  );
+}
+
+function EmbeddedCanvas() {
+  const { adapter } = useDocumentContext();
+  const { pages, activePage } = usePages();
+
+  useEffect(() => {
+    syncWithDocumentStore(adapter.getPortSchemas());
+    const unsubscribe = adapter.subscribe(() => {
+      syncWithDocumentStore(adapter.getPortSchemas());
+    });
+    return unsubscribe;
+  }, [adapter]);
+
+  const activeView: ActiveView = {
+    type: 'page',
+    pageId: activePage || pages[0]?.id || '',
+  };
+
+  return (
+    <div className="h-screen w-full flex flex-col">
+      <CanvasContainer
+        onSelectionChange={() => {}}
+        activeView={activeView}
+      />
+      {config.debug && config.embedded && (
+        <Suspense fallback={null}>
+          <EmbeddedDebugOverlay />
         </Suspense>
       )}
     </div>

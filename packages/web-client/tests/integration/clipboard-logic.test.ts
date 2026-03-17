@@ -7,7 +7,7 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import { getClipboardBounds, calculatePastePosition, transformPastedNodes } from '../../src/utils/clipboardLogic';
-import type { CartaNode } from '@carta/types';
+import type { CartaNode } from '@carta/schema';
 
 describe('getClipboardBounds', () => {
   it('returns bounds equal to position for single node', () => {

@@ -1,6 +1,5 @@
 import * as Y from 'yjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
-import type { CartaNode, CartaEdge } from '@carta/types';
 import type {
   DocumentAdapter,
   CartaDocumentV4,
@@ -12,28 +11,37 @@ import type {
   SchemaRelationship,
   PackageManifestEntry,
   Page,
-  Resource,
-  ResourceVersion,
-  SpecGroup,
-  SpecGroupItem,
+  GroupMeta,
+  CartaNode,
+  CartaEdge,
 } from '@carta/schema';
-import { sha256 } from 'js-sha256';
 import {
   objectToYMap,
   yMapToObject,
   generateSchemaGroupId,
   generateSchemaPackageId,
   generatePageId,
-  generateResourceId,
-  generateVersionId,
-  generateSpecGroupId,
   migrateToPages,
   migrateGroupsToPackages,
   migrateSchemaRelationships,
   deepPlainToY,
   updateSchema as updateSchemaOp,
+  WORKSPACE_CANVAS_PAGE_ID,
 } from '@carta/document';
 import { updateDocumentMetadata } from '../documentRegistry';
+
+/**
+ * Workspace canvas mode schema injection payload.
+ * Schemas are read-only in workspace mode; all mutation methods are no-ops.
+ */
+export interface WorkspaceCanvasSchemas {
+  schemas: ConstructSchema[];
+  portSchemas: PortSchema[];
+  schemaGroups: SchemaGroup[];
+  schemaRelationships: SchemaRelationship[];
+  schemaPackages: SchemaPackage[];
+  packageManifest: PackageManifestEntry[];
+}
 
 /**
  * Options for creating a Yjs adapter
@@ -46,6 +54,11 @@ export interface YjsAdapterOptions {
   skipPersistence?: boolean;
   /** Skip default page creation — set when the adapter will sync with a server that provides initial state */
   deferDefaultPage?: boolean;
+  /**
+   * Workspace canvas mode: schemas injected from server, no IndexedDB,
+   * page/schema mutation methods are no-ops.
+   */
+  workspaceCanvas?: WorkspaceCanvasSchemas;
 }
 
 /**
@@ -92,8 +105,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
   const yschemaPackages = ydoc.getMap<Y.Map<unknown>>('schemaPackages');
   const yschemaRelationships = ydoc.getMap<Y.Map<unknown>>('schemaRelationships');
   const ypackageManifest = ydoc.getMap<Y.Map<unknown>>('packageManifest');
-  const yresources = ydoc.getMap<Y.Map<unknown>>('resources');
-  const yspecGroups = ydoc.getMap<Y.Map<unknown>>('specGroups');
+  const ygroupMetadata = ydoc.getMap<Y.Map<unknown>>('groupMetadata');
 
   // Persistence
   let indexeddbProvider: IndexeddbPersistence | null = null;
@@ -119,8 +131,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
   const packageManifestListeners = new Set<() => void>();
   const pageListeners = new Set<() => void>();
   const metaListeners = new Set<() => void>();
-  const resourceListeners = new Set<() => void>();
-  const specGroupListeners = new Set<() => void>();
+  const groupMetadataListeners = new Set<() => void>();
 
   const notifyNodeListeners = () => nodeListeners.forEach((cb) => cb());
   const notifyEdgeListeners = () => edgeListeners.forEach((cb) => cb());
@@ -131,8 +142,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
   const notifySchemaRelationshipListeners = () => schemaRelationshipListeners.forEach((cb) => cb());
   const notifyPageListeners = () => pageListeners.forEach((cb) => cb());
   const notifyMetaListeners = () => metaListeners.forEach((cb) => cb());
-  const notifyResourceListeners = () => resourceListeners.forEach((cb) => cb());
-  const notifySpecGroupListeners = () => specGroupListeners.forEach((cb) => cb());
+  const notifyGroupMetadataListeners = () => groupMetadataListeners.forEach((cb) => cb());
 
   // Track whether observers have been set up (to avoid unobserving before setup)
   let observersSetUp = false;
@@ -188,12 +198,8 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     listeners.forEach((l) => l());
     packageManifestListeners.forEach((l) => l());
   };
-  const onResourcesChange = () => {
-    notifyResourceListeners();
-    notifyListeners();
-  };
-  const onSpecGroupsChange = () => {
-    notifySpecGroupListeners();
+  const onGroupMetadataChange = () => {
+    notifyGroupMetadataListeners();
     notifyListeners();
   };
 
@@ -209,8 +215,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     yschemaPackages.observeDeep(onSchemaPackagesChange);
     yschemaRelationships.observeDeep(onSchemaRelationshipsChange);
     ypackageManifest.observeDeep(onPackageManifestChange);
-    yresources.observeDeep(onResourcesChange);
-    yspecGroups.observeDeep(onSpecGroupsChange);
+    ygroupMetadata.observeDeep(onGroupMetadataChange);
     observersSetUp = true;
   };
 
@@ -218,7 +223,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
   let registryTimer: ReturnType<typeof setTimeout> | null = null;
   let registryPending = false;
   const syncRegistryMetadata = () => {
-    if (!roomId || options.skipPersistence) return;
+    if (!roomId || options.skipPersistence || options.workspaceCanvas) return;
     if (registryTimer && !registryPending) {
       // Leading edge already fired, just mark pending for trailing
       registryPending = true;
@@ -314,6 +319,27 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
   // Initialize with default values if empty
   const initializeDefaults = () => {
+    // Workspace canvas mode: skip migrations, create the shim page if needed
+    if (options.workspaceCanvas) {
+      ydoc.transact(() => {
+        if (!ymeta.has('version')) {
+          ymeta.set('version', 4);
+        }
+        // Create the single synthetic canvas page if the Y.Doc is empty
+        // (server hydration should have set this, but this is the safety net)
+        if (ypages.size === 0) {
+          const pageData = new Y.Map<unknown>();
+          pageData.set('id', WORKSPACE_CANVAS_PAGE_ID);
+          pageData.set('name', 'Canvas');
+          pageData.set('order', 0);
+          ypages.set(WORKSPACE_CANVAS_PAGE_ID, pageData);
+          ymeta.set('activePage', WORKSPACE_CANVAS_PAGE_ID);
+          console.debug('[workspace] Created shim canvas page in initializeDefaults');
+        }
+      }, 'init');
+      return;
+    }
+
     ydoc.transact(() => {
       if (!ymeta.has('version')) {
         ymeta.set('version', 4);
@@ -363,9 +389,9 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     ydoc,
 
     async initialize(): Promise<void> {
-      // Set up IndexedDB persistence (unless skipped for testing)
+      // Set up IndexedDB persistence (unless skipped for testing or workspace canvas mode)
       performance.mark('carta:indexeddb-start')
-      if (!options.skipPersistence) {
+      if (!options.skipPersistence && !options.workspaceCanvas) {
         const dbName = roomId ? `carta-doc-${roomId}` : 'carta-local';
         const SYNC_TIMEOUT_MS = 10_000;
 
@@ -514,8 +540,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
         yschemaPackages.unobserveDeep(onSchemaPackagesChange);
         yschemaRelationships.unobserveDeep(onSchemaRelationshipsChange);
         ypackageManifest.unobserveDeep(onPackageManifestChange);
-        yresources.unobserveDeep(onResourcesChange);
-        yspecGroups.unobserveDeep(onSpecGroupsChange);
+        ygroupMetadata.unobserveDeep(onGroupMetadataChange);
       }
 
       // Clear all granular listener sets
@@ -529,8 +554,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       schemaRelationshipListeners.clear();
       pageListeners.clear();
       metaListeners.clear();
-      resourceListeners.clear();
-      specGroupListeners.clear();
+      groupMetadataListeners.clear();
       listeners.clear();
 
       // Clean up providers
@@ -572,15 +596,20 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     getTitle(): string {
+      if (options.workspaceCanvas) return '';
       return (ymeta.get('title') as string) || '';
     },
 
     getDescription(): string {
+      if (options.workspaceCanvas) return '';
       return (ymeta.get('description') as string) || '';
     },
 
     // State access - Pages
     getPages(): Page[] {
+      if (options.workspaceCanvas) {
+        return [{ id: WORKSPACE_CANVAS_PAGE_ID, name: 'Canvas', order: 0, description: '', nodes: [], edges: [] }];
+      }
       const pages: Page[] = [];
       ypages.forEach((ypage) => {
         const page = yMapToObject<Page>(ypage);
@@ -626,11 +655,13 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     getActivePage(): string | undefined {
+      if (options.workspaceCanvas) return WORKSPACE_CANVAS_PAGE_ID;
       return getActivePageId();
     },
 
     // State access - Schemas
     getSchemas(): ConstructSchema[] {
+      if (options.workspaceCanvas) return options.workspaceCanvas.schemas;
       const schemas: ConstructSchema[] = [];
       yschemas.forEach((yschema) => {
         schemas.push(yMapToObject<ConstructSchema>(yschema));
@@ -639,6 +670,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     getSchema(type: string): ConstructSchema | undefined {
+      if (options.workspaceCanvas) return options.workspaceCanvas.schemas.find(s => s.type === type);
       const yschema = yschemas.get(type);
       if (!yschema) return undefined;
       return yMapToObject<ConstructSchema>(yschema);
@@ -646,6 +678,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
     // State access - Port Schemas
     getPortSchemas(): PortSchema[] {
+      if (options.workspaceCanvas) return options.workspaceCanvas.portSchemas;
       const schemas: PortSchema[] = [];
       yportSchemas.forEach((yschema) => {
         schemas.push(yMapToObject<PortSchema>(yschema));
@@ -654,6 +687,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     getPortSchema(id: string): PortSchema | undefined {
+      if (options.workspaceCanvas) return options.workspaceCanvas.portSchemas.find(s => s.id === id);
       const yschema = yportSchemas.get(id);
       if (!yschema) return undefined;
       return yMapToObject<PortSchema>(yschema);
@@ -661,6 +695,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
     // State access - Schema Groups
     getSchemaGroups(): SchemaGroup[] {
+      if (options.workspaceCanvas) return options.workspaceCanvas.schemaGroups;
       const groups: SchemaGroup[] = [];
       yschemaGroups.forEach((ygroup) => {
         groups.push(yMapToObject<SchemaGroup>(ygroup));
@@ -669,6 +704,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     getSchemaGroup(id: string): SchemaGroup | undefined {
+      if (options.workspaceCanvas) return options.workspaceCanvas.schemaGroups.find(g => g.id === id);
       const ygroup = yschemaGroups.get(id);
       if (!ygroup) return undefined;
       return yMapToObject<SchemaGroup>(ygroup);
@@ -676,6 +712,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
     // State access - Schema Packages
     getSchemaPackages(): SchemaPackage[] {
+      if (options.workspaceCanvas) return options.workspaceCanvas.schemaPackages;
       const packages: SchemaPackage[] = [];
       yschemaPackages.forEach((ypackage) => {
         packages.push(yMapToObject<SchemaPackage>(ypackage));
@@ -684,6 +721,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     getSchemaPackage(id: string): SchemaPackage | undefined {
+      if (options.workspaceCanvas) return options.workspaceCanvas.schemaPackages.find(p => p.id === id);
       const ypackage = yschemaPackages.get(id);
       if (!ypackage) return undefined;
       return yMapToObject<SchemaPackage>(ypackage);
@@ -691,6 +729,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
     // State access - Package Manifest
     getPackageManifest(): PackageManifestEntry[] {
+      if (options.workspaceCanvas) return options.workspaceCanvas.packageManifest;
       const entries: PackageManifestEntry[] = [];
       ypackageManifest.forEach((yentry) => {
         entries.push(yMapToObject<PackageManifestEntry>(yentry));
@@ -699,6 +738,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     getPackageManifestEntry(packageId: string): PackageManifestEntry | undefined {
+      if (options.workspaceCanvas) return options.workspaceCanvas.packageManifest.find(e => e.packageId === packageId);
       const yentry = ypackageManifest.get(packageId);
       if (!yentry) return undefined;
       return yMapToObject<PackageManifestEntry>(yentry);
@@ -740,12 +780,14 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     setTitle(title: string) {
+      if (options.workspaceCanvas) return;
       ydoc.transact(() => {
         ymeta.set('title', title);
       }, 'user');
     },
 
     setDescription(description: string) {
+      if (options.workspaceCanvas) return;
       ydoc.transact(() => {
         ymeta.set('description', description);
       }, 'user');
@@ -841,6 +883,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
     // Mutations - Pages
     setActivePage(pageId: string) {
+      if (options.workspaceCanvas) return;
       if (!ypages.has(pageId)) return;
       ydoc.transact(() => {
         ymeta.set('activePage', pageId);
@@ -848,6 +891,9 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     createPage(name: string, description?: string): Page {
+      if (options.workspaceCanvas) {
+        return { id: WORKSPACE_CANVAS_PAGE_ID, name: 'Canvas', order: 0, description: '', nodes: [], edges: [] };
+      }
       const id = generatePageId();
       // Find max order
       let maxOrder = -1;
@@ -884,6 +930,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     deletePage(pageId: string): boolean {
+      if (options.workspaceCanvas) return false;
       if (!ypages.has(pageId)) return false;
       // Don't allow deleting the last page
       if (ypages.size <= 1) return false;
@@ -906,17 +953,28 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       return true;
     },
 
-    updatePage(pageId: string, updates: Partial<Omit<Page, 'id' | 'nodes' | 'edges' | 'deployables'>>) {
+    updatePage(pageId: string, updates: Partial<Omit<Page, 'id' | 'nodes' | 'edges' | 'deployables'>> & { group?: string | null }) {
+      if (options.workspaceCanvas) return;
       ydoc.transact(() => {
         const ypage = ypages.get(pageId);
         if (!ypage) return;
         if (updates.name !== undefined) ypage.set('name', updates.name);
         if (updates.description !== undefined) ypage.set('description', updates.description);
+        if (updates.group !== undefined) {
+          if (updates.group === null) {
+            ypage.delete('group');
+          } else {
+            ypage.set('group', updates.group);
+          }
+        }
         if (updates.order !== undefined) ypage.set('order', updates.order);
       }, 'user');
     },
 
     duplicatePage(pageId: string, newName: string): Page {
+      if (options.workspaceCanvas) {
+        return { id: WORKSPACE_CANVAS_PAGE_ID, name: 'Canvas', order: 0, description: '', nodes: [], edges: [] };
+      }
       const sourcePage = ypages.get(pageId);
       if (!sourcePage) throw new Error(`Page ${pageId} not found`);
 
@@ -971,6 +1029,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     copyNodesToPage(nodeIds: string[], targetPageId: string) {
+      if (options.workspaceCanvas) return;
       if (!ypages.has(targetPageId)) return;
       const sourceNodes = getActivePageNodes();
       const sourceEdges = getActivePageEdges();
@@ -1018,6 +1077,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
     // Mutations - Schemas
     setSchemas(schemas: ConstructSchema[]) {
+      if (options.workspaceCanvas) { console.warn('[workspace] setSchemas is a no-op in workspace canvas mode'); return; }
       ydoc.transact(() => {
         yschemas.clear();
         for (const schema of schemas) {
@@ -1027,17 +1087,20 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     addSchema(schema: ConstructSchema) {
+      if (options.workspaceCanvas) { console.warn('[workspace] addSchema is a no-op in workspace canvas mode'); return; }
       ydoc.transact(() => {
         yschemas.set(schema.type, objectToYMap(schema as unknown as Record<string, unknown>));
       }, 'user');
     },
 
     updateSchema(type: string, updates: Partial<ConstructSchema>) {
+      if (options.workspaceCanvas) { console.warn('[workspace] updateSchema is a no-op in workspace canvas mode'); return; }
       // Delegate to shared doc-operation with 'user' origin
       updateSchemaOp(ydoc, type, updates as unknown as Record<string, unknown>, 'user');
     },
 
     removeSchema(type: string): boolean {
+      if (options.workspaceCanvas) { console.warn('[workspace] removeSchema is a no-op in workspace canvas mode'); return false; }
       const exists = yschemas.has(type);
       if (exists) {
         ydoc.transact(() => {
@@ -1049,6 +1112,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
     // Mutations - Port Schemas
     setPortSchemas(schemas: PortSchema[]) {
+      if (options.workspaceCanvas) { console.warn('[workspace] setPortSchemas is a no-op in workspace canvas mode'); return; }
       ydoc.transact(() => {
         yportSchemas.clear();
         for (const schema of schemas) {
@@ -1058,12 +1122,14 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     addPortSchema(schema: PortSchema) {
+      if (options.workspaceCanvas) { console.warn('[workspace] addPortSchema is a no-op in workspace canvas mode'); return; }
       ydoc.transact(() => {
         yportSchemas.set(schema.id, objectToYMap(schema as unknown as Record<string, unknown>));
       }, 'user');
     },
 
     updatePortSchema(id: string, updates: Partial<PortSchema>) {
+      if (options.workspaceCanvas) { console.warn('[workspace] updatePortSchema is a no-op in workspace canvas mode'); return; }
       ydoc.transact(() => {
         const yschema = yportSchemas.get(id);
         if (!yschema) return;
@@ -1073,6 +1139,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     removePortSchema(id: string): boolean {
+      if (options.workspaceCanvas) { console.warn('[workspace] removePortSchema is a no-op in workspace canvas mode'); return false; }
       const exists = yportSchemas.has(id);
       if (exists) {
         ydoc.transact(() => {
@@ -1084,6 +1151,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
     // Mutations - Schema Groups
     setSchemaGroups(groups: SchemaGroup[]) {
+      if (options.workspaceCanvas) { console.warn('[workspace] setSchemaGroups is a no-op in workspace canvas mode'); return; }
       ydoc.transact(() => {
         yschemaGroups.clear();
         for (const group of groups) {
@@ -1093,6 +1161,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     addSchemaGroup(group: Omit<SchemaGroup, 'id'> | SchemaGroup): SchemaGroup {
+      if (options.workspaceCanvas) { console.warn('[workspace] addSchemaGroup is a no-op in workspace canvas mode'); return { ...group, id: ('id' in group && group.id) ? group.id : generateSchemaGroupId() }; }
       const id = ('id' in group && group.id) ? group.id : generateSchemaGroupId();
       const newGroup: SchemaGroup = { ...group, id };
       ydoc.transact(() => {
@@ -1102,6 +1171,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     updateSchemaGroup(id: string, updates: Partial<SchemaGroup>) {
+      if (options.workspaceCanvas) { console.warn('[workspace] updateSchemaGroup is a no-op in workspace canvas mode'); return; }
       ydoc.transact(() => {
         const ygroup = yschemaGroups.get(id);
         if (!ygroup) return;
@@ -1111,6 +1181,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     removeSchemaGroup(id: string): boolean {
+      if (options.workspaceCanvas) { console.warn('[workspace] removeSchemaGroup is a no-op in workspace canvas mode'); return false; }
       const exists = yschemaGroups.has(id);
       if (exists) {
         ydoc.transact(() => {
@@ -1136,6 +1207,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
     // Mutations - Schema Packages
     setSchemaPackages(packages: SchemaPackage[]) {
+      if (options.workspaceCanvas) { console.warn('[workspace] setSchemaPackages is a no-op in workspace canvas mode'); return; }
       ydoc.transact(() => {
         yschemaPackages.clear();
         for (const pkg of packages) {
@@ -1145,6 +1217,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     addSchemaPackage(pkg: Omit<SchemaPackage, 'id'> | SchemaPackage): SchemaPackage {
+      if (options.workspaceCanvas) { console.warn('[workspace] addSchemaPackage is a no-op in workspace canvas mode'); return { ...pkg, id: ('id' in pkg && pkg.id) ? pkg.id : generateSchemaPackageId() }; }
       const id = ('id' in pkg && pkg.id) ? pkg.id : generateSchemaPackageId();
       const newPackage: SchemaPackage = { ...pkg, id };
       ydoc.transact(() => {
@@ -1154,6 +1227,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     updateSchemaPackage(id: string, updates: Partial<SchemaPackage>) {
+      if (options.workspaceCanvas) { console.warn('[workspace] updateSchemaPackage is a no-op in workspace canvas mode'); return; }
       ydoc.transact(() => {
         const ypackage = yschemaPackages.get(id);
         if (!ypackage) return;
@@ -1163,6 +1237,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     removeSchemaPackage(id: string): boolean {
+      if (options.workspaceCanvas) { console.warn('[workspace] removeSchemaPackage is a no-op in workspace canvas mode'); return false; }
       const exists = yschemaPackages.has(id);
       if (exists) {
         ydoc.transact(() => {
@@ -1195,12 +1270,14 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
     // Mutations - Package Manifest
     addPackageManifestEntry(entry: PackageManifestEntry) {
+      if (options.workspaceCanvas) { console.warn('[workspace] addPackageManifestEntry is a no-op in workspace canvas mode'); return; }
       ydoc.transact(() => {
         ypackageManifest.set(entry.packageId, objectToYMap(entry as unknown as Record<string, unknown>));
       }, 'user');
     },
 
     removePackageManifestEntry(packageId: string): boolean {
+      if (options.workspaceCanvas) { console.warn('[workspace] removePackageManifestEntry is a no-op in workspace canvas mode'); return false; }
       const exists = ypackageManifest.has(packageId);
       if (exists) {
         ydoc.transact(() => {
@@ -1212,6 +1289,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
 
     // State access - Schema Relationships
     getSchemaRelationships(): SchemaRelationship[] {
+      if (options.workspaceCanvas) return options.workspaceCanvas.schemaRelationships;
       const rels: SchemaRelationship[] = [];
       yschemaRelationships.forEach((yrel) => {
         rels.push(yMapToObject<SchemaRelationship>(yrel));
@@ -1220,18 +1298,21 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     getSchemaRelationship(id: string): SchemaRelationship | undefined {
+      if (options.workspaceCanvas) return options.workspaceCanvas.schemaRelationships.find(r => r.id === id);
       const yrel = yschemaRelationships.get(id);
       return yrel ? yMapToObject<SchemaRelationship>(yrel) : undefined;
     },
 
     // Mutations - Schema Relationships
     addSchemaRelationship(rel: SchemaRelationship) {
+      if (options.workspaceCanvas) { console.warn('[workspace] addSchemaRelationship is a no-op in workspace canvas mode'); return; }
       ydoc.transact(() => {
         yschemaRelationships.set(rel.id, objectToYMap(rel as unknown as Record<string, unknown>));
       }, 'user');
     },
 
     updateSchemaRelationship(id: string, updates: Partial<SchemaRelationship>) {
+      if (options.workspaceCanvas) { console.warn('[workspace] updateSchemaRelationship is a no-op in workspace canvas mode'); return; }
       const yrel = yschemaRelationships.get(id);
       if (yrel) {
         ydoc.transact(() => {
@@ -1243,6 +1324,7 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
     },
 
     removeSchemaRelationship(id: string): boolean {
+      if (options.workspaceCanvas) { console.warn('[workspace] removeSchemaRelationship is a no-op in workspace canvas mode'); return false; }
       const exists = yschemaRelationships.has(id);
       if (exists) {
         ydoc.transact(() => {
@@ -1268,286 +1350,39 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       };
     },
 
-    // State access - Resources
-    getResources(): Array<{ id: string; name: string; format: string; currentHash: string; versionCount: number }> {
-      const results: Array<{ id: string; name: string; format: string; currentHash: string; versionCount: number }> = [];
-      yresources.forEach((yresource) => {
-        const yversions = yresource.get('versions') as Y.Array<Y.Map<unknown>> | undefined;
-        results.push({
-          id: yresource.get('id') as string,
-          name: yresource.get('name') as string,
-          format: yresource.get('format') as string,
-          currentHash: yresource.get('currentHash') as string,
-          versionCount: yversions ? yversions.length : 0,
-        });
+    // State access - Group Metadata
+    getGroupMetadata(): Record<string, GroupMeta> {
+      const result: Record<string, GroupMeta> = {};
+      ygroupMetadata.forEach((ymeta, key) => {
+        result[key] = {
+          name: ymeta.get('name') as string,
+          description: ymeta.get('description') as string | undefined,
+        };
       });
-      return results;
+      return result;
     },
 
-    getResource(id: string): Resource | undefined {
-      const yresource = yresources.get(id);
-      if (!yresource) return undefined;
-      const yversions = yresource.get('versions') as Y.Array<Y.Map<unknown>>;
-      const versions: ResourceVersion[] = [];
-      yversions.forEach((yver) => {
-        versions.push({
-          versionId: yver.get('versionId') as string,
-          contentHash: yver.get('contentHash') as string,
-          publishedAt: yver.get('publishedAt') as string,
-          label: yver.get('label') as string | undefined,
-          body: yver.get('body') as string,
-        });
-      });
-      return {
-        id: yresource.get('id') as string,
-        name: yresource.get('name') as string,
-        format: yresource.get('format') as string,
-        body: yresource.get('body') as string,
-        currentHash: yresource.get('currentHash') as string,
-        versions,
-      };
-    },
-
-    // Mutations - Resources
-    createResource(name: string, format: string, body: string): Resource {
-      const id = generateResourceId();
-      const currentHash = sha256(body);
+    // Mutations - Group Metadata
+    setGroupMetadata(key: string, meta: GroupMeta): void {
       ydoc.transact(() => {
-        const yresource = new Y.Map<unknown>();
-        yresource.set('id', id);
-        yresource.set('name', name);
-        yresource.set('format', format);
-        yresource.set('body', body);
-        yresource.set('currentHash', currentHash);
-        const yversions = new Y.Array<Y.Map<unknown>>();
-        yresource.set('versions', yversions);
-        yresources.set(id, yresource);
+        const ymeta = new Y.Map<unknown>();
+        ymeta.set('name', meta.name);
+        if (meta.description !== undefined) ymeta.set('description', meta.description);
+        ygroupMetadata.set(key, ymeta);
       }, 'user');
-      return { id, name, format, body, currentHash, versions: [] };
     },
 
-    updateResource(id: string, updates: { name?: string; format?: string; body?: string }): Resource | undefined {
-      const yresource = yresources.get(id);
-      if (!yresource) return undefined;
-      ydoc.transact(() => {
-        if (updates.name !== undefined) yresource.set('name', updates.name);
-        if (updates.format !== undefined) yresource.set('format', updates.format);
-        if (updates.body !== undefined) {
-          yresource.set('body', updates.body);
-          yresource.set('currentHash', sha256(updates.body));
-        }
-      }, 'user');
-      return adapter.getResource(id);
-    },
-
-    deleteResource(id: string): boolean {
-      const exists = yresources.has(id);
-      if (exists) {
+    deleteGroupMetadata(key: string): void {
+      if (ygroupMetadata.has(key)) {
         ydoc.transact(() => {
-          yresources.delete(id);
+          ygroupMetadata.delete(key);
         }, 'user');
       }
-      return exists;
     },
 
-    publishResourceVersion(id: string, label?: string): ResourceVersion | undefined {
-      const yresource = yresources.get(id);
-      if (!yresource) return undefined;
-      const body = yresource.get('body') as string;
-      const contentHash = yresource.get('currentHash') as string;
-      const versionId = generateVersionId();
-      const publishedAt = new Date().toISOString();
-      ydoc.transact(() => {
-        const yversions = yresource.get('versions') as Y.Array<Y.Map<unknown>>;
-        const yver = new Y.Map<unknown>();
-        yver.set('versionId', versionId);
-        yver.set('contentHash', contentHash);
-        yver.set('publishedAt', publishedAt);
-        if (label !== undefined) yver.set('label', label);
-        yver.set('body', body);
-        yversions.push([yver]);
-      }, 'user');
-      return { versionId, contentHash, publishedAt, label, body };
-    },
-
-    getResourceHistory(id: string): Omit<ResourceVersion, 'body'>[] {
-      const yresource = yresources.get(id);
-      if (!yresource) return [];
-      const yversions = yresource.get('versions') as Y.Array<Y.Map<unknown>>;
-      const results: Omit<ResourceVersion, 'body'>[] = [];
-      yversions.forEach((yver) => {
-        results.push({
-          versionId: yver.get('versionId') as string,
-          contentHash: yver.get('contentHash') as string,
-          publishedAt: yver.get('publishedAt') as string,
-          label: yver.get('label') as string | undefined,
-        });
-      });
-      return results;
-    },
-
-    getResourceVersion(id: string, versionId: string): ResourceVersion | undefined {
-      const yresource = yresources.get(id);
-      if (!yresource) return undefined;
-      const yversions = yresource.get('versions') as Y.Array<Y.Map<unknown>>;
-      let found: ResourceVersion | undefined;
-      yversions.forEach((yver) => {
-        if (yver.get('versionId') === versionId) {
-          found = {
-            versionId: yver.get('versionId') as string,
-            contentHash: yver.get('contentHash') as string,
-            publishedAt: yver.get('publishedAt') as string,
-            label: yver.get('label') as string | undefined,
-            body: yver.get('body') as string,
-          };
-        }
-      });
-      return found;
-    },
-
-    subscribeToResources(listener: () => void): () => void {
-      resourceListeners.add(listener);
-      return () => resourceListeners.delete(listener);
-    },
-
-    // State access - Spec Groups
-    getSpecGroups(): SpecGroup[] {
-      const results: SpecGroup[] = [];
-      yspecGroups.forEach((ysg) => {
-        const yitems = ysg.get('items') as Y.Array<Y.Map<unknown>>;
-        const items: SpecGroupItem[] = [];
-        yitems.forEach((yitem) => {
-          items.push({
-            type: yitem.get('type') as 'page' | 'resource',
-            id: yitem.get('id') as string,
-          });
-        });
-        results.push({
-          id: ysg.get('id') as string,
-          name: ysg.get('name') as string,
-          description: ysg.get('description') as string | undefined,
-          order: ysg.get('order') as number,
-          items,
-        });
-      });
-      return results.sort((a, b) => a.order - b.order);
-    },
-
-    getSpecGroup(id: string): SpecGroup | undefined {
-      const ysg = yspecGroups.get(id);
-      if (!ysg) return undefined;
-      const yitems = ysg.get('items') as Y.Array<Y.Map<unknown>>;
-      const items: SpecGroupItem[] = [];
-      yitems.forEach((yitem) => {
-        items.push({
-          type: yitem.get('type') as 'page' | 'resource',
-          id: yitem.get('id') as string,
-        });
-      });
-      return {
-        id: ysg.get('id') as string,
-        name: ysg.get('name') as string,
-        description: ysg.get('description') as string | undefined,
-        order: ysg.get('order') as number,
-        items,
-      };
-    },
-
-    // Mutations - Spec Groups
-    createSpecGroup(name: string, description?: string): SpecGroup {
-      const id = generateSpecGroupId();
-      let maxOrder = -1;
-      yspecGroups.forEach((ysg) => {
-        const o = ysg.get('order') as number;
-        if (o > maxOrder) maxOrder = o;
-      });
-      const order = maxOrder + 1;
-      ydoc.transact(() => {
-        const ysg = new Y.Map<unknown>();
-        ysg.set('id', id);
-        ysg.set('name', name);
-        if (description !== undefined) ysg.set('description', description);
-        ysg.set('order', order);
-        const yitems = new Y.Array<Y.Map<unknown>>();
-        ysg.set('items', yitems);
-        yspecGroups.set(id, ysg);
-      }, 'user');
-      return { id, name, description, order, items: [] };
-    },
-
-    updateSpecGroup(
-      id: string,
-      updates: { name?: string; description?: string; order?: number; items?: SpecGroupItem[] }
-    ): SpecGroup | undefined {
-      const ysg = yspecGroups.get(id);
-      if (!ysg) return undefined;
-      ydoc.transact(() => {
-        if (updates.name !== undefined) ysg.set('name', updates.name);
-        if (updates.description !== undefined) ysg.set('description', updates.description);
-        if (updates.order !== undefined) ysg.set('order', updates.order);
-        if (updates.items !== undefined) {
-          const yitems = ysg.get('items') as Y.Array<Y.Map<unknown>>;
-          yitems.delete(0, yitems.length);
-          for (const item of updates.items) {
-            const yitem = new Y.Map<unknown>();
-            yitem.set('type', item.type);
-            yitem.set('id', item.id);
-            yitems.push([yitem]);
-          }
-        }
-      }, 'user');
-      return this.getSpecGroup(id);
-    },
-
-    deleteSpecGroup(id: string): boolean {
-      const exists = yspecGroups.has(id);
-      if (exists) {
-        ydoc.transact(() => {
-          yspecGroups.delete(id);
-        }, 'user');
-      }
-      return exists;
-    },
-
-    assignToSpecGroup(groupId: string, item: SpecGroupItem): SpecGroup | undefined {
-      // Enforce single-parent: remove from any existing group first
-      this.removeFromSpecGroup(item.type, item.id);
-      const ysg = yspecGroups.get(groupId);
-      if (!ysg) return undefined;
-      ydoc.transact(() => {
-        const yitems = ysg.get('items') as Y.Array<Y.Map<unknown>>;
-        const yitem = new Y.Map<unknown>();
-        yitem.set('type', item.type);
-        yitem.set('id', item.id);
-        yitems.push([yitem]);
-      }, 'user');
-      return this.getSpecGroup(groupId);
-    },
-
-    removeFromSpecGroup(itemType: 'page' | 'resource', itemId: string): boolean {
-      let found = false;
-      yspecGroups.forEach((ysg) => {
-        if (found) return;
-        const yitems = ysg.get('items') as Y.Array<Y.Map<unknown>>;
-        let idx = -1;
-        yitems.forEach((yitem, i) => {
-          if (yitem.get('type') === itemType && yitem.get('id') === itemId) {
-            idx = i;
-          }
-        });
-        if (idx >= 0) {
-          ydoc.transact(() => {
-            yitems.delete(idx, 1);
-          }, 'user');
-          found = true;
-        }
-      });
-      return found;
-    },
-
-    subscribeToSpecGroups(listener: () => void): () => void {
-      specGroupListeners.add(listener);
-      return () => specGroupListeners.delete(listener);
+    subscribeToGroupMetadata(listener: () => void): () => void {
+      groupMetadataListeners.add(listener);
+      return () => groupMetadataListeners.delete(listener);
     },
 
     // Granular subscriptions for focused hooks
@@ -1645,18 +1480,30 @@ export function createYjsAdapter(options: YjsAdapterOptions): DocumentAdapter & 
       ws.on('sync', () => {
         connectionStatus = 'connected';
 
-        // Safety net: if server had no pages either, create the default
+        // Safety net: if server had no pages either, create the appropriate default
         if (ypages.size === 0) {
-          console.debug('[pages] No pages after sync, creating default Main page', { roomId: newRoomId });
-          ydoc.transact(() => {
-            const pageId = generatePageId();
-            const pageData = new Y.Map<unknown>();
-            pageData.set('id', pageId);
-            pageData.set('name', 'Main');
-            pageData.set('order', 0);
-            ypages.set(pageId, pageData);
-            ymeta.set('activePage', pageId);
-          }, 'init');
+          if (options.workspaceCanvas) {
+            console.debug('[workspace] No pages after sync, creating shim canvas page', { roomId: newRoomId });
+            ydoc.transact(() => {
+              const pageData = new Y.Map<unknown>();
+              pageData.set('id', WORKSPACE_CANVAS_PAGE_ID);
+              pageData.set('name', 'Canvas');
+              pageData.set('order', 0);
+              ypages.set(WORKSPACE_CANVAS_PAGE_ID, pageData);
+              ymeta.set('activePage', WORKSPACE_CANVAS_PAGE_ID);
+            }, 'init');
+          } else {
+            console.debug('[pages] No pages after sync, creating default Main page', { roomId: newRoomId });
+            ydoc.transact(() => {
+              const pageId = generatePageId();
+              const pageData = new Y.Map<unknown>();
+              pageData.set('id', pageId);
+              pageData.set('name', 'Main');
+              pageData.set('order', 0);
+              ypages.set(pageId, pageData);
+              ymeta.set('activePage', pageId);
+            }, 'init');
+          }
         }
 
         notifyListeners();

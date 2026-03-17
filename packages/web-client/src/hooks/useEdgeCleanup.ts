@@ -1,8 +1,7 @@
 import { useCallback } from 'react';
-import type { CartaNode, CartaEdge } from '@carta/types';
 import { useDocumentContext } from '../contexts/DocumentContext';
 import { useSchemas } from './useSchemas';
-import type { ConstructNodeData } from '@carta/schema';
+import type { ConstructNodeData, CartaNode, CartaEdge } from '@carta/schema';
 import { getPortsForSchema } from '@carta/schema';
 
 /**

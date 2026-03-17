@@ -1,13 +1,13 @@
 ---
 name: documentation-auditor
-description: Audits .docs/ claims against actual codebase, finding stale references, missing exports, wrong type signatures, and phantom files
+description: Audits .carta/ claims against actual codebase, finding stale references, missing exports, wrong type signatures, and phantom files
 context: fork
 model: sonnet
 ---
 
 # documentation-auditor
 
-Reverse-audits documentation against the codebase. While `/documentation-nag` is forward-sync (commits → docs), this skill is reverse-audit (docs → code). It finds claims in `.docs/` that no longer match reality.
+Reverse-audits documentation against the codebase. While `/documentation-nag` is forward-sync (commits → docs), this skill is reverse-audit (docs → code). It finds claims in `.carta/` that no longer match reality.
 
 ## When This Triggers
 
@@ -15,7 +15,7 @@ Reverse-audits documentation against the codebase. While `/documentation-nag` is
 - "Check docs against code"
 - "Find stale doc references"
 - `/documentation-auditor`
-- `/documentation-auditor doc02.08`
+- `/documentation-auditor doc02.04.03`
 
 ## What It Does NOT Do
 
@@ -32,14 +32,13 @@ Reverse-audits documentation against the codebase. While `/documentation-nag` is
 # With argument: audit specific doc(s)
 ```
 
-**If specific doc named:** Match against MANIFEST refs (e.g., `doc02.08` → `.docs/02-system/08-frontend-architecture.md`). Audit only that file.
+**If specific doc named:** Match against MANIFEST refs and resolve file path from MANIFEST's File column. Audit only that file.
 
 **If no argument:** Read MANIFEST, then audit all active docs. Process them in priority order:
-1. System docs (02-system/) — highest density of verifiable claims
-2. Feature docs (03-product/01-features/) — reference specific components and behaviors
-3. Context docs (01-context/) — glossary terms
-4. Operations docs (04-operations/) — commands and config
-5. Research docs (05-research/) — lowest priority, mostly speculative
+1. Architecture docs — highest density of verifiable claims (barrel exports, type definitions)
+2. Feature docs — reference specific components and behaviors
+3. Context/goals docs — glossary terms, principles
+4. Research docs — lowest priority, mostly speculative
 
 Report scope to user: "Auditing N docs against codebase."
 
@@ -107,7 +106,7 @@ Glob({ pattern: '**/lodPolicy.ts' })
 
 ### Barrel Export Lists (Grep)
 
-For docs that list barrel exports (doc02.08 is the primary one), verify each list against the actual barrel file:
+For docs that list barrel exports (find via MANIFEST tags: `components, hooks, architecture`), verify each list against the actual barrel file:
 
 ```typescript
 // Read the actual barrel file
@@ -144,7 +143,7 @@ Grep({
   output_mode: 'content'
 })
 
-// Compare against doc02.03 tool list
+// Compare against any doc that inventories MCP tools (find via MANIFEST tags: mcp)
 ```
 
 ### Env Var Verification (Grep)
@@ -182,29 +181,26 @@ Present findings as a structured report. Group by severity:
 
 | Doc | Claim | Issue |
 |-----|-------|-------|
-| doc02.08 §hooks/index.ts | `useVisualGroups` exported | Export not found in `hooks/index.ts` |
-| doc02.03 §MCP Tools | `carta_delete_field` tool | Tool not registered in `tools.ts` |
+| docXX.YY §barrel-section | `useFoo` exported | Export not found in barrel file |
+| docXX.YY §MCP Tools | `carta_foo` tool | Tool not registered in `tools.ts` |
 
 ### Warnings (likely stale)
 
 | Doc | Claim | Issue |
 |-----|-------|-------|
-| doc02.09 §LOD bands | References `pill` band | Code uses `marker` band |
-| doc03.01.14 | References `renderStyle` | Code uses `nodeShape` |
+| docXX.YY §section | References `oldName` | Code uses `newName` |
 
 ### Info (undocumented)
 
 | Doc | Missing | Source |
 |-----|---------|--------|
-| doc02.08 §hooks/index.ts | `useEdgeCleanup` not listed | `hooks/index.ts` exports it |
-| doc02.08 §ui/index.ts | `Tooltip` not listed | `ui/index.ts` exports it |
+| docXX.YY §barrel-section | `useBar` not listed | Barrel file exports it |
 
 ### Verified OK
 
 | Doc | Claims Checked | Status |
 |-----|---------------|--------|
-| doc02.06 | 12 type/field claims | All verified |
-| doc02.05 | 5 env var claims | All verified |
+| docXX.YY | N type/field claims | All verified |
 ```
 
 ---
@@ -216,9 +212,9 @@ For each Error and Warning, suggest the fix (but don't apply it):
 ```markdown
 ### Suggested Fixes
 
-1. **doc02.08 §hooks/index.ts**: Remove `useVisualGroups`, add `useEdgeCleanup`
-2. **doc02.09 §LOD bands**: Replace `pill` → `marker` (3 occurrences)
-3. **doc02.03 §MCP Tools**: Add `carta_update_schema` tool entry
+1. **docXX.YY §barrel-section**: Remove `useFoo`, add `useBar`
+2. **docXX.YY §section**: Replace `oldName` → `newName` (N occurrences)
+3. **docXX.YY §MCP Tools**: Add `carta_new_tool` tool entry
 ```
 
 If the user wants fixes applied, recommend running `/documentation-nag` or applying manually.
@@ -231,7 +227,7 @@ If the user wants fixes applied, recommend running `/documentation-nag` or apply
 |-----------|--------|------|
 | MANIFEST read | ~2,500 | Always |
 | Claim extraction (Grep per doc) | ~500/doc | Per doc audited |
-| Barrel file reads | ~300/file | Per barrel in doc02.08 |
+| Barrel file reads | ~300/file | Per barrel in frontend arch doc |
 | Type verification (Grep) | ~200/check | Per type claim |
 | Full doc read (disambiguation) | ~1,500/doc | Only when needed |
 
@@ -247,14 +243,6 @@ If the user wants fixes applied, recommend running `/documentation-nag` or apply
 
 ## Priority Audit Targets
 
-These docs have the highest density of verifiable, drift-prone claims:
+Read MANIFEST.md and prioritize docs with the highest density of verifiable, drift-prone claims. Look for docs whose tags include: `components`, `hooks`, `architecture`, `metamodel`, `schemas`, `mcp`, `design`, `glossary`. These docs typically contain barrel export lists, type definitions, tool inventories, and CSS token values — all of which are binary-verifiable and drift constantly.
 
-| Doc | Why |
-|-----|-----|
-| doc02.08 (frontend arch) | Barrel export lists, component inventories |
-| doc02.03 (interfaces) | MCP tool inventory, API surface |
-| doc02.06 (metamodel) | Type definitions, field enums |
-| doc02.07 (design system) | CSS variable names, token values |
-| doc01.03 (glossary) | Term definitions, canonical names |
-
-When running without arguments, start with these five before expanding to the full set.
+When running without arguments, audit these high-value docs first before expanding to the full set.

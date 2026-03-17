@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect } from 'react';
 import MapV2 from './MapV2';
 import LayoutMap from './LayoutMap';
 import MetamapV2 from '../metamap-v2/MetamapV2';
@@ -6,12 +6,9 @@ import SearchBar from '../ui/SearchBar';
 import { Tooltip } from '../ui';
 import { MapPin } from '@phosphor-icons/react';
 
-const ResourceView = lazy(() => import('../ResourceView'));
-
 type ActiveView =
   | { type: 'page'; pageId: string }
-  | { type: 'metamap' }
-  | { type: 'resource'; resourceId: string };
+  | { type: 'metamap' };
 
 interface CanvasContainerProps {
   onSelectionChange: (nodes: any[]) => void;
@@ -27,14 +24,18 @@ export default function CanvasContainer({
   const [showLayoutMap, setShowLayoutMap] = useState(false);
 
   useEffect(() => {
-    performance.mark('carta:canvas-mounted')
-    performance.measure('carta:render-to-canvas', 'carta:render-start', 'carta:canvas-mounted')
+    try {
+      performance.mark('carta:canvas-mounted')
+      performance.measure('carta:render-to-canvas', 'carta:render-start', 'carta:canvas-mounted')
+    } catch {
+      // carta:render-start mark not set — skip measurement
+    }
   }, [])
 
   return (
     <div className="flex-1 min-w-0 min-h-0 flex flex-col relative">
       {/* Canvas toolbar overlay */}
-      {!showLayoutMap && activeView.type !== 'resource' && (
+      {!showLayoutMap && (
         <div className="absolute top-3 left-0 right-0 z-10 flex justify-center pointer-events-none">
           <div className="pointer-events-auto flex items-center gap-3">
             {activeView.type === 'page' ? (
@@ -61,12 +62,8 @@ export default function CanvasContainer({
           ) : (
             <MapV2 searchText={instanceSearchText} onSelectionChange={onSelectionChange} />
           )
-        ) : activeView.type === 'metamap' ? (
-          <MetamapV2 />
         ) : (
-          <Suspense fallback={null}>
-            <ResourceView resourceId={activeView.resourceId} />
-          </Suspense>
+          <MetamapV2 />
         )}
       </div>
 

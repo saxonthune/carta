@@ -17,7 +17,6 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@carta/types": "workspace:*",
     "@carta/geometry": "workspace:*",
     "js-sha256": "^0.11.0"
   },

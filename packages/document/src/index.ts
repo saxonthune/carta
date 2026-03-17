@@ -14,3 +14,6 @@ export * from './file-format.js';
 export * from './file-operations.js';
 export * from './tools/index.js';
 export * from './compiler/index.js';
+export * from './workspace-format.js';
+export * from './workspace-explode.js';
+export * from './workspace-hydrate.js';

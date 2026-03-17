@@ -1,11 +1,10 @@
 import { useState, useCallback } from 'react';
 import { FileText, ArrowsLeftRight, Eye, ArrowRight } from '@phosphor-icons/react';
-import type { CartaNode } from '@carta/types';
 import { useSchemas } from '../../hooks/useSchemas';
 import { fieldRenderers } from '../fields';
 import TabBar, { type Tab } from '../ui/TabBar';
 import { getDisplayName } from '@carta/schema';
-import type { ConstructNodeData, ConstructValues } from '@carta/schema';
+import type { ConstructNodeData, ConstructValues, CartaNode } from '@carta/schema';
 
 interface InstanceEditorProps {
   node: CartaNode;

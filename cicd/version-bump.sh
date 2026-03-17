@@ -58,12 +58,24 @@ git -C "$ROOT" add '*/package.json' package.json
 git -C "$ROOT" commit -m "chore: bump version to ${VERSION}"
 git -C "$ROOT" push -u origin "$BRANCH"
 
-gh pr create \
+PR_URL=$(gh pr create \
   --repo "$(gh repo view --json nameWithOwner -q .nameWithOwner)" \
   --title "chore: bump version to ${VERSION}" \
   --body "Bumps all package versions to \`${VERSION}\`." \
-  --base main
+  --base main)
 
 echo ""
-echo "PR created. After squash-merge, run:"
+echo "PR created: $PR_URL"
+echo "Waiting for checks to pass..."
+
+gh pr checks "$PR_URL" --watch --fail-fast
+
+echo "Checks passed. Merging..."
+gh pr merge "$PR_URL" --squash --delete-branch
+
+git checkout main
+git pull --ff-only origin main
+
+echo ""
+echo "Merged. Run:"
 echo "  ./cicd/tag-release.sh ${VERSION}"

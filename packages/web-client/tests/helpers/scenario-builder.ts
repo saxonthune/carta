@@ -1,4 +1,4 @@
-import type { CartaNode } from '@carta/types';
+import type { CartaNode } from '@carta/schema';
 
 /** Minimal construct node. Uses type-based defaults from getNodeDimensions. */
 export function makeConstruct(id: string, opts?: {

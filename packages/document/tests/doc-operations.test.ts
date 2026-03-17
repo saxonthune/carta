@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import * as Y from 'yjs';
-import { createPage, listPages, updatePage, deletePage, flowLayout, createConstruct, connect, connectBulk, updateConstruct, getConstruct, getSchema, createSchema, renameField, removeField, addField, renamePort, removePort, renameSchemaType, changeFieldType, narrowEnumOptions, addPort, changePortType, listConstructs, createResource, getResource, listResources, updateResource, deleteResource, publishResourceVersion, getResourceHistory, getResourceVersion } from '../src/doc-operations';
+import { createPage, listPages, updatePage, deletePage, flowLayout, createConstruct, connect, connectBulk, updateConstruct, getConstruct, getSchema, createSchema, renameField, removeField, addField, renamePort, removePort, renameSchemaType, changeFieldType, narrowEnumOptions, addPort, changePortType, listConstructs } from '../src/doc-operations';
 import { deepPlainToY, yToPlain } from '../src/yjs-helpers';
 
 describe('page operations', () => {
@@ -1164,93 +1164,3 @@ describe('round-trip invariants', () => {
   });
 });
 
-describe('resource operations', () => {
-  let doc: Y.Doc;
-
-  beforeEach(() => {
-    doc = new Y.Doc();
-  });
-
-  it('create and get round-trip', () => {
-    const resource = createResource(doc, 'API Schema', 'json', '{"type":"object"}');
-    const fetched = getResource(doc, resource.id);
-    expect(fetched).not.toBeUndefined();
-    expect(fetched?.name).toBe('API Schema');
-    expect(fetched?.format).toBe('json');
-    expect(fetched?.body).toBe('{"type":"object"}');
-  });
-
-  it('list resources returns all created resources', () => {
-    createResource(doc, 'Resource A', 'json', '{}');
-    createResource(doc, 'Resource B', 'yaml', 'key: value');
-    const list = listResources(doc);
-    expect(list.length).toBe(2);
-  });
-
-  it('update body changes hash', () => {
-    const resource = createResource(doc, 'My Resource', 'json', '{"v":1}');
-    const originalHash = resource.currentHash;
-    updateResource(doc, resource.id, { body: '{"v":2}' });
-    const updated = getResource(doc, resource.id);
-    expect(updated?.currentHash).not.toBe(originalHash);
-  });
-
-  it('update name does not change hash', () => {
-    const resource = createResource(doc, 'Old Name', 'json', '{"v":1}');
-    const originalHash = resource.currentHash;
-    updateResource(doc, resource.id, { name: 'New Name' });
-    const updated = getResource(doc, resource.id);
-    expect(updated?.currentHash).toBe(originalHash);
-    expect(updated?.name).toBe('New Name');
-  });
-
-  it('publish creates version with matching hash and label', () => {
-    const resource = createResource(doc, 'Versioned', 'json', '{"v":1}');
-    publishResourceVersion(doc, resource.id, 'v1.0');
-    const history = getResourceHistory(doc, resource.id);
-    expect(history.length).toBe(1);
-    expect(history[0]?.contentHash).toBe(resource.currentHash);
-    expect(history[0]?.label).toBe('v1.0');
-  });
-
-  it('publish twice creates two versions with same hash but different versionIds', () => {
-    const resource = createResource(doc, 'Twice', 'json', '{"v":1}');
-    publishResourceVersion(doc, resource.id);
-    publishResourceVersion(doc, resource.id);
-    const history = getResourceHistory(doc, resource.id);
-    expect(history.length).toBe(2);
-    expect(history[0]?.contentHash).toBe(history[1]?.contentHash);
-    expect(history[0]?.versionId).not.toBe(history[1]?.versionId);
-  });
-
-  it('version body is frozen after body update', () => {
-    const resource = createResource(doc, 'Frozen', 'json', '{"original":true}');
-    const ver = publishResourceVersion(doc, resource.id, 'original');
-    updateResource(doc, resource.id, { body: '{"updated":true}' });
-    const fetched = getResourceVersion(doc, resource.id, ver!.versionId);
-    expect(fetched?.body).toBe('{"original":true}');
-  });
-
-  it('delete removes resource', () => {
-    const resource = createResource(doc, 'To Delete', 'json', '{}');
-    const deleted = deleteResource(doc, resource.id);
-    expect(deleted).toBe(true);
-    expect(getResource(doc, resource.id)).toBeUndefined();
-  });
-
-  it('get resource history does not include body', () => {
-    const resource = createResource(doc, 'History Test', 'json', '{"body":"value"}');
-    publishResourceVersion(doc, resource.id, 'v1');
-    const history = getResourceHistory(doc, resource.id);
-    expect(history.length).toBe(1);
-    expect('body' in (history[0] ?? {})).toBe(false);
-  });
-
-  it('get specific version returns matching body', () => {
-    const resource = createResource(doc, 'Specific', 'json', '{"known":"body"}');
-    const ver = publishResourceVersion(doc, resource.id, 'snapshot');
-    const fetched = getResourceVersion(doc, resource.id, ver!.versionId);
-    expect(fetched?.body).toBe('{"known":"body"}');
-    expect(fetched?.label).toBe('snapshot');
-  });
-});

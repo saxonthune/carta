@@ -16,10 +16,10 @@ Hands off a plan to a background agent that creates a worktree, implements the p
 
 ### If no argument provided
 
-List plans from `todo-tasks/*.md` and let the user pick:
+List task plans from `todo-tasks/*.md` (excluding `*.epic.md`) and let the user pick:
 
 ```bash
-ls todo-tasks/*.md | sed 's|todo-tasks/||;s|\.md$||'
+ls todo-tasks/*.md | grep -v '\.epic\.md$' | sed 's|todo-tasks/||;s|\.md$||'
 ```
 
 Ask the user which plan to execute using AskUserQuestion.

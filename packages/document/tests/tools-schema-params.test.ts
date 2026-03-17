@@ -13,23 +13,6 @@ describe('schema param parity', () => {
     pageId = page.id;
   });
 
-  it('create_schema with field type "resource" succeeds', () => {
-    const result = executeTool(
-      'create_schema',
-      {
-        type: 'resource-ref',
-        displayName: 'Resource Reference',
-        color: '#ff0000',
-        fields: [
-          { name: 'ref', label: 'Reference', type: 'resource' },
-        ],
-      },
-      doc,
-      pageId
-    );
-    expect(result.success).toBe(true);
-  });
-
   it('create_schema with displayHint "markdown" succeeds', () => {
     const result = executeTool(
       'create_schema',
@@ -84,26 +67,6 @@ describe('schema param parity', () => {
         fieldUpdates: {
           body: { displayHint: 'markdown' },
         },
-      },
-      doc,
-      pageId
-    );
-    expect(result.success).toBe(true);
-  });
-
-  it('add_field with type "resource" succeeds', () => {
-    executeTool(
-      'create_schema',
-      { type: 'base-node', displayName: 'Base Node', color: '#aaaaaa', fields: [] },
-      doc,
-      pageId
-    );
-
-    const result = executeTool(
-      'add_field',
-      {
-        schemaType: 'base-node',
-        field: { name: 'resourceRef', type: 'resource', label: 'Resource Ref' },
       },
       doc,
       pageId

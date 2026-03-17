@@ -5,6 +5,7 @@
 export { METAMODEL_GUIDE } from './metamodel.js';
 export { ANALYSIS_GUIDE } from './analysis.js';
 export { DOMAIN_DIRECTORY_GUIDE, SOFTWARE_ARCHITECTURE_GUIDE, AWS_GUIDE, BPMN_GUIDE } from './domains/index.js';
+export { REVERSE_ENGINEERING_GUIDE } from './reverse-engineering.js';
 
 /**
  * All available guides with their metadata
@@ -44,6 +45,12 @@ export const GUIDES = {
     uri: 'carta://guide/domains/bpmn',
     name: 'BPMN Process Guide',
     description: 'Schema recommendations for business processes, workflows, events, and gateways',
+    mimeType: 'text/markdown',
+  },
+  'reverse-engineering': {
+    uri: 'carta://guide/reverse-engineering',
+    name: 'Reverse Engineering Guide',
+    description: 'How to go from an existing codebase to a Carta canvas: identify components, create schemas, populate constructs, and connect',
     mimeType: 'text/markdown',
   },
 } as const;

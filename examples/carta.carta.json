@@ -2977,7 +2977,7 @@
             "values": {
               "name": "Read codebase",
               "activityType": "Task",
-              "description": "Read .docs/MANIFEST.md, source files, existing Carta document. Orient on both sides."
+              "description": "Read .carta/MANIFEST.md, source files, existing Carta document. Orient on both sides."
             },
             "connections": [
               {
@@ -3435,7 +3435,7 @@
             "values": {
               "name": "Orient",
               "activityType": "Task",
-              "description": "Read .docs/MANIFEST.md, relevant docs, existing source files that will be modified. Understand before changing."
+              "description": "Read .carta/MANIFEST.md, relevant docs, existing source files that will be modified. Understand before changing."
             },
             "connections": [
               {

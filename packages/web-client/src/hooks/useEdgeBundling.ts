@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { CartaEdge } from '@carta/types';
+import type { CartaEdge } from '@carta/schema';
 
 export interface BundleData {
   bundleCount: number;

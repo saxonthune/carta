@@ -16,5 +16,6 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm build:all
+      - run: pip install pytest click pyyaml
+      - run: pnpm build
       - run: pnpm test

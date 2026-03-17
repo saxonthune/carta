@@ -53,15 +53,11 @@ import type {
   ApplyPackageResult,
   DocumentAdapter,
   PackageManifestEntry,
-  Resource,
-  ResourceVersion,
-  SpecGroup,
-  SpecGroupItem,
+  GroupMeta,
 } from '@carta/schema';
-import { sha256 } from 'js-sha256';
 import { CompilerEngine } from './compiler/index.js';
 import { yToPlain, deepPlainToY, safeGet } from './yjs-helpers.js';
-import { generateNodeId, generatePageId, generateSchemaPackageId, generateResourceId, generateVersionId, generateSpecGroupId } from './id-generators.js';
+import { generateNodeId, generatePageId, generateSchemaPackageId } from './id-generators.js';
 import { MCP_ORIGIN, SERVER_FORMAT_VERSION, YDOC_MAPS } from './constants.js';
 
 /**
@@ -147,6 +143,7 @@ export interface PageInfo {
   id: string;
   name: string;
   description?: string;
+  group?: string;
   order: number;
 }
 
@@ -171,6 +168,7 @@ export function listPages(ydoc: Y.Doc): PageInfo[] {
       id,
       name: (ypage.get('name') as string) ?? 'Untitled',
       description: ypage.get('description') as string | undefined,
+      group: ypage.get('group') as string | undefined,
       order: (ypage.get('order') as number) ?? 0,
     });
   });
@@ -209,7 +207,7 @@ export function setActivePage(ydoc: Y.Doc, pageId: string): void {
 /**
  * Create a new page in a document
  */
-export function createPage(ydoc: Y.Doc, name: string, description?: string): PageInfo {
+export function createPage(ydoc: Y.Doc, name: string, description?: string, group?: string): PageInfo {
   const pageId = generatePageId();
   const ypages = ydoc.getMap<Y.Map<unknown>>('pages');
 
@@ -227,11 +225,12 @@ export function createPage(ydoc: Y.Doc, name: string, description?: string): Pag
     pageData.set('id', pageId);
     pageData.set('name', name);
     if (description) pageData.set('description', description);
+    if (group !== undefined) pageData.set('group', group);
     pageData.set('order', order);
     ypages.set(pageId, pageData);
   }, MCP_ORIGIN);
 
-  return { id: pageId, name, description, order };
+  return { id: pageId, name, description, group, order };
 }
 
 /**
@@ -240,7 +239,7 @@ export function createPage(ydoc: Y.Doc, name: string, description?: string): Pag
 export function updatePage(
   ydoc: Y.Doc,
   pageId: string,
-  updates: { name?: string; description?: string; order?: number }
+  updates: { name?: string; description?: string; group?: string | null; order?: number }
 ): PageInfo | null {
   const ypages = ydoc.getMap<Y.Map<unknown>>('pages');
   const ypage = ypages.get(pageId);
@@ -249,6 +248,13 @@ export function updatePage(
   ydoc.transact(() => {
     if (updates.name !== undefined) ypage.set('name', updates.name);
     if (updates.description !== undefined) ypage.set('description', updates.description);
+    if (updates.group !== undefined) {
+      if (updates.group === null) {
+        ypage.delete('group');
+      } else {
+        ypage.set('group', updates.group);
+      }
+    }
     if (updates.order !== undefined) ypage.set('order', updates.order);
   }, MCP_ORIGIN);
 
@@ -256,6 +262,7 @@ export function updatePage(
     id: pageId,
     name: (ypage.get('name') as string) ?? 'Untitled',
     description: ypage.get('description') as string | undefined,
+    group: ypage.get('group') as string | undefined,
     order: (ypage.get('order') as number) ?? 0,
   };
 }
@@ -267,9 +274,6 @@ export function deletePage(ydoc: Y.Doc, pageId: string): boolean {
   const ypages = ydoc.getMap<Y.Map<unknown>>('pages');
   if (!ypages.has(pageId)) return false;
   if (ypages.size <= 1) return false;
-
-  // Remove from any spec group before deleting
-  removeFromSpecGroup(ydoc, 'page', pageId);
 
   ydoc.transact(() => {
     ypages.delete(pageId);
@@ -3505,37 +3509,9 @@ export function batchMutate(
 /**
  * Compile a page's document to AI-readable output
  */
-function getAllResources(ydoc: Y.Doc): Resource[] {
-  const yresources = ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.RESOURCES);
-  const resources: Resource[] = [];
-  yresources.forEach((yresource) => {
-    const yversions = yresource.get('versions') as Y.Array<Y.Map<unknown>>;
-    const versions: ResourceVersion[] = [];
-    yversions.forEach((yver) => {
-      versions.push({
-        versionId: yver.get('versionId') as string,
-        contentHash: yver.get('contentHash') as string,
-        publishedAt: yver.get('publishedAt') as string,
-        label: yver.get('label') as string | undefined,
-        body: yver.get('body') as string,
-      });
-    });
-    resources.push({
-      id: yresource.get('id') as string,
-      name: yresource.get('name') as string,
-      format: yresource.get('format') as string,
-      body: yresource.get('body') as string,
-      currentHash: yresource.get('currentHash') as string,
-      versions,
-    });
-  });
-  return resources;
-}
-
 export function compile(ydoc: Y.Doc, pageId: string): string {
   const nodes = listConstructs(ydoc, pageId);
   const schemas = listSchemas(ydoc);
-  const resources = getAllResources(ydoc);
 
   // Get edges for page
   const pageEdges = getPageMap(ydoc, 'edges', pageId);
@@ -3551,7 +3527,7 @@ export function compile(ydoc: Y.Doc, pageId: string): string {
   });
 
   const compilerEngine = new CompilerEngine();
-  return compilerEngine.compile(nodes, edges, { schemas, resources });
+  return compilerEngine.compile(nodes, edges, { schemas });
 }
 
 // ===== DOCUMENT EXTRACTION =====
@@ -4061,181 +4037,6 @@ export function createPackage(ydoc: Y.Doc, data: {
   return pkg;
 }
 
-// ==================== Resource Operations ====================
-
-function getResourcesMap(ydoc: Y.Doc): Y.Map<Y.Map<unknown>> {
-  return ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.RESOURCES);
-}
-
-/**
- * List all resources as summaries (no version bodies).
- */
-export function listResources(ydoc: Y.Doc): Array<{ id: string; name: string; format: string; currentHash: string; versionCount: number }> {
-  const yresources = getResourcesMap(ydoc);
-  const results: Array<{ id: string; name: string; format: string; currentHash: string; versionCount: number }> = [];
-  yresources.forEach((yresource) => {
-    const yversions = yresource.get('versions') as Y.Array<Y.Map<unknown>> | undefined;
-    results.push({
-      id: yresource.get('id') as string,
-      name: yresource.get('name') as string,
-      format: yresource.get('format') as string,
-      currentHash: yresource.get('currentHash') as string,
-      versionCount: yversions ? yversions.length : 0,
-    });
-  });
-  return results;
-}
-
-/**
- * Get a single resource by ID, including all version bodies.
- */
-export function getResource(ydoc: Y.Doc, id: string): Resource | undefined {
-  const yresources = getResourcesMap(ydoc);
-  const yresource = yresources.get(id);
-  if (!yresource) return undefined;
-  const yversions = yresource.get('versions') as Y.Array<Y.Map<unknown>>;
-  const versions: ResourceVersion[] = [];
-  yversions.forEach((yver) => {
-    versions.push({
-      versionId: yver.get('versionId') as string,
-      contentHash: yver.get('contentHash') as string,
-      publishedAt: yver.get('publishedAt') as string,
-      label: yver.get('label') as string | undefined,
-      body: yver.get('body') as string,
-    });
-  });
-  return {
-    id: yresource.get('id') as string,
-    name: yresource.get('name') as string,
-    format: yresource.get('format') as string,
-    body: yresource.get('body') as string,
-    currentHash: yresource.get('currentHash') as string,
-    versions,
-  };
-}
-
-/**
- * Create a new resource and store it in the Y.Doc.
- */
-export function createResource(ydoc: Y.Doc, name: string, format: string, body: string): Resource {
-  const yresources = getResourcesMap(ydoc);
-  const id = generateResourceId();
-  const currentHash = sha256(body);
-  ydoc.transact(() => {
-    const yresource = new Y.Map<unknown>();
-    yresource.set('id', id);
-    yresource.set('name', name);
-    yresource.set('format', format);
-    yresource.set('body', body);
-    yresource.set('currentHash', currentHash);
-    const yversions = new Y.Array<Y.Map<unknown>>();
-    yresource.set('versions', yversions);
-    yresources.set(id, yresource);
-  }, MCP_ORIGIN);
-  return { id, name, format, body, currentHash, versions: [] };
-}
-
-/**
- * Update a resource's fields. If body changes, recomputes the hash.
- */
-export function updateResource(ydoc: Y.Doc, id: string, updates: { name?: string; format?: string; body?: string }): Resource | undefined {
-  const yresources = getResourcesMap(ydoc);
-  const yresource = yresources.get(id);
-  if (!yresource) return undefined;
-  ydoc.transact(() => {
-    if (updates.name !== undefined) yresource.set('name', updates.name);
-    if (updates.format !== undefined) yresource.set('format', updates.format);
-    if (updates.body !== undefined) {
-      yresource.set('body', updates.body);
-      yresource.set('currentHash', sha256(updates.body));
-    }
-  }, MCP_ORIGIN);
-  return getResource(ydoc, id);
-}
-
-/**
- * Delete a resource by ID. Returns true if it existed.
- */
-export function deleteResource(ydoc: Y.Doc, id: string): boolean {
-  const yresources = getResourcesMap(ydoc);
-  const exists = yresources.has(id);
-  if (exists) {
-    // Remove from any spec group before deleting
-    removeFromSpecGroup(ydoc, 'resource', id);
-    ydoc.transact(() => {
-      yresources.delete(id);
-    }, MCP_ORIGIN);
-  }
-  return exists;
-}
-
-/**
- * Publish the current body of a resource as a frozen version snapshot.
- */
-export function publishResourceVersion(ydoc: Y.Doc, id: string, label?: string): ResourceVersion | undefined {
-  const yresources = getResourcesMap(ydoc);
-  const yresource = yresources.get(id);
-  if (!yresource) return undefined;
-  const body = yresource.get('body') as string;
-  const contentHash = yresource.get('currentHash') as string;
-  const versionId = generateVersionId();
-  const publishedAt = new Date().toISOString();
-  ydoc.transact(() => {
-    const yversions = yresource.get('versions') as Y.Array<Y.Map<unknown>>;
-    const yver = new Y.Map<unknown>();
-    yver.set('versionId', versionId);
-    yver.set('contentHash', contentHash);
-    yver.set('publishedAt', publishedAt);
-    if (label !== undefined) yver.set('label', label);
-    yver.set('body', body);
-    yversions.push([yver]);
-  }, MCP_ORIGIN);
-  return { versionId, contentHash, publishedAt, label, body };
-}
-
-/**
- * Get all published versions for a resource, without their bodies.
- */
-export function getResourceHistory(ydoc: Y.Doc, id: string): Omit<ResourceVersion, 'body'>[] {
-  const yresources = getResourcesMap(ydoc);
-  const yresource = yresources.get(id);
-  if (!yresource) return [];
-  const yversions = yresource.get('versions') as Y.Array<Y.Map<unknown>>;
-  const results: Omit<ResourceVersion, 'body'>[] = [];
-  yversions.forEach((yver) => {
-    results.push({
-      versionId: yver.get('versionId') as string,
-      contentHash: yver.get('contentHash') as string,
-      publishedAt: yver.get('publishedAt') as string,
-      label: yver.get('label') as string | undefined,
-    });
-  });
-  return results;
-}
-
-/**
- * Get a specific published version of a resource by version ID, including body.
- */
-export function getResourceVersion(ydoc: Y.Doc, id: string, versionId: string): ResourceVersion | undefined {
-  const yresources = getResourcesMap(ydoc);
-  const yresource = yresources.get(id);
-  if (!yresource) return undefined;
-  const yversions = yresource.get('versions') as Y.Array<Y.Map<unknown>>;
-  let found: ResourceVersion | undefined;
-  yversions.forEach((yver) => {
-    if (yver.get('versionId') === versionId) {
-      found = {
-        versionId: yver.get('versionId') as string,
-        contentHash: yver.get('contentHash') as string,
-        publishedAt: yver.get('publishedAt') as string,
-        label: yver.get('label') as string | undefined,
-        body: yver.get('body') as string,
-      };
-    }
-  });
-  return found;
-}
-
 /**
  * Build a DocumentAdapter shim from a Y.Doc.
  * Implements only the subset needed by applyPackage and isPackageModified.
@@ -4407,175 +4208,49 @@ export function checkPackageDrift(ydoc: Y.Doc, packageId: string): {
   };
 }
 
-// ==================== Spec Group Operations ====================
+// ==================== Group Metadata Operations ====================
 
-function getSpecGroupsMap(ydoc: Y.Doc): Y.Map<Y.Map<unknown>> {
-  return ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.SPEC_GROUPS);
-}
-
-function ySpecGroupToPlain(ysg: Y.Map<unknown>): SpecGroup {
-  const yitems = ysg.get('items') as Y.Array<Y.Map<unknown>>;
-  const items: SpecGroupItem[] = [];
-  yitems.forEach((yitem) => {
-    items.push({
-      type: yitem.get('type') as 'page' | 'resource',
-      id: yitem.get('id') as string,
-    });
-  });
-  return {
-    id: ysg.get('id') as string,
-    name: ysg.get('name') as string,
-    description: ysg.get('description') as string | undefined,
-    order: ysg.get('order') as number,
-    items,
-  };
+function getGroupMetadataMap(ydoc: Y.Doc): Y.Map<Y.Map<unknown>> {
+  return ydoc.getMap<Y.Map<unknown>>(YDOC_MAPS.GROUP_METADATA);
 }
 
 /**
- * List all spec groups sorted by order.
+ * Get all group metadata as a plain record, keyed by group key.
  */
-export function listSpecGroups(ydoc: Y.Doc): SpecGroup[] {
-  const yspecGroups = getSpecGroupsMap(ydoc);
-  const results: SpecGroup[] = [];
-  yspecGroups.forEach((ysg) => {
-    results.push(ySpecGroupToPlain(ysg));
+export function getGroupMetadata(ydoc: Y.Doc): Record<string, GroupMeta> {
+  const ymap = getGroupMetadataMap(ydoc);
+  const result: Record<string, GroupMeta> = {};
+  ymap.forEach((ymeta, key) => {
+    result[key] = {
+      name: ymeta.get('name') as string,
+      description: ymeta.get('description') as string | undefined,
+    };
   });
-  return results.sort((a, b) => a.order - b.order);
+  return result;
 }
 
 /**
- * Get a single spec group by ID.
+ * Set or replace metadata for a group key.
  */
-export function getSpecGroup(ydoc: Y.Doc, id: string): SpecGroup | undefined {
-  const yspecGroups = getSpecGroupsMap(ydoc);
-  const ysg = yspecGroups.get(id);
-  if (!ysg) return undefined;
-  return ySpecGroupToPlain(ysg);
-}
-
-/**
- * Create a new spec group and store it in the Y.Doc.
- */
-export function createSpecGroup(ydoc: Y.Doc, name: string, description?: string): SpecGroup {
-  const yspecGroups = getSpecGroupsMap(ydoc);
-  const id = generateSpecGroupId();
-
-  // Compute next order value
-  let maxOrder = -1;
-  yspecGroups.forEach((ysg) => {
-    const o = ysg.get('order') as number;
-    if (o > maxOrder) maxOrder = o;
-  });
-  const order = maxOrder + 1;
-
+export function setGroupMetadata(ydoc: Y.Doc, key: string, meta: GroupMeta): void {
+  const ymap = getGroupMetadataMap(ydoc);
   ydoc.transact(() => {
-    const ysg = new Y.Map<unknown>();
-    ysg.set('id', id);
-    ysg.set('name', name);
-    if (description !== undefined) ysg.set('description', description);
-    ysg.set('order', order);
-    const yitems = new Y.Array<Y.Map<unknown>>();
-    ysg.set('items', yitems);
-    yspecGroups.set(id, ysg);
+    const ymeta = new Y.Map<unknown>();
+    ymeta.set('name', meta.name);
+    if (meta.description !== undefined) ymeta.set('description', meta.description);
+    ymap.set(key, ymeta);
   }, MCP_ORIGIN);
-
-  return { id, name, description, order, items: [] };
 }
 
 /**
- * Update a spec group's fields.
+ * Delete metadata for a group key.
  */
-export function updateSpecGroup(
-  ydoc: Y.Doc,
-  id: string,
-  updates: { name?: string; description?: string; order?: number; items?: SpecGroupItem[] }
-): SpecGroup | undefined {
-  const yspecGroups = getSpecGroupsMap(ydoc);
-  const ysg = yspecGroups.get(id);
-  if (!ysg) return undefined;
-
-  ydoc.transact(() => {
-    if (updates.name !== undefined) ysg.set('name', updates.name);
-    if (updates.description !== undefined) ysg.set('description', updates.description);
-    if (updates.order !== undefined) ysg.set('order', updates.order);
-    if (updates.items !== undefined) {
-      const yitems = ysg.get('items') as Y.Array<Y.Map<unknown>>;
-      yitems.delete(0, yitems.length);
-      for (const item of updates.items) {
-        const yitem = new Y.Map<unknown>();
-        yitem.set('type', item.type);
-        yitem.set('id', item.id);
-        yitems.push([yitem]);
-      }
-    }
-  }, MCP_ORIGIN);
-
-  return getSpecGroup(ydoc, id);
-}
-
-/**
- * Delete a spec group by ID. Items become ungrouped (no cascade delete).
- * Returns true if it existed.
- */
-export function deleteSpecGroup(ydoc: Y.Doc, id: string): boolean {
-  const yspecGroups = getSpecGroupsMap(ydoc);
-  const exists = yspecGroups.has(id);
-  if (exists) {
+export function deleteGroupMetadata(ydoc: Y.Doc, key: string): void {
+  const ymap = getGroupMetadataMap(ydoc);
+  if (ymap.has(key)) {
     ydoc.transact(() => {
-      yspecGroups.delete(id);
+      ymap.delete(key);
     }, MCP_ORIGIN);
   }
-  return exists;
-}
-
-/**
- * Assign a page or resource to a spec group.
- * Enforces single-parent: removes from any existing group first.
- */
-export function assignToSpecGroup(ydoc: Y.Doc, groupId: string, item: SpecGroupItem): SpecGroup | undefined {
-  // Enforce single-parent invariant
-  removeFromSpecGroup(ydoc, item.type, item.id);
-
-  const yspecGroups = getSpecGroupsMap(ydoc);
-  const ysg = yspecGroups.get(groupId);
-  if (!ysg) return undefined;
-
-  ydoc.transact(() => {
-    const yitems = ysg.get('items') as Y.Array<Y.Map<unknown>>;
-    const yitem = new Y.Map<unknown>();
-    yitem.set('type', item.type);
-    yitem.set('id', item.id);
-    yitems.push([yitem]);
-  }, MCP_ORIGIN);
-
-  return getSpecGroup(ydoc, groupId);
-}
-
-/**
- * Remove a page or resource from whichever spec group contains it.
- * Returns true if it was found and removed.
- */
-export function removeFromSpecGroup(ydoc: Y.Doc, itemType: 'page' | 'resource', itemId: string): boolean {
-  const yspecGroups = getSpecGroupsMap(ydoc);
-  let found = false;
-
-  yspecGroups.forEach((ysg) => {
-    if (found) return;
-    const yitems = ysg.get('items') as Y.Array<Y.Map<unknown>>;
-    let idx = -1;
-    yitems.forEach((yitem, i) => {
-      if (yitem.get('type') === itemType && yitem.get('id') === itemId) {
-        idx = i;
-      }
-    });
-    if (idx >= 0) {
-      ydoc.transact(() => {
-        yitems.delete(idx, 1);
-      }, MCP_ORIGIN);
-      found = true;
-    }
-  });
-
-  return found;
 }
 

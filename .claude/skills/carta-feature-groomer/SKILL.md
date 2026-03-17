@@ -30,25 +30,27 @@ This skill does NOT implement code or launch agents. Its output is a refined pla
 
 ## Phase 1: Select a Plan
 
-List plans in `todo-tasks/`:
+List plans in `todo-tasks/`, excluding epic overviews:
 
 ```typescript
-Glob({ pattern: 'todo-tasks/*.md' })
+Glob({ pattern: 'todo-tasks/*.md' })  // then filter out *.epic.md
 ```
 
-**If specific plan named:** Match it against filenames (fuzzy — `flow-trace` matches `flow-trace-visualization.md`). Read it fully.
+**Epic files (`*.epic.md`) are NOT groomable plans.** Never present them as plan options, never try to execute them. They are context documents — read them for background when grooming tasks from the same epic.
 
-**If epic named:** Match against the `{epic}-` prefix (e.g., "testability" matches all `testability-*.md` files). Present the full epic as a combined briefing, work through them sequentially.
+**If specific plan named:** Match it against task filenames (fuzzy — `flow-trace` matches `flow-trace-visualization.md`). Read it fully. If it belongs to an epic (has `{epic}-` prefix), also read `{epic}.epic.md` for context.
 
-**If "first" specified:** Grab the first plan alphabetically. No prompting — just start working on it.
+**If epic named:** Match against the `{epic}-` prefix (e.g., "testability" matches all `testability-*.md` task files). Read the `{epic}.epic.md` overview first, then present the epic's pending tasks as a combined briefing. Work through them sequentially.
 
-**If "all" specified:** Read all plan files. Present a combined briefing, then work through them sequentially. Appropriate when plans are small and self-contained.
+**If "first" specified:** Grab the first task plan alphabetically (skip `.epic.md`). No prompting — just start working on it.
 
-**If no argument (default):** Read the first ~10 lines of each plan file (enough to get the title and motivation), then present a summary to the user:
+**If "all" specified:** Read all task plan files. Present a combined briefing, then work through them sequentially. Appropriate when plans are small and self-contained.
+
+**If no argument (default):** Read the first ~10 lines of each task plan file (enough to get the title and motivation), then present a summary to the user:
 
 ```typescript
-// Read heads of all plans
-for (const file of planFiles) {
+// Read heads of all task plans (not .epic.md)
+for (const file of taskFiles) {
   Read(file, { limit: 10 })
 }
 
@@ -57,14 +59,14 @@ AskUserQuestion({
     question: "Which plan should we groom?",
     header: "Plan",
     options: [
-      // one per plan, label = title, description = first-line summary from motivation section
+      // one per task plan, label = title, description = first-line summary from motivation section
     ],
     multiSelect: false
   }]
 })
 ```
 
-Read the selected plan file(s) fully before proceeding.
+Read the selected plan file(s) fully before proceeding. For epic tasks, also read the `.epic.md` for additional context.
 
 ## Phase 2: Extract Context Requirements
 
@@ -72,7 +74,7 @@ After reading the plan, identify what codebase context is needed using a **two-p
 
 ### Phase 2A: Cheap Triage (Grep + MANIFEST)
 
-1. **Read `.docs/MANIFEST.md`** — use the tag index to map plan keywords to doc refs.
+1. **Read `.carta/MANIFEST.md`** — use the tag index to map plan keywords to doc refs.
 2. **Run 3-5 parallel Grep calls** directly from the main context for the plan's key terms. Use `output_mode: "files_with_matches"` to identify relevant files without reading content:
 
 ```typescript
@@ -84,20 +86,13 @@ Grep({ pattern: 'PortDrawer', output_mode: 'files_with_matches' })
 
 This identifies the ~5 relevant files in seconds for near-zero tokens.
 
-3. **Map plan concepts to docs via MANIFEST tags:**
-
-```
-Plan mentions "presentation model" → tags: presentation, rendering → doc02.09, doc02.08
-Plan mentions "edge pipeline"      → tags: pipeline, edges, sync   → doc02.10
-Plan mentions "canvas interactions" → tags: canvas, hooks           → doc03.01.01.01, doc02.02
-Plan mentions "waypoints"          → tags: waypoints               → doc02.10
-```
+3. **Map plan concepts to docs via MANIFEST tags:** Use the Tag Index at the bottom of MANIFEST.md. For each concept the plan mentions, find matching tags and look up the corresponding doc refs. Example: plan mentions "presentation model" → look for tags `presentation`, `rendering` in the Tag Index → read the docs listed there.
 
 ### Phase 2B: Targeted Reads
 
 Read only the files identified in Phase 2A. Prioritize:
 
-1. **`.docs/` refs** from MANIFEST — these give architectural context without reading source
+1. **`.carta/` refs** from MANIFEST — these give architectural context without reading source
 2. **Source files** from Grep hits — read the specific line ranges that matched, not entire files
 3. **Adjacent code** — if the plan modifies a function, read its callers (one level up) to understand impact
 
@@ -111,7 +106,7 @@ Read only the files identified in Phase 2A. Prioritize:
 
 Only use `Task(subagent_type='Explore')` if:
 - Phase 2A Grep returns 0 hits for all search terms (genuinely unknown territory)
-- The plan involves a subsystem with no `.docs/` coverage and no obvious entry points
+- The plan involves a subsystem with no `.carta/` coverage and no obvious entry points
 - You've done Phase 2A and still can't identify which files to modify
 
 Even then, give the Explore agent a **surgical prompt** with specific questions and file paths to start from — not an open-ended "investigate thoroughly."
@@ -135,7 +130,7 @@ Review the todo-task's `## Verifiability` section (if present). For each correct
 - What oracle type applies? (partial, semantic/compiler, metamorphic, or manual-only)
 - Are there properties missing? If the builder only wrote smoke-level properties ("it renders"), surface this gap now.
 
-If the todo-task lacks a Verifiability section, write one with the user during the briefing. Ask: **"What would be true about this feature if implemented correctly, without referencing the implementation?"** See doc05.04.
+If the todo-task lacks a Verifiability section, write one with the user during the briefing. Ask: **"What would be true about this feature if implemented correctly, without referencing the implementation?"** See the research docs (tag: `testing, verification`).
 
 ### 4. Considerations
 Open questions and tradeoffs the plan surfaces. These come from:
@@ -202,7 +197,7 @@ This is the key output. Rewrite the plan file in `todo-tasks/` so it's **unambig
 
 ### Verification Section
 
-The builder's todo-task includes a `## Verifiability` section with plain-language correctness properties. Your job is to **operationalize** each property into something the headless agent can execute. See doc05.04 for the full framework.
+The builder's todo-task includes a `## Verifiability` section with plain-language correctness properties. Your job is to **operationalize** each property into something the headless agent can execute. See the research docs (tag: `testing, verification`) for the full framework.
 
 For each correctness property from the todo-task:
 

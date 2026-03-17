@@ -14,10 +14,27 @@
     "./document-server-core": {
       "types": "./dist/document-server-core.d.ts",
       "import": "./dist/document-server-core.js"
+    },
+    "./workspace-server": {
+      "types": "./dist/workspace-server.d.ts",
+      "import": "./dist/workspace-server.js"
+    },
+    "./init": {
+      "types": "./dist/init.d.ts",
+      "import": "./dist/init.js"
+    },
+    "./server-discovery": {
+      "types": "./dist/server-discovery.d.ts",
+      "import": "./dist/server-discovery.js"
+    },
+    "./embedded-host": {
+      "types": "./dist/embedded-host.d.ts",
+      "import": "./dist/embedded-host.js"
     }
   },
   "bin": {
-    "carta-mcp": "./dist/mcp/stdio.js"
+    "carta-mcp": "./dist/mcp/stdio.js",
+    "carta": "./dist/cli.js"
   },
   "scripts": {
     "build": "rimraf dist && tsc",
@@ -25,6 +42,7 @@
     "dev:build": "tsc",
     "mcp": "node dist/mcp/stdio.js",
     "document-server": "node dist/document-server-cli.js",
+    "init": "node dist/cli.js init",
     "test": "vitest run",
     "test:watch": "vitest"
   },

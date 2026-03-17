@@ -5,7 +5,6 @@ export { useSchemas } from './useSchemas';
 export { usePortSchemas } from './usePortSchemas';
 export { useSchemaGroups } from './useSchemaGroups';
 export { useSchemaPackages } from './useSchemaPackages';
-export { useResources } from './useResources';
 export { useSpecGroups } from './useSpecGroups';
 export { useSchemaRelationships } from './useSchemaRelationships';
 export { usePages } from './usePages';
@@ -32,6 +31,7 @@ export { useMapEdgePipeline } from './useMapEdgePipeline';
 
 // Utilities
 export { useUndoRedo } from './useUndoRedo';
-export { useAwareness } from './useAwareness';
-export { useDirtyStateGuard } from './useDirtyStateGuard';
 export { useClearDocument } from './useClearDocument';
+
+// Workspace mode
+export { useWorkspaceMode, type WorkspaceTree, type WorkspaceMode } from './useWorkspaceMode';

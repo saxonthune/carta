@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { CartaNode, CartaEdge } from '@carta/types';
+import type { CartaNode, CartaEdge } from '@carta/schema';
 import { computePresentation, type PresentationOutput, computeSequenceBadges } from '../presentation';
 
 /**

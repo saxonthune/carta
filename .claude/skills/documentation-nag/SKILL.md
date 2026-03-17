@@ -11,7 +11,7 @@ Reads docs, reads code, finds where they disagree, fixes the docs. No git-histor
 
 ## Source of Truth
 
-**`.docs/` is the canonical source of truth.** `CLAUDE.md` references `.docs/` — do NOT duplicate content into it.
+**`.carta/` is the canonical source of truth.** `CLAUDE.md` references `.carta/` — do NOT duplicate content into it.
 
 **CLAUDE.md policy:** Only update CLAUDE.md when a **new package, new top-level directory, or new major subsystem** is added. Bug fixes, feature tweaks, new hooks, new components, and refactors do NOT warrant CLAUDE.md changes.
 
@@ -32,23 +32,10 @@ This outputs changed files by package, new files, new exports/hooks/components. 
 ## Phase 2: Map Changes to Docs via MANIFEST
 
 ```typescript
-Read('.docs/MANIFEST.md')
+Read('.carta/MANIFEST.md')
 ```
 
-Use the **Tag Index** to map changed areas to doc files:
-
-| Code Change Area | Tags | Relevant Docs |
-|-----------------|------|---------------|
-| `hooks/use*.ts` | hooks, state | doc02.02, doc02.08 |
-| `components/canvas/*` | canvas, ui | doc03.01.01.01, doc02.07 |
-| `components/metamap/*` | metamap, schemas | doc03.01.01.05, doc02.06 |
-| Edge routing, waypoints | pipeline, edges, waypoints | doc02.10 |
-| Organizers, layout | organizers, layout, presentation | doc02.09 |
-| Schemas, fields, ports | schemas, metamodel, ports | doc02.06, doc03.01.01.03, doc03.01.01.06 |
-| `packages/domain/*` | schemas, metamodel | doc02.06, doc01.03 |
-| `packages/document/*` | state, interfaces | doc02.02, doc02.03 |
-| `packages/server/*` | deployment, collaboration | doc02.05 |
-| `packages/compiler/*` | compiler | doc03.01.02.01 |
+Use the **Tag Index** at the bottom of MANIFEST.md to map changed code areas to doc refs. For each changed area, identify relevant tags (e.g., `hooks` → hooks tag, `components/canvas/*` → canvas/ui tags, `packages/schema/*` → schemas/metamodel tags) and look up the corresponding docs in the tag index.
 
 Build a **doc checklist**: the docs to read and verify.
 
@@ -63,12 +50,8 @@ This is the core. Read each doc on the checklist. Then read the corresponding co
 For each doc on the checklist, read it fully. Don't use section-level grep here — you need to understand the doc's claims holistically to spot gaps.
 
 ```typescript
-// Read all relevant docs in parallel
-Read('.docs/02-system/09-presentation-model.md')
-Read('.docs/02-system/10-canvas-data-pipelines.md')
-Read('.docs/02-system/08-frontend-architecture.md')
-Read('.docs/02-system/06-metamodel.md')
-// etc.
+// Read all relevant docs in parallel — resolve paths from MANIFEST's File column
+// e.g., doc02.04.04 → .carta/02-architecture/04-canvas/04-presentation-model.md
 ```
 
 ### 3B: Read Code to Verify Claims
@@ -80,33 +63,20 @@ For each doc's claims, spot-check the code. Focus on:
 - **Architecture claims** — do the layers/patterns still match?
 
 ```typescript
-// Example: doc02.09 describes organizer features. Check what the code supports:
+// Spot-check code claims from the docs you read.
+// Example: if a doc describes organizer features, grep for the hooks/components it mentions:
 Grep({ pattern: 'pin|constraint|PinConstraint', path: 'packages/web-client/src/', output_mode: 'files_with_matches' })
-
-// Example: doc02.10 describes edge pipeline. Check current implementation:
-Grep({ pattern: 'waypoint|routeEdges|patchEdgeData', path: 'packages/web-client/src/', output_mode: 'files_with_matches' })
 ```
 
 ### 3B-extra: Barrel Export Reconciliation (always runs)
 
-**doc02.08 lists every export from 7 barrel files.** These lists drift silently — deletions, renames, and additions don't always trigger a git-scoped check. **Always** reconcile the barrel tables against actual barrel files, regardless of what Phase 1 found.
+**The frontend architecture doc lists every export from barrel files.** These lists drift silently. **Always** reconcile the barrel tables against actual barrel files, regardless of what Phase 1 found.
 
-Read all barrel files in parallel:
-```typescript
-Read('packages/web-client/src/hooks/index.ts')
-Read('packages/web-client/src/contexts/index.ts')
-Read('packages/web-client/src/components/canvas/index.ts')
-Read('packages/web-client/src/components/metamap/index.ts')
-Read('packages/web-client/src/components/modals/index.ts')
-Read('packages/web-client/src/components/ui/index.ts')
-Read('packages/web-client/src/utils/index.ts')
-```
-
-For each barrel file, compare the **actual exports** against the **documented exports** in doc02.08's corresponding section. Flag:
+Look up the frontend architecture doc ref from MANIFEST (tags: `components, hooks, architecture`), read it, then read all barrel files it documents in parallel. For each barrel file, compare the **actual exports** against the **documented exports**. Flag:
 - **Listed in doc but not in code** — stale entry, remove from doc
 - **In code but not in doc** — missing entry, add to doc
 
-Also reconcile doc02.03 §MCP Tools against the actual tool registrations:
+Also reconcile MCP tool registrations against any doc that inventories them:
 ```typescript
 Grep({ pattern: "name: 'carta_", path: 'packages/server/src/mcp/tools.ts', output_mode: 'content' })
 ```
@@ -120,10 +90,9 @@ For each gap between doc claims and code reality:
 
 | Doc | What Doc Says (or Doesn't) | What Code Actually Does | Severity |
 |-----|---------------------------|------------------------|----------|
-| doc02.09 | No mention of pin constraints | `usePinConstraints` hook, `PinBadge` component exist | Major — new feature undocumented |
-| doc02.10 | Edge routing described as one-shot | Persistent waypoints now stored in Y.Doc | Major — behavior changed |
-| doc02.08 | Hooks table missing 3 hooks | `usePinConstraints`, `useIconMarkers`, `useFieldEvolution` exported | Minor — table incomplete |
-| doc02.06 | Field type changes not described | `changeFieldType` in schema editor, migration support | Major — new capability |
+| docXX.YY | No mention of feature X | `useFeatureX` hook exists in code | Major — new feature undocumented |
+| docXX.YY | Behavior described as one-shot | Code now persists state in Y.Doc | Major — behavior changed |
+| docXX.YY | Export table missing entries | 3 new exports in barrel file | Minor — table incomplete |
 ```
 
 **Severity guide:**
@@ -131,7 +100,7 @@ For each gap between doc claims and code reality:
 - **Minor**: Table entries missing, small description tweaks needed
 - **None**: Doc accurately describes the code (report this too, with evidence)
 
-**If no gaps found:** Report with evidence. "doc02.09 §Organizers accurately describes pin constraints at line 45, layout strategies at line 72" is credible. "Already synchronized" is not.
+**If no gaps found:** Report with evidence. "docXX.YY §Section accurately describes feature X at line 45" is credible. "Already synchronized" is not.
 
 ---
 
@@ -140,8 +109,9 @@ For each gap between doc claims and code reality:
 From MANIFEST's **Deps** column — when a doc needs updates, check docs that depend on it:
 
 ```typescript
-// Example: updating doc02.09 → doc02.10 depends on it
-Grep({ pattern: 'doc02\\.09', path: '.docs/02-system/10-canvas-data-pipelines.md' })
+// Use MANIFEST's Deps column to find which docs depend on the one you're updating.
+// Then grep those dependent docs for the specific ref being changed.
+Grep({ pattern: 'docXX\\.YY', path: '.carta/path/to/dependent-doc.md' })
 ```
 
 Only flag dependents that reference the specific content being changed.
@@ -153,22 +123,20 @@ Only flag dependents that reference the specific content being changed.
 For each gap, write concrete edit instructions with provenance:
 
 ```markdown
-## Edit: .docs/02-system/09-presentation-model.md
-Source: packages/web-client/src/hooks/usePinConstraints.ts
-Section: §Organizers (after "Layout Strategies" subsection)
+## Edit: .carta/path/to/doc.md
+Source: packages/web-client/src/hooks/useFeatureX.ts
+Section: §SectionName (after "Subsection" subsection)
 
 Add new subsection:
 
-### Pin Constraints
+### Feature X
 
-Organizers support pinned constructs that maintain fixed positions during layout.
-Pin constraints are stored in the organizer's Y.Map and respected by all layout strategies.
-The `usePinConstraints` hook provides the data model; `PinBadge` renders the visual indicator.
+Description of the feature based on what the code actually does.
 ```
 
 **Provenance rules:**
 - Every edit must cite source (code file path or doc section)
-- Use `§` to reference doc sections: `doc02.09 §Organizers`
+- Use `§` to reference doc sections: `docXX.YY §Section`
 - If adding content, specify where it goes
 
 ---
@@ -209,15 +177,15 @@ Every significant code area maps to at least one verified doc:
 ### Coverage Report
 | Feature/Area | Code Evidence | Doc | Status |
 |-------------|---------------|-----|--------|
-| Pin constraints | usePinConstraints.ts, PinBadge.tsx | doc02.09 | Updated |
-| Persistent waypoints | waypointStore.ts | doc02.10 | Updated |
-| Schema field evolution | FieldEvolutionPanel.tsx | doc02.06 | Already current |
+| Feature X | useFeatureX.ts, FeatureXPanel.tsx | docXX.YY | Updated |
+| Feature Y | featureYStore.ts | docXX.YY | Updated |
+| Feature Z | FeatureZ.tsx | docXX.YY | Already current |
 ```
 
 ### Cross-Reference Integrity
 
 ```typescript
-Grep({ pattern: 'doc[0-9][0-9]\\.[0-9][0-9]', path: '.docs/', output_mode: 'content' })
+Grep({ pattern: 'doc[0-9][0-9]\\.[0-9][0-9]', path: '.carta/', output_mode: 'content' })
 // Verify each ref appears in MANIFEST
 ```
 
@@ -226,7 +194,7 @@ Grep({ pattern: 'doc[0-9][0-9]\\.[0-9][0-9]', path: '.docs/', output_mode: 'cont
 ## Phase 8: Update Sync Marker (1 Bash Call)
 
 ```bash
-git rev-parse HEAD > .docs/.last-sync
+git rev-parse HEAD > .carta/.last-sync
 ```
 
 ---
@@ -242,19 +210,19 @@ git rev-parse HEAD > .docs/.last-sync
 ### Gaps Fixed
 | Doc | Section | What Changed |
 |-----|---------|-------------|
-| doc02.09 | §Organizers | Added pin constraints section |
-| doc02.10 | §Edge Pipeline | Updated waypoint persistence description |
+| docXX.YY | §Section | Added new subsection |
+| docXX.YY | §Section | Updated description |
 
 ### Verified Current (with evidence)
 | Doc | Section | Verified Against |
 |-----|---------|-----------------|
-| doc02.07 | §Icon System | Phosphor imports in code match doc (line 23) |
+| docXX.YY | §Section | Code matches doc (line N) |
 
 ### CLAUDE.md Status
 No update needed / Updated because [reason]
 
 ### Sync Marker
-Updated `.docs/.last-sync` → `{HEAD_SHORT}`
+Updated `.carta/.last-sync` → `{HEAD_SHORT}`
 ```
 
 ---

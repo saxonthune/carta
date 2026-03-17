@@ -9,6 +9,8 @@
  */
 
 import * as http from 'node:http';
+import * as fs from 'node:fs';
+import * as nodePath from 'node:path';
 import * as Y from 'yjs';
 import { WebSocket } from 'ws';
 import * as encoding from 'lib0/encoding';
@@ -75,17 +77,11 @@ import {
   listStandardPackages,
   applyStandardPackage,
   checkPackageDrift,
-  listResources,
-  getResource,
-  createResource,
-  updateResource,
-  deleteResource,
-  publishResourceVersion,
-  getResourceHistory,
-  getResourceVersion,
 } from '@carta/document';
 import type { BatchOperation, BatchResult, MigrationResult } from '@carta/document';
+import { parseSchemasFile } from '@carta/document';
 import type { FlowDirection, ArrangeStrategy, ArrangeConstraint, PinDirection } from '@carta/schema';
+import { scanWorkspace } from './workspace-scanner.js';
 
 // ===== TYPES =====
 
@@ -113,6 +109,8 @@ export interface DocumentServerConfig {
   getActiveRooms?(): Array<{ roomId: string; clientCount: number }>;
   /** Extra fields merged into the /health response. */
   healthMeta?: Record<string, unknown>;
+  /** Absolute path to .carta/ directory. When set, workspace endpoints are enabled. */
+  workspacePath?: string;
 }
 
 /**
@@ -375,6 +373,57 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
           const documents = await config.listDocuments();
           sendJson(res, 200, { rooms: documents.map(d => ({ roomId: d.id, clientCount: 0 })) });
         }
+        return;
+      }
+
+      // ===== WORKSPACE =====
+
+      if (path === '/api/workspace' && method === 'GET') {
+        if (!config.workspacePath) {
+          sendError(res, 404, 'Workspace mode not enabled', 'NOT_FOUND');
+          return;
+        }
+        const tree = scanWorkspace(config.workspacePath);
+        sendJson(res, 200, tree);
+        return;
+      }
+
+      if (path === '/api/workspace/schemas' && method === 'GET') {
+        if (!config.workspacePath) {
+          sendError(res, 404, 'Workspace mode not enabled', 'NOT_FOUND');
+          return;
+        }
+        const schemasFilePath = nodePath.join(config.workspacePath, 'schemas', 'schemas.json');
+        if (!fs.existsSync(schemasFilePath)) {
+          sendError(res, 404, 'schemas.json not found', 'NOT_FOUND');
+          return;
+        }
+        const content = fs.readFileSync(schemasFilePath, 'utf-8');
+        const schemas = parseSchemasFile(content);
+        sendJson(res, 200, schemas);
+        return;
+      }
+
+      // GET /api/workspace/files/* — read file content
+      const filesPrefix = '/api/workspace/files/';
+      if (path.startsWith(filesPrefix) && method === 'GET') {
+        if (!config.workspacePath) {
+          sendError(res, 404, 'Workspace mode not enabled', 'NOT_FOUND');
+          return;
+        }
+        const relPath = decodeURIComponent(path.slice(filesPrefix.length));
+        const resolved = nodePath.resolve(config.workspacePath, relPath);
+        // Security: ensure resolved path is within workspace directory
+        if (!resolved.startsWith(config.workspacePath + nodePath.sep) && resolved !== config.workspacePath) {
+          sendError(res, 400, 'Invalid path', 'BAD_REQUEST');
+          return;
+        }
+        if (!fs.existsSync(resolved) || !fs.statSync(resolved).isFile()) {
+          sendError(res, 404, 'File not found', 'NOT_FOUND');
+          return;
+        }
+        const fileContent = fs.readFileSync(resolved, 'utf-8');
+        sendJson(res, 200, { content: fileContent, path: relPath });
         return;
       }
 
@@ -1606,127 +1655,6 @@ export function createDocumentServer(config: DocumentServerConfig): DocumentServ
 
         sendJson(res, 200, result);
         return;
-      }
-
-      // ===== RESOURCES =====
-
-      const resourcesMatch = path.match(/^\/api\/documents\/([^/]+)\/resources$/);
-      if (resourcesMatch) {
-        const roomId = decodeURIComponent(resourcesMatch[1]!);
-        const docState = await config.getDoc(roomId);
-
-        if (method === 'GET') {
-          const resources = listResources(docState.doc);
-          sendJson(res, 200, { resources });
-          return;
-        }
-
-        if (method === 'POST') {
-          const body = await parseJsonBody<{ name: string; format: string; body: string }>(req);
-          if (!body.name || !body.format || body.body === undefined) {
-            sendError(res, 400, 'Missing required fields (name, format, body)', 'MISSING_FIELD');
-            return;
-          }
-          const resource = createResource(docState.doc, body.name, body.format, body.body);
-          sendJson(res, 201, { resource });
-          return;
-        }
-      }
-
-      const resourcePublishMatch = path.match(/^\/api\/documents\/([^/]+)\/resources\/([^/]+)\/publish$/);
-      if (resourcePublishMatch && method === 'POST') {
-        const roomId = decodeURIComponent(resourcePublishMatch[1]!);
-        const resourceId = decodeURIComponent(resourcePublishMatch[2]!);
-        const docState = await config.getDoc(roomId);
-        const body = await parseJsonBody<{ label?: string }>(req);
-        const version = publishResourceVersion(docState.doc, resourceId, body.label);
-        if (!version) {
-          sendError(res, 404, `Resource not found: ${resourceId}`, 'NOT_FOUND');
-          return;
-        }
-        sendJson(res, 200, { version });
-        return;
-      }
-
-      const resourceHistoryMatch = path.match(/^\/api\/documents\/([^/]+)\/resources\/([^/]+)\/history$/);
-      if (resourceHistoryMatch && method === 'GET') {
-        const roomId = decodeURIComponent(resourceHistoryMatch[1]!);
-        const resourceId = decodeURIComponent(resourceHistoryMatch[2]!);
-        const docState = await config.getDoc(roomId);
-        const versions = getResourceHistory(docState.doc, resourceId);
-        sendJson(res, 200, { versions });
-        return;
-      }
-
-      const resourceDiffMatch = path.match(/^\/api\/documents\/([^/]+)\/resources\/([^/]+)\/diff$/);
-      if (resourceDiffMatch && method === 'GET') {
-        const roomId = decodeURIComponent(resourceDiffMatch[1]!);
-        const resourceId = decodeURIComponent(resourceDiffMatch[2]!);
-        const docState = await config.getDoc(roomId);
-        const fromVersionId = url.searchParams.get('from') ?? undefined;
-        const toVersionId = url.searchParams.get('to') ?? undefined;
-
-        const resource = getResource(docState.doc, resourceId);
-        if (!resource) {
-          sendError(res, 404, `Resource not found: ${resourceId}`, 'NOT_FOUND');
-          return;
-        }
-
-        const resolveBody = (versionId?: string) => {
-          if (!versionId) return { body: resource.body };
-          const ver = getResourceVersion(docState.doc, resourceId, versionId);
-          if (!ver) return null;
-          return { body: ver.body, versionId: ver.versionId, contentHash: ver.contentHash };
-        };
-
-        const fromSide = resolveBody(fromVersionId);
-        const toSide = resolveBody(toVersionId);
-
-        if (fromSide === null) {
-          sendError(res, 404, `Version not found: ${fromVersionId}`, 'NOT_FOUND');
-          return;
-        }
-        if (toSide === null) {
-          sendError(res, 404, `Version not found: ${toVersionId}`, 'NOT_FOUND');
-          return;
-        }
-
-        sendJson(res, 200, { from: fromSide, to: toSide });
-        return;
-      }
-
-      const resourceMatch = path.match(/^\/api\/documents\/([^/]+)\/resources\/([^/]+)$/);
-      if (resourceMatch) {
-        const roomId = decodeURIComponent(resourceMatch[1]!);
-        const resourceId = decodeURIComponent(resourceMatch[2]!);
-        const docState = await config.getDoc(roomId);
-
-        if (method === 'GET') {
-          const resource = getResource(docState.doc, resourceId);
-          if (!resource) {
-            sendError(res, 404, `Resource not found: ${resourceId}`, 'NOT_FOUND');
-            return;
-          }
-          sendJson(res, 200, { resource });
-          return;
-        }
-
-        if (method === 'PATCH') {
-          const body = await parseJsonBody<{ name?: string; format?: string; body?: string }>(req);
-          const resource = updateResource(docState.doc, resourceId, body);
-          if (!resource) {
-            sendError(res, 404, `Resource not found: ${resourceId}`, 'NOT_FOUND');
-            return;
-          }
-          sendJson(res, 200, { resource });
-          return;
-        }
-
-        if (method === 'DELETE') {
-          const deleted = deleteResource(docState.doc, resourceId);
-          sendJson(res, 200, { deleted });
-          return;
-        }
       }
 
       // ===== YJS BINARY STATE (for MCP stdio remote access) =====

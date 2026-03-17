@@ -1,0 +1,571 @@
+{
+  "formatVersion": 1,
+  "nodes": [
+    {
+      "id": "node_1770585548594_ba5rnd",
+      "type": "construct",
+      "position": {
+        "x": 408.21574362048585,
+        "y": 60.972277474668786
+      },
+      "data": {
+        "constructType": "carta-arch-boundary",
+        "semanticId": "carta-arch-boundary-x4xevv5",
+        "values": {
+          "name": "Browser DOM",
+          "boundaryKind": "browser",
+          "description": "Mouse events, keyboard events, clipboard. Entry point for all user interactions."
+        },
+        "connections": [
+          {
+            "portId": "flow-out",
+            "targetSemanticId": "carta-arch-annotation-x4xerxq",
+            "targetPortId": "in"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_1770585548594_ruc97i",
+      "type": "construct",
+      "position": {
+        "x": 408.21574362048585,
+        "y": 350.88206102890825
+      },
+      "data": {
+        "constructType": "carta-arch-module",
+        "semanticId": "carta-arch-module-x4xe84y",
+        "values": {
+          "name": "Map.tsx",
+          "moduleKind": "component",
+          "description": "Canvas orchestrator. Handles onNodeDragStop, onNodesChange. Consumes hooks, syncs to React Flow via reactFlow.setNodes()."
+        },
+        "connections": [
+          {
+            "portId": "flow-out",
+            "targetSemanticId": "carta-arch-module-x4xeooj",
+            "targetPortId": "flow-in"
+          },
+          {
+            "portId": "notify-out",
+            "targetSemanticId": "carta-arch-boundary-x4xevv5",
+            "targetPortId": "notify-in"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_1770585548594_szp1yi",
+      "type": "construct",
+      "position": {
+        "x": 436.4657436204859,
+        "y": 495.6506825239777
+      },
+      "data": {
+        "constructType": "carta-arch-module",
+        "semanticId": "carta-arch-module-x4xeooj",
+        "values": {
+          "name": "useNodes",
+          "moduleKind": "hook",
+          "description": "Focused hook. Subscribes via adapter.subscribeToNodes(). Returns nodes, setNodes, updateNode. suppressUpdates ref prevents loops during drag."
+        },
+        "connections": [
+          {
+            "portId": "flow-out",
+            "targetSemanticId": "carta-arch-annotation-x4xehgr",
+            "targetPortId": "in"
+          },
+          {
+            "portId": "notify-out",
+            "targetSemanticId": "carta-arch-module-x4xee6o",
+            "targetPortId": "flow-in"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_1770585548594_gjl23d",
+      "type": "construct",
+      "position": {
+        "x": 636.4657436204859,
+        "y": 496.74214433803934
+      },
+      "data": {
+        "constructType": "carta-arch-module",
+        "semanticId": "carta-arch-module-x4xee6o",
+        "values": {
+          "name": "computePresentation",
+          "moduleKind": "function",
+          "description": "Pure function. Transforms domain state (nodes, edges, schemas, organizers, zoom) into positioned, visible React Flow nodes/edges."
+        },
+        "connections": [
+          {
+            "portId": "flow-out",
+            "targetSemanticId": "carta-arch-module-x4xe84y",
+            "targetPortId": "notify-in"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_1770585548594_7zfulv",
+      "type": "construct",
+      "position": {
+        "x": 548.9657436204859,
+        "y": 640.5147712779469
+      },
+      "data": {
+        "constructType": "carta-arch-module",
+        "semanticId": "carta-arch-module-x4xedn9",
+        "values": {
+          "name": "yjsAdapter",
+          "moduleKind": "adapter",
+          "description": "DocumentAdapter impl. patchNodes() for writes, subscribeToNodes() for reads. Wraps Y.Doc with transact() and origin tagging."
+        },
+        "connections": [
+          {
+            "portId": "flow-out",
+            "targetSemanticId": "carta-arch-annotation-x4xe1bt",
+            "targetPortId": "in"
+          },
+          {
+            "portId": "notify-out",
+            "targetSemanticId": "carta-arch-module-x4xeooj",
+            "targetPortId": "notify-in"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_1770585548594_jtk26r",
+      "type": "construct",
+      "position": {
+        "x": 533.5907436204859,
+        "y": 784.847543421341
+      },
+      "data": {
+        "constructType": "carta-arch-module",
+        "semanticId": "carta-arch-module-x4xeo9e",
+        "values": {
+          "name": "Y.Doc",
+          "moduleKind": "store",
+          "description": "Yjs document. ydoc.transact() for mutations, observeDeep() for change notification. Origin tags: 'drag-commit', 'server', 'user'."
+        },
+        "connections": [
+          {
+            "portId": "flow-out",
+            "targetSemanticId": "carta-arch-boundary-x4xet0x",
+            "targetPortId": "flow-in"
+          },
+          {
+            "portId": "notify-out",
+            "targetSemanticId": "carta-arch-annotation-x4xeccn",
+            "targetPortId": "in"
+          },
+          {
+            "portId": "flow-out",
+            "targetSemanticId": "carta-arch-boundary-x4xezhp",
+            "targetPortId": "flow-in"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_1770585548594_583yy6",
+      "type": "construct",
+      "position": {
+        "x": 518.2157436204859,
+        "y": 1363.5657361860667
+      },
+      "data": {
+        "constructType": "carta-arch-module",
+        "semanticId": "carta-arch-module-x4xel7p",
+        "values": {
+          "name": "doc-operations",
+          "moduleKind": "function",
+          "description": "Shared Y.Doc mutation functions. createConstruct, connect, batchMutate. Used by both yjsAdapter (client) and document-server-core (server). All ops wrapped in ydoc.transact()."
+        },
+        "connections": [
+          {
+            "portId": "flow-out",
+            "targetSemanticId": "carta-arch-module-x4xeo9e",
+            "targetPortId": "flow-in"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_1770585548594_fj8etd",
+      "type": "construct",
+      "position": {
+        "x": 518.2157436204859,
+        "y": 929.3090697001486
+      },
+      "data": {
+        "constructType": "carta-arch-boundary",
+        "semanticId": "carta-arch-boundary-x4xet0x",
+        "values": {
+          "name": "IndexedDB",
+          "boundaryKind": "storage",
+          "description": "y-indexeddb persistence. Local mode only."
+        },
+        "connections": []
+      }
+    },
+    {
+      "id": "node_1770585548594_0785qo",
+      "type": "construct",
+      "position": {
+        "x": 291.96574362048585,
+        "y": 902.4109550219496
+      },
+      "data": {
+        "constructType": "carta-arch-boundary",
+        "semanticId": "carta-arch-boundary-x4xezhp",
+        "values": {
+          "name": "WebSocket",
+          "boundaryKind": "network",
+          "description": "Yjs sync protocol. Server broadcasts updates to all connected clients."
+        },
+        "connections": [
+          {
+            "portId": "notify-out",
+            "targetSemanticId": "carta-arch-module-x4xeuw5",
+            "targetPortId": "notify-in"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_1770585548594_wr29e1",
+      "type": "construct",
+      "position": {
+        "x": 491.96574362048585,
+        "y": 1218.9374029431076
+      },
+      "data": {
+        "constructType": "carta-arch-module",
+        "semanticId": "carta-arch-module-x4xeuw5",
+        "values": {
+          "name": "document-server-core",
+          "moduleKind": "class",
+          "description": "HTTP request handler. handleHttpRequest() routes REST calls. Imports from @carta/document. Broadcasts Y.Doc updates via WebSocket."
+        },
+        "connections": [
+          {
+            "portId": "flow-out",
+            "targetSemanticId": "carta-arch-module-x4xel7p",
+            "targetPortId": "flow-in"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_1770585548594_61hn4n",
+      "type": "construct",
+      "position": {
+        "x": 628.2157436204859,
+        "y": 207.07744637892174
+      },
+      "data": {
+        "constructType": "carta-arch-module",
+        "semanticId": "carta-arch-module-x4xew6k",
+        "values": {
+          "name": "MCP tools",
+          "moduleKind": "function",
+          "description": "createToolHandlers(). Maps MCP tool calls to REST API requests. carta_create_construct \u2192 POST /api/documents/:id/constructs."
+        },
+        "connections": [
+          {
+            "portId": "flow-out",
+            "targetSemanticId": "carta-arch-annotation-x4xeyhq",
+            "targetPortId": "in"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_1770585548594_k4yw4o",
+      "type": "construct",
+      "position": {
+        "x": 628.2157436204859,
+        "y": 62.41274841980412
+      },
+      "data": {
+        "constructType": "carta-arch-boundary",
+        "semanticId": "carta-arch-boundary-x4xel4p",
+        "values": {
+          "name": "MCP stdio",
+          "boundaryKind": "protocol",
+          "description": "Model Context Protocol over stdio. AI tools call REST API via HTTP."
+        },
+        "connections": [
+          {
+            "portId": "flow-out",
+            "targetSemanticId": "carta-arch-module-x4xew6k",
+            "targetPortId": "flow-in"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_1770585548594_qk3dy6",
+      "type": "construct",
+      "position": {
+        "x": 408.21574362048585,
+        "y": 205.88206102890825
+      },
+      "data": {
+        "constructType": "carta-arch-annotation",
+        "semanticId": "carta-arch-annotation-x4xerxq",
+        "values": {
+          "label": "DOM events"
+        },
+        "connections": [
+          {
+            "portId": "out",
+            "targetSemanticId": "carta-arch-module-x4xe84y",
+            "targetPortId": "flow-in"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_1770585548594_ox8kab",
+      "type": "construct",
+      "position": {
+        "x": 333.5907436204859,
+        "y": 653.3555312853773
+      },
+      "data": {
+        "constructType": "carta-arch-annotation",
+        "semanticId": "carta-arch-annotation-x4xehgr",
+        "values": {
+          "label": "patchNodes()"
+        },
+        "connections": [
+          {
+            "portId": "out",
+            "targetSemanticId": "carta-arch-module-x4xedn9",
+            "targetPortId": "flow-in"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_1770585548594_0qbs8m",
+      "type": "construct",
+      "position": {
+        "x": 518.2157436204859,
+        "y": 1073.9374029431076
+      },
+      "data": {
+        "constructType": "carta-arch-annotation",
+        "semanticId": "carta-arch-annotation-x4xe1bt",
+        "values": {
+          "label": "transact()"
+        },
+        "connections": [
+          {
+            "portId": "out",
+            "targetSemanticId": "carta-arch-module-x4xeo9e",
+            "targetPortId": "flow-in"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_1770585548594_zcvgtc",
+      "type": "construct",
+      "position": {
+        "x": 738.2157436204859,
+        "y": 902.4109550219496
+      },
+      "data": {
+        "constructType": "carta-arch-annotation",
+        "semanticId": "carta-arch-annotation-x4xeccn",
+        "values": {
+          "label": "observeDeep()"
+        },
+        "connections": [
+          {
+            "portId": "out",
+            "targetSemanticId": "carta-arch-module-x4xedn9",
+            "targetPortId": "notify-in"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_1770585548594_t1rmod",
+      "type": "construct",
+      "position": {
+        "x": 673.2157436204859,
+        "y": 352.0774463789217
+      },
+      "data": {
+        "constructType": "carta-arch-annotation",
+        "semanticId": "carta-arch-annotation-x4xeyhq",
+        "values": {
+          "label": "REST API"
+        },
+        "connections": [
+          {
+            "portId": "out",
+            "targetSemanticId": "carta-arch-module-x4xeuw5",
+            "targetPortId": "flow-in"
+          }
+        ]
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge_1770585548594_1xim68",
+      "source": "node_1770585548594_ba5rnd",
+      "target": "node_1770585548594_qk3dy6",
+      "sourceHandle": "flow-out",
+      "targetHandle": "in"
+    },
+    {
+      "id": "edge_1770585548595_d9s3b3",
+      "source": "node_1770585548594_qk3dy6",
+      "target": "node_1770585548594_ruc97i",
+      "sourceHandle": "out",
+      "targetHandle": "flow-in"
+    },
+    {
+      "id": "edge_1770585548595_apw0w2",
+      "source": "node_1770585548594_ruc97i",
+      "target": "node_1770585548594_szp1yi",
+      "sourceHandle": "flow-out",
+      "targetHandle": "flow-in"
+    },
+    {
+      "id": "edge_1770585548595_b3q0yi",
+      "source": "node_1770585548594_szp1yi",
+      "target": "node_1770585548594_ox8kab",
+      "sourceHandle": "flow-out",
+      "targetHandle": "in"
+    },
+    {
+      "id": "edge_1770585548595_1jrzje",
+      "source": "node_1770585548594_ox8kab",
+      "target": "node_1770585548594_7zfulv",
+      "sourceHandle": "out",
+      "targetHandle": "flow-in"
+    },
+    {
+      "id": "edge_1770585548595_0nzybw",
+      "source": "node_1770585548594_7zfulv",
+      "target": "node_1770585548594_0qbs8m",
+      "sourceHandle": "flow-out",
+      "targetHandle": "in"
+    },
+    {
+      "id": "edge_1770585548595_oft665",
+      "source": "node_1770585548594_0qbs8m",
+      "target": "node_1770585548594_jtk26r",
+      "sourceHandle": "out",
+      "targetHandle": "flow-in"
+    },
+    {
+      "id": "edge_1770585548595_52dc34",
+      "source": "node_1770585548594_jtk26r",
+      "target": "node_1770585548594_fj8etd",
+      "sourceHandle": "flow-out",
+      "targetHandle": "flow-in"
+    },
+    {
+      "id": "edge_1770585548595_ncbz67",
+      "source": "node_1770585548594_jtk26r",
+      "target": "node_1770585548594_zcvgtc",
+      "sourceHandle": "notify-out",
+      "targetHandle": "in"
+    },
+    {
+      "id": "edge_1770585548595_3q6w9t",
+      "source": "node_1770585548594_zcvgtc",
+      "target": "node_1770585548594_7zfulv",
+      "sourceHandle": "out",
+      "targetHandle": "notify-in"
+    },
+    {
+      "id": "edge_1770585548595_mpsl7t",
+      "source": "node_1770585548594_7zfulv",
+      "target": "node_1770585548594_szp1yi",
+      "sourceHandle": "notify-out",
+      "targetHandle": "notify-in"
+    },
+    {
+      "id": "edge_1770585548595_86hykt",
+      "source": "node_1770585548594_szp1yi",
+      "target": "node_1770585548594_gjl23d",
+      "sourceHandle": "notify-out",
+      "targetHandle": "flow-in"
+    },
+    {
+      "id": "edge_1770585548595_47tl0z",
+      "source": "node_1770585548594_gjl23d",
+      "target": "node_1770585548594_ruc97i",
+      "sourceHandle": "flow-out",
+      "targetHandle": "notify-in"
+    },
+    {
+      "id": "edge_1770585548595_55yyfw",
+      "source": "node_1770585548594_ruc97i",
+      "target": "node_1770585548594_ba5rnd",
+      "sourceHandle": "notify-out",
+      "targetHandle": "notify-in"
+    },
+    {
+      "id": "edge_1770585548595_791g6f",
+      "source": "node_1770585548594_k4yw4o",
+      "target": "node_1770585548594_61hn4n",
+      "sourceHandle": "flow-out",
+      "targetHandle": "flow-in"
+    },
+    {
+      "id": "edge_1770585548595_xqch8m",
+      "source": "node_1770585548594_61hn4n",
+      "target": "node_1770585548594_t1rmod",
+      "sourceHandle": "flow-out",
+      "targetHandle": "in"
+    },
+    {
+      "id": "edge_1770585548595_iit9ko",
+      "source": "node_1770585548594_t1rmod",
+      "target": "node_1770585548594_wr29e1",
+      "sourceHandle": "out",
+      "targetHandle": "flow-in"
+    },
+    {
+      "id": "edge_1770585548595_bp8fs2",
+      "source": "node_1770585548594_wr29e1",
+      "target": "node_1770585548594_583yy6",
+      "sourceHandle": "flow-out",
+      "targetHandle": "flow-in"
+    },
+    {
+      "id": "edge_1770585548595_4mf71v",
+      "source": "node_1770585548594_583yy6",
+      "target": "node_1770585548594_jtk26r",
+      "sourceHandle": "flow-out",
+      "targetHandle": "flow-in"
+    },
+    {
+      "id": "edge_1770585548595_s46mvn",
+      "source": "node_1770585548594_jtk26r",
+      "target": "node_1770585548594_0785qo",
+      "sourceHandle": "flow-out",
+      "targetHandle": "flow-in"
+    },
+    {
+      "id": "edge_1770585548595_1bjpor",
+      "source": "node_1770585548594_0785qo",
+      "target": "node_1770585548594_wr29e1",
+      "sourceHandle": "notify-out",
+      "targetHandle": "notify-in"
+    }
+  ]
+}

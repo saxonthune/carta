@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { CartaEdge } from '@carta/types';
+import type { CartaEdge } from '@carta/schema';
 import { useDocumentContext } from '../contexts/DocumentContext';
 
 /**

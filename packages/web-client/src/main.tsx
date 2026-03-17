@@ -10,6 +10,9 @@ import { getLastDocumentId, setLastDocumentId } from './utils/preferences'
 import { createDocument } from './stores/documentRegistry'
 import { config } from './config/featureFlags'
 
+// Default example for first-time single-document visitors
+const DEFAULT_EXAMPLE = 'software-architecture';
+
 performance.mark('carta:module-eval')
 
 // Suppress the benign ResizeObserver loop error.
@@ -35,13 +38,22 @@ async function boot() {
 }
 
 async function bootWithDocumentId(documentId: string | null) {
+  if (config.embedded) {
+    // Embedded mode manages its own DocumentProvider (needs workspace schemas)
+    root.render(
+      <StrictMode>
+        <GuideTooltipProvider>
+          <VaultProvider>
+            <App />
+          </VaultProvider>
+        </GuideTooltipProvider>
+      </StrictMode>,
+    );
+    return;
+  }
+
   if (!documentId) {
-    if (config.isDesktop) {
-      // Desktop mode: try last-opened document, otherwise show DocumentBrowserModal
-      // (On first run the server isn't running yet — vault picker handles setup)
-      const lastDocId = getLastDocumentId();
-      documentId = lastDocId;
-    } else if (config.hasSync) {
+    if (config.hasSync) {
       // Server mode: URL is source of truth. No ?doc= means show DocumentBrowserModal.
       // Don't use localStorage — that's for local mode only.
       documentId = null;
@@ -54,12 +66,18 @@ async function bootWithDocumentId(documentId: string | null) {
       // Auto-create if no existing document (NUX: no modal gate)
       if (!documentId) {
         documentId = await createDocument('Untitled Project');
+        // First visit: inject default example so useExampleLoader imports it
+        const url = new URL(window.location.href);
+        if (!url.searchParams.has('example')) {
+          url.searchParams.set('example', DEFAULT_EXAMPLE);
+          history.replaceState(null, '', url.toString());
+        }
       }
     }
   }
 
-  // Remember last-opened document (local and desktop modes)
-  if (documentId && (config.isDesktop || !config.hasSync)) {
+  // Remember last-opened document (local mode)
+  if (documentId && !config.hasSync) {
     setLastDocumentId(documentId);
   }
 

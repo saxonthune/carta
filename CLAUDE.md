@@ -2,9 +2,9 @@
 
 ## Quick Start
 
-Carta is a visual software architecture editor. Users create "Constructs" (typed nodes), connect them, and compile to AI-readable output.
+Carta is a spec-driven development tool. The primary product is the `.carta/` workspace format — a structured documentation system that keeps specifications synchronized with code.
 
-@.docs/MANIFEST.md
+@.carta/MANIFEST.md
 
 ## Development Philosophy
 
@@ -12,13 +12,12 @@ Carta is a visual software architecture editor. Users create "Constructs" (typed
 
 ## Documentation
 
-**`.docs/` is the canonical source of truth.** Cross-references use `docXX.YY.ZZ` syntax (e.g., `doc02.06` = metamodel). Key docs:
+**`.carta/` is the canonical source of truth** — a Carta workspace containing specifications and architecture docs. Cross-references use `docXX.YY.ZZ` syntax (e.g., `doc02.04.02` = metamodel). Key docs:
 
-- **Architecture**: doc02.01 (overview), doc02.02 (state), doc02.08 (frontend)
-- **Metamodel**: doc02.06 (schemas, ports, fields)
-- **Deployment**: doc02.05 (server/local/desktop modes)
-- **Features**: doc03.01.xx (modeling, output, environment)
-- **Testing**: doc04.02
+- **Product**: doc01.01 (goals), doc01.02 (features), doc01.03 (research)
+- **Architecture**: doc02.01 (overview), doc02.02 (reconciliation), doc02.03 (vscode extension)
+- **Canvas**: doc02.04.01 (state), doc02.04.02 (metamodel), doc02.04.03 (frontend), doc02.04.07 (design system)
+- **Decisions**: doc02.06 (ADRs)
 
 ## Skills & Agents
 
@@ -30,14 +29,15 @@ Carta is a visual software architecture editor. Users create "Constructs" (typed
 | `/project-builder` | Dogfooding reflector for external projects | While building non-Carta projects, to identify Carta improvements |
 | `/carta-feature-groomer` | Researches codebase, discusses approach, refines plans into specs | Before `/carta-feature-implementor`, to resolve decisions |
 | `/carta-feature-implementor` | Status, launch, triage, chain orchestration | After grooming, to launch plans and manage agents |
-| `/documentation-nag` | Keeps `.docs/` and derived files in sync with code | After significant code changes |
-| `/documentation-auditor` | Audits `.docs/` claims against codebase, finds stale refs | Periodically, or before releases |
-| `/style-nag` | Audits and fixes UI styling against doc02.07 | After UI changes, or periodically |
-| `/frontend-architecture-nag` | Audits component layering against doc02.08 | After architectural changes |
+| `/documentation-nag` | Keeps `.carta/` and derived files in sync with code | After significant code changes |
+| `/documentation-auditor` | Audits `.carta/` claims against codebase, finds stale refs | Periodically, or before releases |
 | `/test-builder` | Creates integration/E2E tests | When adding test coverage |
 | `/git-sync-trunk` | Syncs trunk branch with remote or main | Before creating worktrees, after remote updates |
 | `/git-sync-worktree` | Syncs worktree's claude branch with trunk via rebase | Every 30-60 min while working in a worktree |
 | `/execute-plan` | Launches background agent to implement a plan from todo-tasks/ | After agreeing on a plan interactively |
+| `/spec-builder` | Elicits requirements via structured interviewing, produces shape files | When defining new modules, features, or services |
+| `/carta-spec-builder` | Composes spec-builder with .carta/ workspace knowledge and script pipeline | When building specs inside a .carta/ workspace |
+| `/carta-cli` | carta CLI reference: init, create, delete, move, punch, flatten, rewrite, regenerate | When initializing workspaces or restructuring `.carta/` docs |
 
 **Agents** (launch with `Task` tool): Long-running autonomous workers.
 
@@ -50,22 +50,23 @@ Carta is a visual software architecture editor. Users create "Constructs" (typed
 
 ### Skill Details
 
-All skills follow the same pattern: opus reads `.docs/` and code, analyzes, generates edit instructions, launches parallel haiku workers.
+All skills follow the same pattern: opus reads `.carta/` and code, analyzes, generates edit instructions, launches parallel haiku workers.
 
 | Skill | Reference Docs | Config |
 |-------|---------------|--------|
-| `/carta-builder` | `.docs/MANIFEST.md`, MCP tools | `.claude/skills/carta-builder/SKILL.md` |
-| `/project-builder` | `.docs/MANIFEST.md`, MCP tools, external project context | `.claude/skills/project-builder/SKILL.md` |
-| `/carta-feature-groomer` | `.docs/MANIFEST.md`, plan files, codebase | `.claude/skills/carta-feature-groomer/SKILL.md` |
+| `/carta-builder` | `.carta/MANIFEST.md`, MCP tools | `.claude/skills/carta-builder/SKILL.md` |
+| `/project-builder` | `.carta/MANIFEST.md`, MCP tools, external project context | `.claude/skills/project-builder/SKILL.md` |
+| `/carta-feature-groomer` | `.carta/MANIFEST.md`, plan files, codebase | `.claude/skills/carta-feature-groomer/SKILL.md` |
 | `/carta-feature-implementor` | Plan files, status script | `.claude/skills/carta-feature-implementor/SKILL.md` |
-| `/documentation-nag` | `.docs/` (all titles) | `.claude/skills/documentation-nag/SKILL.md` |
-| `/documentation-auditor` | `.docs/MANIFEST.md`, barrel exports, type defs | `.claude/skills/documentation-auditor/SKILL.md` |
-| `/style-nag` | doc02.07 (design system), doc01.04 (UX principles) | `.claude/skills/style-nag/SKILL.md` |
-| `/frontend-architecture-nag` | doc02.08 (frontend architecture), doc02.01 (overview) | `.claude/skills/frontend-architecture-nag/SKILL.md` |
-| `/test-builder` | doc04.02 (testing), `packages/web-client/tests/README.md` | `.claude/skills/test-builder/SKILL.md` |
+| `/documentation-nag` | `.carta/` (all titles) | `.claude/skills/documentation-nag/SKILL.md` |
+| `/documentation-auditor` | `.carta/MANIFEST.md`, barrel exports, type defs | `.claude/skills/documentation-auditor/SKILL.md` |
+| `/test-builder` | `packages/web-client/tests/README.md` | `.claude/skills/test-builder/SKILL.md` |
 | `/git-sync-trunk` | Git worktree workflows | `.claude/skills/git-sync-trunk/SKILL.md` |
 | `/git-sync-worktree` | Git worktree workflows | `.claude/skills/git-sync-worktree/SKILL.md` |
 | `/execute-plan` | Plan executor workflow | `.claude/skills/execute-plan/SKILL.md` |
+| `/spec-builder` | doc01.03.06 (reconciliation), doc01.03.07 (spec quality) | `.claude/skills/spec-builder/SKILL.md` |
+| `/carta-spec-builder` | doc01.03.06, doc01.03.07, `.carta/` workspace structure | `.claude/skills/carta-spec-builder/SKILL.md` |
+| `/carta-cli` | doc01.02.02 (workspace scripts), doc01.02.06 (CLI user flow) | `.claude/skills/carta-cli/SKILL.md` |
 
 ### Agent Details
 
@@ -81,8 +82,6 @@ All skills follow the same pattern: opus reads `.docs/` and code, analyzes, gene
 Packages can only depend on packages above them in the graph.
 
 ```
-                    @carta/types
-                         ↓
                    @carta/geometry
                          ↓
                     @carta/schema
@@ -90,23 +89,18 @@ Packages can only depend on packages above them in the graph.
           @carta/document   @carta/server(*)
                 ↓
          @carta/web-client
-                ↓
-         @carta/desktop
 ```
 
 | Package | Location | Purpose |
 |---------|----------|---------|
-| `@carta/types` | `packages/types/` | Shared TypeScript types, no runtime deps |
 | `@carta/geometry` | `packages/geometry/` | Geometry primitives, layout algorithms |
 | `@carta/schema` | `packages/schema/` | Schema system, port registry, built-in schemas, utils |
 | `@carta/document` | `packages/document/` | Shared Y.Doc operations, Yjs helpers, file format, migrations |
 | `@carta/web-client` | `packages/web-client/` | React web app |
 | `@carta/server` | `packages/server/` | Document server + MCP server |
-| `@carta/desktop` | `packages/desktop/` | Electron desktop app with embedded document server |
+| `carta-cli` | `packages/cli/` | Python CLI for workspace operations (pip install) |
 
 Cross-package dependencies are resolved via Vite/TypeScript aliases. Packages use `index.ts` barrel exports for public APIs. Web client feature directories (hooks, components/canvas, components/metamap, components/modals, components/ui) each have barrel exports.
-
-**Stale/dead code:** `@carta/core` (`packages/core/`) has divergent types the server still depends on. `packages/app/` is dead code.
 
 ## Build & Test
 
@@ -125,11 +119,11 @@ pnpm test:e2e      # E2E tests (Playwright, port 5273)
 **Two-phase search**: Locate files cheaply before reading them.
 
 1. **Cheap triage** — Run parallel `Grep` calls with `output_mode: "files_with_matches"` to identify relevant files without reading content. Use `MANIFEST.md` tag index to map keywords to doc refs.
-2. **Targeted reads** — Read only the files surfaced by triage. Prefer `.docs/` refs first (architectural context without reading source), then source files at matched line ranges.
+2. **Targeted reads** — Read only the files surfaced by triage. Prefer `.carta/` refs first (architectural context without reading source), then source files at matched line ranges.
 
 **Do NOT**: Launch Explore agents for simple searches. Read entire directories speculatively. Read files not surfaced by Grep or referenced by the plan.
 
-**Escalate to Explore agent only if**: Grep returns 0 hits for all terms, the subsystem has no `.docs/` coverage, or you can't identify which files to modify after triage.
+**Escalate to Explore agent only if**: Grep returns 0 hits for all terms, the subsystem has no `.carta/` coverage, or you can't identify which files to modify after triage.
 
 ## Constraints
 

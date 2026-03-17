@@ -3,13 +3,12 @@ import { DndContext, pointerWithin, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { DotsSixVertical, DotsThreeVertical, CaretDown, Plus, DiamondsFour } from '@phosphor-icons/react';
-import type { Page, SpecGroup, SpecGroupItem } from '@carta/schema';
+import type { Page, GroupMeta } from '@carta/schema';
 import PopoverMenu, { type PopoverMenuItem } from './ui/PopoverMenu';
 
 type ActiveView =
   | { type: 'page'; pageId: string }
-  | { type: 'metamap' }
-  | { type: 'resource'; resourceId: string };
+  | { type: 'metamap' };
 
 interface NavigatorProps {
   isOpen: boolean;
@@ -20,20 +19,14 @@ interface NavigatorProps {
   onDeletePage: (pageId: string) => boolean;
   onUpdatePage: (pageId: string, updates: Partial<Omit<Page, 'id' | 'nodes' | 'edges'>>) => void;
   onDuplicatePage: (pageId: string, newName: string) => void;
-  // Resources
-  resources: Array<{ id: string; name: string; format: string; currentHash: string; versionCount: number }>;
-  onSelectResource: (resourceId: string) => void;
-  onCreateResource: () => void;
   // View state
   activeView: ActiveView;
   onSelectMetamap: () => void;
-  // Spec Groups
-  specGroups: SpecGroup[];
-  onCreateSpecGroup: (name: string) => void;
-  onUpdateSpecGroup: (id: string, updates: { name?: string; description?: string; order?: number; items?: SpecGroupItem[] }) => void;
-  onDeleteSpecGroup: (id: string) => void;
-  onAssignToSpecGroup: (groupId: string, item: SpecGroupItem) => void;
-  onRemoveFromSpecGroup: (itemType: 'page' | 'resource', itemId: string) => void;
+  // Groups
+  groupMetadata: Record<string, GroupMeta>;
+  onSetGroupMetadata: (key: string, meta: GroupMeta) => void;
+  onDeleteGroup: (key: string) => void;
+  onSetPageGroup: (pageId: string, groupKey: string | null) => void;
 }
 
 interface PageRowProps {
@@ -75,42 +68,33 @@ function PageRow({
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.4 : 1,
-    zIndex: isDragging ? 50 : undefined,
-  };
-
-  const handleClick = () => {
-    if (!editMode && !isEditing) {
-      onSelect(page.id);
-    }
+    opacity: isDragging ? 0.5 : 1,
   };
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      data-testid={`navigator-page-${page.id}`}
-      className={`flex items-center gap-2 pr-2 min-h-[36px] cursor-pointer group transition-colors ${isDragging ? 'shadow-lg' : ''} ${isActive ? 'bg-[var(--color-surface-selected)]' : 'hover:bg-surface-alt'}`}
-      onClick={handleClick}
+      className={`group flex items-center gap-1 px-3 py-1 cursor-pointer rounded-lg text-sm transition-colors ${
+        isActive ? 'bg-accent text-white' : 'text-content hover:bg-surface-alt'
+      }`}
+      onClick={() => !isEditing && onSelect(page.id)}
     >
-      {/* Active page indicator bar */}
-      <div className={`w-[3px] self-stretch rounded-r flex-shrink-0 ${isActive ? 'bg-accent' : ''}`} />
-
       {editMode && (
-        <div
-          className="cursor-grab active:cursor-grabbing flex-shrink-0 text-content-muted"
+        <button
           {...attributes}
           {...listeners}
+          className="cursor-grab touch-none text-content-muted hover:text-content"
+          title="Drag to reorder"
         >
-          <DotsSixVertical weight="bold" size={14} />
-        </div>
+          <DotsSixVertical weight="bold" size={12} />
+        </button>
       )}
-
-      {isEditing ? (
-        <div className="flex-1 rounded px-1.5 py-0.5 -my-0.5 bg-surface-alt ring-1 ring-border">
+      <div className="flex-1 min-w-0">
+        {isEditing ? (
           <input
             ref={editInputRef}
-            className="w-full py-0 text-sm bg-transparent border-none outline-none text-inherit"
+            className="w-full py-0 text-sm bg-transparent border-none outline-none text-content"
             value={editName}
             onChange={(e) => onEditNameChange(e.target.value)}
             onBlur={onFinishEdit}
@@ -120,104 +104,57 @@ function PageRow({
             }}
             onClick={(e) => e.stopPropagation()}
           />
-        </div>
-      ) : (
-        <span className="flex-1 text-sm truncate text-content">
-          {page.name}
-        </span>
-      )}
-
-      {!editMode && !isEditing && menuItems.length > 0 && (
-        <div className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
-          <PopoverMenu
-            items={menuItems}
-            trigger={
-              <button
-                className="p-1 rounded hover:bg-black/10 text-content-muted hover:text-content"
-                title="Page actions"
-              >
-                <DotsThreeVertical weight="bold" size={16} />
-              </button>
-            }
-          />
-        </div>
-      )}
-    </div>
-  );
-}
-
-interface ResourceRowProps {
-  resource: { id: string; name: string; format: string };
-  isActive: boolean;
-  onSelect: (resourceId: string) => void;
-  menuItems?: PopoverMenuItem[];
-}
-
-function ResourceRow({ resource, isActive, onSelect, menuItems }: ResourceRowProps) {
-  return (
-    <div
-      data-testid={`navigator-resource-${resource.id}`}
-      className={`flex items-center min-h-[36px] cursor-pointer group transition-colors ${isActive ? 'bg-[var(--color-surface-selected)]' : 'hover:bg-surface-alt'}`}
-      onClick={() => onSelect(resource.id)}
-    >
-      <div className={`w-[3px] self-stretch rounded-r flex-shrink-0 ${isActive ? 'bg-accent' : ''}`} />
-      <div className="flex-1 flex items-center gap-2 px-2 min-w-0">
-        <span className="text-sm font-medium text-content truncate flex-1">{resource.name}</span>
-        <span className="text-[10px] px-1.5 py-0.5 bg-surface-alt rounded text-content-muted flex-shrink-0">{resource.format}</span>
-      </div>
-      {menuItems && menuItems.length > 0 && (
-        <div className="opacity-0 group-hover:opacity-100 transition-opacity pr-2" onClick={(e) => e.stopPropagation()}>
-          <PopoverMenu
-            items={menuItems}
-            trigger={
-              <button className="p-1 rounded hover:bg-black/10 text-content-muted hover:text-content" title="Resource actions">
-                <DotsThreeVertical weight="bold" size={16} />
-              </button>
-            }
-          />
-        </div>
-      )}
-    </div>
-  );
-}
-
-interface SectionProps {
-  title: string;
-  onAdd?: () => void;
-  addLabel?: string;
-  children: React.ReactNode;
-  extraActions?: React.ReactNode;
-}
-
-function Section({ title, onAdd, addLabel, children, extraActions }: SectionProps) {
-  const [collapsed, setCollapsed] = useState(false);
-
-  return (
-    <div className="bg-surface-depth-2 rounded-xl flex flex-col overflow-hidden">
-      <div className="flex items-center gap-1 px-3 py-1.5">
-        <button
-          className="flex items-center gap-1 flex-1 text-left text-sm font-medium text-content-muted hover:text-content transition-colors"
-          onClick={() => setCollapsed(!collapsed)}
-        >
-          <CaretDown
-            weight="bold"
-            size={10}
-            className={`transition-transform ${collapsed ? '-rotate-90' : ''}`}
-          />
-          {title}
-        </button>
-        {extraActions}
-        {onAdd && (
-          <button
-            className="w-5 h-5 flex items-center justify-center rounded text-content-muted hover:bg-surface-alt hover:text-content transition-colors"
-            onClick={onAdd}
-            title={addLabel}
-          >
-            <Plus weight="bold" size={12} />
-          </button>
+        ) : (
+          <span className="truncate block">{page.name}</span>
         )}
       </div>
-      {!collapsed && children}
+      {!editMode && !isEditing && (
+        <PopoverMenu
+          items={menuItems}
+          trigger={
+            <button
+              className={`w-5 h-5 flex-shrink-0 items-center justify-center rounded transition-colors ${
+                isActive
+                  ? 'flex text-white/60 hover:text-white hover:bg-white/10'
+                  : 'hidden group-hover:flex text-content-muted hover:bg-surface-alt hover:text-content'
+              }`}
+              title="Page actions"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <DotsThreeVertical weight="bold" size={14} />
+            </button>
+          }
+        />
+      )}
+    </div>
+  );
+}
+
+function Section({ title, children, onAdd, addLabel, extraActions }: {
+  title: string;
+  children: React.ReactNode;
+  onAdd?: () => void;
+  addLabel?: string;
+  extraActions?: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col">
+      <div className="flex items-center justify-between px-3 py-1">
+        <span className="text-xs font-semibold text-content-muted uppercase tracking-wider">{title}</span>
+        <div className="flex items-center gap-0.5">
+          {extraActions}
+          {onAdd && (
+            <button
+              className="w-5 h-5 flex items-center justify-center rounded text-content-muted hover:bg-surface-alt hover:text-content transition-colors"
+              onClick={onAdd}
+              title={addLabel ?? 'Add'}
+            >
+              <Plus weight="bold" size={12} />
+            </button>
+          )}
+        </div>
+      </div>
+      {children}
     </div>
   );
 }
@@ -230,24 +167,19 @@ export default function Navigator({
   onDeletePage,
   onUpdatePage,
   onDuplicatePage,
-  resources,
-  onSelectResource,
-  onCreateResource,
   activeView,
   onSelectMetamap,
-  specGroups,
-  onCreateSpecGroup,
-  onUpdateSpecGroup,
-  onDeleteSpecGroup,
-  onAssignToSpecGroup,
-  onRemoveFromSpecGroup,
+  groupMetadata,
+  onSetGroupMetadata,
+  onDeleteGroup,
+  onSetPageGroup,
 }: NavigatorProps) {
   const [editMode, setEditMode] = useState(false);
   const [editingPageId, setEditingPageId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
-  const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
+  const [editingGroupKey, setEditingGroupKey] = useState<string | null>(null);
   const [editGroupName, setEditGroupName] = useState('');
-  const [collapsedGroupIds, setCollapsedGroupIds] = useState<Set<string>>(new Set());
+  const [collapsedGroupKeys, setCollapsedGroupKeys] = useState<Set<string>>(new Set());
 
   const editInputRef = useRef<HTMLInputElement>(null);
   const editFocusCounter = useRef(0);
@@ -264,11 +196,11 @@ export default function Navigator({
 
   // Focus group rename input
   useEffect(() => {
-    if (editingGroupId && groupEditInputRef.current) {
+    if (editingGroupKey && groupEditInputRef.current) {
       groupEditInputRef.current.focus();
       groupEditInputRef.current.select();
     }
-  }, [editingGroupId]);
+  }, [editingGroupKey]);
 
   const handleStartRename = useCallback((page: Page) => {
     setEditingPageId(page.id);
@@ -322,31 +254,56 @@ export default function Navigator({
     }
   }, [pages, onUpdatePage]);
 
-  const handleCreateGroup = useCallback(() => {
-    onCreateSpecGroup(`Group ${specGroups.length + 1}`);
-  }, [specGroups.length, onCreateSpecGroup]);
+  // Derive group keys from groupMetadata, sorted lexicographically
+  const sortedGroupKeys = Object.keys(groupMetadata).sort();
+  const hasGroups = sortedGroupKeys.length > 0;
 
-  const handleStartGroupRename = useCallback((group: SpecGroup) => {
-    setEditingGroupId(group.id);
-    setEditGroupName(group.name);
-  }, []);
+  const handleCreateGroup = useCallback(() => {
+    // Auto-generate key as {nn}-{slug}
+    let maxOrder = -1;
+    for (const key of Object.keys(groupMetadata)) {
+      const num = parseInt(key.split('-')[0], 10);
+      if (!isNaN(num) && num > maxOrder) maxOrder = num;
+    }
+    const nn = String(maxOrder + 1).padStart(2, '0');
+    const name = `Group ${maxOrder + 2}`;
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const key = `${nn}-${slug}`;
+    onSetGroupMetadata(key, { name });
+  }, [groupMetadata, onSetGroupMetadata]);
+
+  const handleStartGroupRename = useCallback((key: string) => {
+    setEditingGroupKey(key);
+    setEditGroupName(groupMetadata[key]?.name ?? key);
+  }, [groupMetadata]);
 
   const handleFinishGroupRename = useCallback(() => {
-    if (editingGroupId && editGroupName.trim()) {
-      onUpdateSpecGroup(editingGroupId, { name: editGroupName.trim() });
+    if (editingGroupKey && editGroupName.trim()) {
+      const existing = groupMetadata[editingGroupKey];
+      onSetGroupMetadata(editingGroupKey, { ...existing, name: editGroupName.trim() });
     }
-    setEditingGroupId(null);
-  }, [editingGroupId, editGroupName, onUpdateSpecGroup]);
+    setEditingGroupKey(null);
+  }, [editingGroupKey, editGroupName, groupMetadata, onSetGroupMetadata]);
 
   const handleCancelGroupRename = useCallback(() => {
-    setEditingGroupId(null);
+    setEditingGroupKey(null);
   }, []);
 
-  const toggleGroupCollapsed = useCallback((groupId: string) => {
-    setCollapsedGroupIds(prev => {
+  const handleDeleteGroup = useCallback((key: string) => {
+    // Remove group from all pages that reference it
+    for (const page of pages) {
+      if (page.group === key) {
+        onSetPageGroup(page.id, null);
+      }
+    }
+    onDeleteGroup(key);
+  }, [pages, onDeleteGroup, onSetPageGroup]);
+
+  const toggleGroupCollapsed = useCallback((key: string) => {
+    setCollapsedGroupKeys(prev => {
       const next = new Set(prev);
-      if (next.has(groupId)) next.delete(groupId);
-      else next.add(groupId);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
       return next;
     });
   }, []);
@@ -357,12 +314,19 @@ export default function Navigator({
   const pageIds = sortedPages.map(l => l.id);
   const isMetamapActive = activeView.type === 'metamap';
 
-  const hasGroups = specGroups.length > 0;
-  const sortedGroups = [...specGroups].sort((a, b) => a.order - b.order);
-  const groupedPageIds = new Set(sortedGroups.flatMap(g => g.items.filter(i => i.type === 'page').map(i => i.id)));
-  const groupedResourceIds = new Set(sortedGroups.flatMap(g => g.items.filter(i => i.type === 'resource').map(i => i.id)));
-  const ungroupedPages = sortedPages.filter(p => !groupedPageIds.has(p.id));
-  const ungroupedResources = resources.filter(r => !groupedResourceIds.has(r.id));
+  // Derive grouped and ungrouped pages
+  const groupedPages = new Map<string, Page[]>();
+  for (const key of sortedGroupKeys) {
+    groupedPages.set(key, []);
+  }
+  const ungroupedPages: Page[] = [];
+  for (const page of sortedPages) {
+    if (page.group && groupedPages.has(page.group)) {
+      groupedPages.get(page.group)!.push(page);
+    } else {
+      ungroupedPages.push(page);
+    }
+  }
 
   const reorderButton = (
     <button
@@ -387,15 +351,16 @@ export default function Navigator({
       items.push({ key: 'delete', label: 'Delete', onClick: () => handleDelete(page.id), danger: true });
     }
     if (hasGroups) {
-      for (const group of sortedGroups) {
-        items.push({ key: `move-to-${group.id}`, label: `Move to ${group.name}`, onClick: () => onAssignToSpecGroup(group.id, { type: 'page', id: page.id }) });
+      for (const key of sortedGroupKeys) {
+        const name = groupMetadata[key]?.name ?? key;
+        items.push({ key: `move-to-${key}`, label: `Move to ${name}`, onClick: () => onSetPageGroup(page.id, key) });
       }
     }
     return items;
   }
 
   // Menu items for a page that is already inside a specific group
-  function groupedPageMenuItems(page: Page, currentGroupId: string): PopoverMenuItem[] {
+  function groupedPageMenuItems(page: Page, currentGroupKey: string): PopoverMenuItem[] {
     const items: PopoverMenuItem[] = [
       { key: 'rename', label: 'Rename', onClick: () => handleStartRename(page) },
       { key: 'duplicate', label: 'Duplicate', onClick: () => handleDuplicate(page) },
@@ -403,34 +368,14 @@ export default function Navigator({
     if (pages.length > 1) {
       items.push({ key: 'delete', label: 'Delete', onClick: () => handleDelete(page.id), danger: true });
     }
-    for (const group of sortedGroups) {
-      if (group.id !== currentGroupId) {
-        items.push({ key: `move-to-${group.id}`, label: `Move to ${group.name}`, onClick: () => onAssignToSpecGroup(group.id, { type: 'page', id: page.id }) });
+    for (const key of sortedGroupKeys) {
+      if (key !== currentGroupKey) {
+        const name = groupMetadata[key]?.name ?? key;
+        items.push({ key: `move-to-${key}`, label: `Move to ${name}`, onClick: () => onSetPageGroup(page.id, key) });
       }
     }
-    items.push({ key: 'remove-from-group', label: 'Remove from group', onClick: () => onRemoveFromSpecGroup('page', page.id) });
+    items.push({ key: 'remove-from-group', label: 'Remove from group', onClick: () => onSetPageGroup(page.id, null) });
     return items;
-  }
-
-  // Menu items for a resource inside a group
-  function groupedResourceMenuItems(resourceId: string, currentGroupId: string): PopoverMenuItem[] {
-    const items: PopoverMenuItem[] = [];
-    for (const group of sortedGroups) {
-      if (group.id !== currentGroupId) {
-        items.push({ key: `move-to-${group.id}`, label: `Move to ${group.name}`, onClick: () => onAssignToSpecGroup(group.id, { type: 'resource', id: resourceId }) });
-      }
-    }
-    items.push({ key: 'remove-from-group', label: 'Remove from group', onClick: () => onRemoveFromSpecGroup('resource', resourceId) });
-    return items;
-  }
-
-  // Menu items for an ungrouped resource when groups exist
-  function ungroupedResourceMenuItems(resourceId: string): PopoverMenuItem[] {
-    return sortedGroups.map(group => ({
-      key: `move-to-${group.id}`,
-      label: `Move to ${group.name}`,
-      onClick: () => onAssignToSpecGroup(group.id, { type: 'resource', id: resourceId }),
-    }));
   }
 
   return (
@@ -459,22 +404,24 @@ export default function Navigator({
         {hasGroups ? (
           <>
             {/* Group sections */}
-            {sortedGroups.map(group => {
-              const isGroupCollapsed = collapsedGroupIds.has(group.id);
+            {sortedGroupKeys.map(key => {
+              const meta = groupMetadata[key];
+              const isGroupCollapsed = collapsedGroupKeys.has(key);
+              const pagesInGroup = groupedPages.get(key) ?? [];
               return (
-                <div key={group.id} className="bg-surface-depth-2 rounded-xl flex flex-col overflow-hidden">
+                <div key={key} className="bg-surface-depth-2 rounded-xl flex flex-col overflow-hidden">
                   {/* Group header */}
                   <div className="flex items-center gap-1 px-3 py-1.5">
                     <button
                       className="flex items-center gap-1 flex-1 text-left text-sm font-medium text-content-muted hover:text-content transition-colors min-w-0"
-                      onClick={() => toggleGroupCollapsed(group.id)}
+                      onClick={() => toggleGroupCollapsed(key)}
                     >
                       <CaretDown
                         weight="bold"
                         size={10}
                         className={`flex-shrink-0 transition-transform ${isGroupCollapsed ? '-rotate-90' : ''}`}
                       />
-                      {editingGroupId === group.id ? (
+                      {editingGroupKey === key ? (
                         <input
                           ref={groupEditInputRef}
                           className="flex-1 min-w-0 py-0 text-sm bg-transparent border-none outline-none text-content font-medium"
@@ -488,13 +435,13 @@ export default function Navigator({
                           onClick={(e) => e.stopPropagation()}
                         />
                       ) : (
-                        <span className="truncate">{group.name}</span>
+                        <span className="truncate">{meta?.name ?? key}</span>
                       )}
                     </button>
                     <PopoverMenu
                       items={[
-                        { key: 'rename', label: 'Rename', onClick: () => handleStartGroupRename(group) },
-                        { key: 'delete', label: 'Delete group', onClick: () => onDeleteSpecGroup(group.id), danger: true },
+                        { key: 'rename', label: 'Rename', onClick: () => handleStartGroupRename(key) },
+                        { key: 'delete', label: 'Delete group', onClick: () => handleDeleteGroup(key), danger: true },
                       ]}
                       trigger={
                         <button
@@ -510,42 +457,23 @@ export default function Navigator({
                   {/* Group items */}
                   {!isGroupCollapsed && (
                     <>
-                      {group.items.map(item => {
-                        if (item.type === 'page') {
-                          const page = pages.find(p => p.id === item.id);
-                          if (!page) return null;
-                          return (
-                            <PageRow
-                              key={page.id}
-                              page={page}
-                              isActive={activeView.type === 'page' && activeView.pageId === page.id}
-                              editMode={false}
-                              isEditing={editingPageId === page.id}
-                              editName={editName}
-                              editInputRef={editInputRef}
-                              onSelect={(pageId) => { onSetActivePage(pageId); }}
-                              onFinishEdit={handleFinishEdit}
-                              onCancelEdit={handleCancelEdit}
-                              onEditNameChange={setEditName}
-                              menuItems={groupedPageMenuItems(page, group.id)}
-                            />
-                          );
-                        } else if (item.type === 'resource') {
-                          const resource = resources.find(r => r.id === item.id);
-                          if (!resource) return null;
-                          return (
-                            <ResourceRow
-                              key={resource.id}
-                              resource={resource}
-                              isActive={activeView.type === 'resource' && activeView.resourceId === resource.id}
-                              onSelect={onSelectResource}
-                              menuItems={groupedResourceMenuItems(resource.id, group.id)}
-                            />
-                          );
-                        }
-                        return null;
-                      })}
-                      {group.items.length === 0 && (
+                      {pagesInGroup.map(page => (
+                        <PageRow
+                          key={page.id}
+                          page={page}
+                          isActive={activeView.type === 'page' && activeView.pageId === page.id}
+                          editMode={false}
+                          isEditing={editingPageId === page.id}
+                          editName={editName}
+                          editInputRef={editInputRef}
+                          onSelect={(pageId) => { onSetActivePage(pageId); }}
+                          onFinishEdit={handleFinishEdit}
+                          onCancelEdit={handleCancelEdit}
+                          onEditNameChange={setEditName}
+                          menuItems={groupedPageMenuItems(page, key)}
+                        />
+                      ))}
+                      {pagesInGroup.length === 0 && (
                         <div className="px-3 py-2 text-xs text-content-muted italic">
                           Empty group.
                         </div>
@@ -557,7 +485,7 @@ export default function Navigator({
             })}
 
             {/* Ungrouped section (only when items exist) */}
-            {(ungroupedPages.length > 0 || ungroupedResources.length > 0) && (
+            {ungroupedPages.length > 0 && (
               <Section title="Ungrouped" onAdd={handleCreatePage} addLabel="New page">
                 {ungroupedPages.map(page => (
                   <PageRow
@@ -573,15 +501,6 @@ export default function Navigator({
                     onCancelEdit={handleCancelEdit}
                     onEditNameChange={setEditName}
                     menuItems={flatPageMenuItems(page)}
-                  />
-                ))}
-                {ungroupedResources.map(r => (
-                  <ResourceRow
-                    key={r.id}
-                    resource={r}
-                    isActive={activeView.type === 'resource' && activeView.resourceId === r.id}
-                    onSelect={onSelectResource}
-                    menuItems={ungroupedResourceMenuItems(r.id)}
                   />
                 ))}
               </Section>
@@ -640,28 +559,6 @@ export default function Navigator({
                     onCancelEdit={handleCancelEdit}
                     onEditNameChange={setEditName}
                     menuItems={flatPageMenuItems(page)}
-                  />
-                ))
-              )}
-            </Section>
-
-            {/* Resources section */}
-            <Section
-              title="Resources"
-              onAdd={onCreateResource}
-              addLabel="New resource"
-            >
-              {resources.length === 0 ? (
-                <div className="px-3 py-2 text-xs text-content-muted italic">
-                  No resources yet.
-                </div>
-              ) : (
-                resources.map((r) => (
-                  <ResourceRow
-                    key={r.id}
-                    resource={r}
-                    isActive={activeView.type === 'resource' && activeView.resourceId === r.id}
-                    onSelect={onSelectResource}
                   />
                 ))
               )}

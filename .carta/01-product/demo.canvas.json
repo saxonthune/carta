@@ -1,0 +1,796 @@
+{
+  "formatVersion": 1,
+  "nodes": [
+    {
+      "id": "node_1770496612931_5nqvo6",
+      "type": "construct",
+      "position": {
+        "x": 1737.7645365059875,
+        "y": 183.42627715804701
+      },
+      "data": {
+        "constructType": "carta-demo-stage",
+        "semanticId": "carta-demo-stage-yxqbedh",
+        "values": {
+          "name": "Powerful Modeling Tool",
+          "narrative": "Carta is not a drawing tool \u2014 it's a modeling tool. Users define their own types (schemas) and define what connections mean between them. You can model anything: frontend components, backend services, serverless functions, user stories, or even sentences. It supports real-time collaboration and web hosting, making it both a product-building tool and a living source of truth.",
+          "keyInsight": "Unlike Excalidraw or Miro, Carta models have semantic meaning. Types and connections carry information, not just shapes and arrows."
+        },
+        "connections": [
+          {
+            "portId": "flow-out",
+            "targetSemanticId": "carta-demo-stage-z0xmdzc",
+            "targetPortId": "flow-in"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_1770496617082_c2pqaz",
+      "type": "construct",
+      "position": {
+        "x": 111.76453650598762,
+        "y": 263.426277158047
+      },
+      "data": {
+        "constructType": "carta-demo-stage",
+        "semanticId": "carta-demo-stage-z0xmdzc",
+        "values": {
+          "name": "AI Code Generation",
+          "narrative": "Because types carry semantic information, users can export their models as structured JSON. An AI agent with access to this output can generate a complete product in any stack \u2014 e.g., define API endpoints, request models, and database tables, then let an agent scaffold the whole thing in Fastify/Prisma/Postgres or any other stack.",
+          "keyInsight": "AI agents create great code when they have great instructions. Carta turns visual models into machine-readable specs."
+        },
+        "connections": [
+          {
+            "portId": "flow-out",
+            "targetSemanticId": "carta-demo-stage-z409mes",
+            "targetPortId": "flow-in"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_1770496621065_8hrr47",
+      "type": "construct",
+      "position": {
+        "x": 612.7645365059876,
+        "y": 263.426277158047
+      },
+      "data": {
+        "constructType": "carta-demo-stage",
+        "semanticId": "carta-demo-stage-z409mes",
+        "values": {
+          "name": "AI Import via MCP",
+          "narrative": "The flow works in reverse too. Thanks to MCP support, an AI agent can read existing code and create types and instances inside Carta. Users can import a legacy API to make sense of it, or let their AI agent continuously update the model as code evolves.",
+          "keyInsight": "Carta isn't just an input to AI \u2014 AI can write back into Carta. The model becomes a two-way bridge between human understanding and code."
+        },
+        "connections": [
+          {
+            "portId": "flow-out",
+            "targetSemanticId": "carta-demo-stage-z7hw61n",
+            "targetPortId": "flow-in"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_1770496625588_r75nma",
+      "type": "construct",
+      "position": {
+        "x": -284.2354634940124,
+        "y": 263.426277158047
+      },
+      "data": {
+        "constructType": "carta-demo-stage",
+        "semanticId": "carta-demo-stage-z7hw61n",
+        "values": {
+          "name": "The Vision",
+          "narrative": "Human, source of truth, and code interoperate at the speed of AI. Code becomes completely faithful to the product it implements. Code refactorings only happen when there is a product refactoring before it. AI is like the assembly line \u2014 we won't realize its full potential until we move everyone to work around it. Instead of speeding up isolated parts of existing processes, we speed up the entire product development lifecycle with workflows tailored for AI.",
+          "keyInsight": "Carta unleashes the full potential of AI by putting a semantic source of truth at the center of the development process."
+        },
+        "connections": []
+      }
+    },
+    {
+      "id": "node_1770496631449_e4mm9t",
+      "type": "construct",
+      "position": {
+        "x": -284.2354634940124,
+        "y": 23.426277158047
+      },
+      "data": {
+        "constructType": "carta-demo-beat",
+        "semanticId": "carta-demo-beat-zc0pdaa",
+        "values": {
+          "name": "Custom Types",
+          "demonstrates": "Users create their own construct schemas with typed fields, not generic shapes",
+          "howShown": "Create a schema for 'API Endpoint' with fields like method, path, description"
+        },
+        "connections": [
+          {
+            "portId": "parent",
+            "targetSemanticId": "carta-demo-stage-yxqbedh",
+            "targetPortId": "child"
+          },
+          {
+            "portId": "supports",
+            "targetSemanticId": "carta-demo-claim-zzi4647",
+            "targetPortId": "flow-in"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_1770496633708_3kgkjo",
+      "type": "construct",
+      "position": {
+        "x": 154.76453650598762,
+        "y": 23.426277158047
+      },
+      "data": {
+        "constructType": "carta-demo-beat",
+        "semanticId": "carta-demo-beat-zdrg8dd",
+        "values": {
+          "name": "Semantic Connections",
+          "demonstrates": "Connections between types have meaning \u2014 ports define what can connect to what and why",
+          "howShown": "Connect an API Endpoint to a Database Table via a 'reads from' port, show that random types can't connect arbitrarily"
+        },
+        "connections": [
+          {
+            "portId": "parent",
+            "targetSemanticId": "carta-demo-stage-yxqbedh",
+            "targetPortId": "child"
+          },
+          {
+            "portId": "supports",
+            "targetSemanticId": "carta-demo-claim-zzi4647",
+            "targetPortId": "flow-in"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_1770496636198_kium7y",
+      "type": "construct",
+      "position": {
+        "x": 1194.7645365059875,
+        "y": 23.426277158047
+      },
+      "data": {
+        "constructType": "carta-demo-beat",
+        "semanticId": "carta-demo-beat-zfom1rq",
+        "values": {
+          "name": "Model Anything",
+          "demonstrates": "Carta is domain-agnostic \u2014 the same tool models frontend, backend, serverless, user stories, or brainstorming",
+          "howShown": "Show multiple schema groups: software architecture, capability model, or a custom domain the user invented"
+        },
+        "connections": [
+          {
+            "portId": "parent",
+            "targetSemanticId": "carta-demo-stage-yxqbedh",
+            "targetPortId": "child"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_1770496638195_90mlmn",
+      "type": "construct",
+      "position": {
+        "x": -284.2354634940124,
+        "y": 103.426277158047
+      },
+      "data": {
+        "constructType": "carta-demo-beat",
+        "semanticId": "carta-demo-beat-zh838mt",
+        "values": {
+          "name": "Collaboration & Hosting",
+          "demonstrates": "Real-time collaboration and web hosting make Carta a living source of truth, not a static diagram",
+          "howShown": "Show two cursors editing the same document, or show accessing a hosted document via URL"
+        },
+        "connections": [
+          {
+            "portId": "parent",
+            "targetSemanticId": "carta-demo-stage-yxqbedh",
+            "targetPortId": "child"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_1770496640200_c0doyu",
+      "type": "construct",
+      "position": {
+        "x": 1647.7645365059875,
+        "y": 23.426277158047
+      },
+      "data": {
+        "constructType": "carta-demo-beat",
+        "semanticId": "carta-demo-beat-zirshn8",
+        "values": {
+          "name": "Semantic Export",
+          "demonstrates": "Models compile to structured, AI-readable JSON output with all semantic information preserved",
+          "howShown": "Click compile, show the JSON output with types, instances, connections, and semantic descriptions"
+        },
+        "connections": [
+          {
+            "portId": "parent",
+            "targetSemanticId": "carta-demo-stage-z0xmdzc",
+            "targetPortId": "child"
+          },
+          {
+            "portId": "supports",
+            "targetSemanticId": "carta-demo-claim-00ctk9g",
+            "targetPortId": "flow-in"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_1770496642302_00tit5",
+      "type": "construct",
+      "position": {
+        "x": 235.76453650598762,
+        "y": 103.426277158047
+      },
+      "data": {
+        "constructType": "carta-demo-beat",
+        "semanticId": "carta-demo-beat-zke6dpb",
+        "values": {
+          "name": "AI Generates Product",
+          "demonstrates": "An AI agent reads the compiled output and generates a complete working product in any stack",
+          "howShown": "Feed the compiled JSON to an AI agent, it generates Fastify routes, Prisma schema, and Postgres migrations matching the model exactly"
+        },
+        "connections": [
+          {
+            "portId": "parent",
+            "targetSemanticId": "carta-demo-stage-z0xmdzc",
+            "targetPortId": "child"
+          },
+          {
+            "portId": "supports",
+            "targetSemanticId": "carta-demo-claim-00ctk9g",
+            "targetPortId": "flow-in"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_1770496644583_gtgqhw",
+      "type": "construct",
+      "position": {
+        "x": 755.7645365059876,
+        "y": 103.426277158047
+      },
+      "data": {
+        "constructType": "carta-demo-beat",
+        "semanticId": "carta-demo-beat-zm5jwv6",
+        "values": {
+          "name": "Any Stack",
+          "demonstrates": "The same model can target different tech stacks \u2014 the model is stack-agnostic",
+          "howShown": "Show the same API model generating code for Fastify/Prisma and then for Express/Sequelize or Django"
+        },
+        "connections": [
+          {
+            "portId": "parent",
+            "targetSemanticId": "carta-demo-stage-z0xmdzc",
+            "targetPortId": "child"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_1770496646619_dfwy3x",
+      "type": "construct",
+      "position": {
+        "x": 1143.7645365059875,
+        "y": 103.426277158047
+      },
+      "data": {
+        "constructType": "carta-demo-beat",
+        "semanticId": "carta-demo-beat-znq32uj",
+        "values": {
+          "name": "Import Existing Code",
+          "demonstrates": "AI can read existing codebases and create Carta types and instances from them",
+          "howShown": "Point an AI agent at a legacy API, it creates schemas and populates instances in Carta representing what it found"
+        },
+        "connections": [
+          {
+            "portId": "parent",
+            "targetSemanticId": "carta-demo-stage-z409mes",
+            "targetPortId": "child"
+          },
+          {
+            "portId": "supports",
+            "targetSemanticId": "carta-demo-claim-01s6dfx",
+            "targetPortId": "flow-in"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_1770496648518_6smxsr",
+      "type": "construct",
+      "position": {
+        "x": 1658.7645365059875,
+        "y": 103.426277158047
+      },
+      "data": {
+        "constructType": "carta-demo-beat",
+        "semanticId": "carta-demo-beat-zp6uqdt",
+        "values": {
+          "name": "AI Updates Model",
+          "demonstrates": "AI agents can continuously update the Carta model as code evolves via MCP",
+          "howShown": "Show an AI agent adding a new endpoint construct after detecting a new route in the codebase"
+        },
+        "connections": [
+          {
+            "portId": "parent",
+            "targetSemanticId": "carta-demo-stage-z409mes",
+            "targetPortId": "child"
+          },
+          {
+            "portId": "supports",
+            "targetSemanticId": "carta-demo-claim-01s6dfx",
+            "targetPortId": "flow-in"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_1770496650797_reyxeb",
+      "type": "construct",
+      "position": {
+        "x": -284.2354634940124,
+        "y": 183.42627715804701
+      },
+      "data": {
+        "constructType": "carta-demo-beat",
+        "semanticId": "carta-demo-beat-zqy5p3r",
+        "values": {
+          "name": "Two-Way Bridge",
+          "demonstrates": "Carta is both readable and writable by AI \u2014 the model is a live bridge, not a one-time export",
+          "howShown": "Show the round-trip: model \u2192 code \u2192 model update, demonstrating the feedback loop"
+        },
+        "connections": [
+          {
+            "portId": "parent",
+            "targetSemanticId": "carta-demo-stage-z409mes",
+            "targetPortId": "child"
+          },
+          {
+            "portId": "supports",
+            "targetSemanticId": "carta-demo-claim-01s6dfx",
+            "targetPortId": "flow-in"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_1770496653086_ikooth",
+      "type": "construct",
+      "position": {
+        "x": 177.76453650598762,
+        "y": 183.42627715804701
+      },
+      "data": {
+        "constructType": "carta-demo-beat",
+        "semanticId": "carta-demo-beat-zspq45f",
+        "values": {
+          "name": "Product-First Development",
+          "demonstrates": "Code refactorings only happen when there's a product refactoring first \u2014 the model drives the code, not the reverse",
+          "howShown": "Show changing the model (e.g., splitting an endpoint), then having AI update the code to match"
+        },
+        "connections": [
+          {
+            "portId": "parent",
+            "targetSemanticId": "carta-demo-stage-z7hw61n",
+            "targetPortId": "child"
+          },
+          {
+            "portId": "supports",
+            "targetSemanticId": "carta-demo-claim-03cuvl1",
+            "targetPortId": "flow-in"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_1770496655361_i871yr",
+      "type": "construct",
+      "position": {
+        "x": 1217.7645365059875,
+        "y": 183.42627715804701
+      },
+      "data": {
+        "constructType": "carta-demo-beat",
+        "semanticId": "carta-demo-beat-zugx4fc",
+        "values": {
+          "name": "Assembly Line Analogy",
+          "demonstrates": "AI is like the assembly line \u2014 its full potential requires reorganizing workflows around it, not bolting it onto existing ones",
+          "howShown": "Contrast: AI as autocomplete in an IDE vs. AI as the execution layer in a model-driven workflow"
+        },
+        "connections": [
+          {
+            "portId": "parent",
+            "targetSemanticId": "carta-demo-stage-z7hw61n",
+            "targetPortId": "child"
+          },
+          {
+            "portId": "supports",
+            "targetSemanticId": "carta-demo-claim-03cuvl1",
+            "targetPortId": "flow-in"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_1770496661884_sz5ng9",
+      "type": "construct",
+      "position": {
+        "x": -284.2354634940124,
+        "y": -56.573722841953
+      },
+      "data": {
+        "constructType": "carta-demo-claim",
+        "semanticId": "carta-demo-claim-zzi4647",
+        "values": {
+          "name": "Models carry meaning, not just shapes",
+          "evidence": "Custom types with typed fields and semantic connections prove this isn't a drawing tool \u2014 it's a knowledge tool"
+        },
+        "connections": [],
+        "viewLevel": "summary"
+      }
+    },
+    {
+      "id": "node_1770496662989_x1ofoy",
+      "type": "construct",
+      "position": {
+        "x": 235.76453650598762,
+        "y": -56.573722841953
+      },
+      "data": {
+        "constructType": "carta-demo-claim",
+        "semanticId": "carta-demo-claim-00ctk9g",
+        "values": {
+          "name": "Great instructions produce great code",
+          "evidence": "Semantic export gives AI agents structured, typed specs \u2014 not vague descriptions. The output quality is bounded by the input quality."
+        },
+        "connections": []
+      }
+    },
+    {
+      "id": "node_1770496664838_ncl22s",
+      "type": "construct",
+      "position": {
+        "x": 1275.7645365059875,
+        "y": -56.573722841953
+      },
+      "data": {
+        "constructType": "carta-demo-claim",
+        "semanticId": "carta-demo-claim-01s6dfx",
+        "values": {
+          "name": "The model is a two-way bridge",
+          "evidence": "MCP support means AI can both read and write the model. It's not a one-time export \u2014 it's a living feedback loop between human intent and code."
+        },
+        "connections": []
+      }
+    },
+    {
+      "id": "node_1770496666878_1w3r9x",
+      "type": "construct",
+      "position": {
+        "x": 755.7645365059876,
+        "y": -56.573722841953
+      },
+      "data": {
+        "constructType": "carta-demo-claim",
+        "semanticId": "carta-demo-claim-03cuvl1",
+        "values": {
+          "name": "Carta unleashes the full potential of AI",
+          "evidence": "AI's impact requires reorganizing workflows around it. Carta puts a semantic source of truth at the center, enabling product-first development where code is always faithful to the model."
+        },
+        "connections": []
+      }
+    },
+    {
+      "id": "node_1770496894609_wu308l",
+      "type": "construct",
+      "position": {
+        "x": 674.7645365059876,
+        "y": 23.426277158047
+      },
+      "data": {
+        "constructType": "carta-demo-beat",
+        "semanticId": "carta-demo-beat-4z2p6jj",
+        "values": {
+          "name": "This Is a Carta Document",
+          "demonstrates": "The demo itself is a real Carta document modeling Carta. The levels (Product, Architecture, Demo) are visible \u2014 the tool is modeling itself.",
+          "howShown": "Casually reveal the document's level tabs. Show that the demo you're presenting from is itself a Carta document with multiple levels describing the product."
+        },
+        "connections": [
+          {
+            "portId": "parent",
+            "targetSemanticId": "carta-demo-stage-yxqbedh",
+            "targetPortId": "child"
+          },
+          {
+            "portId": "supports",
+            "targetSemanticId": "carta-demo-claim-03cuvl1",
+            "targetPortId": "flow-in"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_1770496896557_ng0e20",
+      "type": "construct",
+      "position": {
+        "x": 1795.7645365059875,
+        "y": -56.573722841953
+      },
+      "data": {
+        "constructType": "carta-demo-beat",
+        "semanticId": "carta-demo-beat-50ktj69",
+        "values": {
+          "name": "Real Specs, Not Hypothetical",
+          "demonstrates": "The compiled output isn't a toy example \u2014 it's the actual specs AI agents consume when working on Carta's codebase.",
+          "howShown": "Show the compiled output of the Carta-describes-Carta document and note that this is what feeds into real development sessions."
+        },
+        "connections": [
+          {
+            "portId": "parent",
+            "targetSemanticId": "carta-demo-stage-z0xmdzc",
+            "targetPortId": "child"
+          },
+          {
+            "portId": "supports",
+            "targetSemanticId": "carta-demo-claim-03cuvl1",
+            "targetPortId": "flow-in"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_1770496899800_eji9kr",
+      "type": "construct",
+      "position": {
+        "x": 697.7645365059876,
+        "y": 183.42627715804701
+      },
+      "data": {
+        "constructType": "carta-demo-beat",
+        "semanticId": "carta-demo-beat-532woyt",
+        "values": {
+          "name": "Self-Building Dev Loop",
+          "demonstrates": "Carta is built using Carta. The development loop: update the model, encounter a limitation or feature idea, queue a plan for another AI agent, continue. The model, the code, and the developer co-evolve.",
+          "howShown": "Walk through the actual dev loop: show the Carta document levels, show a queued todo-plan, show an AI agent picking it up. The product builds itself."
+        },
+        "connections": [
+          {
+            "portId": "parent",
+            "targetSemanticId": "carta-demo-stage-z7hw61n",
+            "targetPortId": "child"
+          },
+          {
+            "portId": "supports",
+            "targetSemanticId": "carta-demo-claim-03cuvl1",
+            "targetPortId": "flow-in"
+          }
+        ]
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge_1770496672536_co0x9a",
+      "source": "node_1770496612931_5nqvo6",
+      "target": "node_1770496617082_c2pqaz",
+      "sourceHandle": "flow-out",
+      "targetHandle": "flow-in"
+    },
+    {
+      "id": "edge_1770496673714_nbv8nb",
+      "source": "node_1770496617082_c2pqaz",
+      "target": "node_1770496621065_8hrr47",
+      "sourceHandle": "flow-out",
+      "targetHandle": "flow-in"
+    },
+    {
+      "id": "edge_1770496674992_2e2hso",
+      "source": "node_1770496621065_8hrr47",
+      "target": "node_1770496625588_r75nma",
+      "sourceHandle": "flow-out",
+      "targetHandle": "flow-in"
+    },
+    {
+      "id": "edge_1770496676240_f5vz44",
+      "source": "node_1770496631449_e4mm9t",
+      "target": "node_1770496612931_5nqvo6",
+      "sourceHandle": "parent",
+      "targetHandle": "child"
+    },
+    {
+      "id": "edge_1770496677353_gnehdf",
+      "source": "node_1770496633708_3kgkjo",
+      "target": "node_1770496612931_5nqvo6",
+      "sourceHandle": "parent",
+      "targetHandle": "child"
+    },
+    {
+      "id": "edge_1770496678335_xcgfxg",
+      "source": "node_1770496636198_kium7y",
+      "target": "node_1770496612931_5nqvo6",
+      "sourceHandle": "parent",
+      "targetHandle": "child"
+    },
+    {
+      "id": "edge_1770496679393_c1xn20",
+      "source": "node_1770496638195_90mlmn",
+      "target": "node_1770496612931_5nqvo6",
+      "sourceHandle": "parent",
+      "targetHandle": "child"
+    },
+    {
+      "id": "edge_1770496680476_52slx2",
+      "source": "node_1770496640200_c0doyu",
+      "target": "node_1770496617082_c2pqaz",
+      "sourceHandle": "parent",
+      "targetHandle": "child"
+    },
+    {
+      "id": "edge_1770496681465_z81t95",
+      "source": "node_1770496642302_00tit5",
+      "target": "node_1770496617082_c2pqaz",
+      "sourceHandle": "parent",
+      "targetHandle": "child"
+    },
+    {
+      "id": "edge_1770496682619_7jjowu",
+      "source": "node_1770496644583_gtgqhw",
+      "target": "node_1770496617082_c2pqaz",
+      "sourceHandle": "parent",
+      "targetHandle": "child"
+    },
+    {
+      "id": "edge_1770496683569_bp0bq1",
+      "source": "node_1770496646619_dfwy3x",
+      "target": "node_1770496621065_8hrr47",
+      "sourceHandle": "parent",
+      "targetHandle": "child"
+    },
+    {
+      "id": "edge_1770496684550_joqwzc",
+      "source": "node_1770496648518_6smxsr",
+      "target": "node_1770496621065_8hrr47",
+      "sourceHandle": "parent",
+      "targetHandle": "child"
+    },
+    {
+      "id": "edge_1770496685577_xthvoi",
+      "source": "node_1770496650797_reyxeb",
+      "target": "node_1770496621065_8hrr47",
+      "sourceHandle": "parent",
+      "targetHandle": "child"
+    },
+    {
+      "id": "edge_1770496686630_whopvw",
+      "source": "node_1770496653086_ikooth",
+      "target": "node_1770496625588_r75nma",
+      "sourceHandle": "parent",
+      "targetHandle": "child"
+    },
+    {
+      "id": "edge_1770496687686_7nbyhi",
+      "source": "node_1770496655361_i871yr",
+      "target": "node_1770496625588_r75nma",
+      "sourceHandle": "parent",
+      "targetHandle": "child"
+    },
+    {
+      "id": "edge_1770496688852_g6brbw",
+      "source": "node_1770496631449_e4mm9t",
+      "target": "node_1770496661884_sz5ng9",
+      "sourceHandle": "supports",
+      "targetHandle": "flow-in"
+    },
+    {
+      "id": "edge_1770496689980_1dtzi2",
+      "source": "node_1770496633708_3kgkjo",
+      "target": "node_1770496661884_sz5ng9",
+      "sourceHandle": "supports",
+      "targetHandle": "flow-in"
+    },
+    {
+      "id": "edge_1770496690977_5h3yzs",
+      "source": "node_1770496640200_c0doyu",
+      "target": "node_1770496662989_x1ofoy",
+      "sourceHandle": "supports",
+      "targetHandle": "flow-in"
+    },
+    {
+      "id": "edge_1770496692019_qkswau",
+      "source": "node_1770496642302_00tit5",
+      "target": "node_1770496662989_x1ofoy",
+      "sourceHandle": "supports",
+      "targetHandle": "flow-in"
+    },
+    {
+      "id": "edge_1770496693099_j56r0o",
+      "source": "node_1770496646619_dfwy3x",
+      "target": "node_1770496664838_ncl22s",
+      "sourceHandle": "supports",
+      "targetHandle": "flow-in"
+    },
+    {
+      "id": "edge_1770496694185_8wg0eu",
+      "source": "node_1770496648518_6smxsr",
+      "target": "node_1770496664838_ncl22s",
+      "sourceHandle": "supports",
+      "targetHandle": "flow-in"
+    },
+    {
+      "id": "edge_1770496695245_etpqpw",
+      "source": "node_1770496650797_reyxeb",
+      "target": "node_1770496664838_ncl22s",
+      "sourceHandle": "supports",
+      "targetHandle": "flow-in"
+    },
+    {
+      "id": "edge_1770496696257_1d1zs3",
+      "source": "node_1770496653086_ikooth",
+      "target": "node_1770496666878_1w3r9x",
+      "sourceHandle": "supports",
+      "targetHandle": "flow-in"
+    },
+    {
+      "id": "edge_1770496697238_mivfgn",
+      "source": "node_1770496655361_i871yr",
+      "target": "node_1770496666878_1w3r9x",
+      "sourceHandle": "supports",
+      "targetHandle": "flow-in"
+    },
+    {
+      "id": "edge_1770496905705_qoe3eh",
+      "source": "node_1770496894609_wu308l",
+      "target": "node_1770496612931_5nqvo6",
+      "sourceHandle": "parent",
+      "targetHandle": "child"
+    },
+    {
+      "id": "edge_1770496906994_4itd6s",
+      "source": "node_1770496896557_ng0e20",
+      "target": "node_1770496617082_c2pqaz",
+      "sourceHandle": "parent",
+      "targetHandle": "child"
+    },
+    {
+      "id": "edge_1770496908010_4wieyl",
+      "source": "node_1770496899800_eji9kr",
+      "target": "node_1770496625588_r75nma",
+      "sourceHandle": "parent",
+      "targetHandle": "child"
+    },
+    {
+      "id": "edge_1770496909267_dq7l2v",
+      "source": "node_1770496894609_wu308l",
+      "target": "node_1770496666878_1w3r9x",
+      "sourceHandle": "supports",
+      "targetHandle": "flow-in"
+    },
+    {
+      "id": "edge_1770496910348_5e9l1k",
+      "source": "node_1770496896557_ng0e20",
+      "target": "node_1770496666878_1w3r9x",
+      "sourceHandle": "supports",
+      "targetHandle": "flow-in"
+    },
+    {
+      "id": "edge_1770496911222_s2ed89",
+      "source": "node_1770496899800_eji9kr",
+      "target": "node_1770496666878_1w3r9x",
+      "sourceHandle": "supports",
+      "targetHandle": "flow-in"
+    }
+  ]
+}

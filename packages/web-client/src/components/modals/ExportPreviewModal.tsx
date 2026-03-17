@@ -2,10 +2,9 @@ import { useState, useMemo } from 'react';
 import { CaretDown } from '@phosphor-icons/react';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
-import type { CartaEdge } from '@carta/types';
 import type { ExportAnalysis, ExportOptions } from '../../utils/exportAnalyzer';
 import { defaultExportOptions } from '../../utils/exportAnalyzer';
-import type { ConstructSchema } from '@carta/schema';
+import type { ConstructSchema, CartaEdge } from '@carta/schema';
 import { CARTA_FILE_VERSION, type CartaFile } from '../../utils/cartaFile';
 
 interface ExportPreviewModalProps {

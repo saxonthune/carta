@@ -7,7 +7,7 @@
 /**
  * M2 primitive data types
  */
-export type DataKind = 'string' | 'number' | 'boolean' | 'date' | 'enum' | 'resource';
+export type DataKind = 'string' | 'number' | 'boolean' | 'date' | 'enum';
 
 /**
  * Display hints for string type presentation
@@ -57,29 +57,6 @@ export interface PortSchema {
 }
 
 
-// ===== M1: REGISTRY INFRASTRUCTURE =====
-
-/**
- * Base interface for registry items
- */
-export interface RegistryItem {
-  id: string;
-  name: string;
-  description?: string;
-}
-
-/**
- * Generic registry interface
- */
-export interface Registry<T extends RegistryItem> {
-  get(id: string): T | undefined;
-  getAll(): T[];
-  add(item: Omit<T, 'id'>): T;
-  update(id: string, updates: Partial<T>): T | undefined;
-  remove(id: string): boolean;
-  clear(): void;
-}
-
 // ===== M1: FIELD & COMPILATION =====
 
 /**
@@ -98,16 +75,6 @@ export interface FieldSchema {
   displayOrder?: number;               // Sort order within a tier (default: 0)
 }
 
-
-/**
- * Compound value for resource-type fields.
- * Stored in ConstructValues when a field has type: 'resource'.
- */
-export interface ResourceFieldValue {
-  resourceId: string;
-  pathHint?: string;
-  versionHash?: string;
-}
 
 /**
  * Configuration for how a construct compiles to output
@@ -256,56 +223,14 @@ export interface OrganizerNodeData {
   [key: string]: unknown;
 }
 
-// ===== RESOURCES =====
+// ===== GROUPS =====
 
 /**
- * A published version snapshot of a resource.
- * Frozen copy — body is immutable after publish.
+ * Group metadata — value type in WorkspaceManifest.groups and Y.Doc groupMetadata map.
  */
-export interface ResourceVersion {
-  versionId: string;
-  contentHash: string;
-  publishedAt: string;
-  label?: string;
-  body: string;
-}
-
-/**
- * A document-level versioned data contract.
- * Resources are materializations of external artifacts (APIs, schemas, types).
- * See doc02.04.08 for full design rationale.
- */
-export interface Resource {
-  id: string;
-  name: string;
-  format: string;
-  body: string;
-  currentHash: string;
-  versions: ResourceVersion[];
-}
-
-// ===== SPEC GROUPS =====
-
-/**
- * An ordered item reference within a SpecGroup.
- * Can point to either a page or a resource.
- */
-export interface SpecGroupItem {
-  type: 'page' | 'resource';
-  id: string;
-}
-
-/**
- * Document-level organizational group containing an ordered mix of pages and resources.
- * Represents a level of specificity in the Code-N ladder (e.g., "Product Vision", "API Implementation").
- * Membership is stored on the group's items array, not on member entities.
- */
-export interface SpecGroup {
-  id: string;
+export interface GroupMeta {
   name: string;
   description?: string;
-  order: number;
-  items: SpecGroupItem[];
 }
 
 // ===== HELPERS =====
@@ -415,28 +340,10 @@ export interface Page {
   id: string;                 // 'page-{timestamp}-{random}'
   name: string;               // User-editable page name
   description?: string;       // Optional page description
+  group?: string;             // Group key (e.g., '01-context') — group membership
   order: number;              // For sorting (0, 1, 2, ...)
   nodes: unknown[];           // Node<ConstructNodeData>[] - page-specific nodes
   edges: unknown[];           // Edge[] - page-specific edges
-}
-
-/** @deprecated Use Page instead */
-export type Level = Page;
-
-/**
- * Complete Carta document structure (v3 - legacy)
- * Represents the full state of a project (web client / export format)
- * @deprecated Use CartaDocumentV4 for new documents
- */
-export interface CartaDocumentV3 {
-  version: 3;
-  title: string;
-  description?: string;
-  nodes: unknown[];           // Node<ConstructNodeData>[] - using unknown to avoid @xyflow/react import
-  edges: unknown[];           // Edge[] - using unknown to avoid @xyflow/react import
-  schemas: ConstructSchema[];
-  portSchemas: PortSchema[];
-  schemaGroups: SchemaGroup[];
 }
 
 /**
@@ -460,11 +367,6 @@ export interface CartaDocumentV4 {
   schemaRelationships: SchemaRelationship[];
   packageManifest?: PackageManifestEntry[];  // Optional for backwards compat with existing docs
 }
-
-/**
- * Union type for all document versions
- */
-export type CartaDocument = CartaDocumentV3 | CartaDocumentV4;
 
 /**
  * .carta-schemas file format
@@ -540,11 +442,11 @@ export interface VaultAdapter {
   /** Change vault location. Reloads the app after switching. Only callable when canChangeVault is true. */
   changeVault?(): Promise<void>;
 
-  /** True when desktop vault folder hasn't been selected yet (first-run state) */
-  readonly needsVaultSetup?: boolean;
+  /** True when desktop workspace folder hasn't been selected yet (first-run state) */
+  readonly needsWorkspaceSetup?: boolean;
 
-  /** Initialize a vault at the given path. Returns server info and first document ID. */
-  initializeVault?(vaultPath: string): Promise<{ documentId: string; syncUrl: string; wsUrl: string }>;
+  /** Initialize a workspace at the given path. Returns server info. */
+  initializeWorkspace?(workspacePath: string): Promise<{ syncUrl: string; wsUrl: string; port: number }>;
 }
 
 // ===== PERSISTENCE =====
@@ -553,7 +455,9 @@ export interface VaultAdapter {
  * Document adapter interface for abstracting persistence layer.
  * Currently implemented with localStorage, future: Yjs Y.Doc
  */
-import type { CartaNode, CartaEdge } from '@carta/types';
+import type { CartaNode, CartaEdge } from './graph.js';
+
+export type { CartaNode, CartaEdge } from './graph.js';
 
 export interface DocumentAdapter {
   // Load/save lifecycle
@@ -599,7 +503,7 @@ export interface DocumentAdapter {
   setActivePage(pageId: string): void;
   createPage(name: string, description?: string): Page;
   deletePage(pageId: string): boolean;
-  updatePage(pageId: string, updates: Partial<Omit<Page, 'id' | 'nodes' | 'edges' | 'deployables'>>): void;
+  updatePage(pageId: string, updates: Partial<Omit<Page, 'id' | 'nodes' | 'edges' | 'deployables' | 'group'>> & { group?: string | null }): void;
   duplicatePage(pageId: string, newName: string): Page;
   copyNodesToPage(nodeIds: string[], targetPageId: string): void;
 
@@ -658,34 +562,15 @@ export interface DocumentAdapter {
   // Subscriptions for observing changes
   subscribe(listener: () => void): () => void;
 
-  // State access - Resources
-  getResources(): Array<{ id: string; name: string; format: string; currentHash: string; versionCount: number }>;
-  getResource(id: string): Resource | undefined;
+  // State access - Group Metadata
+  getGroupMetadata(): Record<string, GroupMeta>;
 
-  // Mutations - Resources
-  createResource(name: string, format: string, body: string): Resource;
-  updateResource(id: string, updates: { name?: string; format?: string; body?: string }): Resource | undefined;
-  deleteResource(id: string): boolean;
-  publishResourceVersion(id: string, label?: string): ResourceVersion | undefined;
-  getResourceHistory(id: string): Omit<ResourceVersion, 'body'>[];
-  getResourceVersion(id: string, versionId: string): ResourceVersion | undefined;
+  // Mutations - Group Metadata
+  setGroupMetadata(key: string, meta: GroupMeta): void;
+  deleteGroupMetadata(key: string): void;
 
-  // Subscriptions - Resources
-  subscribeToResources?(listener: () => void): () => void;
-
-  // State access - Spec Groups (navigator groups)
-  getSpecGroups(): SpecGroup[];
-  getSpecGroup(id: string): SpecGroup | undefined;
-
-  // Mutations - Spec Groups
-  createSpecGroup(name: string, description?: string): SpecGroup;
-  updateSpecGroup(id: string, updates: { name?: string; description?: string; order?: number; items?: SpecGroupItem[] }): SpecGroup | undefined;
-  deleteSpecGroup(id: string): boolean;
-  assignToSpecGroup(groupId: string, item: SpecGroupItem): SpecGroup | undefined;
-  removeFromSpecGroup(itemType: 'page' | 'resource', itemId: string): boolean;
-
-  // Subscriptions - Spec Groups
-  subscribeToSpecGroups?(listener: () => void): () => void;
+  // Subscriptions - Group Metadata
+  subscribeToGroupMetadata?(listener: () => void): () => void;
 
   // Granular subscriptions (optional for interface compatibility)
   subscribeToNodes?(listener: () => void): () => void;

@@ -6,14 +6,14 @@ set -euo pipefail
 
 # --- Determine diff base ---
 DOCS_BASE=""
-if [ -f .docs/.last-sync ]; then
-  CANDIDATE=$(cat .docs/.last-sync | tr -d '[:space:]')
+if [ -f .carta/.last-sync ]; then
+  CANDIDATE=$(cat .carta/.last-sync | tr -d '[:space:]')
   if git merge-base --is-ancestor "$CANDIDATE" HEAD 2>/dev/null; then
     DOCS_BASE="$CANDIDATE"
   fi
 fi
 if [ -z "$DOCS_BASE" ]; then
-  DOCS_BASE=$(git log -1 --format=%H -- .docs/)
+  DOCS_BASE=$(git log -1 --format=%H -- .carta/)
 fi
 if [ -z "$DOCS_BASE" ]; then
   DOCS_BASE="HEAD~20"
@@ -41,12 +41,12 @@ git log --oneline --no-merges "$DOCS_BASE"..HEAD
 echo '```'
 echo ""
 
-# --- Changed files by package (excluding .docs/) ---
+# --- Changed files by package (excluding .carta/) ---
 echo "### Changed Files by Package"
 echo ""
-git diff --stat "$DOCS_BASE"..HEAD -- ':!.docs/' ':!.claude/' ':!pnpm-lock.yaml' | tail -1
+git diff --stat "$DOCS_BASE"..HEAD -- ':!.carta/' ':!.claude/' ':!pnpm-lock.yaml' | tail -1
 echo ""
-git diff --name-only "$DOCS_BASE"..HEAD -- ':!.docs/' ':!.claude/' ':!pnpm-lock.yaml' | \
+git diff --name-only "$DOCS_BASE"..HEAD -- ':!.carta/' ':!.claude/' ':!pnpm-lock.yaml' | \
   sed 's|/.*||' | sort | uniq -c | sort -rn | while read count dir; do
     echo "- **${dir}**: ${count} files"
   done
@@ -55,18 +55,18 @@ echo ""
 # --- Semantic changes: new/deleted/renamed files ---
 echo "### New Files"
 echo ""
-git diff --diff-filter=A --name-only "$DOCS_BASE"..HEAD -- ':!.docs/' ':!.claude/' ':!pnpm-lock.yaml' | head -30
+git diff --diff-filter=A --name-only "$DOCS_BASE"..HEAD -- ':!.carta/' ':!.claude/' ':!pnpm-lock.yaml' | head -30
 echo ""
 
 echo "### Deleted Files"
 echo ""
-git diff --diff-filter=D --name-only "$DOCS_BASE"..HEAD -- ':!.docs/' ':!.claude/' ':!pnpm-lock.yaml' | head -30
+git diff --diff-filter=D --name-only "$DOCS_BASE"..HEAD -- ':!.carta/' ':!.claude/' ':!pnpm-lock.yaml' | head -30
 echo ""
 
 # --- What docs WERE touched (for comparison) ---
 echo "### Docs Touched in Range"
 echo ""
-DOCS_CHANGED=$(git diff --name-only "$DOCS_BASE"..HEAD -- '.docs/' | head -20)
+DOCS_CHANGED=$(git diff --name-only "$DOCS_BASE"..HEAD -- '.carta/' | head -20)
 if [ -z "$DOCS_CHANGED" ]; then
   echo "(none)"
 else

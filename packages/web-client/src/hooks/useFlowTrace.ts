@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import type { CartaEdge } from '@carta/types';
+import type { CartaEdge } from '@carta/schema';
 import { traceGraph, type TraceResult } from '../presentation/traceGraph.js';
 
 type NodeMouseHandler = (event: React.MouseEvent, node: { id: string }) => void;

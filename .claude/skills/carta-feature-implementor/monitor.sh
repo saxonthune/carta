@@ -1,26 +1,31 @@
 #!/usr/bin/env bash
 # Compact agent monitor. Usage: watch -n5 bash .claude/skills/carta-feature-implementor/monitor.sh
-TODO="$(git rev-parse --show-toplevel)/todo-tasks"
+TODO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/todo-tasks"
 shopt -s nullglob
 now=$(date +%s)
 T=$'\t'
 
+mtime() {
+  stat -c %Y "$1" 2>/dev/null || echo "$now"
+}
+
 elapsed() {
   local file="$1" age
-  age=$(( now - $(stat -c %Y "$file") ))
+  age=$(( now - $(mtime "$file") ))
   if (( age < 3600 )); then echo "$((age/60))m"
   elif (( age < 86400 )); then echo "$((age/3600))h$((age%3600/60))m"
   else echo "$((age/86400))d$((age%86400/3600))h"; fi
 }
 
-lines=$(
-# Chains
+# Active: chains + solo running agents
+active=$(
 for m in "$TODO"/.running/chain-*.manifest; do
-  chain=$(sed -n 's/^chain: *//p' "$m")
-  status=$(sed -n 's/^status: *//p' "$m")
-  current=$(sed -n 's/^current: *//p' "$m")
-  completed=$(sed -n 's/^completed: *//p' "$m")
-  phases=$(sed -n 's/^phases: *//p' "$m")
+  [[ -r "$m" ]] || continue
+  chain=$(sed -n 's/^chain: *//p' "$m" 2>/dev/null)
+  status=$(sed -n 's/^status: *//p' "$m" 2>/dev/null)
+  current=$(sed -n 's/^current: *//p' "$m" 2>/dev/null)
+  completed=$(sed -n 's/^completed: *//p' "$m" 2>/dev/null)
+  phases=$(sed -n 's/^phases: *//p' "$m" 2>/dev/null)
   total=$(echo "$phases" | tr ',' '\n' | wc -l)
   done_n=0; [[ -n "$completed" ]] && done_n=$(echo "$completed" | tr ',' '\n' | wc -l)
   e=$(elapsed "$m")
@@ -31,29 +36,34 @@ for m in "$TODO"/.running/chain-*.manifest; do
   esac
 done
 
-# Solo running agents (not claimed by a chain)
 for md in "$TODO"/.running/*.md; do
+  [[ -r "$md" ]] || continue
   slug=$(basename "$md" .md)
-  grep -ql "$slug" "$TODO"/.running/chain-*.manifest 2>/dev/null && continue
+  claimed=false; for _m in "$TODO"/.running/chain-*.manifest; do grep -ql "$slug" "$_m" 2>/dev/null && claimed=true && break; done; $claimed && continue
   echo "▶${T}${slug}${T}${T}${T}$(elapsed "$md")"
 done
+)
 
 # Collect chain-claimed slugs
 chain_slugs=""
 for m in "$TODO"/.running/chain-*.manifest; do
-  chain_slugs+=" $(sed -n 's/^phases: *//p' "$m" | tr ',' ' ') "
+  [[ -r "$m" ]] || continue
+  chain_slugs+=" $(sed -n 's/^phases: *//p' "$m" 2>/dev/null | tr ',' ' ') "
 done
 
-# 3 most recent completions (by mtime, newest first), excluding chain members
-results=("$TODO"/.done/*.result.md)
+# 3 most recent completions (by mtime, newest first) from .done/ and .archived/
+recent=$(
+results=("$TODO"/.done/*.result.md "$TODO"/.archived/*.result.md)
 if (( ${#results[@]} )); then
   printf '%s\n' "${results[@]}" | while read -r r; do
-    printf '%d %s\n' "$(stat -c %Y "$r")" "$r"
+    [[ -r "$r" ]] || continue
+    printf '%d %s\n' "$(mtime "$r")" "$r"
   done | sort -rn | head -3 | while read -r _ts r; do
-    age=$(( now - $(stat -c %Y "$r") ))
+    [[ -r "$r" ]] || continue
+    age=$(( now - $(mtime "$r") ))
     slug=$(basename "$r" .result.md)
     [[ "$chain_slugs" == *" $slug "* ]] && continue
-    status=$(sed -n 's/^[*]*[Ss]tatus[*]*: *//p' "$r" | head -1 | tr '[:upper:]' '[:lower:]')
+    status=$(sed -n 's/^[*]*[Ss]tatus[*]*: *//p' "$r" 2>/dev/null | head -1 | tr '[:upper:]' '[:lower:]')
     if (( age < 3600 )); then ago="$((age/60))m ago"
     elif (( age < 86400 )); then ago="$((age/3600))h ago"
     else ago="$((age/86400))d ago"; fi
@@ -65,8 +75,71 @@ if (( ${#results[@]} )); then
 fi
 )
 
-if [[ -n "$lines" ]]; then
-  echo "$lines" | column -t -s "$T"
+# Epics: compact one-line-per-epic summary
+# Collects task slugs from all directories (pending, running, done, archived)
+# then deduplicates and checks status for each unique slug.
+epics=$(
+for ef in "$TODO"/*.epic.md; do
+  [[ -r "$ef" ]] || continue
+  epic=$(basename "$ef" .epic.md)
+
+  # Collect unique task slugs across all directories
+  declare -A seen_slugs=()
+  for tf in "$TODO/${epic}"-[0-9]*.md "$TODO/.running/${epic}"-[0-9]*.md "$TODO/.done/${epic}"-[0-9]*.md; do
+    [[ -f "$tf" ]] || continue
+    [[ "$tf" == *.result.md ]] && continue
+    seen_slugs[$(basename "$tf" .md)]=1
+  done
+  # Archived files have date prefix: YYYYMMDD-{slug}.md
+  for tf in "$TODO/.archived/"*"-${epic}"-[0-9]*.md; do
+    [[ -f "$tf" ]] || continue
+    [[ "$tf" == *.result.md ]] && continue
+    slug=$(basename "$tf" .md)
+    slug="${slug#[0-9]*-}"  # strip date prefix
+    seen_slugs["$slug"]=1
+  done
+
+  total=0; done_n=0; running=0; failed=0
+  for ts in "${!seen_slugs[@]}"; do
+    ((total++))
+    if [[ -f "$TODO/.done/${ts}.result.md" ]]; then
+      s=$(sed -n 's/^[*]*[Ss]tatus[*]*: *//p' "$TODO/.done/${ts}.result.md" 2>/dev/null | head -1 | tr '[:upper:]' '[:lower:]')
+      case "$s" in *success*) ((done_n++)) ;; *) ((failed++)) ;; esac
+    elif ls "$TODO/.archived/"*"-${ts}.result.md" &>/dev/null; then
+      rf=$(ls "$TODO/.archived/"*"-${ts}.result.md" 2>/dev/null | head -1)
+      s=$(sed -n 's/^[*]*[Ss]tatus[*]*: *//p' "$rf" 2>/dev/null | head -1 | tr '[:upper:]' '[:lower:]')
+      case "$s" in *success*) ((done_n++)) ;; *) ((failed++)) ;; esac
+    elif [[ -f "$TODO/.running/${ts}.md" ]]; then
+      ((running++))
+    fi
+    # else: pending — counted in total but no category counter
+  done
+  unset seen_slugs
+
+  if (( total == 0 )); then continue; fi
+  icon="📋"
+  (( failed > 0 )) && icon="⚠️"
+  (( running > 0 )) && icon="▶"
+  (( done_n == total )) && icon="✅"
+  # Show compact summary — only include non-zero categories after done
+  summary="${done_n}/${total} done"
+  (( running > 0 )) && summary+="${T}${running} running"
+  (( failed > 0 )) && summary+="${T}${failed} failed"
+  echo "${icon}${T}${epic}${T}${summary}"
+done
+)
+
+# Output
+if [[ -n "$active" ]]; then
+  echo "$active" | column -t -s "$T"
 else
-  echo "(idle)"
+  echo "(no plans running)"
+fi
+if [[ -n "$recent" ]]; then
+  echo
+  echo "$recent" | column -t -s "$T"
+fi
+if [[ -n "$epics" ]]; then
+  echo
+  echo "$epics" | column -t -s "$T"
 fi

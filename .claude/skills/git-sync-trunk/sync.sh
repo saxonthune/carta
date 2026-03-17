@@ -77,7 +77,7 @@ fi
 
 # Update docs sync marker if anything was merged
 if [ ${#MERGED[@]} -gt 0 ]; then
-  git rev-parse HEAD > .docs/.last-sync
+  git rev-parse HEAD > .carta/.last-sync
 fi
 
 # Summary
