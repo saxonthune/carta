@@ -17,5 +17,10 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pip install pytest click pyyaml
+      - name: Build carta.pyz
+        run: |
+          cd packages/cli
+          python3 build_zipapp.py
+          cp carta.pyz carta_cli/carta.pyz
       - run: pnpm build
       - run: pnpm test

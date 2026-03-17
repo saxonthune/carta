@@ -9,6 +9,26 @@ import click
 from ..workspace import MARKER
 
 
+def _copy_portable(project_root: Path) -> None:
+    """Copy bundled carta.pyz to the project root."""
+    import shutil
+
+    bundled = resources.files("carta_cli").joinpath("carta.pyz")
+    dest = project_root / "carta.pyz"
+
+    try:
+        # importlib.resources may return a Traversable; use read_bytes for safety
+        dest.write_bytes(bundled.read_bytes())
+        click.echo(f"  Copied:   carta.pyz (portable CLI)")
+        click.echo(f"  Usage:    python3 carta.pyz <command>")
+    except FileNotFoundError:
+        click.echo(
+            "  Warning:  carta.pyz not found in package data. "
+            "Build it with: python3 build_zipapp.py",
+            err=True,
+        )
+
+
 def _read_template(name: str) -> str:
     """Read a template file from the package's templates/ directory."""
     return resources.files("carta_cli").joinpath("templates", name).read_text(encoding="utf-8")
@@ -17,8 +37,9 @@ def _read_template(name: str) -> str:
 @click.command()
 @click.option("--name", default=None, help="Workspace title. Default: parent directory name.")
 @click.option("--dir", "dirname", default=".carta", help="Name of the workspace directory. Default: .carta")
+@click.option("--portable", is_flag=True, default=False, help="Copy carta.pyz to project root for pip-free usage.")
 @click.pass_context
-def init(ctx: click.Context, name: str | None, dirname: str) -> None:
+def init(ctx: click.Context, name: str | None, dirname: str, portable: bool) -> None:
     """Initialize a new workspace in the current directory."""
     project_root = Path.cwd().resolve()
     marker_path = project_root / MARKER
@@ -85,6 +106,10 @@ def init(ctx: click.Context, name: str | None, dirname: str) -> None:
     click.echo(f"  Created:  {MARKER}")
     click.echo(f"  Created:  {dirname}/00-codex/00-index.md")
     click.echo(f"  Created:  {dirname}/MANIFEST.md")
+
+    if portable:
+        _copy_portable(project_root)
+
     click.echo(f"\nNext steps:")
     click.echo(f"  carta create 00-codex my-first-doc   # add a document")
     click.echo(f"  carta --help                          # see all commands")

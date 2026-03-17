@@ -1026,5 +1026,66 @@ class TestMkdir(unittest.TestCase):
         assert result.returncode != 0
 
 
+class TestVersion(unittest.TestCase):
+    """Test --version flag."""
+
+    def test_version_flag(self):
+        """carta --version prints the version string."""
+        result = subprocess.run(
+            [sys.executable, "-m", "carta_cli.main", "--version"],
+            capture_output=True, text=True, env=_ENV_WITH_CLI,
+        )
+        assert result.returncode == 0, f"--version failed:\n{result.stderr}"
+        from carta_cli.__version__ import __version__
+        assert __version__ in result.stdout
+
+
+class TestInitPortable(unittest.TestCase):
+    """Test carta init --portable."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.project_root = Path(self.tmpdir.name)
+        # Build a carta.pyz so --portable has something to copy
+        self._build_zipapp()
+
+    def tearDown(self):
+        self.tmpdir.cleanup()
+
+    def _build_zipapp(self):
+        """Build carta.pyz into the package data location so init can find it."""
+        build_script = _CLI_DIR / "build_zipapp.py"
+        result = subprocess.run(
+            [sys.executable, str(build_script)],
+            capture_output=True, text=True, cwd=str(_CLI_DIR),
+        )
+        assert result.returncode == 0, f"build_zipapp failed:\n{result.stderr}"
+        # Copy into carta_cli/ so importlib.resources can find it
+        pyz_src = _CLI_DIR / "carta.pyz"
+        pyz_dest = _CLI_DIR / "carta_cli" / "carta.pyz"
+        shutil.copy2(pyz_src, pyz_dest)
+
+    def test_init_portable_copies_pyz(self):
+        """carta init --portable copies carta.pyz to project root."""
+        result = subprocess.run(
+            [sys.executable, "-m", "carta_cli.main", "init", "--portable", "--name", "PortableTest"],
+            capture_output=True, text=True, env=_ENV_WITH_CLI,
+            cwd=str(self.project_root),
+        )
+        assert result.returncode == 0, f"init --portable failed:\n{result.stderr}\n{result.stdout}"
+
+        pyz_path = self.project_root / "carta.pyz"
+        assert pyz_path.exists(), "carta.pyz should be copied to project root"
+
+        # Verify the zipapp works
+        version_result = subprocess.run(
+            [sys.executable, str(pyz_path), "--version"],
+            capture_output=True, text=True,
+        )
+        assert version_result.returncode == 0, f"carta.pyz --version failed:\n{version_result.stderr}"
+        from carta_cli.__version__ import __version__
+        assert __version__ in version_result.stdout
+
+
 if __name__ == "__main__":
     unittest.main()

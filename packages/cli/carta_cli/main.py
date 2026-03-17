@@ -20,6 +20,7 @@ from pathlib import Path
 
 import click
 
+from .__version__ import __version__
 from .workspace import find_workspace
 from .commands.create import create
 from .commands.delete import delete
@@ -34,6 +35,7 @@ from .commands.copy import copy
 
 
 @click.group()
+@click.version_option(version=__version__, prog_name="carta-cli")
 @click.option(
     "--workspace", "-w",
     type=click.Path(exists=True, file_okay=False, path_type=Path),
