@@ -72,6 +72,12 @@ carta regenerate [--dry-run]
 ```
 Rebuild MANIFEST.md from filesystem and doc frontmatter. All structural commands run this automatically.
 
+### portable
+```
+carta portable
+```
+Copy `carta.pyz` to the project root. Updates the bundled zipapp so collaborators can use `python3 carta.pyz <command>` without pip.
+
 ## Frontmatter Schema
 
 Every workspace doc has YAML frontmatter:

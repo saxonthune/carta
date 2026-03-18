@@ -20,6 +20,24 @@ cd my-project
 carta init
 ```
 
+### Portable mode
+
+For collaborators who don't want to install via pip, `carta init --portable` drops a `carta.pyz` zipapp at the repo root. This bundles `carta_cli` + dependencies into a single file that runs with just `python3 >=3.10`:
+
+```bash
+# First user (has pip)
+carta init --portable
+
+# Collaborator (no pip needed)
+python3 carta.pyz regenerate
+```
+
+To update an existing repo's zipapp after upgrading via pip:
+
+```bash
+carta portable
+```
+
 `carta init` creates:
 ```
 my-project/

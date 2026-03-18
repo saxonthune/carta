@@ -1,7 +1,7 @@
 ---
 title: Workspace Scripts
 status: active
-summary: CLI tools for managing .carta/ workspace structure — create, delete, move, punch, flatten, regenerate
+summary: CLI tools for managing .carta/ workspace structure — create, delete, move, punch, flatten, regenerate, portable
 tags: [cli, workspace, tools, scripts]
 deps: [doc01.02.01]
 ---
@@ -23,6 +23,7 @@ The `carta` CLI manages the physical structure of a `.carta/` workspace. It hand
 | `copy` | Copy a file into the workspace at a given position |
 | `rewrite` | Rewrite doc refs using user-supplied mappings |
 | `regenerate` | Rebuild MANIFEST.md from document frontmatter |
+| `portable` | Copy `carta.pyz` to project root for pip-free usage |
 
 All structural operations maintain cross-reference integrity — refs in surviving documents are rewritten to reflect new positions.
 

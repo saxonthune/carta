@@ -37,7 +37,7 @@ Carta is a spec-driven development tool. The primary product is the `.carta/` wo
 | `/execute-plan` | Launches background agent to implement a plan from todo-tasks/ | After agreeing on a plan interactively |
 | `/spec-builder` | Elicits requirements via structured interviewing, produces shape files | When defining new modules, features, or services |
 | `/carta-spec-builder` | Composes spec-builder with .carta/ workspace knowledge and script pipeline | When building specs inside a .carta/ workspace |
-| `/carta-cli` | carta CLI reference: init, create, delete, move, punch, flatten, rewrite, regenerate | When initializing workspaces or restructuring `.carta/` docs |
+| `/carta-cli` | carta CLI reference: init, create, delete, move, punch, flatten, rewrite, regenerate, portable | When initializing workspaces or restructuring `.carta/` docs |
 
 **Agents** (launch with `Task` tool): Long-running autonomous workers.
 

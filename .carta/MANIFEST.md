@@ -32,7 +32,7 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 
 | doc01.00 | `00-index.md` | Product section index: goals, features, research | index, product | — |
 | doc01.02.01 | `02-features/01-docs-system.md` | The .carta/ workspace format — hierarchical docs, frontmatter, cross-references, MANIFEST | docs, workspace, format | doc01.01.01 |
-| doc01.02.02 | `02-features/02-workspace-scripts.md` | CLI tools for managing .carta/ workspace structure — create, delete, move, punch, flatten, regenerate | cli, workspace, tools, scripts | doc01.02.01 |
+| doc01.02.02 | `02-features/02-workspace-scripts.md` | CLI tools for managing .carta/ workspace structure — create, delete, move, punch, flatten, regenerate, portable | cli, workspace, tools, scripts | doc01.02.01 |
 | doc01.02.03 | `02-features/03-vscode-extension.md` | Canvas viewer and workspace browser for VS Code | vscode, extension, canvas | doc01.02.01, doc01.02.04 |
 | doc01.02.04 | `02-features/04-canvas.md` | Visual architecture editor — typed constructs, ports, connections, LOD rendering | canvas, editor, constructs, ports | doc01.01.01 |
 | doc01.02.05.00 | `02-features/05-web-platform/00-index.md` | Web client for nontechnical spec editing — conversational AI and direct editing flows | web, server, collaboration, git, ai, specs | doc01.02.04, doc01.02.01, doc01.01.02 |

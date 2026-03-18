@@ -9,26 +9,6 @@ import click
 from ..workspace import MARKER
 
 
-def _copy_portable(project_root: Path) -> None:
-    """Copy bundled carta.pyz to the project root."""
-    import shutil
-
-    bundled = resources.files("carta_cli").joinpath("carta.pyz")
-    dest = project_root / "carta.pyz"
-
-    try:
-        # importlib.resources may return a Traversable; use read_bytes for safety
-        dest.write_bytes(bundled.read_bytes())
-        click.echo(f"  Copied:   carta.pyz (portable CLI)")
-        click.echo(f"  Usage:    python3 carta.pyz <command>")
-    except FileNotFoundError:
-        click.echo(
-            "  Warning:  carta.pyz not found in package data. "
-            "Build it with: python3 build_zipapp.py",
-            err=True,
-        )
-
-
 def _read_template(name: str) -> str:
     """Read a template file from the package's templates/ directory."""
     return resources.files("carta_cli").joinpath("templates", name).read_text(encoding="utf-8")
@@ -108,7 +88,16 @@ def init(ctx: click.Context, name: str | None, dirname: str, portable: bool) -> 
     click.echo(f"  Created:  {dirname}/MANIFEST.md")
 
     if portable:
-        _copy_portable(project_root)
+        from .portable import copy_portable
+        if copy_portable(project_root):
+            click.echo(f"  Copied:   carta.pyz (portable CLI)")
+            click.echo(f"  Usage:    python3 carta.pyz <command>")
+        else:
+            click.echo(
+                "  Warning:  carta.pyz not found in package data. "
+                "Build it with: python3 build_zipapp.py",
+                err=True,
+            )
 
     click.echo(f"\nNext steps:")
     click.echo(f"  carta create 00-codex my-first-doc   # add a document")

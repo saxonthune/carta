@@ -189,6 +189,16 @@ carta regenerate [--dry-run]
 
 All structural commands run `regenerate` automatically. Use manually only if you edited frontmatter directly.
 
+### portable
+
+Copy `carta.pyz` to the project root for pip-free usage.
+
+```
+carta portable
+```
+
+Updates the bundled zipapp so collaborators can use `python3 carta.pyz <command>` without pip.
+
 ## Common Workflows
 
 ### Creating a new doc

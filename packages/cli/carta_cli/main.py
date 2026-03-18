@@ -14,6 +14,7 @@ Commands:
     regenerate           Rebuild MANIFEST.md from doc frontmatter
     migrate-frontmatter  Inject MANIFEST data into doc frontmatter (one-time)
     init                 Initialize a new workspace
+    portable             Copy carta.pyz to project root for pip-free usage
 """
 
 from pathlib import Path
@@ -32,6 +33,7 @@ from .commands.punch import punch
 from .commands.flatten import flatten
 from .commands.rewrite import rewrite
 from .commands.copy import copy
+from .commands.portable import portable
 
 
 @click.group()
@@ -46,8 +48,8 @@ from .commands.copy import copy
 def cli(ctx: click.Context, workspace: Path | None) -> None:
     """Workspace tools for managing documentation structure."""
     ctx.ensure_object(dict)
-    # `init` doesn't require an existing workspace — skip discovery for it
-    if ctx.invoked_subcommand == "init":
+    # `init` and `portable` don't require an existing workspace
+    if ctx.invoked_subcommand in ("init", "portable"):
         ctx.obj["workspace"] = None
         return
     if workspace is not None:
@@ -70,6 +72,7 @@ cli.add_command(punch)
 cli.add_command(flatten)
 cli.add_command(rewrite)
 cli.add_command(copy)
+cli.add_command(portable)
 
 
 if __name__ == "__main__":
