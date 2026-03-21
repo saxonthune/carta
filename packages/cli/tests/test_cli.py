@@ -1110,5 +1110,168 @@ class TestInitPortable(unittest.TestCase):
         assert config["portable"] == ".carta/carta.py"
 
 
+class TestGroupCommand(unittest.TestCase):
+    """Tests for `carta group` command."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.carta_copy = _copy_carta(Path(self.tmpdir.name))
+
+    def tearDown(self):
+        self.tmpdir.cleanup()
+
+    def test_group_creates_directory(self):
+        """carta group creates directory with 00-index.md and correct title."""
+        result = _run_carta(self.carta_copy, "group", "03-test-group", "--title", "Test Group")
+        self.assertEqual(result.returncode, 0, f"carta group failed:\n{result.stderr}\n{result.stdout}")
+
+        group_dir = self.carta_copy / "03-test-group"
+        self.assertTrue(group_dir.is_dir(), "Group directory should exist")
+        index_path = group_dir / "00-index.md"
+        self.assertTrue(index_path.exists(), "00-index.md should exist")
+
+        content = index_path.read_text(encoding="utf-8")
+        self.assertIn("Test Group", content, "Title should be in index content")
+
+    def test_group_errors_on_existing(self):
+        """carta group fails if directory already exists."""
+        # 01-product already exists
+        result = _run_carta(self.carta_copy, "group", "01-product", "--title", "Duplicate")
+        self.assertNotEqual(result.returncode, 0, "Should fail on existing directory")
+        self.assertIn("already exists", result.stderr)
+
+    def test_group_errors_without_prefix(self):
+        """carta group fails if directory name has no NN- prefix."""
+        result = _run_carta(self.carta_copy, "group", "no-prefix")
+        self.assertNotEqual(result.returncode, 0, "Should fail without numeric prefix")
+        self.assertIn("NN- prefix", result.stderr)
+
+
+class TestRenameCommand(unittest.TestCase):
+    """Tests for `carta rename` command."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.carta_copy = _copy_carta(Path(self.tmpdir.name))
+
+    def tearDown(self):
+        self.tmpdir.cleanup()
+
+    def test_rename_directory(self):
+        """carta rename renames a directory slug, keeping its prefix."""
+        old_dir = self.carta_copy / "01-product"
+        self.assertTrue(old_dir.exists(), "Source directory must exist before rename")
+
+        result = _run_carta(self.carta_copy, "rename", "01-product", "product-strategy")
+        self.assertEqual(result.returncode, 0, f"carta rename failed:\n{result.stderr}\n{result.stdout}")
+
+        new_dir = self.carta_copy / "01-product-strategy"
+        self.assertFalse(old_dir.exists(), "Old directory should be gone")
+        self.assertTrue(new_dir.is_dir(), "New directory should exist")
+
+    def test_rename_file(self):
+        """carta rename renames a file slug, keeping its prefix and extension."""
+        source_file = self.carta_copy / "00-codex" / "01-about.md"
+        self.assertTrue(source_file.exists(), "Source file must exist")
+
+        result = _run_carta(self.carta_copy, "rename", "doc00.01", "about-carta")
+        self.assertEqual(result.returncode, 0, f"carta rename failed:\n{result.stderr}\n{result.stdout}")
+
+        new_file = self.carta_copy / "00-codex" / "01-about-carta.md"
+        self.assertFalse(source_file.exists(), "Old file should be gone")
+        self.assertTrue(new_file.exists(), "New file should exist")
+
+    def test_rename_errors_on_missing(self):
+        """carta rename fails if target does not exist."""
+        result = _run_carta(self.carta_copy, "rename", "99-nonexistent", "something")
+        self.assertNotEqual(result.returncode, 0, "Should fail on missing target")
+
+
+class TestMoveNoRegen(unittest.TestCase):
+    """Tests for `carta move --no-regen`."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.carta_copy = _copy_carta(Path(self.tmpdir.name))
+
+    def tearDown(self):
+        self.tmpdir.cleanup()
+
+    def test_move_no_regen_skips_manifest_update(self):
+        """--no-regen leaves MANIFEST unchanged after move."""
+        manifest_path = self.carta_copy / "MANIFEST.md"
+        manifest_before = manifest_path.read_text(encoding="utf-8")
+
+        result = _run_carta(self.carta_copy, "move", "doc00.05", "doc01", "--no-regen")
+        self.assertEqual(result.returncode, 0, f"carta move --no-regen failed:\n{result.stderr}")
+
+        manifest_after = manifest_path.read_text(encoding="utf-8")
+        self.assertEqual(manifest_before, manifest_after, "MANIFEST should be unchanged with --no-regen")
+
+    def test_regenerate_works_after_no_regen_move(self):
+        """After --no-regen move, carta regenerate succeeds."""
+        _run_carta(self.carta_copy, "move", "doc00.05", "doc01", "--no-regen")
+        result = _run_carta(self.carta_copy, "regenerate")
+        self.assertEqual(result.returncode, 0, f"regenerate after --no-regen failed:\n{result.stderr}")
+
+
+class TestHelpAi(unittest.TestCase):
+    """Tests for `carta --help-ai`."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.carta_copy = _copy_carta(Path(self.tmpdir.name))
+
+    def tearDown(self):
+        self.tmpdir.cleanup()
+
+    def test_help_ai_lists_all_commands(self):
+        """--help-ai prints all command names."""
+        result = _run_carta(self.carta_copy, "--help-ai")
+        self.assertEqual(result.returncode, 0, f"--help-ai failed:\n{result.stderr}")
+
+        expected_commands = [
+            "create", "delete", "move", "group", "rename",
+            "punch", "flatten", "copy", "rewrite", "regenerate",
+            "init", "portable",
+        ]
+        for cmd in expected_commands:
+            self.assertIn(f"## {cmd}", result.stdout, f"Command '{cmd}' missing from --help-ai output")
+
+
+class TestExistingCommandsUnified(unittest.TestCase):
+    """Smoke tests to verify existing commands still work after unification."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.carta_copy = _copy_carta(Path(self.tmpdir.name))
+
+    def tearDown(self):
+        self.tmpdir.cleanup()
+
+    def test_create_works(self):
+        """carta create still works after unification."""
+        result = _run_carta(self.carta_copy, "create", "00-codex", "my-unified-doc",
+                            "--title", "Unified Doc")
+        self.assertEqual(result.returncode, 0, f"carta create failed:\n{result.stderr}\n{result.stdout}")
+        self.assertTrue((self.carta_copy / "00-codex" / "07-my-unified-doc.md").exists()
+                        or any((self.carta_copy / "00-codex").glob("*my-unified-doc*")),
+                        "Created doc should exist")
+
+    def test_delete_works(self):
+        """carta delete still works after unification."""
+        result = _run_carta(self.carta_copy, "delete", "doc00.05")
+        self.assertEqual(result.returncode, 0, f"carta delete failed:\n{result.stderr}\n{result.stdout}")
+        self.assertFalse((self.carta_copy / "00-codex" / "05-ai-retrieval.md").exists(),
+                         "Deleted file should not exist")
+
+    def test_move_works(self):
+        """carta move still works after unification."""
+        result = _run_carta(self.carta_copy, "move", "doc00.05", "doc01")
+        self.assertEqual(result.returncode, 0, f"carta move failed:\n{result.stderr}\n{result.stdout}")
+        self.assertFalse((self.carta_copy / "00-codex" / "05-ai-retrieval.md").exists(),
+                         "Source should have moved")
+
+
 if __name__ == "__main__":
     unittest.main()
