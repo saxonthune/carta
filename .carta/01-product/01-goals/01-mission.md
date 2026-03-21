@@ -14,6 +14,12 @@ Carta is a standard for spec-driven software development. The primary product is
 
 Professionalize vibe coding. Provide a specification layer rich enough that AI agents can generate and maintain code from structured documentation — the same way compilers let users stay out of assembly. Bridge the gap between high-level architecture design and AI-assisted code generation through structured, machine-readable specifications.
 
+## Right to Repair
+
+Carta tooling should be transparent, modifiable, and self-contained. Users own their workspace — including the scripts that operate on it. When Carta distributes portable tooling (e.g., `carta init --portable`), it dumps raw, readable source files into the `.carta/` directory rather than opaque archives. Users can read, modify, and extend these scripts to fit their workflow.
+
+The `.carta/` directory is a self-contained portable unit: documentation and the tooling that operates on it travel together. Copy the directory to another repo and it carries its own scripts. This is the core design goal of portable mode — not a side effect, but the entire point. A workspace should be useful without any external installation.
+
 ## The Dual Mandate
 
 All design decisions must balance two objectives:
