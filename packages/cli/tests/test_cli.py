@@ -1046,27 +1046,12 @@ class TestInitPortable(unittest.TestCase):
     def setUp(self):
         self.tmpdir = tempfile.TemporaryDirectory()
         self.project_root = Path(self.tmpdir.name)
-        # Build a carta.pyz so --portable has something to copy
-        self._build_zipapp()
 
     def tearDown(self):
         self.tmpdir.cleanup()
 
-    def _build_zipapp(self):
-        """Build carta.pyz into the package data location so init can find it."""
-        build_script = _CLI_DIR / "build_zipapp.py"
-        result = subprocess.run(
-            [sys.executable, str(build_script)],
-            capture_output=True, text=True, cwd=str(_CLI_DIR),
-        )
-        assert result.returncode == 0, f"build_zipapp failed:\n{result.stderr}"
-        # Copy into carta_cli/ so importlib.resources can find it
-        pyz_src = _CLI_DIR / "carta.pyz"
-        pyz_dest = _CLI_DIR / "carta_cli" / "carta.pyz"
-        shutil.copy2(pyz_src, pyz_dest)
-
-    def test_init_portable_copies_pyz(self):
-        """carta init --portable copies carta.pyz to project root."""
+    def test_init_portable_creates_scripts(self):
+        """carta init --portable dumps scripts into .carta/."""
         result = subprocess.run(
             [sys.executable, "-m", "carta_cli.main", "init", "--portable", "--name", "PortableTest"],
             capture_output=True, text=True, env=_ENV_WITH_CLI,
@@ -1074,17 +1059,55 @@ class TestInitPortable(unittest.TestCase):
         )
         assert result.returncode == 0, f"init --portable failed:\n{result.stderr}\n{result.stdout}"
 
-        pyz_path = self.project_root / "carta.pyz"
-        assert pyz_path.exists(), "carta.pyz should be copied to project root"
+        carta_dir = self.project_root / ".carta"
+        assert (carta_dir / "carta.py").exists(), "carta.py should exist at .carta/ root"
+        assert (carta_dir / "_scripts").is_dir(), "_scripts/ directory should exist"
+        assert (carta_dir / "_scripts" / "frontmatter.py").exists()
+        assert (carta_dir / "_scripts" / "__init__.py").exists()
+        assert (carta_dir / "_scripts" / "manifest-preamble.md").exists()
 
-        # Verify the zipapp works
-        version_result = subprocess.run(
-            [sys.executable, str(pyz_path), "--version"],
+    def test_portable_scripts_execute(self):
+        """Portable carta.py can run regenerate."""
+        subprocess.run(
+            [sys.executable, "-m", "carta_cli.main", "init", "--portable", "--name", "PortableTest"],
+            capture_output=True, text=True, env=_ENV_WITH_CLI,
+            cwd=str(self.project_root),
+        )
+
+        carta_py = self.project_root / ".carta" / "carta.py"
+        result = subprocess.run(
+            [sys.executable, str(carta_py), "regenerate"],
+            capture_output=True, text=True,
+            cwd=str(self.project_root),
+        )
+        assert result.returncode == 0, f"portable regenerate failed:\n{result.stderr}"
+
+    def test_portable_version(self):
+        """Portable carta.py --version works."""
+        subprocess.run(
+            [sys.executable, "-m", "carta_cli.main", "init", "--portable", "--name", "PortableTest"],
+            capture_output=True, text=True, env=_ENV_WITH_CLI,
+            cwd=str(self.project_root),
+        )
+        carta_py = self.project_root / ".carta" / "carta.py"
+        result = subprocess.run(
+            [sys.executable, str(carta_py), "--version"],
             capture_output=True, text=True,
         )
-        assert version_result.returncode == 0, f"carta.pyz --version failed:\n{version_result.stderr}"
+        assert result.returncode == 0
         from carta_cli.__version__ import __version__
-        assert __version__ in version_result.stdout
+        assert __version__ in result.stdout
+
+    def test_carta_json_has_portable_field(self):
+        """After --portable, .carta.json has portable field."""
+        subprocess.run(
+            [sys.executable, "-m", "carta_cli.main", "init", "--portable", "--name", "PortableTest"],
+            capture_output=True, text=True, env=_ENV_WITH_CLI,
+            cwd=str(self.project_root),
+        )
+        config = json.loads((self.project_root / ".carta.json").read_text())
+        assert "portable" in config
+        assert config["portable"] == ".carta/carta.py"
 
 
 if __name__ == "__main__":

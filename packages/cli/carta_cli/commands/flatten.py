@@ -12,7 +12,8 @@ from ..planning import compute_rename_map
 from ..rewriter import collect_md_files, rewrite_refs
 from ..workspace import load_workspace, get_external_ref_paths
 from ..frontmatter import read_frontmatter
-from .regenerate import do_regenerate
+from ..regenerate_core import do_regenerate
+from .regenerate import load_preamble
 
 
 def _count_content_lines(path: Path) -> int:
@@ -178,7 +179,7 @@ def flatten(ctx: click.Context, source: str, keep_index: bool, force: bool,
     rewrite_results = rewrite_refs(md_files, rename_map)
 
     # Rebuild manifest
-    do_regenerate(carta_root)
+    do_regenerate(carta_root, load_preamble(carta_root.name))
 
     # --- Summary ---
     click.echo(f"Flattened: {source_path.name} ({len(hoisted)} children hoisted)")

@@ -14,7 +14,7 @@ Commands:
     regenerate           Rebuild MANIFEST.md from doc frontmatter
     migrate-frontmatter  Inject MANIFEST data into doc frontmatter (one-time)
     init                 Initialize a new workspace
-    portable             Copy carta.pyz to project root for pip-free usage
+    portable             Dump editable scripts into workspace for pip-free usage
 """
 
 from pathlib import Path

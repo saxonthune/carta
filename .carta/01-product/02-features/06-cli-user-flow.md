@@ -22,20 +22,33 @@ carta init
 
 ### Portable mode
 
-For collaborators who don't want to install via pip, `carta init --portable` drops a `carta.pyz` zipapp at the repo root. This bundles `carta_cli` + dependencies into a single file that runs with just `python3 >=3.10`:
+For collaborators who don't want to install via pip, `carta init --portable` dumps editable Python scripts directly into the `.carta/` directory. These scripts are raw Python (stdlib only, no dependencies) and can be read, modified, and extended:
 
 ```bash
 # First user (has pip)
 carta init --portable
 
-# Collaborator (no pip needed)
-python3 carta.pyz regenerate
+# Collaborator (no pip needed, just python3 >=3.10)
+python3 .carta/carta.py regenerate
+python3 .carta/carta.py create 00-codex my-doc
 ```
 
-To update an existing repo's zipapp after upgrading via pip:
+The portable scripts make `.carta/` a self-contained unit — documentation and tooling travel together. Copy the directory to another repo and it carries its own scripts.
+
+To update an existing workspace's scripts after upgrading via pip:
 
 ```bash
 carta portable
+```
+
+Portable layout:
+```
+.carta/
+  carta.py          <- main entry point (edit freely)
+  _scripts/         <- library modules
+  MANIFEST.md
+  00-codex/
+  ...
 ```
 
 `carta init` creates:

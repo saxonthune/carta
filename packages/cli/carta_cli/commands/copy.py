@@ -8,7 +8,8 @@ import click
 
 from ..entries import resolve_arg, list_numbered_entries
 from ..numbering import get_numeric_prefix, compute_insertion_prefix
-from .regenerate import do_regenerate
+from ..regenerate_core import do_regenerate
+from .regenerate import load_preamble
 
 
 @click.command()
@@ -81,7 +82,7 @@ def copy(ctx: click.Context, source_file: str, destination: str, order: int | No
     shutil.copy2(str(source_path), str(new_path))
 
     # Regenerate manifest
-    do_regenerate(carta_root)
+    do_regenerate(carta_root, load_preamble(carta_root.name))
 
     click.echo(f"Copied: {source_path.name} -> {new_path.relative_to(carta_root)}")
     click.echo(f"  Position: {prefix:02d}")

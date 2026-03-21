@@ -23,7 +23,7 @@ The `carta` CLI manages the physical structure of a `.carta/` workspace. It hand
 | `copy` | Copy a file into the workspace at a given position |
 | `rewrite` | Rewrite doc refs using user-supplied mappings |
 | `regenerate` | Rebuild MANIFEST.md from document frontmatter |
-| `portable` | Copy `carta.pyz` to project root for pip-free usage |
+| `portable` | Dump editable scripts into workspace for pip-free usage |
 
 All structural operations maintain cross-reference integrity — refs in surviving documents are rewritten to reflect new positions.
 

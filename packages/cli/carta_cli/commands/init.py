@@ -17,7 +17,7 @@ def _read_template(name: str) -> str:
 @click.command()
 @click.option("--name", default=None, help="Workspace title. Default: parent directory name.")
 @click.option("--dir", "dirname", default=".carta", help="Name of the workspace directory. Default: .carta")
-@click.option("--portable", is_flag=True, default=False, help="Copy carta.pyz to project root for pip-free usage.")
+@click.option("--portable", is_flag=True, default=False, help="Dump editable Python scripts into workspace for pip-free usage.")
 @click.pass_context
 def init(ctx: click.Context, name: str | None, dirname: str, portable: bool) -> None:
     """Initialize a new workspace in the current directory."""
@@ -79,8 +79,9 @@ def init(ctx: click.Context, name: str | None, dirname: str, portable: bool) -> 
 
     # Run regenerate to build the real MANIFEST
     # Import here to avoid circular dependency at module level
-    from .regenerate import do_regenerate
-    do_regenerate(carta_dir)
+    from ..regenerate_core import do_regenerate
+    from .regenerate import load_preamble
+    do_regenerate(carta_dir, load_preamble(carta_dir.name))
 
     click.echo(f"\nInitialized {dirname}/ workspace: {title}")
     click.echo(f"  Created:  {MARKER}")
@@ -89,15 +90,11 @@ def init(ctx: click.Context, name: str | None, dirname: str, portable: bool) -> 
 
     if portable:
         from .portable import copy_portable
-        if copy_portable(project_root):
-            click.echo(f"  Copied:   carta.pyz (portable CLI)")
-            click.echo(f"  Usage:    python3 carta.pyz <command>")
+        if copy_portable(carta_dir):
+            click.echo(f"  Dumped:   portable scripts into {dirname}/")
+            click.echo(f"  Usage:    python3 {dirname}/carta.py <command>")
         else:
-            click.echo(
-                "  Warning:  carta.pyz not found in package data. "
-                "Build it with: python3 build_zipapp.py",
-                err=True,
-            )
+            click.echo("  Warning: failed to copy portable scripts.", err=True)
 
     click.echo(f"\nNext steps:")
     click.echo(f"  carta create 00-codex my-first-doc   # add a document")

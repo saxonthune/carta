@@ -11,7 +11,8 @@ from ..planning import compute_all_moves, compute_rename_map, print_rename_map
 from ..rewriter import collect_md_files, rewrite_refs
 from ..frontmatter import write_frontmatter
 from ..workspace import load_workspace, get_external_ref_paths
-from .regenerate import do_regenerate
+from ..regenerate_core import do_regenerate
+from .regenerate import load_preamble
 
 
 def _create_index_for_new_dir(dir_path: Path) -> None:
@@ -138,7 +139,7 @@ def move(ctx: click.Context, source: str, destination: str, order: int | None, m
     rewrite_results = rewrite_refs(md_files, rename_map)
 
     # Rebuild MANIFEST.md from scratch (replaces incremental manifest manipulation)
-    do_regenerate(carta_root)
+    do_regenerate(carta_root, load_preamble(carta_root.name))
 
     # Print summary
     click.echo(f"Moved {len(moves)} item(s):")

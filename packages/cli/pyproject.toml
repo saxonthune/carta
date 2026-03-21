@@ -20,4 +20,4 @@ packages = ["carta_cli"]
 [tool.hatch.build.targets.wheel.force-include]
 "carta_cli/manifest-preamble.md" = "carta_cli/manifest-preamble.md"
 "carta_cli/templates" = "carta_cli/templates"
-"carta.pyz" = "carta_cli/carta.pyz"
+"carta_cli/portable" = "carta_cli/portable"

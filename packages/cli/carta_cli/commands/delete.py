@@ -12,7 +12,8 @@ from ..planning import compute_rename_map
 from ..ref_convert import path_to_ref
 from ..rewriter import collect_md_files, rewrite_refs
 from ..workspace import load_workspace, get_external_ref_paths
-from .regenerate import do_regenerate
+from ..regenerate_core import do_regenerate
+from .regenerate import load_preamble
 
 
 def _collect_refs_under(path: Path, carta_root: Path) -> set[str]:
@@ -208,7 +209,7 @@ def delete(ctx: click.Context, targets: tuple[str, ...], dry_run: bool, output_m
     rewrite_results = rewrite_refs(md_files_after, rename_map)
 
     # Rebuild manifest
-    do_regenerate(carta_root)
+    do_regenerate(carta_root, load_preamble(carta_root.name))
 
     # Summary
     click.echo(f"Deleted {len(target_paths)} entry(ies):")

@@ -8,7 +8,8 @@ import click
 from ..entries import resolve_arg, list_numbered_entries
 from ..numbering import get_numeric_prefix, compute_insertion_prefix
 from ..frontmatter import write_frontmatter
-from .regenerate import do_regenerate
+from ..regenerate_core import do_regenerate
+from .regenerate import load_preamble
 
 
 @click.command()
@@ -86,7 +87,7 @@ def create(ctx: click.Context, destination: str, slug: str, order: int | None, t
     write_frontmatter(new_path, frontmatter, f"\n# {title}\n")
 
     # Regenerate manifest
-    do_regenerate(carta_root)
+    do_regenerate(carta_root, load_preamble(carta_root.name))
 
     click.echo(f"Created: {new_path.relative_to(carta_root)}")
     click.echo(f"  Title: {title}")

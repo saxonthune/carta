@@ -76,7 +76,7 @@ Rebuild MANIFEST.md from filesystem and doc frontmatter. All structural commands
 ```
 carta portable
 ```
-Copy `carta.pyz` to the project root. Updates the bundled zipapp so collaborators can use `python3 carta.pyz <command>` without pip.
+Dump editable Python scripts into the workspace. Updates the scripts in `{{dir_name}}/_scripts/` so collaborators can use `python3 {{dir_name}}/carta.py <command>` without pip.
 
 ## Frontmatter Schema
 
