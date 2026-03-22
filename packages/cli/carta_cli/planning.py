@@ -61,7 +61,8 @@ def _compute_same_dir_moves(
 
     if insertion_prefix == source_prefix:
         if rename_slug and rename_slug != source_slug:
-            new_name = f"{source_prefix:02d}-{rename_slug}"
+            effective = _apply_rename(source_slug, rename_slug)
+            new_name = f"{source_prefix:02d}-{effective}"
             return [(source_path, dest_dir / new_name)]
         return []  # true no-op
 
@@ -92,11 +93,30 @@ def _compute_same_dir_moves(
             moves.append((entry, entry.parent / new_name))
 
     # Main move (last, after shifts free the slot)
-    effective_slug = rename_slug if rename_slug else source_slug
+    effective_slug = _apply_rename(source_slug, rename_slug)
     new_name = f"{insertion_prefix:02d}-{effective_slug}"
     moves.append((source_path, dest_dir / new_name))
 
     return moves
+
+
+def _apply_rename(source_slug: str, rename_slug: str | None) -> str:
+    """Apply a rename slug while preserving the original file extension.
+
+    source_slug includes extension (e.g. "state.md"), rename_slug does not
+    (e.g. "canvas-state").  If the source had an extension, carry it over.
+    """
+    if not rename_slug:
+        return source_slug
+    # Preserve extension from original slug (e.g. ".md")
+    ext = ""
+    dot = source_slug.rfind(".")
+    if dot != -1 and "/" not in source_slug[dot:]:
+        ext = source_slug[dot:]
+    # Don't double-add extension if user already included it
+    if ext and not rename_slug.endswith(ext):
+        return rename_slug + ext
+    return rename_slug
 
 
 def _compute_cross_dir_moves(
@@ -119,7 +139,7 @@ def _compute_cross_dir_moves(
     else:
         insertion_prefix = order
 
-    effective_slug = rename_slug if rename_slug else source_slug
+    effective_slug = _apply_rename(source_slug, rename_slug)
     new_source_name = f"{insertion_prefix:02d}-{effective_slug}"
     moves: list[tuple[Path, Path]] = []
 

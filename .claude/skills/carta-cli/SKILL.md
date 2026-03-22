@@ -199,6 +199,16 @@ carta portable
 
 Updates the bundled zipapp so collaborators can use `python3 carta.pyz <command>` without pip.
 
+## Behavioral Rules for Multi-Step Operations
+
+- **Gap-closing is automatic**: When an entry is removed from a directory (via `move`, `delete`, `flatten`), all higher-numbered siblings are renumbered down. This means source paths change after each move — always check paths between sequential moves.
+- **`--order` bumps siblings**: Inserting at position N shifts everything at N and above up by one in the destination directory.
+- **`--no-regen` scope**: Skips MANIFEST rebuild only. Ref rewriting in doc content still happens. Use for batch operations, then `carta regenerate` once at the end.
+- **`--rename` preserves extensions**: When renaming a `.md` file, the extension is carried over automatically. You can pass just the slug (e.g., `--rename canvas-state`).
+- **`group` doesn't renumber**: Unlike `move`, `carta group` creates the directory without renumbering existing siblings, allowing temporary duplicate prefixes during restructures.
+- **Non-.md sidecar files**: Commands only operate on numbered entries. Sidecar files (`.canvas.json`, images) must be moved manually.
+- **Sequencing**: Run moves sequentially, not in parallel. Each move changes numbering for subsequent commands. Use `--dry-run` to verify.
+
 ## Common Workflows
 
 ### Creating a new doc

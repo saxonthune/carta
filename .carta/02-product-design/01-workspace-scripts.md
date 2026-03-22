@@ -28,6 +28,7 @@ All command logic lives in a single `commands.py` module using relative imports.
 | `rewrite` | Rewrite doc refs using user-supplied mappings |
 | `regenerate` | Rebuild MANIFEST.md from document frontmatter |
 | `portable` | Dump editable scripts into workspace for pip-free usage |
+| `ai-skill` | Generate comprehensive context for AI agents — command semantics, side effects, sequencing rules, and workspace state |
 
 > **Note:** `migrate-frontmatter` has been removed. It was a one-time operation and is no longer included.
 
