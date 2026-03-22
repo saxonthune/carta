@@ -47,7 +47,7 @@ carta create <destination> <slug> [--order N] [--title "..."] [--dry-run]
 ```bash
 carta create doc00 test-doc                        # append to 00-codex/
 carta create doc01 new-feature --order 3           # create at position 03
-carta create doc01.03 my-section --title "My Section" # custom title
+carta create doc01.08 my-section --title "My Section" # custom title
 carta create doc00 test-doc --dry-run              # preview only
 ```
 
@@ -69,10 +69,10 @@ carta delete <target>... [--dry-run] [--output-mapping]
 
 **Examples**:
 ```bash
-carta delete doc01.03.01                                # delete a single doc
-carta delete doc01.02 doc01.03                          # delete multiple entries
-carta delete doc01.03.01 --dry-run                      # preview deletions + orphan warnings
-carta delete doc01.03.01 --output-mapping > map.json    # capture rename map for rewrite
+carta delete doc01.08.01                                # delete a single doc
+carta delete doc01.02 doc01.08                          # delete multiple entries
+carta delete doc01.08.01 --dry-run                      # preview deletions + orphan warnings
+carta delete doc01.08.01 --output-mapping > map.json    # capture rename map for rewrite
 ```
 
 ### move
@@ -91,10 +91,10 @@ carta move <source> <destination> [--order N] [--rename <slug>] [--mkdir] [--dry
 
 **Examples**:
 ```bash
-carta move doc01.02.01 doc01 --order 2                           # promote into parent
-carta move doc01.02.01 . --rename diagramming                   # rename slug in place
-carta move doc01.02.01 doc01 --order 2 --rename diagramming     # move + rename
-carta move doc01.03 01-product --mkdir --order 3 --rename research  # move into new dir
+carta move doc01.05 doc01 --order 2                           # promote into parent
+carta move doc01.05 . --rename diagramming                   # rename slug in place
+carta move doc01.05 doc01 --order 2 --rename diagramming     # move + rename
+carta move doc01.08 01-product --mkdir --order 3 --rename research  # move into new dir
 ```
 
 ### punch
@@ -111,7 +111,7 @@ carta punch <source> [--dry-run]
 
 **Example**:
 ```bash
-carta punch doc01.02.01.01    # 01-canvas.md → 01-canvas/00-index.md
+carta punch doc03.04    # 01-canvas.md → 01-canvas/00-index.md
 ```
 
 ### flatten
@@ -229,7 +229,7 @@ title: Canvas
 status: draft
 summary: Pan, zoom, LOD rendering
 tags: [canvas, lod, zoom]
-deps: [doc01.03.07]
+deps: [doc01.08.07]
 ---
 ```
 

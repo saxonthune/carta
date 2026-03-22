@@ -12,11 +12,11 @@ deps: []
 
 Use `docXX.YY` to reference another document. Every segment is two digits:
 
-- `doc01.01.03` — title 01 (product), subdir 01 (goals), item 03 (glossary)
-- `doc02.04.02` — title 02 (architecture), subdir 04 (canvas), item 02 (metamodel)
-- `doc02.06.01` — title 02 (architecture), subdir 06 (decisions), item 01
+- `doc01.08` — title 01 (product), subdir 01 (goals), item 03 (glossary)
+- `doc03.09` — title 02 (architecture), subdir 04 (canvas), item 02 (metamodel)
+- `doc02.08.01` — title 02 (architecture), subdir 06 (decisions), item 01
 
-Two digits per segment, unlimited depth. Nesting can go as deep as the directory structure requires — `doc01.01.04.01` is perfectly valid if the file tree warrants it. Each segment maps to a numbered directory or file. If a directory exceeds 99 items, split it into subdirectories rather than widening the numbering.
+Two digits per segment, unlimited depth. Nesting can go as deep as the directory structure requires — `doc01.04.01` is perfectly valid if the file tree warrants it. Each segment maps to a numbered directory or file. If a directory exceeds 99 items, split it into subdirectories rather than widening the numbering.
 
 The regex pattern `doc\d{2}(\.\d{2})*` matches all references and is grep-friendly:
 
@@ -84,4 +84,4 @@ Subdirectories may also have a `00-index.md` when their organizational logic nee
 - **One concept per file.** If a file covers two distinct things, split it.
 - **Reference, don't repeat.** If a concept has a canonical doc, link to it with `docXX.YY` instead of re-explaining.
 - **Describe behavior, not implementation.** Feature docs should be clear enough to write a test from. Architecture docs should explain structure, not paste code.
-- **Use the glossary.** Domain terms defined in doc01.01.03 should be used consistently. Don't invent synonyms.
+- **Use the glossary.** Domain terms defined in doc01.08 should be used consistently. Don't invent synonyms.

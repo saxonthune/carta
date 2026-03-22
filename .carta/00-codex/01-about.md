@@ -20,7 +20,7 @@ This is the canonical documentation for Carta — the spec-driven development st
 
 ## Cross-References
 
-Documents reference each other using `doc` syntax: `docXX.YY.ZZ` where each segment is a two-digit number mapping to the directory/file numbering. For example, `doc01.02.04` refers to title 01 (product), subdir 02 (features), item 04 (canvas).
+Documents reference each other using `doc` syntax: `docXX.YY.ZZ` where each segment is a two-digit number mapping to the directory/file numbering. For example, `doc01.06.02` refers to title 01 (product), subdir 02 (features), item 04 (canvas).
 
 See doc00.03 for full conventions.
 

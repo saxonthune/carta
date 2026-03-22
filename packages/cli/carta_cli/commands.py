@@ -870,12 +870,6 @@ def cmd_init(args) -> None:
         "root": f"{dirname}/",
         "title": title,
         "description": "",
-        "groups": {
-            "00-codex": {
-                "name": "Codex",
-                "description": "Meta-documentation: how to read docs, cross-reference syntax, maintenance",
-            }
-        },
         "externalRefPaths": [
             "CLAUDE.md",
             ".claude/skills/**/*.md",

@@ -15,7 +15,7 @@ Reverse-audits documentation against the codebase. While `/documentation-nag` is
 - "Check docs against code"
 - "Find stale doc references"
 - `/documentation-auditor`
-- `/documentation-auditor doc02.04.03`
+- `/documentation-auditor doc03.05`
 
 ## What It Does NOT Do
 

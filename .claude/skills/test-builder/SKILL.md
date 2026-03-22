@@ -10,7 +10,7 @@ Creates integration and E2E tests for Carta features. Does NOT write unit tests.
 ## Reference Documentation
 
 Testing guidance lives in `.carta/` (source of truth):
-- **Architecture overview** (doc02.01): Layer separation, data flow
+- **Architecture overview** (doc03.01): Layer separation, data flow
 
 Read these before writing tests:
 ```

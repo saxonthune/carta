@@ -12,12 +12,12 @@ Carta is a spec-driven development tool. The primary product is the `.carta/` wo
 
 ## Documentation
 
-**`.carta/` is the canonical source of truth** — a Carta workspace containing specifications and architecture docs. Cross-references use `docXX.YY.ZZ` syntax (e.g., `doc02.04.02` = metamodel). Key docs:
+**`.carta/` is the canonical source of truth** — a Carta workspace containing specifications and architecture docs. Cross-references use `docXX.YY.ZZ` syntax (e.g., `doc02.05` = metamodel). Key docs:
 
-- **Product**: doc01.01 (goals), doc01.02 (features), doc01.03 (research)
-- **Architecture**: doc02.01 (overview), doc02.02 (reconciliation), doc02.03 (vscode extension)
-- **Canvas**: doc02.04.01 (state), doc02.04.02 (metamodel), doc02.04.03 (frontend), doc02.04.07 (design system)
-- **Decisions**: doc02.06 (ADRs)
+- **Strategy**: doc01.01 (mission), doc01.02 (principles), doc01.06 (products), doc01.07 (reconciliation), doc01.08 (research)
+- **Design**: doc02.01 (workspace scripts), doc02.05 (metamodel), doc02.06 (presentation model), doc02.08 (ADRs)
+- **Architecture**: doc03.01 (overview), doc03.04 (canvas state), doc03.05 (frontend), doc03.08 (design system)
+- **Code Shapes**: doc04 (empty — future)
 
 ## Skills & Agents
 
@@ -64,9 +64,9 @@ All skills follow the same pattern: opus reads `.carta/` and code, analyzes, gen
 | `/git-sync-trunk` | Git worktree workflows | `.claude/skills/git-sync-trunk/SKILL.md` |
 | `/git-sync-worktree` | Git worktree workflows | `.claude/skills/git-sync-worktree/SKILL.md` |
 | `/execute-plan` | Plan executor workflow | `.claude/skills/execute-plan/SKILL.md` |
-| `/spec-builder` | doc01.03.06 (reconciliation), doc01.03.07 (spec quality) | `.claude/skills/spec-builder/SKILL.md` |
-| `/carta-spec-builder` | doc01.03.06, doc01.03.07, `.carta/` workspace structure | `.claude/skills/carta-spec-builder/SKILL.md` |
-| `/carta-cli` | doc01.02.02 (workspace scripts), doc01.02.06 (CLI user flow) | `.claude/skills/carta-cli/SKILL.md` |
+| `/spec-builder` | doc01.08.06 (reconciliation), doc01.08.07 (spec quality) | `.claude/skills/spec-builder/SKILL.md` |
+| `/carta-spec-builder` | doc01.08.06, doc01.08.07, `.carta/` workspace structure | `.claude/skills/carta-spec-builder/SKILL.md` |
+| `/carta-cli` | doc03.01 (workspace scripts), doc03.02 (CLI user flow) | `.claude/skills/carta-cli/SKILL.md` |
 
 ### Agent Details
 
