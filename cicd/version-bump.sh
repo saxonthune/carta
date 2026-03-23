@@ -70,8 +70,10 @@ PR_URL=$(gh pr create \
 
 echo ""
 echo "PR created: $PR_URL"
-echo "Waiting for checks to pass..."
+echo "Waiting for checks to start..."
+sleep 10
 
+echo "Waiting for checks to pass..."
 gh pr checks "$PR_URL" --watch --fail-fast
 
 echo "Checks passed. Merging..."
