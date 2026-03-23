@@ -55,6 +55,7 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 | doc01.06.01 | `06-products/01-cli-scripts.md` |  |  | — |
 | doc01.06.02 | `06-products/02-canvas.md` | Visual architecture editor — typed constructs, ports, connections, LOD rendering | canvas, editor, constructs, ports | doc01.01 |
 | doc01.06.03 | `06-products/03-spec-web-editor.md` |  |  | — |
+| doc01.06.04 | `06-products/04-decision-table-renderer.md` | GUI editor for decision tables — structured data storage, rich table editing, markdown export for AI consumption | decision-tables, product, editor, rules | doc01.01 |
 
 ### Research Sessions
 
@@ -71,6 +72,7 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 | doc01.08.07 | `08-research/07-documentation-systems-and-retrieval.md` | Principles behind hierarchical docs systems, agentic search improvement, scientific comparison of docs structures, and what makes individual specs good enough for code generation | docs, retrieval, ai, specifications, elicitation, information-architecture, evaluation | doc00.05, doc01.08.06 |
 | doc01.08.08 | `08-research/08-spec-format-vocabulary.md` | What parts of the spec format Carta has opinions on vs what's up to users — format concerns vs user concerns | specs, vocabulary, format, agnosticism, workspace, principles | doc01.05, doc01.02, doc01.08, doc01.08.06 |
 | doc01.08.09 | `08-research/09-product-as-transition-system.md` | Modeling products as guarded transition systems — verifiable reachability, dead-end detection, and deductive architecture from product properties | product-modeling, transition-systems, verification, architecture, reachability, spec-driven, artifact-driven development | doc01.04.01, doc01.04.02, doc01.08.05 |
+| doc01.08.10 | `08-research/10-structured-product-modeling.md` | The set of formal structures needed to fully describe a business product — entity models, decision tables, state machines, and six more — plus how they compose | product-modeling, decision-tables, state-machines, entities, enumerations, constraints, spec-driven | doc01.08.09, doc01.06.04, doc01.04.01 |
 
 ## 02-product-design — Product Design
 
@@ -166,9 +168,11 @@ Quick lookup for file-path→doc mapping:
 | `config` | doc02.08.04 |
 | `conflicts` | doc02.04.03 |
 | `connections` | doc03.07 |
+| `constraints` | doc01.08.10 |
 | `constructs` | doc01.06.02 |
 | `context-engineering` | doc01.08.02 |
 | `conventions` | doc00.03 |
+| `decision-tables` | doc01.06.04, doc01.08.10 |
 | `decisions` | doc02.08.00 |
 | `decomposition` | doc01.08.05, doc01.08.06 |
 | `deployment` | doc02.08.04, doc02.08.09 |
@@ -176,9 +180,11 @@ Quick lookup for file-path→doc mapping:
 | `docs` | doc00.01, doc00.02, doc00.03, doc00.04, doc00.05, doc01.05, doc01.08.07 |
 | `dual-mandate` | doc01.08.01 |
 | `edges` | doc03.06 |
-| `editor` | doc01.06.02, doc02.04.02 |
+| `editor` | doc01.06.02, doc01.06.04, doc02.04.02 |
 | `efficiency` | doc01.08.02 |
 | `elicitation` | doc01.08.07 |
+| `entities` | doc01.08.10 |
+| `enumerations` | doc01.08.10 |
 | `epistemology` | doc01.08.04 |
 | `evaluation` | doc01.08.07 |
 | `extension` | doc02.03, doc03.03 |
@@ -223,22 +229,25 @@ Quick lookup for file-path→doc mapping:
 | `primary-source` | doc01.04.00 |
 | `primitives` | doc03.07 |
 | `principles` | doc01.01, doc01.02, doc01.08.08 |
-| `product-modeling` | doc01.08.09 |
+| `product` | doc01.06.04 |
+| `product-modeling` | doc01.08.09, doc01.08.10 |
 | `properties` | doc01.08.04 |
 | `reachability` | doc01.08.09 |
 | `reconciliation` | doc01.07, doc01.08.06, doc03.02 |
 | `rendering` | doc01.08.01, doc02.06 |
 | `research` | doc01.08.00 |
 | `retrieval` | doc00.05, doc01.08.07 |
+| `rules` | doc01.06.04 |
 | `schemas` | doc02.05 |
 | `scripts` | doc01.08.06, doc02.01 |
 | `seeds` | doc02.08.07 |
 | `server` | doc02.04.00, doc02.04.03, doc03.09 |
 | `skills` | doc01.08.02 |
-| `spec-driven` | doc01.04.02, doc01.07, doc01.08.05, doc01.08.06, doc01.08.09 |
+| `spec-driven` | doc01.04.02, doc01.07, doc01.08.05, doc01.08.06, doc01.08.09, doc01.08.10 |
 | `specifications` | doc01.08.07 |
 | `specs` | doc01.07, doc01.08.08, doc02.04.00, doc02.04.01, doc02.04.02, doc03.02 |
 | `state` | doc02.08.01, doc02.08.06, doc03.04 |
+| `state-machines` | doc01.08.10 |
 | `state-management` | doc01.08.03 |
 | `static-analysis` | doc01.08.06 |
 | `structure` | doc00.02 |

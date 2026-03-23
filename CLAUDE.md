@@ -25,6 +25,7 @@ Carta is a spec-driven development tool. The primary product is the `.carta/` wo
 
 | Skill | Purpose | When to use |
 |-------|---------|-------------|
+| `/docs-development` | Develops `.carta/` docs at any level — elicits info, finds edge cases, reads code for context | When writing or refining docs at any level of the 4-title model |
 | `/carta-builder` | Design thinking and document modeling for Carta | Before `/carta-feature-implementor`, to resolve decisions |
 | `/project-builder` | Dogfooding reflector for external projects | While building non-Carta projects, to identify Carta improvements |
 | `/carta-feature-groomer` | Researches codebase, discusses approach, refines plans into specs | Before `/carta-feature-implementor`, to resolve decisions |
@@ -54,6 +55,7 @@ All skills follow the same pattern: opus reads `.carta/` and code, analyzes, gen
 
 | Skill | Reference Docs | Config |
 |-------|---------------|--------|
+| `/docs-development` | `.carta/MANIFEST.md`, codebase, MCP tools | `.claude/skills/docs-development/SKILL.md` |
 | `/carta-builder` | `.carta/MANIFEST.md`, MCP tools | `.claude/skills/carta-builder/SKILL.md` |
 | `/project-builder` | `.carta/MANIFEST.md`, MCP tools, external project context | `.claude/skills/project-builder/SKILL.md` |
 | `/carta-feature-groomer` | `.carta/MANIFEST.md`, plan files, codebase | `.claude/skills/carta-feature-groomer/SKILL.md` |
