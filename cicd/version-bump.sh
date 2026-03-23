@@ -48,13 +48,17 @@ npm version "$BUMP" "${NPM_ARGS[@]}" --prefix "$ROOT" > /dev/null
 pnpm -r --prefix "$ROOT" exec npm version "$BUMP" "${NPM_ARGS[@]}" > /dev/null 2>&1
 
 VERSION=$(node -p "require('$ROOT/package.json').version")
+
+# Sync Python CLI version
+sed -i "s/^__version__ = .*/__version__ = \"${VERSION}\"/" "$ROOT/packages/cli/carta_cli/__version__.py"
+
 echo "All packages → $VERSION"
 
 # --- Branch, commit, PR ---
 
 BRANCH="version-bump/v${VERSION}"
 git -C "$ROOT" checkout -b "$BRANCH"
-git -C "$ROOT" add '*/package.json' package.json
+git -C "$ROOT" add '*/package.json' package.json packages/cli/carta_cli/__version__.py
 git -C "$ROOT" commit -m "chore: bump version to ${VERSION}"
 git -C "$ROOT" push -u origin "$BRANCH"
 

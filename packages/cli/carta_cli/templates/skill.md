@@ -72,6 +72,12 @@ carta regenerate [--dry-run]
 ```
 Rebuild MANIFEST.md from filesystem and doc frontmatter. All structural commands run this automatically.
 
+### portable
+```
+carta portable
+```
+Dump editable Python scripts into the workspace. Updates the scripts in `{{dir_name}}/_scripts/` so collaborators can use `python3 {{dir_name}}/carta.py <command>` without pip.
+
 ## Frontmatter Schema
 
 Every workspace doc has YAML frontmatter:
