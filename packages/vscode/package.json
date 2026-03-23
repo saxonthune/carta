@@ -2,7 +2,7 @@
   "name": "carta-vscode",
   "displayName": "Carta",
   "description": "Visual software architecture editor for .carta workspaces",
-  "version": "0.0.2-0",
+  "version": "0.0.2-1",
   "publisher": "carta",
   "engines": {
     "vscode": "^1.85.0"
