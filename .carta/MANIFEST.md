@@ -125,7 +125,7 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 | doc03.04 | `04-canvas-state.md` | Yjs Y.Doc, state partitioning, hooks, adapters | state, yjs, hooks, adapters | doc01.01 |
 | doc03.05 | `05-frontend-architecture.md` | Four-layer component model, state partitioning | components, hooks, architecture | doc01.02, doc03.08 |
 | doc03.06 | `06-data-pipelines.md` | Map.tsx memo cascades, node/edge pipelines, waypoint flow, write-back points | pipeline, edges, nodes, waypoints, sync, Map | doc03.05, doc02.08, doc01.02 |
-| doc03.07 | `07-canvas-engine.md` | Canvas engine primitives: useViewport, useConnectionDrag, ConnectionHandle, composition pattern | canvas-engine, viewport, connections, primitives | doc03.05 |
+| doc03.07 | `07-canvas-engine.md` | Canvas engine primitives: useViewport, useConnectionDrag, ConnectionHandle, composition pattern | canvas-engine, cactus, viewport, connections, primitives | doc03.05 |
 | doc03.08 | `08-design-system.md` | Depth system, island pattern, colors, typography | design, ui, styling, lod | — |
 | doc03.09 | `09-web-platform.md` | Future server architecture — git-backed workspace, WebSocket sync, REST API | server, web, architecture, git | doc02.01 |
 
@@ -182,6 +182,7 @@ Quick lookup for file-path→doc mapping:
 | `archived` | doc02.08.08 |
 | `artifact-driven development` | doc01.04.01, doc01.04.02, doc01.08.09 |
 | `bpmn` | doc01.08.01 |
+| `cactus` | doc03.07 |
 | `canvas` | doc01.06.02, doc02.03, doc02.07, doc05.01.00, doc05.01.01, doc05.01.03.02, doc05.01.04 |
 | `canvas-engine` | doc03.07, doc05.01.02 |
 | `category theory` | doc01.04.01 |

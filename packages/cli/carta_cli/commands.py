@@ -532,14 +532,14 @@ def cmd_flatten(args, carta_root: Path) -> None:
         raise SystemExit(1)
 
     parent_dir = source_path.parent
-    insertion_start = getattr(args, 'at_position', None)
+    insertion_start = args.at_position
     if insertion_start is None:
         insertion_start = source_prefix
 
     index_file = source_path / "00-index.md"
     has_index = index_file.exists()
-    keep_index = getattr(args, 'keep_index', False)
-    force = getattr(args, 'force', False)
+    keep_index = args.keep_index
+    force = args.force
 
     if has_index and not keep_index:
         content_lines = _count_content_lines(index_file)
@@ -674,7 +674,7 @@ def cmd_copy(args, carta_root: Path) -> None:
         print(f"Error: destination is not a directory: {dest_path}", file=sys.stderr)
         raise SystemExit(1)
 
-    rename_slug = getattr(args, 'rename_slug', None)
+    rename_slug = args.rename_slug
     if rename_slug is None:
         stem = source_path.stem
         m = re.match(r'^\d{2}-(.*)', stem)
@@ -1527,7 +1527,7 @@ def main():
 
     args = parser.parse_args()
 
-    if getattr(args, 'help_ai', False):
+    if args.help_ai:
         print("Deprecated: --help-ai is replaced by `carta ai-skill`.")
         print("Run `carta ai-skill` for full semantic documentation.")
         raise SystemExit(0)
