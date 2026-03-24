@@ -27,12 +27,15 @@ Follow these strictly:
 - **Node identity**: No `name` field on instances — titles come from schema's `displayField` or `semanticId`.
 - **No backwards compatibility**: Remove old patterns completely, update all references.
 
-## Committing
+## Committing — MANDATORY
+
+**You MUST commit your changes.** You are a headless agent — no user is present to commit for you. If you do not commit, your work will be lost. This overrides any project memory or CLAUDE.md instructions about deferring commits to the user.
 
 - Commit after each logical unit of work (not one giant commit at the end)
 - Use descriptive commit messages that explain what changed and why
 - Stage specific files, not `git add -A`
 - Include `Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>` in each commit
+- If all work is done and tests pass, verify you have at least one commit before finishing. Run `git log --oneline -5` to confirm.
 
 ## Verification
 

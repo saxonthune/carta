@@ -19,7 +19,7 @@ deps: [doc01.08.10, doc03.07, doc01.06.02, doc01.06.04, doc02.06]
 
 ## What's missing
 
-- **Non-canvas editors** — decision tables and enumerations are not node-and-edge tools. They need table/list editing surfaces that share chrome and data model with the canvas but aren't canvases.
+- **Non-canvas editors** — decision tables and enumerations are not node-and-edge tools internally, but they still live on the canvas as nodes inside file containers. They need table/list editing surfaces rendered as React components inside canvas nodes.
 - **Structure-specific interaction patterns** — state machines need transition guards, ER diagrams need cardinality labels on edges, flowcharts need conditional branching at nodes. The canvas engine supports none of these natively.
 - **Cross-structure references** — an entity field references an enumeration, a state machine transition uses a decision table for guard logic. No mechanism for typed cross-references between structures today.
 - **Nontechnical user experience** — current canvas is designed for software architects. Product owners need guided creation flows, sensible defaults, and domain-specific vocabulary instead of generic "construct" and "port" language.

@@ -12,6 +12,7 @@ deps: [doc05.01.03, doc01.02]
 - A **doc** is a file. Structure instances live inside docs as fenced code blocks (`carta` language tag) with YAML content and frontmatter (name, type, version). A doc can contain many instances (an enum and a decision table that references it).
 - A **canvas** is a dashboard of design structures. It reads instances from docs and renders them as interactive editors. The canvas is a view and an editing surface — the doc is the source of truth. This is completely different from the legacy canvas (schemas, ports, constructs); in this project, "legacy canvas" refers to the existing system.
 - An **instance** is a concrete structure (e.g., "Order Lifecycle" is a state machine instance, "Employee" is an entity instance). Every instance belongs to exactly one doc.
+- A **file container** is the visual frame on the canvas that represents a source file. It renders as a rectangle with a tab protruding from the top showing the filename (e.g., `employee-types.md` or `doc02.03`). Structure instances sit inside the file container. A file container may hold multiple instances (matching how a doc can contain multiple code blocks). Every structure on the canvas lives inside a file container — it's the visual anchor that connects what you see to where it's stored.
 
 ## No docs system required
 
@@ -73,6 +74,29 @@ The primary way a user edits a design structure is through a canvas. The primary
 | Script API | AI | Programmatic — add row to decision table, create transition, rename entity field |
 
 The script API is the AI's equivalent of the canvas. It operates on the same YAML structures in the same doc files. No separate data model.
+
+## AI ↔ Canvas data flow
+
+The AI and canvas interact through the filesystem, not through each other:
+
+```
+AI reads canvas file list → reads source files directly → writes changes via Python script API
+                                                                      ↓
+Canvas watches source files → re-parses carta code blocks → re-renders
+```
+
+| Operation | Direction | Mechanism |
+|-----------|-----------|-----------|
+| List files on canvas | Canvas → AI | Canvas file stores its source file references. AI reads the canvas file to know what's in scope. |
+| Read structure instances | AI → files | Normal file I/O — parse markdown, extract `carta` code blocks, read YAML |
+| Write structure changes | AI → files | Python script API (sibling to `carta` CLI) |
+| Propagate changes to canvas | Files → Canvas | File watcher on source files triggers re-parse and re-render |
+
+The AI gets context by reading the canvas file (list of source files + layout) and then reading the source files directly. No special canvas API needed for reads — the AI uses its normal file-reading abilities. The canvas file is the "table of contents" that tells the AI what's in scope.
+
+### Concurrent editing
+
+Last-write-wins for now. The primary use case is conversational turn-taking: user asks AI to make a change, AI does it, canvas updates. True simultaneous editing (user drags a node while AI adds a row) is a future concern — revisit if it becomes a real problem.
 
 ## Cross-references between instances
 

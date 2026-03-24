@@ -1134,11 +1134,31 @@ class TestGroupCommand(unittest.TestCase):
         self.assertIn("Test Group", content, "Title should be in index content")
 
     def test_group_errors_on_existing(self):
-        """carta group fails if directory already exists."""
-        # 01-product-strategy already exists
+        """carta group fails if directory already exists and is non-empty."""
+        # 01-product-strategy already exists and has contents
         result = _run_carta(self.carta_copy, "group", "01-product-strategy", "--title", "Duplicate")
-        self.assertNotEqual(result.returncode, 0, "Should fail on existing directory")
-        self.assertIn("already exists", result.stderr)
+        self.assertNotEqual(result.returncode, 0, "Should fail on existing non-empty directory")
+        self.assertIn("not empty", result.stderr)
+
+    def test_group_succeeds_on_empty_existing_directory(self):
+        """carta group succeeds if target directory exists but is empty."""
+        empty_dir = self.carta_copy / "05-test-group"
+        empty_dir.mkdir()
+        result = _run_carta(self.carta_copy, "group", "05-test-group", "--title", "Test Group")
+        self.assertEqual(result.returncode, 0, f"carta group should succeed on empty dir:\n{result.stderr}\n{result.stdout}")
+        index_path = empty_dir / "00-index.md"
+        self.assertTrue(index_path.exists(), "00-index.md should exist")
+        content = index_path.read_text(encoding="utf-8")
+        self.assertIn("Test Group", content, "Title should be in index content")
+
+    def test_group_errors_on_non_empty_existing_directory(self):
+        """carta group fails if target directory exists and is non-empty."""
+        non_empty_dir = self.carta_copy / "05-test-group"
+        non_empty_dir.mkdir()
+        (non_empty_dir / "some-file.md").write_text("content")
+        result = _run_carta(self.carta_copy, "group", "05-test-group", "--title", "Test Group")
+        self.assertNotEqual(result.returncode, 0, "Should fail on non-empty directory")
+        self.assertIn("not empty", result.stderr)
 
     def test_group_errors_without_prefix(self):
         """carta group fails if directory name has no NN- prefix."""

@@ -111,8 +111,10 @@ unset CLAUDECODE
 echo "── Running headless Claude ──"
 
 CLAUDE_PROMPT="Read the plan at todo-tasks/${PLAN_SLUG}.md and implement it fully. \
-Follow the plan step by step. Commit after each logical unit of work. \
-When done, run 'pnpm build && pnpm test' and fix any issues. \
+Follow the plan step by step. \
+IMPORTANT: You MUST git commit after each logical unit of work. You are a headless agent — no user is present. \
+If you do not commit, your work will be lost. This overrides any memory or instructions about deferring commits to the user. \
+When done, run 'pnpm build && pnpm test' and fix any issues. Then verify you made at least one commit (run 'git log --oneline -3'). \
 Output your implementation summary, then end with a '## Notes' section containing: \
 - Any deviations from the plan (and why) \
 - Caveats or known limitations in the implementation \

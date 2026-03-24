@@ -34,6 +34,14 @@ Nontechnical users can model a business domain — entities, relationships, rule
 - **Canvas shows code blocks only**: prose around code blocks is not rendered on the canvas (for now).
 - **Fenced code blocks**: triple backticks with `carta` language tag. YAML content won't realistically contain triple backticks. Revisit if it actually breaks.
 - **Build order**: enumerations → entity model → decision table → relationships (ER) → state machine → process flow. First three are form/list/grid editors (no canvas engine needed). Last three require node-and-edge canvas. Order balances ease of implementation with value to product designers.
+- **Enumerations are flat**: no hierarchy. If a domain needs hierarchical taxonomies, that's a separate structure type. Different groups of values should be different enumerations. Keeps the enumeration editor simple and the semantics clean.
+- **File container**: every structure instance on the canvas sits inside a file container — a visual rectangle with a filename tab. The file container represents the source file. Multiple instances can share one file container (matching how a doc can hold multiple code blocks).
+- **Structure editors are React components inside canvas nodes**: file containers are canvas node types. The canvas engine handles dragging, positioning, viewport transform. Phase 1 editors (enumerations, entity models, decision tables) are plain React components rendered inside file container nodes. Phase 2 editors (ER, state machine, flowchart) need deeper canvas integration — their internal nodes and edges participate in the canvas coordinate system.
+- **UI action surfaces**: users perform UI actions from the union of on-screen buttons and right-click context menus. Some actions appear in both, some in only one. Each structure defines which actions use which surface. On-screen buttons for common/discoverable actions; context menus for contextual actions (e.g., right-click a node, right-click an edge).
+- **Edge interaction**: the canvas engine needs edge hit-testing for right-click (and potentially click) on edges. Required for flowcharts (insert node on edge), state machines (edit transition), ER diagrams (edit cardinality). Not currently in the engine.
+- **AI editing via Python script API**: sibling to existing `carta` CLI. AI reads the canvas file for context (list of source files), reads source files directly, writes changes via scripts. No MCP needed for writes.
+- **Live file watching**: canvas watches source files and re-renders on change. AI and canvas interact through the filesystem, not through each other.
+- **Last-write-wins**: concurrent editing uses last-write-wins for now. Primary use case is conversational turn-taking. Revisit if true simultaneous editing becomes a requirement.
 
 ## Open questions
 
@@ -47,5 +55,7 @@ Nontechnical users can model a business domain — entities, relationships, rule
 |-----|------|---------|
 | doc05.01.01 | Gap Analysis | What exists today vs what's needed |
 | doc05.01.02 | Engine Changes | Canvas engine rework required to support the editor types |
-| doc05.01.03 | Structures | The product design structures and their editors |
+| doc05.01.03 | Structures | The product design structures and their editors (section) |
+| doc05.01.03.01 | Enumerations | Data model, YAML format, UI design, interaction vocabulary |
+| doc05.01.03.02 | Process Flow | Flowchart structure — data model, canvas interactions, engine requirements |
 | doc05.01.04 | User Experience | How users interact with structures — nouns, verbs, flows |

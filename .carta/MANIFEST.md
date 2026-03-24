@@ -129,6 +129,14 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 | doc03.08 | `08-design-system.md` | Depth system, island pattern, colors, typography | design, ui, styling, lod | — |
 | doc03.09 | `09-web-platform.md` | Future server architecture — git-backed workspace, WebSocket sync, REST API | server, web, architecture, git | doc02.01 |
 
+### Design Patterns
+
+| Ref | File | Summary | Tags | Deps |
+|-----|------|---------|------|------|
+
+| doc03.10.00 | `10-design-patterns/00-index.md` | Language-specific patterns and conventions for AI-maintainable code | patterns, conventions, ai, architecture | — |
+| doc03.10.01 | `10-design-patterns/01-python-for-ai.md` | File structure, typing, naming, testability patterns for AI-maintained Python | python, patterns, ai, conventions, testing, typing | doc03.10 |
+
 ## 04-code-shapes — Code Shapes
 
 | Ref | File | Summary | Tags | Deps |
@@ -151,7 +159,9 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 | doc05.01.00 | `01-product-design-ui/00-index.md` | Rework the canvas engine to support structured product modeling tools for nontechnical users | project, canvas, product-modeling, editors | doc01.08.10, doc03.07, doc01.06.02 |
 | doc05.01.01 | `01-product-design-ui/01-gap-analysis.md` | What exists today vs what's needed for structured product modeling tools | project, gap-analysis, canvas, product-modeling | doc01.08.10, doc03.07, doc01.06.02, doc01.06.04, doc02.06 |
 | doc05.01.02 | `01-product-design-ui/02-engine-changes.md` | Canvas engine rework required to support the full range of product design editors | project, canvas-engine, architecture | doc03.07, doc02.06, doc05.01.01 |
-| doc05.01.03 | `01-product-design-ui/03-structures.md` | The product design structures and their visual editors — from doc01.08.10 editor metaphors to real tools | project, product-modeling, editors, structures | doc01.08.10, doc05.01.01, doc05.01.02 |
+| doc05.01.03.00 | `01-product-design-ui/03-structures/00-index.md` | The product design structures and their visual editors — from doc01.08.10 editor metaphors to real tools | project, product-modeling, editors, structures | doc01.08.10, doc05.01.01, doc05.01.02 |
+| doc05.01.03.01 | `01-product-design-ui/03-structures/01-enumerations.md` | Enumeration structure — data model, YAML format, UI design, and interaction vocabulary | project, enumerations, ui, structures | doc05.01.03, doc01.08.10 |
+| doc05.01.03.02 | `01-product-design-ui/03-structures/02-process-flow.md` | Process flow (flowchart) structure — data model, UI design, canvas interactions, and engine requirements | project, process-flow, flowchart, ui, structures, canvas | doc05.01.03, doc01.08.10, doc03.07 |
 | doc05.01.04 | `01-product-design-ui/04-user-experience.md` | How users interact with product design structures — nouns, verbs, and flows | project, user-experience, product-modeling, canvas | doc05.01.03, doc01.02 |
 
 ## Tag Index
@@ -166,13 +176,13 @@ Quick lookup for file-path→doc mapping:
 | `adr` | doc02.08.00, doc02.08.01, doc02.08.02, doc02.08.03, doc02.08.04, doc02.08.05, doc02.08.06, doc02.08.07, doc02.08.08, doc02.08.09 |
 | `agents` | doc01.08.02, doc01.08.04 |
 | `agnosticism` | doc01.08.08 |
-| `ai` | doc00.05, doc00.06, doc01.06.01, doc01.08.07, doc02.04.00, doc02.04.01, doc02.04.02 |
+| `ai` | doc00.05, doc00.06, doc01.06.01, doc01.08.07, doc02.04.00, doc02.04.01, doc02.04.02, doc03.10.00, doc03.10.01 |
 | `alignment` | doc01.07, doc03.02 |
-| `architecture` | doc01.08.09, doc02.08.06, doc03.01, doc03.02, doc03.03, doc03.05, doc03.09, doc05.01.02 |
+| `architecture` | doc01.08.09, doc02.08.06, doc03.01, doc03.02, doc03.03, doc03.05, doc03.09, doc03.10.00, doc05.01.02 |
 | `archived` | doc02.08.08 |
 | `artifact-driven development` | doc01.04.01, doc01.04.02, doc01.08.09 |
 | `bpmn` | doc01.08.01 |
-| `canvas` | doc01.06.02, doc02.03, doc02.07, doc05.01.00, doc05.01.01, doc05.01.04 |
+| `canvas` | doc01.06.02, doc02.03, doc02.07, doc05.01.00, doc05.01.01, doc05.01.03.02, doc05.01.04 |
 | `canvas-engine` | doc03.07, doc05.01.02 |
 | `category theory` | doc01.04.01 |
 | `category-theory` | doc01.08.05 |
@@ -189,7 +199,7 @@ Quick lookup for file-path→doc mapping:
 | `constraints` | doc01.08.10 |
 | `constructs` | doc01.06.02 |
 | `context-engineering` | doc01.08.02 |
-| `conventions` | doc00.03 |
+| `conventions` | doc00.03, doc03.10.00, doc03.10.01 |
 | `decision-tables` | doc01.06.04, doc01.08.10 |
 | `decisions` | doc02.08.00 |
 | `decomposition` | doc01.08.05, doc01.08.06 |
@@ -200,15 +210,16 @@ Quick lookup for file-path→doc mapping:
 | `dual-mandate` | doc01.08.01 |
 | `edges` | doc03.06 |
 | `editor` | doc01.06.02, doc01.06.04, doc02.04.02 |
-| `editors` | doc05.01.00, doc05.01.03 |
+| `editors` | doc05.01.00, doc05.01.03.00 |
 | `efficiency` | doc01.08.02 |
 | `elicitation` | doc01.08.07 |
 | `entities` | doc01.08.10 |
-| `enumerations` | doc01.08.10 |
+| `enumerations` | doc01.08.10, doc05.01.03.01 |
 | `epistemology` | doc01.08.04 |
 | `evaluation` | doc01.08.07 |
 | `extension` | doc02.03, doc03.03 |
 | `filesystem` | doc02.08.09 |
+| `flowchart` | doc05.01.03.02 |
 | `format` | doc01.05, doc01.08.08 |
 | `formats` | doc01.08.06 |
 | `formatters` | doc02.08.03 |
@@ -241,7 +252,7 @@ Quick lookup for file-path→doc mapping:
 | `oracles` | doc01.08.04 |
 | `organizers` | doc01.08.01, doc01.08.03, doc02.06, doc02.08.05 |
 | `packages` | doc02.08.07, doc03.01 |
-| `patterns` | doc01.04.02 |
+| `patterns` | doc01.04.02, doc03.10.00, doc03.10.01 |
 | `pipeline` | doc03.06 |
 | `planning` | doc01.04.01 |
 | `polarity` | doc02.08.02 |
@@ -250,11 +261,13 @@ Quick lookup for file-path→doc mapping:
 | `primary-source` | doc01.04.00 |
 | `primitives` | doc03.07 |
 | `principles` | doc01.01, doc01.02, doc01.08.08 |
+| `process-flow` | doc05.01.03.02 |
 | `product` | doc01.06.04 |
-| `product-modeling` | doc01.08.09, doc01.08.10, doc05.01.00, doc05.01.01, doc05.01.03, doc05.01.04 |
-| `project` | doc05.01.00, doc05.01.01, doc05.01.02, doc05.01.03, doc05.01.04 |
+| `product-modeling` | doc01.08.09, doc01.08.10, doc05.01.00, doc05.01.01, doc05.01.03.00, doc05.01.04 |
+| `project` | doc05.01.00, doc05.01.01, doc05.01.02, doc05.01.03.00, doc05.01.03.01, doc05.01.03.02, doc05.01.04 |
 | `projects` | doc05.00 |
 | `properties` | doc01.08.04 |
+| `python` | doc03.10.01 |
 | `reachability` | doc01.08.09 |
 | `reconciliation` | doc01.07, doc01.08.06, doc03.02 |
 | `rendering` | doc01.08.01, doc02.06 |
@@ -274,17 +287,18 @@ Quick lookup for file-path→doc mapping:
 | `state-management` | doc01.08.03 |
 | `static-analysis` | doc01.08.06 |
 | `structure` | doc00.02 |
-| `structures` | doc05.01.03 |
+| `structures` | doc05.01.03.00, doc05.01.03.01, doc05.01.03.02 |
 | `styling` | doc03.08 |
 | `sync` | doc03.06 |
 | `terms` | doc01.03, doc02.07 |
 | `testability` | doc01.08.04 |
-| `testing` | doc01.08.04 |
+| `testing` | doc01.08.04, doc03.10.01 |
 | `theory` | doc01.04.02 |
 | `tokens` | doc01.08.02 |
 | `tools` | doc01.06.01, doc02.01 |
 | `transition-systems` | doc01.08.09 |
-| `ui` | doc03.08 |
+| `typing` | doc03.10.01 |
+| `ui` | doc03.08, doc05.01.03.01, doc05.01.03.02 |
 | `use-case` | doc02.02 |
 | `user-experience` | doc05.01.04 |
 | `verification` | doc01.08.04, doc01.08.09 |

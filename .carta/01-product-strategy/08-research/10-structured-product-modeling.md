@@ -43,11 +43,11 @@ Prose specs are ambiguous. Code is too detailed. The middle ground is a set of *
 
 ### 3. Enumerations / Taxonomy
 
-**What it captures:** Controlled vocabularies shared across entities and decision tables. Optionally hierarchical.
+**What it captures:** Controlled vocabularies shared across entities and decision tables. Flat — no hierarchy. If hierarchical taxonomies are needed, that's a separate structure.
 
-**Example:** Employee types: full-time, part-time, contractor, seasonal. Contractor subtypes: 1099-independent, 1099-agency.
+**Example:** Employee types: full-time, part-time, contractor, seasonal. (If contractor has subtypes, those are a separate enumeration — e.g., Contractor Subtypes: 1099-independent, 1099-agency.)
 
-**Editor metaphor:** List editor with optional nesting/hierarchy.
+**Editor metaphor:** Flat list editor with optional ordinal ordering.
 
 **Storage:** YAML. These are resource files referenced by entity fields and decision table columns.
 
@@ -121,6 +121,18 @@ Structurally similar to a decision table, but distinguished by: it's versioned (
 
 **Storage:** JSON, with markdown export.
 
+### 10. Data Flow
+
+**What it captures:** How data moves between processes, data stores, and external entities. Distinct from process flow — a DFD shows data movement, not control flow (no decisions, no loops, no ordering).
+
+**Example:** Payroll system: Employee Records (store) → Calculate Payroll (process) → Paycheck Records (store) → Create Transactions (process) → Bank API (external entity).
+
+**Editor metaphor:** Node-and-edge diagram with three node shapes: processes (rounded), data stores (open rectangle), external entities (square). Directed edges labeled with the data that flows.
+
+**Storage:** YAML.
+
+**Lineage:** Yourdon/DeMarco DFD notation (1970s). BPMN incorporates a similar concept via data objects, but DFDs are simpler and single-purpose.
+
 ## Essential vs Domain-Specific
 
 **Essential (can't describe a business without these):**
@@ -132,11 +144,12 @@ Structurally similar to a decision table, but distinguished by: it's versioned (
 
 **Important (hit quickly in any real business):**
 6. Process flow — the sequences
-7. Constraints — the invariants
+7. Data flow — what data moves where
+8. Constraints — the invariants
 
 **Domain-specific (payroll, finance, compliance, logistics):**
-8. Schedules — temporal rules
-9. Rate tables — versioned lookups
+9. Schedules — temporal rules
+10. Rate tables — versioned lookups
 
 ## How They Compose
 
@@ -148,6 +161,7 @@ Entities ← connected by → Relationships
 Entities ← have lifecycles described by → State machines
 State machine transitions ← use → Decision tables (for guard logic)
 Process flows ← sequence → State machine transitions
+Data flows ← show data moving between → Processes, Entities (as data stores), External entities
 Constraints ← assert over → Entities, Relationships
 Rate tables ← feed → Decision tables
 ```
@@ -160,7 +174,7 @@ The structures divide into two computational patterns (from the Datalog/pipeline
 
 **Pattern 1 — Relational (Datalog):** "Who can access what, given what conditions?" Entities, relationships, enumerations, constraints, state machine reachability. Declarative, monotone, queryable. Datalog handles this naturally.
 
-**Pattern 2 — Transformational (Pipeline):** "Given these inputs, what sequence of calculations produces the output?" Decision tables, process flows, rate table lookups. Compositional, ordered, branching. A pipeline/flowchart engine handles this.
+**Pattern 2 — Transformational (Pipeline):** "Given these inputs, what sequence of calculations produces the output?" Decision tables, process flows, data flows, rate table lookups. Compositional, ordered, branching. A pipeline/flowchart engine handles this.
 
 A real business needs both: Datalog selects and configures (what applies?), the pipeline executes (what's the result?).
 
@@ -170,10 +184,11 @@ A real business needs both: Datalog selects and configures (what applies?), the 
 |---|---|---|
 | Entity model | Set theory, relational algebra | Entities are rows in relations |
 | Relationships | Graph theory, relational algebra | Edges with cardinality constraints |
-| Enumerations | Finite sets, lattices (if hierarchical) | Value domains |
+| Enumerations | Finite sets, optionally totally ordered | Value domains |
 | Decision table | Boolean algebra, propositional logic | Truth table = decision table |
 | State machine | Automata theory | DFA/NFA, Mealy/Moore machines |
 | Process flow | Partial orders, DAGs | Steps with dependency ordering |
+| Data flow | Directed graphs, Petri nets | Data movement between processes and stores |
 | Schedule | Temporal logic, calendar arithmetic | Recurrence relations |
 | Constraint | First-order logic, Datalog | Predicates over the model |
 | Rate table | Piecewise functions, versioned lookup | Step functions keyed by thresholds |

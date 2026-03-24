@@ -22,6 +22,8 @@ Quickly files a todo-task so the current session can continue its primary work. 
 
 ## Task Lifecycle
 
+The todo-task system is a directory-as-state-machine. Files move through directories to represent lifecycle state.
+
 ```
 todo-tasks/              ← PENDING (you create files here)
     ↓
@@ -33,6 +35,93 @@ todo-tasks/.archived/    ← REVIEWED (implementor archives after triage)
 ```
 
 **You only write to `todo-tasks/`.** The other directories are managed by downstream skills.
+
+### API Surface
+
+The lifecycle is operated by three skills and a set of shell scripts. Each has a single responsibility.
+
+#### Capture — `/todo-task` (this skill)
+
+```
+task create <slug>              # write a task file to todo-tasks/
+task create <slug> --epic <name>  # write with epic prefix
+```
+
+Input: a rough idea, bug report, or feature request.
+Output: a markdown file in `todo-tasks/` with enough context for a groomer.
+
+#### Groom — `/carta-feature-implementor`
+
+```
+task status                     # report on all lifecycle states
+task archive --successful       # bulk archive passing results
+task groom <slug>               # interactive: refine into executable spec
+task groom --first              # grab first pending task alphabetically
+task groom --all                # briefing for all pending tasks
+```
+
+Input: a pending task file in `todo-tasks/`.
+Output: the same file, rewritten with concrete file paths, implementation steps, verification instructions, and negative constraints — unambiguous enough for a headless agent.
+
+The groomer is **project-specific**. It has extra context that a generic system doesn't:
+
+1. **Doc system navigation** — reads `.carta/MANIFEST.md` tag index to map plan keywords to architecture docs, getting design context without reading source.
+2. **Two-phase codebase search** — cheap `Grep` triage (files_with_matches) guided by MANIFEST tags, then targeted reads. Never speculative.
+3. **Verification operationalization** — classifies correctness properties by where truth lives (data model → adapter test, compiler output → oracle test, rendered UI → E2E), based on knowledge of the project's test boundaries.
+
+A different project would supply a different groomer with its own doc system, search strategy, and test boundary knowledge.
+
+#### Execute — `/execute-plan`
+
+```
+task execute <slug>             # launch headless agent in worktree
+task execute <slug> --no-merge  # leave branch for manual review
+task chain <s1> <s2> ...        # sequential execution, stop on failure
+```
+
+Input: a groomed task file in `todo-tasks/`.
+Output: a worktree with committed changes, merged back to trunk (or left as branch).
+
+The executor is **project-agnostic**. It:
+1. Moves the plan to `.running/`
+2. Creates a git worktree + branch
+3. Runs `claude -p` with the plan as prompt and a budget cap
+4. Writes a `.result.md` to `.done/` with status, branch, and log path
+5. Merges to trunk on success (unless `--no-merge`)
+
+Chain execution (`launch-chain.sh`) runs plans sequentially, creating a `.manifest` file that claims all phases so parallel agents don't touch them.
+
+#### Status — `status.sh`
+
+```
+task status                     # full report: completed, running, chains, pending, stale worktrees
+task archive --successful       # move successful .done/ results to .archived/
+```
+
+Parses `.result.md` files for status, reads chain manifests, detects stale worktrees. One script, all information, no follow-up commands needed.
+
+### File Types
+
+| Pattern | Purpose | Created by |
+|---------|---------|------------|
+| `*.md` | Task plans | `/todo-task` or `/carta-builder` |
+| `*.epic.md` | Epic overview (not groomable) | `/carta-builder` |
+| `*.result.md` | Execution results | `execute-plan.sh` |
+| `chain-*.manifest` | Claims a sequence of plans | `launch-chain.sh` |
+| `*.log` | Execution logs | `launch.sh` / `launch-chain.sh` |
+
+### What's Generic vs Project-Specific
+
+| Component | Generic? | Notes |
+|-----------|----------|-------|
+| Directory lifecycle | Yes | Just file moves between directories |
+| `status.sh` | Yes | Parses result files, reports tables |
+| `execute-plan.sh` | Yes | Worktree + headless claude + merge |
+| `launch.sh` / `launch-chain.sh` | Yes | Backgrounding, log capture |
+| `/todo-task` (capture) | Yes | Template + guard rails |
+| Groomer | **No** | Needs project docs, search strategy, test boundaries |
+| Verification strategy | **No** | Needs knowledge of testable boundaries |
+| Epic structure | Partly | Naming convention is generic, content is project-specific |
 
 ## How to Create a Task
 

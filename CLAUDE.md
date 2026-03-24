@@ -12,13 +12,15 @@ Carta is a spec-driven development tool. The primary product is the `.carta/` wo
 
 ## Documentation
 
-**`.carta/` is the canonical source of truth** — a Carta workspace containing specifications and architecture docs. Docs represent the best current understanding, not templates to fill in. Sparse docs are intentional — do not elaborate beyond what the work demands (see doc00.04). Cross-references use `docXX.YY.ZZ` syntax (e.g., `doc02.05` = metamodel). Key docs:
+**`.carta/` is the canonical source of truth** — a Carta workspace containing specifications and architecture docs. Docs represent the best current understanding, not templates to fill in. Sparse docs are intentional — do not elaborate beyond what the work demands (see doc00.04). Cross-references use `docXX.YY.ZZ` syntax (e.g., `doc02.05` = metamodel). **When referencing a doc in conversation, always include its title and enough context for the user to understand the reference without looking it up** (e.g., "doc01.08.10 (Structured Product Modeling — the nine formal structures for describing a business product)" not just "doc01.08.10"). Key docs:
 
 - **Strategy**: doc01.01 (mission), doc01.02 (principles), doc01.06 (products), doc01.07 (reconciliation), doc01.08 (research)
 - **Design**: doc02.01 (workspace scripts), doc02.05 (metamodel), doc02.06 (presentation model), doc02.08 (ADRs)
 - **Architecture**: doc03.01 (overview), doc03.04 (canvas state), doc03.05 (frontend), doc03.08 (design system)
 - **Code Shapes**: doc04 (empty — future)
 - **Projects**: doc05.01 (product-design-ui)
+
+**Carta CLI**: Before using any `carta` command, run `carta ai-skill` to get the full semantic reference (syntax, arguments, side effects, sequencing rules). Do not guess flags or arguments.
 
 ## Skills & Agents
 

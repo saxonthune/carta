@@ -785,8 +785,10 @@ def cmd_group(args, carta_root: Path) -> None:
     target_path = (carta_root / target).resolve()
 
     if target_path.exists():
-        print(f"Error: directory already exists: {target_path.relative_to(carta_root)}", file=sys.stderr)
-        raise SystemExit(1)
+        if any(target_path.iterdir()):
+            print(f"Error: directory already exists and is not empty: {target_path.relative_to(carta_root)}", file=sys.stderr)
+            raise SystemExit(1)
+        # Empty directory — proceed (skip mkdir below)
 
     if not target_path.parent.exists():
         print(f"Error: parent directory does not exist: {target_path.parent}", file=sys.stderr)
@@ -796,7 +798,8 @@ def cmd_group(args, carta_root: Path) -> None:
         print(f"Error: directory name must have NN- prefix: {target_path.name}", file=sys.stderr)
         raise SystemExit(1)
 
-    target_path.mkdir()
+    if not target_path.exists():
+        target_path.mkdir()
 
     title = args.title if args.title else get_slug(target_path.name).replace("-", " ").title()
     write_frontmatter(target_path / "00-index.md", {
