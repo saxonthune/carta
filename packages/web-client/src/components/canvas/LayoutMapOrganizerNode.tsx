@@ -9,7 +9,7 @@ import {
   ArrowLeft,
   ArrowUpLeft,
 } from '@phosphor-icons/react';
-import { ConnectionHandle } from '../../canvas-engine/index.js';
+import { ConnectionHandle } from '../../cactus/index.js';
 
 export interface LayoutMapOrganizerNodeData {
   name: string;

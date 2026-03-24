@@ -8,7 +8,7 @@ import {
   computeDetachedNodes,
   collectDescendantIds,
 } from '../utils/organizerLogic';
-import { computeAttach, computeDetach } from '../canvas-engine/index.js';
+import { computeAttach, computeDetach } from '../cactus/index.js';
 // Simple organizer color palette
 const ORGANIZER_COLORS = ['#7c3aed', '#0891b2', '#059669', '#d97706', '#dc2626', '#6366f1', '#ec4899'];
 

@@ -1,6 +1,6 @@
 import { useRef, useMemo, useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Canvas, type CanvasRef, useNodeDrag, useNodeResize, useCanvasContext, useKeyboardShortcuts } from '../../canvas-engine/index.js';
+import { Canvas, type CanvasRef, useNodeDrag, useNodeResize, useCanvasContext, useKeyboardShortcuts } from '../../cactus/index.js';
 import { useDocumentContext } from '../../contexts/DocumentContext';
 import { useNodes } from '../../hooks/useNodes';
 import { useEdges } from '../../hooks/useEdges';
@@ -14,8 +14,8 @@ import { useOrganizerOperations } from '../../hooks/useOrganizerOperations';
 import { useLayoutActions } from '../../hooks/useLayoutActions';
 import { useUndoRedo } from '../../hooks/useUndoRedo';
 import { usePinConstraints } from '../../hooks/usePinConstraints';
-import { useNodeLinks } from '../../canvas-engine/useNodeLinks';
-import { findContainerAt } from '../../canvas-engine/containment';
+import { useNodeLinks } from '../../cactus/useNodeLinks';
+import { findContainerAt } from '../../cactus/containment';
 import { useMapState } from '../../hooks/useMapState';
 import { useFlowTrace } from '../../hooks/useFlowTrace';
 import Narrative from './Narrative';

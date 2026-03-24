@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ConnectionHandle } from '../../canvas-engine/index.js';
+import { ConnectionHandle } from '../../cactus/index.js';
 import { type ConstructSchema, type ConstructNodeData, getFieldsForSummary, resolveNodeColor, type DocumentAdapter, canConnect } from '@carta/schema';
 import type { LodBand } from './lod/lodPolicy.js';
 import ColorPicker from '../ui/ColorPicker.js';

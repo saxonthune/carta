@@ -6,7 +6,7 @@ import {
   convertToConstructPositions,
   ORGANIZER_CONTENT_TOP,
 } from '../../src/hooks/useLayoutActions.js';
-import { resolveAbsolutePosition } from '../../src/canvas-engine/index.js';
+import { resolveAbsolutePosition } from '../../src/cactus/index.js';
 import { toRelativePosition } from '@carta/geometry';
 import { computeAlignment, computeDistribution } from '../../src/utils/layoutGeometry.js';
 
