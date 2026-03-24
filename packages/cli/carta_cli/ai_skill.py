@@ -1,4 +1,5 @@
 """AI-skill documentation constants and generation logic for `carta ai-skill`."""
+import argparse
 import sys
 from pathlib import Path
 
@@ -404,7 +405,7 @@ def _workspace_state_section(carta_root: Path) -> list[str]:
     return lines
 
 
-def cmd_ai_skill(args, carta_root: Path) -> None:
+def cmd_ai_skill(args: argparse.Namespace, carta_root: Path) -> None:
     """Generate comprehensive AI agent context for the carta CLI."""
     from .__version__ import __version__
 

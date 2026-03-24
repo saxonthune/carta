@@ -60,7 +60,7 @@ _DATA_FILES = [
 # cat
 # ---------------------------------------------------------------------------
 
-def cmd_cat(args, carta_root: Path) -> None:
+def cmd_cat(args: argparse.Namespace, carta_root: Path) -> None:
     """Print document contents to stdout."""
     target = resolve_arg(args.ref, carta_root)
     if target.is_dir():
@@ -74,7 +74,7 @@ def cmd_cat(args, carta_root: Path) -> None:
 # regenerate
 # ---------------------------------------------------------------------------
 
-def cmd_regenerate(args, carta_root: Path) -> None:
+def cmd_regenerate(args: argparse.Namespace, carta_root: Path) -> None:
     """Rebuild MANIFEST.md from doc frontmatter."""
     preamble = _load_preamble(carta_root.name)
     do_regenerate(carta_root, preamble, dry_run=args.dry_run)
@@ -84,7 +84,7 @@ def cmd_regenerate(args, carta_root: Path) -> None:
 # create
 # ---------------------------------------------------------------------------
 
-def cmd_create(args, carta_root: Path) -> None:
+def cmd_create(args: argparse.Namespace, carta_root: Path) -> None:
     """Create a new doc entry."""
     slug = args.slug
 
@@ -200,7 +200,7 @@ def _find_orphaned_refs(
     return orphans
 
 
-def cmd_delete(args, carta_root: Path) -> None:
+def cmd_delete(args: argparse.Namespace, carta_root: Path) -> None:
     """Delete entries with gap-closing."""
     target_paths: list[Path] = []
     for target in args.targets:
@@ -321,7 +321,7 @@ def _create_index_for_new_dir(dir_path: Path) -> None:
     }, f"\n# {title}\n")
 
 
-def cmd_move(args, carta_root: Path) -> None:
+def cmd_move(args: argparse.Namespace, carta_root: Path) -> None:
     """Move/reorder entries."""
     if args.order is not None and args.order < 1:
         raise CartaError("Error: --order must be >= 1 (position 0 is reserved for index files).")
@@ -398,7 +398,7 @@ def cmd_move(args, carta_root: Path) -> None:
 # punch
 # ---------------------------------------------------------------------------
 
-def cmd_punch(args, carta_root: Path) -> None:
+def cmd_punch(args: argparse.Namespace, carta_root: Path) -> None:
     """Expand leaf file into directory."""
     source_path = resolve_and_validate(args.target, carta_root)
 
@@ -436,7 +436,7 @@ def _count_content_lines(path: Path) -> int:
     return sum(1 for line in body.splitlines() if line.strip())
 
 
-def cmd_flatten(args, carta_root: Path) -> None:
+def cmd_flatten(args: argparse.Namespace, carta_root: Path) -> None:
     """Dissolve directory, hoist children."""
     source_path = resolve_and_validate(args.target, carta_root)
 
@@ -562,7 +562,7 @@ def cmd_flatten(args, carta_root: Path) -> None:
 # copy
 # ---------------------------------------------------------------------------
 
-def cmd_copy(args, carta_root: Path) -> None:
+def cmd_copy(args: argparse.Namespace, carta_root: Path) -> None:
     """Copy a file into the workspace."""
     source_path = Path(args.source).resolve()
 
@@ -613,7 +613,7 @@ def cmd_copy(args, carta_root: Path) -> None:
 # rewrite
 # ---------------------------------------------------------------------------
 
-def cmd_rewrite(args, carta_root: Path) -> None:
+def cmd_rewrite(args: argparse.Namespace, carta_root: Path) -> None:
     """Rewrite doc refs from mappings."""
     rename_map: dict[str, str] = {}
 
@@ -661,7 +661,7 @@ def cmd_rewrite(args, carta_root: Path) -> None:
 # group
 # ---------------------------------------------------------------------------
 
-def cmd_group(args, carta_root: Path) -> None:
+def cmd_group(args: argparse.Namespace, carta_root: Path) -> None:
     """Create a title group directory with 00-index.md."""
     target = args.target
     target_path = (carta_root / target).resolve()
@@ -698,7 +698,7 @@ def cmd_group(args, carta_root: Path) -> None:
 # rename
 # ---------------------------------------------------------------------------
 
-def cmd_rename(args, carta_root: Path) -> None:
+def cmd_rename(args: argparse.Namespace, carta_root: Path) -> None:
     """Rename a directory or file slug without changing position."""
     target_path = resolve_and_validate(args.target, carta_root)
 
@@ -736,7 +736,7 @@ def cmd_rename(args, carta_root: Path) -> None:
 # init
 # ---------------------------------------------------------------------------
 
-def cmd_init(args) -> None:
+def cmd_init(args: argparse.Namespace) -> None:
     """Initialize a new workspace in the current directory."""
     project_root = Path.cwd().resolve()
     dirname = args.dirname
@@ -836,7 +836,7 @@ def copy_portable(carta_root: Path) -> bool:
     return True
 
 
-def cmd_portable(args, carta_root: Path) -> None:
+def cmd_portable(args: argparse.Namespace, carta_root: Path) -> None:
     """Dump editable scripts into the workspace for pip-free usage."""
     copy_portable(carta_root)
     print(f"Dumped portable scripts ({__version__}) into {carta_root}/")
@@ -850,7 +850,7 @@ def cmd_portable(args, carta_root: Path) -> None:
 # main / argument parser
 # ---------------------------------------------------------------------------
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
         prog="carta",
         description="Workspace tools for managing .carta/ documentation.",
