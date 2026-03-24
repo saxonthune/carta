@@ -30,7 +30,6 @@ _LIBRARY_MODULES = [
     "ref_convert.py",
     "rewriter.py",
     "planning.py",
-    "manifest.py",
     "workspace.py",
     "__version__.py",
     "regenerate_core.py",
