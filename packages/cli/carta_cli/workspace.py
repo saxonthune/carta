@@ -3,6 +3,8 @@
 from pathlib import Path
 import json
 
+from .rewriter import collect_md_files
+
 MARKER = ".carta.json"
 
 
@@ -54,3 +56,14 @@ def get_external_ref_paths(ws: dict, root: Path) -> list[Path]:
             if match.is_file():
                 paths.append(match.resolve())
     return paths
+
+
+def collect_rewritable_files(carta_root: Path) -> list[Path]:
+    """Collect all .md files eligible for ref rewriting (excludes MANIFEST.md)."""
+    manifest_path = carta_root / "MANIFEST.md"
+    ws = load_workspace(carta_root)
+    external_paths = get_external_ref_paths(ws, carta_root)
+    return [
+        f for f in collect_md_files(carta_root, external_paths)
+        if f.resolve() != manifest_path.resolve()
+    ]

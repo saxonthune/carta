@@ -9,12 +9,12 @@ from pathlib import Path
 
 from .__version__ import __version__
 from .frontmatter import read_frontmatter, write_frontmatter
-from .entries import resolve_arg, list_numbered_entries
+from .entries import resolve_arg, resolve_and_validate, list_numbered_entries, display_path
 from .numbering import get_numeric_prefix, get_slug, compute_insertion_prefix
 from .ref_convert import path_to_ref
-from .rewriter import collect_md_files, rewrite_refs
+from .rewriter import rewrite_refs
 from .planning import compute_all_moves, compute_rename_map, print_rename_map
-from .workspace import find_workspace, load_workspace, get_external_ref_paths, MARKER
+from .workspace import find_workspace, load_workspace, get_external_ref_paths, collect_rewritable_files, MARKER
 from .regenerate_core import do_regenerate
 from .ai_skill import cmd_ai_skill
 from .errors import CartaError
@@ -204,13 +204,7 @@ def cmd_delete(args, carta_root: Path) -> None:
     """Delete entries with gap-closing."""
     target_paths: list[Path] = []
     for target in args.targets:
-        try:
-            path = resolve_arg(target, carta_root)
-        except (FileNotFoundError, ValueError) as e:
-            raise CartaError(f"Error resolving {target!r}: {e}")
-        if not path.exists():
-            raise CartaError(f"Error: does not exist: {path}")
-        target_paths.append(path)
+        target_paths.append(resolve_and_validate(target, carta_root))
 
     deleted_refs: set[str] = set()
     for path in target_paths:
@@ -238,27 +232,12 @@ def cmd_delete(args, carta_root: Path) -> None:
 
     rename_map = compute_rename_map(all_moves, carta_root)
 
-    manifest_path = carta_root / "MANIFEST.md"
-    ws = load_workspace(carta_root)
-    external_paths = get_external_ref_paths(ws, carta_root)
     md_files = [
-        f for f in collect_md_files(carta_root, external_paths)
-        if f.resolve() != manifest_path.resolve()
-        and not any(f.resolve() == tp.resolve() or
-                    (tp.is_dir() and _is_under(f, tp))
-                    for tp in target_paths)
+        f for f in collect_rewritable_files(carta_root)
+        if not any(f.resolve() == tp.resolve() or
+                   (tp.is_dir() and _is_under(f, tp))
+                   for tp in target_paths)
     ]
-
-    repo_root = carta_root.parent
-
-    def _display_path(p: Path) -> str:
-        try:
-            return str(p.relative_to(carta_root))
-        except ValueError:
-            try:
-                return str(p.relative_to(repo_root))
-            except ValueError:
-                return str(p)
 
     # Scan for orphaned refs (refs pointing to deleted entries that remain in survivors)
     orphaned = _find_orphaned_refs(md_files, deleted_refs)
@@ -283,11 +262,7 @@ def cmd_delete(args, carta_root: Path) -> None:
         if orphaned:
             print(f"\n=== Orphaned ref warnings ({len(orphaned)}) ===")
             for fpath, line, ref in orphaned:
-                try:
-                    display = str(fpath.relative_to(carta_root))
-                except ValueError:
-                    display = str(fpath)
-                print(f"  {ref} in {display}: {line[:80]}")
+                print(f"  {ref} in {display_path(fpath, carta_root)}: {line[:80]}")
         if args.output_mapping and rename_map:
             print(json.dumps(rename_map, indent=2))
         elif args.output_mapping:
@@ -305,11 +280,7 @@ def cmd_delete(args, carta_root: Path) -> None:
         if old_path.exists():
             shutil.move(str(old_path), str(new_path))
 
-    md_files_after = [
-        f for f in collect_md_files(carta_root, external_paths)
-        if f.resolve() != manifest_path.resolve()
-    ]
-    rewrite_results = rewrite_refs(md_files_after, rename_map)
+    rewrite_results = rewrite_refs(collect_rewritable_files(carta_root), rename_map)
 
     do_regenerate(carta_root, _load_preamble(carta_root.name))
 
@@ -329,11 +300,7 @@ def cmd_delete(args, carta_root: Path) -> None:
     if orphaned:
         print(f"\nWarning: {len(orphaned)} orphaned ref(s) remain in the workspace:")
         for fpath, line, ref in orphaned:
-            try:
-                display = str(fpath.relative_to(carta_root))
-            except ValueError:
-                display = str(fpath)
-            print(f"  {ref} in {display}: {line[:80]}")
+            print(f"  {ref} in {display_path(fpath, carta_root)}: {line[:80]}")
 
     if args.output_mapping and rename_map:
         print(json.dumps(rename_map, indent=2))
@@ -359,13 +326,7 @@ def cmd_move(args, carta_root: Path) -> None:
     if args.order is not None and args.order < 1:
         raise CartaError("Error: --order must be >= 1 (position 0 is reserved for index files).")
 
-    try:
-        source_path = resolve_arg(args.source, carta_root)
-    except (FileNotFoundError, ValueError) as e:
-        raise CartaError(f"Error resolving source {args.source!r}: {e}")
-
-    if not source_path.exists():
-        raise CartaError(f"Error: source does not exist: {source_path}")
+    source_path = resolve_and_validate(args.source, carta_root)
 
     if args.rename and source_path.name == "00-index.md":
         raise CartaError("Error: cannot rename 00-index.md files.")
@@ -418,14 +379,7 @@ def cmd_move(args, carta_root: Path) -> None:
         if old_path.exists():
             shutil.move(str(old_path), str(new_path))
 
-    manifest_path = carta_root / "MANIFEST.md"
-    ws = load_workspace(carta_root)
-    external_paths = get_external_ref_paths(ws, carta_root)
-    md_files = [
-        f for f in collect_md_files(carta_root, external_paths)
-        if f.resolve() != manifest_path.resolve()
-    ]
-    rewrite_results = rewrite_refs(md_files, rename_map)
+    rewrite_results = rewrite_refs(collect_rewritable_files(carta_root), rename_map)
 
     if not args.no_regen:
         do_regenerate(carta_root, _load_preamble(carta_root.name))
@@ -446,13 +400,7 @@ def cmd_move(args, carta_root: Path) -> None:
 
 def cmd_punch(args, carta_root: Path) -> None:
     """Expand leaf file into directory."""
-    try:
-        source_path = resolve_arg(args.target, carta_root)
-    except (FileNotFoundError, ValueError) as e:
-        raise CartaError(f"Error resolving source {args.target!r}: {e}")
-
-    if not source_path.exists():
-        raise CartaError(f"Error: source does not exist: {source_path}")
+    source_path = resolve_and_validate(args.target, carta_root)
 
     if source_path.is_dir():
         raise CartaError(f"Error: source is already a directory: {source_path}")
@@ -490,13 +438,7 @@ def _count_content_lines(path: Path) -> int:
 
 def cmd_flatten(args, carta_root: Path) -> None:
     """Dissolve directory, hoist children."""
-    try:
-        source_path = resolve_arg(args.target, carta_root)
-    except (FileNotFoundError, ValueError) as e:
-        raise CartaError(f"Error resolving source {args.target!r}: {e}")
-
-    if not source_path.exists():
-        raise CartaError(f"Error: source does not exist: {source_path}")
+    source_path = resolve_and_validate(args.target, carta_root)
 
     if not source_path.is_dir():
         raise CartaError(f"Error: source is not a directory: {source_path}")
@@ -604,14 +546,7 @@ def cmd_flatten(args, carta_root: Path) -> None:
             final_path = parent_dir / final_name
             shutil.move(str(stage_path), str(final_path))
 
-    manifest_path = carta_root / "MANIFEST.md"
-    ws = load_workspace(carta_root)
-    external_paths = get_external_ref_paths(ws, carta_root)
-    md_files = [
-        f for f in collect_md_files(carta_root, external_paths)
-        if f.resolve() != manifest_path.resolve()
-    ]
-    rewrite_results = rewrite_refs(md_files, rename_map)
+    rewrite_results = rewrite_refs(collect_rewritable_files(carta_root), rename_map)
 
     do_regenerate(carta_root, _load_preamble(carta_root.name))
 
@@ -634,10 +569,7 @@ def cmd_copy(args, carta_root: Path) -> None:
     if args.order is not None and args.order < 1:
         raise CartaError("Error: --order must be >= 1.")
 
-    try:
-        dest_path = resolve_arg(args.destination, carta_root)
-    except (FileNotFoundError, ValueError) as e:
-        raise CartaError(f"Error resolving destination {args.destination!r}: {e}")
+    dest_path = resolve_and_validate(args.destination, carta_root)
 
     if not dest_path.is_dir():
         raise CartaError(f"Error: destination is not a directory: {dest_path}")
@@ -694,13 +626,7 @@ def cmd_rewrite(args, carta_root: Path) -> None:
     if not rename_map:
         raise CartaError("Error: no mappings provided.")
 
-    ws = load_workspace(carta_root)
-    external_paths = get_external_ref_paths(ws, carta_root)
-    manifest_path = carta_root / "MANIFEST.md"
-    md_files = [
-        f for f in collect_md_files(carta_root, external_paths)
-        if f.resolve() != manifest_path.resolve()
-    ]
+    md_files = collect_rewritable_files(carta_root)
 
     if args.dry_run:
         print(f"=== Ref rewrite plan ({len(rename_map)} mappings) ===")
@@ -718,11 +644,7 @@ def cmd_rewrite(args, carta_root: Path) -> None:
                 matches = pattern.findall(text)
                 if matches:
                     total += len(matches)
-                    try:
-                        display = str(fpath.relative_to(carta_root))
-                    except ValueError:
-                        display = str(fpath)
-                    print(f"  {display}: {len(matches)} match(es) for {old}")
+                    print(f"  {display_path(fpath, carta_root)}: {len(matches)} match(es) for {old}")
         print(f"\nTotal: {total} replacement(s) would be made.")
         print("(dry-run: no files modified)")
         return
@@ -732,11 +654,7 @@ def cmd_rewrite(args, carta_root: Path) -> None:
     print(f"Rewrote {total} ref(s) across {len(results)} file(s).")
     if results:
         for fpath, count in sorted(results.items(), key=lambda x: str(x[0])):
-            try:
-                display = str(fpath.relative_to(carta_root))
-            except ValueError:
-                display = str(fpath)
-            print(f"  {display}: {count}")
+            print(f"  {display_path(fpath, carta_root)}: {count}")
 
 
 # ---------------------------------------------------------------------------
@@ -782,13 +700,7 @@ def cmd_group(args, carta_root: Path) -> None:
 
 def cmd_rename(args, carta_root: Path) -> None:
     """Rename a directory or file slug without changing position."""
-    try:
-        target_path = resolve_arg(args.target, carta_root)
-    except (FileNotFoundError, ValueError) as e:
-        raise CartaError(f"Error resolving target {args.target!r}: {e}")
-
-    if not target_path.exists():
-        raise CartaError(f"Error: target does not exist: {target_path}")
+    target_path = resolve_and_validate(args.target, carta_root)
 
     prefix = get_numeric_prefix(target_path.name)
     if prefix is None:
