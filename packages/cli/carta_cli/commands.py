@@ -17,6 +17,7 @@ from .planning import compute_all_moves, compute_rename_map, print_rename_map
 from .workspace import find_workspace, load_workspace, get_external_ref_paths, MARKER
 from .regenerate_core import do_regenerate
 from .ai_skill import cmd_ai_skill
+from .errors import CartaError
 
 _MODULE_DIR = Path(__file__).resolve().parent
 
@@ -45,6 +46,7 @@ _LIBRARY_MODULES = [
     "regenerate_core.py",
     "commands.py",
     "ai_skill.py",
+    "errors.py",
 ]
 
 _DATA_FILES = [
@@ -64,8 +66,7 @@ def cmd_cat(args, carta_root: Path) -> None:
     if target.is_dir():
         target = target / "00-index.md"
     if not target.exists():
-        print(f"Error: {target} does not exist", file=sys.stderr)
-        raise SystemExit(1)
+        raise CartaError(f"Error: {target} does not exist")
     sys.stdout.write(target.read_text(encoding="utf-8"))
 
 
@@ -88,38 +89,31 @@ def cmd_create(args, carta_root: Path) -> None:
     slug = args.slug
 
     if re.match(r'^\d{2}-', slug):
-        print("Error: slug must not contain a numeric prefix (NN-). Provide just the slug part.", file=sys.stderr)
-        raise SystemExit(1)
+        raise CartaError("Error: slug must not contain a numeric prefix (NN-). Provide just the slug part.")
 
     if args.order is not None and args.order < 1:
-        print("Error: --order must be >= 1 (position 0 is reserved for index files).", file=sys.stderr)
-        raise SystemExit(1)
+        raise CartaError("Error: --order must be >= 1 (position 0 is reserved for index files).")
 
     try:
         dest_path = resolve_arg(args.destination, carta_root)
     except (FileNotFoundError, ValueError) as e:
-        print(f"Error resolving destination {args.destination!r}: {e}", file=sys.stderr)
-        raise SystemExit(1)
+        raise CartaError(f"Error resolving destination {args.destination!r}: {e}")
 
     if not dest_path.exists():
-        print(f"Error: destination does not exist: {dest_path}", file=sys.stderr)
-        raise SystemExit(1)
+        raise CartaError(f"Error: destination does not exist: {dest_path}")
 
     if not dest_path.is_dir():
-        print(f"Error: destination is not a directory: {dest_path}", file=sys.stderr)
-        raise SystemExit(1)
+        raise CartaError(f"Error: destination is not a directory: {dest_path}")
 
     prefix = compute_insertion_prefix(list_numbered_entries(dest_path), args.order)
 
     entries = list_numbered_entries(dest_path)
     occupied = {get_numeric_prefix(e.name) for e in entries}
     if prefix in occupied:
-        print(
+        raise CartaError(
             f"Error: position {prefix:02d} is occupied in {dest_path.relative_to(carta_root)}.\n"
-            f"Occupied positions: {sorted(occupied)}",
-            file=sys.stderr,
+            f"Occupied positions: {sorted(occupied)}"
         )
-        raise SystemExit(1)
 
     title = args.title if args.title is not None else slug.replace("-", " ").title()
     new_name = f"{prefix:02d}-{slug}.md"
@@ -213,11 +207,9 @@ def cmd_delete(args, carta_root: Path) -> None:
         try:
             path = resolve_arg(target, carta_root)
         except (FileNotFoundError, ValueError) as e:
-            print(f"Error resolving {target!r}: {e}", file=sys.stderr)
-            raise SystemExit(1)
+            raise CartaError(f"Error resolving {target!r}: {e}")
         if not path.exists():
-            print(f"Error: does not exist: {path}", file=sys.stderr)
-            raise SystemExit(1)
+            raise CartaError(f"Error: does not exist: {path}")
         target_paths.append(path)
 
     deleted_refs: set[str] = set()
@@ -365,43 +357,35 @@ def _create_index_for_new_dir(dir_path: Path) -> None:
 def cmd_move(args, carta_root: Path) -> None:
     """Move/reorder entries."""
     if args.order is not None and args.order < 1:
-        print("Error: --order must be >= 1 (position 0 is reserved for index files).", file=sys.stderr)
-        raise SystemExit(1)
+        raise CartaError("Error: --order must be >= 1 (position 0 is reserved for index files).")
 
     try:
         source_path = resolve_arg(args.source, carta_root)
     except (FileNotFoundError, ValueError) as e:
-        print(f"Error resolving source {args.source!r}: {e}", file=sys.stderr)
-        raise SystemExit(1)
+        raise CartaError(f"Error resolving source {args.source!r}: {e}")
 
     if not source_path.exists():
-        print(f"Error: source does not exist: {source_path}", file=sys.stderr)
-        raise SystemExit(1)
+        raise CartaError(f"Error: source does not exist: {source_path}")
 
     if args.rename and source_path.name == "00-index.md":
-        print("Error: cannot rename 00-index.md files.", file=sys.stderr)
-        raise SystemExit(1)
+        raise CartaError("Error: cannot rename 00-index.md files.")
 
     try:
         dest_path = resolve_arg(args.destination, carta_root)
     except (FileNotFoundError, ValueError) as e:
         if not args.mkdir:
-            print(f"Error resolving destination {args.destination!r}: {e}", file=sys.stderr)
-            raise SystemExit(1)
+            raise CartaError(f"Error resolving destination {args.destination!r}: {e}")
         dest_path = (carta_root / args.destination).resolve()
 
     mkdir_created = False
     if not dest_path.exists():
         if not args.mkdir:
-            print(f"Error: destination does not exist: {dest_path}", file=sys.stderr)
-            raise SystemExit(1)
+            raise CartaError(f"Error: destination does not exist: {dest_path}")
         if not dest_path.parent.exists():
-            print(
+            raise CartaError(
                 f"Error: parent directory does not exist: {dest_path.parent}\n"
-                "--mkdir only creates one level of directory.",
-                file=sys.stderr,
+                "--mkdir only creates one level of directory."
             )
-            raise SystemExit(1)
         mkdir_created = True
         dest_path.mkdir()
         _create_index_for_new_dir(dest_path)
@@ -409,20 +393,17 @@ def cmd_move(args, carta_root: Path) -> None:
             print(f"Would create directory: {dest_path.relative_to(carta_root)}")
 
     if dest_path.exists() and not dest_path.is_dir():
-        print(f"Error: destination is not a directory: {dest_path}", file=sys.stderr)
-        raise SystemExit(1)
+        raise CartaError(f"Error: destination is not a directory: {dest_path}")
 
     if not mkdir_created:
         dest_entries = list_numbered_entries(dest_path)
         if len(dest_entries) >= 99:
-            print(f"Error: destination has >= 99 items: {dest_path}", file=sys.stderr)
-            raise SystemExit(1)
+            raise CartaError(f"Error: destination has >= 99 items: {dest_path}")
 
     try:
         moves = compute_all_moves(source_path, dest_path, args.order, rename_slug=args.rename)
     except ValueError as e:
-        print(f"Error computing moves: {e}", file=sys.stderr)
-        raise SystemExit(1)
+        raise CartaError(f"Error computing moves: {e}")
 
     rename_map = compute_rename_map(moves, carta_root)
 
@@ -468,25 +449,20 @@ def cmd_punch(args, carta_root: Path) -> None:
     try:
         source_path = resolve_arg(args.target, carta_root)
     except (FileNotFoundError, ValueError) as e:
-        print(f"Error resolving source {args.target!r}: {e}", file=sys.stderr)
-        raise SystemExit(1)
+        raise CartaError(f"Error resolving source {args.target!r}: {e}")
 
     if not source_path.exists():
-        print(f"Error: source does not exist: {source_path}", file=sys.stderr)
-        raise SystemExit(1)
+        raise CartaError(f"Error: source does not exist: {source_path}")
 
     if source_path.is_dir():
-        print(f"Error: source is already a directory: {source_path}", file=sys.stderr)
-        raise SystemExit(1)
+        raise CartaError(f"Error: source is already a directory: {source_path}")
 
     if not source_path.name.endswith(".md"):
-        print(f"Error: source is not a .md file: {source_path}", file=sys.stderr)
-        raise SystemExit(1)
+        raise CartaError(f"Error: source is not a .md file: {source_path}")
 
     prefix = get_numeric_prefix(source_path.name)
     if prefix is None:
-        print(f"Error: source has no numeric prefix: {source_path.name}", file=sys.stderr)
-        raise SystemExit(1)
+        raise CartaError(f"Error: source has no numeric prefix: {source_path.name}")
 
     dir_name = source_path.name[:-3]
     new_dir = source_path.parent / dir_name
@@ -517,21 +493,17 @@ def cmd_flatten(args, carta_root: Path) -> None:
     try:
         source_path = resolve_arg(args.target, carta_root)
     except (FileNotFoundError, ValueError) as e:
-        print(f"Error resolving source {args.target!r}: {e}", file=sys.stderr)
-        raise SystemExit(1)
+        raise CartaError(f"Error resolving source {args.target!r}: {e}")
 
     if not source_path.exists():
-        print(f"Error: source does not exist: {source_path}", file=sys.stderr)
-        raise SystemExit(1)
+        raise CartaError(f"Error: source does not exist: {source_path}")
 
     if not source_path.is_dir():
-        print(f"Error: source is not a directory: {source_path}", file=sys.stderr)
-        raise SystemExit(1)
+        raise CartaError(f"Error: source is not a directory: {source_path}")
 
     source_prefix = get_numeric_prefix(source_path.name)
     if source_prefix is None:
-        print(f"Error: source has no numeric prefix: {source_path.name}", file=sys.stderr)
-        raise SystemExit(1)
+        raise CartaError(f"Error: source has no numeric prefix: {source_path.name}")
 
     parent_dir = source_path.parent
     insertion_start = args.at_position
@@ -546,12 +518,10 @@ def cmd_flatten(args, carta_root: Path) -> None:
     if has_index and not keep_index:
         content_lines = _count_content_lines(index_file)
         if content_lines > 10 and not force:
-            print(
+            raise CartaError(
                 f"Error: {index_file.relative_to(carta_root)} has {content_lines} "
-                "content lines.\nUse --keep-index to preserve it, or --force to discard.",
-                file=sys.stderr,
+                "content lines.\nUse --keep-index to preserve it, or --force to discard."
             )
-            raise SystemExit(1)
 
     parent_entries = list_numbered_entries(parent_dir)
     before: list[tuple[Path, str]] = []
@@ -577,8 +547,7 @@ def cmd_flatten(args, carta_root: Path) -> None:
         hoisted.append((child, get_slug(child.name)))
 
     if not hoisted:
-        print("Error: no children to hoist.", file=sys.stderr)
-        raise SystemExit(1)
+        raise CartaError("Error: no children to hoist.")
 
     final_order = before + hoisted + after
 
@@ -663,18 +632,15 @@ def cmd_copy(args, carta_root: Path) -> None:
     source_path = Path(args.source).resolve()
 
     if args.order is not None and args.order < 1:
-        print("Error: --order must be >= 1.", file=sys.stderr)
-        raise SystemExit(1)
+        raise CartaError("Error: --order must be >= 1.")
 
     try:
         dest_path = resolve_arg(args.destination, carta_root)
     except (FileNotFoundError, ValueError) as e:
-        print(f"Error resolving destination {args.destination!r}: {e}", file=sys.stderr)
-        raise SystemExit(1)
+        raise CartaError(f"Error resolving destination {args.destination!r}: {e}")
 
     if not dest_path.is_dir():
-        print(f"Error: destination is not a directory: {dest_path}", file=sys.stderr)
-        raise SystemExit(1)
+        raise CartaError(f"Error: destination is not a directory: {dest_path}")
 
     rename_slug = args.rename_slug
     if rename_slug is None:
@@ -687,12 +653,10 @@ def cmd_copy(args, carta_root: Path) -> None:
 
     occupied = {get_numeric_prefix(e.name) for e in entries}
     if prefix in occupied:
-        print(
+        raise CartaError(
             f"Error: position {prefix:02d} is occupied in {dest_path.relative_to(carta_root)}.\n"
-            f"Occupied positions: {sorted(occupied)}",
-            file=sys.stderr,
+            f"Occupied positions: {sorted(occupied)}"
         )
-        raise SystemExit(1)
 
     ext = source_path.suffix or ".md"
     new_name = f"{prefix:02d}-{rename_slug}{ext}"
@@ -723,14 +687,12 @@ def cmd_rewrite(args, carta_root: Path) -> None:
 
     for pair in args.mappings:
         if '=' not in pair:
-            print(f"Error: invalid mapping {pair!r} — expected old=new format.", file=sys.stderr)
-            raise SystemExit(1)
+            raise CartaError(f"Error: invalid mapping {pair!r} — expected old=new format.")
         old, new = pair.split('=', 1)
         rename_map[old.strip()] = new.strip()
 
     if not rename_map:
-        print("Error: no mappings provided.", file=sys.stderr)
-        raise SystemExit(1)
+        raise CartaError("Error: no mappings provided.")
 
     ws = load_workspace(carta_root)
     external_paths = get_external_ref_paths(ws, carta_root)
@@ -788,17 +750,14 @@ def cmd_group(args, carta_root: Path) -> None:
 
     if target_path.exists():
         if any(target_path.iterdir()):
-            print(f"Error: directory already exists and is not empty: {target_path.relative_to(carta_root)}", file=sys.stderr)
-            raise SystemExit(1)
+            raise CartaError(f"Error: directory already exists and is not empty: {target_path.relative_to(carta_root)}")
         # Empty directory — proceed (skip mkdir below)
 
     if not target_path.parent.exists():
-        print(f"Error: parent directory does not exist: {target_path.parent}", file=sys.stderr)
-        raise SystemExit(1)
+        raise CartaError(f"Error: parent directory does not exist: {target_path.parent}")
 
     if get_numeric_prefix(target_path.name) is None:
-        print(f"Error: directory name must have NN- prefix: {target_path.name}", file=sys.stderr)
-        raise SystemExit(1)
+        raise CartaError(f"Error: directory name must have NN- prefix: {target_path.name}")
 
     if not target_path.exists():
         target_path.mkdir()
@@ -826,17 +785,14 @@ def cmd_rename(args, carta_root: Path) -> None:
     try:
         target_path = resolve_arg(args.target, carta_root)
     except (FileNotFoundError, ValueError) as e:
-        print(f"Error resolving target {args.target!r}: {e}", file=sys.stderr)
-        raise SystemExit(1)
+        raise CartaError(f"Error resolving target {args.target!r}: {e}")
 
     if not target_path.exists():
-        print(f"Error: target does not exist: {target_path}", file=sys.stderr)
-        raise SystemExit(1)
+        raise CartaError(f"Error: target does not exist: {target_path}")
 
     prefix = get_numeric_prefix(target_path.name)
     if prefix is None:
-        print(f"Error: target has no numeric prefix: {target_path.name}", file=sys.stderr)
-        raise SystemExit(1)
+        raise CartaError(f"Error: target has no numeric prefix: {target_path.name}")
 
     new_slug = args.new_slug
     if re.match(r'^\d{2}-', new_slug):
@@ -854,8 +810,7 @@ def cmd_rename(args, carta_root: Path) -> None:
     new_path = target_path.parent / new_name
 
     if new_path.exists() and new_path.resolve() != target_path.resolve():
-        print(f"Error: destination already exists: {new_path}", file=sys.stderr)
-        raise SystemExit(1)
+        raise CartaError(f"Error: destination already exists: {new_path}")
 
     shutil.move(str(target_path), str(new_path))
 
@@ -1091,40 +1046,43 @@ def main():
         parser.print_help()
         raise SystemExit(1)
 
-    # init and portable don't require a pre-existing workspace
-    if args.command == "init":
-        cmd_init(args)
-        return
+    try:
+        # init and portable don't require a pre-existing workspace
+        if args.command == "init":
+            cmd_init(args)
+            return
 
-    # Resolve workspace
-    if args.workspace:
-        carta_root = args.workspace.resolve()
-    else:
-        try:
-            carta_root = find_workspace()
-        except FileNotFoundError as e:
-            print(f"Error: {e}", file=sys.stderr)
-            raise SystemExit(1)
+        # Resolve workspace
+        if args.workspace:
+            carta_root = args.workspace.resolve()
+        else:
+            try:
+                carta_root = find_workspace()
+            except FileNotFoundError as e:
+                raise CartaError(f"Error: {e}")
 
-    if args.command == "portable":
-        cmd_portable(args, carta_root)
-        return
+        if args.command == "portable":
+            cmd_portable(args, carta_root)
+            return
 
-    dispatch = {
-        "regenerate": cmd_regenerate,
-        "create": cmd_create,
-        "delete": cmd_delete,
-        "move": cmd_move,
-        "punch": cmd_punch,
-        "flatten": cmd_flatten,
-        "copy": cmd_copy,
-        "rewrite": cmd_rewrite,
-        "group": cmd_group,
-        "rename": cmd_rename,
-        "ai-skill": cmd_ai_skill,
-        "cat": cmd_cat,
-    }
-    dispatch[args.command](args, carta_root)
+        dispatch = {
+            "regenerate": cmd_regenerate,
+            "create": cmd_create,
+            "delete": cmd_delete,
+            "move": cmd_move,
+            "punch": cmd_punch,
+            "flatten": cmd_flatten,
+            "copy": cmd_copy,
+            "rewrite": cmd_rewrite,
+            "group": cmd_group,
+            "rename": cmd_rename,
+            "ai-skill": cmd_ai_skill,
+            "cat": cmd_cat,
+        }
+        dispatch[args.command](args, carta_root)
+    except CartaError as e:
+        print(str(e), file=sys.stderr)
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":
