@@ -4,8 +4,8 @@ import type { PinLayoutNode, PinDirection, OrganizerNodeData } from '@carta/sche
 import { useNodes, usePinConstraints } from '../../hooks';
 import LayoutMapOrganizerNode from './LayoutMapOrganizerNode';
 import ContextMenuPrimitive from '../ui/ContextMenuPrimitive';
-import { Canvas, useCanvasContext, useNodeDrag, useKeyboardShortcuts, ConnectionPreview, type CanvasRef } from '../../canvas-engine/index.js';
-import { EdgeLabel } from '../../canvas-engine/EdgeLabel.js';
+import { Canvas, useCanvasContext, useNodeDrag, useKeyboardShortcuts, ConnectionPreview, type CanvasRef } from '../../cactus/index.js';
+import { EdgeLabel } from '../../cactus/EdgeLabel.js';
 import CanvasToolbar, { ToolbarButton, ToolbarDivider } from './CanvasToolbar';
 import { Tooltip } from '../ui';
 import { MagnifyingGlassPlus, MagnifyingGlassMinus, CornersOut, ArrowsClockwise, X } from '@phosphor-icons/react';
@@ -267,7 +267,7 @@ function LayoutMapInner({
     return () => window.removeEventListener('pointermove', handleMove);
   }, [connectionDrag]);
 
-  // Handle node drag using canvas-engine primitive
+  // Handle node drag using cactus primitive
   const { onPointerDown: handleNodePointerDown } = useNodeDrag({
     zoomScale: transform.k,
     handleSelector: '.drag-handle',

@@ -8,7 +8,7 @@
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { ConnectionHandle } from '../../src/canvas-engine/ConnectionHandle';
+import { ConnectionHandle } from '../../src/cactus/ConnectionHandle';
 
 describe('ConnectionHandle', () => {
   it('renders target handle with data attributes', () => {

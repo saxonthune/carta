@@ -4,8 +4,8 @@ import {
   computeAttach,
   computeDetach,
   computeContainerFit,
-} from '../../src/canvas-engine/containerOps';
-import type { ContainerNode } from '../../src/canvas-engine/containerOps';
+} from '../../src/cactus/containerOps';
+import type { ContainerNode } from '../../src/cactus/containerOps';
 import { DEFAULT_ORGANIZER_LAYOUT, type NodeGeometry } from '@carta/geometry';
 
 // ===== HELPERS =====

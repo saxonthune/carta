@@ -1,7 +1,7 @@
 import { memo, useState, useEffect, useRef, useCallback } from 'react';
 import type { ConstructSchema } from '@carta/schema';
 import { getPortColor } from '@carta/schema';
-import { ConnectionHandle } from '../../canvas-engine/index.js';
+import { ConnectionHandle } from '../../cactus/index.js';
 import { Plus } from '@phosphor-icons/react';
 import { portYOffset } from '../../utils/metamapV2Layout.js';
 

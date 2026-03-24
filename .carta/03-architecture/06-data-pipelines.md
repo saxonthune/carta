@@ -12,7 +12,7 @@ Memo cascades and data flow in Map.tsx. Use this doc to trace how domain state b
 
 ## Node Pipeline
 
-**Note:** The node pipeline logic is extracted into `useMapNodePipeline` for Map.tsx. MapV2 uses a separate pipeline tailored to canvas-engine rendering. This doc describes the Map.tsx (React Flow) pipeline.
+**Note:** The node pipeline logic is extracted into `useMapNodePipeline` for Map.tsx. MapV2 uses a separate pipeline tailored to cactus rendering. This doc describes the Map.tsx (React Flow) pipeline.
 
 ```
 Yjs Y.Doc
@@ -107,7 +107,7 @@ interface MapNodePipelineOutputs {
 }
 ```
 
-Consumers: `Map.tsx` uses this to avoid inline memo chains. MapV2 does not use this hook — it has its own pipeline tailored to canvas-engine rendering.
+Consumers: `Map.tsx` uses this to avoid inline memo chains. MapV2 does not use this hook — it has its own pipeline tailored to cactus rendering.
 
 ### useMapEdgePipeline
 
