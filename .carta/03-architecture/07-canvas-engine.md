@@ -2,7 +2,7 @@
 title: Canvas Engine
 status: active
 summary: Canvas engine primitives: useViewport, useConnectionDrag, ConnectionHandle, composition pattern
-tags: [canvas-engine, viewport, connections, primitives]
+tags: [canvas-engine, cactus, viewport, connections, primitives]
 deps: [doc03.05]
 ---
 
@@ -10,7 +10,7 @@ deps: [doc03.05]
 
 Internal library of composable primitives for building interactive canvas UIs. Domain-agnostic — no knowledge of constructs, schemas, organizers, or Yjs. Consumers compose engine primitives with their own domain logic.
 
-**Location:** `packages/web-client/src/canvas-engine/`
+**Location:** `packages/web-client/src/cactus/` (named "cactus")
 
 ## Architecture Position
 
@@ -19,7 +19,7 @@ Sits below feature components, above browser APIs. The sole canvas rendering lay
 ```
 Feature components (Map, Metamap, LayoutMap)
          ↓
-   canvas-engine
+   cactus
          ↓
    d3-zoom, DOM APIs
 ```
@@ -28,7 +28,7 @@ Dependency direction: consumers depend on the engine, never the reverse. The eng
 
 ## Primitives
 
-The canvas-engine exports 14 hook/component primitives plus utility functions from `containment.ts` and `containerOps.ts`. The core primitives for most views are: `useViewport`, `useConnectionDrag`, `ConnectionHandle`, and `Canvas`. The others provide optional composition capabilities.
+Cactus exports 14 hook/component primitives plus utility functions from `containment.ts` and `containerOps.ts`. The core primitives for most views are: `useViewport`, `useConnectionDrag`, `ConnectionHandle`, and `Canvas`. The others provide optional composition capabilities.
 
 ### Canvas
 
@@ -47,7 +47,7 @@ Consumers define node data and render functions; Canvas handles the interaction 
 
 ### CanvasContext / useCanvasContext
 
-Context provider for canvas-engine composition. Provides viewport transform, selection state, and connection drag state to nested components. Used internally by Canvas component; consumers rarely need this directly.
+Context provider for cactus composition. Provides viewport transform, selection state, and connection drag state to nested components. Used internally by Canvas component; consumers rarely need this directly.
 
 ### useViewport
 

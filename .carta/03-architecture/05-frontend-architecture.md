@@ -147,7 +147,7 @@ Canvas components and LOD:
 - **Components**: `MapV2`, `MapV2Toolbar`, `CanvasContainer`, `AddConstructMenu`, `Narrative`, `CanvasToolbar`
 - **LOD**: `DEFAULT_LOD_POLICY`, `getLodConfig`, types
 
-**Note:** React Flow has been fully removed. `MapV2.tsx` uses canvas-engine primitives for full control over rendering and interaction. `MapV2PlaceholderNode` renders constructs whose schemas are missing from the document (drift detection fallback).
+**Note:** React Flow has been fully removed. `MapV2.tsx` uses cactus primitives for full control over rendering and interaction. `MapV2PlaceholderNode` renders constructs whose schemas are missing from the document (drift detection fallback).
 
 **Note:** `MapV2ConstructNode.tsx` renders construct nodes on the canvas. `Header` is a directory with modular implementations: `Header.tsx`, `ThemeMenu.tsx`, `SettingsMenu.tsx`, `ShareMenu.tsx`, `useClickOutside.ts`.
 

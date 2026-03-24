@@ -10,7 +10,7 @@ updated: 2026-02-16
 
 # ADR: Yjs-Authoritative Layout
 
-**Update 2026-02-16:** React Flow has been fully removed. This ADR's architectural principles remain valid but the implementation now uses canvas-engine as the renderer.
+**Update 2026-02-16:** React Flow has been fully removed. This ADR's architectural principles remain valid but the implementation now uses cactus as the renderer.
 
 ## Context
 

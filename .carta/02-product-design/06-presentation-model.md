@@ -16,7 +16,7 @@ Without the presentation model, rendering logic is scattered: Map.tsx enhances n
 
 - **Domain model** describes what exists and how it relates (constructs, schemas, connections)
 - **Presentation model** decides what the view should show given what exists
-- **canvas-engine** renders the result
+- **cactus** renders the result
 
 This separation means new rendering behaviors (organizer layouts, render styles, LOD bands) are added in one place without touching domain logic or React Flow integration.
 
