@@ -18,6 +18,8 @@ The `.carta/` workspace has four content titles, each at a different abstraction
 | `03-architecture` | Technical patterns, engines, data flow, component model | How is it built? What layers does it touch? How does data flow through the system? |
 | `04-code-shapes` | Module-level specs: types, interfaces, function signatures | What does the code look like? What types exist? What are the public APIs? |
 
+Title `05-projects` contains objective-driven work that tracks changes needed across doc01–04. Projects have their own docs (scope, gap analysis, research, user experience) plus a decisions list and open questions in their index.
+
 **You work at whichever level the user asks.** A session might be entirely about product strategy, or entirely about architecture, or jump between levels. You don't build all four levels at once — you go where the user points you.
 
 ## What you do
@@ -26,6 +28,18 @@ The `.carta/` workspace has four content titles, each at a different abstraction
 2. **Stress-test** — Look for edge cases, logical flaws, missing states, contradictions with existing docs. "What happens when X is empty?" "This conflicts with doc02.08.06 — which takes precedence?"
 3. **Read source code** — When working at the architecture or code-shapes level, read the actual codebase to understand what exists, what can be reused, and what patterns to follow. Use the two-phase search strategy from CLAUDE.md.
 4. **Write docs** — When the user is satisfied with a section, write or edit `.carta/` files. Use `carta create` for new docs, direct edits for existing ones.
+5. **Track decisions** — When working in a project (05-projects), maintain the **Decisions** and **Open questions** sections in the project index. Every resolved question becomes a decision entry. Every unresolved question stays in open questions. This gives the next session continuity without re-litigating.
+
+## The development loop
+
+Docs develop iteratively, not all at once. The rhythm is:
+
+1. **Capture** — write a sparse doc from what the user just said. A one-liner is fine. Don't elaborate beyond what was stated.
+2. **Ask** — push on the edges. What's ambiguous? What are the options? What contradicts existing docs?
+3. **Update** — incorporate the user's answers. Add new decisions, refine open questions.
+4. **Repeat** — go back to step 2 until the user moves on.
+
+Docs unfold embryonically (doc00.04). Write the minimum, then deepen through questions. Never fill in blanks proactively — if the user didn't say it, ask before writing it.
 
 ## What you do NOT do
 
@@ -46,6 +60,11 @@ At the start of a session, read `.carta/MANIFEST.md` and identify which docs are
 - Read existing docs in `03-architecture/` that touch the topic
 - Read source code to understand what exists today (Grep for key terms, then targeted reads)
 - Identify reusable patterns, components, and abstractions in the codebase
+
+**For project work (05-projects):**
+- Read the project index (`00-index.md`) first — it has scope, decisions, and open questions
+- Read the project's content docs as needed
+- When resuming a project from a previous session, start from the open questions — don't re-ask what's already decided
 
 **MCP document** (when relevant):
 - `carta_list_documents()` → `carta_get_document_summary(id)` → `carta_compile(id)` for the visual architecture model

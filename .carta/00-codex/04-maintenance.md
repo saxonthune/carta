@@ -38,6 +38,14 @@ grep -rn "epoch: 1" .carta/    # Find docs not yet reviewed for epoch 2
 
 Epochs are coarse-grained — bump only on major shifts, not routine changes.
 
+## Doc Lifecycle: Unfolding, Not Filling In
+
+Docs differentiate over time, like embryonic development. A one-line entry in a list is a valid doc. A section with a title and three bullet points is a valid doc. Neither is "incomplete" — each represents the best current understanding at the level of detail the work has demanded so far.
+
+Fleshing out happens when a project or user needs more detail, not proactively. Do not invent content to fill sparse docs. Do not treat brevity as a defect. A doc that says "Decision tables — spreadsheet-like editor for stateless branching logic" is finished until someone needs to design the editor.
+
+This applies at every scale: a title can contain a single index file, a section can contain a single paragraph, a list item can stand alone without elaboration.
+
 ## Adding a Document
 
 1. Identify the correct title by reader intent (see doc00.02)

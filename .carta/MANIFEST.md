@@ -52,7 +52,7 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 |-----|------|---------|------|------|
 
 | doc01.06.00 | `06-products/00-index.md` |  |  | — |
-| doc01.06.01 | `06-products/01-cli-scripts.md` |  |  | — |
+| doc01.06.01 | `06-products/01-cli-scripts.md` | Deterministic Python operations on .carta/ workspace documents — designed primarily for AI agents | docs-api, workspace, tools, scripts, ai | doc01.05 |
 | doc01.06.02 | `06-products/02-canvas.md` | Visual architecture editor — typed constructs, ports, connections, LOD rendering | canvas, editor, constructs, ports | doc01.01 |
 | doc01.06.03 | `06-products/03-spec-web-editor.md` |  |  | — |
 | doc01.06.04 | `06-products/04-decision-table-renderer.md` | GUI editor for decision tables — structured data storage, rich table editing, markdown export for AI consumption | decision-tables, product, editor, rules | doc01.01 |
@@ -80,7 +80,7 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 |-----|------|---------|------|------|
 
 | doc02.00 | `00-index.md` |  |  | — |
-| doc02.01 | `01-workspace-scripts.md` | CLI tools for managing .carta/ workspace structure — create, delete, move, punch, flatten, regenerate, portable, group, rename | cli, workspace, tools, scripts | doc01.05 |
+| doc02.01 | `01-workspace-scripts.md` | Design details for the Carta Docs API — command semantics, delivery mechanisms, scope boundary | docs-api, workspace, tools, scripts | doc01.06.01 |
 | doc02.02 | `02-cli-user-flow.md` | How users install the carta CLI, hydrate a repo, and use it for workspace operations | cli, workflow, installation, use-case | doc03.01 |
 | doc02.03 | `03-vscode-extension.md` | Canvas viewer and workspace browser for VS Code | vscode, extension, canvas | doc01.05, doc01.06.02 |
 | doc02.05 | `05-metamodel.md` | M2/M1/M0 metamodel, DataKind, ConstructSchema | metamodel, schemas, ports | doc01.02 |
@@ -136,6 +136,24 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 
 | doc04.00 | `00-index.md` |  |  | — |
 
+## 05-projects — Projects
+
+| Ref | File | Summary | Tags | Deps |
+|-----|------|---------|------|------|
+
+| doc05.00 | `00-index.md` | Objective-driven workspaces that track changes needed across doc01–doc04 | projects | doc00.02, doc00.04 |
+
+### Product Design UI
+
+| Ref | File | Summary | Tags | Deps |
+|-----|------|---------|------|------|
+
+| doc05.01.00 | `01-product-design-ui/00-index.md` | Rework the canvas engine to support structured product modeling tools for nontechnical users | project, canvas, product-modeling, editors | doc01.08.10, doc03.07, doc01.06.02 |
+| doc05.01.01 | `01-product-design-ui/01-gap-analysis.md` | What exists today vs what's needed for structured product modeling tools | project, gap-analysis, canvas, product-modeling | doc01.08.10, doc03.07, doc01.06.02, doc01.06.04, doc02.06 |
+| doc05.01.02 | `01-product-design-ui/02-engine-changes.md` | Canvas engine rework required to support the full range of product design editors | project, canvas-engine, architecture | doc03.07, doc02.06, doc05.01.01 |
+| doc05.01.03 | `01-product-design-ui/03-structures.md` | The product design structures and their visual editors — from doc01.08.10 editor metaphors to real tools | project, product-modeling, editors, structures | doc01.08.10, doc05.01.01, doc05.01.02 |
+| doc05.01.04 | `01-product-design-ui/04-user-experience.md` | How users interact with product design structures — nouns, verbs, and flows | project, user-experience, product-modeling, canvas | doc05.01.03, doc01.02 |
+
 ## Tag Index
 
 Quick lookup for file-path→doc mapping:
@@ -148,17 +166,17 @@ Quick lookup for file-path→doc mapping:
 | `adr` | doc02.08.00, doc02.08.01, doc02.08.02, doc02.08.03, doc02.08.04, doc02.08.05, doc02.08.06, doc02.08.07, doc02.08.08, doc02.08.09 |
 | `agents` | doc01.08.02, doc01.08.04 |
 | `agnosticism` | doc01.08.08 |
-| `ai` | doc00.05, doc00.06, doc01.08.07, doc02.04.00, doc02.04.01, doc02.04.02 |
+| `ai` | doc00.05, doc00.06, doc01.06.01, doc01.08.07, doc02.04.00, doc02.04.01, doc02.04.02 |
 | `alignment` | doc01.07, doc03.02 |
-| `architecture` | doc01.08.09, doc02.08.06, doc03.01, doc03.02, doc03.03, doc03.05, doc03.09 |
+| `architecture` | doc01.08.09, doc02.08.06, doc03.01, doc03.02, doc03.03, doc03.05, doc03.09, doc05.01.02 |
 | `archived` | doc02.08.08 |
 | `artifact-driven development` | doc01.04.01, doc01.04.02, doc01.08.09 |
 | `bpmn` | doc01.08.01 |
-| `canvas` | doc01.06.02, doc02.03, doc02.07 |
-| `canvas-engine` | doc03.07 |
+| `canvas` | doc01.06.02, doc02.03, doc02.07, doc05.01.00, doc05.01.01, doc05.01.04 |
+| `canvas-engine` | doc03.07, doc05.01.02 |
 | `category theory` | doc01.04.01 |
 | `category-theory` | doc01.08.05 |
-| `cli` | doc02.01, doc02.02 |
+| `cli` | doc02.02 |
 | `coding` | doc01.04.01 |
 | `collaboration` | doc02.04.00, doc02.04.03 |
 | `compiler` | doc02.08.03 |
@@ -178,9 +196,11 @@ Quick lookup for file-path→doc mapping:
 | `deployment` | doc02.08.04, doc02.08.09 |
 | `design` | doc01.02, doc03.08 |
 | `docs` | doc00.01, doc00.02, doc00.03, doc00.04, doc00.05, doc01.05, doc01.08.07 |
+| `docs-api` | doc01.06.01, doc02.01 |
 | `dual-mandate` | doc01.08.01 |
 | `edges` | doc03.06 |
 | `editor` | doc01.06.02, doc01.06.04, doc02.04.02 |
+| `editors` | doc05.01.00, doc05.01.03 |
 | `efficiency` | doc01.08.02 |
 | `elicitation` | doc01.08.07 |
 | `entities` | doc01.08.10 |
@@ -192,6 +212,7 @@ Quick lookup for file-path→doc mapping:
 | `format` | doc01.05, doc01.08.08 |
 | `formats` | doc01.08.06 |
 | `formatters` | doc02.08.03 |
+| `gap-analysis` | doc05.01.01 |
 | `git` | doc02.04.00, doc03.09 |
 | `glossary` | doc01.03, doc02.07 |
 | `groups` | doc02.08.09 |
@@ -230,7 +251,9 @@ Quick lookup for file-path→doc mapping:
 | `primitives` | doc03.07 |
 | `principles` | doc01.01, doc01.02, doc01.08.08 |
 | `product` | doc01.06.04 |
-| `product-modeling` | doc01.08.09, doc01.08.10 |
+| `product-modeling` | doc01.08.09, doc01.08.10, doc05.01.00, doc05.01.01, doc05.01.03, doc05.01.04 |
+| `project` | doc05.01.00, doc05.01.01, doc05.01.02, doc05.01.03, doc05.01.04 |
+| `projects` | doc05.00 |
 | `properties` | doc01.08.04 |
 | `reachability` | doc01.08.09 |
 | `reconciliation` | doc01.07, doc01.08.06, doc03.02 |
@@ -239,7 +262,7 @@ Quick lookup for file-path→doc mapping:
 | `retrieval` | doc00.05, doc01.08.07 |
 | `rules` | doc01.06.04 |
 | `schemas` | doc02.05 |
-| `scripts` | doc01.08.06, doc02.01 |
+| `scripts` | doc01.06.01, doc01.08.06, doc02.01 |
 | `seeds` | doc02.08.07 |
 | `server` | doc02.04.00, doc02.04.03, doc03.09 |
 | `skills` | doc01.08.02 |
@@ -251,6 +274,7 @@ Quick lookup for file-path→doc mapping:
 | `state-management` | doc01.08.03 |
 | `static-analysis` | doc01.08.06 |
 | `structure` | doc00.02 |
+| `structures` | doc05.01.03 |
 | `styling` | doc03.08 |
 | `sync` | doc03.06 |
 | `terms` | doc01.03, doc02.07 |
@@ -258,10 +282,11 @@ Quick lookup for file-path→doc mapping:
 | `testing` | doc01.08.04 |
 | `theory` | doc01.04.02 |
 | `tokens` | doc01.08.02 |
-| `tools` | doc02.01 |
+| `tools` | doc01.06.01, doc02.01 |
 | `transition-systems` | doc01.08.09 |
 | `ui` | doc03.08 |
 | `use-case` | doc02.02 |
+| `user-experience` | doc05.01.04 |
 | `verification` | doc01.08.04, doc01.08.09 |
 | `viewport` | doc03.07 |
 | `vision` | doc01.04.00 |
@@ -271,5 +296,5 @@ Quick lookup for file-path→doc mapping:
 | `waypoints` | doc03.06 |
 | `web` | doc02.04.00, doc02.04.01, doc02.04.02, doc02.04.03, doc03.09 |
 | `workflow` | doc00.06, doc02.02, doc02.04.01, doc02.04.02 |
-| `workspace` | doc01.05, doc01.08.08, doc02.01, doc02.08.09 |
+| `workspace` | doc01.05, doc01.06.01, doc01.08.08, doc02.01, doc02.08.09 |
 | `yjs` | doc02.08.01, doc02.08.06, doc03.04 |

@@ -8,7 +8,7 @@ deps: []
 
 # Mission
 
-Carta is a standard for spec-driven software development. The primary product is the `.carta/` workspace format — a structured documentation system that AI agents and humans read, write, and reconcile against code. Secondary products include a canvas-based visual editor, a VS Code extension, and a set of reconciliation scripts that keep specs and code in sync.
+Carta is a standard for spec-driven software development. The primary product is the `.carta/` workspace format — a structured documentation system that AI agents and humans read, write, and reconcile against code. Secondary products include the Carta Docs API (doc01.06.01), a canvas-based visual editor, and a VS Code extension.
 
 ## Core Goal
 

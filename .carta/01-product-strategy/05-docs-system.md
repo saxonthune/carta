@@ -27,7 +27,7 @@ The `.carta/` workspace format is Carta's primary product. It defines a standard
 
 ## Relationship to Other Features
 
-- **Workspace Scripts** (doc03.01): CLI tools that manage workspace structure
+- **Carta Docs API** (doc01.06.01): Deterministic Python operations for manipulating workspace documents
 - **VS Code Extension** (doc03.03): Visual browsing and editing of workspace documents
 - **Canvas** (doc01.06.02): Visual editor that can embed diagrams as `.canvas.json` files within the workspace
 

@@ -16,7 +16,7 @@ Canonical definitions for domain terms used throughout Carta. Use these terms co
 
 A **product** corresponds to a single, distinct thing that a user installs, opens, or runs. Carta has three products:
 
-- **Carta CLI** — Portable Python scripts for structural workspace operations (create, delete, move, punch, flatten, regenerate). Dumped as raw, editable files into `.carta/` so users own and can modify their tooling.
+- **Carta Docs API** — Deterministic Python operations for manipulating `.carta/` workspace documents (create, delete, move, punch, flatten, regenerate). Designed primarily for AI agents. Delivered as an installable CLI (`pip install carta-cli`) or as portable scripts dumped into `.carta/` so the workspace carries its own tooling.
 - **Typed Canvas Editor** — VS Code extension for viewing and editing canvas diagrams. Visual modeling of constructs, ports, connections, and organizers.
 - **Web Client** — Browser-based spec editor for nontechnical users. Includes conversational AI flows, direct editing, and automatic git operations. (Future — not yet under development.)
 

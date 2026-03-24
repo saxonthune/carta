@@ -14,7 +14,7 @@ Architecture considerations for comparing `.carta/` specifications against sourc
 
 1. **Mechanism-agnostic**: Carta does not prescribe a specific reconciliation pipeline. The architecture should support multiple approaches — LLM-assisted, static analysis, hybrid — without coupling to any one.
 
-2. **Workspace scripts are separate**: The `carta` CLI (doc03.01) manages workspace structure. Reconciliation tooling is a distinct concern that may *use* workspace scripts but is not part of them.
+2. **Docs API is separate**: The Carta Docs API (doc01.06.01) manages workspace structure. Reconciliation tooling is a distinct concern that may *use* the Docs API but is not part of it.
 
 3. **Specs are the source of truth for intent**: Reconciliation compares specs (intent) against code (reality). The comparison may surface drift in either direction — specs that don't match code, or code that has no corresponding spec.
 
