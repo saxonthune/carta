@@ -25,6 +25,7 @@ The Carta Docs API is a set of deterministic Python operations for manipulating 
 | `copy` | Copy a file into the workspace at a given position |
 | `rewrite` | Rewrite doc refs using user-supplied mappings |
 | `regenerate` | Rebuild MANIFEST.md from document frontmatter |
+| `cat` | Print document contents to stdout by doc ref |
 
 All structural operations maintain cross-reference integrity — refs in surviving documents are rewritten to reflect new positions.
 

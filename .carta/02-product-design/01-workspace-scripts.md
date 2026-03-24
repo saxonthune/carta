@@ -29,6 +29,7 @@ All command logic lives in a single `commands.py` module using relative imports.
 | `regenerate` | Rebuild MANIFEST.md from document frontmatter |
 | `portable` | Dump editable scripts into workspace for pip-free usage |
 | `ai-skill` | Generate comprehensive context for AI agents — command semantics, side effects, sequencing rules, and workspace state |
+| `cat` | Print document contents to stdout by doc ref or relative path |
 
 All structural operations maintain cross-reference integrity — refs in surviving documents are rewritten to reflect new positions.
 

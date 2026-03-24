@@ -53,6 +53,21 @@ _DATA_FILES = [
 
 
 # ---------------------------------------------------------------------------
+# cat
+# ---------------------------------------------------------------------------
+
+def cmd_cat(args, carta_root: Path) -> None:
+    """Print document contents to stdout."""
+    target = resolve_arg(args.ref, carta_root)
+    if target.is_dir():
+        target = target / "00-index.md"
+    if not target.exists():
+        print(f"Error: {target} does not exist", file=sys.stderr)
+        raise SystemExit(1)
+    sys.stdout.write(target.read_text(encoding="utf-8"))
+
+
+# ---------------------------------------------------------------------------
 # regenerate
 # ---------------------------------------------------------------------------
 
@@ -1503,6 +1518,10 @@ def main():
     # ai-skill
     subparsers.add_parser("ai-skill", help="Print AI agent reference for all commands")
 
+    # cat
+    p_cat = subparsers.add_parser("cat", help="Print document contents by ref")
+    p_cat.add_argument("ref", help="Doc ref (e.g., doc02.03) or relative path")
+
     args = parser.parse_args()
 
     if getattr(args, 'help_ai', False):
@@ -1545,6 +1564,7 @@ def main():
         "group": cmd_group,
         "rename": cmd_rename,
         "ai-skill": cmd_ai_skill,
+        "cat": cmd_cat,
     }
     dispatch[args.command](args, carta_root)
 

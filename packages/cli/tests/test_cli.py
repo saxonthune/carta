@@ -1187,6 +1187,37 @@ class TestRenameCommand(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0, "Should fail on missing target")
 
 
+class TestCatCommand(unittest.TestCase):
+    """Tests for `carta cat` command."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.carta_copy = _copy_carta(Path(self.tmpdir.name))
+
+    def tearDown(self):
+        self.tmpdir.cleanup()
+
+    def test_cat_file_ref(self):
+        """carta cat prints file contents for a doc file ref."""
+        result = _run_carta(self.carta_copy, "cat", "doc02.01")
+        self.assertEqual(result.returncode, 0, f"carta cat failed:\n{result.stderr}\n{result.stdout}")
+        expected = (self.carta_copy / "02-product-design" / "01-workspace-scripts.md").read_text(encoding="utf-8")
+        self.assertEqual(result.stdout, expected)
+
+    def test_cat_directory_ref(self):
+        """carta cat prints 00-index.md for a directory doc ref."""
+        result = _run_carta(self.carta_copy, "cat", "doc02.04")
+        self.assertEqual(result.returncode, 0, f"carta cat failed:\n{result.stderr}\n{result.stdout}")
+        expected = (self.carta_copy / "02-product-design" / "04-web-platform" / "00-index.md").read_text(encoding="utf-8")
+        self.assertEqual(result.stdout, expected)
+
+    def test_cat_nonexistent_ref(self):
+        """carta cat fails with non-zero exit and error message for nonexistent ref."""
+        result = _run_carta(self.carta_copy, "cat", "doc99.99")
+        self.assertNotEqual(result.returncode, 0, "Should fail for nonexistent ref")
+        self.assertIn("Error", result.stderr)
+
+
 class TestMoveNoRegen(unittest.TestCase):
     """Tests for `carta move --no-regen`."""
 
