@@ -6,6 +6,8 @@ interface CartaConfig {
   syncUrl?: string;
   /** Set to true when running inside the VS Code extension webview */
   embedded?: boolean;
+  /** App mode: undefined = legacy canvas, 'product-design' = filesystem-backed design canvas */
+  mode?: 'product-design';
 }
 
 function getRuntimeConfig(): CartaConfig {
@@ -16,11 +18,13 @@ function getRuntimeConfig(): CartaConfig {
   const params = new URLSearchParams(window.location.search);
   const syncUrlParam = params.get('syncUrl');
   const embeddedParam = params.get('embedded');
+  const modeParam = params.get('mode');
 
   return {
     ...injected,
     ...(syncUrlParam ? { syncUrl: syncUrlParam } : {}),
     ...(embeddedParam === 'true' ? { embedded: true } : {}),
+    ...(modeParam ? { mode: modeParam as 'product-design' } : {}),
   };
 }
 
@@ -55,6 +59,9 @@ export const config = {
   aiMode: (import.meta.env.VITE_AI_MODE || 'none') as 'none' | 'user-key' | 'server-proxy',
   /** Whether the app is embedded in a host (e.g. VS Code WebView) — canvas-only, no chrome */
   embedded: runtimeConfig.embedded === true,
+
+  /** App mode: null = legacy canvas, 'product-design' = filesystem-backed design canvas */
+  mode: runtimeConfig.mode ?? null as 'product-design' | null,
 
   /** Whether a sync server is configured (enables collaboration, multi-document mode) */
   get hasSync(): boolean { return !!this.syncUrl; },

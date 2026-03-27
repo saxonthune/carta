@@ -25,6 +25,7 @@ import { analyzeImport, type ImportAnalysis, type ImportOptions } from './utils/
 import { analyzeExport, type ExportAnalysis, type ExportOptions } from './utils/exportAnalyzer';
 import { importDocument, type ImportConfig } from './utils/documentImporter';
 import { config } from './config/featureFlags';
+import { ProductDesignEmbedded } from './product-design/ProductDesignEmbedded.js';
 
 type ActiveView =
   | { type: 'page'; pageId: string }
@@ -41,6 +42,11 @@ const EmbeddedDebugOverlay = lazy(() => import('./components/EmbeddedDebugOverla
 // Note: Schema initialization is now handled by DocumentProvider
 
 function App() {
+  // Product design mode: filesystem-backed canvas via VS Code extension
+  if (config.mode === 'product-design') {
+    return <ProductDesignEmbedded />;
+  }
+
   // Embedded mode: canvas-only, no chrome (used by VS Code WebView)
   if (config.embedded) {
     return <EmbeddedContent />;

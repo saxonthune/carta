@@ -4,6 +4,7 @@ import { startEmbeddedHost } from '@carta/server/embedded-host';
 import type { EmbeddedHost } from '@carta/server/embedded-host';
 import { scaffoldWorkspace } from '@carta/server/init';
 import { CartaCanvasEditorProvider } from './canvas-editor-provider.js';
+import { ProductDesignEditorProvider } from './product-design-editor-provider.js';
 import { findCartaWorkspace } from './find-carta-workspace.js';
 
 let host: EmbeddedHost | null = null;
@@ -27,7 +28,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }
   }
 
-  // Register custom editor provider
+  // Register custom editor providers
   context.subscriptions.push(
     CartaCanvasEditorProvider.register(
       context,
@@ -36,6 +37,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       devMode,
       output,
     ),
+  );
+
+  context.subscriptions.push(
+    ProductDesignEditorProvider.register(context, devMode, output),
   );
 
   // Register init command
