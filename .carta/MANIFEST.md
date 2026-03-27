@@ -2,7 +2,7 @@
 
 Machine-readable index for AI navigation. Read this file first, then open only the docs relevant to your query.
 
-**Retrieval strategy:** See doc00.05 for AI retrieval patterns inspired by legal RAG research.
+**Retrieval strategy:** See doc00.04 for AI retrieval patterns.
 
 ## Column Definitions
 
@@ -19,11 +19,11 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 |-----|------|---------|------|------|------|
 
 | doc00.00 | `00-index.md` | Codex section index: what meta-documentation covers | index, meta | — | — |
-| doc00.01 | `01-about.md` | How to read docs, cross-reference syntax | docs, meta | — | — |
-| doc00.02 | `02-taxonomy.md` | Title system rationale, Diataxis spirit | docs, structure | — | doc05.00 |
+| doc00.01 | `01-about.md` | Why this workspace exists, two-sources-of-truth theory, how to read | docs, meta, theory | — | — |
+| doc00.02 | `02-maintenance.md` | Doc lifecycle — unfolding philosophy, development loop, versioning, epochs | docs, maintenance, philosophy | — | doc05.00 |
 | doc00.03 | `03-conventions.md` | docXX.YY syntax, front matter, file naming | docs, conventions | — | — |
-| doc00.04 | `04-maintenance.md` | Git versioning, epochs, adding/deprecating | docs, maintenance | — | doc05.00 |
-| doc00.05 | `05-ai-retrieval.md` | AI retrieval patterns, legal RAG inspiration | docs, ai, retrieval | — | doc01.08.07 |
+| doc00.04 | `04-ai-retrieval.md` | AI retrieval patterns, legal RAG inspiration | docs, ai, retrieval | — | doc01.08.07 |
+| doc00.05 | `05-taxonomy.md` | Title system rationale, Diataxis spirit | docs, structure | — | doc05.00 |
 | doc00.06 | `06-ai-agent-integration.md` | AI workflow patterns: spec-to-code, code-to-spec, MCP setup, guide directory | ai, workflow, mcp, guides | doc01.08.03 | — |
 
 ## 01-product-strategy — Product Strategy
@@ -70,7 +70,7 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 | doc01.08.04 | `08-research/04-verifiability-and-testability.md` | Epistemology of verification, test value hierarchy, decomposition inventory, testability architecture | testing, verification, epistemology, agents, testability, oracles, properties | doc01.08.02, doc03.05 | — |
 | doc01.08.05 | `08-research/05-decomposition-and-composition-theory.md` | Mathematical foundations for spec-driven development — what makes a good decomposition, and how pieces compose back | decomposition, composition, information-theory, modularity, spec-driven, category-theory, complexity | doc01.02, doc01.04.01 | doc01.04.02, doc01.08.09 |
 | doc01.08.06 | `08-research/06-spec-code-reconciliation.md` | Two-source-of-truth model, filesystem data formats, deterministic scripts, LLM-assisted reconciliation between product specs and codebases | spec-driven, reconciliation, formats, scripts, decomposition, information-theory, llm, static-analysis | doc01.02, doc01.04.01, doc01.07, doc02.08.09 | doc01.08.07, doc01.08.08 |
-| doc01.08.07 | `08-research/07-documentation-systems-and-retrieval.md` | Principles behind hierarchical docs systems, agentic search improvement, scientific comparison of docs structures, and what makes individual specs good enough for code generation | docs, retrieval, ai, specifications, elicitation, information-architecture, evaluation | doc00.05, doc01.08.06 | — |
+| doc01.08.07 | `08-research/07-documentation-systems-and-retrieval.md` | Principles behind hierarchical docs systems, agentic search improvement, scientific comparison of docs structures, and what makes individual specs good enough for code generation | docs, retrieval, ai, specifications, elicitation, information-architecture, evaluation | doc00.04, doc01.08.06 | — |
 | doc01.08.08 | `08-research/08-spec-format-vocabulary.md` | What parts of the spec format Carta has opinions on vs what's up to users — format concerns vs user concerns | specs, vocabulary, format, agnosticism, workspace, principles | doc01.05, doc01.02, doc01.08, doc01.08.06 | — |
 | doc01.08.09 | `08-research/09-product-as-transition-system.md` | Modeling products as guarded transition systems — verifiable reachability, dead-end detection, and deductive architecture from product properties | product-modeling, transition-systems, verification, architecture, reachability, spec-driven, artifact-driven development | doc01.04.01, doc01.04.02, doc01.08.05 | doc01.08.10 |
 | doc01.08.10 | `08-research/10-structured-product-modeling.md` | The set of formal structures needed to fully describe a business product — entity models, decision tables, state machines, and six more — plus how they compose | product-modeling, decision-tables, state-machines, entities, enumerations, constraints, spec-driven | doc01.08.09, doc01.06.04, doc01.04.01 | doc05.01.00, doc05.01.01, doc05.01.03.00, doc05.01.03.01, doc05.01.03.02 |
@@ -150,7 +150,7 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 | Ref | File | Summary | Tags | Deps | Refs |
 |-----|------|---------|------|------|------|
 
-| doc05.00 | `00-index.md` | Objective-driven workspaces that track changes needed across doc01–doc04 | projects | doc00.02, doc00.04 | — |
+| doc05.00 | `00-index.md` | Objective-driven workspaces that track changes needed across doc01–doc04 | projects | doc00.05, doc00.02 | — |
 
 ### Product Design UI
 
@@ -177,7 +177,7 @@ Quick lookup for file-path→doc mapping:
 | `adr` | doc02.08.00, doc02.08.01, doc02.08.02, doc02.08.03, doc02.08.04, doc02.08.05, doc02.08.06, doc02.08.07, doc02.08.08, doc02.08.09 |
 | `agents` | doc01.08.02, doc01.08.04 |
 | `agnosticism` | doc01.08.08 |
-| `ai` | doc00.05, doc00.06, doc01.06.01, doc01.08.07, doc02.04.00, doc02.04.01, doc02.04.02, doc03.10.00, doc03.10.01 |
+| `ai` | doc00.04, doc00.06, doc01.06.01, doc01.08.07, doc02.04.00, doc02.04.01, doc02.04.02, doc03.10.00, doc03.10.01 |
 | `alignment` | doc01.07, doc03.02 |
 | `architecture` | doc01.08.09, doc02.08.06, doc03.01, doc03.02, doc03.03, doc03.05, doc03.09, doc03.10.00, doc05.01.02 |
 | `archived` | doc02.08.08 |
@@ -242,7 +242,7 @@ Quick lookup for file-path→doc mapping:
 | `llm` | doc01.08.06 |
 | `loading` | doc02.08.07 |
 | `lod` | doc03.08 |
-| `maintenance` | doc00.04 |
+| `maintenance` | doc00.02 |
 | `mcp` | doc00.06, doc02.08.09 |
 | `meta` | doc00.00, doc00.01 |
 | `metamodel` | doc02.05 |
@@ -255,6 +255,7 @@ Quick lookup for file-path→doc mapping:
 | `organizers` | doc01.08.01, doc01.08.03, doc02.06, doc02.08.05 |
 | `packages` | doc02.08.07, doc03.01 |
 | `patterns` | doc01.04.02, doc03.10.00, doc03.10.01 |
+| `philosophy` | doc00.02 |
 | `pipeline` | doc03.06 |
 | `planning` | doc01.04.01 |
 | `polarity` | doc02.08.02 |
@@ -274,7 +275,7 @@ Quick lookup for file-path→doc mapping:
 | `reconciliation` | doc01.07, doc01.08.06, doc03.02 |
 | `rendering` | doc01.08.01, doc02.06 |
 | `research` | doc01.08.00 |
-| `retrieval` | doc00.05, doc01.08.07 |
+| `retrieval` | doc00.04, doc01.08.07 |
 | `rules` | doc01.06.04 |
 | `schemas` | doc02.05 |
 | `scripts` | doc01.06.01, doc01.08.06, doc02.01 |
@@ -288,14 +289,14 @@ Quick lookup for file-path→doc mapping:
 | `state-machines` | doc01.08.10 |
 | `state-management` | doc01.08.03 |
 | `static-analysis` | doc01.08.06 |
-| `structure` | doc00.02 |
+| `structure` | doc00.05 |
 | `structures` | doc05.01.03.00, doc05.01.03.01, doc05.01.03.02 |
 | `styling` | doc03.08 |
 | `sync` | doc03.06 |
 | `terms` | doc01.03, doc02.07 |
 | `testability` | doc01.08.04 |
 | `testing` | doc01.08.04, doc03.10.01 |
-| `theory` | doc01.04.02 |
+| `theory` | doc00.01, doc01.04.02 |
 | `tokens` | doc01.08.02 |
 | `tools` | doc01.06.01, doc02.01 |
 | `transition-systems` | doc01.08.09 |

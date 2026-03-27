@@ -2,7 +2,7 @@
 title: Projects
 summary: Objective-driven workspaces that track changes needed across doc01–doc04
 tags: [projects]
-deps: [doc00.02, doc00.04]
+deps: [doc00.05, doc00.02]
 ---
 
 # Projects

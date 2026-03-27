@@ -1,14 +1,14 @@
 ---
 title: About This Workspace
 status: active
-summary: Why this workspace exists, two-sources-of-truth theory, how to read
+summary: Why this workspace exists, how to read it, two-sources-of-truth theory
 tags: [docs, meta, theory]
 deps: []
 ---
 
 # About This Workspace
 
-This is the `.carta/` workspace for Carta — the spec-driven development standard and its visual editor. It contains structured specifications that bridge the gap between what we want to build and what the code actually does.
+This is the `.carta/` workspace for **{{title}}**. It contains structured specifications that bridge the gap between what you want to build and what the code actually does.
 
 ## Two Sources of Truth
 
@@ -26,22 +26,14 @@ Traditional SDLC processes create artifacts (PRDs, Figma mocks, Jira tickets) in
 
 AI shifts the documentation-code equilibrium. Extensive, structured specs are now viable because AI can help maintain them. Instead of a pipeline that dilutes signal, **spec groups** bridge the two sources directly, and AI helps reconcile specs derived from expectations against specs derived from code.
 
-This workspace organizes specs into groups. See doc00.05 for Carta's specific group taxonomy.
+This workspace organizes specs into groups. The number and names of groups are up to you — they should reflect the natural abstraction levels of your project and the different audiences who read them.
 
 ## How to Read
 
-**New to the project?** Start with `01-product-strategy/` — mission, principles, and glossary.
-
-**Want to know what Carta does?** Browse `01-product-strategy/06-products/` — documentation system, canvas, workspace scripts.
-
-**Need to understand internals?** Read `03-architecture/` — system architecture, canvas subsystem, and design decisions.
-
-## Cross-References
-
-Documents reference each other using `doc` syntax: `docXX.YY.ZZ` where each segment is a two-digit number mapping to the directory/file numbering. For example, `doc01.06.02` refers to title 01 (product-strategy), subdir 06 (products), item 02 (canvas).
-
-See doc00.03 for full conventions.
+- `MANIFEST.md` is the machine-readable index — AI agents start there to find anything
+- Documents use `docXX.YY.ZZ` cross-references (e.g., `doc01.02` = second doc in first group)
+- YAML frontmatter on every doc provides title, status, summary, tags, and dependency refs
 
 ## One Canonical Location
 
-Every concept has exactly one canonical document. Other documents reference it rather than re-explaining. If you're tempted to describe something that already has a doc, link to it instead.
+Every concept has exactly one canonical document. Other documents reference it rather than re-explaining. If you're tempted to describe something that already has a doc, link to it with `docXX.YY` instead.

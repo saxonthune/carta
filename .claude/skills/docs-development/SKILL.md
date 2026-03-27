@@ -39,7 +39,7 @@ Docs develop iteratively, not all at once. The rhythm is:
 3. **Update** — incorporate the user's answers. Add new decisions, refine open questions.
 4. **Repeat** — go back to step 2 until the user moves on.
 
-Docs unfold embryonically (doc00.04). Write the minimum, then deepen through questions. Never fill in blanks proactively — if the user didn't say it, ask before writing it.
+Docs unfold embryonically (doc00.02). Write the minimum, then deepen through questions. Never fill in blanks proactively — if the user didn't say it, ask before writing it.
 
 ## What you do NOT do
 

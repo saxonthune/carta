@@ -46,7 +46,12 @@ _LIBRARY_MODULES = [
 _DATA_FILES = [
     "manifest-preamble.md",
     "templates/00-index.md",
+    "templates/01-about.md",
+    "templates/02-maintenance.md",
+    "templates/03-conventions.md",
+    "templates/04-ai-retrieval.md",
     "templates/skill.md",
+    "templates/docs-development-skill.md",
 ]
 
 
@@ -83,8 +88,20 @@ def cmd_init(args: argparse.Namespace) -> None:
     }
     marker_path.write_text(json.dumps(marker_content, indent=2) + "\n", encoding="utf-8")
 
-    index_content = (_PACKAGE_DIR / "templates" / "00-index.md").read_text(encoding="utf-8").replace("{{title}}", title)
-    (codex_dir / "00-index.md").write_text(index_content, encoding="utf-8")
+    # --- Codex docs ---
+    templates_dir = _PACKAGE_DIR / "templates"
+    codex_templates = [
+        ("00-index.md", "{{title}}", title),
+        ("01-about.md", "{{title}}", title),
+        ("02-maintenance.md", "{{dir_name}}", dirname),
+        ("03-conventions.md", "{{dir_name}}", dirname),
+        ("04-ai-retrieval.md", None, None),
+    ]
+    for filename, placeholder, value in codex_templates:
+        content = (templates_dir / filename).read_text(encoding="utf-8")
+        if placeholder:
+            content = content.replace(placeholder, value)
+        (codex_dir / filename).write_text(content, encoding="utf-8")
 
     (carta_dir / "MANIFEST.md").write_text(
         f"# {dirname}/ Manifest\n\nMachine-readable index for AI navigation. "
@@ -92,21 +109,28 @@ def cmd_init(args: argparse.Namespace) -> None:
         encoding="utf-8",
     )
 
-    skill_dir = project_root / ".claude" / "skills" / "carta-cli"
-    skill_dir.mkdir(parents=True, exist_ok=True)
-    skill_path = skill_dir / "SKILL.md"
-    if not skill_path.exists():
-        skill_content = (_PACKAGE_DIR / "templates" / "skill.md").read_text(encoding="utf-8").replace("{{dir_name}}", dirname)
-        skill_path.write_text(skill_content, encoding="utf-8")
-        print(f"  Hydrated: .claude/skills/carta-cli/SKILL.md")
-    else:
-        print(f"  Skipped:  .claude/skills/carta-cli/SKILL.md (already exists)")
+    # --- Skills ---
+    def _install_skill(skill_name: str, template_file: str, replacements: dict[str, str] | None = None) -> None:
+        skill_dir = project_root / ".claude" / "skills" / skill_name
+        skill_dir.mkdir(parents=True, exist_ok=True)
+        skill_path = skill_dir / "SKILL.md"
+        if not skill_path.exists():
+            content = (templates_dir / template_file).read_text(encoding="utf-8")
+            for placeholder, value in (replacements or {}).items():
+                content = content.replace(placeholder, value)
+            skill_path.write_text(content, encoding="utf-8")
+            print(f"  Hydrated: .claude/skills/{skill_name}/SKILL.md")
+        else:
+            print(f"  Skipped:  .claude/skills/{skill_name}/SKILL.md (already exists)")
+
+    _install_skill("carta-cli", "skill.md", {"{{dir_name}}": dirname})
+    _install_skill("docs-development", "docs-development-skill.md")
 
     do_regenerate(carta_dir, _load_preamble(carta_dir.name))
 
     print(f"\nInitialized {dirname}/ workspace: {title}")
     print(f"  Created:  {MARKER}")
-    print(f"  Created:  {dirname}/00-codex/00-index.md")
+    print(f"  Created:  {dirname}/00-codex/ (5 docs)")
     print(f"  Created:  {dirname}/MANIFEST.md")
 
     if args.portable:

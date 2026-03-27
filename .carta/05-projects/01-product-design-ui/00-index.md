@@ -20,7 +20,7 @@ Nontechnical users can model a business domain — entities, relationships, rule
 ## Decisions
 
 - **Naming**: the editor types are called "structures" (not metaphors, instruments, surfaces). Matches doc01.08.10 vocabulary.
-- **Doc lifecycle**: sparse docs are intentional. A one-liner is valid until the work demands more (doc00.04). Don't elaborate proactively.
+- **Doc lifecycle**: sparse docs are intentional. A one-liner is valid until the work demands more (doc00.02). Don't elaborate proactively.
 - **Project as staging ground**: insights developed here land in doc01–04 when ready. The project tracks the work, not the canonical product descriptions.
 - **Engine changes doc is a seed**: intentionally sparse until gap analysis and structure designs clarify what the engine actually needs.
 - **Doc → canvas relationship**: docs are files containing structure instances. A canvas is a materialization (view/dashboard) that pulls in docs and renders their instances. The doc is the source of truth, the canvas is the view.

@@ -30,3 +30,12 @@ carta regenerate                # rebuild MANIFEST.md
 ```
 
 Content changes are normal file edits. Run `carta regenerate` if you change frontmatter directly.
+
+## Contents
+
+| Ref | Item | Summary |
+|-----|------|---------|
+| doc00.01 | About | Why this workspace exists, two-sources-of-truth theory |
+| doc00.02 | Maintenance | Doc lifecycle — unfolding philosophy, development loop, versioning |
+| doc00.03 | Conventions | Cross-reference syntax, frontmatter schema, file naming |
+| doc00.04 | AI Retrieval | How AI agents navigate this workspace efficiently |

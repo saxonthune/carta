@@ -319,18 +319,18 @@ class TestMovetoActualMove(unittest.TestCase):
     def tearDown(self):
         self.tmpdir.cleanup()
 
-    def test_actual_move_doc00_05_to_doc01(self):
-        """Move doc00.05 (05-ai-retrieval.md) into doc01 (01-context/)."""
+    def test_actual_move_doc00_04_to_doc01(self):
+        """Move doc00.04 (04-ai-retrieval.md) into doc01 (01-product-strategy/)."""
         # Collect pre-existing orphaned refs (to avoid false positives)
         pre_existing_orphans = set(
             ref for _, ref in self._collect_orphaned_refs(self.carta_copy)
         )
 
         # Before: source exists
-        source = self.carta_copy / "00-codex" / "05-ai-retrieval.md"
+        source = self.carta_copy / "00-codex" / "04-ai-retrieval.md"
         self.assertTrue(source.exists(), "Source must exist before move")
 
-        result = _run_carta(self.carta_copy, "move", "doc00.05", "doc01")
+        result = _run_carta(self.carta_copy, "move", "doc00.04", "doc01")
         self.assertEqual(result.returncode, 0, f"carta move failed:\n{result.stderr}\n{result.stdout}")
 
         # Source no longer exists at old location

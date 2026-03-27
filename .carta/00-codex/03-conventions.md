@@ -40,7 +40,7 @@ status: active
 - `active` — current and maintained
 - `deprecated` — superseded, kept for historical reference
 
-**epoch** (optional): Used for staleness auditing. See doc00.04.
+**epoch** (optional): Used for staleness auditing. See doc00.02.
 
 ## File Naming
 

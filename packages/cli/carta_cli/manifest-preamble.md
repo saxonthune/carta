@@ -2,7 +2,7 @@
 
 Machine-readable index for AI navigation. Read this file first, then open only the docs relevant to your query.
 
-**Retrieval strategy:** See doc00.05 for AI retrieval patterns inspired by legal RAG research.
+**Retrieval strategy:** See doc00.04 for AI retrieval patterns.
 
 ## Column Definitions
 
