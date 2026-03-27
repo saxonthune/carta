@@ -30,3 +30,25 @@ export interface EnumerationValue {
   key: string;
   remark?: string;
 }
+
+/** A source file with its parsed carta code blocks */
+export interface CanvasSourceFile {
+  /** Filename for display (e.g., "employee-types.md") */
+  filename: string;
+  /** Parsed code blocks from this file */
+  blocks: CartaCodeBlock[];
+}
+
+/** Layout position for a file container on the canvas */
+export interface FileContainerLayout {
+  /** Filename this layout belongs to (matches CanvasSourceFile.filename) */
+  filename: string;
+  x: number;
+  y: number;
+}
+
+/** Complete canvas state passed as props */
+export interface CanvasData {
+  files: CanvasSourceFile[];
+  layout: FileContainerLayout[];
+}
