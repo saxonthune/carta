@@ -11,4 +11,5 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 - **Summary**: One-line description for semantic matching
 - **Tags**: Keywords for file-path→doc mapping
 - **Deps**: Doc refs to check when this doc changes
+- **Refs**: Reverse deps — docs that list this one in their Deps (computed automatically)
 

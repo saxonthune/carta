@@ -226,12 +226,38 @@ class TestTagIndexComplete(unittest.TestCase):
         self.assertEqual(result.returncode, 0)
 
         rows = [l for l in result.stdout.splitlines() if l.startswith("| doc")]
-        empty_deps = [r for r in rows if r.endswith("| — |")]
-        self.assertGreater(len(empty_deps), 0, "At least some docs should have — in deps column")
+        # Deps is column 5 (index 4), Refs is column 6 (index 5).
+        # Both should use — for empty, never be blank.
+        has_emdash_deps = False
+        for r in rows:
+            cols = [c.strip() for c in r.split("|")[1:-1]]  # strip outer pipes
+            if len(cols) >= 5 and cols[4] == "—":
+                has_emdash_deps = True
+            # Deps and Refs columns must not be empty (should be — if no values)
+            if len(cols) >= 5:
+                self.assertTrue(cols[4], f"Empty deps column in row: {r}")
+            if len(cols) >= 6:
+                self.assertTrue(cols[5], f"Empty refs column in row: {r}")
+        self.assertTrue(has_emdash_deps, "At least some docs should have — in deps column")
 
-        # No row should have empty deps column (trailing | |)
-        bad_rows = [r for r in rows if r.endswith("|  |")]
-        self.assertEqual(bad_rows, [], f"Rows with empty deps cell: {bad_rows}")
+    def test_refs_column_present(self):
+        """Regenerated MANIFEST has a Refs column with reverse deps."""
+        result = _run_carta(self.carta_copy, "regenerate", "--dry-run")
+        self.assertEqual(result.returncode, 0)
+        output = result.stdout
+
+        # Header should include Refs column
+        self.assertIn("| Refs |", output)
+
+        # At least some rows should have non-emdash refs (docs that are depended on)
+        rows = [l for l in output.splitlines() if l.startswith("| doc")]
+        has_reverse_dep = False
+        for r in rows:
+            cols = [c.strip() for c in r.split("|")[1:-1]]
+            if len(cols) >= 6 and cols[5] != "—":
+                has_reverse_dep = True
+                break
+        self.assertTrue(has_reverse_dep, "At least some docs should have reverse deps in Refs column")
 
 
 # ---------------------------------------------------------------------------

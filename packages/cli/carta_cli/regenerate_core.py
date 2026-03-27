@@ -58,11 +58,31 @@ def collect_entries(dir_path: Path, carta_root: Path, title_dir: Path) -> list[d
 # Formatting helpers
 # ---------------------------------------------------------------------------
 
-TABLE_HEADER = "| Ref | File | Summary | Tags | Deps |"
-TABLE_SEP    = "|-----|------|---------|------|------|"
+TABLE_HEADER = "| Ref | File | Summary | Tags | Deps | Refs |"
+TABLE_SEP    = "|-----|------|---------|------|------|------|"
 
 
-def format_row(entry: dict) -> str:
+def build_reverse_deps(all_entries: list[dict]) -> dict[str, list[str]]:
+    """Build a reverse dep index: for each ref, which other refs depend on it."""
+    reverse: dict[str, list[str]] = {}
+    for entry in all_entries:
+        source_ref = entry["ref"]
+        raw_deps = entry["fm"].get("deps", [])
+        if isinstance(raw_deps, list):
+            deps = raw_deps
+        elif isinstance(raw_deps, str) and raw_deps:
+            deps = [d.strip() for d in raw_deps.split(",") if d.strip()]
+        else:
+            deps = []
+        for dep in deps:
+            if dep not in reverse:
+                reverse[dep] = []
+            if source_ref not in reverse[dep]:
+                reverse[dep].append(source_ref)
+    return reverse
+
+
+def format_row(entry: dict, reverse_deps: dict[str, list[str]] | None = None) -> str:
     """Format a single MANIFEST table row."""
     ref = entry["ref"]
     file_col = f"`{entry['file_rel']}`"
@@ -89,14 +109,18 @@ def format_row(entry: dict) -> str:
         deps_str = str(raw_deps).strip()
         deps = deps_str if deps_str else "—"
 
-    return f"| {ref} | {file_col} | {summary} | {tags} | {deps} |"
+    rev = reverse_deps.get(ref, []) if reverse_deps else []
+    refs_col = ", ".join(sorted(rev)) if rev else "—"
+
+    return f"| {ref} | {file_col} | {summary} | {tags} | {deps} | {refs_col} |"
 
 
 # ---------------------------------------------------------------------------
 # Section rendering
 # ---------------------------------------------------------------------------
 
-def render_section(title_dir: Path, carta_root: Path) -> list[str]:
+def render_section(title_dir: Path, carta_root: Path,
+                   reverse_deps: dict[str, list[str]] | None = None) -> list[str]:
     """Render a full ## section for a title directory.
 
     Returns a list of lines (without trailing newlines).
@@ -164,7 +188,7 @@ def render_section(title_dir: Path, carta_root: Path) -> list[str]:
     lines.append(TABLE_SEP)
     lines.append("")
     for entry in root_entries:
-        lines.append(format_row(entry))
+        lines.append(format_row(entry, reverse_deps))
 
     # Render subsection groups (subdirs with 00-index.md)
     for subdir_name in subsection_order:
@@ -180,7 +204,7 @@ def render_section(title_dir: Path, carta_root: Path) -> list[str]:
         lines.append(TABLE_SEP)
         lines.append("")
         for entry in group_entries:
-            lines.append(format_row(entry))
+            lines.append(format_row(entry, reverse_deps))
 
     return lines
 
@@ -244,17 +268,19 @@ def do_regenerate(carta_root: Path, preamble: str, dry_run: bool = False) -> Non
         if p.is_dir() and _NUMERIC_PREFIX_RE.match(p.name)
     )
 
-    output_lines: list[str] = []
+    # Collect all entries first so we can compute reverse deps
     all_entries: list[dict] = []
-
     for title_dir in title_dirs:
-        section_lines = render_section(title_dir, carta_root)
+        all_entries.extend(collect_entries(title_dir, carta_root, title_dir))
+
+    reverse_deps = build_reverse_deps(all_entries)
+
+    # Render sections with reverse deps available
+    output_lines: list[str] = []
+    for title_dir in title_dirs:
+        section_lines = render_section(title_dir, carta_root, reverse_deps)
         output_lines.extend(section_lines)
         output_lines.append("")  # blank line between sections
-
-        # Collect entries for tag index
-        entries = collect_entries(title_dir, carta_root, title_dir)
-        all_entries.extend(entries)
 
     # Tag index
     tag_lines = build_tag_index(all_entries)
