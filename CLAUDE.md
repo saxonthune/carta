@@ -112,12 +112,14 @@ Cross-package dependencies are resolved via Vite/TypeScript aliases. Packages us
 ## Build & Test
 
 ```bash
-pnpm build         # Build web-client (typechecks transitive deps via tsc -b)
-pnpm test          # All package tests: geometry, schema, document, web-client, server (Vitest)
-pnpm test:e2e      # E2E tests (Playwright, port 5273)
+make build          # Build web-client (typechecks transitive deps via tsc -b)
+make test           # All tests in parallel: JS (Vitest) + Python (pytest)
+make test-js        # JS package tests only: geometry, schema, document, web-client, server, vscode
+make test-python    # Python CLI tests only
+make test-e2e       # E2E tests (Playwright, port 5273)
 ```
 
-`pnpm build` and `pnpm test` must both pass before committing. `pnpm test` runs every workspace package that has tests — if you add a test script to a new package, add it to the root `test` script in `package.json`. E2E uses port 5273 (separate from dev server 5173).
+`make build && make test` must both pass before committing. The Makefile is the top-level orchestrator — `make -j test` runs JS and Python tests in parallel. `pnpm test` runs only JS workspace tests (useful for JS-only work). E2E uses port 5273 (separate from dev server 5173).
 
 **Vite dev server restart:** If the user is running `pnpm dev` and your changes require a Vite restart (e.g., new files, config changes, dependency updates, or Vite alias changes), tell the user to restart Vite. Do not restart it yourself — the user manages the dev server.
 
