@@ -1,4 +1,4 @@
-.PHONY: build test test-js test-python test-e2e
+.PHONY: build test test-js test-python test-e2e demo
 
 build:
 	pnpm --filter @carta/web-client build
@@ -13,3 +13,6 @@ test-python:
 
 test-e2e:
 	pnpm --filter @carta/web-client test:e2e
+
+demo:
+	bash scripts/create-demo-workspace.sh --force

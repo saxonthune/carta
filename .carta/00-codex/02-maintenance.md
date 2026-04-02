@@ -16,6 +16,24 @@ Fleshing out happens when a project or user needs more detail, not proactively. 
 
 This applies at every scale: a title can contain a single index file, a section can contain a single paragraph, a list item can stand alone without elaboration.
 
+## Structure-Preserving Transformations
+
+Every change to the workspace — adding a doc, splitting a section, refining a concept — should be a structure-preserving transformation (Alexander, *The Nature of Order*). A transformation is structure-preserving when:
+
+1. **Existing centers are not destroyed.** A doc that existed before still exists after (or was deliberately deprecated, not accidentally broken).
+2. **New structure emerges from what exists.** A new doc grows out of a section that outgrew its parent, not from an abstract plan.
+3. **The whole is more coherent after.** The workspace is easier to navigate, clearer to read, more useful for the work at hand.
+
+The opposite — restructuring the entire workspace to match a new taxonomy — is a structure-destroying transformation. It breaks cross-references, invalidates reader habits, and produces a workspace that looks clean but hasn't been tested by use.
+
+Prefer additive changes: new docs over restructured docs, new sections over rewritten sections. A workspace refactor (move, punch, flatten) is a significant event, not a routine operation — the coherence smell must be real, not aesthetic.
+
+## Where to Start
+
+Start with what the product is for — one sentence in a purpose doc. Then write the first thing you'd build: the smallest action sequence that proves the idea works. Don't create titles for architecture or operations until you have something to architect or operate.
+
+Titles unfold when the work demands them, not upfront. An empty title with just an index file is busywork — don't create it until you have a real doc to put in it.
+
 ## The Development Loop
 
 Docs develop through iteration, not completion. The rhythm is:

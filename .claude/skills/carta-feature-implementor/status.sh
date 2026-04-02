@@ -12,6 +12,15 @@ REPO_ROOT="$(git rev-parse --show-toplevel)"
 TODO="${REPO_ROOT}/todo-tasks"
 ARCHIVE_SUCCESS_ONLY=false
 
+# Source project config for worktree prefix
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG="${SCRIPT_DIR}/../execute-plan/task-config.sh"
+if [[ -f "$CONFIG" ]]; then
+  source "$CONFIG"
+else
+  WORKTREE_PREFIX="agent"
+fi
+
 for arg in "$@"; do
   case "$arg" in
     --archive-success) ARCHIVE_SUCCESS_ONLY=true ;;
@@ -76,7 +85,7 @@ if [[ ${#DONE_RESULTS[@]} -gt 0 && -n "${DONE_RESULTS[0]}" ]]; then
     fi
 
     # Check for lingering worktree
-    wt_path="${REPO_ROOT}/../carta-agent-${slug}"
+    wt_path="${REPO_ROOT}/../${WORKTREE_PREFIX}-${slug}"
     if [[ -d "$wt_path" ]]; then
       notes="${notes} [worktree exists]"
     fi
@@ -179,8 +188,8 @@ STALE_WTS=()
 while IFS= read -r wt_line; do
   wt_path=$(echo "$wt_line" | awk '{print $1}')
   wt_dir=$(basename "$wt_path")
-  if [[ "$wt_dir" == carta-agent-* ]]; then
-    slug="${wt_dir#carta-agent-}"
+  if [[ "$wt_dir" == ${WORKTREE_PREFIX}-* ]]; then
+    slug="${wt_dir#${WORKTREE_PREFIX}-}"
     # Check if this agent is done or archived (not running)
     if [[ -f "${TODO}/.done/${slug}.result.md" ]] || ls "${TODO}/.archived/"*"-${slug}.result.md" 2>/dev/null | grep -q .; then
       status="done"

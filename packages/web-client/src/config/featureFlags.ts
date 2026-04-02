@@ -7,7 +7,7 @@ interface CartaConfig {
   /** Set to true when running inside the VS Code extension webview */
   embedded?: boolean;
   /** App mode: undefined = legacy canvas, 'product-design' = filesystem-backed design canvas */
-  mode?: 'product-design';
+  mode?: 'product-design' | 'pd-demo';
 }
 
 function getRuntimeConfig(): CartaConfig {
@@ -24,7 +24,7 @@ function getRuntimeConfig(): CartaConfig {
     ...injected,
     ...(syncUrlParam ? { syncUrl: syncUrlParam } : {}),
     ...(embeddedParam === 'true' ? { embedded: true } : {}),
-    ...(modeParam ? { mode: modeParam as 'product-design' } : {}),
+    ...(modeParam ? { mode: modeParam as CartaConfig['mode'] } : {}),
   };
 }
 

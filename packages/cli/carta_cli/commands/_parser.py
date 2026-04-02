@@ -10,7 +10,7 @@ from ..ai_skill import cmd_ai_skill
 from .structure import cmd_create, cmd_delete, cmd_move, cmd_rename
 from .transform import cmd_punch, cmd_flatten, cmd_group, cmd_copy
 from .content import cmd_cat, cmd_rewrite, cmd_regenerate
-from .setup import cmd_init, cmd_portable
+from .setup import cmd_init, cmd_portable, cmd_hydrate
 
 
 def main() -> None:
@@ -100,15 +100,41 @@ def main() -> None:
     p_init.add_argument("--portable", action="store_true",
                         help="Dump editable Python scripts into workspace for pip-free usage.")
 
+    # hydrate
+    p_hydrate = subparsers.add_parser("hydrate", help="Re-hydrate codex docs and skills from installed carta version")
+    p_hydrate.add_argument("--dry-run", action="store_true",
+                           help="Show what would be updated without writing.")
+
     # portable
     p_portable = subparsers.add_parser("portable", help="Dump editable scripts into workspace")
 
     # ai-skill
-    subparsers.add_parser("ai-skill", help="Print AI agent reference for all commands")
+    p_ai_skill = subparsers.add_parser("ai-skill", help="Print AI agent reference for all commands")
 
     # cat
     p_cat = subparsers.add_parser("cat", help="Print document contents by ref")
     p_cat.add_argument("ref", help="Doc ref (e.g., doc02.03) or relative path")
+
+    # Handle per-subcommand --help-ai before parse_args (avoids required-arg errors)
+    argv = sys.argv[1:]
+    if "--help-ai" in argv:
+        # Find the subcommand name: skip flags and their values
+        known_subcommands = {
+            "regenerate", "create", "delete", "move", "punch", "flatten",
+            "copy", "rewrite", "group", "rename", "init", "hydrate",
+            "portable", "ai-skill", "cat",
+        }
+        cmd_candidates = [a for a in argv if a in known_subcommands]
+        if cmd_candidates:
+            from ..ai_skill import _COMMAND_DOCS
+            cmd = cmd_candidates[0]
+            doc = _COMMAND_DOCS.get(cmd)
+            if doc:
+                print(doc.strip())
+            else:
+                print(f"No AI documentation available for '{cmd}'.")
+                print("Run `carta ai-skill` for the full reference.")
+            raise SystemExit(0)
 
     args = parser.parse_args()
 
@@ -138,6 +164,10 @@ def main() -> None:
 
         if args.command == "portable":
             cmd_portable(args, carta_root)
+            return
+
+        if args.command == "hydrate":
+            cmd_hydrate(args, carta_root)
             return
 
         dispatch = {

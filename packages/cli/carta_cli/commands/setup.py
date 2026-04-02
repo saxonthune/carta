@@ -180,6 +180,82 @@ def copy_portable(carta_root: Path) -> bool:
     return True
 
 
+def cmd_hydrate(args: argparse.Namespace, carta_root: Path) -> None:
+    """Re-hydrate templates and skills from the installed carta version."""
+    project_root = carta_root.parent
+    dirname = carta_root.name
+    marker_path = project_root / MARKER
+
+    if not marker_path.exists():
+        print(f"No workspace found at {marker_path}")
+        return
+
+    config = json.loads(marker_path.read_text(encoding="utf-8"))
+    title = config.get("title", project_root.name)
+    templates_dir = _PACKAGE_DIR / "templates"
+    codex_dir = carta_root / "00-codex"
+
+    updated = 0
+    skipped = 0
+
+    # --- Codex docs ---
+    codex_templates = [
+        ("00-index.md", "{{title}}", title),
+        ("01-about.md", "{{title}}", title),
+        ("02-maintenance.md", "{{dir_name}}", dirname),
+        ("03-conventions.md", "{{dir_name}}", dirname),
+        ("04-ai-retrieval.md", None, None),
+    ]
+    for filename, placeholder, value in codex_templates:
+        dest = codex_dir / filename
+        new_content = (templates_dir / filename).read_text(encoding="utf-8")
+        if placeholder:
+            new_content = new_content.replace(placeholder, value)
+
+        if dest.exists():
+            old_content = dest.read_text(encoding="utf-8")
+            if old_content == new_content:
+                skipped += 1
+                continue
+
+        if args.dry_run:
+            print(f"  Would update: {dest.relative_to(project_root)}")
+        else:
+            codex_dir.mkdir(parents=True, exist_ok=True)
+            dest.write_text(new_content, encoding="utf-8")
+            print(f"  Updated: {dest.relative_to(project_root)}")
+        updated += 1
+
+    # --- Skills ---
+    skill_templates = [
+        ("carta-cli", "skill.md", {"{{dir_name}}": dirname}),
+        ("docs-development", "docs-development-skill.md", None),
+    ]
+    for skill_name, template_file, replacements in skill_templates:
+        skill_dir = project_root / ".claude" / "skills" / skill_name
+        skill_path = skill_dir / "SKILL.md"
+        new_content = (templates_dir / template_file).read_text(encoding="utf-8")
+        for ph, val in (replacements or {}).items():
+            new_content = new_content.replace(ph, val)
+
+        if skill_path.exists():
+            old_content = skill_path.read_text(encoding="utf-8")
+            if old_content == new_content:
+                skipped += 1
+                continue
+
+        if args.dry_run:
+            print(f"  Would update: {skill_path.relative_to(project_root)}")
+        else:
+            skill_dir.mkdir(parents=True, exist_ok=True)
+            skill_path.write_text(new_content, encoding="utf-8")
+            print(f"  Updated: {skill_path.relative_to(project_root)}")
+        updated += 1
+
+    verb = "Would update" if args.dry_run else "Updated"
+    print(f"\n{verb} {updated} file(s), {skipped} already current.")
+
+
 def cmd_portable(args: argparse.Namespace, carta_root: Path) -> None:
     """Dump editable scripts into the workspace for pip-free usage."""
     copy_portable(carta_root)

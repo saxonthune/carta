@@ -28,6 +28,17 @@ AI shifts the documentation-code equilibrium. Extensive, structured specs are no
 
 This workspace organizes specs into groups. See doc00.05 for Carta's specific group taxonomy.
 
+## Growing a Workspace
+
+A `.carta/` workspace starts almost empty — just the codex. That's intentional. Groups and docs appear when you need them:
+
+- You clarify what you're building → create a purpose doc
+- You design your first feature → create a product design group
+- You make an architecture decision → create an architecture group
+- You set up CI → create an operations group
+
+Each addition should be the simplest doc that captures what you just decided. It will deepen through the development loop (doc00.02) as the work demands.
+
 ## How to Read
 
 **New to the project?** Start with `01-product-strategy/` — mission, principles, and glossary.
@@ -38,7 +49,7 @@ This workspace organizes specs into groups. See doc00.05 for Carta's specific gr
 
 ## Cross-References
 
-Documents reference each other using `doc` syntax: `docXX.YY.ZZ` where each segment is a two-digit number mapping to the directory/file numbering. For example, `doc01.06.02` refers to title 01 (product-strategy), subdir 06 (products), item 02 (canvas).
+Documents reference each other using `doc` syntax: `docXX.YY.ZZ` where each segment is a two-digit number mapping to the directory/file numbering. For example, `doc01.05.06.02` refers to title 01 (product-strategy), subdir 06 (products), item 02 (canvas).
 
 See doc00.03 for full conventions.
 

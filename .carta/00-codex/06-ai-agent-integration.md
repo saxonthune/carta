@@ -3,7 +3,7 @@ title: AI Agent Integration
 status: active
 summary: AI workflow patterns: spec-to-code, code-to-spec, MCP setup, guide directory
 tags: [ai, workflow, mcp, guides]
-deps: [doc01.08.03]
+deps: [doc01.05.08.03]
 ---
 
 # AI Agent Integration
@@ -24,7 +24,7 @@ How AI agents work with Carta: what's free, what needs MCP, and the two core wor
 - Schema migrations (rename, retype, add/remove fields and ports)
 - Any canvas mutation
 
-MCP tools are the *only* interface for programmatic canvas mutation. File-level writes to canvas JSON are not supported — always use the MCP tools. See doc01.08.03 for the full tool reference.
+MCP tools are the *only* interface for programmatic canvas mutation. File-level writes to canvas JSON are not supported — always use the MCP tools. See doc01.05.08.03 for the full tool reference.
 
 ## Connecting Your AI
 

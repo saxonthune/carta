@@ -46,7 +46,7 @@ Standard RAG retrieves chunks that appear relevant but may be wrong documents. S
 Each entry includes a one-line summary and semantic tags:
 
 ```markdown
-| doc01.08.02 | 02-state.md | Yjs Y.Doc state management | state, hooks, yjs |
+| doc01.05.08.02 | 02-state.md | Yjs Y.Doc state management | state, hooks, yjs |
 ```
 
 ### 3. Provenance Tracking
@@ -60,7 +60,7 @@ Every edit must cite its source doc section. Example:
 
 ```markdown
 ## Edit: CLAUDE.md
-Source: doc01.08.02 §Hooks Layer
+Source: doc01.05.08.02 §Hooks Layer
 
 +| `useVisualGroups.ts` | Visual group computation |
 ```
@@ -89,10 +89,10 @@ From [Stanford Legal RAG Hallucination Study](https://hai.stanford.edu/news/ai-t
 Track document dependencies to ensure related docs are updated together:
 
 ```markdown
-| doc03.05 | 08-frontend.md | ... | doc01.08.02, doc01.08.07 |
+| doc01.03.05 | 08-frontend.md | ... | doc01.05.08.02, doc01.05.08.07 |
 ```
 
-When editing doc01.08.02, the system knows to check doc03.05.
+When editing doc01.05.08.02, the system knows to check doc01.03.05.
 
 ## Completeness Verification
 
@@ -110,7 +110,7 @@ The manifest serves as the retrieval index. Enhanced structure:
 ```markdown
 | Ref | File | Summary | Tags | Depends On |
 |-----|------|---------|------|------------|
-| doc01.08.02 | 02-state.md | Yjs state, hooks, adapters | state, hooks | doc01.08.01 |
+| doc01.05.08.02 | 02-state.md | Yjs state, hooks, adapters | state, hooks | doc01.05.08.01 |
 ```
 
 - **Summary**: One-line description for semantic matching

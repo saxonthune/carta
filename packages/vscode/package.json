@@ -24,7 +24,7 @@
             "filenamePattern": "*.canvas.json"
           }
         ],
-        "priority": "default"
+        "priority": "option"
       },
       {
         "viewType": "carta.productDesignEditor",

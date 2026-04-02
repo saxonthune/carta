@@ -28,6 +28,17 @@ AI shifts the documentation-code equilibrium. Extensive, structured specs are no
 
 This workspace organizes specs into groups. The number and names of groups are up to you — they should reflect the natural abstraction levels of your project and the different audiences who read them.
 
+## Growing a Workspace
+
+This workspace starts almost empty — just the codex. That's intentional. Groups and docs appear when you need them:
+
+- You clarify what you're building → create a purpose doc
+- You design your first feature → create a product group
+- You make an architecture decision → create a system group
+- You set up CI → create an operations group
+
+Each addition should be the simplest doc that captures what you just decided. It will deepen through the development loop (doc00.02) as the work demands.
+
 ## How to Read
 
 - `MANIFEST.md` is the machine-readable index — AI agents start there to find anything

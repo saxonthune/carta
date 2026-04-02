@@ -32,3 +32,4 @@ __pycache__/
 todo-tasks/
 compilation-test/
 stats.html
+.demo/

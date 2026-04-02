@@ -269,6 +269,29 @@ Flags:
   --portable     Also copy editable Python scripts into workspace (pip-free usage).
 """,
 
+    "hydrate": """\
+### hydrate
+
+Re-hydrate codex docs and skills from the installed carta version.
+
+```
+carta hydrate [--dry-run]
+```
+
+Side effects:
+  - Overwrites `00-codex/*.md` with latest templates from installed carta.
+  - Overwrites `.claude/skills/carta-cli/SKILL.md` and `.claude/skills/docs-development/SKILL.md`.
+  - Skips files that already match the latest version.
+  - Does NOT touch user-created docs outside 00-codex.
+
+Flags:
+  --dry-run    Show what would be updated without writing.
+
+When to use:
+  - After upgrading carta (`pip install -e .` or `pip install --upgrade carta-cli`).
+  - To push template improvements to existing workspaces.
+""",
+
     "portable": """\
 ### portable
 
@@ -284,6 +307,23 @@ Side effects:
   - Updates `.carta.json` with `portable` key pointing to the shim.
 
 After running, use `python3 .carta/carta.py <command>` instead of `carta`.
+""",
+
+    "cat": """\
+### cat
+
+Print document contents to stdout by doc ref or path.
+
+```
+carta cat <ref>
+```
+
+Arguments:
+  ref  Doc ref (e.g., `doc02.03`) or workspace-relative path.
+       If the ref resolves to a directory, prints `00-index.md` from that directory.
+
+Side effects:
+  - Read-only. Prints file contents to stdout. No files modified.
 """,
 
     "ai-skill": """\
@@ -303,6 +343,10 @@ Output sections:
   2. Behavioral Rules — cross-cutting rules (gap-closing, ref rewriting, etc.)
   3. Common Patterns — cookbook for multi-step operations
   4. Workspace State — live summary of current workspace structure
+
+Per-command alternative:
+  `carta <command> --help-ai` prints only that command's section.
+  Example: `carta move --help-ai` prints the move reference.
 """,
 }
 

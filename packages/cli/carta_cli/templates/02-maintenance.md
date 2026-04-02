@@ -16,6 +16,12 @@ Fleshing out happens when a project or person needs more detail, not proactively
 
 This applies at every scale: a group can contain a single index file, a section can contain a single paragraph, a list item can stand alone without elaboration.
 
+## Where to Start
+
+Start with what the product is for — one sentence in a purpose doc. Then write the first thing you'd build: the smallest action sequence that proves the idea works. Don't create groups for architecture or operations until you have something to architect or operate.
+
+Groups unfold when the work demands them, not upfront. An empty group with just an index file is busywork — don't create it until you have a real doc to put in it.
+
 ## The Development Loop
 
 Docs develop through iteration, not completion. The rhythm is:
