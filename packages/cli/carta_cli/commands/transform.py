@@ -35,18 +35,37 @@ def cmd_punch(args: argparse.Namespace, carta_root: Path) -> None:
         raise CartaError(f"Error: source has no numeric prefix: {source_path.name}")
 
     dir_name = source_path.name[:-3]
+    slug = get_slug(dir_name)
     new_dir = source_path.parent / dir_name
     new_index = new_dir / "00-index.md"
+    as_child = args.as_child
+
+    if as_child:
+        child_path = new_dir / f"01-{slug}.md"
 
     if args.dry_run:
-        print(f"Would punch: {source_path.name} → {dir_name}/00-index.md")
+        if as_child:
+            print(f"Would punch: {source_path.name} → {dir_name}/01-{slug}.md (content)")
+            print(f"Would punch: {source_path.name} → {dir_name}/00-index.md (generated index)")
+        else:
+            print(f"Would punch: {source_path.name} → {dir_name}/00-index.md")
         print("\n(dry-run: no files modified)")
         return
 
     new_dir.mkdir()
-    shutil.move(str(source_path), str(new_index))
 
-    print(f"Punched: {source_path.name} → {dir_name}/00-index.md")
+    if as_child:
+        shutil.move(str(source_path), str(child_path))
+        title = slug.replace("-", " ").title()
+        write_frontmatter(new_index, {
+            "title": title, "status": "draft",
+            "summary": "", "tags": [], "deps": [],
+        }, f"\n# {title}\n")
+        print(f"Punched: {source_path.name} → {dir_name}/01-{slug}.md (content)")
+        print(f"  Index: {dir_name}/00-index.md (generated)")
+    else:
+        shutil.move(str(source_path), str(new_index))
+        print(f"Punched: {source_path.name} → {dir_name}/00-index.md")
 
 
 # ---------------------------------------------------------------------------

@@ -119,7 +119,7 @@ Sequencing notes:
 Expand a leaf `.md` file into a directory by converting it to `NN-slug/00-index.md`.
 
 ```
-carta punch <target> [--dry-run]
+carta punch <target> [--as-child] [--dry-run]
 ```
 
 Arguments:
@@ -131,7 +131,10 @@ Side effects:
   - Does NOT renumber siblings or rewrite refs (the doc ref is unchanged).
 
 Flags:
-  --dry-run  Print planned operation without executing.
+  --as-child  Put original content in `01-{slug}.md` and generate a skeleton
+              group index in `00-index.md`. Use this when turning a leaf into
+              a group — the original content becomes the first child doc.
+  --dry-run   Print planned operation without executing.
 """,
 
     "flatten": """\

@@ -642,6 +642,55 @@ class TestPunch(unittest.TestCase):
             else:
                 assert s in siblings_after, f"Sibling {s} should be unchanged: {siblings_after}"
 
+    def test_punch_as_child(self):
+        """--as-child puts original content in 01-slug.md and generates skeleton index."""
+        codex = self.carta_copy / "00-codex"
+        leaf = codex / "01-about.md"
+        assert leaf.exists(), f"Expected leaf file: {leaf}"
+        original_content = leaf.read_text(encoding="utf-8")
+
+        result = _run_carta(self.carta_copy, "punch", "doc00.01", "--as-child")
+        assert result.returncode == 0, f"punch --as-child failed:\n{result.stderr}"
+
+        # Original file should be gone
+        assert not leaf.exists(), "Original file should not exist after punch --as-child"
+
+        new_dir = codex / "01-about"
+        assert new_dir.is_dir(), f"Expected directory: {new_dir}"
+
+        # 01-about.md inside the dir should have the original content
+        child = new_dir / "01-about.md"
+        assert child.exists(), f"Expected child file: {child}"
+        assert child.read_text(encoding="utf-8") == original_content
+
+        # 00-index.md should be a skeleton, not the original content
+        index = new_dir / "00-index.md"
+        assert index.exists(), f"Expected 00-index.md in {new_dir}"
+        index_text = index.read_text(encoding="utf-8")
+        assert index_text != original_content, "Index should be a skeleton, not the original content"
+        assert index_text.startswith("---"), "Index should have frontmatter"
+        assert "title:" in index_text
+        assert "status: draft" in index_text
+        assert "# About" in index_text
+
+    def test_punch_as_child_dry_run(self):
+        """--as-child --dry-run should not modify any files."""
+        codex = self.carta_copy / "00-codex"
+        leaf = codex / "01-about.md"
+        assert leaf.exists(), f"Expected leaf file: {leaf}"
+        before_content = leaf.read_bytes()
+
+        result = _run_carta(self.carta_copy, "punch", "doc00.01", "--as-child", "--dry-run")
+        assert result.returncode == 0, result.stderr
+
+        # File should still exist unchanged
+        assert leaf.exists(), "Original file should still exist after dry-run"
+        assert leaf.read_bytes() == before_content, "File content should be unchanged after dry-run"
+
+        # No directory should have been created
+        new_dir = codex / "01-about"
+        assert not new_dir.exists(), "Directory should not exist after dry-run"
+
 
 class TestFlatten(unittest.TestCase):
     """Test flatten command."""
