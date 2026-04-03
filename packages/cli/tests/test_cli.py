@@ -1011,6 +1011,27 @@ class TestCreate(unittest.TestCase):
         fm, _ = read_frontmatter(created[0])
         assert fm["title"] == "My Custom Title"
 
+    def test_create_with_frontmatter_flags(self):
+        """--summary, --tags, --deps populate frontmatter."""
+        result = _run_carta(
+            self.carta_copy, "create", "doc00", "full-meta",
+            "--title", "Full Meta",
+            "--summary", "A test summary",
+            "--tags", "alpha,beta,gamma",
+            "--deps", "doc00.01,doc00.02",
+        )
+        assert result.returncode == 0, f"create failed:\n{result.stderr}\n{result.stdout}"
+
+        codex = self.carta_copy / "00-codex"
+        created = [e for e in codex.iterdir() if "full-meta" in e.name]
+        assert len(created) == 1
+
+        from carta_cli.frontmatter import read_frontmatter
+        fm, _ = read_frontmatter(created[0])
+        assert fm["summary"] == "A test summary"
+        assert fm["tags"] == ["alpha", "beta", "gamma"]
+        assert fm["deps"] == ["doc00.01", "doc00.02"]
+
     def test_create_dry_run(self):
         """--dry-run should not create files."""
         before = {p: p.read_bytes() for p in self.carta_copy.rglob("*")

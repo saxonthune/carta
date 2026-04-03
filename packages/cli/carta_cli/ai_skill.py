@@ -36,7 +36,7 @@ When to use:
 Create a new numbered `.md` file at a given position in a directory.
 
 ```
-carta create <destination> <slug> [--order N] [--title TEXT] [--dry-run]
+carta create <destination> <slug> [--order N] [--title TEXT] [--summary TEXT] [--tags CSV] [--deps CSV] [--dry-run]
 ```
 
 Arguments:
@@ -53,6 +53,9 @@ Side effects:
 Flags:
   --order N    Insert at position N (1-based). Without this, appends after the last entry.
   --title TEXT Title in frontmatter. Default: derived from slug.
+  --summary TEXT  Summary in frontmatter. Default: empty.
+  --tags CSV      Comma-separated tags (e.g., "api,auth,server"). Default: empty list.
+  --deps CSV      Comma-separated dep refs (e.g., "doc01.02,doc01.03"). Default: empty list.
   --dry-run    Print the planned file path without creating it.
 """,
 

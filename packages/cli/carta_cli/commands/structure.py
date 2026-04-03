@@ -59,6 +59,12 @@ def cmd_create(args: argparse.Namespace, carta_root: Path) -> None:
     if args.dry_run:
         print(f"Would create: {new_path.relative_to(carta_root)}")
         print(f"  Title: {title}")
+        if args.summary:
+            print(f"  Summary: {args.summary}")
+        if args.tags:
+            print(f"  Tags: {args.tags}")
+        if args.deps:
+            print(f"  Deps: {args.deps}")
         print(f"  Position: {prefix:02d}")
         print("\n(dry-run: no files created)")
         return
@@ -66,9 +72,9 @@ def cmd_create(args: argparse.Namespace, carta_root: Path) -> None:
     frontmatter = {
         "title": title,
         "status": "draft",
-        "summary": "",
-        "tags": [],
-        "deps": [],
+        "summary": args.summary if args.summary is not None else "",
+        "tags": [t.strip() for t in args.tags.split(",") if t.strip()] if args.tags else [],
+        "deps": [d.strip() for d in args.deps.split(",") if d.strip()] if args.deps else [],
     }
     write_frontmatter(new_path, frontmatter, f"\n# {title}\n")
 

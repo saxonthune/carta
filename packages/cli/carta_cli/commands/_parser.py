@@ -36,6 +36,9 @@ def main() -> None:
     p_create.add_argument("slug")
     p_create.add_argument("--order", type=int, default=None)
     p_create.add_argument("--title", default=None)
+    p_create.add_argument("--summary", default=None)
+    p_create.add_argument("--tags", default=None, help="Comma-separated tags")
+    p_create.add_argument("--deps", default=None, help="Comma-separated deps")
     p_create.add_argument("--dry-run", action="store_true")
 
     # delete
