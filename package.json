@@ -1,7 +1,0 @@
-{
-  "private": true,
-  "scripts": {
-    "build": "echo 'Python-only repo — no build step'",
-    "test": "python3 -m pytest tests/ -v"
-  }
-}
