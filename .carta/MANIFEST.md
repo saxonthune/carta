@@ -107,12 +107,13 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 |-----|------|---------|------|------|------|
 
 | doc01.05.00 | `05-product-strategy/00-index.md` |  |  | — | — |
-| doc01.05.01 | `05-product-strategy/01-mission.md` | Core goal — spec-driven development tool | mission, principles | — | doc01.03.04, doc01.05.02, doc01.05.04.01, doc01.05.04.02, doc01.05.05, doc01.05.06.02, doc01.05.06.04 |
+| doc01.05.01 | `05-product-strategy/01-mission.md` | Core goal — spec-driven development tool | mission, principles | — | doc01.03.04, doc01.05.02, doc01.05.04.01, doc01.05.04.02, doc01.05.04.03, doc01.05.05, doc01.05.06.02, doc01.05.06.04 |
 | doc01.05.02 | `05-product-strategy/02-principles.md` | Design principles: symmetric storage, inverse derivability, arrangement agnosticism | principles, design | doc01.05.01 | doc01.01.01.04, doc01.03.05, doc01.03.06, doc01.04.04.00, doc01.04.05, doc01.04.06, doc01.04.08.01, doc01.04.08.06, doc01.05.07, doc01.05.08.05, doc01.05.08.06, doc01.05.08.08 |
 | doc01.05.03 | `05-product-strategy/03-glossary.md` | Canonical vocabulary: products, workspace, spec, shape | glossary, terms | — | — |
 | doc01.05.04.00 | `05-product-strategy/04-primary-sources/00-index.md` | Author's original writings, directional intent | inspiration, vision, primary-source | — | — |
-| doc01.05.04.01 | `05-product-strategy/04-primary-sources/01-the-carta-experiment.md` | Artifact-driven development, code-minus-one abstraction layers | AI, coding, planning, category theory, morphisms, artifact-driven development | doc01.05.01 | doc01.05.04.02, doc01.05.08.05, doc01.05.08.06, doc01.05.08.09, doc01.05.08.10 |
-| doc01.05.04.02 | `05-product-strategy/04-primary-sources/02-theoretical-foundations.md` | Why spec-driven development works with AI — primary sources from Alexander, Simon, and Shannon, plus the decreasing indirection thesis | spec-driven, AI, theory, patterns, complexity, information-theory, artifact-driven development | doc01.05.01, doc01.05.04.01, doc01.05.08.05 | doc01.05.08.09, doc01.05.08.11 |
+| doc01.05.04.01 | `05-product-strategy/04-primary-sources/01-the-carta-experiment.md` | Artifact-driven development, code-minus-one abstraction layers | AI, coding, planning, category theory, morphisms, artifact-driven development | doc01.05.01 | doc01.05.04.02, doc01.05.04.03, doc01.05.08.05, doc01.05.08.06, doc01.05.08.09, doc01.05.08.10 |
+| doc01.05.04.02 | `05-product-strategy/04-primary-sources/02-theoretical-foundations.md` | Why spec-driven development works with AI — primary sources from Alexander, Simon, and Shannon, plus the decreasing indirection thesis | spec-driven, AI, theory, patterns, complexity, information-theory, artifact-driven development | doc01.05.01, doc01.05.04.01, doc01.05.08.05 | doc01.05.04.03, doc01.05.08.09, doc01.05.08.11 |
+| doc01.05.04.03 | `05-product-strategy/04-primary-sources/03-unfolding-as-development.md` | Embryonic development applied to software — start with a working end-to-end system, let forces cross thresholds before adding complexity, preserve structure at every step | unfolding, methodology, alexander, forces, structure-preserving, ai, development | doc01.05.01, doc01.05.04.01, doc01.05.04.02 | doc01.05.08.12, doc01.05.08.13 |
 | doc01.05.05 | `05-product-strategy/05-docs-system.md` | The .carta/ workspace format — hierarchical docs, frontmatter, cross-references, MANIFEST | docs, workspace, format | doc01.05.01 | doc01.04.03, doc01.04.04.00, doc01.05.06.01, doc01.05.07, doc01.05.08.08 |
 | doc01.05.06.00 | `05-product-strategy/06-products/00-index.md` |  |  | — | — |
 | doc01.05.06.01 | `05-product-strategy/06-products/01-cli-scripts.md` | Deterministic Python operations on .carta/ workspace documents — designed primarily for AI agents | docs-api, workspace, tools, scripts, ai | doc01.05.05 | doc01.04.01 |
@@ -131,7 +132,9 @@ Machine-readable index for AI navigation. Read this file first, then open only t
 | doc01.05.08.08 | `05-product-strategy/08-research/08-spec-format-vocabulary.md` | What parts of the spec format Carta has opinions on vs what's up to users — format concerns vs user concerns | specs, vocabulary, format, agnosticism, workspace, principles | doc01.05.05, doc01.05.02, doc01.05.08, doc01.05.08.06 | — |
 | doc01.05.08.09 | `05-product-strategy/08-research/09-product-as-transition-system.md` | Modeling products as guarded transition systems — verifiable reachability, dead-end detection, and deductive architecture from product properties | product-modeling, transition-systems, verification, architecture, reachability, spec-driven, artifact-driven development | doc01.05.04.01, doc01.05.04.02, doc01.05.08.05 | doc01.05.08.10, doc01.05.08.11 |
 | doc01.05.08.10 | `05-product-strategy/08-research/10-structured-product-modeling.md` | The set of formal structures needed to fully describe a business product — entity models, decision tables, state machines, and six more — plus how they compose | product-modeling, decision-tables, state-machines, entities, enumerations, constraints, spec-driven | doc01.05.08.09, doc01.05.06.04, doc01.05.04.01 | doc01.01.01.00, doc01.01.01.01, doc01.01.01.03.00, doc01.01.01.03.01, doc01.01.01.03.02, doc01.05.08.11 |
-| doc01.05.08.11 | `05-product-strategy/08-research/11-action-based-api-design.md` | Why REST taxonomies are dead structures, how action-based APIs grow additively, and the connection between API shape and living systems | api, rest, rpc, trpc, concept-design, living-structure, additive-growth | doc01.05.04.02, doc01.05.08.09, doc01.05.08.10 | — |
+| doc01.05.08.11 | `05-product-strategy/08-research/11-action-based-api-design.md` | Why REST taxonomies are dead structures, how action-based APIs grow additively, and the connection between API shape and living systems | api, rest, rpc, trpc, concept-design, living-structure, additive-growth | doc01.05.04.02, doc01.05.08.09, doc01.05.08.10 | doc01.05.08.12, doc01.05.08.13 |
+| doc01.05.08.12 | `05-product-strategy/08-research/12-contract-first-development.md` | The action contract is the skeleton, not the database — define contracts, build screens against mocks, defer persistence until the contract stabilizes | contract-first, mock-first, action-based, unfolding, persistence, methodology | doc01.05.04.03, doc01.05.08.11 | doc01.05.08.13 |
+| doc01.05.08.13 | `05-product-strategy/08-research/13-concept-first-sequencing.md` | How concept-driven design composes with unfolding — concepts before code, contracts before backends, the ordering that makes AI-powered development coherent | concepts, jackson, unfolding, sequencing, methodology, ai | doc01.05.04.03, doc01.05.08.12, doc01.05.08.11 | — |
 
 ## 02-carta — Carta
 
@@ -161,7 +164,9 @@ Quick lookup for file-path→doc mapping:
 | `adr` | doc01.04.08.00, doc01.04.08.01, doc01.04.08.02, doc01.04.08.03, doc01.04.08.04, doc01.04.08.05, doc01.04.08.06, doc01.04.08.07, doc01.04.08.08, doc01.04.08.09 |
 | `agents` | doc01.05.08.02, doc01.05.08.04 |
 | `agnosticism` | doc01.05.08.08 |
-| `ai` | doc00.04, doc00.06, doc01.03.10.00, doc01.03.10.01, doc01.04.04.00, doc01.04.04.01, doc01.04.04.02, doc01.05.06.01, doc01.05.08.07, doc02.01 |
+| `action-based` | doc01.05.08.12 |
+| `ai` | doc00.04, doc00.06, doc01.03.10.00, doc01.03.10.01, doc01.04.04.00, doc01.04.04.01, doc01.04.04.02, doc01.05.04.03, doc01.05.06.01, doc01.05.08.07, doc01.05.08.13, doc02.01 |
+| `alexander` | doc01.05.04.03 |
 | `alignment` | doc01.03.02, doc01.05.07 |
 | `api` | doc01.04.09, doc01.05.08.11 |
 | `architecture` | doc01.01.01.02, doc01.03.01, doc01.03.02, doc01.03.03, doc01.03.05, doc01.03.09, doc01.03.10.00, doc01.04.08.06, doc01.05.08.09 |
@@ -181,7 +186,8 @@ Quick lookup for file-path→doc mapping:
 | `components` | doc01.03.05 |
 | `composition` | doc01.05.08.05 |
 | `concept-design` | doc01.05.08.11 |
-| `concepts` | doc02.02.00 |
+| `concepts` | doc01.05.08.13, doc02.02.00 |
+| `contract-first` | doc01.05.08.12 |
 | `config` | doc01.04.08.04 |
 | `conflicts` | doc01.04.04.03 |
 | `connections` | doc01.03.07 |
@@ -192,6 +198,7 @@ Quick lookup for file-path→doc mapping:
 | `decision-tables` | doc01.05.06.04, doc01.05.08.10 |
 | `decisions` | doc01.04.08.00 |
 | `decomposition` | doc01.05.08.05, doc01.05.08.06 |
+| `development` | doc01.05.04.03 |
 | `deployment` | doc01.04.08.04, doc01.04.08.09 |
 | `design` | doc01.03.08, doc01.05.02, doc02.02.00 |
 | `docs` | doc00.01, doc00.02, doc00.03, doc00.04, doc00.05, doc00.07, doc01.05.05, doc01.05.08.07 |
@@ -211,6 +218,7 @@ Quick lookup for file-path→doc mapping:
 | `flowchart` | doc01.01.01.03.02 |
 | `format` | doc01.05.05, doc01.05.08.08 |
 | `formats` | doc01.05.08.06 |
+| `forces` | doc01.05.04.03 |
 | `formatters` | doc01.04.08.03 |
 | `gap-analysis` | doc01.01.01.01 |
 | `git` | doc01.03.09, doc01.04.04.00 |
@@ -225,7 +233,7 @@ Quick lookup for file-path→doc mapping:
 | `information-theory` | doc01.05.04.02, doc01.05.08.05, doc01.05.08.06 |
 | `inspiration` | doc01.05.04.00 |
 | `installation` | doc01.04.02 |
-| `jackson` | doc02.02.00 |
+| `jackson` | doc01.05.08.13, doc02.02.00 |
 | `layout` | doc01.04.06, doc01.04.08.05, doc01.04.08.06, doc01.05.08.03 |
 | `library` | doc01.04.08.07 |
 | `living-structure` | doc01.05.08.11 |
@@ -235,6 +243,8 @@ Quick lookup for file-path→doc mapping:
 | `maintenance` | doc00.02 |
 | `mcp` | doc00.06, doc01.04.08.09 |
 | `meta` | doc00.00, doc00.01 |
+| `methodology` | doc01.05.04.03, doc01.05.08.12, doc01.05.08.13 |
+| `mock-first` | doc01.05.08.12 |
 | `metamodel` | doc01.04.05 |
 | `mission` | doc01.05.01 |
 | `modularity` | doc01.05.08.05 |
@@ -245,6 +255,7 @@ Quick lookup for file-path→doc mapping:
 | `organizers` | doc01.04.06, doc01.04.08.05, doc01.05.08.01, doc01.05.08.03 |
 | `packages` | doc01.03.01, doc01.04.08.07 |
 | `patterns` | doc01.03.10.00, doc01.03.10.01, doc01.05.04.02 |
+| `persistence` | doc01.05.08.12 |
 | `philosophy` | doc00.02 |
 | `pipeline` | doc01.03.06 |
 | `planning` | doc01.05.04.01 |
@@ -276,6 +287,7 @@ Quick lookup for file-path→doc mapping:
 | `sdlc` | doc02.01 |
 | `sections` | doc00.07 |
 | `seeds` | doc01.04.08.07 |
+| `sequencing` | doc01.05.08.13 |
 | `server` | doc01.03.09, doc01.04.04.00, doc01.04.04.03, doc01.04.09 |
 | `skills` | doc01.05.08.02 |
 | `spec-driven` | doc01.05.04.02, doc01.05.07, doc01.05.08.05, doc01.05.08.06, doc01.05.08.09, doc01.05.08.10, doc02.01 |
@@ -286,6 +298,7 @@ Quick lookup for file-path→doc mapping:
 | `state-management` | doc01.05.08.03 |
 | `static-analysis` | doc01.05.08.06 |
 | `structure` | doc00.05 |
+| `structure-preserving` | doc01.05.04.03 |
 | `structures` | doc01.01.01.03.00, doc01.01.01.03.01, doc01.01.01.03.02 |
 | `styling` | doc01.03.08 |
 | `sync` | doc01.03.06 |
@@ -300,6 +313,7 @@ Quick lookup for file-path→doc mapping:
 | `transmission` | doc02.01 |
 | `trpc` | doc01.05.08.11 |
 | `typing` | doc01.03.10.01 |
+| `unfolding` | doc01.05.04.03, doc01.05.08.12, doc01.05.08.13 |
 | `ui` | doc01.01.01.03.01, doc01.01.01.03.02, doc01.03.08 |
 | `use-case` | doc01.04.02 |
 | `user-experience` | doc01.01.01.04 |

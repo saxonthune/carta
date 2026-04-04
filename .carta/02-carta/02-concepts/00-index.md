@@ -8,7 +8,7 @@ deps: [doc02.01]
 
 # Concepts
 
-Product concepts for Carta, following Jackson's concept-driven design. Each concept has a purpose, state, actions, and operational principle. The concept domain is **software production** — the process by which product expectations become source code.
+Product concepts for Carta, following Jackson's concept-driven design. Each concept has a purpose, state, actions, and operational principle. The concept domain is **software production** — the subset of concepts a user must interact with to produce living software.
 
 ## Implementation
 
