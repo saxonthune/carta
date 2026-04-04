@@ -6,6 +6,9 @@ tags: [canvas-engine, cactus, viewport, connections, primitives]
 deps: [doc01.03.05]
 ---
 
+> **Note:** TypeScript packages referenced in this doc now live in [Luminous](https://github.com/saxonthune/Luminous). File paths like `packages/web-client/` refer to the Luminous repo.
+
+
 # Canvas Engine (cactus)
 
 Internal library of composable primitives for building interactive canvas UIs. Domain-agnostic — no knowledge of constructs, schemas, organizers, or Yjs. Consumers compose engine primitives with their own domain logic.

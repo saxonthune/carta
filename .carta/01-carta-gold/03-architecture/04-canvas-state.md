@@ -6,6 +6,9 @@ tags: [state, yjs, hooks, adapters]
 deps: [doc01.05.01]
 ---
 
+> **Note:** TypeScript packages referenced in this doc now live in [Luminous](https://github.com/saxonthune/Luminous). File paths like `packages/web-client/` refer to the Luminous repo.
+
+
 # State Management
 
 ## Single Source of Truth

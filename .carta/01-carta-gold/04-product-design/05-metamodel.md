@@ -6,6 +6,9 @@ tags: [metamodel, schemas, ports]
 deps: [doc01.05.02]
 ---
 
+> **Note:** TypeScript packages referenced in this doc now live in [Luminous](https://github.com/saxonthune/Luminous). File paths like `packages/web-client/` refer to the Luminous repo.
+
+
 # Metamodel Architecture
 
 Carta uses a three-level metamodel (M2/M1/M0) to provide modeling flexibility while maintaining type safety. This is the core type system that makes Carta domain-agnostic.

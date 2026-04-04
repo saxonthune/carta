@@ -75,7 +75,7 @@ AskUserQuestion({
 })
 ```
 
-If "Fix it now": Switch to the agent's worktree, read the result file for error details, diagnose the failure, apply fixes, run `pnpm build && pnpm test`, commit, and merge. This is interactive — the skill acts as a debugging partner, not a headless agent.
+If "Fix it now": Switch to the agent's worktree, read the result file for error details, diagnose the failure, apply fixes, run `make test`, commit, and merge. This is interactive — the skill acts as a debugging partner, not a headless agent.
 
 If a worktree still exists for a completed agent (merge conflict cases), mention it so the user can resolve manually.
 
@@ -244,7 +244,7 @@ A headless Sonnet session should target:
 - **~5-8 file modifications** (edits, not reads)
 - **One cohesive feature or fix** — not a grab bag of changes
 - **Completable in a single focused pass** — no "part 1 of N"
-- **Verifiable with `pnpm build && pnpm test`**
+- **Verifiable with `make test`**
 - **All design decisions already resolved** — no ambiguity for the agent
 
 ### When a Plan Is Too Large
@@ -300,7 +300,7 @@ For each correctness property:
 **4. Flag untestable properties.** If a correctness property can't be automated (e.g., "the UI feels responsive"), mark it as manual verification. Don't pretend smoke tests cover it.
 
 The Verification section in the refined plan should contain:
-- `pnpm build && pnpm test` as the baseline gate
+- `make test` as the baseline gate
 - Specific new tests the agent must write, with file paths and assertion descriptions
 - Plan-specific postcondition scripts (grep/script checks)
 - Manual verification steps (if any) clearly marked as such

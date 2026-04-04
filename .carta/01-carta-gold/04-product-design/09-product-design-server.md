@@ -6,6 +6,9 @@ tags: [server, product-design, canvas, filesystem, api]
 deps: [doc01.01.01.00, doc01.01.01.04]
 ---
 
+> **Note:** TypeScript packages referenced in this doc now live in [Luminous](https://github.com/saxonthune/Luminous). File paths like `packages/web-client/` refer to the Luminous repo.
+
+
 # Product Design Server
 
 A thin Node.js server that gives the product design canvas filesystem access. The browser can't read/write files directly, so the server bridges the gap: serves the web client, exposes REST endpoints for canvas and source file operations, and pushes file changes via SSE.

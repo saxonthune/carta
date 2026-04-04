@@ -65,7 +65,7 @@ For each doc's claims, spot-check the code. Focus on:
 ```typescript
 // Spot-check code claims from the docs you read.
 // Example: if a doc describes organizer features, grep for the hooks/components it mentions:
-Grep({ pattern: 'pin|constraint|PinConstraint', path: 'packages/web-client/src/', output_mode: 'files_with_matches' })
+Grep({ pattern: 'pin|constraint|PinConstraint', path: 'carta_cli/', output_mode: 'files_with_matches' })
 ```
 
 ### 3B-extra: Barrel Export Reconciliation (always runs)
@@ -78,7 +78,7 @@ Look up the frontend architecture doc ref from MANIFEST (tags: `components, hook
 
 Also reconcile MCP tool registrations against any doc that inventories them:
 ```typescript
-Grep({ pattern: "name: 'carta_", path: 'packages/server/src/mcp/tools.ts', output_mode: 'content' })
+Grep({ pattern: "name: 'carta_", path: 'carta_cli/', output_mode: 'content' })
 ```
 
 ### 3C: Build Gap Report
@@ -124,7 +124,7 @@ For each gap, write concrete edit instructions with provenance:
 
 ```markdown
 ## Edit: .carta/path/to/doc.md
-Source: packages/web-client/src/hooks/useFeatureX.ts
+Source: carta_cli/...
 Section: §SectionName (after "Subsection" subsection)
 
 Add new subsection:

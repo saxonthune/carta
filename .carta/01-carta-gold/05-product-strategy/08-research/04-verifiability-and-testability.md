@@ -7,6 +7,9 @@ deps: [doc01.05.08.02, doc01.03.05]
 date: 2026-02-15
 ---
 
+> **Note:** TypeScript packages referenced in this doc now live in [Luminous](https://github.com/saxonthune/Luminous). File paths like `packages/web-client/` refer to the Luminous repo.
+
+
 # Verifiability and Testability
 
 How do we engineer architecture that AI agents can verify? What does it mean for a software feature to be verifiable? These questions matter because Carta uses headless AI agents to implement features from plans — and the only feedback loop is automated verification.

@@ -6,6 +6,9 @@ tags: [adr, packages, loading, seeds, identity, library]
 deps: [doc01.03.09]
 ---
 
+> **Note:** TypeScript packages referenced in this doc now live in [Luminous](https://github.com/saxonthune/Luminous). File paths like `packages/web-client/` refer to the Luminous repo.
+
+
 # Decision 007: Package-Based Schema Loading with Dual Identity
 
 ## Context

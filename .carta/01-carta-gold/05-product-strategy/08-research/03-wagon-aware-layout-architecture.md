@@ -7,6 +7,9 @@ deps: [doc01.05.06, doc01.03.05]
 date: 2026-02-13
 ---
 
+> **Note:** TypeScript packages referenced in this doc now live in [Luminous](https://github.com/saxonthune/Luminous). File paths like `packages/web-client/` refer to the Luminous repo.
+
+
 # Wagon-Aware Layout Architecture
 
 > **Question**: How should organizer layout actions (grid, spread, flow) account for wagon organizers attached to constructs, and what are the state-management pitfalls?

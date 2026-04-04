@@ -6,6 +6,9 @@ tags: [server, web, architecture, git]
 deps: [doc01.04.01]
 ---
 
+> **Note:** TypeScript packages referenced in this doc now live in [Luminous](https://github.com/saxonthune/Luminous). File paths like `packages/web-client/` refer to the Luminous repo.
+
+
 # Web Platform Architecture
 
 Architecture of the hosted web platform — a server that wraps git repositories and exposes them to web clients via REST API and WebSocket sync.

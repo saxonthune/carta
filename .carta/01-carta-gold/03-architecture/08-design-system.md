@@ -6,6 +6,9 @@ tags: [design, ui, styling, lod]
 deps: []
 ---
 
+> **Note:** TypeScript packages referenced in this doc now live in [Luminous](https://github.com/saxonthune/Luminous). File paths like `packages/web-client/` refer to the Luminous repo.
+
+
 # Design System
 
 Visual and interaction standards for the Carta application UI. Part 1 covers **application chrome** (headers, modals, panels). Part 2 covers **canvas content** (nodes, edges, organizers, LOD).

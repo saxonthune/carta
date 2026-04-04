@@ -6,6 +6,9 @@ tags: [adr, presentation, organizers, layout]
 deps: [doc01.04.08]
 ---
 
+> **Note:** TypeScript packages referenced in this doc now live in [Luminous](https://github.com/saxonthune/Luminous). File paths like `packages/web-client/` refer to the Luminous repo.
+
+
 # ADR: Presentation Model and Organizers
 
 ## Context

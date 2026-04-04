@@ -22,7 +22,7 @@ Carta uses concept-driven design from Daniel Jackson's *The Essence of Software*
 - **Concepts localize data models.** Each concept owns its own state (micromodel). Grow or shrink the data model by adding or removing concepts.
 - **Cast concepts in generic terms.** Avoid needless specialization. A generic Link concept instantiated as docXX.YY refs is better than a Ref concept.
 - **Grow a product a few concepts at a time.** Start with seed concepts. Unfold complexity only when forces demand it.
-- **Implement concepts as separate modules.** One file per concept, exporting state types and action functions. `packages/concepts/src/` follows tinyForum's pattern: pure TypeScript, state as first parameter, no framework dependencies.
+- **Implement concepts as separate modules.** One file per concept, exporting state types and action functions. Follows tinyForum's pattern: pure state as first parameter, no framework dependencies.
 
 ## Documentation
 
@@ -49,7 +49,6 @@ Carta uses concept-driven design from Daniel Jackson's *The Essence of Software*
 | `/carta-feature-implementor` | Status, launch, triage, chain orchestration | After grooming, to launch plans and manage agents |
 | `/documentation-nag` | Keeps `.carta/` and derived files in sync with code | After significant code changes |
 | `/documentation-auditor` | Audits `.carta/` claims against codebase, finds stale refs | Periodically, or before releases |
-| `/test-builder` | Creates integration/E2E tests | When adding test coverage |
 | `/git-sync-trunk` | Syncs trunk branch with remote or main | Before creating worktrees, after remote updates |
 | `/git-sync-worktree` | Syncs worktree's claude branch with trunk via rebase | Every 30-60 min while working in a worktree |
 | `/execute-plan` | Launches background agent to implement a plan from todo-tasks/ | After agreeing on a plan interactively |
@@ -64,7 +63,6 @@ Carta uses concept-driven design from Daniel Jackson's *The Essence of Software*
 |-------|---------|-------------|
 | `batch-executor` | Processes all tasks sequentially | "process tasks" - small/medium tasks |
 | `task-master` | Spawns parallel agents per task | "launch task-master" - large tasks |
-| `test-builder` | Creates integration/E2E tests autonomously | "launch test-builder" |
 | `plan-executor` | Implements a plan headlessly in a worktree | Background worker for `/execute-plan` |
 
 ### Skill Details
@@ -79,8 +77,7 @@ All skills follow the same pattern: opus reads `.carta/` and code, analyzes, gen
 | `/carta-feature-groomer` | `.carta/MANIFEST.md`, plan files, codebase | `.claude/skills/carta-feature-groomer/SKILL.md` |
 | `/carta-feature-implementor` | Plan files, status script | `.claude/skills/carta-feature-implementor/SKILL.md` |
 | `/documentation-nag` | `.carta/` (all titles) | `.claude/skills/documentation-nag/SKILL.md` |
-| `/documentation-auditor` | `.carta/MANIFEST.md`, barrel exports, type defs | `.claude/skills/documentation-auditor/SKILL.md` |
-| `/test-builder` | `packages/web-client/tests/README.md` | `.claude/skills/test-builder/SKILL.md` |
+| `/documentation-auditor` | `.carta/MANIFEST.md`, codebase source | `.claude/skills/documentation-auditor/SKILL.md` |
 | `/git-sync-trunk` | Git worktree workflows | `.claude/skills/git-sync-trunk/SKILL.md` |
 | `/git-sync-worktree` | Git worktree workflows | `.claude/skills/git-sync-worktree/SKILL.md` |
 | `/execute-plan` | Plan executor workflow | `.claude/skills/execute-plan/SKILL.md` |
@@ -95,47 +92,25 @@ All skills follow the same pattern: opus reads `.carta/` and code, analyzes, gen
 |-------|--------|
 | `batch-executor` | `.claude/agents/batch-executor.md` |
 | `task-master` | `.claude/agents/task-master.md` |
-| `test-builder` | `.claude/agents/test-builder.md` |
 | `plan-executor` | `.claude/agents/plan-executor.md` |
 
-## Monorepo Structure
+## Project Structure
 
-Packages can only depend on packages above them in the graph.
+Carta is a Python project with two main components:
 
-```
-                   @carta/geometry
-                         ↓
-                    @carta/schema
-                    ↓         ↘
-          @carta/document   @carta/server(*)
-                ↓
-         @carta/web-client
-```
-
-| Package | Location | Purpose |
-|---------|----------|---------|
-| `@carta/geometry` | `packages/geometry/` | Geometry primitives, layout algorithms |
-| `@carta/schema` | `packages/schema/` | Schema system, port registry, built-in schemas, utils |
-| `@carta/document` | `packages/document/` | Shared Y.Doc operations, Yjs helpers, file format, migrations |
-| `@carta/web-client` | `packages/web-client/` | React web app |
-| `@carta/server` | `packages/server/` | Document server + MCP server |
-| `carta-cli` | `packages/cli/` | Carta Docs API — deterministic Python operations on workspace docs |
-
-Cross-package dependencies are resolved via Vite/TypeScript aliases. Packages use `index.ts` barrel exports for public APIs. Web client feature directories (hooks, components/canvas, components/metamap, components/modals, components/ui) each have barrel exports.
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| `.carta/` | `.carta/` | Workspace format — specifications and architecture docs |
+| `carta-cli` | `carta_cli/` | Python CLI for workspace operations |
+| Tests | `tests/` | pytest test suite |
 
 ## Build & Test
 
 ```bash
-make build          # Build web-client (typechecks transitive deps via tsc -b)
-make test           # All tests in parallel: JS (Vitest) + Python (pytest)
-make test-js        # JS package tests only: geometry, schema, document, web-client, server, vscode
-make test-python    # Python CLI tests only
-make test-e2e       # E2E tests (Playwright, port 5273)
+make test    # Run all tests (pytest)
 ```
 
-`make build && make test` must both pass before committing. The Makefile is the top-level orchestrator — `make -j test` runs JS and Python tests in parallel. `pnpm test` runs only JS workspace tests (useful for JS-only work). E2E uses port 5273 (separate from dev server 5173).
-
-**Vite dev server restart:** If the user is running `pnpm dev` and your changes require a Vite restart (e.g., new files, config changes, dependency updates, or Vite alias changes), tell the user to restart Vite. Do not restart it yourself — the user manages the dev server.
+`make test` must pass before committing. Carta is pure Python — no build step needed.
 
 ## Codebase Exploration Strategy
 
@@ -150,7 +125,6 @@ make test-e2e       # E2E tests (Playwright, port 5273)
 
 ## Constraints
 
-- **`erasableSyntaxOnly`**: No `private`/`protected`/`public` constructor parameter shorthand. Declare fields explicitly.
-- **Barrel exports**: Packages use `.js` extensions (e.g., `export * from './types/index.js'`)
-- **State**: Yjs Y.Doc is the single source of truth. All state operations go through DocumentAdapter. No singleton registries.
-- **Node identity**: No `name` field on instances — titles come from schema's `displayField` or `semanticId`.
+- **`.carta/` conventions**: Cross-references use `docXX.YY.ZZ` syntax. Sparse docs are intentional — do not elaborate beyond what the work demands.
+- **Python patterns**: See doc01.03.10.01 (Python for AI — file structure, typing, naming, testability patterns).
+- **Carta CLI**: Always run `carta ai-skill` before using any `carta` command — do not guess flags or arguments.

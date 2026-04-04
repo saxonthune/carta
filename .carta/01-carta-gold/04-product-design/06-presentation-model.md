@@ -6,6 +6,9 @@ tags: [presentation, organizers, layout, rendering]
 deps: [doc01.03.05, doc01.05.02]
 ---
 
+> **Note:** TypeScript packages referenced in this doc now live in [Luminous](https://github.com/saxonthune/Luminous). File paths like `packages/web-client/` refer to the Luminous repo.
+
+
 # Presentation Model
 
 The presentation model is a pure transformation layer that converts domain state (constructs, schemas, connections, organizers) into view state (positioned, styled, visible/hidden canvas nodes and edges). It owns all decisions about **how** data appears on screen, keeping the domain model free of rendering concerns.

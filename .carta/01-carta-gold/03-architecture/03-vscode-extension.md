@@ -6,6 +6,9 @@ tags: [vscode, extension, architecture]
 deps: [doc01.03.03]
 ---
 
+> **Note:** TypeScript packages referenced in this doc now live in [Luminous](https://github.com/saxonthune/Luminous). File paths like `packages/web-client/` refer to the Luminous repo.
+
+
 # VS Code Extension Architecture
 
 Architecture of the Carta VS Code extension (`packages/vscode/`).

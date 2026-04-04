@@ -6,6 +6,9 @@ tags: [components, hooks, architecture]
 deps: [doc01.05.02, doc01.03.08]
 ---
 
+> **Note:** TypeScript packages referenced in this doc now live in [Luminous](https://github.com/saxonthune/Luminous). File paths like `packages/web-client/` refer to the Luminous repo.
+
+
 # Frontend Architecture
 
 Component layering, state partitioning, and structural patterns for the Carta web client.

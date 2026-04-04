@@ -7,6 +7,9 @@ deps: [doc01.05.06, doc01.05.06, doc01.05.06]
 date: 2026-02-08
 ---
 
+> **Note:** TypeScript packages referenced in this doc now live in [Luminous](https://github.com/saxonthune/Luminous). File paths like `packages/web-client/` refer to the Luminous repo.
+
+
 # Visual Semantics in Organizers
 
 > **Question**: How can Carta improve the visual clarity of constructs inside organizers — conveying sequence, category, and subtype — without hardcoding notation-specific visual sugar?
