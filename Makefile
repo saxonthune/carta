@@ -1,18 +1,4 @@
-.PHONY: build test test-js test-python test-e2e demo
+.PHONY: test
 
-build:
-	pnpm --filter @carta/web-client build
-
-test: test-js test-python
-
-test-js:
-	pnpm -r --parallel test
-
-test-python:
-	python3 -m pytest packages/cli/tests/ -v
-
-test-e2e:
-	pnpm --filter @carta/web-client test:e2e
-
-demo:
-	bash scripts/create-demo-workspace.sh --force
+test:
+	python3 -m pytest tests/ -v
