@@ -55,6 +55,8 @@ def main() -> None:
     p_move.add_argument("--mkdir", action="store_true")
     p_move.add_argument("--rename", default=None)
     p_move.add_argument("--no-regen", action="store_true", help="Skip MANIFEST regeneration.")
+    p_move.add_argument("--no-gap-close", action="store_true",
+                        help="Skip gap-closing of source siblings. Use for batch moves.")
     p_move.add_argument("--dry-run", action="store_true")
 
     # punch

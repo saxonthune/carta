@@ -10,6 +10,7 @@ def compute_all_moves(
     dest_dir: Path,
     order: int | None,
     rename_slug: str | None = None,
+    no_gap_close: bool = False,
 ) -> list[tuple[Path, Path]]:
     """Compute the complete list of (old_path, new_path) filesystem moves.
 
@@ -32,6 +33,7 @@ def compute_all_moves(
     else:
         return _compute_cross_dir_moves(
             source_path, dest_dir, order, source_prefix, source_slug, rename_slug,
+            no_gap_close=no_gap_close,
         )
 
 
@@ -126,6 +128,7 @@ def _compute_cross_dir_moves(
     source_prefix: int,
     source_slug: str,
     rename_slug: str | None = None,
+    no_gap_close: bool = False,
 ) -> list[tuple[Path, Path]]:
     """Compute moves for moving an entry to a different directory.
 
@@ -155,15 +158,16 @@ def _compute_cross_dir_moves(
         moves.append((entry, entry.parent / new_name))
 
     # 2. Source sibling gap-closing (prefix > source_prefix), lowest first
-    source_siblings = [
-        p for p in list_numbered_entries(source_path.parent)
-        if get_numeric_prefix(p.name) > source_prefix
-        and p.resolve() != source_path.resolve()
-    ]
-    for entry in sorted(source_siblings, key=lambda p: get_numeric_prefix(p.name)):
-        old_prefix = get_numeric_prefix(entry.name)
-        new_name = f"{old_prefix - 1:02d}-{get_slug(entry.name)}"
-        moves.append((entry, entry.parent / new_name))
+    if not no_gap_close:
+        source_siblings = [
+            p for p in list_numbered_entries(source_path.parent)
+            if get_numeric_prefix(p.name) > source_prefix
+            and p.resolve() != source_path.resolve()
+        ]
+        for entry in sorted(source_siblings, key=lambda p: get_numeric_prefix(p.name)):
+            old_prefix = get_numeric_prefix(entry.name)
+            new_name = f"{old_prefix - 1:02d}-{get_slug(entry.name)}"
+            moves.append((entry, entry.parent / new_name))
 
     # 3. Main move — if dest_dir was gap-closed, use the renamed path
     actual_dest_dir = dest_dir

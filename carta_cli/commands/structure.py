@@ -313,7 +313,9 @@ def cmd_move(args: argparse.Namespace, carta_root: Path) -> None:
             raise CartaError(f"Error: destination has >= 99 items: {dest_path}")
 
     try:
-        moves = compute_all_moves(source_path, dest_path, args.order, rename_slug=args.rename)
+        moves = compute_all_moves(source_path, dest_path, args.order,
+                                  rename_slug=args.rename,
+                                  no_gap_close=args.no_gap_close)
     except ValueError as e:
         raise CartaError(f"Error computing moves: {e}")
 

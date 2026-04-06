@@ -89,7 +89,7 @@ Flags:
 Move or reorder a file or directory within the workspace.
 
 ```
-carta move <source> <destination> [--order N] [--mkdir] [--rename SLUG] [--no-regen] [--dry-run]
+carta move <source> <destination> [--order N] [--mkdir] [--rename SLUG] [--no-regen] [--no-gap-close] [--dry-run]
 ```
 
 Arguments:
@@ -97,23 +97,27 @@ Arguments:
   destination  Target directory. Must exist unless --mkdir is used.
 
 Side effects:
-  - Removes source from its parent, gap-closes source siblings.
+  - Removes source from its parent, gap-closes source siblings (unless --no-gap-close).
   - Inserts at destination, bumps destination siblings at or above --order.
   - Rewrites all cross-references in workspace + externalRefPaths.
   - Regenerates MANIFEST.md (unless --no-regen).
 
 Flags:
-  --order N      Insert at position N. Without this, appends after the last entry.
-  --mkdir        Create destination directory if missing (also creates 00-index.md).
-  --rename SLUG  Change the slug during the move. Extension is preserved automatically.
-  --no-regen     Skip MANIFEST regeneration. Ref rewriting still happens.
-  --dry-run      Print planned moves without executing.
+  --order N       Insert at position N. Without this, appends after the last entry.
+  --mkdir         Create destination directory if missing (also creates 00-index.md).
+  --rename SLUG   Change the slug during the move. Extension is preserved automatically.
+  --no-regen      Skip MANIFEST regeneration. Ref rewriting still happens.
+  --no-gap-close  Skip gap-closing of source siblings after the move. Source directory
+                  will have a numbering gap. Use with --no-regen for batch operations,
+                  then run `carta regenerate` at the end.
+  --dry-run       Print planned moves without executing.
 
 Sequencing notes:
   - Each move changes numbering for subsequent commands — run sequentially, not in parallel.
-  - When moving many entries out of a directory, move the highest-numbered first to avoid
-    gap-closing invalidating subsequent source paths. Or check paths between moves.
-  - Use --no-regen on all moves in a batch, then run `carta regenerate` once at the end.
+  - When moving many entries out of a directory, use --no-gap-close --no-regen on each move
+    to avoid invalidating subsequent source paths, then run `carta regenerate` at the end.
+  - Without --no-gap-close, move the highest-numbered entry first to avoid gap-closing
+    invalidating subsequent source paths. Or check paths between moves.
 """,
 
     "punch": """\
@@ -374,10 +378,10 @@ _BEHAVIORAL_RULES = """\
 """
 
 _COMMON_PATTERNS = """\
-- **Batch restructure**: Use `--no-regen` on all moves, then `carta regenerate` once at end.
+- **Batch restructure**: Use `--no-gap-close --no-regen` on all moves, then `carta regenerate` once at end.
   ```
-  carta move doc01.02 01-strategy --no-regen
-  carta move doc01.03 01-strategy --no-regen
+  carta move doc01.02 01-strategy --no-gap-close --no-regen
+  carta move doc01.03 01-strategy --no-gap-close --no-regen
   carta regenerate
   ```
 - **Dissolve a group**: Move children out one by one (check paths between moves), then delete

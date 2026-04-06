@@ -1547,5 +1547,75 @@ class TestExistingCommandsUnified(unittest.TestCase):
                          "Source should have moved")
 
 
+class TestNoGapClose(unittest.TestCase):
+    """Test --no-gap-close flag: source siblings keep their original numbers."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.carta_copy = _build_fixture(Path(self.tmpdir.name))
+
+    def tearDown(self):
+        self.tmpdir.cleanup()
+
+    def test_no_gap_close_preserves_source_siblings(self):
+        """Moving with --no-gap-close should NOT renumber source siblings."""
+        # Move 01-about.md from 00-codex/ to 01-product-strategy/
+        # Without --no-gap-close: 02-maintenance -> 01-maintenance, etc.
+        # With --no-gap-close: siblings keep their original numbers
+        result = _run_carta(
+            self.carta_copy,
+            "move", "00-codex/01-about.md", "01-product-strategy",
+            "--no-gap-close", "--no-regen",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+        codex = self.carta_copy / "00-codex"
+        names = sorted(p.name for p in codex.iterdir())
+        # 01-about.md is gone
+        self.assertFalse((codex / "01-about.md").exists(), "Source should have moved")
+        # 02-maintenance.md should NOT be renamed to 01-maintenance.md
+        self.assertTrue(any(n.startswith("02-") for n in names),
+                        f"Expected 02- prefix preserved, got: {names}")
+
+    def test_no_gap_close_enables_sequential_moves(self):
+        """Second move should succeed because first move left original paths intact."""
+        # Move 01-about.md first
+        result1 = _run_carta(
+            self.carta_copy,
+            "move", "00-codex/01-about.md", "01-product-strategy",
+            "--no-gap-close", "--no-regen",
+        )
+        self.assertEqual(result1.returncode, 0, result1.stderr)
+
+        # Now move 02-maintenance.md (still at its original path)
+        result2 = _run_carta(
+            self.carta_copy,
+            "move", "00-codex/02-maintenance.md", "01-product-strategy",
+            "--no-gap-close", "--no-regen",
+        )
+        self.assertEqual(result2.returncode, 0, result2.stderr)
+
+        # Both files should be gone from codex
+        codex = self.carta_copy / "00-codex"
+        self.assertFalse((codex / "01-about.md").exists(), "01-about.md should have moved")
+        self.assertFalse((codex / "02-maintenance.md").exists(), "02-maintenance.md should have moved")
+
+    def test_default_still_gap_closes(self):
+        """Without --no-gap-close, source siblings are still renumbered (default behavior)."""
+        result = _run_carta(
+            self.carta_copy,
+            "move", "00-codex/01-about.md", "01-product-strategy",
+            "--no-regen",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+        codex = self.carta_copy / "00-codex"
+        # Gap should be closed: 02-maintenance should now be 01-maintenance
+        self.assertFalse((codex / "02-maintenance.md").exists(),
+                         "02-maintenance.md should have been renumbered to 01-")
+        self.assertTrue((codex / "01-maintenance.md").exists(),
+                        "01-maintenance.md should exist after gap-close")
+
+
 if __name__ == "__main__":
     unittest.main()
