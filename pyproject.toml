@@ -5,11 +5,17 @@ build-backend = "hatchling.build"
 [project]
 name = "carta-cli"
 version = "0.1.0"
+description = "CLI for managing .carta/ specification workspaces"
+license = "AGPL-3.0-or-later"
+authors = [{ name = "saxonthune" }]
 requires-python = ">=3.10"
 dependencies = [
     "click",
     "pyyaml",
 ]
+
+[project.urls]
+Repository = "https://github.com/saxonthune/carta"
 
 [project.optional-dependencies]
 test = ["pytest"]
