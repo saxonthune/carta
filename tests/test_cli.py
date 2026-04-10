@@ -1,7 +1,7 @@
 """Integration tests for the carta CLI toolchain.
 
 Run with:
-    python3 -m pytest packages/cli/tests/test_cli.py -v
+    python3 -m pytest tests/test_cli.py -v
 """
 
 import json
@@ -1441,6 +1441,63 @@ class TestCatCommand(unittest.TestCase):
         self.assertIn("Error", result.stderr)
 
 
+class TestTreeCommand(unittest.TestCase):
+    """Tests for `carta tree` command."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.carta_copy = _build_fixture(Path(self.tmpdir.name))
+
+    def tearDown(self):
+        self.tmpdir.cleanup()
+
+    def test_tree_default(self):
+        """carta tree prints workspace structure with titles."""
+        result = _run_carta(self.carta_copy, "tree")
+        self.assertEqual(result.returncode, 0, f"carta tree failed:\n{result.stderr}\n{result.stdout}")
+        lines = result.stdout.strip().split("\n")
+        # Root line is the workspace directory name
+        self.assertIn(".carta", lines[0])
+        # Should contain tree-drawing characters
+        self.assertTrue(any("├── " in l or "└── " in l for l in lines[1:]))
+        # Should show frontmatter titles
+        self.assertIn("Codex", result.stdout)
+        self.assertIn("Mission", result.stdout)
+
+    def test_tree_subtree(self):
+        """carta tree with a doc ref shows only that subtree."""
+        result = _run_carta(self.carta_copy, "tree", "doc01.04")
+        self.assertEqual(result.returncode, 0, f"carta tree failed:\n{result.stderr}\n{result.stdout}")
+        lines = result.stdout.strip().split("\n")
+        # Root should be the primary-sources directory
+        self.assertIn("primary-sources", lines[0])
+        # Should contain children
+        self.assertIn("Theoretical Foundations", result.stdout)
+        # Should NOT contain sibling directories
+        self.assertNotIn("product-design", result.stdout)
+
+    def test_tree_refs(self):
+        """carta tree --refs shows doc references."""
+        result = _run_carta(self.carta_copy, "tree", "--refs", "doc01.04")
+        self.assertEqual(result.returncode, 0, f"carta tree failed:\n{result.stderr}\n{result.stdout}")
+        self.assertIn("doc01.04", result.stdout)
+        self.assertIn("doc01.04.01", result.stdout)
+
+    def test_tree_no_title(self):
+        """carta tree --no-title shows filenames instead of titles."""
+        result = _run_carta(self.carta_copy, "tree", "--no-title", "doc01.04")
+        self.assertEqual(result.returncode, 0, f"carta tree failed:\n{result.stderr}\n{result.stdout}")
+        # Should show filename stems, not titles
+        self.assertIn("01-experiment", result.stdout)
+        # Should NOT show title text
+        self.assertNotIn("The Carta Experiment", result.stdout)
+
+    def test_tree_nonexistent_ref(self):
+        """carta tree fails for nonexistent ref."""
+        result = _run_carta(self.carta_copy, "tree", "doc99.99")
+        self.assertNotEqual(result.returncode, 0, "Should fail for nonexistent ref")
+
+
 class TestMoveNoRegen(unittest.TestCase):
     """Tests for `carta move --no-regen`."""
 
@@ -1559,9 +1616,6 @@ class TestNoGapClose(unittest.TestCase):
 
     def test_no_gap_close_preserves_source_siblings(self):
         """Moving with --no-gap-close should NOT renumber source siblings."""
-        # Move 01-about.md from 00-codex/ to 01-product-strategy/
-        # Without --no-gap-close: 02-maintenance -> 01-maintenance, etc.
-        # With --no-gap-close: siblings keep their original numbers
         result = _run_carta(
             self.carta_copy,
             "move", "00-codex/01-about.md", "01-product-strategy",
@@ -1571,15 +1625,12 @@ class TestNoGapClose(unittest.TestCase):
 
         codex = self.carta_copy / "00-codex"
         names = sorted(p.name for p in codex.iterdir())
-        # 01-about.md is gone
         self.assertFalse((codex / "01-about.md").exists(), "Source should have moved")
-        # 02-maintenance.md should NOT be renamed to 01-maintenance.md
         self.assertTrue(any(n.startswith("02-") for n in names),
                         f"Expected 02- prefix preserved, got: {names}")
 
     def test_no_gap_close_enables_sequential_moves(self):
         """Second move should succeed because first move left original paths intact."""
-        # Move 01-about.md first
         result1 = _run_carta(
             self.carta_copy,
             "move", "00-codex/01-about.md", "01-product-strategy",
@@ -1587,7 +1638,6 @@ class TestNoGapClose(unittest.TestCase):
         )
         self.assertEqual(result1.returncode, 0, result1.stderr)
 
-        # Now move 02-maintenance.md (still at its original path)
         result2 = _run_carta(
             self.carta_copy,
             "move", "00-codex/02-maintenance.md", "01-product-strategy",
@@ -1595,7 +1645,6 @@ class TestNoGapClose(unittest.TestCase):
         )
         self.assertEqual(result2.returncode, 0, result2.stderr)
 
-        # Both files should be gone from codex
         codex = self.carta_copy / "00-codex"
         self.assertFalse((codex / "01-about.md").exists(), "01-about.md should have moved")
         self.assertFalse((codex / "02-maintenance.md").exists(), "02-maintenance.md should have moved")
@@ -1610,11 +1659,30 @@ class TestNoGapClose(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
 
         codex = self.carta_copy / "00-codex"
-        # Gap should be closed: 02-maintenance should now be 01-maintenance
         self.assertFalse((codex / "02-maintenance.md").exists(),
                          "02-maintenance.md should have been renumbered to 01-")
         self.assertTrue((codex / "01-maintenance.md").exists(),
                         "01-maintenance.md should exist after gap-close")
+
+
+class TestGenerateSkillContent(unittest.TestCase):
+    def test_contains_all_commands(self):
+        from carta_cli.ai_skill import generate_skill_content, _COMMAND_DOCS
+        content = generate_skill_content(".carta")
+        for cmd_name in _COMMAND_DOCS:
+            self.assertIn(f"### {cmd_name}", content)
+
+    def test_contains_behavioral_rules(self):
+        from carta_cli.ai_skill import generate_skill_content
+        content = generate_skill_content(".carta")
+        self.assertIn("Behavioral Rules", content)
+        self.assertIn("Common Patterns", content)
+
+    def test_dir_name_substitution(self):
+        from carta_cli.ai_skill import generate_skill_content
+        content = generate_skill_content(".docs")
+        self.assertIn(".docs", content)
+        self.assertNotIn("{{dir_name}}", content)
 
 
 if __name__ == "__main__":

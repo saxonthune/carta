@@ -18,3 +18,4 @@ build/
 # Project
 todo-tasks/
 .demo/
+.claude/

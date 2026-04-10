@@ -51,7 +51,7 @@ For each doc on the checklist, read it fully. Don't use section-level grep here 
 
 ```typescript
 // Read all relevant docs in parallel — resolve paths from MANIFEST's File column
-// e.g., doc01.04.08 → .carta/02-architecture/04-canvas/04-presentation-model.md
+// e.g., doc01.02.03 → .carta/02-architecture/04-canvas/04-presentation-model.md
 ```
 
 ### 3B: Read Code to Verify Claims

@@ -19,65 +19,6 @@ carta -w /path/{{dir_name}} <cmd> # explicit workspace path
 
 The CLI finds the workspace by walking up from cwd (like `git` finds `.git/`).
 
-## Commands
-
-### init
-Initialize a new workspace. Already done for this project.
-
-### create
-```
-carta create <destination> <slug> [--order N] [--title "..."] [--dry-run]
-```
-Create a new doc entry with blank frontmatter. Appends by default.
-
-### delete
-```
-carta delete <target>... [--dry-run] [--output-mapping]
-```
-Delete entries with automatic gap-closing and ref rewriting.
-
-### move
-```
-carta move <source> <destination> [--order N] [--rename <slug>] [--mkdir] [--dry-run]
-```
-Move/reorder/rename a doc entry with automatic ref renumbering.
-
-### punch
-```
-carta punch <source> [--dry-run]
-```
-Expand a leaf file into a directory (`NN-slug.md` -> `NN-slug/00-index.md`).
-
-### flatten
-```
-carta flatten <source> [--keep-index] [--force] [--at N] [--dry-run]
-```
-Dissolve a directory, hoisting children into the parent.
-
-### copy
-```
-carta copy <source_file> <destination> [--order N] [--rename slug] [--dry-run]
-```
-Copy a file into the workspace at a given position.
-
-### rewrite
-```
-carta rewrite --map old=new [--map old2=new2 ...] [--from-json mappings.json] [--dry-run]
-```
-Rewrite doc refs across the workspace using user-supplied mappings.
-
-### regenerate
-```
-carta regenerate [--dry-run]
-```
-Rebuild MANIFEST.md from filesystem and doc frontmatter. All structural commands run this automatically.
-
-### portable
-```
-carta portable
-```
-Dump editable Python scripts into the workspace. Updates the scripts in `{{dir_name}}/_scripts/` so collaborators can use `python3 {{dir_name}}/carta.py <command>` without pip.
-
 ## Frontmatter Schema
 
 Every workspace doc has YAML frontmatter:

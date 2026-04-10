@@ -123,7 +123,15 @@ def cmd_init(args: argparse.Namespace) -> None:
         else:
             print(f"  Skipped:  .claude/skills/{skill_name}/SKILL.md (already exists)")
 
-    _install_skill("carta-cli", "skill.md", {"{{dir_name}}": dirname})
+    from ..ai_skill import generate_skill_content
+    skill_dir = project_root / ".claude" / "skills" / "carta-cli"
+    skill_dir.mkdir(parents=True, exist_ok=True)
+    skill_path = skill_dir / "SKILL.md"
+    if not skill_path.exists():
+        skill_path.write_text(generate_skill_content(dirname), encoding="utf-8")
+        print(f"  Hydrated: .claude/skills/carta-cli/SKILL.md")
+    else:
+        print(f"  Skipped:  .claude/skills/carta-cli/SKILL.md (already exists)")
     _install_skill("docs-development", "docs-development-skill.md")
 
     do_regenerate(carta_dir, _load_preamble(carta_dir.name))
@@ -227,16 +235,14 @@ def cmd_hydrate(args: argparse.Namespace, carta_root: Path) -> None:
         updated += 1
 
     # --- Skills ---
-    skill_templates = [
-        ("carta-cli", "skill.md", {"{{dir_name}}": dirname}),
-        ("docs-development", "docs-development-skill.md", None),
+    from ..ai_skill import generate_skill_content
+    skill_updates = [
+        ("carta-cli", generate_skill_content(dirname)),
+        ("docs-development", (templates_dir / "docs-development-skill.md").read_text(encoding="utf-8")),
     ]
-    for skill_name, template_file, replacements in skill_templates:
+    for skill_name, new_content in skill_updates:
         skill_dir = project_root / ".claude" / "skills" / skill_name
         skill_path = skill_dir / "SKILL.md"
-        new_content = (templates_dir / template_file).read_text(encoding="utf-8")
-        for ph, val in (replacements or {}).items():
-            new_content = new_content.replace(ph, val)
 
         if skill_path.exists():
             old_content = skill_path.read_text(encoding="utf-8")

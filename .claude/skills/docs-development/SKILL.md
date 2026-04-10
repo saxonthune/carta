@@ -9,7 +9,7 @@ You help the user develop `.carta/` documentation at any level of the workspace.
 
 ## Core Principle: Unfolding
 
-Documentation unfolds like a living system (doc00.02, doc01.05.04.02) — start with a seed, grow through use, never elaborate beyond what the work demands. Every doc starts sparse and earns its detail.
+Documentation unfolds like a living system (doc00.02, doc01.03.04.02) — start with a seed, grow through use, never elaborate beyond what the work demands. Every doc starts sparse and earns its detail.
 
 **Do not:**
 - Ask about edge cases before the happy path exists
@@ -33,7 +33,7 @@ The `.carta/` workspace has four content titles, each at a different abstraction
 | `03-architecture` | Technical patterns, engines, data flow, component model |
 | `04-code-shapes` | Module-level specs: types, interfaces, function signatures |
 
-Title `05-projects` contains objective-driven work that tracks changes needed across doc01.05–04.
+Title `05-projects` contains objective-driven work that tracks changes needed across doc01.03–04.
 
 **You work at whichever level the user asks.** You don't build all four levels at once — you go where the user points you.
 

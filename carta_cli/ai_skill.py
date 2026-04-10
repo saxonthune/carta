@@ -3,6 +3,8 @@ import argparse
 import sys
 from pathlib import Path
 
+_PACKAGE_DIR = Path(__file__).resolve().parent
+
 from .frontmatter import read_frontmatter
 from .entries import list_numbered_entries
 from .numbering import get_slug
@@ -336,6 +338,31 @@ Side effects:
   - Read-only. Prints file contents to stdout. No files modified.
 """,
 
+    "tree": """\
+### tree
+
+Print workspace structure as a visual tree with titles from frontmatter.
+
+```
+carta tree [target] [--refs] [--no-title]
+```
+
+Arguments:
+  target  Optional directory to tree (doc ref or workspace-relative path).
+          Default: workspace root.
+
+Side effects:
+  - Read-only. Prints tree to stdout. No files modified.
+
+Flags:
+  --refs       Show docXX.YY refs next to each entry.
+  --no-title   Show filenames instead of frontmatter titles.
+
+When to use:
+  - To get an overview of workspace structure before planning moves.
+  - To verify structure after batch operations.
+""",
+
     "ai-skill": """\
 ### ai-skill
 
@@ -400,6 +427,23 @@ _COMMON_PATTERNS = """\
 - **Rename a slug**: `carta rename <target> new-slug` renames on disk. Then use
   `carta rewrite old-ref=new-ref` to update references if needed (rename does not rewrite refs).
 """
+
+
+def generate_skill_content(dir_name: str) -> str:
+    """Generate carta-cli SKILL.md content from template header + AI skill docs."""
+    template = (_PACKAGE_DIR / "templates" / "skill.md").read_text(encoding="utf-8")
+    template = template.replace("{{dir_name}}", dir_name)
+
+    sections = [template.rstrip()]
+    sections.append("\n## Command Reference\n")
+    for doc in _COMMAND_DOCS.values():
+        sections.append(doc)
+    sections.append("## Behavioral Rules\n")
+    sections.append(_BEHAVIORAL_RULES)
+    sections.append("## Common Patterns\n")
+    sections.append(_COMMON_PATTERNS)
+
+    return "\n".join(sections) + "\n"
 
 
 def _workspace_state_section(carta_root: Path) -> list[str]:

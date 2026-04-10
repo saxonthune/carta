@@ -10,11 +10,11 @@
 WORKTREE_PREFIX="carta-agent"
 
 # Command to install dependencies in a fresh worktree
-INSTALL_CMD="pnpm install"
+INSTALL_CMD=""
 
 # Command to verify the implementation (must exit 0 on success)
-BUILD_CMD="pnpm build"
-TEST_CMD="pnpm test"
+BUILD_CMD=""
+TEST_CMD="make test"
 
 # Budget caps for headless Claude sessions (USD)
 MAX_BUDGET="5.00"

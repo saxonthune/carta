@@ -17,6 +17,9 @@ test = ["pytest"]
 [project.scripts]
 carta = "carta_cli.main:main"
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
 [tool.hatch.build.targets.wheel]
 packages = ["carta_cli"]
 

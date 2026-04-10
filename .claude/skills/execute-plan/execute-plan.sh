@@ -175,7 +175,7 @@ while [[ "$VERIFIED" == "false" && "$RETRY_COUNT" -lt "$MAX_RETRIES" ]]; do
 
 ${ERROR_TAIL}
 
-Fix the issues, then run 'pnpm build && pnpm test' again. Commit your fixes."
+Fix the issues, then run 'make test' again. Commit your fixes."
 
   if [[ -n "$SESSION_ID" ]]; then
     RETRY_OUTPUT=$(claude -p \

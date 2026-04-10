@@ -49,7 +49,7 @@ Each addition should be the simplest doc that captures what you just decided. It
 
 ## Cross-References
 
-Documents reference each other using `doc` syntax: `docXX.YY.ZZ` where each segment is a two-digit number mapping to the directory/file numbering. For example, `doc01.05.06.02` refers to title 01 (product-strategy), subdir 06 (products), item 02 (canvas).
+Documents reference each other using `doc` syntax: `docXX.YY.ZZ` where each segment is a two-digit number mapping to the directory/file numbering. For example, `doc01.03.06.02` refers to title 01 (product-strategy), subdir 06 (products), item 02 (canvas).
 
 See doc00.03 for full conventions.
 

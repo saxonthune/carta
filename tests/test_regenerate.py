@@ -1,7 +1,7 @@
 """Tests for regenerate and migrate-frontmatter toolchain.
 
 Run with:
-    python3 -m pytest packages/cli/tests/test_regenerate.py -v
+    python3 -m pytest tests/test_regenerate.py -v
 """
 
 import re
