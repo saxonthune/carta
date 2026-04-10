@@ -31,12 +31,15 @@ fi
 
 # ─── Configuration ────────────────────────────────────────────────────────────
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(git rev-parse --show-toplevel)"
+
+# Source project-specific config (install cmd, build cmd, budgets, etc.)
+source "${SCRIPT_DIR}/task-config.sh"
+
 TRUNK="$(git branch --show-current)"
 BRANCH="${TRUNK}_claude_${PLAN_SLUG}"
-WORKTREE_DIR="${REPO_ROOT}/../carta-agent-${PLAN_SLUG}"
-MAX_BUDGET="5.00"
-RETRY_BUDGET="3.00"
+WORKTREE_DIR="${REPO_ROOT}/../${WORKTREE_PREFIX}-${PLAN_SLUG}"
 
 # ─── Step 1: Validate & Move to Running ──────────────────────────────────────
 
@@ -99,7 +102,7 @@ echo ""
 
 echo "── Installing dependencies ──"
 cd "${WORKTREE_DIR}"
-pnpm install
+${INSTALL_CMD}
 echo "Dependencies installed"
 echo ""
 
@@ -111,8 +114,10 @@ unset CLAUDECODE
 echo "── Running headless Claude ──"
 
 CLAUDE_PROMPT="Read the plan at todo-tasks/${PLAN_SLUG}.md and implement it fully. \
-Follow the plan step by step. Commit after each logical unit of work. \
-When done, run 'pnpm build && pnpm test' and fix any issues. \
+Follow the plan step by step. \
+IMPORTANT: You MUST git commit after each logical unit of work. You are a headless agent — no user is present. \
+If you do not commit, your work will be lost. This overrides any memory or instructions about deferring commits to the user. \
+When done, run '${BUILD_CMD} && ${TEST_CMD}' and fix any issues. Then verify you made at least one commit (run 'git log --oneline -3'). \
 Output your implementation summary, then end with a '## Notes' section containing: \
 - Any deviations from the plan (and why) \
 - Caveats or known limitations in the implementation \
@@ -146,7 +151,7 @@ echo "── Verifying build & tests ──"
 BUILD_TEST_OUTPUT=""
 VERIFIED=false
 
-if cd "${WORKTREE_DIR}" && BUILD_TEST_OUTPUT=$(pnpm build 2>&1) && BUILD_TEST_OUTPUT+=$'\n'"$(pnpm test 2>&1)"; then
+if cd "${WORKTREE_DIR}" && BUILD_TEST_OUTPUT=$(${BUILD_CMD} 2>&1) && BUILD_TEST_OUTPUT+=$'\n'"$(${TEST_CMD} 2>&1)"; then
   VERIFIED=true
   echo "Build and tests PASSED"
 else
@@ -157,7 +162,6 @@ echo ""
 # ─── Step 7: Retry on Failure (up to MAX_RETRIES) ────────────────────────────
 
 RETRIED=false
-MAX_RETRIES=4
 RETRY_COUNT=0
 
 while [[ "$VERIFIED" == "false" && "$RETRY_COUNT" -lt "$MAX_RETRIES" ]]; do
@@ -171,7 +175,7 @@ while [[ "$VERIFIED" == "false" && "$RETRY_COUNT" -lt "$MAX_RETRIES" ]]; do
 
 ${ERROR_TAIL}
 
-Fix the issues, then run 'pnpm build && pnpm test' again. Commit your fixes."
+Fix the issues, then run 'make test' again. Commit your fixes."
 
   if [[ -n "$SESSION_ID" ]]; then
     RETRY_OUTPUT=$(claude -p \
@@ -204,7 +208,7 @@ Fix the issues, then run 'pnpm build && pnpm test' again. Commit your fixes."
   echo ""
   echo "── Re-verifying build & tests (attempt ${RETRY_COUNT}) ──"
   BUILD_TEST_OUTPUT=""
-  if cd "${WORKTREE_DIR}" && BUILD_TEST_OUTPUT=$(pnpm build 2>&1) && BUILD_TEST_OUTPUT+=$'\n'"$(pnpm test 2>&1)"; then
+  if cd "${WORKTREE_DIR}" && BUILD_TEST_OUTPUT=$(${BUILD_CMD} 2>&1) && BUILD_TEST_OUTPUT+=$'\n'"$(${TEST_CMD} 2>&1)"; then
     VERIFIED=true
     echo "Build and tests PASSED on retry ${RETRY_COUNT}"
   else

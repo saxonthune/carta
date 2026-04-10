@@ -15,7 +15,7 @@ Reverse-audits documentation against the codebase. While `/documentation-nag` is
 - "Check docs against code"
 - "Find stale doc references"
 - `/documentation-auditor`
-- `/documentation-auditor doc03.05`
+- `/documentation-auditor doc01.01.05`
 
 ## What It Does NOT Do
 
@@ -60,7 +60,7 @@ Read each doc and extract **structured claims only** — skip freeform prose. Cl
 | **Hook name** | `use*` in backticks | `` `useGraphOperations` `` | `Grep` in hooks directory |
 | **MCP tool name** | `carta_*` in table or list | `carta_update_schema` | `Grep` in tools.ts |
 | **Env var** | `VITE_*` or `PORT` | `VITE_SYNC_URL` | `Grep` in source |
-| **CLI command** | `pnpm *` | `pnpm build` | `Grep` in package.json scripts |
+| **CLI command** | `make *` | `make test` | `Grep` in Makefile |
 
 ### Extraction Strategy
 
@@ -110,7 +110,7 @@ For docs that list barrel exports (find via MANIFEST tags: `components, hooks, a
 
 ```typescript
 // Read the actual barrel file
-Read('packages/web-client/src/hooks/index.ts')
+Read('carta_cli/...')  # read the relevant source file
 
 // Compare exported names against doc's listed names
 // Flag: in doc but not in code (stale), in code but not in doc (undocumented)
@@ -125,7 +125,7 @@ For type claims, grep the type definition:
 ```typescript
 Grep({
   pattern: 'nodeShape',
-  path: 'packages/domain/src/types/index.ts',
+  path: 'carta_cli/...',  # grep the relevant source file
   output_mode: 'content',
   context: 2
 })
@@ -139,7 +139,7 @@ Compare documented tools against registered tools:
 // Extract tool names from code
 Grep({
   pattern: "name: 'carta_",
-  path: 'packages/server/src/mcp/tools.ts',
+  path: 'carta_cli/mcp/...',  # grep the MCP tools file
   output_mode: 'content'
 })
 

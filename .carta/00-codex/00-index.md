@@ -23,16 +23,16 @@ Read this title when you need to understand the docs system itself — how it's 
 
 ## What does NOT belong here
 
-- Documentation about Carta's features or architecture — that goes in `02-system/` or `03-product/`
-- Project-specific workflow instructions — those go in `04-operations/`
+- Documentation about Carta's features or architecture — that goes in `02-product-design/` or `03-architecture/`
+- Project-specific workflow instructions — those go in project titles
 
 ## Contents
 
 | Ref | Item | Summary |
 |-----|------|---------|
-| doc00.01 | About | How to read these docs, cross-reference syntax |
-| doc00.02 | Taxonomy | Title system rationale, Diataxis spirit |
-| doc00.03 | Conventions | File naming, front matter, cross-refs, index files |
-| doc00.04 | Maintenance | Git versioning, epochs, adding/deprecating docs |
-| doc00.05 | AI Retrieval | Retrieval patterns, legal RAG inspiration, token budgets |
-| doc00.06 | AI Agent Integration | AI workflow patterns, MCP setup, skill/agent directory |
+| doc00.01 | About | Why this workspace exists, two-sources-of-truth theory |
+| doc00.02 | Maintenance | Doc lifecycle — unfolding philosophy, development loop, versioning |
+| doc00.03 | Conventions | Cross-reference syntax, frontmatter schema, file naming |
+| doc00.04 | AI Retrieval | How AI agents navigate this workspace efficiently |
+| doc00.05 | Taxonomy | Title system rationale, Diataxis spirit (Carta-specific) |
+| doc00.06 | AI Agent Integration | AI workflow patterns, MCP setup (Carta-specific) |
