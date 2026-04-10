@@ -32,7 +32,7 @@ Within titles, documents are numbered Markdown files with kebab-case slugs:
 
 Directories nest arbitrarily deep. When a document outgrows its file, it becomes a directory with its own `00-index.md` and children.
 
-Every directory should have a `00-index.md` that explains what the directory contains and why it's organized the way it is. This is the human entry point — what you read when you open a folder and want to orient yourself.
+Every directory should have a `00-index.md` that explains what the directory contains and why it's organized the way it is. 
 
 ```
 01-context/00-index.md

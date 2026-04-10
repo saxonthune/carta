@@ -18,4 +18,4 @@ build/
 # Project
 todo-tasks/
 .demo/
-.claude/
+.claude/agent-results/
