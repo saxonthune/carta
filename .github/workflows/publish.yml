@@ -6,17 +6,18 @@ on:
     paths: [pyproject.toml]
 
 jobs:
-  publish:
+  build:
     runs-on: ubuntu-latest
-    environment: pypi
-    permissions:
-      contents: write
-      id-token: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      new_tag: ${{ steps.check.outputs.new_tag }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: "3.13"
       - name: Extract version
         id: version
         run: |
@@ -30,21 +31,39 @@ jobs:
         id: check
         run: |
           if git rev-parse "v${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "new_tag=false" >> "$GITHUB_OUTPUT"
           else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "new_tag=true" >> "$GITHUB_OUTPUT"
           fi
-      - name: Tag release
-        if: steps.check.outputs.exists == 'false'
-        run: |
-          git tag "v${{ steps.version.outputs.version }}"
-          git push origin "v${{ steps.version.outputs.version }}"
       - name: Build
-        if: steps.check.outputs.exists == 'false'
+        if: steps.check.outputs.new_tag == 'true'
         run: |
           pip install build twine
           python -m build
           twine check dist/*
-      - name: Publish to PyPI
-        if: steps.check.outputs.exists == 'false'
-        uses: pypa/gh-action-pypi-publish@release/v1
+      - name: Upload dist
+        if: steps.check.outputs.new_tag == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build
+    if: needs.build.outputs.new_tag == 'true'
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tag release
+        run: |
+          git tag "v${{ needs.build.outputs.version }}"
+          git push origin "v${{ needs.build.outputs.version }}"
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
