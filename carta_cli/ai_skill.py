@@ -321,45 +321,40 @@ Flags:
     "init": """\
 ### init
 
-Initialize a new `.carta/` workspace in the current directory.
+Initialize a new `.carta/` workspace in the current directory, or refresh an existing one.
 
 ```
 carta init [--name TEXT] [--dir DIRNAME] [--portable]
+carta init --rehydrate [--dry-run]
 ```
 
-Side effects:
+Side effects (without --rehydrate):
   - Creates `.carta.json` marker in the current directory.
   - Creates `DIRNAME/00-codex/00-index.md` and `DIRNAME/MANIFEST.md`.
   - Hydrates `.claude/skills/carta-cli/SKILL.md` (skips if exists).
   - Runs initial MANIFEST regeneration.
 
-Flags:
-  --name TEXT    Workspace title. Default: parent directory name.
-  --dir DIRNAME  Workspace directory name. Default: `.carta`.
-  --portable     Also copy editable Python scripts into workspace (pip-free usage).
-""",
-
-    "hydrate": """\
-### hydrate
-
-Re-hydrate codex docs and skills from the installed carta version.
-
-```
-carta hydrate [--dry-run]
-```
-
-Side effects:
+Side effects (with --rehydrate):
   - Overwrites `00-codex/*.md` with latest templates from installed carta.
   - Overwrites `.claude/skills/carta-cli/SKILL.md` and `.claude/skills/docs-development/SKILL.md`.
   - Skips files that already match the latest version.
   - Does NOT touch user-created docs outside 00-codex.
+  - Does NOT overwrite workspace.json fields (title, description, externalRefPaths).
 
 Flags:
-  --dry-run    Show what would be updated without writing.
+  --name TEXT    Workspace title. Default: parent directory name.
+  --dir DIRNAME  Workspace directory name. Default: `.carta`.
+  --portable     Also copy editable Python scripts into workspace (pip-free usage).
+  --rehydrate    Refresh templates and skills in an existing workspace.
+  --dry-run      With --rehydrate: show what would be updated without writing.
 
-When to use:
+When to use --rehydrate:
   - After upgrading carta (`pip install -e .` or `pip install --upgrade carta-cli`).
   - To push template improvements to existing workspaces.
+
+Example:
+  carta init --rehydrate              # refresh after a carta-cli upgrade
+  carta init --rehydrate --dry-run    # preview what would change
 """,
 
     "portable": """\

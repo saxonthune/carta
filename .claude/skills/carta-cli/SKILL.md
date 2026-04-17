@@ -183,21 +183,25 @@ carta copy <source_file> <destination> [--order N] [--rename slug] [--dry-run]
 
 ### init
 
-Initialize a new `.carta/` workspace in the current directory.
+Initialize a new `.carta/` workspace in the current directory, or refresh an existing one.
 
 ```
-carta init [--name "Project Name"]
+carta init [--name "Project Name"] [--dir DIRNAME] [--portable]
+carta init --rehydrate [--dry-run]
 ```
 
 - Creates `.carta/` with `workspace.json`, `MANIFEST.md`, `00-codex/00-index.md`
 - Hydrates `.claude/skills/carta-cli/SKILL.md` for AI agent integration
-- Safe to run in an existing project — creates only `.carta/` and the skill file
 - `--name` — workspace title (default: parent directory name)
+- `--rehydrate` — refresh `00-codex/` templates and skill files from installed carta version; preserves `workspace.json` and user-authored docs outside `00-codex/`
+- `--dry-run` — with `--rehydrate`, show what would be updated without writing
 
-**Example**:
+**Examples**:
 ```bash
 cd my-project
 carta init --name "My Project"
+carta init --rehydrate                # refresh after a carta-cli upgrade
+carta init --rehydrate --dry-run      # preview what would change
 ```
 
 ### regenerate

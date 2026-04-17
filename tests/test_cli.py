@@ -279,8 +279,8 @@ class TestInitDir(unittest.TestCase):
             marker_data = json.loads(marker_path.read_text())
             self.assertEqual(marker_data["root"], ".carta/")
 
-    def test_init_refuses_existing(self):
-        """carta init refuses when .carta.json already exists."""
+    def test_init_without_rehydrate_refuses_existing(self):
+        """carta init without --rehydrate refuses when .carta.json already exists and hints at --rehydrate."""
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create marker first
             (Path(tmpdir) / MARKER).write_text("{}")
@@ -290,6 +290,86 @@ class TestInitDir(unittest.TestCase):
             )
             self.assertEqual(result.returncode, 0)
             self.assertIn("already exists", result.stdout)
+            self.assertIn("--rehydrate", result.stdout)
+
+    def _init_workspace(self, tmpdir: str) -> None:
+        """Helper: run carta init in tmpdir."""
+        result = subprocess.run(
+            [sys.executable, "-m", "carta_cli.main", "init", "--name", "TestProject"],
+            capture_output=True, text=True, env=_ENV_WITH_CLI, cwd=tmpdir,
+        )
+        self.assertEqual(result.returncode, 0, f"init failed:\n{result.stderr}\n{result.stdout}")
+
+    def test_init_rehydrate_updates_stale_template(self):
+        """carta init --rehydrate overwrites a stale codex template."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            self._init_workspace(tmpdir)
+            stale_path = Path(tmpdir) / ".carta" / "00-codex" / "01-about.md"
+            stale_path.write_text("stale content", encoding="utf-8")
+
+            result = subprocess.run(
+                [sys.executable, "-m", "carta_cli.main", "init", "--rehydrate"],
+                capture_output=True, text=True, env=_ENV_WITH_CLI, cwd=tmpdir,
+            )
+            self.assertEqual(result.returncode, 0, f"rehydrate failed:\n{result.stderr}\n{result.stdout}")
+            self.assertNotEqual(stale_path.read_text(encoding="utf-8"), "stale content")
+
+    def test_init_rehydrate_dry_run(self):
+        """carta init --rehydrate --dry-run shows plan without writing."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            self._init_workspace(tmpdir)
+            stale_path = Path(tmpdir) / ".carta" / "00-codex" / "01-about.md"
+            stale_path.write_text("stale content", encoding="utf-8")
+
+            result = subprocess.run(
+                [sys.executable, "-m", "carta_cli.main", "init", "--rehydrate", "--dry-run"],
+                capture_output=True, text=True, env=_ENV_WITH_CLI, cwd=tmpdir,
+            )
+            self.assertEqual(result.returncode, 0, f"dry-run failed:\n{result.stderr}\n{result.stdout}")
+            self.assertIn("Would update", result.stdout)
+            self.assertEqual(stale_path.read_text(encoding="utf-8"), "stale content")
+
+    def test_init_rehydrate_preserves_workspace_json(self):
+        """carta init --rehydrate does not overwrite workspace title in marker."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            self._init_workspace(tmpdir)
+            marker_path = Path(tmpdir) / MARKER
+            config = json.loads(marker_path.read_text(encoding="utf-8"))
+            config["title"] = "My Custom Title"
+            marker_path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
+
+            result = subprocess.run(
+                [sys.executable, "-m", "carta_cli.main", "init", "--rehydrate"],
+                capture_output=True, text=True, env=_ENV_WITH_CLI, cwd=tmpdir,
+            )
+            self.assertEqual(result.returncode, 0, f"rehydrate failed:\n{result.stderr}\n{result.stdout}")
+            config_after = json.loads(marker_path.read_text(encoding="utf-8"))
+            self.assertEqual(config_after["title"], "My Custom Title")
+
+    def test_init_rehydrate_without_workspace(self):
+        """carta init --rehydrate in an empty dir exits non-zero with helpful error."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            result = subprocess.run(
+                [sys.executable, "-m", "carta_cli.main", "init", "--rehydrate"],
+                capture_output=True, text=True, env=_ENV_WITH_CLI, cwd=tmpdir,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            combined = result.stdout + result.stderr
+            self.assertIn("carta init", combined)
+
+    def test_init_rehydrate_refreshes_skill(self):
+        """carta init --rehydrate overwrites a stale carta-cli SKILL.md."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            self._init_workspace(tmpdir)
+            skill_path = Path(tmpdir) / ".claude" / "skills" / "carta-cli" / "SKILL.md"
+            skill_path.write_text("stale skill content", encoding="utf-8")
+
+            result = subprocess.run(
+                [sys.executable, "-m", "carta_cli.main", "init", "--rehydrate"],
+                capture_output=True, text=True, env=_ENV_WITH_CLI, cwd=tmpdir,
+            )
+            self.assertEqual(result.returncode, 0, f"rehydrate failed:\n{result.stderr}\n{result.stdout}")
+            self.assertNotEqual(skill_path.read_text(encoding="utf-8"), "stale skill content")
 
 
 class TestRefToPath(unittest.TestCase):
