@@ -27,6 +27,7 @@ _LIBRARY_MODULES = [
     "frontmatter.py",
     "entries.py",
     "numbering.py",
+    "bundle.py",
     "ref_convert.py",
     "rewriter.py",
     "planning.py",
