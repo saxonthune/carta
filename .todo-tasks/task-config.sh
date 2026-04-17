@@ -10,9 +10,10 @@ WORKTREE_PREFIX="agent"
 # Carta is a pure-Python package; editable install wires the `carta` CLI entry point.
 INSTALL_CMD="pip install -e ."
 
-# Build step — Carta has no compile step. Use a lightweight import smoke test so
-# agents catch syntax errors fast before running the full test suite.
-BUILD_CMD="python -c 'import carta_cli'"
+# Build step — Carta has no compile step. compileall validates syntax across
+# every module without shell-quoting pitfalls (earlier attempt using
+# `python -c 'import carta_cli'` broke when the retry loop re-expanded the var).
+BUILD_CMD="python3 -m compileall -q carta_cli"
 
 # Run the test suite. Must exit 0 on success.
 TEST_CMD="make test"
