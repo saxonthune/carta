@@ -31,7 +31,17 @@ def main() -> None:
     p_regen.add_argument("--dry-run", action="store_true")
 
     # create
-    p_create = subparsers.add_parser("create", help="Create a new doc entry")
+    p_create = subparsers.add_parser(
+        "create",
+        help="Create a new doc entry",
+        epilog=(
+            "Examples:\n"
+            "  carta create doc01.03 my-section\n"
+            "  carta create 01-product/02-features new-doc --order 2 --title \"Foo\"\n"
+            "  carta create doc00 note --dry-run"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     p_create.add_argument("destination")
     p_create.add_argument("slug")
     p_create.add_argument("--order", type=int, default=None)
@@ -102,7 +112,19 @@ def main() -> None:
     p_rewrite.add_argument("--dry-run", action="store_true")
 
     # group
-    p_group = subparsers.add_parser("group", help="Create a title group directory")
+    p_group = subparsers.add_parser(
+        "group",
+        help="Create a title group directory",
+        epilog=(
+            "Examples:\n"
+            "  carta group 01-product-strategy --title \"Product Strategy\"\n"
+            "  carta group 01-luminous/02-design/06-adr --title \"ADRs\"\n"
+            "\n"
+            "Path is a single directory relative to the workspace root\n"
+            "(without the workspace directory name as a prefix)."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     p_group.add_argument("target", help="Directory path relative to workspace (e.g., 01-product-strategy)")
     p_group.add_argument("--title", default=None, help="Title for the index. Default: derived from slug.")
     p_group.add_argument("--no-regen", action="store_true", help="Skip MANIFEST regeneration.")
@@ -165,6 +187,17 @@ def main() -> None:
                 print(f"No AI documentation available for '{cmd}'.")
                 print("Run `carta ai-skill` for the full reference.")
             raise SystemExit(0)
+
+    # Friendlier hint for a common mistake: `carta create --slug foo`
+    if "create" in argv and "--slug" in argv and argv.index("--slug") > argv.index("create"):
+        print(
+            "Error: `--slug` is not a flag for `carta create`. "
+            "Slug is a positional argument.\n"
+            "Usage: carta create <destination> <slug> [--title TEXT ...]\n"
+            "Example: carta create doc01.03 my-section --title \"My Section\"",
+            file=sys.stderr,
+        )
+        raise SystemExit(1)
 
     args = parser.parse_args()
 

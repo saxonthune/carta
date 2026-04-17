@@ -22,7 +22,14 @@ def resolve_arg(arg: str, carta_root: Path) -> Path:
     """Resolve a ref or relative path argument to an absolute filesystem path."""
     if _REF_RE.match(arg):
         return ref_to_path(arg, carta_root)
-    # Treat as path relative to carta_root
+    workspace_name = carta_root.name
+    if arg == workspace_name or arg.startswith(f"{workspace_name}/"):
+        stripped = arg[len(workspace_name) + 1:] if arg != workspace_name else ""
+        hint = f" Try: {stripped!r}" if stripped else ""
+        raise CartaError(
+            f"Error: path must be relative to workspace root, without the "
+            f"{workspace_name!r} prefix. Got: {arg!r}.{hint}"
+        )
     path = (carta_root / arg).resolve()
     return path
 

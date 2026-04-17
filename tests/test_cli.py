@@ -1157,6 +1157,35 @@ class TestDelete(unittest.TestCase):
             f"New orphaned refs:\n" + "\n".join(f"  {r} in {f}" for f, r in new_orphans)
 
 
+class TestResolveArgWorkspacePrefix(unittest.TestCase):
+    """Test resolve_arg rejects paths that include the workspace directory name as a prefix."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.carta_copy = _build_fixture(Path(self.tmpdir.name))
+
+    def tearDown(self):
+        self.tmpdir.cleanup()
+
+    def test_resolve_arg_rejects_workspace_prefix(self):
+        """resolve_arg raises CartaError when path starts with the workspace name."""
+        from carta_cli.entries import resolve_arg
+        from carta_cli.errors import CartaError
+        with self.assertRaises(CartaError) as ctx:
+            resolve_arg(".carta/00-codex", self.carta_copy)
+        msg = str(ctx.exception)
+        self.assertIn(".carta", msg)
+        self.assertIn("Try:", msg)
+
+    def test_resolve_arg_rejects_bare_workspace_name(self):
+        """resolve_arg raises CartaError when path is exactly the workspace name."""
+        from carta_cli.entries import resolve_arg
+        from carta_cli.errors import CartaError
+        with self.assertRaises(CartaError) as ctx:
+            resolve_arg(".carta", self.carta_copy)
+        self.assertIn(".carta", str(ctx.exception))
+
+
 class TestCreate(unittest.TestCase):
     """Test create command."""
 
@@ -1254,6 +1283,20 @@ class TestCreate(unittest.TestCase):
                  if p.is_file()
                  and p.suffix in (".md", ".json", "")}
         assert before == after, "Files were modified during --dry-run"
+
+    def test_create_slug_as_flag_shows_hint(self):
+        """carta create doc00 --slug foo shows a targeted error, not argparse's generic message."""
+        result = _run_carta(self.carta_copy, "create", "doc00", "--slug", "foo")
+        assert result.returncode != 0
+        assert "Slug is a positional argument" in result.stderr
+        assert "Usage: carta create" in result.stderr
+
+    def test_create_help_has_examples(self):
+        """carta create --help shows an Examples section."""
+        result = _run_carta(self.carta_copy, "create", "--help")
+        assert result.returncode == 0
+        assert "Examples:" in result.stdout
+        assert "carta create" in result.stdout
 
 
 class TestMkdir(unittest.TestCase):
@@ -1446,6 +1489,20 @@ class TestGroupCommand(unittest.TestCase):
         result = _run_carta(self.carta_copy, "group", "no-prefix")
         self.assertNotEqual(result.returncode, 0, "Should fail without numeric prefix")
         self.assertIn("NN- prefix", result.stderr)
+
+    def test_group_rejects_workspace_prefix(self):
+        """carta group fails with a clear hint when path includes the workspace name."""
+        result = _run_carta(self.carta_copy, "group", ".carta/05-new-section", "--title", "X")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Try:", result.stderr)
+        self.assertIn("05-new-section", result.stderr)
+
+    def test_group_help_has_examples(self):
+        """carta group --help shows an Examples section."""
+        result = _run_carta(self.carta_copy, "group", "--help")
+        self.assertEqual(result.returncode, 0)
+        self.assertIn("Examples:", result.stdout)
+        self.assertIn("carta group", result.stdout)
 
 
 class TestRenameCommand(unittest.TestCase):

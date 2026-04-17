@@ -354,7 +354,7 @@ def cmd_copy(args: argparse.Namespace, carta_root: Path) -> None:
 def cmd_group(args: argparse.Namespace, carta_root: Path) -> None:
     """Create a title group directory with 00-index.md."""
     target = args.target
-    target_path = (carta_root / target).resolve()
+    target_path = resolve_arg(target, carta_root)
 
     if target_path.exists():
         if any(target_path.iterdir()):
