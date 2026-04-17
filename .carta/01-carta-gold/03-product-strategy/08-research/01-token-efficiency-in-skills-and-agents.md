@@ -1,6 +1,5 @@
 ---
 title: Token Efficiency in Skills and Agents
-status: active
 summary: Token optimization patterns: lean extraction, subagent isolation, surgical reads
 tags: [tokens, efficiency, skills, agents, context-engineering]
 deps: []

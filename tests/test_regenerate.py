@@ -60,11 +60,10 @@ class TestFrontmatterRoundtrip(unittest.TestCase):
     def test_roundtrip_simple(self):
         """Scalar fields survive a read/write cycle."""
         p = self.tmp / "doc.md"
-        p.write_text("---\ntitle: Foo\nstatus: active\n---\n\n# Body\n", encoding="utf-8")
+        p.write_text("---\ntitle: Foo\n---\n\n# Body\n", encoding="utf-8")
 
         fm, body = read_frontmatter(p)
         self.assertEqual(fm["title"], "Foo")
-        self.assertEqual(fm["status"], "active")
         self.assertIn("# Body", body)
 
         write_frontmatter(p, fm, body)
@@ -76,7 +75,7 @@ class TestFrontmatterRoundtrip(unittest.TestCase):
         """List fields survive a read/write cycle as inline lists."""
         p = self.tmp / "doc.md"
         p.write_text(
-            "---\ntitle: Bar\nstatus: draft\ntags: [a, b, c]\ndeps: [doc01.01, doc02.02]\n---\n\nbody\n",
+            "---\ntitle: Bar\ntags: [a, b, c]\ndeps: [doc01.01, doc02.02]\n---\n\nbody\n",
             encoding="utf-8",
         )
         fm, body = read_frontmatter(p)
@@ -91,7 +90,7 @@ class TestFrontmatterRoundtrip(unittest.TestCase):
     def test_roundtrip_empty_lists(self):
         """Empty list fields written as [] and read back as []."""
         p = self.tmp / "doc.md"
-        p.write_text("---\ntitle: X\nstatus: active\ntags: []\ndeps: []\n---\n", encoding="utf-8")
+        p.write_text("---\ntitle: X\ntags: []\ndeps: []\n---\n", encoding="utf-8")
         fm, body = read_frontmatter(p)
         self.assertEqual(fm["tags"], [])
         self.assertEqual(fm["deps"], [])
@@ -114,13 +113,13 @@ class TestFrontmatterRoundtrip(unittest.TestCase):
     def test_canonical_field_order(self):
         """write_frontmatter emits fields in canonical order."""
         p = self.tmp / "order.md"
-        fm = {"deps": ["doc01.01"], "title": "X", "summary": "s", "status": "active", "tags": ["t"]}
+        fm = {"deps": ["doc01.01"], "title": "X", "summary": "s", "tags": ["t"]}
         write_frontmatter(p, fm, "")
         text = p.read_text(encoding="utf-8")
         lines = text.splitlines()
         field_lines = [l for l in lines if ":" in l and not l.startswith("---")]
         fields = [l.split(":")[0] for l in field_lines]
-        self.assertEqual(fields, ["title", "status", "summary", "tags", "deps"])
+        self.assertEqual(fields, ["title", "summary", "tags", "deps"])
 
 
 # ---------------------------------------------------------------------------

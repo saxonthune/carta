@@ -1,6 +1,5 @@
 ---
 title: Documentation System
-status: active
 summary: The .carta/ workspace format — hierarchical docs, frontmatter, cross-references, MANIFEST
 tags: [docs, workspace, format]
 deps: [doc01.03.01]

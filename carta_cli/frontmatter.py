@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 # Canonical field order for output
-_CANONICAL_FIELDS = ["title", "status", "summary", "tags", "deps"]
+_CANONICAL_FIELDS = ["title", "summary", "tags", "deps"]
 
 
 def read_frontmatter(path: Path) -> tuple[dict, str]:
@@ -104,7 +104,7 @@ def _parse_fm(fm_text: str) -> dict:
 def write_frontmatter(path: Path, frontmatter: dict, body: str) -> None:
     """Write a markdown file with YAML frontmatter.
 
-    Emits fields in canonical order: title, status, summary, tags, deps.
+    Emits fields in canonical order: title, summary, tags, deps.
     Lists are emitted as inline YAML: [item1, item2].
     Body is everything after the closing ---.
     """

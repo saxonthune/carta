@@ -32,7 +32,6 @@ Every workspace doc has YAML frontmatter:
 ```yaml
 ---
 title: My Document
-status: draft
 summary: One-line description for MANIFEST
 tags: [keyword1, keyword2]
 deps: [doc01.02]
@@ -42,7 +41,6 @@ deps: [doc01.02]
 | Field | Required | Notes |
 |-------|----------|-------|
 | `title` | yes | Display name |
-| `status` | yes | `active`, `draft`, `archived`, `implemented` |
 | `summary` | yes | One-line description for MANIFEST |
 | `tags` | yes | Keywords for retrieval |
 | `deps` | no | Doc refs to check when this doc changes |

@@ -1,6 +1,5 @@
 ---
 title: Conventions
-status: active
 summary: docXX.YY syntax, front matter, file naming
 tags: [docs, conventions]
 deps: []
@@ -31,14 +30,8 @@ Every document starts with YAML front matter:
 ```yaml
 ---
 title: Human-readable title
-status: active
 ---
 ```
-
-**status** values:
-- `draft` — work in progress, may be incomplete or inaccurate
-- `active` — current and maintained
-- `deprecated` — superseded, kept for historical reference
 
 **epoch** (optional): Used for staleness auditing. See doc00.02.
 

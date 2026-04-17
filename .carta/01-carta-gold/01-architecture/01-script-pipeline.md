@@ -1,6 +1,5 @@
 ---
 title: Reconciliation Architecture
-status: draft
 summary: Architecture considerations for spec-code reconciliation — mechanism-agnostic, research-stage
 tags: [reconciliation, architecture, specs, alignment]
 deps: [doc01.03.07]

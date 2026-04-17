@@ -66,7 +66,7 @@ def cmd_punch(args: argparse.Namespace, carta_root: Path) -> None:
         shutil.move(str(source_path), str(child_path))
         title = slug.replace("-", " ").title()
         write_frontmatter(new_index, {
-            "title": title, "status": "draft",
+            "title": title,
             "summary": "", "tags": [], "deps": [],
         }, f"\n# {title}\n")
         for att in attachments:
@@ -372,7 +372,7 @@ def cmd_group(args: argparse.Namespace, carta_root: Path) -> None:
 
     title = args.title if args.title else get_slug(target_path.name).replace("-", " ").title()
     write_frontmatter(target_path / "00-index.md", {
-        "title": title, "status": "draft",
+        "title": title,
         "summary": "", "tags": [], "deps": [],
     }, f"\n# {title}\n")
 

@@ -1,6 +1,5 @@
 ---
 title: Attachment
-status: draft
 summary: Non-md artifacts that inherit a host doc's structural position through prefix co-location
 tags: [concepts, jackson, attachment, bundles, sidecars]
 deps: []

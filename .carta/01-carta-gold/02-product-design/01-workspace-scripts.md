@@ -1,6 +1,5 @@
 ---
 title: Carta Docs API — Design
-status: active
 summary: Design details for the Carta Docs API — command semantics, delivery mechanisms, scope boundary
 tags: [docs-api, workspace, tools, scripts]
 deps: [doc01.03.06.01]

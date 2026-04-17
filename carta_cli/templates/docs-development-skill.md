@@ -70,4 +70,4 @@ Do not stress-test as a first move. The user came to build, not to defend.
 
 ## Output Format
 
-Write docs using workspace conventions (see doc00.03 if it exists). Every doc needs frontmatter with title, status, summary, tags, deps. Use `docXX.YY` cross-references to link related docs.
+Write docs using workspace conventions (see doc00.03 if it exists). Every doc needs frontmatter with title, summary, tags, deps. Use `docXX.YY` cross-references to link related docs.

@@ -1,6 +1,5 @@
 ---
 title: Decisions Index
-status: active
 summary: Architecture Decision Records
 tags: [index, adr, decisions]
 deps: []

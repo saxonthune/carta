@@ -72,7 +72,6 @@ def cmd_create(args: argparse.Namespace, carta_root: Path) -> None:
 
     frontmatter = {
         "title": title,
-        "status": "draft",
         "summary": args.summary if args.summary is not None else "",
         "tags": [t.strip() for t in args.tags.split(",") if t.strip()] if args.tags else [],
         "deps": [d.strip() for d in args.deps.split(",") if d.strip()] if args.deps else [],
@@ -284,7 +283,7 @@ def _create_index_for_new_dir(dir_path: Path) -> None:
     slug = get_slug(dir_path.name)
     title = slug.replace("-", " ").title()
     write_frontmatter(dir_path / "00-index.md", {
-        "title": title, "status": "draft",
+        "title": title,
         "summary": "", "tags": [], "deps": [],
     }, f"\n# {title}\n")
 

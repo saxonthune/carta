@@ -1,6 +1,5 @@
 ---
 title: Maintenance
-status: active
 summary: Doc lifecycle — unfolding philosophy, development loop, versioning, epochs
 tags: [docs, maintenance, philosophy]
 deps: []
@@ -50,7 +49,6 @@ Add `epoch: N` to frontmatter of any doc you want tracked:
 ```yaml
 ---
 title: Authentication
-status: active
 epoch: 1
 ---
 ```
@@ -67,14 +65,12 @@ Epochs are coarse-grained — bump only on major shifts, not routine changes.
 
 1. Identify the correct group by reader intent
 2. Choose the next available number prefix
-3. Add frontmatter with `status: draft`
+3. Add frontmatter with title, summary, tags, and any deps
 4. Write content following conventions (doc00.03)
 5. Add cross-references to/from related docs
-6. Change status to `active` when reviewed
 
 ## Deprecating a Document
 
-1. Set `status: deprecated` in frontmatter
-2. Add a note at the top: "Superseded by docXX.YY"
-3. Do not delete — git history is permanent, but grep should still find it
-4. Update any docs that reference the deprecated doc
+1. Add a note at the top: "Superseded by docXX.YY"
+2. Archive the doc or remove it when it's no longer useful
+3. Update any docs that reference the deprecated doc

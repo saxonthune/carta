@@ -1,6 +1,5 @@
 ---
 title: Glossary
-status: active
 summary: Canonical vocabulary: products, workspace, spec, shape
 tags: [glossary, terms]
 deps: []

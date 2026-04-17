@@ -1,6 +1,5 @@
 ---
 title: Conventions
-status: active
 summary: Cross-reference syntax, frontmatter schema, file naming, writing style
 tags: [docs, conventions]
 deps: []
@@ -30,7 +29,6 @@ Every document starts with YAML frontmatter:
 ```yaml
 ---
 title: Human-readable title
-status: active
 summary: One-line description for MANIFEST
 tags: [keyword1, keyword2]
 deps: [doc01.02]
@@ -40,7 +38,6 @@ deps: [doc01.02]
 | Field | Required | Notes |
 |-------|----------|-------|
 | `title` | yes | Display name |
-| `status` | yes | `active`, `draft`, `deprecated` |
 | `summary` | yes | One-line description for MANIFEST retrieval |
 | `tags` | yes | Lowercase keywords for search and file-path-to-doc mapping |
 | `deps` | no | Doc refs to check when this doc changes |

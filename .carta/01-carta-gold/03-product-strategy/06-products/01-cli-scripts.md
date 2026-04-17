@@ -1,6 +1,5 @@
 ---
 title: Carta Docs API
-status: active
 summary: Deterministic Python operations on .carta/ workspace documents — designed primarily for AI agents
 tags: [docs-api, workspace, tools, scripts, ai]
 deps: [doc01.03.05]

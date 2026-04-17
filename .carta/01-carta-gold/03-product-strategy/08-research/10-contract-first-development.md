@@ -1,6 +1,5 @@
 ---
 title: Contract-First Development
-status: exploring
 summary: The action contract is the skeleton, not the database — define contracts, build screens against mocks, defer persistence until the contract stabilizes
 tags: [contract-first, mock-first, action-based, unfolding, persistence, methodology]
 deps: [doc01.03.04.03, doc01.03.08.09]

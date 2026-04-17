@@ -883,7 +883,6 @@ class TestPunch(unittest.TestCase):
         assert index_text != original_content, "Index should be a skeleton, not the original content"
         assert index_text.startswith("---"), "Index should have frontmatter"
         assert "title:" in index_text
-        assert "status: draft" in index_text
         assert "# About" in index_text
 
     def test_punch_as_child_dry_run(self):
@@ -1185,7 +1184,6 @@ class TestCreate(unittest.TestCase):
         from carta_cli.frontmatter import read_frontmatter
         fm, body = read_frontmatter(expected)
         assert fm["title"] == "Test Doc"
-        assert fm["status"] == "draft"
 
         # MANIFEST should be regenerated
         manifest = self.carta_copy / "MANIFEST.md"

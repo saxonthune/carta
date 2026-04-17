@@ -1,6 +1,5 @@
 ---
 title: The Carta Experiment
-status: active
 summary: Artifact-driven development, code-minus-one abstraction layers
 tags: [AI, coding, planning, category theory, morphisms, artifact-driven development]
 deps: [doc01.03.01]

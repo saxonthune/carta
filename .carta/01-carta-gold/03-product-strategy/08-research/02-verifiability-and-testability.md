@@ -1,6 +1,5 @@
 ---
 title: Verifiability and Testability
-status: active
 summary: Epistemology of verification, test value hierarchy, decomposition inventory, testability architecture
 tags: [testing, verification, epistemology, agents, testability, oracles, properties]
 deps: [doc01.03.08.01, doc01.01.05]

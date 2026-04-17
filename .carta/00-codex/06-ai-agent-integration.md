@@ -1,6 +1,5 @@
 ---
 title: AI Agent Integration
-status: active
 summary: AI workflow patterns: spec-to-code, code-to-spec, MCP setup, guide directory
 tags: [ai, workflow, mcp, guides]
 deps: [doc01.03.08.03]

@@ -1,6 +1,5 @@
 ---
 title: Research Sessions
-status: active
 summary: Research section index: session format, what belongs here
 tags: [index, research]
 deps: []

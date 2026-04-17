@@ -1,6 +1,5 @@
 ---
 title: Codex
-status: active
 summary: Meta-documentation — how to read this workspace
 tags: [index, meta]
 deps: []
@@ -14,7 +13,7 @@ This is the `.carta/` workspace for **{{title}}**. It contains structured specif
 
 - Documents use `docXX.YY.ZZ` cross-references (e.g., `doc01.02` = second doc in first group)
 - `MANIFEST.md` is the machine-readable index — start there to find anything
-- YAML frontmatter on every doc provides title, status, summary, tags, and dependency refs
+- YAML frontmatter on every doc provides title, summary, tags, and dependency refs
 
 ## Managing Structure
 

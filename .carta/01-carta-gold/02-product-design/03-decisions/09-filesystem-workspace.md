@@ -1,6 +1,5 @@
 ---
 title: Filesystem-first workspace architecture
-status: draft
 summary: ADR: Filesystem-first workspace — `.carta/` directory, JSON canonical with binary sidecar, spec groups as directories, narrowed MCP surface, `carta serve .`
 tags: [adr, workspace, filesystem, deployment, mcp, groups]
 deps: [doc01.03.04]

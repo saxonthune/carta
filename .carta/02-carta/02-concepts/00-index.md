@@ -1,6 +1,5 @@
 ---
 title: Concepts
-status: draft
 summary: Jackson-style concept inventory for Carta — the domain is software production
 tags: [concepts, jackson, design]
 deps: [doc02.01]

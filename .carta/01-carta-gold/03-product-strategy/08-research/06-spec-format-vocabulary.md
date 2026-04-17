@@ -1,6 +1,5 @@
 ---
 title: Spec Format Vocabulary
-status: exploring
 summary: What parts of the spec format Carta has opinions on vs what's up to users — format concerns vs user concerns
 tags: [specs, vocabulary, format, agnosticism, workspace, principles]
 deps: [doc01.03.05, doc01.03.02, doc01.03.08, doc01.03.08.04]

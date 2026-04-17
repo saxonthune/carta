@@ -1,6 +1,5 @@
 ---
 title: Decomposition and Composition Theory
-status: active
 summary: Mathematical foundations for spec-driven development — what makes a good decomposition, and how pieces compose back
 tags: [decomposition, composition, information-theory, modularity, spec-driven, category-theory, complexity]
 deps: [doc01.03.02, doc01.03.04.01]

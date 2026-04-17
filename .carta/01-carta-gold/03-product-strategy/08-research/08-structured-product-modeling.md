@@ -1,6 +1,5 @@
 ---
 title: Structured Product Modeling
-status: exploring
 summary: The set of formal structures needed to fully describe a business product — entity models, decision tables, state machines, and six more — plus how they compose
 tags: [product-modeling, decision-tables, state-machines, entities, enumerations, constraints, spec-driven]
 deps: [doc01.03.08.07, doc01.03.06.04, doc01.03.04.01]

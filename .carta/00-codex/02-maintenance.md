@@ -1,6 +1,5 @@
 ---
 title: Maintenance
-status: active
 summary: Doc lifecycle — unfolding philosophy, development loop, versioning, epochs
 tags: [docs, maintenance, philosophy]
 deps: []
@@ -62,7 +61,6 @@ Add `epoch: N` to front matter of any doc you want tracked:
 ```yaml
 ---
 title: Canvas
-status: active
 epoch: 1
 ---
 ```
@@ -79,17 +77,15 @@ Epochs are coarse-grained — bump only on major shifts, not routine changes.
 
 1. Identify the correct title by reader intent (see doc00.05)
 2. Choose the next available number prefix
-3. Add front matter with `status: draft`
+3. Add front matter with title, summary, tags, and any deps
 4. Write content following conventions (doc00.03)
 5. Add cross-references to/from related docs
-6. Change status to `active` when reviewed
 
 ## Deprecating a Document
 
-1. Set `status: deprecated` in front matter
-2. Add a note at the top: "Superseded by docXX.YY"
-3. Do not delete — git history is permanent, but grep should still find it
-4. Update any docs that reference the deprecated doc
+1. Add a note at the top: "Superseded by docXX.YY"
+2. Archive the doc or remove it when it's no longer useful
+3. Update any docs that reference the deprecated doc
 
 ## Adding a Title
 

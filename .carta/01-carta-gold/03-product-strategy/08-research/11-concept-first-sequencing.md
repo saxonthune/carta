@@ -1,6 +1,5 @@
 ---
 title: Concept-First Sequencing
-status: exploring
 summary: How concept-driven design composes with unfolding — concepts before code, contracts before backends, the ordering that makes AI-powered development coherent
 tags: [concepts, jackson, unfolding, sequencing, methodology, ai]
 deps: [doc01.03.04.03, doc01.03.08.10, doc01.03.08.09]
