@@ -228,7 +228,7 @@ Updates the bundled zipapp so collaborators can use `python3 carta.pyz <command>
 - **`--no-regen` scope**: Skips MANIFEST rebuild only. Ref rewriting in doc content still happens. Use for batch operations, then `carta regenerate` once at the end.
 - **`--rename` preserves extensions**: When renaming a `.md` file, the extension is carried over automatically. You can pass just the slug (e.g., `--rename canvas-state`).
 - **`group` doesn't renumber**: Unlike `move`, `carta group` creates the directory without renumbering existing siblings, allowing temporary duplicate prefixes during restructures.
-- **Non-.md sidecar files**: Commands only operate on numbered entries. Sidecar files (`.canvas.json`, images) must be moved manually.
+- **Attachments travel with their host**: Non-.md files sharing a numeric prefix with a root `.md` (e.g. `02-model.json` alongside `02-workflow.md`) are attachments and move/rename/delete as part of the bundle automatically. Use `carta attach` to add new ones. Orphaned sidecars (no matching root .md) are reported by `regenerate` but not moved.
 - **Sequencing**: Run moves sequentially, not in parallel. Each move changes numbering for subsequent commands. Use `--dry-run` to verify.
 
 ## Common Workflows
