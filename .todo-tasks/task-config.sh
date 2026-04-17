@@ -1,21 +1,21 @@
 #!/usr/bin/env bash
-# ─── Task System Configuration ───────────────────────────────────────────────
+# ─── Task System Configuration — Carta ───────────────────────────────────────
 # Project-specific settings for the todo-task execution system.
-# Sourced by execute-plan.sh and status.sh.
-#
-# Copy this file to your project:
-#   .todo-tasks/task-config.sh
-# Then edit the values below to match your project.
+# Sourced by execute-plan.sh and status.sh via lib.sh's source_task_config.
 
 # Prefix for agent worktree directories (created alongside the repo root)
 WORKTREE_PREFIX="agent"
 
-# Command to install dependencies in a fresh worktree
-INSTALL_CMD="npm install"
+# Command to install dependencies in a fresh worktree.
+# Carta is a pure-Python package; editable install wires the `carta` CLI entry point.
+INSTALL_CMD="pip install -e ."
 
-# Command to verify the implementation (must exit 0 on success)
-BUILD_CMD="npm run build"
-TEST_CMD="npm test"
+# Build step — Carta has no compile step. Use a lightweight import smoke test so
+# agents catch syntax errors fast before running the full test suite.
+BUILD_CMD="python -c 'import carta_cli'"
+
+# Run the test suite. Must exit 0 on success.
+TEST_CMD="make test"
 
 # Budget caps for headless Claude sessions (USD)
 MAX_BUDGET="5.00"
