@@ -89,8 +89,8 @@ def main() -> None:
              "Bundles are sets of files sharing a numeric prefix; `attach` aligns "
              "the copied file with the target doc's prefix.",
     )
-    p_attach.add_argument("target", help="Doc ref or workspace path of the target NN-<slug>.md")
-    p_attach.add_argument("source", help="Path to an external file (may be outside the workspace)")
+    p_attach.add_argument("host", help="Doc ref or workspace path of the host NN-<slug>.md")
+    p_attach.add_argument("source", help="Path to a file to attach (may be outside the workspace)")
     p_attach.add_argument("--rename", default=None, metavar="SLUG",
                           help="Override the attachment's slug segment. Default: source filename stem.")
     p_attach.add_argument("--dry-run", action="store_true",

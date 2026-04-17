@@ -151,10 +151,11 @@ carta rewrite --map old=new [--map old2=new2 ...] [--from-json mappings.json] [-
 Attach a non-md file as a sidecar to an existing doc, giving it the doc's numeric prefix.
 
 ```
-carta attach <source> <host> [--rename SLUG] [--dry-run]
+carta attach <host> <source> [--rename SLUG] [--dry-run]
 ```
 
-- `<host>` — doc ref or path to the target `.md` file (not a directory)
+- `<host>` — doc ref or path to the host `.md` file (not a directory)
+- `<source>` — path to the file to attach (may be outside the workspace)
 - Places the source file alongside the host with prefix `NN-<slug>.<ext>`
 - The attachment joins the host's bundle — it travels with the host through all structural ops
 - `--rename SLUG` — override attachment slug (default: derived from source filename)
@@ -162,9 +163,9 @@ carta attach <source> <host> [--rename SLUG] [--dry-run]
 
 **Examples**:
 ```bash
-carta attach /path/to/diagram.png doc01.03.02         # attach as 02-diagram.png
-carta attach /path/to/data.csv doc01.03.02 --rename model-data  # as 02-model-data.csv
-carta attach /path/to/fig.svg doc01.03.02 --dry-run   # preview only
+carta attach doc01.03.02 /path/to/diagram.png         # attach as 02-diagram.png
+carta attach doc01.03.02 /path/to/data.csv --rename model-data  # as 02-model-data.csv
+carta attach doc01.03.02 /path/to/fig.svg --dry-run   # preview only
 ```
 
 ### copy

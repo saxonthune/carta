@@ -170,12 +170,17 @@ def cmd_rewrite(args: argparse.Namespace, carta_root: Path) -> None:
 
 def cmd_attach(args: argparse.Namespace, carta_root: Path) -> None:
     """Copy an external file into a doc's bundle as an attachment."""
-    target = resolve_and_validate(args.target, carta_root)
+    host = resolve_and_validate(args.host, carta_root)
 
-    if target.is_dir():
-        raise CartaError("attach target must be a leaf doc (NN-<slug>.md)")
-    if target.suffix != '.md':
-        raise CartaError("attach target must be a leaf doc (NN-<slug>.md)")
+    if host.is_dir():
+        raise CartaError(
+            f"attach host must be a .md leaf doc (NN-<slug>.md), got directory: {host.name}"
+        )
+    if host.suffix != '.md':
+        raise CartaError(
+            f"attach host must be a .md leaf doc (NN-<slug>.md), got {host.suffix} file: {host.name}. "
+            f"Did you swap <host> and <source>? Usage: carta attach <host> <source>"
+        )
 
     source = Path(args.source)
     if not source.exists():
@@ -183,9 +188,9 @@ def cmd_attach(args: argparse.Namespace, carta_root: Path) -> None:
     if source.is_dir():
         raise CartaError("Error: source must be a file, not a directory")
 
-    bndl = bundle_mod.find_bundle(target)
+    bndl = bundle_mod.find_bundle(host)
     if bndl is None:
-        raise CartaError(f"Error: target has no numeric prefix: {target.name}")
+        raise CartaError(f"Error: host has no numeric prefix: {host.name}")
 
     rename_arg = args.rename
     if rename_arg:
@@ -196,7 +201,7 @@ def cmd_attach(args: argparse.Namespace, carta_root: Path) -> None:
 
     source_ext = source.suffix
     dest_filename = f"{bndl.prefix:02d}-{slug}{source_ext}"
-    dest = target.parent / dest_filename
+    dest = host.parent / dest_filename
 
     if dest.exists():
         raise CartaError(
@@ -205,10 +210,10 @@ def cmd_attach(args: argparse.Namespace, carta_root: Path) -> None:
         )
 
     try:
-        ref_str = path_to_ref(target, carta_root)
-        bundle_label = f"{ref_str} ({target.name})"
+        ref_str = path_to_ref(host, carta_root)
+        bundle_label = f"{ref_str} ({host.name})"
     except Exception:
-        bundle_label = target.name
+        bundle_label = host.name
 
     if args.dry_run:
         print(f"Would attach: {source} -> {display_path(dest, carta_root)}")
@@ -224,3 +229,4 @@ def cmd_attach(args: argparse.Namespace, carta_root: Path) -> None:
     print(f"Attached: {source} -> {display_path(dest, carta_root)}")
     print(f"  Bundle: {bundle_label}")
     print(f"  Prefix: {bndl.prefix:02d}")
+

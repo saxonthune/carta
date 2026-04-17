@@ -200,12 +200,12 @@ Flags:
 Attach a non-md file as a sidecar to an existing doc, giving it the doc's numeric prefix.
 
 ```
-carta attach <source> <host> [--rename SLUG] [--dry-run]
+carta attach <host> <source> [--rename SLUG] [--dry-run]
 ```
 
 Arguments:
+  host    Doc ref or path of the host `.md` doc (e.g., `doc01.03.02`).
   source  Path to the file to attach (outside or inside the workspace).
-  host    Doc ref or path of the target `.md` doc (e.g., `doc01.03.02`).
 
 Side effects:
   - Copies the source file into the same directory as the host doc.

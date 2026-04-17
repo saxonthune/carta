@@ -23,7 +23,7 @@ The CLI finds the workspace by walking up from cwd (like `git` finds `.git/`).
 
 A **bundle** is a group of siblings sharing a two-digit numeric prefix. The `NN-<slug>.md` file is the root; any other `NN-*.<ext>` siblings are attachments (sidecars — e.g., `02-model.json` alongside `02-workflow.md`).
 
-Structural ops (`move`, `delete`, `rename`, `punch`, `flatten`) treat a bundle as a unit — attachments travel with their host automatically. Use `carta attach <source> <host>` to add a new sidecar. Orphaned sidecars (no matching root) are reported on stderr during `regenerate` but do not block it.
+Structural ops (`move`, `delete`, `rename`, `punch`, `flatten`) treat a bundle as a unit — attachments travel with their host automatically. Use `carta attach <host> <source>` to add a new sidecar. Orphaned sidecars (no matching root) are reported on stderr during `regenerate` but do not block it.
 
 ## Frontmatter Schema
 

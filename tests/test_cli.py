@@ -2217,21 +2217,22 @@ class TestAttach(unittest.TestCase):
         self.assertIn("Would attach:", result.stdout)
         self.assertFalse((self.carta / "00-codex/01-fsm.json").exists())
 
-    def test_attach_directory_target_raises_error(self):
+    def test_attach_directory_host_raises_error(self):
         """Attaching to a directory raises CartaError."""
         result = _run_carta(self.carta, "attach", "00-codex", str(self.src_json))
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("leaf doc", result.stderr)
 
-    def test_attach_non_md_target_raises_error(self):
-        """Attaching to a non-.md file raises CartaError."""
+    def test_attach_non_md_host_raises_error_with_swap_hint(self):
+        """Attaching to a non-.md file raises CartaError with suffix and swap hint."""
         (self.carta / "00-codex/01-logic.statemachine.json").write_text(
             '{"id":"x"}', encoding="utf-8"
         )
         result = _run_carta(self.carta, "attach",
                             "00-codex/01-logic.statemachine.json", str(self.src_json))
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("leaf doc", result.stderr)
+        self.assertIn(".json", result.stderr)
+        self.assertIn("Did you swap <host> and <source>?", result.stderr)
 
 
 if __name__ == "__main__":
