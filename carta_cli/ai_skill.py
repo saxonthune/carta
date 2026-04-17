@@ -10,6 +10,24 @@ from .entries import list_numbered_entries
 from .numbering import get_slug
 from .workspace import load_workspace, get_external_ref_paths
 
+_BUNDLES_AND_ATTACHMENTS = """\
+## Bundles and Attachments
+
+A **bundle** is the set of siblings in a directory that share a two-digit numeric prefix (`NN`).
+
+- **Bundle root**: the `NN-<slug>.md` file in that directory.
+- **Attachment** (sidecar): any other file in the same directory whose name begins with the same `NN` prefix and is not a directory.
+- Attachment regex: `^(\\d{2})-[^/]+\\.[^./]+$` excluding `\\.md$`.
+
+Attachments carry no frontmatter. Membership is determined by prefix alone, not by filename content or any declaration.
+
+Every structural operation (`move`, `delete`, `rename`, `punch`, `flatten`) treats the bundle as a unit: when the root travels, all same-prefix siblings travel with it automatically.
+
+**Orphans**: a file whose `NN` prefix has no corresponding `.md` root, or whose prefix matches a directory rather than a file, is an orphan. `carta regenerate` prints orphan warnings to stderr but never blocks operation.
+
+Use `carta attach` to place a new non-md artifact alongside its host doc.
+"""
+
 _COMMAND_DOCS: dict[str, str] = {
     "regenerate": """\
 ### regenerate
@@ -75,6 +93,7 @@ Arguments:
 
 Side effects:
   - Deletes target file(s) or directory trees.
+  - Operates on bundles — non-md siblings sharing the target's numeric prefix are deleted with it.
   - Gap-closes: siblings with higher prefixes are renumbered down.
   - Rewrites all cross-references in workspace + externalRefPaths.
   - Regenerates MANIFEST.md.
@@ -99,6 +118,7 @@ Arguments:
   destination  Target directory. Must exist unless --mkdir is used.
 
 Side effects:
+  - Operates on bundles — non-md siblings sharing the target's numeric prefix travel with it.
   - Removes source from its parent, gap-closes source siblings (unless --no-gap-close).
   - Inserts at destination, bumps destination siblings at or above --order.
   - Rewrites all cross-references in workspace + externalRefPaths.
@@ -135,6 +155,7 @@ Arguments:
   target  Path or doc ref to a numbered `.md` file.
 
 Side effects:
+  - Operates on bundles — non-md siblings sharing the target's numeric prefix move into the new directory with it.
   - Creates a directory with the same name (minus `.md` extension).
   - Moves the file into that directory as `00-index.md`.
   - Does NOT renumber siblings or rewrite refs (the doc ref is unchanged).
@@ -159,6 +180,7 @@ Arguments:
   target  Path or doc ref to a numbered directory.
 
 Side effects:
+  - Operates on bundles — non-md siblings sharing a child's numeric prefix are hoisted with it.
   - Removes the directory, hoists numbered children into the parent.
   - Renumbers all siblings in the parent to close/fill gaps.
   - Discards 00-index.md (unless --keep-index).
@@ -170,6 +192,41 @@ Flags:
   --force       Discard index even if it has significant content (>10 lines).
   --at N        Insert hoisted children starting at position N. Default: source position.
   --dry-run     Print planned moves without executing.
+""",
+
+    "attach": """\
+### attach
+
+Attach a non-md file as a sidecar to an existing doc, giving it the doc's numeric prefix.
+
+```
+carta attach <source> <host> [--rename SLUG] [--dry-run]
+```
+
+Arguments:
+  source  Path to the file to attach (outside or inside the workspace).
+  host    Doc ref or path of the target `.md` doc (e.g., `doc01.03.02`).
+
+Side effects:
+  - Copies the source file into the same directory as the host doc.
+  - Renames it to share the host's numeric prefix: `NN-<slug>.<ext>`.
+  - The file becomes part of the host's bundle — it will travel with the host
+    through all future structural operations (move, delete, rename, punch, flatten).
+  - Does NOT create or modify MANIFEST.md (attachments are not indexed there).
+
+Flags:
+  --rename SLUG  Override the attachment slug. Default: derived from source filename.
+  --dry-run      Print the planned attachment path without writing anything.
+
+When to use:
+  - Adding a diagram, data file, or other artifact that belongs alongside a spec doc.
+  - Any time a non-md file should travel with a doc through workspace restructuring.
+
+Notes:
+  - The host must be a `.md` file (not a directory).
+  - Attachments are identified by prefix, not by declaration — no frontmatter needed.
+  - To verify the bundle after attaching, check that the attachment file sits in the
+    same directory as the host with the same `NN` prefix.
 """,
 
     "copy": """\
@@ -252,7 +309,8 @@ Arguments:
   new-slug  New slug (the part after NN-). Do not include the prefix.
 
 Side effects:
-  - Renames the file/directory on disk.
+  - Operates on bundles — non-md siblings sharing the target's numeric prefix travel with it.
+  - Renames the file/directory on disk (and renames attachment files to match the new slug).
   - Does NOT rewrite cross-references (use `carta rewrite` for that).
   - Regenerates MANIFEST.md (unless --no-regen).
 
@@ -392,8 +450,11 @@ _BEHAVIORAL_RULES = """\
   all higher-numbered siblings are renumbered down to fill the gap.
 - **Ref rewriting**: All commands that change file positions rewrite `docXX.YY.ZZ` refs
   across all `.md` files in the workspace and in `externalRefPaths` from `.carta.json`.
-- **Non-.md files**: Commands only operate on numbered entries (`NN-slug` or `NN-slug.md`).
-  Sidecar files (`.canvas.json`, images) must be moved manually.
+- **Bundles**: Structural operations treat a bundle (root `.md` + same-prefix siblings) as a
+  unit. Non-md sidecars travel with their host automatically — no declaration required.
+- **Orphan warnings**: `carta regenerate` prints a stderr warning for any sidecar file whose
+  numeric prefix has no corresponding `.md` root, or whose prefix matches a directory. Orphan
+  warnings never block operation; the MANIFEST is still written.
 - **Argument resolution**: `source`/`target`/`destination` args accept either workspace-relative
   paths (e.g., `01-product/02-features`) or doc refs (e.g., `doc01.02`).
 - **`--no-regen` scope**: Skips MANIFEST.md rebuild only. Ref rewriting in doc content still
@@ -435,7 +496,8 @@ def generate_skill_content(dir_name: str) -> str:
     template = template.replace("{{dir_name}}", dir_name)
 
     sections = [template.rstrip()]
-    sections.append("\n## Command Reference\n")
+    sections.append(_BUNDLES_AND_ATTACHMENTS)
+    sections.append("## Command Reference\n")
     for doc in _COMMAND_DOCS.values():
         sections.append(doc)
     sections.append("## Behavioral Rules\n")
@@ -516,6 +578,11 @@ def cmd_ai_skill(args: argparse.Namespace, carta_root: Path) -> None:
         "Covers command behavior, side effects, sequencing rules, and live workspace state."
     )
     lines.append("")
+
+    # Bundles and Attachments overview
+    lines.append("---")
+    lines.append("")
+    lines.append(_BUNDLES_AND_ATTACHMENTS)
 
     # Section 1: Command Reference
     lines.append("---")

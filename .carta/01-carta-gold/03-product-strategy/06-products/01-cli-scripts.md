@@ -22,12 +22,15 @@ The Carta Docs API is a set of deterministic Python operations for manipulating 
 | `rename` | Rename a directory or file slug without changing position |
 | `punch` | Expand a leaf file into a directory (NN-slug.md → NN-slug/00-index.md) |
 | `flatten` | Dissolve a directory, hoisting children into parent |
+| `attach` | Attach a non-md file as a sidecar to an existing doc |
 | `copy` | Copy a file into the workspace at a given position |
 | `rewrite` | Rewrite doc refs using user-supplied mappings |
 | `regenerate` | Rebuild MANIFEST.md from document frontmatter |
 | `cat` | Print document contents to stdout by doc ref |
 
 All structural operations maintain cross-reference integrity — refs in surviving documents are rewritten to reflect new positions.
+
+Structural operations treat **bundles** as units: a bundle is the set of siblings sharing a numeric prefix (`NN`), with the `NN-<slug>.md` file as the root and all other `NN-*.<ext>` siblings as attachments. When a root moves, is deleted, or is renamed, its attachments travel with it — no frontmatter declaration required. The `attach` command places a non-md file alongside its host doc, giving it the host's numeric prefix.
 
 ## Delivery
 

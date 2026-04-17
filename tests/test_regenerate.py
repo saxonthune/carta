@@ -299,5 +299,141 @@ class TestRefsResolve(unittest.TestCase):
                          "\n".join(f"  {r}: {e}" for r, e in unresolvable))
 
 
+# ---------------------------------------------------------------------------
+# Test 7: Attachments column + orphan detection
+# ---------------------------------------------------------------------------
+
+class TestAttachmentsColumn(unittest.TestCase):
+    """Tests for MANIFEST Attachments column and orphan detection."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.tmp = Path(self.tmpdir.name)
+
+    def tearDown(self):
+        self.tmpdir.cleanup()
+
+    def _make_workspace(self, files: dict) -> Path:
+        """Create a minimal workspace. files = {rel_path: content}."""
+        workspace = self.tmp / "ws"
+        workspace.mkdir()
+        for rel, content in files.items():
+            p = workspace / rel
+            p.parent.mkdir(parents=True, exist_ok=True)
+            if isinstance(content, bytes):
+                p.write_bytes(content)
+            else:
+                p.write_text(content, encoding="utf-8")
+        return workspace
+
+    def _run(self, workspace: Path, *args: str) -> subprocess.CompletedProcess:
+        return subprocess.run(
+            [sys.executable, "-m", "carta_cli.main", "--workspace", str(workspace)] + list(args),
+            capture_output=True, text=True, env=_ENV_WITH_CLI,
+        )
+
+    def test_header_has_attachments_column(self):
+        """MANIFEST header row includes Attachments column."""
+        ws = self._make_workspace({
+            "01-docs/00-index.md": "---\ntitle: Docs\n---\n",
+            "01-docs/01-intro.md": "---\ntitle: Intro\n---\n",
+        })
+        result = self._run(ws, "regenerate", "--dry-run")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("| Attachments |", result.stdout)
+
+    def test_no_attachments_renders_emdash(self):
+        """A doc with no non-md siblings renders — in Attachments column."""
+        ws = self._make_workspace({
+            "01-docs/00-index.md": "---\ntitle: Docs\n---\n",
+            "01-docs/01-intro.md": "---\ntitle: Intro\n---\n",
+        })
+        result = self._run(ws, "regenerate", "--dry-run")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        rows = [l for l in result.stdout.splitlines() if l.startswith("| doc")]
+        self.assertTrue(rows, "No doc rows found")
+        for row in rows:
+            cols = [c.strip() for c in row.split("|")[1:-1]]
+            self.assertEqual(len(cols), 7, f"Expected 7 columns in row: {row}")
+            self.assertEqual(cols[6], "—", f"Expected — in Attachments: {row}")
+
+    def test_one_attachment_renders_slug_ext(self):
+        """A doc with one attachment renders slug+ext without the NN-docslug. prefix."""
+        ws = self._make_workspace({
+            "01-docs/00-index.md": "---\ntitle: Docs\n---\n",
+            "01-docs/01-game.md": "---\ntitle: Game\n---\n",
+            "01-docs/01-game.xstate.json": "{}",
+        })
+        result = self._run(ws, "regenerate", "--dry-run")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        rows = [l for l in result.stdout.splitlines() if "doc01.01" in l]
+        self.assertEqual(len(rows), 1, f"Expected 1 row for doc01.01, got: {rows}")
+        cols = [c.strip() for c in rows[0].split("|")[1:-1]]
+        self.assertEqual(cols[6], "xstate.json")
+
+    def test_multiple_attachments_sorted(self):
+        """A doc with multiple attachments renders a sorted comma-separated list."""
+        ws = self._make_workspace({
+            "01-docs/00-index.md": "---\ntitle: Docs\n---\n",
+            "01-docs/01-spec.md": "---\ntitle: Spec\n---\n",
+            "01-docs/01-spec.schema.json": "{}",
+            "01-docs/01-spec.mockup.png": b"\x89PNG",
+            "01-docs/01-spec.rules.yaml": "key: value",
+        })
+        result = self._run(ws, "regenerate", "--dry-run")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        rows = [l for l in result.stdout.splitlines() if "doc01.01" in l]
+        self.assertEqual(len(rows), 1)
+        cols = [c.strip() for c in rows[0].split("|")[1:-1]]
+        self.assertEqual(cols[6], "mockup.png, rules.yaml, schema.json")
+
+    def test_index_with_00_attachment(self):
+        """00-index.md with a 00-foo.png sibling renders foo.png in Attachments."""
+        ws = self._make_workspace({
+            "01-docs/00-index.md": "---\ntitle: Docs\n---\n",
+            "01-docs/00-overview.png": b"\x89PNG",
+        })
+        result = self._run(ws, "regenerate", "--dry-run")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        rows = [l for l in result.stdout.splitlines() if "doc01.00" in l]
+        self.assertEqual(len(rows), 1, f"Expected row for doc01.00:\n{result.stdout}")
+        cols = [c.strip() for c in rows[0].split("|")[1:-1]]
+        self.assertEqual(cols[6], "overview.png")
+
+    def test_orphan_warning_to_stderr(self):
+        """Orphan file (no root .md) prints warning to stderr; MANIFEST is still written."""
+        ws = self._make_workspace({
+            "01-docs/00-index.md": "---\ntitle: Docs\n---\n",
+            "01-docs/01-legit.md": "---\ntitle: Legit\n---\n",
+            "01-docs/03-orphan.json": "{}",  # no 03-*.md → orphan
+        })
+        result = self._run(ws, "regenerate")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Warning", result.stderr)
+        self.assertIn("orphan", result.stderr.lower())
+        self.assertIn("03-orphan.json", result.stderr)
+        manifest = ws / "MANIFEST.md"
+        self.assertTrue(manifest.exists(), "MANIFEST.md not written despite warning")
+        content = manifest.read_text(encoding="utf-8")
+        self.assertNotIn("03-orphan", content)
+
+    def test_orphan_subdir_conflict(self):
+        """File sharing a prefix with a subdir is an orphan; subdir docs still appear."""
+        ws = self._make_workspace({
+            "01-docs/00-index.md": "---\ntitle: Docs\n---\n",
+            "01-docs/03-concepts/00-index.md": "---\ntitle: Concepts\n---\n",
+            "01-docs/03-concepts/01-first.md": "---\ntitle: First\n---\n",
+            "01-docs/03-stale.yaml": "key: value",  # prefix 03 = subdir → orphan
+        })
+        result = self._run(ws, "regenerate")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Warning", result.stderr)
+        self.assertIn("03-stale.yaml", result.stderr)
+        manifest = ws / "MANIFEST.md"
+        content = manifest.read_text(encoding="utf-8")
+        self.assertIn("doc01.03.01", content)
+        self.assertNotIn("03-stale", content)
+
+
 if __name__ == "__main__":
     unittest.main()

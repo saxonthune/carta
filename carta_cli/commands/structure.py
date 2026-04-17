@@ -15,6 +15,7 @@ from ..planning import compute_all_moves, compute_rename_map, print_rename_map
 from ..workspace import collect_rewritable_files
 from ..regenerate_core import do_regenerate
 from .setup import _load_preamble
+from .. import bundle as bundle_mod
 
 
 # ---------------------------------------------------------------------------
@@ -151,7 +152,12 @@ def cmd_delete(args: argparse.Namespace, carta_root: Path) -> None:
     """Delete entries with gap-closing."""
     target_paths: list[Path] = []
     for target in args.targets:
-        target_paths.append(resolve_and_validate(target, carta_root))
+        path = resolve_and_validate(target, carta_root)
+        if (path.is_file()
+                and path.suffix != '.md'
+                and get_numeric_prefix(path.name) is not None):
+            raise CartaError(f"cannot delete an attachment directly; delete its root md: {path.name}")
+        target_paths.append(path)
 
     deleted_refs: set[str] = set()
     for path in target_paths:
@@ -163,18 +169,28 @@ def cmd_delete(args: argparse.Namespace, carta_root: Path) -> None:
 
     all_moves: list[tuple[Path, Path]] = []
     for parent_dir, deleted_in_parent in parents.items():
-        deleted_set = {p.resolve() for p in deleted_in_parent}
-        entries = list_numbered_entries(parent_dir)
-        remaining = [e for e in entries if e.resolve() not in deleted_set]
+        # Build set of all deleted paths (including bundle attachments)
+        deleted_roots: set[Path] = set()
+        for p in deleted_in_parent:
+            deleted_roots.add(p.resolve())
+            if p.is_file():
+                for member in bundle_mod.bundle_members(p)[1:]:
+                    deleted_roots.add(member.resolve())
+
+        # Gap-close surviving bundles as groups
+        bundles = bundle_mod.list_bundles(parent_dir)
         next_prefix = 1
-        for entry in remaining:
-            current_prefix = get_numeric_prefix(entry.name)
-            if current_prefix == 0:
-                next_prefix = 1
+        for bndl in bundles:
+            if bndl.prefix == 0:
                 continue
-            if current_prefix != next_prefix:
-                new_name = f"{next_prefix:02d}-{get_slug(entry.name)}"
-                all_moves.append((entry, parent_dir / new_name))
+            all_members = ([bndl.root] if bndl.root else []) + list(bndl.attachments)
+            if any(m.resolve() in deleted_roots for m in all_members):
+                continue  # skip deleted bundles
+            if bndl.prefix != next_prefix:
+                for member in all_members:
+                    old_slug = get_slug(member.name)
+                    new_name = f"{next_prefix:02d}-{old_slug}"
+                    all_moves.append((member, parent_dir / new_name))
             next_prefix += 1
 
     rename_map = compute_rename_map(all_moves, carta_root)
@@ -194,6 +210,9 @@ def cmd_delete(args: argparse.Namespace, carta_root: Path) -> None:
         for path in target_paths:
             kind = "directory" if path.is_dir() else "file"
             print(f"  DELETE {kind}: {path.relative_to(carta_root)}")
+            if path.is_file() and path.suffix == '.md':
+                for att in bundle_mod.bundle_members(path)[1:]:
+                    print(f"  DELETE attachment: {att.relative_to(carta_root)}")
         if deleted_refs:
             print(f"\nRefs removed ({len(deleted_refs)}):")
             for ref in sorted(deleted_refs):
@@ -221,7 +240,9 @@ def cmd_delete(args: argparse.Namespace, carta_root: Path) -> None:
         if path.is_dir():
             shutil.rmtree(str(path))
         else:
-            path.unlink()
+            for member in bundle_mod.bundle_members(path):
+                if member.exists():
+                    member.unlink()
 
     for old_path, new_path in all_moves:
         if old_path.exists():
@@ -279,6 +300,11 @@ def cmd_move(args: argparse.Namespace, carta_root: Path) -> None:
 
     source_path = resolve_and_validate(args.source, carta_root)
 
+    if (source_path.is_file()
+            and source_path.suffix != '.md'
+            and get_numeric_prefix(source_path.name) is not None):
+        raise CartaError("cannot move an attachment directly; move its root md")
+
     if args.rename and source_path.name == "00-index.md":
         raise CartaError("Error: cannot rename 00-index.md files.")
 
@@ -308,8 +334,7 @@ def cmd_move(args: argparse.Namespace, carta_root: Path) -> None:
         raise CartaError(f"Error: destination is not a directory: {dest_path}")
 
     if not mkdir_created:
-        dest_entries = list_numbered_entries(dest_path)
-        if len(dest_entries) >= 99:
+        if len(bundle_mod.list_bundles(dest_path)) >= 99:
             raise CartaError(f"Error: destination has >= 99 items: {dest_path}")
 
     try:
@@ -365,21 +390,47 @@ def cmd_rename(args: argparse.Namespace, carta_root: Path) -> None:
 
     if target_path.is_dir():
         new_name = f"{prefix:02d}-{new_slug}"
-    else:
-        ext = target_path.suffix
-        stem_slug = new_slug
-        if stem_slug.endswith(ext):
-            stem_slug = stem_slug[:-len(ext)]
-        new_name = f"{prefix:02d}-{stem_slug}{ext}"
+        new_path = target_path.parent / new_name
+        if new_path.exists() and new_path.resolve() != target_path.resolve():
+            raise CartaError(f"Error: destination already exists: {new_path}")
+        shutil.move(str(target_path), str(new_path))
+        if not args.no_regen:
+            do_regenerate(carta_root, _load_preamble(carta_root.name))
+        print(f"Renamed: {target_path.name} -> {new_path.name}")
+        return
 
+    ext = target_path.suffix
+    stem_slug = new_slug
+    if stem_slug.endswith(ext):
+        stem_slug = stem_slug[:-len(ext)]
+    new_name = f"{prefix:02d}-{stem_slug}{ext}"
     new_path = target_path.parent / new_name
 
     if new_path.exists() and new_path.resolve() != target_path.resolve():
         raise CartaError(f"Error: destination already exists: {new_path}")
 
-    shutil.move(str(target_path), str(new_path))
+    # Collect renames: root md + same-slug attachments
+    renames: list[tuple[Path, Path]] = [(target_path, new_path)]
+    unchanged: list[Path] = []
+
+    bndl = bundle_mod.find_bundle(target_path)
+    if bndl and bndl.slug:
+        old_slug = bndl.slug
+        for att in bndl.attachments:
+            att_slug = get_slug(att.name)
+            if att_slug.startswith(old_slug + "."):
+                new_att_slug = stem_slug + att_slug[len(old_slug):]
+                renames.append((att, att.parent / f"{prefix:02d}-{new_att_slug}"))
+            else:
+                unchanged.append(att)
+
+    for old, new in renames:
+        shutil.move(str(old), str(new))
 
     if not args.no_regen:
         do_regenerate(carta_root, _load_preamble(carta_root.name))
 
-    print(f"Renamed: {target_path.name} -> {new_path.name}")
+    for old, new in renames:
+        print(f"Renamed: {old.name} -> {new.name}")
+    for att in unchanged:
+        print(f"Left unchanged (same prefix, different slug): {att.name}")

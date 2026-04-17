@@ -1,11 +1,12 @@
-"""carta — content commands: cat, tree, regenerate, rewrite."""
+"""carta — content commands: cat, tree, regenerate, rewrite, attach."""
 import argparse
 import re
+import shutil
 import sys
 from pathlib import Path
 
 from ..errors import CartaError
-from ..entries import resolve_arg, list_numbered_entries, display_path
+from ..entries import resolve_arg, resolve_and_validate, list_numbered_entries, display_path
 from ..frontmatter import read_frontmatter
 from ..numbering import get_slug
 from ..ref_convert import path_to_ref
@@ -13,6 +14,7 @@ from ..rewriter import rewrite_refs
 from ..workspace import collect_rewritable_files
 from ..regenerate_core import do_regenerate
 from .setup import _load_preamble
+from .. import bundle as bundle_mod
 
 
 # ---------------------------------------------------------------------------
@@ -160,3 +162,65 @@ def cmd_rewrite(args: argparse.Namespace, carta_root: Path) -> None:
     if results:
         for fpath, count in sorted(results.items(), key=lambda x: str(x[0])):
             print(f"  {display_path(fpath, carta_root)}: {count}")
+
+
+# ---------------------------------------------------------------------------
+# attach
+# ---------------------------------------------------------------------------
+
+def cmd_attach(args: argparse.Namespace, carta_root: Path) -> None:
+    """Copy an external file into a doc's bundle as an attachment."""
+    target = resolve_and_validate(args.target, carta_root)
+
+    if target.is_dir():
+        raise CartaError("attach target must be a leaf doc (NN-<slug>.md)")
+    if target.suffix != '.md':
+        raise CartaError("attach target must be a leaf doc (NN-<slug>.md)")
+
+    source = Path(args.source)
+    if not source.exists():
+        raise CartaError(f"Error: source does not exist: {source}")
+    if source.is_dir():
+        raise CartaError("Error: source must be a file, not a directory")
+
+    bndl = bundle_mod.find_bundle(target)
+    if bndl is None:
+        raise CartaError(f"Error: target has no numeric prefix: {target.name}")
+
+    rename_arg = args.rename
+    if rename_arg:
+        rename_path = Path(rename_arg)
+        slug = rename_path.stem if rename_path.suffix else rename_arg
+    else:
+        slug = source.stem
+
+    source_ext = source.suffix
+    dest_filename = f"{bndl.prefix:02d}-{slug}{source_ext}"
+    dest = target.parent / dest_filename
+
+    if dest.exists():
+        raise CartaError(
+            f"Error: attachment already exists: {dest}\n"
+            "Move or delete the existing file first."
+        )
+
+    try:
+        ref_str = path_to_ref(target, carta_root)
+        bundle_label = f"{ref_str} ({target.name})"
+    except Exception:
+        bundle_label = target.name
+
+    if args.dry_run:
+        print(f"Would attach: {source} -> {display_path(dest, carta_root)}")
+        print(f"  Bundle: {bundle_label}")
+        print(f"  Prefix: {bndl.prefix:02d}")
+        print("(dry-run: no files modified)")
+        return
+
+    shutil.copy2(str(source), str(dest))
+    preamble = _load_preamble(carta_root.name)
+    do_regenerate(carta_root, preamble, dry_run=False)
+
+    print(f"Attached: {source} -> {display_path(dest, carta_root)}")
+    print(f"  Bundle: {bundle_label}")
+    print(f"  Prefix: {bndl.prefix:02d}")

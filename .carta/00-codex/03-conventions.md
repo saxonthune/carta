@@ -79,6 +79,16 @@ The two serve different readers and should not duplicate each other. MANIFEST tr
 
 Subdirectories may also have a `00-index.md` when their organizational logic needs explanation (e.g., `04-primary-sources/00-index.md`). This is optional — use when the directory's purpose isn't obvious from its name and contents.
 
+## Bundles and Attachments
+
+A **bundle** is a group of siblings in a directory that share a two-digit numeric prefix. The bundle **root** is the `NN-<slug>.md` file; all other siblings with the same `NN` prefix are **attachments** (sidecars). Directories cannot be bundle roots.
+
+Sidecar filenames follow the pattern `NN-<anything>.<ext>`. The infix is unreserved — bundling is determined by the numeric prefix alone, not by the filename's middle segment.
+
+Structural operations (`move`, `delete`, `rename`, `punch`, `flatten`) treat a bundle as a unit: the root and all its attachments travel together. Attachments do not require frontmatter or any explicit declaration.
+
+**Orphans** — sidecars that lack a root `.md`, or whose prefix matches a directory rather than a file — trigger a warning during `carta regenerate` but never block regeneration.
+
 ## Writing Style
 
 - **One concept per file.** If a file covers two distinct things, split it.

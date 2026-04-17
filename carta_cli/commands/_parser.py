@@ -9,7 +9,7 @@ from ..workspace import find_workspace
 from ..ai_skill import cmd_ai_skill
 from .structure import cmd_create, cmd_delete, cmd_move, cmd_rename
 from .transform import cmd_punch, cmd_flatten, cmd_group, cmd_copy
-from .content import cmd_cat, cmd_tree, cmd_rewrite, cmd_regenerate
+from .content import cmd_cat, cmd_tree, cmd_rewrite, cmd_regenerate, cmd_attach
 from .setup import cmd_init, cmd_portable, cmd_hydrate
 
 
@@ -82,6 +82,20 @@ def main() -> None:
     p_copy.add_argument("--rename", dest="rename_slug", default=None)
     p_copy.add_argument("--dry-run", action="store_true")
 
+    # attach
+    p_attach = subparsers.add_parser(
+        "attach",
+        help="Copy an external file into a doc's bundle as an attachment. "
+             "Bundles are sets of files sharing a numeric prefix; `attach` aligns "
+             "the copied file with the target doc's prefix.",
+    )
+    p_attach.add_argument("target", help="Doc ref or workspace path of the target NN-<slug>.md")
+    p_attach.add_argument("source", help="Path to an external file (may be outside the workspace)")
+    p_attach.add_argument("--rename", default=None, metavar="SLUG",
+                          help="Override the attachment's slug segment. Default: source filename stem.")
+    p_attach.add_argument("--dry-run", action="store_true",
+                          help="Print planned operation without executing.")
+
     # rewrite
     p_rewrite = subparsers.add_parser("rewrite", help="Rewrite doc refs")
     p_rewrite.add_argument("mappings", nargs="+", help="old=new pairs")
@@ -137,7 +151,7 @@ def main() -> None:
         # Find the subcommand name: skip flags and their values
         known_subcommands = {
             "regenerate", "create", "delete", "move", "punch", "flatten",
-            "copy", "rewrite", "group", "rename", "init", "hydrate",
+            "copy", "attach", "rewrite", "group", "rename", "init", "hydrate",
             "portable", "ai-skill", "cat", "tree",
         }
         cmd_candidates = [a for a in argv if a in known_subcommands]
@@ -194,6 +208,7 @@ def main() -> None:
             "punch": cmd_punch,
             "flatten": cmd_flatten,
             "copy": cmd_copy,
+            "attach": cmd_attach,
             "rewrite": cmd_rewrite,
             "group": cmd_group,
             "rename": cmd_rename,

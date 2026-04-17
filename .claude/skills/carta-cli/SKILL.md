@@ -146,6 +146,27 @@ carta rewrite --map old=new [--map old2=new2 ...] [--from-json mappings.json] [-
 
 **When to use:** After restoring backup files into a restructured workspace, when refs in the restored files point to old locations.
 
+### attach
+
+Attach a non-md file as a sidecar to an existing doc, giving it the doc's numeric prefix.
+
+```
+carta attach <source> <host> [--rename SLUG] [--dry-run]
+```
+
+- `<host>` — doc ref or path to the target `.md` file (not a directory)
+- Places the source file alongside the host with prefix `NN-<slug>.<ext>`
+- The attachment joins the host's bundle — it travels with the host through all structural ops
+- `--rename SLUG` — override attachment slug (default: derived from source filename)
+- Does NOT update MANIFEST.md (attachments are not indexed)
+
+**Examples**:
+```bash
+carta attach /path/to/diagram.png doc01.03.02         # attach as 02-diagram.png
+carta attach /path/to/data.csv doc01.03.02 --rename model-data  # as 02-model-data.csv
+carta attach /path/to/fig.svg doc01.03.02 --dry-run   # preview only
+```
+
 ### copy
 
 Copy a file into the workspace at a given position.
@@ -201,6 +222,7 @@ Updates the bundled zipapp so collaborators can use `python3 carta.pyz <command>
 
 ## Behavioral Rules for Multi-Step Operations
 
+- **Bundles travel as a unit**: A bundle is the set of siblings sharing a numeric prefix (`NN`). The `NN-<slug>.md` file is the root; all other `NN-*.<ext>` siblings are attachments. Structural ops (`move`, `delete`, `rename`, `punch`, `flatten`) move the whole bundle automatically.
 - **Gap-closing is automatic**: When an entry is removed from a directory (via `move`, `delete`, `flatten`), all higher-numbered siblings are renumbered down. This means source paths change after each move — always check paths between sequential moves.
 - **`--order` bumps siblings**: Inserting at position N shifts everything at N and above up by one in the destination directory.
 - **`--no-regen` scope**: Skips MANIFEST rebuild only. Ref rewriting in doc content still happens. Use for batch operations, then `carta regenerate` once at the end.

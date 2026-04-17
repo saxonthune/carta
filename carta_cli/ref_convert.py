@@ -25,10 +25,16 @@ def ref_to_path(ref: str, carta_root: Path) -> Path:
                 f"no entry starting with {prefix!r}"
             )
         if len(matches) > 1:
-            raise FileNotFoundError(
-                f"Ambiguous segment {seg!r} in {current}: "
-                f"multiple matches: {[p.name for p in matches]}"
-            )
+            # With bundle attachments, multiple files can share a prefix.
+            # Prefer the .md root or a directory (the canonical doc node).
+            md_or_dir = [p for p in matches if p.suffix == '.md' or p.is_dir()]
+            if len(md_or_dir) == 1:
+                matches = md_or_dir
+            else:
+                raise FileNotFoundError(
+                    f"Ambiguous segment {seg!r} in {current}: "
+                    f"multiple matches: {[p.name for p in matches]}"
+                )
         current = matches[0]
 
     return current

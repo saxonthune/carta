@@ -16,7 +16,7 @@ Concepts are implemented as TypeScript modules in `packages/concepts/src/`, one 
 
 ## Inventory
 
-(empty — concepts will be added as forces demand them)
+- **doc02.02.01 — Attachment**: Non-md artifacts that inherit a host doc's structural position through prefix co-location. Purpose: let supporting files (diagrams, data, etc.) travel with their spec through every workspace operation without frontmatter declaration.
 
 ## Concepts that don't exist yet (and why)
 

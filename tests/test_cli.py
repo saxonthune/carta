@@ -1685,5 +1685,476 @@ class TestGenerateSkillContent(unittest.TestCase):
         self.assertNotIn("{{dir_name}}", content)
 
 
+def _build_bundle_fixture(dest: Path) -> Path:
+    """Build a minimal .carta/ workspace with bundle attachments. Returns dest/.carta/"""
+    carta = dest / ".carta"
+    carta.mkdir(parents=True, exist_ok=True)
+
+    (dest / MARKER).write_text(
+        json.dumps({"root": ".carta/", "title": "BundleTest"}), encoding="utf-8"
+    )
+
+    # 00-codex/ section — bundles with attachments
+    _write(carta / "00-codex/00-index.md", _fm("Codex", summary="Codex index."))
+    _write(carta / "00-codex/01-logic.md", _fm("Logic", summary="Game logic."))
+    (carta / "00-codex/01-logic.statemachine.json").write_text('{"id": "logic"}', encoding="utf-8")
+    (carta / "00-codex/01-design.png").write_bytes(b"\x89PNG\r\n")  # fake PNG, different slug
+    _write(carta / "00-codex/02-state.md", _fm("State", summary="State doc."))
+    _write(carta / "00-codex/03-extra.md", _fm("Extra", summary="Extra doc."))
+    (carta / "00-codex/03-extra.notes.txt").write_text("notes", encoding="utf-8")
+
+    # 01-product/ section — for cross-dir move target
+    _write(carta / "01-product/00-index.md", _fm("Product", summary="Product index."))
+    _write(carta / "01-product/01-api.md", _fm("API", summary="API spec."))
+    (carta / "01-product/01-api.yaml").write_text("api: v1", encoding="utf-8")
+
+    result = _run_carta(carta, "regenerate")
+    if result.returncode != 0:
+        raise RuntimeError(f"bundle fixture regenerate failed:\n{result.stderr}")
+
+    return carta
+
+
+class TestBundleAwareMoveDeleteRename(unittest.TestCase):
+    """Tests for bundle-aware move, delete, and rename operations."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.carta = _build_bundle_fixture(Path(self.tmpdir.name))
+        self.codex = self.carta / "00-codex"
+        self.product = self.carta / "01-product"
+
+    def tearDown(self):
+        self.tmpdir.cleanup()
+
+    # ── move ─────────────────────────────────────────────────────────────────
+
+    def test_move_bundle_same_dir_renumbers_all_members(self):
+        """Moving a bundle within the same dir renumbers root + all attachments."""
+        result = _run_carta(self.carta, "move", "doc00.01", "00-codex", "--order", "3")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+        self.assertTrue((self.codex / "03-logic.md").exists())
+        self.assertTrue((self.codex / "03-logic.statemachine.json").exists())
+        self.assertTrue((self.codex / "03-design.png").exists())
+        self.assertFalse((self.codex / "01-logic.md").exists())
+        self.assertFalse((self.codex / "01-logic.statemachine.json").exists())
+        self.assertFalse((self.codex / "01-design.png").exists())
+
+    def test_move_bundle_cross_dir_all_members_travel(self):
+        """Moving a bundle cross-dir carries root + all attachments to the new dir."""
+        result = _run_carta(self.carta, "move", "doc00.01", "01-product")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+        product_files = {p.name for p in self.product.iterdir()}
+        self.assertIn("02-logic.md", product_files)
+        self.assertIn("02-logic.statemachine.json", product_files)
+        self.assertIn("02-design.png", product_files)
+        self.assertFalse((self.codex / "01-logic.md").exists())
+        self.assertFalse((self.codex / "01-logic.statemachine.json").exists())
+        self.assertFalse((self.codex / "01-design.png").exists())
+        # Source gap-closes correctly with attachments
+        self.assertTrue((self.codex / "01-state.md").exists())
+        self.assertTrue((self.codex / "02-extra.md").exists())
+        self.assertTrue((self.codex / "02-extra.notes.txt").exists())
+
+    def test_move_bundle_with_rename_renames_same_slug_attachments(self):
+        """--rename renames root and same-slug attachments; different-slug stays."""
+        result = _run_carta(self.carta, "move", "doc00.01", "00-codex",
+                            "--rename", "engine", "--order", "1")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+        self.assertTrue((self.codex / "01-engine.md").exists())
+        self.assertTrue((self.codex / "01-engine.statemachine.json").exists())
+        # Different-slug attachment keeps its slug
+        self.assertTrue((self.codex / "01-design.png").exists())
+        self.assertFalse((self.codex / "01-logic.md").exists())
+        self.assertFalse((self.codex / "01-logic.statemachine.json").exists())
+
+    def test_move_attachment_directly_raises_error(self):
+        """Attempting to move an attachment directly raises CartaError."""
+        result = _run_carta(self.carta, "move",
+                            "00-codex/01-logic.statemachine.json", "00-codex")
+        self.assertNotEqual(result.returncode, 0)
+        combined = result.stderr + result.stdout
+        self.assertIn("attachment", combined.lower())
+
+    # ── delete ───────────────────────────────────────────────────────────────
+
+    def test_delete_bundle_removes_root_and_all_attachments(self):
+        """Deleting a bundle root removes root + all bundle attachments."""
+        result = _run_carta(self.carta, "delete", "doc00.01")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+        self.assertFalse((self.codex / "01-logic.md").exists())
+        self.assertFalse((self.codex / "01-logic.statemachine.json").exists())
+        self.assertFalse((self.codex / "01-design.png").exists())
+
+    def test_delete_gap_closes_bundles_as_groups(self):
+        """After deleting a bundle, remaining bundles gap-close with all their attachments."""
+        result = _run_carta(self.carta, "delete", "doc00.01")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+        self.assertTrue((self.codex / "01-state.md").exists())
+        self.assertFalse((self.codex / "02-state.md").exists())
+        self.assertTrue((self.codex / "02-extra.md").exists())
+        self.assertTrue((self.codex / "02-extra.notes.txt").exists())
+        self.assertFalse((self.codex / "03-extra.md").exists())
+        self.assertFalse((self.codex / "03-extra.notes.txt").exists())
+
+    def test_delete_multiple_bundles_gap_closes_correctly(self):
+        """Deleting multiple bundles gap-closes remaining ones correctly."""
+        result = _run_carta(self.carta, "delete", "doc00.01", "doc00.02")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+        self.assertFalse((self.codex / "01-logic.md").exists())
+        self.assertFalse((self.codex / "02-state.md").exists())
+        self.assertTrue((self.codex / "01-extra.md").exists())
+        self.assertTrue((self.codex / "01-extra.notes.txt").exists())
+
+    def test_delete_attachment_directly_raises_error(self):
+        """Attempting to delete an attachment directly raises CartaError."""
+        result = _run_carta(self.carta, "delete",
+                            "00-codex/01-logic.statemachine.json")
+        self.assertNotEqual(result.returncode, 0)
+        combined = result.stderr + result.stdout
+        self.assertIn("attachment", combined.lower())
+
+    # ── rename ───────────────────────────────────────────────────────────────
+
+    def test_rename_renames_same_slug_attachments(self):
+        """Rename renames root and same-slug attachments; other-slug attachments unchanged."""
+        result = _run_carta(self.carta, "rename", "doc00.01", "engine")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+        self.assertTrue((self.codex / "01-engine.md").exists())
+        self.assertTrue((self.codex / "01-engine.statemachine.json").exists())
+        self.assertTrue((self.codex / "01-design.png").exists())  # different slug, unchanged
+        self.assertFalse((self.codex / "01-logic.md").exists())
+        self.assertFalse((self.codex / "01-logic.statemachine.json").exists())
+
+    def test_rename_no_attachments_works_unchanged(self):
+        """Rename of a file with no attachments behaves like before."""
+        result = _run_carta(self.carta, "rename", "doc00.02", "plain")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+        self.assertTrue((self.codex / "02-plain.md").exists())
+        self.assertFalse((self.codex / "02-state.md").exists())
+
+    def test_rename_output_shows_unchanged_attachments(self):
+        """Rename prints 'Left unchanged' for same-prefix different-slug attachments."""
+        result = _run_carta(self.carta, "rename", "doc00.01", "engine")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+        self.assertIn("Left unchanged", result.stdout)
+        self.assertIn("01-design.png", result.stdout)
+
+    # ── cross-ref integrity ───────────────────────────────────────────────────
+
+    def test_move_bundle_attachments_not_in_rename_map(self):
+        """Moving a bundle: attachments appear in fs moves but not in ref rename_map."""
+        result = _run_carta(self.carta, "move", "doc00.01", "00-codex",
+                            "--order", "3", "--dry-run")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+        output = result.stdout
+        # Filesystem moves should mention attachments
+        self.assertIn("logic.statemachine.json", output)
+        self.assertIn("design.png", output)
+        # Ref rename map should NOT contain attachment file extensions
+        if "Ref rename map" in output:
+            ref_section = output.split("Ref rename map")[1]
+            self.assertNotIn(".statemachine.json", ref_section)
+            self.assertNotIn(".png", ref_section)
+
+
+def _build_punch_flatten_fixture(dest: Path) -> Path:
+    """Build workspace for bundle-aware punch/flatten tests. Returns dest/.carta/"""
+    carta = dest / ".carta"
+    carta.mkdir(parents=True, exist_ok=True)
+
+    (dest / MARKER).write_text(
+        json.dumps({"root": ".carta/", "title": "PFTest"}), encoding="utf-8"
+    )
+
+    # 00-codex/ — for punch tests: leaf files with attachments
+    _write(carta / "00-codex/00-index.md", _fm("Codex", summary="Codex index."))
+    _write(carta / "00-codex/01-game.md", _fm("Game Logic", summary="Game doc."))
+    (carta / "00-codex/01-game.xstate.json").write_text('{"id":"g"}', encoding="utf-8")
+    (carta / "00-codex/01-game.mockup.png").write_bytes(b"\x89PNG\r\n")
+    _write(carta / "00-codex/02-plain.md", _fm("Plain", summary="No attachments."))
+
+    # 01-product/ — for flatten tests: a subdirectory with bundled children
+    _write(carta / "01-product/00-index.md", _fm("Product", summary="Product index."))
+    (carta / "01-product/00-product.cover.png").write_bytes(b"\x89PNG\r\n")  # index attachment
+    # 01-chapter/ — the directory to be flattened
+    _write(carta / "01-product/01-chapter/00-index.md", _fm("Chapter", summary="Chapter."))
+    (carta / "01-product/01-chapter/00-chapter.bg.png").write_bytes(b"\x89PNG\r\n")  # index att
+    _write(carta / "01-product/01-chapter/01-intro.md", _fm("Intro", summary="Intro."))
+    (carta / "01-product/01-chapter/01-intro.notes.txt").write_text("notes", encoding="utf-8")
+    _write(carta / "01-product/01-chapter/02-body.md", _fm("Body", summary="Body."))
+    (carta / "01-product/01-chapter/02-body.diagram.svg").write_text("<svg/>", encoding="utf-8")
+    # 02-extra.md — sibling after chapter (for verifying it shifts correctly)
+    _write(carta / "01-product/02-extra.md", _fm("Extra", summary="Sibling."))
+
+    result = _run_carta(carta, "regenerate")
+    if result.returncode != 0:
+        raise RuntimeError(f"punch/flatten fixture regenerate failed:\n{result.stderr}")
+
+    return carta
+
+
+class TestBundleAwarePunchFlatten(unittest.TestCase):
+    """Tests for bundle-aware punch and flatten operations (sidecars-03)."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.carta = _build_punch_flatten_fixture(Path(self.tmpdir.name))
+        self.codex = self.carta / "00-codex"
+        self.product = self.carta / "01-product"
+        self.chapter = self.product / "01-chapter"
+
+    def tearDown(self):
+        self.tmpdir.cleanup()
+
+    # ── punch ──────────────────────────────────────────────────────────────────
+
+    def test_punch_moves_attachments_to_new_dir_with_00_prefix(self):
+        """Punch (default) moves all bundle attachments into new dir with 00- prefix."""
+        result = _run_carta(self.carta, "punch", "doc00.01")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+        game_dir = self.codex / "01-game"
+        self.assertTrue(game_dir.is_dir())
+        self.assertTrue((game_dir / "00-index.md").exists())
+        self.assertTrue((game_dir / "00-game.xstate.json").exists())
+        self.assertTrue((game_dir / "00-game.mockup.png").exists())
+
+        self.assertFalse((self.codex / "01-game.md").exists())
+        self.assertFalse((self.codex / "01-game.xstate.json").exists())
+        self.assertFalse((self.codex / "01-game.mockup.png").exists())
+
+    def test_punch_as_child_moves_attachments_with_01_prefix(self):
+        """Punch --as-child moves attachments into new dir with 01- prefix, slugs preserved."""
+        result = _run_carta(self.carta, "punch", "doc00.01", "--as-child")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+        game_dir = self.codex / "01-game"
+        self.assertTrue(game_dir.is_dir())
+        self.assertTrue((game_dir / "00-index.md").exists())    # generated index
+        self.assertTrue((game_dir / "01-game.md").exists())      # original content
+        self.assertTrue((game_dir / "01-game.xstate.json").exists())
+        self.assertTrue((game_dir / "01-game.mockup.png").exists())
+
+        self.assertFalse((self.codex / "01-game.md").exists())
+        self.assertFalse((self.codex / "01-game.xstate.json").exists())
+        self.assertFalse((self.codex / "01-game.mockup.png").exists())
+
+    def test_punch_no_attachments_unchanged_behavior(self):
+        """Punch of a file with no attachments works as before."""
+        result = _run_carta(self.carta, "punch", "doc00.02")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+        plain_dir = self.codex / "02-plain"
+        self.assertTrue(plain_dir.is_dir())
+        self.assertTrue((plain_dir / "00-index.md").exists())
+        self.assertFalse((self.codex / "02-plain.md").exists())
+
+    def test_punch_dry_run_shows_attachment_moves(self):
+        """--dry-run prints planned attachment moves without modifying files."""
+        result = _run_carta(self.carta, "punch", "doc00.01", "--dry-run")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+        self.assertTrue((self.codex / "01-game.md").exists())
+        self.assertTrue((self.codex / "01-game.xstate.json").exists())
+        self.assertFalse((self.codex / "01-game").exists())
+
+        self.assertIn("xstate.json", result.stdout)
+        self.assertIn("mockup.png", result.stdout)
+
+    def test_punch_as_child_dry_run_shows_attachments(self):
+        """--as-child --dry-run prints planned moves without modifying files."""
+        result = _run_carta(self.carta, "punch", "doc00.01", "--as-child", "--dry-run")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+        self.assertTrue((self.codex / "01-game.md").exists())
+        self.assertFalse((self.codex / "01-game").exists())
+        self.assertIn("xstate.json", result.stdout)
+
+    # ── flatten ────────────────────────────────────────────────────────────────
+
+    def test_flatten_children_with_attachments_travel(self):
+        """Flatten: each child bundle (root + attachments) is hoisted as a unit."""
+        result = _run_carta(self.carta, "flatten", "doc01.01")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+        self.assertFalse(self.chapter.exists())
+
+        # intro (slot 0 → prefix 1) + its attachment
+        self.assertTrue((self.product / "01-intro.md").exists())
+        self.assertTrue((self.product / "01-intro.notes.txt").exists())
+        # body (slot 1 → prefix 2) + its attachment
+        self.assertTrue((self.product / "02-body.md").exists())
+        self.assertTrue((self.product / "02-body.diagram.svg").exists())
+        # extra shifts from prefix 2 to prefix 3
+        self.assertTrue((self.product / "03-extra.md").exists())
+        self.assertFalse((self.product / "02-extra.md").exists())
+
+    def test_flatten_keep_index_travels_with_attachments(self):
+        """Flatten --keep-index: index + its 00-* attachments travel together."""
+        result = _run_carta(self.carta, "flatten", "doc01.01", "--keep-index")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+        self.assertFalse(self.chapter.exists())
+
+        # index → 01-chapter.md, its attachment → 01-chapter.bg.png
+        self.assertTrue((self.product / "01-chapter.md").exists())
+        self.assertTrue((self.product / "01-chapter.bg.png").exists())
+        # intro at 02
+        self.assertTrue((self.product / "02-intro.md").exists())
+        self.assertTrue((self.product / "02-intro.notes.txt").exists())
+        # body at 03
+        self.assertTrue((self.product / "03-body.md").exists())
+        self.assertTrue((self.product / "03-body.diagram.svg").exists())
+        # extra shifts to 04
+        self.assertTrue((self.product / "04-extra.md").exists())
+        self.assertFalse((self.product / "02-extra.md").exists())
+
+    def test_flatten_discards_index_attachments_when_no_keep_index(self):
+        """Without --keep-index, index and its 00-* attachments are discarded, not orphaned."""
+        result = _run_carta(self.carta, "flatten", "doc01.01")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+        self.assertFalse(self.chapter.exists())
+
+        # 00-chapter.bg.png must not appear anywhere in parent at any prefix
+        parent_files = {p.name for p in self.product.iterdir() if p.is_file()}
+        self.assertNotIn("00-chapter.bg.png", parent_files)
+        self.assertNotIn("01-chapter.bg.png", parent_files)
+        self.assertNotIn("02-chapter.bg.png", parent_files)
+
+    def test_flatten_parent_index_and_attachments_untouched(self):
+        """Parent's own 00-index.md and its attachments are not renumbered during flatten."""
+        result = _run_carta(self.carta, "flatten", "doc01.01")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+        self.assertTrue((self.product / "00-index.md").exists())
+        self.assertTrue((self.product / "00-product.cover.png").exists())
+
+    def test_flatten_attachments_not_in_ref_rename_map(self):
+        """Flatten dry-run: attachment files don't appear in the ref rename map."""
+        result = _run_carta(self.carta, "flatten", "doc01.01", "--dry-run")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+        output = result.stdout
+        self.assertIn("intro.notes.txt", output)
+        self.assertIn("body.diagram.svg", output)
+
+        if "Ref rename map" in output:
+            ref_section = output.split("Ref rename map")[1]
+            self.assertNotIn(".notes.txt", ref_section)
+            self.assertNotIn(".diagram.svg", ref_section)
+
+
+class TestAttach(unittest.TestCase):
+    """Tests for `carta attach` command."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        root = Path(self.tmpdir.name)
+        self.carta = root / ".carta"
+        self.carta.mkdir(parents=True, exist_ok=True)
+        (root / MARKER).write_text(
+            json.dumps({"root": ".carta/", "title": "AttachTest"}), encoding="utf-8"
+        )
+
+        # 00-codex/ with a leaf doc and an index
+        _write(self.carta / "00-codex/00-index.md",
+               _fm("Codex", summary="Codex index."))
+        _write(self.carta / "00-codex/01-logic.md",
+               _fm("Logic", summary="Game logic."))
+
+        result = _run_carta(self.carta, "regenerate")
+        if result.returncode != 0:
+            raise RuntimeError(f"attach fixture regenerate failed:\n{result.stderr}")
+
+        # External source file (outside workspace)
+        self.src_json = root / "fsm.json"
+        self.src_json.write_text('{"id": "fsm"}', encoding="utf-8")
+        self.src_txt = root / "notes.txt"
+        self.src_txt.write_text("some notes", encoding="utf-8")
+
+    def tearDown(self):
+        self.tmpdir.cleanup()
+
+    def test_attach_leaf_uses_source_stem(self):
+        """Attach a file to a leaf md → attachment lands with correct prefix + stem."""
+        result = _run_carta(self.carta, "attach", "00-codex/01-logic.md", str(self.src_json))
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+        self.assertTrue((self.carta / "00-codex/01-fsm.json").exists())
+        self.assertIn("Attached:", result.stdout)
+
+    def test_attach_via_ref(self):
+        """Attach using a doc ref resolves correctly."""
+        result = _run_carta(self.carta, "attach", "doc00.01", str(self.src_json))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue((self.carta / "00-codex/01-fsm.json").exists())
+
+    def test_attach_rename_slug(self):
+        """--rename overrides the slug segment."""
+        result = _run_carta(self.carta, "attach", "00-codex/01-logic.md",
+                            str(self.src_json), "--rename", "my-machine")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue((self.carta / "00-codex/01-my-machine.json").exists())
+
+    def test_attach_rename_with_extension_not_doubled(self):
+        """--rename that includes extension does not double the extension."""
+        result = _run_carta(self.carta, "attach", "00-codex/01-logic.md",
+                            str(self.src_json), "--rename", "xstate.json")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue((self.carta / "00-codex/01-xstate.json").exists())
+        self.assertFalse((self.carta / "00-codex/01-xstate.json.json").exists())
+
+    def test_attach_to_index_md(self):
+        """Attach to 00-index.md lands with prefix 00 in the index's directory."""
+        result = _run_carta(self.carta, "attach", "00-codex/00-index.md", str(self.src_txt))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue((self.carta / "00-codex/00-notes.txt").exists())
+
+    def test_attach_collision_raises_error(self):
+        """Attaching when destination already exists raises CartaError."""
+        (self.carta / "00-codex/01-fsm.json").write_text("existing", encoding="utf-8")
+        result = _run_carta(self.carta, "attach", "00-codex/01-logic.md", str(self.src_json))
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("already exists", result.stderr)
+        # Ensure the existing file is untouched
+        self.assertEqual((self.carta / "00-codex/01-fsm.json").read_text(), "existing")
+
+    def test_attach_dry_run_writes_nothing(self):
+        """--dry-run prints the plan but writes nothing."""
+        result = _run_carta(self.carta, "attach", "00-codex/01-logic.md",
+                            str(self.src_json), "--dry-run")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Would attach:", result.stdout)
+        self.assertFalse((self.carta / "00-codex/01-fsm.json").exists())
+
+    def test_attach_directory_target_raises_error(self):
+        """Attaching to a directory raises CartaError."""
+        result = _run_carta(self.carta, "attach", "00-codex", str(self.src_json))
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("leaf doc", result.stderr)
+
+    def test_attach_non_md_target_raises_error(self):
+        """Attaching to a non-.md file raises CartaError."""
+        (self.carta / "00-codex/01-logic.statemachine.json").write_text(
+            '{"id":"x"}', encoding="utf-8"
+        )
+        result = _run_carta(self.carta, "attach",
+                            "00-codex/01-logic.statemachine.json", str(self.src_json))
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("leaf doc", result.stderr)
+
+
 if __name__ == "__main__":
     unittest.main()
