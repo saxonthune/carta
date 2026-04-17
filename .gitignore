@@ -20,3 +20,6 @@ todo-tasks/
 .todo-tasks/
 .demo/
 .claude/agent-results/
+.claude/scheduled_tasks.lock
+.claude/scheduled_tasks.json
+.claude/settings.local.json
