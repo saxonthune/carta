@@ -19,13 +19,14 @@ dependencies = [
 Repository = "https://github.com/saxonthune/carta"
 
 [project.optional-dependencies]
-test = ["pytest"]
+test = ["pytest", "hypothesis", "pytest-cov", "syrupy"]
 
 [project.scripts]
 carta = "carta_cli.main:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = "--cov=carta_cli --cov-report=term-missing"
 
 [tool.hatch.build.targets.wheel]
 packages = ["carta_cli"]

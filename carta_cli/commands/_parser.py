@@ -13,7 +13,7 @@ from .content import cmd_cat, cmd_tree, cmd_rewrite, cmd_regenerate, cmd_attach
 from .setup import cmd_init, cmd_portable, cmd_init_rehydrate
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="carta",
         description="Workspace tools for managing .carta/ documentation.",
@@ -168,7 +168,8 @@ def main() -> None:
                         help="Show filenames instead of frontmatter titles.")
 
     # Handle per-subcommand --help-ai before parse_args (avoids required-arg errors)
-    argv = sys.argv[1:]
+    if argv is None:
+        argv = sys.argv[1:]
     if "--help-ai" in argv:
         # Find the subcommand name: skip flags and their values
         known_subcommands = {
@@ -186,7 +187,7 @@ def main() -> None:
             else:
                 print(f"No AI documentation available for '{cmd}'.")
                 print("Run `carta ai-skill` for the full reference.")
-            raise SystemExit(0)
+            return 0
 
     # Friendlier hint for a common mistake: `carta create --slug foo`
     if "create" in argv and "--slug" in argv and argv.index("--slug") > argv.index("create"):
@@ -197,18 +198,18 @@ def main() -> None:
             "Example: carta create doc01.03 my-section --title \"My Section\"",
             file=sys.stderr,
         )
-        raise SystemExit(1)
+        return 1
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     if args.help_ai:
         print("Deprecated: --help-ai is replaced by `carta ai-skill`.")
         print("Run `carta ai-skill` for full semantic documentation.")
-        raise SystemExit(0)
+        return 0
 
     if not args.command:
         parser.print_help()
-        raise SystemExit(1)
+        return 1
 
     try:
         # init and portable don't require a pre-existing workspace
@@ -221,7 +222,7 @@ def main() -> None:
                 cmd_init_rehydrate(args, carta_root)
             else:
                 cmd_init(args)
-            return
+            return 0
 
         # Resolve workspace
         if args.workspace:
@@ -234,7 +235,7 @@ def main() -> None:
 
         if args.command == "portable":
             cmd_portable(args, carta_root)
-            return
+            return 0
 
         dispatch = {
             "regenerate": cmd_regenerate,
@@ -253,10 +254,14 @@ def main() -> None:
             "tree": cmd_tree,
         }
         dispatch[args.command](args, carta_root)
+        return 0
     except CartaError as e:
         print(str(e), file=sys.stderr)
-        raise SystemExit(1)
+        return 1
+    except (FileNotFoundError, ValueError) as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

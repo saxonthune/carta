@@ -23,3 +23,7 @@ todo-tasks/
 .claude/scheduled_tasks.lock
 .claude/scheduled_tasks.json
 .claude/settings.local.json
+
+.coverage
+.hypothesis/
+.pytest_cache/

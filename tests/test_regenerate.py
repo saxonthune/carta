@@ -4,24 +4,30 @@ Run with:
     python3 -m pytest tests/test_regenerate.py -v
 """
 
+import contextlib
+import io
 import re
 import shutil
-import subprocess
 import sys
 import tempfile
+import types
 import unittest
+
+import pytest
 from pathlib import Path
 
 # Ensure carta_cli is importable without prior pip install
 _CLI_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_CLI_DIR))
 
+from carta_cli.commands._parser import main as cli_main
 from carta_cli.workspace import find_workspace
 from carta_cli.ref_convert import ref_to_path
 from carta_cli.frontmatter import read_frontmatter, write_frontmatter
 
+from helpers import normalize_output
+
 _REAL_CARTA_ROOT = find_workspace()
-_ENV_WITH_CLI = {**__import__("os").environ, "PYTHONPATH": str(_CLI_DIR)}
 
 
 # ---------------------------------------------------------------------------
@@ -35,11 +41,19 @@ def _copy_carta(dest: Path) -> Path:
     return carta_copy
 
 
-def _run_carta(carta_copy: Path, *args: str) -> subprocess.CompletedProcess:
-    """Run the carta CLI against a workspace copy."""
-    return subprocess.run(
-        [sys.executable, "-m", "carta_cli.main", "--workspace", str(carta_copy)] + list(args),
-        capture_output=True, text=True, env=_ENV_WITH_CLI,
+def _run_carta(carta_copy: Path, *args: str) -> types.SimpleNamespace:
+    """Run the carta CLI against a workspace copy (in-process)."""
+    stdout_buf = io.StringIO()
+    stderr_buf = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(stdout_buf), contextlib.redirect_stderr(stderr_buf):
+            code = cli_main(["--workspace", str(carta_copy)] + list(args))
+    except SystemExit as e:
+        code = int(e.code) if e.code is not None else 0
+    return types.SimpleNamespace(
+        returncode=code,
+        stdout=stdout_buf.getvalue(),
+        stderr=stderr_buf.getvalue(),
     )
 
 
@@ -305,6 +319,10 @@ class TestRefsResolve(unittest.TestCase):
 class TestAttachmentsColumn(unittest.TestCase):
     """Tests for MANIFEST Attachments column and orphan detection."""
 
+    @pytest.fixture(autouse=True)
+    def _inject_snapshot(self, snapshot):
+        self._snapshot = snapshot
+
     def setUp(self):
         self.tmpdir = tempfile.TemporaryDirectory()
         self.tmp = Path(self.tmpdir.name)
@@ -325,10 +343,18 @@ class TestAttachmentsColumn(unittest.TestCase):
                 p.write_text(content, encoding="utf-8")
         return workspace
 
-    def _run(self, workspace: Path, *args: str) -> subprocess.CompletedProcess:
-        return subprocess.run(
-            [sys.executable, "-m", "carta_cli.main", "--workspace", str(workspace)] + list(args),
-            capture_output=True, text=True, env=_ENV_WITH_CLI,
+    def _run(self, workspace: Path, *args: str) -> types.SimpleNamespace:
+        stdout_buf = io.StringIO()
+        stderr_buf = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(stdout_buf), contextlib.redirect_stderr(stderr_buf):
+                code = cli_main(["--workspace", str(workspace)] + list(args))
+        except SystemExit as e:
+            code = int(e.code) if e.code is not None else 0
+        return types.SimpleNamespace(
+            returncode=code,
+            stdout=stdout_buf.getvalue(),
+            stderr=stderr_buf.getvalue(),
         )
 
     def test_header_has_attachments_column(self):
@@ -339,7 +365,7 @@ class TestAttachmentsColumn(unittest.TestCase):
         })
         result = self._run(ws, "regenerate", "--dry-run")
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("| Attachments |", result.stdout)
+        assert normalize_output(result.stdout, ws) == self._snapshot
 
     def test_no_attachments_renders_emdash(self):
         """A doc with no non-md siblings renders — in Attachments column."""
@@ -408,9 +434,7 @@ class TestAttachmentsColumn(unittest.TestCase):
         })
         result = self._run(ws, "regenerate")
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("Warning", result.stderr)
-        self.assertIn("orphan", result.stderr.lower())
-        self.assertIn("03-orphan.json", result.stderr)
+        assert normalize_output(result.stderr, ws) == self._snapshot
         manifest = ws / "MANIFEST.md"
         self.assertTrue(manifest.exists(), "MANIFEST.md not written despite warning")
         content = manifest.read_text(encoding="utf-8")
@@ -426,8 +450,7 @@ class TestAttachmentsColumn(unittest.TestCase):
         })
         result = self._run(ws, "regenerate")
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("Warning", result.stderr)
-        self.assertIn("03-stale.yaml", result.stderr)
+        assert normalize_output(result.stderr, ws) == self._snapshot
         manifest = ws / "MANIFEST.md"
         content = manifest.read_text(encoding="utf-8")
         self.assertIn("doc01.03.01", content)
