@@ -4,11 +4,13 @@ Run with:
     python3 -m pytest tests/test_regenerate.py -v
 """
 
+import contextlib
+import io
 import re
 import shutil
-import subprocess
 import sys
 import tempfile
+import types
 import unittest
 from pathlib import Path
 
@@ -16,12 +18,12 @@ from pathlib import Path
 _CLI_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_CLI_DIR))
 
+from carta_cli.commands._parser import main as cli_main
 from carta_cli.workspace import find_workspace
 from carta_cli.ref_convert import ref_to_path
 from carta_cli.frontmatter import read_frontmatter, write_frontmatter
 
 _REAL_CARTA_ROOT = find_workspace()
-_ENV_WITH_CLI = {**__import__("os").environ, "PYTHONPATH": str(_CLI_DIR)}
 
 
 # ---------------------------------------------------------------------------
@@ -35,11 +37,19 @@ def _copy_carta(dest: Path) -> Path:
     return carta_copy
 
 
-def _run_carta(carta_copy: Path, *args: str) -> subprocess.CompletedProcess:
-    """Run the carta CLI against a workspace copy."""
-    return subprocess.run(
-        [sys.executable, "-m", "carta_cli.main", "--workspace", str(carta_copy)] + list(args),
-        capture_output=True, text=True, env=_ENV_WITH_CLI,
+def _run_carta(carta_copy: Path, *args: str) -> types.SimpleNamespace:
+    """Run the carta CLI against a workspace copy (in-process)."""
+    stdout_buf = io.StringIO()
+    stderr_buf = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(stdout_buf), contextlib.redirect_stderr(stderr_buf):
+            code = cli_main(["--workspace", str(carta_copy)] + list(args))
+    except SystemExit as e:
+        code = int(e.code) if e.code is not None else 0
+    return types.SimpleNamespace(
+        returncode=code,
+        stdout=stdout_buf.getvalue(),
+        stderr=stderr_buf.getvalue(),
     )
 
 
@@ -325,10 +335,18 @@ class TestAttachmentsColumn(unittest.TestCase):
                 p.write_text(content, encoding="utf-8")
         return workspace
 
-    def _run(self, workspace: Path, *args: str) -> subprocess.CompletedProcess:
-        return subprocess.run(
-            [sys.executable, "-m", "carta_cli.main", "--workspace", str(workspace)] + list(args),
-            capture_output=True, text=True, env=_ENV_WITH_CLI,
+    def _run(self, workspace: Path, *args: str) -> types.SimpleNamespace:
+        stdout_buf = io.StringIO()
+        stderr_buf = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(stdout_buf), contextlib.redirect_stderr(stderr_buf):
+                code = cli_main(["--workspace", str(workspace)] + list(args))
+        except SystemExit as e:
+            code = int(e.code) if e.code is not None else 0
+        return types.SimpleNamespace(
+            returncode=code,
+            stdout=stdout_buf.getvalue(),
+            stderr=stderr_buf.getvalue(),
         )
 
     def test_header_has_attachments_column(self):

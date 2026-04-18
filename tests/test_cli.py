@@ -4,6 +4,8 @@ Run with:
     python3 -m pytest tests/test_cli.py -v
 """
 
+import contextlib
+import io
 import json
 import os
 import re
@@ -11,6 +13,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import types
 import unittest
 from pathlib import Path
 
@@ -18,13 +21,12 @@ from pathlib import Path
 _CLI_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_CLI_DIR))
 
+from carta_cli.commands._parser import main as cli_main
 from carta_cli.entries import list_numbered_entries
 from carta_cli.numbering import get_numeric_prefix
 from carta_cli.ref_convert import ref_to_path, path_to_ref
 from carta_cli.rewriter import collect_md_files, rewrite_refs
 from carta_cli.workspace import find_workspace, MARKER
-
-_ENV_WITH_CLI = {**os.environ, "PYTHONPATH": str(_CLI_DIR)}
 
 
 def _fm(title: str, status: str = "active", summary: str = "", tags: list[str] | None = None, deps: list[str] | None = None) -> str:
@@ -168,11 +170,19 @@ def _build_fixture(dest: Path) -> Path:
     return carta
 
 
-def _run_carta(carta_copy: Path, *args: str) -> subprocess.CompletedProcess:
-    """Run the carta CLI against a workspace copy."""
-    return subprocess.run(
-        [sys.executable, "-m", "carta_cli.main", "--workspace", str(carta_copy)] + list(args),
-        capture_output=True, text=True, env=_ENV_WITH_CLI,
+def _run_carta(carta_copy: Path, *args: str) -> types.SimpleNamespace:
+    """Run the carta CLI against a workspace copy (in-process)."""
+    stdout_buf = io.StringIO()
+    stderr_buf = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(stdout_buf), contextlib.redirect_stderr(stderr_buf):
+            code = cli_main(["--workspace", str(carta_copy)] + list(args))
+    except SystemExit as e:
+        code = int(e.code) if e.code is not None else 0
+    return types.SimpleNamespace(
+        returncode=code,
+        stdout=stdout_buf.getvalue(),
+        stderr=stderr_buf.getvalue(),
     )
 
 
@@ -237,139 +247,99 @@ class TestFindWorkspace(unittest.TestCase):
                 os.chdir(old_cwd)
 
 
-class TestInitDir(unittest.TestCase):
-    """Tests for carta init --dir."""
+def test_init_custom_dir(run_cli, tmp_path):
+    """carta init --dir .docs creates .carta.json at root with correct root field."""
+    code, out, err = run_cli("init", "--dir", ".docs", "--name", "TestProject", cwd=tmp_path)
+    assert code == 0, f"init failed:\n{err}\n{out}"
 
-    def test_init_custom_dir(self):
-        """carta init --dir .docs creates .carta.json at root with correct root field."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            result = subprocess.run(
-                [sys.executable, "-m", "carta_cli.main", "init", "--dir", ".docs", "--name", "TestProject"],
-                capture_output=True, text=True, env=_ENV_WITH_CLI, cwd=tmpdir,
-            )
-            self.assertEqual(result.returncode, 0, f"init failed:\n{result.stderr}\n{result.stdout}")
+    marker_path = tmp_path / MARKER
+    assert marker_path.exists(), f"{MARKER} should exist at project root"
+    marker_data = json.loads(marker_path.read_text())
+    assert marker_data["root"] == ".docs/"
+    assert marker_data["title"] == "TestProject"
 
-            # .carta.json at project root
-            marker_path = Path(tmpdir) / MARKER
-            self.assertTrue(marker_path.exists(), f"{MARKER} should exist at project root")
-            marker_data = json.loads(marker_path.read_text())
-            self.assertEqual(marker_data["root"], ".docs/")
-            self.assertEqual(marker_data["title"], "TestProject")
+    docs_dir = tmp_path / ".docs"
+    assert (docs_dir / "MANIFEST.md").exists()
+    assert (docs_dir / "00-codex" / "00-index.md").exists()
 
-            # Docs directory created
-            docs_dir = Path(tmpdir) / ".docs"
-            self.assertTrue((docs_dir / "MANIFEST.md").exists())
-            self.assertTrue((docs_dir / "00-codex" / "00-index.md").exists())
+    manifest = (docs_dir / "MANIFEST.md").read_text(encoding="utf-8")
+    assert manifest.startswith("# .docs/ Manifest"), f"MANIFEST header should use .docs/: {manifest[:50]}"
 
-            manifest = (docs_dir / "MANIFEST.md").read_text(encoding="utf-8")
-            self.assertTrue(manifest.startswith("# .docs/ Manifest"),
-                            f"MANIFEST header should use .docs/: {manifest[:50]}")
 
-    def test_init_default_dir(self):
-        """carta init with no --dir creates .carta/ and .carta.json with root=.carta/."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            result = subprocess.run(
-                [sys.executable, "-m", "carta_cli.main", "init", "--name", "DefaultTest"],
-                capture_output=True, text=True, env=_ENV_WITH_CLI, cwd=tmpdir,
-            )
-            self.assertEqual(result.returncode, 0, f"init failed:\n{result.stderr}\n{result.stdout}")
+def test_init_default_dir(run_cli, tmp_path):
+    """carta init with no --dir creates .carta/ and .carta.json with root=.carta/."""
+    code, out, err = run_cli("init", "--name", "DefaultTest", cwd=tmp_path)
+    assert code == 0, f"init failed:\n{err}\n{out}"
 
-            marker_path = Path(tmpdir) / MARKER
-            self.assertTrue(marker_path.exists())
-            marker_data = json.loads(marker_path.read_text())
-            self.assertEqual(marker_data["root"], ".carta/")
+    marker_path = tmp_path / MARKER
+    assert marker_path.exists()
+    marker_data = json.loads(marker_path.read_text())
+    assert marker_data["root"] == ".carta/"
 
-    def test_init_without_rehydrate_refuses_existing(self):
-        """carta init without --rehydrate refuses when .carta.json already exists and hints at --rehydrate."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            # Create marker first
-            (Path(tmpdir) / MARKER).write_text("{}")
-            result = subprocess.run(
-                [sys.executable, "-m", "carta_cli.main", "init"],
-                capture_output=True, text=True, env=_ENV_WITH_CLI, cwd=tmpdir,
-            )
-            self.assertEqual(result.returncode, 0)
-            self.assertIn("already exists", result.stdout)
-            self.assertIn("--rehydrate", result.stdout)
 
-    def _init_workspace(self, tmpdir: str) -> None:
-        """Helper: run carta init in tmpdir."""
-        result = subprocess.run(
-            [sys.executable, "-m", "carta_cli.main", "init", "--name", "TestProject"],
-            capture_output=True, text=True, env=_ENV_WITH_CLI, cwd=tmpdir,
-        )
-        self.assertEqual(result.returncode, 0, f"init failed:\n{result.stderr}\n{result.stdout}")
+def test_init_without_rehydrate_refuses_existing(run_cli, tmp_path):
+    """carta init without --rehydrate refuses when .carta.json already exists and hints at --rehydrate."""
+    (tmp_path / MARKER).write_text("{}")
+    code, out, err = run_cli("init", cwd=tmp_path)
+    assert code == 0
+    assert "already exists" in out
+    assert "--rehydrate" in out
 
-    def test_init_rehydrate_updates_stale_template(self):
-        """carta init --rehydrate overwrites a stale codex template."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            self._init_workspace(tmpdir)
-            stale_path = Path(tmpdir) / ".carta" / "00-codex" / "01-about.md"
-            stale_path.write_text("stale content", encoding="utf-8")
 
-            result = subprocess.run(
-                [sys.executable, "-m", "carta_cli.main", "init", "--rehydrate"],
-                capture_output=True, text=True, env=_ENV_WITH_CLI, cwd=tmpdir,
-            )
-            self.assertEqual(result.returncode, 0, f"rehydrate failed:\n{result.stderr}\n{result.stdout}")
-            self.assertNotEqual(stale_path.read_text(encoding="utf-8"), "stale content")
+def test_init_rehydrate_updates_stale_template(run_cli, tmp_path):
+    """carta init --rehydrate overwrites a stale codex template."""
+    run_cli("init", "--name", "TestProject", cwd=tmp_path)
+    stale_path = tmp_path / ".carta" / "00-codex" / "01-about.md"
+    stale_path.write_text("stale content", encoding="utf-8")
 
-    def test_init_rehydrate_dry_run(self):
-        """carta init --rehydrate --dry-run shows plan without writing."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            self._init_workspace(tmpdir)
-            stale_path = Path(tmpdir) / ".carta" / "00-codex" / "01-about.md"
-            stale_path.write_text("stale content", encoding="utf-8")
+    code, out, err = run_cli("init", "--rehydrate", cwd=tmp_path)
+    assert code == 0, f"rehydrate failed:\n{err}\n{out}"
+    assert stale_path.read_text(encoding="utf-8") != "stale content"
 
-            result = subprocess.run(
-                [sys.executable, "-m", "carta_cli.main", "init", "--rehydrate", "--dry-run"],
-                capture_output=True, text=True, env=_ENV_WITH_CLI, cwd=tmpdir,
-            )
-            self.assertEqual(result.returncode, 0, f"dry-run failed:\n{result.stderr}\n{result.stdout}")
-            self.assertIn("Would update", result.stdout)
-            self.assertEqual(stale_path.read_text(encoding="utf-8"), "stale content")
 
-    def test_init_rehydrate_preserves_workspace_json(self):
-        """carta init --rehydrate does not overwrite workspace title in marker."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            self._init_workspace(tmpdir)
-            marker_path = Path(tmpdir) / MARKER
-            config = json.loads(marker_path.read_text(encoding="utf-8"))
-            config["title"] = "My Custom Title"
-            marker_path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
+def test_init_rehydrate_dry_run(run_cli, tmp_path):
+    """carta init --rehydrate --dry-run shows plan without writing."""
+    run_cli("init", "--name", "TestProject", cwd=tmp_path)
+    stale_path = tmp_path / ".carta" / "00-codex" / "01-about.md"
+    stale_path.write_text("stale content", encoding="utf-8")
 
-            result = subprocess.run(
-                [sys.executable, "-m", "carta_cli.main", "init", "--rehydrate"],
-                capture_output=True, text=True, env=_ENV_WITH_CLI, cwd=tmpdir,
-            )
-            self.assertEqual(result.returncode, 0, f"rehydrate failed:\n{result.stderr}\n{result.stdout}")
-            config_after = json.loads(marker_path.read_text(encoding="utf-8"))
-            self.assertEqual(config_after["title"], "My Custom Title")
+    code, out, err = run_cli("init", "--rehydrate", "--dry-run", cwd=tmp_path)
+    assert code == 0, f"dry-run failed:\n{err}\n{out}"
+    assert "Would update" in out
+    assert stale_path.read_text(encoding="utf-8") == "stale content"
 
-    def test_init_rehydrate_without_workspace(self):
-        """carta init --rehydrate in an empty dir exits non-zero with helpful error."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            result = subprocess.run(
-                [sys.executable, "-m", "carta_cli.main", "init", "--rehydrate"],
-                capture_output=True, text=True, env=_ENV_WITH_CLI, cwd=tmpdir,
-            )
-            self.assertNotEqual(result.returncode, 0)
-            combined = result.stdout + result.stderr
-            self.assertIn("carta init", combined)
 
-    def test_init_rehydrate_refreshes_skill(self):
-        """carta init --rehydrate overwrites a stale carta-cli SKILL.md."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            self._init_workspace(tmpdir)
-            skill_path = Path(tmpdir) / ".claude" / "skills" / "carta-cli" / "SKILL.md"
-            skill_path.write_text("stale skill content", encoding="utf-8")
+def test_init_rehydrate_preserves_workspace_json(run_cli, tmp_path):
+    """carta init --rehydrate does not overwrite workspace title in marker."""
+    run_cli("init", "--name", "TestProject", cwd=tmp_path)
+    marker_path = tmp_path / MARKER
+    config = json.loads(marker_path.read_text(encoding="utf-8"))
+    config["title"] = "My Custom Title"
+    marker_path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
 
-            result = subprocess.run(
-                [sys.executable, "-m", "carta_cli.main", "init", "--rehydrate"],
-                capture_output=True, text=True, env=_ENV_WITH_CLI, cwd=tmpdir,
-            )
-            self.assertEqual(result.returncode, 0, f"rehydrate failed:\n{result.stderr}\n{result.stdout}")
-            self.assertNotEqual(skill_path.read_text(encoding="utf-8"), "stale skill content")
+    code, out, err = run_cli("init", "--rehydrate", cwd=tmp_path)
+    assert code == 0, f"rehydrate failed:\n{err}\n{out}"
+    config_after = json.loads(marker_path.read_text(encoding="utf-8"))
+    assert config_after["title"] == "My Custom Title"
+
+
+def test_init_rehydrate_without_workspace(run_cli, tmp_path):
+    """carta init --rehydrate in an empty dir exits non-zero with helpful error."""
+    code, out, err = run_cli("init", "--rehydrate", cwd=tmp_path)
+    assert code != 0
+    combined = out + err
+    assert "carta init" in combined
+
+
+def test_init_rehydrate_refreshes_skill(run_cli, tmp_path):
+    """carta init --rehydrate overwrites a stale carta-cli SKILL.md."""
+    run_cli("init", "--name", "TestProject", cwd=tmp_path)
+    skill_path = tmp_path / ".claude" / "skills" / "carta-cli" / "SKILL.md"
+    skill_path.write_text("stale skill content", encoding="utf-8")
+
+    code, out, err = run_cli("init", "--rehydrate", cwd=tmp_path)
+    assert code == 0, f"rehydrate failed:\n{err}\n{out}"
+    assert skill_path.read_text(encoding="utf-8") != "stale skill content"
 
 
 class TestRefToPath(unittest.TestCase):
@@ -1350,88 +1320,59 @@ class TestMkdir(unittest.TestCase):
         assert result.returncode != 0
 
 
-class TestVersion(unittest.TestCase):
-    """Test --version flag."""
-
-    def test_version_flag(self):
-        """carta --version prints the version string."""
-        result = subprocess.run(
-            [sys.executable, "-m", "carta_cli.main", "--version"],
-            capture_output=True, text=True, env=_ENV_WITH_CLI,
-        )
-        assert result.returncode == 0, f"--version failed:\n{result.stderr}"
-        from carta_cli.__version__ import __version__
-        assert __version__ in result.stdout
+def test_version_flag(run_cli):
+    """carta --version prints the version string."""
+    code, out, err = run_cli("--version")
+    assert code == 0, f"--version failed:\n{err}"
+    from carta_cli.__version__ import __version__
+    assert __version__ in out
 
 
-class TestInitPortable(unittest.TestCase):
-    """Test carta init --portable."""
+def test_init_portable_creates_scripts(run_cli, tmp_path):
+    """carta init --portable dumps scripts into .carta/."""
+    code, out, err = run_cli("init", "--portable", "--name", "PortableTest", cwd=tmp_path)
+    assert code == 0, f"init --portable failed:\n{err}\n{out}"
 
-    def setUp(self):
-        self.tmpdir = tempfile.TemporaryDirectory()
-        self.project_root = Path(self.tmpdir.name)
+    carta_dir = tmp_path / ".carta"
+    assert (carta_dir / "carta.py").exists(), "carta.py should exist at .carta/ root"
+    assert (carta_dir / "_scripts").is_dir(), "_scripts/ directory should exist"
+    assert (carta_dir / "_scripts" / "frontmatter.py").exists()
+    assert (carta_dir / "_scripts" / "__init__.py").exists()
+    assert (carta_dir / "_scripts" / "manifest-preamble.md").exists()
 
-    def tearDown(self):
-        self.tmpdir.cleanup()
 
-    def test_init_portable_creates_scripts(self):
-        """carta init --portable dumps scripts into .carta/."""
-        result = subprocess.run(
-            [sys.executable, "-m", "carta_cli.main", "init", "--portable", "--name", "PortableTest"],
-            capture_output=True, text=True, env=_ENV_WITH_CLI,
-            cwd=str(self.project_root),
-        )
-        assert result.returncode == 0, f"init --portable failed:\n{result.stderr}\n{result.stdout}"
+def test_portable_scripts_execute(run_cli, tmp_path):
+    """Portable carta.py can run regenerate."""
+    run_cli("init", "--portable", "--name", "PortableTest", cwd=tmp_path)
 
-        carta_dir = self.project_root / ".carta"
-        assert (carta_dir / "carta.py").exists(), "carta.py should exist at .carta/ root"
-        assert (carta_dir / "_scripts").is_dir(), "_scripts/ directory should exist"
-        assert (carta_dir / "_scripts" / "frontmatter.py").exists()
-        assert (carta_dir / "_scripts" / "__init__.py").exists()
-        assert (carta_dir / "_scripts" / "manifest-preamble.md").exists()
+    carta_py = tmp_path / ".carta" / "carta.py"
+    result = subprocess.run(
+        [sys.executable, str(carta_py), "regenerate"],
+        capture_output=True, text=True,
+        cwd=str(tmp_path),
+    )
+    assert result.returncode == 0, f"portable regenerate failed:\n{result.stderr}"
 
-    def test_portable_scripts_execute(self):
-        """Portable carta.py can run regenerate."""
-        subprocess.run(
-            [sys.executable, "-m", "carta_cli.main", "init", "--portable", "--name", "PortableTest"],
-            capture_output=True, text=True, env=_ENV_WITH_CLI,
-            cwd=str(self.project_root),
-        )
 
-        carta_py = self.project_root / ".carta" / "carta.py"
-        result = subprocess.run(
-            [sys.executable, str(carta_py), "regenerate"],
-            capture_output=True, text=True,
-            cwd=str(self.project_root),
-        )
-        assert result.returncode == 0, f"portable regenerate failed:\n{result.stderr}"
+def test_portable_version(run_cli, tmp_path):
+    """Portable carta.py --version works."""
+    run_cli("init", "--portable", "--name", "PortableTest", cwd=tmp_path)
+    carta_py = tmp_path / ".carta" / "carta.py"
+    result = subprocess.run(
+        [sys.executable, str(carta_py), "--version"],
+        capture_output=True, text=True,
+    )
+    assert result.returncode == 0
+    from carta_cli.__version__ import __version__
+    assert __version__ in result.stdout
 
-    def test_portable_version(self):
-        """Portable carta.py --version works."""
-        subprocess.run(
-            [sys.executable, "-m", "carta_cli.main", "init", "--portable", "--name", "PortableTest"],
-            capture_output=True, text=True, env=_ENV_WITH_CLI,
-            cwd=str(self.project_root),
-        )
-        carta_py = self.project_root / ".carta" / "carta.py"
-        result = subprocess.run(
-            [sys.executable, str(carta_py), "--version"],
-            capture_output=True, text=True,
-        )
-        assert result.returncode == 0
-        from carta_cli.__version__ import __version__
-        assert __version__ in result.stdout
 
-    def test_carta_json_has_portable_field(self):
-        """After --portable, .carta.json has portable field."""
-        subprocess.run(
-            [sys.executable, "-m", "carta_cli.main", "init", "--portable", "--name", "PortableTest"],
-            capture_output=True, text=True, env=_ENV_WITH_CLI,
-            cwd=str(self.project_root),
-        )
-        config = json.loads((self.project_root / ".carta.json").read_text())
-        assert "portable" in config
-        assert config["portable"] == ".carta/carta.py"
+def test_carta_json_has_portable_field(run_cli, tmp_path):
+    """After --portable, .carta.json has portable field."""
+    run_cli("init", "--portable", "--name", "PortableTest", cwd=tmp_path)
+    config = json.loads((tmp_path / ".carta.json").read_text())
+    assert "portable" in config
+    assert config["portable"] == ".carta/carta.py"
 
 
 class TestGroupCommand(unittest.TestCase):

@@ -1,9 +1,10 @@
 """Shared test helpers and fixtures for the carta_cli test suite."""
 
+import contextlib
+import io
 import json
-import os
-import subprocess
 import sys
+import types
 from pathlib import Path
 
 import pytest
@@ -11,9 +12,8 @@ import pytest
 _CLI_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_CLI_DIR))
 
+from carta_cli.commands._parser import main as cli_main
 from carta_cli.workspace import MARKER
-
-_ENV_WITH_CLI = {**os.environ, "PYTHONPATH": str(_CLI_DIR)}
 
 
 def _fm(
@@ -38,6 +38,22 @@ def _write(path: Path, fm: str, body: str = "") -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     content = fm + ("\n" + body if body else "")
     path.write_text(content, encoding="utf-8")
+
+
+def _run_carta(carta_copy: Path, *args: str) -> types.SimpleNamespace:
+    """Run the carta CLI against a workspace root (in-process)."""
+    stdout_buf = io.StringIO()
+    stderr_buf = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(stdout_buf), contextlib.redirect_stderr(stderr_buf):
+            code = cli_main(["--workspace", str(carta_copy)] + list(args))
+    except SystemExit as e:
+        code = int(e.code) if e.code is not None else 0
+    return types.SimpleNamespace(
+        returncode=code,
+        stdout=stdout_buf.getvalue(),
+        stderr=stderr_buf.getvalue(),
+    )
 
 
 def _build_fixture(dest: Path) -> Path:
@@ -159,12 +175,19 @@ def _build_fixture(dest: Path) -> Path:
     return carta
 
 
-def _run_carta(carta_copy: Path, *args: str) -> subprocess.CompletedProcess:
-    """Run the carta CLI against a workspace root."""
-    return subprocess.run(
-        [sys.executable, "-m", "carta_cli.main", "--workspace", str(carta_copy)] + list(args),
-        capture_output=True, text=True, env=_ENV_WITH_CLI,
-    )
+@pytest.fixture
+def run_cli(capsys, monkeypatch):
+    """Invoke the carta CLI in-process and return (exit_code, stdout, stderr)."""
+    def _run(*args: str, cwd: Path | None = None) -> tuple[int, str, str]:
+        if cwd is not None:
+            monkeypatch.chdir(cwd)
+        try:
+            code = cli_main(list(args))
+        except SystemExit as e:
+            code = int(e.code) if e.code is not None else 0
+        captured = capsys.readouterr()
+        return code, captured.out, captured.err
+    return _run
 
 
 @pytest.fixture
