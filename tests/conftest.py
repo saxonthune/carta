@@ -10,7 +10,9 @@ from pathlib import Path
 import pytest
 
 _CLI_DIR = Path(__file__).resolve().parent.parent
+_TESTS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(_CLI_DIR))
+sys.path.insert(0, str(_TESTS_DIR))
 
 from carta_cli.commands._parser import main as cli_main
 from carta_cli.workspace import MARKER

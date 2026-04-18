@@ -19,7 +19,7 @@ dependencies = [
 Repository = "https://github.com/saxonthune/carta"
 
 [project.optional-dependencies]
-test = ["pytest", "hypothesis", "pytest-cov"]
+test = ["pytest", "hypothesis", "pytest-cov", "syrupy"]
 
 [project.scripts]
 carta = "carta_cli.main:main"

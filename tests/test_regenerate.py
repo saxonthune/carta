@@ -12,6 +12,8 @@ import sys
 import tempfile
 import types
 import unittest
+
+import pytest
 from pathlib import Path
 
 # Ensure carta_cli is importable without prior pip install
@@ -22,6 +24,8 @@ from carta_cli.commands._parser import main as cli_main
 from carta_cli.workspace import find_workspace
 from carta_cli.ref_convert import ref_to_path
 from carta_cli.frontmatter import read_frontmatter, write_frontmatter
+
+from helpers import normalize_output
 
 _REAL_CARTA_ROOT = find_workspace()
 
@@ -315,6 +319,10 @@ class TestRefsResolve(unittest.TestCase):
 class TestAttachmentsColumn(unittest.TestCase):
     """Tests for MANIFEST Attachments column and orphan detection."""
 
+    @pytest.fixture(autouse=True)
+    def _inject_snapshot(self, snapshot):
+        self._snapshot = snapshot
+
     def setUp(self):
         self.tmpdir = tempfile.TemporaryDirectory()
         self.tmp = Path(self.tmpdir.name)
@@ -357,7 +365,7 @@ class TestAttachmentsColumn(unittest.TestCase):
         })
         result = self._run(ws, "regenerate", "--dry-run")
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("| Attachments |", result.stdout)
+        assert normalize_output(result.stdout, ws) == self._snapshot
 
     def test_no_attachments_renders_emdash(self):
         """A doc with no non-md siblings renders — in Attachments column."""
@@ -426,9 +434,7 @@ class TestAttachmentsColumn(unittest.TestCase):
         })
         result = self._run(ws, "regenerate")
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("Warning", result.stderr)
-        self.assertIn("orphan", result.stderr.lower())
-        self.assertIn("03-orphan.json", result.stderr)
+        assert normalize_output(result.stderr, ws) == self._snapshot
         manifest = ws / "MANIFEST.md"
         self.assertTrue(manifest.exists(), "MANIFEST.md not written despite warning")
         content = manifest.read_text(encoding="utf-8")
@@ -444,8 +450,7 @@ class TestAttachmentsColumn(unittest.TestCase):
         })
         result = self._run(ws, "regenerate")
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("Warning", result.stderr)
-        self.assertIn("03-stale.yaml", result.stderr)
+        assert normalize_output(result.stderr, ws) == self._snapshot
         manifest = ws / "MANIFEST.md"
         content = manifest.read_text(encoding="utf-8")
         self.assertIn("doc01.03.01", content)
