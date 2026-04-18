@@ -4,7 +4,11 @@
 #        bash monitor.sh --once    — single frame, then exit
 set -euo pipefail
 
-TODO="$(git rev-parse --show-toplevel)/.todo-tasks"
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+TODO="${REPO_ROOT}/.todo-tasks"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/lib.sh"
+
 shopt -s nullglob
 
 # ── Color setup ──────────────────────────────────────────────────────────────
@@ -20,241 +24,319 @@ else
   BOLD="" DIM="" GREEN="" YELLOW="" RED="" CYAN="" RESET=""
 fi
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
-mtime() {
-  stat -c %Y "$1" 2>/dev/null || date +%s
-}
+EL=$'\033[K'
+
+# ── Generic helpers ──────────────────────────────────────────────────────────
+mtime() { stat -c %Y "$1" 2>/dev/null || date +%s; }
 
 elapsed() {
-  local file="$1" age
-  local now; now=$(date +%s)
-  age=$(( now - $(mtime "$file") ))
-  if (( age < 3600 )); then echo "$((age/60))m"
+  local now age; now=$(date +%s); age=$((now - $(mtime "$1")))
+  if   (( age < 3600 ));  then echo "$((age/60))m"
   elif (( age < 86400 )); then echo "$((age/3600))h$((age%3600/60))m"
-  else echo "$((age/86400))d$((age%86400/3600))h"; fi
+  else                         echo "$((age/86400))d$((age%86400/3600))h"; fi
 }
 
-# ── Frame renderer ────────────────────────────────────────────────────────────
-render_frame() {
-  local now; now=$(date +%s)
-  local T=$'\t'
+age_ago() {
+  local age=$1
+  if   (( age < 3600 ));  then echo "$((age/60))m ago"
+  elif (( age < 86400 )); then echo "$((age/3600))h ago"
+  else                         echo "$((age/86400))d ago"; fi
+}
 
-  # ── Collect active (running) entries ─────────────────────────────────────
-  local -a active_lines=()
-  local chain_slugs=" "
+count_csv() { echo "${1}" | tr ',' '\n' | grep -c . || echo 0; }
 
+# classify_result <result_file> → echoes an SM_OVERALL_* state
+classify_result() {
+  local f="$1" s v m
+  s=$(parse_result_field "$f" session)
+  if [[ -n "$s" ]]; then
+    v=$(parse_result_field "$f" verification)
+    m=$(parse_result_field "$f" merge)
+    derive_overall_state "$s" "$v" "$m"
+  else
+    # Old-format fallback: "Status: success" / "Merge: success"
+    local old oldm
+    old=$(parse_result_field "$f" status)
+    oldm=$(parse_result_field "$f" merge)
+    if [[ "$old" == "success" ]]; then
+      [[ "$oldm" == "conflict" ]] && echo "$SM_OVERALL_CONFLICT" || echo "$SM_OVERALL_SUCCESS"
+    else
+      echo "$SM_OVERALL_BUILD_FAIL"
+    fi
+  fi
+}
+
+overall_color() {
+  case "$1" in
+    "$SM_OVERALL_SUCCESS") echo "$GREEN" ;;
+    "$SM_OVERALL_READY")   echo "$CYAN" ;;
+    "$SM_OVERALL_NOOP")    echo "$YELLOW" ;;
+    *)                     echo "$RED" ;;
+  esac
+}
+
+overall_label() {
+  case "$1" in
+    "$SM_OVERALL_SUCCESS")      echo "success" ;;
+    "$SM_OVERALL_READY")        echo "ready" ;;
+    "$SM_OVERALL_NOOP")         echo "no-op" ;;
+    "$SM_OVERALL_CONFLICT")     echo "conflict" ;;
+    "$SM_OVERALL_DIRTY")        echo "dirty" ;;
+    "$SM_OVERALL_LEAKED_TRUNK") echo "leaked" ;;
+    "$SM_OVERALL_BUILD_FAIL")   echo "failed" ;;
+    "$SM_OVERALL_SESSION_FAIL") echo "crashed" ;;
+    *)                          echo "$1" ;;
+  esac
+}
+
+# ── Collectors ───────────────────────────────────────────────────────────────
+# Each collector echoes one tab-separated record per line. Output is consumed
+# by render_frame via `mapfile`. Collectors run in subshells; they inherit
+# $CHAIN_SLUGS from the parent but cannot mutate it.
+
+# Space-padded list of slugs claimed by active chains, e.g. " a b c ".
+# Pre-computed once per frame so recent/active collectors agree.
+compute_chain_slugs() {
+  local slugs=" "
+  local m phases
   for m in "$TODO"/.running/chain-*.manifest; do
     [[ -r "$m" ]] || continue
-    local chain status current completed phases total done_n e
-    chain=$(sed -n 's/^chain: *//p' "$m" 2>/dev/null)
-    status=$(sed -n 's/^status: *//p' "$m" 2>/dev/null)
-    current=$(sed -n 's/^current: *//p' "$m" 2>/dev/null)
-    completed=$(sed -n 's/^completed: *//p' "$m" 2>/dev/null)
-    phases=$(sed -n 's/^phases: *//p' "$m" 2>/dev/null)
-    total=$(echo "$phases" | tr ',' '\n' | grep -c . || echo 0)
+    phases=$(parse_result_field "$m" phases)
+    slugs+="$(echo "$phases" | tr ',' ' ') "
+  done
+  printf '%s' "$slugs"
+}
+
+# Active = currently running chains + non-chain running tasks.
+# Record: type \t label \t elapsed
+#   type ∈ {chain, chain-fail, running}
+collect_active() {
+  local m chain status current completed phases total done_n e
+  for m in "$TODO"/.running/chain-*.manifest; do
+    [[ -r "$m" ]] || continue
+    chain=$(parse_result_field "$m" chain)
+    status=$(parse_result_field "$m" status)
+    current=$(parse_result_field "$m" current)
+    completed=$(parse_result_field "$m" completed)
+    phases=$(parse_result_field "$m" phases)
+    total=$(count_csv "$phases")
     done_n=0
-    [[ -n "$completed" ]] && done_n=$(echo "$completed" | tr ',' '\n' | grep -c . || echo 0)
+    [[ -n "$completed" ]] && done_n=$(count_csv "$completed")
     e=$(elapsed "$m")
-    # Accumulate chain slugs so solo runner won't re-show them
-    chain_slugs+="$(echo "$phases" | tr ',' ' ') "
     case "$status" in
-      done|complete) ;;  # handled in recent section
-      failed)
-        active_lines+=("chain-fail${T}${chain} [${done_n}/${total}] ${current}${T}${e}")
-        ;;
-      *)
-        active_lines+=("chain${T}${chain} [$((done_n+1))/${total}] ${current}${T}${e}")
-        ;;
+      done|complete) ;;  # shown in recent, not active
+      failed) printf 'chain-fail\t%s [%d/%d] %s\t%s\n' "$chain" "$done_n" "$total" "$current" "$e" ;;
+      *)      printf 'chain\t%s [%d/%d] %s\t%s\n' "$chain" "$((done_n+1))" "$total" "$current" "$e" ;;
     esac
   done
 
+  local md slug
   for md in "$TODO"/.running/*.md; do
     [[ -r "$md" ]] || continue
-    local slug; slug=$(basename "$md" .md)
-    # Skip if claimed by a chain
-    local claimed=false
-    for _m in "$TODO"/.running/chain-*.manifest; do
-      grep -ql "$slug" "$_m" 2>/dev/null && claimed=true && break
-    done
-    $claimed && continue
-    active_lines+=("running${T}${slug}${T}$(elapsed "$md")")
+    slug=$(basename "$md" .md)
+    case "$CHAIN_SLUGS" in *" $slug "*) continue ;; esac
+    printf 'running\t%s\t%s\n' "$slug" "$(elapsed "$md")"
   done
+}
 
-  # ── Collect recent completions ────────────────────────────────────────────
-  local -a recent_lines=()
-  local recent_raw
-  recent_raw=$(
-    {
-      for r in "$TODO"/.done/*.result.md "$TODO"/.archived/*.result.md; do
-        [[ -r "$r" ]] || continue
-        local rs; rs=$(basename "$r" .result.md)
-        [[ "$chain_slugs" == *" $rs "* ]] && continue
-        local st; st=$(sed -n 's/^[*]*[Ss]tatus[*]*: *//p' "$r" 2>/dev/null | head -1 | tr '[:upper:]' '[:lower:]')
-        printf '%d %s %s\n' "$(mtime "$r")" "$rs" "$st"
-      done
-      for m in "$TODO"/.running/chain-*.manifest; do
-        [[ -r "$m" ]] || continue
-        local cs; cs=$(sed -n 's/^status: *//p' "$m" 2>/dev/null)
-        case "$cs" in done|complete) ;; *) continue ;; esac
-        local cn; cn=$(sed -n 's/^chain: *//p' "$m" 2>/dev/null)
-        local cp; cp=$(sed -n 's/^phases: *//p' "$m" 2>/dev/null)
-        local ct; ct=$(echo "$cp" | tr ',' '\n' | grep -c . || echo 0)
-        printf '%d %s %s\n' "$(mtime "$m")" "chain:${cn}(${ct}/${ct})" "success"
-      done
-    } | sort -rn | head -3
-  )
-  while IFS=' ' read -r _ts rslug rstatus; do
-    [[ -z "$rslug" ]] && continue
-    local rage=$(( now - _ts ))
-    local ago
-    if (( rage < 3600 )); then ago="$((rage/60))m ago"
-    elif (( rage < 86400 )); then ago="$((rage/3600))h ago"
-    else ago="$((rage/86400))d ago"; fi
-    case "$rstatus" in
-      *success*) recent_lines+=("done${T}${rslug}${T}${ago}") ;;
-      *)         recent_lines+=("failed${T}${rslug}${T}${ago}") ;;
-    esac
-  done <<< "$recent_raw"
+# Recent = top-3 most-recently-touched result files and completed chains.
+# Record: overall_state \t slug \t age_ago
+collect_recent() {
+  local now; now=$(date +%s)
+  {
+    local r slug overall
+    for r in "$TODO"/.done/*.result.md "$TODO"/.archived/*.result.md; do
+      [[ -r "$r" ]] || continue
+      slug=$(basename "$r" .result.md)
+      case "$CHAIN_SLUGS" in *" $slug "*) continue ;; esac
+      overall=$(classify_result "$r")
+      printf '%d\t%s\t%s\n' "$(mtime "$r")" "$slug" "$overall"
+    done
+    local m cs cn cp ct
+    for m in "$TODO"/.running/chain-*.manifest; do
+      [[ -r "$m" ]] || continue
+      cs=$(parse_result_field "$m" status)
+      case "$cs" in done|complete) ;; *) continue ;; esac
+      cn=$(parse_result_field "$m" chain)
+      cp=$(parse_result_field "$m" phases)
+      ct=$(count_csv "$cp")
+      printf '%d\tchain:%s(%d/%d)\t%s\n' "$(mtime "$m")" "$cn" "$ct" "$ct" "$SM_OVERALL_SUCCESS"
+    done
+  } | sort -rn | head -3 | while IFS=$'\t' read -r ts slug overall; do
+    [[ -z "$slug" ]] && continue
+    printf '%s\t%s\t%s\n' "$overall" "$slug" "$(age_ago $((now - ts)))"
+  done
+}
 
-  # ── Collect pending tasks ─────────────────────────────────────────────────
-  local -a pending_lines=()
+# Pending = root-level .md files that are NOT already running and have
+# NO result file in .done/. This is the state-machine rule: a task with
+# a result is not pending, even if its source .md was never moved.
+# Record: slug
+collect_pending() {
+  local tf slug
   for tf in "$TODO"/*.md; do
     [[ -r "$tf" ]] || continue
     [[ "$tf" == *.epic.md ]] && continue
-    local pslug; pslug=$(basename "$tf" .md)
-    pending_lines+=("$pslug")
+    slug=$(basename "$tf" .md)
+    [[ -f "$TODO/.running/${slug}.md" ]] && continue
+    [[ -f "$TODO/.done/${slug}.result.md" ]] && continue
+    printf '%s\n' "$slug"
   done
+}
 
-  # ── Collect epics ─────────────────────────────────────────────────────────
-  local -a epic_lines=()
+# Epics = one summary row per *.epic.md, classifying member tasks via lib.sh.
+# Record: epic_name \t summary
+collect_epics() {
+  local ef epic tf ets result overall bucket af
   for ef in "$TODO"/*.epic.md; do
     [[ -r "$ef" ]] || continue
-    local epic; epic=$(basename "$ef" .epic.md)
-    declare -A seen_slugs=()
-    for tf in "$TODO/${epic}"-[0-9]*.md "$TODO/.running/${epic}"-[0-9]*.md "$TODO/.done/${epic}"-[0-9]*.md; do
+    epic=$(basename "$ef" .epic.md)
+
+    declare -A seen=()
+    for tf in "$TODO/${epic}"-[0-9]*.md \
+              "$TODO/.running/${epic}"-[0-9]*.md \
+              "$TODO/.done/${epic}"-[0-9]*.md; do
       [[ -f "$tf" ]] || continue
       [[ "$tf" == *.result.md ]] && continue
-      seen_slugs[$(basename "$tf" .md)]=1
+      seen[$(basename "$tf" .md)]=1
     done
     for tf in "$TODO/.archived/"*"-${epic}"-[0-9]*.md; do
       [[ -f "$tf" ]] || continue
       [[ "$tf" == *.result.md ]] && continue
       local esl; esl=$(basename "$tf" .md); esl="${esl#[0-9]*-}"
-      seen_slugs["$esl"]=1
+      seen["$esl"]=1
     done
-    local etotal=0 edone=0 erunning=0 efailed=0
-    for ets in "${!seen_slugs[@]}"; do
-      etotal=$((etotal + 1))
+
+    local total=0 done_n=0 running_n=0 failed_n=0
+    for ets in "${!seen[@]}"; do
+      total=$((total + 1))
+      result=""
       if [[ -f "$TODO/.done/${ets}.result.md" ]]; then
-        local es; es=$(sed -n 's/^[*]*[Ss]tatus[*]*: *//p' "$TODO/.done/${ets}.result.md" 2>/dev/null | head -1 | tr '[:upper:]' '[:lower:]')
-        case "$es" in *success*) edone=$((edone + 1)) ;; *) efailed=$((efailed + 1)) ;; esac
+        result="$TODO/.done/${ets}.result.md"
       else
-        local erf=""
-        for _af in "$TODO/.archived/"*"-${ets}.result.md"; do
-          [[ -f "$_af" ]] && erf="$_af" && break
+        for af in "$TODO/.archived/"*"-${ets}.result.md"; do
+          [[ -f "$af" ]] && result="$af" && break
         done
-        if [[ -n "$erf" ]]; then
-          local efs; efs=$(sed -n 's/^[*]*[Ss]tatus[*]*: *//p' "$erf" 2>/dev/null | head -1 | tr '[:upper:]' '[:lower:]')
-          case "$efs" in *success*) edone=$((edone + 1)) ;; *) efailed=$((efailed + 1)) ;; esac
-        elif [[ -f "$TODO/.running/${ets}.md" ]]; then
-          erunning=$((erunning + 1))
-        fi
+      fi
+      if [[ -n "$result" ]]; then
+        overall=$(classify_result "$result")
+        bucket=$(state_bucket "$overall")
+        case "$bucket" in
+          "$SM_BUCKET_SUCCESS"|"$SM_BUCKET_READY") done_n=$((done_n + 1)) ;;
+          *)                                       failed_n=$((failed_n + 1)) ;;
+        esac
+      elif [[ -f "$TODO/.running/${ets}.md" ]]; then
+        running_n=$((running_n + 1))
       fi
     done
-    unset seen_slugs
-    (( etotal == 0 )) && continue
-    local esummary="${edone}/${etotal} done"
-    (( erunning > 0 )) && esummary+="  ${erunning} running"
-    (( efailed > 0 )) && esummary+="  ${efailed} failed"
-    epic_lines+=("${epic}${T}${esummary}")
+    unset seen
+    (( total == 0 )) && continue
+
+    local summary="${done_n}/${total} done"
+    (( running_n > 0 )) && summary+="  ${running_n} running"
+    (( failed_n > 0 ))  && summary+="  ${failed_n} failed"
+    printf '%s\t%s\n' "$epic" "$summary"
   done
-
-  # ── Counts for summary line ───────────────────────────────────────────────
-  local n_running=${#active_lines[@]}
-  local n_done=0 n_failed=0
-  for rl in "${recent_lines[@]}"; do
-    local rs_type; rs_type=$(echo "$rl" | cut -f1)
-    case "$rs_type" in done) n_done=$((n_done + 1)) ;; failed) n_failed=$((n_failed + 1)) ;; esac
-  done
-  local n_pending=${#pending_lines[@]}
-
-  # ── Output ─────────────────────────────────────────────────────────────────
-  # EL = erase to end of line — prevents previous frame's longer lines bleeding through
-  local EL=$'\033[K'
-
-  printf '\n  %stodo-tasks%s%s\n%s\n' "$BOLD" "$RESET" "$EL" "$EL"
-
-  # Running entries
-  if (( ${#active_lines[@]} > 0 )); then
-    for entry in "${active_lines[@]}"; do
-      local etype eslug eelapsed
-      etype=$(echo "$entry" | cut -f1)
-      eslug=$(echo "$entry" | cut -f2)
-      eelapsed=$(echo "$entry" | cut -f3)
-
-      local color
-      case "$etype" in
-        chain|running)  color="$YELLOW" ;;
-        chain-fail)     color="$RED" ;;
-        *)              color="" ;;
-      esac
-
-      printf '  %srunning%s  %s  %s%s\n' "$color" "$RESET" "$eslug" "$eelapsed" "$EL"
-    done
-    printf '%s\n' "$EL"
-  fi
-
-  # Recent completions
-  if (( ${#recent_lines[@]} > 0 )); then
-    for entry in "${recent_lines[@]}"; do
-      local rtype rslug2 rag
-      rtype=$(echo "$entry" | cut -f1)
-      rslug2=$(echo "$entry" | cut -f2)
-      rag=$(echo "$entry" | cut -f3)
-
-      local color status_word
-      case "$rtype" in
-        done)   color="$GREEN";  status_word="success" ;;
-        failed) color="$RED";    status_word="failed" ;;
-        *)      color=""; status_word="$rtype" ;;
-      esac
-
-      printf '  %s%-7s%s  %s  %s%s\n' "$color" "$status_word" "$RESET" "$rslug2" "$rag" "$EL"
-    done
-    printf '%s\n' "$EL"
-  fi
-
-  # Pending tasks
-  if (( ${#pending_lines[@]} > 0 )); then
-    for pslug in "${pending_lines[@]}"; do
-      printf '  %spending%s  %s%s\n' "$DIM" "$RESET" "$pslug" "$EL"
-    done
-    printf '%s\n' "$EL"
-  fi
-
-  # Epics section
-  if (( ${#epic_lines[@]} > 0 )); then
-    printf '  %sepics%s%s\n' "$DIM" "$RESET" "$EL"
-    for eline in "${epic_lines[@]}"; do
-      local ename; ename=$(echo "$eline" | cut -f1)
-      local esumm; esumm=$(echo "$eline" | cut -f2)
-      printf '  %s%s%s  %s%s\n' "$CYAN" "$ename" "$RESET" "$esumm" "$EL"
-    done
-    printf '%s\n' "$EL"
-  fi
-
-  # Summary line
-  printf '  %s%s running  %s done  %s failed  %s pending%s%s\n' \
-    "$DIM" "$n_running" "$n_done" "$n_failed" "$n_pending" "$RESET" "$EL"
 }
 
-# ── Main ──────────────────────────────────────────────────────────────────────
+# ── Renderers ────────────────────────────────────────────────────────────────
+render_active() {
+  local entry type label e color
+  for entry in "$@"; do
+    [[ -z "$entry" ]] && continue
+    IFS=$'\t' read -r type label e <<< "$entry"
+    case "$type" in
+      chain|running) color="$YELLOW" ;;
+      chain-fail)    color="$RED" ;;
+      *)             color="" ;;
+    esac
+    printf '  %srunning%s  %s  %s%s\n' "$color" "$RESET" "$label" "$e" "$EL"
+  done
+  [[ $# -gt 0 ]] && printf '%s\n' "$EL"
+  return 0
+}
+
+render_recent() {
+  local entry overall slug ago color label
+  for entry in "$@"; do
+    [[ -z "$entry" ]] && continue
+    IFS=$'\t' read -r overall slug ago <<< "$entry"
+    color=$(overall_color "$overall")
+    label=$(overall_label "$overall")
+    printf '  %s%-9s%s  %s  %s%s\n' "$color" "$label" "$RESET" "$slug" "$ago" "$EL"
+  done
+  [[ $# -gt 0 ]] && printf '%s\n' "$EL"
+  return 0
+}
+
+render_pending() {
+  local slug
+  for slug in "$@"; do
+    [[ -z "$slug" ]] && continue
+    printf '  %spending%s  %s%s\n' "$DIM" "$RESET" "$slug" "$EL"
+  done
+  [[ $# -gt 0 ]] && printf '%s\n' "$EL"
+  return 0
+}
+
+render_epics() {
+  local entry name summary
+  [[ $# -eq 0 ]] && return 0
+  printf '  %sepics%s%s\n' "$DIM" "$RESET" "$EL"
+  for entry in "$@"; do
+    [[ -z "$entry" ]] && continue
+    IFS=$'\t' read -r name summary <<< "$entry"
+    printf '  %s%s%s  %s%s\n' "$CYAN" "$name" "$RESET" "$summary" "$EL"
+  done
+  printf '%s\n' "$EL"
+}
+
+render_summary() {
+  local n_running="$1" n_success="$2" n_ready="$3" n_questionable="$4" n_attention="$5" n_pending="$6"
+  printf '  %s%s running  %s success  %s ready  %s questionable  %s attention  %s pending%s%s\n' \
+    "$DIM" "$n_running" "$n_success" "$n_ready" "$n_questionable" "$n_attention" "$n_pending" "$RESET" "$EL"
+}
+
+# ── Frame ────────────────────────────────────────────────────────────────────
+render_frame() {
+  local CHAIN_SLUGS
+  CHAIN_SLUGS=$(compute_chain_slugs)
+  export CHAIN_SLUGS  # visible to subshells launched by mapfile
+
+  local -a active recent pending epics
+  mapfile -t active  < <(collect_active)
+  mapfile -t recent  < <(collect_recent)
+  mapfile -t pending < <(collect_pending)
+  mapfile -t epics   < <(collect_epics)
+
+  # Bucket counts for summary
+  local n_success=0 n_ready=0 n_questionable=0 n_attention=0
+  local entry overall bucket
+  for entry in "${recent[@]}"; do
+    [[ -z "$entry" ]] && continue
+    IFS=$'\t' read -r overall _ _ <<< "$entry"
+    bucket=$(state_bucket "$overall")
+    case "$bucket" in
+      "$SM_BUCKET_SUCCESS")      n_success=$((n_success+1)) ;;
+      "$SM_BUCKET_READY")        n_ready=$((n_ready+1)) ;;
+      "$SM_BUCKET_QUESTIONABLE") n_questionable=$((n_questionable+1)) ;;
+      "$SM_BUCKET_ATTENTION")    n_attention=$((n_attention+1)) ;;
+    esac
+  done
+
+  printf '\n  %stodo-tasks%s%s\n%s\n' "$BOLD" "$RESET" "$EL" "$EL"
+  render_active  "${active[@]}"
+  render_recent  "${recent[@]}"
+  render_pending "${pending[@]}"
+  render_epics   "${epics[@]}"
+  render_summary "${#active[@]}" "$n_success" "$n_ready" "$n_questionable" "$n_attention" "${#pending[@]}"
+}
+
+# ── Main ─────────────────────────────────────────────────────────────────────
 ONCE=false
 for arg in "$@"; do
   [[ "$arg" == "--once" ]] && ONCE=true
 done
-
-# Non-interactive stdout → single shot
 [[ ! -t 1 ]] && ONCE=true
 
 if $ONCE; then
@@ -262,7 +344,6 @@ if $ONCE; then
   exit 0
 fi
 
-# Loop mode: hide cursor, trap exit for cleanup
 tput civis 2>/dev/null || true
 cleanup() {
   tput cnorm 2>/dev/null || true

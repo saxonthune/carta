@@ -23,6 +23,15 @@ if [[ -z "$PLAN_SLUG" ]]; then
   exit 1
 fi
 
+# Fast-fail on preconditions before backgrounding.
+# Runs execute-plan.sh --validate-only synchronously; if it exits non-zero,
+# the error message is printed to stderr and we bail without creating a log.
+if ! bash "${SCRIPT_DIR}/execute-plan.sh" "${PLAN_SLUG}" --validate-only; then
+  echo ""
+  echo "Validation failed. Not launching."
+  exit 1
+fi
+
 mkdir -p "${REPO_ROOT}/.todo-tasks/.running"
 LOG="${REPO_ROOT}/.todo-tasks/.running/${PLAN_SLUG}.log"
 

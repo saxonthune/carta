@@ -11,6 +11,7 @@ readonly SM_SESSION_FAILED="failed"
 readonly SM_VERIFY_PASSED="passed"
 readonly SM_VERIFY_FAILED="failed"
 readonly SM_VERIFY_SKIPPED="skipped_no_commits"
+readonly SM_VERIFY_LEAKED_TRUNK="leaked_to_trunk"
 
 # Merge phase: did the code land on trunk?
 readonly SM_MERGE_CLEAN="clean"
@@ -26,6 +27,7 @@ readonly SM_OVERALL_READY="ready_for_review"
 readonly SM_OVERALL_CONFLICT="merge_conflict"
 readonly SM_OVERALL_DIRTY="merged_with_markers"
 readonly SM_OVERALL_NOOP="no_op"
+readonly SM_OVERALL_LEAKED_TRUNK="leaked_to_trunk"
 readonly SM_OVERALL_BUILD_FAIL="build_failure"
 readonly SM_OVERALL_SESSION_FAIL="session_failed"
 
@@ -46,6 +48,7 @@ derive_overall_state() {
   case "$verify" in
     "$SM_VERIFY_FAILED") echo "$SM_OVERALL_BUILD_FAIL" ;;
     "$SM_VERIFY_SKIPPED") echo "$SM_OVERALL_NOOP" ;;
+    "$SM_VERIFY_LEAKED_TRUNK") echo "$SM_OVERALL_LEAKED_TRUNK" ;;
     "$SM_VERIFY_PASSED")
       case "$merge" in
         "$SM_MERGE_CLEAN") echo "$SM_OVERALL_SUCCESS" ;;
@@ -93,7 +96,7 @@ write_result_file() {
 
   # Validate vocabulary (warn but don't abort)
   local valid_sessions="$SM_SESSION_COMPLETED $SM_SESSION_FAILED"
-  local valid_verifications="$SM_VERIFY_PASSED $SM_VERIFY_FAILED $SM_VERIFY_SKIPPED"
+  local valid_verifications="$SM_VERIFY_PASSED $SM_VERIFY_FAILED $SM_VERIFY_SKIPPED $SM_VERIFY_LEAKED_TRUNK"
   local valid_merges="$SM_MERGE_CLEAN $SM_MERGE_DIRTY $SM_MERGE_CONFLICT $SM_MERGE_SKIPPED_FLAG $SM_MERGE_SKIPPED_VERIFY $SM_MERGE_NOT_ATTEMPTED"
 
   if [[ " $valid_sessions " != *" $session "* ]]; then
@@ -140,8 +143,7 @@ RESULT_EOF
 # source_task_config
 # Sources project-specific config, then sets defaults for any unset variables.
 # Reads: REPO_ROOT, SCRIPT_DIR (from caller scope)
-# Sets: WORKTREE_PREFIX, MAX_BUDGET, RETRY_BUDGET, MAX_RETRIES,
-#       INSTALL_CMD, BUILD_CMD, TEST_CMD
+# Sets: WORKTREE_PREFIX, MAX_BUDGET, RETRY_BUDGET, MAX_RETRIES
 source_task_config() {
   if [[ -f "${REPO_ROOT}/.todo-tasks/task-config.sh" ]]; then
     source "${REPO_ROOT}/.todo-tasks/task-config.sh"
@@ -152,9 +154,27 @@ source_task_config() {
   MAX_BUDGET="${MAX_BUDGET:-5.00}"
   RETRY_BUDGET="${RETRY_BUDGET:-3.00}"
   MAX_RETRIES="${MAX_RETRIES:-4}"
-  INSTALL_CMD="${INSTALL_CMD:-npm install}"
-  BUILD_CMD="${BUILD_CMD:-npm run build}"
-  TEST_CMD="${TEST_CMD:-npm test}"
+}
+
+# parse_verification_commands <plan-path>
+# Echoes the contents of the first fenced bash/sh block under a ## Verification
+# heading. Exits non-zero and prints to stderr if no block is found.
+parse_verification_commands() {
+  local plan_path="$1"
+  local result
+  result=$(awk '
+    BEGIN { in_section=0; in_fence=0 }
+    in_fence && /^```[[:space:]]*$/ { exit }
+    in_fence { print; next }
+    in_section && /^##[[:space:]]/ { exit }
+    in_section && (/^```bash[[:space:]]*$/ || /^```sh[[:space:]]*$/) { in_fence=1; next }
+    /^##[[:space:]]+Verification[[:space:]]*$/ { in_section=1; next }
+  ' "$plan_path")
+  if [[ -z "$result" ]]; then
+    echo "ERROR: plan has no fenced bash/sh block under ## Verification: ${plan_path}" >&2
+    return 1
+  fi
+  echo "$result"
 }
 
 # parse_result_field <file> <key>

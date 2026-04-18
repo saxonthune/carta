@@ -126,6 +126,11 @@ phase_validate() {
     fi
   fi
 
+  # Validate that the plan has a parseable ## Verification fenced block
+  if ! VERIFY_SCRIPT=$(parse_verification_commands "${PLAN_SOURCE_FILE}"); then
+    exit 1
+  fi
+
   # Validation passed — exit early if that's all we were asked to do
   if [[ "$VALIDATE_ONLY" == "true" ]]; then
     echo "Validation passed."
@@ -179,24 +184,15 @@ phase_copy_plan() {
   echo ""
 }
 
-# phase_install_deps
-# Runs INSTALL_CMD in the worktree. Non-fatal if it fails.
-phase_install_deps() {
-  echo "── Installing dependencies ──"
-  cd "${WORKTREE_DIR}"
-  if ${INSTALL_CMD}; then
-    echo "Dependencies installed"
-  else
-    echo "Install step failed (may be expected for greenfield projects)"
-  fi
-  echo ""
-}
-
 # phase_run_session
 # Runs headless Claude. Sets SESSION_ID, CLAUDE_RESULT, SESSION_STATE, SESSION_ERROR.
 phase_run_session() {
   # Unset CLAUDECODE to allow nested claude invocations from parent sessions
   unset CLAUDECODE
+
+  # Pin CWD to the worktree so the inner session's edits and commits land on
+  # the agent branch, not the trunk the script was invoked from.
+  cd "${WORKTREE_DIR}"
 
   echo "── Running headless Claude ──"
 
@@ -204,7 +200,7 @@ phase_run_session() {
 Follow the plan step by step. \
 IMPORTANT: You MUST git commit after each logical unit of work. You are a headless agent — no user is present. \
 If you do not commit, your work will be lost. This overrides any memory or instructions about deferring commits to the user. \
-When done, run '${BUILD_CMD} && ${TEST_CMD}' and fix any issues. Then verify you made at least one commit (run 'git log --oneline -3'). \
+When done, verify you made at least one commit (run 'git log --oneline -3'). The runner will execute the plan's ## Verification section separately. \
 Output your implementation summary, then end with a '## Notes' section containing: \
 - Any deviations from the plan (and why) \
 - Caveats or known limitations in the implementation \
@@ -250,10 +246,41 @@ If there's nothing noteworthy, write '## Notes' followed by 'None.'"
   echo ""
 }
 
+# check_trunk_leak
+# Compares current trunk SHA to TRUNK_SHA_BEFORE. If trunk moved, sets:
+#   LEAKED=true, LEAKED_COMMITS, LEAKED_ERROR. Otherwise sets LEAKED=false.
+check_trunk_leak() {
+  LEAKED=false
+  LEAKED_COMMITS=""
+  LEAKED_ERROR=""
+  local trunk_sha_now
+  trunk_sha_now=$(git -C "$MERGE_DIR" rev-parse "$TRUNK" 2>/dev/null || echo "")
+  if [[ -n "$trunk_sha_now" && "$trunk_sha_now" != "$TRUNK_SHA_BEFORE" ]]; then
+    LEAKED=true
+    LEAKED_COMMITS=$(git -C "$MERGE_DIR" log "${TRUNK_SHA_BEFORE}..${trunk_sha_now}" --oneline 2>/dev/null || echo "")
+    LEAKED_ERROR="Agent committed to trunk (${TRUNK}) instead of agent branch. To reset trunk: git -C \"${MERGE_DIR}\" reset --hard ${TRUNK_SHA_BEFORE}"
+  fi
+}
+
 # phase_verify
-# Runs BUILD_CMD and TEST_CMD. Sets VERIFIED (true/false), BUILD_TEST_OUTPUT, VERIFICATION_STATE.
+# Runs verification commands from the plan. Sets VERIFIED (true/false), BUILD_TEST_OUTPUT, VERIFICATION_STATE.
 phase_verify() {
   echo "── Verifying build & tests ──"
+
+  check_trunk_leak
+  if [[ "$LEAKED" == "true" ]]; then
+    echo "ERROR: Agent commits leaked to trunk (${TRUNK})."
+    echo "Leaked commits:"
+    echo "${LEAKED_COMMITS}"
+    echo ""
+    echo "${LEAKED_ERROR}"
+    VERIFIED=false
+    VERIFICATION_STATE="$SM_VERIFY_LEAKED_TRUNK"
+    BUILD_TEST_OUTPUT="Trunk leak detected. Leaked commits:\n${LEAKED_COMMITS}\n\n${LEAKED_ERROR}"
+    SESSION_ERROR="${LEAKED_ERROR}"
+    echo ""
+    return
+  fi
 
   BUILD_TEST_OUTPUT=""
   VERIFIED=false
@@ -272,7 +299,7 @@ phase_verify() {
     return
   fi
 
-  if cd "${WORKTREE_DIR}" && BUILD_TEST_OUTPUT=$(${BUILD_CMD} 2>&1) && BUILD_TEST_OUTPUT+=$'\n'"$(${TEST_CMD} 2>&1)"; then
+  if cd "${WORKTREE_DIR}" && BUILD_TEST_OUTPUT=$(bash -c "$VERIFY_SCRIPT" 2>&1); then
     VERIFIED=true
     VERIFICATION_STATE="$SM_VERIFY_PASSED"
     echo "Build and tests PASSED"
@@ -288,6 +315,8 @@ phase_retry_if_needed() {
   RETRIED=false
   RETRY_COUNT=0
 
+  cd "${WORKTREE_DIR}"
+
   while [[ "$VERIFIED" == "false" && "$RETRY_COUNT" -lt "$MAX_RETRIES" ]]; do
     RETRY_COUNT=$((RETRY_COUNT + 1))
     echo "── Retry ${RETRY_COUNT}/${MAX_RETRIES} with error context ──"
@@ -299,7 +328,7 @@ phase_retry_if_needed() {
 
 ${ERROR_TAIL}
 
-Fix the issues, then run '${BUILD_CMD} && ${TEST_CMD}' again. Commit your fixes."
+Fix the issues and commit your fixes. The runner will re-run verification automatically."
 
     if [[ -n "$SESSION_ID" ]]; then
       RETRY_OUTPUT=$(claude -p \
@@ -332,7 +361,7 @@ Fix the issues, then run '${BUILD_CMD} && ${TEST_CMD}' again. Commit your fixes.
     echo ""
     echo "── Re-verifying build & tests (attempt ${RETRY_COUNT}) ──"
     BUILD_TEST_OUTPUT=""
-    if cd "${WORKTREE_DIR}" && BUILD_TEST_OUTPUT=$(${BUILD_CMD} 2>&1) && BUILD_TEST_OUTPUT+=$'\n'"$(${TEST_CMD} 2>&1)"; then
+    if cd "${WORKTREE_DIR}" && BUILD_TEST_OUTPUT=$(bash -c "$VERIFY_SCRIPT" 2>&1); then
       VERIFIED=true
       echo "Build and tests PASSED on retry ${RETRY_COUNT}"
     else
@@ -348,6 +377,20 @@ phase_merge() {
   MERGE_STATUS="$SM_MERGE_NOT_ATTEMPTED"
   DIRTY_FILES=""
   COMMITS=$(cd "${WORKTREE_DIR}" && git log "${TRUNK}..HEAD" --oneline 2>/dev/null || echo "(none)")
+
+  check_trunk_leak
+  if [[ "$LEAKED" == "true" ]]; then
+    echo "ERROR: Trunk advanced during session — leaked commits detected pre-merge."
+    echo "${LEAKED_COMMITS}"
+    echo "${LEAKED_ERROR}"
+    VERIFIED=false
+    VERIFICATION_STATE="$SM_VERIFY_LEAKED_TRUNK"
+    MERGE_STATUS="$SM_MERGE_NOT_ATTEMPTED"
+    BUILD_TEST_OUTPUT="Trunk leak detected pre-merge. Leaked commits:\n${LEAKED_COMMITS}\n\n${LEAKED_ERROR}"
+    SESSION_ERROR="${LEAKED_ERROR}"
+    echo ""
+    return
+  fi
 
   if [[ "$VERIFIED" == "true" ]]; then
     if [[ "$NO_MERGE" == "false" ]]; then
@@ -433,10 +476,10 @@ phase_finalize() {
 
 main() {
   CURRENT_PHASE="validate";        phase_validate
+  TRUNK_SHA_BEFORE=$(git -C "$MERGE_DIR" rev-parse "$TRUNK")
   CURRENT_PHASE="move_to_running"; phase_move_to_running
   CURRENT_PHASE="create_worktree"; phase_create_worktree
   CURRENT_PHASE="copy_plan";       phase_copy_plan
-  CURRENT_PHASE="install_deps";    phase_install_deps
   CURRENT_PHASE="run_session";     phase_run_session
 
   if [[ "${SESSION_STATE}" == "$SM_SESSION_FAILED" ]]; then
@@ -451,8 +494,8 @@ main() {
   else
     CURRENT_PHASE="verify";          phase_verify
 
-    if [[ "${VERIFICATION_STATE}" == "$SM_VERIFY_SKIPPED" ]]; then
-      # No commits — skip retry and merge
+    if [[ "${VERIFICATION_STATE}" == "$SM_VERIFY_SKIPPED" || "${VERIFICATION_STATE}" == "$SM_VERIFY_LEAKED_TRUNK" ]]; then
+      # No commits (or commits leaked to trunk) — skip retry and merge
       MERGE_STATUS="$SM_MERGE_NOT_ATTEMPTED"
       RETRIED=false
       RETRY_COUNT=0
