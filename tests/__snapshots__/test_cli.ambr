@@ -1,8 +1,8 @@
 # serializer version: 1
 # name: TestAttach.test_attach_collision_raises_error
   '''
-  Error: attachment already exists: <TMPDIR>/.carta/00-codex/01-fsm.json
-  Move or delete the existing file first.
+  Error: bundle already has an attachment with slug 'fsm' (01-fsm.json).
+  Pass --rename to use a different slug.
   
   '''
 # ---
@@ -272,6 +272,8 @@
   
   Use `carta attach` to place a new non-md artifact alongside its host doc.
   
+  **Sidecar display refs**: `carta tree --refs` and `carta bundle` display sidecars using the ref format `docXX.YY.ZZ/<slug>.<ext>`, where `docXX.YY.ZZ` is the host doc ref. These refs are for display only — no command accepts sidecar refs as input arguments.
+  
   ---
   
   ## 1. Command Reference
@@ -446,7 +448,7 @@
     - Renames it to share the host's numeric prefix: `NN-<slug>.<ext>`.
     - The file becomes part of the host's bundle — it will travel with the host
       through all future structural operations (move, delete, rename, punch, flatten).
-    - Does NOT create or modify MANIFEST.md (attachments are not indexed there).
+    - Regenerates MANIFEST.md (Attachments column updated).
   
   Flags:
     --rename SLUG  Override the attachment slug. Default: derived from source filename.
@@ -459,8 +461,9 @@
   Notes:
     - The host must be a `.md` file (not a directory).
     - Attachments are identified by prefix, not by declaration — no frontmatter needed.
-    - To verify the bundle after attaching, check that the attachment file sits in the
-      same directory as the host with the same `NN` prefix.
+    - The slug must be unique within the bundle across all extensions. If a different
+      extension already uses the same slug, the command errors with a hint to --rename.
+    - To verify the bundle after attaching, run `carta bundle <host>`.
   
   ### copy
   
@@ -615,7 +618,7 @@
   Print workspace structure as a visual tree with titles from frontmatter.
   
   ```
-  carta tree [target] [--refs] [--no-title]
+  carta tree [target] [--refs] [--no-title] [--no-sidecars]
   ```
   
   Arguments:
@@ -626,12 +629,89 @@
     - Read-only. Prints tree to stdout. No files modified.
   
   Flags:
-    --refs       Show docXX.YY refs next to each entry.
-    --no-title   Show filenames instead of frontmatter titles.
+    --refs         Show docXX.YY refs next to each entry. Sidecars show as docXX.YY/<slug>.<ext>.
+    --no-title     Show filenames instead of frontmatter titles.
+    --no-sidecars  Hide sidecar attachment lines (show only .md docs and directories).
+  
+  Rendering:
+    - Sidecar attachments appear as indented children of their host doc, prefixed with 📎.
+    - Example:
+      ├── 02-principles — Principles
+      │   └── 📎 02-diagram.mmd
   
   When to use:
     - To get an overview of workspace structure before planning moves.
     - To verify structure after batch operations.
+  
+  ### ls
+  
+  List entries in a directory (docs, subdirectories, sidecars, and non-numbered files).
+  
+  ```
+  carta ls [target] [--no-sidecars]
+  ```
+  
+  Arguments:
+    target  Directory to list (doc ref or workspace-relative path). Default: workspace root.
+  
+  Side effects:
+    - Read-only. Prints one entry per line to stdout. No files modified.
+  
+  Output format:
+    - `.md` files: `NN-slug — Title` (title from frontmatter, stem without .md)
+    - Subdirectories: `NN-slug — Title` (title from 00-index.md frontmatter)
+    - Non-md numbered attachments (sidecars): `NN-slug.ext`
+    - Non-numbered files: bare filename
+  
+  Flags:
+    --no-sidecars  Omit non-md numbered attachments. Docs and directories still shown.
+  
+  When to use:
+    - To inspect the direct children of a directory without a full recursive tree.
+    - Before planning `create`, `move`, or `attach` operations.
+  
+  ### bundle
+  
+  Show a doc's bundle: the host .md file and all its sidecar attachments with sizes.
+  
+  ```
+  carta bundle <ref-or-path>
+  ```
+  
+  Arguments:
+    ref-or-path  Doc ref (e.g., `doc01.02`) or path of a `.md` leaf doc.
+  
+  Side effects:
+    - Read-only. Prints bundle members to stdout. No files modified.
+  
+  Output format:
+    - First line: `NN-slug.md  <size>  (docXX.YY)` (host doc)
+    - Subsequent lines: `  NN-slug.ext  <size>  (docXX.YY/<slug>.<ext>)` (each attachment)
+    - Size is human-readable (B, KB, MB).
+  
+  When to use:
+    - To verify a bundle after `carta attach`.
+    - To inspect what non-md artifacts travel with a doc during restructuring.
+  
+  ### orphans
+  
+  List all orphaned attachments across the workspace.
+  
+  ```
+  carta orphans
+  ```
+  
+  Side effects:
+    - Read-only. Prints one path per line to stdout. Summary line on stderr. No files modified.
+  
+  Output:
+    - One workspace-relative path per line (stdout, pipe-clean).
+    - `Total: N orphan(s)` on stderr.
+    - Exit 0 always — orphans are findings, not errors.
+  
+  When to use:
+    - To find sidecar files whose host .md was deleted or never created.
+    - As an alternative to triggering `carta regenerate` just to see orphan warnings.
   
   ### ai-skill
   
@@ -708,14 +788,15 @@
   
   Workspace root: `.carta/`
   
-  | Directory | Title | Docs |
-  |-----------|-------|------|
-  | `00-codex` | Codex | 7 |
-  | `01-product-strategy` | Product Strategy | 8 |
-  | `02-product-design` | Product Design | 14 |
-  | `03-architecture` | Architecture | 7 |
+  | Directory | Title | Docs | Sidecars |
+  |-----------|-------|------|----------|
+  | `00-codex` | Codex | 7 | 0 |
+  | `01-product-strategy` | Product Strategy | 8 | 0 |
+  | `02-product-design` | Product Design | 14 | 0 |
+  | `03-architecture` | Architecture | 7 | 0 |
   
   **Total docs**: 36
+  **Total sidecars**: 0
   
   **externalRefPaths**: none configured
   
@@ -745,6 +826,8 @@
   
   Use `carta attach` to place a new non-md artifact alongside its host doc.
   
+  **Sidecar display refs**: `carta tree --refs` and `carta bundle` display sidecars using the ref format `docXX.YY.ZZ/<slug>.<ext>`, where `docXX.YY.ZZ` is the host doc ref. These refs are for display only — no command accepts sidecar refs as input arguments.
+  
   ---
   
   ## 1. Command Reference
@@ -919,7 +1002,7 @@
     - Renames it to share the host's numeric prefix: `NN-<slug>.<ext>`.
     - The file becomes part of the host's bundle — it will travel with the host
       through all future structural operations (move, delete, rename, punch, flatten).
-    - Does NOT create or modify MANIFEST.md (attachments are not indexed there).
+    - Regenerates MANIFEST.md (Attachments column updated).
   
   Flags:
     --rename SLUG  Override the attachment slug. Default: derived from source filename.
@@ -932,8 +1015,9 @@
   Notes:
     - The host must be a `.md` file (not a directory).
     - Attachments are identified by prefix, not by declaration — no frontmatter needed.
-    - To verify the bundle after attaching, check that the attachment file sits in the
-      same directory as the host with the same `NN` prefix.
+    - The slug must be unique within the bundle across all extensions. If a different
+      extension already uses the same slug, the command errors with a hint to --rename.
+    - To verify the bundle after attaching, run `carta bundle <host>`.
   
   ### copy
   
@@ -1088,7 +1172,7 @@
   Print workspace structure as a visual tree with titles from frontmatter.
   
   ```
-  carta tree [target] [--refs] [--no-title]
+  carta tree [target] [--refs] [--no-title] [--no-sidecars]
   ```
   
   Arguments:
@@ -1099,12 +1183,89 @@
     - Read-only. Prints tree to stdout. No files modified.
   
   Flags:
-    --refs       Show docXX.YY refs next to each entry.
-    --no-title   Show filenames instead of frontmatter titles.
+    --refs         Show docXX.YY refs next to each entry. Sidecars show as docXX.YY/<slug>.<ext>.
+    --no-title     Show filenames instead of frontmatter titles.
+    --no-sidecars  Hide sidecar attachment lines (show only .md docs and directories).
+  
+  Rendering:
+    - Sidecar attachments appear as indented children of their host doc, prefixed with 📎.
+    - Example:
+      ├── 02-principles — Principles
+      │   └── 📎 02-diagram.mmd
   
   When to use:
     - To get an overview of workspace structure before planning moves.
     - To verify structure after batch operations.
+  
+  ### ls
+  
+  List entries in a directory (docs, subdirectories, sidecars, and non-numbered files).
+  
+  ```
+  carta ls [target] [--no-sidecars]
+  ```
+  
+  Arguments:
+    target  Directory to list (doc ref or workspace-relative path). Default: workspace root.
+  
+  Side effects:
+    - Read-only. Prints one entry per line to stdout. No files modified.
+  
+  Output format:
+    - `.md` files: `NN-slug — Title` (title from frontmatter, stem without .md)
+    - Subdirectories: `NN-slug — Title` (title from 00-index.md frontmatter)
+    - Non-md numbered attachments (sidecars): `NN-slug.ext`
+    - Non-numbered files: bare filename
+  
+  Flags:
+    --no-sidecars  Omit non-md numbered attachments. Docs and directories still shown.
+  
+  When to use:
+    - To inspect the direct children of a directory without a full recursive tree.
+    - Before planning `create`, `move`, or `attach` operations.
+  
+  ### bundle
+  
+  Show a doc's bundle: the host .md file and all its sidecar attachments with sizes.
+  
+  ```
+  carta bundle <ref-or-path>
+  ```
+  
+  Arguments:
+    ref-or-path  Doc ref (e.g., `doc01.02`) or path of a `.md` leaf doc.
+  
+  Side effects:
+    - Read-only. Prints bundle members to stdout. No files modified.
+  
+  Output format:
+    - First line: `NN-slug.md  <size>  (docXX.YY)` (host doc)
+    - Subsequent lines: `  NN-slug.ext  <size>  (docXX.YY/<slug>.<ext>)` (each attachment)
+    - Size is human-readable (B, KB, MB).
+  
+  When to use:
+    - To verify a bundle after `carta attach`.
+    - To inspect what non-md artifacts travel with a doc during restructuring.
+  
+  ### orphans
+  
+  List all orphaned attachments across the workspace.
+  
+  ```
+  carta orphans
+  ```
+  
+  Side effects:
+    - Read-only. Prints one path per line to stdout. Summary line on stderr. No files modified.
+  
+  Output:
+    - One workspace-relative path per line (stdout, pipe-clean).
+    - `Total: N orphan(s)` on stderr.
+    - Exit 0 always — orphans are findings, not errors.
+  
+  When to use:
+    - To find sidecar files whose host .md was deleted or never created.
+    - As an alternative to triggering `carta regenerate` just to see orphan warnings.
   
   ### ai-skill
   
@@ -1181,14 +1342,15 @@
   
   Workspace root: `.carta/`
   
-  | Directory | Title | Docs |
-  |-----------|-------|------|
-  | `00-codex` | Codex | 7 |
-  | `01-product-strategy` | Product Strategy | 8 |
-  | `02-product-design` | Product Design | 14 |
-  | `03-architecture` | Architecture | 7 |
+  | Directory | Title | Docs | Sidecars |
+  |-----------|-------|------|----------|
+  | `00-codex` | Codex | 7 | 0 |
+  | `01-product-strategy` | Product Strategy | 8 | 0 |
+  | `02-product-design` | Product Design | 14 | 0 |
+  | `03-architecture` | Architecture | 7 | 0 |
   
   **Total docs**: 36
+  **Total sidecars**: 0
   
   **externalRefPaths**: none configured
   
@@ -1218,6 +1380,8 @@
   
   Use `carta attach` to place a new non-md artifact alongside its host doc.
   
+  **Sidecar display refs**: `carta tree --refs` and `carta bundle` display sidecars using the ref format `docXX.YY.ZZ/<slug>.<ext>`, where `docXX.YY.ZZ` is the host doc ref. These refs are for display only — no command accepts sidecar refs as input arguments.
+  
   ---
   
   ## 1. Command Reference
@@ -1392,7 +1556,7 @@
     - Renames it to share the host's numeric prefix: `NN-<slug>.<ext>`.
     - The file becomes part of the host's bundle — it will travel with the host
       through all future structural operations (move, delete, rename, punch, flatten).
-    - Does NOT create or modify MANIFEST.md (attachments are not indexed there).
+    - Regenerates MANIFEST.md (Attachments column updated).
   
   Flags:
     --rename SLUG  Override the attachment slug. Default: derived from source filename.
@@ -1405,8 +1569,9 @@
   Notes:
     - The host must be a `.md` file (not a directory).
     - Attachments are identified by prefix, not by declaration — no frontmatter needed.
-    - To verify the bundle after attaching, check that the attachment file sits in the
-      same directory as the host with the same `NN` prefix.
+    - The slug must be unique within the bundle across all extensions. If a different
+      extension already uses the same slug, the command errors with a hint to --rename.
+    - To verify the bundle after attaching, run `carta bundle <host>`.
   
   ### copy
   
@@ -1561,7 +1726,7 @@
   Print workspace structure as a visual tree with titles from frontmatter.
   
   ```
-  carta tree [target] [--refs] [--no-title]
+  carta tree [target] [--refs] [--no-title] [--no-sidecars]
   ```
   
   Arguments:
@@ -1572,12 +1737,89 @@
     - Read-only. Prints tree to stdout. No files modified.
   
   Flags:
-    --refs       Show docXX.YY refs next to each entry.
-    --no-title   Show filenames instead of frontmatter titles.
+    --refs         Show docXX.YY refs next to each entry. Sidecars show as docXX.YY/<slug>.<ext>.
+    --no-title     Show filenames instead of frontmatter titles.
+    --no-sidecars  Hide sidecar attachment lines (show only .md docs and directories).
+  
+  Rendering:
+    - Sidecar attachments appear as indented children of their host doc, prefixed with 📎.
+    - Example:
+      ├── 02-principles — Principles
+      │   └── 📎 02-diagram.mmd
   
   When to use:
     - To get an overview of workspace structure before planning moves.
     - To verify structure after batch operations.
+  
+  ### ls
+  
+  List entries in a directory (docs, subdirectories, sidecars, and non-numbered files).
+  
+  ```
+  carta ls [target] [--no-sidecars]
+  ```
+  
+  Arguments:
+    target  Directory to list (doc ref or workspace-relative path). Default: workspace root.
+  
+  Side effects:
+    - Read-only. Prints one entry per line to stdout. No files modified.
+  
+  Output format:
+    - `.md` files: `NN-slug — Title` (title from frontmatter, stem without .md)
+    - Subdirectories: `NN-slug — Title` (title from 00-index.md frontmatter)
+    - Non-md numbered attachments (sidecars): `NN-slug.ext`
+    - Non-numbered files: bare filename
+  
+  Flags:
+    --no-sidecars  Omit non-md numbered attachments. Docs and directories still shown.
+  
+  When to use:
+    - To inspect the direct children of a directory without a full recursive tree.
+    - Before planning `create`, `move`, or `attach` operations.
+  
+  ### bundle
+  
+  Show a doc's bundle: the host .md file and all its sidecar attachments with sizes.
+  
+  ```
+  carta bundle <ref-or-path>
+  ```
+  
+  Arguments:
+    ref-or-path  Doc ref (e.g., `doc01.02`) or path of a `.md` leaf doc.
+  
+  Side effects:
+    - Read-only. Prints bundle members to stdout. No files modified.
+  
+  Output format:
+    - First line: `NN-slug.md  <size>  (docXX.YY)` (host doc)
+    - Subsequent lines: `  NN-slug.ext  <size>  (docXX.YY/<slug>.<ext>)` (each attachment)
+    - Size is human-readable (B, KB, MB).
+  
+  When to use:
+    - To verify a bundle after `carta attach`.
+    - To inspect what non-md artifacts travel with a doc during restructuring.
+  
+  ### orphans
+  
+  List all orphaned attachments across the workspace.
+  
+  ```
+  carta orphans
+  ```
+  
+  Side effects:
+    - Read-only. Prints one path per line to stdout. Summary line on stderr. No files modified.
+  
+  Output:
+    - One workspace-relative path per line (stdout, pipe-clean).
+    - `Total: N orphan(s)` on stderr.
+    - Exit 0 always — orphans are findings, not errors.
+  
+  When to use:
+    - To find sidecar files whose host .md was deleted or never created.
+    - As an alternative to triggering `carta regenerate` just to see orphan warnings.
   
   ### ai-skill
   
@@ -1654,14 +1896,15 @@
   
   Workspace root: `.carta/`
   
-  | Directory | Title | Docs |
-  |-----------|-------|------|
-  | `00-codex` | Codex | 7 |
-  | `01-product-strategy` | Product Strategy | 8 |
-  | `02-product-design` | Product Design | 14 |
-  | `03-architecture` | Architecture | 7 |
+  | Directory | Title | Docs | Sidecars |
+  |-----------|-------|------|----------|
+  | `00-codex` | Codex | 7 | 0 |
+  | `01-product-strategy` | Product Strategy | 8 | 0 |
+  | `02-product-design` | Product Design | 14 | 0 |
+  | `03-architecture` | Architecture | 7 | 0 |
   
   **Total docs**: 36
+  **Total sidecars**: 0
   
   **externalRefPaths**: none configured
   

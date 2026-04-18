@@ -107,3 +107,15 @@ def slug_matched_attachments(bundle: Bundle, slug: str) -> list[Path]:
 def detect_orphans(directory: Path) -> list[Bundle]:
     """Return all bundles with is_orphan=True."""
     return [b for b in list_bundles(directory) if b.is_orphan]
+
+
+def slug_collision(bundle: Bundle, slug: str) -> Path | None:
+    """Return first attachment whose slug matches across any extension, or None.
+
+    Ensures docXX.YY/<slug>.<ext> is unambiguous within a bundle.
+    """
+    for a in bundle.attachments:
+        m = re.match(r'^\d{2}-(.*?)\.[^.]+$', a.name)
+        if m and m.group(1) == slug:
+            return a
+    return None

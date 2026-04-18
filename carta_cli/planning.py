@@ -288,6 +288,9 @@ def compute_rename_map(
             try:
                 old_ref = path_to_ref(item, carta_root)
                 new_ref = path_to_ref(final, carta_root)
+                # Skip sidecar display refs — they are not written into .md files
+                if "/" in old_ref or "/" in new_ref:
+                    continue
                 if old_ref != new_ref:
                     result[old_ref] = new_ref
             except ValueError:

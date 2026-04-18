@@ -13,6 +13,7 @@ from carta_cli.bundle import (
     detect_orphans,
     find_bundle,
     list_bundles,
+    slug_collision,
     slug_matched_attachments,
 )
 from carta_cli.errors import CartaError
@@ -267,3 +268,49 @@ def test_detect_orphans_mixed(tmp_path):
     orphans = detect_orphans(tmp_path)
     assert len(orphans) == 1
     assert orphans[0].prefix == 3
+
+
+# ---------------------------------------------------------------------------
+# slug_collision
+# ---------------------------------------------------------------------------
+
+def test_slug_collision_no_attachments(tmp_path):
+    md = tmp_path / "01-intro.md"
+    md.touch()
+    b = list_bundles(tmp_path)[0]
+    assert slug_collision(b, "intro") is None
+
+
+def test_slug_collision_no_match(tmp_path):
+    (tmp_path / "02-guide.md").touch()
+    (tmp_path / "02-guide.png").touch()
+    b = list_bundles(tmp_path)[0]
+    assert slug_collision(b, "diagram") is None
+
+
+def test_slug_collision_different_extension(tmp_path):
+    (tmp_path / "03-report.md").touch()
+    png = tmp_path / "03-report.png"
+    png.touch()
+    b = list_bundles(tmp_path)[0]
+    result = slug_collision(b, "report")
+    assert result == png
+
+
+def test_slug_collision_returns_first_match(tmp_path):
+    (tmp_path / "04-notes.md").touch()
+    csv = tmp_path / "04-notes.csv"
+    json_ = tmp_path / "04-notes.json"
+    csv.touch()
+    json_.touch()
+    b = list_bundles(tmp_path)[0]
+    result = slug_collision(b, "notes")
+    # Returns first alphabetically (sorted in bundle.attachments)
+    assert result in (csv, json_)
+
+
+def test_slug_collision_ignores_different_slug(tmp_path):
+    (tmp_path / "05-overview.md").touch()
+    (tmp_path / "05-overview.png").touch()
+    b = list_bundles(tmp_path)[0]
+    assert slug_collision(b, "overview-extra") is None

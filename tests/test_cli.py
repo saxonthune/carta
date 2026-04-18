@@ -2238,5 +2238,262 @@ class TestAttach(unittest.TestCase):
         assert normalize_output(result.stderr, self.tmpdir.name) == self._snapshot
 
 
+# ---------------------------------------------------------------------------
+# Tests for sidecar discoverability features
+# ---------------------------------------------------------------------------
+
+class TestPathToRefSidecar(unittest.TestCase):
+    """Tests for path_to_ref sidecar ref emission."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.root = _build_fixture(Path(self.tmpdir.name))
+
+    def tearDown(self):
+        self.tmpdir.cleanup()
+
+    def test_sidecar_ref_format(self):
+        """path_to_ref emits docXX.YY/<slug>.<ext> for a non-md attachment with an md host."""
+        sidecar = self.root / "01-product-strategy" / "02-diagram.mmd"
+        sidecar.write_text("graph LR\n  A-->B\n")
+        ref = path_to_ref(sidecar, self.root)
+        self.assertEqual(ref, "doc01.02/diagram.mmd")
+
+    def test_sidecar_orphan_raises(self):
+        """path_to_ref raises ValueError for orphan sidecars (no .md host)."""
+        orphan = self.root / "01-product-strategy" / "99-orphan.json"
+        orphan.write_text("{}")
+        with self.assertRaises(ValueError):
+            path_to_ref(orphan, self.root)
+
+    def test_sidecar_ref_nested(self):
+        """path_to_ref works for sidecars in subdirectories."""
+        sidecar = self.root / "01-product-strategy" / "04-primary-sources" / "01-flow.png"
+        sidecar.write_bytes(b"\x89PNG\r\n")
+        ref = path_to_ref(sidecar, self.root)
+        self.assertEqual(ref, "doc01.04.01/flow.png")
+
+    def test_rewriter_preserves_sidecar_ref_in_body(self):
+        """carta rewrite renames host ref prefix; sidecar ref in content survives correctly."""
+        # Write a doc that contains a sidecar ref in its body
+        host = self.root / "01-product-strategy" / "02-principles.md"
+        original = host.read_text(encoding="utf-8")
+        host.write_text(original + "\nSee doc01.02/diagram.mmd for details.\n", encoding="utf-8")
+
+        result = _run_carta(self.root, "rewrite", "doc01.02=doc01.05", "--dry-run")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        # The rewriter should report a match in 02-principles.md for doc01.02
+        self.assertIn("doc01.02", result.stdout)
+
+
+class TestCmdLs(unittest.TestCase):
+    """Tests for carta ls command."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.carta = _build_fixture(Path(self.tmpdir.name))
+
+    def tearDown(self):
+        self.tmpdir.cleanup()
+
+    def test_ls_lists_directory(self):
+        """carta ls on a directory shows its direct children."""
+        result = _run_carta(self.carta, "ls", "01-product-strategy")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        lines = result.stdout.strip().splitlines()
+        # Should include the index and doc entries
+        self.assertTrue(any("00-index" in l for l in lines))
+        self.assertTrue(any("Mission" in l or "01-mission" in l for l in lines))
+
+    def test_ls_shows_sidecars(self):
+        """carta ls shows sidecar files without --no-sidecars."""
+        (self.carta / "01-product-strategy" / "02-diagram.mmd").write_text("graph")
+        result = _run_carta(self.carta, "ls", "01-product-strategy")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("02-diagram.mmd", result.stdout)
+
+    def test_ls_no_sidecars_hides_sidecars(self):
+        """--no-sidecars hides attachment files."""
+        (self.carta / "01-product-strategy" / "02-diagram.mmd").write_text("graph")
+        result = _run_carta(self.carta, "ls", "01-product-strategy", "--no-sidecars")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("02-diagram.mmd", result.stdout)
+
+    def test_ls_file_target_errors(self):
+        """carta ls on a file (not directory) exits non-zero."""
+        result = _run_carta(self.carta, "ls", "01-product-strategy/01-mission.md")
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_ls_ref_arg(self):
+        """carta ls accepts a doc ref as target."""
+        result = _run_carta(self.carta, "ls", "doc01")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Mission", result.stdout)
+
+    def test_ls_default_workspace_root(self):
+        """carta ls with no args lists workspace root."""
+        result = _run_carta(self.carta, "ls")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        lines = result.stdout.strip().splitlines()
+        self.assertTrue(any("product-strategy" in l or "Product Strategy" in l for l in lines))
+
+
+class TestCmdBundle(unittest.TestCase):
+    """Tests for carta bundle command."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.carta = _build_fixture(Path(self.tmpdir.name))
+
+    def tearDown(self):
+        self.tmpdir.cleanup()
+
+    def test_bundle_shows_host(self):
+        """carta bundle shows the host doc with size."""
+        result = _run_carta(self.carta, "bundle", "01-product-strategy/01-mission.md")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("01-mission.md", result.stdout)
+
+    def test_bundle_shows_attachments(self):
+        """carta bundle shows sidecar attachments with size and ref."""
+        (self.carta / "01-product-strategy" / "01-diagram.mmd").write_text("graph LR\n  A-->B")
+        result = _run_carta(self.carta, "bundle", "01-product-strategy/01-mission.md")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("01-diagram.mmd", result.stdout)
+        self.assertIn("doc01.01/diagram.mmd", result.stdout)
+
+    def test_bundle_no_attachments(self):
+        """carta bundle on a doc with no sidecars shows only host line."""
+        result = _run_carta(self.carta, "bundle", "01-product-strategy/02-principles.md")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        lines = result.stdout.strip().splitlines()
+        self.assertEqual(len(lines), 1)
+
+    def test_bundle_directory_errors(self):
+        """carta bundle on a directory exits non-zero."""
+        result = _run_carta(self.carta, "bundle", "01-product-strategy")
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_bundle_via_ref(self):
+        """carta bundle accepts a doc ref."""
+        result = _run_carta(self.carta, "bundle", "doc01.01")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("01-mission.md", result.stdout)
+
+
+class TestCmdOrphans(unittest.TestCase):
+    """Tests for carta orphans command."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.carta = _build_fixture(Path(self.tmpdir.name))
+
+    def tearDown(self):
+        self.tmpdir.cleanup()
+
+    def test_orphans_none(self):
+        """carta orphans shows Total: 0 orphan(s) when workspace is clean."""
+        result = _run_carta(self.carta, "orphans")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("0 orphan(s)", result.stderr)
+        self.assertEqual(result.stdout.strip(), "")
+
+    def test_orphans_finds_orphan(self):
+        """carta orphans lists workspace-relative orphan paths."""
+        orphan = self.carta / "01-product-strategy" / "99-lost.json"
+        orphan.write_text("{}")
+        result = _run_carta(self.carta, "orphans")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("99-lost.json", result.stdout)
+        self.assertIn("1 orphan(s)", result.stderr)
+
+    def test_orphans_exit_zero_with_orphans(self):
+        """carta orphans exits 0 even when orphans exist."""
+        (self.carta / "01-product-strategy" / "99-lost.json").write_text("{}")
+        result = _run_carta(self.carta, "orphans")
+        self.assertEqual(result.returncode, 0)
+
+
+class TestCmdTreeWithSidecars(unittest.TestCase):
+    """Tests for tree command with sidecar rendering."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.carta = _build_fixture(Path(self.tmpdir.name))
+
+    def tearDown(self):
+        self.tmpdir.cleanup()
+
+    def test_tree_shows_sidecar_as_child(self):
+        """carta tree shows sidecars indented under their host doc."""
+        (self.carta / "01-product-strategy" / "02-diagram.mmd").write_text("graph")
+        result = _run_carta(self.carta, "tree", "01-product-strategy")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        lines = result.stdout.splitlines()
+        # Find the principles line and check sidecar follows it indented
+        principles_idx = next((i for i, l in enumerate(lines) if "Principles" in l), None)
+        self.assertIsNotNone(principles_idx)
+        sidecar_line = next((l for l in lines if "📎" in l), None)
+        self.assertIsNotNone(sidecar_line, "Expected a sidecar line with 📎")
+        self.assertIn("02-diagram.mmd", sidecar_line)
+
+    def test_tree_no_sidecars_hides_attachments(self):
+        """--no-sidecars omits sidecar lines from tree output."""
+        (self.carta / "01-product-strategy" / "02-diagram.mmd").write_text("graph")
+        result = _run_carta(self.carta, "tree", "01-product-strategy", "--no-sidecars")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("📎", result.stdout)
+        self.assertNotIn("02-diagram.mmd", result.stdout)
+
+    def test_tree_refs_sidecar_format(self):
+        """--refs shows sidecar refs in docXX.YY/<slug>.<ext> format."""
+        (self.carta / "01-product-strategy" / "02-diagram.mmd").write_text("graph")
+        result = _run_carta(self.carta, "tree", "01-product-strategy", "--refs")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("doc01.02/diagram.mmd", result.stdout)
+
+
+class TestAttachSlugCollision(unittest.TestCase):
+    """Tests for slug uniqueness enforcement in carta attach."""
+
+    @pytest.fixture(autouse=True)
+    def _inject_snapshot(self, snapshot):
+        self._snapshot = snapshot
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        root = Path(self.tmpdir.name)
+        self.carta = root / ".carta"
+        self.carta.mkdir()
+        (root / ".carta.json").write_text(
+            '{"root": ".carta/", "title": "SlugCollisionTest"}', encoding="utf-8"
+        )
+        _write(self.carta / "00-codex/00-index.md", _fm("Codex"))
+        _write(self.carta / "00-codex/01-logic.md", _fm("Logic"))
+        (self.carta / "00-codex/01-diagram.png").write_bytes(b"\x89PNG")
+        _run_carta(self.carta, "regenerate")
+
+        self.src_mmd = root / "diagram.mmd"
+        self.src_mmd.write_text("graph LR\n  A-->B")
+
+    def tearDown(self):
+        self.tmpdir.cleanup()
+
+    def test_slug_collision_errors(self):
+        """Attaching a file whose slug collides with an existing attachment raises an error."""
+        # 01-diagram.png already exists; attaching diagram.mmd should collide on slug "diagram"
+        result = _run_carta(self.carta, "attach", "00-codex/01-logic.md", str(self.src_mmd))
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("diagram", result.stderr)
+        self.assertIn("--rename", result.stderr)
+
+    def test_rename_avoids_collision(self):
+        """--rename with a different slug avoids the collision."""
+        result = _run_carta(self.carta, "attach", "00-codex/01-logic.md",
+                            str(self.src_mmd), "--rename", "flow")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue((self.carta / "00-codex/01-flow.mmd").exists())
+
+
 if __name__ == "__main__":
     unittest.main()

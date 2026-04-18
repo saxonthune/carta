@@ -9,7 +9,7 @@ from ..workspace import find_workspace
 from ..ai_skill import cmd_ai_skill
 from .structure import cmd_create, cmd_delete, cmd_move, cmd_rename
 from .transform import cmd_punch, cmd_flatten, cmd_group, cmd_copy
-from .content import cmd_cat, cmd_tree, cmd_rewrite, cmd_regenerate, cmd_attach
+from .content import cmd_cat, cmd_tree, cmd_rewrite, cmd_regenerate, cmd_attach, cmd_ls, cmd_bundle, cmd_orphans
 from .setup import cmd_init, cmd_portable, cmd_init_rehydrate
 
 
@@ -166,6 +166,22 @@ def main(argv: list[str] | None = None) -> int:
                         help="Show docXX.YY refs next to entries.")
     p_tree.add_argument("--no-title", action="store_true",
                         help="Show filenames instead of frontmatter titles.")
+    p_tree.add_argument("--no-sidecars", action="store_true",
+                        help="Hide sidecar attachment lines.")
+
+    # ls
+    p_ls = subparsers.add_parser("ls", help="List entries in a directory")
+    p_ls.add_argument("target", nargs="?", default=None,
+                      help="Directory to list (doc ref or path). Default: workspace root.")
+    p_ls.add_argument("--no-sidecars", action="store_true",
+                      help="Hide non-md numbered attachments.")
+
+    # bundle
+    p_bundle = subparsers.add_parser("bundle", help="Show a doc's bundle (host + attachments)")
+    p_bundle.add_argument("ref", help="Doc ref or path of a .md leaf doc.")
+
+    # orphans
+    subparsers.add_parser("orphans", help="List orphaned attachments in the workspace")
 
     # Handle per-subcommand --help-ai before parse_args (avoids required-arg errors)
     if argv is None:
@@ -175,7 +191,7 @@ def main(argv: list[str] | None = None) -> int:
         known_subcommands = {
             "regenerate", "create", "delete", "move", "punch", "flatten",
             "copy", "attach", "rewrite", "group", "rename", "init",
-            "portable", "ai-skill", "cat", "tree",
+            "portable", "ai-skill", "cat", "tree", "ls", "bundle", "orphans",
         }
         cmd_candidates = [a for a in argv if a in known_subcommands]
         if cmd_candidates:
@@ -252,6 +268,9 @@ def main(argv: list[str] | None = None) -> int:
             "ai-skill": cmd_ai_skill,
             "cat": cmd_cat,
             "tree": cmd_tree,
+            "ls": cmd_ls,
+            "bundle": cmd_bundle,
+            "orphans": cmd_orphans,
         }
         dispatch[args.command](args, carta_root)
         return 0
