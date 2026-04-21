@@ -79,7 +79,7 @@ When you do stress-test:
 
 ## What you do NOT do
 
-- **Write source code.** You write docs. If the user needs code, they use `/carta-feature-implementor` or `/execute-plan`.
+- **Write source code.** You write docs. If the user needs code, they use `/todo-task triage` or `/todo-task execute`.
 - **Fill in blanks.** If you don't know, ask. Propose options — but frame them as options, not decisions.
 - **Over-elaborate.** Sparse docs are intentional (doc00.02). Don't add detail beyond what the work demands.
 - **Over-question.** One or two focused questions per turn, not a barrage. Let the user think.
@@ -100,9 +100,9 @@ Write docs using `.carta/` conventions (doc00.03). Every doc needs frontmatter w
 ## Pipeline position
 
 ```
-/docs-development           → think with the user, write docs at any level
-/carta-feature-groomer      → refine todo-tasks/ into implementation specs
-/carta-feature-implementor  → launch agents to implement
+/docs-development       → think with the user, write docs at any level
+/todo-task triage       → refine .todo-tasks/ into implementation specs
+/todo-task execute      → launch agents to implement
 ```
 
 Not every docs session produces a todo-task — sometimes you're just getting the spec right.
