@@ -4,24 +4,30 @@ Run with:
     python3 -m pytest tests/test_regenerate.py -v
 """
 
+import contextlib
+import io
 import re
 import shutil
-import subprocess
 import sys
 import tempfile
+import types
 import unittest
+
+import pytest
 from pathlib import Path
 
 # Ensure carta_cli is importable without prior pip install
 _CLI_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_CLI_DIR))
 
+from carta_cli.commands._parser import main as cli_main
 from carta_cli.workspace import find_workspace
 from carta_cli.ref_convert import ref_to_path
 from carta_cli.frontmatter import read_frontmatter, write_frontmatter
 
+from helpers import normalize_output
+
 _REAL_CARTA_ROOT = find_workspace()
-_ENV_WITH_CLI = {**__import__("os").environ, "PYTHONPATH": str(_CLI_DIR)}
 
 
 # ---------------------------------------------------------------------------
@@ -35,11 +41,19 @@ def _copy_carta(dest: Path) -> Path:
     return carta_copy
 
 
-def _run_carta(carta_copy: Path, *args: str) -> subprocess.CompletedProcess:
-    """Run the carta CLI against a workspace copy."""
-    return subprocess.run(
-        [sys.executable, "-m", "carta_cli.main", "--workspace", str(carta_copy)] + list(args),
-        capture_output=True, text=True, env=_ENV_WITH_CLI,
+def _run_carta(carta_copy: Path, *args: str) -> types.SimpleNamespace:
+    """Run the carta CLI against a workspace copy (in-process)."""
+    stdout_buf = io.StringIO()
+    stderr_buf = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(stdout_buf), contextlib.redirect_stderr(stderr_buf):
+            code = cli_main(["--workspace", str(carta_copy)] + list(args))
+    except SystemExit as e:
+        code = int(e.code) if e.code is not None else 0
+    return types.SimpleNamespace(
+        returncode=code,
+        stdout=stdout_buf.getvalue(),
+        stderr=stderr_buf.getvalue(),
     )
 
 
@@ -60,11 +74,10 @@ class TestFrontmatterRoundtrip(unittest.TestCase):
     def test_roundtrip_simple(self):
         """Scalar fields survive a read/write cycle."""
         p = self.tmp / "doc.md"
-        p.write_text("---\ntitle: Foo\nstatus: active\n---\n\n# Body\n", encoding="utf-8")
+        p.write_text("---\ntitle: Foo\n---\n\n# Body\n", encoding="utf-8")
 
         fm, body = read_frontmatter(p)
         self.assertEqual(fm["title"], "Foo")
-        self.assertEqual(fm["status"], "active")
         self.assertIn("# Body", body)
 
         write_frontmatter(p, fm, body)
@@ -76,7 +89,7 @@ class TestFrontmatterRoundtrip(unittest.TestCase):
         """List fields survive a read/write cycle as inline lists."""
         p = self.tmp / "doc.md"
         p.write_text(
-            "---\ntitle: Bar\nstatus: draft\ntags: [a, b, c]\ndeps: [doc01.01, doc02.02]\n---\n\nbody\n",
+            "---\ntitle: Bar\ntags: [a, b, c]\ndeps: [doc01.01, doc02.02]\n---\n\nbody\n",
             encoding="utf-8",
         )
         fm, body = read_frontmatter(p)
@@ -91,7 +104,7 @@ class TestFrontmatterRoundtrip(unittest.TestCase):
     def test_roundtrip_empty_lists(self):
         """Empty list fields written as [] and read back as []."""
         p = self.tmp / "doc.md"
-        p.write_text("---\ntitle: X\nstatus: active\ntags: []\ndeps: []\n---\n", encoding="utf-8")
+        p.write_text("---\ntitle: X\ntags: []\ndeps: []\n---\n", encoding="utf-8")
         fm, body = read_frontmatter(p)
         self.assertEqual(fm["tags"], [])
         self.assertEqual(fm["deps"], [])
@@ -114,13 +127,13 @@ class TestFrontmatterRoundtrip(unittest.TestCase):
     def test_canonical_field_order(self):
         """write_frontmatter emits fields in canonical order."""
         p = self.tmp / "order.md"
-        fm = {"deps": ["doc01.01"], "title": "X", "summary": "s", "status": "active", "tags": ["t"]}
+        fm = {"deps": ["doc01.01"], "title": "X", "summary": "s", "tags": ["t"]}
         write_frontmatter(p, fm, "")
         text = p.read_text(encoding="utf-8")
         lines = text.splitlines()
         field_lines = [l for l in lines if ":" in l and not l.startswith("---")]
         fields = [l.split(":")[0] for l in field_lines]
-        self.assertEqual(fields, ["title", "status", "summary", "tags", "deps"])
+        self.assertEqual(fields, ["title", "summary", "tags", "deps"])
 
 
 # ---------------------------------------------------------------------------
@@ -297,6 +310,151 @@ class TestRefsResolve(unittest.TestCase):
         self.assertEqual(unresolvable, [],
                          f"Unresolvable refs in generated MANIFEST:\n" +
                          "\n".join(f"  {r}: {e}" for r, e in unresolvable))
+
+
+# ---------------------------------------------------------------------------
+# Test 7: Attachments column + orphan detection
+# ---------------------------------------------------------------------------
+
+class TestAttachmentsColumn(unittest.TestCase):
+    """Tests for MANIFEST Attachments column and orphan detection."""
+
+    @pytest.fixture(autouse=True)
+    def _inject_snapshot(self, snapshot):
+        self._snapshot = snapshot
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.tmp = Path(self.tmpdir.name)
+
+    def tearDown(self):
+        self.tmpdir.cleanup()
+
+    def _make_workspace(self, files: dict) -> Path:
+        """Create a minimal workspace. files = {rel_path: content}."""
+        workspace = self.tmp / "ws"
+        workspace.mkdir()
+        for rel, content in files.items():
+            p = workspace / rel
+            p.parent.mkdir(parents=True, exist_ok=True)
+            if isinstance(content, bytes):
+                p.write_bytes(content)
+            else:
+                p.write_text(content, encoding="utf-8")
+        return workspace
+
+    def _run(self, workspace: Path, *args: str) -> types.SimpleNamespace:
+        stdout_buf = io.StringIO()
+        stderr_buf = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(stdout_buf), contextlib.redirect_stderr(stderr_buf):
+                code = cli_main(["--workspace", str(workspace)] + list(args))
+        except SystemExit as e:
+            code = int(e.code) if e.code is not None else 0
+        return types.SimpleNamespace(
+            returncode=code,
+            stdout=stdout_buf.getvalue(),
+            stderr=stderr_buf.getvalue(),
+        )
+
+    def test_header_has_attachments_column(self):
+        """MANIFEST header row includes Attachments column."""
+        ws = self._make_workspace({
+            "01-docs/00-index.md": "---\ntitle: Docs\n---\n",
+            "01-docs/01-intro.md": "---\ntitle: Intro\n---\n",
+        })
+        result = self._run(ws, "regenerate", "--dry-run")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        assert normalize_output(result.stdout, ws) == self._snapshot
+
+    def test_no_attachments_renders_emdash(self):
+        """A doc with no non-md siblings renders — in Attachments column."""
+        ws = self._make_workspace({
+            "01-docs/00-index.md": "---\ntitle: Docs\n---\n",
+            "01-docs/01-intro.md": "---\ntitle: Intro\n---\n",
+        })
+        result = self._run(ws, "regenerate", "--dry-run")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        rows = [l for l in result.stdout.splitlines() if l.startswith("| doc")]
+        self.assertTrue(rows, "No doc rows found")
+        for row in rows:
+            cols = [c.strip() for c in row.split("|")[1:-1]]
+            self.assertEqual(len(cols), 7, f"Expected 7 columns in row: {row}")
+            self.assertEqual(cols[6], "—", f"Expected — in Attachments: {row}")
+
+    def test_one_attachment_renders_slug_ext(self):
+        """A doc with one attachment renders slug+ext without the NN-docslug. prefix."""
+        ws = self._make_workspace({
+            "01-docs/00-index.md": "---\ntitle: Docs\n---\n",
+            "01-docs/01-game.md": "---\ntitle: Game\n---\n",
+            "01-docs/01-game.xstate.json": "{}",
+        })
+        result = self._run(ws, "regenerate", "--dry-run")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        rows = [l for l in result.stdout.splitlines() if "doc01.01" in l]
+        self.assertEqual(len(rows), 1, f"Expected 1 row for doc01.01, got: {rows}")
+        cols = [c.strip() for c in rows[0].split("|")[1:-1]]
+        self.assertEqual(cols[6], "xstate.json")
+
+    def test_multiple_attachments_sorted(self):
+        """A doc with multiple attachments renders a sorted comma-separated list."""
+        ws = self._make_workspace({
+            "01-docs/00-index.md": "---\ntitle: Docs\n---\n",
+            "01-docs/01-spec.md": "---\ntitle: Spec\n---\n",
+            "01-docs/01-spec.schema.json": "{}",
+            "01-docs/01-spec.mockup.png": b"\x89PNG",
+            "01-docs/01-spec.rules.yaml": "key: value",
+        })
+        result = self._run(ws, "regenerate", "--dry-run")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        rows = [l for l in result.stdout.splitlines() if "doc01.01" in l]
+        self.assertEqual(len(rows), 1)
+        cols = [c.strip() for c in rows[0].split("|")[1:-1]]
+        self.assertEqual(cols[6], "mockup.png, rules.yaml, schema.json")
+
+    def test_index_with_00_attachment(self):
+        """00-index.md with a 00-foo.png sibling renders foo.png in Attachments."""
+        ws = self._make_workspace({
+            "01-docs/00-index.md": "---\ntitle: Docs\n---\n",
+            "01-docs/00-overview.png": b"\x89PNG",
+        })
+        result = self._run(ws, "regenerate", "--dry-run")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        rows = [l for l in result.stdout.splitlines() if "doc01.00" in l]
+        self.assertEqual(len(rows), 1, f"Expected row for doc01.00:\n{result.stdout}")
+        cols = [c.strip() for c in rows[0].split("|")[1:-1]]
+        self.assertEqual(cols[6], "overview.png")
+
+    def test_orphan_warning_to_stderr(self):
+        """Orphan file (no root .md) prints warning to stderr; MANIFEST is still written."""
+        ws = self._make_workspace({
+            "01-docs/00-index.md": "---\ntitle: Docs\n---\n",
+            "01-docs/01-legit.md": "---\ntitle: Legit\n---\n",
+            "01-docs/03-orphan.json": "{}",  # no 03-*.md → orphan
+        })
+        result = self._run(ws, "regenerate")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        assert normalize_output(result.stderr, ws) == self._snapshot
+        manifest = ws / "MANIFEST.md"
+        self.assertTrue(manifest.exists(), "MANIFEST.md not written despite warning")
+        content = manifest.read_text(encoding="utf-8")
+        self.assertNotIn("03-orphan", content)
+
+    def test_orphan_subdir_conflict(self):
+        """File sharing a prefix with a subdir is an orphan; subdir docs still appear."""
+        ws = self._make_workspace({
+            "01-docs/00-index.md": "---\ntitle: Docs\n---\n",
+            "01-docs/03-concepts/00-index.md": "---\ntitle: Concepts\n---\n",
+            "01-docs/03-concepts/01-first.md": "---\ntitle: First\n---\n",
+            "01-docs/03-stale.yaml": "key: value",  # prefix 03 = subdir → orphan
+        })
+        result = self._run(ws, "regenerate")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        assert normalize_output(result.stderr, ws) == self._snapshot
+        manifest = ws / "MANIFEST.md"
+        content = manifest.read_text(encoding="utf-8")
+        self.assertIn("doc01.03.01", content)
+        self.assertNotIn("03-stale", content)
 
 
 if __name__ == "__main__":

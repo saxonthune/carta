@@ -1,6 +1,5 @@
 ---
 title: AI Retrieval Patterns
-status: active
 summary: How AI agents navigate this workspace — hierarchical retrieval, MANIFEST usage, token budgets
 tags: [docs, ai, retrieval]
 deps: []

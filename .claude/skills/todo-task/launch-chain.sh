@@ -14,8 +14,8 @@ fi
 
 CHAIN_NAME="$1"
 
-mkdir -p "${REPO_ROOT}/todo-tasks/.running"
-LOG="${REPO_ROOT}/todo-tasks/.running/chain-${CHAIN_NAME}.log"
+mkdir -p "${REPO_ROOT}/.todo-tasks/.running"
+LOG="${REPO_ROOT}/.todo-tasks/.running/chain-${CHAIN_NAME}.log"
 
 nohup bash "${SCRIPT_DIR}/execute-chain.sh" "$@" > "${LOG}" 2>&1 &
 

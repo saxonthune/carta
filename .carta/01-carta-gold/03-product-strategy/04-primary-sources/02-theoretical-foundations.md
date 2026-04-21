@@ -1,6 +1,5 @@
 ---
 title: Theoretical Foundations of Spec-Driven Development
-status: active
 summary: Why spec-driven development works with AI — primary sources from Alexander, Simon, and Shannon, plus the decreasing indirection thesis
 tags: [spec-driven, AI, theory, patterns, complexity, information-theory, artifact-driven development]
 deps: [doc01.03.01, doc01.03.04.01, doc01.03.08.03]

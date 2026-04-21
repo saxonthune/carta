@@ -43,19 +43,16 @@ Carta uses concept-driven design from Daniel Jackson's *The Essence of Software*
 | Skill | Purpose | When to use |
 |-------|---------|-------------|
 | `/docs-development` | Develops `.carta/` docs at any level — elicits info, finds edge cases, reads code for context | When writing or refining docs at any level of the 4-title model |
-| `/carta-builder` | Design thinking and document modeling for Carta | Before `/carta-feature-implementor`, to resolve decisions |
+| `/carta-builder` | Design thinking and document modeling for Carta | Before `/todo-task triage`, to resolve decisions |
 | `/project-builder` | Dogfooding reflector for external projects | While building non-Carta projects, to identify Carta improvements |
-| `/carta-feature-groomer` | Researches codebase, discusses approach, refines plans into specs | Before `/carta-feature-implementor`, to resolve decisions |
-| `/carta-feature-implementor` | Status, launch, triage, chain orchestration | After grooming, to launch plans and manage agents |
 | `/documentation-nag` | Keeps `.carta/` and derived files in sync with code | After significant code changes |
 | `/documentation-auditor` | Audits `.carta/` claims against codebase, finds stale refs | Periodically, or before releases |
 | `/git-sync-trunk` | Syncs trunk branch with remote or main | Before creating worktrees, after remote updates |
 | `/git-sync-worktree` | Syncs worktree's claude branch with trunk via rebase | Every 30-60 min while working in a worktree |
-| `/execute-plan` | Launches background agent to implement a plan from todo-tasks/ | After agreeing on a plan interactively |
 | `/spec-builder` | Elicits requirements via structured interviewing, produces shape files | When defining new modules, features, or services |
 | `/carta-spec-builder` | Composes spec-builder with .carta/ workspace knowledge and script pipeline | When building specs inside a .carta/ workspace |
 | `/carta-cli` | Carta Docs API reference: init, create, delete, move, punch, flatten, rewrite, regenerate, portable | When initializing workspaces or restructuring `.carta/` docs |
-| `/todo-task` | Quick-capture a bug, improvement, or feature idea as a todo-task file | When any session discovers work that should be deferred, not done now |
+| `/todo-task` | Task lifecycle manager: create, triage, execute, status, monitor | Capturing deferred work, grooming plans, launching headless agents |
 
 **Agents** (launch with `Task` tool): Long-running autonomous workers.
 
@@ -63,7 +60,7 @@ Carta uses concept-driven design from Daniel Jackson's *The Essence of Software*
 |-------|---------|-------------|
 | `batch-executor` | Processes all tasks sequentially | "process tasks" - small/medium tasks |
 | `task-master` | Spawns parallel agents per task | "launch task-master" - large tasks |
-| `plan-executor` | Implements a plan headlessly in a worktree | Background worker for `/execute-plan` |
+| `plan-executor` | Implements a plan headlessly in a worktree | Background worker for `/todo-task execute` |
 
 ### Skill Details
 
@@ -74,17 +71,14 @@ All skills follow the same pattern: opus reads `.carta/` and code, analyzes, gen
 | `/docs-development` | `.carta/MANIFEST.md`, codebase, MCP tools | `.claude/skills/docs-development/SKILL.md` |
 | `/carta-builder` | `.carta/MANIFEST.md`, MCP tools | `.claude/skills/carta-builder/SKILL.md` |
 | `/project-builder` | `.carta/MANIFEST.md`, MCP tools, external project context | `.claude/skills/project-builder/SKILL.md` |
-| `/carta-feature-groomer` | `.carta/MANIFEST.md`, plan files, codebase | `.claude/skills/carta-feature-groomer/SKILL.md` |
-| `/carta-feature-implementor` | Plan files, status script | `.claude/skills/carta-feature-implementor/SKILL.md` |
 | `/documentation-nag` | `.carta/` (all titles) | `.claude/skills/documentation-nag/SKILL.md` |
 | `/documentation-auditor` | `.carta/MANIFEST.md`, codebase source | `.claude/skills/documentation-auditor/SKILL.md` |
 | `/git-sync-trunk` | Git worktree workflows | `.claude/skills/git-sync-trunk/SKILL.md` |
 | `/git-sync-worktree` | Git worktree workflows | `.claude/skills/git-sync-worktree/SKILL.md` |
-| `/execute-plan` | Plan executor workflow | `.claude/skills/execute-plan/SKILL.md` |
 | `/spec-builder` | doc01.03.08.04 (reconciliation), doc01.03.08.05 (spec quality) | `.claude/skills/spec-builder/SKILL.md` |
 | `/carta-spec-builder` | doc01.03.08.04, doc01.03.08.05, `.carta/` workspace structure | `.claude/skills/carta-spec-builder/SKILL.md` |
 | `/carta-cli` | doc01.03.06.01 (Docs API), doc01.02.01 (design) | `.claude/skills/carta-cli/SKILL.md` |
-| `/todo-task` | — | `.claude/skills/todo-task/SKILL.md` |
+| `/todo-task` | Plan files, agent worktrees | `.claude/skills/todo-task/SKILL.md` |
 
 ### Agent Details
 

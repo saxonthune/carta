@@ -9,11 +9,11 @@ from ..workspace import find_workspace
 from ..ai_skill import cmd_ai_skill
 from .structure import cmd_create, cmd_delete, cmd_move, cmd_rename
 from .transform import cmd_punch, cmd_flatten, cmd_group, cmd_copy
-from .content import cmd_cat, cmd_tree, cmd_rewrite, cmd_regenerate
-from .setup import cmd_init, cmd_portable, cmd_hydrate
+from .content import cmd_cat, cmd_tree, cmd_rewrite, cmd_regenerate, cmd_attach, cmd_ls, cmd_bundle, cmd_orphans
+from .setup import cmd_init, cmd_portable, cmd_init_rehydrate
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="carta",
         description="Workspace tools for managing .carta/ documentation.",
@@ -31,7 +31,17 @@ def main() -> None:
     p_regen.add_argument("--dry-run", action="store_true")
 
     # create
-    p_create = subparsers.add_parser("create", help="Create a new doc entry")
+    p_create = subparsers.add_parser(
+        "create",
+        help="Create a new doc entry",
+        epilog=(
+            "Examples:\n"
+            "  carta create doc01.03 my-section\n"
+            "  carta create 01-product/02-features new-doc --order 2 --title \"Foo\"\n"
+            "  carta create doc00 note --dry-run"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     p_create.add_argument("destination")
     p_create.add_argument("slug")
     p_create.add_argument("--order", type=int, default=None)
@@ -82,13 +92,39 @@ def main() -> None:
     p_copy.add_argument("--rename", dest="rename_slug", default=None)
     p_copy.add_argument("--dry-run", action="store_true")
 
+    # attach
+    p_attach = subparsers.add_parser(
+        "attach",
+        help="Copy an external file into a doc's bundle as an attachment. "
+             "Bundles are sets of files sharing a numeric prefix; `attach` aligns "
+             "the copied file with the target doc's prefix.",
+    )
+    p_attach.add_argument("host", help="Doc ref or workspace path of the host NN-<slug>.md")
+    p_attach.add_argument("source", help="Path to a file to attach (may be outside the workspace)")
+    p_attach.add_argument("--rename", default=None, metavar="SLUG",
+                          help="Override the attachment's slug segment. Default: source filename stem.")
+    p_attach.add_argument("--dry-run", action="store_true",
+                          help="Print planned operation without executing.")
+
     # rewrite
     p_rewrite = subparsers.add_parser("rewrite", help="Rewrite doc refs")
     p_rewrite.add_argument("mappings", nargs="+", help="old=new pairs")
     p_rewrite.add_argument("--dry-run", action="store_true")
 
     # group
-    p_group = subparsers.add_parser("group", help="Create a title group directory")
+    p_group = subparsers.add_parser(
+        "group",
+        help="Create a title group directory",
+        epilog=(
+            "Examples:\n"
+            "  carta group 01-product-strategy --title \"Product Strategy\"\n"
+            "  carta group 01-luminous/02-design/06-adr --title \"ADRs\"\n"
+            "\n"
+            "Path is a single directory relative to the workspace root\n"
+            "(without the workspace directory name as a prefix)."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     p_group.add_argument("target", help="Directory path relative to workspace (e.g., 01-product-strategy)")
     p_group.add_argument("--title", default=None, help="Title for the index. Default: derived from slug.")
     p_group.add_argument("--no-regen", action="store_true", help="Skip MANIFEST regeneration.")
@@ -106,11 +142,11 @@ def main() -> None:
                         help="Name of the workspace directory. Default: .carta")
     p_init.add_argument("--portable", action="store_true",
                         help="Dump editable Python scripts into workspace for pip-free usage.")
-
-    # hydrate
-    p_hydrate = subparsers.add_parser("hydrate", help="Re-hydrate codex docs and skills from installed carta version")
-    p_hydrate.add_argument("--dry-run", action="store_true",
-                           help="Show what would be updated without writing.")
+    p_init.add_argument("--rehydrate", action="store_true",
+                        help="Refresh codex templates and skill files in an existing workspace. "
+                             "Preserves workspace.json and user-authored docs.")
+    p_init.add_argument("--dry-run", action="store_true",
+                        help="With --rehydrate, show what would be updated without writing.")
 
     # portable
     p_portable = subparsers.add_parser("portable", help="Dump editable scripts into workspace")
@@ -130,15 +166,32 @@ def main() -> None:
                         help="Show docXX.YY refs next to entries.")
     p_tree.add_argument("--no-title", action="store_true",
                         help="Show filenames instead of frontmatter titles.")
+    p_tree.add_argument("--no-sidecars", action="store_true",
+                        help="Hide sidecar attachment lines.")
+
+    # ls
+    p_ls = subparsers.add_parser("ls", help="List entries in a directory")
+    p_ls.add_argument("target", nargs="?", default=None,
+                      help="Directory to list (doc ref or path). Default: workspace root.")
+    p_ls.add_argument("--no-sidecars", action="store_true",
+                      help="Hide non-md numbered attachments.")
+
+    # bundle
+    p_bundle = subparsers.add_parser("bundle", help="Show a doc's bundle (host + attachments)")
+    p_bundle.add_argument("ref", help="Doc ref or path of a .md leaf doc.")
+
+    # orphans
+    subparsers.add_parser("orphans", help="List orphaned attachments in the workspace")
 
     # Handle per-subcommand --help-ai before parse_args (avoids required-arg errors)
-    argv = sys.argv[1:]
+    if argv is None:
+        argv = sys.argv[1:]
     if "--help-ai" in argv:
         # Find the subcommand name: skip flags and their values
         known_subcommands = {
             "regenerate", "create", "delete", "move", "punch", "flatten",
-            "copy", "rewrite", "group", "rename", "init", "hydrate",
-            "portable", "ai-skill", "cat", "tree",
+            "copy", "attach", "rewrite", "group", "rename", "init",
+            "portable", "ai-skill", "cat", "tree", "ls", "bundle", "orphans",
         }
         cmd_candidates = [a for a in argv if a in known_subcommands]
         if cmd_candidates:
@@ -150,24 +203,42 @@ def main() -> None:
             else:
                 print(f"No AI documentation available for '{cmd}'.")
                 print("Run `carta ai-skill` for the full reference.")
-            raise SystemExit(0)
+            return 0
 
-    args = parser.parse_args()
+    # Friendlier hint for a common mistake: `carta create --slug foo`
+    if "create" in argv and "--slug" in argv and argv.index("--slug") > argv.index("create"):
+        print(
+            "Error: `--slug` is not a flag for `carta create`. "
+            "Slug is a positional argument.\n"
+            "Usage: carta create <destination> <slug> [--title TEXT ...]\n"
+            "Example: carta create doc01.03 my-section --title \"My Section\"",
+            file=sys.stderr,
+        )
+        return 1
+
+    args = parser.parse_args(argv)
 
     if args.help_ai:
         print("Deprecated: --help-ai is replaced by `carta ai-skill`.")
         print("Run `carta ai-skill` for full semantic documentation.")
-        raise SystemExit(0)
+        return 0
 
     if not args.command:
         parser.print_help()
-        raise SystemExit(1)
+        return 1
 
     try:
         # init and portable don't require a pre-existing workspace
         if args.command == "init":
-            cmd_init(args)
-            return
+            if args.rehydrate:
+                try:
+                    carta_root = find_workspace()
+                except FileNotFoundError as e:
+                    raise CartaError(f"Error: {e}\nHint: run `carta init` first to scaffold a workspace.")
+                cmd_init_rehydrate(args, carta_root)
+            else:
+                cmd_init(args)
+            return 0
 
         # Resolve workspace
         if args.workspace:
@@ -180,11 +251,7 @@ def main() -> None:
 
         if args.command == "portable":
             cmd_portable(args, carta_root)
-            return
-
-        if args.command == "hydrate":
-            cmd_hydrate(args, carta_root)
-            return
+            return 0
 
         dispatch = {
             "regenerate": cmd_regenerate,
@@ -194,18 +261,26 @@ def main() -> None:
             "punch": cmd_punch,
             "flatten": cmd_flatten,
             "copy": cmd_copy,
+            "attach": cmd_attach,
             "rewrite": cmd_rewrite,
             "group": cmd_group,
             "rename": cmd_rename,
             "ai-skill": cmd_ai_skill,
             "cat": cmd_cat,
             "tree": cmd_tree,
+            "ls": cmd_ls,
+            "bundle": cmd_bundle,
+            "orphans": cmd_orphans,
         }
         dispatch[args.command](args, carta_root)
+        return 0
     except CartaError as e:
         print(str(e), file=sys.stderr)
-        raise SystemExit(1)
+        return 1
+    except (FileNotFoundError, ValueError) as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

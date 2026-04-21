@@ -1,6 +1,5 @@
 ---
 title: Mission
-status: active
 summary: Core goal — spec-driven development tool
 tags: [mission, principles]
 deps: []

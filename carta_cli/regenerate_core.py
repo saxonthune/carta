@@ -1,8 +1,10 @@
 """regenerate_core — pure regenerate logic, no click or importlib dependencies."""
 
 import re
+import sys
 from pathlib import Path
 
+from . import bundle as _bundle
 from .ref_convert import path_to_ref
 from .frontmatter import read_frontmatter
 
@@ -58,8 +60,33 @@ def collect_entries(dir_path: Path, carta_root: Path, title_dir: Path) -> list[d
 # Formatting helpers
 # ---------------------------------------------------------------------------
 
-TABLE_HEADER = "| Ref | File | Summary | Tags | Deps | Refs |"
-TABLE_SEP    = "|-----|------|---------|------|------|------|"
+TABLE_HEADER = "| Ref | File | Summary | Tags | Deps | Refs | Attachments |"
+TABLE_SEP    = "|-----|------|---------|------|------|------|-------------|"
+
+
+def _attachment_display_name(att_path: Path, b: "_bundle.Bundle") -> str:
+    """Strip the NN-slug. prefix (or just NN-) from an attachment filename."""
+    name = att_path.name
+    slug = b.slug
+    prefix_str = f"{b.prefix:02d}-"
+    if slug:
+        slug_prefix = f"{prefix_str}{slug}."
+        if name.startswith(slug_prefix):
+            return name[len(slug_prefix):]
+    if name.startswith(prefix_str):
+        return name[len(prefix_str):]
+    return name
+
+
+def _format_attachments_cell(doc_path: Path) -> str:
+    """Return the Attachments cell content for a doc row."""
+    b = _bundle.find_bundle(doc_path)
+    if b is None or not b.attachments:
+        return "—"
+    names = sorted(_attachment_display_name(att, b) for att in b.attachments)
+    if len(names) > 5:
+        names = names[:5] + ["…"]
+    return ", ".join(names)
 
 
 def build_reverse_deps(all_entries: list[dict]) -> dict[str, list[str]]:
@@ -82,7 +109,11 @@ def build_reverse_deps(all_entries: list[dict]) -> dict[str, list[str]]:
     return reverse
 
 
-def format_row(entry: dict, reverse_deps: dict[str, list[str]] | None = None) -> str:
+def format_row(
+    entry: dict,
+    reverse_deps: dict[str, list[str]] | None = None,
+    attachments_cell: str = "—",
+) -> str:
     """Format a single MANIFEST table row."""
     ref = entry["ref"]
     file_col = f"`{entry['file_rel']}`"
@@ -112,7 +143,7 @@ def format_row(entry: dict, reverse_deps: dict[str, list[str]] | None = None) ->
     rev = reverse_deps.get(ref, []) if reverse_deps else []
     refs_col = ", ".join(sorted(rev)) if rev else "—"
 
-    return f"| {ref} | {file_col} | {summary} | {tags} | {deps} | {refs_col} |"
+    return f"| {ref} | {file_col} | {summary} | {tags} | {deps} | {refs_col} | {attachments_cell} |"
 
 
 # ---------------------------------------------------------------------------
@@ -188,7 +219,8 @@ def render_section(title_dir: Path, carta_root: Path,
     lines.append(TABLE_SEP)
     lines.append("")
     for entry in root_entries:
-        lines.append(format_row(entry, reverse_deps))
+        att_cell = _format_attachments_cell(entry["path"])
+        lines.append(format_row(entry, reverse_deps, att_cell))
 
     # Render subsection groups (subdirs with 00-index.md)
     for subdir_name in subsection_order:
@@ -204,7 +236,8 @@ def render_section(title_dir: Path, carta_root: Path,
         lines.append(TABLE_SEP)
         lines.append("")
         for entry in group_entries:
-            lines.append(format_row(entry, reverse_deps))
+            att_cell = _format_attachments_cell(entry["path"])
+            lines.append(format_row(entry, reverse_deps, att_cell))
 
     return lines
 
@@ -248,6 +281,30 @@ def build_tag_index(all_entries: list[dict]) -> list[str]:
         lines.append(f"| `{tag}` | {refs} |")
 
     return lines
+
+
+# ---------------------------------------------------------------------------
+# Orphan detection
+# ---------------------------------------------------------------------------
+
+def _collect_all_orphans(carta_root: Path) -> list[Path]:
+    """Walk all directories under carta_root and collect orphaned attachment paths, sorted."""
+    orphan_paths: list[Path] = []
+
+    def _walk(directory: Path) -> None:
+        for b in _bundle.detect_orphans(directory):
+            orphan_paths.extend(b.attachments)
+        for item in sorted(directory.iterdir()):
+            if item.is_dir() and _NUMERIC_PREFIX_RE.match(item.name):
+                _walk(item)
+
+    for title_dir in sorted(
+        p for p in carta_root.iterdir()
+        if p.is_dir() and _NUMERIC_PREFIX_RE.match(p.name)
+    ):
+        _walk(title_dir)
+
+    return sorted(orphan_paths)
 
 
 # ---------------------------------------------------------------------------
@@ -295,3 +352,11 @@ def do_regenerate(carta_root: Path, preamble: str, dry_run: bool = False) -> Non
         manifest_path = carta_root / "MANIFEST.md"
         manifest_path.write_text(output, encoding="utf-8")
         print(f"Wrote {manifest_path}")
+
+    # Orphan detection — warn to stderr, never raise
+    orphan_paths = _collect_all_orphans(carta_root)
+    if orphan_paths:
+        count = len(orphan_paths)
+        print(f"Warning: {count} orphaned attachment(s) found:", file=sys.stderr)
+        for p in orphan_paths:
+            print(f"  {p}", file=sys.stderr)

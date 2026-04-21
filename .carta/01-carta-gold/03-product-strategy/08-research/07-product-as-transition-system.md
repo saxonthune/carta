@@ -1,6 +1,5 @@
 ---
 title: Product Design as Transition System
-status: exploring
 summary: Modeling products as guarded transition systems — verifiable reachability, dead-end detection, and deductive architecture from product properties
 tags: [product-modeling, transition-systems, verification, architecture, reachability, spec-driven, artifact-driven development]
 deps: [doc01.03.04.01, doc01.03.04.02, doc01.03.08.03]

@@ -1,6 +1,5 @@
 ---
 title: Python for AI Agents
-status: active
 summary: File structure, typing, naming, testability patterns for AI-maintained Python
 tags: [python, patterns, ai, conventions, testing, typing]
 deps: [doc01.01.02]

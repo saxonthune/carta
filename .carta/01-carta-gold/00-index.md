@@ -1,6 +1,5 @@
 ---
 title: Carta Gold
-status: draft
 summary: 
 tags: []
 deps: []

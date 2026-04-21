@@ -1,6 +1,5 @@
 ---
 title: Design Patterns
-status: active
 summary: Language-specific patterns and conventions for AI-maintainable code
 tags: [patterns, conventions, ai, architecture]
 deps: []

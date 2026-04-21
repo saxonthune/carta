@@ -1,6 +1,5 @@
 ---
 title: Unfolding as Software Development
-status: active
 summary: Embryonic development applied to software — start with a working end-to-end system, let forces cross thresholds before adding complexity, preserve structure at every step
 tags: [unfolding, methodology, alexander, forces, structure-preserving, ai, development]
 deps: [doc01.03.01, doc01.03.04.01, doc01.03.04.02]

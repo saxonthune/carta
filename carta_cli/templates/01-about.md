@@ -1,6 +1,5 @@
 ---
 title: About This Workspace
-status: active
 summary: Why this workspace exists, how to read it, two-sources-of-truth theory
 tags: [docs, meta, theory]
 deps: []
@@ -43,7 +42,7 @@ Each addition should be the simplest doc that captures what you just decided. It
 
 - `MANIFEST.md` is the machine-readable index — AI agents start there to find anything
 - Documents use `docXX.YY.ZZ` cross-references (e.g., `doc01.02` = second doc in first group)
-- YAML frontmatter on every doc provides title, status, summary, tags, and dependency refs
+- YAML frontmatter on every doc provides title, summary, tags, and dependency refs
 
 ## One Canonical Location
 

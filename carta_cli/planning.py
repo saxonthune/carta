@@ -3,6 +3,7 @@ from pathlib import Path
 from .numbering import get_numeric_prefix, get_slug
 from .entries import list_numbered_entries
 from .ref_convert import path_to_ref
+from . import bundle as bundle_mod
 
 
 def compute_all_moves(
@@ -63,6 +64,9 @@ def _compute_same_dir_moves(
 
     if insertion_prefix == source_prefix:
         if rename_slug and rename_slug != source_slug:
+            source_bundle = bundle_mod.find_bundle(source_path)
+            if source_bundle is not None:
+                return _compute_bundle_moves(source_bundle, dest_dir, source_prefix, rename_slug)
             effective = _apply_rename(source_slug, rename_slug)
             new_name = f"{source_prefix:02d}-{effective}"
             return [(source_path, dest_dir / new_name)]
@@ -94,10 +98,50 @@ def _compute_same_dir_moves(
             new_name = f"{pfx - 1:02d}-{get_slug(entry.name)}"
             moves.append((entry, entry.parent / new_name))
 
-    # Main move (last, after shifts free the slot)
-    effective_slug = _apply_rename(source_slug, rename_slug)
-    new_name = f"{insertion_prefix:02d}-{effective_slug}"
-    moves.append((source_path, dest_dir / new_name))
+    # Main move (last, after shifts free the slot) — expand to include bundle members
+    source_bundle = bundle_mod.find_bundle(source_path)
+    if source_bundle is not None:
+        moves.extend(_compute_bundle_moves(source_bundle, dest_dir, insertion_prefix, rename_slug))
+    else:
+        effective_slug = _apply_rename(source_slug, rename_slug)
+        new_name = f"{insertion_prefix:02d}-{effective_slug}"
+        new_path = dest_dir / new_name
+        if source_path.resolve() != new_path.resolve():
+            moves.append((source_path, new_path))
+
+    return moves
+
+
+def _compute_bundle_moves(
+    bndl: "bundle_mod.Bundle",
+    new_dir: Path,
+    new_prefix: int,
+    rename_slug: str | None = None,
+) -> list[tuple[Path, Path]]:
+    """Expand a bundle into (old_path, new_path) pairs for root + all attachments.
+
+    rename_slug: if given, renames root's slug and any same-slug attachments.
+    Trivial no-op moves (old == new) are filtered out.
+    """
+    moves: list[tuple[Path, Path]] = []
+    old_slug = bndl.slug  # stem only, e.g. "foo" for 01-foo.md
+
+    if bndl.root is not None:
+        file_slug = get_slug(bndl.root.name)  # e.g. "foo.md"
+        effective = _apply_rename(file_slug, rename_slug)
+        new_path = new_dir / f"{new_prefix:02d}-{effective}"
+        if bndl.root.resolve() != new_path.resolve():
+            moves.append((bndl.root, new_path))
+
+    for att in bndl.attachments:
+        att_slug = get_slug(att.name)  # e.g. "foo.json" or "bar.yaml"
+        if rename_slug and old_slug and att_slug.startswith(old_slug + "."):
+            new_att_slug = rename_slug + att_slug[len(old_slug):]
+        else:
+            new_att_slug = att_slug
+        new_path = new_dir / f"{new_prefix:02d}-{new_att_slug}"
+        if att.resolve() != new_path.resolve():
+            moves.append((att, new_path))
 
     return moves
 
@@ -176,7 +220,11 @@ def _compute_cross_dir_moves(
             actual_dest_dir = new
             break
 
-    moves.append((source_path, actual_dest_dir / new_source_name))
+    source_bundle = bundle_mod.find_bundle(source_path)
+    if source_bundle is not None:
+        moves.extend(_compute_bundle_moves(source_bundle, actual_dest_dir, insertion_prefix, rename_slug))
+    else:
+        moves.append((source_path, actual_dest_dir / new_source_name))
 
     return moves
 
@@ -240,6 +288,9 @@ def compute_rename_map(
             try:
                 old_ref = path_to_ref(item, carta_root)
                 new_ref = path_to_ref(final, carta_root)
+                # Skip sidecar display refs — they are not written into .md files
+                if "/" in old_ref or "/" in new_ref:
+                    continue
                 if old_ref != new_ref:
                     result[old_ref] = new_ref
             except ValueError:

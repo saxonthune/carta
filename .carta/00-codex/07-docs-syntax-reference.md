@@ -1,6 +1,5 @@
 ---
 title: Docs Syntax Reference
-status: draft
 summary: Formal grammar and extraction rules for doc references, sections, frontmatter, and MANIFEST
 tags: [docs, syntax, reference, sections, grammar]
 deps: [doc00.03]
@@ -126,7 +125,6 @@ Every `.carta/` document begins with YAML frontmatter.
 ```yaml
 ---
 title: Human-readable title          # required
-status: active                        # required: draft | active | deprecated
 summary: One-line MANIFEST summary    # required
 tags: [keyword1, keyword2]            # required
 deps: [doc01.03.02, doc01.01.05]            # optional: doc refs to check on change
@@ -138,18 +136,11 @@ sections: 4                           # optional: number of #sec markers in file
 | Field | Required | Type | Notes |
 |-------|----------|------|-------|
 | `title` | yes | string | Display name |
-| `status` | yes | enum | `draft`, `active`, `deprecated` |
 | `summary` | yes | string | One-line description for MANIFEST |
 | `tags` | yes | string[] | Lowercase keywords for retrieval |
 | `deps` | no | string[] | Doc refs this document depends on |
 | `epoch` | no | integer | Staleness audit marker |
 | `sections` | no | integer | Count of `#sec` markers. Absent or `0` means no sections. |
-
-### Status semantics
-
-- `draft` — work in progress. May be incomplete or inaccurate.
-- `active` — current and maintained.
-- `deprecated` — superseded. Must include a note at the top: "Superseded by docXX.YY."
 
 ## #sec05 File and Directory Naming
 
@@ -163,6 +154,35 @@ NN-slug/00-index.md # directory index (required for every directory)
 - `slug` is kebab-case: lowercase alphanumeric and hyphens.
 - Gaps in numbering are allowed and intentional.
 - Directories exceeding 99 entries should be split into subdirectories.
+
+### Bundle Grammar
+
+A **bundle** is the set of siblings in a directory that share the same two-digit prefix `NN`.
+
+```
+directory_entry = NN "-" slug [ "." ext ]
+NN              = DIGIT DIGIT
+slug            = (ALPHA | DIGIT | "-")+
+ext             = (ALPHA | DIGIT)+
+
+bundle_root     = NN "-" slug ".md"          # leaf markdown file
+attachment      = NN "-" * "." ext           # any sibling with same NN, not .md, not a dir
+```
+
+Formal regex patterns:
+
+```
+bundle_root:  ^(\d{2})-[^/]+\.md$
+attachment:   ^(\d{2})-[^/]+\.[^./]+$  (excluding \.md$)
+```
+
+Rules:
+
+- A directory entry is a bundle root if it is a `.md` file (not a directory).
+- Every other file in the same directory sharing that `NN` prefix is an attachment.
+- A directory with the same `NN` prefix cannot be a bundle root — directories are never roots.
+- Attachments carry no frontmatter; their membership is purely positional (same prefix).
+- Orphan: an attachment whose prefix has no corresponding `.md` root, or whose prefix matches a directory. Triggers a warning from `carta regenerate`; never blocks operation.
 
 ## #sec06 MANIFEST.md Structure
 

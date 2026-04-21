@@ -1,6 +1,5 @@
 ---
 title: CLI User Flow
-status: draft
 summary: How users install the carta CLI, hydrate a repo, and use it for workspace operations
 tags: [cli, workflow, installation, use-case]
 deps: [doc01.01.01]

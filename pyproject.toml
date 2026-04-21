@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "carta-cli"
-version = "0.1.3"
+version = "0.2.0"
 description = "CLI for managing .carta/ specification workspaces"
 readme = "README.md"
 license = "AGPL-3.0-or-later"
@@ -19,13 +19,14 @@ dependencies = [
 Repository = "https://github.com/saxonthune/carta"
 
 [project.optional-dependencies]
-test = ["pytest"]
+test = ["pytest", "hypothesis", "pytest-cov", "syrupy"]
 
 [project.scripts]
 carta = "carta_cli.main:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = "--cov=carta_cli --cov-report=term-missing"
 
 [tool.hatch.build.targets.wheel]
 packages = ["carta_cli"]

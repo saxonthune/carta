@@ -27,6 +27,7 @@ _LIBRARY_MODULES = [
     "frontmatter.py",
     "entries.py",
     "numbering.py",
+    "bundle.py",
     "ref_convert.py",
     "rewriter.py",
     "planning.py",
@@ -68,7 +69,7 @@ def cmd_init(args: argparse.Namespace) -> None:
 
     if marker_path.exists():
         print(f"Workspace already exists: {marker_path}")
-        print("Use other carta commands to modify the existing workspace.")
+        print("Run `carta init --rehydrate` to refresh codex templates and skill files.")
         return
 
     title = args.name or project_root.name
@@ -188,8 +189,8 @@ def copy_portable(carta_root: Path) -> bool:
     return True
 
 
-def cmd_hydrate(args: argparse.Namespace, carta_root: Path) -> None:
-    """Re-hydrate templates and skills from the installed carta version."""
+def cmd_init_rehydrate(args: argparse.Namespace, carta_root: Path) -> None:
+    """Refresh codex templates and skill files from the installed carta version."""
     project_root = carta_root.parent
     dirname = carta_root.name
     marker_path = project_root / MARKER

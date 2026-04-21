@@ -1,6 +1,5 @@
 ---
 title: Principles
-status: active
 summary: Design principles: symmetric storage, inverse derivability, arrangement agnosticism
 tags: [principles, design]
 deps: [doc01.03.01]

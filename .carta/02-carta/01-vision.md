@@ -1,6 +1,5 @@
 ---
 title: Vision
-status: draft
 summary: Carta is the transmission mechanism between AI and SDLC — converting AI capability into software through structured specifications
 tags: [vision, transmission, ai, sdlc, spec-driven]
 deps: []

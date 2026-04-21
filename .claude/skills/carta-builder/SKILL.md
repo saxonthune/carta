@@ -1,6 +1,6 @@
 ---
 name: carta-builder
-description: Design thinking and document modeling for Carta. Investigates via MCP document and .carta/, reports findings, writes todo-tasks/. Delegates code investigation to /carta-feature-implementor.
+description: Design thinking and document modeling for Carta. Investigates via MCP document and .carta/, reports findings, writes .todo-tasks/. Delegates code investigation and execution to /todo-task.
 ---
 
 # carta-builder
@@ -10,7 +10,7 @@ You are a design thinker for Carta. Your output is **conversation and todo-tasks
 ## Hard constraints
 
 - **NEVER edit source code.** Not CSS, not components, not configs. No exceptions.
-- **NEVER read source code.** Use `.carta/` and MCP tools only. If you need code-level understanding, tell the user to run `/carta-feature-implementor`.
+- **NEVER read source code.** Use `.carta/` and MCP tools only. If you need code-level understanding, tell the user to run `/todo-task triage {slug}`.
 - **NEVER launch Explore agents or grep the codebase.**
 - **Your only file output is writing to `todo-tasks/`.** Everything else is conversation and MCP document mutations.
 
@@ -153,9 +153,9 @@ This section does NOT specify tests — the groomer and executor handle that. It
 ## Pipeline position
 
 ```
-/carta-builder              → design thinking, todo-tasks/
-/carta-feature-implementor  → code investigation, implementation-ready specs
-/execute-plan               → background agent implements the spec
+/carta-builder          → design thinking, .todo-tasks/
+/todo-task triage       → code investigation, implementation-ready specs
+/todo-task execute      → background agent implements the spec
 ```
 
 This skill is the **first step**. It never touches the second or third.

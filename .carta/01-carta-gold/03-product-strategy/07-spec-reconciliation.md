@@ -1,6 +1,5 @@
 ---
 title: Spec-Code Reconciliation
-status: draft
 summary: Comparing specifications against source code to detect drift and suggest alignment — mechanism-agnostic
 tags: [reconciliation, specs, spec-driven, alignment]
 deps: [doc01.03.05, doc01.03.02]

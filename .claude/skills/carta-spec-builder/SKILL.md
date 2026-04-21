@@ -428,7 +428,7 @@ Adapted per level:
 |-------|-------------|
 | `/spec-builder` | Generic elicitation protocol. This skill composes it with `.carta/` knowledge and the level system. |
 | `/carta-builder` | Design thinking via MCP/canvas. Use when the user wants to model visually, then extract specs. |
-| `/carta-feature-groomer` | Grooms implementation plans. Use AFTER code-shape specs are written. |
+| `/todo-task triage` | Grooms implementation plans. Use AFTER code-shape specs are written. |
 | `/project-builder` | Dogfooding reflector. Use when spec-building reveals friction in Carta's tools. |
 
 ## Important Notes

@@ -1,6 +1,5 @@
 ---
 title: Action-Based API Design
-status: exploring
 summary: Why REST taxonomies are dead structures, how action-based APIs grow additively, and the connection between API shape and living systems
 tags: [api, rest, rpc, trpc, concept-design, living-structure, additive-growth]
 deps: [doc01.03.04.02, doc01.03.08.07, doc01.03.08.08]

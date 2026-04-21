@@ -141,8 +141,8 @@ Push toward partial/semantic/metamorphic oracles.
 ```
 /project-builder            → dogfooding reflection, todo-tasks/
 /carta-builder              → design thinking (when improvement needs deeper Carta-side design)
-/carta-feature-implementor  → code investigation, implementation-ready specs
-/execute-plan               → background agent implements the spec
+/todo-task triage           → code investigation, implementation-ready specs
+/todo-task execute          → background agent implements the spec
 ```
 
 This skill feeds into the same pipeline as `/carta-builder`. If an improvement needs deeper architectural design work in Carta, hand off to `/carta-builder`.

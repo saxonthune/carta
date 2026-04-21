@@ -146,6 +146,28 @@ carta rewrite --map old=new [--map old2=new2 ...] [--from-json mappings.json] [-
 
 **When to use:** After restoring backup files into a restructured workspace, when refs in the restored files point to old locations.
 
+### attach
+
+Attach a non-md file as a sidecar to an existing doc, giving it the doc's numeric prefix.
+
+```
+carta attach <host> <source> [--rename SLUG] [--dry-run]
+```
+
+- `<host>` — doc ref or path to the host `.md` file (not a directory)
+- `<source>` — path to the file to attach (may be outside the workspace)
+- Places the source file alongside the host with prefix `NN-<slug>.<ext>`
+- The attachment joins the host's bundle — it travels with the host through all structural ops
+- `--rename SLUG` — override attachment slug (default: derived from source filename)
+- Does NOT update MANIFEST.md (attachments are not indexed)
+
+**Examples**:
+```bash
+carta attach doc01.03.02 /path/to/diagram.png         # attach as 02-diagram.png
+carta attach doc01.03.02 /path/to/data.csv --rename model-data  # as 02-model-data.csv
+carta attach doc01.03.02 /path/to/fig.svg --dry-run   # preview only
+```
+
 ### copy
 
 Copy a file into the workspace at a given position.
@@ -162,21 +184,25 @@ carta copy <source_file> <destination> [--order N] [--rename slug] [--dry-run]
 
 ### init
 
-Initialize a new `.carta/` workspace in the current directory.
+Initialize a new `.carta/` workspace in the current directory, or refresh an existing one.
 
 ```
-carta init [--name "Project Name"]
+carta init [--name "Project Name"] [--dir DIRNAME] [--portable]
+carta init --rehydrate [--dry-run]
 ```
 
 - Creates `.carta/` with `workspace.json`, `MANIFEST.md`, `00-codex/00-index.md`
 - Hydrates `.claude/skills/carta-cli/SKILL.md` for AI agent integration
-- Safe to run in an existing project — creates only `.carta/` and the skill file
 - `--name` — workspace title (default: parent directory name)
+- `--rehydrate` — refresh `00-codex/` templates and skill files from installed carta version; preserves `workspace.json` and user-authored docs outside `00-codex/`
+- `--dry-run` — with `--rehydrate`, show what would be updated without writing
 
-**Example**:
+**Examples**:
 ```bash
 cd my-project
 carta init --name "My Project"
+carta init --rehydrate                # refresh after a carta-cli upgrade
+carta init --rehydrate --dry-run      # preview what would change
 ```
 
 ### regenerate
@@ -201,12 +227,13 @@ Updates the bundled zipapp so collaborators can use `python3 carta.pyz <command>
 
 ## Behavioral Rules for Multi-Step Operations
 
+- **Bundles travel as a unit**: A bundle is the set of siblings sharing a numeric prefix (`NN`). The `NN-<slug>.md` file is the root; all other `NN-*.<ext>` siblings are attachments. Structural ops (`move`, `delete`, `rename`, `punch`, `flatten`) move the whole bundle automatically.
 - **Gap-closing is automatic**: When an entry is removed from a directory (via `move`, `delete`, `flatten`), all higher-numbered siblings are renumbered down. This means source paths change after each move — always check paths between sequential moves.
 - **`--order` bumps siblings**: Inserting at position N shifts everything at N and above up by one in the destination directory.
 - **`--no-regen` scope**: Skips MANIFEST rebuild only. Ref rewriting in doc content still happens. Use for batch operations, then `carta regenerate` once at the end.
 - **`--rename` preserves extensions**: When renaming a `.md` file, the extension is carried over automatically. You can pass just the slug (e.g., `--rename canvas-state`).
 - **`group` doesn't renumber**: Unlike `move`, `carta group` creates the directory without renumbering existing siblings, allowing temporary duplicate prefixes during restructures.
-- **Non-.md sidecar files**: Commands only operate on numbered entries. Sidecar files (`.canvas.json`, images) must be moved manually.
+- **Attachments travel with their host**: Non-.md files sharing a numeric prefix with a root `.md` (e.g. `02-model.json` alongside `02-workflow.md`) are attachments and move/rename/delete as part of the bundle automatically. Use `carta attach` to add new ones. Orphaned sidecars (no matching root .md) are reported by `regenerate` but not moved.
 - **Sequencing**: Run moves sequentially, not in parallel. Each move changes numbering for subsequent commands. Use `--dry-run` to verify.
 
 ## Common Workflows
