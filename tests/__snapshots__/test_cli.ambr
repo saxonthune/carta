@@ -188,9 +188,9 @@
     doc01.04.03 -> doc01.03.03
   
   === Orphaned ref warnings (3) ===
-    doc01.02 in 02-product-design/05-metamodel.md: deps: [doc01.02]
-    doc01.02 in 01-product-strategy/03-glossary.md: deps: [doc01.02]
     doc01.02 in 01-product-strategy/01-mission.md: deps: [doc01.02]
+    doc01.02 in 01-product-strategy/03-glossary.md: deps: [doc01.02]
+    doc01.02 in 02-product-design/05-metamodel.md: deps: [doc01.02]
   
   (dry-run: no files modified)
   

@@ -203,6 +203,7 @@ def cmd_delete(args: argparse.Namespace, carta_root: Path) -> None:
 
     # Scan for orphaned refs (refs pointing to deleted entries that remain in survivors)
     orphaned = _find_orphaned_refs(md_files, deleted_refs)
+    orphaned.sort(key=lambda t: (str(t[0]), t[2], t[1]))
 
     if args.dry_run:
         print("=== Planned deletions ===")
