@@ -36,7 +36,7 @@ Create a new doc entry with blank frontmatter.
 carta create <destination> <slug> [--order N] [--title "..."] [--dry-run]
 ```
 
-- `<destination>` — ref or path to an existing directory (e.g. `doc01.03`, `01-product`)
+- `<destination>` — ref or path to an existing directory (e.g. `doc04`, `01-product`)
 - `<slug>` — slug for the new file (no numeric prefix). e.g. `my-feature`
 - `--order N` — insert at position N (1-indexed). Position must be free. Default: append after highest.
 - `--title` — override the title (default: derived from slug via title-case)
@@ -45,10 +45,10 @@ carta create <destination> <slug> [--order N] [--title "..."] [--dry-run]
 
 **Examples**:
 ```bash
-carta create doc00 test-doc                        # append to 00-codex/
-carta create doc01.03 new-feature --order 3           # create at position 03
-carta create doc01.03.08 my-section --title "My Section" # custom title
-carta create doc00 test-doc --dry-run              # preview only
+carta create doc01 test-doc                        # append to 00-codex/
+carta create doc04 new-feature --order 3           # create at position 03
+carta create doc04.08 my-section --title "My Section" # custom title
+carta create doc01 test-doc --dry-run              # preview only
 ```
 
 ### delete
@@ -59,7 +59,7 @@ Delete one or more doc entries with automatic gap-closing.
 carta delete <target>... [--dry-run] [--output-mapping]
 ```
 
-- Accepts refs (`doc01.03.02`) or paths (`01-product/02-features`)
+- Accepts refs (`doc04.03`) or paths (`01-product/02-features`)
 - Deletes files and directories (recursive)
 - Gap-closes siblings (renumbers sequentially)
 - Rewrites refs for renumbered siblings
@@ -69,10 +69,10 @@ carta delete <target>... [--dry-run] [--output-mapping]
 
 **Examples**:
 ```bash
-carta delete doc01.03.08.01                                # delete a single doc
-carta delete doc01.03.02 doc01.03.08                          # delete multiple entries
-carta delete doc01.03.08.01 --dry-run                      # preview deletions + orphan warnings
-carta delete doc01.03.08.01 --output-mapping > map.json    # capture rename map for rewrite
+carta delete doc04.08.01                                # delete a single doc
+carta delete doc04.03 doc04.08                          # delete multiple entries
+carta delete doc04.08.01 --dry-run                      # preview deletions + orphan warnings
+carta delete doc04.08.01 --output-mapping > map.json    # capture rename map for rewrite
 ```
 
 ### move
@@ -91,10 +91,10 @@ carta move <source> <destination> [--order N] [--rename <slug>] [--mkdir] [--dry
 
 **Examples**:
 ```bash
-carta move doc01.03.05 doc01.03 --order 2                           # promote into parent
-carta move doc01.03.05 . --rename diagramming                   # rename slug in place
-carta move doc01.03.05 doc01.03 --order 2 --rename diagramming     # move + rename
-carta move doc01.03.08 01-product --mkdir --order 3 --rename research  # move into new dir
+carta move doc04.05 doc04 --order 2                           # promote into parent
+carta move doc04.05 . --rename diagramming                   # rename slug in place
+carta move doc04.05 doc04 --order 2 --rename diagramming     # move + rename
+carta move doc04.08 01-product --mkdir --order 3 --rename research  # move into new dir
 ```
 
 ### punch
@@ -128,8 +128,8 @@ carta flatten <source> [--keep-index] [--force] [--at N] [--dry-run]
 
 **Examples**:
 ```bash
-carta flatten doc01.03.02                # dissolve features/, promote children
-carta flatten doc01.03.02 --keep-index   # same, but keep index as sibling
+carta flatten doc04.03                # dissolve features/, promote children
+carta flatten doc04.03 --keep-index   # same, but keep index as sibling
 ```
 
 ### rewrite
@@ -163,9 +163,9 @@ carta attach <host> <source> [--rename SLUG] [--dry-run]
 
 **Examples**:
 ```bash
-carta attach doc01.03.02 /path/to/diagram.png         # attach as 02-diagram.png
-carta attach doc01.03.02 /path/to/data.csv --rename model-data  # as 02-model-data.csv
-carta attach doc01.03.02 /path/to/fig.svg --dry-run   # preview only
+carta attach doc04.03 /path/to/diagram.png         # attach as 02-diagram.png
+carta attach doc04.03 /path/to/data.csv --rename model-data  # as 02-model-data.csv
+carta attach doc04.03 /path/to/fig.svg --dry-run   # preview only
 ```
 
 ### copy
@@ -266,7 +266,7 @@ title: Canvas
 status: draft
 summary: Pan, zoom, LOD rendering
 tags: [canvas, lod, zoom]
-deps: [doc01.03.08.05]
+deps: [doc04.08.05]
 ---
 ```
 
@@ -293,12 +293,12 @@ For large restructurings where `move` alone isn't sufficient:
 Example workflow:
 ```bash
 # Capture the ref mapping from deletion
-carta delete doc01.03.02 --output-mapping > /tmp/delete-map.json
+carta delete doc04.03 --output-mapping > /tmp/delete-map.json
 
 # ... rebuild structure ...
 
 # Restore a file from backup
-carta copy /tmp/backup/03-my-doc.md doc01.03.05 --rename my-doc
+carta copy /tmp/backup/03-my-doc.md doc04.05 --rename my-doc
 
 # Fix stale refs in restored files
 carta rewrite --from-json /tmp/delete-map.json --dry-run
