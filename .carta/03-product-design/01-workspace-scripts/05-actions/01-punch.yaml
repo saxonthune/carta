@@ -1,0 +1,96 @@
+# Action-catalog row for `carta punch`.
+# Authoritative at design time. Implementation and tests import from this file.
+
+id: punch
+summary: Expand a leaf NN-slug.md into a directory NN-slug/00-index.md
+cli: "carta punch <target> [--as-child] [--dry-run]"
+
+inputs:
+  target:
+    type: path_or_ref
+    required: true
+    description: Path or doc ref to a numbered .md file
+  as_child:
+    type: bool
+    default: false
+    description: >
+      If true, move original content to NN-slug/01-slug.md and write a new
+      skeleton 00-index.md for the group.
+  dry_run:
+    type: bool
+    default: false
+
+guards:
+  - id: G-PUNCH-1
+    statement: target resolves to an existing file
+    check: "target exists AND is a file"
+    error: ERR-PUNCH-NOT-FOUND
+  - id: G-PUNCH-2
+    statement: target is a file, not a directory
+    check: "not isdir(target)"
+    error: ERR-PUNCH-IS-DIR
+  - id: G-PUNCH-3
+    statement: target filename matches the numbered-doc pattern
+    check: 'basename(target) matches ^\d{2}-[^/]+\.md$'
+    error: ERR-PUNCH-UNNUMBERED
+  - id: G-PUNCH-4
+    statement: no directory NN-slug/ already exists in target's parent
+    check: "not exists(parent_dir(target) / stem(target))"
+    error: ERR-PUNCH-COLLISION
+  - id: G-PUNCH-5
+    statement: target is not a 00-index.md
+    check: 'not basename(target) matches ^00-index\.md$'
+    error: ERR-PUNCH-IS-INDEX
+
+effects:
+  - id: E-PUNCH-1
+    description: create directory {parent}/{stem(target)}/
+  - id: E-PUNCH-2
+    description: >
+      move target → {parent}/{stem(target)}/00-index.md
+      (default; when as_child=true, move → {parent}/{stem(target)}/01-{slug}.md
+      and write a new skeleton 00-index.md with derived title)
+  - id: E-PUNCH-3
+    description: >
+      for every attachment a in parent with prefix == target.prefix:
+        move a → {parent}/{stem(target)}/{basename(a)}
+  - id: E-PUNCH-4
+    description: >
+      no ref rewriting — the doc ref for target is unchanged
+      (directory inherits the prefix; resolution now goes through 00-index.md)
+  - id: E-PUNCH-5
+    description: regenerate MANIFEST.md (unless dry_run)
+
+invariants_preserved:
+  - INV-1   # ref uniqueness — refs unchanged
+  - INV-2   # prefix uniqueness — NN still uniquely held (now by the directory)
+  - INV-3   # bundle coherence — bundle travels together
+  - INV-4   # MANIFEST derivability — regenerated
+  - INV-5   # ref resolvability — refs unchanged, targets still exist
+  - INV-6   # directory index convention — 00-index.md is created
+
+error_modes:
+  - ERR-PUNCH-NOT-FOUND
+  - ERR-PUNCH-IS-DIR
+  - ERR-PUNCH-UNNUMBERED
+  - ERR-PUNCH-COLLISION
+  - ERR-PUNCH-IS-INDEX
+
+properties:
+  - id: PROP-PUNCH-REF-INVARIANCE
+    statement: ref(target) is identical before and after punch
+    from_invariants: [INV-1, INV-5]
+    test: test_punch_ref_invariance
+  - id: PROP-PUNCH-CONTENT-PRESERVATION
+    statement: the original file's bytes are preserved exactly at the new location
+    test: test_punch_content_preservation
+  - id: PROP-PUNCH-BUNDLE-TRAVELS
+    statement: >
+      every attachment sharing target's NN prefix ends up in the new directory,
+      with no other attachments relocated
+    from_invariants: [INV-3]
+    test: test_punch_bundle_travels
+  - id: PROP-PUNCH-FLATTEN-ROUNDTRIP
+    statement: "flatten(punch(w, t)) ≡ w  (modulo --as-child)"
+    actions: [punch, flatten]
+    test: test_punch_flatten_roundtrip

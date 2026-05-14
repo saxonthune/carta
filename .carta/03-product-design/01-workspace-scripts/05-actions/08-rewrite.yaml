@@ -1,0 +1,61 @@
+# Action-catalog row for `carta rewrite`.
+
+id: rewrite
+summary: Apply explicit old=new doc-ref rewrites across the workspace
+cli: "carta rewrite <old>=<new> [<old>=<new> ...] [--dry-run]"
+
+inputs:
+  mappings:
+    type: list[str]
+    required: true
+    description: One or more old=new pairs
+  dry_run:
+    type: bool
+    default: false
+
+guards:
+  - id: G-REWRITE-1
+    statement: every mapping parses as old=new
+    check: "for m in mappings: '=' in m AND both sides non-empty"
+    error: ERR-REWRITE-BAD-MAPPING
+  - id: G-REWRITE-2
+    statement: every old side matches the doc-ref grammar
+    check: 'for m in mappings: old matches ^doc\d{2}(\.\d{2}){0,3}$'
+    error: ERR-REWRITE-BAD-REF
+  - id: G-REWRITE-3
+    statement: every new side matches the doc-ref grammar
+    check: 'for m in mappings: new matches ^doc\d{2}(\.\d{2}){0,3}$'
+    error: ERR-REWRITE-BAD-REF
+
+effects:
+  - id: E-REWRITE-1
+    description: substitute every occurrence of each old with its new across .md bodies and frontmatter
+  - id: E-REWRITE-2
+    description: substitute across externalRefPaths configured in workspace settings
+  - id: E-REWRITE-3
+    description: NOT regenerate MANIFEST (user must run `carta regenerate` after structural implications settle)
+
+invariants_preserved:
+  - INV-1
+  - INV-2
+  - INV-3
+  - INV-6
+
+invariants_may_violate:
+  - INV-4   # MANIFEST is not regenerated here
+  - INV-5   # if `new` does not resolve, refs become broken
+
+error_modes:
+  - ERR-REWRITE-BAD-MAPPING
+  - ERR-REWRITE-BAD-REF
+
+properties:
+  - id: PROP-REWRITE-EXHAUSTIVE
+    statement: after rewrite, no occurrence of any `old` ref remains in scanned files
+    test: test_rewrite_exhaustive
+  - id: PROP-REWRITE-LITERAL
+    statement: rewrite only touches tokens matching the ref grammar; prose mentions of the string are not mangled
+    test: test_rewrite_literal
+  - id: PROP-REWRITE-DRY-RUN-INERT
+    statement: --dry-run leaves all files byte-identical
+    test: test_rewrite_dry_run_inert

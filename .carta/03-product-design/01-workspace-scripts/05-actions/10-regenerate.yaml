@@ -1,0 +1,58 @@
+# Action-catalog row for `carta regenerate`.
+
+id: regenerate
+summary: Rebuild MANIFEST.md from frontmatter across all workspace docs
+cli: "carta regenerate [--dry-run]"
+
+inputs:
+  dry_run:
+    type: bool
+    default: false
+    description: Print projected MANIFEST.md without writing
+
+guards:
+  - id: G-REGEN-1
+    statement: current directory contains a .carta workspace
+    check: "exists(workspace_root / MANIFEST.md) OR exists(workspace_root / .state)"
+    error: ERR-REGEN-NOT-WORKSPACE
+
+effects:
+  - id: E-REGEN-1
+    description: scan tree, parse every .md frontmatter
+  - id: E-REGEN-2
+    description: compute reverse-deps (Refs column) from forward deps
+  - id: E-REGEN-3
+    description: compute Attachments column from prefix co-location
+  - id: E-REGEN-4
+    description: report orphan attachments on stderr (no failure)
+  - id: E-REGEN-5
+    description: overwrite MANIFEST.md with the projection (unless dry_run)
+
+invariants_preserved:
+  - INV-1
+  - INV-2
+  - INV-3
+  - INV-5
+  - INV-6
+
+invariants_established:
+  - INV-4   # by definition: MANIFEST := regenerate(tree)
+
+error_modes:
+  - ERR-REGEN-NOT-WORKSPACE
+
+properties:
+  - id: PROP-REGEN-IDEMPOTENT
+    statement: "regenerate ∘ regenerate ≡ regenerate (byte-identical MANIFEST on second run)"
+    actions: [regenerate]
+    test: test_regen_idempotent
+  - id: PROP-REGEN-DETERMINISTIC
+    statement: regenerate(w) produces the same bytes for the same input tree, independent of filesystem walk order
+    test: test_regen_deterministic
+  - id: PROP-REGEN-ORPHANS-REPORTED
+    statement: every non-md file whose NN prefix has no matching .md root is reported on stderr
+    from_invariants: [INV-3]
+    test: test_regen_orphans_reported
+  - id: PROP-REGEN-DRY-RUN-INERT
+    statement: --dry-run leaves MANIFEST.md byte-identical
+    test: test_regen_dry_run_inert

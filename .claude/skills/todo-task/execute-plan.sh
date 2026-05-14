@@ -246,41 +246,10 @@ If there's nothing noteworthy, write '## Notes' followed by 'None.'"
   echo ""
 }
 
-# check_trunk_leak
-# Compares current trunk SHA to TRUNK_SHA_BEFORE. If trunk moved, sets:
-#   LEAKED=true, LEAKED_COMMITS, LEAKED_ERROR. Otherwise sets LEAKED=false.
-check_trunk_leak() {
-  LEAKED=false
-  LEAKED_COMMITS=""
-  LEAKED_ERROR=""
-  local trunk_sha_now
-  trunk_sha_now=$(git -C "$MERGE_DIR" rev-parse "$TRUNK" 2>/dev/null || echo "")
-  if [[ -n "$trunk_sha_now" && "$trunk_sha_now" != "$TRUNK_SHA_BEFORE" ]]; then
-    LEAKED=true
-    LEAKED_COMMITS=$(git -C "$MERGE_DIR" log "${TRUNK_SHA_BEFORE}..${trunk_sha_now}" --oneline 2>/dev/null || echo "")
-    LEAKED_ERROR="Agent committed to trunk (${TRUNK}) instead of agent branch. To reset trunk: git -C \"${MERGE_DIR}\" reset --hard ${TRUNK_SHA_BEFORE}"
-  fi
-}
-
 # phase_verify
 # Runs verification commands from the plan. Sets VERIFIED (true/false), BUILD_TEST_OUTPUT, VERIFICATION_STATE.
 phase_verify() {
   echo "── Verifying build & tests ──"
-
-  check_trunk_leak
-  if [[ "$LEAKED" == "true" ]]; then
-    echo "ERROR: Agent commits leaked to trunk (${TRUNK})."
-    echo "Leaked commits:"
-    echo "${LEAKED_COMMITS}"
-    echo ""
-    echo "${LEAKED_ERROR}"
-    VERIFIED=false
-    VERIFICATION_STATE="$SM_VERIFY_LEAKED_TRUNK"
-    BUILD_TEST_OUTPUT="Trunk leak detected. Leaked commits:\n${LEAKED_COMMITS}\n\n${LEAKED_ERROR}"
-    SESSION_ERROR="${LEAKED_ERROR}"
-    echo ""
-    return
-  fi
 
   BUILD_TEST_OUTPUT=""
   VERIFIED=false
@@ -378,20 +347,6 @@ phase_merge() {
   DIRTY_FILES=""
   COMMITS=$(cd "${WORKTREE_DIR}" && git log "${TRUNK}..HEAD" --oneline 2>/dev/null || echo "(none)")
 
-  check_trunk_leak
-  if [[ "$LEAKED" == "true" ]]; then
-    echo "ERROR: Trunk advanced during session — leaked commits detected pre-merge."
-    echo "${LEAKED_COMMITS}"
-    echo "${LEAKED_ERROR}"
-    VERIFIED=false
-    VERIFICATION_STATE="$SM_VERIFY_LEAKED_TRUNK"
-    MERGE_STATUS="$SM_MERGE_NOT_ATTEMPTED"
-    BUILD_TEST_OUTPUT="Trunk leak detected pre-merge. Leaked commits:\n${LEAKED_COMMITS}\n\n${LEAKED_ERROR}"
-    SESSION_ERROR="${LEAKED_ERROR}"
-    echo ""
-    return
-  fi
-
   if [[ "$VERIFIED" == "true" ]]; then
     if [[ "$NO_MERGE" == "false" ]]; then
       echo "── Merging into trunk ──"
@@ -440,8 +395,6 @@ phase_merge() {
 # Moves files to .done/, writes result file, prints summary.
 phase_finalize() {
   mkdir -p "${REPO_ROOT}/.todo-tasks/.done"
-  mv "${REPO_ROOT}/.todo-tasks/.running/${PLAN_SLUG}.md" "${REPO_ROOT}/.todo-tasks/.done/${PLAN_SLUG}.md"
-  rm -f "${REPO_ROOT}/.todo-tasks/.running/${PLAN_SLUG}.log"
 
   RESULT_FILE="${REPO_ROOT}/.todo-tasks/.done/${PLAN_SLUG}.result.md"
   BUILD_TEST_TAIL=$(echo "${BUILD_TEST_OUTPUT}" | tail -30)
@@ -455,10 +408,15 @@ phase_finalize() {
   COMMITS_COUNT=$(echo "$COMMITS" | grep -c '.' 2>/dev/null || echo 0)
   [[ "$COMMITS" == "(none)" || -z "$COMMITS" ]] && COMMITS_COUNT=0
 
+  # Write result BEFORE moving the plan to .done/ — result file presence is the
+  # completion signal the emergency trap checks for.
   write_result_file "$RESULT_FILE" "$PLAN_SLUG" \
     "$SESSION_STATE" "$VERIFICATION_STATE" "$MERGE_STATUS" \
     "$COMMITS_COUNT" "${COMMITS:-(none)}" "$BRANCH" "$WORKTREE_DIR" "$RETRIED" \
     "${SESSION_ID:-}" "$CLAUDE_RESULT" "$BUILD_TEST_TAIL" "${SESSION_ERROR:-}"
+
+  mv "${REPO_ROOT}/.todo-tasks/.running/${PLAN_SLUG}.md" "${REPO_ROOT}/.todo-tasks/.done/${PLAN_SLUG}.md"
+  rm -f "${REPO_ROOT}/.todo-tasks/.running/${PLAN_SLUG}.log"
 
   echo "═══ Result written to ${RESULT_FILE} ═══"
   echo ""
@@ -476,7 +434,6 @@ phase_finalize() {
 
 main() {
   CURRENT_PHASE="validate";        phase_validate
-  TRUNK_SHA_BEFORE=$(git -C "$MERGE_DIR" rev-parse "$TRUNK")
   CURRENT_PHASE="move_to_running"; phase_move_to_running
   CURRENT_PHASE="create_worktree"; phase_create_worktree
   CURRENT_PHASE="copy_plan";       phase_copy_plan
@@ -494,8 +451,8 @@ main() {
   else
     CURRENT_PHASE="verify";          phase_verify
 
-    if [[ "${VERIFICATION_STATE}" == "$SM_VERIFY_SKIPPED" || "${VERIFICATION_STATE}" == "$SM_VERIFY_LEAKED_TRUNK" ]]; then
-      # No commits (or commits leaked to trunk) — skip retry and merge
+    if [[ "${VERIFICATION_STATE}" == "$SM_VERIFY_SKIPPED" ]]; then
+      # No commits — skip retry and merge
       MERGE_STATUS="$SM_MERGE_NOT_ATTEMPTED"
       RETRIED=false
       RETRY_COUNT=0

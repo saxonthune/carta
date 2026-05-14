@@ -26,13 +26,12 @@ Carta uses concept-driven design from Daniel Jackson's *The Essence of Software*
 
 ## Documentation
 
-**`.carta/` is the canonical source of truth** — a Carta workspace containing specifications and architecture docs. Docs represent the best current understanding, not templates to fill in. Sparse docs are intentional — do not elaborate beyond what the work demands (see doc00.02). Cross-references use `docXX.YY.ZZ` syntax (e.g., `doc01.02.05` = metamodel). **When referencing a doc in conversation, always include its title and enough context for the user to understand the reference without looking it up** (e.g., "doc01.03.08.08 (Structured Product Modeling — the nine formal structures for describing a business product)" not just "doc01.03.08.08"). Key docs:
+**`.carta/` is the canonical source of truth** — a Carta workspace containing specifications and architecture docs. Docs represent the best current understanding, not templates to fill in. Sparse docs are intentional — do not elaborate beyond what the work demands (see doc01.02). Cross-references use `docXX.YY.ZZ` syntax (e.g., `doc04.06.01` = Carta Docs API). **When referencing a doc in conversation, always include its title and enough context for the user to understand the reference without looking it up** (e.g., "doc04.08.08 (Structured Product Modeling — the nine formal structures for describing a business product)" not just "doc04.08.08"). Key docs:
 
-- **Strategy**: doc01.03.01 (mission), doc01.03.02 (principles), doc01.03.06 (products), doc01.03.07 (reconciliation), doc01.03.08 (research)
-- **Design**: doc01.02.01 (workspace scripts), doc01.02.05 (metamodel), doc01.02.06 (presentation model), doc01.02.03 (ADRs)
-- **Architecture**: doc01.01.01 (overview), doc01.01.04 (canvas state), doc01.01.05 (frontend), doc01.01.08 (design system)
-- **Code Shapes**: doc01.02.02 (empty — future)
-- **Projects**: doc01.01.01 (product-design-ui)
+- **Strategy**: doc04.01 (mission), doc04.02 (vision), doc04.03 (glossary), doc04.04 (primary sources), doc04.05 (docs system), doc04.06 (products), doc04.07 (spec-code reconciliation), doc04.08 (research)
+- **Design**: doc03.01 (workspace scripts — the Docs API), doc03.02 (concepts — Jackson-style concept inventory), doc03.03 (CLI user flow), doc03.04 (ADRs)
+- **Architecture**: doc02.01 (reconciliation architecture), doc02.02 (design patterns)
+- **Codex**: doc01.01 (about), doc01.02 (maintenance), doc01.03 (conventions), doc01.04 (AI retrieval), doc01.05 (taxonomy), doc01.06 (docs syntax reference)
 
 **Carta CLI**: Before using any `carta` command, run `carta ai-skill` to get the full semantic reference (syntax, arguments, side effects, sequencing rules). Do not guess flags or arguments.
 
@@ -75,9 +74,9 @@ All skills follow the same pattern: opus reads `.carta/` and code, analyzes, gen
 | `/documentation-auditor` | `.carta/MANIFEST.md`, codebase source | `.claude/skills/documentation-auditor/SKILL.md` |
 | `/git-sync-trunk` | Git worktree workflows | `.claude/skills/git-sync-trunk/SKILL.md` |
 | `/git-sync-worktree` | Git worktree workflows | `.claude/skills/git-sync-worktree/SKILL.md` |
-| `/spec-builder` | doc01.03.08.04 (reconciliation), doc01.03.08.05 (spec quality) | `.claude/skills/spec-builder/SKILL.md` |
-| `/carta-spec-builder` | doc01.03.08.04, doc01.03.08.05, `.carta/` workspace structure | `.claude/skills/carta-spec-builder/SKILL.md` |
-| `/carta-cli` | doc01.03.06.01 (Docs API), doc01.02.01 (design) | `.claude/skills/carta-cli/SKILL.md` |
+| `/spec-builder` | doc04.08.04 (reconciliation), doc04.08.05 (spec quality) | `.claude/skills/spec-builder/SKILL.md` |
+| `/carta-spec-builder` | doc04.08.04, doc04.08.05, `.carta/` workspace structure | `.claude/skills/carta-spec-builder/SKILL.md` |
+| `/carta-cli` | doc04.06.01 (Docs API), doc03.01 (design) | `.claude/skills/carta-cli/SKILL.md` |
 | `/todo-task` | Plan files, agent worktrees | `.claude/skills/todo-task/SKILL.md` |
 
 ### Agent Details
@@ -120,5 +119,5 @@ make test    # Run all tests (pytest)
 ## Constraints
 
 - **`.carta/` conventions**: Cross-references use `docXX.YY.ZZ` syntax. Sparse docs are intentional — do not elaborate beyond what the work demands.
-- **Python patterns**: See doc01.01.02.01 (Python for AI — file structure, typing, naming, testability patterns).
+- **Python patterns**: See doc02.02.01 (Python for AI — file structure, typing, naming, testability patterns).
 - **Carta CLI**: Always run `carta ai-skill` before using any `carta` command — do not guess flags or arguments.

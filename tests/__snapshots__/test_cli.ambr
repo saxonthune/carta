@@ -250,7 +250,7 @@
 # ---
 # name: TestHelpAi.test_ai_skill_includes_behavioral_rules
   '''
-  # carta AI Reference — v0.2.0
+  # carta AI Reference — <VERSION>
   
   Complete semantic reference for AI agents driving the carta CLI. Covers command behavior, side effects, sequencing rules, and live workspace state.
   
@@ -804,7 +804,7 @@
 # ---
 # name: TestHelpAi.test_ai_skill_includes_workspace_state
   '''
-  # carta AI Reference — v0.2.0
+  # carta AI Reference — <VERSION>
   
   Complete semantic reference for AI agents driving the carta CLI. Covers command behavior, side effects, sequencing rules, and live workspace state.
   
@@ -1358,7 +1358,7 @@
 # ---
 # name: TestHelpAi.test_ai_skill_lists_all_commands
   '''
-  # carta AI Reference — v0.2.0
+  # carta AI Reference — <VERSION>
   
   Complete semantic reference for AI agents driving the carta CLI. Covers command behavior, side effects, sequencing rules, and live workspace state.
   

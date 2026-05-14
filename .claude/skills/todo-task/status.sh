@@ -104,6 +104,16 @@ for result in "${DONE_RESULTS[@]}"; do
   esac
 done
 
+for f in "${TODO}/.done/"*.md; do
+  [[ -f "$f" ]] || continue
+  [[ "$f" == *.result.md ]] && continue
+  slug=$(basename "$f" .md)
+  [[ -f "${TODO}/.done/${slug}.result.md" ]] && continue
+  HAS_DONE=true
+  HAS_ATTENTION=true
+  BUCKET_ATTENTION+=("${slug}|silent-failure|?|Silent failure — no .result.md written. Check worktree/branch.")
+done
+
 [[ ${#BUCKET_ATTENTION[@]} -gt 0 || ${#BUCKET_QUESTIONABLE[@]} -gt 0 ]] && HAS_ATTENTION=true
 
 render_bucket() {

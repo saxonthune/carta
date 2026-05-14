@@ -1,0 +1,77 @@
+# Action-catalog row for `carta copy`.
+
+id: copy
+summary: Copy an external file into the workspace at a numbered position
+cli: "carta copy <source> <destination> [--order N] [--rename SLUG] [--dry-run]"
+
+inputs:
+  source:
+    type: path
+    required: true
+    description: File outside the workspace
+  destination:
+    type: path
+    required: true
+    description: Workspace directory to copy into
+  order:
+    type: int
+    default: null
+  rename:
+    type: str
+    default: null
+  dry_run:
+    type: bool
+    default: false
+
+guards:
+  - id: G-COPY-1
+    statement: source exists
+    check: "exists(source)"
+    error: ERR-COPY-SOURCE-NOT-FOUND
+  - id: G-COPY-2
+    statement: destination is an existing directory
+    check: "isdir(destination)"
+    error: ERR-COPY-DEST-NOT-FOUND
+  - id: G-COPY-3
+    statement: slug (derived or renamed) is filename-safe with no numeric prefix
+    check: 'slug matches ^[a-z0-9][a-z0-9-]*$ AND not matches ^\d{2}-'
+    error: ERR-COPY-BAD-SLUG
+  - id: G-COPY-4
+    statement: order is within range
+    check: "order is null OR 1 <= order <= len(dest_children)+1"
+    error: ERR-COPY-BAD-ORDER
+  - id: G-COPY-5
+    statement: computed NN does not collide with an existing sibling
+    check: "target NN slot free (no shift — copy does not renumber)"
+    error: ERR-COPY-COLLISION
+
+effects:
+  - id: E-COPY-1
+    description: compute NN (append or shift at order)
+  - id: E-COPY-2
+    description: copy source bytes to destination/NN-<slug>.<ext>
+  - id: E-COPY-3
+    description: regenerate MANIFEST.md (unless dry_run)
+
+invariants_preserved:
+  - INV-1
+  - INV-2
+  - INV-3
+  - INV-4
+  - INV-5
+  - INV-6
+
+error_modes:
+  - ERR-COPY-SOURCE-NOT-FOUND
+  - ERR-COPY-DEST-NOT-FOUND
+  - ERR-COPY-BAD-SLUG
+  - ERR-COPY-BAD-ORDER
+  - ERR-COPY-COLLISION
+
+properties:
+  - id: PROP-COPY-FILE-EXISTS
+    statement: after copy, NN-slug.<ext> exists at destination with identical bytes to source
+    test: test_copy_file_exists
+  - id: PROP-COPY-NO-RENUMBER
+    statement: siblings not at/above order have unchanged prefixes
+    test: test_copy_no_renumber

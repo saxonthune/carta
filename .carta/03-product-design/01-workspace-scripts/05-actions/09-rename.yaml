@@ -1,0 +1,74 @@
+# Action-catalog row for `carta rename`.
+
+id: rename
+summary: Change the slug of an entry and its bundle without changing NN or refs
+cli: "carta rename <target> <new-slug> [--no-regen]"
+
+inputs:
+  target:
+    type: path_or_ref
+    required: true
+  new_slug:
+    type: str
+    required: true
+    description: Replacement slug, without NN prefix
+  no_regen:
+    type: bool
+    default: false
+
+guards:
+  - id: G-RENAME-1
+    statement: target exists
+    check: "exists(target)"
+    error: ERR-RENAME-NOT-FOUND
+  - id: G-RENAME-2
+    statement: new_slug has no numeric prefix
+    check: 'not new_slug matches ^\d{2}-'
+    error: ERR-RENAME-BAD-SLUG
+  - id: G-RENAME-3
+    statement: new_slug is filename-safe
+    check: 'new_slug matches ^[a-z0-9][a-z0-9-]*$'
+    error: ERR-RENAME-BAD-SLUG
+  - id: G-RENAME-4
+    statement: no sibling has the same NN-new_slug name
+    check: "not exists(parent_dir(target) / NN-new_slug.ext)"
+    error: ERR-RENAME-COLLISION
+
+effects:
+  - id: E-RENAME-1
+    description: rename target NN-<old>.<ext> → NN-<new_slug>.<ext> on disk
+  - id: E-RENAME-2
+    description: >
+      for every attachment a in target's bundle:
+        rename a → NN-<new_slug>.<a-ext>
+      (keep per-extension distinction; no slug change on bundle siblings unless they match the root slug)
+  - id: E-RENAME-3
+    description: NOT rewrite refs (refs are positional, not slug-based)
+  - id: E-RENAME-4
+    description: regenerate MANIFEST.md (unless no_regen)
+
+invariants_preserved:
+  - INV-1
+  - INV-2
+  - INV-3
+  - INV-4
+  - INV-5
+  - INV-6
+
+error_modes:
+  - ERR-RENAME-NOT-FOUND
+  - ERR-RENAME-BAD-SLUG
+  - ERR-RENAME-COLLISION
+
+properties:
+  - id: PROP-RENAME-REF-INVARIANCE
+    statement: ref(target) is identical before and after rename
+    from_invariants: [INV-1, INV-5]
+    test: test_rename_ref_invariance
+  - id: PROP-RENAME-BUNDLE-COHERENT
+    statement: after rename, every bundle attachment shares the new slug (for matching-slug attachments) and the original NN
+    from_invariants: [INV-3]
+    test: test_rename_bundle_coherent
+  - id: PROP-RENAME-CONTENT-PRESERVATION
+    statement: file bytes unchanged
+    test: test_rename_content_preservation
