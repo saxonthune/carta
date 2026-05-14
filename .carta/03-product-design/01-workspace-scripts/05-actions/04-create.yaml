@@ -1,0 +1,96 @@
+# Action-catalog row for `carta create`.
+
+id: create
+summary: Create a new numbered .md file with draft frontmatter
+cli: "carta create <destination> <slug> [--order N] [--title TEXT] [--summary TEXT] [--tags CSV] [--deps CSV] [--dry-run]"
+
+inputs:
+  destination:
+    type: path_or_ref
+    required: true
+    description: Directory to create the file in
+  slug:
+    type: str
+    required: true
+    description: Filename stem without NN prefix
+  order:
+    type: int
+    default: null
+    description: 1-based insert position; appends if null
+  title:
+    type: str
+    default: null
+  summary:
+    type: str
+    default: ""
+  tags:
+    type: list[str]
+    default: []
+  deps:
+    type: list[doc_ref]
+    default: []
+  dry_run:
+    type: bool
+    default: false
+
+guards:
+  - id: G-CREATE-1
+    statement: destination is an existing directory
+    check: "isdir(destination)"
+    error: ERR-CREATE-DEST-NOT-FOUND
+  - id: G-CREATE-2
+    statement: slug does not begin with a numeric prefix
+    check: 'not slug matches ^\d{2}-'
+    error: ERR-CREATE-BAD-SLUG
+  - id: G-CREATE-3
+    statement: slug is filename-safe
+    check: 'slug matches ^[a-z0-9][a-z0-9-]*$'
+    error: ERR-CREATE-BAD-SLUG
+  - id: G-CREATE-4
+    statement: order is within range
+    check: "order is null OR 1 <= order <= len(dest_children)+1"
+    error: ERR-CREATE-BAD-ORDER
+  - id: G-CREATE-5
+    statement: no existing sibling ends up with the same NN prefix as the new file
+    check: "target NN not occupied after shift"
+    error: ERR-CREATE-COLLISION
+  - id: G-CREATE-6
+    statement: every dep ref resolves
+    check: "for d in deps: resolve(d) is not None"
+    error: ERR-CREATE-BAD-DEP
+
+effects:
+  - id: E-CREATE-1
+    description: compute NN prefix (append, or shift siblings ≥ order)
+  - id: E-CREATE-2
+    description: write NN-slug.md with frontmatter {title, summary, tags, deps}
+  - id: E-CREATE-3
+    description: regenerate MANIFEST.md (unless dry_run)
+
+invariants_preserved:
+  - INV-1
+  - INV-2
+  - INV-3
+  - INV-4
+  - INV-5
+  - INV-6
+
+error_modes:
+  - ERR-CREATE-DEST-NOT-FOUND
+  - ERR-CREATE-BAD-SLUG
+  - ERR-CREATE-BAD-ORDER
+  - ERR-CREATE-COLLISION
+  - ERR-CREATE-BAD-DEP
+
+properties:
+  - id: PROP-CREATE-FILE-EXISTS
+    statement: after create, NN-slug.md exists at destination with the expected frontmatter
+    test: test_create_file_exists
+  - id: PROP-CREATE-RESOLVABLE
+    statement: the new doc's ref resolves via the ref index
+    from_invariants: [INV-5]
+    test: test_create_resolvable
+  - id: PROP-CREATE-DELETE-ROUNDTRIP
+    statement: "delete(create(w, d, s)) ≡ w  (content-wise, modulo MANIFEST byte-identity)"
+    actions: [create, delete]
+    test: test_create_delete_roundtrip

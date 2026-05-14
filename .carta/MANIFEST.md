@@ -51,8 +51,29 @@ Orphaned attachments (non-md files with no corresponding root .md) are reported 
 |-----|------|---------|------|------|------|-------------|
 
 | doc03.00 | `00-index.md` |  |  | — | — | — |
-| doc03.01 | `01-workspace-scripts.md` | Design details for the Carta Docs API — command semantics, delivery mechanisms, scope boundary | docs-api, workspace, tools, scripts | doc04.06.01 | — | — |
 | doc03.03 | `03-cli-user-flow.md` | How users install the carta CLI, hydrate a repo, and use it for workspace operations | cli, workflow, installation, use-case | doc02.01 | — | — |
+
+### Workspace Scripts
+
+| Ref | File | Summary | Tags | Deps | Refs | Attachments |
+|-----|------|---------|------|------|------|-------------|
+
+| doc03.01.00 | `01-workspace-scripts/00-index.md` |  |  | — | — | — |
+| doc03.01.01 | `01-workspace-scripts/01-workspace-scripts.md` | Design details for the Carta Docs API — command semantics, delivery mechanisms, scope boundary | docs-api, workspace, tools, scripts | doc04.06.01 | — | — |
+| doc03.01.02 | `01-workspace-scripts/02-invariants.md` | Invariants that every valid .carta/ workspace must satisfy at rest — functions of state, oracles for property tests | invariants, workspace, properties, specs | — | doc03.01.03, doc03.01.04, doc03.01.05.00, doc03.01.05.01, doc03.01.05.02, doc03.01.05.03, doc03.01.05.04, doc03.01.05.05, doc03.01.05.06, doc03.01.05.07, doc03.01.05.08, doc03.01.05.09, doc03.01.05.10 | — |
+| doc03.01.03 | `01-workspace-scripts/03-properties.md` | PROP-* property statements for the action catalog, each tagged with the actions and invariants they correlate | properties, testing, invariants, specs | doc03.01.02 | doc03.01.05.00, doc03.01.05.01, doc03.01.05.02, doc03.01.05.03, doc03.01.05.04, doc03.01.05.05, doc03.01.05.06, doc03.01.05.07, doc03.01.05.08, doc03.01.05.09, doc03.01.05.10 | — |
+| doc03.01.04 | `01-workspace-scripts/04-errors.md` | ERR-* error codes — one per guard failure, mapped to exception classes and CLI exit behavior | errors, guards, specs | doc03.01.02 | doc03.01.05.00, doc03.01.05.01, doc03.01.05.02, doc03.01.05.03, doc03.01.05.04, doc03.01.05.05, doc03.01.05.06, doc03.01.05.07, doc03.01.05.08, doc03.01.05.09, doc03.01.05.10 | — |
+| doc03.01.05.00 | `01-workspace-scripts/05-actions/00-index.md` | Action catalog — one doc per Carta Docs API command, each with a machine-readable YAML sidecar | action-catalog, docs-api, specs | doc03.01.02, doc03.01.03, doc03.01.04 | — | — |
+| doc03.01.05.01 | `01-workspace-scripts/05-actions/01-punch.md` | Action spec for carta punch: convert NN-slug.md into NN-slug/00-index.md, moving bundle siblings with it | action-catalog, punch, docs-api, specs | doc03.01.02, doc03.01.03, doc03.01.04 | — | yaml |
+| doc03.01.05.02 | `01-workspace-scripts/05-actions/02-move.md` | Action spec for carta move: relocate a file or directory, renumbering siblings and rewriting refs | action-catalog, move, docs-api, specs | doc03.01.02, doc03.01.03, doc03.01.04 | — | yaml |
+| doc03.01.05.03 | `01-workspace-scripts/05-actions/03-delete.md` | Action spec for carta delete: remove files or directories, renumber siblings, rewrite refs, and report orphaned refs | action-catalog, delete, docs-api, specs | doc03.01.02, doc03.01.03, doc03.01.04 | — | yaml |
+| doc03.01.05.04 | `01-workspace-scripts/05-actions/04-create.md` | Action spec for carta create: write a new NN-slug.md at a position in a directory, with draft frontmatter | action-catalog, create, docs-api, specs | doc03.01.02, doc03.01.03, doc03.01.04 | — | yaml |
+| doc03.01.05.05 | `01-workspace-scripts/05-actions/05-flatten.md` | Action spec for carta flatten: hoist a directory's children into the parent and renumber | action-catalog, flatten, docs-api, specs | doc03.01.02, doc03.01.03, doc03.01.04 | — | yaml |
+| doc03.01.05.06 | `01-workspace-scripts/05-actions/06-attach.md` | Action spec for carta attach: copy a file into a doc's bundle, sharing the host's NN prefix | action-catalog, attach, docs-api, specs, bundles | doc03.01.02, doc03.01.03, doc03.01.04 | — | yaml |
+| doc03.01.05.07 | `01-workspace-scripts/05-actions/07-copy.md` | Action spec for carta copy: bring an outside file in as a numbered entry at a destination | action-catalog, copy, docs-api, specs | doc03.01.02, doc03.01.03, doc03.01.04 | — | yaml |
+| doc03.01.05.08 | `01-workspace-scripts/05-actions/08-rewrite.md` | Action spec for carta rewrite: apply old=new ref rewrites across the workspace | action-catalog, rewrite, docs-api, specs | doc03.01.02, doc03.01.03, doc03.01.04 | — | yaml |
+| doc03.01.05.09 | `01-workspace-scripts/05-actions/09-rename.md` | Action spec for carta rename: change the slug portion of NN-slug without changing NN or refs | action-catalog, rename, docs-api, specs | doc03.01.02, doc03.01.03, doc03.01.04 | — | yaml |
+| doc03.01.05.10 | `01-workspace-scripts/05-actions/10-regenerate.md` | Action spec for carta regenerate: recompute MANIFEST.md from current workspace state | action-catalog, regenerate, docs-api, specs | doc03.01.02, doc03.01.03, doc03.01.04 | — | yaml |
 
 ### Concepts
 
@@ -97,7 +118,7 @@ Orphaned attachments (non-md files with no corresponding root .md) are reported 
 |-----|------|---------|------|------|------|-------------|
 
 | doc04.06.00 | `06-products/00-index.md` |  |  | — | — | — |
-| doc04.06.01 | `06-products/01-cli-scripts.md` | Deterministic Python operations on .carta/ workspace documents — designed primarily for AI agents | docs-api, workspace, tools, scripts, ai | doc04.05 | doc03.01 | — |
+| doc04.06.01 | `06-products/01-cli-scripts.md` | Deterministic Python operations on .carta/ workspace documents — designed primarily for AI agents | docs-api, workspace, tools, scripts, ai | doc04.05 | doc03.01.01 | — |
 
 ### Research Sessions
 
@@ -125,6 +146,7 @@ Quick lookup for file-path→doc mapping:
 |-----|---------------|
 | `AI` | doc04.04.01, doc04.04.02 |
 | `action-based` | doc04.08.10 |
+| `action-catalog` | doc03.01.05.00, doc03.01.05.01, doc03.01.05.02, doc03.01.05.03, doc03.01.05.04, doc03.01.05.05, doc03.01.05.06, doc03.01.05.07, doc03.01.05.08, doc03.01.05.09, doc03.01.05.10 |
 | `additive-growth` | doc04.08.09 |
 | `adr` | doc03.04.00 |
 | `agents` | doc04.08.01, doc04.08.02 |
@@ -135,8 +157,9 @@ Quick lookup for file-path→doc mapping:
 | `api` | doc04.08.09 |
 | `architecture` | doc02.01, doc02.02.00, doc04.08.07 |
 | `artifact-driven development` | doc04.04.01, doc04.04.02, doc04.08.07 |
+| `attach` | doc03.01.05.06 |
 | `attachment` | doc03.02.01 |
-| `bundles` | doc03.02.01 |
+| `bundles` | doc03.01.05.06, doc03.02.01 |
 | `category theory` | doc04.04.01 |
 | `category-theory` | doc04.08.03 |
 | `cli` | doc03.03 |
@@ -149,29 +172,36 @@ Quick lookup for file-path→doc mapping:
 | `context-engineering` | doc04.08.01 |
 | `contract-first` | doc04.08.10 |
 | `conventions` | doc01.03, doc02.02.00, doc02.02.01 |
+| `copy` | doc03.01.05.07 |
+| `create` | doc03.01.05.04 |
 | `decision-tables` | doc04.08.08 |
 | `decisions` | doc03.04.00 |
 | `decomposition` | doc04.08.03, doc04.08.04 |
+| `delete` | doc03.01.05.03 |
 | `design` | doc03.02.00 |
 | `development` | doc04.04.03 |
 | `docs` | doc01.01, doc01.02, doc01.03, doc01.04, doc01.05, doc01.06, doc04.05, doc04.08.05 |
-| `docs-api` | doc03.01, doc04.06.01 |
+| `docs-api` | doc03.01.01, doc03.01.05.00, doc03.01.05.01, doc03.01.05.02, doc03.01.05.03, doc03.01.05.04, doc03.01.05.05, doc03.01.05.06, doc03.01.05.07, doc03.01.05.08, doc03.01.05.09, doc03.01.05.10, doc04.06.01 |
 | `efficiency` | doc04.08.01 |
 | `elicitation` | doc04.08.05 |
 | `entities` | doc04.08.08 |
 | `enumerations` | doc04.08.08 |
 | `epistemology` | doc04.08.02 |
+| `errors` | doc03.01.04 |
 | `evaluation` | doc04.08.05 |
+| `flatten` | doc03.01.05.05 |
 | `forces` | doc04.04.03 |
 | `format` | doc04.05, doc04.08.06 |
 | `formats` | doc04.08.04 |
 | `glossary` | doc04.03 |
 | `grammar` | doc01.06 |
+| `guards` | doc03.01.04 |
 | `index` | doc01.00, doc03.04.00, doc04.08.00 |
 | `information-architecture` | doc04.08.05 |
 | `information-theory` | doc04.04.02, doc04.08.03, doc04.08.04 |
 | `inspiration` | doc04.04.00 |
 | `installation` | doc03.03 |
+| `invariants` | doc03.01.02, doc03.01.03 |
 | `jackson` | doc03.02.00, doc03.02.01, doc04.08.11 |
 | `living-structure` | doc04.08.09 |
 | `llm` | doc04.08.04 |
@@ -182,6 +212,7 @@ Quick lookup for file-path→doc mapping:
 | `mock-first` | doc04.08.10 |
 | `modularity` | doc04.08.03 |
 | `morphisms` | doc04.04.01 |
+| `move` | doc03.01.05.02 |
 | `oracles` | doc04.08.02 |
 | `patterns` | doc02.02.00, doc02.02.01, doc04.04.02 |
 | `persistence` | doc04.08.10 |
@@ -190,16 +221,20 @@ Quick lookup for file-path→doc mapping:
 | `primary-source` | doc04.04.00 |
 | `principles` | doc04.01, doc04.08.06 |
 | `product-modeling` | doc04.08.07, doc04.08.08 |
-| `properties` | doc04.08.02 |
+| `properties` | doc03.01.02, doc03.01.03, doc04.08.02 |
+| `punch` | doc03.01.05.01 |
 | `python` | doc02.02.01 |
 | `reachability` | doc04.08.07 |
 | `reconciliation` | doc02.01, doc04.07, doc04.08.04 |
 | `reference` | doc01.06 |
+| `regenerate` | doc03.01.05.10 |
+| `rename` | doc03.01.05.09 |
 | `research` | doc04.08.00 |
 | `rest` | doc04.08.09 |
 | `retrieval` | doc01.04, doc04.08.05 |
+| `rewrite` | doc03.01.05.08 |
 | `rpc` | doc04.08.09 |
-| `scripts` | doc03.01, doc04.06.01, doc04.08.04 |
+| `scripts` | doc03.01.01, doc04.06.01, doc04.08.04 |
 | `sdlc` | doc04.02 |
 | `sections` | doc01.06 |
 | `sequencing` | doc04.08.11 |
@@ -207,7 +242,7 @@ Quick lookup for file-path→doc mapping:
 | `skills` | doc04.08.01 |
 | `spec-driven` | doc04.02, doc04.04.02, doc04.07, doc04.08.03, doc04.08.04, doc04.08.07, doc04.08.08 |
 | `specifications` | doc04.08.05 |
-| `specs` | doc02.01, doc04.07, doc04.08.06 |
+| `specs` | doc02.01, doc03.01.02, doc03.01.03, doc03.01.04, doc03.01.05.00, doc03.01.05.01, doc03.01.05.02, doc03.01.05.03, doc03.01.05.04, doc03.01.05.05, doc03.01.05.06, doc03.01.05.07, doc03.01.05.08, doc03.01.05.09, doc03.01.05.10, doc04.07, doc04.08.06 |
 | `state-machines` | doc04.08.08 |
 | `static-analysis` | doc04.08.04 |
 | `structure` | doc01.05 |
@@ -215,10 +250,10 @@ Quick lookup for file-path→doc mapping:
 | `syntax` | doc01.06 |
 | `terms` | doc04.03 |
 | `testability` | doc04.08.02 |
-| `testing` | doc02.02.01, doc04.08.02 |
+| `testing` | doc02.02.01, doc03.01.03, doc04.08.02 |
 | `theory` | doc01.01, doc04.04.02 |
 | `tokens` | doc04.08.01 |
-| `tools` | doc03.01, doc04.06.01 |
+| `tools` | doc03.01.01, doc04.06.01 |
 | `transition-systems` | doc04.08.07 |
 | `transmission` | doc04.02 |
 | `trpc` | doc04.08.09 |
@@ -229,4 +264,4 @@ Quick lookup for file-path→doc mapping:
 | `vision` | doc04.02, doc04.04.00 |
 | `vocabulary` | doc04.08.06 |
 | `workflow` | doc03.03 |
-| `workspace` | doc03.01, doc04.05, doc04.06.01, doc04.08.06 |
+| `workspace` | doc03.01.01, doc03.01.02, doc04.05, doc04.06.01, doc04.08.06 |

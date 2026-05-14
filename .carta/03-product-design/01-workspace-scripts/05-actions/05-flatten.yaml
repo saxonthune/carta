@@ -1,0 +1,93 @@
+# Action-catalog row for `carta flatten`.
+
+id: flatten
+summary: Hoist a directory's children into the parent, renumber, rewrite refs
+cli: "carta flatten <target> [--keep-index] [--force] [--at N] [--dry-run]"
+
+inputs:
+  target:
+    type: path_or_ref
+    required: true
+    description: Numbered directory to flatten
+  keep_index:
+    type: bool
+    default: false
+    description: Preserve 00-index.md as NN-<dir-slug>.md in parent
+  force:
+    type: bool
+    default: false
+    description: Discard index even with significant content
+  at:
+    type: int
+    default: null
+    description: Insert position in parent; defaults to source position
+  dry_run:
+    type: bool
+    default: false
+
+guards:
+  - id: G-FLATTEN-1
+    statement: target is an existing directory
+    check: "isdir(target)"
+    error: ERR-FLATTEN-NOT-FOUND
+  - id: G-FLATTEN-2
+    statement: target is not a file
+    check: "not isfile(target)"
+    error: ERR-FLATTEN-IS-FILE
+  - id: G-FLATTEN-3
+    statement: target has a numeric NN prefix
+    check: 'basename(target) matches ^\d{2}-'
+    error: ERR-FLATTEN-UNNUMBERED
+  - id: G-FLATTEN-4
+    statement: 00-index.md has no significant content, or --keep-index, or --force
+    check: "content(index) <= 10 lines OR keep_index OR force"
+    error: ERR-FLATTEN-INDEX-HAS-CONTENT
+  - id: G-FLATTEN-5
+    statement: hoisted children do not collide with existing parent siblings
+    check: "target NN block in parent is large enough for all children"
+    error: ERR-FLATTEN-COLLISION
+
+effects:
+  - id: E-FLATTEN-1
+    description: compute hoisted prefixes starting at `at` (or target's original NN)
+  - id: E-FLATTEN-2
+    description: move each child (with its bundle) to parent at new prefix
+  - id: E-FLATTEN-3
+    description: discard 00-index.md (or preserve as NN-<dir-slug>.md if keep_index)
+  - id: E-FLATTEN-4
+    description: remove the now-empty directory
+  - id: E-FLATTEN-5
+    description: renumber parent siblings as needed to keep prefixes contiguous
+  - id: E-FLATTEN-6
+    description: rewrite all refs (parent prefix levels collapse, child refs shift)
+  - id: E-FLATTEN-7
+    description: regenerate MANIFEST.md (unless dry_run)
+
+invariants_preserved:
+  - INV-1
+  - INV-2
+  - INV-3
+  - INV-4
+  - INV-5
+  - INV-6
+
+error_modes:
+  - ERR-FLATTEN-NOT-FOUND
+  - ERR-FLATTEN-IS-FILE
+  - ERR-FLATTEN-UNNUMBERED
+  - ERR-FLATTEN-INDEX-HAS-CONTENT
+  - ERR-FLATTEN-COLLISION
+
+properties:
+  - id: PROP-FLATTEN-CHILDREN-HOISTED
+    statement: every non-index child of target now lives in target's parent, with bundle intact
+    from_invariants: [INV-3]
+    test: test_flatten_children_hoisted
+  - id: PROP-FLATTEN-PUNCH-ROUNDTRIP
+    statement: "punch(flatten(w, d)) ≡ w  (modulo --keep-index semantics)"
+    actions: [flatten, punch]
+    test: test_flatten_punch_roundtrip
+  - id: PROP-FLATTEN-REFS-REWRITTEN
+    statement: no ref in the workspace points to the old nested position after flatten
+    from_invariants: [INV-5]
+    test: test_flatten_refs_rewritten

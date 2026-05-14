@@ -1,0 +1,72 @@
+# Action-catalog row for `carta delete`.
+
+id: delete
+summary: Delete entries, gap-close siblings, rewrite refs, report orphans
+cli: "carta delete <target> [<target> ...] [--dry-run] [--output-mapping]"
+
+inputs:
+  targets:
+    type: list[path_or_ref]
+    required: true
+    description: One or more files or directories to delete
+  dry_run:
+    type: bool
+    default: false
+  output_mapping:
+    type: bool
+    default: false
+    description: Emit JSON ref rename map to stdout
+
+guards:
+  - id: G-DELETE-1
+    statement: every target resolves to an existing path
+    check: "for t in targets: exists(t)"
+    error: ERR-DELETE-NOT-FOUND
+  - id: G-DELETE-2
+    statement: no target is the workspace root
+    check: "for t in targets: t != workspace_root"
+    error: ERR-DELETE-ROOT
+
+effects:
+  - id: E-DELETE-1
+    description: remove target and all bundle attachments (same NN prefix)
+  - id: E-DELETE-2
+    description: if target is a directory, remove it recursively with all descendants
+  - id: E-DELETE-3
+    description: gap-close siblings — decrement higher NN prefixes in source parent
+  - id: E-DELETE-4
+    description: rewrite refs in workspace + externalRefPaths to reflect new numbering
+  - id: E-DELETE-5
+    description: report orphaned refs (refs to deleted entries still found in surviving files) to stderr
+  - id: E-DELETE-6
+    description: regenerate MANIFEST.md (unless dry_run)
+
+invariants_preserved:
+  - INV-1
+  - INV-2
+  - INV-3
+  - INV-4
+  - INV-6
+
+invariants_may_violate:
+  - INV-5   # deleted target's refs elsewhere become unresolvable; reported as orphans
+
+error_modes:
+  - ERR-DELETE-NOT-FOUND
+  - ERR-DELETE-ROOT
+
+properties:
+  - id: PROP-DELETE-TARGET-GONE
+    statement: after delete, the target path does not exist and no attachment from its bundle remains
+    test: test_delete_target_gone
+  - id: PROP-DELETE-GAP-CLOSED
+    statement: siblings of the deleted entry have contiguous NN prefixes, starting from 00 (or 01)
+    from_invariants: [INV-2]
+    test: test_delete_gap_closed
+  - id: PROP-DELETE-REF-REWRITE
+    statement: every surviving ref to a gap-closed sibling points to the new (decremented) position
+    from_invariants: [INV-5]
+    test: test_delete_ref_rewrite
+  - id: PROP-DELETE-ORPHANS-REPORTED
+    statement: every surviving ref to a deleted entry is reported on stderr exactly once
+    test: test_delete_orphans_reported

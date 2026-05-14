@@ -1,0 +1,81 @@
+# Action-catalog row for `carta attach`.
+
+id: attach
+summary: Copy a non-md file into a host doc's bundle, sharing the host's NN prefix
+cli: "carta attach <host> <source> [--rename SLUG] [--dry-run]"
+
+inputs:
+  host:
+    type: path_or_ref
+    required: true
+    description: Doc ref or path of the host .md doc
+  source:
+    type: path
+    required: true
+    description: File to attach
+  rename:
+    type: str
+    default: null
+    description: Override the attachment slug
+  dry_run:
+    type: bool
+    default: false
+
+guards:
+  - id: G-ATTACH-1
+    statement: host resolves to an existing .md file
+    check: "isfile(host) AND host endswith .md"
+    error: ERR-ATTACH-HOST-NOT-FOUND
+  - id: G-ATTACH-2
+    statement: host is not a directory
+    check: "not isdir(host)"
+    error: ERR-ATTACH-HOST-IS-DIR
+  - id: G-ATTACH-3
+    statement: source exists
+    check: "exists(source)"
+    error: ERR-ATTACH-SOURCE-NOT-FOUND
+  - id: G-ATTACH-4
+    statement: source is not a .md (md goes through create/move, not attach)
+    check: "not source endswith .md"
+    error: ERR-ATTACH-IS-MD
+  - id: G-ATTACH-5
+    statement: no existing attachment in host's bundle shares the resulting slug
+    check: "slug unique within bundle across extensions"
+    error: ERR-ATTACH-SLUG-COLLISION
+
+effects:
+  - id: E-ATTACH-1
+    description: compute target name NN-<slug>.<ext> with NN = host's prefix
+  - id: E-ATTACH-2
+    description: copy source to host's directory under target name
+  - id: E-ATTACH-3
+    description: regenerate MANIFEST.md (Attachments column updated)
+
+invariants_preserved:
+  - INV-1
+  - INV-2
+  - INV-3
+  - INV-4
+  - INV-5
+  - INV-6
+
+error_modes:
+  - ERR-ATTACH-HOST-NOT-FOUND
+  - ERR-ATTACH-HOST-IS-DIR
+  - ERR-ATTACH-SOURCE-NOT-FOUND
+  - ERR-ATTACH-IS-MD
+  - ERR-ATTACH-SLUG-COLLISION
+
+properties:
+  - id: PROP-ATTACH-BUNDLE-GROWN
+    statement: after attach, host's bundle contains exactly one more attachment, sharing host's NN
+    from_invariants: [INV-3]
+    test: test_attach_bundle_grown
+  - id: PROP-ATTACH-CONTENT-PRESERVED
+    statement: the attachment's bytes match the source's bytes exactly
+    test: test_attach_content_preserved
+  - id: PROP-ATTACH-TRAVELS-ON-MOVE
+    statement: after attach(host, src) then move(host, dest), the attachment is at dest
+    actions: [attach, move]
+    from_invariants: [INV-3]
+    test: test_attach_travels_on_move

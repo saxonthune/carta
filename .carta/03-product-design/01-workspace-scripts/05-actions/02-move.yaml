@@ -1,0 +1,104 @@
+# Action-catalog row for `carta move`.
+
+id: move
+summary: Move or reorder a file/directory, renumbering siblings and rewriting refs
+cli: "carta move <source> <destination> [--order N] [--mkdir] [--rename SLUG] [--no-regen] [--no-gap-close] [--dry-run]"
+
+inputs:
+  source:
+    type: path_or_ref
+    required: true
+    description: File or directory to move
+  destination:
+    type: path
+    required: true
+    description: Target parent directory
+  order:
+    type: int
+    default: null
+    description: 1-based position in destination; appends if null
+  mkdir:
+    type: bool
+    default: false
+  rename:
+    type: str
+    default: null
+    description: New slug for the entry during move
+  no_regen:
+    type: bool
+    default: false
+  no_gap_close:
+    type: bool
+    default: false
+  dry_run:
+    type: bool
+    default: false
+
+guards:
+  - id: G-MOVE-1
+    statement: source resolves to an existing path
+    check: "exists(source)"
+    error: ERR-MOVE-NOT-FOUND
+  - id: G-MOVE-2
+    statement: destination directory exists or --mkdir is set
+    check: "isdir(destination) OR mkdir"
+    error: ERR-MOVE-DEST-NOT-FOUND
+  - id: G-MOVE-3
+    statement: no prefix collision at destination after insert
+    check: "no sibling at destination occupies target NN after shift"
+    error: ERR-MOVE-COLLISION
+  - id: G-MOVE-4
+    statement: order is within valid range for destination
+    check: "order is null OR 1 <= order <= len(dest_children)+1"
+    error: ERR-MOVE-BAD-ORDER
+  - id: G-MOVE-5
+    statement: source is not the destination or an ancestor of it
+    check: "destination not under source"
+    error: ERR-MOVE-INTO-SELF
+
+effects:
+  - id: E-MOVE-1
+    description: move source (and bundle attachments) to destination
+  - id: E-MOVE-2
+    description: gap-close source siblings (unless no_gap_close)
+  - id: E-MOVE-3
+    description: bump destination siblings at or above order
+  - id: E-MOVE-4
+    description: rewrite all cross-references in workspace + externalRefPaths
+  - id: E-MOVE-5
+    description: regenerate MANIFEST.md (unless no_regen or dry_run)
+
+invariants_preserved:
+  - INV-1
+  - INV-2
+  - INV-3
+  - INV-4
+  - INV-5
+  - INV-6
+
+error_modes:
+  - ERR-MOVE-NOT-FOUND
+  - ERR-MOVE-DEST-NOT-FOUND
+  - ERR-MOVE-COLLISION
+  - ERR-MOVE-BAD-ORDER
+  - ERR-MOVE-INTO-SELF
+
+properties:
+  - id: PROP-MOVE-REF-REWRITE-COMPLETE
+    statement: every ref to source's old position is rewritten to the new position; no stale refs remain
+    from_invariants: [INV-5]
+    test: test_move_ref_rewrite_complete
+  - id: PROP-MOVE-CONTENT-PRESERVATION
+    statement: file bytes are preserved exactly at the new location
+    test: test_move_content_preservation
+  - id: PROP-MOVE-BUNDLE-TRAVELS
+    statement: every attachment sharing source's NN prefix moves with it; no others move
+    from_invariants: [INV-3]
+    test: test_move_bundle_travels
+  - id: PROP-MOVE-SAME-PARENT-REORDER
+    statement: move with source.parent == destination acts as a pure renumber — content unchanged, only prefixes updated
+    actions: [move]
+    test: test_move_same_parent_reorder
+  - id: PROP-MOVE-IDEMPOTENT-NOOP
+    statement: moving an entry to its current location with its current order is a no-op
+    test: test_move_idempotent_noop
