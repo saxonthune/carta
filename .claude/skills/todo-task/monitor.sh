@@ -82,7 +82,6 @@ overall_label() {
     "$SM_OVERALL_NOOP")         echo "no-op" ;;
     "$SM_OVERALL_CONFLICT")     echo "conflict" ;;
     "$SM_OVERALL_DIRTY")        echo "dirty" ;;
-    "$SM_OVERALL_LEAKED_TRUNK") echo "leaked" ;;
     "$SM_OVERALL_BUILD_FAIL")   echo "failed" ;;
     "$SM_OVERALL_SESSION_FAIL") echo "crashed" ;;
     *)                          echo "$1" ;;

@@ -11,7 +11,6 @@ readonly SM_SESSION_FAILED="failed"
 readonly SM_VERIFY_PASSED="passed"
 readonly SM_VERIFY_FAILED="failed"
 readonly SM_VERIFY_SKIPPED="skipped_no_commits"
-readonly SM_VERIFY_LEAKED_TRUNK="leaked_to_trunk"
 
 # Merge phase: did the code land on trunk?
 readonly SM_MERGE_CLEAN="clean"
@@ -27,7 +26,6 @@ readonly SM_OVERALL_READY="ready_for_review"
 readonly SM_OVERALL_CONFLICT="merge_conflict"
 readonly SM_OVERALL_DIRTY="merged_with_markers"
 readonly SM_OVERALL_NOOP="no_op"
-readonly SM_OVERALL_LEAKED_TRUNK="leaked_to_trunk"
 readonly SM_OVERALL_BUILD_FAIL="build_failure"
 readonly SM_OVERALL_SESSION_FAIL="session_failed"
 
@@ -48,7 +46,6 @@ derive_overall_state() {
   case "$verify" in
     "$SM_VERIFY_FAILED") echo "$SM_OVERALL_BUILD_FAIL" ;;
     "$SM_VERIFY_SKIPPED") echo "$SM_OVERALL_NOOP" ;;
-    "$SM_VERIFY_LEAKED_TRUNK") echo "$SM_OVERALL_LEAKED_TRUNK" ;;
     "$SM_VERIFY_PASSED")
       case "$merge" in
         "$SM_MERGE_CLEAN") echo "$SM_OVERALL_SUCCESS" ;;
@@ -96,7 +93,7 @@ write_result_file() {
 
   # Validate vocabulary (warn but don't abort)
   local valid_sessions="$SM_SESSION_COMPLETED $SM_SESSION_FAILED"
-  local valid_verifications="$SM_VERIFY_PASSED $SM_VERIFY_FAILED $SM_VERIFY_SKIPPED $SM_VERIFY_LEAKED_TRUNK"
+  local valid_verifications="$SM_VERIFY_PASSED $SM_VERIFY_FAILED $SM_VERIFY_SKIPPED"
   local valid_merges="$SM_MERGE_CLEAN $SM_MERGE_DIRTY $SM_MERGE_CONFLICT $SM_MERGE_SKIPPED_FLAG $SM_MERGE_SKIPPED_VERIFY $SM_MERGE_NOT_ATTEMPTED"
 
   if [[ " $valid_sessions " != *" $session "* ]]; then
