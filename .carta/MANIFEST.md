@@ -23,8 +23,8 @@ Orphaned attachments (non-md files with no corresponding root .md) are reported 
 
 | doc01.00 | `00-index.md` | Codex section index: what meta-documentation covers | index, meta | — | — | — |
 | doc01.01 | `01-about.md` | Why this workspace exists, two-sources-of-truth theory, how to read | docs, meta, theory | — | — | — |
-| doc01.02 | `02-maintenance.md` | Doc lifecycle — unfolding philosophy, development loop, versioning, epochs | docs, maintenance, philosophy | — | — | — |
-| doc01.03 | `03-conventions.md` | docXX.YY syntax, front matter, file naming | docs, conventions | — | doc01.06 | — |
+| doc01.02 | `02-maintenance.md` | Doc philosophy — declarative intent, banned patterns, when to grow detail | docs, maintenance, philosophy | — | — | — |
+| doc01.03 | `03-conventions.md` | docXX.YY syntax, front matter, file naming, writing style | docs, conventions | — | doc01.06 | — |
 | doc01.04 | `04-ai-retrieval.md` | AI retrieval patterns, legal RAG inspiration | docs, ai, retrieval | — | doc04.08.05 | — |
 | doc01.05 | `05-taxonomy.md` | Title system rationale, Diataxis spirit | docs, structure | — | — | — |
 | doc01.06 | `06-docs-syntax-reference.md` | Formal grammar and extraction rules for doc references, sections, frontmatter, and MANIFEST | docs, syntax, reference, sections, grammar | doc01.03 | — | — |

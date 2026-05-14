@@ -1,6 +1,6 @@
 ---
 title: Conventions
-summary: docXX.YY syntax, front matter, file naming
+summary: docXX.YY syntax, front matter, file naming, writing style
 tags: [docs, conventions]
 deps: []
 ---
@@ -23,6 +23,10 @@ The regex pattern `doc\d{2}(\.\d{2})*` matches all references and is grep-friend
 grep -rn "doc04\.01" .carta/
 ```
 
+## Writing Style: Declarative Intent
+
+Docs describe the artifact's intent in literary present tense. They are not timelines, design briefs, or sequencing plans. No future modals, phases, deferrals, or dated postscripts. See doc01.02 for the full banned-pattern list and examples.
+
 ## Front Matter
 
 Every document starts with YAML front matter:
@@ -32,8 +36,6 @@ Every document starts with YAML front matter:
 title: Human-readable title
 ---
 ```
-
-**epoch** (optional): Used for staleness auditing. See doc01.02.
 
 ## File Naming
 
@@ -88,3 +90,4 @@ Structural operations (`move`, `delete`, `rename`, `punch`, `flatten`) treat a b
 - **Reference, don't repeat.** If a concept has a canonical doc, link to it with `docXX.YY` instead of re-explaining.
 - **Describe behavior, not implementation.** Feature docs should be clear enough to write a test from. Architecture docs should explain structure, not paste code.
 - **Use the glossary.** Domain terms defined in doc04.08 should be used consistently. Don't invent synonyms.
+- **Write in literary present tense** about what the artifact intends to be. No future modals, phases, or dated postscripts. See doc01.02 for the banned-pattern list.

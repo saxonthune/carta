@@ -22,6 +22,10 @@ The regex pattern `doc\d{2}(\.\d{2})*` matches all references and is grep-friend
 grep -rn "doc01\.02" {{dir_name}}/
 ```
 
+## Writing Style: Declarative Intent
+
+Docs describe the artifact's intent in literary present tense. They are not timelines, design briefs, or sequencing plans. No future modals, phases, deferrals, or dated postscripts. See doc00.02 for the full banned-pattern list and examples.
+
 ## Frontmatter
 
 Every document starts with YAML frontmatter:
@@ -41,8 +45,6 @@ deps: [doc01.02]
 | `summary` | yes | One-line description for MANIFEST retrieval |
 | `tags` | yes | Lowercase keywords for search and file-path-to-doc mapping |
 | `deps` | no | Doc refs to check when this doc changes |
-
-**epoch** (optional): Used for staleness auditing. See doc00.02.
 
 ## File Naming
 
@@ -79,3 +81,4 @@ MANIFEST.md is the **machine-readable retrieval index** — a flat table with re
 - **Reference, don't repeat.** If a concept has a canonical doc, link to it with `docXX.YY` instead of re-explaining.
 - **Describe behavior, not implementation.** Docs should be clear enough to write a test from.
 - **Use the glossary.** Domain terms should be used consistently. Don't invent synonyms.
+- **Write in literary present tense** about what the artifact intends to be. No future modals, phases, or dated postscripts. See doc00.02 for the banned-pattern list.

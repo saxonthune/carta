@@ -7,7 +7,7 @@ deps: []
 
 # About This Workspace
 
-This is the `.carta/` workspace for Carta — a spec-driven development standard for AI-assisted software development. It contains structured specifications that bridge the gap between what we want to build and what the code actually does.
+This is the `.carta/` workspace for Carta — a spec-driven development standard for AI-assisted software development. It contains structured specifications that bridge the gap between what the artifact intends to be and what the code actually does.
 
 ## Two Sources of Truth
 
@@ -15,15 +15,15 @@ Every software project has exactly two sources of truth:
 
 1. **Source code** — the concrete reality. It determines what happens when users interact with the product. Without any other frame of reference, there is no such thing as a bug.
 
-2. **Product expectations** — the unstated assumptions and aspirations of everyone who touches the product. They shift as fast as markets do; they are as dynamic as the human societies they reflect. Whereas source code is completely real, product expectations are completely unreal, waiting to be realized.
+2. **Docs** — the team's declarative intent. Docs describe what the artifact is for and what it does, in present tense. They are explicit and structured, not implicit assumptions or aspirations.
 
-Together, the two sources form opposite poles: potential and actual. A software team's sole purpose is to **reconcile this misfit** — modifying source code to better realize the product, or adjusting expectations to match reality.
+Together, the two sources form opposite poles: intent and reality. Reconciliation is the mechanism for catching drift — Carta surfaces the gap between intent (docs) and reality (code), and the human decides which side moved.
 
 ## Why Specs
 
 Traditional SDLC processes create artifacts (PRDs, Figma mocks, Jira tickets) in a hierarchical procession where each layer introduces noise. By the time engineers write code, the product signal is significantly diluted.
 
-AI shifts the documentation-code equilibrium. Extensive, structured specs are now viable because AI can help maintain them. Instead of a pipeline that dilutes signal, **spec groups** bridge the two sources directly, and AI helps reconcile specs derived from expectations against specs derived from code.
+AI shifts the documentation-code equilibrium. Extensive, structured specs are now viable because AI can help maintain them. Instead of a pipeline that dilutes signal, **spec groups** bridge the two sources directly, and AI helps reconcile specs derived from intent against specs derived from code.
 
 This workspace organizes specs into groups. See doc01.05 for Carta's specific group taxonomy.
 
@@ -36,7 +36,7 @@ A `.carta/` workspace starts almost empty — just the codex. That's intentional
 - You make an architecture decision → create an architecture group
 - You set up CI → create an operations group
 
-Each addition should be the simplest doc that captures what you just decided. It will deepen through the development loop (doc01.02) as the work demands.
+Each addition should be the simplest doc that captures what you just decided. It deepens through the development loop (doc01.02) as the work demands.
 
 ## How to Read
 
