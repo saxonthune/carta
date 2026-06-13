@@ -28,4 +28,4 @@ The `.carta/` workspace format is Carta's primary product. It defines a standard
 
 - **Carta Docs API** (doc04.06.01): Deterministic Python operations for manipulating workspace documents
 
-See the 00-codex title for the full format specification (doc01.01 through doc01.06).
+See the codex title for the full format specification (doc01.01 through doc01.06).

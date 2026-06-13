@@ -52,8 +52,10 @@ _DATA_FILES = [
     "templates/02-maintenance.md",
     "templates/03-conventions.md",
     "templates/04-ai-retrieval.md",
+    "templates/AGENTS.md",
     "templates/skill.md",
     "templates/docs-development-skill.md",
+    "templates/carta-setup-skill.md",
 ]
 
 
@@ -111,6 +113,11 @@ def cmd_init(args: argparse.Namespace) -> None:
         encoding="utf-8",
     )
 
+    # --- Agent wiring (generated; refreshed by --rehydrate) ---
+    agents_content = (templates_dir / "AGENTS.md").read_text(encoding="utf-8")
+    agents_content = agents_content.replace("{{dir_name}}", dirname)
+    (carta_dir / "AGENTS.md").write_text(agents_content, encoding="utf-8")
+
     # --- Skills ---
     def _install_skill(skill_name: str, template_file: str, replacements: dict[str, str] | None = None) -> None:
         skill_dir = project_root / ".claude" / "skills" / skill_name
@@ -135,6 +142,7 @@ def cmd_init(args: argparse.Namespace) -> None:
     else:
         print(f"  Skipped:  .claude/skills/carta-cli/SKILL.md (already exists)")
     _install_skill("docs-development", "docs-development-skill.md")
+    _install_skill("carta-setup", "carta-setup-skill.md")
 
     do_regenerate(carta_dir, _load_preamble(carta_dir.name))
 
@@ -142,6 +150,7 @@ def cmd_init(args: argparse.Namespace) -> None:
     print(f"  Created:  {MARKER}")
     print(f"  Created:  {dirname}/00-codex/ (5 docs)")
     print(f"  Created:  {dirname}/MANIFEST.md")
+    print(f"  Created:  {dirname}/AGENTS.md")
 
     if args.portable:
         if copy_portable(carta_dir):
@@ -153,6 +162,13 @@ def cmd_init(args: argparse.Namespace) -> None:
     print(f"\nNext steps:")
     print(f"  carta create 00-codex my-first-doc   # add a document")
     print(f"  carta --help                          # see all commands")
+    print(f"  /carta-setup                          # verify wiring & workspace health")
+
+    print(f"\nOptional — paste into your CLAUDE.md or AGENTS.md so agents find the workspace:")
+    print(f"")
+    print(f"  ## Documentation")
+    print(f"  This repo uses a {dirname}/ spec workspace. Read {dirname}/AGENTS.md for")
+    print(f"  how to navigate and edit it, and {dirname}/MANIFEST.md for the doc index.")
 
 
 # ---------------------------------------------------------------------------
@@ -236,11 +252,25 @@ def cmd_init_rehydrate(args: argparse.Namespace, carta_root: Path) -> None:
             print(f"  Updated: {dest.relative_to(project_root)}")
         updated += 1
 
+    # --- Agent wiring ---
+    agents_dest = carta_root / "AGENTS.md"
+    agents_content = (templates_dir / "AGENTS.md").read_text(encoding="utf-8").replace("{{dir_name}}", dirname)
+    if not (agents_dest.exists() and agents_dest.read_text(encoding="utf-8") == agents_content):
+        if args.dry_run:
+            print(f"  Would update: {agents_dest.relative_to(project_root)}")
+        else:
+            agents_dest.write_text(agents_content, encoding="utf-8")
+            print(f"  Updated: {agents_dest.relative_to(project_root)}")
+        updated += 1
+    else:
+        skipped += 1
+
     # --- Skills ---
     from ..ai_skill import generate_skill_content
     skill_updates = [
         ("carta-cli", generate_skill_content(dirname)),
         ("docs-development", (templates_dir / "docs-development-skill.md").read_text(encoding="utf-8")),
+        ("carta-setup", (templates_dir / "carta-setup-skill.md").read_text(encoding="utf-8")),
     ]
     for skill_name, new_content in skill_updates:
         skill_dir = project_root / ".claude" / "skills" / skill_name

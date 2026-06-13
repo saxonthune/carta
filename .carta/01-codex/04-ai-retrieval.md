@@ -75,7 +75,7 @@ Instead of reading entire docs, grep for specific sections:
 
 ```bash
 # Read only a specific section from a doc
-grep -A 50 "## Operations" .carta/01-carta-gold/02-product-design/01-workspace-scripts.md
+grep -A 50 "## Operations" .carta/03-product-design/01-workspace-scripts/01-workspace-scripts.md
 ```
 
 ### 5. Dependency Graphs

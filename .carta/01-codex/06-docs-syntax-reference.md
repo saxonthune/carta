@@ -50,10 +50,9 @@ Each segment maps to a numbered directory or file prefix. Resolution walks the w
 
 ```
 doc04.08.03
- │    │   │   └─ file prefix 03 (03-*.md)
- │    │   └───── subdir prefix 07 (07-*/)
- │    └───────── subdir prefix 03 (03-*/)
- └────────────── title prefix 01 (01-*/)
+ │    │   └─ file prefix 03 (03-*.md)
+ │    └────── subdir prefix 08 (08-*/)
+ └─────────── title prefix 04 (04-*/)
 ```
 
 The final segment resolves to either a file (`NN-slug.md`) or a directory's index (`NN-slug/00-index.md`).
@@ -61,9 +60,9 @@ The final segment resolves to either a file (`NN-slug.md`) or a directory's inde
 ### Examples
 
 ```
-doc01.03           → 00-codex/03-conventions.md
-doc04.01        → 01-carta-gold/03-product-strategy/01-mission.md
-doc04.08.03     → 01-carta-gold/03-product-strategy/07-research/03-decomposition-and-composition-theory.md
+doc01.03        → 01-codex/03-conventions.md
+doc04.01        → 04-product-strategy/01-mission.md
+doc04.08.03     → 04-product-strategy/08-research/03-decomposition-and-composition-theory.md
 ```
 
 ## #sec02 Section References

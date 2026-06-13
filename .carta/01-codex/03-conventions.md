@@ -11,8 +11,8 @@ deps: []
 
 Use `docXX.YY` to reference another document. Every segment is two digits:
 
-- `doc04.01` — title 01 (carta-gold), subdir 03 (product-strategy), item 01 (mission)
-- `doc02.02.01` — title 01, subdir 01 (architecture), sub-subdir 02 (design-patterns), item 01
+- `doc04.01` — title 04 (product-strategy), item 01 (mission)
+- `doc02.02.01` — title 02 (architecture), subdir 02 (design-patterns), item 01 (python-for-ai)
 - `doc04.08.04` — a nested research session file
 
 Two digits per segment, unlimited depth. Nesting can go as deep as the directory structure requires — `doc04.04.01` is perfectly valid if the file tree warrants it. Each segment maps to a numbered directory or file. If a directory exceeds 99 items, split it into subdirectories rather than widening the numbering.
