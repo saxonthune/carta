@@ -1,4 +1,4 @@
-"""carta — structure commands: create, delete, move, rename."""
+"""carta — structure commands: make, delete, move, rename."""
 import argparse
 import json
 import shutil
@@ -18,70 +18,118 @@ from .. import bundle as bundle_mod
 
 
 # ---------------------------------------------------------------------------
-# create
+# make
 # ---------------------------------------------------------------------------
 
-def cmd_create(args: argparse.Namespace, carta_root: Path) -> None:
-    """Create a new doc entry."""
-    slug = args.slug
+def cmd_make(args: argparse.Namespace, carta_root: Path) -> None:
+    """Create a new doc or group entry."""
+    # Validate positional/--at combinations
+    if args.at is not None and len(args.target) == 2:
+        raise CartaError("--at takes its position from the ref; do not also pass a parent")
 
+    if len(args.target) > 2:
+        raise CartaError("too many positional arguments; usage: carta make [PARENT] SLUG")
+
+    # Resolve addressing mode
+    if args.at is not None:
+        if len(args.target) != 1:
+            raise CartaError("--at requires exactly one positional argument (SLUG)")
+        slug = args.target[0]
+
+        try:
+            at_ref = DocRef.parse(args.at)
+        except CartaError as e:
+            raise CartaError(f"Invalid --at ref: {e}")
+
+        prefix = at_ref.segments[-1]
+        parent_segments = at_ref.segments[:-1]
+
+        if parent_segments:
+            parent_ref = DocRef(segments=parent_segments)
+            try:
+                parent_path = parent_ref.to_path(carta_root)
+            except FileNotFoundError as e:
+                raise CartaError(f"Error resolving parent from --at ref: {e}")
+        else:
+            parent_path = carta_root
+
+        if not parent_path.is_dir():
+            raise CartaError(f"Error: parent is not a directory: {parent_path}")
+
+        entries = list_numbered_entries(parent_path)
+        occupied = {EntryName.parse(e.name).prefix for e in entries if EntryName.parse(e.name)}
+        if prefix in occupied:
+            raise CartaError(
+                f"Error: position {prefix:02d} is occupied in {parent_path.relative_to(carta_root)}.\n"
+                f"Occupied positions: {sorted(occupied)}"
+            )
+
+    elif len(args.target) == 1:
+        slug = args.target[0]
+        parent_path = carta_root
+        prefix = compute_insertion_prefix(list_numbered_entries(parent_path), None)
+
+    else:  # len(args.target) == 2
+        try:
+            parent_path = resolve_arg(args.target[0], carta_root).path
+        except (FileNotFoundError, ValueError) as e:
+            raise CartaError(f"Error resolving parent {args.target[0]!r}: {e}")
+        slug = args.target[1]
+        prefix = compute_insertion_prefix(list_numbered_entries(parent_path), None)
+
+    # Slug guard: reject slug that already carries a NN- prefix
     if EntryName.parse(slug) is not None:
         raise CartaError("Error: slug must not contain a numeric prefix (NN-). Provide just the slug part.")
 
-    if args.order is not None and args.order < 1:
-        raise CartaError("Error: --order must be >= 1 (position 0 is reserved for index files).")
+    if not parent_path.exists():
+        raise CartaError(f"Error: parent directory does not exist: {parent_path}")
 
-    try:
-        dest_path = resolve_arg(args.destination, carta_root).path
-    except (FileNotFoundError, ValueError) as e:
-        raise CartaError(f"Error resolving destination {args.destination!r}: {e}")
+    if not parent_path.is_dir():
+        raise CartaError(f"Error: parent is not a directory: {parent_path}")
 
-    if not dest_path.exists():
-        raise CartaError(f"Error: destination does not exist: {dest_path}")
-
-    if not dest_path.is_dir():
-        raise CartaError(f"Error: destination is not a directory: {dest_path}")
-
-    prefix = compute_insertion_prefix(list_numbered_entries(dest_path), args.order)
-
-    entries = list_numbered_entries(dest_path)
-    occupied = {EntryName.parse(e.name).prefix for e in entries if EntryName.parse(e.name)}
-    if prefix in occupied:
-        raise CartaError(
-            f"Error: position {prefix:02d} is occupied in {dest_path.relative_to(carta_root)}.\n"
-            f"Occupied positions: {sorted(occupied)}"
-        )
-
-    title = args.title if args.title is not None else slug.replace("-", " ").title()
-    new_name = f"{prefix:02d}-{slug}.md"
-    new_path = dest_path / new_name
-
-    if args.dry_run:
-        print(f"Would create: {new_path.relative_to(carta_root)}")
-        print(f"  Title: {title}")
-        if args.summary:
-            print(f"  Summary: {args.summary}")
-        if args.tags:
-            print(f"  Tags: {args.tags}")
-        if args.deps:
-            print(f"  Deps: {args.deps}")
-        print(f"  Position: {prefix:02d}")
-        print("\n(dry-run: no files created)")
-        return
-
+    title = slug.replace("-", " ").title()
     frontmatter = {
         "title": title,
-        "summary": args.summary if args.summary is not None else "",
-        "tags": [t.strip() for t in args.tags.split(",") if t.strip()] if args.tags else [],
-        "deps": [d.strip() for d in args.deps.split(",") if d.strip()] if args.deps else [],
+        "summary": "",
+        "tags": [],
+        "deps": [],
     }
-    write_frontmatter(new_path, frontmatter, f"\n# {title}\n")
+    body = f"\n# {title}\n"
 
-    do_regenerate(carta_root, _load_preamble(carta_root.name))
+    if args.group:
+        new_dir = parent_path / f"{prefix:02d}-{slug}"
 
-    print(f"Created: {new_path.relative_to(carta_root)}")
-    print(f"  Title: {title}")
-    print(f"  Position: {prefix:02d}")
+        if args.dry_run:
+            print(f"Would create group: {new_dir.relative_to(carta_root)}/")
+            print(f"  Index: {(new_dir / '00-index.md').relative_to(carta_root)}")
+            print(f"  Position: {prefix:02d}")
+            print("\n(dry-run: no files created)")
+            return
+
+        new_dir.mkdir()
+
+        write_frontmatter(new_dir / "00-index.md", frontmatter, body)
+        new_path = new_dir
+
+    else:
+        new_path = parent_path / f"{prefix:02d}-{slug}.md"
+
+        if args.dry_run:
+            print(f"Would create: {new_path.relative_to(carta_root)}")
+            print(f"  Position: {prefix:02d}")
+            print("\n(dry-run: no files created)")
+            return
+
+        write_frontmatter(new_path, frontmatter, body)
+
+    if not args.no_regen:
+        do_regenerate(carta_root, _load_preamble(carta_root.name))
+
+    try:
+        ref = DocRef.from_path(new_path, carta_root)
+        print(f"Created: {ref}  ({new_path.relative_to(carta_root)})")
+    except ValueError:
+        print(f"Created: {new_path.relative_to(carta_root)}")
 
 
 # ---------------------------------------------------------------------------

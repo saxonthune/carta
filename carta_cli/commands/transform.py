@@ -1,4 +1,4 @@
-"""carta — transform commands: punch, flatten, group, copy."""
+"""carta — transform commands: punch, flatten, copy."""
 import argparse
 import re
 import shutil
@@ -8,7 +8,7 @@ from pathlib import Path
 
 from ..errors import CartaError
 from ..frontmatter import read_frontmatter, write_frontmatter
-from ..entries import resolve_arg, resolve_and_validate, list_numbered_entries
+from ..entries import resolve_and_validate, list_numbered_entries
 from ..numbering import compute_insertion_prefix
 from ..docref import EntryName
 from ..rewriter import rewrite_refs
@@ -352,40 +352,3 @@ def cmd_copy(args: argparse.Namespace, carta_root: Path) -> None:
     print(f"Copied: {source_path.name} -> {new_path.relative_to(carta_root)}")
     print(f"  Position: {prefix:02d}")
 
-
-# ---------------------------------------------------------------------------
-# group
-# ---------------------------------------------------------------------------
-
-def cmd_group(args: argparse.Namespace, carta_root: Path) -> None:
-    """Create a title group directory with 00-index.md."""
-    target = args.target
-    target_path = resolve_arg(target, carta_root).path
-
-    if target_path.exists():
-        if any(target_path.iterdir()):
-            raise CartaError(f"Error: directory already exists and is not empty: {target_path.relative_to(carta_root)}")
-        # Empty directory — proceed (skip mkdir below)
-
-    if not target_path.parent.exists():
-        raise CartaError(f"Error: parent directory does not exist: {target_path.parent}")
-
-    _tgt_en = EntryName.parse(target_path.name)
-    if _tgt_en is None:
-        raise CartaError(f"Error: directory name must have NN- prefix: {target_path.name}")
-
-    if not target_path.exists():
-        target_path.mkdir()
-
-    title = args.title if args.title else _tgt_en.tail.replace("-", " ").title()
-    write_frontmatter(target_path / "00-index.md", {
-        "title": title,
-        "summary": "", "tags": [], "deps": [],
-    }, f"\n# {title}\n")
-
-    if not args.no_regen:
-        do_regenerate(carta_root, _load_preamble(carta_root.name))
-
-    print(f"Created group: {target_path.relative_to(carta_root)}")
-    print(f"  Index: {(target_path / '00-index.md').relative_to(carta_root)}")
-    print(f"  Title: {title}")

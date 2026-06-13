@@ -29,7 +29,7 @@ carta init --portable
 
 # Collaborator (no pip needed, just python3 >=3.10)
 python3 .carta/carta.py regenerate
-python3 .carta/carta.py create 00-codex my-doc
+python3 .carta/carta.py make 00-codex my-doc
 ```
 
 The portable scripts make `.carta/` a self-contained unit — documentation and tooling travel together. Copy the directory to another repo and it carries its own scripts.
@@ -94,8 +94,14 @@ The CLI is a multiplexed command that performs deterministic structural operatio
 ### Common operations
 
 ```bash
-# Add a new doc
-carta create 01-product my-feature --title "My Feature"
+# Add a new doc (parent + slug, appends)
+carta make 01-product my-feature
+
+# Add a new doc at an exact position
+carta make --at doc01.04 my-pinned-feature
+
+# Create a new title group (directory + 00-index.md)
+carta make -g 01-product new-subgroup
 
 # Expand a leaf file into a directory with children
 carta punch 01-product/03-my-feature

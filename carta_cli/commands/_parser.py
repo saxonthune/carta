@@ -7,8 +7,8 @@ from ..__version__ import __version__
 from ..errors import CartaError
 from ..workspace import find_workspace
 from ..ai_skill import cmd_ai_skill
-from .structure import cmd_create, cmd_delete, cmd_move, cmd_rename
-from .transform import cmd_punch, cmd_flatten, cmd_group, cmd_copy
+from .structure import cmd_make, cmd_delete, cmd_move, cmd_rename
+from .transform import cmd_punch, cmd_flatten, cmd_copy
 from .content import cmd_cat, cmd_tree, cmd_rewrite, cmd_regenerate, cmd_attach, cmd_ls, cmd_bundle, cmd_orphans
 from .setup import cmd_init, cmd_portable, cmd_init_rehydrate
 
@@ -38,26 +38,27 @@ def main(argv: list[str] | None = None) -> int:
     p_regen = subparsers.add_parser("regenerate", help="Rebuild MANIFEST.md")
     p_regen.add_argument("--dry-run", action="store_true")
 
-    # create
-    p_create = subparsers.add_parser(
-        "create",
-        help="Create a new doc entry",
+    # make
+    p_make = subparsers.add_parser(
+        "make",
+        help="Create a doc or group at a position",
         epilog=(
             "Examples:\n"
-            "  carta create doc01.03 my-section\n"
-            "  carta create 01-product/02-features new-doc --order 2 --title \"Foo\"\n"
-            "  carta create doc00 note --dry-run"
+            "  carta make doc01.03 my-section\n"
+            "  carta make my-top-level-doc\n"
+            "  carta make -g doc01 new-group\n"
+            "  carta make --at doc00.07 pinned-doc\n"
+            "  carta make doc00 scratch --dry-run"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    p_create.add_argument("destination")
-    p_create.add_argument("slug")
-    p_create.add_argument("--order", type=int, default=None)
-    p_create.add_argument("--title", default=None)
-    p_create.add_argument("--summary", default=None)
-    p_create.add_argument("--tags", default=None, help="Comma-separated tags")
-    p_create.add_argument("--deps", default=None, help="Comma-separated deps")
-    p_create.add_argument("--dry-run", action="store_true")
+    p_make.add_argument("target", nargs="+", help="[PARENT] SLUG — omit PARENT for a top-level title")
+    p_make.add_argument("-g", "--group", action="store_true",
+                        help="Create a directory + 00-index.md instead of a leaf .md")
+    p_make.add_argument("--at", default=None,
+                        help="Exact target ref (e.g. doc01.02.03.04); writes iff the slot is free")
+    p_make.add_argument("--dry-run", action="store_true")
+    p_make.add_argument("--no-regen", action="store_true")
 
     # delete
     p_delete = subparsers.add_parser("delete", help="Delete entries with gap-closing")
@@ -118,24 +119,6 @@ def main(argv: list[str] | None = None) -> int:
     p_rewrite = subparsers.add_parser("rewrite", help="Rewrite doc refs")
     p_rewrite.add_argument("mappings", nargs="+", help="old=new pairs")
     p_rewrite.add_argument("--dry-run", action="store_true")
-
-    # group
-    p_group = subparsers.add_parser(
-        "group",
-        help="Create a title group directory",
-        epilog=(
-            "Examples:\n"
-            "  carta group 01-product-strategy --title \"Product Strategy\"\n"
-            "  carta group 01-luminous/02-design/06-adr --title \"ADRs\"\n"
-            "\n"
-            "Path is a single directory relative to the workspace root\n"
-            "(without the workspace directory name as a prefix)."
-        ),
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-    p_group.add_argument("target", help="Directory path relative to workspace (e.g., 01-product-strategy)")
-    p_group.add_argument("--title", default=None, help="Title for the index. Default: derived from slug.")
-    p_group.add_argument("--no-regen", action="store_true", help="Skip MANIFEST regeneration.")
 
     # rename
     p_rename = subparsers.add_parser("rename", help="Rename a directory or file slug")
@@ -200,8 +183,8 @@ def main(argv: list[str] | None = None) -> int:
     if "--help-ai" in argv:
         # Find the subcommand name: skip flags and their values
         known_subcommands = {
-            "regenerate", "create", "delete", "move", "punch", "flatten",
-            "copy", "attach", "rewrite", "group", "rename", "init",
+            "regenerate", "make", "delete", "move", "punch", "flatten",
+            "copy", "attach", "rewrite", "rename", "init",
             "portable", "ai-skill", "cat", "tree", "ls", "bundle", "orphans",
         }
         cmd_candidates = [a for a in argv if a in known_subcommands]
@@ -215,17 +198,6 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"No AI documentation available for '{cmd}'.")
                 print("Run `carta ai-skill` for the full reference.")
             return 0
-
-    # Friendlier hint for a common mistake: `carta create --slug foo`
-    if "create" in argv and "--slug" in argv and argv.index("--slug") > argv.index("create"):
-        print(
-            "Error: `--slug` is not a flag for `carta create`. "
-            "Slug is a positional argument.\n"
-            "Usage: carta create <destination> <slug> [--title TEXT ...]\n"
-            "Example: carta create doc01.03 my-section --title \"My Section\"",
-            file=sys.stderr,
-        )
-        return 1
 
     args = parser.parse_args(argv)
 
@@ -266,7 +238,7 @@ def main(argv: list[str] | None = None) -> int:
 
         dispatch = {
             "regenerate": cmd_regenerate,
-            "create": cmd_create,
+            "make": cmd_make,
             "delete": cmd_delete,
             "move": cmd_move,
             "punch": cmd_punch,
@@ -274,7 +246,6 @@ def main(argv: list[str] | None = None) -> int:
             "copy": cmd_copy,
             "attach": cmd_attach,
             "rewrite": cmd_rewrite,
-            "group": cmd_group,
             "rename": cmd_rename,
             "ai-skill": cmd_ai_skill,
             "cat": cmd_cat,

@@ -17,7 +17,7 @@ The full command catalog — guards, effects, invariants preserved, error modes 
 
 The API is delivered two ways:
 
-- **`pip install carta-cli`** — Installed CLI (`carta create`, `carta move`, etc.)
+- **`pip install carta-cli`** — Installed CLI (`carta make`, `carta move`, etc.)
 - **`carta portable`** — Dumps raw, editable Python scripts into `.carta/` so the workspace carries its own tooling with no external installation
 
 Both invoke the same `commands.py` implementation. The portable form is the default for new workspaces — it embodies the right-to-repair principle (doc04.01).

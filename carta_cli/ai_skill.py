@@ -53,33 +53,49 @@ When to use:
   - When MANIFEST.md is stale or missing.
 """,
 
-    "create": """\
-### create
+    "make": """\
+### make
 
-Create a new numbered `.md` file at a given position in a directory.
+Create a new numbered `.md` file (doc) or directory + `00-index.md` (group) at a position.
 
 ```
-carta create <destination> <slug> [--order N] [--title TEXT] [--summary TEXT] [--tags CSV] [--deps CSV] [--dry-run]
+carta make [PARENT] SLUG [-g] [--at REF] [--dry-run] [--no-regen]
 ```
 
 Arguments:
-  destination  Directory path relative to workspace root (e.g., `01-product/02-features`).
-               Also accepts doc refs (e.g., `doc01.02`).
-  slug         Filename stem without prefix (e.g., `my-doc` → `03-my-doc.md`).
-               Must NOT include a numeric prefix.
+  PARENT  (optional) Directory to place the new entry in. Accepts doc refs (e.g., `doc01.02`)
+          or workspace-relative paths. Omit to create a top-level title.
+  SLUG    Filename stem without prefix (e.g., `my-doc` → `03-my-doc.md`).
+          Must NOT include a numeric prefix.
+
+Addressing modes (three ways to specify where to place the entry):
+  1. `carta make SLUG`            — single positional: creates at root level, appends after last entry
+  2. `carta make PARENT SLUG`     — two positionals: creates inside PARENT, appends after last entry
+  3. `carta make --at REF SLUG`   — strict slot: creates at exact position REF; errors if occupied
 
 Side effects:
-  - Writes a new `.md` file with draft frontmatter.
-  - Regenerates MANIFEST.md.
-  - Does NOT renumber siblings — only appends or inserts at `--order`.
+  - Writes a new `.md` file (or directory + `00-index.md` with `-g`) with skeleton frontmatter.
+  - Frontmatter title is derived from slug (slug → "Title Case"). No frontmatter flags — author
+    real frontmatter in the same pass where you write the body.
+  - Regenerates MANIFEST.md (unless --no-regen).
+  - Does NOT renumber siblings — appends or writes to a strict free slot only.
 
 Flags:
-  --order N    Insert at position N (1-based). Without this, appends after the last entry.
-  --title TEXT Title in frontmatter. Default: derived from slug.
-  --summary TEXT  Summary in frontmatter. Default: empty.
-  --tags CSV      Comma-separated tags (e.g., "api,auth,server"). Default: empty list.
-  --deps CSV      Comma-separated dep refs (e.g., "doc01.02,doc01.03"). Default: empty list.
-  --dry-run    Print the planned file path without creating it.
+  -g, --group  Create a directory + `00-index.md` instead of a leaf `.md`.
+  --at REF     Exact target ref (e.g. `doc01.02.03.04`). Writes iff the slot is free, else errors.
+               Do NOT combine with a PARENT positional — REF encodes the full coordinate.
+  --dry-run    Print the planned file path without creating anything.
+  --no-regen   Skip MANIFEST regeneration.
+
+Output:
+  Prints the canonical ref and workspace-relative path of the created entry.
+  Example: `Created: doc01.02.03.04  (03-product-design/.../04-architecture-guidelines.md)`
+
+Notes:
+  - No `--insert` / renumber-siblings: make appends or writes to a strict free `--at` slot only.
+    Shifting siblings to open a gap is a separate operation.
+  - Do NOT add `--title`, `--summary`, `--tags`, `--deps` flags to this command. Frontmatter is
+    authored by the agent in the same file write as the body. The skeleton is valid as-is.
 """,
 
     "delete": """\
@@ -278,28 +294,6 @@ Side effects:
 
 Flags:
   --dry-run  Show which files and how many replacements would be made.
-""",
-
-    "group": """\
-### group
-
-Create a title group directory with a `00-index.md` file.
-
-```
-carta group <target> [--title TEXT] [--no-regen]
-```
-
-Arguments:
-  target  Directory path relative to workspace root with NN- prefix
-          (e.g., `05-new-section`). Parent directory must exist.
-
-Side effects:
-  - Creates the directory and `00-index.md` with draft frontmatter.
-  - Regenerates MANIFEST.md (unless --no-regen).
-
-Flags:
-  --title TEXT  Title for the index. Default: derived from slug.
-  --no-regen    Skip MANIFEST regeneration.
 """,
 
     "rename": """\
@@ -567,8 +561,8 @@ _COMMON_PATTERNS = """\
   carta move 02-old-group/02-child.md 03-new-home --no-regen
   carta delete 02-old-group
   ```
-- **Create a new title group**: `carta group NN-slug --title "Title"` creates the directory
-  with `00-index.md`. Then use `carta move` or `carta create` to populate it.
+- **Create a new title group**: `carta make -g PARENT slug` creates the directory
+  with `00-index.md`. Then use `carta move` or `carta make` to populate it.
 - **Expand a file into a group**: `carta punch <target>` converts `NN-slug.md` into
   `NN-slug/00-index.md`. The doc ref is unchanged — no ref rewriting needed.
 - **Flatten a subdirectory**: `carta flatten <target>` hoists children into parent, removing

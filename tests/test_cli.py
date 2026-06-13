@@ -1273,8 +1273,8 @@ class TestResolveArg(unittest.TestCase):
         self.assertFalse(result.path.exists())
 
 
-class TestCreate(unittest.TestCase):
-    """Test create command."""
+class TestMake(unittest.TestCase):
+    """Test make command."""
 
     @pytest.fixture(autouse=True)
     def _inject_snapshot(self, snapshot):
@@ -1287,14 +1287,14 @@ class TestCreate(unittest.TestCase):
     def tearDown(self):
         self.tmpdir.cleanup()
 
-    def test_create_appends(self):
-        """Create with no --order appends at max+1 position."""
+    def test_make_appends(self):
+        """make with parent+slug appends at max+1 position."""
         codex = self.carta_copy / "00-codex"
         entries_before = list_numbered_entries(codex)
         max_prefix = max(get_numeric_prefix(e.name) for e in entries_before)
 
-        result = _run_carta(self.carta_copy, "create", "doc00", "test-doc")
-        assert result.returncode == 0, f"create failed:\n{result.stderr}\n{result.stdout}"
+        result = _run_carta(self.carta_copy, "make", "doc00", "test-doc")
+        assert result.returncode == 0, f"make failed:\n{result.stderr}\n{result.stdout}"
 
         # File should exist at max+1
         expected = codex / f"{max_prefix + 1:02d}-test-doc.md"
@@ -1309,30 +1309,30 @@ class TestCreate(unittest.TestCase):
         manifest = self.carta_copy / "MANIFEST.md"
         assert "test-doc" in manifest.read_text(encoding="utf-8").lower()
 
-    def test_create_at_free_position(self):
-        """Create with --order at a free slot."""
-        # Find a free position in codex
+    def test_make_at_free_position(self):
+        """make with --at at a free slot writes to that slot."""
         codex = self.carta_copy / "00-codex"
         entries = list_numbered_entries(codex)
         max_prefix = max(get_numeric_prefix(e.name) for e in entries)
         free_pos = max_prefix + 5  # definitely free
+        at_ref = f"doc00.{free_pos:02d}"
 
-        result = _run_carta(self.carta_copy, "create", "doc00", "free-slot", "--order", str(free_pos))
-        assert result.returncode == 0, f"create failed:\n{result.stderr}\n{result.stdout}"
+        result = _run_carta(self.carta_copy, "make", "free-slot", "--at", at_ref)
+        assert result.returncode == 0, f"make failed:\n{result.stderr}\n{result.stdout}"
 
         expected = codex / f"{free_pos:02d}-free-slot.md"
         assert expected.exists()
 
-    def test_create_at_occupied_position_errors(self):
-        """Create with --order at occupied slot should error."""
-        result = _run_carta(self.carta_copy, "create", "doc00", "bad-slot", "--order", "1")
+    def test_make_at_occupied_position_errors(self):
+        """make with --at at occupied slot should error."""
+        result = _run_carta(self.carta_copy, "make", "bad-slot", "--at", "doc00.01")
         assert result.returncode != 0
         assert result.stderr == self._snapshot
 
-    def test_create_with_title(self):
-        """--title overrides slug-derived title."""
-        result = _run_carta(self.carta_copy, "create", "doc00", "my-thing", "--title", "My Custom Title")
-        assert result.returncode == 0, f"create failed:\n{result.stderr}\n{result.stdout}"
+    def test_make_writes_skeleton_frontmatter(self):
+        """make writes slug-derived title and empty summary/tags/deps."""
+        result = _run_carta(self.carta_copy, "make", "doc00", "my-thing")
+        assert result.returncode == 0, f"make failed:\n{result.stderr}\n{result.stdout}"
 
         codex = self.carta_copy / "00-codex"
         created = [e for e in codex.iterdir() if "my-thing" in e.name]
@@ -1340,52 +1340,51 @@ class TestCreate(unittest.TestCase):
 
         from carta_cli.frontmatter import read_frontmatter
         fm, _ = read_frontmatter(created[0])
-        assert fm["title"] == "My Custom Title"
+        assert fm["title"] == "My Thing"
+        assert fm["summary"] == ""
+        assert fm["tags"] == []
+        assert fm["deps"] == []
 
-    def test_create_with_frontmatter_flags(self):
-        """--summary, --tags, --deps populate frontmatter."""
-        result = _run_carta(
-            self.carta_copy, "create", "doc00", "full-meta",
-            "--title", "Full Meta",
-            "--summary", "A test summary",
-            "--tags", "alpha,beta,gamma",
-            "--deps", "doc00.01,doc00.02",
-        )
-        assert result.returncode == 0, f"create failed:\n{result.stderr}\n{result.stdout}"
-
-        codex = self.carta_copy / "00-codex"
-        created = [e for e in codex.iterdir() if "full-meta" in e.name]
-        assert len(created) == 1
-
-        from carta_cli.frontmatter import read_frontmatter
-        fm, _ = read_frontmatter(created[0])
-        assert fm["summary"] == "A test summary"
-        assert fm["tags"] == ["alpha", "beta", "gamma"]
-        assert fm["deps"] == ["doc00.01", "doc00.02"]
-
-    def test_create_dry_run(self):
+    def test_make_dry_run(self):
         """--dry-run should not create files."""
         before = {p: p.read_bytes() for p in self.carta_copy.rglob("*")
                   if p.is_file()
                   and p.suffix in (".md", ".json", "")}
-        result = _run_carta(self.carta_copy, "create", "doc00", "phantom", "--dry-run")
+        result = _run_carta(self.carta_copy, "make", "doc00", "phantom", "--dry-run")
         assert result.returncode == 0, result.stderr
         after = {p: p.read_bytes() for p in self.carta_copy.rglob("*")
                  if p.is_file()
                  and p.suffix in (".md", ".json", "")}
         assert before == after, "Files were modified during --dry-run"
 
-    def test_create_slug_as_flag_shows_hint(self):
-        """carta create doc00 --slug foo shows a targeted error, not argparse's generic message."""
-        result = _run_carta(self.carta_copy, "create", "doc00", "--slug", "foo")
-        assert result.returncode != 0
-        assert result.stderr == self._snapshot
-
-    def test_create_help_has_examples(self):
-        """carta create --help shows an Examples section."""
-        result = _run_carta(self.carta_copy, "create", "--help")
+    def test_make_help_has_examples(self):
+        """carta make --help shows an Examples section."""
+        result = _run_carta(self.carta_copy, "make", "--help")
         assert result.returncode == 0
         assert result.stdout == self._snapshot
+
+    def test_make_at_root(self):
+        """Single positional creates a top-level entry."""
+        root_entries_before = list_numbered_entries(self.carta_copy)
+        max_prefix = max(get_numeric_prefix(e.name) for e in root_entries_before)
+
+        result = _run_carta(self.carta_copy, "make", "top-level-doc")
+        assert result.returncode == 0, f"make failed:\n{result.stderr}\n{result.stdout}"
+
+        expected = self.carta_copy / f"{max_prefix + 1:02d}-top-level-doc.md"
+        assert expected.exists(), f"Expected top-level file at {expected}"
+
+    def test_make_outputs_canonical_ref(self):
+        """make prints the canonical ref of the created entry."""
+        result = _run_carta(self.carta_copy, "make", "doc00", "ref-check")
+        assert result.returncode == 0, f"make failed:\n{result.stderr}\n{result.stdout}"
+        assert "Created: doc00." in result.stdout, f"Expected canonical ref in output:\n{result.stdout}"
+
+    def test_make_at_with_parent_errors(self):
+        """--at combined with two positionals should error."""
+        result = _run_carta(self.carta_copy, "make", "doc00", "some-slug", "--at", "doc00.07")
+        assert result.returncode != 0
+        assert "--at takes its position from the ref" in result.stderr
 
 
 class TestMkdir(unittest.TestCase):
@@ -1494,8 +1493,8 @@ def test_carta_json_has_portable_field(run_cli, tmp_path):
     assert config["portable"] == ".carta/carta.py"
 
 
-class TestGroupCommand(unittest.TestCase):
-    """Tests for `carta group` command."""
+class TestMakeGroup(unittest.TestCase):
+    """Tests for `carta make -g` (group creation)."""
 
     @pytest.fixture(autouse=True)
     def _inject_snapshot(self, snapshot):
@@ -1508,61 +1507,39 @@ class TestGroupCommand(unittest.TestCase):
     def tearDown(self):
         self.tmpdir.cleanup()
 
-    def test_group_creates_directory(self):
-        """carta group creates directory with 00-index.md and correct title."""
-        result = _run_carta(self.carta_copy, "group", "05-test-group", "--title", "Test Group")
-        self.assertEqual(result.returncode, 0, f"carta group failed:\n{result.stderr}\n{result.stdout}")
+    def test_make_group_creates_directory(self):
+        """carta make -g creates directory with 00-index.md and slug-derived title."""
+        root_entries_before = list_numbered_entries(self.carta_copy)
+        max_prefix = max(get_numeric_prefix(e.name) for e in root_entries_before)
+        expected_prefix = max_prefix + 1
 
-        group_dir = self.carta_copy / "05-test-group"
+        result = _run_carta(self.carta_copy, "make", "-g", "test-group")
+        self.assertEqual(result.returncode, 0, f"carta make -g failed:\n{result.stderr}\n{result.stdout}")
+
+        group_dir = self.carta_copy / f"{expected_prefix:02d}-test-group"
         self.assertTrue(group_dir.is_dir(), "Group directory should exist")
         index_path = group_dir / "00-index.md"
         self.assertTrue(index_path.exists(), "00-index.md should exist")
 
         content = index_path.read_text(encoding="utf-8")
-        self.assertIn("Test Group", content, "Title should be in index content")
+        self.assertIn("Test Group", content, "Slug-derived title should be in index content")
 
-    def test_group_errors_on_existing(self):
-        """carta group fails if directory already exists and is non-empty."""
-        # 01-product-strategy already exists and has contents
-        result = _run_carta(self.carta_copy, "group", "01-product-strategy", "--title", "Duplicate")
-        self.assertNotEqual(result.returncode, 0, "Should fail on existing non-empty directory")
+    def test_make_group_at_occupied_errors(self):
+        """carta make -g --at occupied slot fails."""
+        # doc01 (01-product-strategy) already exists
+        result = _run_carta(self.carta_copy, "make", "-g", "--at", "doc01", "duplicate")
+        self.assertNotEqual(result.returncode, 0, "Should fail on occupied slot")
         assert result.stderr == self._snapshot
 
-    def test_group_succeeds_on_empty_existing_directory(self):
-        """carta group succeeds if target directory exists but is empty."""
-        empty_dir = self.carta_copy / "05-test-group"
-        empty_dir.mkdir()
-        result = _run_carta(self.carta_copy, "group", "05-test-group", "--title", "Test Group")
-        self.assertEqual(result.returncode, 0, f"carta group should succeed on empty dir:\n{result.stderr}\n{result.stdout}")
-        index_path = empty_dir / "00-index.md"
-        self.assertTrue(index_path.exists(), "00-index.md should exist")
-        content = index_path.read_text(encoding="utf-8")
-        self.assertIn("Test Group", content, "Title should be in index content")
-
-    def test_group_errors_on_non_empty_existing_directory(self):
-        """carta group fails if target directory exists and is non-empty."""
-        non_empty_dir = self.carta_copy / "05-test-group"
-        non_empty_dir.mkdir()
-        (non_empty_dir / "some-file.md").write_text("content")
-        result = _run_carta(self.carta_copy, "group", "05-test-group", "--title", "Test Group")
-        self.assertNotEqual(result.returncode, 0, "Should fail on non-empty directory")
-        assert result.stderr == self._snapshot
-
-    def test_group_errors_without_prefix(self):
-        """carta group fails if directory name has no NN- prefix."""
-        result = _run_carta(self.carta_copy, "group", "no-prefix")
-        self.assertNotEqual(result.returncode, 0, "Should fail without numeric prefix")
-        assert result.stderr == self._snapshot
-
-    def test_group_rejects_workspace_prefix(self):
-        """carta group fails with a clear hint when path includes the workspace name."""
-        result = _run_carta(self.carta_copy, "group", ".carta/05-new-section", "--title", "X")
+    def test_make_group_rejects_workspace_prefix(self):
+        """carta make -g fails with a clear hint when parent path includes the workspace name."""
+        result = _run_carta(self.carta_copy, "make", "-g", ".carta/05-new-section", "new-section")
         self.assertNotEqual(result.returncode, 0)
         assert result.stderr == self._snapshot
 
-    def test_group_help_has_examples(self):
-        """carta group --help shows an Examples section."""
-        result = _run_carta(self.carta_copy, "group", "--help")
+    def test_make_group_help_has_examples(self):
+        """carta make --help shows an Examples section."""
+        result = _run_carta(self.carta_copy, "make", "--help")
         self.assertEqual(result.returncode, 0)
         assert result.stdout == self._snapshot
 
@@ -1769,13 +1746,11 @@ class TestExistingCommandsUnified(unittest.TestCase):
     def tearDown(self):
         self.tmpdir.cleanup()
 
-    def test_create_works(self):
-        """carta create still works after unification."""
-        result = _run_carta(self.carta_copy, "create", "00-codex", "my-unified-doc",
-                            "--title", "Unified Doc")
-        self.assertEqual(result.returncode, 0, f"carta create failed:\n{result.stderr}\n{result.stdout}")
-        self.assertTrue((self.carta_copy / "00-codex" / "07-my-unified-doc.md").exists()
-                        or any((self.carta_copy / "00-codex").glob("*my-unified-doc*")),
+    def test_make_works(self):
+        """carta make works after unification."""
+        result = _run_carta(self.carta_copy, "make", "00-codex", "my-unified-doc")
+        self.assertEqual(result.returncode, 0, f"carta make failed:\n{result.stderr}\n{result.stdout}")
+        self.assertTrue(any((self.carta_copy / "00-codex").glob("*my-unified-doc*")),
                         "Created doc should exist")
 
     def test_delete_works(self):
