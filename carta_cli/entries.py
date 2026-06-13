@@ -1,59 +1,54 @@
 import re
 from pathlib import Path
 
-from .numbering import get_numeric_prefix
-from .docref import DocRef, DocEntry
+from .docref import DocRef, DocEntry, EntryName
 from .errors import CartaError
 
 
-_PREFIX_RE = re.compile(r'^\d{2}$')
+# Lenient ref pattern: doc/d prefix optional, bare coordinates accepted.
+# Matches docXX.YY.ZZ | dXX.YY.ZZ | XX.YY.ZZ (but NOT filesystem paths with slashes).
+_REF_RE = re.compile(r'^(?:doc|d)?\d{2}(\.\d{2})*$')
 
 
 def list_numbered_entries(directory: Path) -> list[Path]:
     """Return directory entries that have a 2-digit numeric prefix, sorted by prefix."""
     entries = [
         p for p in directory.iterdir()
-        if get_numeric_prefix(p.name) is not None
+        if EntryName.parse(p.name) is not None
     ]
-    return sorted(entries, key=lambda p: get_numeric_prefix(p.name))
-
-
-def _match_path_segment(directory: Path, segment: str) -> Path | None:
-    """Match one path segment within directory. Returns None if no unambiguous match."""
-    if not directory.is_dir():
-        return None
-    # Exact name or stem-without-.md match
-    exact = directory / segment
-    if exact.exists():
-        return exact
-    exact_md = directory / (segment + ".md")
-    if exact_md.exists():
-        return exact_md
-    # Prefix-only match: segment is exactly two digits
-    if _PREFIX_RE.match(segment):
-        prefix = segment + "-"
-        matches = [p for p in directory.iterdir() if p.name.startswith(prefix)]
-        if not matches:
-            return None
-        if len(matches) == 1:
-            return matches[0]
-        # Tiebreak: prefer the single .md file or directory (mirrors DocRef.to_path)
-        md_or_dir = [p for p in matches if p.suffix == ".md" or p.is_dir()]
-        if len(md_or_dir) == 1:
-            return md_or_dir[0]
-        return None  # Ambiguous
-    return None
+    return sorted(entries, key=lambda p: EntryName.parse(p.name).prefix)
 
 
 def _fuzzy_match(arg: str, carta_root: Path) -> Path | None:
-    """Walk arg split on '/' using _match_path_segment. Returns matched path or None."""
+    """Walk arg through the workspace looking for a close match. For error hints only."""
     segments = arg.split("/")
     current = carta_root
     for segment in segments:
-        matched = _match_path_segment(current, segment)
-        if matched is None:
+        if not current.is_dir():
             return None
-        current = matched
+        # Exact name or stem-without-.md match
+        exact = current / segment
+        if exact.exists():
+            current = exact
+            continue
+        exact_md = current / (segment + ".md")
+        if exact_md.exists():
+            current = exact_md
+            continue
+        # Prefix-only match: segment is exactly two digits
+        if re.match(r'^\d{2}$', segment):
+            prefix = segment + "-"
+            matches = [p for p in current.iterdir() if p.name.startswith(prefix)]
+            if not matches:
+                return None
+            if len(matches) == 1:
+                current = matches[0]
+                continue
+            md_or_dir = [p for p in matches if p.suffix == ".md" or p.is_dir()]
+            if len(md_or_dir) == 1:
+                current = md_or_dir[0]
+                continue
+        return None
     return current
 
 
@@ -72,11 +67,15 @@ def _make_entry(path: Path, carta_root: Path) -> DocEntry:
 
 
 def resolve_arg(arg: str, carta_root: Path) -> DocEntry:
-    """Resolve a ref or relative path argument to a DocEntry."""
-    if re.match(r'^doc\d{2}(\.\d{2})*$', arg):
-        ref = DocRef.parse(arg)
-        path = ref.to_path(carta_root)
-        return DocEntry(ref=ref, path=path)
+    """Resolve a ref or real filesystem path to a DocEntry.
+
+    Accepts:
+      - Doc ref forms: docXX.YY.ZZ | dXX.YY.ZZ | XX.YY.ZZ  (normalized to canonical)
+      - Real existing filesystem paths relative to workspace root
+
+    Raises CartaError for malformed refs or workspace-prefix paths.
+    Returns a DocEntry with .path pointing to the resolved location (may not exist).
+    """
     workspace_name = carta_root.name
     if arg == workspace_name or arg.startswith(f"{workspace_name}/"):
         stripped = arg[len(workspace_name) + 1:] if arg != workspace_name else ""
@@ -85,13 +84,15 @@ def resolve_arg(arg: str, carta_root: Path) -> DocEntry:
             f"Error: path must be relative to workspace root, without the "
             f"{workspace_name!r} prefix. Got: {arg!r}.{hint}"
         )
+
+    # Ref form: docXX.YY | dXX.YY | XX.YY — parse and resolve via coordinate walk
+    if _REF_RE.match(arg):
+        ref = DocRef.parse(arg)  # raises CartaError on malformed input
+        path = ref.to_path(carta_root)
+        return DocEntry(ref=ref, path=path)
+
+    # Real filesystem path (existing or not — callers check existence)
     literal = (carta_root / arg).resolve()
-    if literal.exists():
-        return _make_entry(literal, carta_root)
-    # Filesystem-aware fallback: accept stem-only and prefix-only path forms
-    matched = _fuzzy_match(arg, carta_root)
-    if matched is not None:
-        return _make_entry(matched, carta_root)
     return _make_entry(literal, carta_root)
 
 

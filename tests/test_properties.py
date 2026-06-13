@@ -17,8 +17,12 @@ sys.path.insert(0, str(_CLI_DIR))
 sys.path.insert(0, str(_TESTS_DIR))
 
 from conftest import _build_fixture, _run_carta
-from carta_cli.numbering import get_numeric_prefix
-from carta_cli.docref import DocRef
+from carta_cli.docref import DocRef, EntryName
+
+
+def get_numeric_prefix(name: str) -> int | None:
+    en = EntryName.parse(name)
+    return en.prefix if en is not None else None
 
 
 def ref_to_path(ref: str, root):

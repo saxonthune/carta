@@ -211,6 +211,15 @@ class EntryName:
 
         return cls(prefix=prefix, slug=slug, ext=ext)
 
+    @property
+    def is_markdown(self) -> bool:
+        return self.ext == ".md"
+
+    @property
+    def tail(self) -> str:
+        """Everything after the NN- prefix: slug + extension (or just slug for dirs)."""
+        return self.slug + (self.ext or "")
+
 
 # ---------------------------------------------------------------------------
 # DocEntry — a resolved coordinate bound to its filesystem location

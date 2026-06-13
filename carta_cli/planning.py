@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from .numbering import get_numeric_prefix, get_slug
+from .docref import EntryName
 from .entries import list_numbered_entries
 from .docref import DocRef
 from . import bundle as bundle_mod
@@ -20,11 +20,11 @@ def compute_all_moves(
 
     Returns moves in execution-safe order.
     """
-    source_prefix = get_numeric_prefix(source_path.name)
-    if source_prefix is None:
+    _src_en = EntryName.parse(source_path.name)
+    if _src_en is None:
         raise ValueError(f"Source has no numeric prefix: {source_path.name}")
-
-    source_slug = get_slug(source_path.name)
+    source_prefix = _src_en.prefix
+    source_slug = _src_en.tail
     same_dir = source_path.parent.resolve() == dest_dir.resolve()
 
     if same_dir:
@@ -57,7 +57,7 @@ def _compute_same_dir_moves(
     if order is None:
         entries = list_numbered_entries(dest_dir)
         others = [e for e in entries if e.resolve() != source_path.resolve()]
-        existing = [get_numeric_prefix(p.name) for p in others]
+        existing = [en.prefix for p in others if (en := EntryName.parse(p.name))]
         insertion_prefix = (max(existing) + 1) if existing else 1
     else:
         insertion_prefix = order
@@ -79,23 +79,25 @@ def _compute_same_dir_moves(
         # Moving UP: shift items in [insertion, source-1] by +1, highest first
         candidates = [
             e for e in entries
-            if insertion_prefix <= get_numeric_prefix(e.name) <= source_prefix - 1
+            if (en := EntryName.parse(e.name)) is not None
+            and insertion_prefix <= en.prefix <= source_prefix - 1
             and e.resolve() != source_path.resolve()
         ]
-        for entry in sorted(candidates, key=lambda p: get_numeric_prefix(p.name), reverse=True):
-            pfx = get_numeric_prefix(entry.name)
-            new_name = f"{pfx + 1:02d}-{get_slug(entry.name)}"
+        for entry in sorted(candidates, key=lambda p: EntryName.parse(p.name).prefix, reverse=True):
+            en = EntryName.parse(entry.name)
+            new_name = f"{en.prefix + 1:02d}-{en.tail}"
             moves.append((entry, entry.parent / new_name))
     else:
         # Moving DOWN: shift items in [source+1, insertion] by -1, lowest first
         candidates = [
             e for e in entries
-            if source_prefix + 1 <= get_numeric_prefix(e.name) <= insertion_prefix
+            if (en := EntryName.parse(e.name)) is not None
+            and source_prefix + 1 <= en.prefix <= insertion_prefix
             and e.resolve() != source_path.resolve()
         ]
-        for entry in sorted(candidates, key=lambda p: get_numeric_prefix(p.name)):
-            pfx = get_numeric_prefix(entry.name)
-            new_name = f"{pfx - 1:02d}-{get_slug(entry.name)}"
+        for entry in sorted(candidates, key=lambda p: EntryName.parse(p.name).prefix):
+            en = EntryName.parse(entry.name)
+            new_name = f"{en.prefix - 1:02d}-{en.tail}"
             moves.append((entry, entry.parent / new_name))
 
     # Main move (last, after shifts free the slot) — expand to include bundle members
@@ -127,14 +129,14 @@ def _compute_bundle_moves(
     old_slug = bndl.slug  # stem only, e.g. "foo" for 01-foo.md
 
     if bndl.root is not None:
-        file_slug = get_slug(bndl.root.name)  # e.g. "foo.md"
+        file_slug = EntryName.parse(bndl.root.name).tail  # e.g. "foo.md"
         effective = _apply_rename(file_slug, rename_slug)
         new_path = new_dir / f"{new_prefix:02d}-{effective}"
         if bndl.root.resolve() != new_path.resolve():
             moves.append((bndl.root, new_path))
 
     for att in bndl.attachments:
-        att_slug = get_slug(att.name)  # e.g. "foo.json" or "bar.yaml"
+        att_slug = EntryName.parse(att.name).tail  # e.g. "foo.json" or "bar.yaml"
         if rename_slug and old_slug and att_slug.startswith(old_slug + "."):
             new_att_slug = rename_slug + att_slug[len(old_slug):]
         else:
@@ -181,7 +183,7 @@ def _compute_cross_dir_moves(
     """
     if order is None:
         dest_entries = list_numbered_entries(dest_dir)
-        existing_prefixes = [get_numeric_prefix(p.name) for p in dest_entries]
+        existing_prefixes = [en.prefix for p in dest_entries if (en := EntryName.parse(p.name))]
         insertion_prefix = (max(existing_prefixes) + 1) if existing_prefixes else 1
     else:
         insertion_prefix = order
@@ -194,23 +196,24 @@ def _compute_cross_dir_moves(
     dest_entries = list_numbered_entries(dest_dir)
     bump_candidates = [
         p for p in dest_entries
-        if get_numeric_prefix(p.name) >= insertion_prefix
+        if (en := EntryName.parse(p.name)) is not None and en.prefix >= insertion_prefix
     ]
-    for entry in sorted(bump_candidates, key=lambda p: get_numeric_prefix(p.name), reverse=True):
-        old_prefix = get_numeric_prefix(entry.name)
-        new_name = f"{old_prefix + 1:02d}-{get_slug(entry.name)}"
+    for entry in sorted(bump_candidates, key=lambda p: EntryName.parse(p.name).prefix, reverse=True):
+        en = EntryName.parse(entry.name)
+        new_name = f"{en.prefix + 1:02d}-{en.tail}"
         moves.append((entry, entry.parent / new_name))
 
     # 2. Source sibling gap-closing (prefix > source_prefix), lowest first
     if not no_gap_close:
         source_siblings = [
             p for p in list_numbered_entries(source_path.parent)
-            if get_numeric_prefix(p.name) > source_prefix
+            if (en := EntryName.parse(p.name)) is not None
+            and en.prefix > source_prefix
             and p.resolve() != source_path.resolve()
         ]
-        for entry in sorted(source_siblings, key=lambda p: get_numeric_prefix(p.name)):
-            old_prefix = get_numeric_prefix(entry.name)
-            new_name = f"{old_prefix - 1:02d}-{get_slug(entry.name)}"
+        for entry in sorted(source_siblings, key=lambda p: EntryName.parse(p.name).prefix):
+            en = EntryName.parse(entry.name)
+            new_name = f"{en.prefix - 1:02d}-{en.tail}"
             moves.append((entry, entry.parent / new_name))
 
     # 3. Main move — if dest_dir was gap-closed, use the renamed path

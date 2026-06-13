@@ -33,3 +33,5 @@ A **product** corresponds to a single, distinct thing that a user installs, open
 
 **Title**: A numbered directory in a `.carta/` workspace (e.g., `01-product/`, `02-architecture/`). Titles are the primary organizational unit — each groups related documents under a common theme.
 
+**Slug**: The human-readable name segment in a file or directory entry, following the `NN-` prefix — for example, `mission` in `01-mission.md`. Slugs are descriptive text only and play no role in addressing: a doc reference (`docXX.YY`) is derived from the `NN` prefix alone. Renaming a slug never changes a reference. Distinct from **Title** (the numbered directory grouping docs by theme) and from the **`title`** frontmatter field (the display name stored inside the file's YAML front matter).
+

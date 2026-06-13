@@ -7,7 +7,7 @@ _PACKAGE_DIR = Path(__file__).resolve().parent
 
 from .frontmatter import read_frontmatter
 from .entries import list_numbered_entries
-from .numbering import get_slug
+from .docref import EntryName
 from .workspace import load_workspace, get_external_ref_paths
 from . import bundle as _bundle_mod
 
@@ -267,10 +267,13 @@ carta rewrite <old>=<new> [<old>=<new> ...] [--dry-run]
 ```
 
 Arguments:
-  mappings  One or more `old=new` pairs (e.g., `doc01.02=doc01.05`).
+  mappings  One or more `old=new` pairs. Both sides accept the three input forms
+            (docXX.YY | dXX.YY | XX.YY) and are normalized to canonical `docXX.YY`
+            before substitution. Example: `d04.08=04.09` → rewrites `doc04.08` → `doc04.09`.
 
 Side effects:
-  - Rewrites all matching refs in workspace `.md` files and externalRefPaths.
+  - Normalizes both sides of each mapping to canonical form.
+  - Rewrites all canonical ref occurrences in workspace `.md` files and externalRefPaths.
   - Does NOT regenerate MANIFEST.md.
 
 Flags:
@@ -537,8 +540,11 @@ _BEHAVIORAL_RULES = """\
 - **Orphan warnings**: `carta regenerate` prints a stderr warning for any sidecar file whose
   numeric prefix has no corresponding `.md` root, or whose prefix matches a directory. Orphan
   warnings never block operation; the MANIFEST is still written.
-- **Argument resolution**: `source`/`target`/`destination` args accept either workspace-relative
-  paths (e.g., `01-product/02-features`) or doc refs (e.g., `doc01.02`).
+- **Argument resolution**: `source`/`target`/`destination` args accept either a doc ref or a
+  real existing filesystem path (relative to workspace root). Three ref input forms are accepted
+  and normalized to canonical `docXX.YY` on entry: `doc04.08` (full), `d04.08` (short), `04.08`
+  (bare coordinate). Fuzzy stem/prefix guessing is NOT supported — misspelled paths do not
+  silently resolve. The slug after `NN-` is descriptive and never part of a reference.
 - **`--no-regen` scope**: Skips MANIFEST.md rebuild only. Ref rewriting in doc content still
   happens. Useful for batch operations — run many moves with `--no-regen`, then one final
   `carta regenerate`.
@@ -621,7 +627,7 @@ def _workspace_state_section(carta_root: Path) -> list[str]:
     for entry in top_entries:
         if entry.is_dir():
             # Get title from 00-index.md frontmatter
-            title = get_slug(entry.name).replace("-", " ").title()
+            title = (EntryName.parse(entry.name).tail if EntryName.parse(entry.name) else entry.name).replace("-", " ").title()
             index_file = entry / "00-index.md"
             if index_file.exists():
                 try:
@@ -637,7 +643,7 @@ def _workspace_state_section(carta_root: Path) -> list[str]:
             rows.append((entry.name, title, count, sidecars))
         elif entry.suffix == ".md":
             total_docs += 1
-            title = get_slug(entry.name).replace("-", " ").title()
+            title = (EntryName.parse(entry.name).tail if EntryName.parse(entry.name) else entry.name).replace("-", " ").title()
             rows.append((entry.name, title, 1, 0))
 
     if rows:

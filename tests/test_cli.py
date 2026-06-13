@@ -25,8 +25,12 @@ sys.path.insert(0, str(_CLI_DIR))
 
 from carta_cli.commands._parser import main as cli_main
 from carta_cli.entries import list_numbered_entries
-from carta_cli.numbering import get_numeric_prefix
-from carta_cli.docref import DocRef
+from carta_cli.docref import DocRef, EntryName
+
+
+def get_numeric_prefix(name: str) -> int | None:
+    en = EntryName.parse(name)
+    return en.prefix if en is not None else None
 from carta_cli.rewriter import collect_md_files, rewrite_refs
 
 
@@ -1172,13 +1176,18 @@ class TestDelete(unittest.TestCase):
         assert new_orphans == [] or all("00.06" in r or "00.05" in r for _, r in new_orphans), \
             f"New orphaned refs:\n" + "\n".join(f"  {r} in {f}" for f, r in new_orphans)
 
-    def test_delete_accepts_stem_form(self):
-        """carta delete accepts a stem path (no .md extension) and removes the file."""
+    def test_delete_requires_full_path_or_ref(self):
+        """carta delete requires a full path (with .md) or doc ref — stem-only paths no longer resolve."""
         target = self.carta_copy / "02-product-design" / "01-workspace-scripts.md"
         assert target.exists()
 
+        # Stem-only path no longer resolves silently
         result = _run_carta(self.carta_copy, "delete", "02-product-design/01-workspace-scripts")
-        assert result.returncode == 0, f"delete failed:\n{result.stderr}\n{result.stdout}"
+        assert result.returncode != 0, "Expected failure on stem-only path"
+
+        # Full path still works
+        result = _run_carta(self.carta_copy, "delete", "02-product-design/01-workspace-scripts.md")
+        assert result.returncode == 0, f"delete with full path failed:\n{result.stderr}\n{result.stdout}"
         assert not target.exists()
 
 
@@ -1210,21 +1219,23 @@ class TestResolveArg(unittest.TestCase):
             resolve_arg(".carta", self.carta_copy)
         self.assertIn(".carta", str(ctx.exception))
 
-    def test_resolve_arg_accepts_stem_without_md(self):
-        """resolve_arg resolves a stem path (no .md extension) to the .md file."""
+    def test_resolve_arg_stem_without_md_returns_nonexistent(self):
+        """resolve_arg no longer resolves stem paths — returns a non-existent literal path."""
         from carta_cli.entries import resolve_arg
         result = resolve_arg("02-product-design/01-workspace-scripts", self.carta_copy)
-        expected = self.carta_copy / "02-product-design" / "01-workspace-scripts.md"
-        self.assertEqual(result.path, expected)
-        self.assertTrue(result.path.exists())
+        # Path without .md extension is not resolved; caller must provide the full path or a ref
+        self.assertFalse(result.path.exists())
 
-    def test_resolve_arg_accepts_prefix_only_in_final_segment(self):
-        """resolve_arg resolves a prefix-only final segment (NN) to the .md file."""
+    def test_resolve_arg_prefix_only_in_slash_path_returns_nonexistent(self):
+        """resolve_arg does not resolve prefix-only segments in slash paths — use a doc ref instead."""
         from carta_cli.entries import resolve_arg
+        # "02-product-design/01" is not a ref form (has slash) — returned as literal (non-existent)
         result = resolve_arg("02-product-design/01", self.carta_copy)
+        self.assertFalse(result.path.exists())
+        # The correct way to reference this doc is via ref form: "02.01" or "doc02.01"
+        ref_result = resolve_arg("02.01", self.carta_copy)
         expected = self.carta_copy / "02-product-design" / "01-workspace-scripts.md"
-        self.assertEqual(result.path, expected)
-        self.assertTrue(result.path.exists())
+        self.assertEqual(ref_result.path, expected)
 
     def test_resolve_arg_accepts_prefix_only_at_root(self):
         """resolve_arg resolves a prefix-only root segment (NN) to a directory."""

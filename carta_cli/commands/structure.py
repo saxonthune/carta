@@ -1,15 +1,14 @@
 """carta — structure commands: create, delete, move, rename."""
 import argparse
 import json
-import re
 import shutil
 from pathlib import Path
 
 from ..errors import CartaError
 from ..frontmatter import write_frontmatter
 from ..entries import resolve_arg, resolve_and_validate, list_numbered_entries, display_path
-from ..numbering import get_numeric_prefix, get_slug, compute_insertion_prefix
-from ..docref import DocRef
+from ..numbering import compute_insertion_prefix
+from ..docref import DocRef, EntryName
 from ..rewriter import rewrite_refs
 from ..planning import compute_all_moves, compute_rename_map, print_rename_map
 from ..workspace import collect_rewritable_files
@@ -26,7 +25,7 @@ def cmd_create(args: argparse.Namespace, carta_root: Path) -> None:
     """Create a new doc entry."""
     slug = args.slug
 
-    if re.match(r'^\d{2}-', slug):
+    if EntryName.parse(slug) is not None:
         raise CartaError("Error: slug must not contain a numeric prefix (NN-). Provide just the slug part.")
 
     if args.order is not None and args.order < 1:
@@ -46,7 +45,7 @@ def cmd_create(args: argparse.Namespace, carta_root: Path) -> None:
     prefix = compute_insertion_prefix(list_numbered_entries(dest_path), args.order)
 
     entries = list_numbered_entries(dest_path)
-    occupied = {get_numeric_prefix(e.name) for e in entries}
+    occupied = {EntryName.parse(e.name).prefix for e in entries if EntryName.parse(e.name)}
     if prefix in occupied:
         raise CartaError(
             f"Error: position {prefix:02d} is occupied in {dest_path.relative_to(carta_root)}.\n"
@@ -122,7 +121,6 @@ def _find_orphaned_refs(
     if not deleted_refs:
         return []
 
-    ref_pattern = re.compile(r'(?<!\w)(doc\d{2}(?:\.\d{2})*)(?!\.[a-zA-Z0-9])')
     orphans: list[tuple[Path, str, str]] = []
 
     for fpath in md_files:
@@ -131,14 +129,14 @@ def _find_orphaned_refs(
         except (OSError, UnicodeDecodeError):
             continue
 
-        for m in ref_pattern.finditer(text):
-            if m.group(1) in deleted_refs:
+        for m in DocRef.SCAN.finditer(text):
+            if m.group(0) in deleted_refs:
                 line_start = text.rfind("\n", 0, m.start()) + 1
                 line_end = text.find("\n", m.end())
                 if line_end == -1:
                     line_end = len(text)
                 line_text = text[line_start:line_end].strip()
-                orphans.append((fpath, line_text, m.group(1)))
+                orphans.append((fpath, line_text, m.group(0)))
 
     return orphans
 
@@ -154,7 +152,7 @@ def cmd_delete(args: argparse.Namespace, carta_root: Path) -> None:
         path = resolve_and_validate(target, carta_root).path
         if (path.is_file()
                 and path.suffix != '.md'
-                and get_numeric_prefix(path.name) is not None):
+                and EntryName.parse(path.name) is not None):
             raise CartaError(f"cannot delete an attachment directly; delete its root md: {path.name}")
         target_paths.append(path)
 
@@ -187,7 +185,7 @@ def cmd_delete(args: argparse.Namespace, carta_root: Path) -> None:
                 continue  # skip deleted bundles
             if bndl.prefix != next_prefix:
                 for member in all_members:
-                    old_slug = get_slug(member.name)
+                    old_slug = EntryName.parse(member.name).tail
                     new_name = f"{next_prefix:02d}-{old_slug}"
                     all_moves.append((member, parent_dir / new_name))
             next_prefix += 1
@@ -281,7 +279,8 @@ def cmd_delete(args: argparse.Namespace, carta_root: Path) -> None:
 # ---------------------------------------------------------------------------
 
 def _create_index_for_new_dir(dir_path: Path) -> None:
-    slug = get_slug(dir_path.name)
+    en = EntryName.parse(dir_path.name)
+    slug = en.tail if en is not None else dir_path.name
     title = slug.replace("-", " ").title()
     write_frontmatter(dir_path / "00-index.md", {
         "title": title,
@@ -302,7 +301,7 @@ def cmd_move(args: argparse.Namespace, carta_root: Path) -> None:
 
     if (source_path.is_file()
             and source_path.suffix != '.md'
-            and get_numeric_prefix(source_path.name) is not None):
+            and EntryName.parse(source_path.name) is not None):
         raise CartaError("cannot move an attachment directly; move its root md")
 
     if args.rename and source_path.name == "00-index.md":
@@ -380,13 +379,15 @@ def cmd_rename(args: argparse.Namespace, carta_root: Path) -> None:
     """Rename a directory or file slug without changing position."""
     target_path = resolve_and_validate(args.target, carta_root).path
 
-    prefix = get_numeric_prefix(target_path.name)
-    if prefix is None:
+    _target_en = EntryName.parse(target_path.name)
+    if _target_en is None:
         raise CartaError(f"Error: target has no numeric prefix: {target_path.name}")
+    prefix = _target_en.prefix
 
     new_slug = args.new_slug
-    if re.match(r'^\d{2}-', new_slug):
-        new_slug = re.sub(r'^\d{2}-', '', new_slug)
+    _new_en = EntryName.parse(new_slug)
+    if _new_en is not None:
+        new_slug = _new_en.tail
 
     if target_path.is_dir():
         new_name = f"{prefix:02d}-{new_slug}"
@@ -417,7 +418,7 @@ def cmd_rename(args: argparse.Namespace, carta_root: Path) -> None:
     if bndl and bndl.slug:
         old_slug = bndl.slug
         for att in bndl.attachments:
-            att_slug = get_slug(att.name)
+            att_slug = EntryName.parse(att.name).tail
             if att_slug.startswith(old_slug + "."):
                 new_att_slug = stem_slug + att_slug[len(old_slug):]
                 renames.append((att, att.parent / f"{prefix:02d}-{new_att_slug}"))
