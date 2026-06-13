@@ -2,7 +2,7 @@
 title: Documentation Systems, Retrieval Quality, and Spec Authoring
 summary: Principles behind hierarchical docs systems, agentic search improvement, scientific comparison of docs structures, and what makes individual specs good enough for code generation
 tags: [docs, retrieval, ai, specifications, elicitation, information-architecture, evaluation]
-deps: [doc01.04, doc04.08.04]
+deps: [doc00.04, doc04.08.04]
 ---
 
 # Documentation Systems, Retrieval Quality, and Spec Authoring

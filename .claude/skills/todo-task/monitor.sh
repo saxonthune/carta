@@ -2,14 +2,14 @@
 # Self-refreshing TUI dashboard for todo-tasks.
 # Usage: bash monitor.sh           — refresh loop (ctrl-c to exit)
 #        bash monitor.sh --once    — single frame, then exit
+#
+# A pure renderer over report.sh — it never walks the filesystem or classifies
+# state itself. All state comes from the reporter's TSV (including the `age`
+# column, so the monitor stays filesystem-free).
 set -euo pipefail
 
-REPO_ROOT="$(git rev-parse --show-toplevel)"
-TODO="${REPO_ROOT}/.todo-tasks"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib.sh"
-
-shopt -s nullglob
 
 # ── Color setup ──────────────────────────────────────────────────────────────
 if [[ -t 1 ]]; then
@@ -27,44 +27,12 @@ fi
 EL=$'\033[K'
 
 # ── Generic helpers ──────────────────────────────────────────────────────────
-mtime() { stat -c %Y "$1" 2>/dev/null || date +%s; }
-
-elapsed() {
-  local now age; now=$(date +%s); age=$((now - $(mtime "$1")))
-  if   (( age < 3600 ));  then echo "$((age/60))m"
-  elif (( age < 86400 )); then echo "$((age/3600))h$((age%3600/60))m"
-  else                         echo "$((age/86400))d$((age%86400/3600))h"; fi
-}
-
 age_ago() {
-  local age=$1
+  local age="${1:-0}"
+  [[ "$age" =~ ^[0-9]+$ ]] || { echo "?"; return; }
   if   (( age < 3600 ));  then echo "$((age/60))m ago"
   elif (( age < 86400 )); then echo "$((age/3600))h ago"
   else                         echo "$((age/86400))d ago"; fi
-}
-
-count_csv() { echo "${1}" | tr ',' '\n' | grep -c . || echo 0; }
-
-# classify_result <result_file> → echoes an SM_OVERALL_* state
-classify_result() {
-  local f="$1" s v m t
-  s=$(parse_result_field "$f" session)
-  if [[ -n "$s" ]]; then
-    v=$(parse_result_field "$f" verification)
-    m=$(parse_result_field "$f" merge)
-    t=$(parse_result_field "$f" trunk)
-    derive_overall_state "$s" "$v" "$m" "$t"
-  else
-    # Old-format fallback: "Status: success" / "Merge: success"
-    local old oldm
-    old=$(parse_result_field "$f" status)
-    oldm=$(parse_result_field "$f" merge)
-    if [[ "$old" == "success" ]]; then
-      [[ "$oldm" == "conflict" ]] && echo "$SM_OVERALL_CONFLICT" || echo "$SM_OVERALL_SUCCESS"
-    else
-      echo "$SM_OVERALL_BUILD_FAIL"
-    fi
-  fi
 }
 
 overall_color() {
@@ -89,160 +57,6 @@ overall_label() {
     "$SM_OVERALL_SESSION_FAIL") echo "crashed" ;;
     *)                          echo "$1" ;;
   esac
-}
-
-# ── Collectors ───────────────────────────────────────────────────────────────
-# Each collector echoes one tab-separated record per line. Output is consumed
-# by render_frame via `mapfile`. Collectors run in subshells; they inherit
-# $CHAIN_SLUGS from the parent but cannot mutate it.
-
-# Space-padded list of slugs claimed by active chains, e.g. " a b c ".
-# Pre-computed once per frame so recent/active collectors agree.
-compute_chain_slugs() {
-  local slugs=" "
-  local m phases
-  for m in "$TODO"/.running/chain-*.manifest; do
-    [[ -r "$m" ]] || continue
-    phases=$(parse_result_field "$m" phases)
-    slugs+="$(echo "$phases" | tr ',' ' ') "
-  done
-  printf '%s' "$slugs"
-}
-
-# Active = currently running chains + non-chain running tasks.
-# Record: type \t label \t elapsed
-#   type ∈ {chain, chain-fail, running}
-collect_active() {
-  local m chain status current completed phases total done_n e
-  for m in "$TODO"/.running/chain-*.manifest; do
-    [[ -r "$m" ]] || continue
-    chain=$(parse_result_field "$m" chain)
-    status=$(parse_result_field "$m" status)
-    current=$(parse_result_field "$m" current)
-    completed=$(parse_result_field "$m" completed)
-    phases=$(parse_result_field "$m" phases)
-    total=$(count_csv "$phases")
-    done_n=0
-    [[ -n "$completed" ]] && done_n=$(count_csv "$completed")
-    e=$(elapsed "$m")
-    case "$status" in
-      done|complete) ;;  # shown in recent, not active
-      failed)  printf 'chain-fail\t%s [%d/%d] %s\t%s\n' "$chain" "$done_n" "$total" "$current" "$e" ;;
-      waiting)
-        local wf; wf=$(parse_result_field "$m" waiting_for)
-        printf 'chain\t%s [0/%d] after %s\t%s\n' "$chain" "$total" "$wf" "$e"
-        ;;
-      *)       printf 'chain\t%s [%d/%d] %s\t%s\n' "$chain" "$((done_n+1))" "$total" "$current" "$e" ;;
-    esac
-  done
-
-  local md slug
-  for md in "$TODO"/.running/*.md; do
-    [[ -r "$md" ]] || continue
-    slug=$(basename "$md" .md)
-    case "$CHAIN_SLUGS" in *" $slug "*) continue ;; esac
-    printf 'running\t%s\t%s\n' "$slug" "$(elapsed "$md")"
-  done
-}
-
-# Recent = top-3 most-recently-touched result files and completed chains.
-# Record: overall_state \t slug \t age_ago
-collect_recent() {
-  local now; now=$(date +%s)
-  {
-    local r slug overall
-    for r in "$TODO"/.done/*.result.md "$TODO"/.archived/*.result.md; do
-      [[ -r "$r" ]] || continue
-      slug=$(basename "$r" .result.md)
-      case "$CHAIN_SLUGS" in *" $slug "*) continue ;; esac
-      overall=$(classify_result "$r")
-      printf '%d\t%s\t%s\n' "$(mtime "$r")" "$slug" "$overall"
-    done
-    local m cs cn cp ct
-    for m in "$TODO"/.running/chain-*.manifest; do
-      [[ -r "$m" ]] || continue
-      cs=$(parse_result_field "$m" status)
-      case "$cs" in done|complete) ;; *) continue ;; esac
-      cn=$(parse_result_field "$m" chain)
-      cp=$(parse_result_field "$m" phases)
-      ct=$(count_csv "$cp")
-      printf '%d\tchain:%s(%d/%d)\t%s\n' "$(mtime "$m")" "$cn" "$ct" "$ct" "$SM_OVERALL_SUCCESS"
-    done
-  } | sort -rn | head -3 | while IFS=$'\t' read -r ts slug overall; do
-    [[ -z "$slug" ]] && continue
-    printf '%s\t%s\t%s\n' "$overall" "$slug" "$(age_ago $((now - ts)))"
-  done
-}
-
-# Pending = root-level .md files that are NOT already running and have
-# NO result file in .done/. This is the state-machine rule: a task with
-# a result is not pending, even if its source .md was never moved.
-# Record: slug
-collect_pending() {
-  local tf slug
-  for tf in "$TODO"/*.md; do
-    [[ -r "$tf" ]] || continue
-    [[ "$tf" == *.epic.md ]] && continue
-    slug=$(basename "$tf" .md)
-    [[ -f "$TODO/.running/${slug}.md" ]] && continue
-    [[ -f "$TODO/.done/${slug}.result.md" ]] && continue
-    printf '%s\n' "$slug"
-  done
-}
-
-# Epics = one summary row per *.epic.md, classifying member tasks via lib.sh.
-# Record: epic_name \t summary
-collect_epics() {
-  local ef epic tf ets result overall bucket af
-  for ef in "$TODO"/*.epic.md; do
-    [[ -r "$ef" ]] || continue
-    epic=$(basename "$ef" .epic.md)
-
-    declare -A seen=()
-    for tf in "$TODO/${epic}"-[0-9]*.md \
-              "$TODO/.running/${epic}"-[0-9]*.md \
-              "$TODO/.done/${epic}"-[0-9]*.md; do
-      [[ -f "$tf" ]] || continue
-      [[ "$tf" == *.result.md ]] && continue
-      seen[$(basename "$tf" .md)]=1
-    done
-    for tf in "$TODO/.archived/"*"-${epic}"-[0-9]*.md; do
-      [[ -f "$tf" ]] || continue
-      [[ "$tf" == *.result.md ]] && continue
-      local esl; esl=$(basename "$tf" .md); esl="${esl#[0-9]*-}"
-      seen["$esl"]=1
-    done
-
-    local total=0 done_n=0 running_n=0 failed_n=0
-    for ets in "${!seen[@]}"; do
-      total=$((total + 1))
-      result=""
-      if [[ -f "$TODO/.done/${ets}.result.md" ]]; then
-        result="$TODO/.done/${ets}.result.md"
-      else
-        for af in "$TODO/.archived/"*"-${ets}.result.md"; do
-          [[ -f "$af" ]] && result="$af" && break
-        done
-      fi
-      if [[ -n "$result" ]]; then
-        overall=$(classify_result "$result")
-        bucket=$(state_bucket "$overall")
-        case "$bucket" in
-          "$SM_BUCKET_SUCCESS"|"$SM_BUCKET_READY") done_n=$((done_n + 1)) ;;
-          *)                                       failed_n=$((failed_n + 1)) ;;
-        esac
-      elif [[ -f "$TODO/.running/${ets}.md" ]]; then
-        running_n=$((running_n + 1))
-      fi
-    done
-    unset seen
-    (( total == 0 )) && continue
-
-    local summary="${done_n}/${total} done"
-    (( running_n > 0 )) && summary+="  ${running_n} running"
-    (( failed_n > 0 ))  && summary+="  ${failed_n} failed"
-    printf '%s\t%s\n' "$epic" "$summary"
-  done
 }
 
 # ── Renderers ────────────────────────────────────────────────────────────────
@@ -305,30 +119,54 @@ render_summary() {
 
 # ── Frame ────────────────────────────────────────────────────────────────────
 render_frame() {
-  local CHAIN_SLUGS
-  CHAIN_SLUGS=$(compute_chain_slugs)
-  export CHAIN_SLUGS  # visible to subshells launched by mapfile
-
-  local -a active recent pending epics
-  mapfile -t active  < <(collect_active)
-  mapfile -t recent  < <(collect_recent)
-  mapfile -t pending < <(collect_pending)
-  mapfile -t epics   < <(collect_epics)
-
-  # Bucket counts for summary
+  local -a active=() recent_raw=() pending=() epics=()
   local n_success=0 n_ready=0 n_questionable=0 n_attention=0
-  local entry overall bucket
-  for entry in "${recent[@]}"; do
-    [[ -z "$entry" ]] && continue
-    IFS=$'\t' read -r overall _ _ <<< "$entry"
-    bucket=$(state_bucket "$overall")
-    case "$bucket" in
-      "$SM_BUCKET_SUCCESS")      n_success=$((n_success+1)) ;;
-      "$SM_BUCKET_READY")        n_ready=$((n_ready+1)) ;;
-      "$SM_BUCKET_QUESTIONABLE") n_questionable=$((n_questionable+1)) ;;
-      "$SM_BUCKET_ATTENTION")    n_attention=$((n_attention+1)) ;;
+
+  local rec type
+  while IFS= read -r rec; do
+    [[ -z "$rec" ]] && continue
+    IFS=$'\t' read -r type _ <<< "$rec"
+    case "$type" in
+      task)
+        local slug phase overall bucket commits worktree branch age notes
+        IFS=$'\t' read -r _ slug phase overall bucket commits worktree branch age notes <<< "$rec"
+        case "$phase" in
+          running) active+=("$(printf 'running\t%s\t%s' "$slug" "$(age_ago "$age")")") ;;
+          pending) pending+=("$slug") ;;
+          done|crashed)
+            recent_raw+=("$(printf '%s\t%s\t%s\t%s' "$age" "$overall" "$slug" "$(age_ago "$age")")")
+            case "$bucket" in
+              "$SM_BUCKET_SUCCESS")      n_success=$((n_success+1)) ;;
+              "$SM_BUCKET_READY")        n_ready=$((n_ready+1)) ;;
+              "$SM_BUCKET_QUESTIONABLE") n_questionable=$((n_questionable+1)) ;;
+              "$SM_BUCKET_ATTENTION")    n_attention=$((n_attention+1)) ;;
+            esac ;;
+        esac ;;
+      chain)
+        local name cstatus done_n total current phases cw cb
+        IFS=$'\t' read -r _ name cstatus done_n total current phases cw cb <<< "$rec"
+        case "$cstatus" in
+          running) active+=("$(printf 'chain\t%s [%s/%s] %s\t' "$name" "$done_n" "$total" "$current")") ;;
+          waiting) active+=("$(printf 'chain\t%s [%s/%s] %s\t' "$name" "$done_n" "$total" "$current")") ;;
+          failed)  active+=("$(printf 'chain-fail\t%s [%s/%s] %s\t' "$name" "$done_n" "$total" "$current")") ;;
+          complete) recent_raw+=("$(printf '0\t%s\tchain:%s(%s/%s)\t%s' "$SM_OVERALL_SUCCESS" "$name" "$total" "$total" "just now")")
+                    n_success=$((n_success+1)) ;;
+        esac ;;
+      epic)
+        local ename total done_n running_n failed_n members summary
+        IFS=$'\t' read -r _ ename total done_n running_n failed_n members <<< "$rec"
+        summary="${done_n}/${total} done"
+        (( running_n > 0 )) && summary+="  ${running_n} running"
+        (( failed_n > 0 ))  && summary+="  ${failed_n} failed"
+        epics+=("$(printf '%s\t%s' "$ename" "$summary")") ;;
     esac
-  done
+  done < <(bash "${SCRIPT_DIR}/report.sh")
+
+  # Recent = top-3 most-recently-touched (smallest age first).
+  local -a recent=()
+  if [[ ${#recent_raw[@]} -gt 0 ]]; then
+    mapfile -t recent < <(printf '%s\n' "${recent_raw[@]}" | sort -t$'\t' -k1,1n | head -3 | cut -f2-)
+  fi
 
   printf '\n  %stodo-tasks%s%s\n%s\n' "$BOLD" "$RESET" "$EL" "$EL"
   render_active  "${active[@]}"

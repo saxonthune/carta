@@ -221,6 +221,9 @@ def cmd_init_rehydrate(args: argparse.Namespace, carta_root: Path) -> None:
     templates_dir = _PACKAGE_DIR / "templates"
     codex_dir = carta_root / "00-codex"
 
+    check = getattr(args, "check", False)
+    no_write = args.dry_run or check
+
     updated = 0
     skipped = 0
 
@@ -244,8 +247,9 @@ def cmd_init_rehydrate(args: argparse.Namespace, carta_root: Path) -> None:
                 skipped += 1
                 continue
 
-        if args.dry_run:
-            print(f"  Would update: {dest.relative_to(project_root)}")
+        if no_write:
+            print(f"  Drift: {dest.relative_to(project_root)}" if check
+                  else f"  Would update: {dest.relative_to(project_root)}")
         else:
             codex_dir.mkdir(parents=True, exist_ok=True)
             dest.write_text(new_content, encoding="utf-8")
@@ -256,8 +260,9 @@ def cmd_init_rehydrate(args: argparse.Namespace, carta_root: Path) -> None:
     agents_dest = carta_root / "AGENTS.md"
     agents_content = (templates_dir / "AGENTS.md").read_text(encoding="utf-8").replace("{{dir_name}}", dirname)
     if not (agents_dest.exists() and agents_dest.read_text(encoding="utf-8") == agents_content):
-        if args.dry_run:
-            print(f"  Would update: {agents_dest.relative_to(project_root)}")
+        if no_write:
+            print(f"  Drift: {agents_dest.relative_to(project_root)}" if check
+                  else f"  Would update: {agents_dest.relative_to(project_root)}")
         else:
             agents_dest.write_text(agents_content, encoding="utf-8")
             print(f"  Updated: {agents_dest.relative_to(project_root)}")
@@ -282,13 +287,22 @@ def cmd_init_rehydrate(args: argparse.Namespace, carta_root: Path) -> None:
                 skipped += 1
                 continue
 
-        if args.dry_run:
-            print(f"  Would update: {skill_path.relative_to(project_root)}")
+        if no_write:
+            print(f"  Drift: {skill_path.relative_to(project_root)}" if check
+                  else f"  Would update: {skill_path.relative_to(project_root)}")
         else:
             skill_dir.mkdir(parents=True, exist_ok=True)
             skill_path.write_text(new_content, encoding="utf-8")
             print(f"  Updated: {skill_path.relative_to(project_root)}")
         updated += 1
+
+    if check:
+        if updated:
+            print(f"\n{updated} hydrated file(s) stale, {skipped} current. "
+                  f"Run `carta init --rehydrate` to refresh.")
+            sys.exit(1)
+        print(f"\nAll {skipped} hydrated file(s) current.")
+        return
 
     verb = "Would update" if args.dry_run else "Updated"
     print(f"\n{verb} {updated} file(s), {skipped} already current.")

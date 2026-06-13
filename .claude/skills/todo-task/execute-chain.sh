@@ -2,22 +2,25 @@
 set -euo pipefail
 
 # ─── Chain Executor ──────────────────────────────────────────────────────────
-# Runs a sequence of plans in isolated worktrees, merging each into a chain
-# worktree. The chain worktree acts as a clean trunk that the script controls,
-# so individual phases never touch the user's working tree.
+# Runs a sequence of plans in ONE shared worktree, committing each phase's code
+# and result onto a single chain branch, then merging the whole chain to trunk
+# once at the end (atomic all-or-nothing).
 #
 # Architecture:
 #   real trunk (user's tree, may be dirty)
 #     └── chain worktree (script-controlled, always clean)
 #           └── task worktree (per phase, created/destroyed by execute-plan.sh)
 #
-# After each phase merges into the chain worktree, trunk commits are pulled in
-# and conflicts resolved automatically. At the end, the chain branch is merged
-# back into the real trunk.
+# State is derived, not stored:
+#   - Liveness lives in the gitignored run-record .running/chain-{name}.run
+#     (worktree, branch, pid, ordered phases, optional waiting_for).
+#   - Per-phase progress is derived by classifying each phase's result files in
+#     the chain worktree (carried to trunk by the single final squash-merge).
+#   - The chain definition chains/{name}.md is written to trunk ONLY on clean
+#     completion. A failed/aborted chain leaves no definition — it is "live and
+#     failed", located via its run-record.
 #
-# Usage: execute-chain.sh <chain-name> <plan1> <plan2> [plan3] ...
-#   chain-name: identifier for this chain (used in manifest filename)
-#   planN: plan slugs in execution order (without .md)
+# Usage: execute-chain.sh <chain-name> <plan1> <plan2> [plan3] ... [--after <slug>]
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(git rev-parse --show-toplevel)"
@@ -69,61 +72,32 @@ fi
 
 CHAIN_BRANCH="chain-${CHAIN_NAME}"
 CHAIN_WORKTREE="${REPO_ROOT}/../${WORKTREE_PREFIX}-chain-${CHAIN_NAME}"
-MANIFEST="${TODO}/.running/chain-${CHAIN_NAME}.manifest"
+CHAIN_RESULTS="${CHAIN_WORKTREE}/.todo-tasks/results"
+RUN_FILE="$(run_record_path "$CHAIN_NAME" chain)"
 
-# ─── Manifest Writer ─────────────────────────────────────────────────────────
-
-write_manifest() {
-  local current="$1"
-  local status="$2"
-  local completed_str="$3"
-  local failed_phase="${4:-}"
-
-  cat > "$MANIFEST" << EOF
-chain: ${CHAIN_NAME}
-phases: $(IFS=,; echo "${PHASES[*]}")
-current: ${current}
-completed: ${completed_str}
-status: ${status}
-failed_phase: ${failed_phase}
-chain_branch: ${CHAIN_BRANCH}
-chain_worktree: ${CHAIN_WORKTREE}
-waiting_for: ${AFTER:-}
-EOF
-}
+PHASES_CSV="$(IFS=,; echo "${PHASES[*]}")"
 
 # ─── Wait for predecessor (if --after was given) ─────────────────────────────
+# Resume/liveness is derived from the reporter; we poll its task records for the
+# predecessor reaching phase=done with overall=success.
 
 if [[ -n "${AFTER}" ]]; then
-  mkdir -p "${TODO}/.running"
-  write_manifest "${PHASES[0]}" "waiting" ""
-
   echo "Waiting for predecessor '${AFTER}' to complete and merge..."
 
-  while [[ -f "${TODO}/${AFTER}.md" || -f "${TODO}/.running/${AFTER}.md" ]]; do
+  while true; do
+    pred_rec="$(bash "${SCRIPT_DIR}/report.sh" task | awk -F'\t' -v s="$AFTER" '$2==s {print $3"\t"$4}')"
+    pred_phase="$(echo "$pred_rec" | cut -f1)"
+    pred_overall="$(echo "$pred_rec" | cut -f2)"
+
+    if [[ "$pred_phase" == "done" && "$pred_overall" == "$SM_OVERALL_SUCCESS" ]]; then
+      echo "Predecessor '${AFTER}' succeeded. Proceeding with chain..."
+      break
+    elif [[ "$pred_phase" == "done" || "$pred_phase" == "crashed" ]]; then
+      echo "ERROR: Predecessor '${AFTER}' did not succeed (phase: ${pred_phase}, state: ${pred_overall}). Aborting chain."
+      exit 1
+    fi
     sleep 15
   done
-
-  echo "Predecessor '${AFTER}' no longer pending/running. Checking result..."
-
-  if [[ ! -f "${TODO}/.done/${AFTER}.result.md" ]]; then
-    write_manifest "${PHASES[0]}" "failed" "" "${AFTER}"
-    echo "ERROR: Predecessor '${AFTER}' did not produce a result file. It may have failed silently."
-    exit 1
-  fi
-
-  pred_session=$(parse_result_field "${TODO}/.done/${AFTER}.result.md" "session")
-  pred_verification=$(parse_result_field "${TODO}/.done/${AFTER}.result.md" "verification")
-  pred_merge=$(parse_result_field "${TODO}/.done/${AFTER}.result.md" "merge")
-  pred_overall=$(derive_overall_state "$pred_session" "$pred_verification" "$pred_merge")
-
-  if [[ "$pred_overall" == "$SM_OVERALL_SUCCESS" ]]; then
-    echo "Predecessor '${AFTER}' succeeded. Proceeding with chain..."
-  else
-    write_manifest "${PHASES[0]}" "failed" "" "${AFTER}"
-    echo "ERROR: Predecessor '${AFTER}' did not succeed (state: ${pred_overall}). Aborting chain."
-    exit 1
-  fi
 fi
 
 # ─── Guard: dirty tree check (once, at chain start) ─────────────────────────
@@ -147,17 +121,11 @@ echo "Chain branch: ${CHAIN_BRANCH}"
 echo "Chain worktree: ${CHAIN_WORKTREE}"
 echo ""
 
-for i in "${!PHASES[@]}"; do
-  slug="${PHASES[$i]}"
-  in_todo="${TODO}/${slug}.md"
-  in_running="${TODO}/.running/${slug}.md"
-  in_done="${TODO}/.done/${slug}.md"
-
-  if [[ -f "$in_todo" || -f "$in_running" || -f "$in_done" ]]; then
-    continue
+for slug in "${PHASES[@]}"; do
+  if [[ ! -f "${TODO}/tasks/${slug}.md" ]]; then
+    echo "ERROR: Plan '${slug}' not found at .todo-tasks/tasks/${slug}.md"
+    exit 1
   fi
-  echo "ERROR: Plan '${slug}' not found in .todo-tasks/, .running/, or .done/"
-  exit 1
 done
 
 if [[ "$VALIDATE_ONLY" == "true" ]]; then
@@ -169,7 +137,6 @@ fi
 
 echo "── Creating chain worktree ──"
 
-# Clean up existing chain worktree/branch if present
 if git worktree list | grep -q "${CHAIN_WORKTREE}"; then
   echo "Removing existing chain worktree..."
   git worktree remove --force "${CHAIN_WORKTREE}" 2>/dev/null || true
@@ -184,14 +151,15 @@ git worktree add -b "${CHAIN_BRANCH}" "${CHAIN_WORKTREE}" "${REAL_TRUNK}"
 echo "Chain worktree created at ${CHAIN_WORKTREE}"
 echo ""
 
-# ─── Create Manifest ─────────────────────────────────────────────────────────
+# ─── Write Chain Run-record ──────────────────────────────────────────────────
 
-mkdir -p "${TODO}/.running"
+write_run_record "$CHAIN_NAME" "$CHAIN_WORKTREE" "$CHAIN_BRANCH" "$$" chain
+{
+  echo "phases: ${PHASES_CSV}"
+  [[ -n "$AFTER" ]] && echo "waiting_for: ${AFTER}"
+} >> "$RUN_FILE"
 
-COMPLETED=()
-write_manifest "${PHASES[0]}" "running" ""
-
-echo "Manifest: ${MANIFEST}"
+echo "Run-record: ${RUN_FILE}"
 echo ""
 
 # ─── Execute Phases ──────────────────────────────────────────────────────────
@@ -200,51 +168,18 @@ for i in "${!PHASES[@]}"; do
   slug="${PHASES[$i]}"
   phase_num=$((i + 1))
   total=${#PHASES[@]}
-  completed_str=$(IFS=,; echo "${COMPLETED[*]}")
 
   echo "── Phase ${phase_num}/${total}: ${slug} ──"
 
-  # Skip if already done (supports resuming a partially completed chain)
-  if [[ -f "${TODO}/.done/${slug}.result.md" ]]; then
-    result_status=$(head -10 "${TODO}/.done/${slug}.result.md" | grep '^\*\*Status\*\*' | sed 's/.*: //')
-    if [[ "$result_status" == "SUCCESS" ]]; then
-      echo "Already completed successfully, skipping."
-      COMPLETED+=("$slug")
-      write_manifest "${PHASES[$((i+1))]:-done}" "running" "$(IFS=,; echo "${COMPLETED[*]}")"
-      echo ""
-      continue
-    else
-      echo "Previously failed. Stopping chain."
-      write_manifest "$slug" "failed" "$completed_str" "$slug"
-      exit 1
-    fi
+  # Resume: skip a phase whose result already classifies success in the chain
+  # worktree (supports re-running a partially completed chain).
+  if [[ "$(classify_task "${CHAIN_RESULTS}/${slug}.agent.md" "${CHAIN_RESULTS}/${slug}.merge.md")" == "$SM_OVERALL_SUCCESS" ]]; then
+    echo "Already completed successfully, skipping."
+    echo ""
+    continue
   fi
 
-  # Skip if currently running (wait for it)
-  if [[ -f "${TODO}/.running/${slug}.md" ]]; then
-    echo "Phase is already running. Waiting for completion..."
-    while [[ -f "${TODO}/.running/${slug}.md" ]]; do
-      sleep 10
-    done
-    # Check result
-    if [[ -f "${TODO}/.done/${slug}.result.md" ]]; then
-      result_status=$(head -10 "${TODO}/.done/${slug}.result.md" | grep '^\*\*Status\*\*' | sed 's/.*: //')
-      if [[ "$result_status" == "SUCCESS" ]]; then
-        echo "Completed successfully."
-        COMPLETED+=("$slug")
-        write_manifest "${PHASES[$((i+1))]:-done}" "running" "$(IFS=,; echo "${COMPLETED[*]}")"
-        echo ""
-        continue
-      else
-        echo "Failed. Stopping chain."
-        write_manifest "$slug" "failed" "$completed_str" "$slug"
-        exit 1
-      fi
-    fi
-  fi
-
-  # Launch this phase — execute-plan merges into the chain worktree, not trunk
-  write_manifest "$slug" "running" "$completed_str"
+  # Launch this phase — execute-plan merges into the chain worktree, not trunk.
   echo "Launching execute-plan.sh ${slug} (trunk: chain worktree)..."
 
   if bash "${SCRIPT_DIR}/execute-plan.sh" "${slug}" \
@@ -252,23 +187,18 @@ for i in "${!PHASES[@]}"; do
        --trunk-branch "${CHAIN_BRANCH}" \
        --no-guard; then
     echo "Phase ${slug} succeeded."
-    COMPLETED+=("$slug")
   else
     echo "Phase ${slug} failed. Stopping chain."
-    write_manifest "$slug" "failed" "$(IFS=,; echo "${COMPLETED[*]}")" "$slug"
     echo ""
     echo "═══ Chain ${CHAIN_NAME} stopped at phase ${phase_num}/${total} ═══"
     echo "Failed phase: ${slug}"
-    echo "Completed: ${COMPLETED[*]:-none}"
     echo "Remaining: ${PHASES[*]:$((i+1))}"
+    # Leave the run-record in place: the chain is "live and failed", located
+    # via its run-record. Do NOT write the chain definition to trunk.
     exit 1
   fi
 
   # ── Pull trunk commits into chain worktree ──────────────────────────────
-  # The user may have committed to trunk since the chain started. Pull those
-  # in now so the next phase starts from an up-to-date base, and so the final
-  # merge back to trunk is smaller/cleaner.
-
   echo "── Syncing trunk into chain worktree ──"
   cd "${CHAIN_WORKTREE}"
 
@@ -276,7 +206,6 @@ for i in "${!PHASES[@]}"; do
     echo "Merge conflict pulling trunk changes into chain worktree."
     echo "Attempting auto-resolution with Claude..."
 
-    # Unset CLAUDECODE to allow nested claude invocations
     unset CLAUDECODE 2>/dev/null || true
 
     CONFLICT_FILES=$(git diff --name-only --diff-filter=U 2>/dev/null || echo "")
@@ -312,14 +241,9 @@ done
 
 echo "── Merging chain into trunk ──"
 
-write_manifest "done" "merging" "$(IFS=,; echo "${COMPLETED[*]}")"
-
-cd "${REPO_ROOT}"
-
-# Final sync: merge trunk into chain one more time before merging back
 cd "${CHAIN_WORKTREE}"
+# Final sync: merge trunk into chain one more time before merging back
 if ! git merge "${REAL_TRUNK}" -m "chain: final trunk sync before merge" 2>/dev/null; then
-  # If this conflicts, resolve it
   unset CLAUDECODE 2>/dev/null || true
   CONFLICT_FILES=$(git diff --name-only --diff-filter=U 2>/dev/null || echo "")
   RESOLVE_PROMPT="Resolve all merge conflicts. Conflicted files: ${CONFLICT_FILES}
@@ -344,27 +268,52 @@ if ! git diff --quiet || ! git diff --cached --quiet || [[ -n "$(git ls-files --
   echo "Trunk has uncommitted changes — deferring merge."
   echo "Chain branch ${CHAIN_BRANCH} is ready. Merge manually when ready:"
   echo "  git merge --squash ${CHAIN_BRANCH} && git commit -m 'feat: chain-${CHAIN_NAME} (agent)'"
+  echo ""
+  echo "Run-record left in place (chain not yet on trunk). Re-run or merge manually."
+  exit 1
 elif git merge --squash "${CHAIN_BRANCH}" && git commit -m "feat: chain-${CHAIN_NAME} (agent)"; then
   MERGE_STATUS="success"
   echo "Chain merged into ${REAL_TRUNK}"
 
-  # Clean up chain worktree and branch
+  # ── Write the chain definition to trunk (orchestrator owns trunk) ────────
+  mkdir -p "${TODO}/chains"
+  CHAIN_DEF="${TODO}/chains/${CHAIN_NAME}.md"
+  {
+    echo "# Chain: ${CHAIN_NAME}"
+    echo ""
+    echo "chain: ${CHAIN_NAME}"
+    echo "phases: ${PHASES_CSV}"
+    [[ -n "$AFTER" ]] && echo "after: ${AFTER}"
+    echo "completed: $(date -Iseconds)"
+    echo ""
+    echo "## Phases"
+    echo ""
+    for slug in "${PHASES[@]}"; do
+      echo "- ${slug}"
+    done
+  } > "$CHAIN_DEF"
+  git add "${CHAIN_DEF}" && git commit -m "todotask: chain definition ${CHAIN_NAME}" >/dev/null 2>&1 || true
+  echo "Wrote chain definition: ${CHAIN_DEF}"
+
+  # Clean up chain worktree, branch, and run-record
   echo "── Cleaning up chain worktree ──"
   git worktree remove --force "${CHAIN_WORKTREE}" 2>/dev/null || true
   git branch -D "${CHAIN_BRANCH}" 2>/dev/null || true
-  echo "Removed chain worktree and branch"
+  clear_run_record "$CHAIN_NAME" chain
+  rm -f "${TODO}/.running/chain-${CHAIN_NAME}.log"
+  echo "Removed chain worktree, branch, and run-record"
 else
   git merge --abort 2>/dev/null || true
   MERGE_STATUS="conflict"
   echo "Merge conflict! Chain branch ${CHAIN_BRANCH} left intact for manual merge."
   echo "Chain worktree: ${CHAIN_WORKTREE}"
+  echo "Run-record left in place (chain not on trunk)."
+  exit 1
 fi
 
 # ─── Chain Complete ──────────────────────────────────────────────────────────
 
-write_manifest "done" "complete" "$(IFS=,; echo "${COMPLETED[*]}")"
-
 echo ""
 echo "═══ Chain ${CHAIN_NAME} complete! All ${#PHASES[@]} phases succeeded. ═══"
-echo "Completed: ${COMPLETED[*]}"
+echo "Completed: ${PHASES[*]}"
 echo "Merge: ${MERGE_STATUS}"

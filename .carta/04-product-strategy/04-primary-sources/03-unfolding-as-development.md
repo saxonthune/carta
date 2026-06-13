@@ -44,4 +44,4 @@ Contrast with big-bang development: "here is a complete spec, generate the whole
 
 ## Connection to Carta's Docs System
 
-doc01.02 (Maintenance — unfolding philosophy) already applies these principles to documentation: "docs differentiate over time, like embryonic development." The rules above generalize the same principles to the full development process — code, infrastructure, and architecture, not just docs.
+doc00.02 (Maintenance — unfolding philosophy) already applies these principles to documentation: "docs differentiate over time, like embryonic development." The rules above generalize the same principles to the full development process — code, infrastructure, and architecture, not just docs.

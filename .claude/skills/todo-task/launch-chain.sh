@@ -32,8 +32,8 @@ CHAIN_NAME="${POSITIONAL[0]}"
 TODO="${REPO_ROOT}/.todo-tasks"
 
 if [[ -n "$AFTER" ]]; then
-  if [[ ! -f "${TODO}/${AFTER}.md" && ! -f "${TODO}/.running/${AFTER}.md" && ! -f "${TODO}/.done/${AFTER}.result.md" ]]; then
-    echo "Predecessor '${AFTER}' not found in pending/running/done"
+  if [[ ! -f "${TODO}/tasks/${AFTER}.md" && ! -f "${TODO}/results/${AFTER}.agent.md" ]]; then
+    echo "Predecessor '${AFTER}' not found: no spec at tasks/${AFTER}.md and no result at results/${AFTER}.agent.md"
     exit 1
   fi
 fi

@@ -16,6 +16,8 @@ jobs:
           python-version: "3.13"
       - run: pip install -e ".[test]"
       - run: make test
+      - name: Check hydrated files are in sync with templates
+        run: make check-hydration
 
   build:
     runs-on: ubuntu-latest

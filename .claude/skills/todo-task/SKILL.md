@@ -18,6 +18,8 @@ Route based on `$ARGUMENTS[0]`:
 | `/todo-task status` | Full lifecycle report |
 | `/todo-task monitor` | Live dashboard (watch loop) |
 
+First-time setup: if todo-task scripts prompt for approval, read `.claude/skills/todo-task/SETUP.md` for a suggested allowlist (kept separate to avoid context pollution).
+
 ---
 
 ## Mode: `status` (default when no arguments)
@@ -30,20 +32,22 @@ Run the status script and display results:
 bash .claude/skills/todo-task/status.sh
 ```
 
-If `$ARGUMENTS` includes `--archive`, run with `--archive-success` flag.
+If `$ARGUMENTS` includes `--archive`, pass `--archive` through (status delegates to `archive.sh`).
 
 ### Triage completed agents
 
 After showing status, handle completed agents:
 
-**Successful agents:** Archive automatically. Also archives completed or resolved chains (worktrees, branches, manifests, and logs):
+**Successful agents & completed chains:** Archive automatically. `archive.sh` (no args) `git rm`s every auto-eligible outcome (clean successes, completed chains) and removes their worktrees/branches:
 ```bash
-bash .claude/skills/todo-task/status.sh --archive-success
+bash .claude/skills/todo-task/archive.sh
 ```
 
-**Conflict agents (success but merge failed):** Check if the branch was already merged manually. If `git log` shows the agent's commits on the current branch, the conflict was already resolved — clean up the worktree, delete the branch, and archive. If not, treat as a failed merge and ask the user.
+**Conflict agents (`merge_conflict` / `merged_with_markers`):** NOT auto-archived — the worktree is kept for resolution. Check if the branch was already merged manually. If `git log` shows the agent's commits on the current branch, the conflict was already resolved — then `archive.sh {slug}` cleans up. If not, treat as a failed merge and ask the user.
 
-**Failed agents:** Do NOT archive. Ask the user what to do:
+**Ready-for-review agents (`--no-merge`):** NOT archived — they await a human merge of the agent branch.
+
+**Failed agents (`build_failure`/`session_failed`/`no_op`/`trunk_leak`, crashed, failed chains):** Do NOT archive by default. `archive.sh --force-failed` archives them explicitly once reviewed. First, ask the user what to do:
 
 ```typescript
 AskUserQuestion({
@@ -76,7 +80,7 @@ Examples: `fix-login-timeout.md`, `add-user-search.md`, `stale-cache-after-deplo
 
 ### Step 2: Write the task file
 
-Write to `.todo-tasks/{slug}.md`:
+Write to `.todo-tasks/tasks/{slug}.md`:
 
 ```markdown
 # {Title}
@@ -114,11 +118,11 @@ Tell the user the file was created and they can triage it with `/todo-task triag
 - **Reference files.** If you know which files are involved, list them.
 - **One task per file.** Three bugs = three tasks.
 - **Don't over-specify the solution.** Describe the problem and desired outcome.
-- **Check for duplicates.** Scan `.todo-tasks/` first.
+- **Check for duplicates.** Scan `.todo-tasks/tasks/` first.
 
 ### Epic Tasks
 
-If the task belongs to an existing epic (`{epic}.epic.md` in `.todo-tasks/`), prefix: `{epic}-{nn}-{slug}.md`
+Epic membership is an **explicit slug list**, not a filename prefix. If the task belongs to an existing epic (`.todo-tasks/epics/{epic}.md`), write the task as a normal `tasks/{slug}.md`, then add its slug to that epic's `members:` line (comma-separated). The slug is the stable id — references never break.
 
 ---
 
@@ -132,7 +136,7 @@ Refine a pending task from a rough idea into an executable spec that a headless 
 
 If no slug provided:
 ```bash
-ls .todo-tasks/*.md 2>/dev/null | grep -v '\.epic\.md$' | sed 's|.todo-tasks/||;s|\.md$||'
+bash .claude/skills/todo-task/list-pending.sh
 ```
 
 Present tasks to the user with `AskUserQuestion`:
@@ -152,7 +156,7 @@ AskUserQuestion({
 
 ### Step 2: Read the task
 
-Read `.todo-tasks/{slug}.md`. Understand the motivation and scope. If it belongs to an epic (`{epic}-` prefix), also read `{epic}.epic.md` for context.
+Read `.todo-tasks/tasks/{slug}.md`. Understand the motivation and scope. If the slug appears in any `.todo-tasks/epics/{epic}.md` `members:` list, also read that epic file for context.
 
 ### Step 3: Research the codebase
 
@@ -163,6 +167,8 @@ Investigate the codebase to understand what changes are needed:
 3. **Read key files** — Read the files you'll need to modify. Understand their structure, patterns, and conventions.
 4. **Understand test patterns** — Find existing tests near the code you'll change. Note the test framework, assertion style, and what's already covered.
 5. **Check for gotchas** — Look for related code that might break, shared state, or implicit dependencies.
+
+**Chain/epic phases:** When triaging a spec that is part of a chain or epic and whose predecessor phases have not merged yet, do not research live code for the predecessor's output. Read the predecessor spec's `## Surface after this phase` block and triage against that declared Surface. The Surface stands in for code that does not exist yet. If a symbol or behavior is not in the Surface, treat it as not existing.
 
 ### Step 4: Briefing
 
@@ -209,7 +215,7 @@ If the task is too large (10+ files, multiple independent features, needs mid-im
 
 ### Step 6: Rewrite as executable spec
 
-After the user has answered all questions and confirmed the approach, rewrite `.todo-tasks/{slug}.md` in place with this structure:
+After the user has answered all questions and confirmed the approach, rewrite `.todo-tasks/tasks/{slug}.md` in place with this structure:
 
 ````markdown
 # {Title}
@@ -252,7 +258,19 @@ After the user has answered all questions and confirmed the approach, rewrite `.
 ## Notes
 
 - {Caveats, risks, things a reviewer should watch for}
+
+## Surface after this phase
+
+> Required for chain/epic phases. Omit for standalone one-off tasks.
+
+- {Symbols this phase promises to leave behind — exported functions, types,
+  files — stated precisely enough that a later phase can triage against them.}
+- {Behaviors / integration points the phase guarantees.}
+- {Negative space: what is deliberately unchanged and can still be relied on —
+  e.g. "Legacy X still exists and still works until Phase N".}
 ````
+
+The `## Surface after this phase` block is the contract that downstream phases triage against. Write it precisely: if a symbol is not listed, later phases will treat it as nonexistent.
 
 > The `## Verification` section MUST contain at least one fenced bash/sh code block. execute-plan.sh parses commands from that block to run as the verification gate.
 
@@ -285,6 +303,9 @@ If the user says launch, switch to execute mode for that slug.
 - **Write negative constraints early.** "Do NOT" goes near the top of the spec — headless agents may not read the full document with equal attention. Ask yourself: "What's the easiest wrong implementation?" and block that path.
 - **Include verification.** The agent needs to know when it's done.
 - **Keep it atomic.** If triaging reveals the task is too large, split it into multiple tasks and tell the user.
+- **Chain triage rule — Surface, not the code.** For chain/epic phases whose predecessors have not merged, triage against the predecessor's `## Surface after this phase` block, not live code. The Surface stands in for code that does not exist yet.
+- **Chain triage rule — not in Surface = doesn't exist.** If a symbol, file, or behavior is absent from the Surface, treat it as nonexistent. Do not assume it will be present.
+- **Chain triage rule — negative space is a contract.** Lines like "Legacy X still exists and still works until Phase N" are promises later phases can rely on.
 
 ---
 
@@ -298,7 +319,7 @@ Launch a headless agent to implement a triaged plan.
 
 1. **Select** — If no slug, list available plans:
    ```bash
-   ls .todo-tasks/*.md 2>/dev/null | grep -v '\.epic\.md$' | sed 's|.todo-tasks/||;s|\.md$||'
+   bash .claude/skills/todo-task/list-pending.sh
    ```
    Ask the user which plan to execute.
 
@@ -315,7 +336,7 @@ Launch a headless agent to implement a triaged plan.
 4. **Report** — Tell the user:
    - Agent is running in the background
    - Check progress: `tail -f .todo-tasks/.running/{slug}.log`
-   - Check results: `.todo-tasks/.done/{slug}.result.md`
+   - Check results: `.todo-tasks/results/{slug}.agent.md` (+ `.merge.md` after merge)
    - Check status: `/todo-task status`
 
 ### Options
@@ -331,6 +352,13 @@ If `--chain` is passed with multiple slugs, call `launch-chain.sh`:
 ```bash
 bash .claude/skills/todo-task/launch-chain.sh {chain-name} {slug1} {slug2} ...
 ```
+
+To queue a chain to start after a running or pending standalone task completes and merges, pass `--after <predecessor-slug>`:
+```bash
+bash .claude/skills/todo-task/launch-chain.sh {chain-name} {slug1} {slug2} ... --after {predecessor-slug}
+```
+
+The predecessor must be a standalone task (not part of the chain). It merges to trunk independently; the chain waits for it to complete and merge successfully before cutting its worktree from the now-updated trunk. If the predecessor fails or does not produce a result, the chain aborts. The predecessor slug must exist in pending, running, or done at launch time.
 
 ---
 
@@ -352,57 +380,66 @@ bash .claude/skills/todo-task/monitor.sh
 
 ---
 
-## Task Lifecycle
+## Task Lifecycle (derive, don't store)
 
-The todo-task system is a directory-as-state-machine. Files move through directories to represent lifecycle state.
+There is no directory-as-state-machine. Lifecycle is **derived from which files exist**,
+not from moving files between directories. The directories below are stable *categories*,
+never lifecycle states.
 
 ```
-.todo-tasks/              <- PENDING  (create creates, triage refines)
-    |
-.todo-tasks/.running/     <- EXECUTING (execute-plan moves files here)
-    |
-.todo-tasks/.done/        <- FINISHED  (agent writes .result.md here)
-    |
-.todo-tasks/.archived/    <- REVIEWED  (archived after triage)
+.todo-tasks/
+  tasks/{slug}.md            TRACKED   spec — written by create/triage, immutable while running
+  results/{slug}.agent.md    TRACKED   worktree-owned outcome — carried to trunk by the merge
+  results/{slug}.merge.md    TRACKED   trunk-owned outcome — written on trunk after the merge
+  chains/{chain}.md          TRACKED   chain definition — written on trunk at completion
+  epics/{epic}.md            TRACKED   epic definition with `members: a,b,c`
+  task-config.sh             TRACKED   build/test commands
+  .running/{slug}.run        IGNORED   run-record — liveness (pid) + worktree location
+  .archived/                 IGNORED   physical copies after `git rm`
+  *.log .version             IGNORED
 ```
 
-### File Types
+Phase is computed by the reporter from file presence:
 
-| Pattern | Purpose | Created by |
-|---------|---------|------------|
-| `*.md` | Task plans | `create` / `triage` |
-| `*.epic.md` | Epic overview (not executable) | manual |
-| `*.result.md` | Execution results | `execute` |
-| `chain-*.manifest` | Chain progress tracker | `execute --chain` |
-| `*.log` | Execution logs | `execute` |
+| Files present | Phase |
+|---|---|
+| spec only | pending |
+| run-record + live PID | running |
+| run-record + dead PID + no `merge.md` | crashed (result read from the worktree) |
+| `agent.md` + `merge.md` | done (classified success/failure) |
+
+`report.sh` is the **only** component that walks the filesystem and classifies state.
+`status.sh`, `monitor.sh`, and `list-pending.sh` are pure renderers over its TSV output.
+`archive.sh` is the **only** component that moves files (via `git rm`).
 
 ## Manual Merge Conflict Resolution
 
-When you manually resolve a merge conflict from an agent (e.g., merging the agent's branch yourself because auto-merge failed), you **must** clean up afterwards:
+When you manually resolve a merge conflict from an agent (auto-merge failed, so no
+`merge.md` was written and the worktree was kept), clean up afterwards:
 
-1. **Remove the worktree:**
+1. **Remove the worktree** (path shown in `status.sh` and in `.todo-tasks/.running/{slug}.run`):
    ```bash
    git worktree remove <worktree-path>
    ```
-   The worktree path is in the `.result.md` file.
 
 2. **Delete the agent branch** (it's already merged):
    ```bash
-   git branch -d feat/260401_claude_{slug}
+   git branch -d {trunk}_claude_{slug}
    ```
 
 3. **Archive the task:**
    ```bash
-   bash .claude/skills/todo-task/status.sh --archive-success
+   bash .claude/skills/todo-task/archive.sh {slug}
    ```
 
-If you skip these steps, future sessions will see stale worktrees and unresolved conflicts in status output, and may try to re-resolve them.
+If you skip these steps, future sessions will see stale worktrees in status output.
 
 ## Rules
 
-- `create` only writes to `.todo-tasks/`
-- `triage` only modifies existing files in `.todo-tasks/`
-- `execute` moves files through the lifecycle via shell scripts
-- Never manually move files to `.running/`, `.done/`, or `.archived/`
-- Never write `.result.md` files (agents create those)
-- **After manually resolving a merge conflict, always clean up** (remove worktree, delete branch, archive task)
+- `create` only writes `tasks/{slug}.md`.
+- `triage` only rewrites an existing `tasks/{slug}.md` (and may add a slug to an epic's `members:` list).
+- `execute` launches agents via shell scripts; it never moves files between directories.
+- **Never hand-edit `results/*.agent.md`** — it is worktree-owned and carried by the merge.
+- **Never write to `.running/`** — the run-record is the orchestrator's; the reporter only reads it.
+- **Never hand-move files** to archive — run `archive.sh` (it uses `git rm`).
+- **After manually resolving a merge conflict, always clean up** (remove worktree, delete branch, `archive.sh {slug}`).

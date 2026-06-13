@@ -353,6 +353,26 @@ def test_init_rehydrate_refreshes_skill(run_cli, tmp_path):
     assert skill_path.read_text(encoding="utf-8") != "stale skill content"
 
 
+def test_init_rehydrate_check_passes_when_current(run_cli, tmp_path):
+    """carta init --rehydrate --check exits 0 when hydrated files are current."""
+    run_cli("init", "--name", "TestProject", cwd=tmp_path)
+    code, out, err = run_cli("init", "--rehydrate", "--check", cwd=tmp_path)
+    assert code == 0, f"expected pass:\n{out}\n{err}"
+    assert "current" in out
+
+
+def test_init_rehydrate_check_fails_on_drift(run_cli, tmp_path):
+    """carta init --rehydrate --check exits non-zero on drift without writing."""
+    run_cli("init", "--name", "TestProject", cwd=tmp_path)
+    agents = tmp_path / ".carta" / "AGENTS.md"
+    agents.write_text(agents.read_text(encoding="utf-8") + "\nstale\n", encoding="utf-8")
+
+    code, out, err = run_cli("init", "--rehydrate", "--check", cwd=tmp_path)
+    assert code == 1, f"expected failure:\n{out}\n{err}"
+    assert "AGENTS.md" in out
+    assert "stale" in agents.read_text(encoding="utf-8")  # --check must not write
+
+
 class TestRefToPath(unittest.TestCase):
     """Tests for ref_to_path and path_to_ref."""
 

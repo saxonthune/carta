@@ -26,12 +26,12 @@ Carta uses concept-driven design from Daniel Jackson's *The Essence of Software*
 
 ## Documentation
 
-**`.carta/` is the canonical source of truth** — a Carta workspace containing specifications and architecture docs. Docs represent the best current understanding, not templates to fill in. Sparse docs are intentional — do not elaborate beyond what the work demands (see doc01.02). Cross-references use `docXX.YY.ZZ` syntax (e.g., `doc04.06.01` = Carta Docs API). **When referencing a doc in conversation, always include its title and enough context for the user to understand the reference without looking it up** (e.g., "doc04.08.08 (Structured Product Modeling — the nine formal structures for describing a business product)" not just "doc04.08.08"). Key docs:
+**`.carta/` is the canonical source of truth** — a Carta workspace containing specifications and architecture docs. Docs represent the best current understanding, not templates to fill in. Sparse docs are intentional — do not elaborate beyond what the work demands (see doc00.02). Cross-references use `docXX.YY.ZZ` syntax (e.g., `doc04.06.01` = Carta Docs API). **When referencing a doc in conversation, always include its title and enough context for the user to understand the reference without looking it up** (e.g., "doc04.08.08 (Structured Product Modeling — the nine formal structures for describing a business product)" not just "doc04.08.08"). Key docs:
 
-- **Strategy**: doc04.01 (mission), doc04.02 (vision), doc04.03 (glossary), doc04.04 (primary sources), doc04.05 (docs system), doc04.06 (products), doc04.07 (spec-code reconciliation), doc04.08 (research)
+- **Strategy**: doc04.01 (mission), doc04.02 (vision), doc04.03 (glossary), doc04.04 (primary sources), doc04.05 (docs system), doc04.06 (products), doc04.07 (spec-code reconciliation), doc04.08 (research), doc04.09 (docs syntax reference — formal grammar for refs, sections, frontmatter, MANIFEST)
 - **Design**: doc03.01 (workspace scripts — the Docs API), doc03.02 (concepts — Jackson-style concept inventory), doc03.03 (CLI user flow), doc03.04 (ADRs)
 - **Architecture**: doc02.01 (reconciliation architecture), doc02.02 (design patterns)
-- **Codex**: doc01.01 (about), doc01.02 (maintenance), doc01.03 (conventions), doc01.04 (AI retrieval), doc01.05 (taxonomy), doc01.06 (docs syntax reference)
+- **Codex**: doc00.01 (about), doc00.02 (maintenance), doc00.03 (conventions), doc00.04 (AI retrieval)
 
 **Carta CLI**: Before using any `carta` command, run `carta ai-skill` to get the full semantic reference (syntax, arguments, side effects, sequencing rules). Do not guess flags or arguments.
 

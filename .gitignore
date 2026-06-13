@@ -16,8 +16,6 @@ build/
 *.sw?
 
 # Project
-todo-tasks/
-.todo-tasks/
 .demo/
 .claude/agent-results/
 .claude/scheduled_tasks.lock

@@ -2,14 +2,14 @@
 title: Docs Syntax Reference
 summary: Formal grammar and extraction rules for doc references, sections, frontmatter, and MANIFEST
 tags: [docs, syntax, reference, sections, grammar]
-deps: [doc01.03]
+deps: [doc00.03]
 ---
 
 # Docs Syntax Reference
 
 A lightweight specification for the `.carta/` document syntax. Intended as a machine-readable reference for AI agents and tooling authors. Covers the grammar of document references, in-file sections, frontmatter schema, and extraction algorithms.
 
-This is the formal companion to doc01.03 (Conventions), which covers usage guidance and writing style. When the two conflict, this document is authoritative for syntax; doc01.03 is authoritative for style.
+This is the formal companion to doc00.03 (Conventions), which covers usage guidance and writing style. When the two conflict, this document is authoritative for syntax; doc00.03 is authoritative for style.
 
 ## #sec01 Document References
 
@@ -60,7 +60,7 @@ The final segment resolves to either a file (`NN-slug.md`) or a directory's inde
 ### Examples
 
 ```
-doc01.03        → 01-codex/03-conventions.md
+doc00.03        → 00-codex/03-conventions.md
 doc04.01        → 04-product-strategy/01-mission.md
 doc04.08.03     → 04-product-strategy/08-research/03-decomposition-and-composition-theory.md
 ```
@@ -279,4 +279,4 @@ Documents progress through states:
 2. **Prose with sections** — when distinct, referenceable concerns emerge, add `#sec` markers. The preamble (`#sec00`) holds the overview; sections differentiate from it.
 3. **Subdocuments** — when a section outgrows its host, `carta punch` expands the file into a directory. The section becomes its own doc with its own potential sections.
 
-A doc with no sections is complete. Sections are a response to the need for atomic references, not a template to fill in. See doc01.02 (Maintenance — unfolding philosophy).
+A doc with no sections is complete. Sections are a response to the need for atomic references, not a template to fill in. See doc00.02 (Maintenance — unfolding philosophy).

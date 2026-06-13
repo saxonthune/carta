@@ -81,82 +81,6 @@ state_bucket() {
   esac
 }
 
-# write_result_file <result_path> <slug> <session> <verification> <merge>
-#   <commits_count> <commits_log> <branch> <worktree> <retried>
-#   <session_id> <claude_result> <build_test_tail> [error_detail] [trunk]
-#   [surface_deviations]
-# Writes standardized result markdown. Validates inputs against vocabulary
-# before writing; prints a warning for unknown values but writes anyway.
-write_result_file() {
-  local result_path="$1"
-  local slug="$2"
-  local session="$3"
-  local verification="$4"
-  local merge="$5"
-  local commits_count="$6"
-  local commits_log="$7"
-  local branch="$8"
-  local worktree="$9"
-  local retried="${10}"
-  local session_id="${11}"
-  local claude_result="${12}"
-  local build_test_tail="${13}"
-  local error_detail="${14:-}"
-  local trunk="${15:-$SM_TRUNK_UNCHANGED}"
-  local surface_deviations="${16:-none}"
-
-  # Validate vocabulary (warn but don't abort)
-  local valid_sessions="$SM_SESSION_COMPLETED $SM_SESSION_FAILED"
-  local valid_verifications="$SM_VERIFY_PASSED $SM_VERIFY_FAILED $SM_VERIFY_SKIPPED"
-  local valid_merges="$SM_MERGE_CLEAN $SM_MERGE_DIRTY $SM_MERGE_CONFLICT $SM_MERGE_SKIPPED_FLAG $SM_MERGE_SKIPPED_VERIFY $SM_MERGE_NOT_ATTEMPTED"
-  local valid_trunks="$SM_TRUNK_UNCHANGED $SM_TRUNK_MOVED"
-
-  if [[ " $valid_sessions " != *" $session "* ]]; then
-    echo "WARNING: write_result_file: unknown session value: '$session'" >&2
-  fi
-  if [[ " $valid_verifications " != *" $verification "* ]]; then
-    echo "WARNING: write_result_file: unknown verification value: '$verification'" >&2
-  fi
-  if [[ " $valid_merges " != *" $merge "* ]]; then
-    echo "WARNING: write_result_file: unknown merge value: '$merge'" >&2
-  fi
-  if [[ " $valid_trunks " != *" $trunk "* ]]; then
-    echo "WARNING: write_result_file: unknown trunk value: '$trunk'" >&2
-  fi
-
-  cat > "$result_path" << RESULT_EOF
-# Agent Result: ${slug}
-
-**Date**: $(date -Iseconds)
-**Branch**: ${branch}
-**Worktree**: ${worktree}
-**Session**: ${session}
-**Verification**: ${verification}
-**Merge**: ${merge}
-**Trunk**: ${trunk}
-**Commits**: ${commits_count}
-**Retried**: ${retried}
-**Surface Deviations**: ${surface_deviations}
-$(if [[ -n "$error_detail" ]]; then echo "**Error**: ${error_detail}"; fi)
-
-## Commits
-
-\`\`\`
-${commits_log}
-\`\`\`
-
-## Claude Summary
-
-${claude_result}
-
-## Build & Test Output (last 30 lines)
-
-\`\`\`
-${build_test_tail}
-\`\`\`
-RESULT_EOF
-}
-
 # source_task_config
 # Sources project-specific config, then sets defaults for any unset variables.
 # Reads: REPO_ROOT, SCRIPT_DIR (from caller scope)
@@ -206,4 +130,169 @@ parse_result_field() {
     val=$(grep -m1 -i "^\*\*${key}\*\*:" "$file" 2>/dev/null | sed "s/^[^:]*: *//" || true)
   fi
   echo "${val,,}"
+}
+
+# ─── Run-record (the only ephemeral state; gitignored) ─────────────────────
+# A run-record supplies liveness (PID) and failure location (worktree path).
+# Lives at .todo-tasks/.running/{slug}.run (task) or chain-{slug}.run (chain).
+# Single writer: the orchestrator. Readers: the reporter. Never merged.
+
+# run_record_path <slug> [kind]
+# Echoes the run-record path for a task (default) or chain (kind="chain").
+run_record_path() {
+  local slug="$1" kind="${2:-task}"
+  if [[ "$kind" == "chain" ]]; then
+    echo "${REPO_ROOT}/.todo-tasks/.running/chain-${slug}.run"
+  else
+    echo "${REPO_ROOT}/.todo-tasks/.running/${slug}.run"
+  fi
+}
+
+# write_run_record <slug> <worktree> <branch> <pid> [kind]
+# Writes the run-record. Fields: slug, worktree, branch, pid, start, kind.
+# Callers may append extra fields (e.g. phases:, waiting_for:) afterward.
+write_run_record() {
+  local slug="$1" worktree="$2" branch="$3" pid="$4" kind="${5:-task}"
+  local path; path="$(run_record_path "$slug" "$kind")"
+  mkdir -p "$(dirname "$path")"
+  cat > "$path" << RUN_EOF
+slug: ${slug}
+worktree: ${worktree}
+branch: ${branch}
+pid: ${pid}
+start: $(date -Iseconds)
+kind: ${kind}
+RUN_EOF
+}
+
+# read_run_field <run_file> <key>
+# Extracts a field value from a run-record, preserving case (paths are
+# case-sensitive — unlike parse_result_field, which lowercases).
+read_run_field() {
+  local file="$1" key="$2"
+  grep -m1 "^${key}:" "$file" 2>/dev/null | sed "s/^[^:]*: *//" || true
+}
+
+# clear_run_record <slug> [kind]
+# Removes the run-record. Idempotent.
+clear_run_record() {
+  local slug="$1" kind="${2:-task}"
+  rm -f "$(run_record_path "$slug" "$kind")"
+}
+
+# run_is_alive <run_file>
+# True if the run-record names a PID that is still running.
+run_is_alive() {
+  local file="$1" pid
+  pid=$(read_run_field "$file" pid)
+  [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null
+}
+
+# ─── Result writers (split by epistemic owner) ─────────────────────────────
+
+# write_agent_result <result_path> <slug> <session> <verification>
+#   <commits_count> <commits_log> <branch> <session_id> <claude_result>
+#   <build_test_tail> [error_detail] [surface_deviations]
+# Worktree-owned outcome. Written by the orchestrator while cd'd in the
+# worktree, committed on the agent branch, carried to trunk by the merge.
+# Contains ONLY facts the worktree knows in isolation — no merge/trunk fields.
+write_agent_result() {
+  local result_path="$1" slug="$2" session="$3" verification="$4"
+  local commits_count="$5" commits_log="$6" branch="$7" session_id="$8"
+  local claude_result="$9" build_test_tail="${10}"
+  local error_detail="${11:-}" surface_deviations="${12:-none}"
+
+  local valid_sessions="$SM_SESSION_COMPLETED $SM_SESSION_FAILED"
+  local valid_verifications="$SM_VERIFY_PASSED $SM_VERIFY_FAILED $SM_VERIFY_SKIPPED"
+  if [[ " $valid_sessions " != *" $session "* ]]; then
+    echo "WARNING: write_agent_result: unknown session value: '$session'" >&2
+  fi
+  if [[ " $valid_verifications " != *" $verification "* ]]; then
+    echo "WARNING: write_agent_result: unknown verification value: '$verification'" >&2
+  fi
+
+  cat > "$result_path" << RESULT_EOF
+# Agent Result: ${slug}
+
+date: $(date -Iseconds)
+session: ${session}
+verification: ${verification}
+commits: ${commits_count}
+branch: ${branch}
+surface deviations: ${surface_deviations}
+$(if [[ -n "$session_id" ]]; then echo "session id: ${session_id}"; fi)
+$(if [[ -n "$error_detail" ]]; then echo "error: ${error_detail}"; fi)
+
+## Summary
+
+${claude_result}
+
+## Commits
+
+\`\`\`
+${commits_log}
+\`\`\`
+
+## Build & Test Output (last 30 lines)
+
+\`\`\`
+${build_test_tail}
+\`\`\`
+RESULT_EOF
+}
+
+# write_merge_result <result_path> <slug> <merge> [trunk] [conflict_detail]
+# Trunk-owned outcome. Written by the orchestrator on trunk after the merge.
+# Contains ONLY facts trunk knows after the merge.
+write_merge_result() {
+  local result_path="$1" slug="$2" merge="$3"
+  local trunk="${4:-$SM_TRUNK_UNCHANGED}" conflict_detail="${5:-}"
+
+  local valid_merges="$SM_MERGE_CLEAN $SM_MERGE_DIRTY $SM_MERGE_CONFLICT $SM_MERGE_SKIPPED_FLAG $SM_MERGE_SKIPPED_VERIFY $SM_MERGE_NOT_ATTEMPTED"
+  local valid_trunks="$SM_TRUNK_UNCHANGED $SM_TRUNK_MOVED"
+  if [[ " $valid_merges " != *" $merge "* ]]; then
+    echo "WARNING: write_merge_result: unknown merge value: '$merge'" >&2
+  fi
+  if [[ " $valid_trunks " != *" $trunk "* ]]; then
+    echo "WARNING: write_merge_result: unknown trunk value: '$trunk'" >&2
+  fi
+
+  {
+    echo "# Merge Result: ${slug}"
+    echo ""
+    echo "date: $(date -Iseconds)"
+    echo "merge: ${merge}"
+    echo "trunk: ${trunk}"
+    if [[ -n "$conflict_detail" ]]; then
+      echo ""
+      echo "## Conflict Detail"
+      echo ""
+      echo "$conflict_detail"
+    fi
+  } > "$result_path"
+}
+
+# classify_task <agent_md> <merge_md>
+# The single home for task classification. Reads session/verification from
+# the agent result and merge/trunk from the merge result, then echoes the
+# derived overall state. A missing/empty merge_md ⇒ merge=not_attempted.
+classify_task() {
+  local agent_md="${1:-}" merge_md="${2:-}"
+  local session="" verification="" merge="" trunk=""
+
+  if [[ -n "$agent_md" && -f "$agent_md" ]]; then
+    session=$(parse_result_field "$agent_md" session)
+    verification=$(parse_result_field "$agent_md" verification)
+  fi
+  session="${session:-$SM_SESSION_FAILED}"
+  verification="${verification:-$SM_VERIFY_FAILED}"
+
+  if [[ -n "$merge_md" && -f "$merge_md" ]]; then
+    merge=$(parse_result_field "$merge_md" merge)
+    trunk=$(parse_result_field "$merge_md" trunk)
+  fi
+  merge="${merge:-$SM_MERGE_NOT_ATTEMPTED}"
+  trunk="${trunk:-$SM_TRUNK_UNCHANGED}"
+
+  derive_overall_state "$session" "$verification" "$merge" "$trunk"
 }

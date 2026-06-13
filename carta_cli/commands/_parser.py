@@ -155,6 +155,9 @@ def main(argv: list[str] | None = None) -> int:
                              "Preserves workspace.json and user-authored docs.")
     p_init.add_argument("--dry-run", action="store_true",
                         help="With --rehydrate, show what would be updated without writing.")
+    p_init.add_argument("--check", action="store_true",
+                        help="With --rehydrate, report drift without writing and exit non-zero "
+                             "if any hydrated file is stale. For CI gates.")
 
     # portable
     p_portable = subparsers.add_parser("portable", help="Dump editable scripts into workspace")
