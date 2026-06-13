@@ -27,8 +27,8 @@ Rename/rewrite `cmd_create` (lines ~25-85) to `cmd_make`. It handles both the do
   - Else if `len(args.target) == 2`: parent = resolve `args.target[0]` via `resolve_arg(...).path`, `slug = args.target[1]`, append.
   - Else: `CartaError` ("too many positional arguments; usage: carta make [PARENT] SLUG").
   - If `args.at` is set **and** `len(args.target) == 2`: `CartaError` ("--at takes its position from the ref; do not also pass a parent").
-- Slug guard (keep from create): reject slugs matching `^\d{2}-` with the existing message.
-- Append prefix: reuse `compute_insertion_prefix(list_numbered_entries(parent), None)`. For `--at`, the prefix comes from the ref; verify it is not in the occupied set (`{get_numeric_prefix(e.name) for e in list_numbered_entries(parent)}`).
+- Slug guard (keep from create): reject a slug that already carries an `NN-` prefix — the current code does this with `if EntryName.parse(slug) is not None: raise CartaError(...)`. Keep that idiom and message.
+- Append prefix: reuse `compute_insertion_prefix(list_numbered_entries(parent), None)`. For `--at`, the prefix comes from the ref; verify it is not in the occupied set, built the way the current code builds it: `{EntryName.parse(e.name).prefix for e in list_numbered_entries(parent) if EntryName.parse(e.name)}`.
 
 **Skeleton written (both doc and group):** title derived from slug (`slug.replace("-", " ").title()`), `summary: ""`, `tags: []`, `deps: []`, body `\n# {title}\n`. No flag overrides — the derivation is the only source.
 
@@ -44,7 +44,7 @@ Rename/rewrite `cmd_create` (lines ~25-85) to `cmd_make`. It handles both the do
 
 ### 2. Remove `cmd_group` from `carta_cli/commands/transform.py`
 
-Delete `cmd_group` (lines ~354-385). Remove any now-unused imports it required (e.g. `get_slug`/`get_numeric_prefix`) **only if** nothing else in the file uses them — check first.
+Delete `cmd_group`. Remove any imports left unused by its deletion **only if** nothing else in the file uses them — check first. (Note: `numbering.py` now exports only `compute_insertion_prefix`; name decomposition goes through `EntryName.parse(...).prefix` / `.slug` / `.tail` from `..docref`. Do not reintroduce `get_numeric_prefix`/`get_slug` — they were removed.)
 
 ### 3. Rewrite the parser in `carta_cli/commands/_parser.py`
 
