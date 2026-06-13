@@ -9,9 +9,11 @@ You help the user develop documentation. Your job is to **help them build the si
 
 ## Core Principle: Declarative Intent
 
-Docs describe the artifact's intent in literary present tense. They are not timelines, design briefs, or sequencing plans. Code is the concrete reality; docs articulate what the artifact is for and what it does.
+This principle governs **spec docs** — the docs that describe the artifact itself. A spec doc states the artifact's intent in literary present tense. It is not a timeline, design brief, or sequencing plan. Code is the concrete reality; spec docs articulate what the artifact is for and what it does.
 
-**Banned patterns** — grep your draft for these before writing:
+**Research-session docs are the recognized exception** (see [Research Sessions](#research-sessions)): they capture exploratory synthesis — option landscapes, techniques, and tradeoffs weighed while building — and are *allowed* to survey alternatives a spec would never commit to. The banned patterns below apply to spec docs.
+
+**Banned patterns** (spec docs) — grep your draft for these before writing:
 
 - **Future modals**: "will", "won't", "is going to", "going to", "shall", "would" (when describing planned behavior, not conditional logic)
 - **Phase / version language**: "v0", "v1", "MVP", "POC", "Phase 1", "Phase 2", "next iteration", "first pass"
@@ -39,7 +41,20 @@ Documentation unfolds like a living system — start with a seed, grow through u
 
 When the user describes a change to the artifact, rewrite the relevant doc in place. Do not append `## Status` sections, dated updates, or "originally" notes — these turn docs into layered diaries.
 
-If the user describes future work, that goes in `.todo-tasks/`, not in `.carta/`. If the previous intent is historically significant, it belongs in an ADR.
+Route content by kind: planned *work* (tasks to execute) goes in `.todo-tasks/`, not `.carta/`; exploratory *research* (synthesis, option surveys, vocabulary worth keeping) goes in a research-sessions group inside `.carta/` (see [Research Sessions](#research-sessions)); a settled choice belongs in an ADR. "Forward-looking" alone does not exile content from `.carta/` — only un-synthesized task lists do.
+
+## Research Sessions
+
+A research session is a recognized `.carta/` doc type: synthesized thinking from an exploratory conversation — technology evaluation, algorithm surveys, cross-domain pattern-finding, the questions and vocabulary considered while building something. These are **not specs**. They inform design decisions and may feed later ADRs or spec docs, but they describe a *problem domain*, not a committed artifact.
+
+Capture one whenever a session surfaces understanding worth keeping past the original task — so a future session doesn't re-derive the same algorithms, terms, and tradeoffs. **A research doc that records the options and questions weighed during a milestone is a valid, encouraged use of `.carta/`, not a violation of it.**
+
+**How they differ from spec docs:**
+- Written in **intent voice about the problem domain** — what the space is, the techniques available, how they trade off — and *allowed* to survey alternatives and spectrums a spec would never include.
+- Exempt from the present-tense *commitment* rule: weighing "option A vs. option B" is the whole point.
+- Still **exclude blow-by-blow narrative** — what was tried first, who debugged it, dated play-by-play. That belongs in commit messages and PR descriptions. A research doc synthesizes; it does not journal.
+
+**Where they live:** a research group (e.g. `NN-research-sessions` or `NN-research`) under the title whose work the research informs, linked via `deps` to the milestone, feature, or doc it arose from. It sits as a sibling of the specs it feeds, not buried inside one.
 
 ## Self-Check Before Writing
 
@@ -50,6 +65,8 @@ grep -nEi '\b(will|won.t|is going to|going to|shall|deferred|TODO|PENDING|not ye
 ```
 
 Review every match. Some uses ("if X will fail" inside a conditional explanation) are legitimate. Declarative prose describing planned behavior is not.
+
+For research-session docs this check is narrower: flag dated postscripts and blow-by-blow narrative, but option-surveying language ("either X or Y", "one approach", "in some systems") is expected, not a violation.
 
 ## The Development Loop
 
@@ -96,7 +113,7 @@ Do not stress-test as a first move. The user came to build, not to defend.
 - **Fill in blanks.** If you don't know, ask. Propose options — but frame them as options, not decisions.
 - **Over-elaborate.** Sparse docs are intentional. Don't add detail beyond what the work demands.
 - **Over-question.** One or two focused questions per turn, not a barrage. Let the user think.
-- **Write temporal prose.** No future modals, phases, deferrals, or dated postscripts. Rewrite, don't append.
+- **Write temporal prose in spec docs.** No future modals, phases, deferrals, or dated postscripts. Rewrite, don't append. (Research-session docs are exempt — they survey options and tradeoffs by design.)
 
 ## Output Format
 
