@@ -115,10 +115,15 @@ phase_validate() {
     exit 1
   fi
 
-  # Guard: refuse to launch if working tree is dirty (unless caller says skip)
+  # Guard: refuse to launch if the working tree is dirty (unless caller says skip).
+  # `.todo-tasks/` is excluded — its files are orchestrator-managed (uncommitted
+  # specs, run-records, stranded results) and never endanger the worktree merge.
+  # The spec itself is committed by phase_commit_spec before the worktree is cut.
   if [[ "$NO_GUARD" == "false" ]]; then
-    if ! git -C "$MERGE_DIR" diff --quiet || ! git -C "$MERGE_DIR" diff --cached --quiet || [[ -n "$(git -C "$MERGE_DIR" ls-files --others --exclude-standard)" ]]; then
-      echo "ERROR: Working tree has uncommitted changes."
+    if ! git -C "$MERGE_DIR" diff --quiet -- . ':(exclude).todo-tasks' \
+       || ! git -C "$MERGE_DIR" diff --cached --quiet -- . ':(exclude).todo-tasks' \
+       || [[ -n "$(git -C "$MERGE_DIR" ls-files --others --exclude-standard -- . ':(exclude).todo-tasks')" ]]; then
+      echo "ERROR: Working tree has uncommitted changes (outside .todo-tasks/)."
       echo ""
       echo "The agent runs in a worktree branched from HEAD. Any uncommitted"
       echo "changes won't be in the worktree and will likely cause merge"
@@ -131,9 +136,6 @@ phase_validate() {
     fi
   fi
 
-  # Capture trunk tip before the agent runs — used by phase_verify to detect trunk leaks
-  TRUNK_HEAD_BEFORE=$(git -C "$MERGE_DIR" rev-parse "${TRUNK}" 2>/dev/null || echo "")
-
   # Validate that the plan has a parseable ## Verification fenced block
   if ! VERIFY_SCRIPT=$(parse_verification_commands "${PLAN_SOURCE_FILE}"); then
     exit 1
@@ -144,6 +146,29 @@ phase_validate() {
     echo "Validation passed."
     exit 0
   fi
+}
+
+# phase_commit_spec
+# Commits the spec on trunk (MERGE_DIR) BEFORE the worktree is cut, so the
+# squash-merge never collides with an untracked spec. Idempotent (skips if the
+# spec is already committed) and surgical (commits only this one path, never
+# sweeping unrelated changes). The user never hand-commits task files; the
+# orchestrator owns this commit. For chain phases the spec is already committed
+# on the chain branch, so this is a no-op.
+phase_commit_spec() {
+  local rel=".todo-tasks/tasks/${PLAN_SLUG}.md"
+  if [[ -n "$(git -C "$MERGE_DIR" status --porcelain -- "$rel" 2>/dev/null)" ]]; then
+    echo "── Committing spec to trunk ──"
+    git -C "$MERGE_DIR" add "$rel" 2>/dev/null || true
+    git -C "$MERGE_DIR" commit -q -m "todotask: spec ${PLAN_SLUG}" -- "$rel" 2>/dev/null || true
+    echo "Committed ${rel}"
+    echo ""
+  fi
+
+  # Capture trunk tip AFTER the spec commit — this is the true baseline before
+  # the agent runs, so phase_verify's trunk-leak check doesn't fire on our own
+  # spec commit in the no-op case.
+  TRUNK_HEAD_BEFORE=$(git -C "$MERGE_DIR" rev-parse "${TRUNK}" 2>/dev/null || echo "")
 }
 
 # phase_record_run
@@ -509,6 +534,7 @@ phase_finalize() {
 
 main() {
   CURRENT_PHASE="validate";        phase_validate
+  CURRENT_PHASE="commit_spec";     phase_commit_spec
   CURRENT_PHASE="create_worktree"; phase_create_worktree
   CURRENT_PHASE="record_run";      phase_record_run
   CURRENT_PHASE="copy_plan";       phase_copy_plan

@@ -78,9 +78,9 @@ Format: `{slug}.md` — kebab-case, descriptive.
 
 Examples: `fix-login-timeout.md`, `add-user-search.md`, `stale-cache-after-deploy.md`
 
-### Step 2: Write the task file
+### Step 2: Write the draft
 
-Write to `.todo-tasks/tasks/{slug}.md`:
+Write to `.todo-tasks/inbox/{slug}.md`. The inbox is **gitignored** — a filed idea is not yet work, so it never touches git. Do NOT commit. (Triage later promotes it to a tracked `tasks/{slug}.md`.)
 
 ```markdown
 # {Title}
@@ -118,7 +118,7 @@ Tell the user the file was created and they can triage it with `/todo-task triag
 - **Reference files.** If you know which files are involved, list them.
 - **One task per file.** Three bugs = three tasks.
 - **Don't over-specify the solution.** Describe the problem and desired outcome.
-- **Check for duplicates.** Scan `.todo-tasks/tasks/` first.
+- **Check for duplicates.** Scan `.todo-tasks/inbox/` and `.todo-tasks/tasks/` first.
 
 ### Epic Tasks
 
@@ -134,9 +134,9 @@ Refine a pending task from a rough idea into an executable spec that a headless 
 
 ### Step 1: List or select
 
-If no slug provided:
+If no slug provided, list untriaged drafts (the inbox):
 ```bash
-bash .claude/skills/todo-task/list-pending.sh
+bash .claude/skills/todo-task/list-drafts.sh
 ```
 
 Present tasks to the user with `AskUserQuestion`:
@@ -156,7 +156,7 @@ AskUserQuestion({
 
 ### Step 2: Read the task
 
-Read `.todo-tasks/tasks/{slug}.md`. Understand the motivation and scope. If the slug appears in any `.todo-tasks/epics/{epic}.md` `members:` list, also read that epic file for context.
+Read the draft at `.todo-tasks/inbox/{slug}.md` (or `.todo-tasks/tasks/{slug}.md` if you're re-triaging an already-promoted spec). Understand the motivation and scope. If the slug appears in any `.todo-tasks/epics/{epic}.md` `members:` list, also read that epic file for context.
 
 ### Step 3: Research the codebase
 
@@ -215,7 +215,7 @@ If the task is too large (10+ files, multiple independent features, needs mid-im
 
 ### Step 6: Rewrite as executable spec
 
-After the user has answered all questions and confirmed the approach, rewrite `.todo-tasks/tasks/{slug}.md` in place with this structure:
+After the user has answered all questions and confirmed the approach, **promote the draft**: write the executable spec to `.todo-tasks/tasks/{slug}.md` and delete the `.todo-tasks/inbox/{slug}.md` draft. Do NOT commit — the spec stays uncommitted (it doesn't block launching, and the orchestrator commits it automatically when you execute). Use this structure:
 
 ````markdown
 # {Title}
@@ -388,7 +388,8 @@ never lifecycle states.
 
 ```
 .todo-tasks/
-  tasks/{slug}.md            TRACKED   spec — written by create/triage, immutable while running
+  inbox/{slug}.md            IGNORED   untriaged draft — written by create, local-only
+  tasks/{slug}.md            TRACKED   spec — promoted by triage; committed by the orchestrator at launch
   results/{slug}.agent.md    TRACKED   worktree-owned outcome — carried to trunk by the merge
   results/{slug}.merge.md    TRACKED   trunk-owned outcome — written on trunk after the merge
   chains/{chain}.md          TRACKED   chain definition — written on trunk at completion
@@ -403,10 +404,15 @@ Phase is computed by the reporter from file presence:
 
 | Files present | Phase |
 |---|---|
-| spec only | pending |
+| draft in `inbox/` only | draft (untriaged) |
+| spec in `tasks/` | pending |
 | run-record + live PID | running |
 | run-record + dead PID + no `merge.md` | crashed (result read from the worktree) |
 | `agent.md` + `merge.md` | done (classified success/failure) |
+
+The spec being uncommitted does not block launching — the dirty-tree guard ignores
+`.todo-tasks/`, and `execute-plan.sh` commits the spec to trunk before cutting the worktree
+(so the squash-merge never collides with an untracked spec). You never hand-commit task files.
 
 `report.sh` is the **only** component that walks the filesystem and classifies state.
 `status.sh`, `monitor.sh`, and `list-pending.sh` are pure renderers over its TSV output.
@@ -436,9 +442,10 @@ If you skip these steps, future sessions will see stale worktrees in status outp
 
 ## Rules
 
-- `create` only writes `tasks/{slug}.md`.
-- `triage` only rewrites an existing `tasks/{slug}.md` (and may add a slug to an epic's `members:` list).
+- `create` only writes `inbox/{slug}.md` (gitignored draft). Never commit it.
+- `triage` promotes the draft → `tasks/{slug}.md` and deletes the inbox draft (and may add a slug to an epic's `members:` list). Do not commit the spec — the orchestrator commits it at launch.
 - `execute` launches agents via shell scripts; it never moves files between directories.
+- **Never hand-commit task specs** — `execute-plan.sh`/`execute-chain.sh` commit them automatically before cutting the worktree.
 - **Never hand-edit `results/*.agent.md`** — it is worktree-owned and carried by the merge.
 - **Never write to `.running/`** — the run-record is the orchestrator's; the reporter only reads it.
 - **Never hand-move files** to archive — run `archive.sh` (it uses `git rm`).

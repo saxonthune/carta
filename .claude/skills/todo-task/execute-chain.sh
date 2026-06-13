@@ -102,8 +102,12 @@ fi
 
 # ─── Guard: dirty tree check (once, at chain start) ─────────────────────────
 
-if ! git diff --quiet || ! git diff --cached --quiet || [[ -n "$(git ls-files --others --exclude-standard)" ]]; then
-  echo "ERROR: Working tree has uncommitted changes."
+# `.todo-tasks/` is excluded — orchestrator-managed; phase specs are committed
+# below before the chain worktree is cut.
+if ! git diff --quiet -- . ':(exclude).todo-tasks' \
+   || ! git diff --cached --quiet -- . ':(exclude).todo-tasks' \
+   || [[ -n "$(git ls-files --others --exclude-standard -- . ':(exclude).todo-tasks')" ]]; then
+  echo "ERROR: Working tree has uncommitted changes (outside .todo-tasks/)."
   echo ""
   echo "The chain creates a worktree from HEAD. Uncommitted changes won't"
   echo "be included and may cause conflicts when merging back."
@@ -131,6 +135,23 @@ done
 if [[ "$VALIDATE_ONLY" == "true" ]]; then
   echo "Validation passed."
   exit 0
+fi
+
+# ─── Commit Phase Specs to Real Trunk ────────────────────────────────────────
+# Specs must be committed BEFORE the chain worktree is cut, so the chain worktree
+# carries them and the final squash-merge never collides with an untracked spec.
+# The orchestrator owns this commit; the user never hand-commits task files.
+
+SPEC_PATHS=()
+for slug in "${PHASES[@]}"; do
+  rel=".todo-tasks/tasks/${slug}.md"
+  [[ -n "$(git status --porcelain -- "$rel" 2>/dev/null)" ]] && SPEC_PATHS+=("$rel")
+done
+if [[ ${#SPEC_PATHS[@]} -gt 0 ]]; then
+  echo "── Committing ${#SPEC_PATHS[@]} phase spec(s) to trunk ──"
+  git add "${SPEC_PATHS[@]}" 2>/dev/null || true
+  git commit -q -m "todotask: chain specs ${CHAIN_NAME}" -- "${SPEC_PATHS[@]}" 2>/dev/null || true
+  echo ""
 fi
 
 # ─── Create Chain Worktree ──────────────────────────────────────────────────

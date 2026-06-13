@@ -97,10 +97,14 @@ classify_slug() {
     fi
     bucket="$(state_bucket "$overall")"
     age="$(age_of "$run_file")"
-  else
-    # Rule 5: spec only → pending.
+  elif [[ -f "$spec" ]]; then
+    # Rule 5: spec present (triaged) → pending.
     phase="pending"
     age="$(age_of "$spec")"
+  else
+    # Rule 6: draft only (gitignored inbox, untriaged) → draft.
+    phase="draft"
+    age="$(age_of "${TODO}/inbox/${slug}.md")"
   fi
 
   # Commits + notes come from the agent.md when we have one.
@@ -120,14 +124,29 @@ classify_slug() {
 }
 
 # ─── Task records ──────────────────────────────────────────────────────────
+emit_task_record() {
+  local slug="$1" rec
+  rec="$(classify_slug "$slug")"
+  local phase overall bucket commits worktree branch age notes
+  IFS='|' read -r phase overall bucket commits worktree branch age notes <<< "$rec"
+  printf 'task\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+    "$slug" "$phase" "$overall" "$bucket" "$commits" "$worktree" "$branch" "$age" "$notes"
+}
+
 emit_tasks() {
-  local spec slug rec
+  declare -A seen=()
+  local spec draft slug
+  # Triaged specs (tracked) — pending / running / crashed / done.
   for spec in "$TODO"/tasks/*.md; do
     slug="$(basename "$spec" .md)"
-    rec="$(classify_slug "$slug")"
-    IFS='|' read -r phase overall bucket commits worktree branch age notes <<< "$rec"
-    printf 'task\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
-      "$slug" "$phase" "$overall" "$bucket" "$commits" "$worktree" "$branch" "$age" "$notes"
+    seen[$slug]=1
+    emit_task_record "$slug"
+  done
+  # Untriaged drafts (gitignored inbox) not yet promoted to a spec.
+  for draft in "$TODO"/inbox/*.md; do
+    slug="$(basename "$draft" .md)"
+    [[ -n "${seen[$slug]:-}" ]] && continue
+    emit_task_record "$slug"
   done
 }
 

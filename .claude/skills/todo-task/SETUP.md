@@ -1,8 +1,8 @@
 # todo-task first-run setup
 
-The todo-task skill calls a small set of read-only scripts (`list-pending.sh`, `report.sh`,
-`status.sh`) every time you run `triage`, `execute`, or `status`. Without an allowlist entry,
-Claude will prompt for approval on each call.
+The todo-task skill calls a small set of read-only scripts (`list-drafts.sh`,
+`list-pending.sh`, `report.sh`, `status.sh`) every time you run `triage`, `execute`, or
+`status`. Without an allowlist entry, Claude will prompt for approval on each call.
 
 ## Suggested allowlist
 
@@ -14,6 +14,7 @@ what to allow.
 {
   "permissions": {
     "allow": [
+      "Bash(bash .claude/skills/todo-task/list-drafts.sh:*)",
       "Bash(bash .claude/skills/todo-task/list-pending.sh:*)",
       "Bash(bash .claude/skills/todo-task/report.sh:*)",
       "Bash(bash .claude/skills/todo-task/status.sh:*)"

@@ -27,7 +27,7 @@ done
 mapfile -t RECORDS < <(bash "${SCRIPT_DIR}/report.sh")
 
 declare -a BUCKET_ATTENTION=() BUCKET_QUESTIONABLE=() BUCKET_READY=() BUCKET_SUCCESS=()
-declare -a CRASHED=() RUNNING=() PENDING=() CHAINS=() EPICS=() STALE=()
+declare -a CRASHED=() RUNNING=() PENDING=() DRAFTS=() CHAINS=() EPICS=() STALE=()
 
 for rec in "${RECORDS[@]}"; do
   IFS=$'\t' read -r type rest <<< "$rec"
@@ -46,6 +46,7 @@ for rec in "${RECORDS[@]}"; do
         crashed)  CRASHED+=("${slug}|${overall}|${commits}|${worktree}|${notes}") ;;
         running)  RUNNING+=("${slug}|${worktree}|${branch}") ;;
         pending)  PENDING+=("${slug}") ;;
+        draft)    DRAFTS+=("${slug}") ;;
       esac ;;
     chain) IFS=$'\t' read -r _ name cstatus done_n total current phases worktree branch <<< "$rec"
            CHAINS+=("${name}|${cstatus}|${done_n}|${total}|${current}|${phases}|${worktree}|${branch}") ;;
@@ -143,6 +144,16 @@ if [[ ${#PENDING[@]} -gt 0 ]]; then
   echo ""
 fi
 
+if [[ ${#DRAFTS[@]} -gt 0 ]]; then
+  echo "## Drafts (untriaged)"
+  echo ""
+  echo "Filed ideas in the gitignored inbox. Triage to turn them into executable specs."
+  for slug in "${DRAFTS[@]}"; do
+    echo "- ${slug}"
+  done
+  echo ""
+fi
+
 if [[ ${#STALE[@]} -gt 0 ]]; then
   echo "## Stale Worktrees"
   echo ""
@@ -157,7 +168,7 @@ fi
 # ─── Summary ────────────────────────────────────────────────────────────────
 
 echo "---"
-echo "Summary: ${#BUCKET_SUCCESS[@]} success, ${#BUCKET_READY[@]} ready, ${#BUCKET_QUESTIONABLE[@]} questionable, ${#BUCKET_ATTENTION[@]} attention, ${#CRASHED[@]} crashed, ${#RUNNING[@]} running, ${#CHAINS[@]} chains, ${#PENDING[@]} pending, ${#EPICS[@]} epics, ${#STALE[@]} stale"
+echo "Summary: ${#BUCKET_SUCCESS[@]} success, ${#BUCKET_READY[@]} ready, ${#BUCKET_QUESTIONABLE[@]} questionable, ${#BUCKET_ATTENTION[@]} attention, ${#CRASHED[@]} crashed, ${#RUNNING[@]} running, ${#CHAINS[@]} chains, ${#PENDING[@]} pending, ${#DRAFTS[@]} drafts, ${#EPICS[@]} epics, ${#STALE[@]} stale"
 
 if [[ "$HAS_ATTENTION" == "true" ]]; then
   echo "Attention needed — review the agents above before proceeding."

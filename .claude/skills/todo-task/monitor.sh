@@ -99,6 +99,16 @@ render_pending() {
   return 0
 }
 
+render_drafts() {
+  local slug
+  for slug in "$@"; do
+    [[ -z "$slug" ]] && continue
+    printf '  %sdraft%s    %s%s\n' "$DIM" "$RESET" "$slug" "$EL"
+  done
+  [[ $# -gt 0 ]] && printf '%s\n' "$EL"
+  return 0
+}
+
 render_epics() {
   local entry name summary
   [[ $# -eq 0 ]] && return 0
@@ -119,7 +129,7 @@ render_summary() {
 
 # ── Frame ────────────────────────────────────────────────────────────────────
 render_frame() {
-  local -a active=() recent_raw=() pending=() epics=()
+  local -a active=() recent_raw=() pending=() drafts=() epics=()
   local n_success=0 n_ready=0 n_questionable=0 n_attention=0
 
   local rec type
@@ -133,6 +143,7 @@ render_frame() {
         case "$phase" in
           running) active+=("$(printf 'running\t%s\t%s' "$slug" "$(age_ago "$age")")") ;;
           pending) pending+=("$slug") ;;
+          draft)   drafts+=("$slug") ;;
           done|crashed)
             recent_raw+=("$(printf '%s\t%s\t%s\t%s' "$age" "$overall" "$slug" "$(age_ago "$age")")")
             case "$bucket" in
@@ -172,6 +183,7 @@ render_frame() {
   render_active  "${active[@]}"
   render_recent  "${recent[@]}"
   render_pending "${pending[@]}"
+  render_drafts  "${drafts[@]}"
   render_epics   "${epics[@]}"
   render_summary "${#active[@]}" "$n_success" "$n_ready" "$n_questionable" "$n_attention" "${#pending[@]}"
 }
