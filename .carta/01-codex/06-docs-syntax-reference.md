@@ -13,17 +13,36 @@ This is the formal companion to doc01.03 (Conventions), which covers usage guida
 
 ## #sec01 Document References
 
-A **doc reference** identifies a file in the workspace by its position in the directory tree.
+A **doc reference** identifies a file in the workspace by its coordinate — the sequence of two-digit prefixes along its path from the workspace root. The coordinate is the sole basis for resolution; a file's slug is descriptive text and never participates in addressing.
 
-### Grammar
+### Canonical grammar
+
+The canonical form carries the `doc` prefix. This is the form that appears in prose, frontmatter `deps`, and MANIFEST.
 
 ```
-doc_ref     = "doc" segment ( "." segment )*
+doc_ref     = "doc" coordinate
+coordinate  = segment ( "." segment )*
 segment     = DIGIT DIGIT
 DIGIT       = "0"-"9"
 ```
 
 Pattern: `doc\d{2}(\.\d{2})*`
+
+### Input grammar
+
+On the command line the prefix is optional sugar. Three surface forms denote the same reference and normalize to the canonical form on entry:
+
+```
+input_ref   = ( "doc" | "d" )? coordinate
+```
+
+| Input | Canonical |
+|-------|-----------|
+| `doc04.08` | `doc04.08` |
+| `d04.08` | `doc04.08` |
+| `04.08` | `doc04.08` |
+
+The input grammar is lenient; the canonical pattern is strict. Matching references embedded in document text uses the canonical pattern alone, so bare coordinates such as dates and version numbers are never mistaken for references.
 
 ### Resolution
 
@@ -151,8 +170,8 @@ NN-slug/            # document directory
 NN-slug/00-index.md # directory index (required for every directory)
 ```
 
-- `NN` is a two-digit prefix controlling sort order.
-- `slug` is kebab-case: lowercase alphanumeric and hyphens.
+- `NN` is a two-digit prefix controlling sort order. It is the coordinate segment a reference resolves on (see #sec01).
+- `slug` is kebab-case: lowercase alphanumeric and hyphens. It is human-readable title text and plays no role in resolution — renaming a slug never changes a reference.
 - Gaps in numbering are allowed and intentional.
 - Directories exceeding 99 entries should be split into subdirectories.
 
