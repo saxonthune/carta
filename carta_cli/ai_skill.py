@@ -7,7 +7,7 @@ _PACKAGE_DIR = Path(__file__).resolve().parent
 
 from .frontmatter import read_frontmatter
 from .entries import list_numbered_entries
-from .numbering import get_slug
+from .docref import EntryName
 from .workspace import load_workspace, get_external_ref_paths
 from . import bundle as _bundle_mod
 
@@ -621,7 +621,7 @@ def _workspace_state_section(carta_root: Path) -> list[str]:
     for entry in top_entries:
         if entry.is_dir():
             # Get title from 00-index.md frontmatter
-            title = get_slug(entry.name).replace("-", " ").title()
+            title = (EntryName.parse(entry.name).tail if EntryName.parse(entry.name) else entry.name).replace("-", " ").title()
             index_file = entry / "00-index.md"
             if index_file.exists():
                 try:
@@ -637,7 +637,7 @@ def _workspace_state_section(carta_root: Path) -> list[str]:
             rows.append((entry.name, title, count, sidecars))
         elif entry.suffix == ".md":
             total_docs += 1
-            title = get_slug(entry.name).replace("-", " ").title()
+            title = (EntryName.parse(entry.name).tail if EntryName.parse(entry.name) else entry.name).replace("-", " ").title()
             rows.append((entry.name, title, 1, 0))
 
     if rows:

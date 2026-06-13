@@ -25,8 +25,12 @@ sys.path.insert(0, str(_CLI_DIR))
 
 from carta_cli.commands._parser import main as cli_main
 from carta_cli.entries import list_numbered_entries
-from carta_cli.numbering import get_numeric_prefix
-from carta_cli.docref import DocRef
+from carta_cli.docref import DocRef, EntryName
+
+
+def get_numeric_prefix(name: str) -> int | None:
+    en = EntryName.parse(name)
+    return en.prefix if en is not None else None
 from carta_cli.rewriter import collect_md_files, rewrite_refs
 
 

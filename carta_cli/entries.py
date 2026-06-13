@@ -1,8 +1,7 @@
 import re
 from pathlib import Path
 
-from .numbering import get_numeric_prefix
-from .docref import DocRef, DocEntry
+from .docref import DocRef, DocEntry, EntryName
 from .errors import CartaError
 
 
@@ -13,9 +12,9 @@ def list_numbered_entries(directory: Path) -> list[Path]:
     """Return directory entries that have a 2-digit numeric prefix, sorted by prefix."""
     entries = [
         p for p in directory.iterdir()
-        if get_numeric_prefix(p.name) is not None
+        if EntryName.parse(p.name) is not None
     ]
-    return sorted(entries, key=lambda p: get_numeric_prefix(p.name))
+    return sorted(entries, key=lambda p: EntryName.parse(p.name).prefix)
 
 
 def _match_path_segment(directory: Path, segment: str) -> Path | None:

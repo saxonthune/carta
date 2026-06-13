@@ -9,7 +9,8 @@ from pathlib import Path
 from ..errors import CartaError
 from ..frontmatter import read_frontmatter, write_frontmatter
 from ..entries import resolve_arg, resolve_and_validate, list_numbered_entries
-from ..numbering import get_numeric_prefix, get_slug, compute_insertion_prefix
+from ..numbering import compute_insertion_prefix
+from ..docref import EntryName
 from ..rewriter import rewrite_refs
 from ..planning import compute_rename_map
 from ..workspace import collect_rewritable_files
@@ -33,12 +34,14 @@ def cmd_punch(args: argparse.Namespace, carta_root: Path) -> None:
     if not source_path.name.endswith(".md"):
         raise CartaError(f"Error: source is not a .md file: {source_path}")
 
-    prefix = get_numeric_prefix(source_path.name)
-    if prefix is None:
+    _src_en = EntryName.parse(source_path.name)
+    if _src_en is None:
         raise CartaError(f"Error: source has no numeric prefix: {source_path.name}")
+    prefix = _src_en.prefix
 
     dir_name = source_path.name[:-3]
-    slug = get_slug(dir_name)
+    _dir_en = EntryName.parse(dir_name)
+    slug = _dir_en.tail if _dir_en is not None else dir_name
     new_dir = source_path.parent / dir_name
     new_index = new_dir / "00-index.md"
     as_child = args.as_child
@@ -58,7 +61,7 @@ def cmd_punch(args: argparse.Namespace, carta_root: Path) -> None:
         else:
             print(f"Would punch: {source_path.name} {glyphs.arrow} {dir_name}/00-index.md")
         for att in attachments:
-            att_slug = get_slug(att.name)
+            att_slug = EntryName.parse(att.name).tail
             print(f"Would move attachment: {att.name} {glyphs.arrow} {dir_name}/{att_prefix:02d}-{att_slug}")
         print("\n(dry-run: no files modified)")
         return
@@ -73,7 +76,7 @@ def cmd_punch(args: argparse.Namespace, carta_root: Path) -> None:
             "summary": "", "tags": [], "deps": [],
         }, f"\n# {title}\n")
         for att in attachments:
-            att_slug = get_slug(att.name)
+            att_slug = EntryName.parse(att.name).tail
             shutil.move(str(att), str(new_dir / f"{att_prefix:02d}-{att_slug}"))
         print(f"Punched: {source_path.name} {glyphs.arrow} {dir_name}/01-{slug}.md (content)")
         print(f"  Index: {dir_name}/00-index.md (generated)")
@@ -82,7 +85,7 @@ def cmd_punch(args: argparse.Namespace, carta_root: Path) -> None:
     else:
         shutil.move(str(source_path), str(new_index))
         for att in attachments:
-            att_slug = get_slug(att.name)
+            att_slug = EntryName.parse(att.name).tail
             shutil.move(str(att), str(new_dir / f"{att_prefix:02d}-{att_slug}"))
         print(f"Punched: {source_path.name} {glyphs.arrow} {dir_name}/00-index.md")
         if attachments:
@@ -108,17 +111,17 @@ def _flatten_bundle_moves(
     moves: list[tuple[Path, Path]] = []
     if bndl.is_directory_bundle:
         dir_path = bndl.attachments[0]
-        new_path = dest_dir / f"{new_prefix:02d}-{get_slug(dir_path.name)}"
+        new_path = dest_dir / f"{new_prefix:02d}-{EntryName.parse(dir_path.name).tail}"
         if dir_path.resolve() != new_path.resolve():
             moves.append((dir_path, new_path))
     else:
         if bndl.root is not None:
-            slug = override_root_slug if override_root_slug is not None else get_slug(bndl.root.name)
+            slug = override_root_slug if override_root_slug is not None else EntryName.parse(bndl.root.name).tail
             new_path = dest_dir / f"{new_prefix:02d}-{slug}"
             if bndl.root.resolve() != new_path.resolve():
                 moves.append((bndl.root, new_path))
         for att in bndl.attachments:
-            att_slug = get_slug(att.name)
+            att_slug = EntryName.parse(att.name).tail
             new_att = dest_dir / f"{new_prefix:02d}-{att_slug}"
             if att.resolve() != new_att.resolve():
                 moves.append((att, new_att))
@@ -136,19 +139,19 @@ def _flatten_stage_bundle(
     """Move all bundle members into staging_path, recording (stage, final) pairs."""
     if bndl.is_directory_bundle:
         dir_path = bndl.attachments[0]
-        final_name = f"{new_prefix:02d}-{get_slug(dir_path.name)}"
+        final_name = f"{new_prefix:02d}-{EntryName.parse(dir_path.name).tail}"
         stage_path = staging_path / final_name
         shutil.move(str(dir_path), str(stage_path))
         staged.append((stage_path, dest_dir / final_name))
     else:
         if bndl.root is not None:
-            slug = override_root_slug if override_root_slug is not None else get_slug(bndl.root.name)
+            slug = override_root_slug if override_root_slug is not None else EntryName.parse(bndl.root.name).tail
             final_name = f"{new_prefix:02d}-{slug}"
             stage_path = staging_path / final_name
             shutil.move(str(bndl.root), str(stage_path))
             staged.append((stage_path, dest_dir / final_name))
         for att in bndl.attachments:
-            att_slug = get_slug(att.name)
+            att_slug = EntryName.parse(att.name).tail
             final_name = f"{new_prefix:02d}-{att_slug}"
             stage_att = staging_path / final_name
             shutil.move(str(att), str(stage_att))
@@ -166,9 +169,10 @@ def cmd_flatten(args: argparse.Namespace, carta_root: Path) -> None:
     if not source_path.is_dir():
         raise CartaError(f"Error: source is not a directory: {source_path}")
 
-    source_prefix = get_numeric_prefix(source_path.name)
-    if source_prefix is None:
+    _flat_en = EntryName.parse(source_path.name)
+    if _flat_en is None:
         raise CartaError(f"Error: source has no numeric prefix: {source_path.name}")
+    source_prefix = _flat_en.prefix
 
     parent_dir = source_path.parent
     insertion_start = args.at_position
@@ -203,7 +207,7 @@ def cmd_flatten(args: argparse.Namespace, carta_root: Path) -> None:
 
     # Source children
     source_child_bundles = bundle_mod.list_bundles(source_path)
-    dir_slug = get_slug(source_path.name)
+    dir_slug = EntryName.parse(source_path.name).tail
 
     index_bundle = next((b for b in source_child_bundles if b.prefix == 0), None)
     index_attachments: list[Path] = list(index_bundle.attachments) if index_bundle else []
@@ -317,14 +321,13 @@ def cmd_copy(args: argparse.Namespace, carta_root: Path) -> None:
 
     rename_slug = args.rename_slug
     if rename_slug is None:
-        stem = source_path.stem
-        m = re.match(r'^\d{2}-(.*)', stem)
-        rename_slug = m.group(1) if m else stem
+        _stem_en = EntryName.parse(source_path.stem)
+        rename_slug = _stem_en.tail if _stem_en is not None else source_path.stem
 
     entries = list_numbered_entries(dest_path)
     prefix = compute_insertion_prefix(entries, args.order)
 
-    occupied = {get_numeric_prefix(e.name) for e in entries}
+    occupied = {en.prefix for e in entries if (en := EntryName.parse(e.name))}
     if prefix in occupied:
         raise CartaError(
             f"Error: position {prefix:02d} is occupied in {dest_path.relative_to(carta_root)}.\n"
@@ -367,13 +370,14 @@ def cmd_group(args: argparse.Namespace, carta_root: Path) -> None:
     if not target_path.parent.exists():
         raise CartaError(f"Error: parent directory does not exist: {target_path.parent}")
 
-    if get_numeric_prefix(target_path.name) is None:
+    _tgt_en = EntryName.parse(target_path.name)
+    if _tgt_en is None:
         raise CartaError(f"Error: directory name must have NN- prefix: {target_path.name}")
 
     if not target_path.exists():
         target_path.mkdir()
 
-    title = args.title if args.title else get_slug(target_path.name).replace("-", " ").title()
+    title = args.title if args.title else _tgt_en.tail.replace("-", " ").title()
     write_frontmatter(target_path / "00-index.md", {
         "title": title,
         "summary": "", "tags": [], "deps": [],

@@ -4,13 +4,12 @@ No frontmatter parsing, no I/O beyond Path.iterdir().
 """
 from __future__ import annotations
 
-import re
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 
+from .docref import EntryName
 from .errors import CartaError
-from .numbering import get_numeric_prefix
 
 
 @dataclass(frozen=True)
@@ -28,8 +27,8 @@ class Bundle:
     def slug(self) -> str | None:
         if self.root is None:
             return None
-        m = re.match(r'^\d{2}-(.*?)\.md$', self.root.name)
-        return m.group(1) if m else None
+        en = EntryName.parse(self.root.name)
+        return en.slug if en is not None and en.is_markdown else None
 
 
 def list_bundles(directory: Path) -> list[Bundle]:
@@ -40,9 +39,9 @@ def list_bundles(directory: Path) -> list[Bundle]:
     """
     groups: dict[int, list[Path]] = defaultdict(list)
     for entry in directory.iterdir():
-        prefix = get_numeric_prefix(entry.name)
-        if prefix is not None:
-            groups[prefix].append(entry)
+        en = EntryName.parse(entry.name)
+        if en is not None:
+            groups[en.prefix].append(entry)
 
     bundles: list[Bundle] = []
     for prefix in sorted(groups):
@@ -78,9 +77,8 @@ def list_bundles(directory: Path) -> list[Bundle]:
 
 def find_bundle(path: Path) -> Bundle | None:
     """Return the Bundle rooted at path, or None if path isn't a numbered .md file."""
-    if get_numeric_prefix(path.name) is None:
-        return None
-    if path.suffix != '.md':
+    en = EntryName.parse(path.name)
+    if en is None or not en.is_markdown:
         return None
     if not path.is_file():
         return None
@@ -115,7 +113,7 @@ def slug_collision(bundle: Bundle, slug: str) -> Path | None:
     Ensures docXX.YY/<slug>.<ext> is unambiguous within a bundle.
     """
     for a in bundle.attachments:
-        m = re.match(r'^\d{2}-(.*?)\.[^.]+$', a.name)
-        if m and m.group(1) == slug:
+        en = EntryName.parse(a.name)
+        if en is not None and en.ext is not None and en.slug == slug:
             return a
     return None

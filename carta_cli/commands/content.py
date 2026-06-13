@@ -8,8 +8,7 @@ from pathlib import Path
 from ..errors import CartaError
 from ..entries import resolve_arg, resolve_and_validate, list_numbered_entries, display_path
 from ..frontmatter import read_frontmatter
-from ..numbering import get_slug, get_numeric_prefix
-from ..docref import DocRef
+from ..docref import DocRef, EntryName
 from ..rewriter import rewrite_refs
 from ..workspace import collect_rewritable_files
 from ..regenerate_core import do_regenerate, _collect_all_orphans
@@ -296,13 +295,13 @@ def cmd_ls(args: argparse.Namespace, carta_root: Path) -> None:
     glyphs = for_stream(sys.stdout)
 
     for entry in sorted(target.iterdir(), key=lambda p: p.name):
-        prefix = get_numeric_prefix(entry.name)
-        if prefix is None:
+        _en = EntryName.parse(entry.name)
+        if _en is None:
             print(entry.name)
             continue
 
         if entry.is_dir():
-            slug_str = get_slug(entry.name)
+            slug_str = _en.tail
             title = slug_str.replace("-", " ").title()
             index_file = entry / "00-index.md"
             if index_file.exists():
@@ -313,7 +312,7 @@ def cmd_ls(args: argparse.Namespace, carta_root: Path) -> None:
                     pass
             print(f"{entry.name}{glyphs.dash}{title}")
         elif entry.suffix == ".md":
-            slug_str = get_slug(entry.name)
+            slug_str = _en.tail
             title = slug_str.replace("-", " ").title()
             try:
                 fm, _ = read_frontmatter(entry)
