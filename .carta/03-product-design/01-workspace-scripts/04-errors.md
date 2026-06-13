@@ -24,7 +24,19 @@ Every guard failure across the action catalog surfaces as a named `ERR-*` code. 
 - **Not-found**: target ref/path does not resolve. `ERR-*-NOT-FOUND`.
 - **Precondition violation**: target exists but is in the wrong shape (wrong kind, already transformed, etc.). `ERR-*-IS-DIR`, `ERR-*-IS-INDEX`, `ERR-*-UNNUMBERED`.
 - **Collision**: target destination already occupied. `ERR-*-COLLISION`.
-- **Input validation**: malformed arguments. `ERR-*-BAD-SLUG`, `ERR-*-BAD-ORDER`.
+- **Input validation**: malformed arguments. `ERR-*-BAD-SLUG`, `ERR-*-BAD-ORDER`, `ERR-RESOLVE-BAD-REF`.
+
+## Catalog
+
+```yaml
+- id: ERR-RESOLVE-BAD-REF
+  guard: input validation — argument matches the ref grammar shape but fails segment validation
+  exception: CartaError
+  exit_code: 1
+  message: "Invalid doc ref {raw!r}: each segment must be exactly 2 digits, got {part!r}"
+```
+
+Raised by `DocRef.parse` when a string that looks like a ref (matches `^(?:doc|d)?\d{2}(\.\d{2})*$`) contains a segment that is not exactly two digits. Propagated through the resolver to the CLI as a user-facing error.
 
 ## Exit codes
 

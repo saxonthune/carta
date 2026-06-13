@@ -1,6 +1,5 @@
 """carta — content commands: cat, tree, regenerate, rewrite, attach, ls, bundle, orphans."""
 import argparse
-import re
 import shutil
 import sys
 from pathlib import Path
@@ -159,14 +158,22 @@ def cmd_regenerate(args: argparse.Namespace, carta_root: Path) -> None:
 # ---------------------------------------------------------------------------
 
 def cmd_rewrite(args: argparse.Namespace, carta_root: Path) -> None:
-    """Rewrite doc refs from mappings."""
+    """Rewrite doc refs from mappings. Both sides of each mapping are normalized to canonical form."""
     rename_map: dict[str, str] = {}
 
     for pair in args.mappings:
         if '=' not in pair:
             raise CartaError(f"Error: invalid mapping {pair!r} — expected old=new format.")
-        old, new = pair.split('=', 1)
-        rename_map[old.strip()] = new.strip()
+        raw_old, raw_new = pair.split('=', 1)
+        try:
+            old = str(DocRef.parse(raw_old.strip()))
+        except CartaError as e:
+            raise CartaError(f"Error in mapping {pair!r} (old side): {e}")
+        try:
+            new = str(DocRef.parse(raw_new.strip()))
+        except CartaError as e:
+            raise CartaError(f"Error in mapping {pair!r} (new side): {e}")
+        rename_map[old] = new
 
     if not rename_map:
         raise CartaError("Error: no mappings provided.")
@@ -185,8 +192,8 @@ def cmd_rewrite(args: argparse.Namespace, carta_root: Path) -> None:
             except (OSError, UnicodeDecodeError):
                 continue
             for old in rename_map:
-                pattern = re.compile(r'(?<!\w)' + re.escape(old) + r'(?!\.[a-zA-Z0-9])')
-                matches = pattern.findall(text)
+                matches = DocRef.SCAN.findall(text)
+                matches = [m for m in matches if m == old]
                 if matches:
                     total += len(matches)
                     print(f"  {display_path(fpath, carta_root)}: {len(matches)} match(es) for {old}")

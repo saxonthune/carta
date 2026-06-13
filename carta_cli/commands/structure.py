@@ -1,7 +1,6 @@
 """carta — structure commands: create, delete, move, rename."""
 import argparse
 import json
-import re
 import shutil
 from pathlib import Path
 
@@ -122,7 +121,6 @@ def _find_orphaned_refs(
     if not deleted_refs:
         return []
 
-    ref_pattern = re.compile(r'(?<!\w)(doc\d{2}(?:\.\d{2})*)(?!\.[a-zA-Z0-9])')
     orphans: list[tuple[Path, str, str]] = []
 
     for fpath in md_files:
@@ -131,14 +129,14 @@ def _find_orphaned_refs(
         except (OSError, UnicodeDecodeError):
             continue
 
-        for m in ref_pattern.finditer(text):
-            if m.group(1) in deleted_refs:
+        for m in DocRef.SCAN.finditer(text):
+            if m.group(0) in deleted_refs:
                 line_start = text.rfind("\n", 0, m.start()) + 1
                 line_end = text.find("\n", m.end())
                 if line_end == -1:
                     line_end = len(text)
                 line_text = text[line_start:line_end].strip()
-                orphans.append((fpath, line_text, m.group(1)))
+                orphans.append((fpath, line_text, m.group(0)))
 
     return orphans
 

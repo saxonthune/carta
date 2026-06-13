@@ -16,7 +16,9 @@ Use `docXX.YY` to reference another document. Every segment is two digits:
 
 Two digits per segment, unlimited depth. Nesting can go as deep as the directory structure requires. Each segment maps to a numbered directory or file. If a directory exceeds 99 items, split it into subdirectories rather than widening the numbering.
 
-The regex pattern `doc\d{2}(\.\d{2})*` matches all references and is grep-friendly:
+In prose and stored references, always write the canonical `docXX.YY` form. The CLI also accepts the shorthand `dXX.YY` and bare `XX.YY` on input, normalizing them to canonical form on entry. The slug after a file's `NN-` prefix is human-readable title text and is never part of a reference — renaming a slug never changes a reference.
+
+The canonical pattern `doc\d{2}(\.\d{2})*` matches all references and is grep-friendly:
 
 ```bash
 grep -rn "doc01\.02" {{dir_name}}/
