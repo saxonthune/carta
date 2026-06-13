@@ -18,7 +18,15 @@ sys.path.insert(0, str(_TESTS_DIR))
 
 from conftest import _build_fixture, _run_carta
 from carta_cli.numbering import get_numeric_prefix
-from carta_cli.ref_convert import path_to_ref, ref_to_path
+from carta_cli.docref import DocRef
+
+
+def ref_to_path(ref: str, root):
+    return DocRef.parse(ref).to_path(root)
+
+
+def path_to_ref(path, root):
+    return str(DocRef.from_path(path, root))
 
 _REF_RE = re.compile(r'\bdoc\d{2}(\.\d{2})*\b')
 

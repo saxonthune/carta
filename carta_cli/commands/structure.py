@@ -9,7 +9,7 @@ from ..errors import CartaError
 from ..frontmatter import write_frontmatter
 from ..entries import resolve_arg, resolve_and_validate, list_numbered_entries, display_path
 from ..numbering import get_numeric_prefix, get_slug, compute_insertion_prefix
-from ..ref_convert import path_to_ref
+from ..docref import DocRef
 from ..rewriter import rewrite_refs
 from ..planning import compute_all_moves, compute_rename_map, print_rename_map
 from ..workspace import collect_rewritable_files
@@ -33,7 +33,7 @@ def cmd_create(args: argparse.Namespace, carta_root: Path) -> None:
         raise CartaError("Error: --order must be >= 1 (position 0 is reserved for index files).")
 
     try:
-        dest_path = resolve_arg(args.destination, carta_root)
+        dest_path = resolve_arg(args.destination, carta_root).path
     except (FileNotFoundError, ValueError) as e:
         raise CartaError(f"Error resolving destination {args.destination!r}: {e}")
 
@@ -92,13 +92,13 @@ def cmd_create(args: argparse.Namespace, carta_root: Path) -> None:
 def _collect_refs_under(path: Path, carta_root: Path) -> set[str]:
     refs: set[str] = set()
     try:
-        refs.add(path_to_ref(path, carta_root))
+        refs.add(str(DocRef.from_path(path, carta_root)))
     except ValueError:
         pass
     if path.is_dir():
         for child in path.rglob("*"):
             try:
-                refs.add(path_to_ref(child, carta_root))
+                refs.add(str(DocRef.from_path(child, carta_root)))
             except ValueError:
                 pass
     return refs
@@ -151,7 +151,7 @@ def cmd_delete(args: argparse.Namespace, carta_root: Path) -> None:
     """Delete entries with gap-closing."""
     target_paths: list[Path] = []
     for target in args.targets:
-        path = resolve_and_validate(target, carta_root)
+        path = resolve_and_validate(target, carta_root).path
         if (path.is_file()
                 and path.suffix != '.md'
                 and get_numeric_prefix(path.name) is not None):
@@ -298,7 +298,7 @@ def cmd_move(args: argparse.Namespace, carta_root: Path) -> None:
     if args.order is not None and args.order < 1:
         raise CartaError("Error: --order must be >= 1 (position 0 is reserved for index files).")
 
-    source_path = resolve_and_validate(args.source, carta_root)
+    source_path = resolve_and_validate(args.source, carta_root).path
 
     if (source_path.is_file()
             and source_path.suffix != '.md'
@@ -309,7 +309,7 @@ def cmd_move(args: argparse.Namespace, carta_root: Path) -> None:
         raise CartaError("Error: cannot rename 00-index.md files.")
 
     try:
-        dest_path = resolve_arg(args.destination, carta_root)
+        dest_path = resolve_arg(args.destination, carta_root).path
     except (FileNotFoundError, ValueError) as e:
         if not args.mkdir:
             raise CartaError(f"Error resolving destination {args.destination!r}: {e}")
@@ -378,7 +378,7 @@ def cmd_move(args: argparse.Namespace, carta_root: Path) -> None:
 
 def cmd_rename(args: argparse.Namespace, carta_root: Path) -> None:
     """Rename a directory or file slug without changing position."""
-    target_path = resolve_and_validate(args.target, carta_root)
+    target_path = resolve_and_validate(args.target, carta_root).path
 
     prefix = get_numeric_prefix(target_path.name)
     if prefix is None:

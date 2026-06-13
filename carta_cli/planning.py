@@ -2,7 +2,7 @@ from pathlib import Path
 
 from .numbering import get_numeric_prefix, get_slug
 from .entries import list_numbered_entries
-from .ref_convert import path_to_ref
+from .docref import DocRef
 from . import bundle as bundle_mod
 
 
@@ -286,8 +286,8 @@ def compute_rename_map(
 
             final = trace_path(item, moves)
             try:
-                old_ref = path_to_ref(item, carta_root)
-                new_ref = path_to_ref(final, carta_root)
+                old_ref = str(DocRef.from_path(item, carta_root))
+                new_ref = str(DocRef.from_path(final, carta_root))
                 # Skip sidecar display refs — they are not written into .md files
                 if "/" in old_ref or "/" in new_ref:
                     continue

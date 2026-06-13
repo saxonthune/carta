@@ -210,3 +210,25 @@ class EntryName:
             ext = rest[dot_idx:]
 
         return cls(prefix=prefix, slug=slug, ext=ext)
+
+
+# ---------------------------------------------------------------------------
+# DocEntry — a resolved coordinate bound to its filesystem location
+# ---------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class DocEntry:
+    """A DocRef paired with the filesystem path it resolved to.
+
+    ref  — the logical coordinate (DocRef); may be DocRef(segments=()) for
+            brand-new unnumbered targets where derivation is not possible.
+    path — the physical location (absolute Path).
+    """
+
+    ref: DocRef
+    path: Path
+
+    @property
+    def slug(self) -> str:
+        entry = EntryName.parse(self.path.name)
+        return entry.slug if entry is not None else self.path.stem

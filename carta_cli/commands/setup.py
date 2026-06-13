@@ -28,7 +28,7 @@ _LIBRARY_MODULES = [
     "entries.py",
     "numbering.py",
     "bundle.py",
-    "ref_convert.py",
+    "docref.py",
     "rewriter.py",
     "planning.py",
     "workspace.py",

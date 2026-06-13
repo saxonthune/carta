@@ -2,11 +2,10 @@ import re
 from pathlib import Path
 
 from .numbering import get_numeric_prefix
-from .ref_convert import ref_to_path, path_to_ref
+from .docref import DocRef, DocEntry
 from .errors import CartaError
 
 
-_REF_RE = re.compile(r'^doc\d{2}(\.\d{2})*$')
 _PREFIX_RE = re.compile(r'^\d{2}$')
 
 
@@ -38,7 +37,7 @@ def _match_path_segment(directory: Path, segment: str) -> Path | None:
             return None
         if len(matches) == 1:
             return matches[0]
-        # Tiebreak: prefer the single .md file or directory (mirrors ref_to_path)
+        # Tiebreak: prefer the single .md file or directory (mirrors DocRef.to_path)
         md_or_dir = [p for p in matches if p.suffix == ".md" or p.is_dir()]
         if len(md_or_dir) == 1:
             return md_or_dir[0]
@@ -58,10 +57,26 @@ def _fuzzy_match(arg: str, carta_root: Path) -> Path | None:
     return current
 
 
-def resolve_arg(arg: str, carta_root: Path) -> Path:
-    """Resolve a ref or relative path argument to an absolute filesystem path."""
-    if _REF_RE.match(arg):
-        return ref_to_path(arg, carta_root)
+def _make_entry(path: Path, carta_root: Path) -> DocEntry:
+    """Construct a DocEntry, deriving the ref best-effort.
+
+    If path lacks NN- prefixed components (brand-new unnumbered target,
+    or path == carta_root itself), ref derivation falls back to a sentinel.
+    Callers should use .path, not .ref, in those cases.
+    """
+    try:
+        ref = DocRef.from_path(path, carta_root)
+    except (ValueError, IndexError):
+        ref = DocRef(segments=())
+    return DocEntry(ref=ref, path=path)
+
+
+def resolve_arg(arg: str, carta_root: Path) -> DocEntry:
+    """Resolve a ref or relative path argument to a DocEntry."""
+    if re.match(r'^doc\d{2}(\.\d{2})*$', arg):
+        ref = DocRef.parse(arg)
+        path = ref.to_path(carta_root)
+        return DocEntry(ref=ref, path=path)
     workspace_name = carta_root.name
     if arg == workspace_name or arg.startswith(f"{workspace_name}/"):
         stripped = arg[len(workspace_name) + 1:] if arg != workspace_name else ""
@@ -72,31 +87,31 @@ def resolve_arg(arg: str, carta_root: Path) -> Path:
         )
     literal = (carta_root / arg).resolve()
     if literal.exists():
-        return literal
+        return _make_entry(literal, carta_root)
     # Filesystem-aware fallback: accept stem-only and prefix-only path forms
     matched = _fuzzy_match(arg, carta_root)
     if matched is not None:
-        return matched
-    return literal
+        return _make_entry(matched, carta_root)
+    return _make_entry(literal, carta_root)
 
 
-def resolve_and_validate(arg: str, carta_root: Path, *, must_exist: bool = True) -> Path:
-    """Resolve a ref or path and validate it exists. Raises CartaError on failure."""
+def resolve_and_validate(arg: str, carta_root: Path, *, must_exist: bool = True) -> DocEntry:
+    """Resolve a ref or path and validate it exists. Returns DocEntry on success."""
     try:
-        path = resolve_arg(arg, carta_root)
+        entry = resolve_arg(arg, carta_root)
     except (FileNotFoundError, ValueError) as e:
         raise CartaError(f"Error resolving {arg!r}: {e}")
-    if must_exist and not path.exists():
+    if must_exist and not entry.path.exists():
         suggestion = _fuzzy_match(arg, carta_root)
         if suggestion is not None:
             try:
-                ref = path_to_ref(suggestion, carta_root)
-                hint = f"\n       did you mean: {suggestion} (or {ref})?"
+                ref = DocRef.from_path(suggestion, carta_root)
+                hint = f"\n       did you mean: {suggestion} (or {str(ref)})?"
             except ValueError:
                 hint = f"\n       did you mean: {suggestion}?"
-            raise CartaError(f"Error: does not exist: {path}{hint}")
-        raise CartaError(f"Error: does not exist: {path}")
-    return path
+            raise CartaError(f"Error: does not exist: {entry.path}{hint}")
+        raise CartaError(f"Error: does not exist: {entry.path}")
+    return entry
 
 
 def display_path(path: Path, carta_root: Path) -> str:

@@ -9,7 +9,7 @@ from ..errors import CartaError
 from ..entries import resolve_arg, resolve_and_validate, list_numbered_entries, display_path
 from ..frontmatter import read_frontmatter
 from ..numbering import get_slug, get_numeric_prefix
-from ..ref_convert import path_to_ref
+from ..docref import DocRef
 from ..rewriter import rewrite_refs
 from ..workspace import collect_rewritable_files
 from ..regenerate_core import do_regenerate, _collect_all_orphans
@@ -24,7 +24,7 @@ from .._glyphs import Glyphs, for_stream
 
 def cmd_cat(args: argparse.Namespace, carta_root: Path) -> None:
     """Print document contents to stdout."""
-    target = resolve_arg(args.ref, carta_root)
+    target = resolve_arg(args.ref, carta_root).path
     if target.is_dir():
         target = target / "00-index.md"
     if not target.exists():
@@ -61,7 +61,7 @@ def _entry_label(path: Path, carta_root: Path, *, refs: bool, no_title: bool, gl
     ref_str = ""
     if refs:
         try:
-            ref_str = path_to_ref(path, carta_root)
+            ref_str = str(DocRef.from_path(path, carta_root))
         except (ValueError, Exception):
             pass
 
@@ -112,7 +112,7 @@ def _walk_tree(directory: Path, carta_root: Path, prefix: str, *,
                     att_connector = glyphs.leaf if is_last_att else glyphs.branch
                     if refs:
                         try:
-                            att_ref = path_to_ref(att, carta_root)
+                            att_ref = str(DocRef.from_path(att, carta_root))
                             att_label = glyphs.attach + att_ref
                         except Exception:
                             att_label = glyphs.attach + att.name
@@ -127,7 +127,7 @@ def _walk_tree(directory: Path, carta_root: Path, prefix: str, *,
 def cmd_tree(args: argparse.Namespace, carta_root: Path) -> None:
     """Print workspace structure as a visual tree."""
     if hasattr(args, "target") and args.target:
-        root = resolve_arg(args.target, carta_root)
+        root = resolve_arg(args.target, carta_root).path
         if not root.is_dir():
             raise CartaError(f"Error: {root} is not a directory")
     else:
@@ -209,7 +209,8 @@ def cmd_rewrite(args: argparse.Namespace, carta_root: Path) -> None:
 
 def cmd_attach(args: argparse.Namespace, carta_root: Path) -> None:
     """Copy an external file into a doc's bundle as an attachment."""
-    host = resolve_and_validate(args.host, carta_root)
+    host_entry = resolve_and_validate(args.host, carta_root)
+    host = host_entry.path
 
     if host.is_dir():
         raise CartaError(
@@ -258,8 +259,7 @@ def cmd_attach(args: argparse.Namespace, carta_root: Path) -> None:
         )
 
     try:
-        ref_str = path_to_ref(host, carta_root)
-        bundle_label = f"{ref_str} ({host.name})"
+        bundle_label = f"{str(host_entry.ref)} ({host.name})"
     except Exception:
         bundle_label = host.name
 
@@ -286,7 +286,7 @@ def cmd_attach(args: argparse.Namespace, carta_root: Path) -> None:
 def cmd_ls(args: argparse.Namespace, carta_root: Path) -> None:
     """List entries in a directory (mirrors Unix ls)."""
     if hasattr(args, "target") and args.target:
-        target = resolve_arg(args.target, carta_root)
+        target = resolve_arg(args.target, carta_root).path
     else:
         target = carta_root
     if not target.is_dir():
@@ -342,7 +342,8 @@ def _human_size(size: int) -> str:
 
 def cmd_bundle(args: argparse.Namespace, carta_root: Path) -> None:
     """Show a doc's bundle: host doc + attachments with sizes and display refs."""
-    host = resolve_and_validate(args.ref, carta_root)
+    host_entry = resolve_and_validate(args.ref, carta_root)
+    host = host_entry.path
     if host.is_dir():
         raise CartaError(
             f"Error: bundle command expects a .md leaf doc, got directory: {host.name}.\n"
@@ -356,7 +357,7 @@ def cmd_bundle(args: argparse.Namespace, carta_root: Path) -> None:
     bndl = bundle_mod.find_bundle(host)
 
     try:
-        host_ref = path_to_ref(host, carta_root)
+        host_ref = str(host_entry.ref)
     except Exception:
         host_ref = None
 
@@ -372,7 +373,7 @@ def cmd_bundle(args: argparse.Namespace, carta_root: Path) -> None:
     for att in bndl.attachments:
         att_size = att.stat().st_size
         try:
-            att_ref = path_to_ref(att, carta_root)
+            att_ref = str(DocRef.from_path(att, carta_root))
         except Exception:
             att_ref = None
         att_label = f"  {att.name}  {_human_size(att_size)}"

@@ -26,8 +26,16 @@ sys.path.insert(0, str(_CLI_DIR))
 from carta_cli.commands._parser import main as cli_main
 from carta_cli.entries import list_numbered_entries
 from carta_cli.numbering import get_numeric_prefix
-from carta_cli.ref_convert import ref_to_path, path_to_ref
+from carta_cli.docref import DocRef
 from carta_cli.rewriter import collect_md_files, rewrite_refs
+
+
+def ref_to_path(ref: str, root: "Path") -> "Path":
+    return DocRef.parse(ref).to_path(root)
+
+
+def path_to_ref(path: "Path", root: "Path") -> str:
+    return str(DocRef.from_path(path, root))
 from carta_cli.workspace import find_workspace, MARKER
 
 from helpers import normalize_output
@@ -1187,24 +1195,24 @@ class TestResolveArg(unittest.TestCase):
         from carta_cli.entries import resolve_arg
         result = resolve_arg("02-product-design/01-workspace-scripts", self.carta_copy)
         expected = self.carta_copy / "02-product-design" / "01-workspace-scripts.md"
-        self.assertEqual(result, expected)
-        self.assertTrue(result.exists())
+        self.assertEqual(result.path, expected)
+        self.assertTrue(result.path.exists())
 
     def test_resolve_arg_accepts_prefix_only_in_final_segment(self):
         """resolve_arg resolves a prefix-only final segment (NN) to the .md file."""
         from carta_cli.entries import resolve_arg
         result = resolve_arg("02-product-design/01", self.carta_copy)
         expected = self.carta_copy / "02-product-design" / "01-workspace-scripts.md"
-        self.assertEqual(result, expected)
-        self.assertTrue(result.exists())
+        self.assertEqual(result.path, expected)
+        self.assertTrue(result.path.exists())
 
     def test_resolve_arg_accepts_prefix_only_at_root(self):
         """resolve_arg resolves a prefix-only root segment (NN) to a directory."""
         from carta_cli.entries import resolve_arg
         result = resolve_arg("01", self.carta_copy)
         expected = self.carta_copy / "01-product-strategy"
-        self.assertEqual(result, expected)
-        self.assertTrue(result.exists())
+        self.assertEqual(result.path, expected)
+        self.assertTrue(result.path.exists())
 
     def test_resolve_arg_ambiguous_prefix_returns_literal(self):
         """resolve_arg returns literal path when a prefix-only segment is ambiguous.
@@ -1230,8 +1238,8 @@ class TestResolveArg(unittest.TestCase):
         new_path_arg = "02-product-design/09-new-doc"
         result = resolve_arg(new_path_arg, self.carta_copy)
         expected = (self.carta_copy / new_path_arg).resolve()
-        self.assertEqual(result, expected)
-        self.assertFalse(result.exists())
+        self.assertEqual(result.path, expected)
+        self.assertFalse(result.path.exists())
 
 
 class TestCreate(unittest.TestCase):
@@ -2316,11 +2324,11 @@ class TestPathToRefSidecar(unittest.TestCase):
         self.tmpdir.cleanup()
 
     def test_sidecar_ref_format(self):
-        """path_to_ref emits docXX.YY/<slug>.<ext> for a non-md attachment with an md host."""
+        """DocRef.from_path emits docXX.YY for a non-md attachment with an md host."""
         sidecar = self.root / "01-product-strategy" / "02-diagram.mmd"
         sidecar.write_text("graph LR\n  A-->B\n")
         ref = path_to_ref(sidecar, self.root)
-        self.assertEqual(ref, "doc01.02/diagram.mmd")
+        self.assertEqual(ref, "doc01.02")
 
     def test_sidecar_orphan_raises(self):
         """path_to_ref raises ValueError for orphan sidecars (no .md host)."""
@@ -2330,11 +2338,11 @@ class TestPathToRefSidecar(unittest.TestCase):
             path_to_ref(orphan, self.root)
 
     def test_sidecar_ref_nested(self):
-        """path_to_ref works for sidecars in subdirectories."""
+        """DocRef.from_path works for sidecars in subdirectories."""
         sidecar = self.root / "01-product-strategy" / "04-primary-sources" / "01-flow.png"
         sidecar.write_bytes(b"\x89PNG\r\n")
         ref = path_to_ref(sidecar, self.root)
-        self.assertEqual(ref, "doc01.04.01/flow.png")
+        self.assertEqual(ref, "doc01.04.01")
 
     def test_rewriter_preserves_sidecar_ref_in_body(self):
         """carta rewrite renames host ref prefix; sidecar ref in content survives correctly."""
@@ -2423,7 +2431,7 @@ class TestCmdBundle(unittest.TestCase):
         result = _run_carta(self.carta, "bundle", "01-product-strategy/01-mission.md")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("01-diagram.mmd", result.stdout)
-        self.assertIn("doc01.01/diagram.mmd", result.stdout)
+        self.assertIn("doc01.01", result.stdout)
 
     def test_bundle_no_attachments(self):
         """carta bundle on a doc with no sidecars shows only host line."""
@@ -2510,11 +2518,11 @@ class TestCmdTreeWithSidecars(unittest.TestCase):
         self.assertNotIn("02-diagram.mmd", result.stdout)
 
     def test_tree_refs_sidecar_format(self):
-        """--refs shows sidecar refs in docXX.YY/<slug>.<ext> format."""
+        """--refs shows sidecar refs as docXX.YY coordinate (no slug/ext suffix)."""
         (self.carta / "01-product-strategy" / "02-diagram.mmd").write_text("graph")
         result = _run_carta(self.carta, "tree", "01-product-strategy", "--refs")
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("doc01.02/diagram.mmd", result.stdout)
+        self.assertIn("doc01.02", result.stdout)
 
 
 class TestAttachSlugCollision(unittest.TestCase):

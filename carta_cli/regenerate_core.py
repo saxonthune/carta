@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 from . import bundle as _bundle
-from .ref_convert import path_to_ref
+from .docref import DocRef
 from .frontmatter import read_frontmatter
 
 
@@ -34,7 +34,7 @@ def collect_entries(dir_path: Path, carta_root: Path, title_dir: Path) -> list[d
 
         if item.is_file() and item.suffix == ".md":
             try:
-                ref = path_to_ref(item, carta_root)
+                ref = str(DocRef.from_path(item, carta_root))
             except ValueError:
                 continue
 

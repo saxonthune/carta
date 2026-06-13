@@ -22,7 +22,11 @@ sys.path.insert(0, str(_CLI_DIR))
 
 from carta_cli.commands._parser import main as cli_main
 from carta_cli.workspace import find_workspace
-from carta_cli.ref_convert import ref_to_path
+from carta_cli.docref import DocRef
+
+
+def ref_to_path(ref: str, root):
+    return DocRef.parse(ref).to_path(root)
 from carta_cli.frontmatter import read_frontmatter, write_frontmatter
 
 from helpers import normalize_output
@@ -173,9 +177,7 @@ class TestRegenerateIncludesAllDocs(unittest.TestCase):
             if f"`{filename}`" not in output and f"`{filename.replace('.md', '')}`" not in output:
                 # Try checking by ref
                 try:
-                    ref = ref_to_path.__module__ and __import__(
-                        "carta_cli.ref_convert", fromlist=["path_to_ref"]
-                    ).path_to_ref(md, self.carta_copy)
+                    ref = str(DocRef.from_path(md, self.carta_copy))
                     if ref not in output:
                         missing.append(str(md.relative_to(self.carta_copy)))
                 except ValueError:

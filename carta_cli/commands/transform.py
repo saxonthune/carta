@@ -25,7 +25,7 @@ from .._glyphs import for_stream
 
 def cmd_punch(args: argparse.Namespace, carta_root: Path) -> None:
     """Expand leaf file into directory."""
-    source_path = resolve_and_validate(args.target, carta_root)
+    source_path = resolve_and_validate(args.target, carta_root).path
 
     if source_path.is_dir():
         raise CartaError(f"Error: source is already a directory: {source_path}")
@@ -161,7 +161,7 @@ def _flatten_stage_bundle(
 
 def cmd_flatten(args: argparse.Namespace, carta_root: Path) -> None:
     """Dissolve directory, hoist children."""
-    source_path = resolve_and_validate(args.target, carta_root)
+    source_path = resolve_and_validate(args.target, carta_root).path
 
     if not source_path.is_dir():
         raise CartaError(f"Error: source is not a directory: {source_path}")
@@ -310,7 +310,7 @@ def cmd_copy(args: argparse.Namespace, carta_root: Path) -> None:
     if args.order is not None and args.order < 1:
         raise CartaError("Error: --order must be >= 1.")
 
-    dest_path = resolve_and_validate(args.destination, carta_root)
+    dest_path = resolve_and_validate(args.destination, carta_root).path
 
     if not dest_path.is_dir():
         raise CartaError(f"Error: destination is not a directory: {dest_path}")
@@ -357,7 +357,7 @@ def cmd_copy(args: argparse.Namespace, carta_root: Path) -> None:
 def cmd_group(args: argparse.Namespace, carta_root: Path) -> None:
     """Create a title group directory with 00-index.md."""
     target = args.target
-    target_path = resolve_arg(target, carta_root)
+    target_path = resolve_arg(target, carta_root).path
 
     if target_path.exists():
         if any(target_path.iterdir()):
