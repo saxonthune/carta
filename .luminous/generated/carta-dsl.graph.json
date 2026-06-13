@@ -1,0 +1,1066 @@
+{
+  "version": 3,
+  "pack": "carta-dsl",
+  "nodes": [
+    {
+      "id": "arg.attach.dry_run",
+      "kind": "carta.arg",
+      "props": {
+        "name": "dry_run",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--dry-run",
+        "default": "False"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.attach.host",
+      "kind": "carta.arg",
+      "props": {
+        "name": "host",
+        "type": "path_or_ref",
+        "required": true,
+        "form": "positional",
+        "description": "Doc ref or path of the host .md doc"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.attach.rename",
+      "kind": "carta.arg",
+      "props": {
+        "name": "rename",
+        "type": "str",
+        "required": false,
+        "form": "flag",
+        "flag": "--rename",
+        "description": "Override the attachment slug"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.attach.source",
+      "kind": "carta.arg",
+      "props": {
+        "name": "source",
+        "type": "path",
+        "required": true,
+        "form": "positional",
+        "description": "File to attach"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.copy.destination",
+      "kind": "carta.arg",
+      "props": {
+        "name": "destination",
+        "type": "path",
+        "required": true,
+        "form": "positional",
+        "description": "Workspace directory to copy into"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.copy.dry_run",
+      "kind": "carta.arg",
+      "props": {
+        "name": "dry_run",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--dry-run",
+        "default": "False"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.copy.order",
+      "kind": "carta.arg",
+      "props": {
+        "name": "order",
+        "type": "int",
+        "required": false,
+        "form": "flag",
+        "flag": "--order"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.copy.rename",
+      "kind": "carta.arg",
+      "props": {
+        "name": "rename",
+        "type": "str",
+        "required": false,
+        "form": "flag",
+        "flag": "--rename"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.copy.source",
+      "kind": "carta.arg",
+      "props": {
+        "name": "source",
+        "type": "path",
+        "required": true,
+        "form": "positional",
+        "description": "File outside the workspace"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.create.deps",
+      "kind": "carta.arg",
+      "props": {
+        "name": "deps",
+        "type": "list[doc_ref]",
+        "required": false,
+        "form": "flag",
+        "flag": "--deps",
+        "default": "[]"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.create.destination",
+      "kind": "carta.arg",
+      "props": {
+        "name": "destination",
+        "type": "path_or_ref",
+        "required": true,
+        "form": "positional",
+        "description": "Directory to create the file in"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.create.dry_run",
+      "kind": "carta.arg",
+      "props": {
+        "name": "dry_run",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--dry-run",
+        "default": "False"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.create.order",
+      "kind": "carta.arg",
+      "props": {
+        "name": "order",
+        "type": "int",
+        "required": false,
+        "form": "flag",
+        "flag": "--order",
+        "description": "1-based insert position; appends if null"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.create.slug",
+      "kind": "carta.arg",
+      "props": {
+        "name": "slug",
+        "type": "str",
+        "required": true,
+        "form": "positional",
+        "description": "Filename stem without NN prefix"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.create.summary",
+      "kind": "carta.arg",
+      "props": {
+        "name": "summary",
+        "type": "str",
+        "required": false,
+        "form": "flag",
+        "flag": "--summary",
+        "default": ""
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.create.tags",
+      "kind": "carta.arg",
+      "props": {
+        "name": "tags",
+        "type": "list[str]",
+        "required": false,
+        "form": "flag",
+        "flag": "--tags",
+        "default": "[]"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.create.title",
+      "kind": "carta.arg",
+      "props": {
+        "name": "title",
+        "type": "str",
+        "required": false,
+        "form": "flag",
+        "flag": "--title"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.delete.dry_run",
+      "kind": "carta.arg",
+      "props": {
+        "name": "dry_run",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--dry-run",
+        "default": "False"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.delete.output_mapping",
+      "kind": "carta.arg",
+      "props": {
+        "name": "output_mapping",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--output-mapping",
+        "description": "Emit JSON ref rename map to stdout",
+        "default": "False"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.delete.targets",
+      "kind": "carta.arg",
+      "props": {
+        "name": "targets",
+        "type": "list[path_or_ref]",
+        "required": true,
+        "form": "positional",
+        "description": "One or more files or directories to delete"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.flatten.at",
+      "kind": "carta.arg",
+      "props": {
+        "name": "at",
+        "type": "int",
+        "required": false,
+        "form": "flag",
+        "flag": "--at",
+        "description": "Insert position in parent; defaults to source position"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.flatten.dry_run",
+      "kind": "carta.arg",
+      "props": {
+        "name": "dry_run",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--dry-run",
+        "default": "False"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.flatten.force",
+      "kind": "carta.arg",
+      "props": {
+        "name": "force",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--force",
+        "description": "Discard index even with significant content",
+        "default": "False"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.flatten.keep_index",
+      "kind": "carta.arg",
+      "props": {
+        "name": "keep_index",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--keep-index",
+        "description": "Preserve 00-index.md as NN-<dir-slug>.md in parent",
+        "default": "False"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.flatten.target",
+      "kind": "carta.arg",
+      "props": {
+        "name": "target",
+        "type": "path_or_ref",
+        "required": true,
+        "form": "positional",
+        "description": "Numbered directory to flatten"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.move.destination",
+      "kind": "carta.arg",
+      "props": {
+        "name": "destination",
+        "type": "path",
+        "required": true,
+        "form": "positional",
+        "description": "Target parent directory"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.move.dry_run",
+      "kind": "carta.arg",
+      "props": {
+        "name": "dry_run",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--dry-run",
+        "default": "False"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.move.mkdir",
+      "kind": "carta.arg",
+      "props": {
+        "name": "mkdir",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--mkdir",
+        "default": "False"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.move.no_gap_close",
+      "kind": "carta.arg",
+      "props": {
+        "name": "no_gap_close",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--no-gap-close",
+        "default": "False"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.move.no_regen",
+      "kind": "carta.arg",
+      "props": {
+        "name": "no_regen",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--no-regen",
+        "default": "False"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.move.order",
+      "kind": "carta.arg",
+      "props": {
+        "name": "order",
+        "type": "int",
+        "required": false,
+        "form": "flag",
+        "flag": "--order",
+        "description": "1-based position in destination; appends if null"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.move.rename",
+      "kind": "carta.arg",
+      "props": {
+        "name": "rename",
+        "type": "str",
+        "required": false,
+        "form": "flag",
+        "flag": "--rename",
+        "description": "New slug for the entry during move"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.move.source",
+      "kind": "carta.arg",
+      "props": {
+        "name": "source",
+        "type": "path_or_ref",
+        "required": true,
+        "form": "positional",
+        "description": "File or directory to move"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.punch.as_child",
+      "kind": "carta.arg",
+      "props": {
+        "name": "as_child",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--as-child",
+        "description": "If true, move original content to NN-slug/01-slug.md and write a new skeleton 00-index.md for the group.\n",
+        "default": "False"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.punch.dry_run",
+      "kind": "carta.arg",
+      "props": {
+        "name": "dry_run",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--dry-run",
+        "default": "False"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.punch.target",
+      "kind": "carta.arg",
+      "props": {
+        "name": "target",
+        "type": "path_or_ref",
+        "required": true,
+        "form": "positional",
+        "description": "Path or doc ref to a numbered .md file"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.regenerate.dry_run",
+      "kind": "carta.arg",
+      "props": {
+        "name": "dry_run",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--dry-run",
+        "description": "Print projected MANIFEST.md without writing",
+        "default": "False"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.rename.new_slug",
+      "kind": "carta.arg",
+      "props": {
+        "name": "new_slug",
+        "type": "str",
+        "required": true,
+        "form": "positional",
+        "description": "Replacement slug, without NN prefix"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.rename.no_regen",
+      "kind": "carta.arg",
+      "props": {
+        "name": "no_regen",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--no-regen",
+        "default": "False"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.rename.target",
+      "kind": "carta.arg",
+      "props": {
+        "name": "target",
+        "type": "path_or_ref",
+        "required": true,
+        "form": "positional"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.rewrite.dry_run",
+      "kind": "carta.arg",
+      "props": {
+        "name": "dry_run",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--dry-run",
+        "default": "False"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.rewrite.mappings",
+      "kind": "carta.arg",
+      "props": {
+        "name": "mappings",
+        "type": "list[str]",
+        "required": true,
+        "form": "positional",
+        "description": "One or more old=new pairs"
+      },
+      "tags": []
+    },
+    {
+      "id": "carta",
+      "kind": "carta.root",
+      "props": {
+        "name": "carta"
+      },
+      "tags": []
+    },
+    {
+      "id": "cmd.attach",
+      "kind": "carta.command",
+      "props": {
+        "name": "attach",
+        "summary": "Copy a non-md file into a host doc's bundle, sharing the host's NN prefix",
+        "cli": "carta attach <host> <source> [--rename SLUG] [--dry-run]"
+      },
+      "tags": []
+    },
+    {
+      "id": "cmd.copy",
+      "kind": "carta.command",
+      "props": {
+        "name": "copy",
+        "summary": "Copy an external file into the workspace at a numbered position",
+        "cli": "carta copy <source> <destination> [--order N] [--rename SLUG] [--dry-run]"
+      },
+      "tags": []
+    },
+    {
+      "id": "cmd.create",
+      "kind": "carta.command",
+      "props": {
+        "name": "create",
+        "summary": "Create a new numbered .md file with draft frontmatter",
+        "cli": "carta create <destination> <slug> [--order N] [--title TEXT] [--summary TEXT] [--tags CSV] [--deps CSV] [--dry-run]"
+      },
+      "tags": []
+    },
+    {
+      "id": "cmd.delete",
+      "kind": "carta.command",
+      "props": {
+        "name": "delete",
+        "summary": "Delete entries, gap-close siblings, rewrite refs, report orphans",
+        "cli": "carta delete <target> [<target> ...] [--dry-run] [--output-mapping]"
+      },
+      "tags": []
+    },
+    {
+      "id": "cmd.flatten",
+      "kind": "carta.command",
+      "props": {
+        "name": "flatten",
+        "summary": "Hoist a directory's children into the parent, renumber, rewrite refs",
+        "cli": "carta flatten <target> [--keep-index] [--force] [--at N] [--dry-run]"
+      },
+      "tags": []
+    },
+    {
+      "id": "cmd.move",
+      "kind": "carta.command",
+      "props": {
+        "name": "move",
+        "summary": "Move or reorder a file/directory, renumbering siblings and rewriting refs",
+        "cli": "carta move <source> <destination> [--order N] [--mkdir] [--rename SLUG] [--no-regen] [--no-gap-close] [--dry-run]"
+      },
+      "tags": []
+    },
+    {
+      "id": "cmd.punch",
+      "kind": "carta.command",
+      "props": {
+        "name": "punch",
+        "summary": "Expand a leaf NN-slug.md into a directory NN-slug/00-index.md",
+        "cli": "carta punch <target> [--as-child] [--dry-run]"
+      },
+      "tags": []
+    },
+    {
+      "id": "cmd.regenerate",
+      "kind": "carta.command",
+      "props": {
+        "name": "regenerate",
+        "summary": "Rebuild MANIFEST.md from frontmatter across all workspace docs",
+        "cli": "carta regenerate [--dry-run]"
+      },
+      "tags": []
+    },
+    {
+      "id": "cmd.rename",
+      "kind": "carta.command",
+      "props": {
+        "name": "rename",
+        "summary": "Change the slug of an entry and its bundle without changing NN or refs",
+        "cli": "carta rename <target> <new-slug> [--no-regen]"
+      },
+      "tags": []
+    },
+    {
+      "id": "cmd.rewrite",
+      "kind": "carta.command",
+      "props": {
+        "name": "rewrite",
+        "summary": "Apply explicit old=new doc-ref rewrites across the workspace",
+        "cli": "carta rewrite <old>=<new> [<old>=<new> ...] [--dry-run]"
+      },
+      "tags": []
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge.has-command.carta.cmd.attach",
+      "kind": "carta.has-command",
+      "from": "carta",
+      "to": "cmd.attach",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.has-command.carta.cmd.copy",
+      "kind": "carta.has-command",
+      "from": "carta",
+      "to": "cmd.copy",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.has-command.carta.cmd.create",
+      "kind": "carta.has-command",
+      "from": "carta",
+      "to": "cmd.create",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.has-command.carta.cmd.delete",
+      "kind": "carta.has-command",
+      "from": "carta",
+      "to": "cmd.delete",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.has-command.carta.cmd.flatten",
+      "kind": "carta.has-command",
+      "from": "carta",
+      "to": "cmd.flatten",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.has-command.carta.cmd.move",
+      "kind": "carta.has-command",
+      "from": "carta",
+      "to": "cmd.move",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.has-command.carta.cmd.punch",
+      "kind": "carta.has-command",
+      "from": "carta",
+      "to": "cmd.punch",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.has-command.carta.cmd.regenerate",
+      "kind": "carta.has-command",
+      "from": "carta",
+      "to": "cmd.regenerate",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.has-command.carta.cmd.rename",
+      "kind": "carta.has-command",
+      "from": "carta",
+      "to": "cmd.rename",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.has-command.carta.cmd.rewrite",
+      "kind": "carta.has-command",
+      "from": "carta",
+      "to": "cmd.rewrite",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.attach.arg.attach.dry_run",
+      "kind": "carta.takes",
+      "from": "cmd.attach",
+      "to": "arg.attach.dry_run",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.attach.arg.attach.host",
+      "kind": "carta.takes",
+      "from": "cmd.attach",
+      "to": "arg.attach.host",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.attach.arg.attach.rename",
+      "kind": "carta.takes",
+      "from": "cmd.attach",
+      "to": "arg.attach.rename",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.attach.arg.attach.source",
+      "kind": "carta.takes",
+      "from": "cmd.attach",
+      "to": "arg.attach.source",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.copy.arg.copy.destination",
+      "kind": "carta.takes",
+      "from": "cmd.copy",
+      "to": "arg.copy.destination",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.copy.arg.copy.dry_run",
+      "kind": "carta.takes",
+      "from": "cmd.copy",
+      "to": "arg.copy.dry_run",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.copy.arg.copy.order",
+      "kind": "carta.takes",
+      "from": "cmd.copy",
+      "to": "arg.copy.order",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.copy.arg.copy.rename",
+      "kind": "carta.takes",
+      "from": "cmd.copy",
+      "to": "arg.copy.rename",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.copy.arg.copy.source",
+      "kind": "carta.takes",
+      "from": "cmd.copy",
+      "to": "arg.copy.source",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.create.arg.create.deps",
+      "kind": "carta.takes",
+      "from": "cmd.create",
+      "to": "arg.create.deps",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.create.arg.create.destination",
+      "kind": "carta.takes",
+      "from": "cmd.create",
+      "to": "arg.create.destination",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.create.arg.create.dry_run",
+      "kind": "carta.takes",
+      "from": "cmd.create",
+      "to": "arg.create.dry_run",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.create.arg.create.order",
+      "kind": "carta.takes",
+      "from": "cmd.create",
+      "to": "arg.create.order",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.create.arg.create.slug",
+      "kind": "carta.takes",
+      "from": "cmd.create",
+      "to": "arg.create.slug",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.create.arg.create.summary",
+      "kind": "carta.takes",
+      "from": "cmd.create",
+      "to": "arg.create.summary",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.create.arg.create.tags",
+      "kind": "carta.takes",
+      "from": "cmd.create",
+      "to": "arg.create.tags",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.create.arg.create.title",
+      "kind": "carta.takes",
+      "from": "cmd.create",
+      "to": "arg.create.title",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.delete.arg.delete.dry_run",
+      "kind": "carta.takes",
+      "from": "cmd.delete",
+      "to": "arg.delete.dry_run",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.delete.arg.delete.output_mapping",
+      "kind": "carta.takes",
+      "from": "cmd.delete",
+      "to": "arg.delete.output_mapping",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.delete.arg.delete.targets",
+      "kind": "carta.takes",
+      "from": "cmd.delete",
+      "to": "arg.delete.targets",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.flatten.arg.flatten.at",
+      "kind": "carta.takes",
+      "from": "cmd.flatten",
+      "to": "arg.flatten.at",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.flatten.arg.flatten.dry_run",
+      "kind": "carta.takes",
+      "from": "cmd.flatten",
+      "to": "arg.flatten.dry_run",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.flatten.arg.flatten.force",
+      "kind": "carta.takes",
+      "from": "cmd.flatten",
+      "to": "arg.flatten.force",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.flatten.arg.flatten.keep_index",
+      "kind": "carta.takes",
+      "from": "cmd.flatten",
+      "to": "arg.flatten.keep_index",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.flatten.arg.flatten.target",
+      "kind": "carta.takes",
+      "from": "cmd.flatten",
+      "to": "arg.flatten.target",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.move.arg.move.destination",
+      "kind": "carta.takes",
+      "from": "cmd.move",
+      "to": "arg.move.destination",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.move.arg.move.dry_run",
+      "kind": "carta.takes",
+      "from": "cmd.move",
+      "to": "arg.move.dry_run",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.move.arg.move.mkdir",
+      "kind": "carta.takes",
+      "from": "cmd.move",
+      "to": "arg.move.mkdir",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.move.arg.move.no_gap_close",
+      "kind": "carta.takes",
+      "from": "cmd.move",
+      "to": "arg.move.no_gap_close",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.move.arg.move.no_regen",
+      "kind": "carta.takes",
+      "from": "cmd.move",
+      "to": "arg.move.no_regen",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.move.arg.move.order",
+      "kind": "carta.takes",
+      "from": "cmd.move",
+      "to": "arg.move.order",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.move.arg.move.rename",
+      "kind": "carta.takes",
+      "from": "cmd.move",
+      "to": "arg.move.rename",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.move.arg.move.source",
+      "kind": "carta.takes",
+      "from": "cmd.move",
+      "to": "arg.move.source",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.punch.arg.punch.as_child",
+      "kind": "carta.takes",
+      "from": "cmd.punch",
+      "to": "arg.punch.as_child",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.punch.arg.punch.dry_run",
+      "kind": "carta.takes",
+      "from": "cmd.punch",
+      "to": "arg.punch.dry_run",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.punch.arg.punch.target",
+      "kind": "carta.takes",
+      "from": "cmd.punch",
+      "to": "arg.punch.target",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.regenerate.arg.regenerate.dry_run",
+      "kind": "carta.takes",
+      "from": "cmd.regenerate",
+      "to": "arg.regenerate.dry_run",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.rename.arg.rename.new_slug",
+      "kind": "carta.takes",
+      "from": "cmd.rename",
+      "to": "arg.rename.new_slug",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.rename.arg.rename.no_regen",
+      "kind": "carta.takes",
+      "from": "cmd.rename",
+      "to": "arg.rename.no_regen",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.rename.arg.rename.target",
+      "kind": "carta.takes",
+      "from": "cmd.rename",
+      "to": "arg.rename.target",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.rewrite.arg.rewrite.dry_run",
+      "kind": "carta.takes",
+      "from": "cmd.rewrite",
+      "to": "arg.rewrite.dry_run",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.rewrite.arg.rewrite.mappings",
+      "kind": "carta.takes",
+      "from": "cmd.rewrite",
+      "to": "arg.rewrite.mappings",
+      "props": {},
+      "tags": []
+    }
+  ],
+  "defaultView": "command-tree"
+}

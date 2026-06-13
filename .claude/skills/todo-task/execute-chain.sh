@@ -30,13 +30,27 @@ source_task_config
 
 CHAIN_NAME=""
 PHASES=()
+AFTER=""
+AFTER_NEXT=false
+VALIDATE_ONLY=false
 
 for arg in "$@"; do
-  if [[ -z "$CHAIN_NAME" ]]; then
-    CHAIN_NAME="$arg"
-  else
-    PHASES+=("$arg")
+  if [[ "$AFTER_NEXT" == "true" ]]; then
+    AFTER="$arg"
+    AFTER_NEXT=false
+    continue
   fi
+  case "$arg" in
+    --after) AFTER_NEXT=true ;;
+    --validate-only) VALIDATE_ONLY=true ;;
+    *)
+      if [[ -z "$CHAIN_NAME" ]]; then
+        CHAIN_NAME="$arg"
+      else
+        PHASES+=("$arg")
+      fi
+      ;;
+  esac
 done
 
 if [[ -z "$CHAIN_NAME" || ${#PHASES[@]} -lt 2 ]]; then
@@ -46,9 +60,71 @@ if [[ -z "$CHAIN_NAME" || ${#PHASES[@]} -lt 2 ]]; then
 fi
 
 REAL_TRUNK="$(git branch --show-current)"
+
+if [[ "$REAL_TRUNK" == *_claude* ]]; then
+  echo "ERROR: Must run from trunk branch (current: ${REAL_TRUNK})"
+  echo "Switch to a branch without '_claude' suffix first."
+  exit 1
+fi
+
 CHAIN_BRANCH="chain-${CHAIN_NAME}"
 CHAIN_WORKTREE="${REPO_ROOT}/../${WORKTREE_PREFIX}-chain-${CHAIN_NAME}"
 MANIFEST="${TODO}/.running/chain-${CHAIN_NAME}.manifest"
+
+# ─── Manifest Writer ─────────────────────────────────────────────────────────
+
+write_manifest() {
+  local current="$1"
+  local status="$2"
+  local completed_str="$3"
+  local failed_phase="${4:-}"
+
+  cat > "$MANIFEST" << EOF
+chain: ${CHAIN_NAME}
+phases: $(IFS=,; echo "${PHASES[*]}")
+current: ${current}
+completed: ${completed_str}
+status: ${status}
+failed_phase: ${failed_phase}
+chain_branch: ${CHAIN_BRANCH}
+chain_worktree: ${CHAIN_WORKTREE}
+waiting_for: ${AFTER:-}
+EOF
+}
+
+# ─── Wait for predecessor (if --after was given) ─────────────────────────────
+
+if [[ -n "${AFTER}" ]]; then
+  mkdir -p "${TODO}/.running"
+  write_manifest "${PHASES[0]}" "waiting" ""
+
+  echo "Waiting for predecessor '${AFTER}' to complete and merge..."
+
+  while [[ -f "${TODO}/${AFTER}.md" || -f "${TODO}/.running/${AFTER}.md" ]]; do
+    sleep 15
+  done
+
+  echo "Predecessor '${AFTER}' no longer pending/running. Checking result..."
+
+  if [[ ! -f "${TODO}/.done/${AFTER}.result.md" ]]; then
+    write_manifest "${PHASES[0]}" "failed" "" "${AFTER}"
+    echo "ERROR: Predecessor '${AFTER}' did not produce a result file. It may have failed silently."
+    exit 1
+  fi
+
+  pred_session=$(parse_result_field "${TODO}/.done/${AFTER}.result.md" "session")
+  pred_verification=$(parse_result_field "${TODO}/.done/${AFTER}.result.md" "verification")
+  pred_merge=$(parse_result_field "${TODO}/.done/${AFTER}.result.md" "merge")
+  pred_overall=$(derive_overall_state "$pred_session" "$pred_verification" "$pred_merge")
+
+  if [[ "$pred_overall" == "$SM_OVERALL_SUCCESS" ]]; then
+    echo "Predecessor '${AFTER}' succeeded. Proceeding with chain..."
+  else
+    write_manifest "${PHASES[0]}" "failed" "" "${AFTER}"
+    echo "ERROR: Predecessor '${AFTER}' did not succeed (state: ${pred_overall}). Aborting chain."
+    exit 1
+  fi
+fi
 
 # ─── Guard: dirty tree check (once, at chain start) ─────────────────────────
 
@@ -84,6 +160,11 @@ for i in "${!PHASES[@]}"; do
   exit 1
 done
 
+if [[ "$VALIDATE_ONLY" == "true" ]]; then
+  echo "Validation passed."
+  exit 0
+fi
+
 # ─── Create Chain Worktree ──────────────────────────────────────────────────
 
 echo "── Creating chain worktree ──"
@@ -106,24 +187,6 @@ echo ""
 # ─── Create Manifest ─────────────────────────────────────────────────────────
 
 mkdir -p "${TODO}/.running"
-
-write_manifest() {
-  local current="$1"
-  local status="$2"
-  local completed_str="$3"
-  local failed_phase="${4:-}"
-
-  cat > "$MANIFEST" << EOF
-chain: ${CHAIN_NAME}
-phases: $(IFS=,; echo "${PHASES[*]}")
-current: ${current}
-completed: ${completed_str}
-status: ${status}
-failed_phase: ${failed_phase}
-chain_branch: ${CHAIN_BRANCH}
-chain_worktree: ${CHAIN_WORKTREE}
-EOF
-}
 
 COMPLETED=()
 write_manifest "${PHASES[0]}" "running" ""

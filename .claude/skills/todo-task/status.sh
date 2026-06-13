@@ -48,8 +48,9 @@ for result in "${DONE_RESULTS[@]}"; do
   if [[ -n "$session" ]]; then
     verification=$(parse_result_field "$result" "verification")
     merge=$(parse_result_field "$result" "merge")
+    trunk=$(parse_result_field "$result" "trunk")
     commits=$(parse_result_field "$result" "commits")
-    overall=$(derive_overall_state "$session" "$verification" "$merge")
+    overall=$(derive_overall_state "$session" "$verification" "$merge" "$trunk")
     bucket=$(state_bucket "$overall")
   else
     # Old format fallback
@@ -68,9 +69,11 @@ for result in "${DONE_RESULTS[@]}"; do
   fi
 
   retried=$(parse_result_field "$result" "retried")
+  surface_dev=$(parse_result_field "$result" "surface deviations")
   error=$(parse_result_field "$result" "error")
   notes=""
   [[ -n "$retried" && "$retried" != "false" && "$retried" != "0" ]] && notes="Retried. "
+  [[ "$surface_dev" == "declared" ]] && notes="${notes}Surface deviations declared — re-triage downstream. "
 
   wt_path="${REPO_ROOT}/../${WORKTREE_PREFIX}-${slug}"
   [[ -d "$wt_path" ]] && notes="${notes}[worktree exists] "
@@ -79,6 +82,8 @@ for result in "${DONE_RESULTS[@]}"; do
   if [[ "$bucket" != "$SM_BUCKET_SUCCESS" ]]; then
     if [[ -n "$error" ]]; then
       notes="${notes}${error}"
+    elif [[ "$overall" == "$SM_OVERALL_TRUNK_LEAK" ]]; then
+      notes="${notes}Agent committed to trunk directly — work landed on ${TRUNK} branch, not the worktree. Review the commit list and reconcile manually."
     elif [[ "$overall" == "$SM_OVERALL_NOOP" ]]; then
       notes="${notes}Agent produced 0 commits."
     elif [[ "$overall" == "$SM_OVERALL_DIRTY" ]]; then
@@ -176,6 +181,9 @@ if [[ ${#CHAIN_MANIFESTS[@]} -gt 0 && -n "${CHAIN_MANIFESTS[0]}" ]]; then
     elif [[ "$cstatus" == "failed" ]]; then
       echo "| **${chain}** | FAILED | ${done_count}/${total} | ${failed} | ${phases} |"
       HAS_ATTENTION=true
+    elif [[ "$cstatus" == "waiting" ]]; then
+      waiting_for=$(parse_result_field "$manifest" "waiting_for")
+      echo "| **${chain}** | WAITING | 0/${total} | after ${waiting_for} | ${phases} |"
     else
       echo "| **${chain}** | RUNNING | ${done_count}/${total} | ${current} | ${phases} |"
     fi
@@ -196,7 +204,7 @@ if [[ ${#CHAIN_MANIFESTS[@]} -gt 0 && -n "${CHAIN_MANIFESTS[0]}" ]]; then
 
   for manifest in "${CHAIN_MANIFESTS[@]}"; do
     cstatus=$(parse_result_field "$manifest" "status")
-    if [[ "$cstatus" == "running" ]]; then
+    if [[ "$cstatus" == "running" || "$cstatus" == "waiting" ]]; then
       chain=$(parse_result_field "$manifest" "chain")
       log="${TODO}/.running/chain-${chain}.log"
       if [[ -f "$log" ]]; then
@@ -267,7 +275,8 @@ while IFS= read -r wt_line; do
         if [[ -n "$stale_session" ]]; then
           stale_verify=$(parse_result_field "$stale_result_file" "verification")
           stale_merge=$(parse_result_field "$stale_result_file" "merge")
-          status=$(derive_overall_state "$stale_session" "$stale_verify" "$stale_merge")
+          stale_trunk=$(parse_result_field "$stale_result_file" "trunk")
+          status=$(derive_overall_state "$stale_session" "$stale_verify" "$stale_merge" "$stale_trunk")
         else
           status=$(parse_result_field "$stale_result_file" "status")
         fi
@@ -318,7 +327,8 @@ if [[ ${#EPIC_FILES[@]} -gt 0 && -n "${EPIC_FILES[0]}" ]]; then
         if [[ -n "$epic_result_session" ]]; then
           epic_result_verify=$(parse_result_field "$epic_result_file" "verification")
           epic_result_merge=$(parse_result_field "$epic_result_file" "merge")
-          epic_overall=$(derive_overall_state "$epic_result_session" "$epic_result_verify" "$epic_result_merge")
+          epic_result_trunk=$(parse_result_field "$epic_result_file" "trunk")
+          epic_overall=$(derive_overall_state "$epic_result_session" "$epic_result_verify" "$epic_result_merge" "$epic_result_trunk")
           epic_bucket=$(state_bucket "$epic_overall")
           if [[ "$epic_bucket" == "$SM_BUCKET_SUCCESS" || "$epic_bucket" == "$SM_BUCKET_READY" ]]; then
             echo "| ${task_slug} | DONE | ${task_title} |"
@@ -349,7 +359,8 @@ if [[ ${#EPIC_FILES[@]} -gt 0 && -n "${EPIC_FILES[0]}" ]]; then
       if [[ -n "$arch_session" ]]; then
         arch_verify=$(parse_result_field "$archived_result" "verification")
         arch_merge=$(parse_result_field "$archived_result" "merge")
-        arch_overall=$(derive_overall_state "$arch_session" "$arch_verify" "$arch_merge")
+        arch_trunk=$(parse_result_field "$archived_result" "trunk")
+        arch_overall=$(derive_overall_state "$arch_session" "$arch_verify" "$arch_merge" "$arch_trunk")
         arch_bucket=$(state_bucket "$arch_overall")
         if [[ "$arch_bucket" == "$SM_BUCKET_SUCCESS" || "$arch_bucket" == "$SM_BUCKET_READY" ]]; then
           echo "| ${task_slug} | ARCHIVED | Done |"
@@ -429,7 +440,8 @@ if [[ "$ARCHIVE_SUCCESS_ONLY" == "true" && "$HAS_DONE" == "true" ]]; then
     if [[ -n "$archive_session" ]]; then
       archive_verification=$(parse_result_field "$result" "verification")
       archive_merge=$(parse_result_field "$result" "merge")
-      archive_overall=$(derive_overall_state "$archive_session" "$archive_verification" "$archive_merge")
+      archive_trunk=$(parse_result_field "$result" "trunk")
+      archive_overall=$(derive_overall_state "$archive_session" "$archive_verification" "$archive_merge" "$archive_trunk")
       [[ "$archive_overall" == "$SM_OVERALL_SUCCESS" ]] && archive_is_success=true
     else
       archive_status=$(parse_result_field "$result" "status")

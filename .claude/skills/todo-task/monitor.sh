@@ -47,12 +47,13 @@ count_csv() { echo "${1}" | tr ',' '\n' | grep -c . || echo 0; }
 
 # classify_result <result_file> → echoes an SM_OVERALL_* state
 classify_result() {
-  local f="$1" s v m
+  local f="$1" s v m t
   s=$(parse_result_field "$f" session)
   if [[ -n "$s" ]]; then
     v=$(parse_result_field "$f" verification)
     m=$(parse_result_field "$f" merge)
-    derive_overall_state "$s" "$v" "$m"
+    t=$(parse_result_field "$f" trunk)
+    derive_overall_state "$s" "$v" "$m" "$t"
   else
     # Old-format fallback: "Status: success" / "Merge: success"
     local old oldm
@@ -68,10 +69,11 @@ classify_result() {
 
 overall_color() {
   case "$1" in
-    "$SM_OVERALL_SUCCESS") echo "$GREEN" ;;
-    "$SM_OVERALL_READY")   echo "$CYAN" ;;
-    "$SM_OVERALL_NOOP")    echo "$YELLOW" ;;
-    *)                     echo "$RED" ;;
+    "$SM_OVERALL_SUCCESS")    echo "$GREEN" ;;
+    "$SM_OVERALL_READY")      echo "$CYAN" ;;
+    "$SM_OVERALL_NOOP")       echo "$YELLOW" ;;
+    "$SM_OVERALL_TRUNK_LEAK") echo "$RED" ;;
+    *)                        echo "$RED" ;;
   esac
 }
 
@@ -80,6 +82,7 @@ overall_label() {
     "$SM_OVERALL_SUCCESS")      echo "success" ;;
     "$SM_OVERALL_READY")        echo "ready" ;;
     "$SM_OVERALL_NOOP")         echo "no-op" ;;
+    "$SM_OVERALL_TRUNK_LEAK")   echo "trunk-leak" ;;
     "$SM_OVERALL_CONFLICT")     echo "conflict" ;;
     "$SM_OVERALL_DIRTY")        echo "dirty" ;;
     "$SM_OVERALL_BUILD_FAIL")   echo "failed" ;;
@@ -124,8 +127,12 @@ collect_active() {
     e=$(elapsed "$m")
     case "$status" in
       done|complete) ;;  # shown in recent, not active
-      failed) printf 'chain-fail\t%s [%d/%d] %s\t%s\n' "$chain" "$done_n" "$total" "$current" "$e" ;;
-      *)      printf 'chain\t%s [%d/%d] %s\t%s\n' "$chain" "$((done_n+1))" "$total" "$current" "$e" ;;
+      failed)  printf 'chain-fail\t%s [%d/%d] %s\t%s\n' "$chain" "$done_n" "$total" "$current" "$e" ;;
+      waiting)
+        local wf; wf=$(parse_result_field "$m" waiting_for)
+        printf 'chain\t%s [0/%d] after %s\t%s\n' "$chain" "$total" "$wf" "$e"
+        ;;
+      *)       printf 'chain\t%s [%d/%d] %s\t%s\n' "$chain" "$((done_n+1))" "$total" "$current" "$e" ;;
     esac
   done
 

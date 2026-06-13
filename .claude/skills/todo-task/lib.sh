@@ -20,12 +20,17 @@ readonly SM_MERGE_SKIPPED_FLAG="skipped_flag"
 readonly SM_MERGE_SKIPPED_VERIFY="skipped_no_verify"
 readonly SM_MERGE_NOT_ATTEMPTED="not_attempted"
 
+# Trunk phase: did the trunk branch move during the run? (leak detection)
+readonly SM_TRUNK_UNCHANGED="unchanged"
+readonly SM_TRUNK_MOVED="moved"
+
 # Derived overall states
 readonly SM_OVERALL_SUCCESS="success"
 readonly SM_OVERALL_READY="ready_for_review"
 readonly SM_OVERALL_CONFLICT="merge_conflict"
 readonly SM_OVERALL_DIRTY="merged_with_markers"
 readonly SM_OVERALL_NOOP="no_op"
+readonly SM_OVERALL_TRUNK_LEAK="trunk_leak"
 readonly SM_OVERALL_BUILD_FAIL="build_failure"
 readonly SM_OVERALL_SESSION_FAIL="session_failed"
 
@@ -35,17 +40,22 @@ readonly SM_BUCKET_READY="ready_for_review"
 readonly SM_BUCKET_QUESTIONABLE="questionable"
 readonly SM_BUCKET_ATTENTION="attention"
 
-# derive_overall_state <session> <verification> <merge>
-# Maps (session, verification, merge) → overall state.
+# derive_overall_state <session> <verification> <merge> [trunk]
+# Maps (session, verification, merge, trunk) → overall state.
 # Echoes one of the SM_OVERALL_* values.
 derive_overall_state() {
-  local session="$1" verify="$2" merge="$3"
+  local session="$1" verify="$2" merge="$3" trunk="${4:-$SM_TRUNK_UNCHANGED}"
   if [[ "$session" == "$SM_SESSION_FAILED" ]]; then
     echo "$SM_OVERALL_SESSION_FAIL"; return
   fi
   case "$verify" in
     "$SM_VERIFY_FAILED") echo "$SM_OVERALL_BUILD_FAIL" ;;
-    "$SM_VERIFY_SKIPPED") echo "$SM_OVERALL_NOOP" ;;
+    "$SM_VERIFY_SKIPPED")
+      if [[ "$trunk" == "$SM_TRUNK_MOVED" ]]; then
+        echo "$SM_OVERALL_TRUNK_LEAK"
+      else
+        echo "$SM_OVERALL_NOOP"
+      fi ;;
     "$SM_VERIFY_PASSED")
       case "$merge" in
         "$SM_MERGE_CLEAN") echo "$SM_OVERALL_SUCCESS" ;;
@@ -66,13 +76,15 @@ state_bucket() {
     "$SM_OVERALL_SUCCESS") echo "$SM_BUCKET_SUCCESS" ;;
     "$SM_OVERALL_READY") echo "$SM_BUCKET_READY" ;;
     "$SM_OVERALL_NOOP") echo "$SM_BUCKET_QUESTIONABLE" ;;
+    "$SM_OVERALL_TRUNK_LEAK") echo "$SM_BUCKET_ATTENTION" ;;
     *) echo "$SM_BUCKET_ATTENTION" ;;
   esac
 }
 
 # write_result_file <result_path> <slug> <session> <verification> <merge>
 #   <commits_count> <commits_log> <branch> <worktree> <retried>
-#   <session_id> <claude_result> <build_test_tail> [error_detail]
+#   <session_id> <claude_result> <build_test_tail> [error_detail] [trunk]
+#   [surface_deviations]
 # Writes standardized result markdown. Validates inputs against vocabulary
 # before writing; prints a warning for unknown values but writes anyway.
 write_result_file() {
@@ -90,11 +102,14 @@ write_result_file() {
   local claude_result="${12}"
   local build_test_tail="${13}"
   local error_detail="${14:-}"
+  local trunk="${15:-$SM_TRUNK_UNCHANGED}"
+  local surface_deviations="${16:-none}"
 
   # Validate vocabulary (warn but don't abort)
   local valid_sessions="$SM_SESSION_COMPLETED $SM_SESSION_FAILED"
   local valid_verifications="$SM_VERIFY_PASSED $SM_VERIFY_FAILED $SM_VERIFY_SKIPPED"
   local valid_merges="$SM_MERGE_CLEAN $SM_MERGE_DIRTY $SM_MERGE_CONFLICT $SM_MERGE_SKIPPED_FLAG $SM_MERGE_SKIPPED_VERIFY $SM_MERGE_NOT_ATTEMPTED"
+  local valid_trunks="$SM_TRUNK_UNCHANGED $SM_TRUNK_MOVED"
 
   if [[ " $valid_sessions " != *" $session "* ]]; then
     echo "WARNING: write_result_file: unknown session value: '$session'" >&2
@@ -104,6 +119,9 @@ write_result_file() {
   fi
   if [[ " $valid_merges " != *" $merge "* ]]; then
     echo "WARNING: write_result_file: unknown merge value: '$merge'" >&2
+  fi
+  if [[ " $valid_trunks " != *" $trunk "* ]]; then
+    echo "WARNING: write_result_file: unknown trunk value: '$trunk'" >&2
   fi
 
   cat > "$result_path" << RESULT_EOF
@@ -115,8 +133,10 @@ write_result_file() {
 **Session**: ${session}
 **Verification**: ${verification}
 **Merge**: ${merge}
+**Trunk**: ${trunk}
 **Commits**: ${commits_count}
 **Retried**: ${retried}
+**Surface Deviations**: ${surface_deviations}
 $(if [[ -n "$error_detail" ]]; then echo "**Error**: ${error_detail}"; fi)
 
 ## Commits

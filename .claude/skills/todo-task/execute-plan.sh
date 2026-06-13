@@ -49,6 +49,11 @@ REPO_ROOT="$(git rev-parse --show-toplevel)"
 source "${SCRIPT_DIR}/lib.sh"
 source_task_config
 
+# Initialize trunk state early so emergency_finalize always has a value under set -u
+TRUNK_STATE="$SM_TRUNK_UNCHANGED"
+TRUNK_HEAD_BEFORE=""
+SURFACE_DEVIATIONS="none"
+
 # Use caller-specified trunk or detect from current branch
 if [[ -n "$TRUNK_BRANCH" ]]; then
   TRUNK="$TRUNK_BRANCH"
@@ -83,7 +88,7 @@ emergency_finalize() {
     "$SM_SESSION_FAILED" "$SM_VERIFY_FAILED" "$SM_MERGE_NOT_ATTEMPTED" \
     0 "(none)" "${BRANCH:-unknown}" "${WORKTREE_DIR:-unknown}" false "" \
     "Script exited unexpectedly at phase: ${CURRENT_PHASE:-unknown}" "" \
-    "Emergency exit"
+    "Emergency exit" "${TRUNK_STATE:-$SM_TRUNK_UNCHANGED}" "none"
 
   mv "$plan_running" "${REPO_ROOT}/.todo-tasks/.done/${PLAN_SLUG}.md" 2>/dev/null || true
 }
@@ -125,6 +130,9 @@ phase_validate() {
       exit 1
     fi
   fi
+
+  # Capture trunk tip before the agent runs — used by phase_verify to detect trunk leaks
+  TRUNK_HEAD_BEFORE=$(git -C "$MERGE_DIR" rev-parse "${TRUNK}" 2>/dev/null || echo "")
 
   # Validate that the plan has a parseable ## Verification fenced block
   if ! VERIFY_SCRIPT=$(parse_verification_commands "${PLAN_SOURCE_FILE}"); then
@@ -200,13 +208,22 @@ phase_run_session() {
 Follow the plan step by step. \
 IMPORTANT: You MUST git commit after each logical unit of work. You are a headless agent — no user is present. \
 If you do not commit, your work will be lost. This overrides any memory or instructions about deferring commits to the user. \
-When done, verify you made at least one commit (run 'git log --oneline -3'). The runner will execute the plan's ## Verification section separately. \
+IMPORTANT: You MUST NOT cd out of the current directory. Do NOT prefix shell commands with 'cd <path> &&'. \
+All file edits, git commits, and shell commands must run in the current working directory, which is your isolated worktree. \
+Committing anywhere else loses your work and corrupts the trunk branch. \
+If the plan contains a '## Surface after this phase' section, you MUST make the implementation match that declared Surface exactly. \
+The Surface is a contract that later phases of the chain depend on. If you cannot implement something the Surface declares, halt and explain why. \
+When done, run the commands in the plan's ## Verification section and fix any issues. \
+Then verify you made at least one commit (run 'git log --oneline -3'). \
 Output your implementation summary, then end with a '## Notes' section containing: \
 - Any deviations from the plan (and why) \
 - Caveats or known limitations in the implementation \
 - Things a reviewer should pay attention to \
 - Anything that surprised you or felt wrong \
-If there's nothing noteworthy, write '## Notes' followed by 'None.'"
+If there's nothing noteworthy, write '## Notes' followed by 'None.' \
+After '## Notes', you MUST also write a '## Surface Deviations' section listing any way the implementation diverged from the declared Surface \
+(a missing or renamed symbol, a changed signature, a behavior that differs). \
+If there were no deviations, or the plan had no Surface block, write '## Surface Deviations' followed by 'None.'"
 
   CLAUDE_OUTPUT=$(claude -p \
     --allowedTools "Read,Write,Edit,Glob,Grep,Bash" \
@@ -236,6 +253,20 @@ If there's nothing noteworthy, write '## Notes' followed by 'None.'"
     SESSION_ERROR="No result or session ID returned — possible crash or network failure"
   fi
 
+  # Parse Surface Deviations from the agent's closing section.
+  # awk extracts lines after "## Surface Deviations" up to the next "## " heading or EOF.
+  local dev_body
+  dev_body=$(echo "$CLAUDE_RESULT" | awk '
+    /^## Surface Deviations[[:space:]]*$/ { in_section=1; next }
+    in_section && /^## / { exit }
+    in_section { print }
+  ' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | grep -v '^$' || true)
+  if [[ -z "$dev_body" || "$dev_body" == "None." || "$dev_body" == "None" ]]; then
+    SURFACE_DEVIATIONS="none"
+  else
+    SURFACE_DEVIATIONS="declared"
+  fi
+
   echo "Claude session complete"
   if [[ -n "$SESSION_ID" ]]; then
     echo "Session ID: ${SESSION_ID}"
@@ -261,9 +292,30 @@ phase_verify() {
   [[ -z "$COMMITS" ]] && COMMITS_COUNT=0
 
   if [[ "$COMMITS_COUNT" -eq 0 ]]; then
-    echo "WARNING: Agent produced 0 commits. Marking as no-op."
+    # Check if trunk moved while the agent produced nothing on its branch — trunk leak
+    local trunk_head_after
+    trunk_head_after=$(git -C "$MERGE_DIR" rev-parse "${TRUNK}" 2>/dev/null || echo "")
+    if [[ -n "$TRUNK_HEAD_BEFORE" && -n "$trunk_head_after" && "$TRUNK_HEAD_BEFORE" != "$trunk_head_after" ]]; then
+      TRUNK_STATE="$SM_TRUNK_MOVED"
+      COMMITS=$(git -C "$MERGE_DIR" log "${TRUNK_HEAD_BEFORE}..${TRUNK}" --oneline 2>/dev/null || echo "")
+      echo ""
+      echo "WARNING: ════════════════════════════════════════════════════════"
+      echo "WARNING: TRUNK LEAK DETECTED — agent committed to trunk directly!"
+      echo "WARNING: The agent's commits landed on branch '${TRUNK}' instead"
+      echo "WARNING: of its worktree branch '${BRANCH}'."
+      echo "WARNING: This happens when the agent prefixes commands with"
+      echo "WARNING: 'cd <main-repo> &&' instead of running in its worktree."
+      echo "WARNING: DO NOT relaunch — that would duplicate the commits."
+      echo "WARNING: Review the commit list below and reconcile manually."
+      echo "WARNING: ════════════════════════════════════════════════════════"
+      echo ""
+      echo "Commits that landed on trunk:"
+      echo "$COMMITS"
+    else
+      echo "WARNING: Agent produced 0 commits. Marking as no-op."
+    fi
     VERIFICATION_STATE="$SM_VERIFY_SKIPPED"
-    BUILD_TEST_OUTPUT="No commits produced — skipping build/test verification."
+    BUILD_TEST_OUTPUT="No commits produced on worktree branch — skipping build/test verification."
     echo ""
     return
   fi
@@ -413,7 +465,8 @@ phase_finalize() {
   write_result_file "$RESULT_FILE" "$PLAN_SLUG" \
     "$SESSION_STATE" "$VERIFICATION_STATE" "$MERGE_STATUS" \
     "$COMMITS_COUNT" "${COMMITS:-(none)}" "$BRANCH" "$WORKTREE_DIR" "$RETRIED" \
-    "${SESSION_ID:-}" "$CLAUDE_RESULT" "$BUILD_TEST_TAIL" "${SESSION_ERROR:-}"
+    "${SESSION_ID:-}" "$CLAUDE_RESULT" "$BUILD_TEST_TAIL" "${SESSION_ERROR:-}" \
+    "$TRUNK_STATE" "${SURFACE_DEVIATIONS:-none}"
 
   mv "${REPO_ROOT}/.todo-tasks/.running/${PLAN_SLUG}.md" "${REPO_ROOT}/.todo-tasks/.done/${PLAN_SLUG}.md"
   rm -f "${REPO_ROOT}/.todo-tasks/.running/${PLAN_SLUG}.log"
