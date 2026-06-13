@@ -15,6 +15,7 @@ from ..workspace import collect_rewritable_files
 from ..regenerate_core import do_regenerate, _collect_all_orphans
 from .setup import _load_preamble
 from .. import bundle as bundle_mod
+from .._glyphs import Glyphs, for_stream
 
 
 # ---------------------------------------------------------------------------
@@ -35,7 +36,7 @@ def cmd_cat(args: argparse.Namespace, carta_root: Path) -> None:
 # tree
 # ---------------------------------------------------------------------------
 
-def _entry_label(path: Path, carta_root: Path, *, refs: bool, no_title: bool) -> str:
+def _entry_label(path: Path, carta_root: Path, *, refs: bool, no_title: bool, glyphs: Glyphs) -> str:
     """Build the display label for a single tree entry."""
     name = path.name
     if path.suffix == ".md":
@@ -69,11 +70,12 @@ def _entry_label(path: Path, carta_root: Path, *, refs: bool, no_title: bool) ->
         parts.append(title)
     if ref_str:
         parts.append(f"({ref_str})")
-    return " — ".join(parts[:2]) + (" " + parts[2] if len(parts) == 3 else "")
+    return glyphs.dash.join(parts[:2]) + (" " + parts[2] if len(parts) == 3 else "")
 
 
 def _walk_tree(directory: Path, carta_root: Path, prefix: str, *,
-               refs: bool, no_title: bool, no_sidecars: bool, lines: list[str]) -> None:
+               refs: bool, no_title: bool, no_sidecars: bool, lines: list[str],
+               glyphs: Glyphs) -> None:
     """Recursively build tree lines for a directory using bundle-aware iteration."""
     bundles = bundle_mod.list_bundles(directory)
 
@@ -91,30 +93,31 @@ def _walk_tree(directory: Path, carta_root: Path, prefix: str, *,
 
     for i, (kind, bndl, extra) in enumerate(items):
         is_last = i == len(items) - 1
-        connector = "└── " if is_last else "├── "
-        child_prefix = prefix + ("    " if is_last else "│   ")
+        connector = glyphs.leaf if is_last else glyphs.branch
+        child_prefix = prefix + (glyphs.indent if is_last else glyphs.vguide)
 
         if kind == 'dir':
             dir_entry = extra
-            label = _entry_label(dir_entry, carta_root, refs=refs, no_title=no_title)
+            label = _entry_label(dir_entry, carta_root, refs=refs, no_title=no_title, glyphs=glyphs)
             lines.append(prefix + connector + label)
             _walk_tree(dir_entry, carta_root, child_prefix,
-                       refs=refs, no_title=no_title, no_sidecars=no_sidecars, lines=lines)
+                       refs=refs, no_title=no_title, no_sidecars=no_sidecars, lines=lines,
+                       glyphs=glyphs)
         elif kind == 'root':
-            label = _entry_label(bndl.root, carta_root, refs=refs, no_title=no_title)
+            label = _entry_label(bndl.root, carta_root, refs=refs, no_title=no_title, glyphs=glyphs)
             lines.append(prefix + connector + label)
             if not no_sidecars and bndl.attachments:
                 for j, att in enumerate(bndl.attachments):
                     is_last_att = j == len(bndl.attachments) - 1
-                    att_connector = "└── " if is_last_att else "├── "
+                    att_connector = glyphs.leaf if is_last_att else glyphs.branch
                     if refs:
                         try:
                             att_ref = path_to_ref(att, carta_root)
-                            att_label = "📎 " + att_ref
+                            att_label = glyphs.attach + att_ref
                         except Exception:
-                            att_label = "📎 " + att.name
+                            att_label = glyphs.attach + att.name
                     else:
-                        att_label = "📎 " + att.name
+                        att_label = glyphs.attach + att.name
                     lines.append(child_prefix + att_connector + att_label)
         else:  # orphan
             att = extra
@@ -133,11 +136,12 @@ def cmd_tree(args: argparse.Namespace, carta_root: Path) -> None:
     show_refs = getattr(args, "refs", False)
     no_title = getattr(args, "no_title", False)
     no_sidecars = getattr(args, "no_sidecars", False)
+    glyphs = for_stream(sys.stdout)
 
-    label = _entry_label(root, carta_root, refs=show_refs, no_title=no_title)
+    label = _entry_label(root, carta_root, refs=show_refs, no_title=no_title, glyphs=glyphs)
     lines = [label]
     _walk_tree(root, carta_root, "", refs=show_refs, no_title=no_title,
-               no_sidecars=no_sidecars, lines=lines)
+               no_sidecars=no_sidecars, lines=lines, glyphs=glyphs)
     print("\n".join(lines))
 
 
@@ -289,6 +293,7 @@ def cmd_ls(args: argparse.Namespace, carta_root: Path) -> None:
         raise CartaError(f"Error: {target} is not a directory")
 
     no_sidecars = getattr(args, "no_sidecars", False)
+    glyphs = for_stream(sys.stdout)
 
     for entry in sorted(target.iterdir(), key=lambda p: p.name):
         prefix = get_numeric_prefix(entry.name)
@@ -306,7 +311,7 @@ def cmd_ls(args: argparse.Namespace, carta_root: Path) -> None:
                     title = fm.get("title", title)
                 except Exception:
                     pass
-            print(f"{entry.name} — {title}")
+            print(f"{entry.name}{glyphs.dash}{title}")
         elif entry.suffix == ".md":
             slug_str = get_slug(entry.name)
             title = slug_str.replace("-", " ").title()
@@ -315,7 +320,7 @@ def cmd_ls(args: argparse.Namespace, carta_root: Path) -> None:
                 title = fm.get("title", title)
             except Exception:
                 pass
-            print(f"{entry.stem} — {title}")
+            print(f"{entry.stem}{glyphs.dash}{title}")
         else:
             # Non-md numbered file (sidecar / attachment)
             if not no_sidecars:

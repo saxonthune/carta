@@ -14,6 +14,14 @@ from .setup import cmd_init, cmd_portable, cmd_init_rehydrate
 
 
 def main(argv: list[str] | None = None) -> int:
+    for _stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(_stream, "reconfigure", None)
+        if reconfigure is not None:
+            try:
+                reconfigure(encoding="utf-8", errors="replace")
+            except (ValueError, OSError):
+                pass
+
     parser = argparse.ArgumentParser(
         prog="carta",
         description="Workspace tools for managing .carta/ documentation.",

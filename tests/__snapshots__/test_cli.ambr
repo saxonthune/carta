@@ -101,10 +101,10 @@
 # ---
 # name: TestBundleAwarePunchFlatten.test_punch_as_child_dry_run_shows_attachments
   '''
-  Would punch: 01-game.md → 01-game/01-game.md (content)
-  Would punch: 01-game.md → 01-game/00-index.md (generated index)
-  Would move attachment: 01-game.mockup.png → 01-game/01-game.mockup.png
-  Would move attachment: 01-game.xstate.json → 01-game/01-game.xstate.json
+  Would punch: 01-game.md -> 01-game/01-game.md (content)
+  Would punch: 01-game.md -> 01-game/00-index.md (generated index)
+  Would move attachment: 01-game.mockup.png -> 01-game/01-game.mockup.png
+  Would move attachment: 01-game.xstate.json -> 01-game/01-game.xstate.json
   
   (dry-run: no files modified)
   
@@ -112,9 +112,9 @@
 # ---
 # name: TestBundleAwarePunchFlatten.test_punch_dry_run_shows_attachment_moves
   '''
-  Would punch: 01-game.md → 01-game/00-index.md
-  Would move attachment: 01-game.mockup.png → 01-game/00-game.mockup.png
-  Would move attachment: 01-game.xstate.json → 01-game/00-game.xstate.json
+  Would punch: 01-game.md -> 01-game/00-index.md
+  Would move attachment: 01-game.mockup.png -> 01-game/00-game.mockup.png
+  Would move attachment: 01-game.xstate.json -> 01-game/00-game.xstate.json
   
   (dry-run: no files modified)
   
@@ -1940,79 +1940,79 @@
 # name: TestTreeCommand.test_tree_default
   '''
   .carta
-  ├── 00-codex — Codex
-  │   ├── 00-index — Codex
-  │   ├── 01-about — About
-  │   ├── 02-maintenance — Maintenance
-  │   ├── 03-conventions — Conventions
-  │   ├── 04-ai-retrieval — AI Retrieval
-  │   ├── 05-taxonomy — Taxonomy
-  │   └── 06-integration — Integration
-  ├── 01-product-strategy — Product Strategy
-  │   ├── 00-index — Product Strategy
-  │   ├── 01-mission — Mission
-  │   ├── 02-principles — Principles
-  │   ├── 03-glossary — Glossary
-  │   └── 04-primary-sources — Primary Sources
-  │       ├── 00-index — Primary Sources
-  │       ├── 01-experiment — The Carta Experiment
-  │       ├── 02-foundations — Theoretical Foundations
-  │       └── 03-unfolding — Unfolding as Development
-  ├── 02-product-design — Product Design
-  │   ├── 00-index — Product Design
-  │   ├── 01-workspace-scripts — Workspace Scripts
-  │   ├── 02-cli-flow — CLI User Flow
-  │   ├── 03-extension — VSCode Extension
-  │   ├── 04-web-platform — Web Platform
-  │   │   ├── 00-index — Web Platform
-  │   │   ├── 01-conversational — Conversational Flow
-  │   │   └── 02-direct-editing — Direct Editing Flow
-  │   ├── 05-metamodel — Metamodel
-  │   ├── 06-presentation — Presentation Model
-  │   ├── 07-glossary — Canvas Glossary
-  │   └── 08-decisions — Decisions
-  │       ├── 00-index — Decisions
-  │       ├── 01-yjs-state — YJS State
-  │       ├── 02-port-polarity — Port Polarity
-  │       └── 03-formatters — Formatters
-  └── 03-architecture — Architecture
-      ├── 00-index — Architecture
-      ├── 01-overview — Overview
-      ├── 02-script-pipeline — Script Pipeline
-      ├── 03-vscode-extension — VSCode Extension
-      ├── 04-canvas-state — Canvas State
-      ├── 05-frontend — Frontend Architecture
-      └── 06-data-pipelines — Data Pipelines
+  |-- 00-codex -- Codex
+  |   |-- 00-index -- Codex
+  |   |-- 01-about -- About
+  |   |-- 02-maintenance -- Maintenance
+  |   |-- 03-conventions -- Conventions
+  |   |-- 04-ai-retrieval -- AI Retrieval
+  |   |-- 05-taxonomy -- Taxonomy
+  |   `-- 06-integration -- Integration
+  |-- 01-product-strategy -- Product Strategy
+  |   |-- 00-index -- Product Strategy
+  |   |-- 01-mission -- Mission
+  |   |-- 02-principles -- Principles
+  |   |-- 03-glossary -- Glossary
+  |   `-- 04-primary-sources -- Primary Sources
+  |       |-- 00-index -- Primary Sources
+  |       |-- 01-experiment -- The Carta Experiment
+  |       |-- 02-foundations -- Theoretical Foundations
+  |       `-- 03-unfolding -- Unfolding as Development
+  |-- 02-product-design -- Product Design
+  |   |-- 00-index -- Product Design
+  |   |-- 01-workspace-scripts -- Workspace Scripts
+  |   |-- 02-cli-flow -- CLI User Flow
+  |   |-- 03-extension -- VSCode Extension
+  |   |-- 04-web-platform -- Web Platform
+  |   |   |-- 00-index -- Web Platform
+  |   |   |-- 01-conversational -- Conversational Flow
+  |   |   `-- 02-direct-editing -- Direct Editing Flow
+  |   |-- 05-metamodel -- Metamodel
+  |   |-- 06-presentation -- Presentation Model
+  |   |-- 07-glossary -- Canvas Glossary
+  |   `-- 08-decisions -- Decisions
+  |       |-- 00-index -- Decisions
+  |       |-- 01-yjs-state -- YJS State
+  |       |-- 02-port-polarity -- Port Polarity
+  |       `-- 03-formatters -- Formatters
+  `-- 03-architecture -- Architecture
+      |-- 00-index -- Architecture
+      |-- 01-overview -- Overview
+      |-- 02-script-pipeline -- Script Pipeline
+      |-- 03-vscode-extension -- VSCode Extension
+      |-- 04-canvas-state -- Canvas State
+      |-- 05-frontend -- Frontend Architecture
+      `-- 06-data-pipelines -- Data Pipelines
   
   '''
 # ---
 # name: TestTreeCommand.test_tree_no_title
   '''
   04-primary-sources
-  ├── 00-index
-  ├── 01-experiment
-  ├── 02-foundations
-  └── 03-unfolding
+  |-- 00-index
+  |-- 01-experiment
+  |-- 02-foundations
+  `-- 03-unfolding
   
   '''
 # ---
 # name: TestTreeCommand.test_tree_refs
   '''
-  04-primary-sources — Primary Sources (doc01.04)
-  ├── 00-index — Primary Sources (doc01.04.00)
-  ├── 01-experiment — The Carta Experiment (doc01.04.01)
-  ├── 02-foundations — Theoretical Foundations (doc01.04.02)
-  └── 03-unfolding — Unfolding as Development (doc01.04.03)
+  04-primary-sources -- Primary Sources (doc01.04)
+  |-- 00-index -- Primary Sources (doc01.04.00)
+  |-- 01-experiment -- The Carta Experiment (doc01.04.01)
+  |-- 02-foundations -- Theoretical Foundations (doc01.04.02)
+  `-- 03-unfolding -- Unfolding as Development (doc01.04.03)
   
   '''
 # ---
 # name: TestTreeCommand.test_tree_subtree
   '''
-  04-primary-sources — Primary Sources
-  ├── 00-index — Primary Sources
-  ├── 01-experiment — The Carta Experiment
-  ├── 02-foundations — Theoretical Foundations
-  └── 03-unfolding — Unfolding as Development
+  04-primary-sources -- Primary Sources
+  |-- 00-index -- Primary Sources
+  |-- 01-experiment -- The Carta Experiment
+  |-- 02-foundations -- Theoretical Foundations
+  `-- 03-unfolding -- Unfolding as Development
   
   '''
 # ---

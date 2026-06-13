@@ -36,6 +36,7 @@ _LIBRARY_MODULES = [
     "regenerate_core.py",
     "ai_skill.py",
     "errors.py",
+    "_glyphs.py",
     "commands/__init__.py",
     "commands/_parser.py",
     "commands/structure.py",

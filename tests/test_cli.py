@@ -1621,9 +1621,12 @@ class TestTreeCommand(unittest.TestCase):
         """carta tree prints workspace structure with titles."""
         result = _run_carta(self.carta_copy, "tree")
         self.assertEqual(result.returncode, 0, f"carta tree failed:\n{result.stderr}\n{result.stdout}")
-        # Should contain tree-drawing characters (structural check kept inline)
+        # Should contain tree-drawing characters (Unicode or ASCII fallback)
         lines = result.stdout.strip().split("\n")
-        self.assertTrue(any("├── " in l or "└── " in l for l in lines[1:]))
+        self.assertTrue(any(
+            "├── " in l or "└── " in l or "|-- " in l or "`-- " in l
+            for l in lines[1:]
+        ))
         assert result.stdout == self._snapshot
 
     def test_tree_subtree(self):
@@ -2493,8 +2496,8 @@ class TestCmdTreeWithSidecars(unittest.TestCase):
         # Find the principles line and check sidecar follows it indented
         principles_idx = next((i for i, l in enumerate(lines) if "Principles" in l), None)
         self.assertIsNotNone(principles_idx)
-        sidecar_line = next((l for l in lines if "📎" in l), None)
-        self.assertIsNotNone(sidecar_line, "Expected a sidecar line with 📎")
+        sidecar_line = next((l for l in lines if "📎" in l or "* " in l), None)
+        self.assertIsNotNone(sidecar_line, "Expected a sidecar line with attachment marker")
         self.assertIn("02-diagram.mmd", sidecar_line)
 
     def test_tree_no_sidecars_hides_attachments(self):
@@ -2503,6 +2506,7 @@ class TestCmdTreeWithSidecars(unittest.TestCase):
         result = _run_carta(self.carta, "tree", "01-product-strategy", "--no-sidecars")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertNotIn("📎", result.stdout)
+        self.assertFalse(any("* " in l and "02-diagram.mmd" in l for l in result.stdout.splitlines()))
         self.assertNotIn("02-diagram.mmd", result.stdout)
 
     def test_tree_refs_sidecar_format(self):

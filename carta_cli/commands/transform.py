@@ -2,6 +2,7 @@
 import argparse
 import re
 import shutil
+import sys
 import tempfile
 from pathlib import Path
 
@@ -15,6 +16,7 @@ from ..workspace import collect_rewritable_files
 from ..regenerate_core import do_regenerate
 from .setup import _load_preamble
 from .. import bundle as bundle_mod
+from .._glyphs import for_stream
 
 
 # ---------------------------------------------------------------------------
@@ -47,16 +49,17 @@ def cmd_punch(args: argparse.Namespace, carta_root: Path) -> None:
     bndl = bundle_mod.find_bundle(source_path)
     attachments = list(bndl.attachments) if bndl else []
     att_prefix = 1 if as_child else 0
+    glyphs = for_stream(sys.stdout)
 
     if args.dry_run:
         if as_child:
-            print(f"Would punch: {source_path.name} → {dir_name}/01-{slug}.md (content)")
-            print(f"Would punch: {source_path.name} → {dir_name}/00-index.md (generated index)")
+            print(f"Would punch: {source_path.name} {glyphs.arrow} {dir_name}/01-{slug}.md (content)")
+            print(f"Would punch: {source_path.name} {glyphs.arrow} {dir_name}/00-index.md (generated index)")
         else:
-            print(f"Would punch: {source_path.name} → {dir_name}/00-index.md")
+            print(f"Would punch: {source_path.name} {glyphs.arrow} {dir_name}/00-index.md")
         for att in attachments:
             att_slug = get_slug(att.name)
-            print(f"Would move attachment: {att.name} → {dir_name}/{att_prefix:02d}-{att_slug}")
+            print(f"Would move attachment: {att.name} {glyphs.arrow} {dir_name}/{att_prefix:02d}-{att_slug}")
         print("\n(dry-run: no files modified)")
         return
 
@@ -72,7 +75,7 @@ def cmd_punch(args: argparse.Namespace, carta_root: Path) -> None:
         for att in attachments:
             att_slug = get_slug(att.name)
             shutil.move(str(att), str(new_dir / f"{att_prefix:02d}-{att_slug}"))
-        print(f"Punched: {source_path.name} → {dir_name}/01-{slug}.md (content)")
+        print(f"Punched: {source_path.name} {glyphs.arrow} {dir_name}/01-{slug}.md (content)")
         print(f"  Index: {dir_name}/00-index.md (generated)")
         if attachments:
             print(f"  Moved {len(attachments)} attachment(s) with prefix 01-")
@@ -81,7 +84,7 @@ def cmd_punch(args: argparse.Namespace, carta_root: Path) -> None:
         for att in attachments:
             att_slug = get_slug(att.name)
             shutil.move(str(att), str(new_dir / f"{att_prefix:02d}-{att_slug}"))
-        print(f"Punched: {source_path.name} → {dir_name}/00-index.md")
+        print(f"Punched: {source_path.name} {glyphs.arrow} {dir_name}/00-index.md")
         if attachments:
             print(f"  Moved {len(attachments)} attachment(s) with prefix 00-")
 
