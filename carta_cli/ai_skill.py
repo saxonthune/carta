@@ -68,32 +68,39 @@ Arguments:
   SLUG    Filename stem without prefix (e.g., `my-doc` → `03-my-doc.md`).
           Must NOT include a numeric prefix.
 
-Addressing modes (three ways to specify where to place the entry):
-  1. `carta make SLUG`            — single positional: creates at root level, appends after last entry
-  2. `carta make PARENT SLUG`     — two positionals: creates inside PARENT, appends after last entry
-  3. `carta make --at REF SLUG`   — strict slot: creates at exact position REF; errors if occupied
+Addressing modes (four ways to specify where to place the entry):
+  1. `carta make SLUG`              — single positional: creates at root level, appends after last entry
+  2. `carta make PARENT SLUG`       — two positionals: creates inside PARENT, appends after last entry
+  3. `carta make --at REF SLUG`     — strict slot: creates at exact position REF; errors if occupied
+  4. `carta make --insert REF SLUG` — displacing insert: shifts that sibling and all higher ones up by one,
+                                      then writes the new entry at REF's coordinate
 
 Side effects:
   - Writes a new `.md` file (or directory + `00-index.md` with `-g`) with skeleton frontmatter.
   - Frontmatter title is derived from slug (slug → "Title Case"). No frontmatter flags — author
     real frontmatter in the same pass where you write the body.
   - Regenerates MANIFEST.md (unless --no-regen).
-  - Does NOT renumber siblings — appends or writes to a strict free slot only.
+  - `--insert` only: renumbers siblings (bump up) and rewrites their cross-references before writing.
+  - append / `--at`: does NOT renumber siblings.
 
 Flags:
-  -g, --group  Create a directory + `00-index.md` instead of a leaf `.md`.
-  --at REF     Exact target ref (e.g. `doc01.02.03.04`). Writes iff the slot is free, else errors.
-               Do NOT combine with a PARENT positional — REF encodes the full coordinate.
-  --dry-run    Print the planned file path without creating anything.
-  --no-regen   Skip MANIFEST regeneration.
+  -g, --group     Create a directory + `00-index.md` instead of a leaf `.md`.
+  --at REF        Exact target ref (e.g. `doc01.02.03.04`). Writes iff the slot is free, else errors.
+                  Do NOT combine with a PARENT positional — REF encodes the full coordinate.
+  --insert REF    Displacing insert at REF. Bumps that sibling and all higher siblings up by one,
+                  rewrites their refs, then writes the new entry at REF's coordinate. Mutually
+                  exclusive with `--at`. Do NOT combine with a PARENT positional.
+  --dry-run       Print the planned file path (and shift plan for --insert) without creating anything.
+  --no-regen      Skip MANIFEST regeneration.
 
 Output:
   Prints the canonical ref and workspace-relative path of the created entry.
+  With --insert, also prints: `Shifted: N sibling(s) renumbered`
   Example: `Created: doc01.02.03.04  (03-product-design/.../04-architecture-guidelines.md)`
 
 Notes:
-  - No `--insert` / renumber-siblings: make appends or writes to a strict free `--at` slot only.
-    Shifting siblings to open a gap is a separate operation.
+  - `--at` is non-displacing (errors on occupied slot); `--insert` is displacing (shifts siblings up).
+  - Do NOT combine `--insert` with `--at` or with a two-positional target.
   - Do NOT add `--title`, `--summary`, `--tags`, `--deps` flags to this command. Frontmatter is
     authored by the agent in the same file write as the body. The skeleton is valid as-is.
 """,

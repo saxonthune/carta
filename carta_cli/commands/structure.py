@@ -23,15 +23,95 @@ from .. import bundle as bundle_mod
 
 def cmd_make(args: argparse.Namespace, carta_root: Path) -> None:
     """Create a new doc or group entry."""
-    # Validate positional/--at combinations
+    # Validate positional/--at/--insert combinations
     if args.at is not None and len(args.target) == 2:
         raise CartaError("--at takes its position from the ref; do not also pass a parent")
+
+    if args.insert is not None and args.at is not None:
+        raise CartaError("--insert and --at are mutually exclusive")
+
+    if args.insert is not None and len(args.target) == 2:
+        raise CartaError("--insert takes its position from the ref; do not also pass a parent")
 
     if len(args.target) > 2:
         raise CartaError("too many positional arguments; usage: carta make [PARENT] SLUG")
 
     # Resolve addressing mode
-    if args.at is not None:
+    if args.insert is not None:
+        if len(args.target) != 1:
+            raise CartaError("--insert requires exactly one positional argument (SLUG)")
+        slug = args.target[0]
+
+        try:
+            insert_ref = DocRef.parse(args.insert)
+        except CartaError as e:
+            raise CartaError(f"Invalid --insert ref: {e}")
+
+        target_prefix = insert_ref.segments[-1]
+        parent_segments = insert_ref.segments[:-1]
+
+        if parent_segments:
+            parent_ref = DocRef(segments=parent_segments)
+            try:
+                parent_path = parent_ref.to_path(carta_root)
+            except FileNotFoundError as e:
+                raise CartaError(f"Error resolving parent from --insert ref: {e}")
+        else:
+            parent_path = carta_root
+
+        if not parent_path.is_dir():
+            raise CartaError(f"Error: parent is not a directory: {parent_path}")
+
+        prefix = target_prefix
+
+        # Build shift-up move-set: bump every bundle at prefix >= target_prefix up by one
+        bundles = bundle_mod.list_bundles(parent_path)
+        shift_moves: list[tuple[Path, Path]] = []
+        for bndl in bundles:
+            if bndl.prefix == 0:
+                continue
+            if bndl.prefix < target_prefix:
+                continue
+            all_members = ([bndl.root] if bndl.root else []) + list(bndl.attachments)
+            for member in all_members:
+                tail = EntryName.parse(member.name).tail
+                new_name = f"{bndl.prefix + 1:02d}-{tail}"
+                shift_moves.append((member, parent_path / new_name))
+
+        rename_map = compute_rename_map(shift_moves, carta_root)
+
+        if args.dry_run:
+            print(f"Would insert at position {prefix:02d} in {parent_path.relative_to(carta_root) if parent_path != carta_root else '(root)'}")
+            if shift_moves:
+                print(f"\n=== Shift-up moves ({len(shift_moves)}) ===")
+                for old, new in shift_moves:
+                    print(f"  {old.relative_to(carta_root)} -> {new.relative_to(carta_root)}")
+            if rename_map:
+                print(f"\n=== Ref rename map ({len(rename_map)} entries) ===")
+                for old_ref, new_ref in sorted(rename_map.items()):
+                    print(f"  {old_ref} -> {new_ref}")
+            if args.group:
+                new_dir = parent_path / f"{prefix:02d}-{slug}"
+                print(f"\nWould create group: {new_dir.relative_to(carta_root)}/")
+                print(f"  Index: {(new_dir / '00-index.md').relative_to(carta_root)}")
+            else:
+                new_path = parent_path / f"{prefix:02d}-{slug}.md"
+                print(f"\nWould create: {new_path.relative_to(carta_root)}")
+            print(f"  Position: {prefix:02d}")
+            print("\n(dry-run: no files created)")
+            return
+
+        # Apply: shift siblings up in reverse prefix order to avoid collisions
+        for old_path, new_path in reversed(shift_moves):
+            if old_path.exists():
+                shutil.move(str(old_path), str(new_path))
+
+        rewrite_refs(collect_rewritable_files(carta_root), rename_map)
+
+        # Fall through to the shared writer (prefix is already set)
+        # Regeneration happens once at the end of the writer block
+
+    elif args.at is not None:
         if len(args.target) != 1:
             raise CartaError("--at requires exactly one positional argument (SLUG)")
         slug = args.target[0]
@@ -130,6 +210,9 @@ def cmd_make(args: argparse.Namespace, carta_root: Path) -> None:
         print(f"Created: {ref}  ({new_path.relative_to(carta_root)})")
     except ValueError:
         print(f"Created: {new_path.relative_to(carta_root)}")
+
+    if args.insert is not None and shift_moves:
+        print(f"Shifted: {len(shift_moves)} sibling(s) renumbered")
 
 
 # ---------------------------------------------------------------------------

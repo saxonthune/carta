@@ -48,6 +48,7 @@ def main(argv: list[str] | None = None) -> int:
             "  carta make my-top-level-doc\n"
             "  carta make -g doc01 new-group\n"
             "  carta make --at doc00.07 pinned-doc\n"
+            "  carta make --insert doc00.03 new-doc\n"
             "  carta make doc00 scratch --dry-run"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -57,6 +58,8 @@ def main(argv: list[str] | None = None) -> int:
                         help="Create a directory + 00-index.md instead of a leaf .md")
     p_make.add_argument("--at", default=None,
                         help="Exact target ref (e.g. doc01.02.03.04); writes iff the slot is free")
+    p_make.add_argument("--insert", default=None,
+                        help="Insert at REF (e.g. doc01.02.03), bumping that sibling and all higher ones up by one")
     p_make.add_argument("--dry-run", action="store_true")
     p_make.add_argument("--no-regen", action="store_true")
 

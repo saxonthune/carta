@@ -100,6 +100,9 @@ carta make 01-product my-feature
 # Add a new doc at an exact position
 carta make --at doc01.04 my-pinned-feature
 
+# Insert at an occupied position, shifting that sibling and higher ones up by one
+carta make --insert doc01.02 my-inserted-feature
+
 # Create a new title group (directory + 00-index.md)
 carta make -g 01-product new-subgroup
 

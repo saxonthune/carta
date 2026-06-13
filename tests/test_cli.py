@@ -2573,5 +2573,186 @@ class TestAttachSlugCollision(unittest.TestCase):
         self.assertTrue((self.carta / "00-codex/01-flow.mmd").exists())
 
 
+class TestMakeInsert(unittest.TestCase):
+    """Test carta make --insert: opens a gap and bumps siblings up."""
+
+    @pytest.fixture(autouse=True)
+    def _inject_snapshot(self, snapshot):
+        self._snapshot = snapshot
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.carta_copy = _build_fixture(Path(self.tmpdir.name))
+
+    def tearDown(self):
+        self.tmpdir.cleanup()
+
+    def _assert_no_duplicate_prefixes(self, carta_root):
+        """Assert no directory has two .md files or two directories sharing a prefix.
+
+        Multiple files at the same prefix is valid (bundle attachments); two .md files or
+        two directories at the same prefix is a structural conflict.
+        """
+        excluded = {carta_root / ".state"}
+        for dirpath in carta_root.rglob("*"):
+            if not dirpath.is_dir():
+                continue
+            if any(excl in dirpath.parents or dirpath == excl for excl in excluded):
+                continue
+            md_prefixes = []
+            dir_prefixes = []
+            for entry in dirpath.iterdir():
+                m = re.match(r'^(\d{2})-', entry.name)
+                if m:
+                    p = int(m.group(1))
+                    if entry.is_dir():
+                        dir_prefixes.append(p)
+                    elif entry.suffix == ".md":
+                        md_prefixes.append(p)
+            for prefixes, kind in [(md_prefixes, "md"), (dir_prefixes, "dir")]:
+                dups = [p for p in prefixes if prefixes.count(p) > 1]
+                assert dups == [], f"Duplicate {kind} prefixes in {dirpath}: {sorted(set(dups))}"
+
+    def _collect_orphaned_refs(self, carta_root):
+        excluded = {carta_root / ".state"}
+        pattern = re.compile(r'(?<!\w)doc\d{2}(?:\.\d{2})+(?!\.[a-zA-Z0-9])')
+        orphans = []
+        for md in carta_root.rglob("*.md"):
+            if any(excl in md.parents or md == excl for excl in excluded):
+                continue
+            for m in pattern.finditer(md.read_text(encoding="utf-8")):
+                try:
+                    ref_to_path(m.group(), carta_root)
+                except (FileNotFoundError, ValueError, OSError):
+                    orphans.append((md.relative_to(carta_root), m.group()))
+        return orphans
+
+    def test_insert_shifts_siblings(self):
+        """--insert at an occupied middle slot bumps that entry and higher ones up by one."""
+        codex = self.carta_copy / "00-codex"
+        entries_before = list_numbered_entries(codex)
+
+        # Insert at position 03 (03-conventions.md exists in fixture)
+        result = _run_carta(self.carta_copy, "make", "--insert", "doc00.03", "wedge-doc")
+        assert result.returncode == 0, f"make --insert failed:\n{result.stderr}\n{result.stdout}"
+
+        # New entry should exist at 03
+        assert (codex / "03-wedge-doc.md").exists(), "Expected 03-wedge-doc.md at position 03"
+
+        # Old 03-conventions.md should have moved to 04
+        assert not (codex / "03-conventions.md").exists(), "03-conventions.md should have shifted"
+        assert (codex / "04-conventions.md").exists(), "Expected 04-conventions.md after shift"
+
+        # No duplicate prefixes
+        self._assert_no_duplicate_prefixes(self.carta_copy)
+
+        # All prefixes should be sequential (no gaps)
+        entries_after = list_numbered_entries(codex)
+        assert len(entries_after) == len(entries_before) + 1
+        nonzero_prefixes = sorted(
+            get_numeric_prefix(e.name) for e in entries_after
+            if get_numeric_prefix(e.name) is not None and get_numeric_prefix(e.name) > 0
+        )
+        assert nonzero_prefixes == list(range(1, len(nonzero_prefixes) + 1)), \
+            f"Expected sequential prefixes, got: {nonzero_prefixes}"
+
+    def test_insert_rewrites_refs(self):
+        """After --insert, refs to shifted siblings are updated to their new coordinates."""
+        pre_existing = set(ref for _, ref in self._collect_orphaned_refs(self.carta_copy))
+
+        # 03-conventions.md is referenced by 01-mission.md (deps: [doc01.02]) and glossary
+        # doc00.03 will be bumped to doc00.04 after inserting at 03
+        result = _run_carta(self.carta_copy, "make", "--insert", "doc00.03", "new-wedge")
+        assert result.returncode == 0, f"make --insert failed:\n{result.stderr}\n{result.stdout}"
+
+        # No new orphaned refs should be introduced by the shift
+        orphans = self._collect_orphaned_refs(self.carta_copy)
+        new_orphans = [(f, r) for f, r in orphans if r not in pre_existing]
+        assert new_orphans == [], \
+            "New orphaned refs introduced by --insert:\n" + \
+            "\n".join(f"  {r} in {f}" for f, r in new_orphans)
+
+    def test_insert_preserves_bundle_attachments(self):
+        """A shifted bundle keeps its attachments under the new prefix."""
+        # Add an attachment to 03-conventions.md to simulate a bundle
+        codex = self.carta_copy / "00-codex"
+        att_path = codex / "03-conventions.yaml"
+        att_path.write_text("key: value\n", encoding="utf-8")
+
+        result = _run_carta(self.carta_copy, "make", "--insert", "doc00.03", "wedge-with-bundle")
+        assert result.returncode == 0, f"make --insert failed:\n{result.stderr}\n{result.stdout}"
+
+        # Attachment should have moved with the conventions bundle
+        assert not att_path.exists(), "03-conventions.yaml should have been shifted"
+        assert (codex / "04-conventions.yaml").exists(), \
+            "Expected 04-conventions.yaml after shift (attachment moved with bundle)"
+
+        # New entry at 03
+        assert (codex / "03-wedge-with-bundle.md").exists()
+
+        # No duplicate prefixes
+        self._assert_no_duplicate_prefixes(self.carta_copy)
+
+    def test_insert_at_root(self):
+        """--insert at a root-level title shifts top-level titles."""
+        root_entries_before = list_numbered_entries(self.carta_copy)
+
+        # Insert at position 02 (02-product-design exists in fixture)
+        result = _run_carta(self.carta_copy, "make", "--insert", "doc02", "new-title")
+        assert result.returncode == 0, f"make --insert at root failed:\n{result.stderr}\n{result.stdout}"
+
+        # New entry should be at root level position 02
+        assert (self.carta_copy / "02-new-title.md").exists(), \
+            "Expected 02-new-title.md at root level"
+
+        # Old 02-product-design should have moved to 03
+        assert not (self.carta_copy / "02-product-design").exists(), \
+            "02-product-design should have shifted up"
+        assert (self.carta_copy / "03-product-design").exists(), \
+            "Expected 03-product-design after shift"
+
+        # No duplicate prefixes
+        self._assert_no_duplicate_prefixes(self.carta_copy)
+
+        root_entries_after = list_numbered_entries(self.carta_copy)
+        assert len(root_entries_after) == len(root_entries_before) + 1
+
+    def test_insert_dry_run(self):
+        """--insert --dry-run prints the plan but writes nothing."""
+        before = {p: p.read_bytes() for p in self.carta_copy.rglob("*")
+                  if p.is_file() and p.suffix in (".md", ".json", "")}
+
+        result = _run_carta(self.carta_copy, "make", "--insert", "doc00.03", "phantom", "--dry-run")
+        assert result.returncode == 0, result.stderr
+
+        # No files should have been created or modified
+        after = {p: p.read_bytes() for p in self.carta_copy.rglob("*")
+                 if p.is_file() and p.suffix in (".md", ".json", "")}
+        assert before == after, "Files were modified during --dry-run"
+
+        # Output should describe the plan
+        assert "dry-run" in result.stdout.lower()
+        assert "03" in result.stdout
+
+    def test_insert_rejects_with_at(self):
+        """--insert combined with --at should error."""
+        result = _run_carta(self.carta_copy, "make", "--insert", "doc00.03", "--at", "doc00.05", "slug")
+        assert result.returncode != 0
+        assert "mutually exclusive" in result.stderr
+
+    def test_insert_rejects_two_positionals(self):
+        """--insert with two positionals (parent + slug) should error."""
+        result = _run_carta(self.carta_copy, "make", "--insert", "doc00.03", "doc00", "some-slug")
+        assert result.returncode != 0
+        assert "do not also pass a parent" in result.stderr
+
+    def test_insert_outputs_shifted_count(self):
+        """--insert prints 'Shifted: N sibling(s) renumbered' in output."""
+        result = _run_carta(self.carta_copy, "make", "--insert", "doc00.03", "check-output")
+        assert result.returncode == 0, f"make --insert failed:\n{result.stderr}\n{result.stdout}"
+        assert "Shifted:" in result.stdout, f"Expected shift count in output:\n{result.stdout}"
+        assert "renumbered" in result.stdout
+
+
 if __name__ == "__main__":
     unittest.main()
