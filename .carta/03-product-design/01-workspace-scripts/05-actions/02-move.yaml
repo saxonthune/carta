@@ -2,7 +2,7 @@
 
 id: move
 summary: Move or reorder a file/directory, renumbering siblings and rewriting refs
-cli: "carta move <source> <destination> [--order N] [--mkdir] [--rename SLUG] [--no-regen] [--no-gap-close] [--dry-run]"
+cli: "carta move <source> [<destination>] [--at REF | --insert REF] [--mkdir] [--rename SLUG] [--no-regen] [--no-gap-close] [--dry-run]"
 
 inputs:
   source:
@@ -11,12 +11,16 @@ inputs:
     description: File or directory to move
   destination:
     type: path
-    required: true
-    description: Target parent directory
-  order:
-    type: int
+    required: false
+    description: Target parent directory (append mode only; omit when using --at/--insert)
+  at:
+    type: ref
     default: null
-    description: 1-based position in destination; appends if null
+    description: Exact target ref; moves iff the slot is free (strict / non-displacing)
+  insert:
+    type: ref
+    default: null
+    description: Insert at ref, bumping siblings at or above target prefix up by one (displacing)
   mkdir:
     type: bool
     default: false
@@ -40,21 +44,25 @@ guards:
     check: "exists(source)"
     error: ERR-MOVE-NOT-FOUND
   - id: G-MOVE-2
-    statement: destination directory exists or --mkdir is set
-    check: "isdir(destination) OR mkdir"
+    statement: destination directory exists (append mode) or ref parent exists (--at/--insert)
+    check: "isdir(destination) OR (at/insert ref parent is an existing dir)"
     error: ERR-MOVE-DEST-NOT-FOUND
   - id: G-MOVE-3
-    statement: no prefix collision at destination after insert
-    check: "no sibling at destination occupies target NN after shift"
+    statement: no prefix collision at destination after insert (--insert bumps; --at requires free slot)
+    check: "slot is free OR --insert displaces"
     error: ERR-MOVE-COLLISION
   - id: G-MOVE-4
-    statement: order is within valid range for destination
-    check: "order is null OR 1 <= order <= len(dest_children)+1"
+    statement: --at and --insert are mutually exclusive; neither coexists with a positional destination
+    check: "at IS NULL OR insert IS NULL; (at OR insert) AND destination IS NULL"
     error: ERR-MOVE-BAD-ORDER
   - id: G-MOVE-5
     statement: source is not the destination or an ancestor of it
     check: "destination not under source"
     error: ERR-MOVE-INTO-SELF
+  - id: G-MOVE-6
+    statement: position 00 is only reserved when a 00-index.md exists in the target directory
+    check: "target_prefix != 0 OR NOT exists(dest_dir / '00-index.md')"
+    error: ERR-MOVE-RESERVED-SLOT
 
 effects:
   - id: E-MOVE-1

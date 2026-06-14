@@ -70,10 +70,25 @@ def main(argv: list[str] | None = None) -> int:
     p_delete.add_argument("--output-mapping", action="store_true")
 
     # move
-    p_move = subparsers.add_parser("move", help="Move/reorder entries")
-    p_move.add_argument("source")
-    p_move.add_argument("destination")
-    p_move.add_argument("--order", type=int, default=None)
+    p_move = subparsers.add_parser(
+        "move",
+        help="Move/reorder entries",
+        epilog=(
+            "Examples:\n"
+            "  carta move doc01.03 02-architecture\n"
+            "  carta move doc01.03 --at doc02.05\n"
+            "  carta move doc01.03 --insert doc02.01\n"
+            "  carta move doc01 --insert doc00"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    p_move.add_argument("source", help="Path or doc ref to move")
+    p_move.add_argument("destination", nargs="?", default=None,
+                        help="Target directory (append mode). Omit when using --at/--insert.")
+    p_move.add_argument("--at", default=None,
+                        help="Exact target ref (docXX.YY.ZZ | dXX.YY | XX.YY); moves iff the slot is free, else error")
+    p_move.add_argument("--insert", default=None,
+                        help="Insert at REF, bumping that sibling and all higher ones up by one")
     p_move.add_argument("--mkdir", action="store_true")
     p_move.add_argument("--rename", default=None)
     p_move.add_argument("--no-regen", action="store_true", help="Skip MANIFEST regeneration.")

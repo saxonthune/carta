@@ -136,23 +136,49 @@ Flags:
 Move or reorder a file or directory within the workspace.
 
 ```
-carta move <source> <destination> [--order N] [--mkdir] [--rename SLUG] [--no-regen] [--no-gap-close] [--dry-run]
+carta move <source> [<destination>] [--at REF | --insert REF] [--mkdir] [--rename SLUG] [--no-regen] [--no-gap-close] [--dry-run]
 ```
 
 Arguments:
   source       Path or doc ref to move. Accepts files (.md) and directories.
-  destination  Target directory. Must exist unless --mkdir is used.
+  destination  Target directory for append mode. Omit when using --at or --insert.
+
+Addressing modes:
+  Append (positional destination, no --at/--insert):
+    Move source to the destination directory, appending after the last existing entry.
+    Accepted forms for destination: path or doc ref to an existing directory.
+    --mkdir creates the directory if it is missing (also creates 00-index.md).
+
+  --at REF (strict / non-displacing):
+    Move source to the exact position named by REF.  The slot must be free; if occupied,
+    the command errors without moving anything.  No sibling renumbering at the destination.
+    Source-side gap-close still applies (unless --no-gap-close).
+    Accepted ref forms: docXX.YY.ZZ | dXX.YY | XX.YY
+
+  --insert REF (displacing):
+    Insert source at the position named by REF, bumping that sibling and every sibling
+    with a higher prefix up by one, rewriting refs for all shifted entries.
+    Source-side gap-close still applies (unless --no-gap-close).
+    Accepted ref forms: docXX.YY.ZZ | dXX.YY | XX.YY
+
+  --at and --insert are mutually exclusive, and each is also mutually exclusive with a
+  positional destination argument — the ref carries the destination.
+
+  Slot-0 rule: within any directory that contains a 00-index.md, prefix 00 is reserved.
+  At the workspace root (no 00-index.md present), prefix 00 is a normal group position
+  and may be targeted freely (e.g. `carta move doc01 --insert doc00` promotes a group
+  into root slot 0, bumping the former 00-group to 01).
 
 Side effects:
-  - Operates on bundles — non-md siblings sharing the target's numeric prefix travel with it.
-  - Removes source from its parent, gap-closes source siblings (unless --no-gap-close).
-  - Inserts at destination, bumps destination siblings at or above --order.
+  - Operates on bundles — non-md siblings sharing the source's numeric prefix travel with it.
+  - Removes source from its parent; gap-closes source siblings (unless --no-gap-close).
   - Rewrites all cross-references in workspace + externalRefPaths.
   - Regenerates MANIFEST.md (unless --no-regen).
 
 Flags:
-  --order N       Insert at position N. Without this, appends after the last entry.
-  --mkdir         Create destination directory if missing (also creates 00-index.md).
+  --at REF        Strict placement at REF; errors if slot is occupied.
+  --insert REF    Displacing insert at REF; bumps all siblings at or above REF.
+  --mkdir         (append mode only) Create destination directory if missing.
   --rename SLUG   Change the slug during the move. Extension is preserved automatically.
   --no-regen      Skip MANIFEST regeneration. Ref rewriting still happens.
   --no-gap-close  Skip gap-closing of source siblings after the move. Source directory

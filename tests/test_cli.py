@@ -631,7 +631,7 @@ class TestSameDirReorder(unittest.TestCase):
     def test_move_later_entry_to_first(self):
         """Moving a later entry to position 1 should not leave gaps."""
         # 03-architecture -> position 1
-        result = _run_carta(self.carta_copy, "move", "03-architecture", ".", "--order", "1")
+        result = _run_carta(self.carta_copy, "move", "03-architecture", "--insert", "doc01")
         self.assertEqual(result.returncode, 0, f"carta move failed:\n{result.stderr}\n{result.stdout}")
 
         entries = sorted(
@@ -660,7 +660,7 @@ class TestSameDirReorder(unittest.TestCase):
             for e in entries_before
         )
 
-        result = _run_carta(self.carta_copy, "move", "01-product-strategy", ".", "--order", str(max_prefix))
+        result = _run_carta(self.carta_copy, "move", "01-product-strategy", "--insert", f"doc{max_prefix:02d}")
         self.assertEqual(result.returncode, 0, f"carta move failed:\n{result.stderr}\n{result.stdout}")
 
         entries = sorted(
@@ -723,7 +723,7 @@ class TestCrossSiblingMove(unittest.TestCase):
             ref for _, ref in self._collect_orphaned_refs(self.carta_copy)
         )
 
-        result = _run_carta(self.carta_copy, "move", "doc01", "doc02", "--order", "1")
+        result = _run_carta(self.carta_copy, "move", "doc01", "--insert", "doc02.01")
         self.assertEqual(result.returncode, 0, f"carta move failed:\n{result.stderr}\n{result.stdout}")
 
         # Top-level should have no gaps
@@ -1438,6 +1438,112 @@ class TestMkdir(unittest.TestCase):
         assert result.returncode != 0
 
 
+class TestMoveAtInsert(unittest.TestCase):
+    """Tests for carta move --at / --insert vocabulary."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.carta = _build_fixture(Path(self.tmpdir.name))
+
+    def tearDown(self):
+        self.tmpdir.cleanup()
+
+    def test_move_at_free_slot(self):
+        """--at into a free cross-dir slot: source lands at exact prefix, no destination sibling shift."""
+        # 00-codex/01-about → 01-product-strategy at position 09 (free)
+        before_ps_entries = sorted(
+            e.name for e in (self.carta / "01-product-strategy").iterdir()
+            if re.match(r'^\d{2}-', e.name)
+        )
+        result = _run_carta(self.carta, "move", "doc00.01", "--at", "doc01.09")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        # Source should be in destination at exactly 09
+        ps_dir = self.carta / "01-product-strategy"
+        self.assertTrue((ps_dir / "09-about.md").exists(), "about.md should land at 09")
+        # No destination sibling renumbering — existing entries at 01..04 unchanged
+        for name in before_ps_entries:
+            if name != "09-about.md":
+                self.assertTrue((ps_dir / name).exists(), f"{name} should not have moved")
+        # Source gap-closes: 02-maintenance → 01-maintenance
+        codex = self.carta / "00-codex"
+        self.assertTrue((codex / "01-maintenance.md").exists(), "02-maintenance should gap-close to 01")
+        self.assertFalse((codex / "02-maintenance.md").exists(), "old 02-maintenance should be gone")
+
+    def test_move_at_occupied_errors(self):
+        """--at onto an occupied prefix errors; nothing is moved."""
+        # 02-maintenance occupies doc00.02 — trying to move 01-about there should fail
+        before = {p.name for p in (self.carta / "00-codex").iterdir()}
+        result = _run_carta(self.carta, "move", "doc00.01", "--at", "doc00.02")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("occupied", result.stderr.lower())
+        after = {p.name for p in (self.carta / "00-codex").iterdir()}
+        self.assertEqual(before, after, "No files should have moved on error")
+
+    def test_move_insert_displaces(self):
+        """--insert into an occupied middle slot bumps siblings up; refs rewritten."""
+        codex = self.carta / "00-codex"
+        # Move 06-integration --insert doc00.03: bumps 03→04, 04→05, 05→06; source→03
+        result = _run_carta(self.carta, "move", "doc00.06", "--insert", "doc00.03")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue((codex / "03-integration.md").exists(), "source should land at 03")
+        self.assertTrue((codex / "04-conventions.md").exists(), "03-conventions bumped to 04")
+        self.assertTrue((codex / "05-ai-retrieval.md").exists(), "04-ai-retrieval bumped to 05")
+        self.assertTrue((codex / "06-taxonomy.md").exists(), "05-taxonomy bumped to 06")
+        self.assertFalse((codex / "06-integration.md").exists(), "old 06 should be gone")
+
+    def test_move_promote_group_to_root_zero(self):
+        """Bug-3 regression: moving a root group to slot 00 works (root has no 00-index.md)."""
+        # Root: 00-codex, 01-product-strategy, 02-product-design, 03-architecture
+        # Move 03-architecture --insert doc00 → should land at 00, others bump up
+        result = _run_carta(self.carta, "move", "03-architecture", "--insert", "doc00")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        root_entries = sorted(
+            e.name for e in self.carta.iterdir() if re.match(r'^\d{2}-', e.name)
+        )
+        self.assertIn("00-architecture", root_entries, "architecture should be at 00")
+        self.assertIn("01-codex", root_entries, "codex should have bumped to 01")
+        self.assertIn("02-product-strategy", root_entries, "product-strategy should bump to 02")
+        self.assertIn("03-product-design", root_entries, "product-design should bump to 03")
+        # No gaps
+        prefixes = [int(re.match(r'^(\d{2})-', n).group(1)) for n in root_entries]
+        self.assertEqual(prefixes, list(range(0, len(prefixes))))
+
+    def test_move_insert_into_index_slot_errors(self):
+        """--insert targeting position 00 in a directory with 00-index.md is rejected."""
+        # 00-codex has 00-index.md — trying to displace it should fail
+        result = _run_carta(self.carta, "move", "doc00.01", "--insert", "doc00.00")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("reserved", result.stderr.lower())
+
+    def test_move_at_into_index_slot_errors(self):
+        """--at targeting position 00 in a directory with 00-index.md is rejected."""
+        result = _run_carta(self.carta, "move", "doc00.01", "--at", "doc00.00")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("reserved", result.stderr.lower())
+
+    def test_move_at_and_insert_mutually_exclusive(self):
+        """Providing both --at and --insert is an error."""
+        result = _run_carta(self.carta, "move", "doc00.01", "--at", "doc00.05", "--insert", "doc00.05")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("mutually exclusive", result.stderr.lower())
+
+    def test_move_ref_flag_rejects_positional_destination(self):
+        """--at or --insert with a positional destination arg is an error."""
+        result = _run_carta(self.carta, "move", "doc00.01", "00-codex", "--at", "doc00.05")
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_move_no_destination_errors(self):
+        """Omitting both destination and --at/--insert is an error."""
+        result = _run_carta(self.carta, "move", "doc00.01")
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_move_help_has_examples(self):
+        """carta move --help shows an Examples section."""
+        result = _run_carta(self.carta, "move", "--help")
+        self.assertEqual(result.returncode, 0)
+        self.assertIn("Examples", result.stdout)
+
+
 def test_version_flag(run_cli):
     """carta --version prints the version string."""
     code, out, err = run_cli("--version")
@@ -1899,7 +2005,7 @@ class TestBundleAwareMoveDeleteRename(unittest.TestCase):
 
     def test_move_bundle_same_dir_renumbers_all_members(self):
         """Moving a bundle within the same dir renumbers root + all attachments."""
-        result = _run_carta(self.carta, "move", "doc00.01", "00-codex", "--order", "3")
+        result = _run_carta(self.carta, "move", "doc00.01", "--insert", "doc00.03")
         self.assertEqual(result.returncode, 0, result.stderr)
 
         self.assertTrue((self.codex / "03-logic.md").exists())
@@ -1928,8 +2034,8 @@ class TestBundleAwareMoveDeleteRename(unittest.TestCase):
 
     def test_move_bundle_with_rename_renames_same_slug_attachments(self):
         """--rename renames root and same-slug attachments; different-slug stays."""
-        result = _run_carta(self.carta, "move", "doc00.01", "00-codex",
-                            "--rename", "engine", "--order", "1")
+        result = _run_carta(self.carta, "move", "doc00.01", "--insert", "doc00.01",
+                            "--rename", "engine")
         self.assertEqual(result.returncode, 0, result.stderr)
 
         self.assertTrue((self.codex / "01-engine.md").exists())
@@ -2020,8 +2126,8 @@ class TestBundleAwareMoveDeleteRename(unittest.TestCase):
 
     def test_move_bundle_attachments_not_in_rename_map(self):
         """Moving a bundle: attachments appear in fs moves but not in ref rename_map."""
-        result = _run_carta(self.carta, "move", "doc00.01", "00-codex",
-                            "--order", "3", "--dry-run")
+        result = _run_carta(self.carta, "move", "doc00.01", "--insert", "doc00.03",
+                            "--dry-run")
         self.assertEqual(result.returncode, 0, result.stderr)
 
         assert normalize_output(result.stdout, self.tmpdir.name) == self._snapshot

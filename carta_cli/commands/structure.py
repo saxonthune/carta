@@ -425,8 +425,13 @@ def _create_index_for_new_dir(dir_path: Path) -> None:
 
 def cmd_move(args: argparse.Namespace, carta_root: Path) -> None:
     """Move/reorder entries."""
-    if args.order is not None and args.order < 1:
-        raise CartaError("Error: --order must be >= 1 (position 0 is reserved for index files).")
+    # Combination guards
+    if args.at is not None and args.insert is not None:
+        raise CartaError("--at and --insert are mutually exclusive")
+    if (args.at is not None or args.insert is not None) and args.destination is not None:
+        raise CartaError("--at/--insert takes its destination from the ref; do not also pass a destination")
+    if args.at is None and args.insert is None and args.destination is None:
+        raise CartaError("provide a destination (append), or use --at/--insert")
 
     source_path = resolve_and_validate(args.source, carta_root).path
 
@@ -438,39 +443,89 @@ def cmd_move(args: argparse.Namespace, carta_root: Path) -> None:
     if args.rename and source_path.name == "00-index.md":
         raise CartaError("Error: cannot rename 00-index.md files.")
 
-    try:
-        dest_path = resolve_arg(args.destination, carta_root).path
-    except (FileNotFoundError, ValueError) as e:
-        if not args.mkdir:
-            raise CartaError(f"Error resolving destination {args.destination!r}: {e}")
-        dest_path = (carta_root / args.destination).resolve()
-
+    target_prefix: int | None = None
+    strict = False
     mkdir_created = False
-    if not dest_path.exists():
-        if not args.mkdir:
-            raise CartaError(f"Error: destination does not exist: {dest_path}")
-        if not dest_path.parent.exists():
-            raise CartaError(
-                f"Error: parent directory does not exist: {dest_path.parent}\n"
-                "--mkdir only creates one level of directory."
-            )
-        mkdir_created = True
-        dest_path.mkdir()
-        _create_index_for_new_dir(dest_path)
-        if args.dry_run:
-            print(f"Would create directory: {dest_path.relative_to(carta_root)}")
 
-    if dest_path.exists() and not dest_path.is_dir():
-        raise CartaError(f"Error: destination is not a directory: {dest_path}")
+    if args.at is not None or args.insert is not None:
+        ref_str = args.at if args.at is not None else args.insert
+        strict = (args.at is not None)
+        try:
+            ref = DocRef.parse(ref_str)
+        except CartaError as e:
+            raise CartaError(f"Invalid ref: {e}")
+        target_prefix = ref.segments[-1]
+        parent_segments = ref.segments[:-1]
+        if parent_segments:
+            parent_ref = DocRef(segments=parent_segments)
+            try:
+                dest_path = parent_ref.to_path(carta_root)
+            except FileNotFoundError as e:
+                raise CartaError(f"Error resolving parent from ref: {e}")
+        else:
+            dest_path = carta_root
+        if not dest_path.is_dir():
+            raise CartaError(f"Error: parent is not a directory: {dest_path}")
+
+        # Index-slot guard: prefix 0 is reserved when a 00-index.md occupies it
+        if target_prefix == 0 and (dest_path / "00-index.md").exists():
+            dest_label = dest_path.name if dest_path != carta_root else "(root)"
+            raise CartaError(f"position 00 is reserved for 00-index.md in {dest_label}")
+
+        # Strict (--at) occupancy precheck
+        if strict:
+            all_entries = list_numbered_entries(dest_path)
+            occupied = {
+                EntryName.parse(e.name).prefix
+                for e in all_entries
+                if EntryName.parse(e.name) is not None
+            }
+            # Same-dir: source slot is vacating — exclude it
+            if source_path.parent.resolve() == dest_path.resolve():
+                _src_en = EntryName.parse(source_path.name)
+                if _src_en is not None:
+                    occupied.discard(_src_en.prefix)
+            if target_prefix in occupied:
+                raise CartaError(
+                    f"position {target_prefix:02d} is occupied in "
+                    f"{dest_path.name if dest_path != carta_root else '(root)'}\n"
+                    f"Occupied positions: {sorted(occupied)}"
+                )
+    else:
+        # Append mode: positional destination
+        try:
+            dest_path = resolve_arg(args.destination, carta_root).path
+        except (FileNotFoundError, ValueError) as e:
+            if not args.mkdir:
+                raise CartaError(f"Error resolving destination {args.destination!r}: {e}")
+            dest_path = (carta_root / args.destination).resolve()
+
+        if not dest_path.exists():
+            if not args.mkdir:
+                raise CartaError(f"Error: destination does not exist: {dest_path}")
+            if not dest_path.parent.exists():
+                raise CartaError(
+                    f"Error: parent directory does not exist: {dest_path.parent}\n"
+                    "--mkdir only creates one level of directory."
+                )
+            mkdir_created = True
+            dest_path.mkdir()
+            _create_index_for_new_dir(dest_path)
+            if args.dry_run:
+                print(f"Would create directory: {dest_path.relative_to(carta_root)}")
+
+        if dest_path.exists() and not dest_path.is_dir():
+            raise CartaError(f"Error: destination is not a directory: {dest_path}")
 
     if not mkdir_created:
         if len(bundle_mod.list_bundles(dest_path)) >= 99:
             raise CartaError(f"Error: destination has >= 99 items: {dest_path}")
 
     try:
-        moves = compute_all_moves(source_path, dest_path, args.order,
+        moves = compute_all_moves(source_path, dest_path, target_prefix,
                                   rename_slug=args.rename,
-                                  no_gap_close=args.no_gap_close)
+                                  no_gap_close=args.no_gap_close,
+                                  strict=strict)
     except ValueError as e:
         raise CartaError(f"Error computing moves: {e}")
 

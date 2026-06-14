@@ -12,6 +12,7 @@ def compute_all_moves(
     order: int | None,
     rename_slug: str | None = None,
     no_gap_close: bool = False,
+    strict: bool = False,
 ) -> list[tuple[Path, Path]]:
     """Compute the complete list of (old_path, new_path) filesystem moves.
 
@@ -30,11 +31,13 @@ def compute_all_moves(
     if same_dir:
         return _compute_same_dir_moves(
             source_path, dest_dir, order, source_prefix, source_slug, rename_slug,
+            strict=strict,
         )
     else:
         return _compute_cross_dir_moves(
             source_path, dest_dir, order, source_prefix, source_slug, rename_slug,
             no_gap_close=no_gap_close,
+            strict=strict,
         )
 
 
@@ -45,6 +48,7 @@ def _compute_same_dir_moves(
     source_prefix: int,
     source_slug: str,
     rename_slug: str | None = None,
+    strict: bool = False,
 ) -> list[tuple[Path, Path]]:
     """Compute moves for reordering within the same directory.
 
@@ -53,6 +57,9 @@ def _compute_same_dir_moves(
 
     Moving UP  (insertion < source): items in [insertion, source-1] get +1
     Moving DOWN (insertion > source): items in [source+1, insertion] get -1
+
+    When strict=True, skip all sibling shifts — caller has already verified the slot
+    is free.  The source moves to the exact target prefix; no gap-close of source slot.
     """
     if order is None:
         entries = list_numbered_entries(dest_dir)
@@ -73,32 +80,33 @@ def _compute_same_dir_moves(
         return []  # true no-op
 
     moves: list[tuple[Path, Path]] = []
-    entries = list_numbered_entries(dest_dir)
 
-    if insertion_prefix < source_prefix:
-        # Moving UP: shift items in [insertion, source-1] by +1, highest first
-        candidates = [
-            e for e in entries
-            if (en := EntryName.parse(e.name)) is not None
-            and insertion_prefix <= en.prefix <= source_prefix - 1
-            and e.resolve() != source_path.resolve()
-        ]
-        for entry in sorted(candidates, key=lambda p: EntryName.parse(p.name).prefix, reverse=True):
-            en = EntryName.parse(entry.name)
-            new_name = f"{en.prefix + 1:02d}-{en.tail}"
-            moves.append((entry, entry.parent / new_name))
-    else:
-        # Moving DOWN: shift items in [source+1, insertion] by -1, lowest first
-        candidates = [
-            e for e in entries
-            if (en := EntryName.parse(e.name)) is not None
-            and source_prefix + 1 <= en.prefix <= insertion_prefix
-            and e.resolve() != source_path.resolve()
-        ]
-        for entry in sorted(candidates, key=lambda p: EntryName.parse(p.name).prefix):
-            en = EntryName.parse(entry.name)
-            new_name = f"{en.prefix - 1:02d}-{en.tail}"
-            moves.append((entry, entry.parent / new_name))
+    if not strict:
+        entries = list_numbered_entries(dest_dir)
+        if insertion_prefix < source_prefix:
+            # Moving UP: shift items in [insertion, source-1] by +1, highest first
+            candidates = [
+                e for e in entries
+                if (en := EntryName.parse(e.name)) is not None
+                and insertion_prefix <= en.prefix <= source_prefix - 1
+                and e.resolve() != source_path.resolve()
+            ]
+            for entry in sorted(candidates, key=lambda p: EntryName.parse(p.name).prefix, reverse=True):
+                en = EntryName.parse(entry.name)
+                new_name = f"{en.prefix + 1:02d}-{en.tail}"
+                moves.append((entry, entry.parent / new_name))
+        else:
+            # Moving DOWN: shift items in [source+1, insertion] by -1, lowest first
+            candidates = [
+                e for e in entries
+                if (en := EntryName.parse(e.name)) is not None
+                and source_prefix + 1 <= en.prefix <= insertion_prefix
+                and e.resolve() != source_path.resolve()
+            ]
+            for entry in sorted(candidates, key=lambda p: EntryName.parse(p.name).prefix):
+                en = EntryName.parse(entry.name)
+                new_name = f"{en.prefix - 1:02d}-{en.tail}"
+                moves.append((entry, entry.parent / new_name))
 
     # Main move (last, after shifts free the slot) — expand to include bundle members
     source_bundle = bundle_mod.find_bundle(source_path)
@@ -175,11 +183,15 @@ def _compute_cross_dir_moves(
     source_slug: str,
     rename_slug: str | None = None,
     no_gap_close: bool = False,
+    strict: bool = False,
 ) -> list[tuple[Path, Path]]:
     """Compute moves for moving an entry to a different directory.
 
     Includes destination bumps, source gap-closing, and the main move.
     Accounts for dest_dir itself being renamed by gap-closing (cross-sibling case).
+
+    When strict=True, skip destination sibling bumps — caller has verified the slot
+    is free.  Source gap-close and the main move still apply.
     """
     if order is None:
         dest_entries = list_numbered_entries(dest_dir)
@@ -192,16 +204,17 @@ def _compute_cross_dir_moves(
     new_source_name = f"{insertion_prefix:02d}-{effective_slug}"
     moves: list[tuple[Path, Path]] = []
 
-    # 1. Destination sibling bumps (prefix >= insertion_prefix), highest first
-    dest_entries = list_numbered_entries(dest_dir)
-    bump_candidates = [
-        p for p in dest_entries
-        if (en := EntryName.parse(p.name)) is not None and en.prefix >= insertion_prefix
-    ]
-    for entry in sorted(bump_candidates, key=lambda p: EntryName.parse(p.name).prefix, reverse=True):
-        en = EntryName.parse(entry.name)
-        new_name = f"{en.prefix + 1:02d}-{en.tail}"
-        moves.append((entry, entry.parent / new_name))
+    if not strict:
+        # 1. Destination sibling bumps (prefix >= insertion_prefix), highest first
+        dest_entries = list_numbered_entries(dest_dir)
+        bump_candidates = [
+            p for p in dest_entries
+            if (en := EntryName.parse(p.name)) is not None and en.prefix >= insertion_prefix
+        ]
+        for entry in sorted(bump_candidates, key=lambda p: EntryName.parse(p.name).prefix, reverse=True):
+            en = EntryName.parse(entry.name)
+            new_name = f"{en.prefix + 1:02d}-{en.tail}"
+            moves.append((entry, entry.parent / new_name))
 
     # 2. Source sibling gap-closing (prefix > source_prefix), lowest first
     if not no_gap_close:

@@ -109,8 +109,11 @@ carta make -g 01-product new-subgroup
 # Expand a leaf file into a directory with children
 carta punch 01-product/03-my-feature
 
-# Move/reorder a doc
-carta move 01-product/03-my-feature 01-product --order 1
+# Move/reorder a doc (insert at a specific position, displacing siblings)
+carta move 01-product/03-my-feature --insert doc01.01
+
+# Promote a group to root slot 00 (root has no 00-index.md, so slot 0 is open)
+carta move doc01 --insert doc00
 
 # Delete with automatic gap-closing and ref rewriting
 carta delete 01-product/02-old-feature
