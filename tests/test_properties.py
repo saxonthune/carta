@@ -1,4 +1,4 @@
-"""Property-based tests for carta_cli invariants.
+"""Property-based tests for rhidoc invariants.
 
 Uses hypothesis to generate inputs for roundtrip and idempotence properties
 that the codebase relies on but only spot-checks elsewhere.
@@ -16,8 +16,8 @@ _CLI_DIR = _TESTS_DIR.parent
 sys.path.insert(0, str(_CLI_DIR))
 sys.path.insert(0, str(_TESTS_DIR))
 
-from conftest import _build_fixture, _run_carta
-from carta_cli.docref import DocRef, EntryName
+from conftest import _build_fixture, _run_rhidoc
+from rhidoc.docref import DocRef, EntryName
 
 
 def get_numeric_prefix(name: str) -> int | None:
@@ -35,41 +35,41 @@ def path_to_ref(path, root):
 _REF_RE = re.compile(r'\bdoc\d{2}(\.\d{2})*\b')
 
 
-def _collect_valid_refs(carta: Path) -> list[str]:
+def _collect_valid_refs(rhidoc: Path) -> list[str]:
     """Return all doc refs that exist in the workspace filesystem."""
     seen: set[str] = set()
-    for p in sorted(carta.rglob("*")):
+    for p in sorted(rhidoc.rglob("*")):
         try:
-            ref = path_to_ref(p, carta)
+            ref = path_to_ref(p, rhidoc)
             seen.add(ref)
         except ValueError:
             pass
     return sorted(seen)
 
 
-def _punchable_leaves(carta: Path) -> list[str]:
+def _punchable_leaves(rhidoc: Path) -> list[str]:
     """Return workspace-relative paths for non-index .md files."""
     results = []
-    for p in sorted(carta.rglob("*.md")):
+    for p in sorted(rhidoc.rglob("*.md")):
         if (get_numeric_prefix(p.name) or 0) == 0:
             continue
-        results.append(str(p.relative_to(carta)))
+        results.append(str(p.relative_to(rhidoc)))
     return results
 
 
-def _snapshot(carta: Path) -> dict[str, str]:
-    """Return {relative-path: content} for every file under carta."""
+def _snapshot(rhidoc: Path) -> dict[str, str]:
+    """Return {relative-path: content} for every file under rhidoc."""
     snap: dict[str, str] = {}
-    for p in sorted(carta.rglob("*")):
+    for p in sorted(rhidoc.rglob("*")):
         if p.is_file():
-            snap[str(p.relative_to(carta))] = p.read_text(encoding="utf-8")
+            snap[str(p.relative_to(rhidoc))] = p.read_text(encoding="utf-8")
     return snap
 
 
-def _workspace_refs(carta: Path) -> list[str]:
+def _workspace_refs(rhidoc: Path) -> list[str]:
     """Collect all doc refs mentioned in any .md file in the workspace."""
     refs: set[str] = set()
-    for p in carta.rglob("*.md"):
+    for p in rhidoc.rglob("*.md"):
         for m in _REF_RE.finditer(p.read_text(encoding="utf-8")):
             refs.add(m.group(0))
     return sorted(refs)
@@ -83,11 +83,11 @@ def _workspace_refs(carta: Path) -> list[str]:
 @given(st.data())
 def test_ref_to_path_roundtrip(data):
     with tempfile.TemporaryDirectory() as tmpdir:
-        carta = _build_fixture(Path(tmpdir))
-        valid_refs = _collect_valid_refs(carta)
+        rhidoc = _build_fixture(Path(tmpdir))
+        valid_refs = _collect_valid_refs(rhidoc)
         ref = data.draw(st.sampled_from(valid_refs))
-        path = ref_to_path(ref, carta)
-        assert path_to_ref(path, carta) == ref
+        path = ref_to_path(ref, rhidoc)
+        assert path_to_ref(path, rhidoc) == ref
 
 
 # ---------------------------------------------------------------------------
@@ -98,21 +98,21 @@ def test_ref_to_path_roundtrip(data):
 @given(st.data())
 def test_punch_flatten_identity(data):
     with tempfile.TemporaryDirectory() as tmpdir:
-        carta = _build_fixture(Path(tmpdir))
-        leaves = _punchable_leaves(carta)
+        rhidoc = _build_fixture(Path(tmpdir))
+        leaves = _punchable_leaves(rhidoc)
         leaf_rel = data.draw(st.sampled_from(leaves))
 
-        before = _snapshot(carta)
+        before = _snapshot(rhidoc)
 
-        punch_result = _run_carta(carta, "punch", leaf_rel)
+        punch_result = _run_rhidoc(rhidoc, "punch", leaf_rel)
         assert punch_result.returncode == 0, f"punch failed:\n{punch_result.stderr}"
 
         # The punched directory has the same stem as the leaf
         dir_rel = leaf_rel[:-3] if leaf_rel.endswith(".md") else leaf_rel
-        flatten_result = _run_carta(carta, "flatten", dir_rel, "--keep-index")
+        flatten_result = _run_rhidoc(rhidoc, "flatten", dir_rel, "--keep-index")
         assert flatten_result.returncode == 0, f"flatten failed:\n{flatten_result.stderr}"
 
-        after = _snapshot(carta)
+        after = _snapshot(rhidoc)
         assert after == before, (
             f"Workspace changed after punch+flatten for {leaf_rel!r}.\n"
             f"Added: {sorted(set(after) - set(before))}\n"
@@ -128,12 +128,12 @@ def test_punch_flatten_identity(data):
 @given(st.data())
 def test_moveto_preserves_refs(data):
     with tempfile.TemporaryDirectory() as tmpdir:
-        carta = _build_fixture(Path(tmpdir))
+        rhidoc = _build_fixture(Path(tmpdir))
 
-        movable = _punchable_leaves(carta)
+        movable = _punchable_leaves(rhidoc)
         all_dirs = sorted(
-            str(p.relative_to(carta))
-            for p in carta.rglob("*")
+            str(p.relative_to(rhidoc))
+            for p in rhidoc.rglob("*")
             if p.is_dir()
         )
 
@@ -143,12 +143,12 @@ def test_moveto_preserves_refs(data):
         other_dirs = [d for d in all_dirs if d != src_parent]
         dest_dir = data.draw(st.sampled_from(other_dirs if other_dirs else all_dirs))
 
-        result = _run_carta(carta, "move", leaf_rel, dest_dir)
+        result = _run_rhidoc(rhidoc, "move", leaf_rel, dest_dir)
         assert result.returncode == 0, f"move failed:\n{result.stderr}"
 
-        for ref in _workspace_refs(carta):
+        for ref in _workspace_refs(rhidoc):
             try:
-                ref_to_path(ref, carta)
+                ref_to_path(ref, rhidoc)
             except FileNotFoundError as exc:
                 raise AssertionError(
                     f"Ref {ref!r} no longer resolves after moving {leaf_rel!r} "
@@ -164,18 +164,18 @@ def test_moveto_preserves_refs(data):
 @given(st.data())
 def test_delete_no_gaps(data):
     with tempfile.TemporaryDirectory() as tmpdir:
-        carta = _build_fixture(Path(tmpdir))
+        rhidoc = _build_fixture(Path(tmpdir))
 
         deletable = [
-            p for p in sorted(carta.rglob("*.md"))
+            p for p in sorted(rhidoc.rglob("*.md"))
             if (get_numeric_prefix(p.name) or 0) > 0
         ]
 
         entry = data.draw(st.sampled_from(deletable))
         parent = entry.parent
-        entry_rel = str(entry.relative_to(carta))
+        entry_rel = str(entry.relative_to(rhidoc))
 
-        result = _run_carta(carta, "delete", entry_rel)
+        result = _run_rhidoc(rhidoc, "delete", entry_rel)
         assert result.returncode == 0, f"delete failed:\n{result.stderr}"
 
         remaining_prefixes = sorted(

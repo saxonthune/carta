@@ -16,42 +16,42 @@ import unittest
 import pytest
 from pathlib import Path
 
-# Ensure carta_cli is importable without prior pip install
+# Ensure rhidoc is importable without prior pip install
 _CLI_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_CLI_DIR))
 
-from carta_cli.commands._parser import main as cli_main
-from carta_cli.workspace import find_workspace
-from carta_cli.docref import DocRef
+from rhidoc.commands._parser import main as cli_main
+from rhidoc.workspace import find_workspace
+from rhidoc.docref import DocRef
 
 
 def ref_to_path(ref: str, root):
     return DocRef.parse(ref).to_path(root)
-from carta_cli.frontmatter import read_frontmatter, write_frontmatter
+from rhidoc.frontmatter import read_frontmatter, write_frontmatter
 
 from helpers import normalize_output
 
-_REAL_CARTA_ROOT = find_workspace()
+_REAL_RHIDOC_ROOT = find_workspace()
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _copy_carta(dest: Path) -> Path:
-    """Copy the real .carta/ into dest/. Returns dest/.carta/."""
-    carta_copy = dest / ".carta"
-    shutil.copytree(str(_REAL_CARTA_ROOT), str(carta_copy), dirs_exist_ok=False)
-    return carta_copy
+def _copy_rhidoc(dest: Path) -> Path:
+    """Copy the real .rhidoc/ into dest/. Returns dest/.rhidoc/."""
+    rhidoc_copy = dest / ".rhidoc"
+    shutil.copytree(str(_REAL_RHIDOC_ROOT), str(rhidoc_copy), dirs_exist_ok=False)
+    return rhidoc_copy
 
 
-def _run_carta(carta_copy: Path, *args: str) -> types.SimpleNamespace:
-    """Run the carta CLI against a workspace copy (in-process)."""
+def _run_rhidoc(rhidoc_copy: Path, *args: str) -> types.SimpleNamespace:
+    """Run the rhidoc CLI against a workspace copy (in-process)."""
     stdout_buf = io.StringIO()
     stderr_buf = io.StringIO()
     try:
         with contextlib.redirect_stdout(stdout_buf), contextlib.redirect_stderr(stderr_buf):
-            code = cli_main(["--workspace", str(carta_copy)] + list(args))
+            code = cli_main(["--workspace", str(rhidoc_copy)] + list(args))
     except SystemExit as e:
         code = int(e.code) if e.code is not None else 0
     return types.SimpleNamespace(
@@ -149,22 +149,22 @@ class TestRegenerateIncludesAllDocs(unittest.TestCase):
 
     def setUp(self):
         self.tmpdir = tempfile.TemporaryDirectory()
-        self.carta_copy = _copy_carta(Path(self.tmpdir.name))
+        self.rhidoc_copy = _copy_rhidoc(Path(self.tmpdir.name))
 
     def tearDown(self):
         self.tmpdir.cleanup()
 
     def test_all_docs_appear(self):
         """Every numbered .md file (excluding MANIFEST.md) has a row."""
-        result = _run_carta(self.carta_copy, "regenerate", "--dry-run")
+        result = _run_rhidoc(self.rhidoc_copy, "regenerate", "--dry-run")
         self.assertEqual(result.returncode, 0, f"regenerate failed:\n{result.stderr}")
 
         output = result.stdout
 
-        # Find all numbered .md files under carta_copy
+        # Find all numbered .md files under rhidoc_copy
         numeric_re = re.compile(r'^\d{2}-')
         md_files = []
-        for md in self.carta_copy.rglob("*.md"):
+        for md in self.rhidoc_copy.rglob("*.md"):
             if md.name == "MANIFEST.md":
                 continue
             if numeric_re.match(md.name):
@@ -177,9 +177,9 @@ class TestRegenerateIncludesAllDocs(unittest.TestCase):
             if f"`{filename}`" not in output and f"`{filename.replace('.md', '')}`" not in output:
                 # Try checking by ref
                 try:
-                    ref = str(DocRef.from_path(md, self.carta_copy))
+                    ref = str(DocRef.from_path(md, self.rhidoc_copy))
                     if ref not in output:
-                        missing.append(str(md.relative_to(self.carta_copy)))
+                        missing.append(str(md.relative_to(self.rhidoc_copy)))
                 except ValueError:
                     pass
 
@@ -196,14 +196,14 @@ class TestTagIndexComplete(unittest.TestCase):
 
     def setUp(self):
         self.tmpdir = tempfile.TemporaryDirectory()
-        self.carta_copy = _copy_carta(Path(self.tmpdir.name))
+        self.rhidoc_copy = _copy_rhidoc(Path(self.tmpdir.name))
 
     def tearDown(self):
         self.tmpdir.cleanup()
 
     def test_tag_index_contains_all_tags(self):
         """Every tag declared in a doc's frontmatter appears in the tag index."""
-        result = _run_carta(self.carta_copy, "regenerate", "--dry-run")
+        result = _run_rhidoc(self.rhidoc_copy, "regenerate", "--dry-run")
         self.assertEqual(result.returncode, 0, f"regenerate failed:\n{result.stderr}")
         output = result.stdout
 
@@ -211,7 +211,7 @@ class TestTagIndexComplete(unittest.TestCase):
         numeric_re = re.compile(r'^\d{2}-')
         all_tags = set()
 
-        for md in self.carta_copy.rglob("*.md"):
+        for md in self.rhidoc_copy.rglob("*.md"):
             if md.name == "MANIFEST.md":
                 continue
             if not numeric_re.match(md.name):
@@ -237,7 +237,7 @@ class TestTagIndexComplete(unittest.TestCase):
 
     def test_deps_column_uses_emdash_for_empty(self):
         """Rows with no deps show — not an empty string."""
-        result = _run_carta(self.carta_copy, "regenerate", "--dry-run")
+        result = _run_rhidoc(self.rhidoc_copy, "regenerate", "--dry-run")
         self.assertEqual(result.returncode, 0)
 
         rows = [l for l in result.stdout.splitlines() if l.startswith("| doc")]
@@ -257,7 +257,7 @@ class TestTagIndexComplete(unittest.TestCase):
 
     def test_refs_column_present(self):
         """Regenerated MANIFEST has a Refs column with reverse deps."""
-        result = _run_carta(self.carta_copy, "regenerate", "--dry-run")
+        result = _run_rhidoc(self.rhidoc_copy, "regenerate", "--dry-run")
         self.assertEqual(result.returncode, 0)
         output = result.stdout
 
@@ -284,14 +284,14 @@ class TestRefsResolve(unittest.TestCase):
 
     def setUp(self):
         self.tmpdir = tempfile.TemporaryDirectory()
-        self.carta_copy = _copy_carta(Path(self.tmpdir.name))
+        self.rhidoc_copy = _copy_rhidoc(Path(self.tmpdir.name))
 
     def tearDown(self):
         self.tmpdir.cleanup()
 
     def test_all_refs_resolve(self):
         """ref_to_path resolves each doc ref emitted in the generated MANIFEST."""
-        result = _run_carta(self.carta_copy, "regenerate", "--dry-run")
+        result = _run_rhidoc(self.rhidoc_copy, "regenerate", "--dry-run")
         self.assertEqual(result.returncode, 0, f"regenerate failed:\n{result.stderr}")
 
         # Extract all doc refs from table rows (first column)
@@ -305,7 +305,7 @@ class TestRefsResolve(unittest.TestCase):
         unresolvable = []
         for ref in refs:
             try:
-                ref_to_path(ref, self.carta_copy)
+                ref_to_path(ref, self.rhidoc_copy)
             except (FileNotFoundError, ValueError) as e:
                 unresolvable.append((ref, str(e)))
 

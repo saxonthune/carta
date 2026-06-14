@@ -1,4 +1,4 @@
-"""Tests for carta_cli/docref.py — DocRef and EntryName value objects."""
+"""Tests for rhidoc/docref.py — DocRef and EntryName value objects."""
 import re
 import sys
 from pathlib import Path
@@ -8,8 +8,8 @@ import pytest
 _CLI_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_CLI_DIR))
 
-from carta_cli.docref import DocRef, EntryName
-from carta_cli.errors import CartaError
+from rhidoc.docref import DocRef, EntryName
+from rhidoc.errors import RhidocError
 
 
 # ---------------------------------------------------------------------------
@@ -54,37 +54,37 @@ def test_parse_zero_padded_segments():
 
 
 # ---------------------------------------------------------------------------
-# DocRef.parse — malformed input raises CartaError
+# DocRef.parse — malformed input raises RhidocError
 # ---------------------------------------------------------------------------
 
 def test_parse_single_digit_segment_raises():
-    with pytest.raises(CartaError):
+    with pytest.raises(RhidocError):
         DocRef.parse("04.8")
 
 
 def test_parse_trailing_dot_raises():
-    with pytest.raises(CartaError):
+    with pytest.raises(RhidocError):
         DocRef.parse("doc04.")
 
 
 def test_parse_non_numeric_raises():
-    with pytest.raises(CartaError):
+    with pytest.raises(RhidocError):
         DocRef.parse("foo")
 
 
 def test_parse_empty_raises():
-    with pytest.raises(CartaError):
+    with pytest.raises(RhidocError):
         DocRef.parse("")
 
 
 def test_parse_slug_attached_raises():
     # "04-product" is an entry name, not a ref
-    with pytest.raises(CartaError):
+    with pytest.raises(RhidocError):
         DocRef.parse("04-product")
 
 
 def test_parse_three_digit_segment_raises():
-    with pytest.raises(CartaError):
+    with pytest.raises(RhidocError):
         DocRef.parse("doc004.08")
 
 
@@ -174,8 +174,8 @@ def test_scan_blocks_continuation_digit():
 # ---------------------------------------------------------------------------
 
 def _make_workspace(tmp_path: Path) -> Path:
-    """Build a minimal .carta/ workspace for path resolution tests."""
-    root = tmp_path / ".carta"
+    """Build a minimal .rhidoc/ workspace for path resolution tests."""
+    root = tmp_path / ".rhidoc"
     root.mkdir()
 
     # 00-codex/

@@ -1,4 +1,4 @@
-"""Shared test utilities for the carta_cli test suite."""
+"""Shared test utilities for the rhidoc test suite."""
 
 import re
 

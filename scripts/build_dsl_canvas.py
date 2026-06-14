@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-"""Build the carta-dsl Luminous canvas by introspecting the carta argument parser.
+"""Build the rhidoc-dsl Luminous canvas by introspecting the rhidoc argument parser.
 
-The parser (carta_cli.commands._parser.build_parser) is the single source of truth for
+The parser (rhidoc.commands._parser.build_parser) is the single source of truth for
 the CLI surface — it is the code that actually runs — so the canvas can never drift from
 the real commands the way a hand-maintained spec mirror does.
 
-Emits a per-command tree: a `carta` root -> one node per subcommand -> one node per
+Emits a per-command tree: a `rhidoc` root -> one node per subcommand -> one node per
 argument the subcommand takes. Argument nodes are private to each command (per-command
 tree model), so re-running is a deterministic, diffable update.
 
 Run:  python3 scripts/build_dsl_canvas.py
-Out:  .luminous/generated/carta-dsl.graph.json   (pack: carta-dsl.pack.json, hand-authored)
+Out:  .luminous/generated/rhidoc-dsl.graph.json   (pack: rhidoc-dsl.pack.json, hand-authored)
 """
 from __future__ import annotations
 
@@ -23,21 +23,21 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 
-from carta_cli.commands._parser import build_parser  # noqa: E402
+from rhidoc.commands._parser import build_parser  # noqa: E402
 
-OUT = REPO / ".luminous" / "generated" / "carta-dsl.graph.json"
-PACK = "carta-dsl"
+OUT = REPO / ".luminous" / "generated" / "rhidoc-dsl.graph.json"
+PACK = "rhidoc-dsl"
 
 
 def _subparsers_action(parser: argparse.ArgumentParser) -> argparse._SubParsersAction:
     for action in parser._actions:
         if isinstance(action, argparse._SubParsersAction):
             return action
-    raise SystemExit("no subparsers found on the carta parser")
+    raise SystemExit("no subparsers found on the rhidoc parser")
 
 
 def _clean_usage(subparser: argparse.ArgumentParser) -> str:
-    """Normalize a subparser's usage string into a one-line `carta <cmd> ...` signature."""
+    """Normalize a subparser's usage string into a one-line `rhidoc <cmd> ...` signature."""
     usage = re.sub(r"\s+", " ", subparser.format_usage()).strip()
     if usage.lower().startswith("usage:"):
         usage = usage[len("usage:"):].strip()
@@ -100,7 +100,7 @@ def load_cards() -> list[dict]:
 def command_node(card: dict) -> dict:
     return {
         "id": f"cmd.{card['id']}",
-        "kind": "carta.command",
+        "kind": "rhidoc.command",
         "props": {"name": card["id"], "summary": card["summary"], "cli": card["cli"]},
         "tags": [],
     }
@@ -111,10 +111,10 @@ def arg_nodes_and_edges(card: dict) -> tuple[list[dict], list[dict]]:
     nodes, edges = [], []
     for props in card["inputs"]:
         node_id = f"arg.{cmd}.{props['name']}"
-        nodes.append({"id": node_id, "kind": "carta.arg", "props": props, "tags": []})
+        nodes.append({"id": node_id, "kind": "rhidoc.arg", "props": props, "tags": []})
         edges.append({
             "id": f"edge.takes.cmd.{cmd}.{node_id}",
-            "kind": "carta.takes",
+            "kind": "rhidoc.takes",
             "from": f"cmd.{cmd}",
             "to": node_id,
             "props": {},
@@ -125,14 +125,14 @@ def arg_nodes_and_edges(card: dict) -> tuple[list[dict], list[dict]]:
 
 def build() -> dict:
     cards = load_cards()
-    nodes = [{"id": "carta", "kind": "carta.root", "props": {"name": "carta"}, "tags": []}]
+    nodes = [{"id": "rhidoc", "kind": "rhidoc.root", "props": {"name": "rhidoc"}, "tags": []}]
     edges = []
     for card in cards:
         nodes.append(command_node(card))
         edges.append({
-            "id": f"edge.has-command.carta.cmd.{card['id']}",
-            "kind": "carta.has-command",
-            "from": "carta",
+            "id": f"edge.has-command.rhidoc.cmd.{card['id']}",
+            "kind": "rhidoc.has-command",
+            "from": "rhidoc",
             "to": f"cmd.{card['id']}",
             "props": {},
             "tags": [],

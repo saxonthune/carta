@@ -6,7 +6,7 @@ This document outlines a vision for test automation that creates a virtuous cycl
 
 ```
 +-------------------------------------------------------------+
-|  Carta Model (requirements, architecture, test scenarios)   |
+|  Rhidoc Model (requirements, architecture, test scenarios)   |
 +-------------------------------------------------------------+
          | compile                              ^ inform
          v                                      |
@@ -25,7 +25,7 @@ This document outlines a vision for test automation that creates a virtuous cycl
 
 This is not merely automation; it is a self-improving system where:
 
-1. **Human intent** is captured as Carta constructs (Requirements, TestScenarios)
+1. **Human intent** is captured as Rhidoc constructs (Requirements, TestScenarios)
 2. **AI translates** semantic models into executable code
 3. **Test results** feed back to identify gaps
 4. **AI suggests** new scenarios, completing the loop
@@ -143,7 +143,7 @@ Test setup and teardown, with dependency tracking.
 
 ## Visual Test Flow
 
-In Carta, a test scenario appears as a flow diagram:
+In Rhidoc, a test scenario appears as a flow diagram:
 
 ```
 +----------------+
@@ -181,18 +181,18 @@ In Carta, a test scenario appears as a flow diagram:
 The test compiler walks the graph and emits executable code:
 
 ```typescript
-// Auto-generated from Carta model
-// Source: test-scenarios.carta / clear-everything
+// Auto-generated from Rhidoc model
+// Source: test-scenarios.rhidoc / clear-everything
 
 import { test, expect } from '@playwright/test';
-import { CartaPage } from './helpers/carta';
+import { RhidocPage } from './helpers/rhidoc';
 
 test.describe('Clear works', () => {
   test('clear-everything [smoke, menu]', async ({ page }) => {
     // Fixture: app-loaded
-    const carta = new CartaPage(page);
+    const rhidoc = new RhidocPage(page);
     await page.goto('/');
-    await carta.waitForCanvasReady();
+    await rhidoc.waitForCanvasReady();
 
     // Step: click menu
     await page.click('[data-testid="menu-button"]');
@@ -211,10 +211,10 @@ test.describe('Clear works', () => {
 
 ## AI Gap Analysis
 
-With tests modeled in Carta, AI can analyze coverage:
+With tests modeled in Rhidoc, AI can analyze coverage:
 
 ```
-Given this Carta model of the application:
+Given this Rhidoc model of the application:
 ${compiledArchitecture}
 
 And these existing test scenarios:
@@ -226,7 +226,7 @@ Identify:
 3. Interaction combinations not tested
 4. Missing regression tests for connected components
 
-Output new TestScenario constructs in Carta format.
+Output new TestScenario constructs in Rhidoc format.
 ```
 
 The AI returns new constructs that integrate directly into the model.
@@ -307,10 +307,10 @@ This is not incremental improvement. It is a phase transition in how software qu
 
 ## Implementation Roadmap
 
-1. **Add test-domain schemas** to Carta's built-ins
+1. **Add test-domain schemas** to Rhidoc's built-ins
 2. **Create test compiler** (`src/constructs/compiler/formatters/playwright.ts`)
-3. **Model Carta's own tests in Carta** (dogfooding)
+3. **Model Rhidoc's own tests in Rhidoc** (dogfooding)
 4. **Build AI feedback loop**: export model -> analyze gaps -> import suggestions
 5. **Integrate with CI**: compile tests on model change, run automatically
 
-See `examples/test-scenarios.carta` for a working example.
+See `examples/test-scenarios.rhidoc` for a working example.

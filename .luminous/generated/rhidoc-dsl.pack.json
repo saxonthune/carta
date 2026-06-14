@@ -1,0 +1,220 @@
+{
+  "id": "rhidoc-dsl",
+  "version": "0.1.0",
+  "description": "The rhidoc CLI command surface as a per-command tree: a root, one node per command, and one node per argument each command takes. Built from the action-catalog YAML sidecars by scripts/build_dsl_canvas.py. Purpose: formalize the rhidoc commands into a consistent DSL-like syntax.",
+
+  "nodeKinds": [
+    {
+      "id": "rhidoc.root",
+      "label": "CLI Root",
+      "props": {
+        "type": "object",
+        "properties": { "name": { "type": "string" } },
+        "required": ["name"],
+        "additionalProperties": false
+      },
+      "render": {
+        "card": {
+          "type": "card",
+          "shape": "pill",
+          "padding": 12,
+          "children": [
+            { "type": "text", "value": "{content.name}", "style": "heading" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "rhidoc.command",
+      "label": "Command",
+      "props": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "summary": { "type": "string" },
+          "cli": { "type": "string" }
+        },
+        "required": ["name"],
+        "additionalProperties": false
+      },
+      "defaultSize": { "w": 240, "h": 100 },
+      "render": {
+        "peek": { "type": "text", "value": "{content.name}", "style": "heading" },
+        "card": {
+          "type": "card",
+          "shape": "rectangle",
+          "padding": 12,
+          "children": [
+            {
+              "type": "hstack",
+              "gap": 6,
+              "justify": "space-between",
+              "children": [
+                { "type": "text", "value": "{content.name}", "style": "heading" },
+                { "type": "badge", "value": "command", "tone": "accent" }
+              ]
+            },
+            { "type": "text", "value": "{content.summary}", "style": "caption", "tone": "muted" }
+          ]
+        },
+        "open": {
+          "type": "card",
+          "shape": "rectangle",
+          "padding": 12,
+          "children": [
+            { "type": "text", "value": "{content.name}", "style": "heading" },
+            { "type": "text", "value": "{content.summary}", "style": "caption", "tone": "muted" },
+            { "type": "divider" },
+            { "type": "code-block", "value": "{content.cli}", "language": "bash" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "rhidoc.arg",
+      "label": "Argument",
+      "props": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "type": { "type": "string" },
+          "required": { "type": "boolean" },
+          "form": { "type": "string", "enum": ["positional", "flag"] },
+          "flag": { "type": "string" },
+          "default": { "type": "string" },
+          "description": { "type": "string" }
+        },
+        "required": ["name", "type", "form"],
+        "additionalProperties": false
+      },
+      "defaultSize": { "w": 200, "h": 80 },
+      "render": {
+        "peek": { "type": "text", "value": "{content.name}", "style": "mono" },
+        "card": {
+          "type": "card",
+          "shape": "rectangle",
+          "padding": 8,
+          "children": [
+            {
+              "type": "hstack",
+              "gap": 6,
+              "justify": "space-between",
+              "children": [
+                { "type": "text", "value": "{content.name}", "style": "mono" },
+                { "type": "badge", "value": "{content.type}", "tone": "muted" }
+              ]
+            },
+            {
+              "type": "hstack",
+              "gap": 6,
+              "children": [
+                { "type": "badge", "value": "{content.form}", "tone": "default" },
+                {
+                  "type": "if",
+                  "when": "content.required",
+                  "then": { "type": "badge", "value": "required", "tone": "danger" },
+                  "else": { "type": "badge", "value": "optional", "tone": "subtle" }
+                }
+              ]
+            }
+          ]
+        },
+        "open": {
+          "type": "card",
+          "shape": "rectangle",
+          "padding": 10,
+          "children": [
+            {
+              "type": "hstack",
+              "gap": 6,
+              "justify": "space-between",
+              "children": [
+                { "type": "text", "value": "{content.name}", "style": "mono" },
+                { "type": "badge", "value": "{content.type}", "tone": "muted" }
+              ]
+            },
+            {
+              "type": "kv-list",
+              "items": [
+                { "key": "form", "value": "{content.form}" },
+                { "key": "flag", "value": "{content.flag}" },
+                { "key": "default", "value": "{content.default}" }
+              ]
+            },
+            { "type": "text", "value": "{content.description}", "style": "caption", "tone": "muted" }
+          ]
+        }
+      }
+    }
+  ],
+
+  "edgeKinds": [
+    {
+      "id": "rhidoc.has-command",
+      "label": "command",
+      "directed": true,
+      "props": { "type": "object", "additionalProperties": false },
+      "acceptsSource": ["rhidoc.root"],
+      "acceptsTarget": ["rhidoc.command"]
+    },
+    {
+      "id": "rhidoc.takes",
+      "label": "takes",
+      "directed": true,
+      "props": { "type": "object", "additionalProperties": false },
+      "acceptsSource": ["rhidoc.command"],
+      "acceptsTarget": ["rhidoc.arg"]
+    }
+  ],
+
+  "views": [
+    {
+      "id": "command-tree",
+      "name": "Command Tree",
+      "description": "Every rhidoc command and the arguments it takes, as a tree rooted at the CLI.",
+      "zoomToLevel": [
+        { "minZoom": 0, "level": "peek" },
+        { "minZoom": 0.4, "level": "card" },
+        { "minZoom": 1.2, "level": "open" },
+        { "minZoom": 3.0, "level": "deep" }
+      ],
+      "nodeRoles": {
+        "rhidoc.root": "spatial",
+        "rhidoc.command": "spatial",
+        "rhidoc.arg": "spatial"
+      },
+      "edgeRoles": {
+        "rhidoc.has-command": "arrow",
+        "rhidoc.takes": "arrow"
+      },
+      "layers": {},
+      "layout": { "algorithm": "elk" }
+    }
+  ],
+
+  "layers": [],
+
+  "disclosure": [
+    {
+      "kind": "rhidoc.root",
+      "peek": ["name"],
+      "card": ["name"],
+      "open": ["name"],
+      "deep": ["name"]
+    },
+    {
+      "kind": "rhidoc.command",
+      "peek": ["name"],
+      "card": ["name", "summary"],
+      "open": ["name", "summary", "cli"],
+      "deep": ["name", "summary", "cli"]
+    },
+    {
+      "kind": "rhidoc.arg",
+      "peek": ["name"],
+      "card": ["name", "type", "form", "required"],
+      "open": ["name", "type", "form", "required", "flag", "default", "description"],
+      "deep": ["name", "type", "form", "required", "flag", "default", "description"]
+    }
+  ]
+}

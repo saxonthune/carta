@@ -26,9 +26,9 @@ You are a requirements elicitor. Your output is **spec shape files** — one mar
 ## Output Location
 
 Write spec files to the location the user specifies. If no location is given, ask. Common locations:
-- `.carta/` spec group directories (for Carta workspaces)
+- `.rhidoc/` spec group directories (for Rhidoc workspaces)
 - `spec/shapes/` (for standalone spec projects)
-- `todo-tasks/` (if the spec feeds directly into Carta's planning pipeline)
+- `todo-tasks/` (if the spec feeds directly into Rhidoc's planning pipeline)
 
 ## Shape File Format
 

@@ -1,9 +1,9 @@
-"""Unit tests for carta_cli._glyphs — glyph vocabulary and capability resolver."""
+"""Unit tests for rhidoc._glyphs — glyph vocabulary and capability resolver."""
 import types
 
 import pytest
 
-from carta_cli._glyphs import ASCII, UNICODE, for_stream, supports_unicode
+from rhidoc._glyphs import ASCII, UNICODE, for_stream, supports_unicode
 
 
 def _stream(encoding):

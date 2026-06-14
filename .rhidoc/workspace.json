@@ -1,0 +1,10 @@
+{
+  "formatVersion": 1,
+  "title": "Rhidoc",
+  "description": "Rhidoc-building-rhidoc-building-rhidoc",
+  "externalRefPaths": [
+    "CLAUDE.md",
+    ".claude/skills/**/*.md",
+    ".cursor/**/*.md"
+  ]
+}

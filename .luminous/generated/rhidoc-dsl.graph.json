@@ -1,0 +1,1482 @@
+{
+  "version": 3,
+  "pack": "rhidoc-dsl",
+  "nodes": [
+    {
+      "id": "arg.attach.dry_run",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "dry_run",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--dry-run",
+        "description": "Print planned operation without executing."
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.attach.host",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "host",
+        "type": "str",
+        "required": true,
+        "form": "positional",
+        "description": "Doc ref or workspace path of the host NN-<slug>.md"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.attach.rename",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "rename",
+        "type": "str",
+        "required": false,
+        "form": "flag",
+        "flag": "--rename",
+        "description": "Override the attachment's slug segment. Default: source filename stem."
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.attach.source",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "source",
+        "type": "str",
+        "required": true,
+        "form": "positional",
+        "description": "Path to a file to attach (may be outside the workspace)"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.bundle.ref",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "ref",
+        "type": "str",
+        "required": true,
+        "form": "positional",
+        "description": "Doc ref or path of a .md leaf doc."
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.cat.ref",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "ref",
+        "type": "str",
+        "required": true,
+        "form": "positional",
+        "description": "Doc ref (e.g., doc02.03) or relative path"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.copy.at",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "at",
+        "type": "str",
+        "required": false,
+        "form": "flag",
+        "flag": "--at",
+        "description": "Exact target ref (docXX.YY.ZZ | dXX.YY | XX.YY); copies iff the slot is free, else error"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.copy.before",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "before",
+        "type": "str",
+        "required": false,
+        "form": "flag",
+        "flag": "--before",
+        "description": "Insert at REF, bumping that sibling and all higher ones up by one"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.copy.destination",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "destination",
+        "type": "str",
+        "required": false,
+        "form": "positional",
+        "description": "Target directory (append mode). Omit when using --at/--before."
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.copy.dry_run",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "dry_run",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--dry-run"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.copy.rename_slug",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "rename_slug",
+        "type": "str",
+        "required": false,
+        "form": "flag",
+        "flag": "--rename"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.copy.source",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "source",
+        "type": "str",
+        "required": true,
+        "form": "positional"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.delete.dry_run",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "dry_run",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--dry-run"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.delete.output_mapping",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "output_mapping",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--output-mapping"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.delete.targets",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "targets",
+        "type": "str",
+        "required": true,
+        "form": "positional"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.flatten.before",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "before",
+        "type": "str",
+        "required": false,
+        "form": "flag",
+        "flag": "--before",
+        "description": "Insert hoisted children before REF (a doc ref) in the parent. Default: the dissolved directory's old position."
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.flatten.dry_run",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "dry_run",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--dry-run"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.flatten.force",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "force",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--force"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.flatten.keep_index",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "keep_index",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--keep-index"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.flatten.target",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "target",
+        "type": "str",
+        "required": true,
+        "form": "positional"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.init.check",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "check",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--check",
+        "description": "With --rehydrate, report drift without writing and exit non-zero if any hydrated file is stale. For CI gates."
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.init.dirname",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "dirname",
+        "type": "str",
+        "required": false,
+        "form": "flag",
+        "flag": "--dir",
+        "description": "Name of the workspace directory. Default: .rhidoc",
+        "default": ".rhidoc"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.init.dry_run",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "dry_run",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--dry-run",
+        "description": "With --rehydrate, show what would be updated without writing."
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.init.name",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "name",
+        "type": "str",
+        "required": false,
+        "form": "flag",
+        "flag": "--name",
+        "description": "Workspace title. Default: parent directory name."
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.init.portable",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "portable",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--portable",
+        "description": "Dump editable Python scripts into workspace for pip-free usage."
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.init.rehydrate",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "rehydrate",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--rehydrate",
+        "description": "Refresh codex templates and skill files in an existing workspace. Preserves workspace.json and user-authored docs."
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.ls.no_sidecars",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "no_sidecars",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--no-sidecars",
+        "description": "Hide non-md numbered attachments."
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.ls.target",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "target",
+        "type": "str",
+        "required": false,
+        "form": "positional",
+        "description": "Directory to list (doc ref or path). Default: workspace root."
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.make.at",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "at",
+        "type": "str",
+        "required": false,
+        "form": "flag",
+        "flag": "--at",
+        "description": "Exact target ref (e.g. doc01.02.03.04); writes iff the slot is free"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.make.before",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "before",
+        "type": "str",
+        "required": false,
+        "form": "flag",
+        "flag": "--before",
+        "description": "Insert at REF (e.g. doc01.02.03), bumping that sibling and all higher ones up by one"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.make.dry_run",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "dry_run",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--dry-run"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.make.group",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "group",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--group",
+        "description": "Create a directory + 00-index.md instead of a leaf .md"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.make.no_regen",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "no_regen",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--no-regen"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.make.target",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "target",
+        "type": "str",
+        "required": true,
+        "form": "positional",
+        "description": "[PARENT] SLUG \u2014 omit PARENT for a top-level title"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.move.at",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "at",
+        "type": "str",
+        "required": false,
+        "form": "flag",
+        "flag": "--at",
+        "description": "Exact target ref (docXX.YY.ZZ | dXX.YY | XX.YY); moves iff the slot is free, else error"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.move.before",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "before",
+        "type": "str",
+        "required": false,
+        "form": "flag",
+        "flag": "--before",
+        "description": "Insert at REF, bumping that sibling and all higher ones up by one"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.move.destination",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "destination",
+        "type": "str",
+        "required": false,
+        "form": "positional",
+        "description": "Target directory (append mode). Omit when using --at/--before."
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.move.dry_run",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "dry_run",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--dry-run"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.move.mkdir",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "mkdir",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--mkdir"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.move.no_gap_close",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "no_gap_close",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--no-gap-close",
+        "description": "Skip gap-closing of source siblings. Use for batch moves."
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.move.no_regen",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "no_regen",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--no-regen",
+        "description": "Skip MANIFEST regeneration."
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.move.rename",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "rename",
+        "type": "str",
+        "required": false,
+        "form": "flag",
+        "flag": "--rename"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.move.source",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "source",
+        "type": "str",
+        "required": true,
+        "form": "positional",
+        "description": "Path or doc ref to move"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.punch.as_child",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "as_child",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--as-child",
+        "description": "Put original content in 01-slug.md, generate skeleton index."
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.punch.dry_run",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "dry_run",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--dry-run"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.punch.target",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "target",
+        "type": "str",
+        "required": true,
+        "form": "positional"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.regenerate.dry_run",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "dry_run",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--dry-run"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.rename.new_slug",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "new_slug",
+        "type": "str",
+        "required": true,
+        "form": "positional",
+        "description": "New slug (the part after NN-)"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.rename.no_regen",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "no_regen",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--no-regen",
+        "description": "Skip MANIFEST regeneration."
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.rename.target",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "target",
+        "type": "str",
+        "required": true,
+        "form": "positional",
+        "description": "Target to rename (doc ref or relative path)"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.rewrite.dry_run",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "dry_run",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--dry-run"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.rewrite.mappings",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "mappings",
+        "type": "str",
+        "required": true,
+        "form": "positional",
+        "description": "old=new pairs"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.tree.no_sidecars",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "no_sidecars",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--no-sidecars",
+        "description": "Hide sidecar attachment lines."
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.tree.no_title",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "no_title",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--no-title",
+        "description": "Show filenames instead of frontmatter titles."
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.tree.refs",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "refs",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--refs",
+        "description": "Show docXX.YY refs next to entries."
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.tree.target",
+      "kind": "rhidoc.arg",
+      "props": {
+        "name": "target",
+        "type": "str",
+        "required": false,
+        "form": "positional",
+        "description": "Directory to tree (doc ref or path). Default: workspace root."
+      },
+      "tags": []
+    },
+    {
+      "id": "cmd.ai-skill",
+      "kind": "rhidoc.command",
+      "props": {
+        "name": "ai-skill",
+        "summary": "Print AI agent reference for all commands",
+        "cli": "rhidoc ai-skill"
+      },
+      "tags": []
+    },
+    {
+      "id": "cmd.attach",
+      "kind": "rhidoc.command",
+      "props": {
+        "name": "attach",
+        "summary": "Copy an external file into a doc's bundle as an attachment. Bundles are sets of files sharing a numeric prefix; `attach` aligns the copied file with the target doc's prefix.",
+        "cli": "rhidoc attach [--rename SLUG] [--dry-run] host source"
+      },
+      "tags": []
+    },
+    {
+      "id": "cmd.bundle",
+      "kind": "rhidoc.command",
+      "props": {
+        "name": "bundle",
+        "summary": "Show a doc's bundle (host + attachments)",
+        "cli": "rhidoc bundle ref"
+      },
+      "tags": []
+    },
+    {
+      "id": "cmd.cat",
+      "kind": "rhidoc.command",
+      "props": {
+        "name": "cat",
+        "summary": "Print document contents by ref",
+        "cli": "rhidoc cat ref"
+      },
+      "tags": []
+    },
+    {
+      "id": "cmd.copy",
+      "kind": "rhidoc.command",
+      "props": {
+        "name": "copy",
+        "summary": "Copy file into workspace",
+        "cli": "rhidoc copy [--at AT] [--before BEFORE] [--rename RENAME_SLUG] [--dry-run] source [destination]"
+      },
+      "tags": []
+    },
+    {
+      "id": "cmd.delete",
+      "kind": "rhidoc.command",
+      "props": {
+        "name": "delete",
+        "summary": "Delete entries with gap-closing",
+        "cli": "rhidoc delete [--dry-run] [--output-mapping] targets [targets ...]"
+      },
+      "tags": []
+    },
+    {
+      "id": "cmd.flatten",
+      "kind": "rhidoc.command",
+      "props": {
+        "name": "flatten",
+        "summary": "Dissolve directory",
+        "cli": "rhidoc flatten [--keep-index] [--force] [--before BEFORE] [--dry-run] target"
+      },
+      "tags": []
+    },
+    {
+      "id": "cmd.init",
+      "kind": "rhidoc.command",
+      "props": {
+        "name": "init",
+        "summary": "Initialize a new workspace",
+        "cli": "rhidoc init [--name NAME] [--dir DIRNAME] [--portable] [--rehydrate] [--dry-run] [--check]"
+      },
+      "tags": []
+    },
+    {
+      "id": "cmd.ls",
+      "kind": "rhidoc.command",
+      "props": {
+        "name": "ls",
+        "summary": "List entries in a directory",
+        "cli": "rhidoc ls [--no-sidecars] [target]"
+      },
+      "tags": []
+    },
+    {
+      "id": "cmd.make",
+      "kind": "rhidoc.command",
+      "props": {
+        "name": "make",
+        "summary": "Create a doc or group at a position",
+        "cli": "rhidoc make [-g] [--at AT] [--before BEFORE] [--dry-run] [--no-regen] target [target ...]"
+      },
+      "tags": []
+    },
+    {
+      "id": "cmd.move",
+      "kind": "rhidoc.command",
+      "props": {
+        "name": "move",
+        "summary": "Move/reorder entries",
+        "cli": "rhidoc move [--at AT] [--before BEFORE] [--mkdir] [--rename RENAME] [--no-regen] [--no-gap-close] [--dry-run] source [destination]"
+      },
+      "tags": []
+    },
+    {
+      "id": "cmd.orphans",
+      "kind": "rhidoc.command",
+      "props": {
+        "name": "orphans",
+        "summary": "List orphaned attachments in the workspace",
+        "cli": "rhidoc orphans"
+      },
+      "tags": []
+    },
+    {
+      "id": "cmd.portable",
+      "kind": "rhidoc.command",
+      "props": {
+        "name": "portable",
+        "summary": "Dump editable scripts into workspace",
+        "cli": "rhidoc portable"
+      },
+      "tags": []
+    },
+    {
+      "id": "cmd.punch",
+      "kind": "rhidoc.command",
+      "props": {
+        "name": "punch",
+        "summary": "Expand leaf into directory",
+        "cli": "rhidoc punch [--as-child] [--dry-run] target"
+      },
+      "tags": []
+    },
+    {
+      "id": "cmd.regenerate",
+      "kind": "rhidoc.command",
+      "props": {
+        "name": "regenerate",
+        "summary": "Rebuild MANIFEST.md",
+        "cli": "rhidoc regenerate [--dry-run]"
+      },
+      "tags": []
+    },
+    {
+      "id": "cmd.rename",
+      "kind": "rhidoc.command",
+      "props": {
+        "name": "rename",
+        "summary": "Rename a directory or file slug",
+        "cli": "rhidoc rename [--no-regen] target new_slug"
+      },
+      "tags": []
+    },
+    {
+      "id": "cmd.rewrite",
+      "kind": "rhidoc.command",
+      "props": {
+        "name": "rewrite",
+        "summary": "Rewrite doc refs",
+        "cli": "rhidoc rewrite [--dry-run] mappings [mappings ...]"
+      },
+      "tags": []
+    },
+    {
+      "id": "cmd.tree",
+      "kind": "rhidoc.command",
+      "props": {
+        "name": "tree",
+        "summary": "Print workspace structure as a tree",
+        "cli": "rhidoc tree [--refs] [--no-title] [--no-sidecars] [target]"
+      },
+      "tags": []
+    },
+    {
+      "id": "rhidoc",
+      "kind": "rhidoc.root",
+      "props": {
+        "name": "rhidoc"
+      },
+      "tags": []
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge.has-command.rhidoc.cmd.ai-skill",
+      "kind": "rhidoc.has-command",
+      "from": "rhidoc",
+      "to": "cmd.ai-skill",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.has-command.rhidoc.cmd.attach",
+      "kind": "rhidoc.has-command",
+      "from": "rhidoc",
+      "to": "cmd.attach",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.has-command.rhidoc.cmd.bundle",
+      "kind": "rhidoc.has-command",
+      "from": "rhidoc",
+      "to": "cmd.bundle",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.has-command.rhidoc.cmd.cat",
+      "kind": "rhidoc.has-command",
+      "from": "rhidoc",
+      "to": "cmd.cat",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.has-command.rhidoc.cmd.copy",
+      "kind": "rhidoc.has-command",
+      "from": "rhidoc",
+      "to": "cmd.copy",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.has-command.rhidoc.cmd.delete",
+      "kind": "rhidoc.has-command",
+      "from": "rhidoc",
+      "to": "cmd.delete",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.has-command.rhidoc.cmd.flatten",
+      "kind": "rhidoc.has-command",
+      "from": "rhidoc",
+      "to": "cmd.flatten",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.has-command.rhidoc.cmd.init",
+      "kind": "rhidoc.has-command",
+      "from": "rhidoc",
+      "to": "cmd.init",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.has-command.rhidoc.cmd.ls",
+      "kind": "rhidoc.has-command",
+      "from": "rhidoc",
+      "to": "cmd.ls",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.has-command.rhidoc.cmd.make",
+      "kind": "rhidoc.has-command",
+      "from": "rhidoc",
+      "to": "cmd.make",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.has-command.rhidoc.cmd.move",
+      "kind": "rhidoc.has-command",
+      "from": "rhidoc",
+      "to": "cmd.move",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.has-command.rhidoc.cmd.orphans",
+      "kind": "rhidoc.has-command",
+      "from": "rhidoc",
+      "to": "cmd.orphans",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.has-command.rhidoc.cmd.portable",
+      "kind": "rhidoc.has-command",
+      "from": "rhidoc",
+      "to": "cmd.portable",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.has-command.rhidoc.cmd.punch",
+      "kind": "rhidoc.has-command",
+      "from": "rhidoc",
+      "to": "cmd.punch",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.has-command.rhidoc.cmd.regenerate",
+      "kind": "rhidoc.has-command",
+      "from": "rhidoc",
+      "to": "cmd.regenerate",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.has-command.rhidoc.cmd.rename",
+      "kind": "rhidoc.has-command",
+      "from": "rhidoc",
+      "to": "cmd.rename",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.has-command.rhidoc.cmd.rewrite",
+      "kind": "rhidoc.has-command",
+      "from": "rhidoc",
+      "to": "cmd.rewrite",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.has-command.rhidoc.cmd.tree",
+      "kind": "rhidoc.has-command",
+      "from": "rhidoc",
+      "to": "cmd.tree",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.attach.arg.attach.dry_run",
+      "kind": "rhidoc.takes",
+      "from": "cmd.attach",
+      "to": "arg.attach.dry_run",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.attach.arg.attach.host",
+      "kind": "rhidoc.takes",
+      "from": "cmd.attach",
+      "to": "arg.attach.host",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.attach.arg.attach.rename",
+      "kind": "rhidoc.takes",
+      "from": "cmd.attach",
+      "to": "arg.attach.rename",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.attach.arg.attach.source",
+      "kind": "rhidoc.takes",
+      "from": "cmd.attach",
+      "to": "arg.attach.source",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.bundle.arg.bundle.ref",
+      "kind": "rhidoc.takes",
+      "from": "cmd.bundle",
+      "to": "arg.bundle.ref",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.cat.arg.cat.ref",
+      "kind": "rhidoc.takes",
+      "from": "cmd.cat",
+      "to": "arg.cat.ref",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.copy.arg.copy.at",
+      "kind": "rhidoc.takes",
+      "from": "cmd.copy",
+      "to": "arg.copy.at",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.copy.arg.copy.before",
+      "kind": "rhidoc.takes",
+      "from": "cmd.copy",
+      "to": "arg.copy.before",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.copy.arg.copy.destination",
+      "kind": "rhidoc.takes",
+      "from": "cmd.copy",
+      "to": "arg.copy.destination",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.copy.arg.copy.dry_run",
+      "kind": "rhidoc.takes",
+      "from": "cmd.copy",
+      "to": "arg.copy.dry_run",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.copy.arg.copy.rename_slug",
+      "kind": "rhidoc.takes",
+      "from": "cmd.copy",
+      "to": "arg.copy.rename_slug",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.copy.arg.copy.source",
+      "kind": "rhidoc.takes",
+      "from": "cmd.copy",
+      "to": "arg.copy.source",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.delete.arg.delete.dry_run",
+      "kind": "rhidoc.takes",
+      "from": "cmd.delete",
+      "to": "arg.delete.dry_run",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.delete.arg.delete.output_mapping",
+      "kind": "rhidoc.takes",
+      "from": "cmd.delete",
+      "to": "arg.delete.output_mapping",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.delete.arg.delete.targets",
+      "kind": "rhidoc.takes",
+      "from": "cmd.delete",
+      "to": "arg.delete.targets",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.flatten.arg.flatten.before",
+      "kind": "rhidoc.takes",
+      "from": "cmd.flatten",
+      "to": "arg.flatten.before",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.flatten.arg.flatten.dry_run",
+      "kind": "rhidoc.takes",
+      "from": "cmd.flatten",
+      "to": "arg.flatten.dry_run",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.flatten.arg.flatten.force",
+      "kind": "rhidoc.takes",
+      "from": "cmd.flatten",
+      "to": "arg.flatten.force",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.flatten.arg.flatten.keep_index",
+      "kind": "rhidoc.takes",
+      "from": "cmd.flatten",
+      "to": "arg.flatten.keep_index",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.flatten.arg.flatten.target",
+      "kind": "rhidoc.takes",
+      "from": "cmd.flatten",
+      "to": "arg.flatten.target",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.init.arg.init.check",
+      "kind": "rhidoc.takes",
+      "from": "cmd.init",
+      "to": "arg.init.check",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.init.arg.init.dirname",
+      "kind": "rhidoc.takes",
+      "from": "cmd.init",
+      "to": "arg.init.dirname",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.init.arg.init.dry_run",
+      "kind": "rhidoc.takes",
+      "from": "cmd.init",
+      "to": "arg.init.dry_run",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.init.arg.init.name",
+      "kind": "rhidoc.takes",
+      "from": "cmd.init",
+      "to": "arg.init.name",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.init.arg.init.portable",
+      "kind": "rhidoc.takes",
+      "from": "cmd.init",
+      "to": "arg.init.portable",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.init.arg.init.rehydrate",
+      "kind": "rhidoc.takes",
+      "from": "cmd.init",
+      "to": "arg.init.rehydrate",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.ls.arg.ls.no_sidecars",
+      "kind": "rhidoc.takes",
+      "from": "cmd.ls",
+      "to": "arg.ls.no_sidecars",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.ls.arg.ls.target",
+      "kind": "rhidoc.takes",
+      "from": "cmd.ls",
+      "to": "arg.ls.target",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.make.arg.make.at",
+      "kind": "rhidoc.takes",
+      "from": "cmd.make",
+      "to": "arg.make.at",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.make.arg.make.before",
+      "kind": "rhidoc.takes",
+      "from": "cmd.make",
+      "to": "arg.make.before",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.make.arg.make.dry_run",
+      "kind": "rhidoc.takes",
+      "from": "cmd.make",
+      "to": "arg.make.dry_run",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.make.arg.make.group",
+      "kind": "rhidoc.takes",
+      "from": "cmd.make",
+      "to": "arg.make.group",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.make.arg.make.no_regen",
+      "kind": "rhidoc.takes",
+      "from": "cmd.make",
+      "to": "arg.make.no_regen",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.make.arg.make.target",
+      "kind": "rhidoc.takes",
+      "from": "cmd.make",
+      "to": "arg.make.target",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.move.arg.move.at",
+      "kind": "rhidoc.takes",
+      "from": "cmd.move",
+      "to": "arg.move.at",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.move.arg.move.before",
+      "kind": "rhidoc.takes",
+      "from": "cmd.move",
+      "to": "arg.move.before",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.move.arg.move.destination",
+      "kind": "rhidoc.takes",
+      "from": "cmd.move",
+      "to": "arg.move.destination",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.move.arg.move.dry_run",
+      "kind": "rhidoc.takes",
+      "from": "cmd.move",
+      "to": "arg.move.dry_run",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.move.arg.move.mkdir",
+      "kind": "rhidoc.takes",
+      "from": "cmd.move",
+      "to": "arg.move.mkdir",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.move.arg.move.no_gap_close",
+      "kind": "rhidoc.takes",
+      "from": "cmd.move",
+      "to": "arg.move.no_gap_close",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.move.arg.move.no_regen",
+      "kind": "rhidoc.takes",
+      "from": "cmd.move",
+      "to": "arg.move.no_regen",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.move.arg.move.rename",
+      "kind": "rhidoc.takes",
+      "from": "cmd.move",
+      "to": "arg.move.rename",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.move.arg.move.source",
+      "kind": "rhidoc.takes",
+      "from": "cmd.move",
+      "to": "arg.move.source",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.punch.arg.punch.as_child",
+      "kind": "rhidoc.takes",
+      "from": "cmd.punch",
+      "to": "arg.punch.as_child",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.punch.arg.punch.dry_run",
+      "kind": "rhidoc.takes",
+      "from": "cmd.punch",
+      "to": "arg.punch.dry_run",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.punch.arg.punch.target",
+      "kind": "rhidoc.takes",
+      "from": "cmd.punch",
+      "to": "arg.punch.target",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.regenerate.arg.regenerate.dry_run",
+      "kind": "rhidoc.takes",
+      "from": "cmd.regenerate",
+      "to": "arg.regenerate.dry_run",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.rename.arg.rename.new_slug",
+      "kind": "rhidoc.takes",
+      "from": "cmd.rename",
+      "to": "arg.rename.new_slug",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.rename.arg.rename.no_regen",
+      "kind": "rhidoc.takes",
+      "from": "cmd.rename",
+      "to": "arg.rename.no_regen",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.rename.arg.rename.target",
+      "kind": "rhidoc.takes",
+      "from": "cmd.rename",
+      "to": "arg.rename.target",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.rewrite.arg.rewrite.dry_run",
+      "kind": "rhidoc.takes",
+      "from": "cmd.rewrite",
+      "to": "arg.rewrite.dry_run",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.rewrite.arg.rewrite.mappings",
+      "kind": "rhidoc.takes",
+      "from": "cmd.rewrite",
+      "to": "arg.rewrite.mappings",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.tree.arg.tree.no_sidecars",
+      "kind": "rhidoc.takes",
+      "from": "cmd.tree",
+      "to": "arg.tree.no_sidecars",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.tree.arg.tree.no_title",
+      "kind": "rhidoc.takes",
+      "from": "cmd.tree",
+      "to": "arg.tree.no_title",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.tree.arg.tree.refs",
+      "kind": "rhidoc.takes",
+      "from": "cmd.tree",
+      "to": "arg.tree.refs",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.tree.arg.tree.target",
+      "kind": "rhidoc.takes",
+      "from": "cmd.tree",
+      "to": "arg.tree.target",
+      "props": {},
+      "tags": []
+    }
+  ],
+  "defaultView": "command-tree"
+}

@@ -5,6 +5,6 @@ test:
 
 # Fail if any init-hydrated file (codex, AGENTS.md, skills) has drifted from the
 # packaged templates/generator. Blocks PRs that edit a hydrated copy without
-# updating its source. Run `carta init --rehydrate` to fix drift.
+# updating its source. Run `rhidoc init --rehydrate` to fix drift.
 check-hydration:
-	carta init --rehydrate --check
+	rhidoc init --rehydrate --check
