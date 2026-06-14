@@ -350,7 +350,7 @@ rhidoc rewrite <old>=<new> [<old>=<new> ...] [--dry-run]
 Arguments:
   mappings  One or more `old=new` pairs. Both sides accept the three input forms
             (docXX.YY | dXX.YY | XX.YY) and are normalized to canonical `docXX.YY`
-            before substitution. Example: `d04.08=04.09` → rewrites `doc03.08` → `doc03.09`.
+            before substitution. Example: `d04.08=04.09` → rewrites `doc04.08` → `doc04.09`.
 
 Side effects:
   - Normalizes both sides of each mapping to canonical form.
@@ -582,7 +582,7 @@ Per-command alternative:
   warnings never block operation; the MANIFEST is still written.
 - **Argument resolution**: `source`/`target`/`destination` args accept either a doc ref or a
   real existing filesystem path (relative to workspace root). Three ref input forms are accepted
-  and normalized to canonical `docXX.YY` on entry: `doc03.08` (full), `d04.08` (short), `04.08`
+  and normalized to canonical `docXX.YY` on entry: `doc04.08` (full), `d04.08` (short), `04.08`
   (bare coordinate). Fuzzy stem/prefix guessing is NOT supported — misspelled paths do not
   silently resolve. The slug after `NN-` is descriptive and never part of a reference.
 - **`--no-regen` scope**: Skips MANIFEST.md rebuild only. Ref rewriting in doc content still

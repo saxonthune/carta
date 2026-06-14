@@ -32,7 +32,7 @@ MANIFEST.md is the primary entry point for AI agents. Each entry includes:
 ```markdown
 | Ref | File | Summary | Tags | Deps | Refs |
 |-----|------|---------|------|------|------|
-| doc01.02 | 02-principles.md | Design principles and constraints | principles, design | doc01.01 | doc01.01 |
+| doc01.02 | 02-principles.md | Design principles and constraints | principles, design | doc01.01 | doc02.01 |
 ```
 
 - **Summary**: One-line description for semantic matching
