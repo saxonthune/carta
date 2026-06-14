@@ -23,39 +23,39 @@ from .. import bundle as bundle_mod
 
 def cmd_make(args: argparse.Namespace, carta_root: Path) -> None:
     """Create a new doc or group entry."""
-    # Validate positional/--at/--insert combinations
+    # Validate positional/--at/--before combinations
     if args.at is not None and len(args.target) == 2:
         raise CartaError("--at takes its position from the ref; do not also pass a parent")
 
-    if args.insert is not None and args.at is not None:
-        raise CartaError("--insert and --at are mutually exclusive")
+    if args.before is not None and args.at is not None:
+        raise CartaError("--before and --at are mutually exclusive")
 
-    if args.insert is not None and len(args.target) == 2:
-        raise CartaError("--insert takes its position from the ref; do not also pass a parent")
+    if args.before is not None and len(args.target) == 2:
+        raise CartaError("--before takes its position from the ref; do not also pass a parent")
 
     if len(args.target) > 2:
         raise CartaError("too many positional arguments; usage: carta make [PARENT] SLUG")
 
     # Resolve addressing mode
-    if args.insert is not None:
+    if args.before is not None:
         if len(args.target) != 1:
-            raise CartaError("--insert requires exactly one positional argument (SLUG)")
+            raise CartaError("--before requires exactly one positional argument (SLUG)")
         slug = args.target[0]
 
         try:
-            insert_ref = DocRef.parse(args.insert)
+            before_ref = DocRef.parse(args.before)
         except CartaError as e:
-            raise CartaError(f"Invalid --insert ref: {e}")
+            raise CartaError(f"Invalid --before ref: {e}")
 
-        target_prefix = insert_ref.segments[-1]
-        parent_segments = insert_ref.segments[:-1]
+        target_prefix = before_ref.segments[-1]
+        parent_segments = before_ref.segments[:-1]
 
         if parent_segments:
             parent_ref = DocRef(segments=parent_segments)
             try:
                 parent_path = parent_ref.to_path(carta_root)
             except FileNotFoundError as e:
-                raise CartaError(f"Error resolving parent from --insert ref: {e}")
+                raise CartaError(f"Error resolving parent from --before ref: {e}")
         else:
             parent_path = carta_root
 
@@ -211,7 +211,7 @@ def cmd_make(args: argparse.Namespace, carta_root: Path) -> None:
     except ValueError:
         print(f"Created: {new_path.relative_to(carta_root)}")
 
-    if args.insert is not None and shift_moves:
+    if args.before is not None and shift_moves:
         print(f"Shifted: {len(shift_moves)} sibling(s) renumbered")
 
 
@@ -426,12 +426,12 @@ def _create_index_for_new_dir(dir_path: Path) -> None:
 def cmd_move(args: argparse.Namespace, carta_root: Path) -> None:
     """Move/reorder entries."""
     # Combination guards
-    if args.at is not None and args.insert is not None:
-        raise CartaError("--at and --insert are mutually exclusive")
-    if (args.at is not None or args.insert is not None) and args.destination is not None:
-        raise CartaError("--at/--insert takes its destination from the ref; do not also pass a destination")
-    if args.at is None and args.insert is None and args.destination is None:
-        raise CartaError("provide a destination (append), or use --at/--insert")
+    if args.at is not None and args.before is not None:
+        raise CartaError("--at and --before are mutually exclusive")
+    if (args.at is not None or args.before is not None) and args.destination is not None:
+        raise CartaError("--at/--before takes its destination from the ref; do not also pass a destination")
+    if args.at is None and args.before is None and args.destination is None:
+        raise CartaError("provide a destination (append), or use --at/--before")
 
     source_path = resolve_and_validate(args.source, carta_root).path
 
@@ -447,8 +447,8 @@ def cmd_move(args: argparse.Namespace, carta_root: Path) -> None:
     strict = False
     mkdir_created = False
 
-    if args.at is not None or args.insert is not None:
-        ref_str = args.at if args.at is not None else args.insert
+    if args.at is not None or args.before is not None:
+        ref_str = args.at if args.at is not None else args.before
         strict = (args.at is not None)
         try:
             ref = DocRef.parse(ref_str)

@@ -2,7 +2,7 @@
 
 id: flatten
 summary: Hoist a directory's children into the parent, renumber, rewrite refs
-cli: "carta flatten <target> [--keep-index] [--force] [--at N] [--dry-run]"
+cli: "carta flatten <target> [--keep-index] [--force] [--before REF] [--dry-run]"
 
 inputs:
   target:
@@ -17,10 +17,10 @@ inputs:
     type: bool
     default: false
     description: Discard index even with significant content
-  at:
-    type: int
+  before:
+    type: ref
     default: null
-    description: Insert position in parent; defaults to source position
+    description: Insert hoisted children before REF (a doc ref) in the parent; defaults to source position
   dry_run:
     type: bool
     default: false
@@ -49,7 +49,7 @@ guards:
 
 effects:
   - id: E-FLATTEN-1
-    description: compute hoisted prefixes starting at `at` (or target's original NN)
+    description: compute hoisted prefixes starting at `before` ref position (or target's original NN)
   - id: E-FLATTEN-2
     description: move each child (with its bundle) to parent at new prefix
   - id: E-FLATTEN-3

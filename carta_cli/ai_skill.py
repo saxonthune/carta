@@ -72,7 +72,7 @@ Addressing modes (four ways to specify where to place the entry):
   1. `carta make SLUG`              — single positional: creates at root level, appends after last entry
   2. `carta make PARENT SLUG`       — two positionals: creates inside PARENT, appends after last entry
   3. `carta make --at REF SLUG`     — strict slot: creates at exact position REF; errors if occupied
-  4. `carta make --insert REF SLUG` — displacing insert: shifts that sibling and all higher ones up by one,
+  4. `carta make --before REF SLUG` — displacing insert: shifts that sibling and all higher ones up by one,
                                       then writes the new entry at REF's coordinate
 
 Side effects:
@@ -80,27 +80,27 @@ Side effects:
   - Frontmatter title is derived from slug (slug → "Title Case"). No frontmatter flags — author
     real frontmatter in the same pass where you write the body.
   - Regenerates MANIFEST.md (unless --no-regen).
-  - `--insert` only: renumbers siblings (bump up) and rewrites their cross-references before writing.
+  - `--before` only: renumbers siblings (bump up) and rewrites their cross-references before writing.
   - append / `--at`: does NOT renumber siblings.
 
 Flags:
   -g, --group     Create a directory + `00-index.md` instead of a leaf `.md`.
   --at REF        Exact target ref (e.g. `doc01.02.03.04`). Writes iff the slot is free, else errors.
                   Do NOT combine with a PARENT positional — REF encodes the full coordinate.
-  --insert REF    Displacing insert at REF. Bumps that sibling and all higher siblings up by one,
+  --before REF    Displacing insert at REF. Bumps that sibling and all higher siblings up by one,
                   rewrites their refs, then writes the new entry at REF's coordinate. Mutually
                   exclusive with `--at`. Do NOT combine with a PARENT positional.
-  --dry-run       Print the planned file path (and shift plan for --insert) without creating anything.
+  --dry-run       Print the planned file path (and shift plan for --before) without creating anything.
   --no-regen      Skip MANIFEST regeneration.
 
 Output:
   Prints the canonical ref and workspace-relative path of the created entry.
-  With --insert, also prints: `Shifted: N sibling(s) renumbered`
+  With --before, also prints: `Shifted: N sibling(s) renumbered`
   Example: `Created: doc01.02.03.04  (03-product-design/.../04-architecture-guidelines.md)`
 
 Notes:
-  - `--at` is non-displacing (errors on occupied slot); `--insert` is displacing (shifts siblings up).
-  - Do NOT combine `--insert` with `--at` or with a two-positional target.
+  - `--at` is non-displacing (errors on occupied slot); `--before` is displacing (shifts siblings up).
+  - Do NOT combine `--before` with `--at` or with a two-positional target.
   - Do NOT add `--title`, `--summary`, `--tags`, `--deps` flags to this command. Frontmatter is
     authored by the agent in the same file write as the body. The skeleton is valid as-is.
 """,
@@ -136,15 +136,15 @@ Flags:
 Move or reorder a file or directory within the workspace.
 
 ```
-carta move <source> [<destination>] [--at REF | --insert REF] [--mkdir] [--rename SLUG] [--no-regen] [--no-gap-close] [--dry-run]
+carta move <source> [<destination>] [--at REF | --before REF] [--mkdir] [--rename SLUG] [--no-regen] [--no-gap-close] [--dry-run]
 ```
 
 Arguments:
   source       Path or doc ref to move. Accepts files (.md) and directories.
-  destination  Target directory for append mode. Omit when using --at or --insert.
+  destination  Target directory for append mode. Omit when using --at or --before.
 
 Addressing modes:
-  Append (positional destination, no --at/--insert):
+  Append (positional destination, no --at/--before):
     Move source to the destination directory, appending after the last existing entry.
     Accepted forms for destination: path or doc ref to an existing directory.
     --mkdir creates the directory if it is missing (also creates 00-index.md).
@@ -155,18 +155,18 @@ Addressing modes:
     Source-side gap-close still applies (unless --no-gap-close).
     Accepted ref forms: docXX.YY.ZZ | dXX.YY | XX.YY
 
-  --insert REF (displacing):
+  --before REF (displacing):
     Insert source at the position named by REF, bumping that sibling and every sibling
     with a higher prefix up by one, rewriting refs for all shifted entries.
     Source-side gap-close still applies (unless --no-gap-close).
     Accepted ref forms: docXX.YY.ZZ | dXX.YY | XX.YY
 
-  --at and --insert are mutually exclusive, and each is also mutually exclusive with a
+  --at and --before are mutually exclusive, and each is also mutually exclusive with a
   positional destination argument — the ref carries the destination.
 
   Slot-0 rule: within any directory that contains a 00-index.md, prefix 00 is reserved.
   At the workspace root (no 00-index.md present), prefix 00 is a normal group position
-  and may be targeted freely (e.g. `carta move doc01 --insert doc00` promotes a group
+  and may be targeted freely (e.g. `carta move doc01 --before doc00` promotes a group
   into root slot 0, bumping the former 00-group to 01).
 
 Side effects:
@@ -177,7 +177,7 @@ Side effects:
 
 Flags:
   --at REF        Strict placement at REF; errors if slot is occupied.
-  --insert REF    Displacing insert at REF; bumps all siblings at or above REF.
+  --before REF    Displacing insert at REF; bumps all siblings at or above REF.
   --mkdir         (append mode only) Create destination directory if missing.
   --rename SLUG   Change the slug during the move. Extension is preserved automatically.
   --no-regen      Skip MANIFEST regeneration. Ref rewriting still happens.
@@ -225,7 +225,7 @@ Flags:
 Dissolve a directory by hoisting its children into the parent.
 
 ```
-carta flatten <target> [--keep-index] [--force] [--at N] [--dry-run]
+carta flatten <target> [--keep-index] [--force] [--before REF] [--dry-run]
 ```
 
 Arguments:
@@ -240,10 +240,11 @@ Side effects:
   - Regenerates MANIFEST.md.
 
 Flags:
-  --keep-index  Preserve 00-index.md as a sibling file (named `NN-<dir-slug>.md`).
-  --force       Discard index even if it has significant content (>10 lines).
-  --at N        Insert hoisted children starting at position N. Default: source position.
-  --dry-run     Print planned moves without executing.
+  --keep-index   Preserve 00-index.md as a sibling file (named `NN-<dir-slug>.md`).
+  --force        Discard index even if it has significant content (>10 lines).
+  --before REF   Insert hoisted children before REF (a doc ref) in the parent.
+                 Default: the dissolved directory's old position.
+  --dry-run      Print planned moves without executing.
 """,
 
     "attach": """\
@@ -288,20 +289,36 @@ Notes:
 Copy an external file into the workspace at a numbered position.
 
 ```
-carta copy <source> <destination> [--order N] [--rename SLUG] [--dry-run]
+carta copy <source> [<destination>] [--at REF | --before REF] [--rename SLUG] [--dry-run]
 ```
 
 Arguments:
   source       Path to a file outside the workspace.
-  destination  Directory path relative to workspace root.
+  destination  Target directory (append mode). Omit when using --at/--before.
+
+Addressing modes:
+  Append (positional destination, no --at/--before):
+    Copies the file into the destination directory, appending after the last existing entry.
+
+  --at REF (strict / non-displacing):
+    Copies the file to the exact position named by REF. The slot must be free; if occupied,
+    the command errors without copying anything. No sibling renumbering.
+    Accepted ref forms: docXX.YY.ZZ | dXX.YY | XX.YY
+
+  --before REF (displacing):
+    Copies the file at the position named by REF, bumping that sibling and every sibling
+    with a higher prefix up by one, rewriting refs for all shifted entries.
+    Accepted ref forms: docXX.YY.ZZ | dXX.YY | XX.YY
 
 Side effects:
   - Copies the file with a numbered prefix into the destination directory.
+  - `--before` only: renumbers siblings (bump up) and rewrites their cross-references before copying.
+  - append / `--at`: does NOT renumber siblings.
   - Regenerates MANIFEST.md.
-  - Does NOT renumber siblings.
 
 Flags:
-  --order N       Insert at position N. Default: appends after the last entry.
+  --at REF        Strict placement at REF; errors if slot is occupied.
+  --before REF    Displacing insert at REF; bumps all siblings at or above REF.
   --rename SLUG   Override the destination slug. Default: derived from source filename.
   --dry-run       Print the planned copy without executing.
 """,
@@ -577,7 +594,9 @@ _BEHAVIORAL_RULES = """\
   `carta regenerate`.
 - **Index files**: `00-index.md` files mark a directory as a title group. They cannot be
   renamed via `move --rename`. Use `rename` to change the directory slug instead.
-- **Position 0 is reserved**: `--order` must be >= 1. Position 0 is always the index file.
+- **Position 0 is reserved**: When a directory contains a `00-index.md`, slot 00 is reserved for it.
+  Targeting slot 00 with `--at` or `--before` in such a directory is an error. At the workspace root
+  (which has no `00-index.md`), slot 00 is a normal group position and may be targeted freely.
 """
 
 _COMMON_PATTERNS = """\

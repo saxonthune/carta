@@ -48,7 +48,7 @@ def main(argv: list[str] | None = None) -> int:
             "  carta make my-top-level-doc\n"
             "  carta make -g doc01 new-group\n"
             "  carta make --at doc00.07 pinned-doc\n"
-            "  carta make --insert doc00.03 new-doc\n"
+            "  carta make --before doc00.03 new-doc\n"
             "  carta make doc00 scratch --dry-run"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -58,7 +58,7 @@ def main(argv: list[str] | None = None) -> int:
                         help="Create a directory + 00-index.md instead of a leaf .md")
     p_make.add_argument("--at", default=None,
                         help="Exact target ref (e.g. doc01.02.03.04); writes iff the slot is free")
-    p_make.add_argument("--insert", default=None,
+    p_make.add_argument("--before", default=None,
                         help="Insert at REF (e.g. doc01.02.03), bumping that sibling and all higher ones up by one")
     p_make.add_argument("--dry-run", action="store_true")
     p_make.add_argument("--no-regen", action="store_true")
@@ -77,17 +77,17 @@ def main(argv: list[str] | None = None) -> int:
             "Examples:\n"
             "  carta move doc01.03 02-architecture\n"
             "  carta move doc01.03 --at doc02.05\n"
-            "  carta move doc01.03 --insert doc02.01\n"
-            "  carta move doc01 --insert doc00"
+            "  carta move doc01.03 --before doc02.01\n"
+            "  carta move doc01 --before doc00"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     p_move.add_argument("source", help="Path or doc ref to move")
     p_move.add_argument("destination", nargs="?", default=None,
-                        help="Target directory (append mode). Omit when using --at/--insert.")
+                        help="Target directory (append mode). Omit when using --at/--before.")
     p_move.add_argument("--at", default=None,
                         help="Exact target ref (docXX.YY.ZZ | dXX.YY | XX.YY); moves iff the slot is free, else error")
-    p_move.add_argument("--insert", default=None,
+    p_move.add_argument("--before", default=None,
                         help="Insert at REF, bumping that sibling and all higher ones up by one")
     p_move.add_argument("--mkdir", action="store_true")
     p_move.add_argument("--rename", default=None)
@@ -108,14 +108,30 @@ def main(argv: list[str] | None = None) -> int:
     p_flatten.add_argument("target")
     p_flatten.add_argument("--keep-index", action="store_true")
     p_flatten.add_argument("--force", action="store_true")
-    p_flatten.add_argument("--at", dest="at_position", type=int, default=None)
+    p_flatten.add_argument("--before", default=None,
+                           help="Insert hoisted children before REF (a doc ref) in the parent. Default: the dissolved directory's old position.")
     p_flatten.add_argument("--dry-run", action="store_true")
 
     # copy
-    p_copy = subparsers.add_parser("copy", help="Copy file into workspace")
+    p_copy = subparsers.add_parser(
+        "copy",
+        help="Copy file into workspace",
+        epilog=(
+            "Examples:\n"
+            "  carta copy path/to/file.md 00-codex\n"
+            "  carta copy path/to/file.md --at doc00.05\n"
+            "  carta copy path/to/file.md --before doc00.03\n"
+            "  carta copy path/to/file.md --at doc00.05 --rename my-slug"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     p_copy.add_argument("source")
-    p_copy.add_argument("destination")
-    p_copy.add_argument("--order", type=int, default=None)
+    p_copy.add_argument("destination", nargs="?", default=None,
+                        help="Target directory (append mode). Omit when using --at/--before.")
+    p_copy.add_argument("--at", default=None,
+                        help="Exact target ref (docXX.YY.ZZ | dXX.YY | XX.YY); copies iff the slot is free, else error")
+    p_copy.add_argument("--before", default=None,
+                        help="Insert at REF, bumping that sibling and all higher ones up by one")
     p_copy.add_argument("--rename", dest="rename_slug", default=None)
     p_copy.add_argument("--dry-run", action="store_true")
 

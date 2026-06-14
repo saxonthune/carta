@@ -101,7 +101,7 @@ carta make 01-product my-feature
 carta make --at doc01.04 my-pinned-feature
 
 # Insert at an occupied position, shifting that sibling and higher ones up by one
-carta make --insert doc01.02 my-inserted-feature
+carta make --before doc01.02 my-inserted-feature
 
 # Create a new title group (directory + 00-index.md)
 carta make -g 01-product new-subgroup
@@ -110,10 +110,10 @@ carta make -g 01-product new-subgroup
 carta punch 01-product/03-my-feature
 
 # Move/reorder a doc (insert at a specific position, displacing siblings)
-carta move 01-product/03-my-feature --insert doc01.01
+carta move 01-product/03-my-feature --before doc01.01
 
 # Promote a group to root slot 00 (root has no 00-index.md, so slot 0 is open)
-carta move doc01 --insert doc00
+carta move doc01 --before doc00
 
 # Delete with automatic gap-closing and ref rewriting
 carta delete 01-product/02-old-feature
