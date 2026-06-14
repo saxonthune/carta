@@ -1,81 +1,116 @@
 #!/usr/bin/env python3
-"""Build the carta-dsl Luminous canvas from the action-catalog YAML sidecars.
+"""Build the carta-dsl Luminous canvas by introspecting the carta argument parser.
 
-Reads every NN-<cmd>.yaml under .carta/.../05-actions/ and emits a per-command
-tree: a `carta` root -> one node per command -> one node per argument the
-command takes. Argument nodes are private to each command (per-command tree
-model), so re-running is a deterministic, diffable update.
+The parser (carta_cli.commands._parser.build_parser) is the single source of truth for
+the CLI surface — it is the code that actually runs — so the canvas can never drift from
+the real commands the way a hand-maintained spec mirror does.
+
+Emits a per-command tree: a `carta` root -> one node per subcommand -> one node per
+argument the subcommand takes. Argument nodes are private to each command (per-command
+tree model), so re-running is a deterministic, diffable update.
 
 Run:  python3 scripts/build_dsl_canvas.py
 Out:  .luminous/generated/carta-dsl.graph.json   (pack: carta-dsl.pack.json, hand-authored)
 """
 from __future__ import annotations
 
+import argparse
 import json
 import re
+import sys
 from pathlib import Path
 
-import yaml
-
 REPO = Path(__file__).resolve().parent.parent
-ACTIONS_DIR = REPO / ".carta" / "03-product-design" / "01-workspace-scripts" / "05-actions"
+sys.path.insert(0, str(REPO))
+
+from carta_cli.commands._parser import build_parser  # noqa: E402
+
 OUT = REPO / ".luminous" / "generated" / "carta-dsl.graph.json"
 PACK = "carta-dsl"
 
 
-def load_sidecars() -> list[dict]:
-    """Parse every action sidecar, skipping the index. Sorted by filename."""
-    cards = []
-    for path in sorted(ACTIONS_DIR.glob("*.yaml")):
-        data = yaml.safe_load(path.read_text())
-        if data and data.get("id") and data.get("inputs"):
-            cards.append(data)
-    return cards
+def _subparsers_action(parser: argparse.ArgumentParser) -> argparse._SubParsersAction:
+    for action in parser._actions:
+        if isinstance(action, argparse._SubParsersAction):
+            return action
+    raise SystemExit("no subparsers found on the carta parser")
 
 
-def classify_arg(name: str, cli: str) -> tuple[bool, str | None]:
-    """Return (is_flag, flag_spelling). An input is a flag if its dashed form
-    appears as --x in the cli signature; otherwise it is positional."""
-    dashed = "--" + name.replace("_", "-")
-    if dashed in cli:
-        return True, dashed
-    return False, None
+def _clean_usage(subparser: argparse.ArgumentParser) -> str:
+    """Normalize a subparser's usage string into a one-line `carta <cmd> ...` signature."""
+    usage = re.sub(r"\s+", " ", subparser.format_usage()).strip()
+    if usage.lower().startswith("usage:"):
+        usage = usage[len("usage:"):].strip()
+    # Drop the implicit -h/--help flag — it's noise on every command.
+    usage = usage.replace("[-h] ", "").replace(" [-h]", "").replace("[-h]", "").strip()
+    return usage
+
+
+def _arg_type(action: argparse.Action) -> str:
+    if isinstance(action, (argparse._StoreTrueAction, argparse._StoreFalseAction)):
+        return "bool"
+    t = action.type
+    if t is None:
+        return "str"
+    return getattr(t, "__name__", str(t))
+
+
+def _is_required(action: argparse.Action) -> bool:
+    if action.option_strings:  # optional / flag
+        return bool(action.required)
+    # positional: required unless nargs makes it elidable
+    return action.nargs not in ("?", "*")
+
+
+def command_card(name: str, subparser: argparse.ArgumentParser, summary: str) -> dict:
+    inputs: list[dict] = []
+    for action in subparser._actions:
+        if isinstance(action, argparse._HelpAction) or action.dest in ("help", argparse.SUPPRESS):
+            continue
+        opts = action.option_strings
+        form = "flag" if opts else "positional"
+        props = {
+            "name": action.dest,
+            "type": _arg_type(action),
+            "required": _is_required(action),
+            "form": form,
+        }
+        if opts:
+            longs = [o for o in opts if o.startswith("--")]
+            props["flag"] = longs[0] if longs else opts[0]
+        if action.help:
+            props["description"] = action.help
+        is_bool_flag = isinstance(action, (argparse._StoreTrueAction, argparse._StoreFalseAction))
+        if not is_bool_flag and action.default is not None and action.default is not argparse.SUPPRESS:
+            props["default"] = str(action.default)
+        inputs.append(props)
+    return {"id": name, "summary": summary, "cli": _clean_usage(subparser), "inputs": inputs}
+
+
+def load_cards() -> list[dict]:
+    parser = build_parser()
+    sub = _subparsers_action(parser)
+    help_by_name = {ca.dest: (ca.help or "") for ca in sub._choices_actions}
+    return [
+        command_card(name, subparser, help_by_name.get(name, ""))
+        for name, subparser in sub.choices.items()
+    ]
 
 
 def command_node(card: dict) -> dict:
     return {
         "id": f"cmd.{card['id']}",
         "kind": "carta.command",
-        "props": {
-            "name": card["id"],
-            "summary": card.get("summary", ""),
-            "cli": card.get("cli", ""),
-        },
+        "props": {"name": card["id"], "summary": card["summary"], "cli": card["cli"]},
         "tags": [],
     }
 
 
 def arg_nodes_and_edges(card: dict) -> tuple[list[dict], list[dict]]:
-    cli = card.get("cli", "")
     cmd = card["id"]
     nodes, edges = [], []
-    for name, spec in card["inputs"].items():
-        spec = spec or {}
-        is_flag, flag = classify_arg(name, cli)
-        required = bool(spec.get("required", False))
-        node_id = f"arg.{cmd}.{name}"
-        props = {
-            "name": name,
-            "type": spec.get("type", "") or "",
-            "required": required,
-            "form": "flag" if is_flag else "positional",
-        }
-        if flag:
-            props["flag"] = flag
-        if "description" in spec and spec["description"]:
-            props["description"] = spec["description"]
-        if "default" in spec and spec["default"] is not None:
-            props["default"] = str(spec["default"])
+    for props in card["inputs"]:
+        node_id = f"arg.{cmd}.{props['name']}"
         nodes.append({"id": node_id, "kind": "carta.arg", "props": props, "tags": []})
         edges.append({
             "id": f"edge.takes.cmd.{cmd}.{node_id}",
@@ -89,7 +124,7 @@ def arg_nodes_and_edges(card: dict) -> tuple[list[dict], list[dict]]:
 
 
 def build() -> dict:
-    cards = load_sidecars()
+    cards = load_cards()
     nodes = [{"id": "carta", "kind": "carta.root", "props": {"name": "carta"}, "tags": []}]
     edges = []
     for card in cards:

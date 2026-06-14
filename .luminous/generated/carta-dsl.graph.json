@@ -11,7 +11,7 @@
         "required": false,
         "form": "flag",
         "flag": "--dry-run",
-        "default": "False"
+        "description": "Print planned operation without executing."
       },
       "tags": []
     },
@@ -20,10 +20,10 @@
       "kind": "carta.arg",
       "props": {
         "name": "host",
-        "type": "path_or_ref",
+        "type": "str",
         "required": true,
         "form": "positional",
-        "description": "Doc ref or path of the host .md doc"
+        "description": "Doc ref or workspace path of the host NN-<slug>.md"
       },
       "tags": []
     },
@@ -36,7 +36,7 @@
         "required": false,
         "form": "flag",
         "flag": "--rename",
-        "description": "Override the attachment slug"
+        "description": "Override the attachment's slug segment. Default: source filename stem."
       },
       "tags": []
     },
@@ -45,10 +45,60 @@
       "kind": "carta.arg",
       "props": {
         "name": "source",
-        "type": "path",
+        "type": "str",
         "required": true,
         "form": "positional",
-        "description": "File to attach"
+        "description": "Path to a file to attach (may be outside the workspace)"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.bundle.ref",
+      "kind": "carta.arg",
+      "props": {
+        "name": "ref",
+        "type": "str",
+        "required": true,
+        "form": "positional",
+        "description": "Doc ref or path of a .md leaf doc."
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.cat.ref",
+      "kind": "carta.arg",
+      "props": {
+        "name": "ref",
+        "type": "str",
+        "required": true,
+        "form": "positional",
+        "description": "Doc ref (e.g., doc02.03) or relative path"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.copy.at",
+      "kind": "carta.arg",
+      "props": {
+        "name": "at",
+        "type": "str",
+        "required": false,
+        "form": "flag",
+        "flag": "--at",
+        "description": "Exact target ref (docXX.YY.ZZ | dXX.YY | XX.YY); copies iff the slot is free, else error"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.copy.before",
+      "kind": "carta.arg",
+      "props": {
+        "name": "before",
+        "type": "str",
+        "required": false,
+        "form": "flag",
+        "flag": "--before",
+        "description": "Insert at REF, bumping that sibling and all higher ones up by one"
       },
       "tags": []
     },
@@ -57,10 +107,10 @@
       "kind": "carta.arg",
       "props": {
         "name": "destination",
-        "type": "path",
-        "required": true,
+        "type": "str",
+        "required": false,
         "form": "positional",
-        "description": "Workspace directory to copy into"
+        "description": "Target directory (append mode). Omit when using --at/--before."
       },
       "tags": []
     },
@@ -72,28 +122,15 @@
         "type": "bool",
         "required": false,
         "form": "flag",
-        "flag": "--dry-run",
-        "default": "False"
+        "flag": "--dry-run"
       },
       "tags": []
     },
     {
-      "id": "arg.copy.order",
+      "id": "arg.copy.rename_slug",
       "kind": "carta.arg",
       "props": {
-        "name": "order",
-        "type": "int",
-        "required": false,
-        "form": "flag",
-        "flag": "--order"
-      },
-      "tags": []
-    },
-    {
-      "id": "arg.copy.rename",
-      "kind": "carta.arg",
-      "props": {
-        "name": "rename",
+        "name": "rename_slug",
         "type": "str",
         "required": false,
         "form": "flag",
@@ -106,111 +143,9 @@
       "kind": "carta.arg",
       "props": {
         "name": "source",
-        "type": "path",
-        "required": true,
-        "form": "positional",
-        "description": "File outside the workspace"
-      },
-      "tags": []
-    },
-    {
-      "id": "arg.create.deps",
-      "kind": "carta.arg",
-      "props": {
-        "name": "deps",
-        "type": "list[doc_ref]",
-        "required": false,
-        "form": "flag",
-        "flag": "--deps",
-        "default": "[]"
-      },
-      "tags": []
-    },
-    {
-      "id": "arg.create.destination",
-      "kind": "carta.arg",
-      "props": {
-        "name": "destination",
-        "type": "path_or_ref",
-        "required": true,
-        "form": "positional",
-        "description": "Directory to create the file in"
-      },
-      "tags": []
-    },
-    {
-      "id": "arg.create.dry_run",
-      "kind": "carta.arg",
-      "props": {
-        "name": "dry_run",
-        "type": "bool",
-        "required": false,
-        "form": "flag",
-        "flag": "--dry-run",
-        "default": "False"
-      },
-      "tags": []
-    },
-    {
-      "id": "arg.create.order",
-      "kind": "carta.arg",
-      "props": {
-        "name": "order",
-        "type": "int",
-        "required": false,
-        "form": "flag",
-        "flag": "--order",
-        "description": "1-based insert position; appends if null"
-      },
-      "tags": []
-    },
-    {
-      "id": "arg.create.slug",
-      "kind": "carta.arg",
-      "props": {
-        "name": "slug",
         "type": "str",
         "required": true,
-        "form": "positional",
-        "description": "Filename stem without NN prefix"
-      },
-      "tags": []
-    },
-    {
-      "id": "arg.create.summary",
-      "kind": "carta.arg",
-      "props": {
-        "name": "summary",
-        "type": "str",
-        "required": false,
-        "form": "flag",
-        "flag": "--summary",
-        "default": ""
-      },
-      "tags": []
-    },
-    {
-      "id": "arg.create.tags",
-      "kind": "carta.arg",
-      "props": {
-        "name": "tags",
-        "type": "list[str]",
-        "required": false,
-        "form": "flag",
-        "flag": "--tags",
-        "default": "[]"
-      },
-      "tags": []
-    },
-    {
-      "id": "arg.create.title",
-      "kind": "carta.arg",
-      "props": {
-        "name": "title",
-        "type": "str",
-        "required": false,
-        "form": "flag",
-        "flag": "--title"
+        "form": "positional"
       },
       "tags": []
     },
@@ -222,8 +157,7 @@
         "type": "bool",
         "required": false,
         "form": "flag",
-        "flag": "--dry-run",
-        "default": "False"
+        "flag": "--dry-run"
       },
       "tags": []
     },
@@ -235,9 +169,7 @@
         "type": "bool",
         "required": false,
         "form": "flag",
-        "flag": "--output-mapping",
-        "description": "Emit JSON ref rename map to stdout",
-        "default": "False"
+        "flag": "--output-mapping"
       },
       "tags": []
     },
@@ -246,23 +178,22 @@
       "kind": "carta.arg",
       "props": {
         "name": "targets",
-        "type": "list[path_or_ref]",
+        "type": "str",
         "required": true,
-        "form": "positional",
-        "description": "One or more files or directories to delete"
+        "form": "positional"
       },
       "tags": []
     },
     {
-      "id": "arg.flatten.at",
+      "id": "arg.flatten.before",
       "kind": "carta.arg",
       "props": {
-        "name": "at",
-        "type": "int",
+        "name": "before",
+        "type": "str",
         "required": false,
         "form": "flag",
-        "flag": "--at",
-        "description": "Insert position in parent; defaults to source position"
+        "flag": "--before",
+        "description": "Insert hoisted children before REF (a doc ref) in the parent. Default: the dissolved directory's old position."
       },
       "tags": []
     },
@@ -274,8 +205,7 @@
         "type": "bool",
         "required": false,
         "form": "flag",
-        "flag": "--dry-run",
-        "default": "False"
+        "flag": "--dry-run"
       },
       "tags": []
     },
@@ -287,9 +217,7 @@
         "type": "bool",
         "required": false,
         "form": "flag",
-        "flag": "--force",
-        "description": "Discard index even with significant content",
-        "default": "False"
+        "flag": "--force"
       },
       "tags": []
     },
@@ -301,9 +229,7 @@
         "type": "bool",
         "required": false,
         "form": "flag",
-        "flag": "--keep-index",
-        "description": "Preserve 00-index.md as NN-<dir-slug>.md in parent",
-        "default": "False"
+        "flag": "--keep-index"
       },
       "tags": []
     },
@@ -312,10 +238,214 @@
       "kind": "carta.arg",
       "props": {
         "name": "target",
-        "type": "path_or_ref",
+        "type": "str",
+        "required": true,
+        "form": "positional"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.init.check",
+      "kind": "carta.arg",
+      "props": {
+        "name": "check",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--check",
+        "description": "With --rehydrate, report drift without writing and exit non-zero if any hydrated file is stale. For CI gates."
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.init.dirname",
+      "kind": "carta.arg",
+      "props": {
+        "name": "dirname",
+        "type": "str",
+        "required": false,
+        "form": "flag",
+        "flag": "--dir",
+        "description": "Name of the workspace directory. Default: .carta",
+        "default": ".carta"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.init.dry_run",
+      "kind": "carta.arg",
+      "props": {
+        "name": "dry_run",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--dry-run",
+        "description": "With --rehydrate, show what would be updated without writing."
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.init.name",
+      "kind": "carta.arg",
+      "props": {
+        "name": "name",
+        "type": "str",
+        "required": false,
+        "form": "flag",
+        "flag": "--name",
+        "description": "Workspace title. Default: parent directory name."
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.init.portable",
+      "kind": "carta.arg",
+      "props": {
+        "name": "portable",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--portable",
+        "description": "Dump editable Python scripts into workspace for pip-free usage."
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.init.rehydrate",
+      "kind": "carta.arg",
+      "props": {
+        "name": "rehydrate",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--rehydrate",
+        "description": "Refresh codex templates and skill files in an existing workspace. Preserves workspace.json and user-authored docs."
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.ls.no_sidecars",
+      "kind": "carta.arg",
+      "props": {
+        "name": "no_sidecars",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--no-sidecars",
+        "description": "Hide non-md numbered attachments."
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.ls.target",
+      "kind": "carta.arg",
+      "props": {
+        "name": "target",
+        "type": "str",
+        "required": false,
+        "form": "positional",
+        "description": "Directory to list (doc ref or path). Default: workspace root."
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.make.at",
+      "kind": "carta.arg",
+      "props": {
+        "name": "at",
+        "type": "str",
+        "required": false,
+        "form": "flag",
+        "flag": "--at",
+        "description": "Exact target ref (e.g. doc01.02.03.04); writes iff the slot is free"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.make.before",
+      "kind": "carta.arg",
+      "props": {
+        "name": "before",
+        "type": "str",
+        "required": false,
+        "form": "flag",
+        "flag": "--before",
+        "description": "Insert at REF (e.g. doc01.02.03), bumping that sibling and all higher ones up by one"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.make.dry_run",
+      "kind": "carta.arg",
+      "props": {
+        "name": "dry_run",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--dry-run"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.make.group",
+      "kind": "carta.arg",
+      "props": {
+        "name": "group",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--group",
+        "description": "Create a directory + 00-index.md instead of a leaf .md"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.make.no_regen",
+      "kind": "carta.arg",
+      "props": {
+        "name": "no_regen",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--no-regen"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.make.target",
+      "kind": "carta.arg",
+      "props": {
+        "name": "target",
+        "type": "str",
         "required": true,
         "form": "positional",
-        "description": "Numbered directory to flatten"
+        "description": "[PARENT] SLUG \u2014 omit PARENT for a top-level title"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.move.at",
+      "kind": "carta.arg",
+      "props": {
+        "name": "at",
+        "type": "str",
+        "required": false,
+        "form": "flag",
+        "flag": "--at",
+        "description": "Exact target ref (docXX.YY.ZZ | dXX.YY | XX.YY); moves iff the slot is free, else error"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.move.before",
+      "kind": "carta.arg",
+      "props": {
+        "name": "before",
+        "type": "str",
+        "required": false,
+        "form": "flag",
+        "flag": "--before",
+        "description": "Insert at REF, bumping that sibling and all higher ones up by one"
       },
       "tags": []
     },
@@ -324,10 +454,10 @@
       "kind": "carta.arg",
       "props": {
         "name": "destination",
-        "type": "path",
-        "required": true,
+        "type": "str",
+        "required": false,
         "form": "positional",
-        "description": "Target parent directory"
+        "description": "Target directory (append mode). Omit when using --at/--before."
       },
       "tags": []
     },
@@ -339,8 +469,7 @@
         "type": "bool",
         "required": false,
         "form": "flag",
-        "flag": "--dry-run",
-        "default": "False"
+        "flag": "--dry-run"
       },
       "tags": []
     },
@@ -352,8 +481,7 @@
         "type": "bool",
         "required": false,
         "form": "flag",
-        "flag": "--mkdir",
-        "default": "False"
+        "flag": "--mkdir"
       },
       "tags": []
     },
@@ -366,7 +494,7 @@
         "required": false,
         "form": "flag",
         "flag": "--no-gap-close",
-        "default": "False"
+        "description": "Skip gap-closing of source siblings. Use for batch moves."
       },
       "tags": []
     },
@@ -379,20 +507,7 @@
         "required": false,
         "form": "flag",
         "flag": "--no-regen",
-        "default": "False"
-      },
-      "tags": []
-    },
-    {
-      "id": "arg.move.order",
-      "kind": "carta.arg",
-      "props": {
-        "name": "order",
-        "type": "int",
-        "required": false,
-        "form": "flag",
-        "flag": "--order",
-        "description": "1-based position in destination; appends if null"
+        "description": "Skip MANIFEST regeneration."
       },
       "tags": []
     },
@@ -404,8 +519,7 @@
         "type": "str",
         "required": false,
         "form": "flag",
-        "flag": "--rename",
-        "description": "New slug for the entry during move"
+        "flag": "--rename"
       },
       "tags": []
     },
@@ -414,10 +528,10 @@
       "kind": "carta.arg",
       "props": {
         "name": "source",
-        "type": "path_or_ref",
+        "type": "str",
         "required": true,
         "form": "positional",
-        "description": "File or directory to move"
+        "description": "Path or doc ref to move"
       },
       "tags": []
     },
@@ -430,8 +544,7 @@
         "required": false,
         "form": "flag",
         "flag": "--as-child",
-        "description": "If true, move original content to NN-slug/01-slug.md and write a new skeleton 00-index.md for the group.\n",
-        "default": "False"
+        "description": "Put original content in 01-slug.md, generate skeleton index."
       },
       "tags": []
     },
@@ -443,8 +556,7 @@
         "type": "bool",
         "required": false,
         "form": "flag",
-        "flag": "--dry-run",
-        "default": "False"
+        "flag": "--dry-run"
       },
       "tags": []
     },
@@ -453,10 +565,9 @@
       "kind": "carta.arg",
       "props": {
         "name": "target",
-        "type": "path_or_ref",
+        "type": "str",
         "required": true,
-        "form": "positional",
-        "description": "Path or doc ref to a numbered .md file"
+        "form": "positional"
       },
       "tags": []
     },
@@ -468,9 +579,7 @@
         "type": "bool",
         "required": false,
         "form": "flag",
-        "flag": "--dry-run",
-        "description": "Print projected MANIFEST.md without writing",
-        "default": "False"
+        "flag": "--dry-run"
       },
       "tags": []
     },
@@ -482,7 +591,7 @@
         "type": "str",
         "required": true,
         "form": "positional",
-        "description": "Replacement slug, without NN prefix"
+        "description": "New slug (the part after NN-)"
       },
       "tags": []
     },
@@ -495,7 +604,7 @@
         "required": false,
         "form": "flag",
         "flag": "--no-regen",
-        "default": "False"
+        "description": "Skip MANIFEST regeneration."
       },
       "tags": []
     },
@@ -504,9 +613,10 @@
       "kind": "carta.arg",
       "props": {
         "name": "target",
-        "type": "path_or_ref",
+        "type": "str",
         "required": true,
-        "form": "positional"
+        "form": "positional",
+        "description": "Target to rename (doc ref or relative path)"
       },
       "tags": []
     },
@@ -518,8 +628,7 @@
         "type": "bool",
         "required": false,
         "form": "flag",
-        "flag": "--dry-run",
-        "default": "False"
+        "flag": "--dry-run"
       },
       "tags": []
     },
@@ -528,10 +637,61 @@
       "kind": "carta.arg",
       "props": {
         "name": "mappings",
-        "type": "list[str]",
+        "type": "str",
         "required": true,
         "form": "positional",
-        "description": "One or more old=new pairs"
+        "description": "old=new pairs"
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.tree.no_sidecars",
+      "kind": "carta.arg",
+      "props": {
+        "name": "no_sidecars",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--no-sidecars",
+        "description": "Hide sidecar attachment lines."
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.tree.no_title",
+      "kind": "carta.arg",
+      "props": {
+        "name": "no_title",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--no-title",
+        "description": "Show filenames instead of frontmatter titles."
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.tree.refs",
+      "kind": "carta.arg",
+      "props": {
+        "name": "refs",
+        "type": "bool",
+        "required": false,
+        "form": "flag",
+        "flag": "--refs",
+        "description": "Show docXX.YY refs next to entries."
+      },
+      "tags": []
+    },
+    {
+      "id": "arg.tree.target",
+      "kind": "carta.arg",
+      "props": {
+        "name": "target",
+        "type": "str",
+        "required": false,
+        "form": "positional",
+        "description": "Directory to tree (doc ref or path). Default: workspace root."
       },
       "tags": []
     },
@@ -544,12 +704,42 @@
       "tags": []
     },
     {
+      "id": "cmd.ai-skill",
+      "kind": "carta.command",
+      "props": {
+        "name": "ai-skill",
+        "summary": "Print AI agent reference for all commands",
+        "cli": "carta ai-skill"
+      },
+      "tags": []
+    },
+    {
       "id": "cmd.attach",
       "kind": "carta.command",
       "props": {
         "name": "attach",
-        "summary": "Copy a non-md file into a host doc's bundle, sharing the host's NN prefix",
-        "cli": "carta attach <host> <source> [--rename SLUG] [--dry-run]"
+        "summary": "Copy an external file into a doc's bundle as an attachment. Bundles are sets of files sharing a numeric prefix; `attach` aligns the copied file with the target doc's prefix.",
+        "cli": "carta attach [--rename SLUG] [--dry-run] host source"
+      },
+      "tags": []
+    },
+    {
+      "id": "cmd.bundle",
+      "kind": "carta.command",
+      "props": {
+        "name": "bundle",
+        "summary": "Show a doc's bundle (host + attachments)",
+        "cli": "carta bundle ref"
+      },
+      "tags": []
+    },
+    {
+      "id": "cmd.cat",
+      "kind": "carta.command",
+      "props": {
+        "name": "cat",
+        "summary": "Print document contents by ref",
+        "cli": "carta cat ref"
       },
       "tags": []
     },
@@ -558,18 +748,8 @@
       "kind": "carta.command",
       "props": {
         "name": "copy",
-        "summary": "Copy an external file into the workspace at a numbered position",
-        "cli": "carta copy <source> <destination> [--order N] [--rename SLUG] [--dry-run]"
-      },
-      "tags": []
-    },
-    {
-      "id": "cmd.create",
-      "kind": "carta.command",
-      "props": {
-        "name": "create",
-        "summary": "Create a new numbered .md file with draft frontmatter",
-        "cli": "carta create <destination> <slug> [--order N] [--title TEXT] [--summary TEXT] [--tags CSV] [--deps CSV] [--dry-run]"
+        "summary": "Copy file into workspace",
+        "cli": "carta copy [--at AT] [--before BEFORE] [--rename RENAME_SLUG] [--dry-run] source [destination]"
       },
       "tags": []
     },
@@ -578,8 +758,8 @@
       "kind": "carta.command",
       "props": {
         "name": "delete",
-        "summary": "Delete entries, gap-close siblings, rewrite refs, report orphans",
-        "cli": "carta delete <target> [<target> ...] [--dry-run] [--output-mapping]"
+        "summary": "Delete entries with gap-closing",
+        "cli": "carta delete [--dry-run] [--output-mapping] targets [targets ...]"
       },
       "tags": []
     },
@@ -588,8 +768,38 @@
       "kind": "carta.command",
       "props": {
         "name": "flatten",
-        "summary": "Hoist a directory's children into the parent, renumber, rewrite refs",
-        "cli": "carta flatten <target> [--keep-index] [--force] [--at N] [--dry-run]"
+        "summary": "Dissolve directory",
+        "cli": "carta flatten [--keep-index] [--force] [--before BEFORE] [--dry-run] target"
+      },
+      "tags": []
+    },
+    {
+      "id": "cmd.init",
+      "kind": "carta.command",
+      "props": {
+        "name": "init",
+        "summary": "Initialize a new workspace",
+        "cli": "carta init [--name NAME] [--dir DIRNAME] [--portable] [--rehydrate] [--dry-run] [--check]"
+      },
+      "tags": []
+    },
+    {
+      "id": "cmd.ls",
+      "kind": "carta.command",
+      "props": {
+        "name": "ls",
+        "summary": "List entries in a directory",
+        "cli": "carta ls [--no-sidecars] [target]"
+      },
+      "tags": []
+    },
+    {
+      "id": "cmd.make",
+      "kind": "carta.command",
+      "props": {
+        "name": "make",
+        "summary": "Create a doc or group at a position",
+        "cli": "carta make [-g] [--at AT] [--before BEFORE] [--dry-run] [--no-regen] target [target ...]"
       },
       "tags": []
     },
@@ -598,8 +808,28 @@
       "kind": "carta.command",
       "props": {
         "name": "move",
-        "summary": "Move or reorder a file/directory, renumbering siblings and rewriting refs",
-        "cli": "carta move <source> <destination> [--order N] [--mkdir] [--rename SLUG] [--no-regen] [--no-gap-close] [--dry-run]"
+        "summary": "Move/reorder entries",
+        "cli": "carta move [--at AT] [--before BEFORE] [--mkdir] [--rename RENAME] [--no-regen] [--no-gap-close] [--dry-run] source [destination]"
+      },
+      "tags": []
+    },
+    {
+      "id": "cmd.orphans",
+      "kind": "carta.command",
+      "props": {
+        "name": "orphans",
+        "summary": "List orphaned attachments in the workspace",
+        "cli": "carta orphans"
+      },
+      "tags": []
+    },
+    {
+      "id": "cmd.portable",
+      "kind": "carta.command",
+      "props": {
+        "name": "portable",
+        "summary": "Dump editable scripts into workspace",
+        "cli": "carta portable"
       },
       "tags": []
     },
@@ -608,8 +838,8 @@
       "kind": "carta.command",
       "props": {
         "name": "punch",
-        "summary": "Expand a leaf NN-slug.md into a directory NN-slug/00-index.md",
-        "cli": "carta punch <target> [--as-child] [--dry-run]"
+        "summary": "Expand leaf into directory",
+        "cli": "carta punch [--as-child] [--dry-run] target"
       },
       "tags": []
     },
@@ -618,7 +848,7 @@
       "kind": "carta.command",
       "props": {
         "name": "regenerate",
-        "summary": "Rebuild MANIFEST.md from frontmatter across all workspace docs",
+        "summary": "Rebuild MANIFEST.md",
         "cli": "carta regenerate [--dry-run]"
       },
       "tags": []
@@ -628,8 +858,8 @@
       "kind": "carta.command",
       "props": {
         "name": "rename",
-        "summary": "Change the slug of an entry and its bundle without changing NN or refs",
-        "cli": "carta rename <target> <new-slug> [--no-regen]"
+        "summary": "Rename a directory or file slug",
+        "cli": "carta rename [--no-regen] target new_slug"
       },
       "tags": []
     },
@@ -638,13 +868,31 @@
       "kind": "carta.command",
       "props": {
         "name": "rewrite",
-        "summary": "Apply explicit old=new doc-ref rewrites across the workspace",
-        "cli": "carta rewrite <old>=<new> [<old>=<new> ...] [--dry-run]"
+        "summary": "Rewrite doc refs",
+        "cli": "carta rewrite [--dry-run] mappings [mappings ...]"
+      },
+      "tags": []
+    },
+    {
+      "id": "cmd.tree",
+      "kind": "carta.command",
+      "props": {
+        "name": "tree",
+        "summary": "Print workspace structure as a tree",
+        "cli": "carta tree [--refs] [--no-title] [--no-sidecars] [target]"
       },
       "tags": []
     }
   ],
   "edges": [
+    {
+      "id": "edge.has-command.carta.cmd.ai-skill",
+      "kind": "carta.has-command",
+      "from": "carta",
+      "to": "cmd.ai-skill",
+      "props": {},
+      "tags": []
+    },
     {
       "id": "edge.has-command.carta.cmd.attach",
       "kind": "carta.has-command",
@@ -654,18 +902,26 @@
       "tags": []
     },
     {
-      "id": "edge.has-command.carta.cmd.copy",
+      "id": "edge.has-command.carta.cmd.bundle",
       "kind": "carta.has-command",
       "from": "carta",
-      "to": "cmd.copy",
+      "to": "cmd.bundle",
       "props": {},
       "tags": []
     },
     {
-      "id": "edge.has-command.carta.cmd.create",
+      "id": "edge.has-command.carta.cmd.cat",
       "kind": "carta.has-command",
       "from": "carta",
-      "to": "cmd.create",
+      "to": "cmd.cat",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.has-command.carta.cmd.copy",
+      "kind": "carta.has-command",
+      "from": "carta",
+      "to": "cmd.copy",
       "props": {},
       "tags": []
     },
@@ -686,10 +942,50 @@
       "tags": []
     },
     {
+      "id": "edge.has-command.carta.cmd.init",
+      "kind": "carta.has-command",
+      "from": "carta",
+      "to": "cmd.init",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.has-command.carta.cmd.ls",
+      "kind": "carta.has-command",
+      "from": "carta",
+      "to": "cmd.ls",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.has-command.carta.cmd.make",
+      "kind": "carta.has-command",
+      "from": "carta",
+      "to": "cmd.make",
+      "props": {},
+      "tags": []
+    },
+    {
       "id": "edge.has-command.carta.cmd.move",
       "kind": "carta.has-command",
       "from": "carta",
       "to": "cmd.move",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.has-command.carta.cmd.orphans",
+      "kind": "carta.has-command",
+      "from": "carta",
+      "to": "cmd.orphans",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.has-command.carta.cmd.portable",
+      "kind": "carta.has-command",
+      "from": "carta",
+      "to": "cmd.portable",
       "props": {},
       "tags": []
     },
@@ -726,6 +1022,14 @@
       "tags": []
     },
     {
+      "id": "edge.has-command.carta.cmd.tree",
+      "kind": "carta.has-command",
+      "from": "carta",
+      "to": "cmd.tree",
+      "props": {},
+      "tags": []
+    },
+    {
       "id": "edge.takes.cmd.attach.arg.attach.dry_run",
       "kind": "carta.takes",
       "from": "cmd.attach",
@@ -758,6 +1062,38 @@
       "tags": []
     },
     {
+      "id": "edge.takes.cmd.bundle.arg.bundle.ref",
+      "kind": "carta.takes",
+      "from": "cmd.bundle",
+      "to": "arg.bundle.ref",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.cat.arg.cat.ref",
+      "kind": "carta.takes",
+      "from": "cmd.cat",
+      "to": "arg.cat.ref",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.copy.arg.copy.at",
+      "kind": "carta.takes",
+      "from": "cmd.copy",
+      "to": "arg.copy.at",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.copy.arg.copy.before",
+      "kind": "carta.takes",
+      "from": "cmd.copy",
+      "to": "arg.copy.before",
+      "props": {},
+      "tags": []
+    },
+    {
       "id": "edge.takes.cmd.copy.arg.copy.destination",
       "kind": "carta.takes",
       "from": "cmd.copy",
@@ -774,18 +1110,10 @@
       "tags": []
     },
     {
-      "id": "edge.takes.cmd.copy.arg.copy.order",
+      "id": "edge.takes.cmd.copy.arg.copy.rename_slug",
       "kind": "carta.takes",
       "from": "cmd.copy",
-      "to": "arg.copy.order",
-      "props": {},
-      "tags": []
-    },
-    {
-      "id": "edge.takes.cmd.copy.arg.copy.rename",
-      "kind": "carta.takes",
-      "from": "cmd.copy",
-      "to": "arg.copy.rename",
+      "to": "arg.copy.rename_slug",
       "props": {},
       "tags": []
     },
@@ -794,70 +1122,6 @@
       "kind": "carta.takes",
       "from": "cmd.copy",
       "to": "arg.copy.source",
-      "props": {},
-      "tags": []
-    },
-    {
-      "id": "edge.takes.cmd.create.arg.create.deps",
-      "kind": "carta.takes",
-      "from": "cmd.create",
-      "to": "arg.create.deps",
-      "props": {},
-      "tags": []
-    },
-    {
-      "id": "edge.takes.cmd.create.arg.create.destination",
-      "kind": "carta.takes",
-      "from": "cmd.create",
-      "to": "arg.create.destination",
-      "props": {},
-      "tags": []
-    },
-    {
-      "id": "edge.takes.cmd.create.arg.create.dry_run",
-      "kind": "carta.takes",
-      "from": "cmd.create",
-      "to": "arg.create.dry_run",
-      "props": {},
-      "tags": []
-    },
-    {
-      "id": "edge.takes.cmd.create.arg.create.order",
-      "kind": "carta.takes",
-      "from": "cmd.create",
-      "to": "arg.create.order",
-      "props": {},
-      "tags": []
-    },
-    {
-      "id": "edge.takes.cmd.create.arg.create.slug",
-      "kind": "carta.takes",
-      "from": "cmd.create",
-      "to": "arg.create.slug",
-      "props": {},
-      "tags": []
-    },
-    {
-      "id": "edge.takes.cmd.create.arg.create.summary",
-      "kind": "carta.takes",
-      "from": "cmd.create",
-      "to": "arg.create.summary",
-      "props": {},
-      "tags": []
-    },
-    {
-      "id": "edge.takes.cmd.create.arg.create.tags",
-      "kind": "carta.takes",
-      "from": "cmd.create",
-      "to": "arg.create.tags",
-      "props": {},
-      "tags": []
-    },
-    {
-      "id": "edge.takes.cmd.create.arg.create.title",
-      "kind": "carta.takes",
-      "from": "cmd.create",
-      "to": "arg.create.title",
       "props": {},
       "tags": []
     },
@@ -886,10 +1150,10 @@
       "tags": []
     },
     {
-      "id": "edge.takes.cmd.flatten.arg.flatten.at",
+      "id": "edge.takes.cmd.flatten.arg.flatten.before",
       "kind": "carta.takes",
       "from": "cmd.flatten",
-      "to": "arg.flatten.at",
+      "to": "arg.flatten.before",
       "props": {},
       "tags": []
     },
@@ -922,6 +1186,134 @@
       "kind": "carta.takes",
       "from": "cmd.flatten",
       "to": "arg.flatten.target",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.init.arg.init.check",
+      "kind": "carta.takes",
+      "from": "cmd.init",
+      "to": "arg.init.check",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.init.arg.init.dirname",
+      "kind": "carta.takes",
+      "from": "cmd.init",
+      "to": "arg.init.dirname",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.init.arg.init.dry_run",
+      "kind": "carta.takes",
+      "from": "cmd.init",
+      "to": "arg.init.dry_run",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.init.arg.init.name",
+      "kind": "carta.takes",
+      "from": "cmd.init",
+      "to": "arg.init.name",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.init.arg.init.portable",
+      "kind": "carta.takes",
+      "from": "cmd.init",
+      "to": "arg.init.portable",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.init.arg.init.rehydrate",
+      "kind": "carta.takes",
+      "from": "cmd.init",
+      "to": "arg.init.rehydrate",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.ls.arg.ls.no_sidecars",
+      "kind": "carta.takes",
+      "from": "cmd.ls",
+      "to": "arg.ls.no_sidecars",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.ls.arg.ls.target",
+      "kind": "carta.takes",
+      "from": "cmd.ls",
+      "to": "arg.ls.target",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.make.arg.make.at",
+      "kind": "carta.takes",
+      "from": "cmd.make",
+      "to": "arg.make.at",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.make.arg.make.before",
+      "kind": "carta.takes",
+      "from": "cmd.make",
+      "to": "arg.make.before",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.make.arg.make.dry_run",
+      "kind": "carta.takes",
+      "from": "cmd.make",
+      "to": "arg.make.dry_run",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.make.arg.make.group",
+      "kind": "carta.takes",
+      "from": "cmd.make",
+      "to": "arg.make.group",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.make.arg.make.no_regen",
+      "kind": "carta.takes",
+      "from": "cmd.make",
+      "to": "arg.make.no_regen",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.make.arg.make.target",
+      "kind": "carta.takes",
+      "from": "cmd.make",
+      "to": "arg.make.target",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.move.arg.move.at",
+      "kind": "carta.takes",
+      "from": "cmd.move",
+      "to": "arg.move.at",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.move.arg.move.before",
+      "kind": "carta.takes",
+      "from": "cmd.move",
+      "to": "arg.move.before",
       "props": {},
       "tags": []
     },
@@ -962,14 +1354,6 @@
       "kind": "carta.takes",
       "from": "cmd.move",
       "to": "arg.move.no_regen",
-      "props": {},
-      "tags": []
-    },
-    {
-      "id": "edge.takes.cmd.move.arg.move.order",
-      "kind": "carta.takes",
-      "from": "cmd.move",
-      "to": "arg.move.order",
       "props": {},
       "tags": []
     },
@@ -1058,6 +1442,38 @@
       "kind": "carta.takes",
       "from": "cmd.rewrite",
       "to": "arg.rewrite.mappings",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.tree.arg.tree.no_sidecars",
+      "kind": "carta.takes",
+      "from": "cmd.tree",
+      "to": "arg.tree.no_sidecars",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.tree.arg.tree.no_title",
+      "kind": "carta.takes",
+      "from": "cmd.tree",
+      "to": "arg.tree.no_title",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.tree.arg.tree.refs",
+      "kind": "carta.takes",
+      "from": "cmd.tree",
+      "to": "arg.tree.refs",
+      "props": {},
+      "tags": []
+    },
+    {
+      "id": "edge.takes.cmd.tree.arg.tree.target",
+      "kind": "carta.takes",
+      "from": "cmd.tree",
+      "to": "arg.tree.target",
       "props": {},
       "tags": []
     }

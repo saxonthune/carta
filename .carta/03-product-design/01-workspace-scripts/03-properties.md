@@ -35,7 +35,3 @@ Every property is a statement that holds across all executions of a command (or 
 | PROP-GLOBAL-MANIFEST-DERIVABILITY | INV-4 holds after `regenerate()` | INV-4 |
 | PROP-GLOBAL-REF-RESOLVABILITY | INV-5 holds after any sequence | INV-5 |
 | PROP-GLOBAL-DIR-INDEX | INV-6 holds after any sequence | INV-6 |
-
-## Action-local properties
-
-Per-command properties live in each command's sidecar YAML under the `properties:` key. See doc03.01.05.01 (punch) for the first populated example.

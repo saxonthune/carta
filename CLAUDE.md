@@ -10,26 +10,12 @@ Carta is a spec-driven development tool. The primary product is the `.carta/` wo
 
 **Backwards Compatibility is NOT a Concern.** Remove old patterns completely, update all references, don't preserve deprecated code paths. Simplicity and clarity over backwards compatibility.
 
-## Concept-Driven Design (Jackson)
-
-Carta uses concept-driven design from Daniel Jackson's *The Essence of Software*. Full reference: `/book-summary jackson-essence-of-software`. Key principles for this codebase:
-
-- **Every concept must have a clear, articulated purpose.** If you can't identify a compelling purpose, it's not a concept. Real-world entities don't automatically become software concepts.
-- **If there's no behavior, there's no concept.** Design for behavior first, not state structure. No compelling operational principle → not a concept.
-- **Concepts should be freestanding and mutually independent.** Dependencies belong to the composition layer, not to concepts themselves.
-- **Concepts and purposes should be in one-to-one correspondence.** One concept per purpose, one purpose per concept. Split overloaded concepts; merge redundant ones.
-- **Compose concepts by synchronizing their actions.** Concepts run independently; the composition layer coordinates them. Actors, ownership, and cross-cutting concerns live in composition.
-- **Concepts localize data models.** Each concept owns its own state (micromodel). Grow or shrink the data model by adding or removing concepts.
-- **Cast concepts in generic terms.** Avoid needless specialization. A generic Link concept instantiated as docXX.YY refs is better than a Ref concept.
-- **Grow a product a few concepts at a time.** Start with seed concepts. Unfold complexity only when forces demand it.
-- **Implement concepts as separate modules.** One file per concept, exporting state types and action functions. Follows tinyForum's pattern: pure state as first parameter, no framework dependencies.
-
 ## Documentation
 
 **`.carta/` is the canonical source of truth** — a Carta workspace containing specifications and architecture docs. Docs represent the best current understanding, not templates to fill in. Sparse docs are intentional — do not elaborate beyond what the work demands (see doc00.02). Cross-references use `docXX.YY.ZZ` syntax (e.g., `doc04.06.01` = Carta Docs API). **When referencing a doc in conversation, always include its title and enough context for the user to understand the reference without looking it up** (e.g., "doc04.08.08 (Structured Product Modeling — the nine formal structures for describing a business product)" not just "doc04.08.08"). Key docs:
 
 - **Strategy**: doc04.01 (mission), doc04.02 (vision), doc04.03 (glossary), doc04.04 (primary sources), doc04.05 (docs system), doc04.06 (products), doc04.07 (spec-code reconciliation), doc04.08 (research), doc04.09 (docs syntax reference — formal grammar for refs, sections, frontmatter, MANIFEST)
-- **Design**: doc03.01 (workspace scripts — the Docs API), doc03.02 (concepts — Jackson-style concept inventory), doc03.03 (CLI user flow), doc03.04 (ADRs)
+- **Design**: doc03.01 (workspace scripts — the Docs API), doc03.02 (CLI user flow), doc03.03 (ADRs)
 - **Architecture**: doc02.01 (reconciliation architecture), doc02.02 (design patterns)
 - **Codex**: doc00.01 (about), doc00.02 (maintenance), doc00.03 (conventions), doc00.04 (AI retrieval)
 

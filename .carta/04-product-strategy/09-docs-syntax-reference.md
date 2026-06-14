@@ -81,8 +81,8 @@ Pattern: `doc\d{2}(\.\d{2})+(#sec\d{2}(\.\d{2})*)?`
 ### Examples
 
 ```
-doc03.04#sec02      → file doc03.04, section 02
-doc03.04#sec01.02   → file doc03.04, section 01, subsection 02
+doc03.03#sec02      → file doc03.03, section 02
+doc03.03#sec01.02   → file doc03.03, section 01, subsection 02
 ```
 
 Subsections (`#sec01.02`) are supported by the grammar but expected to be rare. Prefer splitting into separate sections or separate documents over deep nesting.

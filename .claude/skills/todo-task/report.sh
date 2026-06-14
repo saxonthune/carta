@@ -9,18 +9,22 @@ set -uo pipefail
 # Output: TSV, one record per line. The first column is the record type; each
 # renderer splits on it. Schemas (tab-separated):
 #
-#   task  <slug> <phase> <overall> <bucket> <commits> <worktree> <branch> <age> <notes>
-#   chain <name> <status> <done_n> <total> <current> <phases_csv> <worktree> <branch>
-#   epic  <name> <total> <done_n> <running_n> <failed_n> <members_csv>
-#   stale <slug> <worktree>
+#   task     <slug> <phase> <overall> <bucket> <commits> <worktree> <branch> <age> <notes>
+#   chain    <name> <status> <done_n> <total> <current> <phases_csv> <worktree> <branch>
+#   epic     <name> <total> <done_n> <running_n> <failed_n> <members_csv>
+#   stale    <slug> <worktree>
+#   archived <slug> <overall> <commits> <age> <notes>
 #
 #   phase   ∈ {pending, running, crashed, done}
 #   status  ∈ {running, waiting, failed, complete}
 #   age     is seconds since the relevant file was last touched
 #
 # This script is strictly read-only. Usage:
-#   report.sh            — emit all record types
+#   report.sh            — emit all live record types (task|chain|epic|stale)
 #   report.sh task       — emit only task records (similarly chain|epic|stale)
+#   report.sh archived   — emit archived records (NOT included in the default
+#                          `all` output, since walking .archived/ is costly and
+#                          only the monitor consumes it)
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 TODO="${REPO_ROOT}/.todo-tasks"
@@ -264,12 +268,52 @@ emit_stale() {
   done < <(git worktree list 2>/dev/null)
 }
 
+# ─── Archived records ──────────────────────────────────────────────────────
+# Archived files live in the gitignored .archived/ as `${YYYYMMDD}-${slug}.md`
+# (plus sibling .agent.md / .merge.md). The archive date prefix is stripped to
+# recover the slug; the copy's mtime (cp does not preserve it) approximates the
+# archive time, so `age` orders by most-recently-archived. Old-format archives
+# that predate the agent/merge split have no classifiable result → overall "-".
+emit_archived() {
+  local spec base stem ts slug agent_md merge_md overall commits age notes dev err
+  for spec in "$TODO"/.archived/*.md; do
+    base="$(basename "$spec")"
+    # Only the spec copy keys a record; skip the derived result files.
+    case "$base" in
+      *.agent.md|*.merge.md|*.result.md) continue ;;
+    esac
+    stem="${base%.md}"        # 20260407-installer-versioning
+    ts="${stem%%-*}"          # 20260407
+    slug="${stem#*-}"         # installer-versioning
+    agent_md="${TODO}/.archived/${ts}-${slug}.agent.md"
+    merge_md="${TODO}/.archived/${ts}-${slug}.merge.md"
+    [[ -f "$agent_md" ]] || agent_md=""
+    [[ -f "$merge_md" ]] || merge_md=""
+
+    overall="$NONE"; commits="$NONE"; notes=""
+    if [[ -n "$agent_md" ]]; then
+      overall="$(classify_task "$agent_md" "$merge_md")"
+      commits="$(parse_result_field "$agent_md" commits)"; commits="${commits:-0}"
+      dev="$(parse_result_field "$agent_md" "surface deviations")"
+      err="$(parse_result_field "$agent_md" error)"
+      [[ "$dev" == "declared" ]] && notes="surface deviations declared — re-triage downstream. "
+      [[ -n "$err" ]] && notes="${notes}${err}"
+    fi
+    age="$(age_of "$spec")"
+    [[ -z "$notes" ]] && notes="$NONE"
+    notes="${notes//$'\t'/ }"; notes="${notes//$'\n'/ }"
+
+    printf 'archived\t%s\t%s\t%s\t%s\t%s\n' "$slug" "$overall" "$commits" "$age" "$notes"
+  done
+}
+
 # ─── Dispatch ──────────────────────────────────────────────────────────────
 case "$WANT" in
-  task)  emit_tasks ;;
-  chain) emit_chains ;;
-  epic)  emit_epics ;;
-  stale) emit_stale ;;
-  all)   emit_tasks; emit_chains; emit_epics; emit_stale ;;
-  *) echo "Usage: report.sh [task|chain|epic|stale]" >&2; exit 1 ;;
+  task)     emit_tasks ;;
+  chain)    emit_chains ;;
+  epic)     emit_epics ;;
+  stale)    emit_stale ;;
+  archived) emit_archived ;;
+  all)      emit_tasks; emit_chains; emit_epics; emit_stale ;;
+  *) echo "Usage: report.sh [task|chain|epic|stale|archived]" >&2; exit 1 ;;
 esac

@@ -114,12 +114,15 @@ RECORDS=()
 RUN_TASKS=() CHAINS=() RECENT_TOP=()
 BK_ATTENTION=() BK_QUESTIONABLE=() BK_READY=() BK_SUCCESS=() CRASHED=()
 PENDING=() DRAFTS=() EPICS=() STALE=()
+ARCHIVED=() ARCHIVED_TOP=()
 N_RUNNING=0 N_SUCCESS=0 N_READY=0 N_QUESTIONABLE=0 N_ATTENTION=0
-N_PENDING=0 N_CRASHED=0 N_CHAINS=0 N_DRAFTS=0 N_EPICS=0 N_STALE=0
+N_PENDING=0 N_CRASHED=0 N_CHAINS=0 N_DRAFTS=0 N_EPICS=0 N_STALE=0 N_ARCHIVED=0
 LAST_FETCH_EPOCH=0
 
 fetch_data() {
-  mapfile -t RECORDS < <(bash "${SCRIPT_DIR}/report.sh")
+  # Live records + archived records (the latter is a separate report.sh call —
+  # archived is deliberately excluded from the default `all` output).
+  mapfile -t RECORDS < <(bash "${SCRIPT_DIR}/report.sh"; bash "${SCRIPT_DIR}/report.sh" archived)
   LAST_FETCH_EPOCH=$(date +%s)
   parse_records
 }
@@ -128,10 +131,11 @@ parse_records() {
   RUN_TASKS=() CHAINS=() RECENT_TOP=()
   BK_ATTENTION=() BK_QUESTIONABLE=() BK_READY=() BK_SUCCESS=() CRASHED=()
   PENDING=() DRAFTS=() EPICS=() STALE=()
+  ARCHIVED=() ARCHIVED_TOP=()
   N_RUNNING=0 N_SUCCESS=0 N_READY=0 N_QUESTIONABLE=0 N_ATTENTION=0
-  N_PENDING=0 N_CRASHED=0 N_CHAINS=0 N_DRAFTS=0 N_EPICS=0 N_STALE=0
+  N_PENDING=0 N_CRASHED=0 N_CHAINS=0 N_DRAFTS=0 N_EPICS=0 N_STALE=0 N_ARCHIVED=0
 
-  local -a recent_raw=()
+  local -a recent_raw=() archived_raw=()
   local rec type
   for rec in "${RECORDS[@]}"; do
     [[ -z "$rec" ]] && continue
@@ -184,12 +188,22 @@ parse_records() {
         IFS=$'\t' read -r _ sslug swt <<< "$rec"
         STALE+=("$(printf '%s\t%s' "$sslug" "$swt")")
         N_STALE=$((N_STALE+1)) ;;
+      archived)
+        local aslug aoverall acommits aage anotes
+        IFS=$'\t' read -r _ aslug aoverall acommits aage anotes <<< "$rec"
+        archived_raw+=("$(printf '%s\t%s\t%s\t%s\t%s' "$aage" "$aoverall" "$aslug" "$acommits" "$anotes")")
+        N_ARCHIVED=$((N_ARCHIVED+1)) ;;
     esac
   done
 
   # Recent = top-3 most-recently-touched (smallest age first), sorted once here.
   if (( ${#recent_raw[@]} > 0 )); then
     mapfile -t RECENT_TOP < <(printf '%s\n' "${recent_raw[@]}" | sort -t$'\t' -k1,1n | head -3)
+  fi
+  # Archived = all sorted by most-recently-archived; ARCHIVED_TOP is the top-3.
+  if (( ${#archived_raw[@]} > 0 )); then
+    mapfile -t ARCHIVED     < <(printf '%s\n' "${archived_raw[@]}" | sort -t$'\t' -k1,1n)
+    mapfile -t ARCHIVED_TOP < <(printf '%s\n' "${ARCHIVED[@]}" | head -3)
   fi
 }
 
@@ -256,6 +270,12 @@ render_overview() {
     printf '%s\n' "$EL"
   fi
 
+  if (( N_ARCHIVED > 0 )); then
+    printf ' %sRecently archived%s%s\n' "$BOLD" "$RESET" "$EL"
+    render_archived_rows "${ARCHIVED_TOP[@]}"
+    printf '%s\n' "$EL"
+  fi
+
   if (( N_EPICS > 0 )); then
     printf ' %sEpics%s%s\n' "$BOLD" "$RESET" "$EL"
     local e name total done_n running failed bar
@@ -316,6 +336,28 @@ render_active() {
   return 0
 }
 
+# render_archived_rows ROW... — one compact line per archived task. Old-format
+# archives (overall "-") render as a dim "archived" label.
+render_archived_rows() {
+  local e age overall slug commits notes col lbl cdisp slugw
+  slugw=$(( COLS - 30 )); (( slugw < 8 )) && slugw=8; (( slugw > 28 )) && slugw=28
+  for e in "$@"; do
+    IFS=$'\t' read -r age overall slug commits notes <<< "$e"
+    if [[ "$overall" == "$NONE" ]]; then
+      col="$DIM"; lbl="archived"
+    else
+      col="$(overall_color "$overall")"; lbl="$(overall_label "$overall")"
+    fi
+    cdisp=""
+    [[ "$commits" != "$NONE" ]] && cdisp="${commits}c"
+    printf '  %s%-10s%s %-*s %s%s %s%s%s\n' \
+      "$col" "$lbl" "$RESET" \
+      "$slugw" "$(truncate "$slug" "$slugw")" \
+      "$DIM" "$(age_ago "$age")" "$cdisp" "$RESET" "$EL"
+  done
+  return 0
+}
+
 render_done_bucket() {
   local title="$1"; shift
   printf ' %s%s%s%s\n' "$BOLD" "$title" "$RESET" "$EL"
@@ -334,7 +376,7 @@ render_done_bucket() {
 render_done() {
   render_header
   local total_done=$(( N_ATTENTION + N_QUESTIONABLE + N_READY + N_SUCCESS + N_CRASHED ))
-  if (( total_done == 0 )); then
+  if (( total_done == 0 && N_ARCHIVED == 0 )); then
     printf ' %sno completed agents%s%s\n' "$DIM" "$RESET" "$EL"
     return
   fi
@@ -355,6 +397,15 @@ render_done() {
       [[ "$notes" != "$NONE" && -n "$notes" ]] && \
         printf '      %s%s%s%s\n' "$DIM" "$(truncate "$notes" $((COLS-8)))" "$RESET" "$EL"
     done
+    printf '%s\n' "$EL"
+  fi
+
+  if (( N_ARCHIVED > 0 )); then
+    # Cap the list so the screen stays scoped; surface what was dropped.
+    local cap=10
+    printf ' %sRecently archived%s%s\n' "$BOLD" "$RESET" "$EL"
+    render_archived_rows "${ARCHIVED[@]:0:cap}"
+    (( N_ARCHIVED > cap )) && printf '  %s+%d more archived%s%s\n' "$DIM" "$((N_ARCHIVED-cap))" "$RESET" "$EL"
   fi
   return 0
 }

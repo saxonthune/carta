@@ -13,15 +13,13 @@ from .content import cmd_cat, cmd_tree, cmd_rewrite, cmd_regenerate, cmd_attach,
 from .setup import cmd_init, cmd_portable, cmd_init_rehydrate
 
 
-def main(argv: list[str] | None = None) -> int:
-    for _stream in (sys.stdout, sys.stderr):
-        reconfigure = getattr(_stream, "reconfigure", None)
-        if reconfigure is not None:
-            try:
-                reconfigure(encoding="utf-8", errors="replace")
-            except (ValueError, OSError):
-                pass
+def build_parser() -> argparse.ArgumentParser:
+    """Construct the carta argument parser — the single source of truth for the CLI surface.
 
+    Exposed as a standalone function so tooling (e.g. the Luminous DSL canvas generator)
+    can introspect the live command/argument structure directly from code instead of from
+    hand-maintained spec docs.
+    """
     parser = argparse.ArgumentParser(
         prog="carta",
         description="Workspace tools for managing .carta/ documentation.",
@@ -210,6 +208,20 @@ def main(argv: list[str] | None = None) -> int:
 
     # orphans
     subparsers.add_parser("orphans", help="List orphaned attachments in the workspace")
+
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    for _stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(_stream, "reconfigure", None)
+        if reconfigure is not None:
+            try:
+                reconfigure(encoding="utf-8", errors="replace")
+            except (ValueError, OSError):
+                pass
+
+    parser = build_parser()
 
     # Handle per-subcommand --help-ai before parse_args (avoids required-arg errors)
     if argv is None:
