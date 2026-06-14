@@ -1,4 +1,4 @@
-"""Tests for carta_cli/bundle.py — pure filesystem bundle resolver."""
+"""Tests for rhidoc/bundle.py — pure filesystem bundle resolver."""
 import sys
 from pathlib import Path
 
@@ -7,7 +7,7 @@ import pytest
 _CLI_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_CLI_DIR))
 
-from carta_cli.bundle import (
+from rhidoc.bundle import (
     Bundle,
     bundle_members,
     detect_orphans,
@@ -16,7 +16,7 @@ from carta_cli.bundle import (
     slug_collision,
     slug_matched_attachments,
 )
-from carta_cli.errors import CartaError
+from rhidoc.errors import RhidocError
 
 
 # ---------------------------------------------------------------------------
@@ -107,7 +107,7 @@ def test_list_bundles_directory_bundle_alone(tmp_path):
 def test_list_bundles_raises_on_duplicate_md(tmp_path):
     (tmp_path / "04-alpha.md").touch()
     (tmp_path / "04-beta.md").touch()
-    with pytest.raises(CartaError, match="multiple root candidates"):
+    with pytest.raises(RhidocError, match="multiple root candidates"):
         list_bundles(tmp_path)
 
 

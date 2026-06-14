@@ -37,7 +37,7 @@ if [[ -z "$PLAN_SLUG" ]]; then
   echo "Usage: execute-plan.sh <plan-name> [--no-merge] [--trunk-dir <path>] [--trunk-branch <name>] [--no-guard]"
   echo ""
   echo "Available plans:"
-  ls .todo-tasks/*.md 2>/dev/null | grep -v '\.epic\.md$' | sed 's|.todo-tasks/||;s|\.md$||' | sed 's/^/  /'
+  ls .todo-tasks/tasks/*.md 2>/dev/null | sed 's|.*/||;s|\.md$||' | sed 's/^/  /'
   exit 1
 fi
 
@@ -48,6 +48,11 @@ REPO_ROOT="$(git rev-parse --show-toplevel)"
 
 source "${SCRIPT_DIR}/lib.sh"
 source_task_config
+
+# Initialize trunk state early so emergency_finalize always has a value under set -u
+TRUNK_STATE="$SM_TRUNK_UNCHANGED"
+TRUNK_HEAD_BEFORE=""
+SURFACE_DEVIATIONS="none"
 
 # Use caller-specified trunk or detect from current branch
 if [[ -n "$TRUNK_BRANCH" ]]; then
@@ -65,27 +70,27 @@ fi
 
 BRANCH="${TRUNK}_claude_${PLAN_SLUG}"
 WORKTREE_DIR="${REPO_ROOT}/../${WORKTREE_PREFIX}-${PLAN_SLUG}"
-PLAN_SOURCE_FILE="${REPO_ROOT}/.todo-tasks/${PLAN_SLUG}.md"
+PLAN_SOURCE_FILE="${REPO_ROOT}/.todo-tasks/tasks/${PLAN_SLUG}.md"
 
 # ─── Emergency Finalizer ─────────────────────────────────────────────────────
-# Runs on unexpected EXIT. Prevents tasks from getting stuck in .running/ forever.
+# Runs on unexpected EXIT. We no longer move any files: the reporter's crashed
+# rule (run-record present + dead PID + no merge.md) already covers abrupt
+# exits. The only best-effort action is to leave a stub agent.md in the worktree
+# if one was never composed, so the reporter has something to classify.
 
 emergency_finalize() {
-  local plan_running="${REPO_ROOT:-}/.todo-tasks/.running/${PLAN_SLUG:-}.md"
-  local result_file="${REPO_ROOT:-}/.todo-tasks/.done/${PLAN_SLUG:-}.result.md"
-
   [[ -z "${PLAN_SLUG:-}" ]] && return
-  [[ ! -f "$plan_running" ]] && return
-  [[ -f "$result_file" ]] && return
+  # A completed merge means we finished normally — nothing to do.
+  [[ -f "${MERGE_DIR:-$REPO_ROOT}/.todo-tasks/results/${PLAN_SLUG}.merge.md" ]] && return
 
-  mkdir -p "${REPO_ROOT}/.todo-tasks/.done"
-  write_result_file "$result_file" "$PLAN_SLUG" \
-    "$SM_SESSION_FAILED" "$SM_VERIFY_FAILED" "$SM_MERGE_NOT_ATTEMPTED" \
-    0 "(none)" "${BRANCH:-unknown}" "${WORKTREE_DIR:-unknown}" false "" \
-    "Script exited unexpectedly at phase: ${CURRENT_PHASE:-unknown}" "" \
-    "Emergency exit"
-
-  mv "$plan_running" "${REPO_ROOT}/.todo-tasks/.done/${PLAN_SLUG}.md" 2>/dev/null || true
+  local wt_results="${WORKTREE_DIR:-}/.todo-tasks/results"
+  local agent_md="${wt_results}/${PLAN_SLUG}.agent.md"
+  if [[ -n "${WORKTREE_DIR:-}" && -d "${WORKTREE_DIR}" && ! -f "$agent_md" ]]; then
+    mkdir -p "$wt_results"
+    write_agent_result "$agent_md" "$PLAN_SLUG" \
+      "$SM_SESSION_FAILED" "$SM_VERIFY_FAILED" 0 "(none)" "${BRANCH:-unknown}" "" \
+      "Script exited unexpectedly." "" "phase: ${CURRENT_PHASE:-unknown}" "none"
+  fi
 }
 
 trap 'emergency_finalize' EXIT
@@ -100,7 +105,7 @@ phase_validate() {
   echo ""
 
   if [[ ! -f "${PLAN_SOURCE_FILE}" ]]; then
-    echo "ERROR: Plan file not found: .todo-tasks/${PLAN_SLUG}.md"
+    echo "ERROR: Plan file not found: .todo-tasks/tasks/${PLAN_SLUG}.md"
     exit 1
   fi
 
@@ -110,10 +115,15 @@ phase_validate() {
     exit 1
   fi
 
-  # Guard: refuse to launch if working tree is dirty (unless caller says skip)
+  # Guard: refuse to launch if the working tree is dirty (unless caller says skip).
+  # `.todo-tasks/` is excluded — its files are orchestrator-managed (uncommitted
+  # specs, run-records, stranded results) and never endanger the worktree merge.
+  # The spec itself is committed by phase_commit_spec before the worktree is cut.
   if [[ "$NO_GUARD" == "false" ]]; then
-    if ! git -C "$MERGE_DIR" diff --quiet || ! git -C "$MERGE_DIR" diff --cached --quiet || [[ -n "$(git -C "$MERGE_DIR" ls-files --others --exclude-standard)" ]]; then
-      echo "ERROR: Working tree has uncommitted changes."
+    if ! git -C "$MERGE_DIR" diff --quiet -- . ':(exclude).todo-tasks' \
+       || ! git -C "$MERGE_DIR" diff --cached --quiet -- . ':(exclude).todo-tasks' \
+       || [[ -n "$(git -C "$MERGE_DIR" ls-files --others --exclude-standard -- . ':(exclude).todo-tasks')" ]]; then
+      echo "ERROR: Working tree has uncommitted changes (outside .todo-tasks/)."
       echo ""
       echo "The agent runs in a worktree branched from HEAD. Any uncommitted"
       echo "changes won't be in the worktree and will likely cause merge"
@@ -138,15 +148,36 @@ phase_validate() {
   fi
 }
 
-# phase_move_to_running
-# Moves plan file to .running/. Sets PLAN_FILE.
-phase_move_to_running() {
-  # Move plan to .running/ — this IS the state transition
-  mkdir -p "${REPO_ROOT}/.todo-tasks/.running"
-  mv "${PLAN_SOURCE_FILE}" "${REPO_ROOT}/.todo-tasks/.running/${PLAN_SLUG}.md"
-  PLAN_FILE=".todo-tasks/.running/${PLAN_SLUG}.md"
+# phase_commit_spec
+# Commits the spec on trunk (MERGE_DIR) BEFORE the worktree is cut, so the
+# squash-merge never collides with an untracked spec. Idempotent (skips if the
+# spec is already committed) and surgical (commits only this one path, never
+# sweeping unrelated changes). The user never hand-commits task files; the
+# orchestrator owns this commit. For chain phases the spec is already committed
+# on the chain branch, so this is a no-op.
+phase_commit_spec() {
+  local rel=".todo-tasks/tasks/${PLAN_SLUG}.md"
+  if [[ -n "$(git -C "$MERGE_DIR" status --porcelain -- "$rel" 2>/dev/null)" ]]; then
+    echo "── Committing spec to trunk ──"
+    git -C "$MERGE_DIR" add "$rel" 2>/dev/null || true
+    git -C "$MERGE_DIR" commit -q -m "todotask: spec ${PLAN_SLUG}" -- "$rel" 2>/dev/null || true
+    echo "Committed ${rel}"
+    echo ""
+  fi
 
-  echo "Plan:      ${PLAN_FILE}"
+  # Capture trunk tip AFTER the spec commit — this is the true baseline before
+  # the agent runs, so phase_verify's trunk-leak check doesn't fire on our own
+  # spec commit in the no-op case.
+  TRUNK_HEAD_BEFORE=$(git -C "$MERGE_DIR" rev-parse "${TRUNK}" 2>/dev/null || echo "")
+}
+
+# phase_record_run
+# Writes the gitignored run-record (liveness + worktree location). The spec is
+# NOT moved — lifecycle is derived from file presence, never directory moves.
+phase_record_run() {
+  write_run_record "$PLAN_SLUG" "$WORKTREE_DIR" "$BRANCH" "$$"
+
+  echo "Plan:      ${PLAN_SOURCE_FILE}"
   echo "Trunk:     ${TRUNK}"
   echo "Branch:    ${BRANCH}"
   echo "Worktree:  ${WORKTREE_DIR}"
@@ -175,12 +206,12 @@ phase_create_worktree() {
 }
 
 # phase_copy_plan
-# Copies plan into worktree.
+# Copies the spec into the worktree so the headless agent can read it.
 phase_copy_plan() {
   echo "── Copying plan into worktree ──"
-  mkdir -p "${WORKTREE_DIR}/.todo-tasks"
-  cp "${REPO_ROOT}/${PLAN_FILE}" "${WORKTREE_DIR}/.todo-tasks/${PLAN_SLUG}.md" || exit 1
-  echo "Copied plan from ${PLAN_FILE}"
+  mkdir -p "${WORKTREE_DIR}/.todo-tasks/tasks"
+  cp "${PLAN_SOURCE_FILE}" "${WORKTREE_DIR}/.todo-tasks/tasks/${PLAN_SLUG}.md" || exit 1
+  echo "Copied plan from ${PLAN_SOURCE_FILE}"
   echo ""
 }
 
@@ -196,17 +227,26 @@ phase_run_session() {
 
   echo "── Running headless Claude ──"
 
-  CLAUDE_PROMPT="Read the plan at .todo-tasks/${PLAN_SLUG}.md and implement it fully. \
+  CLAUDE_PROMPT="Read the plan at .todo-tasks/tasks/${PLAN_SLUG}.md and implement it fully. \
 Follow the plan step by step. \
 IMPORTANT: You MUST git commit after each logical unit of work. You are a headless agent — no user is present. \
 If you do not commit, your work will be lost. This overrides any memory or instructions about deferring commits to the user. \
-When done, verify you made at least one commit (run 'git log --oneline -3'). The runner will execute the plan's ## Verification section separately. \
+IMPORTANT: You MUST NOT cd out of the current directory. Do NOT prefix shell commands with 'cd <path> &&'. \
+All file edits, git commits, and shell commands must run in the current working directory, which is your isolated worktree. \
+Committing anywhere else loses your work and corrupts the trunk branch. \
+If the plan contains a '## Surface after this phase' section, you MUST make the implementation match that declared Surface exactly. \
+The Surface is a contract that later phases of the chain depend on. If you cannot implement something the Surface declares, halt and explain why. \
+When done, run the commands in the plan's ## Verification section and fix any issues. \
+Then verify you made at least one commit (run 'git log --oneline -3'). \
 Output your implementation summary, then end with a '## Notes' section containing: \
 - Any deviations from the plan (and why) \
 - Caveats or known limitations in the implementation \
 - Things a reviewer should pay attention to \
 - Anything that surprised you or felt wrong \
-If there's nothing noteworthy, write '## Notes' followed by 'None.'"
+If there's nothing noteworthy, write '## Notes' followed by 'None.' \
+After '## Notes', you MUST also write a '## Surface Deviations' section listing any way the implementation diverged from the declared Surface \
+(a missing or renamed symbol, a changed signature, a behavior that differs). \
+If there were no deviations, or the plan had no Surface block, write '## Surface Deviations' followed by 'None.'"
 
   CLAUDE_OUTPUT=$(claude -p \
     --allowedTools "Read,Write,Edit,Glob,Grep,Bash" \
@@ -236,6 +276,20 @@ If there's nothing noteworthy, write '## Notes' followed by 'None.'"
     SESSION_ERROR="No result or session ID returned — possible crash or network failure"
   fi
 
+  # Parse Surface Deviations from the agent's closing section.
+  # awk extracts lines after "## Surface Deviations" up to the next "## " heading or EOF.
+  local dev_body
+  dev_body=$(echo "$CLAUDE_RESULT" | awk '
+    /^## Surface Deviations[[:space:]]*$/ { in_section=1; next }
+    in_section && /^## / { exit }
+    in_section { print }
+  ' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | grep -v '^$' || true)
+  if [[ -z "$dev_body" || "$dev_body" == "None." || "$dev_body" == "None" ]]; then
+    SURFACE_DEVIATIONS="none"
+  else
+    SURFACE_DEVIATIONS="declared"
+  fi
+
   echo "Claude session complete"
   if [[ -n "$SESSION_ID" ]]; then
     echo "Session ID: ${SESSION_ID}"
@@ -261,9 +315,30 @@ phase_verify() {
   [[ -z "$COMMITS" ]] && COMMITS_COUNT=0
 
   if [[ "$COMMITS_COUNT" -eq 0 ]]; then
-    echo "WARNING: Agent produced 0 commits. Marking as no-op."
+    # Check if trunk moved while the agent produced nothing on its branch — trunk leak
+    local trunk_head_after
+    trunk_head_after=$(git -C "$MERGE_DIR" rev-parse "${TRUNK}" 2>/dev/null || echo "")
+    if [[ -n "$TRUNK_HEAD_BEFORE" && -n "$trunk_head_after" && "$TRUNK_HEAD_BEFORE" != "$trunk_head_after" ]]; then
+      TRUNK_STATE="$SM_TRUNK_MOVED"
+      COMMITS=$(git -C "$MERGE_DIR" log "${TRUNK_HEAD_BEFORE}..${TRUNK}" --oneline 2>/dev/null || echo "")
+      echo ""
+      echo "WARNING: ════════════════════════════════════════════════════════"
+      echo "WARNING: TRUNK LEAK DETECTED — agent committed to trunk directly!"
+      echo "WARNING: The agent's commits landed on branch '${TRUNK}' instead"
+      echo "WARNING: of its worktree branch '${BRANCH}'."
+      echo "WARNING: This happens when the agent prefixes commands with"
+      echo "WARNING: 'cd <main-repo> &&' instead of running in its worktree."
+      echo "WARNING: DO NOT relaunch — that would duplicate the commits."
+      echo "WARNING: Review the commit list below and reconcile manually."
+      echo "WARNING: ════════════════════════════════════════════════════════"
+      echo ""
+      echo "Commits that landed on trunk:"
+      echo "$COMMITS"
+    else
+      echo "WARNING: Agent produced 0 commits. Marking as no-op."
+    fi
     VERIFICATION_STATE="$SM_VERIFY_SKIPPED"
-    BUILD_TEST_OUTPUT="No commits produced — skipping build/test verification."
+    BUILD_TEST_OUTPUT="No commits produced on worktree branch — skipping build/test verification."
     echo ""
     return
   fi
@@ -388,44 +463,69 @@ phase_merge() {
     echo "Worktree left intact at ${WORKTREE_DIR} for debugging."
   fi
 
+  # Write the trunk-owned merge.md for every outcome that reached a merge
+  # decision (clean, dirty, or intentionally skipped via --no-merge). Conflict
+  # and verification-blocked outcomes get NO merge.md — the reporter then reads
+  # the stranded agent.md from the worktree and classifies accordingly.
+  case "$MERGE_STATUS" in
+    "$SM_MERGE_CLEAN"|"$SM_MERGE_DIRTY"|"$SM_MERGE_SKIPPED_FLAG")
+      local merge_md="${MERGE_DIR}/.todo-tasks/results/${PLAN_SLUG}.merge.md"
+      local conflict_detail=""
+      [[ "$MERGE_STATUS" == "$SM_MERGE_DIRTY" ]] && conflict_detail="Conflict markers in: ${DIRTY_FILES}"
+      mkdir -p "${MERGE_DIR}/.todo-tasks/results"
+      write_merge_result "$merge_md" "$PLAN_SLUG" "$MERGE_STATUS" "$TRUNK_STATE" "$conflict_detail"
+      ( cd "${MERGE_DIR}" \
+        && git add ".todo-tasks/results/${PLAN_SLUG}.merge.md" \
+        && git commit -m "todotask: merge result ${PLAN_SLUG}" >/dev/null 2>&1 ) || true
+      echo "Wrote merge result: ${merge_md}"
+      ;;
+  esac
+
+  echo ""
+}
+
+# phase_compose_agent_result
+# Writes the worktree-owned agent.md INSIDE the worktree and commits it on the
+# agent branch, so the squash-merge carries it to trunk. Single writer (the
+# orchestrator, cd'd into the worktree); the headless agent never writes it.
+# Runs even in the no-op case — the result is durable on the branch and the
+# run-record points at it.
+phase_compose_agent_result() {
+  echo "── Composing agent result ──"
+  ( cd "${WORKTREE_DIR}" || exit 1
+    mkdir -p .todo-tasks/results
+    local agent_md=".todo-tasks/results/${PLAN_SLUG}.agent.md"
+    local build_test_tail; build_test_tail=$(echo "${BUILD_TEST_OUTPUT:-}" | tail -30)
+    write_agent_result "$agent_md" "$PLAN_SLUG" \
+      "$SESSION_STATE" "$VERIFICATION_STATE" \
+      "${COMMITS_COUNT:-0}" "${COMMITS:-(none)}" "$BRANCH" "${SESSION_ID:-}" \
+      "${CLAUDE_RESULT:-}" "$build_test_tail" "${SESSION_ERROR:-}" "${SURFACE_DEVIATIONS:-none}"
+    git add "$agent_md"
+    git commit -m "todotask: result ${PLAN_SLUG}" >/dev/null 2>&1 || true )
   echo ""
 }
 
 # phase_finalize
-# Moves files to .done/, writes result file, prints summary.
+# No file moves. Clears the run-record ONLY on a clean merge (worktree already
+# removed); leaves it for every non-clean outcome so the reporter can still
+# locate the stranded worktree. Exits non-zero on non-success.
 phase_finalize() {
-  mkdir -p "${REPO_ROOT}/.todo-tasks/.done"
-
-  RESULT_FILE="${REPO_ROOT}/.todo-tasks/.done/${PLAN_SLUG}.result.md"
-  BUILD_TEST_TAIL=$(echo "${BUILD_TEST_OUTPUT}" | tail -30)
-
-  # Append dirty-merge warning to Claude result if markers were found
-  if [[ "$MERGE_STATUS" == "$SM_MERGE_DIRTY" && -n "${DIRTY_FILES:-}" ]]; then
-    CLAUDE_RESULT+=$'\n\n## Merge Marker Warning\n\nConflict markers detected in:\n'"${DIRTY_FILES}"
+  if [[ "${MERGE_STATUS:-}" == "$SM_MERGE_CLEAN" ]]; then
+    clear_run_record "$PLAN_SLUG"
+    rm -f "${REPO_ROOT}/.todo-tasks/.running/${PLAN_SLUG}.log"
   fi
 
-  # Compute commits count (COMMITS may already be set from phase_verify or phase_merge)
-  COMMITS_COUNT=$(echo "$COMMITS" | grep -c '.' 2>/dev/null || echo 0)
-  [[ "$COMMITS" == "(none)" || -z "$COMMITS" ]] && COMMITS_COUNT=0
-
-  # Write result BEFORE moving the plan to .done/ — result file presence is the
-  # completion signal the emergency trap checks for.
-  write_result_file "$RESULT_FILE" "$PLAN_SLUG" \
-    "$SESSION_STATE" "$VERIFICATION_STATE" "$MERGE_STATUS" \
-    "$COMMITS_COUNT" "${COMMITS:-(none)}" "$BRANCH" "$WORKTREE_DIR" "$RETRIED" \
-    "${SESSION_ID:-}" "$CLAUDE_RESULT" "$BUILD_TEST_TAIL" "${SESSION_ERROR:-}"
-
-  mv "${REPO_ROOT}/.todo-tasks/.running/${PLAN_SLUG}.md" "${REPO_ROOT}/.todo-tasks/.done/${PLAN_SLUG}.md"
-  rm -f "${REPO_ROOT}/.todo-tasks/.running/${PLAN_SLUG}.log"
-
-  echo "═══ Result written to ${RESULT_FILE} ═══"
+  echo "═══ ${PLAN_SLUG}: session=${SESSION_STATE} verify=${VERIFICATION_STATE} merge=${MERGE_STATUS:-not_attempted} ═══"
   echo ""
 
-  if [[ "$VERIFIED" == "true" ]]; then
-    echo "Done! Plan '${PLAN_SLUG}' implemented successfully."
+  if [[ "${VERIFIED:-false}" == "true" && "${MERGE_STATUS:-}" == "$SM_MERGE_CLEAN" ]]; then
+    echo "Done! Plan '${PLAN_SLUG}' implemented and merged successfully."
+  elif [[ "${VERIFIED:-false}" == "true" ]]; then
+    echo "Plan '${PLAN_SLUG}' verified; merge outcome '${MERGE_STATUS:-}'. See: bash .claude/skills/todo-task/status.sh"
+    [[ "${MERGE_STATUS:-}" == "$SM_MERGE_SKIPPED_FLAG" ]] && exit 0
+    exit 1
   else
-    echo "Plan '${PLAN_SLUG}' implementation needs manual attention."
-    echo "Check ${RESULT_FILE} for details."
+    echo "Plan '${PLAN_SLUG}' needs manual attention. See: bash .claude/skills/todo-task/status.sh"
     exit 1
   fi
 }
@@ -434,17 +534,20 @@ phase_finalize() {
 
 main() {
   CURRENT_PHASE="validate";        phase_validate
-  CURRENT_PHASE="move_to_running"; phase_move_to_running
+  CURRENT_PHASE="commit_spec";     phase_commit_spec
   CURRENT_PHASE="create_worktree"; phase_create_worktree
+  CURRENT_PHASE="record_run";      phase_record_run
   CURRENT_PHASE="copy_plan";       phase_copy_plan
   CURRENT_PHASE="run_session";     phase_run_session
 
+  local do_merge=false
+
   if [[ "${SESSION_STATE}" == "$SM_SESSION_FAILED" ]]; then
-    # Session failed — skip verify, retry, merge; go straight to finalize
+    # Session failed — skip verify/retry/merge.
     VERIFIED=false
     VERIFICATION_STATE="$SM_VERIFY_FAILED"
-    MERGE_STATUS="$SM_MERGE_NOT_ATTEMPTED"
     COMMITS=""
+    COMMITS_COUNT=0
     RETRIED=false
     RETRY_COUNT=0
     BUILD_TEST_OUTPUT=""
@@ -452,22 +555,28 @@ main() {
     CURRENT_PHASE="verify";          phase_verify
 
     if [[ "${VERIFICATION_STATE}" == "$SM_VERIFY_SKIPPED" ]]; then
-      # No commits — skip retry and merge
-      MERGE_STATUS="$SM_MERGE_NOT_ATTEMPTED"
+      # No commits — skip retry and merge (no-op or trunk leak).
       RETRIED=false
       RETRY_COUNT=0
     else
       CURRENT_PHASE="retry_if_needed"; phase_retry_if_needed
-
-      # Re-set VERIFICATION_STATE after retries
       if [[ "$VERIFIED" == "true" ]]; then
         VERIFICATION_STATE="$SM_VERIFY_PASSED"
       else
         VERIFICATION_STATE="$SM_VERIFY_FAILED"
       fi
-
-      CURRENT_PHASE="merge";           phase_merge
+      do_merge=true
     fi
+  fi
+
+  # Compose + commit agent.md on the branch BEFORE merging, so the squash
+  # carries it. Runs for every outcome (including no-op and session failure).
+  CURRENT_PHASE="compose_agent_result"; phase_compose_agent_result
+
+  if [[ "$do_merge" == "true" ]]; then
+    CURRENT_PHASE="merge";           phase_merge
+  else
+    MERGE_STATUS="$SM_MERGE_NOT_ATTEMPTED"
   fi
 
   CURRENT_PHASE="finalize";        phase_finalize

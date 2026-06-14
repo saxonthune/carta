@@ -11,7 +11,7 @@ Reads docs, reads code, finds where they disagree, fixes the docs. No git-histor
 
 ## Source of Truth
 
-**`.carta/` is the canonical source of truth.** `CLAUDE.md` references `.carta/` — do NOT duplicate content into it.
+**`.rhidoc/` is the canonical source of truth.** `CLAUDE.md` references `.rhidoc/` — do NOT duplicate content into it.
 
 **CLAUDE.md policy:** Only update CLAUDE.md when a **new package, new top-level directory, or new major subsystem** is added. Bug fixes, feature tweaks, new hooks, new components, and refactors do NOT warrant CLAUDE.md changes.
 
@@ -32,7 +32,7 @@ This outputs changed files by package, new files, new exports/hooks/components. 
 ## Phase 2: Map Changes to Docs via MANIFEST
 
 ```typescript
-Read('.carta/MANIFEST.md')
+Read('.rhidoc/MANIFEST.md')
 ```
 
 Use the **Tag Index** at the bottom of MANIFEST.md to map changed code areas to doc refs. For each changed area, identify relevant tags (e.g., `hooks` → hooks tag, `components/canvas/*` → canvas/ui tags, `packages/schema/*` → schemas/metamodel tags) and look up the corresponding docs in the tag index.
@@ -51,7 +51,7 @@ For each doc on the checklist, read it fully. Don't use section-level grep here 
 
 ```typescript
 // Read all relevant docs in parallel — resolve paths from MANIFEST's File column
-// e.g., doc03.04 → .carta/02-architecture/04-canvas/04-presentation-model.md
+// e.g., doc02.03 → .rhidoc/02-architecture/04-canvas/04-presentation-model.md
 ```
 
 ### 3B: Read Code to Verify Claims
@@ -65,7 +65,7 @@ For each doc's claims, spot-check the code. Focus on:
 ```typescript
 // Spot-check code claims from the docs you read.
 // Example: if a doc describes organizer features, grep for the hooks/components it mentions:
-Grep({ pattern: 'pin|constraint|PinConstraint', path: 'carta_cli/', output_mode: 'files_with_matches' })
+Grep({ pattern: 'pin|constraint|PinConstraint', path: 'rhidoc/', output_mode: 'files_with_matches' })
 ```
 
 ### 3B-extra: Barrel Export Reconciliation (always runs)
@@ -78,7 +78,7 @@ Look up the frontend architecture doc ref from MANIFEST (tags: `components, hook
 
 Also reconcile MCP tool registrations against any doc that inventories them:
 ```typescript
-Grep({ pattern: "name: 'carta_", path: 'carta_cli/', output_mode: 'content' })
+Grep({ pattern: "name: 'rhidoc_", path: 'rhidoc/', output_mode: 'content' })
 ```
 
 ### 3C: Build Gap Report
@@ -111,7 +111,7 @@ From MANIFEST's **Deps** column — when a doc needs updates, check docs that de
 ```typescript
 // Use MANIFEST's Deps column to find which docs depend on the one you're updating.
 // Then grep those dependent docs for the specific ref being changed.
-Grep({ pattern: 'docXX\\.YY', path: '.carta/path/to/dependent-doc.md' })
+Grep({ pattern: 'docXX\\.YY', path: '.rhidoc/path/to/dependent-doc.md' })
 ```
 
 Only flag dependents that reference the specific content being changed.
@@ -123,8 +123,8 @@ Only flag dependents that reference the specific content being changed.
 For each gap, write concrete edit instructions with provenance:
 
 ```markdown
-## Edit: .carta/path/to/doc.md
-Source: carta_cli/...
+## Edit: .rhidoc/path/to/doc.md
+Source: rhidoc/...
 Section: §SectionName (after "Subsection" subsection)
 
 Add new subsection:
@@ -185,7 +185,7 @@ Every significant code area maps to at least one verified doc:
 ### Cross-Reference Integrity
 
 ```typescript
-Grep({ pattern: 'doc[0-9][0-9]\\.[0-9][0-9]', path: '.carta/', output_mode: 'content' })
+Grep({ pattern: 'doc[0-9][0-9]\\.[0-9][0-9]', path: '.rhidoc/', output_mode: 'content' })
 // Verify each ref appears in MANIFEST
 ```
 
@@ -194,7 +194,7 @@ Grep({ pattern: 'doc[0-9][0-9]\\.[0-9][0-9]', path: '.carta/', output_mode: 'con
 ## Phase 8: Update Sync Marker (1 Bash Call)
 
 ```bash
-git rev-parse HEAD > .carta/.last-sync
+git rev-parse HEAD > .rhidoc/.last-sync
 ```
 
 ---
@@ -222,7 +222,7 @@ git rev-parse HEAD > .carta/.last-sync
 No update needed / Updated because [reason]
 
 ### Sync Marker
-Updated `.carta/.last-sync` → `{HEAD_SHORT}`
+Updated `.rhidoc/.last-sync` → `{HEAD_SHORT}`
 ```
 
 ---

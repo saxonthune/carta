@@ -51,7 +51,7 @@ test('deletes node', () => {
 Define all possible user actions as typed events:
 
 ```typescript
-type CartaEvent =
+type RhidocEvent =
   // Node operations
   | { type: 'CREATE_CONSTRUCT'; constructType: string; position: Position }
   | { type: 'SELECT_NODE'; nodeIndex: number }
@@ -107,7 +107,7 @@ interface ReplayState {
   title: string;
 }
 
-function replay(events: CartaEvent[], initialState?: ReplayState): ReplayState {
+function replay(events: RhidocEvent[], initialState?: ReplayState): ReplayState {
   let state = initialState ?? createEmptyState();
 
   for (const event of events) {
@@ -117,7 +117,7 @@ function replay(events: CartaEvent[], initialState?: ReplayState): ReplayState {
   return state;
 }
 
-function applyEvent(state: ReplayState, event: CartaEvent): ReplayState {
+function applyEvent(state: ReplayState, event: RhidocEvent): ReplayState {
   switch (event.type) {
     case 'CREATE_CONSTRUCT': {
       const newNode = createNode(event.constructType, event.position, state.nodes.length);
@@ -185,7 +185,7 @@ Tests become declarative event sequences:
 ```typescript
 describe('Undo/Redo', () => {
   it('undoes node creation', () => {
-    const events: CartaEvent[] = [
+    const events: RhidocEvent[] = [
       { type: 'CREATE_CONSTRUCT', constructType: 'Task', position: { x: 100, y: 100 } },
       { type: 'UNDO' },
     ];
@@ -197,7 +197,7 @@ describe('Undo/Redo', () => {
   });
 
   it('redo restores undone node', () => {
-    const events: CartaEvent[] = [
+    const events: RhidocEvent[] = [
       { type: 'CREATE_CONSTRUCT', constructType: 'Task', position: { x: 100, y: 100 } },
       { type: 'UNDO' },
       { type: 'REDO' },
@@ -208,7 +208,7 @@ describe('Undo/Redo', () => {
   });
 
   it('new action clears redo stack', () => {
-    const events: CartaEvent[] = [
+    const events: RhidocEvent[] = [
       { type: 'CREATE_CONSTRUCT', constructType: 'Task', position: { x: 100, y: 100 } },
       { type: 'UNDO' },
       { type: 'CREATE_CONSTRUCT', constructType: 'Service', position: { x: 200, y: 100 } },
@@ -243,7 +243,7 @@ function insertAtEachPosition<T>(arr: T[], item: T | T[]): T[][] {
 }
 
 // Base scenario
-const baseFlow: CartaEvent[] = [
+const baseFlow: RhidocEvent[] = [
   { type: 'CREATE_CONSTRUCT', constructType: 'Task', position: { x: 0, y: 0 } },
   { type: 'CREATE_CONSTRUCT', constructType: 'Service', position: { x: 200, y: 0 } },
   { type: 'SELECT_NODE', nodeIndex: 0 },
@@ -323,9 +323,9 @@ describe('Invariants hold across permutations', () => {
 Generate random event sequences to discover edge cases:
 
 ```typescript
-function generateRandomEvents(count: number, seed: number): CartaEvent[] {
+function generateRandomEvents(count: number, seed: number): RhidocEvent[] {
   const rng = seedRandom(seed);
-  const events: CartaEvent[] = [];
+  const events: RhidocEvent[] = [];
   let nodeCount = 0;
 
   for (let i = 0; i < count; i++) {
@@ -341,7 +341,7 @@ function generateRandomEvents(count: number, seed: number): CartaEvent[] {
   return events;
 }
 
-function randomEvent(rng: RNG, nodeCount: number): CartaEvent {
+function randomEvent(rng: RNG, nodeCount: number): RhidocEvent {
   const eventTypes = [
     { type: 'CREATE_CONSTRUCT', weight: 10 },
     { type: 'SELECT_NODE', weight: nodeCount > 0 ? 8 : 0 },
@@ -378,9 +378,9 @@ When a test fails, minimize the event sequence to find the root cause:
 
 ```typescript
 function minimizeSequence(
-  events: CartaEvent[],
+  events: RhidocEvent[],
   failsInvariant: (state: ReplayState) => boolean
-): CartaEvent[] {
+): RhidocEvent[] {
   // Binary search to find minimal failing sequence
   let minimal = events;
 
@@ -419,36 +419,36 @@ if (hasOrphanedEdges(state)) {
 The same events can drive actual UI for E2E testing:
 
 ```typescript
-async function replayInBrowser(page: Page, events: CartaEvent[]): Promise<void> {
-  const carta = new CartaPage(page);
+async function replayInBrowser(page: Page, events: RhidocEvent[]): Promise<void> {
+  const rhidoc = new RhidocPage(page);
   await page.goto('/');
-  await carta.waitForCanvasReady();
+  await rhidoc.waitForCanvasReady();
 
   for (const event of events) {
-    await executeEventInBrowser(carta, event);
+    await executeEventInBrowser(rhidoc, event);
   }
 }
 
-async function executeEventInBrowser(carta: CartaPage, event: CartaEvent): Promise<void> {
+async function executeEventInBrowser(rhidoc: RhidocPage, event: RhidocEvent): Promise<void> {
   switch (event.type) {
     case 'CREATE_CONSTRUCT':
-      await carta.createConstruct(event.constructType, event.position);
+      await rhidoc.createConstruct(event.constructType, event.position);
       break;
 
     case 'SELECT_NODE':
-      await carta.selectNodeByIndex(event.nodeIndex);
+      await rhidoc.selectNodeByIndex(event.nodeIndex);
       break;
 
     case 'DELETE_SELECTED':
-      await carta.page.keyboard.press('Delete');
+      await rhidoc.page.keyboard.press('Delete');
       break;
 
     case 'UNDO':
-      await carta.page.keyboard.press('Control+z');
+      await rhidoc.page.keyboard.press('Control+z');
       break;
 
     case 'REDO':
-      await carta.page.keyboard.press('Control+Shift+z');
+      await rhidoc.page.keyboard.press('Control+Shift+z');
       break;
 
     // ... other events
@@ -577,7 +577,7 @@ interface ReplayContext {
   setSelectedNodeIds: (ids: string[]) => void;
 }
 
-function applyEvent(ctx: ReplayContext, event: CartaEvent): void {
+function applyEvent(ctx: ReplayContext, event: RhidocEvent): void {
   const { graphOps, connections, document, undoRedo } = ctx;
 
   switch (event.type) {
@@ -653,7 +653,7 @@ import { TestProviders } from '../setup/testProviders';
 import { createDeterministicEnv } from './env';
 import { applyEvent } from './executor';
 
-export async function replayEvents(events: CartaEvent[], seed: number = 0) {
+export async function replayEvents(events: RhidocEvent[], seed: number = 0) {
   const env = createDeterministicEnv(seed);
 
   try {
@@ -705,7 +705,7 @@ Tests become declarative while testing real code:
 ```typescript
 describe('Replay: Undo/Redo', () => {
   it('undoes node creation through real hooks', async () => {
-    const events: CartaEvent[] = [
+    const events: RhidocEvent[] = [
       { type: 'CREATE_CONSTRUCT', constructType: 'Task', position: { x: 100, y: 100 } },
       { type: 'UNDO' },
     ];
@@ -718,7 +718,7 @@ describe('Replay: Undo/Redo', () => {
   });
 
   it('redo restores undone node', async () => {
-    const events: CartaEvent[] = [
+    const events: RhidocEvent[] = [
       { type: 'CREATE_CONSTRUCT', constructType: 'Task', position: { x: 100, y: 100 } },
       { type: 'UNDO' },
       { type: 'REDO' },
@@ -738,7 +738,7 @@ Run every test twice with the same seed. If results differ, something is non-det
 
 ```typescript
 export async function replayWithDeterminismCheck(
-  events: CartaEvent[],
+  events: RhidocEvent[],
   seed: number = 0
 ): Promise<ReplayState> {
   const state1 = await replayEvents(events, seed);
@@ -800,7 +800,7 @@ function statesEqual(a: ReplayState, b: ReplayState): boolean {
 Some events involve behavior that's hard to make deterministic (e.g., drag positions affected by React Flow internals). Mark these explicitly:
 
 ```typescript
-type CartaEvent =
+type RhidocEvent =
   | DeterministicEvent
   | NonDeterministicEvent;
 
@@ -813,7 +813,7 @@ For these events, use tolerance-based assertions:
 
 ```typescript
 it('drag moves node approximately correctly', async () => {
-  const events: CartaEvent[] = [
+  const events: RhidocEvent[] = [
     { type: 'CREATE_CONSTRUCT', constructType: 'Task', position: { x: 100, y: 100 } },
     { type: 'SELECT_NODE', nodeIndex: 0 },
     { type: 'DRAG_NODE', nodeIndex: 0, delta: { x: 50, y: 50 }, _nondeterministic: true },

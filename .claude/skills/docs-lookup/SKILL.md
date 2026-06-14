@@ -1,27 +1,27 @@
 ---
 name: docs-lookup
-description: Answers questions about project documentation. Triggers on references to .carta/, doc references (docXX.YY), or questions about Carta's design, architecture, features, or principles.
+description: Answers questions about project documentation. Triggers on references to .rhidoc/, doc references (docXX.YY), or questions about Rhidoc's design, architecture, features, or principles.
 ---
 
 # docs-lookup
 
-Efficiently navigates `.carta/` to answer questions about Carta's documentation, design decisions, architecture, features, and principles.
+Efficiently navigates `.rhidoc/` to answer questions about Rhidoc's documentation, design decisions, architecture, features, and principles.
 
 ## When This Triggers
 
-- "What does .carta/ say about X?"
+- "What does .rhidoc/ say about X?"
 - "What's the doc for Y?"
 - "Look up docXX.YY"
-- Questions about Carta's architecture, principles, features, metamodel, design system, etc.
+- Questions about Rhidoc's architecture, principles, features, metamodel, design system, etc.
 
-## How to Navigate .carta/
+## How to Navigate .rhidoc/
 
 ### Step 1: Read the manifest
 
 Always start here — never scan the directory tree:
 
 ```
-.carta/MANIFEST.md
+.rhidoc/MANIFEST.md
 ```
 
 The manifest lists every doc with its ref, file path, and topic keywords. Use it to identify which 1-3 docs are relevant to the question.

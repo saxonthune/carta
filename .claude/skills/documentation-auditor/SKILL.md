@@ -1,13 +1,13 @@
 ---
 name: documentation-auditor
-description: Audits .carta/ claims against actual codebase, finding stale references, missing exports, wrong type signatures, and phantom files
+description: Audits .rhidoc/ claims against actual codebase, finding stale references, missing exports, wrong type signatures, and phantom files
 context: fork
 model: sonnet
 ---
 
 # documentation-auditor
 
-Reverse-audits documentation against the codebase. While `/documentation-nag` is forward-sync (commits → docs), this skill is reverse-audit (docs → code). It finds claims in `.carta/` that no longer match reality.
+Reverse-audits documentation against the codebase. While `/documentation-nag` is forward-sync (commits → docs), this skill is reverse-audit (docs → code). It finds claims in `.rhidoc/` that no longer match reality.
 
 ## When This Triggers
 
@@ -58,7 +58,7 @@ Read each doc and extract **structured claims only** — skip freeform prose. Cl
 | **Enum values** | Union type or value list | `'default' \| 'simple' \| 'circle'` | `Grep` the type definition, compare values |
 | **Component name** | PascalCase in backticks | `` `ConstructNodeMarker` `` | `Glob('**/{name}.tsx')` |
 | **Hook name** | `use*` in backticks | `` `useGraphOperations` `` | `Grep` in hooks directory |
-| **MCP tool name** | `carta_*` in table or list | `carta_update_schema` | `Grep` in tools.ts |
+| **MCP tool name** | `rhidoc_*` in table or list | `rhidoc_update_schema` | `Grep` in tools.ts |
 | **Env var** | `VITE_*` or `PORT` | `VITE_SYNC_URL` | `Grep` in source |
 | **CLI command** | `make *` | `make test` | `Grep` in Makefile |
 
@@ -110,7 +110,7 @@ For docs that list barrel exports (find via MANIFEST tags: `components, hooks, a
 
 ```typescript
 // Read the actual barrel file
-Read('carta_cli/...')  # read the relevant source file
+Read('rhidoc/...')  # read the relevant source file
 
 // Compare exported names against doc's listed names
 // Flag: in doc but not in code (stale), in code but not in doc (undocumented)
@@ -125,7 +125,7 @@ For type claims, grep the type definition:
 ```typescript
 Grep({
   pattern: 'nodeShape',
-  path: 'carta_cli/...',  # grep the relevant source file
+  path: 'rhidoc/...',  # grep the relevant source file
   output_mode: 'content',
   context: 2
 })
@@ -138,8 +138,8 @@ Compare documented tools against registered tools:
 ```typescript
 // Extract tool names from code
 Grep({
-  pattern: "name: 'carta_",
-  path: 'carta_cli/mcp/...',  # grep the MCP tools file
+  pattern: "name: 'rhidoc_",
+  path: 'rhidoc/mcp/...',  # grep the MCP tools file
   output_mode: 'content'
 })
 
@@ -182,7 +182,7 @@ Present findings as a structured report. Group by severity:
 | Doc | Claim | Issue |
 |-----|-------|-------|
 | docXX.YY §barrel-section | `useFoo` exported | Export not found in barrel file |
-| docXX.YY §MCP Tools | `carta_foo` tool | Tool not registered in `tools.ts` |
+| docXX.YY §MCP Tools | `rhidoc_foo` tool | Tool not registered in `tools.ts` |
 
 ### Warnings (likely stale)
 
@@ -214,7 +214,7 @@ For each Error and Warning, suggest the fix (but don't apply it):
 
 1. **docXX.YY §barrel-section**: Remove `useFoo`, add `useBar`
 2. **docXX.YY §section**: Replace `oldName` → `newName` (N occurrences)
-3. **docXX.YY §MCP Tools**: Add `carta_new_tool` tool entry
+3. **docXX.YY §MCP Tools**: Add `rhidoc_new_tool` tool entry
 ```
 
 If the user wants fixes applied, recommend running `/documentation-nag` or applying manually.

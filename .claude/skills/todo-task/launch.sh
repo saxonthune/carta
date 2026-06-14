@@ -39,4 +39,4 @@ nohup bash "${SCRIPT_DIR}/execute-plan.sh" "${PLAN_SLUG}" ${EXTRA_ARGS} > "${LOG
 
 echo "Agent launched: ${PLAN_SLUG} (pid $!)"
 echo "Log: tail -f ${LOG}"
-echo "Results: .todo-tasks/.done/${PLAN_SLUG}.result.md"
+echo "Results: .todo-tasks/results/${PLAN_SLUG}.agent.md (+ .merge.md after merge)"

@@ -23,7 +23,7 @@
 # ---
 # name: TestAttach.test_attach_leaf_uses_source_stem
   '''
-  Wrote <TMPDIR>/.carta/MANIFEST.md
+  Wrote <TMPDIR>/.rhidoc/MANIFEST.md
   Attached: <TMPDIR>/fsm.json -> 00-codex/01-fsm.json
     Bundle: doc00.01 (01-logic.md)
     Prefix: 01
@@ -32,7 +32,7 @@
 # ---
 # name: TestAttach.test_attach_non_md_host_raises_error_with_swap_hint
   '''
-  attach host must be a .md leaf doc (NN-<slug>.md), got .json file: 01-logic.statemachine.json. Did you swap <host> and <source>? Usage: carta attach <host> <source>
+  attach host must be a .md leaf doc (NN-<slug>.md), got .json file: 01-logic.statemachine.json. Did you swap <host> and <source>? Usage: rhidoc attach <host> <source>
   
   '''
 # ---
@@ -51,12 +51,12 @@
 # name: TestBundleAwareMoveDeleteRename.test_move_bundle_attachments_not_in_rename_map
   '''
   === Planned filesystem moves ===
-    <TMPDIR>/.carta/00-codex/02-state.md -> <TMPDIR>/.carta/00-codex/01-state.md
-    <TMPDIR>/.carta/00-codex/03-extra.md -> <TMPDIR>/.carta/00-codex/02-extra.md
-    <TMPDIR>/.carta/00-codex/03-extra.notes.txt -> <TMPDIR>/.carta/00-codex/02-extra.notes.txt
-    <TMPDIR>/.carta/00-codex/01-logic.md -> <TMPDIR>/.carta/00-codex/03-logic.md
-    <TMPDIR>/.carta/00-codex/01-design.png -> <TMPDIR>/.carta/00-codex/03-design.png
-    <TMPDIR>/.carta/00-codex/01-logic.statemachine.json -> <TMPDIR>/.carta/00-codex/03-logic.statemachine.json
+    <TMPDIR>/.rhidoc/00-codex/02-state.md -> <TMPDIR>/.rhidoc/00-codex/01-state.md
+    <TMPDIR>/.rhidoc/00-codex/03-extra.md -> <TMPDIR>/.rhidoc/00-codex/02-extra.md
+    <TMPDIR>/.rhidoc/00-codex/03-extra.notes.txt -> <TMPDIR>/.rhidoc/00-codex/02-extra.notes.txt
+    <TMPDIR>/.rhidoc/00-codex/01-logic.md -> <TMPDIR>/.rhidoc/00-codex/03-logic.md
+    <TMPDIR>/.rhidoc/00-codex/01-design.png -> <TMPDIR>/.rhidoc/00-codex/03-design.png
+    <TMPDIR>/.rhidoc/00-codex/01-logic.statemachine.json -> <TMPDIR>/.rhidoc/00-codex/03-logic.statemachine.json
   
   === Ref rename map ===
     doc00.01 -> doc00.03
@@ -69,7 +69,7 @@
 # ---
 # name: TestBundleAwareMoveDeleteRename.test_rename_output_shows_unchanged_attachments
   '''
-  Wrote <TMPDIR>/.carta/MANIFEST.md
+  Wrote <TMPDIR>/.rhidoc/MANIFEST.md
   Renamed: 01-logic.md -> 01-engine.md
   Renamed: 01-logic.statemachine.json -> 01-engine.statemachine.json
   Left unchanged (same prefix, different slug): 01-design.png
@@ -101,10 +101,10 @@
 # ---
 # name: TestBundleAwarePunchFlatten.test_punch_as_child_dry_run_shows_attachments
   '''
-  Would punch: 01-game.md → 01-game/01-game.md (content)
-  Would punch: 01-game.md → 01-game/00-index.md (generated index)
-  Would move attachment: 01-game.mockup.png → 01-game/01-game.mockup.png
-  Would move attachment: 01-game.xstate.json → 01-game/01-game.xstate.json
+  Would punch: 01-game.md -> 01-game/01-game.md (content)
+  Would punch: 01-game.md -> 01-game/00-index.md (generated index)
+  Would move attachment: 01-game.mockup.png -> 01-game/01-game.mockup.png
+  Would move attachment: 01-game.xstate.json -> 01-game/01-game.xstate.json
   
   (dry-run: no files modified)
   
@@ -112,9 +112,9 @@
 # ---
 # name: TestBundleAwarePunchFlatten.test_punch_dry_run_shows_attachment_moves
   '''
-  Would punch: 01-game.md → 01-game/00-index.md
-  Would move attachment: 01-game.mockup.png → 01-game/00-game.mockup.png
-  Would move attachment: 01-game.xstate.json → 01-game/00-game.xstate.json
+  Would punch: 01-game.md -> 01-game/00-index.md
+  Would move attachment: 01-game.mockup.png -> 01-game/00-game.mockup.png
+  Would move attachment: 01-game.xstate.json -> 01-game/00-game.xstate.json
   
   (dry-run: no files modified)
   
@@ -122,48 +122,7 @@
 # ---
 # name: TestCatCommand.test_cat_nonexistent_ref
   '''
-  Error: Cannot resolve segment '99' in <TMPDIR>/.carta: no entry starting with '99-'
-  
-  '''
-# ---
-# name: TestCreate.test_create_at_occupied_position_errors
-  '''
-  Error: position 01 is occupied in 00-codex.
-  Occupied positions: [0, 1, 2, 3, 4, 5, 6]
-  
-  '''
-# ---
-# name: TestCreate.test_create_help_has_examples
-  '''
-  usage: carta create [-h] [--order ORDER] [--title TITLE] [--summary SUMMARY]
-                      [--tags TAGS] [--deps DEPS] [--dry-run]
-                      destination slug
-  
-  positional arguments:
-    destination
-    slug
-  
-  options:
-    -h, --help         show this help message and exit
-    --order ORDER
-    --title TITLE
-    --summary SUMMARY
-    --tags TAGS        Comma-separated tags
-    --deps DEPS        Comma-separated deps
-    --dry-run
-  
-  Examples:
-    carta create doc01.03 my-section
-    carta create 01-product/02-features new-doc --order 2 --title "Foo"
-    carta create doc00 note --dry-run
-  
-  '''
-# ---
-# name: TestCreate.test_create_slug_as_flag_shows_hint
-  '''
-  Error: `--slug` is not a flag for `carta create`. Slug is a positional argument.
-  Usage: carta create <destination> <slug> [--title TEXT ...]
-  Example: carta create doc01.03 my-section --title "My Section"
+  Error: Cannot resolve segment '99' in <TMPDIR>/.rhidoc: no entry starting with '99-'
   
   '''
 # ---
@@ -198,61 +157,15 @@
 # ---
 # name: TestFlatten.test_flatten_leaf_file_errors
   '''
-  Error: source is not a directory: <TMPDIR>/.carta/02-product-design/01-workspace-scripts.md
-  
-  '''
-# ---
-# name: TestGroupCommand.test_group_errors_on_existing
-  '''
-  Error: directory already exists and is not empty: 01-product-strategy
-  
-  '''
-# ---
-# name: TestGroupCommand.test_group_errors_on_non_empty_existing_directory
-  '''
-  Error: directory already exists and is not empty: 05-test-group
-  
-  '''
-# ---
-# name: TestGroupCommand.test_group_errors_without_prefix
-  '''
-  Error: directory name must have NN- prefix: no-prefix
-  
-  '''
-# ---
-# name: TestGroupCommand.test_group_help_has_examples
-  '''
-  usage: carta group [-h] [--title TITLE] [--no-regen] target
-  
-  positional arguments:
-    target         Directory path relative to workspace (e.g., 01-product-
-                   strategy)
-  
-  options:
-    -h, --help     show this help message and exit
-    --title TITLE  Title for the index. Default: derived from slug.
-    --no-regen     Skip MANIFEST regeneration.
-  
-  Examples:
-    carta group 01-product-strategy --title "Product Strategy"
-    carta group 01-luminous/02-design/06-adr --title "ADRs"
-  
-  Path is a single directory relative to the workspace root
-  (without the workspace directory name as a prefix).
-  
-  '''
-# ---
-# name: TestGroupCommand.test_group_rejects_workspace_prefix
-  '''
-  Error: path must be relative to workspace root, without the '.carta' prefix. Got: '.carta/05-new-section'. Try: '05-new-section'
+  Error: source is not a directory: <TMPDIR>/.rhidoc/02-product-design/01-workspace-scripts.md
   
   '''
 # ---
 # name: TestHelpAi.test_ai_skill_includes_behavioral_rules
   '''
-  # carta AI Reference — <VERSION>
+  # rhidoc AI Reference — <VERSION>
   
-  Complete semantic reference for AI agents driving the carta CLI. Covers command behavior, side effects, sequencing rules, and live workspace state.
+  Complete semantic reference for AI agents driving the rhidoc CLI. Covers command behavior, side effects, sequencing rules, and live workspace state.
   
   ---
   
@@ -268,11 +181,11 @@
   
   Every structural operation (`move`, `delete`, `rename`, `punch`, `flatten`) treats the bundle as a unit: when the root travels, all same-prefix siblings travel with it automatically.
   
-  **Orphans**: a file whose `NN` prefix has no corresponding `.md` root, or whose prefix matches a directory rather than a file, is an orphan. `carta regenerate` prints orphan warnings to stderr but never blocks operation.
+  **Orphans**: a file whose `NN` prefix has no corresponding `.md` root, or whose prefix matches a directory rather than a file, is an orphan. `rhidoc regenerate` prints orphan warnings to stderr but never blocks operation.
   
-  Use `carta attach` to place a new non-md artifact alongside its host doc.
+  Use `rhidoc attach` to place a new non-md artifact alongside its host doc.
   
-  **Sidecar display refs**: `carta tree --refs` and `carta bundle` display sidecars using the ref format `docXX.YY.ZZ/<slug>.<ext>`, where `docXX.YY.ZZ` is the host doc ref. These refs are for display only — no command accepts sidecar refs as input arguments.
+  **Sidecar display refs**: `rhidoc tree --refs` and `rhidoc bundle` display sidecars using the ref format `docXX.YY.ZZ/<slug>.<ext>`, where `docXX.YY.ZZ` is the host doc ref. These refs are for display only — no command accepts sidecar refs as input arguments.
   
   ---
   
@@ -283,7 +196,7 @@
   Rebuild `MANIFEST.md` from frontmatter across all docs in the workspace.
   
   ```
-  carta regenerate [--dry-run]
+  rhidoc regenerate [--dry-run]
   ```
   
   Side effects:
@@ -297,39 +210,62 @@
     - After batch moves using `--no-regen` on each move command.
     - When MANIFEST.md is stale or missing.
   
-  ### create
+  ### make
   
-  Create a new numbered `.md` file at a given position in a directory.
+  Create a new numbered `.md` file (doc) or directory + `00-index.md` (group) at a position.
   
   ```
-  carta create <destination> <slug> [--order N] [--title TEXT] [--summary TEXT] [--tags CSV] [--deps CSV] [--dry-run]
+  rhidoc make [PARENT] SLUG [-g] [--at REF] [--dry-run] [--no-regen]
   ```
   
   Arguments:
-    destination  Directory path relative to workspace root (e.g., `01-product/02-features`).
-                 Also accepts doc refs (e.g., `doc01.02`).
-    slug         Filename stem without prefix (e.g., `my-doc` → `03-my-doc.md`).
-                 Must NOT include a numeric prefix.
+    PARENT  (optional) Directory to place the new entry in. Accepts doc refs (e.g., `doc01.02`)
+            or workspace-relative paths. Omit to create a top-level title.
+    SLUG    Filename stem without prefix (e.g., `my-doc` → `03-my-doc.md`).
+            Must NOT include a numeric prefix.
+  
+  Addressing modes (four ways to specify where to place the entry):
+    1. `rhidoc make SLUG`              — single positional: creates at root level, appends after last entry
+    2. `rhidoc make PARENT SLUG`       — two positionals: creates inside PARENT, appends after last entry
+    3. `rhidoc make --at REF SLUG`     — strict slot: creates at exact position REF; errors if occupied
+    4. `rhidoc make --before REF SLUG` — displacing insert: shifts that sibling and all higher ones up by one,
+                                        then writes the new entry at REF's coordinate
   
   Side effects:
-    - Writes a new `.md` file with draft frontmatter.
-    - Regenerates MANIFEST.md.
-    - Does NOT renumber siblings — only appends or inserts at `--order`.
+    - Writes a new `.md` file (or directory + `00-index.md` with `-g`) with skeleton frontmatter.
+    - Frontmatter title is derived from slug (slug → "Title Case"). No frontmatter flags — author
+      real frontmatter in the same pass where you write the body.
+    - Regenerates MANIFEST.md (unless --no-regen).
+    - `--before` only: renumbers siblings (bump up) and rewrites their cross-references before writing.
+    - append / `--at`: does NOT renumber siblings.
   
   Flags:
-    --order N    Insert at position N (1-based). Without this, appends after the last entry.
-    --title TEXT Title in frontmatter. Default: derived from slug.
-    --summary TEXT  Summary in frontmatter. Default: empty.
-    --tags CSV      Comma-separated tags (e.g., "api,auth,server"). Default: empty list.
-    --deps CSV      Comma-separated dep refs (e.g., "doc01.02,doc01.03"). Default: empty list.
-    --dry-run    Print the planned file path without creating it.
+    -g, --group     Create a directory + `00-index.md` instead of a leaf `.md`.
+    --at REF        Exact target ref (e.g. `doc01.02.03.04`). Writes iff the slot is free, else errors.
+                    Do NOT combine with a PARENT positional — REF encodes the full coordinate.
+    --before REF    Displacing insert at REF. Bumps that sibling and all higher siblings up by one,
+                    rewrites their refs, then writes the new entry at REF's coordinate. Mutually
+                    exclusive with `--at`. Do NOT combine with a PARENT positional.
+    --dry-run       Print the planned file path (and shift plan for --before) without creating anything.
+    --no-regen      Skip MANIFEST regeneration.
+  
+  Output:
+    Prints the canonical ref and workspace-relative path of the created entry.
+    With --before, also prints: `Shifted: N sibling(s) renumbered`
+    Example: `Created: doc01.02.03.04  (03-product-design/.../04-architecture-guidelines.md)`
+  
+  Notes:
+    - `--at` is non-displacing (errors on occupied slot); `--before` is displacing (shifts siblings up).
+    - Do NOT combine `--before` with `--at` or with a two-positional target.
+    - Do NOT add `--title`, `--summary`, `--tags`, `--deps` flags to this command. Frontmatter is
+      authored by the agent in the same file write as the body. The skeleton is valid as-is.
   
   ### delete
   
   Delete one or more entries with gap-closing renumbering of siblings.
   
   ```
-  carta delete <target> [<target> ...] [--dry-run] [--output-mapping]
+  rhidoc delete <target> [<target> ...] [--dry-run] [--output-mapping]
   ```
   
   Arguments:
@@ -352,34 +288,60 @@
   Move or reorder a file or directory within the workspace.
   
   ```
-  carta move <source> <destination> [--order N] [--mkdir] [--rename SLUG] [--no-regen] [--no-gap-close] [--dry-run]
+  rhidoc move <source> [<destination>] [--at REF | --before REF] [--mkdir] [--rename SLUG] [--no-regen] [--no-gap-close] [--dry-run]
   ```
   
   Arguments:
     source       Path or doc ref to move. Accepts files (.md) and directories.
-    destination  Target directory. Must exist unless --mkdir is used.
+    destination  Target directory for append mode. Omit when using --at or --before.
+  
+  Addressing modes:
+    Append (positional destination, no --at/--before):
+      Move source to the destination directory, appending after the last existing entry.
+      Accepted forms for destination: path or doc ref to an existing directory.
+      --mkdir creates the directory if it is missing (also creates 00-index.md).
+  
+    --at REF (strict / non-displacing):
+      Move source to the exact position named by REF.  The slot must be free; if occupied,
+      the command errors without moving anything.  No sibling renumbering at the destination.
+      Source-side gap-close still applies (unless --no-gap-close).
+      Accepted ref forms: docXX.YY.ZZ | dXX.YY | XX.YY
+  
+    --before REF (displacing):
+      Insert source at the position named by REF, bumping that sibling and every sibling
+      with a higher prefix up by one, rewriting refs for all shifted entries.
+      Source-side gap-close still applies (unless --no-gap-close).
+      Accepted ref forms: docXX.YY.ZZ | dXX.YY | XX.YY
+  
+    --at and --before are mutually exclusive, and each is also mutually exclusive with a
+    positional destination argument — the ref carries the destination.
+  
+    Slot-0 rule: within any directory that contains a 00-index.md, prefix 00 is reserved.
+    At the workspace root (no 00-index.md present), prefix 00 is a normal group position
+    and may be targeted freely (e.g. `rhidoc move doc01 --before doc00` promotes a group
+    into root slot 0, bumping the former 00-group to 01).
   
   Side effects:
-    - Operates on bundles — non-md siblings sharing the target's numeric prefix travel with it.
-    - Removes source from its parent, gap-closes source siblings (unless --no-gap-close).
-    - Inserts at destination, bumps destination siblings at or above --order.
+    - Operates on bundles — non-md siblings sharing the source's numeric prefix travel with it.
+    - Removes source from its parent; gap-closes source siblings (unless --no-gap-close).
     - Rewrites all cross-references in workspace + externalRefPaths.
     - Regenerates MANIFEST.md (unless --no-regen).
   
   Flags:
-    --order N       Insert at position N. Without this, appends after the last entry.
-    --mkdir         Create destination directory if missing (also creates 00-index.md).
+    --at REF        Strict placement at REF; errors if slot is occupied.
+    --before REF    Displacing insert at REF; bumps all siblings at or above REF.
+    --mkdir         (append mode only) Create destination directory if missing.
     --rename SLUG   Change the slug during the move. Extension is preserved automatically.
     --no-regen      Skip MANIFEST regeneration. Ref rewriting still happens.
     --no-gap-close  Skip gap-closing of source siblings after the move. Source directory
                     will have a numbering gap. Use with --no-regen for batch operations,
-                    then run `carta regenerate` at the end.
+                    then run `rhidoc regenerate` at the end.
     --dry-run       Print planned moves without executing.
   
   Sequencing notes:
     - Each move changes numbering for subsequent commands — run sequentially, not in parallel.
     - When moving many entries out of a directory, use --no-gap-close --no-regen on each move
-      to avoid invalidating subsequent source paths, then run `carta regenerate` at the end.
+      to avoid invalidating subsequent source paths, then run `rhidoc regenerate` at the end.
     - Without --no-gap-close, move the highest-numbered entry first to avoid gap-closing
       invalidating subsequent source paths. Or check paths between moves.
   
@@ -388,7 +350,7 @@
   Expand a leaf `.md` file into a directory by converting it to `NN-slug/00-index.md`.
   
   ```
-  carta punch <target> [--as-child] [--dry-run]
+  rhidoc punch <target> [--as-child] [--dry-run]
   ```
   
   Arguments:
@@ -411,7 +373,7 @@
   Dissolve a directory by hoisting its children into the parent.
   
   ```
-  carta flatten <target> [--keep-index] [--force] [--at N] [--dry-run]
+  rhidoc flatten <target> [--keep-index] [--force] [--before REF] [--dry-run]
   ```
   
   Arguments:
@@ -426,17 +388,18 @@
     - Regenerates MANIFEST.md.
   
   Flags:
-    --keep-index  Preserve 00-index.md as a sibling file (named `NN-<dir-slug>.md`).
-    --force       Discard index even if it has significant content (>10 lines).
-    --at N        Insert hoisted children starting at position N. Default: source position.
-    --dry-run     Print planned moves without executing.
+    --keep-index   Preserve 00-index.md as a sibling file (named `NN-<dir-slug>.md`).
+    --force        Discard index even if it has significant content (>10 lines).
+    --before REF   Insert hoisted children before REF (a doc ref) in the parent.
+                   Default: the dissolved directory's old position.
+    --dry-run      Print planned moves without executing.
   
   ### attach
   
   Attach a non-md file as a sidecar to an existing doc, giving it the doc's numeric prefix.
   
   ```
-  carta attach <host> <source> [--rename SLUG] [--dry-run]
+  rhidoc attach <host> <source> [--rename SLUG] [--dry-run]
   ```
   
   Arguments:
@@ -463,27 +426,43 @@
     - Attachments are identified by prefix, not by declaration — no frontmatter needed.
     - The slug must be unique within the bundle across all extensions. If a different
       extension already uses the same slug, the command errors with a hint to --rename.
-    - To verify the bundle after attaching, run `carta bundle <host>`.
+    - To verify the bundle after attaching, run `rhidoc bundle <host>`.
   
   ### copy
   
   Copy an external file into the workspace at a numbered position.
   
   ```
-  carta copy <source> <destination> [--order N] [--rename SLUG] [--dry-run]
+  rhidoc copy <source> [<destination>] [--at REF | --before REF] [--rename SLUG] [--dry-run]
   ```
   
   Arguments:
     source       Path to a file outside the workspace.
-    destination  Directory path relative to workspace root.
+    destination  Target directory (append mode). Omit when using --at/--before.
+  
+  Addressing modes:
+    Append (positional destination, no --at/--before):
+      Copies the file into the destination directory, appending after the last existing entry.
+  
+    --at REF (strict / non-displacing):
+      Copies the file to the exact position named by REF. The slot must be free; if occupied,
+      the command errors without copying anything. No sibling renumbering.
+      Accepted ref forms: docXX.YY.ZZ | dXX.YY | XX.YY
+  
+    --before REF (displacing):
+      Copies the file at the position named by REF, bumping that sibling and every sibling
+      with a higher prefix up by one, rewriting refs for all shifted entries.
+      Accepted ref forms: docXX.YY.ZZ | dXX.YY | XX.YY
   
   Side effects:
     - Copies the file with a numbered prefix into the destination directory.
+    - `--before` only: renumbers siblings (bump up) and rewrites their cross-references before copying.
+    - append / `--at`: does NOT renumber siblings.
     - Regenerates MANIFEST.md.
-    - Does NOT renumber siblings.
   
   Flags:
-    --order N       Insert at position N. Default: appends after the last entry.
+    --at REF        Strict placement at REF; errors if slot is occupied.
+    --before REF    Displacing insert at REF; bumps all siblings at or above REF.
     --rename SLUG   Override the destination slug. Default: derived from source filename.
     --dry-run       Print the planned copy without executing.
   
@@ -492,45 +471,28 @@
   Rewrite doc refs across the workspace using explicit old=new mappings.
   
   ```
-  carta rewrite <old>=<new> [<old>=<new> ...] [--dry-run]
+  rhidoc rewrite <old>=<new> [<old>=<new> ...] [--dry-run]
   ```
   
   Arguments:
-    mappings  One or more `old=new` pairs (e.g., `doc01.02=doc01.05`).
+    mappings  One or more `old=new` pairs. Both sides accept the three input forms
+              (docXX.YY | dXX.YY | XX.YY) and are normalized to canonical `docXX.YY`
+              before substitution. Example: `d04.08=04.09` → rewrites `doc04.08` → `doc04.09`.
   
   Side effects:
-    - Rewrites all matching refs in workspace `.md` files and externalRefPaths.
+    - Normalizes both sides of each mapping to canonical form.
+    - Rewrites all canonical ref occurrences in workspace `.md` files and externalRefPaths.
     - Does NOT regenerate MANIFEST.md.
   
   Flags:
     --dry-run  Show which files and how many replacements would be made.
-  
-  ### group
-  
-  Create a title group directory with a `00-index.md` file.
-  
-  ```
-  carta group <target> [--title TEXT] [--no-regen]
-  ```
-  
-  Arguments:
-    target  Directory path relative to workspace root with NN- prefix
-            (e.g., `05-new-section`). Parent directory must exist.
-  
-  Side effects:
-    - Creates the directory and `00-index.md` with draft frontmatter.
-    - Regenerates MANIFEST.md (unless --no-regen).
-  
-  Flags:
-    --title TEXT  Title for the index. Default: derived from slug.
-    --no-regen    Skip MANIFEST regeneration.
   
   ### rename
   
   Rename a file or directory slug without changing its numeric position.
   
   ```
-  carta rename <target> <new-slug> [--no-regen]
+  rhidoc rename <target> <new-slug> [--no-regen]
   ```
   
   Arguments:
@@ -540,7 +502,7 @@
   Side effects:
     - Operates on bundles — non-md siblings sharing the target's numeric prefix travel with it.
     - Renames the file/directory on disk (and renames attachment files to match the new slug).
-    - Does NOT rewrite cross-references (use `carta rewrite` for that).
+    - Does NOT rewrite cross-references (use `rhidoc rewrite` for that).
     - Regenerates MANIFEST.md (unless --no-regen).
   
   Flags:
@@ -548,62 +510,62 @@
   
   ### init
   
-  Initialize a new `.carta/` workspace in the current directory, or refresh an existing one.
+  Initialize a new `.rhidoc/` workspace in the current directory, or refresh an existing one.
   
   ```
-  carta init [--name TEXT] [--dir DIRNAME] [--portable]
-  carta init --rehydrate [--dry-run]
+  rhidoc init [--name TEXT] [--dir DIRNAME] [--portable]
+  rhidoc init --rehydrate [--dry-run]
   ```
   
   Side effects (without --rehydrate):
-    - Creates `.carta.json` marker in the current directory.
+    - Creates `.rhidoc.json` marker in the current directory.
     - Creates `DIRNAME/00-codex/00-index.md` and `DIRNAME/MANIFEST.md`.
-    - Hydrates `.claude/skills/carta-cli/SKILL.md` (skips if exists).
+    - Hydrates `.claude/skills/rhidoc-cli/SKILL.md` (skips if exists).
     - Runs initial MANIFEST regeneration.
   
   Side effects (with --rehydrate):
-    - Overwrites `00-codex/*.md` with latest templates from installed carta.
-    - Overwrites `.claude/skills/carta-cli/SKILL.md` and `.claude/skills/docs-development/SKILL.md`.
+    - Overwrites `00-codex/*.md` with latest templates from installed rhidoc.
+    - Overwrites `.claude/skills/rhidoc-cli/SKILL.md` and `.claude/skills/docs-development/SKILL.md`.
     - Skips files that already match the latest version.
     - Does NOT touch user-created docs outside 00-codex.
     - Does NOT overwrite workspace.json fields (title, description, externalRefPaths).
   
   Flags:
     --name TEXT    Workspace title. Default: parent directory name.
-    --dir DIRNAME  Workspace directory name. Default: `.carta`.
+    --dir DIRNAME  Workspace directory name. Default: `.rhidoc`.
     --portable     Also copy editable Python scripts into workspace (pip-free usage).
     --rehydrate    Refresh templates and skills in an existing workspace.
     --dry-run      With --rehydrate: show what would be updated without writing.
   
   When to use --rehydrate:
-    - After upgrading carta (`pip install -e .` or `pip install --upgrade carta-cli`).
+    - After upgrading rhidoc (`pip install -e .` or `pip install --upgrade rhidoc`).
     - To push template improvements to existing workspaces.
   
   Example:
-    carta init --rehydrate              # refresh after a carta-cli upgrade
-    carta init --rehydrate --dry-run    # preview what would change
+    rhidoc init --rehydrate              # refresh after a rhidoc-cli upgrade
+    rhidoc init --rehydrate --dry-run    # preview what would change
   
   ### portable
   
-  Copy the carta CLI source into the workspace for pip-free usage.
+  Copy the rhidoc CLI source into the workspace for pip-free usage.
   
   ```
-  carta portable
+  rhidoc portable
   ```
   
   Side effects:
     - Creates `WORKSPACE/_scripts/` with all library modules.
-    - Creates `WORKSPACE/carta.py` entry point shim.
-    - Updates `.carta.json` with `portable` key pointing to the shim.
+    - Creates `WORKSPACE/rhidoc.py` entry point shim.
+    - Updates `.rhidoc.json` with `portable` key pointing to the shim.
   
-  After running, use `python3 .carta/carta.py <command>` instead of `carta`.
+  After running, use `python3 .rhidoc/rhidoc.py <command>` instead of `rhidoc`.
   
   ### cat
   
   Print document contents to stdout by doc ref or path.
   
   ```
-  carta cat <ref>
+  rhidoc cat <ref>
   ```
   
   Arguments:
@@ -618,7 +580,7 @@
   Print workspace structure as a visual tree with titles from frontmatter.
   
   ```
-  carta tree [target] [--refs] [--no-title] [--no-sidecars]
+  rhidoc tree [target] [--refs] [--no-title] [--no-sidecars]
   ```
   
   Arguments:
@@ -648,7 +610,7 @@
   List entries in a directory (docs, subdirectories, sidecars, and non-numbered files).
   
   ```
-  carta ls [target] [--no-sidecars]
+  rhidoc ls [target] [--no-sidecars]
   ```
   
   Arguments:
@@ -675,7 +637,7 @@
   Show a doc's bundle: the host .md file and all its sidecar attachments with sizes.
   
   ```
-  carta bundle <ref-or-path>
+  rhidoc bundle <ref-or-path>
   ```
   
   Arguments:
@@ -690,7 +652,7 @@
     - Size is human-readable (B, KB, MB).
   
   When to use:
-    - To verify a bundle after `carta attach`.
+    - To verify a bundle after `rhidoc attach`.
     - To inspect what non-md artifacts travel with a doc during restructuring.
   
   ### orphans
@@ -698,7 +660,7 @@
   List all orphaned attachments across the workspace.
   
   ```
-  carta orphans
+  rhidoc orphans
   ```
   
   Side effects:
@@ -711,14 +673,14 @@
   
   When to use:
     - To find sidecar files whose host .md was deleted or never created.
-    - As an alternative to triggering `carta regenerate` just to see orphan warnings.
+    - As an alternative to triggering `rhidoc regenerate` just to see orphan warnings.
   
   ### ai-skill
   
   Print this comprehensive AI agent reference to stdout.
   
   ```
-  carta ai-skill [--workspace PATH]
+  rhidoc ai-skill [--workspace PATH]
   ```
   
   Side effects:
@@ -731,8 +693,8 @@
     4. Workspace State — live summary of current workspace structure
   
   Per-command alternative:
-    `carta <command> --help-ai` prints only that command's section.
-    Example: `carta move --help-ai` prints the move reference.
+    `rhidoc <command> --help-ai` prints only that command's section.
+    Example: `rhidoc move --help-ai` prints the move reference.
   
   ---
   
@@ -741,52 +703,57 @@
   - **Gap-closing**: When an entry is removed from a directory (`move`, `delete`, `flatten`),
     all higher-numbered siblings are renumbered down to fill the gap.
   - **Ref rewriting**: All commands that change file positions rewrite `docXX.YY.ZZ` refs
-    across all `.md` files in the workspace and in `externalRefPaths` from `.carta.json`.
+    across all `.md` files in the workspace and in `externalRefPaths` from `.rhidoc.json`.
   - **Bundles**: Structural operations treat a bundle (root `.md` + same-prefix siblings) as a
     unit. Non-md sidecars travel with their host automatically — no declaration required.
-  - **Orphan warnings**: `carta regenerate` prints a stderr warning for any sidecar file whose
+  - **Orphan warnings**: `rhidoc regenerate` prints a stderr warning for any sidecar file whose
     numeric prefix has no corresponding `.md` root, or whose prefix matches a directory. Orphan
     warnings never block operation; the MANIFEST is still written.
-  - **Argument resolution**: `source`/`target`/`destination` args accept either workspace-relative
-    paths (e.g., `01-product/02-features`) or doc refs (e.g., `doc01.02`).
+  - **Argument resolution**: `source`/`target`/`destination` args accept either a doc ref or a
+    real existing filesystem path (relative to workspace root). Three ref input forms are accepted
+    and normalized to canonical `docXX.YY` on entry: `doc04.08` (full), `d04.08` (short), `04.08`
+    (bare coordinate). Fuzzy stem/prefix guessing is NOT supported — misspelled paths do not
+    silently resolve. The slug after `NN-` is descriptive and never part of a reference.
   - **`--no-regen` scope**: Skips MANIFEST.md rebuild only. Ref rewriting in doc content still
     happens. Useful for batch operations — run many moves with `--no-regen`, then one final
-    `carta regenerate`.
+    `rhidoc regenerate`.
   - **Index files**: `00-index.md` files mark a directory as a title group. They cannot be
     renamed via `move --rename`. Use `rename` to change the directory slug instead.
-  - **Position 0 is reserved**: `--order` must be >= 1. Position 0 is always the index file.
+  - **Position 0 is reserved**: When a directory contains a `00-index.md`, slot 00 is reserved for it.
+    Targeting slot 00 with `--at` or `--before` in such a directory is an error. At the workspace root
+    (which has no `00-index.md`), slot 00 is a normal group position and may be targeted freely.
   
   ---
   
   ## 3. Common Patterns
   
-  - **Batch restructure**: Use `--no-gap-close --no-regen` on all moves, then `carta regenerate` once at end.
+  - **Batch restructure**: Use `--no-gap-close --no-regen` on all moves, then `rhidoc regenerate` once at end.
     ```
-    carta move doc01.02 01-strategy --no-gap-close --no-regen
-    carta move doc01.03 01-strategy --no-gap-close --no-regen
-    carta regenerate
+    rhidoc move doc01.02 01-strategy --no-gap-close --no-regen
+    rhidoc move doc01.03 01-strategy --no-gap-close --no-regen
+    rhidoc regenerate
     ```
   - **Dissolve a group**: Move children out one by one (check paths between moves), then delete
     the empty index file and remove the empty directory.
     ```
-    carta move 02-old-group/01-child.md 03-new-home --no-regen
-    carta move 02-old-group/02-child.md 03-new-home --no-regen
-    carta delete 02-old-group
+    rhidoc move 02-old-group/01-child.md 03-new-home --no-regen
+    rhidoc move 02-old-group/02-child.md 03-new-home --no-regen
+    rhidoc delete 02-old-group
     ```
-  - **Create a new title group**: `carta group NN-slug --title "Title"` creates the directory
-    with `00-index.md`. Then use `carta move` or `carta create` to populate it.
-  - **Expand a file into a group**: `carta punch <target>` converts `NN-slug.md` into
+  - **Create a new title group**: `rhidoc make -g PARENT slug` creates the directory
+    with `00-index.md`. Then use `rhidoc move` or `rhidoc make` to populate it.
+  - **Expand a file into a group**: `rhidoc punch <target>` converts `NN-slug.md` into
     `NN-slug/00-index.md`. The doc ref is unchanged — no ref rewriting needed.
-  - **Flatten a subdirectory**: `carta flatten <target>` hoists children into parent, removing
+  - **Flatten a subdirectory**: `rhidoc flatten <target>` hoists children into parent, removing
     the directory. Use `--keep-index` to preserve the index as a sibling file.
-  - **Rename a slug**: `carta rename <target> new-slug` renames on disk. Then use
-    `carta rewrite old-ref=new-ref` to update references if needed (rename does not rewrite refs).
+  - **Rename a slug**: `rhidoc rename <target> new-slug` renames on disk. Then use
+    `rhidoc rewrite old-ref=new-ref` to update references if needed (rename does not rewrite refs).
   
   ---
   
   ## 4. Workspace State
   
-  Workspace root: `.carta/`
+  Workspace root: `.rhidoc/`
   
   | Directory | Title | Docs | Sidecars |
   |-----------|-------|------|----------|
@@ -804,9 +771,9 @@
 # ---
 # name: TestHelpAi.test_ai_skill_includes_workspace_state
   '''
-  # carta AI Reference — <VERSION>
+  # rhidoc AI Reference — <VERSION>
   
-  Complete semantic reference for AI agents driving the carta CLI. Covers command behavior, side effects, sequencing rules, and live workspace state.
+  Complete semantic reference for AI agents driving the rhidoc CLI. Covers command behavior, side effects, sequencing rules, and live workspace state.
   
   ---
   
@@ -822,11 +789,11 @@
   
   Every structural operation (`move`, `delete`, `rename`, `punch`, `flatten`) treats the bundle as a unit: when the root travels, all same-prefix siblings travel with it automatically.
   
-  **Orphans**: a file whose `NN` prefix has no corresponding `.md` root, or whose prefix matches a directory rather than a file, is an orphan. `carta regenerate` prints orphan warnings to stderr but never blocks operation.
+  **Orphans**: a file whose `NN` prefix has no corresponding `.md` root, or whose prefix matches a directory rather than a file, is an orphan. `rhidoc regenerate` prints orphan warnings to stderr but never blocks operation.
   
-  Use `carta attach` to place a new non-md artifact alongside its host doc.
+  Use `rhidoc attach` to place a new non-md artifact alongside its host doc.
   
-  **Sidecar display refs**: `carta tree --refs` and `carta bundle` display sidecars using the ref format `docXX.YY.ZZ/<slug>.<ext>`, where `docXX.YY.ZZ` is the host doc ref. These refs are for display only — no command accepts sidecar refs as input arguments.
+  **Sidecar display refs**: `rhidoc tree --refs` and `rhidoc bundle` display sidecars using the ref format `docXX.YY.ZZ/<slug>.<ext>`, where `docXX.YY.ZZ` is the host doc ref. These refs are for display only — no command accepts sidecar refs as input arguments.
   
   ---
   
@@ -837,7 +804,7 @@
   Rebuild `MANIFEST.md` from frontmatter across all docs in the workspace.
   
   ```
-  carta regenerate [--dry-run]
+  rhidoc regenerate [--dry-run]
   ```
   
   Side effects:
@@ -851,39 +818,62 @@
     - After batch moves using `--no-regen` on each move command.
     - When MANIFEST.md is stale or missing.
   
-  ### create
+  ### make
   
-  Create a new numbered `.md` file at a given position in a directory.
+  Create a new numbered `.md` file (doc) or directory + `00-index.md` (group) at a position.
   
   ```
-  carta create <destination> <slug> [--order N] [--title TEXT] [--summary TEXT] [--tags CSV] [--deps CSV] [--dry-run]
+  rhidoc make [PARENT] SLUG [-g] [--at REF] [--dry-run] [--no-regen]
   ```
   
   Arguments:
-    destination  Directory path relative to workspace root (e.g., `01-product/02-features`).
-                 Also accepts doc refs (e.g., `doc01.02`).
-    slug         Filename stem without prefix (e.g., `my-doc` → `03-my-doc.md`).
-                 Must NOT include a numeric prefix.
+    PARENT  (optional) Directory to place the new entry in. Accepts doc refs (e.g., `doc01.02`)
+            or workspace-relative paths. Omit to create a top-level title.
+    SLUG    Filename stem without prefix (e.g., `my-doc` → `03-my-doc.md`).
+            Must NOT include a numeric prefix.
+  
+  Addressing modes (four ways to specify where to place the entry):
+    1. `rhidoc make SLUG`              — single positional: creates at root level, appends after last entry
+    2. `rhidoc make PARENT SLUG`       — two positionals: creates inside PARENT, appends after last entry
+    3. `rhidoc make --at REF SLUG`     — strict slot: creates at exact position REF; errors if occupied
+    4. `rhidoc make --before REF SLUG` — displacing insert: shifts that sibling and all higher ones up by one,
+                                        then writes the new entry at REF's coordinate
   
   Side effects:
-    - Writes a new `.md` file with draft frontmatter.
-    - Regenerates MANIFEST.md.
-    - Does NOT renumber siblings — only appends or inserts at `--order`.
+    - Writes a new `.md` file (or directory + `00-index.md` with `-g`) with skeleton frontmatter.
+    - Frontmatter title is derived from slug (slug → "Title Case"). No frontmatter flags — author
+      real frontmatter in the same pass where you write the body.
+    - Regenerates MANIFEST.md (unless --no-regen).
+    - `--before` only: renumbers siblings (bump up) and rewrites their cross-references before writing.
+    - append / `--at`: does NOT renumber siblings.
   
   Flags:
-    --order N    Insert at position N (1-based). Without this, appends after the last entry.
-    --title TEXT Title in frontmatter. Default: derived from slug.
-    --summary TEXT  Summary in frontmatter. Default: empty.
-    --tags CSV      Comma-separated tags (e.g., "api,auth,server"). Default: empty list.
-    --deps CSV      Comma-separated dep refs (e.g., "doc01.02,doc01.03"). Default: empty list.
-    --dry-run    Print the planned file path without creating it.
+    -g, --group     Create a directory + `00-index.md` instead of a leaf `.md`.
+    --at REF        Exact target ref (e.g. `doc01.02.03.04`). Writes iff the slot is free, else errors.
+                    Do NOT combine with a PARENT positional — REF encodes the full coordinate.
+    --before REF    Displacing insert at REF. Bumps that sibling and all higher siblings up by one,
+                    rewrites their refs, then writes the new entry at REF's coordinate. Mutually
+                    exclusive with `--at`. Do NOT combine with a PARENT positional.
+    --dry-run       Print the planned file path (and shift plan for --before) without creating anything.
+    --no-regen      Skip MANIFEST regeneration.
+  
+  Output:
+    Prints the canonical ref and workspace-relative path of the created entry.
+    With --before, also prints: `Shifted: N sibling(s) renumbered`
+    Example: `Created: doc01.02.03.04  (03-product-design/.../04-architecture-guidelines.md)`
+  
+  Notes:
+    - `--at` is non-displacing (errors on occupied slot); `--before` is displacing (shifts siblings up).
+    - Do NOT combine `--before` with `--at` or with a two-positional target.
+    - Do NOT add `--title`, `--summary`, `--tags`, `--deps` flags to this command. Frontmatter is
+      authored by the agent in the same file write as the body. The skeleton is valid as-is.
   
   ### delete
   
   Delete one or more entries with gap-closing renumbering of siblings.
   
   ```
-  carta delete <target> [<target> ...] [--dry-run] [--output-mapping]
+  rhidoc delete <target> [<target> ...] [--dry-run] [--output-mapping]
   ```
   
   Arguments:
@@ -906,34 +896,60 @@
   Move or reorder a file or directory within the workspace.
   
   ```
-  carta move <source> <destination> [--order N] [--mkdir] [--rename SLUG] [--no-regen] [--no-gap-close] [--dry-run]
+  rhidoc move <source> [<destination>] [--at REF | --before REF] [--mkdir] [--rename SLUG] [--no-regen] [--no-gap-close] [--dry-run]
   ```
   
   Arguments:
     source       Path or doc ref to move. Accepts files (.md) and directories.
-    destination  Target directory. Must exist unless --mkdir is used.
+    destination  Target directory for append mode. Omit when using --at or --before.
+  
+  Addressing modes:
+    Append (positional destination, no --at/--before):
+      Move source to the destination directory, appending after the last existing entry.
+      Accepted forms for destination: path or doc ref to an existing directory.
+      --mkdir creates the directory if it is missing (also creates 00-index.md).
+  
+    --at REF (strict / non-displacing):
+      Move source to the exact position named by REF.  The slot must be free; if occupied,
+      the command errors without moving anything.  No sibling renumbering at the destination.
+      Source-side gap-close still applies (unless --no-gap-close).
+      Accepted ref forms: docXX.YY.ZZ | dXX.YY | XX.YY
+  
+    --before REF (displacing):
+      Insert source at the position named by REF, bumping that sibling and every sibling
+      with a higher prefix up by one, rewriting refs for all shifted entries.
+      Source-side gap-close still applies (unless --no-gap-close).
+      Accepted ref forms: docXX.YY.ZZ | dXX.YY | XX.YY
+  
+    --at and --before are mutually exclusive, and each is also mutually exclusive with a
+    positional destination argument — the ref carries the destination.
+  
+    Slot-0 rule: within any directory that contains a 00-index.md, prefix 00 is reserved.
+    At the workspace root (no 00-index.md present), prefix 00 is a normal group position
+    and may be targeted freely (e.g. `rhidoc move doc01 --before doc00` promotes a group
+    into root slot 0, bumping the former 00-group to 01).
   
   Side effects:
-    - Operates on bundles — non-md siblings sharing the target's numeric prefix travel with it.
-    - Removes source from its parent, gap-closes source siblings (unless --no-gap-close).
-    - Inserts at destination, bumps destination siblings at or above --order.
+    - Operates on bundles — non-md siblings sharing the source's numeric prefix travel with it.
+    - Removes source from its parent; gap-closes source siblings (unless --no-gap-close).
     - Rewrites all cross-references in workspace + externalRefPaths.
     - Regenerates MANIFEST.md (unless --no-regen).
   
   Flags:
-    --order N       Insert at position N. Without this, appends after the last entry.
-    --mkdir         Create destination directory if missing (also creates 00-index.md).
+    --at REF        Strict placement at REF; errors if slot is occupied.
+    --before REF    Displacing insert at REF; bumps all siblings at or above REF.
+    --mkdir         (append mode only) Create destination directory if missing.
     --rename SLUG   Change the slug during the move. Extension is preserved automatically.
     --no-regen      Skip MANIFEST regeneration. Ref rewriting still happens.
     --no-gap-close  Skip gap-closing of source siblings after the move. Source directory
                     will have a numbering gap. Use with --no-regen for batch operations,
-                    then run `carta regenerate` at the end.
+                    then run `rhidoc regenerate` at the end.
     --dry-run       Print planned moves without executing.
   
   Sequencing notes:
     - Each move changes numbering for subsequent commands — run sequentially, not in parallel.
     - When moving many entries out of a directory, use --no-gap-close --no-regen on each move
-      to avoid invalidating subsequent source paths, then run `carta regenerate` at the end.
+      to avoid invalidating subsequent source paths, then run `rhidoc regenerate` at the end.
     - Without --no-gap-close, move the highest-numbered entry first to avoid gap-closing
       invalidating subsequent source paths. Or check paths between moves.
   
@@ -942,7 +958,7 @@
   Expand a leaf `.md` file into a directory by converting it to `NN-slug/00-index.md`.
   
   ```
-  carta punch <target> [--as-child] [--dry-run]
+  rhidoc punch <target> [--as-child] [--dry-run]
   ```
   
   Arguments:
@@ -965,7 +981,7 @@
   Dissolve a directory by hoisting its children into the parent.
   
   ```
-  carta flatten <target> [--keep-index] [--force] [--at N] [--dry-run]
+  rhidoc flatten <target> [--keep-index] [--force] [--before REF] [--dry-run]
   ```
   
   Arguments:
@@ -980,17 +996,18 @@
     - Regenerates MANIFEST.md.
   
   Flags:
-    --keep-index  Preserve 00-index.md as a sibling file (named `NN-<dir-slug>.md`).
-    --force       Discard index even if it has significant content (>10 lines).
-    --at N        Insert hoisted children starting at position N. Default: source position.
-    --dry-run     Print planned moves without executing.
+    --keep-index   Preserve 00-index.md as a sibling file (named `NN-<dir-slug>.md`).
+    --force        Discard index even if it has significant content (>10 lines).
+    --before REF   Insert hoisted children before REF (a doc ref) in the parent.
+                   Default: the dissolved directory's old position.
+    --dry-run      Print planned moves without executing.
   
   ### attach
   
   Attach a non-md file as a sidecar to an existing doc, giving it the doc's numeric prefix.
   
   ```
-  carta attach <host> <source> [--rename SLUG] [--dry-run]
+  rhidoc attach <host> <source> [--rename SLUG] [--dry-run]
   ```
   
   Arguments:
@@ -1017,27 +1034,43 @@
     - Attachments are identified by prefix, not by declaration — no frontmatter needed.
     - The slug must be unique within the bundle across all extensions. If a different
       extension already uses the same slug, the command errors with a hint to --rename.
-    - To verify the bundle after attaching, run `carta bundle <host>`.
+    - To verify the bundle after attaching, run `rhidoc bundle <host>`.
   
   ### copy
   
   Copy an external file into the workspace at a numbered position.
   
   ```
-  carta copy <source> <destination> [--order N] [--rename SLUG] [--dry-run]
+  rhidoc copy <source> [<destination>] [--at REF | --before REF] [--rename SLUG] [--dry-run]
   ```
   
   Arguments:
     source       Path to a file outside the workspace.
-    destination  Directory path relative to workspace root.
+    destination  Target directory (append mode). Omit when using --at/--before.
+  
+  Addressing modes:
+    Append (positional destination, no --at/--before):
+      Copies the file into the destination directory, appending after the last existing entry.
+  
+    --at REF (strict / non-displacing):
+      Copies the file to the exact position named by REF. The slot must be free; if occupied,
+      the command errors without copying anything. No sibling renumbering.
+      Accepted ref forms: docXX.YY.ZZ | dXX.YY | XX.YY
+  
+    --before REF (displacing):
+      Copies the file at the position named by REF, bumping that sibling and every sibling
+      with a higher prefix up by one, rewriting refs for all shifted entries.
+      Accepted ref forms: docXX.YY.ZZ | dXX.YY | XX.YY
   
   Side effects:
     - Copies the file with a numbered prefix into the destination directory.
+    - `--before` only: renumbers siblings (bump up) and rewrites their cross-references before copying.
+    - append / `--at`: does NOT renumber siblings.
     - Regenerates MANIFEST.md.
-    - Does NOT renumber siblings.
   
   Flags:
-    --order N       Insert at position N. Default: appends after the last entry.
+    --at REF        Strict placement at REF; errors if slot is occupied.
+    --before REF    Displacing insert at REF; bumps all siblings at or above REF.
     --rename SLUG   Override the destination slug. Default: derived from source filename.
     --dry-run       Print the planned copy without executing.
   
@@ -1046,45 +1079,28 @@
   Rewrite doc refs across the workspace using explicit old=new mappings.
   
   ```
-  carta rewrite <old>=<new> [<old>=<new> ...] [--dry-run]
+  rhidoc rewrite <old>=<new> [<old>=<new> ...] [--dry-run]
   ```
   
   Arguments:
-    mappings  One or more `old=new` pairs (e.g., `doc01.02=doc01.05`).
+    mappings  One or more `old=new` pairs. Both sides accept the three input forms
+              (docXX.YY | dXX.YY | XX.YY) and are normalized to canonical `docXX.YY`
+              before substitution. Example: `d04.08=04.09` → rewrites `doc04.08` → `doc04.09`.
   
   Side effects:
-    - Rewrites all matching refs in workspace `.md` files and externalRefPaths.
+    - Normalizes both sides of each mapping to canonical form.
+    - Rewrites all canonical ref occurrences in workspace `.md` files and externalRefPaths.
     - Does NOT regenerate MANIFEST.md.
   
   Flags:
     --dry-run  Show which files and how many replacements would be made.
-  
-  ### group
-  
-  Create a title group directory with a `00-index.md` file.
-  
-  ```
-  carta group <target> [--title TEXT] [--no-regen]
-  ```
-  
-  Arguments:
-    target  Directory path relative to workspace root with NN- prefix
-            (e.g., `05-new-section`). Parent directory must exist.
-  
-  Side effects:
-    - Creates the directory and `00-index.md` with draft frontmatter.
-    - Regenerates MANIFEST.md (unless --no-regen).
-  
-  Flags:
-    --title TEXT  Title for the index. Default: derived from slug.
-    --no-regen    Skip MANIFEST regeneration.
   
   ### rename
   
   Rename a file or directory slug without changing its numeric position.
   
   ```
-  carta rename <target> <new-slug> [--no-regen]
+  rhidoc rename <target> <new-slug> [--no-regen]
   ```
   
   Arguments:
@@ -1094,7 +1110,7 @@
   Side effects:
     - Operates on bundles — non-md siblings sharing the target's numeric prefix travel with it.
     - Renames the file/directory on disk (and renames attachment files to match the new slug).
-    - Does NOT rewrite cross-references (use `carta rewrite` for that).
+    - Does NOT rewrite cross-references (use `rhidoc rewrite` for that).
     - Regenerates MANIFEST.md (unless --no-regen).
   
   Flags:
@@ -1102,62 +1118,62 @@
   
   ### init
   
-  Initialize a new `.carta/` workspace in the current directory, or refresh an existing one.
+  Initialize a new `.rhidoc/` workspace in the current directory, or refresh an existing one.
   
   ```
-  carta init [--name TEXT] [--dir DIRNAME] [--portable]
-  carta init --rehydrate [--dry-run]
+  rhidoc init [--name TEXT] [--dir DIRNAME] [--portable]
+  rhidoc init --rehydrate [--dry-run]
   ```
   
   Side effects (without --rehydrate):
-    - Creates `.carta.json` marker in the current directory.
+    - Creates `.rhidoc.json` marker in the current directory.
     - Creates `DIRNAME/00-codex/00-index.md` and `DIRNAME/MANIFEST.md`.
-    - Hydrates `.claude/skills/carta-cli/SKILL.md` (skips if exists).
+    - Hydrates `.claude/skills/rhidoc-cli/SKILL.md` (skips if exists).
     - Runs initial MANIFEST regeneration.
   
   Side effects (with --rehydrate):
-    - Overwrites `00-codex/*.md` with latest templates from installed carta.
-    - Overwrites `.claude/skills/carta-cli/SKILL.md` and `.claude/skills/docs-development/SKILL.md`.
+    - Overwrites `00-codex/*.md` with latest templates from installed rhidoc.
+    - Overwrites `.claude/skills/rhidoc-cli/SKILL.md` and `.claude/skills/docs-development/SKILL.md`.
     - Skips files that already match the latest version.
     - Does NOT touch user-created docs outside 00-codex.
     - Does NOT overwrite workspace.json fields (title, description, externalRefPaths).
   
   Flags:
     --name TEXT    Workspace title. Default: parent directory name.
-    --dir DIRNAME  Workspace directory name. Default: `.carta`.
+    --dir DIRNAME  Workspace directory name. Default: `.rhidoc`.
     --portable     Also copy editable Python scripts into workspace (pip-free usage).
     --rehydrate    Refresh templates and skills in an existing workspace.
     --dry-run      With --rehydrate: show what would be updated without writing.
   
   When to use --rehydrate:
-    - After upgrading carta (`pip install -e .` or `pip install --upgrade carta-cli`).
+    - After upgrading rhidoc (`pip install -e .` or `pip install --upgrade rhidoc`).
     - To push template improvements to existing workspaces.
   
   Example:
-    carta init --rehydrate              # refresh after a carta-cli upgrade
-    carta init --rehydrate --dry-run    # preview what would change
+    rhidoc init --rehydrate              # refresh after a rhidoc-cli upgrade
+    rhidoc init --rehydrate --dry-run    # preview what would change
   
   ### portable
   
-  Copy the carta CLI source into the workspace for pip-free usage.
+  Copy the rhidoc CLI source into the workspace for pip-free usage.
   
   ```
-  carta portable
+  rhidoc portable
   ```
   
   Side effects:
     - Creates `WORKSPACE/_scripts/` with all library modules.
-    - Creates `WORKSPACE/carta.py` entry point shim.
-    - Updates `.carta.json` with `portable` key pointing to the shim.
+    - Creates `WORKSPACE/rhidoc.py` entry point shim.
+    - Updates `.rhidoc.json` with `portable` key pointing to the shim.
   
-  After running, use `python3 .carta/carta.py <command>` instead of `carta`.
+  After running, use `python3 .rhidoc/rhidoc.py <command>` instead of `rhidoc`.
   
   ### cat
   
   Print document contents to stdout by doc ref or path.
   
   ```
-  carta cat <ref>
+  rhidoc cat <ref>
   ```
   
   Arguments:
@@ -1172,7 +1188,7 @@
   Print workspace structure as a visual tree with titles from frontmatter.
   
   ```
-  carta tree [target] [--refs] [--no-title] [--no-sidecars]
+  rhidoc tree [target] [--refs] [--no-title] [--no-sidecars]
   ```
   
   Arguments:
@@ -1202,7 +1218,7 @@
   List entries in a directory (docs, subdirectories, sidecars, and non-numbered files).
   
   ```
-  carta ls [target] [--no-sidecars]
+  rhidoc ls [target] [--no-sidecars]
   ```
   
   Arguments:
@@ -1229,7 +1245,7 @@
   Show a doc's bundle: the host .md file and all its sidecar attachments with sizes.
   
   ```
-  carta bundle <ref-or-path>
+  rhidoc bundle <ref-or-path>
   ```
   
   Arguments:
@@ -1244,7 +1260,7 @@
     - Size is human-readable (B, KB, MB).
   
   When to use:
-    - To verify a bundle after `carta attach`.
+    - To verify a bundle after `rhidoc attach`.
     - To inspect what non-md artifacts travel with a doc during restructuring.
   
   ### orphans
@@ -1252,7 +1268,7 @@
   List all orphaned attachments across the workspace.
   
   ```
-  carta orphans
+  rhidoc orphans
   ```
   
   Side effects:
@@ -1265,14 +1281,14 @@
   
   When to use:
     - To find sidecar files whose host .md was deleted or never created.
-    - As an alternative to triggering `carta regenerate` just to see orphan warnings.
+    - As an alternative to triggering `rhidoc regenerate` just to see orphan warnings.
   
   ### ai-skill
   
   Print this comprehensive AI agent reference to stdout.
   
   ```
-  carta ai-skill [--workspace PATH]
+  rhidoc ai-skill [--workspace PATH]
   ```
   
   Side effects:
@@ -1285,8 +1301,8 @@
     4. Workspace State — live summary of current workspace structure
   
   Per-command alternative:
-    `carta <command> --help-ai` prints only that command's section.
-    Example: `carta move --help-ai` prints the move reference.
+    `rhidoc <command> --help-ai` prints only that command's section.
+    Example: `rhidoc move --help-ai` prints the move reference.
   
   ---
   
@@ -1295,52 +1311,57 @@
   - **Gap-closing**: When an entry is removed from a directory (`move`, `delete`, `flatten`),
     all higher-numbered siblings are renumbered down to fill the gap.
   - **Ref rewriting**: All commands that change file positions rewrite `docXX.YY.ZZ` refs
-    across all `.md` files in the workspace and in `externalRefPaths` from `.carta.json`.
+    across all `.md` files in the workspace and in `externalRefPaths` from `.rhidoc.json`.
   - **Bundles**: Structural operations treat a bundle (root `.md` + same-prefix siblings) as a
     unit. Non-md sidecars travel with their host automatically — no declaration required.
-  - **Orphan warnings**: `carta regenerate` prints a stderr warning for any sidecar file whose
+  - **Orphan warnings**: `rhidoc regenerate` prints a stderr warning for any sidecar file whose
     numeric prefix has no corresponding `.md` root, or whose prefix matches a directory. Orphan
     warnings never block operation; the MANIFEST is still written.
-  - **Argument resolution**: `source`/`target`/`destination` args accept either workspace-relative
-    paths (e.g., `01-product/02-features`) or doc refs (e.g., `doc01.02`).
+  - **Argument resolution**: `source`/`target`/`destination` args accept either a doc ref or a
+    real existing filesystem path (relative to workspace root). Three ref input forms are accepted
+    and normalized to canonical `docXX.YY` on entry: `doc04.08` (full), `d04.08` (short), `04.08`
+    (bare coordinate). Fuzzy stem/prefix guessing is NOT supported — misspelled paths do not
+    silently resolve. The slug after `NN-` is descriptive and never part of a reference.
   - **`--no-regen` scope**: Skips MANIFEST.md rebuild only. Ref rewriting in doc content still
     happens. Useful for batch operations — run many moves with `--no-regen`, then one final
-    `carta regenerate`.
+    `rhidoc regenerate`.
   - **Index files**: `00-index.md` files mark a directory as a title group. They cannot be
     renamed via `move --rename`. Use `rename` to change the directory slug instead.
-  - **Position 0 is reserved**: `--order` must be >= 1. Position 0 is always the index file.
+  - **Position 0 is reserved**: When a directory contains a `00-index.md`, slot 00 is reserved for it.
+    Targeting slot 00 with `--at` or `--before` in such a directory is an error. At the workspace root
+    (which has no `00-index.md`), slot 00 is a normal group position and may be targeted freely.
   
   ---
   
   ## 3. Common Patterns
   
-  - **Batch restructure**: Use `--no-gap-close --no-regen` on all moves, then `carta regenerate` once at end.
+  - **Batch restructure**: Use `--no-gap-close --no-regen` on all moves, then `rhidoc regenerate` once at end.
     ```
-    carta move doc01.02 01-strategy --no-gap-close --no-regen
-    carta move doc01.03 01-strategy --no-gap-close --no-regen
-    carta regenerate
+    rhidoc move doc01.02 01-strategy --no-gap-close --no-regen
+    rhidoc move doc01.03 01-strategy --no-gap-close --no-regen
+    rhidoc regenerate
     ```
   - **Dissolve a group**: Move children out one by one (check paths between moves), then delete
     the empty index file and remove the empty directory.
     ```
-    carta move 02-old-group/01-child.md 03-new-home --no-regen
-    carta move 02-old-group/02-child.md 03-new-home --no-regen
-    carta delete 02-old-group
+    rhidoc move 02-old-group/01-child.md 03-new-home --no-regen
+    rhidoc move 02-old-group/02-child.md 03-new-home --no-regen
+    rhidoc delete 02-old-group
     ```
-  - **Create a new title group**: `carta group NN-slug --title "Title"` creates the directory
-    with `00-index.md`. Then use `carta move` or `carta create` to populate it.
-  - **Expand a file into a group**: `carta punch <target>` converts `NN-slug.md` into
+  - **Create a new title group**: `rhidoc make -g PARENT slug` creates the directory
+    with `00-index.md`. Then use `rhidoc move` or `rhidoc make` to populate it.
+  - **Expand a file into a group**: `rhidoc punch <target>` converts `NN-slug.md` into
     `NN-slug/00-index.md`. The doc ref is unchanged — no ref rewriting needed.
-  - **Flatten a subdirectory**: `carta flatten <target>` hoists children into parent, removing
+  - **Flatten a subdirectory**: `rhidoc flatten <target>` hoists children into parent, removing
     the directory. Use `--keep-index` to preserve the index as a sibling file.
-  - **Rename a slug**: `carta rename <target> new-slug` renames on disk. Then use
-    `carta rewrite old-ref=new-ref` to update references if needed (rename does not rewrite refs).
+  - **Rename a slug**: `rhidoc rename <target> new-slug` renames on disk. Then use
+    `rhidoc rewrite old-ref=new-ref` to update references if needed (rename does not rewrite refs).
   
   ---
   
   ## 4. Workspace State
   
-  Workspace root: `.carta/`
+  Workspace root: `.rhidoc/`
   
   | Directory | Title | Docs | Sidecars |
   |-----------|-------|------|----------|
@@ -1358,9 +1379,9 @@
 # ---
 # name: TestHelpAi.test_ai_skill_lists_all_commands
   '''
-  # carta AI Reference — <VERSION>
+  # rhidoc AI Reference — <VERSION>
   
-  Complete semantic reference for AI agents driving the carta CLI. Covers command behavior, side effects, sequencing rules, and live workspace state.
+  Complete semantic reference for AI agents driving the rhidoc CLI. Covers command behavior, side effects, sequencing rules, and live workspace state.
   
   ---
   
@@ -1376,11 +1397,11 @@
   
   Every structural operation (`move`, `delete`, `rename`, `punch`, `flatten`) treats the bundle as a unit: when the root travels, all same-prefix siblings travel with it automatically.
   
-  **Orphans**: a file whose `NN` prefix has no corresponding `.md` root, or whose prefix matches a directory rather than a file, is an orphan. `carta regenerate` prints orphan warnings to stderr but never blocks operation.
+  **Orphans**: a file whose `NN` prefix has no corresponding `.md` root, or whose prefix matches a directory rather than a file, is an orphan. `rhidoc regenerate` prints orphan warnings to stderr but never blocks operation.
   
-  Use `carta attach` to place a new non-md artifact alongside its host doc.
+  Use `rhidoc attach` to place a new non-md artifact alongside its host doc.
   
-  **Sidecar display refs**: `carta tree --refs` and `carta bundle` display sidecars using the ref format `docXX.YY.ZZ/<slug>.<ext>`, where `docXX.YY.ZZ` is the host doc ref. These refs are for display only — no command accepts sidecar refs as input arguments.
+  **Sidecar display refs**: `rhidoc tree --refs` and `rhidoc bundle` display sidecars using the ref format `docXX.YY.ZZ/<slug>.<ext>`, where `docXX.YY.ZZ` is the host doc ref. These refs are for display only — no command accepts sidecar refs as input arguments.
   
   ---
   
@@ -1391,7 +1412,7 @@
   Rebuild `MANIFEST.md` from frontmatter across all docs in the workspace.
   
   ```
-  carta regenerate [--dry-run]
+  rhidoc regenerate [--dry-run]
   ```
   
   Side effects:
@@ -1405,39 +1426,62 @@
     - After batch moves using `--no-regen` on each move command.
     - When MANIFEST.md is stale or missing.
   
-  ### create
+  ### make
   
-  Create a new numbered `.md` file at a given position in a directory.
+  Create a new numbered `.md` file (doc) or directory + `00-index.md` (group) at a position.
   
   ```
-  carta create <destination> <slug> [--order N] [--title TEXT] [--summary TEXT] [--tags CSV] [--deps CSV] [--dry-run]
+  rhidoc make [PARENT] SLUG [-g] [--at REF] [--dry-run] [--no-regen]
   ```
   
   Arguments:
-    destination  Directory path relative to workspace root (e.g., `01-product/02-features`).
-                 Also accepts doc refs (e.g., `doc01.02`).
-    slug         Filename stem without prefix (e.g., `my-doc` → `03-my-doc.md`).
-                 Must NOT include a numeric prefix.
+    PARENT  (optional) Directory to place the new entry in. Accepts doc refs (e.g., `doc01.02`)
+            or workspace-relative paths. Omit to create a top-level title.
+    SLUG    Filename stem without prefix (e.g., `my-doc` → `03-my-doc.md`).
+            Must NOT include a numeric prefix.
+  
+  Addressing modes (four ways to specify where to place the entry):
+    1. `rhidoc make SLUG`              — single positional: creates at root level, appends after last entry
+    2. `rhidoc make PARENT SLUG`       — two positionals: creates inside PARENT, appends after last entry
+    3. `rhidoc make --at REF SLUG`     — strict slot: creates at exact position REF; errors if occupied
+    4. `rhidoc make --before REF SLUG` — displacing insert: shifts that sibling and all higher ones up by one,
+                                        then writes the new entry at REF's coordinate
   
   Side effects:
-    - Writes a new `.md` file with draft frontmatter.
-    - Regenerates MANIFEST.md.
-    - Does NOT renumber siblings — only appends or inserts at `--order`.
+    - Writes a new `.md` file (or directory + `00-index.md` with `-g`) with skeleton frontmatter.
+    - Frontmatter title is derived from slug (slug → "Title Case"). No frontmatter flags — author
+      real frontmatter in the same pass where you write the body.
+    - Regenerates MANIFEST.md (unless --no-regen).
+    - `--before` only: renumbers siblings (bump up) and rewrites their cross-references before writing.
+    - append / `--at`: does NOT renumber siblings.
   
   Flags:
-    --order N    Insert at position N (1-based). Without this, appends after the last entry.
-    --title TEXT Title in frontmatter. Default: derived from slug.
-    --summary TEXT  Summary in frontmatter. Default: empty.
-    --tags CSV      Comma-separated tags (e.g., "api,auth,server"). Default: empty list.
-    --deps CSV      Comma-separated dep refs (e.g., "doc01.02,doc01.03"). Default: empty list.
-    --dry-run    Print the planned file path without creating it.
+    -g, --group     Create a directory + `00-index.md` instead of a leaf `.md`.
+    --at REF        Exact target ref (e.g. `doc01.02.03.04`). Writes iff the slot is free, else errors.
+                    Do NOT combine with a PARENT positional — REF encodes the full coordinate.
+    --before REF    Displacing insert at REF. Bumps that sibling and all higher siblings up by one,
+                    rewrites their refs, then writes the new entry at REF's coordinate. Mutually
+                    exclusive with `--at`. Do NOT combine with a PARENT positional.
+    --dry-run       Print the planned file path (and shift plan for --before) without creating anything.
+    --no-regen      Skip MANIFEST regeneration.
+  
+  Output:
+    Prints the canonical ref and workspace-relative path of the created entry.
+    With --before, also prints: `Shifted: N sibling(s) renumbered`
+    Example: `Created: doc01.02.03.04  (03-product-design/.../04-architecture-guidelines.md)`
+  
+  Notes:
+    - `--at` is non-displacing (errors on occupied slot); `--before` is displacing (shifts siblings up).
+    - Do NOT combine `--before` with `--at` or with a two-positional target.
+    - Do NOT add `--title`, `--summary`, `--tags`, `--deps` flags to this command. Frontmatter is
+      authored by the agent in the same file write as the body. The skeleton is valid as-is.
   
   ### delete
   
   Delete one or more entries with gap-closing renumbering of siblings.
   
   ```
-  carta delete <target> [<target> ...] [--dry-run] [--output-mapping]
+  rhidoc delete <target> [<target> ...] [--dry-run] [--output-mapping]
   ```
   
   Arguments:
@@ -1460,34 +1504,60 @@
   Move or reorder a file or directory within the workspace.
   
   ```
-  carta move <source> <destination> [--order N] [--mkdir] [--rename SLUG] [--no-regen] [--no-gap-close] [--dry-run]
+  rhidoc move <source> [<destination>] [--at REF | --before REF] [--mkdir] [--rename SLUG] [--no-regen] [--no-gap-close] [--dry-run]
   ```
   
   Arguments:
     source       Path or doc ref to move. Accepts files (.md) and directories.
-    destination  Target directory. Must exist unless --mkdir is used.
+    destination  Target directory for append mode. Omit when using --at or --before.
+  
+  Addressing modes:
+    Append (positional destination, no --at/--before):
+      Move source to the destination directory, appending after the last existing entry.
+      Accepted forms for destination: path or doc ref to an existing directory.
+      --mkdir creates the directory if it is missing (also creates 00-index.md).
+  
+    --at REF (strict / non-displacing):
+      Move source to the exact position named by REF.  The slot must be free; if occupied,
+      the command errors without moving anything.  No sibling renumbering at the destination.
+      Source-side gap-close still applies (unless --no-gap-close).
+      Accepted ref forms: docXX.YY.ZZ | dXX.YY | XX.YY
+  
+    --before REF (displacing):
+      Insert source at the position named by REF, bumping that sibling and every sibling
+      with a higher prefix up by one, rewriting refs for all shifted entries.
+      Source-side gap-close still applies (unless --no-gap-close).
+      Accepted ref forms: docXX.YY.ZZ | dXX.YY | XX.YY
+  
+    --at and --before are mutually exclusive, and each is also mutually exclusive with a
+    positional destination argument — the ref carries the destination.
+  
+    Slot-0 rule: within any directory that contains a 00-index.md, prefix 00 is reserved.
+    At the workspace root (no 00-index.md present), prefix 00 is a normal group position
+    and may be targeted freely (e.g. `rhidoc move doc01 --before doc00` promotes a group
+    into root slot 0, bumping the former 00-group to 01).
   
   Side effects:
-    - Operates on bundles — non-md siblings sharing the target's numeric prefix travel with it.
-    - Removes source from its parent, gap-closes source siblings (unless --no-gap-close).
-    - Inserts at destination, bumps destination siblings at or above --order.
+    - Operates on bundles — non-md siblings sharing the source's numeric prefix travel with it.
+    - Removes source from its parent; gap-closes source siblings (unless --no-gap-close).
     - Rewrites all cross-references in workspace + externalRefPaths.
     - Regenerates MANIFEST.md (unless --no-regen).
   
   Flags:
-    --order N       Insert at position N. Without this, appends after the last entry.
-    --mkdir         Create destination directory if missing (also creates 00-index.md).
+    --at REF        Strict placement at REF; errors if slot is occupied.
+    --before REF    Displacing insert at REF; bumps all siblings at or above REF.
+    --mkdir         (append mode only) Create destination directory if missing.
     --rename SLUG   Change the slug during the move. Extension is preserved automatically.
     --no-regen      Skip MANIFEST regeneration. Ref rewriting still happens.
     --no-gap-close  Skip gap-closing of source siblings after the move. Source directory
                     will have a numbering gap. Use with --no-regen for batch operations,
-                    then run `carta regenerate` at the end.
+                    then run `rhidoc regenerate` at the end.
     --dry-run       Print planned moves without executing.
   
   Sequencing notes:
     - Each move changes numbering for subsequent commands — run sequentially, not in parallel.
     - When moving many entries out of a directory, use --no-gap-close --no-regen on each move
-      to avoid invalidating subsequent source paths, then run `carta regenerate` at the end.
+      to avoid invalidating subsequent source paths, then run `rhidoc regenerate` at the end.
     - Without --no-gap-close, move the highest-numbered entry first to avoid gap-closing
       invalidating subsequent source paths. Or check paths between moves.
   
@@ -1496,7 +1566,7 @@
   Expand a leaf `.md` file into a directory by converting it to `NN-slug/00-index.md`.
   
   ```
-  carta punch <target> [--as-child] [--dry-run]
+  rhidoc punch <target> [--as-child] [--dry-run]
   ```
   
   Arguments:
@@ -1519,7 +1589,7 @@
   Dissolve a directory by hoisting its children into the parent.
   
   ```
-  carta flatten <target> [--keep-index] [--force] [--at N] [--dry-run]
+  rhidoc flatten <target> [--keep-index] [--force] [--before REF] [--dry-run]
   ```
   
   Arguments:
@@ -1534,17 +1604,18 @@
     - Regenerates MANIFEST.md.
   
   Flags:
-    --keep-index  Preserve 00-index.md as a sibling file (named `NN-<dir-slug>.md`).
-    --force       Discard index even if it has significant content (>10 lines).
-    --at N        Insert hoisted children starting at position N. Default: source position.
-    --dry-run     Print planned moves without executing.
+    --keep-index   Preserve 00-index.md as a sibling file (named `NN-<dir-slug>.md`).
+    --force        Discard index even if it has significant content (>10 lines).
+    --before REF   Insert hoisted children before REF (a doc ref) in the parent.
+                   Default: the dissolved directory's old position.
+    --dry-run      Print planned moves without executing.
   
   ### attach
   
   Attach a non-md file as a sidecar to an existing doc, giving it the doc's numeric prefix.
   
   ```
-  carta attach <host> <source> [--rename SLUG] [--dry-run]
+  rhidoc attach <host> <source> [--rename SLUG] [--dry-run]
   ```
   
   Arguments:
@@ -1571,27 +1642,43 @@
     - Attachments are identified by prefix, not by declaration — no frontmatter needed.
     - The slug must be unique within the bundle across all extensions. If a different
       extension already uses the same slug, the command errors with a hint to --rename.
-    - To verify the bundle after attaching, run `carta bundle <host>`.
+    - To verify the bundle after attaching, run `rhidoc bundle <host>`.
   
   ### copy
   
   Copy an external file into the workspace at a numbered position.
   
   ```
-  carta copy <source> <destination> [--order N] [--rename SLUG] [--dry-run]
+  rhidoc copy <source> [<destination>] [--at REF | --before REF] [--rename SLUG] [--dry-run]
   ```
   
   Arguments:
     source       Path to a file outside the workspace.
-    destination  Directory path relative to workspace root.
+    destination  Target directory (append mode). Omit when using --at/--before.
+  
+  Addressing modes:
+    Append (positional destination, no --at/--before):
+      Copies the file into the destination directory, appending after the last existing entry.
+  
+    --at REF (strict / non-displacing):
+      Copies the file to the exact position named by REF. The slot must be free; if occupied,
+      the command errors without copying anything. No sibling renumbering.
+      Accepted ref forms: docXX.YY.ZZ | dXX.YY | XX.YY
+  
+    --before REF (displacing):
+      Copies the file at the position named by REF, bumping that sibling and every sibling
+      with a higher prefix up by one, rewriting refs for all shifted entries.
+      Accepted ref forms: docXX.YY.ZZ | dXX.YY | XX.YY
   
   Side effects:
     - Copies the file with a numbered prefix into the destination directory.
+    - `--before` only: renumbers siblings (bump up) and rewrites their cross-references before copying.
+    - append / `--at`: does NOT renumber siblings.
     - Regenerates MANIFEST.md.
-    - Does NOT renumber siblings.
   
   Flags:
-    --order N       Insert at position N. Default: appends after the last entry.
+    --at REF        Strict placement at REF; errors if slot is occupied.
+    --before REF    Displacing insert at REF; bumps all siblings at or above REF.
     --rename SLUG   Override the destination slug. Default: derived from source filename.
     --dry-run       Print the planned copy without executing.
   
@@ -1600,45 +1687,28 @@
   Rewrite doc refs across the workspace using explicit old=new mappings.
   
   ```
-  carta rewrite <old>=<new> [<old>=<new> ...] [--dry-run]
+  rhidoc rewrite <old>=<new> [<old>=<new> ...] [--dry-run]
   ```
   
   Arguments:
-    mappings  One or more `old=new` pairs (e.g., `doc01.02=doc01.05`).
+    mappings  One or more `old=new` pairs. Both sides accept the three input forms
+              (docXX.YY | dXX.YY | XX.YY) and are normalized to canonical `docXX.YY`
+              before substitution. Example: `d04.08=04.09` → rewrites `doc04.08` → `doc04.09`.
   
   Side effects:
-    - Rewrites all matching refs in workspace `.md` files and externalRefPaths.
+    - Normalizes both sides of each mapping to canonical form.
+    - Rewrites all canonical ref occurrences in workspace `.md` files and externalRefPaths.
     - Does NOT regenerate MANIFEST.md.
   
   Flags:
     --dry-run  Show which files and how many replacements would be made.
-  
-  ### group
-  
-  Create a title group directory with a `00-index.md` file.
-  
-  ```
-  carta group <target> [--title TEXT] [--no-regen]
-  ```
-  
-  Arguments:
-    target  Directory path relative to workspace root with NN- prefix
-            (e.g., `05-new-section`). Parent directory must exist.
-  
-  Side effects:
-    - Creates the directory and `00-index.md` with draft frontmatter.
-    - Regenerates MANIFEST.md (unless --no-regen).
-  
-  Flags:
-    --title TEXT  Title for the index. Default: derived from slug.
-    --no-regen    Skip MANIFEST regeneration.
   
   ### rename
   
   Rename a file or directory slug without changing its numeric position.
   
   ```
-  carta rename <target> <new-slug> [--no-regen]
+  rhidoc rename <target> <new-slug> [--no-regen]
   ```
   
   Arguments:
@@ -1648,7 +1718,7 @@
   Side effects:
     - Operates on bundles — non-md siblings sharing the target's numeric prefix travel with it.
     - Renames the file/directory on disk (and renames attachment files to match the new slug).
-    - Does NOT rewrite cross-references (use `carta rewrite` for that).
+    - Does NOT rewrite cross-references (use `rhidoc rewrite` for that).
     - Regenerates MANIFEST.md (unless --no-regen).
   
   Flags:
@@ -1656,62 +1726,62 @@
   
   ### init
   
-  Initialize a new `.carta/` workspace in the current directory, or refresh an existing one.
+  Initialize a new `.rhidoc/` workspace in the current directory, or refresh an existing one.
   
   ```
-  carta init [--name TEXT] [--dir DIRNAME] [--portable]
-  carta init --rehydrate [--dry-run]
+  rhidoc init [--name TEXT] [--dir DIRNAME] [--portable]
+  rhidoc init --rehydrate [--dry-run]
   ```
   
   Side effects (without --rehydrate):
-    - Creates `.carta.json` marker in the current directory.
+    - Creates `.rhidoc.json` marker in the current directory.
     - Creates `DIRNAME/00-codex/00-index.md` and `DIRNAME/MANIFEST.md`.
-    - Hydrates `.claude/skills/carta-cli/SKILL.md` (skips if exists).
+    - Hydrates `.claude/skills/rhidoc-cli/SKILL.md` (skips if exists).
     - Runs initial MANIFEST regeneration.
   
   Side effects (with --rehydrate):
-    - Overwrites `00-codex/*.md` with latest templates from installed carta.
-    - Overwrites `.claude/skills/carta-cli/SKILL.md` and `.claude/skills/docs-development/SKILL.md`.
+    - Overwrites `00-codex/*.md` with latest templates from installed rhidoc.
+    - Overwrites `.claude/skills/rhidoc-cli/SKILL.md` and `.claude/skills/docs-development/SKILL.md`.
     - Skips files that already match the latest version.
     - Does NOT touch user-created docs outside 00-codex.
     - Does NOT overwrite workspace.json fields (title, description, externalRefPaths).
   
   Flags:
     --name TEXT    Workspace title. Default: parent directory name.
-    --dir DIRNAME  Workspace directory name. Default: `.carta`.
+    --dir DIRNAME  Workspace directory name. Default: `.rhidoc`.
     --portable     Also copy editable Python scripts into workspace (pip-free usage).
     --rehydrate    Refresh templates and skills in an existing workspace.
     --dry-run      With --rehydrate: show what would be updated without writing.
   
   When to use --rehydrate:
-    - After upgrading carta (`pip install -e .` or `pip install --upgrade carta-cli`).
+    - After upgrading rhidoc (`pip install -e .` or `pip install --upgrade rhidoc`).
     - To push template improvements to existing workspaces.
   
   Example:
-    carta init --rehydrate              # refresh after a carta-cli upgrade
-    carta init --rehydrate --dry-run    # preview what would change
+    rhidoc init --rehydrate              # refresh after a rhidoc-cli upgrade
+    rhidoc init --rehydrate --dry-run    # preview what would change
   
   ### portable
   
-  Copy the carta CLI source into the workspace for pip-free usage.
+  Copy the rhidoc CLI source into the workspace for pip-free usage.
   
   ```
-  carta portable
+  rhidoc portable
   ```
   
   Side effects:
     - Creates `WORKSPACE/_scripts/` with all library modules.
-    - Creates `WORKSPACE/carta.py` entry point shim.
-    - Updates `.carta.json` with `portable` key pointing to the shim.
+    - Creates `WORKSPACE/rhidoc.py` entry point shim.
+    - Updates `.rhidoc.json` with `portable` key pointing to the shim.
   
-  After running, use `python3 .carta/carta.py <command>` instead of `carta`.
+  After running, use `python3 .rhidoc/rhidoc.py <command>` instead of `rhidoc`.
   
   ### cat
   
   Print document contents to stdout by doc ref or path.
   
   ```
-  carta cat <ref>
+  rhidoc cat <ref>
   ```
   
   Arguments:
@@ -1726,7 +1796,7 @@
   Print workspace structure as a visual tree with titles from frontmatter.
   
   ```
-  carta tree [target] [--refs] [--no-title] [--no-sidecars]
+  rhidoc tree [target] [--refs] [--no-title] [--no-sidecars]
   ```
   
   Arguments:
@@ -1756,7 +1826,7 @@
   List entries in a directory (docs, subdirectories, sidecars, and non-numbered files).
   
   ```
-  carta ls [target] [--no-sidecars]
+  rhidoc ls [target] [--no-sidecars]
   ```
   
   Arguments:
@@ -1783,7 +1853,7 @@
   Show a doc's bundle: the host .md file and all its sidecar attachments with sizes.
   
   ```
-  carta bundle <ref-or-path>
+  rhidoc bundle <ref-or-path>
   ```
   
   Arguments:
@@ -1798,7 +1868,7 @@
     - Size is human-readable (B, KB, MB).
   
   When to use:
-    - To verify a bundle after `carta attach`.
+    - To verify a bundle after `rhidoc attach`.
     - To inspect what non-md artifacts travel with a doc during restructuring.
   
   ### orphans
@@ -1806,7 +1876,7 @@
   List all orphaned attachments across the workspace.
   
   ```
-  carta orphans
+  rhidoc orphans
   ```
   
   Side effects:
@@ -1819,14 +1889,14 @@
   
   When to use:
     - To find sidecar files whose host .md was deleted or never created.
-    - As an alternative to triggering `carta regenerate` just to see orphan warnings.
+    - As an alternative to triggering `rhidoc regenerate` just to see orphan warnings.
   
   ### ai-skill
   
   Print this comprehensive AI agent reference to stdout.
   
   ```
-  carta ai-skill [--workspace PATH]
+  rhidoc ai-skill [--workspace PATH]
   ```
   
   Side effects:
@@ -1839,8 +1909,8 @@
     4. Workspace State — live summary of current workspace structure
   
   Per-command alternative:
-    `carta <command> --help-ai` prints only that command's section.
-    Example: `carta move --help-ai` prints the move reference.
+    `rhidoc <command> --help-ai` prints only that command's section.
+    Example: `rhidoc move --help-ai` prints the move reference.
   
   ---
   
@@ -1849,52 +1919,57 @@
   - **Gap-closing**: When an entry is removed from a directory (`move`, `delete`, `flatten`),
     all higher-numbered siblings are renumbered down to fill the gap.
   - **Ref rewriting**: All commands that change file positions rewrite `docXX.YY.ZZ` refs
-    across all `.md` files in the workspace and in `externalRefPaths` from `.carta.json`.
+    across all `.md` files in the workspace and in `externalRefPaths` from `.rhidoc.json`.
   - **Bundles**: Structural operations treat a bundle (root `.md` + same-prefix siblings) as a
     unit. Non-md sidecars travel with their host automatically — no declaration required.
-  - **Orphan warnings**: `carta regenerate` prints a stderr warning for any sidecar file whose
+  - **Orphan warnings**: `rhidoc regenerate` prints a stderr warning for any sidecar file whose
     numeric prefix has no corresponding `.md` root, or whose prefix matches a directory. Orphan
     warnings never block operation; the MANIFEST is still written.
-  - **Argument resolution**: `source`/`target`/`destination` args accept either workspace-relative
-    paths (e.g., `01-product/02-features`) or doc refs (e.g., `doc01.02`).
+  - **Argument resolution**: `source`/`target`/`destination` args accept either a doc ref or a
+    real existing filesystem path (relative to workspace root). Three ref input forms are accepted
+    and normalized to canonical `docXX.YY` on entry: `doc04.08` (full), `d04.08` (short), `04.08`
+    (bare coordinate). Fuzzy stem/prefix guessing is NOT supported — misspelled paths do not
+    silently resolve. The slug after `NN-` is descriptive and never part of a reference.
   - **`--no-regen` scope**: Skips MANIFEST.md rebuild only. Ref rewriting in doc content still
     happens. Useful for batch operations — run many moves with `--no-regen`, then one final
-    `carta regenerate`.
+    `rhidoc regenerate`.
   - **Index files**: `00-index.md` files mark a directory as a title group. They cannot be
     renamed via `move --rename`. Use `rename` to change the directory slug instead.
-  - **Position 0 is reserved**: `--order` must be >= 1. Position 0 is always the index file.
+  - **Position 0 is reserved**: When a directory contains a `00-index.md`, slot 00 is reserved for it.
+    Targeting slot 00 with `--at` or `--before` in such a directory is an error. At the workspace root
+    (which has no `00-index.md`), slot 00 is a normal group position and may be targeted freely.
   
   ---
   
   ## 3. Common Patterns
   
-  - **Batch restructure**: Use `--no-gap-close --no-regen` on all moves, then `carta regenerate` once at end.
+  - **Batch restructure**: Use `--no-gap-close --no-regen` on all moves, then `rhidoc regenerate` once at end.
     ```
-    carta move doc01.02 01-strategy --no-gap-close --no-regen
-    carta move doc01.03 01-strategy --no-gap-close --no-regen
-    carta regenerate
+    rhidoc move doc01.02 01-strategy --no-gap-close --no-regen
+    rhidoc move doc01.03 01-strategy --no-gap-close --no-regen
+    rhidoc regenerate
     ```
   - **Dissolve a group**: Move children out one by one (check paths between moves), then delete
     the empty index file and remove the empty directory.
     ```
-    carta move 02-old-group/01-child.md 03-new-home --no-regen
-    carta move 02-old-group/02-child.md 03-new-home --no-regen
-    carta delete 02-old-group
+    rhidoc move 02-old-group/01-child.md 03-new-home --no-regen
+    rhidoc move 02-old-group/02-child.md 03-new-home --no-regen
+    rhidoc delete 02-old-group
     ```
-  - **Create a new title group**: `carta group NN-slug --title "Title"` creates the directory
-    with `00-index.md`. Then use `carta move` or `carta create` to populate it.
-  - **Expand a file into a group**: `carta punch <target>` converts `NN-slug.md` into
+  - **Create a new title group**: `rhidoc make -g PARENT slug` creates the directory
+    with `00-index.md`. Then use `rhidoc move` or `rhidoc make` to populate it.
+  - **Expand a file into a group**: `rhidoc punch <target>` converts `NN-slug.md` into
     `NN-slug/00-index.md`. The doc ref is unchanged — no ref rewriting needed.
-  - **Flatten a subdirectory**: `carta flatten <target>` hoists children into parent, removing
+  - **Flatten a subdirectory**: `rhidoc flatten <target>` hoists children into parent, removing
     the directory. Use `--keep-index` to preserve the index as a sibling file.
-  - **Rename a slug**: `carta rename <target> new-slug` renames on disk. Then use
-    `carta rewrite old-ref=new-ref` to update references if needed (rename does not rewrite refs).
+  - **Rename a slug**: `rhidoc rename <target> new-slug` renames on disk. Then use
+    `rhidoc rewrite old-ref=new-ref` to update references if needed (rename does not rewrite refs).
   
   ---
   
   ## 4. Workspace State
   
-  Workspace root: `.carta/`
+  Workspace root: `.rhidoc/`
   
   | Directory | Title | Docs | Sidecars |
   |-----------|-------|------|----------|
@@ -1912,16 +1987,94 @@
 # ---
 # name: TestHelpAi.test_help_ai_prints_deprecation_notice
   '''
-  Deprecated: --help-ai is replaced by `carta ai-skill`.
-  Run `carta ai-skill` for full semantic documentation.
+  Deprecated: --help-ai is replaced by `rhidoc ai-skill`.
+  Run `rhidoc ai-skill` for full semantic documentation.
+  
+  '''
+# ---
+# name: TestMake.test_make_at_occupied_position_errors
+  '''
+  Error: position 01 is occupied in 00-codex.
+  Occupied positions: [0, 1, 2, 3, 4, 5, 6]
+  
+  '''
+# ---
+# name: TestMake.test_make_help_has_examples
+  '''
+  usage: rhidoc make [-h] [-g] [--at AT] [--before BEFORE] [--dry-run]
+                     [--no-regen]
+                     target [target ...]
+  
+  positional arguments:
+    target           [PARENT] SLUG — omit PARENT for a top-level title
+  
+  options:
+    -h, --help       show this help message and exit
+    -g, --group      Create a directory + 00-index.md instead of a leaf .md
+    --at AT          Exact target ref (e.g. doc01.02.03.04); writes iff the slot
+                     is free
+    --before BEFORE  Insert at REF (e.g. doc01.02.03), bumping that sibling and
+                     all higher ones up by one
+    --dry-run
+    --no-regen
+  
+  Examples:
+    rhidoc make doc01.03 my-section
+    rhidoc make my-top-level-doc
+    rhidoc make -g doc01 new-group
+    rhidoc make --at doc00.07 pinned-doc
+    rhidoc make --before doc00.03 new-doc
+    rhidoc make doc00 scratch --dry-run
+  
+  '''
+# ---
+# name: TestMakeGroup.test_make_group_at_occupied_errors
+  '''
+  Error: position 01 is occupied in ..
+  Occupied positions: [0, 1, 2, 3]
+  
+  '''
+# ---
+# name: TestMakeGroup.test_make_group_help_has_examples
+  '''
+  usage: rhidoc make [-h] [-g] [--at AT] [--before BEFORE] [--dry-run]
+                     [--no-regen]
+                     target [target ...]
+  
+  positional arguments:
+    target           [PARENT] SLUG — omit PARENT for a top-level title
+  
+  options:
+    -h, --help       show this help message and exit
+    -g, --group      Create a directory + 00-index.md instead of a leaf .md
+    --at AT          Exact target ref (e.g. doc01.02.03.04); writes iff the slot
+                     is free
+    --before BEFORE  Insert at REF (e.g. doc01.02.03), bumping that sibling and
+                     all higher ones up by one
+    --dry-run
+    --no-regen
+  
+  Examples:
+    rhidoc make doc01.03 my-section
+    rhidoc make my-top-level-doc
+    rhidoc make -g doc01 new-group
+    rhidoc make --at doc00.07 pinned-doc
+    rhidoc make --before doc00.03 new-doc
+    rhidoc make doc00 scratch --dry-run
+  
+  '''
+# ---
+# name: TestMakeGroup.test_make_group_rejects_workspace_prefix
+  '''
+  Error: path must be relative to workspace root, without the '.rhidoc' prefix. Got: '.rhidoc/05-new-section'. Try: '05-new-section'
   
   '''
 # ---
 # name: TestMovetoDryRun.test_dry_run_no_modification
   '''
   === Planned filesystem moves ===
-    <TMPDIR>/.carta/00-codex/06-integration.md -> <TMPDIR>/.carta/00-codex/05-integration.md
-    <TMPDIR>/.carta/00-codex/05-taxonomy.md -> <TMPDIR>/.carta/01-product-strategy/05-taxonomy.md
+    <TMPDIR>/.rhidoc/00-codex/06-integration.md -> <TMPDIR>/.rhidoc/00-codex/05-integration.md
+    <TMPDIR>/.rhidoc/00-codex/05-taxonomy.md -> <TMPDIR>/.rhidoc/01-product-strategy/05-taxonomy.md
   
   === Ref rename map ===
     doc00.05 -> doc01.05
@@ -1933,108 +2086,108 @@
 # ---
 # name: TestPunch.test_punch_directory_errors
   '''
-  Error: source is already a directory: <TMPDIR>/.carta/02-product-design/04-web-platform
+  Error: source is already a directory: <TMPDIR>/.rhidoc/02-product-design/04-web-platform
   
   '''
 # ---
 # name: TestTreeCommand.test_tree_default
   '''
-  .carta
-  ├── 00-codex — Codex
-  │   ├── 00-index — Codex
-  │   ├── 01-about — About
-  │   ├── 02-maintenance — Maintenance
-  │   ├── 03-conventions — Conventions
-  │   ├── 04-ai-retrieval — AI Retrieval
-  │   ├── 05-taxonomy — Taxonomy
-  │   └── 06-integration — Integration
-  ├── 01-product-strategy — Product Strategy
-  │   ├── 00-index — Product Strategy
-  │   ├── 01-mission — Mission
-  │   ├── 02-principles — Principles
-  │   ├── 03-glossary — Glossary
-  │   └── 04-primary-sources — Primary Sources
-  │       ├── 00-index — Primary Sources
-  │       ├── 01-experiment — The Carta Experiment
-  │       ├── 02-foundations — Theoretical Foundations
-  │       └── 03-unfolding — Unfolding as Development
-  ├── 02-product-design — Product Design
-  │   ├── 00-index — Product Design
-  │   ├── 01-workspace-scripts — Workspace Scripts
-  │   ├── 02-cli-flow — CLI User Flow
-  │   ├── 03-extension — VSCode Extension
-  │   ├── 04-web-platform — Web Platform
-  │   │   ├── 00-index — Web Platform
-  │   │   ├── 01-conversational — Conversational Flow
-  │   │   └── 02-direct-editing — Direct Editing Flow
-  │   ├── 05-metamodel — Metamodel
-  │   ├── 06-presentation — Presentation Model
-  │   ├── 07-glossary — Canvas Glossary
-  │   └── 08-decisions — Decisions
-  │       ├── 00-index — Decisions
-  │       ├── 01-yjs-state — YJS State
-  │       ├── 02-port-polarity — Port Polarity
-  │       └── 03-formatters — Formatters
-  └── 03-architecture — Architecture
-      ├── 00-index — Architecture
-      ├── 01-overview — Overview
-      ├── 02-script-pipeline — Script Pipeline
-      ├── 03-vscode-extension — VSCode Extension
-      ├── 04-canvas-state — Canvas State
-      ├── 05-frontend — Frontend Architecture
-      └── 06-data-pipelines — Data Pipelines
+  .rhidoc
+  |-- 00-codex -- Codex
+  |   |-- 00-index -- Codex
+  |   |-- 01-about -- About
+  |   |-- 02-maintenance -- Maintenance
+  |   |-- 03-conventions -- Conventions
+  |   |-- 04-ai-retrieval -- AI Retrieval
+  |   |-- 05-taxonomy -- Taxonomy
+  |   `-- 06-integration -- Integration
+  |-- 01-product-strategy -- Product Strategy
+  |   |-- 00-index -- Product Strategy
+  |   |-- 01-mission -- Mission
+  |   |-- 02-principles -- Principles
+  |   |-- 03-glossary -- Glossary
+  |   `-- 04-primary-sources -- Primary Sources
+  |       |-- 00-index -- Primary Sources
+  |       |-- 01-experiment -- The Carta Experiment
+  |       |-- 02-foundations -- Theoretical Foundations
+  |       `-- 03-unfolding -- Unfolding as Development
+  |-- 02-product-design -- Product Design
+  |   |-- 00-index -- Product Design
+  |   |-- 01-workspace-scripts -- Workspace Scripts
+  |   |-- 02-cli-flow -- CLI User Flow
+  |   |-- 03-extension -- VSCode Extension
+  |   |-- 04-web-platform -- Web Platform
+  |   |   |-- 00-index -- Web Platform
+  |   |   |-- 01-conversational -- Conversational Flow
+  |   |   `-- 02-direct-editing -- Direct Editing Flow
+  |   |-- 05-metamodel -- Metamodel
+  |   |-- 06-presentation -- Presentation Model
+  |   |-- 07-glossary -- Canvas Glossary
+  |   `-- 08-decisions -- Decisions
+  |       |-- 00-index -- Decisions
+  |       |-- 01-yjs-state -- YJS State
+  |       |-- 02-port-polarity -- Port Polarity
+  |       `-- 03-formatters -- Formatters
+  `-- 03-architecture -- Architecture
+      |-- 00-index -- Architecture
+      |-- 01-overview -- Overview
+      |-- 02-script-pipeline -- Script Pipeline
+      |-- 03-vscode-extension -- VSCode Extension
+      |-- 04-canvas-state -- Canvas State
+      |-- 05-frontend -- Frontend Architecture
+      `-- 06-data-pipelines -- Data Pipelines
   
   '''
 # ---
 # name: TestTreeCommand.test_tree_no_title
   '''
   04-primary-sources
-  ├── 00-index
-  ├── 01-experiment
-  ├── 02-foundations
-  └── 03-unfolding
+  |-- 00-index
+  |-- 01-experiment
+  |-- 02-foundations
+  `-- 03-unfolding
   
   '''
 # ---
 # name: TestTreeCommand.test_tree_refs
   '''
-  04-primary-sources — Primary Sources (doc01.04)
-  ├── 00-index — Primary Sources (doc01.04.00)
-  ├── 01-experiment — The Carta Experiment (doc01.04.01)
-  ├── 02-foundations — Theoretical Foundations (doc01.04.02)
-  └── 03-unfolding — Unfolding as Development (doc01.04.03)
+  04-primary-sources -- Primary Sources (doc01.04)
+  |-- 00-index -- Primary Sources (doc01.04.00)
+  |-- 01-experiment -- The Carta Experiment (doc01.04.01)
+  |-- 02-foundations -- Theoretical Foundations (doc01.04.02)
+  `-- 03-unfolding -- Unfolding as Development (doc01.04.03)
   
   '''
 # ---
 # name: TestTreeCommand.test_tree_subtree
   '''
-  04-primary-sources — Primary Sources
-  ├── 00-index — Primary Sources
-  ├── 01-experiment — The Carta Experiment
-  ├── 02-foundations — Theoretical Foundations
-  └── 03-unfolding — Unfolding as Development
+  04-primary-sources -- Primary Sources
+  |-- 00-index -- Primary Sources
+  |-- 01-experiment -- The Carta Experiment
+  |-- 02-foundations -- Theoretical Foundations
+  `-- 03-unfolding -- Unfolding as Development
   
   '''
 # ---
 # name: test_init_rehydrate_dry_run
   '''
-    Would update: .carta/00-codex/01-about.md
+    Would update: .rhidoc/00-codex/01-about.md
   
-  Would update 1 file(s), 6 already current.
+  Would update 1 file(s), 8 already current.
   
   '''
 # ---
 # name: test_init_rehydrate_without_workspace
   '''
-  Error: .carta.json not found in any directory above cwd. Are you inside a Carta workspace?
-  Hint: run `carta init` first to scaffold a workspace.
+  Error: .rhidoc.json not found in any directory above cwd. Are you inside a Rhidoc workspace?
+  Hint: run `rhidoc init` first to scaffold a workspace.
   
   '''
 # ---
 # name: test_init_without_rehydrate_refuses_existing
   '''
-  Workspace already exists: <TMPDIR>/.carta.json
-  Run `carta init --rehydrate` to refresh codex templates and skill files.
+  Workspace already exists: <TMPDIR>/.rhidoc.json
+  Run `rhidoc init --rehydrate` to refresh codex templates and skill files.
   
   '''
 # ---

@@ -1,0 +1,10 @@
+{
+  "root": ".rhidoc/",
+  "title": "Rhidoc",
+  "description": "",
+  "externalRefPaths": [
+    "CLAUDE.md",
+    ".claude/skills/**/*.md",
+    ".cursor/**/*.md"
+  ]
+}
