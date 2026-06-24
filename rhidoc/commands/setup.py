@@ -43,6 +43,9 @@ _LIBRARY_MODULES = [
     "commands/transform.py",
     "commands/content.py",
     "commands/setup.py",
+    "commands/mdapi.py",
+    "mdtree.py",
+    "mdlint.py",
 ]
 
 _DATA_FILES = [

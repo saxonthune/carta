@@ -24,7 +24,7 @@ rhidoc create <group> <slug>     # add a doc
 rhidoc delete <ref>              # remove with gap-closing
 rhidoc move <ref> <dest>         # move/reorder
 rhidoc punch <ref>               # expand file into directory
-rhidoc flatten <ref>             # dissolve directory
+rhidoc hoist <ref>               # dissolve directory
 rhidoc regenerate                # rebuild MANIFEST.md
 ```
 

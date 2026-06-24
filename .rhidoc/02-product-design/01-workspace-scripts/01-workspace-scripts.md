@@ -22,7 +22,7 @@ All command logic lives in a single `commands.py` module using relative imports.
 | `group` | Create a new numbered group directory with `00-index.md` |
 | `rename` | Rename a directory or file slug in-place without changing its position. `--no-regen` skips MANIFEST regeneration. |
 | `punch` | Expand a leaf file into a directory (NN-slug.md → NN-slug/00-index.md) |
-| `flatten` | Dissolve a directory, hoisting children into the parent |
+| `hoist` | Dissolve a directory, hoisting children into the parent |
 | `attach` | Attach a non-md file as a sidecar to an existing doc, giving it the doc's numeric prefix |
 | `copy` | Copy a file into the workspace at a given position |
 | `rewrite` | Rewrite doc refs using user-supplied mappings |
@@ -37,7 +37,7 @@ All structural operations maintain cross-reference integrity — refs in survivi
 
 A **bundle** is the set of siblings in a directory that share a numeric prefix (`NN`). The bundle root is the `NN-<slug>.md` file; attachments are all other `NN-*.<ext>` siblings.
 
-Every structural operation (`move`, `delete`, `rename`, `punch`, `flatten`) operates on bundles as a unit — the root and all its attachments travel together without requiring explicit declaration.
+Every structural operation (`move`, `delete`, `rename`, `punch`, `hoist`) operates on bundles as a unit — the root and all its attachments travel together without requiring explicit declaration.
 
 Scope: the Docs API owns the bundle as a structural unit. Kind-awareness and content interpretation of attachment files are reconciliation's concern (doc03.07).
 

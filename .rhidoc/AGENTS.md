@@ -17,7 +17,7 @@ of truth for this project.
 2. **Content edits use Write/Edit; structural changes use the `rhidoc` CLI.**
    Editing prose inside an existing doc is a normal file edit — then run
    `rhidoc regenerate`. Creating, moving, deleting, renaming, punching, or
-   flattening docs must go through `rhidoc`. Direct file writes bypass numbering,
+   hoisting docs must go through `rhidoc`. Direct file writes bypass numbering,
    ref assignment, and MANIFEST registration, and will corrupt the workspace.
 
 3. **Cross-references are `docXX.YY.ZZ`** — two digits per segment (e.g.

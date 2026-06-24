@@ -13,6 +13,7 @@ requires-python = ">=3.10"
 dependencies = [
     "click",
     "pyyaml",
+    "markdown-it-py",
 ]
 
 [project.urls]

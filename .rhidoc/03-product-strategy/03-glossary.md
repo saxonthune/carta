@@ -15,7 +15,7 @@ Canonical definitions for domain terms used throughout Rhidoc. Use these terms c
 
 A **product** corresponds to a single, distinct thing that a user installs, opens, or runs.
 
-- **Rhidoc Docs API** — Deterministic Python operations for manipulating `.rhidoc/` workspace documents (create, delete, move, punch, flatten, regenerate). Designed primarily for AI agents. Delivered as an installable CLI (`pip install rhidoc`) or as portable scripts dumped into `.rhidoc/` so the workspace carries its own tooling.
+- **Rhidoc Docs API** — Deterministic Python operations for manipulating `.rhidoc/` workspace documents (create, delete, move, punch, hoist, regenerate). Designed primarily for AI agents. Delivered as an installable CLI (`pip install rhidoc`) or as portable scripts dumped into `.rhidoc/` so the workspace carries its own tooling.
 
 ## Specification Concepts
 

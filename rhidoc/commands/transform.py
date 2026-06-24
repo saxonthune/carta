@@ -1,4 +1,4 @@
-"""rhidoc — transform commands: punch, flatten, copy."""
+"""rhidoc — transform commands: punch, hoist, copy."""
 import argparse
 import re
 import shutil
@@ -93,7 +93,7 @@ def cmd_punch(args: argparse.Namespace, rhidoc_root: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# flatten helpers
+# hoist helpers
 # ---------------------------------------------------------------------------
 
 def _count_content_lines(path: Path) -> int:
@@ -101,7 +101,7 @@ def _count_content_lines(path: Path) -> int:
     return sum(1 for line in body.splitlines() if line.strip())
 
 
-def _flatten_bundle_moves(
+def _hoist_bundle_moves(
     bndl: "bundle_mod.Bundle",
     new_prefix: int,
     dest_dir: Path,
@@ -128,7 +128,7 @@ def _flatten_bundle_moves(
     return moves
 
 
-def _flatten_stage_bundle(
+def _hoist_stage_bundle(
     bndl: "bundle_mod.Bundle",
     new_prefix: int,
     dest_dir: Path,
@@ -159,10 +159,10 @@ def _flatten_stage_bundle(
 
 
 # ---------------------------------------------------------------------------
-# flatten
+# hoist
 # ---------------------------------------------------------------------------
 
-def cmd_flatten(args: argparse.Namespace, rhidoc_root: Path) -> None:
+def cmd_hoist(args: argparse.Namespace, rhidoc_root: Path) -> None:
     """Dissolve directory, hoist children."""
     source_path = resolve_and_validate(args.target, rhidoc_root).path
 
@@ -246,12 +246,12 @@ def cmd_flatten(args: argparse.Namespace, rhidoc_root: Path) -> None:
     moves: list[tuple[Path, Path]] = []
     for idx, (bndl, override_slug) in enumerate(final_order):
         new_prefix = idx + 1
-        moves.extend(_flatten_bundle_moves(bndl, new_prefix, parent_dir, override_slug))
+        moves.extend(_hoist_bundle_moves(bndl, new_prefix, parent_dir, override_slug))
 
     rename_map = compute_rename_map(moves, rhidoc_root)
 
     if args.dry_run:
-        print("=== Planned flatten ===")
+        print("=== Planned hoist ===")
         print(f"Dissolving: {source_path.relative_to(rhidoc_root)}")
         print(f"Children to hoist: {len(hoisted)}")
         if has_index:
@@ -279,7 +279,7 @@ def cmd_flatten(args: argparse.Namespace, rhidoc_root: Path) -> None:
 
         for idx, (bndl, override_slug) in enumerate(final_order):
             new_prefix = idx + 1
-            _flatten_stage_bundle(bndl, new_prefix, parent_dir, staging_path, override_slug, staged)
+            _hoist_stage_bundle(bndl, new_prefix, parent_dir, staging_path, override_slug, staged)
 
         # Discard index and its attachments when not keeping index.
         # (They remain in source_path until rmtree, but explicit deletion makes intent clear.)
@@ -300,7 +300,7 @@ def cmd_flatten(args: argparse.Namespace, rhidoc_root: Path) -> None:
 
     do_regenerate(rhidoc_root, _load_preamble(rhidoc_root.name))
 
-    print(f"Flattened: {source_path.name} ({len(hoisted)} children hoisted)")
+    print(f"Hoisted: {source_path.name} ({len(hoisted)} children hoisted)")
     print(f"Refs updated: {sum(rewrite_results.values())} replacement(s) across {len(rewrite_results)} file(s)")
     if rename_map:
         print(f"Rename map ({len(rename_map)} entries):")

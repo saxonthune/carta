@@ -91,12 +91,12 @@ def test_ref_to_path_roundtrip(data):
 
 
 # ---------------------------------------------------------------------------
-# Property 3b: punch then flatten --keep-index is identity
+# Property 3b: punch then hoist --keep-index is identity
 # ---------------------------------------------------------------------------
 
 @settings(max_examples=25, deadline=None)
 @given(st.data())
-def test_punch_flatten_identity(data):
+def test_punch_hoist_identity(data):
     with tempfile.TemporaryDirectory() as tmpdir:
         rhidoc = _build_fixture(Path(tmpdir))
         leaves = _punchable_leaves(rhidoc)
@@ -109,12 +109,12 @@ def test_punch_flatten_identity(data):
 
         # The punched directory has the same stem as the leaf
         dir_rel = leaf_rel[:-3] if leaf_rel.endswith(".md") else leaf_rel
-        flatten_result = _run_rhidoc(rhidoc, "flatten", dir_rel, "--keep-index")
-        assert flatten_result.returncode == 0, f"flatten failed:\n{flatten_result.stderr}"
+        hoist_result = _run_rhidoc(rhidoc, "hoist", dir_rel, "--keep-index")
+        assert hoist_result.returncode == 0, f"hoist failed:\n{hoist_result.stderr}"
 
         after = _snapshot(rhidoc)
         assert after == before, (
-            f"Workspace changed after punch+flatten for {leaf_rel!r}.\n"
+            f"Workspace changed after punch+hoist for {leaf_rel!r}.\n"
             f"Added: {sorted(set(after) - set(before))}\n"
             f"Removed: {sorted(set(before) - set(after))}"
         )

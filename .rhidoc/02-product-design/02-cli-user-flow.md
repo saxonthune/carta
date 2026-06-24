@@ -119,7 +119,7 @@ rhidoc move doc01 --before doc00
 rhidoc delete 01-product/02-old-feature
 
 # Dissolve a directory, hoisting children into parent
-rhidoc flatten 01-product/03-my-feature
+rhidoc hoist 01-product/03-my-feature
 
 # Rebuild MANIFEST.md from frontmatter
 rhidoc regenerate
