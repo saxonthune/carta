@@ -28,4 +28,4 @@ The `.rhidoc/` workspace format is Rhidoc's primary product. It defines a standa
 
 - **Rhidoc Docs API** (doc03.06.01): Deterministic Python operations for manipulating workspace documents
 
-See the codex (doc00.01 through doc00.04) for usage and conventions, and the docs syntax reference (doc03.09) for the full formal grammar.
+See the codex (doc00.00 through doc00.03) for usage and conventions, and the docs syntax reference (doc03.09) for the full formal grammar.

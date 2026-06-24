@@ -2,7 +2,7 @@
 
 Machine-readable index for AI navigation. Read this file first, then open only the docs relevant to your query.
 
-**Retrieval strategy:** See doc00.04 for AI retrieval patterns.
+**Retrieval strategy:** See doc00.00 (codex index) for how to find and read docs efficiently.
 
 ## Column Definitions
 
@@ -21,11 +21,10 @@ Orphaned attachments (non-md files with no corresponding root .md) are reported 
 | Ref | File | Summary | Tags | Deps | Refs | Attachments |
 |-----|------|---------|------|------|------|-------------|
 
-| doc00.00 | `00-index.md` | Meta-documentation — how to read this workspace | index, meta | — | — | — |
+| doc00.00 | `00-index.md` | Meta-documentation — how to read, navigate, and maintain this workspace | index, meta | — | doc03.08.05 | — |
 | doc00.01 | `01-about.md` | Why this workspace exists, how to read it, two-sources-of-truth theory | docs, meta, theory | — | — | — |
 | doc00.02 | `02-maintenance.md` | Doc philosophy — docs convert volatile source signals into stable intent; declarative intent, banned patterns, author freely then structure separately, when to grow detail | docs, maintenance, philosophy | — | doc03.08.12 | — |
 | doc00.03 | `03-conventions.md` | Cross-reference syntax, frontmatter schema, file naming, writing style | docs, conventions | — | doc03.09 | — |
-| doc00.04 | `04-ai-retrieval.md` | How AI agents navigate this workspace — hierarchical retrieval, MANIFEST usage, token budgets | docs, ai, retrieval | — | doc03.08.05 | — |
 
 ## 01-architecture — Architecture
 
@@ -110,7 +109,7 @@ Orphaned attachments (non-md files with no corresponding root .md) are reported 
 | doc03.08.02 | `08-research/02-verifiability-and-testability.md` | Epistemology of verification, test value hierarchy, decomposition inventory, testability architecture | testing, verification, epistemology, agents, testability, oracles, properties | doc03.08.01 | — | — |
 | doc03.08.03 | `08-research/03-decomposition-and-composition-theory.md` | Mathematical foundations for spec-driven development — what makes a good decomposition, and how pieces compose back | decomposition, composition, information-theory, modularity, spec-driven, category-theory, complexity | doc03.04.01 | doc03.04.02, doc03.08.07 | — |
 | doc03.08.04 | `08-research/04-spec-code-reconciliation.md` | Two-source-of-truth model, filesystem data formats, deterministic scripts, LLM-assisted reconciliation between product specs and codebases | spec-driven, reconciliation, formats, scripts, decomposition, information-theory, llm, static-analysis | doc03.04.01, doc03.07 | doc03.08.05, doc03.08.06 | — |
-| doc03.08.05 | `08-research/05-documentation-systems-and-retrieval.md` | Principles behind hierarchical docs systems, agentic search improvement, scientific comparison of docs structures, and what makes individual specs good enough for code generation | docs, retrieval, ai, specifications, elicitation, information-architecture, evaluation | doc00.04, doc03.08.04 | doc03.08.12 | — |
+| doc03.08.05 | `08-research/05-documentation-systems-and-retrieval.md` | Principles behind hierarchical docs systems, agentic search improvement, scientific comparison of docs structures, and what makes individual specs good enough for code generation | docs, retrieval, ai, specifications, elicitation, information-architecture, evaluation | doc00.00, doc03.08.04 | doc03.08.12 | — |
 | doc03.08.06 | `08-research/06-spec-format-vocabulary.md` | What parts of the spec format Rhidoc has opinions on vs what's up to users — format concerns vs user concerns | specs, vocabulary, format, agnosticism, workspace, principles | doc03.05, doc03.08, doc03.08.04 | doc03.08.12 | — |
 | doc03.08.07 | `08-research/07-product-as-transition-system.md` | Modeling products as guarded transition systems — verifiable reachability, dead-end detection, and deductive architecture from product properties | product-modeling, transition-systems, verification, architecture, reachability, spec-driven, artifact-driven development | doc03.04.01, doc03.04.02, doc03.08.03 | doc03.08.08, doc03.08.09 | — |
 | doc03.08.08 | `08-research/08-structured-product-modeling.md` | The set of formal structures needed to fully describe a business product — entity models, decision tables, state machines, and six more — plus how they compose | product-modeling, decision-tables, state-machines, entities, enumerations, constraints, spec-driven | doc03.08.07, doc03.04.01 | doc03.08.09 | — |
@@ -131,7 +130,7 @@ Quick lookup for file-path→doc mapping:
 | `adr` | doc02.03.00 |
 | `agents` | doc03.08.01, doc03.08.02 |
 | `agnosticism` | doc03.08.06 |
-| `ai` | doc00.04, doc01.02.00, doc01.02.01, doc03.02, doc03.04.03, doc03.06.01, doc03.08.05, doc03.08.11, doc03.08.12 |
+| `ai` | doc01.02.00, doc01.02.01, doc03.02, doc03.04.03, doc03.06.01, doc03.08.05, doc03.08.11, doc03.08.12 |
 | `alexander` | doc03.04.03 |
 | `alignment` | doc01.01, doc03.07 |
 | `api` | doc03.08.09 |
@@ -155,7 +154,7 @@ Quick lookup for file-path→doc mapping:
 | `decisions` | doc02.03.00 |
 | `decomposition` | doc03.08.03, doc03.08.04 |
 | `development` | doc03.04.03 |
-| `docs` | doc00.01, doc00.02, doc00.03, doc00.04, doc03.05, doc03.08.05, doc03.09 |
+| `docs` | doc00.01, doc00.02, doc00.03, doc03.05, doc03.08.05, doc03.09 |
 | `docs-api` | doc02.01.01, doc03.06.01 |
 | `efficiency` | doc03.08.01 |
 | `elicitation` | doc03.08.05 |
@@ -203,7 +202,7 @@ Quick lookup for file-path→doc mapping:
 | `reference` | doc03.09 |
 | `research` | doc03.08.00 |
 | `rest` | doc03.08.09 |
-| `retrieval` | doc00.04, doc03.08.05 |
+| `retrieval` | doc03.08.05 |
 | `rpc` | doc03.08.09 |
 | `scripts` | doc02.01.01, doc03.06.01, doc03.08.04 |
 | `sdlc` | doc03.02 |

@@ -179,7 +179,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_portable = subparsers.add_parser("portable", help="Dump editable scripts into workspace")
 
     # ai-skill
-    p_ai_skill = subparsers.add_parser("ai-skill", help="Print AI agent reference for all commands")
+    p_ai_skill = subparsers.add_parser("ai-skill", help="Print compact AI agent reference (pass a command name for its full block)")
+    p_ai_skill.add_argument("topic", nargs="?", default=None,
+                            help="Optional command name; prints that command's full reference block")
 
     # cat
     p_cat = subparsers.add_parser("cat", help="Print document contents by ref")

@@ -18,8 +18,11 @@ This principle governs **spec docs** — the docs that describe the artifact its
 
 **Research-session docs are the recognized exception** (see [Research Sessions](#research-sessions)): they capture exploratory synthesis — option landscapes, techniques, and tradeoffs weighed while building — and are *allowed* to survey alternatives a spec would never commit to. The banned patterns below apply to spec docs.
 
+A doc converts a volatile source signal (code, structure) into stable intent. Most banned patterns are one failure under that lens — leaking the volatile snapshot into the stable artifact. Encode the invariant, discard the snapshot.
+
 **Banned patterns** (spec docs) — grep your draft for these before writing:
 
+- **Volatile snapshots**: exact counts, totals, line numbers, sizes, or any value derived from the current state of the source. State the invariant, not the snapshot.
 - **Future modals**: "will", "won't", "is going to", "going to", "shall", "would" (when describing planned behavior, not conditional logic)
 - **Phase / version language**: "v0", "v1", "MVP", "POC", "Phase 1", "Phase 2", "next iteration", "first pass"
 - **Deferral language**: "Deferred", "TODO", "PENDING", "Not yet", "Coming soon", "in the future", "for now"
@@ -71,6 +74,8 @@ grep -nEi '\b(will|won.t|is going to|going to|shall|deferred|TODO|PENDING|not ye
 
 Review every match. Some uses ("if X will fail" inside a conditional explanation) are legitimate. Declarative prose describing planned behavior is not.
 
+**Author freely, structure separately.** Reason and draft in free prose first — don't compose directly into the document's structure. Then commit the draft as a separate step: normal edits, or `rhidoc mdapi insert`/`set-body`, whose lint gate runs this same banned-pattern check (plus length caps) automatically and rejects a non-conformant section. The grep above is your manual backstop; the write gate is the mechanical one. Either way, length and conformance are enforced at commit, not by cramping the drafting.
+
 For research-session docs this check is narrower: flag dated postscripts and blow-by-blow narrative, but option-surveying language ("either X or Y", "one approach", "in some systems") is expected, not a violation.
 
 ## The Development Loop
@@ -93,7 +98,7 @@ When the user has no docs yet:
 
 ## Orienting (Existing Workspaces)
 
-When docs already exist, read `MANIFEST.md` and identify which are relevant. Read those docs and any related source code. Then pick up from where the user is, not from the beginning.
+When docs already exist, read `MANIFEST.md` and identify which are relevant. Read those docs and any related source code — use `rhidoc mdapi outline <ref>` for a doc's skeleton and `rhidoc mdapi read <ref> --depth N` / `--at ADDR` to pull only the part you need instead of the whole file. Then pick up from where the user is, not from the beginning.
 
 ## When to Stress-Test
 
@@ -108,7 +113,7 @@ Do not stress-test as a first move. The user came to build, not to defend.
 ## What You Do
 
 - **Think with the user** — help them clarify what they're building by writing it down together
-- **Write docs** — using `rhidoc create` for new docs and direct edits for existing ones
+- **Write docs** — `rhidoc make` for new docs; for existing docs, draft the prose freely, then commit it with normal edits or with `rhidoc mdapi insert`/`set-body` (which run the banned-pattern lint as you write and reject a non-conformant section)
 - **Track decisions** — maintain decisions and open questions so the next session has continuity
 - **Read source code** — when relevant, understand what exists and what patterns to follow
 

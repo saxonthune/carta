@@ -727,6 +727,23 @@ _COMMON_PATTERNS = """\
 """
 
 
+def _command_synopses() -> list[tuple[str, str]]:
+    """One-line (name, help) per subcommand, introspected from the live parser.
+
+    Keeps the compact command list in `rhidoc ai-skill` in sync with the real CLI
+    surface (build_parser is the single source of truth) instead of hand-maintaining it.
+    """
+    import argparse as _ap
+    from .commands._parser import build_parser
+
+    parser = build_parser()
+    for action in parser._actions:
+        if isinstance(action, _ap._SubParsersAction):
+            help_by_name = {a.dest: (a.help or "") for a in action._choices_actions}
+            return [(name, help_by_name.get(name, "")) for name in action.choices]
+    return []
+
+
 def generate_skill_content(dir_name: str) -> str:
     """Generate rhidoc-cli SKILL.md content from template header + AI skill docs."""
     template = (_PACKAGE_DIR / "templates" / "skill.md").read_text(encoding="utf-8")
@@ -818,16 +835,28 @@ def _workspace_state_section(rhidoc_root: Path) -> list[str]:
 
 
 def cmd_ai_skill(args: argparse.Namespace, rhidoc_root: Path) -> None:
-    """Generate comprehensive AI agent context for the rhidoc CLI."""
+    """Compact AI agent context for the rhidoc CLI; per-command detail on demand."""
     from .__version__ import __version__
+
+    # `rhidoc ai-skill <command>` prints the full reference block for one command.
+    topic = getattr(args, "topic", None)
+    if topic:
+        doc = _COMMAND_DOCS.get(topic)
+        if doc:
+            print(doc.strip())
+        else:
+            print(f"No AI documentation available for '{topic}'.")
+            print("Run `rhidoc ai-skill` for the command list.")
+        return
 
     lines: list[str] = []
 
     lines.append(f"# rhidoc AI Reference — v{__version__}")
     lines.append("")
     lines.append(
-        "Complete semantic reference for AI agents driving the rhidoc CLI. "
-        "Covers command behavior, side effects, sequencing rules, and live workspace state."
+        "Compact semantic reference for AI agents driving the rhidoc CLI. "
+        "This is the index; run `rhidoc <command> --help-ai` or `rhidoc ai-skill <command>` "
+        "for the full block (behavior, args, side effects, examples) on any single command."
     )
     lines.append("")
 
@@ -836,13 +865,20 @@ def cmd_ai_skill(args: argparse.Namespace, rhidoc_root: Path) -> None:
     lines.append("")
     lines.append(_BUNDLES_AND_ATTACHMENTS)
 
-    # Section 1: Command Reference
+    # Section 1: Command index (one line each, introspected from the live parser)
     lines.append("---")
     lines.append("")
-    lines.append("## 1. Command Reference")
+    lines.append("## 1. Commands")
     lines.append("")
-    for doc in _COMMAND_DOCS.values():
-        lines.append(doc)
+    lines.append(
+        "Full detail per command: `rhidoc <command> --help-ai` or `rhidoc ai-skill <command>`."
+    )
+    lines.append("")
+    lines.append("| Command | Synopsis |")
+    lines.append("|---------|----------|")
+    for name, help_text in _command_synopses():
+        lines.append(f"| `{name}` | {help_text} |")
+    lines.append("")
 
     # Section 2: Behavioral Rules
     lines.append("---")

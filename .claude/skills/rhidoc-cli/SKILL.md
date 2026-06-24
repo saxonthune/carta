@@ -12,6 +12,8 @@ Structural changes via `rhidoc` CLI. Content via Write/Edit. Always regenerate a
 ## Running Commands
 ```bash
 rhidoc <command> [options]
+rhidoc ai-skill              # compact command index (run this first)
+rhidoc ai-skill <command>    # full reference block for one command
 rhidoc --help                # list all commands
 rhidoc <command> --help      # command-specific help
 rhidoc -w /path/.rhidoc <cmd> # explicit workspace path
@@ -23,7 +25,7 @@ The CLI finds the workspace by walking up from cwd (like `git` finds `.git/`).
 
 A **bundle** is a group of siblings sharing a two-digit numeric prefix. The `NN-<slug>.md` file is the root; any other `NN-*.<ext>` siblings are attachments (sidecars — e.g., `02-model.json` alongside `02-workflow.md`).
 
-Structural ops (`move`, `delete`, `rename`, `punch`, `flatten`) treat a bundle as a unit — attachments travel with their host automatically. Use `rhidoc attach <host> <source>` to add a new sidecar. Orphaned sidecars (no matching root) are reported on stderr during `regenerate` but do not block it.
+Structural ops (`move`, `delete`, `rename`, `punch`, `hoist`) treat a bundle as a unit — attachments travel with their host automatically. Use `rhidoc attach <host> <source>` to add a new sidecar. Orphaned sidecars (no matching root) are reported on stderr during `regenerate` but do not block it.
 
 ## Frontmatter Schema
 
@@ -54,7 +56,7 @@ A **bundle** is the set of siblings in a directory that share a two-digit numeri
 
 Attachments carry no frontmatter. Membership is determined by prefix alone, not by filename content or any declaration.
 
-Every structural operation (`move`, `delete`, `rename`, `punch`, `flatten`) treats the bundle as a unit: when the root travels, all same-prefix siblings travel with it automatically.
+Every structural operation (`move`, `delete`, `rename`, `punch`, `hoist`) treats the bundle as a unit: when the root travels, all same-prefix siblings travel with it automatically.
 
 **Orphans**: a file whose `NN` prefix has no corresponding `.md` root, or whose prefix matches a directory rather than a file, is an orphan. `rhidoc regenerate` prints orphan warnings to stderr but never blocks operation.
 
@@ -241,12 +243,12 @@ Flags:
               a group — the original content becomes the first child doc.
   --dry-run   Print planned operation without executing.
 
-### flatten
+### hoist
 
 Dissolve a directory by hoisting its children into the parent.
 
 ```
-rhidoc flatten <target> [--keep-index] [--force] [--before REF] [--dry-run]
+rhidoc hoist <target> [--keep-index] [--force] [--before REF] [--dry-run]
 ```
 
 Arguments:
@@ -283,7 +285,7 @@ Side effects:
   - Copies the source file into the same directory as the host doc.
   - Renames it to share the host's numeric prefix: `NN-<slug>.<ext>`.
   - The file becomes part of the host's bundle — it will travel with the host
-    through all future structural operations (move, delete, rename, punch, flatten).
+    through all future structural operations (move, delete, rename, punch, hoist).
   - Regenerates MANIFEST.md (Attachments column updated).
 
 Flags:
@@ -569,9 +571,110 @@ Per-command alternative:
   `rhidoc <command> --help-ai` prints only that command's section.
   Example: `rhidoc move --help-ai` prints the move reference.
 
+### mdapi
+
+Structured read and write operations on a markdown document parsed into an addressable
+heading+list tree.
+
+```
+rhidoc mdapi outline DOC
+rhidoc mdapi read DOC [--range A:B | --at ADDR] [--depth N]
+rhidoc mdapi locate DOC --text TEXT
+rhidoc mdapi insert DOC --at ADDR [--before] [--no-lint]    # stdin: draft markdown
+rhidoc mdapi set-body DOC --at ADDR [--no-lint]             # stdin: prose body text
+rhidoc mdapi move DOC --from ADDR --to ADDR
+rhidoc mdapi delete DOC --at ADDR
+rhidoc mdapi hoist DOC --at ADDR
+```
+
+`DOC` accepts a doc ref (e.g., `doc02.03`) or a workspace-relative path, resolved the same
+way as `rhidoc cat`.
+
+Addressing model:
+  Nodes are addressed by their 1-based positional path: `1`, `1.2`, `1.2.3`, etc.
+  Root nodes are `1`, `2`, … Children of node `1` are `1.1`, `1.2`, … and so on.
+
+Read-side selectors compose independently:
+
+  **Range (horizontal):** which nodes to include.
+    --range A:B   Contiguous sibling span A..B inclusive, plus their subtrees.
+                  A and B must share the same parent (be siblings).
+                  Example: `--range 2:4` selects root nodes 2, 3, 4.
+                  Example: `--range 1.2:1.5` selects children 2–5 of root node 1.
+    --at ADDR     Single-node sugar: equivalent to `--range ADDR:ADDR`.
+                  Selects that node and its subtree. Mutually exclusive with --range.
+    (no selector) Selects the entire document (all roots + subtrees).
+
+  **Depth (vertical):** how deep into each selected subtree to descend.
+    --depth N     Render at most N levels of each selected subtree.
+                  N=1 → the selected node (marker + body_text), no children.
+                  N=2 → selected node + its direct children.
+                  Omit → unlimited depth (full subtree).
+
+Read verbs:
+
+  outline DOC
+    Print every node as `ADDRESS  marker_text`. No body_text. Unlimited depth.
+
+  read DOC [--range A:B | --at ADDR] [--depth N]
+    Render selected nodes in markdown form, with depth truncation.
+    When no range is given, the whole document is rendered.
+
+  locate DOC --text TEXT
+    Print the address of the first node whose marker_text or body_text contains TEXT.
+    Exits non-zero if no match is found.
+
+Write verbs:
+
+  insert DOC --at ADDR [--before] [--no-lint]
+    Read a markdown draft from stdin (must include marker + body) and insert it into the
+    document relative to ADDR.
+    Default (no --before): insert AFTER the node at ADDR.
+    --before: insert BEFORE the node at ADDR.
+    Siblings renumber after insertion.
+    Lint runs on the inserted nodes before writing; exit non-zero and leave doc unchanged on
+    violation.  --no-lint bypasses the gate.
+
+  set-body DOC --at ADDR [--no-lint]
+    Read prose from stdin and overwrite the body_text of the node at ADDR.
+    The node's marker, children, and siblings are untouched.
+    Lint runs on the new body before writing.  --no-lint bypasses the gate.
+
+  move DOC --from ADDR --to ADDR
+    Relocate the node at --from (and its entire subtree) to the position before --to.
+    Use --to N+1 to append after the last sibling at that level.
+    Siblings at both ends renumber.  Moving a node into its own subtree is an error.
+
+  delete DOC --at ADDR
+    Remove the node and its entire subtree.  Siblings renumber.
+
+  hoist DOC --at ADDR
+    Dissolve the node, lifting its children one level into its slot among its former siblings.
+    Body disposition: the dissolved node's body_text is prepended to the first hoisted
+    child's body_text.  If there are no children (leaf hoist), the body is appended to the
+    parent node's body_text (or tree preamble for root-level nodes).
+    Siblings renumber.
+
+Folded lint (insert and set-body only):
+  Lint is a deterministic gate with no LLM involvement.  It checks:
+    - word cap: body_text ≤ 200 words
+    - line cap: body_text ≤ 40 lines
+    - doc00.02 banned patterns: future modals (will/shall), phase/version language,
+      deferral language (TODO/TBD), dated postscripts (as of YYYY-MM),
+      retrospective framing (we decided/chose), volatile snapshots (currently)
+    - duplicate body_text: the same body_text must not appear in another node
+  Violations are printed to stderr; the file is left byte-unchanged.
+  --no-lint on insert or set-body skips all checks.
+
+Side effects:
+  - Read verbs: none.
+  - Write verbs: overwrite the target file in place.  MANIFEST is NOT updated (mdapi is
+    intra-document; cross-file ref rewriting is out of scope).
+  - Anchors do not exist; addressing is positional only.
+
 ## Behavioral Rules
 
-- **Gap-closing**: When an entry is removed from a directory (`move`, `delete`, `flatten`),
+- **Gap-closing**: When an entry is removed from a directory (`move`, `delete`, `hoist`),
   all higher-numbered siblings are renumbered down to fill the gap.
 - **Ref rewriting**: All commands that change file positions rewrite `docXX.YY.ZZ` refs
   across all `.md` files in the workspace and in `externalRefPaths` from `.rhidoc.json`.
@@ -613,7 +716,7 @@ Per-command alternative:
   with `00-index.md`. Then use `rhidoc move` or `rhidoc make` to populate it.
 - **Expand a file into a group**: `rhidoc punch <target>` converts `NN-slug.md` into
   `NN-slug/00-index.md`. The doc ref is unchanged — no ref rewriting needed.
-- **Flatten a subdirectory**: `rhidoc flatten <target>` hoists children into parent, removing
+- **Hoist a subdirectory**: `rhidoc hoist <target>` hoists children into parent, removing
   the directory. Use `--keep-index` to preserve the index as a sibling file.
 - **Rename a slug**: `rhidoc rename <target> new-slug` renames on disk. Then use
   `rhidoc rewrite old-ref=new-ref` to update references if needed (rename does not rewrite refs).

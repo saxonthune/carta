@@ -17,11 +17,11 @@ Rhidoc is a spec-driven development tool. The primary product is the `.rhidoc/` 
 - **Strategy**: doc03.01 (mission), doc03.02 (vision), doc03.03 (glossary), doc03.04 (primary sources), doc03.05 (docs system), doc03.06 (products), doc03.07 (spec-code reconciliation), doc03.08 (research), doc03.09 (docs syntax reference — formal grammar for refs, sections, frontmatter, MANIFEST)
 - **Design**: doc02.01 (workspace scripts — the Docs API), doc02.02 (CLI user flow), doc02.03 (ADRs)
 - **Architecture**: doc01.01 (reconciliation architecture), doc01.02 (design patterns)
-- **Codex**: doc00.01 (about), doc00.02 (maintenance), doc00.03 (conventions), doc00.04 (AI retrieval)
+- **Codex**: doc00.00 (index), doc00.01 (about), doc00.02 (maintenance), doc00.03 (conventions)
 
 **The `00-codex/` section is GENERATED, not a source of truth.** Unlike most repos — where every `.rhidoc/` doc is hand-authored canon — this repo *ships* the codex as a template for other projects. The `00-codex/*.md` files are rehydrated from `rhidoc/templates/*.md` via `rhidoc init --rehydrate`. To change a codex doc, edit the **template source** in `rhidoc/templates/`, then rehydrate and `rhidoc regenerate`. Editing the workspace copy directly will be overwritten on the next rehydrate. Templates must stay self-contained — no references to rhidoc's own docs/research (`docXX.YY` refs), since they seed unrelated projects.
 
-**Rhidoc CLI**: Before using any `rhidoc` command, run `rhidoc ai-skill` to get the full semantic reference (syntax, arguments, side effects, sequencing rules). Do not guess flags or arguments.
+**Rhidoc CLI**: Before using any `rhidoc` command, run `rhidoc ai-skill` for the compact command index (one-line synopsis per command, behavioral rules, workspace state). For the full block on a specific command — syntax, arguments, side effects, sequencing — run `rhidoc ai-skill <command>` (or `rhidoc <command> --help-ai`). Do not guess flags or arguments.
 
 ## Skills & Agents
 
@@ -108,4 +108,4 @@ make test    # Run all tests (pytest)
 
 - **`.rhidoc/` conventions**: Cross-references use `docXX.YY.ZZ` syntax. Sparse docs are intentional — do not elaborate beyond what the work demands.
 - **Python patterns**: See doc01.02.01 (Python for AI — file structure, typing, naming, testability patterns).
-- **Rhidoc CLI**: Always run `rhidoc ai-skill` before using any `rhidoc` command — do not guess flags or arguments.
+- **Rhidoc CLI**: Always run `rhidoc ai-skill` (compact index) before using any `rhidoc` command, and `rhidoc ai-skill <command>` for the full per-command block — do not guess flags or arguments.

@@ -12,6 +12,8 @@ Structural changes via `rhidoc` CLI. Content via Write/Edit. Always regenerate a
 ## Running Commands
 ```bash
 rhidoc <command> [options]
+rhidoc ai-skill              # compact command index (run this first)
+rhidoc ai-skill <command>    # full reference block for one command
 rhidoc --help                # list all commands
 rhidoc <command> --help      # command-specific help
 rhidoc -w /path/{{dir_name}} <cmd> # explicit workspace path
