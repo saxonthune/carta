@@ -71,7 +71,7 @@ if [[ "$REAL_TRUNK" == *_claude* ]]; then
 fi
 
 CHAIN_BRANCH="chain-${CHAIN_NAME}"
-CHAIN_WORKTREE="${REPO_ROOT}/../${WORKTREE_PREFIX}-chain-${CHAIN_NAME}"
+CHAIN_WORKTREE="${REPO_ROOT}/../${WORKTREE_PREFIX}-${REPO_NAME}-chain-${CHAIN_NAME}"
 CHAIN_RESULTS="${CHAIN_WORKTREE}/.todo-tasks/results"
 RUN_FILE="$(run_record_path "$CHAIN_NAME" chain)"
 

@@ -33,6 +33,7 @@ readonly SM_OVERALL_NOOP="no_op"
 readonly SM_OVERALL_TRUNK_LEAK="trunk_leak"
 readonly SM_OVERALL_BUILD_FAIL="build_failure"
 readonly SM_OVERALL_SESSION_FAIL="session_failed"
+readonly SM_OVERALL_SALVAGEABLE="salvageable"
 
 # Buckets (for dashboard grouping)
 readonly SM_BUCKET_SUCCESS="success"
@@ -40,19 +41,26 @@ readonly SM_BUCKET_READY="ready_for_review"
 readonly SM_BUCKET_QUESTIONABLE="questionable"
 readonly SM_BUCKET_ATTENTION="attention"
 
-# derive_overall_state <session> <verification> <merge> [trunk]
-# Maps (session, verification, merge, trunk) → overall state.
+# derive_overall_state <session> <verification> <merge> [trunk] [uncommitted]
+# Maps (session, verification, merge, trunk, uncommitted) → overall state.
+# uncommitted: human summary ("3 files, 280 lines") or "none"/"0"/empty when clean.
 # Echoes one of the SM_OVERALL_* values.
 derive_overall_state() {
-  local session="$1" verify="$2" merge="$3" trunk="${4:-$SM_TRUNK_UNCHANGED}"
+  local session="$1" verify="$2" merge="$3" trunk="${4:-$SM_TRUNK_UNCHANGED}" uncommitted="${5:-none}"
+  local has_dirt=false
+  [[ -n "$uncommitted" && "$uncommitted" != "none" && "$uncommitted" != "0" ]] && has_dirt=true
+
   if [[ "$session" == "$SM_SESSION_FAILED" ]]; then
-    echo "$SM_OVERALL_SESSION_FAIL"; return
+    if [[ "$has_dirt" == "true" ]]; then echo "$SM_OVERALL_SALVAGEABLE"; else echo "$SM_OVERALL_SESSION_FAIL"; fi
+    return
   fi
   case "$verify" in
     "$SM_VERIFY_FAILED") echo "$SM_OVERALL_BUILD_FAIL" ;;
     "$SM_VERIFY_SKIPPED")
       if [[ "$trunk" == "$SM_TRUNK_MOVED" ]]; then
         echo "$SM_OVERALL_TRUNK_LEAK"
+      elif [[ "$has_dirt" == "true" ]]; then
+        echo "$SM_OVERALL_SALVAGEABLE"
       else
         echo "$SM_OVERALL_NOOP"
       fi ;;
@@ -77,6 +85,7 @@ state_bucket() {
     "$SM_OVERALL_READY") echo "$SM_BUCKET_READY" ;;
     "$SM_OVERALL_NOOP") echo "$SM_BUCKET_QUESTIONABLE" ;;
     "$SM_OVERALL_TRUNK_LEAK") echo "$SM_BUCKET_ATTENTION" ;;
+    "$SM_OVERALL_SALVAGEABLE") echo "$SM_BUCKET_ATTENTION" ;;
     *) echo "$SM_BUCKET_ATTENTION" ;;
   esac
 }
@@ -84,17 +93,34 @@ state_bucket() {
 # source_task_config
 # Sources project-specific config, then sets defaults for any unset variables.
 # Reads: REPO_ROOT, SCRIPT_DIR (from caller scope)
-# Sets: WORKTREE_PREFIX, MAX_BUDGET, RETRY_BUDGET, MAX_RETRIES
+# Sets: WORKTREE_PREFIX, REPO_NAME, MAX_BUDGET, RETRY_BUDGET, MAX_RETRIES
 source_task_config() {
   if [[ -f "${REPO_ROOT}/.todo-tasks/task-config.sh" ]]; then
     source "${REPO_ROOT}/.todo-tasks/task-config.sh"
   elif [[ -f "${SCRIPT_DIR}/task-config.sh" ]]; then
     source "${SCRIPT_DIR}/task-config.sh"
   fi
-  WORKTREE_PREFIX="${WORKTREE_PREFIX:-agent}"
+  WORKTREE_PREFIX="${WORKTREE_PREFIX:-todotask}"
+  REPO_NAME="$(basename "${REPO_ROOT}")"
   MAX_BUDGET="${MAX_BUDGET:-5.00}"
   RETRY_BUDGET="${RETRY_BUDGET:-3.00}"
   MAX_RETRIES="${MAX_RETRIES:-4}"
+  MAX_TURNS="${MAX_TURNS:-100}"
+}
+
+# summarize_uncommitted <dir>
+# Echoes "N files, M lines" if the worktree has uncommitted changes (tracked
+# modifications AND untracked files), or "none" when clean. Read-only: any
+# intent-to-add markers used to count untracked lines are reset before return.
+summarize_uncommitted() {
+  local dir="$1"
+  local porcelain; porcelain=$(git -C "$dir" status --porcelain 2>/dev/null || true)
+  [[ -z "$porcelain" ]] && { echo "none"; return; }
+  local files; files=$(echo "$porcelain" | grep -c . || echo 0)
+  git -C "$dir" add -A --intent-to-add >/dev/null 2>&1 || true
+  local lines; lines=$(git -C "$dir" diff --numstat 2>/dev/null | awk '{a+=$1+$2} END{print a+0}')
+  git -C "$dir" reset -q >/dev/null 2>&1 || true
+  echo "${files} files, ${lines} lines"
 }
 
 # parse_verification_commands <plan-path>
@@ -130,6 +156,22 @@ parse_result_field() {
     val=$(grep -m1 -i "^\*\*${key}\*\*:" "$file" 2>/dev/null | sed "s/^[^:]*: *//" || true)
   fi
   echo "${val,,}"
+}
+
+# surface_deviation_state <deviations-section-body>
+# Classifies the extracted "## Surface Deviations" section body. The agent is told
+# to write "None." when nothing deviated, but frequently appends an explanation
+# ("None. The plan had no declared Surface block."), so the decision keys on the
+# leading "None" word, not whole-body equality. A non-None first line ⇒ declared.
+surface_deviation_state() {
+  local body="$1" first
+  first=$(printf '%s\n' "$body" | sed '/^[[:space:]]*$/d' | head -n1 \
+            | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+  if [[ -z "$first" || "$first" =~ ^[Nn]one([[:punct:][:space:]].*)?$ ]]; then
+    echo "none"
+  else
+    echo "declared"
+  fi
 }
 
 # ─── Run-record (the only ephemeral state; gitignored) ─────────────────────
@@ -192,7 +234,7 @@ run_is_alive() {
 
 # write_agent_result <result_path> <slug> <session> <verification>
 #   <commits_count> <commits_log> <branch> <session_id> <claude_result>
-#   <build_test_tail> [error_detail] [surface_deviations]
+#   <build_test_tail> [error_detail] [surface_deviations] [turns] [cost] [uncommitted]
 # Worktree-owned outcome. Written by the orchestrator while cd'd in the
 # worktree, committed on the agent branch, carried to trunk by the merge.
 # Contains ONLY facts the worktree knows in isolation — no merge/trunk fields.
@@ -201,6 +243,7 @@ write_agent_result() {
   local commits_count="$5" commits_log="$6" branch="$7" session_id="$8"
   local claude_result="$9" build_test_tail="${10}"
   local error_detail="${11:-}" surface_deviations="${12:-none}"
+  local turns="${13:-}" cost="${14:-}" uncommitted="${15:-none}"
 
   local valid_sessions="$SM_SESSION_COMPLETED $SM_SESSION_FAILED"
   local valid_verifications="$SM_VERIFY_PASSED $SM_VERIFY_FAILED $SM_VERIFY_SKIPPED"
@@ -220,6 +263,9 @@ verification: ${verification}
 commits: ${commits_count}
 branch: ${branch}
 surface deviations: ${surface_deviations}
+$(if [[ -n "$turns" ]]; then echo "turns: ${turns}"; fi)
+$(if [[ -n "$cost" ]]; then echo "cost: ${cost}"; fi)
+uncommitted: ${uncommitted}
 $(if [[ -n "$session_id" ]]; then echo "session id: ${session_id}"; fi)
 $(if [[ -n "$error_detail" ]]; then echo "error: ${error_detail}"; fi)
 
@@ -273,16 +319,17 @@ write_merge_result() {
 }
 
 # classify_task <agent_md> <merge_md>
-# The single home for task classification. Reads session/verification from
+# The single home for task classification. Reads session/verification/uncommitted from
 # the agent result and merge/trunk from the merge result, then echoes the
 # derived overall state. A missing/empty merge_md ⇒ merge=not_attempted.
 classify_task() {
   local agent_md="${1:-}" merge_md="${2:-}"
-  local session="" verification="" merge="" trunk=""
+  local session="" verification="" merge="" trunk="" uncommitted=""
 
   if [[ -n "$agent_md" && -f "$agent_md" ]]; then
     session=$(parse_result_field "$agent_md" session)
     verification=$(parse_result_field "$agent_md" verification)
+    uncommitted=$(parse_result_field "$agent_md" uncommitted)
   fi
   session="${session:-$SM_SESSION_FAILED}"
   verification="${verification:-$SM_VERIFY_FAILED}"
@@ -293,6 +340,7 @@ classify_task() {
   fi
   merge="${merge:-$SM_MERGE_NOT_ATTEMPTED}"
   trunk="${trunk:-$SM_TRUNK_UNCHANGED}"
+  uncommitted="${uncommitted:-none}"
 
-  derive_overall_state "$session" "$verification" "$merge" "$trunk"
+  derive_overall_state "$session" "$verification" "$merge" "$trunk" "$uncommitted"
 }

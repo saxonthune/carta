@@ -53,6 +53,11 @@ source_task_config
 TRUNK_STATE="$SM_TRUNK_UNCHANGED"
 TRUNK_HEAD_BEFORE=""
 SURFACE_DEVIATIONS="none"
+SESSION_TURNS=""
+SESSION_COST=""
+UNCOMMITTED_SUMMARY="none"
+TURNS_FIELD=""
+COST_FIELD=""
 
 # Use caller-specified trunk or detect from current branch
 if [[ -n "$TRUNK_BRANCH" ]]; then
@@ -69,7 +74,7 @@ else
 fi
 
 BRANCH="${TRUNK}_claude_${PLAN_SLUG}"
-WORKTREE_DIR="${REPO_ROOT}/../${WORKTREE_PREFIX}-${PLAN_SLUG}"
+WORKTREE_DIR="${REPO_ROOT}/../${WORKTREE_PREFIX}-${REPO_NAME}-${PLAN_SLUG}"
 PLAN_SOURCE_FILE="${REPO_ROOT}/.todo-tasks/tasks/${PLAN_SLUG}.md"
 
 # ─── Emergency Finalizer ─────────────────────────────────────────────────────
@@ -215,6 +220,23 @@ phase_copy_plan() {
   echo ""
 }
 
+# format_stream_events — reads NDJSON events on stdin, prints a concise digest line per event.
+# Used to provide live progress during a headless session. Malformed lines are silently skipped.
+format_stream_events() {
+  jq -r --unbuffered '
+    if .type == "assistant" then
+      (.message.content[]? |
+        if .type == "text" then
+          "  " + (.text | gsub("\n"; " ") | .[0:100])
+        elif .type == "tool_use" then
+          "→ " + .name + ": " +
+            (.input.command // .input.file_path // .input.pattern // .input.path // "" | tostring | .[0:80])
+        else empty end)
+    elif .type == "result" then "✓ session complete"
+    else empty end
+  ' 2>/dev/null || true
+}
+
 # phase_run_session
 # Runs headless Claude. Sets SESSION_ID, CLAUDE_RESULT, SESSION_STATE, SESSION_ERROR.
 phase_run_session() {
@@ -248,21 +270,41 @@ After '## Notes', you MUST also write a '## Surface Deviations' section listing 
 (a missing or renamed symbol, a changed signature, a behavior that differs). \
 If there were no deviations, or the plan had no Surface block, write '## Surface Deviations' followed by 'None.'"
 
-  CLAUDE_OUTPUT=$(claude -p \
+  local stream_raw stream_err
+  stream_raw="$(mktemp)"; stream_err="$(mktemp)"
+
+  claude -p \
     --allowedTools "Read,Write,Edit,Glob,Grep,Bash" \
     --permission-mode bypassPermissions \
-    --output-format json \
-    --max-turns 100 \
+    --output-format stream-json --verbose \
+    --max-turns "${MAX_TURNS}" \
     --model sonnet \
     --max-budget-usd "${MAX_BUDGET}" \
-    "${CLAUDE_PROMPT}" 2>&1)
-  CLAUDE_EXIT=$?
+    "${CLAUDE_PROMPT}" 2>"$stream_err" \
+    | tee "$stream_raw" \
+    | format_stream_events
+  CLAUDE_EXIT=${PIPESTATUS[0]}
 
-  # Extract session ID for potential retry
-  JQ_ALT='.session_id // empty'
-  SESSION_ID=$(echo "${CLAUDE_OUTPUT}" | jq -r "$JQ_ALT" 2>/dev/null || echo "")
-  JQ_ALT='.result // empty'
-  CLAUDE_RESULT=$(echo "${CLAUDE_OUTPUT}" | jq -r "$JQ_ALT" 2>/dev/null || echo "${CLAUDE_OUTPUT}")
+  # Extract session ID, result, and richer metadata from the final result event
+  SESSION_ID=$(jq -r 'select(.type=="result") | .session_id // empty' "$stream_raw" 2>/dev/null | tail -1)
+  CLAUDE_RESULT=$(jq -r 'select(.type=="result") | .result // empty' "$stream_raw" 2>/dev/null | tail -1)
+  SESSION_SUBTYPE=$(jq -r 'select(.type=="result") | .subtype // empty' "$stream_raw" 2>/dev/null | tail -1 || echo "")
+  SESSION_TURNS=$(jq -r 'select(.type=="result") | .num_turns // empty' "$stream_raw" 2>/dev/null | tail -1 || echo "")
+  SESSION_COST=$(jq -r 'select(.type=="result") | .total_cost_usd // empty' "$stream_raw" 2>/dev/null | tail -1 || echo "")
+
+  # Fallback: if CLAUDE_RESULT is empty (crash before result event), use stderr tail
+  if [[ -z "$CLAUDE_RESULT" ]]; then
+    CLAUDE_RESULT="$(tail -5 "$stream_err" 2>/dev/null || true)"
+  fi
+
+  rm -f "$stream_raw" "$stream_err"
+
+  # Format persisted field values
+  TURNS_FIELD=""; [[ -n "$SESSION_TURNS" ]] && TURNS_FIELD="${SESSION_TURNS}/${MAX_TURNS}"
+  COST_FIELD="";  [[ -n "$SESSION_COST" ]]  && COST_FIELD="\$${SESSION_COST}/\$${MAX_BUDGET}"
+
+  # Measure uncommitted work in the worktree (already cd'd here)
+  UNCOMMITTED_SUMMARY=$(summarize_uncommitted "${WORKTREE_DIR}")
 
   # Detect session failure
   SESSION_STATE="$SM_SESSION_COMPLETED"
@@ -270,7 +312,18 @@ If there were no deviations, or the plan had no Surface block, write '## Surface
 
   if [[ $CLAUDE_EXIT -ne 0 ]]; then
     SESSION_STATE="$SM_SESSION_FAILED"
-    SESSION_ERROR="Claude CLI exited with code ${CLAUDE_EXIT}"
+    case "$SESSION_SUBTYPE" in
+      error_max_turns)
+        SESSION_ERROR="Ran out of turns (reached --max-turns ${MAX_TURNS})" ;;
+      error_during_execution)
+        SESSION_ERROR="Error during execution (CLI exit ${CLAUDE_EXIT})" ;;
+      "")
+        SESSION_ERROR="Claude CLI exited with code ${CLAUDE_EXIT} — output was not JSON (possible auth/network failure)" ;;
+      *)
+        SESSION_ERROR="Claude CLI exited with code ${CLAUDE_EXIT} (subtype: ${SESSION_SUBTYPE})" ;;
+    esac
+    [[ -n "$SESSION_TURNS" || -n "$SESSION_COST" ]] && \
+      SESSION_ERROR="${SESSION_ERROR}; spent ${SESSION_TURNS:-?} turns / \$${SESSION_COST:-?}"
   elif [[ -z "$CLAUDE_RESULT" && -z "$SESSION_ID" ]]; then
     SESSION_STATE="$SM_SESSION_FAILED"
     SESSION_ERROR="No result or session ID returned — possible crash or network failure"
@@ -283,12 +336,8 @@ If there were no deviations, or the plan had no Surface block, write '## Surface
     /^## Surface Deviations[[:space:]]*$/ { in_section=1; next }
     in_section && /^## / { exit }
     in_section { print }
-  ' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | grep -v '^$' || true)
-  if [[ -z "$dev_body" || "$dev_body" == "None." || "$dev_body" == "None" ]]; then
-    SURFACE_DEVIATIONS="none"
-  else
-    SURFACE_DEVIATIONS="declared"
-  fi
+  ')
+  SURFACE_DEVIATIONS="$(surface_deviation_state "$dev_body")"
 
   echo "Claude session complete"
   if [[ -n "$SESSION_ID" ]]; then
@@ -335,7 +384,11 @@ phase_verify() {
       echo "Commits that landed on trunk:"
       echo "$COMMITS"
     else
-      echo "WARNING: Agent produced 0 commits. Marking as no-op."
+      if [[ "$UNCOMMITTED_SUMMARY" != "none" ]]; then
+        echo "WARNING: Agent produced 0 commits, but the worktree has uncommitted work: ${UNCOMMITTED_SUMMARY} (salvageable)."
+      else
+        echo "WARNING: Agent produced 0 commits. Marking as no-op."
+      fi
     fi
     VERIFICATION_STATE="$SM_VERIFY_SKIPPED"
     BUILD_TEST_OUTPUT="No commits produced on worktree branch — skipping build/test verification."
@@ -499,7 +552,8 @@ phase_compose_agent_result() {
     write_agent_result "$agent_md" "$PLAN_SLUG" \
       "$SESSION_STATE" "$VERIFICATION_STATE" \
       "${COMMITS_COUNT:-0}" "${COMMITS:-(none)}" "$BRANCH" "${SESSION_ID:-}" \
-      "${CLAUDE_RESULT:-}" "$build_test_tail" "${SESSION_ERROR:-}" "${SURFACE_DEVIATIONS:-none}"
+      "${CLAUDE_RESULT:-}" "$build_test_tail" "${SESSION_ERROR:-}" "${SURFACE_DEVIATIONS:-none}" \
+      "${TURNS_FIELD:-}" "${COST_FIELD:-}" "${UNCOMMITTED_SUMMARY:-none}"
     git add "$agent_md"
     git commit -m "todotask: result ${PLAN_SLUG}" >/dev/null 2>&1 || true )
   echo ""

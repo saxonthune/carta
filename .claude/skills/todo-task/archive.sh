@@ -36,6 +36,8 @@ for arg in "$@"; do
 done
 
 # force_eligible <overall> — failures that --force-failed will archive.
+# Note: SM_OVERALL_SALVAGEABLE is intentionally absent — never auto-rm a worktree
+# that holds recoverable uncommitted work. Resolve it by hand.
 force_eligible() {
   case "$1" in
     "$SM_OVERALL_BUILD_FAIL"|"$SM_OVERALL_SESSION_FAIL"|"$SM_OVERALL_NOOP"|"$SM_OVERALL_TRUNK_LEAK") return 0 ;;

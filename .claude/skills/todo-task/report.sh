@@ -86,9 +86,10 @@ classify_slug() {
     bucket="$(state_bucket "$overall")"
     age="$(age_of "$agent_md")"
   elif [[ -n "$run_file" ]] && run_is_alive "$run_file"; then
-    # Rule 3: run-record + live PID → running.
+    # Rule 3: run-record + live PID → running. Prefer .log mtime (last activity) over run-record mtime.
     phase="running"
-    age="$(age_of "$run_file")"
+    local logf="${TODO}/.running/${slug}.log"
+    if [[ -f "$logf" ]]; then age="$(age_of "$logf")"; else age="$(age_of "$run_file")"; fi
   elif [[ -n "$run_file" && ! -f "$merge_md" ]]; then
     # Rule 4: run-record + dead PID + no merge.md → crashed.
     phase="crashed"
@@ -114,10 +115,13 @@ classify_slug() {
   # Commits + notes come from the agent.md when we have one.
   if [[ -n "$agent_md" ]]; then
     commits="$(parse_result_field "$agent_md" commits)"; commits="${commits:-0}"
-    local dev err
+    local dev err unc
     dev="$(parse_result_field "$agent_md" "surface deviations")"
     err="$(parse_result_field "$agent_md" error)"
+    unc="$(parse_result_field "$agent_md" uncommitted)"
     [[ "$dev" == "declared" ]] && notes="surface deviations declared — re-triage downstream. "
+    [[ -n "$unc" && "$unc" != "none" && "$unc" != "0" ]] && \
+      notes="${notes}${unc} uncommitted in worktree (salvageable). "
     [[ -n "$err" ]] && notes="${notes}${err}"
   fi
   [[ -z "$notes" ]] && notes="$NONE"
@@ -252,7 +256,7 @@ emit_stale() {
     wt_path="$(echo "$line" | awk '{print $1}')"
     wt_dir="$(basename "$wt_path")"
     case "$wt_dir" in
-      "${WORKTREE_PREFIX}-"*) slug="${wt_dir#"${WORKTREE_PREFIX}-"}" ;;
+      "${WORKTREE_PREFIX}-${REPO_NAME}-"*) slug="${wt_dir#"${WORKTREE_PREFIX}-${REPO_NAME}-"}" ;;
       *) continue ;;
     esac
     # Chain worktrees: skip while a chain run-record is live.
