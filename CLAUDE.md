@@ -19,6 +19,8 @@ Rhidoc is a spec-driven development tool. The primary product is the `.rhidoc/` 
 - **Architecture**: doc01.01 (reconciliation architecture), doc01.02 (design patterns)
 - **Codex**: doc00.01 (about), doc00.02 (maintenance), doc00.03 (conventions), doc00.04 (AI retrieval)
 
+**The `00-codex/` section is GENERATED, not a source of truth.** Unlike most repos — where every `.rhidoc/` doc is hand-authored canon — this repo *ships* the codex as a template for other projects. The `00-codex/*.md` files are rehydrated from `rhidoc/templates/*.md` via `rhidoc init --rehydrate`. To change a codex doc, edit the **template source** in `rhidoc/templates/`, then rehydrate and `rhidoc regenerate`. Editing the workspace copy directly will be overwritten on the next rehydrate. Templates must stay self-contained — no references to rhidoc's own docs/research (`docXX.YY` refs), since they seed unrelated projects.
+
 **Rhidoc CLI**: Before using any `rhidoc` command, run `rhidoc ai-skill` to get the full semantic reference (syntax, arguments, side effects, sequencing rules). Do not guess flags or arguments.
 
 ## Skills & Agents

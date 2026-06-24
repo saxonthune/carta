@@ -1,11 +1,19 @@
 ---
 title: Maintenance
-summary: Doc philosophy — declarative intent, banned patterns, when to grow detail
+summary: Doc philosophy — docs convert volatile source signals into stable intent; declarative intent, banned patterns, author freely then structure separately, when to grow detail
 tags: [docs, maintenance, philosophy]
 deps: []
 ---
 
 # Maintenance
+
+## Docs Convert Signals
+
+A doc converts one signal into another. The source signal is the code and structure: high-volume, volatile, machine-truth. The output signal is human-legible intent: stable, durable, the team's articulated description of what the artifact is for.
+
+The conversion's whole job is to **encode the invariant and discard the snapshot**. Most doc-writing failures are one error under this lens — leaking the volatile source signal into the stable artifact. A derived count ("14 commands"), a line number, a transient total, a current-state tally: these belong to the generator's output, not the prose. They rot silently the moment the source moves. Write the invariant the snapshot was an instance of ("`id` is the most-shared positional — a candidate for shared grammar"), never the snapshot itself.
+
+The two rules below — declarative intent and the banned patterns — are corollaries of this thesis, not separate decrees.
 
 ## Docs Are Declarative Intent
 
@@ -17,6 +25,7 @@ Reconciliation compares docs (intent) against code (reality) and surfaces the ga
 
 An agent or human can grep for these before committing a doc:
 
+- **Volatile snapshots**: exact counts, totals, line numbers, sizes, or any value derived from the current state of the source. These belong to the generator/output, not the prose. State the invariant, not the snapshot.
 - **Future modals**: "will", "won't", "is going to", "going to", "shall", "would" (when describing planned behavior, not conditional logic)
 - **Phase / version language**: "v0", "v1", "MVP", "POC", "Phase 1", "Phase 2", "next iteration", "first pass"
 - **Deferral language**: "Deferred", "TODO", "PENDING", "Not yet", "Coming soon", "in the future", "for now"
@@ -25,15 +34,22 @@ An agent or human can grep for these before committing a doc:
 
 **Allowed**: present-tense statements of fact about the artifact's intended behavior; conditional logic ("if X, the system rejects Y"); cross-references to other docs; the glossary.
 
-**Exception**: ADRs in a decisions directory are explicitly dated, immutable records of decisions and may contain dated or historical language.
+**Exception**: ADRs in a decisions directory are explicitly dated, immutable records of decisions and may contain dated or historical language. Research session docs likewise record a dated inquiry.
 
 **Examples:**
 
-| ✗ Temporal prose | ✓ Declarative intent |
+| ✗ Leaked signal | ✓ Stable intent |
 |---|---|
 | "The pipeline will emit a structured error object." | "The pipeline emits a structured error object." |
 | "Deferred for v1 — currently returns 404." | "The endpoint returns 404 when the resource does not exist." |
 | "As of 2024-03-01, auth uses JWT." | "Auth uses JWT." |
+| "The `id` positional recurs across 14 commands." | "`id` is the most-shared positional — a candidate for shared grammar." |
+
+## Author Freely, Structure Separately
+
+Compose reasoning and prose in free form, then commit it to the doc through a separate placement step — a normalization pass over the draft — rather than composing directly into the document's structure.
+
+The order matters for quality. Forcing generation *into* a structured form taxes reasoning and writing; drafting freely and structuring afterward avoids that cost. Length and density are enforced when the draft is committed, not while it is written: the commit step is the gate that caps, trims, and de-duplicates, so prose is less likely to run long because the gate holds the bound — not because structure makes the model terse. Reason in the open; let the artifact be a normalized copy of the draft, not a straitjacket on the writing.
 
 ## When the Artifact Changes
 
