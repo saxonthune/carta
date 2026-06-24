@@ -60,6 +60,22 @@ done
 HAS_ATTENTION=false
 [[ ${#BUCKET_ATTENTION[@]} -gt 0 || ${#BUCKET_QUESTIONABLE[@]} -gt 0 || ${#CRASHED[@]} -gt 0 ]] && HAS_ATTENTION=true
 
+# Build chain-member set (all phases of all chains) and filter PENDING to
+# exclude chain phases — they belong to the Chains table, not Pending Plans.
+declare -A CHAIN_MEMBER=()
+for _cm_row in "${CHAINS[@]}"; do
+  IFS='|' read -r _ _ _ _ _ _cm_phases _ _ <<< "$_cm_row"
+  IFS=',' read -ra _cm_ph_arr <<< "$_cm_phases"
+  for _cm_ph in "${_cm_ph_arr[@]}"; do
+    [[ -n "$_cm_ph" ]] && CHAIN_MEMBER["$_cm_ph"]=1
+  done
+done
+_pending_filtered=()
+for _pf_slug in "${PENDING[@]}"; do
+  [[ -n "${CHAIN_MEMBER[$_pf_slug]:-}" ]] || _pending_filtered+=("$_pf_slug")
+done
+PENDING=("${_pending_filtered[@]+"${_pending_filtered[@]}"}")
+
 # ─── Renderers ──────────────────────────────────────────────────────────────
 
 render_bucket() {
@@ -112,11 +128,38 @@ fi
 if [[ ${#CHAINS[@]} -gt 0 ]]; then
   echo "## Chains"
   echo ""
-  echo "| Chain | Status | Progress | Current/Failed | Phases |"
-  echo "|-------|--------|----------|----------------|--------|"
+  echo "| Chain | Status | Progress | Current/Failed | Upcoming |"
+  echo "|-------|--------|----------|----------------|----------|"
   for row in "${CHAINS[@]}"; do
     IFS='|' read -r name cstatus done_n total current phases worktree branch <<< "$row"
-    echo "| **${name}** | ${cstatus} | ${done_n}/${total} | ${current} | ${phases} |"
+    # Active-phase progress phrasing
+    case "$cstatus" in
+      running|failed) _progress="phase $((done_n+1))/${total}" ;;
+      complete)       _progress="${total}/${total}" ;;
+      waiting)        _progress="0/${total}" ;;
+      *)              _progress="${done_n}/${total}" ;;
+    esac
+    # Upcoming phases only (queued, not done or current)
+    IFS=',' read -ra _up_arr <<< "$phases"
+    _upcoming_parts=()
+    case "$cstatus" in
+      waiting)
+        for _up_ph in "${_up_arr[@]}"; do
+          [[ -n "$_up_ph" ]] && _upcoming_parts+=("$_up_ph")
+        done ;;
+      running|failed)
+        _up_i=0
+        for _up_ph in "${_up_arr[@]}"; do
+          if [[ -n "$_up_ph" ]] && (( _up_i > done_n )); then
+            _upcoming_parts+=("$_up_ph")
+          fi
+          _up_i=$(( _up_i + 1 ))
+        done ;;
+      complete) ;;
+    esac
+    _upcoming="${_upcoming_parts[*]+"${_upcoming_parts[*]}"}"
+    [[ -z "$_upcoming" ]] && _upcoming="—"
+    echo "| **${name}** | ${cstatus} | ${_progress} | ${current} | ${_upcoming} |"
     [[ "$cstatus" == "failed" ]] && HAS_ATTENTION=true
   done
   echo ""

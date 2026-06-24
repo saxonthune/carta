@@ -917,8 +917,8 @@ class TestPunch(unittest.TestCase):
         assert not new_dir.exists(), "Directory should not exist after dry-run"
 
 
-class TestFlatten(unittest.TestCase):
-    """Test flatten command."""
+class TestHoist(unittest.TestCase):
+    """Test hoist command."""
 
     @pytest.fixture(autouse=True)
     def _inject_snapshot(self, snapshot):
@@ -931,8 +931,8 @@ class TestFlatten(unittest.TestCase):
     def tearDown(self):
         self.tmpdir.cleanup()
 
-    def test_flatten_basic(self):
-        """Flatten a directory with children into its parent."""
+    def test_hoist_basic(self):
+        """Hoist a directory's children into its parent."""
         # Use doc02.08 (08-decisions/) — it has multiple children
         decisions_dir = self.rhidoc_copy / "02-product-design" / "08-decisions"
         assert decisions_dir.is_dir()
@@ -940,8 +940,8 @@ class TestFlatten(unittest.TestCase):
         # Exclude 00-index.md from count
         num_children = len([c for c in children_before if c.name != "00-index.md"])
 
-        result = _run_rhidoc(self.rhidoc_copy, "flatten", "doc02.08", "--force")
-        assert result.returncode == 0, f"flatten failed:\n{result.stderr}\n{result.stdout}"
+        result = _run_rhidoc(self.rhidoc_copy, "hoist", "doc02.08", "--force")
+        assert result.returncode == 0, f"hoist failed:\n{result.stderr}\n{result.stdout}"
 
         # Source dir should be gone
         assert not decisions_dir.exists(), "Source directory should be removed"
@@ -956,40 +956,40 @@ class TestFlatten(unittest.TestCase):
         prefixes = [get_numeric_prefix(e.name) for e in entries]
         assert len(prefixes) == len(set(prefixes)), f"Duplicate prefixes: {prefixes}"
 
-    def test_flatten_leaf_file_errors(self):
-        """Flattening a file (not directory) should fail."""
-        result = _run_rhidoc(self.rhidoc_copy, "flatten", "doc02.01")  # 01-overview.md is a file
+    def test_hoist_leaf_file_errors(self):
+        """Hoisting a file (not directory) should fail."""
+        result = _run_rhidoc(self.rhidoc_copy, "hoist", "doc02.01")  # 01-overview.md is a file
         assert result.returncode != 0
         assert normalize_output(result.stderr, self.tmpdir.name) == self._snapshot
 
-    def test_flatten_dry_run(self):
+    def test_hoist_dry_run(self):
         """--dry-run should not modify files."""
         before = {p: p.read_bytes() for p in self.rhidoc_copy.rglob("*")
                   if p.is_file()
                   and p.suffix in (".md", ".json", "")}
-        result = _run_rhidoc(self.rhidoc_copy, "flatten", "doc02.08", "--force", "--dry-run")
+        result = _run_rhidoc(self.rhidoc_copy, "hoist", "doc02.08", "--force", "--dry-run")
         assert result.returncode == 0, result.stderr
         after = {p: p.read_bytes() for p in self.rhidoc_copy.rglob("*")
                  if p.is_file()
                  and p.suffix in (".md", ".json", "")}
         assert before == after
 
-    def test_flatten_refuses_big_index(self):
-        """Flatten should refuse if 00-index.md has >10 content lines without --force."""
-        result = _run_rhidoc(self.rhidoc_copy, "flatten", "doc02.08")  # no --force, no --keep-index
+    def test_hoist_refuses_big_index(self):
+        """Hoist should refuse if 00-index.md has >10 content lines without --force."""
+        result = _run_rhidoc(self.rhidoc_copy, "hoist", "doc02.08")  # no --force, no --keep-index
         # If the index has >10 lines, this should fail
         if result.returncode != 0:
             assert "content lines" in result.stderr.lower() or "index" in result.stderr.lower()
 
-    def test_flatten_keep_index(self):
+    def test_hoist_keep_index(self):
         """--keep-index should preserve the index as a numbered file with parent slug."""
         # Use doc01.04 (04-primary-sources/) which has a 00-index.md and numbered children
         sources_dir = self.rhidoc_copy / "01-product-strategy" / "04-primary-sources"
         assert sources_dir.is_dir(), f"Expected 04-primary-sources/ dir: {sources_dir}"
         assert (sources_dir / "00-index.md").exists(), "Expected 00-index.md in 04-primary-sources/"
 
-        result = _run_rhidoc(self.rhidoc_copy, "flatten", "doc01.04", "--keep-index")
-        assert result.returncode == 0, f"flatten failed:\n{result.stderr}\n{result.stdout}"
+        result = _run_rhidoc(self.rhidoc_copy, "hoist", "doc01.04", "--keep-index")
+        assert result.returncode == 0, f"hoist failed:\n{result.stderr}\n{result.stdout}"
 
         # Look for a file with "primary-sources" slug in 01-product-strategy/
         product_dir = self.rhidoc_copy / "01-product-strategy"
@@ -1002,13 +1002,13 @@ class TestFlatten(unittest.TestCase):
         demoted_content = sources_files[0].read_text(encoding="utf-8")
         assert len(demoted_content) > 0, "Demoted index should not be empty"
 
-    def test_flatten_no_orphaned_refs(self):
-        """Flatten should not introduce orphaned refs."""
+    def test_hoist_no_orphaned_refs(self):
+        """Hoist should not introduce orphaned refs."""
         pre_existing = set(
             ref for _, ref in self._collect_orphaned_refs(self.rhidoc_copy)
         )
 
-        result = _run_rhidoc(self.rhidoc_copy, "flatten", "doc02.08", "--force")
+        result = _run_rhidoc(self.rhidoc_copy, "hoist", "doc02.08", "--force")
         assert result.returncode == 0, result.stderr
 
         orphans = self._collect_orphaned_refs(self.rhidoc_copy)
@@ -2133,8 +2133,8 @@ class TestBundleAwareMoveDeleteRename(unittest.TestCase):
         assert normalize_output(result.stdout, self.tmpdir.name) == self._snapshot
 
 
-def _build_punch_flatten_fixture(dest: Path) -> Path:
-    """Build workspace for bundle-aware punch/flatten tests. Returns dest/.rhidoc/"""
+def _build_punch_hoist_fixture(dest: Path) -> Path:
+    """Build workspace for bundle-aware punch/hoist tests. Returns dest/.rhidoc/"""
     rhidoc = dest / ".rhidoc"
     rhidoc.mkdir(parents=True, exist_ok=True)
 
@@ -2149,10 +2149,10 @@ def _build_punch_flatten_fixture(dest: Path) -> Path:
     (rhidoc / "00-codex/01-game.mockup.png").write_bytes(b"\x89PNG\r\n")
     _write(rhidoc / "00-codex/02-plain.md", _fm("Plain", summary="No attachments."))
 
-    # 01-product/ — for flatten tests: a subdirectory with bundled children
+    # 01-product/ — for hoist tests: a subdirectory with bundled children
     _write(rhidoc / "01-product/00-index.md", _fm("Product", summary="Product index."))
     (rhidoc / "01-product/00-product.cover.png").write_bytes(b"\x89PNG\r\n")  # index attachment
-    # 01-chapter/ — the directory to be flattened
+    # 01-chapter/ — the directory to be hoisted
     _write(rhidoc / "01-product/01-chapter/00-index.md", _fm("Chapter", summary="Chapter."))
     (rhidoc / "01-product/01-chapter/00-chapter.bg.png").write_bytes(b"\x89PNG\r\n")  # index att
     _write(rhidoc / "01-product/01-chapter/01-intro.md", _fm("Intro", summary="Intro."))
@@ -2164,13 +2164,13 @@ def _build_punch_flatten_fixture(dest: Path) -> Path:
 
     result = _run_rhidoc(rhidoc, "regenerate")
     if result.returncode != 0:
-        raise RuntimeError(f"punch/flatten fixture regenerate failed:\n{result.stderr}")
+        raise RuntimeError(f"punch/hoist fixture regenerate failed:\n{result.stderr}")
 
     return rhidoc
 
 
-class TestBundleAwarePunchFlatten(unittest.TestCase):
-    """Tests for bundle-aware punch and flatten operations (sidecars-03)."""
+class TestBundleAwarePunchHoist(unittest.TestCase):
+    """Tests for bundle-aware punch and hoist operations (sidecars-03)."""
 
     @pytest.fixture(autouse=True)
     def _inject_snapshot(self, snapshot):
@@ -2178,7 +2178,7 @@ class TestBundleAwarePunchFlatten(unittest.TestCase):
 
     def setUp(self):
         self.tmpdir = tempfile.TemporaryDirectory()
-        self.rhidoc = _build_punch_flatten_fixture(Path(self.tmpdir.name))
+        self.rhidoc = _build_punch_hoist_fixture(Path(self.tmpdir.name))
         self.codex = self.rhidoc / "00-codex"
         self.product = self.rhidoc / "01-product"
         self.chapter = self.product / "01-chapter"
@@ -2249,11 +2249,11 @@ class TestBundleAwarePunchFlatten(unittest.TestCase):
         self.assertFalse((self.codex / "01-game").exists())
         assert normalize_output(result.stdout, self.tmpdir.name) == self._snapshot
 
-    # ── flatten ────────────────────────────────────────────────────────────────
+    # ── hoist ──────────────────────────────────────────────────────────────────
 
-    def test_flatten_children_with_attachments_travel(self):
-        """Flatten: each child bundle (root + attachments) is hoisted as a unit."""
-        result = _run_rhidoc(self.rhidoc, "flatten", "doc01.01")
+    def test_hoist_children_with_attachments_travel(self):
+        """Hoist: each child bundle (root + attachments) is hoisted as a unit."""
+        result = _run_rhidoc(self.rhidoc, "hoist", "doc01.01")
         self.assertEqual(result.returncode, 0, result.stderr)
 
         self.assertFalse(self.chapter.exists())
@@ -2268,9 +2268,9 @@ class TestBundleAwarePunchFlatten(unittest.TestCase):
         self.assertTrue((self.product / "03-extra.md").exists())
         self.assertFalse((self.product / "02-extra.md").exists())
 
-    def test_flatten_keep_index_travels_with_attachments(self):
-        """Flatten --keep-index: index + its 00-* attachments travel together."""
-        result = _run_rhidoc(self.rhidoc, "flatten", "doc01.01", "--keep-index")
+    def test_hoist_keep_index_travels_with_attachments(self):
+        """Hoist --keep-index: index + its 00-* attachments travel together."""
+        result = _run_rhidoc(self.rhidoc, "hoist", "doc01.01", "--keep-index")
         self.assertEqual(result.returncode, 0, result.stderr)
 
         self.assertFalse(self.chapter.exists())
@@ -2288,9 +2288,9 @@ class TestBundleAwarePunchFlatten(unittest.TestCase):
         self.assertTrue((self.product / "04-extra.md").exists())
         self.assertFalse((self.product / "02-extra.md").exists())
 
-    def test_flatten_discards_index_attachments_when_no_keep_index(self):
+    def test_hoist_discards_index_attachments_when_no_keep_index(self):
         """Without --keep-index, index and its 00-* attachments are discarded, not orphaned."""
-        result = _run_rhidoc(self.rhidoc, "flatten", "doc01.01")
+        result = _run_rhidoc(self.rhidoc, "hoist", "doc01.01")
         self.assertEqual(result.returncode, 0, result.stderr)
 
         self.assertFalse(self.chapter.exists())
@@ -2301,17 +2301,17 @@ class TestBundleAwarePunchFlatten(unittest.TestCase):
         self.assertNotIn("01-chapter.bg.png", parent_files)
         self.assertNotIn("02-chapter.bg.png", parent_files)
 
-    def test_flatten_parent_index_and_attachments_untouched(self):
-        """Parent's own 00-index.md and its attachments are not renumbered during flatten."""
-        result = _run_rhidoc(self.rhidoc, "flatten", "doc01.01")
+    def test_hoist_parent_index_and_attachments_untouched(self):
+        """Parent's own 00-index.md and its attachments are not renumbered during hoist."""
+        result = _run_rhidoc(self.rhidoc, "hoist", "doc01.01")
         self.assertEqual(result.returncode, 0, result.stderr)
 
         self.assertTrue((self.product / "00-index.md").exists())
         self.assertTrue((self.product / "00-product.cover.png").exists())
 
-    def test_flatten_attachments_not_in_ref_rename_map(self):
-        """Flatten dry-run: attachment files don't appear in the ref rename map."""
-        result = _run_rhidoc(self.rhidoc, "flatten", "doc01.01", "--dry-run")
+    def test_hoist_attachments_not_in_ref_rename_map(self):
+        """Hoist dry-run: attachment files don't appear in the ref rename map."""
+        result = _run_rhidoc(self.rhidoc, "hoist", "doc01.01", "--dry-run")
         self.assertEqual(result.returncode, 0, result.stderr)
 
         assert normalize_output(result.stdout, self.tmpdir.name) == self._snapshot
@@ -2987,8 +2987,8 @@ class TestCopyAtBefore(unittest.TestCase):
         self.assertIn("dry-run", result.stdout.lower())
 
 
-class TestFlattenBefore(unittest.TestCase):
-    """Tests for rhidoc flatten --before REF vocabulary."""
+class TestHoistBefore(unittest.TestCase):
+    """Tests for rhidoc hoist --before REF vocabulary."""
 
     def setUp(self):
         self.tmpdir = tempfile.TemporaryDirectory()
@@ -2997,7 +2997,7 @@ class TestFlattenBefore(unittest.TestCase):
     def tearDown(self):
         self.tmpdir.cleanup()
 
-    def test_flatten_before_splices_at_ref(self):
+    def test_hoist_before_splices_at_ref(self):
         """--before REF hoists children at the ref's position, not the source's default."""
         # doc02.08 is 08-decisions/ in 02-product-design/; default hoist would start at 08.
         # Use --before doc02.03 to splice children starting at position 03, bumping 03+ up.
@@ -3006,8 +3006,8 @@ class TestFlattenBefore(unittest.TestCase):
         # 03-extension.md should exist before the operation
         self.assertTrue((design_dir / "03-extension.md").exists())
 
-        result = _run_rhidoc(self.rhidoc, "flatten", "doc02.08", "--force", "--before", "doc02.03")
-        self.assertEqual(result.returncode, 0, f"flatten --before failed:\n{result.stderr}\n{result.stdout}")
+        result = _run_rhidoc(self.rhidoc, "hoist", "doc02.08", "--force", "--before", "doc02.03")
+        self.assertEqual(result.returncode, 0, f"hoist --before failed:\n{result.stderr}\n{result.stdout}")
 
         # Source dir should be dissolved
         self.assertFalse((design_dir / "08-decisions").exists())
@@ -3020,12 +3020,12 @@ class TestFlattenBefore(unittest.TestCase):
             if re.match(r'^\d{2}-', e.name) and (e.suffix == ".md" or e.is_dir())
         ]
         dups = [p for p in md_prefixes if md_prefixes.count(p) > 1]
-        self.assertEqual(dups, [], f"Duplicate prefixes after flatten --before: {sorted(set(dups))}")
+        self.assertEqual(dups, [], f"Duplicate prefixes after hoist --before: {sorted(set(dups))}")
 
-    def test_flatten_without_before_uses_default_position(self):
-        """Without --before, flatten still works (default position = source prefix)."""
-        result = _run_rhidoc(self.rhidoc, "flatten", "doc02.08", "--force")
-        self.assertEqual(result.returncode, 0, f"flatten without --before failed:\n{result.stderr}")
+    def test_hoist_without_before_uses_default_position(self):
+        """Without --before, hoist still works (default position = source prefix)."""
+        result = _run_rhidoc(self.rhidoc, "hoist", "doc02.08", "--force")
+        self.assertEqual(result.returncode, 0, f"hoist without --before failed:\n{result.stderr}")
         design_dir = self.rhidoc / "02-product-design"
         self.assertFalse((design_dir / "08-decisions").exists())
 

@@ -43,7 +43,7 @@ The `docXX.YY.ZZ` syntax and the ref-rewriting behavior on structural changes. T
 
 ### Structural Operations
 
-The set of operations that modify workspace structure — create, delete, move, punch, flatten, regenerate. These are format-level because they maintain invariants (numbering, gap-closing, ref-rewriting). Users invoke them; bypassing them breaks the format.
+The set of operations that modify workspace structure — create, delete, move, punch, hoist, regenerate. These are format-level because they maintain invariants (numbering, gap-closing, ref-rewriting). Users invoke them; bypassing them breaks the format.
 
 ### Numbering Scheme
 

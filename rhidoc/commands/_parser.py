@@ -8,9 +8,10 @@ from ..errors import RhidocError
 from ..workspace import find_workspace
 from ..ai_skill import cmd_ai_skill
 from .structure import cmd_make, cmd_delete, cmd_move, cmd_rename
-from .transform import cmd_punch, cmd_flatten, cmd_copy
+from .transform import cmd_punch, cmd_hoist, cmd_copy
 from .content import cmd_cat, cmd_tree, cmd_rewrite, cmd_regenerate, cmd_attach, cmd_ls, cmd_bundle, cmd_orphans
 from .setup import cmd_init, cmd_portable, cmd_init_rehydrate
+from .mdapi import cmd_mdapi
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -101,14 +102,14 @@ def build_parser() -> argparse.ArgumentParser:
                           help="Put original content in 01-slug.md, generate skeleton index.")
     p_punch.add_argument("--dry-run", action="store_true")
 
-    # flatten
-    p_flatten = subparsers.add_parser("flatten", help="Dissolve directory")
-    p_flatten.add_argument("target")
-    p_flatten.add_argument("--keep-index", action="store_true")
-    p_flatten.add_argument("--force", action="store_true")
-    p_flatten.add_argument("--before", default=None,
-                           help="Insert hoisted children before REF (a doc ref) in the parent. Default: the dissolved directory's old position.")
-    p_flatten.add_argument("--dry-run", action="store_true")
+    # hoist
+    p_hoist_file = subparsers.add_parser("hoist", help="Dissolve directory")
+    p_hoist_file.add_argument("target")
+    p_hoist_file.add_argument("--keep-index", action="store_true")
+    p_hoist_file.add_argument("--force", action="store_true")
+    p_hoist_file.add_argument("--before", default=None,
+                              help="Insert hoisted children before REF (a doc ref) in the parent. Default: the dissolved directory's old position.")
+    p_hoist_file.add_argument("--dry-run", action="store_true")
 
     # copy
     p_copy = subparsers.add_parser(
@@ -178,7 +179,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_portable = subparsers.add_parser("portable", help="Dump editable scripts into workspace")
 
     # ai-skill
-    p_ai_skill = subparsers.add_parser("ai-skill", help="Print AI agent reference for all commands")
+    p_ai_skill = subparsers.add_parser("ai-skill", help="Print compact AI agent reference (pass a command name for its full block)")
+    p_ai_skill.add_argument("topic", nargs="?", default=None,
+                            help="Optional command name; prints that command's full reference block")
 
     # cat
     p_cat = subparsers.add_parser("cat", help="Print document contents by ref")
@@ -209,6 +212,88 @@ def build_parser() -> argparse.ArgumentParser:
     # orphans
     subparsers.add_parser("orphans", help="List orphaned attachments in the workspace")
 
+    # mdapi
+    p_mdapi = subparsers.add_parser("mdapi", help="Structured read operations on a markdown doc")
+    mdapi_subs = p_mdapi.add_subparsers(dest="mdapi_verb", required=False)
+
+    # mdapi outline
+    p_outline = mdapi_subs.add_parser("outline", help="Print every node as ADDRESS  marker_text")
+    p_outline.add_argument("doc", help="Doc ref or path")
+
+    # mdapi read
+    p_read = mdapi_subs.add_parser(
+        "read",
+        help="Print selected nodes with optional depth truncation",
+    )
+    p_read.add_argument("doc", help="Doc ref or path")
+    rng_group = p_read.add_mutually_exclusive_group()
+    rng_group.add_argument("--range", metavar="A:B",
+                           help="Contiguous sibling span A..B inclusive (e.g. 2:4 or 1.2:1.5)")
+    rng_group.add_argument("--at", metavar="ADDR",
+                           help="Single node address — sugar for --range ADDR:ADDR")
+    p_read.add_argument("--depth", type=int, default=None, metavar="N",
+                        help="Descend at most N levels (1 = selected node only)")
+
+    # mdapi locate
+    p_locate = mdapi_subs.add_parser("locate", help="Find first node containing text")
+    p_locate.add_argument("doc", help="Doc ref or path")
+    p_locate.add_argument("--text", required=True, metavar="TEXT",
+                          help="Substring to search in marker_text and body_text")
+
+    # mdapi insert
+    p_insert = mdapi_subs.add_parser(
+        "insert",
+        help="Insert node(s) from stdin before or after a node; siblings renumber",
+    )
+    p_insert.add_argument("doc", help="Doc ref or path")
+    p_insert.add_argument("--at", required=True, metavar="ADDR",
+                          help="Reference node address (1-based positional, e.g. 2 or 1.3)")
+    p_insert.add_argument("--before", action="store_true",
+                          help="Insert before --at (default: insert after --at)")
+    p_insert.add_argument("--no-lint", dest="no_lint", action="store_true",
+                          help="Bypass the lint gate and write regardless of violations")
+
+    # mdapi set-body
+    p_set_body = mdapi_subs.add_parser(
+        "set-body",
+        help="Overwrite one node's body_text from stdin; structure and siblings unchanged",
+    )
+    p_set_body.add_argument("doc", help="Doc ref or path")
+    p_set_body.add_argument("--at", required=True, metavar="ADDR",
+                            help="Node address whose body_text to replace")
+    p_set_body.add_argument("--no-lint", dest="no_lint", action="store_true",
+                            help="Bypass the lint gate and write regardless of violations")
+
+    # mdapi move
+    p_mv = mdapi_subs.add_parser(
+        "move",
+        help="Relocate a whole subtree (node + all descendants); both ends renumber",
+    )
+    p_mv.add_argument("doc", help="Doc ref or path")
+    p_mv.add_argument("--from", dest="from_addr", required=True, metavar="ADDR",
+                      help="Source node address")
+    p_mv.add_argument("--to", dest="to_addr", required=True, metavar="ADDR",
+                      help="Destination: insert before the node at this address "
+                           "(use N+1 to append after the last sibling)")
+
+    # mdapi delete
+    p_del = mdapi_subs.add_parser(
+        "delete",
+        help="Remove node + entire subtree at --at; siblings renumber",
+    )
+    p_del.add_argument("doc", help="Doc ref or path")
+    p_del.add_argument("--at", required=True, metavar="ADDR",
+                       help="Node address to delete (subtree included)")
+
+    # mdapi hoist
+    p_hoist = mdapi_subs.add_parser(
+        "hoist",
+        help="Dissolve node at --at, lifting its children one level into its slot; siblings renumber",
+    )
+    p_hoist.add_argument("doc", help="Doc ref or path")
+    p_hoist.add_argument("--at", required=True, metavar="ADDR",
+                         help="Node address to dissolve")
+
     return parser
 
 
@@ -229,9 +314,10 @@ def main(argv: list[str] | None = None) -> int:
     if "--help-ai" in argv:
         # Find the subcommand name: skip flags and their values
         known_subcommands = {
-            "regenerate", "make", "delete", "move", "punch", "flatten",
+            "regenerate", "make", "delete", "move", "punch", "hoist",
             "copy", "attach", "rewrite", "rename", "init",
             "portable", "ai-skill", "cat", "tree", "ls", "bundle", "orphans",
+            "mdapi",
         }
         cmd_candidates = [a for a in argv if a in known_subcommands]
         if cmd_candidates:
@@ -288,12 +374,13 @@ def main(argv: list[str] | None = None) -> int:
             "delete": cmd_delete,
             "move": cmd_move,
             "punch": cmd_punch,
-            "flatten": cmd_flatten,
+            "hoist": cmd_hoist,
             "copy": cmd_copy,
             "attach": cmd_attach,
             "rewrite": cmd_rewrite,
             "rename": cmd_rename,
             "ai-skill": cmd_ai_skill,
+            "mdapi": cmd_mdapi,
             "cat": cmd_cat,
             "tree": cmd_tree,
             "ls": cmd_ls,

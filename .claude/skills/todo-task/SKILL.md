@@ -162,7 +162,7 @@ Read the draft at `.todo-tasks/inbox/{slug}.md` (or `.todo-tasks/tasks/{slug}.md
 
 Investigate the codebase to understand what changes are needed:
 
-1. **Check `.rhidoc/MANIFEST.md`** — use the tag index to map task keywords to relevant docs.
+1. **Check `.carta/MANIFEST.md`** — use the tag index to map task keywords to relevant docs.
 2. **Find relevant files** — Use Grep/Glob to locate code related to the task. Start broad (keyword search), then narrow to specific files.
 3. **Read key files** — Read the files you'll need to modify. Understand their structure, patterns, and conventions.
 4. **Understand test patterns** — Find existing tests near the code you'll change. Note the test framework, assertion style, and what's already covered.

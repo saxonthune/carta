@@ -13,20 +13,23 @@ of truth for this project.
 1. **Read `.rhidoc/MANIFEST.md` first.** It is the machine-readable index —
    match the task against each entry's summary and tags, then open only the docs
    you need. Aim to read a small fraction of the workspace per task, not all of it.
+   To read part of a single doc, use `rhidoc mdapi outline <ref>` (skeleton) or
+   `rhidoc mdapi read <ref> --depth N` / `--at ADDR` instead of the whole file.
 
 2. **Content edits use Write/Edit; structural changes use the `rhidoc` CLI.**
    Editing prose inside an existing doc is a normal file edit — then run
    `rhidoc regenerate`. Creating, moving, deleting, renaming, punching, or
-   flattening docs must go through `rhidoc`. Direct file writes bypass numbering,
+   hoisting docs must go through `rhidoc`. Direct file writes bypass numbering,
    ref assignment, and MANIFEST registration, and will corrupt the workspace.
 
 3. **Cross-references are `docXX.YY.ZZ`** — two digits per segment (e.g.
    `doc00.02`, `doc02.01.03`). They are stable identifiers that survive moves and
    renumbering, so prefer them over file paths when pointing at a doc.
 
-4. **Run `rhidoc ai-skill` before using any `rhidoc` command.** It prints the
-   authoritative reference for every command — syntax, arguments, side effects,
-   and sequencing. Do not guess flags. This reference regenerates from the
+4. **Run `rhidoc ai-skill` before using any `rhidoc` command.** It prints a compact
+   index — one line per command, plus behavioral rules and live workspace state. For
+   the full block on one command — syntax, arguments, side effects, sequencing — run
+   `rhidoc ai-skill <command>`. Do not guess flags. The reference regenerates from the
    installed version, so it never goes stale.
 
 ## Codex orientation
@@ -34,10 +37,10 @@ of truth for this project.
 The codex (`00-codex/`) is the meta-documentation about this workspace. Read it
 when orienting:
 
+- `doc00.00` — codex index: how to read, find, and manage the workspace
 - `doc00.01` — about: why this workspace exists, how to read it
 - `doc00.02` — maintenance: the unfolding philosophy, when to grow a doc
 - `doc00.03` — conventions: ref syntax, frontmatter, file naming, writing style
-- `doc00.04` — AI retrieval: the two-phase search pattern for navigating efficiently
 
 ## Headless agents
 

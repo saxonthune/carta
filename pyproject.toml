@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "rhidoc"
-version = "0.4.0"
+version = "0.5.0"
 description = "CLI for managing .rhidoc/ specification workspaces"
 readme = "README.md"
 license = "AGPL-3.0-or-later"
@@ -13,6 +13,7 @@ requires-python = ">=3.10"
 dependencies = [
     "click",
     "pyyaml",
+    "markdown-it-py",
 ]
 
 [project.urls]
