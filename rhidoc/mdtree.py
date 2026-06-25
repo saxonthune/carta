@@ -171,7 +171,7 @@ class _Parser:
                 else:
                     preamble_parts.append(raw)
 
-            elif tok.type in ("fence", "code_block"):
+            elif tok.type in ("fence", "code_block", "hr"):
                 # Opaque block: belongs to current heading body_text
                 raw = self._block_raw()
                 if heading_stack:
@@ -222,7 +222,7 @@ class _Parser:
         self.i += 1  # skip list_item_open
 
         marker_text = ""
-        body_text = ""
+        body_parts: list[str] = []
         children: list[MdNode] = []
         got_marker = False
 
@@ -230,12 +230,13 @@ class _Parser:
             tok = self.tokens[self.i]
 
             if tok.type == "paragraph_open":
-                content = self._parse_paragraph_inline()
                 if not got_marker:
-                    marker_text = content.split("\n")[0].strip()
+                    # First paragraph: extract marker_text from inline content.
+                    marker_text = self._parse_paragraph_inline().split("\n")[0].strip()
                     got_marker = True
                 else:
-                    body_text += content + "\n\n"
+                    # Subsequent paragraphs: capture raw source lines to preserve indentation.
+                    body_parts.append(self._parse_paragraph_raw())
 
             elif tok.type == "inline":
                 # tight list: inline directly in list_item (no paragraph wrapper)
@@ -243,6 +244,12 @@ class _Parser:
                     marker_text = tok.content.split("\n")[0].strip()
                     got_marker = True
                 self.i += 1
+
+            elif tok.type in ("fence", "code_block", "hr"):
+                body_parts.append(self._block_raw())
+
+            elif tok.type == "blockquote_open":
+                body_parts.append(self._raw_container("blockquote_open", "blockquote_close"))
 
             elif tok.type in ("bullet_list_open", "ordered_list_open"):
                 nested_kind = "ul" if tok.type == "bullet_list_open" else "ol"
@@ -257,7 +264,7 @@ class _Parser:
         return MdNode(
             marker_kind=kind,
             marker_text=marker_text,
-            body_text=body_text,
+            body_text="".join(body_parts),
             children=children,
             depth=depth,
         )
@@ -299,7 +306,7 @@ class _Parser:
         return content
 
     def _block_raw(self) -> str:
-        """Consume a fence/code_block token; return raw source lines."""
+        """Consume a fence/code_block/hr token; return raw source lines."""
         tok = self.tokens[self.i]
         self.i += 1
         if tok.map:
@@ -309,6 +316,28 @@ class _Parser:
                 raw += "\n"
             return raw + "\n"
         return ""
+
+    def _raw_container(self, open_type: str, close_type: str) -> str:
+        """Consume an open…close block pair; return raw source lines covering the full range."""
+        open_tok = self.tokens[self.i]
+        map_start = open_tok.map[0] if open_tok.map else 0
+        map_end = open_tok.map[1] if open_tok.map else map_start + 1
+        self.i += 1  # skip open
+        depth = 1
+        while self.i < len(self.tokens) and depth > 0:
+            t = self.tokens[self.i]
+            if t.type == open_type:
+                depth += 1
+            elif t.type == close_type:
+                depth -= 1
+            if t.map and len(t.map) >= 2 and t.map[1] > map_end:
+                map_end = t.map[1]
+            self.i += 1
+        lines = self.body_lines[map_start:map_end]
+        raw = "".join(lines)
+        if raw and not raw.endswith("\n"):
+            raw += "\n"
+        return raw + "\n"
 
 
 # ---------------------------------------------------------------------------
@@ -345,6 +374,9 @@ def _render_node(node: MdNode, indent: str) -> str:
         body = node.body_text
         if not body.endswith("\n"):
             body += "\n"
+        if not node.marker_kind.startswith("h"):
+            # Blank line required so markdown-it re-parses body as block content, not lazy continuation.
+            parts.append("\n")
         parts.append(body)
 
     for child in node.children:

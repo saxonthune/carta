@@ -583,11 +583,14 @@ heading+list tree.
 rhidoc mdapi outline DOC
 rhidoc mdapi read DOC [--range A:B | --at ADDR] [--depth N]
 rhidoc mdapi locate DOC --text TEXT
+rhidoc mdapi lint DOC                                        # stdin: draft markdown — checks, no write
 rhidoc mdapi insert DOC --at ADDR [--before] [--no-lint]    # stdin: draft markdown
 rhidoc mdapi set-body DOC --at ADDR [--no-lint]             # stdin: prose body text
 rhidoc mdapi move DOC --from ADDR --to ADDR
 rhidoc mdapi delete DOC --at ADDR
 rhidoc mdapi hoist DOC --at ADDR
+rhidoc mdapi frontmatter DOC                                 # print inner YAML (fences excluded)
+rhidoc mdapi set-frontmatter DOC                             # stdin: inner YAML — replaces block, body unchanged
 ```
 
 `DOC` accepts a doc ref (e.g., `doc02.03`) or a workspace-relative path, resolved the same
@@ -626,6 +629,29 @@ Read verbs:
   locate DOC --text TEXT
     Print the address of the first node whose marker_text or body_text contains TEXT.
     Exits non-zero if no match is found.
+
+  lint DOC
+    Read a candidate draft from stdin and run the exact same lint checks that insert and
+    set-body run before writing (word cap, line cap, banned patterns, duplicate body_text
+    vs the existing DOC).  Prints violations to stderr; exits non-zero on any violation.
+    The document is never touched — use this to pre-flight a draft so the
+    draft→validate→revise loop costs no write+rollback.
+
+Authoring grain:
+
+  Only headings (h1–h6) and list items are addressable nodes.  Paragraphs, code fences,
+  and tables are body_text on the nearest node — they are not nodes themselves and cannot
+  be addressed separately.  Write one addressable node (a heading or a bullet) per call.
+
+  Mechanism follows content:
+    - printf for a one-line bullet (no multi-line escaping needed)
+    - A quoted heredoc (<<'EOF') for multi-line bodies, tables, or code fences
+    - A temp file for very large blocks
+
+  Parser reality (post Phase 1 mdapi-list-item-body-fidelity): tables and fenced code
+  round-trip verbatim as body_text on either a heading or a list item.  Both count against
+  the 40-line / 200-word caps.  GFM tables are not enabled, so a table is opaque prose to
+  the parser — never an addressable node.
 
 Write verbs:
 
@@ -669,8 +695,24 @@ Folded lint (insert and set-body only):
   Violations are printed to stderr; the file is left byte-unchanged.
   --no-lint on insert or set-body skips all checks.
 
+Frontmatter verbs:
+
+  frontmatter DOC
+    Print the doc's inner YAML — the text between the opening and closing `---` fences,
+    fences excluded.  Output pipes directly into set-frontmatter input for round-trips.
+    Prints nothing (no error) if the doc has no frontmatter block.
+
+  set-frontmatter DOC
+    Read inner YAML from stdin and replace the entire frontmatter block wholesale.
+    No per-field flags, no schema, no validation — the agent owns exactly what it writes.
+    The body (everything after the closing `---`) is preserved byte-for-byte.
+    Both verbs operate on inner YAML (fences excluded), so:
+      `rhidoc mdapi frontmatter DOC | rhidoc mdapi set-frontmatter DOC` is a no-op round-trip.
+    Frontmatter fields (summary, tags, deps) feed MANIFEST.md — run `rhidoc regenerate`
+    after changing them.  mdapi does not regenerate.
+
 Side effects:
-  - Read verbs: none.
+  - Read verbs (outline, read, locate, lint, frontmatter): none.
   - Write verbs: overwrite the target file in place.  MANIFEST is NOT updated (mdapi is
     intra-document; cross-file ref rewriting is out of scope).
   - Anchors do not exist; addressing is positional only.

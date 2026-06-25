@@ -81,7 +81,11 @@ def _select_range(tree: MdTree, start: str, end: str) -> list[MdNode]:
 
 
 def _resolve_doc(args: argparse.Namespace, rhidoc_root: Path) -> tuple[Path, MdTree]:
-    entry = resolve_arg(args.doc, rhidoc_root)
+    doc_arg = args.doc
+    workspace_name = rhidoc_root.name
+    if doc_arg.startswith(f"{workspace_name}/"):
+        doc_arg = doc_arg[len(workspace_name) + 1:]
+    entry = resolve_arg(doc_arg, rhidoc_root)
     path = entry.path
     if path.is_dir():
         path = path / "00-index.md"
@@ -378,6 +382,55 @@ def cmd_mdapi_hoist(args: argparse.Namespace, rhidoc_root: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
+# frontmatter / set-frontmatter
+# ---------------------------------------------------------------------------
+
+def cmd_mdapi_frontmatter(args: argparse.Namespace, rhidoc_root: Path) -> None:
+    """Print the doc's frontmatter inner YAML (between the --- fences, fences excluded)."""
+    _, tree = _resolve_doc(args, rhidoc_root)
+    fm = tree.frontmatter
+    if not fm:
+        return
+    inner = fm
+    if inner.startswith("---\n"):
+        inner = inner[4:]
+    if inner.endswith("\n---"):
+        inner = inner[:-4]
+    sys.stdout.write(inner + "\n")
+
+
+def cmd_mdapi_set_frontmatter(args: argparse.Namespace, rhidoc_root: Path) -> None:
+    """Replace the doc's frontmatter block with inner YAML read from stdin; body unchanged."""
+    path, tree = _resolve_doc(args, rhidoc_root)
+    inner = sys.stdin.read().strip("\n")
+    tree.frontmatter = "---\n" + inner + "\n---"
+    path.write_text(tree.render(), encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
+# lint
+# ---------------------------------------------------------------------------
+
+def cmd_mdapi_lint(args: argparse.Namespace, rhidoc_root: Path) -> None:
+    """Lint a candidate draft from stdin against DOC's tree; write nothing.
+
+    Same checks insert runs pre-write (caps, banned patterns, duplicate body vs the
+    existing doc). Exits non-zero on any violation; the doc is never touched.
+    """
+    _, tree = _resolve_doc(args, rhidoc_root)
+    draft = sys.stdin.read()
+
+    new_nodes = MdTree.parse(draft).roots
+    if not new_nodes:
+        raise RhidocError("lint: stdin produced no nodes (marker line required)")
+
+    violations = _run_lint(new_nodes, tree)
+    if violations:
+        _print_violations(violations)
+        raise RhidocError("lint: violations found")
+
+
+# ---------------------------------------------------------------------------
 # Dispatcher (called from _parser.py)
 # ---------------------------------------------------------------------------
 
@@ -399,7 +452,13 @@ def cmd_mdapi(args: argparse.Namespace, rhidoc_root: Path) -> None:
         cmd_mdapi_delete(args, rhidoc_root)
     elif verb == "hoist":
         cmd_mdapi_hoist(args, rhidoc_root)
+    elif verb == "lint":
+        cmd_mdapi_lint(args, rhidoc_root)
+    elif verb == "frontmatter":
+        cmd_mdapi_frontmatter(args, rhidoc_root)
+    elif verb == "set-frontmatter":
+        cmd_mdapi_set_frontmatter(args, rhidoc_root)
     else:
         raise RhidocError(
-            "Usage: rhidoc mdapi <outline|read|locate|insert|set-body|move|delete|hoist> DOC [options]"
+            "Usage: rhidoc mdapi <outline|read|locate|insert|set-body|move|delete|hoist|lint|frontmatter|set-frontmatter> DOC [options]"
         )

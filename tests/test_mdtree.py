@@ -273,18 +273,32 @@ _list_kinds = st.sampled_from(["ul", "ol"])
 
 @st.composite
 def conformant_markdown(draw):
-    """Generate markdown with only headings and list items — no preamble prose."""
+    """Generate markdown with headings, list items, and optional block-level list bodies."""
     lines: list[str] = []
-    # 0-3 headings with optional nested items
     for _ in range(draw(st.integers(0, 3))):
         level = draw(st.integers(1, 3))
         text = draw(_words)
         lines.append("#" * level + " " + text + "\n")
-        # 0-2 list items under this heading
         for _ in range(draw(st.integers(0, 2))):
             item_text = draw(_words)
             kind_char = draw(st.sampled_from(["-", "1."]))
-            lines.append(kind_char + " " + item_text + "\n")
+            body_kind = draw(st.sampled_from(["none", "paragraph", "fence"]))
+            if body_kind == "none":
+                lines.append(kind_char + " " + item_text + "\n")
+            else:
+                lines.append("\n")
+                lines.append(kind_char + " " + item_text + "\n")
+                if body_kind == "paragraph":
+                    body_text = draw(_words)
+                    lines.append("\n")
+                    lines.append("  " + body_text + "\n")
+                else:  # fence
+                    fence_text = draw(_words)
+                    lines.append("\n")
+                    lines.append("  ```\n")
+                    lines.append("  " + fence_text + "\n")
+                    lines.append("  ```\n")
+                lines.append("\n")
     return "".join(lines)
 
 
@@ -295,3 +309,62 @@ def test_hypothesis_structural_idempotence(src: str):
     t1 = MdTree.parse(src)
     t2 = MdTree.parse(t1.render())
     assert t1 == t2
+
+
+# ---------------------------------------------------------------------------
+# List-item body fidelity — explicit round-trip cases
+# ---------------------------------------------------------------------------
+
+def test_list_item_second_paragraph_roundtrip():
+    src = "# H\n\n- item\n\n  Second paragraph.\n"
+    t1 = MdTree.parse(src)
+    t2 = MdTree.parse(t1.render())
+    assert t1 == t2
+    assert "Second paragraph." in t1.roots[0].children[0].body_text
+
+
+def test_list_item_table_roundtrip():
+    src = "# H\n\n- item\n\n  | a | b |\n  |---|---|\n  | 1 | 2 |\n"
+    t1 = MdTree.parse(src)
+    t2 = MdTree.parse(t1.render())
+    assert t1 == t2
+    assert "| a | b |" in t1.roots[0].children[0].body_text
+
+
+def test_list_item_fence_roundtrip():
+    src = "# H\n\n- item\n\n  ```python\n  code_here()\n  ```\n"
+    t1 = MdTree.parse(src)
+    t2 = MdTree.parse(t1.render())
+    assert t1 == t2
+    assert "code_here()" in t1.roots[0].children[0].body_text
+
+
+def test_fence_not_dropped_in_list_item():
+    src = "# H\n\n- item\n\n  ```python\n  code_in_item()\n  ```\n- item two\n"
+    t = MdTree.parse(src)
+    assert "code_in_item()" in t.roots[0].children[0].body_text
+
+
+def test_top_level_hr():
+    src = "# A\n\n---\n\n# B\n"
+    t1 = MdTree.parse(src)
+    t2 = MdTree.parse(t1.render())
+    assert t1 == t2
+    assert "---" in t1.preamble or any("---" in n.body_text for n in t1.walk())
+
+
+def test_list_item_blockquote_roundtrip():
+    src = "# H\n\n- item\n\n  > This is a quote.\n"
+    t1 = MdTree.parse(src)
+    t2 = MdTree.parse(t1.render())
+    assert t1 == t2
+    assert "> This is a quote." in t1.roots[0].children[0].body_text
+
+
+def test_nested_list_item_multiline_roundtrip():
+    src = "# H\n\n- parent\n\n  - child\n\n    Second paragraph of child.\n"
+    t1 = MdTree.parse(src)
+    t2 = MdTree.parse(t1.render())
+    assert t1 == t2
+    child = t1.roots[0].children[0].children[0]
+    assert "Second paragraph of child." in child.body_text

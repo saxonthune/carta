@@ -244,6 +244,19 @@ def build_parser() -> argparse.ArgumentParser:
     p_insert = mdapi_subs.add_parser(
         "insert",
         help="Insert node(s) from stdin before or after a node; siblings renumber",
+        epilog=(
+            "Examples (grain: one addressable node — a heading or a bullet — per write):\n"
+            "  printf '%s\\n' '- **term** — short definition.' | rhidoc mdapi insert doc01.02 --at 3\n"
+            "  rhidoc mdapi insert doc01.02 --at 3 <<'EOF'\n"
+            "  ## Heading\n"
+            "\n"
+            "  Multi-line prose, a table, or a code fence goes here as the heading's body.\n"
+            "  EOF\n"
+            "\n"
+            "Mechanism follows content: printf for a one-line bullet; a quoted heredoc for\n"
+            "multi-line bodies, tables, or code fences; a temp file is fine for large blocks."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     p_insert.add_argument("doc", help="Doc ref or path")
     p_insert.add_argument("--at", required=True, metavar="ADDR",
@@ -293,6 +306,27 @@ def build_parser() -> argparse.ArgumentParser:
     p_hoist.add_argument("doc", help="Doc ref or path")
     p_hoist.add_argument("--at", required=True, metavar="ADDR",
                          help="Node address to dissolve")
+
+    # mdapi lint
+    p_lint = mdapi_subs.add_parser(
+        "lint",
+        help="Run the insert/set-body lint on a stdin draft without writing; exit non-zero on violations",
+    )
+    p_lint.add_argument("doc", help="Doc ref or path (duplicate-body is checked against this doc)")
+
+    # mdapi frontmatter
+    p_fm = mdapi_subs.add_parser(
+        "frontmatter",
+        help="Print the doc's frontmatter inner YAML (fences excluded)",
+    )
+    p_fm.add_argument("doc", help="Doc ref or path")
+
+    # mdapi set-frontmatter
+    p_set_fm = mdapi_subs.add_parser(
+        "set-frontmatter",
+        help="Replace the doc's frontmatter block with inner YAML from stdin; body unchanged",
+    )
+    p_set_fm.add_argument("doc", help="Doc ref or path")
 
     return parser
 

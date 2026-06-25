@@ -15,6 +15,7 @@ from rhidoc.commands.mdapi import (
     cmd_mdapi_delete,
     cmd_mdapi_hoist,
     cmd_mdapi_outline,
+    cmd_mdapi_lint,
 )
 from rhidoc.errors import RhidocError
 from rhidoc.mdtree import MdTree
@@ -568,6 +569,68 @@ def test_set_body_no_lint_bypasses(tmp_path):
     _run_set_body(doc, at="1", body="This will be done.\n", no_lint=True)
     tree = MdTree.parse(doc.read_text())
     assert "This will be done." in tree.roots[0].body_text
+
+
+# ---------------------------------------------------------------------------
+# mdapi lint — standalone pre-flight verb
+# ---------------------------------------------------------------------------
+
+def _run_lint_cmd(doc_file: Path, draft: str):
+    ns = _args(str(doc_file))
+    with patch("sys.stdin", io.StringIO(draft)):
+        cmd_mdapi_lint(ns, doc_file.parent)
+
+
+def test_lint_clean_draft_no_exception(tmp_path):
+    doc = _doc(tmp_path)
+    before = doc.read_text()
+    _run_lint_cmd(doc, "# Clean\n\nA clean declarative body.\n")
+    assert doc.read_text() == before
+
+
+def test_lint_banned_pattern_raises_doc_unchanged(tmp_path):
+    doc = _doc(tmp_path)
+    before = doc.read_text()
+    with pytest.raises(RhidocError, match="violations found"):
+        with patch("sys.stderr", io.StringIO()):
+            _run_lint_cmd(doc, "# Probe\n\nThis will fail lint.\n")
+    assert doc.read_text() == before
+
+
+def test_lint_word_cap_raises_doc_unchanged(tmp_path):
+    doc = _doc(tmp_path)
+    before = doc.read_text()
+    long_body = " ".join(["word"] * (WORD_CAP + 1))
+    with pytest.raises(RhidocError, match="violations found"):
+        with patch("sys.stderr", io.StringIO()):
+            _run_lint_cmd(doc, f"# Big\n\n{long_body}\n")
+    assert doc.read_text() == before
+
+
+def test_lint_line_cap_raises_doc_unchanged(tmp_path):
+    doc = _doc(tmp_path)
+    before = doc.read_text()
+    tall_body = "\n".join(["line"] * (LINE_CAP + 1))
+    with pytest.raises(RhidocError, match="violations found"):
+        with patch("sys.stderr", io.StringIO()):
+            _run_lint_cmd(doc, f"# Tall\n\n{tall_body}\n")
+    assert doc.read_text() == before
+
+
+def test_lint_duplicate_body_raises_doc_unchanged(tmp_path):
+    doc = _doc(tmp_path)
+    before = doc.read_text()
+    # "Alpha body." is already in DOC_TEXT
+    with pytest.raises(RhidocError, match="violations found"):
+        with patch("sys.stderr", io.StringIO()):
+            _run_lint_cmd(doc, "# Dup\n\nAlpha body.\n")
+    assert doc.read_text() == before
+
+
+def test_lint_empty_stdin_raises(tmp_path):
+    doc = _doc(tmp_path)
+    with pytest.raises(RhidocError, match="no nodes"):
+        _run_lint_cmd(doc, "just plain text with no heading\n")
 
 
 # ---------------------------------------------------------------------------
