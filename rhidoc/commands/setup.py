@@ -229,8 +229,8 @@ def cmd_init_rehydrate(args: argparse.Namespace, rhidoc_root: Path) -> None:
     skipped = 0
 
     # --- Codex docs ---
+    # 00-index.md is a generated artifact (body rewritten by regenerate) — skip it in rehydrate.
     codex_templates = [
-        ("00-index.md", "{{title}}", title),
         ("01-about.md", "{{title}}", title),
         ("02-maintenance.md", "{{dir_name}}", dirname),
         ("03-conventions.md", "{{dir_name}}", dirname),

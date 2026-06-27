@@ -25,7 +25,7 @@ from .._glyphs import for_stream
 # ---------------------------------------------------------------------------
 
 def cmd_punch(args: argparse.Namespace, rhidoc_root: Path) -> None:
-    """Expand leaf file into directory."""
+    """Expand leaf file into directory with content as first child."""
     source_path = resolve_and_validate(args.target, rhidoc_root).path
 
     if source_path.is_dir():
@@ -37,59 +37,58 @@ def cmd_punch(args: argparse.Namespace, rhidoc_root: Path) -> None:
     _src_en = EntryName.parse(source_path.name)
     if _src_en is None:
         raise RhidocError(f"Error: source has no numeric prefix: {source_path.name}")
-    prefix = _src_en.prefix
 
     dir_name = source_path.name[:-3]
     _dir_en = EntryName.parse(dir_name)
     slug = _dir_en.tail if _dir_en is not None else dir_name
     new_dir = source_path.parent / dir_name
     new_index = new_dir / "00-index.md"
-    as_child = args.as_child
-
-    if as_child:
-        child_path = new_dir / f"01-{slug}.md"
+    child_path = new_dir / f"01-{slug}.md"
 
     bndl = bundle_mod.find_bundle(source_path)
     attachments = list(bndl.attachments) if bndl else []
-    att_prefix = 1 if as_child else 0
     glyphs = for_stream(sys.stdout)
 
+    # Compute ref-shift before moving files: docXX.YY → docXX.YY.01
+    rename_map = compute_rename_map([(source_path, child_path)], rhidoc_root)
+
     if args.dry_run:
-        if as_child:
-            print(f"Would punch: {source_path.name} {glyphs.arrow} {dir_name}/01-{slug}.md (content)")
-            print(f"Would punch: {source_path.name} {glyphs.arrow} {dir_name}/00-index.md (generated index)")
-        else:
-            print(f"Would punch: {source_path.name} {glyphs.arrow} {dir_name}/00-index.md")
+        print(f"Would punch: {source_path.name} {glyphs.arrow} {dir_name}/01-{slug}.md (content)")
+        print(f"Would punch: {source_path.name} {glyphs.arrow} {dir_name}/00-index.md (generated index)")
         for att in attachments:
             att_slug = EntryName.parse(att.name).tail
-            print(f"Would move attachment: {att.name} {glyphs.arrow} {dir_name}/{att_prefix:02d}-{att_slug}")
+            print(f"Would move attachment: {att.name} {glyphs.arrow} {dir_name}/01-{att_slug}")
+        if rename_map:
+            print(f"Would shift refs:")
+            for old_ref, new_ref in sorted(rename_map.items()):
+                print(f"  {old_ref} -> {new_ref}")
         print("\n(dry-run: no files modified)")
         return
 
     new_dir.mkdir()
+    shutil.move(str(source_path), str(child_path))
 
-    if as_child:
-        shutil.move(str(source_path), str(child_path))
-        title = slug.replace("-", " ").title()
-        write_frontmatter(new_index, {
-            "title": title,
-            "summary": "", "tags": [], "deps": [],
-        }, f"\n# {title}\n")
-        for att in attachments:
-            att_slug = EntryName.parse(att.name).tail
-            shutil.move(str(att), str(new_dir / f"{att_prefix:02d}-{att_slug}"))
-        print(f"Punched: {source_path.name} {glyphs.arrow} {dir_name}/01-{slug}.md (content)")
-        print(f"  Index: {dir_name}/00-index.md (generated)")
-        if attachments:
-            print(f"  Moved {len(attachments)} attachment(s) with prefix 01-")
-    else:
-        shutil.move(str(source_path), str(new_index))
-        for att in attachments:
-            att_slug = EntryName.parse(att.name).tail
-            shutil.move(str(att), str(new_dir / f"{att_prefix:02d}-{att_slug}"))
-        print(f"Punched: {source_path.name} {glyphs.arrow} {dir_name}/00-index.md")
-        if attachments:
-            print(f"  Moved {len(attachments)} attachment(s) with prefix 00-")
+    title = slug.replace("-", " ").title()
+    write_frontmatter(new_index, {
+        "title": title,
+        "summary": "", "tags": [], "deps": [],
+    }, f"\n# {title}\n")
+
+    for att in attachments:
+        att_slug = EntryName.parse(att.name).tail
+        shutil.move(str(att), str(new_dir / f"01-{att_slug}"))
+
+    rewrite_results = rewrite_refs(collect_rewritable_files(rhidoc_root), rename_map)
+    do_regenerate(rhidoc_root, _load_preamble(rhidoc_root.name))
+
+    print(f"Punched: {source_path.name} {glyphs.arrow} {dir_name}/01-{slug}.md (content)")
+    print(f"  Index: {dir_name}/00-index.md (generated)")
+    if attachments:
+        print(f"  Moved {len(attachments)} attachment(s) with prefix 01-")
+    if rename_map:
+        print(f"Refs shifted: {sum(rewrite_results.values())} replacement(s)")
+        for old_ref, new_ref in sorted(rename_map.items()):
+            print(f"  {old_ref} -> {new_ref}")
 
 
 # ---------------------------------------------------------------------------

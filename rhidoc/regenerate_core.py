@@ -6,7 +6,7 @@ from pathlib import Path
 
 from . import bundle as _bundle
 from .docref import DocRef
-from .frontmatter import read_frontmatter
+from .frontmatter import read_frontmatter, write_frontmatter
 
 
 # ---------------------------------------------------------------------------
@@ -308,6 +308,140 @@ def _collect_all_orphans(rhidoc_root: Path) -> list[Path]:
 
 
 # ---------------------------------------------------------------------------
+# Index body generation
+# ---------------------------------------------------------------------------
+
+INDEX_TABLE_HEADER = "| Ref | Item | Kind | Summary | Tags |"
+INDEX_TABLE_SEP    = "|-----|------|------|---------|------|"
+
+
+def build_index_body(dir_path: Path, rhidoc_root: Path) -> str:
+    """Build the generated body for a directory's 00-index.md.
+
+    Enumerates DIRECT children of dir_path only (never recurses into subgroups).
+    Leaf .md files → doc rows with ref/title/summary/tags.
+    Subdirectories with a 00-index.md → group rows with child count; no tag aggregation.
+    """
+    # Read title from existing 00-index.md (may not exist yet for brand-new dirs)
+    index_file = dir_path / "00-index.md"
+    if index_file.exists():
+        fm, _ = read_frontmatter(index_file)
+        title = fm.get("title", "")
+    else:
+        title = ""
+
+    if not title:
+        slug = dir_path.name
+        m = _NUMERIC_PREFIX_RE.match(slug)
+        if m:
+            slug = slug[len(m.group(0)):]
+        title = slug.replace("-", " ").title()
+
+    # Collect direct NN-* children (excluding 00-index.md itself)
+    children: list[Path] = []
+    for child in dir_path.iterdir():
+        if not _NUMERIC_PREFIX_RE.match(child.name):
+            continue
+        if child.is_file() and child.name == "00-index.md":
+            continue
+        children.append(child)
+
+    def _prefix_int(p: Path) -> int:
+        m = _NUMERIC_PREFIX_RE.match(p.name)
+        return int(m.group(0)[:2]) if m else 999
+
+    children.sort(key=_prefix_int)
+
+    rows: list[str] = []
+    leaf_tags: list[str] = []
+
+    for child in children:
+        if child.is_file() and child.suffix == ".md":
+            try:
+                ref = str(DocRef.from_path(child, rhidoc_root))
+            except (ValueError, FileNotFoundError):
+                continue
+            cfm, _ = read_frontmatter(child)
+            item_title = cfm.get("title", child.stem)
+            summary = cfm.get("summary", "")
+            if isinstance(summary, list):
+                summary = ", ".join(str(s) for s in summary)
+            summary = str(summary)
+            raw_tags = cfm.get("tags", [])
+            if isinstance(raw_tags, list):
+                tags_str = ", ".join(raw_tags)
+                leaf_tags.extend(raw_tags)
+            elif isinstance(raw_tags, str) and raw_tags:
+                tags_str = raw_tags
+                leaf_tags.extend(t.strip() for t in raw_tags.split(",") if t.strip())
+            else:
+                tags_str = ""
+            rows.append(f"| {ref} | {item_title} | doc | {summary} | {tags_str} |")
+
+        elif child.is_dir() and (child / "00-index.md").exists():
+            try:
+                ref = str(DocRef.from_path(child, rhidoc_root))
+            except (ValueError, FileNotFoundError):
+                continue
+            sfm, _ = read_frontmatter(child / "00-index.md")
+            item_title = sfm.get("title", child.name)
+            count = sum(
+                1 for p in child.iterdir()
+                if _NUMERIC_PREFIX_RE.match(p.name) and p.name != "00-index.md"
+            )
+            rows.append(f"| {ref} | {item_title} | group ({count}) | — | — |")
+
+    lines: list[str] = [f"\n# {title}\n", ""]
+    lines.append(INDEX_TABLE_HEADER)
+    lines.append(INDEX_TABLE_SEP)
+    lines.append("")
+    lines.extend(rows)
+
+    unique_tags = sorted(set(leaf_tags))
+    if unique_tags:
+        lines.append("")
+        lines.append(f"Topics: {', '.join(unique_tags)}")
+
+    lines.append("")
+    return "\n".join(lines)
+
+
+def write_all_indexes(rhidoc_root: Path, dry_run: bool = False) -> None:
+    """Walk every directory under rhidoc_root that has a 00-index.md and rewrite its body."""
+
+    def _walk(directory: Path) -> None:
+        index_file = directory / "00-index.md"
+        if index_file.exists():
+            fm, _ = read_frontmatter(index_file)
+            title = fm.get("title", "")
+            if not title:
+                slug = directory.name
+                m = _NUMERIC_PREFIX_RE.match(slug)
+                if m:
+                    slug = slug[len(m.group(0)):]
+                title = slug.replace("-", " ").title()
+            new_fm = {"title": title, "summary": "", "tags": [], "deps": []}
+            new_body = build_index_body(directory, rhidoc_root)
+            if dry_run:
+                rel = index_file.relative_to(rhidoc_root)
+                print(f"Would write index: {rel}")
+            else:
+                write_frontmatter(index_file, new_fm, new_body)
+                rel = index_file.relative_to(rhidoc_root)
+                print(f"Wrote index: {rel}")
+
+        for child in sorted(directory.iterdir()):
+            if child.is_dir() and _NUMERIC_PREFIX_RE.match(child.name):
+                _walk(child)
+
+    for title_dir in sorted(
+        p for p in rhidoc_root.iterdir()
+        if p.is_dir() and _NUMERIC_PREFIX_RE.match(p.name)
+    ):
+        _walk(title_dir)
+
+
+# ---------------------------------------------------------------------------
 # Core logic
 # ---------------------------------------------------------------------------
 
@@ -319,6 +453,11 @@ def do_regenerate(rhidoc_root: Path, preamble: str, dry_run: bool = False) -> No
         preamble: the manifest preamble text (already has {{dir_name}} substituted)
         dry_run: if True, print to stdout instead of writing
     """
+    # Write generated index bodies first so MANIFEST reads consistent frontmatter.
+    # (write_all_indexes clears summary/tags in 00-index.md frontmatter; doing it
+    # before collect_entries ensures MANIFEST reflects the post-generation state.)
+    write_all_indexes(rhidoc_root, dry_run=dry_run)
+
     # Discover top-level title directories (NN-slug pattern)
     title_dirs = sorted(
         p for p in rhidoc_root.iterdir()

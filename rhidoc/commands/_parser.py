@@ -98,8 +98,6 @@ def build_parser() -> argparse.ArgumentParser:
     # punch
     p_punch = subparsers.add_parser("punch", help="Expand leaf into directory")
     p_punch.add_argument("target")
-    p_punch.add_argument("--as-child", action="store_true",
-                          help="Put original content in 01-slug.md, generate skeleton index.")
     p_punch.add_argument("--dry-run", action="store_true")
 
     # hoist

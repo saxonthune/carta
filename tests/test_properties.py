@@ -91,7 +91,9 @@ def test_ref_to_path_roundtrip(data):
 
 
 # ---------------------------------------------------------------------------
-# Property 3b: punch then hoist --keep-index is identity
+# Property 3b: punch then hoist --force is identity
+# (punch now always creates both 00-index.md and 01-slug.md; hoist --force
+#  discards the generated index and restores the pre-punch state)
 # ---------------------------------------------------------------------------
 
 @settings(max_examples=25, deadline=None)
@@ -109,7 +111,7 @@ def test_punch_hoist_identity(data):
 
         # The punched directory has the same stem as the leaf
         dir_rel = leaf_rel[:-3] if leaf_rel.endswith(".md") else leaf_rel
-        hoist_result = _run_rhidoc(rhidoc, "hoist", dir_rel, "--keep-index")
+        hoist_result = _run_rhidoc(rhidoc, "hoist", dir_rel, "--force")
         assert hoist_result.returncode == 0, f"hoist failed:\n{hoist_result.stderr}"
 
         after = _snapshot(rhidoc)
