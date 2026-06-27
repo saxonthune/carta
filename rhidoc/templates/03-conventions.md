@@ -79,6 +79,7 @@ MANIFEST.md is the **machine-readable retrieval index** — a flat table with re
 
 ## Writing Style
 
+- **Prefer facts to prose.** Write relations as directional facts ("A ⟨verb⟩s B"), name each split with the criterion that divides it ("X vs Y — split by ⟨criterion⟩"), and give each glossary term a one-line purpose. Reserve prose for the irreducible *why*. See doc00.02.
 - **One concept per file.** If a file covers two distinct things, split it.
 - **Reference, don't repeat.** If a concept has a canonical doc, link to it with `docXX.YY` instead of re-explaining.
 - **Describe behavior, not implementation.** Docs should be clear enough to write a test from.

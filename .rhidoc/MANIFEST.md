@@ -23,7 +23,7 @@ Orphaned attachments (non-md files with no corresponding root .md) are reported 
 
 | doc00.00 | `00-index.md` | Meta-documentation — how to read, navigate, and maintain this workspace | index, meta | — | doc03.08.05 | — |
 | doc00.01 | `01-about.md` | Why this workspace exists, how to read it, two-sources-of-truth theory | docs, meta, theory | — | — | — |
-| doc00.02 | `02-maintenance.md` | Doc philosophy — docs convert volatile source signals into stable intent; declarative intent, banned patterns, author freely then structure separately, when to grow detail | docs, maintenance, philosophy | — | doc03.08.12 | — |
+| doc00.02 | `02-maintenance.md` | Doc philosophy — docs convert volatile source signals into stable intent; declarative intent, banned patterns, prefer facts to prose (purposed terms, splits with criteria, directional facts), author freely then structure separately, when to grow detail | docs, maintenance, philosophy, relational-facts | — | doc03.08.12 | — |
 | doc00.03 | `03-conventions.md` | Cross-reference syntax, frontmatter schema, file naming, writing style | docs, conventions | — | doc03.09 | — |
 
 ## 01-architecture — Architecture
@@ -200,6 +200,7 @@ Quick lookup for file-path→doc mapping:
 | `reachability` | doc03.08.07 |
 | `reconciliation` | doc01.01, doc03.07, doc03.08.04 |
 | `reference` | doc03.09 |
+| `relational-facts` | doc00.02 |
 | `research` | doc03.08.00 |
 | `rest` | doc03.08.09 |
 | `retrieval` | doc03.08.05 |
