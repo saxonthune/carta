@@ -2,12 +2,12 @@
 title: Concept-First Sequencing
 summary: How concept-driven design composes with unfolding — concepts before code, contracts before backends, the ordering that makes AI-powered development coherent
 tags: [concepts, jackson, unfolding, sequencing, methodology, ai]
-deps: [doc01.04.03, doc01.08.10, doc01.08.09]
+deps: [doc01.05.03, doc01.09.10, doc01.09.09]
 ---
 
 # Concept-First Sequencing
 
-Jackson's concept-driven design says: decompose software into freestanding concepts, each with a purpose, state, actions, and operational principle. Unfolding (doc01.04.03 — Unfolding as Software Development) says: start with the simplest working system and let forces demand complexity. These two methodologies compose into a specific development sequence.
+Jackson's concept-driven design says: decompose software into freestanding concepts, each with a purpose, state, actions, and operational principle. Unfolding (doc01.05.03 — Unfolding as Software Development) says: start with the simplest working system and let forces demand complexity. These two methodologies compose into a specific development sequence.
 
 ## The Sequence
 

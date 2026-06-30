@@ -2,7 +2,7 @@
 title: Spec-Code Reconciliation
 summary: Comparing specifications against source code to detect drift and suggest alignment — mechanism-agnostic
 tags: [reconciliation, specs, spec-driven, alignment]
-deps: [doc01.05]
+deps: [doc01.06]
 ---
 
 # Spec-Code Reconciliation
@@ -15,7 +15,7 @@ Two sources of truth exist in any software project: the **specifications** (what
 
 ## What Rhidoc Provides
 
-Rhidoc is agnostic about the specific mechanism for reconciliation. The workspace format (doc01.05) provides the spec side — structured, machine-readable documents with typed frontmatter, cross-references, and a tag index. How those specs are compared against code is an open design space.
+Rhidoc is agnostic about the specific mechanism for reconciliation. The workspace format (doc01.06) provides the spec side — structured, machine-readable documents with typed frontmatter, cross-references, and a tag index. How those specs are compared against code is an open design space.
 
 Possible approaches include:
 - **LLM-assisted comparison** — an AI agent reads both specs and code, identifies gaps
@@ -23,7 +23,7 @@ Possible approaches include:
 - **Manual review** — humans read specs alongside code and update either side
 - **Hybrid** — deterministic extraction where feasible, LLM bridging where not
 
-The research session doc01.08.04 explores one concrete architecture (shape extraction, diffing, slicing). That research informs this feature but does not prescribe its implementation.
+The research session doc01.09.04 explores one concrete architecture (shape extraction, diffing, slicing). That research informs this feature but does not prescribe its implementation.
 
 ## Relationship to Workspace Scripts
 
@@ -33,4 +33,4 @@ Reconciliation operates at a higher level: it reasons about the *content* of spe
 
 ## Status
 
-This feature is in early research. See doc01.08.04 for the foundational research session on two-source-of-truth models, data formats, and reconciliation architecture.
+This feature is in early research. See doc01.09.04 for the foundational research session on two-source-of-truth models, data formats, and reconciliation architecture.

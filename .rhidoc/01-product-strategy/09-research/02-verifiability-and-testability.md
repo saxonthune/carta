@@ -2,7 +2,7 @@
 title: Verifiability and Testability
 summary: Epistemology of verification, test value hierarchy, decomposition inventory, testability architecture
 tags: [testing, verification, epistemology, agents, testability, oracles, properties]
-deps: [doc01.08.01]
+deps: [doc01.09.01]
 date: 2026-02-15
 ---
 
@@ -131,7 +131,7 @@ The "separate command layer" pattern has been implemented for several domains vi
 | `layoutGeometry.ts` | `packages/web-client/src/utils/` | Layout geometry operations | Alignment (left/center/right/top/middle/bottom), distribution, spacing |
 | `layoutStrategies.ts` | `packages/web-client/src/utils/` | Layout strategy algorithms | Grid positioning, hierarchical layout direction transforms |
 
-Each module exports pure functions that take data and return results. Hooks call these functions and apply results to the adapter. Tests exercise functions directly without React or Yjs. See doc01.08.01 for the corresponding integration tests.
+Each module exports pure functions that take data and return results. Hooks call these functions and apply results to the adapter. Tests exercise functions directly without React or Yjs. See doc01.09.01 for the corresponding integration tests.
 
 **Property-based tests over the adapter.** Round-trip properties are implicit in the adapter contract: `addSchema(s); getSchema(s.id)` returns equivalent to `s`. `undo()` after any single operation returns to prior state. Page isolation: operations on page A don't affect page B. One property covers thousands of concrete cases.
 

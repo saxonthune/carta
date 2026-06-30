@@ -2,7 +2,7 @@
 title: Documentation Systems, Retrieval Quality, and Spec Authoring
 summary: Principles behind hierarchical docs systems, agentic search improvement, scientific comparison of docs structures, and what makes individual specs good enough for code generation
 tags: [docs, retrieval, ai, specifications, elicitation, information-architecture, evaluation]
-deps: [doc00.00, doc01.08.04]
+deps: [doc00.00, doc01.09.04]
 ---
 
 # Documentation Systems, Retrieval Quality, and Spec Authoring
@@ -29,19 +29,19 @@ Each doc is self-contained with explicit dependencies. The agent can read one do
 
 ### A. Reverse dependency index
 
-MANIFEST has `deps` (what this doc depends on), but not "what depends on this doc." When the agent modifies doc01.08.04 (metamodel), it must scan the entire MANIFEST to find downstream docs. A reverse index in MANIFEST turns "what do I need to update?" from O(n) scan to O(1) lookup. This is a deterministic derivation from existing deps — a script can generate it.
+MANIFEST has `deps` (what this doc depends on), but not "what depends on this doc." When the agent modifies doc01.09.04 (metamodel), it must scan the entire MANIFEST to find downstream docs. A reverse index in MANIFEST turns "what do I need to update?" from O(n) scan to O(1) lookup. This is a deterministic derivation from existing deps — a script can generate it.
 
 ### B. Section-level anchors for high-traffic docs
 
-Current finest granularity is a whole doc. Docs like doc01.08.04 (metamodel) have distinct sections (M2, M1, M0, Port Registry, Standard Library) that are independently queryable. A section index for the 5-10 most-read docs would let the agent skip to the right 20 lines instead of reading 236.
+Current finest granularity is a whole doc. Docs like doc01.09.04 (metamodel) have distinct sections (M2, M1, M0, Port Registry, Standard Library) that are independently queryable. A section index for the 5-10 most-read docs would let the agent skip to the right 20 lines instead of reading 236.
 
 Example format in MANIFEST:
 
 ```
 | Doc | Section | Line | Tags |
 |-----|---------|------|------|
-| doc01.08.04 | M2: Fixed Primitives | 29 | DataKind, DisplayHint, Polarity |
-| doc01.08.04 | M1: User-Defined Schemas | 76 | ConstructSchema, FieldSchema, PortConfig |
+| doc01.09.04 | M2: Fixed Primitives | 29 | DataKind, DisplayHint, Polarity |
+| doc01.09.04 | M1: User-Defined Schemas | 76 | ConstructSchema, FieldSchema, PortConfig |
 ```
 
 ### C. Query patterns (worked examples)

@@ -2,7 +2,7 @@
 title: Structured Product Modeling
 summary: The set of formal structures needed to fully describe a business product — entity models, decision tables, state machines, and six more — plus how they compose
 tags: [product-modeling, decision-tables, state-machines, entities, enumerations, constraints, spec-driven]
-deps: [doc01.08.07, doc01.04.01]
+deps: [doc01.09.07, doc01.05.01]
 ---
 
 # Structured Product Modeling
@@ -165,7 +165,7 @@ Constraints ← assert over → Entities, Relationships
 Rate tables ← feed → Decision tables
 ```
 
-This mirrors the `implements` / `depends-on` / `relates-to` reference system from the spec ladder (doc01.08.04). Each structure type is a node kind; references between them are typed edges. The full product model is a graph of these structures.
+This mirrors the `implements` / `depends-on` / `relates-to` reference system from the spec ladder (doc01.09.04). Each structure type is a node kind; references between them are typed edges. The full product model is a graph of these structures.
 
 ## Two Computational Patterns
 

@@ -744,7 +744,7 @@ Side effects:
 - **Batch restructure**: Use `--no-gap-close --no-regen` on all moves, then `rhidoc regenerate` once at end.
   ```
   rhidoc move doc02.02 01-strategy --no-gap-close --no-regen
-  rhidoc move doc01.03 01-strategy --no-gap-close --no-regen
+  rhidoc move doc01.04 01-strategy --no-gap-close --no-regen
   rhidoc regenerate
   ```
 - **Dissolve a group**: Move children out one by one (check paths between moves), then delete

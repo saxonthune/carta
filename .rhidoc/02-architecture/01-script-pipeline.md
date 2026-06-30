@@ -2,18 +2,18 @@
 title: Reconciliation Architecture
 summary: Architecture considerations for spec-code reconciliation — mechanism-agnostic, research-stage
 tags: [reconciliation, architecture, specs, alignment]
-deps: [doc01.07]
+deps: [doc01.08]
 ---
 
 # Reconciliation Architecture
 
-Architecture considerations for comparing `.rhidoc/` specifications against source code. This document will evolve as reconciliation moves from research (doc01.08.04) into implementation.
+Architecture considerations for comparing `.rhidoc/` specifications against source code. This document will evolve as reconciliation moves from research (doc01.09.04) into implementation.
 
 ## Design Constraints
 
 1. **Mechanism-agnostic**: Rhidoc does not prescribe a specific reconciliation pipeline. The architecture should support multiple approaches — LLM-assisted, static analysis, hybrid — without coupling to any one.
 
-2. **Docs API is separate**: The Rhidoc Docs API (doc01.06.01) manages workspace structure. Reconciliation tooling is a distinct concern that may *use* the Docs API but is not part of it.
+2. **Docs API is separate**: The Rhidoc Docs API (doc01.07.01) manages workspace structure. Reconciliation tooling is a distinct concern that may *use* the Docs API but is not part of it.
 
 3. **Specs are the source of truth for intent**: Reconciliation compares specs (intent) against code (reality). The comparison may surface drift in either direction — specs that don't match code, or code that has no corresponding spec.
 
@@ -27,5 +27,5 @@ Architecture considerations for comparing `.rhidoc/` specifications against sour
 
 ## References
 
-- doc01.07 — Feature description (spec-code reconciliation)
-- doc01.08.04 — Research session (two-source-of-truth model, data formats, script architecture)
+- doc01.08 — Feature description (spec-code reconciliation)
+- doc01.09.04 — Research session (two-source-of-truth model, data formats, script architecture)

@@ -2,7 +2,7 @@
 title: Contract-First Development
 summary: The action contract is the skeleton, not the database — define contracts, build screens against mocks, defer persistence until the contract stabilizes
 tags: [contract-first, mock-first, action-based, unfolding, persistence, methodology]
-deps: [doc01.04.03, doc01.08.09]
+deps: [doc01.05.03, doc01.09.09]
 ---
 
 # Contract-First Development
@@ -29,7 +29,7 @@ Traditional development treats the data model as the skeleton and builds upward:
 
 ## Connection to Action-Based APIs
 
-doc01.08.09 (Action-Based API Design) argues that action-based APIs grow additively and resist dead structure. Contract-first development is the development *process* that produces action-based APIs naturally. You don't design the action taxonomy upfront — you discover it by building screens and finding out what actions the UI needs. Each new screen may add actions; no screen forces you to restructure existing ones.
+doc01.09.09 (Action-Based API Design) argues that action-based APIs grow additively and resist dead structure. Contract-first development is the development *process* that produces action-based APIs naturally. You don't design the action taxonomy upfront — you discover it by building screens and finding out what actions the UI needs. Each new screen may add actions; no screen forces you to restructure existing ones.
 
 ## Anti-Pattern: Schema-First
 

@@ -2,7 +2,7 @@
 title: Structured Authoring and the Format Tax
 summary: Evidence that constraining LLM generation through a structured write-API imposes a measurable quality tax, while post-hoc structuring of a free draft does not — author freely, structure separately
 tags: [authoring, structure, format-tax, constrained-decoding, specs, ai, generation]
-deps: [doc01.08.05, doc01.08.01, doc01.08.06, doc00.02]
+deps: [doc01.09.05, doc01.09.01, doc01.09.06, doc00.02]
 date: 2026-06-23
 ---
 
@@ -53,7 +53,7 @@ The subsystem that lets an agent edit a markdown doc as an addressable tree (rea
 
 - Strongest write-side sources (The Format Tax, the Alignment Tax / structure-snowballing work, OutlineForge, The Constraint Tax) are 2026 arXiv preprints — several not yet peer-reviewed, some single-author / single-model.
 - The format tax is scoped to **open-weight** models; frontier closed-weight models (the strongest deployed agents) may not pay it. The size of any tax for the project's actual model is unmeasured.
-- **No surviving claim is a head-to-head comparison** of a structured tree-editing API versus a free-form write tool for agent authoring. The closest evidence concerns output-format constraints and constrained decoding — a related but not identical mechanism. The project-specific question is best answered by an in-house Cranfield-style eval (doc01.08.05) plus a write-side A/B on density/coherence/completeness.
+- **No surviving claim is a head-to-head comparison** of a structured tree-editing API versus a free-form write tool for agent authoring. The closest evidence concerns output-format constraints and constrained decoding — a related but not identical mechanism. The project-specific question is best answered by an in-house Cranfield-style eval (doc01.09.05) plus a write-side A/B on density/coherence/completeness.
 
 ## #sec06 Open Questions
 

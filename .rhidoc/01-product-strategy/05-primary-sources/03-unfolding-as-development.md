@@ -2,7 +2,7 @@
 title: Unfolding as Software Development
 summary: Embryonic development applied to software — start with a working end-to-end system, let forces cross thresholds before adding complexity, preserve structure at every step
 tags: [unfolding, methodology, alexander, forces, structure-preserving, ai, development]
-deps: [doc01.01, doc01.04.01, doc01.04.02]
+deps: [doc01.01, doc01.05.01, doc01.05.02]
 role: primary-source
 ---
 
@@ -38,7 +38,7 @@ Action-based APIs, concept-driven design, and spec-driven development all serve 
 
 ## Why This Matters for AI-Powered Development
 
-AI agents are structure translators (doc01.04.01 — The Carta Experiment). They work best when each transformation is small and well-defined. Unfolding produces exactly this: a sequence of small, structure-preserving transformations where each step has clear inputs (the current system + the force that crossed its threshold) and clear outputs (the system with one new center of complexity).
+AI agents are structure translators (doc01.05.01 — The Carta Experiment). They work best when each transformation is small and well-defined. Unfolding produces exactly this: a sequence of small, structure-preserving transformations where each step has clear inputs (the current system + the force that crossed its threshold) and clear outputs (the system with one new center of complexity).
 
 Contrast with big-bang development: "here is a complete spec, generate the whole system." The AI has no intermediate checkpoints, no way to verify that subsystems work before composing them, and no way to recover from a wrong assumption in the spec. Unfolding gives AI the same advantage it gives human developers — the ability to build on what works.
 

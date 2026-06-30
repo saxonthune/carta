@@ -2,7 +2,7 @@
 title: Spec-Code Reconciliation Architecture
 summary: Two-source-of-truth model, filesystem data formats, deterministic scripts, LLM-assisted reconciliation between product specs and codebases
 tags: [spec-driven, reconciliation, formats, scripts, decomposition, information-theory, llm, static-analysis]
-deps: [doc01.04.01, doc01.07]
+deps: [doc01.05.01, doc01.08]
 ---
 
 # Spec-Code Reconciliation Architecture
@@ -46,7 +46,7 @@ Both sides produce "module shapes" — the reconciliation point. Everything abov
 
 ### Design principles applied
 
-**Simon's nearly-decomposable systems** (doc01.08.03): Well-partitioned data are easier to manipulate and transform. One file per module means each piece can be diffed, updated, and reasoned about independently.
+**Simon's nearly-decomposable systems** (doc01.09.03): Well-partitioned data are easier to manipulate and transform. One file per module means each piece can be diffed, updated, and reasoned about independently.
 
 **Shannon entropy**: The LLM does a better job when the intent of the source data is more certain. Low-entropy files (narrow, predictable purpose) produce better LLM outputs than high-entropy files (mixed concerns).
 

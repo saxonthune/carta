@@ -98,7 +98,7 @@ The CLI is a multiplexed command that performs deterministic structural operatio
 rhidoc make 01-product my-feature
 
 # Add a new doc at an exact position
-rhidoc make --at doc01.04 my-pinned-feature
+rhidoc make --at doc01.05 my-pinned-feature
 
 # Insert at an occupied position, shifting that sibling and higher ones up by one
 rhidoc make --before doc02.02 my-inserted-feature

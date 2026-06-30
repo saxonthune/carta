@@ -2,7 +2,7 @@
 title: Rhidoc Docs API
 summary: Deterministic Python operations on .rhidoc/ workspace documents — designed primarily for AI agents
 tags: [docs-api, workspace, tools, scripts, ai]
-deps: [doc01.05]
+deps: [doc01.06]
 ---
 
 # Rhidoc Docs API
@@ -24,4 +24,4 @@ Both invoke the same `commands.py` implementation. The portable form is the defa
 
 ## Scope Boundary
 
-The Docs API operates on workspace structure — files, directories, numbering, frontmatter, and cross-references. Spec-code reconciliation (doc01.07) is a separate concern that may *use* the Docs API but is not part of it.
+The Docs API operates on workspace structure — files, directories, numbering, frontmatter, and cross-references. Spec-code reconciliation (doc01.08) is a separate concern that may *use* the Docs API but is not part of it.

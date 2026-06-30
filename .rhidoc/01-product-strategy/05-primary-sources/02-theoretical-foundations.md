@@ -2,7 +2,7 @@
 title: Theoretical Foundations of Spec-Driven Development
 summary: Why spec-driven development works with AI — primary sources from Alexander, Simon, and Shannon, plus the decreasing indirection thesis
 tags: [spec-driven, AI, theory, patterns, complexity, information-theory, artifact-driven development]
-deps: [doc01.01, doc01.04.01, doc01.08.03]
+deps: [doc01.01, doc01.05.01, doc01.09.03]
 role: primary-source
 ---
 
@@ -111,7 +111,7 @@ DDD gets closer. Bounded contexts, aggregates, and ubiquitous language attempt t
 
 ### Artifact-Driven Design
 
-Artifact-driven design (doc01.04.01) asks: what does the product actually need? It analyzes the product first — the artifacts it produces, the processes that create them, the entities involved — and builds only the software required to implement it. Nothing more.
+Artifact-driven design (doc01.05.01) asks: what does the product actually need? It analyzes the product first — the artifacts it produces, the processes that create them, the entities involved — and builds only the software required to implement it. Nothing more.
 
 An artifact authorizes an action, enables generation of another artifact, and produces side effects. The McDonalds kiosk doesn't need a `Customer` object with a `Hunger` property — it needs to collect an order, verify payment, and dispatch to the kitchen. The software implements the product pipeline, not a simulation of the restaurant.
 
@@ -149,4 +149,4 @@ The practical consequence: refactoring at any level costs O(that level), not O(t
 - Alexander, C. (2002). *The Nature of Order, Book 2: The Process of Creating Life*. Center for Environmental Structure.
 - Shannon, C.E. (1948). "A Mathematical Theory of Communication." *Bell System Technical Journal*.
 - Simon, H.A. (1962). "The Architecture of Complexity." *Proceedings of the American Philosophical Society*.
-- See also: doc01.08.03 (decomposition and composition theory), doc01.04.01 (artifact-driven development).
+- See also: doc01.09.03 (decomposition and composition theory), doc01.05.01 (artifact-driven development).

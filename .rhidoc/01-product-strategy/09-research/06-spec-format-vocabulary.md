@@ -2,7 +2,7 @@
 title: Spec Format Vocabulary
 summary: What parts of the spec format Rhidoc has opinions on vs what's up to users — format concerns vs user concerns
 tags: [specs, vocabulary, format, agnosticism, workspace, principles]
-deps: [doc01.05, doc01.08, doc01.08.04]
+deps: [doc01.06, doc01.09, doc01.09.04]
 ---
 
 # Spec Format Vocabulary

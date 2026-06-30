@@ -7,7 +7,7 @@ deps: []
 
 # Mission
 
-Rhidoc is a standard for spec-driven software development. The primary product is the `.rhidoc/` workspace format — a structured documentation system that AI agents and humans read, write, and reconcile against code. The Rhidoc Docs API (doc01.06.01) is the deterministic tooling for manipulating workspace documents.
+Rhidoc is a standard for spec-driven software development. The primary product is the `.rhidoc/` workspace format — a structured documentation system that AI agents and humans read, write, and reconcile against code. The Rhidoc Docs API (doc01.07.01) is the deterministic tooling for manipulating workspace documents.
 
 ## Core Goal
 

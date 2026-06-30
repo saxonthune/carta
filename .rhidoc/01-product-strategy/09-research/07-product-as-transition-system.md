@@ -2,7 +2,7 @@
 title: Product Design as Transition System
 summary: Modeling products as guarded transition systems — verifiable reachability, dead-end detection, and deductive architecture from product properties
 tags: [product-modeling, transition-systems, verification, architecture, reachability, spec-driven, artifact-driven development]
-deps: [doc01.04.01, doc01.04.02, doc01.08.03]
+deps: [doc01.05.01, doc01.05.02, doc01.09.03]
 ---
 
 # Product Design as Transition System
@@ -122,7 +122,7 @@ Architecture decisions are driven by **quality attributes**, and quality attribu
 
 The reason architecture decisions feel hard is that these properties are usually **implicit** — in someone's head, excavated through meetings, often guessed wrong. Spec-driven development makes them explicit.
 
-This is the decreasing indirection thesis (doc01.04.02) applied to architecture: the product properties ARE the architecture decisions, viewed from a different angle. The indirection was never necessary — it existed because the product properties were never written down.
+This is the decreasing indirection thesis (doc01.05.02) applied to architecture: the product properties ARE the architecture decisions, viewed from a different angle. The indirection was never necessary — it existed because the product properties were never written down.
 
 ### Product Properties That Determine Architecture
 
@@ -164,7 +164,7 @@ These are all questions a product person can answer without knowing anything abo
 
 ### Frequency Separation IS Architecture
 
-This connects directly to Simon's near-decomposability (doc01.04.02). Architecture is the discovery of **frequency boundaries** in the product:
+This connects directly to Simon's near-decomposability (doc01.05.02). Architecture is the discovery of **frequency boundaries** in the product:
 
 - **Fast-changing data** (order status, live scores) — needs invalidation machinery, event-driven
 - **Slow-changing data** (menus, catalogs) — cacheable, CDN-friendly, publish-driven
@@ -472,4 +472,4 @@ The Deleuze/Bergson insight: the problem is not "what tool should we build?" but
 - OoT Randomizer: github.com/OoTRandomizer/OoT-Randomizer — studied as a case of guarded transition system encoding.
 - Fong, B. & Spivak, D. (2019). *Seven Sketches in Compositionality*. Cambridge University Press. Chapters 1 (preorders), 2 (resource theories), 4 (co-design/feasibility).
 - Simon, H.A. (1962). "The Architecture of Complexity." — frequency separation as the basis of near-decomposability.
-- See also: doc01.04.01 (artifact-driven development), doc01.04.02 (theoretical foundations), doc01.08.03 (decomposition and composition theory).
+- See also: doc01.05.01 (artifact-driven development), doc01.05.02 (theoretical foundations), doc01.09.03 (decomposition and composition theory).

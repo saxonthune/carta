@@ -2,14 +2,14 @@
 title: Decomposition and Composition Theory
 summary: Mathematical foundations for spec-driven development — what makes a good decomposition, and how pieces compose back
 tags: [decomposition, composition, information-theory, modularity, spec-driven, category-theory, complexity]
-deps: [doc01.04.01]
+deps: [doc01.05.01]
 ---
 
 # Decomposition and Composition Theory
 
 **Question:** What mathematical fields inform good software decomposition? Category theory handles composition well, but assumes the decomposition is already done. What tells us *where to cut*?
 
-**Motivation:** Rhidoc is a tool for artifact-driven development (doc01.04.01). If spec-driven development means "enrich a napkin sketch with enough context to reach production code," we need a theory of what "enough context" means, what makes a decomposition honest versus false, and how to measure decomposition quality. This session surveys the relevant fields and ranks them by foundational importance.
+**Motivation:** Rhidoc is a tool for artifact-driven development (doc01.05.01). If spec-driven development means "enrich a napkin sketch with enough context to reach production code," we need a theory of what "enough context" means, what makes a decomposition honest versus false, and how to measure decomposition quality. This session surveys the relevant fields and ranks them by foundational importance.
 
 ## The Gap in Category Theory
 

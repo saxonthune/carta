@@ -2,7 +2,7 @@
 title: Action-Based API Design
 summary: Why REST taxonomies are dead structures, how action-based APIs grow additively, and the connection between API shape and living systems
 tags: [api, rest, rpc, trpc, concept-design, living-structure, additive-growth]
-deps: [doc01.04.02, doc01.08.07, doc01.08.08]
+deps: [doc01.05.02, doc01.09.07, doc01.09.08]
 ---
 
 # Action-Based API Design
@@ -118,7 +118,7 @@ Stripe demonstrates this at scale: their core rule is that new fields and new en
 
 ## Guards Are Not State Machines
 
-An earlier analysis considered modeling the product design server as a state machine (doc01.08.07). The conclusion: the server's actions are mostly independent and always available. The "guards" are input validation (does this file exist? is this block index valid?), not state-dependent gates (is the canvas in editing mode?).
+An earlier analysis considered modeling the product design server as a state machine (doc01.09.07). The conclusion: the server's actions are mostly independent and always available. The "guards" are input validation (does this file exist? is this block index valid?), not state-dependent gates (is the canvas in editing mode?).
 
 The distinction matters:
 

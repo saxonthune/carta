@@ -2,12 +2,12 @@
 title: Rhidoc Docs API — Design
 summary: Design details for the Rhidoc Docs API — command semantics, delivery mechanisms, scope boundary
 tags: [docs-api, workspace, tools, scripts]
-deps: [doc01.06.01]
+deps: [doc01.07.01]
 ---
 
 # Rhidoc Docs API — Design
 
-Design details for the Rhidoc Docs API (doc01.06.01). For product description and motivation, see doc01.06.01.
+Design details for the Rhidoc Docs API (doc01.07.01). For product description and motivation, see doc01.07.01.
 
 ## Command Semantics
 
@@ -39,10 +39,10 @@ A **bundle** is the set of siblings in a directory that share a numeric prefix (
 
 Every structural operation (`move`, `delete`, `rename`, `punch`, `hoist`) operates on bundles as a unit — the root and all its attachments travel together without requiring explicit declaration.
 
-Scope: the Docs API owns the bundle as a structural unit. Kind-awareness and content interpretation of attachment files are reconciliation's concern (doc01.07).
+Scope: the Docs API owns the bundle as a structural unit. Kind-awareness and content interpretation of attachment files are reconciliation's concern (doc01.08).
 
 ## Scope Boundary
 
 The Docs API operates on the `.rhidoc/` directory's physical layout — files, directories, numbering, frontmatter, and cross-references.
 
-Spec-code reconciliation — comparing specifications against source code, extracting code shapes, detecting drift — is a separate product concern (doc01.07). The Docs API does not parse source code or reason about spec-code alignment.
+Spec-code reconciliation — comparing specifications against source code, extracting code shapes, detecting drift — is a separate product concern (doc01.08). The Docs API does not parse source code or reason about spec-code alignment.
