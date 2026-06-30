@@ -12,11 +12,11 @@ Rhidoc is a spec-driven development tool. The primary product is the `.rhidoc/` 
 
 ## Documentation
 
-**`.rhidoc/` is the canonical source of truth** — a Rhidoc workspace containing specifications and architecture docs. Docs represent the best current understanding, not templates to fill in. Sparse docs are intentional — do not elaborate beyond what the work demands (see doc00.02). Cross-references use `docXX.YY.ZZ` syntax (e.g., `doc03.06.01` = Rhidoc Docs API). **When referencing a doc in conversation, always include its title and enough context for the user to understand the reference without looking it up** (e.g., "doc03.08.08 (Structured Product Modeling — the nine formal structures for describing a business product)" not just "doc03.08.08"). Key docs:
+**`.rhidoc/` is the canonical source of truth** — a Rhidoc workspace containing specifications and architecture docs. Docs represent the best current understanding, not templates to fill in. Sparse docs are intentional — do not elaborate beyond what the work demands (see doc00.02). Cross-references use `docXX.YY.ZZ` syntax (e.g., `doc01.06.01` = Rhidoc Docs API). **When referencing a doc in conversation, always include its title and enough context for the user to understand the reference without looking it up** (e.g., "doc01.08.08 (Structured Product Modeling — the nine formal structures for describing a business product)" not just "doc01.08.08"). Key docs:
 
-- **Strategy**: doc03.01 (mission), doc03.02 (vision), doc03.03 (glossary), doc03.04 (primary sources), doc03.05 (docs system), doc03.06 (products), doc03.07 (spec-code reconciliation), doc03.08 (research), doc03.09 (docs syntax reference — formal grammar for refs, sections, frontmatter, MANIFEST)
-- **Design**: doc02.01 (workspace scripts — the Docs API), doc02.02 (CLI user flow), doc02.03 (ADRs)
-- **Architecture**: doc01.01 (reconciliation architecture), doc01.02 (design patterns)
+- **Strategy**: doc01.01 (mission), doc01.02 (vision), doc01.03 (glossary), doc01.04 (primary sources), doc01.05 (docs system), doc01.06 (products), doc01.07 (spec-code reconciliation), doc01.08 (research), doc01.09 (docs syntax reference — formal grammar for refs, sections, frontmatter, MANIFEST)
+- **Design**: doc03.01 (workspace scripts — the Docs API), doc03.02 (CLI user flow), doc03.03 (ADRs)
+- **Architecture**: doc02.01 (reconciliation architecture), doc02.02 (design patterns)
 - **Codex**: doc00.00 (index), doc00.01 (about), doc00.02 (maintenance), doc00.03 (conventions)
 
 **The `00-codex/` section is GENERATED, not a source of truth.** Unlike most repos — where every `.rhidoc/` doc is hand-authored canon — this repo *ships* the codex as a template for other projects. The `00-codex/*.md` files are rehydrated from `rhidoc/templates/*.md` via `rhidoc init --rehydrate`. To change a codex doc, edit the **template source** in `rhidoc/templates/`, then rehydrate and `rhidoc regenerate`. Editing the workspace copy directly will be overwritten on the next rehydrate. Templates must stay self-contained — no references to rhidoc's own docs/research (`docXX.YY` refs), since they seed unrelated projects.
@@ -62,9 +62,9 @@ All skills follow the same pattern: opus reads `.rhidoc/` and code, analyzes, ge
 | `/documentation-auditor` | `.rhidoc/MANIFEST.md`, codebase source | `.claude/skills/documentation-auditor/SKILL.md` |
 | `/git-sync-trunk` | Git worktree workflows | `.claude/skills/git-sync-trunk/SKILL.md` |
 | `/git-sync-worktree` | Git worktree workflows | `.claude/skills/git-sync-worktree/SKILL.md` |
-| `/spec-builder` | doc03.08.04 (reconciliation), doc03.08.05 (spec quality) | `.claude/skills/spec-builder/SKILL.md` |
-| `/rhidoc-spec-builder` | doc03.08.04, doc03.08.05, `.rhidoc/` workspace structure | `.claude/skills/rhidoc-spec-builder/SKILL.md` |
-| `/rhidoc-cli` | doc03.06.01 (Docs API), doc02.01 (design) | `.claude/skills/rhidoc-cli/SKILL.md` |
+| `/spec-builder` | doc01.08.04 (reconciliation), doc01.08.05 (spec quality) | `.claude/skills/spec-builder/SKILL.md` |
+| `/rhidoc-spec-builder` | doc01.08.04, doc01.08.05, `.rhidoc/` workspace structure | `.claude/skills/rhidoc-spec-builder/SKILL.md` |
+| `/rhidoc-cli` | doc01.06.01 (Docs API), doc03.01 (design) | `.claude/skills/rhidoc-cli/SKILL.md` |
 | `/todo-task` | Plan files, agent worktrees | `.claude/skills/todo-task/SKILL.md` |
 
 ### Agent Details
@@ -107,5 +107,5 @@ make test    # Run all tests (pytest)
 ## Constraints
 
 - **`.rhidoc/` conventions**: Cross-references use `docXX.YY.ZZ` syntax. Sparse docs are intentional — do not elaborate beyond what the work demands.
-- **Python patterns**: See doc01.02.01 (Python for AI — file structure, typing, naming, testability patterns).
+- **Python patterns**: See doc02.02.01 (Python for AI — file structure, typing, naming, testability patterns).
 - **Rhidoc CLI**: Always run `rhidoc ai-skill` (compact index) before using any `rhidoc` command, and `rhidoc ai-skill <command>` for the full per-command block — do not guess flags or arguments.

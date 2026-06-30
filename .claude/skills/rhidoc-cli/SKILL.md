@@ -36,7 +36,7 @@ Every workspace doc has YAML frontmatter:
 title: My Document
 summary: One-line description for MANIFEST
 tags: [keyword1, keyword2]
-deps: [doc01.02]
+deps: [doc02.02]
 ---
 ```
 
@@ -94,7 +94,7 @@ rhidoc make [PARENT] SLUG [-g] [--at REF] [--dry-run] [--no-regen]
 ```
 
 Arguments:
-  PARENT  (optional) Directory to place the new entry in. Accepts doc refs (e.g., `doc01.02`)
+  PARENT  (optional) Directory to place the new entry in. Accepts doc refs (e.g., `doc02.02`)
           or workspace-relative paths. Omit to create a top-level title.
   SLUG    Filename stem without prefix (e.g., `my-doc` → `03-my-doc.md`).
           Must NOT include a numeric prefix.
@@ -193,7 +193,7 @@ Addressing modes:
 
   Slot-0 rule: within any directory that contains a 00-index.md, prefix 00 is reserved.
   At the workspace root (no 00-index.md present), prefix 00 is a normal group position
-  and may be targeted freely (e.g. `rhidoc move doc01 --before doc00` promotes a group
+  and may be targeted freely (e.g. `rhidoc move doc02 --before doc00` promotes a group
   into root slot 0, bumping the former 00-group to 01).
 
 Side effects:
@@ -444,7 +444,7 @@ rhidoc cat <ref>
 ```
 
 Arguments:
-  ref  Doc ref (e.g., `doc02.03`) or workspace-relative path.
+  ref  Doc ref (e.g., `doc03.03`) or workspace-relative path.
        If the ref resolves to a directory, prints `00-index.md` from that directory.
 
 Side effects:
@@ -516,7 +516,7 @@ rhidoc bundle <ref-or-path>
 ```
 
 Arguments:
-  ref-or-path  Doc ref (e.g., `doc01.02`) or path of a `.md` leaf doc.
+  ref-or-path  Doc ref (e.g., `doc02.02`) or path of a `.md` leaf doc.
 
 Side effects:
   - Read-only. Prints bundle members to stdout. No files modified.
@@ -590,7 +590,7 @@ rhidoc mdapi frontmatter DOC                                 # print inner YAML 
 rhidoc mdapi set-frontmatter DOC                             # stdin: inner YAML — replaces block, body unchanged
 ```
 
-`DOC` accepts a doc ref (e.g., `doc02.03`) or a workspace-relative path, resolved the same
+`DOC` accepts a doc ref (e.g., `doc03.03`) or a workspace-relative path, resolved the same
 way as `rhidoc cat`.
 
 Addressing model:
@@ -743,7 +743,7 @@ Side effects:
 
 - **Batch restructure**: Use `--no-gap-close --no-regen` on all moves, then `rhidoc regenerate` once at end.
   ```
-  rhidoc move doc01.02 01-strategy --no-gap-close --no-regen
+  rhidoc move doc02.02 01-strategy --no-gap-close --no-regen
   rhidoc move doc01.03 01-strategy --no-gap-close --no-regen
   rhidoc regenerate
   ```

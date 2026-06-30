@@ -23,7 +23,7 @@ of truth for this project.
    ref assignment, and MANIFEST registration, and will corrupt the workspace.
 
 3. **Cross-references are `docXX.YY.ZZ`** — two digits per segment (e.g.
-   `doc00.02`, `doc02.01.03`). They are stable identifiers that survive moves and
+   `doc00.02`, `doc03.01.03`). They are stable identifiers that survive moves and
    renumbering, so prefer them over file paths when pointing at a doc.
 
 4. **Run `rhidoc ai-skill` before using any `rhidoc` command.** It prints a compact
