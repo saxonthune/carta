@@ -61,4 +61,4 @@ Short sentences, active voice, the actor as the subject. One idea per sentence; 
 
 ## The Glossary Is the Controlled Vocabulary
 
-The workspace glossary owns the domain terms: one preferred term per concept, and prose adheres to it. A concept with no name is a reason to extend the glossary, not to coin a label in passing. Prose that drifts — jargon, a coined compound, a term used two ways — is flagged and corrected against the glossary, not adopted.
+The workspace glossary owns the domain terms: one preferred term per concept, and prose adheres to it. Prose that drifts — jargon, a coined compound, a term used two ways — is flagged and corrected against the glossary, not adopted. The glossary's entry kinds and naming rules live in doc00.05.

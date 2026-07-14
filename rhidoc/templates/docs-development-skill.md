@@ -19,12 +19,14 @@ The rules for *what a good doc is* live in the codex, not here. Read them before
 follow them — do not re-derive or restate them:
 
 - **doc00.02** — doc philosophy: encode the invariant not the snapshot, declarative intent,
-  banned patterns, **prefer facts to prose** (purposed terms, splits with criteria, directional
-  facts), author freely then structure separately, grow detail through use.
+  banned patterns, **prefer facts to prose**, author freely then structure separately, grow
+  detail through use.
 - **doc00.03** — conventions: cross-reference syntax, frontmatter, file naming, writing style.
 - **doc00.04** — plain language: the register standard for all workspace prose —
-  contrastive rules for jargon, word senses, parts of speech, and prepositions, and the
-  glossary as controlled vocabulary.
+  contrastive rules for jargon, word senses, parts of speech, and prepositions.
+- **doc00.05** — controlled vocabulary: the glossary's entry kinds and sentence patterns
+  (terms, facts, subtypes, derivations, unnamed concepts), and the naming rule — the user
+  decides names; the agent proposes.
 
 This skill governs only *how to run the session*. When in doubt about content, defer to the codex.
 
@@ -34,7 +36,7 @@ This skill governs only *how to run the session*. When in doubt about content, d
   said (a one-liner is fine). Build the next thing they need — the happy path. Only after that
   is solid, stress-test the edges. Most early turns are capture and build.
 - **Transduce, don't transcribe.** When the user explains something loosely, convert it into the
-  fact shapes the codex prescribes (directional facts, splits-with-criteria, purposed terms)
+  glossary grammar of doc00.05 (verbalized facts, subtype definitions, purposed terms)
   rather than copying the prose. Reserve prose for the irreducible *why*.
 - **Draft freely, then re-check the register.** First-pass drafts drift out of plain language
   under load, so check each section against doc00.04 before committing it. A register pass

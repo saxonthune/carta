@@ -17,7 +17,7 @@ Rhidoc is a spec-driven development tool. The primary product is the `.rhidoc/` 
 - **Strategy**: doc01.01 (mission), doc01.02 (vision), doc01.04 (glossary), doc01.05 (primary sources), doc01.06 (docs system), doc01.07 (products), doc01.08 (spec-code reconciliation), doc01.09 (research), doc01.10 (docs syntax reference — formal grammar for refs, sections, frontmatter, MANIFEST)
 - **Design**: doc03.01 (workspace scripts — the Docs API), doc03.02 (CLI user flow), doc03.03 (ADRs)
 - **Architecture**: doc02.01 (reconciliation architecture), doc02.02 (design patterns)
-- **Codex**: doc00.00 (index), doc00.01 (about), doc00.02 (maintenance), doc00.03 (conventions), doc00.04 (plain language)
+- **Codex**: doc00.00 (index), doc00.01 (about), doc00.02 (maintenance), doc00.03 (conventions), doc00.04 (plain language), doc00.05 (controlled vocabulary)
 
 **The `00-codex/` section is GENERATED, not a source of truth.** Unlike most repos — where every `.rhidoc/` doc is hand-authored canon — this repo *ships* the codex as a template for other projects. The `00-codex/*.md` files are rehydrated from `rhidoc/templates/*.md` via `rhidoc init --rehydrate`. To change a codex doc, edit the **template source** in `rhidoc/templates/`, then rehydrate and `rhidoc regenerate`. Editing the workspace copy directly will be overwritten on the next rehydrate. Templates must stay self-contained — no references to rhidoc's own docs/research (`docXX.YY` refs), since they seed unrelated projects.
 

@@ -23,9 +23,10 @@ Orphaned attachments (non-md files with no corresponding root .md) are reported 
 
 | doc00.00 | `00-index.md` |  |  | — | doc01.09.05 | — |
 | doc00.01 | `01-about.md` | Why this workspace exists, how to read it, two-sources-of-truth theory | docs, meta, theory | — | — | — |
-| doc00.02 | `02-maintenance.md` | Doc philosophy — docs convert volatile source signals into stable intent; declarative intent, banned patterns, prefer facts to prose (purposed terms, splits with criteria, directional facts), author freely then structure separately, when to grow detail | docs, maintenance, philosophy, relational-facts | — | doc01.09.12 | — |
+| doc00.02 | `02-maintenance.md` | Doc philosophy — docs convert volatile source signals into stable intent; declarative intent, banned patterns, prefer facts to prose, author freely then structure separately, when to grow detail | docs, maintenance, philosophy | — | doc01.09.12 | — |
 | doc00.03 | `03-conventions.md` | Cross-reference syntax, frontmatter schema, file naming, writing style | docs, conventions | — | doc01.10 | — |
 | doc00.04 | `04-plain-language.md` | The plain-language standard for workspace prose — named standards, contrastive rules for jargon, word senses, parts of speech, prepositions, and sentence shape; the glossary as controlled vocabulary | docs, plain-language, style, vocabulary, glossary | — | — | — |
+| doc00.05 | `05-controlled-vocabulary.md` | The workspace glossary as a controlled vocabulary — entry kinds and sentence patterns from fact-based modeling (ORM), a worked example, and the naming rule | glossary, vocabulary, facts, subtypes, naming, docs | — | — | — |
 
 ## 01-product-strategy — Product Strategy
 
@@ -156,7 +157,7 @@ Quick lookup for file-path→doc mapping:
 | `decision-tables` | doc01.09.08 |
 | `decomposition` | doc01.09.03, doc01.09.04 |
 | `development` | doc01.05.03 |
-| `docs` | doc00.01, doc00.02, doc00.03, doc00.04, doc01.06, doc01.09.05, doc01.10 |
+| `docs` | doc00.01, doc00.02, doc00.03, doc00.04, doc00.05, doc01.06, doc01.09.05, doc01.10 |
 | `docs-api` | doc01.07.01, doc03.01.01 |
 | `efficiency` | doc01.09.01 |
 | `elicitation` | doc01.09.05 |
@@ -165,12 +166,13 @@ Quick lookup for file-path→doc mapping:
 | `epistemology` | doc01.09.02 |
 | `errors` | doc03.01.04 |
 | `evaluation` | doc01.09.05 |
+| `facts` | doc00.05 |
 | `forces` | doc01.05.03 |
 | `format` | doc01.06, doc01.09.06 |
 | `format-tax` | doc01.09.12 |
 | `formats` | doc01.09.04 |
 | `generation` | doc01.09.12 |
-| `glossary` | doc00.04, doc01.03, doc01.04 |
+| `glossary` | doc00.04, doc00.05, doc01.03, doc01.04 |
 | `grammar` | doc01.10 |
 | `guards` | doc03.01.04 |
 | `information-architecture` | doc01.09.05 |
@@ -188,6 +190,7 @@ Quick lookup for file-path→doc mapping:
 | `mock-first` | doc01.09.10 |
 | `modularity` | doc01.09.03 |
 | `morphisms` | doc01.05.01 |
+| `naming` | doc00.05 |
 | `oracles` | doc01.09.02 |
 | `patterns` | doc01.05.02, doc02.02.01 |
 | `persistence` | doc01.09.10 |
@@ -202,7 +205,6 @@ Quick lookup for file-path→doc mapping:
 | `reconciliation` | doc01.08, doc01.09.04, doc02.01 |
 | `reference` | doc01.10 |
 | `register` | doc01.09.13 |
-| `relational-facts` | doc00.02 |
 | `rest` | doc01.09.09 |
 | `retrieval` | doc01.09.05 |
 | `rpc` | doc01.09.09 |
@@ -220,6 +222,7 @@ Quick lookup for file-path→doc mapping:
 | `structure` | doc01.09.12 |
 | `structure-preserving` | doc01.05.03 |
 | `style` | doc00.04 |
+| `subtypes` | doc00.05 |
 | `syntax` | doc01.10 |
 | `terms` | doc01.04 |
 | `testability` | doc01.09.02 |
@@ -236,6 +239,6 @@ Quick lookup for file-path→doc mapping:
 | `use-case` | doc03.02 |
 | `verification` | doc01.09.02, doc01.09.07 |
 | `vision` | doc01.02 |
-| `vocabulary` | doc00.04, doc01.09.06, doc01.09.13 |
+| `vocabulary` | doc00.04, doc00.05, doc01.09.06, doc01.09.13 |
 | `workflow` | doc03.02 |
 | `workspace` | doc01.04, doc01.06, doc01.07.01, doc01.09.06, doc03.01.01, doc03.01.02 |

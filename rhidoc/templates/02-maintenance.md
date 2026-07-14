@@ -1,7 +1,7 @@
 ---
 title: Maintenance
-summary: Doc philosophy — docs convert volatile source signals into stable intent; declarative intent, banned patterns, prefer facts to prose (purposed terms, splits with criteria, directional facts), author freely then structure separately, when to grow detail
-tags: [docs, maintenance, philosophy, relational-facts]
+summary: Doc philosophy — docs convert volatile source signals into stable intent; declarative intent, banned patterns, prefer facts to prose, author freely then structure separately, when to grow detail
+tags: [docs, maintenance, philosophy]
 deps: []
 ---
 
@@ -47,13 +47,9 @@ An agent or human can grep for these before committing a doc:
 
 ## Prefer Facts to Prose
 
-Banned patterns say what to strip; this says what form the surviving content takes. The stable signal a doc encodes is carried best as relational facts, not loose explanation — the same discipline as code comments, where a fact moved into the code (a named constant, a type) beats a sentence describing it. Three shapes carry almost everything a spec needs:
+Banned patterns say what to strip; this says what form the surviving content takes. The stable signal a doc encodes is carried best as facts, not loose explanation — the same discipline as code comments, where a fact moved into the code (a named constant, a type) beats a sentence describing it. The fact grammar — terms with a purpose, verbalized facts, subtype definitions — lives in doc00.05.
 
-- **Purposed terms** — a term with a one-line *purpose* (why it exists), not a restatement of its name. The purpose is the part a reader cannot recover from the word itself, so it is the part worth writing.
-- **Named splits with a criterion** — "X vs Y — split by ⟨criterion⟩". A split with a crisp criterion is a boundary stated in prose: it tells a reader, or an agent generating code, where a type, enum, or state seam falls, without code being written.
-- **Directional facts** — "A ⟨verb⟩s B", with direction; the verbs are the operations. A fact gives its reverse reading for free, and facts chain, so the derived ones need not be written. State only the load-bearing facts and cardinalities.
-
-Reserve prose for the irreducible *why* — the rationale, invariant, or surprise no fact captures. When a loose sentence can become a fact, a split, or a purposed term, convert it; prose is the residue, not the default. A reader and an agent both act more reliably on a fact than on a paragraph: a fact is re-stated without invention, where prose invites it.
+Reserve prose for the irreducible *why* — the rationale, invariant, or surprise no fact captures. When a loose sentence can become an entry in that grammar, convert it; prose is the residue, not the default. A reader and an agent both act more reliably on a fact than on a paragraph: a fact is re-stated without invention, where prose invites it.
 
 ## Author Freely, Structure Separately
 

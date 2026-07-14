@@ -79,10 +79,10 @@ MANIFEST.md is the **machine-readable retrieval index** — a flat table with re
 
 ## Writing Style
 
-- **Prefer facts to prose.** Write relations as directional facts ("A ⟨verb⟩s B"), name each split with the criterion that divides it ("X vs Y — split by ⟨criterion⟩"), and give each glossary term a one-line purpose. Reserve prose for the irreducible *why*. See doc00.02.
+- **Prefer facts to prose.** Convert loose explanation into the glossary grammar of doc00.05 — verbalized facts, subtype definitions, purposed terms. Reserve prose for the irreducible *why*. See doc00.02.
 - **One concept per file.** If a file covers two distinct things, split it.
 - **Reference, don't repeat.** If a concept has a canonical doc, link to it with `docXX.YY` instead of re-explaining.
 - **Describe behavior, not implementation.** Docs should be clear enough to write a test from.
-- **Use the glossary.** Domain terms should be used consistently. Don't invent synonyms.
+- **Use the glossary.** The glossary is a controlled vocabulary (doc00.05): one term per concept. Don't invent synonyms.
 - **Write plainly.** Common words over jargon; one word, one meaning; plain verbs; precise prepositions. See doc00.04 for the standard and its contrastive examples.
 - **Write in literary present tense** about what the artifact intends to be. No future modals, phases, dated postscripts, or volatile snapshots. See doc00.02 for the banned-pattern list.
