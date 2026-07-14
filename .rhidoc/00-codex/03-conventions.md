@@ -11,7 +11,7 @@ deps: []
 
 Use `docXX.YY` to reference another document. Every segment is two digits:
 
-- `doc02.02` — group 01, item 02
+- `doc01.02` — group 01, item 02
 - `doc02.08.01` — group 02, subdir 08, item 01
 
 Two digits per segment, unlimited depth. Nesting can go as deep as the directory structure requires. Each segment maps to a numbered directory or file. If a directory exceeds 99 items, split it into subdirectories rather than widening the numbering.
@@ -21,7 +21,7 @@ In prose and stored references, always write the canonical `docXX.YY` form. The 
 The canonical pattern `doc\d{2}(\.\d{2})*` matches all references and is grep-friendly:
 
 ```bash
-grep -rn "doc02\.02" .rhidoc/
+grep -rn "doc01\.02" .rhidoc/
 ```
 
 ## Writing Style: Declarative Intent
@@ -37,7 +37,7 @@ Every document starts with YAML frontmatter:
 title: Human-readable title
 summary: One-line description for MANIFEST
 tags: [keyword1, keyword2]
-deps: [doc02.02]
+deps: [doc01.02]
 ---
 ```
 
@@ -84,4 +84,5 @@ MANIFEST.md is the **machine-readable retrieval index** — a flat table with re
 - **Reference, don't repeat.** If a concept has a canonical doc, link to it with `docXX.YY` instead of re-explaining.
 - **Describe behavior, not implementation.** Docs should be clear enough to write a test from.
 - **Use the glossary.** Domain terms should be used consistently. Don't invent synonyms.
+- **Write plainly.** Common words over jargon; one word, one meaning; plain verbs; precise prepositions. See doc00.04 for the standard and its contrastive examples.
 - **Write in literary present tense** about what the artifact intends to be. No future modals, phases, dated postscripts, or volatile snapshots. See doc00.02 for the banned-pattern list.

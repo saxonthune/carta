@@ -25,6 +25,7 @@ Orphaned attachments (non-md files with no corresponding root .md) are reported 
 | doc00.01 | `01-about.md` | Why this workspace exists, how to read it, two-sources-of-truth theory | docs, meta, theory | — | — | — |
 | doc00.02 | `02-maintenance.md` | Doc philosophy — docs convert volatile source signals into stable intent; declarative intent, banned patterns, prefer facts to prose (purposed terms, splits with criteria, directional facts), author freely then structure separately, when to grow detail | docs, maintenance, philosophy, relational-facts | — | doc01.09.12 | — |
 | doc00.03 | `03-conventions.md` | Cross-reference syntax, frontmatter schema, file naming, writing style | docs, conventions | — | doc01.10 | — |
+| doc00.04 | `04-plain-language.md` | The plain-language standard for workspace prose — named standards, contrastive rules for jargon, word senses, parts of speech, prepositions, and sentence shape; the glossary as controlled vocabulary | docs, plain-language, style, vocabulary, glossary | — | — | — |
 
 ## 01-product-strategy — Product Strategy
 
@@ -75,7 +76,8 @@ Orphaned attachments (non-md files with no corresponding root .md) are reported 
 | doc01.09.09 | `09-research/09-action-based-api-design.md` | Why REST taxonomies are dead structures, how action-based APIs grow additively, and the connection between API shape and living systems | api, rest, rpc, trpc, concept-design, living-structure, additive-growth | doc01.05.02, doc01.09.07, doc01.09.08 | doc01.09.10, doc01.09.11 | — |
 | doc01.09.10 | `09-research/10-contract-first-development.md` | The action contract is the skeleton, not the database — define contracts, build screens against mocks, defer persistence until the contract stabilizes | contract-first, mock-first, action-based, unfolding, persistence, methodology | doc01.05.03, doc01.09.09 | doc01.09.11 | — |
 | doc01.09.11 | `09-research/11-concept-first-sequencing.md` | How concept-driven design composes with unfolding — concepts before code, contracts before backends, the ordering that makes AI-powered development coherent | concepts, jackson, unfolding, sequencing, methodology, ai | doc01.05.03, doc01.09.10, doc01.09.09 | — | — |
-| doc01.09.12 | `09-research/12-structured-authoring-and-the-format-tax.md` | Evidence that constraining LLM generation through a structured write-API imposes a measurable quality tax, while post-hoc structuring of a free draft does not — author freely, structure separately | authoring, structure, format-tax, constrained-decoding, specs, ai, generation | doc01.09.05, doc01.09.01, doc01.09.06, doc00.02 | — | — |
+| doc01.09.12 | `09-research/12-structured-authoring-and-the-format-tax.md` | Evidence that constraining LLM generation through a structured write-API imposes a measurable quality tax, while post-hoc structuring of a free draft does not — author freely, structure separately | authoring, structure, format-tax, constrained-decoding, specs, ai, generation | doc01.09.05, doc01.09.01, doc01.09.06, doc00.02 | doc01.09.13 | — |
+| doc01.09.13 | `09-research/13-plain-language-instruction-signal.md` | Sources behind the shipped plain-language guide (doc00.04), why an instruction signal beats linters and word lists, and the design constraints on the condensed artifact | plain-language, register, instruction-signal, authoring, codex, vocabulary | doc01.09.12 | — | — |
 
 ## 02-architecture — Architecture
 
@@ -136,10 +138,11 @@ Quick lookup for file-path→doc mapping:
 | `api` | doc01.09.09 |
 | `architecture` | doc01.09.07, doc02.01 |
 | `artifact-driven development` | doc01.05.01, doc01.05.02, doc01.09.07 |
-| `authoring` | doc01.09.12 |
+| `authoring` | doc01.09.12, doc01.09.13 |
 | `category theory` | doc01.05.01 |
 | `category-theory` | doc01.09.03 |
 | `cli` | doc03.02 |
+| `codex` | doc01.09.13 |
 | `coding` | doc01.05.01 |
 | `complexity` | doc01.05.02, doc01.09.03 |
 | `composition` | doc01.09.03 |
@@ -153,7 +156,7 @@ Quick lookup for file-path→doc mapping:
 | `decision-tables` | doc01.09.08 |
 | `decomposition` | doc01.09.03, doc01.09.04 |
 | `development` | doc01.05.03 |
-| `docs` | doc00.01, doc00.02, doc00.03, doc01.06, doc01.09.05, doc01.10 |
+| `docs` | doc00.01, doc00.02, doc00.03, doc00.04, doc01.06, doc01.09.05, doc01.10 |
 | `docs-api` | doc01.07.01, doc03.01.01 |
 | `efficiency` | doc01.09.01 |
 | `elicitation` | doc01.09.05 |
@@ -167,12 +170,13 @@ Quick lookup for file-path→doc mapping:
 | `format-tax` | doc01.09.12 |
 | `formats` | doc01.09.04 |
 | `generation` | doc01.09.12 |
-| `glossary` | doc01.03, doc01.04 |
+| `glossary` | doc00.04, doc01.03, doc01.04 |
 | `grammar` | doc01.10 |
 | `guards` | doc03.01.04 |
 | `information-architecture` | doc01.09.05 |
 | `information-theory` | doc01.05.02, doc01.09.03, doc01.09.04 |
 | `installation` | doc03.02 |
+| `instruction-signal` | doc01.09.13 |
 | `invariants` | doc03.01.02, doc03.01.03 |
 | `jackson` | doc01.09.11 |
 | `living-structure` | doc01.09.09 |
@@ -188,6 +192,7 @@ Quick lookup for file-path→doc mapping:
 | `patterns` | doc01.05.02, doc02.02.01 |
 | `persistence` | doc01.09.10 |
 | `philosophy` | doc00.02 |
+| `plain-language` | doc00.04, doc01.09.13 |
 | `planning` | doc01.05.01 |
 | `principles` | doc01.01, doc01.09.06 |
 | `product-modeling` | doc01.09.07, doc01.09.08 |
@@ -196,6 +201,7 @@ Quick lookup for file-path→doc mapping:
 | `reachability` | doc01.09.07 |
 | `reconciliation` | doc01.08, doc01.09.04, doc02.01 |
 | `reference` | doc01.10 |
+| `register` | doc01.09.13 |
 | `relational-facts` | doc00.02 |
 | `rest` | doc01.09.09 |
 | `retrieval` | doc01.09.05 |
@@ -213,6 +219,7 @@ Quick lookup for file-path→doc mapping:
 | `static-analysis` | doc01.09.04 |
 | `structure` | doc01.09.12 |
 | `structure-preserving` | doc01.05.03 |
+| `style` | doc00.04 |
 | `syntax` | doc01.10 |
 | `terms` | doc01.04 |
 | `testability` | doc01.09.02 |
@@ -229,6 +236,6 @@ Quick lookup for file-path→doc mapping:
 | `use-case` | doc03.02 |
 | `verification` | doc01.09.02, doc01.09.07 |
 | `vision` | doc01.02 |
-| `vocabulary` | doc01.09.06 |
+| `vocabulary` | doc00.04, doc01.09.06, doc01.09.13 |
 | `workflow` | doc03.02 |
 | `workspace` | doc01.04, doc01.06, doc01.07.01, doc01.09.06, doc03.01.01, doc03.01.02 |

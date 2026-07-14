@@ -22,6 +22,9 @@ follow them — do not re-derive or restate them:
   banned patterns, **prefer facts to prose** (purposed terms, splits with criteria, directional
   facts), author freely then structure separately, grow detail through use.
 - **doc00.03** — conventions: cross-reference syntax, frontmatter, file naming, writing style.
+- **doc00.04** — plain language: the register standard for all workspace prose. Apply it when
+  transducing the user's words into doc prose and when cleaning existing prose. First-pass
+  drafts drift out of register under load, so re-check a section against it before committing.
 
 This skill governs only *how to run the session*. When in doubt about content, defer to the codex.
 

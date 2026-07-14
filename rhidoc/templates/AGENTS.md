@@ -41,6 +41,7 @@ when orienting:
 - `doc00.01` — about: why this workspace exists, how to read it
 - `doc00.02` — maintenance: the unfolding philosophy, when to grow a doc
 - `doc00.03` — conventions: ref syntax, frontmatter, file naming, writing style
+- `doc00.04` — plain language: the prose standard — contrastive rules, the glossary as controlled vocabulary
 
 ## Headless agents
 

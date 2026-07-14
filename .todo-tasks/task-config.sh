@@ -16,7 +16,7 @@ INSTALL_CMD="pip install -e ."
 BUILD_CMD="python3 -m compileall -q carta_cli"
 
 # Run the test suite. Must exit 0 on success.
-TEST_CMD="make test"
+TEST_CMD="just test"
 
 # Budget caps for headless Claude sessions (USD)
 MAX_BUDGET="5.00"

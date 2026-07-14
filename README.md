@@ -88,7 +88,7 @@ Run `rhidoc --help` for the complete command list.
 ## Tests
 
 ```bash
-make test
+just test
 ```
 
 ## License

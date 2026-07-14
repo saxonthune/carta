@@ -84,4 +84,5 @@ MANIFEST.md is the **machine-readable retrieval index** — a flat table with re
 - **Reference, don't repeat.** If a concept has a canonical doc, link to it with `docXX.YY` instead of re-explaining.
 - **Describe behavior, not implementation.** Docs should be clear enough to write a test from.
 - **Use the glossary.** Domain terms should be used consistently. Don't invent synonyms.
+- **Write plainly.** Common words over jargon; one word, one meaning; plain verbs; precise prepositions. See doc00.04 for the standard and its contrastive examples.
 - **Write in literary present tense** about what the artifact intends to be. No future modals, phases, dated postscripts, or volatile snapshots. See doc00.02 for the banned-pattern list.

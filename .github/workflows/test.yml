@@ -14,10 +14,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
+      - uses: extractions/setup-just@v3
       - run: pip install -e ".[test]"
-      - run: make test
+      - run: just test
       - name: Check hydrated files are in sync with templates
-        run: make check-hydration
+        run: just check-hydration
 
   build:
     runs-on: ubuntu-latest

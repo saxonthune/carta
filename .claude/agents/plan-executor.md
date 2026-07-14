@@ -39,7 +39,7 @@ Follow these strictly:
 
 ## Verification
 
-Run `PYTHONPATH=. python3 -m pytest tests/ -v`. Fix any failures before finishing. Do not use `make test` from inside a worktree if it would require `pip install -e .` — see step 7.
+Run `PYTHONPATH=. python3 -m pytest tests/ -v`. Fix any failures before finishing. Do not use `just test` from inside a worktree if it would require `pip install -e .` — see step 7.
 
 ## Output
 

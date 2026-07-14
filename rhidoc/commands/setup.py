@@ -54,6 +54,7 @@ _DATA_FILES = [
     "templates/01-about.md",
     "templates/02-maintenance.md",
     "templates/03-conventions.md",
+    "templates/04-plain-language.md",
     "templates/AGENTS.md",
     "templates/skill.md",
     "templates/docs-development-skill.md",
@@ -101,6 +102,7 @@ def cmd_init(args: argparse.Namespace) -> None:
         ("01-about.md", "{{title}}", title),
         ("02-maintenance.md", "{{dir_name}}", dirname),
         ("03-conventions.md", "{{dir_name}}", dirname),
+        ("04-plain-language.md", None, None),
     ]
     for filename, placeholder, value in codex_templates:
         content = (templates_dir / filename).read_text(encoding="utf-8")
@@ -234,6 +236,7 @@ def cmd_init_rehydrate(args: argparse.Namespace, rhidoc_root: Path) -> None:
         ("01-about.md", "{{title}}", title),
         ("02-maintenance.md", "{{dir_name}}", dirname),
         ("03-conventions.md", "{{dir_name}}", dirname),
+        ("04-plain-language.md", None, None),
     ]
     for filename, placeholder, value in codex_templates:
         dest = codex_dir / filename
