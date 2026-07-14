@@ -23,14 +23,15 @@ $ rhidoc tree
 │   ├── 01-about -- About This Workspace
 │   ├── 02-maintenance -- Maintenance
 │   ├── 03-conventions -- Conventions
-│   └── 04-ai-retrieval -- AI Retrieval Patterns
-├── 01-architecture -- Architecture
+│   ├── 04-plain-language -- Plain Language
+│   └── 05-controlled-vocabulary -- Controlled Vocabulary
+├── 02-architecture -- Architecture
 │   ├── 00-index -- Architecture
 │   ├── 01-script-pipeline -- Reconciliation Architecture
 │   └── 02-design-patterns -- Design Patterns
 │       ├── 00-index -- Design Patterns
 │       └── 01-python-for-ai -- Python for AI Agents
-├── 02-product-design -- Product Design
+├── 03-product-design -- Product Design
 │   ├── 00-index -- Product Design
 │   ├── 01-workspace-scripts -- Workspace Scripts
 │   │   ├── 00-index -- Workspace Scripts
@@ -41,7 +42,7 @@ $ rhidoc tree
 │   ├── 02-cli-user-flow -- CLI User Flow
 ```
 
-The key part is a `DocRef`; for example, `doc02.01.03` resolves to the path `.rhidoc/02-product-design/01-workspace-scripts/03-properties.md`. The format is readable for humans, gives context to an LLM, and enables deterministic operations.
+The key part is a `DocRef`; for example, `doc03.01.03` resolves to the path `.rhidoc/03-product-design/01-workspace-scripts/03-properties.md`. The format is readable for humans, gives context to an LLM, and enables deterministic operations.
 
 ### Doc development loop
 
