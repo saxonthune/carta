@@ -22,9 +22,9 @@ follow them — do not re-derive or restate them:
   banned patterns, **prefer facts to prose** (purposed terms, splits with criteria, directional
   facts), author freely then structure separately, grow detail through use.
 - **doc00.03** — conventions: cross-reference syntax, frontmatter, file naming, writing style.
-- **doc00.04** — plain language: the register standard for all workspace prose. Apply it when
-  transducing the user's words into doc prose and when cleaning existing prose. First-pass
-  drafts drift out of register under load, so re-check a section against it before committing.
+- **doc00.04** — plain language: the register standard for all workspace prose —
+  contrastive rules for jargon, word senses, parts of speech, and prepositions, and the
+  glossary as controlled vocabulary.
 
 This skill governs only *how to run the session*. When in doubt about content, defer to the codex.
 
@@ -36,6 +36,10 @@ This skill governs only *how to run the session*. When in doubt about content, d
 - **Transduce, don't transcribe.** When the user explains something loosely, convert it into the
   fact shapes the codex prescribes (directional facts, splits-with-criteria, purposed terms)
   rather than copying the prose. Reserve prose for the irreducible *why*.
+- **Draft freely, then re-check the register.** First-pass drafts drift out of plain language
+  under load, so check each section against doc00.04 before committing it. A register pass
+  preserves meaning — never flatten a hedge into an assertion or drop a distinction. Renaming
+  a domain term is the user's call: propose candidates, don't apply.
 - **One or two focused questions per turn**, not a barrage. Let the user think.
 - **Don't stress-test as a first move.** The user came to build, not to defend. Push on edges
   only when the happy path is done, you spot a real contradiction, or a hand-off is imminent.
