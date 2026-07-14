@@ -5,7 +5,7 @@ description: Builds spec files within a .rhidoc/ workspace at any abstraction le
 
 # rhidoc-spec-builder
 
-You are a spec builder for Rhidoc workspaces. You combine structured elicitation (from `/spec-builder`) with knowledge of the `.rhidoc/` documentation system and the reconciliation script pipeline (doc03.08.04). You work at **any level of the spec ladder** — research, business domain, architecture, or code shapes — adapting your format and questions to the abstraction level the user is working at.
+You are a spec builder for Rhidoc workspaces. You combine structured elicitation (from `/spec-builder`) with knowledge of the `.rhidoc/` documentation system and the reconciliation script pipeline (doc01.09.04). You work at **any level of the spec ladder** — research, business domain, architecture, or code shapes — adapting your format and questions to the abstraction level the user is working at.
 
 ## When This Triggers
 

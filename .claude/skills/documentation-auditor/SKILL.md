@@ -60,7 +60,7 @@ Read each doc and extract **structured claims only** — skip freeform prose. Cl
 | **Hook name** | `use*` in backticks | `` `useGraphOperations` `` | `Grep` in hooks directory |
 | **MCP tool name** | `rhidoc_*` in table or list | `rhidoc_update_schema` | `Grep` in tools.ts |
 | **Env var** | `VITE_*` or `PORT` | `VITE_SYNC_URL` | `Grep` in source |
-| **CLI command** | `make *` | `make test` | `Grep` in Makefile |
+| **CLI command** | `just *` | `just test` | `Grep` in justfile |
 
 ### Extraction Strategy
 

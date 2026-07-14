@@ -1,51 +1,20 @@
 ---
 title: Codex
-summary: Meta-documentation — how to read, navigate, and maintain this workspace
-tags: [index, meta]
+summary: 
+tags: []
 deps: []
 ---
 
 # Codex
 
-This is the `.rhidoc/` workspace for **Rhidoc**. It contains structured specifications that humans and AI agents can read, write, and reconcile against code.
 
-## Reading Docs
+| Ref | Item | Kind | Summary | Tags |
+|-----|------|------|---------|------|
 
-- `MANIFEST.md` is the machine-readable index — start there to find anything.
-- Documents use `docXX.YY.ZZ` cross-references (e.g., `doc01.02` = second doc in first group).
-- YAML frontmatter on every doc provides title, summary, tags, and dependency refs.
+| doc00.01 | About This Workspace | doc | Why this workspace exists, how to read it, two-sources-of-truth theory | docs, meta, theory |
+| doc00.02 | Maintenance | doc | Doc philosophy — docs convert volatile source signals into stable intent; declarative intent, banned patterns, prefer facts to prose, author freely then structure separately, when to grow detail | docs, maintenance, philosophy |
+| doc00.03 | Conventions | doc | Cross-reference syntax, frontmatter schema, file naming, writing style | docs, conventions |
+| doc00.04 | Plain Language | doc | The plain-language standard for workspace prose — named standards, contrastive rules for jargon, word senses, parts of speech, prepositions, and sentence shape; the glossary as controlled vocabulary | docs, plain-language, style, vocabulary, glossary |
+| doc00.05 | Controlled Vocabulary | doc | The workspace glossary as a controlled vocabulary — entry kinds and sentence patterns from fact-based modeling (ORM), a worked example, and the naming rule | glossary, vocabulary, facts, subtypes, naming, docs |
 
-## Finding Things Efficiently
-
-Two-phase search keeps reads small: **triage** against `MANIFEST.md` summaries and tags (plus `grep` for terms), then **targeted reads** of only the docs that surfaced. Read foundational docs (codex) before detailed specs. Don't read whole directories speculatively.
-
-Read *part* of a doc instead of the whole file:
-
-```bash
-rhidoc mdapi outline <ref>           # section skeleton with addresses
-rhidoc mdapi read <ref> --depth 1    # top-level sections + their lede
-rhidoc mdapi read <ref> --at 2.3     # one subtree, full depth
-```
-
-## Managing Structure
-
-Use the `rhidoc` CLI for structural operations:
-
-```bash
-rhidoc make <group> <slug>       # add a doc
-rhidoc delete <ref>              # remove with gap-closing
-rhidoc move <ref> <dest>         # move/reorder
-rhidoc punch <ref>               # expand file into directory
-rhidoc hoist <ref>               # dissolve directory
-rhidoc regenerate                # rebuild MANIFEST.md
-```
-
-Content changes are normal file edits. Run `rhidoc regenerate` if you change frontmatter directly.
-
-## Contents
-
-| Ref | Item | Summary |
-|-----|------|---------|
-| doc00.01 | About | Why this workspace exists, two-sources-of-truth theory |
-| doc00.02 | Maintenance | Doc philosophy — signal conversion, declarative intent, banned patterns, growing a doc |
-| doc00.03 | Conventions | Cross-reference syntax, frontmatter schema, file naming |
+Topics: conventions, docs, facts, glossary, maintenance, meta, naming, philosophy, plain-language, style, subtypes, theory, vocabulary

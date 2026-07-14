@@ -815,8 +815,7 @@ class TestPunch(unittest.TestCase):
         self.tmpdir.cleanup()
 
     def test_punch_leaf_file(self):
-        """Punching a leaf file creates NN-slug/00-index.md."""
-        # Find a leaf .md file with a numeric prefix
+        """Punching a leaf file creates NN-slug/01-slug.md (content) + generated 00-index.md."""
         codex = self.rhidoc_copy / "00-codex"
         leaf = codex / "01-about.md"
         assert leaf.exists(), f"Expected leaf file: {leaf}"
@@ -832,10 +831,18 @@ class TestPunch(unittest.TestCase):
         new_dir = codex / "01-about"
         assert new_dir.is_dir(), f"Expected directory: {new_dir}"
 
-        # 00-index.md should have original content
+        # Content moves to 01-about.md
+        child = new_dir / "01-about.md"
+        assert child.exists(), f"Expected content at {child}"
+        assert child.read_text(encoding="utf-8") == original_content
+
+        # 00-index.md is a generated artifact, not the original content
         index = new_dir / "00-index.md"
         assert index.exists(), f"Expected 00-index.md in {new_dir}"
-        assert index.read_text(encoding="utf-8") == original_content
+        index_text = index.read_text(encoding="utf-8")
+        assert index_text != original_content, "Index should be generated, not original content"
+        assert index_text.startswith("---"), "Index should have frontmatter"
+        assert "# About" in index_text
 
     def test_punch_directory_errors(self):
         """Punching a directory should fail."""
@@ -869,17 +876,17 @@ class TestPunch(unittest.TestCase):
                 assert s in siblings_after, f"Sibling {s} should be unchanged: {siblings_after}"
 
     def test_punch_as_child(self):
-        """--as-child puts original content in 01-slug.md and generates skeleton index."""
+        """punch always puts original content in 01-slug.md and generates 00-index.md."""
         codex = self.rhidoc_copy / "00-codex"
         leaf = codex / "01-about.md"
         assert leaf.exists(), f"Expected leaf file: {leaf}"
         original_content = leaf.read_text(encoding="utf-8")
 
-        result = _run_rhidoc(self.rhidoc_copy, "punch", "doc00.01", "--as-child")
-        assert result.returncode == 0, f"punch --as-child failed:\n{result.stderr}"
+        result = _run_rhidoc(self.rhidoc_copy, "punch", "doc00.01")
+        assert result.returncode == 0, f"punch failed:\n{result.stderr}"
 
         # Original file should be gone
-        assert not leaf.exists(), "Original file should not exist after punch --as-child"
+        assert not leaf.exists(), "Original file should not exist after punch"
 
         new_dir = codex / "01-about"
         assert new_dir.is_dir(), f"Expected directory: {new_dir}"
@@ -889,23 +896,23 @@ class TestPunch(unittest.TestCase):
         assert child.exists(), f"Expected child file: {child}"
         assert child.read_text(encoding="utf-8") == original_content
 
-        # 00-index.md should be a skeleton, not the original content
+        # 00-index.md should be generated, not the original content
         index = new_dir / "00-index.md"
         assert index.exists(), f"Expected 00-index.md in {new_dir}"
         index_text = index.read_text(encoding="utf-8")
-        assert index_text != original_content, "Index should be a skeleton, not the original content"
+        assert index_text != original_content, "Index should be generated, not the original content"
         assert index_text.startswith("---"), "Index should have frontmatter"
         assert "title:" in index_text
         assert "# About" in index_text
 
-    def test_punch_as_child_dry_run(self):
-        """--as-child --dry-run should not modify any files."""
+    def test_punch_dry_run_no_modification(self):
+        """--dry-run should not modify any files."""
         codex = self.rhidoc_copy / "00-codex"
         leaf = codex / "01-about.md"
         assert leaf.exists(), f"Expected leaf file: {leaf}"
         before_content = leaf.read_bytes()
 
-        result = _run_rhidoc(self.rhidoc_copy, "punch", "doc00.01", "--as-child", "--dry-run")
+        result = _run_rhidoc(self.rhidoc_copy, "punch", "doc00.01", "--dry-run")
         assert result.returncode == 0, result.stderr
 
         # File should still exist unchanged
@@ -2188,24 +2195,9 @@ class TestBundleAwarePunchHoist(unittest.TestCase):
 
     # ── punch ──────────────────────────────────────────────────────────────────
 
-    def test_punch_moves_attachments_to_new_dir_with_00_prefix(self):
-        """Punch (default) moves all bundle attachments into new dir with 00- prefix."""
+    def test_punch_moves_attachments_to_new_dir_with_01_prefix(self):
+        """Punch moves content and all bundle attachments into new dir with 01- prefix."""
         result = _run_rhidoc(self.rhidoc, "punch", "doc00.01")
-        self.assertEqual(result.returncode, 0, result.stderr)
-
-        game_dir = self.codex / "01-game"
-        self.assertTrue(game_dir.is_dir())
-        self.assertTrue((game_dir / "00-index.md").exists())
-        self.assertTrue((game_dir / "00-game.xstate.json").exists())
-        self.assertTrue((game_dir / "00-game.mockup.png").exists())
-
-        self.assertFalse((self.codex / "01-game.md").exists())
-        self.assertFalse((self.codex / "01-game.xstate.json").exists())
-        self.assertFalse((self.codex / "01-game.mockup.png").exists())
-
-    def test_punch_as_child_moves_attachments_with_01_prefix(self):
-        """Punch --as-child moves attachments into new dir with 01- prefix, slugs preserved."""
-        result = _run_rhidoc(self.rhidoc, "punch", "doc00.01", "--as-child")
         self.assertEqual(result.returncode, 0, result.stderr)
 
         game_dir = self.codex / "01-game"
@@ -2220,13 +2212,14 @@ class TestBundleAwarePunchHoist(unittest.TestCase):
         self.assertFalse((self.codex / "01-game.mockup.png").exists())
 
     def test_punch_no_attachments_unchanged_behavior(self):
-        """Punch of a file with no attachments works as before."""
+        """Punch of a file with no attachments: content to 01-slug.md, generated index."""
         result = _run_rhidoc(self.rhidoc, "punch", "doc00.02")
         self.assertEqual(result.returncode, 0, result.stderr)
 
         plain_dir = self.codex / "02-plain"
         self.assertTrue(plain_dir.is_dir())
-        self.assertTrue((plain_dir / "00-index.md").exists())
+        self.assertTrue((plain_dir / "00-index.md").exists())   # generated index
+        self.assertTrue((plain_dir / "01-plain.md").exists())   # original content
         self.assertFalse((self.codex / "02-plain.md").exists())
 
     def test_punch_dry_run_shows_attachment_moves(self):
@@ -2240,14 +2233,11 @@ class TestBundleAwarePunchHoist(unittest.TestCase):
 
         assert normalize_output(result.stdout, self.tmpdir.name) == self._snapshot
 
-    def test_punch_as_child_dry_run_shows_attachments(self):
-        """--as-child --dry-run prints planned moves without modifying files."""
-        result = _run_rhidoc(self.rhidoc, "punch", "doc00.01", "--as-child", "--dry-run")
+    def test_punch_dry_run_shows_ref_shift(self):
+        """--dry-run shows planned ref shift (docXX.YY → docXX.YY.01)."""
+        result = _run_rhidoc(self.rhidoc, "punch", "doc00.01", "--dry-run")
         self.assertEqual(result.returncode, 0, result.stderr)
-
-        self.assertTrue((self.codex / "01-game.md").exists())
-        self.assertFalse((self.codex / "01-game").exists())
-        assert normalize_output(result.stdout, self.tmpdir.name) == self._snapshot
+        self.assertIn("doc00.01 -> doc00.01.01", result.stdout)
 
     # ── hoist ──────────────────────────────────────────────────────────────────
 

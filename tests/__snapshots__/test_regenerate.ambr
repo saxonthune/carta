@@ -1,6 +1,7 @@
 # serializer version: 1
 # name: TestAttachmentsColumn.test_header_has_attachments_column
   '''
+  Would write index: 01-docs/00-index.md
   # ws/ Manifest
   
   Machine-readable index for AI navigation. Read this file first, then open only the docs relevant to your query.

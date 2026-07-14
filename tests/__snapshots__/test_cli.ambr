@@ -23,6 +23,7 @@
 # ---
 # name: TestAttach.test_attach_leaf_uses_source_stem
   '''
+  Wrote index: 00-codex/00-index.md
   Wrote <TMPDIR>/.rhidoc/MANIFEST.md
   Attached: <TMPDIR>/fsm.json -> 00-codex/01-fsm.json
     Bundle: doc00.01 (01-logic.md)
@@ -69,6 +70,8 @@
 # ---
 # name: TestBundleAwareMoveDeleteRename.test_rename_output_shows_unchanged_attachments
   '''
+  Wrote index: 00-codex/00-index.md
+  Wrote index: 01-product/00-index.md
   Wrote <TMPDIR>/.rhidoc/MANIFEST.md
   Renamed: 01-logic.md -> 01-engine.md
   Renamed: 01-logic.statemachine.json -> 01-engine.statemachine.json
@@ -99,22 +102,14 @@
   
   '''
 # ---
-# name: TestBundleAwarePunchHoist.test_punch_as_child_dry_run_shows_attachments
+# name: TestBundleAwarePunchHoist.test_punch_dry_run_shows_attachment_moves
   '''
   Would punch: 01-game.md -> 01-game/01-game.md (content)
   Would punch: 01-game.md -> 01-game/00-index.md (generated index)
   Would move attachment: 01-game.mockup.png -> 01-game/01-game.mockup.png
   Would move attachment: 01-game.xstate.json -> 01-game/01-game.xstate.json
-  
-  (dry-run: no files modified)
-  
-  '''
-# ---
-# name: TestBundleAwarePunchHoist.test_punch_dry_run_shows_attachment_moves
-  '''
-  Would punch: 01-game.md -> 01-game/00-index.md
-  Would move attachment: 01-game.mockup.png -> 01-game/00-game.mockup.png
-  Would move attachment: 01-game.xstate.json -> 01-game/00-game.xstate.json
+  Would shift refs:
+    doc00.01 -> doc00.01.01
   
   (dry-run: no files modified)
   
@@ -146,7 +141,8 @@
     doc01.04.02 -> doc01.03.02
     doc01.04.03 -> doc01.03.03
   
-  === Orphaned ref warnings (3) ===
+  === Orphaned ref warnings (4) ===
+    doc01.02 in 01-product-strategy/00-index.md: | doc01.02 | Principles | doc | Design principles. | principles, design |
     doc01.02 in 01-product-strategy/01-mission.md: deps: [doc01.02]
     doc01.02 in 01-product-strategy/03-glossary.md: deps: [doc01.02]
     doc01.02 in 02-product-design/05-metamodel.md: deps: [doc01.02]
@@ -230,8 +226,11 @@
   - **`--no-regen` scope**: Skips MANIFEST.md rebuild only. Ref rewriting in doc content still
     happens. Useful for batch operations — run many moves with `--no-regen`, then one final
     `rhidoc regenerate`.
-  - **Index files**: `00-index.md` files mark a directory as a title group. They cannot be
-    renamed via `move --rename`. Use `rename` to change the directory slug instead.
+  - **Index files**: `00-index.md` bodies are **generated artifacts** — rewritten by `rhidoc regenerate`
+    and by any structural command that triggers regeneration. Do NOT hand-author the body of a `00-index.md`;
+    edits will be overwritten. The only authored field is the frontmatter `title`. Contents tables and Topics
+    lines are computed from direct children at regeneration time.
+    `00-index.md` files cannot be renamed via `move --rename`; use `rename` to change the directory slug.
   - **Position 0 is reserved**: When a directory contains a `00-index.md`, slot 00 is reserved for it.
     Targeting slot 00 with `--at` or `--before` in such a directory is an error. At the workspace root
     (which has no `00-index.md`), slot 00 is a normal group position and may be targeted freely.
@@ -255,8 +254,9 @@
     ```
   - **Create a new title group**: `rhidoc make -g PARENT slug` creates the directory
     with `00-index.md`. Then use `rhidoc move` or `rhidoc make` to populate it.
-  - **Expand a file into a group**: `rhidoc punch <target>` converts `NN-slug.md` into
-    `NN-slug/00-index.md`. The doc ref is unchanged — no ref rewriting needed.
+  - **Expand a file into a group**: `rhidoc punch <target>` converts `NN-slug.md` into a directory
+    group: content moves to `NN-slug/01-slug.md` and a generated `00-index.md` is created. Inbound
+    refs are shifted from `docXX.YY` to `docXX.YY.01` automatically.
   - **Hoist a subdirectory**: `rhidoc hoist <target>` hoists children into parent, removing
     the directory. Use `--keep-index` to preserve the index as a sibling file.
   - **Rename a slug**: `rhidoc rename <target> new-slug` renames on disk. Then use
@@ -357,8 +357,11 @@
   - **`--no-regen` scope**: Skips MANIFEST.md rebuild only. Ref rewriting in doc content still
     happens. Useful for batch operations — run many moves with `--no-regen`, then one final
     `rhidoc regenerate`.
-  - **Index files**: `00-index.md` files mark a directory as a title group. They cannot be
-    renamed via `move --rename`. Use `rename` to change the directory slug instead.
+  - **Index files**: `00-index.md` bodies are **generated artifacts** — rewritten by `rhidoc regenerate`
+    and by any structural command that triggers regeneration. Do NOT hand-author the body of a `00-index.md`;
+    edits will be overwritten. The only authored field is the frontmatter `title`. Contents tables and Topics
+    lines are computed from direct children at regeneration time.
+    `00-index.md` files cannot be renamed via `move --rename`; use `rename` to change the directory slug.
   - **Position 0 is reserved**: When a directory contains a `00-index.md`, slot 00 is reserved for it.
     Targeting slot 00 with `--at` or `--before` in such a directory is an error. At the workspace root
     (which has no `00-index.md`), slot 00 is a normal group position and may be targeted freely.
@@ -382,8 +385,9 @@
     ```
   - **Create a new title group**: `rhidoc make -g PARENT slug` creates the directory
     with `00-index.md`. Then use `rhidoc move` or `rhidoc make` to populate it.
-  - **Expand a file into a group**: `rhidoc punch <target>` converts `NN-slug.md` into
-    `NN-slug/00-index.md`. The doc ref is unchanged — no ref rewriting needed.
+  - **Expand a file into a group**: `rhidoc punch <target>` converts `NN-slug.md` into a directory
+    group: content moves to `NN-slug/01-slug.md` and a generated `00-index.md` is created. Inbound
+    refs are shifted from `docXX.YY` to `docXX.YY.01` automatically.
   - **Hoist a subdirectory**: `rhidoc hoist <target>` hoists children into parent, removing
     the directory. Use `--keep-index` to preserve the index as a sibling file.
   - **Rename a slug**: `rhidoc rename <target> new-slug` renames on disk. Then use
@@ -484,8 +488,11 @@
   - **`--no-regen` scope**: Skips MANIFEST.md rebuild only. Ref rewriting in doc content still
     happens. Useful for batch operations — run many moves with `--no-regen`, then one final
     `rhidoc regenerate`.
-  - **Index files**: `00-index.md` files mark a directory as a title group. They cannot be
-    renamed via `move --rename`. Use `rename` to change the directory slug instead.
+  - **Index files**: `00-index.md` bodies are **generated artifacts** — rewritten by `rhidoc regenerate`
+    and by any structural command that triggers regeneration. Do NOT hand-author the body of a `00-index.md`;
+    edits will be overwritten. The only authored field is the frontmatter `title`. Contents tables and Topics
+    lines are computed from direct children at regeneration time.
+    `00-index.md` files cannot be renamed via `move --rename`; use `rename` to change the directory slug.
   - **Position 0 is reserved**: When a directory contains a `00-index.md`, slot 00 is reserved for it.
     Targeting slot 00 with `--at` or `--before` in such a directory is an error. At the workspace root
     (which has no `00-index.md`), slot 00 is a normal group position and may be targeted freely.
@@ -509,8 +516,9 @@
     ```
   - **Create a new title group**: `rhidoc make -g PARENT slug` creates the directory
     with `00-index.md`. Then use `rhidoc move` or `rhidoc make` to populate it.
-  - **Expand a file into a group**: `rhidoc punch <target>` converts `NN-slug.md` into
-    `NN-slug/00-index.md`. The doc ref is unchanged — no ref rewriting needed.
+  - **Expand a file into a group**: `rhidoc punch <target>` converts `NN-slug.md` into a directory
+    group: content moves to `NN-slug/01-slug.md` and a generated `00-index.md` is created. Inbound
+    refs are shifted from `docXX.YY` to `docXX.YY.01` automatically.
   - **Hoist a subdirectory**: `rhidoc hoist <target>` hoists children into parent, removing
     the directory. Use `--keep-index` to preserve the index as a sibling file.
   - **Rename a slug**: `rhidoc rename <target> new-slug` renames on disk. Then use
@@ -730,7 +738,7 @@
   '''
     Would update: .rhidoc/00-codex/01-about.md
   
-  Would update 1 file(s), 7 already current.
+  Would update 1 file(s), 8 already current.
   
   '''
 # ---

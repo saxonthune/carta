@@ -1,6 +1,6 @@
 ---
 title: Maintenance
-summary: Doc philosophy — docs convert volatile source signals into stable intent; declarative intent, banned patterns, author freely then structure separately, when to grow detail
+summary: Doc philosophy — docs convert volatile source signals into stable intent; declarative intent, banned patterns, prefer facts to prose, author freely then structure separately, when to grow detail
 tags: [docs, maintenance, philosophy]
 deps: []
 ---
@@ -44,6 +44,12 @@ An agent or human can grep for these before committing a doc:
 | "Deferred for v1 — currently returns 404." | "The endpoint returns 404 when the resource does not exist." |
 | "As of 2024-03-01, auth uses JWT." | "Auth uses JWT." |
 | "The `id` positional recurs across 14 commands." | "`id` is the most-shared positional — a candidate for shared grammar." |
+
+## Prefer Facts to Prose
+
+Banned patterns say what to strip; this says what form the surviving content takes. The stable signal a doc encodes is carried best as facts, not loose explanation — the same discipline as code comments, where a fact moved into the code (a named constant, a type) beats a sentence describing it. The fact grammar — terms with a purpose, verbalized facts, subtype definitions — lives in doc00.05.
+
+Reserve prose for the irreducible *why* — the rationale, invariant, or surprise no fact captures. When a loose sentence can become an entry in that grammar, convert it; prose is the residue, not the default. A reader and an agent both act more reliably on a fact than on a paragraph: a fact is re-stated without invention, where prose invites it.
 
 ## Author Freely, Structure Separately
 

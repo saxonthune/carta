@@ -35,22 +35,25 @@ _COMMAND_DOCS: dict[str, str] = {
     "regenerate": """\
 ### regenerate
 
-Rebuild `MANIFEST.md` from frontmatter across all docs in the workspace.
+Rebuild `MANIFEST.md` and rewrite every `00-index.md` body from current workspace state.
 
 ```
 rhidoc regenerate [--dry-run]
 ```
 
 Side effects:
-  - Overwrites `MANIFEST.md` entirely from current doc state.
-  - No file moves or ref rewrites.
+  - Overwrites `MANIFEST.md` entirely from current doc frontmatter.
+  - Rewrites the body of every `00-index.md` in the workspace (Contents table + Topics line).
+    Index frontmatter is preserved (title kept; summary/tags/deps reset to empty).
+  - No file moves or ref rewrites beyond the above.
 
 Flags:
-  --dry-run    Print what would be written without modifying MANIFEST.md.
+  --dry-run    Print what would be written without modifying any file.
 
 When to use:
   - After batch moves using `--no-regen` on each move command.
   - When MANIFEST.md is stale or missing.
+  - After manually editing leaf-doc frontmatter (title/summary/tags).
 """,
 
     "make": """\
@@ -197,26 +200,30 @@ Sequencing notes:
     "punch": """\
 ### punch
 
-Expand a leaf `.md` file into a directory by converting it to `NN-slug/00-index.md`.
+Expand a leaf `.md` file into a directory group: content moves to `01-slug.md`, a
+generated `00-index.md` is created, and inbound refs are shifted to the content child.
 
 ```
-rhidoc punch <target> [--as-child] [--dry-run]
+rhidoc punch <target> [--dry-run]
 ```
 
 Arguments:
   target  Path or doc ref to a numbered `.md` file.
 
 Side effects:
-  - Operates on bundles — non-md siblings sharing the target's numeric prefix move into the new directory with it.
-  - Creates a directory with the same name (minus `.md` extension).
-  - Moves the file into that directory as `00-index.md`.
-  - Does NOT renumber siblings or rewrite refs (the doc ref is unchanged).
+  - Creates `NN-slug/` directory.
+  - Moves original content to `NN-slug/01-slug.md` (ref shifts from docXX.YY → docXX.YY.01).
+  - Generates `NN-slug/00-index.md` (Contents table derived from direct children).
+  - Operates on bundles — non-md siblings sharing the target's prefix move with it (prefix 01-).
+  - Rewrites all inbound refs from docXX.YY to docXX.YY.01 across the workspace.
+  - Regenerates MANIFEST.md and all 00-index.md bodies.
 
 Flags:
-  --as-child  Put original content in `01-{slug}.md` and generate a skeleton
-              group index in `00-index.md`. Use this when turning a leaf into
-              a group — the original content becomes the first child doc.
   --dry-run   Print planned operation without executing.
+
+Notes:
+  - The group ref (docXX.YY) now points to the directory; the content ref is docXX.YY.01.
+  - Do NOT edit 00-index.md bodies — they are generated artifacts overwritten on regenerate.
 """,
 
     "hoist": """\
@@ -583,11 +590,14 @@ heading+list tree.
 rhidoc mdapi outline DOC
 rhidoc mdapi read DOC [--range A:B | --at ADDR] [--depth N]
 rhidoc mdapi locate DOC --text TEXT
+rhidoc mdapi lint DOC                                        # stdin: draft markdown — checks, no write
 rhidoc mdapi insert DOC --at ADDR [--before] [--no-lint]    # stdin: draft markdown
 rhidoc mdapi set-body DOC --at ADDR [--no-lint]             # stdin: prose body text
 rhidoc mdapi move DOC --from ADDR --to ADDR
 rhidoc mdapi delete DOC --at ADDR
 rhidoc mdapi hoist DOC --at ADDR
+rhidoc mdapi frontmatter DOC                                 # print inner YAML (fences excluded)
+rhidoc mdapi set-frontmatter DOC                             # stdin: inner YAML — replaces block, body unchanged
 ```
 
 `DOC` accepts a doc ref (e.g., `doc02.03`) or a workspace-relative path, resolved the same
@@ -626,6 +636,29 @@ Read verbs:
   locate DOC --text TEXT
     Print the address of the first node whose marker_text or body_text contains TEXT.
     Exits non-zero if no match is found.
+
+  lint DOC
+    Read a candidate draft from stdin and run the exact same lint checks that insert and
+    set-body run before writing (word cap, line cap, banned patterns, duplicate body_text
+    vs the existing DOC).  Prints violations to stderr; exits non-zero on any violation.
+    The document is never touched — use this to pre-flight a draft so the
+    draft→validate→revise loop costs no write+rollback.
+
+Authoring grain:
+
+  Only headings (h1–h6) and list items are addressable nodes.  Paragraphs, code fences,
+  and tables are body_text on the nearest node — they are not nodes themselves and cannot
+  be addressed separately.  Write one addressable node (a heading or a bullet) per call.
+
+  Mechanism follows content:
+    - printf for a one-line bullet (no multi-line escaping needed)
+    - A quoted heredoc (<<'EOF') for multi-line bodies, tables, or code fences
+    - A temp file for very large blocks
+
+  Parser reality (post Phase 1 mdapi-list-item-body-fidelity): tables and fenced code
+  round-trip verbatim as body_text on either a heading or a list item.  Both count against
+  the 40-line / 200-word caps.  GFM tables are not enabled, so a table is opaque prose to
+  the parser — never an addressable node.
 
 Write verbs:
 
@@ -669,8 +702,24 @@ Folded lint (insert and set-body only):
   Violations are printed to stderr; the file is left byte-unchanged.
   --no-lint on insert or set-body skips all checks.
 
+Frontmatter verbs:
+
+  frontmatter DOC
+    Print the doc's inner YAML — the text between the opening and closing `---` fences,
+    fences excluded.  Output pipes directly into set-frontmatter input for round-trips.
+    Prints nothing (no error) if the doc has no frontmatter block.
+
+  set-frontmatter DOC
+    Read inner YAML from stdin and replace the entire frontmatter block wholesale.
+    No per-field flags, no schema, no validation — the agent owns exactly what it writes.
+    The body (everything after the closing `---`) is preserved byte-for-byte.
+    Both verbs operate on inner YAML (fences excluded), so:
+      `rhidoc mdapi frontmatter DOC | rhidoc mdapi set-frontmatter DOC` is a no-op round-trip.
+    Frontmatter fields (summary, tags, deps) feed MANIFEST.md — run `rhidoc regenerate`
+    after changing them.  mdapi does not regenerate.
+
 Side effects:
-  - Read verbs: none.
+  - Read verbs (outline, read, locate, lint, frontmatter): none.
   - Write verbs: overwrite the target file in place.  MANIFEST is NOT updated (mdapi is
     intra-document; cross-file ref rewriting is out of scope).
   - Anchors do not exist; addressing is positional only.
@@ -695,8 +744,11 @@ _BEHAVIORAL_RULES = """\
 - **`--no-regen` scope**: Skips MANIFEST.md rebuild only. Ref rewriting in doc content still
   happens. Useful for batch operations — run many moves with `--no-regen`, then one final
   `rhidoc regenerate`.
-- **Index files**: `00-index.md` files mark a directory as a title group. They cannot be
-  renamed via `move --rename`. Use `rename` to change the directory slug instead.
+- **Index files**: `00-index.md` bodies are **generated artifacts** — rewritten by `rhidoc regenerate`
+  and by any structural command that triggers regeneration. Do NOT hand-author the body of a `00-index.md`;
+  edits will be overwritten. The only authored field is the frontmatter `title`. Contents tables and Topics
+  lines are computed from direct children at regeneration time.
+  `00-index.md` files cannot be renamed via `move --rename`; use `rename` to change the directory slug.
 - **Position 0 is reserved**: When a directory contains a `00-index.md`, slot 00 is reserved for it.
   Targeting slot 00 with `--at` or `--before` in such a directory is an error. At the workspace root
   (which has no `00-index.md`), slot 00 is a normal group position and may be targeted freely.
@@ -718,8 +770,9 @@ _COMMON_PATTERNS = """\
   ```
 - **Create a new title group**: `rhidoc make -g PARENT slug` creates the directory
   with `00-index.md`. Then use `rhidoc move` or `rhidoc make` to populate it.
-- **Expand a file into a group**: `rhidoc punch <target>` converts `NN-slug.md` into
-  `NN-slug/00-index.md`. The doc ref is unchanged — no ref rewriting needed.
+- **Expand a file into a group**: `rhidoc punch <target>` converts `NN-slug.md` into a directory
+  group: content moves to `NN-slug/01-slug.md` and a generated `00-index.md` is created. Inbound
+  refs are shifted from `docXX.YY` to `docXX.YY.01` automatically.
 - **Hoist a subdirectory**: `rhidoc hoist <target>` hoists children into parent, removing
   the directory. Use `--keep-index` to preserve the index as a sibling file.
 - **Rename a slug**: `rhidoc rename <target> new-slug` renames on disk. Then use
