@@ -111,6 +111,18 @@ def test_list_bundles_raises_on_duplicate_md(tmp_path):
         list_bundles(tmp_path)
 
 
+def test_duplicate_md_error_names_full_ref(tmp_path):
+    """The collision error carries the full docref, not just the prefix."""
+    nested = tmp_path / "00-codex"
+    nested.mkdir()
+    (nested / "04-alpha.md").touch()
+    (nested / "04-beta.md").touch()
+    with pytest.raises(RhidocError, match=r"doc00\.04 has multiple root candidates") as exc:
+        list_bundles(nested)
+    assert "04-alpha.md" in str(exc.value)
+    assert "04-beta.md" in str(exc.value)
+
+
 def test_list_bundles_non_numbered_ignored(tmp_path):
     (tmp_path / "README.md").touch()
     (tmp_path / "foo.json").touch()

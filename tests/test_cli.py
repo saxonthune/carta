@@ -312,6 +312,32 @@ def test_init_rehydrate_updates_stale_template(run_cli, tmp_path):
     assert stale_path.read_text(encoding="utf-8") != "stale content"
 
 
+def test_init_rehydrate_removes_stale_prefix_doc(run_cli, tmp_path):
+    """rehydrate removes a codex doc occupying a template's prefix under an old name."""
+    run_cli("init", "--name", "TestProject", cwd=tmp_path)
+    codex_dir = tmp_path / ".rhidoc" / "00-codex"
+    old_doc = codex_dir / "04-old-style-guide.md"
+    old_doc.write_text("old template content", encoding="utf-8")
+
+    code, out, err = run_cli("init", "--rehydrate", cwd=tmp_path)
+    assert code == 0, f"rehydrate failed:\n{err}\n{out}"
+    assert not old_doc.exists()
+    assert (codex_dir / "04-plain-language.md").exists()
+    assert "Removed stale" in out
+
+
+def test_init_rehydrate_dry_run_keeps_stale_prefix_doc(run_cli, tmp_path):
+    """--dry-run reports the stale codex doc without removing it."""
+    run_cli("init", "--name", "TestProject", cwd=tmp_path)
+    old_doc = tmp_path / ".rhidoc" / "00-codex" / "04-old-style-guide.md"
+    old_doc.write_text("old template content", encoding="utf-8")
+
+    code, out, err = run_cli("init", "--rehydrate", "--dry-run", cwd=tmp_path)
+    assert code == 0, f"dry-run failed:\n{err}\n{out}"
+    assert old_doc.exists()
+    assert "Would remove" in out
+
+
 def test_init_rehydrate_dry_run(run_cli, tmp_path, snapshot):
     """rhidoc init --rehydrate --dry-run shows plan without writing."""
     run_cli("init", "--name", "TestProject", cwd=tmp_path)

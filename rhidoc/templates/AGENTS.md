@@ -43,6 +43,7 @@ when orienting:
 - `doc00.03` — conventions: ref syntax, frontmatter, file naming, writing style
 - `doc00.04` — plain language: the prose standard — contrastive rules for register and word choice
 - `doc00.05` — controlled vocabulary: the glossary's entry kinds and fact patterns, and the naming rule
+- `doc00.06` — drift: why docs drift, the reason-to-write test, and the banned patterns
 
 ## Headless agents
 

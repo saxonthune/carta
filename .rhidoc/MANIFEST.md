@@ -23,10 +23,11 @@ Orphaned attachments (non-md files with no corresponding root .md) are reported 
 
 | doc00.00 | `00-index.md` |  |  | — | doc01.09.05 | — |
 | doc00.01 | `01-about.md` | Why this workspace exists, how to read it, two-sources-of-truth theory | docs, meta, theory | — | — | — |
-| doc00.02 | `02-maintenance.md` | Doc philosophy — docs convert volatile source signals into stable intent; declarative intent, banned patterns, prefer facts to prose, author freely then structure separately, when to grow detail | docs, maintenance, philosophy | — | doc01.09.12 | — |
+| doc00.02 | `02-maintenance.md` | Doc philosophy — docs convert volatile source signals into stable intent; declarative intent, prefer facts to prose, author freely then structure separately, docs grow by unfolding | docs, maintenance, philosophy | — | doc01.09.12 | — |
 | doc00.03 | `03-conventions.md` | Cross-reference syntax, frontmatter schema, file naming, writing style | docs, conventions | — | doc01.10 | — |
 | doc00.04 | `04-plain-language.md` | The plain-language standard for workspace prose — named standards, contrastive rules for jargon, word senses, parts of speech, prepositions, and sentence shape; the glossary as controlled vocabulary | docs, plain-language, style, vocabulary, glossary | — | — | — |
 | doc00.05 | `05-controlled-vocabulary.md` | The workspace glossary as a controlled vocabulary — entry kinds and sentence patterns from fact-based modeling (ORM), a worked example, and the naming rule | glossary, vocabulary, facts, subtypes, naming, docs | — | — | — |
+| doc00.06 | `06-drift.md` | Why docs drift and the rules that prevent it — the two-copies condition, the reason-to-write test, the generate-or-type escape for shared facts, timeless writing, and the banned-pattern list | docs, drift, maintenance, style | — | — | — |
 
 ## 01-product-strategy — Product Strategy
 
@@ -157,8 +158,9 @@ Quick lookup for file-path→doc mapping:
 | `decision-tables` | doc01.09.08 |
 | `decomposition` | doc01.09.03, doc01.09.04 |
 | `development` | doc01.05.03 |
-| `docs` | doc00.01, doc00.02, doc00.03, doc00.04, doc00.05, doc01.06, doc01.09.05, doc01.10 |
+| `docs` | doc00.01, doc00.02, doc00.03, doc00.04, doc00.05, doc00.06, doc01.06, doc01.09.05, doc01.10 |
 | `docs-api` | doc01.07.01, doc03.01.01 |
+| `drift` | doc00.06 |
 | `efficiency` | doc01.09.01 |
 | `elicitation` | doc01.09.05 |
 | `entities` | doc01.09.08 |
@@ -183,7 +185,7 @@ Quick lookup for file-path→doc mapping:
 | `jackson` | doc01.09.11 |
 | `living-structure` | doc01.09.09 |
 | `llm` | doc01.09.04 |
-| `maintenance` | doc00.02 |
+| `maintenance` | doc00.02, doc00.06 |
 | `meta` | doc00.01 |
 | `methodology` | doc01.05.03, doc01.09.10, doc01.09.11 |
 | `mission` | doc01.01 |
@@ -221,7 +223,7 @@ Quick lookup for file-path→doc mapping:
 | `static-analysis` | doc01.09.04 |
 | `structure` | doc01.09.12 |
 | `structure-preserving` | doc01.05.03 |
-| `style` | doc00.04 |
+| `style` | doc00.04, doc00.06 |
 | `subtypes` | doc00.05 |
 | `syntax` | doc01.10 |
 | `terms` | doc01.04 |

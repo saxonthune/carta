@@ -695,9 +695,10 @@ Folded lint (insert and set-body only):
   Lint is a deterministic gate with no LLM involvement.  It checks:
     - word cap: body_text ≤ 200 words
     - line cap: body_text ≤ 40 lines
-    - doc00.02 banned patterns: future modals (will/shall), phase/version language,
+    - doc00.06 banned patterns: future modals (will/shall), phase/version language,
       deferral language (TODO/TBD), dated postscripts (as of YYYY-MM),
-      retrospective framing (we decided/chose), volatile snapshots (currently)
+      retrospective framing (we decided/chose), volatile snapshots (currently),
+      open-questions sections (open question), rename narration (renamed from/formerly)
     - duplicate body_text: the same body_text must not appear in another node
   Violations are printed to stderr; the file is left byte-unchanged.
   --no-lint on insert or set-body skips all checks.

@@ -78,6 +78,24 @@ class DocRef:
         """Canonical form: docXX.YY.ZZ (zero-padded 2-digit segments)."""
         return "doc" + ".".join(f"{s:02d}" for s in self.segments)
 
+    @classmethod
+    def from_directory_and_prefix(cls, directory: Path, prefix: int) -> DocRef:
+        """Derive the ref for the bundle at `prefix` inside `directory`, lexically.
+
+        Collects the trailing run of NN-prefixed path components — the segments
+        below the workspace root, which itself has no NN- prefix — and appends
+        `prefix`. Needs no workspace root, so error paths can name a full ref.
+        """
+        segments: list[int] = []
+        for part in directory.parts:
+            en = EntryName.parse(part)
+            if en is not None and en.ext is None:
+                segments.append(en.prefix)
+            else:
+                segments = []
+        segments.append(prefix)
+        return cls(segments=tuple(segments))
+
     def to_path(self, rhidoc_root: Path) -> Path:
         """Resolve this ref to a filesystem path under rhidoc_root.
 

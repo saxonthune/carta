@@ -26,7 +26,7 @@ grep -rn "doc01\.02" .rhidoc/
 
 ## Writing Style: Declarative Intent
 
-Docs describe the artifact's intent in literary present tense. They are not timelines, design briefs, or sequencing plans. No future modals, phases, deferrals, dated postscripts, or volatile snapshots (counts, totals, line numbers derived from current source state). See doc00.02 for the full banned-pattern list and examples.
+Docs describe the artifact's intent in literary present tense. They are not timelines, design briefs, or sequencing plans. No future modals, phases, deferrals, dated postscripts, or volatile snapshots (counts, totals, line numbers derived from current source state). See doc00.06 for the full banned-pattern list and examples.
 
 ## Frontmatter
 
@@ -85,4 +85,4 @@ MANIFEST.md is the **machine-readable retrieval index** — a flat table with re
 - **Describe behavior, not implementation.** Docs should be clear enough to write a test from.
 - **Use the glossary.** The glossary is a controlled vocabulary (doc00.05): one term per concept. Don't invent synonyms.
 - **Write plainly.** Common words over jargon; one word, one meaning; plain verbs; precise prepositions. See doc00.04 for the standard and its contrastive examples.
-- **Write in literary present tense** about what the artifact intends to be. No future modals, phases, dated postscripts, or volatile snapshots. See doc00.02 for the banned-pattern list.
+- **Write in literary present tense** about what the artifact intends to be. No future modals, phases, dated postscripts, or volatile snapshots. See doc00.06 for the banned-pattern list.

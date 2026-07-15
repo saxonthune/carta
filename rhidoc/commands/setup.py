@@ -56,6 +56,7 @@ _DATA_FILES = [
     "templates/03-conventions.md",
     "templates/04-plain-language.md",
     "templates/05-controlled-vocabulary.md",
+    "templates/06-drift.md",
     "templates/AGENTS.md",
     "templates/skill.md",
     "templates/docs-development-skill.md",
@@ -105,6 +106,7 @@ def cmd_init(args: argparse.Namespace) -> None:
         ("03-conventions.md", "{{dir_name}}", dirname),
         ("04-plain-language.md", None, None),
         ("05-controlled-vocabulary.md", None, None),
+        ("06-drift.md", None, None),
     ]
     for filename, placeholder, value in codex_templates:
         content = (templates_dir / filename).read_text(encoding="utf-8")
@@ -153,7 +155,7 @@ def cmd_init(args: argparse.Namespace) -> None:
 
     print(f"\nInitialized {dirname}/ workspace: {title}")
     print(f"  Created:  {MARKER}")
-    print(f"  Created:  {dirname}/00-codex/ (6 docs)")
+    print(f"  Created:  {dirname}/00-codex/ (7 docs)")
     print(f"  Created:  {dirname}/MANIFEST.md")
     print(f"  Created:  {dirname}/AGENTS.md")
 
@@ -240,12 +242,28 @@ def cmd_init_rehydrate(args: argparse.Namespace, rhidoc_root: Path) -> None:
         ("03-conventions.md", "{{dir_name}}", dirname),
         ("04-plain-language.md", None, None),
         ("05-controlled-vocabulary.md", None, None),
+        ("06-drift.md", None, None),
     ]
     for filename, placeholder, value in codex_templates:
         dest = codex_dir / filename
         new_content = (templates_dir / filename).read_text(encoding="utf-8")
         if placeholder:
             new_content = new_content.replace(placeholder, value)
+
+        # A codex doc from an older rhidoc may occupy this template's prefix
+        # under a different name; two .md roots at one prefix break resolution.
+        if codex_dir.exists():
+            prefix = filename[:3]
+            for stale in sorted(codex_dir.glob(f"{prefix}*.md")):
+                if stale.name == filename:
+                    continue
+                if no_write:
+                    print(f"  Drift: {stale.relative_to(project_root)} (stale codex doc)" if check
+                          else f"  Would remove: {stale.relative_to(project_root)}")
+                else:
+                    stale.unlink()
+                    print(f"  Removed stale: {stale.relative_to(project_root)}")
+                updated += 1
 
         if dest.exists():
             old_content = dest.read_text(encoding="utf-8")

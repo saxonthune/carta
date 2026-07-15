@@ -8,7 +8,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 
-from .docref import EntryName
+from .docref import DocRef, EntryName
 from .errors import RhidocError
 
 
@@ -65,7 +65,10 @@ def list_bundles(directory: Path) -> list[Bundle]:
 
         if len(md_files) > 1:
             names = sorted(f.name for f in md_files)
-            raise RhidocError(f"bundle at prefix {prefix:02d} has multiple root candidates: {names}")
+            ref = DocRef.from_directory_and_prefix(directory, prefix)
+            raise RhidocError(
+                f"{ref} has multiple root candidates in {directory}: {names}"
+            )
 
         if len(md_files) == 1:
             bundles.append(Bundle(prefix=prefix, root=md_files[0], attachments=non_md))

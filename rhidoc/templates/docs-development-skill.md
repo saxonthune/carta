@@ -19,14 +19,16 @@ The rules for *what a good doc is* live in the codex, not here. Read them before
 follow them — do not re-derive or restate them:
 
 - **doc00.02** — doc philosophy: encode the invariant not the snapshot, declarative intent,
-  banned patterns, **prefer facts to prose**, author freely then structure separately, grow
-  detail through use.
+  **prefer facts to prose**, author freely then structure separately, grow detail through use.
 - **doc00.03** — conventions: cross-reference syntax, frontmatter, file naming, writing style.
 - **doc00.04** — plain language: the register standard for all workspace prose —
   contrastive rules for jargon, word senses, parts of speech, and prepositions.
 - **doc00.05** — controlled vocabulary: the glossary's entry kinds and sentence patterns
   (terms, facts, subtypes, derivations, unnamed concepts), and the naming rule — the user
   decides names; the agent proposes.
+- **doc00.06** — drift: the two-copies rule, the reason-to-write test, and the banned
+  patterns the lint enforces — including no open-questions sections in doc bodies
+  (surface open questions to the user instead).
 
 This skill governs only *how to run the session*. When in doubt about content, defer to the codex.
 
