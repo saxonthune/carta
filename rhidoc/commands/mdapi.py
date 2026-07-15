@@ -1,6 +1,7 @@
 """rhidoc — mdapi commands: outline, read, locate (Phase 2) + write verbs (Phase 3)."""
 import argparse
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 from ..errors import RhidocError
@@ -80,8 +81,7 @@ def _select_range(tree: MdTree, start: str, end: str) -> list[MdNode]:
     return siblings[start_idx - 1 : end_idx]
 
 
-def _resolve_doc(args: argparse.Namespace, rhidoc_root: Path) -> tuple[Path, MdTree]:
-    doc_arg = args.doc
+def _resolve_doc(doc_arg: str, rhidoc_root: Path) -> tuple[Path, MdTree]:
     workspace_name = rhidoc_root.name
     if doc_arg.startswith(f"{workspace_name}/"):
         doc_arg = doc_arg[len(workspace_name) + 1:]
@@ -129,9 +129,19 @@ def _print_violations(violations: list) -> None:
 # outline
 # ---------------------------------------------------------------------------
 
+@dataclass(frozen=True)
+class OutlineArgs:
+    doc: str
+
+    @classmethod
+    def from_namespace(cls, ns: argparse.Namespace) :
+        return cls(doc=ns.doc)
+
+
 def cmd_mdapi_outline(args: argparse.Namespace, rhidoc_root: Path) -> None:
     """Print every node as ADDRESS  marker_text."""
-    _, tree = _resolve_doc(args, rhidoc_root)
+    a = OutlineArgs.from_namespace(args)
+    _, tree = _resolve_doc(a.doc, rhidoc_root)
     for node in tree.walk():
         sys.stdout.write(f"{node.address}  {node.marker_text}\n")
 
@@ -140,13 +150,26 @@ def cmd_mdapi_outline(args: argparse.Namespace, rhidoc_root: Path) -> None:
 # read
 # ---------------------------------------------------------------------------
 
+@dataclass(frozen=True)
+class ReadArgs:
+    doc: str
+    range: str | None
+    at: str | None
+    depth: int | None
+
+    @classmethod
+    def from_namespace(cls, ns: argparse.Namespace) :
+        return cls(doc=ns.doc, range=ns.range, at=ns.at, depth=ns.depth)
+
+
 def cmd_mdapi_read(args: argparse.Namespace, rhidoc_root: Path) -> None:
     """Print selected nodes with optional depth truncation."""
-    _, tree = _resolve_doc(args, rhidoc_root)
+    a = ReadArgs.from_namespace(args)
+    _, tree = _resolve_doc(a.doc, rhidoc_root)
 
-    depth: int | None = getattr(args, "depth", None)
-    range_arg: str | None = getattr(args, "range", None)
-    at_arg: str | None = getattr(args, "at", None)
+    depth: int | None = a.depth
+    range_arg: str | None = a.range
+    at_arg: str | None = a.at
 
     if at_arg is not None:
         node = tree.resolve(at_arg.strip())
@@ -176,10 +199,21 @@ def cmd_mdapi_read(args: argparse.Namespace, rhidoc_root: Path) -> None:
 # locate
 # ---------------------------------------------------------------------------
 
+@dataclass(frozen=True)
+class LocateArgs:
+    doc: str
+    text: str
+
+    @classmethod
+    def from_namespace(cls, ns: argparse.Namespace) :
+        return cls(doc=ns.doc, text=ns.text)
+
+
 def cmd_mdapi_locate(args: argparse.Namespace, rhidoc_root: Path) -> None:
     """Find first node whose marker_text or body_text contains the search text."""
-    _, tree = _resolve_doc(args, rhidoc_root)
-    needle = args.text
+    a = LocateArgs.from_namespace(args)
+    _, tree = _resolve_doc(a.doc, rhidoc_root)
+    needle = a.text
 
     for node in tree.walk():
         if needle in node.marker_text or needle in node.body_text:
@@ -193,16 +227,29 @@ def cmd_mdapi_locate(args: argparse.Namespace, rhidoc_root: Path) -> None:
 # insert
 # ---------------------------------------------------------------------------
 
+@dataclass(frozen=True)
+class InsertArgs:
+    doc: str
+    at: str
+    before: bool
+    no_lint: bool
+
+    @classmethod
+    def from_namespace(cls, ns: argparse.Namespace) :
+        return cls(doc=ns.doc, at=ns.at, before=ns.before, no_lint=ns.no_lint)
+
+
 def cmd_mdapi_insert(args: argparse.Namespace, rhidoc_root: Path) -> None:
     """Insert new node(s) from stdin before or after --at ADDR."""
-    path, tree = _resolve_doc(args, rhidoc_root)
+    a = InsertArgs.from_namespace(args)
+    path, tree = _resolve_doc(a.doc, rhidoc_root)
     draft = sys.stdin.read()
 
     new_nodes = MdTree.parse(draft).roots
     if not new_nodes:
         raise RhidocError("insert: stdin produced no nodes (marker line required)")
 
-    addr = args.at.strip()
+    addr = a.at.strip()
     parent_prefix, idx = _parse_address(addr)
     siblings = _get_siblings(tree, parent_prefix)
 
@@ -211,7 +258,7 @@ def cmd_mdapi_insert(args: argparse.Namespace, rhidoc_root: Path) -> None:
             f"Address out of range: {addr!r} (sibling count: {len(siblings)})"
         )
 
-    before = getattr(args, "before", False)
+    before = a.before
     insert_pos = idx - 1 if before else idx  # 0-based
 
     for i, node in enumerate(new_nodes):
@@ -219,7 +266,7 @@ def cmd_mdapi_insert(args: argparse.Namespace, rhidoc_root: Path) -> None:
 
     assign_addresses(tree.roots)
 
-    no_lint = getattr(args, "no_lint", False)
+    no_lint = a.no_lint
     if not no_lint:
         violations = _run_lint(new_nodes, tree)
         if violations:
@@ -233,19 +280,31 @@ def cmd_mdapi_insert(args: argparse.Namespace, rhidoc_root: Path) -> None:
 # set-body
 # ---------------------------------------------------------------------------
 
+@dataclass(frozen=True)
+class SetBodyArgs:
+    doc: str
+    at: str
+    no_lint: bool
+
+    @classmethod
+    def from_namespace(cls, ns: argparse.Namespace) :
+        return cls(doc=ns.doc, at=ns.at, no_lint=ns.no_lint)
+
+
 def cmd_mdapi_set_body(args: argparse.Namespace, rhidoc_root: Path) -> None:
     """Overwrite one node's body_text from stdin; structure and siblings unchanged."""
-    path, tree = _resolve_doc(args, rhidoc_root)
+    a = SetBodyArgs.from_namespace(args)
+    path, tree = _resolve_doc(a.doc, rhidoc_root)
     new_body = sys.stdin.read()
 
-    addr = args.at.strip()
+    addr = a.at.strip()
     node = tree.resolve(addr)
     if node is None:
         raise RhidocError(f"Address not found: {addr!r}")
 
     node.body_text = new_body
 
-    no_lint = getattr(args, "no_lint", False)
+    no_lint = a.no_lint
     if not no_lint:
         all_nodes = list(tree.walk())
         violations = lint_node(node) + check_duplicate_body(node, all_nodes)
@@ -260,12 +319,24 @@ def cmd_mdapi_set_body(args: argparse.Namespace, rhidoc_root: Path) -> None:
 # move
 # ---------------------------------------------------------------------------
 
+@dataclass(frozen=True)
+class MdapiMoveArgs:
+    doc: str
+    from_addr: str
+    to_addr: str
+
+    @classmethod
+    def from_namespace(cls, ns: argparse.Namespace) :
+        return cls(doc=ns.doc, from_addr=ns.from_addr, to_addr=ns.to_addr)
+
+
 def cmd_mdapi_move(args: argparse.Namespace, rhidoc_root: Path) -> None:
     """Relocate a whole subtree (node + all descendants) from --from to --to."""
-    path, tree = _resolve_doc(args, rhidoc_root)
+    a = MdapiMoveArgs.from_namespace(args)
+    path, tree = _resolve_doc(a.doc, rhidoc_root)
 
-    from_addr = args.from_addr.strip()
-    to_addr = args.to_addr.strip()
+    from_addr = a.from_addr.strip()
+    to_addr = a.to_addr.strip()
 
     if from_addr == to_addr:
         return  # no-op
@@ -311,11 +382,22 @@ def cmd_mdapi_move(args: argparse.Namespace, rhidoc_root: Path) -> None:
 # delete
 # ---------------------------------------------------------------------------
 
+@dataclass(frozen=True)
+class MdapiDeleteArgs:
+    doc: str
+    at: str
+
+    @classmethod
+    def from_namespace(cls, ns: argparse.Namespace) :
+        return cls(doc=ns.doc, at=ns.at)
+
+
 def cmd_mdapi_delete(args: argparse.Namespace, rhidoc_root: Path) -> None:
     """Remove node + entire subtree at --at ADDR; siblings renumber."""
-    path, tree = _resolve_doc(args, rhidoc_root)
+    a = MdapiDeleteArgs.from_namespace(args)
+    path, tree = _resolve_doc(a.doc, rhidoc_root)
 
-    addr = args.at.strip()
+    addr = a.at.strip()
     parent_prefix, idx = _parse_address(addr)
     siblings = _get_siblings(tree, parent_prefix)
 
@@ -334,6 +416,16 @@ def cmd_mdapi_delete(args: argparse.Namespace, rhidoc_root: Path) -> None:
 # hoist
 # ---------------------------------------------------------------------------
 
+@dataclass(frozen=True)
+class MdapiHoistArgs:
+    doc: str
+    at: str
+
+    @classmethod
+    def from_namespace(cls, ns: argparse.Namespace) :
+        return cls(doc=ns.doc, at=ns.at)
+
+
 def cmd_mdapi_hoist(args: argparse.Namespace, rhidoc_root: Path) -> None:
     """Dissolve node at --at ADDR, lifting its children one level into its slot.
 
@@ -341,9 +433,10 @@ def cmd_mdapi_hoist(args: argparse.Namespace, rhidoc_root: Path) -> None:
     hoisted child's body_text.  If there are no children, the body is appended to
     the parent's body_text (or tree.preamble for root-level nodes).
     """
-    path, tree = _resolve_doc(args, rhidoc_root)
+    a = MdapiHoistArgs.from_namespace(args)
+    path, tree = _resolve_doc(a.doc, rhidoc_root)
 
-    addr = args.at.strip()
+    addr = a.at.strip()
     parent_prefix, idx = _parse_address(addr)
     siblings = _get_siblings(tree, parent_prefix)
 
@@ -385,9 +478,19 @@ def cmd_mdapi_hoist(args: argparse.Namespace, rhidoc_root: Path) -> None:
 # frontmatter / set-frontmatter
 # ---------------------------------------------------------------------------
 
+@dataclass(frozen=True)
+class FrontmatterArgs:
+    doc: str
+
+    @classmethod
+    def from_namespace(cls, ns: argparse.Namespace) :
+        return cls(doc=ns.doc)
+
+
 def cmd_mdapi_frontmatter(args: argparse.Namespace, rhidoc_root: Path) -> None:
     """Print the doc's frontmatter inner YAML (between the --- fences, fences excluded)."""
-    _, tree = _resolve_doc(args, rhidoc_root)
+    a = FrontmatterArgs.from_namespace(args)
+    _, tree = _resolve_doc(a.doc, rhidoc_root)
     fm = tree.frontmatter
     if not fm:
         return
@@ -399,9 +502,19 @@ def cmd_mdapi_frontmatter(args: argparse.Namespace, rhidoc_root: Path) -> None:
     sys.stdout.write(inner + "\n")
 
 
+@dataclass(frozen=True)
+class SetFrontmatterArgs:
+    doc: str
+
+    @classmethod
+    def from_namespace(cls, ns: argparse.Namespace) :
+        return cls(doc=ns.doc)
+
+
 def cmd_mdapi_set_frontmatter(args: argparse.Namespace, rhidoc_root: Path) -> None:
     """Replace the doc's frontmatter block with inner YAML read from stdin; body unchanged."""
-    path, tree = _resolve_doc(args, rhidoc_root)
+    a = SetFrontmatterArgs.from_namespace(args)
+    path, tree = _resolve_doc(a.doc, rhidoc_root)
     inner = sys.stdin.read().strip("\n")
     tree.frontmatter = "---\n" + inner + "\n---"
     path.write_text(tree.render(), encoding="utf-8")
@@ -411,13 +524,23 @@ def cmd_mdapi_set_frontmatter(args: argparse.Namespace, rhidoc_root: Path) -> No
 # lint
 # ---------------------------------------------------------------------------
 
+@dataclass(frozen=True)
+class LintArgs:
+    doc: str
+
+    @classmethod
+    def from_namespace(cls, ns: argparse.Namespace) :
+        return cls(doc=ns.doc)
+
+
 def cmd_mdapi_lint(args: argparse.Namespace, rhidoc_root: Path) -> None:
     """Lint a candidate draft from stdin against DOC's tree; write nothing.
 
     Same checks insert runs pre-write (caps, banned patterns, duplicate body vs the
     existing doc). Exits non-zero on any violation; the doc is never touched.
     """
-    _, tree = _resolve_doc(args, rhidoc_root)
+    a = LintArgs.from_namespace(args)
+    _, tree = _resolve_doc(a.doc, rhidoc_root)
     draft = sys.stdin.read()
 
     new_nodes = MdTree.parse(draft).roots
@@ -435,7 +558,7 @@ def cmd_mdapi_lint(args: argparse.Namespace, rhidoc_root: Path) -> None:
 # ---------------------------------------------------------------------------
 
 def cmd_mdapi(args: argparse.Namespace, rhidoc_root: Path) -> None:
-    verb = getattr(args, "mdapi_verb", None)
+    verb = args.mdapi_verb
     if verb == "outline":
         cmd_mdapi_outline(args, rhidoc_root)
     elif verb == "read":

@@ -1,6 +1,7 @@
 """AI-skill documentation constants and generation logic for `rhidoc ai-skill`."""
 import argparse
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 _PACKAGE_DIR = Path(__file__).resolve().parent
@@ -890,12 +891,23 @@ def _workspace_state_section(rhidoc_root: Path) -> list[str]:
     return lines
 
 
+@dataclass(frozen=True)
+class AiSkillArgs:
+    topic: str | None
+
+    @classmethod
+    def from_namespace(cls, ns: argparse.Namespace) :
+        return cls(topic=ns.topic)
+
+
 def cmd_ai_skill(args: argparse.Namespace, rhidoc_root: Path) -> None:
     """Compact AI agent context for the rhidoc CLI; per-command detail on demand."""
     from .__version__ import __version__
 
+    a = AiSkillArgs.from_namespace(args)
+
     # `rhidoc ai-skill <command>` prints the full reference block for one command.
-    topic = getattr(args, "topic", None)
+    topic = a.topic
     if topic:
         doc = _COMMAND_DOCS.get(topic)
         if doc:

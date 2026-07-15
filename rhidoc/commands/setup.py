@@ -2,6 +2,7 @@
 import argparse
 import json
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 from ..__version__ import __version__
@@ -68,10 +69,22 @@ _DATA_FILES = [
 # init
 # ---------------------------------------------------------------------------
 
+@dataclass(frozen=True)
+class InitArgs:
+    name: str | None
+    dirname: str
+    portable: bool
+
+    @classmethod
+    def from_namespace(cls, ns: argparse.Namespace) :
+        return cls(name=ns.name, dirname=ns.dirname, portable=ns.portable)
+
+
 def cmd_init(args: argparse.Namespace) -> None:
     """Initialize a new workspace in the current directory."""
+    a = InitArgs.from_namespace(args)
     project_root = Path.cwd().resolve()
-    dirname = args.dirname
+    dirname = a.dirname
     marker_path = project_root / MARKER
     rhidoc_dir = project_root / dirname
 
@@ -80,7 +93,7 @@ def cmd_init(args: argparse.Namespace) -> None:
         print("Run `rhidoc init --rehydrate` to refresh codex templates and skill files.")
         return
 
-    title = args.name or project_root.name
+    title = a.name or project_root.name
 
     codex_dir = rhidoc_dir / "00-codex"
     codex_dir.mkdir(parents=True, exist_ok=True)
@@ -160,7 +173,7 @@ def cmd_init(args: argparse.Namespace) -> None:
     print(f"  Created:  {dirname}/MANIFEST.md")
     print(f"  Created:  {dirname}/AGENTS.md")
 
-    if args.portable:
+    if a.portable:
         if copy_portable(rhidoc_dir):
             print(f"  Dumped:   portable scripts into {dirname}/")
             print(f"  Usage:    python3 {dirname}/rhidoc.py <command>")
@@ -214,8 +227,19 @@ def copy_portable(rhidoc_root: Path) -> bool:
     return True
 
 
+@dataclass(frozen=True)
+class InitRehydrateArgs:
+    dry_run: bool
+    check: bool
+
+    @classmethod
+    def from_namespace(cls, ns: argparse.Namespace) :
+        return cls(dry_run=ns.dry_run, check=ns.check)
+
+
 def cmd_init_rehydrate(args: argparse.Namespace, rhidoc_root: Path) -> None:
     """Refresh codex templates and skill files from the installed rhidoc version."""
+    a = InitRehydrateArgs.from_namespace(args)
     project_root = rhidoc_root.parent
     dirname = rhidoc_root.name
     marker_path = project_root / MARKER
@@ -229,8 +253,8 @@ def cmd_init_rehydrate(args: argparse.Namespace, rhidoc_root: Path) -> None:
     templates_dir = _PACKAGE_DIR / "templates"
     codex_dir = rhidoc_root / "00-codex"
 
-    check = getattr(args, "check", False)
-    no_write = args.dry_run or check
+    check = a.check
+    no_write = a.dry_run or check
 
     updated = 0
     skipped = 0
@@ -330,7 +354,7 @@ def cmd_init_rehydrate(args: argparse.Namespace, rhidoc_root: Path) -> None:
         print(f"\nAll {skipped} hydrated file(s) current.")
         return
 
-    verb = "Would update" if args.dry_run else "Updated"
+    verb = "Would update" if a.dry_run else "Updated"
     print(f"\n{verb} {updated} file(s), {skipped} already current.")
 
 
