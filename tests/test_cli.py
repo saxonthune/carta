@@ -459,7 +459,7 @@ class TestRewriteRefs(unittest.TestCase):
             "Ref: doc02.06.01\n",
             encoding="utf-8",
         )
-        rewrite_refs([md], {"doc02.06": "doc03.01"})
+        rewrite_refs([md], {DocRef.parse("02.06"): DocRef.parse("03.01")})
         lines = md.read_text(encoding="utf-8").splitlines()
         self.assertIn("doc03.01", lines[0], "Line 1 should be updated")
         self.assertNotIn("doc03.01", lines[1], "URL line should NOT be updated")
@@ -471,7 +471,7 @@ class TestRewriteRefs(unittest.TestCase):
         md = self.tmp / "test2.md"
         md.write_text("doc03.01 and doc03.01.01\n", encoding="utf-8")
         # Only rename doc03.01, not doc03.01.01
-        rewrite_refs([md], {"doc03.01": "doc04.01"})
+        rewrite_refs([md], {DocRef.parse("03.01"): DocRef.parse("04.01")})
         result = md.read_text(encoding="utf-8")
         self.assertIn("doc04.01", result)
         self.assertIn("doc03.01.01", result, "doc03.01.01 should remain unchanged")
@@ -481,7 +481,7 @@ class TestRewriteRefs(unittest.TestCase):
         md = self.tmp / "unchanged.md"
         original = "No matching refs here.\n"
         md.write_text(original, encoding="utf-8")
-        results = rewrite_refs([md], {"doc99.99": "doc00.01"})
+        results = rewrite_refs([md], {DocRef.parse("99.99"): DocRef.parse("00.01")})
         self.assertNotIn(md, results)
         self.assertEqual(md.read_text(encoding="utf-8"), original)
 
@@ -507,6 +507,7 @@ class TestComputeRenameMap(unittest.TestCase):
     def test_gap_closing(self):
         """After removing 01-foo, 02-bar should become 01-bar."""
         from rhidoc.planning import compute_rename_map
+        from rhidoc.docref import DocRef
         old_foo = self.tmp / "01-a" / "01-foo.md"
         new_foo = self.tmp / "02-b" / "01-foo.md"
         old_bar = self.tmp / "01-a" / "02-bar.md"
@@ -516,9 +517,9 @@ class TestComputeRenameMap(unittest.TestCase):
         rename_map = compute_rename_map(moves, self.tmp)
 
         # doc01.01 -> somewhere (foo moved)
-        self.assertIn("doc01.01", rename_map)
+        self.assertIn(DocRef.parse("01.01"), rename_map)
         # doc01.02 -> doc01.01 (gap closed)
-        self.assertEqual(rename_map.get("doc01.02"), "doc01.01")
+        self.assertEqual(rename_map.get(DocRef.parse("01.02")), DocRef.parse("01.01"))
 
 
 class TestMovetoDryRun(unittest.TestCase):

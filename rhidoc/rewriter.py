@@ -1,6 +1,7 @@
-import re
 import uuid
 from pathlib import Path
+
+from .docref import DocRef
 
 
 def collect_md_files(rhidoc_root: Path, external_paths: list[Path]) -> list[Path]:
@@ -35,7 +36,7 @@ def collect_md_files(rhidoc_root: Path, external_paths: list[Path]) -> list[Path
 
 def rewrite_refs(
     files: list[Path],
-    rename_map: dict[str, str],
+    rename_map: dict[DocRef, DocRef],
 ) -> dict[Path, int]:
     """Rewrite doc refs in files using a two-pass placeholder strategy.
 
@@ -51,16 +52,13 @@ def rewrite_refs(
         return {}
 
     # Build placeholder map: old_ref -> (compiled_pattern, placeholder, new_ref)
-    placeholders: dict[str, tuple] = {}
+    placeholders: dict[DocRef, tuple] = {}
     for old, new in rename_map.items():
         ph = f"__RHIDOCREF_{uuid.uuid4().hex[:8]}__"
-        # Word-boundary-aware: preceded by non-word char (or start),
-        # not followed by a digit-after-dot (avoids partial matches on longer refs)
-        pattern = re.compile(r'(?<!\w)' + re.escape(old) + r'(?!\.[a-zA-Z0-9])')
-        placeholders[old] = (pattern, ph, new)
+        placeholders[old] = (old.matcher(), ph, new)
 
     # Sort by length descending so longer refs are replaced first
-    sorted_old = sorted(placeholders.keys(), key=len, reverse=True)
+    sorted_old = sorted(placeholders.keys(), key=lambda r: len(str(r)), reverse=True)
 
     results: dict[Path, int] = {}
     for fpath in files:
@@ -81,7 +79,7 @@ def rewrite_refs(
         # Pass 2: placeholders → new refs
         for old_ref in sorted_old:
             _, ph, new_ref = placeholders[old_ref]
-            text = text.replace(ph, new_ref)
+            text = text.replace(ph, str(new_ref))
 
         if text != original:
             fpath.write_text(text, encoding="utf-8")
@@ -90,7 +88,7 @@ def rewrite_refs(
     return results
 
 
-def apply_rename_to_text(text: str, rename_map: dict[str, str]) -> str:
+def apply_rename_to_text(text: str, rename_map: dict[DocRef, DocRef]) -> str:
     """Apply a rename map to a text string using the same two-pass strategy.
 
     Useful for updating verbatim content (e.g. MANIFEST.md preamble, tag index)
@@ -99,13 +97,12 @@ def apply_rename_to_text(text: str, rename_map: dict[str, str]) -> str:
     if not rename_map:
         return text
 
-    placeholders: dict[str, tuple] = {}
+    placeholders: dict[DocRef, tuple] = {}
     for old, new in rename_map.items():
         ph = f"__RHIDOCREF_{uuid.uuid4().hex[:8]}__"
-        pattern = re.compile(r'(?<!\w)' + re.escape(old) + r'(?!\.[a-zA-Z0-9])')
-        placeholders[old] = (pattern, ph, new)
+        placeholders[old] = (old.matcher(), ph, new)
 
-    sorted_old = sorted(placeholders.keys(), key=len, reverse=True)
+    sorted_old = sorted(placeholders.keys(), key=lambda r: len(str(r)), reverse=True)
 
     # Pass 1: old refs → placeholders
     for old_ref in sorted_old:
@@ -115,6 +112,6 @@ def apply_rename_to_text(text: str, rename_map: dict[str, str]) -> str:
     # Pass 2: placeholders → new refs
     for old_ref in sorted_old:
         _, ph, new_ref = placeholders[old_ref]
-        text = text.replace(ph, new_ref)
+        text = text.replace(ph, str(new_ref))
 
     return text

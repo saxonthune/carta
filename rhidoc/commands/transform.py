@@ -74,7 +74,7 @@ def cmd_punch(args: argparse.Namespace, rhidoc_root: Path) -> None:
             print(f"Would move attachment: {att.name} {glyphs.arrow} {dir_name}/01-{att_slug}")
         if rename_map:
             print(f"Would shift refs:")
-            for old_ref, new_ref in sorted(rename_map.items()):
+            for old_ref, new_ref in sorted(rename_map.items(), key=lambda kv: str(kv[0])):
                 print(f"  {old_ref} -> {new_ref}")
         print("\n(dry-run: no files modified)")
         return
@@ -102,7 +102,7 @@ def cmd_punch(args: argparse.Namespace, rhidoc_root: Path) -> None:
         print(f"  Moved {len(attachments)} attachment(s) with prefix 01-")
     if rename_map:
         print(f"Refs shifted: {sum(rewrite_results.values())} replacement(s)")
-        for old_ref, new_ref in sorted(rename_map.items()):
+        for old_ref, new_ref in sorted(rename_map.items(), key=lambda kv: str(kv[0])):
             print(f"  {old_ref} -> {new_ref}")
 
 
@@ -320,7 +320,7 @@ def cmd_hoist(args: argparse.Namespace, rhidoc_root: Path) -> None:
             print(f"  {old.relative_to(rhidoc_root)} -> {new.relative_to(rhidoc_root)}")
         print()
         print(f"=== Ref rename map ({len(rename_map)} entries) ===")
-        for old_ref, new_ref in sorted(rename_map.items()):
+        for old_ref, new_ref in sorted(rename_map.items(), key=lambda kv: str(kv[0])):
             print(f"  {old_ref} -> {new_ref}")
         print("\n(dry-run: no files modified)")
         return
@@ -356,7 +356,7 @@ def cmd_hoist(args: argparse.Namespace, rhidoc_root: Path) -> None:
     print(f"Refs updated: {sum(rewrite_results.values())} replacement(s) across {len(rewrite_results)} file(s)")
     if rename_map:
         print(f"Rename map ({len(rename_map)} entries):")
-        for old_ref, new_ref in sorted(rename_map.items()):
+        for old_ref, new_ref in sorted(rename_map.items(), key=lambda kv: str(kv[0])):
             print(f"  {old_ref} -> {new_ref}")
 
 
@@ -406,7 +406,7 @@ def cmd_copy(args: argparse.Namespace, rhidoc_root: Path) -> None:
     ext = source_path.suffix or ".md"
 
     shift_moves: list[tuple[Path, Path]] = []
-    rename_map: dict[str, str] = {}
+    rename_map: dict[DocRef, DocRef] = {}
 
     if a.at is not None or a.before is not None:
         # Ref-addressed mode (--at or --before)
@@ -490,7 +490,7 @@ def cmd_copy(args: argparse.Namespace, rhidoc_root: Path) -> None:
                 print(f"  {old.relative_to(rhidoc_root)} -> {new.relative_to(rhidoc_root)}")
         if rename_map:
             print(f"\n=== Ref rename map ({len(rename_map)} entries) ===")
-            for old_ref, new_ref in sorted(rename_map.items()):
+            for old_ref, new_ref in sorted(rename_map.items(), key=lambda kv: str(kv[0])):
                 print(f"  {old_ref} -> {new_ref}")
         print("\n(dry-run: no files modified)")
         return
@@ -512,6 +512,6 @@ def cmd_copy(args: argparse.Namespace, rhidoc_root: Path) -> None:
         print(f"Shifted: {len(shift_moves)} sibling(s) renumbered")
     if rename_map:
         print(f"Rename map ({len(rename_map)} entries):")
-        for old_ref, new_ref in sorted(rename_map.items()):
+        for old_ref, new_ref in sorted(rename_map.items(), key=lambda kv: str(kv[0])):
             print(f"  {old_ref} -> {new_ref}")
 

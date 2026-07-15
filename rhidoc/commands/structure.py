@@ -113,7 +113,7 @@ def cmd_make(args: argparse.Namespace, rhidoc_root: Path) -> None:
                     print(f"  {old.relative_to(rhidoc_root)} -> {new.relative_to(rhidoc_root)}")
             if rename_map:
                 print(f"\n=== Ref rename map ({len(rename_map)} entries) ===")
-                for old_ref, new_ref in sorted(rename_map.items()):
+                for old_ref, new_ref in sorted(rename_map.items(), key=lambda kv: str(kv[0])):
                     print(f"  {old_ref} -> {new_ref}")
             if a.group:
                 new_dir = parent_path / f"{prefix:02d}-{slug}"
@@ -395,14 +395,14 @@ def cmd_delete(args: argparse.Namespace, rhidoc_root: Path) -> None:
                 print(f"  {old.relative_to(rhidoc_root)} -> {new.relative_to(rhidoc_root)}")
         if rename_map:
             print(f"\n=== Ref rename map ({len(rename_map)} entries) ===")
-            for old_ref, new_ref in sorted(rename_map.items()):
+            for old_ref, new_ref in sorted(rename_map.items(), key=lambda kv: str(kv[0])):
                 print(f"  {old_ref} -> {new_ref}")
         if orphaned:
             print(f"\n=== Orphaned ref warnings ({len(orphaned)}) ===")
             for fpath, line, ref in orphaned:
                 print(f"  {ref} in {display_path(fpath, rhidoc_root)}: {line[:80]}")
         if a.output_mapping and rename_map:
-            print(json.dumps(rename_map, indent=2))
+            print(json.dumps({str(k): str(v) for k, v in rename_map.items()}, indent=2))
         elif a.output_mapping:
             print("{}")
         print("\n(dry-run: no files modified)")
@@ -434,7 +434,7 @@ def cmd_delete(args: argparse.Namespace, rhidoc_root: Path) -> None:
         print(f"Refs updated: {total_replacements} replacement(s) across {len(rewrite_results)} file(s)")
     if rename_map:
         print(f"Rename map ({len(rename_map)} entries):")
-        for old_ref, new_ref in sorted(rename_map.items()):
+        for old_ref, new_ref in sorted(rename_map.items(), key=lambda kv: str(kv[0])):
             print(f"  {old_ref} -> {new_ref}")
 
     if orphaned:
@@ -443,7 +443,7 @@ def cmd_delete(args: argparse.Namespace, rhidoc_root: Path) -> None:
             print(f"  {ref} in {display_path(fpath, rhidoc_root)}: {line[:80]}")
 
     if a.output_mapping and rename_map:
-        print(json.dumps(rename_map, indent=2))
+        print(json.dumps({str(k): str(v) for k, v in rename_map.items()}, indent=2))
     elif a.output_mapping:
         print("{}")
 
@@ -623,7 +623,7 @@ def cmd_move(args: argparse.Namespace, rhidoc_root: Path) -> None:
     total_replacements = sum(rewrite_results.values())
     print(f"Refs updated: {total_replacements} replacement(s) across {len(rewrite_results)} file(s)")
     print(f"Rename map ({len(rename_map)} entries):")
-    for old_ref, new_ref in sorted(rename_map.items()):
+    for old_ref, new_ref in sorted(rename_map.items(), key=lambda kv: str(kv[0])):
         print(f"  {old_ref} -> {new_ref}")
 
 

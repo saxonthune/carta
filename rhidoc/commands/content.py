@@ -212,18 +212,18 @@ class RewriteArgs:
 def cmd_rewrite(args: argparse.Namespace, rhidoc_root: Path) -> None:
     """Rewrite doc refs from mappings. Both sides of each mapping are normalized to canonical form."""
     a = RewriteArgs.from_namespace(args)
-    rename_map: dict[str, str] = {}
+    rename_map: dict[DocRef, DocRef] = {}
 
     for pair in a.mappings:
         if '=' not in pair:
             raise RhidocError(f"Error: invalid mapping {pair!r} — expected old=new format.")
         raw_old, raw_new = pair.split('=', 1)
         try:
-            old = str(DocRef.parse(raw_old.strip()))
+            old = DocRef.parse(raw_old.strip())
         except RhidocError as e:
             raise RhidocError(f"Error in mapping {pair!r} (old side): {e}")
         try:
-            new = str(DocRef.parse(raw_new.strip()))
+            new = DocRef.parse(raw_new.strip())
         except RhidocError as e:
             raise RhidocError(f"Error in mapping {pair!r} (new side): {e}")
         rename_map[old] = new
@@ -235,7 +235,7 @@ def cmd_rewrite(args: argparse.Namespace, rhidoc_root: Path) -> None:
 
     if a.dry_run:
         print(f"=== Ref rewrite plan ({len(rename_map)} mappings) ===")
-        for old, new in sorted(rename_map.items()):
+        for old, new in sorted(rename_map.items(), key=lambda kv: str(kv[0])):
             print(f"  {old} -> {new}")
         print(f"\nScanning {len(md_files)} file(s)...")
         total = 0
@@ -246,7 +246,7 @@ def cmd_rewrite(args: argparse.Namespace, rhidoc_root: Path) -> None:
                 continue
             for old in rename_map:
                 matches = DocRef.SCAN.findall(text)
-                matches = [m for m in matches if m == old]
+                matches = [m for m in matches if m == str(old)]
                 if matches:
                     total += len(matches)
                     print(f"  {display_path(fpath, rhidoc_root)}: {len(matches)} match(es) for {old}")

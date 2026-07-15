@@ -253,14 +253,14 @@ def _compute_cross_dir_moves(
     return moves
 
 
-def print_rename_map(rename_map: dict[str, str], moves: list[tuple[Path, Path]]) -> None:
+def print_rename_map(rename_map: dict[DocRef, DocRef], moves: list[tuple[Path, Path]]) -> None:
     """Print the planned rename map and filesystem moves."""
     print("=== Planned filesystem moves ===")
     for old, new in moves:
         print(f"  {old} -> {new}")
     print()
     print("=== Ref rename map ===")
-    for old_ref, new_ref in sorted(rename_map.items()):
+    for old_ref, new_ref in sorted(rename_map.items(), key=lambda kv: str(kv[0])):
         print(f"  {old_ref} -> {new_ref}")
 
 
@@ -286,7 +286,7 @@ def trace_path(original: Path, moves: list[tuple[Path, Path]]) -> Path:
 def compute_rename_map(
     moves: list[tuple[Path, Path]],
     rhidoc_root: Path,
-) -> dict[str, str]:
+) -> dict[DocRef, DocRef]:
     """Given a list of (old_path, new_path) filesystem moves, compute
     the complete {old_ref: new_ref} map.
 
@@ -295,7 +295,7 @@ def compute_rename_map(
     child's final ref accounts for both operations.
     """
     seen: set[str] = set()
-    result: dict[str, str] = {}
+    result: dict[DocRef, DocRef] = {}
 
     for old_path, _ in moves:
         items = [old_path]
@@ -310,11 +310,8 @@ def compute_rename_map(
 
             final = trace_path(item, moves)
             try:
-                old_ref = str(DocRef.from_path(item, rhidoc_root))
-                new_ref = str(DocRef.from_path(final, rhidoc_root))
-                # Skip sidecar display refs — they are not written into .md files
-                if "/" in old_ref or "/" in new_ref:
-                    continue
+                old_ref = DocRef.from_path(item, rhidoc_root)
+                new_ref = DocRef.from_path(final, rhidoc_root)
                 if old_ref != new_ref:
                     result[old_ref] = new_ref
             except ValueError:

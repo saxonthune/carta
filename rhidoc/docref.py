@@ -78,6 +78,13 @@ class DocRef:
         """Canonical form: docXX.YY.ZZ (zero-padded 2-digit segments)."""
         return "doc" + ".".join(f"{s:02d}" for s in self.segments)
 
+    def matcher(self) -> re.Pattern[str]:
+        """Compiled word-boundary pattern for finding this exact ref in prose.
+
+        Same boundary rules as SCAN, scoped to this ref's canonical form.
+        """
+        return re.compile(r'(?<!\w)' + re.escape(str(self)) + r'(?!\.[a-zA-Z0-9])')
+
     @classmethod
     def from_directory_and_prefix(cls, directory: Path, prefix: int) -> DocRef:
         """Derive the ref for the bundle at `prefix` inside `directory`, lexically.
