@@ -36,6 +36,8 @@ def cmd_make(args: argparse.Namespace, rhidoc_root: Path) -> None:
     if len(args.target) > 2:
         raise RhidocError("too many positional arguments; usage: rhidoc make [PARENT] SLUG")
 
+    shift_moves: list[tuple[Path, Path]] = []
+
     # Resolve addressing mode
     if args.before is not None:
         if len(args.target) != 1:
@@ -66,7 +68,6 @@ def cmd_make(args: argparse.Namespace, rhidoc_root: Path) -> None:
 
         # Build shift-up move-set: bump every bundle at prefix >= target_prefix up by one
         bundles = bundle_mod.list_bundles(parent_path)
-        shift_moves: list[tuple[Path, Path]] = []
         for bndl in bundles:
             if bndl.prefix == 0:
                 continue
@@ -74,8 +75,9 @@ def cmd_make(args: argparse.Namespace, rhidoc_root: Path) -> None:
                 continue
             all_members = ([bndl.root] if bndl.root else []) + list(bndl.attachments)
             for member in all_members:
-                tail = EntryName.parse(member.name).tail
-                new_name = f"{bndl.prefix + 1:02d}-{tail}"
+                parsed = EntryName.parse(member.name)
+                assert parsed is not None
+                new_name = f"{bndl.prefix + 1:02d}-{parsed.tail}"
                 shift_moves.append((member, parent_path / new_name))
 
         rename_map = compute_rename_map(shift_moves, rhidoc_root)
@@ -137,7 +139,8 @@ def cmd_make(args: argparse.Namespace, rhidoc_root: Path) -> None:
             raise RhidocError(f"Error: parent is not a directory: {parent_path}")
 
         entries = list_numbered_entries(parent_path)
-        occupied = {EntryName.parse(e.name).prefix for e in entries if EntryName.parse(e.name)}
+        parsed_entries = [EntryName.parse(e.name) for e in entries]
+        occupied = {p.prefix for p in parsed_entries if p is not None}
         if prefix in occupied:
             raise RhidocError(
                 f"Error: position {prefix:02d} is occupied in {parent_path.relative_to(rhidoc_root)}.\n"
@@ -316,8 +319,9 @@ def cmd_delete(args: argparse.Namespace, rhidoc_root: Path) -> None:
                 continue  # skip deleted bundles
             if bndl.prefix != next_prefix:
                 for member in all_members:
-                    old_slug = EntryName.parse(member.name).tail
-                    new_name = f"{next_prefix:02d}-{old_slug}"
+                    member_parsed = EntryName.parse(member.name)
+                    assert member_parsed is not None
+                    new_name = f"{next_prefix:02d}-{member_parsed.tail}"
                     all_moves.append((member, parent_dir / new_name))
             next_prefix += 1
 
@@ -475,11 +479,8 @@ def cmd_move(args: argparse.Namespace, rhidoc_root: Path) -> None:
         # Strict (--at) occupancy precheck
         if strict:
             all_entries = list_numbered_entries(dest_path)
-            occupied = {
-                EntryName.parse(e.name).prefix
-                for e in all_entries
-                if EntryName.parse(e.name) is not None
-            }
+            all_entries_parsed = [EntryName.parse(e.name) for e in all_entries]
+            occupied = {p.prefix for p in all_entries_parsed if p is not None}
             # Same-dir: source slot is vacating — exclude it
             if source_path.parent.resolve() == dest_path.resolve():
                 _src_en = EntryName.parse(source_path.name)
@@ -604,7 +605,9 @@ def cmd_rename(args: argparse.Namespace, rhidoc_root: Path) -> None:
     if bndl and bndl.slug:
         old_slug = bndl.slug
         for att in bndl.attachments:
-            att_slug = EntryName.parse(att.name).tail
+            att_parsed = EntryName.parse(att.name)
+            assert att_parsed is not None
+            att_slug = att_parsed.tail
             if att_slug.startswith(old_slug + "."):
                 new_att_slug = stem_slug + att_slug[len(old_slug):]
                 renames.append((att, att.parent / f"{prefix:02d}-{new_att_slug}"))

@@ -7,10 +7,12 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 if TYPE_CHECKING:
     from .mdtree import MdNode
+
+LintViolationKind = Literal["word-cap", "line-cap", "banned-pattern", "duplicate-body"]
 
 # Per-node body_text caps.  Tune by changing these constants.
 WORD_CAP: int = 200
@@ -82,7 +84,7 @@ BANNED_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
 
 @dataclass
 class LintViolation:
-    kind: str      # "word-cap" | "line-cap" | "banned-pattern" | "duplicate-body"
+    kind: LintViolationKind
     address: str   # node address
     detail: str    # human-readable description
 

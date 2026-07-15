@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from .docref import EntryName
-from .entries import list_numbered_entries
+from .entries import list_numbered_entries, entry_prefix
 from .docref import DocRef
 from . import bundle as bundle_mod
 
@@ -91,8 +91,9 @@ def _compute_same_dir_moves(
                 and insertion_prefix <= en.prefix <= source_prefix - 1
                 and e.resolve() != source_path.resolve()
             ]
-            for entry in sorted(candidates, key=lambda p: EntryName.parse(p.name).prefix, reverse=True):
+            for entry in sorted(candidates, key=entry_prefix, reverse=True):
                 en = EntryName.parse(entry.name)
+                assert en is not None
                 new_name = f"{en.prefix + 1:02d}-{en.tail}"
                 moves.append((entry, entry.parent / new_name))
         else:
@@ -103,8 +104,9 @@ def _compute_same_dir_moves(
                 and source_prefix + 1 <= en.prefix <= insertion_prefix
                 and e.resolve() != source_path.resolve()
             ]
-            for entry in sorted(candidates, key=lambda p: EntryName.parse(p.name).prefix):
+            for entry in sorted(candidates, key=entry_prefix):
                 en = EntryName.parse(entry.name)
+                assert en is not None
                 new_name = f"{en.prefix - 1:02d}-{en.tail}"
                 moves.append((entry, entry.parent / new_name))
 
@@ -137,14 +139,18 @@ def _compute_bundle_moves(
     old_slug = bndl.slug  # stem only, e.g. "foo" for 01-foo.md
 
     if bndl.root is not None:
-        file_slug = EntryName.parse(bndl.root.name).tail  # e.g. "foo.md"
+        root_en = EntryName.parse(bndl.root.name)
+        assert root_en is not None
+        file_slug = root_en.tail  # e.g. "foo.md"
         effective = _apply_rename(file_slug, rename_slug)
         new_path = new_dir / f"{new_prefix:02d}-{effective}"
         if bndl.root.resolve() != new_path.resolve():
             moves.append((bndl.root, new_path))
 
     for att in bndl.attachments:
-        att_slug = EntryName.parse(att.name).tail  # e.g. "foo.json" or "bar.yaml"
+        att_en = EntryName.parse(att.name)
+        assert att_en is not None
+        att_slug = att_en.tail  # e.g. "foo.json" or "bar.yaml"
         if rename_slug and old_slug and att_slug.startswith(old_slug + "."):
             new_att_slug = rename_slug + att_slug[len(old_slug):]
         else:
@@ -211,8 +217,9 @@ def _compute_cross_dir_moves(
             p for p in dest_entries
             if (en := EntryName.parse(p.name)) is not None and en.prefix >= insertion_prefix
         ]
-        for entry in sorted(bump_candidates, key=lambda p: EntryName.parse(p.name).prefix, reverse=True):
+        for entry in sorted(bump_candidates, key=entry_prefix, reverse=True):
             en = EntryName.parse(entry.name)
+            assert en is not None
             new_name = f"{en.prefix + 1:02d}-{en.tail}"
             moves.append((entry, entry.parent / new_name))
 
@@ -224,8 +231,9 @@ def _compute_cross_dir_moves(
             and en.prefix > source_prefix
             and p.resolve() != source_path.resolve()
         ]
-        for entry in sorted(source_siblings, key=lambda p: EntryName.parse(p.name).prefix):
+        for entry in sorted(source_siblings, key=entry_prefix):
             en = EntryName.parse(entry.name)
+            assert en is not None
             new_name = f"{en.prefix - 1:02d}-{en.tail}"
             moves.append((entry, entry.parent / new_name))
 

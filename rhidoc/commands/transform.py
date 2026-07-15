@@ -56,7 +56,9 @@ def cmd_punch(args: argparse.Namespace, rhidoc_root: Path) -> None:
         print(f"Would punch: {source_path.name} {glyphs.arrow} {dir_name}/01-{slug}.md (content)")
         print(f"Would punch: {source_path.name} {glyphs.arrow} {dir_name}/00-index.md (generated index)")
         for att in attachments:
-            att_slug = EntryName.parse(att.name).tail
+            att_parsed = EntryName.parse(att.name)
+            assert att_parsed is not None
+            att_slug = att_parsed.tail
             print(f"Would move attachment: {att.name} {glyphs.arrow} {dir_name}/01-{att_slug}")
         if rename_map:
             print(f"Would shift refs:")
@@ -75,8 +77,9 @@ def cmd_punch(args: argparse.Namespace, rhidoc_root: Path) -> None:
     }, f"\n# {title}\n")
 
     for att in attachments:
-        att_slug = EntryName.parse(att.name).tail
-        shutil.move(str(att), str(new_dir / f"01-{att_slug}"))
+        att_parsed = EntryName.parse(att.name)
+        assert att_parsed is not None
+        shutil.move(str(att), str(new_dir / f"01-{att_parsed.tail}"))
 
     rewrite_results = rewrite_refs(collect_rewritable_files(rhidoc_root), rename_map)
     do_regenerate(rhidoc_root, _load_preamble(rhidoc_root.name))
@@ -110,18 +113,26 @@ def _hoist_bundle_moves(
     moves: list[tuple[Path, Path]] = []
     if bndl.is_directory_bundle:
         dir_path = bndl.attachments[0]
-        new_path = dest_dir / f"{new_prefix:02d}-{EntryName.parse(dir_path.name).tail}"
+        dir_parsed = EntryName.parse(dir_path.name)
+        assert dir_parsed is not None
+        new_path = dest_dir / f"{new_prefix:02d}-{dir_parsed.tail}"
         if dir_path.resolve() != new_path.resolve():
             moves.append((dir_path, new_path))
     else:
         if bndl.root is not None:
-            slug = override_root_slug if override_root_slug is not None else EntryName.parse(bndl.root.name).tail
+            if override_root_slug is not None:
+                slug = override_root_slug
+            else:
+                root_parsed = EntryName.parse(bndl.root.name)
+                assert root_parsed is not None
+                slug = root_parsed.tail
             new_path = dest_dir / f"{new_prefix:02d}-{slug}"
             if bndl.root.resolve() != new_path.resolve():
                 moves.append((bndl.root, new_path))
         for att in bndl.attachments:
-            att_slug = EntryName.parse(att.name).tail
-            new_att = dest_dir / f"{new_prefix:02d}-{att_slug}"
+            att_parsed = EntryName.parse(att.name)
+            assert att_parsed is not None
+            new_att = dest_dir / f"{new_prefix:02d}-{att_parsed.tail}"
             if att.resolve() != new_att.resolve():
                 moves.append((att, new_att))
     return moves
@@ -138,20 +149,28 @@ def _hoist_stage_bundle(
     """Move all bundle members into staging_path, recording (stage, final) pairs."""
     if bndl.is_directory_bundle:
         dir_path = bndl.attachments[0]
-        final_name = f"{new_prefix:02d}-{EntryName.parse(dir_path.name).tail}"
+        dir_parsed = EntryName.parse(dir_path.name)
+        assert dir_parsed is not None
+        final_name = f"{new_prefix:02d}-{dir_parsed.tail}"
         stage_path = staging_path / final_name
         shutil.move(str(dir_path), str(stage_path))
         staged.append((stage_path, dest_dir / final_name))
     else:
         if bndl.root is not None:
-            slug = override_root_slug if override_root_slug is not None else EntryName.parse(bndl.root.name).tail
+            if override_root_slug is not None:
+                slug = override_root_slug
+            else:
+                root_parsed = EntryName.parse(bndl.root.name)
+                assert root_parsed is not None
+                slug = root_parsed.tail
             final_name = f"{new_prefix:02d}-{slug}"
             stage_path = staging_path / final_name
             shutil.move(str(bndl.root), str(stage_path))
             staged.append((stage_path, dest_dir / final_name))
         for att in bndl.attachments:
-            att_slug = EntryName.parse(att.name).tail
-            final_name = f"{new_prefix:02d}-{att_slug}"
+            att_parsed = EntryName.parse(att.name)
+            assert att_parsed is not None
+            final_name = f"{new_prefix:02d}-{att_parsed.tail}"
             stage_att = staging_path / final_name
             shutil.move(str(att), str(stage_att))
             staged.append((stage_att, dest_dir / final_name))
@@ -211,7 +230,9 @@ def cmd_hoist(args: argparse.Namespace, rhidoc_root: Path) -> None:
 
     # Source children
     source_child_bundles = bundle_mod.list_bundles(source_path)
-    dir_slug = EntryName.parse(source_path.name).tail
+    _source_en = EntryName.parse(source_path.name)
+    assert _source_en is not None
+    dir_slug = _source_en.tail
 
     index_bundle = next((b for b in source_child_bundles if b.prefix == 0), None)
     index_attachments: list[Path] = list(index_bundle.attachments) if index_bundle else []
@@ -378,8 +399,9 @@ def cmd_copy(args: argparse.Namespace, rhidoc_root: Path) -> None:
                     continue
                 all_members = ([bndl.root] if bndl.root else []) + list(bndl.attachments)
                 for member in all_members:
-                    tail = EntryName.parse(member.name).tail
-                    new_name = f"{bndl.prefix + 1:02d}-{tail}"
+                    member_parsed = EntryName.parse(member.name)
+                    assert member_parsed is not None
+                    new_name = f"{bndl.prefix + 1:02d}-{member_parsed.tail}"
                     shift_moves.append((member, dest_path / new_name))
             rename_map = compute_rename_map(shift_moves, rhidoc_root)
 

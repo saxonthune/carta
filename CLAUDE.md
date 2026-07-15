@@ -88,10 +88,10 @@ Rhidoc is a Python project with two main components:
 ## Build & Test
 
 ```bash
-just test    # Run all tests (pytest)
+just test    # pyrefly type check, then pytest
 ```
 
-`just test` must pass before committing. Rhidoc is pure Python — no build step needed.
+`just test` runs the pyrefly type check on `rhidoc/` before pytest, and must pass before committing. Rhidoc is pure Python — no build step needed.
 
 ## Codebase Exploration Strategy
 

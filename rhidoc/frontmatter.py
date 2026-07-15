@@ -46,7 +46,7 @@ def read_frontmatter(path: Path) -> tuple[dict, str]:
 
 def _parse_fm(fm_text: str) -> dict:
     """Parse simple YAML key-value pairs from frontmatter text."""
-    result = {}
+    result: dict[str, str | list[str]] = {}
     lines = fm_text.split("\n")
     i = 0
     while i < len(lines):

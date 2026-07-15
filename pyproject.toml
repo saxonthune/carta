@@ -20,7 +20,7 @@ dependencies = [
 Repository = "https://github.com/saxonthune/rhidoc"
 
 [project.optional-dependencies]
-test = ["pytest", "hypothesis", "pytest-cov", "syrupy"]
+test = ["pytest", "hypothesis", "pytest-cov", "syrupy", "pyrefly"]
 
 [project.scripts]
 rhidoc = "rhidoc.main:main"
@@ -34,3 +34,6 @@ packages = ["rhidoc"]
 
 [tool.hatch.build]
 artifacts = ["rhidoc/**/*.md"]
+
+[tool.pyrefly]
+project-includes = ["rhidoc/**/*.py"]

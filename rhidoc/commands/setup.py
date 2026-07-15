@@ -111,6 +111,7 @@ def cmd_init(args: argparse.Namespace) -> None:
     for filename, placeholder, value in codex_templates:
         content = (templates_dir / filename).read_text(encoding="utf-8")
         if placeholder:
+            assert value is not None
             content = content.replace(placeholder, value)
         (codex_dir / filename).write_text(content, encoding="utf-8")
 
@@ -248,6 +249,7 @@ def cmd_init_rehydrate(args: argparse.Namespace, rhidoc_root: Path) -> None:
         dest = codex_dir / filename
         new_content = (templates_dir / filename).read_text(encoding="utf-8")
         if placeholder:
+            assert value is not None
             new_content = new_content.replace(placeholder, value)
 
         # A codex doc from an older rhidoc may occupy this template's prefix

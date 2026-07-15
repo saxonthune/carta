@@ -847,7 +847,8 @@ def _workspace_state_section(rhidoc_root: Path) -> list[str]:
     for entry in top_entries:
         if entry.is_dir():
             # Get title from 00-index.md frontmatter
-            title = (EntryName.parse(entry.name).tail if EntryName.parse(entry.name) else entry.name).replace("-", " ").title()
+            parsed = EntryName.parse(entry.name)
+            title = (parsed.tail if parsed else entry.name).replace("-", " ").title()
             index_file = entry / "00-index.md"
             if index_file.exists():
                 try:
@@ -863,7 +864,8 @@ def _workspace_state_section(rhidoc_root: Path) -> list[str]:
             rows.append((entry.name, title, count, sidecars))
         elif entry.suffix == ".md":
             total_docs += 1
-            title = (EntryName.parse(entry.name).tail if EntryName.parse(entry.name) else entry.name).replace("-", " ").title()
+            parsed = EntryName.parse(entry.name)
+            title = (parsed.tail if parsed else entry.name).replace("-", " ").title()
             rows.append((entry.name, title, 1, 0))
 
     if rows:

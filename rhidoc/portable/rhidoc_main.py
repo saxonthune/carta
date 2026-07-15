@@ -11,6 +11,8 @@ from pathlib import Path
 # Add parent dir to path so _scripts/ is importable
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+# _scripts/ is generated at `rhidoc portable` export time; it does not exist in this repo.
+# pyrefly: ignore [missing-import]
 from _scripts.commands import main
 
 if __name__ == "__main__":

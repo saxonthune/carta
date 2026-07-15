@@ -95,6 +95,7 @@ def _walk_tree(directory: Path, rhidoc_root: Path, prefix: str, *,
         child_prefix = prefix + (glyphs.indent if is_last else glyphs.vguide)
 
         if kind == 'dir':
+            assert extra is not None
             dir_entry = extra
             label = _entry_label(dir_entry, rhidoc_root, refs=refs, no_title=no_title, glyphs=glyphs)
             lines.append(prefix + connector + label)
@@ -102,6 +103,7 @@ def _walk_tree(directory: Path, rhidoc_root: Path, prefix: str, *,
                        refs=refs, no_title=no_title, no_sidecars=no_sidecars, lines=lines,
                        glyphs=glyphs)
         elif kind == 'root':
+            assert bndl.root is not None
             label = _entry_label(bndl.root, rhidoc_root, refs=refs, no_title=no_title, glyphs=glyphs)
             lines.append(prefix + connector + label)
             if not no_sidecars and bndl.attachments:
@@ -118,6 +120,7 @@ def _walk_tree(directory: Path, rhidoc_root: Path, prefix: str, *,
                         att_label = glyphs.attach + att.name
                     lines.append(child_prefix + att_connector + att_label)
         else:  # orphan
+            assert extra is not None
             att = extra
             lines.append(prefix + connector + att.name)
 

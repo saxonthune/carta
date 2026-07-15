@@ -4,9 +4,12 @@
 # justfile_directory() pins the install to the repo owning this justfile,
 # so running it from a worktree still repoints to the canonical checkout.
 reinstall:
-    python3 -m pip install -e "{{justfile_directory()}}"
+    python3 -m pip install -e "{{justfile_directory()}}[test]"
 
-test:
+check:
+    python3 -m pyrefly check
+
+test: check
     python3 -m pytest tests/ -v
 
 # Fail if any init-hydrated file (codex, AGENTS.md, skills) has drifted from the
