@@ -283,52 +283,84 @@ cd "${REPO_ROOT}"
 
 MERGE_STATUS="failed"
 
-# Check if trunk has a dirty working tree — if so, skip merge but don't fail
-if ! git diff --quiet || ! git diff --cached --quiet || [[ -n "$(git ls-files --others --exclude-standard)" ]]; then
-  MERGE_STATUS="deferred (trunk has uncommitted changes)"
-  echo "Trunk has uncommitted changes — deferring merge."
-  echo "Chain branch ${CHAIN_BRANCH} is ready. Merge manually when ready:"
-  echo "  git merge --squash ${CHAIN_BRANCH} && git commit -m 'feat: chain-${CHAIN_NAME} (agent)'"
-  echo ""
-  echo "Run-record left in place (chain not yet on trunk). Re-run or merge manually."
-  exit 1
-elif git merge --squash "${CHAIN_BRANCH}" && git commit -m "feat: chain-${CHAIN_NAME} (agent)"; then
-  MERGE_STATUS="success"
-  echo "Chain merged into ${REAL_TRUNK}"
+# Compute files changed by this chain (pathspec for commit + breadcrumb).
+mapfile -t CHAIN_PATHS < <(git diff --name-only "${REAL_TRUNK}...${CHAIN_BRANCH}" 2>/dev/null || true)
 
-  # ── Write the chain definition to trunk (orchestrator owns trunk) ────────
-  mkdir -p "${TODO}/chains"
-  CHAIN_DEF="${TODO}/chains/${CHAIN_NAME}.md"
-  {
-    echo "# Chain: ${CHAIN_NAME}"
-    echo ""
-    echo "chain: ${CHAIN_NAME}"
-    echo "phases: ${PHASES_CSV}"
-    [[ -n "$AFTER" ]] && echo "after: ${AFTER}"
-    echo "completed: $(date -Iseconds)"
-    echo ""
-    echo "## Phases"
-    echo ""
-    for slug in "${PHASES[@]}"; do
-      echo "- ${slug}"
-    done
-  } > "$CHAIN_DEF"
-  git add "${CHAIN_DEF}" && git commit -m "todotask: chain definition ${CHAIN_NAME}" >/dev/null 2>&1 || true
-  echo "Wrote chain definition: ${CHAIN_DEF}"
+# Post-success: write chain definition, clean up worktree/branch/run-record.
+do_post_merge_success() {
+  local chain_def="${TODO}/chains/${CHAIN_NAME}.md"
+  write_chain_definition "$chain_def" "$CHAIN_NAME" "$PHASES_CSV" "$AFTER"
+  git add "$chain_def" && git commit -m "todotask: chain definition ${CHAIN_NAME}" >/dev/null 2>&1 || true
+  echo "Wrote chain definition: ${chain_def}"
 
-  # Clean up chain worktree, branch, and run-record
   echo "── Cleaning up chain worktree ──"
   git worktree remove --force "${CHAIN_WORKTREE}" 2>/dev/null || true
   git branch -D "${CHAIN_BRANCH}" 2>/dev/null || true
   clear_run_record "$CHAIN_NAME" chain
   rm -f "${TODO}/.running/chain-${CHAIN_NAME}.log"
   echo "Removed chain worktree, branch, and run-record"
+}
+
+# Probe for content conflicts without touching the working tree (git ≥ 2.38).
+_probe_exit=0
+_probe_out="$(git merge-tree --write-tree "${REAL_TRUNK}" "${CHAIN_BRANCH}" 2>&1)" || _probe_exit=$?
+
+if [[ "$_probe_exit" -ne 0 ]]; then
+  if echo "$_probe_out" | grep -qi "unknown option\|unrecognized\|invalid option"; then
+    # git < 2.38: --write-tree unsupported. Fall through to real merge.
+    _probe_exit=0
+  else
+    # Genuine content conflict against committed trunk.
+    MERGE_STATUS="${SM_CHAIN_CONFLICT}"
+    echo "merge_state: ${MERGE_STATUS}" >> "$(run_record_path "${CHAIN_NAME}" chain)"
+    write_chain_merge_note \
+      "${CHAIN_WORKTREE}/.todo-tasks/results" \
+      "${CHAIN_NAME}" "${CHAIN_BRANCH}" "${MERGE_STATUS}" \
+      "$(printf '%s\n' "${CHAIN_PATHS[@]}")" \
+      "${#CHAIN_PATHS[@]} files changed across ${#PHASES[@]} phases"
+    echo "Content conflict merging ${CHAIN_BRANCH} into ${REAL_TRUNK}."
+    echo "Chain branch and worktree left intact. Resolve then:"
+    echo "  git merge --squash ${CHAIN_BRANCH} && git commit -m 'feat: chain-${CHAIN_NAME} (agent)'"
+    echo "After completing the merge, finalize: bash .claude/skills/todo-task/finalize-chain.sh ${CHAIN_NAME}"
+    echo ""
+    echo "See: ${CHAIN_WORKTREE}/.todo-tasks/results/${CHAIN_NAME}.conflict.md"
+    exit 1
+  fi
+fi
+
+# Attempt the real merge (probe confirmed clean, or probe unavailable).
+if git merge --squash "${CHAIN_BRANCH}"; then
+  if [[ ${#CHAIN_PATHS[@]} -gt 0 ]]; then
+    git commit -m "feat: chain-${CHAIN_NAME} (agent)" -- "${CHAIN_PATHS[@]}"
+  else
+    git commit -m "feat: chain-${CHAIN_NAME} (agent)"
+  fi
+  MERGE_STATUS="success"
+  echo "Chain merged into ${REAL_TRUNK}"
+  do_post_merge_success
 else
-  git merge --abort 2>/dev/null || true
-  MERGE_STATUS="conflict"
-  echo "Merge conflict! Chain branch ${CHAIN_BRANCH} left intact for manual merge."
-  echo "Chain worktree: ${CHAIN_WORKTREE}"
-  echo "Run-record left in place (chain not on trunk)."
+  # Merge refused — a chain-touched file is uncommitted-dirty in the working tree.
+  # Git makes no changes on refusal; nothing to abort or reset.
+  MERGE_STATUS="${SM_CHAIN_AWAITING_MERGE}"
+  _dirty_paths="$(git status --porcelain 2>/dev/null | sed 's/^...//' | sed 's/^ *//' || true)"
+  _overlap=""
+  for _cp in "${CHAIN_PATHS[@]}"; do
+    if echo "$_dirty_paths" | grep -qF "$_cp" 2>/dev/null; then
+      _overlap="${_overlap}${_cp}"$'\n'
+    fi
+  done
+  echo "merge_state: ${MERGE_STATUS}" >> "$(run_record_path "${CHAIN_NAME}" chain)"
+  write_chain_merge_note \
+    "${CHAIN_WORKTREE}/.todo-tasks/results" \
+    "${CHAIN_NAME}" "${CHAIN_BRANCH}" "${MERGE_STATUS}" \
+    "${_overlap%$'\n'}" \
+    "${#CHAIN_PATHS[@]} files changed across ${#PHASES[@]} phases"
+  echo "Merge deferred — a chain-touched file is uncommitted in the working tree."
+  echo "Commit or stash the overlapping change, then:"
+  echo "  git merge --squash ${CHAIN_BRANCH} && git commit -m 'feat: chain-${CHAIN_NAME} (agent)'"
+  echo "After completing the merge, finalize: bash .claude/skills/todo-task/finalize-chain.sh ${CHAIN_NAME}"
+  echo ""
+  echo "See: ${CHAIN_WORKTREE}/.todo-tasks/results/${CHAIN_NAME}.conflict.md"
   exit 1
 fi
 

@@ -41,6 +41,15 @@ readonly SM_BUCKET_READY="ready_for_review"
 readonly SM_BUCKET_QUESTIONABLE="questionable"
 readonly SM_BUCKET_ATTENTION="attention"
 
+# Chain states — derived by derive_chain_state(); used as chain status downstream.
+readonly SM_CHAIN_RUNNING="running"
+readonly SM_CHAIN_WAITING="waiting"
+readonly SM_CHAIN_AWAITING_MERGE="awaiting-merge"   # (exists) deferred, branch ready, clean
+readonly SM_CHAIN_CONFLICT="conflict"               # (exists) content conflict, needs resolution
+readonly SM_CHAIN_FINALIZABLE="finalizable"         # merged out-of-band; orphaned run-record to clear
+readonly SM_CHAIN_COMPLETE="complete"               # merged + trunk definition present
+readonly SM_CHAIN_FAILED="failed"                   # dead, not merged, no merge_state marker (true crash)
+
 # derive_overall_state <session> <verification> <merge> [trunk] [uncommitted]
 # Maps (session, verification, merge, trunk, uncommitted) → overall state.
 # uncommitted: human summary ("3 files, 280 lines") or "none"/"0"/empty when clean.
@@ -88,6 +97,97 @@ state_bucket() {
     "$SM_OVERALL_SALVAGEABLE") echo "$SM_BUCKET_ATTENTION" ;;
     *) echo "$SM_BUCKET_ATTENTION" ;;
   esac
+}
+
+# derive_chain_state <alive> <done_n> <total> <merge_state> <waiting_unsatisfied> <merged_on_trunk>
+#   alive               : "true"/"false" — run-record PID still running
+#   done_n / total      : phases classified success / total phases
+#   merge_state         : run-record merge_state: field ("", awaiting-merge, conflict)
+#   waiting_unsatisfied : "true" if --after predecessor has not succeeded yet
+#   merged_on_trunk     : "true" if every phase's result is present on trunk HEAD
+# Echoes one SM_CHAIN_* value. Pure.
+derive_chain_state() {
+  local alive="$1" done_n="$2" total="$3" merge_state="$4" waiting_unsatisfied="$5" merged_on_trunk="$6"
+  if [[ "$alive" == "true" ]]; then
+    if [[ "$waiting_unsatisfied" == "true" ]]; then
+      echo "$SM_CHAIN_WAITING"
+    else
+      echo "$SM_CHAIN_RUNNING"
+    fi
+    return
+  fi
+  # dead
+  if [[ "$merged_on_trunk" == "true" ]]; then
+    echo "$SM_CHAIN_FINALIZABLE"
+  elif [[ "$merge_state" == "$SM_CHAIN_AWAITING_MERGE" ]]; then
+    echo "$SM_CHAIN_AWAITING_MERGE"
+  elif [[ "$merge_state" == "$SM_CHAIN_CONFLICT" ]]; then
+    echo "$SM_CHAIN_CONFLICT"
+  else
+    echo "$SM_CHAIN_FAILED"
+  fi
+}
+
+# chain_progress <state> <done_n> <total> — ready-to-print progress, never overflows.
+chain_progress() {
+  local state="$1" done_n="$2" total="$3" n
+  case "$state" in
+    "$SM_CHAIN_RUNNING")
+      n=$(( done_n + 1 )); (( n > total )) && n="$total"
+      echo "phase ${n}/${total}" ;;
+    "$SM_CHAIN_WAITING") echo "0/${total}" ;;
+    *)                   echo "${done_n}/${total}" ;;
+  esac
+}
+
+# chain_state_bucket <state> — does this chain need operator attention?
+#   conflict, failed          → attention
+#   awaiting-merge, finalizable → ready (benign; a one-liner away from done)
+#   complete                  → success
+#   running, waiting          → (neither — active)
+chain_state_bucket() {
+  local state="$1"
+  case "$state" in
+    "$SM_CHAIN_CONFLICT"|"$SM_CHAIN_FAILED") echo "$SM_BUCKET_ATTENTION" ;;
+    "$SM_CHAIN_AWAITING_MERGE"|"$SM_CHAIN_FINALIZABLE") echo "$SM_BUCKET_READY" ;;
+    "$SM_CHAIN_COMPLETE") echo "$SM_BUCKET_SUCCESS" ;;
+    *) echo "$SM_BUCKET_QUESTIONABLE" ;;
+  esac
+}
+
+# chain_merged_on_trunk <repo_root> <phases_csv> — true iff every phase's agent result
+# is present on trunk HEAD (a squash-merge of the chain branch brings them to trunk).
+chain_merged_on_trunk() {
+  local repo="$1" phases="$2" p
+  for p in ${phases//,/ }; do
+    [[ -n "$p" ]] || continue
+    git -C "$repo" cat-file -e "HEAD:.todo-tasks/results/${p}.agent.md" 2>/dev/null || return 1
+  done
+  return 0
+}
+
+# write_chain_definition <dest_path> <name> <phases_csv> [after] — writes the trunk
+# chain definition file (does not commit; caller commits). Byte-compatible with the
+# block in execute-chain.sh:do_post_merge_success.
+write_chain_definition() {
+  local dest_path="$1" name="$2" phases_csv="$3" after="${4:-}"
+  mkdir -p "$(dirname "$dest_path")"
+  local phases_arr slug
+  IFS=',' read -ra phases_arr <<< "$phases_csv"
+  {
+    echo "# Chain: ${name}"
+    echo ""
+    echo "chain: ${name}"
+    echo "phases: ${phases_csv}"
+    [[ -n "$after" ]] && echo "after: ${after}"
+    echo "completed: $(date -Iseconds)"
+    echo ""
+    echo "## Phases"
+    echo ""
+    for slug in "${phases_arr[@]}"; do
+      echo "- ${slug}"
+    done
+  } > "$dest_path"
 }
 
 # source_task_config
@@ -220,6 +320,33 @@ read_run_field() {
 clear_run_record() {
   local slug="$1" kind="${2:-task}"
   rm -f "$(run_record_path "$slug" "$kind")"
+}
+
+# write_chain_merge_note <results_dir> <chain_name> <branch> <state> <paths> <summary>
+# Structured breadcrumb so the trunk agent/human resolves without log-spelunking.
+write_chain_merge_note() {
+  local dir="$1" name="$2" branch="$3" state="$4" paths="$5" summary="$6"
+  mkdir -p "$dir"
+  {
+    echo "# Chain ${name}: ${state}"
+    echo ""
+    echo "state: ${state}"
+    echo "branch: ${branch}"
+    echo ""
+    echo "## Merge command"
+    echo ""
+    echo '```sh'
+    echo "git merge --squash ${branch} && git commit -m 'feat: chain-${name} (agent)'"
+    echo '```'
+    echo ""
+    echo "## Conflicting / overlapping paths"
+    echo ""
+    if [[ -n "$paths" ]]; then printf '%s\n' "$paths" | sed 's/^/- /'; else echo "- (none)"; fi
+    echo ""
+    echo "## What this chain changed"
+    echo ""
+    echo "${summary}"
+  } > "${dir}/${name}.conflict.md"
 }
 
 # run_is_alive <run_file>
