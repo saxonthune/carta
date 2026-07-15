@@ -34,6 +34,17 @@ This skill governs only *how to run the session*. When in doubt about content, d
 
 ## How to Run the Session
 
+- **Glossary first, then fan-out.** The workspace's first substantive doc is the glossary,
+  and the user owns it. Names are the highest cost-of-change artifact — every doc, type,
+  and identifier downstream inherits them, and a weak or overloaded name becomes a
+  multi-file rename sweep. Before elaborating structural docs (architecture, module specs,
+  contracts), confirm the domain vocabulary with the user. When work reaches a concept the
+  glossary does not name, add an Unnamed entry (doc00.05) and surface the decision — never
+  fan out on a name the user has not confirmed.
+- **Docs sit above the code.** A doc holds intent — why a layer exists, its invariants —
+  and points to code or types for shape (the reason-to-write test, doc00.06). Never restate
+  field shapes in prose, and do not create a per-shape contract-doc tree: the glossary
+  (names and intent) plus the types (shapes, once) already hold that contract.
 - **Capture → build → stress-test → repeat.** Capture a sparse doc from what the user just
   said (a one-liner is fine). Build the next thing they need — the happy path. Only after that
   is solid, stress-test the edges. Most early turns are capture and build.
