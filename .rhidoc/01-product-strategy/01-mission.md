@@ -38,16 +38,16 @@ There is a range of modeling capability whose lower bound is "too restrictive" a
 
 ### Semantically Sufficient Specifications
 
-The state of a user's specifications — documents, cross-references, typed frontmatter — must convert into instructions that an AI agent can interface with. An AI agent should extract meaning from the specs and translate it into other forms: working production code, infrastructure definitions, test suites.
+The state of a user's specifications — documents, cross-references, typed frontmatter — must convert into instructions that an AI agent can act on. An AI agent should extract meaning from the specs and translate it into other forms: working production code, infrastructure definitions, test suites.
 
 To meet this requirement, Rhidoc's specification format must store sufficient semantic data that:
 - Different components can be differentiated from each other
 - Relationships between specifications are distinguishable
 - Domain intent is preserved through the spec-to-code pipeline
 
-When a coding agent cannot write high-quality code from specifications, there are three possible failure points:
+When a coding agent cannot write high-quality code from specifications, three failure points are possible:
 1. **Reconciliation failure**: The conversion from spec to code context lost structure
-2. **Insufficient user input**: The user didn't put enough data into their specs, but had the capability to do so
+2. **Insufficient user input**: The user didn't put enough data into their specs, but could have
 3. **Insufficient modeling capability**: Rhidoc didn't provide enough specification tools, or the format was too complicated to apply effectively
 
-Rhidoc's designs should strive to avoid all failures except case 2 where the user simply needs to add more meaning (and has the capability to do so easily).
+Rhidoc's designs should strive to avoid all failures except case 2 where the user simply needs to add more meaning (and can do so easily).
