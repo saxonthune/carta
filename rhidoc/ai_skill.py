@@ -416,6 +416,37 @@ Example:
   rhidoc init --rehydrate --dry-run    # preview what would change
 """,
 
+    "templates": """\
+### templates
+
+Print a template shipped with the installed rhidoc to stdout. Read-only.
+
+```
+rhidoc templates              # list available templates with summaries
+rhidoc templates <name>       # print one template
+```
+
+Side effects: none. Writes nothing — `init` and `init --rehydrate` are what hydrate
+templates into a workspace.
+
+Needs no workspace. Reads the installed rhidoc, not the workspace's hydrated copy, so
+it works in a repo that never ran `init`, and returns this version's text even where
+`00-codex/` was hydrated by an older rhidoc.
+
+The workspace-directory and title placeholders are filled from the workspace when there
+is one, and default to `.rhidoc` and the current directory name when there is not.
+
+When to use:
+  - You need the plain-language, drift, or conventions guidance in a repo with no
+    workspace — read it ad hoc instead of hydrating one.
+  - A workspace's codex may be stale and you want the current text.
+
+Example:
+  rhidoc templates                    # see what's available
+  rhidoc templates plain-language     # the plain-language standard
+  rhidoc templates drift              # why docs drift and the rules against it
+""",
+
     "portable": """\
 ### portable
 
@@ -801,10 +832,9 @@ def _command_synopses() -> list[tuple[str, str]]:
 
 def generate_skill_content(dir_name: str) -> str:
     """Generate rhidoc-cli SKILL.md content from template header + AI skill docs."""
-    template = (_PACKAGE_DIR / "templates" / "skill.md").read_text(encoding="utf-8")
-    template = template.replace("{{dir_name}}", dir_name)
+    from .templates import render
 
-    sections = [template.rstrip()]
+    sections = [render("rhidoc-cli", dir_name=dir_name).rstrip()]
     sections.append(_BUNDLES_AND_ATTACHMENTS)
     sections.append("## Command Reference\n")
     for doc in _COMMAND_DOCS.values():

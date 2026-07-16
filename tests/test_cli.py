@@ -3047,5 +3047,101 @@ class TestHoistBefore(unittest.TestCase):
         self.assertFalse((design_dir / "08-decisions").exists())
 
 
+class TestTemplates(unittest.TestCase):
+    """Tests for `rhidoc templates` and the template registry."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.cwd = Path(self.tmpdir.name).resolve()
+        self._prev_cwd = Path.cwd()
+        os.chdir(self.cwd)
+
+    def tearDown(self):
+        os.chdir(self._prev_cwd)
+        self.tmpdir.cleanup()
+
+    def _run(self, *args: str) -> types.SimpleNamespace:
+        """Run the CLI with no --workspace, from a directory that has no workspace."""
+        stdout_buf, stderr_buf = io.StringIO(), io.StringIO()
+        try:
+            with contextlib.redirect_stdout(stdout_buf), contextlib.redirect_stderr(stderr_buf):
+                code = cli_main(list(args))
+        except SystemExit as e:
+            code = int(e.code) if e.code is not None else 0
+        return types.SimpleNamespace(
+            returncode=code, stdout=stdout_buf.getvalue(), stderr=stderr_buf.getvalue()
+        )
+
+    def test_registry_matches_shipped_files(self):
+        """Every registered template exists, and every shipped .md is registered."""
+        from rhidoc.templates import TEMPLATES, _DIR
+
+        for tmpl in TEMPLATES.values():
+            self.assertTrue(tmpl.path.is_file(), f"registered but missing: {tmpl.filename}")
+
+        registered = {t.filename for t in TEMPLATES.values()}
+        on_disk = {p.name for p in _DIR.glob("*.md")}
+        self.assertEqual(on_disk - registered, set(), "shipped template not in registry")
+
+    def test_every_listed_template_has_a_summary(self):
+        from rhidoc.templates import listed
+
+        for tmpl in listed():
+            self.assertTrue(tmpl.summary.strip(), f"{tmpl.name} has no summary")
+
+    def test_summary_comes_from_frontmatter(self):
+        from rhidoc.templates import TEMPLATES
+
+        self.assertIn("plain-language standard", TEMPLATES["plain-language"].summary)
+        self.assertIn("health diagnostics", TEMPLATES["rhidoc-setup"].summary)
+
+    def test_list_without_workspace(self):
+        result = self._run("templates")
+        self.assertEqual(result.returncode, 0, f"templates failed:\n{result.stderr}")
+        self.assertIn("plain-language", result.stdout)
+        self.assertIn("[codex]", result.stdout)
+        self.assertIn("[skill]", result.stdout)
+
+    def test_print_without_workspace(self):
+        result = self._run("templates", "plain-language")
+        self.assertEqual(result.returncode, 0, f"templates failed:\n{result.stderr}")
+        self.assertIn("# Plain Language", result.stdout)
+        self.assertIn("ISO 24495-1", result.stdout)
+
+    def test_placeholders_default_without_workspace(self):
+        result = self._run("templates", "agents")
+        self.assertEqual(result.returncode, 0)
+        self.assertIn("`.rhidoc/`", result.stdout)
+        self.assertNotIn("{{dir_name}}", result.stdout)
+
+    def test_placeholders_follow_workspace_dirname(self):
+        self._run("init", "--dir", "docs-ws")
+        result = self._run("templates", "agents")
+        self.assertEqual(result.returncode, 0)
+        self.assertIn("`docs-ws/`", result.stdout)
+
+    def test_reads_installed_copy_not_stale_workspace_copy(self):
+        """The whole point: a stale hydrated codex does not affect what `templates` prints."""
+        self._run("init")
+        stale = self.cwd / ".rhidoc" / "00-codex" / "04-plain-language.md"
+        stale.write_text("# Stale local copy\n", encoding="utf-8")
+
+        result = self._run("templates", "plain-language")
+        self.assertEqual(result.returncode, 0)
+        self.assertIn("ISO 24495-1", result.stdout)
+        self.assertNotIn("Stale local copy", result.stdout)
+
+    def test_unknown_name_is_rejected(self):
+        result = self._run("templates", "no-such-template")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("invalid choice", result.stderr)
+
+    def test_writes_nothing(self):
+        before = sorted(p.name for p in self.cwd.iterdir())
+        self._run("templates", "plain-language")
+        self._run("templates")
+        self.assertEqual(sorted(p.name for p in self.cwd.iterdir()), before)
+
+
 if __name__ == "__main__":
     unittest.main()

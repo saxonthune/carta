@@ -6,8 +6,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from ..__version__ import __version__
-from ..workspace import MARKER
+from ..workspace import MARKER, find_workspace
 from ..regenerate_core import do_regenerate
+from ..templates import Kind, by_kind, data_files, listed, render
 
 
 _PACKAGE_DIR = Path(__file__).resolve().parent.parent
@@ -47,22 +48,22 @@ _LIBRARY_MODULES = [
     "commands/mdapi.py",
     "mdtree.py",
     "mdlint.py",
+    "templates/__init__.py",
 ]
 
-_DATA_FILES = [
-    "manifest-preamble.md",
-    "templates/00-index.md",
-    "templates/01-about.md",
-    "templates/02-maintenance.md",
-    "templates/03-conventions.md",
-    "templates/04-plain-language.md",
-    "templates/05-controlled-vocabulary.md",
-    "templates/06-drift.md",
-    "templates/AGENTS.md",
-    "templates/skill.md",
-    "templates/docs-development-skill.md",
-    "templates/rhidoc-setup-skill.md",
-]
+_DATA_FILES = ["manifest-preamble.md", *data_files()]
+
+
+def _skill_contents(dir_name: str) -> list[tuple[str, str]]:
+    """(skill_name, SKILL.md content) for every skill template, in registry order."""
+    from ..ai_skill import generate_skill_content
+
+    out: list[tuple[str, str]] = []
+    for tmpl in by_kind(Kind.SKILL):
+        content = (generate_skill_content(dir_name) if tmpl.name == "rhidoc-cli"
+                   else render(tmpl.name, dir_name=dir_name))
+        out.append((tmpl.name, content))
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -111,22 +112,9 @@ def cmd_init(args: argparse.Namespace) -> None:
     marker_path.write_text(json.dumps(marker_content, indent=2) + "\n", encoding="utf-8")
 
     # --- Codex docs ---
-    templates_dir = _PACKAGE_DIR / "templates"
-    codex_templates = [
-        ("00-index.md", "{{title}}", title),
-        ("01-about.md", "{{title}}", title),
-        ("02-maintenance.md", "{{dir_name}}", dirname),
-        ("03-conventions.md", "{{dir_name}}", dirname),
-        ("04-plain-language.md", None, None),
-        ("05-controlled-vocabulary.md", None, None),
-        ("06-drift.md", None, None),
-    ]
-    for filename, placeholder, value in codex_templates:
-        content = (templates_dir / filename).read_text(encoding="utf-8")
-        if placeholder:
-            assert value is not None
-            content = content.replace(placeholder, value)
-        (codex_dir / filename).write_text(content, encoding="utf-8")
+    for tmpl in by_kind(Kind.CODEX):
+        content = render(tmpl.name, dir_name=dirname, title=title)
+        (codex_dir / tmpl.filename).write_text(content, encoding="utf-8")
 
     (rhidoc_dir / "MANIFEST.md").write_text(
         f"# {dirname}/ Manifest\n\nMachine-readable index for AI navigation. "
@@ -135,35 +123,18 @@ def cmd_init(args: argparse.Namespace) -> None:
     )
 
     # --- Agent wiring (generated; refreshed by --rehydrate) ---
-    agents_content = (templates_dir / "AGENTS.md").read_text(encoding="utf-8")
-    agents_content = agents_content.replace("{{dir_name}}", dirname)
-    (rhidoc_dir / "AGENTS.md").write_text(agents_content, encoding="utf-8")
+    (rhidoc_dir / "AGENTS.md").write_text(render("agents", dir_name=dirname), encoding="utf-8")
 
     # --- Skills ---
-    def _install_skill(skill_name: str, template_file: str, replacements: dict[str, str] | None = None) -> None:
+    for skill_name, content in _skill_contents(dirname):
         skill_dir = project_root / ".claude" / "skills" / skill_name
         skill_dir.mkdir(parents=True, exist_ok=True)
         skill_path = skill_dir / "SKILL.md"
-        if not skill_path.exists():
-            content = (templates_dir / template_file).read_text(encoding="utf-8")
-            for placeholder, value in (replacements or {}).items():
-                content = content.replace(placeholder, value)
-            skill_path.write_text(content, encoding="utf-8")
-            print(f"  Hydrated: .claude/skills/{skill_name}/SKILL.md")
-        else:
+        if skill_path.exists():
             print(f"  Skipped:  .claude/skills/{skill_name}/SKILL.md (already exists)")
-
-    from ..ai_skill import generate_skill_content
-    skill_dir = project_root / ".claude" / "skills" / "rhidoc-cli"
-    skill_dir.mkdir(parents=True, exist_ok=True)
-    skill_path = skill_dir / "SKILL.md"
-    if not skill_path.exists():
-        skill_path.write_text(generate_skill_content(dirname), encoding="utf-8")
-        print(f"  Hydrated: .claude/skills/rhidoc-cli/SKILL.md")
-    else:
-        print(f"  Skipped:  .claude/skills/rhidoc-cli/SKILL.md (already exists)")
-    _install_skill("docs-development", "docs-development-skill.md")
-    _install_skill("rhidoc-setup", "rhidoc-setup-skill.md")
+            continue
+        skill_path.write_text(content, encoding="utf-8")
+        print(f"  Hydrated: .claude/skills/{skill_name}/SKILL.md")
 
     do_regenerate(rhidoc_dir, _load_preamble(rhidoc_dir.name))
 
@@ -250,7 +221,6 @@ def cmd_init_rehydrate(args: argparse.Namespace, rhidoc_root: Path) -> None:
 
     config = json.loads(marker_path.read_text(encoding="utf-8"))
     title = config.get("title", project_root.name)
-    templates_dir = _PACKAGE_DIR / "templates"
     codex_dir = rhidoc_root / "00-codex"
 
     check = a.check
@@ -260,21 +230,12 @@ def cmd_init_rehydrate(args: argparse.Namespace, rhidoc_root: Path) -> None:
     skipped = 0
 
     # --- Codex docs ---
-    # 00-index.md is a generated artifact (body rewritten by regenerate) — skip it in rehydrate.
-    codex_templates = [
-        ("01-about.md", "{{title}}", title),
-        ("02-maintenance.md", "{{dir_name}}", dirname),
-        ("03-conventions.md", "{{dir_name}}", dirname),
-        ("04-plain-language.md", None, None),
-        ("05-controlled-vocabulary.md", None, None),
-        ("06-drift.md", None, None),
-    ]
-    for filename, placeholder, value in codex_templates:
+    for tmpl in by_kind(Kind.CODEX):
+        if not tmpl.rehydrate:
+            continue
+        filename = tmpl.filename
         dest = codex_dir / filename
-        new_content = (templates_dir / filename).read_text(encoding="utf-8")
-        if placeholder:
-            assert value is not None
-            new_content = new_content.replace(placeholder, value)
+        new_content = render(tmpl.name, dir_name=dirname, title=title)
 
         # A codex doc from an older rhidoc may occupy this template's prefix
         # under a different name; two .md roots at one prefix break resolution.
@@ -308,7 +269,7 @@ def cmd_init_rehydrate(args: argparse.Namespace, rhidoc_root: Path) -> None:
 
     # --- Agent wiring ---
     agents_dest = rhidoc_root / "AGENTS.md"
-    agents_content = (templates_dir / "AGENTS.md").read_text(encoding="utf-8").replace("{{dir_name}}", dirname)
+    agents_content = render("agents", dir_name=dirname)
     if not (agents_dest.exists() and agents_dest.read_text(encoding="utf-8") == agents_content):
         if no_write:
             print(f"  Drift: {agents_dest.relative_to(project_root)}" if check
@@ -321,13 +282,7 @@ def cmd_init_rehydrate(args: argparse.Namespace, rhidoc_root: Path) -> None:
         skipped += 1
 
     # --- Skills ---
-    from ..ai_skill import generate_skill_content
-    skill_updates = [
-        ("rhidoc-cli", generate_skill_content(dirname)),
-        ("docs-development", (templates_dir / "docs-development-skill.md").read_text(encoding="utf-8")),
-        ("rhidoc-setup", (templates_dir / "rhidoc-setup-skill.md").read_text(encoding="utf-8")),
-    ]
-    for skill_name, new_content in skill_updates:
+    for skill_name, new_content in _skill_contents(dirname):
         skill_dir = project_root / ".claude" / "skills" / skill_name
         skill_path = skill_dir / "SKILL.md"
 
@@ -366,3 +321,43 @@ def cmd_portable(args: argparse.Namespace, rhidoc_root: Path) -> None:
     print(f"  Modules:     {rhidoc_root / '_scripts/'}")
     print(f"  Usage:       python3 {rhidoc_root / 'rhidoc.py'} <command>")
     print(f"\nThese are your scripts — edit freely.")
+
+
+# ---------------------------------------------------------------------------
+# templates
+# ---------------------------------------------------------------------------
+
+def _template_placeholders() -> tuple[str, str]:
+    """(dir_name, title) from the workspace if there is one, else defaults.
+
+    `templates` must work in a repo with no workspace — that is the point of the
+    command — so a missing marker is a default, not an error.
+    """
+    try:
+        rhidoc_root = find_workspace()
+    except FileNotFoundError:
+        return ".rhidoc", Path.cwd().resolve().name
+
+    marker_path = rhidoc_root.parent / MARKER
+    config = json.loads(marker_path.read_text(encoding="utf-8"))
+    return rhidoc_root.name, config.get("title", rhidoc_root.parent.name)
+
+
+def template_listing() -> str:
+    """The name/summary table shown by `rhidoc templates` and `rhidoc templates -h`."""
+    rows = [(t.name, t.kind.value, t.summary) for t in listed()]
+    width = max(len(name) for name, _, _ in rows)
+    lines = ["Available templates (print one with `rhidoc templates <name>`):", ""]
+    for name, kind, summary in rows:
+        lines.append(f"  {name:<{width}}  [{kind}] {summary}")
+    return "\n".join(lines)
+
+
+def cmd_templates(args: argparse.Namespace) -> None:
+    """List shipped templates, or print one to stdout. Needs no workspace."""
+    if args.name is None:
+        print(template_listing())
+        return
+
+    dir_name, title = _template_placeholders()
+    print(render(args.name, dir_name=dir_name, title=title), end="")

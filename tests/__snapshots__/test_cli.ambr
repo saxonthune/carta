@@ -197,6 +197,7 @@
   | `rename` | Rename a directory or file slug |
   | `init` | Initialize a new workspace |
   | `portable` | Dump editable scripts into workspace |
+  | `templates` | Print a shipped template (codex doc, skill, agent wiring) to stdout |
   | `ai-skill` | Print compact AI agent reference (pass a command name for its full block) |
   | `cat` | Print document contents by ref |
   | `tree` | Print workspace structure as a tree |
@@ -328,6 +329,7 @@
   | `rename` | Rename a directory or file slug |
   | `init` | Initialize a new workspace |
   | `portable` | Dump editable scripts into workspace |
+  | `templates` | Print a shipped template (codex doc, skill, agent wiring) to stdout |
   | `ai-skill` | Print compact AI agent reference (pass a command name for its full block) |
   | `cat` | Print document contents by ref |
   | `tree` | Print workspace structure as a tree |
@@ -459,6 +461,7 @@
   | `rename` | Rename a directory or file slug |
   | `init` | Initialize a new workspace |
   | `portable` | Dump editable scripts into workspace |
+  | `templates` | Print a shipped template (codex doc, skill, agent wiring) to stdout |
   | `ai-skill` | Print compact AI agent reference (pass a command name for its full block) |
   | `cat` | Print document contents by ref |
   | `tree` | Print workspace structure as a tree |

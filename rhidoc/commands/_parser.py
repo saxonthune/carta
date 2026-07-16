@@ -10,7 +10,7 @@ from ..ai_skill import cmd_ai_skill
 from .structure import cmd_make, cmd_delete, cmd_move, cmd_rename
 from .transform import cmd_punch, cmd_hoist, cmd_copy
 from .content import cmd_cat, cmd_tree, cmd_rewrite, cmd_regenerate, cmd_attach, cmd_ls, cmd_bundle, cmd_orphans
-from .setup import cmd_init, cmd_portable, cmd_init_rehydrate
+from .setup import cmd_init, cmd_portable, cmd_init_rehydrate, cmd_templates, template_listing
 from .mdapi import cmd_mdapi
 
 
@@ -175,6 +175,22 @@ def build_parser() -> argparse.ArgumentParser:
 
     # portable
     p_portable = subparsers.add_parser("portable", help="Dump editable scripts into workspace")
+
+    # templates
+    from ..templates import TEMPLATES
+    p_templates = subparsers.add_parser(
+        "templates",
+        help="Print a shipped template (codex doc, skill, agent wiring) to stdout",
+        description="Print the templates that `init` hydrates, read from the installed "
+                    "rhidoc rather than from any workspace copy. Works in a repo with no "
+                    "workspace, and reflects this rhidoc version even where a workspace "
+                    "was hydrated by an older one.",
+        epilog=template_listing(),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    p_templates.add_argument("name", nargs="?", default=None, choices=list(TEMPLATES),
+                             metavar="NAME",
+                             help="Template to print. Omit to list the available templates.")
 
     # ai-skill
     p_ai_skill = subparsers.add_parser("ai-skill", help="Print compact AI agent reference (pass a command name for its full block)")
@@ -349,7 +365,7 @@ def main(argv: list[str] | None = None) -> int:
             "regenerate", "make", "delete", "move", "punch", "hoist",
             "copy", "attach", "rewrite", "rename", "init",
             "portable", "ai-skill", "cat", "tree", "ls", "bundle", "orphans",
-            "mdapi",
+            "mdapi", "templates",
         }
         cmd_candidates = [a for a in argv if a in known_subcommands]
         if cmd_candidates:
@@ -375,6 +391,11 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     try:
+        # templates reads only the installed package — no workspace needed.
+        if args.command == "templates":
+            cmd_templates(args)
+            return 0
+
         # init and portable don't require a pre-existing workspace
         if args.command == "init":
             if args.rehydrate:
