@@ -44,7 +44,7 @@ The formal name for this structure is a **labeled transition system** (LTS) — 
 | **Fixpoint** | Iterate "check all transitions, add newly reachable states" until nothing changes |
 | **Monotone** | Capabilities only accumulate — gaining something never blocks a transition |
 
-**Recommended source for further reading:** David Harel's **statecharts** — state machines extended with hierarchy (states contain sub-states), guards, actions, and parallel regions. The XState documentation (stately.ai/docs) is the most accessible modern treatment. Statecharts handle hierarchical states ("active account" contains "free tier" and "paid tier") and parallel regions (customer is simultaneously in "onboarding" and "billing" tracks) without an explosion of nodes.
+**Further reading:** David Harel's **statecharts** — state machines extended with hierarchy (states contain sub-states), guards, actions, and parallel regions. The XState documentation (stately.ai/docs) is the most accessible modern treatment. Statecharts handle hierarchical states ("active account" contains "free tier" and "paid tier") and parallel regions (customer is simultaneously in "onboarding" and "billing" tracks) without an explosion of nodes.
 
 ### The Mathematical Structure
 

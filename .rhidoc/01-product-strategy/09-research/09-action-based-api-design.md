@@ -112,7 +112,7 @@ Alexander's structure-preserving transformation has a precise meaning for APIs:
 - Input/output types change incompatibly
 - The URL taxonomy is reorganized (REST versioning)
 
-Action-based APIs make structure-preserving changes the default and structure-destroying changes require explicit effort. REST makes the opposite true — any taxonomy change is destructive.
+Action-based APIs make structure-preserving changes the default, and structure-destroying changes require explicit effort. REST makes the opposite true — any taxonomy change is destructive.
 
 Stripe demonstrates this at scale: their core rule is that new fields and new endpoints are always safe, and when they must break compatibility, they write transformation modules that downgrade new responses to old formats per-version. The API never actually breaks — old clients get old-shaped responses forever. This is additive growth enforced by engineering discipline.
 
@@ -138,7 +138,7 @@ The product design server is an action catalog grouped by concept. State machine
 
 **Tooling.** HTTP caches, CDNs, API gateways — all assume REST's URL-per-resource model. A single-endpoint RPC API makes caching and rate-limiting harder. Irrelevant for local single-user servers, real cost for public APIs.
 
-**Namespace discipline.** As the system grows, the flat action list needs organization. Namespace by concept: `source.add`, `block.edit`, `canvas.layout`. This keeps the list navigable and mirrors the concept decomposition.
+**Namespace discipline.** As the system grows, the flat action list needs organization. Group actions by concept: `source.add`, `block.edit`, `canvas.layout`. This keeps the list navigable and mirrors the concept decomposition.
 
 **Idempotency.** REST GET is naturally idempotent. POST to a single endpoint is not. For systems where network drops matter, include a client-generated idempotency key. Stripe does this.
 
