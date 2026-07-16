@@ -26,7 +26,7 @@ Some facts must appear in the doc and in the code — a wire format, a field ord
 - **Generate** one artifact from the other, so there is one source and one derived view.
 - **Promote** the fact into a type, schema, or test the tools check, so a desync is a visible error instead of silent rot.
 
-## Write Timeless
+## Timeless Writing
 
 Docs state current truth in present tense. History lives in git and in ADRs; plans live in the task tracker. A doc that narrates its own past ("renamed from", "we used to") or its future ("will", "phase 2") holds copies of facts whose real sources are the repository's history and its plans — the same two-copies failure, in time instead of in code.
 

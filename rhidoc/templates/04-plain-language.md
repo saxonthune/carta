@@ -64,19 +64,21 @@ Short sentences, active voice, the actor as the subject. One idea per sentence; 
 A doc statement binds at one of three levels, and the language alone must tell the reader
 which — an LLM applies an unmarked heuristic as a hard rule.
 
-- **Invariant** — always true by construction, testable, apply literally. Written flat and
-  unhedged: "Every Order is exactly one of: draft, placed."
+- **Invariant** — always true by construction, testable, apply literally. Written as a
+  flat declarative: "Every Order is exactly one of: draft, placed."
 - **Principle** — a design value that needs judgment to apply. Written as a triplet of
-  hedge, rationale, and boundary: "Favor X — because Y — except when Z." The hedge
-  ("favor", "prefer", "lean toward") marks it as interpretable; the rationale teaches the
-  intent; the boundary keeps it from hardening into a rule.
+  preference verb, reason, and limit: "Favor X — because Y — except when Z." The
+  preference verb ("favor", "prefer", "lean toward") marks the statement as
+  interpretable; the reason teaches the intent; the limit keeps it from hardening into
+  a rule.
 - **Illustration** — an example, not a claim, marked as one: "e.g.", "such as".
 
 | ✗ Unmarked | ✓ Marked |
 |---|---|
 | Differentiation over addition. | Favor differentiation over addition — a new need is usually an existing concept refined — except when no current concept's purpose covers it. |
 
-Do not write an unhedged imperative for a judgment call, and do not hedge an invariant.
+State an invariant with no preference verb, and state a judgment call with one — never
+as a flat command.
 
 ## The Glossary Is the Controlled Vocabulary
 
