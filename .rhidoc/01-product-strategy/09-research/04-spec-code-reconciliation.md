@@ -15,7 +15,7 @@ Given two sources of truth — the idealized product (what the business wants) a
 
 ## Two Sources of Truth
 
-**Source code** is reality — it's what runs in production, what users interface with. **The aggregate desire of the business** is intent — domain experts, product managers, architects each hold a piece of what the product should be. The code is meant to match the idealized product. Software engineering transforms itself around this process of source transformation and reconciliation.
+**Source code** is reality — it's what runs in production, what users interact with. **The aggregate desire of the business** is intent — domain experts, product managers, architects each hold a piece of what the product should be. The code is meant to match the idealized product. Software engineering transforms itself around this process of source transformation and reconciliation.
 
 ```
 Domain experts --> Product spec --> Architecture --> Module shapes (desired)
@@ -168,7 +168,7 @@ A vertical slice is a *view* — a projection of shapes + patterns into a single
 - The partitioning strategy ("group by vertical feature") is itself a pattern — encode it once, regenerate on demand.
 - Stored slices create dual source-of-truth problems.
 
-Slices go in a gitignored `generate/` or `.build/` directory, exist for the duration of the generation run, and are disposable. The subsystems (shapes) persist; the assemblies (slices) don't.
+Slices go in a gitignored `generate/` or `.build/` directory, exist during the generation run, and are disposable. The subsystems (shapes) persist; the assemblies (slices) don't.
 
 ## Rhidoc's Role
 
