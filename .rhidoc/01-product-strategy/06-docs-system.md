@@ -12,7 +12,7 @@ The `.rhidoc/` workspace format is Rhidoc's primary product. It defines a standa
 ## What It Provides
 
 - **Numbered titles**: Directories use `NN-slug/` naming for stable ordering
-- **YAML frontmatter**: Each document has typed metadata (title, status, summary, tags, deps)
+- **YAML frontmatter**: Each document has typed metadata (title, summary, tags, deps)
 - **Cross-references**: `docXX.YY.ZZ` syntax for linking between documents, automatically rewritten on structural changes
 - **MANIFEST.md**: Machine-readable index regenerated from frontmatter, enabling AI retrieval without reading every file
 - **Tag index**: Keyword-to-doc mapping for fast file-path→doc lookup

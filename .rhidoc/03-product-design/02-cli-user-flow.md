@@ -89,7 +89,7 @@ The `.rhidoc/` directory is committed to version control alongside the project's
 
 ## Phase 2: Operate
 
-The CLI is a multiplexed command that performs deterministic structural operations on the workspace. Users and AI agents invoke it the same way.
+The CLI is a single command with subcommands that performs deterministic structural operations on the workspace. Users and AI agents invoke it the same way.
 
 ### Common operations
 
@@ -143,7 +143,7 @@ AI agents invoke the same CLI commands. The deterministic nature of structural o
 
 ```
 Agent reads MANIFEST.md -> understands workspace structure
-Agent calls `rhidoc create` -> CLI handles numbering, frontmatter, manifest rebuild
+Agent calls `rhidoc make` -> CLI handles numbering, frontmatter, manifest rebuild
 Agent writes doc content -> standard file write
 ```
 
