@@ -34,7 +34,7 @@ rules for working in it. Confirm it exists and is current:
 rhidoc init --rehydrate --dry-run
 ```
 
-If it reports the wiring or codex templates are stale, offer to run
+If it reports the wiring or handbook docs are stale, offer to run
 `rhidoc init --rehydrate` (without `--dry-run`) to refresh them.
 
 ### 3. Check the CLAUDE.md / AGENTS.md pointer
@@ -76,6 +76,6 @@ the things that are actually wrong — a healthy workspace needs no changes.
 ## Growing this skill
 
 This is the project's general-purpose Rhidoc diagnostics entry point. As new
-failure modes surface (stale MANIFEST, broken refs, missing codex docs, version
+failure modes surface (stale MANIFEST, broken refs, missing handbook docs, version
 skew between the installed CLI and the workspace), add a numbered check above
 rather than spreading guidance across CLAUDE.md.

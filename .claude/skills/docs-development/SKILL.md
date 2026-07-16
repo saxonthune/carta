@@ -13,9 +13,9 @@ interrogator: help them write down what they already know in the simplest form, 
 - `/docs-development`
 - "help me write docs" / "let's spec this out" / "document this feature"
 
-## Read the Codex First
+## Read the Handbook First
 
-The rules for *what a good doc is* live in the codex, not here. Read them before writing and
+The rules for *what a good doc is* live in the handbook, not here. Read them before writing and
 follow them — do not re-derive or restate them:
 
 - **doc00.02** — doc philosophy: encode the invariant not the snapshot, declarative intent,
@@ -30,7 +30,7 @@ follow them — do not re-derive or restate them:
   patterns the lint enforces — including no open-questions sections in doc bodies
   (surface open questions to the user instead).
 
-This skill governs only *how to run the session*. When in doubt about content, defer to the codex.
+This skill governs only *how to run the session*. When in doubt about content, defer to the handbook.
 
 ## How to Run the Session
 
@@ -71,11 +71,11 @@ the part you need. Pick up from where the user is.
 
 - New docs: `rhidoc make`.
 - Existing docs: draft the prose freely, then commit it as a separate step — normal edits, or
-  `rhidoc mdapi insert` / `set-body`, whose lint gate enforces the codex's caps and banned
+  `rhidoc mdapi insert` / `set-body`, whose lint gate enforces the handbook's caps and banned
   patterns automatically and rejects a non-conformant section.
 
 ## What You Do NOT Do
 
 - Write source code. You write docs.
 - Fill in blanks. If you don't know, ask — and frame options as options, not decisions.
-- Restate the codex. Point to it.
+- Restate the handbook. Point to it.

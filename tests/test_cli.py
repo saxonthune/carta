@@ -276,7 +276,7 @@ def test_init_custom_dir(run_cli, tmp_path):
 
     docs_dir = tmp_path / ".docs"
     assert (docs_dir / "MANIFEST.md").exists()
-    assert (docs_dir / "00-codex" / "00-index.md").exists()
+    assert (docs_dir / "00-handbook" / "00-index.md").exists()
 
     manifest = (docs_dir / "MANIFEST.md").read_text(encoding="utf-8")
     assert manifest.startswith("# .docs/ Manifest"), f"MANIFEST header should use .docs/: {manifest[:50]}"
@@ -304,7 +304,7 @@ def test_init_without_rehydrate_refuses_existing(run_cli, tmp_path, snapshot):
 def test_init_rehydrate_updates_stale_template(run_cli, tmp_path):
     """rhidoc init --rehydrate overwrites a stale codex template."""
     run_cli("init", "--name", "TestProject", cwd=tmp_path)
-    stale_path = tmp_path / ".rhidoc" / "00-codex" / "01-about.md"
+    stale_path = tmp_path / ".rhidoc" / "00-handbook" / "01-about.md"
     stale_path.write_text("stale content", encoding="utf-8")
 
     code, out, err = run_cli("init", "--rehydrate", cwd=tmp_path)
@@ -313,23 +313,23 @@ def test_init_rehydrate_updates_stale_template(run_cli, tmp_path):
 
 
 def test_init_rehydrate_removes_stale_prefix_doc(run_cli, tmp_path):
-    """rehydrate removes a codex doc occupying a template's prefix under an old name."""
+    """rehydrate removes a handbook doc occupying a template's prefix under an old name."""
     run_cli("init", "--name", "TestProject", cwd=tmp_path)
-    codex_dir = tmp_path / ".rhidoc" / "00-codex"
-    old_doc = codex_dir / "04-old-style-guide.md"
+    handbook_dir = tmp_path / ".rhidoc" / "00-handbook"
+    old_doc = handbook_dir / "04-old-style-guide.md"
     old_doc.write_text("old template content", encoding="utf-8")
 
     code, out, err = run_cli("init", "--rehydrate", cwd=tmp_path)
     assert code == 0, f"rehydrate failed:\n{err}\n{out}"
     assert not old_doc.exists()
-    assert (codex_dir / "04-plain-language.md").exists()
+    assert (handbook_dir / "04-plain-language.md").exists()
     assert "Removed stale" in out
 
 
 def test_init_rehydrate_dry_run_keeps_stale_prefix_doc(run_cli, tmp_path):
-    """--dry-run reports the stale codex doc without removing it."""
+    """--dry-run reports the stale handbook doc without removing it."""
     run_cli("init", "--name", "TestProject", cwd=tmp_path)
-    old_doc = tmp_path / ".rhidoc" / "00-codex" / "04-old-style-guide.md"
+    old_doc = tmp_path / ".rhidoc" / "00-handbook" / "04-old-style-guide.md"
     old_doc.write_text("old template content", encoding="utf-8")
 
     code, out, err = run_cli("init", "--rehydrate", "--dry-run", cwd=tmp_path)
@@ -341,7 +341,7 @@ def test_init_rehydrate_dry_run_keeps_stale_prefix_doc(run_cli, tmp_path):
 def test_init_rehydrate_dry_run(run_cli, tmp_path, snapshot):
     """rhidoc init --rehydrate --dry-run shows plan without writing."""
     run_cli("init", "--name", "TestProject", cwd=tmp_path)
-    stale_path = tmp_path / ".rhidoc" / "00-codex" / "01-about.md"
+    stale_path = tmp_path / ".rhidoc" / "00-handbook" / "01-about.md"
     stale_path.write_text("stale content", encoding="utf-8")
 
     code, out, err = run_cli("init", "--rehydrate", "--dry-run", cwd=tmp_path)
@@ -3047,8 +3047,8 @@ class TestHoistBefore(unittest.TestCase):
         self.assertFalse((design_dir / "08-decisions").exists())
 
 
-class TestTemplates(unittest.TestCase):
-    """Tests for `rhidoc templates` and the template registry."""
+class TestHandbook(unittest.TestCase):
+    """Tests for `rhidoc handbook` and the template registry."""
 
     def setUp(self):
         self.tmpdir = tempfile.TemporaryDirectory()
@@ -3096,50 +3096,56 @@ class TestTemplates(unittest.TestCase):
         self.assertIn("health diagnostics", TEMPLATES["rhidoc-setup"].summary)
 
     def test_list_without_workspace(self):
-        result = self._run("templates")
-        self.assertEqual(result.returncode, 0, f"templates failed:\n{result.stderr}")
+        result = self._run("handbook")
+        self.assertEqual(result.returncode, 0, f"handbook failed:\n{result.stderr}")
         self.assertIn("plain-language", result.stdout)
-        self.assertIn("[codex]", result.stdout)
-        self.assertIn("[skill]", result.stdout)
+        self.assertIn("[handbook]", result.stdout)
 
     def test_print_without_workspace(self):
-        result = self._run("templates", "plain-language")
-        self.assertEqual(result.returncode, 0, f"templates failed:\n{result.stderr}")
+        result = self._run("handbook", "plain-language")
+        self.assertEqual(result.returncode, 0, f"handbook failed:\n{result.stderr}")
         self.assertIn("# Plain Language", result.stdout)
         self.assertIn("ISO 24495-1", result.stdout)
 
     def test_placeholders_default_without_workspace(self):
-        result = self._run("templates", "agents")
+        result = self._run("handbook", "conventions")
         self.assertEqual(result.returncode, 0)
-        self.assertIn("`.rhidoc/`", result.stdout)
+        self.assertIn(".rhidoc/", result.stdout)
         self.assertNotIn("{{dir_name}}", result.stdout)
 
     def test_placeholders_follow_workspace_dirname(self):
         self._run("init", "--dir", "docs-ws")
-        result = self._run("templates", "agents")
+        result = self._run("handbook", "conventions")
         self.assertEqual(result.returncode, 0)
-        self.assertIn("`docs-ws/`", result.stdout)
+        self.assertIn("docs-ws/", result.stdout)
+        self.assertNotIn("{{dir_name}}", result.stdout)
+
+    def test_skills_and_wiring_are_not_offered(self):
+        """Scope is the handbook: skills are served by `ai-skill`, wiring is not reading material."""
+        for name in ("agents", "docs-development", "rhidoc-cli", "index"):
+            result = self._run("handbook", name)
+            self.assertNotEqual(result.returncode, 0, f"{name} should not be a handbook doc")
 
     def test_reads_installed_copy_not_stale_workspace_copy(self):
-        """The whole point: a stale hydrated codex does not affect what `templates` prints."""
+        """The whole point: a stale hydrated handbook does not affect what `handbook` prints."""
         self._run("init")
-        stale = self.cwd / ".rhidoc" / "00-codex" / "04-plain-language.md"
+        stale = self.cwd / ".rhidoc" / "00-handbook" / "04-plain-language.md"
         stale.write_text("# Stale local copy\n", encoding="utf-8")
 
-        result = self._run("templates", "plain-language")
+        result = self._run("handbook", "plain-language")
         self.assertEqual(result.returncode, 0)
         self.assertIn("ISO 24495-1", result.stdout)
         self.assertNotIn("Stale local copy", result.stdout)
 
     def test_unknown_name_is_rejected(self):
-        result = self._run("templates", "no-such-template")
+        result = self._run("handbook", "no-such-doc")
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("invalid choice", result.stderr)
 
     def test_writes_nothing(self):
         before = sorted(p.name for p in self.cwd.iterdir())
-        self._run("templates", "plain-language")
-        self._run("templates")
+        self._run("handbook", "plain-language")
+        self._run("handbook")
         self.assertEqual(sorted(p.name for p in self.cwd.iterdir()), before)
 
 

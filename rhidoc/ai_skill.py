@@ -389,22 +389,22 @@ rhidoc init --rehydrate [--dry-run]
 
 Side effects (without --rehydrate):
   - Creates `.rhidoc.json` marker in the current directory.
-  - Creates `DIRNAME/00-codex/00-index.md` and `DIRNAME/MANIFEST.md`.
+  - Creates `DIRNAME/00-handbook/00-index.md` and `DIRNAME/MANIFEST.md`.
   - Hydrates `.claude/skills/rhidoc-cli/SKILL.md` (skips if exists).
   - Runs initial MANIFEST regeneration.
 
 Side effects (with --rehydrate):
-  - Overwrites `00-codex/*.md` with latest templates from installed rhidoc.
+  - Overwrites `00-handbook/*.md` with the latest docs from installed rhidoc.
   - Overwrites `.claude/skills/rhidoc-cli/SKILL.md` and `.claude/skills/docs-development/SKILL.md`.
   - Skips files that already match the latest version.
-  - Does NOT touch user-created docs outside 00-codex.
+  - Does NOT touch user-created docs outside 00-handbook.
   - Does NOT overwrite workspace.json fields (title, description, externalRefPaths).
 
 Flags:
   --name TEXT    Workspace title. Default: parent directory name.
   --dir DIRNAME  Workspace directory name. Default: `.rhidoc`.
   --portable     Also copy editable Python scripts into workspace (pip-free usage).
-  --rehydrate    Refresh templates and skills in an existing workspace.
+  --rehydrate    Refresh the handbook and skills in an existing workspace.
   --dry-run      With --rehydrate: show what would be updated without writing.
 
 When to use --rehydrate:
@@ -416,35 +416,38 @@ Example:
   rhidoc init --rehydrate --dry-run    # preview what would change
 """,
 
-    "templates": """\
-### templates
+    "handbook": """\
+### handbook
 
-Print a template shipped with the installed rhidoc to stdout. Read-only.
+Print a handbook doc shipped with the installed rhidoc to stdout. Read-only.
 
 ```
-rhidoc templates              # list available templates with summaries
-rhidoc templates <name>       # print one template
+rhidoc handbook               # list the handbook docs with summaries
+rhidoc handbook <name>        # print one handbook doc
 ```
 
 Side effects: none. Writes nothing — `init` and `init --rehydrate` are what hydrate
-templates into a workspace.
+the handbook into a workspace.
 
 Needs no workspace. Reads the installed rhidoc, not the workspace's hydrated copy, so
 it works in a repo that never ran `init`, and returns this version's text even where
-`00-codex/` was hydrated by an older rhidoc.
+the handbook was hydrated by an older rhidoc.
 
 The workspace-directory and title placeholders are filled from the workspace when there
 is one, and default to `.rhidoc` and the current directory name when there is not.
 
+Covers the handbook docs only. Skills are served by `rhidoc ai-skill`; the AGENTS.md
+agent wiring is installed by `init`, not read ad hoc.
+
 When to use:
   - You need the plain-language, drift, or conventions guidance in a repo with no
     workspace — read it ad hoc instead of hydrating one.
-  - A workspace's codex may be stale and you want the current text.
+  - A workspace's handbook may be stale and you want the current text.
 
 Example:
-  rhidoc templates                    # see what's available
-  rhidoc templates plain-language     # the plain-language standard
-  rhidoc templates drift              # why docs drift and the rules against it
+  rhidoc handbook                    # see what's available
+  rhidoc handbook plain-language     # the plain-language standard
+  rhidoc handbook drift              # why docs drift and the rules against it
 """,
 
     "portable": """\

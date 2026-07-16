@@ -197,7 +197,7 @@
   | `rename` | Rename a directory or file slug |
   | `init` | Initialize a new workspace |
   | `portable` | Dump editable scripts into workspace |
-  | `templates` | Print a shipped template (codex doc, skill, agent wiring) to stdout |
+  | `handbook` | Print a handbook doc (conventions, plain language, drift, ...) to stdout |
   | `ai-skill` | Print compact AI agent reference (pass a command name for its full block) |
   | `cat` | Print document contents by ref |
   | `tree` | Print workspace structure as a tree |
@@ -329,7 +329,7 @@
   | `rename` | Rename a directory or file slug |
   | `init` | Initialize a new workspace |
   | `portable` | Dump editable scripts into workspace |
-  | `templates` | Print a shipped template (codex doc, skill, agent wiring) to stdout |
+  | `handbook` | Print a handbook doc (conventions, plain language, drift, ...) to stdout |
   | `ai-skill` | Print compact AI agent reference (pass a command name for its full block) |
   | `cat` | Print document contents by ref |
   | `tree` | Print workspace structure as a tree |
@@ -461,7 +461,7 @@
   | `rename` | Rename a directory or file slug |
   | `init` | Initialize a new workspace |
   | `portable` | Dump editable scripts into workspace |
-  | `templates` | Print a shipped template (codex doc, skill, agent wiring) to stdout |
+  | `handbook` | Print a handbook doc (conventions, plain language, drift, ...) to stdout |
   | `ai-skill` | Print compact AI agent reference (pass a command name for its full block) |
   | `cat` | Print document contents by ref |
   | `tree` | Print workspace structure as a tree |
@@ -739,7 +739,7 @@
 # ---
 # name: test_init_rehydrate_dry_run
   '''
-    Would update: .rhidoc/00-codex/01-about.md
+    Would update: .rhidoc/00-handbook/01-about.md
   
   Would update 1 file(s), 9 already current.
   
@@ -755,7 +755,7 @@
 # name: test_init_without_rehydrate_refuses_existing
   '''
   Workspace already exists: <TMPDIR>/.rhidoc.json
-  Run `rhidoc init --rehydrate` to refresh codex templates and skill files.
+  Run `rhidoc init --rehydrate` to refresh handbook docs and skill files.
   
   '''
 # ---

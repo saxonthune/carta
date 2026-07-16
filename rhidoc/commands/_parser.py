@@ -10,7 +10,7 @@ from ..ai_skill import cmd_ai_skill
 from .structure import cmd_make, cmd_delete, cmd_move, cmd_rename
 from .transform import cmd_punch, cmd_hoist, cmd_copy
 from .content import cmd_cat, cmd_tree, cmd_rewrite, cmd_regenerate, cmd_attach, cmd_ls, cmd_bundle, cmd_orphans
-from .setup import cmd_init, cmd_portable, cmd_init_rehydrate, cmd_templates, template_listing
+from .setup import cmd_init, cmd_portable, cmd_init_rehydrate, cmd_handbook, handbook_listing
 from .mdapi import cmd_mdapi
 
 
@@ -115,7 +115,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Copy file into workspace",
         epilog=(
             "Examples:\n"
-            "  rhidoc copy path/to/file.md 00-codex\n"
+            "  rhidoc copy path/to/file.md 00-handbook\n"
             "  rhidoc copy path/to/file.md --at doc00.05\n"
             "  rhidoc copy path/to/file.md --before doc00.03\n"
             "  rhidoc copy path/to/file.md --at doc00.05 --rename my-slug"
@@ -165,7 +165,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_init.add_argument("--portable", action="store_true",
                         help="Dump editable Python scripts into workspace for pip-free usage.")
     p_init.add_argument("--rehydrate", action="store_true",
-                        help="Refresh codex templates and skill files in an existing workspace. "
+                        help="Refresh handbook docs and skill files in an existing workspace. "
                              "Preserves workspace.json and user-authored docs.")
     p_init.add_argument("--dry-run", action="store_true",
                         help="With --rehydrate, show what would be updated without writing.")
@@ -176,21 +176,22 @@ def build_parser() -> argparse.ArgumentParser:
     # portable
     p_portable = subparsers.add_parser("portable", help="Dump editable scripts into workspace")
 
-    # templates
-    from ..templates import TEMPLATES
-    p_templates = subparsers.add_parser(
-        "templates",
-        help="Print a shipped template (codex doc, skill, agent wiring) to stdout",
-        description="Print the templates that `init` hydrates, read from the installed "
+    # handbook
+    from ..templates import listed as _listed_handbook
+    p_handbook = subparsers.add_parser(
+        "handbook",
+        help="Print a handbook doc (conventions, plain language, drift, ...) to stdout",
+        description="Print the handbook docs that `init` hydrates, read from the installed "
                     "rhidoc rather than from any workspace copy. Works in a repo with no "
                     "workspace, and reflects this rhidoc version even where a workspace "
                     "was hydrated by an older one.",
-        epilog=template_listing(),
+        epilog=handbook_listing(),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    p_templates.add_argument("name", nargs="?", default=None, choices=list(TEMPLATES),
-                             metavar="NAME",
-                             help="Template to print. Omit to list the available templates.")
+    p_handbook.add_argument("name", nargs="?", default=None,
+                            choices=[t.name for t in _listed_handbook()],
+                            metavar="NAME",
+                            help="Handbook doc to print. Omit to list the available docs.")
 
     # ai-skill
     p_ai_skill = subparsers.add_parser("ai-skill", help="Print compact AI agent reference (pass a command name for its full block)")
@@ -365,7 +366,7 @@ def main(argv: list[str] | None = None) -> int:
             "regenerate", "make", "delete", "move", "punch", "hoist",
             "copy", "attach", "rewrite", "rename", "init",
             "portable", "ai-skill", "cat", "tree", "ls", "bundle", "orphans",
-            "mdapi", "templates",
+            "mdapi", "handbook",
         }
         cmd_candidates = [a for a in argv if a in known_subcommands]
         if cmd_candidates:
@@ -391,9 +392,9 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     try:
-        # templates reads only the installed package — no workspace needed.
-        if args.command == "templates":
-            cmd_templates(args)
+        # handbook reads only the installed package — no workspace needed.
+        if args.command == "handbook":
+            cmd_handbook(args)
             return 0
 
         # init and portable don't require a pre-existing workspace

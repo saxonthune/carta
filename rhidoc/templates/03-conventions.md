@@ -58,7 +58,7 @@ NN-slug.md
 
 Examples: `01-mission.md`, `03-glossary.md`, `01-authentication.md`.
 
-Directories follow the same pattern: `00-codex/`, `01-context/`, `02-system/`.
+Directories follow the same pattern: `00-handbook/`, `01-context/`, `02-system/`.
 
 Numbers determine ordering. Leave gaps when useful — you can add `02-something.md` between `01` and `03` later.
 

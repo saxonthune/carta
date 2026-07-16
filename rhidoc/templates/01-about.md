@@ -29,7 +29,7 @@ This workspace organizes specs into groups. The number and names of groups are u
 
 ## Growing a Workspace
 
-This workspace starts almost empty — just the codex. That's intentional. Groups and docs appear when you need them: a purpose doc when you clarify what you're building, a product group when you design a feature, a system group when you make an architecture decision. Each addition is the simplest doc that captures what you just decided, and it deepens through the development loop (doc00.02) as the work demands.
+This workspace starts almost empty — just the handbook. That's intentional. Groups and docs appear when you need them: a purpose doc when you clarify what you're building, a product group when you design a feature, a system group when you make an architecture decision. Each addition is the simplest doc that captures what you just decided, and it deepens through the development loop (doc00.02) as the work demands.
 
 ## One Canonical Location
 

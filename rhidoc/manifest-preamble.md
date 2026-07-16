@@ -2,7 +2,7 @@
 
 Machine-readable index for AI navigation. Read this file first, then open only the docs relevant to your query.
 
-**Retrieval strategy:** See doc00.00 (codex index) for how to find and read docs efficiently.
+**Retrieval strategy:** See doc00.00 (handbook index) for how to find and read docs efficiently.
 
 ## Column Definitions
 

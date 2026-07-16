@@ -11,14 +11,14 @@ A workspace is organized into numbered **titles**:
 ```
 .rhidoc/
   MANIFEST.md              # generated index (don't edit by hand)
-  00-codex/                # how to use these docs
+  00-handbook/             # how to use these docs
   01-context/              # mission, principles, glossary
   02-system/               # architecture, decisions, interfaces
   03-product/              # features, use cases, workflows
   04-operations/           # dev setup, testing, deployment
 ```
 
-Title 00 (codex) is universal — it ships with every workspace and documents the workspace itself. The rest are up to you.
+Title 00 (handbook) is universal — it ships with every workspace and documents the workspace itself. The rest are up to you.
 
 Within titles, documents are numbered Markdown files with kebab-case slugs:
 

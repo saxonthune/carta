@@ -1,8 +1,8 @@
 ---
-title: {{title}}
+title: Handbook
 summary: ""
 tags: []
 deps: []
 ---
 
-# {{title}}
+# Handbook

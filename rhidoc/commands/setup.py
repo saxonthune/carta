@@ -8,7 +8,7 @@ from pathlib import Path
 from ..__version__ import __version__
 from ..workspace import MARKER, find_workspace
 from ..regenerate_core import do_regenerate
-from ..templates import Kind, by_kind, data_files, listed, render
+from ..templates import HANDBOOK_DIR, Kind, by_kind, data_files, listed, render
 
 
 _PACKAGE_DIR = Path(__file__).resolve().parent.parent
@@ -91,13 +91,13 @@ def cmd_init(args: argparse.Namespace) -> None:
 
     if marker_path.exists():
         print(f"Workspace already exists: {marker_path}")
-        print("Run `rhidoc init --rehydrate` to refresh codex templates and skill files.")
+        print("Run `rhidoc init --rehydrate` to refresh handbook docs and skill files.")
         return
 
     title = a.name or project_root.name
 
-    codex_dir = rhidoc_dir / "00-codex"
-    codex_dir.mkdir(parents=True, exist_ok=True)
+    handbook_dir = rhidoc_dir / HANDBOOK_DIR
+    handbook_dir.mkdir(parents=True, exist_ok=True)
 
     marker_content = {
         "root": f"{dirname}/",
@@ -111,10 +111,10 @@ def cmd_init(args: argparse.Namespace) -> None:
     }
     marker_path.write_text(json.dumps(marker_content, indent=2) + "\n", encoding="utf-8")
 
-    # --- Codex docs ---
-    for tmpl in by_kind(Kind.CODEX):
+    # --- Handbook docs ---
+    for tmpl in by_kind(Kind.HANDBOOK):
         content = render(tmpl.name, dir_name=dirname, title=title)
-        (codex_dir / tmpl.filename).write_text(content, encoding="utf-8")
+        (handbook_dir / tmpl.filename).write_text(content, encoding="utf-8")
 
     (rhidoc_dir / "MANIFEST.md").write_text(
         f"# {dirname}/ Manifest\n\nMachine-readable index for AI navigation. "
@@ -140,7 +140,7 @@ def cmd_init(args: argparse.Namespace) -> None:
 
     print(f"\nInitialized {dirname}/ workspace: {title}")
     print(f"  Created:  {MARKER}")
-    print(f"  Created:  {dirname}/00-codex/ (7 docs)")
+    print(f"  Created:  {dirname}/{HANDBOOK_DIR}/ (7 docs)")
     print(f"  Created:  {dirname}/MANIFEST.md")
     print(f"  Created:  {dirname}/AGENTS.md")
 
@@ -152,7 +152,7 @@ def cmd_init(args: argparse.Namespace) -> None:
             print("  Warning: failed to copy portable scripts.", file=sys.stderr)
 
     print(f"\nNext steps:")
-    print(f"  rhidoc make 00-codex my-first-doc     # add a document")
+    print(f"  rhidoc make {HANDBOOK_DIR} my-first-doc  # add a document")
     print(f"  rhidoc --help                          # see all commands")
     print(f"  /rhidoc-setup                          # verify wiring & workspace health")
 
@@ -209,7 +209,7 @@ class InitRehydrateArgs:
 
 
 def cmd_init_rehydrate(args: argparse.Namespace, rhidoc_root: Path) -> None:
-    """Refresh codex templates and skill files from the installed rhidoc version."""
+    """Refresh handbook docs and skill files from the installed rhidoc version."""
     a = InitRehydrateArgs.from_namespace(args)
     project_root = rhidoc_root.parent
     dirname = rhidoc_root.name
@@ -221,7 +221,7 @@ def cmd_init_rehydrate(args: argparse.Namespace, rhidoc_root: Path) -> None:
 
     config = json.loads(marker_path.read_text(encoding="utf-8"))
     title = config.get("title", project_root.name)
-    codex_dir = rhidoc_root / "00-codex"
+    handbook_dir = rhidoc_root / HANDBOOK_DIR
 
     check = a.check
     no_write = a.dry_run or check
@@ -229,23 +229,23 @@ def cmd_init_rehydrate(args: argparse.Namespace, rhidoc_root: Path) -> None:
     updated = 0
     skipped = 0
 
-    # --- Codex docs ---
-    for tmpl in by_kind(Kind.CODEX):
+    # --- Handbook docs ---
+    for tmpl in by_kind(Kind.HANDBOOK):
         if not tmpl.rehydrate:
             continue
         filename = tmpl.filename
-        dest = codex_dir / filename
+        dest = handbook_dir / filename
         new_content = render(tmpl.name, dir_name=dirname, title=title)
 
-        # A codex doc from an older rhidoc may occupy this template's prefix
+        # A handbook doc from an older rhidoc may occupy this template's prefix
         # under a different name; two .md roots at one prefix break resolution.
-        if codex_dir.exists():
+        if handbook_dir.exists():
             prefix = filename[:3]
-            for stale in sorted(codex_dir.glob(f"{prefix}*.md")):
+            for stale in sorted(handbook_dir.glob(f"{prefix}*.md")):
                 if stale.name == filename:
                     continue
                 if no_write:
-                    print(f"  Drift: {stale.relative_to(project_root)} (stale codex doc)" if check
+                    print(f"  Drift: {stale.relative_to(project_root)} (stale handbook doc)" if check
                           else f"  Would remove: {stale.relative_to(project_root)}")
                 else:
                     stale.unlink()
@@ -262,7 +262,7 @@ def cmd_init_rehydrate(args: argparse.Namespace, rhidoc_root: Path) -> None:
             print(f"  Drift: {dest.relative_to(project_root)}" if check
                   else f"  Would update: {dest.relative_to(project_root)}")
         else:
-            codex_dir.mkdir(parents=True, exist_ok=True)
+            handbook_dir.mkdir(parents=True, exist_ok=True)
             dest.write_text(new_content, encoding="utf-8")
             print(f"  Updated: {dest.relative_to(project_root)}")
         updated += 1
@@ -324,13 +324,13 @@ def cmd_portable(args: argparse.Namespace, rhidoc_root: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# templates
+# handbook
 # ---------------------------------------------------------------------------
 
-def _template_placeholders() -> tuple[str, str]:
+def _handbook_placeholders() -> tuple[str, str]:
     """(dir_name, title) from the workspace if there is one, else defaults.
 
-    `templates` must work in a repo with no workspace — that is the point of the
+    `handbook` must work in a repo with no workspace — that is the point of the
     command — so a missing marker is a default, not an error.
     """
     try:
@@ -343,21 +343,21 @@ def _template_placeholders() -> tuple[str, str]:
     return rhidoc_root.name, config.get("title", rhidoc_root.parent.name)
 
 
-def template_listing() -> str:
-    """The name/summary table shown by `rhidoc templates` and `rhidoc templates -h`."""
+def handbook_listing() -> str:
+    """The name/summary table shown by `rhidoc handbook` and `rhidoc handbook -h`."""
     rows = [(t.name, t.kind.value, t.summary) for t in listed()]
     width = max(len(name) for name, _, _ in rows)
-    lines = ["Available templates (print one with `rhidoc templates <name>`):", ""]
+    lines = ["Handbook docs (print one with `rhidoc handbook <name>`):", ""]
     for name, kind, summary in rows:
         lines.append(f"  {name:<{width}}  [{kind}] {summary}")
     return "\n".join(lines)
 
 
-def cmd_templates(args: argparse.Namespace) -> None:
-    """List shipped templates, or print one to stdout. Needs no workspace."""
+def cmd_handbook(args: argparse.Namespace) -> None:
+    """List the handbook docs, or print one to stdout. Needs no workspace."""
     if args.name is None:
-        print(template_listing())
+        print(handbook_listing())
         return
 
-    dir_name, title = _template_placeholders()
+    dir_name, title = _handbook_placeholders()
     print(render(args.name, dir_name=dir_name, title=title), end="")

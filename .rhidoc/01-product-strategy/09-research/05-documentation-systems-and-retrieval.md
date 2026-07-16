@@ -19,7 +19,7 @@ Every successful IR system separates *finding* from *reading*. MANIFEST.md is an
 
 ### 2. Predictable structure reduces search entropy
 
-Every doc has the same frontmatter shape (title, summary, tags, deps). Every directory has a predictable role (00-codex = meta, 01-product-strategy = what and why, 02-architecture = how, 03-product-design = design). The agent doesn't need to understand the docs to navigate them — the structure itself is a map. This is why faceted classification outperforms a single hierarchy: the tag index gives the agent a second access path when the directory hierarchy doesn't match the query.
+Every doc has the same frontmatter shape (title, summary, tags, deps). Every directory has a predictable role (00-handbook = meta, 01-product-strategy = what and why, 02-architecture = how, 03-product-design = design). The agent doesn't need to understand the docs to navigate them — the structure itself is a map. This is why faceted classification outperforms a single hierarchy: the tag index gives the agent a second access path when the directory hierarchy doesn't match the query.
 
 ### 3. Simon's near-decomposability applied to documentation
 

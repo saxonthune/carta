@@ -248,7 +248,7 @@ def cmd_hoist(args: argparse.Namespace, rhidoc_root: Path) -> None:
             )
 
     # Parent bundles: exclude the parent's own 00-index.md (prefix-0 file bundle)
-    # and the source directory's slot. Directory bundles at prefix 0 (e.g. 00-codex/)
+    # and the source directory's slot. Directory bundles at prefix 0 (e.g. 00-handbook/)
     # are kept and participate in renumbering like any other numbered entry.
     parent_bundles = [
         b for b in bundle_mod.list_bundles(parent_dir)

@@ -32,12 +32,12 @@ of truth for this project.
    `rhidoc ai-skill <command>`. Do not guess flags. The reference regenerates from the
    installed version, so it never goes stale.
 
-## Codex orientation
+## Handbook orientation
 
-The codex (`00-codex/`) is the meta-documentation about this workspace. Read it
+The handbook (`00-handbook/`) is the meta-documentation about this workspace. Read it
 when orienting:
 
-- `doc00.00` — codex index: how to read, find, and manage the workspace
+- `doc00.00` — handbook index: how to read, find, and manage the workspace
 - `doc00.01` — about: why this workspace exists, how to read it
 - `doc00.02` — maintenance: the unfolding philosophy, when to grow a doc
 - `doc00.03` — conventions: ref syntax, frontmatter, file naming, writing style
