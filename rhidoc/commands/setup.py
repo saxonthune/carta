@@ -181,7 +181,7 @@ def cmd_init(args: argparse.Namespace) -> None:
             print("  Warning: failed to copy portable scripts.", file=sys.stderr)
 
     print(f"\nNext steps:")
-    print(f"  rhidoc create 00-codex my-first-doc   # add a document")
+    print(f"  rhidoc make 00-codex my-first-doc     # add a document")
     print(f"  rhidoc --help                          # see all commands")
     print(f"  /rhidoc-setup                          # verify wiring & workspace health")
 

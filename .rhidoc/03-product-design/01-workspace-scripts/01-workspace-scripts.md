@@ -16,10 +16,9 @@ All command logic lives in a single `commands.py` module using relative imports.
 | Command | Purpose |
 |---------|---------|
 | `init` | Initialize a new `.rhidoc/` workspace |
-| `create` | Create a new doc entry with blank frontmatter |
+| `make` | Create a doc (or, with `-g`, a group directory with `00-index.md`) at a position |
 | `delete` | Delete entries with automatic gap-closing and ref rewriting |
 | `move` | Move/reorder entries with automatic ref renumbering. `--no-regen` skips MANIFEST regeneration. |
-| `group` | Create a new numbered group directory with `00-index.md` |
 | `rename` | Rename a directory or file slug in-place without changing its position. `--no-regen` skips MANIFEST regeneration. |
 | `punch` | Expand a leaf file into a directory (NN-slug.md → NN-slug/00-index.md) |
 | `hoist` | Dissolve a directory, hoisting children into the parent |
@@ -39,7 +38,7 @@ A **bundle** is the set of siblings in a directory that share a numeric prefix (
 
 Every structural operation (`move`, `delete`, `rename`, `punch`, `hoist`) operates on bundles as a unit — the root and all its attachments travel together without requiring explicit declaration.
 
-Scope: the Docs API owns the bundle as a structural unit. Kind-awareness and content interpretation of attachment files are reconciliation's concern (doc01.08).
+Scope: the Docs API owns the bundle as a structural unit. Recognizing an attachment file's kind, and interpreting its content, are reconciliation's concern (doc01.08).
 
 ## Scope Boundary
 
