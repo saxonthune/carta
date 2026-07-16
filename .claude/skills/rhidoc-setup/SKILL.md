@@ -31,11 +31,11 @@ The workspace ships a generated `AGENTS.md` (e.g. `.rhidoc/AGENTS.md`) with the 
 rules for working in it. Confirm it exists and is current:
 
 ```bash
-rhidoc init --rehydrate --dry-run
+rhidoc update --dry-run
 ```
 
 If it reports the wiring or handbook docs are stale, offer to run
-`rhidoc init --rehydrate` (without `--dry-run`) to refresh them.
+`rhidoc update` (without `--dry-run`) to refresh them.
 
 ### 3. Check the CLAUDE.md / AGENTS.md pointer
 

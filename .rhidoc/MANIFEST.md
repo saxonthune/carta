@@ -29,6 +29,13 @@ Orphaned attachments (non-md files with no corresponding root .md) are reported 
 | doc00.05 | `05-controlled-vocabulary.md` | The workspace glossary as a controlled vocabulary — entry kinds and sentence patterns from fact-based modeling (ORM), a worked example, and the naming rule | glossary, vocabulary, facts, subtypes, naming, docs | — | — | — |
 | doc00.06 | `06-drift.md` | Why docs drift and the rules that prevent it — the two-copies condition, the reason-to-write test, the generate-or-type escape for shared facts, timeless writing, and the banned-pattern list | docs, drift, maintenance, style | — | — | — |
 
+### User Handbook
+
+| Ref | File | Summary | Tags | Deps | Refs | Attachments |
+|-----|------|---------|------|------|------|-------------|
+
+| doc00.07.00 | `07-user-handbook/00-index.md` |  |  | — | — | — |
+
 ## 01-product-strategy — Product Strategy
 
 | Ref | File | Summary | Tags | Deps | Refs | Attachments |

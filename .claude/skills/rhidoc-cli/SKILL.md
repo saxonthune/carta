@@ -392,40 +392,62 @@ Flags:
 
 ### init
 
-Initialize a new `.rhidoc/` workspace in the current directory, or refresh an existing one.
+Scaffold a new workspace in the current directory. Creates only; never refreshes.
 
 ```
 rhidoc init [--name TEXT] [--dir DIRNAME] [--portable]
-rhidoc init --rehydrate [--dry-run]
 ```
 
-Side effects (without --rehydrate):
+Side effects:
   - Creates `.rhidoc.json` marker in the current directory.
-  - Creates `DIRNAME/00-handbook/00-index.md` and `DIRNAME/MANIFEST.md`.
-  - Hydrates `.claude/skills/rhidoc-cli/SKILL.md` (skips if exists).
+  - Creates `DIRNAME/00-handbook/` (7 docs), `DIRNAME/MANIFEST.md`, `DIRNAME/AGENTS.md`.
+  - Creates the empty `DIRNAME/00-handbook/07-user-handbook/` group — yours, never managed.
+  - Hydrates `.claude/skills/*/SKILL.md`.
+  - Records every file it wrote in the marker's `installed.files`.
   - Runs initial MANIFEST regeneration.
 
-Side effects (with --rehydrate):
-  - Overwrites `00-handbook/*.md` with the latest docs from installed rhidoc.
-  - Overwrites `.claude/skills/rhidoc-cli/SKILL.md` and `.claude/skills/docs-development/SKILL.md`.
-  - Skips files that already match the latest version.
-  - Does NOT touch user-created docs outside 00-handbook.
-  - Does NOT overwrite workspace.json fields (title, description, externalRefPaths).
+A file already present at one of these paths is SKIPPED and left unmanaged — rhidoc
+records only what it actually wrote, so it will never overwrite your file later.
+
+Errors if a workspace already exists. Use `rhidoc update` to refresh one.
 
 Flags:
   --name TEXT    Workspace title. Default: parent directory name.
   --dir DIRNAME  Workspace directory name. Default: `.rhidoc`.
   --portable     Also copy editable Python scripts into workspace (pip-free usage).
-  --rehydrate    Refresh the handbook and skills in an existing workspace.
-  --dry-run      With --rehydrate: show what would be updated without writing.
 
-When to use --rehydrate:
-  - After upgrading rhidoc (`pip install -e .` or `pip install --upgrade rhidoc`).
-  - To push template improvements to existing workspaces.
+### update
+
+Reconcile hydrated files against what the installed rhidoc ships.
+
+```
+rhidoc update [--dry-run] [--check]
+```
+
+Side effects:
+  - Removes files rhidoc installed but no longer ships (renamed or dropped templates).
+  - Rewrites hydrated files whose content differs from this version.
+  - Records the new file list and `templatesVersion` in the marker.
+  - Never touches a path rhidoc did not install — reported as `Unmanaged` and left alone.
+  - Never touches user-authored docs, `07-user-handbook/`, or workspace.json settings.
+  - Does NOT rewrite `00-index.md` bodies (regenerate owns those).
+
+Ownership comes from the marker's `installed.files`, written at init. A workspace from
+a rhidoc predating that record adopts the files at rhidoc's own paths on the first
+update, and reports — but never deletes — leftovers such as an old `00-codex/` section.
+
+Flags:
+  --dry-run    Show what would change without writing.
+  --check      Report drift without writing; exit non-zero if any hydrated file is
+               stale. For CI gates.
+
+When to use:
+  - After upgrading rhidoc (`pip install --upgrade rhidoc`).
+  - To pull template improvements into an existing workspace.
 
 Example:
-  rhidoc init --rehydrate              # refresh after a rhidoc-cli upgrade
-  rhidoc init --rehydrate --dry-run    # preview what would change
+  rhidoc update              # refresh after a rhidoc upgrade
+  rhidoc update --dry-run    # preview what would change
 
 ### handbook
 
@@ -436,7 +458,7 @@ rhidoc handbook               # list the handbook docs with summaries
 rhidoc handbook <name>        # print one handbook doc
 ```
 
-Side effects: none. Writes nothing — `init` and `init --rehydrate` are what hydrate
+Side effects: none. Writes nothing — `init` and `update` are what hydrate
 the handbook into a workspace.
 
 Needs no workspace. Reads the installed rhidoc, not the workspace's hydrated copy, so

@@ -7,8 +7,10 @@ from pathlib import Path
 
 from ..__version__ import __version__
 from ..workspace import MARKER, find_workspace
+from ..errors import RhidocError
 from ..regenerate_core import do_regenerate
-from ..templates import HANDBOOK_DIR, Kind, by_kind, data_files, listed, render
+from ..templates import (HANDBOOK_DIR, TEMPLATES_VERSION, USER_SLOT, Kind,
+                         by_kind, data_files, listed, render)
 
 
 _PACKAGE_DIR = Path(__file__).resolve().parent.parent
@@ -67,6 +69,76 @@ def _skill_contents(dir_name: str) -> list[tuple[str, str]]:
 
 
 # ---------------------------------------------------------------------------
+# What rhidoc installs
+#
+# `init` records every file it writes in the marker's `installed.files`. `update`
+# reconciles against that record: a path rhidoc installed but no longer ships is
+# removed, and a path rhidoc never installed is never touched. Ownership is a fact
+# we wrote down, not a guess from the filesystem — which is what let an old section
+# (00-codex/) survive a rename, and let a hand-written skill get overwritten.
+# ---------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class Hydrated:
+    path: Path
+    content: str
+    # False for generated artifacts (00-index bodies are rewritten by regenerate):
+    # still rhidoc's to remove, but its content is not ours to refresh.
+    refresh: bool = True
+
+
+def _hydrated_files(project_root: Path, rhidoc_root: Path, title: str) -> list[Hydrated]:
+    dir_name = rhidoc_root.name
+    handbook_dir = rhidoc_root / HANDBOOK_DIR
+
+    out = [
+        Hydrated(handbook_dir / t.filename,
+                 render(t.name, dir_name=dir_name, title=title),
+                 refresh=t.rehydrate)
+        for t in by_kind(Kind.HANDBOOK)
+    ]
+    out.append(Hydrated(rhidoc_root / "AGENTS.md", render("agents", dir_name=dir_name)))
+    out += [
+        Hydrated(project_root / ".claude" / "skills" / name / "SKILL.md", content)
+        for name, content in _skill_contents(dir_name)
+    ]
+    return out
+
+
+def _rel(path: Path, project_root: Path) -> str:
+    return path.relative_to(project_root).as_posix()
+
+
+def _record_installed(config: dict, files: list[str]) -> None:
+    config["installed"] = {"templatesVersion": TEMPLATES_VERSION, "files": sorted(files)}
+
+
+# Artifacts shipped by rhidoc versions predating the installed-files record. Used only
+# to *report* leftovers on a legacy workspace's first `update` — never to delete, since
+# without a record we cannot prove rhidoc wrote them rather than the user.
+_LEGACY_ARTIFACTS = ["00-codex"]
+
+
+def _make_user_slot(handbook_dir: Path) -> None:
+    """Create the empty group at doc00.07 for the user's own doctrine.
+
+    Deliberately absent from `installed.files`: rhidoc scaffolds it once and never
+    manages it. Reserving a fixed slot is what stops a future shipped doc from
+    colliding with a user's doc at the same prefix — two .md roots at one prefix
+    break ref resolution. The ownership rule itself is stated in AGENTS.md, because
+    regenerate rewrites every 00-index body and would erase it from here.
+    """
+    slot = handbook_dir / USER_SLOT
+    if slot.exists():
+        return
+    slot.mkdir(parents=True, exist_ok=True)
+    (slot / "00-index.md").write_text(
+        "---\ntitle: User Handbook\nsummary: \"\"\ntags: []\ndeps: []\n---\n\n# User Handbook\n",
+        encoding="utf-8",
+    )
+
+
+# ---------------------------------------------------------------------------
 # init
 # ---------------------------------------------------------------------------
 
@@ -91,7 +163,7 @@ def cmd_init(args: argparse.Namespace) -> None:
 
     if marker_path.exists():
         print(f"Workspace already exists: {marker_path}")
-        print("Run `rhidoc init --rehydrate` to refresh handbook docs and skill files.")
+        print("Run `rhidoc update` to refresh handbook docs and skill files.")
         return
 
     title = a.name or project_root.name
@@ -109,32 +181,30 @@ def cmd_init(args: argparse.Namespace) -> None:
             ".cursor/**/*.md",
         ],
     }
+
+    # A file already at one of our paths is the user's, not ours: write it, or leave it
+    # alone forever. Claiming only what we actually wrote is what keeps `update` safe.
+    installed: list[str] = []
+    for h in _hydrated_files(project_root, rhidoc_dir, title):
+        rel = _rel(h.path, project_root)
+        if h.path.exists():
+            print(f"  Skipped:  {rel} (already exists — left unmanaged)")
+            continue
+        h.path.parent.mkdir(parents=True, exist_ok=True)
+        h.path.write_text(h.content, encoding="utf-8")
+        installed.append(rel)
+
+    _record_installed(marker_content, installed)
     marker_path.write_text(json.dumps(marker_content, indent=2) + "\n", encoding="utf-8")
 
-    # --- Handbook docs ---
-    for tmpl in by_kind(Kind.HANDBOOK):
-        content = render(tmpl.name, dir_name=dirname, title=title)
-        (handbook_dir / tmpl.filename).write_text(content, encoding="utf-8")
+    # --- The user's own slot: created once, never managed (see USER_SLOT) ---
+    _make_user_slot(handbook_dir)
 
     (rhidoc_dir / "MANIFEST.md").write_text(
         f"# {dirname}/ Manifest\n\nMachine-readable index for AI navigation. "
         "Run `rhidoc regenerate` to populate.\n",
         encoding="utf-8",
     )
-
-    # --- Agent wiring (generated; refreshed by --rehydrate) ---
-    (rhidoc_dir / "AGENTS.md").write_text(render("agents", dir_name=dirname), encoding="utf-8")
-
-    # --- Skills ---
-    for skill_name, content in _skill_contents(dirname):
-        skill_dir = project_root / ".claude" / "skills" / skill_name
-        skill_dir.mkdir(parents=True, exist_ok=True)
-        skill_path = skill_dir / "SKILL.md"
-        if skill_path.exists():
-            print(f"  Skipped:  .claude/skills/{skill_name}/SKILL.md (already exists)")
-            continue
-        skill_path.write_text(content, encoding="utf-8")
-        print(f"  Hydrated: .claude/skills/{skill_name}/SKILL.md")
 
     do_regenerate(rhidoc_dir, _load_preamble(rhidoc_dir.name))
 
@@ -156,11 +226,11 @@ def cmd_init(args: argparse.Namespace) -> None:
     print(f"  rhidoc --help                          # see all commands")
     print(f"  /rhidoc-setup                          # verify wiring & workspace health")
 
-    print(f"\nOptional — paste into your CLAUDE.md or AGENTS.md so agents find the workspace:")
-    print(f"")
-    print(f"  ## Documentation")
-    print(f"  This repo uses a {dirname}/ spec workspace. Read {dirname}/AGENTS.md for")
-    print(f"  how to navigate and edit it, and {dirname}/MANIFEST.md for the doc index.")
+    print(f"\nOptional — paste into your CLAUDE.md or AGENTS.md so agents find the workspace")
+    print(f"(reprint any time with `rhidoc handbook wiring`):")
+    print()
+    for line in render("wiring", dir_name=dirname).rstrip().splitlines():
+        print(f"  {line}" if line else "")
 
 
 # ---------------------------------------------------------------------------
@@ -199,7 +269,7 @@ def copy_portable(rhidoc_root: Path) -> bool:
 
 
 @dataclass(frozen=True)
-class InitRehydrateArgs:
+class UpdateArgs:
     dry_run: bool
     check: bool
 
@@ -208,109 +278,100 @@ class InitRehydrateArgs:
         return cls(dry_run=ns.dry_run, check=ns.check)
 
 
-def cmd_init_rehydrate(args: argparse.Namespace, rhidoc_root: Path) -> None:
-    """Refresh handbook docs and skill files from the installed rhidoc version."""
-    a = InitRehydrateArgs.from_namespace(args)
+def cmd_update(args: argparse.Namespace, rhidoc_root: Path) -> None:
+    """Bring hydrated files to the installed rhidoc version, from the installed-files record."""
+    a = UpdateArgs.from_namespace(args)
     project_root = rhidoc_root.parent
-    dirname = rhidoc_root.name
     marker_path = project_root / MARKER
 
     if not marker_path.exists():
-        print(f"No workspace found at {marker_path}")
-        return
+        raise RhidocError(f"No workspace found at {marker_path}\n"
+                          "Hint: run `rhidoc init` to scaffold one.")
 
     config = json.loads(marker_path.read_text(encoding="utf-8"))
     title = config.get("title", project_root.name)
-    handbook_dir = rhidoc_root / HANDBOOK_DIR
+    record = config.get("installed")
+    previous: set[str] | None = set(record["files"]) if record else None
 
     check = a.check
     no_write = a.dry_run or check
-
     updated = 0
     skipped = 0
 
-    # --- Handbook docs ---
-    for tmpl in by_kind(Kind.HANDBOOK):
-        if not tmpl.rehydrate:
+    def report(verb: str, rel: str) -> None:
+        print(f"  {'Drift' if check else 'Would ' + verb.lower() if no_write else verb}: {rel}")
+
+    desired = _hydrated_files(project_root, rhidoc_root, title)
+
+    # Removals: we installed it, we no longer ship it. Provably ours, so safe to delete.
+    if previous is not None:
+        for rel in sorted(previous - {_rel(h.path, project_root) for h in desired}):
+            stale = project_root / rel
+            if not stale.exists():
+                continue
+            report("Removed", rel)
+            if not no_write:
+                stale.unlink()
+            updated += 1
+
+    owned: list[str] = []
+    for h in desired:
+        rel = _rel(h.path, project_root)
+        exists = h.path.exists()
+
+        # Present but never installed by us — the user's file at our path. Never claim it.
+        if exists and previous is not None and rel not in previous:
+            print(f"  Unmanaged: {rel} (not installed by rhidoc — left alone)")
+            skipped += 1
             continue
-        filename = tmpl.filename
-        dest = handbook_dir / filename
-        new_content = render(tmpl.name, dir_name=dirname, title=title)
 
-        # A handbook doc from an older rhidoc may occupy this template's prefix
-        # under a different name; two .md roots at one prefix break resolution.
-        if handbook_dir.exists():
-            prefix = filename[:3]
-            for stale in sorted(handbook_dir.glob(f"{prefix}*.md")):
-                if stale.name == filename:
-                    continue
-                if no_write:
-                    print(f"  Drift: {stale.relative_to(project_root)} (stale handbook doc)" if check
-                          else f"  Would remove: {stale.relative_to(project_root)}")
-                else:
-                    stale.unlink()
-                    print(f"  Removed stale: {stale.relative_to(project_root)}")
-                updated += 1
+        owned.append(rel)
+        if exists and not h.refresh:
+            skipped += 1
+            continue
+        if exists and h.path.read_text(encoding="utf-8") == h.content:
+            skipped += 1
+            continue
 
-        if dest.exists():
-            old_content = dest.read_text(encoding="utf-8")
-            if old_content == new_content:
-                skipped += 1
-                continue
-
-        if no_write:
-            print(f"  Drift: {dest.relative_to(project_root)}" if check
-                  else f"  Would update: {dest.relative_to(project_root)}")
-        else:
-            handbook_dir.mkdir(parents=True, exist_ok=True)
-            dest.write_text(new_content, encoding="utf-8")
-            print(f"  Updated: {dest.relative_to(project_root)}")
+        report("Updated", rel)
+        if not no_write:
+            h.path.parent.mkdir(parents=True, exist_ok=True)
+            h.path.write_text(h.content, encoding="utf-8")
         updated += 1
 
-    # --- Agent wiring ---
-    agents_dest = rhidoc_root / "AGENTS.md"
-    agents_content = render("agents", dir_name=dirname)
-    if not (agents_dest.exists() and agents_dest.read_text(encoding="utf-8") == agents_content):
-        if no_write:
-            print(f"  Drift: {agents_dest.relative_to(project_root)}" if check
-                  else f"  Would update: {agents_dest.relative_to(project_root)}")
-        else:
-            agents_dest.write_text(agents_content, encoding="utf-8")
-            print(f"  Updated: {agents_dest.relative_to(project_root)}")
-        updated += 1
-    else:
-        skipped += 1
+    if previous is None:
+        _report_legacy(rhidoc_root, project_root)
 
-    # --- Skills ---
-    for skill_name, new_content in _skill_contents(dirname):
-        skill_dir = project_root / ".claude" / "skills" / skill_name
-        skill_path = skill_dir / "SKILL.md"
-
-        if skill_path.exists():
-            old_content = skill_path.read_text(encoding="utf-8")
-            if old_content == new_content:
-                skipped += 1
-                continue
-
-        if no_write:
-            print(f"  Drift: {skill_path.relative_to(project_root)}" if check
-                  else f"  Would update: {skill_path.relative_to(project_root)}")
-        else:
-            skill_dir.mkdir(parents=True, exist_ok=True)
-            skill_path.write_text(new_content, encoding="utf-8")
-            print(f"  Updated: {skill_path.relative_to(project_root)}")
-        updated += 1
+    if not no_write:
+        # Scaffold-if-absent, so the reservation is real in workspaces that predate it.
+        # Not a managed file: never overwritten, and absent from installed.files.
+        _make_user_slot(rhidoc_root / HANDBOOK_DIR)
+        _record_installed(config, owned)
+        marker_path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
 
     if check:
         if updated:
             print(f"\n{updated} hydrated file(s) stale, {skipped} current. "
-                  f"Run `rhidoc init --rehydrate` to refresh.")
+                  f"Run `rhidoc update` to refresh.")
             sys.exit(1)
         print(f"\nAll {skipped} hydrated file(s) current.")
         return
 
     verb = "Would update" if a.dry_run else "Updated"
     print(f"\n{verb} {updated} file(s), {skipped} already current.")
+
+
+def _report_legacy(rhidoc_root: Path, project_root: Path) -> None:
+    """Name leftovers from pre-record rhidoc versions. Reports only — never deletes."""
+    found = [name for name in _LEGACY_ARTIFACTS if (rhidoc_root / name).exists()]
+    if not found:
+        return
+    print()
+    for name in found:
+        print(f"  Leftover: {rhidoc_root.name}/{name}/ — shipped by an older rhidoc and "
+              f"no longer part of the handbook.")
+    print("  Move anything you wrote out of it, then remove it by hand. Rhidoc will not")
+    print("  delete it: without an installed-files record it cannot prove the files are its own.")
 
 
 def cmd_portable(args: argparse.Namespace, rhidoc_root: Path) -> None:

@@ -10,7 +10,7 @@ from ..ai_skill import cmd_ai_skill
 from .structure import cmd_make, cmd_delete, cmd_move, cmd_rename
 from .transform import cmd_punch, cmd_hoist, cmd_copy
 from .content import cmd_cat, cmd_tree, cmd_rewrite, cmd_regenerate, cmd_attach, cmd_ls, cmd_bundle, cmd_orphans
-from .setup import cmd_init, cmd_portable, cmd_init_rehydrate, cmd_handbook, handbook_listing
+from .setup import cmd_init, cmd_portable, cmd_update, cmd_handbook, handbook_listing
 from .mdapi import cmd_mdapi
 
 
@@ -164,14 +164,21 @@ def build_parser() -> argparse.ArgumentParser:
                         help="Name of the workspace directory. Default: .rhidoc")
     p_init.add_argument("--portable", action="store_true",
                         help="Dump editable Python scripts into workspace for pip-free usage.")
-    p_init.add_argument("--rehydrate", action="store_true",
-                        help="Refresh handbook docs and skill files in an existing workspace. "
-                             "Preserves workspace.json and user-authored docs.")
-    p_init.add_argument("--dry-run", action="store_true",
-                        help="With --rehydrate, show what would be updated without writing.")
-    p_init.add_argument("--check", action="store_true",
-                        help="With --rehydrate, report drift without writing and exit non-zero "
-                             "if any hydrated file is stale. For CI gates.")
+
+    # update
+    p_update = subparsers.add_parser(
+        "update",
+        help="Refresh handbook docs and skills from the installed rhidoc version",
+        description="Reconcile the files rhidoc installed against what this version ships. "
+                    "Removes what rhidoc installed but no longer ships, refreshes what "
+                    "changed, and never touches a file rhidoc did not install. Leaves "
+                    "workspace.json settings and user-authored docs alone.",
+    )
+    p_update.add_argument("--dry-run", action="store_true",
+                          help="Show what would change without writing.")
+    p_update.add_argument("--check", action="store_true",
+                          help="Report drift without writing and exit non-zero if any hydrated "
+                               "file is stale. For CI gates.")
 
     # portable
     p_portable = subparsers.add_parser("portable", help="Dump editable scripts into workspace")
@@ -364,7 +371,7 @@ def main(argv: list[str] | None = None) -> int:
         # Find the subcommand name: skip flags and their values
         known_subcommands = {
             "regenerate", "make", "delete", "move", "punch", "hoist",
-            "copy", "attach", "rewrite", "rename", "init",
+            "copy", "attach", "rewrite", "rename", "init", "update",
             "portable", "ai-skill", "cat", "tree", "ls", "bundle", "orphans",
             "mdapi", "handbook",
         }
@@ -397,16 +404,9 @@ def main(argv: list[str] | None = None) -> int:
             cmd_handbook(args)
             return 0
 
-        # init and portable don't require a pre-existing workspace
+        # init doesn't require a pre-existing workspace
         if args.command == "init":
-            if args.rehydrate:
-                try:
-                    rhidoc_root = find_workspace()
-                except FileNotFoundError as e:
-                    raise RhidocError(f"Error: {e}\nHint: run `rhidoc init` first to scaffold a workspace.")
-                cmd_init_rehydrate(args, rhidoc_root)
-            else:
-                cmd_init(args)
+            cmd_init(args)
             return 0
 
         # Resolve workspace
@@ -416,13 +416,16 @@ def main(argv: list[str] | None = None) -> int:
             try:
                 rhidoc_root = find_workspace()
             except FileNotFoundError as e:
-                raise RhidocError(f"Error: {e}")
+                hint = ("\nHint: run `rhidoc init` first to scaffold a workspace."
+                        if args.command == "update" else "")
+                raise RhidocError(f"Error: {e}{hint}")
 
         if args.command == "portable":
             cmd_portable(args, rhidoc_root)
             return 0
 
         dispatch = {
+            "update": cmd_update,
             "regenerate": cmd_regenerate,
             "make": cmd_make,
             "delete": cmd_delete,

@@ -293,111 +293,182 @@ def test_init_default_dir(run_cli, tmp_path):
     assert marker_data["root"] == ".rhidoc/"
 
 
-def test_init_without_rehydrate_refuses_existing(run_cli, tmp_path, snapshot):
-    """rhidoc init without --rehydrate refuses when .rhidoc.json already exists and hints at --rehydrate."""
+def test_init_refuses_existing(run_cli, tmp_path, snapshot):
+    """rhidoc init refuses when .rhidoc.json already exists and points at `update`."""
     (tmp_path / MARKER).write_text("{}")
     code, out, err = run_cli("init", cwd=tmp_path)
     assert code == 0
     assert normalize_output(out, tmp_path) == snapshot
 
 
-def test_init_rehydrate_updates_stale_template(run_cli, tmp_path):
-    """rhidoc init --rehydrate overwrites a stale codex template."""
+def test_init_records_installed_files(run_cli, tmp_path):
+    """init records every file it wrote, so update knows what it owns."""
+    run_cli("init", "--name", "TestProject", cwd=tmp_path)
+    config = json.loads((tmp_path / MARKER).read_text(encoding="utf-8"))
+    files = config["installed"]["files"]
+    assert ".rhidoc/00-handbook/04-plain-language.md" in files
+    assert ".rhidoc/AGENTS.md" in files
+    assert ".claude/skills/rhidoc-cli/SKILL.md" in files
+    assert config["installed"]["templatesVersion"] >= 1
+    # The user's slot is scaffolded but never claimed.
+    assert not any("07-user-handbook" in f for f in files)
+
+
+def test_init_creates_user_slot(run_cli, tmp_path):
+    """doc00.07 is scaffolded empty for the user's own doctrine."""
+    run_cli("init", "--name", "TestProject", cwd=tmp_path)
+    assert (tmp_path / ".rhidoc" / "00-handbook" / "07-user-handbook" / "00-index.md").exists()
+
+
+def test_init_does_not_claim_preexisting_file(run_cli, tmp_path):
+    """A file already at one of rhidoc's paths is left alone and never recorded as ours."""
+    skill = tmp_path / ".claude" / "skills" / "docs-development" / "SKILL.md"
+    skill.parent.mkdir(parents=True)
+    skill.write_text("MY OWN SKILL", encoding="utf-8")
+
+    run_cli("init", "--name", "TestProject", cwd=tmp_path)
+    config = json.loads((tmp_path / MARKER).read_text(encoding="utf-8"))
+    assert ".claude/skills/docs-development/SKILL.md" not in config["installed"]["files"]
+    assert skill.read_text(encoding="utf-8") == "MY OWN SKILL"
+
+
+def test_update_never_overwrites_unmanaged_file(run_cli, tmp_path):
+    """The bug that motivated the record: init skipped it, so update must not stomp it."""
+    skill = tmp_path / ".claude" / "skills" / "docs-development" / "SKILL.md"
+    skill.parent.mkdir(parents=True)
+    skill.write_text("MY OWN SKILL", encoding="utf-8")
+    run_cli("init", "--name", "TestProject", cwd=tmp_path)
+
+    code, out, err = run_cli("update", cwd=tmp_path)
+    assert code == 0, f"update failed:\n{err}\n{out}"
+    assert skill.read_text(encoding="utf-8") == "MY OWN SKILL"
+    assert "Unmanaged" in out
+
+
+def test_update_refreshes_stale_template(run_cli, tmp_path):
+    """update overwrites a handbook doc it installed."""
     run_cli("init", "--name", "TestProject", cwd=tmp_path)
     stale_path = tmp_path / ".rhidoc" / "00-handbook" / "01-about.md"
     stale_path.write_text("stale content", encoding="utf-8")
 
-    code, out, err = run_cli("init", "--rehydrate", cwd=tmp_path)
-    assert code == 0, f"rehydrate failed:\n{err}\n{out}"
+    code, out, err = run_cli("update", cwd=tmp_path)
+    assert code == 0, f"update failed:\n{err}\n{out}"
     assert stale_path.read_text(encoding="utf-8") != "stale content"
 
 
-def test_init_rehydrate_removes_stale_prefix_doc(run_cli, tmp_path):
-    """rehydrate removes a handbook doc occupying a template's prefix under an old name."""
+def test_update_leaves_user_doc_at_free_prefix_alone(run_cli, tmp_path):
+    """A doc rhidoc never installed survives, whatever prefix it occupies.
+
+    The old prefix-glob deleted these; ownership now comes from the record.
+    """
     run_cli("init", "--name", "TestProject", cwd=tmp_path)
-    handbook_dir = tmp_path / ".rhidoc" / "00-handbook"
-    old_doc = handbook_dir / "04-old-style-guide.md"
-    old_doc.write_text("old template content", encoding="utf-8")
+    mine = tmp_path / ".rhidoc" / "00-handbook" / "04-my-house-style.md"
+    mine.write_text("my own doc", encoding="utf-8")
 
-    code, out, err = run_cli("init", "--rehydrate", cwd=tmp_path)
-    assert code == 0, f"rehydrate failed:\n{err}\n{out}"
-    assert not old_doc.exists()
-    assert (handbook_dir / "04-plain-language.md").exists()
-    assert "Removed stale" in out
+    code, out, err = run_cli("update", cwd=tmp_path)
+    assert code == 0, f"update failed:\n{err}\n{out}"
+    assert mine.exists(), "update deleted a doc rhidoc never installed"
+    assert mine.read_text(encoding="utf-8") == "my own doc"
 
 
-def test_init_rehydrate_dry_run_keeps_stale_prefix_doc(run_cli, tmp_path):
-    """--dry-run reports the stale handbook doc without removing it."""
+def test_update_removes_file_no_longer_shipped(run_cli, tmp_path):
+    """A path rhidoc installed but no longer ships is removed — how renames clean up."""
     run_cli("init", "--name", "TestProject", cwd=tmp_path)
-    old_doc = tmp_path / ".rhidoc" / "00-handbook" / "04-old-style-guide.md"
-    old_doc.write_text("old template content", encoding="utf-8")
+    obsolete = tmp_path / ".rhidoc" / "00-handbook" / "09-obsolete.md"
+    obsolete.write_text("shipped by an older rhidoc", encoding="utf-8")
+    marker_path = tmp_path / MARKER
+    config = json.loads(marker_path.read_text(encoding="utf-8"))
+    config["installed"]["files"].append(".rhidoc/00-handbook/09-obsolete.md")
+    marker_path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
 
-    code, out, err = run_cli("init", "--rehydrate", "--dry-run", cwd=tmp_path)
-    assert code == 0, f"dry-run failed:\n{err}\n{out}"
-    assert old_doc.exists()
-    assert "Would remove" in out
+    code, out, err = run_cli("update", cwd=tmp_path)
+    assert code == 0, f"update failed:\n{err}\n{out}"
+    assert not obsolete.exists()
+    assert "Removed" in out
+    config_after = json.loads(marker_path.read_text(encoding="utf-8"))
+    assert ".rhidoc/00-handbook/09-obsolete.md" not in config_after["installed"]["files"]
 
 
-def test_init_rehydrate_dry_run(run_cli, tmp_path, snapshot):
-    """rhidoc init --rehydrate --dry-run shows plan without writing."""
+def test_update_legacy_reports_leftover_without_deleting(run_cli, tmp_path):
+    """A pre-record workspace adopts its files and is told about leftovers, not robbed of them."""
+    run_cli("init", "--name", "TestProject", cwd=tmp_path)
+    legacy_section = tmp_path / ".rhidoc" / "00-codex"
+    legacy_section.mkdir()
+    (legacy_section / "01-about.md").write_text("old section", encoding="utf-8")
+    marker_path = tmp_path / MARKER
+    config = json.loads(marker_path.read_text(encoding="utf-8"))
+    del config["installed"]
+    marker_path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
+
+    code, out, err = run_cli("update", cwd=tmp_path)
+    assert code == 0, f"update failed:\n{err}\n{out}"
+    assert legacy_section.exists(), "legacy leftovers must never be deleted on a guess"
+    assert "Leftover" in out
+    assert "00-codex" in out
+    # ...and the record now exists, so the next update is precise.
+    assert "installed" in json.loads(marker_path.read_text(encoding="utf-8"))
+
+
+def test_update_dry_run(run_cli, tmp_path, snapshot):
+    """rhidoc update --dry-run shows plan without writing."""
     run_cli("init", "--name", "TestProject", cwd=tmp_path)
     stale_path = tmp_path / ".rhidoc" / "00-handbook" / "01-about.md"
     stale_path.write_text("stale content", encoding="utf-8")
 
-    code, out, err = run_cli("init", "--rehydrate", "--dry-run", cwd=tmp_path)
+    code, out, err = run_cli("update", "--dry-run", cwd=tmp_path)
     assert code == 0, f"dry-run failed:\n{err}\n{out}"
     assert normalize_output(out, tmp_path) == snapshot
     assert stale_path.read_text(encoding="utf-8") == "stale content"
 
 
-def test_init_rehydrate_preserves_workspace_json(run_cli, tmp_path):
-    """rhidoc init --rehydrate does not overwrite workspace title in marker."""
+def test_update_preserves_workspace_json(run_cli, tmp_path):
+    """update does not overwrite workspace title in marker."""
     run_cli("init", "--name", "TestProject", cwd=tmp_path)
     marker_path = tmp_path / MARKER
     config = json.loads(marker_path.read_text(encoding="utf-8"))
     config["title"] = "My Custom Title"
     marker_path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
 
-    code, out, err = run_cli("init", "--rehydrate", cwd=tmp_path)
-    assert code == 0, f"rehydrate failed:\n{err}\n{out}"
+    code, out, err = run_cli("update", cwd=tmp_path)
+    assert code == 0, f"update failed:\n{err}\n{out}"
     config_after = json.loads(marker_path.read_text(encoding="utf-8"))
     assert config_after["title"] == "My Custom Title"
 
 
-def test_init_rehydrate_without_workspace(run_cli, tmp_path, snapshot):
-    """rhidoc init --rehydrate in an empty dir exits non-zero with helpful error."""
-    code, out, err = run_cli("init", "--rehydrate", cwd=tmp_path)
+def test_update_without_workspace(run_cli, tmp_path, snapshot):
+    """rhidoc update in an empty dir exits non-zero with a helpful error."""
+    code, out, err = run_cli("update", cwd=tmp_path)
     assert code != 0
     combined = out + err
     assert normalize_output(combined, tmp_path) == snapshot
 
 
-def test_init_rehydrate_refreshes_skill(run_cli, tmp_path):
-    """rhidoc init --rehydrate overwrites a stale rhidoc-cli SKILL.md."""
+def test_update_refreshes_skill(run_cli, tmp_path):
+    """update overwrites a stale rhidoc-cli SKILL.md that it installed."""
     run_cli("init", "--name", "TestProject", cwd=tmp_path)
     skill_path = tmp_path / ".claude" / "skills" / "rhidoc-cli" / "SKILL.md"
     skill_path.write_text("stale skill content", encoding="utf-8")
 
-    code, out, err = run_cli("init", "--rehydrate", cwd=tmp_path)
-    assert code == 0, f"rehydrate failed:\n{err}\n{out}"
+    code, out, err = run_cli("update", cwd=tmp_path)
+    assert code == 0, f"update failed:\n{err}\n{out}"
     assert skill_path.read_text(encoding="utf-8") != "stale skill content"
 
 
-def test_init_rehydrate_check_passes_when_current(run_cli, tmp_path):
-    """rhidoc init --rehydrate --check exits 0 when hydrated files are current."""
+def test_update_check_passes_when_current(run_cli, tmp_path):
+    """rhidoc update --check exits 0 when hydrated files are current."""
     run_cli("init", "--name", "TestProject", cwd=tmp_path)
-    code, out, err = run_cli("init", "--rehydrate", "--check", cwd=tmp_path)
+    code, out, err = run_cli("update", "--check", cwd=tmp_path)
     assert code == 0, f"expected pass:\n{out}\n{err}"
     assert "current" in out
 
 
-def test_init_rehydrate_check_fails_on_drift(run_cli, tmp_path):
-    """rhidoc init --rehydrate --check exits non-zero on drift without writing."""
+def test_update_check_fails_on_drift(run_cli, tmp_path):
+    """rhidoc update --check exits non-zero on drift without writing."""
     run_cli("init", "--name", "TestProject", cwd=tmp_path)
     agents = tmp_path / ".rhidoc" / "AGENTS.md"
     agents.write_text(agents.read_text(encoding="utf-8") + "\nstale\n", encoding="utf-8")
 
-    code, out, err = run_cli("init", "--rehydrate", "--check", cwd=tmp_path)
+    code, out, err = run_cli("update", "--check", cwd=tmp_path)
     assert code == 1, f"expected failure:\n{out}\n{err}"
     assert "AGENTS.md" in out
     assert "stale" in agents.read_text(encoding="utf-8")  # --check must not write
