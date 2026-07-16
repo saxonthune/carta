@@ -7,7 +7,7 @@ deps: [doc01.06]
 
 # Spec-Code Reconciliation
 
-Reconciliation is the process of comparing what a `.rhidoc/` workspace says the product should be against what the source code actually does, detecting drift, and suggesting alignment in either direction.
+Reconciliation compares what a `.rhidoc/` workspace says the product should be against what the source code actually does, detects drift, and suggests alignment in either direction.
 
 ## The Problem
 
